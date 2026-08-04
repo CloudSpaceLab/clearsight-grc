@@ -1,89 +1,98 @@
 # ClearSight Documentation Map
 
-This directory contains the canonical product, architecture, implementation, quality, and review specifications for ClearSight.
+This directory contains the canonical product, experience, architecture, delivery, quality, and review specifications for ClearSight.
 
-The documentation is deliberately layered so that internal architecture does not become user-interface architecture and legacy register concepts do not become separate truth systems.
+The documentation is layered so that:
 
----
-
-# Start here
-
-1. [`../README.md`](../README.md) — product vision, customer problem, Programs, Matters, continuous compliance, primary surfaces, and product wedge.
-2. [`product/continuous-compliance-operating-model.md`](product/continuous-compliance-operating-model.md) — how continuing Programs and bounded Matters replace disconnected registers and periodic reconstruction.
-3. [`product/operating-model.md`](product/operating-model.md) — canonical Program, Matter, Scope, Requirement, control, evidence, Decision, Action, Verification, Response Package, and relationship semantics.
-4. [`product/regulatory-and-enforcement-intelligence.md`](product/regulatory-and-enforcement-intelligence.md) — regulatory change, supervisory work, protected authority cases, rule composition, response packages, and source lineage.
-5. [`product/experience-principles.md`](product/experience-principles.md) — Today, Programs, Work, Explore, Configure, contextual Capture/Respond, visual language, accessibility, and golden screens.
-6. [`../AGENTS.md`](../AGENTS.md) — mandatory implementation and non-regression rules.
-7. [`architecture/continuous-compliance-architecture.md`](architecture/continuous-compliance-architecture.md) — cross-cutting architecture that composes Programs, Matters, graph, evidence, workflow, authorization, regulatory ingestion, protected cases, and AI.
-8. [`implementation-plan.md`](implementation-plan.md) — phased delivery plan beginning with source trust, Program engine, Matter engine, NDPA, and external-authority workflows.
-9. [`quality/acceptance-tests.md`](quality/acceptance-tests.md) — complete Program, Matter, evidence, security, visual, AI, recovery, and historical tests.
-10. [`quality/regulatory-and-enforcement-acceptance-tests.md`](quality/regulatory-and-enforcement-acceptance-tests.md) — specialized external-authority tests.
+- internal architecture does not become user-interface architecture;
+- legacy registers do not become separate truth systems;
+- usability is treated as a measurable product requirement;
+- Programs maintain continuing obligations;
+- Matters handle change, exception, harm, uncertainty, and external demand.
 
 ---
 
-# Product
+# Required reading order
 
-- [`product/continuous-compliance-operating-model.md`](product/continuous-compliance-operating-model.md) — canonical product aggregate model: Programs maintain; Matters mobilize.
-- [`product/operating-model.md`](product/operating-model.md) — universal shared objects and lifecycles.
-- [`product/differentiation.md`](product/differentiation.md) — product moat, category boundaries, source-to-outcome differentiation, and feature tests.
-- [`product/experience-principles.md`](product/experience-principles.md) — continuing Program and Matter experience, operational populations, regulatory interpretation, protected cases, imports, capture, accessibility, and visual quality.
-- [`product/regulatory-and-enforcement-intelligence.md`](product/regulatory-and-enforcement-intelligence.md) — External Authority Workbench semantics for normative regulation, supervisory Matters, investigative requests, protected subject work, compliance rule packages, and responses.
+1. [`../README.md`](../README.md) — product promise, Programs, Matters, continuous compliance, authority work, and five-minute usability standard.
+2. [`product/continuous-compliance-operating-model.md`](product/continuous-compliance-operating-model.md) — how Programs remain current and triggers create Matters.
+3. [`product/ease-of-use-standard.md`](product/ease-of-use-standard.md) — mandatory active-effort budgets, prefill, source reuse, AI recommendations, few-step flows, save/resume, and usability metrics.
+4. [`product/operating-model.md`](product/operating-model.md) — canonical Program, Matter, Scope, Requirement, Control, Observation, Evidence, Decision, Response, and Verification semantics.
+5. [`product/experience-principles.md`](product/experience-principles.md) — Today, Programs, Work, Explore, Configure, Respond/Capture, components, interaction rules, visual system, and timed golden flows.
+6. [`product/regulatory-and-enforcement-intelligence.md`](product/regulatory-and-enforcement-intelligence.md) — regulatory change, supervisory work, protected authority cases, rule composition, and response packages.
+7. [`product/differentiation.md`](product/differentiation.md) — product moat and category boundaries.
+8. [`../AGENTS.md`](../AGENTS.md) — mandatory contributor and non-regression rules.
+9. [`architecture/continuous-compliance-architecture.md`](architecture/continuous-compliance-architecture.md) — cross-cutting Program, Matter, context assembly, prefill, recommendation, trigger, workflow-efficiency, and authorization architecture.
+10. [`implementation-plan.md`](implementation-plan.md) — phased delivery plan with usability gates.
+11. [`quality/acceptance-tests.md`](quality/acceptance-tests.md) — timed end-to-end, usability, security, evidence, AI, visual, accessibility, and resilience requirements.
+12. [`quality/regulatory-and-enforcement-acceptance-tests.md`](quality/regulatory-and-enforcement-acceptance-tests.md) — specialized authority-source, legal-basis, case, response, and leakage tests.
+
+---
+
+# Product specifications
+
+- [`product/continuous-compliance-operating-model.md`](product/continuous-compliance-operating-model.md) — Programs, Matters, compliance chain, triggers, NDPA, source-led workflows, regulatory and authority work, and legacy transition.
+- [`product/ease-of-use-standard.md`](product/ease-of-use-standard.md) — less-than-five-minute routine target, safe complex-work checkpoint, prefill, minimum-question generation, integration-led usability, recommendation contract, review by exception, and quantitative targets.
+- [`product/operating-model.md`](product/operating-model.md) — universal product objects and invariants used across all domains and bank sizes.
+- [`product/experience-principles.md`](product/experience-principles.md) — information architecture, components, visual forms, interaction budgets, accessibility, responsive behavior, and golden flows.
+- [`product/regulatory-and-enforcement-intelligence.md`](product/regulatory-and-enforcement-intelligence.md) — External Authority Workbench semantics.
+- [`product/differentiation.md`](product/differentiation.md) — source-led context assembly, minimum-question evidence, governed recommendations, continuous Programs, Matters, and verified outcomes as the moat.
 
 ---
 
 # Architecture
 
-- [`architecture/continuous-compliance-architecture.md`](architecture/continuous-compliance-architecture.md) — cross-cutting bounded contexts, Program computation, trigger engine, Matter orchestration, Regulatory Change Compiler, protected Authority Request Cases, legacy migration, APIs/events, authorization, AI, and deployment.
-- [`architecture/product-semantics-mapping.md`](architecture/product-semantics-mapping.md) — mapping between Programs, Matters, shared primitives, and deeper component mechanisms.
-- [`architecture/risk-graph-and-decision-engine.md`](architecture/risk-graph-and-decision-engine.md) — canonical entities and relationships, temporal context, signals, materiality, appetite, Decisions, Actions, and verification.
-- [`architecture/living-evidence-fabric.md`](architecture/living-evidence-fabric.md) — Claims, immutable evidence, assertions, sufficiency, contradiction, evidence debt, source resolution, dynamic requests, protected evidence, and chain of custody.
-- [`architecture/governed-ai-operators.md`](architecture/governed-ai-operators.md) — operator identities, action classes, model gateway, grounding, tool policy, authority thresholds, prompt-injection defence, evaluation, and audit.
+- [`architecture/continuous-compliance-architecture.md`](architecture/continuous-compliance-architecture.md) — authoritative stores, Program computation, Matter composition, Source Registry, Context Assembly and Prefill, Minimum-Question Compiler, Recommendation and Task Compilation, trigger engine, workflow telemetry, save/resume, degraded mode, and derived legacy views.
+- [`architecture/product-semantics-mapping.md`](architecture/product-semantics-mapping.md) — mapping from user-facing objects to graph, evidence, decision, workflow, and AI mechanisms.
+- [`architecture/risk-graph-and-decision-engine.md`](architecture/risk-graph-and-decision-engine.md) — temporal relationships, materiality, appetite, decisions, actions, and verification.
+- [`architecture/living-evidence-fabric.md`](architecture/living-evidence-fabric.md) — claims, evidence, assertions, sufficiency, contradiction, source resolution, requests, chain of custody, and protected evidence.
+- [`architecture/governed-ai-operators.md`](architecture/governed-ai-operators.md) — model gateway, identities, tools, grounding, authority, prompt-injection defenses, evaluation, monitoring, and audit.
 
-The continuous-compliance architecture defines how component architectures compose. Component documents must not override Programs-and-Matters semantics or become mandatory navigation.
+Component architecture documents explain internal mechanisms. They must not override Program/Matters semantics, usability standards, or primary navigation.
 
 ---
 
 # Delivery and quality
 
-- [`implementation-plan.md`](implementation-plan.md) — delivery sequence: semantics and pilot, trust foundation, sources and ingestion, Program engine, Matter engine, NDPA, external authority, UX, governed AI, integrations, assurance, and GA.
-- [`quality/acceptance-tests.md`](quality/acceptance-tests.md) — legacy-register migration, ROPA, DPIA, breaches, filings, regulatory change, authority cases, findings, ATM/POS, KRIs, source degradation, malicious content, scope, degraded mode, and reconstruction.
-- [`quality/regulatory-and-enforcement-acceptance-tests.md`](quality/regulatory-and-enforcement-acceptance-tests.md) — final-versus-draft source classification, exact provision lineage, applicability, supervisory remediation, legal-instrument uncertainty, subject resolution, KYC/address workflows, suspicious-reporting authority, response packages, amendments, and minimized systemic signals.
+- [`implementation-plan.md`](implementation-plan.md) — delivery beginning with workflow budgets, source inventories, identity and trust, progressive ingestion, Programs, Matters, NDPA, regulatory change, authority cases, legacy migration, AI, and enterprise scale.
+- [`quality/acceptance-tests.md`](quality/acceptance-tests.md) — timed first-use and repeat-use tests, active-effort budgets, prefill, integration reuse, AI usefulness, accessibility parity, and complete golden journeys.
+- [`quality/regulatory-and-enforcement-acceptance-tests.md`](quality/regulatory-and-enforcement-acceptance-tests.md) — specialized source-status, applicability, authority, subject-resolution, response, suspicious-reporting, amendment, and protected-case tests.
 
 ---
 
 # Reviews
 
-- [`reviews/2026-08-04-visual-and-document-conformance-review.md`](reviews/2026-08-04-visual-and-document-conformance-review.md) — visual and documentation audit.
-- [`reviews/2026-08-04-prospective-bank-workflow-patterns.md`](reviews/2026-08-04-prospective-bank-workflow-patterns.md) — sanitized analysis of prospective-bank compliance, IT risk, operational risk, privacy, vendor, BIA, KRI, loss, and dashboard workflows.
+- [`reviews/2026-08-04-visual-and-document-conformance-review.md`](reviews/2026-08-04-visual-and-document-conformance-review.md) — prior visual and documentation audit.
+- [`reviews/2026-08-04-prospective-bank-workflow-patterns.md`](reviews/2026-08-04-prospective-bank-workflow-patterns.md) — sanitized analysis of prospective-bank registers, checklists, workplans, KRIs, BIA, losses, vendor, privacy, and dashboard workflows.
 
-Future major reviews should be stored under `docs/reviews/` with an absolute date and should not contain identifiable customer data in a public repository.
+Future major reviews should be dated and placed under `docs/reviews/`.
 
 ---
 
-# Planned decision records
+# Required architecture decisions
 
-Architecture decisions should be added under `docs/decisions/`.
-
-Minimum ADRs:
+ADRs should cover at minimum:
 
 - modular core and split criteria;
 - backend and frontend stack;
-- Program and Matter aggregate boundaries;
-- scope hierarchy and institution/licence model;
-- temporal/versioning model;
-- Observation and Evidence Contract;
-- Source Registry and source authority;
-- Authority Source authentication and provision segmentation;
-- Requirement, applicability, and Directive Atom schema;
-- protected reporting and Authority Request Case isolation;
-- spreadsheet/document/media processing security;
-- offline capture boundary;
-- workflow runtime;
+- Program and Matter aggregates;
+- scope hierarchy and institution profile;
+- temporal and versioning strategy;
+- Source Registry and Observation contract;
+- inventory adapter and prefill strategy;
+- Context Assembly package;
+- Minimum-Question Compiler;
+- Recommendation Contract and AI gateway;
+- workflow runtime and save/resume;
+- workflow-efficiency telemetry and privacy;
 - authorization and inference resistance;
-- object storage and evidence integrity;
-- outbox and event architecture;
-- graph/search/vector projections;
-- model gateway and provider routing;
+- evidence storage and integrity;
+- regulatory source segmentation;
+- protected authority-case isolation;
+- spreadsheet and media processing security;
+- offline capture;
+- outbox and events;
+- search, graph, and vector projections;
 - initial deployment mode;
 - audit and observability separation.
 
@@ -91,26 +100,26 @@ Minimum ADRs:
 
 # Canonical precedence
 
-When requirements conflict, apply:
+When requirements conflict:
 
 1. safety, confidentiality, legal boundaries, and tenant isolation;
 2. [`../README.md`](../README.md) for product intent;
-3. [`product/continuous-compliance-operating-model.md`](product/continuous-compliance-operating-model.md) for Programs-and-Matters behavior;
-4. [`product/operating-model.md`](product/operating-model.md) for shared semantics;
-5. specialized product specifications for domain behavior;
-6. [`product/experience-principles.md`](product/experience-principles.md) for user and visual behavior;
-7. [`../AGENTS.md`](../AGENTS.md) for normative implementation rules;
-8. [`architecture/continuous-compliance-architecture.md`](architecture/continuous-compliance-architecture.md) for cross-cutting internal composition;
-9. component architecture documents for detailed mechanisms;
-10. implementation plan for sequencing;
-11. acceptance tests for release proof.
+3. [`product/continuous-compliance-operating-model.md`](product/continuous-compliance-operating-model.md) and [`product/ease-of-use-standard.md`](product/ease-of-use-standard.md) for operating and effort semantics;
+4. [`product/operating-model.md`](product/operating-model.md) for canonical objects;
+5. specialized product specifications;
+6. [`product/experience-principles.md`](product/experience-principles.md) for UI and interaction;
+7. [`../AGENTS.md`](../AGENTS.md) for contributor rules;
+8. architecture documents for internal mechanisms;
+9. implementation plan for sequencing;
+10. acceptance tests for release proof.
 
 A material change must update:
 
-- the relevant product document;
-- affected architecture mapping or ADR;
+- relevant product specification;
+- experience and ease-of-use rules where workflow changes;
+- architecture mapping or ADR;
 - implementation-plan task or gate;
 - acceptance tests;
-- and a review document where it resolves a recorded issue.
+- review document when resolving a listed issue.
 
-Do not silently change product semantics in code, schema, prompts, UI, integrations, or reporting projections.
+Do not silently change product semantics, workflow-effort expectations, source behavior, prompts, UI, or integrations in code.
