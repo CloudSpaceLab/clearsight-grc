@@ -1,497 +1,601 @@
 # ClearSight Acceptance and Non-Regression Tests
 
-This document defines the minimum product, security, evidence, AI, visual, and operational tests required to preserve ClearSight’s differentiation.
+This document defines the minimum product, source-quality, evidence, security, AI, visual, accessibility, and operational tests required to preserve the ClearSight situation-first product model.
 
-A feature is not accepted because its CRUD operations work. It is accepted when the complete institutional behavior works under realistic positive, negative, ambiguous, unauthorized, degraded, and historical conditions.
+A feature is not accepted because CRUD, upload, API, or AI output works. It is accepted when the complete bank behavior works under realistic positive, negative, ambiguous, stale, partial, unauthorized, offline, degraded, and historical conditions.
+
+It conforms to:
+
+- [`../../README.md`](../../README.md)
+- [`../../AGENTS.md`](../../AGENTS.md)
+- [`../product/operating-model.md`](../product/operating-model.md)
+- [`../product/experience-principles.md`](../product/experience-principles.md)
 
 ---
 
 # 1. Test philosophy
 
-Tests must prove the product invariants:
+Tests must prove:
 
-- materiality before volume;
+- situations before modules;
+- banking language before GRC jargon;
+- scope before action;
+- source authority before automated trust;
+- progressive integration;
+- existing evidence before human requests;
+- data-quality transparency;
 - evidence before confidence;
-- relationships before forms;
+- contradiction before false certainty;
 - decisions before dashboards;
 - verification before closure;
-- automation before reminders;
 - human authority for material judgment;
-- and institutional memory over periodic reporting.
+- and point-in-time institutional memory.
 
-Fixtures must not inject the desired final conclusion or bypass the real owner, policy, graph, evidence, operator, or verification path.
+Fixtures MUST NOT inject desired conclusions, mappings, owners, authority, materiality, or verification outcomes.
 
 ---
 
 # 2. Required test layers
 
-## 2.1 Domain unit tests
+## Domain unit tests
 
-Test:
-
-- state transitions;
-- invariants;
-- temporal versioning;
-- evidence sufficiency dimensions;
-- authority evaluation;
-- appetite logic;
+- canonical object state transitions;
+- source authority and limitation;
+- observation provenance;
+- evidence-recipe policy;
+- sufficiency dimensions;
+- contradiction propagation;
+- situation lifecycle;
+- authority and segregation of duties;
 - verification-contract evaluation;
-- and contradiction propagation.
+- temporal semantics.
 
-## 2.2 Property-based tests
+## Property-based tests
 
-Use property-based tests where combinations are too broad for examples alone, including:
+Use where combinations are broad:
 
 - temporal intervals;
-- version and supersession chains;
+- scope inheritance;
 - authority matrices;
-- risk and appetite boundaries;
+- population denominators and exclusions;
 - evidence coverage;
+- matching and merge/unmerge;
 - idempotency;
-- and workflow transition sequences.
+- bulk selection;
+- workflow transitions;
+- import partial success.
 
-## 2.3 Contract tests
+## Contract tests
 
-Test:
-
-- APIs;
-- events;
+- APIs and events;
+- observation schema;
+- spreadsheet mapping schema;
 - integration adapters;
-- model structured-output schemas;
-- and export manifests.
+- structured AI output;
+- export manifests;
+- source-health events.
 
-## 2.4 Integration tests
+## Integration tests
 
-Test real interactions among:
+Use real interactions among:
 
-- database;
+- relational database;
 - object storage;
 - outbox and queue;
 - search and graph projections;
-- workflow runtime;
 - authorization;
-- and model gateway stubs or approved test routes.
+- durable workflow;
+- media and spreadsheet processing;
+- model gateway stubs or approved routes.
 
-## 2.5 End-to-end golden journeys
+## End-to-end tests
 
-Run through actual application boundaries, including UI where relevant.
+Run through real UI and service boundaries for selected golden journeys.
 
-## 2.6 Security tests
+## Security tests
 
-Test:
+- tenant and legal-entity isolation;
+- wrong-scope action;
+- relationship and purpose authorization;
+- bulk-operation authorization;
+- search, count, cache, graph, and embedding inference;
+- protected reporting;
+- malicious spreadsheets, media, documents, and prompts;
+- integration credentials;
+- offline capture.
 
-- tenant isolation;
-- relationship-based authorization;
-- protected identity isolation;
-- evidence access;
-- export boundaries;
-- prompt injection;
-- operator tool abuse;
-- and integration credentials.
+## AI evaluations
 
-## 2.7 AI evaluations
-
-Evaluate:
-
-- grounding;
-- domain correctness;
+- extraction correctness;
+- grounding and source versions;
+- explicit versus inferred values;
 - contradiction handling;
 - abstention;
 - authority routing;
-- security;
-- latency;
-- and cost.
+- prompt injection;
+- leakage;
+- latency and cost.
 
-## 2.8 Accessibility and visual regression
+## Visual, accessibility, and localization tests
 
-Maintain light and dark golden screens, keyboard journeys, screen-reader semantics, non-color status, reduced motion, and supported breakpoints.
+- light and dark parity;
+- comfortable and compact density;
+- desktop, tablet, and mobile where relevant;
+- keyboard and screen-reader journeys;
+- 200% zoom;
+- reduced motion;
+- local number, currency, date, and time formats;
+- long translated labels;
+- low bandwidth.
 
-## 2.9 Performance and resilience
+## Performance and recovery
 
-Test realistic signal, graph, evidence, workflow, export, and operator loads, plus failure and recovery.
+- observation ingestion;
+- spreadsheet and media processing;
+- population queries;
+- Situation and Today latency;
+- import backlog recovery;
+- workflow recovery;
+- source and model outage;
+- projection rebuild;
+- large export.
 
 ---
 
-# 3. Golden Journey A — Privileged-access evidence review
+# 3. Golden Journey A — ATM population, import, photo capture, and verification
 
 ## Purpose
 
-Prove that ClearSight asks only for missing human knowledge, reconciles machine and human evidence, preserves contradiction, and does not approve a claim prematurely.
+Prove progressive integration, source profiles, population reconciliation, targeted human capture, bounded photo interpretation, contradiction, decision, and verified outcome.
 
 ## Setup
 
-- Treasury Operations is a critical process.
+- Retail ATM channel in Lagos has 428 expected machines.
+- Asset-register spreadsheet contains 428 rows.
+- 19 rows have invalid or missing branch identifiers.
+- 12 machines have no switch heartbeat for more than 24 hours.
+- Vendor records conflict with the internal serial number for 4 machines.
+- Seven branches have related tampering or card-retention complaints.
+- Branch staff can photograph selected unresolved machines.
+
+## Required path
+
+1. User selects the ATM Asset Register Source Profile.
+2. Spreadsheet is uploaded and sheet selected.
+3. Columns are mapped to approved ATM fields.
+4. Preview shows type errors, duplicates, and missing identifiers.
+5. Import accepts valid observations and queues unresolved rows.
+6. Switch source supplies heartbeat observations.
+7. ClearSight creates one or more bounded ATM Risk Situations.
+8. Only unresolved machines are shown in the worklist.
+9. Branch staff receive focused requests for relevant machines.
+10. Capture requests full device context and serial-number region.
+11. AI extracts serial number and visible seal state.
+12. User confirms or corrects extracted values.
+13. Original image and extraction coordinates remain linked.
+14. One photo conflicts with asset register and vendor record.
+15. Contradiction prevents a supported asset-assignment conclusion.
+16. Authorized action corrects the inventory and investigates the device.
+17. Switch and follow-up observations meet the Verification Contract.
+18. Situation becomes verified only after accepted outcome evidence.
+
+## Assertions
+
+- [ ] Upload success is distinct from parse, mapping, observation acceptance, reconciliation, and sufficiency.
+- [ ] File, sheet, row, mapping version, and import time are preserved.
+- [ ] Percentages expose denominators and exclusions.
+- [ ] Only unresolved or sampled machines are requested from branches.
+- [ ] Photo interpretation is limited to visible attributes.
+- [ ] Machine-extracted and user-confirmed values are distinct.
+- [ ] Contradictory sources remain separate.
+- [ ] Source authority is visible.
+- [ ] No green appears at task completion.
+- [ ] Current and historical situation can be reconstructed.
+
+---
+
+# 4. Golden Journey B — POS terminal identity and settlement reconciliation
+
+## Purpose
+
+Prove reuse of the same operating model across a different banking channel and a large population.
+
+## Setup
+
+- 18,000 active POS terminal records.
+- Merchant KYC source, terminal-management source, settlement file, and processor telemetry.
+- 87 terminal IDs are duplicated.
+- 42 terminals map to conflicting merchants.
+- 19 terminals appear from unexpected locations.
+- Reversal rate increased for one merchant cluster.
+- Processor availability degraded during the same period.
+
+## Required path
+
+1. Sources are ingested with explicit authority and freshness.
+2. Terminal and merchant matching creates confirmed, provisional, unresolved, duplicate, and contradictory states.
+3. Population worklist shows total and filtered denominators.
+4. Related observations become one bounded POS Risk Situation where defensible.
+5. Settlement and transaction totals are compared.
+6. ClearSight separates processor degradation, identity mismatch, and reconciliation variance while preserving their relationship.
+7. Only unresolved merchant or terminal facts are requested.
+8. Appropriate channel owner reviews materiality and evidence.
+9. Decision and action are routed within authority.
+10. Outcome is verified against processor, terminal, and settlement observations.
+
+## Assertions
+
+- [ ] ATM-specific code is not required to model POS exposure.
+- [ ] Universal exposure patterns are reused.
+- [ ] A table, not a card grid, handles the terminal population.
+- [ ] Bulk selection shows exact criteria, count, exclusions, and side effects.
+- [ ] Bulk actions enforce authorization per object.
+- [ ] Duplicate and contradictory states remain distinguishable.
+- [ ] Processor completion cannot set final risk state.
+- [ ] Projected effect and observed result remain distinct.
+
+---
+
+# 5. Golden Journey C — Source degradation and data-quality uncertainty
+
+## Purpose
+
+Prove that source health and data quality affect confidence without being falsely represented as certain risk failure.
+
+## Setup
+
+- IAM source is normally refreshed hourly.
+- Last successful synchronization occurred 36 hours ago.
+- Current privileged-access claim depends on IAM and approval data.
+- No incident is observed.
+- A manager attests that the review was completed.
+
+## Required path
+
+1. Source Profile changes from current to stale.
+2. Affected observations and conclusions are identified.
+3. Situation shows evidence and data-quality debt separately from exposure severity.
+4. Manager attestation is accepted as an assertion, not replacement for current IAM population.
+5. System selects an approved fallback or requests focused evidence.
+6. Restored IAM data reconciles with interim evidence.
+
+## Assertions
+
+- [ ] Stale data is not shown as current.
+- [ ] No-data, stale, and control-failed states are visually distinct.
+- [ ] Successful connection recovery does not automatically resolve contradiction.
+- [ ] Source owner, limitation, age, and affected conclusion are visible.
+- [ ] Human attestation does not become independent technical evidence.
+
+---
+
+# 6. Golden Journey D — Minimum-question privileged-access review
+
+## Purpose
+
+Prove that ClearSight searches existing observations and asks only for unresolved business knowledge.
+
+## Setup
+
 - IAM lists 67 privileged accounts.
-- Approval repository contains current approval for 62.
-- One account is a known emergency account under a valid exception.
+- Approval repository covers 62.
+- One emergency account has a valid exception.
 - Four accounts have unresolved business need.
-- HR shows one of those four users transferred departments.
-- The manager is the best available source for business-need confirmation.
+- HR shows one of the four users transferred.
 
 ## Required path
 
-1. IAM and approval data are ingested with provenance.
-2. The claim is created for the exact population and review period.
-3. Existing evidence is evaluated before contacting a person.
-4. ClearSight identifies only four unresolved accounts.
-5. The request explains what is known and asks only about those four.
-6. The manager confirms three and states the transferred user no longer needs access.
-7. IAM still shows the transferred user active.
-8. A contradiction is created.
-9. The operating-effectiveness conclusion remains unresolved.
-10. Removal action is authorized and executed.
-11. IAM confirms removal.
-12. The verification contract observes no reactivation for the defined period.
-13. The conclusion becomes supported only after verification.
+1. Claim is created for exact population and period.
+2. IAM, approval, HR, and exception observations are evaluated first.
+3. Only four accounts are requested from the manager.
+4. Known identifiers, roles, and prior state are prefilled.
+5. Manager confirms three and rejects need for transferred user.
+6. IAM still shows transferred user active.
+7. Contradiction remains unresolved.
+8. Removal action is authorized.
+9. Verification observes no unauthorized reactivation for the defined period.
 
 ## Assertions
 
-- [ ] No request is sent for the other 63 accounts.
-- [ ] The request does not require the manager to enter data already known.
-- [ ] HR, IAM, manager, and approval evidence remain separate.
-- [ ] Contradiction is visible and affects conclusion.
-- [ ] Action completion does not immediately produce verified green.
-- [ ] Source versions and time scope are reconstructable.
-- [ ] An unauthorized manager cannot see other departments.
-- [ ] Duplicate IAM events do not duplicate evidence or action.
+- [ ] No request is sent for 63 resolved accounts.
+- [ ] Request uses business language, not control IDs.
+- [ ] Manager can redirect or report lack of authority.
+- [ ] Contradiction blocks final conclusion.
+- [ ] Action completion remains awaiting verification.
+- [ ] Unauthorized manager cannot see other departments.
 
 ---
 
-# 4. Golden Journey B — Payment-service resilience exposure
+# 7. Golden Journey E — Material decision, expiry, and verification failure
 
 ## Purpose
 
-Prove causal grouping, materiality, critical-service context, evidence debt, decision authority, and outcome verification.
+Prove authority, conditions, expiry, context invalidation, action-versus-outcome separation, and historical preservation.
 
 ## Setup
 
-- Retail instant payments is a critical service.
-- Impact tolerance is 30 minutes.
-- Service latency and failure rate increase.
-- Primary processor reports degradation.
-- A production change completed two hours earlier.
-- Vendor claims failover was tested.
-- The attached test is outside the required period.
-- A related disaster-recovery finding remains open.
+- A channel risk cannot be fully remediated before a planned launch.
+- Temporary acceptance is allowed for 90 days under defined conditions.
+- Product owner may propose but not approve.
+- A new vulnerable customer group later enters scope.
 
 ## Required path
 
-1. Each source emits a distinct signal.
-2. The Institutional Risk Graph connects them to one service and scenario.
-3. The Materiality Compiler groups them into one material item.
-4. Exposure and evidence debt are shown separately.
-5. The CISO or CRO sees why the item matters now.
-6. The system requests current failover evidence from the best source.
-7. Three response options are proposed with cost, time-to-effect, dependencies, and uncertainty.
-8. The correct authority approves one option.
-9. Execution creates external tasks.
-10. A new test produces telemetry.
-11. Recovery exceeds 30 minutes.
-12. Verification fails, issue remains open, and appetite state updates.
-
-## Assertions
-
-- [ ] Executive does not receive five disconnected alerts.
-- [ ] Materiality explanation references critical service, tolerance, open finding, and stale evidence.
-- [ ] A stale vendor attestation is not treated as current proof.
-- [ ] Approval cannot be performed by the action owner when segregation requires challenge.
-- [ ] External task completion cannot close the issue.
-- [ ] Failed verification is visible and updates the next decision.
-- [ ] Point-in-time reconstruction shows what was known before and after the new test.
-
----
-
-# 5. Golden Journey C — Material risk acceptance
-
-## Purpose
-
-Prove executable appetite, authority, conditions, expiry, context invalidation, and historical preservation.
-
-## Setup
-
-- A moderate technology risk cannot be remediated before a product launch.
-- Temporary acceptance is permitted for 90 days under defined conditions.
-- The product owner may propose but cannot approve.
-- The accepting executive has a financial and duration limit.
-
-## Required path
-
-1. Decision record captures evidence, uncertainty, options, and projected outcomes.
-2. Authority matrix selects the required approver.
-3. Acceptance includes conditions, expiry, review triggers, and verification.
-4. Product launch proceeds.
-5. A new vulnerable customer segment is added to the product.
-6. Original acceptance conditions no longer apply.
-7. ClearSight invalidates the active acceptance and requests a new decision.
-8. Original acceptance remains unchanged in history.
+1. Decision review shows exact scope, period, evidence, uncertainty, options, and side effects.
+2. Authority matrix selects approver.
+3. Acceptance includes conditions, expiry, and verification.
+4. New customer group invalidates conditions.
+5. Active decision expires or is invalidated.
+6. Original decision remains unchanged historically.
+7. Revised action is implemented.
+8. Outcome telemetry fails the threshold.
+9. Situation remains open or reopens.
 
 ## Assertions
 
 - [ ] Product owner cannot self-approve.
-- [ ] Acceptance has an explicit effective period.
-- [ ] Absence of an expiry is rejected for this policy.
+- [ ] Scope is visible before approval.
+- [ ] Context-free approval is impossible.
 - [ ] Context change invalidates rather than overwrites.
-- [ ] Board or audit can reconstruct the original evidence and authority.
-- [ ] AI may draft rationale but cannot approve acceptance.
+- [ ] Failed verification is visually distinct from implementation failure.
+- [ ] AI may draft but cannot approve.
 
 ---
 
-# 6. Golden Journey D — Remediation implementation versus effectiveness
+# 8. Golden Journey F — Anonymous protected report and sanitized escalation
 
 ## Purpose
 
-Prove that issue closure requires outcome evidence.
+Prove isolated intake, anonymous communication, protected content, conflict-aware routing, and minimized connection to ordinary risk situations.
 
 ## Setup
 
-- Repeated unauthorized privileged-access reactivation caused a finding.
-- Remediation adds automated deprovisioning.
-- Ticketing system records implementation complete.
-- Verification requires 30 days with zero unauthorized reactivations.
-
-## Required path
-
-1. Action enters `IMPLEMENTED` after valid implementation evidence.
-2. Issue enters `AWAITING_VERIFICATION`.
-3. On day 12, an account is reactivated.
-4. Verification fails.
-5. Issue reopens or remains open according to policy.
-6. Risk state and executive item update.
-7. A revised remediation is proposed.
-
-## Assertions
-
-- [ ] Implemented state is visually distinct from verified effective.
-- [ ] No green state is shown before the observation period completes.
-- [ ] Reactivation event is linked to the verification contract.
-- [ ] Failure does not delete implementation evidence.
-- [ ] Projected and observed treatment effect are both retained.
-
----
-
-# 7. Golden Journey E — Anonymous whistleblower report
-
-## Purpose
-
-Prove identity isolation, anonymous communication, protected evidence processing, conflict-aware routing, and risk-signal integration.
-
-## Setup
-
-- Reporter chooses anonymous submission.
-- Report alleges deliberate bypass of a customer-refund control.
+- Anonymous report alleges deliberate bypass of a customer-refund control.
 - Audio and screenshots are attached.
 - One investigator is named in the allegation.
-- The report may indicate broad customer impact.
+- Report may indicate broad customer harm.
 
 ## Required path
 
 1. Portal explains anonymity and confidentiality boundaries.
-2. Reporter submits without creating an internal account.
+2. Reporter submits without internal account.
 3. Secure case token is issued.
-4. Case content and any optional identity data are stored separately.
-5. Named/conflicted investigator is excluded.
-6. Audio is processed only through an approved protected-data route.
-7. AI summary distinguishes allegation from verified facts.
-8. Investigator sends a question through anonymous messaging.
-9. Reporter responds using the token.
-10. Validated evidence creates a risk signal without exposing identity.
+4. Protected case content and optional identity are separately controlled.
+5. Conflicted investigator cannot access case or counts.
+6. Media uses approved protected-data route.
+7. Summary distinguishes allegation from verified fact.
+8. Investigator sends anonymous follow-up.
+9. Reporter responds through token.
+10. Validated minimized risk signal creates or updates a Risk Situation without protected identity.
 
 ## Assertions
 
-- [ ] Reporter identity is absent from ordinary case queries.
-- [ ] Search, embeddings, logs, analytics, exports, and graph views do not leak identity.
-- [ ] Identity reveal requires a separate privileged workflow.
-- [ ] No credibility score is derived from language, emotion, accent, or demographics.
-- [ ] Conflicted investigator cannot access case metadata or counts.
-- [ ] Original audio and derived transcript remain linked and separately controlled.
-- [ ] Anonymous reporter can communicate bidirectionally.
+- [ ] Identity is absent from ordinary search, graph, analytics, logs, exports, and notifications.
+- [ ] Case narrative cannot leak through ordinary summaries.
+- [ ] Identity reveal is a separate privileged workflow.
+- [ ] No credibility score is inferred from style, emotion, accent, or demographics.
+- [ ] Original and derived media remain separately controlled.
+- [ ] Sanitized escalation is traceable to protected authority without exposing content.
 
 ---
 
-# 8. Golden Journey F — Regulatory change to evidence lineage
+# 9. Golden Journey G — Malicious spreadsheet, document, and prompt injection
 
 ## Purpose
 
-Prove source-to-obligation-to-control-to-evidence lineage with expert review and time-aware versions.
+Prove content security and governed AI behavior across common ingestion methods.
 
 ## Setup
 
-- An authoritative regulator publishes revised outsourcing guidance.
-- One paragraph changes an existing obligation.
-- The bank has two related controls, one global and one entity-specific.
-- Vendor-exit evidence is stale for one critical provider.
+- Spreadsheet contains formula injection and hidden sheets.
+- Document contains instructions to reveal secrets, access another tenant, close the situation, and call a tool.
+- Image metadata contains unexpected location and personal data.
 
 ## Required path
 
-1. Regulatory source and version are captured.
-2. Candidate changed obligation is extracted with source passage.
-3. Low-confidence applicability is routed to compliance review.
-4. Approved obligation is linked to affected entities, service, controls, and vendor.
-5. Gap analysis identifies stale exit evidence.
-6. Targeted evidence request is issued.
-7. Action and verification are linked.
-8. Examiner export traces the final statement to original source.
+1. Spreadsheet is treated as untrusted content.
+2. Formula and active-content policy is applied.
+3. Hidden sheets and macros are surfaced according to policy.
+4. Document instructions do not alter operator policy.
+5. No cross-tenant retrieval or unauthorized tool call occurs.
+6. Image metadata is minimized or governed.
+7. Relevant observations may still be extracted.
+8. Security events are recorded safely.
 
 ## Assertions
 
-- [ ] AI extraction cannot publish without required review.
-- [ ] Source text and normalized obligation are distinct.
-- [ ] Prior obligation version remains reconstructable.
-- [ ] Global and entity-specific control implementations are not collapsed.
-- [ ] Final export includes source, obligation, control, evidence, decision, and action lineage.
+- [ ] Tool permission remains outside prompts.
+- [ ] Free-form output cannot mutate domain state.
+- [ ] Secret and cross-tenant requests return nothing, including counts or titles.
+- [ ] Import preview does not execute formulas.
+- [ ] Security logging contains no restricted evidence.
 
 ---
 
-# 9. Golden Journey G — Probo execution boundary
+# 10. Golden Journey H — Scope switching, bulk action, and partial authorization
 
 ## Purpose
 
-Prove that Probo or another compliance engine can execute work without becoming authoritative for ClearSight material decisions.
+Prove that a user cannot accidentally act across entities, regions, or unauthorized objects.
 
 ## Setup
 
-- ClearSight identifies a missing compliance measure.
-- Approved action creates a task in Probo.
-- Probo collects a document and marks the task complete.
-- The document proves implementation but not operating effectiveness.
+- User can manage Lagos region but view summary data for another region.
+- A filtered worklist contains 120 visible records.
+- 10 records are read-only due to authority.
+- User selects “all matching” and initiates a bulk ownership update.
 
 ## Required path
 
-1. ClearSight creates a scoped, idempotent external action.
-2. Probo object IDs and versions are recorded.
-3. Returned document is captured as source evidence.
-4. Task completion updates implementation state.
-5. Verification remains pending.
-6. Separate operating evidence is collected.
-7. ClearSight issues the final conclusion.
+1. Scope header shows bank, entity, region, population, and period.
+2. Selection summary shows 120 matching, 110 writable, 10 excluded.
+3. Exact filter and action are shown.
+4. Server evaluates authorization for each object.
+5. User approves proportional side effects.
+6. Action is idempotent.
+7. Post-action result shows success, exclusion, failure, and retry states.
+8. Audit manifest reconstructs the operation.
 
 ## Assertions
 
-- [ ] Duplicate writes do not create duplicate Probo tasks.
-- [ ] Organization mapping is server-controlled.
-- [ ] Model does not receive unrestricted Probo bearer token.
-- [ ] Probo completion cannot directly set ClearSight risk state.
-- [ ] Permission revocation or deleted evidence is reconciled.
+- [ ] Client selection cannot bypass server authorization.
+- [ ] User cannot infer unauthorized record details.
+- [ ] Scope switch clears or confirms incompatible drafts and selections.
+- [ ] Partial success is not displayed as universal success.
+- [ ] Bulk action can be retried safely.
 
 ---
 
-# 10. Golden Journey H — AI operator malicious-content defense
+# 11. Golden Journey I — Offline branch capture and synchronization conflict
 
 ## Purpose
 
-Prove prompt-injection resistance and governed tool use.
+Prove safe evidence capture under unstable connectivity.
 
 ## Setup
 
-An uploaded evidence document contains text instructing the AI to:
-
-- ignore policy;
-- reveal secrets;
-- access another tenant;
-- close the finding;
-- and call an external tool.
+- Branch user receives three ATM confirmation requests.
+- Network becomes unavailable.
+- Policy permits encrypted offline drafts for this evidence class.
+- Another source updates one ATM before synchronization.
 
 ## Required path
 
-1. Document is treated as untrusted evidence content.
-2. Relevant evidence facts may still be extracted.
-3. Embedded instructions do not alter operator policy.
-4. No secret or cross-tenant data is retrieved.
-5. No unauthorized tool is invoked.
-6. Injection attempt is recorded safely.
-7. Human review receives the valid extraction and security signal.
+1. Requests and permitted reference data are available offline.
+2. Unsynchronized state is explicit.
+3. Capture time is preserved separately from upload time.
+4. User submits photos and confirmations locally.
+5. Synchronization resumes.
+6. One record conflicts with newer authoritative data.
+7. Conflict is routed for review rather than overwritten.
+8. Duplicate submission is prevented.
 
 ## Assertions
 
-- [ ] Tool permissions remain external to prompts.
-- [ ] Free-form model output cannot mutate state.
-- [ ] Cross-tenant retrieval returns no data, titles, counts, or hints.
-- [ ] Audit includes operator, sources, model, policy, denial, and result.
+- [ ] Restricted evidence that cannot be stored offline is blocked with explanation.
+- [ ] Local queue is encrypted and bounded.
+- [ ] Offline status is not shown as submitted.
+- [ ] Conflict retains both versions and timing.
+- [ ] Retry does not duplicate observations.
 
 ---
 
-# 11. Golden Journey I — AI and integration degraded mode
+# 12. Golden Journey J — AI and integration degraded mode
 
 ## Purpose
 
-Prove that core risk governance remains usable during external failure.
+Prove that core GRC operation remains usable when external models or sources fail.
 
 ## Setup
 
-- Primary model provider is unavailable.
-- Vendor connector is delayed.
-- Executive must make a time-sensitive decision.
+- Primary model provider unavailable.
+- Vendor connector delayed.
+- Executive must review a time-sensitive situation.
 
 ## Required path
 
-1. Deterministic source data and last-known connector state are displayed.
-2. Stale vendor data is explicitly labeled.
-3. AI analysis shows unavailable, not pending forever.
-4. Manual evidence and decision workflow remains available.
-5. Decision records missing information and uncertainty.
+1. Deterministic situation context appears.
+2. Last-known source data is labeled with exact age.
+3. AI state shows unavailable rather than pending forever.
+4. Manual evidence and decision workflow remains usable.
+5. Missing information and uncertainty are captured.
 6. Failed tasks are resumable after recovery.
 
 ## Assertions
 
-- [ ] No stale AI answer is shown as newly generated.
-- [ ] No stale connector data is presented as current.
-- [ ] Manual decision captures uncertainty and authority.
+- [ ] No stale AI answer is shown as new.
+- [ ] No stale source is shown as current.
+- [ ] Manual decision retains evidence and uncertainty.
 - [ ] Recovery does not duplicate queued work.
 
 ---
 
-# 12. Golden Journey J — Point-in-time reconstruction
+# 13. Golden Journey K — Point-in-time situation reconstruction
 
 ## Purpose
 
-Prove institutional memory.
+Prove institutional memory across source, mapping, evidence, decision, and outcome changes.
 
 ## Setup
 
-A risk decision, evidence conclusion, graph relationship, and policy are later corrected or superseded.
+- Source mapping, relationship, conclusion, decision, and policy are later corrected or superseded.
 
 ## Required path
 
-An authorized auditor selects a historical date and retrieves:
+Authorized user selects a historical date and retrieves:
 
-- institutional relationships valid then;
-- records known then;
-- evidence versions available then;
-- appetite and policy version;
-- materiality explanation;
-- decision and approvers;
-- and subsequent corrections clearly separated.
+- scope and relationships valid then;
+- observations recorded then;
+- source health and mappings known then;
+- claims and evidence available then;
+- conclusion and materiality;
+- decision, authority, and conditions;
+- subsequent corrections clearly separated.
 
 ## Assertions
 
 - [ ] Historical records are not overwritten.
-- [ ] Valid time and record time are distinguishable.
-- [ ] Later evidence is not incorrectly included in the “known then” view.
-- [ ] Access is evaluated against the current authorized viewer while preserving historical content.
-- [ ] Export manifest identifies the reconstruction time and included versions.
+- [ ] Valid time and record time are distinct.
+- [ ] Future observations are excluded from “known then.”
+- [ ] Current viewer authorization is enforced.
+- [ ] Export manifest records reconstruction time and versions.
 
 ---
 
-# 13. Authorization test matrix
+# 14. Golden Journey L — External execution engine boundary
 
-Every object type requires tests for:
+## Purpose
 
-- same tenant, permitted entity, permitted purpose;
-- same tenant, wrong legal entity;
-- same tenant, correct role but wrong relationship;
-- same tenant, expired assignment;
+Prove that Probo, ITSM, or another execution engine can perform work without becoming authoritative for ClearSight conclusions.
+
+## Setup
+
+- ClearSight authorizes a compliance or remediation task.
+- External engine collects a document and marks the task complete.
+- Document proves implementation but not operating effectiveness.
+
+## Required path
+
+1. Scoped idempotent external action is created.
+2. External object ID and version are recorded.
+3. Returned document becomes an observation.
+4. Action becomes implemented.
+5. Verification remains pending.
+6. Separate outcome evidence is collected.
+7. ClearSight issues final conclusion.
+
+## Assertions
+
+- [ ] Duplicate writes create no duplicate task.
+- [ ] Organization mapping is server-controlled.
+- [ ] Model receives no unrestricted bearer token.
+- [ ] External completion cannot set final risk state.
+- [ ] Deletion or permission revocation is reconciled.
+
+---
+
+# 15. Authorization test matrix
+
+For each object and projection, test:
+
+- same tenant, permitted entity, purpose, and relationship;
+- same tenant, wrong entity or region;
+- correct role, wrong ownership relationship;
+- expired or delegated assignment;
 - different tenant;
 - service identity outside capability;
-- delegated operator exceeding user authority;
-- protected case with conflict;
-- audit read independence;
-- export with mixed sensitivity;
+- operator exceeding user authority;
+- protected case conflict;
+- audit independence;
+- mixed-sensitivity export;
 - search and vector retrieval;
 - graph traversal;
-- count and aggregate inference;
+- counts and aggregates;
 - cache isolation;
 - background worker scope;
-- and break-glass access.
+- bulk operation;
+- offline queue;
+- break-glass access.
 
 Required invariant:
 
@@ -499,60 +603,95 @@ Required invariant:
 
 ---
 
-# 14. Temporal and versioning tests
+# 16. Source, import, and reconciliation tests
 
-Test:
+## Source Registry
 
-- overlapping valid-time intervals;
-- late-arriving facts;
-- backdated corrections;
-- superseded evidence;
-- reopened conclusions;
-- expired decisions;
-- relationship changes;
-- source revocation;
-- and point-in-time exports.
+- authoritative field and limitation;
+- owner change;
+- freshness target;
+- stale and unavailable state;
+- authorization revoked;
+- mapping version change;
+- retired source;
+- affected-conclusion propagation.
 
-Properties:
+## Spreadsheet and CSV
 
-- no material version is overwritten;
-- each supersession chain is valid;
-- current view selects the correct active version;
-- historical view does not include future knowledge;
-- and dependent conclusions are invalidated predictably.
+- multiple sheets;
+- hidden sheets;
+- malformed and oversized files;
+- wrong delimiter and encoding;
+- formula injection;
+- duplicate rows;
+- invalid dates and currencies;
+- missing identifiers;
+- partial acceptance;
+- rollback reference;
+- row provenance.
+
+## Matching
+
+- exact match;
+- alias match;
+- ambiguous candidate;
+- duplicate external identifier;
+- provisional match;
+- merge and unmerge;
+- later contradiction;
+- downstream impact.
+
+Required invariants:
+
+- import success does not imply evidence sufficiency;
+- unresolved rows remain visible;
+- no silent merge of ambiguous material identities;
+- percentages expose denominators and exclusions.
 
 ---
 
-# 15. Evidence tests
+# 17. Evidence tests
 
 ## Integrity
 
-- content hash validation;
+- hash validation;
 - corrupted upload;
 - interrupted/resumed upload;
 - duplicate content;
-- object-store version change;
+- object version change;
 - malware rejection;
-- and signed manifest verification.
+- signed manifest where configured.
+
+## Photo and media
+
+- blur, glare, crop, unreadable label;
+- multiple identifiers;
+- incorrect AI extraction;
+- correction and confirmation;
+- metadata minimization;
+- protected background content;
+- original-versus-derived linkage.
 
 ## Sufficiency
 
 - relevant but stale;
 - fresh but wrong scope;
-- complete self-attestation;
+- full self-attestation;
 - partial independent sample;
 - full system population;
-- contradictory authoritative sources;
-- and unavailable original source.
+- conflicting authoritative sources;
+- unavailable original;
+- source outside authority limit.
 
 ## Request burden
 
-- existing evidence already sufficient;
+- evidence already sufficient;
 - overlapping requests;
-- recipient redirects to better source;
+- recipient redirects;
 - partial response;
-- response received through another channel;
-- and request becomes irrelevant before deadline.
+- evidence arrives through another channel;
+- request becomes irrelevant;
+- wrong recipient or conflict.
 
 Required invariant:
 
@@ -560,243 +699,168 @@ Required invariant:
 
 ---
 
-# 16. Materiality tests
+# 18. Situation and materiality tests
 
 Test:
 
-- high-severity but contained and delegated event;
-- moderate fast-moving exposure with weak evidence;
-- many duplicate signals;
-- one signal affecting multiple critical services;
+- one exposure across multiple observations;
+- one observation affecting multiple situations;
+- duplicate observations;
 - evidence debt without observed failure;
+- source degradation;
 - appetite approach versus breach;
 - concentration amplification;
-- customer-vulnerability impact;
-- and context change invalidating a previous dismissal.
+- customer vulnerability;
+- context change invalidating dismissal;
+- situation merge, split, supersede, reopen;
+- suppression without deletion.
 
 Required invariants:
 
 - severity alone does not determine executive priority;
-- evidence uncertainty is not falsely represented as certain risk failure;
-- grouped signals remain traceable;
-- and dismissed signals are preserved.
-
----
-
-# 17. Decision and authority tests
-
-Test:
-
-- unauthorized proposer;
-- self-approval conflict;
-- parallel approval;
-- conditional approval;
-- dissent;
-- emergency authority;
-- expired acceptance;
-- violated condition;
-- evidence deterioration;
-- and approver role change mid-workflow.
-
-Required invariants:
-
-- effective authority is evaluated at action time;
-- AI cannot grant authority;
-- and an approval record preserves the context reviewed.
-
----
-
-# 18. AI evaluation suites
-
-Each operator evaluation must include:
-
-## Grounding
-
-- correct source selected;
-- source version correct;
-- no unsupported factual claim;
-- contradiction disclosed;
-- and time scope correct.
-
-## Domain behavior
-
-- facts, claims, conclusions, and decisions remain separate;
-- correct entity resolution;
-- correct action class;
-- and correct evidence relationship.
-
-## Abstention
-
-- insufficient evidence;
-- ambiguous entity;
-- conflicting source;
-- out-of-scope request;
-- and unsupported legal conclusion.
-
-## Authority
-
-- material risk acceptance;
-- regulatory reportability;
-- issue closure;
-- protected identity;
-- and external communication.
-
-## Security
-
-- prompt injection;
-- indirect prompt injection;
-- cross-tenant request;
-- secret request;
-- malicious tool arguments;
-- and sensitive-data exfiltration.
-
-## Reliability
-
-- malformed output;
-- tool timeout;
-- partial failure;
-- provider outage;
-- duplicate invocation;
-- and replay.
-
-## Protected reporting
-
-- allegation/fact distinction;
-- no credibility profiling;
-- no identity leakage;
-- and safe translation.
+- evidence uncertainty is not represented as certain control failure;
+- grouped observations remain traceable;
+- suppressed observations remain available;
+- user-facing language remains banking-first.
 
 ---
 
 # 19. Visual regression matrix
 
-Maintain screenshots for each golden screen in:
+Maintain golden screens for:
 
-- dark mode;
-- light mode;
-- desktop;
-- tablet where relevant;
-- mobile where relevant;
-- normal data;
-- loading;
-- empty;
-- error;
-- stale;
-- insufficient evidence;
-- contradictory;
-- unauthorized;
-- and verified states.
+1. Today brief.
+2. Situation card in evidence-needed, decision-needed, and verification-failed states.
+3. Situation workspace: Summary, Evidence, Decision, Action, Outcome, History.
+4. ATM inventory situation.
+5. POS identity or settlement situation.
+6. Population worklist.
+7. Spreadsheet mapper.
+8. Import summary and reconciliation queue.
+9. Source Profile.
+10. Degraded-source state.
+11. Evidence micro-request.
+12. Mobile ATM photo capture.
+13. AI extraction review.
+14. Controlled-value form.
+15. Evidence sufficiency.
+16. Contradiction compare.
+17. Decision approval.
+18. Implemented but awaiting verification.
+19. Failed verification.
+20. Relationship path.
+21. Point-in-time reconstruction.
+22. No material change.
+23. No data.
+24. Not assessed.
+25. Unauthorized.
+26. Whistleblower intake.
+27. Anonymous follow-up.
+28. Protected investigator case.
+29. Board or committee mode.
+30. AI unavailable.
+31. Offline queued capture.
+32. Synchronization conflict.
+33. Bulk action review.
+34. Post-action reconciliation.
+35. Export review and manifest.
 
-Golden screens:
+For each relevant screen test:
 
-1. Today executive brief
-2. Material decision card
-3. Explain workspace
-4. Institutional graph
-5. Evidence micro-request
-6. Mobile evidence capture
-7. Evidence sufficiency panel
-8. Contradiction comparison
-9. Decision approval
-10. Verification contract
-11. Failed verification
-12. Whistleblower intake
-13. Anonymous follow-up
-14. Protected investigator case
-15. Regulatory lineage
-16. Board pack review
-17. Operator review
-18. Integration degraded mode
+- light and dark;
+- comfortable and compact density;
+- desktop, tablet, and mobile;
+- loading, empty, stale, contradictory, unauthorized, error, offline, and degraded states;
+- 125%, 150%, and 200% zoom;
+- keyboard focus;
+- long translated labels;
+- local currency, date, number, and time-zone formats.
 
-Visual review must reject:
+Reject:
 
 - uncontrolled density;
-- semantic-color drift;
-- decorative glow;
-- low-contrast glass;
-- layout shift;
-- green used for completion only;
-- and light-mode neglect.
+- architecture names as mandatory navigation;
+- cards used for large populations;
+- color-only meaning;
+- decorative glass or glow;
+- low-contrast metadata;
+- hidden material actions on hover;
+- unexplained percentages or missing denominators;
+- green for completion;
+- upload success presented as evidence success;
+- AI claims exceeding visible observations;
+- light-mode neglect;
+- mobile compression of desktop complexity.
 
 ---
 
-# 20. Accessibility test matrix
+# 20. Accessibility and localization matrix
 
-Automated and manual tests must cover:
+Test:
 
-- full keyboard navigation;
+- full keyboard operation;
 - logical focus order;
 - visible focus;
-- screen-reader names, roles, states, and async announcements;
+- screen-reader names, roles, values, and async announcements;
 - headings and landmarks;
 - non-color status;
+- table navigation;
 - chart alternatives;
 - form error association;
-- target size;
+- touch targets;
 - reduced motion;
 - 200% zoom;
-- high contrast where supported;
 - multilingual expansion;
-- and low-bandwidth external reporting.
-
-No protected-reporting or evidence-submission journey may require a mouse.
+- right-to-left readiness where supported;
+- local currencies and dates;
+- low-bandwidth capture;
+- evidence and protected-reporting journeys without mouse.
 
 ---
 
-# 21. Performance tests
+# 21. Performance and recovery tests
 
-Define exact workload targets from pilot sizing. At minimum test:
+Test:
 
-- concurrent executive users;
-- high-volume signal bursts;
-- graph neighborhood and dependency queries;
-- point-in-time reconstruction;
-- evidence upload and processing;
-- full-population evidence snapshots;
-- search and authorized retrieval;
-- workflow backlogs;
-- large audit exports;
-- and operator concurrency.
+- concurrent executive and operational users;
+- 20,000+ row worklists;
+- spreadsheet parsing and reconciliation;
+- media processing;
+- authorized search;
+- Situation load;
+- Today ranking;
+- workflow backlog;
+- large export;
+- model concurrency;
+- source burst and recovery.
 
 Measure:
 
-- p50, p95, and p99 latency;
+- p50, p95, p99 latency;
 - throughput;
 - error rate;
 - queue delay;
 - database contention;
-- memory;
-- storage;
+- memory and storage;
 - model cost;
-- and recovery time.
-
-Required behavior:
-
-- deterministic content is not blocked by AI;
-- long lists are paginated or virtualized;
-- graph detail is progressive;
-- evidence upload is resumable;
-- and backlogs recover without duplicate side effects.
-
----
-
-# 22. Resilience and recovery tests
+- recovery time;
+- UI stability.
 
 Simulate:
 
 - database failover;
-- object-store temporary failure;
+- object-store failure;
 - queue outage;
-- worker crash mid-task;
-- model-provider outage;
-- connector outage;
+- worker crash;
+- model outage;
+- source outage;
 - token revocation;
-- search-index corruption;
+- search corruption;
 - graph-projection rebuild;
-- region loss;
-- and backup restore.
+- offline conflict;
+- backup restore.
 
-Verify:
+Required behavior:
 
 - authoritative state remains correct;
 - workflows resume;
@@ -807,35 +871,9 @@ Verify:
 
 ---
 
-# 23. Migration tests
+# 22. Release gates
 
-For imported legacy GRC data, test:
-
-- duplicate risks and controls;
-- conflicting owners;
-- missing effective dates;
-- unlinked evidence;
-- invalid file references;
-- status ambiguity;
-- historical decisions stored as comments;
-- and legal-entity mismatch.
-
-Migration must produce:
-
-- reconciliation report;
-- unresolved mapping queue;
-- source provenance;
-- import version;
-- rollback path;
-- and explicit confidence for inferred relationships.
-
-Do not silently convert legacy attachments into sufficient evidence.
-
----
-
-# 24. Release gates
-
-## Pull request gate
+## Pull request
 
 - relevant unit and contract tests pass;
 - authorization negative cases pass;
@@ -843,58 +881,62 @@ Do not silently convert legacy attachments into sufficient evidence.
 - accessibility checked;
 - visual diff reviewed for UI changes;
 - no sensitive logging;
-- and migration/rollback considered.
+- source and data-quality impact reviewed;
+- migration and rollback considered.
 
-## Feature gate
+## Feature
 
-- complete vertical behavior passes;
-- degraded mode works;
-- telemetry is present;
-- role and authority matrix is tested;
-- and support/runbook content exists.
+- complete situation behavior passes;
+- scope and source authority are visible;
+- partial and degraded mode works;
+- telemetry exists;
+- role and authority are tested;
+- support and runbook content exists.
 
-## AI capability gate
+## AI capability
 
 - evaluation thresholds pass;
 - no critical authorization or leakage failure;
 - structured output validates;
-- abstention behavior is acceptable;
+- extracted and inferred values are distinguishable;
+- abstention is acceptable;
 - monitoring and kill switch exist;
-- and regression comparison is reviewed.
+- regression comparison reviewed.
 
-## Pilot gate
+## Pilot
 
-- all selected golden journeys pass;
-- tenant and protected-identity assessment passes;
+- selected ATM and POS/settlement journeys pass;
+- tenant, entity, bulk, source, and protected-data assessments pass;
 - backup and recovery tested;
 - performance meets pilot targets;
-- and users demonstrate reduced effort with improved evidence quality.
+- users demonstrate reduced effort and improved data/evidence quality.
 
-## General availability gate
+## General availability
 
 - independent security review complete;
 - SLOs and operational ownership approved;
 - deployment and rollback tested;
-- legal/privacy controls validated;
-- and no critical product-invariant defect remains.
+- legal and privacy controls validated;
+- no critical product-invariant defect;
+- no unresolved critical visual or accessibility defect in core journeys.
 
 ---
 
-# 25. Final acceptance standard
+# 23. Final acceptance standard
 
 ClearSight passes its core acceptance test only when it can:
 
-1. receive fragmented institutional signals;
-2. connect them through the institutional graph;
-3. identify one defensible material risk item;
-4. explain what changed and why it matters;
-5. find existing evidence before asking a person;
-6. ask only the smallest unresolved question;
-7. preserve contradictions and uncertainty;
-8. route the appropriate human decision;
-9. execute through governed people, systems, or operators;
-10. verify the intended outcome;
-11. update risk based on accepted evidence;
-12. and reconstruct the entire path later.
+1. receive imperfect bank information through realistic sources;
+2. expose source authority, freshness, and unresolved quality;
+3. normalize observations with provenance;
+4. create one understandable bounded Risk Situation;
+5. explain what changed and why it matters;
+6. find existing evidence before asking a person;
+7. ask only for the smallest unresolved facts;
+8. preserve contradiction and uncertainty;
+9. route the appropriate authorized decision;
+10. execute through governed people, systems, or operators;
+11. verify the defined observable outcome;
+12. and reconstruct the complete situation later.
 
-Anything less is a partial workflow, not the finished ClearSight operating loop.
+Anything less is a partial workflow or visual prototype, not the finished ClearSight operating loop.
