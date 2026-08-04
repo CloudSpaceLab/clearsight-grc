@@ -2,7 +2,7 @@
 
 This file defines mandatory rules for every human contributor, coding agent, design agent, reviewer, and automated change applied to ClearSight.
 
-It exists to prevent the product from gradually regressing into a conventional GRC portal, a generic AI chat interface, a dense enterprise dashboard, or a collection of disconnected modules.
+It exists to prevent the product from regressing into a conventional GRC portal, a generic AI chat interface, a dense enterprise dashboard, a graph demo, or a collection of disconnected modules.
 
 The words **MUST**, **MUST NOT**, **SHOULD**, and **SHOULD NOT** are normative.
 
@@ -10,50 +10,68 @@ The words **MUST**, **MUST NOT**, **SHOULD**, and **SHOULD NOT** are normative.
 
 # 1. Mission
 
-ClearSight is an AI-native risk operating system for regulated institutions, built first for banks.
+ClearSight is a direct, AI-native risk and governance operating system built first for banks.
 
-Every implementation decision must advance this product outcome:
+Every implementation decision must advance this outcome:
 
-> **Enable the institution to make the safest defensible decision with the least reasonable human effort, then prove that the decision and resulting action actually worked.**
+> **Enable each stakeholder to understand the risk situation relevant to them, provide or inspect the minimum necessary evidence, make an authorized and evidence-grounded decision, and verify whether the defined outcome criteria were achieved.**
 
-The product is not optimized for the number of records, forms, modules, dashboards, notifications, or AI messages it can produce. It is optimized for:
+ClearSight remains a comprehensive GRC platform, but users MUST NOT be required to operate its internal architecture.
 
-- earlier detection of material risk;
-- less effort required from staff;
-- stronger evidence;
+The product is optimized for:
+
+- recognizable banking situations;
+- earlier detection of material exposure;
+- less human effort;
+- stronger and more transparent evidence;
+- explicit source authority and data quality;
 - clearer accountable decisions;
-- faster proportionate action;
-- verified risk reduction;
+- proportionate action;
+- verified outcome criteria;
 - and durable institutional memory.
+
+It is not optimized for the number of forms, modules, dashboards, records, alerts, graph nodes, AI messages, or configuration options it can display.
 
 ---
 
-# 2. Required reading order
+# 2. Required reading and precedence
 
-Before changing product behavior, architecture, domain semantics, or interface structure, read:
+Before changing product behavior, domain semantics, architecture, or interface structure, read:
 
 1. [`README.md`](README.md)
-2. [`docs/product/differentiation.md`](docs/product/differentiation.md)
+2. [`docs/product/operating-model.md`](docs/product/operating-model.md)
 3. [`docs/product/experience-principles.md`](docs/product/experience-principles.md)
-4. [`docs/architecture/risk-graph-and-decision-engine.md`](docs/architecture/risk-graph-and-decision-engine.md)
-5. [`docs/architecture/living-evidence-fabric.md`](docs/architecture/living-evidence-fabric.md)
-6. [`docs/architecture/governed-ai-operators.md`](docs/architecture/governed-ai-operators.md)
-7. [`docs/implementation-plan.md`](docs/implementation-plan.md)
-8. [`docs/quality/acceptance-tests.md`](docs/quality/acceptance-tests.md)
+4. [`docs/product/differentiation.md`](docs/product/differentiation.md)
+5. [`docs/architecture/risk-graph-and-decision-engine.md`](docs/architecture/risk-graph-and-decision-engine.md)
+6. [`docs/architecture/living-evidence-fabric.md`](docs/architecture/living-evidence-fabric.md)
+7. [`docs/architecture/governed-ai-operators.md`](docs/architecture/governed-ai-operators.md)
+8. [`docs/implementation-plan.md`](docs/implementation-plan.md)
+9. [`docs/quality/acceptance-tests.md`](docs/quality/acceptance-tests.md)
 
-A change that conflicts with these documents must include an explicit architecture or product decision record and update every affected canonical document in the same change.
+When documents conflict, use this order:
+
+1. safety, confidentiality, legal boundary, and tenant isolation;
+2. README product intent;
+3. operating-model product semantics;
+4. experience principles;
+5. this normative file;
+6. architecture documents;
+7. implementation sequencing;
+8. acceptance detail.
+
+An internal architecture mechanism MUST NOT override the simpler user-facing operating model without an explicit product decision and synchronized documentation change.
 
 Do not silently reinterpret product language in code.
 
 ---
 
-# 3. Priority order when requirements conflict
+# 3. Priority order
 
-Use this order:
+When requirements conflict:
 
 1. Safety, confidentiality, legal boundaries, and tenant isolation
 2. Evidence integrity and decision auditability
-3. Product invariants and domain correctness
+3. Product semantics and invariants
 4. User authority and segregation of duties
 5. Functional correctness
 6. Accessibility and usability
@@ -66,830 +84,709 @@ Visual polish may never conceal uncertainty, weaken accessibility, or replace mi
 
 ---
 
-# 4. Product invariants
+# 4. Canonical product objects
+
+The product-facing operating model uses the following concepts.
+
+## 4.1 Scope
+
+The bounded institution, legal entity, jurisdiction, channel, service, branch, merchant group, asset population, vendor relationship, customer group, or process being governed.
+
+The active scope and effective period MUST be explicit before material action, approval, export, bulk change, or evidence submission.
+
+## 4.2 Exposure Pattern
+
+A reusable description of how a banking activity, population, service, dependency, or control may fail or cause harm.
+
+Exposure patterns SHOULD be reused across ATM, POS, mobile, branch, payments, cards, vendors, cyber, resilience, and other domains rather than copied into separate module schemas.
+
+## 4.3 Risk Situation
+
+A current, bounded instance requiring monitoring, evidence, assessment, decision, action, or verification.
+
+A Risk Situation is the primary user-facing object. It connects underlying risks, controls, obligations, incidents, evidence, decisions, actions, and relationships without requiring separate module navigation.
+
+## 4.4 Claim and Evidence Recipe
+
+A Claim is a precise statement requiring support, contradiction, qualification, or resolution.
+
+An Evidence Recipe defines acceptable observations, source authority, scope, freshness, coverage, contradiction rules, and review requirements for that claim.
+
+## 4.5 Observation
+
+A normalized, source-preserving record of something observed, submitted, imported, measured, extracted, or asserted.
+
+Forms, dropdowns, photos, spreadsheets, documents, APIs, database exports, telemetry, messages, attestations, customer reports, and protected reports MUST converge on the same governed observation contract.
+
+## 4.6 Conclusion
+
+A versioned determination of what the current evidence supports.
+
+## 4.7 Decision
+
+An authorized selection among options with evidence, uncertainty, scope, authority, rationale, conditions, expiry, actions, and verification.
+
+## 4.8 Verification Contract
+
+A definition of the observable outcome, source, baseline, population, threshold, period, authority, and failure response.
+
+The product verifies whether defined outcome criteria were achieved. It MUST NOT overstate that one action conclusively caused all risk movement.
+
+---
+
+# 5. Product invariants
 
 These invariants are non-negotiable.
 
-## 4.1 Materiality before volume
+## 5.1 Situations before modules
 
-The product must reduce noise rather than expose every low-level event to executives.
+Users MUST be able to understand and handle one situation without navigating separate risk, control, evidence, issue, action, and assurance module homepages.
 
-- Raw signals MUST remain available for investigation.
-- The default executive experience MUST show a deliberately small number of material items.
-- Similar signals SHOULD be causally grouped where defensible.
-- Alert count MUST NOT be used as a proxy for risk severity.
-- A materiality decision MUST expose the rules, appetite statements, graph relationships, evidence, assumptions, and confidence that influenced it.
+Internal bounded contexts MAY remain separate in code. Their boundaries MUST NOT dictate the primary interface.
 
-## 4.2 Evidence before confidence
+## 5.2 Banking language before GRC jargon
 
-No material conclusion may be represented as reliable without traceable supporting evidence.
+Primary user language SHOULD begin with channels, services, branches, merchants, customers, assets, systems, vendors, transactions, and outcomes.
+
+Control IDs, taxonomy codes, regulatory references, and graph terminology remain available for specialists but MUST NOT dominate ordinary tasks.
+
+## 5.3 Scope before action
+
+The active institution, legal entity, jurisdiction, channel, service, population, and period MUST be clear enough to prevent wrong-context action.
+
+Context switching MUST be deliberate and tested.
+
+## 5.4 Materiality before volume
+
+- Raw observations and signals MUST remain available.
+- Executive surfaces MUST show a deliberately small number of material situations.
+- Similar observations SHOULD be grouped where defensible.
+- Grouping MUST preserve source records and rationale.
+- Suppression MUST NOT mean analytical disappearance.
+- Alert count MUST NOT represent risk severity.
+
+## 5.5 Existing evidence before human requests
+
+The system MUST search authorized existing observations and evidence before contacting a person.
+
+Requests MUST ask only for unresolved facts and MUST stop when the evidence need is satisfied or no longer relevant.
+
+## 5.6 Source authority before automated trust
+
+An API, database, spreadsheet, or telemetry source is authoritative only for explicitly governed facts and scope.
+
+Every source MUST expose:
+
+- owner;
+- authoritative fields;
+- limitations;
+- scope;
+- expected freshness;
+- current health;
+- mapping version;
+- and known data-quality issues.
+
+Successful ingestion MUST NOT be treated as truth, completeness, or evidence sufficiency.
+
+## 5.7 Progressive integration
+
+The product MUST remain useful with structured manual capture, managed imports, APIs, or events.
+
+Regional banks MUST NOT require enterprise-grade APIs before obtaining value. Multinational banks MUST be able to deepen automation without changing product semantics.
+
+## 5.8 Evidence before confidence
 
 - AI confidence MUST NOT substitute for evidence sufficiency.
-- A score MUST expose its dimensions and supporting facts.
+- Scores MUST expose dimensions and supporting facts.
 - Contradictory evidence MUST remain visible.
 - Original source material MUST be preserved where policy permits.
 - Derived summaries MUST link to source versions.
 
-## 4.3 Relationships before forms
+## 5.9 Data-quality transparency
 
-The institutional graph is authoritative for cross-domain relationships.
+Unresolved mappings, duplicate identifiers, stale sources, conflicting owners, partial imports, and incomplete populations MUST remain visible.
 
-- Do not create duplicate module-specific versions of the same risk, control, vendor, service, obligation, or evidence object.
-- Forms are capture surfaces, not the domain model.
-- New features MUST identify the entities and relationships they add or modify.
-- A relationship MUST include provenance, effective time, and confidence where applicable.
+Data-quality weakness MAY create or affect a Risk Situation.
 
-## 4.4 Decisions before dashboards
+## 5.10 Decisions before dashboards
 
-A material indicator must lead to an accountable next step.
+A material state MUST identify the required evidence, investigation, decision, action, or verification.
 
-- A red or amber state MUST identify the required decision, evidence gap, investigation, or action.
-- “View details” alone is not a valid handling path.
-- Decision cards MUST show authority, options, trade-offs, evidence strength, expected outcome, and verification method.
+“View details” alone is not a valid handling path.
 
-## 4.5 Verification before closure
+## 5.11 Verification before closure
 
-Task completion is not proof of risk reduction.
-
-- Material remediation MUST define a verification contract before closure.
+- Material remediation MUST define a verification contract.
+- Implementation MUST remain visually and semantically separate from verified outcome.
 - Closure MUST require accepted outcome evidence.
-- The system MUST distinguish implementation evidence from effectiveness evidence.
-- Contradictory later evidence MUST be able to reopen or supersede the conclusion without deleting history.
+- Later contradiction MUST reopen or supersede the conclusion without deleting history.
 
-## 4.6 Automation before reminders
+## 5.12 Human authority for material judgment
 
-Do not add reminders where approved automation can safely complete the work.
+Risk appetite, material acceptance, reportability, protected identity disclosure, external regulatory representation, and other restricted decisions remain human-governed.
 
-- The system SHOULD gather known information before contacting a person.
-- Requests MUST ask only for unresolved facts.
-- Repeated requests for the same valid evidence MUST be deduplicated.
-- Automation MUST remain bounded by authority, purpose, reversibility, and policy.
+AI MUST NOT silently execute material judgment.
 
-## 4.7 Human authority for material judgment
+## 5.13 Progressive disclosure over interface density
 
-Risk appetite, material risk acceptance, protected identity disclosure, regulatory representation, and other high-impact decisions remain human-governed.
+Default views show only information necessary for the current task. Specialists retain full lineage and detail.
 
-- AI may recommend but MUST NOT silently execute a material judgment.
-- Authority thresholds MUST be explicit and testable.
-- Overrides MUST capture actor, reason, evidence, and effect.
+## 5.14 Institutional memory
 
-## 4.8 Institutional memory over periodic reporting
-
-The system must preserve how understanding and decisions evolved.
-
-- Material objects MUST support point-in-time reconstruction.
-- Corrections MUST supersede rather than overwrite.
-- Evidence, graph edges, risk states, decisions, and policy versions MUST retain temporal lineage.
-
----
-
-# 5. Differentiation guards
-
-A change MUST NOT weaken the following defining capabilities.
-
-## 5.1 Living Evidence Fabric
-
-Evidence is claim-centric, dynamic, multimodal, and continuously reconciled.
-
-Never reduce evidence handling to:
-
-- a generic file upload field;
-- a checklist attachment;
-- an unversioned document URL;
-- a self-attestation with no supporting context;
-- or a binary “present/missing” flag.
-
-Every evidence implementation must preserve:
-
-- the claim being supported or contradicted;
-- source and provenance;
-- effective and capture time;
-- scope and coverage;
-- authenticity indicators;
-- sensitivity and access policy;
-- original content and derived interpretations;
-- version history;
-- sufficiency dimensions;
-- contradictions;
-- and review history.
-
-## 5.2 Dynamic micro-requests
-
-The system must ask the smallest useful question to the best-placed source.
-
-A request engine MUST:
-
-1. identify the unresolved claim;
-2. search for existing valid evidence;
-3. determine the minimum missing facts;
-4. identify the most authoritative accessible source;
-5. prefill known context;
-6. select the least burdensome approved channel;
-7. provide a clear reason and deadline;
-8. validate the response;
-9. ask a focused follow-up only when necessary;
-10. stop when sufficient evidence has been obtained.
-
-Broad recurring questionnaires require explicit justification.
-
-## 5.3 Materiality Compiler
-
-No feature may bypass the materiality model and directly flood the executive surface.
-
-Materiality is contextual. It may depend on:
-
-- affected critical services;
-- customers and vulnerable customer groups;
-- legal entities and jurisdictions;
-- financial and non-financial impact;
-- appetite and tolerance;
-- propagation paths and concentration;
-- control importance;
-- risk velocity and time-to-impact;
-- regulatory deadlines;
-- evidence weakness;
-- and decision authority.
-
-A single opaque numeric score is insufficient.
-
-## 5.4 Decision Ledger
-
-Material decisions are first-class, durable objects.
-
-Do not store a material risk decision only as:
-
-- a comment;
-- an email body;
-- a meeting note;
-- a status transition;
-- or an unstructured AI transcript.
-
-A decision MUST include context, options, evidence, uncertainty, authority, rationale, conditions, expected outcome, review date, and verification contract.
-
-## 5.5 Protected reporting
-
-Whistleblower and confidential-reporting controls are stricter than ordinary case management.
-
-- Reporter identity MUST be isolated from case content.
-- Anonymous two-way communication MUST not require identity disclosure.
-- Access MUST be need-to-know and conflict-aware.
-- Search, analytics, exports, logs, backups, and observability MUST not leak protected identity.
-- AI MUST NOT score credibility from language style, emotion, accent, demographic attributes, or unsupported behavioral inference.
-- Any identity reveal MUST require explicit authority, reason, and immutable audit.
-
-## 5.6 Outcome-verified remediation
-
-A feature MUST NOT mark risk treatment successful based solely on task state.
-
-A verification contract must define:
-
-- intended risk outcome;
-- observable measure;
-- evidence source;
-- observation period;
-- success and failure thresholds;
-- dependencies;
-- acceptance authority;
-- and failure handling.
-
-## 5.7 Governed AI operators
-
-Do not introduce an unconstrained “AI assistant” with broad data and tool access.
-
-Every operator MUST be:
-
-- identity-bound;
-- tenant- and entity-scoped;
-- purpose-bound;
-- capability-constrained;
-- policy-checked;
-- model-versioned;
-- source-grounded;
-- confidence-aware;
-- approval-aware;
-- and audit-emitting.
+Material objects MUST support point-in-time reconstruction. Corrections supersede rather than overwrite.
 
 ---
 
 # 6. Domain modeling rules
 
-## 6.1 Separate facts, claims, conclusions, and decisions
+## 6.1 Keep concepts distinct
 
-These concepts MUST remain distinct.
+The following MUST remain distinct:
 
-- **Fact:** a directly observed or authoritative source assertion.
-- **Signal:** an observation that may indicate a relevant change.
-- **Claim:** a statement that requires support or contradiction.
-- **Evidence:** an artifact or observation evaluated against a claim.
-- **Conclusion:** a reasoned assessment based on evidence.
-- **Decision:** an authorized selection among options.
-- **Action:** work initiated because of a decision.
-- **Outcome:** an observed result after action.
+- source record;
+- observation;
+- signal;
+- exposure pattern;
+- risk situation;
+- claim;
+- evidence;
+- conclusion;
+- decision;
+- action;
+- implementation evidence;
+- outcome evidence;
+- and verified outcome.
 
-Do not collapse these into one generic “assessment” record.
+Do not collapse them into one generic assessment or status record.
 
-## 6.2 Temporal semantics
+## 6.2 Forms are not the domain model
 
-Material domain data SHOULD support bitemporal semantics:
+Forms, tables, imports, photos, and chat commands are capture or interaction surfaces.
 
-- **valid time:** when the fact or relationship was true in the world;
-- **record time:** when ClearSight learned or recorded it.
+New features MUST identify the canonical objects and relationships they create or modify.
 
-At minimum, every material entity or relationship must support effective dates, versioning, and supersession.
+## 6.3 No duplicated truth
 
-## 6.3 Immutability
+A vendor, branch, service, asset, merchant, control objective, obligation, or risk scenario SHOULD have one canonical identity with scoped relationships and views.
 
-The following are append-only or immutable by default:
+Do not create domain-specific copies merely to simplify one module.
 
-- evidence versions;
-- original submissions;
-- material decisions;
-- approval events;
-- AI action records;
-- audit events;
-- protected identity access events;
-- and exported assurance packages.
+## 6.4 Temporal semantics
 
-Corrections create a new version and retain the prior record.
+Material data SHOULD support valid time and record time.
 
-## 6.4 Provenance
+At minimum, each material entity, relationship, observation, conclusion, decision, and policy must support effective period, version, actor, reason, and supersession.
+
+## 6.5 Provenance
 
 Every derived object MUST identify:
 
-- source object IDs and versions;
-- derivation method;
-- rule, model, or operator version;
+- source IDs and versions;
+- source scope;
+- derivation or mapping method;
+- rule, model, operator, or import version;
 - actor;
 - creation time;
-- and confidence or validation state where relevant.
+- and validation state.
 
-## 6.5 No duplicated truth
+## 6.6 Explicit finite states
 
-Avoid module-specific copies of shared entities.
+Lifecycle state MUST be explicit, finite, and validated.
 
-- A vendor is one entity with domain-specific relationships and views.
-- A control objective is distinct from each implementation of that control.
-- An obligation is distinct from the source regulatory text and from the policy or control used to satisfy it.
-- A risk scenario is distinct from an incident that realizes it.
-
-## 6.6 Explicit states
-
-Workflow states MUST be explicit, finite, and validated.
-
-Do not encode lifecycle state only through nullable dates or loosely interpreted strings.
-
-State transitions MUST validate authority, required evidence, and side effects.
+Do not encode state only through nullable dates, colors, or loosely interpreted strings.
 
 ---
 
-# 7. AI implementation rules
+# 7. Evidence and capture rules
 
-## 7.1 Grounding
+## 7.1 Claim-centric evidence
 
-Material AI output MUST be grounded in approved institutional or authoritative sources.
+Evidence exists to support or contradict a precise claim for a defined purpose, population, scope, and period.
 
-The output record must include:
+Never reduce evidence handling to:
 
-- exact source references;
-- source versions;
-- relevant excerpts or structured facts;
-- retrieval time;
-- model and prompt-policy version;
-- assumptions;
-- confidence;
-- and unresolved contradictions.
+- a generic file field;
+- a checklist attachment;
+- an unversioned URL;
+- a self-attestation without context;
+- or a binary present/missing flag.
 
-## 7.2 Structured output
+## 7.2 Observation contract
 
-AI used in workflows MUST produce validated structured output before changing domain state.
+Every captured item MUST preserve:
 
-- Schemas MUST be versioned.
-- Invalid output MUST fail closed.
-- Free-form text MUST NOT directly trigger privileged actions.
-- Domain validation and authorization run after model output and before execution.
+- original artifact or authoritative source reference;
+- subject and normalized fact;
+- scope and population;
+- effective and capture time;
+- capture method;
+- source identity and authority limits;
+- transformation history;
+- sensitivity;
+- version;
+- and review or confirmation state.
 
-## 7.3 Prompt injection and untrusted content
+## 7.3 Spreadsheet import
 
-All ingested content is untrusted.
+Spreadsheet and CSV ingestion MUST preserve file, sheet, row, mapping version, scope, validation state, uploader or managed source, and import time.
 
-- Documents, emails, evidence, web content, and user submissions MUST NOT be treated as operator instructions.
-- Tool permissions MUST be external to prompts.
-- Retrieved text must be clearly separated from system policy.
-- High-impact actions require independent policy validation.
-- Operator tests MUST include prompt-injection and data-exfiltration cases.
+The UI and domain MUST distinguish:
 
-## 7.4 Confidence and abstention
+- uploaded;
+- parsed;
+- mapped;
+- accepted as an observation;
+- reconciled;
+- and sufficient for a claim.
 
-Operators MUST be able to abstain.
+Partial success MUST surface unresolved and rejected rows.
 
-- Confidence thresholds depend on action class and materiality.
-- Low-confidence output routes to a reviewer.
-- Confidence MUST NOT be represented more precisely than calibration supports.
-- A confident answer with weak evidence is still weak.
+## 7.4 Photo and media evidence
 
-## 7.5 Human review
+AI interpretation of photos, scans, audio, or video MUST:
 
-Human review surfaces MUST show:
+- preserve the original;
+- identify extraction regions or time offsets where feasible;
+- distinguish visible explicit facts from inference;
+- expose model and version;
+- allow correction;
+- and record human confirmation.
 
-- proposed output;
-- affected objects;
-- source evidence;
-- uncertainty and contradiction;
-- proposed side effects;
-- required authority;
-- and an editable rationale.
+Do not claim that a general photo proves invisible security, control effectiveness, or causality.
 
-Approval cannot be a context-free “Approve” button.
+## 7.5 Controlled values
 
-## 7.6 Model independence
+Dropdowns and selections MUST be scoped, searchable, human-readable, and sourced from approved values.
 
-Domain logic MUST NOT depend on one provider’s proprietary response shape.
+A controlled selection is an assertion; its evidential authority depends on the user, source, purpose, and claim.
 
-Use a model gateway with:
+## 7.6 Contradiction
 
-- provider adapters;
-- capability metadata;
-- data-residency policy;
-- classification-aware routing;
-- cost and latency controls;
-- fallback behavior;
-- evaluation results;
-- and kill switches.
-
-## 7.7 Evaluation before release
-
-Every operator capability needs an evaluation suite covering:
-
-- accuracy;
-- citation and lineage correctness;
-- false-positive and false-negative behavior;
-- abstention;
-- contradiction handling;
-- tool selection;
-- authorization boundaries;
-- prompt injection;
-- sensitive-data leakage;
-- latency;
-- and cost.
-
-A model or prompt change cannot be released on subjective demo quality alone.
+Contradiction is a first-class record and state. It MUST propagate to affected conclusions, decisions, reports, and verification.
 
 ---
 
-# 8. Security, privacy, and authorization rules
+# 8. Population, reconciliation, and bulk-operation rules
 
-## 8.1 Deny by default
+## 8.1 Population integrity
 
-All access is denied unless explicitly allowed by tenant, legal entity, role, attributes, relationships, purpose, and object sensitivity.
+Any percentage or completion state MUST expose its denominator and exclusions.
 
-## 8.2 Authorization is server-side
+Population views SHOULD distinguish resolved, unresolved, stale, contradictory, not applicable, excluded, and unauthorized records.
 
-Client-side hiding is not authorization.
+## 8.2 Matching
 
-Every read, search, graph traversal, export, AI retrieval, and action must enforce authorization server-side.
+Entity resolution MUST support:
 
-## 8.3 Relationship-aware access
+- exact and alias matching;
+- provisional matches;
+- unresolved state;
+- human review;
+- merge and unmerge;
+- provenance;
+- and history.
 
-Access may depend on relationships such as:
+AI MAY propose a match. Material merges require governed policy or review.
 
-- case assignment;
-- business ownership;
-- committee membership;
-- investigation conflict;
-- legal entity;
-- geography;
-- control ownership;
-- and audit independence.
+## 8.3 Bulk action
 
-Graph traversal must not reveal inaccessible neighboring nodes through counts, labels, embeddings, or timing.
+Bulk operations MUST:
 
-## 8.4 Sensitive data isolation
+- use server-side authorization per object;
+- show exact selection criteria and counts;
+- expose excluded or failed records;
+- be idempotent where applicable;
+- preserve individual audit events or a reconstructable manifest;
+- support proportional approval;
+- and reconcile the final outcome.
 
-Protected identity, legal privilege, investigation data, customer personal data, secrets, and highly restricted evidence require separate encryption and policy boundaries where appropriate.
-
-## 8.5 Exports
-
-Exports MUST:
-
-- re-evaluate authorization at generation time;
-- record requester, purpose, scope, and included versions;
-- support watermarking where required;
-- avoid hidden protected data;
-- and produce a manifest suitable for later verification.
-
-## 8.6 Logging
-
-Logs MUST NOT contain secrets, tokens, protected reporter identities, unnecessary personal data, raw confidential evidence, or model prompts containing restricted content.
-
-Use structured identifiers and protected diagnostic access.
-
-## 8.7 Multi-tenancy
-
-Every persistence, cache, search, queue, vector, object-storage, analytics, and AI-retrieval path must be tested for tenant isolation.
-
-Tenant context MUST NOT be inferred from user-controlled payload fields when it can be derived from authenticated context.
+Bulk UI MUST NOT become a route around object-level policy.
 
 ---
 
-# 9. Visual and interaction non-regression rules
+# 9. AI implementation rules
 
-## 9.1 Product feeling
+## 9.1 AI is a governed compiler
 
-ClearSight must feel:
+AI primarily translates messy institutional inputs into proposed structured observations, relationships, mappings, claims, questions, summaries, or options.
 
-- calm;
-- precise;
-- premium;
-- institutional;
-- intelligent;
-- and trustworthy.
+A model is not an operator and an operator is not an authority.
 
-It must not feel:
+## 9.2 Grounding
 
-- noisy;
-- gamified;
-- decorative;
-- cyberpunk;
-- consumer-social;
-- or like a generic admin template.
+Material AI output MUST include exact source references and versions, scope, time period, assumptions, confidence dimensions, and unresolved contradiction.
 
-## 9.2 Progressive disclosure
+General model knowledge MUST NOT establish a material institutional fact.
 
-Default views show only information required for the current decision.
+## 9.3 Structured output
 
-- Secondary metrics belong behind explain or inspect states.
-- Advanced filters must not dominate first use.
-- Long forms should be decomposed around user intent, not database tables.
+AI used in workflows MUST produce validated, versioned structured output before domain mutation.
 
-## 9.3 Executive density
+Invalid output fails closed. Free-form text MUST NOT directly trigger privileged action.
 
-The default Today view SHOULD contain no more than seven material cards without an explicit expanded mode.
+## 9.4 Prompt injection and untrusted content
 
-Each card must have:
+All documents, emails, media, evidence, web content, spreadsheets, and user submissions are untrusted.
 
-- one dominant message;
-- one clear owner or authority;
-- one primary next action;
-- concise evidence state;
-- and a visible reason for materiality.
+Tool permissions, authorization, evidence minimums, and material action thresholds MUST be enforced outside prompts.
 
-## 9.4 Color semantics
+## 9.5 Abstention
 
-Use design tokens only.
+Operators MUST abstain when evidence, authorization, entity resolution, scope, policy, or evaluation coverage is insufficient.
 
-- Cyan: intelligence or discovered relationship
-- Violet: governance, control, or approved automation
-- Coral/red: material exposure, gap, or breach
-- Amber: uncertainty, pending verification, or approaching threshold
-- Green: verified outcome
-- Neutral: informational or unassessed state
+## 9.6 Human review
 
-Do not use green for mere completion or self-attestation.
+Review surfaces MUST distinguish:
 
-Do not use red for decorative urgency.
+- explicit source value;
+- machine-extracted value;
+- inferred value;
+- user-confirmed value;
+- and approved domain conclusion.
 
-## 9.5 Glass, glow, and depth
+Approval cannot be a context-free button.
 
-Glassy surfaces and glow are allowed only when they communicate hierarchy, focus, data flow, active intelligence, or relationship depth.
+## 9.7 No hidden chain-of-thought requirement
 
-- Do not apply blur to every surface.
-- Do not reduce text contrast.
-- Do not create excessive GPU cost.
-- Do not use glow as a substitute for information hierarchy.
-- Light mode must remain equally intentional.
+The product stores a concise structured reasoning record from source facts, policy, assumptions, alternatives, contradiction, conclusion, and approval requirement. It MUST NOT depend on hidden model chain-of-thought as the audit record.
 
-## 9.6 Typography and layout
+## 9.8 Model independence and degradation
 
-- Use a tokenized type scale.
-- Prefer readable line lengths.
-- Maintain stable alignment across loading, empty, error, and populated states.
-- Avoid tiny uppercase labels for important information.
-- Numbers must include units, time scope, and meaning.
-- Avoid metric walls.
-
-## 9.7 Motion
-
-Motion must explain change, propagation, relationship, or state transition.
-
-- Respect reduced-motion settings.
-- Avoid continuous decorative animation.
-- Avoid animation that delays action.
-- Data updates must not cause disorienting layout movement.
-
-## 9.8 Accessibility
-
-All production interfaces MUST meet WCAG 2.2 AA at minimum.
-
-This includes:
-
-- keyboard operation;
-- visible focus;
-- screen-reader naming and state;
-- contrast;
-- target size;
-- error association;
-- reduced motion;
-- non-color status indicators;
-- and accessible charts or textual equivalents.
-
-## 9.9 Visual regression
-
-Changes to shared UI components or key journeys require visual regression coverage in both light and dark modes at supported breakpoints.
-
-Golden screens include:
-
-- Today executive brief;
-- risk explain view;
-- decision card;
-- evidence request;
-- evidence sufficiency view;
-- institutional graph;
-- whistleblower submission;
-- protected case review;
-- and verification outcome.
+Domain logic MUST remain usable without a model provider. AI tasks require fallback, timeout, retry, kill switch, evaluation, and manual operation.
 
 ---
 
-# 10. Performance and reliability budgets
+# 10. Security, privacy, and authorization
 
-Budgets should be enforced in CI once the application scaffold exists.
+## 10.1 Deny by default
 
-Initial targets:
+All access is denied unless explicitly allowed by tenant, entity, role, attributes, relationships, purpose, object sensitivity, and current workflow state.
 
-- No blocking network waterfall for first meaningful screen.
-- Core shell remains usable while AI-derived content is pending.
-- Common interactions respond within 100 ms locally and acknowledge remote work immediately.
-- Search and common filtered lists target sub-second perceived response under normal enterprise load.
-- Long lists and graph views use pagination, virtualization, or progressive loading.
-- AI tasks expose progress, timeout, cancellation, retry, and human fallback.
-- Evidence uploads are resumable and integrity-checked.
-- Long-running workflows are durable across process restarts.
-- Every external integration is idempotent and replay-safe.
+## 10.2 Server-side enforcement
 
-Do not trade correctness or security for superficial speed.
+Client hiding is not authorization.
+
+Every read, count, search, graph traversal, export, cache, embedding retrieval, AI context, bulk operation, and write must enforce policy server-side.
+
+## 10.3 Inference resistance
+
+Unauthorized users MUST NOT learn material existence, identity, count, label, relationship, title, snippet, suggestion, or timing information.
+
+## 10.4 Protected reporting
+
+- Protected case content and reporter identity require stronger isolation than ordinary records.
+- Identity MUST be separately controlled.
+- Anonymous communication MUST not require identity disclosure.
+- Access MUST be need-to-know and conflict-aware.
+- Search, analytics, exports, logs, backups, and observability MUST not leak identity.
+- AI MUST NOT infer credibility from style, emotion, accent, demographics, or unsupported behavioral proxies.
+- Identity reveal requires explicit privileged authority and immutable audit.
+
+## 10.5 Exports
+
+Exports MUST re-evaluate authorization, record requester, purpose, scope, versions, and classification, and produce a manifest.
+
+## 10.6 Logging
+
+Logs MUST NOT contain secrets, raw restricted evidence, unnecessary personal data, protected identity, or unrestricted model context.
+
+## 10.7 Offline capture
+
+Offline storage or queues MUST be bounded, encrypted, policy-controlled, clearly visible, conflict-aware, and prohibited for data classes that cannot safely remain on the device.
 
 ---
 
-# 11. Architecture rules
+# 11. Visual and interaction rules
 
-## 11.1 Begin as a modular core
+## 11.1 Primary surfaces
 
-Start with a coherent modular monolith or similarly disciplined core unless an ADR proves the need for independent services.
+The primary user surfaces are:
 
-Modules must own their domain rules and expose explicit interfaces.
+- Today;
+- Situation;
+- Capture;
+- Explore;
+- Configure.
+
+Do not reintroduce graph, evidence, decision ledger, assurance, AI operator, or internal bounded-context names as mandatory top-level navigation.
+
+## 11.2 Product feeling
+
+ClearSight MUST feel calm, direct, precise, relatable, premium, institutional, and trustworthy.
+
+It MUST NOT feel noisy, gamified, decorative, cyberpunk, consumer-social, or like a generic admin template.
+
+## 11.3 Scope anchoring
+
+Scope and period MUST remain visible enough to prevent wrong-context action.
+
+## 11.4 Correct visual form
+
+Use:
+
+- cards for limited attention items;
+- tables and worklists for populations;
+- comparison views for contradiction and reconciliation;
+- step flows for capture and import;
+- relationship paths for dependencies;
+- timelines for change and reconstruction;
+- charts only where they answer a decision question.
+
+Do not force every object into a card or every relationship into a graph.
+
+## 11.5 Density
+
+Support comfortable and compact density without reducing accessibility or changing meaning.
+
+## 11.6 Color
+
+Use semantic tokens:
+
+- cyan for context or selected intelligence;
+- violet for governance and authority;
+- coral/red for material exposure, breach, or failed verification;
+- amber for uncertainty, staleness, contradiction, or approaching threshold;
+- green only for accepted verified outcome;
+- neutral or ordinary blue for baseline, selection, and non-risk information.
+
+## 11.7 State distinctions
+
+The UI MUST distinguish no material change, no data, not assessed, insufficient evidence, stale, unavailable, unauthorized, not applicable, unknown, contradictory, implemented, awaiting verification, verified effective, and verified ineffective.
+
+## 11.8 Glass, glow, motion
+
+Glass, glow, depth, and motion may communicate focus, hierarchy, relationship, active analysis, or state transition.
+
+They MUST NOT reduce contrast, increase urgency decoratively, delay action, or create excessive GPU cost.
+
+## 11.9 Accessibility and localization
+
+All production interfaces MUST meet WCAG 2.2 AA at minimum and support keyboard operation, visible focus, screen-reader state, non-color meaning, reduced motion, 200% zoom, touch targets, error recovery, local number/date/currency formats, and multilingual expansion.
+
+## 11.10 Golden visual coverage
+
+Visual regression MUST include, where relevant:
+
+- Today brief;
+- situation states;
+- Situation workspace;
+- ATM and POS situations;
+- population worklist;
+- spreadsheet mapping and import reconciliation;
+- Source Profile and degraded source;
+- photo capture and extraction review;
+- evidence sufficiency and contradiction;
+- decision review;
+- implementation versus verification;
+- protected reporting;
+- offline and AI-unavailable states;
+- bulk action review;
+- and export manifest.
+
+See [`docs/product/experience-principles.md`](docs/product/experience-principles.md).
+
+---
+
+# 12. Architecture rules
+
+## 12.1 Begin as a coherent modular core
+
+Start with a modular monolith or similarly disciplined core unless an ADR proves the need for independent services.
+
+## 12.2 Relational authority first
+
+The authoritative model SHOULD begin in relational storage with typed, versioned relationships. Search, graph, vector, and analytical views are rebuildable projections.
+
+Do not adopt a dedicated graph engine merely because the product has connected context.
+
+## 12.3 Domain boundaries
 
 Candidate bounded contexts include:
 
 - identity and authorization;
-- institutional graph;
-- risk and appetite;
-- signals and materiality;
-- evidence and claims;
-- decisions and approvals;
-- workflow and remediation;
-- assurance;
+- institution and scope;
+- source registry and integration;
+- exposure patterns and situations;
+- claims, observations, and evidence;
+- decisions and authority;
+- actions and verification;
 - protected reporting;
-- AI operators;
-- integrations;
-- and reporting/export.
+- AI gateway and operators;
+- assurance and export.
 
-## 11.2 No shared mutable domain tables
+No module may bypass another module’s invariants through direct table mutation.
 
-A module must not bypass another module’s invariants by directly mutating its tables.
+## 12.4 Events and outbox
 
-Use application services, commands, or documented domain events.
+Material state changes use a transactional outbox or equivalent guarantee. Consumers are idempotent. Events represent completed facts, not vague updates.
 
-## 11.3 Transactional outbox
+## 12.5 Durable workflow
 
-State changes that publish events must use a transactional outbox or equivalent guarantee.
+Do not scatter material workflow state across UI flags, cron jobs, and ad hoc queues.
 
-Consumers must be idempotent.
+## 12.6 Integration adapters
 
-## 11.4 Graph technology follows evidence
-
-Do not adopt a dedicated graph database merely because the product contains a graph.
-
-Begin with an authoritative relational model and graph projection unless benchmarks prove a dedicated engine is necessary for required traversal, scale, or isolation.
-
-Record the decision in an ADR.
-
-## 11.5 Search and vector retrieval are projections
-
-Search indexes and embeddings are rebuildable projections, not authoritative stores.
-
-- Preserve source IDs and versions.
-- Enforce authorization during indexing and retrieval.
-- Remove or reindex superseded and deleted content according to policy.
-
-## 11.6 Workflow engine selection
-
-A workflow engine may be introduced only after evaluating:
-
-- durability;
-- human task support;
-- versioning;
-- cancellation and compensation;
-- tenancy;
-- auditability;
-- deployment constraints;
-- and operational complexity.
-
-Do not scatter workflow state across queues, cron jobs, and UI flags.
-
----
-
-# 12. API and event rules
-
-## 12.1 APIs
-
-- Use versioned contracts.
-- Validate all input.
-- Return stable error codes and correlation IDs.
-- Support idempotency keys for repeatable writes.
-- Use optimistic concurrency for versioned material objects.
-- Do not expose internal persistence schemas as public contracts.
-- Include authorization-relevant context in server-side evaluation, not client claims.
-
-## 12.2 Events
-
-Events represent completed facts, not commands disguised as facts.
-
-Good:
-
-- `EvidenceVersionCaptured`
-- `MaterialityAssessmentCompleted`
-- `DecisionApproved`
-- `VerificationFailed`
-
-Avoid vague events such as `ItemUpdated`.
-
-Events must include:
-
-- event ID;
-- schema version;
-- tenant and legal-entity context;
-- aggregate ID and version;
-- actor;
-- occurred time and recorded time;
-- correlation and causation IDs;
-- classification;
-- and minimal safe payload.
-
-## 12.3 Integration adapters
-
-Adapters must:
-
-- map external identity and objects explicitly;
-- store sync cursors and versions;
-- be idempotent;
-- preserve source provenance;
-- handle deletion and revocation;
-- surface partial failure;
-- support replay;
-- and avoid granting external systems broader authority than required.
+Adapters MUST preserve identity mapping, source object IDs, versions, cursor, health, authority limits, partial failure, replay, deletion, revocation, and provenance.
 
 ---
 
 # 13. Testing requirements
 
-Every change needs tests at the lowest useful level and at the product-contract level.
+Every meaningful change needs tests at the lowest useful level and at the product-contract level.
 
-## 13.1 Required categories
-
-Depending on the change, include:
+Depending on scope, include:
 
 - domain unit tests;
-- property-based tests for scoring, state transitions, and temporal rules;
+- property-based tests;
 - contract tests;
-- authorization tests;
-- integration tests;
+- authorization and inference tests;
+- integration and replay tests;
 - migration tests;
-- event replay and idempotency tests;
-- AI evaluation cases;
+- evidence and import tests;
+- AI evaluations;
 - accessibility tests;
-- visual regression tests;
+- visual regression;
 - end-to-end golden journeys;
-- load and resilience tests;
+- performance and resilience;
 - and security tests.
 
-## 13.2 Tests must prove invariants
+Tests MUST prove realistic negative, ambiguous, stale, partial, unauthorized, offline, contradictory, and degraded cases.
 
-Do not only test happy-path CRUD.
+Fixtures MUST NOT inject the desired conclusion, owner, authority, mapping, or verification result.
 
-Tests must prove cases such as:
+Required product tests include:
 
-- an issue cannot close without accepted outcome evidence;
-- a protected identity cannot leak through search;
-- an AI operator cannot act outside scope;
-- contradictory evidence remains visible;
-- a superseded decision can be reconstructed;
-- an unauthorized graph traversal reveals nothing;
-- a duplicate integration event has no duplicate side effect;
-- and an executive brief does not surface non-material noise.
-
-## 13.3 Fixtures
-
-Fixtures must represent real domain complexity.
-
-Avoid fixtures that bypass the exact logic under test by injecting precomputed conclusions, fake owners, or privileged service objects.
-
-Golden journeys are defined in [`docs/quality/acceptance-tests.md`](docs/quality/acceptance-tests.md).
+- a situation can be understood without module hopping;
+- an import exposes unresolved rows;
+- a photo extraction remains bounded and correctable;
+- existing evidence prevents an unnecessary request;
+- source degradation affects dependent conclusions;
+- bulk action cannot bypass object authorization;
+- action completion does not produce verified green;
+- protected identity cannot leak through search or count;
+- AI cannot act outside scope;
+- and a historical situation can be reconstructed without future knowledge.
 
 ---
 
-# 14. Change protocol
+# 14. Performance and reliability
+
+- Deterministic context MUST remain usable while AI is pending.
+- Common local interaction SHOULD respond within 100 ms.
+- Remote work MUST acknowledge immediately and expose durable progress.
+- Long lists MUST be paginated or virtualized.
+- Spreadsheet processing MUST expose stages and partial failure.
+- Evidence uploads MUST be resumable.
+- External integrations MUST be idempotent and replay-safe.
+- Layout MUST remain stable.
+- Dense and visual surfaces MUST be tested on enterprise laptops, integrated GPUs, remote desktops, and relevant mobile devices.
+
+Correctness and security take precedence over superficial speed.
+
+---
+
+# 15. Change protocol
 
 For each meaningful change:
 
-1. Identify the user and institutional outcome.
-2. Identify affected product invariants.
-3. Identify the authoritative domain objects and relationships.
-4. Define authorization and sensitivity boundaries.
-5. Define source facts, derived conclusions, and side effects.
-6. Define failure, retry, cancellation, and recovery behavior.
-7. Define evidence and audit requirements.
-8. Add or update tests before considering the work complete.
-9. Review visual and interaction regressions.
-10. Update canonical documentation and ADRs.
+1. Identify the bank stakeholder and recognizable situation.
+2. Identify active scope, period, authority, and sensitivity.
+3. Identify canonical objects and relationships.
+4. Identify source authority, limitations, and freshness.
+5. Separate observations, claims, conclusions, decisions, actions, and outcomes.
+6. Define failure, retry, cancellation, partial success, and recovery.
+7. Define evidence, audit, and point-in-time requirements.
+8. Choose the correct interaction form: card, table, capture step, comparison, path, timeline, or chart.
+9. Add tests before considering the work complete.
+10. Update all affected canonical documents and ADRs.
 
-A pull request description should include:
+A pull request should include:
 
-- problem;
+- problem and stakeholder;
 - intended outcome;
 - affected invariants;
-- architecture impact;
+- domain and architecture impact;
 - security and privacy impact;
-- data migration impact;
+- source and data-quality impact;
+- migration impact;
 - AI/model impact;
 - test evidence;
 - screenshots for UI changes;
+- accessibility review;
 - and rollback plan.
 
 ---
 
-# 15. Prohibited shortcuts
+# 16. Prohibited shortcuts
 
-The following are prohibited unless explicitly approved through an ADR and product review:
+Do not:
 
-- generic CRUD generated directly from database tables;
-- one universal `status` field for unrelated lifecycles;
-- deleting or overwriting material history;
-- storing evidence only as a URL;
-- claiming control effectiveness from self-attestation alone;
-- closing remediation on task completion;
-- hiding uncertainty behind a single score;
-- unrestricted AI access to all tenant data;
-- direct model tool execution without domain validation;
-- putting authorization only in the frontend;
-- using embeddings as an authorization boundary;
-- exposing protected identities to analytics or logs;
-- copying competitor screens or design systems;
-- excessive glass, blur, glow, or animation;
-- heat maps as the sole executive risk representation;
-- broad questionnaires when a targeted request is possible;
-- notifications without deduplication or materiality;
-- premature microservices;
-- silent integration failure;
-- tests that inject the final result instead of exercising the real path;
-- or documentation that describes behavior not present in the implementation without labeling it as planned.
+- expose internal architecture as primary navigation;
+- generate CRUD directly from database tables;
+- use one status field for unrelated lifecycles;
+- duplicate shared institutional truth by module;
+- overwrite material history;
+- store evidence only as a URL;
+- treat upload or self-attestation as sufficient evidence;
+- treat integration success as data truth;
+- hide unresolved mappings or partial import failure;
+- use AI confidence as evidence sufficiency;
+- infer invisible control effectiveness from a photograph;
+- close remediation on task completion;
+- use a single unexplained score;
+- allow unrestricted AI access to tenant data or tools;
+- put authorization only in the frontend;
+- use embeddings as an authorization boundary;
+- expose protected identity through analytics, logs, counts, search, or exports;
+- use cards where a population table is required;
+- allow bulk operations to bypass per-object authorization;
+- use glass, glow, heat maps, or chat as the primary product identity;
+- ask broad questionnaires when a focused request is possible;
+- require perfect APIs before the product is useful;
+- silently display stale integration data;
+- create tests that inject the final result;
+- or describe planned behavior as implemented.
 
 ---
 
-# 16. Definition of done
+# 17. Definition of done
 
-Work is not complete until:
+Work is complete only when:
 
+- the situation is understandable in familiar bank language;
+- scope and authority are explicit;
 - domain behavior is correct;
-- product invariants are preserved;
-- authorization is enforced server-side;
+- source authority and data quality are visible;
 - evidence and audit lineage are complete;
-- failure and recovery paths are implemented;
-- tests cover meaningful negative cases;
-- accessibility is verified;
-- visual regression is reviewed where applicable;
+- authorization is enforced server-side;
+- failure, partial, stale, offline, and recovery paths work;
+- meaningful negative tests pass;
+- accessibility and localization are verified;
+- visual regression is reviewed;
 - performance is within budget;
-- observability is present;
 - migrations and rollback are safe;
 - documentation is synchronized;
-- and no planned capability is misrepresented as implemented.
+- and planned capability is not represented as implemented.
 
-For a material workflow, completion also requires a passing end-to-end golden journey from signal or request through evidence, decision, action, and verification.
+For a material workflow, completion requires a real end-to-end path from observation through situation, claim, evidence, conclusion, decision, action, and verification.
 
 ---
 
-# 17. Final review questions
+# 18. Final review questions
 
 Before merging, ask:
 
-1. Does this reduce or increase human effort?
-2. Does it improve evidence or merely create another record?
-3. Can the institution explain the resulting conclusion years later?
-4. Does the executive surface become clearer or noisier?
-5. Does a material state lead to an accountable action?
-6. Can the action be verified rather than merely marked complete?
-7. Can an unauthorized person, tenant, AI operator, search index, or export infer restricted information?
-8. Have facts, claims, conclusions, decisions, and outcomes remained distinct?
-9. Has the change preserved light mode, dark mode, accessibility, and performance?
-10. Is this unmistakably ClearSight, or could it belong to any generic GRC product?
+1. What recognizable bank situation does this solve?
+2. Does the user see the correct scope and period?
+3. Does this reduce human effort?
+4. Does it improve evidence or merely create another record?
+5. Is source authority explicit?
+6. Are unresolved, stale, partial, and contradictory states visible?
+7. Is the correct interaction form being used?
+8. Does a material state lead to accountable handling?
+9. Is implementation separate from verified outcome?
+10. Can the institution reconstruct the result later?
+11. Can an unauthorized user, operator, search index, export, or bulk action infer restricted information?
+12. Is the experience unmistakably ClearSight rather than generic GRC?
 
-If the answer to the last question is “generic,” the work is not finished.
+If the last answer is “generic,” the work is not finished.
