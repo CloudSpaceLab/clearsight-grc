@@ -14,9 +14,10 @@ The documentation is deliberately layered so that internal architecture does not
 4. [`product/regulatory-and-enforcement-intelligence.md`](product/regulatory-and-enforcement-intelligence.md) — regulatory change, supervisory work, protected authority cases, rule composition, response packages, and source lineage.
 5. [`product/experience-principles.md`](product/experience-principles.md) — Today, Programs, Work, Explore, Configure, contextual Capture/Respond, visual language, accessibility, and golden screens.
 6. [`../AGENTS.md`](../AGENTS.md) — mandatory implementation and non-regression rules.
-7. [`implementation-plan.md`](implementation-plan.md) — phased delivery plan beginning with source trust, Program engine, Matter engine, NDPA, and external-authority workflows.
-8. [`quality/acceptance-tests.md`](quality/acceptance-tests.md) — complete Program, Matter, evidence, security, visual, AI, recovery, and historical tests.
-9. [`quality/regulatory-and-enforcement-acceptance-tests.md`](quality/regulatory-and-enforcement-acceptance-tests.md) — specialized external-authority tests.
+7. [`architecture/continuous-compliance-architecture.md`](architecture/continuous-compliance-architecture.md) — cross-cutting architecture that composes Programs, Matters, graph, evidence, workflow, authorization, regulatory ingestion, protected cases, and AI.
+8. [`implementation-plan.md`](implementation-plan.md) — phased delivery plan beginning with source trust, Program engine, Matter engine, NDPA, and external-authority workflows.
+9. [`quality/acceptance-tests.md`](quality/acceptance-tests.md) — complete Program, Matter, evidence, security, visual, AI, recovery, and historical tests.
+10. [`quality/regulatory-and-enforcement-acceptance-tests.md`](quality/regulatory-and-enforcement-acceptance-tests.md) — specialized external-authority tests.
 
 ---
 
@@ -32,12 +33,13 @@ The documentation is deliberately layered so that internal architecture does not
 
 # Architecture
 
-- [`architecture/product-semantics-mapping.md`](architecture/product-semantics-mapping.md) — required mapping between Programs, Matters, shared primitives, and the deeper graph, evidence, decision, workflow, authorization, projection, and AI architecture.
+- [`architecture/continuous-compliance-architecture.md`](architecture/continuous-compliance-architecture.md) — cross-cutting bounded contexts, Program computation, trigger engine, Matter orchestration, Regulatory Change Compiler, protected Authority Request Cases, legacy migration, APIs/events, authorization, AI, and deployment.
+- [`architecture/product-semantics-mapping.md`](architecture/product-semantics-mapping.md) — mapping between Programs, Matters, shared primitives, and deeper component mechanisms.
 - [`architecture/risk-graph-and-decision-engine.md`](architecture/risk-graph-and-decision-engine.md) — canonical entities and relationships, temporal context, signals, materiality, appetite, Decisions, Actions, and verification.
 - [`architecture/living-evidence-fabric.md`](architecture/living-evidence-fabric.md) — Claims, immutable evidence, assertions, sufficiency, contradiction, evidence debt, source resolution, dynamic requests, protected evidence, and chain of custody.
 - [`architecture/governed-ai-operators.md`](architecture/governed-ai-operators.md) — operator identities, action classes, model gateway, grounding, tool policy, authority thresholds, prompt-injection defence, evaluation, and audit.
 
-Architecture documents explain how ClearSight works internally. They must not override Programs-and-Matters semantics or become mandatory navigation.
+The continuous-compliance architecture defines how component architectures compose. Component documents must not override Programs-and-Matters semantics or become mandatory navigation.
 
 ---
 
@@ -98,9 +100,10 @@ When requirements conflict, apply:
 5. specialized product specifications for domain behavior;
 6. [`product/experience-principles.md`](product/experience-principles.md) for user and visual behavior;
 7. [`../AGENTS.md`](../AGENTS.md) for normative implementation rules;
-8. architecture documents for internal mechanisms;
-9. implementation plan for sequencing;
-10. acceptance tests for release proof.
+8. [`architecture/continuous-compliance-architecture.md`](architecture/continuous-compliance-architecture.md) for cross-cutting internal composition;
+9. component architecture documents for detailed mechanisms;
+10. implementation plan for sequencing;
+11. acceptance tests for release proof.
 
 A material change must update:
 
