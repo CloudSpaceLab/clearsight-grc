@@ -1,10 +1,10 @@
 # ClearSight Bank Operating Model
 
-This document defines the canonical product semantics beneath ClearSight.
+This document defines the canonical product semantics beneath ClearSight’s Programs, Matters, evidence, decisions, responses, and verification.
 
-It describes the smallest coherent set of objects through which ClearSight continuously maintains compliance, handles exceptional work, governs evidence and decisions, and remains adaptable across regional, national, and multinational banks.
+It describes the smallest reusable set of concepts through which ClearSight can support regional, national, and multinational banks without exposing internal architecture or requiring perfect integrations.
 
-It must be read together with [`continuous-compliance-operating-model.md`](continuous-compliance-operating-model.md). The continuous-compliance document explains how these objects replace legacy registers; this document defines what the objects mean and how they relate.
+It conforms to [`ease-of-use-standard.md`](ease-of-use-standard.md).
 
 ---
 
@@ -12,47 +12,46 @@ It must be read together with [`continuous-compliance-operating-model.md`](conti
 
 ClearSight should help each stakeholder:
 
-1. know what requirements and risks apply to their scope;
-2. understand how the institution intends to satisfy them;
-3. see what evidence currently supports that position;
-4. identify what changed, failed, expired, or became uncertain;
-5. provide only missing information;
-6. make or route the correct authorized decision or response;
-7. verify the defined outcome;
-8. preserve complete institutional history.
+1. understand the continuing Program or bounded Matter relevant to them;
+2. see what applies, what is known, and what is missing, stale, contradictory, or uncertain;
+3. reuse approved bank inventories and evidence rather than re-entering information;
+4. review grounded recommendations rather than start from blank pages;
+5. provide or inspect only the minimum necessary information;
+6. make or route an authorized decision or response;
+7. coordinate action;
+8. verify the defined outcome or authority response;
+9. preserve complete temporal and audit history.
 
-Users operate primarily through **Programs** and **Matters**. Shared primitives such as Scope, Requirement, Control, Observation, Claim, Evidence Contract, Decision, and Verification support both.
+Routine work should normally require only a few steps and less than five minutes of active user effort.
 
 ---
 
 # 2. Canonical operating loops
 
-## 2.1 Continuing Program loop
+## 2.1 Program loop
 
 ```text
-Authority or institutional objective
-→ Requirements and applicability
-→ scoped controls and owners
-→ Evidence Contracts and source coverage
-→ continuous observations and scheduled reviews
-→ current compliance and assurance state
-→ targeted refresh, exception, or Matter when needed
-→ filing, certification, or management reporting
-→ historical reconstruction
+Maintain Requirements and scope
+→ observe current implementation and evidence
+→ compute compliance state
+→ detect change, gap, expiry, or exception
+→ create or update Matter
+→ resolve and verify
+→ refresh Program state
 ```
 
 ## 2.2 Matter loop
 
 ```text
-Trigger or source
-→ classify Matter
-→ resolve scope and affected Programs
-→ establish required Claims or directives
-→ find or request missing evidence
-→ conclude, decide, or prepare response
-→ execute actions
-→ verify outcome or obtain acknowledgement
-→ update Programs, risk state, and institutional memory
+Trigger or source received
+→ resolve scope and affected objects
+→ retrieve known context
+→ identify missing or contradictory facts
+→ recommend or request the next action
+→ decide or respond within authority
+→ act
+→ verify outcome or acknowledgement
+→ update Program and institutional memory
 ```
 
 ---
@@ -61,199 +60,98 @@ Trigger or source
 
 ## 3.1 Program
 
-A Program is a stable, long-lived governance aggregate for a continuing body of requirements, controls, evidence obligations, reviews, filings, exceptions, and assurance.
+A long-lived body of continuing obligations, controls, evidence, review activities, exceptions, filings, and assurance.
 
-Examples:
+Required attributes:
 
-- NDPA and NDPC compliance;
+- Program type and version;
+- owning function and accountable authority;
+- institution, legal entity, jurisdiction, and business scope;
+- applicable Requirements;
+- scoped Control Implementations;
+- Evidence Contracts;
+- schedules and triggers;
+- Compliance State;
+- open Matters;
+- assurance and filing history;
+- configuration and policy versions.
+
+Program examples:
+
+- NDPA;
 - AML/CFT;
-- CBN cybersecurity and technology risk;
+- CBN cybersecurity;
 - PCI DSS;
-- ISO 27001 and ISO 22301;
+- ISO 27001;
 - operational resilience;
 - third-party assurance;
 - RCSA;
 - policy lifecycle;
-- regulatory returns;
-- annual IT risk and control reviews.
-
-A Program includes:
-
-- Program identity, purpose, version, and lifecycle state;
-- governing Authority Sources, standards, internal policies, or objectives;
-- Requirements and Applicability Conclusions;
-- scope and covered populations;
-- Control Objectives and Control Implementations;
-- Evidence Contracts and source dependencies;
-- owners, performers, reviewers, committees, and authority;
-- calendar obligations and trigger subscriptions;
-- current Compliance State;
-- exceptions, waivers, and linked Matters;
-- assurance activities and conclusions;
-- filings, certifications, response packages, and history.
-
-Suggested Program states:
-
-```text
-DRAFT
-→ UNDER_REVIEW
-→ ACTIVE
-→ ACTIVE_WITH_GAPS
-→ SUSPENDED
-→ SUPERSEDED
-→ RETIRED
-```
-
-A Program state is not its compliance conclusion. An active Program can contain current, at-risk, unknown, excepted, or non-compliant Requirements.
+- regulatory returns.
 
 ## 3.2 Matter
 
-A Matter is a bounded aggregate for work created by change, exception, uncertainty, harm, request, or required judgment.
+A bounded occurrence requiring assessment, evidence, decision, action, response, or verification.
 
-Matter types include:
+Required attributes:
 
-- regulatory change;
-- supervisory finding;
-- authority or enforcement request;
-- risk situation;
-- control gap;
-- audit finding;
-- exception or waiver;
-- incident;
-- operational loss;
-- data breach;
-- vendor deficiency;
-- customer or conduct concern;
-- overdue obligation;
-- failed verification;
-- evidence contradiction;
-- KRI threshold breach.
+- Matter type;
+- source or trigger;
+- scope, period, and affected objects;
+- linked Programs and Requirements;
+- current state and priority;
+- known facts, missing facts, and contradictions;
+- accountable owner and required authority;
+- evidence and decisions;
+- actions, response, and dependencies;
+- verification or acknowledgement;
+- temporal history.
 
-A Matter includes:
-
-- type, source, scope, effective period, and materiality;
-- linked Programs, Requirements, controls, policies, services, customers, accounts, assets, vendors, projects, incidents, or losses;
-- what changed and why it matters;
-- source Observations and required Claims or directives;
-- evidence and current Conclusion;
-- owner, authority, deadline, and escalation;
-- Decisions, Actions, communications, and Response Packages;
-- Verification Contract, acknowledgement, or closure criteria;
-- history and point-in-time state.
-
-Generic Matter states:
-
-```text
-RECEIVED_OR_DETECTED
-→ TRIAGE
-→ UNDER_ASSESSMENT
-→ AWAITING_EVIDENCE
-→ AWAITING_DECISION_OR_RESPONSE
-→ AUTHORIZED
-→ IN_PROGRESS
-→ IMPLEMENTED_OR_TRANSMITTED
-→ AWAITING_VERIFICATION_OR_ACKNOWLEDGEMENT
-→ VERIFIED_OR_ACKNOWLEDGED
-→ CLOSED_WITH_ACCEPTED_EVIDENCE
-```
-
-Additional states may include `BLOCKED`, `REJECTED`, `NOT_APPLICABLE`, `INDETERMINATE`, `SUPERSEDED`, and `REOPENED`.
-
-A Matter type may impose stricter states. For example, an Authority Request Case requires legal review before subject action or disclosure.
-
-## 3.3 Risk Situation
-
-A Risk Situation is a Matter subtype representing a current bounded instance of one or more Exposure Patterns.
-
-It is used when observations indicate potential or realized harm, control failure, threshold movement, concentration, or material uncertainty.
-
-Risk Situation does not replace Program. Continuing controls and obligations remain in Programs; a current failure, breach, or decision need becomes a Risk Situation Matter.
+Matter types include regulatory change, supervisory finding, authority request, risk situation, control gap, exception, incident, loss, breach, vendor deficiency, complaint, KRI breach, evidence contradiction, and failed verification.
 
 ---
 
-# 4. Shared institutional primitives
+# 4. Universal primitives
 
 ## 4.1 Scope
 
-Scope is the bounded part of the institution, population, activity, or external relationship being governed.
+The bounded part of the institution being governed.
 
 Examples:
 
 - institution or legal entity;
-- licence or regulated activity;
-- country or jurisdiction;
+- jurisdiction or region;
 - Program;
-- product, service, or channel;
-- region, branch, or operating unit;
-- project or processing activity;
-- customer, merchant, account, or transaction population;
-- system, asset, data set, model, or vendor relationship.
+- channel or service;
+- product;
+- branch or operating unit;
+- customer, account, merchant, or transaction population;
+- vendor relationship;
+- application, system, asset, or process;
+- project or change;
+- processing activity or data set.
 
-Scopes may be nested:
+Scopes may be nested and versioned.
 
-```text
-Institution
-└── Legal entity and licence
-    └── Jurisdiction or region
-        └── Program, product, channel, or service
-            └── Branch, process, project, system, vendor, or population
-```
-
-Every material conclusion, decision, filing, response, export, and evidence submission must identify its scope and period.
+Active scope and period must be explicit before material action, approval, export, bulk change, or evidence submission.
 
 ## 4.2 Authority Source
 
-An immutable, versioned original source of external or internal authority.
+An immutable, versioned external or internal authoritative source:
 
-Examples:
+- law, regulation, circular, guideline, standard, licence condition, contract, court instrument, supervisory communication, authority request, approved interpretation, policy, or standard.
 
-- law, regulation, circular, guideline, standard, licence condition;
-- contract or service obligation;
-- court or enforcement instrument;
-- supervisory report;
-- approved internal policy or interpretation;
-- board-approved appetite or mandate.
+A spreadsheet row is not automatically an Authority Source.
 
-An Authority Source includes authenticity, issuing body, jurisdiction, source type, publication or receipt time, effective period, response or implementation deadlines, original artifact, hash, source coordinates, confidentiality, supersession, retention, and review state.
+## 4.3 Requirement
 
-## 4.3 Source Provision
+A source-linked statement describing what an actor must, must not, may, or is expected to do.
 
-A stable, addressable section, paragraph, table, annex, schedule, clause, or other fragment of an Authority Source.
+Attributes include actor, modality, action, object, scope, condition, threshold, frequency, deadline, exception, evidence expectation, and source provision.
 
-Every material Requirement, supervisory finding, case directive, or approved interpretation must link to one or more Source Provisions.
+## 4.4 Applicability
 
-## 4.4 Requirement
-
-A versioned statement of what an actor must, must not, may, or is expected to do.
-
-A Requirement includes:
-
-- source provisions;
-- obligated actor or licence class;
-- modality;
-- normalized action and object;
-- conditions, thresholds, frequency, and exceptions;
-- effective period and deadline;
-- reporting or evidence expectation;
-- interpretation and approval state.
-
-Requirement states may include:
-
-```text
-CANDIDATE
-→ INTERPRETED
-→ APPROVED
-→ EFFECTIVE
-→ AMENDED
-→ SUPERSEDED
-→ WITHDRAWN
-```
-
-A legacy spreadsheet row is a candidate Observation until reconciled to an Authority Source and approved.
-
-## 4.5 Applicability Conclusion
-
-A versioned conclusion about whether a Requirement applies to a defined scope and period.
+A versioned determination of where and when a Requirement applies.
 
 Possible states:
 
@@ -261,118 +159,90 @@ Possible states:
 - partially applicable;
 - not applicable;
 - potentially applicable—information required;
-- applies from a future date;
-- exempt under stated condition;
+- applies later;
 - superseded.
 
-Applicability must record rationale, source facts, assumptions, reviewer, authority, and effective period.
+Material applicability requires authorized human approval.
 
-## 4.6 Control Objective
+## 4.5 Exposure Pattern
 
-The outcome the institution must achieve to address one or more Requirements, risks, policies, or objectives.
-
-## 4.7 Control Implementation
-
-The actual policy, process, system rule, review, approval, monitoring mechanism, or operating practice used in a defined scope.
-
-One objective may have multiple implementations by entity, channel, system, branch, vendor, or period.
-
-A Control Implementation includes:
-
-- implementation scope;
-- owner, performer, and reviewer;
-- design and operating frequency;
-- automation and dependencies;
-- related Requirements and Exposure Patterns;
-- Evidence Contracts;
-- exceptions and linked Matters;
-- design and operating-effectiveness Conclusions.
-
-## 4.8 Policy
-
-A governed institutional statement approved through a lifecycle of drafting, review, approval, publication, effective period, review, supersession, and retirement.
-
-Policy is distinct from Requirement and Control Implementation.
-
-## 4.9 Exposure Pattern
-
-A reusable description of how an activity, service, population, dependency, control, or obligation can fail or create harm.
+A reusable description of how an activity, service, population, dependency, control, or obligation can fail or cause harm.
 
 Initial families:
 
-1. availability and resilience;
-2. asset and inventory integrity;
-3. identity and access;
-4. transaction integrity;
-5. reconciliation and settlement;
-6. fraud and abuse;
-7. data and privacy;
-8. customer and conduct harm;
-9. third-party and concentration dependency;
-10. change and configuration integrity;
-11. physical and environmental integrity;
-12. regulatory, contractual, or policy non-conformance;
-13. model or automated-decision failure;
-14. evidence and data-quality uncertainty.
+- availability and resilience;
+- asset and inventory integrity;
+- identity and access;
+- transaction integrity;
+- reconciliation and settlement;
+- fraud and abuse;
+- data and privacy;
+- customer and conduct harm;
+- third-party and concentration dependency;
+- change and configuration integrity;
+- physical and environmental integrity;
+- regulatory or contractual non-conformance;
+- model or automated-decision failure;
+- evidence and data-quality uncertainty.
+
+## 4.6 Control Objective
+
+The outcome that must be achieved.
+
+## 4.7 Control Implementation
+
+The actual policy, process, system rule, approval gate, monitoring mechanism, review, training, contractual clause, or operating practice used in a defined scope.
+
+One Control Objective may have several scoped implementations.
+
+## 4.8 Claim
+
+A precise statement that can be supported, contradicted, qualified, or unresolved.
+
+A Claim includes subject, scope, period, purpose, materiality, Evidence Contract, conclusion state, and version.
+
+## 4.9 Evidence Contract
+
+A policy defining:
+
+- required facts;
+- acceptable sources;
+- source authority and limitations;
+- population and period;
+- coverage;
+- freshness;
+- independence;
+- contradiction rules;
+- approval;
+- refresh schedule or triggers;
+- failure handling.
 
 ## 4.10 Observation
 
 A normalized, source-preserving record of something observed, submitted, imported, measured, extracted, or asserted.
 
-Observation fields include:
+Attributes:
 
 - subject and property;
-- value and units;
-- source and capture method;
+- value;
+- source identity;
+- capture method;
+- effective and capture time;
 - scope and population;
-- effective time and capture time;
-- original artifact or authoritative reference;
-- file, sheet, row, event, API, or media coordinates;
+- original artifact or source reference;
 - transformation history;
-- source authority and limitations;
+- authority and limitation;
+- confidence or review state;
 - sensitivity;
-- confidence, review, and confirmation state;
-- version and provenance.
+- version.
+
+Sources include forms, dropdowns, photos, scans, spreadsheets, documents, APIs, database exports, telemetry, messages, attestations, vendor submissions, customer reports, protected reports, and external intelligence.
 
 An Observation is not automatically a verified fact.
 
-## 4.11 Claim
+## 4.11 Conclusion and Compliance State
 
-A precise statement that can be supported, contradicted, qualified, or remain unresolved.
-
-A Claim includes subject, scope, period, purpose, materiality, Evidence Contract, current Conclusion, and version.
-
-## 4.12 Evidence Contract
-
-A versioned policy describing what evidence is acceptable for a Claim.
-
-It defines:
-
-- required facts;
-- population and period;
-- acceptable source types;
-- source authority and limitations;
-- freshness;
-- coverage;
-- independence;
-- authenticity and integrity;
-- contradiction rules;
-- reviewer authority;
-- refresh schedule or trigger;
-- escalation and failure behavior;
-- whether automated evaluation is allowed.
-
-Evidence Recipe is a task-level or template-level expression of an Evidence Contract.
-
-## 4.13 Evidence Item and Evidence Evaluation
-
-An Evidence Item is an immutable source artifact, governed snapshot, system result, submission, or observation used for a Claim.
-
-Evidence Evaluation records how an item supports, partially supports, contradicts, limits, duplicates, supersedes, or fails to address a Claim.
-
-## 4.14 Conclusion
-
-A versioned determination of what current evidence supports.
+A Conclusion states what current evidence supports.
 
 Possible states:
 
@@ -384,269 +254,230 @@ Possible states:
 - expired;
 - not applicable.
 
-A Conclusion identifies included and excluded evidence, contradiction, assumptions, sufficiency, evaluator, approval, valid period, and supersession.
+Program Compliance State combines multiple dimensions and must retain the underlying basis.
 
-## 4.15 Compliance State
+## 4.12 Decision
 
-A governed projection for a Requirement, control, scope, or Program.
+An authorized selection among options.
 
-Dimensions include:
+Includes context, evidence, uncertainty, options, effects, cost and dependencies where relevant, selected option, authority, rationale, dissent, conditions, expiry, review triggers, action plan, and verification.
 
-- source interpretation;
-- applicability;
-- control design;
-- implementation;
-- evidence sufficiency;
-- operating effectiveness;
-- exception;
-- assurance;
-- filing or deadline;
-- source and data quality.
+## 4.13 Action
 
-Concise presentation states may include current, current with exception, at risk, gap identified, evidence insufficient, implementation pending, overdue, under review, not applicable, and unknown.
+Work initiated because of a Requirement, Matter, decision, finding, or response obligation.
 
-## 4.16 Review Activity
+External completion is implementation evidence, not verified outcome.
 
-A scheduled or event-triggered assessment, test, filing preparation, certification activity, RCSA, BIA review, vendor review, policy review, audit procedure, or other planned governance work.
+## 4.14 Response Package
 
-A Review Activity links to Program, scope, Requirements, controls, Evidence Contracts, owner, reviewer, frequency, due date, and resulting Observations or Matters.
+A governed set of records, evidence, explanations, redactions, approvals, transmission metadata, and acknowledgement prepared for an external authority or examiner.
 
-Workplans and calendars are views over Review Activities.
+## 4.15 Verification Contract
 
-## 4.17 KRI or Compliance Indicator
+Defines expected observable outcome, baseline, scope, measurement source, threshold, observation period, evidence, authority, and failure response.
 
-A versioned indicator definition with source, population, measure, period, threshold, owner, frequency, and response policy.
-
-Indicator values should derive from canonical Observations, Events, Matters, losses, cases, or populations where possible.
-
-A threshold breach may create or update a Matter.
-
-## 4.18 Decision
-
-An authorized selection among options in response to a Requirement, Matter, risk, incident, exception, reportability question, disclosure need, or other governed choice.
-
-A Decision includes evidence, uncertainty, options, expected effects, authority, segregation of duties, rationale, dissent, conditions, expiry, Actions, and Verification Contract.
-
-## 4.19 Action
-
-A governed item of work with intended outcome, owner, performer, dependencies, due date, execution system, implementation evidence, escalation, and state.
-
-Action completion does not prove outcome.
-
-## 4.20 Verification Contract
-
-A machine-readable definition of how ClearSight determines whether the selected response achieved its intended observable result.
-
-It includes expected outcome, baseline, population, measurement source, success and failure thresholds, observation period, evidence, acceptance authority, and failure response.
-
-## 4.21 Response Package
-
-A point-in-time governed package prepared for a regulator, authority, auditor, certifier, board, customer, or other recipient.
-
-It includes:
-
-- purpose and recipient;
-- scope and period;
-- required directives or statements;
-- included evidence and versions;
-- exclusions and reasons;
-- redactions;
-- preparers, reviewers, approvers, and signatory;
-- submission channel and transmission proof;
-- acknowledgement;
-- package manifest and retention.
+The system verifies whether defined criteria were met; it does not overstate causal proof.
 
 ---
 
-# 5. Relationships
+# 5. Source Registry and inventory reuse
 
-Representative relationships include:
+Every source has a Source Profile:
 
-```text
-Program GOVERNS Scope
-Program CONTAINS Requirement
-Requirement DERIVED_FROM Source Provision
-Requirement APPLIES_TO Scope
-Requirement SATISFIED_BY Control Objective
-Control Objective IMPLEMENTED_BY Control Implementation
-Control Implementation PROVES_WITH Evidence Contract
-Observation PRODUCED_BY Source Profile
-Evidence Item SUPPORTS_OR_CONTRADICTS Claim
-Claim CONCLUDES_AS Conclusion
-Matter AFFECTS Program or Scope
-Matter CREATED_BY Trigger or Authority Source
-Matter REQUIRES Decision or Response Package
-Decision CREATES Action
-Action VERIFIED_BY Verification Contract
-Review Activity TESTS Control or Requirement
-KRI DERIVES_FROM Observation or Matter population
-Response Package ANSWERS Directive or Requirement
-```
-
-Every material relationship should support provenance, valid time, record time, sensitivity, confidence or review state, and version.
-
----
-
-# 6. Program trigger model
-
-Programs subscribe to four trigger classes.
-
-## Calendar
-
-- filing and return dates;
-- periodic control review;
-- policy or certificate expiry;
-- training, DR, vendor, BIA, RCSA, and assurance schedules.
-
-## Institutional change
-
-- new product, system, vendor, project, processing activity, jurisdiction, branch, customer group, model, or material configuration change.
-
-## Operational event
-
-- incident, breach, complaint pattern, loss, control failure, KRI breach, authority request, audit finding, or failed test.
-
-## Regulatory or evidence change
-
-- new source or amendment;
-- applicability change;
-- source degradation;
-- evidence expiry;
-- changed population;
-- contradiction;
-- failed verification.
-
-A trigger may:
-
-- refresh affected Claims;
-- schedule a Review Activity;
-- create or update a Matter;
-- invalidate a Conclusion or Decision;
-- request focused evidence;
-- update reporting or filing readiness.
-
----
-
-# 7. Configuration and reuse
-
-## Base banking model
-
-Shared primitives and exposure families.
-
-## Program packs
-
-Reusable source, Requirement, control-objective, Evidence Contract, calendar, trigger, and reporting templates for NDPA, AML/CFT, cybersecurity, PCI DSS, operational resilience, third-party assurance, and other Programs.
-
-## Channel and domain packs
-
-ATM, POS, mobile, internet, branch, cards, payments, lending, treasury, technology, privacy, vendors, and other domains.
-
-## Jurisdiction packs
-
-Authorities, source types, obligations, local terminology, thresholds, filing and response rules, retention, and legal conditions.
-
-## Institution profile
-
-Legal entities, licences, hierarchy, Programs, services, channels, source authority, control implementations, owners, authority, thresholds, terminology, and approved extensions.
-
-Configuration must not create arbitrary per-bank schemas that prevent upgrades or cross-bank reuse.
-
----
-
-# 8. Progressive integration and Source Registry
-
-ClearSight must support:
-
-- structured manual capture;
-- photos, scans, documents, and spreadsheets;
-- managed scheduled imports;
-- APIs;
-- events and telemetry.
-
-All methods produce governed Observations.
-
-Every Source Profile defines:
-
-- source name, owner, and custodian;
+- source and owner;
 - collection method;
-- authoritative facts and explicit limitations;
-- scope and identifiers;
-- freshness target and current age;
-- health and last successful collection;
-- mapping version and known limitations;
-- unresolved mappings;
+- authoritative facts;
+- limitations;
+- scope;
+- identifiers;
+- mapping version;
+- expected freshness;
+- current health;
+- known data-quality issues;
 - access and purpose policy;
-- dependent Requirements, Claims, Conclusions, Programs, and Matters.
+- dependent claims and Programs.
 
-Data-quality weakness remains visible and may create a Matter or alter Compliance State without falsely asserting control failure.
+Approved inventories should supply workflow scope and controlled values:
 
----
+- CMDB and application inventory;
+- asset systems;
+- branches and organization directories;
+- HR and identity directories;
+- vendor and contract systems;
+- customer and account systems;
+- acquiring and channel systems;
+- ITSM and project systems;
+- ROPA and BIA;
+- policy and evidence repositories.
 
-# 9. AI role
-
-AI acts as a governed compiler between messy sources and proposed structured objects.
-
-AI may:
-
-- segment source documents;
-- extract candidate Requirements or directives;
-- extract Observations from files, media, messages, and systems;
-- normalize and propose matches;
-- map Requirements, controls, services, and evidence;
-- identify contradiction;
-- draft focused requests, interpretations, actions, responses, and summaries;
-- propose Program or Matter updates.
-
-AI must not silently approve applicability, legal interpretation, material risk, reportability, suspicious reporting, disclosure, account restriction, regulatory response, major finding closure, or protected identity access.
+Users confirm or correct unresolved information rather than rebuild inventory.
 
 ---
 
-# 10. User experience boundary
+# 6. Progressive integration
 
-Primary surfaces are Today, Programs, Work, Explore, and Configure.
+## Level 0
 
-Programs present continuing obligations and assurance.
+Controlled lists, forms, photos, spreadsheets, and documents.
 
-Work presents Matters, actions, evidence requests, reviews, approvals, and responses.
+## Level 1
 
-Capture and Respond are contextual lightweight experiences.
+Scheduled files, SFTP, database exports, and recurring imports.
 
-Graph, Evidence Fabric, Decision Ledger, workflow engine, and AI operators are internal capabilities and must not become mandatory navigation.
+## Level 2
 
----
+APIs.
 
-# 11. Product invariants
+## Level 3
 
-1. Programs maintain; Matters mobilize.
-2. One truth produces many register, workplan, KRI, dashboard, and report views.
-3. Authority Source before approved Requirement.
-4. Applicability remains explicit and reviewable.
-5. Control Objective remains distinct from scoped implementation.
-6. Existing evidence before human request.
-7. Source authority before automated trust.
-8. Triggered refresh before blanket recurring questionnaire.
-9. Evidence before confidence.
-10. Contradiction before false certainty.
-11. Decision or response before dashboard status.
-12. Verification before closure.
-13. Human authority for material judgment.
-14. Progressive integration over perfect-integration dependency.
-15. Institutional memory over periodic snapshots.
-16. Internal architecture must not become user-interface architecture.
+Events and telemetry.
+
+Every level produces the same Observation model and uses the same Program and Matter semantics.
 
 ---
 
-# 12. Definition of success
+# 7. Ease-of-use semantics
+
+## 7.1 Prefill before asking
+
+Before creating a request or editable field, search authorized sources for an existing value.
+
+## 7.2 Minimum-question generation
+
+Determine exact unresolved facts and ask only those.
+
+## 7.3 Recommendation-first workflow
+
+Where approved, AI should propose Requirements, mappings, evidence requests, actions, verification, summaries, response indexes, and assignments with source lineage.
+
+## 7.4 Review by exception
+
+Human reviewers focus on changed, low-confidence, contradictory, unsupported, material, or high-impact items.
+
+## 7.5 Save and resume
+
+Every interruptible Matter preserves completed work, changes, blockers, and next action.
+
+## 7.6 Active-effort budget
+
+Routine workflows target less than five minutes. Complex workflows reach a safe saved next state in that time.
+
+## 7.7 Stable interaction across source maturity
+
+Replacing a spreadsheet with an API should remove effort without changing product semantics or user mental model.
+
+---
+
+# 8. Matching, populations, and reconciliation
+
+Population definitions preserve denominator, scope, time, inclusion logic, and exclusions.
+
+Matching states:
+
+- matched;
+- provisionally matched;
+- unresolved;
+- contradictory;
+- duplicate;
+- rejected;
+- superseded.
+
+AI may propose matches. Material merges require policy or review and must support unmerge with history.
+
+Bulk operations enforce authorization per object and produce reconstructable manifests.
+
+---
+
+# 9. Flexible configuration
+
+Different banks use one product through:
+
+- base banking model;
+- Programs;
+- Matter types;
+- channel packs;
+- jurisdiction packs;
+- institution profile;
+- source profiles;
+- evidence contracts;
+- authority matrices;
+- workflow and trigger policies;
+- role-specific views.
+
+Avoid arbitrary schemas, per-customer forks, uncontrolled scripts, and large generic form builders as the primary model.
+
+---
+
+# 10. AI role
+
+AI acts as a governed compiler between messy inputs and structured objects.
+
+AI may extract, normalize, classify, compare, map, summarize, recommend, and draft.
+
+AI does not become:
+
+- the source of institutional truth;
+- the evidence itself;
+- the authority;
+- the sole interface;
+- a route around policy;
+- a reason to add user effort.
+
+Every material AI output preserves source, version, scope, assumptions, uncertainty, structured output, validation, and review state.
+
+---
+
+# 11. User experience boundary
+
+Primary surfaces:
+
+- Today;
+- Programs;
+- Work;
+- Explore;
+- Configure.
+
+Focused Respond and Capture experiences expose only the necessary subset of context.
+
+Graph, evidence engine, decision ledger, workflow runtime, and AI operator platform are internal capabilities, not mandatory navigation concepts.
+
+---
+
+# 12. Product invariants
+
+1. Programs maintain continuity; Matters handle change and exception.
+2. Routine work targets under five minutes of active effort.
+3. Complex work reaches a clear saved next state within five minutes.
+4. Prefill before asking.
+5. Existing evidence before requests.
+6. Approved inventories before manual re-entry.
+7. AI-grounded first drafts before blank-page work.
+8. One clear next action.
+9. Scope before action.
+10. Banking language before GRC jargon.
+11. Source authority before automated trust.
+12. Evidence before confidence.
+13. Contradiction before false certainty.
+14. Decisions before dashboards.
+15. Verification before closure.
+16. Human authority for material judgment.
+17. Progressive integration without semantic change.
+18. Institutional memory over periodic reconstruction.
+
+---
+
+# 13. Definition of success
 
 The operating model succeeds when:
 
-- continuing obligations remain current without repeated spreadsheet reconstruction;
-- a new regulation updates affected Programs and creates only necessary implementation Matters;
-- an authority request becomes a protected case with source, subjects, directives, evidence, decisions, response, and acknowledgement;
-- NDPA ROPA, DPIA, breach, vendor, rights, transfer, and filing work derive from one Program;
-- legacy compliance, risk, exception, workplan, KRI, BIA, vendor, and loss registers become views over shared objects;
-- regional banks can begin with spreadsheets and focused capture;
-- larger banks can add APIs, events, entities, licences, and jurisdictions without changing semantics;
-- staff are asked only for missing facts;
-- task completion never masquerades as verified effectiveness;
-- and every material compliance or risk position can be reconstructed from original source to accepted outcome.
+- regional banks can begin with spreadsheets and controlled capture;
+- national and multinational banks can add APIs, events, entities, and jurisdictions without changing semantics;
+- approved inventories eliminate repetitive entry;
+- Programs remain continuously current;
+- Matters contain all context required for action;
+- routine users complete work in a few steps;
+- AI recommendations reduce assembly without becoming authority;
+- source weakness and contradiction remain visible;
+- one underlying record can drive register, KRI, dashboard, audit, filing, and committee views;
+- closure requires evidence and verification;
+- every material state can be reconstructed later.
