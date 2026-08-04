@@ -1,28 +1,39 @@
 # ClearSight Experience Principles
 
-This document defines the product taste, interaction model, information hierarchy, and visual non-regression rules for ClearSight.
+This document defines the canonical product experience, information architecture, visual language, interaction rules, and visual non-regression requirements for ClearSight.
 
-The target is a 2030-quality enterprise interface: not decorative science fiction, but an interface that appears to understand institutional context, minimizes work, explains complexity, and remains calm under high-stakes use.
+The target is a 2030-quality bank GRC interface: not decorative science fiction, but a system that understands context, removes unnecessary work, makes institutional uncertainty legible, and remains calm during high-stakes decisions.
+
+This document must conform to [`operating-model.md`](operating-model.md). Internal architecture must not become user-interface architecture.
 
 ---
 
-# 1. Experience goal
+# 1. Experience objective
 
 A ClearSight user should feel that:
 
-- the system already knows the relevant institutional context;
-- only material matters are being presented;
-- every conclusion can be explained;
-- uncertainty is visible without being overwhelming;
-- the next accountable action is clear;
-- AI is reducing effort rather than creating another interface to operate;
-- and the interface will preserve the decision accurately.
+- the system understands the relevant bank, entity, channel, service, branch, population, and time period;
+- the current situation is explained in familiar banking language;
+- known information is already assembled;
+- missing or contradictory proof is explicit;
+- only the next proportionate action is emphasized;
+- AI reduces effort without becoming a second product to operate;
+- source quality and freshness are visible;
+- and every decision will remain reconstructable.
 
 The primary interaction grammar is:
 
-> **Brief → Explain → Act → Prove**
+> **Understand → Evidence → Decide → Act → Verify**
 
-This pattern must remain recognizable across risk, compliance, resilience, security, third-party, incident, audit, and protected-reporting journeys.
+For executives this compresses to:
+
+> **Brief → Explain → Decide → Verify**
+
+For evidence respondents it compresses to:
+
+> **Context → Confirm or provide → Review → Submit**
+
+The same product logic applies across operational risk, compliance, cyber, resilience, third-party, incidents, audit, customer signals, and protected reporting.
 
 ---
 
@@ -30,208 +41,430 @@ This pattern must remain recognizable across risk, compliance, resilience, secur
 
 ClearSight should feel:
 
-- **calm** — no artificial urgency or constant visual alarm;
-- **precise** — numbers, states, owners, and time scopes are explicit;
-- **institutional** — suitable for a bank boardroom, risk committee, regulator, or audit team;
-- **intelligent** — the interface anticipates context and removes unnecessary input;
+- **calm** — no artificial urgency, constant alarm, or blinking state;
+- **direct** — the current situation and next action are obvious;
+- **precise** — scope, period, source, owner, authority, and state are explicit;
+- **relatable** — banking channels, services, branches, merchants, customers, assets, and vendors appear before abstract control language;
+- **institutional** — appropriate for branch operations, a risk committee, boardroom, audit team, or regulator;
+- **intelligent** — context is prefilled and repetitive assembly work disappears;
 - **premium** — refined typography, spacing, motion, and detail;
 - **defensible** — evidence and reasoning are always within reach;
-- **restrained** — depth and glow communicate meaning rather than decoration.
+- **restrained** — glass, glow, depth, and color communicate meaning rather than decoration.
 
 ClearSight must not feel:
 
 - like a generic admin template;
 - like a security operations console filled with alerts;
-- like a consumer finance application;
+- like a consumer banking application;
 - like a social feed;
-- like a gamified compliance tool;
-- or like a neon cyberpunk concept.
+- like a gamified compliance product;
+- like a neon cyberpunk concept;
+- like a large spreadsheet with cards around it;
+- or like a chat assistant placed over disconnected GRC modules.
 
 ---
 
 # 3. Experience architecture
 
+Most users operate through five surfaces.
+
 ## 3.1 Today
 
-The default landing surface is a role-specific brief, not a dashboard catalog.
+The default landing surface is a role-specific brief, not a dashboard catalogue.
 
-It should show:
+It should show only:
 
-- material changes since the user’s last relevant review;
+- situations that materially changed;
 - decisions requiring the user’s authority;
-- appetite breaches or fast-moving exposures;
-- critical evidence gaps;
-- actions whose expected outcome is not being achieved;
-- upcoming obligations or deadlines that require intervention;
-- and notable changes that were safely automated.
+- evidence gaps requiring intervention;
+- appetite breaches or approaching limits;
+- actions likely to miss a deadline;
+- failed or pending verification;
+- important upcoming obligations;
+- and important changes that were safely automated.
 
-The default view should usually contain between three and seven material cards.
+The default executive view should usually contain between three and seven situation cards.
 
-The system may provide an expanded monitoring mode, but executive calm is the default.
+Today must support:
 
-## 3.2 Explore
+- a clear review period such as “since your last review” or a selected date range;
+- acknowledgement without suppressing the underlying situation;
+- delegation where authority permits;
+- saved role views without making dashboard configuration the product;
+- an expanded monitoring mode for analysts;
+- and a true “no material change” state distinct from missing data.
 
-Explore provides deep, connected investigation through:
+## 3.2 Situation
 
-- institutional graph;
-- risk portfolio;
-- service and dependency maps;
-- regulatory lineage;
-- controls and evidence;
-- incidents and losses;
-- scenarios and counterfactuals;
-- and time-based reconstruction.
+Situation is the primary work surface.
 
-Explore is not a collection of module homepages. It is a connected inquiry surface.
+One workspace combines the context that conventional GRC products divide across risk, control, evidence, issue, action, approval, and assurance modules.
 
-## 3.3 Act
+### Summary
 
-Act contains:
-
-- decision queue;
-- approvals;
-- delegated work;
-- remediation;
-- evidence requests;
-- investigations;
-- risk acceptances;
-- exceptions;
-- and governed automation.
-
-The user should see why an action exists and what outcome it must achieve.
-
-## 3.4 Prove
-
-Prove contains:
-
-- verification contracts;
-- outcome evidence;
-- control tests;
-- assurance conclusions;
-- evidence rooms;
-- audit and examination lineage;
-- point-in-time exports;
-- and decision history.
-
-## 3.5 Govern
-
-Govern contains high-authority configuration such as:
-
-- risk appetite;
-- taxonomies and ontologies;
-- legal-entity and jurisdiction boundaries;
-- committee and authority matrices;
-- AI operator capabilities;
-- model routing;
-- evidence policy;
-- retention and legal hold;
-- authorization policy;
-- and integration trust settings.
-
-Govern should not become a dumping ground for ordinary product settings.
-
----
-
-# 4. Core interaction patterns
-
-## 4.1 Material decision card
-
-A material decision card is the primary unit of executive interaction.
-
-It contains, in order:
-
-1. **Material change** — one sentence describing what changed.
-2. **Why now** — the reason it requires attention at this moment.
-3. **Affected scope** — service, customers, entity, jurisdiction, system, vendor, or obligation.
-4. **Risk movement** — current state, expected direction, velocity, and time-to-impact.
-5. **Evidence state** — sufficient, weak, stale, contradictory, or pending.
-6. **Authority** — who owns the decision and when it is due.
-7. **Recommended handling** — one primary action with alternatives available.
-
-A card must not contain every supporting metric. Deep context is shown through Explain.
-
-### Card rules
-
-- One dominant message.
-- One primary next action.
-- No more than two secondary actions in the collapsed state.
-- No unexplained scores.
-- No status color without a textual or icon equivalent.
-- No generic “view details” as the only action.
-- No green state unless the outcome is verified.
-
-## 4.2 Explain drawer or workspace
-
-Explain must reveal the basis of the card without forcing navigation into many pages.
-
-The workspace should support these layers:
-
-### Layer 1: concise explanation
-
+- what is happening;
 - what changed;
-- why it matters;
-- affected scope;
-- current evidence quality;
-- and recommended decision.
+- why it matters now;
+- active scope and period;
+- affected services, customers, entities, branches, merchants, systems, assets, or vendors;
+- applicable exposure patterns;
+- appetite or tolerance position;
+- current state;
+- and required next action.
 
-### Layer 2: relationship path
+### Evidence
 
-- relevant graph nodes and edges;
-- critical dependencies;
-- propagation path;
-- and concentration.
-
-### Layer 3: evidence and reasoning
-
-- claims;
-- supporting and contradicting evidence;
-- source lineage;
+- required claims;
+- what is known;
+- what is missing;
+- what is stale;
+- what conflicts;
+- source authority and limitations;
+- coverage and population;
+- original evidence and derived observations;
 - assumptions;
-- confidence;
-- rule or model basis;
-- and prior conclusions.
+- and conclusion state.
 
-### Layer 4: history and reconstruction
+### Decision
 
-- previous state;
-- decisions;
-- overrides;
-- changes in evidence;
-- and realized outcomes.
+- available options;
+- likely effect and limitations;
+- cost, dependencies, time-to-effect, reversibility, and customer impact where relevant;
+- required authority;
+- segregation-of-duties or conflict checks;
+- selected option and rationale;
+- dissent, conditions, expiry, and review triggers.
 
-## 4.3 Evidence request
+### Action
 
-A staff-facing evidence request should feel like a short, contextual work message—not a GRC assessment.
+- action plan;
+- responsible owner;
+- dependencies;
+- external execution state;
+- implementation evidence;
+- blockers;
+- and escalation.
 
-It includes:
+### Outcome
 
-- why the recipient is being asked;
-- what the system already knows;
-- the smallest unresolved question;
+- expected outcome;
+- baseline;
+- measurement source;
+- observation period;
+- current observed result;
+- success and failure thresholds;
+- acceptance authority;
+- and verified, ineffective, indeterminate, or awaiting-verification state.
+
+### History
+
+- prior situation versions;
+- evidence changes;
+- decisions and overrides;
+- source degradation;
+- actions;
+- verification outcomes;
+- and point-in-time reconstruction.
+
+Users must not need to navigate several modules to answer one material question.
+
+## 3.3 Capture
+
+Capture is a lightweight web and mobile surface for:
+
+- answering one focused question;
+- confirming prefilled facts;
+- selecting an existing bank record;
+- photographing or scanning an item;
+- uploading a spreadsheet or document;
+- validating AI-extracted values;
+- reporting a discrepancy;
+- redirecting to a better source;
+- or declaring that a request is not applicable.
+
+Capture must show:
+
+- why the information is needed;
+- the claim or practical question in plain language;
+- what ClearSight already knows;
+- the active scope and period;
 - acceptable evidence forms;
 - estimated effort;
 - deadline and consequence;
-- confidentiality classification;
-- and an easy route to redirect to a better source.
+- sensitivity and sharing boundary;
+- and a clear final review before submission.
 
-Example:
+## 3.4 Explore
 
-> **Confirm four privileged users**  
-> We found the current Treasury Operations user list and the previous review. Four accounts have no current approval. Confirm whether each still requires access and attach an approval for any exception. Estimated time: 3 minutes.
+Explore is an analyst inquiry surface for:
+
+- situations;
+- banking channels and services;
+- branches, merchants, customers, assets, systems, vendors, and people;
+- exposure patterns;
+- populations;
+- sources and data quality;
+- claims, observations, evidence, obligations, controls, incidents, decisions, actions, and outcomes;
+- relationship paths;
+- trends;
+- and point-in-time reconstruction.
+
+Explore is not a collection of module homepages.
+
+The default is not a large node graph. Prefer:
+
+- scoped search;
+- hierarchy;
+- readable relationship paths;
+- dependency lists;
+- population tables;
+- affected-scope summaries;
+- timelines;
+- and progressive expansion.
+
+Graph visualization is used only where spatial relationships improve comprehension.
+
+## 3.5 Configure
+
+Configure is a restricted administrative surface for:
+
+- institution and legal-entity structure;
+- channel and jurisdiction packs;
+- source registry;
+- controlled vocabularies;
+- exposure patterns;
+- evidence recipes;
+- appetite, limits, and tolerances;
+- authority and segregation-of-duties rules;
+- access, retention, and legal hold;
+- integration mapping;
+- AI and automation permissions;
+- and deployment-specific policy.
+
+Ordinary users should rarely enter Configure.
+
+Configure must not become a generic settings landfill. Configuration should be grouped by the institutional outcome it controls.
+
+---
+
+# 4. Mandatory context anchoring
+
+Wrong-scope action is a material usability and governance failure.
+
+Every material workspace must make the following available without requiring memory:
+
+- institution or tenant;
+- legal entity;
+- country or jurisdiction where relevant;
+- channel, service, branch, merchant group, system, vendor, or population;
+- effective period;
+- record or review time;
+- current user role or delegated authority where relevant;
+- data freshness state.
+
+Use a compact context header or scope breadcrumb. It must not consume excessive vertical space, but it must remain visible before approval, export, bulk action, or evidence submission.
+
+Context switching must:
+
+- clearly indicate the new entity or scope;
+- preserve or intentionally reset filters;
+- prevent accidental cross-entity actions;
+- warn when a draft belongs to another scope;
+- and never rely on subtle color changes alone.
+
+---
+
+# 5. Core interaction patterns
+
+## 5.1 Situation card
+
+The situation card is the primary unit of attention.
+
+It contains, in order:
+
+1. **Situation** — one direct sentence in banking language.
+2. **Why now** — the change, deadline, threshold, or uncertainty requiring attention.
+3. **Affected scope** — service, channel, entity, customer group, branch, asset population, system, vendor, or obligation.
+4. **Exposure** — applicable exposure family and plausible consequence.
+5. **Evidence state** — sufficient, incomplete, stale, contradictory, unavailable, or pending.
+6. **Required handling** — monitor, provide evidence, investigate, decide, act, or verify.
+7. **Owner or authority** — accountable person or committee and due time.
+
+Card rules:
+
+- one dominant message;
+- one primary next action;
+- no more than two secondary actions while collapsed;
+- no unexplained score;
+- no generic “view details” as the only action;
+- no green state unless the defined outcome is accepted as verified;
+- no red state solely because a source is missing;
+- no hidden material context available only on hover.
+
+A situation card is not always a decision card. It may require evidence, investigation, monitoring, or verification before a decision is appropriate.
+
+## 5.2 Evidence request
+
+An evidence request should feel like a short, contextual work message rather than a GRC assessment.
+
+It includes:
+
+- why this person or team is being asked;
+- what is already known;
+- the smallest unresolved question;
+- affected banking object or population;
+- acceptable response forms;
+- estimated effort;
+- deadline;
+- confidentiality;
+- and redirect, partial-response, not-applicable, and sensitivity options.
 
 Avoid:
 
-- control IDs as the main language;
+- control IDs as the primary language;
 - broad free-text prompts;
-- asking for already known data;
-- requiring users to navigate the full risk object;
+- requiring the full risk object to be understood;
+- asking for fields already available from a source;
 - and repeated requests that could have been deduplicated.
 
-## 4.4 Evidence sufficiency view
+## 5.3 Population worklist
 
-Evidence quality must be understandable.
+Many bank workflows concern populations rather than single objects: ATMs, POS terminals, merchants, accounts, branches, vendors, controls, incidents, or exceptions.
 
-Use dimensions such as:
+A population worklist must support:
+
+- total population and current filtered population;
+- resolved, unresolved, contradictory, stale, excluded, and not-applicable counts;
+- explicit denominator for every percentage;
+- search and saved filters;
+- column visibility and density controls without ad hoc layouts;
+- sticky identifiers and headers;
+- row-level source and freshness state;
+- inline comparison where safe;
+- keyboard navigation;
+- virtualized or paginated loading;
+- selection summaries;
+- and export with scope and manifest.
+
+Bulk actions must show:
+
+- exact selection criteria;
+- number of affected records;
+- excluded or unauthorized records;
+- side effects;
+- reversibility;
+- required approval;
+- and a post-action reconciliation result.
+
+A bulk action must never silently apply to records outside the visible authorized scope.
+
+## 5.4 Reconciliation and matching
+
+Reconciliation should visually distinguish:
+
+- matched;
+- provisionally matched;
+- unresolved;
+- contradictory;
+- duplicate;
+- rejected;
+- and superseded.
+
+The interface should provide:
+
+- source records side by side;
+- normalized identifiers;
+- proposed match reason;
+- confidence dimensions rather than false precision;
+- affected downstream claims or situations;
+- merge and unmerge history;
+- and a clear human decision where required.
+
+Do not hide unresolved mappings behind an import-success banner.
+
+## 5.5 Spreadsheet import
+
+Spreadsheet and CSV import are first-class enterprise workflows.
+
+The import experience should contain:
+
+1. file and sheet selection;
+2. source profile and intended purpose;
+3. column detection and mapping;
+4. sample preview;
+5. type and required-field validation;
+6. identifier matching;
+7. duplicate and conflict analysis;
+8. scope confirmation;
+9. import summary;
+10. reconciliation queue and rollback reference.
+
+Every imported observation must retain:
+
+- file;
+- sheet;
+- row;
+- mapping version;
+- uploader or managed source;
+- import time;
+- and validation state.
+
+The UI must distinguish:
+
+- uploaded successfully;
+- parsed successfully;
+- mapped successfully;
+- accepted as an observation;
+- and sufficient for a claim.
+
+These are not equivalent states.
+
+## 5.6 Photo and scan capture
+
+Photo capture should guide the user toward verifiable visible attributes.
+
+The interface may request:
+
+- full asset in context;
+- serial number or label;
+- location signage;
+- tamper seal;
+- screen state or error code;
+- supporting document;
+- or a second angle.
+
+During capture:
+
+- show framing or legibility guidance;
+- detect blur, glare, crop, and unreadable identifiers;
+- disclose whether device metadata or location is collected;
+- avoid collecting unnecessary background or people;
+- allow redaction or retake where policy permits;
+- preserve the original;
+- show extracted fields and regions;
+- require confirmation where necessary;
+- and clearly state what the image can and cannot establish.
+
+Never present “AI verified secure” from a general photograph. Present bounded observations such as a visible serial number match or apparently intact external seal.
+
+## 5.7 Forms and controlled values
+
+Forms should be generated around unresolved facts and user intent.
+
+Requirements:
+
+- known fields are prefilled and usually read-only;
+- controlled values come from administrator-approved or authoritative sources;
+- dropdowns are searchable and scoped;
+- identifiers are shown with human-readable labels;
+- dependent fields update predictably;
+- free text is reserved for explanation, not basic identity;
+- validation occurs progressively;
+- and the final review shows exactly what assertions will be submitted.
+
+## 5.8 Evidence sufficiency
+
+Evidence quality should be understandable across:
 
 - relevance;
 - authenticity;
@@ -243,112 +476,163 @@ Use dimensions such as:
 - reliability;
 - and traceability.
 
-Do not compress these into a single unexplained percentage.
+Do not compress these dimensions into one unexplained percentage.
 
-A concise state may be shown, but the dimension breakdown and evidence basis must be available.
+Use a concise state with an expandable breakdown, source references, policy requirements, and unresolved contradiction.
 
-## 4.5 Contradiction view
+## 5.9 Contradiction
 
-Contradiction is a first-class state, not an error message.
+Contradiction is a first-class state.
 
-The view should show:
+The interface should show:
 
 - disputed claim;
-- conflicting evidence side by side;
+- conflicting observations or evidence side by side;
+- source authority and limitations;
 - effective periods;
-- source authority;
-- affected decisions and conclusions;
+- population or scope mismatch;
+- affected conclusions, decisions, and reports;
 - unresolved questions;
 - assigned resolver;
 - and time sensitivity.
 
-The interface must not silently choose one source.
+The system must not silently select the source that makes the situation look better.
 
-## 4.6 Verification contract
+## 5.10 Decision review
 
-A remediation view must visibly separate:
+A material decision review must show:
 
-- work to perform;
-- implementation evidence;
-- expected outcome;
-- measurement source;
-- observation period;
-- current observed result;
-- and acceptance authority.
+- exact scope and period;
+- conclusion and evidence state;
+- uncertainty and contradiction;
+- options and important trade-offs;
+- affected customers, services, entities, or obligations;
+- authority and segregation-of-duties basis;
+- expiry and review triggers;
+- irreversible or external side effects;
+- and verification method.
+
+Approval must not be a context-free button.
+
+High-impact or irreversible actions should require deliberate confirmation, but not repetitive ceremony. Use confirmation proportional to materiality and reversibility.
+
+## 5.11 Verification
 
 Completion and verification must have separate visual states.
 
-## 4.7 Natural-language command surface
+Show:
+
+- work performed;
+- implementation evidence;
+- expected outcome;
+- baseline;
+- measurement source;
+- observation period;
+- current observed result;
+- threshold;
+- acceptance authority;
+- and failure response.
+
+Do not use green while an observation period is incomplete.
+
+## 5.12 Natural-language command surface
 
 The command surface is global but not dominant.
 
-It can support:
+It may support:
 
 - inquiry;
 - navigation;
-- drafting;
 - comparison;
+- summarization;
+- drafting;
 - simulation;
 - and proposing governed actions.
 
-It must not become the only way to operate the system.
+It must not become the only way to operate ClearSight.
 
 Responses should include:
 
 - concise answer;
-- source and time scope;
+- active scope and time period;
+- source references;
 - confidence and missing information;
+- contradictions;
 - affected objects;
-- and safe next actions.
+- and safe structured next actions.
 
-When a command could create a material side effect, the system must transition into a structured review and approval surface.
+A command that may create side effects must transition into the normal review surface.
 
 ---
 
-# 5. Visual language
+# 6. Source and data-quality experience
 
-## 5.1 Overall composition
+Every integrated, imported, or human source should have a visible Source Profile appropriate to the user’s authority.
 
-The visual model should combine:
+Show:
 
-- near-black or deep navy institutional surfaces in dark mode;
-- clean warm or cool neutral surfaces in light mode;
-- carefully controlled transparency;
-- thin borders and subtle elevation;
-- generous spacing;
+- source owner;
+- what the source is authoritative for;
+- what it is not authoritative for;
+- scope;
+- expected freshness;
+- current age;
+- last successful collection;
+- current health;
+- mapping version;
+- known limitations;
+- unresolved records;
+- and affected conclusions.
+
+Source health states must distinguish:
+
+- current;
+- delayed;
+- stale;
+- partially available;
+- mapping degraded;
+- authorization revoked;
+- unavailable;
+- and retired.
+
+A successful API response or uploaded file must not visually imply that the data is complete, accurate, current, or sufficient.
+
+Data-quality debt should appear where it changes a situation, decision, or assurance conclusion—not as a separate wall of technical metrics for executives.
+
+---
+
+# 7. Visual language
+
+## 7.1 Overall composition
+
+Use:
+
+- deep institutional surfaces in dark mode;
+- clean neutral surfaces in light mode;
+- controlled transparency;
+- thin but visible boundaries;
+- subtle elevation;
+- generous spacing around decisions;
+- compact density inside operational populations;
 - high legibility;
 - and focused semantic accents.
 
-The supplied Archer-style visual reference is useful for:
+The product must support both calm executive review and dense operational reconciliation without turning every screen into the same card grid.
 
-- dark institutional framing;
-- restrained cyan edge emphasis;
-- clear numerical hierarchy;
-- colored relationship blocks;
-- and visual flow between obligations and controls.
+## 7.2 Surface hierarchy
 
-ClearSight should not copy that screen. It should improve on it by:
-
-- reducing default density;
-- making evidence state and decision ownership more prominent;
-- replacing decorative flow with interactive causal explanation;
-- ensuring full light-mode parity;
-- using stronger accessibility;
-- and preventing color from carrying meaning alone.
-
-## 5.2 Surface hierarchy
-
-Use a small number of surface levels:
+Use a small number of semantic surfaces:
 
 1. **Canvas** — application background.
-2. **Primary surface** — main work area.
-3. **Raised surface** — focused cards, drawers, or command results.
-4. **Protected surface** — sensitive or privileged context.
-5. **Transient surface** — menus, tooltips, and short-lived overlays.
+2. **Primary work surface** — situation, table, document, or capture area.
+3. **Raised focus surface** — decision review, command result, or temporary comparison.
+4. **Protected surface** — restricted evidence, case content, or identity workflow.
+5. **Transient surface** — menu, tooltip, toast, popover.
+6. **Offline or degraded surface** — locally queued or stale context, clearly marked.
 
-Do not create a separate visual treatment for every component.
+Do not invent a new surface style for every component.
 
-## 5.3 Glass
+## 7.3 Glass
 
 Glass is structural, not decorative.
 
@@ -356,228 +640,244 @@ Appropriate uses:
 
 - command surface over current context;
 - focused decision layer;
-- relationship overlay;
-- protected review context;
-- and temporary simulation comparison.
+- temporary relationship overlay;
+- protected review boundary;
+- simulation comparison.
 
 Inappropriate uses:
 
 - every card;
-- long text surfaces;
+- long text;
 - dense tables;
 - evidence documents;
-- and low-power mobile contexts where blur harms performance.
+- spreadsheet mapping;
+- protected-report narratives;
+- low-power mobile capture.
 
-Every glass surface must preserve readable contrast without depending on the background image or content.
-
-## 5.4 Glow
+## 7.4 Glow
 
 Glow may indicate:
 
-- active intelligence;
-- selected graph path;
-- live but verified connection;
-- or current focus.
+- current focus;
+- active analysis;
+- selected relationship path;
+- or newly updated context.
 
-Glow must not indicate severity by itself and must not surround every interactive element.
+Glow must not represent severity by itself and must never surround all interactive elements.
 
-## 5.5 Semantic color
+## 7.5 Semantic color
 
-A canonical starting palette should be tokenized around roles, not fixed component colors.
+Color roles are tokenized.
 
-### Intelligence / context — cyan
+- **Cyan:** context, discovered relationship, selected analysis path.
+- **Violet:** governance, policy, authority, approved automation.
+- **Coral or red:** material exposure, breach, severe gap, failed verification.
+- **Amber:** uncertainty, stale or incomplete evidence, approaching threshold, unresolved contradiction.
+- **Green:** accepted verified outcome only.
+- **Blue or neutral informational:** current operation, link, selection, baseline, or ordinary progress.
+- **Neutral muted:** historical, not assessed, secondary metadata.
+- **Protected treatment:** distinct surface and iconography, not a severity color.
 
-Used for:
+Never use green for task completion, document presence, self-attestation, or absence of alerts.
 
-- discovered relationships;
-- live analysis;
-- selected graph paths;
-- or contextual explanations.
+Never use red merely to increase engagement.
 
-### Governance / control — violet
+## 7.6 State semantics
 
-Used for:
+The following must remain visually and textually distinct:
 
-- approvals;
-- policy;
-- controls;
-- authority;
-- and governed automation.
+- no risk observed;
+- no material change;
+- no data received;
+- data not yet assessed;
+- insufficient evidence;
+- stale evidence;
+- source unavailable;
+- unauthorized;
+- not applicable;
+- unknown;
+- contradictory;
+- action complete;
+- awaiting verification;
+- verified effective;
+- verified ineffective.
 
-### Material exposure — coral or red
-
-Used for:
-
-- appetite breach;
-- severe control gap;
-- failed verification;
-- and material incident state.
-
-### Uncertainty — amber
-
-Used for:
-
-- weak or stale evidence;
-- pending verification;
-- approaching threshold;
-- and unresolved contradiction.
-
-### Verified outcome — green
-
-Used only when:
-
-- outcome evidence meets the verification contract;
-- acceptance authority has approved the result;
-- and no unresolved contradictory evidence invalidates the conclusion.
-
-### Neutral
-
-Used for:
-
-- informational state;
-- unassessed state;
-- baseline data;
-- and historical context.
-
-## 5.6 Typography
-
-Typography should communicate authority and clarity.
+## 7.7 Typography
 
 Requirements:
 
 - modern neutral sans-serif suitable for long enterprise use;
-- tabular numerals for metrics and financial values;
-- clear distinction between labels, values, explanation, and metadata;
-- no excessive all-caps;
-- no tiny text for material context;
-- no ultra-light weights that reduce readability;
-- and stable line-height across languages.
+- tabular numerals for operational, financial, percentage, and time-series values;
+- clear roles for situation statement, decision, evidence, metadata, and identifier;
+- readable compact text for dense tables;
+- no ultra-light weights;
+- no important information in tiny uppercase labels;
+- stable line heights across languages;
+- and controlled line length for investigation narratives.
 
-Suggested roles:
+All typography comes from tokens.
 
-- display;
-- page title;
-- section title;
-- card title;
-- body;
-- compact body;
-- label;
-- metadata;
-- code/identifier;
-- numeric emphasis.
+## 7.8 Numbers, currency, dates, and time
 
-All typography must come from tokens.
+Every material number must communicate:
 
-## 5.7 Icons
+- unit;
+- denominator where applicable;
+- time period;
+- currency and basis;
+- rounding or approximation;
+- source;
+- and comparison basis.
 
-Icons should be:
+Support institution and jurisdiction formats for:
 
-- simple;
-- geometric;
-- optically balanced;
-- consistent in stroke and corner style;
-- and recognizable without decorative complexity.
+- currency;
+- decimal and thousands separators;
+- date;
+- time zone;
+- reporting period;
+- and local terminology.
 
-Do not use different icon families in the same product.
+Relative dates such as “yesterday” should reveal the exact timestamp.
 
-Risk state must not depend on icons alone.
+## 7.9 Icons
 
-## 5.8 Charts and relationship views
+Use one coherent icon family with consistent optical weight, stroke, and corner treatment.
+
+Icons must not carry risk state or authority alone.
+
+Banking channels and common objects may use recognizable icons, but labels remain primary.
+
+## 7.10 Charts and relationship views
 
 Prefer:
 
+- risk movement over time;
+- evidence coverage by population and period;
+- source freshness;
+- exception concentration;
 - causal and dependency paths;
 - service maps;
-- obligation-to-control-to-evidence lineage;
-- risk movement over time;
-- confidence bands;
-- evidence coverage;
-- concentration views;
-- scenario deltas;
-- and before/after treatment projections.
+- before-and-after treatment comparison;
+- confidence or uncertainty ranges;
+- reconciliation variance;
+- and scenario deltas.
 
-Use heat maps as one analytical view, not the primary executive truth.
+Use heat maps as an analytical view, not the primary executive truth.
 
-Every chart must provide:
+Every chart requires:
 
-- clear title;
-- units;
-- time period;
+- clear question or title;
+- unit and denominator;
+- period;
 - source;
 - accessible textual summary;
-- and explanation of uncertainty.
+- uncertainty explanation;
+- and a direct path to the underlying situation or population.
+
+Avoid 3D charts and decorative animated data flow.
 
 ---
 
-# 6. Layout and responsive behavior
+# 8. Layout and density
 
-## 6.1 Desktop
+## 8.1 Desktop
 
-Desktop is optimized for investigation and decision work.
+Desktop supports investigation, population review, decision, and administration.
 
 A typical layout may include:
 
 - compact navigation rail;
-- main briefing or work surface;
-- contextual explain panel;
+- scope/context header;
+- main work surface;
+- contextual evidence or explain panel;
 - and optional command surface.
 
-Avoid permanently reserving wide space for secondary navigation.
+Do not permanently reserve large width for secondary navigation.
 
-## 6.2 Tablet
+## 8.2 Density modes
 
-Tablet supports executive review, approval, evidence inspection, and meeting use.
+Support at least:
 
-- Cards remain readable without desktop density.
-- Relationship views simplify progressively.
-- Important actions remain reachable with touch.
-- Side panels become modal workspaces where appropriate.
+- **comfortable** for executives, situation review, and narrative evidence;
+- **compact** for operational worklists, reconciliation, controls, and imports.
 
-## 6.3 Mobile
+Density must affect spacing and row height without hiding labels, reducing target size below accessibility requirements, or changing semantic hierarchy.
+
+## 8.3 Tablet
+
+Tablet supports:
+
+- executive and committee review;
+- approval;
+- evidence inspection;
+- meeting mode;
+- and selected capture.
+
+Side panels may become full-screen workspaces. Tables should preserve key identifiers and allow progressive detail rather than horizontal compression of every column.
+
+## 8.4 Mobile
 
 Mobile is primarily for:
 
-- evidence capture;
+- focused evidence capture;
 - short review;
-- approval with context;
+- approval with sufficient context;
 - protected reporting;
 - incident updates;
 - and urgent material notifications.
 
-Do not squeeze full desktop graph exploration onto mobile.
+Do not squeeze full graph exploration or wide reconciliation tables onto mobile.
 
-Mobile evidence capture should support:
+## 8.5 Large display and meeting mode
 
-- camera;
-- document scan;
-- screenshot;
-- voice note;
-- short video;
-- structured confirmation;
-- and offline or unstable-network recovery where feasible.
-
-## 6.4 Large displays
-
-Boardroom and control-room modes may use large screens, but should remain calm.
-
-Large displays should emphasize:
+Boardroom or committee mode should emphasize:
 
 - material portfolio movement;
-- critical service status;
+- critical services;
+- concentrated exposures;
 - appetite and evidence state;
 - decisions and owners;
-- and scenario comparison.
+- and verification outcomes.
 
-They should not become walls of blinking metrics.
+Meeting mode should provide privacy-aware presentation, stable layouts, concise annotations, and point-in-time freeze. It must not become a wall of blinking metrics.
 
 ---
 
-# 7. State design
+# 9. Attention and notification design
 
-Every feature must design these states deliberately:
+ClearSight should reduce interruption rather than create another alert channel.
+
+Notifications must be:
+
+- deduplicated;
+- role- and authority-aware;
+- materiality-sensitive;
+- channel-appropriate;
+- grouped by situation where possible;
+- and cancelled when the underlying need is resolved elsewhere.
+
+The interface should distinguish:
+
+- information;
+- work assigned;
+- decision required;
+- deadline approaching;
+- material escalation;
+- and protected communication.
+
+Do not use unread counts as a proxy for urgency.
+
+Every notification must lead to a clear bounded action or explanation.
+
+---
+
+# 10. State and failure design
+
+Every feature must deliberately design:
 
 - loading;
-- streaming or partially available intelligence;
+- partial or streaming analysis;
 - empty;
 - no material change;
 - insufficient evidence;
@@ -585,240 +885,217 @@ Every feature must design these states deliberately:
 - pending approval;
 - delegated;
 - executing;
+- implemented;
 - awaiting verification;
-- verified;
-- failed verification;
+- verified effective;
+- verified ineffective;
+- indeterminate;
 - stale;
 - superseded;
 - unauthorized;
 - offline;
+- locally queued;
+- synchronization conflict;
 - integration degraded;
-- and AI unavailable.
+- AI unavailable;
+- import partially accepted;
+- and export failed.
 
-“No data” must be distinguished from “no risk,” “not assessed,” and “not authorized.”
+## 10.1 AI latency
 
-## 7.1 AI latency
-
-AI output should not freeze the interface.
-
-- Show immediately available deterministic context first.
-- Indicate what analysis is still in progress.
+- Show deterministic context first.
+- Identify what analysis is still running.
+- Preserve stable layout.
 - Allow cancellation where safe.
-- Provide timeout and fallback behavior.
-- Preserve manual workflows when AI is unavailable.
+- Provide timeout, retry, fallback, and manual operation.
+- Never show an old AI conclusion as newly generated.
 
-## 7.2 Integration degradation
+## 10.2 Integration degradation
 
-When a source is delayed or unavailable, show:
+Show:
 
 - affected source;
 - last successful synchronization;
-- affected conclusions;
+- current age;
+- affected observations, claims, and situations;
 - confidence impact;
-- and recovery status.
+- fallback source where available;
+- and recovery state.
 
-Do not silently display stale data as current.
+## 10.3 Offline capture
 
----
+Where branch or field use requires it:
 
-# 8. Evidence capture experience
-
-## 8.1 Recipient experience
-
-The recipient should not need to understand the entire GRC context.
-
-A request should explain:
-
-- what is needed;
-- why the recipient is likely the best source;
-- what is already known;
-- what acceptable proof looks like;
-- confidentiality;
-- and estimated effort.
-
-## 8.2 Redirect and delegation
-
-Recipients must be able to:
-
-- answer;
-- redirect to a better source;
-- identify that the request is not applicable;
-- request clarification;
-- provide partial evidence;
-- or raise a conflict or sensitivity concern.
-
-The system must preserve the routing history.
-
-## 8.3 Progressive evidence validation
-
-Validation should occur during capture:
-
-- file readability;
-- date coverage;
-- missing pages;
-- required approvals;
-- duplicate detection;
-- sensitivity detection;
-- and obvious mismatch to the claim.
-
-Do not wait until final submission to reveal avoidable problems.
-
-## 8.4 Multimodal capture
-
-When AI extracts information from image, voice, video, or documents:
-
-- show the extracted interpretation;
-- allow correction;
-- retain the original source;
-- record extraction model/version;
-- and distinguish user-confirmed fields from machine-inferred fields.
+- allow a bounded local draft or encrypted queue;
+- show unsynchronized state clearly;
+- preserve capture time separately from upload time;
+- detect conflicts after synchronization;
+- prevent duplicate submission;
+- and explain when protected or highly restricted evidence cannot be stored offline.
 
 ---
 
-# 9. Protected reporting experience
+# 11. AI presentation
 
-The whistleblower and confidential reporting experience must feel safe, simple, and independent from the normal internal application.
+AI should appear as capability, not theatre.
 
-## 9.1 Entry
+Prefer visible outcomes such as:
 
-The portal should clearly explain:
+- values extracted and ready for confirmation;
+- duplicate records identified;
+- a focused question generated;
+- a concise explanation assembled;
+- or contradictory evidence surfaced.
+
+Avoid unnecessary sparkle buttons and persistent “AI” labels on ordinary deterministic functions.
+
+When AI materially influences a result, show:
+
+- what it did;
+- source inputs;
+- machine-inferred versus explicit values;
+- confirmation state;
+- model or operator identity where relevant;
+- uncertainty;
+- and a correction path.
+
+The interface must not expose hidden chain-of-thought. It should show a concise, structured reasoning record from source facts, applicable policy, assumptions, alternatives, conclusion, and approval requirement.
+
+---
+
+# 12. Protected and privacy-sensitive experience
+
+Protected reporting and highly restricted evidence should feel clearly separate from ordinary operations.
+
+Requirements:
+
+- distinct protected surface;
+- visible confidentiality boundary;
+- no identity hints in ordinary search, counts, notifications, or graph context;
+- conflict-aware routing;
+- separate privileged identity-reveal workflow;
+- controlled copy, print, export, and download;
+- privacy-aware presentation mode;
+- automatic timeout and reauthentication where appropriate;
+- and explicit warnings before moving information to a less protected context.
+
+Consider screen masking, redacted previews, watermarking, or clipboard restrictions where justified by policy and threat model.
+
+Do not rely on visual masking as the authorization control.
+
+---
+
+# 13. Protected reporting journey
+
+The external portal should be simple, independent, accessible, and low-bandwidth tolerant.
+
+## Entry
+
+Explain:
 
 - anonymous and identified options;
 - how anonymous communication works;
 - what information is collected;
 - confidentiality limits;
 - emergency or immediate-danger boundaries;
-- and how to retain the secure case token.
+- and how to retain the case token.
 
-Do not use manipulative language or imply guaranteed outcomes.
+## Submission
 
-## 9.2 Submission
-
-Use a guided but non-leading sequence:
+Use a guided, non-leading sequence:
 
 - what happened;
-- where or which area is affected;
+- affected area, service, branch, product, or people;
 - when it occurred;
 - whether it is ongoing;
-- who may be able to verify it;
+- who or what may verify it;
 - available evidence;
-- immediate customer, safety, financial, or legal impact;
+- immediate customer, financial, safety, or legal impact;
 - and preferred communication mode.
 
-Avoid forcing the reporter to categorize complex legal or risk domains.
+Do not force legal or risk classification.
 
-## 9.3 Case token
+## Follow-up
 
-Anonymous reporters should receive a secure case token and recovery guidance.
+Anonymous communication must preserve the reporter’s anonymity. Token loss guidance must not promise impossible recovery.
 
-The interface must never expose internal investigator identities or protected routing information unless policy allows.
+## Investigator
 
-## 9.4 Investigator experience
-
-Investigators see:
-
-- original report;
-- protected identity state;
-- classification and sensitivity;
-- conflicts;
-- related cases;
-- evidence and chain of custody;
-- two-way messages;
-- urgent obligations;
-- and permitted next actions.
-
-Identity reveal must be a separate privileged workflow.
+Show original report, allegation-versus-fact state, protected identity boundary, conflicts, related cases, evidence and chain of custody, messages, obligations, and permitted next actions.
 
 ---
 
-# 10. Board and committee experience
-
-Board and committee surfaces should prioritize:
-
-- material portfolio movement;
-- appetite position;
-- critical service resilience;
-- concentrated dependencies;
-- major decisions and accepted risks;
-- remediation effectiveness;
-- evidence quality;
-- emerging risk;
-- and management accountability.
-
-Committee packs should be generated from live governed data but support:
-
-- review and sign-off;
-- commentary;
-- point-in-time freeze;
-- version comparison;
-- and source lineage.
-
-A board pack is not merely a PDF export of dashboards.
-
----
-
-# 11. Accessibility and inclusion
+# 14. Accessibility, inclusion, and localization
 
 ClearSight must meet WCAG 2.2 AA at minimum.
 
 Requirements include:
 
-- complete keyboard navigation;
+- complete keyboard operation;
 - visible focus;
-- meaningful heading order;
-- correct labels and descriptions;
-- screen-reader announcements for async state changes;
-- non-color status indicators;
+- meaningful headings and landmarks;
+- correct names, roles, values, and states;
+- screen-reader announcements for asynchronous changes;
+- non-color status;
 - accessible chart summaries;
 - target sizes suitable for touch;
 - reduced-motion support;
 - error prevention and recovery;
-- sufficient contrast in glass surfaces;
-- and language that does not require specialist knowledge where avoidable.
+- sufficient contrast on glass and protected surfaces;
+- logical table navigation;
+- 200% zoom without loss of function;
+- multilingual expansion;
+- and plain language where specialist terminology is unnecessary.
 
-Evidence and reporting flows must support:
+The design system should anticipate:
 
-- multilingual content;
-- assistive technologies;
-- low-bandwidth environments;
-- and users with limited familiarity with risk terminology.
+- longer translated labels;
+- right-to-left layouts if supported;
+- local currencies and date formats;
+- varying name structures;
+- low-bandwidth branches;
+- and users with limited GRC familiarity.
 
----
-
-# 12. Performance experience
-
-Perceived performance is part of product trust.
-
-## 12.1 Required behaviors
-
-- Application shell appears immediately from cached or server-rendered state where appropriate.
-- Deterministic data is not blocked by AI processing.
-- Long analysis shows progress and source acquisition state.
-- Lists use pagination or virtualization.
-- Graph rendering progressively reveals detail.
-- Evidence upload is resumable.
-- Optimistic UI is used only where rollback is safe and understandable.
-- Layout remains stable while data loads.
-
-## 12.2 Visual performance
-
-- Avoid excessive backdrop blur.
-- Avoid large animated gradients.
-- Avoid continuously animated graph edges.
-- Use GPU-intensive effects only on focused, bounded surfaces.
-- Test on enterprise laptops, integrated GPUs, remote desktops, and mobile devices.
+No evidence, approval, or protected-reporting journey may require a mouse.
 
 ---
 
-# 13. Design-system requirements
+# 15. Performance experience
 
-The design system must include:
+Perceived performance is part of institutional trust.
+
+Required behavior:
+
+- application shell and current deterministic context appear quickly;
+- AI never blocks ordinary navigation or manual decision work;
+- long lists are paginated or virtualized;
+- table filters acknowledge immediately;
+- graph detail loads progressively;
+- spreadsheet parsing and import show stages;
+- evidence upload is resumable;
+- layout remains stable;
+- optimistic UI is used only where rollback is safe;
+- and remote desktop and integrated-GPU performance are tested.
+
+Avoid:
+
+- excessive backdrop blur;
+- large animated gradients;
+- continuously animated graph edges;
+- expensive effects in dense tables;
+- and background animation that competes with risk states.
+
+---
+
+# 16. Design-system requirements
 
 ## Foundations
 
-- color roles;
+- semantic color;
 - typography;
+- numeric styles;
 - spacing;
+- grid;
 - radius;
 - border;
 - elevation;
@@ -826,171 +1103,232 @@ The design system must include:
 - motion;
 - breakpoints;
 - density;
-- and iconography.
+- iconography;
+- focus;
+- protected treatment;
+- and data-visualization roles.
 
 ## Core components
 
 - application shell;
-- command surface;
-- material decision card;
-- evidence state badge;
-- evidence sufficiency panel;
+- scope and context header;
+- Today brief;
+- situation card;
+- situation workspace;
+- evidence request;
+- mobile capture step;
+- photo guidance and extraction review;
+- spreadsheet mapper;
+- import summary;
+- population worklist;
+- reconciliation compare view;
+- source profile and health badge;
+- evidence-state summary;
+- sufficiency panel;
+- contradiction compare view;
 - relationship path;
 - risk movement indicator;
-- authority and owner chip;
-- verification contract panel;
-- source lineage list;
-- contradiction compare view;
+- owner and authority treatment;
+- decision review;
+- action plan;
+- verification panel;
+- timeline and point-in-time control;
 - protected-content surface;
-- approval review;
-- timeline;
+- approval control;
 - data table;
-- filters;
-- forms;
-- empty and degraded states;
-- graph controls;
-- and export manifest.
+- filter and saved view;
+- notification and work item;
+- command surface;
+- chart and textual alternative;
+- empty, stale, offline, degraded, unauthorized, and AI-unavailable states;
+- export manifest;
+- and audit event viewer.
 
 ## Required variants
 
 - light and dark;
-- default and compact density;
-- desktop, tablet, and mobile;
-- normal, hover, focus, active, selected, disabled, loading, error, warning, protected, and verified states.
+- comfortable and compact density;
+- desktop, tablet, and mobile where applicable;
+- normal, hover, focus, active, selected, disabled, loading, error, warning, protected, stale, contradictory, awaiting verification, and verified states.
 
-No production feature may invent ad hoc visual tokens when a semantic token can be added to the system.
+No production feature may invent ad hoc visual tokens when a semantic token can be added.
 
 ---
 
-# 14. Visual anti-patterns
+# 17. Visual anti-patterns
 
 Do not introduce:
 
 - a wall of KPI cards;
+- architecture names as the primary navigation;
+- separate module pages for one situation’s risk, evidence, decision, action, and outcome;
 - multiple competing primary colors;
-- decorative glass on every component;
+- glass on every card;
 - constant neon glow;
-- oversized empty hero areas inside operational screens;
-- 3D charts without decision value;
+- decorative animated data flow;
+- oversized empty hero areas in operational screens;
+- 3D charts;
 - unexplained percentages;
-- status conveyed only by red/amber/green;
+- percentages without denominators;
+- status conveyed only through red, amber, or green;
 - tiny low-contrast metadata;
-- long centered body text;
-- hidden actions appearing only on hover;
-- inaccessible custom controls;
+- hidden actions available only on hover;
 - excessive modal stacking;
-- full-page chat as the primary product shell;
-- or dense forms mirroring database schemas.
+- full-page chat as the primary shell;
+- dense forms mirroring database schemas;
+- arbitrary card layouts where a table is the correct population tool;
+- imports that show “success” while hiding unresolved rows;
+- AI claims that exceed visible evidence;
+- or mobile screens that compress desktop complexity rather than simplifying the task.
 
 ---
 
-# 15. Functional anti-patterns visible in the interface
+# 18. Functional non-conformities visible in the UI
 
-The interface must not normalize poor domain behavior such as:
+The interface must not normalize behavior such as:
 
-- closing a finding with no effectiveness evidence;
-- approving risk without showing authority and expiry;
-- showing AI output without sources;
+- closing a finding without accepted effectiveness evidence;
+- approving risk without authority, scope, conditions, and expiry;
+- showing AI output without sources and confirmation state;
 - treating missing data as low risk;
-- hiding contradictory evidence;
-- displaying stale integration data as current;
-- showing a protected reporter’s identity outside a privileged flow;
-- asking users for facts already available from integrated systems;
+- treating automated data as inherently authoritative;
+- hiding contradiction or unresolved mappings;
+- showing stale source data as current;
+- exposing protected identity outside privileged flow;
+- asking for facts already available from authorized evidence;
+- treating file upload as evidence sufficiency;
+- treating action completion as verified outcome;
 - or presenting a single score as objective truth.
 
 ---
 
-# 16. Golden screens
+# 19. Golden screens
 
-The following screens require maintained design references and automated visual regression tests once implemented:
+Maintain design references and automated visual regression for:
 
-1. Executive Today brief
-2. Material decision card — collapsed and expanded
-3. Risk Explain workspace
-4. Institutional dependency graph
-5. Evidence micro-request on desktop and mobile
-6. Evidence sufficiency and contradiction view
-7. Decision approval with options and authority
-8. Verification contract and outcome view
-9. Whistleblower intake
-10. Anonymous reporter follow-up
-11. Protected investigator case
-12. Regulatory source-to-evidence lineage
-13. Board or committee pack review
-14. AI operator review and approval
-15. Integration degraded state
-16. No material change state
+1. Today executive brief.
+2. Situation card — evidence-needed, decision-needed, and verification-failed states.
+3. Situation workspace — Summary, Evidence, Decision, Action, Outcome, and History.
+4. ATM inventory exposure.
+5. POS settlement or terminal-identity exposure.
+6. Population worklist with unresolved and contradictory rows.
+7. Spreadsheet mapping and validation.
+8. Import summary and reconciliation queue.
+9. Source Profile and degraded-source state.
+10. Evidence micro-request on desktop and mobile.
+11. Branch asset photo capture with AI extraction review.
+12. Form and controlled-value confirmation.
+13. Evidence sufficiency view.
+14. Contradiction comparison.
+15. Decision approval with scope, authority, and irreversible side effects.
+16. Action implemented but awaiting verification.
+17. Verification failed and situation reopened.
+18. Relationship path and dependency summary.
+19. Point-in-time reconstruction.
+20. No material change, no data, not assessed, and unauthorized states.
+21. Whistleblower intake.
+22. Anonymous reporter follow-up.
+23. Protected investigator case.
+24. Regulatory source-to-evidence lineage.
+25. Board or committee meeting mode.
+26. AI extraction review and correction.
+27. AI unavailable with manual fallback.
+28. Offline capture queued and synchronization conflict.
+29. Bulk action review and post-action reconciliation.
+30. Export review and manifest.
 
-Each golden screen must be maintained in:
+Each golden screen must cover:
 
-- light mode;
-- dark mode;
-- desktop;
-- and the relevant mobile or tablet breakpoint.
+- light and dark mode;
+- relevant comfortable and compact density;
+- relevant desktop, tablet, and mobile breakpoints;
+- normal, loading, empty, stale, contradictory, unauthorized, error, and degraded variants where applicable;
+- 125%, 150%, and 200% zoom checks;
+- and representative long-label localization.
 
 ---
 
-# 17. Design review checklist
-
-Before approving a UI change, verify:
+# 20. Design review checklist
 
 ## Product clarity
 
-- Is the user’s current decision obvious?
-- Is the reason for materiality visible?
-- Is evidence state understandable?
-- Is the accountable owner or authority clear?
-- Does the workflow end in proof rather than completion?
+- Is the active bank, entity, channel, population, and period clear?
+- Is the situation stated in familiar language?
+- Is the reason it matters now visible?
+- Is the evidence state understandable?
+- Is the required handling clear?
+- Can the user remain in one situation workspace?
 
 ## Effort
 
 - Is known information prefilled?
-- Are unnecessary fields removed?
-- Can the system collect the evidence automatically?
-- Can the request be answered in fewer steps?
+- Are only unresolved facts editable?
+- Can evidence be collected automatically?
+- Is a spreadsheet, photo, or form workflow proportionate?
+- Can the user redirect or report a mismatch?
+- Are bulk operations safe and comprehensible?
 
-## Trust
+## Data trust
 
-- Are sources and time scope available?
-- Is uncertainty visible?
-- Are stale and contradictory states explicit?
-- Can the user understand what AI did?
+- Is source authority visible?
+- Are freshness and source health clear?
+- Are unresolved mappings and contradictions explicit?
+- Is upload success distinguished from evidence sufficiency?
+- Are machine-inferred fields distinguishable from confirmed fields?
+
+## Decision safety
+
+- Are scope, authority, side effects, reversibility, conditions, and expiry visible?
+- Is the action separate from the expected outcome?
+- Is verification defined before closure?
+- Does the UI avoid overstating causality?
 
 ## Visual quality
 
-- Is the screen calm?
 - Is there one dominant hierarchy?
-- Are glass and glow semantic?
+- Is the screen calm but not empty?
+- Is a table used where a population requires one?
+- Are glass and glow semantic and bounded?
 - Does light mode feel equally designed?
-- Does the screen remain clear at 125–200% zoom?
+- Are protected surfaces clearly distinct?
 
-## Accessibility
+## Accessibility and localization
 
-- Is the full journey keyboard-operable?
-- Are focus and errors visible?
+- Is the journey keyboard-operable?
+- Are focus, errors, and async states announced?
 - Is status available without color?
-- Are charts explained textually?
-- Is reduced motion respected?
+- Does the layout work at 200% zoom?
+- Do long translated labels and local number formats remain usable?
 
 ## Performance
 
-- Is critical information available before AI completes?
+- Is deterministic information available before AI completes?
 - Are long lists virtualized or paginated?
-- Are effects inexpensive?
 - Does the layout remain stable?
+- Are effects inexpensive on enterprise hardware?
+- Can capture recover from low bandwidth or interruption?
 
 ---
 
-# 18. Final standard
+# 21. Final standard
 
 A ClearSight screen should not merely look modern.
 
-It should make an institutional risk problem feel:
+It should make a bank risk situation feel:
 
+- bounded;
+- recognizable;
 - smaller;
 - clearer;
 - better evidenced;
-- more governable;
-- and easier to resolve.
+- safer to decide;
+- easier to act upon;
+- and possible to verify.
 
-The design has succeeded when a senior executive can understand the material issue in seconds, an expert can inspect every assumption, a staff member can provide evidence with minimal effort, and an auditor can reconstruct the outcome without needing a separate explanation.
+The design has succeeded when:
+
+- a senior executive understands the material situation in seconds;
+- a risk specialist can inspect every source, assumption, contradiction, and relationship;
+- a branch or channel employee can provide the required evidence with minimal effort;
+- a large population can be reconciled without spreadsheet chaos;
+- and an auditor can reconstruct the full outcome without needing an undocumented explanation.
