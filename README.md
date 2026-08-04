@@ -1,827 +1,629 @@
 # ClearSight GRC
 
-> **The direct, AI-native risk and governance operating system for banks.**  
-> Understand the situation. Ask only what is missing. Decide clearly. Verify the outcome.
+> **The direct, AI-native continuous compliance and risk operating system for banks.**  
+> Know what applies. Keep proof current. Handle what changed. Respond with confidence.
 
-ClearSight is being designed for banks and other highly regulated institutions whose CROs, CCOs, CISOs, business owners, control owners, assurance teams, and boards need a more useful way to understand and handle risk than traditional form-heavy GRC systems provide.
+ClearSight is being designed for banks whose compliance, risk, security, privacy, resilience, audit, legal, business, and executive teams need a simpler and more useful alternative to form-heavy GRC suites and disconnected spreadsheets.
 
 The product goal is:
 
-> **Enable each stakeholder to understand the risk situation relevant to them, provide or inspect the minimum necessary evidence, make an authorized and evidence-grounded decision, and verify whether the defined outcome was achieved.**
+> **Help every stakeholder understand what the institution must do, how it is currently being satisfied, what evidence proves it, what has changed or become uncertain, who must act, and whether the required outcome was achieved.**
 
-ClearSight remains a comprehensive modern GRC platform. The difference is that users should not have to operate its underlying architecture. Risks, controls, obligations, evidence, incidents, assets, vendors, decisions, actions, and assurance records are connected behind a small number of direct, role-appropriate workflows.
+ClearSight remains a comprehensive modern GRC platform. The difference is that users do not operate its internal architecture. They work through familiar **Programs**, **Matters**, focused evidence requests, decisions, and outcomes.
 
-A branch manager should see the specific ATM or operational facts requiring confirmation—not a control framework. A channel owner should see the POS exposure, affected merchants, evidence gaps, and decision required—not disconnected dashboards. A CRO or CISO should see only material situations, uncertainty, options, authority, and outcome status.
+A DPO should be able to run the institution’s NDPA programme without rebuilding ROPA, DPIA, breach, vendor, consent, and annual filing status from separate workbooks. A channel owner should see the exact POS or ATM exposure requiring action. A compliance officer should turn a new CBN circular into approved obligations, controls, owners, and evidence requirements. An authorized legal or AML team should handle an EFCC-style request through a protected, traceable case instead of email and ad hoc spreadsheets.
 
 ## Current status
 
-This repository is currently at the **product-definition and architecture stage**. Capabilities described here are product requirements and intended behavior, not claims of completed implementation.
+This repository is at the **product-definition and architecture stage**. Capabilities described here are product requirements and intended behavior, not claims of completed implementation.
 
-Foundational documents:
+Start with:
 
+- [`docs/product/continuous-compliance-operating-model.md`](docs/product/continuous-compliance-operating-model.md) — the Programs and Matters model that replaces disconnected registers.
+- [`docs/product/operating-model.md`](docs/product/operating-model.md) — canonical bank scopes, observations, claims, evidence, decisions, and verification.
+- [`docs/product/regulatory-and-enforcement-intelligence.md`](docs/product/regulatory-and-enforcement-intelligence.md) — regulatory change, supervisory findings, and protected authority cases.
+- [`docs/product/experience-principles.md`](docs/product/experience-principles.md) — product and visual interaction standard.
+- [`docs/implementation-plan.md`](docs/implementation-plan.md) — phased delivery plan.
+- [`docs/quality/acceptance-tests.md`](docs/quality/acceptance-tests.md) — product, security, evidence, visual, and end-to-end requirements.
 - [`AGENTS.md`](AGENTS.md) — mandatory implementation and non-regression rules.
-- [`docs/implementation-plan.md`](docs/implementation-plan.md) — phased implementation plan and acceptance gates.
-- [`docs/product/differentiation.md`](docs/product/differentiation.md) — product moat and boundaries.
-- [`docs/product/experience-principles.md`](docs/product/experience-principles.md) — visual and interaction standard.
-- [`docs/architecture/living-evidence-fabric.md`](docs/architecture/living-evidence-fabric.md) — claim-centric evidence architecture.
-- [`docs/architecture/risk-graph-and-decision-engine.md`](docs/architecture/risk-graph-and-decision-engine.md) — institutional relationships, materiality, and decisions.
-- [`docs/architecture/governed-ai-operators.md`](docs/architecture/governed-ai-operators.md) — constrained AI capabilities and human authority.
-- [`docs/quality/acceptance-tests.md`](docs/quality/acceptance-tests.md) — product, security, visual, and end-to-end requirements.
 
 ---
 
-# Product thesis
+# Why ClearSight
 
-## Present situations, not modules
+Most banks do not lack registers. They have too many of them.
 
-A material banking risk is rarely contained in one register row.
+The same institutional reality is often copied into:
 
-An ATM availability problem may involve device inventory, branch location, switch telemetry, power, connectivity, cash replenishment, maintenance vendors, complaints, fraud indicators, impact tolerance, open findings, and prior decisions. A POS settlement problem may involve merchants, terminals, processors, transaction files, reconciliation breaks, reversals, fraud, complaints, and contractual obligations.
+- compliance registers;
+- IT and operational risk registers;
+- exception trackers;
+- RCSA workbooks;
+- KRI submissions;
+- BIA registers;
+- vendor assessments;
+- privacy checklists;
+- policy and certification trackers;
+- incident and loss logs;
+- annual workplans;
+- regulatory response files;
+- management dashboards.
 
-Traditional GRC products often store those facts in separate modules and ask users to reconstruct the actual situation. ClearSight connects them, but presents the result as a direct, bounded **risk situation**:
+Ownership is transferred through comments and email. Evidence is repeatedly requested. Reports are manually assembled. A completed task can appear “closed” even when the intended result has not been observed.
 
-- what is affected;
-- what changed;
-- how the institution may be exposed;
-- what is known and uncertain;
-- what proof is missing;
-- who must decide;
-- what should happen next;
-- and how the response will be verified.
+ClearSight does not merely turn these spreadsheets into web forms.
 
-## Use familiar banking language first
+It creates one governed operating layer in which:
 
-ClearSight should speak first in terms such as:
-
-- ATM channel;
-- POS acquiring;
-- mobile banking;
-- branch cash operations;
-- payments resilience;
-- privileged access;
-- merchant onboarding;
-- customer complaints;
-- settlement and reconciliation;
-- vendor concentration.
-
-Framework references, control identifiers, obligation mappings, evidence policies, graph relationships, and AI lineage remain available through progressive disclosure, but they should not dominate routine work.
-
-## Assemble evidence around exact claims
-
-A control is not effective because an owner selected “effective.” A remediation is not successful because a ticket was completed. A requirement is not satisfied because a document was uploaded.
-
-ClearSight asks what must be established, for which scope and period, then finds or collects the minimum sufficient proof.
-
-Example:
-
-> Every active ATM in the Lagos region is uniquely identified, assigned to an approved location, communicating with the switch, and reconciled with the current asset inventory as of the review date.
-
-The system can determine which facts already exist, which conflict, and which branches or systems need to provide missing information.
-
-## AI reduces assembly work, not accountability
-
-AI may interpret photographs, extract spreadsheets and documents, reconcile identifiers, identify contradictions, draft questions, summarize situations, explain relationships, and recommend options.
-
-Policy and deterministic domain logic still determine:
-
-- what data may be accessed;
-- what evidence is acceptable;
-- whether a threshold is breached;
-- who has authority;
-- whether an action requires approval;
-- and whether closure conditions were met.
-
-AI should make ClearSight feel easier because users perform less navigation, data entry, and evidence assembly—not because every screen contains a chatbot.
+```text
+one source is captured once
+→ one requirement, control, asset, vendor, event, case, action, or decision is maintained once
+→ many authorized views are generated from the same records
+```
 
 ---
 
-# The simplified operating model
+# The two things users operate
 
-ClearSight is built around six universal objects. They remain consistent across regional, national, and multinational banks and across ATM, POS, mobile banking, internet banking, branch operations, cards, agency banking, and payments.
+## 1. Programs — continuing obligations
 
-## 1. Scope
-
-The bounded part of the institution being governed:
-
-- institution or legal entity;
-- country, region, or jurisdiction;
-- service or channel;
-- branch, location, process, or operating unit;
-- customer or merchant segment;
-- vendor relationship;
-- system;
-- asset population.
-
-Examples include the Lagos retail ATM network, POS terminals operated through one processor, mobile banking for retail customers, or privileged access to Treasury Operations.
-
-## 2. Exposure pattern
-
-A reusable description of how a service, process, asset, party, or obligation can fail or cause harm.
-
-ClearSight begins with controlled exposure families instead of thousands of disconnected risk statements:
-
-1. **Availability and resilience** — service cannot operate or recover within tolerance.
-2. **Asset and inventory integrity** — devices, systems, accounts, facilities, or records are incomplete, missing, duplicated, or wrongly assigned.
-3. **Identity and access** — an unauthorized person, account, device, merchant, vendor, or service can participate.
-4. **Transaction integrity** — transactions are unauthorized, altered, incomplete, duplicated, or incorrectly processed.
-5. **Reconciliation and settlement** — operational and financial records do not agree within the approved tolerance and period.
-6. **Fraud and abuse** — the channel or process can be manipulated for unauthorized benefit.
-7. **Data and privacy** — customer or institutional data is exposed, misused, incorrectly retained, or inadequately protected.
-8. **Customer and conduct harm** — customers experience unfair treatment, unauthorized charges, exclusion, delayed redress, or recurring control failures.
-9. **Third-party and concentration dependency** — a service depends excessively on a provider, location, network, technology, or fourth party.
-10. **Change and configuration integrity** — changes are unauthorized, untested, misconfigured, or inadequately monitored.
-11. **Physical and environmental integrity** — assets, facilities, cash, power, access, location, or environmental conditions are not adequately controlled.
-
-A channel pack combines relevant patterns with channel-specific claims, terminology, evidence recipes, thresholds, and workflows.
-
-## 3. Risk situation
-
-A current, bounded instance of exposure requiring monitoring, evidence, action, or decision.
+A **Program** is a stable, long-lived body of requirements, controls, evidence, reviews, exceptions, and reporting obligations.
 
 Examples:
 
-> Thirty-one active ATM records do not have a verified device, location, and branch relationship. Twelve have also stopped producing switch heartbeats.
+- NDPA and NDPC compliance;
+- AML/CFT;
+- CBN cybersecurity and technology risk;
+- PCI DSS;
+- ISO 27001 and ISO 22301;
+- operational resilience;
+- third-party assurance;
+- RCSA;
+- policy lifecycle;
+- regulatory returns;
+- annual IT risk and control reviews.
 
-> POS settlement files contain duplicate terminal identifiers and cannot be fully reconciled to switch transactions for the current period.
+A Program answers:
 
-> Four privileged Treasury accounts have no current business-need evidence, and HR indicates one account holder transferred departments.
+- What requirements apply?
+- Which entities, products, services, systems, branches, vendors, customers, or data are in scope?
+- How is each requirement intended to be satisfied?
+- Who owns and independently reviews it?
+- What evidence is required?
+- Is the evidence current, sufficient, and consistent?
+- Which exceptions or gaps are active?
+- What filing, review, test, or decision is due next?
 
-A situation includes affected scope, exposure patterns, observations, institutional context, materiality, evidence state, uncertainty, owner, authority, action, and verification status.
+## 2. Matters — work created by change or exception
 
-## 4. Claim and evidence recipe
+A **Matter** is a bounded occurrence requiring assessment, evidence, decision, action, response, or verification.
 
-A **claim** is the exact statement that must be supported, contradicted, qualified, or left unresolved.
+Matter types include:
 
-An **evidence recipe** defines:
+- regulatory change;
+- supervisory finding;
+- enforcement or authority request;
+- risk situation;
+- control gap;
+- audit finding;
+- exception or waiver;
+- incident;
+- operational loss;
+- data breach;
+- vendor deficiency;
+- customer or conduct concern;
+- overdue obligation;
+- failed verification;
+- evidence contradiction;
+- KRI threshold breach.
 
-- facts required;
-- acceptable source types;
-- source authority and independence;
+A Matter answers:
+
+- What happened or changed?
+- Why does it matter?
+- What is affected?
+- What is known, missing, stale, or contradictory?
+- Which Program, requirement, control, service, customer, account, asset, or vendor is involved?
+- Who must decide or respond?
+- What actions are underway?
+- How will closure or response be verified?
+
+This distinction keeps ongoing compliance calm while making unusual work direct and accountable.
+
+---
+
+# One compliance chain
+
+Every material compliance position should be traceable through one chain:
+
+```text
+Authority Source or Standard
+→ Requirement
+→ Applicability
+→ Institutional Requirement
+→ Control Objective
+→ Control Implementation
+→ Evidence Contract
+→ Current Observations
+→ Compliance State
+→ Matter, Exception, or Assurance Conclusion
+```
+
+## Authority source
+
+The original law, circular, regulation, guideline, standard, licence condition, contract, court instrument, or approved internal interpretation.
+
+A manually authored spreadsheet row is not automatically an authoritative regulatory source. It is a working record that must be reconciled to the original source before becoming an approved obligation.
+
+## Requirement and applicability
+
+A Requirement describes what an actor must, must not, may, or is expected to do.
+
+Applicability determines where it applies—for example by legal entity, licence, jurisdiction, product, channel, processing activity, customer population, vendor relationship, system, threshold, or effective period.
+
+AI may propose interpretation and applicability. Authorized compliance or legal reviewers approve material conclusions.
+
+## Control objective and implementation
+
+A control objective defines the outcome that must be achieved.
+
+A control implementation is the actual process, policy, system rule, approval gate, review, monitoring mechanism, or operating practice used in a defined scope.
+
+One objective can have different implementations across legal entities, channels, systems, branches, or vendors.
+
+## Evidence contract
+
+An Evidence Contract defines what continuously proves the requirement and control are satisfied:
+
+- exact claims;
 - required population and period;
-- freshness limits;
-- allowed capture methods;
+- acceptable sources;
+- source authority and limitations;
+- freshness;
+- coverage;
+- independence;
 - contradiction rules;
-- minimum sufficiency policy;
-- approval requirements.
+- reviewer authority;
+- refresh schedule or trigger;
+- escalation and failure behavior.
 
-Example:
+## Compliance state
 
-```yaml
-claim_type: asset_presence_and_assignment
-subject_type: atm
-required_facts:
-  - device_serial
-  - terminal_id
-  - assigned_branch
-  - physical_location
-  - responsible_owner
-  - operational_state
-acceptable_sources:
-  asset_inventory: primary
-  switch_telemetry: primary
-  field_photo: corroborating
-  branch_confirmation: assertion
-minimum_policy:
-  - asset_inventory
-  - switch_telemetry
-  - one_of:
-      - current_field_photo
-      - independent_inspection
-```
+ClearSight keeps separate dimensions visible:
 
-The same recipe can work when one bank has real-time APIs and another begins with controlled spreadsheets and staff capture.
+- interpretation;
+- applicability;
+- control design;
+- implementation;
+- evidence sufficiency;
+- operating effectiveness;
+- exceptions;
+- assurance;
+- deadline or filing status;
+- source and data quality.
 
-## 5. Observation
-
-An observation is a normalized fact, assertion, measurement, or extracted value produced by any approved capture method.
-
-Every observation records:
-
-- subject and property;
-- value;
-- source identity;
-- capture method;
-- effective and capture time;
-- scope;
-- provenance;
-- confidence or review state;
-- sensitivity;
-- original artifact or source reference.
-
-A photograph, spreadsheet row, form response, dropdown selection, database record, API event, telemetry value, customer report, or staff attestation can enter through different channels while remaining comparable and traceable.
-
-## 6. Decision and verification
-
-A material decision records the situation, evidence used and excluded, contradictions, options, assumptions, selected action, rationale, authority, conditions, review triggers, expiry, and verification method.
-
-A verification contract defines:
-
-- expected outcome;
-- baseline;
-- measurement source;
-- population or scope;
-- success and failure thresholds;
-- observation period;
-- acceptance authority;
-- failure response.
-
-ClearSight verifies whether the defined outcome criteria were met. It does not overstate that one action conclusively caused every later change in risk.
+The product may show a concise state such as **current**, **at risk**, **gap identified**, **evidence insufficient**, **implementation pending**, **overdue**, **under review**, **not applicable**, or **unknown**. It must not hide the underlying dimensions behind an unexplained percentage.
 
 ---
 
-# One operating loop
+# Continuous compliance, not periodic reconstruction
 
-```text
-Observe
-→ identify a risk situation
-→ establish what must be true
-→ find or request only missing proof
-→ decide within authority
-→ act
-→ verify the defined outcome
-→ update the situation and institutional memory
-```
+Continuous compliance does not mean ClearSight autonomously guarantees legal compliance.
 
-Signal ingestion, institutional relationships, materiality, evidence evaluation, decisions, workflows, and AI governance support this loop. They should not become the user’s navigation model.
+It means the institution continuously maintains an evidence-backed and reviewable position, instead of rebuilding that position only before an audit, certification, committee meeting, or regulatory filing.
 
----
+A Program responds to four types of trigger.
 
-# One product across different banks
+## Calendar triggers
 
-ClearSight uses one adaptable hierarchy:
+Annual filings, monthly returns, quarterly reports, periodic access reviews, policy reviews, certificate expiry, DR tests, vendor reassessments, and scheduled assurance work.
 
-```text
-Institution
-└── Legal entity
-    └── Country, jurisdiction, or region
-        └── Business service or channel
-            └── Location, branch, process, or operating unit
-                └── Asset, system, vendor, segment, or accountable role
-```
+## Change triggers
 
-A regional bank may use:
+New regulation, new product, project, process change, vendor, system, cloud deployment, branch, channel, customer population, data use, or control configuration.
 
-```text
-Bank → Channel → Branch → Asset
-```
+## Event triggers
 
-A multinational group may use:
+Incident, breach, complaint concentration, control failure, KRI threshold breach, vendor expiry, source outage, law-enforcement request, failed test, or operational loss.
 
-```text
-Group → Legal entity → Country → Channel → Service → Location → Asset
-```
+## Evidence triggers
 
-Complexity is introduced through configuration and scope, not custom product forks.
+Expired observations, changed populations, source contradiction, stale integrations, insufficient sampling, challenged assurance conclusions, or failed verification periods.
 
-## Configuration layers
-
-- **Base banking model:** universal services, channels, branches, assets, transactions, customers, vendors, controls, obligations, evidence, decisions, and actions.
-- **Channel packs:** reusable exposure patterns, terminology, claims, recipes, and workflows for ATM, POS, cards, mobile, internet, agency, branches, and payments.
-- **Jurisdiction packs:** obligations, reporting thresholds, evidence requirements, retention, and local authority conditions.
-- **Institution profile:** hierarchy, critical services, appetite, thresholds, authority matrix, approved sources, terminology, and controlled extensions.
-
-Configuration must not create arbitrary schemas that make upgrades and cross-bank product learning impractical.
+People are contacted because a meaningful fact, decision, or proof is missing—not merely because a broad recurring campaign started.
 
 ---
 
-# Flexible evidence and data capture
+# How cumbersome legacy workflows become easier
 
-ClearSight must be useful before a bank completes a large integration programme. Different capture methods produce the same normalized observation and evidence objects.
+| Legacy workflow | ClearSight representation | Result |
+|---|---|---|
+| Compliance register | Program Requirements and Compliance State view | Original source, applicability, control, proof, deadlines, and amendments remain connected |
+| IT or operational risk register | Risk Matters linked to assets, services, controls, decisions, and evidence | Owners, assets, controls, and actions are not repeatedly re-entered |
+| Exception register | Exception Matter with authority, conditions, expiry, and verification | Redirect, approval, challenge, and closure are explicit rather than buried in comments |
+| Annual workplan | Scheduled Review Activities | Reviews reuse existing assets, vendors, requirements, controls, and evidence |
+| RCSA | Periodic or trigger-based control review | Known facts are prefilled and owners answer only unresolved judgments |
+| KRI workbook | Indicators derived from observations and Matters | Every metric has scope, period, denominator, and drill-down lineage |
+| BIA register | Critical-service and dependency context | RTO, RPO, applications, vendors, and resources support resilience, risk, incident, and regulatory work |
+| Loss register | Loss Event linked to incident, cause, recovery, control failure, and remediation | Recovery and recurrence no longer require manual reconciliation |
+| Vendor register | Third-party profile, service relationship, requirements, evidence, findings, and Matters | Certificates and assessments can be reused safely across affected services |
+| Policy tracker | Governed policy lifecycle mapped to Requirements and Controls | A policy change shows which obligations and implementations are affected |
+| Certification tracker | Program milestone and Evidence Contract | Expiry, gap assessment, remediation, testing, and recertification stay connected |
+| Dashboard pack | Derived role-specific view | Reports come from governed current records rather than manually copied summaries |
+| Authority-request KRI | Aggregate over protected Authority Request Cases | Counts remain traceable without exposing protected subjects |
 
-## AI-interpretable photographs and video
-
-Approved media capture may establish visible properties such as serial number, asset tag, terminal identifier, model, location signage, physical damage, displayed error state, apparent seal presence, inventory reading, or document details.
-
-```text
-Capture original media
-→ validate quality and integrity
-→ extract visible fields
-→ show the user the extraction
-→ confirm or correct observations
-→ compare with existing records
-→ preserve original and derived values
-```
-
-AI must state what the media cannot prove. An image may show a matching serial number and apparently intact external seal; it cannot alone prove internal device integrity or continuous control operation.
-
-## Excel and CSV
-
-Spreadsheets are a supported integration channel, not merely a workaround.
-
-The import flow includes sheet and column mapping, type and identifier validation, duplicate detection, missing-value analysis, preview, controlled import, reconciliation report, and rollback or supersession.
-
-Each imported observation retains source file, sheet, row, mapping version, uploader, import time, and validation state.
-
-Possible states include matched, provisionally matched, unresolved, contradictory, duplicated, rejected, and superseded. Uploading a spreadsheet does not automatically make its contents authoritative.
-
-## Contextual forms
-
-Forms are generated from unresolved facts rather than designed as permanent broad questionnaires. They are appropriate for business justification, ownership, exception explanation, occurrence date, customer impact, asset movement, corrective action, and confirmation of known conditions.
-
-Known information is prefilled. The recipient answers only what the system cannot establish from an authorized source.
-
-## Controlled dropdowns and catalogues
-
-Selections may come from administrator-maintained values, an approved spreadsheet catalogue, an authoritative database, an API, or values scoped by the user’s role.
-
-Examples include branches, assets, merchants, vendors, services, owners, exposure patterns, incident categories, and actions.
-
-A selection is a structured assertion. Its evidential weight depends on source authority, user authority, direct knowledge, scope, and review policy.
-
-## Database, API, and event integrations
-
-Each source declares:
-
-- what it is authoritative for and not authoritative for;
-- identifiers and scope;
-- freshness expectation;
-- last successful synchronization;
-- mapping version;
-- source health;
-- known data-quality limitations.
-
-HR may be authoritative for employment status; IAM for current access; the switch for terminal communication and transactions; an asset register for assigned inventory; a branch observation for physical presence at a point in time. No source proves an entire claim merely because it is automated.
-
-## Staff inventory and field capture
-
-For a branch inventory review:
-
-1. ClearSight preloads the branch and expected inventory.
-2. Staff see only unresolved, changed, due, or sampled assets.
-3. They confirm presence, mark missing, report movement, correct identifiers, attach media, or report condition.
-4. AI extracts visible identifiers.
-5. The user confirms or corrects the extraction.
-6. Conflicts with inventory or telemetry become explicit contradictions.
-7. Completion is measured against the defined population and claim—not the number of forms submitted.
-
-## Customer, vendor, and protected reports
-
-External observations may enter through controlled customer, vendor, or protected reporting channels. Allegations, observations, and verified facts remain distinct.
-
-Protected reports require an isolated trust boundary, strict need-to-know access, conflict-aware routing, anonymous two-way communication, and minimized approved escalation into the main risk layer.
+A register remains a useful import, export, table, or report. It is no longer a separate truth system.
 
 ---
 
-# Progressive integration model
+# Example: continuous NDPA and NDPC compliance
 
-A bank can adopt ClearSight in stages without changing the core domain model.
+A privacy Program should continuously maintain the institution’s position across:
 
-## Level 0 — Structured manual capture
+- registration and classification;
+- DPO governance;
+- annual compliance audit and filing;
+- ROPA;
+- lawful basis and consent;
+- DPIA;
+- security controls;
+- breach management;
+- data-subject rights;
+- retention and deletion;
+- vendor and processor governance;
+- cross-border transfers;
+- digital-channel notices and cookies;
+- emerging technology and automated decisions.
 
-Contextual forms, controlled selections, mobile media, spreadsheets, and documents.
+## ROPA becomes a living inventory
+
+ClearSight preloads processing activities from application catalogues, projects, changes, vendors, data inventories, customer journeys, privacy notices, and prior ROPA records.
+
+Department owners are asked only for unresolved fields such as purpose, lawful basis, data categories, recipients, retention, transfers, or data-subject categories.
+
+A changed application, vendor, dataset, purpose, or jurisdiction reopens only the affected processing activity—not the entire annual questionnaire.
+
+## DPIA becomes an event-driven workflow
+
+```text
+Project, product, process change, vendor, AI system, or sensitive-data use
+→ known context prefilled
+→ focused screening
+→ DPO decision on full DPIA
+→ assessment and remediation where required
+→ approval condition before go-live
+→ post-deployment verification
+```
+
+The privacy decision remains linked to the project or change rather than copied into a separate register.
+
+## Breach compliance becomes a timed Matter
+
+A suspected personal-data breach creates a protected Matter with awareness time, affected systems and data, data-subject population, reportability assessment, deadline clock, customer communication decision, evidence, response package, remediation, and verification.
+
+Detection, awareness, reportability decision, notification, acknowledgement, and closure remain distinct.
+
+## Annual filing is prepared continuously
+
+Throughout the year, ClearSight accumulates approved evidence, DPIAs, incidents, exceptions, remediation, and assurance results.
+
+The filing workspace shows what is ready, missing, stale, disputed, excluded, reviewed, and signed—without a year-end scramble to reconstruct evidence.
+
+## Vendor privacy review reuses third-party context
+
+Vendor onboarding and renewal can trigger privacy review using the same vendor, service, contract, security evidence, processing role, data location, and owner already used by technology, operational, and resilience teams.
+
+---
+
+# Example: a new CBN circular
+
+A new circular should not become one generic row marked “in progress.”
+
+ClearSight should:
+
+```text
+capture and verify the official source
+→ identify exact provisions and document status
+→ extract candidate Requirements
+→ compare with prior versions and related guidance
+→ route interpretation and applicability review
+→ identify affected entities, channels, systems, vendors, policies, and controls
+→ show existing coverage and gaps
+→ create approved implementation Matters and actions
+→ define Evidence Contracts and tests
+→ monitor readiness through implementation and operating evidence
+```
+
+An approved new Requirement becomes part of the relevant continuing Program. The implementation project may close, but the Requirement and its Evidence Contract continue.
+
+---
+
+# Example: EFCC or other external authority request
+
+An enforcement or information request is a protected **Authority Request Case**, not a general compliance obligation.
+
+ClearSight records:
+
+- authentic source and issuing authority;
+- legal instrument and review state;
+- subjects, accounts, transactions, documents, devices, addresses, or periods;
+- permitted disclosure and action scope;
+- deadlines;
+- KYC, address, records, AML, fraud, branch, legal, or technology tasks;
+- evidence collected and excluded;
+- decisions and approvals;
+- response package;
+- signatory, transmission, and acknowledgement;
+- retention and legal hold.
+
+The system may trigger a KYC refresh, address verification, records collection, or internal suspicious-activity assessment where policy requires it.
+
+An authority request must not automatically establish wrongdoing, create suspicion, authorize an account restriction, or file an external report without the required institutional decision.
+
+Aggregate authority-request KRIs are derived from the protected case population, not maintained as disconnected monthly counts.
+
+---
+
+# Flexible capture and progressive integration
+
+ClearSight must become useful before a bank completes a major integration programme.
+
+All capture methods produce normalized, source-preserving observations.
+
+## Level 0 — Structured capture
+
+Contextual forms, controlled dropdowns, photographs, scans, documents, spreadsheets, and mobile capture.
 
 ## Level 1 — Managed recurring imports
 
-Approved Excel or CSV sources, SFTP feeds, database exports, and scheduled refresh.
+Approved Excel or CSV sources, SFTP, database exports, scheduled refresh, and reconciliation reports.
 
 ## Level 2 — API synchronization
 
-IAM, HR, ITSM, asset catalogues, vendors, documents, complaints, and incident platforms.
+IAM, HR, ITSM, asset catalogues, vendor systems, document repositories, complaints, projects, incidents, privacy, and core customer systems.
 
-## Level 3 — Event and telemetry integration
+## Level 3 — Events and telemetry
 
-Switch and service events, identity changes, reconciliation signals, security telemetry, configuration changes, vendor status, and customer-impact events.
+Switch events, service monitoring, identity changes, settlement variance, security telemetry, control changes, vendor status, incidents, and customer-impact signals.
 
-Every level produces observations with consistent provenance. A regional bank can begin with spreadsheets and mobile capture; a multinational bank can use APIs and event streams without requiring a different product.
+Each Source Profile states what the source is and is not authoritative for, its scope, freshness, identifiers, health, mapping version, and known limitations.
 
----
-
-# Source registry and data-quality governance
-
-Integration health and data quality are product capabilities, not hidden plumbing.
-
-```text
-Source: ATM Asset Register
-Owner: Head of Channels Operations
-Authoritative for:
-  - ATM serial number
-  - assigned branch
-  - owning vendor
-Not authoritative for:
-  - live communication status
-  - physical presence
-  - tamper condition
-Freshness target: 24 hours
-Current freshness: 18 hours
-Last import: successful
-Unresolved mappings: 7
-Known limitation: vendor IDs are not globally unique
-```
-
-ClearSight tracks source authority, freshness, health, mapping confidence, unresolved identifiers, conflicting ownership, stale relationships, inferred versus confirmed values, and data-quality debt affecting material conclusions.
-
-The system must never silently merge ambiguous records or present stale data as current. AI may propose matches, but material merges and corrections remain governed and reversible.
+Uploading a spreadsheet or connecting an API does not automatically make every value authoritative.
 
 ---
 
-# Examples across channels
+# Product experience
 
-## ATM asset and availability situation
+ClearSight exposes five primary surfaces.
 
-**Scope:** Lagos retail ATM channel, 428 active machines.
+## Today
 
-**Observations:** 31 inventory records lack a confirmed device-location relationship; 12 machines have no heartbeat for more than 24 hours; 7 locations have tampering or card-retention complaints; vendor records conflict with inventory.
+A role-specific attention brief showing only:
 
-**Exposure patterns:** inventory integrity, availability, physical integrity, vendor dependency, and customer harm.
+- Programs at risk or approaching deadlines;
+- new or changed authority communications;
+- Matters requiring a decision or response;
+- material evidence gaps;
+- overdue actions;
+- failed verification;
+- significant source degradation;
+- important changes safely automated.
 
-**Claims:** each active ATM is at its approved location; serial and terminal IDs match inventory; owners are known; the device communicates with the switch; required visible protections are present.
+## Programs
 
-**Targeted response:** ask only affected branches about unresolved devices, prefill known inventory and switch state, request appropriate photographs or corrections, and reconcile the result with source systems.
+Stable workspaces for NDPA, AML/CFT, CBN cybersecurity, PCI DSS, ISO, resilience, RCSA, vendor assurance, regulatory returns, and other ongoing responsibilities.
 
-## POS terminal and settlement situation
+A Program shows requirements, applicability, controls, evidence, active Matters, exceptions, reviews, filings, changes, and source-to-state lineage.
 
-**Scope:** merchant POS channel, 18,000 active terminals.
+## Work
 
-**Observations:** a terminal ID appears from an unexpected location; settlement contains duplicate terminal IDs; merchant ownership differs between KYC and terminal management; reversals exceed threshold; processor availability declined.
+The user’s queue and workspace for Matters, cases, findings, exceptions, incidents, actions, reviews, approvals, and evidence requests.
 
-**Exposure patterns:** inventory, identity, transaction integrity, settlement, fraud, and third-party resilience.
+Each item uses familiar banking language and presents one clear next action.
 
-**Claims:** every terminal belongs to an approved merchant; physical and logical identifiers agree; settlements reconcile with switch transactions; unusual location changes are reviewed; processor performance remains within tolerance.
+## Explore
 
-ATM and POS use the same underlying objects—scope, asset, identity, location, transaction, dependency, claim, observation, decision, and verification—while retaining channel-specific language and evidence recipes.
+Authorized investigation across requirements, policies, controls, services, channels, branches, assets, customers, vendors, evidence, Matters, decisions, incidents, losses, and history.
 
----
+## Configure
 
-# Intuitive product experience
+Restricted configuration for institution structure, sources, Programs, jurisdiction and channel packs, evidence contracts, thresholds, authority, retention, access, and automation policy.
 
-Simplifying the operating model simplifies the interface. ClearSight does not expose every subsystem as a top-level module.
+## Respond and Capture
 
-## 1. Today
+Branches, control owners, vendors, customers, and protected reporters receive lightweight contextual journeys rather than the full application shell.
 
-A role-specific brief containing only:
-
-- situations that materially changed;
-- decisions requiring the user’s authority;
-- evidence gaps requiring intervention;
-- appetite breaches or approaching limits;
-- actions likely to miss a deadline;
-- failed or pending verification;
-- important upcoming obligations.
-
-The default brief should normally contain only a handful of items.
-
-## 2. Situation
-
-One workspace for one risk situation.
-
-### Summary
-
-What is happening? Why does it matter? What is affected? Which exposure patterns apply? What decision or action is required?
-
-### Evidence
-
-What is known? What is missing? What conflicts? Which sources are current and authoritative? What assumptions remain?
-
-### Decision
-
-What options exist? What will they cost or affect? Who has authority? What was selected and why? Which conditions or expiry rules apply?
-
-### Outcome
-
-What was implemented? What defines success? What evidence has been observed? Is the result verified, ineffective, indeterminate, or still under observation?
-
-Users should not move between separate risk, control, evidence, issue, action, and assurance modules to understand one situation.
-
-## 3. Capture
-
-A lightweight mobile and web surface for answering one focused question, confirming prefilled facts, photographing or scanning an item, uploading a file, selecting an existing record, validating AI extraction, reporting a discrepancy, or redirecting to a better source.
-
-The interface shows why the information is needed, what is already known, estimated effort, deadline, and sensitivity.
-
-## 4. Explore
-
-An analyst surface for services, channels, branches, assets, systems, vendors, exposure patterns, situations, claims, evidence, obligations, controls, incidents, decisions, and outcomes.
-
-The default is not a dense node graph. ClearSight prefers readable relationship paths, dependency lists, hierarchy, affected-scope summaries, search, and progressive expansion. Graph visualization is used when it improves comprehension.
-
-## 5. Configure
-
-A restricted administrative surface for institution structure, source registry, channel and jurisdiction packs, controlled vocabularies, evidence recipes, appetite, thresholds, authority, automation permissions, retention, and access policy.
-
-Ordinary users should rarely need to enter Configure.
-
-## Role-specific simplicity
-
-- **Executives and committees:** material situations, evidence quality, decisions, options, authority, and verified outcomes.
-- **Risk, compliance, security, and assurance:** challenge materiality, evidence, mappings, decisions, actions, and conclusions with lineage.
-- **Business and channel owners:** affected services, branches, merchants, assets, customers, or processes in familiar terms with one clear next action.
-- **Evidence respondents:** one contextual request with known facts prefilled and only unresolved facts editable.
-- **Internal audit:** shared source evidence with independent conclusions, sampling, challenge, and audit history.
-- **External reporters, customers, and vendors:** isolated, accessible capture appropriate to sensitivity and authentication requirements.
+They see why information is needed, what is already known, the exact unresolved question, acceptable proof, sensitivity, deadline, and answer, redirect, challenge, or conflict options.
 
 ---
 
-# What makes ClearSight different
+# AI-first without AI theatre
 
-## Direct banking situations
+AI acts as a governed compiler and assistant across the operating model.
 
-ClearSight presents ATM, POS, payments, branch, vendor, identity, customer, resilience, and other banking situations in language stakeholders recognize.
+It may:
 
-## Dynamic evidence, not static questionnaires
+- classify regulatory, supervisory, and enforcement documents;
+- extract candidate requirements, directives, dates, thresholds, and subjects;
+- compare versions;
+- propose applicability, controls, owners, and evidence mappings;
+- interpret approved spreadsheet and media inputs;
+- identify duplicate or contradictory records;
+- draft focused evidence requests;
+- summarize Programs and Matters;
+- draft implementation plans, test procedures, and response packages;
+- propose verification criteria.
 
-The system searches authorized evidence first, identifies unresolved facts, selects the best source, and asks the smallest useful question.
+AI must not silently:
 
-## Flexible capture without weak provenance
+- publish final legal interpretation or applicability;
+- mark a material Requirement compliant;
+- accept risk;
+- close a major finding or Matter;
+- file a regulatory, suspicious, or external report;
+- restrict an account;
+- disclose protected information;
+- represent the institution externally.
 
-Photos, spreadsheets, forms, dropdowns, APIs, telemetry, documents, messages, and attestations become normalized, versioned observations with explicit authority and limitations.
+Material AI output requires source lineage, structured validation, authorization, confidence and abstention behavior, appropriate human review, and immutable audit.
 
-## Data-quality transparency
-
-Unresolved mappings, stale sources, conflicting records, and incomplete inventories are visible. Integration success is not confused with data truth.
-
-## Materiality before volume
-
-Many related observations may become one situation. Grouping never deletes the source observations or rationale.
-
-## Verification before closure
-
-Implementation and effectiveness are separate. A completed task does not automatically reduce risk or close a material issue.
-
-## Institutional memory
-
-The platform preserves what was true, what was known, which evidence was used, who decided, who approved, and what happened afterward.
-
-## Governed AI
-
-Every material AI capability is purpose-bound, scope-constrained, source-grounded, policy-checked, model-versioned, confidence-aware, and audit-emitting. Material judgment remains with the correct human authority.
-
-## Enterprise depth without enterprise friction
-
-ClearSight supports multi-entity banks, strict authorization, three-lines independence, examiner-grade lineage, deployment flexibility, and high-volume integration while keeping ordinary workflows direct and low-bloat.
+The interface should feel intelligent because it preloads context, reduces questions, reconciles evidence, and presents direct work—not because every screen contains a chat box.
 
 ---
 
 # Bank-first GRC coverage
 
-The simplified operating model does not remove conventional GRC capabilities. It makes them supporting context for situations, evidence, decisions, and outcomes.
+The Programs and Matters model supports:
 
-ClearSight is intended to support:
-
-- enterprise and operational risk;
-- risk appetite, limits, triggers, and acceptance;
-- compliance and regulatory change;
-- policy and control management;
-- cyber and technology risk;
-- operational resilience;
+- regulatory obligations and change;
+- compliance calendars and filings;
+- policies, controls, testing, and assurance;
+- enterprise, operational, cyber, technology, conduct, and model risk;
+- RCSA, KRI, BIA, resilience, incidents, losses, and recovery;
 - third-party and concentration risk;
-- model and AI risk;
-- incidents, losses, complaints, findings, exceptions, and remediation;
-- control testing, assurance, audit, examination, and board reporting.
+- privacy, DPIA, ROPA, consent, breach, and data-subject rights;
+- findings, exceptions, remediation, and verification;
+- supervisory examinations and regulatory responses;
+- protected enforcement and authority cases;
+- audit, board, committee, and regulator-ready reporting.
 
-ClearSight integrates with specialist SIEM, SOAR, EDR, IAM, vulnerability, fraud, AML, transaction monitoring, complaint, ITSM, HR, ERP, procurement, CRM, and core banking systems rather than replacing them.
-
-The same source observation may support first-line management, second-line challenge, and third-line assurance, but conclusions and authority remain independent.
-
----
-
-# Confidential reporting and customer intelligence
-
-Protected reporting supports anonymous or identified intake, multilingual capture, secure case tokens, attachments and voice, protected case and identity isolation, conflict-aware routing, anti-retaliation checkpoints, privilege and sensitivity markers, retention rules, strict need-to-know access, and audit history.
-
-Protected reporting operates as an isolated trust domain. The main ClearSight risk layer receives only minimized, approved observations or signals after investigator validation and policy checks.
-
-AI may assist with translation, transcription, triage, summarization, classification, and urgent routing. It must not infer credibility from writing style, emotion, demographics, accent, or similar proxies.
-
-Customer reports may be linked to products, branches, channels, services, incidents, vendors, exposures, and controls. Allegations, observations, and verified facts remain distinct.
-
-ClearSight does not replace full complaints, fraud, or investigation platforms. It provides the cross-domain risk, evidence, decision, and assurance layer around them.
+ClearSight integrates with specialist fraud, AML, transaction monitoring, SIEM, SOAR, EDR, IAM, vulnerability, complaint, case-management, ITSM, HR, ERP, procurement, CRM, privacy, and core banking systems rather than replacing them.
 
 ---
 
-# Governed AI capabilities
-
-ClearSight uses constrained capabilities rather than one all-powerful assistant:
-
-| Capability | Responsibility |
-|---|---|
-| Interpretation | Extract structured observations from documents, spreadsheets, media, messages, and narratives |
-| Reconciliation | Match identifiers, compare sources, and propose conflicts or duplicates |
-| Evidence | Find existing proof, evaluate dimensions, and draft minimum-question requests |
-| Risk intelligence | Propose exposure relationships and structured materiality explanations |
-| Regulatory | Track approved sources, propose obligations, and map impact |
-| Remediation | Propose actions, dependencies, and verification criteria |
-| Assurance | Challenge sufficiency and prepare traceable lineage |
-| Executive briefing | Produce concise, source-grounded situation and decision briefs |
-
-Each capability requires verified identity, tenant and purpose scope, permitted tools, model lineage, source references, confidence and abstention behavior, policy checks, approval requirements, execution result, and immutable audit.
-
-AI does not write directly to authoritative storage. It proposes structured observations, mappings, questions, explanations, or domain commands that pass validation, authorization, policy, and approval gates.
-
----
-
-# Automation-engine compatibility
-
-Probo or another engine may manage framework controls, measures, policies, vendors, audits, tasks, and recurring compliance automation.
-
-ClearSight remains responsible for the bank situation, exposure patterns, materiality, source authority, data quality, evidence policy, protected information, decision authority, cross-domain relationships, and outcome verification.
-
-```text
-Probo, ITSM, IAM, or another execution system
-    └── performs an approved task or returns implementation evidence
-
-ClearSight
-    ├── determines why the work matters
-    ├── links it to the situation, claim, obligation, control, and decision
-    ├── governs who or what may act
-    ├── reconciles returned observations
-    ├── routes material exceptions
-    └── verifies whether defined outcome criteria were met
-```
-
-Adapters must be scoped, idempotent, version-aware, permission-bound, observable, replaceable, and unable to close material ClearSight situations directly.
-
----
-
-# Design taste
-
-ClearSight should feel **calm, precise, premium, direct, and institutional**.
-
-“Futuristic” means the interface understands context, preloads known information, reduces repetitive work, translates complex relationships into understandable situations, and makes high-stakes decisions easier to comprehend. It does not mean decorative science fiction.
-
-## Principles
-
-- low visual noise and strong hierarchy;
-- familiar banking language before GRC jargon;
-- situation-first pages rather than module-first navigation;
-- one obvious next action per primary state;
-- progressive disclosure instead of dense default screens;
-- restrained glass, depth, and glow used only for hierarchy or intelligence;
-- semantic rather than decorative color;
-- relationship paths before large graph canvases;
-- dark and light themes with equivalent clarity;
-- keyboard-first desktop operation;
-- excellent low-bandwidth mobile capture;
-- accessible contrast, focus, reduced motion, and screen-reader semantics;
-- stable layouts as intelligence arrives;
-- no mandatory chatbot interaction.
-
-Semantic color:
-
-- **Cyan:** new intelligence or context.
-- **Violet:** governance, control, decision, or approved automation.
-- **Coral/red:** material exposure, failure, gap, or breach.
-- **Amber:** uncertainty, stale evidence, contradiction, pending verification, or approaching threshold.
-- **Green:** verified outcome or acceptable state supported by sufficient evidence.
-- **Neutral:** informational, unchanged, or unassessed state.
-
-Green must be earned by evidence. It must not mean merely uploaded, assigned, submitted, or implemented.
-
-Every situation must answer:
-
-1. What is happening?
-2. Why does it matter now?
-3. What is affected?
-4. What do we know and what remains uncertain?
-5. Which evidence supports or contradicts the conclusion?
-6. Who owns the decision?
-7. What should happen next?
-8. How will the institution determine whether it worked?
-
----
-
-# High-level architecture
+# Technical shape
 
 ```mermaid
 flowchart LR
-    A[Photos, Forms, Files, APIs, Events and Reports] --> B[Capture and Source Trust]
-    B --> C[Normalized Observations]
-    C --> D[Scopes and Typed Relationships]
-    D --> E[Exposure Patterns and Risk Situations]
-    E --> F[Claims and Evidence Recipes]
-    F --> G{Sufficient and Consistent?}
-    G -- No --> H[Ask or Observe Only Missing Facts]
-    H --> C
-    G -- Yes --> I[Authorized Decision]
-    I --> J[People and Execution Systems]
-    J --> K[Implementation and Outcome Observations]
-    K --> L[Verification]
-    L --> E
+    A[Authority Sources, Standards, Internal Events and Operational Data] --> B[Source Trust and Normalized Observations]
+    B --> C[Institution Context and Applicability]
+    C --> D[Programs, Requirements and Controls]
+    D --> E[Evidence Contracts and Compliance State]
+    E --> F{Change, Gap, Request or Decision Needed?}
+    F -- No --> E
+    F -- Yes --> G[Governed Matter]
+    G --> H[Evidence, Decision and Action]
+    H --> I[Verification and Response]
+    I --> E
 
-    M[Identity, Authorization, Privacy, Retention and AI Governance] --- B
-    M --- C
-    M --- D
-    M --- E
-    M --- F
-    M --- I
-    M --- L
+    J[Identity, Authorization, Privacy, Retention and AI Governance] --- B
+    J --- C
+    J --- D
+    J --- E
+    J --- G
+    J --- H
+    J --- I
 ```
 
-## Initial technical shape
+Initial architecture:
 
 ```text
 Modular core
-├── relational authoritative store
-│   ├── scopes and typed relationships
-│   ├── exposure patterns and situations
-│   ├── claims, recipes, observations, and conclusions
-│   ├── decisions, actions, and verification
-│   └── source registry, policy, authority, and audit references
+├── institution scopes and typed relationships
+├── authority sources, Requirements and applicability
+├── Programs, controls and Evidence Contracts
+├── observations, conclusions and compliance state
+├── Matters, cases, findings, exceptions and incidents
+├── decisions, actions, response packages and verification
+├── source registry, policy, authority and audit
 ├── versioned object storage
-├── durable workflow and outbox
-├── authorization-aware search projection
-├── rules and policy evaluation
+├── durable workflow and transactional outbox
+├── authorization-aware search and projections
 ├── governed AI gateway
 └── replaceable integration adapters
 ```
 
-A dedicated graph database, vector database, large microservice estate, or autonomous agent platform is not required for the first release. Search, graph, vector, analytics, and reporting views are rebuildable projections. Dedicated infrastructure is introduced only when measured requirements justify it.
-
-## Technical principles
-
-- Start with a coherent modular core, not premature microservices.
-- Capture once and normalize consistently.
-- Preserve source observations separately from conclusions.
-- Make data quality, source freshness, and contradictions explicit.
-- Keep evidence versions immutable and decisions append-only where material.
-- Apply authorization to evidence, derivatives, relationships, search, counts, exports, workers, and AI retrieval.
-- Keep manual workflows usable when AI or an integration is unavailable.
-- Use replaceable, idempotent, observable adapters.
-- Prioritize one well-supported bank-grade deployment pattern before productizing every deployment mode.
+The first release does not require an institution-wide graph database, autonomous agent platform, large microservice estate, or perfect enterprise integrations.
 
 ---
 
 # Initial product wedge
 
-ClearSight should not begin by recreating every mature GRC module or modeling the entire institution.
+The strongest first pilot should prove three connected journeys.
 
-The first release should prove one complete loop across a bounded scope:
+## 1. Continuous compliance Program
 
-- one bank and legal entity;
-- one critical service or channel;
-- bounded branches, systems, vendors, owners, and assets;
-- two or three exposure patterns;
-- three to five sources at mixed integration levels;
-- one material situation;
-- one dynamic evidence journey;
-- one authorized decision;
-- one execution adapter;
-- successful and failed verification paths;
-- complete point-in-time lineage.
+Use a bounded NDPA, CBN cybersecurity, PCI DSS, or similar Program to prove:
 
-Recommended first scenarios:
+- requirement and source import;
+- applicability;
+- control and evidence mapping;
+- spreadsheet and API observations;
+- targeted evidence requests;
+- current compliance state;
+- filing or review readiness;
+- exception handling.
 
-1. **Privileged access:** reconcile IAM, approvals, HR, and focused manager knowledge.
-2. **ATM or payment resilience:** reconcile inventory, telemetry, branch observations, vendor evidence, and impact tolerance.
-3. **POS terminal or settlement integrity:** reconcile merchant, terminal, transaction, processor, and settlement data.
+## 2. Regulatory change
 
-A protected reporting portal may proceed as an isolated parallel workstream, integrating only minimized approved observations into the core risk layer.
+Use one recent CBN circular to prove:
 
-The release must prove that ClearSight can understand a recognizable banking situation, reuse evidence, ask only missing facts, support spreadsheets/forms/media/APIs, expose data-quality limitations, route authority, execute through an approved system, and verify defined outcomes without forcing users through a conventional GRC suite.
+- official-source ingestion;
+- provision extraction;
+- human-approved interpretation;
+- impact mapping;
+- implementation Matters;
+- evidence and testing;
+- continuing compliance after implementation.
+
+## 3. Authority or finding Matter
+
+Use one protected authority request or one existing IT/vendor finding to prove:
+
+- protected intake or legacy import;
+- structured ownership and authority;
+- evidence collection;
+- decision and response;
+- verification before closure;
+- derived KRI, dashboard, and committee reporting.
+
+This pilot demonstrates the core promise:
+
+> **One source or event flows into the correct Program, Matter, action, evidence, response, and reporting views without being manually re-entered across spreadsheets.**
 
 ---
 
 # Success measures
 
-ClearSight is judged by outcomes and effort—not by modules, forms, dashboards, or record count.
+## Continuous compliance
 
-## Usability
+- requirements with approved source lineage;
+- time from publication to applicability decision;
+- requirements with current sufficient evidence;
+- stale, unsupported, or contradictory compliance positions;
+- evidence reused instead of recollected;
+- time spent preparing filings, audits, and examinations;
+- Programs maintained without broad recurring questionnaires.
 
-- time to understand a situation;
-- active time and questions per accepted evidence request;
-- known fields reused and duplicate requests avoided;
-- completion and redirection rates;
-- module changes required to complete one situation;
-- stakeholder-rated clarity and relevance.
+## Legacy workflow reduction
 
-## Integration and data quality
+- spreadsheets retired or converted into governed views;
+- duplicate records eliminated;
+- manual reconciliations removed;
+- email and comment-based ownership transfers replaced;
+- manual report assembly hours removed;
+- triggered work generated automatically;
+- register views generated from shared objects.
 
-- time to onboard a usable source;
-- observations with complete lineage;
-- source freshness against target;
-- unresolved identifiers and stale relationships;
-- spreadsheet correction rate;
-- source failures surfaced before decisions;
-- material conclusions affected by data-quality debt.
+## Matter handling
 
-## Decision and assurance
+- time from trigger to accountable owner;
+- overdue regulatory and authority responses;
+- expired exceptions;
+- findings closed without verified outcome;
+- response packages returned for missing evidence;
+- repeat incidents, losses, complaints, and findings.
 
-- time from material observation to accountable decision;
-- unresolved material situations;
-- situations with sufficient evidence;
-- expired or invalidated decisions;
-- stale, incomplete, unsupported, or contradictory claims;
-- time to reconstruct a past situation or decision;
-- board, auditor, and regulator preparation time.
+## Trust
 
-## Action and verification
-
-- implemented actions awaiting verification;
-- verification success, failure, and indeterminate rates;
-- reopened situations and issues;
-- projected versus observed outcomes;
-- repeat incidents, complaints, and findings;
-- overdue exposure and breach duration.
-
-## AI trust
-
-- source-lineage completeness;
-- unsupported assertion rate;
-- appropriate abstention;
-- human edit, rejection, and override rate;
-- unauthorized action attempts;
-- leakage-test results;
-- cost and latency by capability;
-- downstream verification of AI-supported recommendations.
+- source and provision coverage;
+- unsupported interpretations;
+- unresolved applicability;
+- source freshness and mapping quality;
+- unauthorized actions prevented;
+- protected-case access violations;
+- point-in-time reconstruction time;
+- independent assurance challenges and overrides.
 
 ---
 
@@ -829,52 +631,47 @@ ClearSight is judged by outcomes and effort—not by modules, forms, dashboards,
 
 ClearSight is not:
 
-- a generic document-management system;
-- a spreadsheet replacement with nicer cards;
-- a collection of permanent questionnaires;
+- a prettier spreadsheet repository;
+- a generic form builder;
+- a collection of disconnected GRC modules;
 - a single-framework checklist;
-- a security-event, fraud, AML, or transaction-monitoring engine;
-- a core banking platform or payment switch;
-- a full complaints or investigation platform;
-- an autonomous risk officer;
+- a dashboard layer over inconsistent source data;
+- a full fraud, AML, transaction-monitoring, complaints, or investigation platform;
+- a core banking system or payment switch;
+- an autonomous compliance, legal, risk, or enforcement officer;
 - an opaque AI scoring product;
 - a mandatory graph canvas;
-- a chatbot wrapper around GRC records;
-- or disconnected GRC modules.
-
-It provides the governed situation, evidence, decision, action, verification, and assurance layer across specialist systems.
+- a chatbot wrapper around registers.
 
 ---
 
 # Product invariants
 
-1. **Situations before modules**
-2. **Banking language before GRC jargon**
-3. **Materiality before volume**
-4. **Evidence before confidence**
-5. **Existing evidence before human requests**
-6. **Unresolved facts before broad questionnaires**
-7. **Source authority and data quality before automated trust**
-8. **Relationships before duplicated forms**
-9. **Decisions before dashboards**
-10. **Verification before closure**
-11. **Human authority for material judgment**
-12. **Progressive disclosure over interface density**
-13. **Open integration over platform captivity**
-14. **Institutional memory over periodic reporting**
-15. **Protected reporting without credibility profiling**
-16. **No AI action without identity, purpose, scope, lineage, policy, and audit**
-
-These invariants are mandatory. See [`AGENTS.md`](AGENTS.md).
+1. **Programs for continuing obligations; Matters for dynamic work.**
+2. **One authoritative object, many role-specific views.**
+3. **Original source before register summary.**
+4. **Applicability before implementation.**
+5. **Control implementation before compliance claim.**
+6. **Current evidence before status.**
+7. **Triggers and exceptions before blanket reminders.**
+8. **Existing information before human requests.**
+9. **Structured ownership before comment-based routing.**
+10. **Aggregate metrics must drill down to governed records.**
+11. **Human authority before material or external action.**
+12. **Verification before closure.**
+13. **AI compiles and drafts; authorized humans judge.**
+14. **History is superseded, never silently rewritten.**
+15. **Protected reporting and authority cases remain need-to-know.**
+16. **The interface exposes work, not internal architecture.**
 
 ---
 
 # Closing vision
 
-A mature ClearSight deployment should allow a bank stakeholder to ask:
+A mature ClearSight deployment should allow any authorized stakeholder to ask:
 
-> “What is happening in the part of the bank I am responsible for, how could it cause harm, what do we actually know, what is still missing, what must be decided, and did the defined response achieve its intended outcome?”
+> “What requirements apply to this part of the bank, how are they being satisfied, what current evidence proves it, what has changed or become uncertain, what work needs attention, and can we defensibly show the complete history?”
 
-The answer should use familiar banking language, take seconds to understand at executive level, remain traceable to original evidence, adapt to the institution’s size and integration maturity, and require the minimum reasonable effort from everyone involved.
+The answer should take seconds to understand at executive level, remain traceable to original authority and evidence, adapt to the bank’s size and integration maturity, and require the minimum reasonable effort from everyone involved.
 
-**That is the standard for a modern, direct, bank-first GRC operating system.**
+**That is the standard for a modern, direct, continuously compliant bank GRC operating system.**
