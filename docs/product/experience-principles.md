@@ -1,14 +1,14 @@
 # ClearSight Experience Principles
 
-This document defines the canonical product experience, information architecture, visual language, interaction rules, and visual non-regression requirements for ClearSight.
+This document defines the canonical product experience, information architecture, visual language, interaction rules, component requirements, and visual non-regression standard for ClearSight.
 
-The target is a 2030-quality bank GRC interface: not decorative science fiction, but a system that continuously assembles context, keeps compliance proof current, reduces repetitive work, and makes exceptional work easy to understand and govern.
+The target is a 2030-quality bank GRC interface: not decorative science fiction, but a system that understands institutional context, assembles known information, proposes useful next steps, minimizes active user effort, and remains calm during high-stakes work.
 
 This document conforms to:
 
 - [`continuous-compliance-operating-model.md`](continuous-compliance-operating-model.md)
+- [`ease-of-use-standard.md`](ease-of-use-standard.md)
 - [`operating-model.md`](operating-model.md)
-- [`regulatory-and-enforcement-intelligence.md`](regulatory-and-enforcement-intelligence.md)
 
 Internal architecture must not become user-interface architecture.
 
@@ -18,33 +18,34 @@ Internal architecture must not become user-interface architecture.
 
 A ClearSight user should feel that:
 
-- the system understands the relevant institution, legal entity, licence, jurisdiction, Program, channel, service, branch, population, and period;
-- continuing obligations are already organized and current rather than rebuilt for each review;
-- changed, overdue, contradictory, or exceptional work is separated into direct Matters;
+- the system understands the relevant bank, entity, Program, Matter, channel, service, branch, population, and period;
+- familiar bank records are already available from approved inventories and integrations;
 - known information is prefilled;
-- missing or weak proof is explicit;
-- the next accountable action is clear;
-- AI reduces assembly work without becoming another product to operate;
-- source quality and freshness are visible;
-- and every conclusion, response, and decision remains reconstructable.
+- AI has prepared a grounded first draft where useful;
+- only missing, stale, contradictory, or material information requires attention;
+- the next accountable action is obvious;
+- routine work can be completed in a few steps and less than five minutes of active effort;
+- complex work reaches a clear saved next state within five minutes;
+- evidence, source limitations, uncertainty, authority, and history remain accessible;
+- the product remains usable when AI or an integration is unavailable.
 
-The core interaction grammars are:
+Primary interaction grammars:
 
-### Program
+### Continuing compliance
 
-> **Understand obligation → inspect coverage → refresh proof → handle gaps → assure**
+> **Understand Program state → inspect exceptions → act on what changed → verify → remain current**
 
-### Matter
+### Matter handling
 
-> **Understand change → gather evidence → decide or respond → act → verify**
+> **Understand → Evidence → Decide or respond → Act → Verify**
 
-### Evidence respondent
+### Focused respondent work
 
-> **See context → confirm or provide only missing facts → review → submit**
+> **Context → Confirm or provide → Review → Submit**
 
-### Executive
+### Executive work
 
-> **Brief → explain → decide → verify**
+> **Brief → Explain → Decide → Verify**
 
 ---
 
@@ -52,27 +53,29 @@ The core interaction grammars are:
 
 ClearSight should feel:
 
-- **calm** — routine compliance does not look like a permanent emergency;
-- **direct** — current state and next action are obvious;
-- **precise** — scope, source, period, owner, authority, and confidence are explicit;
-- **relatable** — obligations, channels, branches, customers, assets, vendors, filings, and cases appear before abstract GRC architecture;
-- **institutional** — appropriate for branch operations, compliance teams, risk committees, legal review, internal audit, boards, and regulators;
-- **intelligent** — known context is assembled automatically;
+- **calm** — no artificial urgency, constant alarms, or unread-count pressure;
+- **direct** — the purpose and next action are immediately visible;
+- **precise** — scope, period, source, owner, authority, and state are explicit;
+- **relatable** — banking channels, services, customers, accounts, branches, assets, vendors, and obligations appear before internal GRC terminology;
+- **prepared** — the system has already assembled the likely context and recommendation;
+- **flexible** — different bank sizes, source maturity, jurisdictions, and workflows fit one coherent product;
+- **institutional** — suitable for field operations, compliance teams, risk committees, boards, auditors, regulators, and legal teams;
 - **premium** — refined typography, spacing, motion, and detail;
-- **defensible** — source lineage and reasoning are close at hand;
-- **restrained** — color, glass, glow, and depth communicate meaning rather than decoration.
+- **defensible** — evidence and reasoning are always within reach;
+- **restrained** — glass, glow, depth, and color communicate hierarchy rather than decoration.
 
 ClearSight must not feel:
 
 - like a generic admin template;
-- like a security alert console;
+- like a security console filled with alerts;
 - like a consumer banking app;
 - like a social feed;
 - like a gamified compliance product;
 - like a neon cyberpunk concept;
 - like a spreadsheet wrapped in cards;
-- like a chatbot over disconnected modules;
-- or like every continuing obligation is an overdue task.
+- like a chatbot placed over disconnected modules;
+- like a large form mirroring a database schema;
+- like every action requires a committee meeting.
 
 ---
 
@@ -82,827 +85,746 @@ Most authenticated users operate through five primary surfaces.
 
 ## 3.1 Today
 
-Today is a role-specific attention brief, not a dashboard catalogue.
+A role-specific attention brief, not a dashboard catalogue.
 
-It should show only items where attention changes the outcome:
+Show only:
 
-- Program requirements or filings approaching a decision or deadline;
-- evidence that became stale, contradictory, insufficient, or unavailable;
-- Matters requiring the user’s authority, evidence, review, response, or verification;
-- appetite, compliance, KRI, or operational thresholds that changed materially;
-- actions likely to miss a deadline;
-- failed or indeterminate verification;
-- external-authority communications requiring triage;
-- significant changes safely automated.
+- Programs moving out of a current state;
+- Matters requiring the user’s authority or action;
+- expiring or insufficient evidence;
+- upcoming filings, reviews, tests, or commitments;
+- failed or pending verification;
+- material source degradation;
+- important changes handled automatically;
+- recommendations requiring review.
 
-The default executive view should usually contain three to seven cards.
+The default executive brief should normally contain three to seven items.
 
 Today must support:
 
-- an explicit review period;
-- clear Program or Matter type;
-- acknowledgement without suppressing the underlying record;
-- delegation within authority;
-- saved role views without turning customization into the product;
-- expanded analyst monitoring;
-- and a true no-attention-required state distinct from no data, no access, and not assessed.
+- a clear review period;
+- acknowledgement without hiding the underlying work;
+- delegation where authority permits;
+- direct action without visiting a module homepage;
+- expanded analyst mode;
+- true no-material-change state distinct from missing or stale data;
+- grouped notifications by Program or Matter;
+- continuation of recently active work.
 
 ## 3.2 Programs
 
-Programs is the continuing-compliance surface.
+Programs are the calm home of continuing compliance.
 
-A Program page should make a large obligation estate feel stable and manageable rather than turn every requirement into a card.
+The default Program view should show:
 
-### Overview
+- overall current position and important dimensions;
+- applicable requirements by scope;
+- material gaps, exceptions, and unknowns;
+- evidence becoming stale;
+- upcoming filings, reviews, tests, and certifications;
+- recent regulatory, institutional, or source changes;
+- open Matters;
+- recommended actions;
+- assurance status.
 
-- Program purpose and governing authorities or standards;
-- active scope and entities;
-- responsible executive, Program owner, control owners, and independent reviewers;
-- current compliance dimensions;
-- upcoming filing, review, test, and certification milestones;
-- evidence at risk;
-- open Matters and exceptions;
-- source or data-quality concerns;
-- important changes since the last approved review.
+The Program view should not default to hundreds of controls or a wall of percentages.
 
-### Requirements
+Recommended Program sections:
 
-Use a structured table or grouped outline showing:
+- Overview;
+- Requirements and applicability;
+- Controls and implementation;
+- Evidence and assurance;
+- Schedule and obligations;
+- Matters and exceptions;
+- Scope and ownership;
+- History and filings.
 
-- source-linked Requirement;
-- applicability and scope;
-- effective period;
-- mapped control objectives and implementations;
-- evidence state;
-- owner and reviewer;
-- exceptions or open Matters;
-- next review or filing date.
-
-Requirements should be groupable by authority, topic, legal entity, channel, business service, deadline, control, or evidence state.
-
-### Controls
-
-Show control objectives separately from scoped implementations.
-
-Support:
-
-- implementation comparison across entities or systems;
-- design and operating-effectiveness state;
-- owners and performers;
-- automation and source coverage;
-- evidence contracts;
-- exceptions;
-- related incidents, findings, and Matters.
-
-### Evidence
-
-Show:
-
-- exact Claims being proven;
-- Evidence Contracts;
-- source authority and limitations;
-- freshness, population, coverage, independence, and contradiction;
-- original and derived evidence;
-- upcoming refresh;
-- evidence reused across authorized Requirements;
-- gaps that require focused capture.
-
-### Calendar
-
-A unified operating calendar for:
-
-- filings and returns;
-- periodic reviews;
-- control tests;
-- policy review;
-- certification expiry;
-- vendor reassessment;
-- RCSA and BIA refresh;
-- committee reporting;
-- assurance activities.
-
-Calendar items must derive from Program records rather than exist as disconnected reminders.
-
-### Matters and exceptions
-
-A Program should show linked Matters by type, materiality, owner, due date, and verification state without turning the Program itself into a case queue.
-
-### Assurance
-
-Support first-, second-, and third-line conclusions independently over shared source evidence.
-
-Show:
-
-- review and test scope;
-- sample population and selection provenance;
-- assurance conclusion;
-- challenge and disagreement;
-- findings;
-- included and excluded evidence;
-- sign-off and point-in-time freeze.
-
-### History
-
-- source and Requirement versions;
-- applicability changes;
-- control changes;
-- evidence and conclusion changes;
-- filings;
-- exceptions;
-- approvals;
-- previous assurance states.
+A requirement row should provide direct movement to its source provision, applicability, implementation, evidence, owner, exceptions, and open Matters without module hopping.
 
 ## 3.3 Work
 
-Work is the operating queue for Matters, evidence requests, actions, reviews, approvals, and responses.
+Work is the user’s Matter queue.
 
-It should support:
+It supports:
 
-- My work;
-- team work;
-- delegated work;
-- Matters by type;
-- evidence requests;
-- approvals and challenges;
-- actions and remediation;
-- authority responses;
-- verification due;
-- overdue or blocked work.
+- regulatory changes;
+- authority requests;
+- supervisory findings;
+- risk situations;
+- audit findings;
+- incidents and breaches;
+- exceptions and waivers;
+- vendor deficiencies;
+- control gaps;
+- actions and evidence requests;
+- approvals and reviews.
 
-Worklists use tables or grouped queues, not walls of cards.
+Default views should be role-aware and task-oriented:
 
-A Matter workspace should contain:
-
-### Summary
-
-- what happened or changed;
-- why it matters;
-- Matter type and current state;
-- active scope and period;
-- linked Program, Requirement, control, service, customer, account, asset, vendor, or event;
-- owner, authority, deadline, and next handling step.
-
-### Context
-
-- affected institutional relationships;
-- applicable Requirements, controls, policies, appetite, and thresholds;
-- related Matters, incidents, losses, complaints, or previous decisions;
-- source and data-quality state.
-
-### Evidence
-
-- required Claims;
-- known, missing, stale, contradictory, and excluded evidence;
-- source authority and limitations;
-- population and period;
-- assumptions and current Conclusion.
-
-### Decision or response
-
-Depending on Matter type:
-
-- options and trade-offs;
-- applicability or legal interpretation;
-- approval or challenge;
-- management response;
-- exception conditions;
-- authority response package;
-- reportability or disclosure decision;
-- signatory and submission channel.
-
-### Actions
-
-- tasks and dependencies;
-- owner and performers;
-- external execution state;
-- blockers and escalation;
-- implementation evidence.
-
-### Outcome
-
-- expected outcome;
-- baseline and measurement;
-- observation period;
-- current result;
-- success and failure thresholds;
-- acceptance authority;
-- response acknowledgement;
-- verified, ineffective, indeterminate, awaiting verification, or continuing-monitoring state.
-
-### History
-
-- versions;
-- communications;
-- source changes;
-- decisions, overrides, and dissent;
-- action and response history;
-- verification outcomes;
-- point-in-time reconstruction.
+- Assigned to me;
+- Needs my decision;
+- Waiting for evidence;
+- At risk of deadline;
+- Blocked;
+- Awaiting verification;
+- Delegated;
+- Recently changed.
 
 ## 3.4 Explore
 
-Explore is an authorized institutional inquiry surface.
+Explore is an analyst inquiry surface for:
 
-It includes:
-
-- Programs and Requirements;
-- policies and controls;
-- Matters and risk situations;
-- channels, services, branches, customers, accounts, merchants, assets, systems, vendors, projects, and data-processing activities;
+- Programs, Requirements, Controls, Matters, evidence, decisions, and outcomes;
+- services, channels, branches, customers, accounts, merchants, assets, systems, vendors, projects, and people;
 - sources and data quality;
-- Claims, Observations, Evidence, Decisions, Actions, filings, responses, and outcomes;
-- relationships, trends, and historical reconstruction.
+- populations and relationships;
+- incidents, losses, complaints, and trends;
+- point-in-time reconstruction.
 
 Explore is not a collection of module homepages.
 
 Prefer:
 
 - scoped search;
-- readable hierarchy;
-- relationship paths;
+- hierarchy;
+- readable relationship paths;
 - dependency lists;
 - population tables;
-- timeline;
+- timelines;
 - affected-scope summaries;
+- saved analytical views;
 - progressive expansion.
 
-Use node graphs only where spatial relationships materially improve comprehension.
+Node graphs are used only when spatial relationships improve comprehension.
 
 ## 3.5 Configure
 
-Configure is a restricted administrative surface for:
+A restricted administrative surface for:
 
-- institution, entity, licence, jurisdiction, service, channel, and branch structure;
-- Program templates and institution Programs;
-- Requirement, applicability, and control vocabulary;
-- source registry and mapping;
-- Evidence Contracts and capture templates;
-- calendars, triggers, thresholds, KRIs, appetite, and escalation;
-- authority, segregation of duties, and access;
-- retention, legal hold, and privacy;
-- AI and automation permissions;
-- integrations and deployment policy.
+- institution and legal-entity structure;
+- Programs and templates;
+- channel and jurisdiction packs;
+- source registry and mappings;
+- controlled vocabularies;
+- evidence contracts;
+- authority and segregation-of-duties policy;
+- thresholds and triggers;
+- access, retention, legal hold, and residency;
+- integration and automation policy;
+- AI capabilities and evaluation gates.
 
 Ordinary users should rarely enter Configure.
 
-Configuration must be grouped by the institutional outcome it governs, not by implementation component.
+## 3.6 Respond and Capture
 
-## 3.6 Contextual Capture and Respond
+Focused experiences delivered through mobile, portal, direct link, email, or enterprise messaging where policy permits.
 
-Capture and Respond are lightweight experiences launched from Today, Programs, Work, secure links, messaging, mobile notifications, or external portals.
+They support:
 
-They are optimized for:
+- one evidence request;
+- one branch or asset confirmation;
+- vendor submission;
+- customer or employee report;
+- protected reporting;
+- short review or approval;
+- clarification or redirection.
 
-- one focused evidence question;
-- structured confirmation;
-- media or document capture;
-- spreadsheet or population submission;
-- vendor evidence;
-- branch field work;
-- customer or protected reporting;
-- authority-response contribution.
-
-They are not mandatory permanent navigation for all users.
+The respondent should not need access to the full Program or Matter.
 
 ---
 
-# 4. Mandatory context anchoring
+# 4. Five-minute flow design
 
-Wrong-scope action is a material governance failure.
+## 4.1 Routine completion budget
 
-Every material workspace must make available:
+Routine flows should normally complete in less than five minutes of active effort.
 
-- institution or tenant;
-- legal entity and licence where relevant;
-- country or jurisdiction;
-- Program or Matter;
-- channel, service, branch, account, vendor, population, or processing activity;
-- effective period and record time;
-- user role or delegated authority;
-- data freshness and source health.
+Design targets:
 
-Use a compact context header or breadcrumb. It must remain visible before approval, filing, export, response, bulk action, or evidence submission.
+- focused request: median under three minutes;
+- routine approval: median under two minutes;
+- repeat import with saved mapping: active effort under five minutes;
+- assignment or redirect: under sixty seconds;
+- executive comprehension: under sixty seconds;
+- next action after resume: understood within thirty seconds.
 
-Context switching must:
+No routine flow should require more than three major workspace transitions without documented justification.
 
-- clearly identify the new scope;
-- preserve or deliberately reset filters;
-- prevent cross-entity action;
-- warn when drafts or selections belong to another scope;
-- never rely on subtle color alone.
+## 4.2 Complex-work checkpoint
 
----
+For complex cases, the user should reach a clear saved next state within five minutes:
 
-# 5. Compliance-state design
+- confirm assignment and scope;
+- accept or correct the initial summary;
+- identify missing evidence;
+- assign specialist review;
+- create a focused request;
+- save a draft decision;
+- approve the next investigation step;
+- create a governed implementation plan.
 
-Compliance must not be reduced to one unexplained score.
+## 4.3 Active effort, not elapsed time
 
-The UI should keep these dimensions distinguishable:
+Model processing, imports, external execution, observation periods, regulator acknowledgement, and asynchronous approvals do not count toward active user effort.
 
-- source interpretation;
-- applicability;
-- control design;
-- implementation;
-- evidence sufficiency;
-- operating effectiveness;
-- exception or waiver;
-- assurance;
-- filing or deadline;
-- source and data quality.
+The UI must allow users to leave safely and notify them only when meaningful intervention is needed.
 
-A concise summary may use states such as:
+## 4.4 Time and effort visibility
 
-- current;
-- current with exception;
-- at risk;
-- gap identified;
-- evidence insufficient;
-- implementation pending;
-- overdue;
-- under review;
-- not applicable;
-- unknown.
+Focused requests should display an estimated active effort where useful.
 
-Every summary state must reveal its dimensions and rationale.
+Longer workflows should show:
 
-Avoid averaging unrelated dimensions into a precise percentage.
+- completed sections;
+- remaining decisions;
+- blockers;
+- background work in progress;
+- who currently owns the next step.
+
+Do not use gamified progress bars for legally or evidentially complex work. Progress must reflect meaningful completion.
 
 ---
 
-# 6. Core interaction patterns
+# 5. Data-powered interaction principles
 
-## 6.1 Attention card
+## 5.1 Inventory-backed selection
 
-Attention cards are used only for a deliberately small queue.
+Use approved inventories as workflow sources:
 
-They contain:
+- CMDB and architecture catalogues;
+- asset systems;
+- branch and organization directories;
+- HR and identity directories;
+- procurement and vendor systems;
+- acquiring and channel systems;
+- core customer and account systems;
+- ITSM and project platforms;
+- ROPA and BIA;
+- policy, document, and certificate repositories.
 
-1. direct issue or obligation;
+Selections should be searchable, scoped, human-readable, and sourced.
+
+Do not ask users to type names or identifiers that can be selected from a governed inventory.
+
+## 5.2 Prefill behavior
+
+Prefilled fields should indicate:
+
+- source;
+- freshness where material;
+- whether the user may correct it;
+- whether correction changes the source or only the current submission.
+
+Do not overload routine users with provenance details; make them available through an inspect affordance.
+
+## 5.3 Missing-source behavior
+
+When a source is unavailable or stale:
+
+- explain the affected field or conclusion;
+- show last-known value and age;
+- offer an approved fallback if available;
+- state what cannot safely proceed;
+- avoid turning manual confirmation into an equal-strength authoritative value.
+
+## 5.4 Progressive integration stability
+
+A flow should look and behave consistently whether values come from a controlled list, spreadsheet, scheduled import, API, or event stream.
+
+Automation should remove steps, not reorganize the product.
+
+---
+
+# 6. Governed AI experience
+
+## 6.1 First drafts, not blank pages
+
+Where approved, provide grounded proposals for:
+
+- regulatory obligations;
+- applicability questions;
+- control mappings;
+- evidence requests;
+- Program and Matter summaries;
+- remediation options;
+- verification criteria;
+- policy changes;
+- review plans;
+- response-package indexes;
+- assignments and routing.
+
+## 6.2 Recommendation component
+
+A recommendation must show:
+
+- proposed action;
+- why it is recommended;
+- sources and versions;
+- affected scope;
+- assumptions;
+- uncertainty or contradiction;
+- required authority;
+- estimated effort or complexity where useful;
+- editable structured fields;
+- alternatives;
+- expected next state.
+
+Actions:
+
+- accept;
+- edit and accept;
+- reject;
+- request more evidence;
+- compare alternatives;
+- escalate.
+
+## 6.3 Review by exception
+
+Highlight:
+
+- changed values;
+- low-confidence fields;
+- new mappings;
+- contradictions;
+- material effects;
+- missing source anchors;
+- high-impact side effects.
+
+Allow users to inspect the complete output, but do not require line-by-line review of unchanged high-confidence content unless policy demands it.
+
+## 6.4 No mandatory chat
+
+Chat and command surfaces may support inquiry, navigation, explanation, comparison, and drafting.
+
+They must not become the only way to operate the product.
+
+A prompt should not be required to perform a known structured workflow.
+
+---
+
+# 7. Core interaction patterns
+
+## 7.1 Attention card
+
+Used only for a small queue of Program or Matter items.
+
+Contains:
+
+1. direct situation or obligation statement;
 2. why attention is needed now;
 3. affected scope;
 4. evidence or compliance state;
 5. required handling;
 6. owner or authority;
-7. due time.
+7. one primary action.
 
 Rules:
 
 - one dominant message;
 - one primary action;
-- no more than two secondary actions while collapsed;
+- no generic view-details-only card;
 - no unexplained score;
-- no generic view-details-only path;
-- no green for submission or implementation alone;
-- no hidden material context available only on hover.
+- no green before verified state;
+- no material information hidden only on hover.
 
-## 6.2 Program requirement table
+## 7.2 Program requirement table
 
-Large Program estates require compact, accessible tables.
+Supports:
 
-Support:
-
-- hierarchical grouping;
-- sticky requirement and scope identifiers;
-- source-provision link;
+- requirement and source reference;
 - applicability;
-- control and evidence state;
+- scoped implementation;
+- evidence state;
 - owner and reviewer;
-- next due date;
-- linked Matter count;
-- filters and saved views;
-- column and density controls;
-- keyboard navigation;
-- export with manifest.
+- exceptions;
+- next due event;
+- active Matters.
 
-Do not render every Requirement as a card.
+Must provide saved views and exception-focused filters.
 
-## 6.3 Evidence request
+## 7.3 Matter workspace
 
-An evidence request should feel like a short contextual work message.
+Sections:
 
-It includes:
+- Summary;
+- Scope and subjects;
+- Evidence;
+- Decision or response;
+- Actions;
+- Outcome or acknowledgement;
+- History.
 
-- why the recipient is being asked;
-- what is already known;
-- the smallest unresolved question;
-- relevant Requirement, control, object, or population in plain language;
-- acceptable response forms;
+The initial view should show only sections relevant to the Matter type.
+
+## 7.4 Evidence request
+
+Must include:
+
+- purpose;
+- why the recipient was selected;
+- known facts;
+- smallest unresolved question;
+- acceptable response types;
 - estimated effort;
 - deadline and consequence;
-- confidentiality;
-- redirect, partial response, not applicable, and sensitivity options.
+- sensitivity;
+- redirect, delegate, partial, not-applicable, and concern options.
 
-Avoid broad free-text prompts, control IDs as primary language, and repeated requests that could be deduplicated.
+## 7.5 Forms and controlled values
 
-## 6.4 Population worklist
+- prefill known values;
+- minimize editable fields;
+- use searchable inventories;
+- progressively validate;
+- hide non-applicable questions;
+- avoid free text for identity;
+- show final submitted assertions;
+- preserve drafts.
 
-For ATMs, POS terminals, accounts, merchants, branches, vendors, controls, incidents, ROPA activities, or exceptions, support:
+## 7.6 Population worklist
 
-- total and filtered population;
-- explicit denominator and exclusions;
-- resolved, unresolved, contradictory, stale, not applicable, excluded, and unauthorized states;
-- search and saved filters;
-- sticky identifiers and headers;
-- source and freshness state;
-- inline comparison where safe;
-- virtualization or pagination;
-- accessible selection summary;
-- export with scope and manifest.
+For ATMs, POS terminals, accounts, merchants, branches, vendors, controls, cases, or exceptions.
 
-## 6.5 Reconciliation
+Must support:
 
-Reconciliation views distinguish:
+- total and filtered denominators;
+- resolved, unresolved, contradictory, stale, excluded, and unauthorized states;
+- saved filters;
+- recommended filters;
+- sticky identifiers;
+- keyboard navigation;
+- next unresolved item;
+- compact and comfortable density;
+- remembered column preferences;
+- authorization-aware bulk action;
+- post-action reconciliation.
 
-- matched;
-- provisionally matched;
-- unresolved;
-- contradictory;
-- duplicate;
-- rejected;
-- superseded.
+## 7.7 Spreadsheet import
 
-Show source records side by side, normalized identifiers, proposed match reason, affected downstream records, confidence dimensions, and merge/unmerge history.
+First use:
 
-## 6.6 Spreadsheet import
-
-Spreadsheet and CSV import are first-class workflows:
-
-1. file and sheet selection;
-2. Source Profile and purpose;
-3. column detection and mapping;
+1. select file and sheet;
+2. select or create Source Profile;
+3. map columns;
 4. preview;
-5. type and required-field validation;
-6. identifier matching;
-7. duplicate and conflict analysis;
-8. scope confirmation;
-9. import summary;
-10. reconciliation queue and rollback reference.
+5. validate and match;
+6. confirm scope;
+7. import;
+8. resolve exceptions.
 
-The UI must distinguish uploaded, parsed, mapped, accepted as Observation, reconciled, and sufficient as Evidence.
+Repeat use should reuse approved mapping and show only schema changes, errors, duplicates, unresolved identifiers, and material variance.
 
-## 6.7 Photo and scan capture
+The UI distinguishes uploaded, parsed, mapped, accepted as Observation, reconciled, and sufficient for a Claim.
 
-Guide users toward visible, verifiable attributes. Show framing, blur, glare, crop, and readability guidance; disclose metadata collection; minimize background people or data; preserve originals; show extracted fields and regions; require confirmation where necessary; state what the media cannot establish.
+## 7.8 Photo and scan capture
 
-Never present “AI verified secure” from a general photograph.
+Guide users toward bounded visible attributes.
 
-## 6.8 Evidence sufficiency
+Support framing, legibility, blur/glare checks, metadata notice, retake, redaction where permitted, extraction-region display, field confirmation, and explicit statement of what the media cannot prove.
 
-Evidence quality should remain inspectable across:
+## 7.9 Review and approval
 
-- relevance;
-- authenticity;
-- coverage;
-- freshness;
-- independence;
-- completeness;
-- consistency;
-- reliability;
-- traceability.
+Show in one view:
 
-Use a concise state with expandable dimensions, source references, policy requirements, and unresolved contradiction.
+- proposed result;
+- changed or exceptional fields;
+- source evidence;
+- uncertainty;
+- scope;
+- authority basis;
+- side effects;
+- next state;
+- verification.
 
-## 6.9 Contradiction
+Approval cannot be context-free.
 
-Show disputed Claim, conflicting sources side by side, authority and limitations, periods, population mismatch, affected conclusions and responses, resolver, and time sensitivity.
+## 7.10 Save and resume
 
-The system must not silently choose the source that produces the most favorable status.
+On return, show:
 
-## 6.10 Decision and approval
-
-A material review must show exact scope and period, evidence and contradiction, options and trade-offs, affected customers or obligations, authority and segregation of duties, expiry, irreversible effects, and verification.
-
-Approval cannot be a context-free button.
-
-## 6.11 Verification and closure
-
-Visually distinguish:
-
-- planned;
-- authorized;
-- in progress;
-- implemented;
-- response transmitted;
-- awaiting acknowledgement;
-- awaiting verification;
-- verified effective;
-- verified ineffective;
-- indeterminate;
-- closed with accepted evidence.
-
-Do not use green during an incomplete observation period.
-
-## 6.12 Natural-language command surface
-
-The command surface is global but secondary.
-
-It may support inquiry, navigation, comparison, drafting, summarization, simulation, and proposed actions.
-
-Responses must include active scope, time period, sources, uncertainty, contradiction, and safe structured next actions.
-
-Any side effect transitions into the normal review surface.
+- what was completed;
+- what changed;
+- what remains;
+- blockers;
+- the recommended next action.
 
 ---
 
-# 7. Regulatory and authority experiences
+# 8. Context and safety
 
-## 7.1 Authority Inbox
+Every material workspace must expose active:
 
-Show:
+- institution or tenant;
+- legal entity;
+- jurisdiction where relevant;
+- Program or Matter;
+- service, channel, branch, vendor, customer, account, asset, or population;
+- period and effective date;
+- source freshness;
+- user role or delegated authority where relevant.
 
-- source type;
-- authority and issuing office;
-- publication or receipt date;
-- effective or response deadline;
-- authenticity state;
-- confidentiality;
-- likely work class;
-- assigned reviewer;
-- urgency based on actual deadline, not decorative alarm.
+Context switching must prevent cross-entity drafts, selections, approvals, or exports.
 
-## 7.2 Regulatory change review
+Ease of use must not hide:
 
-Use a split workspace:
-
-```text
-Original source provision | Proposed Requirement or interpretation
-```
-
-Also show:
-
-- source version and exact location;
-- definitions and dependencies;
-- applicability proposal;
-- affected Programs, entities, services, systems, vendors, policies, and controls;
-- existing coverage and gaps;
-- proposed implementation Matters;
-- reviewer changes and approval history.
-
-The primary action is **Create or update draft compliance programme**, never **Mark compliant**.
-
-## 7.3 Supervisory Matter
-
-Show finding, authority expectation, management response, commitments, milestones, evidence, committee oversight, response package, and effectiveness verification.
-
-## 7.4 Authority Request Case
-
-Use a protected workspace showing only authorized case information:
-
-- verified source and legal instrument;
-- subjects and match state;
-- requested periods and records;
-- directives;
-- disclosure and action authority;
-- legal hold;
-- KYC, address, records, AML, fraud, branch, technology, or legal tasks;
-- response package;
-- signatory and transmission;
-- acknowledgement and continuing monitoring.
-
-Do not expose protected subjects in ordinary Today counts, search suggestions, analytics, or Program summaries.
-
----
-
-# 8. NDPA Program experience
-
-The NDPA Program should avoid presenting privacy as one checklist.
-
-Use domain views for:
-
-- registration and classification;
-- DPO governance;
-- ROPA and lawful basis;
-- DPIA and project/vendor screening;
-- consent and notices;
-- retention and deletion;
-- data-subject rights;
-- vendor and processor management;
-- cross-border transfers;
-- breach Matters;
-- annual filing and assurance.
-
-### ROPA
-
-Use a processing-activity worklist with application, process, purpose, data categories, lawful basis, subjects, recipients, vendor, location, retention, transfer, owner, last confirmation, and evidence state.
-
-Prefill known application, vendor, project, and data-flow information. Ask departments only for unresolved business meaning.
-
-### DPIA
-
-Present a change-triggered workflow with prefilled project, system, vendor, data, automation, and jurisdiction context; screening decision; full DPIA if required; remediation; DPO approval; go-live gate; and post-deployment verification.
-
-### Annual filing
-
-Show filing requirements, current evidence readiness, unresolved exceptions, included and excluded records, approvers, signatory, submission, acknowledgement, and point-in-time package freeze.
+- legal-review requirements;
+- material uncertainty;
+- evidence contradiction;
+- irreversible effects;
+- protected-data scope;
+- restricted authority;
+- required approval;
+- population exclusions.
 
 ---
 
 # 9. Visual language
 
-## 9.1 Surface hierarchy
+## 9.1 Composition
 
-Use a small surface system:
-
-1. canvas;
-2. primary workspace;
-3. raised focus surface;
-4. protected surface;
-5. transient overlay.
-
-Do not create a unique card style for every record type.
+- deep institutional dark mode and clear neutral light mode;
+- small number of surface levels;
+- generous but not wasteful spacing;
+- strong information hierarchy;
+- restrained transparency;
+- thin borders and subtle elevation;
+- tabular numerals for financial and operational values;
+- stable layouts while intelligence arrives.
 
 ## 9.2 Glass and glow
 
-Glass is appropriate for bounded focus layers, command overlays, relationship explanations, and protected-review context. It is inappropriate for every card, dense tables, long text, evidence documents, or low-power mobile use.
+Glass may be used for temporary focus, command surfaces, comparison overlays, or protected context.
 
-Glow may indicate selected analysis or current focus, not severity by itself.
+Do not use it on every card, dense tables, long text, evidence documents, or low-power mobile flows.
+
+Glow may communicate focus or selected intelligence, never severity by itself.
 
 ## 9.3 Semantic color
 
-- **Cyan:** new intelligence, context, or relationship.
-- **Violet:** governance, control, decision, or approved automation.
-- **Coral/red:** material exposure, failed outcome, breach, or serious gap.
-- **Amber:** uncertainty, stale evidence, contradiction, pending review, or approaching threshold.
-- **Green:** sufficiently evidenced and accepted current state or verified outcome.
-- **Neutral:** informational, unchanged, historical, or unassessed.
+- Cyan: context, intelligence, discovered relationship.
+- Violet: governance, authority, control, approved automation.
+- Coral/red: material exposure, failure, breach.
+- Amber: uncertainty, stale evidence, contradiction, approaching threshold, pending verification.
+- Green: verified outcome or evidence-supported acceptable state.
+- Neutral: informational, unchanged, historical, unassessed.
 
-Status must never depend on color alone.
+Color never carries status alone.
 
-## 9.4 Typography and numbers
+## 9.4 Correct visual form
 
-Use a modern neutral sans-serif, clear hierarchy, stable multilingual line height, tabular numerals, readable line lengths, and no tiny low-contrast metadata.
+Use:
 
-Every metric must include units, period, scope, source, denominator where relevant, and explanation of uncertainty.
+- cards for small attention queues;
+- tables for populations and requirements;
+- comparisons for contradiction and version change;
+- timelines for history;
+- paths for dependencies and lineage;
+- step flows for imports and capture;
+- charts only for specific analytical questions.
 
-## 9.5 Density
-
-Support:
-
-- comfortable density for executives and focused reviews;
-- compact density for compliance populations, control estates, imports, and reconciliation.
-
-Density changes spacing and row height, not information semantics or accessibility.
-
-## 9.6 Charts
-
-Prefer charts only for specific questions:
-
-- compliance movement over time;
-- evidence coverage;
-- filing readiness dimensions;
-- KRI movement and thresholds;
-- control and exception trends;
-- source freshness;
-- concentration and dependency;
-- projected versus observed outcomes.
-
-Every chart requires title, units, period, source, denominator, accessible summary, and uncertainty explanation.
+Do not use cards, heat maps, or node graphs as universal components.
 
 ---
 
-# 10. Responsive behavior
+# 10. Responsive, accessibility, and performance
 
 ## Desktop
 
-Optimized for Program management, population reconciliation, regulatory interpretation, Matter review, decision work, and evidence inspection.
+Optimized for investigation, Program management, population work, evidence review, decisions, and response packages.
 
 ## Tablet
 
-Optimized for executive review, committee meetings, approvals, Program status, and selected evidence inspection.
+Optimized for executive and committee review, approval, evidence inspection, and meetings.
 
 ## Mobile
 
-Optimized for focused capture, short review, approval with sufficient context, branch work, incident updates, vendor response, and protected reporting.
+Optimized for focused capture, short review, field confirmation, protected reporting, and urgent approval with context.
 
-Do not squeeze full Program tables or graph exploration into mobile.
+Do not squeeze full desktop exploration onto mobile.
 
-## Large display
+## Accessibility
 
-Boardroom modes emphasize Program movement, significant Matters, major decisions, evidence quality, assurance, and management accountability. They must not become walls of blinking metrics.
+Meet WCAG 2.2 AA at minimum:
 
----
+- keyboard operation;
+- visible focus;
+- correct names, roles, and states;
+- screen-reader announcements;
+- non-color status;
+- touch target size;
+- reduced motion;
+- 200% zoom;
+- multilingual expansion;
+- accessible chart summaries;
+- no materially longer workflow for assistive-technology users.
 
-# 11. State design
+## Performance
 
-Every applicable feature must deliberately design:
-
-- loading;
-- partially available;
-- empty;
-- current;
-- no attention required;
-- no data;
-- not assessed;
-- not applicable;
-- unknown applicability;
-- insufficient evidence;
-- contradictory evidence;
-- pending review or approval;
-- delegated;
-- blocked;
-- executing;
-- implemented;
-- response transmitted;
-- awaiting acknowledgement;
-- awaiting verification;
-- verified effective;
-- verified ineffective;
-- stale;
-- superseded;
-- unauthorized;
-- offline;
-- integration degraded;
-- AI unavailable.
-
-“No data,” “no issue,” “not applicable,” and “not authorized” must be distinct.
+- deterministic context appears before AI;
+- common interactions acknowledge immediately;
+- long processing is resumable;
+- lists are virtualized or paginated;
+- uploads are resumable;
+- layouts do not shift unexpectedly;
+- AI and source outages have manual fallbacks;
+- effects are tested on enterprise laptops, remote desktops, and mobile devices.
 
 ---
 
-# 12. Accessibility, localization, and performance
+# 11. Design-system requirements
 
-ClearSight must meet WCAG 2.2 AA at minimum.
+Foundations:
 
-Requirements include keyboard operation, visible focus, screen-reader state, meaningful headings, non-color status, chart alternatives, target size, reduced motion, 200% zoom, error prevention, and accessible protected-reporting and evidence journeys.
+- semantic color;
+- typography;
+- spacing;
+- radius;
+- border;
+- elevation;
+- blur;
+- motion;
+- breakpoints;
+- density;
+- iconography;
+- active-effort and transition budgets.
 
-Support local currencies, number formats, time zones, date formats, long translated labels, and multilingual evidence. Avoid hard-coded text widths and ambiguous date presentation.
+Core components:
 
-Deterministic content must render before AI. Layout must remain stable. Long lists use pagination or virtualization. Uploads are resumable. Avoid excessive blur, animated gradients, continuously animated graph edges, and high GPU cost.
+- application shell;
+- scope header;
+- Today attention card;
+- Program summary and requirement table;
+- Matter workspace;
+- focused evidence request;
+- recommendation panel;
+- source profile;
+- evidence-state badge;
+- sufficiency panel;
+- contradiction comparison;
+- population worklist;
+- spreadsheet mapper;
+- media capture and extraction review;
+- owner and authority selector;
+- decision review;
+- action plan;
+- verification panel;
+- response package;
+- timeline;
+- saved view and filter;
+- empty, degraded, offline, and resumed states.
 
----
+Required variants:
 
-# 13. Golden screens
-
-Maintain design references and visual regression for at least:
-
-1. Today executive brief
-2. Today compliance-owner brief
-3. Program overview
-4. Program requirement table
-5. Control implementations across scopes
-6. Evidence Contract and sufficiency
-7. Program calendar
-8. Program exceptions and Matters
-9. Assurance review and sign-off
-10. Work queue
-11. Generic Matter workspace
-12. Risk Situation Matter
-13. Regulatory change split review
-14. Supervisory Matter
-15. Protected Authority Request Case
-16. Response Package review
-17. NDPA ROPA worklist
-18. DPIA screening and approval
-19. Breach Matter timeline
-20. Annual filing readiness and package
-21. ATM population worklist
-22. POS reconciliation
-23. Spreadsheet import mapping
-24. Source Profile and degradation
-25. Evidence micro-request desktop and mobile
-26. Photo capture and extraction confirmation
-27. Contradiction comparison
-28. Decision approval
-29. Verification outcome
-30. Point-in-time reconstruction
-31. Protected report intake and follow-up
-32. AI and integration degraded mode
-33. No attention required
-
-Each relevant screen requires light and dark modes, supported density, breakpoints, loading, empty, error, stale, unauthorized, and degraded states.
+- light and dark;
+- comfortable and compact density;
+- desktop, tablet, and mobile where relevant;
+- hover, focus, active, selected, disabled, loading, error, warning, protected, stale, contradictory, pending, and verified.
 
 ---
 
-# 14. Visual anti-patterns
+# 12. Golden screens and flows
+
+Maintain visual and timed interaction references for:
+
+1. Today brief
+2. Program overview
+3. Program requirement and evidence state
+4. Program gap and exception view
+5. Work queue
+6. Matter summary
+7. Regulatory change source review
+8. AI obligation recommendation
+9. Authority request case
+10. Response package review
+11. Focused evidence request
+12. Mobile field capture
+13. Population worklist
+14. Spreadsheet mapping first use
+15. Repeat import with saved mapping
+16. Reconciliation and contradiction
+17. Routine approval
+18. Material decision review
+19. Action and verification
+20. ROPA update
+21. DPIA screening
+22. Breach Matter
+23. Vendor evidence review
+24. Source degradation
+25. AI unavailable fallback
+26. Offline capture and resume
+27. Point-in-time reconstruction
+28. No material change
+29. No data or unknown state
+30. Protected reporting and investigator view
+
+Each relevant flow requires first-use and repeat-use timing.
+
+---
+
+# 13. Visual and functional anti-patterns
 
 Do not introduce:
 
-- one card per Requirement in a large Program;
-- a wall of KPIs;
-- red/amber/green as the only compliance explanation;
-- decorative glass on every component;
-- constant neon glow;
-- oversized empty operational heroes;
-- 3D charts without decision value;
-- hidden hover-only actions;
-- tiny metadata;
-- excessive modal stacking;
-- full-page chat as the shell;
-- dense forms mirroring database schemas;
-- separate visual mini-products for each GRC domain;
-- or authority cases appearing in ordinary analytics without minimization.
+- KPI walls;
+- control walls as the default Program view;
+- forms showing every possible field;
+- repeated entry of inventory data;
+- generic “view details” cards;
+- workflows requiring chat prompts;
+- permanent questionnaires where targeted requests are possible;
+- mandatory module hopping;
+- remapping stable spreadsheets every cycle;
+- hidden save behavior;
+- approval without context;
+- AI output without sources;
+- AI recommendations that add review burden;
+- dashboard status detached from evidence;
+- green for uploaded, submitted, assigned, or implemented;
+- dense graph canvases as default navigation;
+- decorative glass and glow;
+- hidden actions available only on hover;
+- inaccessible custom controls;
+- complex flows that cannot safely resume.
 
 ---
 
-# 15. Final standard
+# 14. Design review checklist
 
-A ClearSight experience succeeds when:
+Before approving a screen, component, or flow:
 
-- a compliance owner can maintain a Program without reconstructing registers;
-- a business owner sees only the facts and action relevant to them;
-- a DPO can understand NDPA coverage, ROPA, DPIA, breaches, vendors, and filing readiness in one coherent Program;
-- a new regulation becomes a reviewable implementation plan with source lineage;
-- a protected authority request becomes a controlled response case;
-- an executive understands material change in seconds;
-- an expert can inspect every assumption;
-- an auditor can reconstruct the approved state;
-- and the interface makes institutional complexity feel smaller rather than merely better decorated.
+## Outcome
+
+- Is the user’s intended outcome obvious?
+- Is there one clear next action?
+- Does the surface use Program or Matter language appropriately?
+
+## Effort
+
+- What does ClearSight already know?
+- Are known values prefilled?
+- Can a source integration remove fields?
+- Can AI provide a grounded first draft?
+- Can routine work finish within five minutes?
+- Can complex work reach a clear saved next state within five minutes?
+- Is the number of major transitions minimized?
+
+## Trust
+
+- Are scope, source, freshness, evidence, uncertainty, authority, and consequence available?
+- Are inferred and approved values distinct?
+- Are contradictions visible?
+
+## Flexibility
+
+- Does the flow work with controlled lists, spreadsheets, APIs, or events?
+- Can different bank sizes and jurisdictions use the same semantics?
+- Does configuration preserve upgradeability?
+
+## Accessibility and performance
+
+- Can the complete journey be performed by keyboard and assistive technology?
+- Does it remain usable on enterprise hardware and poor networks?
+- Is deterministic context usable while AI is pending or unavailable?
+
+A screen has succeeded when it makes the governed outcome easier—not merely when it looks modern.
