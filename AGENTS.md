@@ -2,374 +2,287 @@
 
 This file defines mandatory rules for every human contributor, coding agent, design agent, reviewer, and automated change applied to ClearSight.
 
-It exists to prevent the product from regressing into a conventional GRC portal, a generic AI chat interface, a dense enterprise dashboard, a graph demo, a collection of disconnected registers, or a functionally capable product that remains cumbersome to operate.
-
 The words **MUST**, **MUST NOT**, **SHOULD**, and **SHOULD NOT** are normative.
 
----
+## 1. Mission
 
-# 1. Mission
+Every change must advance this outcome:
 
-ClearSight is a direct, AI-native continuous compliance and risk operating system built first for banks.
+> **Help each bank stakeholder understand what must be done, what proves it, what changed, who is responsible, who must review or authorize, and whether the required outcome was achieved—with the minimum reasonable human effort.**
 
-Every implementation decision must advance this outcome:
+ClearSight is not optimized for the number of forms, modules, dashboards, alerts, controls, graph nodes, AI messages, or configuration options it exposes.
 
-> **Help each stakeholder understand what the institution must do, what currently proves it, what changed or became uncertain, who must act, and whether the required outcome was achieved—with the minimum reasonable human effort.**
+## 2. Required reading
 
-ClearSight remains a comprehensive GRC platform, but users MUST NOT be required to operate its internal architecture or reconstruct context across disconnected modules.
-
-The product is optimized for:
-
-- continuing compliance Programs;
-- bounded Matters created by change or exception;
-- routine work completed in a few clear steps;
-- source integration and prefilled context;
-- focused requests for unresolved facts;
-- grounded AI recommendations and first drafts;
-- review by exception;
-- explicit source authority and data quality;
-- accountable decisions and responses;
-- verified outcomes;
-- durable institutional memory.
-
-It is not optimized for the number of forms, modules, dashboards, records, alerts, controls, graph nodes, AI messages, configuration options, or clicks it can expose.
-
----
-
-# 2. Required reading and precedence
-
-Before changing product behavior, domain semantics, architecture, interface structure, workflow, or component behavior, read:
+Before changing product behavior, architecture, workflow, security, or UI, read:
 
 1. [`README.md`](README.md)
-2. [`docs/product/continuous-compliance-operating-model.md`](docs/product/continuous-compliance-operating-model.md)
-3. [`docs/product/ease-of-use-standard.md`](docs/product/ease-of-use-standard.md)
-4. [`docs/product/operating-model.md`](docs/product/operating-model.md)
-5. [`docs/product/experience-principles.md`](docs/product/experience-principles.md)
-6. [`docs/product/regulatory-and-enforcement-intelligence.md`](docs/product/regulatory-and-enforcement-intelligence.md)
-7. [`docs/product/differentiation.md`](docs/product/differentiation.md)
-8. relevant architecture documents
-9. [`docs/implementation-plan.md`](docs/implementation-plan.md)
-10. relevant acceptance tests
+2. [`docs/product/use-case-catalogue.md`](docs/product/use-case-catalogue.md)
+3. [`docs/product/continuous-compliance-operating-model.md`](docs/product/continuous-compliance-operating-model.md)
+4. [`docs/product/authority-routing-and-escalation.md`](docs/product/authority-routing-and-escalation.md)
+5. [`docs/product/respond-and-capture.md`](docs/product/respond-and-capture.md)
+6. [`docs/product/ease-of-use-standard.md`](docs/product/ease-of-use-standard.md)
+7. [`docs/product/operating-model.md`](docs/product/operating-model.md)
+8. [`docs/product/experience-principles.md`](docs/product/experience-principles.md)
+9. [`docs/product/ux-and-visual-language.md`](docs/product/ux-and-visual-language.md)
+10. [`docs/architecture/system-data-and-performance.md`](docs/architecture/system-data-and-performance.md)
+11. relevant specialized product, architecture, implementation, and quality documents.
 
-When documents conflict, apply:
+When documents conflict, follow [`docs/README.md`](docs/README.md).
 
-1. safety, confidentiality, legal boundaries, and tenant isolation;
-2. README product intent;
-3. continuous-compliance and ease-of-use standards;
-4. canonical operating-model semantics;
-5. specialized product specifications;
-6. experience principles;
-7. this normative file;
-8. architecture documents;
-9. implementation sequencing;
-10. acceptance detail.
+## 3. Product model
 
-An internal architecture mechanism MUST NOT override the simpler user-facing model or add avoidable human effort without an explicit product decision and synchronized documentation change.
+### Program
 
----
-
-# 3. Canonical product objects
-
-## 3.1 Program
-
-A long-lived body of continuing obligations, controls, evidence, reviews, exceptions, filings, and assurance.
-
-Examples include NDPA, AML/CFT, PCI DSS, CBN cybersecurity, operational resilience, third-party assurance, RCSA, policy lifecycle, and regulatory returns.
+A long-lived body of continuing obligations, controls, evidence, reviews, filings, exceptions, and assurance.
 
 A Program MUST NOT be implemented as a static control list with manually maintained status.
 
-## 3.2 Matter
+### Matter
 
 A bounded occurrence requiring assessment, evidence, decision, action, response, or verification.
 
-Matter types include regulatory change, supervisory finding, authority request, risk situation, control gap, exception, incident, loss, breach, vendor deficiency, KRI breach, evidence contradiction, and failed verification.
+A Matter MUST have a typed lifecycle and closure contract. Task completion alone MUST NOT close a material Matter.
 
-A Risk Situation is a Matter subtype, not the only primary product object.
+### Shared governed primitives
 
-## 3.3 Shared primitives
+Programs and Matters use shared Scope, Authority Source, Requirement, Control, Claim, Evidence Contract, Observation, Conclusion, Decision, Action, Response Package, Verification, Assignment, Authority, and temporal history.
 
-Programs and Matters use the same governed primitives:
+Forms, imports, photos, chat, dashboards, and external tools are interaction or execution surfaces—not the domain model.
 
-- Scope;
-- Authority Source and Requirement;
-- Exposure Pattern;
-- Control Objective and Control Implementation;
-- Claim and Evidence Contract;
-- Observation and Evidence;
-- Conclusion and Compliance State;
-- Decision and Approval;
-- Action and Response Package;
-- Verification Contract;
-- temporal history and audit.
+## 4. Use-case completeness
 
-Forms, imports, photos, tables, chat commands, and dashboards are interaction surfaces, not the domain model.
+Every advertised capability MUST have a stable use-case ID and map to:
 
----
+```text
+customer and persona
+→ trigger and outcome
+→ scope and sources
+→ responsibility and authority
+→ happy, exception, degraded, and prohibited paths
+→ state and closure contract
+→ UX flow
+→ architecture or ADR
+→ implementation phase
+→ acceptance test
+```
 
-# 4. Ease-of-use invariants
+Do not implement a feature that exists only as a noun in the README, a navigation item, an architecture component, or a mockup.
 
-## 4.1 Five-minute active-effort budget
+## 5. Responsibility, review, and authority
 
-Routine, authorized, well-scoped tasks SHOULD be completable in less than five minutes of active user effort.
+ClearSight MUST distinguish:
 
-Initial targets:
+- performer or evidence provider;
+- accountable owner;
+- reviewer;
+- independent challenger;
+- authorizer or signatory;
+- escalation owner;
+- observer where required.
 
-- routine focused request: median under three minutes and 90th percentile under five minutes;
-- routine approval with complete context: median under two minutes;
-- familiar recurring import using a saved mapping: under five minutes of active effort, excluding processing;
-- assignment or redirection: under sixty seconds;
-- executive understanding of one material item: under sixty seconds;
-- return to an in-progress complex Matter: next action understood within thirty seconds.
+Do not reduce these to one `assignee`, one static role, or one editable user field.
 
-A routine flow exceeding five minutes requires documented justification and usability review.
+Effective responsibility and authority MUST be resolved from versioned policy using:
 
-## 4.2 Complex-work checkpoint
+- tenant and legal entity;
+- role template and organizational position;
+- object relationship;
+- Program or Matter type and state;
+- scope, purpose, materiality, amount, duration, and reversibility;
+- delegation and substitution;
+- conflict and segregation-of-duties rules;
+- current identity and source health.
 
-When work cannot responsibly finish within five minutes, the user MUST be able to reach a clear, saved, correctly routed next state within five minutes.
+One clear next action means **one dominant action for the current actor in the current workflow state**. It does not prohibit parallel work by other actors.
 
-The product MUST preserve context, draft state, completed steps, changes since last visit, blockers, and the recommended next action.
+### Routing configuration
 
-## 4.3 Prefill before asking
+Role, authority, and escalation configuration MUST support:
 
-Before presenting an editable field, ClearSight MUST search approved sources for an existing value.
+- source-backed people and organization data;
+- scoped role templates;
+- sequence, parallel, quorum, any-of, all-of, veto, and independent-challenge steps;
+- reminders distinct from escalations;
+- fallback queues and substitute roles;
+- time zones, working calendars, and pause rules;
+- simulation with representative scenarios;
+- impact preview;
+- maker-checker approval;
+- effective dating, versioning, rollback, and audit.
 
-Approved sources may include institution profiles, inventories, directories, HR, IAM, ITSM, procurement, core systems, ROPA, BIA, policy repositories, Program evidence, prior submissions, APIs, managed imports, or approved spreadsheets.
+Configuration MUST prevent circular routes, self-approval, privilege amplification, unsafe broad scope, and silent transfer of accountability.
 
-Known values SHOULD be prefilled with source and freshness. Users MUST NOT repeatedly enter information the institution already maintains.
+## 6. Respond and Capture
 
-## 4.4 Existing evidence before requests
+Focused requests MUST be generated from an exact purpose, scope, Claim, Evidence Contract, or case directive.
 
-The system MUST search authorized existing evidence before contacting a person.
+A request MUST show:
 
-Requests MUST ask only for missing, stale, contradictory, or insufficient facts and MUST stop when the evidence need is satisfied or no longer relevant.
+- why the recipient was selected;
+- what is already known;
+- the smallest unresolved question;
+- acceptable response forms;
+- estimated effort;
+- deadline and consequence;
+- sensitivity and privacy notice;
+- redirect, delegate, partial, not-applicable, wrong-recipient, and concern options where permitted;
+- final assertions before submission.
 
-## 4.5 One clear next action
+Do not build a generic unrestricted form builder as the primary collection model.
 
-Every primary state MUST present one obvious next action written as a specific outcome, not a generic verb.
+### Invitations and magic links
 
-“View details” alone is never a valid handling path.
+Invitation access MUST be:
 
-## 4.6 Minimize navigation
+- opaque, request-scoped, purpose-bound, short-lived, revocable, and audience-bound;
+- exchanged for a bounded server-side session rather than used as continuing authorization;
+- stored hashed or equivalently protected;
+- excluded from logs, analytics, referrers, and notification previews;
+- protected by step-up authentication when sensitivity or consequence requires it.
 
-Routine work SHOULD remain in one coherent Program or Matter workspace.
+A forwarded, expired, revoked, already-used, or wrong-recipient invitation MUST fail safely without leaking request details.
 
-Users MUST NOT navigate multiple module homepages to understand one obligation, case, finding, decision, or response.
+Protected anonymous reporting MUST use a separate identity-isolated two-way mechanism. It MUST NOT be implemented as an ordinary external form link.
 
-## 4.7 Review by exception
+## 7. Ease-of-use invariants
 
-Where policy permits, the interface SHOULD focus human reviewers on changed, low-confidence, contradictory, unsupported, material, or high-impact items rather than forcing full re-review.
+- Prefill before asking.
+- Search existing authorized evidence before requesting more.
+- Routine work SHOULD complete in under five minutes of active effort.
+- Complex work MUST reach a clear saved and correctly routed next state within five minutes.
+- Routine work SHOULD remain in one coherent Program or Matter workspace.
+- Known values MUST show source, freshness, authority, and correction behavior where material.
+- Review by exception MUST expose the full denominator, omitted population, source health, sampling policy, and full-review triggers.
+- Save/resume MUST preserve scope, drafts, changes, blockers, owner, and next action.
+- Accessibility users MUST NOT face materially more work.
 
-## 4.8 Save and resume
+Speed targets never override correctness, comprehension, security, or authority.
 
-Multi-step or interruptible workflows MUST support safe save and resume without requiring users to reconstruct prior context.
+## 8. Evidence and state
 
-## 4.9 AI first drafts
+- An Observation is not automatically a verified fact.
+- Upload, parse, mapping, acceptance as Observation, evidence sufficiency, implementation, and verified outcome are distinct states.
+- AI confidence MUST NOT substitute for evidence sufficiency.
+- Source degradation MUST propagate without falsely asserting control failure.
+- Contradictions MUST remain visible and actionable.
+- Green MUST mean evidence-supported acceptable or verified state—not submitted, assigned, uploaded, or implemented.
+- Material records MUST be versioned; corrections supersede rather than overwrite.
 
-Where approved and useful, AI SHOULD provide grounded first drafts for obligation extraction, mappings, evidence requests, summaries, control changes, actions, verification criteria, response indexes, and assignments.
+## 9. AI and automation
 
-AI MUST reduce blank-page work and MUST NOT create more review effort than it removes.
+AI acts as a governed compiler from messy inputs into proposed structured records, questions, summaries, options, or domain commands.
 
-## 4.10 Stable interaction across integration maturity
+Production AI MUST have:
 
-The same workflow semantics MUST work with controlled lists, spreadsheets, managed imports, APIs, or event streams. Increasing automation MUST NOT force users to learn a different product.
+- explicit operator identity, purpose, scope, allowed data, tools, and action class;
+- exact source and version lineage;
+- structured validated output;
+- explicit versus inferred fields;
+- confidence, contradiction, and abstention;
+- authorization and policy outside prompts;
+- evaluation, monitoring, rollback, and degraded mode.
 
----
+AI MUST NOT independently make final legal interpretation, applicability, material risk acceptance, reportability, protected-identity disclosure, external representation, account restriction, or material closure.
 
-# 5. Product invariants
+### Automation lifecycle
 
-## 5.1 Programs for continuity; Matters for change
+Low-impact automation MUST still have:
 
-Continuing obligations belong in Programs. Changes, gaps, findings, exceptions, incidents, cases, and required responses belong in Matters.
+- eligibility policy;
+- simulation or dry run;
+- affected population and blast-radius preview;
+- approval and effective period;
+- canary or staged activation where appropriate;
+- idempotency, rollback or compensation;
+- monitoring, suspension, kill switch, and outcome verification;
+- expiry and reauthorization.
 
-Do not create a separate truth system for every legacy register.
+External execution success is implementation evidence, not proof of outcome.
 
-## 5.2 Banking language before GRC jargon
+## 10. Security and privacy
 
-Primary language SHOULD begin with services, channels, branches, products, customers, accounts, merchants, assets, systems, vendors, requirements, evidence, actions, and outcomes.
-
-Framework and control identifiers remain available to specialists but MUST NOT dominate routine tasks.
-
-## 5.3 Scope before action
-
-Active institution, legal entity, jurisdiction, Program or Matter, population, service, channel, and period MUST be clear before material action, approval, export, bulk change, or evidence submission.
-
-## 5.4 Source authority before automated trust
-
-A source is authoritative only for explicitly governed facts and scope.
-
-Every source MUST expose owner, authoritative fields, limitations, scope, freshness, health, mapping version, and known data-quality issues.
-
-Successful ingestion is not truth, completeness, or evidence sufficiency.
-
-## 5.5 Evidence before confidence
-
-AI confidence MUST NOT substitute for evidence sufficiency. Original sources, versions, contradictions, assumptions, coverage, and limitations remain visible.
-
-## 5.6 Decisions before dashboards
-
-A material indicator MUST lead to a specific evidence need, review, decision, action, response, or verification.
-
-## 5.7 Verification before closure
-
-Implementation, submission, and task completion remain distinct from verified outcome or authority acknowledgement.
-
-Material remediation requires accepted outcome evidence. A response Matter requires reconciled directives, approval, transmission proof, and acknowledgement or documented response state.
-
-## 5.8 Human authority for material judgment
-
-Legal interpretation, applicability, material risk acceptance, regulatory representation, suspicious reporting, protected identity disclosure, account restriction, high-impact customer action, and other restricted decisions remain human-governed.
-
-## 5.9 Institutional memory
-
-Material records support point-in-time reconstruction. Corrections supersede rather than overwrite.
-
----
-
-# 6. UI and component rules
-
-## 6.1 Primary surfaces
-
-Primary navigation is:
-
-- Today;
-- Programs;
-- Work;
-- Explore;
-- Configure.
-
-Focused Respond and Capture experiences may be delivered through direct links, mobile, portal, email, or enterprise messaging where policy permits.
-
-Do not expose graph, Evidence Fabric, Decision Ledger, AI Operators, or internal bounded contexts as mandatory top-level navigation.
-
-## 6.2 Program page
-
-A Program page MUST prioritize:
-
-- current position;
-- material gaps and exceptions;
-- evidence becoming stale;
-- upcoming filings, reviews, and tests;
-- recent changes;
-- Matters requiring attention.
-
-Do not default to a wall of controls.
-
-## 6.3 Matter workspace
-
-A Matter workspace SHOULD combine:
-
-- summary and scope;
-- evidence and source lineage;
-- decisions and approvals;
-- actions and dependencies;
-- response or outcome verification;
-- history.
-
-## 6.4 Evidence request
-
-A request MUST show why the recipient was selected, what is already known, what remains unresolved, acceptable response forms, estimated effort, deadline, sensitivity, and redirect/delegate/not-applicable options.
-
-## 6.5 Forms
-
-Known values are prefilled. Free text is reserved for explanation, not basic identity. Controlled values are sourced, searchable, and scoped. Final review shows exactly which assertions will be submitted.
-
-## 6.6 Imports
-
-Repeat imports MUST reuse approved mappings and focus review on changes, errors, duplicates, unresolved identifiers, and material variance.
-
-## 6.7 Populations and bulk action
-
-Population views expose denominators, exclusions, saved filters, next-unresolved navigation, keyboard efficiency, source freshness, and authorization-aware bulk actions.
-
-## 6.8 AI recommendations
-
-Recommendations MUST show sources, scope, assumptions, uncertainty, required authority, structured editable output, and safe alternatives.
-
-Chat is optional and must not be required for standard operations.
-
----
-
-# 7. Security, privacy, and authorization
-
-- deny by default;
-- enforce authorization server-side for reads, counts, search, graph traversal, exports, AI retrieval, bulk actions, and writes;
-- resist inference through labels, counts, snippets, suggestions, embeddings, timing, or cache behavior;
-- isolate protected authority and reporting cases;
-- keep customer, account, legal, investigation, privilege, and reporter data purpose-bound;
-- re-evaluate authorization at export and response-package generation;
-- prevent logs from containing secrets, protected identities, or raw restricted evidence;
-- make offline capture encrypted, bounded, explicit, and policy-controlled.
-
-Fewer clicks MUST NOT weaken these controls.
-
----
-
-# 8. AI implementation rules
-
-AI acts as a governed compiler from messy inputs into proposed structured observations, requirements, mappings, questions, summaries, actions, or domain commands.
+Enforce authorization server-side for reads, counts, search, graph traversal, embeddings, caches, exports, bulk actions, AI retrieval, background jobs, invitations, and writes.
 
 Requirements:
 
-- exact source references and versions;
-- structured, validated output;
-- explicit versus inferred values;
-- confidence and abstention;
-- authorization and policy after model output;
-- no direct persistence or unrestricted tool access;
-- prompt-injection defenses;
-- model independence and degraded mode;
-- evaluation before release;
-- measurable reduction in human effort.
+- deny by default;
+- tenant, entity, relationship, purpose, sensitivity, and workflow-state enforcement;
+- no inference through counts, labels, snippets, suggestions, timing, cache keys, or manifests;
+- protected reporting and authority cases isolated from ordinary search and analytics;
+- export and response-package authorization re-evaluated at generation and download;
+- no raw restricted evidence, tokens, protected identities, or secrets in logs or events;
+- offline capture encrypted, bounded, revocable, conflict-aware, and prohibited for unsuitable data classes;
+- support and break-glass access explicit, time-limited, notified, and retrospectively reviewed.
 
-General model knowledge MUST NOT establish material institutional or regulatory facts.
+Fewer clicks MUST NOT widen access.
 
----
+## 11. System, data, and performance
 
-# 9. Testing and definition of done
+The initial implementation SHOULD be a coherent modular core with explicit bounded contexts, not a premature microservice estate.
 
-Every meaningful feature requires tests for:
+Required principles:
 
-- domain invariants;
-- authorization and wrong scope;
-- source trust and data quality;
-- evidence and contradiction;
-- temporal reconstruction;
-- degraded source and AI operation;
-- accessibility and localization;
+- relational authoritative state;
+- versioned object storage for artifacts;
+- durable workflow state, timers, outbox/inbox, idempotency, and optimistic concurrency;
+- rebuildable search, work-queue, graph, vector, and reporting projections;
+- deterministic context before AI;
+- strong consistency for material commands and explicit eventual consistency for projections;
+- partitioned, resumable, backpressured ingestion;
+- tenant/purpose-bound caching;
+- point-in-time reconstruction;
+- measurable SLOs, capacity profiles, recovery, and degraded operation.
+
+Every material feature MUST define:
+
+- expected cardinality and growth;
+- read/write/query patterns;
+- latency and availability budget;
+- consistency requirement;
+- partition and index strategy;
+- authorization cost;
+- failure and retry behavior;
+- observability without sensitive content.
+
+A workflow that is functionally correct but fails its workload or latency profile is not complete.
+
+## 12. UI and component rules
+
+Primary navigation remains Today, Programs, Work, Explore, and Configure, with focused Respond/Capture experiences.
+
+- Programs MUST prioritize current position, material gaps, stale evidence, upcoming obligations, recent changes, and active Matters.
+- Matters SHOULD combine summary, scope, evidence, decisions, actions, response or outcome, verification, and history.
+- Configure MUST use versioned drafts, impact preview, simulation, maker-checker approval, effective dates, and rollback.
+- Large populations use tables/worklists with denominators and authorization-aware bulk actions.
+- Material approvals show scope, evidence, uncertainty, authority, side effects, next state, and verification in one view.
+- No mandatory chat, KPI walls, control walls, decorative graph canvases, hidden hover-only actions, or context-free approval.
+
+## 13. Testing and definition of done
+
+Every feature requires tests for:
+
+- domain and state invariants;
+- use-case actor and authority resolution;
+- wrong scope, conflict, delegation, absence, escalation, and revocation;
+- source trust, contradiction, and evidence sufficiency;
+- invitation forwarding, expiry, replay, step-up, wrong recipient, and revocation;
+- AI and source degraded modes;
+- tenant and protected-data leakage;
+- concurrency, idempotency, retry, partial failure, and resume;
+- accessibility, mobile, localization, and low bandwidth;
 - timed first-use and repeat-use journeys;
-- interruption and resume;
-- active-effort budget;
-- mobile or low-bandwidth behavior where applicable.
+- workload, latency, recovery, and scale profile;
+- point-in-time reconstruction.
 
-A feature is not complete until:
+A feature is complete only when:
 
-- the user outcome is clear;
-- known information is reused;
-- the routine path meets the five-minute target or has documented justification;
-- a complex path reaches a safe saved next state within five minutes;
-- there is one obvious next action;
-- accessibility users do not face materially more effort;
-- AI and integrations have safe fallbacks;
-- governance, evidence, and audit remain complete;
-- documentation and tests are synchronized.
+- the use-case outcome and maturity are documented;
+- responsibility and authority are correctly resolved;
+- known context is reused;
+- the routine or checkpoint effort target is met without quality regression;
+- the result is evidence-backed and reconstructable;
+- safe fallbacks exist;
+- documentation, ADRs, implementation plan, and tests are synchronized.
 
----
-
-# 10. Final review questions
-
-Before merging, ask:
-
-1. What does the user need to accomplish?
-2. What does ClearSight already know?
-3. Why is every editable field necessary?
-4. Can an approved inventory or integration remove it?
-5. Can AI provide a grounded first draft?
-6. Can routine work finish within five minutes?
-7. Can complex work reach a clear saved next state within five minutes?
-8. Is there one obvious next action?
-9. Can the user remain in one coherent workspace?
-10. Are scope, evidence, uncertainty, authority, and consequence clear?
-11. Does the workflow remain usable without AI or a live source?
-12. Can the institution reconstruct the result later?
-
-If the work is functionally possible but still cumbersome, it is not finished.
+If the work is possible but cumbersome, unsafe to route, ambiguous under delegation, dependent on hidden configuration, or unproven at expected scale, it is not finished.
