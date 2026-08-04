@@ -2,7 +2,7 @@
 
 This file defines mandatory rules for every human contributor, coding agent, design agent, reviewer, and automated change applied to ClearSight.
 
-It exists to prevent the product from regressing into a conventional GRC portal, a generic AI chat interface, a dense dashboard, a graph demonstration, or a collection of digital registers that reproduce the bank’s existing spreadsheet fragmentation.
+It exists to prevent the product from regressing into a conventional GRC portal, a generic AI chat interface, a dense enterprise dashboard, a graph demo, a collection of disconnected registers, or a functionally capable product that remains cumbersome to operate.
 
 The words **MUST**, **MUST NOT**, **SHOULD**, and **SHOULD NOT** are normative.
 
@@ -14,47 +14,49 @@ ClearSight is a direct, AI-native continuous compliance and risk operating syste
 
 Every implementation decision must advance this outcome:
 
-> **Help each stakeholder understand what the institution must do, how it is currently being satisfied, what evidence proves it, what changed or became uncertain, who must act, and whether the required outcome was achieved.**
+> **Help each stakeholder understand what the institution must do, what currently proves it, what changed or became uncertain, who must act, and whether the required outcome was achieved—with the minimum reasonable human effort.**
 
-ClearSight remains a comprehensive GRC platform, but users MUST NOT be required to operate its internal architecture or maintain duplicate truth across separate registers.
+ClearSight remains a comprehensive GRC platform, but users MUST NOT be required to operate its internal architecture or reconstruct context across disconnected modules.
 
 The product is optimized for:
 
-- continuously maintained compliance Programs;
-- direct, bounded Matters when something changes or requires action;
-- familiar banking and regulatory language;
-- less human evidence and reporting effort;
+- continuing compliance Programs;
+- bounded Matters created by change or exception;
+- routine work completed in a few clear steps;
+- source integration and prefilled context;
+- focused requests for unresolved facts;
+- grounded AI recommendations and first drafts;
+- review by exception;
 - explicit source authority and data quality;
-- evidence-backed compliance and risk conclusions;
 - accountable decisions and responses;
 - verified outcomes;
-- and durable institutional memory.
+- durable institutional memory.
 
-It is not optimized for the number of forms, modules, dashboards, records, alerts, graph nodes, AI messages, or configuration options it can display.
+It is not optimized for the number of forms, modules, dashboards, records, alerts, controls, graph nodes, AI messages, configuration options, or clicks it can expose.
 
 ---
 
 # 2. Required reading and precedence
 
-Before changing product behavior, domain semantics, architecture, or interface structure, read:
+Before changing product behavior, domain semantics, architecture, interface structure, workflow, or component behavior, read:
 
 1. [`README.md`](README.md)
 2. [`docs/product/continuous-compliance-operating-model.md`](docs/product/continuous-compliance-operating-model.md)
-3. [`docs/product/operating-model.md`](docs/product/operating-model.md)
-4. [`docs/product/regulatory-and-enforcement-intelligence.md`](docs/product/regulatory-and-enforcement-intelligence.md) when external-authority work is affected
+3. [`docs/product/ease-of-use-standard.md`](docs/product/ease-of-use-standard.md)
+4. [`docs/product/operating-model.md`](docs/product/operating-model.md)
 5. [`docs/product/experience-principles.md`](docs/product/experience-principles.md)
-6. [`docs/product/differentiation.md`](docs/product/differentiation.md)
-7. [`docs/architecture/product-semantics-mapping.md`](docs/architecture/product-semantics-mapping.md)
-8. relevant deeper architecture documents
+6. [`docs/product/regulatory-and-enforcement-intelligence.md`](docs/product/regulatory-and-enforcement-intelligence.md)
+7. [`docs/product/differentiation.md`](docs/product/differentiation.md)
+8. relevant architecture documents
 9. [`docs/implementation-plan.md`](docs/implementation-plan.md)
 10. relevant acceptance tests
 
-When documents conflict, use this order:
+When documents conflict, apply:
 
 1. safety, confidentiality, legal boundaries, and tenant isolation;
 2. README product intent;
-3. continuous-compliance product semantics;
-4. universal operating primitives;
+3. continuous-compliance and ease-of-use standards;
+4. canonical operating-model semantics;
 5. specialized product specifications;
 6. experience principles;
 7. this normative file;
@@ -62,460 +64,312 @@ When documents conflict, use this order:
 9. implementation sequencing;
 10. acceptance detail.
 
-Internal architecture MUST NOT override the simpler product operating model without an explicit product decision and synchronized documentation change.
+An internal architecture mechanism MUST NOT override the simpler user-facing model or add avoidable human effort without an explicit product decision and synchronized documentation change.
 
 ---
 
-# 3. Priority order
+# 3. Canonical product objects
 
-When requirements conflict:
+## 3.1 Program
 
-1. Safety, confidentiality, legal boundaries, and tenant isolation
-2. Evidence integrity and decision auditability
-3. Product semantics and invariants
-4. User authority and segregation of duties
-5. Functional correctness
-6. Accessibility and usability
-7. Reliability and recoverability
-8. Performance
-9. Visual polish
-10. Implementation convenience
+A long-lived body of continuing obligations, controls, evidence, reviews, exceptions, filings, and assurance.
 
-Visual polish may never conceal uncertainty, weaken accessibility, or replace missing domain correctness.
+Examples include NDPA, AML/CFT, PCI DSS, CBN cybersecurity, operational resilience, third-party assurance, RCSA, policy lifecycle, and regulatory returns.
 
----
+A Program MUST NOT be implemented as a static control list with manually maintained status.
 
-# 4. Canonical user-facing aggregates
+## 3.2 Matter
 
-## 4.1 Program
+A bounded occurrence requiring assessment, evidence, decision, action, response, or verification.
 
-A **Program** is a stable, continuing body of requirements, controls, evidence obligations, scheduled reviews, exceptions, filings, and assurance.
+Matter types include regulatory change, supervisory finding, authority request, risk situation, control gap, exception, incident, loss, breach, vendor deficiency, KRI breach, evidence contradiction, and failed verification.
 
-Examples include NDPA, AML/CFT, CBN cybersecurity, PCI DSS, operational resilience, third-party assurance, RCSA, policy lifecycle, and regulatory returns.
+A Risk Situation is a Matter subtype, not the only primary product object.
 
-A Program MUST be able to answer:
+## 3.3 Shared primitives
 
-- what requirements apply;
-- where they apply;
-- how they are intended to be satisfied;
-- who owns and reviews them;
-- what evidence is required;
-- whether evidence is current and sufficient;
-- which gaps, exceptions, or filings require attention;
-- and what changed since the last approved state.
+Programs and Matters use the same governed primitives:
 
-A Program MUST NOT be implemented as one giant checklist, one unexplained compliance percentage, or a permanent campaign of broad questionnaires.
+- Scope;
+- Authority Source and Requirement;
+- Exposure Pattern;
+- Control Objective and Control Implementation;
+- Claim and Evidence Contract;
+- Observation and Evidence;
+- Conclusion and Compliance State;
+- Decision and Approval;
+- Action and Response Package;
+- Verification Contract;
+- temporal history and audit.
 
-## 4.2 Matter
-
-A **Matter** is a bounded occurrence requiring assessment, evidence, decision, action, response, or verification.
-
-Matter types include:
-
-- regulatory change;
-- supervisory finding;
-- authority or enforcement request;
-- risk situation;
-- control gap;
-- audit finding;
-- exception or waiver;
-- incident or loss;
-- data breach;
-- vendor deficiency;
-- customer or conduct concern;
-- overdue obligation;
-- failed verification;
-- evidence contradiction;
-- and KRI threshold breach.
-
-A Matter MUST connect to affected Programs, requirements, controls, services, customers, accounts, assets, vendors, evidence, decisions, and actions without duplicating them.
-
-Risk Situation remains a valid Matter subtype. It is not the only product aggregate.
+Forms, imports, photos, tables, chat commands, and dashboards are interaction surfaces, not the domain model.
 
 ---
 
-# 5. Canonical shared primitives
+# 4. Ease-of-use invariants
 
-Programs and Matters are assembled from shared primitives. These MUST remain distinct.
+## 4.1 Five-minute active-effort budget
 
-## 5.1 Scope
+Routine, authorized, well-scoped tasks SHOULD be completable in less than five minutes of active user effort.
 
-The bounded institution, legal entity, jurisdiction, licence, channel, service, branch, merchant group, customer population, asset population, vendor relationship, system, project, or process being governed.
+Initial targets:
 
-Active scope and effective period MUST be clear before material action, approval, export, bulk change, filing, response, or evidence submission.
+- routine focused request: median under three minutes and 90th percentile under five minutes;
+- routine approval with complete context: median under two minutes;
+- familiar recurring import using a saved mapping: under five minutes of active effort, excluding processing;
+- assignment or redirection: under sixty seconds;
+- executive understanding of one material item: under sixty seconds;
+- return to an in-progress complex Matter: next action understood within thirty seconds.
 
-## 5.2 Authority Source and Requirement
+A routine flow exceeding five minutes requires documented justification and usability review.
 
-An Authority Source is an original law, circular, regulation, guideline, standard, licence condition, contract, court or enforcement instrument, or approved institutional interpretation.
+## 4.2 Complex-work checkpoint
 
-A Requirement is a versioned statement of what an actor must, must not, may, or is expected to do for a defined scope and period.
+When work cannot responsibly finish within five minutes, the user MUST be able to reach a clear, saved, correctly routed next state within five minutes.
 
-A manually authored register row MUST NOT silently become an authoritative Requirement without source reconciliation and required approval.
+The product MUST preserve context, draft state, completed steps, changes since last visit, blockers, and the recommended next action.
 
-## 5.3 Applicability
+## 4.3 Prefill before asking
 
-Applicability is a governed conclusion about where and when a Requirement applies.
+Before presenting an editable field, ClearSight MUST search approved sources for an existing value.
 
-AI MAY propose applicability. Material applicability MUST be approved by the appropriate compliance, legal, regulatory-affairs, or delegated authority.
+Approved sources may include institution profiles, inventories, directories, HR, IAM, ITSM, procurement, core systems, ROPA, BIA, policy repositories, Program evidence, prior submissions, APIs, managed imports, or approved spreadsheets.
 
-## 5.4 Control Objective and Control Implementation
+Known values SHOULD be prefilled with source and freshness. Users MUST NOT repeatedly enter information the institution already maintains.
 
-A Control Objective defines the required outcome.
+## 4.4 Existing evidence before requests
 
-A Control Implementation is the actual policy, process, system rule, approval, monitoring mechanism, review, or operating practice used in a specific scope.
+The system MUST search authorized existing evidence before contacting a person.
 
-Do not collapse a global objective and multiple legal-entity, channel, system, branch, or vendor implementations into one record.
+Requests MUST ask only for missing, stale, contradictory, or insufficient facts and MUST stop when the evidence need is satisfied or no longer relevant.
 
-## 5.5 Exposure Pattern and Risk Situation
+## 4.5 One clear next action
 
-An Exposure Pattern is a reusable description of how harm or non-conformance may occur.
+Every primary state MUST present one obvious next action written as a specific outcome, not a generic verb.
 
-A Risk Situation is a current Matter applying one or more patterns to a bounded context.
+“View details” alone is never a valid handling path.
 
-## 5.6 Claim and Evidence Contract
+## 4.6 Minimize navigation
 
-A Claim is a precise statement that can be supported, contradicted, qualified, or remain unresolved.
+Routine work SHOULD remain in one coherent Program or Matter workspace.
 
-An Evidence Contract defines required facts, population, period, acceptable sources, source authority, freshness, coverage, independence, contradiction policy, reviewer authority, refresh triggers, and failure behavior.
+Users MUST NOT navigate multiple module homepages to understand one obligation, case, finding, decision, or response.
 
-The terms Evidence Contract and Evidence Recipe refer to the same underlying versioned policy. Use **Evidence Contract** when describing continuing Program proof and **Evidence Recipe** where a task-specific capture pattern is clearer.
+## 4.7 Review by exception
 
-## 5.7 Observation and Evidence
+Where policy permits, the interface SHOULD focus human reviewers on changed, low-confidence, contradictory, unsupported, material, or high-impact items rather than forcing full re-review.
 
-An Observation is a normalized, source-preserving record of something observed, submitted, imported, measured, extracted, or asserted.
+## 4.8 Save and resume
 
-Evidence is an Observation or source artifact evaluated for a defined Claim and purpose.
+Multi-step or interruptible workflows MUST support safe save and resume without requiring users to reconstruct prior context.
 
-Forms, dropdowns, photos, spreadsheets, documents, APIs, telemetry, messages, attestations, customer reports, and protected reports MUST converge on the same governed observation contract.
+## 4.9 AI first drafts
 
-## 5.8 Conclusion and Compliance State
+Where approved and useful, AI SHOULD provide grounded first drafts for obligation extraction, mappings, evidence requests, summaries, control changes, actions, verification criteria, response indexes, and assignments.
 
-A Conclusion is a versioned determination of what current evidence supports.
+AI MUST reduce blank-page work and MUST NOT create more review effort than it removes.
 
-Compliance State is a governed projection across separate dimensions such as interpretation, applicability, control design, implementation, evidence sufficiency, operating effectiveness, exception, filing, assurance, and source quality.
+## 4.10 Stable interaction across integration maturity
 
-Do not reduce these dimensions to one unexplained percentage or red/amber/green value.
-
-## 5.9 Decision, Action, Verification, and Response Package
-
-A Decision is an authorized selection among options with evidence, uncertainty, rationale, conditions, expiry, and side effects.
-
-An Action is work initiated because of a Decision, Requirement, Matter, or scheduled Program activity.
-
-A Verification Contract defines the observable outcome, source, baseline, population, threshold, period, authority, and failure response.
-
-A Response Package is a governed set of records, evidence, approvals, exclusions, transmission metadata, and acknowledgement prepared for an authority or other external recipient.
+The same workflow semantics MUST work with controlled lists, spreadsheets, managed imports, APIs, or event streams. Increasing automation MUST NOT force users to learn a different product.
 
 ---
 
-# 6. Product invariants
+# 5. Product invariants
 
-## 6.1 Programs maintain; Matters mobilize
+## 5.1 Programs for continuity; Matters for change
 
-Stable obligations MUST remain in Programs. Change, gaps, failures, requests, exceptions, and time-bounded work MUST become Matters.
+Continuing obligations belong in Programs. Changes, gaps, findings, exceptions, incidents, cases, and required responses belong in Matters.
 
-Do not create recurring Matters merely to reproduce every Program requirement as a ticket.
+Do not create a separate truth system for every legacy register.
 
-Do not hide a material gap inside a passive Program row when accountable action is required.
+## 5.2 Banking language before GRC jargon
 
-## 6.2 One truth, many views
+Primary language SHOULD begin with services, channels, branches, products, customers, accounts, merchants, assets, systems, vendors, requirements, evidence, actions, and outcomes.
 
-Registers, workplans, calendars, KRIs, dashboards, committee packs, cases, and exports MUST be derived views over canonical objects.
+Framework and control identifiers remain available to specialists but MUST NOT dominate routine tasks.
 
-Do not create separate module-specific copies of requirements, vendors, assets, findings, actions, or evidence.
+## 5.3 Scope before action
 
-## 6.3 Familiar language before GRC jargon
+Active institution, legal entity, jurisdiction, Program or Matter, population, service, channel, and period MUST be clear before material action, approval, export, bulk change, or evidence submission.
 
-Primary language SHOULD begin with obligations, channels, services, branches, merchants, customers, accounts, assets, vendors, projects, filings, requests, and outcomes.
+## 5.4 Source authority before automated trust
 
-Control IDs, taxonomy codes, graph terminology, and operator names remain available for specialists but MUST NOT dominate ordinary tasks.
+A source is authoritative only for explicitly governed facts and scope.
 
-## 6.4 Existing evidence before human requests
+Every source MUST expose owner, authoritative fields, limitations, scope, freshness, health, mapping version, and known data-quality issues.
 
-The system MUST search authorized existing Observations and Evidence before contacting a person.
+Successful ingestion is not truth, completeness, or evidence sufficiency.
 
-Requests MUST ask only for unresolved facts and stop when the evidence need is satisfied or no longer relevant.
+## 5.5 Evidence before confidence
 
-## 6.5 Source authority before automated trust
+AI confidence MUST NOT substitute for evidence sufficiency. Original sources, versions, contradictions, assumptions, coverage, and limitations remain visible.
 
-Every source MUST expose owner, authoritative facts, limitations, scope, identifiers, freshness, health, mapping version, purpose, and known data-quality issues.
+## 5.6 Decisions before dashboards
 
-Successful ingestion MUST NOT be treated as truth, completeness, applicability, or evidence sufficiency.
+A material indicator MUST lead to a specific evidence need, review, decision, action, response, or verification.
 
-## 6.6 Progressive integration
+## 5.7 Verification before closure
 
-The product MUST remain useful with structured manual capture, managed imports, APIs, and events.
+Implementation, submission, and task completion remain distinct from verified outcome or authority acknowledgement.
 
-Regional banks MUST NOT require perfect enterprise APIs before obtaining value. Larger banks MUST be able to deepen automation without changing semantics.
+Material remediation requires accepted outcome evidence. A response Matter requires reconciled directives, approval, transmission proof, and acknowledgement or documented response state.
 
-## 6.7 Trigger-driven continuous compliance
+## 5.8 Human authority for material judgment
 
-Programs SHOULD react to calendar, change, event, and evidence triggers.
+Legal interpretation, applicability, material risk acceptance, regulatory representation, suspicious reporting, protected identity disclosure, account restriction, high-impact customer action, and other restricted decisions remain human-governed.
 
-A Program MUST NOT depend solely on periodic manual reconstruction or annual blanket questionnaires where targeted refresh is possible.
+## 5.9 Institutional memory
 
-## 6.8 Evidence before confidence
-
-AI confidence MUST NOT substitute for source authority, applicability, evidence sufficiency, or assurance.
-
-Original source material and versions MUST remain available where policy permits. Contradictory evidence MUST remain visible.
-
-## 6.9 Decisions before dashboards
-
-Every material state MUST identify the evidence, assessment, decision, action, response, or verification required.
-
-“View details” alone is not a handling path.
-
-## 6.10 Verification before closure
-
-Implementation, evidence submission, response transmission, and task completion MUST remain separate from verified effectiveness or accepted closure.
-
-Later contradiction or failed outcome evidence MUST reopen or supersede conclusions without deleting history.
-
-## 6.11 Human authority for material judgment
-
-Material applicability, legal interpretation, risk acceptance, reportability, account restriction, suspicious-report filing, protected identity disclosure, regulatory representation, and other restricted decisions remain human-governed.
-
-AI MUST NOT silently execute them.
-
-## 6.12 Institutional memory
-
-Material sources, requirements, applicability, controls, evidence, conclusions, decisions, actions, responses, and assurance MUST support point-in-time reconstruction and supersession rather than overwrite.
+Material records support point-in-time reconstruction. Corrections supersede rather than overwrite.
 
 ---
 
-# 7. Continuous-compliance rules
+# 6. UI and component rules
 
-## 7.1 Program setup
+## 6.1 Primary surfaces
 
-A Program MUST define:
+Primary navigation is:
 
-- governing sources and versions;
-- requirements and applicability;
-- scoped controls and owners;
-- evidence contracts;
-- review and filing calendars;
-- trigger subscriptions;
-- exception and escalation policy;
-- independent assurance roles;
-- and approved summary states.
+- Today;
+- Programs;
+- Work;
+- Explore;
+- Configure.
 
-## 7.2 Trigger processing
+Focused Respond and Capture experiences may be delivered through direct links, mobile, portal, email, or enterprise messaging where policy permits.
 
-Calendar, institutional-change, operational-event, regulatory-change, source-health, evidence-expiry, contradiction, and failed-verification triggers MUST be evaluated against affected Program scope.
+Do not expose graph, Evidence Fabric, Decision Ledger, AI Operators, or internal bounded contexts as mandatory top-level navigation.
 
-Only affected requirements, controls, evidence, or populations should be refreshed where the scope can be determined.
+## 6.2 Program page
 
-## 7.3 Legacy register import
+A Program page MUST prioritize:
 
-Legacy spreadsheet rows MUST preserve file, sheet, row, mapping version, uploader or managed source, import time, and validation state.
+- current position;
+- material gaps and exceptions;
+- evidence becoming stale;
+- upcoming filings, reviews, and tests;
+- recent changes;
+- Matters requiring attention.
 
-The system MUST distinguish imported working records from approved sources, requirements, controls, conclusions, and evidence.
+Do not default to a wall of controls.
 
-## 7.4 Filing and certification
+## 6.3 Matter workspace
 
-A filing or certification package MUST be assembled from governed current evidence, approved conclusions, included and excluded records, reviewers, signatories, and a point-in-time manifest.
+A Matter workspace SHOULD combine:
 
-A filing task being completed MUST NOT imply that all underlying obligations are satisfied.
+- summary and scope;
+- evidence and source lineage;
+- decisions and approvals;
+- actions and dependencies;
+- response or outcome verification;
+- history.
 
----
+## 6.4 Evidence request
 
-# 8. Regulatory, supervisory, and enforcement rules
+A request MUST show why the recipient was selected, what is already known, what remains unresolved, acceptable response forms, estimated effort, deadline, sensitivity, and redirect/delegate/not-applicable options.
 
-The product MUST distinguish:
+## 6.5 Forms
 
-1. normative regulatory change;
-2. supervisory or examination work;
-3. investigative or enforcement casework.
+Known values are prefilled. Free text is reserved for explanation, not basic identity. Controlled values are sourced, searchable, and scoped. Final review shows exactly which assertions will be submitted.
 
-An exposure draft MUST NOT be treated as final regulation. A supervisory finding MUST NOT be collapsed into a general obligation. An authority request MUST NOT automatically imply wrongdoing or authorize unrelated account, disclosure, or reporting action.
+## 6.6 Imports
 
-Every external-authority workflow MUST preserve:
+Repeat imports MUST reuse approved mappings and focus review on changes, errors, duplicates, unresolved identifiers, and material variance.
 
-- source authenticity and version;
-- exact source provisions or directives;
-- legal and confidentiality status;
-- applicability or authority review;
-- affected entities or subjects;
-- deadlines;
-- required decisions;
-- evidence and exclusions;
-- response or implementation status;
-- acknowledgement;
-- and retention or legal hold.
+## 6.7 Populations and bulk action
 
----
+Population views expose denominators, exclusions, saved filters, next-unresolved navigation, keyboard efficiency, source freshness, and authorization-aware bulk actions.
 
-# 9. Evidence, capture, population, and reconciliation rules
+## 6.8 AI recommendations
 
-## 9.1 Claim-centric evidence
+Recommendations MUST show sources, scope, assumptions, uncertainty, required authority, structured editable output, and safe alternatives.
 
-Evidence exists to support or contradict a precise Claim for a defined purpose, population, scope, and period.
-
-Never reduce evidence to a generic file field, checklist attachment, unversioned URL, context-free attestation, or binary present/missing flag.
-
-## 9.2 Spreadsheet and media ingestion
-
-Spreadsheet import MUST distinguish uploaded, parsed, mapped, accepted as Observation, reconciled, and sufficient for a Claim.
-
-Photo, scan, audio, and video interpretation MUST preserve originals, extraction coordinates or offsets where feasible, model/version lineage, explicit versus inferred values, correction, and human confirmation.
-
-Do not claim a photo proves invisible security or continuous control operation.
-
-## 9.3 Population integrity
-
-Any percentage or completion state MUST expose its denominator and exclusions.
-
-Population views SHOULD distinguish resolved, unresolved, stale, contradictory, not applicable, excluded, and unauthorized records.
-
-## 9.4 Matching and bulk action
-
-Entity resolution MUST support provisional, unresolved, merge, unmerge, provenance, review, and history.
-
-Bulk operations MUST enforce server-side authorization per object, show exact criteria and counts, expose exclusions and failures, remain idempotent where applicable, and preserve a reconstructable manifest.
+Chat is optional and must not be required for standard operations.
 
 ---
 
-# 10. AI implementation rules
+# 7. Security, privacy, and authorization
 
-AI is a governed compiler from messy sources into proposed structured Observations, Requirements, mappings, Claims, questions, summaries, options, or domain commands.
+- deny by default;
+- enforce authorization server-side for reads, counts, search, graph traversal, exports, AI retrieval, bulk actions, and writes;
+- resist inference through labels, counts, snippets, suggestions, embeddings, timing, or cache behavior;
+- isolate protected authority and reporting cases;
+- keep customer, account, legal, investigation, privilege, and reporter data purpose-bound;
+- re-evaluate authorization at export and response-package generation;
+- prevent logs from containing secrets, protected identities, or raw restricted evidence;
+- make offline capture encrypted, bounded, explicit, and policy-controlled.
 
-A model is not an operator, an operator is not an authority, and model output is not evidence.
-
-Material AI output MUST include exact source references and versions, scope, period, assumptions, uncertainty, and unresolved contradiction.
-
-General model knowledge MUST NOT establish a material institutional fact or regulatory requirement.
-
-AI output used in workflows MUST be structured, schema-validated, domain-validated, authorization-checked, policy-checked, and approval-gated before authoritative mutation.
-
-All documents, spreadsheets, media, messages, and retrieved content are untrusted. Tool permission and material-action authority MUST remain outside prompts.
-
-AI MUST be able to abstain. Core Program and Matter workflows MUST remain usable when AI is unavailable.
+Fewer clicks MUST NOT weaken these controls.
 
 ---
 
-# 11. Security, privacy, and authorization
+# 8. AI implementation rules
 
-All access is deny-by-default and enforced server-side across reads, counts, search, graph traversal, exports, caches, embeddings, AI context, workers, bulk operations, and writes.
+AI acts as a governed compiler from messy inputs into proposed structured observations, requirements, mappings, questions, summaries, actions, or domain commands.
 
-Unauthorized users MUST NOT infer protected existence, count, identity, title, snippet, relationship, or timing information.
+Requirements:
 
-Protected reports, authority cases, legal privilege, customer records, suspicious-reporting work, and protected identities require stronger purpose and access boundaries.
+- exact source references and versions;
+- structured, validated output;
+- explicit versus inferred values;
+- confidence and abstention;
+- authorization and policy after model output;
+- no direct persistence or unrestricted tool access;
+- prompt-injection defenses;
+- model independence and degraded mode;
+- evaluation before release;
+- measurable reduction in human effort.
 
-Exports and Response Packages MUST re-evaluate authorization and record requester, purpose, scope, included versions, exclusions, classification, and manifest.
-
-Logs MUST NOT contain secrets, unnecessary personal data, raw restricted evidence, protected identity, or unrestricted model context.
-
----
-
-# 12. Visual and interaction rules
-
-Primary surfaces are:
-
-- **Today** — role-specific attention;
-- **Programs** — continuing compliance and assurance;
-- **Work** — Matters, actions, evidence requests, reviews, and approvals;
-- **Explore** — authorized institutional inquiry;
-- **Configure** — restricted Program, source, scope, evidence, authority, and policy administration.
-
-Capture and Respond are contextual lightweight experiences, not mandatory permanent navigation for every user.
-
-Do not reintroduce Graph, Evidence Fabric, Decision Ledger, Assurance, AI Operator, or internal bounded-context names as mandatory top-level navigation.
-
-ClearSight MUST feel calm, direct, precise, relatable, institutional, accessible, and trustworthy.
-
-Use cards for small attention queues, tables for populations, timelines for history, comparisons for contradiction, split views for source interpretation, paths for dependencies, and charts only for a defined question.
-
-Green means a sufficiently evidenced and accepted state, never merely uploaded, submitted, assigned, or implemented.
+General model knowledge MUST NOT establish material institutional or regulatory facts.
 
 ---
 
-# 13. Architecture rules
+# 9. Testing and definition of done
 
-Begin with a coherent modular core, authoritative relational model, versioned object storage, durable workflows and outbox, rebuildable projections, and replaceable adapters.
+Every meaningful feature requires tests for:
 
-Programs and Matters are product aggregates, not necessarily single database tables or services.
+- domain invariants;
+- authorization and wrong scope;
+- source trust and data quality;
+- evidence and contradiction;
+- temporal reconstruction;
+- degraded source and AI operation;
+- accessibility and localization;
+- timed first-use and repeat-use journeys;
+- interruption and resume;
+- active-effort budget;
+- mobile or low-bandwidth behavior where applicable.
 
-A module MUST NOT bypass another module’s invariants by directly mutating its storage.
+A feature is not complete until:
 
-Search, graph, vector, analytics, and reporting are projections, not authoritative stores.
-
-A dedicated graph engine, autonomous agent platform, or large microservice estate requires measured justification.
-
----
-
-# 14. Testing requirements
-
-Tests must prove complete Program and Matter behavior under positive, negative, ambiguous, stale, partial, unauthorized, degraded, offline, historical, and adversarial conditions.
-
-Required journeys include:
-
-- continuing NDPA Program with ROPA and DPIA triggers;
-- new regulatory publication to approved implementation and evidence;
-- authority request to protected response package;
-- legacy register import and reconciliation;
-- ATM/POS population evidence and verification;
-- source degradation;
-- control exception and failed verification;
-- filing and point-in-time reconstruction;
-- protected reporting;
-- and malicious document or spreadsheet content.
-
-Fixtures MUST NOT inject desired sources, applicability, mappings, owners, conclusions, or verification outcomes.
+- the user outcome is clear;
+- known information is reused;
+- the routine path meets the five-minute target or has documented justification;
+- a complex path reaches a safe saved next state within five minutes;
+- there is one obvious next action;
+- accessibility users do not face materially more effort;
+- AI and integrations have safe fallbacks;
+- governance, evidence, and audit remain complete;
+- documentation and tests are synchronized.
 
 ---
 
-# 15. Change protocol
+# 10. Final review questions
 
-For every meaningful change:
+Before merging, ask:
 
-1. identify whether it affects a Program, Matter, or shared primitive;
-2. identify user and institutional outcome;
-3. identify authoritative sources and scope;
-4. define authority and privacy boundaries;
-5. distinguish observations, conclusions, decisions, actions, and outcomes;
-6. define trigger, failure, retry, cancellation, and recovery behavior;
-7. define evidence, response, and audit requirements;
-8. add or update acceptance tests;
-9. review visual and accessibility regressions;
-10. synchronize canonical documentation and ADRs.
+1. What does the user need to accomplish?
+2. What does ClearSight already know?
+3. Why is every editable field necessary?
+4. Can an approved inventory or integration remove it?
+5. Can AI provide a grounded first draft?
+6. Can routine work finish within five minutes?
+7. Can complex work reach a clear saved next state within five minutes?
+8. Is there one obvious next action?
+9. Can the user remain in one coherent workspace?
+10. Are scope, evidence, uncertainty, authority, and consequence clear?
+11. Does the workflow remain usable without AI or a live source?
+12. Can the institution reconstruct the result later?
 
----
-
-# 16. Prohibited shortcuts
-
-Do not:
-
-- rebuild each spreadsheet as a separate module;
-- use one generic record or status for unrelated lifecycles;
-- treat a register row as authoritative regulation without source lineage;
-- create a Matter for every passive recurring requirement;
-- hide a material Program gap because no ticket exists;
-- close remediation or authority work at task completion;
-- allow AI to publish final legal interpretation or restricted action;
-- use embeddings or frontend hiding as authorization;
-- expose protected case data to ordinary analytics;
-- flood users with broad questionnaires or reminders when targeted evidence or automation is possible;
-- copy competitor screens;
-- rely on decorative glass, glow, metric walls, or chat as the product shell;
-- or document planned behavior as implemented.
-
----
-
-# 17. Definition of done
-
-Work is complete only when:
-
-- Program or Matter semantics are correct;
-- canonical sources and relationships are preserved;
-- authorization is enforced server-side;
-- evidence and audit lineage are complete;
-- failure and recovery paths work;
-- tests cover meaningful negative cases;
-- accessibility and visual regression pass;
-- performance is within budget;
-- migrations and rollback are safe;
-- documentation is synchronized;
-- and no planned capability is misrepresented as implemented.
-
-For a material workflow, completion also requires a passing end-to-end path from source or trigger through evidence, decision or response, action, verification, and historical reconstruction.
+If the work is functionally possible but still cumbersome, it is not finished.
