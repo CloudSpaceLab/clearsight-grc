@@ -1,706 +1,524 @@
 # ClearSight Continuous Compliance Architecture
 
-This document defines the cross-cutting architecture through which ClearSight implements continuing Programs, bounded Matters, continuous evidence, regulatory change, supervisory work, authority cases, and derived legacy views.
+This document defines the cross-cutting architecture through which ClearSight implements continuing Programs, bounded Matters, continuous evidence, regulatory change, supervisory work, authority cases, low-effort workflows, and derived legacy views.
 
-It composes the existing component specifications:
+It conforms to:
+
+- [`../product/continuous-compliance-operating-model.md`](../product/continuous-compliance-operating-model.md)
+- [`../product/ease-of-use-standard.md`](../product/ease-of-use-standard.md)
+- [`../product/operating-model.md`](../product/operating-model.md)
+
+It composes:
 
 - [`risk-graph-and-decision-engine.md`](risk-graph-and-decision-engine.md)
 - [`living-evidence-fabric.md`](living-evidence-fabric.md)
 - [`governed-ai-operators.md`](governed-ai-operators.md)
 - [`product-semantics-mapping.md`](product-semantics-mapping.md)
 
-The component documents define detailed mechanisms. This document defines how they operate together as one continuous-compliance system.
-
 ---
 
 # 1. Architectural objective
 
-ClearSight must support this invariant:
-
 ```text
-Stable obligations remain continuously governed in Programs.
-Change, exception, harm, uncertainty, or external requests become Matters.
-Both use the same source, evidence, authority, decision, action, and history substrate.
+Stable obligations remain governed in Programs.
+Change, exception, harm, uncertainty, or external demand becomes a Matter.
+Approved bank sources assemble context before a user is asked to act.
+AI and deterministic services prepare the next governed step.
+Routine user work should require only a few steps and under five minutes of active effort.
 ```
 
-The architecture must allow:
+The architecture must support:
 
-- source-backed Requirements and Applicability Conclusions;
+- source-backed Requirements and applicability;
 - scoped controls and Evidence Contracts;
 - current evidence and multidimensional Compliance State;
 - trigger-driven refresh;
-- typed Matters with durable workflows;
-- regulatory-source ingestion and amendment handling;
-- protected authority cases and Response Packages;
-- legacy register and dashboard projections;
+- typed Matter workflows;
+- context assembly and prefill;
+- minimum-question generation;
+- grounded recommendations;
+- save and resume;
+- review by exception;
+- usability telemetry and budgets;
+- regulatory-source ingestion;
+- protected authority cases;
+- legacy register projections;
 - independent assurance;
-- governed AI assistance;
 - point-in-time reconstruction.
 
 ---
 
-# 2. Bounded contexts
+# 2. Logical modules
 
-## 2.1 Institution and Scope Context
+A modular core may contain:
 
-Owns:
+```text
+Identity and Authorization
+Institution and Scope
+Source Registry and Integration
+Observation and Evidence
+Programs and Requirements
+Controls and Compliance State
+Trigger and Scheduling
+Matters and Cases
+Context Assembly and Prefill
+Recommendation and Task Compilation
+Requests and Capture
+Decision and Approval
+Action and External Execution
+Verification and Assurance
+Regulatory and Authority Intelligence
+Search, Projections, Reporting and Export
+Workflow-Efficiency Telemetry
+Governed AI Runtime
+Audit and Temporal Reconstruction
+```
 
-- institution and tenant;
-- legal entities and licences;
-- jurisdictions and regions;
-- business units, committees, and authority roles;
-- products, services, channels, branches, and processes;
-- projects and processing activities;
-- customers, accounts, merchants, vendors, systems, assets, data, and models;
-- typed, temporal relationships and aliases.
+Modules may begin in one deployable unit. Boundaries must remain explicit.
 
-This context provides the shared scope and relationship substrate. It does not own domain conclusions.
+---
 
-## 2.2 Source and Regulatory Intelligence Context
+# 3. Authoritative data and projections
 
-Owns:
+Authoritative relational records include:
 
-- Source Profiles;
-- Authority Sources and versions;
-- authenticity and source status;
-- Source Provisions and document structure;
-- amendment, supersession, and related-source relationships;
-- candidate Directive Atoms;
-- source ingestion health and provenance.
-
-It does not publish final Requirements or applicability without the required domain authority.
-
-## 2.3 Program Context
-
-Owns:
-
-- Program identity, purpose, state, and version;
-- governing source references;
-- Program scope and ownership;
-- Requirement membership;
-- trigger subscriptions;
-- calendar and filing configuration;
-- linked Matters, exceptions, assurance, and package references;
-- Program-level projections and history.
-
-Program is an aggregate over shared records, not a duplicate repository for controls or evidence.
-
-## 2.4 Requirement and Applicability Context
-
-Owns:
-
-- normalized Requirements;
-- interpretation state;
-- applicability Conclusions;
-- scope, conditions, thresholds, effective dates, and exceptions;
-- source-provision lineage;
-- reviewer and approval history;
-- amendment and supersession behavior.
-
-## 2.5 Policy and Control Context
-
-Owns:
-
-- policy lifecycle;
-- Control Objectives;
-- scoped Control Implementations;
-- owners, performers, reviewers, automation, frequency, and dependencies;
-- Requirement, risk, service, system, vendor, and evidence relationships;
-- design and operating-effectiveness states.
-
-## 2.6 Evidence Context
-
-Owns:
-
-- Claims;
+- Programs;
+- Requirements and Applicability Conclusions;
+- Control Objectives and Implementations;
 - Evidence Contracts;
-- Evidence Items and immutable versions;
-- normalized Observations and Assertions;
-- Evidence Evaluations;
+- Matters and Matter state;
+- Sources and Observations;
+- Conclusions and Compliance State versions;
+- Decisions, Actions, Response Packages, and Verification;
+- workflow state and assignments;
+- temporal and audit metadata.
+
+Rebuildable projections include:
+
+- search;
+- graph traversal;
+- vector retrieval;
+- dashboards and KRIs;
+- register-compatible views;
+- committee and examination views;
+- work queues and saved views.
+
+A projection cannot become a separate truth system.
+
+---
+
+# 4. Source Registry and integration fabric
+
+Every source profile contains:
+
+- owner and custodian;
+- authoritative facts;
+- limitations;
+- scope and identifiers;
+- expected freshness;
+- current health;
+- mapping version;
+- purpose and access policy;
+- known data-quality issues;
+- dependent claims and Programs.
+
+Integration levels:
+
+- controlled values and manual capture;
+- spreadsheet and document imports;
+- scheduled files and database exports;
+- APIs;
+- events and telemetry.
+
+All produce governed Observations.
+
+Priority inventory adapters should expose normalized references for:
+
+- legal entities and branches;
+- organization and people;
+- applications and systems;
+- assets;
+- customers and accounts where approved;
+- vendors and contracts;
+- projects and changes;
+- policies and documents;
+- ROPA and BIA;
+- channels, merchants, terminals, and ATMs.
+
+---
+
+# 5. Context Assembly and Prefill Service
+
+The Context Assembly Service prepares a purpose-specific context package before a workflow renders.
+
+Inputs:
+
+- authenticated actor and authority;
+- Program or Matter;
+- active scope and period;
+- linked Requirements, controls, claims, and evidence;
+- institution profile;
+- approved inventory records;
+- prior submissions and decisions;
+- source health and freshness;
+- workflow state;
+- policy and sensitivity.
+
+Outputs:
+
+- prefilled structured fields;
+- read-only sourced values;
+- correctable values and correction route;
+- unresolved facts;
 - contradictions;
-- sufficiency and evidence debt;
-- evidence requests and capture lifecycle;
-- chain of custody, retention, and legal hold.
+- missing authority or scope;
+- relevant history;
+- safe next actions.
 
-## 2.7 Matter and Workflow Context
+Requirements:
 
-Owns:
+- authorization before retrieval and after relationship expansion;
+- source and freshness metadata preserved;
+- no unqualified fallback value silently replaces authoritative data;
+- context package version recorded for material review;
+- cache entries remain tenant, purpose, and scope bound.
 
-- Matter identity, type, source, scope, and lifecycle;
-- owner, authority, deadlines, escalation, and communications;
-- links to Programs, Requirements, controls, institutional objects, and evidence;
-- durable workflow and human tasks;
-- merge, split, reopen, and supersession.
-
-Matter subtype policies determine additional required states and controls.
-
-## 2.8 Decision, Action, Verification, and Response Context
-
-Owns:
-
-- material Decisions and options;
-- authority, segregation of duties, rationale, conditions, and expiry;
-- Actions and external execution references;
-- Verification Contracts and outcome evaluations;
-- Response Packages, inclusion/exclusion, redaction, signatory, transmission, acknowledgement, and manifests.
-
-## 2.9 Review, Indicator, Assurance, and Reporting Context
-
-Owns:
-
-- Review Activities and schedules;
-- KRI and compliance-indicator definitions and values;
-- sample selection and test results;
-- first-, second-, and third-line Conclusions;
-- findings and assurance sign-off;
-- filing, certification, board, committee, audit, and examiner projections.
-
-Reports are projections over canonical records, not separate truth.
-
-## 2.10 AI Operator Context
-
-Owns:
-
-- model gateway and provider routing;
-- operator definitions and identities;
-- prompt/schema/evaluation versions;
-- tool registry and action classes;
-- invocation audit and monitoring;
-- structured proposed outputs.
-
-AI operators call domain commands. They do not directly write authoritative stores.
+This service is central to the five-minute usability budget.
 
 ---
 
-# 3. Authoritative storage and projections
+# 6. Evidence Need and Minimum-Question Compiler
 
-Recommended initial storage model:
+The compiler converts claims and Evidence Contracts into the smallest necessary human request.
+
+Pipeline:
 
 ```text
-Relational authoritative store
-├── scope and typed temporal relationships
-├── Programs, Requirements, applicability, policies, controls
-├── Claims, Evidence Contracts, Observations, Conclusions
-├── Matters, Decisions, Actions, Verification, Responses
-├── Review Activities, indicators, assurance
-└── source, version, authority, and audit references
-
-Versioned object storage
-├── authority documents
-├── evidence files and media
-├── response and filing packages
-└── integrity manifests
-
-Durable workflow and outbox
-├── human and system tasks
-├── triggers and scheduled work
-├── retries, replay, cancellation, compensation
-└── domain events
-
-Rebuildable projections
-├── search
-├── graph traversal
-├── Program and Work views
-├── legacy registers and dashboards
-├── analytics and KRI
-└── vector retrieval where authorized
+Claim and purpose
+→ retrieve current authorized evidence
+→ evaluate sufficiency and contradiction
+→ identify exact unresolved facts
+→ rank best sources
+→ choose least burdensome approved response form
+→ generate focused request
+→ stop or cancel when evidence arrives elsewhere
 ```
 
-Search, graph, vector, analytics, register, dashboard, and reporting projections are not authoritative.
+It must support:
+
+- forms;
+- controlled selections;
+- photo or scan requests;
+- document upload;
+- spreadsheet correction;
+- redirect, delegate, partial, not applicable, and sensitivity concern;
+- delivery through approved channels.
+
+Request state and active-effort telemetry are audited.
 
 ---
 
-# 4. Program computation model
+# 7. Recommendation and Task Compilation Service
 
-A Program view is constructed from versioned references and projections.
+This service combines deterministic policy, institutional context, and governed AI to prepare useful first drafts.
 
-## 4.1 Program composition
+Recommendation types:
 
-```text
-Program
-├── approved governing sources
-├── approved Requirements
-├── current Applicability Conclusions
-├── linked policies and controls
-├── Evidence Contracts and current evidence state
-├── calendar and trigger subscriptions
-├── current Compliance State dimensions
-├── open Matters and exceptions
-├── assurance Conclusions
-├── filing/certification packages
-└── historical snapshots
-```
+- regulatory Requirement candidates;
+- applicability questions;
+- control mappings;
+- evidence requests;
+- Matter summaries;
+- owner and routing suggestions;
+- remediation options;
+- verification criteria;
+- policy changes;
+- response-package indexes;
+- review plans;
+- source and entity matches.
 
-## 4.2 Compliance State computation
+Every recommendation contains:
 
-Compliance State is computed by dimension, never as an unexplained average.
+- recommendation type and version;
+- affected Program, Matter, and scope;
+- source references and versions;
+- explicit facts;
+- inferred values;
+- assumptions;
+- uncertainty and contradictions;
+- required authority;
+- expected next state;
+- editable structured output;
+- alternatives;
+- model/rule/operator lineage.
 
-Representative dimensions:
-
-```yaml
-interpretation: approved | pending | disputed | superseded
-applicability: applicable | partial | not_applicable | unknown
-control_design: adequate | partial | inadequate | unassessed
-implementation: implemented | partial | planned | absent
- evidence: sufficient | partial | stale | contradictory | unavailable
-operating_effectiveness: effective | ineffective | indeterminate | untested
-exception: none | approved | expired | breached
-assurance: assured | qualified | adverse | pending | not_reviewed
-filing: current | due | at_risk | overdue | submitted | acknowledged
-source_quality: current | stale | degraded | unresolved
-```
-
-A concise presentation state is a policy-controlled projection of these dimensions.
-
-## 4.3 Program snapshot
-
-A point-in-time Program snapshot references exact versions of:
-
-- sources and Requirements;
-- applicability;
-- policies and controls;
-- Evidence Contracts and evidence;
-- Compliance State;
-- Matters and exceptions;
-- assurance;
-- filings and packages.
-
-Snapshots are reproducible and authorization-aware.
+Recommendations are proposals. Domain commands apply only after validation, authorization, policy, and approval.
 
 ---
 
-# 5. Trigger engine
+# 8. Trigger engine
 
-The trigger engine evaluates durable events and schedules against Program configuration.
+Trigger types:
 
-## 5.1 Trigger classes
-
-### Calendar
-
-- filing, return, certification, review, test, training, policy, vendor, BIA, RCSA, or assurance due.
-
-### Institutional change
-
-- new or changed product, service, project, vendor, system, model, processing activity, jurisdiction, branch, customer population, or configuration.
-
-### Operational event
-
-- incident, loss, breach, complaint pattern, KRI breach, control failure, audit finding, vendor deficiency, or authority request.
-
-### Regulatory and source change
-
-- new publication, amendment, guidance, source withdrawal, source degradation, permission revocation.
-
-### Evidence change
-
-- expiry, contradiction, population change, test failure, invalidation, or verification failure.
-
-## 5.2 Trigger evaluation result
+- calendar;
+- institutional change;
+- external regulatory or authority change;
+- operational event;
+- evidence expiry or contradiction;
+- source degradation;
+- threshold breach;
+- verification failure.
 
 A trigger may:
 
-- refresh a Claim;
-- schedule a Review Activity;
+- recompute Program state;
 - create or update a Matter;
-- invalidate a Conclusion or Decision;
-- request evidence;
-- change Compliance State;
-- change filing readiness;
-- notify or escalate.
+- generate a request;
+- route a recommendation;
+- invalidate a decision;
+- schedule review;
+- update a filing package;
+- notify a user only when intervention is required.
 
-The engine should target affected scope rather than create broad campaigns where scope can be resolved.
-
-## 5.3 Trigger governance
-
-Every trigger definition includes:
-
-- owner and purpose;
-- applicable Program and scope;
-- event or schedule;
-- conditions and thresholds;
-- deduplication window;
-- materiality and authority policy;
-- resulting domain command;
-- suppression and escalation;
-- version and audit.
+Trigger processing must be idempotent, version-aware, explainable, and replayable.
 
 ---
 
-# 6. Matter orchestration
+# 9. Program computation
 
-## 6.1 Common Matter pipeline
+Program state is a derived, versioned conclusion over:
 
-```text
-Source or trigger
-→ classify and deduplicate
-→ establish scope and links
-→ determine required Claims/directives
-→ search existing evidence
-→ request missing proof
-→ conclude and route authority
-→ decide or prepare response
-→ execute Actions
-→ verify or acknowledge
-→ update linked Programs and projections
-→ close, continue monitoring, or reopen
-```
+- current Requirement set;
+- approved applicability;
+- scoped controls;
+- Evidence Contracts;
+- Observations and source health;
+- exceptions and waivers;
+- assurance conclusions;
+- schedule and filing state;
+- open Matters.
 
-## 6.2 Matter classification
+The Program service emits dimensions rather than one opaque score.
 
-Matter type is a governed classification. AI may propose; domain policy validates.
-
-Misclassification tests are critical because the authority, privacy, deadline, and closure rules vary materially.
-
-## 6.3 Matter linking
-
-A Matter may affect multiple Programs and scopes without duplicating the Matter.
-
-Example:
-
-```text
-Data breach Matter
-├── NDPA Program
-├── CBN cyber Program
-├── operational risk Program
-├── affected digital service
-├── vendor and systems
-├── customer population
-└── incident/loss records
-```
-
-Each Program may project a different authorized view of the same Matter.
+Program pages use projections optimized for exception-focused review.
 
 ---
 
-# 7. Regulatory Change Compiler
+# 10. Matter composition
 
-## 7.1 Pipeline
+Matter type controls which sections and state transitions apply.
 
-```text
-Authority Source
-→ authenticity and legal-status classification
-→ provision segmentation
-→ candidate Directive Atoms
-→ human source review
-→ candidate Requirements
-→ interpretation approval
-→ Applicability Conclusions
-→ Program/control/evidence reconciliation
-→ Program updates and implementation Matters
-→ verification and continuing evidence
-```
+Common components:
 
-## 7.2 Existing-control reconciliation
+- trigger and source;
+- scope and affected objects;
+- evidence and missing facts;
+- assessment;
+- authority and decision;
+- action or response;
+- outcome or acknowledgement;
+- verification;
+- history.
 
-For each Requirement, compare:
+Matter workflows must support:
 
-- scoped Control Objectives and Implementations;
-- policy versions;
-- Evidence Contracts and current evidence;
-- exceptions and previous Decisions;
-- related Matters and assurance.
-
-Results:
-
-- fully covered;
-- covered but evidence stale;
-- partially covered;
-- wrong scope;
-- policy-only;
-- implementation-only;
-- contradictory;
-- uncovered;
-- applicability unresolved.
-
-## 7.3 Amendment propagation
-
-An amendment or clarification may:
-
-- supersede Source Provisions;
-- version Requirements;
-- invalidate Applicability Conclusions;
-- affect controls and Evidence Contracts;
-- change deadlines;
-- reopen implementation Matters;
-- invalidate filing or assurance states.
-
-Propagation is explicit, reviewable, and reversible.
+- typed finite states;
+- save and resume;
+- changed-since-last-view summary;
+- assignment, redirect, delegate, conflict, and escalation;
+- durable background work;
+- direct navigation to current step;
+- closure contract by Matter type.
 
 ---
 
-# 8. External Authority Case architecture
+# 11. Workflow-efficiency telemetry
 
-Authority Request Cases require stronger isolation and purpose controls.
+Every key flow emits privacy-minimized usability events:
 
-## 8.1 Protected case data plane
+- flow and version;
+- role and coarse scope type;
+- start, pause, resume, completion, and abandonment;
+- active interaction time;
+- workspace transitions;
+- fields entered manually;
+- fields prefilled;
+- corrections;
+- redirects and delegations;
+- AI recommendation accepted, edited, rejected, or unavailable;
+- source or integration fallback;
+- accessibility mode where safely measurable;
+- outcome and error class.
 
-```text
-Protected case store
-├── authority source and legal instrument
-├── case subjects and resolution candidates
-├── directives and requested periods
-├── protected evidence and communications
-├── legal, AML, fraud, KYC, branch, and records tasks
-├── Decisions and approvals
-├── Response Package
-└── acknowledgement, retention, and legal hold
-```
+Do not record sensitive field content in usability telemetry.
 
-## 8.2 Minimized ordinary-plane output
+The telemetry service calculates:
 
-Ordinary Programs, KRIs, and executive views receive only approved minimized data such as:
+- median and p90 active effort;
+- transition count;
+- manual-to-prefilled ratio;
+- duplicate request rate;
+- time to resume;
+- recommendation edit/rejection rate;
+- abandonment and correction rate;
+- accessibility parity.
 
-- existence of an authorized Matter where permitted;
-- type and deadline category;
-- aggregate workload;
-- systemic control or records weakness;
-- anonymized trend;
-- linked remediation Matter.
-
-Subject identity, allegations, requested records, suspicious-reporting state, and protected evidence remain isolated.
-
-## 8.3 Legal and action gates
-
-Separate Decisions govern:
-
-- authenticity and legal sufficiency;
-- subject match;
-- disclosure;
-- preservation;
-- KYC refresh or address verification;
-- monitoring or account action;
-- suspicious-report assessment or filing;
-- response sign-off.
-
-Receipt of a request is not sufficient authority for every possible action.
+Release gates may consume these metrics.
 
 ---
 
-# 9. Evidence and capture architecture
+# 12. Save, resume, and asynchronous work
 
-## 9.1 Observation normalization
+Durable workflow state records:
 
-All capture paths produce the same contract:
+- completed steps;
+- current step and owner;
+- draft structured values;
+- source/context package version;
+- pending background work;
+- blockers;
+- due date;
+- last viewed state;
+- changes since last view;
+- recommended next action.
 
-- API/event;
-- scheduled file or database export;
-- spreadsheet row;
-- form or controlled value;
-- photo, scan, audio, video;
-- message or email;
-- staff/vendor/customer/protected assertion;
-- test or inspection.
+Background operations include imports, source retrieval, AI processing, external execution, package generation, and verification observation.
 
-## 9.2 Evidence request orchestration
-
-```text
-Evidence need
-→ search authorized existing evidence
-→ evaluate sufficiency and contradiction
-→ identify unresolved facts
-→ rank best source
-→ choose approved channel
-→ prefill known context
-→ capture and validate
-→ update Conclusion
-→ stop, follow up, redirect, or escalate
-```
-
-## 9.3 Evidence invalidation
-
-Expiry, source degradation, changed scope, supersession, contradiction, model extraction error, legal hold, or access change propagates to dependent Claims, Compliance State, Matters, Decisions, filings, and packages.
+The UI must remain usable while these operations run.
 
 ---
 
-# 10. Legacy migration architecture
-
-## 10.1 Import classification
-
-Each workbook, sheet, table, or row is classified as one or more of:
-
-- candidate Authority Source reference;
-- candidate Requirement;
-- Control Objective or Implementation;
-- Observation or Evidence reference;
-- Matter/finding/exception;
-- Review Activity;
-- KRI definition/value;
-- scope/entity/vendor/asset record;
-- communication/comment;
-- unresolved legacy state.
-
-## 10.2 Migration principles
-
-- preserve original file, sheet, row, mapping, and import version;
-- do not silently convert attachments into sufficient evidence;
-- do not treat status text as authoritative lifecycle state;
-- distinguish comments from assignment and Decision;
-- detect duplicate and conflicting canonical objects;
-- maintain unresolved queues;
-- support parallel run and rollback;
-- generate familiar projections after migration.
-
-## 10.3 Legacy projection writes
-
-If users edit through a familiar register view, writes must invoke governed domain commands. Direct projection-table mutation is prohibited.
-
----
-
-# 11. APIs and domain commands
-
-Representative commands:
-
-- `CreateProgram`
-- `AddRequirementToProgram`
-- `ApproveRequirementInterpretation`
-- `RecordApplicabilityConclusion`
-- `LinkControlImplementation`
-- `DefineEvidenceContract`
-- `RecordObservation`
-- `EvaluateClaim`
-- `ScheduleReviewActivity`
-- `CreateMatter`
-- `ClassifyMatter`
-- `RequestEvidence`
-- `SubmitDecisionForApproval`
-- `AuthorizeAction`
-- `CreateResponsePackage`
-- `ApproveAndTransmitResponse`
-- `RecordAcknowledgement`
-- `EvaluateVerification`
-- `IssueAssuranceConclusion`
-- `FreezeProgramSnapshot`
-
-Representative events:
-
-- `AuthoritySourceCaptured`
-- `SourceProvisionReviewed`
-- `RequirementApproved`
-- `ApplicabilityChanged`
-- `ControlImplementationChanged`
-- `EvidenceContractChanged`
-- `ObservationCaptured`
-- `EvidenceSufficiencyChanged`
-- `ContradictionDetected`
-- `ComplianceStateChanged`
-- `ProgramTriggerMatched`
-- `MatterCreated`
-- `MatterReopened`
-- `DecisionApproved`
-- `ActionImplemented`
-- `VerificationFailed`
-- `ResponsePackageTransmitted`
-- `AuthorityAcknowledgementReceived`
-- `FilingPackageFrozen`
-- `AssuranceConclusionIssued`
-
----
-
-# 12. Authorization architecture
+# 13. Authorization and privacy
 
 Effective access is the intersection of:
 
 - tenant;
-- legal entity and licence;
-- role and delegated authority;
-- relationship to Program, Matter, control, or case;
+- legal entity and scope;
+- role and relationship;
 - purpose;
-- source/evidence classification;
-- legal privilege and conflict;
-- workflow state;
-- time-limited authorization.
+- Program or Matter assignment;
+- data classification;
+- legal privilege;
+- authority;
+- current workflow state.
 
-Authorization is enforced before and after retrieval, traversal, expansion, aggregation, export, and AI use.
+Authorization applies to:
 
-Counts, titles, snippets, relationship paths, suggestions, timing, caches, embeddings, and package manifests must not leak protected records.
+- context assembly;
+- prefill;
+- search and graph expansion;
+- recommendation inputs;
+- counts and suggestions;
+- exports and response packages;
+- usability telemetry;
+- background jobs;
+- AI tools.
 
----
+Protected reporting and authority cases require isolated content and restricted indexing.
 
-# 13. AI architecture
-
-## 13.1 Operator capabilities
-
-Initial capabilities:
-
-- source classification and segmentation;
-- Directive Atom and Requirement proposal;
-- applicability support;
-- control/evidence mapping;
-- legacy register classification;
-- entity reconciliation;
-- evidence extraction and contradiction;
-- focused request generation;
-- Program and Matter summarization;
-- action, test, and response drafting.
-
-## 13.2 Controlled pipeline
-
-```text
-Trigger
-→ authenticate actor/operator
-→ resolve scope and purpose
-→ authorize retrieval
-→ retrieve source versions
-→ model or deterministic analysis
-→ structured validation
-→ domain validation
-→ authority and policy gates
-→ human review where required
-→ domain command
-→ side-effect verification
-→ immutable audit and monitoring
-```
-
-No free-form model text writes authoritative state.
-
-## 13.3 Evaluation
-
-Datasets must include:
-
-- final, draft, amended, and ambiguous regulation;
-- incomplete and contradictory sources;
-- legacy spreadsheets;
-- NDPA ROPA and DPIA cases;
-- supervisory findings;
-- protected authority requests;
-- subject-match ambiguity;
-- prompt injection and malicious documents;
-- insufficient evidence and out-of-scope requests.
+Ease of use may not widen access.
 
 ---
 
-# 14. Scaling and deployment
+# 14. Governed AI runtime
 
-Initial target:
+AI capabilities use:
 
-- dedicated single-tenant cloud deployment;
-- portable containerized modular core;
-- relational database;
-- object storage;
-- durable queue/workflow;
-- optional managed search;
-- controlled model routes.
+- approved model gateway;
+- source-grounded context;
+- structured output schemas;
+- allowlisted tools;
+- confidence and abstention;
+- domain validation;
+- policy and authority checks;
+- human review where required;
+- immutable invocation audit;
+- degraded manual mode.
 
-Scale independently only when measured need justifies splitting ingestion, document processing, media processing, search, projections, AI, or protected-case services.
-
-Support additional deployment modes after the first production pattern is stable.
+AI capability release requires both correctness/safety thresholds and measurable effort reduction.
 
 ---
 
-# 15. Architecture acceptance standard
+# 15. Import and mapping acceleration
 
-The architecture is conformant only when:
+Import architecture stores:
 
-- Programs remain current without duplicate registers;
-- Matters represent change and exception without turning every Requirement into a case;
-- one canonical record supports multiple authorized views;
-- source and provision lineage remain exact;
-- applicability and control implementation remain scoped and versioned;
-- evidence is reused and contradictions propagate;
-- NDPA Program journeys share one model;
-- a regulatory amendment updates affected Programs and Matters safely;
-- authority cases remain protected and purpose-bound;
-- legacy views cannot bypass domain invariants;
-- AI cannot bypass authority or structured commands;
-- external task or response transmission cannot falsely close work;
-- and point-in-time reconstruction spans source, Program, Matter, evidence, Decision, response, and outcome.
+- source profile;
+- file and sheet;
+- mapping template and version;
+- schema fingerprint;
+- row provenance;
+- validation results;
+- entity matches;
+- accepted and rejected observations;
+- reconciliation report.
+
+Repeat imports compare the new schema fingerprint with the approved mapping and route only changes or exceptions for review.
+
+AI may suggest mappings and matches but cannot silently merge material entities.
+
+---
+
+# 16. Derived legacy views
+
+Legacy views are projections:
+
+- compliance register;
+- risk register;
+- exception register;
+- workplan;
+- RCSA;
+- KRI;
+- BIA;
+- vendor register;
+- loss register;
+- dashboard;
+- filing and examination package.
+
+Each view must drill into canonical Programs, Matters, sources, evidence, and decisions.
+
+No edit in a projection may bypass domain services.
+
+---
+
+# 17. Failure and degraded mode
+
+The system must handle:
+
+- source stale or unavailable;
+- model unavailable;
+- import failure;
+- workflow worker restart;
+- partial external action;
+- authorization revocation;
+- projection corruption;
+- offline capture conflict.
+
+Required behavior:
+
+- deterministic context remains available;
+- exact stale age is shown;
+- safe fallback is offered;
+- unsafe action is blocked;
+- drafts remain resumable;
+- retries are idempotent;
+- recovery is audited.
+
+---
+
+# 18. Architecture acceptance
+
+Architecture is conformant only when:
+
+- Program and Matter workflows use the same shared primitives;
+- approved inventories prefill routine flows;
+- focused requests contain only unresolved facts;
+- AI provides grounded first drafts without becoming authority;
+- routine flows can meet five-minute budgets;
+- complex flows preserve a safe checkpoint;
+- replacing a spreadsheet source with an API removes effort without changing semantics;
+- source limitations and contradictions remain visible;
+- accessibility users can complete equivalent workflows;
+- external completion cannot set verified state;
+- point-in-time reconstruction includes context, recommendation, review, action, and outcome;
+- usability telemetry does not leak sensitive content.
