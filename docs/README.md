@@ -1,52 +1,102 @@
 # ClearSight Documentation Map
 
-This directory contains the canonical product, architecture, implementation, and quality specifications for ClearSight.
+This directory contains the canonical product, architecture, implementation, quality, and review specifications for ClearSight.
 
-## Start here
+The documentation is deliberately layered so that internal architecture does not become user-interface architecture.
 
-1. [`../README.md`](../README.md) — product vision, operating model, core capabilities, and initial product wedge.
-2. [`../AGENTS.md`](../AGENTS.md) — mandatory implementation rules and visual/functional non-regression constraints.
-3. [`implementation-plan.md`](implementation-plan.md) — comprehensive phased delivery plan with tasks, dependencies, deliverables, and acceptance gates.
+---
 
-## Product
+# Start here
 
-- [`product/differentiation.md`](product/differentiation.md) — the product moat, competitor-category boundaries, bank-first mechanisms, and differentiation tests.
-- [`product/experience-principles.md`](product/experience-principles.md) — information architecture, interaction grammar, visual language, evidence-capture experience, protected-reporting experience, accessibility, and golden screens.
+1. [`../README.md`](../README.md) — product vision, user value, operating loop, primary surfaces, and initial product wedge.
+2. [`product/operating-model.md`](product/operating-model.md) — canonical Scope, Exposure Pattern, Risk Situation, Claim, Evidence Recipe, Observation, Conclusion, Decision, and Verification semantics.
+3. [`product/experience-principles.md`](product/experience-principles.md) — information architecture, interaction patterns, visual system, capture, population workflows, accessibility, and golden screens.
+4. [`../AGENTS.md`](../AGENTS.md) — mandatory implementation and non-regression rules.
+5. [`implementation-plan.md`](implementation-plan.md) — phased delivery plan and acceptance gates.
+6. [`quality/acceptance-tests.md`](quality/acceptance-tests.md) — end-to-end proof and release requirements.
 
-## Architecture
+---
 
-- [`architecture/risk-graph-and-decision-engine.md`](architecture/risk-graph-and-decision-engine.md) — canonical entities and relationships, temporal graph, signals, Materiality Compiler, risk appetite, Decision Ledger, action model, and verification contracts.
-- [`architecture/living-evidence-fabric.md`](architecture/living-evidence-fabric.md) — claims, immutable evidence, assertions, sufficiency, contradiction, evidence debt, best-source resolution, dynamic micro-requests, protected evidence, and chain of custody.
-- [`architecture/governed-ai-operators.md`](architecture/governed-ai-operators.md) — operator identities, action classes, model gateway, grounding, tool policy, authority thresholds, prompt-injection defense, evaluation, and audit contract.
+# Product
 
-## Quality
+- [`product/operating-model.md`](product/operating-model.md) — the simplified bank operating model that all features and architecture must support.
+- [`product/differentiation.md`](product/differentiation.md) — the product moat, category boundaries, bank-size adaptability, and differentiation tests.
+- [`product/experience-principles.md`](product/experience-principles.md) — Today, Situation, Capture, Explore, Configure; scope anchoring; operational tables; imports; reconciliation; photo capture; decision and verification; accessibility and visual quality.
 
-- [`quality/acceptance-tests.md`](quality/acceptance-tests.md) — golden journeys and required domain, security, authorization, evidence, AI, visual, accessibility, performance, resilience, and migration tests.
+---
 
-## Planned decision records
+# Architecture
 
-Architecture decisions should be added under `docs/decisions/` as numbered ADRs. At minimum, the implementation plan requires ADRs for:
+- [`architecture/product-semantics-mapping.md`](architecture/product-semantics-mapping.md) — required mapping between the simplified product objects and the deeper graph, evidence, decision, workflow, and AI architecture.
+- [`architecture/risk-graph-and-decision-engine.md`](architecture/risk-graph-and-decision-engine.md) — canonical entities and relationships, temporal graph, signals, materiality, appetite, decision records, action, and verification.
+- [`architecture/living-evidence-fabric.md`](architecture/living-evidence-fabric.md) — claims, immutable evidence, assertions, sufficiency, contradiction, evidence debt, source resolution, dynamic requests, protected evidence, and chain of custody.
+- [`architecture/governed-ai-operators.md`](architecture/governed-ai-operators.md) — operator identities, action classes, model gateway, grounding, tool policy, authority thresholds, prompt-injection defence, evaluation, and audit.
 
-- application modularity and service split criteria;
+Architecture documents explain how ClearSight works internally. They must not override the situation-first product semantics or become mandatory navigation concepts.
+
+---
+
+# Delivery and quality
+
+- [`implementation-plan.md`](implementation-plan.md) — delivery sequence beginning with source trust, observations, progressive ingestion, bounded ATM/POS situations, evidence and reconciliation, decision and verification, then materiality and AI.
+- [`quality/acceptance-tests.md`](quality/acceptance-tests.md) — golden journeys and domain, source, import, security, evidence, AI, visual, accessibility, localization, performance, resilience, and migration tests.
+
+---
+
+# Reviews
+
+- [`reviews/2026-08-04-visual-and-document-conformance-review.md`](reviews/2026-08-04-visual-and-document-conformance-review.md) — audit of missing visual aspects, prior document staleness, canonical corrections, and remaining architecture-alignment work.
+
+Future major design or documentation reviews should be added under `docs/reviews/` with an absolute date.
+
+---
+
+# Planned decision records
+
+Architecture decisions should be added under `docs/decisions/` as numbered ADRs.
+
+Minimum ADRs:
+
+- modular core and service split criteria;
 - backend and frontend stack;
+- scope hierarchy and institution model;
 - temporal/versioning model;
+- Observation contract;
+- Source Registry and source authority;
+- spreadsheet and media processing security;
+- offline capture boundary;
 - workflow runtime;
-- authorization engine;
+- authorization engine and inference resistance;
 - evidence object storage and integrity;
-- event and outbox architecture;
-- graph projection and dedicated graph-engine decision gate;
-- search/vector architecture;
+- outbox and event architecture;
+- graph projection and dedicated-engine decision gate;
+- search and vector architecture;
 - model gateway and provider routing;
-- deployment modes;
-- and audit/observability separation.
+- protected reporting isolation;
+- initial deployment mode;
+- audit and observability separation.
 
-## Canonical rule
+---
 
-When implementation behavior conflicts with these documents, the conflict must be resolved explicitly. Do not silently change product semantics in code.
+# Canonical precedence
 
-A material change should update:
+When requirements conflict, apply:
 
-- the relevant product or architecture specification;
-- the implementation-plan task or decision;
-- affected acceptance tests;
-- and an ADR when the change alters a foundational technical choice.
+1. safety, confidentiality, legal boundaries, and tenant isolation;
+2. [`../README.md`](../README.md) for product intent;
+3. [`product/operating-model.md`](product/operating-model.md) for product semantics;
+4. [`product/experience-principles.md`](product/experience-principles.md) for user and visual behaviour;
+5. [`../AGENTS.md`](../AGENTS.md) for normative implementation rules;
+6. architecture documents for internal mechanisms;
+7. implementation plan for sequencing;
+8. acceptance tests for release proof.
+
+A material change must update:
+
+- the relevant product document;
+- affected architecture mapping or ADR;
+- implementation-plan task or gate;
+- acceptance tests;
+- and the conformance review where it resolves a listed issue.
+
+Do not silently change product semantics in code, schema, prompts, UI, or integrations.
