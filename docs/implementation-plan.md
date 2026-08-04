@@ -1,13 +1,14 @@
 # ClearSight Implementation Plan
 
-This plan turns the ClearSight situation-first product model into a bank-grade implementation without requiring perfect integrations, exposing internal architecture as UI, or recreating every mature GRC module before the core product works.
+This plan turns the ClearSight continuous-compliance model into a bank-grade product without recreating every legacy register, requiring perfect integrations, or exposing internal architecture as the interface.
 
 It conforms to:
 
 - [`../README.md`](../README.md)
+- [`product/continuous-compliance-operating-model.md`](product/continuous-compliance-operating-model.md)
 - [`product/operating-model.md`](product/operating-model.md)
+- [`product/regulatory-and-enforcement-intelligence.md`](product/regulatory-and-enforcement-intelligence.md)
 - [`product/experience-principles.md`](product/experience-principles.md)
-- [`product/differentiation.md`](product/differentiation.md)
 - [`../AGENTS.md`](../AGENTS.md)
 
 Checkboxes indicate planned work, not completed implementation.
@@ -16,145 +17,129 @@ Checkboxes indicate planned work, not completed implementation.
 
 # 1. Delivery thesis
 
-The first product must prove a narrow but complete loop:
+The first product must prove three connected paths:
+
+## Continuing compliance
 
 ```text
-Observation
-→ bounded banking Risk Situation
-→ precise Claims and Evidence Recipes
-→ existing evidence search
-→ focused capture of missing facts
-→ evidence-backed Conclusion
-→ authorized Decision
-→ Action
-→ Verification of defined outcome criteria
-→ historical reconstruction
+Authority Sources
+→ approved Requirements and applicability
+→ scoped controls and Evidence Contracts
+→ current Observations
+→ Compliance State
+→ targeted refresh, review, exception, or filing
 ```
 
-The first implementation must not attempt an institution-wide graph, all risk domains, all regulatory content, all deployment modes, or autonomous material judgment.
+## Matter handling
+
+```text
+Trigger or external communication
+→ classified Matter
+→ evidence and decision or response
+→ Actions
+→ verification or acknowledgement
+→ Program and institutional state updated
+```
+
+## Legacy workflow migration
+
+```text
+Existing spreadsheet or document
+→ source-preserving import
+→ mapping and reconciliation
+→ canonical objects
+→ familiar register/workplan/KRI view
+→ duplicate manual records retired
+```
+
+The first release must not attempt every regulatory jurisdiction, every GRC domain, an institution-wide ontology, all deployment modes, or autonomous legal and risk judgment.
 
 ---
 
-# 2. Delivery principles
+# 2. Recommended first product wedge
 
-## 2.1 Situations are the vertical slice
+The strongest initial pilot is compliance-led and should contain three vertical slices.
 
-Each milestone must make at least one recognizable banking situation more understandable or actionable.
+## Slice A — NDPA continuous-compliance Program
 
-Avoid milestones that produce only schemas, generic forms, dashboards, or isolated AI demonstrations.
+Prove:
 
-## 2.2 Source trust before broad intelligence
+- authoritative source and Requirement lineage;
+- applicability by entity, processing activity, system, vendor, and project;
+- ROPA worklist;
+- DPIA screening and go-live gate;
+- vendor/processor evidence;
+- breach Matter and timing;
+- annual filing readiness and package;
+- targeted evidence refresh;
+- independent review and history.
 
-Materiality and executive compression are only credible when source authority, freshness, mapping, population, and contradiction are visible.
+## Slice B — External Authority Workbench
 
-The Source Registry, Observation contract, import reconciliation, and source-health model are early product features—not integration plumbing deferred until later.
+Prove:
 
-## 2.3 Progressive integration
+- one recent CBN publication from source to approved Requirements, control changes, implementation Matters, and Evidence Contracts;
+- one protected authority-request scenario from intake and legal review to subject resolution, KYC/address/records tasks, response package, and acknowledgement;
+- clear human authority boundaries.
 
-Support:
+## Slice C — Legacy register to verified Matter
 
-- forms and controlled values;
-- photos and scans;
-- spreadsheets and CSV;
-- managed recurring imports;
-- APIs;
-- and events.
+Prove:
 
-All methods produce the same Observation model.
+- import of a compliance register and an IT risk or vendor exception register;
+- source reconciliation;
+- structured ownership and action;
+- evidence review;
+- implementation-versus-verification separation;
+- derived register, work queue, and executive view.
 
-## 2.4 Correct interaction form
+ATM/POS population workflows remain an important second domain and may be included where pilot data permits, but they should not delay the compliance wedge.
+
+---
+
+# 3. Delivery principles
+
+## 3.1 Programs maintain; Matters mobilize
+
+Each milestone must improve either:
+
+- a continuing Program’s ability to remain current; or
+- a Matter’s ability to reach a defensible outcome.
+
+Avoid milestones that produce only schemas, generic forms, dashboards, or AI demonstrations.
+
+## 3.2 Source trust before automated interpretation
+
+Source Registry, Authority Source, exact Source Provision, Observation provenance, freshness, mapping, and data-quality state are early product capabilities.
+
+## 3.3 Progressive integration
+
+Support forms, controlled values, photos, documents, spreadsheets, managed imports, APIs, and events through one Observation contract.
+
+## 3.4 Correct interaction form
 
 Use:
 
-- cards for a small attention queue;
-- tables and worklists for populations;
-- step flows for capture and imports;
-- comparison views for contradiction and reconciliation;
-- paths for dependency;
-- timelines for history;
-- and charts for specific questions.
+- cards for small attention queues;
+- tables for Requirement, ROPA, control, case, account, asset, vendor, and exception populations;
+- step flows for imports, DPIA, filings, and responses;
+- split views for regulatory interpretation;
+- comparison views for contradiction;
+- timelines for Matters and history;
+- calendars for recurring Program work;
+- charts only for defined questions.
 
-Do not use cards or node graphs as universal components.
+## 3.5 Begin as a coherent modular core
 
-## 2.5 Begin as a coherent modular core
+Start with a modular monolith or similarly disciplined core using authoritative relational storage, versioned object storage, durable workflows and outbox, rebuildable projections, and replaceable adapters.
 
-Start with a modular monolith or similarly disciplined core with:
+## 3.6 AI compiles; policy and humans decide
 
-- explicit bounded contexts;
-- transactional integrity;
-- outbox and durable jobs;
-- authoritative relational data;
-- versioned object storage;
-- rebuildable search and graph projections;
-- and replaceable adapters.
+AI may extract, normalize, map, compare, summarize, and draft. Domain services and authorized humans determine source status, applicability, evidence minimums, reportability, disclosure, authority, and closure.
 
-Microservices and a dedicated graph engine require measured justification.
+## 3.7 Protected work uses stronger boundaries
 
-## 2.6 AI compiles; policy decides
-
-AI may extract, normalize, suggest, compare, summarize, and draft.
-
-Deterministic domain services enforce:
-
-- source policy;
-- evidence minimums;
-- authority;
-- authorization;
-- state transitions;
-- and closure.
-
-## 2.7 Protected reporting is an isolated track
-
-Protected reporting must not be casually mixed into ordinary graph, search, analytics, or AI routes.
-
-The first release may support protected intake and sanitized escalation without becoming a full investigation platform.
-
----
-
-# 3. Initial product wedge
-
-The initial pilot should cover:
-
-## Institution boundary
-
-- one bank;
-- one legal entity;
-- selected regions or branches;
-- one or two channels;
-- selected authority roles.
-
-## Primary situation A — ATM inventory and physical/operational confirmation
-
-- known ATM population;
-- unresolved device-location-owner relationships;
-- switch heartbeat or operational state;
-- targeted branch photo and structured confirmation;
-- source contradiction;
-- remediation and verification.
-
-## Primary situation B — POS terminal identity or settlement reconciliation
-
-Choose one based on pilot data availability:
-
-- terminal-to-merchant identity and location reconciliation; or
-- transaction-to-settlement population reconciliation.
-
-## Common capabilities proved
-
-- Source Registry;
-- spreadsheet and CSV ingestion;
-- at least one API or scheduled source;
-- photo or structured human capture;
-- population worklist;
-- matching and contradiction;
-- Risk Situation workspace;
-- Claim and Evidence Recipe;
-- Decision and authority;
-- Action and Verification Contract;
-- Today brief;
-- point-in-time history.
-
-Protected reporting may be developed in parallel but must not block this wedge.
+Protected reporting, Authority Request Cases, suspicious-reporting work, legal privilege, and protected identity must not share ordinary search, analytics, export, or AI routes without explicit minimized interfaces.
 
 ---
 
@@ -185,6 +170,7 @@ Protected reporting may be developed in parallel but must not block this wedge.
 │   └── integration-sdk/
 ├── workers/
 │   ├── ingestion/
+│   ├── document-processing/
 │   ├── media-processing/
 │   └── projections/
 ├── tests/
@@ -196,1078 +182,603 @@ Protected reporting may be developed in parallel but must not block this wedge.
 └── infrastructure/
 ```
 
-The first implementation may keep modules and workers in one deployable unit while preserving boundaries in code.
+The first implementation may remain one deployable unit while preserving boundaries in code.
 
 ---
 
-# Phase 0 — Product semantics, pilot, architecture, and design foundation
+# Phase 0 — Product semantics, pilot, source inventory, and design foundation
 
 ## Objective
 
-Establish the canonical operating model, first pilot situations, source inventory, design language, threat model, and implementation decisions before feature development.
+Establish the Program and Matter model, pilot scope, source estate, user journeys, security boundaries, and initial design before implementation.
 
 ## 0.1 Pilot definition
 
-- [ ] Select pilot bank and legal entity.
-- [ ] Select ATM and POS or settlement situation.
-- [ ] Define participating regions, branches, merchants, or populations.
-- [ ] Define pilot personas and authority.
-- [ ] Inventory available spreadsheets, databases, APIs, documents, and human sources.
-- [ ] Identify source owners and data-quality limitations.
-- [ ] Define measurable pilot outcomes.
+- [ ] Select bank, legal entity, licences, and participating functions.
+- [ ] Confirm NDPA Program scope.
+- [ ] Select one recent CBN publication.
+- [ ] Define a legally safe synthetic or sanitized authority-request scenario.
+- [ ] Select legacy compliance and finding/exception workbooks.
+- [ ] Identify Program owners, DPO, compliance, legal, AML, risk, audit, business, technology, and records personas.
+- [ ] Define measurable baseline effort and target outcomes.
 
 ## 0.2 Canonical language
 
-- [ ] Define Scope.
-- [ ] Define Exposure Pattern.
-- [ ] Define Risk Situation.
-- [ ] Define Claim and Evidence Recipe.
-- [ ] Define Observation.
-- [ ] Define Conclusion.
-- [ ] Define Decision and Verification Contract.
-- [ ] Define prohibited semantic collapses.
+Define and approve:
 
-Prohibited collapses include:
+- [ ] Program;
+- [ ] Matter and Matter types;
+- [ ] Scope;
+- [ ] Authority Source and Source Provision;
+- [ ] Requirement and Applicability Conclusion;
+- [ ] Control Objective and Control Implementation;
+- [ ] Policy;
+- [ ] Observation;
+- [ ] Claim and Evidence Contract;
+- [ ] Compliance State;
+- [ ] Review Activity and KRI;
+- [ ] Decision, Action, Verification Contract, and Response Package.
 
-- upload is not evidence sufficiency;
-- integration success is not data truth;
-- observation is not verified fact;
-- signal is not incident;
-- action completion is not outcome;
-- source age is not risk severity;
-- AI confidence is not evidence strength.
+## 0.3 Legacy workflow mapping
 
-## 0.3 First exposure and channel packs
+- [ ] Map compliance-register columns to canonical objects.
+- [ ] Map IT risk and exception workbooks.
+- [ ] Map workplans to Review Activities.
+- [ ] Map KRI spreadsheets to indicator definitions and underlying populations.
+- [ ] Map BIA data to services, applications, dependencies, RTO, and RPO.
+- [ ] Map vendor findings and evidence.
+- [ ] Define import confidence and unresolved queues.
 
-- [ ] Define universal exposure families.
-- [ ] Define ATM channel pack.
-- [ ] Define selected POS or settlement channel pack.
-- [ ] Define initial claims and evidence recipes.
-- [ ] Define initial capture templates.
-- [ ] Define initial verification patterns.
-
-## 0.4 Architecture decision records
+## 0.4 Architecture decisions
 
 Create ADRs for:
 
 - [ ] modular core and split criteria;
-- [ ] backend and frontend stack;
-- [ ] relational authoritative model;
-- [ ] temporal/versioning strategy;
-- [ ] outbox and durable processing;
+- [ ] backend/frontend stack;
+- [ ] Program and Matter aggregate boundaries;
+- [ ] relational authoritative and temporal model;
 - [ ] workflow runtime;
+- [ ] outbox and durable jobs;
 - [ ] object storage and evidence integrity;
-- [ ] authorization engine;
+- [ ] authorization and inference resistance;
+- [ ] Source Registry and Authority Source authenticity;
+- [ ] document segmentation and Directive Atom schema;
 - [ ] search and graph projections;
 - [ ] model gateway;
+- [ ] protected case isolation;
 - [ ] offline capture boundary;
-- [ ] protected reporting isolation;
 - [ ] initial deployment mode.
 
 ## 0.5 Threat and privacy model
 
+Cover:
+
 - [ ] cross-tenant and cross-entity access;
-- [ ] wrong-scope approval;
+- [ ] wrong-scope filing or response;
+- [ ] source spoofing and document replacement;
 - [ ] evidence tampering;
-- [ ] malicious media and spreadsheets;
-- [ ] formula and file-content attacks;
+- [ ] malicious spreadsheets and documents;
 - [ ] prompt injection;
-- [ ] export leakage;
+- [ ] export and response leakage;
+- [ ] subject-match error;
+- [ ] protected identity and suspicious-reporting leakage;
 - [ ] insider misuse;
-- [ ] protected identity exposure;
-- [ ] mobile and offline evidence risk;
 - [ ] integration compromise;
-- [ ] graph, search, count, and timing inference.
+- [ ] search, graph, count, cache, and timing inference;
+- [ ] offline evidence risk.
 
 ## 0.6 Design foundation
 
-- [ ] semantic tokens;
-- [ ] typography and numeric styles;
-- [ ] comfortable and compact density;
-- [ ] light and dark parity;
-- [ ] scope/context header;
-- [ ] Today, Situation, Capture, Explore, Configure shell;
-- [ ] situation card;
-- [ ] population worklist;
-- [ ] spreadsheet mapper;
-- [ ] photo-capture concept;
-- [ ] source profile;
-- [ ] contradiction and reconciliation view;
-- [ ] verification states;
+Prototype:
+
+- [ ] Today;
+- [ ] Program overview and Requirement table;
+- [ ] Work queue and generic Matter;
+- [ ] NDPA ROPA and DPIA;
+- [ ] regulatory split review;
+- [ ] protected Authority Request Case;
+- [ ] spreadsheet import;
+- [ ] evidence request;
+- [ ] Response Package;
+- [ ] compliance-state dimensions;
+- [ ] light/dark and comfortable/compact density;
 - [ ] accessibility baseline.
-
-## 0.7 Repository and CI
-
-- [ ] scaffold repository;
-- [ ] formatting, linting, type checking;
-- [ ] unit, integration, E2E, accessibility, and visual test runners;
-- [ ] dependency and secret scanning;
-- [ ] SBOM and artifact-signing plan;
-- [ ] preview environments;
-- [ ] database migration verification;
-- [ ] pull-request template enforcing AGENTS review.
 
 ## Phase 0 acceptance gate
 
-Do not begin domain implementation until:
-
-- the operating objects are distinct;
-- two pilot situations are fully specified;
-- source owners and limitations are known;
-- first Evidence Recipes are testable;
-- the task-oriented interface is prototyped;
-- population and capture workflows are represented;
-- protected reporting boundaries are approved;
-- and core stack choices have ADRs.
+Do not begin domain implementation until pilot journeys, sources, authority, Program/Matter semantics, protected boundaries, and designs are testable and approved.
 
 ---
 
-# Phase 1 — Trust, tenancy, identity, temporal history, audit, and storage
+# Phase 1 — Identity, scope, authorization, temporal history, audit, and storage
 
 ## Objective
 
-Build the security and historical foundation required by every later capability.
+Build the security and historical foundation required by every Program and Matter.
 
-## 1.1 Tenant and institutional scope
+## Work
 
-- [ ] tenant model;
-- [ ] legal entities and jurisdictions;
-- [ ] regions, business units, channels, services, branches, and populations;
-- [ ] immutable context propagation;
-- [ ] server-derived tenant and entity scope;
-- [ ] scope-switch authorization;
-- [ ] cross-store isolation tests.
-
-## 1.2 Identity and access
-
-- [ ] development identity provider;
-- [ ] OIDC/SAML boundary;
-- [ ] MFA and session hooks;
-- [ ] SCIM or directory provisioning boundary;
-- [ ] service identities;
-- [ ] break-glass flow;
-- [ ] delegated authority;
-- [ ] authentication audit.
-
-## 1.3 Authorization
-
-- [ ] deny-by-default authorization service;
-- [ ] RBAC plus attributes, relationships, purpose, and sensitivity;
-- [ ] authority matrix;
-- [ ] segregation of duties and conflict checks;
-- [ ] field-, evidence-, source-, and relationship-level restrictions;
-- [ ] authorization-aware search and projection contract;
-- [ ] bulk-operation authorization;
-- [ ] explainable administration decisions;
-- [ ] exhaustive negative tests.
-
-## 1.4 Temporal and immutable records
-
-- [ ] valid time and record time metadata;
-- [ ] version and supersession;
-- [ ] optimistic concurrency;
-- [ ] append-only material records;
-- [ ] point-in-time query primitives;
-- [ ] temporal consistency tests.
-
-## 1.5 Audit ledger
-
-- [ ] immutable audit event schema;
-- [ ] operational-log separation;
-- [ ] actor, purpose, scope, command, result, and correlation;
-- [ ] sensitive-payload references;
-- [ ] strict audit-query authorization;
-- [ ] tamper-evidence strategy;
-- [ ] action reconstruction.
-
-## 1.6 Events and durable jobs
-
-- [ ] transactional outbox;
-- [ ] versioned event envelope;
-- [ ] idempotent consumers;
-- [ ] retry, dead letter, replay, and cancellation;
-- [ ] correlation and causation;
-- [ ] job progress and recovery.
-
-## 1.7 Evidence storage
-
-- [ ] versioned object-store abstraction;
-- [ ] content hashes and integrity manifest;
-- [ ] malware and content scanning;
-- [ ] classification-aware encryption;
-- [ ] retention, legal hold, and deletion hooks;
-- [ ] resumable upload;
-- [ ] protected-data boundary.
+- [ ] tenant, institution, legal entity, licence, jurisdiction, Program, service, branch, project, vendor, customer/account, and population scope;
+- [ ] OIDC/SAML, MFA hooks, SCIM boundary, service identity, delegation, break glass;
+- [ ] deny-by-default RBAC/ABAC/ReBAC/purpose/sensitivity policy;
+- [ ] authority matrix, segregation of duties, conflict checks;
+- [ ] field, source, evidence, case, search, count, export, worker, AI, and bulk authorization;
+- [ ] valid time, record time, versions, supersession, concurrency;
+- [ ] immutable audit and protected access events;
+- [ ] transactional outbox, durable jobs, retry/replay/cancellation;
+- [ ] versioned object storage, hash manifest, scanning, retention, legal hold, deletion, resumable upload;
+- [ ] operational observability without restricted data leakage.
 
 ## Phase 1 acceptance gate
 
-Pass:
-
-- tenant and entity negative tests;
-- wrong-scope action tests;
-- point-in-time reconstruction;
-- duplicate-event idempotency;
-- unauthorized search, count, export, and bulk-action tests;
-- evidence integrity;
-- and service-identity audit.
+Pass cross-tenant, wrong-entity, wrong-purpose, protected-case, bulk, search/count inference, temporal reconstruction, idempotency, and evidence-integrity tests.
 
 ---
 
-# Phase 2 — Source Registry, Observation contract, and progressive ingestion
+# Phase 2 — Source Registry, Authority Sources, Observation contract, and ingestion
 
 ## Objective
 
-Make source authority, mapping, freshness, and progressive data capture first-class before building broad risk intelligence.
+Make source authority and provenance reliable before building Program conclusions.
 
 ## 2.1 Source Registry
 
-- [ ] source profile aggregate;
-- [ ] owner and custodian;
-- [ ] source type and collection method;
-- [ ] authoritative fields;
-- [ ] explicit limitations;
-- [ ] scope and identifiers;
-- [ ] expected freshness;
-- [ ] health state;
-- [ ] mapping version;
-- [ ] known limitations;
-- [ ] purpose and access policy;
-- [ ] affected-object and conclusion references.
+- [ ] source owner, custodian, type, purpose, scope, identifiers;
+- [ ] authoritative facts and explicit limitations;
+- [ ] freshness, health, collection state, mapping version;
+- [ ] known data-quality issues and unresolved mappings;
+- [ ] dependent Programs, Claims, Conclusions, and Matters.
 
-## 2.2 Observation contract
+## 2.2 Authority Source
 
-- [ ] subject and fact schema;
+- [ ] source types and authenticity states;
+- [ ] issuing authority, jurisdiction, reference, dates, deadlines;
+- [ ] original artifact and hash;
+- [ ] confidentiality, privilege, retention, legal hold;
+- [ ] amendment, supersession, and related-source graph;
+- [ ] provision segmentation and coordinates;
+- [ ] human verification workflow.
+
+## 2.3 Observation contract
+
+- [ ] subject, property, value, units;
 - [ ] source and capture method;
-- [ ] scope and population;
-- [ ] effective and capture time;
-- [ ] original artifact or source reference;
-- [ ] transformation history;
-- [ ] source authority and limitation;
-- [ ] sensitivity;
-- [ ] confidence and confirmation state;
-- [ ] version and provenance.
+- [ ] scope, population, effective and capture time;
+- [ ] original reference and transformation history;
+- [ ] authority, limitations, sensitivity, review, confirmation, and version.
 
-## 2.3 Spreadsheet and CSV ingestion
+## 2.4 Spreadsheet and document ingestion
 
-- [ ] secure upload;
-- [ ] sheet selection;
-- [ ] column detection;
-- [ ] reusable mapping templates;
-- [ ] data-type and required-field validation;
-- [ ] sample preview;
-- [ ] formula and malicious-content controls;
-- [ ] identifier normalization;
-- [ ] duplicate detection;
-- [ ] partial acceptance;
-- [ ] row-level provenance;
-- [ ] reconciliation report;
-- [ ] rollback reference.
+- [ ] upload, sheet selection, column mapping, preview, validation;
+- [ ] malicious formula, macro, hidden content, and active-content policy;
+- [ ] partial acceptance and row provenance;
+- [ ] identifier normalization and reconciliation;
+- [ ] document segmentation and extraction;
+- [ ] rollback and supersession.
 
-## 2.4 Structured capture
+## 2.5 Structured and media capture
 
-- [ ] forms generated from unresolved facts;
-- [ ] controlled values;
-- [ ] scoped searchable dropdowns;
-- [ ] prefilled read-only known values;
-- [ ] redirect and not-applicable state;
-- [ ] partial answer;
-- [ ] final assertion review.
+- [ ] focused forms and controlled values;
+- [ ] redirect, partial, not-applicable, sensitivity states;
+- [ ] photo/scan/audio capture, quality guidance, original preservation, extraction, correction, confirmation;
+- [ ] low-bandwidth and offline decision gate.
 
-## 2.5 Media capture
+## 2.6 Managed sources
 
-- [ ] mobile camera and document scan;
-- [ ] framing and quality guidance;
-- [ ] blur, glare, crop, and readability checks;
-- [ ] metadata and location notice;
-- [ ] redaction or retake where permitted;
-- [ ] original preservation;
-- [ ] extraction region and model lineage;
-- [ ] user confirmation;
-- [ ] bounded visible-attribute claims;
-- [ ] low-bandwidth retry;
-- [ ] offline queue decision gate.
-
-## 2.6 Managed imports and APIs
-
-- [ ] scheduled file ingestion;
-- [ ] SFTP or approved managed transfer;
-- [ ] database export ingestion;
-- [ ] generic API connector boundary;
-- [ ] event envelope boundary;
-- [ ] cursors, versions, idempotency, deletion, and revocation;
-- [ ] source freshness and health updates.
+- [ ] scheduled files, SFTP, database exports;
+- [ ] generic API and event connector boundaries;
+- [ ] cursor, version, idempotency, deletion, revocation, and health.
 
 ## Phase 2 acceptance gate
 
-Demonstrate:
-
-- one ATM spreadsheet import with partial and unresolved rows;
-- one managed or API source;
-- one structured human confirmation;
-- one photo extraction with correction;
-- complete source profiles;
-- row- and artifact-level provenance;
-- and stale-source impact without presenting stale data as current.
+Demonstrate official-source intake, legacy spreadsheet partial import, source profile, document provision lineage, one managed source, one human capture, and visible source degradation.
 
 ---
 
-# Phase 3 — Scope model, Exposure Patterns, channel packs, populations, and Risk Situations
+# Phase 3 — Program engine
 
 ## Objective
 
-Create the minimal connected institutional context needed to present real bank situations without attempting a universal institution graph.
+Build stable continuing compliance before broad Matter automation.
 
-## 3.1 Scope hierarchy
+## 3.1 Program aggregate
 
-- [ ] institution, entity, jurisdiction, region, channel, service, branch, merchant group, vendor, and population;
-- [ ] typed versioned relationships;
-- [ ] ownership and accountable roles;
-- [ ] scope aliases and external identifiers;
-- [ ] point-in-time scope reconstruction;
-- [ ] scope-aware authorization.
+- [ ] identity, purpose, version, state;
+- [ ] governing sources and scope;
+- [ ] owners, reviewers, committees, authority;
+- [ ] calendar and trigger subscriptions;
+- [ ] linked Matters, exceptions, assurance, filings, and history.
 
-## 3.2 Exposure Pattern library
+## 3.2 Requirements and applicability
 
-- [ ] canonical exposure families;
-- [ ] causes and consequences;
-- [ ] common indicators;
-- [ ] common claims;
-- [ ] likely sources;
-- [ ] controls and obligations;
-- [ ] decision thresholds;
-- [ ] verification patterns;
-- [ ] versions and institution overrides.
+- [ ] candidate, interpreted, approved, effective, amended, superseded, withdrawn states;
+- [ ] exact provision lineage;
+- [ ] applicability by entity, licence, jurisdiction, product, channel, activity, system, vendor, population, threshold, and period;
+- [ ] rationale, evidence, assumptions, reviewer, and authority;
+- [ ] bulk review with object-level authorization.
 
-## 3.3 Channel packs
+## 3.3 Controls and policies
 
-- [ ] ATM pack;
-- [ ] selected POS or settlement pack;
-- [ ] capture templates;
-- [ ] initial source mappings;
-- [ ] Evidence Recipes;
-- [ ] situation presentation language;
-- [ ] default visual summaries.
+- [ ] Control Objective and scoped Control Implementation;
+- [ ] policy lifecycle;
+- [ ] owner, performer, reviewer, frequency, automation, dependencies;
+- [ ] Requirement mapping;
+- [ ] design and operating-effectiveness Conclusions;
+- [ ] exceptions and Matter linkage.
 
-## 3.4 Population and matching
+## 3.4 Evidence Contracts and Compliance State
 
-- [ ] population definition and snapshot;
-- [ ] denominator and exclusions;
-- [ ] exact and alias matching;
-- [ ] provisional matches;
-- [ ] unresolved and contradictory states;
-- [ ] merge and unmerge;
-- [ ] human reconciliation;
-- [ ] downstream-impact view;
-- [ ] evaluation dataset.
+- [ ] Claim and Evidence Contract;
+- [ ] evidence search and reuse;
+- [ ] sufficiency dimensions;
+- [ ] contradiction;
+- [ ] refresh schedule and trigger;
+- [ ] multidimensional Compliance State;
+- [ ] concise state with explainable basis.
 
-## 3.5 Risk Situation aggregate
+## 3.5 Review Activity, calendar, KRI, filing, and assurance
 
-- [ ] scope and period;
-- [ ] exposure patterns;
-- [ ] source observations;
-- [ ] affected objects;
-- [ ] change and why-now;
-- [ ] materiality dimensions;
-- [ ] claims and evidence state;
-- [ ] required handling and authority;
-- [ ] action and verification state;
-- [ ] grouping and supersession;
-- [ ] history.
-
-## 3.6 Initial situation creation
-
-- [ ] deterministic situation rules for ATM;
-- [ ] deterministic situation rules for selected POS/settlement scenario;
-- [ ] human create or escalate path;
-- [ ] preserve source observations;
-- [ ] avoid duplicate situations;
-- [ ] dismiss, merge, split, and reopen with reason.
+- [ ] recurring and event-driven Review Activities;
+- [ ] Program calendar;
+- [ ] KRI definitions and values derived from canonical records;
+- [ ] filing/certification requirements and readiness;
+- [ ] first-, second-, and third-line independent Conclusions;
+- [ ] point-in-time package and sign-off.
 
 ## Phase 3 acceptance gate
 
-Demonstrate:
-
-- ATM population with mapped, unresolved, stale, and contradictory records;
-- one bounded ATM Risk Situation;
-- one POS or settlement Risk Situation;
-- reusable exposure patterns;
-- visible source and scope context;
-- no requirement for a dedicated graph database;
-- and point-in-time relationship reconstruction.
+A Program must show source-linked Requirements, applicability, controls, evidence state, calendar, Matters, assurance, and history without duplicating records into separate modules.
 
 ---
 
-# Phase 4 — Claims, Evidence Recipes, evidence requests, reconciliation, and conclusions
+# Phase 4 — Matter, decision, action, response, and verification engine
 
 ## Objective
 
-Implement the complete minimum-question evidence loop on top of the source and situation foundation.
+Provide one governed mechanism for changes, gaps, findings, incidents, exceptions, and authority work.
 
-## 4.1 Claims and recipes
+## 4.1 Matter aggregate
 
-- [ ] versioned Claim;
-- [ ] Evidence Recipe;
-- [ ] required facts;
-- [ ] acceptable source types;
-- [ ] source-authority limits;
-- [ ] freshness and coverage;
-- [ ] independence and contradiction rules;
-- [ ] materiality-sensitive policy;
-- [ ] review and approval requirements.
+- [ ] typed Matter lifecycle;
+- [ ] source, scope, period, materiality, affected objects;
+- [ ] owner, authority, deadlines, escalation;
+- [ ] evidence, communications, Decisions, Actions, Response Packages, Verification, and history;
+- [ ] create/update/merge/split/reopen/supersede behavior.
 
-## 4.2 Observation-to-claim evaluation
+## 4.2 Decision and approval
 
-- [ ] supports;
-- [ ] partially supports;
-- [ ] contradicts;
-- [ ] limits;
-- [ ] duplicates;
-- [ ] supersedes;
-- [ ] irrelevant;
-- [ ] unverifiable;
-- [ ] pending review.
+- [ ] options and trade-offs;
+- [ ] authority and segregation of duties;
+- [ ] challenge, dissent, conditional approval, reject, request evidence;
+- [ ] emergency authority and later review;
+- [ ] expiry and invalidation.
 
-## 4.3 Sufficiency
+## 4.3 Action and external execution
 
-- [ ] relevance;
-- [ ] authenticity;
-- [ ] coverage;
-- [ ] freshness;
-- [ ] independence;
-- [ ] completeness;
-- [ ] consistency;
-- [ ] reliability;
-- [ ] traceability;
-- [ ] explainable policy result;
-- [ ] override and challenge.
+- [ ] action plans and dependencies;
+- [ ] ClearSight and external task adapters;
+- [ ] idempotent writes and reconciliation;
+- [ ] implementation evidence;
+- [ ] partial failure and compensation.
 
-## 4.4 Contradiction and data-quality debt
+## 4.4 Verification
 
-- [ ] contradiction records;
-- [ ] identity, temporal, scope, and factual conflict;
-- [ ] effect on conclusions and situations;
-- [ ] resolver workflow;
-- [ ] evidence debt;
-- [ ] data-quality debt;
-- [ ] source-degradation propagation.
+- [ ] outcome, baseline, population, source, threshold, period, acceptance, failure response;
+- [ ] implemented versus awaiting verification;
+- [ ] successful, ineffective, and indeterminate outcomes;
+- [ ] reopening and risk/Program update.
 
-## 4.5 Best-source and minimum-question resolver
+## 4.5 Response Package
 
-- [ ] search existing authorized observations;
-- [ ] candidate-source registry;
-- [ ] rank authority, directness, independence, freshness, coverage, burden, sensitivity, conflict, and response time;
-- [ ] preserve rationale;
-- [ ] human correction;
-- [ ] generate minimum structured question;
-- [ ] prefill context;
-- [ ] select channel;
-- [ ] estimate effort;
-- [ ] deduplicate and cancel overlapping requests.
-
-## 4.6 Evidence request lifecycle
-
-- [ ] drafted;
-- [ ] policy checked;
-- [ ] delivered;
-- [ ] viewed;
-- [ ] partially answered;
-- [ ] redirected;
-- [ ] not applicable;
-- [ ] validating;
-- [ ] follow-up required;
-- [ ] sufficient;
-- [ ] declined;
-- [ ] expired;
-- [ ] cancelled.
-
-## 4.7 Conclusion
-
-- [ ] supported, partial, unsupported, contradicted, indeterminate, expired, not applicable;
-- [ ] included and excluded evidence;
-- [ ] assumptions;
-- [ ] authority;
-- [ ] valid period;
-- [ ] supersession;
-- [ ] invalidation and reopening.
+- [ ] purpose, recipient, scope, directive coverage;
+- [ ] included/excluded evidence and redaction;
+- [ ] preparer, reviewer, approver, signatory;
+- [ ] transmission, acknowledgement, retention, manifest;
+- [ ] response completion distinct from accepted closure.
 
 ## Phase 4 acceptance gate
 
-Pass ATM and POS journeys where:
-
-- existing evidence is searched first;
-- only unresolved records are requested;
-- photo, spreadsheet, API, and human observations remain distinct;
-- source limitations are visible;
-- contradiction blocks or qualifies conclusion;
-- and no upload or response alone produces sufficiency.
+Pass a legacy finding from import through assignment, evidence, action, failed and successful verification, and historical reconstruction.
 
 ---
 
-# Phase 5 — Decisions, authority, external action, and verification
+# Phase 5 — NDPA continuous-compliance vertical slice
 
 ## Objective
 
-Turn evidence-backed situations into authorized decisions, executable work, and observable outcomes.
+Prove that ClearSight can keep a complex regulatory Program current with less manual reconstruction.
 
-## 5.1 Decision aggregate
+## 5.1 Source and Requirement foundation
 
-- [ ] context and scope;
-- [ ] conclusion and evidence;
-- [ ] uncertainty and contradiction;
-- [ ] options;
-- [ ] expected effects and limitations;
-- [ ] cost, dependencies, timing, reversibility, and customer impact;
-- [ ] selection and rationale;
-- [ ] authority and segregation of duties;
-- [ ] dissent and override;
-- [ ] conditions, expiry, and review triggers;
-- [ ] supersession.
+- [ ] approved NDPA/NDPC source versions and exact provisions;
+- [ ] imported checklist reconciled as secondary working records;
+- [ ] Requirements, applicability, controls, Evidence Contracts, owners, and calendar.
 
-## 5.2 Approval and challenge
+## 5.2 ROPA
 
-- [ ] sequential and parallel approval;
-- [ ] challenge and request-more-evidence;
-- [ ] conditional approval;
-- [ ] rejection;
-- [ ] delegation;
-- [ ] emergency authority with later review;
-- [ ] context-change invalidation;
-- [ ] action-time authority re-evaluation.
+- [ ] processing-activity population;
+- [ ] applications, processes, purpose, lawful basis, data categories, subjects, recipients, systems, vendors, location, transfer, retention, owner;
+- [ ] prefill from approved sources;
+- [ ] focused owner confirmation;
+- [ ] stale and changed-activity triggers;
+- [ ] completeness and evidence state.
 
-## 5.3 Action plan
+## 5.3 DPIA
 
-- [ ] owner and accountable role;
-- [ ] tasks and dependencies;
-- [ ] due dates and escalation;
-- [ ] implementation evidence;
-- [ ] generic external-task adapter;
-- [ ] idempotent writes and reconciliation;
-- [ ] partial failure and compensation;
-- [ ] state separate from verification.
+- [ ] project, process-change, vendor, AI/model, sensitive-data, and cross-border triggers;
+- [ ] screening with prefilled context;
+- [ ] DPO decision and rationale;
+- [ ] full DPIA, risks, remediation, approval, go-live gate;
+- [ ] post-deployment verification.
 
-## 5.4 Verification Contract
+## 5.4 Vendors, rights, consent, retention, and transfers
 
-- [ ] observable outcome;
-- [ ] baseline;
-- [ ] population and scope;
-- [ ] measurement source;
-- [ ] success and failure threshold;
-- [ ] observation period;
-- [ ] required evidence;
-- [ ] acceptance authority;
-- [ ] failure response.
+- [ ] processor inventory and DPA evidence;
+- [ ] due diligence and recurring review;
+- [ ] data-subject request workflows;
+- [ ] consent and notice evidence;
+- [ ] retention/deletion Claims;
+- [ ] cross-border transfer register and legal basis.
 
-## 5.5 Verification runtime
+## 5.5 Breach Matter
 
-- [ ] begin after valid implementation evidence;
-- [ ] collect outcome observations;
-- [ ] evaluate contract;
-- [ ] route ambiguous result;
-- [ ] verified effective, ineffective, indeterminate, or incomplete;
-- [ ] reopen or reclassify situation;
-- [ ] preserve projected-versus-observed result;
-- [ ] avoid causal overclaim.
+- [ ] detection and awareness times;
+- [ ] affected data, systems, subjects, and impact;
+- [ ] reportability and notification Decisions;
+- [ ] deadlines, communications, evidence, remediation, verification.
+
+## 5.6 Annual filing
+
+- [ ] filing Requirement and deadline;
+- [ ] evidence readiness by dimension;
+- [ ] unresolved exceptions and included/excluded records;
+- [ ] reviewers, signatory, submission, acknowledgement;
+- [ ] point-in-time package.
 
 ## Phase 5 acceptance gate
 
-Pass scenarios where:
-
-- an unauthorized owner cannot approve;
-- context change expires a decision;
-- an external ticket can complete while verification remains open;
-- failed outcome evidence reopens the situation;
-- green appears only after accepted verification;
-- and the full decision is reconstructable.
+Demonstrate that ROPA, DPIA, vendor, breach, and filing views derive from one Program and targeted triggers rather than separate workbooks and annual blanket campaigns.
 
 ---
 
-# Phase 6 — Situation-first product experience
+# Phase 6 — Regulatory change and External Authority Workbench
 
 ## Objective
 
-Deliver the calm, direct interface for executives, specialists, operational users, and evidence respondents.
+Turn authority communications into correct, source-linked Programs and Matters.
 
-## 6.1 Design system
+## 6.1 Authority Inbox
 
-- [ ] tokens and themes;
-- [ ] comfortable and compact density;
-- [ ] typography and numeric formats;
-- [ ] accessibility primitives;
-- [ ] protected treatment;
-- [ ] state system;
-- [ ] Storybook or equivalent;
-- [ ] visual regression.
+- [ ] monitored or uploaded sources;
+- [ ] authenticity and work-class triage;
+- [ ] final/draft/amendment/guidance/supervisory/enforcement classification;
+- [ ] deadline and confidentiality;
+- [ ] assignment and duplicate detection.
 
-## 6.2 Application shell
+## 6.2 Regulatory Change Compiler
 
-- [ ] Today;
-- [ ] Situation;
-- [ ] Capture;
-- [ ] Explore;
-- [ ] Configure;
-- [ ] role simplification;
-- [ ] scope/context header;
-- [ ] keyboard navigation;
-- [ ] global command surface without chat dominance.
+- [ ] provision segmentation;
+- [ ] Directive Atom extraction;
+- [ ] modality, actor, action, object, condition, threshold, frequency, deadline, exception;
+- [ ] source-linked review;
+- [ ] applicability proposal and approval;
+- [ ] existing-control reconciliation;
+- [ ] Program update and implementation Matters;
+- [ ] Evidence Contracts, tests, and readiness;
+- [ ] amendment and supersession propagation.
 
-## 6.3 Today
+## 6.3 Supervisory Matters
 
-- [ ] role-aware situation ranking;
-- [ ] three-to-seven default items;
-- [ ] evidence, decision, action, verification, and deadline states;
-- [ ] no-material-change state;
-- [ ] expanded analyst mode;
-- [ ] acknowledgement and delegation;
-- [ ] notification grouping.
+- [ ] finding and institution-specific expectation;
+- [ ] management response;
+- [ ] commitments and milestones;
+- [ ] evidence and committee oversight;
+- [ ] response package and effectiveness verification.
 
-## 6.4 Situation workspace
+## 6.4 Authority Request Cases
 
-- [ ] Summary;
-- [ ] Evidence;
-- [ ] Decision;
-- [ ] Action;
-- [ ] Outcome;
-- [ ] History;
-- [ ] relationship path;
-- [ ] point-in-time control;
-- [ ] accessible textual equivalents.
-
-## 6.5 Operational work surfaces
-
-- [ ] population worklist;
-- [ ] reconciliation compare view;
-- [ ] bulk action review;
-- [ ] spreadsheet mapper;
-- [ ] import summary;
-- [ ] Source Profile;
-- [ ] source degraded state;
-- [ ] photo capture and extraction review;
-- [ ] controlled-value form.
-
-## 6.6 Responsive and degraded modes
-
-- [ ] tablet executive and meeting use;
-- [ ] mobile capture;
-- [ ] low bandwidth;
-- [ ] resumable upload;
-- [ ] offline queue where approved;
-- [ ] AI unavailable;
-- [ ] source unavailable;
-- [ ] 200% zoom;
-- [ ] multilingual expansion.
+- [ ] protected intake and legal-instrument review;
+- [ ] subject/account/transaction resolution with ambiguity handling;
+- [ ] directives and requested periods;
+- [ ] legal hold and disclosure authority;
+- [ ] KYC/address/records/AML/fraud/branch/technology/legal tasks;
+- [ ] reportability and high-impact Decisions;
+- [ ] Response Package, transmission, acknowledgement, retention;
+- [ ] minimized KRI and systemic-signal output.
 
 ## Phase 6 acceptance gate
 
-Users must demonstrate:
-
-- executive comprehension in under 60 seconds;
-- branch evidence completion with no GRC-code knowledge;
-- ATM and POS population reconciliation;
-- safe bulk action;
-- correct scope before approval;
-- full keyboard operation;
-- and clear implementation-versus-verification state.
+Pass one CBN publication and one protected authority request through complete source, decision, evidence, action/response, acknowledgement, and history paths without unauthorized automation.
 
 ---
 
-# Phase 7 — Materiality, AI compiler, and natural-language inquiry
+# Phase 7 — Product experience implementation
 
 ## Objective
 
-Add broader intelligence only after source trust, situations, evidence, decision, and verification work deterministically.
+Deliver the calm task-oriented interface defined in the experience principles.
 
-## 7.1 Materiality service
+## Work
 
-- [ ] contextual enrichment;
-- [ ] appetite and tolerance;
-- [ ] affected customers and critical services;
-- [ ] evidence and data-quality debt;
-- [ ] velocity and time sensitivity;
-- [ ] concentration and dependency;
-- [ ] grouping with alternatives;
-- [ ] decision relevance;
-- [ ] structured explanation;
-- [ ] human override;
-- [ ] false-positive and missed-item feedback.
-
-## 7.2 Model gateway
-
-- [ ] provider adapters;
-- [ ] model registry and allowlists;
-- [ ] classification- and residency-aware routing;
-- [ ] cost, latency, and context budgets;
-- [ ] fallback and kill switch;
-- [ ] invocation telemetry.
-
-## 7.3 AI compiler capabilities
-
-Implement in this order:
-
-- [ ] spreadsheet and document extraction;
-- [ ] photo and scan extraction;
-- [ ] normalization and candidate mapping;
-- [ ] duplicate and contradiction suggestion;
-- [ ] focused request drafting;
-- [ ] situation explanation;
-- [ ] executive summarization;
-- [ ] option and verification drafting;
-- [ ] broader risk intelligence only after evaluation.
-
-## 7.4 Operator governance
-
-- [ ] operator identity and purpose;
-- [ ] tool registry and action classes;
-- [ ] structured output and validation;
-- [ ] grounding and source versions;
-- [ ] authorization and approval;
-- [ ] prompt-injection defense;
-- [ ] evaluation datasets;
-- [ ] abstention;
-- [ ] release gates and rollback.
-
-## 7.5 Natural-language inquiry
-
-- [ ] scope-aware query planning;
-- [ ] authorized retrieval;
-- [ ] source and period display;
-- [ ] contradiction and missing-information display;
-- [ ] transition to structured action;
-- [ ] manual fallback.
+- [ ] design system, semantic tokens, density, accessibility, light/dark;
+- [ ] Today;
+- [ ] Programs overview, Requirement/control/evidence tables, calendar, assurance, history;
+- [ ] Work queue and Matter workspace;
+- [ ] ROPA, DPIA, filing, regulatory split review, protected authority case;
+- [ ] capture/respond surfaces;
+- [ ] source profile, spreadsheet mapper, reconciliation, contradiction, population worklists;
+- [ ] decision, response, and verification;
+- [ ] command surface as secondary interaction;
+- [ ] localization, low bandwidth, degraded state, meeting mode.
 
 ## Phase 7 acceptance gate
 
-No AI capability reaches production unless:
-
-- structured output validates;
-- explicit, extracted, inferred, confirmed, and approved values remain distinct;
-- source lineage is complete;
-- protected and cross-tenant leakage tests pass;
-- abstention works;
-- material action remains human-governed;
-- and deterministic manual operation remains available.
+Representative compliance, business, DPO, legal, executive, audit, branch, and evidence users must complete core journeys without navigating architecture-oriented modules.
 
 ---
 
-# Phase 8 — Protected reporting and external signal intake
+# Phase 8 — Governed AI, materiality, and intelligent assistance
 
 ## Objective
 
-Create isolated, secure, low-friction reporting without making the main product a full investigation platform.
+Add evaluated intelligence only after source, Program, Matter, evidence, and authority foundations exist.
 
-## 8.1 External portal
+## Work
 
-- [ ] isolated deployment boundary;
-- [ ] anonymous and identified modes;
-- [ ] multilingual and accessible intake;
-- [ ] low-bandwidth support;
-- [ ] rate limiting and abuse controls;
-- [ ] secure upload.
-
-## 8.2 Protected case and identity
-
-- [ ] protected case-content boundary;
-- [ ] separate identity vault;
-- [ ] pseudonymous case identity;
-- [ ] reveal policy and workflow;
-- [ ] conflict-aware access;
-- [ ] restricted search, analytics, logs, backup, and export;
-- [ ] immutable privileged access events.
-
-## 8.3 Anonymous communication
-
-- [ ] high-entropy case token;
-- [ ] secure verifier;
-- [ ] reporter inbox;
-- [ ] investigator message;
-- [ ] attachment exchange;
-- [ ] anonymity-preserving notification options;
-- [ ] token-loss guidance.
-
-## 8.4 Sanitized risk escalation
-
-- [ ] allegation-versus-fact model;
-- [ ] investigator validation;
-- [ ] minimized risk signal;
-- [ ] no identity or identifying metadata;
-- [ ] approved link to Risk Situation;
-- [ ] chain of custody;
-- [ ] AI protected route.
+- [ ] model gateway, routing, residency, cost/latency, fallback, kill switch;
+- [ ] operator registry and versioned structured outputs;
+- [ ] authorization-aware retrieval;
+- [ ] source and provision extraction;
+- [ ] Requirement and applicability proposal;
+- [ ] mapping and reconciliation;
+- [ ] focused evidence-question generation;
+- [ ] Matter grouping and materiality explanation;
+- [ ] executive and filing summaries;
+- [ ] action and response drafting;
+- [ ] evaluation datasets from sanitized bank workflows;
+- [ ] prompt injection, leakage, abstention, malformed output, provider failure, regression, and outcome monitoring.
 
 ## Phase 8 acceptance gate
 
-Prove that:
-
-- identity and protected content cannot leak through ordinary search, counts, logs, export, AI, or graph traversal;
-- a conflicted investigator cannot access the case;
-- anonymous communication works;
-- AI does not profile credibility;
-- and only sanitized validated context enters ordinary Risk Situations.
+No capability reaches production without exact source lineage, structured validation, zero critical authorization leakage in tests, appropriate abstention, human authority gates, monitoring, and rollback.
 
 ---
 
-# Phase 9 — Enterprise integration and execution fabric
+# Phase 9 — Enterprise integrations and legacy migration
 
 ## Objective
 
-Expand connectors and execution engines without allowing external systems to become authoritative for ClearSight conclusions.
+Scale from pilot sources while preserving one canonical model.
 
-## 9.1 Integration SDK
+## Priority connectors
 
-- [ ] connector identity and secrets;
-- [ ] source profile binding;
-- [ ] external object mapping;
-- [ ] cursor and version;
-- [ ] idempotent ingest and write;
-- [ ] retry, replay, partial failure, and reconciliation;
-- [ ] source health and freshness;
-- [ ] deletion and revocation;
-- [ ] connector test harness.
-
-## 9.2 Priority connectors
-
-Choose by pilot need:
-
-- [ ] IAM;
-- [ ] HR;
-- [ ] ITSM/change;
-- [ ] switch or channel monitoring;
-- [ ] asset or CMDB;
-- [ ] document repository;
+- [ ] document and regulatory-source repositories;
+- [ ] IAM and HR;
+- [ ] ITSM/change/project systems;
+- [ ] CMDB, asset, and enterprise architecture;
 - [ ] vendor/procurement;
-- [ ] complaints or CRM;
-- [ ] incident platform;
-- [ ] data warehouse.
+- [ ] complaints/CRM;
+- [ ] incident and loss systems;
+- [ ] core customer/KYC and records platforms for protected authority workflows;
+- [ ] security and service telemetry;
+- [ ] data warehouse and reporting.
 
-## 9.3 Probo or execution-engine adapter
+## Legacy migration
 
-- [ ] server-controlled tenant mapping;
-- [ ] selected control, task, evidence, finding, vendor, and audit mappings;
-- [ ] source IDs and versions;
-- [ ] scoped writes;
-- [ ] no broad token exposure to models;
-- [ ] completion reconciled as implementation state;
-- [ ] final conclusion remains in ClearSight.
+- [ ] source inventory and workbook classification;
+- [ ] mapping templates;
+- [ ] duplicate Requirement, control, vendor, asset, Matter, and evidence detection;
+- [ ] unresolved mapping queues;
+- [ ] provenance and import version;
+- [ ] parallel run and reconciliation;
+- [ ] familiar register/workplan/KRI exports;
+- [ ] rollback and archive strategy.
 
 ## Phase 9 acceptance gate
 
-- duplicate events produce no duplicate objects;
-- permission revocation propagates;
-- partial failure remains visible;
-- external completion cannot close a situation;
-- source authority and version remain visible;
-- and operators cannot exceed integration scope.
+A legacy register can be retired without loss of source lineage, familiar reporting, history, ownership, or control evidence.
 
 ---
 
-# Phase 10 — Domain and assurance expansion
+# Phase 10 — Assurance, scale, security review, and general availability
 
 ## Objective
 
-Expand through reusable channel packs, exposure patterns, claims, sources, decisions, and verification—not disconnected modules.
+Validate enterprise reliability, performance, privacy, assurance, and operations.
 
-Candidate expansions:
+## Work
 
-- operational resilience;
-- third-party and concentration risk;
-- cyber and technology risk;
-- regulatory change and compliance;
-- incidents, losses, complaints, and near misses;
-- policy and control assurance;
-- model and AI risk;
-- audit and examination;
-- board and regulatory packages.
+- [ ] control testing, samples, independence, findings, audit planning, examiner evidence rooms;
+- [ ] board and regulatory packages;
+- [ ] load tests for Requirements, Programs, populations, imports, search, Matters, evidence, and exports;
+- [ ] backup, restore, workflow recovery, replay, source/model outage, projection rebuild, regional failure;
+- [ ] penetration, tenant isolation, protected-case, supply-chain, key rotation, incident-response review;
+- [ ] retention, deletion, legal hold, data residency, provider governance;
+- [ ] dedicated-tenant production pattern, then other deployment modes based on demand;
+- [ ] onboarding, support, runbooks, release, rollback, status, and product analytics.
 
-Each expansion MUST:
+## General-availability gate
 
-- reuse Scope, Exposure Pattern, Risk Situation, Claim, Evidence Recipe, Observation, Decision, and Verification;
-- declare source authority;
-- define population and matching;
-- use the Situation workspace;
-- include degraded and point-in-time behavior;
-- and avoid creating a new top-level module unless user research proves it necessary.
+Require:
 
----
-
-# Phase 11 — Scale, resilience, certification, migration, and general availability
-
-## 11.1 Performance
-
-- signal and observation ingestion;
-- spreadsheet and media processing;
-- population and reconciliation queries;
-- Today and Situation latency;
-- authorized search and projections;
-- workflow backlog recovery;
-- audit and export scale;
-- model cost and latency;
-- cost per tenant or deployment.
-
-## 11.2 Reliability
-
-- database backup and restore;
-- object-store recovery;
-- message replay;
-- workflow recovery;
-- source outage;
-- model outage;
-- regional failure;
-- offline-capture recovery;
-- projection rebuild.
-
-## 11.3 Security and privacy
-
-- penetration test;
-- tenant and entity isolation;
-- protected-report assessment;
-- mobile and offline assessment;
-- supply-chain security;
-- secret and key rotation;
-- incident-response runbooks;
-- retention, deletion, and legal-hold tests;
-- residency and model-provider controls.
-
-## 11.4 Deployment
-
-Productize deployment modes only as demand requires:
-
-1. dedicated cloud tenancy first;
-2. multi-tenant SaaS where appropriate;
-3. private cloud or on-premises after operational evidence;
-4. hybrid evidence plane and customer-managed keys where required.
-
-## 11.5 Migration
-
-- source inventory;
-- source profiles;
-- mapping templates;
-- duplicate and conflict handling;
-- historical evidence import;
-- situation reconstruction;
-- authority import;
-- parallel run;
-- reconciliation, acceptance, and rollback.
-
-## General availability gate
-
-Requires:
-
-- selected golden journeys passing;
+- all selected Program and Matter golden journeys passing;
 - no unresolved critical isolation or protected-data defect;
 - tested backup and recovery;
-- AI and source degraded-mode operation;
 - approved SLOs and runbooks;
-- accessible and localized critical journeys;
-- and pilot evidence that ClearSight reduces effort while strengthening data quality, evidence, decisions, and verified outcomes.
+- independent security review;
+- pilot evidence of reduced effort and stronger evidence;
+- and no material product-invariant regression.
 
 ---
 
-# 5. Program metrics
+# 5. Program-level success measures
 
-## Human effort
+## Continuous compliance
 
-- active time per accepted evidence item;
-- questions per request;
-- duplicate requests avoided;
-- redirected requests;
-- manual reconciliation time;
-- spreadsheet mapping reuse;
-- and branch completion rate.
+- Requirements with approved source and applicability;
+- evidence current and sufficient by materiality;
+- time spent preparing filings, certifications, and audits;
+- targeted refresh versus blanket questionnaire volume;
+- exceptions and overdue obligations;
+- assurance conclusion reversals.
 
-## Source and data quality
+## Regulatory change
 
-- source freshness;
+- publication to triage, approved interpretation, applicability, implementation plan, and evidenced control;
+- missed or duplicate Requirements;
+- reviewer edit and rejection rate;
+- source-lineage completeness.
+
+## Authority cases
+
+- receipt to legal triage and response;
+- directives fully reconciled to evidence;
+- ambiguous subject matches;
+- unauthorized action or disclosure attempts;
+- response acknowledgement and retention completeness.
+
+## Legacy workflow reduction
+
+- spreadsheets retired;
+- duplicate records and requests avoided;
+- comment/email rerouting replaced by structured assignment;
+- manual dashboard and committee preparation eliminated;
+- canonical records reused across Program, Matter, KRI, assurance, and reporting views.
+
+## Decision and verification
+
+- time to accountable decision;
+- actions awaiting verification;
+- failed or indeterminate verification;
+- reopened Matters;
+- projected versus observed outcomes.
+
+## Trust
+
+- source freshness and health;
 - unresolved mappings;
-- duplicate identifiers;
-- partially accepted imports;
-- source-health incidents;
-- stale conclusions;
-- and correction rate.
-
-## Situation quality
-
-- material situations later dismissed as noise;
-- material situations detected late;
-- duplicate situations;
-- average executive situation count;
-- time from observation to accountable handling;
-- and context-switch errors.
-
-## Evidence
-
-- material claims with sufficient evidence;
-- unresolved contradiction;
-- evidence debt;
-- unnecessary human requests;
-- conclusion reversal;
-- and source reuse.
-
-## Decision and outcome
-
-- time to decision;
-- decisions returned for evidence;
-- expired decisions;
-- verification failure;
-- reopened situations;
-- and projected-versus-observed effect.
-
-## AI trust
-
-- source-lineage completeness;
-- unsupported assertion rate;
-- extraction correction rate;
-- abstention quality;
-- unauthorized-action attempt;
-- protected-data leakage tests;
-- latency;
-- and cost.
-
-## Experience
-
-- executive comprehension time;
-- capture completion;
-- import resolution time;
-- keyboard and screen-reader success;
-- visual-regression defects;
-- zoom and localization defects;
-- and performance-budget adherence.
+- evidence-chain integrity;
+- point-in-time reconstruction time;
+- unauthorized or out-of-scope AI and user actions;
+- protected-data leakage tests.
 
 ---
 
-# 6. Work that must not be pulled forward prematurely
-
-Avoid early expansion into:
-
-- institution-wide ontology completeness;
-- dozens of frameworks;
-- broad report catalogues;
-- generic form builders;
-- dashboard marketplaces;
-- extensive user-configurable layouts;
-- dedicated graph infrastructure without benchmarks;
-- many microservices;
-- autonomous material decisions;
-- all deployment modes;
-- or full replacement of specialist systems.
-
-These can consume delivery capacity while source trust, capture, situations, decisions, and verification remain incomplete.
-
----
-
-# 7. Completion standard
+# 6. Completion standard
 
 A milestone is complete only when:
 
-- a real bank situation is exercised;
-- scope and source authority are explicit;
-- observations remain traceable;
-- unresolved and contradictory data are visible;
-- the correct interaction form is used;
+- real Program or Matter behavior works through application boundaries;
+- source and evidence lineage are complete;
 - authority and privacy are enforced;
+- data-quality limitations remain visible;
+- human effort is measurably reduced;
 - failure and degraded modes work;
-- AI behavior is evaluated where used;
-- accessibility and visual standards pass;
-- and the outcome can be evaluated against a defined verification contract.
+- visual and accessibility standards pass;
+- and the resulting decision, response, filing, or remediation can be reconstructed and verified.
 
-The core product is not finished until ClearSight can:
+The product’s defining test is:
 
-> receive imperfect bank data through realistic channels, show what can and cannot be trusted, create one understandable risk situation, ask only for missing facts, route the right decision, coordinate action, verify the defined outcome, and reconstruct the full history later.
+> Can ClearSight maintain a continuing compliance position, detect what changed, ask only for missing proof, route the correct authorized work, produce a defensible response or implementation, and preserve the outcome without forcing users to rebuild or reconcile multiple registers?
+
+Until the answer is yes, the core product is not complete.
