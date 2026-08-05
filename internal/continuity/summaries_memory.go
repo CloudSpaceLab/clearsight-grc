@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 func (r *MemoryRepository) ListProgramSummaries(_ context.Context, tenant string, query SummaryQuery) (ProgramSummaryPage, error) {
@@ -61,15 +63,19 @@ func (r *MemoryRepository) ListProgramSummaries(_ context.Context, tenant string
 	return page, nil
 }
 
-func (r *MemoryRepository) ListMatterSummaries(_ context.Context, tenant string, query SummaryQuery) (MatterSummaryPage, error) {
+func (r *MemoryRepository) ListMatterSummaries(ctx context.Context, tenant string, query SummaryQuery) (MatterSummaryPage, error) {
 	cursor, err := decodeMatterSummaryCursor(query.Cursor)
 	if err != nil {
 		return MatterSummaryPage{}, err
 	}
 	search := strings.ToLower(query.Search)
+	actor, enforceVisibility := identity.FromContext(ctx)
 	r.mu.RLock()
 	values := make([]MatterSummary, 0, len(r.matters[tenant]))
 	for _, aggregate := range r.matters[tenant] {
+		if enforceVisibility && (aggregate.Matter.TenantID != actor.TenantID || !MatterVisibleTo(aggregate.Matter, actor.PrincipalID)) {
+			continue
+		}
 		if query.Status == "OPEN" && (aggregate.Matter.Status == MatterClosed || aggregate.Matter.Status == MatterCancelled) {
 			continue
 		}

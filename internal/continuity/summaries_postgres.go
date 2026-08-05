@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"strings"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant string, query SummaryQuery) (ProgramSummaryPage, error) {
@@ -107,6 +109,11 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 	}
 	limit := boundedLimit(query.Limit)
 	hasCursor := cursor.ID != ""
+	actor, enforceVisibility := identity.FromContext(ctx)
+	principalID := ""
+	if enforceVisibility {
+		principalID = actor.PrincipalID
+	}
 	rows, err := r.pool.Query(ctx, `
 		SELECT
 			m.id::text,t.slug,m.reference,m.matter_type,m.status,m.priority,m.title,m.summary,m.scope,
@@ -130,11 +137,26 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 		  AND ($2='' OR ($2='OPEN' AND m.status NOT IN ('CLOSED','CANCELLED')) OR m.status=$2)
 		  AND ($3='' OR m.search_document @@ websearch_to_tsquery('simple'::regconfig,$3))
 		  AND (
-			NOT $4 OR m.priority < $5 OR
-			(m.priority = $5 AND (m.updated_at < $6 OR (m.updated_at = $6 AND m.id < NULLIF($7,'')::uuid)))
+			NOT $4 OR (
+				NOT (m.scope ? 'access') OR
+				upper(COALESCE(m.scope->>'access','')) IN ('PUBLIC','INTERNAL') OR
+				(
+					upper(COALESCE(m.scope->>'access',''))='RESTRICTED' AND
+					jsonb_typeof(m.scope->'allowed_principal_ids')='array' AND
+					EXISTS (
+						SELECT 1
+						FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') allowed(principal_id)
+						WHERE allowed.principal_id=$5
+					)
+				)
+			)
+		  )
+		  AND (
+			NOT $6 OR m.priority < $7 OR
+			(m.priority = $7 AND (m.updated_at < $8 OR (m.updated_at = $8 AND m.id < NULLIF($9,'')::uuid)))
 		  )
 		ORDER BY m.priority DESC,m.updated_at DESC,m.id DESC
-		LIMIT $8`, tenant, query.Status, query.Search, hasCursor, cursor.Priority, cursor.UpdatedAt, cursor.ID, limit+1)
+		LIMIT $10`, tenant, query.Status, query.Search, enforceVisibility, principalID, hasCursor, cursor.Priority, cursor.UpdatedAt, cursor.ID, limit+1)
 	if err != nil {
 		return MatterSummaryPage{}, err
 	}
