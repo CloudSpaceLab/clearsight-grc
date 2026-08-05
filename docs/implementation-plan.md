@@ -102,8 +102,9 @@ Checkboxes describe repository status, not production readiness.
 - [x] point-in-time Program/Matter reconstruction.
 - [x] PostgreSQL projections, continuity event stream and outbox delivery.
 - [x] Programs and Issues/Changes user surfaces with plain-language state labels.
-- [ ] authenticated actor binding and automatic authority checks on every material command.
-- [ ] projection-first high-cardinality list/read model and performance baselines.
+- [x] gateway-signed request actor binding and automatic authority checks on material Program/Matter commands.
+- [x] projection-first high-cardinality summaries, indexed search, keyset pagination and lazy detail loading.
+- [x] separately versioned Program-status maintenance with health, reconciliation and governed rebuild.
 - [ ] bulk Program setup and controlled configuration-change workflow.
 
 ## Phase 4 — Initial bank verticals
@@ -118,7 +119,7 @@ Checkboxes describe repository status, not production readiness.
 Every completed item still requires relevant authorization, invitation, source, performance, recovery, accessibility and workload tests before production release.
 
 - [x] Projection-first Program and Matter summaries, indexed search, keyset pagination and lazy detail loading.
-- [ ] Representative 100,000-row p95/p99 release evidence and retained query plans.
-
 - [x] Signed request actor binding and authority checks for material Program/Matter commands.
-- [x] Separately versioned Program-status maintenance with health, reconcile and rebuild operations.
+- [x] Separately versioned Program-status maintenance with health, reconciliation and governed rebuild operations.
+- [ ] Direct enterprise identity-provider integration, gateway key rotation and organization synchronization.
+- [ ] Representative 100,000-row p95/p99 release evidence and retained query plans.
