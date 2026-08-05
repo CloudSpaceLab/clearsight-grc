@@ -8,4 +8,9 @@ new = '''    '{activeView === "today" && <TodayView items={items} dueSoon={dueSo
     '{activeView === "today" && <TodayView items={items} dueSoon={dueSoon} connection={connection} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onRouting={inspectRouting} onCapture={openCapture}/>}','''
 if old not in text:
     raise SystemExit("Today transform definition changed")
-path.write_text(text.replace(old, new, 1))
+text = text.replace(old, new, 1)
+anchor = 's = replace_once(s, configure_decl, configure_replacement, "ConfigureView declaration")\np.write_text(s)'
+replacement = 's = replace_once(s, configure_decl, configure_replacement, "ConfigureView declaration")\ns = s.replace("readinessState: LoadState; onRouting", "readinessState: Exclude<LoadState, \\\"idle\\\">; onRouting", 1)\np.write_text(s)'
+if anchor not in text:
+    raise SystemExit("TodayView contract insertion anchor changed")
+path.write_text(text.replace(anchor, replacement, 1))
