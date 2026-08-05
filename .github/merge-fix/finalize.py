@@ -7,13 +7,13 @@ old = """\tvar driftValue any
 \t\tdriftValue = drift
 \t}
 \thttpx.WriteJSON(w, http.StatusAccepted, map[string]any{\"inserted\": inserted, \"drift\": driftValue})"""
-new = """\tvar driftValue *autonomy.DriftAssessment
+new = """\tvar driftValue *autonomy.Drift
 \tif inserted {
 \t\tdriftValue = &drift
 \t}
 \thttpx.WriteJSON(w, http.StatusAccepted, struct {
-\t\tInserted bool                      `json:\"inserted\"`
-\t\tDrift    *autonomy.DriftAssessment `json:\"drift\"`
+\t\tInserted bool            `json:\"inserted\"`
+\t\tDrift    *autonomy.Drift `json:\"drift\"`
 \t}{Inserted: inserted, Drift: driftValue})"""
 if old not in value:
     raise SystemExit("signal response block not found")
@@ -35,8 +35,8 @@ old = """\t\tif attempt == 1 {
 \t\t}"""
 new = """\t\tif attempt == 1 {
 \t\t\tvar body struct {
-\t\t\t\tInserted bool                      `json:\"inserted\"`
-\t\t\t\tDrift    *autonomy.DriftAssessment `json:\"drift\"`
+\t\t\t\tInserted bool            `json:\"inserted\"`
+\t\t\t\tDrift    *autonomy.Drift `json:\"drift\"`
 \t\t\t}
 \t\t\tif err := json.NewDecoder(response.Body).Decode(&body); err != nil {
 \t\t\t\tt.Fatal(err)
