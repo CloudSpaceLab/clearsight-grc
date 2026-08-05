@@ -7,6 +7,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/capture"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
@@ -18,6 +19,7 @@ type Dependencies struct {
 	AllowedOrigin string
 	Mode          string
 	Authority     authority.Service
+	Governance    *governance.Service
 	Capture       *capture.Service
 	Invitations   *capture.InvitationService
 	Today         *today.Service
@@ -38,6 +40,12 @@ func New(deps Dependencies) http.Handler {
 	mux.HandleFunc("POST /api/v1/authority/simulate", api.simulateAuthority)
 	mux.HandleFunc("GET /api/v1/authority/integrity", api.authorityIntegrity)
 	mux.HandleFunc("GET /api/v1/authority/policies", api.authorityPolicies)
+	mux.HandleFunc("GET /api/v1/governance/policies", api.listGovernancePolicies)
+	mux.HandleFunc("POST /api/v1/governance/policies", api.createGovernancePolicy)
+	mux.HandleFunc("POST /api/v1/governance/policies/{id}/{action}", api.transitionGovernancePolicy)
+	mux.HandleFunc("GET /api/v1/governance/delegations", api.listGovernanceDelegations)
+	mux.HandleFunc("POST /api/v1/governance/delegations", api.createGovernanceDelegation)
+	mux.HandleFunc("POST /api/v1/governance/delegations/{id}/{action}", api.transitionGovernanceDelegation)
 	mux.HandleFunc("GET /api/v1/requests/{id}", api.getCaptureRequest)
 	mux.HandleFunc("POST /api/v1/requests/{id}/submit", api.submitCaptureRequest)
 	mux.HandleFunc("POST /api/v1/invitations/redeem", api.redeemInvitation)

@@ -20,11 +20,27 @@ type Config struct {
 	ReadTimeout      time.Duration
 	WriteTimeout     time.Duration
 	IdleTimeout      time.Duration
+	WorkerID         string
+	WorkerPoll       time.Duration
 	LogLevel         slog.Level
 }
 
 func Load() (Config, error) {
-	cfg := Config{HTTPAddr: env("CLEARSIGHT_HTTP_ADDR", ":8080"), Environment: env("CLEARSIGHT_ENV", "development"), AllowedOrigin: env("CLEARSIGHT_ALLOWED_ORIGIN", "http://localhost:5173"), DatabaseURL: env("DATABASE_URL", ""), DatabaseMinConns: 2, DatabaseMaxConns: 20, QueryTimeout: 3 * time.Second, ReadTimeout: 5 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second, LogLevel: slog.LevelInfo}
+	cfg := Config{
+		HTTPAddr:         env("CLEARSIGHT_HTTP_ADDR", ":8080"),
+		Environment:      env("CLEARSIGHT_ENV", "development"),
+		AllowedOrigin:    env("CLEARSIGHT_ALLOWED_ORIGIN", "http://localhost:5173"),
+		DatabaseURL:      env("DATABASE_URL", ""),
+		DatabaseMinConns: 2,
+		DatabaseMaxConns: 20,
+		QueryTimeout:     3 * time.Second,
+		ReadTimeout:      5 * time.Second,
+		WriteTimeout:     10 * time.Second,
+		IdleTimeout:      60 * time.Second,
+		WorkerID:         env("CLEARSIGHT_WORKER_ID", "worker-local"),
+		WorkerPoll:       time.Second,
+		LogLevel:         slog.LevelInfo,
+	}
 	var err error
 	if cfg.ReadTimeout, err = duration("CLEARSIGHT_READ_TIMEOUT", cfg.ReadTimeout); err != nil {
 		return Config{}, err
@@ -37,6 +53,12 @@ func Load() (Config, error) {
 	}
 	if cfg.QueryTimeout, err = duration("CLEARSIGHT_QUERY_TIMEOUT", cfg.QueryTimeout); err != nil {
 		return Config{}, err
+	}
+	if cfg.WorkerPoll, err = duration("CLEARSIGHT_WORKER_POLL", cfg.WorkerPoll); err != nil {
+		return Config{}, err
+	}
+	if cfg.WorkerPoll <= 0 {
+		return Config{}, fmt.Errorf("CLEARSIGHT_WORKER_POLL must be positive")
 	}
 	if cfg.DatabaseMinConns, err = int32Value("CLEARSIGHT_DB_MIN_CONNS", cfg.DatabaseMinConns); err != nil {
 		return Config{}, err
@@ -52,12 +74,14 @@ func Load() (Config, error) {
 	}
 	return cfg, nil
 }
+
 func env(name, fallback string) string {
 	if value := strings.TrimSpace(os.Getenv(name)); value != "" {
 		return value
 	}
 	return fallback
 }
+
 func duration(name string, fallback time.Duration) (time.Duration, error) {
 	value := strings.TrimSpace(os.Getenv(name))
 	if value == "" {
@@ -69,6 +93,7 @@ func duration(name string, fallback time.Duration) (time.Duration, error) {
 	}
 	return parsed, nil
 }
+
 func int32Value(name string, fallback int32) (int32, error) {
 	value := strings.TrimSpace(os.Getenv(name))
 	if value == "" {

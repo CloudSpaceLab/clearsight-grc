@@ -28,7 +28,13 @@ func main() {
 		os.Exit(1)
 	}
 	defer services.Close()
-	handler := httpapi.New(httpapi.Dependencies{Logger: logger, AllowedOrigin: cfg.AllowedOrigin, Mode: services.Mode, Authority: services.Authority, Capture: services.Capture, Invitations: services.Invitations, Today: services.Today, Workflow: services.Workflow, Onboarding: services.Onboarding, Autonomy: services.Autonomy})
+	handler := httpapi.New(httpapi.Dependencies{
+		Logger: logger, AllowedOrigin: cfg.AllowedOrigin, Mode: services.Mode,
+		Authority: services.Authority, Governance: services.Governance,
+		Capture: services.Capture, Invitations: services.Invitations,
+		Today: services.Today, Workflow: services.Workflow,
+		Onboarding: services.Onboarding, Autonomy: services.Autonomy,
+	})
 	server := &http.Server{Addr: cfg.HTTPAddr, Handler: handler, ReadHeaderTimeout: 2 * time.Second, ReadTimeout: cfg.ReadTimeout, WriteTimeout: cfg.WriteTimeout, IdleTimeout: cfg.IdleTimeout, MaxHeaderBytes: 1 << 20}
 	serverErrors := make(chan error, 1)
 	go func() {

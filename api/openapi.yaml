@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: ClearSight Foundation API
-  version: 0.2.1
+  version: 0.3.1
 servers:
   - url: http://localhost:8080
 paths:
@@ -9,10 +9,10 @@ paths:
     get: { responses: { '200': { description: Live } } }
   /health/ready:
     get: { responses: { '200': { description: Ready } } }
+  /api/v1/context:
+    get: { responses: { '200': { description: Current demonstration context } } }
   /api/v1/today:
-    get:
-      responses:
-        '200': { description: Role-specific attention brief }
+    get: { responses: { '200': { description: Role-specific work queue } } }
   /api/v1/authority/resolve:
     post:
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ResolveInput' } } } }
@@ -23,20 +23,48 @@ paths:
       responses: { '200': { description: Routing simulation }, '400': { description: Invalid scope } }
   /api/v1/authority/integrity:
     get:
-      parameters: [ { name: tenant_id, in: query, required: true, schema: { type: string } } ]
-      responses: { '200': { description: Active routing-integrity findings }, '400': { description: Missing tenant } }
+      parameters: [ { $ref: '#/components/parameters/Tenant' } ]
+      responses: { '200': { description: Active routing-integrity findings } }
   /api/v1/authority/policies:
     get:
-      parameters: [ { name: tenant_id, in: query, required: true, schema: { type: string } } ]
-      responses: { '200': { description: Routing policies }, '400': { description: Missing tenant } }
+      parameters: [ { $ref: '#/components/parameters/Tenant' } ]
+      responses: { '200': { description: Active authority policies } }
+  /api/v1/governance/policies:
+    get:
+      parameters: [ { $ref: '#/components/parameters/Tenant' } ]
+      responses: { '200': { description: Versioned routing policies } }
+    post:
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PolicyCreate' } } } }
+      responses: { '201': { description: Policy draft created }, '422': { description: Invalid policy } }
+  /api/v1/governance/policies/{id}/{action}:
+    post:
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: action, in: path, required: true, schema: { type: string, enum: [submit, approve, reject, retire] } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/GovernanceTransition' } } } }
+      responses: { '200': { description: Policy transitioned }, '404': { description: Policy not found }, '409': { description: Version conflict }, '422': { description: Maker-checker, selector or state failure } }
+  /api/v1/governance/delegations:
+    get:
+      parameters: [ { $ref: '#/components/parameters/Tenant' } ]
+      responses: { '200': { description: Delegations } }
+    post:
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DelegationCreate' } } } }
+      responses: { '201': { description: Delegation draft created }, '422': { description: Invalid delegation } }
+  /api/v1/governance/delegations/{id}/{action}:
+    post:
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: action, in: path, required: true, schema: { type: string, enum: [submit, approve, revoke] } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/GovernanceTransition' } } } }
+      responses: { '200': { description: Delegation transitioned }, '404': { description: Delegation not found }, '409': { description: Version conflict }, '422': { description: Maker-checker, cycle, segregation or state failure } }
   /api/v1/workflow/tasks:
     get:
       parameters:
-        - { name: tenant_id, in: query, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Tenant' }
         - { name: principal_id, in: query, schema: { type: string } }
         - { name: status, in: query, schema: { type: string } }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200 } }
-      responses: { '200': { description: Tenant-scoped workflow tasks }, '400': { description: Missing tenant } }
+      responses: { '200': { description: Tenant-scoped workflow tasks } }
     post:
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WorkflowTaskCreate' } } } }
       responses: { '201': { description: Task created }, '422': { description: Invalid task } }
@@ -54,21 +82,21 @@ paths:
   /api/v1/onboarding/state:
     get:
       parameters:
-        - { name: tenant_id, in: query, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Tenant' }
         - { name: principal_id, in: query, required: true, schema: { type: string } }
         - { name: guide_code, in: query, required: true, schema: { type: string } }
-      responses: { '200': { description: User guide state }, '400': { description: Invalid identifiers } }
+      responses: { '200': { description: User guide state } }
     put:
       parameters:
-        - { name: tenant_id, in: query, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Tenant' }
         - { name: principal_id, in: query, required: true, schema: { type: string } }
         - { name: guide_code, in: query, required: true, schema: { type: string } }
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/OnboardingUpdate' } } } }
-      responses: { '200': { description: Updated state }, '409': { description: Version conflict }, '422': { description: Invalid terminal state } }
+      responses: { '200': { description: Updated state }, '409': { description: Version conflict }, '422': { description: Invalid guide state } }
   /api/v1/compliance/readiness:
     get:
-      parameters: [ { name: tenant_id, in: query, required: true, schema: { type: string } } ]
-      responses: { '200': { description: Continuous readiness with explicit baseline-known state }, '400': { description: Missing tenant } }
+      parameters: [ { $ref: '#/components/parameters/Tenant' } ]
+      responses: { '200': { description: Continuous readiness with explicit baseline state } }
   /api/v1/compliance/signals:
     post:
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Signal' } } } }
@@ -76,15 +104,19 @@ paths:
   /api/v1/requests/{id}:
     get:
       parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
-      responses: { '200': { description: Focused request } }
+      responses: { '200': { description: Focused evidence request }, '404': { description: Request not found } }
   /api/v1/requests/{id}/submit:
     post:
       parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
-      responses: { '200': { description: Submission receipt }, '409': { description: Version conflict } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CaptureSubmission' } } } }
+      responses: { '200': { description: Submission receipt }, '409': { description: Version conflict or closed request }, '422': { description: Invalid response } }
   /api/v1/invitations/redeem:
     post:
+      requestBody: { required: true, content: { application/json: { schema: { type: object, additionalProperties: false, required: [token], properties: { token: { type: string, minLength: 1 } } } } } }
       responses: { '200': { description: Bounded capture session }, '401': { description: Invitation unavailable } }
 components:
+  parameters:
+    Tenant: { name: tenant_id, in: query, required: true, schema: { type: string, minLength: 1 } }
   schemas:
     ResolveInput:
       type: object
@@ -98,6 +130,40 @@ components:
         responsibility: { type: string, minLength: 1 }
         decision_type: { type: string }
         materiality: { type: integer, minimum: 0, maximum: 5 }
+    PolicyCreate:
+      type: object
+      additionalProperties: false
+      required: [tenant_id, code, name, maker_id, definition]
+      properties:
+        tenant_id: { type: string, minLength: 1 }
+        code: { type: string, minLength: 1 }
+        name: { type: string, minLength: 1 }
+        maker_id: { type: string, minLength: 1 }
+        effective_from: { type: string, format: date-time }
+        definition: { type: object }
+    DelegationCreate:
+      type: object
+      additionalProperties: false
+      required: [tenant_id, from_principal_id, to_principal_id, responsibility, starts_at, ends_at, maker_id]
+      properties:
+        tenant_id: { type: string, minLength: 1 }
+        from_principal_id: { type: string, minLength: 1 }
+        to_principal_id: { type: string, minLength: 1 }
+        responsibility: { type: string, minLength: 1 }
+        scope: { type: object }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        reason: { type: string }
+        maker_id: { type: string, minLength: 1 }
+    GovernanceTransition:
+      type: object
+      additionalProperties: false
+      required: [tenant_id, actor_id, expected_version]
+      properties:
+        tenant_id: { type: string, minLength: 1 }
+        actor_id: { type: string, minLength: 1 }
+        expected_version: { type: integer, minimum: 1 }
+        rationale: { type: string }
     WorkflowTaskCreate:
       type: object
       additionalProperties: false
@@ -145,3 +211,10 @@ components:
         observed_at: { type: string, format: date-time }
         effective_at: { type: string, format: date-time }
         payload: { type: object, additionalProperties: { type: string } }
+    CaptureSubmission:
+      type: object
+      additionalProperties: false
+      required: [expected_version, answers]
+      properties:
+        expected_version: { type: integer, minimum: 1 }
+        answers: { type: object, additionalProperties: { type: string } }

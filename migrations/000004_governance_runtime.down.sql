@@ -1,0 +1,10 @@
+BEGIN;
+DROP TABLE IF EXISTS inbox_receipts;
+DROP INDEX IF EXISTS outbox_retry_claim_idx;
+ALTER TABLE outbox_events DROP COLUMN IF EXISTS last_error, DROP COLUMN IF EXISTS lease_until, DROP COLUMN IF EXISTS locked_by, DROP COLUMN IF EXISTS next_attempt_at;
+DROP TABLE IF EXISTS workflow_timers;
+DROP TABLE IF EXISTS segregation_rules;
+DROP TABLE IF EXISTS governance_decisions;
+ALTER TABLE delegations DROP COLUMN IF EXISTS version, DROP COLUMN IF EXISTS updated_at, DROP COLUMN IF EXISTS revoked_at, DROP COLUMN IF EXISTS revoked_by, DROP COLUMN IF EXISTS approved_at, DROP COLUMN IF EXISTS submitted_at, DROP COLUMN IF EXISTS approved_by;
+ALTER TABLE routing_policies DROP COLUMN IF EXISTS version, DROP COLUMN IF EXISTS retired_at, DROP COLUMN IF EXISTS approved_at, DROP COLUMN IF EXISTS submitted_at, DROP COLUMN IF EXISTS checker_id, DROP COLUMN IF EXISTS maker_id;
+COMMIT;

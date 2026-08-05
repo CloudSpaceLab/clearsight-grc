@@ -20,36 +20,42 @@ Checkboxes describe repository status, not production readiness.
 - [x] React/Vite application shell.
 - [x] OpenAPI, CI, Compose and performance smoke.
 - [x] deterministic in-memory build mode.
-- [x] PostgreSQL-tagged composition.
+- [x] PostgreSQL-tagged composition and runtime integration tests.
 
 ### Identity, organization and authority
 
-- [x] principal and assignment foundation schema.
-- [x] organizational positions and role templates schema.
-- [x] delegation and versioned routing-policy schema.
-- [x] deterministic authority resolution and explanation.
-- [x] authority simulation, policy listing and integrity API.
-- [x] pgx-backed active-policy and selector resolution.
+- [x] principal, organizational position and role-template schema.
+- [x] deterministic authority resolution, simulation and explanation.
+- [x] legal-entity-safe pgx selector resolution and integrity findings.
+- [x] routing-policy draft, submit, approve, reject and retire commands.
+- [x] policy checksum, maker-checker and selector-cardinality validation.
+- [x] delegation draft, approval, activation, expiry and revocation lifecycle.
+- [x] recursive delegation-cycle and active segregation-rule checks.
+- [x] append-only governance decisions and state-change outbox events.
 - [ ] enterprise identity and organization synchronization.
-- [ ] policy draft/publish maker-checker commands.
-- [ ] delegation approval, revocation and absence calendar.
-- [ ] conflict and segregation-of-duties evaluation against live actors.
+- [ ] authenticated actor authority for policy/delegation administration.
+- [ ] absence and working-calendar source integration.
 
-### Durable workflow
+### Durable workflow and delivery
 
 - [x] typed task states and optimistic transitions.
 - [x] workflow task/event schema and queue indexes.
-- [x] memory and pgx task repositories.
-- [x] task list/create/transition APIs.
+- [x] durable leased timers with stale-claim recovery.
+- [x] transactional timer completion and outbox creation.
+- [x] outbox lease, bounded retry and claim ownership.
+- [x] consumer inbox deduplication.
+- [x] memory and PostgreSQL worker composition.
 - [ ] persisted workflow-definition/state-machine registry.
-- [ ] timers, working calendars, escalation, parallel joins and compensation worker.
-- [ ] outbox publisher and inbox deduplication runtime.
+- [ ] business calendars, parallel joins and compensation definitions.
+- [ ] approved email, messaging, ITSM and automation publishers.
+- [ ] backlog SLO dashboards and dead-letter operating workflow.
 
 ### Guided adoption
 
 - [x] role-specific guide model and state API.
 - [x] memory and pgx onboarding-state repositories.
 - [x] premium SVG illustration, EmptyState and IntroGuide components.
+- [x] semantic work-item vector icons and enterprise copy standard.
 - [x] first-run reviewer guide and responsive UI.
 - [ ] admin-authored guide definitions with approval/versioning.
 - [ ] visual-regression and accessibility automation.
