@@ -68,16 +68,7 @@ func (s *Service) requestProgramRefresh(ctx context.Context, tenant, programID, 
 	if transactional, ok := s.repo.(TransactionalProjectionRepository); ok && transactional.ProjectionQueuedWithCommands() {
 		return nil
 	}
-	repo, ok := s.repo.(ProjectionRepository)
-	if !ok {
-		return s.refreshProgram(ctx, tenant, programID, reason, triggerID)
-	}
-	aggregate, err := s.repo.GetProgram(ctx, tenant, programID)
-	if err != nil {
-		return err
-	}
-	_, err = repo.QueueProgramState(ctx, tenant, programID, aggregate.Program.Version, reason, triggerID, requestedBy)
-	return err
+	return s.refreshProgram(ctx, tenant, programID, reason, triggerID)
 }
 
 func (s *Service) programStateAt(ctx context.Context, tenant, programID string, at *time.Time) (*ProgramStateSnapshot, error) {
