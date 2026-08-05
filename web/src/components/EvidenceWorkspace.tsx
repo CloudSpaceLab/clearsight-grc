@@ -11,29 +11,73 @@ function SourceIcon({ type }: { type: string }) {
   return <svg {...common}><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg>;
 }
 
+function sourceTypeLabel(value: string) {
+  switch (value) {
+    case "REGULATORY": return "Regulator or official publication";
+    case "SYSTEM": return "Bank system";
+    case "DOCUMENT": return "Document or file";
+    case "HUMAN": return "Staff response";
+    case "VENDOR": return "External provider";
+    default: return value.replaceAll("_", " ").toLowerCase();
+  }
+}
+
+function authorityLabel(value: string) {
+  switch (value) {
+    case "SYSTEM_OF_RECORD": return "Official bank record";
+    case "AUTHORITATIVE": return "Authoritative source";
+    case "PRIMARY": return "Primary source";
+    case "SECONDARY": return "Supporting source";
+    default: return value.replaceAll("_", " ").toLowerCase();
+  }
+}
+
+function healthLabel(value: string) {
+  switch (value) {
+    case "CURRENT": return "Up to date";
+    case "DEGRADED": return "Limited";
+    case "STALE": return "Out of date";
+    case "UNAVAILABLE": return "Unavailable";
+    case "UNKNOWN": return "Not checked";
+    default: return value.replaceAll("_", " ").toLowerCase();
+  }
+}
+
+function requestStatusLabel(value: string) {
+  switch (value) {
+    case "READY": return "Ready to send";
+    case "IN_PROGRESS": return "Response in progress";
+    case "SUBMITTED": return "Response received";
+    case "CANCELLED": return "Cancelled";
+    case "EXPIRED": return "Past due";
+    case "DRAFT": return "Draft";
+    default: return value.replaceAll("_", " ").toLowerCase();
+  }
+}
+
 export function EvidenceWorkspace({ sources, requests, state }: Props) {
   const sourceIssues = sources.filter((source) => source.health !== "CURRENT").length;
   const openRequests = requests.filter((request) => request.status === "READY" || request.status === "IN_PROGRESS").length;
   return <>
     <section className="evidence-hero">
-      <div><span className="eyebrow">Evidence operations</span><h2>{state === "unavailable" ? "Source and request data unavailable" : `${openRequests} open evidence request${openRequests === 1 ? "" : "s"}`}</h2><p>Source freshness, request status and submission deadlines for the current bank scope.</p></div>
+      <div><span className="eyebrow">Sources and evidence</span><h2>{state === "unavailable" ? "Source and request data could not be loaded" : `${openRequests} open evidence request${openRequests === 1 ? "" : "s"}`}</h2><p>Check whether important sources are up to date and see which evidence responses are still outstanding.</p></div>
       <PremiumIllustration variant="readiness"/>
     </section>
     <section className="evidence-summary" aria-label="Evidence summary">
-      <div><span>Registered sources</span><strong>{state === "live" ? sources.length : "—"}</strong><small>Current scope</small></div>
-      <div><span>Source issues</span><strong>{state === "live" ? sourceIssues : "—"}</strong><small>Stale, degraded or unavailable</small></div>
-      <div><span>Open requests</span><strong>{state === "live" ? openRequests : "—"}</strong><small>Ready or in progress</small></div>
+      <div><span>Sources</span><strong>{state === "live" ? sources.length : "—"}</strong><small>Registered in this bank scope</small></div>
+      <div><span>Need review</span><strong>{state === "live" ? sourceIssues : "—"}</strong><small>Out of date, limited, unavailable or not checked</small></div>
+      <div><span>Open requests</span><strong>{state === "live" ? openRequests : "—"}</strong><small>Ready to send or awaiting a response</small></div>
     </section>
     <section className="evidence-grid">
       <article className="config-card evidence-card">
-        <div className="section-header"><div><h2>Sources</h2><p>Authority, freshness and latest successful observation.</p></div></div>
-        {state === "unavailable" ? <EmptyState label="Sources" title="Source data unavailable" description="The source registry could not be loaded. Existing work is unchanged; retry when the API is available."/> : sources.length ? <div className="source-list">{sources.map((source) => <div className="source-row" key={source.id}><div className="source-icon"><SourceIcon type={source.type}/></div><div><strong>{source.name}</strong><span>{source.authority_class} · {source.type.replaceAll("_", " ")}</span></div><div className="source-freshness"><mark className={`health-${source.health.toLowerCase()}`}>{source.health}</mark><span>{source.last_success_at ? `Last success ${new Date(source.last_success_at).toLocaleString()}` : "No successful observation recorded"}</span></div></div>)}</div> : <EmptyState label="Sources" title="No sources registered" description="No authoritative or operational sources are registered in the current scope."/>}
+        <div className="section-header"><div><h2>Sources</h2><p>What each source is used for and when it last worked.</p></div></div>
+        {state === "unavailable" ? <EmptyState label="Sources" title="Sources could not be loaded" description="Try again when the service is available. Existing records have not been changed."/> : sources.length ? <div className="source-list">{sources.map((source) => <div className="source-row" key={source.id}><div className="source-icon"><SourceIcon type={source.type}/></div><div><strong>{source.name}</strong><span>{authorityLabel(source.authority_class)} · {sourceTypeLabel(source.type)}</span></div><div className="source-freshness"><mark className={`health-${source.health.toLowerCase()}`}>{healthLabel(source.health)}</mark><span>{source.last_success_at ? `Last worked ${new Date(source.last_success_at).toLocaleString()}` : "No successful check recorded"}</span></div></div>)}</div> : <EmptyState label="Sources" title="No sources in this scope" description="No official, system, document, staff or provider sources are registered in the current scope."/>}
       </article>
       <article className="config-card evidence-card">
-        <div className="section-header"><div><h2>Evidence requests</h2><p>Recipient, status and response deadline.</p></div></div>
-        {state === "unavailable" ? <EmptyState label="Requests" title="Request data unavailable" description="Evidence requests could not be loaded. Retry when the API is available."/> : requests.length ? <div className="request-list">{requests.map((request) => <details className="request-row" key={request.id}><summary><div><strong>{request.title}</strong><span>{request.audience_type} · {request.subject_type} · about {request.estimated_minutes} min</span></div><div><mark>{request.status.replaceAll("_", " ")}</mark><span>Due {new Date(request.deadline).toLocaleString()}</span></div><span className="request-disclosure">View</span></summary><div className="request-detail"><p>{request.purpose}</p><dl>{Object.entries(request.known_facts).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p><strong>Recipient context:</strong> {request.why_you}</p></div></details>)}</div> : <EmptyState label="Requests" title="No evidence requests" description="There are no evidence requests in the current scope."/>}
+        <div className="section-header"><div><h2>Evidence requests</h2><p>Who is responding, what is needed and when it is due.</p></div></div>
+        {state === "unavailable" ? <EmptyState label="Requests" title="Evidence requests could not be loaded" description="Try again when the service is available. Existing requests have not been changed."/> : requests.length ? <div className="request-list">{requests.map((request) => <details className="request-row" key={request.id}><summary><div><strong>{request.title}</strong><span>{request.audience_type.replaceAll("_", " ").toLowerCase()} · about {request.estimated_minutes} min</span></div><div><mark>{requestStatusLabel(request.status)}</mark><span>Due {new Date(request.deadline).toLocaleString()}</span></div><span className="request-disclosure">View details</span></summary><div className="request-detail"><p>{request.purpose}</p><dl>{Object.entries(request.known_facts).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p><strong>Why this person:</strong> {request.why_you}</p></div></details>)}</div> : <EmptyState label="Requests" title="No evidence requests in this scope" description="There are no draft, open or completed evidence requests in the current scope."/>}
       </article>
     </section>
-    <section className="artifact-notice"><div className="artifact-notice-icon" aria-hidden="true">i</div><div><strong>Uploaded files remain unavailable until inspection is complete.</strong><p>The current foundation records file size, media type, storage key and SHA-256 integrity. Malware scanning and production object storage are not yet enabled.</p></div></section>
+    <section className="artifact-notice"><div className="artifact-notice-icon" aria-hidden="true">i</div><div><strong>New files cannot be used until their inspection status is known.</strong><p>The current build records file size, type and SHA-256 integrity. Malware scanning and production file storage are not yet enabled.</p></div></section>
   </>;
 }
