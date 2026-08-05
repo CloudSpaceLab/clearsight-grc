@@ -49,10 +49,12 @@ func TestOperationalSummaryReadModels(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err = pool.Exec(ctx, `
-		INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at,version)
+		INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,closed_at,closure_reason,created_at,updated_at,version)
 		SELECT uuidv7(),$1::uuid,format('MAT-%s',lpad(g::text,4,'0')),'CONTROL_GAP',
 			CASE WHEN g % 11 = 0 THEN 'CLOSED' ELSE 'ASSESSMENT' END,(g % 5)+1,
 			format('Operational issue %s',g),'A bounded issue used to test the operational list read.','{}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,
+			CASE WHEN g % 11 = 0 THEN clock_timestamp()-g*interval '1 minute' ELSE NULL END,
+			CASE WHEN g % 11 = 0 THEN 'Test closure' ELSE '' END,
 			clock_timestamp()-g*interval '1 minute',clock_timestamp()-g*interval '1 minute',1
 		FROM generate_series(1,300) g`, tenantID); err != nil {
 		t.Fatal(err)
@@ -79,7 +81,7 @@ func TestOperationalSummaryReadModels(t *testing.T) {
 			t.Fatalf("program %s appeared on two pages", item.Program.ID)
 		}
 	}
-	search, err := service.ListProgramSummaries(ctx, "summary-bank", continuity.SummaryQuery{Limit: 20, Search: "0019"})
+	search, err := service.ListProgramSummaries(ctx, "summary-bank", continuity.SummaryQuery{Limit: 20, Search: "operational program 19"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +96,7 @@ func TestOperationalSummaryReadModels(t *testing.T) {
 	if len(matters.Items) != 50 || matters.NextCursor == "" {
 		t.Fatalf("unexpected matter page size=%d cursor=%q", len(matters.Items), matters.NextCursor)
 	}
-	matterSearch, err := service.ListMatterSummaries(ctx, "summary-bank", continuity.SummaryQuery{Limit: 20, Search: "MAT 0023"})
+	matterSearch, err := service.ListMatterSummaries(ctx, "summary-bank", continuity.SummaryQuery{Limit: 20, Search: "operational issue 23"})
 	if err != nil {
 		t.Fatal(err)
 	}
