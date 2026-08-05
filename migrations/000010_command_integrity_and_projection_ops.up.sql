@@ -1,5 +1,11 @@
 BEGIN;
 
+ALTER TABLE continuity_events
+  DROP CONSTRAINT continuity_events_aggregate_type_check;
+ALTER TABLE continuity_events
+  ADD CONSTRAINT continuity_events_aggregate_type_check
+  CHECK (aggregate_type IN ('PROGRAM','MATTER','PROGRAM_STATE'));
+
 ALTER TABLE program_state_snapshots
   ADD COLUMN projection_version BIGINT;
 
