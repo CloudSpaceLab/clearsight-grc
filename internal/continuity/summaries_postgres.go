@@ -36,7 +36,7 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 		) ps ON TRUE
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND ($2='' OR p.status=$2)
-		  AND ($3='' OR p.code ILIKE '%' || $3 || '%' OR p.name ILIKE '%' || $3 || '%' OR p.owning_function ILIKE '%' || $3 || '%' OR p.jurisdiction ILIKE '%' || $3 || '%')
+		  AND ($3='' OR p.search_document @@ websearch_to_tsquery('simple'::regconfig,$3))
 		  AND (
 			NOT $4 OR
 			CASE p.status WHEN 'ACTIVE' THEN 0 WHEN 'PAUSED' THEN 1 WHEN 'DRAFT' THEN 2 ELSE 3 END > $5 OR
@@ -128,7 +128,7 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 		) latest ON TRUE
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND ($2='' OR ($2='OPEN' AND m.status NOT IN ('CLOSED','CANCELLED')) OR m.status=$2)
-		  AND ($3='' OR m.reference ILIKE '%' || $3 || '%' OR m.title ILIKE '%' || $3 || '%' OR m.summary ILIKE '%' || $3 || '%' OR m.matter_type ILIKE '%' || $3 || '%')
+		  AND ($3='' OR m.search_document @@ websearch_to_tsquery('simple'::regconfig,$3))
 		  AND (
 			NOT $4 OR m.priority < $5 OR
 			(m.priority = $5 AND (m.updated_at < $6 OR (m.updated_at = $6 AND m.id::text < $7)))
