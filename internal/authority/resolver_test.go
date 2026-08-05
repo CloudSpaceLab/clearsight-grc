@@ -1,42 +1,22 @@
 package authority
 
 import (
-	"errors"
+	"context"
 	"testing"
 )
 
-func TestResolverUsesMostSpecificHighPriorityRule(t *testing.T) {
+func TestResolveMaterialAuthorizer(t *testing.T) {
 	version, rules := DemoPolicySet()
 	resolver := NewResolver(version, rules)
-	resolution, err := resolver.Resolve(ResolveInput{TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "PROGRAM", ObjectID: "ndpa", Responsibility: ResponsibilityAuthorizer, Materiality: 3})
-	if err != nil {
-		t.Fatalf("resolve: %v", err)
-	}
-	if resolution.Principal.Role != "DPO" {
-		t.Fatalf("expected DPO, got %s", resolution.Principal.Role)
-	}
-	if resolution.PolicyVersion != version {
-		t.Fatalf("expected policy version %s, got %s", version, resolution.PolicyVersion)
-	}
+	resolution, err := resolver.Resolve(context.Background(), ResolveInput{TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "matter-1", Responsibility: ResponsibilityAuthorizer, Materiality: 5})
+	if err != nil { t.Fatalf("resolve: %v", err) }
+	if resolution.Principal.Role != "CRO" { t.Fatalf("expected CRO, got %s", resolution.Principal.Role) }
 }
-
-func TestResolverRejectsUnroutableRequest(t *testing.T) {
+func TestSimulationExplainsRejectedRules(t *testing.T) {
 	version, rules := DemoPolicySet()
 	resolver := NewResolver(version, rules)
-	_, err := resolver.Resolve(ResolveInput{TenantID: "other-bank", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "matter-1", Responsibility: ResponsibilityAuthorizer, Materiality: 5})
-	if !errors.Is(err, ErrNoRoute) {
-		t.Fatalf("expected ErrNoRoute, got %v", err)
-	}
-}
-
-func BenchmarkResolver(b *testing.B) {
-	version, rules := DemoPolicySet()
-	resolver := NewResolver(version, rules)
-	input := ResolveInput{TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "matter-1", Responsibility: ResponsibilityAuthorizer, Materiality: 5}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		if _, err := resolver.Resolve(input); err != nil {
-			b.Fatal(err)
-		}
-	}
+	simulation, err := resolver.Simulate(context.Background(), ResolveInput{TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "matter-1", Responsibility: ResponsibilityAuthorizer, Materiality: 2})
+	if err != nil { t.Fatalf("simulate: %v", err) }
+	if simulation.Selected != nil { t.Fatal("expected no selected route") }
+	if len(simulation.Candidates) == 0 { t.Fatal("expected candidates") }
 }

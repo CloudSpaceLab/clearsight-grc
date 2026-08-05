@@ -1,79 +1,109 @@
 openapi: 3.1.0
 info:
   title: ClearSight Foundation API
-  version: 0.1.0
-  description: Initial executable contract for context, attention, authority resolution and focused capture.
+  version: 0.2.0
 servers:
   - url: http://localhost:8080
 paths:
   /health/live:
-    get:
-      operationId: live
-      responses:
-        '200': { description: Process is live }
+    get: { responses: { '200': { description: Live } } }
   /health/ready:
-    get:
-      operationId: ready
-      responses:
-        '200': { description: Process can serve requests }
-  /api/v1/context:
-    get:
-      operationId: getContext
-      responses:
-        '200': { description: Active tenant, legal entity and actor context }
+    get: { responses: { '200': { description: Ready } } }
   /api/v1/today:
     get:
-      operationId: listAttention
       responses:
-        '200': { description: Actor-specific attention brief }
+        '200': { description: Role-specific attention brief }
   /api/v1/authority/resolve:
     post:
-      operationId: resolveAuthority
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [tenant_id, legal_entity_id, object_type, object_id, responsibility]
-              properties:
-                tenant_id: { type: string }
-                legal_entity_id: { type: string }
-                object_type: { type: string }
-                object_id: { type: string }
-                responsibility: { type: string }
-                materiality: { type: integer, minimum: 0 }
-      responses:
-        '200': { description: Resolved principal and explanation }
-        '422': { description: No eligible route }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ResolveInput' } } } }
+      responses: { '200': { description: Resolved authority }, '422': { description: No eligible route } }
+  /api/v1/authority/simulate:
+    post:
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ResolveInput' } } } }
+      responses: { '200': { description: Routing simulation } }
+  /api/v1/authority/integrity:
+    get:
+      parameters: [ { name: tenant_id, in: query, required: true, schema: { type: string } } ]
+      responses: { '200': { description: Active routing-integrity findings } }
+  /api/v1/authority/policies:
+    get:
+      parameters: [ { name: tenant_id, in: query, required: true, schema: { type: string } } ]
+      responses: { '200': { description: Routing policies } }
+  /api/v1/workflow/tasks:
+    get:
+      parameters:
+        - { name: tenant_id, in: query, schema: { type: string } }
+        - { name: principal_id, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { type: string } }
+      responses: { '200': { description: Workflow tasks } }
+    post:
+      requestBody: { required: true, content: { application/json: { schema: { type: object } } } }
+      responses: { '201': { description: Task created } }
+  /api/v1/workflow/tasks/{id}/transition:
+    post:
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [status, expected_version], properties: { status: { type: string }, expected_version: { type: integer }, reason: { type: string } } } } } }
+      responses: { '200': { description: Task transitioned }, '409': { description: Version conflict } }
+  /api/v1/onboarding/guide:
+    get:
+      parameters:
+        - { name: code, in: query, schema: { type: string } }
+        - { name: role, in: query, schema: { type: string } }
+      responses: { '200': { description: Role-specific guide } }
+  /api/v1/onboarding/state:
+    get:
+      parameters:
+        - { name: tenant_id, in: query, required: true, schema: { type: string } }
+        - { name: principal_id, in: query, required: true, schema: { type: string } }
+        - { name: guide_code, in: query, required: true, schema: { type: string } }
+      responses: { '200': { description: User guide state } }
+    put:
+      parameters:
+        - { name: tenant_id, in: query, required: true, schema: { type: string } }
+        - { name: principal_id, in: query, required: true, schema: { type: string } }
+        - { name: guide_code, in: query, required: true, schema: { type: string } }
+      requestBody: { required: true, content: { application/json: { schema: { type: object } } } }
+      responses: { '200': { description: Updated state }, '409': { description: Version conflict } }
+  /api/v1/compliance/readiness:
+    get:
+      parameters: [ { name: tenant_id, in: query, required: true, schema: { type: string } } ]
+      responses: { '200': { description: Continuous readiness } }
+  /api/v1/compliance/signals:
+    post:
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Signal' } } } }
+      responses: { '202': { description: Signal accepted and assessed } }
   /api/v1/requests/{id}:
     get:
-      operationId: getCaptureRequest
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
-      responses:
-        '200': { description: Narrow request-scoped capture definition }
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { '200': { description: Focused request } }
   /api/v1/requests/{id}/submit:
     post:
-      operationId: submitCaptureRequest
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [answers, version]
-              properties:
-                answers: { type: object, additionalProperties: { type: string } }
-                version: { type: integer }
-      responses:
-        '200': { description: Submission receipt }
-        '409': { description: Version conflict or request closed }
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { '200': { description: Submission receipt }, '409': { description: Version conflict } }
+  /api/v1/invitations/redeem:
+    post:
+      responses: { '200': { description: Bounded capture session }, '401': { description: Invitation unavailable } }
+components:
+  schemas:
+    ResolveInput:
+      type: object
+      required: [tenant_id, legal_entity_id, object_type, object_id, responsibility, materiality]
+      properties:
+        tenant_id: { type: string }
+        legal_entity_id: { type: string }
+        object_type: { type: string }
+        object_id: { type: string }
+        responsibility: { type: string }
+        decision_type: { type: string }
+        materiality: { type: integer, minimum: 0, maximum: 5 }
+    Signal:
+      type: object
+      required: [tenant_id, type, subject_type, subject_id, source]
+      properties:
+        tenant_id: { type: string }
+        type: { type: string }
+        subject_type: { type: string }
+        subject_id: { type: string }
+        dedupe_key: { type: string }
+        source: { type: string }
+        payload: { type: object, additionalProperties: { type: string } }

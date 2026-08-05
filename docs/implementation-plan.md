@@ -1,131 +1,96 @@
 # ClearSight Implementation Plan
 
-This plan delivers ClearSight as a source-led, correctly routed, performant, AI-assisted bank GRC operating system. Checkboxes describe current repository status.
+Checkboxes describe repository status, not production readiness.
 
-## Completed foundation
+## Phase 0 — Canonical product and architecture
 
-- [x] Canonical Programs/Matters product model.
-- [x] Use-case catalogue and maturity model.
-- [x] Responsibility, authority, delegation and escalation specification.
-- [x] Request-scoped invitation and capture specification.
-- [x] System/data/performance architecture and first ADR set.
-- [x] Go API/worker, React web shell, PostgreSQL schema, OpenAPI, CI and performance-smoke scaffold.
-- [x] Executable Today, authority-resolution and focused-capture demo services.
+- [x] Programs, Matters, evidence and verified-outcome semantics.
+- [x] target-customer and use-case catalogue.
+- [x] authority, routing, delegation and escalation specification.
+- [x] Respond/Capture and invitation specification.
+- [x] system, data and performance architecture.
+- [x] premium illustration, empty-state and guided-adoption standard.
+- [x] continuous Signals, drift, evidence aging, routing integrity, readiness and governed-autonomy specification.
 
-## Delivery rule
+## Phase 1 — Application and governance foundation
 
-Every vertical slice must prove:
+### Scaffold
 
-```text
-source, schedule, event or report
-→ Program update or typed Matter
-→ authorized context assembly
-→ correct actor and authority resolution
-→ existing evidence search and minimum request
-→ grounded recommendation or manual fallback
-→ authorized decision/action/response
-→ verification or acknowledgement
-→ current projections and reconstructable history
-```
+- [x] Go API and worker processes.
+- [x] React/Vite application shell.
+- [x] OpenAPI, CI, Compose and performance smoke.
+- [x] deterministic in-memory build mode.
+- [x] PostgreSQL-tagged composition.
 
-No isolated CRUD, generic form builder, hard-coded approval chain, dashboard shell, or ungoverned AI feature is considered progress.
+### Identity, organization and authority
 
-# Phase 1 — Durable trust foundation
+- [x] principal and assignment foundation schema.
+- [x] organizational positions and role templates schema.
+- [x] delegation and versioned routing-policy schema.
+- [x] deterministic authority resolution and explanation.
+- [x] authority simulation, policy listing and integrity API.
+- [x] pgx-backed active-policy and selector resolution.
+- [ ] enterprise identity and organization synchronization.
+- [ ] policy draft/publish maker-checker commands.
+- [ ] delegation approval, revocation and absence calendar.
+- [ ] conflict and segregation-of-duties evaluation against live actors.
 
-- [ ] PostgreSQL repository layer and migration runner.
-- [ ] Tenant, institution, legal entity, jurisdiction and scope aggregates.
-- [ ] Enterprise identity boundary and principal lifecycle.
-- [ ] Source-backed organizational positions and role templates.
-- [ ] Responsibility assignments, authority grants and versioned routing policies.
-- [ ] Conflict, segregation of duties, delegation, substitution, absence and escalation.
-- [ ] Durable workflow instances, steps, timers, joins, cancellation and resume.
-- [ ] Transactional outbox/inbox, worker leases, idempotency and dead-letter review.
-- [ ] Material audit and point-in-time reconstruction.
-- [ ] Configure role/authority matrix, sequence builder, simulation, maker-checker and rollback.
+### Durable workflow
 
-**Gate:** 100k+ active assignment/grant reference profile resolves p95 ≤100 ms; material commands re-evaluate authority; identity change safely reroutes in-flight work; no self-approval or circular delegation.
+- [x] typed task states and optimistic transitions.
+- [x] workflow task/event schema and queue indexes.
+- [x] memory and pgx task repositories.
+- [x] task list/create/transition APIs.
+- [ ] persisted workflow-definition/state-machine registry.
+- [ ] timers, working calendars, escalation, parallel joins and compensation worker.
+- [ ] outbox publisher and inbox deduplication runtime.
 
-# Phase 2 — Sources, evidence, imports and capture
+### Guided adoption
 
-- [ ] Source Registry, authority, limitation, freshness, health and purpose.
-- [ ] Observation, Evidence Item, Claim, Evidence Contract and contradiction persistence.
-- [ ] Versioned object storage, scanning, hash, lineage, retention and legal hold.
-- [ ] Resumable spreadsheet/document import, mapping, matching, partial acceptance and reconciliation.
-- [ ] Minimum-question compiler and recipient ranking.
-- [ ] Internal SSO and external invitation sessions with step-up and revocation.
-- [ ] Draft, resume, correction, follow-up, receipt and notification lifecycle.
-- [ ] Approved offline/mobile capture.
-- [ ] Protected-report identity/content separation and anonymous mailbox.
+- [x] role-specific guide model and state API.
+- [x] memory and pgx onboarding-state repositories.
+- [x] premium SVG illustration, EmptyState and IntroGuide components.
+- [x] first-run reviewer guide and responsive UI.
+- [ ] admin-authored guide definitions with approval/versioning.
+- [ ] visual-regression and accessibility automation.
 
-**Gate:** ordinary request median <3 minutes; repeat import active effort <5 minutes; invitation forward/replay/expiry/revocation fails safely; 1-million-row benchmark does not breach interactive SLOs.
+### Continuous autonomy
 
-# Phase 3 — Program engine
+- [x] Signal, drift and readiness domain model.
+- [x] deterministic drift rules for evidence, source, requirements, routing, controls and verification.
+- [x] memory and pgx repositories.
+- [x] signal-ingestion and readiness APIs.
+- [x] Today readiness and Configure routing-integrity UI.
+- [x] automation-policy schema.
+- [ ] worker-driven scheduled evidence aging and routing scans.
+- [ ] dependency-aware Program invalidation and readiness snapshots.
+- [ ] automation simulation, canary, kill switch and verification runtime.
+- [ ] precedent-memory service with scope and source-version controls.
 
-- [ ] Program, Authority Source, provision, Requirement and applicability.
-- [ ] Control Objectives and scoped Implementations.
-- [ ] Evidence Contracts, schedules, filings, tests and assurance.
-- [ ] Incremental trigger/invalidation and multidimensional Compliance State.
-- [ ] Program overview, Requirement worklist, exception review and filing history.
-- [ ] Program-to-Matter creation.
-- [ ] Grounded extraction/mapping/change-summary proposals with deterministic fallback.
+## Phase 2 — Sources, evidence and secure capture
 
-**Gate:** no manually edited authoritative RAG; state updates incrementally; review by exception preserves denominator and full-review triggers; common Program pages meet SLO.
+- [ ] Source Registry repositories and source-health worker.
+- [ ] object storage, malware scanning, integrity manifest and legal hold.
+- [ ] spreadsheet/document import pipeline with resumable chunks.
+- [ ] PostgreSQL evidence-request and submission repositories.
+- [ ] persisted invitation/session exchange and step-up authentication.
+- [ ] protected-report identity/content separation and anonymous mailbox.
 
-# Phase 4 — Matter, decision, action and verification
+## Phase 3 — Programs and Matters
 
-- [ ] Typed Matter registry and subtype lifecycle/closure contracts.
-- [ ] Actor-specific workspace composition and parallel work.
-- [ ] redirect, delegate, recuse, escalate, merge, split, cancel, supersede and reopen.
-- [ ] Decision options, challenge, approval, conditions, expiry and invalidation.
-- [ ] Action and external execution references.
-- [ ] Response Package, redaction, signatory, transmission and acknowledgement.
-- [ ] Verification Contract, observation, acceptance, failure and reopening.
-- [ ] Timeline and complete historical reconstruction.
+- [ ] Program aggregate, Requirement, applicability, controls and Evidence Contracts.
+- [ ] incremental Compliance State and trigger evaluation.
+- [ ] typed Matter lifecycle and closure contracts.
+- [ ] Decision, Action, Response Package and Verification aggregates.
+- [ ] point-in-time Program/Matter reconstruction.
 
-**Gate:** task completion cannot close material work; merge/split preserves authority and protection; stale concurrent writes conflict safely; source/model outages retain manual operation.
+## Phase 4 — Initial bank verticals
 
-# Phase 5 — Pilot verticals
+- [ ] continuous NDPA Program;
+- [ ] regulatory-change Matter;
+- [ ] protected authority-request Matter;
+- [ ] legacy finding/exception to verified remediation.
 
-- [ ] Continuous NDPA Program: ROPA, DPIA, breach, vendor and filing.
-- [ ] CBN regulatory change: source to verified implementation.
-- [ ] Protected authority request: legal review, subjects, directives, focused tasks and response.
-- [ ] Legacy finding/exception: import to verified remediation.
+## Release gates
 
-**Gate:** all four pass use-case traceability, timed UX, authority, capture, evidence, AI, performance, recovery, protection and point-in-time tests.
-
-# Phase 6 — Expanded bank use cases
-
-- [ ] Risk situation, risk acceptance and waiver.
-- [ ] Incident, operational loss and resilience.
-- [ ] Third-party onboarding, reassessment, deficiency and exit.
-- [ ] BIA, RCSA and KRI cycles.
-- [ ] Audit, assurance and policy lifecycle.
-- [ ] Complaint, conduct and data-subject rights.
-- [ ] Protected reporting and investigator workflow.
-- [ ] Executive/committee pack, dissent, decision and follow-up.
-
-Each is a complete vertical slice, not a generic module.
-
-# Phase 7 — Governed AI and automation
-
-- [ ] Operator/capability/model/tool registry.
-- [ ] authorization-aware retrieval, structured output and policy pipeline.
-- [ ] prompt-injection and protected-data defenses.
-- [ ] simulation, blast-radius preview, canary, approval, monitoring, suspension, rollback, expiry and verification.
-- [ ] constrained Probo, ITSM, IAM, email and messaging adapters.
-- [ ] evaluation and outcome-linked monitoring.
-
-# Phase 8 — Enterprise scale and GA
-
-- [ ] Multi-entity/jurisdiction and group/local authority.
-- [ ] residency-aware storage, evidence and model routes.
-- [ ] dedicated, VPC, on-premises and sovereign profiles.
-- [ ] workload isolation, partitioning, archive and capacity automation.
-- [ ] backup, restore, failover and DR exercises.
-- [ ] support, break-glass, migration, offboarding, deletion and legal hold.
-- [ ] independent security, privacy, accessibility, usability and performance validation.
-- [ ] operational runbooks, SLOs and cost models.
-
-## Definition of done
-
-A milestone is complete only when its use cases, actors, authority, states, invitations, evidence, performance, recovery, accessibility, degraded operation, history, APIs, migrations, docs and tests agree. Correct but cumbersome or unproven-at-scale work is not complete.
+Every completed item still requires relevant authorization, invitation, source, performance, recovery, accessibility and workload tests before production release.

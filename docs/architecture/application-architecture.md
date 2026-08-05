@@ -1,76 +1,77 @@
 # ClearSight Application Architecture
 
-This is the canonical implementation architecture for the initial ClearSight application.
+This is the canonical implementation architecture for the current application.
 
 ## Decision
 
-Build a **modular monolith with separate API and worker processes** over one authoritative PostgreSQL database and versioned object storage. Keep domain boundaries explicit so selected workloads can split later without changing product semantics.
+Build a **modular monolith with separate API and worker processes** over one authoritative PostgreSQL database and versioned object storage. Preserve explicit domain interfaces so selected workloads can split later without changing product semantics.
 
 ## Technology baseline
 
 | Layer | Initial choice | Reason |
 |---|---|---|
-| Backend | Go, standard HTTP stack | predictable latency, low memory, simple deployment, strong concurrency |
-| Web | React 19, TypeScript, Vite 8, Tailwind 4 | fast build/runtime, typed UI, direct component control |
-| Authoritative data | PostgreSQL 18 | transactions, temporal records, JSONB where bounded, mature indexing and partitioning |
-| Artifacts | S3-compatible versioned object storage | immutable large evidence and source objects |
-| Async work | PostgreSQL durable jobs/outbox initially | transactional consistency without premature broker operations |
-| Projections | PostgreSQL/read models first; replaceable search/graph/vector adapters | one operational surface until measured need |
-| Observability | structured logs, metrics, traces, safe audit events | performance and reconstruction without sensitive payloads |
-
-Dependency versions are pinned in the scaffold and updated through tested dependency PRs.
+| Backend | Go standard HTTP stack | predictable latency, low memory and simple deployment |
+| PostgreSQL access | pgx v5 behind `postgres` build tag | efficient PostgreSQL-native pooling and explicit production composition |
+| Web | React, TypeScript, Vite and Tailwind | typed direct UI control and bounded bundle surface |
+| Authoritative data | PostgreSQL 18 | transactions, temporal history, JSONB where bounded and mature indexing |
+| Artifacts | S3-compatible versioned object storage | immutable evidence and source objects |
+| Async work | PostgreSQL jobs/outbox initially | transactional consistency without premature broker operations |
+| Projections | PostgreSQL/read models first | one operational surface until measured need |
 
 ## Processes
 
 ### API
 
-Handles authentication context, bounded deterministic reads, material commands, request saves/submissions, invitation redemption, and command acknowledgement.
+Handles bounded deterministic reads, material command acknowledgement, authority resolution, request save/submit, workflow transitions, onboarding state and signal ingestion.
 
-The API must not synchronously perform model inference beyond a strict low-latency budget, document/media extraction, large imports/exports, external writes, full Program recomputation, or long verification observations.
+It must not synchronously perform document/media extraction, large imports/exports, model inference outside a strict latency budget, external writes, full Program recomputation or long verification observations.
 
 ### Worker
 
-Claims durable jobs for outbox publication, timers, reminders, escalation, routing refresh, ingestion, extraction, matching, reconciliation, projection updates, AI recommendations, package generation, external execution, evidence expiry, and verification.
+Claims durable jobs for:
 
-Workers use leases, bounded batches, retry policy, dead-letter review, idempotency, and backpressure.
+- outbox publication;
+- timers, reminders and escalation;
+- routing-integrity scans and re-routing;
+- evidence aging and expiry;
+- source-health evaluation;
+- signal normalization and drift assessment;
+- readiness snapshot generation;
+- ingestion, extraction, matching and reconciliation;
+- AI recommendations and report/package generation;
+- external execution and outcome verification.
+
+Workers use leases, bounded batches, retry policy, dead-letter review, idempotency and backpressure.
 
 ### Web client
 
-Renders deterministic context immediately and progressively adds recommendations or long-running results. It never becomes the only authorization boundary.
+Renders deterministic context immediately, then progressively adds recommendations and long-running results. It includes role-specific intro guidance, premium illustration primitives, empty states, Today, Configure, readiness, authority explanation and focused capture. It is never the authorization boundary.
 
-## Module boundaries
+## Modules
 
 ```text
 Institution and Scope
-Identity and Authorization
-Authority Routing
+Identity and Organization
+Authority Routing and Integrity
 Programs and Requirements
-Matters and Workflow
+Matters and Durable Workflow
 Evidence and Capture
+Signals, Drift and Readiness
 Decisions and Actions
 Verification and Assurance
+Onboarding and Guided Adoption
 Regulatory and Authority Intelligence
-Integrations and AI
+Integrations and Governed AI
 Projections and Reporting
 Audit and Temporal Reconstruction
 ```
 
-Each module owns its invariants and persistence contract. Cross-module writes occur through explicit application services in one transaction where consistency requires it, then emit outbox events.
+## Build modes
 
-## Code layout
+- default build: deterministic in-memory repositories for fast unit tests and UI development;
+- `postgres` build tag: pgx-backed authority, workflow, onboarding and autonomy repositories.
 
-```text
-cmd/api                 process composition
-cmd/worker              background processing composition
-internal/<domain>       domain and application behavior
-internal/httpapi        HTTP transport, middleware and DTO translation
-internal/platform       narrow technical utilities
-migrations              authoritative schema evolution
-api/openapi.yaml        public HTTP contract
-web                     browser application
-```
-
-No domain package may depend on HTTP, React, a model provider, or a specific external automation engine.
+Both modes implement the same domain interfaces. Production deployments use the PostgreSQL mode.
 
 ## Command path
 
@@ -83,44 +84,44 @@ HTTP request
 → persist authoritative state and outbox event
 → commit
 → return durable acknowledgement
-→ workers update projections or external side effects
+→ workers update projections or perform side effects
 ```
 
-Material command responses include the new version and a correlation identifier. Clients that submit stale versions receive a conflict and changed-context summary.
-
-## Query path
-
-Queries authenticate and authorize scope, select a current/read projection, apply tenant/purpose/object filtering in the query, and return a bounded page with freshness. Never load a broad population then filter authorization in application memory.
-
-## Authority resolution path
-
-Resolve tenant, legal entity, object, responsibility, materiality, decision class, and time; read the active policy version and precomputed candidates; apply limits, delegation, substitution, conflict, segregation of duties, availability, and workflow state; return principal(s), rule IDs, explanation, and policy version; re-evaluate before material execution.
-
-## Invitation path
+## Continuous-autonomy path
 
 ```text
-Issue high-entropy token
-→ store only token hash and bounded audience/request metadata
-→ deliver through approved channel
-→ redeem once
-→ exchange for short server-side session
-→ remove token from URL/history
-→ authorize each request operation against session
-→ revoke on completion, expiry, recipient change or cancellation
+Source/event/schedule
+→ idempotent Signal
+→ deterministic drift assessment
+→ affected-object and source lookup
+→ readiness dimension update
+→ focused Matter/request/task where intervention is required
+→ actor and authority resolution
+→ action or decision
+→ verification
 ```
 
-The same session cannot browse a Program, Matter, directory, or unrelated request.
+Signal ingestion cannot directly approve applicability, declare compliance, accept risk or close a Matter.
+
+## Authority path
+
+Active routing policy versions contain ordered rules and target selectors. A selector may resolve a principal, organizational position, role-bound position, team, queue or committee. Resolution applies scope, materiality, decision class, validity, delegation, conflict and current state. The result contains principal, rule, policy version and explanation.
+
+Routing integrity continuously detects unresolved selectors, missing authorizers, equal-priority ambiguity, empty positions, expired delegation and in-flight ownership gaps.
 
 ## Consistency
 
-Strong consistency is required for authority used by a material command, workflow transitions, invitation redemption/revocation, decisions, response approval/signatory state, evidence submission receipt, legal hold, and protected-identity access.
+Strong consistency is required for:
 
-Explicit eventual consistency is acceptable for search, dashboards, graph/vector projections, summary counts, and generated reports. Every material projection exposes freshness.
+- authority used by material commands;
+- workflow transitions;
+- invitation redemption and revocation;
+- decisions, signatory state and protected identity access;
+- evidence submission receipt;
+- legal hold.
+
+Search, dashboards, graph/vector projections, readiness summaries and generated reports may be eventually consistent but must expose freshness.
 
 ## Evolution triggers
 
-Split a module only when measurement proves independent scaling, confidentiality/residency isolation, availability, deployment cadence, workload-engine, or ownership requirements justify the operational cost. A split must preserve commands, event contracts, idempotency, history, and user semantics.
-
-## Scaffold scope
-
-The initial code proves bounded HTTP behavior, Today, deterministic authority resolution, focused capture, one-time invitation exchange, PostgreSQL foundation, React shell, and performance smoke. It does not yet claim production authentication, PostgreSQL repositories, object storage, durable workflow execution, or bank connectors.
+Split a module only when measured independent scaling, confidentiality/residency isolation, availability, deployment cadence, workload engine or team ownership requirements justify the operational cost.

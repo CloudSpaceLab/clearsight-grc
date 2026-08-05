@@ -1,54 +1,48 @@
 # Continuous Compliance Architecture
 
-Implementation structure is controlled by [`application-architecture.md`](application-architecture.md); data/workload rules by [`data-model-and-storage.md`](data-model-and-storage.md) and [`system-data-and-performance.md`](system-data-and-performance.md).
+ClearSight maintains stable obligations in Programs and creates Matters only when change, exception, harm, uncertainty or external demand requires handling.
 
-## Operating loop
+## Runtime loop
 
 ```text
-Authoritative source, schedule, event, or report
-→ normalize observations and source health
-→ update a Program or create/update a typed Matter
-→ assemble authorized institutional context
-→ resolve performer, owner, reviewer, challenger and authorizer
-→ search existing evidence
-→ request only unresolved facts through a safe channel
-→ prepare grounded recommendation or draft
-→ decide, act or respond within authority
-→ verify outcome or acknowledgement
-→ update Program state, queues, reports and history
+Authority/source/system/human observation
+→ normalized Signal or Observation
+→ evidence, source, requirement, control and routing evaluation
+→ Program state remains current or drift is created
+→ minimum-intervention compilation
+→ focused request, workflow task, Matter or decision
+→ governed action
+→ verification or acknowledgement
+→ refreshed Program and readiness state
 ```
 
 ## Core services
 
-- Institution and Scope
-- Source Registry
-- Programs
-- Matters
-- Authority Routing
-- Evidence and Capture
-- Decision and Action
-- Verification and Assurance
-- Regulatory and Authority Intelligence
-- Governed AI
+- Source Registry and integration adapters;
+- Signal ingestion and deduplication;
+- Drift Engine;
+- Evidence aging and contradiction;
+- Context Assembly and Prefill;
+- Minimum-Question Compiler;
+- Authority Routing and Integrity;
+- Durable Workflow;
+- Recommendation and Task Compilation;
+- Program state computation;
+- Matter, Decision, Action and Verification;
+- Continuous Readiness;
+- Governed Automation Catalogue;
+- temporal audit and reconstruction.
 
-## Program computation
+## Separation rules
 
-Program state is a versioned projection over approved Requirements/applicability, scoped controls, Evidence Contracts/current conclusions, exceptions, assurance, schedules/filings/source health, and open Matters. Changes invalidate only affected dimensions. Heavy recomputation is asynchronous; pages show current state and freshness.
+- Signal is not incident.
+- Drift is not approved conclusion.
+- Evidence aging is not proof of control failure.
+- AI recommendation is not authority.
+- external execution is implementation evidence.
+- implementation is not verified outcome.
+- readiness is multidimensional and not an opaque score.
 
-## Matter composition
+## Incremental computation
 
-Each subtype defines trigger/source, states/transitions, affected scope, roles/authority, evidence/contradiction, decision/action/response, and closure/cancellation/merge/split/supersession/reopening. Shared workflow mechanics do not erase domain-specific legal, privacy, independence, or deadline rules.
-
-## Context and request compilation
-
-ClearSight builds a purpose-bound context package containing sourced values, unresolved facts, contradictions, history, safe actions, and its version. Request compilation evaluates current evidence, identifies exact gaps, ranks eligible sources/recipients, chooses the least burdensome approved form, resolves route/channel, creates the request/session policy, and stops when satisfied elsewhere.
-
-## Triggers and failure
-
-Calendar, change, external source, event, evidence, degradation, threshold, and verification triggers are idempotent, version-aware, explainable, and replayable.
-
-When a source, model, worker, or adapter fails, deterministic state remains visible, stale age is explicit, safe fallback is offered, unsafe action is blocked, drafts/jobs remain resumable, retries are idempotent, and recovery is audited.
-
-## Conformance
-
-A vertical slice is conformant only when it proves the complete loop, actor routing, evidence minimization, explicit consistency, degraded operation, verification before closure, point-in-time reconstruction, and its workload/SLO profile.
+Changes invalidate only dependent Claims, Requirements, controls, routing paths and readiness dimensions. The API serves current projections; workers recompute affected state through idempotent jobs. Material commands use authoritative state and re-evaluate authority synchronously.

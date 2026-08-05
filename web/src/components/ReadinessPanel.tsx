@@ -1,0 +1,7 @@
+import type { Readiness } from "../types";
+import { PremiumIllustration } from "./PremiumIllustration";
+export function ReadinessPanel({ readiness }: { readiness: Readiness | null }) {
+  if (!readiness) return <section className="readiness-card loading-card"><span>Loading continuous readiness…</span></section>;
+  const dimensions = [["Current", readiness.dimensions.current], ["Aging", readiness.dimensions.aging], ["At risk", readiness.dimensions.at_risk], ["Unknown", readiness.dimensions.unknown], ["Routing blocked", readiness.dimensions.blocked_routing], ["Human judgment", readiness.dimensions.pending_human]];
+  return <section className="readiness-card" id="readiness-panel"><div className="readiness-copy"><span className="eyebrow">Continuous readiness</span><div className="readiness-title"><h2>{readiness.status.replaceAll("_", " ")}</h2><span>{new Date(readiness.generated_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></div><p>ClearSight is continuously comparing requirements, evidence, source health and routing coverage.</p><div className="readiness-dimensions">{dimensions.map(([label, value]) => <div key={String(label)}><strong>{value}</strong><span>{label}</span></div>)}</div></div><PremiumIllustration variant="readiness"/><div className="readiness-actions"><h3>Recommended handling</h3>{readiness.recommended_actions.length ? readiness.recommended_actions.map((action) => <p key={action}>{action}</p>) : <p>No material intervention is required.</p>}</div></section>;
+}
