@@ -65,7 +65,7 @@ The sample journey records:
 - authority acknowledgement;
 - closure only after acknowledgement.
 
-Restricted access is enforced by the API. A hidden card or CSS rule is never treated as an access control.
+Restricted read access is enforced at the API boundary. A hidden card or CSS rule is never treated as an access control.
 
 ## Journey 4 — Finding remediation
 
@@ -118,3 +118,7 @@ The reference implementation is accepted only when tests prove that:
 - unauthorized actors cannot read the restricted issue or request;
 - Today includes open journey work but excludes completed journeys;
 - PostgreSQL constraints and tenant boundaries remain intact.
+
+## Remaining access-control boundary
+
+This reference phase enforces restricted issue and related evidence-request reads at the HTTP boundary. It does not yet claim database row-level security, identity-group synchronization, or subject-scoped authorization across every evidence and Matter mutation endpoint. Those controls remain mandatory before production use of protected correspondence.
