@@ -21,6 +21,9 @@ func (s *Service) createMatterWithInitialLink(ctx context.Context, input CreateM
 	if _, err = repo.CreateMatterWithLink(ctx, MatterLinkBundle{Matter: matter, MatterEvent: event, Link: link, LinkEvent: linkEvent}); err != nil {
 		return MatterAggregate{}, err
 	}
+	if err = s.requestProgramRefresh(ctx, input.TenantID, input.ProgramID, EventMatterLinked, matter.ID, input.ActorID); err != nil {
+		return MatterAggregate{}, err
+	}
 	return s.GetMatter(ctx, input.TenantID, matter.ID)
 }
 
@@ -56,6 +59,9 @@ func (s *Service) applyTriggerBundle(ctx context.Context, trigger Trigger, aggre
 	result, err := repo.ApplyTriggerBundle(ctx, bundle)
 	if err != nil {
 		return ProgramAggregate{}, nil, false, err
+	}
+	if err = s.requestProgramRefresh(ctx, trigger.TenantID, trigger.ProgramID, trigger.Type, trigger.ID, "system"); err != nil {
+		return ProgramAggregate{}, result.Matter, result.Inserted, err
 	}
 	program, err := s.repo.GetProgram(ctx, trigger.TenantID, trigger.ProgramID)
 	if err != nil {
