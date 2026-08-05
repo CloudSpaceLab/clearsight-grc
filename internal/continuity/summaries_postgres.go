@@ -5,7 +5,6 @@ package continuity
 import (
 	"context"
 	"encoding/json"
-	"strings"
 	"time"
 )
 
@@ -185,7 +184,3 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 
 var _ SummaryRepository = (*PostgresRepository)(nil)
 var _ SummaryRepository = (*MemoryRepository)(nil)
-
-func normalizedSummaryStatus(value string) string {
-	return strings.ToUpper(strings.TrimSpace(value))
-}

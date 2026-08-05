@@ -67,3 +67,15 @@
 .inline-error { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px; border:1px solid color-mix(in srgb, var(--coral) 45%, var(--border)); border-radius:10px; }
 .workspace-loading { min-height:220px; display:grid; place-items:center; color:var(--muted); border:1px solid var(--border); border-radius:16px; background:var(--surface); }
 @media (max-width: 800px) { .workspace-toolbar { grid-template-columns:1fr; } .workspace-toolbar .secondary-button { width:100%; } }
+
+
+.projection-health-card .section-header { align-items:flex-start; }
+.projection-health-card mark { white-space:nowrap; }
+.projection-health-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.projection-health-grid > div { display:grid; gap:4px; padding:14px; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); }
+.projection-health-grid span, .projection-health-grid small { color:var(--muted); }
+.projection-health-grid strong { font-size:18px; }
+.card-actions { display:flex; justify-content:flex-end; margin-top:14px; }
+.success-text { margin:12px 0 0; color:var(--success); }
+@media (max-width: 900px) { .projection-health-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width: 560px) { .projection-health-grid { grid-template-columns:1fr; } .card-actions .secondary-button { width:100%; } }
