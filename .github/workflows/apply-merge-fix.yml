@@ -24,6 +24,12 @@ jobs:
           cache-dependency-path: web/package.json
       - name: Apply reviewed patch
         run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/merge-fix/part3')
+          value = path.read_text()
+          path.write_text(value[:5889] + 'b' + value[5889:])
+          PY
           cat .github/merge-fix/part* | base64 -d > /tmp/merge-fixes.tgz
           tar -xzf /tmp/merge-fixes.tgz
           rm -rf .github/merge-fix .github/workflows/apply-merge-fix.yml
