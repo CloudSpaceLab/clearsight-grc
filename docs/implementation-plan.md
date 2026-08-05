@@ -55,10 +55,12 @@ Checkboxes describe repository status, not production readiness.
 - [x] role-specific guide model and state API.
 - [x] memory and pgx onboarding-state repositories.
 - [x] premium SVG illustration, EmptyState and IntroGuide components.
-- [x] semantic work-item vector icons and enterprise copy standard.
+- [x] semantic work-item vector icons, enterprise copy standard and plain-language state labels.
 - [x] first-run reviewer guide and responsive UI.
+- [x] plain-language UI layer over stable internal status codes.
 - [ ] admin-authored guide definitions with approval/versioning.
-- [ ] visual-regression and accessibility automation.
+- [x] screen-level decision-brief and rendered-evidence contracts.
+- [ ] automated state-gallery screenshots, visual regression and accessibility checks.
 
 ### Continuous autonomy
 
@@ -68,7 +70,8 @@ Checkboxes describe repository status, not production readiness.
 - [x] signal-ingestion and readiness APIs.
 - [x] Today readiness and Configure routing-integrity UI.
 - [x] automation-policy schema.
-- [ ] dependency-aware Program invalidation and readiness snapshots.
+- [x] Program trigger deduplication, linked Matter creation and reason-bearing status snapshots.
+- [ ] dependency graph propagation across shared controls and services.
 - [ ] automation simulation, canary, kill switch and verification runtime.
 - [ ] precedent-memory service with scope and source-version controls.
 
@@ -90,11 +93,18 @@ Checkboxes describe repository status, not production readiness.
 
 ## Phase 3 — Programs and Matters
 
-- [ ] Program aggregate, Requirement, applicability, controls and Evidence Contracts.
-- [ ] incremental Compliance State and trigger evaluation.
-- [ ] typed Matter lifecycle and closure contracts.
-- [ ] Decision, Action, Response Package and Verification aggregates.
-- [ ] point-in-time Program/Matter reconstruction.
+- [x] Program aggregate, Requirement, applicability, control objectives and implementations.
+- [x] Requirement-to-control mapping and source-scoped Evidence Contracts.
+- [x] incremental, reason-bearing Compliance State and trigger evaluation.
+- [x] idempotent trigger-to-Matter creation.
+- [x] typed Matter lifecycle, decisions, actions and response packages.
+- [x] outcome-check contracts/results and typed closure rules.
+- [x] point-in-time Program/Matter reconstruction.
+- [x] PostgreSQL projections, continuity event stream and outbox delivery.
+- [x] Programs and Issues/Changes user surfaces with plain-language state labels.
+- [ ] authenticated actor binding and automatic authority checks on every material command.
+- [ ] projection-first high-cardinality list/read model and performance baselines.
+- [ ] bulk Program setup and controlled configuration-change workflow.
 
 ## Phase 4 — Initial bank verticals
 
