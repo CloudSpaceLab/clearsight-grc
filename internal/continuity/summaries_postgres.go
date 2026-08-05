@@ -40,7 +40,7 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 			NOT $4 OR
 			CASE p.status WHEN 'ACTIVE' THEN 0 WHEN 'PAUSED' THEN 1 WHEN 'DRAFT' THEN 2 ELSE 3 END > $5 OR
 			(CASE p.status WHEN 'ACTIVE' THEN 0 WHEN 'PAUSED' THEN 1 WHEN 'DRAFT' THEN 2 ELSE 3 END = $5 AND
-				(p.updated_at < $6 OR (p.updated_at = $6 AND p.id < $7::uuid)))
+				(p.updated_at < $6 OR (p.updated_at = $6 AND p.id < NULLIF($7,'')::uuid)))
 		  )
 		ORDER BY CASE p.status WHEN 'ACTIVE' THEN 0 WHEN 'PAUSED' THEN 1 WHEN 'DRAFT' THEN 2 ELSE 3 END,
 			p.updated_at DESC,p.id DESC
@@ -130,7 +130,7 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 		  AND ($3='' OR m.search_document @@ websearch_to_tsquery('simple'::regconfig,$3))
 		  AND (
 			NOT $4 OR m.priority < $5 OR
-			(m.priority = $5 AND (m.updated_at < $6 OR (m.updated_at = $6 AND m.id < $7::uuid)))
+			(m.priority = $5 AND (m.updated_at < $6 OR (m.updated_at = $6 AND m.id < NULLIF($7,'')::uuid)))
 		  )
 		ORDER BY m.priority DESC,m.updated_at DESC,m.id DESC
 		LIMIT $8`, tenant, query.Status, query.Search, hasCursor, cursor.Priority, cursor.UpdatedAt, cursor.ID, limit+1)
