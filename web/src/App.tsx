@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadCaptureRequest, loadEvidenceRequests, loadEvidenceSources, loadIntegrity, loadOnboardingGuide, loadOnboardingState, loadPolicies, loadProjectionHealth, loadReadiness, loadToday, loadWorkflowTasks, reconcileProgramState, resolveAuthority, saveOnboardingState, submitCaptureRequest } from "./api";
 import { EmptyState } from "./components/EmptyState";
+import { BankJourneysWorkspace } from "./components/BankJourneysWorkspace";
 import { EvidenceWorkspace } from "./components/EvidenceWorkspace";
 import { IntroGuide } from "./components/IntroGuide";
 import { MattersWorkspace } from "./components/MattersWorkspace";
@@ -12,7 +13,7 @@ import { WorkItemIcon } from "./components/WorkItemIcon";
 import type { AttentionItem, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, OnboardingGuide, OnboardingState, PolicySummary, Readiness, WorkflowTask } from "./types";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 
-type View = "today" | "programs" | "work" | "configure";
+type View = "today" | "programs" | "work" | "explore" | "configure";
 type LoadState = "idle" | "loading" | "live" | "unavailable";
 type ConnectionState = "loading" | "live" | "sample" | "unavailable";
 const sampleMode = import.meta.env.VITE_ENABLE_SAMPLE_DATA === "true";
@@ -139,7 +140,7 @@ function App() {
     <aside className="sidebar" aria-label="Primary navigation">
       <div className="brand-mark" aria-label="ClearSight">C</div>
       <nav>{["Today", "Programs", "Work", "Explore", "Configure"].map((label) => {
-        const view: View | null = label === "Today" ? "today" : label === "Programs" ? "programs" : label === "Work" ? "work" : label === "Configure" ? "configure" : null;
+        const view: View | null = label === "Today" ? "today" : label === "Programs" ? "programs" : label === "Work" ? "work" : label === "Explore" ? "explore" : label === "Configure" ? "configure" : null;
         const active = view === activeView;
         return <button className={active ? "nav-item active" : "nav-item"} key={label} aria-current={active ? "page" : undefined} disabled={!view} aria-disabled={!view} title={!view ? `${label} is not available in this build` : undefined} onClick={() => view && setActiveView(view)}><span>{label.slice(0, 1)}</span><b>{label}</b></button>;
       })}</nav>
@@ -149,6 +150,7 @@ function App() {
       {activeView === "today" && <TodayView items={items} dueSoon={dueSoon} connection={connection} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onRouting={inspectRouting} onCapture={openCapture}/>}
       {activeView === "programs" && <ProgramsView/>} 
       {activeView === "work" && <WorkView tab={workTab} onTab={setWorkTab} sources={sources} requests={evidenceRequests} evidenceState={evidenceState} onEvidenceRetry={() => void loadEvidenceWorkspace()}/>} 
+      {activeView === "explore" && <ExploreView/>}
       {activeView === "configure" && <ConfigureView policies={policies} findings={integrity} tasks={tasks} projectionHealth={projectionHealth} state={configureState} onRetry={() => void loadConfigureWorkspace()} onReconcile={checkProgramStatusRecords}/>} 
     </main>
     {activePanel !== "none" && <div className="panel-backdrop" onMouseDown={() => setActivePanel("none")}><aside className="side-panel" onMouseDown={(event) => event.stopPropagation()} aria-label={activePanel === "routing" ? "Approval route" : "Evidence request"}><button className="panel-close" onClick={() => setActivePanel("none")} aria-label="Close">×</button>{activePanel === "routing" ? <RoutingPanel resolution={resolution}/> : <CapturePanel request={capture}/>}</aside></div>}
@@ -173,6 +175,10 @@ function TodayView({ items, dueSoon, connection, readiness, readinessState, onRo
 
 function ProgramsView() {
   return <><header className="topbar"><div><span className="eyebrow">Demonstration Bank Nigeria</span><h1>Programs</h1><p>Ongoing obligations, safeguards, evidence checks and open issues.</p></div></header><ProgramsWorkspace/></>;
+}
+
+function ExploreView() {
+  return <><header className="topbar"><div><span className="eyebrow">Demonstration Bank Nigeria</span><h1>Explore</h1><p>Reference workflows connecting obligations, evidence, decisions, responses and confirmed outcomes.</p></div></header><BankJourneysWorkspace/></>;
 }
 
 function WorkView({ tab, onTab, sources, requests, evidenceState, onEvidenceRetry }: { tab: "matters" | "evidence"; onTab: (value: "matters" | "evidence") => void; sources: EvidenceSource[]; requests: EvidenceRequest[]; evidenceState: LoadState; onEvidenceRetry: () => void }) {

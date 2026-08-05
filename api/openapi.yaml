@@ -1,13 +1,23 @@
 openapi: 3.1.0
 info:
   title: ClearSight Foundation API
-  version: 0.7.0
+  version: 0.8.0
   description: >-
     Tenant-scoped API for authority routing, evidence capture, ongoing Programs,
     and specific Matters that require decisions, action, response or outcome checks.
 servers:
   - url: http://localhost:8080
 paths:
+  /api/v1/bank-journeys:
+    get:
+      summary: List visible bank reference journeys
+      description: Returns connected operating journeys visible to the verified actor. Restricted regulator-response records are omitted unless the actor is allowed.
+      parameters:
+        - { $ref: '#/components/parameters/Tenant' }
+      responses:
+        '200': { description: Visible journeys and their current stages }
+        '503': { description: Bank journeys are unavailable }
+
   /health/live:
     get:
       summary: Process liveness
