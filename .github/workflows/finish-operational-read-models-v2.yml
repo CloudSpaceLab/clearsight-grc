@@ -44,6 +44,7 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - name: Apply reviewed finishing changes
         run: |
+          python scripts/patch_finish_phase4.py
           python scripts/finish_phase4.py
           gofmt -w internal/continuity internal/httpapi internal/integration
       - name: Validate backend
@@ -72,7 +73,7 @@ jobs:
           npm run build
       - name: Commit finishing changes
         run: |
-          rm scripts/finish_phase4.py .github/workflows/finish-operational-read-models-v2.yml
+          rm scripts/finish_phase4.py scripts/patch_finish_phase4.py .github/workflows/finish-operational-read-models-v2.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
