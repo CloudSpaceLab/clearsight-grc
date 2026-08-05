@@ -54,10 +54,11 @@ type ProjectionHealth struct {
 }
 
 type ReconcileResult struct {
-	TenantID string `json:"tenant_id"`
-	Checked  int    `json:"checked"`
-	Queued   int    `json:"queued"`
-	Current  int    `json:"current"`
+	TenantID      string `json:"tenant_id"`
+	Checked       int    `json:"checked"`
+	Queued        int    `json:"queued"`
+	AlreadyQueued int    `json:"already_queued"`
+	Current       int    `json:"current"`
 }
 
 type ProgramStateRepository interface {

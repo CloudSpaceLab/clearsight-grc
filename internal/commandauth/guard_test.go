@@ -63,3 +63,11 @@ func TestAuditModeRecordsButAllows(t *testing.T) {
 		t.Fatalf("expected audit decision to allow: %#v err=%v", decision, err)
 	}
 }
+
+func TestGuardRejectsDifferentLegalEntity(t *testing.T) {
+	guard, _ := New(authorityStub{principal: "person-1"}, ModeEnforce, slog.Default())
+	decision, err := guard.Authorize(actorContext(), Request{TenantID: "bank-demo", LegalEntityID: "bank-gh", ObjectType: "MATTER", ObjectID: "matter-1", Responsibility: authority.ResponsibilityAuthorizer})
+	if !errors.Is(err, ErrLegalEntityMismatch) || decision.Allowed {
+		t.Fatalf("expected legal-entity rejection: %#v err=%v", decision, err)
+	}
+}

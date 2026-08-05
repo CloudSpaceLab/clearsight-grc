@@ -96,11 +96,11 @@ function App() {
   async function loadConfigureWorkspace() {
     setConfigureState("loading");
     const [policiesResult, integrityResult, tasksResult, projectionResult] = await Promise.allSettled([loadPolicies(), loadIntegrity(), loadWorkflowTasks(), loadProjectionHealth()]);
-    if (policiesResult.status === "fulfilled" && integrityResult.status === "fulfilled" && tasksResult.status === "fulfilled" && projectionResult.status === "fulfilled") {
+    if (policiesResult.status === "fulfilled" && integrityResult.status === "fulfilled" && tasksResult.status === "fulfilled") {
       setPolicies(policiesResult.value);
       setIntegrity(integrityResult.value);
       setTasks(tasksResult.value);
-      setProjectionHealth(projectionResult.value[0] ?? null);
+      setProjectionHealth(projectionResult.status === "fulfilled" ? projectionResult.value[0] ?? null : null);
       setConfigureState("live");
     } else {
       setConfigureState("unavailable");

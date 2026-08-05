@@ -70,3 +70,38 @@ func TestCommandRejectsTenantMismatch(t *testing.T) {
 		t.Fatalf("unexpected response %d: %s", response.Code, response.Body.String())
 	}
 }
+
+type capturingCommandAuthority struct{ input authority.ResolveInput }
+
+func (s *capturingCommandAuthority) Resolve(_ context.Context, input authority.ResolveInput) (authority.Resolution, error) {
+	s.input = input
+	return authority.Resolution{Principal: authority.Principal{ID: "person-1"}, RuleID: "route-1", PolicyVersion: "v1"}, nil
+}
+func (s *capturingCommandAuthority) Simulate(context.Context, authority.ResolveInput) (authority.Simulation, error) {
+	return authority.Simulation{}, nil
+}
+func (s *capturingCommandAuthority) Integrity(context.Context, string) ([]authority.IntegrityFinding, error) {
+	return nil, nil
+}
+func (s *capturingCommandAuthority) Policies(context.Context, string) ([]authority.PolicySummary, error) {
+	return nil, nil
+}
+
+func TestCommandCannotLowerMinimumMateriality(t *testing.T) {
+	service := &capturingCommandAuthority{}
+	guard, _ := commandauth.New(service, commandauth.ModeEnforce, slog.Default())
+	api := &API{deps: Dependencies{CommandGuard: guard}}
+	handler := api.command("program.transition", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/programs/program-1/transition", strings.NewReader(`{"tenant_id":"bank-demo","materiality":0,"to":"ACTIVE"}`))
+	req.SetPathValue("id", "program-1")
+	now := time.Now().UTC()
+	req = req.WithContext(identity.WithActor(req.Context(), identity.Actor{TenantID: "bank-demo", PrincipalID: "person-1", LegalEntityID: "bank-ng", Kind: "PERSON", ExpiresAt: now.Add(time.Hour)}))
+	response := httptest.NewRecorder()
+	handler(response, req)
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("unexpected response %d: %s", response.Code, response.Body.String())
+	}
+	if service.input.Materiality != 3 || service.input.LegalEntityID != "bank-ng" {
+		t.Fatalf("minimum materiality or entity was not bound: %#v", service.input)
+	}
+}

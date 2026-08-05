@@ -20,10 +20,11 @@ const (
 )
 
 var (
-	ErrIdentityRequired = errors.New("verified identity is required")
-	ErrTenantMismatch   = errors.New("identity tenant does not match the command tenant")
-	ErrNotAuthorized    = errors.New("actor is not authorized for this command")
-	ErrGuardUnavailable = errors.New("command authority service is unavailable")
+	ErrIdentityRequired    = errors.New("verified identity is required")
+	ErrTenantMismatch      = errors.New("identity tenant does not match the command tenant")
+	ErrLegalEntityMismatch = errors.New("identity legal entity does not match the command legal entity")
+	ErrNotAuthorized       = errors.New("actor is not authorized for this command")
+	ErrGuardUnavailable    = errors.New("command authority service is unavailable")
 )
 
 type Request struct {
@@ -83,6 +84,10 @@ func (g *Guard) Authorize(ctx context.Context, request Request) (Decision, error
 	}
 	if strings.TrimSpace(request.LegalEntityID) == "" {
 		request.LegalEntityID = actor.LegalEntityID
+	}
+	if actor.LegalEntityID != "*" && request.LegalEntityID != actor.LegalEntityID {
+		decision.Reason = "the command legal entity does not match the signed identity"
+		return g.reject(decision, ErrLegalEntityMismatch)
 	}
 	if strings.EqualFold(actor.Kind, "SERVICE") && !request.AllowService {
 		decision.Reason = "this command requires a person rather than a service identity"

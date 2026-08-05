@@ -81,6 +81,10 @@ func TestCommandIntegrityAndProgramStatusOperations(t *testing.T) {
 	if err != nil || len(health) != 1 || health[0].Pending != 1 {
 		t.Fatalf("unexpected pending health %#v err=%v", health, err)
 	}
+	pendingReconcile, err := service.ReconcileProgramState(ctx, "integrity-bank", 20)
+	if err != nil || pendingReconcile.Queued != 0 || pendingReconcile.AlreadyQueued != 1 {
+		t.Fatalf("reconciliation did not report the existing job %#v err=%v", pendingReconcile, err)
+	}
 	completed, err = maintainer.Maintain(ctx, time.Now().UTC().Add(2*time.Second), 20)
 	if err != nil || completed != 1 {
 		t.Fatalf("requirement status maintenance failed completed=%d err=%v", completed, err)

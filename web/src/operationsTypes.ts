@@ -16,5 +16,6 @@ export type ReconcileResult = {
   tenant_id: string;
   checked: number;
   queued: number;
+  already_queued: number;
   current: number;
 };

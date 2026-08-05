@@ -183,7 +183,23 @@ func (r *PostgresRepository) ProjectionHealth(ctx context.Context, tenant string
 }
 
 func (r *PostgresRepository) ReconcileProgramState(ctx context.Context, tenant string, limit int) (ReconcileResult, error) {
-	rows, err := r.pool.Query(ctx, `SELECT p.id::text,p.version,COALESCE(latest.program_version,0) FROM programs p JOIN tenants t ON t.id=p.tenant_id LEFT JOIN LATERAL (SELECT program_version FROM program_state_snapshots pss WHERE pss.tenant_id=p.tenant_id AND pss.program_id=p.id ORDER BY pss.generated_at DESC,pss.projection_version DESC LIMIT 1) latest ON TRUE WHERE (t.id::text=$1 OR t.slug=$1) ORDER BY p.updated_at,p.id LIMIT $2`, tenant, limit)
+	rows, err := r.pool.Query(ctx, `
+		SELECT p.id::text,p.version,COALESCE(latest.program_version,0),COALESCE(active.queued,false)
+		FROM programs p
+		JOIN tenants t ON t.id=p.tenant_id
+		LEFT JOIN LATERAL (
+			SELECT program_version FROM program_state_snapshots pss
+			WHERE pss.tenant_id=p.tenant_id AND pss.program_id=p.id
+			ORDER BY pss.generated_at DESC,pss.projection_version DESC LIMIT 1
+		) latest ON TRUE
+		LEFT JOIN LATERAL (
+			SELECT true AS queued FROM continuity_projection_jobs j
+			WHERE j.tenant_id=p.tenant_id AND j.projection_name='PROGRAM_STATE' AND j.aggregate_id=p.id AND j.status IN ('READY','CLAIMED')
+			LIMIT 1
+		) active ON TRUE
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		ORDER BY ((COALESCE(latest.program_version,0)<p.version) AND NOT COALESCE(active.queued,false)) DESC,p.updated_at,p.id
+		LIMIT $2`, tenant, limit)
 	if err != nil {
 		return ReconcileResult{}, err
 	}
@@ -192,18 +208,23 @@ func (r *PostgresRepository) ReconcileProgramState(ctx context.Context, tenant s
 	for rows.Next() {
 		var programID string
 		var current, projected int64
-		if err := rows.Scan(&programID, &current, &projected); err != nil {
+		var alreadyQueued bool
+		if err := rows.Scan(&programID, &current, &projected, &alreadyQueued); err != nil {
 			return result, err
 		}
 		result.Checked++
-		if projected < current {
-			if _, err := r.QueueProgramState(ctx, tenant, programID, current, "RECONCILE", "", "system"); err != nil {
-				return result, err
-			}
-			result.Queued++
-		} else {
+		if projected >= current {
 			result.Current++
+			continue
 		}
+		if alreadyQueued {
+			result.AlreadyQueued++
+			continue
+		}
+		if _, err := r.QueueProgramState(ctx, tenant, programID, current, "RECONCILE", "", "system"); err != nil {
+			return result, err
+		}
+		result.Queued++
 	}
 	return result, rows.Err()
 }

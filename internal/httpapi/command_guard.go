@@ -67,6 +67,9 @@ func (a *API) command(name string, handler http.HandlerFunc) http.HandlerFunc {
 			}
 			tenant = actor.TenantID
 			payload["tenant_id"] = actor.TenantID
+			if stringValue(payload["legal_entity_id"]) == "" {
+				payload["legal_entity_id"] = actor.LegalEntityID
+			}
 			bindCommandActor(name, payload, actor.PrincipalID)
 			raw, err = json.Marshal(payload)
 			if err != nil {
@@ -76,13 +79,16 @@ func (a *API) command(name string, handler http.HandlerFunc) http.HandlerFunc {
 		}
 		objectID := r.PathValue("id")
 		if objectID == "" {
+			objectID = stringValue(payload["program_id"])
+		}
+		if objectID == "" {
 			objectID = "*"
 		}
 		materiality := policy.Materiality
 		if value, ok := numberValue(payload["materiality"]); ok {
-			materiality = value
+			materiality = max(materiality, value)
 		} else if value, ok := numberValue(payload["priority"]); ok {
-			materiality = value
+			materiality = max(materiality, value)
 		}
 		responsibility := policy.Responsibility
 		if name == "matter.transition" {
@@ -151,6 +157,8 @@ func writeCommandAuthorizationError(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to continue.")
 	case errors.Is(err, commandauth.ErrTenantMismatch):
 		httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This command is outside your signed-in bank scope.")
+	case errors.Is(err, commandauth.ErrLegalEntityMismatch):
+		httpx.WriteError(w, http.StatusForbidden, "legal_entity_not_allowed", "This command is outside your signed-in legal-entity scope.")
 	case errors.Is(err, commandauth.ErrGuardUnavailable):
 		httpx.WriteError(w, http.StatusServiceUnavailable, "authority_unavailable", "The approval route could not be checked. No change was made.")
 	default:

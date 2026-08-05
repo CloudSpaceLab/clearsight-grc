@@ -192,21 +192,55 @@ func (r *MemoryRepository) ReconcileProgramState(ctx context.Context, tenant str
 		programs = append(programs, aggregate.Program)
 	}
 	r.mu.RUnlock()
-	result := ReconcileResult{TenantID: tenant}
+	data := projectionData(r)
+	data.mu.Lock()
+	active := map[string]bool{}
+	for _, job := range data.jobs {
+		if job.TenantID == tenant && (job.Status == ProjectionJobReady || job.Status == ProjectionJobClaimed) {
+			active[job.AggregateID] = true
+		}
+	}
+	data.mu.Unlock()
+	type candidate struct {
+		program   Program
+		projected int64
+		queued    bool
+	}
+	candidates := make([]candidate, 0, len(programs))
 	for _, program := range programs {
+		state, _ := r.ProgramStateAt(ctx, tenant, program.ID, nil)
+		projected := int64(0)
+		if state != nil {
+			projected = state.ProgramVersion
+		}
+		candidates = append(candidates, candidate{program: program, projected: projected, queued: active[program.ID]})
+	}
+	sort.Slice(candidates, func(i, j int) bool {
+		left := candidates[i].projected < candidates[i].program.Version && !candidates[i].queued
+		right := candidates[j].projected < candidates[j].program.Version && !candidates[j].queued
+		if left != right {
+			return left
+		}
+		return candidates[i].program.UpdatedAt.Before(candidates[j].program.UpdatedAt)
+	})
+	result := ReconcileResult{TenantID: tenant}
+	for _, item := range candidates {
 		if result.Checked >= limit {
 			break
 		}
 		result.Checked++
-		state, _ := r.ProgramStateAt(ctx, tenant, program.ID, nil)
-		if state == nil || state.ProgramVersion < program.Version {
-			if _, err := r.QueueProgramState(ctx, tenant, program.ID, program.Version, "RECONCILE", "", "system"); err != nil {
-				return result, err
-			}
-			result.Queued++
-		} else {
+		if item.projected >= item.program.Version {
 			result.Current++
+			continue
 		}
+		if item.queued {
+			result.AlreadyQueued++
+			continue
+		}
+		if _, err := r.QueueProgramState(ctx, tenant, item.program.ID, item.program.Version, "RECONCILE", "", "system"); err != nil {
+			return result, err
+		}
+		result.Queued++
 	}
 	return result, nil
 }
