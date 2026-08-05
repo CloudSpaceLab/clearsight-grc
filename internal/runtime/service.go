@@ -12,14 +12,19 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 )
 
+type Maintainer interface {
+	Maintain(context.Context, time.Time, int) (int, error)
+}
+
 type Service struct {
-	repo      Repository
-	lifecycle DelegationLifecycle
-	publisher Publisher
-	workerID  string
-	lease     time.Duration
-	batch     int
-	now       func() time.Time
+	repo        Repository
+	lifecycle   DelegationLifecycle
+	publisher   Publisher
+	maintainers []Maintainer
+	workerID    string
+	lease       time.Duration
+	batch       int
+	now         func() time.Time
 }
 
 func NewService(repo Repository, lifecycle DelegationLifecycle, publisher Publisher, workerID string) *Service {
@@ -27,6 +32,11 @@ func NewService(repo Repository, lifecycle DelegationLifecycle, publisher Publis
 		workerID = "worker"
 	}
 	return &Service{repo: repo, lifecycle: lifecycle, publisher: publisher, workerID: workerID, lease: 30 * time.Second, batch: 50, now: time.Now}
+}
+func (s *Service) AddMaintainer(maintainer Maintainer) {
+	if maintainer != nil {
+		s.maintainers = append(s.maintainers, maintainer)
+	}
 }
 func (s *Service) Schedule(ctx context.Context, timer Timer) (Timer, error) {
 	if strings.TrimSpace(timer.TenantID) == "" || strings.TrimSpace(timer.WorkflowID) == "" || strings.TrimSpace(timer.Type) == "" || strings.TrimSpace(timer.DedupeKey) == "" || timer.DueAt.IsZero() {
@@ -39,12 +49,16 @@ func (s *Service) Schedule(ctx context.Context, timer Timer) (Timer, error) {
 	if err != nil {
 		return Timer{}, err
 	}
-	timer.ID = valueID
-	timer.State = TimerReady
+	timer.ID, timer.State = valueID, TimerReady
 	return s.repo.ScheduleTimer(ctx, timer)
 }
 func (s *Service) Tick(ctx context.Context) error {
 	now := s.now().UTC()
+	for _, maintainer := range s.maintainers {
+		if _, err := maintainer.Maintain(ctx, now, s.batch); err != nil {
+			return fmt.Errorf("maintain governed source: %w", err)
+		}
+	}
 	if s.lifecycle != nil {
 		if _, err := s.lifecycle.ActivateDueDelegations(ctx, now, s.batch); err != nil {
 			return fmt.Errorf("activate delegations: %w", err)

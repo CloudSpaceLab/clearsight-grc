@@ -6,6 +6,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
@@ -15,5 +16,7 @@ func buildWorker(_ context.Context, cfg config.Config, logger *slog.Logger) (wor
 	repository := workflowruntime.NewMemoryRepository()
 	lifecycle := governance.NewMemoryRepository()
 	service := workflowruntime.NewService(repository, lifecycle, workflowruntime.LogPublisher{Logger: logger}, cfg.WorkerID)
+	evidenceService := evidence.NewService(evidence.NewMemoryRepository(evidence.DemoSources(), evidence.DemoRequests()), evidence.NewMemoryObjectStore())
+	service.AddMaintainer(evidenceService)
 	return workerSet{Runtime: service, Close: func() {}}, nil
 }

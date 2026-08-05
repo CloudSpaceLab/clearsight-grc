@@ -68,18 +68,24 @@ Checkboxes describe repository status, not production readiness.
 - [x] signal-ingestion and readiness APIs.
 - [x] Today readiness and Configure routing-integrity UI.
 - [x] automation-policy schema.
-- [ ] worker-driven scheduled evidence aging and routing scans.
 - [ ] dependency-aware Program invalidation and readiness snapshots.
 - [ ] automation simulation, canary, kill switch and verification runtime.
 - [ ] precedent-memory service with scope and source-version controls.
 
 ## Phase 2 — Sources, evidence and secure capture
 
-- [ ] Source Registry repositories and source-health worker.
-- [ ] object storage, malware scanning, integrity manifest and legal hold.
-- [ ] spreadsheet/document import pipeline with resumable chunks.
-- [ ] PostgreSQL evidence-request and submission repositories.
-- [ ] persisted invitation/session exchange and step-up authentication.
+- [x] Source Registry memory/PostgreSQL repositories and bounded source-health worker.
+- [x] source observations, deterministic freshness and transactional health events.
+- [x] PostgreSQL evidence-request and immutable submission repositories.
+- [x] persisted hash-only invitation exchange, bounded sessions and revocation.
+- [x] request-state guard, replay protection and optimistic submission.
+- [x] streamed local-development object store and SHA-256 artifact manifests.
+- [x] `STORED_UNSCANNED` / available / quarantined artifact-state contract.
+- [x] Work workspace for source health and evidence requests.
+- [ ] production object storage, encryption-key policy and malware scanning.
+- [ ] legal hold, retention and deletion workers.
+- [ ] verified external identity and step-up authentication.
+- [ ] resumable multipart upload and spreadsheet/document import pipeline.
 - [ ] protected-report identity/content separation and anonymous mailbox.
 
 ## Phase 3 — Programs and Matters

@@ -9,17 +9,20 @@ ClearSight helps bank compliance, risk, security, privacy, resilience, audit, le
 
 The repository contains canonical product and architecture specifications plus a working application foundation:
 
-- Go API and worker processes;
-- React/Vite application shell;
-- PostgreSQL schema and tagged repositories;
-- deterministic authority resolution, simulation and routing-integrity checks;
-- focused evidence capture and invitation exchange;
-- durable workflow task contracts and optimistic transitions;
-- role-specific onboarding state and premium illustration primitives;
-- compliance signals, drift assessment and continuous readiness;
-- OpenAPI, Docker Compose, CI and performance scaffolding.
+- Go API and durable worker processes;
+- React/Vite Today, Work and Configure surfaces;
+- PostgreSQL 18 schema and pgx-backed repositories;
+- deterministic authority resolution and routing-integrity checks;
+- maker-checker policies, delegations and segregation rules;
+- leased timers, transactional outbox and inbox deduplication;
+- Source Registry, source observations and freshness maintenance;
+- persisted evidence requests, immutable submissions and one-time magic links;
+- bounded capture sessions, invitation/session revocation and artifact manifests;
+- role-specific onboarding, premium illustrations and semantic vector icons;
+- compliance Signals, drift assessment and readiness;
+- OpenAPI, Docker Compose, CI and real PostgreSQL integration tests.
 
-The default build uses in-memory repositories for fast local development. A `postgres` build tag activates pgx-backed authority, workflow, onboarding and autonomy repositories.
+The default build uses in-memory repositories for fast local development. The `postgres` build tag activates PostgreSQL repositories. The local artifact-store adapter is for development and testing only; production object storage and malware scanning are not yet implemented.
 
 ## Product model
 
@@ -35,40 +38,19 @@ Authority Source or Standard
 → Matter, Decision, Action, Response and Verification
 ```
 
-Task completion, evidence upload and external execution are not verified outcomes.
+Task completion, a submission, a stored artifact and external execution are not verified outcomes.
 
 ## Continuous compliance
 
-ClearSight continuously:
+ClearSight continuously receives authoritative and operational Signals, detects requirement/evidence/source/control/routing drift, prepares the smallest governed next step, routes the correct actors and verifies material outcomes before closure.
 
-1. receives authoritative and operational Signals;
-2. detects requirement, evidence, source, control, routing and verification drift;
-3. identifies affected Programs, Matters and Claims;
-4. reuses current evidence and approved precedent;
-5. prepares the smallest governed next step;
-6. resolves performer, owner, reviewer, challenger, authorizer and escalation;
-7. executes only low-impact actions permitted by policy;
-8. verifies the outcome and refreshes readiness.
-
-See [`docs/product/continuous-compliance-and-autonomy.md`](docs/product/continuous-compliance-and-autonomy.md).
+Source freshness, invitation expiry, delegation activation and workflow timers are deterministic. AI may explain or propose handling but is not required for these controls.
 
 ## Experience
 
-ClearSight performs assembly before asking a person to act:
+Working screens use operational bank language: named objects, states, sources, owners, deadlines and actions. Unknown populations remain unknown. Sample data is labelled. Illustrations and icons support orientation but never replace status, evidence or required action.
 
-- source-backed prefill;
-- minimum-question requests;
-- one dominant next action per actor and workflow state;
-- versioned responsibility and authority routing;
-- secure internal and external capture;
-- grounded AI recommendations with deterministic fallback;
-- review by exception with visible denominators;
-- durable save, resume and handoff;
-- verification before closure.
-
-Premium illustrations support empty states, first-run guidance and education without replacing status, evidence or action. Role-specific guides are skippable, resumable and tied to a first meaningful task.
-
-See [`docs/product/illustration-and-guided-experience.md`](docs/product/illustration-and-guided-experience.md).
+The application performs assembly before asking a person to act: source-backed prefill, minimum-question requests, secure internal/external capture, review by exception, durable handoff and explicit verification.
 
 ## Architecture
 
@@ -79,24 +61,27 @@ React/Vite client
 Go API ── short, strongly consistent commands and bounded reads
       │
       ├── PostgreSQL authoritative state and durable workflow
-      ├── versioned object storage for evidence/source artifacts
+      ├── object-store interface and versioned artifact manifests
       ├── transactional outbox and idempotent workers
       ├── rebuildable search, graph, vector, queue and report projections
       └── governed AI and integration gateways
 ```
 
-The application begins as a coherent modular monolith with separate API and worker processes. Components split only after measured scale, isolation, residency or availability requirements justify the operational cost.
+The application begins as a modular monolith with separate API and worker processes. Components split only after measured scale, isolation, residency or availability requirements justify the operational cost.
 
 ## Repository layout
 
 ```text
 cmd/api                 API composition
-cmd/worker              durable-worker process
+cmd/worker              durable worker
 internal/authority      routing, simulation and integrity
-internal/autonomy       signals, drift and readiness
-internal/workflow       tasks and state transitions
+internal/governance     maker-checker policies and delegations
+internal/runtime        timers, outbox and inbox
+internal/evidence       sources, requests, sessions and artifacts
+internal/autonomy       Signals, drift and readiness
+internal/workflow       tasks and transitions
 internal/onboarding     guided-adoption state
-internal/capture        focused requests and invitations
+internal/capture        legacy focused-capture demo
 internal/httpapi        HTTP contracts
 migrations              PostgreSQL schema
 web                     React application
@@ -112,7 +97,7 @@ make check
 make run-api
 ```
 
-For PostgreSQL repositories:
+For PostgreSQL repositories and local artifact storage:
 
 ```bash
 make compose-up
@@ -126,9 +111,10 @@ The web client runs at `http://localhost:5173`; the API defaults to `http://loca
 
 - common deterministic page: p95 ≤ 1.5 seconds;
 - durable command acknowledgement: p95 ≤ 500 ms;
-- authority resolution: p95 ≤ 100 ms uncached and ≤ 25 ms cached;
+- authority resolution: p95 ≤ 100 ms uncached;
 - invitation redemption: p95 ≤ 500 ms;
-- large imports, AI, extraction, reports and verification run asynchronously;
+- request submission: p95 ≤ 750 ms;
+- large imports, extraction, scanning, reports and AI run asynchronously;
 - material commands are strongly consistent;
 - projections expose freshness and are explicitly eventually consistent.
 
@@ -138,10 +124,11 @@ The web client runs at `http://localhost:5173`; the API defaults to `http://loca
 2. [`docs/product/use-case-catalogue.md`](docs/product/use-case-catalogue.md)
 3. [`docs/product/continuous-compliance-and-autonomy.md`](docs/product/continuous-compliance-and-autonomy.md)
 4. [`docs/product/authority-routing-and-escalation.md`](docs/product/authority-routing-and-escalation.md)
-5. [`docs/product/respond-and-capture.md`](docs/product/respond-and-capture.md)
-6. [`docs/product/illustration-and-guided-experience.md`](docs/product/illustration-and-guided-experience.md)
-7. [`docs/architecture/application-architecture.md`](docs/architecture/application-architecture.md)
-8. [`docs/implementation-plan.md`](docs/implementation-plan.md)
-9. [`AGENTS.md`](AGENTS.md)
+5. [`docs/architecture/source-evidence-and-secure-capture.md`](docs/architecture/source-evidence-and-secure-capture.md)
+6. [`docs/product/respond-and-capture.md`](docs/product/respond-and-capture.md)
+7. [`docs/product/enterprise-copy-and-content-design.md`](docs/product/enterprise-copy-and-content-design.md)
+8. [`docs/architecture/application-architecture.md`](docs/architecture/application-architecture.md)
+9. [`docs/implementation-plan.md`](docs/implementation-plan.md)
+10. [`AGENTS.md`](AGENTS.md)
 
-**ClearSight succeeds when governance work becomes continuously prepared, correctly routed, minimally demanding, performant and defensible years later.**
+**ClearSight succeeds when governance work is current, correctly routed, minimally demanding, performant and reconstructable.**

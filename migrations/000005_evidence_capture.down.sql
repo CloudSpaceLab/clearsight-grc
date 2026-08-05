@@ -1,0 +1,10 @@
+BEGIN;
+DROP TABLE IF EXISTS capture_artifacts;
+ALTER TABLE IF EXISTS capture_submissions DROP CONSTRAINT IF EXISTS capture_submissions_session_fk;
+DROP TABLE IF EXISTS capture_sessions;
+DROP TABLE IF EXISTS capture_invitations;
+DROP TABLE IF EXISTS capture_submissions;
+DROP TABLE IF EXISTS capture_requests;
+DROP TABLE IF EXISTS source_observations;
+DROP TABLE IF EXISTS evidence_sources;
+COMMIT;

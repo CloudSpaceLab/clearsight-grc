@@ -10,36 +10,42 @@ import (
 )
 
 type Config struct {
-	HTTPAddr         string
-	Environment      string
-	AllowedOrigin    string
-	DatabaseURL      string
-	DatabaseMinConns int32
-	DatabaseMaxConns int32
-	QueryTimeout     time.Duration
-	ReadTimeout      time.Duration
-	WriteTimeout     time.Duration
-	IdleTimeout      time.Duration
-	WorkerID         string
-	WorkerPoll       time.Duration
-	LogLevel         slog.Level
+	HTTPAddr          string
+	Environment       string
+	AllowedOrigin     string
+	DatabaseURL       string
+	DatabaseMinConns  int32
+	DatabaseMaxConns  int32
+	QueryTimeout      time.Duration
+	ReadTimeout       time.Duration
+	WriteTimeout      time.Duration
+	IdleTimeout       time.Duration
+	WorkerID          string
+	WorkerPoll        time.Duration
+	ArtifactRoot      string
+	MaxArtifactBytes  int64
+	CaptureSessionTTL time.Duration
+	LogLevel          slog.Level
 }
 
 func Load() (Config, error) {
 	cfg := Config{
-		HTTPAddr:         env("CLEARSIGHT_HTTP_ADDR", ":8080"),
-		Environment:      env("CLEARSIGHT_ENV", "development"),
-		AllowedOrigin:    env("CLEARSIGHT_ALLOWED_ORIGIN", "http://localhost:5173"),
-		DatabaseURL:      env("DATABASE_URL", ""),
-		DatabaseMinConns: 2,
-		DatabaseMaxConns: 20,
-		QueryTimeout:     3 * time.Second,
-		ReadTimeout:      5 * time.Second,
-		WriteTimeout:     10 * time.Second,
-		IdleTimeout:      60 * time.Second,
-		WorkerID:         env("CLEARSIGHT_WORKER_ID", "worker-local"),
-		WorkerPoll:       time.Second,
-		LogLevel:         slog.LevelInfo,
+		HTTPAddr:          env("CLEARSIGHT_HTTP_ADDR", ":8080"),
+		Environment:       env("CLEARSIGHT_ENV", "development"),
+		AllowedOrigin:     env("CLEARSIGHT_ALLOWED_ORIGIN", "http://localhost:5173"),
+		DatabaseURL:       env("DATABASE_URL", ""),
+		DatabaseMinConns:  2,
+		DatabaseMaxConns:  20,
+		QueryTimeout:      3 * time.Second,
+		ReadTimeout:       5 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		WorkerID:          env("CLEARSIGHT_WORKER_ID", "worker-local"),
+		WorkerPoll:        time.Second,
+		ArtifactRoot:      env("CLEARSIGHT_ARTIFACT_ROOT", "./var/artifacts"),
+		MaxArtifactBytes:  20 << 20,
+		CaptureSessionTTL: 20 * time.Minute,
+		LogLevel:          slog.LevelInfo,
 	}
 	var err error
 	if cfg.ReadTimeout, err = duration("CLEARSIGHT_READ_TIMEOUT", cfg.ReadTimeout); err != nil {
@@ -57,8 +63,11 @@ func Load() (Config, error) {
 	if cfg.WorkerPoll, err = duration("CLEARSIGHT_WORKER_POLL", cfg.WorkerPoll); err != nil {
 		return Config{}, err
 	}
-	if cfg.WorkerPoll <= 0 {
-		return Config{}, fmt.Errorf("CLEARSIGHT_WORKER_POLL must be positive")
+	if cfg.CaptureSessionTTL, err = duration("CLEARSIGHT_CAPTURE_SESSION_TTL", cfg.CaptureSessionTTL); err != nil {
+		return Config{}, err
+	}
+	if cfg.WorkerPoll <= 0 || cfg.CaptureSessionTTL < time.Minute || cfg.CaptureSessionTTL > time.Hour {
+		return Config{}, fmt.Errorf("worker poll must be positive and capture session ttl must be 1-60 minutes")
 	}
 	if cfg.DatabaseMinConns, err = int32Value("CLEARSIGHT_DB_MIN_CONNS", cfg.DatabaseMinConns); err != nil {
 		return Config{}, err
@@ -66,8 +75,14 @@ func Load() (Config, error) {
 	if cfg.DatabaseMaxConns, err = int32Value("CLEARSIGHT_DB_MAX_CONNS", cfg.DatabaseMaxConns); err != nil {
 		return Config{}, err
 	}
+	if cfg.MaxArtifactBytes, err = int64Value("CLEARSIGHT_MAX_ARTIFACT_BYTES", cfg.MaxArtifactBytes); err != nil {
+		return Config{}, err
+	}
 	if cfg.DatabaseMinConns < 0 || cfg.DatabaseMaxConns < 1 || cfg.DatabaseMinConns > cfg.DatabaseMaxConns {
 		return Config{}, fmt.Errorf("invalid database pool bounds")
+	}
+	if cfg.MaxArtifactBytes < 1024 || cfg.MaxArtifactBytes > 100<<20 {
+		return Config{}, fmt.Errorf("CLEARSIGHT_MAX_ARTIFACT_BYTES must be between 1 KiB and 100 MiB")
 	}
 	if strings.EqualFold(env("CLEARSIGHT_LOG_LEVEL", "info"), "debug") {
 		cfg.LogLevel = slog.LevelDebug
@@ -81,7 +96,6 @@ func env(name, fallback string) string {
 	}
 	return fallback
 }
-
 func duration(name string, fallback time.Duration) (time.Duration, error) {
 	value := strings.TrimSpace(os.Getenv(name))
 	if value == "" {
@@ -93,7 +107,6 @@ func duration(name string, fallback time.Duration) (time.Duration, error) {
 	}
 	return parsed, nil
 }
-
 func int32Value(name string, fallback int32) (int32, error) {
 	value := strings.TrimSpace(os.Getenv(name))
 	if value == "" {
@@ -104,4 +117,15 @@ func int32Value(name string, fallback int32) (int32, error) {
 		return 0, fmt.Errorf("parse %s: %w", name, err)
 	}
 	return int32(parsed), nil
+}
+func int64Value(name string, fallback int64) (int64, error) {
+	value := strings.TrimSpace(os.Getenv(name))
+	if value == "" {
+		return fallback, nil
+	}
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse %s: %w", name, err)
+	}
+	return parsed, nil
 }
