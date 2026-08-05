@@ -25,8 +25,18 @@ services:
       DATABASE_URL: postgres://clearsight:clearsight@postgres:5432/clearsight?sslmode=disable
     ports: ["8080:8080"]
     depends_on:
-      postgres:
-        condition: service_healthy
+      postgres: { condition: service_healthy }
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      CLEARSIGHT_ENV: development
+      CLEARSIGHT_WORKER_ID: worker-compose
+      CLEARSIGHT_WORKER_POLL: 1s
+      DATABASE_URL: postgres://clearsight:clearsight@postgres:5432/clearsight?sslmode=disable
+    depends_on:
+      postgres: { condition: service_healthy }
   web:
     image: node:24.18.0-alpine
     working_dir: /app

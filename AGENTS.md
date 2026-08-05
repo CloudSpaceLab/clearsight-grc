@@ -38,6 +38,17 @@ Automated actions require an Automation Policy with purpose, action class, eligi
 
 Important first-run and empty states require a designed experience. Premium illustrations may support comprehension but cannot carry status, conceal an error or replace actionable content. Guides are role-specific, skippable, resumable, accessible and non-blocking.
 
+## Enterprise copy and content
+
+- UI copy MUST read like bank operating software, not a product pitch.
+- Use concrete objects, states, sources, owners, deadlines and actions. Prefer “3 approvals due this week” to “work that needs your judgment.”
+- Do not use slogans, anthropomorphic claims, urgency theatre, vague reassurance or unverifiable language such as “continuously prepared,” “everything handled,” or “automatically maintained” without a defined population and timestamp.
+- Status labels and counts MUST come from stored or explicitly labelled sample data. Unknown denominators display as unknown; they never fall back to a persuasive number.
+- Empty states state the population or query checked, the current result and the next valid action. They do not imply enterprise-wide completeness.
+- Demo copy MUST be operationally plausible and clearly identified as sample data.
+- Icons and illustrations support orientation but never replace labels, status, evidence, errors or required actions.
+- Copy changes require the same review as workflow changes because wording can alter authority, risk interpretation and user action.
+
 ## Invitations and protected data
 
 Invitation access is opaque, request-scoped, purpose-bound, short-lived, audience-bound and revocable. Tokens never appear in logs, analytics or previews. Protected reporting uses a separate identity-isolated mechanism.
