@@ -13,7 +13,8 @@ The documentation is layered so product semantics, safety, architecture and impl
 7. [`architecture/governance-runtime.md`](architecture/governance-runtime.md) — maker-checker policy lifecycle, delegation, timers and durable delivery.
 8. [`architecture/command-integrity-and-projection-operations.md`](architecture/command-integrity-and-projection-operations.md) — verified actors, authority checks, transaction boundaries and Program status operations.
 9. [`architecture/source-evidence-and-secure-capture.md`](architecture/source-evidence-and-secure-capture.md) — source health, persisted requests, magic links and artifact integrity.
-10. [`product/respond-and-capture.md`](product/respond-and-capture.md) — request-scoped internal/external capture.
+10. [`product/nigerian-bank-reference-journeys.md`](product/nigerian-bank-reference-journeys.md) — reference end-to-end Nigerian-bank journeys.
+11. [`product/respond-and-capture.md`](product/respond-and-capture.md) — request-scoped internal/external capture.
 11. [`product/illustration-and-guided-experience.md`](product/illustration-and-guided-experience.md) — premium illustrations, empty states and role-specific onboarding.
 12. [`product/enterprise-copy-and-content-design.md`](product/enterprise-copy-and-content-design.md) and [`product/plain-language-content-standard.md`](product/plain-language-content-standard.md) — human working language, count integrity and content acceptance.
 13. [`design/ui-delivery-workflow.md`](design/ui-delivery-workflow.md) — decision briefs, baselines, state galleries, rendered review and drift control.
@@ -75,3 +76,5 @@ Use-case ID
 ```
 
 A feature without this chain is not implementation-ready.
+
+- first complete Nigerian-bank reference journeys across privacy, regulatory change, protected authority response and verified remediation.

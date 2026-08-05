@@ -93,6 +93,7 @@ func (a *API) listEvidenceRequests(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusInternalServerError, "requests_failed", "Evidence requests could not be loaded.")
 		return
 	}
+	values = a.filterEvidenceRequests(r.Context(), values)
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values})
 }
 
@@ -130,6 +131,10 @@ func (a *API) getEvidenceRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "request_failed", "Evidence request could not be loaded.")
+		return
+	}
+	if !a.canReadEvidenceRequest(r.Context(), value) {
+		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, value)

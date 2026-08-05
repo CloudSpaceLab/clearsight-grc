@@ -109,10 +109,12 @@ Checkboxes describe repository status, not production readiness.
 
 ## Phase 4 — Initial bank verticals
 
-- [ ] continuous NDPA Program;
-- [ ] regulatory-change Matter;
-- [ ] protected authority-request Matter;
-- [ ] legacy finding/exception to verified remediation.
+- [x] continuous Nigeria data-protection reference Program;
+- [x] regulatory-change issue through decision, action and outcome check;
+- [x] protected authority-request issue through approved response and acknowledgement;
+- [x] legacy finding through implemented remediation, independent verification and closure;
+- [ ] bank-approved legal configuration and current-source review;
+- [ ] production restricted-group synchronization and authority-channel integration.
 
 ## Release gates
 

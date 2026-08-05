@@ -1,6 +1,7 @@
 import type { AttentionItem, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, OnboardingGuide, OnboardingState, PolicySummary, ProgramAggregate, Readiness, WorkflowTask } from "./types";
 import type { MatterSummary, ProgramSummary, SummaryPage, SummaryQuery } from "./summaryTypes";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
+import type { BankJourneysResponse } from "./verticalTypes";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -21,6 +22,7 @@ function summaryQuery(path: string, query: SummaryQuery) {
   return `${path}?${params.toString()}`;
 }
 
+export function loadBankJourneys(): Promise<BankJourneysResponse> { return request<BankJourneysResponse>("/api/v1/bank-journeys?tenant_id=bank-demo"); }
 export async function loadToday(): Promise<AttentionItem[]> { return (await request<{ items: AttentionItem[] }>("/api/v1/today")).items; }
 export function resolveAuthority(): Promise<AuthorityResolution> { return request<AuthorityResolution>("/api/v1/authority/resolve", { method: "POST", body: JSON.stringify({ tenant_id: "bank-demo", legal_entity_id: "bank-ng", object_type: "MATTER", object_id: "matter-demo", responsibility: "AUTHORIZER", materiality: 5 }) }); }
 export function loadCaptureRequest(): Promise<CaptureRequest> { return request<CaptureRequest>("/api/v1/requests/req_branch_generator"); }

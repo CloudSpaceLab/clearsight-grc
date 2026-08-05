@@ -96,3 +96,11 @@ A feature is complete only when:
 - performance and recovery targets pass;
 - point-in-time reconstruction is possible;
 - documentation, ADRs, code and tests are synchronized.
+
+## Bank vertical and jurisdiction rules
+
+- Jurisdiction-specific fixtures must identify their official source and date and must be labelled as reference data, not legal advice.
+- A vertical is not complete merely because records were created. Acceptance must reach its required decision, action, response, verification or closure outcome.
+- Restricted records must be filtered by the API and repository scope; hiding a row in the browser is not an access control.
+- Reference-journey reads must use exact indexed identifiers or bounded summaries. Do not replay broad Program or Matter populations to locate a known journey.
+- Sample fixtures must use human working language, realistic owners and deadlines, and must never imply that the connected bank is compliant.
