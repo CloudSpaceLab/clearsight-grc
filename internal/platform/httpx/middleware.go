@@ -19,7 +19,9 @@ func Chain(handler http.Handler, middleware ...func(http.Handler) http.Handler) 
 func RequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestID := strings.TrimSpace(r.Header.Get("X-Request-ID"))
-		if requestID == "" || len(requestID) > 128 { requestID, _ = id.New("req", 16) }
+		if requestID == "" || len(requestID) > 128 {
+			requestID, _ = id.New("req", 16)
+		}
 		w.Header().Set("X-Request-ID", requestID)
 		next.ServeHTTP(w, r)
 	})
@@ -65,7 +67,10 @@ func CORS(allowedOrigin string) func(http.Handler) http.Handler {
 				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Request-ID")
 				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
 			}
-			if r.Method == http.MethodOptions { w.WriteHeader(http.StatusNoContent); return }
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
 			next.ServeHTTP(w, r)
 		})
 	}

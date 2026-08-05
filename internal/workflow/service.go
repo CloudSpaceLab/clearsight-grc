@@ -16,13 +16,19 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (Task, error) {
 }
 func (s *Service) Get(ctx context.Context, id string) (Task, error) { return s.repo.Get(ctx, id) }
 func (s *Service) List(ctx context.Context, filter ListFilter) ([]Task, error) {
-	if filter.Limit <= 0 || filter.Limit > 200 { filter.Limit = 50 }
+	if filter.Limit <= 0 || filter.Limit > 200 {
+		filter.Limit = 50
+	}
 	return s.repo.List(ctx, filter)
 }
 func (s *Service) Transition(ctx context.Context, id string, input TransitionInput) (Task, error) {
 	current, err := s.repo.Get(ctx, id)
-	if err != nil { return Task{}, err }
-	if !allowed(current.Status, input.Status) { return Task{}, ErrInvalidTransition }
+	if err != nil {
+		return Task{}, err
+	}
+	if !allowed(current.Status, input.Status) {
+		return Task{}, ErrInvalidTransition
+	}
 	return s.repo.Transition(ctx, id, input)
 }
 func allowed(from, to Status) bool {

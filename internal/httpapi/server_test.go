@@ -29,21 +29,33 @@ func TestTodayEndpoint(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/today", nil)
 	response := httptest.NewRecorder()
 	testHandler().ServeHTTP(response, request)
-	if response.Code != http.StatusOK { t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String()) }
-	var body struct { Items []today.AttentionItem `json:"items"` }
-	if err := json.NewDecoder(response.Body).Decode(&body); err != nil { t.Fatalf("decode: %v", err) }
-	if len(body.Items) != 3 { t.Fatalf("expected 3 attention items, got %d", len(body.Items)) }
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String())
+	}
+	var body struct {
+		Items []today.AttentionItem `json:"items"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(body.Items) != 3 {
+		t.Fatalf("expected 3 attention items, got %d", len(body.Items))
+	}
 }
 func TestAuthorityResolutionEndpoint(t *testing.T) {
 	payload := []byte(`{"tenant_id":"bank-demo","legal_entity_id":"bank-ng","object_type":"MATTER","object_id":"matter-1","responsibility":"AUTHORIZER","materiality":5}`)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/authority/resolve", bytes.NewReader(payload))
 	response := httptest.NewRecorder()
 	testHandler().ServeHTTP(response, request)
-	if response.Code != http.StatusOK { t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String()) }
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String())
+	}
 }
 func TestReadinessEndpoint(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/compliance/readiness?tenant_id=bank-demo", nil)
 	response := httptest.NewRecorder()
 	testHandler().ServeHTTP(response, request)
-	if response.Code != http.StatusOK { t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String()) }
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String())
+	}
 }

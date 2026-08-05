@@ -20,7 +20,9 @@ func (r *MemoryRepository) Get(_ context.Context, tenant, principal, guide strin
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	value, ok := r.states[key(tenant, principal, guide)]
-	if !ok { return State{}, ErrStateNotFound }
+	if !ok {
+		return State{}, ErrStateNotFound
+	}
 	return value, nil
 }
 func (r *MemoryRepository) Upsert(_ context.Context, value State, expected int64) (State, error) {
@@ -28,10 +30,16 @@ func (r *MemoryRepository) Upsert(_ context.Context, value State, expected int64
 	defer r.mu.Unlock()
 	k := key(value.TenantID, value.PrincipalID, value.GuideCode)
 	current, ok := r.states[k]
-	if ok && expected != current.Version { return State{}, ErrVersionConflict }
-	if !ok && expected != 0 { return State{}, ErrVersionConflict }
+	if ok && expected != current.Version {
+		return State{}, ErrVersionConflict
+	}
+	if !ok && expected != 0 {
+		return State{}, ErrVersionConflict
+	}
 	value.Version = current.Version + 1
-	if !ok { value.Version = 1 }
+	if !ok {
+		value.Version = 1
+	}
 	value.UpdatedAt = r.now().UTC()
 	r.states[k] = value
 	return value, nil

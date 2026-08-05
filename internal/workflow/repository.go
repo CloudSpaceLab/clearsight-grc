@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	ErrTaskNotFound     = errors.New("workflow task not found")
-	ErrVersionConflict  = errors.New("workflow task version conflict")
+	ErrTaskNotFound      = errors.New("workflow task not found")
+	ErrVersionConflict   = errors.New("workflow task version conflict")
 	ErrInvalidTransition = errors.New("invalid workflow transition")
 )
 

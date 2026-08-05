@@ -47,7 +47,7 @@ type TransitionInput struct {
 }
 
 type ListFilter struct {
-	TenantID   string
+	TenantID    string
 	PrincipalID string
 	Status      Status
 	Limit       int

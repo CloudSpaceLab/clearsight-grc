@@ -19,7 +19,9 @@ import (
 
 func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) (serviceSet, error) {
 	pool, err := database.Open(ctx, cfg)
-	if err != nil { return serviceSet{}, err }
+	if err != nil {
+		return serviceSet{}, err
+	}
 	auto := autonomy.NewService(autonomy.NewPostgresRepository(pool))
 	logger.Info("postgres repositories enabled", "max_connections", cfg.DatabaseMaxConns)
 	return serviceSet{Mode: "postgres", Authority: authority.NewPostgresService(pool), Capture: capture.NewService(capture.DemoRequests()), Invitations: capture.NewInvitationService(time.Now), Today: today.NewService(today.DemoItems()), Workflow: workflow.NewService(workflow.NewPostgresRepository(pool)), Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)), Autonomy: auto, Close: pool.Close}, nil
