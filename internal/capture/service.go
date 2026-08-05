@@ -90,7 +90,7 @@ func DemoRequests() []Request {
 	return []Request{{
 		ID: "req_branch_generator", Title: "Confirm branch backup-power condition", Purpose: "Resolve the only missing fact for the August resilience review.", WhyYou: "You are the current Enugu Main Branch operations manager.", Status: StatusReady, Sensitivity: "Internal", EstimatedMinutes: 2, Deadline: time.Now().UTC().Add(48 * time.Hour),
 		KnownFacts: map[string]string{"Branch": "Enugu Main Branch", "Last service": "2026-07-18", "Maintenance firm": "Northstar Engineering"},
-		Fields: []Field{{ID: "condition", Label: "Current generator condition", Type: "single_select", Required: true, Options: []string{"Operational", "Operational with concern", "Unavailable"}}, {ID: "concern", Label: "Concern or supporting note", Type: "text", Description: "Add only information relevant to the current condition."}},
-		Version: 1,
+		Fields:     []Field{{ID: "condition", Label: "Current generator condition", Type: "single_select", Required: true, Options: []string{"Operational", "Operational with concern", "Unavailable"}}, {ID: "concern", Label: "Concern or supporting note", Type: "text", Description: "Add only information relevant to the current condition."}},
+		Version:    1,
 	}}
 }

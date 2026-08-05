@@ -6,25 +6,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
-
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-	logger.Info("worker started", "mode", "scaffold", "poll_interval", "30s")
-
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Info("worker stopped")
-			return
-		case <-ticker.C:
-			logger.Debug("worker heartbeat")
-		}
-	}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	logger.Info("worker scaffold ready", "capabilities", []string{"outbox", "timers", "routing-integrity", "signals", "drift", "readiness"})
+	<-ctx.Done()
+	logger.Info("worker stopped")
 }

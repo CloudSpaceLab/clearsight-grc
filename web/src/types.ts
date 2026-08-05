@@ -1,45 +1,11 @@
-export type AttentionItem = {
-  id: string;
-  type: string;
-  title: string;
-  why_now: string;
-  scope: string;
-  state: string;
-  evidence: string;
-  owner: string;
-  due_at: string;
-  primary_action: string;
-};
-
-export type CaptureRequest = {
-  id: string;
-  title: string;
-  purpose: string;
-  why_you: string;
-  status: string;
-  sensitivity: string;
-  estimated_minutes: number;
-  deadline: string;
-  known_facts: Record<string, string>;
-  fields: Array<{
-    id: string;
-    label: string;
-    type: string;
-    required: boolean;
-    description?: string;
-    options?: string[];
-  }>;
-  version: number;
-};
-
-export type AuthorityResolution = {
-  principal: {
-    id: string;
-    display_name: string;
-    kind: string;
-    role: string;
-  };
-  rule_id: string;
-  policy_version: string;
-  explanation: string;
-};
+export type AttentionItem = { id: string; type: string; title: string; why_now: string; scope: string; state: string; evidence: string; owner: string; due_at: string; primary_action: string; };
+export type CaptureRequest = { id: string; title: string; purpose: string; why_you: string; status: string; sensitivity: string; estimated_minutes: number; deadline: string; known_facts: Record<string, string>; fields: Array<{ id: string; label: string; type: string; required: boolean; description?: string; options?: string[] }>; version: number; };
+export type AuthorityResolution = { principal: { id: string; display_name: string; kind: string; role: string }; rule_id: string; policy_version: string; explanation: string; };
+export type IntegrityFinding = { type: string; severity: string; summary: string; required_action: string; rule_ids?: string[]; };
+export type PolicySummary = { id: string; code: string; name: string; status: string; version: number; effective_from?: string; };
+export type Drift = { id: string; subject_type: string; subject_id: string; dimension: string; severity: number; summary: string; required_action: string; detected_at: string; };
+export type Readiness = { tenant_id: string; status: string; baseline_known: boolean; generated_at: string; dimensions: { current: number; aging: number; at_risk: number; unknown: number; blocked_routing: number; pending_human: number; }; active_drifts: Drift[]; recommended_actions: string[]; };
+export type GuideStep = { id: string; title: string; description: string; action?: string; target?: string };
+export type OnboardingGuide = { code: string; role: string; version: number; title: string; description: string; illustration: string; steps: GuideStep[] };
+export type OnboardingState = { tenant_id: string; principal_id: string; guide_code: string; guide_version: number; current_step: number; completed: boolean; dismissed: boolean; updated_at?: string; version: number };
+export type WorkflowTask = { id: string; tenant_id: string; workflow_id: string; step_key: string; responsibility: string; principal_id?: string; title: string; status: string; due_at?: string; claimed_at?: string; completed_at?: string; context?: Record<string, string>; version: number; };

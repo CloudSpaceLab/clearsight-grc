@@ -1,42 +1,65 @@
 package authority
 
 import (
+	"context"
 	"errors"
 	"testing"
 )
 
-func TestResolverUsesMostSpecificHighPriorityRule(t *testing.T) {
+func TestResolveMaterialAuthorizer(t *testing.T) {
 	version, rules := DemoPolicySet()
 	resolver := NewResolver(version, rules)
-	resolution, err := resolver.Resolve(ResolveInput{TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "PROGRAM", ObjectID: "ndpa", Responsibility: ResponsibilityAuthorizer, Materiality: 3})
+	resolution, err := resolver.Resolve(context.Background(), ResolveInput{TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "matter-1", Responsibility: ResponsibilityAuthorizer, Materiality: 5})
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
-	if resolution.Principal.Role != "DPO" {
-		t.Fatalf("expected DPO, got %s", resolution.Principal.Role)
-	}
-	if resolution.PolicyVersion != version {
-		t.Fatalf("expected policy version %s, got %s", version, resolution.PolicyVersion)
+	if resolution.Principal.Role != "CRO" {
+		t.Fatalf("expected CRO, got %s", resolution.Principal.Role)
 	}
 }
 
-func TestResolverRejectsUnroutableRequest(t *testing.T) {
+func TestSimulationExplainsRejectedRules(t *testing.T) {
 	version, rules := DemoPolicySet()
 	resolver := NewResolver(version, rules)
-	_, err := resolver.Resolve(ResolveInput{TenantID: "other-bank", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "matter-1", Responsibility: ResponsibilityAuthorizer, Materiality: 5})
+	simulation, err := resolver.Simulate(context.Background(), ResolveInput{TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "matter-1", Responsibility: ResponsibilityAuthorizer, Materiality: 2})
+	if err != nil {
+		t.Fatalf("simulate: %v", err)
+	}
+	if simulation.Selected != nil {
+		t.Fatal("expected no selected route")
+	}
+	if len(simulation.Candidates) == 0 {
+		t.Fatal("expected candidates")
+	}
+}
+
+func TestDecisionTypeMustMatch(t *testing.T) {
+	resolver := NewResolver("v1", []Rule{{ID: "reportability", TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "*", Responsibility: ResponsibilityAuthorizer, DecisionType: "REPORTABILITY", Principal: Principal{ID: "p1", DisplayName: "MLRO"}, Priority: 1}})
+	_, err := resolver.Resolve(context.Background(), ResolveInput{TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "m1", Responsibility: ResponsibilityAuthorizer, Materiality: 5})
 	if !errors.Is(err, ErrNoRoute) {
-		t.Fatalf("expected ErrNoRoute, got %v", err)
+		t.Fatalf("expected no route when decision type is omitted, got %v", err)
 	}
 }
 
-func BenchmarkResolver(b *testing.B) {
-	version, rules := DemoPolicySet()
-	resolver := NewResolver(version, rules)
-	input := ResolveInput{TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "matter-1", Responsibility: ResponsibilityAuthorizer, Materiality: 5}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		if _, err := resolver.Resolve(input); err != nil {
-			b.Fatal(err)
-		}
+func TestUnresolvedSelectorIsNotEligible(t *testing.T) {
+	resolver := NewResolver("v1", []Rule{{ID: "missing", TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "*", Responsibility: ResponsibilityAuthorizer, Principal: Principal{}, Priority: 1}})
+	_, err := resolver.Resolve(context.Background(), ResolveInput{TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "m1", Responsibility: ResponsibilityAuthorizer, Materiality: 5})
+	if !errors.Is(err, ErrNoRoute) {
+		t.Fatalf("expected no route, got %v", err)
+	}
+	findings, err := resolver.Integrity(context.Background(), "bank-demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(findings) < 2 {
+		t.Fatalf("expected unresolved selector and missing authorizer findings, got %#v", findings)
+	}
+}
+
+func TestInvalidInputRejected(t *testing.T) {
+	resolver := NewResolver("v1", nil)
+	_, err := resolver.Simulate(context.Background(), ResolveInput{})
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected invalid input, got %v", err)
 	}
 }

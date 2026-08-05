@@ -1,66 +1,59 @@
-# ClearSight Data Model and Storage
+# Data Model and Storage
 
-This document converts product semantics into storage rules without exposing database structure as the user experience.
+## Authoritative stores
 
-## Storage classes
+PostgreSQL owns material metadata and workflow state. Versioned object storage owns original source and evidence bytes. Search, graph, vector, work-queue and reporting stores are rebuildable projections.
 
-### Authoritative relational state
+## Governance foundation
 
-PostgreSQL owns material structured truth: tenants/entities/scopes, principals/assignments/authority, Programs/Requirements/controls/Claims, Matters/workflows/decisions/actions/verification, requests/invitations/responses, versions/legal holds/audit, and outbox/inbox/jobs.
+The schema includes:
 
-### Versioned object storage
+- tenants and legal entities;
+- principals, organizational positions and role templates;
+- position-role bindings, delegations and scoped responsibility assignments;
+- authority grants and versioned routing policies;
+- workflow instances, tasks and append-only workflow events;
+- evidence requests and invitation grants;
+- onboarding state;
+- compliance Signals, drift assessments and readiness snapshots;
+- automation policies;
+- outbox and audit events.
 
-Object storage owns source documents, evidence files/media/spreadsheets, generated packages, derivatives, and manifests. Relational rows retain object version, hash, size, media type, classification, encryption context, retention, hold, and lineage.
+## Temporal rules
 
-### Rebuildable projections
+Material assignment, role, authority, source, requirement, evidence and decision records preserve valid time and record time. Corrections supersede rather than overwrite. Active-record indexes use partial predicates.
 
-Search, graph, vector, work queues, dashboards, indicators, and reports are projections—not independent truth systems.
+## Identifiers
 
-## Identity and tenancy
-
-Use UUIDv7-style time-ordered identifiers for write-heavy tables. Public IDs remain opaque. Every tenant-owned table has non-null `tenant_id`; dominant indexes lead with tenant and query scope/state. Row-level security may add defense in depth, but application queries must include tenant and purpose.
-
-Protected domains may use separate schemas, databases, keys, or deployments according to threat model and policy.
-
-## Temporal model
-
-Material records carry valid time and record time. Corrections create a new version and supersession link. Historical reconstruction distinguishes what was true from what was known. Operational lease/heartbeat fields may update in place when they do not represent institutional history.
-
-## Transaction boundaries
-
-One short transaction may update one Program or Matter aggregate, its workflow/assignments, directly related decision/action/verification state, safe audit metadata, and outbox events. Large populations/artifacts use chunked manifests. Transactions never span model calls, uploads, external APIs, or human review.
-
-## High-volume design
-
-Observations/assertions, audit events, outbox/jobs, import rows, reconciliation, projection changes, and notification deliveries require annual row/byte forecasts, retention, partition decisions, hot-index analysis, vacuum strategy, and replay plans.
-
-Default partition candidates are tenant plus effective/capture month, implemented only after benchmark evidence. Avoid thousands of tiny partitions.
-
-## Index and query rules
-
-- Index actual query shapes.
-- Prefer partial indexes for active/unresolved/unpublished/unredeemed/current rows.
-- Use covering indexes for hot queues only after measurement.
-- Use GIN only for bounded JSONB queries; frequent fields become typed columns.
-- Use stable keyset pagination, not deep offsets.
-- Validate population and authority plans with realistic authorization predicates.
+Authoritative database entities use UUIDv7 to reduce random-index write amplification while preserving globally unique sortable identifiers. Public opaque invitation and session tokens use separate high-entropy random values and are stored hashed.
 
 ## JSONB boundary
 
-JSONB fits bounded policy conditions, request schemas, scope expressions, safe event metadata, and adapter envelopes. It does not replace core concepts, authority predicates, common filters, money, dates, or relationships.
+JSONB is appropriate for:
 
-## Invitations
+- bounded routing-policy definitions;
+- scope selectors;
+- wizard schemas;
+- safe metadata;
+- signal payloads;
+- readiness dimensions.
 
-Persist only token hash, request, audience hash, policy version, issued/expiry/redeemed/revoked times, and safe delivery metadata. Raw tokens never persist. Answers become versioned Observations and remain distinct from evidence conclusions.
+Frequently filtered identities, states, times, responsibilities, policy versions and relationships remain typed columns.
 
-## Outbox and jobs
+## High-volume strategy
 
-Material transactions write outbox events atomically. Workers claim bounded batches with skip-locked semantics, leases, attempts, and result state. Consumers keep idempotent inbox/effect records. The system promises at-least-once delivery with idempotent effects and reconciliation—not exactly-once external execution.
+Signals, observations, evidence assertions, audit events and workflow events are append-heavy. Partition candidates are selected by tenant class and time after representative benchmarks. Large history moves to lower-cost archive without breaking point-in-time reconstruction.
 
-## Retention and migrations
+## Query rules
 
-Retention evaluates purpose, classification, jurisdiction, legal hold, investigation, authority request, and source obligations. Deletion propagates across authoritative rows, objects, derivatives, projections, caches, and backups according to policy.
+- tenant and purpose lead authorization-aware indexes;
+- keyset pagination replaces deep offsets;
+- current queues have dedicated partial indexes;
+- historical reconstruction uses effective/record time and stable IDs;
+- counts and search results enforce authorization in the query;
+- broad populations are never loaded then filtered in application memory.
 
-Schema changes document lock/backfill impact; large backfills are asynchronous/restartable; expand-migrate-contract is preferred; destructive changes require backup and an operational plan. Down migrations are local aids, not production recovery for data-bearing releases.
+## Current migrations
 
-The foundation migration intentionally includes only tenancy, principals, responsibility, authority, workflow, request, invitation, outbox, and audit foundations. Domain tables arrive with their first vertical slice.
+- `000001_foundation` — tenant, principal, assignment, authority, workflow, request, invitation, outbox and audit foundation;
+- `000002_governance_autonomy` — organization, roles, delegation, routing policy, workflow tasks, onboarding, Signals, drift, readiness and automation policy.

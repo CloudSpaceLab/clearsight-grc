@@ -7,7 +7,9 @@ import (
 
 type Service struct{ items []AttentionItem }
 
-func NewService(items []AttentionItem) *Service { return &Service{items: append([]AttentionItem(nil), items...)} }
+func NewService(items []AttentionItem) *Service {
+	return &Service{items: append([]AttentionItem(nil), items...)}
+}
 
 func (s *Service) List() []AttentionItem {
 	items := append([]AttentionItem(nil), s.items...)
