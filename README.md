@@ -7,11 +7,12 @@ ClearSight helps bank compliance, risk, security, privacy, resilience, audit, le
 
 ## Current status
 
-The repository now contains a working application foundation for ongoing Programs and specific issues or changes:
+The repository contains a working application foundation for ongoing Programs and specific issues or changes:
 
 - Go API and durable worker processes;
-- React/Vite Today, Programs, Work and Configure surfaces;
+- React/Vite **Today, Programs, Work, Explore and Configure** surfaces;
 - PostgreSQL 18 schema and pgx-backed repositories;
+- verified actor context with tenant/query-scope conflict rejection;
 - deterministic authority resolution and routing-integrity checks;
 - maker-checker policies, delegations and segregation rules;
 - leased timers, transactional outbox and inbox deduplication;
@@ -20,18 +21,22 @@ The repository now contains a working application foundation for ongoing Program
 - bounded capture sessions, invitation/session revocation and artifact manifests;
 - ongoing Programs with requirements, applicability decisions, controls and evidence checks;
 - typed Matters for changes, gaps, findings, requests, exceptions and incidents;
-- decisions, actions, response packages and outcome checks;
+- decisions, actions, response packages and independently checked outcomes;
 - reason-bearing Program status and point-in-time reconstruction;
+- actor-scoped Today work derived from current journey state;
+- four Nigerian-bank **reference journeys** across privacy, regulatory change, protected authority response and verified remediation;
+- recoverable, opt-in non-production reference-data installation;
 - role-specific onboarding, premium illustrations and semantic vector icons;
 - compliance Signals, drift assessment and readiness;
-- OpenAPI, Docker Compose, CI and real PostgreSQL integration tests.
+- OpenAPI, Docker Compose, CI and PostgreSQL integration tests.
 
-The default build uses in-memory repositories for fast local development. The `postgres` build tag activates PostgreSQL repositories. The local artifact-store adapter is for development and testing only; production object storage and malware scanning are not yet implemented.
+The default build uses in-memory repositories for local development. The `postgres` build tag activates PostgreSQL repositories. The local artifact-store adapter is for development and testing only; production object storage and malware scanning are not implemented.
 
 ## Product model
 
 - **Programs** maintain continuing obligations, controls, evidence, reviews, filings, exceptions and assurance.
-- **Matters** are the precise internal records for a specific change, gap, finding, request, exception or incident. General user screens call them **issues and changes** where that is clearer.
+- **Matters** are the precise internal records for a specific change, gap, finding, request, exception or incident. General screens call them **issues and changes**.
+- **Explore journeys** connect the records into understandable, end-to-end operating paths and launch the exact next Program, issue or evidence request.
 
 ```text
 Authority Source or Standard
@@ -52,41 +57,55 @@ Task completion, a submission, a stored artifact and external execution are not 
 
 Program status is calculated from approved requirements, applicability, control coverage, implementation, evidence, open issues, source health and deadlines. It is not a manually selected red/amber/green value.
 
-Primary screens use plain labels such as:
+Primary screens use plain labels such as **Up to date**, **Evidence incomplete**, **Gap found**, **Change in progress**, **Overdue**, **Under review** and **Setup in progress**. Stable internal codes remain available in APIs, history and specialist detail.
 
-- **Up to date**;
-- **Evidence incomplete**;
-- **Gap found**;
-- **Change in progress**;
-- **Overdue**;
-- **Under review**;
-- **Setup in progress**.
+## Protected records and tenant scope
 
-Stable internal codes remain available in APIs, history and specialist detail.
+Runtime reads are bound to the verified actor. A client-supplied tenant, principal or legal-entity query that conflicts with verified identity is rejected without revealing whether the requested scope exists.
 
-## Matter lifecycle
+Restricted Matter access is fail-closed:
 
-A Matter moves through only the stages appropriate to its type:
+- malformed or unsupported access metadata is not readable;
+- a restricted record requires an explicit principal allow-list;
+- legal-entity wildcard values do not bypass the allow-list;
+- restricted Matter and linked evidence filtering is applied before PostgreSQL list limits and Matter keyset pagination;
+- direct unauthorized reads return not found.
 
-```text
-Draft
-→ Initial review
-→ Reviewing impact
-→ Decision needed / Work in progress / Preparing response
-→ Confirming outcome
-→ Closed
+This HTTP/repository boundary does not replace synchronized enterprise identity groups, database row-level security or authorization on every future mutation endpoint.
+
+## Reference journeys
+
+The Nigerian-bank journeys are labelled **Reference data**. They prove composition and product interaction, not legal completeness or bank compliance.
+
+Explore shows:
+
+- evidence-backed state and reason;
+- accountable function and deadline;
+- complete and incomplete stages;
+- authoritative and supporting sources;
+- the exact next Program, issue or evidence request;
+- completed records for review without adding them to Today.
+
+The installer is explicit and recoverable. It refuses `CLEARSIGHT_ENV=production` and reconciles partial installations by stable reference identity.
+
+```bash
+go run -tags postgres ./cmd/seed-bank-reference \
+  -tenant <tenant-uuid-or-slug> \
+  -legal-entity <legal-entity-uuid> \
+  -actor <installer-principal-uuid> \
+  -owner <owner-principal-uuid> \
+  -reviewer <independent-reviewer-uuid> \
+  -signatory <signatory-principal-uuid>
 ```
-
-Closure is type-aware. Open actions, missing approval, unacknowledged external responses or failed outcome checks prevent closure. A failed outcome check can reopen work, request a decision, create a follow-up Matter or keep closure blocked according to its contract.
 
 ## Experience and copy
 
-Working screens use ordinary bank-operating language before specialist terminology. They name the object, current state, reason, owner, deadline and next valid action.
+Working screens use ordinary bank-operating language before specialist terminology. They identify the object, current state, reason, owner, deadline and next valid action.
 
-- “Does this apply?” is used before “applicability determination.”
-- “Evidence incomplete” is used before “evidence insufficiency.”
-- “Outcome check” is used before “verification contract.”
-- “Issues and changes” is used on general work screens; “Matter” remains the precise record name in APIs and audit history.
+- “Does this apply?” precedes “applicability determination.”
+- “Evidence incomplete” precedes “evidence insufficiency.”
+- “Outcome check” precedes “verification contract.”
+- “Issues and changes” is used on general work screens; “Matter” remains the precise API and audit-history name.
 
 Unknown populations remain unknown. Sample data is labelled. Illustrations and icons support orientation but never replace status, evidence or required action.
 
@@ -96,7 +115,7 @@ Unknown populations remain unknown. Sample data is labelled. Illustrations and i
 React/Vite client
       │
       ▼
-Go API ── short, strongly consistent commands and bounded reads
+Go API ── verified actor scope, short commands and bounded reads
       │
       ├── PostgreSQL authoritative state and durable workflow
       ├── append-only Program and Matter event history
@@ -111,22 +130,23 @@ The application begins as a modular monolith with separate API and worker proces
 ## Repository layout
 
 ```text
-cmd/api                 API composition
-cmd/worker              durable worker
-internal/authority      routing, simulation and integrity
-internal/governance     maker-checker policies and delegations
-internal/runtime        timers, outbox and inbox
-internal/evidence       sources, requests, sessions and artifacts
-internal/continuity     Programs, Matters, status, closure and history
-internal/autonomy       Signals, drift and readiness
-internal/workflow       tasks and transitions
-internal/onboarding     guided-adoption state
-internal/capture        legacy focused-capture demo
-internal/httpapi        HTTP contracts
-migrations              PostgreSQL schema
-web                     React application
-api/openapi.yaml        HTTP contract
-docs                    canonical specifications
+cmd/api                       API composition
+cmd/worker                    durable worker
+cmd/seed-bank-reference       explicit non-production reference installer
+internal/authority            routing, simulation and integrity
+internal/governance           maker-checker policies and delegations
+internal/runtime              timers, outbox and inbox
+internal/evidence             sources, requests, sessions and artifacts
+internal/continuity           Programs, Matters, access, status and history
+internal/bankverticals        connected bank journey projections and installer
+internal/autonomy             Signals, drift and readiness
+internal/workflow             tasks and transitions
+internal/onboarding           guided-adoption state
+internal/httpapi              actor-bound HTTP contracts
+web                           React application
+api/openapi.yaml              primary HTTP contract
+api/bank-journeys.openapi.yaml focused journey schema and examples
+docs                          canonical specifications
 ```
 
 ## Run
@@ -149,22 +169,25 @@ The web client runs at `http://localhost:5173`; the API defaults to `http://loca
 
 ## Current boundaries
 
-The Program and Matter foundation does not yet claim production completion for:
+The repository does not yet claim production completion for:
 
-- authenticated actor binding and automatic authority checks on every material command;
-- projection-first list reads for high-cardinality tenants;
-- bulk Program setup and configuration approval;
+- direct enterprise identity-provider and organization synchronization;
+- synchronized restricted groups and database row-level security;
+- authorization on every governance/evidence mutation;
+- bulk Program setup and controlled configuration changes;
 - production object storage, scanning, retention and legal hold;
-- dependency propagation across shared controls and services;
-- complete vertical workflows for NDPA, regulatory change, authority requests and imported findings.
+- direct NDPC/CBN ingestion or external authority-channel transmission;
+- bank-approved legal configuration and a complete Nigerian regulatory library;
+- representative production-scale journey benchmarks and retained query plans;
+- dependency propagation across shared controls and services.
 
 ## Start here
 
 1. [`docs/README.md`](docs/README.md)
 2. [`docs/product/use-case-catalogue.md`](docs/product/use-case-catalogue.md)
 3. [`docs/product/continuous-compliance-operating-model.md`](docs/product/continuous-compliance-operating-model.md)
-4. [`docs/architecture/program-and-matter-foundation.md`](docs/architecture/program-and-matter-foundation.md)
-5. [`docs/product/plain-language-content-standard.md`](docs/product/plain-language-content-standard.md)
+4. [`docs/product/nigerian-bank-reference-journeys.md`](docs/product/nigerian-bank-reference-journeys.md)
+5. [`docs/architecture/program-and-matter-foundation.md`](docs/architecture/program-and-matter-foundation.md)
 6. [`docs/architecture/source-evidence-and-secure-capture.md`](docs/architecture/source-evidence-and-secure-capture.md)
 7. [`docs/architecture/application-architecture.md`](docs/architecture/application-architecture.md)
 8. [`docs/implementation-plan.md`](docs/implementation-plan.md)
