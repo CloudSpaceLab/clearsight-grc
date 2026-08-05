@@ -30,7 +30,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepo)
 	verticals := bankverticals.NewService(continuityService, evidenceService)
-	if _, err := verticals.SeedSample(ctx, bankverticals.DemoSeedConfig()); err != nil {
+	if _, err := verticals.InstallSample(ctx, bankverticals.DemoSeedConfig()); err != nil {
 		return serviceSet{}, err
 	}
 	maintainer := &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepo, WorkerID: "memory-bank-journeys"}
