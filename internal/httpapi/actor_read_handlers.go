@@ -24,12 +24,12 @@ func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
 			"name": "Connected legal entity",
 		},
 		"actor": map[string]string{
-			"id":                actor.PrincipalID,
-			"name":              actor.PrincipalID,
-			"kind":              actor.Kind,
-			"assurance_level":   actor.AssuranceLevel,
-			"authentication":    actor.AuthenticationMethod,
-			"session_id":        actor.SessionID,
+			"id":              actor.PrincipalID,
+			"name":            actor.PrincipalID,
+			"kind":            actor.Kind,
+			"assurance_level": actor.AssuranceLevel,
+			"authentication":  actor.AuthenticationMethod,
+			"session_id":      actor.SessionID,
 		},
 		"mode": a.deps.Mode,
 	})
