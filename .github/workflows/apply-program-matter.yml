@@ -65,7 +65,26 @@ jobs:
                   if path.parts[:2] == ('.github', 'workflows'):
                       raise SystemExit('bundle may not modify workflows')
               archive.extractall('.')
-          print(f'extracted {len(members)} reviewed files')
+
+          integration_test = pathlib.Path('internal/integration/continuity_test.go')
+          source = integration_test.read_text()
+          start_marker = "\tif _, err := pool.Exec(ctx, `INSERT INTO tenants"
+          end_marker = "\n\n\tservice := continuity.NewService"
+          start = source.find(start_marker)
+          end = source.find(end_marker, start)
+          if start < 0 or end < 0:
+              raise SystemExit('continuity integration seed block was not found')
+          replacement = '''\tif _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'continuity-bank','Continuity Bank'),($2::uuid,'other-bank','Other Bank')`, continuityTenantID, continuityOtherTenantID); err != nil {
+\t\tt.Fatal(err)
+\t}
+\tif _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES($2::uuid,$1::uuid,'PERSON','owner','Program Owner'),($3::uuid,$1::uuid,'PERSON','reviewer','Independent Reviewer')`, continuityTenantID, continuityActorID, continuityReviewerID); err != nil {
+\t\tt.Fatal(err)
+\t}
+\tif _, err := pool.Exec(ctx, `INSERT INTO evidence_sources(id,tenant_id,code,name,source_type,authority_class,expected_freshness_minutes,health) VALUES($2::uuid,$1::uuid,'IAM','Identity directory','SYSTEM','SYSTEM_OF_RECORD',60,'CURRENT')`, continuityTenantID, continuitySourceID); err != nil {
+\t\tt.Fatal(err)
+\t}'''
+          integration_test.write_text(source[:start] + replacement + source[end:])
+          print(f'extracted {len(members)} reviewed files and corrected pgx seed execution')
           PY
           gofmt -w $(find cmd internal -name '*.go' -type f)
 
