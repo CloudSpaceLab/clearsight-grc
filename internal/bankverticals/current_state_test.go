@@ -28,9 +28,9 @@ func TestJourneyCompletionUsesCurrentRecords(t *testing.T) {
 func TestVerificationRequiresActiveIndependentPassingResults(t *testing.T) {
 	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
 	matter := continuity.MatterAggregate{
-		Actions: []continuity.Action{{ID: "action-1", OwnerPrincipalID: "owner", Status: continuity.ActionImplemented}},
+		Actions:               []continuity.Action{{ID: "action-1", OwnerPrincipalID: "owner", Status: continuity.ActionImplemented}},
 		VerificationContracts: []continuity.VerificationContract{{ID: "contract-1", ActionID: "action-1", AuthorityPrincipalID: "reviewer", Status: continuity.VerificationActive}},
-		VerificationResults: []continuity.VerificationResult{{ID: "result-1", ContractID: "contract-1", Result: continuity.VerificationPassed, ReviewerPrincipalID: "owner", ObservedAt: now}},
+		VerificationResults:   []continuity.VerificationResult{{ID: "result-1", ContractID: "contract-1", Result: continuity.VerificationPassed, ReviewerPrincipalID: "owner", ObservedAt: now}},
 	}
 	if latestVerificationPassed(matter) {
 		t.Fatal("remediation owner was treated as an independent reviewer")
