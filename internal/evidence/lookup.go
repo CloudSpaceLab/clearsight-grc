@@ -31,7 +31,7 @@ func (s *Service) LatestRequestForSubject(ctx context.Context, tenant, subjectTy
 	if len(matches) == 0 {
 		return Request{}, ErrNotFound
 	}
-	sort.Slice(matches, func(i, j int) bool { return matches[i].UpdatedAt.After(matches[j].UpdatedAt) })
+	sort.Slice(matches, func(i, j int) bool { return requestComesFirst(matches[i], matches[j]) })
 	return matches[0], nil
 }
 
@@ -62,16 +62,35 @@ func (s *Service) SourcesByCodes(ctx context.Context, tenant string, codes []str
 func (r *MemoryRepository) LatestRequestForSubject(_ context.Context, tenant, subjectType, subjectID string) (Request, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	var found Request
+	matches := make([]Request, 0, 2)
 	for _, value := range r.requests {
-		if value.TenantID == tenant && strings.EqualFold(value.SubjectType, subjectType) && value.SubjectID == subjectID && (found.ID == "" || value.UpdatedAt.After(found.UpdatedAt)) {
-			found = cloneRequest(value)
+		if value.TenantID == tenant && strings.EqualFold(value.SubjectType, subjectType) && value.SubjectID == subjectID {
+			matches = append(matches, cloneRequest(value))
 		}
 	}
-	if found.ID == "" {
+	if len(matches) == 0 {
 		return Request{}, ErrNotFound
 	}
-	return found, nil
+	sort.Slice(matches, func(i, j int) bool { return requestComesFirst(matches[i], matches[j]) })
+	return matches[0], nil
+}
+
+func requestComesFirst(left, right Request) bool {
+	leftActionable, rightActionable := requestStatusActionable(left.Status), requestStatusActionable(right.Status)
+	if leftActionable != rightActionable {
+		return leftActionable
+	}
+	if leftActionable && !left.Deadline.Equal(right.Deadline) {
+		return left.Deadline.Before(right.Deadline)
+	}
+	if !left.UpdatedAt.Equal(right.UpdatedAt) {
+		return left.UpdatedAt.After(right.UpdatedAt)
+	}
+	return left.ID > right.ID
+}
+
+func requestStatusActionable(status RequestStatus) bool {
+	return status == RequestDraft || status == RequestReady || status == RequestInProgress
 }
 
 func (r *MemoryRepository) SourcesByCodes(_ context.Context, tenant string, codes []string) ([]Source, error) {
