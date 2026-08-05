@@ -58,6 +58,13 @@ jobs:
           base64 --decode /tmp/phase6.b64 > /tmp/phase6.tgz
           echo '943604a13b6dd3e1b936def231181039914c569b6ae68071c2b0e8f9b5bc444a  /tmp/phase6.tgz' | sha256sum --check -
           tar -xzf /tmp/phase6.tgz
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apply_phase6_verticals.py')
+          text = path.read_text()
+          text = text.replace("'\\tAutonomy     *autonomy.Service\\n'", "'\\tAutonomy    *autonomy.Service\\n'")
+          path.write_text(text)
+          PY
           python apply_phase6_verticals.py
           gofmt -w cmd internal
       - name: Validate backend
