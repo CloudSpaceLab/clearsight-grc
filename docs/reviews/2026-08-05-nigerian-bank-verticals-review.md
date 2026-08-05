@@ -18,6 +18,8 @@ The implemented design uses exact indexed lookups and loads only the four releva
 
 Tenant scoping alone is insufficient for sensitive authority correspondence. The generic issue and evidence-request read paths now apply record-level visibility checks based on the verified actor and the Matter's explicit principal allow-list.
 
+This is an HTTP read-control foundation. It does not replace database row-level security, synchronized identity groups or subject-scoped checks on every mutation endpoint.
+
 ### Sample data needed a clear boundary
 
 Reference records are marked `sample: true` and Explore labels them as reference data. Product copy does not describe them as the bank's complete compliance position or as legal advice.
@@ -25,6 +27,10 @@ Reference records are marked `sample: true` and Explore labels them as reference
 ### Completion needed verified outcomes
 
 The legacy finding now closes only after an independent outcome check passes. The regulatory-change journey remains open until its implementation result is evidenced. The authority request closes only after acknowledgement.
+
+### Completed work should not look overdue
+
+Completed journeys now display **Completed** instead of retaining an old due-date label. Explore wording identifies the screen as a bank compliance journey view rather than using promotional product language.
 
 ## Implemented scope
 
@@ -52,5 +58,7 @@ This phase does not claim:
 - production document classification or legal privilege controls;
 - external authority-channel transmission;
 - identity-group synchronization for restricted teams;
+- database row-level security for protected records;
+- subject-scoped authorization across every Matter and evidence mutation endpoint;
 - production-scale journey benchmarking;
 - that reference fixture dates remain current after 5 August 2026.
