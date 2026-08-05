@@ -273,7 +273,7 @@ func programStateLabel(state ProgramState) string {
 	case StateCurrent:
 		return "Up to date"
 	case StateAtRisk:
-		return "Needs attention"
+		return "Review needed"
 	case StateGapIdentified:
 		return "Gap found"
 	case StateEvidenceInsufficient:

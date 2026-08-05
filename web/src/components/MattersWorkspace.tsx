@@ -17,8 +17,7 @@ function actionStatusLabel(value: string) {
     case "PLANNED": return "Not started";
     case "IN_PROGRESS": return "In progress";
     case "BLOCKED": return "Blocked";
-    case "IMPLEMENTED": return "Completed; outcome not yet confirmed";
-    case "VERIFIED": return "Outcome confirmed";
+    case "IMPLEMENTED": return "Work completed; outcome not confirmed";
     case "CANCELLED": return "Cancelled";
     default: return value.replaceAll("_", " ").toLowerCase();
   }
@@ -28,7 +27,33 @@ function priorityLabel(value: number) {
   if (value >= 5) return "Critical";
   if (value === 4) return "High";
   if (value === 3) return "Medium";
+  if (value === 2) return "Normal";
   return "Low";
+}
+
+function humanizeKey(value: string) {
+  return value.replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
+
+function formatFact(value: unknown) {
+  if (value === null || value === undefined || value === "") return "Not recorded";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function latestResult(aggregate: MatterAggregate, contractID: string) {
+  return aggregate.verification_results
+    .filter((result) => result.contract_id === contractID)
+    .sort((left, right) => Date.parse(right.observed_at) - Date.parse(left.observed_at))[0];
+}
+
+function resultLabel(value?: string) {
+  switch (value) {
+    case "PASS": return "Outcome confirmed";
+    case "FAIL": return "Outcome not achieved";
+    case "INCONCLUSIVE": return "More evidence needed";
+    default: return "Not checked yet";
+  }
 }
 
 export function MattersWorkspace({ matters, state }: Props) {
@@ -53,14 +78,14 @@ export function MattersWorkspace({ matters, state }: Props) {
         <button type="button" className="matter-card-main" aria-expanded={isOpen} onClick={() => setOpenID(isOpen ? null : matter.id)}>
           <span className="matter-icon"><MatterIcon type={matter.type}/></span>
           <span className="matter-primary"><span className="matter-kicker">{aggregate.type_label} · {matter.reference}</span><strong>{matter.title}</strong><small>{matter.summary}</small></span>
-          <span className="matter-meta"><span>{priorityLabel(matter.priority)} priority</span><span>{matter.due_at ? `Due ${new Date(matter.due_at).toLocaleDateString()}` : "No due date"}</span></span>
+          <span className="matter-meta"><span>{priorityLabel(matter.priority)} priority</span><span>{matter.due_at ? `${Date.parse(matter.due_at) < Date.now() ? "Overdue" : "Due"} ${new Date(matter.due_at).toLocaleDateString()}` : "No due date"}</span></span>
           <span className={`matter-status status-${matter.status.toLowerCase().replaceAll("_", "-")}`}><strong>{aggregate.status_label}</strong><small>{aggregate.next_action}</small></span>
           <span className="expand-indicator" aria-hidden="true">{isOpen ? "−" : "+"}</span>
         </button>
         {isOpen && <div className="matter-detail">
-          <section><h3>What we know</h3><dl><div><dt>Known facts</dt><dd>{Object.keys(matter.known_facts ?? {}).length || "None recorded"}</dd></div><div><dt>Missing facts</dt><dd>{matter.missing_facts?.length ?? 0}</dd></div><div><dt>Conflicting information</dt><dd>{matter.contradictions?.length ?? 0}</dd></div></dl></section>
+          <section><h3>What we know</h3>{Object.keys(matter.known_facts ?? {}).length ? <dl>{Object.entries(matter.known_facts).slice(0, 5).map(([key, value]) => <div key={key}><dt>{humanizeKey(key)}</dt><dd>{formatFact(value)}</dd></div>)}</dl> : <p>No facts have been recorded.</p>}{matter.missing_facts?.length ? <div className="closure-note"><strong>Information still needed</strong><ul>{matter.missing_facts.slice(0, 5).map((fact, index) => <li key={`${index}-${formatFact(fact)}`}>{formatFact(fact)}</li>)}</ul></div> : null}{matter.contradictions?.length ? <p>{matter.contradictions.length} conflicting item{matter.contradictions.length === 1 ? " is" : "s are"} recorded.</p> : null}</section>
           <section><h3>Actions</h3>{aggregate.actions.length ? aggregate.actions.map((action) => <div className="detail-row" key={action.id}><strong>{action.title}</strong><span>{actionStatusLabel(action.status)}</span></div>) : <p>No actions have been recorded.</p>}</section>
-          <section><h3>Result checks</h3>{aggregate.verification_contracts.length ? aggregate.verification_contracts.map((contract) => <div className="detail-row" key={contract.id}><strong>{contract.expected_outcome}</strong><span>{aggregate.verification_results.some((result) => result.contract_id === contract.id && result.result === "PASS") ? "Confirmed" : "Not checked yet"}</span></div>) : <p>No result check has been defined.</p>}{!aggregate.closure.ready && aggregate.closure.reasons.length > 0 && <div className="closure-note"><strong>Before this can close</strong><ul>{aggregate.closure.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}</section>
+          <section><h3>Outcome checks</h3>{aggregate.verification_contracts.length ? aggregate.verification_contracts.map((contract) => { const result = latestResult(aggregate, contract.id); return <div className="detail-row" key={contract.id}><strong>{contract.expected_outcome}</strong><span>{resultLabel(result?.result)}</span></div>; }) : <p>No outcome check has been defined.</p>}{!aggregate.closure.ready && aggregate.closure.reasons.length > 0 && <div className="closure-note"><strong>Before this can close</strong><ul>{aggregate.closure.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}</section>
         </div>}
       </article>;
     })}</section>

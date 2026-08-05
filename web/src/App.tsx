@@ -12,6 +12,8 @@ import type { AttentionItem, AuthorityResolution, CaptureRequest, EvidenceReques
 
 type View = "today" | "programs" | "work" | "configure";
 type LoadState = "loading" | "live" | "unavailable";
+type ConnectionState = "loading" | "live" | "sample" | "unavailable";
+const sampleMode = import.meta.env.VITE_ENABLE_SAMPLE_DATA === "true";
 const fallbackItems: AttentionItem[] = [
   { id: "fallback-1", type: "REGULATORY_CHANGE", title: "Review proposed CBN digital-channel requirements", why_now: "Seven provisions may affect mobile banking and two payment vendors.", scope: "Digital Channels · Demonstration Bank Nigeria", state: "Applicability review", evidence: "Official source recorded", owner: "Regulatory Compliance", due_at: new Date(Date.now() + 3 * 86400000).toISOString(), primary_action: "Review the proposed requirements" },
   { id: "fallback-2", type: "MATTER", title: "Confirm four privileged-account owners", why_now: "1,246 accounts are resolved; four still need current business-need evidence.", scope: "Treasury Operations · July 2026", state: "Evidence requested", evidence: "1,246 of 1,250 resolved", owner: "Treasury Technology", due_at: new Date(Date.now() + 36 * 3600000).toISOString(), primary_action: "Confirm the account owners" },
@@ -26,8 +28,9 @@ const fallbackGuide: OnboardingGuide = { code: "control-assurance-first-run", ro
 function App() {
   const [activeView, setActiveView] = useState<View>("today");
   const [workTab, setWorkTab] = useState<"matters" | "evidence">("matters");
-  const [items, setItems] = useState<AttentionItem[]>(fallbackItems);
-  const [connection, setConnection] = useState<"loading" | "live" | "fallback">("loading");
+  const [items, setItems] = useState<AttentionItem[]>([]);
+  const [connection, setConnection] = useState<ConnectionState>("loading");
+  const [readinessState, setReadinessState] = useState<LoadState>("loading");
   const [resolution, setResolution] = useState<AuthorityResolution | null>(null);
   const [capture, setCapture] = useState<CaptureRequest | null>(null);
   const [readiness, setReadiness] = useState<Readiness | null>(null);
@@ -48,8 +51,17 @@ function App() {
   useEffect(() => {
     Promise.allSettled([loadToday(), loadReadiness(), loadPolicies(), loadIntegrity(), loadWorkflowTasks(), loadEvidenceSources(), loadEvidenceRequests(), loadPrograms(), loadMatters(), loadOnboardingGuide(), loadOnboardingState()]).then((results) => {
       const [todayResult, readinessResult, policiesResult, integrityResult, tasksResult, sourcesResult, requestsResult, programsResult, mattersResult, guideResult, stateResult] = results;
-      if (todayResult.status === "fulfilled") { setItems(todayResult.value); setConnection("live"); } else setConnection("fallback");
-      if (readinessResult.status === "fulfilled") setReadiness(readinessResult.value);
+      if (todayResult.status === "fulfilled") {
+      setItems(todayResult.value);
+      setConnection("live");
+    } else if (sampleMode) {
+      setItems(fallbackItems);
+      setConnection("sample");
+    } else {
+      setItems([]);
+      setConnection("unavailable");
+    }
+    if (readinessResult.status === "fulfilled") { setReadiness(readinessResult.value); setReadinessState("live"); } else setReadinessState("unavailable");
       if (policiesResult.status === "fulfilled") setPolicies(policiesResult.value);
       if (integrityResult.status === "fulfilled") setIntegrity(integrityResult.value);
       if (tasksResult.status === "fulfilled") setTasks(tasksResult.value);
@@ -61,7 +73,14 @@ function App() {
     });
   }, []);
 
-  const dueSoon = useMemo(() => items.filter((item) => Date.parse(item.due_at) - Date.now() < 4 * 86400000).length, [items]);
+  const dueSoon = useMemo(() => {
+    const now = Date.now();
+    return items.filter((item) => {
+      const due = Date.parse(item.due_at);
+      const remaining = due - now;
+      return Number.isFinite(due) && remaining >= 0 && remaining <= 4 * 86400000;
+    }).length;
+  }, [items]);
   async function inspectRouting() { setActivePanel("routing"); if (!resolution) setResolution(await resolveAuthority().catch(() => null)); }
   async function openCapture() { setActivePanel("capture"); if (!capture) setCapture(await loadCaptureRequest().catch(() => null)); }
   async function advanceGuide(next: OnboardingState) { setGuideState(next); const saved = await saveOnboardingState(next).catch(() => null); if (saved) setGuideState(saved); }
@@ -78,7 +97,7 @@ function App() {
       <div className="avatar" aria-label="Signed in as Amaka Okafor">AO</div>
     </aside>
     <main>
-      {activeView === "today" && <TodayView items={items} dueSoon={dueSoon} connection={connection} readiness={readiness} onRouting={inspectRouting} onCapture={openCapture}/>}
+      {activeView === "today" && <TodayView items={items} dueSoon={dueSoon} connection={connection} readiness={readiness} readinessState={readinessState} onRouting={inspectRouting} onCapture={openCapture}/>}
       {activeView === "programs" && <ProgramsView programs={programs} state={programState}/>} 
       {activeView === "work" && <WorkView tab={workTab} onTab={setWorkTab} matters={matters} matterState={matterState} sources={sources} requests={evidenceRequests} evidenceState={evidenceState}/>} 
       {activeView === "configure" && <ConfigureView policies={policies} findings={integrity} tasks={tasks}/>} 
@@ -88,15 +107,18 @@ function App() {
   </div>;
 }
 
-function TodayView({ items, dueSoon, connection, readiness, onRouting, onCapture }: { items: AttentionItem[]; dueSoon: number; connection: string; readiness: Readiness | null; onRouting: () => void; onCapture: () => void }) {
+function TodayView({ items, dueSoon, connection, readiness, readinessState, onRouting, onCapture }: { items: AttentionItem[]; dueSoon: number; connection: ConnectionState; readiness: Readiness | null; readinessState: LoadState; onRouting: () => void; onCapture: () => void }) {
   const current = readiness?.baseline_known ? readiness.dimensions.current : "—";
+  const openCount = connection === "unavailable" ? "—" : items.length;
+  const dueCount = connection === "unavailable" ? "—" : dueSoon;
+  const connectionLabel = connection === "live" ? "Live data" : connection === "sample" ? "Sample data" : connection === "unavailable" ? "Data unavailable" : "Connecting";
   return <>
-    <header className="topbar"><div><span className="eyebrow">Demonstration Bank Nigeria · Control Assurance</span><h1>Today</h1><p>Reviews, approvals and evidence requests assigned to you.</p></div><div className="topbar-actions"><span className={`connection ${connection}`}>{connection === "live" ? "Connected" : connection === "fallback" ? "Sample data" : "Connecting"}</span><button id="authority-action" className="secondary-button" onClick={onRouting}>View approval route</button><button id="capture-action" className="primary-button" onClick={onCapture}>Open evidence request</button></div></header>
-    <section className="brief-grid" id="today-brief"><div className="brief-stat"><span>Open items</span><strong>{items.length}</strong><small>Assigned to you</small></div><div className="brief-stat"><span>Due in 4 days</span><strong>{dueSoon}</strong><small>Open items</small></div><div className="brief-stat verified"><span>Current items</span><strong>{current}</strong><small>{readiness?.baseline_known ? "No action due" : "Population not connected"}</small></div></section>
-    <ReadinessPanel readiness={readiness}/>
+    <header className="topbar"><div><span className="eyebrow">Demonstration Bank Nigeria · Control Assurance</span><h1>Today</h1><p>Reviews, approvals and evidence requests assigned to you.</p></div><div className="topbar-actions"><span className={`connection ${connection}`}>{connectionLabel}</span><button id="authority-action" className="secondary-button" onClick={onRouting}>View approval route</button><button id="capture-action" className="primary-button" onClick={onCapture}>Open evidence request</button></div></header>
+    <section className="brief-grid" id="today-brief"><div className="brief-stat"><span>Open items</span><strong>{openCount}</strong><small>Assigned to you</small></div><div className="brief-stat"><span>Due within 4 days</span><strong>{dueCount}</strong><small>Excludes overdue items</small></div><div className="brief-stat verified"><span>Items up to date</span><strong>{current}</strong><small>{readiness?.baseline_known ? "No action due" : "Population not connected"}</small></div></section>
+    <ReadinessPanel readiness={readiness} state={readinessState}/>
     <section className="section-header"><div><h2>Assigned to you</h2><p>Reviews, approvals and evidence requests.</p></div></section>
-    {items.length ? <section className="attention-list">{items.map((item) => <AttentionCard item={item} key={item.id}/>)}</section> : <EmptyState label="Work queue" title="No assigned items" description="There are no open reviews, approvals or evidence requests assigned to you."/>}
-    <section className="quiet-section"><div><span className="verified-dot"/> No material changes detected in 6 demonstration programs</div><p>Program details show the latest recorded evidence and source checks.</p></section>
+    {connection === "unavailable" ? <EmptyState label="Work queue" title="Assigned work could not be loaded" description="The service is unavailable. No current work count is shown."/> : items.length ? <section className="attention-list">{items.map((item) => <AttentionCard item={item} key={item.id}/>)}</section> : <EmptyState label="Work queue" title="No assigned items" description="There are no open reviews, approvals or evidence requests assigned to you in the connected scope."/>}
+    {readiness?.baseline_known && <section className="quiet-section"><div><span className="verified-dot"/> Readiness was updated {new Date(readiness.generated_at).toLocaleString()}</div><p>{readiness.dimensions.current} item{readiness.dimensions.current === 1 ? " is" : "s are"} currently recorded with no action due.</p></section>}
   </>;
 }
 
@@ -109,11 +131,19 @@ function WorkView({ tab, onTab, matters, matterState, sources, requests, evidenc
 }
 
 function ConfigureView({ policies, findings, tasks }: { policies: PolicySummary[]; findings: IntegrityFinding[]; tasks: WorkflowTask[] }) {
-  return <><header className="topbar"><div><span className="eyebrow">Governance configuration</span><h1>Routing and approvals</h1><p>Responsibility, approval limits, delegation and escalation rules.</p></div></header><section className="configure-hero"><div><span className="eyebrow">Routing checks</span><h2>{findings.length ? `${findings.length} configuration issue${findings.length === 1 ? "" : "s"}` : "No blocking configuration issues"}</h2><p>Checks cover missing owners, unresolved selectors, duplicate priorities, expired delegations and missing authorizers.</p></div><PremiumIllustration variant="routing"/></section><section className="config-grid"><article className="config-card"><div className="section-header"><div><h2>Active policies</h2><p>Approved versions and effective dates.</p></div></div>{policies.length ? policies.map((policy) => <div className="policy-row" key={policy.id}><div><strong>{policy.name}</strong><span>{policy.code} · v{policy.version}</span></div><mark>{policy.status}</mark></div>) : <EmptyState label="Routing policies" title="No active policies" description="There are no active routing policies in the current scope."/>}</article><article className="config-card"><div className="section-header"><div><h2>Integrity findings</h2><p>Configuration checks.</p></div></div>{findings.length ? findings.map((finding) => <div className={`finding-row severity-${finding.severity.toLowerCase()}`} key={`${finding.type}-${finding.summary}`}><strong>{finding.summary}</strong><span>{finding.required_action}</span></div>) : <div className="calm-empty"><span>✓</span><div><strong>No blocking routing gaps</strong><p>All evaluated routes resolved to an active principal.</p></div></div>}</article><article className="config-card wide"><div className="section-header"><div><h2>Workflow ownership</h2><p>Open tasks and current assignees.</p></div></div><div className="task-table">{tasks.map((task) => <div className="task-row" key={task.id}><div><strong>{task.title}</strong><span>{task.responsibility} · {task.step_key}</span></div><span>{task.context?.scope ?? task.context?.program ?? "Bank NG"}</span><mark>{task.status.replaceAll("_", " ")}</mark></div>)}</div></article></section></>;
+  return <><header className="topbar"><div><span className="eyebrow">Governance configuration</span><h1>Routing and approvals</h1><p>Responsibility, approval limits, delegation and escalation rules.</p></div></header><section className="configure-hero"><div><span className="eyebrow">Routing checks</span><h2>{findings.length ? `${findings.length} configuration issue${findings.length === 1 ? "" : "s"}` : "No blocking configuration issues"}</h2><p>Checks cover missing owners, unresolved selectors, duplicate priorities, expired delegations and missing authorizers.</p></div><PremiumIllustration variant="routing"/></section><section className="config-grid"><article className="config-card"><div className="section-header"><div><h2>Active policies</h2><p>Approved versions and effective dates.</p></div></div>{policies.length ? policies.map((policy) => <div className="policy-row" key={policy.id}><div><strong>{policy.name}</strong><span>{policy.code} · v{policy.version}</span></div><mark>{humanizeStatus(policy.status)}</mark></div>) : <EmptyState label="Routing policies" title="No active policies" description="There are no active routing policies in the current scope."/>}</article><article className="config-card"><div className="section-header"><div><h2>Integrity findings</h2><p>Configuration checks.</p></div></div>{findings.length ? findings.map((finding) => <div className={`finding-row severity-${finding.severity.toLowerCase()}`} key={`${finding.type}-${finding.summary}`}><strong>{finding.summary}</strong><span>{finding.required_action}</span></div>) : <div className="calm-empty"><span>✓</span><div><strong>No blocking routing gaps</strong><p>All evaluated routes resolved to an active principal.</p></div></div>}</article><article className="config-card wide"><div className="section-header"><div><h2>Workflow ownership</h2><p>Open tasks and current assignees.</p></div></div><div className="task-table">{tasks.map((task) => <div className="task-row" key={task.id}><div><strong>{task.title}</strong><span>{task.responsibility} · {task.step_key}</span></div><span>{task.context?.scope ?? task.context?.program ?? "Bank NG"}</span><mark>{humanizeStatus(task.status)}</mark></div>)}</div></article></section></>;
 }
 
-function AttentionCard({ item }: { item: AttentionItem }) { const due = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(item.due_at)); return <article className="attention-card"><div className="attention-icon"><WorkItemIcon type={item.type}/></div><div className="attention-content"><div className="card-kicker"><span>{item.state}</span><time>{due}</time></div><h3>{item.title}</h3><p>{item.why_now}</p><div className="card-meta"><span>{item.scope}</span><span>{item.evidence}</span><span>{item.owner}</span></div></div><div className="card-next"><span>Next</span><strong>{item.primary_action}</strong></div></article>; }
-function RoutingPanel({ resolution }: { resolution: AuthorityResolution | null }) { return <div className="panel-content"><span className="eyebrow">Approval route</span><h2>Current authorizer</h2><p>The route uses the legal entity, issue type, importance, delegation and active policy version.</p>{resolution ? <div className="resolution-card"><div className="principal-avatar">CR</div><div><strong>{resolution.principal.display_name}</strong><span>{resolution.principal.role} · {resolution.principal.kind}</span></div><mark>Selected</mark></div> : <div className="skeleton">The approval route is unavailable while the API is offline.</div>}<dl className="explanation-list"><div><dt>Responsibility</dt><dd>Authorizer</dd></div><div><dt>Legal entity</dt><dd>Demonstration Bank Nigeria</dd></div><div><dt>Importance</dt><dd>Critical · Executive approval</dd></div><div><dt>Policy</dt><dd>{resolution?.policy_version ?? "Sample policy"}</dd></div></dl><div className="sequence"><span>Control owner</span><i>→</i><span>Control Assurance</span><i>→</i><b>CRO</b></div></div>; }
+function humanizeStatus(value: string) {
+  return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
+
+function AttentionCard({ item }: { item: AttentionItem }) {
+  const parsed = Date.parse(item.due_at);
+  const due = Number.isFinite(parsed) ? new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(parsed)) : "Due date unavailable";
+  return <article className="attention-card"><div className="attention-icon"><WorkItemIcon type={item.type}/></div><div className="attention-content"><div className="card-kicker"><span>{item.state}</span><time>{due}</time></div><h3>{item.title}</h3><p>{item.why_now}</p><div className="card-meta"><span>{item.scope}</span><span>{item.evidence}</span><span>{item.owner}</span></div></div><div className="card-next"><span>Required action</span><strong>{item.primary_action}</strong></div></article>;
+}
+function RoutingPanel({ resolution }: { resolution: AuthorityResolution | null }) { return <div className="panel-content"><span className="eyebrow">Approval route</span><h2>Current authorizer</h2><p>The route uses the legal entity, issue type, importance, delegation and active policy version.</p>{resolution ? <div className="resolution-card"><div className="principal-avatar">CR</div><div><strong>{resolution.principal.display_name}</strong><span>{resolution.principal.role} · {resolution.principal.kind}</span></div><mark>Selected</mark></div> : <div className="skeleton">The approval route is unavailable while the API is offline.</div>}<dl className="explanation-list"><div><dt>Responsibility</dt><dd>Authorizer</dd></div><div><dt>Legal entity</dt><dd>Demonstration Bank Nigeria</dd></div><div><dt>Importance</dt><dd>Critical · Executive approval</dd></div><div><dt>Policy</dt><dd>{resolution?.policy_version ?? "Unavailable"}</dd></div></dl><div className="sequence"><span>Control owner</span><i>→</i><span>Control Assurance</span><i>→</i><b>CRO</b></div></div>; }
 function CapturePanel({ request }: { request: CaptureRequest | null }) {
   const [answers, setAnswers] = useState<Record<string, string>>({}); const [receipt, setReceipt] = useState<string | null>(null); const [error, setError] = useState<string | null>(null);
   async function submit() { if (!request) return; setError(null); try { const result = await submitCaptureRequest(request.id, request.version, answers); setReceipt(`Submitted ${new Date(result.submitted_at).toLocaleString()}`); } catch (cause) { setError(cause instanceof Error ? cause.message : "Submission failed"); } }

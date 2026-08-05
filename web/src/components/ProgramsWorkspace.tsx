@@ -39,7 +39,7 @@ export function ProgramsWorkspace({ programs, state }: Props) {
     ? `${summary.attention} program${summary.attention === 1 ? " has" : "s have"} gaps, incomplete evidence or overdue work`
     : summary.setup > 0
       ? `${summary.setup} program${summary.setup === 1 ? " is" : "s are"} still being set up`
-      : "No gaps are recorded in these programs";
+      : "No recorded gaps or overdue work in the loaded programs";
 
   if (state === "loading") return <section className="workspace-loading">Loading programs…</section>;
   if (state === "unavailable") return <EmptyState label="Programs" title="Programs could not be loaded" description="Try again when the service is available. Existing records have not been changed."/>;
@@ -53,7 +53,7 @@ export function ProgramsWorkspace({ programs, state }: Props) {
     <section className="program-summary" aria-label="Program summary">
       <div><span>Programs</span><strong>{programs.length}</strong><small>Current bank scope</small></div>
       <div><span>Up to date</span><strong>{summary.current}</strong><small>Based on the recorded requirements and evidence</small></div>
-      <div><span>Need attention</span><strong>{summary.attention}</strong><small>Gap, overdue, incomplete evidence or change in progress</small></div>
+      <div><span>Open gaps or overdue work</span><strong>{summary.attention}</strong><small>Includes incomplete evidence and work in progress</small></div>
     </section>
     <section className="program-list">
       {programs.map((aggregate) => {
@@ -64,15 +64,15 @@ export function ProgramsWorkspace({ programs, state }: Props) {
         return <article className="program-card" key={program.id}>
           <button className="program-card-main" type="button" aria-expanded={isOpen} onClick={() => setOpenID(isOpen ? null : program.id)}>
             <span className="program-icon"><ProgramIcon/></span>
-            <span className="program-primary"><span className="program-kicker">{program.code} · {program.owning_function}</span><strong>{program.name}</strong><small>{program.jurisdiction || "Current legal-entity scope"}</small></span>
-            <span className="program-counts"><span><b>{aggregate.requirements.length}</b> requirements</span><span><b>{aggregate.control_implementations.length}</b> safeguards</span><span><b>{aggregate.evidence_contracts.length}</b> evidence checks</span></span>
+            <span className="program-primary"><span className="program-kicker">{program.code} · {program.owning_function}</span><strong>{program.name}</strong>{program.jurisdiction && <small>{program.jurisdiction}</small>}</span>
+            <span className="program-counts"><span><b>{aggregate.requirements.length}</b> requirements recorded</span><span><b>{aggregate.control_implementations.length}</b> safeguards</span><span><b>{aggregate.evidence_contracts.length}</b> evidence checks</span></span>
             <span className={`program-state ${stateClass(overall)}`}><strong>{aggregate.state_label || "Not assessed"}</strong><small>{currentState?.open_matter_count ?? 0} open issue{currentState?.open_matter_count === 1 ? "" : "s"}</small></span>
             <span className="expand-indicator" aria-hidden="true">{isOpen ? "−" : "+"}</span>
           </button>
           {isOpen && <div className="program-detail">
-            <section><h3>Why this status</h3>{currentState?.reasons?.length ? <ul>{currentState.reasons.slice(0, 6).map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul> : <p>No gaps or overdue items are recorded.</p>}</section>
+            <section><h3>Why this status</h3>{currentState?.reasons?.length ? <ul>{currentState.reasons.slice(0, 6).map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul> : <p>No status reasons are recorded for the latest assessment.</p>}</section>
             <section><h3>Requirements</h3>{aggregate.requirements.length ? aggregate.requirements.slice(0, 5).map((requirement) => <div className="detail-row" key={requirement.id}><strong>{requirement.title}</strong><span>{requirementStatusLabel(requirement.status)}</span></div>) : <p>No approved requirements have been added.</p>}</section>
-            <section><h3>Required evidence</h3>{aggregate.evidence_contracts.length ? aggregate.evidence_contracts.slice(0, 5).map((contract) => <div className="detail-row" key={contract.id}><strong>{contract.name}</strong><span>{Math.round(contract.minimum_coverage * 100)}% minimum coverage</span></div>) : <p>No evidence checks have been defined.</p>}</section>
+            <section><h3>Required evidence</h3>{aggregate.evidence_contracts.length ? aggregate.evidence_contracts.slice(0, 5).map((contract) => <div className="detail-row" key={contract.id}><strong>{contract.name}</strong><span>Required coverage: {Math.round(contract.minimum_coverage * 100)}%</span></div>) : <p>No evidence checks have been defined.</p>}</section>
           </div>}
         </article>;
       })}
