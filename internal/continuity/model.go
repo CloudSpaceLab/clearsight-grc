@@ -507,6 +507,7 @@ type Trigger struct {
 	Payload     json.RawMessage `json:"payload"`
 	ObservedAt  time.Time       `json:"observed_at"`
 	Source      string          `json:"source"`
+	ActorID     string          `json:"actor_id,omitempty"`
 }
 
 type Event struct {

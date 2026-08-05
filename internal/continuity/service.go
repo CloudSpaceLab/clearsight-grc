@@ -250,10 +250,7 @@ func (s *Service) CreateProgram(ctx context.Context, input CreateProgramInput) (
 	if _, err = s.repo.CreateProgram(ctx, program, event); err != nil {
 		return ProgramAggregate{}, err
 	}
-	if err = s.refreshProgram(ctx, input.TenantID, program.ID, "PROGRAM_CREATED", program.ID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.repo.GetProgram(ctx, input.TenantID, program.ID)
+	return s.refreshAndGetProgram(ctx, input.TenantID, program.ID, "PROGRAM_CREATED", program.ID)
 }
 
 func (s *Service) TransitionProgram(ctx context.Context, input ProgramTransitionInput) (ProgramAggregate, error) {
@@ -596,6 +593,13 @@ func (s *Service) ApplyTrigger(ctx context.Context, trigger Trigger) (ProgramAgg
 			return ProgramAggregate{}, nil, false, err
 		}
 	}
+	if bundleRepo, ok := s.repo.(TriggerBundleRepository); ok {
+		aggregate, getErr := s.repo.GetProgram(ctx, trigger.TenantID, trigger.ProgramID)
+		if getErr != nil {
+			return ProgramAggregate{}, nil, false, getErr
+		}
+		return s.applyTriggerBundle(ctx, trigger, aggregate, bundleRepo)
+	}
 	inserted, err := s.repo.RecordProgramTrigger(ctx, trigger)
 	if err != nil {
 		return ProgramAggregate{}, nil, false, err
@@ -613,7 +617,7 @@ func (s *Service) ApplyTrigger(ctx context.Context, trigger Trigger) (ProgramAgg
 		}
 	}
 	if !alreadyInStream {
-		if err = s.applyProgramValue(ctx, trigger.TenantID, trigger.ProgramID, aggregate.Program.Version, EventProgramTriggerRecorded, trigger, ""); err != nil {
+		if err = s.applyProgramValue(ctx, trigger.TenantID, trigger.ProgramID, aggregate.Program.Version, EventProgramTriggerRecorded, trigger, trigger.ActorID); err != nil {
 			return ProgramAggregate{}, nil, false, err
 		}
 	}
@@ -638,7 +642,7 @@ func (s *Service) ensureTriggerMatter(ctx context.Context, trigger Trigger) (*Ma
 	if !errors.Is(err, ErrNotFound) {
 		return nil, err
 	}
-	matterAggregate, err := s.CreateMatter(ctx, CreateMatterInput{TenantID: trigger.TenantID, Type: matterType, Priority: triggerPriority(trigger.Type), Title: title, Summary: summary, Scope: trigger.Payload, TriggerType: trigger.Type, TriggerID: trigger.ID, TriggerKey: trigger.DedupeKey, KnownFacts: trigger.Payload, MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`), ProgramID: trigger.ProgramID})
+	matterAggregate, err := s.CreateMatter(ctx, CreateMatterInput{TenantID: trigger.TenantID, Type: matterType, Priority: triggerPriority(trigger.Type), Title: title, Summary: summary, Scope: trigger.Payload, TriggerType: trigger.Type, TriggerID: trigger.ID, TriggerKey: trigger.DedupeKey, KnownFacts: trigger.Payload, MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`), ProgramID: trigger.ProgramID, ActorID: trigger.ActorID})
 	if errors.Is(err, ErrDuplicate) {
 		existing, lookupErr := s.repo.MatterByTriggerKey(ctx, trigger.TenantID, trigger.DedupeKey)
 		if lookupErr != nil {
@@ -657,7 +661,18 @@ func (s *Service) ProgramAt(ctx context.Context, tenant, id string, at time.Time
 	if err != nil {
 		return ProgramAggregate{}, err
 	}
-	return reconstructProgram(events)
+	aggregate, err := reconstructProgram(events)
+	if err != nil {
+		return ProgramAggregate{}, err
+	}
+	state, err := s.programStateAt(ctx, tenant, id, &at)
+	if err != nil {
+		return ProgramAggregate{}, err
+	}
+	if state != nil {
+		aggregate.CurrentState = state
+	}
+	return decorateProgram(aggregate), nil
 }
 
 func (s *Service) ListMatters(ctx context.Context, tenant, status string, limit int) ([]MatterAggregate, error) {
@@ -731,6 +746,11 @@ func (s *Service) CreateMatter(ctx context.Context, input CreateMatterInput) (Ma
 	if err != nil {
 		return MatterAggregate{}, err
 	}
+	if input.ProgramID != "" {
+		if compoundRepo, ok := s.repo.(CompoundRepository); ok {
+			return s.createMatterWithInitialLink(ctx, input, matter, event, compoundRepo)
+		}
+	}
 	if _, err = s.repo.CreateMatter(ctx, matter, event); err != nil {
 		return MatterAggregate{}, err
 	}
@@ -779,7 +799,7 @@ func (s *Service) AddMatterLink(ctx context.Context, input AddMatterLinkInput) (
 	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterLinked, link, input.ActorID); err != nil {
 		return MatterAggregate{}, err
 	}
-	_ = s.refreshProgram(ctx, input.TenantID, input.ProgramID, EventMatterLinked, input.MatterID)
+	_ = s.requestProgramRefresh(ctx, input.TenantID, input.ProgramID, EventMatterLinked, input.MatterID, input.ActorID)
 	return s.GetMatter(ctx, input.TenantID, input.MatterID)
 }
 
@@ -1121,44 +1141,42 @@ func (s *Service) applyMatterValue(ctx context.Context, tenant, matterID string,
 }
 
 func (s *Service) refreshAndGetProgram(ctx context.Context, tenant, programID, triggerType, triggerID string) (ProgramAggregate, error) {
-	if err := s.refreshProgram(ctx, tenant, programID, triggerType, triggerID); err != nil {
+	if err := s.requestProgramRefresh(ctx, tenant, programID, triggerType, triggerID, "system"); err != nil {
 		return ProgramAggregate{}, err
 	}
 	return s.repo.GetProgram(ctx, tenant, programID)
 }
 
 func (s *Service) refreshProgram(ctx context.Context, tenant, programID, triggerType, triggerID string) error {
-	for attempt := 0; attempt < 3; attempt++ {
-		aggregate, err := s.repo.GetProgram(ctx, tenant, programID)
-		if err != nil {
-			return err
-		}
-		openMatters, err := s.repo.OpenMatterCount(ctx, tenant, programID)
-		if err != nil {
-			return err
-		}
-		state := deriveProgramState(aggregate, openMatters, s.now().UTC())
-		state.ID, err = id.NewUUIDv7()
-		if err != nil {
-			return err
-		}
-		state.TriggerType = triggerType
-		state.TriggerID = triggerID
-		state.ProgramVersion = aggregate.Program.Version + 1
-		if aggregate.CurrentState != nil && stateEquivalent(*aggregate.CurrentState, state) {
-			return nil
-		}
-		event, err := newEvent(tenant, "PROGRAM", programID, aggregate.Program.Version+1, EventProgramStateUpdated, state, ActorSystem, "", s.now().UTC())
-		if err != nil {
-			return err
-		}
-		if _, err = s.repo.ApplyProgramEvent(ctx, tenant, programID, aggregate.Program.Version, event); err == ErrVersionConflict {
-			continue
-		} else {
-			return err
-		}
+	aggregate, err := s.repo.GetProgram(ctx, tenant, programID)
+	if err != nil {
+		return err
 	}
-	return ErrVersionConflict
+	openMatters, err := s.repo.OpenMatterCount(ctx, tenant, programID)
+	if err != nil {
+		return err
+	}
+	state := deriveProgramState(aggregate, openMatters, s.now().UTC())
+	state.ID, err = id.NewUUIDv7()
+	if err != nil {
+		return err
+	}
+	state.TriggerType = triggerType
+	state.TriggerID = triggerID
+	state.ProgramVersion = aggregate.Program.Version
+	if aggregate.CurrentState != nil && stateEquivalent(*aggregate.CurrentState, state) && aggregate.CurrentState.ProgramVersion == aggregate.Program.Version {
+		return nil
+	}
+	if projectionRepo, ok := s.repo.(ProgramStateRepository); ok {
+		_, err = projectionRepo.SaveProgramState(ctx, tenant, programID, aggregate.Program.Version, state)
+		return err
+	}
+	event, err := newEvent(tenant, "PROGRAM", programID, aggregate.Program.Version+1, EventProgramStateUpdated, state, ActorSystem, "", s.now().UTC())
+	if err != nil {
+		return err
+	}
+	_, err = s.repo.ApplyProgramEvent(ctx, tenant, programID, aggregate.Program.Version, event)
+	return err
 }
 
 func (s *Service) refreshLinkedPrograms(ctx context.Context, tenant, matterID, triggerType string) {
@@ -1167,7 +1185,7 @@ func (s *Service) refreshLinkedPrograms(ctx context.Context, tenant, matterID, t
 		return
 	}
 	for _, programID := range programIDs {
-		_ = s.refreshProgram(ctx, tenant, programID, triggerType, matterID)
+		_ = s.requestProgramRefresh(ctx, tenant, programID, triggerType, matterID, "system")
 	}
 }
 
@@ -1268,8 +1286,10 @@ func boundedLimit(limit int) int {
 
 func matterReference(value string) string {
 	clean := strings.ToUpper(strings.ReplaceAll(value, "-", ""))
-	if len(clean) > 8 {
-		clean = clean[:8]
+	// UUIDv7 prefixes are time-dominant and collide for records created in the
+	// same millisecond. Use the entropy-bearing suffix for human references.
+	if len(clean) > 16 {
+		clean = clean[len(clean)-16:]
 	}
 	return "MAT-" + clean
 }

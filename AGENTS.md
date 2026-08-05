@@ -22,11 +22,16 @@ Read the root README, root `DESIGN.md`, docs map, relevant product specification
 - Material records are versioned and reconstructable.
 - The product remains usable without AI or a live integration.
 
-## Authority and workflow
+## Identity, authority and commands
 
-Do not hard-code approvers or reduce governance to one assignee. Routing must use versioned policy, scope, organizational position, role, materiality, delegation, conflict and current workflow state.
-
-Material execution re-evaluates current authority. Configuration requires simulation, impact preview, maker-checker approval, effective dating, rollback and audit.
+- Production command actors MUST come from a verified request identity, not JSON fields, query parameters or browser state.
+- Actor, approver, assessor, reviewer and signatory IDs supplied in request bodies MUST be ignored or overwritten from verified context.
+- Tenant and legal-entity scope MUST match the verified identity before any material command runs.
+- Material execution re-evaluates the current versioned authority route. Missing identity, missing route, tenant mismatch or authority-service failure MUST fail closed in production.
+- Do not hard-code approvers or reduce governance to one assignee. Routing uses scope, organizational position, role, materiality, delegation, conflict and current workflow state.
+- Configuration requires simulation, impact preview, maker-checker approval, effective dating, rollback and audit.
+- A material command, authoritative row changes, append-only event, outbox event and required maintenance job MUST share one transaction.
+- Do not return a command failure after the command has committed because a derived calculation failed later.
 
 ## Continuous autonomy
 
@@ -50,6 +55,7 @@ Important first-run and empty states require a designed experience. Premium illu
 - Supporting text explains why the item is shown and what will happen next; it does not repeat the heading.
 - Do not use slogans, anthropomorphic claims, urgency theatre, vague reassurance or unverifiable language such as “continuously prepared,” “everything handled,” or “automatically maintained” without a defined population and timestamp.
 - Status labels and counts MUST come from stored or explicitly labelled sample data. Unknown denominators display as unknown; they never fall back to a persuasive number.
+- A calculated status MUST identify whether it reflects the latest material version. Stale status may remain visible, but it cannot be labelled current.
 - Empty states state the population or query checked, the current result and the next valid action. They do not imply enterprise-wide completeness.
 - Demo copy MUST be operationally plausible and clearly identified as sample data.
 - Icons and illustrations support orientation but never replace labels, status, evidence, errors or required actions.
@@ -71,6 +77,8 @@ Invitation access is opaque, request-scoped, purpose-bound, short-lived, audienc
 - durable workflow, outbox/inbox and idempotency;
 - strong consistency for material commands;
 - explicit eventual consistency and freshness for projections;
+- command versions and derived-projection versions remain separate;
+- projection work is deduplicated, bounded, leased, observable and recoverable;
 - keyset pagination and bounded queries;
 - tenant/purpose-bound caching;
 - no broad data load followed by application-memory authorization;

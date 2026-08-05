@@ -6,6 +6,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
@@ -23,5 +24,8 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service := workflowruntime.NewService(repository, lifecycle, workflowruntime.LogPublisher{Logger: logger}, cfg.WorkerID)
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
 	service.AddMaintainer(evidenceService)
+	continuityRepository := continuity.NewPostgresRepository(pool)
+	continuityService := continuity.NewService(continuityRepository)
+	service.AddMaintainer(&continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
 	return workerSet{Runtime: service, Close: pool.Close}, nil
 }

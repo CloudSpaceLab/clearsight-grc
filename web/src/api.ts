@@ -1,13 +1,14 @@
 import type { AttentionItem, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, OnboardingGuide, OnboardingState, PolicySummary, ProgramAggregate, Readiness, WorkflowTask } from "./types";
 import type { MatterSummary, ProgramSummary, SummaryPage, SummaryQuery } from "./summaryTypes";
+import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${apiBase}${path}`, { ...init, headers: { "Content-Type": "application/json", ...init?.headers } });
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { message?: string } | null;
-    throw new Error(body?.message ?? `Request failed with ${response.status}`);
+    const body = (await response.json().catch(() => null)) as { message?: string; error?: { message?: string } } | null;
+    throw new Error(body?.error?.message ?? body?.message ?? `Request failed with ${response.status}`);
   }
   return (await response.json()) as T;
 }
@@ -33,6 +34,8 @@ export function loadOnboardingState(): Promise<OnboardingState> { return request
 export function saveOnboardingState(value: Pick<OnboardingState, "current_step" | "completed" | "dismissed" | "version">): Promise<OnboardingState> { return request<OnboardingState>("/api/v1/onboarding/state?tenant_id=bank-demo&principal_id=user-demo&guide_code=control-assurance-first-run", { method: "PUT", body: JSON.stringify({ current_step: value.current_step, completed: value.completed, dismissed: value.dismissed, expected_version: value.version }) }); }
 export async function loadEvidenceSources(): Promise<EvidenceSource[]> { return (await request<{ items: EvidenceSource[] }>("/api/v1/evidence/sources?tenant_id=bank-demo&limit=50")).items; }
 export async function loadEvidenceRequests(): Promise<EvidenceRequest[]> { return (await request<{ items: EvidenceRequest[] }>("/api/v1/evidence/requests?tenant_id=bank-demo&limit=50")).items; }
+export async function loadProjectionHealth(): Promise<ProjectionHealth[]> { return (await request<{ items: ProjectionHealth[] }>("/api/v1/operations/projections?tenant_id=bank-demo")).items; }
+export function reconcileProgramState(): Promise<ReconcileResult> { return request<ReconcileResult>("/api/v1/operations/projections/reconcile", { method: "POST", body: JSON.stringify({ tenant_id: "bank-demo", limit: 250 }) }); }
 
 export function loadProgramSummaries(query: SummaryQuery = {}): Promise<SummaryPage<ProgramSummary>> {
   return request<SummaryPage<ProgramSummary>>(summaryQuery("/api/v1/program-summaries", query));
