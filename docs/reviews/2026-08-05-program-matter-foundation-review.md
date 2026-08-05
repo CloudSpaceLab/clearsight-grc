@@ -1,69 +1,90 @@
-# Program and Matter foundation review — 2026-08-05
+# Program, Matter and operational-read review — 2026-08-05
 
 ## Scope reviewed
 
-- Program, Requirement, applicability, control and evidence-check aggregates;
+- Program, Requirement, applicability, safeguard and evidence-check aggregates;
 - calculated Program status;
-- trigger deduplication and linked Matter creation;
-- typed Matter lifecycle, decisions, actions, response packages and outcome checks;
+- trigger deduplication and linked issue creation;
+- typed issue/change lifecycle, decisions, actions, response packages and outcome checks;
 - closure and reopening;
 - PostgreSQL tenant integrity, optimistic versions, event history and outbox;
 - Programs and Issues/Changes user surfaces;
-- plain-language copy.
+- plain-language copy;
+- repeated list, search, pagination and lazy-detail paths.
 
-## Findings resolved in this phase
+## Foundation findings resolved
 
-1. Programs now begin in **Setup in progress** and cannot become active without an accountable owner, authority, rationale and at least one approved requirement.
+1. Programs begin in **Setup in progress** and cannot become active without an accountable owner, authority, rationale and at least one approved requirement.
 2. Program status is calculated from recorded facts and includes reasons; it is not a manually selected colour.
 3. Evidence checks validate approved sources, freshness, coverage, independence and contradiction handling.
 4. A repeated trigger cannot create duplicate open work for the same Program and dedupe key.
 5. Action implementation remains separate from a confirmed outcome.
 6. Closure is typed. Findings, gaps, regulatory changes, exceptions and authority responses have different completion requirements.
 7. Failed outcome checks follow an explicit response: reopen, request a decision, create follow-up work or block closure.
-8. Programs and Matters can be reconstructed from append-only events at a requested timestamp.
-9. Composite tenant foreign keys prevent cross-tenant Program, requirement, control, source and Matter relationships.
-10. Primary UI language uses human working terms while APIs and audit history retain precise codes.
-11. The Programs/Issues surfaces now have a compact design brief, responsive replacement contract and rendered-evidence acceptance gate.
-12. The root `DESIGN.md` provides an agent-readable implementation contract so future screens do not reconstruct the visual system from scattered CSS and prose.
+8. Programs and issues can be reconstructed from append-only events at a requested timestamp.
+9. Composite tenant foreign keys prevent cross-tenant Program, requirement, safeguard, source and issue relationships.
+10. Primary UI language uses familiar working terms while APIs and audit history retain precise codes.
 
-## Copy review
+## Copy and UI findings corrected during release review
 
-Primary-screen replacements include:
+The release-candidate review also corrected:
 
-| Specialist/internal wording | Primary-screen wording |
-|---|---|
-| applicability determination | Does this apply? |
-| evidence insufficiency | Evidence incomplete |
-| verification contract | Outcome check |
-| verification stage | Confirming outcome |
-| Matter queue | Issues and changes |
-| implementation pending | Change in progress |
-| control implementation implemented | Completed; outcome not yet confirmed |
+- sample work appearing silently when the Today API failed;
+- an invented claim that six Programs had no material changes;
+- overdue work being counted as due soon;
+- readiness remaining indefinitely in a loading state;
+- an old passed outcome result hiding a newer failed result;
+- a UI-only `VERIFIED` action status not supported by the domain;
+- raw enum values and vague labels on working screens;
+- Program status statements implying a wider population than was loaded;
+- issue facts appearing only as counts rather than the actual recorded facts.
 
-The word **Matter** remains available in specialist detail, API documentation and audit history because it is the stable aggregate name.
+Primary-screen language includes **Does this apply?**, **Evidence incomplete**, **Decision needed**, **Work completed; outcome not confirmed**, **Confirming outcome**, **Population not connected**, and **Issues and changes**. The canonical term **Matter** remains in specialist detail, APIs and audit history.
+
+## Performance problem corrected
+
+The first list implementation loaded full aggregates and replayed each event stream. On PostgreSQL this created an N+1 read path and the web client also loaded Programs, issues, sources and configuration before the user opened those workspaces.
+
+The finishing phase adds:
+
+- bounded Program and issue summary endpoints;
+- one SQL statement per summary page;
+- latest-state and latest-outcome lateral reads;
+- opaque keyset cursors rather than offset pagination;
+- tenant-leading sort indexes;
+- generated full-text search documents and GIN indexes;
+- detail reconstruction only after a row is opened;
+- first-use loading for hidden workspaces;
+- server-backed search, filters and load-more controls;
+- page-scoped totals and explicit unavailable/retry states;
+- a k6 summary-page smoke profile.
+
+Full event replay remains the authoritative detail and historical path. Summary reads do not replace closure evidence or point-in-time reconstruction.
 
 ## Acceptance evidence
 
-The phase includes:
+The reviewed implementation passed:
 
-- default in-memory domain tests;
-- optimistic-version conflict tests;
-- idempotent-trigger tests;
-- closure-block and reopening tests;
-- point-in-time reconstruction tests;
-- HTTP copy and error-contract tests;
-- PostgreSQL integration covering state calculation, durable events, trigger deduplication, typed closure and direct cross-tenant relationship rejection;
-- TypeScript type-check and production web build through CI.
+- `gofmt`;
+- race-enabled Go tests;
+- PostgreSQL-tagged composition;
+- migrations through `000009` on PostgreSQL 18.4;
+- PostgreSQL integration using 250 Programs and 300 issues;
+- cursor stability and duplicate-page checks;
+- generated-index search checks;
+- HTTP summary, copy and invalid-cursor contracts;
+- `go vet`;
+- TypeScript type-check;
+- Vite production build.
 
-## Remaining boundaries
+## Remaining production boundaries
 
 - caller-supplied actor identity is not yet bound to authenticated identity;
 - authority routing is not invoked automatically for every material command;
-- list reads replay bounded event streams and need projection-first performance work before high-cardinality production use;
-- Program template publication and bulk setup are not implemented;
-- shared-control dependency propagation remains future work;
-- the initial vertical workflows remain the next implementation phase.
+- multi-record commands such as issue creation plus initial links still need explicit transactional review;
+- linked Program refresh and follow-up creation need stronger atomic failure contracts;
+- representative 100,000-row p95/p99 evidence and retained query plans are not complete;
+- correlated summary counts may require dedicated maintained projections under sustained high-cardinality load;
+- Program template publication, bulk setup and shared-control dependency propagation remain future work.
 
-## Design-process review
-
-Two external agent-design approaches were reviewed for process ideas. The useful additions were tool-neutral: a persistent standalone design contract, before-state baselines for redesigns, selective branching for high-impact surfaces, compact decision briefs, state galleries, rendered evidence, responsive replacement and one highest-impact repair before acceptance. ClearSight does not adopt an external runtime or generic style library; bank workflow semantics, production components, accessibility and repository tokens remain authoritative.
+These are release gates, not implied capabilities.
