@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: ClearSight Foundation API
-  version: 0.3.1
+  version: 0.4.0
 servers:
   - url: http://localhost:8080
 paths:
@@ -42,7 +42,7 @@ paths:
         - { name: id, in: path, required: true, schema: { type: string } }
         - { name: action, in: path, required: true, schema: { type: string, enum: [submit, approve, reject, retire] } }
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/GovernanceTransition' } } } }
-      responses: { '200': { description: Policy transitioned }, '404': { description: Policy not found }, '409': { description: Version conflict }, '422': { description: Maker-checker, selector or state failure } }
+      responses: { '200': { description: Policy transitioned }, '404': { description: Policy not found }, '409': { description: Version conflict }, '422': { description: Governance rule failure } }
   /api/v1/governance/delegations:
     get:
       parameters: [ { $ref: '#/components/parameters/Tenant' } ]
@@ -56,14 +56,95 @@ paths:
         - { name: id, in: path, required: true, schema: { type: string } }
         - { name: action, in: path, required: true, schema: { type: string, enum: [submit, approve, revoke] } }
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/GovernanceTransition' } } } }
-      responses: { '200': { description: Delegation transitioned }, '404': { description: Delegation not found }, '409': { description: Version conflict }, '422': { description: Maker-checker, cycle, segregation or state failure } }
+      responses: { '200': { description: Delegation transitioned }, '404': { description: Delegation not found }, '409': { description: Version conflict }, '422': { description: Governance rule failure } }
+  /api/v1/evidence/sources:
+    get:
+      parameters:
+        - { $ref: '#/components/parameters/Tenant' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses: { '200': { description: Tenant-scoped evidence sources } }
+    post:
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EvidenceSourceCreate' } } } }
+      responses: { '201': { description: Source created }, '422': { description: Invalid source } }
+  /api/v1/evidence/sources/{id}/observations:
+    post:
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SourceObservation' } } } }
+      responses: { '200': { description: Observation recorded and source health updated }, '404': { description: Source not found }, '422': { description: Invalid observation } }
+  /api/v1/evidence/requests:
+    get:
+      parameters:
+        - { $ref: '#/components/parameters/Tenant' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses: { '200': { description: Evidence requests } }
+    post:
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EvidenceRequestCreate' } } } }
+      responses: { '201': { description: Evidence request created }, '422': { description: Invalid request } }
+  /api/v1/evidence/requests/{id}:
+    get:
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Tenant' }
+      responses: { '200': { description: Evidence request }, '404': { description: Request not found } }
+  /api/v1/evidence/requests/{id}/submissions:
+    post:
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EvidenceSubmission' } } } }
+      responses: { '200': { description: Submission receipt }, '404': { description: Request not found }, '409': { description: Version conflict or closed request }, '422': { description: Invalid answers } }
+  /api/v1/evidence/requests/{id}/invitations:
+    post:
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/InvitationCreate' } } } }
+      responses: { '201': { description: One-time invitation issued }, '404': { description: Request not found }, '409': { description: Request closed }, '422': { description: Invalid invitation } }
+  /api/v1/evidence/invitations/redeem:
+    post:
+      requestBody: { required: true, content: { application/json: { schema: { type: object, additionalProperties: false, required: [token], properties: { token: { type: string, minLength: 1 } } } } } }
+      responses: { '200': { description: Bounded capture session }, '401': { description: Invitation unavailable } }
+  /api/v1/evidence/invitations/{id}/revoke:
+    post:
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Tenant' }
+      responses: { '204': { description: Invitation revoked }, '404': { description: Invitation not found } }
+  /api/v1/evidence/session:
+    get:
+      security: [ { CaptureSession: [] } ]
+      responses: { '200': { description: Capture session and request }, '401': { description: Session unavailable } }
+  /api/v1/evidence/session/submissions:
+    post:
+      security: [ { CaptureSession: [] } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, additionalProperties: false, required: [answers, expected_version], properties: { answers: { type: object, additionalProperties: { type: string } }, expected_version: { type: integer, minimum: 1 } } } } } }
+      responses: { '200': { description: Submission receipt }, '401': { description: Session unavailable }, '409': { description: Version conflict or closed request }, '422': { description: Invalid answers } }
+  /api/v1/evidence/sessions/{id}/revoke:
+    post:
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Tenant' }
+      responses: { '204': { description: Session revoked }, '404': { description: Session not found } }
+  /api/v1/evidence/artifacts:
+    post:
+      description: Streams one artifact. New artifacts remain STORED_UNSCANNED.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                tenant_id: { type: string }
+                request_id: { type: string }
+                submission_id: { type: string }
+                created_by: { type: string }
+                file: { type: string, format: binary }
+      responses: { '201': { description: Artifact manifest created }, '401': { description: Session unavailable }, '404': { description: Request not found }, '413': { description: File too large }, '415': { description: Media type not allowed } }
   /api/v1/workflow/tasks:
     get:
       parameters:
         - { $ref: '#/components/parameters/Tenant' }
         - { name: principal_id, in: query, schema: { type: string } }
         - { name: status, in: query, schema: { type: string } }
-        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200 } }
+        - { $ref: '#/components/parameters/Limit' }
       responses: { '200': { description: Tenant-scoped workflow tasks } }
     post:
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WorkflowTaskCreate' } } } }
@@ -72,7 +153,7 @@ paths:
     post:
       parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WorkflowTransition' } } } }
-      responses: { '200': { description: Task transitioned and event recorded }, '404': { description: Task absent in tenant }, '409': { description: Version conflict }, '422': { description: Invalid transition } }
+      responses: { '200': { description: Task transitioned }, '404': { description: Task absent in tenant }, '409': { description: Version conflict }, '422': { description: Invalid transition } }
   /api/v1/onboarding/guide:
     get:
       parameters:
@@ -100,11 +181,11 @@ paths:
   /api/v1/compliance/signals:
     post:
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Signal' } } } }
-      responses: { '202': { description: Signal accepted and assessed; duplicate responses contain no synthetic drift }, '422': { description: Invalid Signal } }
+      responses: { '202': { description: Signal accepted and assessed }, '422': { description: Invalid Signal } }
   /api/v1/requests/{id}:
     get:
       parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
-      responses: { '200': { description: Focused evidence request }, '404': { description: Request not found } }
+      responses: { '200': { description: Legacy focused request }, '404': { description: Request not found } }
   /api/v1/requests/{id}/submit:
     post:
       parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
@@ -113,10 +194,13 @@ paths:
   /api/v1/invitations/redeem:
     post:
       requestBody: { required: true, content: { application/json: { schema: { type: object, additionalProperties: false, required: [token], properties: { token: { type: string, minLength: 1 } } } } } }
-      responses: { '200': { description: Bounded capture session }, '401': { description: Invitation unavailable } }
+      responses: { '200': { description: Legacy bounded session }, '401': { description: Invitation unavailable } }
 components:
+  securitySchemes:
+    CaptureSession: { type: http, scheme: bearer, bearerFormat: opaque }
   parameters:
     Tenant: { name: tenant_id, in: query, required: true, schema: { type: string, minLength: 1 } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200 } }
   schemas:
     ResolveInput:
       type: object
@@ -164,6 +248,83 @@ components:
         actor_id: { type: string, minLength: 1 }
         expected_version: { type: integer, minimum: 1 }
         rationale: { type: string }
+    EvidenceSourceCreate:
+      type: object
+      additionalProperties: false
+      required: [tenant_id, code, name, type, authority_class, expected_freshness_minutes]
+      properties:
+        tenant_id: { type: string, minLength: 1 }
+        legal_entity_id: { type: string }
+        code: { type: string, minLength: 1 }
+        name: { type: string, minLength: 1 }
+        type: { type: string, enum: [REGULATORY, SYSTEM, DOCUMENT, HUMAN, VENDOR] }
+        authority_class: { type: string, minLength: 1 }
+        owner_principal_id: { type: string }
+        endpoint: { type: string }
+        expected_freshness_minutes: { type: integer, minimum: 1, maximum: 525600 }
+    SourceObservation:
+      type: object
+      additionalProperties: false
+      required: [tenant_id]
+      properties:
+        tenant_id: { type: string, minLength: 1 }
+        observed_at: { type: string, format: date-time }
+        success: { type: boolean }
+        unavailable: { type: boolean }
+        latency_ms: { type: integer, minimum: 0 }
+        detail: { type: string }
+        recorded_by: { type: string }
+    EvidenceField:
+      type: object
+      additionalProperties: false
+      required: [id, label, type, required]
+      properties:
+        id: { type: string, minLength: 1 }
+        label: { type: string, minLength: 1 }
+        type: { type: string, minLength: 1 }
+        required: { type: boolean }
+        description: { type: string }
+        options: { type: array, items: { type: string } }
+        accepted_formats: { type: array, items: { type: string } }
+    EvidenceRequestCreate:
+      type: object
+      additionalProperties: false
+      required: [tenant_id, subject_type, subject_id, title, purpose, why_you, sensitivity, audience_type, estimated_minutes, deadline, fields]
+      properties:
+        tenant_id: { type: string, minLength: 1 }
+        subject_type: { type: string, minLength: 1 }
+        subject_id: { type: string, minLength: 1 }
+        title: { type: string, minLength: 1 }
+        purpose: { type: string, minLength: 1 }
+        why_you: { type: string, minLength: 1 }
+        sensitivity: { type: string, minLength: 1 }
+        audience_type: { type: string, enum: [INTERNAL, EXTERNAL, CUSTOMER, VENDOR, AUTHORITY] }
+        estimated_minutes: { type: integer, minimum: 1, maximum: 60 }
+        deadline: { type: string, format: date-time }
+        known_facts: { type: object, additionalProperties: { type: string } }
+        fields: { type: array, minItems: 1, maxItems: 50, items: { $ref: '#/components/schemas/EvidenceField' } }
+        created_by: { type: string }
+    EvidenceSubmission:
+      type: object
+      additionalProperties: false
+      required: [tenant_id, expected_version, answers]
+      properties:
+        tenant_id: { type: string, minLength: 1 }
+        session_id: { type: string }
+        submitted_by: { type: string }
+        channel: { type: string, enum: [INTERNAL, MAGIC_LINK, API] }
+        expected_version: { type: integer, minimum: 1 }
+        answers: { type: object, additionalProperties: { type: string } }
+    InvitationCreate:
+      type: object
+      additionalProperties: false
+      required: [tenant_id, audience, purpose, ttl_minutes]
+      properties:
+        tenant_id: { type: string, minLength: 1 }
+        audience: { type: string, minLength: 1 }
+        purpose: { type: string, minLength: 1 }
+        ttl_minutes: { type: integer, minimum: 5, maximum: 43200 }
+        created_by: { type: string }
     WorkflowTaskCreate:
       type: object
       additionalProperties: false

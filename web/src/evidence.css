@@ -1,0 +1,42 @@
+.evidence-hero { margin: 36px 0 18px; display: grid; grid-template-columns: minmax(0,1.15fr) minmax(260px,.85fr); align-items: center; border: 1px solid rgba(91,198,214,.25); border-radius: 22px; padding: 22px 28px; overflow: hidden; background: linear-gradient(135deg,rgba(12,27,43,.98),rgba(20,37,56,.82)); }
+.evidence-hero h2 { margin-top: 9px; font-size: 30px; }
+.evidence-hero p { max-width: 620px; }
+.evidence-hero .premium-illustration { width: 100%; max-height: 210px; }
+.evidence-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin: 0 0 18px; }
+.evidence-summary > div { border: 1px solid var(--border); border-radius: 15px; background: rgba(13,24,38,.84); padding: 17px 19px; display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; align-items: baseline; }
+.evidence-summary span { color: var(--muted); font-size: 12px; }
+.evidence-summary strong { font-size: 27px; }
+.evidence-summary small { grid-column: 1/-1; color: #718397; }
+.evidence-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.evidence-card { min-height: 420px; }
+.source-list,.request-list { display: grid; }
+.source-row { display: grid; grid-template-columns: auto minmax(0,1fr) minmax(180px,.8fr); gap: 13px; align-items: center; padding: 15px 0; border-top: 1px solid var(--border); }
+.source-icon { width: 39px; height: 39px; border: 1px solid rgba(91,198,214,.25); background: rgba(91,198,214,.08); border-radius: 12px; color: var(--cyan); display: grid; place-items: center; }
+.source-row > div:nth-child(2),.source-freshness { display: grid; gap: 4px; }
+.source-row span,.request-row span { font-size: 11px; color: var(--muted); }
+.source-freshness { justify-items: end; text-align: right; }
+.source-freshness mark,.request-row mark { border-radius: 999px; padding: 5px 8px; font-size: 10px; background: var(--surface-2); color: var(--muted); }
+.source-freshness .health-current { color: var(--green); background: rgba(91,201,150,.1); }
+.source-freshness .health-stale,.source-freshness .health-degraded { color: var(--amber); background: rgba(233,183,90,.1); }
+.source-freshness .health-unavailable { color: var(--coral); background: rgba(241,122,141,.1); }
+.request-row { border-top: 1px solid var(--border); }
+.request-row summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: minmax(0,1fr) minmax(145px,.65fr) auto; gap: 12px; align-items: center; padding: 15px 0; }
+.request-row summary::-webkit-details-marker { display: none; }
+.request-row summary > div { display: grid; gap: 4px; }
+.request-row summary > div:nth-child(2) { justify-items: end; text-align: right; }
+.request-row mark { color: var(--cyan); background: rgba(91,198,214,.08); }
+.request-disclosure { color: var(--cyan) !important; font-weight: 650; }
+.request-row[open] .request-disclosure { font-size: 0; }
+.request-row[open] .request-disclosure::after { content: "Close"; font-size: 11px; }
+.request-detail { margin: 0 0 15px 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: rgba(6,14,24,.45); }
+.request-detail > p { margin: 0 0 10px; font-size: 12px; }
+.request-detail > p:last-child { margin-bottom: 0; }
+.request-detail dl { margin: 0 0 10px; display: grid; gap: 7px; }
+.request-detail dl div { display: grid; grid-template-columns: minmax(90px,.4fr) minmax(0,1fr); gap: 10px; font-size: 11px; }
+.request-detail dt { color: var(--muted); }
+.request-detail dd { margin: 0; }
+.artifact-notice { margin-top: 16px; border: 1px solid rgba(233,183,90,.24); background: rgba(233,183,90,.06); border-radius: 15px; padding: 15px 18px; display: flex; gap: 13px; align-items: flex-start; }
+.artifact-notice-icon { width: 31px; height: 31px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid rgba(233,183,90,.35); border-radius: 10px; color: var(--amber); }
+.artifact-notice p { margin: 3px 0 0; font-size: 12px; }
+@media (max-width: 980px) { .evidence-grid,.evidence-hero { grid-template-columns: 1fr; } .evidence-summary { grid-template-columns: 1fr; } .source-row { grid-template-columns: auto minmax(0,1fr); } .source-freshness { grid-column: 2; justify-items: start; text-align: left; } }
+@media (max-width: 660px) { .request-row summary { grid-template-columns: 1fr; } .request-row summary > div:nth-child(2) { justify-items: start; text-align: left; } }

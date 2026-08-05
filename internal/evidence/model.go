@@ -1,0 +1,257 @@
+package evidence
+
+import (
+	"encoding/json"
+	"time"
+)
+
+type SourceType string
+type SourceHealth string
+type SourceStatus string
+
+const (
+	SourceRegulatory SourceType = "REGULATORY"
+	SourceSystem     SourceType = "SYSTEM"
+	SourceDocument   SourceType = "DOCUMENT"
+	SourceHuman      SourceType = "HUMAN"
+	SourceVendor     SourceType = "VENDOR"
+
+	HealthUnknown     SourceHealth = "UNKNOWN"
+	HealthCurrent     SourceHealth = "CURRENT"
+	HealthDegraded    SourceHealth = "DEGRADED"
+	HealthStale       SourceHealth = "STALE"
+	HealthUnavailable SourceHealth = "UNAVAILABLE"
+
+	SourceActive  SourceStatus = "ACTIVE"
+	SourcePaused  SourceStatus = "PAUSED"
+	SourceRetired SourceStatus = "RETIRED"
+)
+
+type Source struct {
+	ID                       string       `json:"id"`
+	TenantID                 string       `json:"tenant_id"`
+	LegalEntityID            string       `json:"legal_entity_id,omitempty"`
+	Code                     string       `json:"code"`
+	Name                     string       `json:"name"`
+	Type                     SourceType   `json:"type"`
+	AuthorityClass           string       `json:"authority_class"`
+	OwnerPrincipalID         string       `json:"owner_principal_id,omitempty"`
+	Endpoint                 string       `json:"endpoint,omitempty"`
+	ExpectedFreshnessMinutes int          `json:"expected_freshness_minutes"`
+	LastObservedAt           *time.Time   `json:"last_observed_at,omitempty"`
+	LastSuccessAt            *time.Time   `json:"last_success_at,omitempty"`
+	Health                   SourceHealth `json:"health"`
+	Status                   SourceStatus `json:"status"`
+	Version                  int64        `json:"version"`
+	CreatedAt                time.Time    `json:"created_at"`
+	UpdatedAt                time.Time    `json:"updated_at"`
+}
+
+type CreateSourceInput struct {
+	TenantID                 string     `json:"tenant_id"`
+	LegalEntityID            string     `json:"legal_entity_id,omitempty"`
+	Code                     string     `json:"code"`
+	Name                     string     `json:"name"`
+	Type                     SourceType `json:"type"`
+	AuthorityClass           string     `json:"authority_class"`
+	OwnerPrincipalID         string     `json:"owner_principal_id,omitempty"`
+	Endpoint                 string     `json:"endpoint,omitempty"`
+	ExpectedFreshnessMinutes int        `json:"expected_freshness_minutes"`
+}
+
+type SourceObservation struct {
+	ID          string    `json:"id"`
+	TenantID    string    `json:"tenant_id"`
+	SourceID    string    `json:"source_id"`
+	ObservedAt  time.Time `json:"observed_at"`
+	Success     bool      `json:"success"`
+	Unavailable bool      `json:"unavailable"`
+	LatencyMS   int       `json:"latency_ms,omitempty"`
+	Detail      string    `json:"detail,omitempty"`
+	RecordedBy  string    `json:"recorded_by,omitempty"`
+}
+
+type RequestStatus string
+
+const (
+	RequestDraft      RequestStatus = "DRAFT"
+	RequestReady      RequestStatus = "READY"
+	RequestInProgress RequestStatus = "IN_PROGRESS"
+	RequestSubmitted  RequestStatus = "SUBMITTED"
+	RequestCancelled  RequestStatus = "CANCELLED"
+	RequestExpired    RequestStatus = "EXPIRED"
+)
+
+type Field struct {
+	ID              string   `json:"id"`
+	Label           string   `json:"label"`
+	Type            string   `json:"type"`
+	Required        bool     `json:"required"`
+	Description     string   `json:"description,omitempty"`
+	Options         []string `json:"options,omitempty"`
+	AcceptedFormats []string `json:"accepted_formats,omitempty"`
+}
+
+type Request struct {
+	ID               string            `json:"id"`
+	TenantID         string            `json:"tenant_id"`
+	SubjectType      string            `json:"subject_type"`
+	SubjectID        string            `json:"subject_id"`
+	Title            string            `json:"title"`
+	Purpose          string            `json:"purpose"`
+	WhyYou           string            `json:"why_you"`
+	Sensitivity      string            `json:"sensitivity"`
+	AudienceType     string            `json:"audience_type"`
+	EstimatedMinutes int               `json:"estimated_minutes"`
+	Deadline         time.Time         `json:"deadline"`
+	KnownFacts       map[string]string `json:"known_facts"`
+	Fields           []Field           `json:"fields"`
+	Status           RequestStatus     `json:"status"`
+	CreatedBy        string            `json:"created_by,omitempty"`
+	Version          int64             `json:"version"`
+	CreatedAt        time.Time         `json:"created_at"`
+	UpdatedAt        time.Time         `json:"updated_at"`
+}
+
+type CreateRequestInput struct {
+	TenantID         string            `json:"tenant_id"`
+	SubjectType      string            `json:"subject_type"`
+	SubjectID        string            `json:"subject_id"`
+	Title            string            `json:"title"`
+	Purpose          string            `json:"purpose"`
+	WhyYou           string            `json:"why_you"`
+	Sensitivity      string            `json:"sensitivity"`
+	AudienceType     string            `json:"audience_type"`
+	EstimatedMinutes int               `json:"estimated_minutes"`
+	Deadline         time.Time         `json:"deadline"`
+	KnownFacts       map[string]string `json:"known_facts"`
+	Fields           []Field           `json:"fields"`
+	CreatedBy        string            `json:"created_by,omitempty"`
+}
+
+type Submission struct {
+	ID              string            `json:"id"`
+	TenantID        string            `json:"tenant_id"`
+	RequestID       string            `json:"request_id"`
+	SessionID       string            `json:"session_id,omitempty"`
+	SubmittedBy     string            `json:"submitted_by,omitempty"`
+	Channel         string            `json:"channel"`
+	Answers         map[string]string `json:"answers"`
+	ExpectedVersion int64             `json:"expected_version"`
+	SubmittedAt     time.Time         `json:"submitted_at"`
+}
+
+type SubmissionReceipt struct {
+	SubmissionID string        `json:"submission_id"`
+	RequestID    string        `json:"request_id"`
+	Status       RequestStatus `json:"status"`
+	SubmittedAt  time.Time     `json:"submitted_at"`
+	Version      int64         `json:"version"`
+}
+
+type Invitation struct {
+	ID             string     `json:"id"`
+	TenantID       string     `json:"tenant_id"`
+	RequestID      string     `json:"request_id"`
+	TokenHash      []byte     `json:"-"`
+	AudienceHash   []byte     `json:"-"`
+	AudienceHint   string     `json:"audience_hint"`
+	Purpose        string     `json:"purpose"`
+	ExpiresAt      time.Time  `json:"expires_at"`
+	MaxRedemptions int        `json:"max_redemptions"`
+	Redemptions    int        `json:"redemptions"`
+	RevokedAt      *time.Time `json:"revoked_at,omitempty"`
+	CreatedBy      string     `json:"created_by,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+}
+
+type IssueInvitationInput struct {
+	TenantID   string        `json:"tenant_id"`
+	RequestID  string        `json:"request_id"`
+	Audience   string        `json:"audience"`
+	Purpose    string        `json:"purpose"`
+	TTL        time.Duration `json:"-"`
+	TTLMinutes int           `json:"ttl_minutes"`
+	CreatedBy  string        `json:"created_by,omitempty"`
+}
+
+type IssuedInvitation struct {
+	InvitationID string    `json:"invitation_id"`
+	Token        string    `json:"token"`
+	AudienceHint string    `json:"audience_hint"`
+	ExpiresAt    time.Time `json:"expires_at"`
+}
+
+type Session struct {
+	ID           string     `json:"id"`
+	TenantID     string     `json:"tenant_id"`
+	RequestID    string     `json:"request_id"`
+	AudienceHint string     `json:"audience_hint"`
+	TokenHash    []byte     `json:"-"`
+	ExpiresAt    time.Time  `json:"expires_at"`
+	RevokedAt    *time.Time `json:"revoked_at,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
+}
+
+type RedeemedSession struct {
+	SessionID    string    `json:"session_id"`
+	SessionToken string    `json:"session_token"`
+	RequestID    string    `json:"request_id"`
+	AudienceHint string    `json:"audience_hint"`
+	ExpiresAt    time.Time `json:"expires_at"`
+}
+
+type RedeemInput struct {
+	InvitationTokenHash []byte
+	SessionTokenHash    []byte
+	SessionID           string
+	Now                 time.Time
+	SessionExpiresAt    time.Time
+}
+
+type ArtifactStatus string
+
+const (
+	ArtifactStoredUnscanned ArtifactStatus = "STORED_UNSCANNED"
+	ArtifactAvailable       ArtifactStatus = "AVAILABLE"
+	ArtifactQuarantined     ArtifactStatus = "QUARANTINED"
+	ArtifactDeleted         ArtifactStatus = "DELETED"
+)
+
+type Artifact struct {
+	ID           string         `json:"id"`
+	TenantID     string         `json:"tenant_id"`
+	RequestID    string         `json:"request_id"`
+	SubmissionID string         `json:"submission_id,omitempty"`
+	FileName     string         `json:"file_name"`
+	MediaType    string         `json:"media_type"`
+	SizeBytes    int64          `json:"size_bytes"`
+	SHA256       string         `json:"sha256"`
+	StorageKey   string         `json:"storage_key"`
+	Status       ArtifactStatus `json:"status"`
+	CreatedBy    string         `json:"created_by,omitempty"`
+	CreatedAt    time.Time      `json:"created_at"`
+}
+
+type ArtifactInput struct {
+	TenantID     string
+	RequestID    string
+	SubmissionID string
+	FileName     string
+	MediaType    string
+	CreatedBy    string
+}
+
+type ObjectInfo struct {
+	Key       string
+	SizeBytes int64
+	SHA256    string
+}
+
+type sourceHealthChange struct {
+	SourceID string
+	From     SourceHealth
+	To       SourceHealth
+}
+
+type JSONMap = map[string]json.RawMessage

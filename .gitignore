@@ -21,4 +21,5 @@ Thumbs.db
 
 # Runtime
 /tmp/
+/var/
 *.log

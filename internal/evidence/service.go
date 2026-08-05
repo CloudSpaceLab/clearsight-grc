@@ -1,0 +1,365 @@
+package evidence
+
+import (
+	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"fmt"
+	"io"
+	"path/filepath"
+	"sort"
+	"strings"
+	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
+)
+
+type Service struct {
+	repo             Repository
+	store            ObjectStore
+	now              func() time.Time
+	sessionTTL       time.Duration
+	maxArtifactBytes int64
+}
+
+func NewService(repo Repository, store ObjectStore) *Service {
+	return &Service{repo: repo, store: store, now: time.Now, sessionTTL: 20 * time.Minute, maxArtifactBytes: 20 << 20}
+}
+func (s *Service) Configure(sessionTTL time.Duration, maxArtifactBytes int64) {
+	if sessionTTL > 0 {
+		s.sessionTTL = sessionTTL
+	}
+	if maxArtifactBytes > 0 {
+		s.maxArtifactBytes = maxArtifactBytes
+	}
+}
+func (s *Service) CreateSource(ctx context.Context, input CreateSourceInput) (Source, error) {
+	if strings.TrimSpace(input.TenantID) == "" || strings.TrimSpace(input.Code) == "" || strings.TrimSpace(input.Name) == "" || !validSourceType(input.Type) || strings.TrimSpace(input.AuthorityClass) == "" {
+		return Source{}, fmt.Errorf("tenant, code, name, source type and authority class are required")
+	}
+	if input.ExpectedFreshnessMinutes < 1 || input.ExpectedFreshnessMinutes > 525600 {
+		return Source{}, fmt.Errorf("expected_freshness_minutes must be between 1 and 525600")
+	}
+	valueID, err := id.NewUUIDv7()
+	if err != nil {
+		return Source{}, err
+	}
+	now := s.now().UTC()
+	return s.repo.CreateSource(ctx, Source{ID: valueID, TenantID: input.TenantID, LegalEntityID: input.LegalEntityID, Code: input.Code, Name: input.Name, Type: input.Type, AuthorityClass: input.AuthorityClass, OwnerPrincipalID: input.OwnerPrincipalID, Endpoint: input.Endpoint, ExpectedFreshnessMinutes: input.ExpectedFreshnessMinutes, Health: HealthUnknown, Status: SourceActive, Version: 1, CreatedAt: now, UpdatedAt: now})
+}
+func (s *Service) ListSources(ctx context.Context, tenant string, limit int) ([]Source, error) {
+	if strings.TrimSpace(tenant) == "" {
+		return nil, fmt.Errorf("tenant_id is required")
+	}
+	return s.repo.ListSources(ctx, tenant, bounded(limit))
+}
+func (s *Service) RecordSourceObservation(ctx context.Context, observation SourceObservation) (Source, error) {
+	if strings.TrimSpace(observation.TenantID) == "" || strings.TrimSpace(observation.SourceID) == "" {
+		return Source{}, fmt.Errorf("tenant and source are required")
+	}
+	if observation.ObservedAt.IsZero() {
+		observation.ObservedAt = s.now().UTC()
+	}
+	valueID, err := id.NewUUIDv7()
+	if err != nil {
+		return Source{}, err
+	}
+	observation.ID = valueID
+	health := HealthDegraded
+	if observation.Unavailable {
+		health = HealthUnavailable
+	} else if observation.Success {
+		health = HealthCurrent
+	}
+	return s.repo.RecordSourceObservation(ctx, observation, health)
+}
+func (s *Service) Maintain(ctx context.Context, now time.Time, limit int) (int, error) {
+	if now.IsZero() {
+		now = s.now().UTC()
+	}
+	return s.repo.EvaluateSourceHealth(ctx, now, bounded(limit))
+}
+func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (Request, error) {
+	if err := validateRequestInput(input); err != nil {
+		return Request{}, err
+	}
+	valueID, err := id.NewUUIDv7()
+	if err != nil {
+		return Request{}, err
+	}
+	now := s.now().UTC()
+	return s.repo.CreateRequest(ctx, Request{ID: valueID, TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, EstimatedMinutes: input.EstimatedMinutes, Deadline: input.Deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: cloneFields(input.Fields), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now})
+}
+func (s *Service) ListRequests(ctx context.Context, tenant string, limit int) ([]Request, error) {
+	if strings.TrimSpace(tenant) == "" {
+		return nil, fmt.Errorf("tenant_id is required")
+	}
+	return s.repo.ListRequests(ctx, tenant, bounded(limit))
+}
+func (s *Service) GetRequest(ctx context.Context, tenant, requestID string) (Request, error) {
+	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(requestID) == "" {
+		return Request{}, fmt.Errorf("tenant and request are required")
+	}
+	return s.repo.GetRequest(ctx, tenant, requestID)
+}
+func (s *Service) Submit(ctx context.Context, submission Submission) (SubmissionReceipt, error) {
+	request, err := s.GetRequest(ctx, submission.TenantID, submission.RequestID)
+	if err != nil {
+		return SubmissionReceipt{}, err
+	}
+	if err := validateAnswers(request, submission.Answers); err != nil {
+		return SubmissionReceipt{}, err
+	}
+	if submission.ExpectedVersion < 1 {
+		return SubmissionReceipt{}, fmt.Errorf("expected_version is required")
+	}
+	valueID, err := id.NewUUIDv7()
+	if err != nil {
+		return SubmissionReceipt{}, err
+	}
+	submission.ID = valueID
+	if strings.TrimSpace(submission.Channel) == "" {
+		submission.Channel = "INTERNAL"
+	}
+	submission.Answers = cloneMap(submission.Answers)
+	submission.SubmittedAt = s.now().UTC()
+	return s.repo.Submit(ctx, submission)
+}
+func (s *Service) IssueInvitation(ctx context.Context, input IssueInvitationInput) (IssuedInvitation, error) {
+	request, err := s.GetRequest(ctx, input.TenantID, input.RequestID)
+	if err != nil {
+		return IssuedInvitation{}, err
+	}
+	if request.Status != RequestReady && request.Status != RequestInProgress {
+		return IssuedInvitation{}, ErrRequestClosed
+	}
+	audience := strings.TrimSpace(strings.ToLower(input.Audience))
+	if audience == "" || strings.TrimSpace(input.Purpose) == "" {
+		return IssuedInvitation{}, fmt.Errorf("audience and purpose are required")
+	}
+	ttl := input.TTL
+	if ttl <= 0 && input.TTLMinutes > 0 {
+		ttl = time.Duration(input.TTLMinutes) * time.Minute
+	}
+	if ttl < 5*time.Minute || ttl > 30*24*time.Hour {
+		return IssuedInvitation{}, fmt.Errorf("invitation ttl must be between 5 minutes and 30 days")
+	}
+	token, tokenHash, err := tokenPair()
+	if err != nil {
+		return IssuedInvitation{}, err
+	}
+	audienceDigest := sha256.Sum256([]byte(audience))
+	valueID, err := id.NewUUIDv7()
+	if err != nil {
+		return IssuedInvitation{}, err
+	}
+	now := s.now().UTC()
+	invitation := Invitation{ID: valueID, TenantID: input.TenantID, RequestID: input.RequestID, TokenHash: tokenHash, AudienceHash: audienceDigest[:], AudienceHint: audienceHint(audience), Purpose: input.Purpose, ExpiresAt: now.Add(ttl), MaxRedemptions: 1, CreatedBy: input.CreatedBy, CreatedAt: now}
+	if invitation.ExpiresAt.After(request.Deadline) {
+		invitation.ExpiresAt = request.Deadline
+	}
+	if !invitation.ExpiresAt.After(now) {
+		return IssuedInvitation{}, fmt.Errorf("request deadline has passed")
+	}
+	if err := s.repo.CreateInvitation(ctx, invitation); err != nil {
+		return IssuedInvitation{}, err
+	}
+	return IssuedInvitation{InvitationID: valueID, Token: token, AudienceHint: invitation.AudienceHint, ExpiresAt: invitation.ExpiresAt}, nil
+}
+func (s *Service) RedeemInvitation(ctx context.Context, token string) (RedeemedSession, error) {
+	if strings.TrimSpace(token) == "" {
+		return RedeemedSession{}, ErrInvitationInvalid
+	}
+	sessionToken, sessionHash, err := tokenPair()
+	if err != nil {
+		return RedeemedSession{}, err
+	}
+	sessionID, err := id.NewUUIDv7()
+	if err != nil {
+		return RedeemedSession{}, err
+	}
+	now := s.now().UTC()
+	session, err := s.repo.RedeemInvitation(ctx, RedeemInput{InvitationTokenHash: hashToken(token), SessionTokenHash: sessionHash, SessionID: sessionID, Now: now, SessionExpiresAt: now.Add(s.sessionTTL)})
+	if err != nil {
+		return RedeemedSession{}, ErrInvitationInvalid
+	}
+	return RedeemedSession{SessionID: session.ID, SessionToken: sessionToken, RequestID: session.RequestID, AudienceHint: session.AudienceHint, ExpiresAt: session.ExpiresAt}, nil
+}
+func (s *Service) SessionRequest(ctx context.Context, sessionToken string) (Session, Request, error) {
+	session, err := s.repo.SessionByTokenHash(ctx, hashToken(sessionToken), s.now().UTC())
+	if err != nil {
+		return Session{}, Request{}, ErrSessionInvalid
+	}
+	request, err := s.repo.GetRequest(ctx, session.TenantID, session.RequestID)
+	if err != nil {
+		return Session{}, Request{}, err
+	}
+	return session, request, nil
+}
+func (s *Service) SubmitSession(ctx context.Context, sessionToken string, answers map[string]string, expectedVersion int64) (SubmissionReceipt, error) {
+	session, request, err := s.SessionRequest(ctx, sessionToken)
+	if err != nil {
+		return SubmissionReceipt{}, err
+	}
+	return s.Submit(ctx, Submission{TenantID: session.TenantID, RequestID: request.ID, SessionID: session.ID, Channel: "MAGIC_LINK", Answers: answers, ExpectedVersion: expectedVersion})
+}
+func (s *Service) RevokeInvitation(ctx context.Context, tenant, id string) error {
+	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(id) == "" {
+		return fmt.Errorf("tenant and invitation are required")
+	}
+	return s.repo.RevokeInvitation(ctx, tenant, id, s.now().UTC())
+}
+func (s *Service) RevokeSession(ctx context.Context, tenant, id string) error {
+	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(id) == "" {
+		return fmt.Errorf("tenant and session are required")
+	}
+	return s.repo.RevokeSession(ctx, tenant, id, s.now().UTC())
+}
+func (s *Service) StoreArtifact(ctx context.Context, input ArtifactInput, reader io.Reader) (Artifact, error) {
+	if s.store == nil {
+		return Artifact{}, fmt.Errorf("object store is unavailable")
+	}
+	if _, err := s.GetRequest(ctx, input.TenantID, input.RequestID); err != nil {
+		return Artifact{}, err
+	}
+	fileName := filepath.Base(strings.TrimSpace(input.FileName))
+	mediaType := strings.ToLower(strings.TrimSpace(strings.Split(input.MediaType, ";")[0]))
+	if fileName == "." || fileName == "" || !allowedMediaType(mediaType) {
+		return Artifact{}, ErrMediaType
+	}
+	valueID, err := id.NewUUIDv7()
+	if err != nil {
+		return Artifact{}, err
+	}
+	key := strings.Join([]string{input.TenantID, "requests", input.RequestID, valueID}, "/")
+	object, err := s.store.Put(ctx, key, reader, s.maxArtifactBytes)
+	if err != nil {
+		return Artifact{}, err
+	}
+	artifact := Artifact{ID: valueID, TenantID: input.TenantID, RequestID: input.RequestID, SubmissionID: input.SubmissionID, FileName: fileName, MediaType: mediaType, SizeBytes: object.SizeBytes, SHA256: object.SHA256, StorageKey: object.Key, Status: ArtifactStoredUnscanned, CreatedBy: input.CreatedBy, CreatedAt: s.now().UTC()}
+	created, err := s.repo.CreateArtifact(ctx, artifact)
+	if err != nil {
+		_ = s.store.Delete(ctx, object.Key)
+		return Artifact{}, err
+	}
+	return created, nil
+}
+func validateRequestInput(input CreateRequestInput) error {
+	if strings.TrimSpace(input.TenantID) == "" || strings.TrimSpace(input.SubjectType) == "" || strings.TrimSpace(input.SubjectID) == "" || strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Purpose) == "" || strings.TrimSpace(input.WhyYou) == "" || strings.TrimSpace(input.Sensitivity) == "" || strings.TrimSpace(input.AudienceType) == "" {
+		return fmt.Errorf("tenant, subject, title, purpose, recipient context, sensitivity and audience type are required")
+	}
+	switch input.AudienceType {
+	case "INTERNAL", "EXTERNAL", "CUSTOMER", "VENDOR", "AUTHORITY":
+	default:
+		return fmt.Errorf("audience_type is invalid")
+	}
+	if input.EstimatedMinutes < 1 || input.EstimatedMinutes > 60 || input.Deadline.IsZero() {
+		return fmt.Errorf("estimated_minutes must be 1-60 and deadline is required")
+	}
+	if len(input.Fields) == 0 || len(input.Fields) > 50 {
+		return fmt.Errorf("request must contain 1-50 fields")
+	}
+	seen := map[string]struct{}{}
+	for _, field := range input.Fields {
+		if strings.TrimSpace(field.ID) == "" || strings.TrimSpace(field.Label) == "" || strings.TrimSpace(field.Type) == "" {
+			return fmt.Errorf("every field requires id, label and type")
+		}
+		if _, exists := seen[field.ID]; exists {
+			return fmt.Errorf("field ids must be unique")
+		}
+		seen[field.ID] = struct{}{}
+	}
+	return nil
+}
+func validateAnswers(request Request, answers map[string]string) error {
+	for _, field := range request.Fields {
+		value := strings.TrimSpace(answers[field.ID])
+		if field.Required && value == "" {
+			return fmt.Errorf("%s is required", field.Label)
+		}
+		if field.Type == "single_select" && value != "" && len(field.Options) > 0 {
+			valid := false
+			for _, option := range field.Options {
+				if value == option {
+					valid = true
+					break
+				}
+			}
+			if !valid {
+				return fmt.Errorf("%s contains an invalid selection", field.Label)
+			}
+		}
+	}
+	return nil
+}
+func tokenPair() (string, []byte, error) {
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return "", nil, err
+	}
+	token := base64.RawURLEncoding.EncodeToString(raw)
+	return token, hashToken(token), nil
+}
+func hashToken(token string) []byte {
+	digest := sha256.Sum256([]byte(strings.TrimSpace(token)))
+	return digest[:]
+}
+func audienceHint(audience string) string {
+	if at := strings.LastIndex(audience, "@"); at > 1 {
+		return audience[:1] + "***" + audience[at:]
+	}
+	if len(audience) <= 4 {
+		return "External respondent"
+	}
+	return audience[:2] + "***" + audience[len(audience)-2:]
+}
+func allowedMediaType(value string) bool {
+	allowed := map[string]struct{}{"application/pdf": {}, "image/png": {}, "image/jpeg": {}, "text/plain": {}, "text/csv": {}, "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {}, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}}
+	_, ok := allowed[value]
+	return ok
+}
+func validSourceType(value SourceType) bool {
+	switch value {
+	case SourceRegulatory, SourceSystem, SourceDocument, SourceHuman, SourceVendor:
+		return true
+	default:
+		return false
+	}
+}
+func bounded(limit int) int {
+	if limit < 1 || limit > 200 {
+		return 50
+	}
+	return limit
+}
+func cloneMap(input map[string]string) map[string]string {
+	out := make(map[string]string, len(input))
+	for key, value := range input {
+		out[key] = value
+	}
+	return out
+}
+func cloneFields(input []Field) []Field {
+	out := append([]Field(nil), input...)
+	for index := range out {
+		out[index].Options = append([]string(nil), out[index].Options...)
+		out[index].AcceptedFormats = append([]string(nil), out[index].AcceptedFormats...)
+	}
+	return out
+}
+func DemoSources() []Source {
+	now := time.Now().UTC()
+	last := now.Add(-18 * time.Minute)
+	return []Source{{ID: "019fd111-1111-7111-8111-111111111111", TenantID: "bank-demo", Code: "CBN_CIRCULARS", Name: "CBN circulars", Type: SourceRegulatory, AuthorityClass: "OFFICIAL", ExpectedFreshnessMinutes: 60, LastObservedAt: &last, LastSuccessAt: &last, Health: HealthCurrent, Status: SourceActive, Version: 1, CreatedAt: now, UpdatedAt: now}, {ID: "019fd222-2222-7222-8222-222222222222", TenantID: "bank-demo", Code: "IAM_DIRECTORY", Name: "Identity directory", Type: SourceSystem, AuthorityClass: "SYSTEM_OF_RECORD", ExpectedFreshnessMinutes: 15, LastObservedAt: &last, LastSuccessAt: &last, Health: HealthStale, Status: SourceActive, Version: 1, CreatedAt: now, UpdatedAt: now}}
+}
+func DemoRequests() []Request {
+	now := time.Now().UTC()
+	return []Request{{ID: "019fd333-3333-7333-8333-333333333333", TenantID: "bank-demo", SubjectType: "CONTROL", SubjectID: "branch-backup-power", Title: "Confirm branch backup-power condition", Purpose: "Complete the August resilience review for Enugu Main Branch.", WhyYou: "You are the current branch operations manager.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL", EstimatedMinutes: 2, Deadline: now.Add(48 * time.Hour), KnownFacts: map[string]string{"Branch": "Enugu Main Branch", "Last service": "18 Jul 2026", "Maintenance firm": "Northstar Engineering"}, Fields: []Field{{ID: "condition", Label: "Current generator condition", Type: "single_select", Required: true, Options: []string{"Operational", "Operational with concern", "Unavailable"}}, {ID: "concern", Label: "Concern or supporting note", Type: "text"}}, Status: RequestReady, Version: 1, CreatedAt: now, UpdatedAt: now}}
+}
+func sortSources(values []Source) {
+	sort.Slice(values, func(i, j int) bool { return values[i].Name < values[j].Name })
+}
+func sortRequests(values []Request) {
+	sort.Slice(values, func(i, j int) bool { return values[i].Deadline.Before(values[j].Deadline) })
+}

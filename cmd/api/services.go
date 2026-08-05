@@ -7,6 +7,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/capture"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
@@ -20,6 +21,7 @@ type serviceSet struct {
 	Governance  *governance.Service
 	Capture     *capture.Service
 	Invitations *capture.InvitationService
+	Evidence    *evidence.Service
 	Today       *today.Service
 	Workflow    *workflow.Service
 	Onboarding  *onboarding.Service
