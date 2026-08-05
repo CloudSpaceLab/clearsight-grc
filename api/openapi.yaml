@@ -1,0 +1,79 @@
+openapi: 3.1.0
+info:
+  title: ClearSight Foundation API
+  version: 0.1.0
+  description: Initial executable contract for context, attention, authority resolution and focused capture.
+servers:
+  - url: http://localhost:8080
+paths:
+  /health/live:
+    get:
+      operationId: live
+      responses:
+        '200': { description: Process is live }
+  /health/ready:
+    get:
+      operationId: ready
+      responses:
+        '200': { description: Process can serve requests }
+  /api/v1/context:
+    get:
+      operationId: getContext
+      responses:
+        '200': { description: Active tenant, legal entity and actor context }
+  /api/v1/today:
+    get:
+      operationId: listAttention
+      responses:
+        '200': { description: Actor-specific attention brief }
+  /api/v1/authority/resolve:
+    post:
+      operationId: resolveAuthority
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tenant_id, legal_entity_id, object_type, object_id, responsibility]
+              properties:
+                tenant_id: { type: string }
+                legal_entity_id: { type: string }
+                object_type: { type: string }
+                object_id: { type: string }
+                responsibility: { type: string }
+                materiality: { type: integer, minimum: 0 }
+      responses:
+        '200': { description: Resolved principal and explanation }
+        '422': { description: No eligible route }
+  /api/v1/requests/{id}:
+    get:
+      operationId: getCaptureRequest
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Narrow request-scoped capture definition }
+  /api/v1/requests/{id}/submit:
+    post:
+      operationId: submitCaptureRequest
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [answers, version]
+              properties:
+                answers: { type: object, additionalProperties: { type: string } }
+                version: { type: integer }
+      responses:
+        '200': { description: Submission receipt }
+        '409': { description: Version conflict or request closed }

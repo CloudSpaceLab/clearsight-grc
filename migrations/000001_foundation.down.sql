@@ -1,0 +1,12 @@
+BEGIN;
+DROP TABLE IF EXISTS audit_events;
+DROP TABLE IF EXISTS outbox_events;
+DROP TABLE IF EXISTS invitation_grants;
+DROP TABLE IF EXISTS evidence_requests;
+DROP TABLE IF EXISTS workflow_instances;
+DROP TABLE IF EXISTS authority_grants;
+DROP TABLE IF EXISTS responsibility_assignments;
+DROP TABLE IF EXISTS principals;
+DROP TABLE IF EXISTS legal_entities;
+DROP TABLE IF EXISTS tenants;
+COMMIT;
