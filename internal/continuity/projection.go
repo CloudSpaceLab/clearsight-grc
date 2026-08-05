@@ -19,38 +19,38 @@ const (
 )
 
 type ProjectionJob struct {
-	ID                   string              `json:"id"`
-	TenantID             string              `json:"tenant_id"`
-	Projection           string              `json:"projection"`
-	AggregateType        string              `json:"aggregate_type"`
-	AggregateID          string              `json:"aggregate_id"`
-	SourceAggregateVersion int64             `json:"source_aggregate_version"`
-	Reason               string              `json:"reason"`
-	TriggerID            string              `json:"trigger_id,omitempty"`
-	RequestedBy          string              `json:"requested_by,omitempty"`
-	Status               ProjectionJobStatus `json:"status"`
-	Attempts             int                 `json:"attempts"`
-	AvailableAt          time.Time           `json:"available_at"`
-	ClaimedAt            *time.Time          `json:"claimed_at,omitempty"`
-	ClaimedBy            string              `json:"claimed_by,omitempty"`
-	CompletedAt          *time.Time          `json:"completed_at,omitempty"`
-	LastError            string              `json:"last_error,omitempty"`
-	CreatedAt            time.Time           `json:"created_at"`
-	UpdatedAt            time.Time           `json:"updated_at"`
+	ID                     string              `json:"id"`
+	TenantID               string              `json:"tenant_id"`
+	Projection             string              `json:"projection"`
+	AggregateType          string              `json:"aggregate_type"`
+	AggregateID            string              `json:"aggregate_id"`
+	SourceAggregateVersion int64               `json:"source_aggregate_version"`
+	Reason                 string              `json:"reason"`
+	TriggerID              string              `json:"trigger_id,omitempty"`
+	RequestedBy            string              `json:"requested_by,omitempty"`
+	Status                 ProjectionJobStatus `json:"status"`
+	Attempts               int                 `json:"attempts"`
+	AvailableAt            time.Time           `json:"available_at"`
+	ClaimedAt              *time.Time          `json:"claimed_at,omitempty"`
+	ClaimedBy              string              `json:"claimed_by,omitempty"`
+	CompletedAt            *time.Time          `json:"completed_at,omitempty"`
+	LastError              string              `json:"last_error,omitempty"`
+	CreatedAt              time.Time           `json:"created_at"`
+	UpdatedAt              time.Time           `json:"updated_at"`
 }
 
 type ProjectionHealth struct {
-	TenantID       string     `json:"tenant_id"`
-	Projection     string     `json:"projection"`
-	DisplayName    string     `json:"display_name"`
-	State          string     `json:"state"`
-	Pending        int        `json:"pending"`
-	Failed         int        `json:"failed"`
-	OldestPending  *time.Time `json:"oldest_pending,omitempty"`
-	LastCompleted  *time.Time `json:"last_completed,omitempty"`
-	LastError      string     `json:"last_error,omitempty"`
-	LagSeconds     int64      `json:"lag_seconds"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	TenantID      string     `json:"tenant_id"`
+	Projection    string     `json:"projection"`
+	DisplayName   string     `json:"display_name"`
+	State         string     `json:"state"`
+	Pending       int        `json:"pending"`
+	Failed        int        `json:"failed"`
+	OldestPending *time.Time `json:"oldest_pending,omitempty"`
+	LastCompleted *time.Time `json:"last_completed,omitempty"`
+	LastError     string     `json:"last_error,omitempty"`
+	LagSeconds    int64      `json:"lag_seconds"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 }
 
 type ReconcileResult struct {
@@ -72,6 +72,14 @@ type ProjectionRepository interface {
 	FailProgramState(context.Context, ProjectionJob, string, time.Time) error
 	ProjectionHealth(context.Context, string) ([]ProjectionHealth, error)
 	ReconcileProgramState(context.Context, string, int) (ReconcileResult, error)
+}
+
+// TransactionalProjectionRepository marks repositories that create a
+// deduplicated status-update job in the same transaction as every material
+// Program/Matter command. The service must not issue a second queue write for
+// these repositories after the command has committed.
+type TransactionalProjectionRepository interface {
+	ProjectionQueuedWithCommands() bool
 }
 
 type MatterLinkBundle struct {
