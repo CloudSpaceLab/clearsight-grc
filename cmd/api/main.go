@@ -10,7 +10,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/httpapi"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 )
 
@@ -28,11 +30,21 @@ func main() {
 		os.Exit(1)
 	}
 	defer services.Close()
-	handler := httpapi.New(httpapi.Dependencies{Logger: logger, AllowedOrigin: cfg.AllowedOrigin, Mode: services.Mode, Authority: services.Authority, Governance: services.Governance, Capture: services.Capture, Invitations: services.Invitations, Evidence: services.Evidence, Continuity: services.Continuity, Today: services.Today, Workflow: services.Workflow, Onboarding: services.Onboarding, Autonomy: services.Autonomy, MaxArtifactBytes: cfg.MaxArtifactBytes})
+	authenticator, err := buildAuthenticator(cfg)
+	if err != nil {
+		logger.Error("identity initialization failed", "error", err)
+		os.Exit(1)
+	}
+	guard, err := commandauth.New(services.Authority, commandauth.Mode(cfg.CommandAuthorizationMode), logger)
+	if err != nil {
+		logger.Error("command authorization initialization failed", "error", err)
+		os.Exit(1)
+	}
+	handler := httpapi.New(httpapi.Dependencies{Logger: logger, AllowedOrigin: cfg.AllowedOrigin, Mode: services.Mode, Identity: authenticator, CommandGuard: guard, Authority: services.Authority, Governance: services.Governance, Capture: services.Capture, Invitations: services.Invitations, Evidence: services.Evidence, Continuity: services.Continuity, Today: services.Today, Workflow: services.Workflow, Onboarding: services.Onboarding, Autonomy: services.Autonomy, MaxArtifactBytes: cfg.MaxArtifactBytes})
 	server := &http.Server{Addr: cfg.HTTPAddr, Handler: handler, ReadHeaderTimeout: 2 * time.Second, ReadTimeout: cfg.ReadTimeout, WriteTimeout: cfg.WriteTimeout, IdleTimeout: cfg.IdleTimeout, MaxHeaderBytes: 1 << 20}
 	serverErrors := make(chan error, 1)
 	go func() {
-		logger.Info("api listening", "address", cfg.HTTPAddr, "environment", cfg.Environment, "mode", services.Mode)
+		logger.Info("api listening", "address", cfg.HTTPAddr, "environment", cfg.Environment, "mode", services.Mode, "identity_mode", cfg.IdentityMode, "command_authorization", cfg.CommandAuthorizationMode)
 		serverErrors <- server.ListenAndServe()
 	}()
 	stop := make(chan os.Signal, 1)
@@ -53,4 +65,11 @@ func main() {
 		logger.Error("graceful shutdown failed", "error", err)
 		_ = server.Close()
 	}
+}
+
+func buildAuthenticator(cfg config.Config) (identity.Authenticator, error) {
+	if cfg.IdentityMode == "signed" {
+		return identity.NewSignedAuthenticator(cfg.IdentityHMACSecret, cfg.IdentityMaxSkew)
+	}
+	return identity.NewDevelopmentAuthenticator(cfg.DemoTenantID, cfg.DemoPrincipalID, cfg.DemoLegalEntityID), nil
 }
