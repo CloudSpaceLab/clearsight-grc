@@ -1,0 +1,84 @@
+name: Finish Nigerian bank verticals phase 6
+
+on:
+  push:
+    branches:
+      - agent/nigerian-bank-verticals-phase-6
+
+permissions:
+  contents: write
+
+jobs:
+  finish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.4-alpine
+        env:
+          POSTGRES_DB: clearsight
+          POSTGRES_USER: clearsight
+          POSTGRES_PASSWORD: clearsight
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U clearsight -d clearsight"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/nigerian-bank-verticals-phase-6
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Reconstruct reviewed bundle
+        run: |
+          cat .tmp/phase6/part* > /tmp/phase6.b64
+          base64 --decode /tmp/phase6.b64 > /tmp/phase6.tgz
+          echo '943604a13b6dd3e1b936def231181039914c569b6ae68071c2b0e8f9b5bc444a  /tmp/phase6.tgz' | sha256sum --check -
+          tar -xzf /tmp/phase6.tgz
+          python apply_phase6_verticals.py
+          gofmt -w cmd internal
+      - name: Validate backend
+        run: |
+          go mod download
+          test -z "$(gofmt -l $(find cmd internal -name '*.go' -type f))"
+          go test -race ./...
+          go test -tags postgres ./...
+          go vet ./...
+      - name: Apply migrations
+        env:
+          PGPASSWORD: clearsight
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+          for migration in migrations/*.up.sql; do
+            psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$migration"
+          done
+      - name: PostgreSQL integration tests
+        run: go test -tags "postgres postgresintegration" ./internal/integration
+      - name: Validate web
+        working-directory: web
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+      - name: Commit validated source
+        run: |
+          rm -f apply_phase6_verticals.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A -- ':!.github/workflows/finish-bank-verticals-phase6.yml' ':!.tmp'
+          git commit -m 'feat: add complete Nigerian bank reference journeys'
+          git push origin HEAD:agent/nigerian-bank-verticals-phase-6
