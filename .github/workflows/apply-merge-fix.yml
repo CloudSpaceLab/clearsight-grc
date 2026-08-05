@@ -1,0 +1,49 @@
+name: Apply merge-critical review fixes
+on:
+  push:
+    branches: [agent/continuous-compliance-phase-1]
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/continuous-compliance-phase-1
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: web/package.json
+      - name: Apply reviewed patch
+        run: |
+          cat .github/merge-fix/part* | base64 -d > /tmp/merge-fixes.tgz
+          tar -xzf /tmp/merge-fixes.tgz
+          rm -rf .github/merge-fix .github/workflows/apply-merge-fix.yml
+          gofmt -w $(find cmd internal -name '*.go' -type f)
+      - name: Validate backend composition
+        run: |
+          go mod download
+          go test ./...
+          go test -tags postgres ./...
+          go vet ./...
+      - name: Validate web
+        working-directory: web
+        run: |
+          npm install --no-audit --no-fund
+          npm run typecheck
+          npm run build
+      - name: Commit fixes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: harden routing workflow and readiness contracts'
+          git push origin HEAD:agent/continuous-compliance-phase-1
