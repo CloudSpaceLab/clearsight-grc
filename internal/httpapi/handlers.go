@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
@@ -17,15 +18,24 @@ import (
 func (a *API) live(w http.ResponseWriter, _ *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "live"})
 }
+
 func (a *API) ready(w http.ResponseWriter, _ *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "ready", "mode": a.deps.Mode})
 }
+
 func (a *API) context(w http.ResponseWriter, _ *http.Request) {
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{"tenant": map[string]string{"id": "bank-demo", "name": "ClearSight Demonstration Bank"}, "legal_entity": map[string]string{"id": "bank-ng", "name": "Demonstration Bank Nigeria"}, "actor": map[string]string{"id": "user-demo", "name": "Amaka Okafor", "role": "Control Assurance Lead"}, "mode": a.deps.Mode})
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{
+		"tenant":       map[string]string{"id": "bank-demo", "name": "ClearSight Demonstration Bank"},
+		"legal_entity": map[string]string{"id": "bank-ng", "name": "Demonstration Bank Nigeria"},
+		"actor":        map[string]string{"id": "user-demo", "name": "Amaka Okafor", "role": "Control Assurance Lead"},
+		"mode":         a.deps.Mode,
+	})
 }
+
 func (a *API) today(w http.ResponseWriter, _ *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": a.deps.Today.List(), "generated_at": time.Now().UTC()})
 }
+
 func (a *API) resolveAuthority(w http.ResponseWriter, r *http.Request) {
 	var input authority.ResolveInput
 	if err := httpx.DecodeJSON(w, r, &input); err != nil {
@@ -33,16 +43,18 @@ func (a *API) resolveAuthority(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resolution, err := a.deps.Authority.Resolve(r.Context(), input)
-	if errors.Is(err, authority.ErrNoRoute) {
+	switch {
+	case errors.Is(err, authority.ErrInvalidInput):
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_authority_input", err.Error())
+	case errors.Is(err, authority.ErrNoRoute):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "routing_failed", "No eligible route exists for the supplied scope and responsibility.")
-		return
-	}
-	if err != nil {
+	case err != nil:
 		httpx.WriteError(w, http.StatusInternalServerError, "resolution_failed", "Authority could not be resolved.")
-		return
+	default:
+		httpx.WriteJSON(w, http.StatusOK, resolution)
 	}
-	httpx.WriteJSON(w, http.StatusOK, resolution)
 }
+
 func (a *API) simulateAuthority(w http.ResponseWriter, r *http.Request) {
 	var input authority.ResolveInput
 	if err := httpx.DecodeJSON(w, r, &input); err != nil {
@@ -50,28 +62,43 @@ func (a *API) simulateAuthority(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result, err := a.deps.Authority.Simulate(r.Context(), input)
+	if errors.Is(err, authority.ErrInvalidInput) {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_authority_input", err.Error())
+		return
+	}
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "simulation_failed", "Routing could not be simulated.")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, result)
 }
+
 func (a *API) authorityIntegrity(w http.ResponseWriter, r *http.Request) {
-	findings, err := a.deps.Authority.Integrity(r.Context(), r.URL.Query().Get("tenant_id"))
+	tenantID, ok := requiredQuery(w, r, "tenant_id")
+	if !ok {
+		return
+	}
+	findings, err := a.deps.Authority.Integrity(r.Context(), tenantID)
 	if err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "integrity_failed", err.Error())
+		httpx.WriteError(w, http.StatusInternalServerError, "integrity_failed", "Routing integrity could not be evaluated.")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"findings": findings, "checked_at": time.Now().UTC()})
 }
+
 func (a *API) authorityPolicies(w http.ResponseWriter, r *http.Request) {
-	values, err := a.deps.Authority.Policies(r.Context(), r.URL.Query().Get("tenant_id"))
+	tenantID, ok := requiredQuery(w, r, "tenant_id")
+	if !ok {
+		return
+	}
+	values, err := a.deps.Authority.Policies(r.Context(), tenantID)
 	if err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "policies_failed", err.Error())
+		httpx.WriteError(w, http.StatusInternalServerError, "policies_failed", "Routing policies could not be loaded.")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values})
 }
+
 func (a *API) getCaptureRequest(w http.ResponseWriter, r *http.Request) {
 	request, err := a.deps.Capture.Get(r.PathValue("id"))
 	if errors.Is(err, capture.ErrRequestNotFound) {
@@ -84,6 +111,7 @@ func (a *API) getCaptureRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.WriteJSON(w, http.StatusOK, request)
 }
+
 func (a *API) submitCaptureRequest(w http.ResponseWriter, r *http.Request) {
 	var submission capture.Submission
 	if err := httpx.DecodeJSON(w, r, &submission); err != nil {
@@ -107,6 +135,7 @@ func (a *API) submitCaptureRequest(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteJSON(w, http.StatusOK, receipt)
 	}
 }
+
 func (a *API) redeemInvitation(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Token string `json:"token"`
@@ -122,15 +151,21 @@ func (a *API) redeemInvitation(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.WriteJSON(w, http.StatusOK, session)
 }
+
 func (a *API) listWorkflowTasks(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := requiredQuery(w, r, "tenant_id")
+	if !ok {
+		return
+	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	values, err := a.deps.Workflow.List(r.Context(), workflow.ListFilter{TenantID: r.URL.Query().Get("tenant_id"), PrincipalID: r.URL.Query().Get("principal_id"), Status: workflow.Status(r.URL.Query().Get("status")), Limit: limit})
+	values, err := a.deps.Workflow.List(r.Context(), workflow.ListFilter{TenantID: tenantID, PrincipalID: r.URL.Query().Get("principal_id"), Status: workflow.Status(r.URL.Query().Get("status")), Limit: limit})
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "workflow_failed", "Tasks could not be loaded.")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values})
 }
+
 func (a *API) createWorkflowTask(w http.ResponseWriter, r *http.Request) {
 	var input workflow.CreateInput
 	if err := httpx.DecodeJSON(w, r, &input); err != nil {
@@ -139,11 +174,12 @@ func (a *API) createWorkflowTask(w http.ResponseWriter, r *http.Request) {
 	}
 	value, err := a.deps.Workflow.Create(r.Context(), input)
 	if err != nil {
-		httpx.WriteError(w, http.StatusUnprocessableEntity, "workflow_invalid", err.Error())
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "workflow_invalid", "The task could not be created from the supplied workflow context.")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusCreated, value)
 }
+
 func (a *API) transitionWorkflowTask(w http.ResponseWriter, r *http.Request) {
 	var input workflow.TransitionInput
 	if err := httpx.DecodeJSON(w, r, &input); err != nil {
@@ -159,11 +195,12 @@ func (a *API) transitionWorkflowTask(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, workflow.ErrInvalidTransition):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "invalid_transition", "The requested transition is not allowed.")
 	case err != nil:
-		httpx.WriteError(w, http.StatusInternalServerError, "workflow_failed", "Task could not be updated.")
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "workflow_failed", "Task could not be updated from the supplied tenant and state.")
 	default:
 		httpx.WriteJSON(w, http.StatusOK, value)
 	}
 }
+
 func (a *API) onboardingGuide(w http.ResponseWriter, r *http.Request) {
 	guide, err := a.deps.Onboarding.Guide(r.URL.Query().Get("role"), r.URL.Query().Get("code"))
 	if err != nil {
@@ -172,21 +209,35 @@ func (a *API) onboardingGuide(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.WriteJSON(w, http.StatusOK, guide)
 }
+
 func (a *API) onboardingState(w http.ResponseWriter, r *http.Request) {
-	value, err := a.deps.Onboarding.State(r.Context(), r.URL.Query().Get("tenant_id"), r.URL.Query().Get("principal_id"), r.URL.Query().Get("guide_code"))
+	tenantID, tenantOK := requiredQuery(w, r, "tenant_id")
+	principalID, principalOK := requiredQuery(w, r, "principal_id")
+	guideCode, guideOK := requiredQuery(w, r, "guide_code")
+	if !tenantOK || !principalOK || !guideOK {
+		return
+	}
+	value, err := a.deps.Onboarding.State(r.Context(), tenantID, principalID, guideCode)
 	if err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "state_failed", err.Error())
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "state_failed", "Onboarding state could not be loaded.")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, value)
 }
+
 func (a *API) updateOnboardingState(w http.ResponseWriter, r *http.Request) {
+	tenantID, tenantOK := requiredQuery(w, r, "tenant_id")
+	principalID, principalOK := requiredQuery(w, r, "principal_id")
+	guideCode, guideOK := requiredQuery(w, r, "guide_code")
+	if !tenantOK || !principalOK || !guideOK {
+		return
+	}
 	var input onboarding.UpdateInput
 	if err := httpx.DecodeJSON(w, r, &input); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	value, err := a.deps.Onboarding.Update(r.Context(), r.URL.Query().Get("tenant_id"), r.URL.Query().Get("principal_id"), r.URL.Query().Get("guide_code"), input)
+	value, err := a.deps.Onboarding.Update(r.Context(), tenantID, principalID, guideCode, input)
 	if errors.Is(err, onboarding.ErrVersionConflict) {
 		httpx.WriteError(w, http.StatusConflict, "version_conflict", "Onboarding state changed. Reload before updating.")
 		return
@@ -197,14 +248,20 @@ func (a *API) updateOnboardingState(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.WriteJSON(w, http.StatusOK, value)
 }
+
 func (a *API) readiness(w http.ResponseWriter, r *http.Request) {
-	value, err := a.deps.Autonomy.Readiness(r.Context(), r.URL.Query().Get("tenant_id"))
+	tenantID, ok := requiredQuery(w, r, "tenant_id")
+	if !ok {
+		return
+	}
+	value, err := a.deps.Autonomy.Readiness(r.Context(), tenantID)
 	if err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "readiness_failed", err.Error())
+		httpx.WriteError(w, http.StatusInternalServerError, "readiness_failed", "Continuous readiness could not be calculated.")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, value)
 }
+
 func (a *API) ingestSignal(w http.ResponseWriter, r *http.Request) {
 	var input autonomy.Signal
 	if err := httpx.DecodeJSON(w, r, &input); err != nil {
@@ -216,5 +273,21 @@ func (a *API) ingestSignal(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "signal_failed", err.Error())
 		return
 	}
-	httpx.WriteJSON(w, http.StatusAccepted, map[string]any{"inserted": inserted, "drift": drift})
+	var driftValue *autonomy.Drift
+	if inserted {
+		driftValue = &drift
+	}
+	httpx.WriteJSON(w, http.StatusAccepted, struct {
+		Inserted bool            `json:"inserted"`
+		Drift    *autonomy.Drift `json:"drift"`
+	}{Inserted: inserted, Drift: driftValue})
+}
+
+func requiredQuery(w http.ResponseWriter, r *http.Request, name string) (string, bool) {
+	value := strings.TrimSpace(r.URL.Query().Get(name))
+	if value == "" {
+		httpx.WriteError(w, http.StatusBadRequest, "missing_query_parameter", name+" is required")
+		return "", false
+	}
+	return value, true
 }

@@ -23,6 +23,7 @@ func NewMemoryRepository(seed []Task) *MemoryRepository {
 	}
 	return &MemoryRepository{tasks: tasks, now: time.Now}
 }
+
 func (r *MemoryRepository) Create(_ context.Context, input CreateInput) (Task, error) {
 	taskID, err := id.New("tsk", 18)
 	if err != nil {
@@ -35,22 +36,24 @@ func (r *MemoryRepository) Create(_ context.Context, input CreateInput) (Task, e
 	r.mu.Unlock()
 	return task, nil
 }
-func (r *MemoryRepository) Get(_ context.Context, id string) (Task, error) {
+
+func (r *MemoryRepository) Get(_ context.Context, tenantID, id string) (Task, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	task, ok := r.tasks[id]
-	if !ok {
+	if !ok || task.TenantID != tenantID {
 		return Task{}, ErrTaskNotFound
 	}
 	task.Context = clone(task.Context)
 	return task, nil
 }
+
 func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	values := []Task{}
 	for _, task := range r.tasks {
-		if filter.TenantID != "" && task.TenantID != filter.TenantID {
+		if task.TenantID != filter.TenantID {
 			continue
 		}
 		if filter.PrincipalID != "" && task.PrincipalID != filter.PrincipalID {
@@ -68,22 +71,32 @@ func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, e
 	}
 	return values, nil
 }
+
 func (r *MemoryRepository) Transition(_ context.Context, id string, input TransitionInput) (Task, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	task, ok := r.tasks[id]
-	if !ok {
+	if !ok || task.TenantID != input.TenantID {
 		return Task{}, ErrTaskNotFound
 	}
 	if task.Version != input.ExpectedVersion {
 		return Task{}, ErrVersionConflict
 	}
+	now := r.now().UTC()
 	task.Status = input.Status
+	if input.Status == StatusInProgress && task.ClaimedAt == nil {
+		task.ClaimedAt = &now
+	}
+	if input.Status == StatusCompleted {
+		task.CompletedAt = &now
+	}
 	task.Version++
-	task.UpdatedAt = r.now().UTC()
+	task.UpdatedAt = now
 	r.tasks[id] = task
+	task.Context = clone(task.Context)
 	return task, nil
 }
+
 func clone(input map[string]string) map[string]string {
 	out := map[string]string{}
 	for key, value := range input {
@@ -91,7 +104,11 @@ func clone(input map[string]string) map[string]string {
 	}
 	return out
 }
+
 func DemoTasks() []Task {
 	now := time.Now().UTC()
-	return []Task{{ID: "task_review_cbn", TenantID: "bank-demo", WorkflowID: "wf_cbn_change", StepKey: "applicability-review", Responsibility: "REVIEWER", PrincipalID: "team-control-assurance", Title: "Review seven proposed obligations", Status: StatusReady, DueAt: now.Add(3 * 24 * time.Hour), Context: map[string]string{"program": "CBN Digital Channels", "scope": "Bank NG"}, Version: 1, CreatedAt: now, UpdatedAt: now}, {ID: "task_access_evidence", TenantID: "bank-demo", WorkflowID: "wf_access_review", StepKey: "focused-evidence", Responsibility: "PERFORMER", PrincipalID: "queue-risk-owners", Title: "Confirm four account owners", Status: StatusInProgress, DueAt: now.Add(36 * time.Hour), Context: map[string]string{"population": "4 of 1,250", "scope": "Treasury Operations"}, Version: 1, CreatedAt: now, UpdatedAt: now}}
+	return []Task{
+		{ID: "task_review_cbn", TenantID: "bank-demo", WorkflowID: "wf_cbn_change", StepKey: "applicability-review", Responsibility: "REVIEWER", PrincipalID: "team-control-assurance", Title: "Review seven proposed obligations", Status: StatusReady, DueAt: now.Add(3 * 24 * time.Hour), Context: map[string]string{"program": "CBN Digital Channels", "scope": "Bank NG"}, Version: 1, CreatedAt: now, UpdatedAt: now},
+		{ID: "task_access_evidence", TenantID: "bank-demo", WorkflowID: "wf_access_review", StepKey: "focused-evidence", Responsibility: "PERFORMER", PrincipalID: "queue-risk-owners", Title: "Confirm four account owners", Status: StatusInProgress, DueAt: now.Add(36 * time.Hour), Context: map[string]string{"population": "4 of 1,250", "scope": "Treasury Operations"}, Version: 1, CreatedAt: now, UpdatedAt: now},
+	}
 }

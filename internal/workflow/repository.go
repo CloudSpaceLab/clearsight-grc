@@ -13,7 +13,7 @@ var (
 
 type Repository interface {
 	Create(context.Context, CreateInput) (Task, error)
-	Get(context.Context, string) (Task, error)
+	Get(context.Context, string, string) (Task, error)
 	List(context.Context, ListFilter) ([]Task, error)
 	Transition(context.Context, string, TransitionInput) (Task, error)
 }

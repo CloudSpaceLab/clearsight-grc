@@ -15,22 +15,19 @@ type MemoryRepository struct {
 func NewMemoryRepository() *MemoryRepository {
 	return &MemoryRepository{signals: map[string]Signal{}, drifts: map[string]Drift{}}
 }
-func (r *MemoryRepository) InsertSignal(_ context.Context, value Signal) (bool, error) {
+
+func (r *MemoryRepository) Ingest(_ context.Context, signal Signal, drift Drift) (bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	key := value.TenantID + "|" + value.DedupeKey
+	key := signal.TenantID + "|" + signal.DedupeKey
 	if _, ok := r.signals[key]; ok {
 		return false, nil
 	}
-	r.signals[key] = value
+	r.signals[key] = signal
+	r.drifts[drift.TenantID+"|"+drift.Dimension+"|"+drift.SubjectType+"|"+drift.SubjectID] = drift
 	return true, nil
 }
-func (r *MemoryRepository) UpsertDrift(_ context.Context, value Drift) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.drifts[value.TenantID+"|"+value.Dimension+"|"+value.SubjectType+"|"+value.SubjectID] = value
-	return nil
-}
+
 func (r *MemoryRepository) ListDrifts(_ context.Context, tenant string) ([]Drift, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

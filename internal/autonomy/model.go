@@ -55,6 +55,7 @@ type ReadinessDimensions struct {
 type Readiness struct {
 	TenantID           string              `json:"tenant_id"`
 	Status             string              `json:"status"`
+	BaselineKnown      bool                `json:"baseline_known"`
 	GeneratedAt        time.Time           `json:"generated_at"`
 	Dimensions         ReadinessDimensions `json:"dimensions"`
 	ActiveDrifts       []Drift             `json:"active_drifts"`

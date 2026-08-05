@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
@@ -15,9 +16,10 @@ type Service struct {
 }
 
 func NewService(repo Repository) *Service { return &Service{repo: repo, now: time.Now} }
+
 func (s *Service) Ingest(ctx context.Context, value Signal) (Drift, bool, error) {
-	if value.TenantID == "" || value.Type == "" || value.SubjectType == "" || value.SubjectID == "" || value.Source == "" {
-		return Drift{}, false, fmt.Errorf("tenant, type, subject and source are required")
+	if strings.TrimSpace(value.TenantID) == "" || value.Type == "" || strings.TrimSpace(value.SubjectType) == "" || strings.TrimSpace(value.SubjectID) == "" || strings.TrimSpace(value.Source) == "" || strings.TrimSpace(value.DedupeKey) == "" {
+		return Drift{}, false, fmt.Errorf("tenant, type, subject, source and dedupe_key are required")
 	}
 	if value.ID == "" {
 		generated, err := id.NewUUIDv7()
@@ -26,34 +28,32 @@ func (s *Service) Ingest(ctx context.Context, value Signal) (Drift, bool, error)
 		}
 		value.ID = generated
 	}
-	if value.DedupeKey == "" {
-		value.DedupeKey = string(value.Type) + "|" + value.SubjectType + "|" + value.SubjectID
-	}
 	if value.ObservedAt.IsZero() {
 		value.ObservedAt = s.now().UTC()
 	}
 	if value.EffectiveAt.IsZero() {
 		value.EffectiveAt = value.ObservedAt
 	}
-	inserted, err := s.repo.InsertSignal(ctx, value)
+	drift, err := assess(value, s.now().UTC())
+	if err != nil {
+		return Drift{}, false, err
+	}
+	inserted, err := s.repo.Ingest(ctx, value, drift)
 	if err != nil || !inserted {
 		return Drift{}, inserted, err
 	}
-	drift := assess(value, s.now().UTC())
-	if err := s.repo.UpsertDrift(ctx, drift); err != nil {
-		return Drift{}, false, err
-	}
 	return drift, true, nil
 }
+
 func (s *Service) Readiness(ctx context.Context, tenant string) (Readiness, error) {
-	if tenant == "" {
+	if strings.TrimSpace(tenant) == "" {
 		return Readiness{}, fmt.Errorf("tenant_id is required")
 	}
 	drifts, err := s.repo.ListDrifts(ctx, tenant)
 	if err != nil {
 		return Readiness{}, err
 	}
-	dimensions := ReadinessDimensions{Current: 18}
+	dimensions := ReadinessDimensions{}
 	actions := []string{}
 	maxSeverity := 0
 	for _, drift := range drifts {
@@ -78,7 +78,7 @@ func (s *Service) Readiness(ctx context.Context, tenant string) (Readiness, erro
 		}
 		actions = append(actions, drift.RequiredAction)
 	}
-	status := "CURRENT"
+	status := "UNKNOWN"
 	if maxSeverity >= 5 {
 		status = "CRITICAL"
 	} else if maxSeverity >= 3 {
@@ -86,12 +86,17 @@ func (s *Service) Readiness(ctx context.Context, tenant string) (Readiness, erro
 	} else if maxSeverity > 0 {
 		status = "WATCH"
 	}
+	actions = dedupe(actions)
+	if len(actions) == 0 {
+		actions = []string{"Connect or approve a governed compliance baseline before representing the institution as current."}
+	}
 	if len(actions) > 5 {
 		actions = actions[:5]
 	}
-	return Readiness{TenantID: tenant, Status: status, GeneratedAt: s.now().UTC(), Dimensions: dimensions, ActiveDrifts: drifts, RecommendedActions: dedupe(actions)}, nil
+	return Readiness{TenantID: tenant, Status: status, BaselineKnown: false, GeneratedAt: s.now().UTC(), Dimensions: dimensions, ActiveDrifts: drifts, RecommendedActions: actions}, nil
 }
-func assess(signal Signal, detected time.Time) Drift {
+
+func assess(signal Signal, detected time.Time) (Drift, error) {
 	dimension, severity, summary, action := "context", 1, "Institutional context changed.", "Review the affected scope."
 	switch signal.Type {
 	case SignalEvidenceAging:
@@ -109,9 +114,13 @@ func assess(signal Signal, detected time.Time) Drift {
 	case SignalVerificationFailed:
 		dimension, severity, summary, action = "verification", 5, "Implemented remediation failed verification.", "Reopen treatment and update the current risk conclusion."
 	}
-	driftID, _ := id.NewUUIDv7()
-	return Drift{ID: driftID, TenantID: signal.TenantID, SubjectType: signal.SubjectType, SubjectID: signal.SubjectID, Dimension: dimension, Severity: severity, State: "ACTIVE", Summary: summary, RequiredAction: action, SignalID: signal.ID, DetectedAt: detected}
+	driftID, err := id.NewUUIDv7()
+	if err != nil {
+		return Drift{}, err
+	}
+	return Drift{ID: driftID, TenantID: signal.TenantID, SubjectType: signal.SubjectType, SubjectID: signal.SubjectID, Dimension: dimension, Severity: severity, State: "ACTIVE", Summary: summary, RequiredAction: action, SignalID: signal.ID, DetectedAt: detected}, nil
 }
+
 func dedupe(values []string) []string {
 	seen := map[string]struct{}{}
 	result := []string{}
@@ -125,8 +134,13 @@ func dedupe(values []string) []string {
 	sort.Strings(result)
 	return result
 }
+
 func SeedDemo(ctx context.Context, service *Service) {
-	signals := []Signal{{TenantID: "bank-demo", Type: SignalEvidenceAging, SubjectType: "VENDOR", SubjectID: "payment-processor", Source: "evidence-scheduler", DedupeKey: "vendor-cert-aging"}, {TenantID: "bank-demo", Type: SignalRequirementChanged, SubjectType: "PROGRAM", SubjectID: "cbn-digital", Source: "regulatory-feed", DedupeKey: "cbn-circular-2026-08"}, {TenantID: "bank-demo", Type: SignalRoutingGap, SubjectType: "CONTROL", SubjectID: "branch-resilience", Source: "routing-integrity", DedupeKey: "branch-resilience-owner-gap"}}
+	signals := []Signal{
+		{TenantID: "bank-demo", Type: SignalEvidenceAging, SubjectType: "VENDOR", SubjectID: "payment-processor", Source: "evidence-scheduler", DedupeKey: "vendor-cert-aging"},
+		{TenantID: "bank-demo", Type: SignalRequirementChanged, SubjectType: "PROGRAM", SubjectID: "cbn-digital", Source: "regulatory-feed", DedupeKey: "cbn-circular-2026-08"},
+		{TenantID: "bank-demo", Type: SignalRoutingGap, SubjectType: "CONTROL", SubjectID: "branch-resilience", Source: "routing-integrity", DedupeKey: "branch-resilience-owner-gap"},
+	}
 	for _, signal := range signals {
 		_, _, _ = service.Ingest(ctx, signal)
 	}

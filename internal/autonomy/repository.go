@@ -3,7 +3,6 @@ package autonomy
 import "context"
 
 type Repository interface {
-	InsertSignal(context.Context, Signal) (bool, error)
-	UpsertDrift(context.Context, Drift) error
+	Ingest(context.Context, Signal, Drift) (bool, error)
 	ListDrifts(context.Context, string) ([]Drift, error)
 }

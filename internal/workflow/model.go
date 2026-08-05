@@ -23,6 +23,8 @@ type Task struct {
 	Title          string            `json:"title"`
 	Status         Status            `json:"status"`
 	DueAt          time.Time         `json:"due_at,omitempty"`
+	ClaimedAt      *time.Time        `json:"claimed_at,omitempty"`
+	CompletedAt    *time.Time        `json:"completed_at,omitempty"`
 	Context        map[string]string `json:"context,omitempty"`
 	Version        int64             `json:"version"`
 	CreatedAt      time.Time         `json:"created_at"`
@@ -41,6 +43,8 @@ type CreateInput struct {
 }
 
 type TransitionInput struct {
+	TenantID        string `json:"tenant_id"`
+	ActorID         string `json:"actor_id,omitempty"`
 	Status          Status `json:"status"`
 	ExpectedVersion int64  `json:"expected_version"`
 	Reason          string `json:"reason,omitempty"`

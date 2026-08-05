@@ -25,6 +25,7 @@ func testHandler() http.Handler {
 	autonomy.SeedDemo(context.Background(), auto)
 	return New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), AllowedOrigin: "http://localhost:5173", Mode: "test-memory", Authority: authority.NewResolver(version, rules), Capture: capture.NewService(capture.DemoRequests()), Invitations: capture.NewInvitationService(time.Now), Today: today.NewService(today.DemoItems()), Workflow: workflow.NewService(workflow.NewMemoryRepository(workflow.DemoTasks())), Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()), Autonomy: auto})
 }
+
 func TestTodayEndpoint(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/today", nil)
 	response := httptest.NewRecorder()
@@ -42,6 +43,7 @@ func TestTodayEndpoint(t *testing.T) {
 		t.Fatalf("expected 3 attention items, got %d", len(body.Items))
 	}
 }
+
 func TestAuthorityResolutionEndpoint(t *testing.T) {
 	payload := []byte(`{"tenant_id":"bank-demo","legal_entity_id":"bank-ng","object_type":"MATTER","object_id":"matter-1","responsibility":"AUTHORIZER","materiality":5}`)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/authority/resolve", bytes.NewReader(payload))
@@ -51,11 +53,63 @@ func TestAuthorityResolutionEndpoint(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String())
 	}
 }
-func TestReadinessEndpoint(t *testing.T) {
+
+func TestReadinessEndpointDoesNotFabricateBaseline(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/compliance/readiness?tenant_id=bank-demo", nil)
 	response := httptest.NewRecorder()
 	testHandler().ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String())
+	}
+	var body autonomy.Readiness
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body.BaselineKnown || body.Dimensions.Current != 0 {
+		t.Fatalf("unexpected fabricated baseline: %#v", body)
+	}
+}
+
+func TestWorkflowListRequiresTenant(t *testing.T) {
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/workflow/tasks", nil)
+	response := httptest.NewRecorder()
+	testHandler().ServeHTTP(response, request)
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", response.Code, response.Body.String())
+	}
+}
+
+func TestWorkflowTransitionIsTenantScoped(t *testing.T) {
+	payload := []byte(`{"tenant_id":"other-tenant","status":"IN_PROGRESS","expected_version":1}`)
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/workflow/tasks/task_review_cbn/transition", bytes.NewReader(payload))
+	response := httptest.NewRecorder()
+	testHandler().ServeHTTP(response, request)
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d: %s", response.Code, response.Body.String())
+	}
+}
+
+func TestDuplicateSignalReturnsNoSyntheticDrift(t *testing.T) {
+	payload := []byte(`{"tenant_id":"bank-demo","type":"EVIDENCE_EXPIRED","subject_type":"CLAIM","subject_id":"claim-1","dedupe_key":"claim-1-expired","source":"scheduler"}`)
+	handler := testHandler()
+	for attempt := 0; attempt < 2; attempt++ {
+		request := httptest.NewRequest(http.MethodPost, "/api/v1/compliance/signals", bytes.NewReader(payload))
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != http.StatusAccepted {
+			t.Fatalf("expected 202, got %d: %s", response.Code, response.Body.String())
+		}
+		if attempt == 1 {
+			var body struct {
+				Inserted bool            `json:"inserted"`
+				Drift    *autonomy.Drift `json:"drift"`
+			}
+			if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+				t.Fatal(err)
+			}
+			if body.Inserted || body.Drift != nil {
+				t.Fatalf("expected duplicate without drift, got inserted=%v drift=%#v", body.Inserted, body.Drift)
+			}
+		}
 	}
 }

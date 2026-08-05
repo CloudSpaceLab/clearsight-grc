@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: ClearSight Foundation API
-  version: 0.2.0
+  version: 0.2.1
 servers:
   - url: http://localhost:8080
 paths:
@@ -16,34 +16,35 @@ paths:
   /api/v1/authority/resolve:
     post:
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ResolveInput' } } } }
-      responses: { '200': { description: Resolved authority }, '422': { description: No eligible route } }
+      responses: { '200': { description: Resolved authority }, '400': { description: Invalid scope }, '422': { description: No eligible route } }
   /api/v1/authority/simulate:
     post:
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ResolveInput' } } } }
-      responses: { '200': { description: Routing simulation } }
+      responses: { '200': { description: Routing simulation }, '400': { description: Invalid scope } }
   /api/v1/authority/integrity:
     get:
       parameters: [ { name: tenant_id, in: query, required: true, schema: { type: string } } ]
-      responses: { '200': { description: Active routing-integrity findings } }
+      responses: { '200': { description: Active routing-integrity findings }, '400': { description: Missing tenant } }
   /api/v1/authority/policies:
     get:
       parameters: [ { name: tenant_id, in: query, required: true, schema: { type: string } } ]
-      responses: { '200': { description: Routing policies } }
+      responses: { '200': { description: Routing policies }, '400': { description: Missing tenant } }
   /api/v1/workflow/tasks:
     get:
       parameters:
-        - { name: tenant_id, in: query, schema: { type: string } }
+        - { name: tenant_id, in: query, required: true, schema: { type: string } }
         - { name: principal_id, in: query, schema: { type: string } }
         - { name: status, in: query, schema: { type: string } }
-      responses: { '200': { description: Workflow tasks } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200 } }
+      responses: { '200': { description: Tenant-scoped workflow tasks }, '400': { description: Missing tenant } }
     post:
-      requestBody: { required: true, content: { application/json: { schema: { type: object } } } }
-      responses: { '201': { description: Task created } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WorkflowTaskCreate' } } } }
+      responses: { '201': { description: Task created }, '422': { description: Invalid task } }
   /api/v1/workflow/tasks/{id}/transition:
     post:
       parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
-      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [status, expected_version], properties: { status: { type: string }, expected_version: { type: integer }, reason: { type: string } } } } } }
-      responses: { '200': { description: Task transitioned }, '409': { description: Version conflict } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WorkflowTransition' } } } }
+      responses: { '200': { description: Task transitioned and event recorded }, '404': { description: Task absent in tenant }, '409': { description: Version conflict }, '422': { description: Invalid transition } }
   /api/v1/onboarding/guide:
     get:
       parameters:
@@ -56,22 +57,22 @@ paths:
         - { name: tenant_id, in: query, required: true, schema: { type: string } }
         - { name: principal_id, in: query, required: true, schema: { type: string } }
         - { name: guide_code, in: query, required: true, schema: { type: string } }
-      responses: { '200': { description: User guide state } }
+      responses: { '200': { description: User guide state }, '400': { description: Invalid identifiers } }
     put:
       parameters:
         - { name: tenant_id, in: query, required: true, schema: { type: string } }
         - { name: principal_id, in: query, required: true, schema: { type: string } }
         - { name: guide_code, in: query, required: true, schema: { type: string } }
-      requestBody: { required: true, content: { application/json: { schema: { type: object } } } }
-      responses: { '200': { description: Updated state }, '409': { description: Version conflict } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/OnboardingUpdate' } } } }
+      responses: { '200': { description: Updated state }, '409': { description: Version conflict }, '422': { description: Invalid terminal state } }
   /api/v1/compliance/readiness:
     get:
       parameters: [ { name: tenant_id, in: query, required: true, schema: { type: string } } ]
-      responses: { '200': { description: Continuous readiness } }
+      responses: { '200': { description: Continuous readiness with explicit baseline-known state }, '400': { description: Missing tenant } }
   /api/v1/compliance/signals:
     post:
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Signal' } } } }
-      responses: { '202': { description: Signal accepted and assessed } }
+      responses: { '202': { description: Signal accepted and assessed; duplicate responses contain no synthetic drift }, '422': { description: Invalid Signal } }
   /api/v1/requests/{id}:
     get:
       parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
@@ -87,23 +88,60 @@ components:
   schemas:
     ResolveInput:
       type: object
+      additionalProperties: false
       required: [tenant_id, legal_entity_id, object_type, object_id, responsibility, materiality]
       properties:
-        tenant_id: { type: string }
-        legal_entity_id: { type: string }
-        object_type: { type: string }
-        object_id: { type: string }
-        responsibility: { type: string }
+        tenant_id: { type: string, minLength: 1 }
+        legal_entity_id: { type: string, minLength: 1 }
+        object_type: { type: string, minLength: 1 }
+        object_id: { type: string, minLength: 1 }
+        responsibility: { type: string, minLength: 1 }
         decision_type: { type: string }
         materiality: { type: integer, minimum: 0, maximum: 5 }
+    WorkflowTaskCreate:
+      type: object
+      additionalProperties: false
+      required: [tenant_id, workflow_id, step_key, responsibility, title]
+      properties:
+        tenant_id: { type: string, minLength: 1 }
+        workflow_id: { type: string, minLength: 1 }
+        step_key: { type: string, minLength: 1 }
+        responsibility: { type: string, minLength: 1 }
+        principal_id: { type: string }
+        title: { type: string, minLength: 1 }
+        due_at: { type: string, format: date-time }
+        context: { type: object, additionalProperties: { type: string } }
+    WorkflowTransition:
+      type: object
+      additionalProperties: false
+      required: [tenant_id, status, expected_version]
+      properties:
+        tenant_id: { type: string, minLength: 1 }
+        actor_id: { type: string }
+        status: { type: string, enum: [READY, IN_PROGRESS, BLOCKED, ESCALATED, COMPLETED, CANCELLED] }
+        expected_version: { type: integer, minimum: 1 }
+        reason: { type: string }
+    OnboardingUpdate:
+      type: object
+      additionalProperties: false
+      required: [current_step, expected_version]
+      properties:
+        current_step: { type: integer, minimum: 0 }
+        completed: { type: boolean }
+        dismissed: { type: boolean }
+        expected_version: { type: integer, minimum: 0 }
     Signal:
       type: object
-      required: [tenant_id, type, subject_type, subject_id, source]
+      additionalProperties: false
+      required: [tenant_id, type, subject_type, subject_id, dedupe_key, source]
       properties:
-        tenant_id: { type: string }
+        id: { type: string }
+        tenant_id: { type: string, minLength: 1 }
         type: { type: string }
-        subject_type: { type: string }
-        subject_id: { type: string }
-        dedupe_key: { type: string }
-        source: { type: string }
+        subject_type: { type: string, minLength: 1 }
+        subject_id: { type: string, minLength: 1 }
+        dedupe_key: { type: string, minLength: 1 }
+        source: { type: string, minLength: 1 }
+        observed_at: { type: string, format: date-time }
+        effective_at: { type: string, format: date-time }
         payload: { type: object, additionalProperties: { type: string } }

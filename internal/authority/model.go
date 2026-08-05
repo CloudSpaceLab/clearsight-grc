@@ -23,6 +23,7 @@ type Principal struct {
 	Kind        string `json:"kind"`
 	Role        string `json:"role"`
 }
+
 type Rule struct {
 	ID             string
 	TenantID       string
@@ -37,6 +38,7 @@ type Rule struct {
 	ValidFrom      time.Time
 	ValidUntil     time.Time
 }
+
 type ResolveInput struct {
 	TenantID       string         `json:"tenant_id"`
 	LegalEntityID  string         `json:"legal_entity_id"`
@@ -47,12 +49,14 @@ type ResolveInput struct {
 	Materiality    int            `json:"materiality"`
 	At             time.Time      `json:"at,omitempty"`
 }
+
 type Resolution struct {
 	Principal     Principal `json:"principal"`
 	RuleID        string    `json:"rule_id"`
 	PolicyVersion string    `json:"policy_version"`
 	Explanation   string    `json:"explanation"`
 }
+
 type Candidate struct {
 	Principal Principal `json:"principal"`
 	RuleID    string    `json:"rule_id"`
@@ -60,11 +64,13 @@ type Candidate struct {
 	Eligible  bool      `json:"eligible"`
 	Reason    string    `json:"reason"`
 }
+
 type Simulation struct {
 	Selected      *Resolution `json:"selected,omitempty"`
 	Candidates    []Candidate `json:"candidates"`
 	PolicyVersion string      `json:"policy_version"`
 }
+
 type IntegrityFinding struct {
 	Type           string   `json:"type"`
 	Severity       string   `json:"severity"`
@@ -72,13 +78,14 @@ type IntegrityFinding struct {
 	RequiredAction string   `json:"required_action"`
 	RuleIDs        []string `json:"rule_ids,omitempty"`
 }
+
 type PolicySummary struct {
-	ID            string    `json:"id"`
-	Code          string    `json:"code"`
-	Name          string    `json:"name"`
-	Status        string    `json:"status"`
-	Version       int       `json:"version"`
-	EffectiveFrom time.Time `json:"effective_from,omitempty"`
+	ID            string     `json:"id"`
+	Code          string     `json:"code"`
+	Name          string     `json:"name"`
+	Status        string     `json:"status"`
+	Version       int        `json:"version"`
+	EffectiveFrom *time.Time `json:"effective_from,omitempty"`
 }
 
 type Service interface {
