@@ -4,6 +4,17 @@ import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 import type { BankJourneysResponse } from "./verticalTypes";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
+const sampleCaptureRequestID = import.meta.env.VITE_SAMPLE_CAPTURE_REQUEST_ID as string | undefined;
+const sampleAuthorityObjectID = import.meta.env.VITE_SAMPLE_AUTHORITY_OBJECT_ID as string | undefined;
+
+export type RuntimeContext = {
+  tenant: { id: string; name: string };
+  legal_entity: { id: string; name: string };
+  actor: { id: string; name: string; kind?: string; assurance_level?: string; authentication?: string; session_id?: string };
+  mode: string;
+};
+
+let runtimeContext: Promise<RuntimeContext> | undefined;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${apiBase}${path}`, { ...init, headers: { "Content-Type": "application/json", ...init?.headers } });
@@ -14,48 +25,137 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-function summaryQuery(path: string, query: SummaryQuery) {
-  const params = new URLSearchParams({ tenant_id: "bank-demo", limit: String(query.limit ?? 20) });
-  if (query.q) params.set("q", query.q);
-  if (query.status) params.set("status", query.status);
-  if (query.cursor) params.set("cursor", query.cursor);
+export function loadContext(): Promise<RuntimeContext> {
+  runtimeContext ??= request<RuntimeContext>("/api/v1/context").catch((error) => {
+    runtimeContext = undefined;
+    throw error;
+  });
+  return runtimeContext;
+}
+
+async function scopedPath(path: string, values: Record<string, string | number | undefined> = {}) {
+  const context = await loadContext();
+  const params = new URLSearchParams({ tenant_id: context.tenant.id });
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
   return `${path}?${params.toString()}`;
 }
 
-export function loadBankJourneys(): Promise<BankJourneysResponse> { return request<BankJourneysResponse>("/api/v1/bank-journeys?tenant_id=bank-demo"); }
-export async function loadToday(): Promise<AttentionItem[]> { return (await request<{ items: AttentionItem[] }>("/api/v1/today")).items; }
-export function resolveAuthority(): Promise<AuthorityResolution> { return request<AuthorityResolution>("/api/v1/authority/resolve", { method: "POST", body: JSON.stringify({ tenant_id: "bank-demo", legal_entity_id: "bank-ng", object_type: "MATTER", object_id: "matter-demo", responsibility: "AUTHORIZER", materiality: 5 }) }); }
-export function loadCaptureRequest(): Promise<CaptureRequest> { return request<CaptureRequest>("/api/v1/requests/req_branch_generator"); }
-export function submitCaptureRequest(id: string, version: number, answers: Record<string, string>) { return request<{ request_id: string; status: string; submitted_at: string }>(`/api/v1/requests/${id}/submit`, { method: "POST", body: JSON.stringify({ version, answers }) }); }
-export function loadReadiness(): Promise<Readiness> { return request<Readiness>("/api/v1/compliance/readiness?tenant_id=bank-demo"); }
-export async function loadIntegrity(): Promise<IntegrityFinding[]> { return (await request<{ findings: IntegrityFinding[] }>("/api/v1/authority/integrity?tenant_id=bank-demo")).findings; }
-export async function loadPolicies(): Promise<PolicySummary[]> { return (await request<{ items: PolicySummary[] }>("/api/v1/authority/policies?tenant_id=bank-demo")).items; }
-export async function loadWorkflowTasks(): Promise<WorkflowTask[]> { return (await request<{ items: WorkflowTask[] }>("/api/v1/workflow/tasks?tenant_id=bank-demo&limit=20")).items; }
-export function loadOnboardingGuide(): Promise<OnboardingGuide> { return request<OnboardingGuide>("/api/v1/onboarding/guide?code=control-assurance-first-run"); }
-export function loadOnboardingState(): Promise<OnboardingState> { return request<OnboardingState>("/api/v1/onboarding/state?tenant_id=bank-demo&principal_id=user-demo&guide_code=control-assurance-first-run"); }
-export function saveOnboardingState(value: Pick<OnboardingState, "current_step" | "completed" | "dismissed" | "version">): Promise<OnboardingState> { return request<OnboardingState>("/api/v1/onboarding/state?tenant_id=bank-demo&principal_id=user-demo&guide_code=control-assurance-first-run", { method: "PUT", body: JSON.stringify({ current_step: value.current_step, completed: value.completed, dismissed: value.dismissed, expected_version: value.version }) }); }
-export async function loadEvidenceSources(): Promise<EvidenceSource[]> { return (await request<{ items: EvidenceSource[] }>("/api/v1/evidence/sources?tenant_id=bank-demo&limit=50")).items; }
-export async function loadEvidenceRequests(): Promise<EvidenceRequest[]> { return (await request<{ items: EvidenceRequest[] }>("/api/v1/evidence/requests?tenant_id=bank-demo&limit=50")).items; }
-export async function loadProjectionHealth(): Promise<ProjectionHealth[]> { return (await request<{ items: ProjectionHealth[] }>("/api/v1/operations/projections?tenant_id=bank-demo")).items; }
-export function reconcileProgramState(): Promise<ReconcileResult> { return request<ReconcileResult>("/api/v1/operations/projections/reconcile", { method: "POST", body: JSON.stringify({ tenant_id: "bank-demo", limit: 250 }) }); }
+async function scopedRequest<T>(path: string, values: Record<string, string | number | undefined> = {}, init?: RequestInit): Promise<T> {
+  return request<T>(await scopedPath(path, values), init);
+}
+
+function summaryValues(query: SummaryQuery) {
+  return { q: query.q, status: query.status, cursor: query.cursor, limit: query.limit ?? 20 };
+}
+
+export function loadBankJourneys(): Promise<BankJourneysResponse> {
+  return request<BankJourneysResponse>("/api/v1/bank-journeys");
+}
+
+export async function loadToday(): Promise<AttentionItem[]> {
+  return (await request<{ items: AttentionItem[] }>("/api/v1/today")).items;
+}
+
+export async function resolveAuthority(): Promise<AuthorityResolution> {
+  const context = await loadContext();
+  return request<AuthorityResolution>("/api/v1/authority/resolve", {
+    method: "POST",
+    body: JSON.stringify({
+      tenant_id: context.tenant.id,
+      legal_entity_id: context.legal_entity.id,
+      object_type: sampleAuthorityObjectID ? "MATTER" : "LEGAL_ENTITY",
+      object_id: sampleAuthorityObjectID ?? context.legal_entity.id,
+      responsibility: "AUTHORIZER",
+      materiality: 5,
+    }),
+  });
+}
+
+export function loadCaptureRequest(): Promise<CaptureRequest> {
+  if (!sampleCaptureRequestID) return Promise.reject(new Error("No sample capture request is configured for this build."));
+  return request<CaptureRequest>(`/api/v1/requests/${encodeURIComponent(sampleCaptureRequestID)}`);
+}
+
+export function submitCaptureRequest(id: string, version: number, answers: Record<string, string>) {
+  return request<{ request_id: string; status: string; submitted_at: string }>(`/api/v1/requests/${encodeURIComponent(id)}/submit`, { method: "POST", body: JSON.stringify({ version, answers }) });
+}
+
+export function loadReadiness(): Promise<Readiness> {
+  return scopedRequest<Readiness>("/api/v1/compliance/readiness");
+}
+
+export async function loadIntegrity(): Promise<IntegrityFinding[]> {
+  return (await scopedRequest<{ findings: IntegrityFinding[] }>("/api/v1/authority/integrity")).findings;
+}
+
+export async function loadPolicies(): Promise<PolicySummary[]> {
+  return (await scopedRequest<{ items: PolicySummary[] }>("/api/v1/authority/policies")).items;
+}
+
+export async function loadWorkflowTasks(): Promise<WorkflowTask[]> {
+  return (await scopedRequest<{ items: WorkflowTask[] }>("/api/v1/workflow/tasks", { limit: 20 })).items;
+}
+
+export function loadOnboardingGuide(): Promise<OnboardingGuide> {
+  return request<OnboardingGuide>("/api/v1/onboarding/guide?code=control-assurance-first-run");
+}
+
+export async function loadOnboardingState(): Promise<OnboardingState> {
+  const context = await loadContext();
+  return scopedRequest<OnboardingState>("/api/v1/onboarding/state", { principal_id: context.actor.id, guide_code: "control-assurance-first-run" });
+}
+
+export async function saveOnboardingState(value: Pick<OnboardingState, "current_step" | "completed" | "dismissed" | "version">): Promise<OnboardingState> {
+  const context = await loadContext();
+  return scopedRequest<OnboardingState>("/api/v1/onboarding/state", { principal_id: context.actor.id, guide_code: "control-assurance-first-run" }, {
+    method: "PUT",
+    body: JSON.stringify({ current_step: value.current_step, completed: value.completed, dismissed: value.dismissed, expected_version: value.version }),
+  });
+}
+
+export async function loadEvidenceSources(): Promise<EvidenceSource[]> {
+  return (await scopedRequest<{ items: EvidenceSource[] }>("/api/v1/evidence/sources", { limit: 50 })).items;
+}
+
+export async function loadEvidenceRequests(): Promise<EvidenceRequest[]> {
+  return (await scopedRequest<{ items: EvidenceRequest[] }>("/api/v1/evidence/requests", { limit: 50 })).items;
+}
+
+export async function loadEvidenceRequest(id: string): Promise<EvidenceRequest> {
+  return scopedRequest<EvidenceRequest>(`/api/v1/evidence/requests/${encodeURIComponent(id)}`);
+}
+
+export async function loadProjectionHealth(): Promise<ProjectionHealth[]> {
+  return (await scopedRequest<{ items: ProjectionHealth[] }>("/api/v1/operations/projections")).items;
+}
+
+export async function reconcileProgramState(): Promise<ReconcileResult> {
+  const context = await loadContext();
+  return request<ReconcileResult>("/api/v1/operations/projections/reconcile", { method: "POST", body: JSON.stringify({ tenant_id: context.tenant.id, limit: 250 }) });
+}
 
 export function loadProgramSummaries(query: SummaryQuery = {}): Promise<SummaryPage<ProgramSummary>> {
-  return request<SummaryPage<ProgramSummary>>(summaryQuery("/api/v1/program-summaries", query));
+  return scopedRequest<SummaryPage<ProgramSummary>>("/api/v1/program-summaries", summaryValues(query));
 }
 
 export function loadMatterSummaries(query: SummaryQuery = {}): Promise<SummaryPage<MatterSummary>> {
-  return request<SummaryPage<MatterSummary>>(summaryQuery("/api/v1/matter-summaries", query));
+  return scopedRequest<SummaryPage<MatterSummary>>("/api/v1/matter-summaries", summaryValues(query));
 }
 
 export function loadProgram(id: string): Promise<ProgramAggregate> {
-  return request<ProgramAggregate>(`/api/v1/programs/${encodeURIComponent(id)}?tenant_id=bank-demo`);
+  return scopedRequest<ProgramAggregate>(`/api/v1/programs/${encodeURIComponent(id)}`);
 }
 
 export function loadMatter(id: string): Promise<MatterAggregate> {
-  return request<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(id)}?tenant_id=bank-demo`);
+  return scopedRequest<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(id)}`);
 }
 
-// Full aggregate list helpers remain for compatibility and diagnostics. Primary
-// workspaces use summary endpoints and fetch an aggregate only when opened.
-export async function loadPrograms(): Promise<ProgramAggregate[]> { return (await request<{ items: ProgramAggregate[] }>("/api/v1/programs?tenant_id=bank-demo&limit=50")).items; }
-export async function loadMatters(status = "OPEN"): Promise<MatterAggregate[]> { const suffix = status ? `&status=${encodeURIComponent(status)}` : ""; return (await request<{ items: MatterAggregate[] }>(`/api/v1/matters?tenant_id=bank-demo&limit=50${suffix}`)).items; }
+export async function loadPrograms(): Promise<ProgramAggregate[]> {
+  return (await scopedRequest<{ items: ProgramAggregate[] }>("/api/v1/programs", { limit: 50 })).items;
+}
+
+export async function loadMatters(status = "OPEN"): Promise<MatterAggregate[]> {
+  return (await scopedRequest<{ items: MatterAggregate[] }>("/api/v1/matters", { limit: 50, status })).items;
+}

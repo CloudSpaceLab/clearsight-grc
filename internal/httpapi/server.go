@@ -95,7 +95,7 @@ func New(deps Dependencies) http.Handler {
 	mux.HandleFunc("GET /api/v1/evidence/sources", api.listEvidenceSources)
 	mux.HandleFunc("POST /api/v1/evidence/sources", api.createEvidenceSource)
 	mux.HandleFunc("POST /api/v1/evidence/sources/{id}/observations", api.recordEvidenceSourceObservation)
-	mux.HandleFunc("GET /api/v1/evidence/requests", api.listEvidenceRequests)
+	mux.HandleFunc("GET /api/v1/evidence/requests", api.listVisibleEvidenceRequests)
 	mux.HandleFunc("POST /api/v1/evidence/requests", api.createEvidenceRequest)
 	mux.HandleFunc("GET /api/v1/evidence/requests/{id}", api.getEvidenceRequest)
 	mux.HandleFunc("POST /api/v1/evidence/requests/{id}/submissions", api.submitEvidenceRequest)
