@@ -11,18 +11,6 @@ import (
 	"time"
 )
 
-func signedRequest(t *testing.T, secret string, actor Actor, now time.Time) *httptest.ResponseRecorder {
-	t.Helper()
-	payload, err := json.Marshal(actor)
-	if err != nil {
-		t.Fatal(err)
-	}
-	envelope := base64.RawURLEncoding.EncodeToString(payload)
-	timestamp := now.Format("1136239445")
-	_ = timestamp
-	return httptest.NewRecorder()
-}
-
 func TestSignedAuthenticator(t *testing.T) {
 	secret := "0123456789abcdef0123456789abcdef"
 	now := time.Date(2026, 8, 5, 18, 0, 0, 0, time.UTC)
