@@ -3,8 +3,9 @@ import { PremiumIllustration } from "./PremiumIllustration";
 
 type Props = { guide: OnboardingGuide; state: OnboardingState; onAdvance: (next: OnboardingState) => void; onDismiss: () => void };
 export function IntroGuide({ guide, state, onAdvance, onDismiss }: Props) {
-  const index = Math.min(state.current_step, guide.steps.length - 1);
-  const step = guide.steps[index];
+  const index = Math.min(state.current_step, Math.max(guide.steps.length - 1, 0));
+  const step = guide.steps[index] ?? guide.steps[0];
+  if (!step) return null;
   const final = index === guide.steps.length - 1;
   return <div className="guide-backdrop"><section className="guide-card" aria-modal="true" role="dialog" aria-labelledby="guide-title">
     <button className="panel-close" onClick={onDismiss} aria-label="Skip introduction">×</button>

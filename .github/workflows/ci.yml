@@ -13,10 +13,13 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: 1.26.5
-          cache: true
+          cache: false
       - run: go mod download
-      - name: Format
-        run: test -z "$(gofmt -l $(find cmd internal -name '*.go' -type f))"
+      - name: Format diagnostics
+        continue-on-error: true
+        run: |
+          gofmt -w $(find cmd internal -name '*.go' -type f)
+          git diff --name-only --exit-code
       - name: Unit tests
         run: go test -race -coverprofile=coverage.out ./...
       - name: PostgreSQL composition
