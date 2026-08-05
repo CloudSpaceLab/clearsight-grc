@@ -50,8 +50,9 @@ func TestProjectionRebuildQueueAndMaintainer(t *testing.T) {
 	if err != nil || len(health) != 1 || health[0].Pending != 1 {
 		t.Fatalf("unexpected pending health %#v err=%v", health, err)
 	}
-	maintainer := &ProjectionMaintainer{Service: service, Repo: repo, WorkerID: "worker-1", Now: func() time.Time { return now }}
-	completed, err := maintainer.Maintain(ctx, now, 10)
+	maintenanceTime := job.AvailableAt.Add(time.Second)
+	maintainer := &ProjectionMaintainer{Service: service, Repo: repo, WorkerID: "worker-1", Now: func() time.Time { return maintenanceTime }}
+	completed, err := maintainer.Maintain(ctx, maintenanceTime, 10)
 	if err != nil || completed != 1 {
 		t.Fatalf("unexpected maintain result completed=%d err=%v", completed, err)
 	}
