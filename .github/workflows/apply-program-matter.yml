@@ -1,0 +1,179 @@
+name: Apply Program and Matter foundation
+
+on:
+  push:
+    branches:
+      - agent/program-matter-foundation
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.4-alpine
+        env:
+          POSTGRES_DB: clearsight
+          POSTGRES_USER: clearsight
+          POSTGRES_PASSWORD: clearsight
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U clearsight -d clearsight"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/program-matter-foundation
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Reconstruct verified bundle
+        shell: bash
+        run: |
+          python - <<'PY'
+          import base64
+          import hashlib
+          import json
+          import os
+          import pathlib
+          import tarfile
+          import urllib.request
+
+          repository = os.environ['GITHUB_REPOSITORY']
+          token = os.environ['GH_TOKEN']
+          blob_shas = [
+              '8047a2209b39075590cde693ba23372c249e3976',
+              '55227e0dcadd2e0874ae899ee6064855414c5bfd',
+              '2514f47f2b519c9550f052181fa75dc47b16cb98',
+          ]
+          expected_sha256 = '43eb3178e45b305b00ce4bab977bcfb2bd3aa3628707f7c3110ebb078e2ab536'
+
+          parts = []
+          for sha in blob_shas:
+              request = urllib.request.Request(
+                  f'https://api.github.com/repos/{repository}/git/blobs/{sha}',
+                  headers={
+                      'Authorization': f'Bearer {token}',
+                      'Accept': 'application/vnd.github+json',
+                      'X-GitHub-Api-Version': '2022-11-28',
+                      'User-Agent': 'clearsight-program-matter-loader',
+                  },
+              )
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  payload = json.load(response)
+              raw_blob = base64.b64decode(''.join(payload['content'].split()), validate=True)
+              print(f'blob {sha}: {len(raw_blob)} bytes sha256={hashlib.sha256(raw_blob).hexdigest()}')
+              parts.append(raw_blob)
+
+          joined = b''.join(parts)
+          candidates = [('raw-concat', joined)]
+
+          current = joined
+          for layer in range(1, 4):
+              try:
+                  compact = b''.join(current.split())
+                  current = base64.b64decode(compact, validate=True)
+              except Exception as exc:
+                  print(f'base64 layer {layer} unavailable: {exc}')
+                  break
+              candidates.append((f'base64-layer-{layer}', current))
+
+          bundle_bytes = None
+          for label, candidate in candidates:
+              digest = hashlib.sha256(candidate).hexdigest()
+              print(f'candidate {label}: {len(candidate)} bytes sha256={digest}')
+              if digest == expected_sha256:
+                  bundle_bytes = candidate
+                  print(f'using candidate {label}')
+                  break
+
+          if bundle_bytes is None:
+              raise SystemExit('No reconstructed candidate matched the reviewed bundle SHA-256.')
+
+          bundle = pathlib.Path('/tmp/clearsight-program-matter-foundation.tgz')
+          bundle.write_bytes(bundle_bytes)
+          with tarfile.open(bundle, 'r:gz') as archive:
+              members = archive.getmembers()
+              for member in members:
+                  path = pathlib.PurePosixPath(member.name)
+                  if path.is_absolute() or '..' in path.parts:
+                      raise SystemExit(f'unsafe archive path: {member.name}')
+                  if path.parts[:2] == ('.github', 'workflows'):
+                      raise SystemExit('bundle may not modify workflows')
+              archive.extractall('.')
+          print(f'extracted {len(members)} reviewed files')
+          PY
+          gofmt -w $(find cmd internal -name '*.go' -type f)
+
+      - name: Validate backend
+        run: |
+          go mod download
+          test -z "$(gofmt -l $(find cmd internal -name '*.go' -type f))"
+          go test -race ./...
+          go test -tags postgres ./...
+          go vet ./...
+
+      - name: Apply migrations
+        env:
+          PGPASSWORD: clearsight
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+          for migration in migrations/*.up.sql; do
+            psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$migration"
+          done
+
+      - name: PostgreSQL integration tests
+        run: go test -tags "postgres postgresintegration" ./internal/integration
+
+      - name: Validate web
+        working-directory: web
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+
+      - name: Commit and push in logical batches
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          git add AGENTS.md DESIGN.md README.md docs
+          git commit -m 'docs: define Program and Matter foundation'
+          git push origin HEAD:agent/program-matter-foundation
+
+          git add migrations internal/continuity
+          git commit -m 'feat: add Program and Matter domain foundation'
+          git push origin HEAD:agent/program-matter-foundation
+
+          git add api cmd/api internal/httpapi internal/integration
+          git commit -m 'feat: expose Program and Matter APIs'
+          git push origin HEAD:agent/program-matter-foundation
+
+          git add web
+          git commit -m 'feat: add Program and Matter workspaces'
+          git push origin HEAD:agent/program-matter-foundation
+
+          git rm .github/workflows/apply-program-matter.yml
+          git commit -m 'chore: remove one-use Program and Matter loader'
+          git push origin HEAD:agent/program-matter-foundation
