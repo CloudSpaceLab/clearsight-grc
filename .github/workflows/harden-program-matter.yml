@@ -1,0 +1,234 @@
+name: Harden Program and Matter foundation
+
+on:
+  push:
+    branches:
+      - agent/program-matter-foundation-final
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.4-alpine
+        env:
+          POSTGRES_DB: clearsight
+          POSTGRES_USER: clearsight
+          POSTGRES_PASSWORD: clearsight
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U clearsight -d clearsight"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/program-matter-foundation-final
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Apply reviewed hardening
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('web/src/App.tsx')
+          s = p.read_text()
+          s = s.replace('type LoadState = "loading" | "live" | "unavailable";', 'type LoadState = "loading" | "live" | "unavailable";\ntype ConnectionState = "loading" | "live" | "sample" | "unavailable";\nconst sampleMode = import.meta.env.VITE_ENABLE_SAMPLE_DATA === "true";')
+          s = s.replace('  const [items, setItems] = useState<AttentionItem[]>(fallbackItems);\n  const [connection, setConnection] = useState<"loading" | "live" | "fallback">("loading");', '  const [items, setItems] = useState<AttentionItem[]>([]);\n  const [connection, setConnection] = useState<ConnectionState>("loading");\n  const [readinessState, setReadinessState] = useState<LoadState>("loading");')
+          s = s.replace('      if (todayResult.status === "fulfilled") { setItems(todayResult.value); setConnection("live"); } else setConnection("fallback");\n      if (readinessResult.status === "fulfilled") setReadiness(readinessResult.value);', '''      if (todayResult.status === "fulfilled") {
+                setItems(todayResult.value);
+                setConnection("live");
+              } else if (sampleMode) {
+                setItems(fallbackItems);
+                setConnection("sample");
+              } else {
+                setItems([]);
+                setConnection("unavailable");
+              }
+              if (readinessResult.status === "fulfilled") { setReadiness(readinessResult.value); setReadinessState("live"); } else setReadinessState("unavailable");''')
+          s = s.replace('  const dueSoon = useMemo(() => items.filter((item) => Date.parse(item.due_at) - Date.now() < 4 * 86400000).length, [items]);', '''  const dueSoon = useMemo(() => {
+              const now = Date.now();
+              return items.filter((item) => {
+                const due = Date.parse(item.due_at);
+                const remaining = due - now;
+                return Number.isFinite(due) && remaining >= 0 && remaining <= 4 * 86400000;
+              }).length;
+            }, [items]);''')
+          s = s.replace('<TodayView items={items} dueSoon={dueSoon} connection={connection} readiness={readiness} onRouting={inspectRouting} onCapture={openCapture}/>', '<TodayView items={items} dueSoon={dueSoon} connection={connection} readiness={readiness} readinessState={readinessState} onRouting={inspectRouting} onCapture={openCapture}/>')
+          start = s.index('function TodayView(')
+          end = s.index('\nfunction ProgramsView', start)
+          today = '''function TodayView({ items, dueSoon, connection, readiness, readinessState, onRouting, onCapture }: { items: AttentionItem[]; dueSoon: number; connection: ConnectionState; readiness: Readiness | null; readinessState: LoadState; onRouting: () => void; onCapture: () => void }) {
+            const current = readiness?.baseline_known ? readiness.dimensions.current : "—";
+            const openCount = connection === "unavailable" ? "—" : items.length;
+            const dueCount = connection === "unavailable" ? "—" : dueSoon;
+            const connectionLabel = connection === "live" ? "Live data" : connection === "sample" ? "Sample data" : connection === "unavailable" ? "Data unavailable" : "Connecting";
+            return <>
+              <header className="topbar"><div><span className="eyebrow">Demonstration Bank Nigeria · Control Assurance</span><h1>Today</h1><p>Reviews, approvals and evidence requests assigned to you.</p></div><div className="topbar-actions"><span className={`connection ${connection}`}>{connectionLabel}</span><button id="authority-action" className="secondary-button" onClick={onRouting}>View approval route</button><button id="capture-action" className="primary-button" onClick={onCapture}>Open evidence request</button></div></header>
+              <section className="brief-grid" id="today-brief"><div className="brief-stat"><span>Open items</span><strong>{openCount}</strong><small>Assigned to you</small></div><div className="brief-stat"><span>Due within 4 days</span><strong>{dueCount}</strong><small>Excludes overdue items</small></div><div className="brief-stat verified"><span>Items up to date</span><strong>{current}</strong><small>{readiness?.baseline_known ? "No action due" : "Population not connected"}</small></div></section>
+              <ReadinessPanel readiness={readiness} state={readinessState}/>
+              <section className="section-header"><div><h2>Assigned to you</h2><p>Reviews, approvals and evidence requests.</p></div></section>
+              {connection === "unavailable" ? <EmptyState label="Work queue" title="Assigned work could not be loaded" description="The service is unavailable. No current work count is shown."/> : items.length ? <section className="attention-list">{items.map((item) => <AttentionCard item={item} key={item.id}/>)}</section> : <EmptyState label="Work queue" title="No assigned items" description="There are no open reviews, approvals or evidence requests assigned to you in the connected scope."/>}
+              {readiness?.baseline_known && <section className="quiet-section"><div><span className="verified-dot"/> Readiness was updated {new Date(readiness.generated_at).toLocaleString()}</div><p>{readiness.dimensions.current} item{readiness.dimensions.current === 1 ? " is" : "s are"} currently recorded with no action due.</p></section>}
+            </>;
+          }
+          '''
+          s = s[:start] + today + s[end:]
+          s = s.replace('<mark>{policy.status}</mark>', '<mark>{humanizeStatus(policy.status)}</mark>')
+          s = s.replace('<mark>{task.status.replaceAll("_", " ")}</mark>', '<mark>{humanizeStatus(task.status)}</mark>')
+          old = 'function AttentionCard({ item }: { item: AttentionItem }) { const due = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(item.due_at)); return <article className="attention-card"><div className="attention-icon"><WorkItemIcon type={item.type}/></div><div className="attention-content"><div className="card-kicker"><span>{item.state}</span><time>{due}</time></div><h3>{item.title}</h3><p>{item.why_now}</p><div className="card-meta"><span>{item.scope}</span><span>{item.evidence}</span><span>{item.owner}</span></div></div><div className="card-next"><span>Next</span><strong>{item.primary_action}</strong></div></article>; }'
+          new = '''function humanizeStatus(value: string) {
+            return value.toLowerCase().replaceAll("_", " ").replace(/(^|\\s)\\S/g, (letter) => letter.toUpperCase());
+          }
+
+          function AttentionCard({ item }: { item: AttentionItem }) {
+            const parsed = Date.parse(item.due_at);
+            const due = Number.isFinite(parsed) ? new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(parsed)) : "Due date unavailable";
+            return <article className="attention-card"><div className="attention-icon"><WorkItemIcon type={item.type}/></div><div className="attention-content"><div className="card-kicker"><span>{item.state}</span><time>{due}</time></div><h3>{item.title}</h3><p>{item.why_now}</p><div className="card-meta"><span>{item.scope}</span><span>{item.evidence}</span><span>{item.owner}</span></div></div><div className="card-next"><span>Required action</span><strong>{item.primary_action}</strong></div></article>;
+          }'''
+          if old not in s:
+              raise SystemExit('AttentionCard pattern changed')
+          s = s.replace(old, new)
+          s = s.replace('{resolution?.policy_version ?? "Sample policy"}', '{resolution?.policy_version ?? "Unavailable"}')
+          p.write_text(s)
+
+          Path('web/src/components/ReadinessPanel.tsx').write_text('''import type { Readiness } from "../types";
+          import { PremiumIllustration } from "./PremiumIllustration";
+
+          export function ReadinessPanel({ readiness, state = "live" }: { readiness: Readiness | null; state?: "loading" | "live" | "unavailable" }) {
+            if (state === "unavailable") return <section className="readiness-card loading-card"><div><span className="eyebrow">Readiness</span><h2>Readiness data is unavailable</h2><p>No current readiness totals are shown while the service is unavailable.</p></div></section>;
+            if (!readiness) return <section className="readiness-card loading-card"><span>Loading readiness data…</span></section>;
+            const dimensions: Array<[string, number | string]> = [
+              ["Current", readiness.baseline_known ? readiness.dimensions.current : "—"],
+              ["Aging", readiness.dimensions.aging],
+              ["At risk", readiness.dimensions.at_risk],
+              ["Unknown", readiness.dimensions.unknown],
+              ["Routing blocked", readiness.dimensions.blocked_routing],
+              ["Awaiting review", readiness.dimensions.pending_human],
+            ];
+            const summary = readiness.baseline_known
+              ? "Requirement, evidence, source-health and routing checks are included in the current assessment."
+              : "Active exceptions are shown below. A complete governed population has not been connected, so no current count is displayed.";
+            const statusLabel = readiness.status.toLowerCase().replaceAll("_", " ").replace(/(^|\\s)\\S/g, (letter) => letter.toUpperCase());
+            return <section className="readiness-card" id="readiness-panel">
+              <div className="readiness-copy">
+                <span className="eyebrow">Readiness</span>
+                <div className="readiness-title"><h2>{statusLabel}</h2><span>Updated {new Date(readiness.generated_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></div>
+                <p>{summary}</p>
+                <div className="readiness-dimensions">{dimensions.map(([label, value]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}</div>
+              </div>
+              <PremiumIllustration variant="readiness"/>
+              <div className="readiness-actions"><h3>Required actions</h3>{readiness.recommended_actions.length ? readiness.recommended_actions.map((action) => <p key={action}>{action}</p>) : <p>No action is required.</p>}</div>
+            </section>;
+          }
+          ''')
+
+          p = Path('web/src/components/ProgramsWorkspace.tsx')
+          s = p.read_text()
+          s = s.replace('      : "No gaps are recorded in these programs";', '      : "No recorded gaps or overdue work in the loaded programs";')
+          s = s.replace('<div><span>Need attention</span><strong>{summary.attention}</strong><small>Gap, overdue, incomplete evidence or change in progress</small></div>', '<div><span>Open gaps or overdue work</span><strong>{summary.attention}</strong><small>Includes incomplete evidence and work in progress</small></div>')
+          s = s.replace('<small>{program.jurisdiction || "Current legal-entity scope"}</small>', '{program.jurisdiction && <small>{program.jurisdiction}</small>}')
+          s = s.replace('<span><b>{aggregate.requirements.length}</b> requirements</span><span><b>{aggregate.control_implementations.length}</b> safeguards</span><span><b>{aggregate.evidence_contracts.length}</b> evidence checks</span>', '<span><b>{aggregate.requirements.length}</b> requirements recorded</span><span><b>{aggregate.control_implementations.length}</b> safeguards</span><span><b>{aggregate.evidence_contracts.length}</b> evidence checks</span>')
+          s = s.replace('<p>No gaps or overdue items are recorded.</p>', '<p>No status reasons are recorded for the latest assessment.</p>')
+          s = s.replace('<span>{Math.round(contract.minimum_coverage * 100)}% minimum coverage</span>', '<span>Required coverage: {Math.round(contract.minimum_coverage * 100)}%</span>')
+          p.write_text(s)
+
+          p = Path('web/src/components/MattersWorkspace.tsx')
+          s = p.read_text()
+          s = s.replace('    case "IMPLEMENTED": return "Completed; outcome not yet confirmed";\n    case "VERIFIED": return "Outcome confirmed";', '    case "IMPLEMENTED": return "Work completed; outcome not confirmed";')
+          s = s.replace('  if (value === 3) return "Medium";\n  return "Low";', '  if (value === 3) return "Medium";\n  if (value === 2) return "Normal";\n  return "Low";')
+          insert = '''
+          function humanizeKey(value: string) {
+            return value.replaceAll("_", " ").replace(/(^|\\s)\\S/g, (letter) => letter.toUpperCase());
+          }
+
+          function formatFact(value: unknown) {
+            if (value === null || value === undefined || value === "") return "Not recorded";
+            if (typeof value === "object") return JSON.stringify(value);
+            return String(value);
+          }
+
+          function latestResult(aggregate: MatterAggregate, contractID: string) {
+            return aggregate.verification_results
+              .filter((result) => result.contract_id === contractID)
+              .sort((left, right) => Date.parse(right.observed_at) - Date.parse(left.observed_at))[0];
+          }
+
+          function resultLabel(value?: string) {
+            switch (value) {
+              case "PASS": return "Outcome confirmed";
+              case "FAIL": return "Outcome not achieved";
+              case "INCONCLUSIVE": return "More evidence needed";
+              default: return "Not checked yet";
+            }
+          }
+          '''
+          marker = '\nexport function MattersWorkspace'
+          if marker not in s:
+              raise SystemExit('MattersWorkspace marker changed')
+          s = s.replace(marker, insert + marker, 1)
+          s = s.replace('<span>{matter.due_at ? `Due ${new Date(matter.due_at).toLocaleDateString()}` : "No due date"}</span>', '<span>{matter.due_at ? `${Date.parse(matter.due_at) < Date.now() ? "Overdue" : "Due"} ${new Date(matter.due_at).toLocaleDateString()}` : "No due date"}</span>')
+          old = '<section><h3>What we know</h3><dl><div><dt>Known facts</dt><dd>{Object.keys(matter.known_facts ?? {}).length || "None recorded"}</dd></div><div><dt>Missing facts</dt><dd>{matter.missing_facts?.length ?? 0}</dd></div><div><dt>Conflicting information</dt><dd>{matter.contradictions?.length ?? 0}</dd></div></dl></section>'
+          new = '<section><h3>What we know</h3>{Object.keys(matter.known_facts ?? {}).length ? <dl>{Object.entries(matter.known_facts).slice(0, 5).map(([key, value]) => <div key={key}><dt>{humanizeKey(key)}</dt><dd>{formatFact(value)}</dd></div>)}</dl> : <p>No facts have been recorded.</p>}{matter.missing_facts?.length ? <div className="closure-note"><strong>Information still needed</strong><ul>{matter.missing_facts.slice(0, 5).map((fact, index) => <li key={`${index}-${formatFact(fact)}`}>{formatFact(fact)}</li>)}</ul></div> : null}{matter.contradictions?.length ? <p>{matter.contradictions.length} conflicting item{matter.contradictions.length === 1 ? " is" : "s are"} recorded.</p> : null}</section>'
+          if old not in s:
+              raise SystemExit('What-we-know pattern changed')
+          s = s.replace(old, new)
+          old = '<section><h3>Result checks</h3>{aggregate.verification_contracts.length ? aggregate.verification_contracts.map((contract) => <div className="detail-row" key={contract.id}><strong>{contract.expected_outcome}</strong><span>{aggregate.verification_results.some((result) => result.contract_id === contract.id && result.result === "PASS") ? "Confirmed" : "Not checked yet"}</span></div>) : <p>No result check has been defined.</p>}{!aggregate.closure.ready && aggregate.closure.reasons.length > 0 && <div className="closure-note"><strong>Before this can close</strong><ul>{aggregate.closure.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}</section>'
+          new = '<section><h3>Outcome checks</h3>{aggregate.verification_contracts.length ? aggregate.verification_contracts.map((contract) => { const result = latestResult(aggregate, contract.id); return <div className="detail-row" key={contract.id}><strong>{contract.expected_outcome}</strong><span>{resultLabel(result?.result)}</span></div>; }) : <p>No outcome check has been defined.</p>}{!aggregate.closure.ready && aggregate.closure.reasons.length > 0 && <div className="closure-note"><strong>Before this can close</strong><ul>{aggregate.closure.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}</section>'
+          if old not in s:
+              raise SystemExit('Outcome-check pattern changed')
+          s = s.replace(old, new)
+          p.write_text(s)
+
+          p = Path('internal/continuity/state.go')
+          s = p.read_text().replace('return "Needs attention"', 'return "Review needed"')
+          p.write_text(s)
+          PY
+          gofmt -w internal/continuity/state.go
+      - name: Validate backend
+        run: |
+          go mod download
+          test -z "$(gofmt -l $(find cmd internal -name '*.go' -type f))"
+          go test -race ./...
+          go test -tags postgres ./...
+          go vet ./...
+      - name: Apply migrations
+        env:
+          PGPASSWORD: clearsight
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+          for migration in migrations/*.up.sql; do
+            psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$migration"
+          done
+      - name: PostgreSQL integration tests
+        run: go test -tags "postgres postgresintegration" ./internal/integration
+      - name: Validate web
+        working-directory: web
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+      - name: Commit hardening
+        run: |
+          rm .github/workflows/harden-program-matter.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: harden Program and Matter copy and states'
+          git push origin HEAD:agent/program-matter-foundation-final
