@@ -118,7 +118,7 @@ export function ProgramsWorkspace() {
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
       <label><span>Search programs</span><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Name, code, function or jurisdiction"/></label>
       <label><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">All statuses</option><option value="ACTIVE">Active</option><option value="PAUSED">Paused</option><option value="DRAFT">Setup in progress</option><option value="RETIRED">Ended</option></select></label>
-      <button className="secondary-button" type="submit">Apply filters</button>
+      <button className="secondary-button" type="submit">Search</button>
     </form>
     <section className="program-summary" aria-label="Loaded program summary">
       <div><span>Loaded programs</span><strong>{items.length}</strong><small>{nextCursor ? "More programs are available" : "End of current result"}</small></div>
