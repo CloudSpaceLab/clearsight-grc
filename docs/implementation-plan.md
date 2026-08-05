@@ -116,3 +116,6 @@ Checkboxes describe repository status, not production readiness.
 ## Release gates
 
 Every completed item still requires relevant authorization, invitation, source, performance, recovery, accessibility and workload tests before production release.
+
+- [x] Projection-first Program and Matter summaries, indexed search, keyset pagination and lazy detail loading.
+- [ ] Representative 100,000-row p95/p99 release evidence and retained query plans.

@@ -57,3 +57,13 @@
 @media (max-width: 1120px) { .program-card-main,.matter-card-main { grid-template-columns: auto minmax(0,1fr) auto; } .program-counts,.matter-meta { grid-column: 2; } .program-state,.matter-status { grid-row: 1 / span 2; grid-column: 3; } .expand-indicator { grid-column: 3; grid-row: 3; } .program-detail,.matter-detail { padding-left: 21px; } }
 @media (max-width: 900px) { .program-hero,.matter-hero { grid-template-columns: 1fr; } .program-summary,.matter-summary,.program-detail,.matter-detail { grid-template-columns: 1fr; } }
 @media (max-width: 660px) { .program-card-main,.matter-card-main { grid-template-columns: auto minmax(0,1fr); } .program-state,.matter-status { grid-column: 2; grid-row: auto; justify-self: start; justify-items: start; text-align: left; } .expand-indicator { grid-column: 2; grid-row: auto; justify-self: end; } .workspace-tabs { display: grid; width: 100%; } }
+
+
+.workspace-toolbar { display:grid; grid-template-columns:minmax(240px,1fr) 190px auto; gap:12px; align-items:end; margin:18px 0; padding:16px; border:1px solid var(--border); border-radius:14px; background:var(--surface); }
+.workspace-toolbar label { display:grid; gap:6px; color:var(--muted); font-size:12px; }
+.workspace-toolbar input, .workspace-toolbar select { min-height:42px; border:1px solid var(--border); border-radius:10px; background:var(--surface-2); color:var(--text); padding:0 12px; font:inherit; }
+.workspace-toolbar input:focus, .workspace-toolbar select:focus { outline:2px solid var(--cyan); outline-offset:2px; }
+.load-more { display:flex; justify-content:center; padding:20px 0 8px; }
+.inline-error { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px; border:1px solid color-mix(in srgb, var(--coral) 45%, var(--border)); border-radius:10px; }
+.workspace-loading { min-height:220px; display:grid; place-items:center; color:var(--muted); border:1px solid var(--border); border-radius:16px; background:var(--surface); }
+@media (max-width: 800px) { .workspace-toolbar { grid-template-columns:1fr; } .workspace-toolbar .secondary-button { width:100%; } }
