@@ -47,4 +47,9 @@ new = """\t\tif attempt == 1 {
 \t\t}"""
 if old not in value:
     raise SystemExit("duplicate signal test block not found")
-tests.write_text(value.replace(old, new, 1))
+value = value.replace(old, new, 1)
+start = value.index("func TestDuplicateSignalReturnsNoSyntheticDrift")
+prefix, function = value[:start], value[start:]
+function = function.replace("\tfor attempt := 0; attempt < 2; attempt++ {", "\thandler := testHandler()\n\tfor attempt := 0; attempt < 2; attempt++ {", 1)
+function = function.replace("\t\ttestHandler().ServeHTTP(response, request)", "\t\thandler.ServeHTTP(response, request)", 1)
+tests.write_text(prefix + function)
