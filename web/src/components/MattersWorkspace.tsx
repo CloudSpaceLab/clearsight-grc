@@ -137,7 +137,7 @@ export function MattersWorkspace() {
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
       <label><span>Search issues and changes</span><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Reference, title, summary or type"/></label>
       <label><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="OPEN">Open</option><option value="DECISION_REQUIRED">Decision needed</option><option value="ACTION_IN_PROGRESS">Work in progress</option><option value="VERIFICATION">Confirming outcome</option><option value="CLOSED">Closed</option><option value="">All statuses</option></select></label>
-      <button className="secondary-button" type="submit">Apply filters</button>
+      <button className="secondary-button" type="submit">Search</button>
     </form>
     <section className="matter-summary" aria-label="Loaded issue and change summary"><div><span>Decision needed</span><strong>{summary.decisions}</strong><small>Waiting for an authorized decision</small></div><div><span>Overdue</span><strong>{summary.overdue}</strong><small>Past the recorded due date</small></div><div><span>Confirming outcome</span><strong>{summary.checking}</strong><small>Work is complete; the result still needs confirmation</small></div></section>
     <section className="matter-list">{items.map((summaryItem) => {
