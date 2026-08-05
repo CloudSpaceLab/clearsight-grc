@@ -1,5 +1,6 @@
 name: Remediation diagnostics
 
+# Temporary read-only workflow used to validate deterministic formatting output.
 on:
   push:
     branches:
