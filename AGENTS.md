@@ -54,7 +54,6 @@ Important first-run and empty states require a designed experience. Premium illu
 - Demo copy MUST be operationally plausible and clearly identified as sample data.
 - Icons and illustrations support orientation but never replace labels, status, evidence, errors or required actions.
 - Copy changes require the same review as workflow changes because wording can alter authority, risk interpretation and user action.
-- Primary working language MUST be understandable to the intended bank user without requiring GRC implementation vocabulary; precise internal codes remain available in specialist detail, exports, APIs and audit history.
 - A visible enabled control MUST perform a real action. Disabled controls explain why they are unavailable.
 
 ## UI design proof

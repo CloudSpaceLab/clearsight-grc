@@ -36,8 +36,8 @@ Examples:
 
 Avoid:
 
-- “Resolve evidence insufficiency.” (avoid; use “Provide the missing evidence.”)
-- “Operationalize compliance state remediation.” (avoid; use “Complete the agreed fix and confirm the result.”)
+- “Resolve evidence insufficiency.” Use “Provide the missing evidence.”
+- “Operationalize compliance state remediation.” Use “Complete the agreed fix and confirm the result.”
 - “Review materiality-driven exception handling.”
 - “Leverage continuous assurance intelligence.”
 
