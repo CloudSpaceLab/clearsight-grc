@@ -14,7 +14,8 @@ function statusClass(journey: BankJourney) {
   return "status-warning";
 }
 
-function dueLabel(value?: string) {
+function dueLabel(value?: string, status?: string) {
+  if (status === "CLOSED") return "Completed";
   if (!value) return "No current deadline";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Deadline unavailable";
@@ -47,9 +48,9 @@ export function BankJourneysWorkspace() {
   return <>
     <section className="journey-hero">
       <div>
-        <span className="eyebrow">Connected bank workflows</span>
-        <h2>Compliance work from source to confirmed outcome</h2>
-        <p>Each journey shows the records already connected, completed stages and next recorded action.</p>
+        <span className="eyebrow">Bank compliance journeys</span>
+        <h2>Track each requirement from source to confirmed outcome</h2>
+        <p>Review the connected records, completed stages and next action for each journey.</p>
         {sample && <div className="sample-notice"><strong>Reference data</strong><span>These Nigerian-bank records demonstrate product behaviour. The bank must review current legal and regulatory requirements before operational use.</span></div>}
       </div>
       <PremiumIllustration variant="routing"/>
@@ -67,12 +68,12 @@ export function BankJourneysWorkspace() {
           <span>{journey.completed_steps} of {journey.total_steps} stages complete</span>
         </div>
         <div className="journey-progress" aria-label={`${journey.completed_steps} of ${journey.total_steps} stages complete`}><span style={{ width: `${journey.total_steps ? Math.round((journey.completed_steps / journey.total_steps) * 100) : 0}%` }}/></div>
-        <div className="journey-next"><span>Next action</span><strong>{journey.next_action}</strong><small>{dueLabel(journey.due_at)}</small></div>
+        <div className="journey-next"><span>Next action</span><strong>{journey.next_action}</strong><small>{dueLabel(journey.due_at, journey.status)}</small></div>
         <details className="journey-details">
-          <summary>View journey record</summary>
+          <summary>View details</summary>
           <ol>{journey.steps.map((step) => <li className={step.complete ? "complete" : "open"} key={step.code}><span aria-hidden="true">{step.complete ? "✓" : "○"}</span><span>{step.label}</span></li>)}</ol>
           <div className="journey-sources"><strong>Recorded sources</strong>{journey.source_names.length ? <ul>{journey.source_names.map((source) => <li key={source}>{source}</li>)}</ul> : <p>No source is recorded.</p>}</div>
-          <div className="journey-record-links"><span>{journey.program_id ? "Program record available" : journey.matter_id ? "Issue record available" : "No linked record"}</span>{journey.evidence_request_id && <span>Evidence request available</span>}</div>
+          <div className="journey-record-links"><span>{journey.program_id ? "Linked Program" : journey.matter_id ? "Linked issue" : "No linked record"}</span>{journey.evidence_request_id && <span>Linked evidence request</span>}</div>
         </details>
       </article>)}
     </section>
