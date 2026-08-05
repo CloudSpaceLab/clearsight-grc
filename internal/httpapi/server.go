@@ -52,6 +52,7 @@ func New(deps Dependencies) http.Handler {
 	mux.HandleFunc("POST /api/v1/governance/delegations", api.createGovernanceDelegation)
 	mux.HandleFunc("POST /api/v1/governance/delegations/{id}/{action}", api.transitionGovernanceDelegation)
 
+	mux.HandleFunc("GET /api/v1/program-summaries", api.listProgramSummaries)
 	mux.HandleFunc("GET /api/v1/programs", api.listPrograms)
 	mux.HandleFunc("POST /api/v1/programs", api.createProgram)
 	mux.HandleFunc("GET /api/v1/programs/{id}", api.getProgram)
@@ -65,6 +66,7 @@ func New(deps Dependencies) http.Handler {
 	mux.HandleFunc("POST /api/v1/programs/{id}/evidence-contracts", api.addProgramEvidenceContract)
 	mux.HandleFunc("POST /api/v1/programs/{id}/evidence-assessments", api.recordProgramEvidenceAssessment)
 	mux.HandleFunc("POST /api/v1/programs/{id}/triggers", api.applyProgramTrigger)
+	mux.HandleFunc("GET /api/v1/matter-summaries", api.listMatterSummaries)
 	mux.HandleFunc("GET /api/v1/matters", api.listMatters)
 	mux.HandleFunc("POST /api/v1/matters", api.createMatter)
 	mux.HandleFunc("GET /api/v1/matters/{id}", api.getMatter)

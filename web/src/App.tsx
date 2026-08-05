@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadCaptureRequest, loadEvidenceRequests, loadEvidenceSources, loadIntegrity, loadMatters, loadOnboardingGuide, loadOnboardingState, loadPolicies, loadPrograms, loadReadiness, loadToday, loadWorkflowTasks, resolveAuthority, saveOnboardingState, submitCaptureRequest } from "./api";
+import { loadCaptureRequest, loadEvidenceRequests, loadEvidenceSources, loadIntegrity, loadOnboardingGuide, loadOnboardingState, loadPolicies, loadReadiness, loadToday, loadWorkflowTasks, resolveAuthority, saveOnboardingState, submitCaptureRequest } from "./api";
 import { EmptyState } from "./components/EmptyState";
 import { EvidenceWorkspace } from "./components/EvidenceWorkspace";
 import { IntroGuide } from "./components/IntroGuide";
@@ -8,10 +8,10 @@ import { PremiumIllustration } from "./components/PremiumIllustration";
 import { ProgramsWorkspace } from "./components/ProgramsWorkspace";
 import { ReadinessPanel } from "./components/ReadinessPanel";
 import { WorkItemIcon } from "./components/WorkItemIcon";
-import type { AttentionItem, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, OnboardingGuide, OnboardingState, PolicySummary, ProgramAggregate, Readiness, WorkflowTask } from "./types";
+import type { AttentionItem, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, OnboardingGuide, OnboardingState, PolicySummary, Readiness, WorkflowTask } from "./types";
 
 type View = "today" | "programs" | "work" | "configure";
-type LoadState = "loading" | "live" | "unavailable";
+type LoadState = "idle" | "loading" | "live" | "unavailable";
 type ConnectionState = "loading" | "live" | "sample" | "unavailable";
 const sampleMode = import.meta.env.VITE_ENABLE_SAMPLE_DATA === "true";
 const fallbackItems: AttentionItem[] = [
@@ -37,41 +37,79 @@ function App() {
   const [policies, setPolicies] = useState<PolicySummary[]>([]);
   const [integrity, setIntegrity] = useState<IntegrityFinding[]>([]);
   const [tasks, setTasks] = useState<WorkflowTask[]>([]);
+  const [configureState, setConfigureState] = useState<LoadState>("idle");
   const [sources, setSources] = useState<EvidenceSource[]>([]);
   const [evidenceRequests, setEvidenceRequests] = useState<EvidenceRequest[]>([]);
-  const [evidenceState, setEvidenceState] = useState<LoadState>("loading");
-  const [programs, setPrograms] = useState<ProgramAggregate[]>([]);
-  const [programState, setProgramState] = useState<LoadState>("loading");
-  const [matters, setMatters] = useState<MatterAggregate[]>([]);
-  const [matterState, setMatterState] = useState<LoadState>("loading");
+  const [evidenceState, setEvidenceState] = useState<LoadState>("idle");
   const [guide, setGuide] = useState<OnboardingGuide | null>(null);
   const [guideState, setGuideState] = useState<OnboardingState | null>(null);
   const [activePanel, setActivePanel] = useState<"none" | "routing" | "capture">("none");
 
   useEffect(() => {
-    Promise.allSettled([loadToday(), loadReadiness(), loadPolicies(), loadIntegrity(), loadWorkflowTasks(), loadEvidenceSources(), loadEvidenceRequests(), loadPrograms(), loadMatters(), loadOnboardingGuide(), loadOnboardingState()]).then((results) => {
-      const [todayResult, readinessResult, policiesResult, integrityResult, tasksResult, sourcesResult, requestsResult, programsResult, mattersResult, guideResult, stateResult] = results;
+    Promise.allSettled([loadToday(), loadReadiness(), loadOnboardingGuide(), loadOnboardingState()]).then((results) => {
+      const [todayResult, readinessResult, guideResult, stateResult] = results;
       if (todayResult.status === "fulfilled") {
-      setItems(todayResult.value);
-      setConnection("live");
-    } else if (sampleMode) {
-      setItems(fallbackItems);
-      setConnection("sample");
-    } else {
-      setItems([]);
-      setConnection("unavailable");
-    }
-    if (readinessResult.status === "fulfilled") { setReadiness(readinessResult.value); setReadinessState("live"); } else setReadinessState("unavailable");
-      if (policiesResult.status === "fulfilled") setPolicies(policiesResult.value);
-      if (integrityResult.status === "fulfilled") setIntegrity(integrityResult.value);
-      if (tasksResult.status === "fulfilled") setTasks(tasksResult.value);
-      if (sourcesResult.status === "fulfilled" && requestsResult.status === "fulfilled") { setSources(sourcesResult.value); setEvidenceRequests(requestsResult.value); setEvidenceState("live"); } else setEvidenceState("unavailable");
-      if (programsResult.status === "fulfilled") { setPrograms(programsResult.value); setProgramState("live"); } else setProgramState("unavailable");
-      if (mattersResult.status === "fulfilled") { setMatters(mattersResult.value); setMatterState("live"); } else setMatterState("unavailable");
+        setItems(todayResult.value);
+        setConnection("live");
+      } else if (sampleMode) {
+        setItems(fallbackItems);
+        setConnection("sample");
+      } else {
+        setItems([]);
+        setConnection("unavailable");
+      }
+      if (readinessResult.status === "fulfilled") {
+        setReadiness(readinessResult.value);
+        setReadinessState("live");
+      } else {
+        setReadinessState("unavailable");
+      }
       setGuide(guideResult.status === "fulfilled" ? guideResult.value : fallbackGuide);
-      setGuideState(stateResult.status === "fulfilled" ? stateResult.value : { tenant_id: "bank-demo", principal_id: "user-demo", guide_code: fallbackGuide.code, guide_version: 1, current_step: 0, completed: false, dismissed: sessionStorage.getItem("clearsight-guide-dismissed") === "1", version: 0 });
+      setGuideState(stateResult.status === "fulfilled" ? stateResult.value : {
+        tenant_id: "bank-demo",
+        principal_id: "user-demo",
+        guide_code: fallbackGuide.code,
+        guide_version: 1,
+        current_step: 0,
+        completed: false,
+        dismissed: sessionStorage.getItem("clearsight-guide-dismissed") === "1",
+        version: 0,
+      });
     });
   }, []);
+
+  async function loadEvidenceWorkspace() {
+    setEvidenceState("loading");
+    const [sourcesResult, requestsResult] = await Promise.allSettled([loadEvidenceSources(), loadEvidenceRequests()]);
+    if (sourcesResult.status === "fulfilled" && requestsResult.status === "fulfilled") {
+      setSources(sourcesResult.value);
+      setEvidenceRequests(requestsResult.value);
+      setEvidenceState("live");
+    } else {
+      setEvidenceState("unavailable");
+    }
+  }
+
+  async function loadConfigureWorkspace() {
+    setConfigureState("loading");
+    const [policiesResult, integrityResult, tasksResult] = await Promise.allSettled([loadPolicies(), loadIntegrity(), loadWorkflowTasks()]);
+    if (policiesResult.status === "fulfilled" && integrityResult.status === "fulfilled" && tasksResult.status === "fulfilled") {
+      setPolicies(policiesResult.value);
+      setIntegrity(integrityResult.value);
+      setTasks(tasksResult.value);
+      setConfigureState("live");
+    } else {
+      setConfigureState("unavailable");
+    }
+  }
+
+  useEffect(() => {
+    if (activeView === "work" && workTab === "evidence" && evidenceState === "idle") void loadEvidenceWorkspace();
+  }, [activeView, workTab, evidenceState]);
+
+  useEffect(() => {
+    if (activeView === "configure" && configureState === "idle") void loadConfigureWorkspace();
+  }, [activeView, configureState]);
 
   const dueSoon = useMemo(() => {
     const now = Date.now();
@@ -97,17 +135,17 @@ function App() {
       <div className="avatar" aria-label="Signed in as Amaka Okafor">AO</div>
     </aside>
     <main>
-      {activeView === "today" && <TodayView items={items} dueSoon={dueSoon} connection={connection} readiness={readiness} readinessState={readinessState} onRouting={inspectRouting} onCapture={openCapture}/>}
-      {activeView === "programs" && <ProgramsView programs={programs} state={programState}/>} 
-      {activeView === "work" && <WorkView tab={workTab} onTab={setWorkTab} matters={matters} matterState={matterState} sources={sources} requests={evidenceRequests} evidenceState={evidenceState}/>} 
-      {activeView === "configure" && <ConfigureView policies={policies} findings={integrity} tasks={tasks}/>} 
+      {activeView === "today" && <TodayView items={items} dueSoon={dueSoon} connection={connection} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onRouting={inspectRouting} onCapture={openCapture}/>}
+      {activeView === "programs" && <ProgramsView/>} 
+      {activeView === "work" && <WorkView tab={workTab} onTab={setWorkTab} sources={sources} requests={evidenceRequests} evidenceState={evidenceState} onEvidenceRetry={() => void loadEvidenceWorkspace()}/>} 
+      {activeView === "configure" && <ConfigureView policies={policies} findings={integrity} tasks={tasks} state={configureState} onRetry={() => void loadConfigureWorkspace()}/>} 
     </main>
     {activePanel !== "none" && <div className="panel-backdrop" onMouseDown={() => setActivePanel("none")}><aside className="side-panel" onMouseDown={(event) => event.stopPropagation()} aria-label={activePanel === "routing" ? "Approval route" : "Evidence request"}><button className="panel-close" onClick={() => setActivePanel("none")} aria-label="Close">×</button>{activePanel === "routing" ? <RoutingPanel resolution={resolution}/> : <CapturePanel request={capture}/>}</aside></div>}
     {guide && guideState && !guideState.completed && !guideState.dismissed && <IntroGuide guide={guide} state={guideState} onAdvance={advanceGuide} onDismiss={dismissGuide}/>} 
   </div>;
 }
 
-function TodayView({ items, dueSoon, connection, readiness, readinessState, onRouting, onCapture }: { items: AttentionItem[]; dueSoon: number; connection: ConnectionState; readiness: Readiness | null; readinessState: LoadState; onRouting: () => void; onCapture: () => void }) {
+function TodayView({ items, dueSoon, connection, readiness, readinessState, onRouting, onCapture }: { items: AttentionItem[]; dueSoon: number; connection: ConnectionState; readiness: Readiness | null; readinessState: Exclude<LoadState, "idle">; onRouting: () => void; onCapture: () => void }) {
   const current = readiness?.baseline_known ? readiness.dimensions.current : "—";
   const openCount = connection === "unavailable" ? "—" : items.length;
   const dueCount = connection === "unavailable" ? "—" : dueSoon;
@@ -122,15 +160,18 @@ function TodayView({ items, dueSoon, connection, readiness, readinessState, onRo
   </>;
 }
 
-function ProgramsView({ programs, state }: { programs: ProgramAggregate[]; state: LoadState }) {
-  return <><header className="topbar"><div><span className="eyebrow">Demonstration Bank Nigeria</span><h1>Programs</h1><p>Ongoing obligations, controls, evidence checks and open issues.</p></div></header><ProgramsWorkspace programs={programs} state={state}/></>;
+function ProgramsView() {
+  return <><header className="topbar"><div><span className="eyebrow">Demonstration Bank Nigeria</span><h1>Programs</h1><p>Ongoing obligations, safeguards, evidence checks and open issues.</p></div></header><ProgramsWorkspace/></>;
 }
 
-function WorkView({ tab, onTab, matters, matterState, sources, requests, evidenceState }: { tab: "matters" | "evidence"; onTab: (value: "matters" | "evidence") => void; matters: MatterAggregate[]; matterState: LoadState; sources: EvidenceSource[]; requests: EvidenceRequest[]; evidenceState: LoadState }) {
-  return <><header className="topbar"><div><span className="eyebrow">Demonstration Bank Nigeria</span><h1>Work</h1><p>Issues, changes, evidence requests and the sources they rely on.</p></div></header><div className="workspace-tabs" role="tablist" aria-label="Work views"><button type="button" role="tab" aria-selected={tab === "matters"} className={tab === "matters" ? "active" : ""} onClick={() => onTab("matters")}>Issues and changes</button><button type="button" role="tab" aria-selected={tab === "evidence"} className={tab === "evidence" ? "active" : ""} onClick={() => onTab("evidence")}>Sources and evidence</button></div>{tab === "matters" ? <MattersWorkspace matters={matters} state={matterState}/> : <EvidenceWorkspace sources={sources} requests={requests} state={evidenceState}/>}</>;
+function WorkView({ tab, onTab, sources, requests, evidenceState, onEvidenceRetry }: { tab: "matters" | "evidence"; onTab: (value: "matters" | "evidence") => void; sources: EvidenceSource[]; requests: EvidenceRequest[]; evidenceState: LoadState; onEvidenceRetry: () => void }) {
+  const evidenceLoadState = evidenceState === "idle" ? "loading" : evidenceState;
+  return <><header className="topbar"><div><span className="eyebrow">Demonstration Bank Nigeria</span><h1>Work</h1><p>Issues, changes, evidence requests and the sources they rely on.</p></div></header><div className="workspace-tabs" role="tablist" aria-label="Work views"><button type="button" role="tab" aria-selected={tab === "matters"} className={tab === "matters" ? "active" : ""} onClick={() => onTab("matters")}>Issues and changes</button><button type="button" role="tab" aria-selected={tab === "evidence"} className={tab === "evidence" ? "active" : ""} onClick={() => onTab("evidence")}>Sources and evidence</button></div>{tab === "matters" ? <MattersWorkspace/> : evidenceLoadState === "unavailable" ? <EmptyState label="Sources and evidence" title="Sources and evidence could not be loaded" description="The service is unavailable. No source-health or request totals are shown." action="Try again" onAction={onEvidenceRetry}/> : <EvidenceWorkspace sources={sources} requests={requests} state={evidenceLoadState}/>}</>;
 }
 
-function ConfigureView({ policies, findings, tasks }: { policies: PolicySummary[]; findings: IntegrityFinding[]; tasks: WorkflowTask[] }) {
+function ConfigureView({ policies, findings, tasks, state, onRetry }: { policies: PolicySummary[]; findings: IntegrityFinding[]; tasks: WorkflowTask[]; state: LoadState; onRetry: () => void }) {
+  if (state === "idle" || state === "loading") return <><header className="topbar"><div><span className="eyebrow">Governance configuration</span><h1>Routing and approvals</h1><p>Responsibility, approval limits, delegation and escalation rules.</p></div></header><section className="workspace-loading">Loading routing configuration…</section></>;
+  if (state === "unavailable") return <><header className="topbar"><div><span className="eyebrow">Governance configuration</span><h1>Routing and approvals</h1><p>Responsibility, approval limits, delegation and escalation rules.</p></div></header><EmptyState label="Routing and approvals" title="Routing configuration could not be loaded" description="The service is unavailable. No policy or integrity claims are shown." action="Try again" onAction={onRetry}/></>;
   return <><header className="topbar"><div><span className="eyebrow">Governance configuration</span><h1>Routing and approvals</h1><p>Responsibility, approval limits, delegation and escalation rules.</p></div></header><section className="configure-hero"><div><span className="eyebrow">Routing checks</span><h2>{findings.length ? `${findings.length} configuration issue${findings.length === 1 ? "" : "s"}` : "No blocking configuration issues"}</h2><p>Checks cover missing owners, unresolved selectors, duplicate priorities, expired delegations and missing authorizers.</p></div><PremiumIllustration variant="routing"/></section><section className="config-grid"><article className="config-card"><div className="section-header"><div><h2>Active policies</h2><p>Approved versions and effective dates.</p></div></div>{policies.length ? policies.map((policy) => <div className="policy-row" key={policy.id}><div><strong>{policy.name}</strong><span>{policy.code} · v{policy.version}</span></div><mark>{humanizeStatus(policy.status)}</mark></div>) : <EmptyState label="Routing policies" title="No active policies" description="There are no active routing policies in the current scope."/>}</article><article className="config-card"><div className="section-header"><div><h2>Integrity findings</h2><p>Configuration checks.</p></div></div>{findings.length ? findings.map((finding) => <div className={`finding-row severity-${finding.severity.toLowerCase()}`} key={`${finding.type}-${finding.summary}`}><strong>{finding.summary}</strong><span>{finding.required_action}</span></div>) : <div className="calm-empty"><span>✓</span><div><strong>No blocking routing gaps</strong><p>All evaluated routes resolved to an active principal.</p></div></div>}</article><article className="config-card wide"><div className="section-header"><div><h2>Workflow ownership</h2><p>Open tasks and current assignees.</p></div></div><div className="task-table">{tasks.map((task) => <div className="task-row" key={task.id}><div><strong>{task.title}</strong><span>{task.responsibility} · {task.step_key}</span></div><span>{task.context?.scope ?? task.context?.program ?? "Bank NG"}</span><mark>{humanizeStatus(task.status)}</mark></div>)}</div></article></section></>;
 }
 
