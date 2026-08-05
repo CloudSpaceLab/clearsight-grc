@@ -13,7 +13,7 @@ func TestMemoryMatterSummariesFilterBeforePagination(t *testing.T) {
 	repo := NewMemoryRepository()
 	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
 	repo.matters["bank-a"] = map[string]MatterAggregate{
-		"hidden": {Matter: Matter{ID: "hidden", TenantID: "bank-a", Reference: "MAT-001", Type: MatterAuthorityRequest, Status: MatterAssessment, Priority: 5, Title: "Hidden", Summary: "Restricted", Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["person-b"]}`), CreatedAt: now, UpdatedAt: now}},
+		"hidden":    {Matter: Matter{ID: "hidden", TenantID: "bank-a", Reference: "MAT-001", Type: MatterAuthorityRequest, Status: MatterAssessment, Priority: 5, Title: "Hidden", Summary: "Restricted", Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["person-b"]}`), CreatedAt: now, UpdatedAt: now}},
 		"visible-1": {Matter: Matter{ID: "visible-1", TenantID: "bank-a", Reference: "MAT-002", Type: MatterRegulatoryChange, Status: MatterAssessment, Priority: 4, Title: "Visible one", Summary: "Open", Scope: json.RawMessage(`{"access":"INTERNAL"}`), CreatedAt: now.Add(-time.Minute), UpdatedAt: now.Add(-time.Minute)}},
 		"visible-2": {Matter: Matter{ID: "visible-2", TenantID: "bank-a", Reference: "MAT-003", Type: MatterAuditFinding, Status: MatterAssessment, Priority: 3, Title: "Visible two", Summary: "Open", Scope: json.RawMessage(`{"team":"Audit"}`), CreatedAt: now.Add(-2 * time.Minute), UpdatedAt: now.Add(-2 * time.Minute)}},
 	}
