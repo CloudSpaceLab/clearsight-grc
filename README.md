@@ -1,16 +1,16 @@
 # ClearSight GRC
 
 > **The AI-native continuous compliance and risk operating system for banks.**  
-> Know what applies. Keep proof current. Route the right people. Detect drift. Verify the outcome.
+> Know what applies. Keep proof current. Route the right people. Detect change. Confirm the outcome.
 
-ClearSight helps bank compliance, risk, security, privacy, resilience, audit, legal, business and executive teams operate from one evidence-backed institutional record instead of disconnected registers, questionnaires, email and manually assembled reports.
+ClearSight helps bank compliance, risk, security, privacy, resilience, audit, legal, business and executive teams work from one evidence-backed institutional record instead of disconnected registers, questionnaires, email and manually assembled reports.
 
 ## Current status
 
-The repository contains canonical product and architecture specifications plus a working application foundation:
+The repository now contains a working application foundation for ongoing Programs and specific issues or changes:
 
 - Go API and durable worker processes;
-- React/Vite Today, Work and Configure surfaces;
+- React/Vite Today, Programs, Work and Configure surfaces;
 - PostgreSQL 18 schema and pgx-backed repositories;
 - deterministic authority resolution and routing-integrity checks;
 - maker-checker policies, delegations and segregation rules;
@@ -18,6 +18,10 @@ The repository contains canonical product and architecture specifications plus a
 - Source Registry, source observations and freshness maintenance;
 - persisted evidence requests, immutable submissions and one-time magic links;
 - bounded capture sessions, invitation/session revocation and artifact manifests;
+- ongoing Programs with requirements, applicability decisions, controls and evidence checks;
+- typed Matters for changes, gaps, findings, requests, exceptions and incidents;
+- decisions, actions, response packages and outcome checks;
+- reason-bearing Program status and point-in-time reconstruction;
 - role-specific onboarding, premium illustrations and semantic vector icons;
 - compliance Signals, drift assessment and readiness;
 - OpenAPI, Docker Compose, CI and real PostgreSQL integration tests.
@@ -27,30 +31,64 @@ The default build uses in-memory repositories for fast local development. The `p
 ## Product model
 
 - **Programs** maintain continuing obligations, controls, evidence, reviews, filings, exceptions and assurance.
-- **Matters** handle bounded change, failure, uncertainty, findings, incidents, decisions, external requests and remediation.
+- **Matters** are the precise internal records for a specific change, gap, finding, request, exception or incident. General user screens call them **issues and changes** where that is clearer.
 
 ```text
 Authority Source or Standard
-→ Requirement and Applicability
-→ Control Objective and Implementation
-→ Evidence Contract and Observations
-→ Conclusion or Compliance State
-→ Matter, Decision, Action, Response and Verification
+→ Requirement
+→ Does this apply?
+→ Control objective and implementation
+→ Evidence check and current result
+→ Program status
+→ Issue or change
+→ Decision and action
+→ Outcome check
+→ Closure
 ```
 
 Task completion, a submission, a stored artifact and external execution are not verified outcomes.
 
-## Continuous compliance
+## Program status
 
-ClearSight continuously receives authoritative and operational Signals, detects requirement/evidence/source/control/routing drift, prepares the smallest governed next step, routes the correct actors and verifies material outcomes before closure.
+Program status is calculated from approved requirements, applicability, control coverage, implementation, evidence, open issues, source health and deadlines. It is not a manually selected red/amber/green value.
 
-Source freshness, invitation expiry, delegation activation and workflow timers are deterministic. AI may explain or propose handling but is not required for these controls.
+Primary screens use plain labels such as:
 
-## Experience
+- **Up to date**;
+- **Evidence incomplete**;
+- **Gap found**;
+- **Change in progress**;
+- **Overdue**;
+- **Under review**;
+- **Setup in progress**.
 
-Working screens use operational bank language: named objects, states, sources, owners, deadlines and actions. Unknown populations remain unknown. Sample data is labelled. Illustrations and icons support orientation but never replace status, evidence or required action.
+Stable internal codes remain available in APIs, history and specialist detail.
 
-The application performs assembly before asking a person to act: source-backed prefill, minimum-question requests, secure internal/external capture, review by exception, durable handoff and explicit verification.
+## Matter lifecycle
+
+A Matter moves through only the stages appropriate to its type:
+
+```text
+Draft
+→ Initial review
+→ Reviewing impact
+→ Decision needed / Work in progress / Preparing response
+→ Confirming outcome
+→ Closed
+```
+
+Closure is type-aware. Open actions, missing approval, unacknowledged external responses or failed outcome checks prevent closure. A failed outcome check can reopen work, request a decision, create a follow-up Matter or keep closure blocked according to its contract.
+
+## Experience and copy
+
+Working screens use ordinary bank-operating language before specialist terminology. They name the object, current state, reason, owner, deadline and next valid action.
+
+- “Does this apply?” is used before “applicability determination.”
+- “Evidence incomplete” is used before “evidence insufficiency.”
+- “Outcome check” is used before “verification contract.”
+- “Issues and changes” is used on general work screens; “Matter” remains the precise record name in APIs and audit history.
+
+Unknown populations remain unknown. Sample data is labelled. Illustrations and icons support orientation but never replace status, evidence or required action.
 
 ## Architecture
 
@@ -61,9 +99,10 @@ React/Vite client
 Go API ── short, strongly consistent commands and bounded reads
       │
       ├── PostgreSQL authoritative state and durable workflow
+      ├── append-only Program and Matter event history
       ├── object-store interface and versioned artifact manifests
       ├── transactional outbox and idempotent workers
-      ├── rebuildable search, graph, vector, queue and report projections
+      ├── rebuildable search, graph, queue and report projections
       └── governed AI and integration gateways
 ```
 
@@ -78,6 +117,7 @@ internal/authority      routing, simulation and integrity
 internal/governance     maker-checker policies and delegations
 internal/runtime        timers, outbox and inbox
 internal/evidence       sources, requests, sessions and artifacts
+internal/continuity     Programs, Matters, status, closure and history
 internal/autonomy       Signals, drift and readiness
 internal/workflow       tasks and transitions
 internal/onboarding     guided-adoption state
@@ -107,28 +147,27 @@ go run -tags postgres ./cmd/api
 
 The web client runs at `http://localhost:5173`; the API defaults to `http://localhost:8080`.
 
-## Performance stance
+## Current boundaries
 
-- common deterministic page: p95 ≤ 1.5 seconds;
-- durable command acknowledgement: p95 ≤ 500 ms;
-- authority resolution: p95 ≤ 100 ms uncached;
-- invitation redemption: p95 ≤ 500 ms;
-- request submission: p95 ≤ 750 ms;
-- large imports, extraction, scanning, reports and AI run asynchronously;
-- material commands are strongly consistent;
-- projections expose freshness and are explicitly eventually consistent.
+The Program and Matter foundation does not yet claim production completion for:
+
+- authenticated actor binding and automatic authority checks on every material command;
+- projection-first list reads for high-cardinality tenants;
+- bulk Program setup and configuration approval;
+- production object storage, scanning, retention and legal hold;
+- dependency propagation across shared controls and services;
+- complete vertical workflows for NDPA, regulatory change, authority requests and imported findings.
 
 ## Start here
 
 1. [`docs/README.md`](docs/README.md)
 2. [`docs/product/use-case-catalogue.md`](docs/product/use-case-catalogue.md)
-3. [`docs/product/continuous-compliance-and-autonomy.md`](docs/product/continuous-compliance-and-autonomy.md)
-4. [`docs/product/authority-routing-and-escalation.md`](docs/product/authority-routing-and-escalation.md)
-5. [`docs/architecture/source-evidence-and-secure-capture.md`](docs/architecture/source-evidence-and-secure-capture.md)
-6. [`docs/product/respond-and-capture.md`](docs/product/respond-and-capture.md)
-7. [`docs/product/enterprise-copy-and-content-design.md`](docs/product/enterprise-copy-and-content-design.md)
-8. [`docs/architecture/application-architecture.md`](docs/architecture/application-architecture.md)
-9. [`docs/implementation-plan.md`](docs/implementation-plan.md)
-10. [`AGENTS.md`](AGENTS.md)
+3. [`docs/product/continuous-compliance-operating-model.md`](docs/product/continuous-compliance-operating-model.md)
+4. [`docs/architecture/program-and-matter-foundation.md`](docs/architecture/program-and-matter-foundation.md)
+5. [`docs/product/plain-language-content-standard.md`](docs/product/plain-language-content-standard.md)
+6. [`docs/architecture/source-evidence-and-secure-capture.md`](docs/architecture/source-evidence-and-secure-capture.md)
+7. [`docs/architecture/application-architecture.md`](docs/architecture/application-architecture.md)
+8. [`docs/implementation-plan.md`](docs/implementation-plan.md)
+9. [`AGENTS.md`](AGENTS.md)
 
-**ClearSight succeeds when governance work is current, correctly routed, minimally demanding, performant and reconstructable.**
+**ClearSight succeeds when governance work is current, understandable, correctly routed, minimally demanding and reconstructable.**

@@ -49,9 +49,12 @@ Architecture never overrides the simpler user-facing Program, issue/change, requ
 - Source Registry, source observations and freshness maintenance;
 - persisted evidence requests, submissions, invitations and sessions;
 - streamed development artifact storage and integrity manifests;
+- ongoing Programs with requirements, controls, evidence checks and calculated status;
+- typed Matters for changes, findings, exceptions, requests, actions, responses and outcome checks;
+- point-in-time Program and Matter reconstruction;
 - onboarding guide and user state;
 - compliance Signal ingestion, drift and readiness;
-- Today, Work and Configure experiences.
+- Today, Programs, Work and Configure experiences.
 
 ## Traceability
 
