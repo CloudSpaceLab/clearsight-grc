@@ -41,6 +41,9 @@ func (r *PostgresRepository) CreateProgram(ctx context.Context, program Program,
 	if err = insertOutbox(ctx, tx, event); err != nil {
 		return Program{}, err
 	}
+	if _, err = queueProgramStateTx(ctx, tx, program.TenantID, program.ID, program.Version, "PROGRAM_CREATED", program.ID, event.ActorID, event.OccurredAt); err != nil {
+		return Program{}, err
+	}
 	if err = tx.Commit(ctx); err != nil {
 		return Program{}, err
 	}
@@ -80,7 +83,18 @@ func (r *PostgresRepository) GetProgram(ctx context.Context, tenant, id string) 
 	if err != nil {
 		return ProgramAggregate{}, err
 	}
-	return reconstructProgram(events)
+	aggregate, err := reconstructProgram(events)
+	if err != nil {
+		return ProgramAggregate{}, err
+	}
+	state, err := r.ProgramStateAt(ctx, tenant, id, nil)
+	if err != nil {
+		return ProgramAggregate{}, err
+	}
+	if state != nil {
+		aggregate.CurrentState = state
+	}
+	return decorateProgram(aggregate), nil
 }
 
 func (r *PostgresRepository) ApplyProgramEvent(ctx context.Context, tenant, id string, expected int64, event Event) (int64, error) {
@@ -121,6 +135,11 @@ func (r *PostgresRepository) ApplyProgramEvent(ctx context.Context, tenant, id s
 	}
 	if err = insertOutbox(ctx, tx, event); err != nil {
 		return 0, err
+	}
+	if event.Type != EventProgramStateUpdated {
+		if _, err = queueProgramStateTx(ctx, tx, tenant, id, event.AggregateVersion, event.Type, event.ID, event.ActorID, event.OccurredAt); err != nil {
+			return 0, err
+		}
 	}
 	if err = tx.Commit(ctx); err != nil {
 		return 0, err
@@ -264,6 +283,29 @@ func (r *PostgresRepository) ApplyMatterEvent(ctx context.Context, tenant, id st
 	}
 	if err = insertOutbox(ctx, tx, event); err != nil {
 		return 0, err
+	}
+	programRows, err := tx.Query(ctx, `SELECT DISTINCT program_id::text FROM matter_links WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND matter_id=$2::uuid AND program_id IS NOT NULL`, tenant, id)
+	if err != nil {
+		return 0, err
+	}
+	programIDs := []string{}
+	for programRows.Next() {
+		var programID string
+		if err := programRows.Scan(&programID); err != nil {
+			programRows.Close()
+			return 0, err
+		}
+		programIDs = append(programIDs, programID)
+	}
+	if err := programRows.Err(); err != nil {
+		programRows.Close()
+		return 0, err
+	}
+	programRows.Close()
+	for _, programID := range programIDs {
+		if _, err = queueProgramStateTx(ctx, tx, tenant, programID, 0, event.Type, id, event.ActorID, event.OccurredAt); err != nil {
+			return 0, err
+		}
 	}
 	if err = tx.Commit(ctx); err != nil {
 		return 0, err
@@ -419,7 +461,7 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		}
 		dimensions, _ := json.Marshal(v.Dimensions)
 		reasons, _ := json.Marshal(v.Reasons)
-		_, err := tx.Exec(ctx, `INSERT INTO program_state_snapshots(id,tenant_id,program_id,overall_state,dimensions,reasons,open_matter_count,trigger_type,trigger_id,generated_at,program_version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,$9,$10,$11)`, v.ID, v.TenantID, v.ProgramID, v.Overall, dimensions, reasons, v.OpenMatterCount, v.TriggerType, v.TriggerID, v.GeneratedAt, v.ProgramVersion)
+		_, err := tx.Exec(ctx, `INSERT INTO program_state_snapshots(id,tenant_id,program_id,overall_state,dimensions,reasons,open_matter_count,trigger_type,trigger_id,generated_at,program_version,projection_version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,$9,$10,$11,(SELECT COALESCE(max(projection_version),0)+1 FROM program_state_snapshots WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) AND program_id=$3::uuid))`, v.ID, v.TenantID, v.ProgramID, v.Overall, dimensions, reasons, v.OpenMatterCount, v.TriggerType, v.TriggerID, v.GeneratedAt, v.ProgramVersion)
 		return err
 	case EventProgramTriggerRecorded:
 		return nil

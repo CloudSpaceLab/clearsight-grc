@@ -28,7 +28,7 @@ func (s *Service) createMatterWithInitialLink(ctx context.Context, input CreateM
 }
 
 func (s *Service) applyTriggerBundle(ctx context.Context, trigger Trigger, aggregate ProgramAggregate, repo TriggerBundleRepository) (ProgramAggregate, *Matter, bool, error) {
-	programEvent, err := newEvent(trigger.TenantID, "PROGRAM", trigger.ProgramID, aggregate.Program.Version+1, EventProgramTriggerRecorded, trigger, ActorSystem, "", trigger.ObservedAt)
+	programEvent, err := newEvent(trigger.TenantID, "PROGRAM", trigger.ProgramID, aggregate.Program.Version+1, EventProgramTriggerRecorded, trigger, actorFor(trigger.ActorID), trigger.ActorID, trigger.ObservedAt)
 	if err != nil {
 		return ProgramAggregate{}, nil, false, err
 	}
@@ -41,7 +41,7 @@ func (s *Service) applyTriggerBundle(ctx context.Context, trigger Trigger, aggre
 		}
 		now := s.now().UTC()
 		matter := Matter{ID: matterID, TenantID: trigger.TenantID, Reference: matterReference(matterID), Type: matterType, Status: MatterInitialReview, Priority: triggerPriority(trigger.Type), Title: title, Summary: summary, Scope: append(json.RawMessage(nil), trigger.Payload...), TriggerType: trigger.Type, TriggerID: trigger.ID, TriggerKey: trigger.DedupeKey, KnownFacts: append(json.RawMessage(nil), trigger.Payload...), MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`), CreatedAt: now, UpdatedAt: now, Version: 1}
-		matterEvent, err := newEvent(trigger.TenantID, "MATTER", matter.ID, 1, EventMatterCreated, matter, ActorSystem, "", now)
+		matterEvent, err := newEvent(trigger.TenantID, "MATTER", matter.ID, 1, EventMatterCreated, matter, actorFor(trigger.ActorID), trigger.ActorID, now)
 		if err != nil {
 			return ProgramAggregate{}, nil, false, err
 		}
@@ -50,7 +50,7 @@ func (s *Service) applyTriggerBundle(ctx context.Context, trigger Trigger, aggre
 			return ProgramAggregate{}, nil, false, err
 		}
 		link := MatterLink{ID: linkID, TenantID: trigger.TenantID, MatterID: matter.ID, ProgramID: trigger.ProgramID, Relationship: "AFFECTS", CreatedAt: now}
-		linkEvent, err := newEvent(trigger.TenantID, "MATTER", matter.ID, 2, EventMatterLinked, link, ActorSystem, "", now)
+		linkEvent, err := newEvent(trigger.TenantID, "MATTER", matter.ID, 2, EventMatterLinked, link, actorFor(trigger.ActorID), trigger.ActorID, now)
 		if err != nil {
 			return ProgramAggregate{}, nil, false, err
 		}

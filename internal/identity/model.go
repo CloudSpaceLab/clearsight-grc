@@ -14,15 +14,15 @@ var (
 )
 
 type Actor struct {
-	TenantID            string    `json:"tenant_id"`
-	PrincipalID         string    `json:"principal_id"`
-	LegalEntityID       string    `json:"legal_entity_id"`
-	Kind                string    `json:"kind"`
-	AuthenticationMethod string   `json:"authentication_method"`
-	AssuranceLevel      string    `json:"assurance_level"`
-	SessionID           string    `json:"session_id"`
-	IssuedAt            time.Time `json:"issued_at"`
-	ExpiresAt           time.Time `json:"expires_at"`
+	TenantID             string    `json:"tenant_id"`
+	PrincipalID          string    `json:"principal_id"`
+	LegalEntityID        string    `json:"legal_entity_id"`
+	Kind                 string    `json:"kind"`
+	AuthenticationMethod string    `json:"authentication_method"`
+	AssuranceLevel       string    `json:"assurance_level"`
+	SessionID            string    `json:"session_id"`
+	IssuedAt             time.Time `json:"issued_at"`
+	ExpiresAt            time.Time `json:"expires_at"`
 }
 
 func (a Actor) Valid(now time.Time) error {

@@ -41,10 +41,10 @@ func TestOperationalSummaryReadModels(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err = pool.Exec(ctx, `
-		INSERT INTO program_state_snapshots(id,tenant_id,program_id,overall_state,dimensions,reasons,open_matter_count,generated_at,program_version)
+		INSERT INTO program_state_snapshots(id,tenant_id,program_id,overall_state,dimensions,reasons,open_matter_count,generated_at,program_version,projection_version)
 		SELECT uuidv7(),tenant_id,id,CASE WHEN code='PRG-0019' THEN 'EVIDENCE_INSUFFICIENT' ELSE 'CURRENT' END,
 			'{}'::jsonb,CASE WHEN code='PRG-0019' THEN '[{"code":"EVIDENCE_NOT_ASSESSED","summary":"Evidence has not been assessed."}]'::jsonb ELSE '[]'::jsonb END,
-			0,updated_at,version
+			0,updated_at,version,1
 		FROM programs WHERE tenant_id=$1::uuid`, tenantID); err != nil {
 		t.Fatal(err)
 	}

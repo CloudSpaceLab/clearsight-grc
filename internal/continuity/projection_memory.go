@@ -10,9 +10,9 @@ import (
 )
 
 type memoryProjectionData struct {
-	mu      sync.Mutex
-	states  map[string]map[string][]ProgramStateSnapshot
-	jobs    map[string]ProjectionJob
+	mu     sync.Mutex
+	states map[string]map[string][]ProgramStateSnapshot
+	jobs   map[string]ProjectionJob
 }
 
 var memoryProjectionStores sync.Map

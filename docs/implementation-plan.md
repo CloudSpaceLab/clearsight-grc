@@ -119,3 +119,6 @@ Every completed item still requires relevant authorization, invitation, source, 
 
 - [x] Projection-first Program and Matter summaries, indexed search, keyset pagination and lazy detail loading.
 - [ ] Representative 100,000-row p95/p99 release evidence and retained query plans.
+
+- [x] Signed request actor binding and authority checks for material Program/Matter commands.
+- [x] Separately versioned Program-status maintenance with health, reconcile and rebuild operations.

@@ -86,7 +86,15 @@ func TestProgramMatterPostgresContracts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if program.CurrentState == nil || program.CurrentState.Overall != continuity.StateCurrent || program.StateLabel != "Up to date" {
+	maintainer := &continuity.ProjectionMaintainer{Service: service, Repo: continuity.NewPostgresRepository(pool), WorkerID: "continuity-test-worker"}
+	if completed, err := maintainer.Maintain(ctx, time.Now().UTC().Add(time.Second), 20); err != nil || completed != 1 {
+		t.Fatalf("Program status update failed completed=%d err=%v", completed, err)
+	}
+	program, err = service.GetProgram(ctx, "continuity-bank", program.Program.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if program.CurrentState == nil || program.CurrentState.Overall != continuity.StateCurrent || program.StateLabel != "Up to date" || program.CurrentState.ProgramVersion != program.Program.Version {
 		t.Fatalf("unexpected current state %#v", program.CurrentState)
 	}
 
@@ -96,8 +104,18 @@ func TestProgramMatterPostgresContracts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !inserted || created == nil || created.Type != continuity.MatterControlGap || program.CurrentState.OpenMatterCount != 1 {
-		t.Fatalf("unexpected trigger result inserted=%v matter=%#v state=%#v", inserted, created, program.CurrentState)
+	if !inserted || created == nil || created.Type != continuity.MatterControlGap {
+		t.Fatalf("unexpected trigger result inserted=%v matter=%#v", inserted, created)
+	}
+	if completed, err := maintainer.Maintain(ctx, time.Now().UTC().Add(2*time.Second), 20); err != nil || completed != 1 {
+		t.Fatalf("trigger status update failed completed=%d err=%v", completed, err)
+	}
+	program, err = service.GetProgram(ctx, "continuity-bank", program.Program.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if program.CurrentState == nil || program.CurrentState.OpenMatterCount != 1 || program.CurrentState.ProgramVersion != program.Program.Version {
+		t.Fatalf("unexpected trigger status %#v", program.CurrentState)
 	}
 	_, duplicate, inserted, err := service.ApplyTrigger(ctx, trigger)
 	if err != nil || inserted || duplicate == nil || duplicate.ID != created.ID {

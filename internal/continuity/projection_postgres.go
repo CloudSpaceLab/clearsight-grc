@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -104,6 +103,14 @@ func (r *PostgresRepository) QueueProgramState(ctx context.Context, tenant, prog
 }
 
 func queueProgramStateTx(ctx context.Context, tx pgx.Tx, tenant, programID string, sourceVersion int64, reason, triggerID, requestedBy string, now time.Time) (ProjectionJob, error) {
+	if sourceVersion <= 0 {
+		if err := tx.QueryRow(ctx, `SELECT p.version FROM programs p JOIN tenants t ON t.id=p.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND p.id=$2::uuid`, tenant, programID).Scan(&sourceVersion); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ProjectionJob{}, ErrNotFound
+			}
+			return ProjectionJob{}, err
+		}
+	}
 	jobID, err := id.NewUUIDv7()
 	if err != nil {
 		return ProjectionJob{}, err
@@ -323,7 +330,7 @@ func (r *PostgresRepository) ApplyTriggerBundle(ctx context.Context, bundle Trig
 		matter.UpdatedAt = bundle.LinkEvent.OccurredAt
 		result.Matter = &matter
 	}
-	if _, err = queueProgramStateTx(ctx, tx, trigger.TenantID, trigger.ProgramID, bundle.ProgramEvent.AggregateVersion, trigger.Type, trigger.ID, bundle.ProgramEvent.ActorID, bundle.ProgramEvent.OccurredAt); err != nil {
+	if _, err = queueProgramStateTx(ctx, tx, trigger.TenantID, trigger.ProgramID, bundle.ProgramEvent.AggregateVersion, trigger.Type, trigger.ID, bundle.ProgramEvent.ActorID, time.Now().UTC()); err != nil {
 		return TriggerBundleResult{}, err
 	}
 	if err = tx.Commit(ctx); err != nil {

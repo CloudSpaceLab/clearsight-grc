@@ -85,6 +85,10 @@ func New(deps Dependencies) http.Handler {
 	mux.HandleFunc("POST /api/v1/matters/{id}/responses", api.command("matter.response.add", api.addMatterResponse))
 	mux.HandleFunc("POST /api/v1/matters/{id}/responses/{response_id}/transition", api.command("matter.response.transition", api.transitionMatterResponse))
 
+	mux.HandleFunc("GET /api/v1/operations/projections", api.projectionHealth)
+	mux.HandleFunc("POST /api/v1/operations/projections/reconcile", api.command("projection.reconcile", api.reconcileProgramState))
+	mux.HandleFunc("POST /api/v1/operations/projections/rebuild", api.command("projection.rebuild", api.rebuildProgramState))
+
 	mux.HandleFunc("GET /api/v1/evidence/sources", api.listEvidenceSources)
 	mux.HandleFunc("POST /api/v1/evidence/sources", api.createEvidenceSource)
 	mux.HandleFunc("POST /api/v1/evidence/sources/{id}/observations", api.recordEvidenceSourceObservation)

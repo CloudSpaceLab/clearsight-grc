@@ -38,11 +38,11 @@ type Request struct {
 }
 
 type Decision struct {
-	Allowed        bool                 `json:"allowed"`
-	Enforced       bool                 `json:"enforced"`
-	Actor          identity.Actor       `json:"actor"`
-	Resolution     *authority.Resolution `json:"resolution,omitempty"`
-	Reason         string               `json:"reason"`
+	Allowed    bool                  `json:"allowed"`
+	Enforced   bool                  `json:"enforced"`
+	Actor      identity.Actor        `json:"actor"`
+	Resolution *authority.Resolution `json:"resolution,omitempty"`
+	Reason     string                `json:"reason"`
 }
 
 type Guard struct {

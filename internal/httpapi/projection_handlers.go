@@ -53,7 +53,7 @@ func (a *API) rebuildProgramState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input struct {
-		TenantID string `json:"tenant_id"`
+		TenantID  string `json:"tenant_id"`
 		ProgramID string `json:"program_id"`
 		Reason    string `json:"reason"`
 	}
