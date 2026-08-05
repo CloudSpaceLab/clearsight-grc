@@ -6,6 +6,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/capture"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
@@ -34,6 +35,7 @@ type Dependencies struct {
 	Workflow         *workflow.Service
 	Onboarding       *onboarding.Service
 	Autonomy         *autonomy.Service
+	BankVerticals    *bankverticals.Service
 	MaxArtifactBytes int64
 }
 type API struct{ deps Dependencies }
@@ -45,6 +47,7 @@ func New(deps Dependencies) http.Handler {
 	mux.HandleFunc("GET /health/ready", api.ready)
 	mux.HandleFunc("GET /api/v1/context", api.context)
 	mux.HandleFunc("GET /api/v1/today", api.today)
+	mux.HandleFunc("GET /api/v1/bank-journeys", api.listBankJourneys)
 	mux.HandleFunc("POST /api/v1/authority/resolve", api.resolveAuthority)
 	mux.HandleFunc("POST /api/v1/authority/simulate", api.simulateAuthority)
 	mux.HandleFunc("GET /api/v1/authority/integrity", api.authorityIntegrity)

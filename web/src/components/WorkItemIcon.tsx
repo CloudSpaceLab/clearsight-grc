@@ -13,6 +13,12 @@ const common = {
 };
 
 export function WorkItemIcon({ type }: Props) {
+  if (type === "NDPA_CONTINUOUS") {
+    return <svg {...common}><path d="M12 3 5.5 5.8v5.1c0 4.2 2.8 7.8 6.5 9.1 3.7-1.3 6.5-4.9 6.5-9.1V5.8z"/><path d="M9 9.5h6M9 13h6M9 16.5h3"/></svg>;
+  }
+  if (type === "FINDING_REMEDIATION") {
+    return <svg {...common}><path d="M5 4h14v16H5z"/><path d="M8 9h8M8 13h5M8 17h3"/><path d="m15 16 1.5 1.5L20 14"/></svg>;
+  }
   if (type === "REGULATORY_CHANGE") {
     return <svg {...common}><path d="M6 3.8h9l3 3V20H6z"/><path d="M15 3.8V7h3M9 11h6M9 15h6"/></svg>;
   }

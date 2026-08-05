@@ -52,6 +52,7 @@ func (a *API) listMatterSummaries(w http.ResponseWriter, r *http.Request) {
 		writeSummaryError(w, err, "Issues and changes could not be loaded.")
 		return
 	}
+	page.Items = filterMatterSummaries(r.Context(), page.Items)
 	httpx.WriteJSON(w, http.StatusOK, page)
 }
 

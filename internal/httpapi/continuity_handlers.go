@@ -235,6 +235,7 @@ func (a *API) listMatters(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusInternalServerError, "matters_failed", "Issues and changes could not be loaded.")
 		return
 	}
+	values = filterMatterAggregates(r.Context(), values)
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values, "generated_at": time.Now().UTC()})
 }
 
@@ -262,6 +263,9 @@ func (a *API) getMatter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	value, err := service.GetMatter(r.Context(), tenant, r.PathValue("id"))
+	if err == nil && !canReadMatter(r.Context(), value.Matter) {
+		err = continuity.ErrNotFound
+	}
 	writeContinuityResult(w, value, err, http.StatusOK)
 }
 
@@ -279,6 +283,9 @@ func (a *API) getMatterHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	value, err := service.MatterAt(r.Context(), tenant, r.PathValue("id"), at)
+	if err == nil && !canReadMatter(r.Context(), value.Matter) {
+		err = continuity.ErrNotFound
+	}
 	writeContinuityResult(w, value, err, http.StatusOK)
 }
 
