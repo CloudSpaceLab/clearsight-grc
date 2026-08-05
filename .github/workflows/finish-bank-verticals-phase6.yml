@@ -44,7 +44,17 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - name: Reconstruct reviewed bundle
         run: |
-          cat .tmp/phase6/part* > /tmp/phase6.b64
+          cat \
+            .tmp/phase6/part00 \
+            .tmp/phase6/part01 \
+            .tmp/phase6/part02 \
+            .tmp/phase6/part03 \
+            .tmp/phase6/part04 \
+            .tmp/phase6/part05x0 \
+            .tmp/phase6/part05x1 \
+            .tmp/phase6/part06 \
+            .tmp/phase6/part07 \
+            .tmp/phase6/part08 > /tmp/phase6.b64
           base64 --decode /tmp/phase6.b64 > /tmp/phase6.tgz
           echo '943604a13b6dd3e1b936def231181039914c569b6ae68071c2b0e8f9b5bc444a  /tmp/phase6.tgz' | sha256sum --check -
           tar -xzf /tmp/phase6.tgz
