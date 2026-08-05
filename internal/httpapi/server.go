@@ -7,9 +7,11 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/capture"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
@@ -20,6 +22,8 @@ type Dependencies struct {
 	Logger           *slog.Logger
 	AllowedOrigin    string
 	Mode             string
+	Identity         identity.Authenticator
+	CommandGuard     *commandauth.Guard
 	Authority        authority.Service
 	Governance       *governance.Service
 	Capture          *capture.Service
@@ -54,32 +58,32 @@ func New(deps Dependencies) http.Handler {
 
 	mux.HandleFunc("GET /api/v1/program-summaries", api.listProgramSummaries)
 	mux.HandleFunc("GET /api/v1/programs", api.listPrograms)
-	mux.HandleFunc("POST /api/v1/programs", api.createProgram)
+	mux.HandleFunc("POST /api/v1/programs", api.command("program.create", api.createProgram))
 	mux.HandleFunc("GET /api/v1/programs/{id}", api.getProgram)
 	mux.HandleFunc("GET /api/v1/programs/{id}/history", api.getProgramHistory)
-	mux.HandleFunc("POST /api/v1/programs/{id}/transition", api.transitionProgram)
-	mux.HandleFunc("POST /api/v1/programs/{id}/requirements", api.addProgramRequirement)
-	mux.HandleFunc("POST /api/v1/programs/{id}/applicability", api.determineProgramApplicability)
-	mux.HandleFunc("POST /api/v1/programs/{id}/control-objectives", api.addProgramControlObjective)
-	mux.HandleFunc("POST /api/v1/programs/{id}/control-implementations", api.addProgramControlImplementation)
-	mux.HandleFunc("POST /api/v1/programs/{id}/control-links", api.linkProgramRequirementControl)
-	mux.HandleFunc("POST /api/v1/programs/{id}/evidence-contracts", api.addProgramEvidenceContract)
-	mux.HandleFunc("POST /api/v1/programs/{id}/evidence-assessments", api.recordProgramEvidenceAssessment)
-	mux.HandleFunc("POST /api/v1/programs/{id}/triggers", api.applyProgramTrigger)
+	mux.HandleFunc("POST /api/v1/programs/{id}/transition", api.command("program.transition", api.transitionProgram))
+	mux.HandleFunc("POST /api/v1/programs/{id}/requirements", api.command("program.requirement.add", api.addProgramRequirement))
+	mux.HandleFunc("POST /api/v1/programs/{id}/applicability", api.command("program.applicability.decide", api.determineProgramApplicability))
+	mux.HandleFunc("POST /api/v1/programs/{id}/control-objectives", api.command("program.safeguard.define", api.addProgramControlObjective))
+	mux.HandleFunc("POST /api/v1/programs/{id}/control-implementations", api.command("program.safeguard.define", api.addProgramControlImplementation))
+	mux.HandleFunc("POST /api/v1/programs/{id}/control-links", api.command("program.safeguard.define", api.linkProgramRequirementControl))
+	mux.HandleFunc("POST /api/v1/programs/{id}/evidence-contracts", api.command("program.evidence.define", api.addProgramEvidenceContract))
+	mux.HandleFunc("POST /api/v1/programs/{id}/evidence-assessments", api.command("program.evidence.assess", api.recordProgramEvidenceAssessment))
+	mux.HandleFunc("POST /api/v1/programs/{id}/triggers", api.command("program.trigger.ingest", api.applyProgramTrigger))
 	mux.HandleFunc("GET /api/v1/matter-summaries", api.listMatterSummaries)
 	mux.HandleFunc("GET /api/v1/matters", api.listMatters)
-	mux.HandleFunc("POST /api/v1/matters", api.createMatter)
+	mux.HandleFunc("POST /api/v1/matters", api.command("matter.create", api.createMatter))
 	mux.HandleFunc("GET /api/v1/matters/{id}", api.getMatter)
 	mux.HandleFunc("GET /api/v1/matters/{id}/history", api.getMatterHistory)
-	mux.HandleFunc("POST /api/v1/matters/{id}/transition", api.transitionMatter)
-	mux.HandleFunc("POST /api/v1/matters/{id}/links", api.addMatterLink)
-	mux.HandleFunc("POST /api/v1/matters/{id}/decisions", api.addMatterDecision)
-	mux.HandleFunc("POST /api/v1/matters/{id}/actions", api.addMatterAction)
-	mux.HandleFunc("POST /api/v1/matters/{id}/actions/{action_id}/transition", api.transitionMatterAction)
-	mux.HandleFunc("POST /api/v1/matters/{id}/verification-contracts", api.addMatterVerificationContract)
-	mux.HandleFunc("POST /api/v1/matters/{id}/verification-results", api.recordMatterVerificationResult)
-	mux.HandleFunc("POST /api/v1/matters/{id}/responses", api.addMatterResponse)
-	mux.HandleFunc("POST /api/v1/matters/{id}/responses/{response_id}/transition", api.transitionMatterResponse)
+	mux.HandleFunc("POST /api/v1/matters/{id}/transition", api.command("matter.transition", api.transitionMatter))
+	mux.HandleFunc("POST /api/v1/matters/{id}/links", api.command("matter.link", api.addMatterLink))
+	mux.HandleFunc("POST /api/v1/matters/{id}/decisions", api.command("matter.decision.record", api.addMatterDecision))
+	mux.HandleFunc("POST /api/v1/matters/{id}/actions", api.command("matter.action.add", api.addMatterAction))
+	mux.HandleFunc("POST /api/v1/matters/{id}/actions/{action_id}/transition", api.command("matter.action.transition", api.transitionMatterAction))
+	mux.HandleFunc("POST /api/v1/matters/{id}/verification-contracts", api.command("matter.outcome.define", api.addMatterVerificationContract))
+	mux.HandleFunc("POST /api/v1/matters/{id}/verification-results", api.command("matter.outcome.record", api.recordMatterVerificationResult))
+	mux.HandleFunc("POST /api/v1/matters/{id}/responses", api.command("matter.response.add", api.addMatterResponse))
+	mux.HandleFunc("POST /api/v1/matters/{id}/responses/{response_id}/transition", api.command("matter.response.transition", api.transitionMatterResponse))
 
 	mux.HandleFunc("GET /api/v1/evidence/sources", api.listEvidenceSources)
 	mux.HandleFunc("POST /api/v1/evidence/sources", api.createEvidenceSource)
@@ -106,5 +110,5 @@ func New(deps Dependencies) http.Handler {
 	mux.HandleFunc("PUT /api/v1/onboarding/state", api.updateOnboardingState)
 	mux.HandleFunc("GET /api/v1/compliance/readiness", api.readiness)
 	mux.HandleFunc("POST /api/v1/compliance/signals", api.ingestSignal)
-	return httpx.Chain(mux, httpx.CORS(deps.AllowedOrigin), httpx.RequestID, httpx.SecurityHeaders, httpx.Recover(deps.Logger), httpx.AccessLog(deps.Logger))
+	return httpx.Chain(mux, httpx.CORS(deps.AllowedOrigin), httpx.RequestID, httpx.SecurityHeaders, identity.Middleware(deps.Identity, deps.Logger), httpx.Recover(deps.Logger), httpx.AccessLog(deps.Logger))
 }
