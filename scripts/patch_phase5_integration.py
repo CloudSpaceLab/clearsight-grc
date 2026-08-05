@@ -67,3 +67,19 @@ s = replace_once(
     "trigger maintenance",
 )
 p.write_text(s)
+
+p = Path("internal/integration/summary_read_models_test.go")
+s = p.read_text()
+s = replace_once(
+    s,
+    '''INSERT INTO program_state_snapshots(id,tenant_id,program_id,overall_state,dimensions,reasons,open_matter_count,generated_at,program_version)
+\t\tSELECT uuidv7(),tenant_id,id,CASE WHEN code='PRG-0019' THEN 'EVIDENCE_INSUFFICIENT' ELSE 'CURRENT' END,
+\t\t\t'{}'::jsonb,CASE WHEN code='PRG-0019' THEN '[{"code":"EVIDENCE_NOT_ASSESSED","summary":"Evidence has not been assessed."}]'::jsonb ELSE '[]'::jsonb END,
+\t\t\t0,updated_at,version''',
+    '''INSERT INTO program_state_snapshots(id,tenant_id,program_id,overall_state,dimensions,reasons,open_matter_count,generated_at,program_version,projection_version)
+\t\tSELECT uuidv7(),tenant_id,id,CASE WHEN code='PRG-0019' THEN 'EVIDENCE_INSUFFICIENT' ELSE 'CURRENT' END,
+\t\t\t'{}'::jsonb,CASE WHEN code='PRG-0019' THEN '[{"code":"EVIDENCE_NOT_ASSESSED","summary":"Evidence has not been assessed."}]'::jsonb ELSE '[]'::jsonb END,
+\t\t\t0,updated_at,version,1''',
+    "summary projection fixture",
+)
+p.write_text(s)
