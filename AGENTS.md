@@ -8,7 +8,7 @@ Every change must help a bank stakeholder understand what must be done, what pro
 
 ## Required reading
 
-Read the root README, docs map, relevant product specification, application architecture, implementation plan and acceptance tests before changing behavior.
+Read the root README, root `DESIGN.md`, docs map, relevant product specification, application architecture, implementation plan and acceptance tests before changing behavior.
 
 ## Core rules
 
@@ -30,24 +30,35 @@ Material execution re-evaluates current authority. Configuration requires simula
 
 ## Continuous autonomy
 
-Deterministic policy detects evidence aging, source degradation, requirement change, control failure, routing gaps and failed verification. AI may explain or propose handling but is not required for these controls.
+Deterministic policy detects evidence aging, source degradation, requirement change, control failure, routing gaps and failed outcome checks. AI may explain or propose handling but is not required for these controls.
 
-Automated actions require an Automation Policy with purpose, action class, eligibility, blast-radius limit, rollback/compensation, monitoring, kill switch, expiry and Verification Contract.
+Automated actions require an Automation Policy with purpose, action class, eligibility, blast-radius limit, rollback/compensation, monitoring, kill switch, expiry and an outcome-check contract.
 
 ## Guided experience
 
 Important first-run and empty states require a designed experience. Premium illustrations may support comprehension but cannot carry status, conceal an error or replace actionable content. Guides are role-specific, skippable, resumable, accessible and non-blocking.
 
-## Enterprise copy and content
+## Human-friendly enterprise copy
 
-- UI copy MUST read like bank operating software, not a product pitch.
+- UI copy MUST read like bank operating software used by a busy person, not a product pitch, legal memo or database console.
+- Primary screens use the words a business owner, reviewer or executive would naturally use. Internal codes remain available in APIs, audit history and specialist detail.
+- Translate technical domain terms where they do not help the immediate task. Prefer “Does this apply?” to “Applicability determination,” “Evidence incomplete” to “Evidence insufficiency,” “Outcome check” to “Verification contract,” and “What needs to happen next” to “Required handling.”
+- Programs may remain a primary product noun because they represent ongoing obligations. Matters SHOULD normally appear as “Issues and changes,” “Findings,” “Requests” or the specific matter type unless the specialist context needs the canonical term.
 - Use concrete objects, states, sources, owners, deadlines and actions. Prefer “3 approvals due this week” to “work that needs your judgment.”
+- Avoid noun chains, unexplained abbreviations and status codes in visible copy. `DECISION_REQUIRED` is an API state; “Decision needed” is UI copy.
+- Buttons begin with a familiar verb and describe the result: “Review obligations,” “Confirm account owners,” “Send for approval,” “Check the outcome.”
+- Supporting text explains why the item is shown and what will happen next; it does not repeat the heading.
 - Do not use slogans, anthropomorphic claims, urgency theatre, vague reassurance or unverifiable language such as “continuously prepared,” “everything handled,” or “automatically maintained” without a defined population and timestamp.
 - Status labels and counts MUST come from stored or explicitly labelled sample data. Unknown denominators display as unknown; they never fall back to a persuasive number.
 - Empty states state the population or query checked, the current result and the next valid action. They do not imply enterprise-wide completeness.
 - Demo copy MUST be operationally plausible and clearly identified as sample data.
 - Icons and illustrations support orientation but never replace labels, status, evidence, errors or required actions.
 - Copy changes require the same review as workflow changes because wording can alter authority, risk interpretation and user action.
+- A visible enabled control MUST perform a real action. Disabled controls explain why they are unavailable.
+
+## UI design proof
+
+Significant screen, workflow or component changes require a compact decision brief, required state fixtures and rendered evidence. Redesigns preserve a before-state baseline. Responsive work defines replacement behavior rather than merely shrinking desktop composition. Inspect the render, fix the highest-impact failure and re-check it before claiming visual completion. New tokens, variants, density modes, motion patterns or illustration styles update `DESIGN.md` and the relevant state fixtures in the same change.
 
 ## Invitations and protected data
 
