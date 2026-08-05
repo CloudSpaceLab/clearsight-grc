@@ -66,6 +66,7 @@ jobs:
           path.write_text(text)
           PY
           python apply_phase6_verticals.py
+          python scripts/patch_phase6_closed_journey_lookup.py
           gofmt -w cmd internal
       - name: Validate backend
         run: |
@@ -93,7 +94,7 @@ jobs:
           npm run build
       - name: Commit validated source
         run: |
-          rm -f apply_phase6_verticals.py
+          rm -f apply_phase6_verticals.py scripts/patch_phase6_closed_journey_lookup.py
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A -- ':!.github/workflows/finish-bank-verticals-phase6.yml' ':!.tmp'
