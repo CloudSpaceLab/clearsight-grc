@@ -64,28 +64,28 @@ type Proposal struct {
 }
 
 type Document struct {
-	ID                string           `json:"id"`
-	TenantID          string           `json:"tenant_id"`
-	LegalEntityID     string           `json:"legal_entity_id,omitempty"`
-	FileName          string           `json:"file_name"`
-	MediaType         string           `json:"media_type"`
-	Purpose           string           `json:"purpose"`
-	SourceType        string           `json:"source_type"`
-	SizeBytes         int64            `json:"size_bytes"`
-	SHA256            string           `json:"sha256"`
-	StorageKey        string           `json:"storage_key"`
-	ArtifactStatus    string           `json:"artifact_status"`
-	ExtractionStatus  ExtractionStatus `json:"extraction_status"`
-	ExtractionMethod  string           `json:"extraction_method"`
-	AnalysisStatus    AnalysisStatus   `json:"analysis_status"`
-	AnalysisMethod    string           `json:"analysis_method"`
-	Limitations       []string         `json:"limitations"`
-	Sections          []Section        `json:"sections"`
-	Proposals         []Proposal       `json:"proposals"`
-	CreatedBy         string           `json:"created_by"`
-	CreatedAt         time.Time        `json:"created_at"`
-	UpdatedAt         time.Time        `json:"updated_at"`
-	Version           int64            `json:"version"`
+	ID               string           `json:"id"`
+	TenantID         string           `json:"tenant_id"`
+	LegalEntityID    string           `json:"legal_entity_id,omitempty"`
+	FileName         string           `json:"file_name"`
+	MediaType        string           `json:"media_type"`
+	Purpose          string           `json:"purpose"`
+	SourceType       string           `json:"source_type"`
+	SizeBytes        int64            `json:"size_bytes"`
+	SHA256           string           `json:"sha256"`
+	StorageKey       string           `json:"storage_key"`
+	ArtifactStatus   string           `json:"artifact_status"`
+	ExtractionStatus ExtractionStatus `json:"extraction_status"`
+	ExtractionMethod string           `json:"extraction_method"`
+	AnalysisStatus   AnalysisStatus   `json:"analysis_status"`
+	AnalysisMethod   string           `json:"analysis_method"`
+	Limitations      []string         `json:"limitations"`
+	Sections         []Section        `json:"sections"`
+	Proposals        []Proposal       `json:"proposals"`
+	CreatedBy        string           `json:"created_by"`
+	CreatedAt        time.Time        `json:"created_at"`
+	UpdatedAt        time.Time        `json:"updated_at"`
+	Version          int64            `json:"version"`
 }
 
 type ImportInput struct {
