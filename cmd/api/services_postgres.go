@@ -14,6 +14,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
@@ -36,6 +37,19 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	evidenceService.Configure(cfg.CaptureSessionTTL, cfg.MaxArtifactBytes)
 	continuityService := continuity.NewService(continuity.NewPostgresRepository(pool))
 	verticals := bankverticals.NewService(continuityService, evidenceService)
+	todayService := today.NewDynamicService(func(loadCtx context.Context, actor identity.Actor) ([]today.AttentionItem, error) {
+		journeys, listErr := verticals.List(loadCtx, actor.TenantID)
+		if listErr != nil {
+			return nil, listErr
+		}
+		visible := make([]bankverticals.Journey, 0, len(journeys))
+		for _, journey := range journeys {
+			if journey.VisibleTo(actor.PrincipalID) {
+				visible = append(visible, journey)
+			}
+		}
+		return bankverticals.TodayItems(visible, time.Now().UTC()), nil
+	})
 	logger.Info("postgres repositories enabled", "max_connections", cfg.DatabaseMaxConns, "artifact_root", cfg.ArtifactRoot)
-	return serviceSet{Mode: "postgres", Authority: authority.NewPostgresService(pool), Governance: governance.NewService(governance.NewPostgresRepository(pool)), Capture: capture.NewService(capture.DemoRequests()), Invitations: capture.NewInvitationService(time.Now), Evidence: evidenceService, Continuity: continuityService, Today: today.NewService(nil), Workflow: workflow.NewService(workflow.NewPostgresRepository(pool)), Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)), Autonomy: auto, BankVerticals: verticals, Close: pool.Close}, nil
+	return serviceSet{Mode: "postgres", Authority: authority.NewPostgresService(pool), Governance: governance.NewService(governance.NewPostgresRepository(pool)), Capture: capture.NewService(capture.DemoRequests()), Invitations: capture.NewInvitationService(time.Now), Evidence: evidenceService, Continuity: continuityService, Today: todayService, Workflow: workflow.NewService(workflow.NewPostgresRepository(pool)), Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)), Autonomy: auto, BankVerticals: verticals, Close: pool.Close}, nil
 }

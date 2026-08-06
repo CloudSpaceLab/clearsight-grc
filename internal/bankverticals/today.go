@@ -7,8 +7,8 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 )
 
-// TodayItems projects only open sample-journey actions into the personal work
-// queue. Completed journeys stay available in Explore but do not create noise.
+// TodayItems projects only open journey actions into the personal work queue.
+// Completed journeys stay available in Explore but do not create noise.
 func TodayItems(journeys []Journey, now time.Time) []today.AttentionItem {
 	items := make([]today.AttentionItem, 0, len(journeys))
 	for _, journey := range journeys {
@@ -24,16 +24,18 @@ func TodayItems(journeys []Journey, now time.Time) []today.AttentionItem {
 			evidenceLabel = journey.SourceNames[0]
 		}
 		items = append(items, today.AttentionItem{
-			ID:            "journey_" + string(journey.Code),
-			Type:          string(journey.Code),
-			Title:         journey.NextAction,
-			WhyNow:        journey.Summary,
-			Scope:         journey.Title + " · Demonstration Bank Nigeria",
-			State:         journey.StatusLabel,
-			Evidence:      evidenceLabel,
-			Owner:         journey.Owner,
-			DueAt:         due,
-			PrimaryAction: journey.NextAction,
+			ID:               "journey_" + string(journey.Code),
+			Type:             string(journey.Code),
+			Title:            journey.NextAction,
+			WhyNow:           journey.Summary,
+			Scope:            journey.Title,
+			State:            journey.StatusLabel,
+			Evidence:         evidenceLabel,
+			Owner:            journey.Owner,
+			DueAt:            due,
+			PrimaryAction:    journey.ActionLabel,
+			ActionTargetType: journey.ActionTargetType,
+			ActionTargetID:   journey.ActionTargetID,
 		})
 	}
 	sort.Slice(items, func(i, j int) bool { return items[i].DueAt.Before(items[j].DueAt) })

@@ -14,22 +14,21 @@ func (a *API) listBankJourneys(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "journeys_unavailable", "Bank journeys are unavailable.")
 		return
 	}
-	tenant, ok := requiredQuery(w, r, "tenant_id")
-	if !ok {
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
 		return
 	}
-	values, err := a.deps.BankVerticals.List(r.Context(), tenant)
+	values, err := a.deps.BankVerticals.List(r.Context(), actor.TenantID)
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "journeys_failed", "Bank journeys could not be loaded.")
 		return
 	}
-	actor, actorPresent := identity.FromContext(r.Context())
 	visible := make([]bankverticals.Journey, 0, len(values))
 	for _, value := range values {
-		if value.Sensitive && (!actorPresent || !value.VisibleTo(actor.PrincipalID, actor.LegalEntityID == "*")) {
-			continue
+		if value.VisibleTo(actor.PrincipalID) {
+			visible = append(visible, value)
 		}
-		visible = append(visible, value)
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": visible, "generated_at": time.Now().UTC(), "sample": sampleJourneys(visible)})
 }

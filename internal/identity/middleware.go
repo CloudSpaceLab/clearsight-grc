@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 )
 
 func Middleware(authenticator Authenticator, logger *slog.Logger) func(http.Handler) http.Handler {
@@ -20,16 +21,38 @@ func Middleware(authenticator Authenticator, logger *slog.Logger) func(http.Hand
 				if errors.Is(err, ErrExpiredIdentity) {
 					message = "Your sign-in has expired. Sign in again and retry."
 				}
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(status)
-				_, _ = w.Write([]byte(`{"error":{"code":"identity_not_verified","message":"` + message + `"}}`))
+				writeIdentityError(w, status, "identity_not_verified", message)
 				return
 			}
 			if present {
-				logger.Debug("request identity verified", "tenant_id", actor.TenantID, "principal_id", actor.PrincipalID, "assurance", actor.AssuranceLevel)
+				if !requestedScopeMatches(r, actor) {
+					writeIdentityError(w, http.StatusNotFound, "scope_not_found", "The requested organization scope was not found.")
+					return
+				}
+				if logger != nil {
+					logger.Debug("request identity verified", "tenant_id", actor.TenantID, "principal_id", actor.PrincipalID, "assurance", actor.AssuranceLevel)
+				}
 				r = r.WithContext(WithActor(r.Context(), actor))
 			}
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func requestedScopeMatches(r *http.Request, actor Actor) bool {
+	queries := r.URL.Query()
+	return optionalScopeValueMatches(queries.Get("tenant_id"), actor.TenantID) &&
+		optionalScopeValueMatches(queries.Get("principal_id"), actor.PrincipalID) &&
+		optionalScopeValueMatches(queries.Get("legal_entity_id"), actor.LegalEntityID)
+}
+
+func optionalScopeValueMatches(requested, verified string) bool {
+	requested = strings.TrimSpace(requested)
+	return requested == "" || requested == strings.TrimSpace(verified)
+}
+
+func writeIdentityError(w http.ResponseWriter, status int, code, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, _ = w.Write([]byte(`{"error":{"code":"` + code + `","message":"` + message + `"}}`))
 }

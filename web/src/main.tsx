@@ -4,6 +4,7 @@ import App from "./App";
 import "./styles.css";
 import "./evidence.css";
 import "./continuity.css";
+import "./journeys.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Application root is missing");

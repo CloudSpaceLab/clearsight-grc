@@ -14,6 +14,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
@@ -29,8 +30,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepo)
 	verticals := bankverticals.NewService(continuityService, evidenceService)
-	journeys, err := verticals.SeedSample(ctx, bankverticals.DemoSeedConfig())
-	if err != nil {
+	if _, err := verticals.InstallSample(ctx, bankverticals.DemoSeedConfig()); err != nil {
 		return serviceSet{}, err
 	}
 	maintainer := &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepo, WorkerID: "memory-bank-journeys"}
@@ -43,9 +43,18 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 			break
 		}
 	}
-	journeys, err = verticals.List(ctx, bankverticals.DemoSeedConfig().TenantID)
-	if err != nil {
-		return serviceSet{}, err
-	}
-	return serviceSet{Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()), Capture: capture.NewService(capture.DemoRequests()), Invitations: capture.NewInvitationService(time.Now), Evidence: evidenceService, Continuity: continuityService, Today: today.NewService(bankverticals.TodayItems(journeys, time.Now().UTC())), Workflow: workflow.NewService(workflow.NewMemoryRepository(workflow.DemoTasks())), Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()), Autonomy: auto, BankVerticals: verticals, Close: func() {}}, nil
+	todayService := today.NewDynamicService(func(loadCtx context.Context, actor identity.Actor) ([]today.AttentionItem, error) {
+		journeys, err := verticals.List(loadCtx, actor.TenantID)
+		if err != nil {
+			return nil, err
+		}
+		visible := make([]bankverticals.Journey, 0, len(journeys))
+		for _, journey := range journeys {
+			if journey.VisibleTo(actor.PrincipalID) {
+				visible = append(visible, journey)
+			}
+		}
+		return bankverticals.TodayItems(visible, time.Now().UTC()), nil
+	})
+	return serviceSet{Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()), Capture: capture.NewService(capture.DemoRequests()), Invitations: capture.NewInvitationService(time.Now), Evidence: evidenceService, Continuity: continuityService, Today: todayService, Workflow: workflow.NewService(workflow.NewMemoryRepository(workflow.DemoTasks())), Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()), Autonomy: auto, BankVerticals: verticals, Close: func() {}}, nil
 }

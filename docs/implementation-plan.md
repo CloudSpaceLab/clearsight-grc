@@ -1,6 +1,6 @@
 # ClearSight Implementation Plan
 
-Checkboxes describe repository status, not production readiness.
+Checkboxes describe repository capability, not production readiness.
 
 ## Phase 0 — Canonical product and architecture
 
@@ -32,9 +32,12 @@ Checkboxes describe repository status, not production readiness.
 - [x] delegation draft, approval, activation, expiry and revocation lifecycle.
 - [x] recursive delegation-cycle and active segregation-rule checks.
 - [x] append-only governance decisions and state-change outbox events.
+- [x] verified actor context for reads and rejection of conflicting tenant/principal/legal-entity query scope.
+- [x] fail-closed restricted Matter reads with explicit principal allow-lists.
 - [ ] enterprise identity and organization synchronization.
 - [ ] authenticated actor authority for policy/delegation administration.
 - [ ] absence and working-calendar source integration.
+- [ ] database row-level security and synchronized restricted groups.
 
 ### Durable workflow and delivery
 
@@ -50,7 +53,7 @@ Checkboxes describe repository status, not production readiness.
 - [ ] approved email, messaging, ITSM and automation publishers.
 - [ ] backlog SLO dashboards and dead-letter operating workflow.
 
-### Guided adoption
+### Guided adoption and accessible interaction
 
 - [x] role-specific guide model and state API.
 - [x] memory and pgx onboarding-state repositories.
@@ -58,9 +61,12 @@ Checkboxes describe repository status, not production readiness.
 - [x] semantic work-item vector icons, enterprise copy standard and plain-language state labels.
 - [x] first-run reviewer guide and responsive UI.
 - [x] plain-language UI layer over stable internal status codes.
-- [ ] admin-authored guide definitions with approval/versioning.
 - [x] screen-level decision-brief and rendered-evidence contracts.
-- [ ] automated state-gallery screenshots, visual regression and accessibility checks.
+- [x] journey progress semantics, specific control names, focus states, responsive reflow and reduced-motion handling.
+- [x] full material facts, reasons, requirements, contradictions and closure blockers without silent truncation.
+- [ ] admin-authored guide definitions with approval/versioning.
+- [ ] automated state-gallery screenshots and visual-regression checks.
+- [ ] automated WCAG contrast, keyboard and screen-reader regression suite.
 
 ### Continuous autonomy
 
@@ -71,6 +77,7 @@ Checkboxes describe repository status, not production readiness.
 - [x] Today readiness and Configure routing-integrity UI.
 - [x] automation-policy schema.
 - [x] Program trigger deduplication, linked Matter creation and reason-bearing status snapshots.
+- [x] actor-scoped dynamic Today projection from current journey state in memory and PostgreSQL composition.
 - [ ] dependency graph propagation across shared controls and services.
 - [ ] automation simulation, canary, kill switch and verification runtime.
 - [ ] precedent-memory service with scope and source-version controls.
@@ -85,6 +92,8 @@ Checkboxes describe repository status, not production readiness.
 - [x] streamed local-development object store and SHA-256 artifact manifests.
 - [x] `STORED_UNSCANNED` / available / quarantined artifact-state contract.
 - [x] Work workspace for source health and evidence requests.
+- [x] Matter-derived request visibility before PostgreSQL limits, regardless of duplicated request sensitivity.
+- [x] actionable-request selection before submitted/cancelled historical requests.
 - [ ] production object storage, encryption-key policy and malware scanning.
 - [ ] legal hold, retention and deletion workers.
 - [ ] verified external identity and step-up authentication.
@@ -104,17 +113,26 @@ Checkboxes describe repository status, not production readiness.
 - [x] Programs and Issues/Changes user surfaces with plain-language state labels.
 - [x] gateway-signed request actor binding and automatic authority checks on material Program/Matter commands.
 - [x] projection-first high-cardinality summaries, indexed search, keyset pagination and lazy detail loading.
+- [x] visibility-aware Matter pagination in memory and PostgreSQL.
 - [x] separately versioned Program-status maintenance with health, reconciliation and governed rebuild.
 - [ ] bulk Program setup and controlled configuration-change workflow.
 
-## Phase 4 — Initial bank verticals
+## Phase 4 — Initial bank reference verticals
+
+Repository reference capability:
 
 - [x] continuous Nigeria data-protection reference Program;
-- [x] regulatory-change issue through decision, action and outcome check;
+- [x] regulatory-change issue through decision, action and pending outcome check;
 - [x] protected authority-request issue through approved response and acknowledgement;
 - [x] legacy finding through implemented remediation, independent verification and closure;
+- [x] exact current-record journey evaluation that rejects retired, superseded, cancelled, withdrawn and non-independent records;
+- [x] actionable Explore launchers to linked Programs, issues and evidence requests;
+- [x] recoverable non-production installer for partial Program and Matter states;
+- [x] dynamic Today work in memory and PostgreSQL compositions;
 - [ ] bank-approved legal configuration and current-source review;
-- [ ] production restricted-group synchronization and authority-channel integration.
+- [ ] production restricted-group synchronization and authority-channel integration;
+- [ ] complete operational write UI for every decision, response and closure mutation;
+- [ ] representative production-scale journey benchmark and retained query plans.
 
 ## Release gates
 
@@ -123,5 +141,9 @@ Every completed item still requires relevant authorization, invitation, source, 
 - [x] Projection-first Program and Matter summaries, indexed search, keyset pagination and lazy detail loading.
 - [x] Signed request actor binding and authority checks for material Program/Matter commands.
 - [x] Separately versioned Program-status maintenance with health, reconciliation and governed rebuild operations.
+- [x] Cross-tenant query-scope rejection and fail-closed restricted-read tests.
+- [x] Partial reference-install recovery and current-record negative tests.
 - [ ] Direct enterprise identity-provider integration, gateway key rotation and organization synchronization.
+- [ ] Full mutation authorization matrix for protected Matters and evidence.
+- [ ] Automated accessibility and rendered-state release evidence.
 - [ ] Representative 100,000-row p95/p99 release evidence and retained query plans.

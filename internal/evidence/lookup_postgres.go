@@ -11,7 +11,16 @@ import (
 
 func (r *PostgresRepository) LatestRequestForSubject(ctx context.Context, tenant, subjectType, subjectID string) (Request, error) {
 	var id string
-	err := r.pool.QueryRow(ctx, `SELECT cr.id::text FROM capture_requests cr JOIN tenants t ON t.id=cr.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND cr.subject_type=$2 AND cr.subject_id=$3 ORDER BY cr.updated_at DESC,cr.id DESC LIMIT 1`, tenant, subjectType, subjectID).Scan(&id)
+	err := r.pool.QueryRow(ctx, `
+		SELECT cr.id::text
+		FROM capture_requests cr
+		JOIN tenants t ON t.id=cr.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND cr.subject_type=$2 AND cr.subject_id=$3
+		ORDER BY
+			CASE WHEN cr.status IN ('DRAFT','READY','IN_PROGRESS') THEN 0 ELSE 1 END,
+			CASE WHEN cr.status IN ('DRAFT','READY','IN_PROGRESS') THEN cr.deadline END ASC NULLS LAST,
+			cr.updated_at DESC,cr.id DESC
+		LIMIT 1`, tenant, subjectType, subjectID).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Request{}, ErrNotFound
 	}
