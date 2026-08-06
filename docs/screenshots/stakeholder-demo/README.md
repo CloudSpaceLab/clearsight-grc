@@ -17,3 +17,5 @@ The repository also contains an account-free reference demo at `docs/stakeholder
 ![Program evidence status](03-program-evidence-status.png)
 
 The captures demonstrate role-aware onboarding, exact-record navigation, source-aware status language, and the calm responsive visual system. They are presentation evidence, not production assurance or customer data.
+
+This evidence index is the final workflow-triggering change for PR #25; application and screenshot content is otherwise frozen for validation.
