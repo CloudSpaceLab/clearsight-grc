@@ -16,6 +16,9 @@ export function ReadinessPanel({ readiness, state = "live" }: { readiness: Readi
     ? "Requirement, evidence, source-health and routing checks are included in the current assessment."
     : "Active exceptions are shown below. A complete governed population has not been connected, so no current count is displayed.";
   const statusLabel = readiness.status.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+  const noActionCopy = readiness.baseline_known && readiness.status === "CURRENT"
+    ? "No action is currently generated from the connected assessment."
+    : "No recommended action was generated. Review the status, unknown population and active exceptions before concluding that no action is needed.";
   return <section className="readiness-card" id="readiness-panel">
     <div className="readiness-copy">
       <span className="eyebrow">Readiness</span>
@@ -24,6 +27,6 @@ export function ReadinessPanel({ readiness, state = "live" }: { readiness: Readi
       <div className="readiness-dimensions">{dimensions.map(([label, value]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}</div>
     </div>
     <PremiumIllustration variant="readiness"/>
-    <div className="readiness-actions"><h3>Required actions</h3>{readiness.recommended_actions.length ? readiness.recommended_actions.map((action) => <p key={action}>{action}</p>) : <p>No action is required.</p>}</div>
+    <div className="readiness-actions"><h3>Required actions</h3>{readiness.recommended_actions.length ? readiness.recommended_actions.map((action) => <p key={action}>{action}</p>) : <p>{noActionCopy}</p>}</div>
   </section>;
 }
