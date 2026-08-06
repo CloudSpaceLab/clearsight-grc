@@ -36,8 +36,9 @@ func TestCommandBindsSignedActor(t *testing.T) {
 		t.Fatal(err)
 	}
 	api := &API{deps: Dependencies{CommandGuard: guard}}
+	policy := commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: "authority_principal_id"}
 	var received map[string]any
-	handler := api.command("matter.decision.record", func(w http.ResponseWriter, r *http.Request) {
+	handler := api.command("matter.decision.record", policy, func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&received); err != nil {
 			t.Fatal(err)
 		}
@@ -52,15 +53,43 @@ func TestCommandBindsSignedActor(t *testing.T) {
 	if response.Code != http.StatusNoContent {
 		t.Fatalf("unexpected status %d: %s", response.Code, response.Body.String())
 	}
-	if received["authority_principal_id"] != "person-1" || received["actor_id"] != "person-1" {
-		t.Fatalf("actor fields were not bound to verified identity: %#v", received)
+	if received["authority_principal_id"] != "person-1" {
+		t.Fatalf("actor field was not bound to verified identity: %#v", received)
+	}
+	if _, exists := received["actor_id"]; exists {
+		t.Fatalf("unsupported generic actor field was injected: %#v", received)
+	}
+}
+
+func TestCommandBindsActorWhenAuthorizationIsOff(t *testing.T) {
+	api := &API{}
+	policy := commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: "authority_principal_id"}
+	var received map[string]any
+	handler := api.command("matter.decision.record", policy, func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&received); err != nil {
+			t.Fatal(err)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/matters/matter-1/decisions", strings.NewReader(`{"tenant_id":"bank-demo","authority_principal_id":"forged"}`))
+	req.SetPathValue("id", "matter-1")
+	now := time.Now().UTC()
+	req = req.WithContext(identity.WithActor(req.Context(), identity.Actor{TenantID: "bank-demo", PrincipalID: "person-1", LegalEntityID: "bank-ng", Kind: "PERSON", ExpiresAt: now.Add(time.Hour)}))
+	response := httptest.NewRecorder()
+	handler(response, req)
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("unexpected status %d: %s", response.Code, response.Body.String())
+	}
+	if received["authority_principal_id"] != "person-1" {
+		t.Fatalf("mode off trusted forged actor field: %#v", received)
 	}
 }
 
 func TestCommandRejectsTenantMismatch(t *testing.T) {
 	guard, _ := commandauth.New(commandAuthorityStub{principal: "person-1"}, commandauth.ModeEnforce, slog.Default())
 	api := &API{deps: Dependencies{CommandGuard: guard}}
-	handler := api.command("matter.create", func(http.ResponseWriter, *http.Request) { t.Fatal("handler should not run") })
+	policy := commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3}
+	handler := api.command("matter.create", policy, func(http.ResponseWriter, *http.Request) { t.Fatal("handler should not run") })
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/matters", strings.NewReader(`{"tenant_id":"other-bank","title":"Test"}`))
 	now := time.Now().UTC()
 	req = req.WithContext(identity.WithActor(req.Context(), identity.Actor{TenantID: "bank-demo", PrincipalID: "person-1", LegalEntityID: "bank-ng", Kind: "PERSON", ExpiresAt: now.Add(time.Hour)}))
@@ -91,7 +120,8 @@ func TestCommandCannotLowerMinimumMateriality(t *testing.T) {
 	service := &capturingCommandAuthority{}
 	guard, _ := commandauth.New(service, commandauth.ModeEnforce, slog.Default())
 	api := &API{deps: Dependencies{CommandGuard: guard}}
-	handler := api.command("program.transition", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
+	policy := commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3}
+	handler := api.command("program.transition", policy, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/programs/program-1/transition", strings.NewReader(`{"tenant_id":"bank-demo","materiality":0,"to":"ACTIVE"}`))
 	req.SetPathValue("id", "program-1")
 	now := time.Now().UTC()

@@ -1,0 +1,321 @@
+package httpapi
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+)
+
+type routeClass string
+
+const (
+	routePublic                    routeClass = "PUBLIC"
+	routeAuthenticatedRead         routeClass = "AUTHENTICATED_READ"
+	routeAuthenticatedOperation    routeClass = "AUTHENTICATED_OPERATION"
+	routeAuthenticatedWrite        routeClass = "AUTHENTICATED_WRITE"
+	routeMaterialCommand           routeClass = "MATERIAL_COMMAND"
+	routeCapability                routeClass = "BOUNDED_CAPABILITY"
+	routeAuthenticatedOrCapability routeClass = "AUTHENTICATED_OR_CAPABILITY"
+)
+
+type routeBinder func(http.ResponseWriter, *http.Request, identity.Actor) bool
+
+type routeCommand struct {
+	Name   string
+	Policy commandPolicy
+}
+
+type routeSpec struct {
+	Method  string
+	Path    string
+	Class   routeClass
+	Handler http.HandlerFunc
+	Binder  routeBinder
+	Command *routeCommand
+}
+
+func (a *API) registerRoutes(mux *http.ServeMux) {
+	routes := a.routes()
+	if err := validateRoutes(routes); err != nil {
+		panic(err)
+	}
+	for _, spec := range routes {
+		handler := spec.Handler
+		if spec.Command != nil {
+			handler = a.command(spec.Command.Name, spec.Command.Policy, handler)
+		}
+		handler = a.routeAccess(spec, handler)
+		mux.HandleFunc(spec.Method+" "+spec.Path, handler)
+	}
+}
+
+func (a *API) routes() []routeSpec {
+	routes := []routeSpec{
+		public(http.MethodGet, "/health/live", a.live),
+		public(http.MethodGet, "/health/ready", a.ready),
+		read("/api/v1/context", a.actorContext),
+		read("/api/v1/today", a.actorToday),
+
+		operation("/api/v1/authority/resolve", a.resolveAuthority, bindJSONIdentity(true)),
+		operation("/api/v1/authority/simulate", a.simulateAuthority, bindJSONIdentity(true)),
+		read("/api/v1/authority/integrity", a.authorityIntegrity),
+		read("/api/v1/authority/policies", a.authorityPolicies),
+
+		read("/api/v1/governance/policies", a.listGovernancePolicies),
+		write(http.MethodPost, "/api/v1/governance/policies", a.createGovernancePolicy, bindJSONIdentity(false, "maker_id")),
+		write(http.MethodPost, "/api/v1/governance/policies/{id}/submit", a.governancePolicyAction("submit"), bindJSONIdentity(false, "actor_id")),
+		write(http.MethodPost, "/api/v1/governance/policies/{id}/approve", a.governancePolicyAction("approve"), bindJSONIdentity(false, "actor_id")),
+		write(http.MethodPost, "/api/v1/governance/policies/{id}/reject", a.governancePolicyAction("reject"), bindJSONIdentity(false, "actor_id")),
+		write(http.MethodPost, "/api/v1/governance/policies/{id}/retire", a.governancePolicyAction("retire"), bindJSONIdentity(false, "actor_id")),
+		read("/api/v1/governance/delegations", a.listGovernanceDelegations),
+		write(http.MethodPost, "/api/v1/governance/delegations", a.createGovernanceDelegation, bindJSONIdentity(false, "maker_id")),
+		write(http.MethodPost, "/api/v1/governance/delegations/{id}/submit", a.governanceDelegationAction("submit"), bindJSONIdentity(false, "actor_id")),
+		write(http.MethodPost, "/api/v1/governance/delegations/{id}/approve", a.governanceDelegationAction("approve"), bindJSONIdentity(false, "actor_id")),
+		write(http.MethodPost, "/api/v1/governance/delegations/{id}/revoke", a.governanceDelegationAction("revoke"), bindJSONIdentity(false, "actor_id")),
+
+		read("/api/v1/program-summaries", a.listProgramSummaries),
+		read("/api/v1/programs", a.listPrograms),
+		material("/api/v1/programs", "program.create", a.createProgram, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2, BindLegalEntity: true}),
+		read("/api/v1/programs/{id}", a.getProgram),
+		read("/api/v1/programs/{id}/history", a.getProgramHistory),
+		material("/api/v1/programs/{id}/transition", "program.transition", a.transitionProgram, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3}),
+		material("/api/v1/programs/{id}/requirements", "program.requirement.add", a.addProgramRequirement, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
+		material("/api/v1/programs/{id}/applicability", "program.applicability.decide", a.determineProgramApplicability, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3, ActorField: "approved_by"}),
+		material("/api/v1/programs/{id}/control-objectives", "program.safeguard.define", a.addProgramControlObjective, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
+		material("/api/v1/programs/{id}/control-implementations", "program.safeguard.define", a.addProgramControlImplementation, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
+		material("/api/v1/programs/{id}/control-links", "program.safeguard.define", a.linkProgramRequirementControl, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
+		material("/api/v1/programs/{id}/evidence-contracts", "program.evidence.define", a.addProgramEvidenceContract, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
+		material("/api/v1/programs/{id}/evidence-assessments", "program.evidence.assess", a.recordProgramEvidenceAssessment, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: "assessed_by"}),
+		materialService("/api/v1/programs/{id}/triggers", "program.trigger.ingest", a.applyProgramTrigger, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityPerformer, Materiality: 2}),
+
+		read("/api/v1/matter-summaries", a.listMatterSummaries),
+		read("/api/v1/matters", a.listMatters),
+		material("/api/v1/matters", "matter.create", a.createMatter, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
+		read("/api/v1/matters/{id}", a.getMatter),
+		read("/api/v1/matters/{id}/history", a.getMatterHistory),
+		material("/api/v1/matters/{id}/transition", "matter.transition", a.transitionMatter, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
+		material("/api/v1/matters/{id}/links", "matter.link", a.addMatterLink, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
+		material("/api/v1/matters/{id}/decisions", "matter.decision.record", a.addMatterDecision, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: "authority_principal_id"}),
+		material("/api/v1/matters/{id}/actions", "matter.action.add", a.addMatterAction, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
+		material("/api/v1/matters/{id}/actions/{action_id}/transition", "matter.action.transition", a.transitionMatterAction, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
+		material("/api/v1/matters/{id}/verification-contracts", "matter.outcome.define", a.addMatterVerificationContract, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
+		material("/api/v1/matters/{id}/verification-results", "matter.outcome.record", a.recordMatterVerificationResult, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityReviewer, Materiality: 4, ActorField: "reviewer_principal_id"}),
+		material("/api/v1/matters/{id}/responses", "matter.response.add", a.addMatterResponse, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
+		material("/api/v1/matters/{id}/responses/{response_id}/transition", "matter.response.transition", a.transitionMatterResponse, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilitySignatory, Materiality: 4}),
+
+		read("/api/v1/operations/projections", a.projectionHealth),
+		materialService("/api/v1/operations/projections/reconcile", "projection.reconcile", a.reconcileProgramState, commandPolicy{ObjectType: "PROJECTION", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: noActorField}),
+		material("/api/v1/operations/projections/rebuild", "projection.rebuild", a.rebuildProgramState, commandPolicy{ObjectType: "PROJECTION", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: noActorField}),
+
+		read("/api/v1/evidence/sources", a.listEvidenceSources),
+		write(http.MethodPost, "/api/v1/evidence/sources", a.createEvidenceSource, bindJSONIdentity(true)),
+		write(http.MethodPost, "/api/v1/evidence/sources/{id}/observations", a.recordEvidenceSourceObservation, bindJSONIdentity(false, "recorded_by")),
+		read("/api/v1/evidence/requests", a.listVisibleEvidenceRequests),
+		write(http.MethodPost, "/api/v1/evidence/requests", a.createEvidenceRequest, bindJSONIdentity(false, "created_by")),
+		read("/api/v1/evidence/requests/{id}", a.getEvidenceRequest),
+		write(http.MethodPost, "/api/v1/evidence/requests/{id}/submissions", a.submitEvidenceRequest, bindJSONIdentity(false, "submitted_by")),
+		write(http.MethodPost, "/api/v1/evidence/requests/{id}/invitations", a.issueEvidenceInvitation, bindJSONIdentity(false, "created_by")),
+		capability(http.MethodPost, "/api/v1/evidence/invitations/redeem", a.redeemEvidenceInvitation),
+		write(http.MethodPost, "/api/v1/evidence/invitations/{id}/revoke", a.revokeEvidenceInvitation, nil),
+		capability(http.MethodGet, "/api/v1/evidence/session", a.getEvidenceSession),
+		capability(http.MethodPost, "/api/v1/evidence/session/submissions", a.submitEvidenceSession),
+		write(http.MethodPost, "/api/v1/evidence/sessions/{id}/revoke", a.revokeEvidenceSession, nil),
+		hybridCapability(http.MethodPost, "/api/v1/evidence/artifacts", a.uploadEvidenceArtifact, a.bindArtifactIdentity()),
+
+		read("/api/v1/document-imports", a.listDocumentImports),
+		write(http.MethodPost, "/api/v1/document-imports", a.createDocumentImport, nil),
+		read("/api/v1/document-imports/{id}", a.getDocumentImport),
+		write(http.MethodPost, "/api/v1/document-imports/{id}/proposals/{proposal_id}/review", a.reviewDocumentProposal, nil),
+
+		read("/api/v1/requests/{id}", a.getCaptureRequest),
+		write(http.MethodPost, "/api/v1/requests/{id}/submit", a.submitCaptureRequest, nil),
+		capability(http.MethodPost, "/api/v1/invitations/redeem", a.redeemInvitation),
+
+		read("/api/v1/workflow/tasks", a.listWorkflowTasks),
+		write(http.MethodPost, "/api/v1/workflow/tasks", a.createWorkflowTask, bindJSONIdentity(false)),
+		write(http.MethodPost, "/api/v1/workflow/tasks/{id}/transition", a.transitionWorkflowTask, bindJSONIdentity(false, "actor_id")),
+
+		read("/api/v1/onboarding/guide", a.actorOnboardingGuide),
+		readBound("/api/v1/onboarding/state", a.onboardingState, bindActorQuery("principal_id")),
+		write(http.MethodPut, "/api/v1/onboarding/state", a.updateOnboardingState, bindActorQuery("principal_id")),
+
+		read("/api/v1/compliance/readiness", a.readiness),
+		read("/api/v1/compliance/automation-policies", a.automationPolicies),
+		write(http.MethodPost, "/api/v1/compliance/signals", a.ingestSignal, bindJSONIdentity(false)),
+	}
+	if a.deps.DemoMode && a.deps.BankVerticals != nil {
+		routes = append(routes, read("/api/v1/bank-journeys", a.listBankJourneys))
+	}
+	return routes
+}
+
+func public(method, path string, handler http.HandlerFunc) routeSpec {
+	return routeSpec{Method: method, Path: path, Class: routePublic, Handler: handler}
+}
+func read(path string, handler http.HandlerFunc) routeSpec {
+	return routeSpec{Method: http.MethodGet, Path: path, Class: routeAuthenticatedRead, Handler: handler}
+}
+func readBound(path string, handler http.HandlerFunc, binder routeBinder) routeSpec {
+	return routeSpec{Method: http.MethodGet, Path: path, Class: routeAuthenticatedRead, Handler: handler, Binder: binder}
+}
+func operation(path string, handler http.HandlerFunc, binder routeBinder) routeSpec {
+	return routeSpec{Method: http.MethodPost, Path: path, Class: routeAuthenticatedOperation, Handler: handler, Binder: binder}
+}
+func write(method, path string, handler http.HandlerFunc, binder routeBinder) routeSpec {
+	return routeSpec{Method: method, Path: path, Class: routeAuthenticatedWrite, Handler: handler, Binder: binder}
+}
+func material(path, name string, handler http.HandlerFunc, policy commandPolicy) routeSpec {
+	return routeSpec{Method: http.MethodPost, Path: path, Class: routeMaterialCommand, Handler: handler, Command: &routeCommand{Name: name, Policy: policy}}
+}
+func materialService(path, name string, handler http.HandlerFunc, policy commandPolicy) routeSpec {
+	policy.AllowService = true
+	return material(path, name, handler, policy)
+}
+func capability(method, path string, handler http.HandlerFunc) routeSpec {
+	return routeSpec{Method: method, Path: path, Class: routeCapability, Handler: handler}
+}
+func hybridCapability(method, path string, handler http.HandlerFunc, binder routeBinder) routeSpec {
+	return routeSpec{Method: method, Path: path, Class: routeAuthenticatedOrCapability, Handler: handler, Binder: binder}
+}
+
+func validateRoutes(routes []routeSpec) error {
+	seen := make(map[string]struct{}, len(routes))
+	for _, route := range routes {
+		if route.Method == "" || route.Path == "" || route.Class == "" || route.Handler == nil {
+			return fmt.Errorf("invalid route registration for %s %s", route.Method, route.Path)
+		}
+		key := route.Method + " " + route.Path
+		if _, exists := seen[key]; exists {
+			return fmt.Errorf("duplicate route registration: %s", key)
+		}
+		seen[key] = struct{}{}
+		if route.Class == routePublic && route.Method != http.MethodGet {
+			return fmt.Errorf("public mutating route is prohibited: %s", key)
+		}
+		if route.Class == routeMaterialCommand && route.Command == nil {
+			return fmt.Errorf("material route lacks command policy: %s", key)
+		}
+		if route.Class != routeMaterialCommand && route.Command != nil {
+			return fmt.Errorf("non-material route declares command policy: %s", key)
+		}
+	}
+	return nil
+}
+
+func (a *API) routeAccess(spec routeSpec, handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch spec.Class {
+		case routePublic, routeCapability:
+			handler(w, r)
+			return
+		case routeAuthenticatedOrCapability:
+			if optionalBearerToken(r) != "" {
+				handler(w, r)
+				return
+			}
+		}
+		actor, err := identity.Require(r.Context())
+		if err != nil {
+			httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to continue.")
+			return
+		}
+		if !bindRouteTenant(w, r, actor) {
+			return
+		}
+		if spec.Binder != nil && !spec.Binder(w, r, actor) {
+			return
+		}
+		handler(w, r)
+	}
+}
+
+func bindRouteTenant(w http.ResponseWriter, r *http.Request, actor identity.Actor) bool {
+	query := r.URL.Query()
+	if tenant := strings.TrimSpace(query.Get("tenant_id")); tenant != "" && tenant != actor.TenantID {
+		httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This request is outside your signed-in bank scope.")
+		return false
+	}
+	query.Set("tenant_id", actor.TenantID)
+	r.URL.RawQuery = query.Encode()
+	return true
+}
+
+func bindJSONIdentity(bindLegalEntity bool, actorFields ...string) routeBinder {
+	return func(w http.ResponseWriter, r *http.Request, actor identity.Actor) bool {
+		payload, _, err := commandPayload(r)
+		if err != nil {
+			httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "The request body must be valid JSON.")
+			return false
+		}
+		if !bindPayloadIdentity(w, payload, actor, bindLegalEntity) {
+			return false
+		}
+		for _, field := range actorFields {
+			payload[field] = actor.PrincipalID
+		}
+		raw, err := json.Marshal(payload)
+		if err != nil {
+			httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "The request body could not be processed.")
+			return false
+		}
+		restoreJSONBody(r, raw)
+		return true
+	}
+}
+
+func bindActorQuery(fields ...string) routeBinder {
+	return func(w http.ResponseWriter, r *http.Request, actor identity.Actor) bool {
+		query := r.URL.Query()
+		for _, field := range fields {
+			if existing := strings.TrimSpace(query.Get(field)); existing != "" && existing != actor.PrincipalID {
+				httpx.WriteError(w, http.StatusForbidden, "principal_not_allowed", "This request is outside your signed-in user scope.")
+				return false
+			}
+			query.Set(field, actor.PrincipalID)
+		}
+		r.URL.RawQuery = query.Encode()
+		return true
+	}
+}
+
+func (a *API) bindArtifactIdentity() routeBinder {
+	return func(w http.ResponseWriter, r *http.Request, actor identity.Actor) bool {
+		maximum := a.deps.MaxArtifactBytes
+		if maximum <= 0 {
+			maximum = 20 << 20
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, maximum+(1<<20))
+		if err := r.ParseMultipartForm(1 << 20); err != nil {
+			httpx.WriteError(w, http.StatusRequestEntityTooLarge, "artifact_invalid", "The upload could not be read or exceeds the allowed size.")
+			return false
+		}
+		if tenant := strings.TrimSpace(r.FormValue("tenant_id")); tenant != "" && tenant != actor.TenantID {
+			httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This upload is outside your signed-in bank scope.")
+			return false
+		}
+		if r.MultipartForm.Value == nil {
+			r.MultipartForm.Value = map[string][]string{}
+		}
+		r.MultipartForm.Value["tenant_id"] = []string{actor.TenantID}
+		r.MultipartForm.Value["created_by"] = []string{actor.PrincipalID}
+		return true
+	}
+}
+
+func (a *API) governancePolicyAction(action string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.SetPathValue("action", action)
+		a.transitionGovernancePolicy(w, r)
+	}
+}
+func (a *API) governanceDelegationAction(action string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.SetPathValue("action", action)
+		a.transitionGovernanceDelegation(w, r)
+	}
+}
