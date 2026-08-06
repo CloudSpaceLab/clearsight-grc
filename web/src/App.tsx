@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadCaptureRequest, loadContext, loadEvidenceRequests, loadEvidenceSources, loadIntegrity, loadPolicies, loadProjectionHealth, loadReadiness, loadToday, loadWorkflowTasks, reconcileProgramState, resolveAuthority } from "./api";
+import { loadCaptureRequest, loadContext, loadEvidenceRequest, loadEvidenceRequests, loadEvidenceSources, loadIntegrity, loadPolicies, loadProjectionHealth, loadReadiness, loadToday, loadWorkflowTasks, reconcileProgramState, resolveAuthority } from "./api";
 import type { RuntimeContext } from "./api";
 import { CapturePanel, ConfigureView, ExploreView, ProgramsView, RoutingPanel, TodayView, WorkView } from "./AppViews";
 import { DocumentImportWorkspace } from "./components/DocumentImportWorkspace";
@@ -161,15 +161,24 @@ function App() {
     if (!resolution) setResolution(await resolveAuthority().catch(() => null));
   }
 
-  async function openCapture(requestID?: string) {
-    if (!demoMode && !requestID) return;
+  async function openCapture(requestID:? string) {
+    if (!requestID && !demoMode) return;
     setActivePanel("capture");
-    if (requestID) {
-      const found = evidenceRequests.find((request) => request.id === requestID);
-      if (found) setCapture({ ...found, source: "evidence" });
+    if (requestID0) {
+      const found = evidenceRequests.find((request) => request.id === requestID) ?? await loadEvidenceRequest(requestID).catch(() => null);
+      setCapture(found ? { ...found, source: "evidence" } : null);
       return;
     }
     if (!capture) setCapture(await loadCaptureRequest().catch(() => null));
+  }
+
+  async function openPrimaryEvidence() {
+    const item = items.find((candidate) => candidate.action_target_type === "EVIDENCE_REQUEST" && candidate.action_target_id);
+    if (item?.action_target_id) {
+      await openCapture(item.action_target_id);
+      return;
+    }
+    if (demoMode) await openCapture();
   }
 
   function openAttention(item: AttentionItem) {
@@ -186,7 +195,7 @@ function App() {
     }
     if (step.intent === "open-capture") {
       navigate("today");
-      await openCapture();
+      await openPrimaryEvidence();
       return;
     }
     if (step.intent === "open-first-attention" && items[0]) {
@@ -223,7 +232,7 @@ function App() {
         <div><strong>{organizationName}</strong><span>{legalEntityName}</span></div>
         <div className="context-role"><span>{roleName}</span>{demoMode && <mark>Stakeholder demo</mark>}</div>
       </div>
-      {activeView === "today" && <TodayView organizationName={organizationName} items={items} dueSoon={dueSoon} connection={connection} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onRouting={inspectRouting} onCapture={() => void openCapture()} onOpenItem={openAttention}/>}
+      {activeView === "today" && <TodayView organizationName={organizationName} items={items} dueSoon={dueSoon} connection={connection} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onRouting={inspectRouting} onCaptur={items.some((item) => item.action_target_type === "EVIDENCE_REQUEST" && item.action_target_id) || demoMode ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention}/>}
       {activeView === "programs" && <ProgramsView organizationName={organizationName} targetID={target.programID} openFirst={target.openFirstProgram}/>} 
       {activeView === "work" && <WorkView organizationName={organizationName} tab={workTab} onTab={(tab) => navigate("work", {}, tab)} sources={sources} requests={evidenceRequests} evidenceState={evidenceState} onEvidenceRetry={() => void loadEvidenceWorkspace()} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)}/>} 
       {activeView === "imports" && <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Imports</h1><p>Bring controlled source material into ClearSight for traceable extraction and human review.</p></div></header><DocumentImportWorkspace/></>} 
