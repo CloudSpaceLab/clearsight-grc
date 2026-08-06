@@ -44,7 +44,7 @@ function formatFact(value: unknown) {
 }
 
 function latestResult(aggregate: MatterAggregate, contractID: string) {
-  return aggregate.verification_results
+  return (aggregate.verification_results ?? [])
     .filter((result) => result.contract_id === contractID)
     .sort((left, right) => Date.parse(right.observed_at) - Date.parse(left.observed_at))[0];
 }
@@ -145,6 +145,12 @@ export function MattersWorkspace() {
       const isOpen = openID === matter.id;
       const detail = details[matter.id];
       const currentDetailState = detailState[matter.id];
+      const knownFacts = detail?.matter.known_facts ?? {};
+      const missingFacts = detail?.matter.missing_facts ?? [];
+      const contradictions = detail?.matter.contradictions ?? [];
+      const actions = detail?.actions ?? [];
+      const verificationContracts = detail?.verification_contracts ?? [];
+      const closure = detail?.closure ?? { ready: false, reasons: [] };
       return <article className="matter-card" key={matter.id}>
         <button type="button" className="matter-card-main" aria-expanded={isOpen} onClick={() => void toggleDetail(matter.id)}>
           <span className="matter-icon"><MatterIcon type={matter.type}/></span>
@@ -157,9 +163,9 @@ export function MattersWorkspace() {
           {currentDetailState === "loading" && <p>Loading issue details…</p>}
           {currentDetailState === "unavailable" && <div className="inline-error"><p>Issue details could not be loaded.</p><button className="secondary-button" onClick={() => void fetchDetail(matter.id)}>Try again</button></div>}
           {detail && <>
-            <section><h3>What we know</h3>{Object.keys(detail.matter.known_facts ?? {}).length ? <dl>{Object.entries(detail.matter.known_facts).slice(0, 5).map(([key, value]) => <div key={key}><dt>{humanizeKey(key)}</dt><dd>{formatFact(value)}</dd></div>)}</dl> : <p>No facts have been recorded.</p>}{detail.matter.missing_facts?.length ? <div className="closure-note"><strong>Information still needed</strong><ul>{detail.matter.missing_facts.slice(0, 5).map((fact, index) => <li key={`${index}-${formatFact(fact)}`}>{formatFact(fact)}</li>)}</ul></div> : null}{detail.matter.contradictions?.length ? <p>{detail.matter.contradictions.length} conflicting item{detail.matter.contradictions.length === 1 ? " is" : "s are"} recorded.</p> : null}</section>
-            <section><h3>Actions</h3>{detail.actions.length ? detail.actions.map((action) => <div className="detail-row" key={action.id}><strong>{action.title}</strong><span>{actionStatusLabel(action.status)}</span></div>) : <p>No actions have been recorded.</p>}</section>
-            <section><h3>Outcome checks</h3>{detail.verification_contracts.length ? detail.verification_contracts.map((contract) => { const result = latestResult(detail, contract.id); return <div className="detail-row" key={contract.id}><strong>{contract.expected_outcome}</strong><span>{resultLabel(result?.result)}</span></div>; }) : <p>No outcome check has been defined.</p>}{!detail.closure.ready && detail.closure.reasons.length > 0 && <div className="closure-note"><strong>Before this can close</strong><ul>{detail.closure.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}</section>
+            <section><h3>What we know</h3>{Object.keys(knownFacts).length ? <dl>{Object.entries(knownFacts).slice(0, 5).map(([key, value]) => <div key={key}><dt>{humanizeKey(key)}</dt><dd>{formatFact(value)}</dd></div>)}</dl> : <p>No facts have been recorded.</p>}{missingFacts.length ? <div className="closure-note"><strong>Information still needed</strong><ul>{missingFacts.slice(0, 5).map((fact, index) => <li key={`${index}-${formatFact(fact)}`}>{formatFact(fact)}</li>)}</ul></div> : null}{contradictions.length ? <p>{contradictions.length} conflicting item{contradictions.length === 1 ? " is" : "s are"} recorded.</p> : null}</section>
+            <section><h3>Actions</h3>{actions.length ? actions.map((action) => <div className="detail-row" key={action.id}><strong>{action.title}</strong><span>{actionStatusLabel(action.status)}</span></div>) : <p>No actions have been recorded.</p>}</section>
+            <section><h3>Outcome checks</h3>{verificationContracts.length ? verificationContracts.map((contract) => { const result = latestResult(detail, contract.id); return <div className="detail-row" key={contract.id}><strong>{contract.expected_outcome}</strong><span>{resultLabel(result?.result)}</span></div>; }) : <p>No outcome check has been defined.</p>}{!closure.ready && closure.reasons.length > 0 && <div className="closure-note"><strong>Before this can close</strong><ul>{closure.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}</section>
           </>}
         </div>}
       </article>;

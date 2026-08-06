@@ -60,25 +60,36 @@ export async function loadToday(): Promise<AttentionItem[]> {
 
 export async function resolveAuthority(): Promise<AuthorityResolution> {
   const context = await loadContext();
+  const authorityObjectID = sampleAuthorityObjectID ?? await sampleMatterID();
   return request<AuthorityResolution>("/api/v1/authority/resolve", {
     method: "POST",
     body: JSON.stringify({
       tenant_id: context.tenant.id,
       legal_entity_id: context.legal_entity.id,
-      object_type: sampleAuthorityObjectID ? "MATTER" : "LEGAL_ENTITY",
-      object_id: sampleAuthorityObjectID ?? context.legal_entity.id,
+      object_type: authorityObjectID ? "MATTER" : "LEGAL_ENTITY",
+      object_id: authorityObjectID ?? context.legal_entity.id,
       responsibility: "AUTHORIZER",
       materiality: 5,
     }),
   });
 }
 
-export function loadCaptureRequest(): Promise<CaptureRequest> {
-  if (!sampleCaptureRequestID) return Promise.reject(new Error("No sample capture request is configured for this build."));
-  return request<CaptureRequest>(`/api/v1/requests/${encodeURIComponent(sampleCaptureRequestID)}`);
+export async function loadCaptureRequest(): Promise<CaptureRequest> {
+  if (sampleCaptureRequestID) {
+    const value = await request<CaptureRequest>(`/api/v1/requests/${encodeURIComponent(sampleCaptureRequestID)}`);
+    return { ...value, source: "legacy" };
+  }
+  const requestID = await sampleEvidenceRequestID();
+  if (!requestID) throw new Error("No seeded evidence request is available for this role.");
+  const value = await loadEvidenceRequest(requestID);
+  return { ...value, source: "evidence" };
 }
 
-export function submitCaptureRequest(id: string, version: number, answers: Record<string, string>) {
+export async function submitCaptureRequest(id: string, version: number, answers: Record<string, string>, source: CaptureRequest["source"] = "legacy") {
+  if (source === "evidence") {
+    const context = await loadContext();
+    return request<{ request_id: string; status: string; submitted_at: string }>(`/api/v1/evidence/requests/${encodeURIComponent(id)}/submissions?tenant_id=${encodeURIComponent(context.tenant.id)}`, { method: "POST", body: JSON.stringify({ tenant_id: context.tenant.id, expected_version: version, answers }) });
+  }
   return request<{ request_id: string; status: string; submitted_at: string }>(`/api/v1/requests/${encodeURIComponent(id)}/submit`, { method: "POST", body: JSON.stringify({ version, answers }) });
 }
 
@@ -149,7 +160,7 @@ export function loadProgram(id: string): Promise<ProgramAggregate> {
 }
 
 export function loadMatter(id: string): Promise<MatterAggregate> {
-  return scopedRequest<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(id)}`);
+  return scopedRequest<NullableMatterAggregate>(`/api/v1/matters/${encodeURIComponent(id)}`).then(normalizeMatterAggregate);
 }
 
 export async function loadPrograms(): Promise<ProgramAggregate[]> {
@@ -157,5 +168,53 @@ export async function loadPrograms(): Promise<ProgramAggregate[]> {
 }
 
 export async function loadMatters(status = "OPEN"): Promise<MatterAggregate[]> {
-  return (await scopedRequest<{ items: MatterAggregate[] }>("/api/v1/matters", { limit: 50, status })).items;
+  return (await scopedRequest<{ items: NullableMatterAggregate[] }>("/api/v1/matters", { limit: 50, status })).items.map(normalizeMatterAggregate);
+}
+
+async function sampleMatterID() {
+  const journeys = await loadBankJourneys().catch(() => null);
+  return journeys?.items.find((journey) => journey.action_target_type === "MATTER" && journey.action_target_id)?.action_target_id
+    ?? journeys?.items.find((journey) => journey.matter_id)?.matter_id
+    ?? "";
+}
+
+async function sampleEvidenceRequestID() {
+  const journeys = await loadBankJourneys().catch(() => null);
+  return journeys?.items.find((journey) => journey.action_target_type === "EVIDENCE_REQUEST" && journey.action_target_id)?.action_target_id
+    ?? journeys?.items.find((journey) => journey.evidence_request_id)?.evidence_request_id
+    ?? "";
+}
+
+type NullableMatterAggregate = Omit<MatterAggregate, "links" | "decisions" | "actions" | "verification_contracts" | "verification_results" | "response_packages" | "closure" | "matter"> & {
+  matter: MatterAggregate["matter"] & { known_facts?: Record<string, unknown> | null; missing_facts?: unknown[] | null; contradictions?: unknown[] | null };
+  links?: MatterAggregate["links"] | null;
+  decisions?: MatterAggregate["decisions"] | null;
+  actions?: MatterAggregate["actions"] | null;
+  verification_contracts?: MatterAggregate["verification_contracts"] | null;
+  verification_results?: MatterAggregate["verification_results"] | null;
+  response_packages?: MatterAggregate["response_packages"] | null;
+  closure?: MatterAggregate["closure"] | null;
+};
+
+function arrayOrEmpty<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeMatterAggregate(value: NullableMatterAggregate): MatterAggregate {
+  return {
+    ...value,
+    matter: {
+      ...value.matter,
+      known_facts: value.matter.known_facts ?? {},
+      missing_facts: arrayOrEmpty(value.matter.missing_facts),
+      contradictions: arrayOrEmpty(value.matter.contradictions),
+    },
+    links: arrayOrEmpty(value.links),
+    decisions: arrayOrEmpty(value.decisions),
+    actions: arrayOrEmpty(value.actions),
+    verification_contracts: arrayOrEmpty(value.verification_contracts),
+    verification_results: arrayOrEmpty(value.verification_results),
+    response_packages: arrayOrEmpty(value.response_packages),
+    closure: { ready: value.closure?.ready ?? false, reasons: arrayOrEmpty(value.closure?.reasons) },
+  };
 }
