@@ -96,6 +96,13 @@ func (s *Service) Readiness(ctx context.Context, tenant string) (Readiness, erro
 	return Readiness{TenantID: tenant, Status: status, BaselineKnown: false, GeneratedAt: s.now().UTC(), Dimensions: dimensions, ActiveDrifts: drifts, RecommendedActions: actions}, nil
 }
 
+func (s *Service) ListAutomationPolicies(ctx context.Context, tenant string) ([]AutomationPolicy, error) {
+	if strings.TrimSpace(tenant) == "" {
+		return nil, fmt.Errorf("tenant_id is required")
+	}
+	return s.repo.ListAutomationPolicies(ctx, tenant)
+}
+
 func assess(signal Signal, detected time.Time) (Drift, error) {
 	dimension, severity, summary, action := "context", 1, "Institutional context changed.", "Review the affected scope."
 	switch signal.Type {

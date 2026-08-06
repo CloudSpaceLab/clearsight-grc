@@ -9,6 +9,7 @@ export type CaptureRequest = { id: string; title: string; purpose: string; why_y
 export type AuthorityResolution = { principal: { id: string; display_name: string; kind: string; role: string }; rule_id: string; policy_version: string; explanation: string; };
 export type IntegrityFinding = { type: string; severity: string; summary: string; required_action: string; rule_ids?: string[]; };
 export type PolicySummary = { id: string; code: string; name: string; status: string; version: number; effective_from?: string; };
+export type AutomationPolicy = { id: string; tenant_id: string; code: string; name: string; action_class: string; eligibility: Record<string, unknown>; blast_radius_limit: Record<string, unknown>; verification_contract: Record<string, unknown>; status: string; effective_from?: string; effective_until?: string; version: number; };
 export type Drift = { id: string; subject_type: string; subject_id: string; dimension: string; severity: number; summary: string; required_action: string; detected_at: string; };
 export type Readiness = { tenant_id: string; status: string; baseline_known: boolean; generated_at: string; dimensions: { current: number; aging: number; at_risk: number; unknown: number; blocked_routing: number; pending_human: number; }; active_drifts: Drift[]; recommended_actions: string[]; };
 export type GuideStep = { id: string; title: string; description: string; action?: string; view?: "today" | "programs" | "work" | "imports" | "explore" | "configure"; target?: string; intent?: string; optional?: boolean };

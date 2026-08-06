@@ -1,4 +1,5 @@
 import { EmptyState } from "./components/EmptyState";
+import { AutomationPolicies } from "./components/AutomationPolicies";
 import { BankJourneysWorkspace } from "./components/BankJourneysWorkspace";
 import { EvidenceWorkspace } from "./components/EvidenceWorkspace";
 import { MattersWorkspace } from "./components/MattersWorkspace";
@@ -6,7 +7,7 @@ import { ProjectionHealthCard } from "./components/ProjectionHealthCard";
 import { ProgramsWorkspace } from "./components/ProgramsWorkspace";
 import { TodayInterventions } from "./components/TodayInterventions";
 import { WorkspaceErrorBoundary } from "./components/WorkspaceErrorBoundary";
-import type { AttentionItem, AuthorityResolution, EvidenceRequest, EvidenceSource, IntegrityFinding, PolicySummary, Readiness, WorkflowTask } from "./types";
+import type { AttentionItem, AutomationPolicy, AuthorityResolution, EvidenceRequest, EvidenceSource, IntegrityFinding, PolicySummary, Readiness, WorkflowTask } from "./types";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 
 export { CapturePanel } from "./components/CapturePanel";
@@ -42,13 +43,14 @@ export function WorkView({ organizationName, tab, onTab, sources, requests, evid
   </>;
 }
 
-export function ConfigureView({ policies, findings, tasks, projectionHealth, state, onRetry, onReconcile }: { policies: PolicySummary[]; findings: IntegrityFinding[]; tasks: WorkflowTask[]; projectionHealth: ProjectionHealth | null; state: LoadState; onRetry: () => void; onReconcile: () => Promise<ReconcileResult> }) {
+export function ConfigureView({ policies, findings, tasks, projectionHealth, automationPolicies, automationPolicyState, state, onRetry, onReconcile }: { policies: PolicySummary[]; findings: IntegrityFinding[]; tasks: WorkflowTask[]; projectionHealth: ProjectionHealth | null; automationPolicies: AutomationPolicy[]; automationPolicyState: Exclude<LoadState, "idle">; state: LoadState; onRetry: () => void; onReconcile: () => Promise<ReconcileResult> }) {
   if (state === "idle" || state === "loading") return <div id="configure-workspace"><header className="topbar"><div><span className="eyebrow">Governance configuration</span><h1>Routing and approvals</h1><p>Responsibility, approval limits, delegation and escalation rules.</p></div></header><section className="workspace-loading" aria-live="polite" aria-busy="true">Loading routing configuration…</section></div>;
   if (state === "unavailable") return <div id="configure-workspace"><header className="topbar"><div><span className="eyebrow">Governance configuration</span><h1>Routing and approvals</h1><p>Responsibility, approval limits, delegation and escalation rules.</p></div></header><EmptyState label="Routing and approvals" title="Routing configuration could not be loaded" description="The service is unavailable. No policy or integrity claims are shown." action="Try again" onAction={onRetry}/></div>;
   return <div id="configure-workspace">
     <header className="topbar"><div><span className="eyebrow">Governance configuration</span><h1>Routing and approvals</h1><p>Responsibility, approval limits, delegation and escalation rules.</p></div></header>
     <section className="workspace-brief configure-brief"><div><span className="eyebrow">Routing checks</span><h2>{findings.length ? `${findings.length} configuration issue${findings.length === 1 ? "" : "s"}` : "No blocking configuration issues"}</h2><p>Missing owners, unresolved selectors, duplicate priorities, expired delegations and missing authorizers are surfaced here.</p></div></section>
     <section className="config-grid"><article className="config-card"><div className="section-header"><div><h2>Active policies</h2><p>Approved versions and effective dates.</p></div></div>{policies.length ? policies.map((policy) => <div className="policy-row" key={policy.id}><div><strong>{policy.name}</strong><span>{policy.code} · v{policy.version}</span></div><mark>{humanizeStatus(policy.status)}</mark></div>) : <EmptyState label="Routing policies" title="No active policies" description="There are no active routing policies in the current scope."/>}</article><article className="config-card"><div className="section-header"><div><h2>Integrity findings</h2><p>Configuration checks.</p></div></div>{findings.length ? findings.map((finding) => <div className={`finding-row severity-${finding.severity.toLowerCase()}`} key={`${finding.type}-${finding.summary}`}><strong>{finding.summary}</strong><span>{finding.required_action}</span></div>) : <div className="calm-empty"><span>✓</span><div><strong>No blocking routing gaps</strong><p>All evaluated routes resolved to an active principal.</p></div></div>}</article><article className="config-card wide"><div className="section-header"><div><h2>Workflow ownership</h2><p>Open tasks and current assignees.</p></div></div><div className="task-table">{tasks.length ? tasks.map((task) => <div className="task-row" key={task.id}><div><strong>{task.title}</strong><span>{task.responsibility} · {task.step_key}</span></div><span>{task.context?.scope ?? task.context?.program ?? "Connected scope"}</span><mark>{humanizeStatus(task.status)}</mark></div>) : <div className="calm-empty"><span>✓</span><div><strong>No unassigned workflow tasks</strong><p>The current configuration queue contains no open ownership work.</p></div></div>}</div></article><ProjectionHealthCard health={projectionHealth} onReconcile={onReconcile}/></section>
+    <AutomationPolicies policies={automationPolicies} state={automationPolicyState}/>
   </div>;
 }
 

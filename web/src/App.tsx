@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  loadAutomationPolicies,
   loadCaptureRequest,
   loadContext,
   loadEvidenceRequest,
@@ -21,7 +22,7 @@ import { NavigationIcon } from "./components/NavigationIcon";
 import { RoleAwareOnboarding } from "./components/RoleAwareOnboarding";
 import { parseRoute, routeHash } from "./appRouting";
 import type { View, WorkspaceTarget, WorkTab } from "./appRouting";
-import type { AttentionItem, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, GuideStep, IntegrityFinding, PolicySummary, Readiness, WorkflowTask } from "./types";
+import type { AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, GuideStep, IntegrityFinding, PolicySummary, Readiness, WorkflowTask } from "./types";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 
 type LoadState = "idle" | "loading" | "live" | "unavailable";
@@ -70,6 +71,8 @@ function App() {
   const [integrity, setIntegrity] = useState<IntegrityFinding[]>([]);
   const [tasks, setTasks] = useState<WorkflowTask[]>([]);
   const [configureState, setConfigureState] = useState<LoadState>("idle");
+  const [automationPolicies, setAutomationPolicies] = useState<AutomationPolicy[]>([]);
+  const [automationPolicyState, setAutomationPolicyState] = useState<Exclude<LoadState, "idle">>("loading");
   const [projectionHealth, setProjectionHealth] = useState<ProjectionHealth | null>(null);
   const [sources, setSources] = useState<EvidenceSource[]>([]);
   const [evidenceRequests, setEvidenceRequests] = useState<EvidenceRequest[]>([]);
@@ -153,12 +156,21 @@ function App() {
 
   async function loadConfigureWorkspace() {
     setConfigureState("loading");
-    const [policiesResult, integrityResult, tasksResult, projectionResult] = await Promise.allSettled([
+    setAutomationPolicyState("loading");
+    const [policiesResult, integrityResult, tasksResult, projectionResult, automationResult] = await Promise.allSettled([
       loadPolicies(),
       loadIntegrity(),
       loadWorkflowTasks(),
       loadProjectionHealth(),
+      loadAutomationPolicies(),
     ]);
+    if (automationResult.status === "fulfilled") {
+      setAutomationPolicies(automationResult.value);
+      setAutomationPolicyState("live");
+    } else {
+      setAutomationPolicies([]);
+      setAutomationPolicyState("unavailable");
+    }
     if (policiesResult.status === "fulfilled" && integrityResult.status === "fulfilled" && tasksResult.status === "fulfilled") {
       setPolicies(policiesResult.value);
       setIntegrity(integrityResult.value);
@@ -313,7 +325,7 @@ function App() {
       {activeView === "work" && <WorkView organizationName={organizationName} tab={workTab} onTab={(tab) => navigate("work", {}, tab)} sources={sources} requests={evidenceRequests} evidenceState={evidenceState} onEvidenceRetry={() => void loadEvidenceWorkspace(target.evidenceID)} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)}/>} 
       {activeView === "imports" && <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Imports</h1><p>Bring controlled source material into ClearSight for traceable extraction and human review.</p></div></header><DocumentImportWorkspace/></>} 
       {activeView === "explore" && demoMode && <ExploreView organizationName={organizationName}/>} 
-      {activeView === "configure" && <ConfigureView policies={policies} findings={integrity} tasks={tasks} projectionHealth={projectionHealth} state={configureState} onRetry={() => void loadConfigureWorkspace()} onReconcile={checkProgramStatusRecords}/>} 
+      {activeView === "configure" && <ConfigureView policies={policies} findings={integrity} tasks={tasks} projectionHealth={projectionHealth} automationPolicies={automationPolicies} automationPolicyState={automationPolicyState} state={configureState} onRetry={() => void loadConfigureWorkspace()} onReconcile={checkProgramStatusRecords}/>} 
     </main>
     <nav className="mobile-nav" aria-label="Mobile navigation">{navigation.map(({ label, view }) => <button key={view} type="button" aria-current={activeView === view ? "page" : undefined} onClick={() => navigate(view)}><NavigationIcon view={view}/><span>{label}</span></button>)}</nav>
     {activePanel !== "none" && <div className="panel-backdrop" onMouseDown={closePanel}><aside className="side-panel" onMouseDown={(event) => event.stopPropagation()} aria-label={activePanel === "routing" ? "Approval route" : "Evidence request"}><button className="panel-close" onClick={closePanel} aria-label="Close">×</button>{activePanel === "routing" ? <RoutingPanel resolution={resolution} legalEntityName={legalEntityName}/> : <CapturePanel request={capture}/>}</aside></div>}

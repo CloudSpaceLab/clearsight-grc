@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -74,4 +75,45 @@ func (r *PostgresRepository) ListDrifts(ctx context.Context, tenant string) ([]D
 		values = append(values, value)
 	}
 	return values, rows.Err()
+}
+
+func (r *PostgresRepository) ListAutomationPolicies(ctx context.Context, tenant string) ([]AutomationPolicy, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT DISTINCT ON (ap.code)
+		       ap.id::text,t.slug,ap.code,ap.name,ap.action_class,ap.eligibility,ap.blast_radius_limit,
+		       ap.verification_contract,ap.status,
+		       COALESCE(ap.effective_from,'epoch'::timestamptz),COALESCE(ap.effective_until,'epoch'::timestamptz),ap.version
+		FROM automation_policies ap
+		JOIN tenants t ON t.id=ap.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		ORDER BY ap.code,ap.version DESC
+		LIMIT 200`, tenant)
+	if err != nil {
+		return nil, fmt.Errorf("list automation policies: %w", err)
+	}
+	defer rows.Close()
+	values := []AutomationPolicy{}
+	for rows.Next() {
+		var value AutomationPolicy
+		var eligibility, blastRadius, verification []byte
+		var effectiveFrom, effectiveUntil time.Time
+		if err := rows.Scan(&value.ID, &value.TenantID, &value.Code, &value.Name, &value.ActionClass, &eligibility, &blastRadius, &verification, &value.Status, &effectiveFrom, &effectiveUntil, &value.Version); err != nil {
+			return nil, err
+		}
+		value.Eligibility = append(json.RawMessage(nil), eligibility...)
+		value.BlastRadiusLimit = append(json.RawMessage(nil), blastRadius...)
+		value.VerificationContract = append(json.RawMessage(nil), verification...)
+		value.EffectiveFrom = automationTime(effectiveFrom)
+		value.EffectiveUntil = automationTime(effectiveUntil)
+		values = append(values, value)
+	}
+	return values, rows.Err()
+}
+
+func automationTime(value time.Time) *time.Time {
+	if value.Equal(time.Unix(0, 0).UTC()) {
+		return nil
+	}
+	utc := value.UTC()
+	return &utc
 }

@@ -127,6 +127,7 @@ func New(deps Dependencies) http.Handler {
 	mux.HandleFunc("GET /api/v1/onboarding/state", api.onboardingState)
 	mux.HandleFunc("PUT /api/v1/onboarding/state", api.updateOnboardingState)
 	mux.HandleFunc("GET /api/v1/compliance/readiness", api.readiness)
+	mux.HandleFunc("GET /api/v1/compliance/automation-policies", api.actorAutomationPolicies)
 	mux.HandleFunc("POST /api/v1/compliance/signals", api.ingestSignal)
 	return httpx.Chain(mux, httpx.CORS(deps.AllowedOrigin), httpx.RequestID, httpx.SecurityHeaders, identity.Middleware(deps.Identity, deps.Logger), httpx.Recover(deps.Logger), httpx.AccessLog(deps.Logger))
 }

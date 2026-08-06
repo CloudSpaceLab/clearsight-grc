@@ -7,13 +7,14 @@ import (
 )
 
 type MemoryRepository struct {
-	mu      sync.RWMutex
-	signals map[string]Signal
-	drifts  map[string]Drift
+	mu       sync.RWMutex
+	signals  map[string]Signal
+	drifts   map[string]Drift
+	policies []AutomationPolicy
 }
 
-func NewMemoryRepository() *MemoryRepository {
-	return &MemoryRepository{signals: map[string]Signal{}, drifts: map[string]Drift{}}
+func NewMemoryRepository(policies ...AutomationPolicy) *MemoryRepository {
+	return &MemoryRepository{signals: map[string]Signal{}, drifts: map[string]Drift{}, policies: append([]AutomationPolicy(nil), policies...)}
 }
 
 func (r *MemoryRepository) Ingest(_ context.Context, signal Signal, drift Drift) (bool, error) {
@@ -42,6 +43,32 @@ func (r *MemoryRepository) ListDrifts(_ context.Context, tenant string) ([]Drift
 			return values[i].DetectedAt.After(values[j].DetectedAt)
 		}
 		return values[i].Severity > values[j].Severity
+	})
+	return values, nil
+}
+
+func (r *MemoryRepository) ListAutomationPolicies(_ context.Context, tenant string) ([]AutomationPolicy, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	latest := map[string]AutomationPolicy{}
+	for _, value := range r.policies {
+		if value.TenantID != tenant {
+			continue
+		}
+		current, ok := latest[value.Code]
+		if !ok || value.Version > current.Version {
+			latest[value.Code] = value
+		}
+	}
+	values := make([]AutomationPolicy, 0, len(latest))
+	for _, value := range latest {
+		values = append(values, value)
+	}
+	sort.Slice(values, func(i, j int) bool {
+		if values[i].Name == values[j].Name {
+			return values[i].Code < values[j].Code
+		}
+		return values[i].Name < values[j].Name
 	})
 	return values, nil
 }

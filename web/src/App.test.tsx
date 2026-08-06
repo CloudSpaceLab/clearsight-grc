@@ -6,6 +6,7 @@ import { loadContext, loadReadiness, loadToday } from "./api";
 
 vi.mock("./components/RoleAwareOnboarding", () => ({ RoleAwareOnboarding: () => null }));
 vi.mock("./api", () => ({
+  loadAutomationPolicies: vi.fn().mockResolvedValue([]),
   loadCaptureRequest: vi.fn(),
   loadContext: vi.fn(),
   loadEvidenceRequest: vi.fn(),

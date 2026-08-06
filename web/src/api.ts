@@ -1,4 +1,4 @@
-import type { AttentionItem, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, OnboardingGuide, OnboardingState, PolicySummary, ProgramAggregate, Readiness, WorkflowTask } from "./types";
+import type { AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, OnboardingGuide, OnboardingState, PolicySummary, ProgramAggregate, Readiness, WorkflowTask } from "./types";
 import type { MatterSummary, ProgramSummary, SummaryPage, SummaryQuery } from "./summaryTypes";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 import type { BankJourneysResponse } from "./verticalTypes";
@@ -95,6 +95,10 @@ export async function submitCaptureRequest(id: string, version: number, answers:
 
 export function loadReadiness(): Promise<Readiness> {
   return scopedRequest<Readiness>("/api/v1/compliance/readiness");
+}
+
+export async function loadAutomationPolicies(): Promise<AutomationPolicy[]> {
+  return (await request<{ items: AutomationPolicy[] }>("/api/v1/compliance/automation-policies")).items;
 }
 
 export async function loadIntegrity(): Promise<IntegrityFinding[]> {
