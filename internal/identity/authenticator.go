@@ -76,6 +76,7 @@ func (a *SignedAuthenticator) Authenticate(r *http.Request) (Actor, bool, error)
 	if err := json.Unmarshal(payload, &actor); err != nil {
 		return Actor{}, false, ErrInvalidIdentity
 	}
+	actor.RoleCodes = NormalizeRoleCodes(actor.RoleCodes)
 	if actor.IssuedAt.IsZero() {
 		actor.IssuedAt = issued
 	}
@@ -89,17 +90,25 @@ type DevelopmentAuthenticator struct {
 	TenantID      string
 	PrincipalID   string
 	LegalEntityID string
+	RoleCodes     []string
 	now           func() time.Time
 }
 
-func NewDevelopmentAuthenticator(tenantID, principalID, legalEntityID string) *DevelopmentAuthenticator {
-	return &DevelopmentAuthenticator{TenantID: tenantID, PrincipalID: principalID, LegalEntityID: legalEntityID, now: time.Now}
+func NewDevelopmentAuthenticator(tenantID, principalID, legalEntityID string, roleCodes ...string) *DevelopmentAuthenticator {
+	return &DevelopmentAuthenticator{
+		TenantID: tenantID, PrincipalID: principalID, LegalEntityID: legalEntityID,
+		RoleCodes: NormalizeRoleCodes(roleCodes), now: time.Now,
+	}
 }
 
 func (a *DevelopmentAuthenticator) Authenticate(r *http.Request) (Actor, bool, error) {
 	tenant := strings.TrimSpace(r.Header.Get("X-ClearSight-Demo-Tenant"))
 	principal := strings.TrimSpace(r.Header.Get("X-ClearSight-Demo-Principal"))
 	entity := strings.TrimSpace(r.Header.Get("X-ClearSight-Demo-Legal-Entity"))
+	roles := a.RoleCodes
+	if headerRoles := strings.TrimSpace(r.Header.Get("X-ClearSight-Demo-Roles")); headerRoles != "" {
+		roles = NormalizeRoleCodes(strings.Split(headerRoles, ","))
+	}
 	if tenant == "" {
 		tenant = a.TenantID
 	}
@@ -113,5 +122,9 @@ func (a *DevelopmentAuthenticator) Authenticate(r *http.Request) (Actor, bool, e
 		return Actor{}, false, nil
 	}
 	now := a.now().UTC()
-	return Actor{TenantID: tenant, PrincipalID: principal, LegalEntityID: entity, Kind: "PERSON", AuthenticationMethod: "DEVELOPMENT", AssuranceLevel: "DEMO", SessionID: "development", IssuedAt: now, ExpiresAt: now.Add(time.Hour)}, true, nil
+	return Actor{
+		TenantID: tenant, PrincipalID: principal, LegalEntityID: entity, Kind: "PERSON", RoleCodes: roles,
+		AuthenticationMethod: "DEVELOPMENT", AssuranceLevel: "DEMO", SessionID: "development",
+		IssuedAt: now, ExpiresAt: now.Add(time.Hour),
+	}, true, nil
 }

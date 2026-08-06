@@ -18,6 +18,7 @@ type Actor struct {
 	PrincipalID          string    `json:"principal_id"`
 	LegalEntityID        string    `json:"legal_entity_id"`
 	Kind                 string    `json:"kind"`
+	RoleCodes            []string  `json:"role_codes,omitempty"`
 	AuthenticationMethod string    `json:"authentication_method"`
 	AssuranceLevel       string    `json:"assurance_level"`
 	SessionID            string    `json:"session_id"`
@@ -35,7 +36,40 @@ func (a Actor) Valid(now time.Time) error {
 	if !a.IssuedAt.IsZero() && a.IssuedAt.After(now.Add(time.Minute)) {
 		return ErrInvalidIdentity
 	}
+	if len(a.RoleCodes) > 32 {
+		return ErrInvalidIdentity
+	}
+	for _, role := range a.RoleCodes {
+		if len(strings.TrimSpace(role)) > 80 {
+			return ErrInvalidIdentity
+		}
+	}
 	return nil
+}
+
+func NormalizeRoleCodes(values []string) []string {
+	result := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		value = strings.ToUpper(strings.TrimSpace(value))
+		value = strings.NewReplacer("-", "_", " ", "_").Replace(value)
+		for strings.Contains(value, "__") {
+			value = strings.ReplaceAll(value, "__", "_")
+		}
+		value = strings.Trim(value, "_")
+		if value == "" {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+		if len(result) == 32 {
+			break
+		}
+	}
+	return result
 }
 
 type contextKey struct{}

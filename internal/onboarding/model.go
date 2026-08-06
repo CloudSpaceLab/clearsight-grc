@@ -7,17 +7,23 @@ type Step struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Action      string `json:"action,omitempty"`
+	View        string `json:"view,omitempty"`
 	Target      string `json:"target,omitempty"`
+	Intent      string `json:"intent,omitempty"`
+	Optional    bool   `json:"optional,omitempty"`
 }
 
 type Guide struct {
-	Code         string `json:"code"`
-	Role         string `json:"role"`
-	Version      int    `json:"version"`
-	Title        string `json:"title"`
-	Description  string `json:"description"`
-	Illustration string `json:"illustration"`
-	Steps        []Step `json:"steps"`
+	Code         string   `json:"code"`
+	Profile      string   `json:"profile"`
+	Role         string   `json:"role"`
+	RoleCodes    []string `json:"role_codes,omitempty"`
+	Priority     int      `json:"priority,omitempty"`
+	Version      int      `json:"version"`
+	Title        string   `json:"title"`
+	Description  string   `json:"description"`
+	Illustration string   `json:"illustration"`
+	Steps        []Step   `json:"steps"`
 }
 
 type State struct {

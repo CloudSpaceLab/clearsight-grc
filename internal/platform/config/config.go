@@ -34,6 +34,7 @@ type Config struct {
 	DemoTenantID                         string
 	DemoPrincipalID                      string
 	DemoLegalEntityID                    string
+	DemoRoleCodes                        []string
 	LogLevel                             slog.Level
 }
 
@@ -71,6 +72,7 @@ func Load() (Config, error) {
 		DemoTenantID:                         env("CLEARSIGHT_DEMO_TENANT_ID", "bank-demo"),
 		DemoPrincipalID:                      env("CLEARSIGHT_DEMO_PRINCIPAL_ID", "role-cro"),
 		DemoLegalEntityID:                    env("CLEARSIGHT_DEMO_LEGAL_ENTITY_ID", "bank-ng"),
+		DemoRoleCodes:                        stringList("CLEARSIGHT_DEMO_ROLE_CODES", []string{"CRO", "EXECUTIVE"}),
 		LogLevel:                             slog.LevelInfo,
 	}
 	var err error
@@ -122,6 +124,9 @@ func Load() (Config, error) {
 	if cfg.MaxArtifactBytes < 1024 || cfg.MaxArtifactBytes > 100<<20 {
 		return Config{}, fmt.Errorf("CLEARSIGHT_MAX_ARTIFACT_BYTES must be between 1 KiB and 100 MiB")
 	}
+	if len(cfg.DemoRoleCodes) > 32 {
+		return Config{}, fmt.Errorf("CLEARSIGHT_DEMO_ROLE_CODES supports at most 32 role codes")
+	}
 	switch cfg.IdentityMode {
 	case "development":
 	case "signed":
@@ -156,6 +161,30 @@ func env(name, fallback string) string {
 	}
 	return fallback
 }
+
+func stringList(name string, fallback []string) []string {
+	value := strings.TrimSpace(os.Getenv(name))
+	if value == "" {
+		return append([]string(nil), fallback...)
+	}
+	parts := strings.FieldsFunc(value, func(r rune) bool { return r == ',' || r == ';' || r == '|' })
+	result := make([]string, 0, len(parts))
+	seen := make(map[string]struct{}, len(parts))
+	for _, part := range parts {
+		part = strings.ToUpper(strings.TrimSpace(part))
+		part = strings.NewReplacer("-", "_", " ", "_").Replace(part)
+		if part == "" {
+			continue
+		}
+		if _, exists := seen[part]; exists {
+			continue
+		}
+		seen[part] = struct{}{}
+		result = append(result, part)
+	}
+	return result
+}
+
 func duration(name string, fallback time.Duration) (time.Duration, error) {
 	value := strings.TrimSpace(os.Getenv(name))
 	if value == "" {
@@ -167,6 +196,7 @@ func duration(name string, fallback time.Duration) (time.Duration, error) {
 	}
 	return parsed, nil
 }
+
 func boolValue(name string, fallback bool) (bool, error) {
 	value := strings.TrimSpace(os.Getenv(name))
 	if value == "" {
@@ -178,6 +208,7 @@ func boolValue(name string, fallback bool) (bool, error) {
 	}
 	return parsed, nil
 }
+
 func int32Value(name string, fallback int32) (int32, error) {
 	value := strings.TrimSpace(os.Getenv(name))
 	if value == "" {
@@ -189,6 +220,7 @@ func int32Value(name string, fallback int32) (int32, error) {
 	}
 	return int32(parsed), nil
 }
+
 func int64Value(name string, fallback int64) (int64, error) {
 	value := strings.TrimSpace(os.Getenv(name))
 	if value == "" {

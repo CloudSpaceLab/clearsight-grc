@@ -77,5 +77,5 @@ func buildAuthenticator(cfg config.Config) (identity.Authenticator, error) {
 	if cfg.IdentityMode == "signed" {
 		return identity.NewSignedAuthenticator(cfg.IdentityHMACSecret, cfg.IdentityMaxSkew)
 	}
-	return identity.NewDevelopmentAuthenticator(cfg.DemoTenantID, cfg.DemoPrincipalID, cfg.DemoLegalEntityID), nil
+	return identity.NewDevelopmentAuthenticator(cfg.DemoTenantID, cfg.DemoPrincipalID, cfg.DemoLegalEntityID, cfg.DemoRoleCodes...), nil
 }

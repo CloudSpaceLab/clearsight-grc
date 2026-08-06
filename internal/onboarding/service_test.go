@@ -8,7 +8,7 @@ import (
 
 func TestOnboardingStateVersioning(t *testing.T) {
 	service := NewService(NewMemoryRepository())
-	initial, err := service.State(context.Background(), "bank-demo", "user-demo", "control-assurance-first-run")
+	initial, err := service.State(context.Background(), "bank-demo", "user-demo", "reviewer-first-run")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,11 @@ func TestOnboardingStateVersioning(t *testing.T) {
 
 func TestGuideCannotBeCompletedAndDismissed(t *testing.T) {
 	service := NewService(NewMemoryRepository())
-	_, err := service.Update(context.Background(), "bank-demo", "user-demo", "control-assurance-first-run", UpdateInput{CurrentStep: 4, Completed: true, Dismissed: true, ExpectedVersion: 0})
+	guide, err := service.Guide("", "reviewer-first-run")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = service.Update(context.Background(), "bank-demo", "user-demo", guide.Code, UpdateInput{CurrentStep: len(guide.Steps), Completed: true, Dismissed: true, ExpectedVersion: 0})
 	if err == nil {
 		t.Fatal("expected invalid terminal state")
 	}
@@ -35,8 +39,23 @@ func TestGuideCannotBeCompletedAndDismissed(t *testing.T) {
 
 func TestCompletedGuideMustReachFinalStep(t *testing.T) {
 	service := NewService(NewMemoryRepository())
-	_, err := service.Update(context.Background(), "bank-demo", "user-demo", "control-assurance-first-run", UpdateInput{CurrentStep: 2, Completed: true, ExpectedVersion: 0})
+	_, err := service.Update(context.Background(), "bank-demo", "user-demo", "reviewer-first-run", UpdateInput{CurrentStep: 2, Completed: true, ExpectedVersion: 0})
 	if err == nil {
 		t.Fatal("expected incomplete guide completion to fail")
+	}
+}
+
+func TestGuideResolutionUsesRolePriorityAndFallback(t *testing.T) {
+	service := NewService(NewMemoryRepository())
+	guide, err := service.ResolveRoles([]string{"program owner", "cro"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if guide.Code != "executive-first-run" {
+		t.Fatalf("expected executive priority, got %s", guide.Code)
+	}
+	guide, err = service.ResolveRoles(nil)
+	if err != nil || guide.Code != "general-first-run" {
+		t.Fatalf("expected general fallback, guide=%#v err=%v", guide, err)
 	}
 }
