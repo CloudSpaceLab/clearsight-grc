@@ -15,11 +15,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function loadRoleGuide(roleCodes: string[] = []): Promise<OnboardingGuide> {
-  const params = new URLSearchParams();
-  if (roleCodes.length) params.set("role", roleCodes.join("|"));
-  const query = params.toString();
-  return request<OnboardingGuide>(`/api/v1/onboarding/guide${query ? `?${query}` : ""}`);
+export function loadRoleGuide(): Promise<OnboardingGuide> {
+  return request<OnboardingGuide>("/api/v1/onboarding/guide");
 }
 
 export async function loadGuideState(guideCode: string): Promise<OnboardingState> {
