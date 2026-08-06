@@ -2,6 +2,11 @@
 
 Checkboxes describe repository capability, not production readiness.
 
+The detailed finished-product experience and delivery sequence are defined in:
+
+- [`design/enterprise-productization-design-plan.md`](design/enterprise-productization-design-plan.md);
+- [`engineering/enterprise-productization-implementation-plan.md`](engineering/enterprise-productization-implementation-plan.md).
+
 ## Phase 0 — Canonical product and architecture
 
 - [x] Programs, Matters, evidence and verified-outcome semantics.
@@ -134,16 +139,122 @@ Repository reference capability:
 - [ ] complete operational write UI for every decision, response and closure mutation;
 - [ ] representative production-scale journey benchmark and retained query plans.
 
+## Phase 5 — Enterprise productization and pilot readiness
+
+This phase is required before ClearSight is described as a completed enterprise banking product.
+
+### P0 — Baseline and traceability
+
+- [ ] capability maturity register distinguishing foundation, pilot and production readiness;
+- [ ] complete UI inventory and retained before-state evidence;
+- [ ] productization acceptance-suite structure;
+- [ ] issue/PR traceability from use case to rendered and behavioral evidence.
+
+### P1 — UI/UX cleanup and premium design system
+
+- [ ] complete semantic token system with light and dark themes;
+- [ ] production component library and state gallery;
+- [ ] screen-by-screen cleanup of Today, Programs, Issues/Changes, Work, Explore and Configure;
+- [ ] compact and comfortable density where justified;
+- [ ] complete operational write interfaces for decisions, actions, responses, verification and closure;
+- [ ] automated contrast, keyboard, focus, zoom, reduced-motion and visual-regression gates.
+
+### P2 — Enterprise identity and directory compatibility
+
+- [ ] OIDC authentication-provider integration;
+- [ ] SAML authentication-provider integration;
+- [ ] SCIM user/group lifecycle synchronization;
+- [ ] LDAP/LDAPS and Active Directory sync agent or connector;
+- [ ] controlled CSV/XLSX organization import with saved mappings and dry run;
+- [ ] source-backed user, group, position, manager and legal-entity reconciliation;
+- [ ] identity-change impact, orphaned responsibility and safe reassignment workflows.
+
+### P3 — RBAC, responsibility, authority and escalation
+
+- [ ] versioned capability bundles and role catalogue;
+- [ ] scoped responsibility-assignment model and matrix;
+- [ ] decision-authority matrix with thresholds, quorum, challenge and signatory;
+- [ ] reusable conflict and segregation engine;
+- [ ] business-calendar-aware reminder and escalation policies;
+- [ ] routing/escalation sequence builder, simulation and impact preview;
+- [ ] full material-command authorization coverage;
+- [ ] maker-checker activation, effective dating and rollback for all configuration.
+
+### P4 — Role-aware first-time guidance
+
+- [ ] governed, admin-authored guide definitions and versions;
+- [ ] guide resolution from current roles, responsibilities and permissions;
+- [ ] executive guide;
+- [ ] Program-owner guide;
+- [ ] reviewer/challenger guide;
+- [ ] authorizer/signatory guide;
+- [ ] evidence-respondent guide;
+- [ ] Configure-administrator guide;
+- [ ] auditor/read-only guide;
+- [ ] permission-safe anchors, meaningful first task and privacy-minimized adoption telemetry.
+
+### P5 — Notifications and email templates
+
+- [ ] versioned notification policy and template registry;
+- [ ] safe HTML/plaintext email rendering and preview;
+- [ ] production email delivery adapter with retry, bounce and dead-letter handling;
+- [ ] in-product notification centre;
+- [ ] policy-constrained preferences, quiet hours and digests;
+- [ ] assignment, evidence, reminder, escalation, approval, verification, invitation, configuration and security template packs;
+- [ ] restricted-content minimization tests for subjects, previews, logs and analytics.
+
+### P6 — MFA, sessions and step-up assurance
+
+- [ ] assurance-policy model for commands and record classes;
+- [ ] enterprise IdP step-up integration;
+- [ ] WebAuthn/passkey enrolment and challenge;
+- [ ] TOTP enrolment, verification and encrypted secret storage;
+- [ ] one-time recovery codes and dual-controlled administrative recovery;
+- [ ] active session/device management and security-event history;
+- [ ] fresh-authentication enforcement for material approvals, signatory actions, restricted access, export and break glass.
+
+### P7 — Illustration, iconography and complete state system
+
+- [ ] production light/dark illustration package;
+- [ ] complete semantic icon family;
+- [ ] onboarding, no-work, no-change, no-result, not-configured, source-unavailable, expired-invitation, submitted, routing, readiness, protected-reporting, MFA, import and notification-failure illustrations;
+- [ ] explicit absence/no-result/unauthorized/unavailable/stale/completed empty-state taxonomy;
+- [ ] bundle-size, accessibility and visual-regression checks.
+
+### P8 — Pilot hardening and release evidence
+
+- [ ] production object storage, malware scanning, retention and legal hold;
+- [ ] database defense-in-depth, secrets management and key rotation;
+- [ ] backup/restore, point-in-time recovery and provider-outage exercises;
+- [ ] identity sync, notification, worker and projection operational dashboards;
+- [ ] representative identity, authority, Today, notification and 100,000-row workload evidence;
+- [ ] retained p95/p99 results and query plans;
+- [ ] pilot-bank legal configuration, role mapping, template approval and security policy;
+- [ ] governed go-live and rollback checklist.
+
 ## Release gates
 
 Every completed item still requires relevant authorization, invitation, source, performance, recovery, accessibility and workload tests before production release.
+
+### Existing foundation gates
 
 - [x] Projection-first Program and Matter summaries, indexed search, keyset pagination and lazy detail loading.
 - [x] Signed request actor binding and authority checks for material Program/Matter commands.
 - [x] Separately versioned Program-status maintenance with health, reconciliation and governed rebuild operations.
 - [x] Cross-tenant query-scope rejection and fail-closed restricted-read tests.
 - [x] Partial reference-install recovery and current-record negative tests.
+
+### Enterprise productization gates
+
 - [ ] Direct enterprise identity-provider integration, gateway key rotation and organization synchronization.
-- [ ] Full mutation authorization matrix for protected Matters and evidence.
-- [ ] Automated accessibility and rendered-state release evidence.
+- [ ] LDAP/AD or equivalent directory reconciliation and deactivation recovery evidence.
+- [ ] Full mutation authorization matrix for governance, Programs, Matters, evidence and configuration.
+- [ ] Business-calendar escalation, fallback and no-valid-route acceptance evidence.
+- [ ] Multi-role first-run guides reaching meaningful real tasks.
+- [ ] Notification minimization, delivery retry and dead-letter operating evidence.
+- [ ] WebAuthn/TOTP, recovery, session revocation and material-command step-up evidence.
+- [ ] Complete light/dark state coverage, accessibility and retained visual-regression evidence.
+- [ ] Production object-store, scanning, retention and legal-hold evidence.
 - [ ] Representative 100,000-row p95/p99 release evidence and retained query plans.
+- [ ] Backup, restore, provider outage and safe degraded-mode exercises.
+- [ ] Pilot-bank configuration approval and governed go-live record.
