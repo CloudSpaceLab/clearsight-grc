@@ -40,11 +40,17 @@ func main() {
 		logger.Error("command authorization initialization failed", "error", err)
 		os.Exit(1)
 	}
-	handler := httpapi.New(httpapi.Dependencies{Logger: logger, AllowedOrigin: cfg.AllowedOrigin, Mode: services.Mode, Identity: authenticator, CommandGuard: guard, Authority: services.Authority, Governance: services.Governance, Capture: services.Capture, Invitations: services.Invitations, Evidence: services.Evidence, Continuity: services.Continuity, Today: services.Today, Workflow: services.Workflow, Onboarding: services.Onboarding, Autonomy: services.Autonomy, BankVerticals: services.BankVerticals, MaxArtifactBytes: cfg.MaxArtifactBytes})
+	handler := httpapi.New(httpapi.Dependencies{
+		Logger: logger, AllowedOrigin: cfg.AllowedOrigin, Mode: services.Mode, DemoMode: cfg.DemoMode,
+		Identity: authenticator, CommandGuard: guard, Authority: services.Authority, Governance: services.Governance,
+		Capture: services.Capture, Invitations: services.Invitations, Evidence: services.Evidence, DocumentImports: services.DocumentImports,
+		Continuity: services.Continuity, Today: services.Today, Workflow: services.Workflow, Onboarding: services.Onboarding,
+		Autonomy: services.Autonomy, BankVerticals: services.BankVerticals, MaxArtifactBytes: cfg.MaxArtifactBytes,
+	})
 	server := &http.Server{Addr: cfg.HTTPAddr, Handler: handler, ReadHeaderTimeout: 2 * time.Second, ReadTimeout: cfg.ReadTimeout, WriteTimeout: cfg.WriteTimeout, IdleTimeout: cfg.IdleTimeout, MaxHeaderBytes: 1 << 20}
 	serverErrors := make(chan error, 1)
 	go func() {
-		logger.Info("api listening", "address", cfg.HTTPAddr, "environment", cfg.Environment, "mode", services.Mode, "identity_mode", cfg.IdentityMode, "command_authorization", cfg.CommandAuthorizationMode)
+		logger.Info("api listening", "address", cfg.HTTPAddr, "environment", cfg.Environment, "mode", services.Mode, "demo_mode", cfg.DemoMode, "identity_mode", cfg.IdentityMode, "command_authorization", cfg.CommandAuthorizationMode)
 		serverErrors <- server.ListenAndServe()
 	}()
 	stop := make(chan os.Signal, 1)
