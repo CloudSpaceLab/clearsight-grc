@@ -1,16 +1,19 @@
 # Stakeholder demo screenshots
 
-This directory retains rendered evidence from the static ClearSight stakeholder deployment.
+These images are rendered evidence from ClearSight’s clearly labelled stakeholder reference experience. They contain no customer or production bank data.
 
-The deployment uses the production React components, hash routes, role-aware onboarding and workspace state handling with clearly labelled retained reference records. It does not contain customer data, does not use a live bank backend and must not be treated as a production deployment.
+The repository also contains an account-free reference demo at `docs/stakeholder-demo/index.html`, and the GitHub Pages workflow publishes the full React stakeholder build when repository Pages is available.
 
-The screenshot workflow captures:
+## Executive first-run introduction
 
-1. executive first-run introduction;
-2. Today operating brief;
-3. Program status and evidence reasons;
-4. regulatory-change issue record;
-5. governed document-import review;
-6. mobile Today experience.
+![Executive first-run introduction](01-executive-introduction.png)
 
-The generated images and verified deployment URL are added to this directory after the Pages and screenshot workflow succeeds.
+## Today operating brief
+
+![Today operating brief](02-today-operating-brief.png)
+
+## Program evidence status
+
+![Program evidence status](03-program-evidence-status.png)
+
+The captures demonstrate role-aware onboarding, exact-record navigation, source-aware status language, and the calm responsive visual system. They are presentation evidence, not production assurance or customer data.
