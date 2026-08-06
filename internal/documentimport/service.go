@@ -135,6 +135,9 @@ func (s *Service) ReviewProposal(ctx context.Context, input ReviewInput) (Docume
 	if err != nil {
 		return Document{}, err
 	}
+	if value.Version != input.ExpectedVersion {
+		return Document{}, ErrVersionConflict
+	}
 	found := false
 	now := s.now().UTC()
 	for index := range value.Proposals {
