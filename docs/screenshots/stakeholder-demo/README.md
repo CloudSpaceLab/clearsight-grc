@@ -1,21 +1,21 @@
 # Stakeholder demo screenshots
 
-These images are rendered evidence from ClearSight’s clearly labelled stakeholder reference experience. They contain no customer or production bank data.
+These captures are the **pre-issue-#27 visual baseline** from ClearSight’s clearly labelled stakeholder reference experience. They contain no customer or production bank data.
 
-The repository also contains an account-free reference demo at `docs/stakeholder-demo/index.html`, and the GitHub Pages workflow publishes the full React stakeholder build when repository Pages is available.
+They remain useful for before/after comparison of the PR #25 shell, role-aware onboarding and exact-record navigation. They do **not** represent the current intervention-first UI introduced by issue #27.
+
+The repository also contains an account-free reference demo at `docs/stakeholder-demo/index.html`, and the GitHub Pages workflow can publish and recapture the full React stakeholder build when repository Pages runners are available.
 
 ## Executive first-run introduction
 
 ![Executive first-run introduction](01-executive-introduction.png)
 
-## Today operating brief
+## Today operating brief — before issue #27
 
 ![Today operating brief](02-today-operating-brief.png)
 
-## Program evidence status
+## Program evidence status — before issue #27
 
 ![Program evidence status](03-program-evidence-status.png)
 
-The captures demonstrate role-aware onboarding, exact-record navigation, source-aware status language, and the calm responsive visual system. They are presentation evidence, not production assurance or customer data.
-
-This evidence index is the final workflow-triggering change for PR #25; application and screenshot content is otherwise frozen for validation.
+Fresh rendered evidence for the intervention queue, progressive Program/Matter disclosure, evidence-review hierarchy, import review and capture assertion-review flow remains a release gate. Do not treat these baseline images as current acceptance evidence.
