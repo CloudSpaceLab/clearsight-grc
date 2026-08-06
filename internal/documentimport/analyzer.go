@@ -34,7 +34,14 @@ func Analyze(sections []Section) []Proposal {
 				Title:      proposalTitle(kind),
 				Statement:  statement,
 				Confidence: confidence,
-				Anchor: Anchor{SectionID: section.ID, Quote: statement, Page: section.Page, Sheet: section.Sheet, RowStart: section.RowStart, RowEnd: section.RowEnd},
+				Anchor: Anchor{
+					SectionID: section.ID,
+					Quote:     statement,
+					Page:      section.Page,
+					Sheet:     section.Sheet,
+					RowStart:  section.RowStart,
+					RowEnd:    section.RowEnd,
+				},
 				Status: ProposalPending,
 			})
 			if len(proposals) >= 500 {
