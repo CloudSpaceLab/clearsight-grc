@@ -24,9 +24,10 @@ export function RoleAwareOnboarding({ runtime, onStep }: Props) {
     try {
       const resolved = await loadRoleGuide(runtime.actor.role_codes ?? []);
       const saved = await loadGuideState(resolved.code);
+      const tourMode = new URLSearchParams(window.location.search).get("tour");
       setGuide(resolved);
       setState(saved);
-      setOpen(!saved.completed && !saved.dismissed);
+      setOpen(tourMode === "on" || (tourMode !== "off" && !saved.completed && !saved.dismissed));
     } catch {
       setGuide(null);
       setState(null);
