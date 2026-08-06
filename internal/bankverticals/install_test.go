@@ -96,7 +96,7 @@ func TestInstallSampleResumesPartiallyTransitionedMatter(t *testing.T) {
 		ProgramID:         program.Program.ID,
 		ActorID:           config.ActorID,
 	})
-	if err != nil || partial.Matter.Status != continuity.MatterDraft {
+	if err != nil || partial.Matter.Status != continuity.MatterInitialReview {
 		t.Fatalf("could not create partial issue: status=%s err=%v", partial.Matter.Status, err)
 	}
 
