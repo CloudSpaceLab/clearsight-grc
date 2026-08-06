@@ -40,21 +40,27 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
 	continuityService := continuity.NewService(continuity.NewPostgresRepository(pool))
 	verticals := bankverticals.NewService(continuityService, evidenceService)
+	workflowService := workflow.NewService(workflow.NewPostgresRepository(pool))
 	todayService := today.NewDynamicService(func(loadCtx context.Context, actor identity.Actor) ([]today.AttentionItem, error) {
-		if !cfg.DemoMode {
-			return []today.AttentionItem{}, nil
+		if cfg.DemoMode {
+			journeys, listErr := verticals.List(loadCtx, actor.TenantID)
+			if listErr != nil {
+				return nil, listErr
+			}
+			visible := make([]bankverticals.Journey, 0, len(journeys))
+			for _, journey := range journeys {
+				if journey.VisibleTo(actor.PrincipalID) {
+					visible = append(visible, journey)
+				}
+			}
+			return bankverticals.TodayItems(visible, time.Now().UTC()), nil
 		}
-		journeys, listErr := verticals.List(loadCtx, actor.TenantID)
+
+		assigned, listErr := workflowService.List(loadCtx, workflow.ListFilter{TenantID: actor.TenantID, PrincipalID: actor.PrincipalID, Limit: 50})
 		if listErr != nil {
 			return nil, listErr
 		}
-		visible := make([]bankverticals.Journey, 0, len(journeys))
-		for _, journey := range journeys {
-			if journey.VisibleTo(actor.PrincipalID) {
-				visible = append(visible, journey)
-			}
-		}
-		return bankverticals.TodayItems(visible, time.Now().UTC()), nil
+		return today.FromWorkflowTasks(assigned), nil
 	})
 	requests := capture.DemoRequests()
 	if !cfg.DemoMode {
@@ -65,7 +71,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		Mode: "postgres", Authority: authority.NewPostgresService(pool), Governance: governance.NewService(governance.NewPostgresRepository(pool)),
 		Capture: capture.NewService(requests), Invitations: capture.NewInvitationService(time.Now), Evidence: evidenceService,
 		DocumentImports: documentService, Continuity: continuityService, Today: todayService,
-		Workflow: workflow.NewService(workflow.NewPostgresRepository(pool)), Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
+		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
 		Autonomy: auto, BankVerticals: verticals, Close: pool.Close,
 	}, nil
 }

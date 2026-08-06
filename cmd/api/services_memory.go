@@ -55,33 +55,41 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 			}
 		}
 	}
-	todayService := today.NewDynamicService(func(loadCtx context.Context, actor identity.Actor) ([]today.AttentionItem, error) {
-		if !cfg.DemoMode {
-			return []today.AttentionItem{}, nil
-		}
-		journeys, err := verticals.List(loadCtx, actor.TenantID)
-		if err != nil {
-			return nil, err
-		}
-		visible := make([]bankverticals.Journey, 0, len(journeys))
-		for _, journey := range journeys {
-			if journey.VisibleTo(actor.PrincipalID) {
-				visible = append(visible, journey)
-			}
-		}
-		return bankverticals.TodayItems(visible, time.Now().UTC()), nil
-	})
+
 	requests := capture.DemoRequests()
 	tasks := workflow.DemoTasks()
 	if !cfg.DemoMode {
 		requests = nil
 		tasks = nil
 	}
+	workflowService := workflow.NewService(workflow.NewMemoryRepository(tasks))
+	todayService := today.NewDynamicService(func(loadCtx context.Context, actor identity.Actor) ([]today.AttentionItem, error) {
+		if cfg.DemoMode {
+			journeys, err := verticals.List(loadCtx, actor.TenantID)
+			if err != nil {
+				return nil, err
+			}
+			visible := make([]bankverticals.Journey, 0, len(journeys))
+			for _, journey := range journeys {
+				if journey.VisibleTo(actor.PrincipalID) {
+					visible = append(visible, journey)
+				}
+			}
+			return bankverticals.TodayItems(visible, time.Now().UTC()), nil
+		}
+
+		assigned, err := workflowService.List(loadCtx, workflow.ListFilter{TenantID: actor.TenantID, PrincipalID: actor.PrincipalID, Limit: 50})
+		if err != nil {
+			return nil, err
+		}
+		return today.FromWorkflowTasks(assigned), nil
+	})
+
 	return serviceSet{
 		Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()),
 		Capture: capture.NewService(requests), Invitations: capture.NewInvitationService(time.Now), Evidence: evidenceService,
 		DocumentImports: documentService, Continuity: continuityService, Today: todayService,
-		Workflow: workflow.NewService(workflow.NewMemoryRepository(tasks)), Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
+		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
 		Autonomy: auto, BankVerticals: verticals, Close: func() {},
 	}, nil
 }

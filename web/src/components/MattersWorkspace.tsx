@@ -1,4 +1,5 @@
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import { loadMatter, loadMatterSummaries } from "../api";
 import type { MatterSummary } from "../summaryTypes";
 import type { MatterAggregate } from "../types";
@@ -49,6 +50,10 @@ function latestResult(aggregate: MatterAggregate, contractID: string) {
     .sort((left, right) => Date.parse(right.observed_at) - Date.parse(left.observed_at))[0];
 }
 
+function latestOutcome(aggregate: MatterAggregate) {
+  return [...aggregate.verification_results].sort((left, right) => Date.parse(right.observed_at) - Date.parse(left.observed_at))[0];
+}
+
 function resultLabel(value?: string) {
   switch (value) {
     case "PASS": return "Outcome confirmed";
@@ -56,6 +61,22 @@ function resultLabel(value?: string) {
     case "INCONCLUSIVE": return "More evidence needed";
     default: return "Not checked yet";
   }
+}
+
+function summaryFromAggregate(detail: MatterAggregate): MatterSummary {
+  const latest = latestOutcome(detail);
+  const programIDs = new Set(detail.links.map((link) => link.program_id).filter((value): value is string => Boolean(value)));
+  return {
+    matter: detail.matter,
+    type_label: detail.type_label,
+    status_label: detail.status_label,
+    next_action: detail.next_action,
+    program_count: programIDs.size,
+    open_action_count: detail.actions.filter((action) => !["IMPLEMENTED", "CANCELLED"].includes(action.status)).length,
+    outcome_check_count: detail.verification_contracts.length,
+    latest_outcome: latest?.result,
+    latest_outcome_at: latest?.observed_at,
+  };
 }
 
 export function MattersWorkspace({ targetID, openFirst = false }: Props) {
@@ -108,15 +129,17 @@ export function MattersWorkspace({ targetID, openFirst = false }: Props) {
     setStatus("OPEN");
   }
 
-  async function fetchDetail(id: string) {
-    if (detailState[id] === "loading") return;
+  async function fetchDetail(id: string): Promise<MatterAggregate | null> {
+    if (detailState[id] === "loading") return details[id] ?? null;
     setDetailState((current) => ({ ...current, [id]: "loading" }));
     try {
       const value = await loadMatter(id);
       setDetails((current) => ({ ...current, [id]: value }));
       setDetailState((current) => ({ ...current, [id]: "live" }));
+      return value;
     } catch {
       setDetailState((current) => ({ ...current, [id]: "unavailable" }));
+      return null;
     }
   }
 
@@ -130,16 +153,28 @@ export function MattersWorkspace({ targetID, openFirst = false }: Props) {
   }
 
   useEffect(() => {
-    if (state !== "live" || !items.length) return;
+    if (state !== "live") return;
     const id = targetID ?? (openFirst ? items[0]?.matter.id : undefined);
     if (!id || handledTarget.current === id) return;
     handledTarget.current = id;
-    setOpenID(id);
-    void fetchDetail(id).finally(() => window.setTimeout(() => document.getElementById(`matter-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 80));
+
+    void (async () => {
+      const inPage = items.some((item) => item.matter.id === id);
+      const detail = details[id] ?? await fetchDetail(id);
+      if (detail && !inPage) {
+        setItems((current) => current.some((item) => item.matter.id === id) ? current : [summaryFromAggregate(detail), ...current]);
+      }
+      if (detail || inPage) setOpenID(id);
+      window.setTimeout(() => document.getElementById(`matter-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+    })();
   }, [state, items, targetID, openFirst]);
 
   if (state === "loading") return <section id="matters-workspace" className="workspace-loading" aria-live="polite" aria-busy="true">Loading issues and changes…</section>;
   if (state === "unavailable") return <div id="matters-workspace"><EmptyState label="Issues and changes" title="Issues and changes could not be loaded" description="The service is unavailable. No current work totals are shown." action="Try again" onAction={() => void load(true)}/></div>;
+
+  const targetInList = !targetID || items.some((item) => item.matter.id === targetID);
+  const targetLoading = Boolean(targetID && !targetInList && detailState[targetID] === "loading");
+  const targetUnavailable = Boolean(targetID && !targetInList && detailState[targetID] === "unavailable");
 
   return <div id="matters-workspace">
     <section className="workspace-brief">
@@ -152,7 +187,9 @@ export function MattersWorkspace({ targetID, openFirst = false }: Props) {
       <button className="secondary-button" type="submit">Search</button>
       {(search || status !== "OPEN") && <button className="text-button" type="button" onClick={clearFilters}>Clear filters</button>}
     </form>
-    {!items.length ? <EmptyState label="Issues and changes" title={search || status !== "OPEN" ? "No items match these filters" : "No open issues or changes"} description={search || status !== "OPEN" ? "Change the search or status filter to see other work." : "There are no recorded open changes, gaps, findings, exceptions or response items in the connected scope."} action={search || status !== "OPEN" ? "Clear filters" : undefined} onAction={clearFilters}/> : <section className="matter-list">{items.map((summaryItem) => {
+    {targetLoading && <div className="workspace-loading compact" aria-live="polite" aria-busy="true">Loading requested issue or change…</div>}
+    {targetUnavailable && <EmptyState label="Requested issue or change" title="The requested record could not be loaded" description="It may be outside your current access scope or no longer available."/>}
+    {!items.length && !targetLoading && !targetUnavailable ? <EmptyState label="Issues and changes" title={search || status !== "OPEN" ? "No items match these filters" : "No open issues or changes"} description={search || status !== "OPEN" ? "Change the search or status filter to see other work." : "There are no recorded open changes, gaps, findings, exceptions or response items in the connected scope."} action={search || status !== "OPEN" ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="matter-list">{items.map((summaryItem) => {
       const matter = summaryItem.matter;
       const isOpen = openID === matter.id;
       const detail = details[matter.id];
@@ -184,7 +221,7 @@ export function MattersWorkspace({ targetID, openFirst = false }: Props) {
           </>}
         </div>}
       </article>;
-    })}</section>}
+    })}</section> : null}
     {nextCursor && <div className="load-more"><button className="secondary-button" disabled={loadingMore} onClick={() => void load(false, nextCursor)}>{loadingMore ? "Loading…" : "Load more items"}</button></div>}
   </div>;
 }

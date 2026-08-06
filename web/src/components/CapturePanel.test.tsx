@@ -37,4 +37,13 @@ describe("CapturePanel", () => {
     await waitFor(() => expect(submitCaptureRequest).toHaveBeenCalledWith(request.id, 3, { owner: "Treasury Technology" }, "evidence"));
     expect(await screen.findByRole("heading", { name: "Response submitted" })).toBeTruthy();
   });
+
+  it("clears stale answers when the same request advances to a new version", () => {
+    const { rerender } = render(<CapturePanel request={request}/>);
+    fireEvent.change(screen.getByRole("textbox", { name: /Current owner/ }), { target: { value: "Old owner" } });
+
+    rerender(<CapturePanel request={{ ...request, version: 4 }}/>);
+
+    expect((screen.getByRole("textbox", { name: /Current owner/ }) as HTMLTextAreaElement).value).toBe("");
+  });
 });

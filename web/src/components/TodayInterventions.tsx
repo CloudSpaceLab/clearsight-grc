@@ -15,16 +15,24 @@ type Props = {
 
 export function TodayInterventions({ items, connection, readiness, readinessState, onOpenItem }: Props) {
   const heading = items.length === 1 ? "1 item requires your action" : `${items.length} items require your action`;
+  const title = connection === "loading"
+    ? "Loading assigned work"
+    : connection === "unavailable"
+      ? "Assigned work is unavailable"
+      : heading;
+
   return <>
     <section className="intervention-brief" id="today-brief" aria-labelledby="intervention-heading">
       <header className="intervention-heading">
-        <div><span className="eyebrow">Human intervention</span><h2 id="intervention-heading">{connection === "unavailable" ? "Assigned work is unavailable" : heading}</h2><p>Review only the decisions, evidence exceptions and outcome checks that require your role.</p></div>
+        <div><span className="eyebrow">Human intervention</span><h2 id="intervention-heading">{title}</h2><p>Review only the decisions, evidence exceptions and outcome checks that require your role.</p></div>
       </header>
-      {connection === "unavailable"
-        ? <EmptyState label="Assigned work" title="Assigned work could not be loaded" description="The service is unavailable. No current work count is shown."/>
-        : items.length
-          ? <div className="intervention-list" id="attention-list">{items.map((item) => <InterventionRow key={item.id} item={item} onOpen={onOpenItem}/>)}</div>
-          : <div id="attention-list"><EmptyState label="Assigned work" title="No assigned items" description="There are no open reviews, approvals or evidence requests assigned to you in the connected scope."/></div>}
+      {connection === "loading"
+        ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading assigned work…</div>
+        : connection === "unavailable"
+          ? <EmptyState label="Assigned work" title="Assigned work could not be loaded" description="The service is unavailable. No current work count is shown."/>
+          : items.length
+            ? <div className="intervention-list" id="attention-list">{items.map((item) => <InterventionRow key={item.id} item={item} onOpen={onOpenItem}/>)}</div>
+            : <div id="attention-list"><EmptyState label="Assigned work" title="No assigned items" description="There are no open reviews, approvals or evidence requests assigned to you in the connected scope."/></div>}
     </section>
     <ContinuousChecks readiness={readiness} state={readinessState}/>
   </>;
@@ -90,6 +98,8 @@ function gateLabel(value?: InterventionClass, target?: AttentionItem["action_tar
 
 function formatDue(value: string) {
   const parsed = Date.parse(value);
-  if (!Number.isFinite(parsed)) return "Due date unavailable";
-  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(parsed));
+  if (!Number.isFinite(parsed)) return "No deadline";
+  const date = new Date(parsed);
+  if (date.getUTCFullYear() < 2000) return "No deadline";
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
 }

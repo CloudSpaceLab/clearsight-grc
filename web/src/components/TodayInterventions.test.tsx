@@ -45,4 +45,13 @@ describe("TodayInterventions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Review and act" }));
     expect(onOpen).toHaveBeenCalledWith(item);
   });
+
+  it("does not claim an empty queue while assigned work is still loading", () => {
+    render(<TodayInterventions items={[]} connection="loading" readiness={null} readinessState="loading" onOpenItem={vi.fn()}/>);
+
+    expect(screen.getByRole("heading", { name: "Loading assigned work" })).toBeTruthy();
+    expect(screen.getByText("Loading assigned work…")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "No assigned items" })).toBeNull();
+    expect(screen.queryByText("0 items require your action")).toBeNull();
+  });
 });

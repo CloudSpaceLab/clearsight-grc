@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   loadCaptureRequest,
   loadContext,
@@ -75,6 +75,8 @@ function App() {
   const [evidenceRequests, setEvidenceRequests] = useState<EvidenceRequest[]>([]);
   const [evidenceState, setEvidenceState] = useState<LoadState>("idle");
   const [activePanel, setActivePanel] = useState<"none" | "routing" | "capture">("none");
+  const captureLoadID = useRef(0);
+  const evidenceTargetAttempts = useRef(new Set<string>());
 
   const demoMode = runtime?.demo_mode === true;
   const importsEnabled = runtime?.capabilities?.document_import !== false;
@@ -123,17 +125,30 @@ function App() {
     if (!demoMode && activeView === "explore") navigate("today");
   }, [demoMode, activeView]);
 
-  async function loadEvidenceWorkspace() {
+  async function loadEvidenceWorkspace(requestedID?: string) {
     setEvidenceState("loading");
     const [sourcesResult, requestsResult] = await Promise.allSettled([loadEvidenceSources(), loadEvidenceRequests()]);
     if (sourcesResult.status === "fulfilled" && requestsResult.status === "fulfilled") {
+      let requests = requestsResult.value;
+      if (requestedID && !requests.some((request) => request.id === requestedID)) {
+        evidenceTargetAttempts.current.add(requestedID);
+        const requested = await loadEvidenceRequest(requestedID).catch(() => null);
+        if (requested) requests = [requested, ...requests];
+      }
       setSources(sourcesResult.value);
-      setEvidenceRequests(requestsResult.value);
+      setEvidenceRequests(requests);
       setEvidenceState("live");
-      return requestsResult.value;
+      return requests;
     }
     setEvidenceState("unavailable");
     return [];
+  }
+
+  async function ensureEvidenceTarget(requestedID: string) {
+    if (evidenceTargetAttempts.current.has(requestedID)) return;
+    evidenceTargetAttempts.current.add(requestedID);
+    const requested = await loadEvidenceRequest(requestedID).catch(() => null);
+    if (requested) setEvidenceRequests((current) => current.some((item) => item.id === requested.id) ? current : [requested, ...current]);
   }
 
   async function loadConfigureWorkspace() {
@@ -163,8 +178,15 @@ function App() {
   }
 
   useEffect(() => {
-    if (activeView === "work" && workTab === "evidence" && evidenceState === "idle") void loadEvidenceWorkspace();
-  }, [activeView, workTab, evidenceState]);
+    if (activeView !== "work" || workTab !== "evidence") return;
+    if (evidenceState === "idle") {
+      void loadEvidenceWorkspace(target.evidenceID);
+      return;
+    }
+    if (evidenceState === "live" && target.evidenceID && !evidenceRequests.some((request) => request.id === target.evidenceID)) {
+      void ensureEvidenceTarget(target.evidenceID);
+    }
+  }, [activeView, workTab, evidenceState, target.evidenceID, evidenceRequests]);
 
   useEffect(() => {
     if (activeView === "configure" && configureState === "idle") void loadConfigureWorkspace();
@@ -192,6 +214,11 @@ function App() {
     if (window.location.hash !== hash) window.history.pushState(null, "", hash);
   }
 
+  function closePanel() {
+    captureLoadID.current++;
+    setActivePanel("none");
+  }
+
   async function inspectRouting() {
     setActivePanel("routing");
     if (!resolution) setResolution(await resolveAuthority().catch(() => null));
@@ -199,14 +226,27 @@ function App() {
 
   async function openCapture(requestID?: string) {
     if (!requestID && !demoMode) return;
+    const loadID = ++captureLoadID.current;
     setActivePanel("capture");
+
     if (requestID) {
-      const loaded = evidenceRequests.find((request) => request.id === requestID)
-        ?? await loadEvidenceRequest(requestID).catch(() => null);
+      const existing = evidenceRequests.find((request) => request.id === requestID);
+      if (existing) {
+        setCapture({ ...existing, source: "evidence" });
+        return;
+      }
+      setCapture(null);
+      const loaded = await loadEvidenceRequest(requestID).catch(() => null);
+      if (loadID !== captureLoadID.current) return;
       setCapture(loaded ? { ...loaded, source: "evidence" } : null);
       return;
     }
-    if (!capture) setCapture(await loadCaptureRequest().catch(() => null));
+
+    if (capture) return;
+    setCapture(null);
+    const loaded = await loadCaptureRequest().catch(() => null);
+    if (loadID !== captureLoadID.current) return;
+    setCapture(loaded);
   }
 
   async function openPrimaryEvidence() {
@@ -270,13 +310,13 @@ function App() {
       <div className="context-bar" aria-label="Active workspace context"><div><strong>{organizationName}</strong><span>{legalEntityName}</span></div><div className="context-role"><span>{roleName}</span>{demoMode && <mark>Stakeholder demo</mark>}</div></div>
       {activeView === "today" && <TodayView organizationName={organizationName} items={items} connection={connection} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onRouting={inspectRouting} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention}/>} 
       {activeView === "programs" && <ProgramsView organizationName={organizationName} targetID={target.programID} openFirst={target.openFirstProgram}/>} 
-      {activeView === "work" && <WorkView organizationName={organizationName} tab={workTab} onTab={(tab) => navigate("work", {}, tab)} sources={sources} requests={evidenceRequests} evidenceState={evidenceState} onEvidenceRetry={() => void loadEvidenceWorkspace()} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)}/>} 
+      {activeView === "work" && <WorkView organizationName={organizationName} tab={workTab} onTab={(tab) => navigate("work", {}, tab)} sources={sources} requests={evidenceRequests} evidenceState={evidenceState} onEvidenceRetry={() => void loadEvidenceWorkspace(target.evidenceID)} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)}/>} 
       {activeView === "imports" && <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Imports</h1><p>Bring controlled source material into ClearSight for traceable extraction and human review.</p></div></header><DocumentImportWorkspace/></>} 
       {activeView === "explore" && demoMode && <ExploreView organizationName={organizationName}/>} 
       {activeView === "configure" && <ConfigureView policies={policies} findings={integrity} tasks={tasks} projectionHealth={projectionHealth} state={configureState} onRetry={() => void loadConfigureWorkspace()} onReconcile={checkProgramStatusRecords}/>} 
     </main>
     <nav className="mobile-nav" aria-label="Mobile navigation">{navigation.map(({ label, view }) => <button key={view} type="button" aria-current={activeView === view ? "page" : undefined} onClick={() => navigate(view)}><NavigationIcon view={view}/><span>{label}</span></button>)}</nav>
-    {activePanel !== "none" && <div className="panel-backdrop" onMouseDown={() => setActivePanel("none")}><aside className="side-panel" onMouseDown={(event) => event.stopPropagation()} aria-label={activePanel === "routing" ? "Approval route" : "Evidence request"}><button className="panel-close" onClick={() => setActivePanel("none")} aria-label="Close">×</button>{activePanel === "routing" ? <RoutingPanel resolution={resolution} legalEntityName={legalEntityName}/> : <CapturePanel request={capture}/>}</aside></div>}
+    {activePanel !== "none" && <div className="panel-backdrop" onMouseDown={closePanel}><aside className="side-panel" onMouseDown={(event) => event.stopPropagation()} aria-label={activePanel === "routing" ? "Approval route" : "Evidence request"}><button className="panel-close" onClick={closePanel} aria-label="Close">×</button>{activePanel === "routing" ? <RoutingPanel resolution={resolution} legalEntityName={legalEntityName}/> : <CapturePanel request={capture}/>}</aside></div>}
     <RoleAwareOnboarding runtime={runtime} onStep={executeGuideStep}/>
   </div>;
 }

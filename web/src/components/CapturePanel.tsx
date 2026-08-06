@@ -16,7 +16,7 @@ export function CapturePanel({ request }: { request: CaptureRequest | null }) {
     setReceipt(null);
     setError(null);
     setSubmitting(false);
-  }, [request?.id]);
+  }, [request?.id, request?.version]);
 
   async function submit() {
     if (!request || submitting) return;

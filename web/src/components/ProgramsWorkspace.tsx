@@ -1,4 +1,5 @@
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import { loadProgram, loadProgramSummaries } from "../api";
 import type { ProgramSummary } from "../summaryTypes";
 import type { ProgramAggregate, ProgramState } from "../types";
@@ -28,6 +29,21 @@ function stateClass(value?: ProgramState) {
     case "AT_RISK": case "EVIDENCE_INSUFFICIENT": case "IMPLEMENTATION_PENDING": case "UNDER_REVIEW": return "status-warning";
     default: return "status-neutral";
   }
+}
+
+function summaryFromAggregate(detail: ProgramAggregate): ProgramSummary {
+  const current = detail.current_state;
+  return {
+    program: detail.program,
+    state_label: detail.state_label,
+    overall_state: current?.overall_state ?? current?.overall ?? "UNKNOWN",
+    reasons: current?.reasons ?? [],
+    open_matter_count: current?.open_matter_count ?? 0,
+    requirement_count: detail.requirements.length,
+    safeguard_count: detail.control_implementations.length,
+    evidence_check_count: detail.evidence_contracts.length,
+    state_generated_at: current?.generated_at,
+  };
 }
 
 export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
@@ -80,15 +96,17 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
     setStatus("");
   }
 
-  async function fetchDetail(id: string) {
-    if (detailState[id] === "loading") return;
+  async function fetchDetail(id: string): Promise<ProgramAggregate | null> {
+    if (detailState[id] === "loading") return details[id] ?? null;
     setDetailState((current) => ({ ...current, [id]: "loading" }));
     try {
       const value = await loadProgram(id);
       setDetails((current) => ({ ...current, [id]: value }));
       setDetailState((current) => ({ ...current, [id]: "live" }));
+      return value;
     } catch {
       setDetailState((current) => ({ ...current, [id]: "unavailable" }));
+      return null;
     }
   }
 
@@ -102,12 +120,20 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
   }
 
   useEffect(() => {
-    if (state !== "live" || !items.length) return;
+    if (state !== "live") return;
     const id = targetID ?? (openFirst ? items[0]?.program.id : undefined);
     if (!id || handledTarget.current === id) return;
     handledTarget.current = id;
-    setOpenID(id);
-    void fetchDetail(id).finally(() => window.setTimeout(() => document.getElementById(`program-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 80));
+
+    void (async () => {
+      const inPage = items.some((item) => item.program.id === id);
+      const detail = details[id] ?? await fetchDetail(id);
+      if (detail && !inPage) {
+        setItems((current) => current.some((item) => item.program.id === id) ? current : [summaryFromAggregate(detail), ...current]);
+      }
+      if (detail || inPage) setOpenID(id);
+      window.setTimeout(() => document.getElementById(`program-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+    })();
   }, [state, items, targetID, openFirst]);
 
   if (state === "loading") return <section id="programs-workspace" className="workspace-loading" aria-live="polite" aria-busy="true">Loading programs…</section>;
@@ -118,6 +144,9 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
     : summary.setup > 0
       ? `${summary.setup} loaded program${summary.setup === 1 ? " is" : "s are"} still being set up`
       : items.length ? "No recorded gaps or overdue work in the loaded programs" : "No programs in this scope";
+  const targetInList = !targetID || items.some((item) => item.program.id === targetID);
+  const targetLoading = Boolean(targetID && !targetInList && detailState[targetID] === "loading");
+  const targetUnavailable = Boolean(targetID && !targetInList && detailState[targetID] === "unavailable");
 
   return <div id="programs-workspace">
     <section className="workspace-brief">
@@ -130,7 +159,9 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
       <button className="secondary-button" type="submit">Search</button>
       {(search || status) && <button className="text-button" type="button" onClick={clearFilters}>Clear filters</button>}
     </form>
-    {!items.length ? <EmptyState label="Programs" title={search || status ? "No programs match these filters" : "No programs in this scope"} description={search || status ? "Change the search or status filter to see other programs." : "There are no ongoing compliance or control programs in the connected bank scope."} action={search || status ? "Clear filters" : undefined} onAction={clearFilters}/> : <section className="program-list">
+    {targetLoading && <div className="workspace-loading compact" aria-live="polite" aria-busy="true">Loading requested Program…</div>}
+    {targetUnavailable && <EmptyState label="Requested Program" title="The requested Program could not be loaded" description="It may be outside your current access scope or no longer available."/>}
+    {!items.length && !targetLoading && !targetUnavailable ? <EmptyState label="Programs" title={search || status ? "No programs match these filters" : "No programs in this scope"} description={search || status ? "Change the search or status filter to see other programs." : "There are no ongoing compliance or control programs in the connected bank scope."} action={search || status ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="program-list">
       {items.map((summaryItem) => {
         const program = summaryItem.program;
         const isOpen = openID === program.id;
@@ -155,7 +186,7 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
           </div>}
         </article>;
       })}
-    </section>}
+    </section> : null}
     {nextCursor && <div className="load-more"><button className="secondary-button" disabled={loadingMore} onClick={() => void load(false, nextCursor)}>{loadingMore ? "Loading…" : "Load more programs"}</button></div>}
   </div>;
 }

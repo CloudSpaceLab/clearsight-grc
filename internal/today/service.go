@@ -47,6 +47,11 @@ func (s *Service) ListFor(ctx context.Context, actor identity.Actor) ([]Attentio
 
 func sortAttention(items []AttentionItem) {
 	sort.Slice(items, func(i, j int) bool {
+		leftNoDeadline := items[i].DueAt.IsZero()
+		rightNoDeadline := items[j].DueAt.IsZero()
+		if leftNoDeadline != rightNoDeadline {
+			return !leftNoDeadline
+		}
 		if items[i].DueAt.Equal(items[j].DueAt) {
 			return items[i].ID < items[j].ID
 		}
