@@ -123,7 +123,7 @@ func New(deps Dependencies) http.Handler {
 	mux.HandleFunc("GET /api/v1/workflow/tasks", api.listWorkflowTasks)
 	mux.HandleFunc("POST /api/v1/workflow/tasks", api.createWorkflowTask)
 	mux.HandleFunc("POST /api/v1/workflow/tasks/{id}/transition", api.transitionWorkflowTask)
-	mux.HandleFunc("GET /api/v1/onboarding/guide", api.onboardingGuide)
+	mux.HandleFunc("GET /api/v1/onboarding/guide", api.actorOnboardingGuide)
 	mux.HandleFunc("GET /api/v1/onboarding/state", api.onboardingState)
 	mux.HandleFunc("PUT /api/v1/onboarding/state", api.updateOnboardingState)
 	mux.HandleFunc("GET /api/v1/compliance/readiness", api.readiness)
