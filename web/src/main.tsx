@@ -8,6 +8,7 @@ import "./continuity.css";
 import "./journeys.css";
 import "./document-import.css";
 import "./product-finish.css";
+import "./interventions.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Application root is missing");

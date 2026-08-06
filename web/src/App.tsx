@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   loadCaptureRequest,
   loadContext,
@@ -45,6 +45,12 @@ const fallbackItems: AttentionItem[] = [
     owner: "Regulatory Compliance",
     due_at: new Date(Date.now() + 3 * 86400000).toISOString(),
     primary_action: "Review the proposed requirements",
+    intervention_class: "REVIEW",
+    material_conclusion: "Seven source-linked provisions may change digital-channel obligations.",
+    recommendation: {
+      proposed_action: "Review the proposed requirements",
+      rationale: "The source change may affect mobile banking and two payment vendors.",
+    },
   },
 ];
 
@@ -164,14 +170,6 @@ function App() {
     if (activeView === "configure" && configureState === "idle") void loadConfigureWorkspace();
   }, [activeView, configureState]);
 
-  const dueSoon = useMemo(() => {
-    const now = Date.now();
-    return items.filter((item) => {
-      const remaining = Date.parse(item.due_at) - now;
-      return Number.isFinite(remaining) && remaining >= 0 && remaining <= 4 * 86400000;
-    }).length;
-  }, [items]);
-
   const organizationName = runtime?.tenant.name || "Connected organization";
   const legalEntityName = runtime?.legal_entity.name || "Connected legal entity";
   const actorName = runtime?.actor.name || runtime?.actor.id || "Signed-in user";
@@ -270,7 +268,7 @@ function App() {
     </aside>
     <main>
       <div className="context-bar" aria-label="Active workspace context"><div><strong>{organizationName}</strong><span>{legalEntityName}</span></div><div className="context-role"><span>{roleName}</span>{demoMode && <mark>Stakeholder demo</mark>}</div></div>
-      {activeView === "today" && <TodayView organizationName={organizationName} items={items} dueSoon={dueSoon} connection={connection} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onRouting={inspectRouting} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention}/>} 
+      {activeView === "today" && <TodayView organizationName={organizationName} items={items} connection={connection} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onRouting={inspectRouting} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention}/>} 
       {activeView === "programs" && <ProgramsView organizationName={organizationName} targetID={target.programID} openFirst={target.openFirstProgram}/>} 
       {activeView === "work" && <WorkView organizationName={organizationName} tab={workTab} onTab={(tab) => navigate("work", {}, tab)} sources={sources} requests={evidenceRequests} evidenceState={evidenceState} onEvidenceRetry={() => void loadEvidenceWorkspace()} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)}/>} 
       {activeView === "imports" && <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Imports</h1><p>Bring controlled source material into ClearSight for traceable extraction and human review.</p></div></header><DocumentImportWorkspace/></>} 
