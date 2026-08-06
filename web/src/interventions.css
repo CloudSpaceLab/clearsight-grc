@@ -34,6 +34,38 @@
 .continuous-checks-detail h3 { margin: 10px 0 7px; font-size: 11px; }
 .continuous-checks-detail ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 11px; line-height: 1.55; }
 .continuous-checks-detail p { margin: 9px 0 0; font-size: 11px; }
+
+.workspace-brief { display: flex; justify-content: space-between; align-items: end; gap: 28px; margin: 28px 0 18px; padding: 0 2px 16px; border-bottom: 1px solid var(--border); }
+.workspace-brief > div:first-child { min-width: 0; }
+.workspace-brief h2 { margin-top: 7px; font-size: 25px; }
+.workspace-brief p { max-width: 700px; margin: 5px 0 0; font-size: 12px; }
+.workspace-brief-facts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 16px; color: var(--muted); font-size: 10px; white-space: nowrap; }
+.workspace-brief-facts strong { margin-right: 4px; color: var(--text); font-size: 13px; }
+.configure-brief { align-items: flex-start; }
+.progressive-detail { grid-template-columns: 1fr !important; gap: 0 !important; padding-left: 21px !important; }
+.progressive-detail > section { padding-bottom: 16px; }
+.status-reasons { max-width: 880px; }
+.progressive-section { border-top: 1px solid var(--border); }
+.progressive-section summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 13px 0; color: var(--text); font-size: 11px; font-weight: 700; }
+.progressive-section summary::-webkit-details-marker { display: none; }
+.progressive-section summary::after { content: "+"; color: var(--cyan); font-size: 17px; font-weight: 400; }
+.progressive-section[open] summary::after { content: "−"; }
+.progressive-section summary strong { margin-left: auto; color: var(--muted); font-size: 10px; font-weight: 600; }
+.progressive-section > div { padding: 2px 0 16px; }
+.progressive-section section + section { margin-top: 18px; }
+.handoff-summary > strong { display: block; margin-top: 8px; font-size: 15px; }
+.handoff-summary > p { max-width: 760px; margin: 5px 0 0; }
+.handoff-flags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.handoff-flags span { padding: 5px 8px; border: 1px solid rgba(233,183,90,.22); border-radius: 8px; color: var(--amber); background: rgba(233,183,90,.05); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
+.evidence-workbench { margin-top: 8px; }
+.source-inventory { margin-top: 20px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.source-inventory summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 14px 2px; }
+.source-inventory summary::-webkit-details-marker { display: none; }
+.source-inventory summary > div { display: grid; gap: 3px; }
+.source-inventory summary > span { color: var(--muted); font-size: 10px; }
+.source-inventory summary strong { font-size: 12px; }
+.source-inventory .source-list { padding-bottom: 8px; border-top: 1px solid rgba(38,57,77,.55); }
+
 .response-review > p { margin-top: 0; }
 .review-assertions { display: grid; margin: 22px 0 0; border-top: 1px solid var(--border); }
 .review-assertions > div { display: grid; grid-template-columns: minmax(130px, .42fr) minmax(0, 1fr); gap: 14px; padding: 13px 0; border-bottom: 1px solid var(--border); }
@@ -46,17 +78,20 @@
   .intervention-row { grid-template-columns: 1fr; gap: 14px; }
   .intervention-next { padding: 12px 0 0; border-left: 0; border-top: 1px solid rgba(38,57,77,.65); }
   .continuous-checks-detail { grid-template-columns: 1fr; }
+  .workspace-brief { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .workspace-brief-facts { justify-content: flex-start; }
 }
 
 @media (max-width: 560px) {
   .today-topbar h1 { font-size: 34px; }
-  .intervention-heading h2 { font-size: 22px; }
+  .intervention-heading h2, .workspace-brief h2 { font-size: 22px; }
   .intervention-row { padding-block: 17px; }
   .intervention-meta { display: grid; gap: 4px; }
   .intervention-meta span::after { display: none; }
   .intervention-next .primary-button { width: 100%; }
-  .continuous-checks summary { align-items: flex-start; flex-direction: column; }
+  .continuous-checks summary, .source-inventory summary { align-items: flex-start; flex-direction: column; }
   .continuous-checks summary > div:last-child { justify-items: start; }
   .continuous-checks-detail dl { grid-template-columns: 1fr; }
+  .workspace-brief-facts { display: grid; gap: 4px; white-space: normal; }
   .review-assertions > div { grid-template-columns: 1fr; gap: 5px; }
 }

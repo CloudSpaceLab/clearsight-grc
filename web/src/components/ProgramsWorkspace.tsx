@@ -3,7 +3,6 @@ import { loadProgram, loadProgramSummaries } from "../api";
 import type { ProgramSummary } from "../summaryTypes";
 import type { ProgramAggregate, ProgramState } from "../types";
 import { EmptyState } from "./EmptyState";
-import { PremiumIllustration } from "./PremiumIllustration";
 
 type LoadState = "loading" | "live" | "unavailable";
 type Props = { targetID?: string; openFirst?: boolean };
@@ -114,16 +113,16 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
   if (state === "loading") return <section id="programs-workspace" className="workspace-loading" aria-live="polite" aria-busy="true">Loading programs…</section>;
   if (state === "unavailable") return <div id="programs-workspace"><EmptyState label="Programs" title="Programs could not be loaded" description="The service is unavailable. No program totals are shown." action="Try again" onAction={() => void load(true)}/></div>;
 
-  const heroTitle = summary.attention > 0
-    ? `${summary.attention} loaded program${summary.attention === 1 ? " has" : "s have"} gaps, incomplete evidence or overdue work`
+  const briefTitle = summary.attention > 0
+    ? `${summary.attention} loaded program${summary.attention === 1 ? " requires" : "s require"} follow-up`
     : summary.setup > 0
       ? `${summary.setup} loaded program${summary.setup === 1 ? " is" : "s are"} still being set up`
       : items.length ? "No recorded gaps or overdue work in the loaded programs" : "No programs in this scope";
 
   return <div id="programs-workspace">
-    <section className="program-hero">
-      <div><span className="eyebrow">Ongoing compliance</span><h2>{heroTitle}</h2><p>Requirements, safeguards, evidence checks and open issues for ongoing responsibilities.</p></div>
-      <PremiumIllustration variant="readiness"/>
+    <section className="workspace-brief">
+      <div><span className="eyebrow">Ongoing compliance</span><h2>{briefTitle}</h2><p>Open a Program only when you need the status reason or deeper source context.</p></div>
+      <div className="workspace-brief-facts" aria-label="Loaded Program status"><span><strong>{summary.attention}</strong> follow-up</span><span><strong>{summary.current}</strong> current</span><span><strong>{summary.setup}</strong> setup or review</span></div>
     </section>
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
       <label><span>Search programs</span><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Name, code, function or jurisdiction"/></label>
@@ -131,11 +130,6 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
       <button className="secondary-button" type="submit">Search</button>
       {(search || status) && <button className="text-button" type="button" onClick={clearFilters}>Clear filters</button>}
     </form>
-    <section className="program-summary" aria-label="Loaded program summary">
-      <div><span>Loaded programs</span><strong>{items.length}</strong><small>{nextCursor ? "More programs are available" : "End of current result"}</small></div>
-      <div><span>Up to date</span><strong>{summary.current}</strong><small>Latest recorded status in this result</small></div>
-      <div><span>Open gaps or overdue work</span><strong>{summary.attention}</strong><small>Includes incomplete evidence and work in progress</small></div>
-    </section>
     {!items.length ? <EmptyState label="Programs" title={search || status ? "No programs match these filters" : "No programs in this scope"} description={search || status ? "Change the search or status filter to see other programs." : "There are no ongoing compliance or control programs in the connected bank scope."} action={search || status ? "Clear filters" : undefined} onAction={clearFilters}/> : <section className="program-list">
       {items.map((summaryItem) => {
         const program = summaryItem.program;
@@ -146,17 +140,17 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
           <button className="program-card-main" type="button" aria-expanded={isOpen} aria-controls={`program-detail-${program.id}`} onClick={() => void toggleDetail(program.id)}>
             <span className="program-icon"><ProgramIcon/></span>
             <span className="program-primary"><span className="program-kicker">{program.code} · {program.owning_function}</span><strong>{program.name}</strong>{program.jurisdiction && <small>{program.jurisdiction}</small>}</span>
-            <span className="program-counts"><span><b>{summaryItem.requirement_count}</b> requirements recorded</span><span><b>{summaryItem.safeguard_count}</b> safeguards</span><span><b>{summaryItem.evidence_check_count}</b> evidence checks</span></span>
-            <span className={`program-state ${stateClass(summaryItem.overall_state)}`}><strong>{summaryItem.state_label || "Not assessed"}</strong><small>{summaryItem.open_matter_count} open issue{summaryItem.open_matter_count === 1 ? "" : "s"}</small></span>
+            <span className="program-counts"><span><b>{summaryItem.requirement_count}</b> requirements</span><span><b>{summaryItem.evidence_check_count}</b> evidence checks</span><span><b>{summaryItem.open_matter_count}</b> open issues</span></span>
+            <span className={`program-state ${stateClass(summaryItem.overall_state)}`}><strong>{summaryItem.state_label || "Not assessed"}</strong><small>{summaryItem.reasons[0]?.summary ?? "Open for current status reasons"}</small></span>
             <span className="expand-indicator" aria-hidden="true">{isOpen ? "−" : "+"}</span>
           </button>
-          {isOpen && <div className="program-detail" id={`program-detail-${program.id}`}>
+          {isOpen && <div className="program-detail progressive-detail" id={`program-detail-${program.id}`}>
             {currentDetailState === "loading" && <p aria-live="polite">Loading program details…</p>}
             {currentDetailState === "unavailable" && <div className="inline-error"><p>Program details could not be loaded.</p><button className="secondary-button" onClick={() => void fetchDetail(program.id)}>Try again</button></div>}
             {detail && <>
-              <section><h3>Why this status</h3>{detail.current_state?.reasons?.length ? <ul>{detail.current_state.reasons.map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul> : <p>No status reasons are recorded for the latest assessment.</p>}</section>
-              <section><h3>Requirements</h3>{detail.requirements.length ? detail.requirements.map((requirement) => <div className="detail-row" key={requirement.id}><div><strong>{requirement.title}</strong><small>{requirement.statement}</small>{requirement.source_anchor && <small>Source: {requirement.source_anchor}</small>}</div><span>{requirementStatusLabel(requirement.status)}</span></div>) : <p>No approved requirements have been added.</p>}</section>
-              <section><h3>Required evidence</h3>{detail.evidence_contracts.length ? detail.evidence_contracts.map((contract) => <div className="detail-row" key={contract.id}><div><strong>{contract.name}</strong><small>{contract.claim}</small></div><span>Required coverage: {Math.round(contract.minimum_coverage * 100)}%</span></div>) : <p>No evidence checks have been defined.</p>}</section>
+              <section className="status-reasons"><h3>Why this status</h3>{detail.current_state?.reasons?.length ? <ul>{detail.current_state.reasons.map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul> : <p>No status reasons are recorded for the latest assessment.</p>}</section>
+              <details className="progressive-section"><summary><span>Requirements</span><strong>{detail.requirements.length}</strong></summary><div>{detail.requirements.length ? detail.requirements.map((requirement) => <div className="detail-row" key={requirement.id}><div><strong>{requirement.title}</strong><small>{requirement.statement}</small>{requirement.source_anchor && <small>Source: {requirement.source_anchor}</small>}</div><span>{requirementStatusLabel(requirement.status)}</span></div>) : <p>No approved requirements have been added.</p>}</div></details>
+              <details className="progressive-section"><summary><span>Evidence expectations</span><strong>{detail.evidence_contracts.length}</strong></summary><div>{detail.evidence_contracts.length ? detail.evidence_contracts.map((contract) => <div className="detail-row" key={contract.id}><div><strong>{contract.name}</strong><small>{contract.claim}</small></div><span>Required coverage: {Math.round(contract.minimum_coverage * 100)}%</span></div>) : <p>No evidence checks have been defined.</p>}</div></details>
             </>}
           </div>}
         </article>;

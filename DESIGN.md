@@ -53,15 +53,27 @@ Use an 8px spacing rhythm, 11–18px controls, 12–18px cards and 20–26px her
 
 ## Structural patterns
 
-- **Today:** assigned work, due items and current-population status.
-- **Programs:** ongoing responsibilities, current status and reasons.
-- **Issues and changes:** bounded items needing review, decision, action, response or outcome confirmation.
-- **Work:** source health and focused evidence requests.
+- **Intervention Summary:** actor-scoped read projection for one human review, decision, authorization, evidence exception, escalation or outcome check. It is not new authoritative state.
+- **Today:** intervention queue first; quiet continuous-check context follows the human work rather than preceding it with a KPI wall.
+- **Programs:** ongoing responsibilities, current status and reasons. Show the status reason before the complete requirement/evidence catalogue.
+- **Issues and changes:** bounded items needing review, decision, action, response or outcome confirmation. Show the current handoff before history.
+- **Work:** review queues and focused evidence. Complete source inventories are secondary context.
 - **Configure:** policy, routing, integrity and ownership.
 - **Side panel:** bounded inspection or one focused action without losing list context.
 - **Dedicated page:** complex or protected work requiring several sections, parallel work or a durable saved state.
 
 Do not default every concept to a dashboard card. Choose lists, rows, details, tables, timelines or focused forms according to the operator's task.
+
+### Progressive disclosure for governed work
+
+Use the same reading burden across operational surfaces:
+
+1. **Queue:** human gate, material conclusion, scope, evidence state, deadline and prepared next step.
+2. **Current handoff:** what changed or why the current state needs this actor.
+3. **Review context:** evidence, contradictions, alternatives, decisions, actions and verification.
+4. **Reconstruction:** complete Program/Matter, source lineage, imported material, operator receipt and immutable history.
+
+Complete context must remain reachable, but it must not be the default reading burden. Do not relabel ordinary status data as AI or automated work; show operator/prepared-work claims only when a governed receipt exists.
 
 ## Copy
 
@@ -112,6 +124,8 @@ Motion is functional and short: panel entry, expansion, focus, progress and stat
 ## Illustration and icons
 
 Illustrations use an editorial, semi-abstract vector language with restrained geometry, soft depth and no mascot personality. They support first-run guidance, empty states, education and completion. Semantic line icons identify recurring object types. Neither replaces labels or status.
+
+Populated default Today, Programs, Work, Evidence and Configure states do not use decorative hero illustrations. Their primary visual hierarchy comes from the human gate, status, evidence and next action.
 
 ## Design proof
 

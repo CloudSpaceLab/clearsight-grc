@@ -8,6 +8,7 @@ vi.mock("./components/RoleAwareOnboarding", () => ({ RoleAwareOnboarding: () => 
 vi.mock("./api", () => ({
   loadCaptureRequest: vi.fn(),
   loadContext: vi.fn(),
+  loadEvidenceRequest: vi.fn(),
   loadEvidenceRequests: vi.fn().mockResolvedValue([]),
   loadEvidenceSources: vi.fn().mockResolvedValue([]),
   loadIntegrity: vi.fn().mockResolvedValue([]),
@@ -67,12 +68,12 @@ describe("runtime navigation", () => {
     expect(document.documentElement.dataset.clearsightDemo).toBe("on");
   });
 
-  it("opens the exact Program encoded by a Today item", async () => {
+  it("opens the exact Program encoded by a Today intervention", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     vi.mocked(loadToday).mockResolvedValue([{ id: "today-program", type: "PROGRAM", title: "Review privacy programme", why_now: "Evidence changed.", scope: "Privacy", state: "Evidence incomplete", evidence: "One gap", owner: "DPO", due_at: "2026-08-09T12:00:00Z", primary_action: "Review reasons", action_target_type: "PROGRAM", action_target_id: "program-123" }]);
     render(<App />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Open exact record" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Review and act" }));
     await screen.findByRole("heading", { name: "Programs" });
     expect(window.location.hash).toBe("#programs/program-123");
   });

@@ -39,8 +39,8 @@ describe("TodayInterventions", () => {
     expect(screen.getByRole("heading", { name: "1 item requires your action" })).toBeTruthy();
     expect(screen.getByText("Seven provisions may change current obligations.")).toBeTruthy();
     expect(screen.getByText("Review proposed obligations")).toBeTruthy();
-    expect(screen.getByText("Continuous checks")).toBeTruthy();
-    expect(screen.queryByText("Review the changed requirement.")).toBeNull();
+    const continuousChecks = screen.getByText("Continuous checks").closest("details") as HTMLDetailsElement | null;
+    expect(continuousChecks?.open).toBe(false);
 
     fireEvent.click(screen.getByRole("button", { name: "Review and act" }));
     expect(onOpen).toHaveBeenCalledWith(item);
