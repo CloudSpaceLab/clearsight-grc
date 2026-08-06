@@ -22,7 +22,7 @@ export function RoleAwareOnboarding({ runtime, onStep }: Props) {
   const load = useCallback(async () => {
     if (!runtime) return;
     try {
-      const resolved = await loadRoleGuide(runtime.actor.role_codes ?? []);
+      const resolved = await loadRoleGuide();
       const saved = await loadGuideState(resolved.code);
       const tourMode = new URLSearchParams(window.location.search).get("tour");
       setGuide(resolved);
