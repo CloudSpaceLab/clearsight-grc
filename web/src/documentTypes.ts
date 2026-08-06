@@ -1,0 +1,5 @@
+export type ProposalStatus = "PENDING_REVIEW" | "ACCEPTED" | "REJECTED";
+export type DocumentAnchor = { section_id: string; quote: string; page?: number; sheet?: string; row_start?: number; row_end?: number };
+export type DocumentSection = { id: string; sequence: number; title: string; text: string; page?: number; sheet?: string; row_start?: number; row_end?: number };
+export type DocumentProposal = { id: string; kind: string; title: string; statement: string; confidence: number; anchor: DocumentAnchor; status: ProposalStatus; reviewed_by?: string; reviewed_at?: string; review_note?: string };
+export type DocumentImport = { id: string; tenant_id: string; legal_entity_id?: string; file_name: string; media_type: string; purpose: string; source_type: string; size_bytes: number; sha256: string; storage_key: string; artifact_status: string; extraction_status: string; extraction_method: string; analysis_status: string; analysis_method: string; limitations: string[]; sections: DocumentSection[]; proposals: DocumentProposal[]; created_by: string; created_at: string; updated_at: string; version: number };
