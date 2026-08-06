@@ -69,9 +69,10 @@ The detailed finished-product experience and delivery sequence are defined in:
 - [x] screen-level decision-brief and rendered-evidence contracts.
 - [x] journey progress semantics, specific control names, focus states, responsive reflow and reduced-motion handling.
 - [x] full material facts, reasons, requirements, contradictions and closure blockers without silent truncation.
+- [x] rendered import-state and demo-mode tests with axe accessibility checks enforced in CI.
 - [ ] admin-authored guide definitions with approval/versioning.
 - [ ] automated state-gallery screenshots and visual-regression checks.
-- [ ] automated WCAG contrast, keyboard and screen-reader regression suite.
+- [ ] automated WCAG contrast, keyboard and screen-reader regression suite across all product surfaces.
 
 ### Continuous autonomy
 
@@ -99,10 +100,18 @@ The detailed finished-product experience and delivery sequence are defined in:
 - [x] Work workspace for source health and evidence requests.
 - [x] Matter-derived request visibility before PostgreSQL limits, regardless of duplicated request sensitivity.
 - [x] actionable-request selection before submitted/cancelled historical requests.
+- [x] tenant-scoped governed document-import records with immutable original metadata, SHA-256 lineage and PostgreSQL persistence.
+- [x] deterministic TXT, Markdown, CSV, DOCX and XLSX extraction with section, worksheet and row anchors.
+- [x] source-anchored requirement, deadline, authority-reference, control-expectation and risk proposals that remain advisory until explicit review.
+- [x] actor-bound import/list/detail/review APIs and an operational Imports workbench.
+- [x] optimistic, identity-recorded accept/reject review without automatic governed-record creation.
+- [x] configurable stakeholder demo mode that is independent from normal document imports and prohibited in production.
 - [ ] production object storage, encryption-key policy and malware scanning.
 - [ ] legal hold, retention and deletion workers.
 - [ ] verified external identity and step-up authentication.
-- [ ] resumable multipart upload and spreadsheet/document import pipeline.
+- [ ] PDF text extraction, image OCR, password-protected-document handling and approved extraction-provider isolation.
+- [ ] resumable multipart upload, saved mappings, partial acceptance and repeat-import reconciliation.
+- [ ] accepted-proposal conversion into versioned governed records through authorized, maker-checker workflows.
 - [ ] protected-report identity/content separation and anonymous mailbox.
 
 ## Phase 3 — Programs and Matters
@@ -243,6 +252,7 @@ Every completed item still requires relevant authorization, invitation, source, 
 - [x] Separately versioned Program-status maintenance with health, reconciliation and governed rebuild operations.
 - [x] Cross-tenant query-scope rejection and fail-closed restricted-read tests.
 - [x] Partial reference-install recovery and current-record negative tests.
+- [x] Governed document-import tenant isolation, optimistic review, demo-mode separation and rendered accessibility tests.
 
 ### Enterprise productization gates
 
@@ -255,6 +265,7 @@ Every completed item still requires relevant authorization, invitation, source, 
 - [ ] WebAuthn/TOTP, recovery, session revocation and material-command step-up evidence.
 - [ ] Complete light/dark state coverage, accessibility and retained visual-regression evidence.
 - [ ] Production object-store, scanning, retention and legal-hold evidence.
+- [ ] PDF/OCR extraction-provider security, resource limits and source-anchor acceptance evidence.
 - [ ] Representative 100,000-row p95/p99 release evidence and retained query plans.
 - [ ] Backup, restore, provider outage and safe degraded-mode exercises.
 - [ ] Pilot-bank configuration approval and governed go-live record.
