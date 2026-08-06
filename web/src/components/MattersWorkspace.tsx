@@ -6,6 +6,7 @@ import { EmptyState } from "./EmptyState";
 import { PremiumIllustration } from "./PremiumIllustration";
 
 type LoadState = "loading" | "live" | "unavailable";
+type Props = { targetID?: string; openFirst?: boolean };
 
 function MatterIcon({ type }: { type: string }) {
   const common = { width: 21, height: 21, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
@@ -21,7 +22,7 @@ function actionStatusLabel(value: string) {
     case "BLOCKED": return "Blocked";
     case "IMPLEMENTED": return "Work completed; outcome not confirmed";
     case "CANCELLED": return "Cancelled";
-    default: return value.replaceAll("_", " ").toLowerCase();
+    default: return humanizeKey(value);
   }
 }
 
@@ -34,12 +35,12 @@ function priorityLabel(value: number) {
 }
 
 function humanizeKey(value: string) {
-  return value.replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+  return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 }
 
 function formatFact(value: unknown) {
   if (value === null || value === undefined || value === "") return "Not recorded";
-  if (typeof value === "object") return JSON.stringify(value);
+  if (typeof value === "object") return JSON.stringify(value, null, 2);
   return String(value);
 }
 
@@ -58,7 +59,7 @@ function resultLabel(value?: string) {
   }
 }
 
-export function MattersWorkspace() {
+export function MattersWorkspace({ targetID, openFirst = false }: Props) {
   const [items, setItems] = useState<MatterSummary[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [nextCursor, setNextCursor] = useState("");
@@ -70,6 +71,7 @@ export function MattersWorkspace() {
   const [detailState, setDetailState] = useState<Record<string, LoadState>>({});
   const [loadingMore, setLoadingMore] = useState(false);
   const requestID = useRef(0);
+  const handledTarget = useRef("");
 
   const load = useCallback(async (reset: boolean, cursor = "") => {
     const currentRequest = ++requestID.current;
@@ -128,19 +130,28 @@ export function MattersWorkspace() {
     if (!details[id]) await fetchDetail(id);
   }
 
-  if (state === "loading") return <section className="workspace-loading">Loading issues and changes…</section>;
-  if (state === "unavailable") return <EmptyState label="Issues and changes" title="Issues and changes could not be loaded" description="The service is unavailable. No current work totals are shown." action="Try again" onAction={() => void load(true)}/>;
-  if (!items.length) return <EmptyState label="Issues and changes" title={search || status !== "OPEN" ? "No items match these filters" : "No open issues or changes"} description={search || status !== "OPEN" ? "Change the search or status filter to see other work." : "There are no recorded open changes, gaps, findings, exceptions or response items in the connected scope."} action={search || status !== "OPEN" ? "Clear filters" : undefined} onAction={clearFilters}/>;
+  useEffect(() => {
+    if (state !== "live" || !items.length) return;
+    const id = targetID ?? (openFirst ? items[0]?.matter.id : undefined);
+    if (!id || handledTarget.current === id) return;
+    handledTarget.current = id;
+    setOpenID(id);
+    void fetchDetail(id).finally(() => window.setTimeout(() => document.getElementById(`matter-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 80));
+  }, [state, items, targetID, openFirst]);
 
-  return <>
+  if (state === "loading") return <section id="matters-workspace" className="workspace-loading" aria-live="polite" aria-busy="true">Loading issues and changes…</section>;
+  if (state === "unavailable") return <div id="matters-workspace"><EmptyState label="Issues and changes" title="Issues and changes could not be loaded" description="The service is unavailable. No current work totals are shown." action="Try again" onAction={() => void load(true)}/></div>;
+
+  return <div id="matters-workspace">
     <section className="matter-hero"><div><span className="eyebrow">Issues and changes</span><h2>{items.length} loaded item{items.length === 1 ? "" : "s"}</h2><p>Specific changes, gaps, findings, requests and exceptions that need a decision, action or outcome check.</p></div><PremiumIllustration variant="routing"/></section>
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
       <label><span>Search issues and changes</span><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Reference, title, summary or type"/></label>
       <label><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="OPEN">Open</option><option value="DECISION_REQUIRED">Decision needed</option><option value="ACTION_IN_PROGRESS">Work in progress</option><option value="VERIFICATION">Confirming outcome</option><option value="CLOSED">Closed</option><option value="">All statuses</option></select></label>
       <button className="secondary-button" type="submit">Search</button>
+      {(search || status !== "OPEN") && <button className="text-button" type="button" onClick={clearFilters}>Clear filters</button>}
     </form>
     <section className="matter-summary" aria-label="Loaded issue and change summary"><div><span>Decision needed</span><strong>{summary.decisions}</strong><small>Waiting for an authorized decision</small></div><div><span>Overdue</span><strong>{summary.overdue}</strong><small>Past the recorded due date</small></div><div><span>Confirming outcome</span><strong>{summary.checking}</strong><small>Work is complete; the result still needs confirmation</small></div></section>
-    <section className="matter-list">{items.map((summaryItem) => {
+    {!items.length ? <EmptyState label="Issues and changes" title={search || status !== "OPEN" ? "No items match these filters" : "No open issues or changes"} description={search || status !== "OPEN" ? "Change the search or status filter to see other work." : "There are no recorded open changes, gaps, findings, exceptions or response items in the connected scope."} action={search || status !== "OPEN" ? "Clear filters" : undefined} onAction={clearFilters}/> : <section className="matter-list">{items.map((summaryItem) => {
       const matter = summaryItem.matter;
       const isOpen = openID === matter.id;
       const detail = details[matter.id];
@@ -149,27 +160,31 @@ export function MattersWorkspace() {
       const missingFacts = detail?.matter.missing_facts ?? [];
       const contradictions = detail?.matter.contradictions ?? [];
       const actions = detail?.actions ?? [];
+      const decisions = detail?.decisions ?? [];
+      const responses = detail?.response_packages ?? [];
       const verificationContracts = detail?.verification_contracts ?? [];
       const closure = detail?.closure ?? { ready: false, reasons: [] };
-      return <article className="matter-card" key={matter.id}>
-        <button type="button" className="matter-card-main" aria-expanded={isOpen} onClick={() => void toggleDetail(matter.id)}>
+      return <article className={targetID === matter.id ? "matter-card targeted" : "matter-card"} id={`matter-${matter.id}`} key={matter.id}>
+        <button type="button" className="matter-card-main" aria-expanded={isOpen} aria-controls={`matter-detail-${matter.id}`} onClick={() => void toggleDetail(matter.id)}>
           <span className="matter-icon"><MatterIcon type={matter.type}/></span>
           <span className="matter-primary"><span className="matter-kicker">{summaryItem.type_label} · {matter.reference}</span><strong>{matter.title}</strong><small>{matter.summary}</small></span>
           <span className="matter-meta"><span>{priorityLabel(matter.priority)} priority</span><span>{matter.due_at ? `${Date.parse(matter.due_at) < Date.now() ? "Overdue" : "Due"} ${new Date(matter.due_at).toLocaleDateString()}` : "No due date"}</span><span>{summaryItem.open_action_count} open action{summaryItem.open_action_count === 1 ? "" : "s"}</span></span>
           <span className={`matter-status status-${matter.status.toLowerCase().replaceAll("_", "-")}`}><strong>{summaryItem.status_label}</strong><small>{summaryItem.next_action}</small></span>
           <span className="expand-indicator" aria-hidden="true">{isOpen ? "−" : "+"}</span>
         </button>
-        {isOpen && <div className="matter-detail">
-          {currentDetailState === "loading" && <p>Loading issue details…</p>}
+        {isOpen && <div className="matter-detail" id={`matter-detail-${matter.id}`}>
+          {currentDetailState === "loading" && <p aria-live="polite">Loading issue details…</p>}
           {currentDetailState === "unavailable" && <div className="inline-error"><p>Issue details could not be loaded.</p><button className="secondary-button" onClick={() => void fetchDetail(matter.id)}>Try again</button></div>}
           {detail && <>
-            <section><h3>What we know</h3>{Object.keys(knownFacts).length ? <dl>{Object.entries(knownFacts).slice(0, 5).map(([key, value]) => <div key={key}><dt>{humanizeKey(key)}</dt><dd>{formatFact(value)}</dd></div>)}</dl> : <p>No facts have been recorded.</p>}{missingFacts.length ? <div className="closure-note"><strong>Information still needed</strong><ul>{missingFacts.slice(0, 5).map((fact, index) => <li key={`${index}-${formatFact(fact)}`}>{formatFact(fact)}</li>)}</ul></div> : null}{contradictions.length ? <p>{contradictions.length} conflicting item{contradictions.length === 1 ? " is" : "s are"} recorded.</p> : null}</section>
-            <section><h3>Actions</h3>{actions.length ? actions.map((action) => <div className="detail-row" key={action.id}><strong>{action.title}</strong><span>{actionStatusLabel(action.status)}</span></div>) : <p>No actions have been recorded.</p>}</section>
-            <section><h3>Outcome checks</h3>{verificationContracts.length ? verificationContracts.map((contract) => { const result = latestResult(detail, contract.id); return <div className="detail-row" key={contract.id}><strong>{contract.expected_outcome}</strong><span>{resultLabel(result?.result)}</span></div>; }) : <p>No outcome check has been defined.</p>}{!closure.ready && closure.reasons.length > 0 && <div className="closure-note"><strong>Before this can close</strong><ul>{closure.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}</section>
+            <section><h3>What we know</h3>{Object.keys(knownFacts).length ? <dl>{Object.entries(knownFacts).map(([key, value]) => <div key={key}><dt>{humanizeKey(key)}</dt><dd><pre>{formatFact(value)}</pre></dd></div>)}</dl> : <p>No facts have been recorded.</p>}{missingFacts.length ? <div className="closure-note"><strong>Information still needed</strong><ul>{missingFacts.map((fact, index) => <li key={`${index}-${formatFact(fact)}`}>{formatFact(fact)}</li>)}</ul></div> : null}{contradictions.length ? <div className="closure-note warning"><strong>Contradictions to resolve</strong><ul>{contradictions.map((fact, index) => <li key={`${index}-${formatFact(fact)}`}>{formatFact(fact)}</li>)}</ul></div> : null}</section>
+            <section><h3>Decisions</h3>{decisions.length ? decisions.map((decision) => <div className="detail-row" key={decision.id}><div><strong>{humanizeKey(decision.type)}</strong><small>{decision.rationale}</small></div><span>{humanizeKey(decision.status)}{decision.selected_option ? ` · ${humanizeKey(decision.selected_option)}` : ""}</span></div>) : <p>No decisions have been recorded.</p>}</section>
+            <section><h3>Actions</h3>{actions.length ? actions.map((action) => <div className="detail-row" key={action.id}><div><strong>{action.title}</strong><small>{action.description}</small></div><span>{actionStatusLabel(action.status)}</span></div>) : <p>No actions have been recorded.</p>}</section>
+            <section><h3>External responses</h3>{responses.length ? responses.map((response) => <div className="detail-row" key={response.id}><div><strong>{response.purpose}</strong><small>{response.audience}</small></div><span>{humanizeKey(response.status)}</span></div>) : <p>No response package has been recorded.</p>}</section>
+            <section><h3>Outcome checks</h3>{verificationContracts.length ? verificationContracts.map((contract) => { const result = latestResult(detail, contract.id); return <div className="detail-row" key={contract.id}><div><strong>{contract.expected_outcome}</strong>{result?.rationale && <small>{result.rationale}</small>}</div><span>{resultLabel(result?.result)}</span></div>; }) : <p>No outcome check has been defined.</p>}{closure.ready ? <div className="closure-note ready"><strong>Ready to close</strong><p>All recorded closure requirements are satisfied.</p></div> : closure.reasons.length > 0 && <div className="closure-note"><strong>Before this can close</strong><ul>{closure.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}</section>
           </>}
         </div>}
       </article>;
-    })}</section>
+    })}</section>}
     {nextCursor && <div className="load-more"><button className="secondary-button" disabled={loadingMore} onClick={() => void load(false, nextCursor)}>{loadingMore ? "Loading…" : "Load more items"}</button></div>}
-  </>;
+  </div>;
 }
