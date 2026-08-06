@@ -16,19 +16,23 @@ import (
 )
 
 type Service struct {
-	repo       Repository
-	store      evidence.ObjectStore
-	maxBytes   int64
-	now        func() time.Time
+	repo                   Repository
+	store                  evidence.ObjectStore
+	maxBytes               int64
+	allowUnscannedAnalysis bool
+	now                    func() time.Time
 }
 
 func NewService(repo Repository, store evidence.ObjectStore) *Service {
-	return &Service{repo: repo, store: store, maxBytes: 20 << 20, now: time.Now}
+	return &Service{repo: repo, store: store, maxBytes: 20 << 20, allowUnscannedAnalysis: true, now: time.Now}
 }
 
-func (s *Service) Configure(maxBytes int64) {
+func (s *Service) Configure(maxBytes int64, allowUnscannedAnalysis ...bool) {
 	if maxBytes > 0 {
 		s.maxBytes = maxBytes
+	}
+	if len(allowUnscannedAnalysis) > 0 {
+		s.allowUnscannedAnalysis = allowUnscannedAnalysis[0]
 	}
 }
 
@@ -74,14 +78,19 @@ func (s *Service) Import(ctx context.Context, input ImportInput, reader io.Reade
 	proposals := []Proposal{}
 	analysisStatus := AnalysisUnavailable
 	analysisMethod := "DETERMINISTIC_RULES_V1"
-	limitations := append([]string{"The artifact has not passed a production malware-scanning service.", "Analysis output is a review proposal, not an approved obligation, control, legal interpretation, or compliance conclusion."}, extraction.Limitations...)
-	if extraction.Status == ExtractionExtracted {
+	limitations := append([]string{
+		"The artifact has not passed a production malware-scanning service.",
+		"Analysis output is a review proposal, not an approved obligation, control, legal interpretation, or compliance conclusion.",
+	}, extraction.Limitations...)
+	if extraction.Status == ExtractionExtracted && s.allowUnscannedAnalysis {
 		proposals = Analyze(extraction.Sections)
 		if len(proposals) == 0 {
 			analysisStatus = AnalysisNoProposals
 		} else {
 			analysisStatus = AnalysisReviewRequired
 		}
+	} else if extraction.Status == ExtractionExtracted && !s.allowUnscannedAnalysis {
+		limitations = append(limitations, "Analysis is blocked until the artifact is marked available by an approved scanning pipeline.")
 	}
 	now := s.now().UTC()
 	value := Document{
@@ -131,6 +140,9 @@ func (s *Service) ReviewProposal(ctx context.Context, input ReviewInput) (Docume
 	for index := range value.Proposals {
 		if value.Proposals[index].ID != input.ProposalID {
 			continue
+		}
+		if value.Proposals[index].Status != ProposalPending {
+			return Document{}, ErrInvalidReview
 		}
 		value.Proposals[index].Status = input.Status
 		value.Proposals[index].ReviewedBy = input.ReviewerID
