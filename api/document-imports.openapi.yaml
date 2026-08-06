@@ -1,0 +1,287 @@
+openapi: 3.1.0
+info:
+  title: ClearSight Governed Document Imports API
+  version: 0.1.0
+  description: |
+    Actor-bound document intake, deterministic extraction and source-anchored analysis proposals.
+    Import and proposal review do not create or approve Requirements, Programs, Matters, controls,
+    legal interpretations or compliance conclusions.
+paths:
+  /api/v1/document-imports:
+    get:
+      summary: List imported documents visible to the verified actor tenant
+      responses:
+        '200':
+          description: Bounded imported-document list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentImport'
+        '401':
+          $ref: '#/components/responses/IdentityRequired'
+    post:
+      summary: Store, extract and analyse one document
+      description: |
+        Tenant, legal entity and importing principal are derived from verified identity.
+        Supported extraction types are TXT, Markdown, CSV, DOCX and XLSX. PDF originals are retained,
+        but this build does not claim PDF text extraction or OCR.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                purpose:
+                  type: string
+                source_type:
+                  type: string
+                  examples: [DOCUMENT, REGULATORY, POLICY, FINDING]
+      responses:
+        '201':
+          description: Imported document with extraction and proposal state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentImport'
+        '401':
+          $ref: '#/components/responses/IdentityRequired'
+        '413':
+          description: Document exceeds the configured limit
+        '422':
+          description: Document could not be stored or processed
+  /api/v1/document-imports/{id}:
+    get:
+      summary: Load one tenant-scoped imported document
+      parameters:
+        - $ref: '#/components/parameters/DocumentID'
+      responses:
+        '200':
+          description: Imported document detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentImport'
+        '401':
+          $ref: '#/components/responses/IdentityRequired'
+        '404':
+          description: Not found or outside the verified actor tenant
+  /api/v1/document-imports/{id}/proposals/{proposal_id}/review:
+    post:
+      summary: Accept or reject one analysis proposal
+      description: |
+        Records a human review decision using optimistic concurrency. Acceptance means the proposal may
+        proceed to governed follow-up; it does not create or approve a material ClearSight record.
+      parameters:
+        - $ref: '#/components/parameters/DocumentID'
+        - name: proposal_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, expected_version]
+              properties:
+                status:
+                  type: string
+                  enum: [ACCEPTED, REJECTED]
+                note:
+                  type: string
+                expected_version:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          description: Updated imported document
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentImport'
+        '401':
+          $ref: '#/components/responses/IdentityRequired'
+        '404':
+          description: Document or proposal not found
+        '409':
+          description: Optimistic version conflict
+        '422':
+          description: Invalid or repeated review
+components:
+  parameters:
+    DocumentID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    IdentityRequired:
+      description: Verified identity is required
+  schemas:
+    DocumentImport:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - file_name
+        - media_type
+        - purpose
+        - source_type
+        - size_bytes
+        - sha256
+        - artifact_status
+        - extraction_status
+        - extraction_method
+        - analysis_status
+        - analysis_method
+        - limitations
+        - sections
+        - proposals
+        - created_by
+        - created_at
+        - updated_at
+        - version
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+        legal_entity_id:
+          type: string
+        file_name:
+          type: string
+        media_type:
+          type: string
+        purpose:
+          type: string
+        source_type:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
+        sha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+        storage_key:
+          type: string
+        artifact_status:
+          type: string
+          enum: [STORED_UNSCANNED, AVAILABLE, QUARANTINED, DELETED]
+        extraction_status:
+          type: string
+          enum: [EXTRACTED, UNSUPPORTED, FAILED]
+        extraction_method:
+          type: string
+        analysis_status:
+          type: string
+          enum: [REVIEW_REQUIRED, NO_PROPOSALS, UNAVAILABLE]
+        analysis_method:
+          type: string
+        limitations:
+          type: array
+          items:
+            type: string
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSection'
+        proposals:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentProposal'
+        created_by:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          minimum: 1
+    DocumentSection:
+      type: object
+      required: [id, sequence, title, text]
+      properties:
+        id:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+        title:
+          type: string
+        text:
+          type: string
+        page:
+          type: integer
+        sheet:
+          type: string
+        row_start:
+          type: integer
+        row_end:
+          type: integer
+    DocumentProposal:
+      type: object
+      required: [id, kind, title, statement, confidence, anchor, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum: [REQUIREMENT_CANDIDATE, DEADLINE_CANDIDATE, AUTHORITY_REFERENCE, CONTROL_EXPECTATION, RISK_SIGNAL]
+        title:
+          type: string
+        statement:
+          type: string
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        anchor:
+          $ref: '#/components/schemas/DocumentAnchor'
+        status:
+          type: string
+          enum: [PENDING_REVIEW, ACCEPTED, REJECTED]
+        reviewed_by:
+          type: string
+        reviewed_at:
+          type: string
+          format: date-time
+        review_note:
+          type: string
+    DocumentAnchor:
+      type: object
+      required: [section_id, quote]
+      properties:
+        section_id:
+          type: string
+          format: uuid
+        quote:
+          type: string
+        page:
+          type: integer
+        sheet:
+          type: string
+        row_start:
+          type: integer
+        row_end:
+          type: integer

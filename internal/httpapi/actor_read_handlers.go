@@ -15,23 +15,18 @@ func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
-		"tenant": map[string]string{
-			"id":   actor.TenantID,
-			"name": "Connected organization",
-		},
-		"legal_entity": map[string]string{
-			"id":   actor.LegalEntityID,
-			"name": "Connected legal entity",
-		},
+		"tenant":       map[string]string{"id": actor.TenantID, "name": "Connected organization"},
+		"legal_entity": map[string]string{"id": actor.LegalEntityID, "name": "Connected legal entity"},
 		"actor": map[string]string{
-			"id":              actor.PrincipalID,
-			"name":            actor.PrincipalID,
-			"kind":            actor.Kind,
-			"assurance_level": actor.AssuranceLevel,
-			"authentication":  actor.AuthenticationMethod,
-			"session_id":      actor.SessionID,
+			"id": actor.PrincipalID, "name": actor.PrincipalID, "kind": actor.Kind,
+			"assurance_level": actor.AssuranceLevel, "authentication": actor.AuthenticationMethod, "session_id": actor.SessionID,
 		},
-		"mode": a.deps.Mode,
+		"mode":      a.deps.Mode,
+		"demo_mode": a.deps.DemoMode,
+		"capabilities": map[string]bool{
+			"document_import":    a.deps.DocumentImports != nil,
+			"reference_journeys": a.deps.DemoMode && a.deps.BankVerticals != nil,
+		},
 	})
 }
 

@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 func continuityTestHandler() http.Handler {
@@ -19,6 +20,7 @@ func continuityTestHandler() http.Handler {
 		Logger:        slog.New(slog.NewTextHandler(io.Discard, nil)),
 		AllowedOrigin: "http://localhost:5173",
 		Mode:          "test-memory",
+		Identity:      identity.NewDevelopmentAuthenticator("bank", "role-cro", "bank-ng"),
 		Continuity:    continuity.NewService(continuity.NewMemoryRepository()),
 	})
 }

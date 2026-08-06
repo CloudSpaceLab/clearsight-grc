@@ -10,6 +10,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/capture"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
@@ -23,6 +24,7 @@ type Dependencies struct {
 	Logger           *slog.Logger
 	AllowedOrigin    string
 	Mode             string
+	DemoMode         bool
 	Identity         identity.Authenticator
 	CommandGuard     *commandauth.Guard
 	Authority        authority.Service
@@ -30,6 +32,7 @@ type Dependencies struct {
 	Capture          *capture.Service
 	Invitations      *capture.InvitationService
 	Evidence         *evidence.Service
+	DocumentImports  *documentimport.Service
 	Continuity       *continuity.Service
 	Today            *today.Service
 	Workflow         *workflow.Service
@@ -47,7 +50,9 @@ func New(deps Dependencies) http.Handler {
 	mux.HandleFunc("GET /health/ready", api.ready)
 	mux.HandleFunc("GET /api/v1/context", api.actorContext)
 	mux.HandleFunc("GET /api/v1/today", api.actorToday)
-	mux.HandleFunc("GET /api/v1/bank-journeys", api.listBankJourneys)
+	if deps.DemoMode && deps.BankVerticals != nil {
+		mux.HandleFunc("GET /api/v1/bank-journeys", api.listBankJourneys)
+	}
 	mux.HandleFunc("POST /api/v1/authority/resolve", api.resolveAuthority)
 	mux.HandleFunc("POST /api/v1/authority/simulate", api.simulateAuthority)
 	mux.HandleFunc("GET /api/v1/authority/integrity", api.authorityIntegrity)
@@ -106,6 +111,12 @@ func New(deps Dependencies) http.Handler {
 	mux.HandleFunc("POST /api/v1/evidence/session/submissions", api.submitEvidenceSession)
 	mux.HandleFunc("POST /api/v1/evidence/sessions/{id}/revoke", api.revokeEvidenceSession)
 	mux.HandleFunc("POST /api/v1/evidence/artifacts", api.uploadEvidenceArtifact)
+
+	mux.HandleFunc("GET /api/v1/document-imports", api.listDocumentImports)
+	mux.HandleFunc("POST /api/v1/document-imports", api.createDocumentImport)
+	mux.HandleFunc("GET /api/v1/document-imports/{id}", api.getDocumentImport)
+	mux.HandleFunc("POST /api/v1/document-imports/{id}/proposals/{proposal_id}/review", api.reviewDocumentProposal)
+
 	mux.HandleFunc("GET /api/v1/requests/{id}", api.getCaptureRequest)
 	mux.HandleFunc("POST /api/v1/requests/{id}/submit", api.submitCaptureRequest)
 	mux.HandleFunc("POST /api/v1/invitations/redeem", api.redeemInvitation)

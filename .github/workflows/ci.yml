@@ -30,7 +30,13 @@ jobs:
           cache: true
       - run: go mod download
       - name: Format
-        run: test -z "$(gofmt -l $(find cmd internal -name '*.go' -type f))"
+        run: |
+          files="$(gofmt -l $(find cmd internal -name '*.go' -type f))"
+          if [ -n "$files" ]; then
+            echo "The following Go files require gofmt:"
+            echo "$files"
+            exit 1
+          fi
       - name: Unit tests
         run: go test -race -coverprofile=coverage.out ./...
       - name: PostgreSQL composition
@@ -64,4 +70,6 @@ jobs:
           cache-dependency-path: web/package.json
       - run: npm install --no-audit --no-fund
       - run: npm run typecheck
+      - name: Rendered state and accessibility tests
+        run: npm test
       - run: npm run build
