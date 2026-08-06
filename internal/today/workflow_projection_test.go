@@ -37,6 +37,16 @@ func TestFromWorkflowTasksProjectsOnlyActiveAssignedWork(t *testing.T) {
 	}
 }
 
+func TestFromWorkflowTasksUsesCanonicalTargetFallbacks(t *testing.T) {
+	items := FromWorkflowTasks([]workflow.Task{{
+		ID: "task-1", Responsibility: "REVIEWER", Title: "Review issue", Status: workflow.StatusReady,
+		Context: map[string]string{"matter_id": "matter-42"},
+	}})
+	if len(items) != 1 || items[0].ActionTargetType != "MATTER" || items[0].ActionTargetID != "matter-42" {
+		t.Fatalf("canonical matter target was not projected: %#v", items)
+	}
+}
+
 func TestFromWorkflowTasksRejectsUnknownActionTargets(t *testing.T) {
 	items := FromWorkflowTasks([]workflow.Task{{
 		ID: "task-1", Responsibility: "REVIEWER", Title: "Review task", Status: workflow.StatusReady,

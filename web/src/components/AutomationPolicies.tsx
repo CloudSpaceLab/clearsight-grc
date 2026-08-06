@@ -18,12 +18,12 @@ export function AutomationPolicies({ policies, state }: Props) {
 
   return <section className="automation-policies" aria-labelledby="automation-policy-heading">
     <header className="section-header">
-      <div><h2 id="automation-policy-heading">Automation boundaries</h2><p>Approved rules that define which bounded actions may run without a new human decision.</p></div>
+      <div><h2 id="automation-policy-heading">Automation boundaries</h2><p>Governed rules that define whether bounded actions may run without a new human decision.</p></div>
     </header>
     {!policies.length
       ? <EmptyState label="Automation policy" title="No automation policies in this scope" description="No automated write permission is represented for the connected institution."/>
       : <div className="automation-policy-list">{policies.map((policy) => <PolicyRow key={policy.id} policy={policy}/>)}</div>}
-    <p className="automation-policy-note">A policy permits eligible automation; it does not prove that an action ran or that its outcome was verified.</p>
+    <p className="automation-policy-note">Only an active, currently effective policy can permit eligible automation. A listed policy does not prove that an action ran or that its outcome was verified.</p>
   </section>;
 }
 

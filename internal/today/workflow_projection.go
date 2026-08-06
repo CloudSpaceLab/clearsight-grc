@@ -43,15 +43,22 @@ func FromWorkflowTasks(tasks []workflow.Task) []AttentionItem {
 func workflowTarget(context map[string]string) (string, string) {
 	targetType := strings.ToUpper(strings.TrimSpace(context["action_target_type"]))
 	targetID := strings.TrimSpace(context["action_target_id"])
-	if targetID == "" {
-		return "", ""
+	if targetID != "" {
+		switch targetType {
+		case "PROGRAM", "MATTER", "EVIDENCE_REQUEST":
+			return targetType, targetID
+		}
 	}
-	switch targetType {
-	case "PROGRAM", "MATTER", "EVIDENCE_REQUEST":
-		return targetType, targetID
-	default:
-		return "", ""
+	if value := strings.TrimSpace(context["evidence_request_id"]); value != "" {
+		return "EVIDENCE_REQUEST", value
 	}
+	if value := strings.TrimSpace(context["matter_id"]); value != "" {
+		return "MATTER", value
+	}
+	if value := strings.TrimSpace(context["program_id"]); value != "" {
+		return "PROGRAM", value
+	}
+	return "", ""
 }
 
 func workflowIntervention(task workflow.Task, targetType string) InterventionClass {
@@ -75,9 +82,10 @@ func workflowIntervention(task workflow.Task, targetType string) InterventionCla
 }
 
 func parseIntervention(value string) InterventionClass {
-	switch InterventionClass(strings.ToUpper(strings.TrimSpace(value))) {
+	candidate := InterventionClass(strings.ToUpper(strings.TrimSpace(value)))
+	switch candidate {
 	case InterventionReview, InterventionDecision, InterventionAuthorization, InterventionEvidenceException, InterventionEscalation, InterventionVerification, InterventionExternalRepresentation:
-		return InterventionClass(strings.ToUpper(strings.TrimSpace(value)))
+		return candidate
 	default:
 		return ""
 	}
