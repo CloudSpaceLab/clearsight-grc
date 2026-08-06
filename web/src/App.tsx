@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadCaptureRequest, loadContext, loadEvidenceRequests, loadEvidenceSources, loadIntegrity, loadOnboardingGuide, loadOnboardingState, loadPolicies, loadProjectionHealth, loadReadiness, loadToday, loadWorkflowTasks, reconcileProgramState, resolveAuthority, saveOnboardingState } from "./api";
 import type { RuntimeContext } from "./api";
-import { IntroGuide } from "./components/IntroGuide";
 import { CapturePanel, ConfigureView, ExploreView, ProgramsView, RoutingPanel, TodayView, WorkView } from "./AppViews";
+import { DocumentImportWorkspace } from "./components/DocumentImportWorkspace";
+import { IntroGuide } from "./components/IntroGuide";
 import type { AttentionItem, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, OnboardingGuide, OnboardingState, PolicySummary, Readiness, WorkflowTask } from "./types";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 
-type View = "today" | "programs" | "work" | "explore" | "configure";
+type View = "today" | "programs" | "work" | "imports" | "explore" | "configure";
 type LoadState = "idle" | "loading" | "live" | "unavailable";
 type ConnectionState = "loading" | "live" | "sample" | "unavailable";
+type ProductRuntime = RuntimeContext & { demo_mode?: boolean; capabilities?: { document_import?: boolean; reference_journeys?: boolean } };
 const sampleMode = import.meta.env.VITE_ENABLE_SAMPLE_DATA === "true";
 const fallbackItems: AttentionItem[] = [
   { id: "fallback-1", type: "REGULATORY_CHANGE", title: "Review proposed digital-channel requirements", why_now: "Seven provisions may affect mobile banking and two payment vendors.", scope: "Digital Channels · Reference data", state: "Applicability review", evidence: "Official source recorded", owner: "Regulatory Compliance", due_at: new Date(Date.now() + 3 * 86400000).toISOString(), primary_action: "Review the proposed requirements" },
@@ -22,7 +24,7 @@ const fallbackGuide: OnboardingGuide = { code: "control-assurance-first-run", ro
 ] };
 
 function App() {
-  const [runtime, setRuntime] = useState<RuntimeContext | null>(null);
+  const [runtime, setRuntime] = useState<ProductRuntime | null>(null);
   const [activeView, setActiveView] = useState<View>("today");
   const [workTab, setWorkTab] = useState<"matters" | "evidence">("matters");
   const [items, setItems] = useState<AttentionItem[]>([]);
@@ -43,15 +45,19 @@ function App() {
   const [guideState, setGuideState] = useState<OnboardingState | null>(null);
   const [activePanel, setActivePanel] = useState<"none" | "routing" | "capture">("none");
 
+  const demoMode = runtime?.demo_mode === true;
+  const importsEnabled = runtime?.capabilities?.document_import !== false;
+
   useEffect(() => {
     Promise.allSettled([loadContext(), loadToday(), loadReadiness(), loadOnboardingGuide(), loadOnboardingState()]).then((results) => {
       const [contextResult, todayResult, readinessResult, guideResult, stateResult] = results;
-      const currentRuntime = contextResult.status === "fulfilled" ? contextResult.value : null;
+      const currentRuntime = contextResult.status === "fulfilled" ? contextResult.value as ProductRuntime : null;
       setRuntime(currentRuntime);
+      const allowFallback = currentRuntime?.demo_mode === true || (currentRuntime == null && sampleMode);
       if (todayResult.status === "fulfilled") {
         setItems(todayResult.value);
         setConnection("live");
-      } else if (sampleMode) {
+      } else if (allowFallback) {
         setItems(fallbackItems);
         setConnection("sample");
       } else {
@@ -64,8 +70,8 @@ function App() {
       } else {
         setReadinessState("unavailable");
       }
-      setGuide(guideResult.status === "fulfilled" ? guideResult.value : fallbackGuide);
-      setGuideState(stateResult.status === "fulfilled" ? stateResult.value : {
+      setGuide(guideResult.status === "fulfilled" ? guideResult.value : allowFallback ? fallbackGuide : null);
+      setGuideState(stateResult.status === "fulfilled" ? stateResult.value : allowFallback ? {
         tenant_id: currentRuntime?.tenant.id ?? "",
         principal_id: currentRuntime?.actor.id ?? "",
         guide_code: fallbackGuide.code,
@@ -74,9 +80,14 @@ function App() {
         completed: false,
         dismissed: sessionStorage.getItem("clearsight-guide-dismissed") === "1",
         version: 0,
-      });
+      } : null);
     });
   }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.clearsightDemo = demoMode ? "on" : "off";
+    if (!demoMode && activeView === "explore") setActiveView("today");
+  }, [demoMode, activeView]);
 
   async function loadEvidenceWorkspace() {
     setEvidenceState("loading");
@@ -132,9 +143,15 @@ function App() {
   const legalEntityName = runtime?.legal_entity.name || "Connected legal entity";
   const actorName = runtime?.actor.name || runtime?.actor.id || "Signed-in user";
   const avatarText = initials(actorName);
+  const navigation: Array<{ label: string; view: View }> = [
+    { label: "Today", view: "today" }, { label: "Programs", view: "programs" }, { label: "Work", view: "work" },
+    ...(importsEnabled ? [{ label: "Imports", view: "imports" as View }] : []),
+    ...(demoMode ? [{ label: "Explore", view: "explore" as View }] : []),
+    { label: "Configure", view: "configure" },
+  ];
 
   async function inspectRouting() { setActivePanel("routing"); if (!resolution) setResolution(await resolveAuthority().catch(() => null)); }
-  async function openCapture() { setActivePanel("capture"); if (!capture) setCapture(await loadCaptureRequest().catch(() => null)); }
+  async function openCapture() { if (!demoMode) return; setActivePanel("capture"); if (!capture) setCapture(await loadCaptureRequest().catch(() => null)); }
   async function advanceGuide(next: OnboardingState) { setGuideState(next); const saved = await saveOnboardingState(next).catch(() => null); if (saved) setGuideState(saved); }
   async function dismissGuide() { sessionStorage.setItem("clearsight-guide-dismissed", "1"); if (!guideState) return; const next = { ...guideState, dismissed: true }; setGuideState(next); const saved = await saveOnboardingState(next).catch(() => null); if (saved) setGuideState(saved); }
   function openAttention(item: AttentionItem) {
@@ -146,10 +163,9 @@ function App() {
   return <div className="app-shell">
     <aside className="sidebar" aria-label="Primary navigation">
       <div className="brand-mark" aria-label="ClearSight">C</div>
-      <nav>{["Today", "Programs", "Work", "Explore", "Configure"].map((label) => {
-        const view: View | null = label === "Today" ? "today" : label === "Programs" ? "programs" : label === "Work" ? "work" : label === "Explore" ? "explore" : label === "Configure" ? "configure" : null;
+      <nav>{navigation.map(({ label, view }) => {
         const active = view === activeView;
-        return <button className={active ? "nav-item active" : "nav-item"} key={label} aria-current={active ? "page" : undefined} disabled={!view} aria-disabled={!view} title={!view ? `${label} is not available in this build` : undefined} onClick={() => view && setActiveView(view)}><span>{label.slice(0, 1)}</span><b>{label}</b></button>;
+        return <button className={active ? "nav-item active" : "nav-item"} key={label} aria-current={active ? "page" : undefined} onClick={() => setActiveView(view)}><span>{label.slice(0, 1)}</span><b>{label}</b></button>;
       })}</nav>
       <div className="avatar" aria-label={`Signed in as ${actorName}`}>{avatarText}</div>
     </aside>
@@ -157,7 +173,8 @@ function App() {
       {activeView === "today" && <TodayView organizationName={organizationName} items={items} dueSoon={dueSoon} connection={connection} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onRouting={inspectRouting} onCapture={openCapture} onOpenItem={openAttention}/>}
       {activeView === "programs" && <ProgramsView organizationName={organizationName}/>} 
       {activeView === "work" && <WorkView organizationName={organizationName} tab={workTab} onTab={setWorkTab} sources={sources} requests={evidenceRequests} evidenceState={evidenceState} onEvidenceRetry={() => void loadEvidenceWorkspace()}/>} 
-      {activeView === "explore" && <ExploreView organizationName={organizationName}/>} 
+      {activeView === "imports" && <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Imports</h1><p>Bring controlled source material into ClearSight for traceable extraction and human review.</p></div></header><DocumentImportWorkspace/></>} 
+      {activeView === "explore" && demoMode && <ExploreView organizationName={organizationName}/>} 
       {activeView === "configure" && <ConfigureView policies={policies} findings={integrity} tasks={tasks} projectionHealth={projectionHealth} state={configureState} onRetry={() => void loadConfigureWorkspace()} onReconcile={checkProgramStatusRecords}/>} 
     </main>
     {activePanel !== "none" && <div className="panel-backdrop" onMouseDown={() => setActivePanel("none")}><aside className="side-panel" onMouseDown={(event) => event.stopPropagation()} aria-label={activePanel === "routing" ? "Approval route" : "Evidence request"}><button className="panel-close" onClick={() => setActivePanel("none")} aria-label="Close">×</button>{activePanel === "routing" ? <RoutingPanel resolution={resolution} legalEntityName={legalEntityName}/> : <CapturePanel request={capture}/>}</aside></div>}
