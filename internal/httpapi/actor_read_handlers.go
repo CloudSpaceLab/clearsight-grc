@@ -15,7 +15,7 @@ func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
-		"tenant": map[string]string{"id": actor.TenantID, "name": "Connected organization"},
+		"tenant":       map[string]string{"id": actor.TenantID, "name": "Connected organization"},
 		"legal_entity": map[string]string{"id": actor.LegalEntityID, "name": "Connected legal entity"},
 		"actor": map[string]string{
 			"id": actor.PrincipalID, "name": actor.PrincipalID, "kind": actor.Kind,
