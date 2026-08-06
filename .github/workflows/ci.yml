@@ -70,4 +70,13 @@ jobs:
           cache-dependency-path: web/package.json
       - run: npm install --no-audit --no-fund
       - run: npm run typecheck
+      - name: Rendered state and accessibility tests
+        run: npm test
       - run: npm run build
+      - name: Retain resolved lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-package-lock
+          path: web/package-lock.json
+          if-no-files-found: error
+          retention-days: 1
