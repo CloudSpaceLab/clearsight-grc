@@ -1,10 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { submitCaptureRequest } from "./api";
-import { CapturePanel } from "./AppViews";
-import type { CaptureRequest } from "./types";
+import { submitCaptureRequest } from "../api";
+import type { CaptureRequest } from "../types";
+import { CapturePanel } from "./CapturePanel";
 
-vi.mock("./api", () => ({ submitCaptureRequest: vi.fn() }));
+vi.mock("../api", () => ({ submitCaptureRequest: vi.fn() }));
 
 const request: CaptureRequest = {
   id: "request-1",
@@ -26,8 +26,7 @@ describe("CapturePanel", () => {
     vi.mocked(submitCaptureRequest).mockResolvedValue({ request_id: request.id, status: "SUBMITTED", submitted_at: "2026-08-06T19:30:00Z" });
     render(<CapturePanel request={request}/>);
 
-    const response = screen.getByRole("textbox", { name: /Current owner/ });
-    fireEvent.change(response, { target: { value: "Treasury Technology" } });
+    fireEvent.change(screen.getByRole("textbox", { name: /Current owner/ }), { target: { value: "Treasury Technology" } });
     fireEvent.click(screen.getByRole("button", { name: "Review response" }));
 
     expect(screen.getByRole("heading", { name: "Confirm the assertions you are submitting" })).toBeTruthy();

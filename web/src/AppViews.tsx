@@ -1,16 +1,15 @@
-import { useEffect, useState } from "react";
-import { submitCaptureRequest } from "./api";
 import { EmptyState } from "./components/EmptyState";
 import { BankJourneysWorkspace } from "./components/BankJourneysWorkspace";
 import { EvidenceWorkspace } from "./components/EvidenceWorkspace";
 import { MattersWorkspace } from "./components/MattersWorkspace";
-import { PremiumIllustration } from "./components/PremiumIllustration";
 import { ProjectionHealthCard } from "./components/ProjectionHealthCard";
 import { ProgramsWorkspace } from "./components/ProgramsWorkspace";
 import { TodayInterventions } from "./components/TodayInterventions";
 import { WorkspaceErrorBoundary } from "./components/WorkspaceErrorBoundary";
-import type { AttentionItem, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, PolicySummary, Readiness, WorkflowTask } from "./types";
+import type { AttentionItem, AuthorityResolution, EvidenceRequest, EvidenceSource, IntegrityFinding, PolicySummary, Readiness, WorkflowTask } from "./types";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
+
+export { CapturePanel } from "./components/CapturePanel";
 
 type LoadState = "idle" | "loading" | "live" | "unavailable";
 type ConnectionState = "loading" | "live" | "sample" | "unavailable";
@@ -59,43 +58,4 @@ function humanizeStatus(value: string) {
 
 export function RoutingPanel({ resolution, legalEntityName }: { resolution: AuthorityResolution | null; legalEntityName: string }) {
   return <div className="panel-content"><span className="eyebrow">Approval route</span><h2>Current authorizer</h2><p>The route uses the legal entity, issue type, importance, delegation and active policy version.</p>{resolution ? <div className="resolution-card"><div className="principal-avatar">CR</div><div><strong>{resolution.principal.display_name}</strong><span>{resolution.principal.role} · {resolution.principal.kind}</span></div><mark>Selected</mark></div> : <div className="skeleton">The approval route is unavailable. Confirm that an authority object is configured for this build.</div>}<dl className="explanation-list"><div><dt>Responsibility</dt><dd>Authorizer</dd></div><div><dt>Legal entity</dt><dd>{legalEntityName}</dd></div><div><dt>Importance</dt><dd>Critical · Executive approval</dd></div><div><dt>Policy</dt><dd>{resolution?.policy_version ?? "Unavailable"}</dd></div></dl><div className="sequence"><span>Control owner</span><i>→</i><span>Control Assurance</span><i>→</i><b>CRO</b></div></div>;
-}
-
-export function CapturePanel({ request }: { request: CaptureRequest | null }) {
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [reviewing, setReviewing] = useState(false);
-  const [receipt, setReceipt] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    setAnswers({});
-    setReviewing(false);
-    setReceipt(null);
-    setError(null);
-    setSubmitting(false);
-  }, [request?.id]);
-
-  async function submit() {
-    if (!request || submitting) return;
-    setError(null);
-    setSubmitting(true);
-    try {
-      const result = await submitCaptureRequest(request.id, request.version, answers, request.source);
-      setReceipt(`Submitted ${new Date(result.submitted_at).toLocaleString()}`);
-      setReviewing(false);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Submission failed");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (!request) return <div className="panel-content"><span className="eyebrow">Evidence request</span><h2>No request is available</h2><p>Open a live evidence request from Today or Work. Reference requests are available only when stakeholder demo mode is enabled.</p></div>;
-  if (receipt) return <div className="panel-content"><span className="eyebrow">Submission receipt</span><h2>Response submitted</h2><PremiumIllustration variant="empty"/><p>{receipt}</p><p>The response has been recorded. It will still be checked against the evidence requirements.</p></div>;
-
-  const requiredMissing = request.fields.some((field) => field.required && !(answers[field.id] ?? "").trim());
-  if (reviewing) return <div className="panel-content response-review"><span className="eyebrow">Review response</span><h2>Confirm the assertions you are submitting</h2><p>{request.title}</p><dl className="review-assertions">{request.fields.map((field) => <div key={field.id}><dt>{field.label}</dt><dd>{answers[field.id]?.trim() || "Not provided"}</dd></div>)}</dl><details className="review-context"><summary>Review existing information and purpose</summary><p>{request.purpose}</p><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanizeStatus(key)}</dt><dd>{value}</dd></div>)}</dl><p>Due {new Date(request.deadline).toLocaleString()} · {humanizeStatus(request.sensitivity)}</p></details>{error && <p className="error-text" role="alert">{error}</p>}<div className="wizard-actions"><button className="secondary-button" type="button" onClick={() => setReviewing(false)} disabled={submitting}>Edit response</button><button className="primary-button" type="button" onClick={() => void submit()} disabled={submitting}>{submitting ? "Submitting…" : "Submit response"}</button></div></div>;
-
-  return <div className="panel-content"><span className="eyebrow">Evidence request · about {request.estimated_minutes} minutes</span><h2>{request.title}</h2><p>{request.purpose}</p><div className="why-you"><strong>Why you received this</strong><span>{request.why_you}</span></div><h3>Information already available</h3><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanizeStatus(key)}</dt><dd>{value}</dd></div>)}</dl>{request.fields.map((field) => <label className="field" key={field.id}><span>{field.label}{field.required ? " *" : ""}</span>{field.type === "single_select" ? <select value={answers[field.id] ?? ""} onChange={(event) => setAnswers({ ...answers, [field.id]: event.target.value })}><option value="">Select one</option>{field.options?.map((option) => <option key={option}>{option}</option>)}</select> : <textarea value={answers[field.id] ?? ""} onChange={(event) => setAnswers({ ...answers, [field.id]: event.target.value })} placeholder={field.description}/>}</label>)}{error && <p className="error-text" role="alert">{error}</p>}<div className="wizard-actions"><button className="primary-button" type="button" onClick={() => setReviewing(true)} disabled={requiredMissing}>Review response</button></div></div>;
 }
