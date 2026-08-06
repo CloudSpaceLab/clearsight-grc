@@ -103,12 +103,13 @@ export function RoleAwareOnboarding({ runtime, onStep }: Props) {
 function highlight(target?: string) {
   if (!target) return;
   window.setTimeout(() => {
-    const element = document.getElementById(target);
+    const escaped = typeof CSS !== "undefined" && CSS.escape ? CSS.escape(target) : target.replace(/[^a-zA-Z0-9_-]/g, "");
+    const element = document.getElementById(target) ?? document.querySelector<HTMLElement>(`.${escaped}`);
     if (!element) return;
     element.classList.add("guide-highlight");
     element.scrollIntoView({ behavior: "smooth", block: "center" });
     if (!element.hasAttribute("tabindex")) element.setAttribute("tabindex", "-1");
     element.focus({ preventScroll: true });
     window.setTimeout(() => element.classList.remove("guide-highlight"), 3200);
-  }, 120);
+  }, 160);
 }
