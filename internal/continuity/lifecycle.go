@@ -12,10 +12,8 @@ func CurrentDecisionForType(values []Decision, decisionType string) *Decision {
 		if !strings.EqualFold(strings.TrimSpace(candidate.Type), strings.TrimSpace(decisionType)) {
 			continue
 		}
-		if current == nil || newerDecision(candidate, *current) {
-			copy := candidate
-			current = &copy
-		}
+		copy := candidate
+		current = &copy
 	}
 	return current
 }
