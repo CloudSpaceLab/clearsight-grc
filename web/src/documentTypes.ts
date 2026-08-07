@@ -31,12 +31,22 @@ export type DocumentImportSummary = {
   version: number;
 };
 
-export type DocumentImport = Omit<DocumentImportSummary, "pending_proposal_count" | "reviewed_proposal_count"> & {
+type DocumentDetailBase = Omit<DocumentImportSummary,
+  "pending_proposal_count" | "reviewed_proposal_count" |
+  "sections_total" | "sections_omitted" | "proposals_total" | "proposals_omitted" | "content_truncated" | "processed_at">;
+
+export type DocumentImport = DocumentDetailBase & {
   storage_key: string;
   extraction_method: string;
   analysis_method: string;
   limitations: string[];
   sections: DocumentSection[];
   proposals: DocumentProposal[];
+  sections_total?: number;
+  sections_omitted?: number;
+  proposals_total?: number;
+  proposals_omitted?: number;
+  content_truncated?: boolean;
+  processed_at?: string;
   created_by: string;
 };
