@@ -60,7 +60,7 @@ func TestCompileMatterLifecycleWorkDoesNotInventDecisionAssignments(t *testing.T
 
 func TestCompileMatterLifecycleWorkStopsForClosedMatter(t *testing.T) {
 	aggregate := continuity.MatterAggregate{
-		Matter: continuity.Matter{ID: "matter-1", Status: continuity.MatterClosed, Priority: 5},
+		Matter:           continuity.Matter{ID: "matter-1", Status: continuity.MatterClosed, Priority: 5},
 		ResponsePackages: []continuity.ResponsePackage{{ID: "response-1", Status: continuity.ResponseTransmitted}},
 	}
 	if got := CompileMatterLifecycleWork(aggregate); len(got) != 0 {
