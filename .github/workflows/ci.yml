@@ -53,6 +53,13 @@ jobs:
           for migration in migrations/*.up.sql; do
             psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$migration"
           done
+      - name: Verify latest migration rollback and reapply
+        env:
+          PGPASSWORD: clearsight
+        run: |
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000019_schema_ownership_cleanup.down.sql
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000019_schema_ownership_cleanup.up.sql
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.audit_events') IS NULL AND to_regclass('public.readiness_snapshots') IS NULL THEN 'ok' ELSE 'unexpected compatibility table' END" | grep -qx ok
       - name: PostgreSQL integration tests
         env:
           TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
