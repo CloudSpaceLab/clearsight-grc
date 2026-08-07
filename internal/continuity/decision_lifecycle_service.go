@@ -53,7 +53,7 @@ func (s *Service) RecordDecisionLifecycle(ctx context.Context, input AddDecision
 		ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID,
 		Type: decisionType, Status: input.Status, Options: options,
 		SelectedOption: strings.TrimSpace(input.SelectedOption),
-		Rationale: strings.TrimSpace(input.Rationale), Conditions: conditions,
+		Rationale:      strings.TrimSpace(input.Rationale), Conditions: conditions,
 		ExpiresAt: input.ExpiresAt, CreatedAt: now, UpdatedAt: now, Version: 1,
 	}
 	setDecisionActor(&value, input.Status, actorID)
