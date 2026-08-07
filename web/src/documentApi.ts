@@ -1,4 +1,4 @@
-import type { DocumentImport, ProposalStatus } from "./documentTypes";
+import type { DocumentImport, DocumentImportSummary, ProposalStatus } from "./documentTypes";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -10,8 +10,8 @@ async function parse<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function loadDocumentImports(): Promise<DocumentImport[]> {
-  return (await parse<{ items: DocumentImport[] }>(await fetch(`${apiBase}/api/v1/document-imports?limit=50`))).items;
+export async function loadDocumentImports(): Promise<DocumentImportSummary[]> {
+  return (await parse<{ items: DocumentImportSummary[] }>(await fetch(`${apiBase}/api/v1/document-imports?limit=50`))).items;
 }
 
 export async function loadDocumentImport(id: string): Promise<DocumentImport> {
