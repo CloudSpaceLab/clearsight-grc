@@ -43,7 +43,7 @@ func TestMatterActionProjectorIsIdempotentAndKeepsTaskDerived(t *testing.T) {
 	}
 	scope, _ := json.Marshal(map[string]any{"access": "RESTRICTED", "allowed_principal_ids": []string{ownerID}})
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO matters(id,tenant_id,reference,type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,owner_principal_id,created_at,updated_at)
+		INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,owner_principal_id,created_at,updated_at)
 		VALUES($1::uuid,$2::uuid,'MAT-WORK-1','CONTROL_GAP','ACTION_IN_PROGRESS',5,'Material action matter','Test actor work projection',$3::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4::uuid,$5,$5)`,
 		matterID, tenantID, string(scope), ownerID, occurred); err != nil {
 		t.Fatal(err)
