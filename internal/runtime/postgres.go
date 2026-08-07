@@ -65,7 +65,7 @@ func (r *PostgresRepository) CompleteTimer(ctx context.Context, t Timer, e Outbo
 }
 func (r *PostgresRepository) FailTimer(ctx context.Context, t Timer, maxAttempts int, message string, at, next time.Time) (bool, error) {
 	var terminal bool
-	err := r.pool.QueryRow(ctx, `UPDATE workflow_timers SET state=CASE WHEN attempts>=$2 THEN 'FAILED' ELSE 'READY' END,due_at=CASE WHEN attempts>=$2 THEN due_at ELSE $4 END,failed_at=CASE WHEN attempts>=$2 THEN $5 ELSE NULL END,last_error=$3,lease_until=NULL,locked_by=NULL WHERE id=$1::uuid AND state='CLAIMED' AND locked_by=$6 RETURNING state='FAILED'`, t.ID, maxAttempts, message, next, at, t.LockedBy).Scan(&terminal)
+	err := r.pool.QueryRow(ctx, `UPDATE workflow_timers SET state=CASE WHEN attempts>=$2 THEN 'FAILED' ELSE 'READY' END,due_at=CASE WHEN attempts>=$2 THEN due_at ELSE $4::timestamptz END,failed_at=CASE WHEN attempts>=$2 THEN $5::timestamptz ELSE NULL::timestamptz END,last_error=$3,lease_until=NULL,locked_by=NULL WHERE id=$1::uuid AND state='CLAIMED' AND locked_by=$6 RETURNING state='FAILED'`, t.ID, maxAttempts, message, next, at, t.LockedBy).Scan(&terminal)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, errors.New("timer claim lost")
 	}
@@ -99,7 +99,7 @@ func (r *PostgresRepository) MarkPublished(ctx context.Context, e OutboxEvent, a
 }
 func (r *PostgresRepository) MarkFailed(ctx context.Context, e OutboxEvent, maxAttempts int, message string, at, next time.Time) (bool, error) {
 	var terminal bool
-	err := r.pool.QueryRow(ctx, `UPDATE outbox_events SET next_attempt_at=CASE WHEN attempts>=$2 THEN NULL ELSE $4 END,dead_lettered_at=CASE WHEN attempts>=$2 THEN $5 ELSE NULL END,last_error=$3,locked_by=NULL,lease_until=NULL WHERE id=$1::uuid AND published_at IS NULL AND dead_lettered_at IS NULL AND locked_by=$6 RETURNING dead_lettered_at IS NOT NULL`, e.ID, maxAttempts, message, next, at, e.LockedBy).Scan(&terminal)
+	err := r.pool.QueryRow(ctx, `UPDATE outbox_events SET next_attempt_at=CASE WHEN attempts>=$2 THEN NULL::timestamptz ELSE $4::timestamptz END,dead_lettered_at=CASE WHEN attempts>=$2 THEN $5::timestamptz ELSE NULL::timestamptz END,last_error=$3,locked_by=NULL,lease_until=NULL WHERE id=$1::uuid AND published_at IS NULL AND dead_lettered_at IS NULL AND locked_by=$6 RETURNING dead_lettered_at IS NOT NULL`, e.ID, maxAttempts, message, next, at, e.LockedBy).Scan(&terminal)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, errors.New("outbox claim lost")
 	}
