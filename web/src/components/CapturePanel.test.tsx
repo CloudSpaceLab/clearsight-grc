@@ -64,11 +64,11 @@ describe("CapturePanel", () => {
     fireEvent.click(review);
 
     expect(screen.getByText("Privacy Operations")).toBeTruthy();
-    expect(screen.getByText(/Mar 1, 2027|1 Mar 2027|Mar 1, 2027/)).toBeTruthy();
+    expect(screen.getByText(/Mar 1, 2027|1 Mar 2027/)).toBeTruthy();
   });
 
   it("uses large tap choices for short option lists", () => {
-    render(<CapturePanel request={{ ...request, fields: [{ id: "present", label: "Is the ATM present?", type: "single_select", required: true, options: ["Yes", "No"] }] }}/>) ;
+    render(<CapturePanel request={{ ...request, fields: [{ id: "present", label: "Is the ATM present?", type: "single_select", required: true, options: ["Yes", "No"] }] }}/>);
     const yes = screen.getByRole("radio", { name: "Yes" });
     const no = screen.getByRole("radio", { name: "No" });
     expect(yes).toBeTruthy();
@@ -84,10 +84,94 @@ describe("CapturePanel", () => {
     const file = new File(["photo"], "atm.jpg", { type: "image/jpeg" });
     fireEvent.change(input, { target: { files: [file] } });
     await waitFor(() => expect(upload).toHaveBeenCalledWith(request.id, file));
-    expect(screen.getByText("atm.jpg")).toBeTruthy();
+    expect(screen.getByText(/atm\.jpg/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
     expect(screen.getByText(/Photo attached · atm.jpg/)).toBeTruthy();
     expect(screen.queryByText("artifact-secret-id")).toBeNull();
+  });
+
+  it("preserves the previous valid attachment when a replacement upload fails", async () => {
+    const upload = vi.fn()
+      .mockResolvedValueOnce({ id: "artifact-original", request_id: request.id, file_name: "original.jpg", media_type: "image/jpeg", size_bytes: 1200, sha256: "hash-1", status: "STORED_UNSCANNED" })
+      .mockRejectedValueOnce(new ApiError(503, "Upload failed", "unavailable"));
+    render(<CapturePanel request={{ ...request, fields: [{ id: "photo", label: "Site photo", type: "photo", required: true, accepted_formats: ["image/jpeg"] }] }} onUploadArtifact={upload}/>);
+
+    const input = screen.getByLabelText(/Site photo/) as HTMLInputElement;
+    const original = new File(["original"], "original.jpg", { type: "image/jpeg" });
+    fireEvent.change(input, { target: { files: [original] } });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Replace photo" })).toBeTruthy());
+
+    const replacement = new File(["replacement"], "replacement.jpg", { type: "image/jpeg" });
+    fireEvent.change(input, { target: { files: [replacement] } });
+    expect((await screen.findByRole("alert")).textContent).toMatch(/previous attachment is still selected/i);
+    expect(screen.getByText(/original\.jpg/)).toBeTruthy();
+
+    const review = screen.getByRole("button", { name: "Review and submit" }) as HTMLButtonElement;
+    expect(review.disabled).toBe(false);
+    fireEvent.click(review);
+    expect(screen.getByText(/Photo attached · original.jpg/)).toBeTruthy();
+  });
+
+  it("ignores an upload completion after the active request changes", async () => {
+    let resolveUpload!: (value: { id: string; request_id: string; file_name: string; media_type: string; size_bytes: number; sha256: string; status: "STORED_UNSCANNED" }) => void;
+    const upload = vi.fn().mockImplementation(() => new Promise((resolve) => { resolveUpload = resolve; }));
+    const photoRequest: CaptureRequest = { ...request, fields: [{ id: "photo", label: "Site photo", type: "photo", required: true, accepted_formats: ["image/jpeg"] }] };
+    const { rerender } = render(<CapturePanel request={photoRequest} onUploadArtifact={upload}/>);
+
+    fireEvent.change(screen.getByLabelText(/Site photo/), { target: { files: [new File(["old"], "old.jpg", { type: "image/jpeg" })] } });
+    await waitFor(() => expect(upload).toHaveBeenCalledTimes(1));
+    rerender(<CapturePanel request={{ ...request, id: "request-new", version: 1 }} onUploadArtifact={upload}/>);
+    resolveUpload({ id: "artifact-old", request_id: request.id, file_name: "old.jpg", media_type: "image/jpeg", size_bytes: 100, sha256: "hash-old", status: "STORED_UNSCANNED" });
+
+    await waitFor(() => expect(screen.queryByText(/old\.jpg/)).toBeNull());
+    expect((screen.getByRole("textbox", { name: /Current owner/ }) as HTMLInputElement).value).toBe("");
+    expect((screen.getByRole("button", { name: "Review and submit" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("ignores a submission completion after the active request changes", async () => {
+    let resolveSubmit!: (value: { submitted_at: string }) => void;
+    const submit = vi.fn().mockImplementation(() => new Promise((resolve) => { resolveSubmit = resolve; }));
+    const { rerender } = render(<CapturePanel request={request} onSubmit={submit}/>);
+
+    fireEvent.change(screen.getByRole("textbox", { name: /Current owner/ }), { target: { value: "Treasury Technology" } });
+    fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit response" }));
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+
+    rerender(<CapturePanel request={{ ...request, id: "request-new", version: 1 }} onSubmit={submit}/>);
+    resolveSubmit({ submitted_at: "2026-08-07T21:30:00Z" });
+
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Response submitted" })).toBeNull());
+    expect((screen.getByRole("textbox", { name: /Current owner/ }) as HTMLInputElement).value).toBe("");
+  });
+
+  it("records an external submission as a response without claiming verification", async () => {
+    const submit = vi.fn().mockResolvedValue({ submitted_at: "2026-08-07T21:30:00Z" });
+    render(<CapturePanel request={request} external onSubmit={submit}/>);
+
+    fireEvent.change(screen.getByRole("textbox", { name: /Current owner/ }), { target: { value: "Treasury Technology" } });
+    fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit verification" }));
+
+    expect(await screen.findByRole("heading", { name: "Submitted" })).toBeTruthy();
+    expect(screen.getByText("Your response was recorded.")).toBeTruthy();
+    expect(screen.queryByText("Your verification was recorded.")).toBeNull();
+  });
+
+  it("normalizes server-valid field types and accepted media formats in the browser", () => {
+    render(<CapturePanel request={{ ...request, fields: [{ id: "photo", label: "Site photo", type: " PHOTO ", required: true, accepted_formats: [" IMAGE/JPEG ; charset=binary "] }] }}/>);
+    const input = screen.getByLabelText(/Site photo/) as HTMLInputElement;
+    expect(input.accept).toBe("image/jpeg");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("labels each collapsed optional external note with its request field", () => {
+    render(<CapturePanel request={{ ...request, fields: [
+      { id: "visit_note", label: "Anything the reviewer should know?", type: "long_text", required: false },
+      { id: "safety_note", label: "Any safety concern?", type: "long_text", required: false },
+    ] }} external/>);
+    expect(screen.getByText("Anything the reviewer should know?", { selector: "summary" })).toBeTruthy();
+    expect(screen.getByText("Any safety concern?", { selector: "summary" })).toBeTruthy();
   });
 
   it("clears stale answers when the same request advances to a new version", () => {
@@ -125,7 +209,7 @@ describe("CapturePanel", () => {
   });
 
   it("fails closed for a genuinely unknown field contract", () => {
-    render(<CapturePanel request={{ ...request, fields: [{ id: "unknown", label: "Unrecognized field", type: "biometric_scan", required: true }] }}/>) ;
+    render(<CapturePanel request={{ ...request, fields: [{ id: "unknown", label: "Unrecognized field", type: "biometric_scan", required: true }] }}/>);
     expect(screen.getByRole("alert").textContent).toMatch(/cannot safely collect/i);
     expect((screen.getByRole("button", { name: "Review and submit" }) as HTMLButtonElement).disabled).toBe(true);
   });

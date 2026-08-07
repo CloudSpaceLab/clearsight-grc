@@ -24,7 +24,7 @@ const fieldAgentRequest = {
     { id: "atm_identifiable", label: "Is the ATM present and clearly identifiable?", type: "single_select", required: true, options: ["Yes", "No"] },
     { id: "site_photo", label: "Site photo", type: "photo", required: true, description: "Take one clear photo showing the ATM and enough of the surrounding location to identify the site.", accepted_formats: ["image/jpeg", "image/png"] },
     { id: "visit_note", label: "Anything the reviewer should know?", type: "long_text", required: false, description: "Add a note only if something needs explanation." },
-    { id: "agent_signature", label: "Signature", type: "signature", required: true, description: "I confirm that I visited this location and that the information and photo above are accurate to the best of my knowledge." },
+    { id: "agent_signature", label: "Signature", type: "signature", required: true, description: "I confirm that I visited this location and that the information and photo above are accurate to the best of my knowledge.", accepted_formats: ["image/png"] },
   ],
   status: "READY",
   version: 1,
@@ -47,7 +47,8 @@ export async function staticExternalCaptureRequest(path: string, init?: RequestI
     const file = init?.body instanceof FormData ? init.body.get("file") : null;
     const name = file instanceof File ? file.name : "site-photo.jpg";
     const mediaType = file instanceof File ? file.type || "image/jpeg" : "image/jpeg";
-    return { id: "artifact-site-photo", request_id: fieldRequestID, file_name: name, media_type: mediaType, size_bytes: file instanceof File ? file.size : 128000, sha256: "demo-photo-sha256", status: "STORED_UNSCANNED" };
+    const signature = name === "signature.png" && mediaType === "image/png";
+    return { id: signature ? "artifact-agent-signature" : "artifact-site-photo", request_id: fieldRequestID, file_name: name, media_type: mediaType, size_bytes: file instanceof File ? file.size : 128000, sha256: signature ? "demo-signature-sha256" : "demo-photo-sha256", status: "STORED_UNSCANNED" };
   }
   if (url.pathname === "/api/v1/evidence/session/submissions" && method === "POST") return { request_id: fieldRequestID, submission_id: "field-submission-1", status: "SUBMITTED", submitted_at: new Date().toISOString(), version: 2 };
   return undefined;
