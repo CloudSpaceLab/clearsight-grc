@@ -15,7 +15,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
 
-const maxWorkflowReadCandidates = 200
+const maxWorkflowReadLimit = 200
 
 func (a *API) live(w http.ResponseWriter, _ *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "live"})
@@ -116,27 +116,25 @@ func (a *API) listWorkflowTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	if limit <= 0 || limit > maxWorkflowReadCandidates {
+	if limit <= 0 || limit > maxWorkflowReadLimit {
 		limit = 50
 	}
 	status := workflow.Status(strings.TrimSpace(r.URL.Query().Get("status")))
 	values, err := a.deps.Workflow.List(r.Context(), workflow.ListFilter{
 		TenantID: tenantID, PrincipalID: actor.PrincipalID, Status: status,
-		WorkflowKind: workflow.MatterActionWorkflowKind, ActiveOnly: status == "",
-		Limit: maxWorkflowReadCandidates,
+		WorkflowKind: workflow.MatterActionWorkflowKind, ActiveOnly: status == "", VisibleMatterActionsOnly: true,
+		Limit: limit,
 	})
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "workflow_failed", "Tasks could not be loaded.")
 		return
 	}
-	visible := make([]workflow.Task, 0, min(len(values), limit))
+	// Repository filtering happens before LIMIT. Recheck canonical access in Go
+	// as defense-in-depth against future query changes.
+	visible := values[:0]
 	for _, task := range values {
-		if !workflow.MatterActionVisibleTo(task, actor.PrincipalID) {
-			continue
-		}
-		visible = append(visible, task)
-		if len(visible) == limit {
-			break
+		if workflow.MatterActionVisibleTo(task, actor.PrincipalID) {
+			visible = append(visible, task)
 		}
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": visible})
