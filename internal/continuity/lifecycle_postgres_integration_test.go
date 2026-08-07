@@ -25,13 +25,13 @@ func TestPostgresLifecycleActorsPersistAndReconstruct(t *testing.T) {
 	defer pool.Close()
 
 	const (
-		tenantID   = "99999999-9999-7999-8999-999999999991"
-		proposer   = "99999999-9999-7999-8999-999999999992"
-		reviewer   = "99999999-9999-7999-8999-999999999993"
-		challenger = "99999999-9999-7999-8999-999999999994"
-		authorizer = "99999999-9999-7999-8999-999999999995"
-		preparer   = "99999999-9999-7999-8999-999999999996"
-		signatory  = "99999999-9999-7999-8999-999999999997"
+		tenantID    = "99999999-9999-7999-8999-999999999991"
+		proposer    = "99999999-9999-7999-8999-999999999992"
+		reviewer    = "99999999-9999-7999-8999-999999999993"
+		challenger  = "99999999-9999-7999-8999-999999999994"
+		authorizer  = "99999999-9999-7999-8999-999999999995"
+		preparer    = "99999999-9999-7999-8999-999999999996"
+		signatory   = "99999999-9999-7999-8999-999999999997"
 		transmitter = "99999999-9999-7999-8999-999999999998"
 		ackRecorder = "99999999-9999-7999-8999-999999999999"
 	)
@@ -40,7 +40,7 @@ func TestPostgresLifecycleActorsPersistAndReconstruct(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, principal := range []string{proposer, reviewer, challenger, authorizer, preparer, signatory, transmitter, ackRecorder} {
-		if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES($1::uuid,$2::uuid,'PERSON',$1,'Lifecycle actor')`, principal, tenantID); err != nil {
+		if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES($1::uuid,$2::uuid,'PERSON',$1::text,'Lifecycle actor')`, principal, tenantID); err != nil {
 			t.Fatal(err)
 		}
 	}
