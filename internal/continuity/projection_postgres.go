@@ -33,6 +33,7 @@ func (r *PostgresRepository) SaveProgramState(ctx context.Context, tenant, progr
 		return 0, err
 	}
 	state.ProgramVersion = expectedProgramVersion
+	state.ProjectionVersion = projectionVersion
 	dimensions, _ := json.Marshal(state.Dimensions)
 	reasons, _ := json.Marshal(state.Reasons)
 	_, err = tx.Exec(ctx, `INSERT INTO program_state_snapshots(id,tenant_id,program_id,overall_state,dimensions,reasons,open_matter_count,trigger_type,trigger_id,generated_at,program_version,projection_version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, state.ID, tenant, programID, state.Overall, dimensions, reasons, state.OpenMatterCount, state.TriggerType, state.TriggerID, state.GeneratedAt, state.ProgramVersion, projectionVersion)
@@ -61,7 +62,7 @@ func (r *PostgresRepository) SaveProgramState(ctx context.Context, tenant, progr
 }
 
 func (r *PostgresRepository) ProgramStateAt(ctx context.Context, tenant, programID string, at *time.Time) (*ProgramStateSnapshot, error) {
-	query := `SELECT pss.id::text,t.slug,pss.program_id::text,pss.overall_state,pss.dimensions,pss.reasons,pss.open_matter_count,pss.trigger_type,pss.trigger_id,pss.generated_at,pss.program_version FROM program_state_snapshots pss JOIN tenants t ON t.id=pss.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND pss.program_id=$2::uuid`
+	query := `SELECT pss.id::text,t.slug,pss.program_id::text,pss.overall_state,pss.dimensions,pss.reasons,pss.open_matter_count,pss.trigger_type,pss.trigger_id,pss.generated_at,pss.program_version,pss.projection_version FROM program_state_snapshots pss JOIN tenants t ON t.id=pss.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND pss.program_id=$2::uuid`
 	args := []any{tenant, programID}
 	if at != nil {
 		query += ` AND pss.generated_at<=$3`
@@ -70,7 +71,7 @@ func (r *PostgresRepository) ProgramStateAt(ctx context.Context, tenant, program
 	query += ` ORDER BY pss.generated_at DESC,pss.projection_version DESC LIMIT 1`
 	var state ProgramStateSnapshot
 	var dimensions, reasons json.RawMessage
-	err := r.pool.QueryRow(ctx, query, args...).Scan(&state.ID, &state.TenantID, &state.ProgramID, &state.Overall, &dimensions, &reasons, &state.OpenMatterCount, &state.TriggerType, &state.TriggerID, &state.GeneratedAt, &state.ProgramVersion)
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&state.ID, &state.TenantID, &state.ProgramID, &state.Overall, &dimensions, &reasons, &state.OpenMatterCount, &state.TriggerType, &state.TriggerID, &state.GeneratedAt, &state.ProgramVersion, &state.ProjectionVersion)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
