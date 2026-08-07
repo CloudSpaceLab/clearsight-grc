@@ -164,14 +164,23 @@ func (s *Service) ensureRequirementBundle(ctx context.Context, config SeedConfig
 	}
 
 	current := false
+	freshness := time.Duration(contract.FreshnessMinutes) * time.Minute
 	for _, assessment := range program.EvidenceAssessments {
-		if assessment.ContractID == contract.ID && (assessment.ValidUntil == nil || assessment.ValidUntil.After(config.Now)) {
+		if assessment.ContractID != contract.ID || assessment.AssessedAt.IsZero() {
+			continue
+		}
+		validUntil := assessment.AssessedAt.Add(freshness)
+		if assessment.ValidUntil != nil && assessment.ValidUntil.Before(validUntil) {
+			validUntil = *assessment.ValidUntil
+		}
+		if validUntil.After(config.Now) {
 			current = true
 			break
 		}
 	}
 	if !current {
-		validUntil := config.Now.Add(30 * 24 * time.Hour)
+		assessedAt := config.Now.Add(-2 * time.Hour)
+		validUntil := assessedAt.Add(freshness)
 		program, err = s.continuity.RecordEvidenceAssessment(ctx, continuity.RecordEvidenceAssessmentInput{
 			TenantID:        config.TenantID,
 			ProgramID:       program.Program.ID,
@@ -182,7 +191,7 @@ func (s *Service) ensureRequirementBundle(ctx context.Context, config SeedConfig
 			Basis:           mustJSON(spec.basis),
 			ValidUntil:      &validUntil,
 			AssessedBy:      config.ReviewerPrincipalID,
-			AssessedAt:      config.Now.Add(-2 * time.Hour),
+			AssessedAt:      assessedAt,
 		})
 		if err != nil {
 			return program, fmt.Errorf("repair evidence assessment %s: %w", spec.code, err)
