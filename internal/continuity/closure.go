@@ -141,6 +141,9 @@ func assessClosureAt(aggregate MatterAggregate, now time.Time) ClosureAssessment
 	return ClosureAssessment{Ready: len(reasons) == 0, Reasons: reasons}
 }
 
+// Decision histories are reconstructed and maintained in authoritative event order.
+// The last record for a decision type is therefore the current record, even when
+// multiple lifecycle changes share the same wall-clock timestamp.
 func currentDecisions(values []Decision) []Decision {
 	current := make(map[string]Decision)
 	for _, decision := range values {
@@ -148,38 +151,13 @@ func currentDecisions(values []Decision) []Decision {
 		if key == "" {
 			key = "__UNSPECIFIED__"
 		}
-		previous, ok := current[key]
-		if !ok || decisionAfter(decision, previous) {
-			current[key] = decision
-		}
+		current[key] = decision
 	}
 	result := make([]Decision, 0, len(current))
 	for _, decision := range current {
 		result = append(result, decision)
 	}
 	return result
-}
-
-func decisionAfter(left, right Decision) bool {
-	leftAt := decisionCurrentAt(left)
-	rightAt := decisionCurrentAt(right)
-	if leftAt.Equal(rightAt) {
-		return left.ID > right.ID
-	}
-	return leftAt.After(rightAt)
-}
-
-func newerDecision(left, right Decision) bool { return decisionAfter(left, right) }
-
-func decisionCurrentAt(value Decision) time.Time {
-	latest := value.CreatedAt
-	if value.DecidedAt != nil && value.DecidedAt.After(latest) {
-		latest = *value.DecidedAt
-	}
-	if value.UpdatedAt.After(latest) {
-		latest = value.UpdatedAt
-	}
-	return latest
 }
 
 func decisionQualifies(decision Decision, now time.Time) bool {
