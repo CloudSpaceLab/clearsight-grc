@@ -25,17 +25,15 @@ func TestPostgresPoisonWorkBecomesTerminalAndIsNotReclaimed(t *testing.T) {
 	defer pool.Close()
 
 	const (
-		tenantID   = "55555555-5555-7555-8555-555555555551"
-		workflowID = "55555555-5555-7555-8555-555555555552"
-		subjectID  = "55555555-5555-7555-8555-555555555553"
-		timerID    = "55555555-5555-7555-8555-555555555554"
-		outboxID   = "55555555-5555-7555-8555-555555555555"
+		tenantID   = "66666666-6666-7666-8666-666666666661"
+		workflowID = "66666666-6666-7666-8666-666666666662"
+		subjectID  = "66666666-6666-7666-8666-666666666663"
+		timerID    = "66666666-6666-7666-8666-666666666664"
+		outboxID   = "66666666-6666-7666-8666-666666666665"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
-	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 
 	now := time.Now().UTC()
-	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'runtime-failure-test','Runtime Failure Test')`, tenantID); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'runtime-failure-isolation-test','Runtime Failure Isolation Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `INSERT INTO workflow_instances(id,tenant_id,kind,subject_type,subject_id,state,policy_version) VALUES($1::uuid,$2::uuid,'TEST','MATTER',$3::uuid,'ACTIVE','test:v1')`, workflowID, tenantID, subjectID); err != nil {
@@ -44,7 +42,7 @@ func TestPostgresPoisonWorkBecomesTerminalAndIsNotReclaimed(t *testing.T) {
 
 	repo := NewPostgresRepository(pool)
 	if _, err := repo.ScheduleTimer(ctx, Timer{
-		ID: timerID, TenantID: "runtime-failure-test", WorkflowID: workflowID,
+		ID: timerID, TenantID: "runtime-failure-isolation-test", WorkflowID: workflowID,
 		Type: "REMINDER", DueAt: now, DedupeKey: "terminal-timer", Payload: json.RawMessage(`{}`),
 	}); err != nil {
 		t.Fatal(err)
@@ -57,7 +55,7 @@ func TestPostgresPoisonWorkBecomesTerminalAndIsNotReclaimed(t *testing.T) {
 	if err != nil || !terminal {
 		t.Fatalf("terminal timer failure: terminal=%v err=%v", terminal, err)
 	}
-	storedTimer, err := repo.timerByDedupe(ctx, "runtime-failure-test", "terminal-timer")
+	storedTimer, err := repo.timerByDedupe(ctx, "runtime-failure-isolation-test", "terminal-timer")
 	if err != nil {
 		t.Fatal(err)
 	}
