@@ -106,8 +106,46 @@ func (r *PostgresRepository) EvaluateSourceHealth(ctx context.Context, now time.
 	}
 	rows.Close()
 	for _, value := range values {
-		_, err := tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at) VALUES($1::uuid,'EVIDENCE_SOURCE',$2::uuid,'SourceHealthChanged',jsonb_build_object('from',$3::text,'to','STALE','source_code',$4::text),$5,$5,$5)`, value.tenant, value.id, value.from, value.code, now)
-		if err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at) VALUES($1::uuid,'EVIDENCE_SOURCE',$2::uuid,'SourceHealthChanged',jsonb_build_object('from',$3::text,'to','STALE','source_code',$4::text),$5,$5,$5)`, value.tenant, value.id, value.from, value.code, now); err != nil {
+			return 0, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	return len(values), nil
+}
+
+func (r *PostgresRepository) ExpireRequests(ctx context.Context, now time.Time, limit int) (int, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+	rows, err := tx.Query(ctx, `SELECT id::text,tenant_id::text FROM capture_requests WHERE status IN ('READY','IN_PROGRESS') AND deadline <= $1 ORDER BY deadline,id LIMIT $2 FOR UPDATE SKIP LOCKED`, now, limit)
+	if err != nil {
+		return 0, err
+	}
+	type due struct{ id, tenant string }
+	values := []due{}
+	for rows.Next() {
+		var value due
+		if err := rows.Scan(&value.id, &value.tenant); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		values = append(values, value)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return 0, err
+	}
+	rows.Close()
+	for _, value := range values {
+		if _, err := tx.Exec(ctx, `UPDATE capture_requests SET status='EXPIRED',version=version+1,updated_at=$2 WHERE id=$1::uuid AND status IN ('READY','IN_PROGRESS')`, value.id, now); err != nil {
+			return 0, err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at) VALUES($1::uuid,'EVIDENCE_REQUEST',$2::uuid,'EvidenceRequestExpired','{}'::jsonb,$3,$3,$3)`, value.tenant, value.id, now); err != nil {
 			return 0, err
 		}
 	}
@@ -118,6 +156,9 @@ func (r *PostgresRepository) EvaluateSourceHealth(ctx context.Context, now time.
 }
 
 func (r *PostgresRepository) CreateRequest(ctx context.Context, value Request) (Request, error) {
+	if !value.Deadline.After(value.CreatedAt) {
+		return Request{}, ErrRequestClosed
+	}
 	facts, err := json.Marshal(value.KnownFacts)
 	if err != nil {
 		return Request{}, err
@@ -172,7 +213,7 @@ func (r *PostgresRepository) Submit(ctx context.Context, submission Submission) 
 	if err != nil {
 		return SubmissionReceipt{}, err
 	}
-	if request.Status == RequestSubmitted || request.Status == RequestCancelled || request.Status == RequestExpired {
+	if !requestOpenAt(request, submission.SubmittedAt) {
 		return SubmissionReceipt{}, ErrRequestClosed
 	}
 	if request.Version != submission.ExpectedVersion {
@@ -190,8 +231,7 @@ func (r *PostgresRepository) Submit(ctx context.Context, submission Submission) 
 	if err := tx.QueryRow(ctx, `UPDATE capture_requests SET status='SUBMITTED',version=version+1,updated_at=$3 WHERE id=$1::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) RETURNING version`, submission.RequestID, submission.TenantID, submission.SubmittedAt).Scan(&version); err != nil {
 		return SubmissionReceipt{}, err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at) VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),'EVIDENCE_REQUEST',$2::uuid,'EvidenceResponseSubmitted',jsonb_build_object('submission_id',$3::text,'channel',$4::text),$5,$5,$5)`, submission.TenantID, submission.RequestID, submission.ID, submission.Channel, submission.SubmittedAt)
-	if err != nil {
+	if _, err = tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at) VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),'EVIDENCE_REQUEST',$2::uuid,'EvidenceResponseSubmitted',jsonb_build_object('submission_id',$3::text,'channel',$4::text),$5,$5,$5)`, submission.TenantID, submission.RequestID, submission.ID, submission.Channel, submission.SubmittedAt); err != nil {
 		return SubmissionReceipt{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -201,8 +241,25 @@ func (r *PostgresRepository) Submit(ctx context.Context, submission Submission) 
 }
 
 func (r *PostgresRepository) CreateInvitation(ctx context.Context, value Invitation) error {
-	_, err := r.pool.Exec(ctx, `INSERT INTO capture_invitations(id,tenant_id,request_id,token_hash,audience_hash,audience_hint,purpose,expires_at,max_redemptions,created_by,created_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,$9,NULLIF($10,'')::uuid,$11)`, value.ID, value.TenantID, value.RequestID, value.TokenHash, value.AudienceHash, value.AudienceHint, value.Purpose, value.ExpiresAt, value.MaxRedemptions, value.CreatedBy, value.CreatedAt)
-	return err
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.slug,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, value.RequestID, value.TenantID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if !requestOpenAt(request, value.CreatedAt) || !value.ExpiresAt.After(value.CreatedAt) || value.ExpiresAt.After(request.Deadline) {
+		return ErrRequestClosed
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO capture_invitations(id,tenant_id,request_id,token_hash,audience_hash,audience_hint,purpose,expires_at,max_redemptions,created_by,created_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,$9,NULLIF($10,'')::uuid,$11)`, value.ID, value.TenantID, value.RequestID, value.TokenHash, value.AudienceHash, value.AudienceHint, value.Purpose, value.ExpiresAt, value.MaxRedemptions, value.CreatedBy, value.CreatedAt); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (r *PostgresRepository) RedeemInvitation(ctx context.Context, input RedeemInput) (Session, error) {
@@ -213,10 +270,11 @@ func (r *PostgresRepository) RedeemInvitation(ctx context.Context, input RedeemI
 	defer tx.Rollback(ctx)
 	var invitationID, tenantID, requestID, audienceHint string
 	var expiresAt, requestDeadline time.Time
+	var requestStatus RequestStatus
 	var maxRedemptions, redemptions int
 	var revoked sql.NullTime
-	err = tx.QueryRow(ctx, `SELECT ei.id::text,ei.tenant_id::text,ei.request_id::text,ei.audience_hint,ei.expires_at,ei.max_redemptions,ei.redemptions,ei.revoked_at,er.deadline FROM capture_invitations ei JOIN capture_requests er ON er.id=ei.request_id AND er.tenant_id=ei.tenant_id WHERE ei.token_hash=$1 FOR UPDATE`, input.InvitationTokenHash).Scan(&invitationID, &tenantID, &requestID, &audienceHint, &expiresAt, &maxRedemptions, &redemptions, &revoked, &requestDeadline)
-	if errors.Is(err, pgx.ErrNoRows) || revoked.Valid || redemptions >= maxRedemptions || !input.Now.Before(expiresAt) {
+	err = tx.QueryRow(ctx, `SELECT ei.id::text,ei.tenant_id::text,ei.request_id::text,ei.audience_hint,ei.expires_at,ei.max_redemptions,ei.redemptions,ei.revoked_at,er.deadline,er.status FROM capture_invitations ei JOIN capture_requests er ON er.id=ei.request_id AND er.tenant_id=ei.tenant_id WHERE ei.token_hash=$1 AND ei.audience_hash=$2 FOR UPDATE`, input.InvitationTokenHash, input.AudienceHash).Scan(&invitationID, &tenantID, &requestID, &audienceHint, &expiresAt, &maxRedemptions, &redemptions, &revoked, &requestDeadline, &requestStatus)
+	if errors.Is(err, pgx.ErrNoRows) || revoked.Valid || redemptions >= maxRedemptions || !input.Now.Before(expiresAt) || (requestStatus != RequestReady && requestStatus != RequestInProgress) || !input.Now.Before(requestDeadline) {
 		return Session{}, ErrInvitationInvalid
 	}
 	if err != nil {
@@ -235,8 +293,7 @@ func (r *PostgresRepository) RedeemInvitation(ctx context.Context, input RedeemI
 	if _, err := tx.Exec(ctx, `UPDATE capture_invitations SET redemptions=redemptions+1,last_redeemed_at=$2 WHERE id=$1::uuid`, invitationID, input.Now); err != nil {
 		return Session{}, err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO capture_sessions(id,tenant_id,request_id,invitation_id,token_hash,audience_hint,expires_at,created_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8)`, input.SessionID, tenantID, requestID, invitationID, input.SessionTokenHash, audienceHint, sessionExpires, input.Now)
-	if err != nil {
+	if _, err = tx.Exec(ctx, `INSERT INTO capture_sessions(id,tenant_id,request_id,invitation_id,token_hash,audience_hint,expires_at,created_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8)`, input.SessionID, tenantID, requestID, invitationID, input.SessionTokenHash, audienceHint, sessionExpires, input.Now); err != nil {
 		return Session{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -255,10 +312,50 @@ func (r *PostgresRepository) SessionByTokenHash(ctx context.Context, hash []byte
 	return value, err
 }
 
+func (r *PostgresRepository) RevokeInvitation(ctx context.Context, tenant, id string, now time.Time) error {
+	tag, err := r.pool.Exec(ctx, `UPDATE capture_invitations SET revoked_at=COALESCE(revoked_at,$3) WHERE id=$1::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2)`, id, tenant, now)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *PostgresRepository) RevokeSession(ctx context.Context, tenant, id string, now time.Time) error {
+	tag, err := r.pool.Exec(ctx, `UPDATE capture_sessions SET revoked_at=COALESCE(revoked_at,$3) WHERE id=$1::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2)`, id, tenant, now)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (r *PostgresRepository) CreateArtifact(ctx context.Context, value Artifact) (Artifact, error) {
-	row := r.pool.QueryRow(ctx, `INSERT INTO capture_artifacts(id,tenant_id,request_id,submission_id,file_name,media_type,size_bytes,sha256,storage_key,status,created_by,created_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,$5,$6,$7,$8,$9,$10,NULLIF($11,'')::uuid,$12) RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),request_id::text,COALESCE(submission_id::text,''),file_name,media_type,size_bytes,sha256,storage_key,status,COALESCE(created_by::text,''),created_at`, value.ID, value.TenantID, value.RequestID, value.SubmissionID, value.FileName, value.MediaType, value.SizeBytes, value.SHA256, value.StorageKey, value.Status, value.CreatedBy, value.CreatedAt)
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return Artifact{}, err
+	}
+	defer tx.Rollback(ctx)
+	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.slug,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, value.RequestID, value.TenantID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Artifact{}, ErrNotFound
+	}
+	if err != nil {
+		return Artifact{}, err
+	}
+	if !requestOpenAt(request, value.CreatedAt) {
+		return Artifact{}, ErrRequestClosed
+	}
+	row := tx.QueryRow(ctx, `INSERT INTO capture_artifacts(id,tenant_id,request_id,submission_id,file_name,media_type,size_bytes,sha256,storage_key,status,created_by,created_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,$5,$6,$7,$8,$9,$10,NULLIF($11,'')::uuid,$12) RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),request_id::text,COALESCE(submission_id::text,''),file_name,media_type,size_bytes,sha256,storage_key,status,COALESCE(created_by::text,''),created_at`, value.ID, value.TenantID, value.RequestID, value.SubmissionID, value.FileName, value.MediaType, value.SizeBytes, value.SHA256, value.StorageKey, value.Status, value.CreatedBy, value.CreatedAt)
 	var created Artifact
 	if err := row.Scan(&created.ID, &created.TenantID, &created.RequestID, &created.SubmissionID, &created.FileName, &created.MediaType, &created.SizeBytes, &created.SHA256, &created.StorageKey, &created.Status, &created.CreatedBy, &created.CreatedAt); err != nil {
+		return Artifact{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
 		return Artifact{}, err
 	}
 	return created, nil

@@ -23,7 +23,7 @@ export function CapturePanel({ request }: { request: CaptureRequest | null }) {
     setError(null);
     setSubmitting(true);
     try {
-      const result = await submitCaptureRequest(request.id, request.version, answers, request.source);
+      const result = await submitCaptureRequest(request.id, request.version, answers);
       setReceipt(`Submitted ${new Date(result.submitted_at).toLocaleString()}`);
       setReviewing(false);
     } catch (cause) {

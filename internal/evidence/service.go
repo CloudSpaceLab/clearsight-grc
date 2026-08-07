@@ -26,6 +26,7 @@ type Service struct {
 func NewService(repo Repository, store ObjectStore) *Service {
 	return &Service{repo: repo, store: store, now: time.Now, sessionTTL: 20 * time.Minute, maxArtifactBytes: 20 << 20}
 }
+
 func (s *Service) Configure(sessionTTL time.Duration, maxArtifactBytes int64) {
 	if sessionTTL > 0 {
 		s.sessionTTL = sessionTTL
@@ -34,6 +35,7 @@ func (s *Service) Configure(sessionTTL time.Duration, maxArtifactBytes int64) {
 		s.maxArtifactBytes = maxArtifactBytes
 	}
 }
+
 func (s *Service) CreateSource(ctx context.Context, input CreateSourceInput) (Source, error) {
 	if strings.TrimSpace(input.TenantID) == "" || strings.TrimSpace(input.Code) == "" || strings.TrimSpace(input.Name) == "" || !validSourceType(input.Type) || strings.TrimSpace(input.AuthorityClass) == "" {
 		return Source{}, fmt.Errorf("tenant, code, name, source type and authority class are required")
@@ -48,12 +50,14 @@ func (s *Service) CreateSource(ctx context.Context, input CreateSourceInput) (So
 	now := s.now().UTC()
 	return s.repo.CreateSource(ctx, Source{ID: valueID, TenantID: input.TenantID, LegalEntityID: input.LegalEntityID, Code: input.Code, Name: input.Name, Type: input.Type, AuthorityClass: input.AuthorityClass, OwnerPrincipalID: input.OwnerPrincipalID, Endpoint: input.Endpoint, ExpectedFreshnessMinutes: input.ExpectedFreshnessMinutes, Health: HealthUnknown, Status: SourceActive, Version: 1, CreatedAt: now, UpdatedAt: now})
 }
+
 func (s *Service) ListSources(ctx context.Context, tenant string, limit int) ([]Source, error) {
 	if strings.TrimSpace(tenant) == "" {
 		return nil, fmt.Errorf("tenant_id is required")
 	}
 	return s.repo.ListSources(ctx, tenant, bounded(limit))
 }
+
 func (s *Service) RecordSourceObservation(ctx context.Context, observation SourceObservation) (Source, error) {
 	if strings.TrimSpace(observation.TenantID) == "" || strings.TrimSpace(observation.SourceID) == "" {
 		return Source{}, fmt.Errorf("tenant and source are required")
@@ -74,12 +78,20 @@ func (s *Service) RecordSourceObservation(ctx context.Context, observation Sourc
 	}
 	return s.repo.RecordSourceObservation(ctx, observation, health)
 }
+
 func (s *Service) Maintain(ctx context.Context, now time.Time, limit int) (int, error) {
 	if now.IsZero() {
 		now = s.now().UTC()
 	}
-	return s.repo.EvaluateSourceHealth(ctx, now, bounded(limit))
+	limit = bounded(limit)
+	expired, err := s.repo.ExpireRequests(ctx, now, limit)
+	if err != nil {
+		return expired, err
+	}
+	stale, err := s.repo.EvaluateSourceHealth(ctx, now, limit)
+	return expired + stale, err
 }
+
 func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (Request, error) {
 	if err := validateRequestInput(input); err != nil {
 		return Request{}, err
@@ -89,24 +101,47 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 		return Request{}, err
 	}
 	now := s.now().UTC()
-	return s.repo.CreateRequest(ctx, Request{ID: valueID, TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, EstimatedMinutes: input.EstimatedMinutes, Deadline: input.Deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: cloneFields(input.Fields), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now})
+	deadline := input.Deadline.UTC()
+	if !deadline.After(now) {
+		return Request{}, fmt.Errorf("deadline must be in the future")
+	}
+	return s.repo.CreateRequest(ctx, Request{ID: valueID, TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: cloneFields(input.Fields), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now})
 }
+
 func (s *Service) ListRequests(ctx context.Context, tenant string, limit int) ([]Request, error) {
 	if strings.TrimSpace(tenant) == "" {
 		return nil, fmt.Errorf("tenant_id is required")
 	}
-	return s.repo.ListRequests(ctx, tenant, bounded(limit))
+	values, err := s.repo.ListRequests(ctx, tenant, bounded(limit))
+	if err != nil {
+		return nil, err
+	}
+	now := s.now().UTC()
+	for index := range values {
+		values[index] = effectiveRequest(values[index], now)
+	}
+	return values, nil
 }
+
 func (s *Service) GetRequest(ctx context.Context, tenant, requestID string) (Request, error) {
 	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(requestID) == "" {
 		return Request{}, fmt.Errorf("tenant and request are required")
 	}
-	return s.repo.GetRequest(ctx, tenant, requestID)
+	value, err := s.repo.GetRequest(ctx, tenant, requestID)
+	if err != nil {
+		return Request{}, err
+	}
+	return effectiveRequest(value, s.now().UTC()), nil
 }
+
 func (s *Service) Submit(ctx context.Context, submission Submission) (SubmissionReceipt, error) {
-	request, err := s.GetRequest(ctx, submission.TenantID, submission.RequestID)
+	request, err := s.repo.GetRequest(ctx, submission.TenantID, submission.RequestID)
 	if err != nil {
 		return SubmissionReceipt{}, err
+	}
+	now := s.now().UTC()
+	if !requestOpenAt(request, now) {
+		return SubmissionReceipt{}, ErrRequestClosed
 	}
 	if err := validateAnswers(request, submission.Answers); err != nil {
 		return SubmissionReceipt{}, err
@@ -123,18 +158,20 @@ func (s *Service) Submit(ctx context.Context, submission Submission) (Submission
 		submission.Channel = "INTERNAL"
 	}
 	submission.Answers = cloneMap(submission.Answers)
-	submission.SubmittedAt = s.now().UTC()
+	submission.SubmittedAt = now
 	return s.repo.Submit(ctx, submission)
 }
+
 func (s *Service) IssueInvitation(ctx context.Context, input IssueInvitationInput) (IssuedInvitation, error) {
-	request, err := s.GetRequest(ctx, input.TenantID, input.RequestID)
+	request, err := s.repo.GetRequest(ctx, input.TenantID, input.RequestID)
 	if err != nil {
 		return IssuedInvitation{}, err
 	}
-	if request.Status != RequestReady && request.Status != RequestInProgress {
+	now := s.now().UTC()
+	if !requestOpenAt(request, now) {
 		return IssuedInvitation{}, ErrRequestClosed
 	}
-	audience := strings.TrimSpace(strings.ToLower(input.Audience))
+	audience := normalizeAudience(input.Audience)
 	if audience == "" || strings.TrimSpace(input.Purpose) == "" {
 		return IssuedInvitation{}, fmt.Errorf("audience and purpose are required")
 	}
@@ -154,21 +191,23 @@ func (s *Service) IssueInvitation(ctx context.Context, input IssueInvitationInpu
 	if err != nil {
 		return IssuedInvitation{}, err
 	}
-	now := s.now().UTC()
 	invitation := Invitation{ID: valueID, TenantID: input.TenantID, RequestID: input.RequestID, TokenHash: tokenHash, AudienceHash: audienceDigest[:], AudienceHint: audienceHint(audience), Purpose: input.Purpose, ExpiresAt: now.Add(ttl), MaxRedemptions: 1, CreatedBy: input.CreatedBy, CreatedAt: now}
 	if invitation.ExpiresAt.After(request.Deadline) {
 		invitation.ExpiresAt = request.Deadline
 	}
 	if !invitation.ExpiresAt.After(now) {
-		return IssuedInvitation{}, fmt.Errorf("request deadline has passed")
+		return IssuedInvitation{}, ErrRequestClosed
 	}
 	if err := s.repo.CreateInvitation(ctx, invitation); err != nil {
 		return IssuedInvitation{}, err
 	}
 	return IssuedInvitation{InvitationID: valueID, Token: token, AudienceHint: invitation.AudienceHint, ExpiresAt: invitation.ExpiresAt}, nil
 }
-func (s *Service) RedeemInvitation(ctx context.Context, token string) (RedeemedSession, error) {
-	if strings.TrimSpace(token) == "" {
+
+func (s *Service) RedeemInvitation(ctx context.Context, token, audience string) (RedeemedSession, error) {
+	token = strings.TrimSpace(token)
+	audience = normalizeAudience(audience)
+	if token == "" || audience == "" {
 		return RedeemedSession{}, ErrInvitationInvalid
 	}
 	sessionToken, sessionHash, err := tokenPair()
@@ -179,15 +218,18 @@ func (s *Service) RedeemInvitation(ctx context.Context, token string) (RedeemedS
 	if err != nil {
 		return RedeemedSession{}, err
 	}
+	audienceDigest := sha256.Sum256([]byte(audience))
 	now := s.now().UTC()
-	session, err := s.repo.RedeemInvitation(ctx, RedeemInput{InvitationTokenHash: hashToken(token), SessionTokenHash: sessionHash, SessionID: sessionID, Now: now, SessionExpiresAt: now.Add(s.sessionTTL)})
+	session, err := s.repo.RedeemInvitation(ctx, RedeemInput{InvitationTokenHash: hashToken(token), AudienceHash: audienceDigest[:], SessionTokenHash: sessionHash, SessionID: sessionID, Now: now, SessionExpiresAt: now.Add(s.sessionTTL)})
 	if err != nil {
 		return RedeemedSession{}, ErrInvitationInvalid
 	}
 	return RedeemedSession{SessionID: session.ID, SessionToken: sessionToken, RequestID: session.RequestID, AudienceHint: session.AudienceHint, ExpiresAt: session.ExpiresAt}, nil
 }
+
 func (s *Service) SessionRequest(ctx context.Context, sessionToken string) (Session, Request, error) {
-	session, err := s.repo.SessionByTokenHash(ctx, hashToken(sessionToken), s.now().UTC())
+	now := s.now().UTC()
+	session, err := s.repo.SessionByTokenHash(ctx, hashToken(sessionToken), now)
 	if err != nil {
 		return Session{}, Request{}, ErrSessionInvalid
 	}
@@ -195,8 +237,12 @@ func (s *Service) SessionRequest(ctx context.Context, sessionToken string) (Sess
 	if err != nil {
 		return Session{}, Request{}, err
 	}
+	if !requestOpenAt(request, now) {
+		return Session{}, Request{}, ErrSessionInvalid
+	}
 	return session, request, nil
 }
+
 func (s *Service) SubmitSession(ctx context.Context, sessionToken string, answers map[string]string, expectedVersion int64) (SubmissionReceipt, error) {
 	session, request, err := s.SessionRequest(ctx, sessionToken)
 	if err != nil {
@@ -204,24 +250,32 @@ func (s *Service) SubmitSession(ctx context.Context, sessionToken string, answer
 	}
 	return s.Submit(ctx, Submission{TenantID: session.TenantID, RequestID: request.ID, SessionID: session.ID, Channel: "MAGIC_LINK", Answers: answers, ExpectedVersion: expectedVersion})
 }
+
 func (s *Service) RevokeInvitation(ctx context.Context, tenant, id string) error {
 	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(id) == "" {
 		return fmt.Errorf("tenant and invitation are required")
 	}
 	return s.repo.RevokeInvitation(ctx, tenant, id, s.now().UTC())
 }
+
 func (s *Service) RevokeSession(ctx context.Context, tenant, id string) error {
 	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(id) == "" {
 		return fmt.Errorf("tenant and session are required")
 	}
 	return s.repo.RevokeSession(ctx, tenant, id, s.now().UTC())
 }
+
 func (s *Service) StoreArtifact(ctx context.Context, input ArtifactInput, reader io.Reader) (Artifact, error) {
 	if s.store == nil {
 		return Artifact{}, fmt.Errorf("object store is unavailable")
 	}
-	if _, err := s.GetRequest(ctx, input.TenantID, input.RequestID); err != nil {
+	now := s.now().UTC()
+	request, err := s.repo.GetRequest(ctx, input.TenantID, input.RequestID)
+	if err != nil {
 		return Artifact{}, err
+	}
+	if !requestOpenAt(request, now) {
+		return Artifact{}, ErrRequestClosed
 	}
 	fileName := filepath.Base(strings.TrimSpace(input.FileName))
 	mediaType := strings.ToLower(strings.TrimSpace(strings.Split(input.MediaType, ";")[0]))
@@ -237,7 +291,7 @@ func (s *Service) StoreArtifact(ctx context.Context, input ArtifactInput, reader
 	if err != nil {
 		return Artifact{}, err
 	}
-	artifact := Artifact{ID: valueID, TenantID: input.TenantID, RequestID: input.RequestID, SubmissionID: input.SubmissionID, FileName: fileName, MediaType: mediaType, SizeBytes: object.SizeBytes, SHA256: object.SHA256, StorageKey: object.Key, Status: ArtifactStoredUnscanned, CreatedBy: input.CreatedBy, CreatedAt: s.now().UTC()}
+	artifact := Artifact{ID: valueID, TenantID: input.TenantID, RequestID: input.RequestID, SubmissionID: input.SubmissionID, FileName: fileName, MediaType: mediaType, SizeBytes: object.SizeBytes, SHA256: object.SHA256, StorageKey: object.Key, Status: ArtifactStoredUnscanned, CreatedBy: input.CreatedBy, CreatedAt: now}
 	created, err := s.repo.CreateArtifact(ctx, artifact)
 	if err != nil {
 		_ = s.store.Delete(ctx, object.Key)
@@ -245,6 +299,7 @@ func (s *Service) StoreArtifact(ctx context.Context, input ArtifactInput, reader
 	}
 	return created, nil
 }
+
 func validateRequestInput(input CreateRequestInput) error {
 	if strings.TrimSpace(input.TenantID) == "" || strings.TrimSpace(input.SubjectType) == "" || strings.TrimSpace(input.SubjectID) == "" || strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Purpose) == "" || strings.TrimSpace(input.WhyYou) == "" || strings.TrimSpace(input.Sensitivity) == "" || strings.TrimSpace(input.AudienceType) == "" {
 		return fmt.Errorf("tenant, subject, title, purpose, recipient context, sensitivity and audience type are required")
@@ -272,6 +327,7 @@ func validateRequestInput(input CreateRequestInput) error {
 	}
 	return nil
 }
+
 func validateAnswers(request Request, answers map[string]string) error {
 	for _, field := range request.Fields {
 		value := strings.TrimSpace(answers[field.ID])
@@ -293,6 +349,22 @@ func validateAnswers(request Request, answers map[string]string) error {
 	}
 	return nil
 }
+
+func requestOpenAt(request Request, at time.Time) bool {
+	return (request.Status == RequestReady || request.Status == RequestInProgress) && at.Before(request.Deadline)
+}
+
+func effectiveRequest(request Request, at time.Time) Request {
+	if (request.Status == RequestReady || request.Status == RequestInProgress) && !at.Before(request.Deadline) {
+		request.Status = RequestExpired
+	}
+	return request
+}
+
+func normalizeAudience(value string) string {
+	return strings.ToLower(strings.TrimSpace(value))
+}
+
 func tokenPair() (string, []byte, error) {
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
@@ -301,10 +373,12 @@ func tokenPair() (string, []byte, error) {
 	token := base64.RawURLEncoding.EncodeToString(raw)
 	return token, hashToken(token), nil
 }
+
 func hashToken(token string) []byte {
 	digest := sha256.Sum256([]byte(strings.TrimSpace(token)))
 	return digest[:]
 }
+
 func audienceHint(audience string) string {
 	if at := strings.LastIndex(audience, "@"); at > 1 {
 		return audience[:1] + "***" + audience[at:]
@@ -314,11 +388,13 @@ func audienceHint(audience string) string {
 	}
 	return audience[:2] + "***" + audience[len(audience)-2:]
 }
+
 func allowedMediaType(value string) bool {
 	allowed := map[string]struct{}{"application/pdf": {}, "image/png": {}, "image/jpeg": {}, "text/plain": {}, "text/csv": {}, "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {}, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}}
 	_, ok := allowed[value]
 	return ok
 }
+
 func validSourceType(value SourceType) bool {
 	switch value {
 	case SourceRegulatory, SourceSystem, SourceDocument, SourceHuman, SourceVendor:
@@ -327,12 +403,14 @@ func validSourceType(value SourceType) bool {
 		return false
 	}
 }
+
 func bounded(limit int) int {
 	if limit < 1 || limit > 200 {
 		return 50
 	}
 	return limit
 }
+
 func cloneMap(input map[string]string) map[string]string {
 	out := make(map[string]string, len(input))
 	for key, value := range input {
@@ -340,6 +418,7 @@ func cloneMap(input map[string]string) map[string]string {
 	}
 	return out
 }
+
 func cloneFields(input []Field) []Field {
 	out := append([]Field(nil), input...)
 	for index := range out {
@@ -348,18 +427,22 @@ func cloneFields(input []Field) []Field {
 	}
 	return out
 }
+
 func DemoSources() []Source {
 	now := time.Now().UTC()
 	last := now.Add(-18 * time.Minute)
 	return []Source{{ID: "019fd111-1111-7111-8111-111111111111", TenantID: "bank-demo", Code: "CBN_CIRCULARS", Name: "CBN circulars", Type: SourceRegulatory, AuthorityClass: "OFFICIAL", ExpectedFreshnessMinutes: 60, LastObservedAt: &last, LastSuccessAt: &last, Health: HealthCurrent, Status: SourceActive, Version: 1, CreatedAt: now, UpdatedAt: now}, {ID: "019fd222-2222-7222-8222-222222222222", TenantID: "bank-demo", Code: "IAM_DIRECTORY", Name: "Identity directory", Type: SourceSystem, AuthorityClass: "SYSTEM_OF_RECORD", ExpectedFreshnessMinutes: 15, LastObservedAt: &last, LastSuccessAt: &last, Health: HealthStale, Status: SourceActive, Version: 1, CreatedAt: now, UpdatedAt: now}}
 }
+
 func DemoRequests() []Request {
 	now := time.Now().UTC()
 	return []Request{{ID: "019fd333-3333-7333-8333-333333333333", TenantID: "bank-demo", SubjectType: "CONTROL", SubjectID: "branch-backup-power", Title: "Confirm branch backup-power condition", Purpose: "Complete the August resilience review for Enugu Main Branch.", WhyYou: "You are the current branch operations manager.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL", EstimatedMinutes: 2, Deadline: now.Add(48 * time.Hour), KnownFacts: map[string]string{"Branch": "Enugu Main Branch", "Last service": "18 Jul 2026", "Maintenance firm": "Northstar Engineering"}, Fields: []Field{{ID: "condition", Label: "Current generator condition", Type: "single_select", Required: true, Options: []string{"Operational", "Operational with concern", "Unavailable"}}, {ID: "concern", Label: "Concern or supporting note", Type: "text"}}, Status: RequestReady, Version: 1, CreatedAt: now, UpdatedAt: now}}
 }
+
 func sortSources(values []Source) {
 	sort.Slice(values, func(i, j int) bool { return values[i].Name < values[j].Name })
 }
+
 func sortRequests(values []Request) {
 	sort.Slice(values, func(i, j int) bool { return values[i].Deadline.Before(values[j].Deadline) })
 }

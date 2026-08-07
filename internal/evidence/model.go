@@ -203,6 +203,7 @@ type RedeemedSession struct {
 
 type RedeemInput struct {
 	InvitationTokenHash []byte
+	AudienceHash        []byte
 	SessionTokenHash    []byte
 	SessionID           string
 	Now                 time.Time

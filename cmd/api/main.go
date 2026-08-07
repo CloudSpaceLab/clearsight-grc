@@ -43,7 +43,7 @@ func main() {
 	handler := httpapi.New(httpapi.Dependencies{
 		Logger: logger, AllowedOrigin: cfg.AllowedOrigin, Mode: services.Mode, DemoMode: cfg.DemoMode,
 		Identity: authenticator, CommandGuard: guard, Authority: services.Authority, Governance: services.Governance,
-		Capture: services.Capture, Invitations: services.Invitations, Evidence: services.Evidence, DocumentImports: services.DocumentImports,
+		Evidence: services.Evidence, DocumentImports: services.DocumentImports,
 		Continuity: services.Continuity, Today: services.Today, Workflow: services.Workflow, Onboarding: services.Onboarding,
 		Autonomy: services.Autonomy, BankVerticals: services.BankVerticals, BackgroundJobs: services.BackgroundJobs,
 		MaxArtifactBytes: cfg.MaxArtifactBytes,

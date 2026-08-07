@@ -10,7 +10,6 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/capture"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
@@ -57,10 +56,8 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		}
 	}
 
-	requests := capture.DemoRequests()
 	tasks := workflow.DemoTasks()
 	if !cfg.DemoMode {
-		requests = nil
 		tasks = nil
 	}
 	workflowService := workflow.NewService(workflow.NewMemoryRepository(tasks))
@@ -88,8 +85,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 
 	return serviceSet{
 		Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()),
-		Capture: capture.NewService(requests), Invitations: capture.NewInvitationService(time.Now), Evidence: evidenceService,
-		DocumentImports: documentService, Continuity: continuityService, Today: todayService,
+		Evidence: evidenceService, DocumentImports: documentService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
 		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo), Close: func() {},
 	}, nil

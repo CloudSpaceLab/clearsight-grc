@@ -244,13 +244,13 @@ function App() {
     if (requestID) {
       const existing = evidenceRequests.find((request) => request.id === requestID);
       if (existing) {
-        setCapture({ ...existing, source: "evidence" });
+        setCapture(existing);
         return;
       }
       setCapture(null);
       const loaded = await loadEvidenceRequest(requestID).catch(() => null);
       if (loadID !== captureLoadID.current) return;
-      setCapture(loaded ? { ...loaded, source: "evidence" } : null);
+      setCapture(loaded);
       return;
     }
 

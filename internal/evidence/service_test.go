@@ -31,7 +31,46 @@ func TestRequestSubmissionAndVersioning(t *testing.T) {
 	}
 }
 
-func TestInvitationRedeemIsOneTimeAndSessionBound(t *testing.T) {
+func TestCreateRequestRejectsPastDeadline(t *testing.T) {
+	service := NewService(NewMemoryRepository(nil, nil), NewMemoryObjectStore())
+	now := time.Date(2026, 8, 5, 10, 0, 0, 0, time.UTC)
+	service.now = func() time.Time { return now }
+	_, err := service.CreateRequest(context.Background(), CreateRequestInput{TenantID: "bank", SubjectType: "CONTROL", SubjectID: "c1", Title: "Expired request", Purpose: "Test deadline enforcement.", WhyYou: "You own the control.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL", EstimatedMinutes: 2, Deadline: now.Add(-time.Minute), Fields: []Field{{ID: "note", Label: "Note", Type: "text"}}})
+	if err == nil {
+		t.Fatal("expected past deadline to be rejected")
+	}
+}
+
+func TestExpiredRequestRejectsSubmissionAndArtifactAndPersistsExpiry(t *testing.T) {
+	repo := NewMemoryRepository(nil, nil)
+	service := NewService(repo, NewMemoryObjectStore())
+	now := time.Date(2026, 8, 5, 10, 0, 0, 0, time.UTC)
+	service.now = func() time.Time { return now }
+	request, err := service.CreateRequest(context.Background(), CreateRequestInput{TenantID: "bank", SubjectType: "CONTROL", SubjectID: "c1", Title: "Short request", Purpose: "Test expiry.", WhyYou: "You own the control.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL", EstimatedMinutes: 2, Deadline: now.Add(time.Minute), Fields: []Field{{ID: "note", Label: "Note", Type: "text"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(2 * time.Minute)
+	if _, err := service.Submit(context.Background(), Submission{TenantID: "bank", RequestID: request.ID, ExpectedVersion: request.Version, Answers: map[string]string{"note": "late"}}); !errors.Is(err, ErrRequestClosed) {
+		t.Fatalf("late submission should be closed, got %v", err)
+	}
+	if _, err := service.StoreArtifact(context.Background(), ArtifactInput{TenantID: "bank", RequestID: request.ID, FileName: "proof.txt", MediaType: "text/plain"}, bytes.NewBufferString("evidence")); !errors.Is(err, ErrRequestClosed) {
+		t.Fatalf("late artifact should be closed, got %v", err)
+	}
+	count, err := service.Maintain(context.Background(), now, 10)
+	if err != nil || count != 1 {
+		t.Fatalf("expire maintenance count=%d err=%v", count, err)
+	}
+	persisted, err := repo.GetRequest(context.Background(), "bank", request.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if persisted.Status != RequestExpired || persisted.Version != request.Version+1 {
+		t.Fatalf("expiry was not persisted: %#v", persisted)
+	}
+}
+
+func TestInvitationRedeemIsAudienceBoundOneTimeAndNonDestructiveOnMismatch(t *testing.T) {
 	service := NewService(NewMemoryRepository(nil, nil), NewMemoryObjectStore())
 	now := time.Date(2026, 8, 5, 10, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
@@ -43,14 +82,17 @@ func TestInvitationRedeemIsOneTimeAndSessionBound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	session, err := service.RedeemInvitation(context.Background(), issued.Token)
+	if _, err := service.RedeemInvitation(context.Background(), issued.Token, "other@example.com"); !errors.Is(err, ErrInvitationInvalid) {
+		t.Fatalf("expected audience mismatch rejection, got %v", err)
+	}
+	session, err := service.RedeemInvitation(context.Background(), issued.Token, " Security@Example.com ")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if session.SessionToken == "" || session.AudienceHint != "s***@example.com" {
 		t.Fatalf("unexpected session: %#v", session)
 	}
-	if _, err := service.RedeemInvitation(context.Background(), issued.Token); !errors.Is(err, ErrInvitationInvalid) {
+	if _, err := service.RedeemInvitation(context.Background(), issued.Token, "security@example.com"); !errors.Is(err, ErrInvitationInvalid) {
 		t.Fatalf("expected replay rejection, got %v", err)
 	}
 	_, loaded, err := service.SessionRequest(context.Background(), session.SessionToken)

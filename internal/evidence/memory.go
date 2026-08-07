@@ -2,6 +2,7 @@ package evidence
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/hex"
 	"sort"
 	"sync"
@@ -31,6 +32,7 @@ func NewMemoryRepository(sources []Source, requests []Request) *MemoryRepository
 	}
 	return repo
 }
+
 func (r *MemoryRepository) CreateSource(_ context.Context, value Source) (Source, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -42,6 +44,7 @@ func (r *MemoryRepository) CreateSource(_ context.Context, value Source) (Source
 	r.sources[value.ID] = value
 	return value, nil
 }
+
 func (r *MemoryRepository) ListSources(_ context.Context, tenant string, limit int) ([]Source, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -57,6 +60,7 @@ func (r *MemoryRepository) ListSources(_ context.Context, tenant string, limit i
 	}
 	return values, nil
 }
+
 func (r *MemoryRepository) RecordSourceObservation(_ context.Context, observation SourceObservation, health SourceHealth) (Source, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -75,6 +79,7 @@ func (r *MemoryRepository) RecordSourceObservation(_ context.Context, observatio
 	r.observations[observation.ID] = observation
 	return source, nil
 }
+
 func (r *MemoryRepository) EvaluateSourceHealth(_ context.Context, now time.Time, limit int) (int, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -103,14 +108,19 @@ func (r *MemoryRepository) EvaluateSourceHealth(_ context.Context, now time.Time
 	}
 	return changed, nil
 }
+
 func (r *MemoryRepository) CreateRequest(_ context.Context, value Request) (Request, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if !value.Deadline.After(value.CreatedAt) {
+		return Request{}, ErrRequestClosed
+	}
 	value.KnownFacts = cloneMap(value.KnownFacts)
 	value.Fields = cloneFields(value.Fields)
 	r.requests[value.ID] = value
 	return cloneRequest(value), nil
 }
+
 func (r *MemoryRepository) ListRequests(_ context.Context, tenant string, limit int) ([]Request, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -126,6 +136,7 @@ func (r *MemoryRepository) ListRequests(_ context.Context, tenant string, limit 
 	}
 	return values, nil
 }
+
 func (r *MemoryRepository) GetRequest(_ context.Context, tenant, id string) (Request, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -135,6 +146,7 @@ func (r *MemoryRepository) GetRequest(_ context.Context, tenant, id string) (Req
 	}
 	return cloneRequest(value), nil
 }
+
 func (r *MemoryRepository) Submit(_ context.Context, submission Submission) (SubmissionReceipt, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -142,7 +154,7 @@ func (r *MemoryRepository) Submit(_ context.Context, submission Submission) (Sub
 	if !ok || request.TenantID != submission.TenantID {
 		return SubmissionReceipt{}, ErrNotFound
 	}
-	if request.Status == RequestSubmitted || request.Status == RequestCancelled || request.Status == RequestExpired {
+	if !requestOpenAt(request, submission.SubmittedAt) {
 		return SubmissionReceipt{}, ErrRequestClosed
 	}
 	if request.Version != submission.ExpectedVersion {
@@ -156,9 +168,43 @@ func (r *MemoryRepository) Submit(_ context.Context, submission Submission) (Sub
 	r.submissions[submission.ID] = submission
 	return SubmissionReceipt{SubmissionID: submission.ID, RequestID: request.ID, Status: request.Status, SubmittedAt: submission.SubmittedAt, Version: request.Version}, nil
 }
+
+func (r *MemoryRepository) ExpireRequests(_ context.Context, now time.Time, limit int) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	ids := make([]string, 0, len(r.requests))
+	for requestID := range r.requests {
+		ids = append(ids, requestID)
+	}
+	sort.Strings(ids)
+	changed := 0
+	for _, requestID := range ids {
+		if changed >= limit {
+			break
+		}
+		request := r.requests[requestID]
+		if (request.Status != RequestReady && request.Status != RequestInProgress) || now.Before(request.Deadline) {
+			continue
+		}
+		request.Status = RequestExpired
+		request.Version++
+		request.UpdatedAt = now
+		r.requests[requestID] = request
+		changed++
+	}
+	return changed, nil
+}
+
 func (r *MemoryRepository) CreateInvitation(_ context.Context, value Invitation) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	request, ok := r.requests[value.RequestID]
+	if !ok || request.TenantID != value.TenantID {
+		return ErrNotFound
+	}
+	if !requestOpenAt(request, value.CreatedAt) || !value.ExpiresAt.After(value.CreatedAt) {
+		return ErrRequestClosed
+	}
 	key := hex.EncodeToString(value.TokenHash)
 	if _, exists := r.invitations[key]; exists {
 		return ErrVersionConflict
@@ -166,20 +212,19 @@ func (r *MemoryRepository) CreateInvitation(_ context.Context, value Invitation)
 	r.invitations[key] = value
 	return nil
 }
+
 func (r *MemoryRepository) RedeemInvitation(_ context.Context, input RedeemInput) (Session, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	key := hex.EncodeToString(input.InvitationTokenHash)
 	invitation, ok := r.invitations[key]
-	if !ok || invitation.RevokedAt != nil || invitation.Redemptions >= invitation.MaxRedemptions || !input.Now.Before(invitation.ExpiresAt) {
+	if !ok || invitation.RevokedAt != nil || invitation.Redemptions >= invitation.MaxRedemptions || !input.Now.Before(invitation.ExpiresAt) || subtle.ConstantTimeCompare(invitation.AudienceHash, input.AudienceHash) != 1 {
 		return Session{}, ErrInvitationInvalid
 	}
 	request, ok := r.requests[invitation.RequestID]
-	if !ok || request.TenantID != invitation.TenantID || (request.Status != RequestReady && request.Status != RequestInProgress) {
+	if !ok || request.TenantID != invitation.TenantID || !requestOpenAt(request, input.Now) {
 		return Session{}, ErrInvitationInvalid
 	}
-	invitation.Redemptions++
-	r.invitations[key] = invitation
 	expires := input.SessionExpiresAt
 	if expires.After(invitation.ExpiresAt) {
 		expires = invitation.ExpiresAt
@@ -190,10 +235,13 @@ func (r *MemoryRepository) RedeemInvitation(_ context.Context, input RedeemInput
 	if !expires.After(input.Now) {
 		return Session{}, ErrInvitationInvalid
 	}
+	invitation.Redemptions++
+	r.invitations[key] = invitation
 	session := Session{ID: input.SessionID, TenantID: invitation.TenantID, RequestID: invitation.RequestID, AudienceHint: invitation.AudienceHint, TokenHash: append([]byte(nil), input.SessionTokenHash...), ExpiresAt: expires, CreatedAt: input.Now}
 	r.sessions[hex.EncodeToString(session.TokenHash)] = session
 	return session, nil
 }
+
 func (r *MemoryRepository) SessionByTokenHash(_ context.Context, tokenHash []byte, now time.Time) (Session, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -203,6 +251,7 @@ func (r *MemoryRepository) SessionByTokenHash(_ context.Context, tokenHash []byt
 	}
 	return session, nil
 }
+
 func (r *MemoryRepository) RevokeInvitation(_ context.Context, tenant, id string, now time.Time) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -217,6 +266,7 @@ func (r *MemoryRepository) RevokeInvitation(_ context.Context, tenant, id string
 	}
 	return ErrNotFound
 }
+
 func (r *MemoryRepository) RevokeSession(_ context.Context, tenant, id string, now time.Time) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -231,6 +281,7 @@ func (r *MemoryRepository) RevokeSession(_ context.Context, tenant, id string, n
 	}
 	return ErrNotFound
 }
+
 func (r *MemoryRepository) CreateArtifact(_ context.Context, artifact Artifact) (Artifact, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -238,12 +289,20 @@ func (r *MemoryRepository) CreateArtifact(_ context.Context, artifact Artifact) 
 	if !ok || request.TenantID != artifact.TenantID {
 		return Artifact{}, ErrNotFound
 	}
+	if !requestOpenAt(request, artifact.CreatedAt) {
+		return Artifact{}, ErrRequestClosed
+	}
 	r.artifacts[artifact.ID] = artifact
 	return artifact, nil
 }
+
 func cloneRequest(value Request) Request {
 	value.KnownFacts = cloneMap(value.KnownFacts)
 	value.Fields = cloneFields(value.Fields)
 	return value
 }
-func pointerTime(value time.Time) *time.Time { copy := value; return &copy }
+
+func pointerTime(value time.Time) *time.Time {
+	copy := value
+	return &copy
+}

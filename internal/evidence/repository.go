@@ -26,6 +26,7 @@ type Repository interface {
 	ListRequests(context.Context, string, int) ([]Request, error)
 	GetRequest(context.Context, string, string) (Request, error)
 	Submit(context.Context, Submission) (SubmissionReceipt, error)
+	ExpireRequests(context.Context, time.Time, int) (int, error)
 
 	CreateInvitation(context.Context, Invitation) error
 	RedeemInvitation(context.Context, RedeemInput) (Session, error)

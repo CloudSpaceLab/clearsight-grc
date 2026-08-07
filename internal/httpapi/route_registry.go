@@ -134,10 +134,6 @@ func (a *API) routes() []routeSpec {
 		read("/api/v1/document-imports/{id}", a.getDocumentImport),
 		write(http.MethodPost, "/api/v1/document-imports/{id}/proposals/{proposal_id}/review", a.reviewDocumentProposal, nil),
 
-		read("/api/v1/requests/{id}", a.getCaptureRequest),
-		write(http.MethodPost, "/api/v1/requests/{id}/submit", a.submitCaptureRequest, nil),
-		capability(http.MethodPost, "/api/v1/invitations/redeem", a.redeemInvitation),
-
 		read("/api/v1/workflow/tasks", a.listWorkflowTasks),
 		write(http.MethodPost, "/api/v1/workflow/tasks", a.createWorkflowTask, bindJSONIdentity(false)),
 		write(http.MethodPost, "/api/v1/workflow/tasks/{id}/transition", a.transitionWorkflowTask, bindJSONIdentity(false, "actor_id")),
@@ -326,6 +322,7 @@ func (a *API) governancePolicyAction(action string) http.HandlerFunc {
 		a.transitionGovernancePolicy(w, r)
 	}
 }
+
 func (a *API) governanceDelegationAction(action string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.SetPathValue("action", action)

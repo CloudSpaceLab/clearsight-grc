@@ -7,7 +7,6 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/capture"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
@@ -23,8 +22,6 @@ type serviceSet struct {
 	Mode            string
 	Authority       authority.Service
 	Governance      *governance.Service
-	Capture         *capture.Service
-	Invitations     *capture.InvitationService
 	Evidence        *evidence.Service
 	DocumentImports *documentimport.Service
 	Continuity      *continuity.Service
