@@ -16,67 +16,50 @@ import (
 
 const maxCommandBody = 1 << 20
 
+const noActorField = "-"
+
 type commandPolicy struct {
-	ObjectType     string
-	Responsibility authority.Responsibility
-	Materiality    int
-	AllowService   bool
+	ObjectType      string
+	Responsibility  authority.Responsibility
+	Materiality     int
+	AllowService    bool
+	BindLegalEntity bool
+	ActorField      string
 }
 
-var commandPolicies = map[string]commandPolicy{
-	"program.create":               {ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2},
-	"program.transition":           {ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3},
-	"program.requirement.add":      {ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2},
-	"program.applicability.decide": {ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3},
-	"program.safeguard.define":     {ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2},
-	"program.evidence.define":      {ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2},
-	"program.evidence.assess":      {ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityReviewer, Materiality: 3},
-	"program.trigger.ingest":       {ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityPerformer, Materiality: 2, AllowService: true},
-	"matter.create":                {ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3},
-	"matter.link":                  {ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2},
-	"matter.transition":            {ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3},
-	"matter.decision.record":       {ObjectType: "MATTER", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4},
-	"matter.action.add":            {ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2},
-	"matter.action.transition":     {ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2},
-	"matter.outcome.define":        {ObjectType: "MATTER", Responsibility: authority.ResponsibilityReviewer, Materiality: 3},
-	"matter.outcome.record":        {ObjectType: "MATTER", Responsibility: authority.ResponsibilityReviewer, Materiality: 4},
-	"matter.response.add":          {ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3},
-	"matter.response.transition":   {ObjectType: "MATTER", Responsibility: authority.ResponsibilitySignatory, Materiality: 4},
-	"projection.reconcile":         {ObjectType: "PROJECTION", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, AllowService: true},
-	"projection.rebuild":           {ObjectType: "PROJECTION", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4},
-}
-
-func (a *API) command(name string, handler http.HandlerFunc) http.HandlerFunc {
+// command binds verified identity before considering authorization mode.
+// ModeOff disables only authority resolution; request-body tenant and actor
+// fields never become authoritative.
+func (a *API) command(name string, policy commandPolicy, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		policy, known := commandPolicies[name]
-		if !known || a.deps.CommandGuard == nil || a.deps.CommandGuard.Mode() == commandauth.ModeOff {
-			handler(w, r)
-			return
-		}
-		payload, raw, err := commandPayload(r)
+		payload, _, err := commandPayload(r)
 		if err != nil {
 			httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "The command body must be valid JSON.")
 			return
 		}
-		actor, hasActor := identity.FromContext(r.Context())
-		tenant := stringValue(payload["tenant_id"])
-		if hasActor {
-			if tenant != "" && tenant != actor.TenantID {
-				httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This command is outside your signed-in bank scope.")
-				return
-			}
-			tenant = actor.TenantID
-			payload["tenant_id"] = actor.TenantID
-			if stringValue(payload["legal_entity_id"]) == "" {
-				payload["legal_entity_id"] = actor.LegalEntityID
-			}
-			bindCommandActor(name, payload, actor.PrincipalID)
-			raw, err = json.Marshal(payload)
-			if err != nil {
-				httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "The command body could not be processed.")
-				return
-			}
+		actor, err := identity.Require(r.Context())
+		if err != nil {
+			httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to continue.")
+			return
 		}
+		if !bindPayloadIdentity(w, payload, actor, policy.BindLegalEntity) {
+			return
+		}
+		if field := commandActorField(policy); field != "" {
+			payload[field] = actor.PrincipalID
+		}
+		raw, err := json.Marshal(payload)
+		if err != nil {
+			httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "The command body could not be processed.")
+			return
+		}
+		restoreJSONBody(r, raw)
+
+		if a.deps.CommandGuard == nil || a.deps.CommandGuard.Mode() == commandauth.ModeOff {
+			handler(w, r)
+			return
+		}
+
 		objectID := r.PathValue("id")
 		if objectID == "" {
 			objectID = stringValue(payload["program_id"])
@@ -98,11 +81,21 @@ func (a *API) command(name string, handler http.HandlerFunc) http.HandlerFunc {
 				materiality = max(materiality, 4)
 			}
 		}
+		legalEntityID := actor.LegalEntityID
+		if legalEntityID == "*" {
+			if requested := stringValue(payload["legal_entity_id"]); requested != "" {
+				legalEntityID = requested
+			}
+		}
 		decision, authErr := a.deps.CommandGuard.Authorize(r.Context(), commandauth.Request{
-			TenantID: tenant, LegalEntityID: stringValue(payload["legal_entity_id"]),
-			ObjectType: policy.ObjectType, ObjectID: objectID,
-			Responsibility: responsibility, DecisionType: name,
-			Materiality: materiality, AllowService: policy.AllowService,
+			TenantID:       actor.TenantID,
+			LegalEntityID:  legalEntityID,
+			ObjectType:     policy.ObjectType,
+			ObjectID:       objectID,
+			Responsibility: responsibility,
+			DecisionType:   name,
+			Materiality:    materiality,
+			AllowService:   policy.AllowService,
 		})
 		if authErr != nil {
 			writeCommandAuthorizationError(w, authErr)
@@ -113,10 +106,18 @@ func (a *API) command(name string, handler http.HandlerFunc) http.HandlerFunc {
 		} else {
 			w.Header().Set("X-ClearSight-Command-Authorization", "audit")
 		}
-		r.Body = io.NopCloser(bytes.NewReader(raw))
-		r.ContentLength = int64(len(raw))
 		handler(w, r)
 	}
+}
+
+func commandActorField(policy commandPolicy) string {
+	if policy.ActorField == noActorField {
+		return ""
+	}
+	if strings.TrimSpace(policy.ActorField) != "" {
+		return policy.ActorField
+	}
+	return "actor_id"
 }
 
 func commandPayload(r *http.Request) (map[string]any, []byte, error) {
@@ -137,18 +138,30 @@ func commandPayload(r *http.Request) (map[string]any, []byte, error) {
 	return payload, raw, nil
 }
 
-func bindCommandActor(name string, payload map[string]any, principalID string) {
-	payload["actor_id"] = principalID
-	switch name {
-	case "program.applicability.decide":
-		payload["approved_by"] = principalID
-	case "program.evidence.assess":
-		payload["assessed_by"] = principalID
-	case "matter.decision.record":
-		payload["authority_principal_id"] = principalID
-	case "matter.outcome.record":
-		payload["reviewer_principal_id"] = principalID
+func restoreJSONBody(r *http.Request, raw []byte) {
+	r.Body = io.NopCloser(bytes.NewReader(raw))
+	r.ContentLength = int64(len(raw))
+}
+
+func bindPayloadIdentity(w http.ResponseWriter, payload map[string]any, actor identity.Actor, injectLegalEntity bool) bool {
+	if tenant := stringValue(payload["tenant_id"]); tenant != "" && tenant != actor.TenantID {
+		httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This command is outside your signed-in bank scope.")
+		return false
 	}
+	payload["tenant_id"] = actor.TenantID
+
+	if requested := stringValue(payload["legal_entity_id"]); requested != "" {
+		if actor.LegalEntityID != "" && actor.LegalEntityID != "*" && requested != actor.LegalEntityID {
+			httpx.WriteError(w, http.StatusForbidden, "legal_entity_not_allowed", "This command is outside your signed-in legal-entity scope.")
+			return false
+		}
+		if actor.LegalEntityID != "" && actor.LegalEntityID != "*" {
+			payload["legal_entity_id"] = actor.LegalEntityID
+		}
+	} else if injectLegalEntity && actor.LegalEntityID != "" && actor.LegalEntityID != "*" {
+		payload["legal_entity_id"] = actor.LegalEntityID
+	}
+	return true
 }
 
 func writeCommandAuthorizationError(w http.ResponseWriter, err error) {

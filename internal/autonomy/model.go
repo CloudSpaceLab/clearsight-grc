@@ -1,6 +1,9 @@
 package autonomy
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type SignalType string
 
@@ -8,6 +11,7 @@ const (
 	SignalEvidenceExpired    SignalType = "EVIDENCE_EXPIRED"
 	SignalEvidenceAging      SignalType = "EVIDENCE_AGING"
 	SignalSourceDegraded     SignalType = "SOURCE_DEGRADED"
+	SignalSourceRecovered    SignalType = "SOURCE_RECOVERED"
 	SignalRequirementChanged SignalType = "REQUIREMENT_CHANGED"
 	SignalRoutingGap         SignalType = "ROUTING_GAP"
 	SignalOwnerRemoved       SignalType = "OWNER_REMOVED"
@@ -60,4 +64,22 @@ type Readiness struct {
 	Dimensions         ReadinessDimensions `json:"dimensions"`
 	ActiveDrifts       []Drift             `json:"active_drifts"`
 	RecommendedActions []string            `json:"recommended_actions"`
+}
+
+// AutomationPolicy is the governed runtime policy that determines whether a
+// bounded action may be automated. The JSON guardrails are preserved exactly
+// as approved rather than flattened into frontend-specific fields.
+type AutomationPolicy struct {
+	ID                   string          `json:"id"`
+	TenantID             string          `json:"tenant_id"`
+	Code                 string          `json:"code"`
+	Name                 string          `json:"name"`
+	ActionClass          string          `json:"action_class"`
+	Eligibility          json.RawMessage `json:"eligibility"`
+	BlastRadiusLimit     json.RawMessage `json:"blast_radius_limit"`
+	VerificationContract json.RawMessage `json:"verification_contract"`
+	Status               string          `json:"status"`
+	EffectiveFrom        *time.Time      `json:"effective_from,omitempty"`
+	EffectiveUntil       *time.Time      `json:"effective_until,omitempty"`
+	Version              int64           `json:"version"`
 }

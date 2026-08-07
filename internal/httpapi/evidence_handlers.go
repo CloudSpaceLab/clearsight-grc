@@ -188,13 +188,14 @@ func (a *API) redeemEvidenceInvitation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input struct {
-		Token string `json:"token"`
+		Token    string `json:"token"`
+		Audience string `json:"audience"`
 	}
 	if err := httpx.DecodeJSON(w, r, &input); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	session, err := service.RedeemInvitation(r.Context(), input.Token)
+	session, err := service.RedeemInvitation(r.Context(), input.Token, input.Audience)
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "invitation_unavailable", "This invitation is unavailable. Request a new invitation from the sender.")
 		return
@@ -278,6 +279,8 @@ func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case errors.Is(err, evidence.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
+	case errors.Is(err, evidence.ErrRequestClosed):
+		httpx.WriteError(w, http.StatusConflict, "request_closed", "The request is no longer open for uploads.")
 	case errors.Is(err, evidence.ErrArtifactTooLarge):
 		httpx.WriteError(w, http.StatusRequestEntityTooLarge, "artifact_too_large", fmt.Sprintf("The file exceeds the %d-byte limit.", maximum))
 	case errors.Is(err, evidence.ErrMediaType):
@@ -314,6 +317,7 @@ func bearerToken(w http.ResponseWriter, r *http.Request) (string, bool) {
 	}
 	return token, true
 }
+
 func optionalBearerToken(r *http.Request) string {
 	value := strings.TrimSpace(r.Header.Get("Authorization"))
 	if len(value) < 8 || !strings.EqualFold(value[:7], "Bearer ") {
@@ -321,6 +325,7 @@ func optionalBearerToken(r *http.Request) string {
 	}
 	return strings.TrimSpace(value[7:])
 }
+
 func multipartMediaType(header *multipart.FileHeader) string {
 	value := strings.TrimSpace(header.Header.Get("Content-Type"))
 	if value == "" {

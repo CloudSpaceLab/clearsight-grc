@@ -21,9 +21,11 @@ func (s *Service) createMatterWithInitialLink(ctx context.Context, input CreateM
 	if _, err = repo.CreateMatterWithLink(ctx, MatterLinkBundle{Matter: matter, MatterEvent: event, Link: link, LinkEvent: linkEvent}); err != nil {
 		return MatterAggregate{}, err
 	}
-	if err = s.requestProgramRefresh(ctx, input.TenantID, input.ProgramID, EventMatterLinked, matter.ID, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
+	// The compound command is already authoritative at this point. PostgreSQL
+	// queues projection maintenance in the command transaction; repositories
+	// without that contract may refresh best-effort but must not turn a
+	// committed command into a false API failure.
+	_ = s.requestProgramRefresh(ctx, input.TenantID, input.ProgramID, EventMatterLinked, matter.ID, input.ActorID)
 	return s.GetMatter(ctx, input.TenantID, matter.ID)
 }
 
@@ -60,9 +62,7 @@ func (s *Service) applyTriggerBundle(ctx context.Context, trigger Trigger, aggre
 	if err != nil {
 		return ProgramAggregate{}, nil, false, err
 	}
-	if err = s.requestProgramRefresh(ctx, trigger.TenantID, trigger.ProgramID, trigger.Type, trigger.ID, "system"); err != nil {
-		return ProgramAggregate{}, result.Matter, result.Inserted, err
-	}
+	_ = s.requestProgramRefresh(ctx, trigger.TenantID, trigger.ProgramID, trigger.Type, trigger.ID, "system")
 	program, err := s.repo.GetProgram(ctx, trigger.TenantID, trigger.ProgramID)
 	if err != nil {
 		return ProgramAggregate{}, result.Matter, result.Inserted, err

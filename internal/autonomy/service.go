@@ -18,13 +18,43 @@ type Service struct {
 func NewService(repo Repository) *Service { return &Service{repo: repo, now: time.Now} }
 
 func (s *Service) Ingest(ctx context.Context, value Signal) (Drift, bool, error) {
+	prepared, err := s.prepareSignal(value)
+	if err != nil {
+		return Drift{}, false, err
+	}
+	if prepared.Type == SignalSourceRecovered {
+		return Drift{}, false, fmt.Errorf("source recovery must come from governed source-health reconciliation")
+	}
+	drift, err := assess(prepared, s.now().UTC())
+	if err != nil {
+		return Drift{}, false, err
+	}
+	inserted, err := s.repo.Ingest(ctx, prepared, drift)
+	if err != nil || !inserted {
+		return Drift{}, inserted, err
+	}
+	return drift, true, nil
+}
+
+func (s *Service) ResolveSourceHealth(ctx context.Context, value Signal) (bool, error) {
+	prepared, err := s.prepareSignal(value)
+	if err != nil {
+		return false, err
+	}
+	if prepared.Type != SignalSourceRecovered {
+		return false, fmt.Errorf("source health resolution requires SOURCE_RECOVERED")
+	}
+	return s.repo.Resolve(ctx, prepared, "source_quality", s.now().UTC())
+}
+
+func (s *Service) prepareSignal(value Signal) (Signal, error) {
 	if strings.TrimSpace(value.TenantID) == "" || value.Type == "" || strings.TrimSpace(value.SubjectType) == "" || strings.TrimSpace(value.SubjectID) == "" || strings.TrimSpace(value.Source) == "" || strings.TrimSpace(value.DedupeKey) == "" {
-		return Drift{}, false, fmt.Errorf("tenant, type, subject, source and dedupe_key are required")
+		return Signal{}, fmt.Errorf("tenant, type, subject, source and dedupe_key are required")
 	}
 	if value.ID == "" {
 		generated, err := id.NewUUIDv7()
 		if err != nil {
-			return Drift{}, false, err
+			return Signal{}, err
 		}
 		value.ID = generated
 	}
@@ -34,15 +64,7 @@ func (s *Service) Ingest(ctx context.Context, value Signal) (Drift, bool, error)
 	if value.EffectiveAt.IsZero() {
 		value.EffectiveAt = value.ObservedAt
 	}
-	drift, err := assess(value, s.now().UTC())
-	if err != nil {
-		return Drift{}, false, err
-	}
-	inserted, err := s.repo.Ingest(ctx, value, drift)
-	if err != nil || !inserted {
-		return Drift{}, inserted, err
-	}
-	return drift, true, nil
+	return value, nil
 }
 
 func (s *Service) Readiness(ctx context.Context, tenant string) (Readiness, error) {
@@ -94,6 +116,13 @@ func (s *Service) Readiness(ctx context.Context, tenant string) (Readiness, erro
 		actions = actions[:5]
 	}
 	return Readiness{TenantID: tenant, Status: status, BaselineKnown: false, GeneratedAt: s.now().UTC(), Dimensions: dimensions, ActiveDrifts: drifts, RecommendedActions: actions}, nil
+}
+
+func (s *Service) ListAutomationPolicies(ctx context.Context, tenant string) ([]AutomationPolicy, error) {
+	if strings.TrimSpace(tenant) == "" {
+		return nil, fmt.Errorf("tenant_id is required")
+	}
+	return s.repo.ListAutomationPolicies(ctx, tenant)
 }
 
 func assess(signal Signal, detected time.Time) (Drift, error) {

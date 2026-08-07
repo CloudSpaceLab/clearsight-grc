@@ -14,11 +14,12 @@ func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
 		return
 	}
+	roleCodes := identity.NormalizeRoleCodes(actor.RoleCodes)
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"tenant":       map[string]string{"id": actor.TenantID, "name": "Connected organization"},
 		"legal_entity": map[string]string{"id": actor.LegalEntityID, "name": "Connected legal entity"},
-		"actor": map[string]string{
-			"id": actor.PrincipalID, "name": actor.PrincipalID, "kind": actor.Kind,
+		"actor": map[string]any{
+			"id": actor.PrincipalID, "name": actor.PrincipalID, "kind": actor.Kind, "role_codes": roleCodes,
 			"assurance_level": actor.AssuranceLevel, "authentication": actor.AuthenticationMethod, "session_id": actor.SessionID,
 		},
 		"mode":      a.deps.Mode,

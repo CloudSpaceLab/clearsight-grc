@@ -24,20 +24,37 @@ func TodayItems(journeys []Journey, now time.Time) []today.AttentionItem {
 			evidenceLabel = journey.SourceNames[0]
 		}
 		items = append(items, today.AttentionItem{
-			ID:               "journey_" + string(journey.Code),
-			Type:             string(journey.Code),
-			Title:            journey.NextAction,
-			WhyNow:           journey.Summary,
-			Scope:            journey.Title,
-			State:            journey.StatusLabel,
-			Evidence:         evidenceLabel,
-			Owner:            journey.Owner,
-			DueAt:            due,
-			PrimaryAction:    journey.ActionLabel,
-			ActionTargetType: journey.ActionTargetType,
-			ActionTargetID:   journey.ActionTargetID,
+			ID:                 "journey_" + string(journey.Code),
+			Type:               string(journey.Code),
+			Title:              journey.NextAction,
+			WhyNow:             journey.Summary,
+			Scope:              journey.Title,
+			State:              journey.StatusLabel,
+			Evidence:           evidenceLabel,
+			Owner:              journey.Owner,
+			DueAt:              due,
+			PrimaryAction:      journey.ActionLabel,
+			ActionTargetType:   journey.ActionTargetType,
+			ActionTargetID:     journey.ActionTargetID,
+			InterventionClass:  interventionClass(journey),
+			MaterialConclusion: journey.Summary,
+			ChangeSummary:      journey.StatusLabel,
+			Recommendation: &today.GovernedRecommendation{
+				ProposedAction: journey.ActionLabel,
+				Rationale:      journey.Summary,
+			},
 		})
 	}
 	sort.Slice(items, func(i, j int) bool { return items[i].DueAt.Before(items[j].DueAt) })
 	return items
+}
+
+func interventionClass(journey Journey) today.InterventionClass {
+	if journey.ActionTargetType == ActionTargetEvidenceRequest {
+		return today.InterventionEvidenceException
+	}
+	if journey.Status == "VERIFICATION" {
+		return today.InterventionVerification
+	}
+	return today.InterventionReview
 }

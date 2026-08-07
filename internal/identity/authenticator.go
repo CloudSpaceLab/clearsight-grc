@@ -76,6 +76,8 @@ func (a *SignedAuthenticator) Authenticate(r *http.Request) (Actor, bool, error)
 	if err := json.Unmarshal(payload, &actor); err != nil {
 		return Actor{}, false, ErrInvalidIdentity
 	}
+	actor.RoleCodes = NormalizeRoleCodes(actor.RoleCodes)
+	actor.PermissionCodes = NormalizePermissionCodes(actor.PermissionCodes)
 	if actor.IssuedAt.IsZero() {
 		actor.IssuedAt = issued
 	}
@@ -89,17 +91,25 @@ type DevelopmentAuthenticator struct {
 	TenantID      string
 	PrincipalID   string
 	LegalEntityID string
+	RoleCodes     []string
 	now           func() time.Time
 }
 
-func NewDevelopmentAuthenticator(tenantID, principalID, legalEntityID string) *DevelopmentAuthenticator {
-	return &DevelopmentAuthenticator{TenantID: tenantID, PrincipalID: principalID, LegalEntityID: legalEntityID, now: time.Now}
+func NewDevelopmentAuthenticator(tenantID, principalID, legalEntityID string, roleCodes ...string) *DevelopmentAuthenticator {
+	return &DevelopmentAuthenticator{
+		TenantID: tenantID, PrincipalID: principalID, LegalEntityID: legalEntityID,
+		RoleCodes: NormalizeRoleCodes(roleCodes), now: time.Now,
+	}
 }
 
 func (a *DevelopmentAuthenticator) Authenticate(r *http.Request) (Actor, bool, error) {
 	tenant := strings.TrimSpace(r.Header.Get("X-ClearSight-Demo-Tenant"))
 	principal := strings.TrimSpace(r.Header.Get("X-ClearSight-Demo-Principal"))
 	entity := strings.TrimSpace(r.Header.Get("X-ClearSight-Demo-Legal-Entity"))
+	roles := a.RoleCodes
+	if headerRoles := strings.TrimSpace(r.Header.Get("X-ClearSight-Demo-Roles")); headerRoles != "" {
+		roles = NormalizeRoleCodes(strings.Split(headerRoles, ","))
+	}
 	if tenant == "" {
 		tenant = a.TenantID
 	}
@@ -113,5 +123,34 @@ func (a *DevelopmentAuthenticator) Authenticate(r *http.Request) (Actor, bool, e
 		return Actor{}, false, nil
 	}
 	now := a.now().UTC()
-	return Actor{TenantID: tenant, PrincipalID: principal, LegalEntityID: entity, Kind: "PERSON", AuthenticationMethod: "DEVELOPMENT", AssuranceLevel: "DEMO", SessionID: "development", IssuedAt: now, ExpiresAt: now.Add(time.Hour)}, true, nil
+	return Actor{
+		TenantID: tenant, PrincipalID: principal, LegalEntityID: entity, Kind: "PERSON",
+		RoleCodes: roles, PermissionCodes: developmentPermissions(roles),
+		AuthenticationMethod: "DEVELOPMENT", AssuranceLevel: "DEMO", SessionID: "development",
+		IssuedAt: now, ExpiresAt: now.Add(time.Hour),
+	}, true, nil
+}
+
+// developmentPermissions is intentionally confined to the development identity
+// edge. Production signed identity must carry effective permissions explicitly;
+// handlers never infer authority from role names.
+func developmentPermissions(roles []string) []string {
+	permissions := []string{}
+	for _, role := range NormalizeRoleCodes(roles) {
+		switch role {
+		case "CRO", "CCO", "CISO", "EXECUTIVE":
+			permissions = append(permissions, PermissionConfigRead)
+		case "GRC_ADMIN":
+			permissions = append(permissions, PermissionConfigRead, PermissionConfigWrite, PermissionPlatformOperationsRead, PermissionPlatformOperationsWrite)
+		case "SYSTEM_ADMIN", "SUPER_ADMIN":
+			permissions = append(permissions,
+				PermissionConfigRead,
+				PermissionConfigWrite,
+				PermissionPlatformOperationsRead,
+				PermissionPlatformOperationsWrite,
+				PermissionPlatformJobsRead,
+			)
+		}
+	}
+	return NormalizePermissionCodes(permissions)
 }

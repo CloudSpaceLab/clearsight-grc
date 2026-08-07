@@ -103,12 +103,13 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 		}
 	})
 
-	t.Run("magic links are hash-only one-time bounded and revocable", func(t *testing.T) {
+	t.Run("magic links are audience-bound hash-only one-time bounded and revocable", func(t *testing.T) {
 		request, err := createEvidenceRequest(ctx, service, now, "VENDOR", "vendor-1")
 		if err != nil {
 			t.Fatal(err)
 		}
-		first, err := service.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "evidence-bank", RequestID: request.ID, Audience: "security@example.com", Purpose: "Vendor assurance response", TTLMinutes: 60})
+		const audience = "security@example.com"
+		first, err := service.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "evidence-bank", RequestID: request.ID, Audience: audience, Purpose: "Vendor assurance response", TTLMinutes: 60})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -119,11 +120,14 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 		if tokenBytes != 32 || audienceBytes != 32 {
 			t.Fatalf("expected hash-only storage, got %d/%d", tokenBytes, audienceBytes)
 		}
-		session, err := service.RedeemInvitation(ctx, first.Token)
+		if _, err := service.RedeemInvitation(ctx, first.Token, "other@example.com"); !errors.Is(err, evidence.ErrInvitationInvalid) {
+			t.Fatalf("expected audience mismatch rejection, got %v", err)
+		}
+		session, err := service.RedeemInvitation(ctx, first.Token, audience)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := service.RedeemInvitation(ctx, first.Token); !errors.Is(err, evidence.ErrInvitationInvalid) {
+		if _, err := service.RedeemInvitation(ctx, first.Token, audience); !errors.Is(err, evidence.ErrInvitationInvalid) {
 			t.Fatalf("expected replay rejection, got %v", err)
 		}
 		if session.ExpiresAt.After(first.ExpiresAt) {
@@ -140,14 +144,15 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		issued, err := service.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "evidence-bank", RequestID: cancelled.ID, Audience: "cancel@example.com", Purpose: "Cancelled response", TTLMinutes: 60})
+		const cancelledAudience = "cancel@example.com"
+		issued, err := service.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "evidence-bank", RequestID: cancelled.ID, Audience: cancelledAudience, Purpose: "Cancelled response", TTLMinutes: 60})
 		if err != nil {
 			t.Fatal(err)
 		}
 		if _, err := pool.Exec(ctx, `UPDATE capture_requests SET status='CANCELLED',version=version+1 WHERE id=$1::uuid`, cancelled.ID); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := service.RedeemInvitation(ctx, issued.Token); !errors.Is(err, evidence.ErrInvitationInvalid) {
+		if _, err := service.RedeemInvitation(ctx, issued.Token, cancelledAudience); !errors.Is(err, evidence.ErrInvitationInvalid) {
 			t.Fatalf("expected cancelled-request rejection, got %v", err)
 		}
 	})

@@ -19,7 +19,7 @@ func TestSignedAuthenticator(t *testing.T) {
 		t.Fatal(err)
 	}
 	authenticator.now = func() time.Time { return now }
-	actor := Actor{TenantID: "bank-demo", PrincipalID: "person-1", LegalEntityID: "bank-ng", Kind: "PERSON", AuthenticationMethod: "SSO", AssuranceLevel: "MFA", SessionID: "session-1", IssuedAt: now, ExpiresAt: now.Add(10 * time.Minute)}
+	actor := Actor{TenantID: "bank-demo", PrincipalID: "person-1", LegalEntityID: "bank-ng", Kind: "PERSON", RoleCodes: []string{"cro", "Risk Owner"}, AuthenticationMethod: "SSO", AssuranceLevel: "MFA", SessionID: "session-1", IssuedAt: now, ExpiresAt: now.Add(10 * time.Minute)}
 	payload, _ := json.Marshal(actor)
 	envelope := base64.RawURLEncoding.EncodeToString(payload)
 	timestamp := "1785952800"
@@ -36,6 +36,9 @@ func TestSignedAuthenticator(t *testing.T) {
 	if verified.PrincipalID != actor.PrincipalID || verified.TenantID != actor.TenantID {
 		t.Fatalf("unexpected actor: %#v", verified)
 	}
+	if len(verified.RoleCodes) != 2 || verified.RoleCodes[0] != "CRO" || verified.RoleCodes[1] != "RISK_OWNER" {
+		t.Fatalf("unexpected normalized roles: %#v", verified.RoleCodes)
+	}
 	req.Header.Set(HeaderSignature, "00")
 	if _, _, err := authenticator.Authenticate(req); err == nil {
 		t.Fatal("expected altered signature to fail")
@@ -47,5 +50,19 @@ func TestDevelopmentAuthenticatorRequiresConfiguredIdentity(t *testing.T) {
 	req := httptest.NewRequest("GET", "https://example.test/health/live", nil)
 	if _, present, err := authenticator.Authenticate(req); err != nil || present {
 		t.Fatalf("expected anonymous development request, present=%v err=%v", present, err)
+	}
+}
+
+func TestDevelopmentAuthenticatorExposesConfiguredAndOverrideRoles(t *testing.T) {
+	authenticator := NewDevelopmentAuthenticator("bank", "person", "entity", "Program Owner")
+	req := httptest.NewRequest("GET", "https://example.test/api/v1/context", nil)
+	actor, present, err := authenticator.Authenticate(req)
+	if err != nil || !present || len(actor.RoleCodes) != 1 || actor.RoleCodes[0] != "PROGRAM_OWNER" {
+		t.Fatalf("unexpected configured roles: %#v present=%v err=%v", actor, present, err)
+	}
+	req.Header.Set("X-ClearSight-Demo-Roles", "reviewer, challenger")
+	actor, present, err = authenticator.Authenticate(req)
+	if err != nil || !present || len(actor.RoleCodes) != 2 || actor.RoleCodes[0] != "REVIEWER" {
+		t.Fatalf("unexpected override roles: %#v present=%v err=%v", actor, present, err)
 	}
 }

@@ -106,11 +106,11 @@ func TestPostgresRuntimeContracts(t *testing.T) {
 
 	t.Run("onboarding insert honors expected version", func(t *testing.T) {
 		service := onboarding.NewService(onboarding.NewPostgresRepository(pool))
-		_, err := service.Update(ctx, "integration-bank", principalNG, "control-assurance-first-run", onboarding.UpdateInput{CurrentStep: 1, ExpectedVersion: 4})
+		_, err := service.Update(ctx, "integration-bank", principalNG, "reviewer-first-run", onboarding.UpdateInput{CurrentStep: 1, ExpectedVersion: 4})
 		if !errors.Is(err, onboarding.ErrVersionConflict) {
 			t.Fatalf("expected version conflict, got %v", err)
 		}
-		state, err := service.Update(ctx, "integration-bank", principalNG, "control-assurance-first-run", onboarding.UpdateInput{CurrentStep: 1, ExpectedVersion: 0})
+		state, err := service.Update(ctx, "integration-bank", principalNG, "reviewer-first-run", onboarding.UpdateInput{CurrentStep: 1, ExpectedVersion: 0})
 		if err != nil {
 			t.Fatal(err)
 		}

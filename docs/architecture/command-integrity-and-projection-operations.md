@@ -1,113 +1,194 @@
-# Command integrity and Program status operations
+# Command integrity, route access and projection operations
 
 ## Purpose
 
-Material changes must be attributable, authorized, atomic and recoverable. Calculated Program status must remain fast to read without making a successful command depend on a second synchronous calculation.
+ClearSight must make it difficult to add an endpoint that accidentally bypasses identity, tenant scope or material authority. Material mutations must be attributable, authorized, atomic and recoverable. Derived Program status must remain fast to read without making a committed command depend on a second synchronous calculation.
 
-## Request actor boundary
+This document describes the executable HTTP boundary introduced while addressing issue #26 and the remaining seams that gate issue #27 governed operator execution.
 
-Production traffic arrives through an identity-aware gateway. The gateway sends a short-lived, HMAC-signed identity envelope containing:
+## 1. One executable HTTP route contract
+
+`internal/httpapi/route_registry.go` is the canonical HTTP route inventory. A route is registered once with an explicit access class and, when material, its command-authorization policy.
+
+Route classes are:
+
+- **PUBLIC** — intentionally unauthenticated. Only health endpoints belong here.
+- **AUTHENTICATED_READ** — requires verified actor context; tenant query scope is rebound from that actor.
+- **AUTHENTICATED_OPERATION** — authenticated non-material operations such as authority resolve/simulate.
+- **AUTHENTICATED_WRITE** — authenticated writes whose domain semantics do not require the material-command authority resolver.
+- **MATERIAL_COMMAND** — authenticated write plus current authority resolution at execution time.
+- **BOUNDED_CAPABILITY** — invitation/session capability routes whose short-lived bearer capability is the access boundary.
+- **AUTHENTICATED_OR_CAPABILITY** — routes such as artifact upload that support either a signed internal actor or a valid bounded capture capability.
+
+Registry validation rejects duplicate registrations, public mutation routes, and material routes without command policy.
+
+This registry replaces separate route registration and command-policy inventories. Future #27 automation commands must extend this same contract rather than adding an agent-specific authorization layer.
+
+## 2. Verified request actor boundary
+
+Production signed identity provides:
 
 - tenant;
 - principal;
 - legal entity;
 - actor kind;
-- authentication method and assurance;
+- authentication/assurance metadata;
 - session;
 - issue and expiry times.
 
-ClearSight verifies the signature, request path, method, clock window and expiry before placing the actor in request context. Body fields such as `actor_id`, `approved_by`, `assessed_by`, `authority_principal_id` and `reviewer_principal_id` are never trusted; handlers receive values bound from the verified actor.
+The identity middleware verifies the envelope before placing the actor in request context.
 
-Production requires signed identity and enforced command authorization. Development may use an explicitly configured demo identity and audit-only authorization.
+For protected routes the registry then binds request scope:
 
-## Command authorization
+- conflicting `tenant_id` query/body values are rejected;
+- accepted requests use the verified tenant;
+- actor fields written into domain DTOs come from the verified principal;
+- legal-entity scope used for authorization comes from the verified actor;
+- body `legal_entity_id` is injected only for DTOs that actually declare it.
 
-Each material command maps to:
+Command-authorization mode does **not** change this identity rule. `off`, `audit` and `enforce` only change whether/how the authority resolver gates execution. They do not make client-supplied actor or tenant fields authoritative.
 
-- object type and object ID;
+## 3. Strict DTO-safe actor binding
+
+The HTTP JSON decoder rejects unknown fields. Therefore command identity binding is descriptor-driven rather than generic.
+
+Examples:
+
+- ordinary Program/Matter mutations use `actor_id`;
+- applicability uses `approved_by`;
+- evidence assessment uses `assessed_by`;
+- Matter decision uses `authority_principal_id`;
+- verification result uses `reviewer_principal_id`;
+- projection reconcile/rebuild keep actor identity in request context and do not receive an unsupported JSON actor field.
+
+This prevents a security wrapper from creating 400 responses by injecting fields that the target DTO does not define.
+
+## 4. Material command authorization
+
+Every `MATERIAL_COMMAND` route declares:
+
+- command/decision name;
+- object type;
 - responsibility required now;
-- decision type;
-- materiality;
-- whether a service identity is permitted.
+- minimum materiality;
+- whether a service identity may execute it;
+- DTO actor field;
+- whether the DTO itself carries legal-entity scope.
 
-The current routing policy is resolved at command time. Execution proceeds only when the verified actor matches the selected principal. Missing routes, stale identity, tenant mismatch or authority-service failure block execution in enforced mode.
+At execution time the current authority route is resolved. The client cannot lower the descriptor's materiality floor. Matter transitions that enter decision/closure states may elevate the required responsibility/materiality.
 
-Primary error copy is operational:
+In enforced mode execution fails closed when:
 
-- “Sign in is required to continue.”
-- “This command is outside your signed-in bank scope.”
-- “The approval route could not be checked. No change was made.”
-- “You are not the person currently authorized for this change.”
+- verified identity is missing or mismatched;
+- the current route cannot be resolved;
+- the actor is not the selected principal;
+- authority infrastructure is unavailable.
 
-## Transaction boundaries
+Operational errors remain explicit: sign-in required, wrong bank/legal-entity scope, authority unavailable, or current approval required.
 
-The following are one PostgreSQL transaction:
+## 5. Governance/configuration bootstrap boundary
+
+Routing-policy and delegation lifecycle commands already enforce maker-checker and segregation rules, and their HTTP bodies are now actor/tenant-bound from verified identity.
+
+They are intentionally **not yet classified as fully authority-routed material commands**. The current authority seed/configuration does not provide a safe bootstrap route for authorizing creation of the authority system itself.
+
+Issue #26 requires a complete configuration authorization matrix with explicit bootstrap semantics, simulation, impact preview, effective dating and rollback. Do not solve this by hard-coding `CRO`, `GRC_ADMIN` or similar role names into HTTP handlers.
+
+## 6. Bounded capture capabilities
+
+External evidence capture is purpose-bound capability access, not a substitute staff identity.
+
+Invitation/session routes remain capability-scoped. Evidence artifact upload supports:
+
+- a valid bearer capture session; or
+- a verified internal actor whose tenant/creator values are rebound server-side.
+
+CORS explicitly allows the `Authorization` request header required by bearer capture sessions.
+
+Protected internal routes must not be made public merely to support external capture.
+
+## 7. Transaction truth
+
+The intended material transaction boundary remains:
 
 ```text
-command validation
+command validation + identity/authority check
 → authoritative row changes
-→ append-only command event
+→ append-only domain/command event
 → transactional outbox event
-→ deduplicated Program-status update job
+→ required maintenance job
 → commit
 ```
 
-Creating an issue with its first Program link is one transaction. Processing a deduplicated Program trigger, recording its command event, creating its issue and link, and queueing the status update is also one transaction.
+A successful authoritative commit must not later be reported as a failed command because an asynchronous projection, publisher or reconciliation step failed.
 
-No API response may report failure after a material command has already committed merely because a calculated-status refresh failed.
+Issue #26 still requires a route-by-route audit proving that compound commands meet this contract in PostgreSQL.
 
-## Command version versus calculated-status version
+## 8. Program-status projection boundary
 
-A Program command version changes only when material Program facts change. Calculated Program status has an independent `projection_version` and records the Program command version it assessed.
+Program command version and calculated status/projection version remain distinct.
 
-This distinction allows the UI to say:
+`continuity_projection_jobs` provides bounded leased maintenance, retry, failure state, health, reconciliation and manual rebuild. The UI may show stale known status with its assessed Program version, but it must not label that status current.
 
-- **Current** — status reflects the latest Program version;
-- **Updates pending** — a calculation is queued;
-- **Delayed** — the oldest queued calculation exceeded the operating threshold;
-- **Needs attention** — repeated calculation attempts failed.
+Projection reconcile/rebuild are material maintenance operations. Their verified actor is kept in request context while their existing strict DTO remains small.
 
-A stale but known status remains visible with its assessed Program version. It must not be described as current.
+## 9. Evidence reconciliation — next seam
 
-## Durable status maintenance
+Evidence/source transactions already have durable persistence and event/outbox primitives, but the complete cross-domain reconciliation bridge is still the next P0 item.
 
-`continuity_projection_jobs` provides:
+Required target:
 
-- one active job per tenant, projection and Program;
-- source-version coalescing;
-- bounded `SKIP LOCKED` claims;
-- worker identity and lease;
-- stale-claim recovery;
-- bounded retry;
-- terminal failure state;
-- health and lag reporting;
-- reconciliation and manual rebuild.
+```text
+evidence/source transaction
+→ transactional outbox
+→ evidence-reconciliation work class
+→ inbox dedupe
+→ deterministic subject resolution
+→ Program trigger and/or Matter consequence
+→ projection maintenance
+```
 
-The worker calculates status from authoritative Program facts and open linked issues, writes a separately versioned snapshot, emits a `PROGRAM_STATE` event and publishes through the transactional outbox.
+The bridge must be asynchronous, idempotent and tenant safe. A Signal/event is an observation; it cannot silently become a legal, risk or compliance conclusion.
 
-## Operator experience
+## 10. Work-model separation
 
-Configure shows **Program status updates**, not a technical projection console. It displays:
+Do not merge these models while implementing reconciliation or future agent execution:
 
-- waiting updates;
-- failed updates;
-- age of the oldest waiting update;
-- most recent successful update;
-- latest error where one exists;
-- a governed **Check status records** action.
+- **Matter Action** — canonical domain remediation/commitment and implementation state.
+- **Workflow Task** — actor-facing routed/manual work needed to advance governed state.
+- **Signal** — observed change/fact that may cause deterministic assessment.
+- **Intervention Summary** — actor-facing read projection over canonical records.
+- **Automation Policy** — permission boundary for eligible automation, not proof that automation ran.
+- **Operator receipt** — future execution evidence written by the actual governed executor.
 
-Unknown data remains unavailable rather than becoming a reassuring zero.
+A generic task/event/agent abstraction that blurs these responsibilities is architectural bloat.
 
-## Performance rules
+## 11. Remaining issue #26 gates before #27 executor work
 
-- command authorization is a bounded route lookup;
-- request bodies are limited to 1 MiB before command inspection;
-- active status jobs are deduplicated;
-- workers claim bounded batches;
-- status calculation is removed from the synchronous command path;
-- health reads aggregate indexed job metadata rather than replaying events;
-- reconciliation is bounded and resumable.
+In order:
 
-## Remaining boundaries
+1. evidence outbox/inbox reconciliation;
+2. worker work-class isolation;
+3. compound-command transaction audit/fixes;
+4. route/query/OpenAPI/browser-client contract reconciliation;
+5. complete governance/configuration authorization matrix;
+6. only then governed #27 operator execution and persisted receipts.
 
-This phase does not provide direct OIDC/SAML integration, gateway key rotation, emergency break-glass UI, bulk rebuild scheduling, production-scale lag evidence or automated dead-letter remediation. Those remain explicit release work.
+This sequence is authoritative in `docs/implementation-plan.md`.
+
+## 12. Validation requirements
+
+The boundary requires adversarial tests, not only happy-path handler tests:
+
+- public-route allowlist;
+- protected route without identity;
+- cross-tenant query/body spoofing;
+- actor-field spoofing with authorization off/audit/enforce;
+- strict DTO decoding after identity binding;
+- capability route without staff identity;
+- bearer CORS preflight;
+- unresolved/mismatched authority;
+- service-identity eligibility;
+- PostgreSQL transaction/outbox/inbox replay and recovery.
+
+No exact-head CI run means no CI-green claim.
