@@ -424,7 +424,7 @@ func persistLifecycleTask(ctx context.Context, tx pgx.Tx, tenant, responseID str
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO workflow_tasks(tenant_id,workflow_id,step_key,responsibility,principal_id,title,status,due_at,context,claimed_at,completed_at,created_at,updated_at)
 		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,'lifecycle-response',$3,NULLIF($4,'')::uuid,$5,$6,$7,$8::jsonb,NULL,
-		       CASE WHEN $6='COMPLETED' THEN $9 ELSE NULL END,$9,$9)
+		       CASE WHEN $6='COMPLETED' THEN $9::timestamptz ELSE NULL END,$9::timestamptz,$9::timestamptz)
 		ON CONFLICT(workflow_id,step_key) DO UPDATE SET
 			responsibility=EXCLUDED.responsibility,
 			principal_id=EXCLUDED.principal_id,
