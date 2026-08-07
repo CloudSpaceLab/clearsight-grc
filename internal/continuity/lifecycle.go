@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func currentDecisionForType(values []Decision, decisionType string) *Decision {
+func CurrentDecisionForType(values []Decision, decisionType string) *Decision {
 	var current *Decision
 	for index := range values {
 		candidate := values[index]
@@ -20,8 +20,8 @@ func currentDecisionForType(values []Decision, decisionType string) *Decision {
 	return current
 }
 
-func validateDecisionLifecycle(values []Decision, decisionType string, target DecisionStatus) error {
-	current := currentDecisionForType(values, decisionType)
+func ValidateDecisionLifecycle(values []Decision, decisionType string, target DecisionStatus) error {
+	current := CurrentDecisionForType(values, decisionType)
 	if current == nil {
 		if target == DecisionProposed || target == DecisionApproved || target == DecisionConditionallyApproved || target == DecisionRejected {
 			return nil
