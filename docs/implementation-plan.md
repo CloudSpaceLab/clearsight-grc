@@ -6,6 +6,7 @@
 **UI/UX foundation and simple capture inputs:** PRs #31 and #40  
 **P2 schema ownership / dead compatibility:** PRs #41 and #42  
 **Today work-queue / Matter authority truth:** PR #43  
+**Lifecycle work-requirement compiler:** PR #45 (in progress)  
 **Current product execution issue:** #27  
 **Umbrella bank-first PRD:** #13
 
@@ -109,27 +110,46 @@ Issue #27 now owns product/UI execution after the P0–P2 foundation. Issue #13 
 
 PR #43 merged from its exact CI/UI-evidence-green head. Do not reopen this seam under a new workflow model.
 
-### #27.2 explicit work-requirement compiler and governed intervention packets — NEXT
+### #27.2a explicit work-requirement compiler / deterministic lifecycle projection — IN PR #45
 
-The next tranche should expand Today beyond accountable Matter Actions without guessing lifecycle ownership.
+This tranche expands actor work beyond Matter Actions only where canonical state determines one safe next step. It does **not** choose an assignee from an ambiguous lifecycle state.
 
-Required design:
+Implemented in the current PR:
 
-- derive an actor work requirement only when the next responsibility/action is unambiguous or explicitly selected by policy;
-- do **not** infer one assignee merely because a Decision/Response is in a given state when multiple valid transitions exist;
-- resolve the current eligible principal/candidate set through the existing authority engine;
-- reuse continuity events, transactional outbox and the existing Workflow Task projection instead of creating another workflow/event stack;
-- keep canonical Decision/Response/Evidence state authoritative; Task remains a projection;
-- show recommendation, prepared work, side effects, verification and execution receipt only from governed records that actually exist;
-- support accept/edit-and-accept/reject/request-evidence/compare/escalate only where corresponding authoritative commands exist;
-- preserve protected-record visibility and fail closed before queue limits;
-- add restart/idempotency/current-authority/adversarial tests before exposing the work in production Today.
+- [x] shared Decision/Response lifecycle responsibility policy is used by both command authorization and work compilation;
+- [x] current canonical Matter state compiles into non-authoritative `WorkRequirement` / `WorkAmbiguity` values;
+- [x] deterministic Response transitions such as transmitted → acknowledgement and rejected → draft can become actor work;
+- [x] active Verification Contracts become outcome-check work only after their observation period and only while no current result exists;
+- [x] ambiguous Decision/Response branches remain explicit blocked/unassigned projection state rather than selecting an arbitrary reviewer/challenger/authorizer;
+- [x] current authority is resolved at projection time and Matter priority remains the materiality floor;
+- [x] a required verification reviewer is assigned only if still eligible under current authority;
+- [x] authority candidates are filtered through canonical Matter visibility before a READY assignment can exist;
+- [x] delayed Matter events use **current** authority rather than the authority that existed at the historical event timestamp;
+- [x] Matter events project immediately through the existing transactional outbox publisher;
+- [x] a slower bounded maintainer reconciles restart/backfill and authority/delegation changes without another event or workflow framework;
+- [x] deterministic `(tenant, kind, subject_type, subject_id)` Workflow-instance identity prevents duplicate projected workflows;
+- [x] Matters with no lifecycle work do not create empty Workflow instances;
+- [x] actor Workflow reads and Today admit only the supported `MATTER_ACTION` and `MATTER_LIFECYCLE` projections and recheck Matter visibility;
+- [x] real verification context can appear in Today through progressive disclosure without fabricating recommendation, prepared work or completion receipt;
+- [x] external-response work is labelled as an external response rather than an approval;
+- [ ] exact final branch head must pass full CI plus the expanded 34-state rendered evidence matrix before merge.
 
-A Decision such as `IN_REVIEW` may have multiple legal next transitions. That ambiguity must be represented or resolved by policy; it must not be hidden by choosing an arbitrary reviewer/challenger/authorizer.
+See `docs/architecture/current-read-and-work-projection-boundary.md` and the PR #45 PostgreSQL integration tests.
+
+### #27.2b policy-selected branches and Evidence Request recipient contract — NEXT AFTER #45
+
+The compiler intentionally leaves two unresolved ownership problems visible rather than guessing:
+
+- [ ] define a governed policy-selection record/contract for lifecycle states with multiple valid next transitions, especially Decisions and multi-branch Response states;
+- [ ] ensure that selection itself is authority-aware, versioned, auditable and invalidated by relevant state/policy changes;
+- [ ] compile the selected branch through the same `WorkRequirement` → authority → Workflow projection path rather than adding a second task engine;
+- [ ] define a canonical Evidence Request recipient/routing contract; `why_you`, `created_by` and free-form request copy must never be treated as assignment truth;
+- [ ] support internal/external Evidence Request work only after recipient scope, delegation, conflict, expiry/revocation and protected-record visibility are explicit;
+- [ ] prove reassignment, replay/restart, ambiguous-policy and restricted-record behavior in PostgreSQL before exposing those rows in production Today.
 
 ### Later #27 work, in order
 
-After #27.2:
+After #27.2b:
 
 1. **Operating Program/Work mutation flows** — direct governed actions, saved role-aware views, delegation/recusal/conflict/escalation where domain commands exist, save/resume for complex work.
 2. **Capture/Import lifecycle completion** — provenance classes, redirect/wrong-recipient/delegation, draft/resume/amendment, invitation expiry/revocation, production scanning/quarantine/retry, explicitly governed multi-file requests, recurring mappings and governed conversion to canonical records.
@@ -150,6 +170,7 @@ Do not recreate work already completed in PRs #31, #40, #43 or P0–P2 under new
 - **Recommendation ≠ approval.** Current authority remains explicit.
 - **Automation Policy ≠ execution receipt.** Permission is not evidence that an action ran.
 - **Intervention Summary ≠ authoritative state.** It is a read projection over canonical records.
+- **WorkRequirement ≠ authoritative workflow state.** It is a deterministic compiler output over current canonical records and policy; Workflow Task remains a rebuildable actor projection.
 - **Schema/spec existence ≠ capability.** Executable ownership and tested readers/writers determine capability truth.
 
 Do not add parallel authorization, task, event, worker, receipt, document or generic workflow stacks that duplicate these foundations.
@@ -189,14 +210,17 @@ A projection is stale when its assessed Program version is behind the current Pr
 ### Work truth
 
 ```text
-accountable canonical work
-→ domain event / transactional outbox
-→ policy/authority-backed actor work requirement
-→ idempotent Workflow Task projection
+canonical Matter state
+→ deterministic work-requirement compilation
+→ current authority + record-visibility resolution
+→ existing transactional outbox / bounded reconciliation
+→ idempotent supported Workflow Task projection
 → Today / workflow read surfaces
 ```
 
-Today currently has executable production coverage for the Matter Action branch of this model. #27.2 owns broader lifecycle work requirements.
+Matter Actions remain accountable business work and project through `MATTER_ACTION`. PR #45 adds `MATTER_LIFECYCLE` as a second **projection kind**, not a second workflow engine. Decision/Response/Verification records remain authoritative; lifecycle Task rows are rebuildable and obsolete rows are cancelled by reconciliation.
+
+An ambiguous state produces no guessed actor. It remains unassigned/blocked until policy selects one valid transition. Current actor assignment is always evaluated from current authority, not from stale event-time routing.
 
 ### Capture truth
 
