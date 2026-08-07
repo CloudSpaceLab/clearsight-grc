@@ -25,20 +25,20 @@ type Principal struct {
 }
 
 type Rule struct {
-	ID                 string
-	TenantID           string
-	LegalEntityID      string
-	ObjectType         string
-	ObjectID           string
-	Responsibility     Responsibility
-	DecisionType       string
-	MinMateriality     int
-	Principal          Principal
+	ID                  string
+	TenantID            string
+	LegalEntityID       string
+	ObjectType          string
+	ObjectID            string
+	Responsibility      Responsibility
+	DecisionType        string
+	MinMateriality      int
+	Principal           Principal
 	CandidatePrincipals []Principal
-	ResolutionStrategy string
-	Priority           int
-	ValidFrom          time.Time
-	ValidUntil         time.Time
+	ResolutionStrategy  string
+	Priority            int
+	ValidFrom           time.Time
+	ValidUntil          time.Time
 }
 
 type ResolveInput struct {
