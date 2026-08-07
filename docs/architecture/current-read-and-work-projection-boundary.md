@@ -46,9 +46,9 @@ Canonical distinction:
 
 ```text
 Matter Action / Decision / Response / Verification = authoritative domain state
-WorkRequirement                             = deterministic compiler output
-Workflow Task                               = rebuildable actor-facing projection
-Today                                       = actor read projection
+WorkRequirement / WorkAmbiguity                    = deterministic compiler output
+Workflow Task                                       = rebuildable actor-facing projection
+Today                                               = actor read projection
 ```
 
 A Workflow Task may route or summarize work; it may not redefine whether an Action is implemented, a Decision is approved, a Response is transmitted, evidence is sufficient, or an outcome is verified.
@@ -86,18 +86,21 @@ PR #45 adds deterministic lifecycle work without adding another workflow engine.
 ```text
 current Matter aggregate
 → CompileMatterWork
-→ WorkRequirement or WorkAmbiguity
-→ current authority resolution
-→ canonical Matter visibility filter
-→ MATTER_LIFECYCLE Workflow projection
-→ actor-scoped Today / workflow reads
+   ├─ executable WorkRequirement
+   │  → current authority resolution
+   │  → canonical Matter visibility filter
+   │  → MATTER_LIFECYCLE Workflow projection
+   │  → actor-scoped Today / workflow reads
+   └─ WorkAmbiguity
+      → no Workflow Task
+      → wait for governed policy selection
 ```
 
 ### Compiler rule
 
 A direct `WorkRequirement` exists only when current canonical state determines one valid next action/responsibility or an explicit policy has selected one.
 
-If state has multiple valid next transitions, the compiler emits `WorkAmbiguity`. It must not select an arbitrary reviewer, challenger, authorizer or other actor merely because the record is in a familiar lifecycle state.
+If state has multiple valid next transitions, the compiler emits `WorkAmbiguity`. It must not select an arbitrary reviewer, challenger, authorizer or other actor merely because the record is in a familiar lifecycle state. Ambiguity is **not persisted as an unassigned Task**; doing so would turn Workflow into a shadow lifecycle register without giving anyone executable work.
 
 Decision/Response lifecycle responsibility rules are shared with HTTP command authorization so projected work and executable command authority cannot drift into separate policy tables.
 
@@ -108,7 +111,7 @@ Examples that are currently safe to compile:
 - transmitted Response → record acknowledgement;
 - rejected Response → revise/return to draft.
 
-Response states with several valid next transitions remain ambiguous until a governed policy-selection contract exists.
+Response states with several valid next transitions remain compiler ambiguity until a governed policy-selection contract exists.
 
 ### Verification work
 
@@ -137,11 +140,11 @@ Assignment is fail-closed:
 1. resolve current authority through the existing authority engine;
 2. reduce candidate principals to those who can read the owning Matter;
 3. assign READY only when exactly one eligible visible actor exists, or when an explicitly required principal remains eligible and visible;
-4. otherwise keep the work unassigned/BLOCKED with a truthful routing reason.
+4. otherwise keep the **executable requirement** unassigned/BLOCKED with a truthful routing reason.
 
 Unexpected authority-service failure is operational failure and returns an error for retry; it is not persisted as a fake business `BLOCKED` state.
 
-Matter events trigger immediate recompilation through the existing outbox publisher. A slower bounded maintainer also pages canonical Matters for restart/backfill and authority/delegation convergence when no Matter event was emitted. This is reconciliation, not another scheduler or business workflow source.
+Matter events trigger immediate recompilation through the existing outbox publisher. A slower bounded maintainer exists for restart/backfill and authority/delegation convergence when no Matter event was emitted. It does **not** scan every historical Matter: it targets Matters with an existing lifecycle projection, deterministic Response work, or a Verification Contract whose observation window is actually ready. This is reconciliation, not another scheduler or business workflow source.
 
 ## 7. Projection identity and idempotency
 
@@ -153,9 +156,9 @@ Migration `000020_workflow_projection_identity` adds fail-closed uniqueness for:
 
 This gives one deterministic Workflow instance per supported projection identity and makes replay/concurrent delivery converge instead of creating duplicate instances.
 
-`MATTER_LIFECYCLE` uses one workflow instance per Matter and deterministic `step_key` values per compiled requirement/ambiguity. Material task changes emit `WORK_REQUIREMENTS_RECONCILED`; duplicate reconciliation that changes nothing emits no duplicate work event.
+`MATTER_LIFECYCLE` uses one workflow instance per Matter and deterministic `step_key` values per executable requirement. Material task changes emit `WORK_REQUIREMENTS_RECONCILED`; duplicate reconciliation that changes nothing emits no duplicate work event.
 
-A Matter with no current lifecycle requirement does not create an empty workflow. Existing lifecycle tasks that cease to be current are cancelled by reconciliation.
+A Matter with no current executable lifecycle requirement does not create an empty workflow. Existing lifecycle tasks that cease to be current are cancelled by reconciliation.
 
 ## 8. Actor-read boundary
 
@@ -201,15 +204,16 @@ P1.4 acceptance remains protected by normalized-current-read and Matter Action p
 
 The #27.2a lifecycle extension additionally requires exact-head CI to prove:
 
-- Decision/Response compiler output never invents an actor for a multi-branch lifecycle state;
+- Decision/Response compiler output never invents an actor or Workflow Task for a multi-branch lifecycle state;
 - Verification work does not appear before its observation period and does not repeat after a current result exists;
 - delayed delivery resolves current authority rather than historical event-time authority;
 - required/candidate actors must retain canonical Matter visibility;
 - duplicate projection delivery is idempotent;
-- a Matter with no lifecycle work creates no empty Workflow instance;
+- a Matter with no executable lifecycle work creates no empty Workflow instance;
 - authority/visibility changes converge existing Task assignment safely;
+- bounded reconciliation targets candidate/previously-projected Matters rather than the full Matter population;
 - `MATTER_ACTION` behavior remains intact;
 - migration `000020` applies, rolls back and reapplies;
 - actor reads remain tenant/principal scoped and pre-limit visibility safe;
 - Today shows real verification context without fabricating recommendation, prepared work or completion receipt;
-- rendered browser evidence covers collapsed and expanded lifecycle-work context in addition to the existing UI matrix.
+- rendered browser evidence covers collapsed and expanded lifecycle-work context on desktop and mobile in addition to the existing UI matrix.
