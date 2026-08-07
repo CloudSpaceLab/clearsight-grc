@@ -38,13 +38,15 @@ func TestCommandBindsSignedActor(t *testing.T) {
 	api := &API{deps: Dependencies{CommandGuard: guard}}
 	policy := commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: "authority_principal_id"}
 	var received map[string]any
-	handler := api.command("matter.decision.record", policy, func(w http.ResponseWriter, r *http.Request) {
+	// Actor binding is tested independently from Matter lifecycle routing; the
+	// latter has dedicated state/authority tests with a real Continuity service.
+	handler := api.command("test.actor.bind", policy, func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&received); err != nil {
 			t.Fatal(err)
 		}
 		w.WriteHeader(http.StatusNoContent)
 	})
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/matters/matter-1/decisions", strings.NewReader(`{"tenant_id":"bank-demo","authority_principal_id":"forged","rationale":"Approved"}`))
+	req := httptest.NewRequest(http.MethodPost, "/test/matters/matter-1", strings.NewReader(`{"tenant_id":"bank-demo","authority_principal_id":"forged","rationale":"Approved"}`))
 	req.SetPathValue("id", "matter-1")
 	now := time.Now().UTC()
 	req = req.WithContext(identity.WithActor(req.Context(), identity.Actor{TenantID: "bank-demo", PrincipalID: "person-1", LegalEntityID: "bank-ng", Kind: "PERSON", ExpiresAt: now.Add(time.Hour)}))
@@ -65,13 +67,13 @@ func TestCommandBindsActorWhenAuthorizationIsOff(t *testing.T) {
 	api := &API{}
 	policy := commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: "authority_principal_id"}
 	var received map[string]any
-	handler := api.command("matter.decision.record", policy, func(w http.ResponseWriter, r *http.Request) {
+	handler := api.command("test.actor.bind", policy, func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&received); err != nil {
 			t.Fatal(err)
 		}
 		w.WriteHeader(http.StatusNoContent)
 	})
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/matters/matter-1/decisions", strings.NewReader(`{"tenant_id":"bank-demo","authority_principal_id":"forged"}`))
+	req := httptest.NewRequest(http.MethodPost, "/test/matters/matter-1", strings.NewReader(`{"tenant_id":"bank-demo","authority_principal_id":"forged"}`))
 	req.SetPathValue("id", "matter-1")
 	now := time.Now().UTC()
 	req = req.WithContext(identity.WithActor(req.Context(), identity.Actor{TenantID: "bank-demo", PrincipalID: "person-1", LegalEntityID: "bank-ng", Kind: "PERSON", ExpiresAt: now.Add(time.Hour)}))
@@ -129,9 +131,29 @@ func TestCommandCannotLowerMinimumMateriality(t *testing.T) {
 	response := httptest.NewRecorder()
 	handler(response, req)
 	if response.Code != http.StatusNoContent {
-		t.Fatalf("unexpected response %d: %s", response.Code, response.Body.String())
+		t.Fatalf("unexpected status %d: %s", response.Code, response.Body.String())
 	}
-	if service.input.Materiality != 3 || service.input.LegalEntityID != "bank-ng" {
-		t.Fatalf("minimum materiality or entity was not bound: %#v", service.input)
+	if service.input.Materiality != 3 {
+		t.Fatalf("client lowered minimum materiality: %#v", service.input)
+	}
+}
+
+func TestCommandClientMayRaiseMateriality(t *testing.T) {
+	service := &capturingCommandAuthority{}
+	guard, _ := commandauth.New(service, commandauth.ModeEnforce, slog.Default())
+	api := &API{deps: Dependencies{CommandGuard: guard}}
+	policy := commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3}
+	handler := api.command("program.transition", policy, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/programs/program-1/transition", strings.NewReader(`{"tenant_id":"bank-demo","materiality":5,"to":"ACTIVE"}`))
+	req.SetPathValue("id", "program-1")
+	now := time.Now().UTC()
+	req = req.WithContext(identity.WithActor(req.Context(), identity.Actor{TenantID: "bank-demo", PrincipalID: "person-1", LegalEntityID: "bank-ng", Kind: "PERSON", ExpiresAt: now.Add(time.Hour)}))
+	response := httptest.NewRecorder()
+	handler(response, req)
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("unexpected status %d: %s", response.Code, response.Body.String())
+	}
+	if service.input.Materiality != 5 {
+		t.Fatalf("client failed to raise materiality: %#v", service.input)
 	}
 }
