@@ -92,12 +92,12 @@ func ownershipRegister(t *testing.T, path string) map[string]struct{} {
 	}
 
 	allowed := map[string]struct{}{
-		"active authoritative state":  {},
-		"active projection":           {},
-		"active infrastructure ledger": {},
+		"active authoritative state":                   {},
+		"active projection":                            {},
+		"active infrastructure ledger":                 {},
 		"explicitly reserved for a named future phase": {},
-		"deprecated/migration-only":   {},
-		"removable":                   {},
+		"deprecated/migration-only":                    {},
+		"removable":                                    {},
 	}
 	registered := make(map[string]struct{})
 	body := text[start+len(begin) : finish]
