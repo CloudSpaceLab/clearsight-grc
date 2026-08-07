@@ -3,8 +3,9 @@
 **Status date:** 2026-08-07  
 **P0 executable integrity:** PRs #25 and #30  
 **P1 semantic/current-state correctness:** PRs #34–#39  
-**UI/UX foundation reconciliation:** PR #31  
+**UI/UX foundation and simple capture inputs:** PRs #31 and #40  
 **P2 schema ownership / dead compatibility:** PRs #41 and #42  
+**Today work-queue / Matter authority truth:** PR #43  
 **Current product execution issue:** #27  
 **Umbrella bank-first PRD:** #13
 
@@ -55,6 +56,22 @@ Issue #32 is closed. See:
 
 This is the UI foundation, not full product completion.
 
+### Simple capture/input and dropzone closure — COMPLETE IN PR #40
+
+- Today remains the practical work surface rather than generic `Your work` copy;
+- typed Capture controls use appropriate short text, long text, choice, date, number, photo/file and signature interactions;
+- photo evidence uses a prominent camera/drop/tap surface with preview, document import uses an explicit pre-commit dropzone, and incidental file evidence stays compact;
+- external simple field verification keeps known facts read-only and performs exact review before receipt;
+- photo/file/signature answers are request-bound artifact references rather than arbitrary strings or base64 answer payloads;
+- artifact field validation fails closed for wrong request/media, empty/unknown/quarantined/deleted artifacts and oversized signatures;
+- failed attachment replacement preserves the last valid artifact;
+- stale async upload/submission completions cannot write into a newly opened request;
+- external submission receipts record a **response**, not an independently verified outcome;
+- document-import proposal serialization and optimistic-conflict regression coverage remains executable;
+- deterministic UI evidence covers 32 representative states/interactions.
+
+This closes the simple input/capture tranche. Redirect/delegate/wrong-recipient, draft/resume/amendment, invitation lifecycle, production scanning/quarantine/retry, explicitly governed multi-file collection and recurring import reconciliation remain later #27 work.
+
 ### #33 P2 schema ownership and dead compatibility — COMPLETE
 
 - every live durable PostgreSQL table has one machine-checked owner/maturity classification;
@@ -75,9 +92,7 @@ Issue #33 is closed. See:
 
 Issue #27 now owns product/UI execution after the P0–P2 foundation. Issue #13 remains the umbrella product PRD and does not override this execution order.
 
-### #27.1 Today work-queue and Matter authority truth — IN PR #43
-
-This tranche fixes correctness/security before richer decision packets:
+### #27.1 Today work-queue and Matter authority truth — COMPLETE IN PR #43
 
 - [x] existing-Matter lifecycle authority derives the canonical Matter ID from the route rather than trusting redundant JSON identifiers;
 - [x] conflicting body/route Matter or subresource identifiers fail closed;
@@ -92,7 +107,7 @@ This tranche fixes correctness/security before richer decision packets:
 - [x] recommendation/prepared-work fields remain empty unless a separately governed record supplies them;
 - [x] race-enabled, PostgreSQL and rendered/UI-evidence regression coverage protects the boundary.
 
-PR #43 must merge only from an exact CI/UI-evidence-green head.
+PR #43 merged from its exact CI/UI-evidence-green head. Do not reopen this seam under a new workflow model.
 
 ### #27.2 explicit work-requirement compiler and governed intervention packets — NEXT
 
@@ -117,12 +132,12 @@ A Decision such as `IN_REVIEW` may have multiple legal next transitions. That am
 After #27.2:
 
 1. **Operating Program/Work mutation flows** — direct governed actions, saved role-aware views, delegation/recusal/conflict/escalation where domain commands exist, save/resume for complex work.
-2. **Capture/Import completion** — provenance classes, redirect/wrong-recipient flows, draft/resume/amendment, recurring mappings and governed conversion to canonical records.
+2. **Capture/Import lifecycle completion** — provenance classes, redirect/wrong-recipient/delegation, draft/resume/amendment, invitation expiry/revocation, production scanning/quarantine/retry, explicitly governed multi-file requests, recurring mappings and governed conversion to canonical records.
 3. **Configure productization** — organization/identity sources, responsibility/authority matrices, routing/escalation builders, impact preview, maker-checker, effective dating/rollback, notification and security policy surfaces.
 4. **Enterprise shell** — production Explore/reconstruction, actor notifications, identity/session/step-up context.
 5. **Acceptance closure** — representative bank-user timed usability, complete state coverage, production assets and final accessibility/responsive evidence.
 
-Do not recreate work already completed in PR #31 or P0–P2 under new names.
+Do not recreate work already completed in PRs #31, #40, #43 or P0–P2 under new names.
 
 ## 3. Canonical domain invariants
 
@@ -182,6 +197,10 @@ accountable canonical work
 ```
 
 Today currently has executable production coverage for the Matter Action branch of this model. #27.2 owns broader lifecycle work requirements.
+
+### Capture truth
+
+A submitted response can reference a request-bound `STORED_UNSCANNED` artifact. That proves what the respondent submitted; it does **not** prove evidence sufficiency or that production malware inspection has completed. Later production scanning/quarantine/retry must preserve this distinction and fail closed for evidence use.
 
 ### Document-import truth
 
