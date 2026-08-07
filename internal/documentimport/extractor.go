@@ -3,117 +3,264 @@ package documentimport
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/csv"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 type ExtractionResult struct {
-	Status      ExtractionStatus
-	Method      string
-	Sections    []Section
-	Limitations []string
+	Status           ExtractionStatus
+	Method           string
+	Sections         []Section
+	Limitations      []string
+	SectionsTotal    int
+	SectionsOmitted  int
+	ContentTruncated bool
 }
 
-func Extract(fileName, mediaType string, data []byte) ExtractionResult {
-	extension := strings.ToLower(filepath.Ext(fileName))
-	switch extension {
-	case ".txt", ".md", ".markdown":
-		return ExtractionResult{Status: ExtractionExtracted, Method: "PLAIN_TEXT_V1", Sections: textSections(string(data))}
-	case ".csv":
-		sections, err := csvSections(data)
-		if err != nil {
-			return failedExtraction("CSV could not be parsed: " + err.Error())
-		}
-		return ExtractionResult{Status: ExtractionExtracted, Method: "CSV_ROWS_V1", Sections: sections}
-	case ".docx":
-		sections, err := docxSections(data)
-		if err != nil {
-			return failedExtraction("DOCX could not be parsed: " + err.Error())
-		}
-		return ExtractionResult{Status: ExtractionExtracted, Method: "DOCX_XML_V1", Sections: sections}
-	case ".xlsx":
-		sections, err := xlsxSections(data)
-		if err != nil {
-			return failedExtraction("XLSX could not be parsed: " + err.Error())
-		}
-		return ExtractionResult{Status: ExtractionExtracted, Method: "XLSX_XML_V1", Sections: sections}
-	case ".pdf":
-		return ExtractionResult{Status: ExtractionUnsupported, Method: "NONE", Limitations: []string{"The original PDF was stored, but this build has no approved PDF text extractor or OCR adapter.", "No compliance proposal was generated from the PDF."}}
-	default:
-		if strings.HasPrefix(strings.ToLower(mediaType), "text/") {
-			return ExtractionResult{Status: ExtractionExtracted, Method: "PLAIN_TEXT_V1", Sections: textSections(string(data))}
-		}
-		return ExtractionResult{Status: ExtractionUnsupported, Method: "NONE", Limitations: []string{"The original artifact was stored, but its document type is not supported for extraction."}}
+type extractionBudget struct {
+	rows  int
+	cells int
+}
+
+type sectionCollector struct {
+	policy    ExtractionPolicy
+	sections  []Section
+	total     int
+	omitted   int
+	textBytes int64
+	truncated bool
+}
+
+func newSectionCollector(policy ExtractionPolicy) *sectionCollector {
+	return &sectionCollector{policy: policy.normalized(), sections: make([]Section, 0, min(policy.normalized().MaxSections, 64))}
+}
+
+func (c *sectionCollector) canRetain() bool {
+	return len(c.sections) < c.policy.MaxSections && c.textBytes < c.policy.MaxExtractedTextBytes
+}
+
+func (c *sectionCollector) remainingText() int64 {
+	remaining := c.policy.MaxExtractedTextBytes - c.textBytes
+	if remaining < 0 {
+		return 0
+	}
+	return remaining
+}
+
+func (c *sectionCollector) add(section Section, contentExists, alreadyTruncated bool) {
+	if !contentExists {
+		return
+	}
+	c.total++
+	if alreadyTruncated {
+		c.truncated = true
+	}
+	if len(c.sections) >= c.policy.MaxSections || c.remainingText() <= 0 {
+		c.omitted++
+		c.truncated = true
+		return
+	}
+	text := strings.TrimSpace(section.Text)
+	if text == "" {
+		c.omitted++
+		c.truncated = true
+		return
+	}
+	remaining := c.remainingText()
+	if int64(len(text)) > remaining {
+		text = truncateUTF8(text, int(remaining))
+		c.truncated = true
+	}
+	if text == "" {
+		c.omitted++
+		return
+	}
+	section.ID = newID()
+	section.Sequence = len(c.sections) + 1
+	section.Text = text
+	c.textBytes += int64(len(text))
+	c.sections = append(c.sections, section)
+}
+
+func (c *sectionCollector) result(status ExtractionStatus, method string, limitations ...string) ExtractionResult {
+	return ExtractionResult{
+		Status: status, Method: method, Sections: c.sections, Limitations: limitations,
+		SectionsTotal: c.total, SectionsOmitted: c.omitted, ContentTruncated: c.truncated,
 	}
 }
 
-func failedExtraction(message string) ExtractionResult {
-	return ExtractionResult{Status: ExtractionFailed, Method: "FAILED", Limitations: []string{message, "No compliance proposal was generated."}}
+func Extract(fileName, mediaType string, data []byte) ExtractionResult {
+	return ExtractWithPolicy(context.Background(), fileName, mediaType, data, DefaultExtractionPolicy())
 }
 
-func textSections(value string) []Section {
-	value = normalizeText(value)
+func ExtractWithPolicy(ctx context.Context, fileName, mediaType string, data []byte, policy ExtractionPolicy) ExtractionResult {
+	policy = policy.normalized()
+	collector := newSectionCollector(policy)
+	extension := strings.ToLower(filepath.Ext(fileName))
+	var err error
+	var method string
+	switch extension {
+	case ".txt", ".md", ".markdown":
+		method = "PLAIN_TEXT_V2"
+		err = textSections(ctx, data, collector)
+	case ".csv":
+		method = "CSV_STREAM_V2"
+		err = csvSections(ctx, data, collector, &extractionBudget{})
+	case ".docx":
+		method = "DOCX_XML_STREAM_V2"
+		err = docxSections(ctx, data, collector, policy)
+	case ".xlsx":
+		method = "XLSX_XML_STREAM_V2"
+		err = xlsxSections(ctx, data, collector, policy)
+	case ".pdf":
+		return collector.result(ExtractionUnsupported, "NONE", "The original PDF was stored, but this build has no approved PDF text extractor or OCR adapter.", "No compliance proposal was generated from the PDF.")
+	default:
+		if strings.HasPrefix(strings.ToLower(mediaType), "text/") {
+			method = "PLAIN_TEXT_V2"
+			err = textSections(ctx, data, collector)
+		} else {
+			return collector.result(ExtractionUnsupported, "NONE", "The original artifact was stored, but its document type is not supported for extraction.")
+		}
+	}
+	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return ExtractionResult{Status: ExtractionFailed, Method: method, Limitations: []string{err.Error()}}
+		}
+		return failedExtraction(method, err)
+	}
+	return collector.result(ExtractionExtracted, method)
+}
+
+func failedExtraction(method string, err error) ExtractionResult {
+	message := err.Error()
+	if errors.Is(err, ErrResourceLimit) {
+		message = "Extraction resource limit exceeded: " + message
+	}
+	return ExtractionResult{Status: ExtractionFailed, Method: method, Limitations: []string{message, "No compliance proposal was generated."}}
+}
+
+func textSections(ctx context.Context, data []byte, collector *sectionCollector) error {
+	value := normalizeText(string(data))
 	blocks := strings.Split(value, "\n\n")
-	sections := make([]Section, 0, len(blocks))
 	for _, block := range blocks {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		block = strings.TrimSpace(block)
 		if block == "" {
 			continue
 		}
 		lines := strings.Split(block, "\n")
-		title := fmt.Sprintf("Section %d", len(sections)+1)
+		title := fmt.Sprintf("Section %d", collector.total+1)
 		if len(lines) > 1 && looksLikeHeading(lines[0]) {
 			title = strings.TrimSpace(strings.TrimLeft(lines[0], "#"))
 			block = strings.TrimSpace(strings.Join(lines[1:], "\n"))
 		}
-		if block == "" {
-			continue
-		}
-		sections = append(sections, Section{ID: newID(), Sequence: len(sections) + 1, Title: title, Text: truncate(block, 120000)})
+		collector.add(Section{Title: truncateUTF8(title, 240), Text: block}, block != "", false)
 	}
-	if len(sections) == 0 && strings.TrimSpace(value) != "" {
-		sections = append(sections, Section{ID: newID(), Sequence: 1, Title: "Document text", Text: truncate(strings.TrimSpace(value), 120000)})
+	if collector.total == 0 && strings.TrimSpace(value) != "" {
+		collector.add(Section{Title: "Document text", Text: strings.TrimSpace(value)}, true, false)
 	}
-	return sections
+	return nil
 }
 
-func csvSections(data []byte) ([]Section, error) {
+func csvSections(ctx context.Context, data []byte, collector *sectionCollector, budget *extractionBudget) error {
 	reader := csv.NewReader(bytes.NewReader(data))
 	reader.FieldsPerRecord = -1
-	records, err := reader.ReadAll()
+	reader.ReuseRecord = true
+	headers, err := reader.Read()
+	if err == io.EOF {
+		return nil
+	}
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("CSV could not be parsed: %w", err)
 	}
-	if len(records) == 0 {
-		return nil, nil
+	if err := consumeRowBudget(headers, collector.policy, budget); err != nil {
+		return err
 	}
-	headers := records[0]
-	sections := make([]Section, 0, len(records)-1)
-	for rowIndex, record := range records[1:] {
-		parts := make([]string, 0, len(record))
-		for index, value := range record {
-			label := fmt.Sprintf("Column %d", index+1)
-			if index < len(headers) && strings.TrimSpace(headers[index]) != "" {
-				label = strings.TrimSpace(headers[index])
-			}
-			parts = append(parts, label+": "+strings.TrimSpace(value))
+	headerCopy := append([]string(nil), headers...)
+	for index := range headerCopy {
+		if len(headerCopy[index]) > collector.policy.MaxCellBytes {
+			return limitError("CSV header cell exceeds %d bytes", collector.policy.MaxCellBytes)
 		}
-		sections = append(sections, Section{ID: newID(), Sequence: len(sections) + 1, Title: fmt.Sprintf("Row %d", rowIndex+2), Text: truncate(strings.Join(parts, "\n"), 120000), RowStart: rowIndex + 2, RowEnd: rowIndex + 2})
 	}
-	return sections, nil
+	rowNumber := 1
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		record, readErr := reader.Read()
+		if readErr == io.EOF {
+			break
+		}
+		if readErr != nil {
+			return fmt.Errorf("CSV could not be parsed: %w", readErr)
+		}
+		rowNumber++
+		if err := consumeRowBudget(record, collector.policy, budget); err != nil {
+			return err
+		}
+		nonEmpty := false
+		var parts []string
+		if collector.canRetain() {
+			parts = make([]string, 0, len(record))
+		}
+		for index, value := range record {
+			if len(value) > collector.policy.MaxCellBytes {
+				return limitError("CSV cell at row %d column %d exceeds %d bytes", rowNumber, index+1, collector.policy.MaxCellBytes)
+			}
+			value = strings.TrimSpace(value)
+			if value == "" {
+				continue
+			}
+			nonEmpty = true
+			if parts == nil {
+				continue
+			}
+			label := fmt.Sprintf("Column %d", index+1)
+			if index < len(headerCopy) && strings.TrimSpace(headerCopy[index]) != "" {
+				label = strings.TrimSpace(headerCopy[index])
+			}
+			parts = append(parts, label+": "+value)
+		}
+		collector.add(Section{Title: fmt.Sprintf("Row %d", rowNumber), Text: strings.Join(parts, "\n"), RowStart: rowNumber, RowEnd: rowNumber}, nonEmpty, parts == nil && nonEmpty)
+	}
+	return nil
 }
 
-func docxSections(data []byte) ([]Section, error) {
+func consumeRowBudget(values []string, policy ExtractionPolicy, budget *extractionBudget) error {
+	budget.rows++
+	if budget.rows > policy.MaxRows {
+		return limitError("row count exceeds %d", policy.MaxRows)
+	}
+	if len(values) > policy.MaxColumns {
+		return limitError("column count exceeds %d", policy.MaxColumns)
+	}
+	budget.cells += len(values)
+	if budget.cells > policy.MaxCells {
+		return limitError("cell count exceeds %d", policy.MaxCells)
+	}
+	return nil
+}
+
+func docxSections(ctx context.Context, data []byte, collector *sectionCollector, policy ExtractionPolicy) error {
 	archive, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("DOCX could not be parsed: %w", err)
+	}
+	if err := validateArchive(archive.File, policy); err != nil {
+		return err
 	}
 	var document *zip.File
 	for _, file := range archive.File {
@@ -123,138 +270,170 @@ func docxSections(data []byte) ([]Section, error) {
 		}
 	}
 	if document == nil {
-		return nil, fmt.Errorf("word/document.xml is missing")
-	}
-	if document.UncompressedSize64 > 20<<20 {
-		return nil, fmt.Errorf("expanded document XML exceeds 20 MiB")
+		return fmt.Errorf("DOCX could not be parsed: word/document.xml is missing")
 	}
 	stream, err := document.Open()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer stream.Close()
-	decoder := xml.NewDecoder(io.LimitReader(stream, 20<<20))
-	paragraphs := make([]string, 0)
-	var current strings.Builder
+	decoder := xml.NewDecoder(stream)
+	currentTitle := "Document text"
+	var body strings.Builder
+	hasBody := false
+	bodyTruncated := false
+	flush := func() {
+		if !hasBody {
+			return
+		}
+		collector.add(Section{Title: currentTitle, Text: body.String()}, true, bodyTruncated)
+		body.Reset()
+		hasBody = false
+		bodyTruncated = false
+	}
 	inParagraph := false
+	var paragraph strings.Builder
+	paragraphTruncated := false
 	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		token, tokenErr := decoder.Token()
 		if tokenErr == io.EOF {
 			break
 		}
 		if tokenErr != nil {
-			return nil, tokenErr
+			return fmt.Errorf("DOCX XML could not be parsed: %w", tokenErr)
 		}
 		switch value := token.(type) {
 		case xml.StartElement:
 			if value.Name.Local == "p" {
 				inParagraph = true
-				current.Reset()
+				paragraph.Reset()
+				paragraphTruncated = false
+			} else if inParagraph && value.Name.Local == "tab" {
+				appendBounded(&paragraph, "\t", policy.MaxCellBytes, &paragraphTruncated)
 			}
-			if inParagraph && (value.Name.Local == "t" || value.Name.Local == "tab") {
-				if value.Name.Local == "tab" {
-					current.WriteByte('\t')
-					continue
-				}
-				var text string
-				if err := decoder.DecodeElement(&text, &value); err != nil {
-					return nil, err
-				}
-				current.WriteString(text)
+		case xml.CharData:
+			if inParagraph {
+				appendBounded(&paragraph, string(value), policy.MaxCellBytes, &paragraphTruncated)
 			}
 		case xml.EndElement:
-			if value.Name.Local == "p" && inParagraph {
-				paragraph := strings.TrimSpace(current.String())
-				if paragraph != "" {
-					paragraphs = append(paragraphs, paragraph)
-				}
-				inParagraph = false
+			if value.Name.Local != "p" || !inParagraph {
+				continue
 			}
+			text := strings.TrimSpace(paragraph.String())
+			inParagraph = false
+			if text == "" {
+				continue
+			}
+			if looksLikeHeading(text) {
+				flush()
+				currentTitle = truncateUTF8(text, 240)
+				continue
+			}
+			hasBody = true
+			bodyTruncated = bodyTruncated || paragraphTruncated
+			if body.Len() > 0 {
+				appendBounded(&body, "\n\n", int(collector.policy.MaxExtractedTextBytes), &bodyTruncated)
+			}
+			appendBounded(&body, text, int(collector.policy.MaxExtractedTextBytes), &bodyTruncated)
 		}
 	}
-	return paragraphSections(paragraphs), nil
+	flush()
+	return nil
 }
 
-func xlsxSections(data []byte) ([]Section, error) {
+func xlsxSections(ctx context.Context, data []byte, collector *sectionCollector, policy ExtractionPolicy) error {
 	archive, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("XLSX could not be parsed: %w", err)
+	}
+	if err := validateArchive(archive.File, policy); err != nil {
+		return err
 	}
 	shared := []string{}
-	for _, file := range archive.File {
-		if file.Name == "xl/sharedStrings.xml" {
-			values, readErr := readSharedStrings(file)
-			if readErr != nil {
-				return nil, readErr
-			}
-			shared = values
-			break
-		}
-	}
 	worksheets := make([]*zip.File, 0)
 	for _, file := range archive.File {
-		if strings.HasPrefix(file.Name, "xl/worksheets/sheet") && strings.HasSuffix(file.Name, ".xml") {
+		switch {
+		case file.Name == "xl/sharedStrings.xml":
+			values, readErr := readSharedStrings(ctx, file, policy)
+			if readErr != nil {
+				return readErr
+			}
+			shared = values
+		case strings.HasPrefix(file.Name, "xl/worksheets/sheet") && strings.HasSuffix(file.Name, ".xml"):
 			worksheets = append(worksheets, file)
 		}
 	}
+	if len(worksheets) > policy.MaxSheets {
+		return limitError("worksheet count exceeds %d", policy.MaxSheets)
+	}
 	sort.Slice(worksheets, func(i, j int) bool { return worksheets[i].Name < worksheets[j].Name })
-	sections := make([]Section, 0)
+	budget := &extractionBudget{}
 	for sheetIndex, file := range worksheets {
-		rows, readErr := readWorksheet(file, shared)
-		if readErr != nil {
-			return nil, readErr
+		if err := ctx.Err(); err != nil {
+			return err
 		}
-		sheetName := fmt.Sprintf("Sheet %d", sheetIndex+1)
-		for rowNumber, values := range rows {
-			parts := make([]string, 0, len(values))
-			for column, value := range values {
-				if strings.TrimSpace(value) != "" {
-					parts = append(parts, fmt.Sprintf("Column %d: %s", column+1, strings.TrimSpace(value)))
-				}
-			}
-			if len(parts) == 0 {
-				continue
-			}
-			sections = append(sections, Section{ID: newID(), Sequence: len(sections) + 1, Title: fmt.Sprintf("%s row %d", sheetName, rowNumber), Text: truncate(strings.Join(parts, "\n"), 120000), Sheet: sheetName, RowStart: rowNumber, RowEnd: rowNumber})
+		if err := streamWorksheet(ctx, file, shared, fmt.Sprintf("Sheet %d", sheetIndex+1), collector, budget); err != nil {
+			return err
 		}
 	}
-	return sections, nil
+	return nil
 }
 
-func readSharedStrings(file *zip.File) ([]string, error) {
+func readSharedStrings(ctx context.Context, file *zip.File, policy ExtractionPolicy) ([]string, error) {
 	stream, err := file.Open()
 	if err != nil {
 		return nil, err
 	}
 	defer stream.Close()
-	decoder := xml.NewDecoder(io.LimitReader(stream, 20<<20))
-	values := []string{}
+	decoder := xml.NewDecoder(stream)
+	values := make([]string, 0, min(policy.MaxSharedStrings, 1024))
 	var current strings.Builder
 	inItem := false
+	inText := false
+	var totalBytes int64
 	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		token, tokenErr := decoder.Token()
 		if tokenErr == io.EOF {
 			break
 		}
 		if tokenErr != nil {
-			return nil, tokenErr
+			return nil, fmt.Errorf("XLSX shared strings could not be parsed: %w", tokenErr)
 		}
 		switch value := token.(type) {
 		case xml.StartElement:
 			if value.Name.Local == "si" {
+				if len(values) >= policy.MaxSharedStrings {
+					return nil, limitError("shared-string count exceeds %d", policy.MaxSharedStrings)
+				}
 				inItem = true
 				current.Reset()
+			} else if inItem && value.Name.Local == "t" {
+				inText = true
 			}
-			if inItem && value.Name.Local == "t" {
-				var text string
-				if err := decoder.DecodeElement(&text, &value); err != nil {
-					return nil, err
+		case xml.CharData:
+			if inItem && inText {
+				if current.Len()+len(value) > policy.MaxCellBytes {
+					return nil, limitError("shared-string cell exceeds %d bytes", policy.MaxCellBytes)
 				}
-				current.WriteString(text)
+				current.Write(value)
 			}
 		case xml.EndElement:
+			if value.Name.Local == "t" {
+				inText = false
+			}
 			if value.Name.Local == "si" && inItem {
-				values = append(values, current.String())
+				text := current.String()
+				totalBytes += int64(len(text))
+				if totalBytes > policy.MaxSharedStringBytes {
+					return nil, limitError("shared-string text exceeds %d bytes", policy.MaxSharedStringBytes)
+				}
+				values = append(values, text)
 				inItem = false
 			}
 		}
@@ -262,51 +441,193 @@ func readSharedStrings(file *zip.File) ([]string, error) {
 	return values, nil
 }
 
-func readWorksheet(file *zip.File, shared []string) (map[int][]string, error) {
+func streamWorksheet(ctx context.Context, file *zip.File, shared []string, sheetName string, collector *sectionCollector, budget *extractionBudget) error {
 	stream, err := file.Open()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer stream.Close()
-	type cell struct {
-		Reference string `xml:"r,attr"`
-		Type      string `xml:"t,attr"`
-		Value     string `xml:"v"`
-		Inline    string `xml:"is>t"`
-	}
-	type row struct {
-		Number int    `xml:"r,attr"`
-		Cells  []cell `xml:"c"`
-	}
-	var worksheet struct {
-		Rows []row `xml:"sheetData>row"`
-	}
-	decoder := xml.NewDecoder(io.LimitReader(stream, 30<<20))
-	if err := decoder.Decode(&worksheet); err != nil {
-		return nil, err
-	}
-	rows := map[int][]string{}
-	for _, item := range worksheet.Rows {
-		values := []string{}
-		for _, current := range item.Cells {
-			column := cellColumn(current.Reference)
-			for len(values) <= column {
-				values = append(values, "")
-			}
-			value := current.Value
-			if current.Type == "s" {
-				index, parseErr := strconv.Atoi(current.Value)
-				if parseErr == nil && index >= 0 && index < len(shared) {
-					value = shared[index]
-				}
-			} else if current.Type == "inlineStr" {
-				value = current.Inline
-			}
-			values[column] = value
+	decoder := xml.NewDecoder(stream)
+	rowNumber := 0
+	rowFallback := 0
+	inRow := false
+	rowNonEmpty := false
+	var parts []string
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
 		}
-		rows[item.Number] = values
+		token, tokenErr := decoder.Token()
+		if tokenErr == io.EOF {
+			break
+		}
+		if tokenErr != nil {
+			return fmt.Errorf("XLSX worksheet could not be parsed: %w", tokenErr)
+		}
+		switch value := token.(type) {
+		case xml.StartElement:
+			switch value.Name.Local {
+			case "row":
+				budget.rows++
+				if budget.rows > collector.policy.MaxRows {
+					return limitError("row count exceeds %d", collector.policy.MaxRows)
+				}
+				rowFallback++
+				rowNumber = rowFallback
+				for _, attribute := range value.Attr {
+					if attribute.Name.Local == "r" {
+						if parsed, parseErr := strconv.Atoi(attribute.Value); parseErr == nil && parsed > 0 {
+							rowNumber = parsed
+						}
+					}
+				}
+				inRow = true
+				rowNonEmpty = false
+				parts = nil
+				if collector.canRetain() {
+					parts = make([]string, 0, 16)
+				}
+			case "c":
+				if !inRow {
+					continue
+				}
+				budget.cells++
+				if budget.cells > collector.policy.MaxCells {
+					return limitError("cell count exceeds %d", collector.policy.MaxCells)
+				}
+				reference, cellValue, decodeErr := decodeWorksheetCell(ctx, decoder, value, shared, collector.policy)
+				if decodeErr != nil {
+					return decodeErr
+				}
+				column := cellColumn(reference)
+				if column >= collector.policy.MaxColumns {
+					return limitError("column index exceeds %d", collector.policy.MaxColumns)
+				}
+				cellValue = strings.TrimSpace(cellValue)
+				if cellValue == "" {
+					continue
+				}
+				rowNonEmpty = true
+				if parts != nil {
+					parts = append(parts, fmt.Sprintf("Column %d: %s", column+1, cellValue))
+				}
+			}
+		case xml.EndElement:
+			if value.Name.Local == "row" && inRow {
+				collector.add(Section{Title: fmt.Sprintf("%s row %d", sheetName, rowNumber), Text: strings.Join(parts, "\n"), Sheet: sheetName, RowStart: rowNumber, RowEnd: rowNumber}, rowNonEmpty, parts == nil && rowNonEmpty)
+				inRow = false
+			}
+		}
 	}
-	return rows, nil
+	return nil
+}
+
+func decodeWorksheetCell(ctx context.Context, decoder *xml.Decoder, start xml.StartElement, shared []string, policy ExtractionPolicy) (string, string, error) {
+	reference := ""
+	cellType := ""
+	for _, attribute := range start.Attr {
+		switch attribute.Name.Local {
+		case "r":
+			reference = attribute.Value
+		case "t":
+			cellType = attribute.Value
+		}
+	}
+	var valueBuilder strings.Builder
+	var inlineBuilder strings.Builder
+	inValue := false
+	inText := false
+	for {
+		if err := ctx.Err(); err != nil {
+			return "", "", err
+		}
+		token, err := decoder.Token()
+		if err != nil {
+			return "", "", err
+		}
+		switch current := token.(type) {
+		case xml.StartElement:
+			if current.Name.Local == "v" {
+				inValue = true
+			} else if current.Name.Local == "t" {
+				inText = true
+			}
+		case xml.CharData:
+			if inValue {
+				if valueBuilder.Len()+len(current) > policy.MaxCellBytes {
+					return "", "", limitError("cell %s exceeds %d bytes", reference, policy.MaxCellBytes)
+				}
+				valueBuilder.Write(current)
+			}
+			if inText {
+				if inlineBuilder.Len()+len(current) > policy.MaxCellBytes {
+					return "", "", limitError("inline cell %s exceeds %d bytes", reference, policy.MaxCellBytes)
+				}
+				inlineBuilder.Write(current)
+			}
+		case xml.EndElement:
+			switch current.Name.Local {
+			case "v":
+				inValue = false
+			case "t":
+				inText = false
+			case "c":
+				raw := valueBuilder.String()
+				switch cellType {
+				case "s":
+					index, parseErr := strconv.Atoi(strings.TrimSpace(raw))
+					if parseErr != nil || index < 0 || index >= len(shared) {
+						return reference, "", nil
+					}
+					return reference, shared[index], nil
+				case "inlineStr":
+					return reference, inlineBuilder.String(), nil
+				default:
+					return reference, raw, nil
+				}
+			}
+		}
+	}
+}
+
+func validateArchive(files []*zip.File, policy ExtractionPolicy) error {
+	if len(files) > policy.MaxArchiveEntries {
+		return limitError("archive entry count exceeds %d", policy.MaxArchiveEntries)
+	}
+	var expanded uint64
+	for _, file := range files {
+		clean := path.Clean(strings.ReplaceAll(file.Name, "\\", "/"))
+		if clean == ".." || strings.HasPrefix(clean, "../") || strings.HasPrefix(clean, "/") {
+			return limitError("archive contains an unsafe entry path")
+		}
+		if ^uint64(0)-expanded < file.UncompressedSize64 {
+			return limitError("archive expanded size overflow")
+		}
+		expanded += file.UncompressedSize64
+		if expanded > uint64(policy.MaxExpandedBytes) {
+			return limitError("archive expanded size exceeds %d bytes", policy.MaxExpandedBytes)
+		}
+		if file.UncompressedSize64 < uint64(policy.CompressionRatioFloor) || file.FileInfo().IsDir() {
+			continue
+		}
+		if file.CompressedSize64 == 0 || float64(file.UncompressedSize64)/float64(file.CompressedSize64) > policy.MaxCompressionRatio {
+			return limitError("archive entry %q exceeds %.0f:1 compression ratio", file.Name, policy.MaxCompressionRatio)
+		}
+	}
+	return nil
+}
+
+func appendBounded(builder *strings.Builder, value string, maximum int, truncated *bool) {
+	if maximum <= 0 || builder.Len() >= maximum {
+		*truncated = true
+		return
+	}
+	remaining := maximum - builder.Len()
+	if len(value) > remaining {
+		value = truncateUTF8(value, remaining)
+		*truncated = true
+	}
+	builder.WriteString(value)
 }
 
 func cellColumn(reference string) int {
@@ -323,39 +644,9 @@ func cellColumn(reference string) int {
 	return value - 1
 }
 
-func paragraphSections(paragraphs []string) []Section {
-	sections := make([]Section, 0, len(paragraphs))
-	currentTitle := "Document text"
-	var body []string
-	flush := func() {
-		text := strings.TrimSpace(strings.Join(body, "\n\n"))
-		if text == "" {
-			return
-		}
-		sections = append(sections, Section{ID: newID(), Sequence: len(sections) + 1, Title: currentTitle, Text: truncate(text, 120000)})
-		body = nil
-	}
-	for _, paragraph := range paragraphs {
-		if looksLikeHeading(paragraph) {
-			flush()
-			currentTitle = truncate(paragraph, 240)
-			continue
-		}
-		body = append(body, paragraph)
-	}
-	flush()
-	if len(sections) == 0 && len(paragraphs) > 0 {
-		sections = append(sections, Section{ID: newID(), Sequence: 1, Title: "Document text", Text: truncate(strings.Join(paragraphs, "\n\n"), 120000)})
-	}
-	return sections
-}
-
 func normalizeText(value string) string {
 	value = strings.ReplaceAll(value, "\r\n", "\n")
 	value = strings.ReplaceAll(value, "\r", "\n")
-	for strings.Contains(value, "\n\n\n") {
-		value = strings.ReplaceAll(value, "\n\n\n", "\n\n")
-	}
 	return strings.TrimSpace(value)
 }
 
@@ -374,9 +665,16 @@ func looksLikeHeading(value string) bool {
 	return !strings.ContainsAny(value, ".!?;")
 }
 
-func truncate(value string, maximum int) string {
+func truncateUTF8(value string, maximum int) string {
+	if maximum <= 0 {
+		return ""
+	}
 	if len(value) <= maximum {
 		return value
 	}
-	return value[:maximum]
+	value = value[:maximum]
+	for !utf8.ValidString(value) && len(value) > 0 {
+		value = value[:len(value)-1]
+	}
+	return value
 }
