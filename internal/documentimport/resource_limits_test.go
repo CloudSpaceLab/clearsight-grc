@@ -7,6 +7,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 )
 
 func TestCSVExtractionStreamsAndEnforcesRowBudget(t *testing.T) {
@@ -101,21 +103,11 @@ func TestXLSXTokenStreamEnforcesColumnBudget(t *testing.T) {
 }
 
 func TestImportHonorsCancellationBeforeExtractionCompletes(t *testing.T) {
-	service := NewService(NewMemoryRepository(), newMemoryStoreForTest())
+	service := NewService(NewMemoryRepository(), evidence.NewMemoryObjectStore())
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	_, err := service.Import(ctx, ImportInput{TenantID: "bank-demo", FileName: "cancel.txt", CreatedBy: "reviewer-1"}, strings.NewReader("The bank must retain records for five years."))
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected cancellation, got %v", err)
 	}
-}
-
-func newMemoryStoreForTest() *testObjectStore {
-	return &testObjectStore{objects: map[string][]byte{}}
-}
-
-type testObjectStore struct{ objects map[string][]byte }
-
-func (s *testObjectStore) Put(_ context.Context, key string, reader interface{ Read([]byte) (int, error) }, max int64) (objectInfoStub, error) {
-	panic("unused")
 }
