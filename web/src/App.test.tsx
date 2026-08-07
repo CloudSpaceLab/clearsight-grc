@@ -74,7 +74,7 @@ describe("runtime navigation", () => {
     vi.mocked(loadToday).mockResolvedValue({ items: [{ id: "today-program", type: "PROGRAM", title: "Review privacy programme", why_now: "Evidence changed.", scope: "Privacy", state: "Evidence incomplete", evidence: "One gap", owner: "DPO", due_at: "2026-08-09T12:00:00Z", primary_action: "Review reasons", action_target_type: "PROGRAM", action_target_id: "program-123" }], generated_at: "2026-08-07T15:00:00Z" });
     render(<App />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Review and act" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open program" }));
     await screen.findByRole("heading", { name: "Programs" });
     expect(window.location.hash).toBe("#programs/program-123");
   });
