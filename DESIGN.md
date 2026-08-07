@@ -19,7 +19,7 @@ The interface optimizes for:
 
 Use restrained institutional futurism:
 
-- deep, low-noise surfaces;
+- deep, low-noise dark surfaces and a clear neutral light equivalent;
 - fine borders and subtle depth;
 - cyan for navigation and active information;
 - violet for governance/configuration context;
@@ -30,22 +30,31 @@ Use restrained institutional futurism:
 
 Avoid decorative gradients, glass, glow or illustration where they compete with status, evidence or decisions.
 
-## Current tokens
+## Theme and density tokens
+
+Operational components consume semantic tokens rather than owning separate light/dark palettes. The canonical roles are:
 
 ```css
---canvas: #07111d;
---surface: #0d1826;
---surface-2: #132234;
---surface-3: #17293d;
---border: #26394d;
---text: #d7e0e9;
---muted: #8fa0b2;
---cyan: #5bc6d6;
---violet: #9e92f4;
---amber: #e9b75a;
---green: #5bc996;
---coral: #f17a8d;
+--canvas;
+--surface;
+--surface-2;
+--surface-3;
+--border;
+--border-strong;
+--text;
+--text-strong;
+--muted;
+--cyan;
+--violet;
+--amber;
+--green;
+--coral;
+--focus-ring;
 ```
+
+`web/src/ui-preferences.css` owns the current dark/light mappings and the illustration token mappings. Components must not duplicate semantic colors locally when a token already represents the meaning.
+
+Theme preference supports **System**, **Light** and **Dark**. Density supports **Comfortable** and **Compact** for repeated desktop work. Compact density may reduce desktop row/control spacing but must not reduce mobile/touch targets below the supported interaction size.
 
 Typography uses Inter, Segoe UI Variable, Segoe UI, then system sans-serif. Headings use tight tracking; operational copy uses normal sentence case. Uppercase is limited to compact metadata labels.
 
@@ -89,6 +98,8 @@ Examples:
 
 Every page answers: what is shown, current state, why now, owner, next action, source and time. Never replace an unknown population with sample or persuasive numbers.
 
+Authority copy follows the same rule: the interface may show only roles, stages, limits and explanations returned by the authority service or other canonical records. It must not invent a familiar approval chain when the runtime has not returned one.
+
 ## States and recovery
 
 Every significant component and screen defines:
@@ -125,6 +136,8 @@ Motion is functional and short: panel entry, expansion, focus, progress and stat
 
 Illustrations use an editorial, semi-abstract vector language with restrained geometry, soft depth and no mascot personality. They support first-run guidance, empty states, education and completion. Semantic line icons identify recurring object types. Neither replaces labels or status.
 
+Illustration geometry stays shared across themes; palette comes from semantic/theme variables. Each production illustration exposes an accessible title/description rather than a generic unlabeled SVG.
+
 Populated default Today, Programs, Work, Evidence and Configure states do not use decorative hero illustrations. Their primary visual hierarchy comes from the human gate, status, evidence and next action.
 
 ## Design proof
@@ -137,5 +150,7 @@ Significant UI work requires:
 4. rendered evidence at representative viewports;
 5. one highest-impact repair and re-check;
 6. design-token and copy review before merge.
+
+Vitest/axe semantic checks are executable CI evidence, but jsdom does not prove visual contrast, 200% zoom, responsive replacement or theme parity. Those remain rendered-browser evidence gates.
 
 See `docs/design/ui-delivery-workflow.md` and `docs/quality/rendered-ui-evidence.md`.

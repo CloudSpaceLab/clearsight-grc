@@ -8,23 +8,37 @@ async function demo() {
 
 beforeEach(() => {
   localStorage.clear();
+  window.history.replaceState(null, "", "/");
   vi.unstubAllEnvs();
 });
 
 describe("static stakeholder demo transport", () => {
   it("exposes clearly identified reference context and exact records", async () => {
     const { staticDemoRequest } = await demo();
-    const context = await staticDemoRequest<{ demo_mode: boolean; actor: { role_codes: string[] }; tenant: { name: string } }>("/api/v1/context");
+    const context = await staticDemoRequest<{ demo_mode: boolean; actor: { role_codes: string[] }; tenant: { name: string }; capabilities: { config_read: boolean } }>("/api/v1/context");
     const programs = await staticDemoRequest<{ items: Array<{ program: { id: string } }> }>("/api/v1/program-summaries");
     const matters = await staticDemoRequest<{ items: Array<{ matter: { id: string } }> }>("/api/v1/matter-summaries?status=OPEN");
-    const evidence = await staticDemoRequest<{ items: Array<{ id: string }> }>("/api/v1/evidence/requests");
+    const evidence = await staticDemoRequest<{ items: Array<{ id: string; estimated_minutes: number }> }>("/api/v1/evidence/requests");
+    const readiness = await staticDemoRequest<{ baseline_known: boolean }>("/api/v1/compliance/readiness");
+    const projections = await staticDemoRequest<{ items: Array<{ projection: string; state: string; pending: number; failed: number }> }>("/api/v1/operations/projections");
 
     expect(context.demo_mode).toBe(true);
     expect(context.tenant.name).toContain("Meridian Trust Bank");
     expect(context.actor.role_codes).toContain("CRO");
+    expect(context.capabilities.config_read).toBe(true);
     expect(programs.items[0]?.program.id).toBe("program-ndpa");
     expect(matters.items[0]?.matter.id).toBe("matter-gaid-change");
     expect(evidence.items[0]?.id).toBe("evidence-annual-return");
+    expect(evidence.items[0]?.estimated_minutes).toBe(2);
+    expect(readiness.baseline_known).toBe(false);
+    expect(projections.items[0]).toMatchObject({ projection: "program_state", state: "CURRENT", pending: 0, failed: 0 });
+  });
+
+  it("returns current candidate-set authority semantics for an exact review context", async () => {
+    const { staticDemoRequest } = await demo();
+    const resolution = await staticDemoRequest<{ candidate_principals: Array<{ id: string }>; strategy: string }>("/api/v1/authority/resolve", { method: "POST", body: JSON.stringify({ object_type: "PROGRAM", object_id: "program-ndpa", responsibility: "REVIEWER", materiality: 2 }) });
+    expect(resolution.strategy).toBe("ANY_OF");
+    expect(resolution.candidate_principals).toHaveLength(2);
   });
 
   it("persists onboarding progress and document review within the demo session", async () => {
@@ -37,5 +51,11 @@ describe("static stakeholder demo transport", () => {
     expect(updated.current_step).toBe(1);
     expect(updated.version).toBe(initial.version + 1);
     expect(reviewed.proposals[0]?.status).toBe("ACCEPTED");
+  });
+
+  it("can deterministically exercise permission and conflict fixtures", async () => {
+    window.history.replaceState(null, "", "/?fixture=authority-forbidden");
+    const { StaticDemoHTTPError, staticDemoRequest } = await demo();
+    await expect(staticDemoRequest("/api/v1/authority/resolve", { method: "POST", body: "{}" })).rejects.toMatchObject({ status: 403, code: "permission_denied" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
   });
 });

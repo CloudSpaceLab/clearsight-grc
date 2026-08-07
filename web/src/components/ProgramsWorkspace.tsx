@@ -48,7 +48,7 @@ function summaryFromAggregate(detail: ProgramAggregate): ProgramSummary {
     evidence_check_count: detail.evidence_contracts.length,
     program_version: detail.program.version,
     assessed_program_version: assessedVersion,
-    projection_version: 0,
+    projection_version: current?.projection_version ?? 0,
     projection_stale: !current || assessedVersion < detail.program.version,
     state_generated_at: current?.generated_at,
   };

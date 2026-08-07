@@ -4,54 +4,55 @@ import { TodayInterventions } from "./TodayInterventions";
 import type { AttentionItem, Readiness } from "../types";
 
 const item: AttentionItem = {
-  id: "intervention-1",
-  type: "REGULATORY_CHANGE",
-  title: "Review digital-channel obligations",
-  why_now: "A governing source changed.",
-  scope: "Digital Channels",
-  state: "Applicability review",
-  evidence: "Official source verified",
-  owner: "Regulatory Compliance",
-  due_at: "2026-08-09T12:00:00Z",
-  primary_action: "Review proposed obligations",
-  action_target_type: "MATTER",
-  action_target_id: "matter-1",
-  intervention_class: "REVIEW",
-  material_conclusion: "Seven provisions may change current obligations.",
-  recommendation: { proposed_action: "Review proposed obligations", rationale: "Human applicability review is required." },
+  id: "intervention-1", type: "REGULATORY_CHANGE", title: "Review digital-channel obligations", why_now: "A governing source changed.", scope: "Digital Channels", state: "Applicability review", evidence: "Official source verified", owner: "Regulatory Compliance", due_at: "2026-08-09T12:00:00Z", primary_action: "Review proposed obligations", action_target_type: "MATTER", action_target_id: "matter-1", intervention_class: "REVIEW", material_conclusion: "Seven provisions may change current obligations.", recommendation: { proposed_action: "Review proposed obligations", rationale: "Human applicability review is required." },
 };
 
 const readiness: Readiness = {
-  tenant_id: "bank-demo",
-  status: "AT_RISK",
-  baseline_known: true,
-  generated_at: "2026-08-06T15:30:00Z",
-  dimensions: { current: 18, aging: 1, at_risk: 1, unknown: 0, blocked_routing: 0, pending_human: 1 },
-  active_drifts: [],
-  recommended_actions: ["Review the changed requirement."],
+  tenant_id: "bank-demo", status: "AT_RISK", baseline_known: true, generated_at: "2026-08-06T15:30:00Z", dimensions: { current: 18, aging: 1, at_risk: 1, unknown: 0, blocked_routing: 0, pending_human: 1 }, active_drifts: [], recommended_actions: ["Review the changed requirement."],
 };
 
 describe("TodayInterventions", () => {
-  it("foregrounds the human gate and keeps continuous checks collapsed", () => {
+  it("uses Today as the practical work surface and keeps status checks collapsed", () => {
     const onOpen = vi.fn();
     render(<TodayInterventions items={[item]} connection="live" readiness={readiness} readinessState="live" onOpenItem={onOpen}/>);
-
-    expect(screen.getByRole("heading", { name: "1 item requires your action" })).toBeTruthy();
+    expect(screen.getByText("Today", { selector: ".eyebrow" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "1 item needs your action" })).toBeTruthy();
+    expect(screen.getByText("Reviews, approvals and evidence requests assigned to you.")).toBeTruthy();
     expect(screen.getByText("Seven provisions may change current obligations.")).toBeTruthy();
-    expect(screen.getByText("Review proposed obligations")).toBeTruthy();
-    const continuousChecks = screen.getByText("Continuous checks").closest("details") as HTMLDetailsElement | null;
-    expect(continuousChecks?.open).toBe(false);
-
-    fireEvent.click(screen.getByRole("button", { name: "Review and act" }));
+    expect(screen.getByText("Recommended action")).toBeTruthy();
+    const statusChecks = screen.getByText("Status checks").closest("details") as HTMLDetailsElement | null;
+    expect(statusChecks?.open).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Open issue" }));
     expect(onOpen).toHaveBeenCalledWith(item);
   });
 
-  it("does not claim an empty queue while assigned work is still loading", () => {
-    render(<TodayInterventions items={[]} connection="loading" readiness={null} readinessState="loading" onOpenItem={vi.fn()}/>);
+  it("does not relabel an ordinary workflow action as prepared or recommended work", () => {
+    render(<TodayInterventions items={[{ ...item, recommendation: undefined }]} connection="live" readiness={readiness} readinessState="live" onOpenItem={vi.fn()}/>);
+    expect(screen.getByText("Next action")).toBeTruthy();
+    expect(screen.queryByText("Prepared next step")).toBeNull();
+    expect(screen.queryByText("Recommended action")).toBeNull();
+  });
 
-    expect(screen.getByRole("heading", { name: "Loading assigned work" })).toBeTruthy();
-    expect(screen.getByText("Loading assigned work…")).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "No assigned items" })).toBeNull();
-    expect(screen.queryByText("0 items require your action")).toBeNull();
+  it("exposes item-scoped authority only when authority context exists", () => {
+    const inspect = vi.fn();
+    const authorized = { ...item, authority: { responsibility: "REVIEWER", materiality: 2 } };
+    render(<TodayInterventions items={[authorized]} connection="live" readiness={readiness} readinessState="live" onOpenItem={vi.fn()} onInspectAuthority={inspect}/>);
+    fireEvent.click(screen.getByRole("button", { name: "Check authority" }));
+    expect(inspect).toHaveBeenCalledWith(authorized);
+  });
+
+  it("does not claim an empty Today list while assigned work is still loading", () => {
+    render(<TodayInterventions items={[]} connection="loading" readiness={null} readinessState="loading" onOpenItem={vi.fn()}/>);
+    expect(screen.getByRole("heading", { name: "Loading Today" })).toBeTruthy();
+    expect(screen.getByText("Loading Today…")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Nothing needs your action right now" })).toBeNull();
+    expect(screen.queryByText("0 items need your action")).toBeNull();
+  });
+
+  it("does not turn an unknown baseline into a no-exception claim", () => {
+    const unknownBaseline: Readiness = { ...readiness, baseline_known: false, dimensions: { current: 0, aging: 0, at_risk: 0, unknown: 0, blocked_routing: 0, pending_human: 0 } };
+    render(<TodayInterventions items={[]} connection="live" readiness={unknownBaseline} readinessState="live" onOpenItem={vi.fn()}/>);
+    expect(screen.getByText("Coverage is incomplete")).toBeTruthy();
+    expect(screen.queryByText("No current exceptions recorded")).toBeNull();
   });
 });
