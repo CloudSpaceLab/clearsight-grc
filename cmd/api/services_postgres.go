@@ -17,8 +17,10 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
@@ -38,7 +40,9 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	evidenceService.Configure(cfg.CaptureSessionTTL, cfg.MaxArtifactBytes)
 	documentService := documentimport.NewService(documentimport.NewPostgresRepository(pool), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
-	continuityService := continuity.NewService(continuity.NewPostgresRepository(pool))
+	continuityRepo := continuity.NewPostgresRepository(pool)
+	continuityService := continuity.NewService(continuityRepo)
+	runtimeRepo := runtime.NewPostgresRepository(pool)
 	verticals := bankverticals.NewService(continuityService, evidenceService)
 	workflowService := workflow.NewService(workflow.NewPostgresRepository(pool))
 	todayService := today.NewDynamicService(func(loadCtx context.Context, actor identity.Actor) ([]today.AttentionItem, error) {
@@ -72,6 +76,6 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		Capture: capture.NewService(requests), Invitations: capture.NewInvitationService(time.Now), Evidence: evidenceService,
 		DocumentImports: documentService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
-		Autonomy: auto, BankVerticals: verticals, Close: pool.Close,
+		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo), Close: pool.Close,
 	}, nil
 }
