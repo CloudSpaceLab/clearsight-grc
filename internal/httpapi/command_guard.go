@@ -56,17 +56,11 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 		restoreJSONBody(r, raw)
 
 		if a.deps.CommandGuard == nil || a.deps.CommandGuard.Mode() == commandauth.ModeOff {
-			handler(w, r)
+			a.executeMaterialHandler(w, r, policy, payload, handler)
 			return
 		}
 
-		objectID := r.PathValue("id")
-		if objectID == "" {
-			objectID = stringValue(payload["program_id"])
-		}
-		if objectID == "" {
-			objectID = "*"
-		}
+		objectID := commandObjectID(r, payload)
 		materiality := policy.Materiality
 		if value, ok := numberValue(payload["materiality"]); ok {
 			materiality = max(materiality, value)
@@ -106,7 +100,7 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 		} else {
 			w.Header().Set("X-ClearSight-Command-Authorization", "audit")
 		}
-		handler(w, r)
+		a.executeMaterialHandler(w, r, policy, payload, handler)
 	}
 }
 
