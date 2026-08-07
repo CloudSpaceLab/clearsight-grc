@@ -207,10 +207,10 @@ func seedMatterLifecycleWork(t *testing.T, ctx context.Context, pool *pgxpool.Po
 	}
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO responsibility_assignments(id,tenant_id,legal_entity_id,principal_id,responsibility,object_type,object_id,scope,priority,valid_from,policy_version,decision_type) VALUES
-		($1::uuid,$7::uuid,$8::uuid,$9::uuid,'ACKNOWLEDGEMENT_RECORDER','MATTER',$10::uuid,'{}'::jsonb,100,$11,'ack:v1','matter.response.transition'),
-		($2::uuid,$7::uuid,$8::uuid,$9::uuid,'PROPOSER','MATTER',$10::uuid,'{}'::jsonb,100,$11,'fix:a','matter.response.transition'),
-		($3::uuid,$7::uuid,$8::uuid,$12::uuid,'PROPOSER','MATTER',$10::uuid,'{}'::jsonb,100,$13,'fix:b','matter.response.transition')`,
-		ackRouteA, fixRouteA, fixRouteB, responseAck, responseFix, responseAmb, tenantID, entityID, principalA, matterID, now.Add(-24*time.Hour), principalB, now.Add(24*time.Hour)); err != nil {
+		($1::uuid,$4::uuid,$5::uuid,$6::uuid,'ACKNOWLEDGEMENT_RECORDER','MATTER',$7::uuid,'{}'::jsonb,100,$8,'ack:v1','matter.response.transition'),
+		($2::uuid,$4::uuid,$5::uuid,$6::uuid,'PROPOSER','MATTER',$7::uuid,'{}'::jsonb,100,$8,'fix:a','matter.response.transition'),
+		($3::uuid,$4::uuid,$5::uuid,$9::uuid,'PROPOSER','MATTER',$7::uuid,'{}'::jsonb,100,$10,'fix:b','matter.response.transition')`,
+		ackRouteA, fixRouteA, fixRouteB, tenantID, entityID, principalA, matterID, now.Add(-24*time.Hour), principalB, now.Add(24*time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 }
