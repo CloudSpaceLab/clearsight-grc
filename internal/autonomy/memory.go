@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 	"sync"
+	"time"
 )
 
 type MemoryRepository struct {
@@ -26,6 +27,22 @@ func (r *MemoryRepository) Ingest(_ context.Context, signal Signal, drift Drift)
 	}
 	r.signals[key] = signal
 	r.drifts[drift.TenantID+"|"+drift.Dimension+"|"+drift.SubjectType+"|"+drift.SubjectID] = drift
+	return true, nil
+}
+
+func (r *MemoryRepository) Resolve(_ context.Context, signal Signal, dimension string, _ time.Time) (bool, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	signalKey := signal.TenantID + "|" + signal.DedupeKey
+	if _, ok := r.signals[signalKey]; ok {
+		return false, nil
+	}
+	r.signals[signalKey] = signal
+	driftKey := signal.TenantID + "|" + dimension + "|" + signal.SubjectType + "|" + signal.SubjectID
+	if drift, ok := r.drifts[driftKey]; ok && drift.State == "ACTIVE" {
+		drift.State = "RESOLVED"
+		r.drifts[driftKey] = drift
+	}
 	return true, nil
 }
 

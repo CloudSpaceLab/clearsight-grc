@@ -11,6 +11,7 @@ const (
 	SignalEvidenceExpired    SignalType = "EVIDENCE_EXPIRED"
 	SignalEvidenceAging      SignalType = "EVIDENCE_AGING"
 	SignalSourceDegraded     SignalType = "SOURCE_DEGRADED"
+	SignalSourceRecovered    SignalType = "SOURCE_RECOVERED"
 	SignalRequirementChanged SignalType = "REQUIREMENT_CHANGED"
 	SignalRoutingGap         SignalType = "ROUTING_GAP"
 	SignalOwnerRemoved       SignalType = "OWNER_REMOVED"

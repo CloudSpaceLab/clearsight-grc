@@ -116,6 +116,12 @@ func (r *MemoryRepository) MarkFailed(_ context.Context, e OutboxEvent, message 
 	r.outbox[e.ID] = value
 	return nil
 }
+func (r *MemoryRepository) InboxProcessed(_ context.Context, tenant, consumer, eventID string) (bool, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	_, ok := r.inbox[tenant+":"+consumer+":"+eventID]
+	return ok, nil
+}
 func (r *MemoryRepository) RecordInbox(_ context.Context, tenant, consumer, eventID string, at time.Time) (bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

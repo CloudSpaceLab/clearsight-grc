@@ -13,6 +13,7 @@ type Repository interface {
 	ClaimOutbox(context.Context, string, time.Time, time.Duration, int) ([]OutboxEvent, error)
 	MarkPublished(context.Context, OutboxEvent, time.Time) error
 	MarkFailed(context.Context, OutboxEvent, string, time.Time) error
+	InboxProcessed(context.Context, string, string, string) (bool, error)
 	RecordInbox(context.Context, string, string, string, time.Time) (bool, error)
 }
 
