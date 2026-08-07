@@ -130,7 +130,7 @@ SELECT jsonb_build_object(
   'evidence_contracts', COALESCE((SELECT jsonb_agg((to_jsonb(v)-'tenant_id') || jsonb_build_object('tenant_id',t.slug) ORDER BY v.created_at,v.id) FROM evidence_contracts v WHERE v.tenant_id=p.tenant_id AND v.program_id=p.id),'[]'::jsonb),
   'evidence_assessments', COALESCE((SELECT jsonb_agg((to_jsonb(v)-'tenant_id') || jsonb_build_object('tenant_id',t.slug) ORDER BY v.assessed_at,v.id) FROM evidence_assessments v WHERE v.tenant_id=p.tenant_id AND v.program_id=p.id),'[]'::jsonb),
   'triggers', COALESCE((SELECT jsonb_agg((to_jsonb(v)-'tenant_id'-'trigger_type'-'created_at') || jsonb_build_object('tenant_id',t.slug,'type',v.trigger_type) ORDER BY v.observed_at,v.id) FROM program_trigger_events v WHERE v.tenant_id=p.tenant_id AND v.program_id=p.id),'[]'::jsonb),
-  'current_state', (SELECT (to_jsonb(v)-'tenant_id') || jsonb_build_object('tenant_id',t.slug) FROM program_state_snapshots v WHERE v.tenant_id=p.tenant_id AND v.program_id=p.id ORDER BY v.generated_at DESC,v.projection_version DESC LIMIT 1)
+  'current_state', (SELECT (to_jsonb(v)-'tenant_id'-'overall_state') || jsonb_build_object('tenant_id',t.slug,'overall',v.overall_state) FROM program_state_snapshots v WHERE v.tenant_id=p.tenant_id AND v.program_id=p.id ORDER BY v.generated_at DESC,v.projection_version DESC LIMIT 1)
 )
 FROM programs p
 JOIN tenants t ON t.id=p.tenant_id
