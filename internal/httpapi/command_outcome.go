@@ -49,10 +49,10 @@ func (w *bufferedCommandResponse) flushTo(target http.ResponseWriter) {
 }
 
 type committedCommandReceipt struct {
-	Status          string `json:"status"`
-	AggregateType   string `json:"aggregate_type"`
-	AggregateID     string `json:"aggregate_id"`
-	Version         int64  `json:"version"`
+	Status           string `json:"status"`
+	AggregateType    string `json:"aggregate_type"`
+	AggregateID      string `json:"aggregate_id"`
+	Version          int64  `json:"version"`
 	ResponseDegraded bool   `json:"response_degraded"`
 }
 
@@ -92,11 +92,11 @@ func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, pol
 	w.Header().Set("X-ClearSight-Command-Outcome", "committed-response-degraded")
 	w.Header().Set("X-ClearSight-Aggregate-Version", strconv.FormatInt(version, 10))
 	httpx.WriteJSON(w, http.StatusOK, committedCommandReceipt{
-		Status:            "COMMITTED",
-		AggregateType:     policy.ObjectType,
-		AggregateID:       objectID,
-		Version:           version,
-		ResponseDegraded:  true,
+		Status:           "COMMITTED",
+		AggregateType:    policy.ObjectType,
+		AggregateID:      objectID,
+		Version:          version,
+		ResponseDegraded: true,
 	})
 }
 
