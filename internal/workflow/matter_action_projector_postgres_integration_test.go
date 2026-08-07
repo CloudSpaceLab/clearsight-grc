@@ -44,7 +44,7 @@ func TestMatterActionProjectorIsIdempotentAndKeepsTaskDerived(t *testing.T) {
 	projector := &MatterActionProjector{Repo: repo}
 	occurred := time.Date(2026, 8, 7, 18, 30, 0, 0, time.UTC)
 	payload, _ := json.Marshal(matterActionPayload{ID: actionID, TenantID: "action-work-test", MatterID: matterID, Title: "Restore access review", OwnerPrincipalID: ownerID, Status: "PLANNED"})
-	event := workflowruntime.OutboxEvent{ID: 96001, TenantID: "action-work-test", AggregateType: "MATTER", AggregateID: matterID, EventType: "ACTION_ADDED", Payload: payload, OccurredAt: occurred}
+	event := workflowruntime.OutboxEvent{ID: "96001", TenantID: "action-work-test", AggregateType: "MATTER", AggregateID: matterID, EventType: "ACTION_ADDED", Payload: payload, OccurredAt: occurred}
 	if err := projector.Publish(ctx, event); err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestMatterActionProjectorIsIdempotentAndKeepsTaskDerived(t *testing.T) {
 	}
 
 	implementedPayload, _ := json.Marshal(matterActionPayload{ID: actionID, TenantID: "action-work-test", MatterID: matterID, Title: "Restore access review", OwnerPrincipalID: ownerID, Status: "IMPLEMENTED"})
-	implemented := workflowruntime.OutboxEvent{ID: 96002, TenantID: "action-work-test", AggregateType: "MATTER", AggregateID: matterID, EventType: "ACTION_STATE_CHANGED", Payload: implementedPayload, OccurredAt: occurred.Add(time.Hour)}
+	implemented := workflowruntime.OutboxEvent{ID: "96002", TenantID: "action-work-test", AggregateType: "MATTER", AggregateID: matterID, EventType: "ACTION_STATE_CHANGED", Payload: implementedPayload, OccurredAt: occurred.Add(time.Hour)}
 	if err := projector.Publish(ctx, implemented); err != nil {
 		t.Fatal(err)
 	}
