@@ -66,7 +66,7 @@ describe("runtime navigation", () => {
 
     expect((await screen.findAllByRole("button", { name: /Explore/ })).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: /Imports/ }).length).toBeGreaterThan(0);
-    expect(document.documentElement.dataset.clearsightDemo).toBe("on");
+    await waitFor(() => expect(document.documentElement.dataset.clearsightDemo).toBe("on"));
   });
 
   it("opens the exact Program encoded by a Today intervention", async () => {
