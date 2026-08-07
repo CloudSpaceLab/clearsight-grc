@@ -98,29 +98,29 @@ type Document struct {
 }
 
 type DocumentSummary struct {
-	ID                   string           `json:"id"`
-	TenantID             string           `json:"tenant_id"`
-	LegalEntityID        string           `json:"legal_entity_id,omitempty"`
-	FileName             string           `json:"file_name"`
-	MediaType            string           `json:"media_type"`
-	Purpose              string           `json:"purpose"`
-	SourceType           string           `json:"source_type"`
-	SizeBytes            int64            `json:"size_bytes"`
-	SHA256               string           `json:"sha256"`
-	ArtifactStatus       string           `json:"artifact_status"`
-	ExtractionStatus     ExtractionStatus `json:"extraction_status"`
-	AnalysisStatus       AnalysisStatus   `json:"analysis_status"`
-	SectionsTotal        int              `json:"sections_total"`
-	SectionsOmitted      int              `json:"sections_omitted"`
-	ProposalsTotal       int              `json:"proposals_total"`
-	ProposalsOmitted     int              `json:"proposals_omitted"`
-	PendingProposalCount int              `json:"pending_proposal_count"`
-	ReviewedProposalCount int             `json:"reviewed_proposal_count"`
-	ContentTruncated     bool             `json:"content_truncated"`
-	ProcessedAt          *time.Time       `json:"processed_at,omitempty"`
-	CreatedAt            time.Time        `json:"created_at"`
-	UpdatedAt            time.Time        `json:"updated_at"`
-	Version              int64            `json:"version"`
+	ID                    string           `json:"id"`
+	TenantID              string           `json:"tenant_id"`
+	LegalEntityID         string           `json:"legal_entity_id,omitempty"`
+	FileName              string           `json:"file_name"`
+	MediaType             string           `json:"media_type"`
+	Purpose               string           `json:"purpose"`
+	SourceType            string           `json:"source_type"`
+	SizeBytes             int64            `json:"size_bytes"`
+	SHA256                string           `json:"sha256"`
+	ArtifactStatus        string           `json:"artifact_status"`
+	ExtractionStatus      ExtractionStatus `json:"extraction_status"`
+	AnalysisStatus        AnalysisStatus   `json:"analysis_status"`
+	SectionsTotal         int              `json:"sections_total"`
+	SectionsOmitted       int              `json:"sections_omitted"`
+	ProposalsTotal        int              `json:"proposals_total"`
+	ProposalsOmitted      int              `json:"proposals_omitted"`
+	PendingProposalCount  int              `json:"pending_proposal_count"`
+	ReviewedProposalCount int              `json:"reviewed_proposal_count"`
+	ContentTruncated      bool             `json:"content_truncated"`
+	ProcessedAt           *time.Time       `json:"processed_at,omitempty"`
+	CreatedAt             time.Time        `json:"created_at"`
+	UpdatedAt             time.Time        `json:"updated_at"`
+	Version               int64            `json:"version"`
 }
 
 type ImportInput struct {
