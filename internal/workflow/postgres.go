@@ -30,14 +30,22 @@ func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Tas
 		 AND wi.subject_type='MATTER_ACTION'
 		 AND ma.tenant_id=wi.tenant_id
 		 AND ma.id=wi.subject_id
-		LEFT JOIN matters m ON m.tenant_id=ma.tenant_id AND m.id=ma.matter_id
+		LEFT JOIN response_packages rp
+		  ON wi.kind='MATTER_RESPONSE'
+		 AND wi.subject_type='RESPONSE_PACKAGE'
+		 AND rp.tenant_id=wi.tenant_id
+		 AND rp.id=wi.subject_id
+		LEFT JOIN matters m
+		  ON m.tenant_id=wi.tenant_id
+		 AND m.id=COALESCE(ma.matter_id,rp.matter_id)
 		WHERE (t.slug=$1 OR t.id::text=$1)
 		  AND ($2='' OR wt.principal_id::text=$2)
 		  AND ($3='' OR wt.status=$3)
 		  AND ($4='' OR wi.kind=$4)
-		  AND (NOT $5::boolean OR wt.status NOT IN ('COMPLETED','CANCELLED'))
+		  AND (NOT $5::boolean OR wi.kind IN ('MATTER_ACTION','MATTER_RESPONSE'))
+		  AND (NOT $6::boolean OR wt.status NOT IN ('COMPLETED','CANCELLED'))
 		  AND (
-		    NOT $6::boolean OR
+		    NOT $7::boolean OR
 		    CASE
 		      WHEN m.id IS NULL THEN false
 		      WHEN NOT (m.scope ? 'access') THEN true
@@ -66,13 +74,13 @@ func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Tas
 		    END
 		  )
 		ORDER BY
-		  CASE WHEN $5::boolean THEN wt.due_at IS NULL ELSE false END ASC,
-		  CASE WHEN $5::boolean THEN wt.due_at END ASC NULLS LAST,
+		  CASE WHEN $6::boolean THEN wt.due_at IS NULL ELSE false END ASC,
+		  CASE WHEN $6::boolean THEN wt.due_at END ASC NULLS LAST,
 		  wt.updated_at DESC,
 		  wt.id ASC
-		LIMIT $7`,
+		LIMIT $8`,
 		filter.TenantID, filter.PrincipalID, string(filter.Status), filter.WorkflowKind,
-		filter.ActiveOnly, filter.VisibleMatterActionsOnly, filter.Limit,
+		filter.SupportedMatterWorkOnly, filter.ActiveOnly, filter.VisibleMatterWorkOnly, filter.Limit,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list workflow tasks: %w", err)
