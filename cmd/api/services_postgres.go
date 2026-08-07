@@ -24,7 +24,6 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
 
-const todayWorkflowCandidateLimit = 200
 const todayItemLimit = 50
 
 func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) (serviceSet, error) {
@@ -64,17 +63,13 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 
 		assigned, listErr := workflowService.List(loadCtx, workflow.ListFilter{
 			TenantID: actor.TenantID, PrincipalID: actor.PrincipalID,
-			WorkflowKind: workflow.MatterActionWorkflowKind, ActiveOnly: true,
-			Limit: todayWorkflowCandidateLimit,
+			WorkflowKind: workflow.MatterActionWorkflowKind, ActiveOnly: true, VisibleMatterActionsOnly: true,
+			Limit: todayItemLimit,
 		})
 		if listErr != nil {
 			return nil, listErr
 		}
-		items := today.FromWorkflowTasksForActor(assigned, actor.PrincipalID)
-		if len(items) > todayItemLimit {
-			items = items[:todayItemLimit]
-		}
-		return items, nil
+		return today.FromWorkflowTasksForActor(assigned, actor.PrincipalID), nil
 	})
 	logger.Info("postgres repositories enabled", "max_connections", cfg.DatabaseMaxConns, "artifact_root", cfg.ArtifactRoot, "demo_mode", cfg.DemoMode)
 	return serviceSet{
