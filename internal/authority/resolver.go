@@ -10,8 +10,9 @@ import (
 )
 
 var (
-	ErrNoRoute      = errors.New("no eligible authority route")
-	ErrInvalidInput = errors.New("invalid authority resolution input")
+	ErrNoRoute        = errors.New("no eligible authority route")
+	ErrAmbiguousRoute = errors.New("ambiguous authority route")
+	ErrInvalidInput   = errors.New("invalid authority resolution input")
 )
 
 type Resolver struct {
@@ -61,18 +62,57 @@ func (r *Resolver) Simulate(_ context.Context, input ResolveInput) (Simulation, 
 	var selected *Resolution
 	for _, rule := range r.rules {
 		eligible, reason := matchReason(rule, input, at)
-		candidates = append(candidates, Candidate{Principal: rule.Principal, RuleID: rule.ID, Priority: rule.Priority, Eligible: eligible, Reason: reason})
+		principal := rule.Principal
+		principals := normalizedRuleCandidates(rule)
+		if principal.ID == "" && len(principals) > 0 {
+			principal = principals[0]
+		}
+		candidates = append(candidates, Candidate{Principal: principal, RuleID: rule.ID, Priority: rule.Priority, Eligible: eligible, Reason: reason})
 		if eligible && selected == nil {
+			strategy := strings.TrimSpace(rule.ResolutionStrategy)
+			if strategy == "" {
+				strategy = "DIRECT"
+			}
 			value := Resolution{
-				Principal:     rule.Principal,
-				RuleID:        rule.ID,
-				PolicyVersion: r.version,
-				Explanation:   fmt.Sprintf("%s selected for %s on %s:%s within legal entity %s", rule.Principal.DisplayName, input.Responsibility, input.ObjectType, input.ObjectID, input.LegalEntityID),
+				Principal:           principal,
+				CandidatePrincipals: principals,
+				Strategy:            strategy,
+				RuleID:              rule.ID,
+				PolicyVersion:       r.version,
+				Explanation:         resolutionExplanation(principal, principals, strategy, input),
 			}
 			selected = &value
 		}
 	}
 	return Simulation{Selected: selected, Candidates: candidates, PolicyVersion: r.version}, nil
+}
+
+func normalizedRuleCandidates(rule Rule) []Principal {
+	values := append([]Principal(nil), rule.CandidatePrincipals...)
+	if len(values) == 0 && rule.Principal.ID != "" {
+		values = append(values, rule.Principal)
+	}
+	seen := make(map[string]struct{}, len(values))
+	result := make([]Principal, 0, len(values))
+	for _, value := range values {
+		if strings.TrimSpace(value.ID) == "" {
+			continue
+		}
+		if _, exists := seen[value.ID]; exists {
+			continue
+		}
+		seen[value.ID] = struct{}{}
+		result = append(result, value)
+	}
+	sort.SliceStable(result, func(i, j int) bool { return result[i].ID < result[j].ID })
+	return result
+}
+
+func resolutionExplanation(principal Principal, candidates []Principal, strategy string, input ResolveInput) string {
+	if strategy == "CANDIDATE_SET" && len(candidates) > 1 {
+		return fmt.Sprintf("%d eligible principals resolved for %s on %s:%s within legal entity %s", len(candidates), input.Responsibility, input.ObjectType, input.ObjectID, input.LegalEntityID)
+	}
+	return fmt.Sprintf("%s selected for %s on %s:%s within legal entity %s", principal.DisplayName, input.Responsibility, input.ObjectType, input.ObjectID, input.LegalEntityID)
 }
 
 func (r *Resolver) Policies(_ context.Context, tenantID string) ([]PolicySummary, error) {
@@ -127,7 +167,7 @@ func matchReason(rule Rule, input ResolveInput, at time.Time) (bool, string) {
 	if !rule.ValidUntil.IsZero() && !at.Before(rule.ValidUntil) {
 		return false, "rule has expired"
 	}
-	if strings.TrimSpace(rule.Principal.ID) == "" {
+	if strings.TrimSpace(rule.Principal.ID) == "" && len(normalizedRuleCandidates(rule)) == 0 {
 		return false, "selector does not resolve to an active principal"
 	}
 	return true, "eligible"
@@ -141,7 +181,7 @@ func integrityFindings(rules []Rule, tenantID string) []IntegrityFinding {
 		if rule.TenantID != tenantID {
 			continue
 		}
-		if rule.Principal.ID == "" {
+		if rule.Principal.ID == "" && len(normalizedRuleCandidates(rule)) == 0 {
 			findings = append(findings, IntegrityFinding{
 				Type:           "UNRESOLVED_SELECTOR",
 				Severity:       "CRITICAL",
@@ -155,7 +195,7 @@ func integrityFindings(rules []Rule, tenantID string) []IntegrityFinding {
 			authorizers++
 		}
 		key := strings.Join([]string{rule.LegalEntityID, rule.ObjectType, rule.ObjectID, string(rule.Responsibility), rule.DecisionType, fmt.Sprint(rule.MinMateriality), fmt.Sprint(rule.Priority)}, "|")
-		if prior, ok := seen[key]; ok && prior.Principal.ID != rule.Principal.ID {
+		if prior, ok := seen[key]; ok && !sameCandidateSet(prior, rule) {
 			findings = append(findings, IntegrityFinding{Type: "AMBIGUOUS_ROUTE", Severity: "HIGH", Summary: "Two active rules have the same scope and priority but resolve to different principals.", RequiredAction: "Change priority or narrow one rule before activation.", RuleIDs: []string{prior.ID, rule.ID}})
 		} else {
 			seen[key] = rule
@@ -167,11 +207,25 @@ func integrityFindings(rules []Rule, tenantID string) []IntegrityFinding {
 	return findings
 }
 
+func sameCandidateSet(left, right Rule) bool {
+	leftValues := normalizedRuleCandidates(left)
+	rightValues := normalizedRuleCandidates(right)
+	if len(leftValues) != len(rightValues) {
+		return false
+	}
+	for index := range leftValues {
+		if leftValues[index].ID != rightValues[index].ID {
+			return false
+		}
+	}
+	return true
+}
+
 func DemoPolicySet() (string, []Rule) {
 	return "demo-2026-08-05", []Rule{
 		{ID: "route-ndpa-dpo", TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "PROGRAM", ObjectID: "ndpa", Responsibility: ResponsibilityAuthorizer, Principal: Principal{ID: "role-dpo", DisplayName: "Data Protection Officer", Kind: "ROLE", Role: "DPO"}, Priority: 100},
-		{ID: "route-control-assurance", TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "*", Responsibility: ResponsibilityReviewer, Principal: Principal{ID: "team-control-assurance", DisplayName: "Control Assurance", Kind: "TEAM", Role: "Second-line reviewer"}, Priority: 80},
+		{ID: "route-control-assurance", TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "*", Responsibility: ResponsibilityReviewer, Principal: Principal{ID: "team-control-assurance", DisplayName: "Control Assurance", Kind: "TEAM", Role: "Second-line reviewer"}, ResolutionStrategy: "CANDIDATE_SET", Priority: 80},
 		{ID: "route-cro-material", TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "*", Responsibility: ResponsibilityAuthorizer, MinMateriality: 4, Principal: Principal{ID: "role-cro", DisplayName: "Chief Risk Officer", Kind: "ROLE", Role: "CRO"}, Priority: 70},
-		{ID: "route-risk-owner", TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "*", Responsibility: ResponsibilityOwner, Principal: Principal{ID: "queue-risk-owners", DisplayName: "Scoped Risk Owners", Kind: "QUEUE", Role: "Accountable owner queue"}, Priority: 50},
+		{ID: "route-risk-owner", TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "*", Responsibility: ResponsibilityOwner, Principal: Principal{ID: "queue-risk-owners", DisplayName: "Scoped Risk Owners", Kind: "QUEUE", Role: "Accountable owner queue"}, ResolutionStrategy: "CANDIDATE_SET", Priority: 50},
 	}
 }
