@@ -31,14 +31,28 @@ export function DocumentImportWorkspace() {
 
   useEffect(() => {
     if (!selected || !isProcessing(selected)) return;
-    const timer = window.setTimeout(() => {
-      void Promise.all([loadDocumentImport(selected.id), loadDocumentImports()]).then(([detail, summaries]) => {
+    let active = true;
+    let inFlight = false;
+    const poll = async () => {
+      if (!active || inFlight) return;
+      inFlight = true;
+      try {
+        const [detail, summaries] = await Promise.all([loadDocumentImport(selected.id), loadDocumentImports()]);
+        if (!active) return;
         setSelected(detail);
         setDocuments(summaries);
-      }).catch(() => undefined);
-    }, 1500);
-    return () => window.clearTimeout(timer);
-  }, [selected?.id, selected?.version, selected?.extraction_status, selected?.analysis_status]);
+      } catch {
+        // Keep the last durable receipt visible. A later poll may recover.
+      } finally {
+        inFlight = false;
+      }
+    };
+    const timer = window.setInterval(() => { void poll(); }, 1500);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [selected?.id, selected?.extraction_status, selected?.analysis_status]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
