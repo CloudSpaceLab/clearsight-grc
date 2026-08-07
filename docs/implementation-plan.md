@@ -6,7 +6,8 @@
 **P1.2:** PR #35  
 **P1.3:** PR #36  
 **P1.4:** PR #38  
-**P1.5:** PR #39
+**P1.5:** PR #39  
+**UI/UX foundation reconciliation:** PR #31
 
 This is the authoritative execution ledger. Product, design, architecture and enterprise-productization documents define requirements and target behavior; this file controls current implementation order and capability truth. Completed-tranche detail belongs in focused architecture/review documents rather than being duplicated indefinitely here.
 
@@ -25,8 +26,6 @@ This is the authoritative execution ledger. Product, design, architecture and en
 Issue #26 is closed. Lower-priority semantic and cleanup work moved to #32 and #33 rather than being hidden inside P0.
 
 ### #32 P1 semantic/current-state correctness — COMPLETE IN PRs #34–#39
-
-P1 is correctness-first rather than feature-first.
 
 #### P1.1 Program-state truth — COMPLETE
 
@@ -84,7 +83,7 @@ See `docs/product/authority-routing-and-escalation.md`.
 
 See `docs/architecture/current-read-and-work-projection-boundary.md`.
 
-#### P1.5 document-import durability/resource boundary — COMPLETE IN PR #39
+#### P1.5 document-import durability/resource boundary — COMPLETE
 
 - [x] PostgreSQL upload streams the original artifact into the configured object store before expensive extraction/analysis;
 - [x] a `PENDING` import receipt and `DocumentImportProcessingRequested` outbox event commit atomically before the request returns;
@@ -102,24 +101,28 @@ See `docs/architecture/current-read-and-work-projection-boundary.md`.
 
 See `docs/architecture/document-import-resource-and-durability-boundary.md`.
 
-With PR #39 merged and exact-head validation green, issue #32 is complete and should close. Wider capacity tuning, malware scanning, distributed object storage and PDF/OCR adapters remain enterprise productization rather than hidden P1 blockers.
+Issue #32 is closed. Wider capacity tuning, malware scanning, distributed object storage and PDF/OCR adapters remain enterprise productization rather than hidden P1 blockers.
 
-### UI/UX foundation reconciliation — NEXT, BEFORE P2
+### UI/UX foundation reconciliation — COMPLETE IN PR #31
 
-Rebase/reconcile the existing UI foundation work in PR #31 against the completed P1 contracts before beginning #33. Required merge gate:
+PR #31 was not merged from its stale pre-P1 history. Its UI/read-evidence work was rebuilt on completed P1 so older backend copies could not reverse current correctness.
 
-- [ ] no stale Program/Matter/document-import client assumptions after P1.4/P1.5;
-- [ ] Today and Workflow Task presentation respects the Matter Action → derived Task boundary;
-- [ ] Imports represents durable processing, failure, truncation and review truth;
-- [ ] current route/access contract and actor-specific authority semantics remain intact;
-- [ ] rendered accessibility/state evidence is regenerated on the reconciled exact head;
-- [ ] full backend and web CI is green on the exact merge head.
+- [x] stale lifecycle/closure/authority persistence changes and migration reversions were discarded;
+- [x] direct Workflow Task mutation routes remain absent and Today preserves Matter Action → derived Task truth;
+- [x] Program exact-target/deep-link summaries preserve P1.4 `projection_version` instead of fabricating revision `0`;
+- [x] browser Capture/Evidence field contracts include governed file-format metadata and file/photo inputs are independently labelled for assistive technology;
+- [x] Imports preserves P1.5 pending/failure/truncation/completeness truth while adding typed conflict recovery and serialized proposal review;
+- [x] Today uses exact linked record/authority context, candidate-set semantics and verified actor scope rather than a contextless sample object;
+- [x] typed browser errors distinguish conflict, forbidden, not-found and unavailable states without converting degraded reads into false empty states;
+- [x] bank-reference UI/integration fixtures use one deterministic continuity/evidence clock;
+- [x] current action vocabulary and rendered-state tests are reconciled rather than preserving stale test copy;
+- [x] full backend/web CI and deterministic rendered UI evidence are required on the exact final PR head before merge.
 
-Do not carry a stale UI branch into P2 and then patch around it. Merge the truthful foundation first.
+The UI foundation is still not the same thing as full product completion. Richer governed operator execution, enterprise Configure/identity/notifications, broader Capture workflows and representative bank-user usability evidence remain later work under their existing product/enterprise plans.
 
-### #33 P2 schema ownership and dead compatibility cleanup — AFTER UI FOUNDATION MERGE
+### #33 P2 schema ownership and dead compatibility cleanup — NEXT
 
-P2 owns cleanup that should not remain mixed into semantic P1 delivery, including:
+P2 now starts from completed P1 **and** the reconciled UI foundation. It owns cleanup that should not be mixed back into semantic delivery:
 
 - classification/removal of dead compatibility handlers and service methods;
 - durable table/projection/infrastructure ownership and maturity classification;
@@ -130,8 +133,6 @@ P2 owns cleanup that should not remain mixed into semantic P1 delivery, includin
 Do not represent the descriptive OpenAPI document as executable authorization truth.
 
 ## 2. Canonical domain invariants
-
-These distinctions are mandatory:
 
 - **Program** = ongoing obligation/compliance continuity.
 - **Matter** = bounded change, exception, finding, decision, action, response or verification case.
@@ -172,8 +173,6 @@ history / point-in-time audit
 An optional response/detail read may degrade response detail; it may not reverse or falsely report a committed command.
 
 ### Program-state freshness
-
-The distinct version meanings remain:
 
 - `program.version` = current command aggregate version;
 - `current_state.program_version` = Program version assessed by the state projection;

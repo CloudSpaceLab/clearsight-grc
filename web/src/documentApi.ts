@@ -1,22 +1,15 @@
 import type { DocumentImport, DocumentImportSummary, ProposalStatus } from "./documentTypes";
+import { requestJSON } from "./http";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
-async function parse<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { message?: string; error?: { message?: string } } | null;
-    throw new Error(body?.error?.message ?? body?.message ?? `Request failed with ${response.status}`);
-  }
-  return (await response.json()) as T;
-}
-
 export async function loadDocumentImports(): Promise<DocumentImportSummary[]> {
-  const body = await parse<{ items: Array<DocumentImportSummary | DocumentImport> }>(await fetch(`${apiBase}/api/v1/document-imports?limit=50`));
+  const body = await requestJSON<{ items: Array<DocumentImportSummary | DocumentImport> }>(apiBase, "/api/v1/document-imports?limit=50");
   return body.items.map(normalizeSummary);
 }
 
 export async function loadDocumentImport(id: string): Promise<DocumentImport> {
-  return normalizeDetail(await parse<DocumentImport>(await fetch(`${apiBase}/api/v1/document-imports/${encodeURIComponent(id)}`)));
+  return normalizeDetail(await requestJSON<DocumentImport>(apiBase, `/api/v1/document-imports/${encodeURIComponent(id)}`));
 }
 
 export async function importDocument(file: File, purpose: string, sourceType: string): Promise<DocumentImport> {
@@ -24,15 +17,14 @@ export async function importDocument(file: File, purpose: string, sourceType: st
   body.set("file", file);
   body.set("purpose", purpose);
   body.set("source_type", sourceType);
-  return normalizeDetail(await parse<DocumentImport>(await fetch(`${apiBase}/api/v1/document-imports`, { method: "POST", body })));
+  return normalizeDetail(await requestJSON<DocumentImport>(apiBase, "/api/v1/document-imports", { method: "POST", body }));
 }
 
 export async function reviewDocumentProposal(documentID: string, proposalID: string, status: ProposalStatus, expectedVersion: number, note = ""): Promise<DocumentImport> {
-  return normalizeDetail(await parse<DocumentImport>(await fetch(`${apiBase}/api/v1/document-imports/${encodeURIComponent(documentID)}/proposals/${encodeURIComponent(proposalID)}/review`, {
+  return normalizeDetail(await requestJSON<DocumentImport>(apiBase, `/api/v1/document-imports/${encodeURIComponent(documentID)}/proposals/${encodeURIComponent(proposalID)}/review`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status, note, expected_version: expectedVersion }),
-  })));
+  }));
 }
 
 function normalizeDetail(value: DocumentImport): DocumentImport {

@@ -1,0 +1,201 @@
+/* Screenshot-driven refinements. Keep these narrowly scoped until the older CSS is consolidated. */
+
+/* Display preferences are part of active workspace context, never a floating overlay. */
+.context-role { position: relative; }
+.display-preferences {
+  position: relative;
+  inset: auto;
+  z-index: 6;
+  color: var(--text);
+}
+.display-preferences > summary {
+  min-height: 30px;
+  padding: 5px 9px;
+  box-shadow: none;
+  background: transparent;
+  font-size: 10px;
+}
+.display-preferences-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  bottom: auto;
+  left: auto;
+}
+
+/* Help belongs to shell chrome on desktop rather than covering governed work. */
+.guide-launcher {
+  position: fixed;
+  left: 20px;
+  right: auto;
+  bottom: 82px;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--text);
+  box-shadow: none;
+  z-index: 8;
+}
+.guide-launcher > span { width: 26px; height: 26px; }
+.guide-launcher strong { display: none; }
+
+.today-desktop-actions { display: flex; gap: 10px; }
+.today-mobile-actions { display: none; }
+
+/* Matter metadata must scan as separate facts rather than one run-on sentence. */
+.matter-meta {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.matter-meta > span { display: block; }
+
+/* Native <mark> yellow is not a ClearSight status treatment. */
+.projection-health-card mark {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.projection-health-card mark.status-good {
+  border-color: color-mix(in srgb, var(--green) 28%, var(--border));
+  background: var(--green-soft);
+  color: var(--green);
+}
+.projection-health-card mark.status-warning {
+  border-color: color-mix(in srgb, var(--amber) 28%, var(--border));
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.projection-health-card mark.status-critical {
+  border-color: color-mix(in srgb, var(--coral) 28%, var(--border));
+  background: var(--coral-soft);
+  color: var(--coral);
+}
+
+/* Empty is not the visual language for unavailable, forbidden, conflict or missing scope. */
+.empty-state.state-unavailable,
+.empty-state.state-forbidden,
+.empty-state.state-not-found,
+.empty-state.state-conflict {
+  grid-template-columns: 1fr;
+  border-style: solid;
+  min-height: 0;
+}
+.empty-state.state-unavailable { border-color: color-mix(in srgb, var(--amber) 34%, var(--border)); }
+.empty-state.state-forbidden,
+.empty-state.state-not-found { border-color: color-mix(in srgb, var(--coral) 28%, var(--border)); }
+.empty-state.state-conflict { border-color: color-mix(in srgb, var(--violet) 34%, var(--border)); }
+
+.response-receipt .receipt-mark {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  margin: 12px 0 18px;
+  border: 1px solid color-mix(in srgb, var(--green) 38%, var(--border));
+  border-radius: 14px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.authority-candidates {
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.authority-candidates p { margin: 5px 0 10px; font-size: 12px; }
+.authority-candidates ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.authority-candidates li { display: grid; gap: 2px; padding-top: 7px; border-top: 1px solid var(--border); }
+.authority-candidates li span { color: var(--muted); font-size: 11px; }
+
+.workspace-recovery-actions { margin-top: 12px; }
+.request-terminal-context { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.inline-notice .text-button { min-height: auto; padding-block: 2px; }
+
+@media (max-width: 820px) {
+  /* Density/theme follows the saved/system preference on field devices; do not add settings chrome to focused work. */
+  .display-preferences { display: none; }
+
+  .today-desktop-actions { display: none; }
+  .today-mobile-actions { position: relative; display: block; }
+  .today-mobile-actions > summary {
+    list-style: none;
+    cursor: pointer;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    padding: 8px 11px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 650;
+  }
+  .today-mobile-actions > summary::-webkit-details-marker { display: none; }
+  .today-mobile-actions[open] > summary { border-color: color-mix(in srgb, var(--cyan) 50%, var(--border)); }
+  .today-mobile-actions > div {
+    position: absolute;
+    top: calc(100% + 7px);
+    right: 0;
+    z-index: 11;
+    width: min(260px, calc(100vw - 36px));
+    display: grid;
+    gap: 7px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    box-shadow: var(--shadow-raised);
+  }
+  .today-mobile-actions .secondary-button { width: 100%; text-align: left; }
+
+  /* Six demo destinations must still fit a 320px evidence viewport without clipping. */
+  .mobile-nav {
+    grid-auto-columns: minmax(40px, 1fr);
+    overflow-x: hidden;
+    gap: 3px;
+    padding-inline: 6px;
+  }
+  .mobile-nav button { min-width: 38px; padding-inline: 2px; }
+  .mobile-nav span {
+    max-width: 46px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 8px;
+  }
+
+  /* First-run guidance can open automatically; persistent restart chrome must not cover mobile field work. */
+  .guide-launcher { display: none; }
+}
+
+@media (max-width: 400px) {
+  /* The context bar already identifies the active bank; keep the scarce first viewport for the actual intervention. */
+  .today-topbar > div:first-child > p { display: none; }
+  .today-topbar { gap: 12px; }
+  .today-topbar h1 { margin-bottom: 0; }
+  .intervention-brief { margin-top: 20px; }
+  .intervention-heading { padding-bottom: 10px; }
+  .intervention-heading p { margin-top: 3px; line-height: 1.4; }
+  .intervention-row { gap: 10px; padding-block: 14px; }
+  .intervention-conclusion { line-height: 1.42; }
+  .intervention-meta { margin-top: 8px; }
+  .intervention-next { padding-top: 9px; }
+  .today-topbar .topbar-actions { gap: 7px; }
+}

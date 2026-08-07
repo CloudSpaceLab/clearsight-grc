@@ -1,6 +1,7 @@
 package today
 
 import (
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,7 +26,7 @@ func FromWorkflowTasks(tasks []workflow.Task) []AttentionItem {
 			Type:               firstValue(context["type"], targetType, "WORKFLOW_TASK"),
 			Title:              task.Title,
 			WhyNow:             whyNow,
-			Scope:              firstValue(context["scope"], context["program"], context["population"], "Connected scope"),
+			Scope:              firstValue(context["scope"], context["program"], context["population"], "Scope not provided"),
 			State:              humanize(string(task.Status)),
 			Evidence:           firstValue(context["evidence"], context["evidence_state"], "Workflow assignment"),
 			Owner:              firstValue(context["owner"], humanize(task.Responsibility)),
@@ -36,6 +37,7 @@ func FromWorkflowTasks(tasks []workflow.Task) []AttentionItem {
 			InterventionClass:  workflowIntervention(task, targetType),
 			MaterialConclusion: context["material_conclusion"],
 			ChangeSummary:      context["change_summary"],
+			Authority:          workflowAuthorityContext(task, targetType, targetID),
 		})
 	}
 	return items
@@ -67,6 +69,48 @@ func workflowTarget(context map[string]string) (string, string) {
 		return "PROGRAM", value
 	}
 	return "", ""
+}
+
+func workflowAuthorityContext(task workflow.Task, targetType, targetID string) *AuthorityContext {
+	if targetType == "" || targetID == "" {
+		return nil
+	}
+	responsibility := canonicalResponsibility(task.Responsibility)
+	if responsibility == "" {
+		return nil
+	}
+	materiality := 0
+	if raw := strings.TrimSpace(task.Context["materiality"]); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil && parsed >= 0 {
+			materiality = parsed
+		}
+	}
+	return &AuthorityContext{
+		Responsibility: responsibility,
+		DecisionType:   strings.TrimSpace(task.Context["decision_type"]),
+		Materiality:    materiality,
+	}
+}
+
+func canonicalResponsibility(value string) string {
+	switch strings.ToUpper(strings.TrimSpace(value)) {
+	case "PERFORMER":
+		return "PERFORMER"
+	case "OWNER", "ACCOUNTABLE_OWNER":
+		return "ACCOUNTABLE_OWNER"
+	case "REVIEWER":
+		return "REVIEWER"
+	case "CHALLENGER", "INDEPENDENT_CHALLENGER":
+		return "INDEPENDENT_CHALLENGER"
+	case "AUTHORIZER", "APPROVER", "DECIDER", "DECISION_OWNER":
+		return "AUTHORIZER"
+	case "SIGNATORY":
+		return "SIGNATORY"
+	case "ESCALATION_OWNER":
+		return "ESCALATION_OWNER"
+	default:
+		return ""
+	}
 }
 
 func workflowIntervention(task workflow.Task, targetType string) InterventionClass {
@@ -102,13 +146,13 @@ func parseIntervention(value string) InterventionClass {
 func workflowReason(task workflow.Task) string {
 	switch task.Status {
 	case workflow.StatusBlocked:
-		return "The assigned workflow step is blocked and still requires accountable handling."
+		return "This assigned step is blocked and needs action."
 	case workflow.StatusEscalated:
-		return "The assigned workflow step has been escalated to your role."
+		return "This step was escalated to your role."
 	case workflow.StatusInProgress:
-		return "This workflow step is already in progress and remains assigned to your role."
+		return "This step is in progress and remains assigned to you."
 	default:
-		return "This workflow step is ready and assigned to your role."
+		return "This step is ready and assigned to you."
 	}
 }
 

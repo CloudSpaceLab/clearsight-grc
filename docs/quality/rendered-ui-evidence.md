@@ -17,6 +17,45 @@ Attach or generate deterministic renders for the affected states and viewports. 
 
 Add light/dark, 200% zoom, reduced motion, translated copy and assistive-technology evidence when the changed surface supports or materially affects them.
 
+## CI capture is the default proof path
+
+For frontend changes, `.github/workflows/ui-evidence.yml` is the default rendered-evidence path. It builds the deterministic static stakeholder application, launches it locally, and executes `web/scripts/capture-ui-evidence.mjs` with a pinned Playwright runtime.
+
+The workflow is also triggered by backend read-contract changes that can alter what the UI may truthfully render, including Today projection, authority resolution, actor context/identity capabilities and the executable runtime API contract. This prevents a visually stable fixture from silently drifting behind server semantics.
+
+The capture suite prefers production components and realistic deterministic fixtures over hand-built visual mocks. Its artifact contains PNG renders plus `manifest.json` with the route, fixture, viewport, theme, density, active focus and layout metrics used for each capture.
+
+## UI foundation matrix
+
+The current foundation suite exercises 28 deterministic rendered states/interactions across:
+
+- Today in light and dark themes;
+- comfortable and compact desktop density;
+- Program, Matter, Evidence, Imports and Configure workspaces;
+- tablet, 390px mobile and 320px reflow;
+- exact record-scoped authority resolution, including candidate-set semantics;
+- evidence response entry → exact assertion review → submission receipt;
+- explicit Today empty, loading and service-unavailable states;
+- partial Evidence degradation where requests fail but source context remains reachable;
+- partial Configure degradation where one configuration source fails but other governed context remains visible;
+- capability-constrained navigation where Configure is unavailable to the current role;
+- authority-inspection permission denial without candidate leakage;
+- evidence-request not-found and expired/read-only states;
+- optimistic submission conflict with an explicit reload route;
+- long translated-style/mobile content expansion;
+- focused mobile Capture with keyboard focus containment;
+- a 200% CSS-zoom proxy in addition to narrow reflow evidence.
+
+Mechanical checks fail CI for conditions such as unexpected horizontal overflow, browser runtime errors, loss of the first governed action from the unobstructed first viewport, focus escaping a focused-work sheet, authority-detail leakage in a forbidden state, terminal requests exposing submission actions, or partial-degradation views hiding the still-available context.
+
+The suite deliberately uses a production-shaped readiness fixture with an **unknown/incomplete baseline** rather than inventing a complete governed denominator. Static fixture schemas for authority, projection health and reconciliation are test-locked to the current browser contracts.
+
+## Why screenshots are reviewed, not blindly approved by pixel diff
+
+Before a screen has an approved visual reference, a pixel-perfect snapshot can preserve a bad hierarchy. New or materially redesigned screens are therefore reviewed from their deterministic screenshots first. Once a screen is approved and intentionally stable, a visual-regression baseline may be added for that specific stable composition.
+
+A reviewer must inspect the actual PNGs, not only the successful workflow status. Workflow success means the requested state rendered and satisfied the encoded structural checks; it does not by itself mean the result is intuitive or visually correct.
+
 ## Review order
 
 1. Correct object, user and primary action.
@@ -29,10 +68,27 @@ Add light/dark, 200% zoom, reduced motion, translated copy and assistive-technol
 
 Fix the highest-impact failure first and re-check that evidence. Do not spend the first repair round polishing decoration while the workflow, copy or state is unclear.
 
+For qualitative review, explicitly ask:
+
+- Can the intended user state what this screen is for within a few seconds?
+- Is the dominant next action visible without reconstructing the workflow from several cards or sections?
+- Does the screen distinguish current, unknown, stale, blocked, pending and verified states without relying on colour alone?
+- Are scope, owner, source, deadline and authority visible where they affect the decision?
+- Does mobile replace desktop composition rather than merely squeeze it?
+- Does light mode preserve the same hierarchy and semantic emphasis rather than becoming a recoloured dark screen?
+- Does compact density increase throughput without reducing comprehension or touch safety?
+- Is any illustration, panel, chip, border, gradient or explanatory copy consuming more attention than the governed work itself?
+
 ## State-gallery contract
 
 Each reusable component has named fixtures for supported states. Fixtures use realistic but clearly labelled data and the production component API. A component variant that exists only in an ad hoc page is not considered part of the design system.
 
+Fixture data must not advertise stronger product truth than the production domain can currently produce. In particular, a screenshot fixture may demonstrate visual hierarchy for a future governed record only when it is explicitly labelled as such; it must not invent a complete baseline, autonomous work receipt, verified outcome, authority chain or executable permission.
+
 ## Release boundary
 
 Rendered evidence proves appearance and interaction for the tested fixtures. It does not prove authority, confidentiality, data completeness, performance or domain correctness; those remain separate release gates.
+
+The UI foundation gate does **not** close the broader enterprise product experience. Governed decision/execution flows, full Configure builders, production Explore, notifications, enterprise identity/security surfaces, production illustration families and representative timed bank-user usability remain governed by their own implementation and release gates.
+
+A 200% CSS zoom capture is an automated approximation, not a substitute for browser/assistive-technology zoom testing. Final accessibility acceptance still requires actual rendered contrast, 200% browser zoom/reflow and representative assistive-technology review.

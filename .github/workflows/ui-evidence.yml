@@ -1,0 +1,87 @@
+name: UI evidence
+
+on:
+  pull_request:
+    paths:
+      - "web/**"
+      - "internal/today/**"
+      - "internal/authority/model.go"
+      - "internal/httpapi/actor_read_handlers.go"
+      - "internal/identity/**"
+      - "api/runtime.openapi.json"
+      - "DESIGN.md"
+      - "docs/design/**"
+      - "docs/product/**"
+      - "docs/quality/**"
+      - ".github/workflows/ui-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ui-evidence-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Install pinned Playwright runtime for evidence only
+        run: npm install --no-save --package-lock=false playwright@1.55.0
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Validate web before capture
+        run: |
+          npm run typecheck
+          npm test
+      - name: Build deterministic static stakeholder app
+        env:
+          VITE_STATIC_DEMO: "true"
+          VITE_API_BASE_URL: ""
+        run: npm run build -- --base=/
+      - name: Start local preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/clearsight-ui-preview.log 2>&1 &
+          echo $! > /tmp/clearsight-ui-preview.pid
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/clearsight-ui-preview.log
+          exit 1
+      - name: Capture deterministic UI evidence
+        env:
+          PAGE_URL: http://127.0.0.1:4173
+          UI_EVIDENCE_DIR: ui-evidence
+        run: node scripts/capture-ui-evidence.mjs
+      - name: Upload screenshots and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-evidence-${{ github.sha }}
+          path: |
+            web/ui-evidence/*.png
+            web/ui-evidence/manifest.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload preview log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-evidence-preview-log-${{ github.sha }}
+          path: /tmp/clearsight-ui-preview.log
+          if-no-files-found: ignore
+          retention-days: 7

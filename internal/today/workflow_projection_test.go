@@ -17,6 +17,7 @@ func TestFromWorkflowTasksProjectsOnlyActiveAssignedWork(t *testing.T) {
 			Context: map[string]string{
 				"scope": "Retail Payments", "action_target_type": "MATTER", "action_target_id": "matter-1",
 				"material_conclusion": "The remediation changes a material control conclusion.",
+				"decision_type":       "RISK_ACCEPTANCE", "materiality": "5",
 			},
 		},
 		{ID: "done-1", TenantID: "bank", Responsibility: "REVIEWER", Title: "Already completed", Status: workflow.StatusCompleted},
@@ -33,6 +34,9 @@ func TestFromWorkflowTasksProjectsOnlyActiveAssignedWork(t *testing.T) {
 	if item.ActionTargetType != "MATTER" || item.ActionTargetID != "matter-1" {
 		t.Fatalf("unexpected target: %s/%s", item.ActionTargetType, item.ActionTargetID)
 	}
+	if item.Authority == nil || item.Authority.Responsibility != "AUTHORIZER" || item.Authority.DecisionType != "RISK_ACCEPTANCE" || item.Authority.Materiality != 5 {
+		t.Fatalf("unexpected authority context: %#v", item.Authority)
+	}
 	if item.Recommendation != nil || item.PreparedWork != nil {
 		t.Fatal("workflow projection must not fabricate operator recommendation or prepared-work receipt")
 	}
@@ -46,6 +50,9 @@ func TestFromWorkflowTasksUsesCanonicalTargetFallbacks(t *testing.T) {
 	if len(items) != 1 || items[0].ActionTargetType != "MATTER" || items[0].ActionTargetID != "matter-42" {
 		t.Fatalf("canonical matter target was not projected: %#v", items)
 	}
+	if items[0].Authority == nil || items[0].Authority.Responsibility != "REVIEWER" {
+		t.Fatalf("canonical authority context was not projected: %#v", items[0].Authority)
+	}
 }
 
 func TestFromWorkflowTasksRejectsUnknownActionTargets(t *testing.T) {
@@ -56,7 +63,7 @@ func TestFromWorkflowTasksRejectsUnknownActionTargets(t *testing.T) {
 	if len(items) != 1 {
 		t.Fatalf("expected one projected task, got %d", len(items))
 	}
-	if items[0].ActionTargetType != "" || items[0].ActionTargetID != "" {
-		t.Fatal("unknown action target must not become a navigable route")
+	if items[0].ActionTargetType != "" || items[0].ActionTargetID != "" || items[0].Authority != nil {
+		t.Fatal("unknown action target must not become a navigable or authority-resolvable route")
 	}
 }

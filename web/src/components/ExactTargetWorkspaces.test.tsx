@@ -22,7 +22,7 @@ const programDetail: ProgramAggregate = {
     id: "program-outside-page", tenant_id: "bank-demo", code: "OUTSIDE", name: "Program outside first page", type: "REGULATORY", status: "ACTIVE", owning_function: "Compliance", scope: {}, effective_from: "2026-01-01T00:00:00Z", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-08-06T10:00:00Z", version: 2,
   },
   requirements: [], applicability: [], control_objectives: [], control_implementations: [], requirement_control_links: [], evidence_contracts: [], evidence_assessments: [], triggers: [],
-  current_state: { id: "state-1", overall_state: "EVIDENCE_INSUFFICIENT", dimensions: {}, reasons: [{ code: "MISSING", summary: "Evidence is missing." }], open_matter_count: 1, generated_at: "2026-08-06T10:00:00Z", program_version: 2 },
+  current_state: { id: "state-1", overall_state: "EVIDENCE_INSUFFICIENT", dimensions: {}, reasons: [{ code: "MISSING", summary: "Evidence is missing." }], open_matter_count: 1, generated_at: "2026-08-06T10:00:00Z", program_version: 2, projection_version: 4 },
 };
 
 const matterDetail: MatterAggregate = {

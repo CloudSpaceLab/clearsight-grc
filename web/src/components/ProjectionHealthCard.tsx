@@ -1,5 +1,8 @@
 import { useState } from "react";
 import type { ProjectionHealth, ReconcileResult } from "../operationsTypes";
+import { EmptyState } from "./EmptyState";
+
+type LoadState = "loading" | "live" | "unavailable";
 
 function stateLabel(value: ProjectionHealth["state"]) {
   switch (value) {
@@ -24,7 +27,7 @@ function formatTime(value?: string) {
   return Number.isFinite(parsed) ? new Date(parsed).toLocaleString() : "Not recorded";
 }
 
-export function ProjectionHealthCard({ health, onReconcile }: { health: ProjectionHealth | null; onReconcile: () => Promise<ReconcileResult> }) {
+export function ProjectionHealthCard({ health, state = "live", onReconcile }: { health: ProjectionHealth | null; state?: LoadState; onReconcile: () => Promise<ReconcileResult> }) {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<ReconcileResult | null>(null);
   const [error, setError] = useState("");
@@ -41,12 +44,15 @@ export function ProjectionHealthCard({ health, onReconcile }: { health: Projecti
     }
   }
 
+  if (state === "loading") return <article className="config-card wide projection-health-card"><div className="workspace-loading compact" aria-live="polite" aria-busy="true">Loading Program status update health…</div></article>;
+  if (state === "unavailable") return <article className="config-card wide projection-health-card"><EmptyState kind="unavailable" label="Program status updates" title="Status update health is unavailable" description="Other configuration remains visible. No projection-health conclusion is inferred."/></article>;
+
   return <article className="config-card wide projection-health-card">
     <div className="section-header">
       <div><h2>Program status updates</h2><p>Checks whether calculated Program status has caught up with recorded changes.</p></div>
       <mark className={stateClass(health?.state ?? "NOT_CONFIGURED")}>{stateLabel(health?.state ?? "NOT_CONFIGURED")}</mark>
     </div>
-    {!health ? <p>Program status update health is unavailable.</p> : <div className="projection-health-grid">
+    {!health ? <p>No Program status projection is configured for this scope.</p> : <div className="projection-health-grid">
       <div><span>Waiting</span><strong>{health.pending}</strong><small>Status updates not yet completed</small></div>
       <div><span>Failed</span><strong>{health.failed}</strong><small>Updates requiring operator review</small></div>
       <div><span>Oldest waiting update</span><strong>{health.oldest_pending ? `${Math.max(0, Math.round(health.lag_seconds / 60))} min` : "—"}</strong><small>{health.oldest_pending ? formatTime(health.oldest_pending) : "No updates waiting"}</small></div>
@@ -54,7 +60,7 @@ export function ProjectionHealthCard({ health, onReconcile }: { health: Projecti
     </div>}
     {health?.last_error && <p className="error-text">Latest error: {health.last_error}</p>}
     {result && <p className="success-text">Checked {result.checked} Programs. {result.queued} new status update{result.queued === 1 ? " was" : "s were"} queued{result.already_queued ? `; ${result.already_queued} already waiting` : ""}.</p>}
-    {error && <p className="error-text">{error}</p>}
+    {error && <p className="error-text" role="alert">{error}</p>}
     <div className="card-actions"><button type="button" className="secondary-button" disabled={running} onClick={() => void checkRecords()}>{running ? "Checking…" : "Check status records"}</button></div>
   </article>;
 }
