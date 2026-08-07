@@ -25,18 +25,20 @@ type Principal struct {
 }
 
 type Rule struct {
-	ID             string
-	TenantID       string
-	LegalEntityID  string
-	ObjectType     string
-	ObjectID       string
-	Responsibility Responsibility
-	DecisionType   string
-	MinMateriality int
-	Principal      Principal
-	Priority       int
-	ValidFrom      time.Time
-	ValidUntil     time.Time
+	ID                 string
+	TenantID           string
+	LegalEntityID      string
+	ObjectType         string
+	ObjectID           string
+	Responsibility     Responsibility
+	DecisionType       string
+	MinMateriality     int
+	Principal          Principal
+	CandidatePrincipals []Principal
+	ResolutionStrategy string
+	Priority           int
+	ValidFrom          time.Time
+	ValidUntil         time.Time
 }
 
 type ResolveInput struct {
@@ -51,10 +53,27 @@ type ResolveInput struct {
 }
 
 type Resolution struct {
-	Principal     Principal `json:"principal"`
-	RuleID        string    `json:"rule_id"`
-	PolicyVersion string    `json:"policy_version"`
-	Explanation   string    `json:"explanation"`
+	Principal           Principal   `json:"principal"`
+	CandidatePrincipals []Principal `json:"candidate_principals,omitempty"`
+	Strategy            string      `json:"strategy,omitempty"`
+	RuleID              string      `json:"rule_id"`
+	PolicyVersion       string      `json:"policy_version"`
+	Explanation         string      `json:"explanation"`
+}
+
+func (r Resolution) AllowsPrincipal(principalID string) bool {
+	if principalID == "" {
+		return false
+	}
+	if r.Principal.ID == principalID {
+		return true
+	}
+	for _, candidate := range r.CandidatePrincipals {
+		if candidate.ID == principalID {
+			return true
+		}
+	}
+	return false
 }
 
 type Candidate struct {
