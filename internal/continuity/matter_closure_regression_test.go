@@ -2,7 +2,6 @@ package continuity
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 	"time"
 )
@@ -20,7 +19,7 @@ func TestRegulatoryClosureCannotMaskAdverseCurrentDecisionWithUnrelatedApproval(
 	if closure.Ready {
 		t.Fatal("an unrelated approval must not mask an adverse current regulatory decision")
 	}
-	if !containsClosureReason(closure.Reasons, "every current regulatory decision") {
+	if !containsClosureReason(closure, "every current regulatory decision") {
 		t.Fatalf("expected current-decision blocker, got %#v", closure.Reasons)
 	}
 }
@@ -40,17 +39,7 @@ func TestAuthorityRequestRequiresEveryCurrentResponseLineageAcknowledged(t *test
 	if closure.Ready {
 		t.Fatal("one acknowledged response must not mask another incomplete current response lineage")
 	}
-	if !containsClosureReason(closure.Reasons, "every current external response") {
+	if !containsClosureReason(closure, "every current external response") {
 		t.Fatalf("expected response-lineage blocker, got %#v", closure.Reasons)
 	}
-}
-
-func containsClosureReason(values []string, part string) bool {
-	part = strings.ToLower(part)
-	for _, value := range values {
-		if strings.Contains(strings.ToLower(value), part) {
-			return true
-		}
-	}
-	return false
 }
