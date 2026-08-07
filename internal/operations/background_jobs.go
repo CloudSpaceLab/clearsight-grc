@@ -40,12 +40,10 @@ type Snapshot struct {
 }
 
 type Source interface {
-	ListBackgroundJobs(context.Context, string, int) ([]Job, error)
+	BackgroundJobs(context.Context, string, int) (Snapshot, error)
 }
 
-type Service struct {
-	sources []Source
-}
+type Service struct{ sources []Source }
 
 func NewService(sources ...Source) *Service {
 	filtered := make([]Source, 0, len(sources))
@@ -64,60 +62,21 @@ func (s *Service) Snapshot(ctx context.Context, tenant string, limit int) (Snaps
 	if limit <= 0 || limit > maxJobs {
 		limit = 100
 	}
-	jobs := make([]Job, 0, limit)
+	result := Snapshot{}
 	for _, source := range s.sources {
-		values, err := source.ListBackgroundJobs(ctx, tenant, limit)
+		part, err := source.BackgroundJobs(ctx, tenant, limit)
 		if err != nil {
 			return Snapshot{}, err
 		}
-		jobs = append(jobs, values...)
+		result.Queues = append(result.Queues, part.Queues...)
+		result.Jobs = append(result.Jobs, part.Jobs...)
 	}
-	sort.SliceStable(jobs, func(i, j int) bool {
-		return jobTime(jobs[i]).After(jobTime(jobs[j]))
-	})
-	if len(jobs) > limit {
-		jobs = jobs[:limit]
+	sort.Slice(result.Queues, func(i, j int) bool { return result.Queues[i].Queue < result.Queues[j].Queue })
+	sort.SliceStable(result.Jobs, func(i, j int) bool { return jobTime(result.Jobs[i]).After(jobTime(result.Jobs[j])) })
+	if len(result.Jobs) > limit {
+		result.Jobs = result.Jobs[:limit]
 	}
-	return Snapshot{Queues: summarize(jobs), Jobs: jobs}, nil
-}
-
-func summarize(jobs []Job) []QueueSummary {
-	byQueue := map[string]QueueSummary{}
-	for _, job := range jobs {
-		summary := byQueue[job.Queue]
-		summary.Queue = job.Queue
-		if job.Attempts > summary.HighestAttempts {
-			summary.HighestAttempts = job.Attempts
-		}
-		switch strings.ToUpper(job.State) {
-		case "FAILED", "DEAD_LETTERED":
-			summary.Terminal++
-		case "CLAIMED", "RUNNING":
-			summary.Running++
-			summary.Pending++
-		default:
-			if job.TerminalAt == nil && strings.ToUpper(job.State) != "COMPLETED" && strings.ToUpper(job.State) != "FIRED" && strings.ToUpper(job.State) != "PUBLISHED" {
-				summary.Pending++
-			}
-		}
-		if summary.Pending > 0 && job.TerminalAt == nil {
-			candidate := job.AvailableAt
-			if candidate == nil {
-				candidate = job.CreatedAt
-			}
-			if candidate != nil && (summary.OldestPending == nil || candidate.Before(*summary.OldestPending)) {
-				value := candidate.UTC()
-				summary.OldestPending = &value
-			}
-		}
-		byQueue[job.Queue] = summary
-	}
-	result := make([]QueueSummary, 0, len(byQueue))
-	for _, summary := range byQueue {
-		result = append(result, summary)
-	}
-	sort.Slice(result, func(i, j int) bool { return result[i].Queue < result[j].Queue })
-	return result
+	return result, nil
 }
 
 func jobTime(job Job) time.Time {
