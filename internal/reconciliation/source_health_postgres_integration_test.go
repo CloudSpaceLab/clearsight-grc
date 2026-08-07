@@ -27,10 +27,17 @@ func TestSourceHealthPostgresReplayAndRecovery(t *testing.T) {
 	}
 	defer pool.Close()
 
-	const tenantID = "83333333-3333-7333-8333-333333333331"
+	const (
+		tenantID    = "83333333-3333-7333-8333-333333333331"
+		ownerID     = "83333333-3333-7333-8333-333333333332"
+		authorityID = "83333333-3333-7333-8333-333333333333"
+	)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'source-replay-test','Source Replay Test')`, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name,status) VALUES($1::uuid,$3::uuid,'PERSON','Program owner','ACTIVE'),($2::uuid,$3::uuid,'PERSON','Program authority','ACTIVE')`, ownerID, authorityID, tenantID); err != nil {
 		t.Fatal(err)
 	}
 
@@ -60,10 +67,10 @@ func TestSourceHealthPostgresReplayAndRecovery(t *testing.T) {
 		Name:                 "Source replay program",
 		Type:                 "CONTINUOUS",
 		OwningFunction:       "Compliance",
-		OwnerPrincipalID:     "",
-		AuthorityPrincipalID: "",
+		OwnerPrincipalID:     ownerID,
+		AuthorityPrincipalID: authorityID,
 		EffectiveFrom:        now.Add(-time.Hour),
-		ActorID:              "",
+		ActorID:              ownerID,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -79,6 +86,18 @@ func TestSourceHealthPostgresReplayAndRecovery(t *testing.T) {
 		Modality:        "MUST",
 		Status:          continuity.RequirementApproved,
 		EffectiveFrom:   now.Add(-time.Hour),
+		ActorID:         ownerID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = continuityService.TransitionProgram(ctx, continuity.ProgramTransitionInput{
+		TenantID:        "source-replay-test",
+		ID:              program.Program.ID,
+		ExpectedVersion: program.Program.Version,
+		To:              continuity.ProgramActive,
+		ActorID:         authorityID,
+		Rationale:       "activate the operational source-reconciliation fixture",
 	})
 	if err != nil {
 		t.Fatal(err)

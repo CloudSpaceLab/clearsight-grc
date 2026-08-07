@@ -48,7 +48,7 @@ func TestPostgresRuntimeContracts(t *testing.T) {
 	seedPostgres(t, pool)
 
 	t.Run("authority policies support unscheduled drafts and legal-entity-safe roles", func(t *testing.T) {
-		service := authority.NewPostgresService(pool)
+		service := authority.NewEffectivePostgresService(pool)
 		policies, err := service.Policies(ctx, "integration-bank")
 		if err != nil {
 			t.Fatal(err)

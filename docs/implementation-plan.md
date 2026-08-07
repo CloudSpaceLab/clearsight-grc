@@ -1,223 +1,218 @@
 # ClearSight implementation ledger
 
-**Status date:** 2026-08-07
+**Status date:** 2026-08-07  
+**P0 closure PR:** #30  
+**Pre-P0 baseline:** `main@df98a7f66c28642637a45a10662abac042dcd144` (PR #25)
 
-This is the authoritative execution ledger for current repository work. Detailed product, design and enterprise-productization documents remain reference specifications, but they do not override the order below.
+This is the authoritative execution ledger. Product, design, architecture and enterprise-productization documents define requirements, but this file controls the current implementation order and capability truth.
 
-The current sequence is driven by two linked issues:
+## 1. Current sequence
 
-- **#26 — executable integrity and continuous evidence reconciliation**: closes architectural seams that can make the repository appear complete while runtime behavior is incomplete or unsafe.
-- **#27 — agent-managed compliance and human decision packets**: defines the future operating model, but its remaining governed-execution work depends on the #26 seams rather than building a parallel authorization, worker or audit layer.
+### #26 P0 executable integrity — complete in PRs #25 and #30
 
-## 1. Canonical sequencing
+- [x] P0.1 typed route/access registry and verified actor/tenant binding.
+- [x] persisted capture consolidation and bounded invitation/session security.
+- [x] P0.2 durable source-health reconciliation through outbox/inbox → Signal/Drift → affected Program trigger/Matter → projection.
+- [x] P0.3 independent worker work classes with bounded retry/dead-letter behavior.
+- [x] P0.4 compound-command and post-commit response truth.
+- [x] P0.5 executable route/OpenAPI contract parity.
+- [x] P0.6 bounded effective-authority convergence across routing rules, assignments, grants, active delegations and segregation constraints.
+- [x] lower-priority audit findings are moved to linked P1/P2 follow-up issues before #26 closes.
 
-Remaining #27 operator execution MUST wait for the shared #26 foundations in this order:
+### Next: P1 semantic/current-state correctness
 
-1. HTTP route classification, verified actor/tenant binding and write-route integrity.
-2. Evidence event reconciliation through durable outbox/inbox delivery.
-3. Worker work-class isolation and bounded failure domains.
-4. Compound-command transaction truth and recovery.
-5. API/query/OpenAPI/client-contract reconciliation.
-6. Complete governance/configuration authorization matrix.
-7. Governed operator execution, receipts and intervention mutations from #27.
+P1 is intentionally correctness-first rather than feature-first.
 
-This order prevents duplicate auth middleware, duplicate task/execution models and frontend-only autonomy controls.
+1. **P1.1 Program-state truth — first tranche**
+   - valid-time/effective-time selection;
+   - deterministic multi-source currentness;
+   - bounded evidence-assessment validity;
+   - mandatory unknown dimensions cannot become `CURRENT`;
+   - preserve configured Program period across pause/resume;
+   - expose assessed Program version/projection freshness and complete reason counts.
+2. **P1.2 Matter closure current-record truth**
+   - current Decision/Response selection and supersession;
+   - expiry/conditions at closure;
+   - verification independence and observation-period enforcement.
+3. **P1.3 lifecycle-specific command responsibility**
+   - proposer/reviewer/challenger/authorizer/signatory/transmitter/acknowledgement responsibilities vary by requested transition rather than static command name.
+4. **P1.4 bounded ordinary reads and explicit work-model projection contracts.**
+5. **P1.5 document-import resource, durability and paging hardening.**
 
-## 2. Completed foundation
+Only after semantic/current-state correctness should wider #27 governed operator execution be treated as trustworthy execution rather than presentation.
 
-### Canonical domain
+## 2. Canonical domain invariants
 
-- [x] Programs model ongoing obligations and compliance continuity.
-- [x] Matters model bounded change, exception, findings, decisions, actions, response and verification.
-- [x] Evidence Sources, Requests, Submissions and artifacts have tenant-scoped repositories and explicit lifecycle semantics.
-- [x] Matter Actions remain domain remediation/commitment truth.
-- [x] Workflow Tasks remain actor-facing routed/manual work; they are not a second Matter Action model.
-- [x] Signals remain observations; deterministic assessment decides whether they create drift or attention.
-- [x] implementation and verified outcome remain separate states.
+These distinctions are mandatory:
 
-### Identity, authority and governance
+- **Program** = ongoing obligation/compliance continuity.
+- **Matter** = bounded change, exception, finding, decision, action, response or verification case.
+- **Matter Action ≠ Workflow Task.** Action is accountable domain work; Task is an actor-facing routed step.
+- **Signal ≠ conclusion.** A Signal is an observation that deterministic assessment may convert into drift or attention.
+- **Submission ≠ sufficient evidence.** Evidence Contract assessment determines sufficiency.
+- **Implementation ≠ verified outcome.** Completion alone cannot close material work.
+- **Recommendation ≠ approval.** Current authority remains explicit.
+- **Automation Policy ≠ execution receipt.** Permission is not evidence that an action ran.
+- **Intervention Summary ≠ authoritative state.** It is a read projection over canonical records.
 
-- [x] verified actor context with tenant, legal entity, principal, actor kind and assurance metadata.
-- [x] deterministic authority resolution, simulation, delegation and segregation foundations.
-- [x] governance policy/delegation maker-checker lifecycle and append-only decisions.
-- [x] material Program/Matter command authorization foundation.
-- [x] restricted Matter reads fail closed.
+Do not add a parallel authorization, task, event, worker, receipt or generic workflow stack that duplicates these foundations.
 
-### Workflow, delivery and projections
+## 3. #26 P0 closure truth
 
-- [x] durable Workflow Tasks, events and optimistic transitions.
-- [x] leased timers, outbox/inbox primitives and retry/recovery foundations.
-- [x] independent in-process worker classes isolate source maintenance, Program projection, delegation lifecycle, timers and outbox delivery.
-- [x] timer/outbox poison work terminates visibly after a bounded retry budget instead of retrying forever.
-- [x] separately versioned Program-status maintenance with health, reconcile and rebuild operations.
-- [x] projection-first Program/Matter summaries with bounded pagination and lazy details.
+### P0.1 — route and identity boundary
 
-### Evidence and capture
+`internal/httpapi/route_registry.go` is the canonical executable route inventory.
 
-- [x] evidence-source health and freshness model.
-- [x] focused internal/external capture with bounded invitation/session capability.
-- [x] immutable submission records and artifact integrity metadata.
-- [x] governed document import with deterministic extraction, source anchors and explicit proposal review.
+- [x] every production route has one explicit access class;
+- [x] only health routes are truly public;
+- [x] bounded capture routes use capability access;
+- [x] other protected routes require verified actor context;
+- [x] tenant/legal-entity and actor-bearing fields are rebound server-side where authoritative;
+- [x] material commands resolve current authority at execution;
+- [x] registry tests fail on invalid/unclassified route definitions.
 
-### Agentic human experience
+Direct OIDC/SAML, directory synchronization, RLS/ABAC defense in depth and step-up assurance remain enterprise-release work, not #26 P0 blockers.
 
-- [x] intervention-first Today UI.
-- [x] non-demo Today projects active Workflow Tasks assigned to the verified principal.
-- [x] exact Program/Matter/Evidence targets remain reachable outside first-page pagination.
-- [x] Programs, Matters, Evidence and Imports use progressive disclosure rather than record walls.
-- [x] evidence capture uses `enter → review exact assertions → submit → receipt`.
-- [x] structured intervention/recommendation/verification/read-receipt contracts exist without fabricating operator execution.
-- [x] automation-policy read visibility exposes governed eligibility, blast radius and verification boundaries in Configure.
+### Capture consolidation/security
 
-## 3. Active P0 seam-integrity sequence
+- [x] one persisted Evidence Request/Invitation/Session/Submission/Artifact domain remains;
+- [x] parallel `internal/capture` implementation is removed;
+- [x] migration `000013_capture_consolidation` removes abandoned foundation request/invitation tables;
+- [x] invitation audience hash is verified at redemption;
+- [x] request deadlines/open-state and artifact upload state are enforced;
+- [x] request expiry is maintained;
+- [x] bearer capture CORS is supported.
 
-### P0.1 — executable route/identity boundary — IMPLEMENTED IN PR #25
+### P0.2 — durable source-health reconciliation
 
-- [x] one typed HTTP route registry owns route class, access boundary and material-command policy.
-- [x] only health endpoints are true public routes.
-- [x] bounded invitation/session routes remain capability-scoped instead of requiring staff identity.
-- [x] all other protected routes require verified actor context.
-- [x] tenant query scope is rebound from verified identity and conflicting tenant scope is rejected.
-- [x] authenticated JSON writes bind tenant and relevant actor fields from verified identity.
-- [x] command actor binding happens even when command-authorization mode is off; mode changes authority lookup, not identity truth.
-- [x] material command actor fields are descriptor-driven so strict JSON decoding receives only fields supported by each DTO.
-- [x] legal-entity scope is an authorization input and is injected into a request body only when that body declares it.
-- [x] public/capability classification has adversarial registry tests.
-- [x] CORS allows `Authorization` for bearer capture sessions.
+- [x] `SourceHealthChanged` is internally consumed before publication completion;
+- [x] inbox receipts provide idempotent internal delivery;
+- [x] degradation/recovery updates the exact source-quality drift;
+- [x] recovery cannot be forged through generic Signal ingestion;
+- [x] active Evidence Contracts and currently-effective approved Requirement source mappings resolve affected Programs;
+- [x] one unhealthy source cannot be cleared by recovery of a different required source;
+- [x] Program trigger/Matter/projection consequences reuse existing transactional continuity paths;
+- [x] PostgreSQL replay tests exercise active Program degradation, duplicate delivery and recovery.
 
-**Still open within the wider identity boundary:** direct OIDC/SAML integration, directory synchronization, RLS/ABAC defense in depth, step-up assurance and a complete authorization matrix for governance/configuration writes.
+### P0.3 — worker failure isolation
 
-### P0.2 — evidence event reconciliation — IMPLEMENTED IN PR #25
+- [x] evidence-source maintenance, Program projection, delegation lifecycle, workflow timers and outbox delivery run independently in one deployable worker;
+- [x] each class owns its interval, timeout, lease, batch, retry and backoff budget;
+- [x] ordinary class failures/panics do not terminate unrelated work;
+- [x] exhausted timers become `FAILED` and exhausted outbox events become dead-lettered;
+- [x] terminal work is not reclaimable;
+- [x] queue/class health exposes actionable lag/failure state;
+- [x] shared PostgreSQL integration fixtures are deterministic under serialized package execution.
 
-The first durable reconciliation bridge now reuses the existing evidence outbox, runtime inbox, compliance Signal/Drift model and Program trigger path rather than adding another event system.
+### P0.4 — transaction and command-response truth
 
-- [x] `SourceHealthChanged` is consumed internally before the outbox event can be marked published.
-- [x] inbox receipts make completed internal delivery idempotent.
-- [x] source degradation creates/upserts the exact `source_quality` drift.
-- [x] source recovery resolves only the matching active source drift.
-- [x] generic `/compliance/signals` ingestion cannot forge `SOURCE_RECOVERED`; recovery is an internal governed-source operation.
-- [x] active Evidence Contract mappings and currently-effective approved Requirement `source_id` mappings resolve every affected Program without a silent fan-out cap.
-- [x] Program trigger dedupe keys include both source event and Program ID.
-- [x] unhealthy→unhealthy changes update drift but do not open a duplicate degradation episode/Matter.
-- [x] recovery reaches a Program only when every currently-required source for that Program is healthy.
-- [x] existing transactional `ApplyTriggerBundle` remains responsible for Program trigger, optional Matter, outbox and projection-job truth.
-- [x] logging occurs after internal reconciliation; a failed internal delivery is retried instead of being logged-and-marked-published.
-- [x] no reconciliation-specific schema migration or broker was added.
+Failed verification consequences already use `VerificationResultBundle` to commit the verification result together with required REOPEN/ESCALATE or CREATE_MATTER/link effects.
 
-**Still required before production release:** one full PostgreSQL replay test proving the complete source-health outbox → inbox → Signal/Drift → Program trigger/Matter → projection consequence chain under duplicate delivery and lag/recovery conditions.
+PR #30 closes the remaining response seam:
 
-### P0.3 — worker work-class isolation — IMPLEMENTED IN PR #25
+- [x] normalized Program/Matter version probes determine authoritative commit outcome without replaying event history;
+- [x] a material update that commits but later fails response reconstruction returns a small `COMMITTED` degraded-response receipt rather than a false 5xx;
+- [x] genuine pre-commit failures remain failures;
+- [x] API PostgreSQL composition uses a reliable repository wrapper that preserves only a just-committed create result as a short-lived response fallback if the immediate reconstruction fails;
+- [x] this fallback is never authoritative state and is deleted after normal reconstruction/fallback use;
+- [x] no second durable receipt or transaction-orchestration framework was introduced.
 
-The deployable worker remains one process, but its independent responsibilities no longer share one serial failure domain.
+Canonical transaction rule:
 
-- [x] evidence-source maintenance, Program projection, delegation lifecycle, workflow timers and outbox delivery run as five named work classes.
-- [x] each class has an independent poll interval, execution timeout, lease, retry/backoff ceiling, batch limit and retry budget.
-- [x] each class is intentionally single-flight; no generic worker-pool or agent-executor abstraction was added.
-- [x] class errors and panics degrade only that class; ordinary retriable failures do not terminate the worker process or stop unrelated classes.
-- [x] execution timeout is always shorter than the claim lease, preventing normal timeout handling from making live work simultaneously reclaimable.
-- [x] publisher panics are contained to the affected outbox item so later items in the claimed batch continue.
-- [x] in-memory outbox claiming now honours leases consistently with PostgreSQL.
-- [x] workflow timers move to durable `FAILED` after their retry budget is exhausted and are no longer claimable.
-- [x] outbox events receive `dead_lettered_at` after their retry budget is exhausted and are no longer claimable.
-- [x] class health distinguishes `STARTING`, `CURRENT`, `DEGRADED` and `NEEDS_ATTENTION`; timer/outbox health exposes pending work, terminal work, highest attempts and oldest pending time from the authoritative queue tables.
-- [x] shared-database `postgresintegration` packages run serially in CI so one package's fixture cleanup cannot race another package.
-- [x] PostgreSQL integration tests prove terminal timer/dead-letter behavior and no reclaim after terminal failure.
+```text
+identity/current-authority check
+→ authoritative row change
+→ append-only domain event
+→ transactional outbox / required maintenance job
+→ commit
+→ optional detail/projection read
+```
 
-### P0.4 — compound-command transaction truth — NEXT
+The final optional read may degrade the response detail; it may not reverse or misreport the commit.
 
-Audit every compound material mutation. Authoritative rows, append-only domain event, transactional outbox and required maintenance job must commit together. Remove any path where a committed material mutation can return failure because a derived action failed afterward.
+### P0.5 — executable API contract parity
 
-The first concrete target is `RecordVerificationResult`: it currently commits the verification result before REOPEN/ESCALATE/CREATE_MATTER follow-up handling. Cross-aggregate follow-up must become a durable instruction committed with the authoritative result, while same-aggregate required transitions must share one optimistic transaction. Repository errors used to determine follow-up scope must never be discarded.
+`api/runtime.openapi.json` is the mechanically verified production route/access contract. Detailed domain schemas may remain modular, but they cannot redefine runtime paths or access classes.
 
-### P0.5 — API and client contract reconciliation — PLANNED
+- [x] exact method/path inventory matches `route_registry.go`;
+- [x] access class and administrative permission match mechanically;
+- [x] signed identity and bounded capture security schemes are explicit;
+- [x] capability and authenticated-or-capability routes are distinguishable;
+- [x] CI fails when a production route is added/removed/reclassified without contract update;
+- [x] CI uses `npm ci` against `web/package-lock.json`.
 
-Reconcile route registry, handler DTOs, query parameters, OpenAPI, browser API client and static stakeholder transport. Add contract tests so URL or field drift cannot survive compilation/render tests.
+Generated browser transport types/client consolidation is a later custom-code deletion tranche; P0 does not add a dependency solely to claim generation.
 
-### P0.6 — governance/configuration authorization matrix — PLANNED
+### P0.6 — effective authority convergence
 
-Extend current actor-bound maker-checker governance writes into a complete effective authorization matrix with configuration bootstrap semantics, simulation, impact preview, effective dating and rollback. Do not hard-code CRO/GRC-admin role names as authorization.
+Migration `000014_effective_authority_routes` materializes current approved routing-policy rules into an indexed execution read model.
 
-### P0.7 — governed operator execution and receipts — GATED BY P0.1–P0.6
+The production authority path now:
 
-Only after the shared seams above are executable:
+1. resolves matching compiled routes **and** current responsibility assignments in one bounded ranked query;
+2. applies deterministic priority + specificity and fails closed on same-rank ambiguity;
+3. expands active scoped delegation chains with cycle/depth protection;
+4. enforces current authority-grant materiality limits when grants govern that decision class/entity;
+5. applies active segregation constraints;
+6. returns an explicit candidate set when several humans are currently eligible.
 
-- implement the bounded operator executor;
-- evaluate active Automation Policy at execution time;
-- enforce action class, eligibility, blast radius, reversibility, expiry and verification contract;
-- persist execution/audit receipts from the actual executor;
-- expose those receipts in Intervention Summaries;
-- add governed accept/edit/reject/request-evidence/escalate command surfaces where domain commands exist;
-- reopen work when independent verification fails.
+Additional guarantees:
 
-Do not add a receipt table or UI merely to make the product appear agentic before there is a trustworthy writer.
+- [x] execution no longer performs selector N+1 work over every active policy JSON document;
+- [x] ROLE/POSITION selectors expand to current eligible occupants rather than arbitrary `LIMIT 1` selection;
+- [x] unresolved selectors are excluded from execution but remain visible as integrity findings;
+- [x] delegated actors may execute only when delegation scope/time/responsibility remains effective;
+- [x] expired delegation, grant limit and segregation paths fail closed in PostgreSQL integration tests;
+- [x] collective TEAM/QUEUE/COMMITTEE routes remain explicit collective/candidate semantics rather than pretending one arbitrary person is authoritative.
 
-## 4. Current truth for Today and automation
+Full enterprise configuration administration—directory-backed principals, advanced quorum/committee workflow, step-up assurance, governed policy editing/version creation/impact preview/scheduled rollback—remains later enterprise work. P0 closes the unsafe execution seam without pretending those productization features already exist.
+
+## 4. Current Today and automation truth
 
 ### Today
 
-Production/non-demo Today is currently the actor-facing projection of **active Workflow Tasks explicitly assigned to the verified principal**. Completed and cancelled work is excluded. Team/unassigned work remains in its routing queue until resolved to a principal.
+Non-demo Today currently projects active Workflow Tasks explicitly assigned to the verified principal. Completed/cancelled work is excluded. Team/unassigned work remains in its routing queue until resolved.
 
-Demo/reference mode may project reference journeys for stakeholder presentation.
+Demo/reference journeys may seed stakeholder presentation data, but are not production Today truth.
 
-Today is not yet the complete event-driven intervention compiler described by #27. Source-health changes now reach canonical drift and dependent Program state through P0.2, but other signal classes and actor-facing intervention compilation remain explicit future work.
+Today is not yet the complete event-driven intervention compiler envisioned by #27.
 
 ### Automation policy
 
-The existing `automation_policies` model is readable and visible in Configure. It represents a governed boundary, not proof of execution.
+`automation_policies` currently exposes governed eligibility/configuration boundaries. A visible policy does **not** prove that an automated action ran, succeeded or was independently verified.
 
-A policy being listed does not mean:
+Those claims require a real governed executor and persisted execution/verification evidence.
 
-- the policy is currently active/effective;
-- an operator action ran;
-- the action succeeded;
-- the outcome was verified.
+## 5. Enterprise work after semantic P1
 
-Those claims require executor and verification receipts from P0.7.
+Detailed enterprise requirements remain in `docs/engineering/enterprise-productization-implementation-plan.md` and product/design specifications.
 
-## 5. Semantic invariants
-
-Every future implementation and plan MUST preserve these distinctions:
-
-- **Matter Action ≠ Workflow Task.** Action is domain truth; Task is routed human work.
-- **Signal ≠ incident/conclusion.** A Signal is an observation that may trigger deterministic assessment.
-- **Submission ≠ sufficient evidence.** Captured data still requires the Evidence Contract assessment.
-- **Implementation ≠ verified outcome.** Completion is not closure.
-- **Recommendation ≠ approval.** Human authority remains explicit where policy requires it.
-- **Automation Policy ≠ execution receipt.** Permission is not proof of action.
-- **Intervention Summary ≠ authoritative state.** It is an actor-facing read projection over canonical records.
-
-## 6. Enterprise work after P0 seam integrity
-
-Detailed identity, RBAC, notification, MFA, visual-system and pilot-hardening requirements remain in `engineering/enterprise-productization-implementation-plan.md` and the product/design specifications.
-
-That document is a detailed requirements reference. **This ledger controls current execution order** whenever its sequencing differs.
-
-Major remaining enterprise gates include:
+Major later gates include:
 
 - OIDC/SAML/SCIM/LDAP or equivalent controlled identity synchronization;
-- full responsibility/decision-authority matrix and configuration authorization;
-- production notification delivery and privacy-minimized templates;
+- source-backed organization/position lifecycle;
+- complete configuration administration and rollback UX;
+- production notifications and privacy-minimized templates;
 - WebAuthn/TOTP/session management and policy-bound step-up;
 - production object storage, malware scanning, retention and legal hold;
-- PDF/OCR extraction-provider isolation;
-- representative workload evidence and retained query plans;
+- PDF/OCR provider isolation;
+- representative capacity evidence and retained query plans;
 - backup/restore/provider-outage exercises;
 - pilot-bank legal/configuration approval and governed go-live.
 
-## 7. Release and validation rules
+## 6. Release and validation rules
 
-Checkboxes describe repository capability, not production readiness.
+Checkboxes describe repository capability, not deployment readiness.
 
-A tranche is not complete until its relevant tests and evidence execute successfully. Required gates include:
+A tranche is not complete until the relevant executable gates pass on its exact head:
 
 - `gofmt` and `go vet`;
 - race-enabled Go tests;
-- PostgreSQL migrations/composition/integration tests;
+- PostgreSQL composition, migrations and integration tests;
 - TypeScript strict checking;
-- Vitest and axe;
+- Vitest/axe rendered-state tests;
 - production Vite build;
-- rendered desktop/mobile evidence for material UI changes;
 - adversarial identity, tenant, authority, replay and degraded-path tests;
-- representative performance/recovery evidence where cardinality or durability changes.
+- representative performance/recovery evidence when cardinality or durability changes.
 
-Do not describe a PR as CI-green when GitHub has not run the checks for the exact head.
+Never claim a branch or PR is CI-green based on an older commit.
