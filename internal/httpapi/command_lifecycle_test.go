@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -157,7 +158,7 @@ func TestUnrelatedCommandDoesNotRequireContinuityService(t *testing.T) {
 }
 
 func lifecycleRequest(matterID string) *http.Request {
-	r := httptest.NewRequest("POST", "/api/v1/matters/"+matterID, nil)
+	r := httptest.NewRequest(http.MethodPost, "/api/v1/matters/"+matterID, nil)
 	if matterID != "" {
 		r.SetPathValue("id", matterID)
 	}
