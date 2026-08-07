@@ -105,7 +105,7 @@ func TestVerificationClosureRequiresChronologyAuthorityAndIndependence(t *testin
 		ReviewerPrincipalID: "reviewer", ObservedAt: implementedAt.Add(30 * time.Minute), CreatedAt: implementedAt.Add(30 * time.Minute),
 	}
 	aggregate := MatterAggregate{
-		Matter: Matter{ID: "finding-1", TenantID: "bank", Type: MatterAuditFinding, Status: MatterVerification},
+		Matter:  Matter{ID: "finding-1", TenantID: "bank", Type: MatterAuditFinding, Status: MatterVerification},
 		Actions: []Action{action}, VerificationContracts: []VerificationContract{contract}, VerificationResults: []VerificationResult{premature},
 	}
 	if closure := assessClosureAt(aggregate, now); closure.Ready || !containsClosureReason(closure, "not yet valid") {
@@ -139,7 +139,7 @@ func TestRecordVerificationResultRejectsInvalidPassBeforePersistence(t *testing.
 	repo := NewMemoryRepository()
 	repo.matters["bank"] = map[string]MatterAggregate{
 		"matter-1": {
-			Matter: Matter{ID: "matter-1", TenantID: "bank", Type: MatterAuditFinding, Status: MatterVerification, Version: 4},
+			Matter:  Matter{ID: "matter-1", TenantID: "bank", Type: MatterAuditFinding, Status: MatterVerification, Version: 4},
 			Actions: []Action{{ID: "action-1", OwnerPrincipalID: "owner", Status: ActionImplemented, ImplementedAt: &implementedAt}},
 			VerificationContracts: []VerificationContract{{
 				ID: "contract-1", ActionID: "action-1", Status: VerificationActive,
