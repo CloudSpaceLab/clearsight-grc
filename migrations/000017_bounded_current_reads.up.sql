@@ -35,6 +35,41 @@ WHERE source.tenant_id=r.tenant_id
 CREATE INDEX response_packages_current_order_idx
     ON response_packages(tenant_id,matter_id,matter_version,id);
 
+-- Projection rows are written before their continuity event in the same
+-- transaction. Capture the authoritative aggregate sequence after that event
+-- lands so current reads never need to search the event log for ordering.
+CREATE OR REPLACE FUNCTION sync_continuity_current_order()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    record_id uuid;
+BEGIN
+    IF NEW.aggregate_type <> 'MATTER' OR NOT (NEW.payload ? 'id') THEN
+        RETURN NEW;
+    END IF;
+    record_id := NULLIF(NEW.payload->>'id','')::uuid;
+    IF record_id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    IF NEW.event_type = 'DECISION_ADDED' THEN
+        UPDATE matter_decisions
+        SET matter_version=NEW.aggregate_version
+        WHERE tenant_id=NEW.tenant_id AND matter_id=NEW.aggregate_id AND id=record_id;
+    ELSIF NEW.event_type IN ('RESPONSE_PACKAGE_ADDED','RESPONSE_PACKAGE_STATE_CHANGED') THEN
+        UPDATE response_packages
+        SET matter_version=NEW.aggregate_version
+        WHERE tenant_id=NEW.tenant_id AND matter_id=NEW.aggregate_id AND id=record_id;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER continuity_current_order_trg
+AFTER INSERT ON continuity_events
+FOR EACH ROW EXECUTE FUNCTION sync_continuity_current_order();
+
 -- A Matter Action owns domain truth. Its actor-facing Workflow Task is a
 -- projection, so one projection workflow is enough for each action.
 CREATE UNIQUE INDEX workflow_instances_matter_action_subject_idx
