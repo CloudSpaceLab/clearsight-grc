@@ -5,9 +5,10 @@
 **P1.1:** PR #34  
 **P1.2:** PR #35  
 **P1.3:** PR #36  
-**P1.4:** PR #38
+**P1.4:** PR #38  
+**P1.5:** PR #39
 
-This is the authoritative execution ledger. Product, design, architecture and enterprise-productization documents define requirements and target behavior; this file controls current implementation order and capability truth. Detailed completed-tranche rationale belongs in the linked architecture/review documents rather than being duplicated indefinitely here.
+This is the authoritative execution ledger. Product, design, architecture and enterprise-productization documents define requirements and target behavior; this file controls current implementation order and capability truth. Completed-tranche detail belongs in focused architecture/review documents rather than being duplicated indefinitely here.
 
 ## 1. Current sequence
 
@@ -23,7 +24,7 @@ This is the authoritative execution ledger. Product, design, architecture and en
 
 Issue #26 is closed. Lower-priority semantic and cleanup work moved to #32 and #33 rather than being hidden inside P0.
 
-### #32 P1 semantic/current-state correctness
+### #32 P1 semantic/current-state correctness — COMPLETE IN PRs #34–#39
 
 P1 is correctness-first rather than feature-first.
 
@@ -64,44 +65,64 @@ P1 is correctness-first rather than feature-first.
 
 See `docs/product/authority-routing-and-escalation.md`.
 
-#### P1.4 bounded current reads and explicit work projection — IMPLEMENTED IN PR #38
+#### P1.4 bounded current reads and explicit work projection — COMPLETE
 
 - [x] ordinary PostgreSQL Program/Matter detail no longer replays lifetime continuity-event history;
-- [x] `CurrentPostgresRepository` assembles current Program or Matter detail from normalized tables in one SQL projection query;
-- [x] supported dashboard lists remain the keyset-paginated Program/Matter summary endpoints;
-- [x] compatibility aggregate list paths are normalized/projection-backed rather than event-history-backed;
-- [x] event replay remains available for history, point-in-time audit and reconciliation;
-- [x] reconciliation tests compare normalized current state with reconstructed authoritative state;
+- [x] current Program or Matter detail is assembled from normalized tables in one SQL projection query;
+- [x] supported dashboard lists remain keyset-paginated summary endpoints;
+- [x] compatibility aggregate lists are normalized/projection-backed rather than event-history-backed;
+- [x] replay remains available for history, point-in-time audit and reconciliation;
+- [x] normalized current state is reconciled against authoritative reconstruction;
 - [x] query-depth tests prove one current-detail SQL call after more than thirty aggregate events;
-- [x] normalized Decision/Response rows materialize owning Matter event order through migration `000017_bounded_current_reads` rather than timestamp/UUID heuristics;
-- [x] Program detail and historical Program state expose the existing `projection_version` consistently;
-- [x] normalized Program-state JSON preserves `overall` rather than leaking the database-only `overall_state` name;
-- [x] replay advances aggregate `updated_at` from authoritative event order so current and reconstructed state agree;
-- [x] Matter Action remains accountable domain work; Workflow Task is an idempotent actor-facing projection produced from Matter Action outbox events;
-- [x] direct production HTTP Task create/transition routes are removed; Workflow Tasks are read projections at that boundary;
-- [x] nullable workflow deadlines remain nullable instead of receiving fabricated dates;
-- [x] deterministic reference journeys use one scenario clock for continuity and evidence validation.
+- [x] Decision/Response current order is materialized from owning Matter event order through migration `000017_bounded_current_reads`;
+- [x] Program detail/history preserve assessed Program version, `overall` and `projection_version`;
+- [x] replay advances aggregate `updated_at` from event order;
+- [x] Matter Action remains accountable domain work and Workflow Task remains an idempotent actor-facing projection;
+- [x] direct production HTTP Task create/transition routes are removed;
+- [x] nullable workflow deadlines remain nullable;
+- [x] deterministic reference journeys use one scenario clock.
 
 See `docs/architecture/current-read-and-work-projection-boundary.md`.
 
-#### P1.5 document-import resource, durability and paging hardening — NEXT
+#### P1.5 document-import durability/resource boundary — COMPLETE IN PR #39
 
-Required focus:
+- [x] PostgreSQL upload streams the original artifact into the configured object store before expensive extraction/analysis;
+- [x] a `PENDING` import receipt and `DocumentImportProcessingRequested` outbox event commit atomically before the request returns;
+- [x] restart/retry uses the existing outbox worker rather than a second document job/queue framework;
+- [x] API and worker share the configured artifact root so processing is not process-memory-dependent;
+- [x] OOXML extraction preflights archive-entry, aggregate expanded-size, unsafe-path and compression-ratio limits;
+- [x] CSV is row-streamed; XLSX worksheets/shared strings are token-streamed instead of full worksheet materialization;
+- [x] explicit worksheet, row, column, cell, per-cell, shared-string, retained-text, section and proposal budgets bound semantic materialization;
+- [x] structural/resource breaches fail extraction while retaining the original artifact;
+- [x] retained-source/proposal truncation exposes total/omitted counts and `content_truncated` rather than silently implying completeness;
+- [x] import collection reads use body-free summaries; section text/proposal bodies are detail-only;
+- [x] proposal review atomically updates one JSONB proposal element under the expected document version rather than rewriting the full proposal array in application code;
+- [x] selected pending imports poll until terminal without overlapping requests or false completion claims;
+- [x] hostile-file, cancellation, restart, duplicate-delivery, stale-review and rendered-state tests cover the boundary.
 
-- bounded upload/request size and parser/resource budgets;
-- durable import state and retry semantics rather than process-local assumptions;
-- deterministic proposal/review identity and idempotency;
-- bounded list/detail/proposal paging for large documents;
-- failure/restart recovery and malformed/adversarial document tests;
-- no second document/evidence/task pipeline where existing foundations are sufficient.
+See `docs/architecture/document-import-resource-and-durability-boundary.md`.
 
-P1.5 should begin only from the merged P1.4 main baseline.
+With PR #39 merged and exact-head validation green, issue #32 is complete and should close. Wider capacity tuning, malware scanning, distributed object storage and PDF/OCR adapters remain enterprise productization rather than hidden P1 blockers.
 
-### #33 P2 schema ownership and dead compatibility cleanup — AFTER P1
+### UI/UX foundation reconciliation — NEXT, BEFORE P2
 
-P2 owns cleanup that does not need to remain mixed into semantic P1 delivery, including:
+Rebase/reconcile the existing UI foundation work in PR #31 against the completed P1 contracts before beginning #33. Required merge gate:
+
+- [ ] no stale Program/Matter/document-import client assumptions after P1.4/P1.5;
+- [ ] Today and Workflow Task presentation respects the Matter Action → derived Task boundary;
+- [ ] Imports represents durable processing, failure, truncation and review truth;
+- [ ] current route/access contract and actor-specific authority semantics remain intact;
+- [ ] rendered accessibility/state evidence is regenerated on the reconciled exact head;
+- [ ] full backend and web CI is green on the exact merge head.
+
+Do not carry a stale UI branch into P2 and then patch around it. Merge the truthful foundation first.
+
+### #33 P2 schema ownership and dead compatibility cleanup — AFTER UI FOUNDATION MERGE
+
+P2 owns cleanup that should not remain mixed into semantic P1 delivery, including:
 
 - classification/removal of dead compatibility handlers and service methods;
+- durable table/projection/infrastructure ownership and maturity classification;
 - consolidation or removal of duplicated descriptive/client schema surfaces;
 - broad `api/openapi.yaml` ownership versus the mechanically verified executable `api/runtime.openapi.json` route/access contract;
 - generated/manual client duplication where deletion is safer than adding another framework.
@@ -122,7 +143,7 @@ These distinctions are mandatory:
 - **Automation Policy ≠ execution receipt.** Permission is not evidence that an action ran.
 - **Intervention Summary ≠ authoritative state.** It is a read projection over canonical records.
 
-Do not add parallel authorization, task, event, worker, receipt, document, or generic workflow stacks that duplicate these foundations.
+Do not add parallel authorization, task, event, worker, receipt, document or generic workflow stacks that duplicate these foundations.
 
 ## 3. Current executable truth
 
@@ -130,7 +151,7 @@ Do not add parallel authorization, task, event, worker, receipt, document, or ge
 
 `internal/httpapi/route_registry.go` is the canonical executable route inventory. `api/runtime.openapi.json` is its mechanically verified route/access/permission contract.
 
-Only the health routes are truly public. Bounded capture routes use capability access. Other protected routes require verified identity. Material commands resolve current authority at execution.
+Only health routes are truly public. Bounded capture routes use capability access. Other protected routes require verified identity. Material commands resolve current authority at execution.
 
 ### Current versus historical continuity reads
 
@@ -171,6 +192,18 @@ Matter Action
 
 A Workflow Task does not independently redefine whether the accountable Matter Action is planned, blocked, implemented or cancelled.
 
+### Document-import truth
+
+```text
+stored original
+→ PENDING import + transactional outbox request
+→ bounded worker extraction/analysis
+→ terminal import detail
+→ explicit human proposal review
+```
+
+A stored artifact is not an extracted artifact. Extracted text is not an exhaustive source when truncation/omission metadata says otherwise. A proposal is not an approved compliance conclusion.
+
 ## 4. Current Today and automation truth
 
 Non-demo Today projects active Workflow Tasks assigned to the verified principal. Completed/cancelled tasks are excluded. Unassigned/team work remains outside the principal-specific queue until routing/ownership resolves it.
@@ -179,7 +212,7 @@ Today does not fabricate recommendations, approvals or execution receipts from T
 
 `automation_policies` describes governed eligibility/configuration boundaries. A policy does not prove that an automated action ran, succeeded or was independently verified.
 
-## 5. Enterprise work after semantic P1
+## 5. Enterprise work after P1
 
 Detailed enterprise requirements remain in `docs/engineering/enterprise-productization-implementation-plan.md` and product/design specifications.
 
