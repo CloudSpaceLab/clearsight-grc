@@ -11,11 +11,12 @@ import (
 
 func TestInstallSampleRecoversPartialProgram(t *testing.T) {
 	ctx := context.Background()
-	continuityService := continuity.NewService(continuity.NewMemoryRepository())
-	evidenceService := evidence.NewService(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore())
+	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
+	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
+	evidenceService := evidence.NewServiceWithClock(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore(), func() time.Time { return now })
 	service := NewService(continuityService, evidenceService)
 	config := DemoSeedConfig()
-	config.Now = time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
+	config.Now = now
 	config = normalizeSeedConfig(config)
 
 	sourceIDs, err := service.seedSources(ctx, config)
@@ -61,11 +62,12 @@ func TestInstallSampleRecoversPartialProgram(t *testing.T) {
 
 func TestInstallSampleResumesPartiallyTransitionedMatter(t *testing.T) {
 	ctx := context.Background()
-	continuityService := continuity.NewService(continuity.NewMemoryRepository())
-	evidenceService := evidence.NewService(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore())
+	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
+	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
+	evidenceService := evidence.NewServiceWithClock(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore(), func() time.Time { return now })
 	service := NewService(continuityService, evidenceService)
 	config := DemoSeedConfig()
-	config.Now = time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
+	config.Now = now
 	config = normalizeSeedConfig(config)
 
 	sourceIDs, err := service.seedSources(ctx, config)
