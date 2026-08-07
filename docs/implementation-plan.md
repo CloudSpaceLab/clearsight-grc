@@ -3,7 +3,8 @@
 **Status date:** 2026-08-07  
 **P0 closure PR:** #30  
 **P1.1 implementation PR:** #34  
-**P1.2 implementation PR:** #35
+**P1.2 implementation PR:** #35  
+**P1.3 implementation PR:** #36
 
 This is the authoritative execution ledger. Product, design, architecture and enterprise-productization documents define requirements, but this file controls current implementation order and capability truth.
 
@@ -36,19 +37,30 @@ P1 is correctness-first rather than feature-first.
    - [x] stale last-known green snapshots render as `Updating status` and do not contribute to the UI current count;
    - [x] deterministic reference scenarios evaluate Program state and evidence-review steps at the state/simulation clock rather than process wall-clock time;
    - [x] PostgreSQL, memory and rendered-state tests cover temporal, multi-source, freshness, stale-projection and pause/resume behavior.
-2. **P1.2 Matter closure current-record truth — IMPLEMENTED IN PR #35**
-   - [x] current Decision is selected deterministically within each decision type; a later rejection/return/expiry/supersession cannot be bypassed by an older approval in that lineage;
-   - [x] Authority Request closure evaluates current response-package lineages rather than any favorable historical response;
+2. **P1.2 Matter closure current-record truth — IMPLEMENTED IN PR #35; adversarial fixes in PR #36**
+   - [x] current Decision is selected from authoritative append/event order within each decision type; equal wall-clock timestamps cannot reorder lifecycle truth;
+   - [x] a later rejection/return/expiry/supersession cannot be bypassed by an older approval in that lineage;
+   - [x] Regulatory Change closure cannot use an unrelated favorable decision to mask another adverse current decision type;
+   - [x] Authority Request closure requires every current response-package lineage to be coherently transmitted and acknowledged;
    - [x] expired exception authority cannot satisfy closure;
    - [x] conditional exception authority requires explicit structured condition resolution; free-text conditions are not treated as proof of satisfaction;
    - [x] latest verification PASS is revalidated at closure for assigned reviewer authority, action-owner independence, implementation chronology and observation-period completion;
    - [x] the same verification invariants are enforced when recording the result, so invalid future/premature/self-reviewed results cannot enter authoritative state;
    - [x] reference and integration producers use real implementation/contract chronology instead of fabricated future/past observations;
-   - [x] adversarial unit and PostgreSQL reconstruction tests cover approved→rejected history, expired/unresolved exception authority, withdrawn replacement response, premature/self review and valid independent PASS.
-3. **P1.3 lifecycle-specific command responsibility — NEXT**
-   - proposer/reviewer/challenger/authorizer/signatory/transmitter/acknowledgement responsibilities vary by requested transition rather than static command name.
-4. **P1.4 bounded ordinary reads and explicit work-model projection contracts.**
-   - includes remaining read-contract cleanup such as detail-level projection-version parity and deterministic as-of closure preview where needed.
+   - [x] adversarial unit and PostgreSQL reconstruction tests cover approved→rejected history, mixed decision types, multiple response lineages, expired/unresolved exception authority, withdrawn replacement response, premature/self review and valid independent PASS.
+3. **P1.3 lifecycle-specific command responsibility — IMPLEMENTED IN PR #36**
+   - [x] material command responsibility is derived after loading current Matter/Decision/Response state and the requested lifecycle target;
+   - [x] Decision stages resolve distinct `PROPOSER`, `REVIEWER`, `INDEPENDENT_CHALLENGER` and `AUTHORIZER` responsibilities;
+   - [x] Response stages resolve proposer/reviewer, `SIGNATORY`, `TRANSMITTER` and `ACKNOWLEDGEMENT_RECORDER` responsibilities;
+   - [x] close/cancel/decision-required and reopen-from-closed Matter transitions require current authorizer responsibility;
+   - [x] lifecycle validity is checked before authority execution, including when the authority guard is configured in audit/off mode;
+   - [x] Decision and Response current records retain stage-specific actor identities while the append-only event envelope remains the trusted actor source;
+   - [x] memory and replay reconstruct the same actor truth from event envelopes rather than trusting client actor fields;
+   - [x] migration `000016_lifecycle_command_responsibility` persists/backfills lifecycle actors and extends Decision lifecycle states with `IN_REVIEW` and `CHALLENGED`;
+   - [x] governance routing policies accept the new lifecycle responsibilities without adding a second authorization or workflow engine;
+   - [x] unit and PostgreSQL integration tests cover the responsibility matrix, invalid transitions, event-order currentness and persisted actor reconstruction.
+4. **P1.4 bounded ordinary reads and explicit work-model projection contracts — NEXT.**
+   - includes detail-level projection-version parity, deterministic as-of closure preview where needed, and removal/reconciliation of remaining duplicated or stale client/read contracts.
 5. **P1.5 document-import resource, durability and paging hardening.**
 
 Only after semantic/current-state correctness should wider #27 governed operator execution be treated as trustworthy execution rather than presentation.
@@ -151,7 +163,7 @@ The optional final read may degrade response detail; it may not reverse or misre
 - [x] CI fails when a production route is added/removed/reclassified without contract update;
 - [x] CI uses `npm ci` against `web/package-lock.json`.
 
-Generated browser transport types/client consolidation remains a later custom-code deletion opportunity.
+The broad descriptive `api/openapi.yaml` is not the executable access contract. Remaining payload-schema/client duplication, including lifecycle enum reconciliation, is tracked in P1.4 rather than being treated as authorization truth.
 
 ### Effective authority convergence
 
@@ -227,19 +239,20 @@ A stale last-known `CURRENT` snapshot is rendered as **Updating status**, counte
 
 ## 5. P1.2 Matter closure current-record truth
 
-Matter closure now evaluates current authoritative state rather than searching history for any favorable record.
+Matter closure evaluates current authoritative state rather than searching history for any favorable record.
 
 ### Decisions and exceptions
 
-- Decisions are reduced to one current record per normalized decision type using decision/update time with a deterministic ID tie-breaker.
+- Decision histories are maintained in authoritative append/event order; the last record for each normalized decision type is current even when lifecycle changes share a timestamp.
 - A rejected, returned, expired or superseded current decision cannot be bypassed by an older approval in that lineage.
-- Regulatory Change closure requires current approved decision authority; `NO_CHANGE_REQUIRED` remains the explicit path that does not require implementation/outcome evidence.
+- Regulatory Change closure fails if any current decision type remains adverse; another favorable current decision cannot mask it.
+- `NO_CHANGE_REQUIRED` remains the explicit path that does not require implementation/outcome evidence, but only when current decision state is otherwise resolved.
 - Exception closure requires current, unexpired authority or an explicitly resolved structured condition set.
 - Free-text condition descriptions are obligations, not evidence that the conditions were satisfied.
 
 ### Responses
 
-Authority Request closure uses current Response Package lineages by purpose/audience. A later withdrawn/rejected replacement in the same lineage invalidates historical acknowledgement. Qualifying acknowledgement must be recorded at/after transmission.
+Authority Request closure uses current Response Package lineages by purpose/audience. Every current lineage must be transmitted and acknowledged coherently; one favorable lineage cannot hide another draft/rejected/withdrawn response. A later replacement in the same lineage supersedes historical acknowledgement. Qualifying acknowledgement must be recorded at/after transmission.
 
 ### Verification
 
@@ -256,7 +269,40 @@ These rules execute both when recording the verification result and again when e
 
 Reference/demo data and integration fixtures use the same chronology; they are not allowed to seed logically impossible PASS results.
 
-## 6. Current Today and automation truth
+## 6. P1.3 lifecycle-specific command responsibility
+
+Material authorization is now a function of the **current record plus the requested lifecycle transition**, not only the route/command name.
+
+### Decision lifecycle
+
+- `PROPOSED` → proposer responsibility;
+- `IN_REVIEW` or `RETURNED` → reviewer responsibility;
+- `CHALLENGED` → independent challenger responsibility;
+- `APPROVED`, `CONDITIONALLY_APPROVED`, `REJECTED`, `EXPIRED` or `SUPERSEDED` → authorizer responsibility.
+
+The current Decision lifecycle is validated before authority execution. The verified command actor is stored in the stage-specific current record (`proposed_by`, `reviewed_by`, `challenged_by`, or `authority_principal_id`) and in the append-only event envelope.
+
+### Response lifecycle
+
+- preparation/rework and ordinary withdrawal resolve proposer responsibility where appropriate;
+- review/rejection resolve reviewer responsibility;
+- approval and withdrawal of an approved package resolve signatory responsibility;
+- transmission resolves transmitter responsibility;
+- acknowledgement recording resolves acknowledgement-recorder responsibility.
+
+`prepared_by`, `reviewed_by`, `rejected_by`, `withdrawn_by`, `approved_by`, `transmitted_by`, and `acknowledged_by` preserve who actually performed each lifecycle step. Historical records are backfilled/reconstructed from `continuity_events.actor_id`, which is the trusted actor source rather than a client-provided identity field.
+
+### Matter lifecycle
+
+Transitions into `DECISION_REQUIRED`, `CLOSED` or `CANCELLED`, plus reopening a closed Matter, require current authorizer responsibility. Ordinary progression remains owned/performed according to the existing command matrix.
+
+### Configuration and compatibility
+
+Routing policies may now target `PROPOSER`, `REVIEWER`, `INDEPENDENT_CHALLENGER`, `AUTHORIZER`, `SIGNATORY`, `TRANSMITTER`, `ACKNOWLEDGEMENT_RECORDER`, performer/owner and escalation responsibilities. Existing direct-approved internal/reference data remains compatible; production HTTP decision commands use the lifecycle-aware path.
+
+No parallel RBAC, workflow, receipt, event or lifecycle engine was introduced.
+
+## 7. Current Today and automation truth
 
 ### Today
 
@@ -272,7 +318,7 @@ Today is not yet the complete event-driven intervention compiler envisioned by #
 
 Those claims require a real governed executor and persisted execution/verification evidence.
 
-## 7. Enterprise work after semantic P1
+## 8. Enterprise work after semantic P1
 
 Detailed enterprise requirements remain in `docs/engineering/enterprise-productization-implementation-plan.md` and product/design specifications.
 
@@ -289,7 +335,7 @@ Major later gates include:
 - backup/restore/provider-outage exercises;
 - pilot-bank legal/configuration approval and governed go-live.
 
-## 8. Release and validation rules
+## 9. Release and validation rules
 
 Checkboxes describe repository capability, not deployment readiness.
 
