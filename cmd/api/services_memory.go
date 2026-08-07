@@ -17,6 +17,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
@@ -90,6 +91,6 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		Capture: capture.NewService(requests), Invitations: capture.NewInvitationService(time.Now), Evidence: evidenceService,
 		DocumentImports: documentService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
-		Autonomy: auto, BankVerticals: verticals, Close: func() {},
+		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo), Close: func() {},
 	}, nil
 }
