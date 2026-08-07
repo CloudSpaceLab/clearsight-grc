@@ -30,7 +30,10 @@ func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Tas
 		 AND wi.subject_type='MATTER_ACTION'
 		 AND ma.tenant_id=wi.tenant_id
 		 AND ma.id=wi.subject_id
-		LEFT JOIN matters m ON m.tenant_id=ma.tenant_id AND m.id=ma.matter_id
+		LEFT JOIN matters m ON m.tenant_id=wi.tenant_id AND (
+		  (wi.kind='MATTER_ACTION' AND m.id=ma.matter_id) OR
+		  (wi.kind='MATTER_LIFECYCLE' AND wi.subject_type='MATTER' AND m.id=wi.subject_id)
+		)
 		WHERE (t.slug=$1 OR t.id::text=$1)
 		  AND ($2='' OR wt.principal_id::text=$2)
 		  AND ($3='' OR wt.status=$3)
@@ -39,7 +42,7 @@ func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Tas
 		  AND (
 		    NOT $6::boolean OR
 		    CASE
-		      WHEN m.id IS NULL THEN false
+		      WHEN wi.kind NOT IN ('MATTER_ACTION','MATTER_LIFECYCLE') OR m.id IS NULL THEN false
 		      WHEN NOT (m.scope ? 'access') THEN true
 		      WHEN upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL') THEN true
 		      WHEN upper(btrim(m.scope->>'access'))='RESTRICTED' THEN
@@ -72,7 +75,7 @@ func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Tas
 		  wt.id ASC
 		LIMIT $7`,
 		filter.TenantID, filter.PrincipalID, string(filter.Status), filter.WorkflowKind,
-		filter.ActiveOnly, filter.VisibleMatterActionsOnly, filter.Limit,
+		filter.ActiveOnly, filter.VisibleMatterWorkOnly, filter.Limit,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list workflow tasks: %w", err)
