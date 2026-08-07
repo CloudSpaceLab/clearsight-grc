@@ -111,6 +111,10 @@ func (a *API) listWorkflowTasks(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if tenantID != actor.TenantID {
+		httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This request is outside your signed-in bank scope.")
+		return
+	}
 	if requested := strings.TrimSpace(r.URL.Query().Get("principal_id")); requested != "" && requested != actor.PrincipalID {
 		httpx.WriteError(w, http.StatusForbidden, "principal_not_allowed", "This request is outside your signed-in user scope.")
 		return
@@ -121,7 +125,7 @@ func (a *API) listWorkflowTasks(w http.ResponseWriter, r *http.Request) {
 	}
 	status := workflow.Status(strings.TrimSpace(r.URL.Query().Get("status")))
 	values, err := a.deps.Workflow.List(r.Context(), workflow.ListFilter{
-		TenantID: actor.TenantID, PrincipalID: actor.PrincipalID, Status: status,
+		TenantID: tenantID, PrincipalID: actor.PrincipalID, Status: status,
 		ActiveOnly: status == "", VisibleMatterWorkOnly: true, Limit: limit,
 	})
 	if err != nil {
