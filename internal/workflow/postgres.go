@@ -36,12 +36,33 @@ func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Tas
 		  AND ($3='' OR wt.status=$3)
 		  AND ($4='' OR wi.kind=$4)
 		  AND (NOT $5::boolean OR wt.status NOT IN ('COMPLETED','CANCELLED'))
+		  AND (
+		    NOT $6::boolean OR
+		    CASE
+		      WHEN m.id IS NULL THEN false
+		      WHEN NOT (m.scope ? 'access') THEN true
+		      WHEN upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL') THEN true
+		      WHEN upper(btrim(m.scope->>'access'))='RESTRICTED' THEN
+		        CASE
+		          WHEN jsonb_typeof(m.scope->'allowed_principal_ids')='array' THEN EXISTS (
+		            SELECT 1
+		            FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') AS allowed(value)
+		            WHERE btrim(allowed.value)=$2
+		          )
+		          ELSE false
+		        END
+		      ELSE false
+		    END
+		  )
 		ORDER BY
 		  CASE WHEN $5::boolean THEN wt.due_at IS NULL ELSE false END ASC,
 		  CASE WHEN $5::boolean THEN wt.due_at END ASC NULLS LAST,
 		  wt.updated_at DESC,
 		  wt.id ASC
-		LIMIT $6`, filter.TenantID, filter.PrincipalID, string(filter.Status), filter.WorkflowKind, filter.ActiveOnly, filter.Limit)
+		LIMIT $7`,
+		filter.TenantID, filter.PrincipalID, string(filter.Status), filter.WorkflowKind,
+		filter.ActiveOnly, filter.VisibleMatterActionsOnly, filter.Limit,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("list workflow tasks: %w", err)
 	}
