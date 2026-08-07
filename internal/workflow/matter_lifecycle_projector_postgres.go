@@ -46,12 +46,15 @@ func (p *MatterLifecycleProjector) Publish(ctx context.Context, event workflowru
 	if p == nil || p.Repo == nil || p.Continuity == nil || p.Authority == nil || event.AggregateType != "MATTER" {
 		return nil
 	}
+	// Delayed delivery must converge against current authority, not historical
+	// event-time routing.
 	return p.ReconcileMatter(ctx, event.TenantID, event.AggregateID, p.currentTime())
 }
 
-// Maintain provides bounded convergence when authority/delegation changes
-// without a Matter event and backfills work after worker restart. It pages the
-// canonical Matter population instead of treating Workflow rows as truth.
+// Maintain reconciles only Matters that can currently yield executable
+// lifecycle work, plus Matters with an existing lifecycle projection that may
+// need reassignment or cleanup. Ambiguous compiler output does not create Task
+// rows and therefore does not turn Workflow into a shadow lifecycle register.
 func (p *MatterLifecycleProjector) Maintain(ctx context.Context, now time.Time, limit int) (int, error) {
 	if p == nil || p.Repo == nil || p.Continuity == nil || p.Authority == nil {
 		return 0, nil
@@ -74,10 +77,40 @@ func (p *MatterLifecycleProjector) Maintain(ctx context.Context, now time.Time, 
 		FROM matters m
 		JOIN tenants t ON t.id=m.tenant_id
 		WHERE ($1='' OR (t.slug,m.id::text) > ($1,$2))
+		  AND m.status NOT IN ('CLOSED','CANCELLED')
+		  AND (
+		    EXISTS (
+		      SELECT 1 FROM workflow_instances wi
+		      WHERE wi.tenant_id=m.tenant_id AND wi.kind=$4
+		        AND wi.subject_type='MATTER' AND wi.subject_id=m.id
+		    )
+		    OR EXISTS (
+		      SELECT 1 FROM response_packages rp
+		      WHERE rp.tenant_id=m.tenant_id AND rp.matter_id=m.id
+		        AND rp.status IN ('TRANSMITTED','REJECTED')
+		    )
+		    OR EXISTS (
+		      SELECT 1
+		      FROM verification_contracts vc
+		      LEFT JOIN matter_actions ma
+		        ON ma.tenant_id=vc.tenant_id AND ma.id=vc.action_id
+		      WHERE vc.tenant_id=m.tenant_id AND vc.matter_id=m.id AND vc.status='ACTIVE'
+		        AND NOT EXISTS (
+		          SELECT 1 FROM verification_results vr
+		          WHERE vr.tenant_id=vc.tenant_id AND vr.contract_id=vc.id
+		        )
+		        AND (
+		          (vc.action_id IS NULL AND vc.created_at + make_interval(mins=>vc.observation_period_minutes) <= $3)
+		          OR
+		          (vc.action_id IS NOT NULL AND ma.status='IMPLEMENTED' AND ma.implemented_at IS NOT NULL
+		           AND GREATEST(vc.created_at,ma.implemented_at) + make_interval(mins=>vc.observation_period_minutes) <= $3)
+		        )
+		    )
+		  )
 		ORDER BY t.slug,m.id::text
-		LIMIT $3`, cursorTenant, cursorMatter, limit)
+		LIMIT $5`, cursorTenant, cursorMatter, now, MatterLifecycleWorkflowKind, limit)
 	if err != nil {
-		return 0, fmt.Errorf("list matters for work reconciliation: %w", err)
+		return 0, fmt.Errorf("list Matters for lifecycle work reconciliation: %w", err)
 	}
 	defer rows.Close()
 
@@ -106,7 +139,7 @@ func (p *MatterLifecycleProjector) Maintain(ctx context.Context, now time.Time, 
 			return len(targets), ctx.Err()
 		}
 		if err := p.ReconcileMatter(ctx, target.tenant, target.matter, now); err != nil {
-			reconcileErrors = append(reconcileErrors, fmt.Errorf("reconcile matter %s/%s: %w", target.tenant, target.matter, err))
+			reconcileErrors = append(reconcileErrors, fmt.Errorf("reconcile Matter %s/%s: %w", target.tenant, target.matter, err))
 		}
 	}
 	last := targets[len(targets)-1]
@@ -134,8 +167,8 @@ func (p *MatterLifecycleProjector) ReconcileMatter(ctx context.Context, tenant, 
 		}
 		return err
 	}
-	requirements, ambiguities := continuity.CompileMatterWork(aggregate, at)
-	if len(requirements) == 0 && len(ambiguities) == 0 {
+	requirements, _ := continuity.CompileMatterWork(aggregate, at)
+	if len(requirements) == 0 {
 		return p.completeMatterWorkflow(ctx, tenant, matterID, at)
 	}
 
@@ -144,16 +177,13 @@ func (p *MatterLifecycleProjector) ReconcileMatter(ctx context.Context, tenant, 
 		return err
 	}
 
-	projected := make([]projectedMatterWork, 0, len(requirements)+len(ambiguities))
+	projected := make([]projectedMatterWork, 0, len(requirements))
 	for _, requirement := range requirements {
 		item, err := p.resolveRequirement(ctx, aggregate, requirement, legalEntity, legalEntityState, at)
 		if err != nil {
 			return err
 		}
 		projected = append(projected, item)
-	}
-	for _, ambiguity := range ambiguities {
-		projected = append(projected, projectAmbiguity(aggregate, ambiguity))
 	}
 	return p.syncMatterWorkflow(ctx, aggregate, projected, at)
 }
@@ -251,28 +281,6 @@ func baseRequirementContext(aggregate continuity.MatterAggregate, requirement co
 		values["evidence"] = requirement.Verification.EvidenceState
 	}
 	return values
-}
-
-func projectAmbiguity(aggregate continuity.MatterAggregate, ambiguity continuity.WorkAmbiguity) projectedMatterWork {
-	return projectedMatterWork{
-		Key:            ambiguity.Key,
-		Responsibility: "UNRESOLVED",
-		Title:          ambiguity.Title,
-		Status:         StatusBlocked,
-		DueAt:          aggregate.Matter.DueAt,
-		Context: map[string]string{
-			"type":                 "MATTER_WORK",
-			"matter_id":            aggregate.Matter.ID,
-			"work_requirement_key": ambiguity.Key,
-			"routing_status":       "AMBIGUOUS_TRANSITION",
-			"why_now":              ambiguity.Reason,
-			"material_conclusion":  ambiguity.Reason,
-			"subresource_type":     ambiguity.SubresourceType,
-			"subresource_id":       ambiguity.SubresourceID,
-			"allowed_targets":      strings.Join(ambiguity.AllowedTargets, ","),
-			"scope":                firstMatterLabel(aggregate.Matter.Reference, aggregate.Matter.Title),
-		},
-	}
 }
 
 func uniqueAuthorityPrincipals(resolution authority.Resolution) []authority.Principal {
