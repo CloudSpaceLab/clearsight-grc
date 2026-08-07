@@ -22,7 +22,7 @@ type Task struct {
 	PrincipalID    string            `json:"principal_id,omitempty"`
 	Title          string            `json:"title"`
 	Status         Status            `json:"status"`
-	DueAt          time.Time         `json:"due_at,omitempty"`
+	DueAt          *time.Time        `json:"due_at,omitempty"`
 	ClaimedAt      *time.Time        `json:"claimed_at,omitempty"`
 	CompletedAt    *time.Time        `json:"completed_at,omitempty"`
 	Context        map[string]string `json:"context,omitempty"`
@@ -38,7 +38,7 @@ type CreateInput struct {
 	Responsibility string            `json:"responsibility"`
 	PrincipalID    string            `json:"principal_id,omitempty"`
 	Title          string            `json:"title"`
-	DueAt          time.Time         `json:"due_at,omitempty"`
+	DueAt          *time.Time        `json:"due_at,omitempty"`
 	Context        map[string]string `json:"context,omitempty"`
 }
 
