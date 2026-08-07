@@ -57,10 +57,7 @@ const request: CaptureRequest = {
 };
 
 async function expectNoSemanticViolations(container: HTMLElement) {
-  const results = await axe.run(container, {
-    // jsdom cannot measure visual contrast; rendered contrast remains a separate evidence gate.
-    rules: { "color-contrast": { enabled: false } },
-  });
+  const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
   expect(results.violations.map((violation) => violation.id)).toEqual([]);
 }
 
@@ -77,8 +74,8 @@ describe("semantic accessibility gates", () => {
   it("passes axe for the final capture assertion review", async () => {
     const { container } = render(<CapturePanel request={request}/>);
     fireEvent.change(screen.getByRole("textbox", { name: /Current accountable owner/ }), { target: { value: "Ada Okafor" } });
-    fireEvent.click(screen.getByRole("button", { name: "Review response" }));
-    expect(screen.getByRole("heading", { name: "Confirm the assertions you are submitting" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
+    expect(screen.getByRole("heading", { name: "Check your response" })).toBeTruthy();
     await expectNoSemanticViolations(container);
   });
 
