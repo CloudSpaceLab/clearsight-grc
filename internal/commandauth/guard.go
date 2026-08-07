@@ -108,12 +108,12 @@ func (g *Guard) Authorize(ctx context.Context, request Request) (Decision, error
 		return g.reject(decision, fmt.Errorf("%w: %v", ErrNotAuthorized, err))
 	}
 	decision.Resolution = &resolution
-	if resolution.Principal.ID != actor.PrincipalID {
-		decision.Reason = "the current authority route selects a different person"
+	if !resolution.AllowsPrincipal(actor.PrincipalID) {
+		decision.Reason = "the signed actor is not in the current effective authority candidate set"
 		return g.reject(decision, ErrNotAuthorized)
 	}
 	decision.Allowed = true
-	decision.Reason = "the signed actor matches the current authority route"
+	decision.Reason = "the signed actor belongs to the current effective authority route"
 	return decision, nil
 }
 
