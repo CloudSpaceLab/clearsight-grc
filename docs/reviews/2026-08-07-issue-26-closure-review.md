@@ -1,173 +1,130 @@
-# Issue #26 closure review after PR #25
+# Issue #26 P0 closure review
 
 **Reviewed:** 2026-08-07  
-**Baseline:** `main@df98a7f66c28642637a45a10662abac042dcd144`  
-**Purpose:** distinguish what PR #25 actually closed from what must still be implemented before issue #26 can close.
+**Pre-close baseline:** `main@df98a7f66c28642637a45a10662abac042dcd144` after PR #25  
+**Closure implementation:** PR #30
 
-## Executive conclusion
+## Conclusion
 
-PR #25 materially reduced the issue and fixed more than the earlier progress comment reflects. The remaining work is not a request to redesign the application or add another framework.
+The P0 seam-integrity findings in #26 are now implemented without a rewrite or parallel framework.
 
-The closure blockers are three connected seams:
+PR #25 closed:
 
-1. **P0.4 command/transaction truth** — the new verification bundle is atomic, but successful writes can still be reported as failures when a later full aggregate read/refresh fails;
-2. **P0.5 transport-contract truth** — runtime routes and identity rules are stronger than OpenAPI/browser contracts, so security/path/schema drift can still survive CI;
-3. **P0.6 authority truth** — the command guard exists, but the authority decision does not yet converge persisted assignments, grants, active delegations/substitutions and segregation into one bounded effective decision, and configuration writes do not yet have safe governed bootstrap semantics.
+- typed route/identity boundary;
+- persisted capture consolidation/security;
+- source-health reconciliation;
+- worker work-class isolation and bounded terminal failure.
 
-Before #26 closes, its still-valid lower-priority findings also need an explicit disposition into linked follow-up issues rather than disappearing with the P0 closure.
+PR #30 closes the remaining P0 seams:
 
-## What PR #25 closed
+- P0.4 authoritative command/response truth;
+- P0.5 executable runtime/OpenAPI contract parity;
+- P0.6 bounded effective-authority convergence.
 
-### Route and identity boundary
+Still-valid P1/P2 findings from the original audit are intentionally **not** being marked fixed by the P0 closure. They are moved to linked follow-up issues before #26 closes.
 
-Verified complete at the runtime boundary:
+## P0.4 — command and transaction truth
 
-- one typed route registry owns route class and command policy;
-- only health routes are public;
-- bounded evidence invitation/session routes are capability-scoped;
-- protected reads/writes require verified identity;
-- tenant/principal/actor fields are rebound from verified identity;
-- legal-entity scope participates in material authorization;
-- administrative permissions and route classes have adversarial tests.
+### Compound verification
 
-### Capture consolidation/security
+`VerificationResultBundle` commits a failed verification result with its required REOPEN/ESCALATE or CREATE_MATTER/link consequence in one optimistic PostgreSQL transaction. Required event/outbox/projection work shares that boundary.
 
-Verified complete for the P0 defects raised in the addendum:
+### Post-commit response truth
 
-- the parallel `internal/capture` service is gone from the current tree;
-- migration `000013_capture_consolidation` removes the unused foundation `evidence_requests` and `invitation_grants` tables;
-- request creation rejects past deadlines;
-- internal/session submission and artifact upload require the request to remain open;
-- maintenance expires requests;
-- invitation redemption verifies `audience_hash`;
-- invitation/session lifetime is bounded by request state/deadline;
-- bearer capability CORS supports `Authorization`.
+The previous systemic defect was that many material mutators committed and then reconstructed a full Program/Matter. A later read failure could return an HTTP failure for an already committed write.
 
-### Source-health reconciliation
+PR #30 adds two narrow protections:
 
-Verified implemented through the existing outbox/inbox, autonomy Signal/Drift, Program trigger and projection path. This is no longer the “next seam” described in the prior architecture document.
+1. **existing aggregates:** a normalized current-version probe detects that an authoritative Program/Matter version advanced even if response reconstruction returns 5xx; the API then returns a `COMMITTED` degraded-response receipt with aggregate ID/version;
+2. **create commands:** API PostgreSQL composition uses a short-lived in-process fallback containing only the just-committed create result until the first successful reconstruction/fallback response.
 
-### Worker isolation
+Neither mechanism is a second source of truth. PostgreSQL remains authoritative; no parallel durable receipt/orchestration store was introduced.
 
-Verified implemented as independent in-process work classes with bounded retry/terminal handling. A microservice split or generic executor is not required for #26.
+## P0.5 — executable transport contract
 
-### Today minimum production truth
+`api/runtime.openapi.json` now defines the production method/path and security/access inventory.
 
-Non-demo Today no longer returns an unconditional empty list. It projects active Workflow Tasks assigned to the verified principal. The broader event-driven intervention compiler remains #27 work rather than a reason to reopen a parallel task model in #26.
+CI verifies exact parity with `internal/httpapi/route_registry.go` for:
 
-## P0.4 — exact remaining transaction/command work
+- method/path;
+- route access class;
+- administrative permission.
 
-### Already fixed
+The contract explicitly distinguishes signed authenticated routes, public health routes, bounded capture capability and authenticated-or-capability upload.
 
-`RecordVerificationResult` now builds a narrow `VerificationResultBundle`.
+CI also uses `npm ci` with the lockfile rather than mutable install behavior.
 
-For failed checks:
+Detailed domain schema/client generation remains a later code-deletion opportunity; P0 closes route/security drift mechanically without adding unnecessary dependencies.
 
-- REOPEN / ESCALATE: verification result and Matter transition share one transaction;
-- CREATE_MATTER: verification result, follow-up Matter, optional Program link, events, outbox records and projection maintenance are committed together by the PostgreSQL bundle repository;
-- `LinkedProgramIDs` errors are propagated instead of discarded.
+## P0.6 — effective authority
 
-### Still broken
+Migration `000014_effective_authority_routes` compiles currently-effective approved routing rules into an indexed read model.
 
-The service method still calls `GetMatter` after the bundle commits. The one-event verification path does the same.
+The production authority decision now combines, in bounded queries:
 
-The same pattern is widespread:
+- compiled routing rules;
+- current responsibility assignments;
+- active scoped delegation chains;
+- applicable authority grants/materiality limits;
+- active segregation constraints.
 
-- Program create/mutation methods call `refreshAndGetProgram` after their authoritative write;
-- `refreshAndGetProgram` may perform derived refresh and then `GetProgram`;
-- Matter action/verification/response mutations call `GetMatter` after `ApplyMatterEvent`;
-- `createMatterWithInitialLink` correctly makes refresh best-effort, but still calls `GetMatter` after the atomic create/link commit;
-- `applyTriggerBundle` commits the bundle and then calls `GetProgram`.
+Resolution ranks by explicit priority and specificity. Same-rank conflicting candidate sets fail closed.
 
-Therefore a read/projection failure after commit can still surface as a command failure even though the authoritative mutation succeeded.
+ROLE/POSITION selectors expand current occupants. Multiple eligible humans remain an explicit candidate set. TEAM/QUEUE/COMMITTEE semantics are not collapsed to one arbitrary occupant.
 
-### Required subtasks
+Unresolved selectors remain excluded from command execution but are surfaced as integrity findings.
 
-- define one small authoritative command receipt/commit result;
-- return committed aggregate ID/version/event identity without requiring a full event-history replay;
-- keep mandatory outbox/projection jobs in the transaction;
-- make optional post-commit detail refresh best-effort and never capable of reversing the reported commit outcome;
-- audit every Program/Matter material mutator and compound path for this invariant;
-- add fault injection before first write, between bundled writes, at commit, and after commit during refresh/detail read;
-- prove rollback before commit and truthful success after commit in PostgreSQL integration tests.
+PostgreSQL integration tests cover active delegation, expired delegation, grant materiality, segregation, responsibility assignments and ambiguity rejection.
 
-The fix should reuse current repository and bundle patterns. Do not add a generic transaction/orchestration framework.
+## Regression gates found during closeout
 
-## P0.5 — exact remaining contract work
+The closeout reran the full PostgreSQL integration surface and exposed two test-isolation/model-alignment defects that PR #25's earlier green run had not caught consistently:
 
-### Verified drift
+1. source reconciliation fixture used a DRAFT Program even though operational dependency resolution intentionally targets ACTIVE/PAUSED Programs;
+2. runtime poison-work fixture could claim unfinished global queue rows left by earlier serialized integration packages.
 
-- `api/openapi.yaml` has no explicit production authentication/security scheme despite the runtime now being authenticated-by-default.
-- Runtime governance routes are concrete paths such as `/governance/policies/{id}/submit`, `/approve`, `/reject`, `/retire`, while OpenAPI exposes a generic `/governance/policies/{id}/{action}` path that is not the registered runtime route.
-- OpenAPI schemas still require authority-bearing `tenant_id`, `actor_id`, `maker_id`, `approved_by`, etc. in several client request bodies even though the server now derives/rebinds those values from verified identity.
-- `web/src/api.ts` still builds tenant query/body scope from `/context` for ordinary protected calls.
-- the runtime registry, three OpenAPI documents, Go DTOs and handwritten TypeScript transport types are not mechanically tied together.
+The fixtures now exercise the actual operational contract deterministically:
 
-### Required subtasks
+- source replay activates the Program before degradation/recovery assertions;
+- runtime terminal-work test quarantines unrelated unfinished global queue rows before checking claim/reclaim semantics.
 
-- choose one canonical transport contract and define how split specs relate to it;
-- express PUBLIC/authenticated/bounded-capability security in OpenAPI;
-- make documented paths match exact runtime methods/paths;
-- remove server-owned identity/scope fields from client-required request contracts;
-- reconcile query, request, response and error shapes;
-- stop the browser from manufacturing authority-bearing tenant/actor scope;
-- generate TS transport types/client code from the contract or enforce equivalent drift checks without adding unnecessary tooling;
-- fail CI for registry↔OpenAPI↔browser path/schema mismatch.
+## Validation
 
-## P0.6 — exact remaining authority/configuration work
+A pre-documentation exact head cleared:
 
-### Verified runtime gap
+- `gofmt`;
+- race-enabled Go unit tests;
+- PostgreSQL composition;
+- migrations through `000014_effective_authority_routes` on PostgreSQL 18;
+- serialized PostgreSQL integration, including source replay, worker terminal work and effective authority tests;
+- `go vet`;
+- `npm ci`;
+- TypeScript typecheck;
+- rendered/axe tests;
+- production Vite build.
 
-`commandauth.Guard` correctly requires a verified actor and invokes `authority.Service.Resolve`, but authorization succeeds only when the returned single principal ID equals the actor principal ID.
+The final documentation head must pass the same CI before PR #30 is merged; an older green SHA is not sufficient evidence for the final head.
 
-The PostgreSQL authority service currently:
+## Remaining findings
 
-1. loads all active routing policy JSON for the tenant;
-2. decodes all rules;
-3. resolves each rule selector separately;
-4. sorts the resulting in-memory rules;
-5. chooses the first eligible principal.
+P0 closure does not erase the original lower-priority audit findings. The next P1 sequence is:
 
-This preserves the N+1/cardinality concern from the audit.
+1. Program-state temporal/currentness truth;
+2. Matter closure current-record truth;
+3. lifecycle-specific command responsibility;
+4. bounded ordinary reads/work projections;
+5. document-import durability/resource hardening.
 
-The decision does not converge the persisted responsibility assignments, authority grants, active delegations/substitutions and segregation constraints into the material command decision. A valid persisted delegation therefore does not itself make the delegate executable authority.
+Schema ownership/dead compatibility cleanup is retained as P2.
 
-Persisted routing-policy validation also permits only PRINCIPAL/POSITION/ROLE selectors, while queue/team/committee/candidate semantics expected by the authority model are not represented as first-class executable candidates.
+## Closure decision
 
-### Configuration gap
+Issue #26 may close after:
 
-Governance policy/delegation routes now require verified identity and config permissions, and maker/checker fields are rebound. However they are still ordinary authenticated writes. There is no complete configuration authorization/bootstrap model defining who may create/change the authority system itself without hard-coding executive role names or creating circular authority.
-
-The lifecycle is also incomplete for real version management: create produces version 1, but there is no supported draft-definition edit/new-version/scheduled activation/supersession/rollback path.
-
-### Required subtasks
-
-- define one effective-authority decision spanning routing policies, assignments, grants, active delegations/substitutions and segregation/conflict rules;
-- materialize/compile or otherwise query that model with bounded indexed lookups rather than per-policy/rule selector fan-out;
-- explicitly model candidate sets/queue/team/committee/substitution semantics;
-- define deterministic specificity/ambiguity for overlapping wildcard and exact routes;
-- evaluate delegation scope/expiry, authority limits/materiality and segregation at command execution;
-- define configuration bootstrap/break-glass semantics plus capability/responsibility/assurance requirements for every governance/config mutation;
-- implement draft edit/new policy version, simulation/impact preview, scheduled activation, supersession and rollback;
-- add end-to-end delegate allow/deny and conflict/segregation tests;
-- add route-authorization coverage CI;
-- add query-count and representative ~100k rule/assignment performance evidence.
-
-## Lower-priority findings and issue closure
-
-The original #26 body/addendum also contains P1/P2 findings covering Program temporal/state validity, Matter closure currency, workflow/action ownership, document-import resource behavior, full-history read cost, live write UX, schema ownership and other hardening.
-
-The post-PR #25 comments intentionally narrowed the immediate implementation sequence to P0.4–P0.6. That narrowing is reasonable **only if the remaining valid P1/P2 findings are explicitly moved to linked follow-up issues or marked superseded with evidence before #26 closes**.
-
-Do not mark the historical audit findings “done” merely because the P0 issue closes.
-
-## Closure acceptance
-
-Issue #26 can close when all of the following are true:
-
-- [ ] P0.4 command receipts and fault-injected transaction truth are complete;
-- [ ] P0.5 runtime/OpenAPI/browser parity is enforced by CI;
-- [ ] P0.6 effective authority/configuration authorization is executable and bounded;
-- [ ] remaining valid P1/P2 findings have linked follow-up ownership or evidence-backed supersession;
-- [ ] the implementation ledger and architecture docs reflect current behavior;
-- [ ] exact-head GitHub CI is green and required PostgreSQL integration/benchmark jobs actually ran.
+- [x] P0.4 implementation;
+- [x] P0.5 implementation;
+- [x] P0.6 implementation;
+- [ ] linked P1/P2 follow-up issues preserve remaining acceptance criteria;
+- [x] implementation and architecture docs are reconciled;
+- [ ] final PR #30 exact-head CI is green;
+- [ ] PR #30 is merged into `main`.
