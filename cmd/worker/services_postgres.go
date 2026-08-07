@@ -8,6 +8,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
@@ -22,6 +23,11 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	if err != nil {
 		return workerSet{}, err
 	}
+	store, err := evidence.NewLocalObjectStore(cfg.ArtifactRoot)
+	if err != nil {
+		pool.Close()
+		return workerSet{}, err
+	}
 	runtimeRepository := workflowruntime.NewPostgresRepository(pool)
 	lifecycle := governance.NewPostgresRepository(pool)
 	continuityRepository := continuity.NewCurrentPostgresRepository(pool)
@@ -33,11 +39,13 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	}
 	workflowRepository := workflow.NewPostgresRepository(pool)
 	actionWork := &workflow.MatterActionProjector{Repo: workflowRepository}
-	publisher := workflowruntime.NewCompositePublisher(sourceHealth, actionWork, workflowruntime.LogPublisher{Logger: logger})
+	documentService := documentimport.NewService(documentimport.NewPostgresRepository(pool), store)
+	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
+	publisher := workflowruntime.NewCompositePublisher(sourceHealth, actionWork, documentService, workflowruntime.LogPublisher{Logger: logger})
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
 	configureWorkerRuntime(service, cfg, logger)
 
-	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
+	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), store)
 	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
 	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
 	return workerSet{Runtime: service, Close: pool.Close}, nil
