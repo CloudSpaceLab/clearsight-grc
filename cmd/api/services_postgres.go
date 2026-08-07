@@ -67,7 +67,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	})
 	logger.Info("postgres repositories enabled", "max_connections", cfg.DatabaseMaxConns, "artifact_root", cfg.ArtifactRoot, "demo_mode", cfg.DemoMode)
 	return serviceSet{
-		Mode: "postgres", Authority: authority.NewPostgresService(pool), Governance: governance.NewService(governance.NewPostgresRepository(pool)),
+		Mode: "postgres", Authority: authority.NewEffectivePostgresService(pool), Governance: governance.NewService(governance.NewPostgresRepository(pool)),
 		Evidence: evidenceService, DocumentImports: documentService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
 		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo), Close: pool.Close,
