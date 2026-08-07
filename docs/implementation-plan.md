@@ -142,7 +142,7 @@ P2 starts from completed P1 and the reconciled UI foundation and removes capabil
 
 See `docs/architecture/durable-schema-ownership.md` and `api/README.md`.
 
-Issue #33 should close when PR #41 merges on an exact CI-green head. Future durable schema changes must update the checked ownership register in the same change.
+Issue #33 is closed as completed. PR #41 merged from its exact CI-green head. Future durable schema changes must update the checked ownership register in the same change.
 
 ## 2. Canonical domain invariants
 
