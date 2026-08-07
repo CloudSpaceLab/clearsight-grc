@@ -33,6 +33,17 @@ func TestPostgresPoisonWorkBecomesTerminalAndIsNotReclaimed(t *testing.T) {
 	)
 
 	now := time.Now().UTC()
+	// The postgresintegration stage intentionally shares one database across
+	// packages. Runtime claims are global by design, so quarantine unfinished
+	// work left by earlier packages before asserting this test's claim order.
+	if _, err := pool.Exec(ctx, `UPDATE workflow_timers SET state='CANCELLED',locked_by=NULL,lease_until=NULL WHERE state IN ('READY','CLAIMED')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE outbox_events SET published_at=$1,locked_by=NULL,lease_until=NULL WHERE published_at IS NULL AND dead_lettered_at IS NULL`, now); err != nil {
+		t.Fatal(err)
+	}
+	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'runtime-failure-isolation-test','Runtime Failure Isolation Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +59,7 @@ func TestPostgresPoisonWorkBecomesTerminalAndIsNotReclaimed(t *testing.T) {
 		t.Fatal(err)
 	}
 	timers, err := repo.ClaimDueTimers(ctx, "timer-worker", now, time.Minute, 1)
-	if err != nil || len(timers) != 1 {
+	if err != nil || len(timers) != 1 || timers[0].ID != timerID {
 		t.Fatalf("claim timer: %v %#v", err, timers)
 	}
 	terminal, err := repo.FailTimer(ctx, timers[0], 1, "poison timer", now, now.Add(time.Minute))
@@ -71,7 +82,7 @@ func TestPostgresPoisonWorkBecomesTerminalAndIsNotReclaimed(t *testing.T) {
 		t.Fatal(err)
 	}
 	events, err := repo.ClaimOutbox(ctx, "outbox-worker", now, time.Minute, 1)
-	if err != nil || len(events) != 1 {
+	if err != nil || len(events) != 1 || events[0].ID != outboxID {
 		t.Fatalf("claim outbox: %v %#v", err, events)
 	}
 	terminal, err = repo.MarkFailed(ctx, events[0], 1, "poison event", now, now.Add(time.Minute))
