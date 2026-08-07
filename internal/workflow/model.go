@@ -1,6 +1,9 @@
 package workflow
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Status string
 
@@ -29,11 +32,21 @@ type Task struct {
 	Version        int64             `json:"version"`
 	CreatedAt      time.Time         `json:"created_at"`
 	UpdatedAt      time.Time         `json:"updated_at"`
+
+	// Projection metadata is intentionally internal-only. It lets actor-facing
+	// reads enforce canonical Matter visibility/materiality without leaking raw
+	// access policy or duplicating Matter state into the Task API contract.
+	WorkflowKind  string          `json:"-"`
+	MatterID      string          `json:"-"`
+	MatterPriority int             `json:"-"`
+	MatterScope   json.RawMessage `json:"-"`
 }
 
 type ListFilter struct {
-	TenantID    string
-	PrincipalID string
-	Status      Status
-	Limit       int
+	TenantID     string
+	PrincipalID  string
+	Status       Status
+	WorkflowKind string
+	ActiveOnly   bool
+	Limit        int
 }
