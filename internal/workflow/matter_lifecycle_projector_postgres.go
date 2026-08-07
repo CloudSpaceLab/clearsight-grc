@@ -21,7 +21,7 @@ const matterLifecycleProjectionConsumer = "workflow-matter-lifecycle-v1"
 
 // MatterLifecycleProjector turns only explicit, unambiguous lifecycle work
 // requirements into actor-facing Workflow Tasks. Canonical lifecycle records
-// remain the source of truth; these rows are rebuildable routing projections.
+// remain authoritative; these rows are rebuildable routing projections.
 type MatterLifecycleProjector struct {
 	Repo       *PostgresRepository
 	Continuity *continuity.Service
@@ -39,17 +39,28 @@ type lifecycleAssignment struct {
 	PolicyVersion string
 }
 
-type existingLifecycleTask struct {
-	WorkflowID    string
-	WorkflowState string
-	TaskID        string
-	TaskStatus    Status
-	PrincipalID   string
+type lifecycleTaskProjection struct {
+	WorkflowState  string
+	Status         Status
+	PrincipalID    string
 	Responsibility string
-	Title         string
-	DueAt         *time.Time
-	Context       map[string]string
-	PolicyVersion string
+	Title          string
+	DueAt          *time.Time
+	PolicyVersion  string
+	Context        map[string]string
+}
+
+type existingLifecycleTask struct {
+	WorkflowID     string
+	WorkflowState  string
+	TaskID         string
+	Status         Status
+	PrincipalID    string
+	Responsibility string
+	Title          string
+	DueAt          *time.Time
+	PolicyVersion  string
+	Context        map[string]string
 }
 
 func (p *MatterLifecycleProjector) Publish(ctx context.Context, event workflowruntime.OutboxEvent) error {
@@ -113,13 +124,14 @@ func (p *MatterLifecycleProjector) Maintain(ctx context.Context, now time.Time, 
 		JOIN tenants t ON t.id=rp.tenant_id
 		WHERE rp.status IN ('REJECTED','TRANSMITTED')
 		  AND m.status NOT IN ('CLOSED','CANCELLED')
-		  AND ($1='' OR rp.id>$1::uuid)
+		  AND (NULLIF($1,'')::uuid IS NULL OR rp.id>NULLIF($1,'')::uuid)
 		ORDER BY rp.id
 		LIMIT $2`, p.cursor, budget)
 	if err != nil {
 		return 0, fmt.Errorf("list lifecycle work for reconciliation: %w", err)
 	}
 	defer rows.Close()
+
 	type candidate struct{ responseID, matterID, tenant string }
 	candidates := make([]candidate, 0, budget)
 	for rows.Next() {
@@ -139,8 +151,8 @@ func (p *MatterLifecycleProjector) Maintain(ctx context.Context, now time.Time, 
 
 	processed := 0
 	for _, candidate := range candidates {
-		if ctx.Err() != nil {
-			return processed, ctx.Err()
+		if err := ctx.Err(); err != nil {
+			return processed, err
 		}
 		aggregate, err := p.Continuity.GetMatter(ctx, candidate.tenant, candidate.matterID)
 		if err != nil {
@@ -189,17 +201,26 @@ func (p *MatterLifecycleProjector) reconcileResponseTx(ctx context.Context, tx p
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}
-		target := strings.TrimSpace(existing.Context["target_status"])
-		status := StatusCancelled
-		workflowState := "CANCELLED"
-		if target != "" && target == string(response.Status) {
-			status = StatusCompleted
-			workflowState = "COMPLETED"
+		desired := lifecycleTaskProjection{
+			WorkflowState:  existing.WorkflowState,
+			Status:         existing.Status,
+			PrincipalID:    existing.PrincipalID,
+			Responsibility: existing.Responsibility,
+			Title:          existing.Title,
+			DueAt:          existing.DueAt,
+			PolicyVersion:  existing.PolicyVersion,
+			Context:        clone(existing.Context),
 		}
-		return persistLifecycleTask(ctx, tx, aggregate, response, existing, lifecycleAssignment{Status: status, RoutingState: workflowState, PolicyVersion: existing.PolicyVersion}, WorkRequirement{
-			WorkflowKind: MatterResponseWorkflowKind, MatterID: aggregate.Matter.ID, SubjectType: "RESPONSE_PACKAGE", SubjectID: response.ID,
-			Responsibility: authority.Responsibility(existing.Responsibility), Title: existing.Title, DueAt: existing.DueAt,
-		}, existing.Context, workflowState, now)
+		target := strings.TrimSpace(existing.Context["target_status"])
+		if target != "" && target == string(response.Status) {
+			desired.Status = StatusCompleted
+			desired.WorkflowState = "COMPLETED"
+		} else {
+			desired.Status = StatusCancelled
+			desired.WorkflowState = "CANCELLED"
+		}
+		desired.Context["routing_state"] = desired.WorkflowState
+		return persistLifecycleTask(ctx, tx, aggregate.Matter.TenantID, response.ID, existing, desired, now)
 	}
 
 	legalEntityID, err := p.resolveMatterLegalEntity(ctx, tx, aggregate.Matter)
@@ -213,38 +234,50 @@ func (p *MatterLifecycleProjector) reconcileResponseTx(ctx context.Context, tx p
 			return err
 		}
 	}
-	contextMap := map[string]string{
-		"type":               MatterResponseWorkflowKind,
-		"matter_id":          aggregate.Matter.ID,
-		"response_id":        response.ID,
-		"target_status":      requirement.TargetStatus,
-		"command_name":       requirement.CommandName,
-		"decision_type":      requirement.CommandName,
-		"primary_action":     requirement.Title,
-		"why_now":            requirement.WhyNow,
-		"intervention_class": requirement.InterventionClass,
-		"materiality":        fmt.Sprintf("%d", requirement.Materiality),
-		"routing_state":      assignment.RoutingState,
-		"legal_entity_id":    legalEntityID,
-		"routing_rule_id":    assignment.RuleID,
-		"policy_version":     assignment.PolicyVersion,
+	desired := lifecycleTaskProjection{
+		WorkflowState:  "ACTIVE",
+		Status:         assignment.Status,
+		PrincipalID:    assignment.PrincipalID,
+		Responsibility: string(requirement.Responsibility),
+		Title:          requirement.Title,
+		DueAt:          requirement.DueAt,
+		PolicyVersion:  assignment.PolicyVersion,
+		Context: map[string]string{
+			"type":               MatterResponseWorkflowKind,
+			"matter_id":          aggregate.Matter.ID,
+			"response_id":        response.ID,
+			"target_status":      requirement.TargetStatus,
+			"command_name":       requirement.CommandName,
+			"decision_type":      requirement.CommandName,
+			"primary_action":     requirement.Title,
+			"why_now":            requirement.WhyNow,
+			"intervention_class": requirement.InterventionClass,
+			"materiality":        fmt.Sprintf("%d", requirement.Materiality),
+			"routing_state":      assignment.RoutingState,
+			"legal_entity_id":    legalEntityID,
+			"routing_rule_id":    assignment.RuleID,
+			"policy_version":     assignment.PolicyVersion,
+		},
 	}
-	workflowState := "ACTIVE"
-	if assignment.Status == StatusBlocked {
-		workflowState = "BLOCKED"
+	if desired.Status == StatusBlocked {
+		desired.WorkflowState = "BLOCKED"
 	}
 	if errors.Is(err, pgx.ErrNoRows) {
 		existing = existingLifecycleTask{}
 	}
-	return persistLifecycleTask(ctx, tx, aggregate, response, existing, assignment, requirement, contextMap, workflowState, now)
+	return persistLifecycleTask(ctx, tx, aggregate.Matter.TenantID, response.ID, existing, desired, now)
 }
 
 func (p *MatterLifecycleProjector) resolveAssignment(ctx context.Context, matter continuity.Matter, requirement WorkRequirement, legalEntityID string, now time.Time) (lifecycleAssignment, error) {
 	resolution, err := p.Authority.Resolve(ctx, authority.ResolveInput{
-		TenantID: matter.TenantID, LegalEntityID: legalEntityID,
-		ObjectType: "MATTER", ObjectID: matter.ID,
-		Responsibility: requirement.Responsibility, DecisionType: requirement.CommandName,
-		Materiality: requirement.Materiality, At: now,
+		TenantID:       matter.TenantID,
+		LegalEntityID:  legalEntityID,
+		ObjectType:     "MATTER",
+		ObjectID:       matter.ID,
+		Responsibility: requirement.Responsibility,
+		DecisionType:   requirement.CommandName,
+		Materiality:    requirement.Materiality,
+		At:             now,
 	})
 	if errors.Is(err, authority.ErrNoRoute) {
 		return lifecycleAssignment{Status: StatusBlocked, RoutingState: "NO_ELIGIBLE_ROUTE", PolicyVersion: "unresolved"}, nil
@@ -282,10 +315,12 @@ func (p *MatterLifecycleProjector) resolveMatterLegalEntity(ctx context.Context,
 			explicit = strings.TrimSpace(value)
 		}
 	}
+
 	resolvedExplicit := ""
 	if explicit != "" {
 		if err := tx.QueryRow(ctx, `
-			SELECT id::text FROM legal_entities
+			SELECT id::text
+			FROM legal_entities
 			WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 			  AND (id::text=$2 OR code=$2)
 			LIMIT 1`, matter.TenantID, explicit).Scan(&resolvedExplicit); err != nil && !errors.Is(err, pgx.ErrNoRows) {
@@ -345,8 +380,16 @@ func loadLifecycleTask(ctx context.Context, tx pgx.Tx, tenant, responseID string
 		  AND wi.kind='MATTER_RESPONSE'
 		  AND wi.subject_type='RESPONSE_PACKAGE'
 		  AND wi.subject_id=$2::uuid`, tenant, responseID).Scan(
-		&value.WorkflowID, &value.WorkflowState, &value.PolicyVersion, &value.TaskID, &value.TaskStatus,
-		&value.PrincipalID, &value.Responsibility, &value.Title, &value.DueAt, &contextJSON,
+		&value.WorkflowID,
+		&value.WorkflowState,
+		&value.PolicyVersion,
+		&value.TaskID,
+		&value.Status,
+		&value.PrincipalID,
+		&value.Responsibility,
+		&value.Title,
+		&value.DueAt,
+		&contextJSON,
 	)
 	if err != nil {
 		return existingLifecycleTask{}, err
@@ -357,13 +400,13 @@ func loadLifecycleTask(ctx context.Context, tx pgx.Tx, tenant, responseID string
 	return value, nil
 }
 
-func persistLifecycleTask(ctx context.Context, tx pgx.Tx, aggregate continuity.MatterAggregate, response continuity.ResponsePackage, existing existingLifecycleTask, assignment lifecycleAssignment, requirement WorkRequirement, contextMap map[string]string, workflowState string, now time.Time) error {
-	contextJSON, err := json.Marshal(contextMap)
+func persistLifecycleTask(ctx context.Context, tx pgx.Tx, tenant, responseID string, existing existingLifecycleTask, desired lifecycleTaskProjection, now time.Time) error {
+	if lifecycleTaskEqual(existing, desired) {
+		return nil
+	}
+	contextJSON, err := json.Marshal(desired.Context)
 	if err != nil {
 		return err
-	}
-	if lifecycleTaskEqual(existing, assignment, requirement, contextMap, workflowState) {
-		return nil
 	}
 
 	var workflowID string
@@ -373,7 +416,7 @@ func persistLifecycleTask(ctx context.Context, tx pgx.Tx, aggregate continuity.M
 		ON CONFLICT(tenant_id,kind,subject_type,subject_id) WHERE kind='MATTER_RESPONSE'
 		DO UPDATE SET state=EXCLUDED.state,policy_version=EXCLUDED.policy_version,due_at=EXCLUDED.due_at,
 		              updated_at=EXCLUDED.updated_at,version=workflow_instances.version+1
-		RETURNING id::text`, aggregate.Matter.TenantID, response.ID, workflowState, assignment.PolicyVersion, requirement.DueAt, now).Scan(&workflowID); err != nil {
+		RETURNING id::text`, tenant, responseID, desired.WorkflowState, desired.PolicyVersion, desired.DueAt, now).Scan(&workflowID); err != nil {
 		return fmt.Errorf("upsert lifecycle workflow: %w", err)
 	}
 
@@ -393,33 +436,32 @@ func persistLifecycleTask(ctx context.Context, tx pgx.Tx, aggregate continuity.M
 			completed_at=CASE WHEN EXCLUDED.status='COMPLETED' THEN EXCLUDED.updated_at ELSE NULL END,
 			version=workflow_tasks.version+1,
 			updated_at=EXCLUDED.updated_at
-		RETURNING id::text`,
-		aggregate.Matter.TenantID, workflowID, string(requirement.Responsibility), assignment.PrincipalID,
-		requirement.Title, string(assignment.Status), requirement.DueAt, string(contextJSON), now,
-	).Scan(&taskID); err != nil {
+		RETURNING id::text`, tenant, workflowID, desired.Responsibility, desired.PrincipalID, desired.Title, string(desired.Status), desired.DueAt, string(contextJSON), now).Scan(&taskID); err != nil {
 		return fmt.Errorf("upsert lifecycle task: %w", err)
 	}
 	metadata, _ := json.Marshal(map[string]string{
-		"response_id": response.ID, "target_status": contextMap["target_status"],
-		"routing_state": contextMap["routing_state"], "source": "MATTER_LIFECYCLE",
+		"response_id":   responseID,
+		"target_status": desired.Context["target_status"],
+		"routing_state": desired.Context["routing_state"],
+		"source":        "MATTER_LIFECYCLE",
 	})
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO workflow_events(tenant_id,workflow_id,task_id,event_type,safe_metadata,occurred_at)
 		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,$3::uuid,'TASK_RECONCILED',$4::jsonb,$5)`,
-		aggregate.Matter.TenantID, workflowID, taskID, string(metadata), now); err != nil {
+		tenant, workflowID, taskID, string(metadata), now); err != nil {
 		return fmt.Errorf("record lifecycle task projection event: %w", err)
 	}
 	return nil
 }
 
-func lifecycleTaskEqual(existing existingLifecycleTask, assignment lifecycleAssignment, requirement WorkRequirement, contextMap map[string]string, workflowState string) bool {
-	if existing.WorkflowID == "" || existing.WorkflowState != workflowState || existing.PolicyVersion != assignment.PolicyVersion || existing.TaskStatus != assignment.Status || existing.PrincipalID != assignment.PrincipalID || existing.Responsibility != string(requirement.Responsibility) || existing.Title != requirement.Title || !sameTime(existing.DueAt, requirement.DueAt) {
+func lifecycleTaskEqual(existing existingLifecycleTask, desired lifecycleTaskProjection) bool {
+	if existing.WorkflowID == "" || existing.WorkflowState != desired.WorkflowState || existing.PolicyVersion != desired.PolicyVersion || existing.Status != desired.Status || existing.PrincipalID != desired.PrincipalID || existing.Responsibility != desired.Responsibility || existing.Title != desired.Title || !sameTime(existing.DueAt, desired.DueAt) {
 		return false
 	}
-	if len(existing.Context) != len(contextMap) {
+	if len(existing.Context) != len(desired.Context) {
 		return false
 	}
-	for key, value := range contextMap {
+	for key, value := range desired.Context {
 		if existing.Context[key] != value {
 			return false
 		}
