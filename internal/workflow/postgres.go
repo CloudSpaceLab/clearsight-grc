@@ -17,6 +17,7 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 }
 
 func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Task, error) {
+	visibleMatterWorkOnly := filter.VisibleMatterWorkOnly || filter.VisibleMatterActionsOnly
 	rows, err := r.pool.Query(ctx, `
 		SELECT wt.id::text,t.slug,wt.workflow_id::text,wt.step_key,wt.responsibility,
 		       COALESCE(wt.principal_id::text,''),wt.title,wt.status,wt.due_at,wt.claimed_at,wt.completed_at,
@@ -80,7 +81,7 @@ func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Tas
 		  wt.id ASC
 		LIMIT $8`,
 		filter.TenantID, filter.PrincipalID, string(filter.Status), filter.WorkflowKind,
-		filter.SupportedMatterWorkOnly, filter.ActiveOnly, filter.VisibleMatterWorkOnly, filter.Limit,
+		filter.SupportedMatterWorkOnly, filter.ActiveOnly, visibleMatterWorkOnly, filter.Limit,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list workflow tasks: %w", err)
