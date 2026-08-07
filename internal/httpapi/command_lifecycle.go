@@ -50,23 +50,13 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, tenant, name string, p
 		if err := continuity.ValidateDecisionLifecycle(aggregate.Decisions, decisionType, target); err != nil {
 			return policy, err
 		}
-		policy.ActorField = "authority_principal_id"
-		switch target {
-		case continuity.DecisionProposed:
-			policy.Responsibility = authority.ResponsibilityProposer
-			policy.Materiality = 2
-		case continuity.DecisionInReview, continuity.DecisionReturned:
-			policy.Responsibility = authority.ResponsibilityReviewer
-			policy.Materiality = 3
-		case continuity.DecisionChallenged:
-			policy.Responsibility = authority.ResponsibilityChallenger
-			policy.Materiality = 3
-		case continuity.DecisionApproved, continuity.DecisionConditionallyApproved, continuity.DecisionRejected, continuity.DecisionExpired, continuity.DecisionSuperseded:
-			policy.Responsibility = authority.ResponsibilityAuthorizer
-			policy.Materiality = 4
-		default:
-			return policy, fmt.Errorf("%w: unsupported decision lifecycle target %s", continuity.ErrInvalidState, target)
+		responsibility, materiality, err := decisionLifecyclePolicy(target)
+		if err != nil {
+			return policy, err
 		}
+		policy.ActorField = "authority_principal_id"
+		policy.Responsibility = responsibility
+		policy.Materiality = materiality
 		return policy, nil
 
 	case "matter.response.transition":
@@ -103,6 +93,21 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, tenant, name string, p
 		return policy, nil
 	default:
 		return policy, nil
+	}
+}
+
+func decisionLifecyclePolicy(target continuity.DecisionStatus) (authority.Responsibility, int, error) {
+	switch target {
+	case continuity.DecisionProposed:
+		return authority.ResponsibilityProposer, 2, nil
+	case continuity.DecisionInReview, continuity.DecisionReturned:
+		return authority.ResponsibilityReviewer, 3, nil
+	case continuity.DecisionChallenged:
+		return authority.ResponsibilityChallenger, 3, nil
+	case continuity.DecisionApproved, continuity.DecisionConditionallyApproved, continuity.DecisionRejected, continuity.DecisionExpired, continuity.DecisionSuperseded:
+		return authority.ResponsibilityAuthorizer, 4, nil
+	default:
+		return "", 0, fmt.Errorf("%w: unsupported decision lifecycle target %s", continuity.ErrInvalidState, target)
 	}
 }
 
