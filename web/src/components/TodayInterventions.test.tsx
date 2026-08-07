@@ -32,17 +32,17 @@ const readiness: Readiness = {
 };
 
 describe("TodayInterventions", () => {
-  it("foregrounds the human gate and keeps continuous checks collapsed", () => {
+  it("foregrounds the human gate and keeps status checks collapsed", () => {
     const onOpen = vi.fn();
     render(<TodayInterventions items={[item]} connection="live" readiness={readiness} readinessState="live" onOpenItem={onOpen}/>);
 
-    expect(screen.getByRole("heading", { name: "1 item requires your action" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "1 item needs your action" })).toBeTruthy();
     expect(screen.getByText("Seven provisions may change current obligations.")).toBeTruthy();
-    expect(screen.getByText("Recommended next step")).toBeTruthy();
-    const continuousChecks = screen.getByText("Continuous checks").closest("details") as HTMLDetailsElement | null;
-    expect(continuousChecks?.open).toBe(false);
+    expect(screen.getByText("Recommended action")).toBeTruthy();
+    const statusChecks = screen.getByText("Status checks").closest("details") as HTMLDetailsElement | null;
+    expect(statusChecks?.open).toBe(false);
 
-    fireEvent.click(screen.getByRole("button", { name: "Review and act" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open issue" }));
     expect(onOpen).toHaveBeenCalledWith(item);
   });
 
@@ -50,24 +50,24 @@ describe("TodayInterventions", () => {
     render(<TodayInterventions items={[{ ...item, recommendation: undefined }]} connection="live" readiness={readiness} readinessState="live" onOpenItem={vi.fn()}/>);
     expect(screen.getByText("Next action")).toBeTruthy();
     expect(screen.queryByText("Prepared next step")).toBeNull();
-    expect(screen.queryByText("Recommended next step")).toBeNull();
+    expect(screen.queryByText("Recommended action")).toBeNull();
   });
 
   it("exposes item-scoped authority only when authority context exists", () => {
     const inspect = vi.fn();
     const authorized = { ...item, authority: { responsibility: "REVIEWER", materiality: 2 } };
     render(<TodayInterventions items={[authorized]} connection="live" readiness={readiness} readinessState="live" onOpenItem={vi.fn()} onInspectAuthority={inspect}/>);
-    fireEvent.click(screen.getByRole("button", { name: "View authority for this item" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check authority" }));
     expect(inspect).toHaveBeenCalledWith(authorized);
   });
 
   it("does not claim an empty queue while assigned work is still loading", () => {
     render(<TodayInterventions items={[]} connection="loading" readiness={null} readinessState="loading" onOpenItem={vi.fn()}/>);
 
-    expect(screen.getByRole("heading", { name: "Loading assigned work" })).toBeTruthy();
-    expect(screen.getByText("Loading assigned work…")).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "No assigned items" })).toBeNull();
-    expect(screen.queryByText("0 items require your action")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Loading your work" })).toBeTruthy();
+    expect(screen.getByText("Loading your work…")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Nothing assigned right now" })).toBeNull();
+    expect(screen.queryByText("0 items need your action")).toBeNull();
   });
 
   it("does not turn an unknown baseline into a no-exception claim", () => {
