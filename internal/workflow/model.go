@@ -43,13 +43,13 @@ type Task struct {
 }
 
 type ListFilter struct {
-	TenantID                  string
-	PrincipalID               string
-	Status                    Status
-	WorkflowKind              string
-	SupportedMatterWorkOnly   bool
-	ActiveOnly                bool
-	VisibleMatterWorkOnly     bool
-	VisibleMatterActionsOnly  bool // narrow compatibility alias; callers should prefer VisibleMatterWorkOnly
-	Limit                     int
+	TenantID                 string
+	PrincipalID              string
+	Status                   Status
+	WorkflowKind             string
+	SupportedMatterWorkOnly  bool
+	ActiveOnly               bool
+	VisibleMatterWorkOnly    bool
+	VisibleMatterActionsOnly bool // narrow compatibility alias; callers should prefer VisibleMatterWorkOnly
+	Limit                    int
 }
