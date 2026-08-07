@@ -74,6 +74,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 			for _, journey := range journeys {
 				if journey.VisibleTo(actor.PrincipalID) {
 					visible = append(visible, journey)
+				}
 			}
 			return bankverticals.TodayItems(visible, time.Now().UTC()), nil
 		}
