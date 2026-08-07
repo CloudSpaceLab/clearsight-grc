@@ -20,15 +20,21 @@ type SummaryQuery struct {
 }
 
 type ProgramSummary struct {
-	Program            Program       `json:"program"`
-	StateLabel         string        `json:"state_label"`
-	OverallState       ProgramState  `json:"overall_state"`
-	Reasons            []StateReason `json:"reasons"`
-	OpenMatterCount    int           `json:"open_matter_count"`
-	RequirementCount   int           `json:"requirement_count"`
-	SafeguardCount     int           `json:"safeguard_count"`
-	EvidenceCheckCount int           `json:"evidence_check_count"`
-	StateGeneratedAt   *time.Time    `json:"state_generated_at,omitempty"`
+	Program                Program       `json:"program"`
+	StateLabel             string        `json:"state_label"`
+	OverallState           ProgramState  `json:"overall_state"`
+	Reasons                []StateReason `json:"reasons"`
+	ReasonsTotal           int           `json:"reasons_total"`
+	ReasonsOmitted         int           `json:"reasons_omitted"`
+	OpenMatterCount        int           `json:"open_matter_count"`
+	RequirementCount       int           `json:"requirement_count"`
+	SafeguardCount         int           `json:"safeguard_count"`
+	EvidenceCheckCount     int           `json:"evidence_check_count"`
+	ProgramVersion         int64         `json:"program_version"`
+	AssessedProgramVersion int64         `json:"assessed_program_version"`
+	ProjectionVersion      int64         `json:"projection_version"`
+	ProjectionStale        bool          `json:"projection_stale"`
+	StateGeneratedAt       *time.Time    `json:"state_generated_at,omitempty"`
 }
 
 type MatterSummary struct {
@@ -109,27 +115,36 @@ func summarizeProgram(aggregate ProgramAggregate) ProgramSummary {
 	overall := StateUnknown
 	var generatedAt *time.Time
 	reasons := []StateReason{}
+	reasonsTotal := 0
 	openMatters := 0
+	assessedVersion := int64(0)
 	if aggregate.CurrentState != nil {
 		overall = aggregate.CurrentState.Overall
 		value := aggregate.CurrentState.GeneratedAt
 		generatedAt = &value
 		openMatters = aggregate.CurrentState.OpenMatterCount
+		assessedVersion = aggregate.CurrentState.ProgramVersion
 		reasons = append(reasons, aggregate.CurrentState.Reasons...)
+		reasonsTotal = len(reasons)
 	}
 	if len(reasons) > 6 {
 		reasons = reasons[:6]
 	}
 	return ProgramSummary{
-		Program:            aggregate.Program,
-		StateLabel:         aggregate.StateLabel,
-		OverallState:       overall,
-		Reasons:            reasons,
-		OpenMatterCount:    openMatters,
-		RequirementCount:   len(aggregate.Requirements),
-		SafeguardCount:     len(aggregate.ControlImplementations),
-		EvidenceCheckCount: len(aggregate.EvidenceContracts),
-		StateGeneratedAt:   generatedAt,
+		Program:                aggregate.Program,
+		StateLabel:             aggregate.StateLabel,
+		OverallState:           overall,
+		Reasons:                reasons,
+		ReasonsTotal:           reasonsTotal,
+		ReasonsOmitted:         max(0, reasonsTotal-len(reasons)),
+		OpenMatterCount:        openMatters,
+		RequirementCount:       len(aggregate.Requirements),
+		SafeguardCount:         len(aggregate.ControlImplementations),
+		EvidenceCheckCount:     len(aggregate.EvidenceContracts),
+		ProgramVersion:         aggregate.Program.Version,
+		AssessedProgramVersion: assessedVersion,
+		ProjectionStale:        assessedVersion < aggregate.Program.Version,
+		StateGeneratedAt:       generatedAt,
 	}
 }
 
