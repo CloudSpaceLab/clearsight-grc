@@ -10,6 +10,9 @@ import (
 )
 
 func (a *API) lifecycleCommandPolicy(ctx context.Context, tenant, name string, payload map[string]any, policy commandPolicy) (commandPolicy, error) {
+	if a.deps.Continuity == nil {
+		return policy, fmt.Errorf("continuity service is unavailable")
+	}
 	switch name {
 	case "matter.transition":
 		matterID := stringValue(payload["id"])
@@ -26,7 +29,7 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, tenant, name string, p
 		target := continuity.MatterStatus(strings.ToUpper(stringValue(payload["to"])))
 		if target == continuity.MatterDecisionRequired || target == continuity.MatterClosed || target == continuity.MatterCancelled || aggregate.Matter.Status == continuity.MatterClosed {
 			policy.Responsibility = authority.ResponsibilityAuthorizer
-			policy.Materiality = max(policy.Materiality, 4)
+			policy.Materiality = 4
 		}
 		return policy, nil
 
@@ -48,16 +51,16 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, tenant, name string, p
 		switch target {
 		case continuity.DecisionProposed:
 			policy.Responsibility = authority.ResponsibilityProposer
-			policy.Materiality = max(policy.Materiality, 2)
+			policy.Materiality = 2
 		case continuity.DecisionInReview, continuity.DecisionReturned:
 			policy.Responsibility = authority.ResponsibilityReviewer
-			policy.Materiality = max(policy.Materiality, 3)
+			policy.Materiality = 3
 		case continuity.DecisionChallenged:
 			policy.Responsibility = authority.ResponsibilityChallenger
-			policy.Materiality = max(policy.Materiality, 3)
+			policy.Materiality = 3
 		case continuity.DecisionApproved, continuity.DecisionConditionallyApproved, continuity.DecisionRejected, continuity.DecisionExpired, continuity.DecisionSuperseded:
 			policy.Responsibility = authority.ResponsibilityAuthorizer
-			policy.Materiality = max(policy.Materiality, 4)
+			policy.Materiality = 4
 		default:
 			return policy, fmt.Errorf("%w: unsupported decision lifecycle target %s", continuity.ErrInvalidState, target)
 		}
@@ -90,7 +93,7 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, tenant, name string, p
 			return policy, err
 		}
 		policy.Responsibility = responsibility
-		policy.Materiality = max(policy.Materiality, materiality)
+		policy.Materiality = materiality
 		return policy, nil
 	default:
 		return policy, nil
