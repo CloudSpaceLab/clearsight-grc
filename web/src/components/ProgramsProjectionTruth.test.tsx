@@ -50,6 +50,7 @@ describe("Program projection truth", () => {
     expect(await screen.findByRole("heading", { name: "1 loaded program is still being set up or reassessed" })).toBeTruthy();
     expect(screen.getByText("Updating status")).toBeTruthy();
     expect(screen.getByText("Last assessed at version 7; Program is version 9.")).toBeTruthy();
-    expect(within(screen.getByLabelText("Loaded Program status")).getByText("0 current")).toBeTruthy();
+    const statusFacts = within(screen.getByLabelText("Loaded Program status"));
+    expect(statusFacts.getByText((_, element) => element?.textContent?.trim() === "0 current")).toBeTruthy();
   });
 });
