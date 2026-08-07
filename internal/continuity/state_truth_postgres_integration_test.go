@@ -92,18 +92,27 @@ func TestPostgresProgramStateTemporalAndSourceTruth(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO evidence_contracts(id,tenant_id,program_id,requirement_id,code,name,claim,acceptable_source_ids,population_scope,freshness_minutes,minimum_coverage,contradiction_policy,failure_action,status) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,'EVIDENCE','Evidence','Evidence must remain current','[]'::jsonb,'{}'::jsonb,60,1,'REVIEW','FLAG','ACTIVE')`, contract, tenantID, programID, reqA); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO evidence_assessments(tenant_id,program_id,contract_id,conclusion,coverage,basis,assessed_at,valid_until) VALUES($1::uuid,$2::uuid,$3::uuid,'SUPPORTED',1,'{}'::jsonb,$4,$5)`, tenantID, programID, contract, now, now.Add(2*time.Hour)); err == nil {
-		t.Fatal("assessment validity beyond the contract freshness boundary was accepted")
-	}
-	if _, err := pool.Exec(ctx, `INSERT INTO evidence_assessments(tenant_id,program_id,contract_id,conclusion,coverage,basis,assessed_at,valid_until) VALUES($1::uuid,$2::uuid,$3::uuid,'SUPPORTED',1,'{}'::jsonb,$4,NULL)`, tenantID, programID, contract, now); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO evidence_assessments(tenant_id,program_id,contract_id,conclusion,coverage,basis,assessed_at,valid_until) VALUES($1::uuid,$2::uuid,$3::uuid,'SUPPORTED',1,'{}'::jsonb,$4,$5)`, tenantID, programID, contract, now, now.Add(2*time.Hour)); err != nil {
 		t.Fatal(err)
 	}
-	var validUntil time.Time
-	if err := pool.QueryRow(ctx, `SELECT valid_until FROM evidence_assessments WHERE tenant_id=$1::uuid AND program_id=$2::uuid ORDER BY created_at DESC LIMIT 1`, tenantID, programID).Scan(&validUntil); err != nil {
+	var capped time.Time
+	if err := pool.QueryRow(ctx, `SELECT valid_until FROM evidence_assessments WHERE tenant_id=$1::uuid AND program_id=$2::uuid ORDER BY created_at DESC,id DESC LIMIT 1`, tenantID, programID).Scan(&capped); err != nil {
 		t.Fatal(err)
 	}
-	if !validUntil.Equal(now.Add(time.Hour)) {
-		t.Fatalf("server-derived assessment validity=%s want=%s", validUntil, now.Add(time.Hour))
+	if !capped.Equal(now.Add(time.Hour)) {
+		t.Fatalf("over-long assessment validity was not capped: %s want=%s", capped, now.Add(time.Hour))
+	}
+
+	secondAssessmentAt := now.Add(time.Minute)
+	if _, err := pool.Exec(ctx, `INSERT INTO evidence_assessments(tenant_id,program_id,contract_id,conclusion,coverage,basis,assessed_at,valid_until) VALUES($1::uuid,$2::uuid,$3::uuid,'SUPPORTED',1,'{}'::jsonb,$4,NULL)`, tenantID, programID, contract, secondAssessmentAt); err != nil {
+		t.Fatal(err)
+	}
+	var derived time.Time
+	if err := pool.QueryRow(ctx, `SELECT valid_until FROM evidence_assessments WHERE tenant_id=$1::uuid AND program_id=$2::uuid ORDER BY assessed_at DESC,id DESC LIMIT 1`, tenantID, programID).Scan(&derived); err != nil {
+		t.Fatal(err)
+	}
+	if !derived.Equal(secondAssessmentAt.Add(time.Hour)) {
+		t.Fatalf("server-derived assessment validity=%s want=%s", derived, secondAssessmentAt.Add(time.Hour))
 	}
 }
 
