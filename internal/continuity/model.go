@@ -330,17 +330,18 @@ type StateReason struct {
 }
 
 type ProgramStateSnapshot struct {
-	ID              string               `json:"id"`
-	TenantID        string               `json:"tenant_id"`
-	ProgramID       string               `json:"program_id"`
-	Overall         ProgramState         `json:"overall"`
-	Dimensions      ComplianceDimensions `json:"dimensions"`
-	Reasons         []StateReason        `json:"reasons"`
-	OpenMatterCount int                  `json:"open_matter_count"`
-	TriggerType     string               `json:"trigger_type,omitempty"`
-	TriggerID       string               `json:"trigger_id,omitempty"`
-	GeneratedAt     time.Time            `json:"generated_at"`
-	ProgramVersion  int64                `json:"program_version"`
+	ID                string               `json:"id"`
+	TenantID          string               `json:"tenant_id"`
+	ProgramID         string               `json:"program_id"`
+	Overall           ProgramState         `json:"overall"`
+	Dimensions        ComplianceDimensions `json:"dimensions"`
+	Reasons           []StateReason        `json:"reasons"`
+	OpenMatterCount   int                  `json:"open_matter_count"`
+	TriggerType       string               `json:"trigger_type,omitempty"`
+	TriggerID         string               `json:"trigger_id,omitempty"`
+	GeneratedAt       time.Time            `json:"generated_at"`
+	ProgramVersion    int64                `json:"program_version"`
+	ProjectionVersion int64                `json:"projection_version"`
 }
 
 type ProgramAggregate struct {

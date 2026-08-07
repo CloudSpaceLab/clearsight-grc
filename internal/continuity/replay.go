@@ -118,6 +118,7 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 		}
 		if aggregate.Program.ID != "" {
 			aggregate.Program.Version = event.AggregateVersion
+			aggregate.Program.UpdatedAt = event.OccurredAt
 		}
 	}
 	if aggregate.Program.ID == "" {
@@ -183,6 +184,7 @@ func reconstructMatter(events []Event) (MatterAggregate, error) {
 		}
 		if aggregate.Matter.ID != "" {
 			aggregate.Matter.Version = event.AggregateVersion
+			aggregate.Matter.UpdatedAt = event.OccurredAt
 		}
 	}
 	if aggregate.Matter.ID == "" {

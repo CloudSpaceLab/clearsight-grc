@@ -86,13 +86,13 @@ func TestWorkflowListUsesVerifiedTenant(t *testing.T) {
 	}
 }
 
-func TestWorkflowTransitionRejectsForgedTenant(t *testing.T) {
-	payload := []byte(`{"tenant_id":"other-tenant","status":"IN_PROGRESS","expected_version":1}`)
+func TestWorkflowTaskMutationRouteIsNotExposed(t *testing.T) {
+	payload := []byte(`{"tenant_id":"bank-demo","status":"IN_PROGRESS","expected_version":1}`)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/workflow/tasks/task_review_cbn/transition", bytes.NewReader(payload))
 	response := httptest.NewRecorder()
 	testHandler().ServeHTTP(response, request)
-	if response.Code != http.StatusForbidden {
-		t.Fatalf("expected 403, got %d: %s", response.Code, response.Body.String())
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("expected projected tasks to be read-only at the HTTP boundary, got %d: %s", response.Code, response.Body.String())
 	}
 }
 

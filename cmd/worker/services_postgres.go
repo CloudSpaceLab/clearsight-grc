@@ -14,6 +14,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reconciliation"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
 
 func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (workerSet, error) {
@@ -23,14 +24,16 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	}
 	runtimeRepository := workflowruntime.NewPostgresRepository(pool)
 	lifecycle := governance.NewPostgresRepository(pool)
-	continuityRepository := continuity.NewPostgresRepository(pool)
+	continuityRepository := continuity.NewCurrentPostgresRepository(pool)
 	continuityService := continuity.NewService(continuityRepository)
 	autonomyService := autonomy.NewService(autonomy.NewPostgresRepository(pool))
 	sourceHealth := &reconciliation.SourceHealthConsumer{
 		Inbox: runtimeRepository, Dependencies: continuityRepository,
 		Signals: autonomyService, Programs: continuityService,
 	}
-	publisher := workflowruntime.NewCompositePublisher(sourceHealth, workflowruntime.LogPublisher{Logger: logger})
+	workflowRepository := workflow.NewPostgresRepository(pool)
+	actionWork := &workflow.MatterActionProjector{Repo: workflowRepository}
+	publisher := workflowruntime.NewCompositePublisher(sourceHealth, actionWork, workflowruntime.LogPublisher{Logger: logger})
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
 	configureWorkerRuntime(service, cfg, logger)
 

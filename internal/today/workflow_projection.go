@@ -2,6 +2,7 @@ package today
 
 import (
 	"strings"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
@@ -28,7 +29,7 @@ func FromWorkflowTasks(tasks []workflow.Task) []AttentionItem {
 			State:              humanize(string(task.Status)),
 			Evidence:           firstValue(context["evidence"], context["evidence_state"], "Workflow assignment"),
 			Owner:              firstValue(context["owner"], humanize(task.Responsibility)),
-			DueAt:              task.DueAt,
+			DueAt:              workflowDueAt(task.DueAt),
 			PrimaryAction:      primaryAction,
 			ActionTargetType:   targetType,
 			ActionTargetID:     targetID,
@@ -38,6 +39,13 @@ func FromWorkflowTasks(tasks []workflow.Task) []AttentionItem {
 		})
 	}
 	return items
+}
+
+func workflowDueAt(value *time.Time) time.Time {
+	if value == nil {
+		return time.Time{}
+	}
+	return *value
 }
 
 func workflowTarget(context map[string]string) (string, string) {

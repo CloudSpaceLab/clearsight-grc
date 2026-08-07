@@ -14,7 +14,7 @@ func TestSampleJourneysConnectProgramEvidenceDecisionsResponsesAndOutcomeChecks(
 	now := time.Date(2026, 8, 5, 18, 0, 0, 0, time.UTC)
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewServiceWithClock(continuityRepo, func() time.Time { return now })
-	evidenceService := evidence.NewService(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore())
+	evidenceService := evidence.NewServiceWithClock(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore(), func() time.Time { return now })
 	service := NewService(continuityService, evidenceService)
 	config := DemoSeedConfig()
 	config.Now = now

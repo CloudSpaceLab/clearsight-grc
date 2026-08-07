@@ -135,8 +135,6 @@ func (a *API) routes() []routeSpec {
 		write(http.MethodPost, "/api/v1/document-imports/{id}/proposals/{proposal_id}/review", a.reviewDocumentProposal, nil),
 
 		read("/api/v1/workflow/tasks", a.listWorkflowTasks),
-		write(http.MethodPost, "/api/v1/workflow/tasks", a.createWorkflowTask, bindJSONIdentity(false)),
-		write(http.MethodPost, "/api/v1/workflow/tasks/{id}/transition", a.transitionWorkflowTask, bindJSONIdentity(false, "actor_id")),
 
 		read("/api/v1/onboarding/guide", a.actorOnboardingGuide),
 		readBound("/api/v1/onboarding/state", a.onboardingState, bindActorQuery("principal_id")),

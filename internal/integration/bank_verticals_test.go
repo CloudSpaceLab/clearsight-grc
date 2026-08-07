@@ -49,20 +49,22 @@ func TestNigerianBankReferenceJourneys(t *testing.T) {
 		}
 	}
 
-	continuityRepo := continuity.NewPostgresRepository(pool)
-	continuityService := continuity.NewService(continuityRepo)
-	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
-	service := bankverticals.NewService(continuityService, evidenceService)
 	now := time.Date(2026, 8, 5, 18, 0, 0, 0, time.UTC)
+	clock := func() time.Time { return now }
+	continuityRepo := continuity.NewPostgresRepository(pool)
+	continuityService := continuity.NewServiceWithClock(continuityRepo, clock)
+	evidenceService := evidence.NewServiceWithClock(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore(), clock)
+	service := bankverticals.NewService(continuityService, evidenceService)
 	config := bankverticals.SeedConfig{TenantID: "vertical-bank", LegalEntityID: entityID, BankName: "Reference Bank Nigeria", ActorID: actorID, OwnerPrincipalID: ownerID, ReviewerPrincipalID: reviewerID, SignatoryPrincipalID: signatoryID, Now: now}
 
 	journeys, err := service.SeedSample(ctx, config)
 	if err != nil {
 		t.Fatal(err)
 	}
-	maintainer := &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepo, WorkerID: "vertical-test-worker"}
+	projectionAt := now.Add(time.Hour)
+	maintainer := &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepo, WorkerID: "vertical-test-worker", Now: func() time.Time { return projectionAt }}
 	for {
-		completed, maintainErr := maintainer.Maintain(ctx, time.Now().UTC().Add(time.Hour), 20)
+		completed, maintainErr := maintainer.Maintain(ctx, projectionAt, 20)
 		if maintainErr != nil {
 			t.Fatal(maintainErr)
 		}
