@@ -12,22 +12,23 @@ The documentation is layered so product semantics, safety, architecture, experie
 6. [`product/authority-routing-and-escalation.md`](product/authority-routing-and-escalation.md) — responsibility, review, authority, delegation and escalation.
 7. [`architecture/governance-runtime.md`](architecture/governance-runtime.md) — maker-checker policy lifecycle, delegation, isolated worker classes, timers and durable delivery.
 8. [`architecture/command-integrity-and-projection-operations.md`](architecture/command-integrity-and-projection-operations.md) — executable route classes, verified actor binding, authority checks, transaction truth and Program-status operations.
-9. [`architecture/source-evidence-and-secure-capture.md`](architecture/source-evidence-and-secure-capture.md) — source health, persisted requests, bounded capture capabilities and artifact integrity.
-10. [`product/nigerian-bank-reference-journeys.md`](product/nigerian-bank-reference-journeys.md) — connected, actionable Nigerian-bank reference journeys.
-11. [`product/respond-and-capture.md`](product/respond-and-capture.md) — request-scoped internal/external capture.
-12. [`product/illustration-and-guided-experience.md`](product/illustration-and-guided-experience.md) — illustrations, empty states and role-specific onboarding.
-13. [`product/enterprise-copy-and-content-design.md`](product/enterprise-copy-and-content-design.md) and [`product/plain-language-content-standard.md`](product/plain-language-content-standard.md) — human working language, count integrity and content acceptance.
-14. [`design/ui-delivery-workflow.md`](design/ui-delivery-workflow.md) — decision briefs, baselines, rendered review and drift control.
-15. [`product/ease-of-use-standard.md`](product/ease-of-use-standard.md) — active-effort and minimum-question standards.
-16. [`product/operating-model.md`](product/operating-model.md) — canonical domain objects.
-17. [`product/experience-principles.md`](product/experience-principles.md) and [`product/ux-and-visual-language.md`](product/ux-and-visual-language.md) — experience and visual system.
-18. [`architecture/application-architecture.md`](architecture/application-architecture.md) — executable application boundaries.
-19. [`architecture/system-data-and-performance.md`](architecture/system-data-and-performance.md) and [`architecture/data-model-and-storage.md`](architecture/data-model-and-storage.md) — scale, consistency and storage.
-20. [`../AGENTS.md`](../AGENTS.md) — mandatory implementation rules.
-21. [`implementation-plan.md`](implementation-plan.md) — **authoritative current execution ledger and sequencing**.
-22. [`design/enterprise-productization-design-plan.md`](design/enterprise-productization-design-plan.md) — finished enterprise experience reference.
-23. [`engineering/enterprise-productization-implementation-plan.md`](engineering/enterprise-productization-implementation-plan.md) — detailed enterprise work/reference phases; current execution order is controlled by `implementation-plan.md`.
-24. [`quality/release-gates-and-traceability.md`](quality/release-gates-and-traceability.md), [`quality/rendered-ui-evidence.md`](quality/rendered-ui-evidence.md) and domain acceptance tests.
+9. [`architecture/durable-schema-ownership.md`](architecture/durable-schema-ownership.md) — live durable-table ownership, maturity and retention contract.
+10. [`architecture/source-evidence-and-secure-capture.md`](architecture/source-evidence-and-secure-capture.md) — source health, persisted requests, bounded capture capabilities and artifact integrity.
+11. [`product/nigerian-bank-reference-journeys.md`](product/nigerian-bank-reference-journeys.md) — connected, actionable Nigerian-bank reference journeys.
+12. [`product/respond-and-capture.md`](product/respond-and-capture.md) — request-scoped internal/external capture.
+13. [`product/illustration-and-guided-experience.md`](product/illustration-and-guided-experience.md) — illustrations, empty states and role-specific onboarding.
+14. [`product/enterprise-copy-and-content-design.md`](product/enterprise-copy-and-content-design.md) and [`product/plain-language-content-standard.md`](product/plain-language-content-standard.md) — human working language, count integrity and content acceptance.
+15. [`design/ui-delivery-workflow.md`](design/ui-delivery-workflow.md) — decision briefs, baselines, rendered review and drift control.
+16. [`product/ease-of-use-standard.md`](product/ease-of-use-standard.md) — active-effort and minimum-question standards.
+17. [`product/operating-model.md`](product/operating-model.md) — canonical domain objects.
+18. [`product/experience-principles.md`](product/experience-principles.md) and [`product/ux-and-visual-language.md`](product/ux-and-visual-language.md) — experience and visual system.
+19. [`architecture/application-architecture.md`](architecture/application-architecture.md) — executable application boundaries.
+20. [`architecture/system-data-and-performance.md`](architecture/system-data-and-performance.md) and [`architecture/data-model-and-storage.md`](architecture/data-model-and-storage.md) — scale, consistency and storage.
+21. [`../AGENTS.md`](../AGENTS.md) — mandatory implementation rules.
+22. [`implementation-plan.md`](implementation-plan.md) — **authoritative current execution ledger and sequencing**.
+23. [`design/enterprise-productization-design-plan.md`](design/enterprise-productization-design-plan.md) — finished enterprise experience reference.
+24. [`engineering/enterprise-productization-implementation-plan.md`](engineering/enterprise-productization-implementation-plan.md) — detailed enterprise work/reference phases; current execution order is controlled by `implementation-plan.md`.
+25. [`quality/release-gates-and-traceability.md`](quality/release-gates-and-traceability.md), [`quality/rendered-ui-evidence.md`](quality/rendered-ui-evidence.md) and domain acceptance tests.
 
 ## Canonical precedence
 
@@ -54,7 +55,7 @@ Architecture never overrides the simpler user-facing Program, issue/change, requ
 - fail-closed restricted-record policy parsing and pre-pagination Matter visibility;
 - authority routing, simulation, integrity and policy resolution;
 - maker-checker routing-policy and delegation administration;
-- durable Workflow Tasks, leased timers, outbox and inbox foundations;
+- Matter Action-driven Workflow Task projection, leased timers, outbox and inbox foundations;
 - independent in-process worker classes for evidence maintenance, Program projection, delegation lifecycle, timers and outbox delivery;
 - bounded timer/outbox retry budgets with durable terminal failure and queue health rather than infinite poison-item retry;
 - Source Registry, source observations and freshness maintenance;
@@ -72,34 +73,36 @@ Architecture never overrides the simpler user-facing Program, issue/change, requ
 - intervention-first Today and progressively disclosed Programs, Work/Evidence and Imports;
 - automation-policy read visibility in Configure;
 - exact record launchers to linked Programs, Matters and evidence requests;
-- recoverable opt-in Nigerian-bank reference installation for non-production environments.
+- recoverable opt-in Nigerian-bank reference installation for non-production environments;
+- machine-checked ownership classification for every live durable PostgreSQL table;
+- one mechanically verified executable runtime route/access contract, with bounded domain schemas kept descriptive.
 
 ## Current execution status
 
 The repository is a strong working foundation and reference MVP. It is not yet a completed banking product.
 
-Issues #26 and #27 now share one execution path rather than parallel backlogs:
+The foundational execution sequence is now:
 
-1. #26 route/identity seam — implemented in PR #25;
-2. #26 source-health outbox/inbox reconciliation — implemented in PR #25;
-3. #26 worker work-class isolation — implemented in PR #25;
-4. #26 compound-command transaction truth — next;
-5. #26 API/OpenAPI/client contract reconciliation;
-6. #26 governance/configuration authorization matrix;
-7. #27 governed operator execution, receipts and intervention mutations.
+1. #26 P0 executable integrity — complete;
+2. #32 P1 semantic/current-state correctness — complete;
+3. PR #31 UI/UX foundation reconciliation on completed P1 — complete;
+4. #33 P2 durable-schema ownership and dead compatibility cleanup — complete when PR #41 merges on its exact CI-green head.
 
-The remaining enterprise identity, RBAC, notifications, MFA, production storage, accessibility, recovery and scale work remains specified in the enterprise productization documents, but those documents do not supersede this seam-first order.
+Current execution truth is maintained in [`implementation-plan.md`](implementation-plan.md). Do not infer capability from historical issue text, a durable table name, a descriptive API schema, or an older branch.
+
+The remaining enterprise identity, RBAC, notifications, MFA, production storage, accessibility, recovery, scale and governed-operator workflows remain specified in the enterprise productization documents, but those documents do not supersede the current implementation ledger.
 
 ## Semantic guardrails
 
-Do not collapse these objects while implementing the sequence above:
+Do not collapse these objects while implementing later work:
 
 - Matter Action = canonical remediation/commitment state.
-- Workflow Task = actor-facing routed/manual work.
+- Workflow Task = actor-facing routed/manual projection, not an independently mutable business record.
 - Signal = observation, not incident/conclusion.
 - Evidence submission = captured input, not evidence sufficiency.
 - Automation Policy = permission boundary, not execution proof.
 - Intervention Summary = actor-facing read projection, not authoritative state.
+- Durable table = storage construct whose capability meaning depends on its registered executable owner.
 
 ## Traceability
 
