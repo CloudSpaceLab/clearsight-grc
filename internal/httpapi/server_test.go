@@ -28,7 +28,7 @@ func testHandler() http.Handler {
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), AllowedOrigin: "http://localhost:5173", Mode: "test-memory",
 		Identity: identity.NewDevelopmentAuthenticator("bank-demo", "role-cro", "bank-ng"), Authority: authority.NewResolver(version, rules),
 		Evidence: evidenceService,
-		Today: today.NewService(today.DemoItems()), Workflow: workflow.NewService(workflow.NewMemoryRepository(workflow.DemoTasks())),
+		Today:    today.NewService(today.DemoItems()), Workflow: workflow.NewService(workflow.NewMemoryRepository(workflow.DemoTasks())),
 		Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()), Autonomy: auto, MaxArtifactBytes: 1 << 20,
 	})
 }
