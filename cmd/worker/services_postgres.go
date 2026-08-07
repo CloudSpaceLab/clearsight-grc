@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
@@ -50,6 +51,10 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	publisher := workflowruntime.NewCompositePublisher(sourceHealth, actionWork, lifecycleWork, documentService, workflowruntime.LogPublisher{Logger: logger})
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
 	configureWorkerRuntime(service, cfg, logger)
+	// Matter events update immediately through the outbox publisher. This slower
+	// reconciliation pass exists for restart/backfill and authority/delegation
+	// convergence, avoiding a continuous full-Matter scan on the worker poll loop.
+	service.ConfigureClass(matterWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 30 * time.Second, Batch: 100})
 
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), store)
 	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
