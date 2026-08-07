@@ -10,11 +10,11 @@ import (
 )
 
 func (a *API) lifecycleCommandPolicy(ctx context.Context, tenant, name string, payload map[string]any, policy commandPolicy) (commandPolicy, error) {
-	if a.deps.Continuity == nil {
-		return policy, fmt.Errorf("continuity service is unavailable")
-	}
 	switch name {
 	case "matter.transition":
+		if a.deps.Continuity == nil {
+			return policy, fmt.Errorf("continuity service is unavailable")
+		}
 		matterID := stringValue(payload["id"])
 		if matterID == "" {
 			matterID = stringValue(payload["matter_id"])
@@ -34,6 +34,9 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, tenant, name string, p
 		return policy, nil
 
 	case "matter.decision.record":
+		if a.deps.Continuity == nil {
+			return policy, fmt.Errorf("continuity service is unavailable")
+		}
 		matterID := stringValue(payload["matter_id"])
 		if matterID == "" {
 			return policy, nil
@@ -67,6 +70,9 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, tenant, name string, p
 		return policy, nil
 
 	case "matter.response.transition":
+		if a.deps.Continuity == nil {
+			return policy, fmt.Errorf("continuity service is unavailable")
+		}
 		matterID := stringValue(payload["matter_id"])
 		responseID := stringValue(payload["response_id"])
 		if matterID == "" || responseID == "" {
