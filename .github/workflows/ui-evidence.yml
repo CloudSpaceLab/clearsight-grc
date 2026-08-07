@@ -5,6 +5,8 @@ on:
     paths:
       - "web/**"
       - "internal/today/**"
+      - "internal/workflow/**"
+      - "internal/continuity/work_requirements.go"
       - "internal/authority/model.go"
       - "internal/httpapi/actor_read_handlers.go"
       - "internal/identity/**"
@@ -66,7 +68,9 @@ jobs:
         env:
           PAGE_URL: http://127.0.0.1:4173
           UI_EVIDENCE_DIR: ui-evidence
-        run: node scripts/capture-ui-evidence.mjs
+        run: |
+          node scripts/capture-ui-evidence.mjs
+          node scripts/capture-lifecycle-ui-evidence.mjs
       - name: Upload screenshots and manifest
         if: always()
         uses: actions/upload-artifact@v4
