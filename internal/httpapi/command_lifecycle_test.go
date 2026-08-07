@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
@@ -66,7 +67,7 @@ func TestResponseLifecycleResponsibilityMatrix(t *testing.T) {
 func TestResponsePreparationUsesProposerResponsibility(t *testing.T) {
 	api := &API{}
 	policy := commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3}
-	got, err := api.lifecycleCommandPolicy(context.Background(), "bank", "matter.response.add", map[string]any{}, policy)
+	got, err := api.lifecycleCommandPolicy(context.Background(), lifecycleRequest(""), "bank", "matter.response.add", map[string]any{}, policy)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +88,7 @@ func TestLifecyclePolicyLoadsCurrentDecisionStateBeforeAuthorization(t *testing.
 		t.Fatal(err)
 	}
 	api := &API{deps: Dependencies{Continuity: service}}
-	policy, err := api.lifecycleCommandPolicy(ctx, "bank", "matter.decision.record", map[string]any{"matter_id": matter.Matter.ID, "type": "POSITION", "status": "IN_REVIEW"}, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4})
+	policy, err := api.lifecycleCommandPolicy(ctx, lifecycleRequest(matter.Matter.ID), "bank", "matter.decision.record", map[string]any{"type": "POSITION", "status": "IN_REVIEW"}, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,11 +97,69 @@ func TestLifecyclePolicyLoadsCurrentDecisionStateBeforeAuthorization(t *testing.
 	}
 }
 
+func TestLifecyclePolicyUsesRouteMatterAndPriorityFloor(t *testing.T) {
+	ctx := context.Background()
+	service := continuity.NewService(continuity.NewMemoryRepository())
+	matter, err := service.CreateMatter(ctx, continuity.CreateMatterInput{TenantID: "bank", Type: continuity.MatterException, Priority: 5, Title: "Material exception", Summary: "High-impact exception.", Scope: json.RawMessage(`{}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	api := &API{deps: Dependencies{Continuity: service}}
+	policy, err := api.lifecycleCommandPolicy(ctx, lifecycleRequest(matter.Matter.ID), "bank", "matter.decision.record", map[string]any{"type": "RISK_ACCEPTANCE", "status": "PROPOSED"}, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if policy.Responsibility != authority.ResponsibilityProposer || policy.Materiality != 5 {
+		t.Fatalf("route-bound priority was not enforced: %#v", policy)
+	}
+}
+
+func TestLifecyclePolicyRejectsBodyMatterThatConflictsWithRoute(t *testing.T) {
+	api := &API{}
+	_, err := api.lifecycleCommandPolicy(context.Background(), lifecycleRequest("matter-route"), "bank", "matter.action.add", map[string]any{"matter_id": "matter-body"}, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2})
+	if !errors.Is(err, continuity.ErrInvalidState) {
+		t.Fatalf("expected route/body identifier conflict, got %v", err)
+	}
+}
+
+func TestLifecyclePolicyRejectsRestrictedMatterActionOwnerWithoutVisibility(t *testing.T) {
+	ctx := context.Background()
+	service := continuity.NewService(continuity.NewMemoryRepository())
+	matter, err := service.CreateMatter(ctx, continuity.CreateMatterInput{
+		TenantID: "bank", Type: continuity.MatterAuthorityRequest, Priority: 5,
+		Title: "Restricted authority request", Summary: "Protected response work.",
+		Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["allowed-owner"]}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	api := &API{deps: Dependencies{Continuity: service}}
+	base := commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2}
+	if _, err := api.lifecycleCommandPolicy(ctx, lifecycleRequest(matter.Matter.ID), "bank", "matter.action.add", map[string]any{"owner_principal_id": "blocked-owner"}, base); !errors.Is(err, continuity.ErrInvalidState) {
+		t.Fatalf("expected restricted owner rejection, got %v", err)
+	}
+	policy, err := api.lifecycleCommandPolicy(ctx, lifecycleRequest(matter.Matter.ID), "bank", "matter.action.add", map[string]any{"owner_principal_id": "allowed-owner"}, base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if policy.Materiality != 5 {
+		t.Fatalf("expected Matter priority materiality floor, got %#v", policy)
+	}
+}
+
 func TestUnrelatedCommandDoesNotRequireContinuityService(t *testing.T) {
 	api := &API{}
 	policy := commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2}
-	got, err := api.lifecycleCommandPolicy(context.Background(), "bank", "program.requirement.add", map[string]any{}, policy)
+	got, err := api.lifecycleCommandPolicy(context.Background(), lifecycleRequest(""), "bank", "program.requirement.add", map[string]any{}, policy)
 	if err != nil || got != policy {
 		t.Fatalf("unrelated command was coupled to continuity service: got=%#v err=%v", got, err)
 	}
+}
+
+func lifecycleRequest(matterID string) *http.Request {
+	r := httptest.NewRequest("POST", "/api/v1/matters/"+matterID, nil)
+	if matterID != "" {
+		r.SetPathValue("id", matterID)
+	}
+	return r
 }
