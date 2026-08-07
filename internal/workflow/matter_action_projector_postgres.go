@@ -91,8 +91,8 @@ func (p *MatterActionProjector) Publish(ctx context.Context, event workflowrunti
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO workflow_tasks(tenant_id,workflow_id,step_key,responsibility,principal_id,title,status,due_at,context,claimed_at,completed_at,created_at,updated_at)
 		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,'matter-action','ACCOUNTABLE_OWNER',NULLIF($3,'')::uuid,$4,$5,$6,$7::jsonb,
-		       CASE WHEN $5='IN_PROGRESS' THEN $8 ELSE NULL END,
-		       CASE WHEN $5='COMPLETED' THEN $8 ELSE NULL END,$8,$8)
+		       CASE WHEN $5='IN_PROGRESS' THEN $8::timestamptz ELSE NULL END,
+		       CASE WHEN $5='COMPLETED' THEN $8::timestamptz ELSE NULL END,$8::timestamptz,$8::timestamptz)
 		ON CONFLICT(workflow_id,step_key) DO UPDATE SET
 			principal_id=EXCLUDED.principal_id,
 			title=EXCLUDED.title,
