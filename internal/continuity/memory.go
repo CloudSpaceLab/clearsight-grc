@@ -383,6 +383,7 @@ func applyMatterEventToAggregate(aggregate *MatterAggregate, event Event) error 
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
 			return err
 		}
+		setDecisionActor(&value, value.Status, event.ActorID)
 		aggregate.Decisions = append(aggregate.Decisions, value)
 	case EventActionAdded:
 		var value Action
@@ -413,12 +414,14 @@ func applyMatterEventToAggregate(aggregate *MatterAggregate, event Event) error 
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
 			return err
 		}
+		setResponseActor(&value, value.Status, event.ActorID)
 		aggregate.ResponsePackages = append(aggregate.ResponsePackages, value)
 	case EventResponsePackageStateChanged:
 		var value ResponsePackage
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
 			return err
 		}
+		setResponseActor(&value, value.Status, event.ActorID)
 		aggregate.ResponsePackages = upsertResponsePackage(aggregate.ResponsePackages, value)
 	default:
 		return ErrInvalidState
