@@ -11,16 +11,43 @@ func TestProgramStateIgnoresFutureAndExpiredRecords(t *testing.T) {
 	past := now.Add(-time.Hour)
 	future := now.Add(time.Hour)
 	expired := now.Add(-time.Minute)
-	program := Program{ID: "program-1", TenantID: "bank", Status: ProgramActive, EffectiveFrom: past, Version: 7}
+	program := Program{
+		ID:            "program-1",
+		TenantID:      "bank",
+		Status:        ProgramActive,
+		EffectiveFrom: past,
+		Version:       7,
+	}
 
 	aggregate := ProgramAggregate{
 		Program: program,
 		Requirements: []Requirement{
-			{ID: "req-current", TenantID: "bank", ProgramID: program.ID, Title: "Current requirement", Status: RequirementApproved, EffectiveFrom: past},
-			{ID: "req-future", TenantID: "bank", ProgramID: program.ID, Title: "Future requirement", Status: RequirementApproved, EffectiveFrom: future},
+			{
+				ID:            "req-current",
+				TenantID:      "bank",
+				ProgramID:     program.ID,
+				Title:         "Current requirement",
+				Status:        RequirementApproved,
+				EffectiveFrom: past,
+			},
+			{
+				ID:            "req-future",
+				TenantID:      "bank",
+				ProgramID:     program.ID,
+				Title:         "Future requirement",
+				Status:        RequirementApproved,
+				EffectiveFrom: future,
+			},
 		},
 		Applicability: []Applicability{
-			{ID: "app-expired", RequirementID: "req-current", Status: ApplicabilityApplicable, EffectiveFrom: past.Add(-time.Hour), EffectiveUntil: &expired, CreatedAt: past.Add(-time.Hour)},
+			{
+				ID:             "app-expired",
+				RequirementID:  "req-current",
+				Status:         ApplicabilityApplicable,
+				EffectiveFrom:  past.Add(-time.Hour),
+				EffectiveUntil: &expired,
+				CreatedAt:      past.Add(-time.Hour),
+			},
 		},
 	}
 
@@ -43,11 +70,43 @@ func TestProgramStateTreatsFutureImplementationAsNotCurrent(t *testing.T) {
 	past := now.Add(-time.Hour)
 	future := now.Add(time.Hour)
 	aggregate := ProgramAggregate{
-		Program: Program{ID: "program-1", TenantID: "bank", Status: ProgramActive, EffectiveFrom: past, Version: 4},
-		Requirements: []Requirement{{ID: "req", TenantID: "bank", ProgramID: "program-1", Title: "Requirement", Status: RequirementApproved, EffectiveFrom: past}},
-		Applicability: []Applicability{{ID: "app", RequirementID: "req", Status: ApplicabilityApplicable, EffectiveFrom: past, CreatedAt: past}},
-		ControlImplementations: []ControlImplementation{{ID: "control", ProgramID: "program-1", Status: ImplementationImplemented, EffectiveFrom: future}},
-		RequirementControlLinks: []RequirementControlLink{{RequirementID: "req", ImplementationID: "control"}},
+		Program: Program{
+			ID:            "program-1",
+			TenantID:      "bank",
+			Status:        ProgramActive,
+			EffectiveFrom: past,
+			Version:       4,
+		},
+		Requirements: []Requirement{
+			{
+				ID:            "req",
+				TenantID:      "bank",
+				ProgramID:     "program-1",
+				Title:         "Requirement",
+				Status:        RequirementApproved,
+				EffectiveFrom: past,
+			},
+		},
+		Applicability: []Applicability{
+			{
+				ID:            "app",
+				RequirementID: "req",
+				Status:        ApplicabilityApplicable,
+				EffectiveFrom: past,
+				CreatedAt:     past,
+			},
+		},
+		ControlImplementations: []ControlImplementation{
+			{
+				ID:            "control",
+				ProgramID:     "program-1",
+				Status:        ImplementationImplemented,
+				EffectiveFrom: future,
+			},
+		},
+		RequirementControlLinks: []RequirementControlLink{
+			{RequirementID: "req", ImplementationID: "control"},
+		},
 	}
 
 	state := deriveProgramStateWithSourceState(aggregate, 0, now, ProgramSourceState{Known: true})
@@ -63,8 +122,21 @@ func TestEvidenceValidityIsBoundedByContractFreshness(t *testing.T) {
 	now := time.Date(2026, 8, 7, 14, 0, 0, 0, time.UTC)
 	past := now.Add(-2 * time.Hour)
 	farFuture := now.Add(24 * time.Hour)
-	contract := EvidenceContract{ID: "contract", Status: EvidenceContractActive, FreshnessMinutes: 60, MinimumCoverage: 1, Name: "Daily evidence"}
-	assessment := EvidenceAssessment{ContractID: contract.ID, Conclusion: EvidenceSupported, Coverage: 1, AssessedAt: past, ValidUntil: &farFuture, CreatedAt: past}
+	contract := EvidenceContract{
+		ID:               "contract",
+		Status:           EvidenceContractActive,
+		FreshnessMinutes: 60,
+		MinimumCoverage:  1,
+		Name:             "Daily evidence",
+	}
+	assessment := EvidenceAssessment{
+		ContractID: contract.ID,
+		Conclusion: EvidenceSupported,
+		Coverage:   1,
+		AssessedAt: past,
+		ValidUntil: &farFuture,
+		CreatedAt:  past,
+	}
 
 	bounded := boundedAssessmentValidity(assessment, contract)
 	want := past.Add(time.Hour)
@@ -73,12 +145,44 @@ func TestEvidenceValidityIsBoundedByContractFreshness(t *testing.T) {
 	}
 
 	aggregate := ProgramAggregate{
-		Program: Program{ID: "program-1", TenantID: "bank", Status: ProgramActive, EffectiveFrom: past.Add(-time.Hour), Version: 5},
-		Requirements: []Requirement{{ID: "req", TenantID: "bank", ProgramID: "program-1", Title: "Requirement", Status: RequirementApproved, EffectiveFrom: past.Add(-time.Hour)}},
-		Applicability: []Applicability{{ID: "app", RequirementID: "req", Status: ApplicabilityApplicable, EffectiveFrom: past.Add(-time.Hour), CreatedAt: past.Add(-time.Hour)}},
-		ControlImplementations: []ControlImplementation{{ID: "control", ProgramID: "program-1", Status: ImplementationImplemented, EffectiveFrom: past.Add(-time.Hour)}},
-		RequirementControlLinks: []RequirementControlLink{{RequirementID: "req", ImplementationID: "control"}},
-		EvidenceContracts: []EvidenceContract{contract},
+		Program: Program{
+			ID:            "program-1",
+			TenantID:      "bank",
+			Status:        ProgramActive,
+			EffectiveFrom: past.Add(-time.Hour),
+			Version:       5,
+		},
+		Requirements: []Requirement{
+			{
+				ID:            "req",
+				TenantID:      "bank",
+				ProgramID:     "program-1",
+				Title:         "Requirement",
+				Status:        RequirementApproved,
+				EffectiveFrom: past.Add(-time.Hour),
+			},
+		},
+		Applicability: []Applicability{
+			{
+				ID:            "app",
+				RequirementID: "req",
+				Status:        ApplicabilityApplicable,
+				EffectiveFrom: past.Add(-time.Hour),
+				CreatedAt:     past.Add(-time.Hour),
+			},
+		},
+		ControlImplementations: []ControlImplementation{
+			{
+				ID:            "control",
+				ProgramID:     "program-1",
+				Status:        ImplementationImplemented,
+				EffectiveFrom: past.Add(-time.Hour),
+			},
+		},
+		RequirementControlLinks: []RequirementControlLink{
+			{RequirementID: "req", ImplementationID: "control"},
+		},
+		EvidenceContracts:   []EvidenceContract{contract},
 		EvidenceAssessments: []EvidenceAssessment{assessment},
 	}
 	state := deriveProgramStateWithSourceState(aggregate, 0, now, ProgramSourceState{Known: true})
@@ -89,9 +193,16 @@ func TestEvidenceValidityIsBoundedByContractFreshness(t *testing.T) {
 
 func TestUnknownMandatoryDimensionsCannotBecomeCurrent(t *testing.T) {
 	allCurrent := ComplianceDimensions{
-		Interpretation: StateCurrent, Applicability: StateCurrent, ControlDesign: StateCurrent,
-		Implementation: StateCurrent, EvidenceSufficiency: StateCurrent, OperatingEffectiveness: StateCurrent,
-		Exception: StateCurrent, Assurance: StateCurrent, Deadline: StateCurrent, SourceQuality: StateCurrent,
+		Interpretation:         StateCurrent,
+		Applicability:          StateCurrent,
+		ControlDesign:          StateCurrent,
+		Implementation:         StateCurrent,
+		EvidenceSufficiency:    StateCurrent,
+		OperatingEffectiveness: StateCurrent,
+		Exception:              StateCurrent,
+		Assurance:              StateCurrent,
+		Deadline:               StateCurrent,
+		SourceQuality:          StateCurrent,
 	}
 	if got := chooseOverallState(allCurrent); got != StateCurrent {
 		t.Fatalf("fully current dimensions = %s", got)
@@ -111,8 +222,24 @@ func TestAuthoritativeSourceStateControlsSourceQuality(t *testing.T) {
 	now := time.Date(2026, 8, 7, 14, 0, 0, 0, time.UTC)
 	past := now.Add(-time.Hour)
 	aggregate := ProgramAggregate{
-		Program: Program{ID: "program-1", TenantID: "bank", Status: ProgramActive, EffectiveFrom: past, Version: 2},
-		Requirements: []Requirement{{ID: "req", TenantID: "bank", ProgramID: "program-1", SourceID: "source-a", Title: "Requirement", Status: RequirementApproved, EffectiveFrom: past}},
+		Program: Program{
+			ID:            "program-1",
+			TenantID:      "bank",
+			Status:        ProgramActive,
+			EffectiveFrom: past,
+			Version:       2,
+		},
+		Requirements: []Requirement{
+			{
+				ID:            "req",
+				TenantID:      "bank",
+				ProgramID:     "program-1",
+				SourceID:      "source-a",
+				Title:         "Requirement",
+				Status:        RequirementApproved,
+				EffectiveFrom: past,
+			},
+		},
 	}
 
 	degraded := deriveProgramStateWithSourceState(aggregate, 0, now, ProgramSourceState{Required: 2, Current: false, Known: true})
@@ -123,7 +250,12 @@ func TestAuthoritativeSourceStateControlsSourceQuality(t *testing.T) {
 	if current.Dimensions.SourceQuality != StateCurrent {
 		t.Fatalf("all-current sources did not make source quality current: %#v", current.Dimensions)
 	}
-	none := deriveProgramStateWithSourceState(ProgramAggregate{Program: aggregate.Program}, 0, now, ProgramSourceState{Required: 0, Known: true})
+	none := deriveProgramStateWithSourceState(
+		ProgramAggregate{Program: aggregate.Program},
+		0,
+		now,
+		ProgramSourceState{Required: 0, Known: true},
+	)
 	if none.Dimensions.SourceQuality != StateNotApplicable {
 		t.Fatalf("no source dependency should be explicit N/A: %#v", none.Dimensions)
 	}
@@ -132,7 +264,14 @@ func TestAuthoritativeSourceStateControlsSourceQuality(t *testing.T) {
 func TestReplayPreservesProgramPeriodOnResume(t *testing.T) {
 	start := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
 	end := start.Add(90 * 24 * time.Hour)
-	created := Program{ID: "program-1", TenantID: "bank", Status: ProgramActive, EffectiveFrom: start, EffectiveUntil: &end, Version: 1}
+	created := Program{
+		ID:             "program-1",
+		TenantID:       "bank",
+		Status:         ProgramActive,
+		EffectiveFrom:  start,
+		EffectiveUntil: &end,
+		Version:        1,
+	}
 	paused := created
 	paused.Status = ProgramPaused
 	resumed := paused
@@ -166,8 +305,18 @@ func TestProgramSummaryReportsStalenessAndReasonOmissions(t *testing.T) {
 		reasons[index] = StateReason{Code: "R", Summary: "reason"}
 	}
 	aggregate := ProgramAggregate{
-		Program: Program{ID: "program-1", TenantID: "bank", Status: ProgramActive, Version: 9},
-		CurrentState: &ProgramStateSnapshot{Overall: StateAtRisk, ProgramVersion: 7, GeneratedAt: now, Reasons: reasons},
+		Program: Program{
+			ID:       "program-1",
+			TenantID: "bank",
+			Status:   ProgramActive,
+			Version:  9,
+		},
+		CurrentState: &ProgramStateSnapshot{
+			Overall:        StateAtRisk,
+			ProgramVersion: 7,
+			GeneratedAt:    now,
+			Reasons:        reasons,
+		},
 	}
 	summary := summarizeProgram(aggregate)
 	if summary.ProgramVersion != 9 || summary.AssessedProgramVersion != 7 || !summary.ProjectionStale {
