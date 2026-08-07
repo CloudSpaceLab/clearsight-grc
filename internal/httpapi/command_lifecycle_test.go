@@ -63,6 +63,18 @@ func TestResponseLifecycleResponsibilityMatrix(t *testing.T) {
 	}
 }
 
+func TestResponsePreparationUsesProposerResponsibility(t *testing.T) {
+	api := &API{}
+	policy := commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3}
+	got, err := api.lifecycleCommandPolicy(context.Background(), "bank", "matter.response.add", map[string]any{}, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Responsibility != authority.ResponsibilityProposer || got.Materiality != 2 {
+		t.Fatalf("unexpected response preparation policy: %#v", got)
+	}
+}
+
 func TestLifecyclePolicyLoadsCurrentDecisionStateBeforeAuthorization(t *testing.T) {
 	ctx := context.Background()
 	service := continuity.NewService(continuity.NewMemoryRepository())
