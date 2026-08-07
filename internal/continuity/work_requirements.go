@@ -138,9 +138,12 @@ func CompileMatterWork(aggregate MatterAggregate, now time.Time) ([]WorkRequirem
 				values[index] = string(targets[index])
 			}
 			ambiguities = append(ambiguities, WorkAmbiguity{
-				Key: "response:" + response.ID + ":branch", Title: firstNonBlank(response.Purpose, "External response"),
-				Reason: "The response has more than one valid next transition; policy must select the next action before assignment.",
-				SubresourceType: "RESPONSE", SubresourceID: response.ID, AllowedTargets: values,
+				Key:             "response:" + response.ID + ":branch",
+				Title:           firstNonBlank(response.Purpose, "External response"),
+				Reason:          "The response has more than one valid next transition; policy must select the next action before assignment.",
+				SubresourceType: "RESPONSE",
+				SubresourceID:   response.ID,
+				AllowedTargets:  values,
 			})
 		}
 	}
@@ -172,8 +175,10 @@ func CompileMatterWork(aggregate MatterAggregate, now time.Time) ([]WorkRequirem
 			DueAt:               &due,
 			RequiredPrincipalID: strings.TrimSpace(contract.AuthorityPrincipalID),
 			Verification: &WorkVerificationContext{
-				ContractID: contract.ID, ExpectedOutcome: contract.ExpectedOutcome,
-				EvidenceState: "Outcome check ready", IndependentReview: contract.ActionID != "",
+				ContractID:        contract.ID,
+				ExpectedOutcome:   contract.ExpectedOutcome,
+				EvidenceState:     "Outcome check ready",
+				IndependentReview: contract.ActionID != "",
 			},
 		})
 	}
@@ -188,9 +193,12 @@ func CompileMatterWork(aggregate MatterAggregate, now time.Time) ([]WorkRequirem
 			values[index] = string(targets[index])
 		}
 		ambiguities = append(ambiguities, WorkAmbiguity{
-			Key: "decision:" + decision.ID + ":branch", Title: firstNonBlank(decision.Type, "Decision"),
-			Reason: "The decision has more than one valid next transition; state alone does not identify the next authorized action.",
-			SubresourceType: "DECISION", SubresourceID: decision.ID, AllowedTargets: values,
+			Key:             "decision:" + decision.ID + ":branch",
+			Title:           firstNonBlank(decision.Type, "Decision"),
+			Reason:          "The decision has more than one valid next transition; state alone does not identify the next authorized action.",
+			SubresourceType: "DECISION",
+			SubresourceID:   decision.ID,
+			AllowedTargets:  values,
 		})
 	}
 
