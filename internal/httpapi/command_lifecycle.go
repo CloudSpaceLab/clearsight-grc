@@ -135,15 +135,7 @@ func lifecycleMatterID(r *http.Request, payload map[string]any) (string, error) 
 	if r != nil {
 		pathID = strings.TrimSpace(r.PathValue("id"))
 	}
-	bodyID := stringValue(payload["matter_id"])
-	if alias := stringValue(payload["id"]); alias != "" {
-		var err error
-		bodyID, err = boundLifecycleID(bodyID, alias, "matter_id")
-		if err != nil {
-			return "", err
-		}
-	}
-	return boundLifecycleID(pathID, bodyID, "matter_id")
+	return boundLifecycleID(pathID, stringValue(payload["matter_id"]), "matter_id")
 }
 
 func lifecycleSubresourceID(r *http.Request, payload map[string]any, field string) (string, error) {
