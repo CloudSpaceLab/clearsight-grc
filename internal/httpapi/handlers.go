@@ -9,10 +9,13 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
+
+const maxWorkflowReadCandidates = 200
 
 func (a *API) live(w http.ResponseWriter, _ *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "live"})
@@ -99,17 +102,44 @@ func (a *API) authorityPolicies(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) listWorkflowTasks(w http.ResponseWriter, r *http.Request) {
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
+		return
+	}
 	tenantID, ok := requiredQuery(w, r, "tenant_id")
 	if !ok {
 		return
 	}
+	if requested := strings.TrimSpace(r.URL.Query().Get("principal_id")); requested != "" && requested != actor.PrincipalID {
+		httpx.WriteError(w, http.StatusForbidden, "principal_not_allowed", "This request is outside your signed-in user scope.")
+		return
+	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	values, err := a.deps.Workflow.List(r.Context(), workflow.ListFilter{TenantID: tenantID, PrincipalID: r.URL.Query().Get("principal_id"), Status: workflow.Status(r.URL.Query().Get("status")), Limit: limit})
+	if limit <= 0 || limit > maxWorkflowReadCandidates {
+		limit = 50
+	}
+	status := workflow.Status(strings.TrimSpace(r.URL.Query().Get("status")))
+	values, err := a.deps.Workflow.List(r.Context(), workflow.ListFilter{
+		TenantID: tenantID, PrincipalID: actor.PrincipalID, Status: status,
+		WorkflowKind: workflow.MatterActionWorkflowKind, ActiveOnly: status == "",
+		Limit: maxWorkflowReadCandidates,
+	})
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "workflow_failed", "Tasks could not be loaded.")
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values})
+	visible := make([]workflow.Task, 0, min(len(values), limit))
+	for _, task := range values {
+		if !workflow.MatterActionVisibleTo(task, actor.PrincipalID) {
+			continue
+		}
+		visible = append(visible, task)
+		if len(visible) == limit {
+			break
+		}
+	}
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": visible})
 }
 
 func (a *API) onboardingGuide(w http.ResponseWriter, r *http.Request) {
