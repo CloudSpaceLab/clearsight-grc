@@ -43,11 +43,12 @@ type Task struct {
 }
 
 type ListFilter struct {
-	TenantID                 string
-	PrincipalID              string
-	Status                   Status
-	WorkflowKind             string
-	ActiveOnly               bool
-	VisibleMatterActionsOnly bool
-	Limit                    int
+	TenantID             string
+	PrincipalID          string
+	Status               Status
+	WorkflowKind         string
+	SupportedMatterWorkOnly bool
+	ActiveOnly           bool
+	VisibleMatterWorkOnly bool
+	Limit                int
 }
