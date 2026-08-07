@@ -31,12 +31,13 @@ type routeCommand struct {
 }
 
 type routeSpec struct {
-	Method  string
-	Path    string
-	Class   routeClass
-	Handler http.HandlerFunc
-	Binder  routeBinder
-	Command *routeCommand
+	Method     string
+	Path       string
+	Class      routeClass
+	Handler    http.HandlerFunc
+	Binder     routeBinder
+	Command    *routeCommand
+	Permission string
 }
 
 func (a *API) registerRoutes(mux *http.ServeMux) {
@@ -62,21 +63,21 @@ func (a *API) routes() []routeSpec {
 		read("/api/v1/today", a.actorToday),
 
 		operation("/api/v1/authority/resolve", a.resolveAuthority, bindJSONIdentity(true)),
-		operation("/api/v1/authority/simulate", a.simulateAuthority, bindJSONIdentity(true)),
-		read("/api/v1/authority/integrity", a.authorityIntegrity),
-		read("/api/v1/authority/policies", a.authorityPolicies),
+		withPermission(operation("/api/v1/authority/simulate", a.simulateAuthority, bindJSONIdentity(true)), identity.PermissionConfigRead),
+		withPermission(read("/api/v1/authority/integrity", a.authorityIntegrity), identity.PermissionConfigRead),
+		withPermission(read("/api/v1/authority/policies", a.authorityPolicies), identity.PermissionConfigRead),
 
-		read("/api/v1/governance/policies", a.listGovernancePolicies),
-		write(http.MethodPost, "/api/v1/governance/policies", a.createGovernancePolicy, bindJSONIdentity(false, "maker_id")),
-		write(http.MethodPost, "/api/v1/governance/policies/{id}/submit", a.governancePolicyAction("submit"), bindJSONIdentity(false, "actor_id")),
-		write(http.MethodPost, "/api/v1/governance/policies/{id}/approve", a.governancePolicyAction("approve"), bindJSONIdentity(false, "actor_id")),
-		write(http.MethodPost, "/api/v1/governance/policies/{id}/reject", a.governancePolicyAction("reject"), bindJSONIdentity(false, "actor_id")),
-		write(http.MethodPost, "/api/v1/governance/policies/{id}/retire", a.governancePolicyAction("retire"), bindJSONIdentity(false, "actor_id")),
-		read("/api/v1/governance/delegations", a.listGovernanceDelegations),
-		write(http.MethodPost, "/api/v1/governance/delegations", a.createGovernanceDelegation, bindJSONIdentity(false, "maker_id")),
-		write(http.MethodPost, "/api/v1/governance/delegations/{id}/submit", a.governanceDelegationAction("submit"), bindJSONIdentity(false, "actor_id")),
-		write(http.MethodPost, "/api/v1/governance/delegations/{id}/approve", a.governanceDelegationAction("approve"), bindJSONIdentity(false, "actor_id")),
-		write(http.MethodPost, "/api/v1/governance/delegations/{id}/revoke", a.governanceDelegationAction("revoke"), bindJSONIdentity(false, "actor_id")),
+		withPermission(read("/api/v1/governance/policies", a.listGovernancePolicies), identity.PermissionConfigRead),
+		withPermission(write(http.MethodPost, "/api/v1/governance/policies", a.createGovernancePolicy, bindJSONIdentity(false, "maker_id")), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/governance/policies/{id}/submit", a.governancePolicyAction("submit"), bindJSONIdentity(false, "actor_id")), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/governance/policies/{id}/approve", a.governancePolicyAction("approve"), bindJSONIdentity(false, "actor_id")), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/governance/policies/{id}/reject", a.governancePolicyAction("reject"), bindJSONIdentity(false, "actor_id")), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/governance/policies/{id}/retire", a.governancePolicyAction("retire"), bindJSONIdentity(false, "actor_id")), identity.PermissionConfigWrite),
+		withPermission(read("/api/v1/governance/delegations", a.listGovernanceDelegations), identity.PermissionConfigRead),
+		withPermission(write(http.MethodPost, "/api/v1/governance/delegations", a.createGovernanceDelegation, bindJSONIdentity(false, "maker_id")), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/governance/delegations/{id}/submit", a.governanceDelegationAction("submit"), bindJSONIdentity(false, "actor_id")), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/governance/delegations/{id}/approve", a.governanceDelegationAction("approve"), bindJSONIdentity(false, "actor_id")), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/governance/delegations/{id}/revoke", a.governanceDelegationAction("revoke"), bindJSONIdentity(false, "actor_id")), identity.PermissionConfigWrite),
 
 		read("/api/v1/program-summaries", a.listProgramSummaries),
 		read("/api/v1/programs", a.listPrograms),
@@ -108,9 +109,10 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/matters/{id}/responses", "matter.response.add", a.addMatterResponse, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
 		material("/api/v1/matters/{id}/responses/{response_id}/transition", "matter.response.transition", a.transitionMatterResponse, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilitySignatory, Materiality: 4}),
 
-		read("/api/v1/operations/projections", a.projectionHealth),
-		materialService("/api/v1/operations/projections/reconcile", "projection.reconcile", a.reconcileProgramState, commandPolicy{ObjectType: "PROJECTION", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: noActorField}),
-		material("/api/v1/operations/projections/rebuild", "projection.rebuild", a.rebuildProgramState, commandPolicy{ObjectType: "PROJECTION", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: noActorField}),
+		withPermission(read("/api/v1/operations/projections", a.projectionHealth), identity.PermissionPlatformOperationsRead),
+		withPermission(materialService("/api/v1/operations/projections/reconcile", "projection.reconcile", a.reconcileProgramState, commandPolicy{ObjectType: "PROJECTION", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: noActorField}), identity.PermissionPlatformOperationsWrite),
+		withPermission(material("/api/v1/operations/projections/rebuild", "projection.rebuild", a.rebuildProgramState, commandPolicy{ObjectType: "PROJECTION", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: noActorField}), identity.PermissionPlatformOperationsWrite),
+		withPermission(read("/api/v1/operations/background-jobs", a.backgroundJobs), identity.PermissionPlatformJobsRead),
 
 		read("/api/v1/evidence/sources", a.listEvidenceSources),
 		write(http.MethodPost, "/api/v1/evidence/sources", a.createEvidenceSource, bindJSONIdentity(true)),
@@ -145,7 +147,7 @@ func (a *API) routes() []routeSpec {
 		write(http.MethodPut, "/api/v1/onboarding/state", a.updateOnboardingState, bindActorQuery("principal_id")),
 
 		read("/api/v1/compliance/readiness", a.readiness),
-		read("/api/v1/compliance/automation-policies", a.automationPolicies),
+		withPermission(read("/api/v1/compliance/automation-policies", a.automationPolicies), identity.PermissionConfigRead),
 		write(http.MethodPost, "/api/v1/compliance/signals", a.ingestSignal, bindJSONIdentity(false)),
 	}
 	if a.deps.DemoMode && a.deps.BankVerticals != nil {
@@ -182,6 +184,10 @@ func capability(method, path string, handler http.HandlerFunc) routeSpec {
 func hybridCapability(method, path string, handler http.HandlerFunc, binder routeBinder) routeSpec {
 	return routeSpec{Method: method, Path: path, Class: routeAuthenticatedOrCapability, Handler: handler, Binder: binder}
 }
+func withPermission(spec routeSpec, permission string) routeSpec {
+	spec.Permission = permission
+	return spec
+}
 
 func validateRoutes(routes []routeSpec) error {
 	seen := make(map[string]struct{}, len(routes))
@@ -196,6 +202,9 @@ func validateRoutes(routes []routeSpec) error {
 		seen[key] = struct{}{}
 		if route.Class == routePublic && route.Method != http.MethodGet {
 			return fmt.Errorf("public mutating route is prohibited: %s", key)
+		}
+		if (route.Class == routePublic || route.Class == routeCapability) && route.Permission != "" {
+			return fmt.Errorf("public or capability route cannot require staff permission: %s", key)
 		}
 		if route.Class == routeMaterialCommand && route.Command == nil {
 			return fmt.Errorf("material route lacks command policy: %s", key)
@@ -222,6 +231,10 @@ func (a *API) routeAccess(spec routeSpec, handler http.HandlerFunc) http.Handler
 		actor, err := identity.Require(r.Context())
 		if err != nil {
 			httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to continue.")
+			return
+		}
+		if spec.Permission != "" && !identity.HasPermission(actor, spec.Permission) {
+			httpx.WriteError(w, http.StatusForbidden, "permission_required", "You do not have permission to use this administrative function.")
 			return
 		}
 		if !bindRouteTenant(w, r, actor) {

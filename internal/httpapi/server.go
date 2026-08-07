@@ -51,7 +51,7 @@ func New(deps Dependencies) http.Handler {
 	mux := http.NewServeMux()
 	api.registerRoutes(mux)
 	return httpx.Chain(
-		permissionGate(mux),
+		mux,
 		httpx.CORS(deps.AllowedOrigin),
 		httpx.RequestID,
 		httpx.SecurityHeaders,

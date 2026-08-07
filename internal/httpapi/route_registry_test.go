@@ -45,6 +45,54 @@ func TestRouteRegistryHasExplicitAccessClasses(t *testing.T) {
 	}
 }
 
+func TestAdministrativePermissionsLiveInRouteRegistry(t *testing.T) {
+	routes := (&API{}).routes()
+	expected := map[string]string{
+		"GET /api/v1/governance/policies":               identity.PermissionConfigRead,
+		"POST /api/v1/governance/policies":              identity.PermissionConfigWrite,
+		"POST /api/v1/authority/simulate":               identity.PermissionConfigRead,
+		"GET /api/v1/operations/projections":            identity.PermissionPlatformOperationsRead,
+		"POST /api/v1/operations/projections/reconcile": identity.PermissionPlatformOperationsWrite,
+		"GET /api/v1/operations/background-jobs":        identity.PermissionPlatformJobsRead,
+		"GET /api/v1/compliance/automation-policies":    identity.PermissionConfigRead,
+	}
+	seen := map[string]string{}
+	for _, route := range routes {
+		key := route.Method + " " + route.Path
+		if permission, ok := expected[key]; ok {
+			seen[key] = route.Permission
+			if route.Permission != permission {
+				t.Fatalf("%s permission = %q, want %q", key, route.Permission, permission)
+			}
+		}
+	}
+	if len(seen) != len(expected) {
+		t.Fatalf("missing administrative routes from registry: got %#v", seen)
+	}
+}
+
+func TestAdministrativeRouteRequiresEffectivePermission(t *testing.T) {
+	handler := New(Dependencies{
+		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Identity: identity.NewDevelopmentAuthenticator("bank-demo", "user", "bank-ng"),
+	})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/operations/background-jobs", nil))
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("background jobs without permission returned %d: %s", response.Code, response.Body.String())
+	}
+
+	admin := New(Dependencies{
+		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Identity: identity.NewDevelopmentAuthenticator("bank-demo", "admin", "bank-ng", "SYSTEM_ADMIN"),
+	})
+	response = httptest.NewRecorder()
+	admin.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/operations/background-jobs", nil))
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("permitted background-jobs route should reach handler, got %d: %s", response.Code, response.Body.String())
+	}
+}
+
 func TestProtectedRoutesRequireVerifiedIdentity(t *testing.T) {
 	authenticator, err := identity.NewSignedAuthenticator(strings.Repeat("s", 32), time.Minute)
 	if err != nil {

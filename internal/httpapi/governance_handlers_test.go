@@ -17,7 +17,7 @@ func governanceHandler() http.Handler {
 	return New(Dependencies{
 		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Mode:       "memory",
-		Identity:   identity.NewDevelopmentAuthenticator("bank-demo", "maker", "bank-ng"),
+		Identity:   identity.NewDevelopmentAuthenticator("bank-demo", "maker", "bank-ng", "GRC_ADMIN"),
 		Governance: governance.NewService(governance.NewMemoryRepository()),
 	})
 }
