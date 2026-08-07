@@ -40,6 +40,9 @@ func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, e
 		if filter.ActiveOnly && (task.Status == StatusCompleted || task.Status == StatusCancelled) {
 			continue
 		}
+		if filter.VisibleMatterActionsOnly && !MatterActionVisibleTo(task, filter.PrincipalID) {
+			continue
+		}
 		values = append(values, cloneTask(task))
 	}
 	sort.Slice(values, func(i, j int) bool {
