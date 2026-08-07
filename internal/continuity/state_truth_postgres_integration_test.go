@@ -53,9 +53,9 @@ func TestPostgresProgramStateTemporalAndSourceTruth(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `INSERT INTO program_requirements(id,tenant_id,program_id,source_id,code,title,statement,modality,status,effective_from) VALUES
-		($1::uuid,$5::uuid,$6::uuid,$7::uuid,'A','A','A','MUST','APPROVED',$8),
-		($2::uuid,$5::uuid,$6::uuid,$9::uuid,'B','B','B','MUST','APPROVED',$8),
-		($3::uuid,$5::uuid,$6::uuid,$10::uuid,'FUTURE','Future','Future','MUST','APPROVED',$11)`, reqA, reqB, reqFuture, tenantID, programID, sourceA, now.Add(-time.Hour), sourceB, sourceC, now.Add(time.Hour)); err != nil {
+		($1::uuid,$4::uuid,$5::uuid,$6::uuid,'A','A','A','MUST','APPROVED',$7),
+		($2::uuid,$4::uuid,$5::uuid,$8::uuid,'B','B','B','MUST','APPROVED',$7),
+		($3::uuid,$4::uuid,$5::uuid,$9::uuid,'FUTURE','Future','Future','MUST','APPROVED',$10)`, reqA, reqB, reqFuture, tenantID, programID, sourceA, now.Add(-time.Hour), sourceB, sourceC, now.Add(time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -78,8 +78,6 @@ func TestPostgresProgramStateTemporalAndSourceTruth(t *testing.T) {
 		t.Fatalf("all current effective sources were not recognized: %#v", state)
 	}
 
-	// Normalized projection preserves the configured period when resuming even
-	// if the legacy command payload attempts to write NULL.
 	if _, err := pool.Exec(ctx, `UPDATE programs SET status='ACTIVE',effective_until=NULL WHERE id=$1::uuid`, programID); err != nil {
 		t.Fatal(err)
 	}
