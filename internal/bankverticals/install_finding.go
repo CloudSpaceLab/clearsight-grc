@@ -88,6 +88,14 @@ func (s *Service) ensureLegacyFinding(ctx context.Context, config SeedConfig, pr
 		return err
 	}
 	if !contractHasIndependentPass(matter, *contract) {
+		observedAt := config.Now
+		if action.ImplementedAt != nil && action.ImplementedAt.After(observedAt) {
+			observedAt = *action.ImplementedAt
+		}
+		if contract.CreatedAt.After(observedAt) {
+			observedAt = contract.CreatedAt
+		}
+		observedAt = observedAt.Add(time.Duration(contract.ObservationPeriodMinutes) * time.Minute)
 		matter, err = s.continuity.RecordVerificationResult(ctx, continuity.RecordVerificationResultInput{
 			TenantID:            config.TenantID,
 			MatterID:            matter.Matter.ID,
@@ -98,7 +106,7 @@ func (s *Service) ensureLegacyFinding(ctx context.Context, config SeedConfig, pr
 			EvidenceReferences:  mustJSON([]string{"processing inventory export", "retention owner approvals", "sample re-performance"}),
 			ReviewerPrincipalID: config.ReviewerPrincipalID,
 			Rationale:           "The reviewer re-performed the check and confirmed all 14 records contain the required approved retention information.",
-			ObservedAt:          config.Now.Add(-24 * time.Hour),
+			ObservedAt:          observedAt,
 		})
 		if err != nil {
 			return err
