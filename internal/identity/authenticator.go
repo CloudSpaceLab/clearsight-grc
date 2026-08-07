@@ -77,6 +77,7 @@ func (a *SignedAuthenticator) Authenticate(r *http.Request) (Actor, bool, error)
 		return Actor{}, false, ErrInvalidIdentity
 	}
 	actor.RoleCodes = NormalizeRoleCodes(actor.RoleCodes)
+	actor.PermissionCodes = NormalizePermissionCodes(actor.PermissionCodes)
 	if actor.IssuedAt.IsZero() {
 		actor.IssuedAt = issued
 	}
@@ -123,8 +124,33 @@ func (a *DevelopmentAuthenticator) Authenticate(r *http.Request) (Actor, bool, e
 	}
 	now := a.now().UTC()
 	return Actor{
-		TenantID: tenant, PrincipalID: principal, LegalEntityID: entity, Kind: "PERSON", RoleCodes: roles,
+		TenantID: tenant, PrincipalID: principal, LegalEntityID: entity, Kind: "PERSON",
+		RoleCodes: roles, PermissionCodes: developmentPermissions(roles),
 		AuthenticationMethod: "DEVELOPMENT", AssuranceLevel: "DEMO", SessionID: "development",
 		IssuedAt: now, ExpiresAt: now.Add(time.Hour),
 	}, true, nil
+}
+
+// developmentPermissions is intentionally confined to the development identity
+// edge. Production signed identity must carry effective permissions explicitly;
+// handlers never infer authority from role names.
+func developmentPermissions(roles []string) []string {
+	permissions := []string{}
+	for _, role := range NormalizeRoleCodes(roles) {
+		switch role {
+		case "CRO", "CCO", "CISO", "EXECUTIVE":
+			permissions = append(permissions, PermissionConfigRead)
+		case "GRC_ADMIN":
+			permissions = append(permissions, PermissionConfigRead, PermissionConfigWrite, PermissionPlatformOperationsRead, PermissionPlatformOperationsWrite)
+		case "SYSTEM_ADMIN", "SUPER_ADMIN":
+			permissions = append(permissions,
+				PermissionConfigRead,
+				PermissionConfigWrite,
+				PermissionPlatformOperationsRead,
+				PermissionPlatformOperationsWrite,
+				PermissionPlatformJobsRead,
+			)
+		}
+	}
+	return NormalizePermissionCodes(permissions)
 }
