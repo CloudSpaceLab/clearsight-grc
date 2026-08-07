@@ -180,20 +180,28 @@ func (p *MatterLifecycleProjector) resolveRequirement(ctx context.Context, aggre
 			contextValues["authority_rule_id"] = resolution.RuleID
 			contextValues["authority_policy_version"] = resolution.PolicyVersion
 			contextValues["authority_strategy"] = resolution.Strategy
-			principals := uniqueAuthorityPrincipals(resolution)
+			principals := visibleAuthorityPrincipals(aggregate.Matter, resolution)
 			contextValues["authority_candidate_count"] = strconv.Itoa(len(principals))
 			if required := strings.TrimSpace(requirement.RequiredPrincipalID); required != "" {
-				if resolution.AllowsPrincipal(required) {
+				switch {
+				case !resolution.AllowsPrincipal(required):
+					contextValues["routing_status"] = "REQUIRED_PRINCIPAL_NOT_ELIGIBLE"
+				case !continuity.MatterVisibleTo(aggregate.Matter, required):
+					contextValues["routing_status"] = "REQUIRED_PRINCIPAL_NOT_VISIBLE"
+				default:
 					principalID, status = required, StatusReady
 					contextValues["routing_status"] = "DIRECT"
-				} else {
-					contextValues["routing_status"] = "REQUIRED_PRINCIPAL_NOT_ELIGIBLE"
 				}
-			} else if len(principals) == 1 {
-				principalID, status = principals[0].ID, StatusReady
-				contextValues["routing_status"] = "DIRECT"
 			} else {
-				contextValues["routing_status"] = "CANDIDATE_SET"
+				switch len(principals) {
+				case 0:
+					contextValues["routing_status"] = "NO_VISIBLE_CANDIDATE"
+				case 1:
+					principalID, status = principals[0].ID, StatusReady
+					contextValues["routing_status"] = "DIRECT"
+				default:
+					contextValues["routing_status"] = "CANDIDATE_SET"
+				}
 			}
 		case errors.Is(err, authority.ErrNoRoute):
 			contextValues["routing_status"] = "NO_ROUTE"
@@ -287,6 +295,17 @@ func uniqueAuthorityPrincipals(resolution authority.Resolution) []authority.Prin
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
 	return result
+}
+
+func visibleAuthorityPrincipals(matter continuity.Matter, resolution authority.Resolution) []authority.Principal {
+	values := uniqueAuthorityPrincipals(resolution)
+	visible := values[:0]
+	for _, value := range values {
+		if continuity.MatterVisibleTo(matter, value.ID) {
+			visible = append(visible, value)
+		}
+	}
+	return visible
 }
 
 func (p *MatterLifecycleProjector) matterLegalEntity(ctx context.Context, tenant, matterID string, at time.Time) (string, string, error) {
