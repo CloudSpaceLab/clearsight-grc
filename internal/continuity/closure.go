@@ -9,14 +9,14 @@ import (
 
 func allowedMatterTransition(from, to MatterStatus) bool {
 	allowed := map[MatterStatus]map[MatterStatus]bool{
-		MatterDraft: {MatterInitialReview: true, MatterCancelled: true},
-		MatterInitialReview: {MatterAssessment: true, MatterCancelled: true},
-		MatterAssessment: {MatterDecisionRequired: true, MatterActionsInProgress: true, MatterResponsePreparation: true, MatterVerification: true, MatterCancelled: true},
-		MatterDecisionRequired: {MatterActionsInProgress: true, MatterResponsePreparation: true, MatterVerification: true, MatterCancelled: true},
-		MatterActionsInProgress: {MatterVerification: true, MatterResponsePreparation: true, MatterCancelled: true},
+		MatterDraft:               {MatterInitialReview: true, MatterCancelled: true},
+		MatterInitialReview:       {MatterAssessment: true, MatterCancelled: true},
+		MatterAssessment:          {MatterDecisionRequired: true, MatterActionsInProgress: true, MatterResponsePreparation: true, MatterVerification: true, MatterCancelled: true},
+		MatterDecisionRequired:    {MatterActionsInProgress: true, MatterResponsePreparation: true, MatterVerification: true, MatterCancelled: true},
+		MatterActionsInProgress:   {MatterVerification: true, MatterResponsePreparation: true, MatterCancelled: true},
 		MatterResponsePreparation: {MatterVerification: true, MatterCancelled: true},
-		MatterVerification: {MatterClosed: true, MatterDecisionRequired: true, MatterActionsInProgress: true, MatterResponsePreparation: true, MatterCancelled: true},
-		MatterClosed: {MatterAssessment: true},
+		MatterVerification:        {MatterClosed: true, MatterDecisionRequired: true, MatterActionsInProgress: true, MatterResponsePreparation: true, MatterCancelled: true},
+		MatterClosed:              {MatterAssessment: true},
 	}
 	return allowed[from][to]
 }
@@ -356,20 +356,20 @@ func actionByID(values []Action, id string) (Action, bool) {
 
 func allowedActionTransition(from, to ActionStatus) bool {
 	allowed := map[ActionStatus]map[ActionStatus]bool{
-		ActionPlanned: {ActionInProgress: true, ActionBlocked: true, ActionCancelled: true},
+		ActionPlanned:    {ActionInProgress: true, ActionBlocked: true, ActionCancelled: true},
 		ActionInProgress: {ActionImplemented: true, ActionBlocked: true, ActionCancelled: true},
-		ActionBlocked: {ActionInProgress: true, ActionCancelled: true},
+		ActionBlocked:    {ActionInProgress: true, ActionCancelled: true},
 	}
 	return allowed[from][to]
 }
 
 func allowedResponseTransition(from, to ResponseStatus) bool {
 	allowed := map[ResponseStatus]map[ResponseStatus]bool{
-		ResponseDraft: {ResponseInReview: true, ResponseWithdrawn: true},
-		ResponseInReview: {ResponseApproved: true, ResponseRejected: true, ResponseDraft: true, ResponseWithdrawn: true},
-		ResponseApproved: {ResponseTransmitted: true, ResponseWithdrawn: true},
+		ResponseDraft:       {ResponseInReview: true, ResponseWithdrawn: true},
+		ResponseInReview:    {ResponseApproved: true, ResponseRejected: true, ResponseDraft: true, ResponseWithdrawn: true},
+		ResponseApproved:    {ResponseTransmitted: true, ResponseWithdrawn: true},
 		ResponseTransmitted: {ResponseAcknowledged: true},
-		ResponseRejected: {ResponseDraft: true},
+		ResponseRejected:    {ResponseDraft: true},
 	}
 	return allowed[from][to]
 }
