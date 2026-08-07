@@ -18,6 +18,7 @@ func deriveProgramState(aggregate ProgramAggregate, openMatters int, now time.Ti
 
 func deriveProgramStateWithSourceState(aggregate ProgramAggregate, openMatters int, now time.Time, sourceState ProgramSourceState) ProgramStateSnapshot {
 	now = now.UTC()
+	aggregate.EvidenceContracts = effectiveEvidenceContracts(aggregate, now)
 	dimensions := ComplianceDimensions{
 		Interpretation:         StateUnknown,
 		Applicability:          StateUnknown,
@@ -312,10 +313,7 @@ func inferProgramSourceState(aggregate ProgramAggregate, now time.Time) ProgramS
 			required[requirement.SourceID] = struct{}{}
 		}
 	}
-	for _, contract := range aggregate.EvidenceContracts {
-		if contract.Status != EvidenceContractActive {
-			continue
-		}
+	for _, contract := range effectiveEvidenceContracts(aggregate, now) {
 		for _, sourceID := range contract.AcceptableSourceIDs {
 			if sourceID != "" {
 				required[sourceID] = struct{}{}
