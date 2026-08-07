@@ -330,7 +330,7 @@ func (a *API) addMatterDecision(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	input.MatterID = r.PathValue("id")
-	value, err := service.AddDecision(r.Context(), input)
+	value, err := service.RecordDecisionLifecycle(r.Context(), input)
 	writeContinuityResult(w, value, err, http.StatusCreated)
 }
 
