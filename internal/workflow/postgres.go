@@ -44,7 +44,18 @@ func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Tas
 		      WHEN upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL') THEN true
 		      WHEN upper(btrim(m.scope->>'access'))='RESTRICTED' THEN
 		        CASE
-		          WHEN jsonb_typeof(m.scope->'allowed_principal_ids')='array' THEN EXISTS (
+		          WHEN jsonb_typeof(m.scope->'allowed_principal_ids')='array'
+		           AND NOT EXISTS (
+		             SELECT 1
+		             FROM jsonb_array_elements(m.scope->'allowed_principal_ids') AS entry(value)
+		             WHERE jsonb_typeof(entry.value)<>'string'
+		           )
+		           AND EXISTS (
+		             SELECT 1
+		             FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') AS nonblank(value)
+		             WHERE btrim(nonblank.value)<>''
+		           )
+		          THEN EXISTS (
 		            SELECT 1
 		            FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') AS allowed(value)
 		            WHERE btrim(allowed.value)=$2
