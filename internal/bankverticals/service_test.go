@@ -11,11 +11,11 @@ import (
 
 func TestSampleJourneysConnectProgramEvidenceDecisionsResponsesAndOutcomeChecks(t *testing.T) {
 	ctx := context.Background()
+	now := time.Date(2026, 8, 5, 18, 0, 0, 0, time.UTC)
 	continuityRepo := continuity.NewMemoryRepository()
-	continuityService := continuity.NewService(continuityRepo)
+	continuityService := continuity.NewServiceWithClock(continuityRepo, func() time.Time { return now })
 	evidenceService := evidence.NewService(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore())
 	service := NewService(continuityService, evidenceService)
-	now := time.Date(2026, 8, 5, 18, 0, 0, 0, time.UTC)
 	config := DemoSeedConfig()
 	config.Now = now
 
