@@ -995,59 +995,7 @@ func (s *Service) AddVerificationContract(ctx context.Context, input AddVerifica
 }
 
 func (s *Service) RecordVerificationResult(ctx context.Context, input RecordVerificationResultInput) (MatterAggregate, error) {
-	aggregate, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
-	if err != nil {
-		return MatterAggregate{}, err
-	}
-	if strings.TrimSpace(input.ContractID) == "" || !validVerificationResult(input.Result) || strings.TrimSpace(input.Rationale) == "" {
-		return MatterAggregate{}, fmt.Errorf("contract_id, supported result and rationale are required")
-	}
-	if !containsVerificationContract(aggregate.VerificationContracts, input.ContractID) {
-		return MatterAggregate{}, fmt.Errorf("contract_id does not belong to this matter")
-	}
-	observations, err := normalizedJSON(input.Observations, `{}`)
-	if err != nil {
-		return MatterAggregate{}, err
-	}
-	evidenceReferences, err := normalizedJSON(input.EvidenceReferences, `[]`)
-	if err != nil {
-		return MatterAggregate{}, err
-	}
-	if input.ObservedAt.IsZero() {
-		input.ObservedAt = s.now().UTC()
-	}
-	valueID, err := id.NewUUIDv7()
-	if err != nil {
-		return MatterAggregate{}, err
-	}
-	value := VerificationResult{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, ContractID: input.ContractID, Result: input.Result, Observations: observations, EvidenceReferences: evidenceReferences, ReviewerPrincipalID: input.ReviewerPrincipalID, Rationale: strings.TrimSpace(input.Rationale), ObservedAt: input.ObservedAt.UTC(), CreatedAt: s.now().UTC()}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventVerificationResultRecorded, value, input.ReviewerPrincipalID); err != nil {
-		return MatterAggregate{}, err
-	}
-	aggregate, err = s.GetMatter(ctx, input.TenantID, input.MatterID)
-	if err != nil {
-		return MatterAggregate{}, err
-	}
-	if input.Result == VerificationFailed && aggregate.Matter.Status == MatterVerification {
-		contract, _ := verificationContractByID(aggregate.VerificationContracts, input.ContractID)
-		switch contract.FailureResponse {
-		case "REOPEN":
-			return s.TransitionMatter(ctx, TransitionInput{TenantID: input.TenantID, ID: input.MatterID, ExpectedVersion: aggregate.Matter.Version, To: MatterActionsInProgress, ActorID: input.ReviewerPrincipalID, Rationale: "The outcome check did not pass; additional action is required."})
-		case "ESCALATE":
-			return s.TransitionMatter(ctx, TransitionInput{TenantID: input.TenantID, ID: input.MatterID, ExpectedVersion: aggregate.Matter.Version, To: MatterDecisionRequired, ActorID: input.ReviewerPrincipalID, Rationale: "The outcome check did not pass and needs an authorized decision."})
-		case "CREATE_MATTER":
-			programIDs, _ := s.repo.LinkedProgramIDs(ctx, input.TenantID, input.MatterID)
-			programID := ""
-			if len(programIDs) > 0 {
-				programID = programIDs[0]
-			}
-			_, createErr := s.CreateMatter(ctx, CreateMatterInput{TenantID: input.TenantID, Type: MatterFailedVerification, Priority: maxInt(aggregate.Matter.Priority, 3), Title: "Resolve a failed outcome check", Summary: "The expected outcome was not observed and needs separate follow-up.", Scope: aggregate.Matter.Scope, SourceType: "MATTER", SourceID: aggregate.Matter.ID, TriggerType: "VERIFICATION_FAILED", TriggerID: value.ID, TriggerKey: "verification:" + input.ContractID + ":" + value.ID, KnownFacts: observations, MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`), ProgramID: programID, ActorID: input.ReviewerPrincipalID})
-			if createErr != nil {
-				return MatterAggregate{}, createErr
-			}
-		}
-	}
-	return aggregate, nil
+	return s.recordVerificationResult(ctx, input)
 }
 
 func (s *Service) AddResponsePackage(ctx context.Context, input AddResponsePackageInput) (MatterAggregate, error) {
