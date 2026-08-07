@@ -56,7 +56,7 @@ func TestMatterLifecycleProjectorConvergesCurrentAuthorityAndVisibility(t *testi
 		INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at)
 		VALUES
 		($1::uuid,$3::uuid,'MAT-WORK-2','AUTHORITY_REQUEST','RESPONSE_PREPARATION',4,'Respond to authority','Await acknowledgement','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4,$4),
-		($2::uuid,$3::uuid,'MAT-WORK-EMPTY','CONTROL_GAP','INITIAL_REVIEW',2,'No lifecycle work','No current work','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4,$4)`, matterID, emptyMatter, tenantID, oldEventTime); err != nil {
+		($2::uuid,$3::uuid,'MAT-WORK-EMPTY','CONTROL_GAP','NEW',2,'No lifecycle work','No current work','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4,$4)`, matterID, emptyMatter, tenantID, oldEventTime); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
@@ -65,8 +65,6 @@ func TestMatterLifecycleProjectorConvergesCurrentAuthorityAndVisibility(t *testi
 		t.Fatal(err)
 	}
 
-	// The old assignment was valid at the event time but expired before the
-	// projector runs. The current assignment must win even for delayed delivery.
 	if _, err := pool.Exec(ctx, `INSERT INTO responsibility_assignments(tenant_id,legal_entity_id,principal_id,responsibility,object_type,object_id,priority,valid_from,valid_until,policy_version,decision_type) VALUES
 		($1::uuid,$2::uuid,$3::uuid,'ACKNOWLEDGEMENT_RECORDER','MATTER',$5::uuid,100,$6,$7,'assignment:old','matter.response.transition'),
 		($1::uuid,$2::uuid,$4::uuid,'ACKNOWLEDGEMENT_RECORDER','MATTER',$5::uuid,100,$7,NULL,'assignment:current','matter.response.transition')`,
@@ -130,8 +128,6 @@ func TestMatterLifecycleProjectorConvergesCurrentAuthorityAndVisibility(t *testi
 		t.Fatalf("duplicate delivery emitted a duplicate reconciliation event: before=%d after=%d", eventCount, afterDuplicate)
 	}
 
-	// A canonical Matter with no executable/ambiguous lifecycle work must not
-	// create an empty Workflow instance merely because the reconciler saw it.
 	if err := projector.ReconcileMatter(ctx, "matter-work-test", emptyMatter, now); err != nil {
 		t.Fatal(err)
 	}
@@ -143,9 +139,6 @@ func TestMatterLifecycleProjectorConvergesCurrentAuthorityAndVisibility(t *testi
 		t.Fatalf("empty Matter created lifecycle Workflow bloat: %d", emptyCount)
 	}
 
-	// If the currently authorized actor loses record visibility, the existing
-	// Task converges to unassigned BLOCKED rather than becoming inaccessible
-	// assigned work that is merely hidden later.
 	restricted, _ := json.Marshal(map[string]any{"access": "RESTRICTED", "allowed_principal_ids": []string{firstID}})
 	if _, err := pool.Exec(ctx, `UPDATE matters SET scope=$2::jsonb,updated_at=$3 WHERE id=$1::uuid`, matterID, string(restricted), now.Add(time.Minute)); err != nil {
 		t.Fatal(err)
