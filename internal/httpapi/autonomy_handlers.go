@@ -7,7 +7,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 )
 
-func (a *API) actorAutomationPolicies(w http.ResponseWriter, r *http.Request) {
+func (a *API) automationPolicies(w http.ResponseWriter, r *http.Request) {
 	if a.deps.Autonomy == nil {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "automation_policies_unavailable", "Automation policies are unavailable.")
 		return
