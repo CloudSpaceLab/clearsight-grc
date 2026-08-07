@@ -29,15 +29,15 @@ func ValidateDecisionLifecycle(values []Decision, decisionType string, target De
 		return fmt.Errorf("%w: a decision must be proposed before %s", ErrInvalidState, target)
 	}
 	allowed := map[DecisionStatus]map[DecisionStatus]bool{
-		DecisionProposed: {DecisionInReview: true, DecisionChallenged: true, DecisionApproved: true, DecisionConditionallyApproved: true, DecisionRejected: true, DecisionReturned: true, DecisionSuperseded: true},
-		DecisionInReview: {DecisionChallenged: true, DecisionApproved: true, DecisionConditionallyApproved: true, DecisionRejected: true, DecisionReturned: true, DecisionSuperseded: true},
-		DecisionChallenged: {DecisionApproved: true, DecisionConditionallyApproved: true, DecisionRejected: true, DecisionReturned: true, DecisionSuperseded: true},
-		DecisionReturned: {DecisionProposed: true, DecisionSuperseded: true},
-		DecisionRejected: {DecisionProposed: true, DecisionSuperseded: true},
-		DecisionApproved: {DecisionProposed: true, DecisionSuperseded: true, DecisionExpired: true},
+		DecisionProposed:              {DecisionInReview: true, DecisionChallenged: true, DecisionApproved: true, DecisionConditionallyApproved: true, DecisionRejected: true, DecisionReturned: true, DecisionSuperseded: true},
+		DecisionInReview:              {DecisionChallenged: true, DecisionApproved: true, DecisionConditionallyApproved: true, DecisionRejected: true, DecisionReturned: true, DecisionSuperseded: true},
+		DecisionChallenged:            {DecisionApproved: true, DecisionConditionallyApproved: true, DecisionRejected: true, DecisionReturned: true, DecisionSuperseded: true},
+		DecisionReturned:              {DecisionProposed: true, DecisionSuperseded: true},
+		DecisionRejected:              {DecisionProposed: true, DecisionSuperseded: true},
+		DecisionApproved:              {DecisionProposed: true, DecisionSuperseded: true, DecisionExpired: true},
 		DecisionConditionallyApproved: {DecisionProposed: true, DecisionSuperseded: true, DecisionExpired: true},
-		DecisionExpired: {DecisionProposed: true, DecisionSuperseded: true},
-		DecisionSuperseded: {DecisionProposed: true},
+		DecisionExpired:               {DecisionProposed: true, DecisionSuperseded: true},
+		DecisionSuperseded:            {DecisionProposed: true},
 	}
 	if !allowed[current.Status][target] {
 		return fmt.Errorf("%w: decision %s cannot move from %s to %s", ErrInvalidState, strings.TrimSpace(decisionType), current.Status, target)
