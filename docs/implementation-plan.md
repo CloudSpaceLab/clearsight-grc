@@ -47,6 +47,8 @@ This order prevents duplicate auth middleware, duplicate task/execution models a
 
 - [x] durable Workflow Tasks, events and optimistic transitions.
 - [x] leased timers, outbox/inbox primitives and retry/recovery foundations.
+- [x] independent in-process worker classes isolate source maintenance, Program projection, delegation lifecycle, timers and outbox delivery.
+- [x] timer/outbox poison work terminates visibly after a bounded retry budget instead of retrying forever.
 - [x] separately versioned Program-status maintenance with health, reconcile and rebuild operations.
 - [x] projection-first Program/Matter summaries with bounded pagination and lazy details.
 
@@ -94,23 +96,38 @@ The first durable reconciliation bridge now reuses the existing evidence outbox,
 - [x] source degradation creates/upserts the exact `source_quality` drift.
 - [x] source recovery resolves only the matching active source drift.
 - [x] generic `/compliance/signals` ingestion cannot forge `SOURCE_RECOVERED`; recovery is an internal governed-source operation.
-- [x] active Evidence Contract source mappings resolve every affected Program without a silent fan-out cap.
+- [x] active Evidence Contract mappings and currently-effective approved Requirement `source_id` mappings resolve every affected Program without a silent fan-out cap.
 - [x] Program trigger dedupe keys include both source event and Program ID.
 - [x] unhealthy→unhealthy changes update drift but do not open a duplicate degradation episode/Matter.
-- [x] recovery reaches a Program only when all active evidence sources for that Program are currently `CURRENT`.
+- [x] recovery reaches a Program only when every currently-required source for that Program is healthy.
 - [x] existing transactional `ApplyTriggerBundle` remains responsible for Program trigger, optional Matter, outbox and projection-job truth.
 - [x] logging occurs after internal reconciliation; a failed internal delivery is retried instead of being logged-and-marked-published.
-- [x] no schema migration or broker was added.
+- [x] no reconciliation-specific schema migration or broker was added.
 
-**Still required before production release:** PostgreSQL-tagged integration evidence for the complete outbox → inbox → Signal/Drift → Program trigger/Matter → projection path and operational lag/poison-event observability.
+**Still required before production release:** one full PostgreSQL replay test proving the complete source-health outbox → inbox → Signal/Drift → Program trigger/Matter → projection consequence chain under duplicate delivery and lag/recovery conditions.
 
-### P0.3 — worker work-class isolation — NEXT
+### P0.3 — worker work-class isolation — IMPLEMENTED IN PR #25
 
-Separate timer delivery, evidence reconciliation, projection maintenance and external publishers into explicit work classes with independent leases, retry budgets, metrics and failure isolation. Do not create one generic agent worker loop.
+The deployable worker remains one process, but its independent responsibilities no longer share one serial failure domain.
 
-### P0.4 — compound-command transaction truth — PLANNED
+- [x] evidence-source maintenance, Program projection, delegation lifecycle, workflow timers and outbox delivery run as five named work classes.
+- [x] each class has an independent poll interval, execution timeout, lease, retry/backoff ceiling, batch limit and retry budget.
+- [x] each class is intentionally single-flight; no generic worker-pool or agent-executor abstraction was added.
+- [x] class errors and panics degrade only that class; ordinary retriable failures do not terminate the worker process or stop unrelated classes.
+- [x] execution timeout is always shorter than the claim lease, preventing normal timeout handling from making live work simultaneously reclaimable.
+- [x] publisher panics are contained to the affected outbox item so later items in the claimed batch continue.
+- [x] in-memory outbox claiming now honours leases consistently with PostgreSQL.
+- [x] workflow timers move to durable `FAILED` after their retry budget is exhausted and are no longer claimable.
+- [x] outbox events receive `dead_lettered_at` after their retry budget is exhausted and are no longer claimable.
+- [x] class health distinguishes `STARTING`, `CURRENT`, `DEGRADED` and `NEEDS_ATTENTION`; timer/outbox health exposes pending work, terminal work, highest attempts and oldest pending time from the authoritative queue tables.
+- [x] shared-database `postgresintegration` packages run serially in CI so one package's fixture cleanup cannot race another package.
+- [x] PostgreSQL integration tests prove terminal timer/dead-letter behavior and no reclaim after terminal failure.
+
+### P0.4 — compound-command transaction truth — NEXT
 
 Audit every compound material mutation. Authoritative rows, append-only domain event, transactional outbox and required maintenance job must commit together. Remove any path where a committed material mutation can return failure because a derived action failed afterward.
+
+The first concrete target is `RecordVerificationResult`: it currently commits the verification result before REOPEN/ESCALATE/CREATE_MATTER follow-up handling. Cross-aggregate follow-up must become a durable instruction committed with the authoritative result, while same-aggregate required transitions must share one optimistic transaction. Repository errors used to determine follow-up scope must never be discarded.
 
 ### P0.5 — API and client contract reconciliation — PLANNED
 

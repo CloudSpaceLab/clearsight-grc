@@ -10,7 +10,7 @@ The documentation is layered so product semantics, safety, architecture, experie
 4. [`product/continuous-compliance-operating-model.md`](product/continuous-compliance-operating-model.md) — Programs, issues/changes, evidence-backed state and closure.
 5. [`product/continuous-compliance-and-autonomy.md`](product/continuous-compliance-and-autonomy.md) — Signals, drift, evidence aging, readiness, precedent and governed automation.
 6. [`product/authority-routing-and-escalation.md`](product/authority-routing-and-escalation.md) — responsibility, review, authority, delegation and escalation.
-7. [`architecture/governance-runtime.md`](architecture/governance-runtime.md) — maker-checker policy lifecycle, delegation, timers and durable delivery.
+7. [`architecture/governance-runtime.md`](architecture/governance-runtime.md) — maker-checker policy lifecycle, delegation, isolated worker classes, timers and durable delivery.
 8. [`architecture/command-integrity-and-projection-operations.md`](architecture/command-integrity-and-projection-operations.md) — executable route classes, verified actor binding, authority checks, transaction truth and Program-status operations.
 9. [`architecture/source-evidence-and-secure-capture.md`](architecture/source-evidence-and-secure-capture.md) — source health, persisted requests, bounded capture capabilities and artifact integrity.
 10. [`product/nigerian-bank-reference-journeys.md`](product/nigerian-bank-reference-journeys.md) — connected, actionable Nigerian-bank reference journeys.
@@ -54,7 +54,9 @@ Architecture never overrides the simpler user-facing Program, issue/change, requ
 - fail-closed restricted-record policy parsing and pre-pagination Matter visibility;
 - authority routing, simulation, integrity and policy resolution;
 - maker-checker routing-policy and delegation administration;
-- durable Workflow Tasks, timers, outbox and inbox foundations;
+- durable Workflow Tasks, leased timers, outbox and inbox foundations;
+- independent in-process worker classes for evidence maintenance, Program projection, delegation lifecycle, timers and outbox delivery;
+- bounded timer/outbox retry budgets with durable terminal failure and queue health rather than infinite poison-item retry;
 - Source Registry, source observations and freshness maintenance;
 - durable source-health reconciliation from evidence outbox events into exact source drift and dependent Program triggers, with inbox dedupe;
 - persisted evidence requests, submissions, invitations and sessions;
@@ -80,8 +82,8 @@ Issues #26 and #27 now share one execution path rather than parallel backlogs:
 
 1. #26 route/identity seam — implemented in PR #25;
 2. #26 source-health outbox/inbox reconciliation — implemented in PR #25;
-3. #26 worker work-class isolation — next;
-4. #26 compound-command transaction truth;
+3. #26 worker work-class isolation — implemented in PR #25;
+4. #26 compound-command transaction truth — next;
 5. #26 API/OpenAPI/client contract reconciliation;
 6. #26 governance/configuration authorization matrix;
 7. #27 governed operator execution, receipts and intervention mutations.
