@@ -9,46 +9,14 @@ import (
 
 func allowedMatterTransition(from, to MatterStatus) bool {
 	allowed := map[MatterStatus]map[MatterStatus]bool{
-		MatterDraft: {
-			MatterInitialReview: true,
-			MatterCancelled:     true,
-		},
-		MatterInitialReview: {
-			MatterAssessment: true,
-			MatterCancelled:  true,
-		},
-		MatterAssessment: {
-			MatterDecisionRequired:    true,
-			MatterActionsInProgress:   true,
-			MatterResponsePreparation: true,
-			MatterVerification:        true,
-			MatterCancelled:           true,
-		},
-		MatterDecisionRequired: {
-			MatterActionsInProgress:   true,
-			MatterResponsePreparation: true,
-			MatterVerification:        true,
-			MatterCancelled:           true,
-		},
-		MatterActionsInProgress: {
-			MatterVerification:        true,
-			MatterResponsePreparation: true,
-			MatterCancelled:           true,
-		},
-		MatterResponsePreparation: {
-			MatterVerification: true,
-			MatterCancelled:    true,
-		},
-		MatterVerification: {
-			MatterClosed:              true,
-			MatterDecisionRequired:    true,
-			MatterActionsInProgress:   true,
-			MatterResponsePreparation: true,
-			MatterCancelled:           true,
-		},
-		MatterClosed: {
-			MatterAssessment: true,
-		},
+		MatterDraft: {MatterInitialReview: true, MatterCancelled: true},
+		MatterInitialReview: {MatterAssessment: true, MatterCancelled: true},
+		MatterAssessment: {MatterDecisionRequired: true, MatterActionsInProgress: true, MatterResponsePreparation: true, MatterVerification: true, MatterCancelled: true},
+		MatterDecisionRequired: {MatterActionsInProgress: true, MatterResponsePreparation: true, MatterVerification: true, MatterCancelled: true},
+		MatterActionsInProgress: {MatterVerification: true, MatterResponsePreparation: true, MatterCancelled: true},
+		MatterResponsePreparation: {MatterVerification: true, MatterCancelled: true},
+		MatterVerification: {MatterClosed: true, MatterDecisionRequired: true, MatterActionsInProgress: true, MatterResponsePreparation: true, MatterCancelled: true},
+		MatterClosed: {MatterAssessment: true},
 	}
 	return allowed[from][to]
 }
@@ -68,7 +36,6 @@ func assessClosureAt(aggregate MatterAggregate, now time.Time) ClosureAssessment
 		case ActionImplemented:
 			implementedActions++
 		case ActionCancelled:
-			// Cancelled work is terminal but cannot satisfy an implementation requirement.
 		default:
 			openActions++
 		}
@@ -112,10 +79,12 @@ func assessClosureAt(aggregate MatterAggregate, now time.Time) ClosureAssessment
 
 	decisions := currentDecisions(aggregate.Decisions)
 	approvedDecision := false
+	adverseCurrentDecision := false
 	noChangeRequired := false
 	validExceptionDecision := false
 	for _, decision := range decisions {
 		if !decisionQualifies(decision, now) {
+			adverseCurrentDecision = true
 			continue
 		}
 		approvedDecision = true
@@ -127,40 +96,31 @@ func assessClosureAt(aggregate MatterAggregate, now time.Time) ClosureAssessment
 		}
 	}
 
-	acknowledgedResponse := false
-	for _, response := range currentResponses(aggregate.ResponsePackages) {
-		if response.Status != ResponseAcknowledged || response.TransmittedAt == nil || response.AcknowledgedAt == nil {
-			continue
-		}
-		if !response.AcknowledgedAt.Before(*response.TransmittedAt) {
-			acknowledgedResponse = true
+	responses := currentResponses(aggregate.ResponsePackages)
+	acknowledgedResponse := len(responses) > 0
+	for _, response := range responses {
+		if response.Status != ResponseAcknowledged || response.TransmittedAt == nil || response.AcknowledgedAt == nil || response.AcknowledgedAt.Before(*response.TransmittedAt) {
+			acknowledgedResponse = false
+			break
 		}
 	}
 
 	requiresVerification := map[MatterType]bool{
-		MatterSupervisoryFinding:    true,
-		MatterRiskSituation:         true,
-		MatterControlGap:            true,
-		MatterAuditFinding:          true,
-		MatterIncident:              true,
-		MatterOperationalLoss:       true,
-		MatterDataBreach:            true,
-		MatterVendorDeficiency:      true,
-		MatterCustomerConcern:       true,
-		MatterOverdueObligation:     true,
-		MatterFailedVerification:    true,
-		MatterEvidenceContradiction: true,
-		MatterKRIBreach:             true,
+		MatterSupervisoryFinding: true, MatterRiskSituation: true, MatterControlGap: true,
+		MatterAuditFinding: true, MatterIncident: true, MatterOperationalLoss: true,
+		MatterDataBreach: true, MatterVendorDeficiency: true, MatterCustomerConcern: true,
+		MatterOverdueObligation: true, MatterFailedVerification: true,
+		MatterEvidenceContradiction: true, MatterKRIBreach: true,
 	}
 
 	switch aggregate.Matter.Type {
 	case MatterAuthorityRequest:
 		if !acknowledgedResponse {
-			reasons = append(reasons, "The current external response has not been acknowledged.")
+			reasons = append(reasons, "Every current external response must be transmitted and acknowledged before closure.")
 		}
 	case MatterRegulatoryChange:
-		if !approvedDecision {
-			reasons = append(reasons, "The current regulatory position has not been approved.")
+		if !approvedDecision || adverseCurrentDecision {
+			reasons = append(reasons, "Every current regulatory decision must be resolved and at least one current position must be approved.")
 		}
 		if !noChangeRequired && activeContracts == 0 {
 			reasons = append(reasons, "No outcome check has been defined for the required change.")
@@ -169,7 +129,7 @@ func assessClosureAt(aggregate MatterAggregate, now time.Time) ClosureAssessment
 			reasons = append(reasons, "No implemented change has been recorded.")
 		}
 	case MatterException:
-		if !validExceptionDecision {
+		if !validExceptionDecision || adverseCurrentDecision {
 			reasons = append(reasons, "The current exception approval is expired, unresolved or missing an enforceable expiry/condition.")
 		}
 	default:
@@ -208,6 +168,8 @@ func decisionAfter(left, right Decision) bool {
 	}
 	return leftAt.After(rightAt)
 }
+
+func newerDecision(left, right Decision) bool { return decisionAfter(left, right) }
 
 func decisionCurrentAt(value Decision) time.Time {
 	latest := value.CreatedAt
@@ -287,7 +249,6 @@ func conditionValueSatisfied(value any) bool {
 		}
 		return false
 	default:
-		// Free-text conditions describe obligations but are not proof that they were met.
 		return false
 	}
 }
@@ -395,46 +356,20 @@ func actionByID(values []Action, id string) (Action, bool) {
 
 func allowedActionTransition(from, to ActionStatus) bool {
 	allowed := map[ActionStatus]map[ActionStatus]bool{
-		ActionPlanned: {
-			ActionInProgress: true,
-			ActionBlocked:    true,
-			ActionCancelled:  true,
-		},
-		ActionInProgress: {
-			ActionImplemented: true,
-			ActionBlocked:     true,
-			ActionCancelled:   true,
-		},
-		ActionBlocked: {
-			ActionInProgress: true,
-			ActionCancelled:  true,
-		},
+		ActionPlanned: {ActionInProgress: true, ActionBlocked: true, ActionCancelled: true},
+		ActionInProgress: {ActionImplemented: true, ActionBlocked: true, ActionCancelled: true},
+		ActionBlocked: {ActionInProgress: true, ActionCancelled: true},
 	}
 	return allowed[from][to]
 }
 
 func allowedResponseTransition(from, to ResponseStatus) bool {
 	allowed := map[ResponseStatus]map[ResponseStatus]bool{
-		ResponseDraft: {
-			ResponseInReview:  true,
-			ResponseWithdrawn: true,
-		},
-		ResponseInReview: {
-			ResponseApproved:  true,
-			ResponseRejected:  true,
-			ResponseDraft:     true,
-			ResponseWithdrawn: true,
-		},
-		ResponseApproved: {
-			ResponseTransmitted: true,
-			ResponseWithdrawn:   true,
-		},
-		ResponseTransmitted: {
-			ResponseAcknowledged: true,
-		},
-		ResponseRejected: {
-			ResponseDraft: true,
-		},
+		ResponseDraft: {ResponseInReview: true, ResponseWithdrawn: true},
+		ResponseInReview: {ResponseApproved: true, ResponseRejected: true, ResponseDraft: true, ResponseWithdrawn: true},
+		ResponseApproved: {ResponseTransmitted: true, ResponseWithdrawn: true},
+		ResponseTransmitted: {ResponseAcknowledged: true},
+		ResponseRejected: {ResponseDraft: true},
 	}
 	return allowed[from][to]
 }
