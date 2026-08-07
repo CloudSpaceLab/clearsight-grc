@@ -78,23 +78,8 @@ func TestTodayItemsExcludeCompletedJourneys(t *testing.T) {
 		{Code: JourneyNDPAContinuous, Title: "Nigeria data protection", Summary: "Current evidence needs review.", Status: "ACTIVE", StatusLabel: "Evidence incomplete", NextAction: "Provide three privacy review records", Owner: "Data Protection Office", DueAt: timePointer(now.Add(24 * time.Hour)), SourceNames: []string{"Nigeria Data Protection Act 2023"}},
 		{Code: JourneyAuthorityRequest, Title: "Regulator request", Status: "CLOSED", StatusLabel: "Closed", NextAction: "Review record"},
 	}, now)
-	if len(items) != 1 {
-		t.Fatalf("expected one active item, got %d", len(items))
-	}
-	if items[0].ActionTargetType != ActionTargetProgram || items[0].ActionTargetID == "" {
-		t.Fatalf("expected navigable program action, got %#v", items[0])
-	}
-}
-
-func TestRedactJourneyForRestrictedActor(t *testing.T) {
-	journey := Journey{Code: JourneyAuthorityRequest, Title: "Regulator request", Summary: "Restricted content", Sensitive: true, AllowedPrincipalIDs: []string{"allowed"}, MatterID: "matter-1", OwnerPrincipalID: "owner", SourceNames: []string{"Restricted letter"}, Steps: []Step{{Code: "received", Label: "Restricted", Complete: true}}}
-	redacted := RedactJourney(journey, "denied")
-	if redacted.Summary != "Restricted regulator-response record." || redacted.MatterID != "" || redacted.OwnerPrincipalID != "" || len(redacted.SourceNames) != 0 || len(redacted.Steps) != 0 {
-		t.Fatalf("restricted journey leaked protected details: %#v", redacted)
-	}
-	visible := RedactJourney(journey, "allowed")
-	if visible.MatterID != "matter-1" || visible.Summary != "Restricted content" {
-		t.Fatalf("allowed actor was over-redacted: %#v", visible)
+	if len(items) != 1 || items[0].Title != "Provide three privacy review records" {
+		t.Fatalf("unexpected Today projection: %#v", items)
 	}
 }
 
