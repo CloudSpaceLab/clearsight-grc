@@ -123,8 +123,12 @@ func (r *PostgresRepository) ApplyVerificationResultBundle(ctx context.Context, 
 			if err := insertOutbox(ctx, tx, *bundle.FollowUpLinkEvent); err != nil {
 				return err
 			}
-			if _, err := tx.Exec(ctx, `UPDATE matters SET version=2,updated_at=$3 WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND id=$2::uuid AND version=1`, bundle.TenantID, matter.ID, bundle.FollowUpLinkEvent.OccurredAt); err != nil {
+			versionTag, err := tx.Exec(ctx, `UPDATE matters SET version=2,updated_at=$3 WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND id=$2::uuid AND version=1`, bundle.TenantID, matter.ID, bundle.FollowUpLinkEvent.OccurredAt)
+			if err != nil {
 				return err
+			}
+			if versionTag.RowsAffected() != 1 {
+				return ErrVersionConflict
 			}
 			if _, err := queueProgramStateTx(ctx, tx, bundle.TenantID, bundle.FollowUpLink.ProgramID, 0, bundle.FollowUpLinkEvent.Type, matter.ID, bundle.FollowUpLinkEvent.ActorID, bundle.FollowUpLinkEvent.OccurredAt); err != nil {
 				return err
