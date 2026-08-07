@@ -56,7 +56,7 @@ func TestMatterLifecycleProjectorConvergesCurrentAuthorityAndVisibility(t *testi
 		INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at)
 		VALUES
 		($1::uuid,$3::uuid,'MAT-WORK-2','AUTHORITY_REQUEST','RESPONSE_PREPARATION',4,'Respond to authority','Await acknowledgement','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4,$4),
-		($2::uuid,$3::uuid,'MAT-WORK-EMPTY','CONTROL_GAP','NEW',2,'No lifecycle work','No current work','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4,$4)`, matterID, emptyMatter, tenantID, oldEventTime); err != nil {
+		($2::uuid,$3::uuid,'MAT-WORK-EMPTY','CONTROL_GAP','DRAFT',2,'No lifecycle work','No current work','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4,$4)`, matterID, emptyMatter, tenantID, oldEventTime); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
@@ -146,13 +146,13 @@ func TestMatterLifecycleProjectorConvergesCurrentAuthorityAndVisibility(t *testi
 	if err := projector.ReconcileMatter(ctx, "matter-work-test", matterID, now.Add(time.Minute)); err != nil {
 		t.Fatal(err)
 	}
-	var principal *string
+	var principal string
 	var status Status
 	var routing string
-	if err := pool.QueryRow(ctx, `SELECT wt.principal_id::text,wt.status,wt.context->>'routing_status' FROM workflow_tasks wt JOIN workflow_instances wi ON wi.id=wt.workflow_id JOIN tenants t ON t.id=wt.tenant_id WHERE t.slug='matter-work-test' AND wi.kind=$1 AND wi.subject_id=$2::uuid AND wt.step_key=$3`, MatterLifecycleWorkflowKind, matterID, "response:"+responseID+":ACKNOWLEDGED").Scan(&principal, &status, &routing); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT COALESCE(wt.principal_id::text,''),wt.status,wt.context->>'routing_status' FROM workflow_tasks wt JOIN workflow_instances wi ON wi.id=wt.workflow_id JOIN tenants t ON t.id=wt.tenant_id WHERE t.slug='matter-work-test' AND wi.kind=$1 AND wi.subject_id=$2::uuid AND wt.step_key=$3`, MatterLifecycleWorkflowKind, matterID, "response:"+responseID+":ACKNOWLEDGED").Scan(&principal, &status, &routing); err != nil {
 		t.Fatal(err)
 	}
-	if principal != nil || status != StatusBlocked || routing != "NO_VISIBLE_CANDIDATE" {
-		t.Fatalf("restricted Matter assignment did not fail closed: principal=%v status=%s routing=%s", principal, status, routing)
+	if principal != "" || status != StatusBlocked || routing != "NO_VISIBLE_CANDIDATE" {
+		t.Fatalf("restricted Matter assignment did not fail closed: principal=%q status=%s routing=%s", principal, status, routing)
 	}
 }
