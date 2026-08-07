@@ -24,10 +24,8 @@ BEGIN
   END IF;
 
   maximum_valid_until := NEW.assessed_at + make_interval(mins => freshness);
-  IF NEW.valid_until IS NULL THEN
+  IF NEW.valid_until IS NULL OR NEW.valid_until > maximum_valid_until THEN
     NEW.valid_until := maximum_valid_until;
-  ELSIF NEW.valid_until > maximum_valid_until THEN
-    RAISE EXCEPTION 'valid_until exceeds evidence contract freshness boundary';
   END IF;
   RETURN NEW;
 END;
