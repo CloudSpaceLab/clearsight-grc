@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { loadProgram, loadProgramSummaries } from "../api";
 import { ProgramsWorkspace } from "./ProgramsWorkspace";
@@ -50,6 +50,6 @@ describe("Program projection truth", () => {
     expect(await screen.findByRole("heading", { name: "1 loaded program is still being set up or reassessed" })).toBeTruthy();
     expect(screen.getByText("Updating status")).toBeTruthy();
     expect(screen.getByText("Last assessed at version 7; Program is version 9.")).toBeTruthy();
-    expect(screen.getByText("0 current")).toBeTruthy();
+    expect(within(screen.getByLabelText("Loaded Program status")).getByText("0 current")).toBeTruthy();
   });
 });
