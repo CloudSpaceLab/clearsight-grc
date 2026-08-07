@@ -9,10 +9,11 @@ import (
 
 func TestFromWorkflowTasksProjectsOnlyActiveAssignedWork(t *testing.T) {
 	now := time.Now().UTC()
+	due := now.Add(time.Hour)
 	tasks := []workflow.Task{
 		{
 			ID: "review-1", TenantID: "bank", Responsibility: "AUTHORIZER", Title: "Approve remediation",
-			Status: workflow.StatusReady, DueAt: now.Add(time.Hour),
+			Status: workflow.StatusReady, DueAt: &due,
 			Context: map[string]string{
 				"scope": "Retail Payments", "action_target_type": "MATTER", "action_target_id": "matter-1",
 				"material_conclusion": "The remediation changes a material control conclusion.",
