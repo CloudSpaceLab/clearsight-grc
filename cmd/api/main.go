@@ -45,7 +45,8 @@ func main() {
 		Identity: authenticator, CommandGuard: guard, Authority: services.Authority, Governance: services.Governance,
 		Capture: services.Capture, Invitations: services.Invitations, Evidence: services.Evidence, DocumentImports: services.DocumentImports,
 		Continuity: services.Continuity, Today: services.Today, Workflow: services.Workflow, Onboarding: services.Onboarding,
-		Autonomy: services.Autonomy, BankVerticals: services.BankVerticals, MaxArtifactBytes: cfg.MaxArtifactBytes,
+		Autonomy: services.Autonomy, BankVerticals: services.BankVerticals, BackgroundJobs: services.BackgroundJobs,
+		MaxArtifactBytes: cfg.MaxArtifactBytes,
 	})
 	server := &http.Server{Addr: cfg.HTTPAddr, Handler: handler, ReadHeaderTimeout: 2 * time.Second, ReadTimeout: cfg.ReadTimeout, WriteTimeout: cfg.WriteTimeout, IdleTimeout: cfg.IdleTimeout, MaxHeaderBytes: 1 << 20}
 	serverErrors := make(chan error, 1)
