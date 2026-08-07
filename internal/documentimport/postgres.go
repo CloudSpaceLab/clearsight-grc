@@ -104,9 +104,14 @@ func (r *PostgresRepository) ReviewProposal(ctx context.Context, input ReviewInp
 			SET proposals=jsonb_set(
 				di.proposals,
 				ARRAY[target.proposal_index::text],
-				target.proposal || jsonb_build_object('status',$5,'reviewed_by',$6,'reviewed_at',$7,'review_note',$8),
+				target.proposal || jsonb_build_object(
+					'status',$5::text,
+					'reviewed_by',$6::text,
+					'reviewed_at',$7::timestamptz,
+					'review_note',$8::text
+				),
 				false
-			),updated_at=$7,version=di.version+1
+			),updated_at=$7::timestamptz,version=di.version+1
 			FROM target WHERE di.id=target.id
 			RETURNING di.*
 		)
