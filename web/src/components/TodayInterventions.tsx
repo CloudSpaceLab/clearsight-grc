@@ -54,10 +54,25 @@ function InterventionRow({ item, onOpen, onInspectAuthority }: { item: Attention
       <span>{nextActionLabel}</span>
       <strong>{nextAction}</strong>
       {item.recommendation?.rationale && item.recommendation.rationale !== conclusion && <small>{item.recommendation.rationale}</small>}
+      {item.verification && <VerificationContext item={item}/>} 
       {canOpen ? <button className="primary-button" type="button" onClick={() => onOpen(item)}>{openLabel(item.action_target_type)}</button> : <small>No linked record is available.</small>}
       {canInspectAuthority && <button className="text-button" type="button" onClick={() => onInspectAuthority?.(item)}>Check authority</button>}
     </div>
   </article>;
+}
+
+function VerificationContext({ item }: { item: AttentionItem }) {
+  const verification = item.verification;
+  if (!verification) return null;
+  const timing = verification.next_check_at ? formatCheckTime(verification.next_check_at) : "Ready now";
+  return <details className="intervention-verification">
+    <summary>Outcome check details</summary>
+    <dl>
+      <div><dt>Expected outcome</dt><dd>{verification.expected_outcome || "Not provided"}</dd></div>
+      <div><dt>Method</dt><dd>{verification.method || "Outcome review"}</dd></div>
+      <div><dt>Check</dt><dd>{timing}</dd></div>
+    </dl>
+  </details>;
 }
 
 function StatusChecks({ readiness, state }: { readiness: Readiness | null; state: ReadinessState }) {
@@ -100,7 +115,7 @@ function gateLabel(value?: InterventionClass, target?: AttentionItem["action_tar
     case "EVIDENCE_EXCEPTION": return "Evidence needed";
     case "ESCALATION": return "Escalated";
     case "VERIFICATION": return "Outcome check";
-    case "EXTERNAL_REPRESENTATION": return "External approval";
+    case "EXTERNAL_REPRESENTATION": return "External response";
     case "REVIEW": return "Review";
     default: return target === "EVIDENCE_REQUEST" ? "Evidence request" : "Review";
   }
@@ -112,4 +127,10 @@ function formatDue(value: string) {
   const date = new Date(parsed);
   if (date.getUTCFullYear() < 2000) return "No deadline";
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
+}
+
+function formatCheckTime(value: string) {
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return "Ready now";
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(parsed));
 }
