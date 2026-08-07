@@ -108,17 +108,20 @@ function DocumentInspector({ document, onReview }: { document: DocumentImport; o
   const pending = document.proposals.filter((proposal) => proposal.status === "PENDING_REVIEW");
   const reviewed = document.proposals.filter((proposal) => proposal.status !== "PENDING_REVIEW");
   const processing = isProcessing(document);
+  const sectionsTotal = document.sections_total ?? document.sections.length;
+  const sectionsOmitted = document.sections_omitted ?? 0;
+  const contentTruncated = document.content_truncated ?? false;
   const terminalLabel = document.extraction_status === "FAILED" ? "Extraction failed" : document.extraction_status === "UNSUPPORTED" ? "Stored only" : pending.length ? `${pending.length} to review` : "No review pending";
   return <article className="document-import-inspector">
     <header><div><span className="eyebrow">{human(document.source_type)}</span><h2>{document.file_name}</h2><p>{document.purpose}</p></div><div className="document-state"><span>{human(document.extraction_status)}</span><strong>{processing ? "Processing stored source" : terminalLabel}</strong></div></header>
-    <div className="import-review-summary" aria-label="Prepared import review"><span><strong>{pending.length}</strong> require review</span><span><strong>{reviewed.length}</strong> reviewed</span><span><strong>{document.sections.length}</strong> of {document.sections_total} source sections retained</span></div>
+    <div className="import-review-summary" aria-label="Prepared import review"><span><strong>{pending.length}</strong> require review</span><span><strong>{reviewed.length}</strong> reviewed</span><span><strong>{document.sections.length}</strong> of {sectionsTotal} source sections retained</span></div>
     {processing && <section className="workspace-loading" aria-live="polite" aria-busy="true"><strong>Original stored successfully.</strong><p>Extraction and analysis are running as recoverable background work. This page will update when processing completes.</p></section>}
     {document.limitations.length > 0 && <section className="document-limitations"><h3>Important limitations</h3>{document.limitations.map((item) => <p key={item}>{item}</p>)}</section>}
     {!processing && <>
       <section><div className="section-header"><div><h3>Review required</h3><p>Accepting a proposal records review only; it does not create or approve an obligation, control or conclusion.</p></div></div>{pending.length ? <div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} onReview={onReview}/>)}</div> : <div className="calm-empty compact"><span>✓</span><div><strong>No proposal awaiting review</strong><p>{document.analysis_status === "UNAVAILABLE" ? "No review proposal is available from this source." : "Reviewed proposals remain available below for reconstruction."}</p></div></div>}</section>
       {reviewed.length > 0 && <details className="import-secondary"><summary><span>Reviewed proposals</span><strong>{reviewed.length}</strong></summary><div className="proposal-list">{reviewed.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} onReview={onReview}/>)}</div></details>}
     </>}
-    <details className="import-secondary"><summary><span>Source reconstruction</span><strong>{document.sections.length} retained</strong></summary><div><dl className="document-metadata"><div><dt>Original hash</dt><dd><code>{document.sha256}</code></dd></div><div><dt>Artifact state</dt><dd>{human(document.artifact_status)}</dd></div><div><dt>Extraction</dt><dd>{human(document.extraction_method)}</dd></div><div><dt>Completeness</dt><dd>{document.content_truncated || document.sections_omitted ? `${document.sections_omitted} sections omitted; content bounded` : "Complete within configured extraction budgets"}</dd></div><div><dt>Version</dt><dd>{document.version}</dd></div></dl>{document.sections.length > 0 && <div className="document-sections">{document.sections.map((section) => <details key={section.id}><summary>{section.title}</summary><pre>{section.text}</pre></details>)}</div>}</div></details>
+    <details className="import-secondary"><summary><span>Source reconstruction</span><strong>{document.sections.length} retained</strong></summary><div><dl className="document-metadata"><div><dt>Original hash</dt><dd><code>{document.sha256}</code></dd></div><div><dt>Artifact state</dt><dd>{human(document.artifact_status)}</dd></div><div><dt>Extraction</dt><dd>{human(document.extraction_method)}</dd></div><div><dt>Completeness</dt><dd>{contentTruncated || sectionsOmitted ? `${sectionsOmitted} sections omitted; content bounded` : "Complete within configured extraction budgets"}</dd></div><div><dt>Version</dt><dd>{document.version}</dd></div></dl>{document.sections.length > 0 && <div className="document-sections">{document.sections.map((section) => <details key={section.id}><summary>{section.title}</summary><pre>{section.text}</pre></details>)}</div>}</div></details>
   </article>;
 }
 
@@ -144,13 +147,13 @@ function updateSummary(current: DocumentImportSummary, detail: DocumentImport): 
     ...current,
     extraction_status: detail.extraction_status,
     analysis_status: detail.analysis_status,
-    sections_total: detail.sections_total,
-    sections_omitted: detail.sections_omitted,
-    proposals_total: detail.proposals_total,
-    proposals_omitted: detail.proposals_omitted,
+    sections_total: detail.sections_total ?? detail.sections.length,
+    sections_omitted: detail.sections_omitted ?? 0,
+    proposals_total: detail.proposals_total ?? detail.proposals.length,
+    proposals_omitted: detail.proposals_omitted ?? 0,
     pending_proposal_count: pending,
     reviewed_proposal_count: detail.proposals.length - pending,
-    content_truncated: detail.content_truncated,
+    content_truncated: detail.content_truncated ?? false,
     processed_at: detail.processed_at,
     updated_at: detail.updated_at,
     version: detail.version,
