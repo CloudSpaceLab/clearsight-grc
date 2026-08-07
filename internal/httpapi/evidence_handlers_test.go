@@ -35,7 +35,8 @@ func TestEvidenceSourcesEndpoint(t *testing.T) {
 
 func TestEvidenceMagicLinkSessionAndSubmission(t *testing.T) {
 	handler := testHandler()
-	issuePayload := `{"tenant_id":"bank-demo","audience":"manager@example.com","purpose":"Branch resilience response","ttl_minutes":60}`
+	const audience = "manager@example.com"
+	issuePayload := `{"tenant_id":"bank-demo","audience":"` + audience + `","purpose":"Branch resilience response","ttl_minutes":60}`
 	issue := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/requests/"+demoEvidenceRequestID+"/invitations", strings.NewReader(issuePayload))
 	issueResponse := httptest.NewRecorder()
 	handler.ServeHTTP(issueResponse, issue)
@@ -46,7 +47,15 @@ func TestEvidenceMagicLinkSessionAndSubmission(t *testing.T) {
 	if err := json.NewDecoder(issueResponse.Body).Decode(&invitation); err != nil {
 		t.Fatal(err)
 	}
-	redeem := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/invitations/redeem", strings.NewReader(`{"token":"`+invitation.Token+`"}`))
+
+	wrongAudience := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/invitations/redeem", strings.NewReader(`{"token":"`+invitation.Token+`","audience":"other@example.com"}`))
+	wrongAudienceResponse := httptest.NewRecorder()
+	handler.ServeHTTP(wrongAudienceResponse, wrongAudience)
+	if wrongAudienceResponse.Code != http.StatusUnauthorized {
+		t.Fatalf("audience mismatch expected 401, got %d: %s", wrongAudienceResponse.Code, wrongAudienceResponse.Body.String())
+	}
+
+	redeem := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/invitations/redeem", strings.NewReader(`{"token":"`+invitation.Token+`","audience":"`+audience+`"}`))
 	redeemResponse := httptest.NewRecorder()
 	handler.ServeHTTP(redeemResponse, redeem)
 	if redeemResponse.Code != http.StatusOK {
@@ -56,7 +65,7 @@ func TestEvidenceMagicLinkSessionAndSubmission(t *testing.T) {
 	if err := json.NewDecoder(redeemResponse.Body).Decode(&session); err != nil {
 		t.Fatal(err)
 	}
-	replay := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/invitations/redeem", strings.NewReader(`{"token":"`+invitation.Token+`"}`))
+	replay := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/invitations/redeem", strings.NewReader(`{"token":"`+invitation.Token+`","audience":"`+audience+`"}`))
 	replayResponse := httptest.NewRecorder()
 	handler.ServeHTTP(replayResponse, replay)
 	if replayResponse.Code != http.StatusUnauthorized {
