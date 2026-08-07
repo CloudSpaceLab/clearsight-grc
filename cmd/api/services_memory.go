@@ -74,14 +74,12 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 				if journey.VisibleTo(actor.PrincipalID) {
 					visible = append(visible, journey)
 				}
-			}
 			return bankverticals.TodayItems(visible, time.Now().UTC()), nil
 		}
 
 		assigned, err := workflowService.List(loadCtx, workflow.ListFilter{
 			TenantID: actor.TenantID, PrincipalID: actor.PrincipalID,
-			WorkflowKind: workflow.MatterActionWorkflowKind, ActiveOnly: true, VisibleMatterActionsOnly: true,
-			Limit: todayItemLimit,
+			ActiveOnly: true, VisibleMatterWorkOnly: true, Limit: todayItemLimit,
 		})
 		if err != nil {
 			return nil, err
