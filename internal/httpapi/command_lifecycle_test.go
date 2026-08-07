@@ -29,9 +29,9 @@ func TestDecisionLifecycleResponsibilityMatrix(t *testing.T) {
 		{continuity.DecisionSuperseded, authority.ResponsibilityAuthorizer, 4},
 	}
 	for _, test := range tests {
-		got, mat, err := decisionLifecyclePolicy(test.status)
-		if err != nil || got != test.want || mat != test.mat {
-			t.Fatalf("%s: got responsibility=%s materiality=%d err=%v", test.status, got, mat, err)
+		got, err := continuity.DecisionLifecyclePolicy(test.status)
+		if err != nil || authority.Responsibility(got.Responsibility) != test.want || got.Materiality != test.mat {
+			t.Fatalf("%s: got responsibility=%s materiality=%d err=%v", test.status, got.Responsibility, got.Materiality, err)
 		}
 	}
 }
@@ -55,12 +55,12 @@ func TestResponseLifecycleResponsibilityMatrix(t *testing.T) {
 		{continuity.ResponseRejected, continuity.ResponseDraft, authority.ResponsibilityProposer, 2},
 	}
 	for _, test := range tests {
-		got, mat, err := responseLifecyclePolicy(test.from, test.to)
-		if err != nil || got != test.want || mat != test.mat {
-			t.Fatalf("%s -> %s: got responsibility=%s materiality=%d err=%v", test.from, test.to, got, mat, err)
+		got, err := continuity.ResponseLifecyclePolicy(test.from, test.to)
+		if err != nil || authority.Responsibility(got.Responsibility) != test.want || got.Materiality != test.mat {
+			t.Fatalf("%s -> %s: got responsibility=%s materiality=%d err=%v", test.from, test.to, got.Responsibility, got.Materiality, err)
 		}
 	}
-	if _, _, err := responseLifecyclePolicy(continuity.ResponseDraft, continuity.ResponseAcknowledged); !errors.Is(err, continuity.ErrInvalidState) {
+	if _, err := continuity.ResponseLifecyclePolicy(continuity.ResponseDraft, continuity.ResponseAcknowledged); !errors.Is(err, continuity.ErrInvalidState) {
 		t.Fatalf("expected invalid lifecycle transition, got %v", err)
 	}
 }
