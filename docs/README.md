@@ -81,12 +81,12 @@ Architecture never overrides the simpler user-facing Program, issue/change, requ
 
 The repository is a strong working foundation and reference MVP. It is not yet a completed banking product.
 
-The foundational execution sequence is now:
+The foundational execution sequence is now complete:
 
 1. #26 P0 executable integrity — complete;
 2. #32 P1 semantic/current-state correctness — complete;
 3. PR #31 UI/UX foundation reconciliation on completed P1 — complete;
-4. #33 P2 durable-schema ownership and dead compatibility cleanup — complete when PR #41 merges on its exact CI-green head.
+4. #33 P2 durable-schema ownership and dead compatibility cleanup — complete in merged PR #41.
 
 Current execution truth is maintained in [`implementation-plan.md`](implementation-plan.md). Do not infer capability from historical issue text, a durable table name, a descriptive API schema, or an older branch.
 
