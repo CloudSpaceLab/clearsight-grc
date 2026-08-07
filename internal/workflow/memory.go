@@ -37,10 +37,13 @@ func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, e
 		if filter.WorkflowKind != "" && task.WorkflowKind != filter.WorkflowKind {
 			continue
 		}
+		if filter.SupportedMatterWorkOnly && !IsSupportedMatterWorkKind(task.WorkflowKind) {
+			continue
+		}
 		if filter.ActiveOnly && (task.Status == StatusCompleted || task.Status == StatusCancelled) {
 			continue
 		}
-		if filter.VisibleMatterActionsOnly && !MatterActionVisibleTo(task, filter.PrincipalID) {
+		if filter.VisibleMatterWorkOnly && !MatterWorkVisibleTo(task, filter.PrincipalID) {
 			continue
 		}
 		values = append(values, cloneTask(task))
