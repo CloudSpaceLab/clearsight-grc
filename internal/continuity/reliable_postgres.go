@@ -11,11 +11,11 @@ import (
 
 // ReliablePostgresRepository keeps only a short-lived copy of a create result
 // that PostgreSQL has already committed. It is never authoritative state: a
-// successful reconstruction removes the fallback. Its sole purpose is to keep
-// an immediate post-commit read failure from turning a successful create into
-// a false command failure.
+// successful normalized current read removes the fallback. Its sole purpose is
+// to keep an immediate post-commit read failure from turning a successful
+// create into a false command failure.
 type ReliablePostgresRepository struct {
-	*PostgresRepository
+	*CurrentPostgresRepository
 	mu              sync.Mutex
 	createdPrograms map[string]Program
 	createdMatters  map[string]MatterAggregate
@@ -23,16 +23,16 @@ type ReliablePostgresRepository struct {
 
 func NewReliablePostgresRepository(pool *pgxpool.Pool) *ReliablePostgresRepository {
 	return &ReliablePostgresRepository{
-		PostgresRepository: NewPostgresRepository(pool),
-		createdPrograms:    map[string]Program{},
-		createdMatters:     map[string]MatterAggregate{},
+		CurrentPostgresRepository: NewCurrentPostgresRepository(pool),
+		createdPrograms:           map[string]Program{},
+		createdMatters:            map[string]MatterAggregate{},
 	}
 }
 
 func reliableKey(tenant, id string) string { return tenant + "\x00" + id }
 
 func (r *ReliablePostgresRepository) CreateProgram(ctx context.Context, program Program, event Event) (Program, error) {
-	created, err := r.PostgresRepository.CreateProgram(ctx, program, event)
+	created, err := r.CurrentPostgresRepository.CreateProgram(ctx, program, event)
 	if err != nil {
 		return Program{}, err
 	}
@@ -43,7 +43,7 @@ func (r *ReliablePostgresRepository) CreateProgram(ctx context.Context, program 
 }
 
 func (r *ReliablePostgresRepository) GetProgram(ctx context.Context, tenant, id string) (ProgramAggregate, error) {
-	value, err := r.PostgresRepository.GetProgram(ctx, tenant, id)
+	value, err := r.CurrentPostgresRepository.GetProgram(ctx, tenant, id)
 	key := reliableKey(tenant, id)
 	if err == nil {
 		r.mu.Lock()
@@ -64,7 +64,7 @@ func (r *ReliablePostgresRepository) GetProgram(ctx context.Context, tenant, id 
 }
 
 func (r *ReliablePostgresRepository) CreateMatter(ctx context.Context, matter Matter, event Event) (Matter, error) {
-	created, err := r.PostgresRepository.CreateMatter(ctx, matter, event)
+	created, err := r.CurrentPostgresRepository.CreateMatter(ctx, matter, event)
 	if err != nil {
 		return Matter{}, err
 	}
@@ -75,7 +75,7 @@ func (r *ReliablePostgresRepository) CreateMatter(ctx context.Context, matter Ma
 }
 
 func (r *ReliablePostgresRepository) CreateMatterWithLink(ctx context.Context, bundle MatterLinkBundle) (Matter, error) {
-	created, err := r.PostgresRepository.CreateMatterWithLink(ctx, bundle)
+	created, err := r.CurrentPostgresRepository.CreateMatterWithLink(ctx, bundle)
 	if err != nil {
 		return Matter{}, err
 	}
@@ -87,7 +87,7 @@ func (r *ReliablePostgresRepository) CreateMatterWithLink(ctx context.Context, b
 }
 
 func (r *ReliablePostgresRepository) GetMatter(ctx context.Context, tenant, id string) (MatterAggregate, error) {
-	value, err := r.PostgresRepository.GetMatter(ctx, tenant, id)
+	value, err := r.CurrentPostgresRepository.GetMatter(ctx, tenant, id)
 	key := reliableKey(tenant, id)
 	if err == nil {
 		r.mu.Lock()
