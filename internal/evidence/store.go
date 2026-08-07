@@ -15,6 +15,7 @@ import (
 
 type ObjectStore interface {
 	Put(context.Context, string, io.Reader, int64) (ObjectInfo, error)
+	Open(context.Context, string) (io.ReadCloser, error)
 	Delete(context.Context, string) error
 }
 
@@ -44,6 +45,19 @@ func (s *MemoryObjectStore) Put(_ context.Context, key string, reader io.Reader,
 	s.objects[key] = bytes.Clone(data)
 	s.mu.Unlock()
 	return ObjectInfo{Key: key, SizeBytes: int64(len(data)), SHA256: hex.EncodeToString(digest[:])}, nil
+}
+
+func (s *MemoryObjectStore) Open(_ context.Context, key string) (io.ReadCloser, error) {
+	s.mu.Lock()
+	data, ok := s.objects[key]
+	if ok {
+		data = bytes.Clone(data)
+	}
+	s.mu.Unlock()
+	if !ok {
+		return nil, os.ErrNotExist
+	}
+	return io.NopCloser(bytes.NewReader(data)), nil
 }
 
 func (s *MemoryObjectStore) Delete(_ context.Context, key string) error {
@@ -119,6 +133,14 @@ func (s *LocalObjectStore) Put(_ context.Context, key string, reader io.Reader, 
 		return ObjectInfo{}, err
 	}
 	return ObjectInfo{Key: key, SizeBytes: written, SHA256: hex.EncodeToString(hash.Sum(nil))}, nil
+}
+
+func (s *LocalObjectStore) Open(_ context.Context, key string) (io.ReadCloser, error) {
+	path, err := s.path(key)
+	if err != nil {
+		return nil, err
+	}
+	return os.Open(path)
 }
 
 func (s *LocalObjectStore) Delete(_ context.Context, key string) error {

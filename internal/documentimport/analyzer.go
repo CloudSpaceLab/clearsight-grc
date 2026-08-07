@@ -10,8 +10,21 @@ import (
 
 var sentenceBoundary = regexp.MustCompile(`(?m)([^.!?\n]+[.!?]?)`)
 
+type AnalysisResult struct {
+	Proposals []Proposal
+	Total     int
+	Omitted   int
+}
+
 func Analyze(sections []Section) []Proposal {
-	proposals := make([]Proposal, 0)
+	return AnalyzeBounded(sections, DefaultExtractionPolicy().MaxProposals).Proposals
+}
+
+func AnalyzeBounded(sections []Section, maximum int) AnalysisResult {
+	if maximum <= 0 {
+		maximum = DefaultExtractionPolicy().MaxProposals
+	}
+	result := AnalysisResult{Proposals: make([]Proposal, 0, min(maximum, 64))}
 	seen := map[string]struct{}{}
 	for _, section := range sections {
 		for _, match := range sentenceBoundary.FindAllString(section.Text, -1) {
@@ -28,7 +41,12 @@ func Analyze(sections []Section) []Proposal {
 				continue
 			}
 			seen[key] = struct{}{}
-			proposals = append(proposals, Proposal{
+			result.Total++
+			if len(result.Proposals) >= maximum {
+				result.Omitted++
+				continue
+			}
+			result.Proposals = append(result.Proposals, Proposal{
 				ID:         stableProposalID(section.ID, key),
 				Kind:       kind,
 				Title:      proposalTitle(kind),
@@ -44,12 +62,9 @@ func Analyze(sections []Section) []Proposal {
 				},
 				Status: ProposalPending,
 			})
-			if len(proposals) >= 500 {
-				return proposals
-			}
 		}
 	}
-	return proposals
+	return result
 }
 
 func classify(statement string) (string, float64) {

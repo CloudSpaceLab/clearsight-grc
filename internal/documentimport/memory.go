@@ -2,7 +2,9 @@ package documentimport
 
 import (
 	"context"
+	"strings"
 	"sync"
+	"time"
 )
 
 type MemoryRepository struct {
@@ -24,18 +26,18 @@ func (r *MemoryRepository) Create(_ context.Context, value Document) (Document, 
 	return cloneDocument(value), nil
 }
 
-func (r *MemoryRepository) List(_ context.Context, tenant string, limit int) ([]Document, error) {
+func (r *MemoryRepository) List(_ context.Context, tenant string, limit int) ([]DocumentSummary, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 50
 	}
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	values := make([]Document, 0, limit)
+	values := make([]DocumentSummary, 0, limit)
 	for _, value := range r.items {
 		if value.TenantID != tenant {
 			continue
 		}
-		values = append(values, cloneDocument(value))
+		values = append(values, summarizeDocument(value))
 		if len(values) == limit {
 			break
 		}
@@ -53,7 +55,36 @@ func (r *MemoryRepository) Get(_ context.Context, tenant, id string) (Document, 
 	return cloneDocument(value), nil
 }
 
-func (r *MemoryRepository) SaveReview(_ context.Context, value Document, expected int64) (Document, error) {
+func (r *MemoryRepository) ReviewProposal(_ context.Context, input ReviewInput, now time.Time) (Document, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	value, ok := r.items[input.DocumentID]
+	if !ok || value.TenantID != strings.TrimSpace(input.TenantID) {
+		return Document{}, ErrNotFound
+	}
+	if value.Version != input.ExpectedVersion {
+		return Document{}, ErrVersionConflict
+	}
+	for index := range value.Proposals {
+		if value.Proposals[index].ID != input.ProposalID {
+			continue
+		}
+		if value.Proposals[index].Status != ProposalPending {
+			return Document{}, ErrInvalidReview
+		}
+		value.Proposals[index].Status = input.Status
+		value.Proposals[index].ReviewedBy = input.ReviewerID
+		value.Proposals[index].ReviewedAt = &now
+		value.Proposals[index].ReviewNote = strings.TrimSpace(input.Note)
+		value.UpdatedAt = now
+		value.Version++
+		r.items[value.ID] = cloneDocument(value)
+		return cloneDocument(value), nil
+	}
+	return Document{}, ErrNotFound
+}
+
+func (r *MemoryRepository) SaveProcessing(_ context.Context, value Document, expected int64) (Document, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	current, ok := r.items[value.ID]

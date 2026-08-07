@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import axe from "axe-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { DocumentImport } from "../documentTypes";
+import type { DocumentImport, DocumentImportSummary } from "../documentTypes";
 import { DocumentImportWorkspace } from "./DocumentImportWorkspace";
 import { importDocument, loadDocumentImport, loadDocumentImports, reviewDocumentProposal } from "../documentApi";
 
@@ -25,9 +25,9 @@ const documentRecord: DocumentImport = {
   storage_key: "document-imports/bank-demo/notice",
   artifact_status: "STORED_UNSCANNED",
   extraction_status: "EXTRACTED",
-  extraction_method: "MARKDOWN_TEXT_V1",
+  extraction_method: "PLAIN_TEXT_V2",
   analysis_status: "REVIEW_REQUIRED",
-  analysis_method: "DETERMINISTIC_RULES_V1",
+  analysis_method: "DETERMINISTIC_RULES_V2",
   limitations: ["The artifact has not passed a production malware-scanning service."],
   sections: [{
     id: "22222222-2222-4222-8222-222222222222",
@@ -47,15 +47,47 @@ const documentRecord: DocumentImport = {
     },
     status: "PENDING_REVIEW",
   }],
+  sections_total: 1,
+  sections_omitted: 0,
+  proposals_total: 1,
+  proposals_omitted: 0,
+  content_truncated: false,
+  processed_at: "2026-08-06T10:00:01Z",
   created_by: "reviewer-1",
   created_at: "2026-08-06T10:00:00Z",
-  updated_at: "2026-08-06T10:00:00Z",
-  version: 1,
+  updated_at: "2026-08-06T10:00:01Z",
+  version: 2,
+};
+
+const documentSummary: DocumentImportSummary = {
+  id: documentRecord.id,
+  tenant_id: documentRecord.tenant_id,
+  legal_entity_id: documentRecord.legal_entity_id,
+  file_name: documentRecord.file_name,
+  media_type: documentRecord.media_type,
+  purpose: documentRecord.purpose,
+  source_type: documentRecord.source_type,
+  size_bytes: documentRecord.size_bytes,
+  sha256: documentRecord.sha256,
+  artifact_status: documentRecord.artifact_status,
+  extraction_status: documentRecord.extraction_status,
+  analysis_status: documentRecord.analysis_status,
+  sections_total: 1,
+  sections_omitted: 0,
+  proposals_total: 1,
+  proposals_omitted: 0,
+  pending_proposal_count: 1,
+  reviewed_proposal_count: 0,
+  content_truncated: false,
+  processed_at: documentRecord.processed_at,
+  created_at: documentRecord.created_at,
+  updated_at: documentRecord.updated_at,
+  version: documentRecord.version,
 };
 
 const acceptedDocument: DocumentImport = {
   ...documentRecord,
-  version: 2,
+  version: 3,
   proposals: [{
     ...documentRecord.proposals[0]!,
     status: "ACCEPTED",
@@ -64,8 +96,32 @@ const acceptedDocument: DocumentImport = {
   }],
 };
 
+const processingDocument: DocumentImport = {
+  ...documentRecord,
+  extraction_status: "PENDING",
+  extraction_method: "PENDING",
+  analysis_status: "PENDING",
+  sections: [],
+  proposals: [],
+  sections_total: 0,
+  proposals_total: 0,
+  processed_at: undefined,
+  version: 1,
+};
+
+const processingSummary: DocumentImportSummary = {
+  ...documentSummary,
+  extraction_status: "PENDING",
+  analysis_status: "PENDING",
+  sections_total: 0,
+  proposals_total: 0,
+  pending_proposal_count: 0,
+  processed_at: undefined,
+  version: 1,
+};
+
 beforeEach(() => {
-  vi.mocked(loadDocumentImports).mockResolvedValue([documentRecord]);
+  vi.mocked(loadDocumentImports).mockResolvedValue([documentSummary]);
   vi.mocked(loadDocumentImport).mockResolvedValue(documentRecord);
   vi.mocked(importDocument).mockResolvedValue(documentRecord);
   vi.mocked(reviewDocumentProposal).mockResolvedValue(acceptedDocument);
@@ -78,7 +134,7 @@ describe("DocumentImportWorkspace", () => {
     expect(await screen.findByRole("heading", { name: "regulatory-notice.md" })).toBeTruthy();
     expect(screen.getByText("Possible requirement")).toBeTruthy();
     expect(screen.getByText("The bank must retain records for five years.", { selector: "blockquote" })).toBeTruthy();
-    expect(screen.getByText(`Original hash`)).toBeTruthy();
+    expect(screen.getByText("Original hash")).toBeTruthy();
 
     const result = await axe.run(container, {
       runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] },
@@ -96,10 +152,27 @@ describe("DocumentImportWorkspace", () => {
       documentRecord.id,
       documentRecord.proposals[0]!.id,
       "ACCEPTED",
-      1,
+      documentRecord.version,
     ));
     expect(await screen.findByText("Accepted")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Accept for governed follow-up" })).toBeNull();
+  });
+
+  it("renders a durable processing receipt without claiming review completion", async () => {
+    vi.mocked(loadDocumentImports).mockResolvedValue([processingSummary]);
+    vi.mocked(loadDocumentImport).mockResolvedValue(processingDocument);
+    render(<DocumentImportWorkspace />);
+
+    expect(await screen.findByText("Original stored successfully.")).toBeTruthy();
+    expect(screen.getByText("Stored · processing")).toBeTruthy();
+    expect(screen.queryByText("Review complete")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Accept for governed follow-up" })).toBeNull();
+  });
+
+  it("keeps list records body-free", () => {
+    expect("sections" in documentSummary).toBe(false);
+    expect("proposals" in documentSummary).toBe(false);
+    expect(documentSummary.pending_proposal_count).toBe(1);
   });
 
   it("renders the bounded empty state", async () => {
