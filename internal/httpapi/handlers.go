@@ -112,41 +112,6 @@ func (a *API) listWorkflowTasks(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values})
 }
 
-func (a *API) createWorkflowTask(w http.ResponseWriter, r *http.Request) {
-	var input workflow.CreateInput
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
-		return
-	}
-	value, err := a.deps.Workflow.Create(r.Context(), input)
-	if err != nil {
-		httpx.WriteError(w, http.StatusUnprocessableEntity, "workflow_invalid", "The task could not be created from the supplied workflow context.")
-		return
-	}
-	httpx.WriteJSON(w, http.StatusCreated, value)
-}
-
-func (a *API) transitionWorkflowTask(w http.ResponseWriter, r *http.Request) {
-	var input workflow.TransitionInput
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
-		return
-	}
-	value, err := a.deps.Workflow.Transition(r.Context(), r.PathValue("id"), input)
-	switch {
-	case errors.Is(err, workflow.ErrTaskNotFound):
-		httpx.WriteError(w, http.StatusNotFound, "not_found", "Task not found.")
-	case errors.Is(err, workflow.ErrVersionConflict):
-		httpx.WriteError(w, http.StatusConflict, "version_conflict", "Task changed. Reload before updating.")
-	case errors.Is(err, workflow.ErrInvalidTransition):
-		httpx.WriteError(w, http.StatusUnprocessableEntity, "invalid_transition", "The requested transition is not allowed.")
-	case err != nil:
-		httpx.WriteError(w, http.StatusUnprocessableEntity, "workflow_failed", "Task could not be updated from the supplied tenant and state.")
-	default:
-		httpx.WriteJSON(w, http.StatusOK, value)
-	}
-}
-
 func (a *API) onboardingGuide(w http.ResponseWriter, r *http.Request) {
 	guide, err := a.deps.Onboarding.Guide(r.URL.Query().Get("role"), r.URL.Query().Get("code"))
 	if err != nil {

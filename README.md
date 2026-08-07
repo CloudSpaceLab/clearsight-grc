@@ -33,7 +33,7 @@ The repository contains a working application foundation for ongoing Programs an
 - role-specific onboarding, premium illustrations and semantic vector icons;
 - compliance Signals, drift assessment and readiness;
 - rendered-state and axe accessibility tests enforced in CI;
-- OpenAPI, Docker Compose, CI and PostgreSQL integration tests.
+- mechanically verified runtime API/access contract, Docker Compose, CI and PostgreSQL integration tests.
 
 The default build uses in-memory repositories for local development. The `postgres` build tag activates PostgreSQL repositories. The local artifact-store adapter is for development and testing only; production object storage, malware scanning, PDF extraction and OCR are not implemented.
 
@@ -189,13 +189,14 @@ internal/documentimport       imports, extraction, proposals and review
 internal/continuity           Programs, Matters, access, status and history
 internal/bankverticals        connected bank journey projections and installer
 internal/autonomy             Signals, drift and readiness
-internal/workflow             tasks and transitions
+internal/workflow             derived actor-facing Task projection and reads
 internal/onboarding           guided-adoption state
 internal/httpapi              actor-bound HTTP contracts
 web                           React application
-api/openapi.yaml              primary HTTP contract
+api/runtime.openapi.json      mechanically verified executable route/access contract
 api/bank-journeys.openapi.yaml focused journey schema and examples
 api/document-imports.openapi.yaml focused import and review contract
+api/README.md                 API contract ownership rules
 docs                          canonical specifications
 ```
 

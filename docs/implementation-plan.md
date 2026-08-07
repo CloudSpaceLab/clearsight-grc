@@ -7,7 +7,8 @@
 **P1.3:** PR #36  
 **P1.4:** PR #38  
 **P1.5:** PR #39  
-**UI/UX foundation reconciliation:** PR #31
+**UI/UX foundation reconciliation:** PR #31  
+**P2 schema ownership / dead compatibility:** PR #41
 
 This is the authoritative execution ledger. Product, design, architecture and enterprise-productization documents define requirements and target behavior; this file controls current implementation order and capability truth. Completed-tranche detail belongs in focused architecture/review documents rather than being duplicated indefinitely here.
 
@@ -120,17 +121,28 @@ PR #31 was not merged from its stale pre-P1 history. Its UI/read-evidence work w
 
 The UI foundation is still not the same thing as full product completion. Richer governed operator execution, enterprise Configure/identity/notifications, broader Capture workflows and representative bank-user usability evidence remain later work under their existing product/enterprise plans.
 
-### #33 P2 schema ownership and dead compatibility cleanup — NEXT
+### #33 P2 schema ownership and dead compatibility cleanup — COMPLETE IN PR #41
 
-P2 now starts from completed P1 **and** the reconciled UI foundation. It owns cleanup that should not be mixed back into semantic delivery:
+P2 starts from completed P1 and the reconciled UI foundation and removes capability ambiguity instead of adding another metadata or workflow layer.
 
-- classification/removal of dead compatibility handlers and service methods;
-- durable table/projection/infrastructure ownership and maturity classification;
-- consolidation or removal of duplicated descriptive/client schema surfaces;
-- broad `api/openapi.yaml` ownership versus the mechanically verified executable `api/runtime.openapi.json` route/access contract;
-- generated/manual client duplication where deletion is safer than adding another framework.
+- [x] every live durable PostgreSQL table has exactly one machine-checked ownership/maturity classification, including owner, writers, readers, lifecycle/valid-time semantics, retention/deletion policy and executable evidence;
+- [x] the ownership guard reconstructs the live table set from ordered migrations and fails CI on a missing, duplicate or non-live register entry;
+- [x] every `*.up.sql` migration is required to have a matching down migration;
+- [x] unused foundation-era `audit_events` and `readiness_snapshots` are removed by fail-closed reversible migration `000019_schema_ownership_cleanup` rather than being mistaken for current audit/readiness capability;
+- [x] migration 000019 refuses removal when either unsupported table unexpectedly contains data and CI proves apply → rollback → reapply on an empty supported state;
+- [x] historical duplicate `evidence_requests` and `invitation_grants` remain retired under migration `000013_capture_consolidation` and are not counted as live ownership entries;
+- [x] `workflow_instances`, `workflow_tasks` and `workflow_events` are explicitly classified as active projections; Task mutation handlers/service/repository methods are removed so Matter Action projection remains the supported Task write path;
+- [x] `workflow_timers`, `outbox_events` and `inbox_receipts` are explicitly classified as infrastructure ledgers rather than business truth;
+- [x] responsibility assignments, grants, routing/governance records and `effective_authority_routes` are classified according to their current authoritative/projection roles rather than their original scaffold status;
+- [x] `automation_policies` is classified as governed configuration state, never execution evidence;
+- [x] current Readiness remains derived from active drift assessments with `baseline_known=false`; no removed snapshot table is used to imply a known denominator;
+- [x] the stale broad `api/openapi.yaml` duplicate is removed; `internal/httpapi/route_registry.go` → `api/runtime.openapi.json` is the sole executable route/access contract;
+- [x] bounded bank-journey and document-import OpenAPI files remain descriptive domain schemas and cannot create routes or grant access;
+- [x] the existing PostgreSQL integration contract now verifies Workflow Tasks through Matter Action projection rather than manufacturing Tasks through removed compatibility methods.
 
-Do not represent the descriptive OpenAPI document as executable authorization truth.
+See `docs/architecture/durable-schema-ownership.md` and `api/README.md`.
+
+Issue #33 should close when PR #41 merges on an exact CI-green head. Future durable schema changes must update the checked ownership register in the same change.
 
 ## 2. Canonical domain invariants
 
@@ -203,6 +215,10 @@ stored original
 
 A stored artifact is not an extracted artifact. Extracted text is not an exhaustive source when truncation/omission metadata says otherwise. A proposal is not an approved compliance conclusion.
 
+### Durable-schema truth
+
+A live table is not evidence of product capability unless it has an explicit owner and executable reader/writer semantics. `docs/architecture/durable-schema-ownership.md` is checked against the ordered migration result; domain code and migrations remain authoritative.
+
 ## 4. Current Today and automation truth
 
 Non-demo Today projects active Workflow Tasks assigned to the verified principal. Completed/cancelled tasks are excluded. Unassigned/team work remains outside the principal-specific queue until routing/ownership resolves it.
@@ -211,7 +227,7 @@ Today does not fabricate recommendations, approvals or execution receipts from T
 
 `automation_policies` describes governed eligibility/configuration boundaries. A policy does not prove that an automated action ran, succeeded or was independently verified.
 
-## 5. Enterprise work after P1
+## 5. Enterprise work after P2
 
 Detailed enterprise requirements remain in `docs/engineering/enterprise-productization-implementation-plan.md` and product/design specifications.
 
