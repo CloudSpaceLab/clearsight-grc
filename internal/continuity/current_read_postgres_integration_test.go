@@ -3,10 +3,10 @@
 package continuity
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"os"
-	"reflect"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -90,7 +90,7 @@ func TestCurrentPostgresReadsMatchReplayAndStayFixedQuery(t *testing.T) {
 	if got := counter.Count(); got != 1 {
 		t.Fatalf("current Program detail used %d SQL calls after %d events; want exactly 1", got, len(events))
 	}
-	if !reflect.DeepEqual(currentProgram.Program, replayedProgram.Program) || !reflect.DeepEqual(currentProgram.Requirements, replayedProgram.Requirements) {
+	if !sameJSON(currentProgram.Program, replayedProgram.Program) || !sameJSON(currentProgram.Requirements, replayedProgram.Requirements) {
 		t.Fatalf("normalized Program current state diverged from replay\ncurrent=%#v\nreplayed=%#v", currentProgram, replayedProgram)
 	}
 
@@ -126,9 +126,15 @@ func TestCurrentPostgresReadsMatchReplayAndStayFixedQuery(t *testing.T) {
 	if got := counter.Count(); got != 1 {
 		t.Fatalf("current Matter detail used %d SQL calls after %d events; want exactly 1", got, len(matterEvents))
 	}
-	if !reflect.DeepEqual(currentMatter.Matter, replayedMatter.Matter) || !reflect.DeepEqual(currentMatter.Actions, replayedMatter.Actions) {
+	if !sameJSON(currentMatter.Matter, replayedMatter.Matter) || !sameJSON(currentMatter.Actions, replayedMatter.Actions) {
 		t.Fatalf("normalized Matter current state diverged from replay\ncurrent=%#v\nreplayed=%#v", currentMatter, replayedMatter)
 	}
+}
+
+func sameJSON(left, right any) bool {
+	leftJSON, leftErr := json.Marshal(left)
+	rightJSON, rightErr := json.Marshal(right)
+	return leftErr == nil && rightErr == nil && bytes.Equal(leftJSON, rightJSON)
 }
 
 func twoDigits(value int) string {
