@@ -113,11 +113,11 @@ func decisionLifecyclePolicy(target continuity.DecisionStatus) (authority.Respon
 
 func responseLifecyclePolicy(from, target continuity.ResponseStatus) (authority.Responsibility, int, error) {
 	allowed := map[continuity.ResponseStatus]map[continuity.ResponseStatus]bool{
-		continuity.ResponseDraft: {continuity.ResponseInReview: true, continuity.ResponseWithdrawn: true},
-		continuity.ResponseInReview: {continuity.ResponseApproved: true, continuity.ResponseRejected: true, continuity.ResponseDraft: true, continuity.ResponseWithdrawn: true},
-		continuity.ResponseApproved: {continuity.ResponseTransmitted: true, continuity.ResponseWithdrawn: true},
+		continuity.ResponseDraft:       {continuity.ResponseInReview: true, continuity.ResponseWithdrawn: true},
+		continuity.ResponseInReview:    {continuity.ResponseApproved: true, continuity.ResponseRejected: true, continuity.ResponseDraft: true, continuity.ResponseWithdrawn: true},
+		continuity.ResponseApproved:    {continuity.ResponseTransmitted: true, continuity.ResponseWithdrawn: true},
 		continuity.ResponseTransmitted: {continuity.ResponseAcknowledged: true},
-		continuity.ResponseRejected: {continuity.ResponseDraft: true},
+		continuity.ResponseRejected:    {continuity.ResponseDraft: true},
 	}
 	if !allowed[from][target] {
 		return "", 0, fmt.Errorf("%w: response cannot move from %s to %s", continuity.ErrInvalidState, from, target)
