@@ -15,8 +15,7 @@ type MemoryRepository struct {
 func NewMemoryRepository(seed []Task) *MemoryRepository {
 	tasks := make(map[string]Task, len(seed))
 	for _, task := range seed {
-		task.Context = clone(task.Context)
-		tasks[task.ID] = task
+		tasks[task.ID] = cloneTask(task)
 	}
 	return &MemoryRepository{tasks: tasks}
 }
@@ -35,14 +34,42 @@ func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, e
 		if filter.Status != "" && task.Status != filter.Status {
 			continue
 		}
-		task.Context = clone(task.Context)
-		values = append(values, task)
+		if filter.WorkflowKind != "" && task.WorkflowKind != filter.WorkflowKind {
+			continue
+		}
+		if filter.ActiveOnly && (task.Status == StatusCompleted || task.Status == StatusCancelled) {
+			continue
+		}
+		values = append(values, cloneTask(task))
 	}
-	sort.Slice(values, func(i, j int) bool { return values[i].UpdatedAt.After(values[j].UpdatedAt) })
+	sort.Slice(values, func(i, j int) bool {
+		if filter.ActiveOnly {
+			leftDue, rightDue := values[i].DueAt, values[j].DueAt
+			if leftDue == nil && rightDue != nil {
+				return false
+			}
+			if leftDue != nil && rightDue == nil {
+				return true
+			}
+			if leftDue != nil && rightDue != nil && !leftDue.Equal(*rightDue) {
+				return leftDue.Before(*rightDue)
+			}
+		}
+		if !values[i].UpdatedAt.Equal(values[j].UpdatedAt) {
+			return values[i].UpdatedAt.After(values[j].UpdatedAt)
+		}
+		return values[i].ID < values[j].ID
+	})
 	if len(values) > filter.Limit {
 		values = values[:filter.Limit]
 	}
 	return values, nil
+}
+
+func cloneTask(task Task) Task {
+	task.Context = clone(task.Context)
+	task.MatterScope = append(task.MatterScope[:0], task.MatterScope...)
+	return task
 }
 
 func clone(input map[string]string) map[string]string {
