@@ -23,6 +23,7 @@ func NewMemoryRepository(seed []Task) *MemoryRepository {
 func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+	visibleMatterWorkOnly := filter.VisibleMatterWorkOnly || filter.VisibleMatterActionsOnly
 	values := []Task{}
 	for _, task := range r.tasks {
 		if task.TenantID != filter.TenantID {
@@ -43,7 +44,7 @@ func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, e
 		if filter.ActiveOnly && (task.Status == StatusCompleted || task.Status == StatusCancelled) {
 			continue
 		}
-		if filter.VisibleMatterWorkOnly && !MatterWorkVisibleTo(task, filter.PrincipalID) {
+		if visibleMatterWorkOnly && !MatterWorkVisibleTo(task, filter.PrincipalID) {
 			continue
 		}
 		values = append(values, cloneTask(task))
