@@ -54,6 +54,14 @@ type GovernedRecommendation struct {
 	Verification      *VerificationPlan `json:"verification,omitempty"`
 }
 
+// AuthorityContext contains only the resolution inputs already known for this
+// actor-facing work item. It is not an authority result and cannot grant access.
+type AuthorityContext struct {
+	Responsibility string `json:"responsibility"`
+	DecisionType   string `json:"decision_type,omitempty"`
+	Materiality    int    `json:"materiality"`
+}
+
 type AttentionItem struct {
 	ID                 string                  `json:"id"`
 	Type               string                  `json:"type"`
@@ -70,6 +78,7 @@ type AttentionItem struct {
 	InterventionClass  InterventionClass       `json:"intervention_class,omitempty"`
 	MaterialConclusion string                  `json:"material_conclusion,omitempty"`
 	ChangeSummary      string                  `json:"change_summary,omitempty"`
+	Authority          *AuthorityContext       `json:"authority,omitempty"`
 	Recommendation     *GovernedRecommendation `json:"recommendation,omitempty"`
 	PreparedWork       *WorkReceipt            `json:"prepared_work,omitempty"`
 	Verification       *VerificationPlan       `json:"verification,omitempty"`

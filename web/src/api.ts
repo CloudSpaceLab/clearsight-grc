@@ -1,27 +1,31 @@
+import { requestJSON } from "./http";
 import type { AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, OnboardingGuide, OnboardingState, PolicySummary, ProgramAggregate, Readiness, WorkflowTask } from "./types";
 import type { MatterSummary, ProgramSummary, SummaryPage, SummaryQuery } from "./summaryTypes";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 import type { BankJourneysResponse } from "./verticalTypes";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
-const sampleAuthorityObjectID = import.meta.env.VITE_SAMPLE_AUTHORITY_OBJECT_ID as string | undefined;
 
 export type RuntimeContext = {
   tenant: { id: string; name: string };
   legal_entity: { id: string; name: string };
-  actor: { id: string; name: string; kind?: string; assurance_level?: string; authentication?: string; session_id?: string };
+  actor: { id: string; name: string; kind?: string; assurance_level?: string; authentication?: string; session_id?: string; role_codes?: string[] };
   mode: string;
+};
+
+export type TodaySnapshot = { items: AttentionItem[]; generated_at?: string };
+export type AuthorityResolveInput = {
+  object_type: "PROGRAM" | "MATTER" | "EVIDENCE_REQUEST";
+  object_id: string;
+  responsibility: string;
+  decision_type?: string;
+  materiality: number;
 };
 
 let runtimeContext: Promise<RuntimeContext> | undefined;
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${apiBase}${path}`, { ...init, headers: { "Content-Type": "application/json", ...init?.headers } });
-  if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { message?: string; error?: { message?: string } } | null;
-    throw new Error(body?.error?.message ?? body?.message ?? `Request failed with ${response.status}`);
-  }
-  return (await response.json()) as T;
+function request<T>(path: string, init?: RequestInit): Promise<T> {
+  return requestJSON<T>(apiBase, path, init);
 }
 
 export function loadContext(): Promise<RuntimeContext> {
@@ -53,22 +57,22 @@ export function loadBankJourneys(): Promise<BankJourneysResponse> {
   return request<BankJourneysResponse>("/api/v1/bank-journeys");
 }
 
-export async function loadToday(): Promise<AttentionItem[]> {
-  return (await request<{ items: AttentionItem[] }>("/api/v1/today")).items;
+export function loadToday(): Promise<TodaySnapshot> {
+  return request<TodaySnapshot>("/api/v1/today");
 }
 
-export async function resolveAuthority(): Promise<AuthorityResolution> {
+export async function resolveAuthority(input: AuthorityResolveInput): Promise<AuthorityResolution> {
   const context = await loadContext();
-  const authorityObjectID = sampleAuthorityObjectID ?? await sampleMatterID();
   return request<AuthorityResolution>("/api/v1/authority/resolve", {
     method: "POST",
     body: JSON.stringify({
       tenant_id: context.tenant.id,
       legal_entity_id: context.legal_entity.id,
-      object_type: authorityObjectID ? "MATTER" : "LEGAL_ENTITY",
-      object_id: authorityObjectID ?? context.legal_entity.id,
-      responsibility: "AUTHORIZER",
-      materiality: 5,
+      object_type: input.object_type,
+      object_id: input.object_id,
+      responsibility: input.responsibility,
+      decision_type: input.decision_type,
+      materiality: input.materiality,
     }),
   });
 }
@@ -164,13 +168,6 @@ export async function loadPrograms(): Promise<ProgramAggregate[]> {
 
 export async function loadMatters(status = "OPEN"): Promise<MatterAggregate[]> {
   return (await scopedRequest<{ items: NullableMatterAggregate[] }>("/api/v1/matters", { limit: 50, status })).items.map(normalizeMatterAggregate);
-}
-
-async function sampleMatterID() {
-  const journeys = await loadBankJourneys().catch(() => null);
-  return journeys?.items.find((journey) => journey.action_target_type === "MATTER" && journey.action_target_id)?.action_target_id
-    ?? journeys?.items.find((journey) => journey.matter_id)?.matter_id
-    ?? "";
 }
 
 async function sampleEvidenceRequestID() {

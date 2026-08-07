@@ -11,38 +11,37 @@ type Props = {
   readiness: Readiness | null;
   readinessState: ReadinessState;
   onOpenItem: (item: AttentionItem) => void;
+  onInspectAuthority?: (item: AttentionItem) => void;
 };
 
-export function TodayInterventions({ items, connection, readiness, readinessState, onOpenItem }: Props) {
-  const heading = items.length === 1 ? "1 item requires your action" : `${items.length} items require your action`;
-  const title = connection === "loading"
-    ? "Loading assigned work"
-    : connection === "unavailable"
-      ? "Assigned work is unavailable"
-      : heading;
+export function TodayInterventions({ items, connection, readiness, readinessState, onOpenItem, onInspectAuthority }: Props) {
+  const heading = items.length === 1 ? "1 item needs your action" : `${items.length} items need your action`;
+  const title = connection === "loading" ? "Loading your work" : connection === "unavailable" ? "Your work is unavailable" : heading;
 
   return <>
     <section className="intervention-brief" id="today-brief" aria-labelledby="intervention-heading">
       <header className="intervention-heading">
-        <div><span className="eyebrow">Human intervention</span><h2 id="intervention-heading">{title}</h2><p>Review only the decisions, evidence exceptions and outcome checks that require your role.</p></div>
+        <div><span className="eyebrow">Your work</span><h2 id="intervention-heading">{title}</h2><p>Reviews, approvals and evidence requests currently assigned to you.</p></div>
       </header>
       {connection === "loading"
-        ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading assigned work…</div>
+        ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading your work…</div>
         : connection === "unavailable"
-          ? <EmptyState label="Assigned work" title="Assigned work could not be loaded" description="The service is unavailable. No current work count is shown."/>
+          ? <EmptyState kind="unavailable" label="Your work" title="Your work could not be loaded" description="Try again before relying on this list."/>
           : items.length
-            ? <div className="intervention-list" id="attention-list">{items.map((item) => <InterventionRow key={item.id} item={item} onOpen={onOpenItem}/>)}</div>
-            : <div id="attention-list"><EmptyState label="Assigned work" title="No assigned items" description="There are no open reviews, approvals or evidence requests assigned to you in the connected scope."/></div>}
+            ? <div className="intervention-list" id="attention-list">{items.map((item) => <InterventionRow key={item.id} item={item} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>)}</div>
+            : <div id="attention-list"><EmptyState label="Your work" title="Nothing assigned right now" description="There are no open reviews, approvals or evidence requests assigned to you in this scope."/></div>}
     </section>
     <ContinuousChecks readiness={readiness} state={readinessState}/>
   </>;
 }
 
-function InterventionRow({ item, onOpen }: { item: AttentionItem; onOpen: (item: AttentionItem) => void }) {
+function InterventionRow({ item, onOpen, onInspectAuthority }: { item: AttentionItem; onOpen: (item: AttentionItem) => void; onInspectAuthority?: (item: AttentionItem) => void }) {
   const due = formatDue(item.due_at);
-  const recommendation = item.recommendation?.proposed_action || item.primary_action;
+  const nextAction = item.recommendation?.proposed_action || item.primary_action;
+  const nextActionLabel = item.recommendation ? "Recommended action" : "Next action";
   const conclusion = item.material_conclusion || item.why_now;
   const canOpen = Boolean(item.action_target_type && item.action_target_id);
+  const canInspectAuthority = Boolean(canOpen && item.authority && onInspectAuthority);
   return <article className="intervention-row">
     <div className="intervention-main">
       <div className="intervention-kicker"><span className="intervention-kind"><WorkItemIcon type={item.type}/>{gateLabel(item.intervention_class, item.action_target_type)}</span><span>{item.state}</span><time>{due}</time></div>
@@ -52,22 +51,26 @@ function InterventionRow({ item, onOpen }: { item: AttentionItem; onOpen: (item:
       <div className="intervention-meta"><span>{item.scope}</span><span>{item.evidence}</span><span>{item.owner}</span></div>
     </div>
     <div className="intervention-next">
-      <span>Prepared next step</span>
-      <strong>{recommendation}</strong>
+      <span>{nextActionLabel}</span>
+      <strong>{nextAction}</strong>
       {item.recommendation?.rationale && item.recommendation.rationale !== conclusion && <small>{item.recommendation.rationale}</small>}
-      {canOpen ? <button className="primary-button" type="button" onClick={() => onOpen(item)}>Review and act</button> : <small>No linked record is available.</small>}
+      {canOpen ? <button className="primary-button" type="button" onClick={() => onOpen(item)}>{openLabel(item.action_target_type)}</button> : <small>No linked record is available.</small>}
+      {canInspectAuthority && <button className="text-button" type="button" onClick={() => onInspectAuthority?.(item)}>Check authority</button>}
     </div>
   </article>;
 }
 
 function ContinuousChecks({ readiness, state }: { readiness: Readiness | null; state: ReadinessState }) {
-  if (state === "loading") return <div className="continuous-checks quiet" aria-live="polite">Continuous checks are loading…</div>;
-  if (state === "unavailable" || !readiness) return <div className="continuous-checks quiet"><strong>Continuous checks unavailable</strong><span>No readiness claim is shown while the service is unavailable.</span></div>;
+  if (state === "loading") return <div className="continuous-checks quiet" aria-live="polite">Status checks are loading…</div>;
+  if (state === "unavailable" || !readiness) return <div className="continuous-checks quiet"><strong>Status checks unavailable</strong><span>No readiness status is shown until the latest checks can be loaded.</span></div>;
   const dimensions = readiness.dimensions;
   const active = dimensions.aging + dimensions.at_risk + dimensions.unknown + dimensions.blocked_routing + dimensions.pending_human;
   const status = readiness.status.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+  const summary = readiness.baseline_known
+    ? active ? `${active} current exception${active === 1 ? "" : "s"}` : "No current exceptions recorded"
+    : active ? `${active} known exception${active === 1 ? "" : "s"}; coverage is incomplete` : "Coverage is incomplete";
   return <details className="continuous-checks">
-    <summary><div><span className="eyebrow">Continuous checks</span><strong>{active ? `${active} current exception${active === 1 ? "" : "s"}` : "No current exception is recorded"}</strong></div><div><span>{status}</span><time>Updated {new Date(readiness.generated_at).toLocaleString()}</time></div></summary>
+    <summary><div><span className="eyebrow">Status checks</span><strong>{summary}</strong></div><div><span>{readiness.baseline_known ? status : "Coverage incomplete"}</span><time>Updated {new Date(readiness.generated_at).toLocaleString()}</time></div></summary>
     <div className="continuous-checks-detail">
       <dl>
         <div><dt>Current</dt><dd>{readiness.baseline_known ? dimensions.current : "—"}</dd></div>
@@ -75,24 +78,31 @@ function ContinuousChecks({ readiness, state }: { readiness: Readiness | null; s
         <div><dt>At risk</dt><dd>{dimensions.at_risk}</dd></div>
         <div><dt>Unknown</dt><dd>{dimensions.unknown}</dd></div>
         <div><dt>Routing blocked</dt><dd>{dimensions.blocked_routing}</dd></div>
-        <div><dt>Awaiting human review</dt><dd>{dimensions.pending_human}</dd></div>
+        <div><dt>Waiting for review</dt><dd>{dimensions.pending_human}</dd></div>
       </dl>
-      {readiness.recommended_actions.length > 0 && <div><h3>System-recommended follow-up</h3><ul>{readiness.recommended_actions.map((action) => <li key={action}>{action}</li>)}</ul></div>}
-      {!readiness.baseline_known && <p>A complete governed population is not connected, so current coverage is not represented as complete.</p>}
+      {readiness.recommended_actions.length > 0 && <div><h3>Suggested follow-up</h3><ul>{readiness.recommended_actions.map((action) => <li key={action}>{action}</li>)}</ul></div>}
+      {!readiness.baseline_known && <p>Coverage is incomplete, so these counts are not a complete view of compliance status.</p>}
     </div>
   </details>;
+}
+
+function openLabel(target?: AttentionItem["action_target_type"]) {
+  if (target === "PROGRAM") return "Open program";
+  if (target === "MATTER") return "Open issue";
+  if (target === "EVIDENCE_REQUEST") return "Open request";
+  return "Open item";
 }
 
 function gateLabel(value?: InterventionClass, target?: AttentionItem["action_target_type"]) {
   switch (value) {
     case "DECISION": return "Decision";
-    case "AUTHORIZATION": return "Authorization";
-    case "EVIDENCE_EXCEPTION": return "Evidence exception";
-    case "ESCALATION": return "Escalation";
+    case "AUTHORIZATION": return "Approval";
+    case "EVIDENCE_EXCEPTION": return "Evidence needed";
+    case "ESCALATION": return "Escalated";
     case "VERIFICATION": return "Outcome check";
     case "EXTERNAL_REPRESENTATION": return "External approval";
     case "REVIEW": return "Review";
-    default: return target === "EVIDENCE_REQUEST" ? "Evidence response" : "Review";
+    default: return target === "EVIDENCE_REQUEST" ? "Evidence request" : "Review";
   }
 }
 

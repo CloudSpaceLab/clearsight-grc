@@ -38,12 +38,27 @@ describe("TodayInterventions", () => {
 
     expect(screen.getByRole("heading", { name: "1 item requires your action" })).toBeTruthy();
     expect(screen.getByText("Seven provisions may change current obligations.")).toBeTruthy();
-    expect(screen.getByText("Review proposed obligations")).toBeTruthy();
+    expect(screen.getByText("Recommended next step")).toBeTruthy();
     const continuousChecks = screen.getByText("Continuous checks").closest("details") as HTMLDetailsElement | null;
     expect(continuousChecks?.open).toBe(false);
 
     fireEvent.click(screen.getByRole("button", { name: "Review and act" }));
     expect(onOpen).toHaveBeenCalledWith(item);
+  });
+
+  it("does not relabel an ordinary workflow action as prepared or recommended work", () => {
+    render(<TodayInterventions items={[{ ...item, recommendation: undefined }]} connection="live" readiness={readiness} readinessState="live" onOpenItem={vi.fn()}/>);
+    expect(screen.getByText("Next action")).toBeTruthy();
+    expect(screen.queryByText("Prepared next step")).toBeNull();
+    expect(screen.queryByText("Recommended next step")).toBeNull();
+  });
+
+  it("exposes item-scoped authority only when authority context exists", () => {
+    const inspect = vi.fn();
+    const authorized = { ...item, authority: { responsibility: "REVIEWER", materiality: 2 } };
+    render(<TodayInterventions items={[authorized]} connection="live" readiness={readiness} readinessState="live" onOpenItem={vi.fn()} onInspectAuthority={inspect}/>);
+    fireEvent.click(screen.getByRole("button", { name: "View authority for this item" }));
+    expect(inspect).toHaveBeenCalledWith(authorized);
   });
 
   it("does not claim an empty queue while assigned work is still loading", () => {
@@ -53,5 +68,12 @@ describe("TodayInterventions", () => {
     expect(screen.getByText("Loading assigned work…")).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "No assigned items" })).toBeNull();
     expect(screen.queryByText("0 items require your action")).toBeNull();
+  });
+
+  it("does not turn an unknown baseline into a no-exception claim", () => {
+    const unknownBaseline: Readiness = { ...readiness, baseline_known: false, dimensions: { current: 0, aging: 0, at_risk: 0, unknown: 0, blocked_routing: 0, pending_human: 0 } };
+    render(<TodayInterventions items={[]} connection="live" readiness={unknownBaseline} readinessState="live" onOpenItem={vi.fn()}/>);
+    expect(screen.getByText("Coverage is incomplete")).toBeTruthy();
+    expect(screen.queryByText("No current exception is recorded")).toBeNull();
   });
 });
