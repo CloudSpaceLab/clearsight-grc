@@ -8,17 +8,32 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
 
-// FromWorkflowTasks projects principal-assigned workflow work into the actor-facing
-// Today read model. It does not create recommendations or claim automated work;
-// richer operator context must come from separately governed records.
+// FromWorkflowTasks projects workflow work into the actor-facing Today read
+// model without inventing recommendations or automated-work receipts.
 func FromWorkflowTasks(tasks []workflow.Task) []AttentionItem {
+	return projectWorkflowTasks(tasks, nil)
+}
+
+// FromWorkflowTasksForActor is the production-safe projection. It accepts only
+// the supported Matter Action work projection and rechecks the owning Matter's
+// access policy before exposing the item to the actor.
+func FromWorkflowTasksForActor(tasks []workflow.Task, principalID string) []AttentionItem {
+	return projectWorkflowTasks(tasks, func(task workflow.Task) bool {
+		return workflow.MatterActionVisibleTo(task, principalID)
+	})
+}
+
+func projectWorkflowTasks(tasks []workflow.Task, include func(workflow.Task) bool) []AttentionItem {
 	items := make([]AttentionItem, 0, len(tasks))
 	for _, task := range tasks {
 		if task.Status == workflow.StatusCompleted || task.Status == workflow.StatusCancelled {
 			continue
 		}
+		if include != nil && !include(task) {
+			continue
+		}
 		context := task.Context
-		targetType, targetID := workflowTarget(context)
+		targetType, targetID := workflowTarget(task)
 		primaryAction := firstValue(context["primary_action"], task.Title)
 		whyNow := firstValue(context["why_now"], context["material_conclusion"], workflowReason(task))
 		items = append(items, AttentionItem{
@@ -50,7 +65,11 @@ func workflowDueAt(value *time.Time) time.Time {
 	return *value
 }
 
-func workflowTarget(context map[string]string) (string, string) {
+func workflowTarget(task workflow.Task) (string, string) {
+	if task.WorkflowKind == workflow.MatterActionWorkflowKind && strings.TrimSpace(task.MatterID) != "" {
+		return "MATTER", strings.TrimSpace(task.MatterID)
+	}
+	context := task.Context
 	targetType := strings.ToUpper(strings.TrimSpace(context["action_target_type"]))
 	targetID := strings.TrimSpace(context["action_target_id"])
 	if targetID != "" {
@@ -79,10 +98,12 @@ func workflowAuthorityContext(task workflow.Task, targetType, targetID string) *
 	if responsibility == "" {
 		return nil
 	}
-	materiality := 0
-	if raw := strings.TrimSpace(task.Context["materiality"]); raw != "" {
-		if parsed, err := strconv.Atoi(raw); err == nil && parsed >= 0 {
-			materiality = parsed
+	materiality := task.MatterPriority
+	if materiality <= 0 {
+		if raw := strings.TrimSpace(task.Context["materiality"]); raw != "" {
+			if parsed, err := strconv.Atoi(raw); err == nil && parsed >= 0 {
+				materiality = parsed
+			}
 		}
 	}
 	return &AuthorityContext{
@@ -98,6 +119,8 @@ func canonicalResponsibility(value string) string {
 		return "PERFORMER"
 	case "OWNER", "ACCOUNTABLE_OWNER":
 		return "ACCOUNTABLE_OWNER"
+	case "PROPOSER":
+		return "PROPOSER"
 	case "REVIEWER":
 		return "REVIEWER"
 	case "CHALLENGER", "INDEPENDENT_CHALLENGER":
@@ -106,6 +129,10 @@ func canonicalResponsibility(value string) string {
 		return "AUTHORIZER"
 	case "SIGNATORY":
 		return "SIGNATORY"
+	case "TRANSMITTER":
+		return "TRANSMITTER"
+	case "ACKNOWLEDGER", "ACKNOWLEDGEMENT_RECORDER":
+		return "ACKNOWLEDGEMENT_RECORDER"
 	case "ESCALATION_OWNER":
 		return "ESCALATION_OWNER"
 	default:
@@ -128,6 +155,8 @@ func workflowIntervention(task workflow.Task, targetType string) InterventionCla
 		return InterventionAuthorization
 	case "DECIDER", "DECISION_OWNER":
 		return InterventionDecision
+	case "TRANSMITTER", "ACKNOWLEDGER", "ACKNOWLEDGEMENT_RECORDER":
+		return InterventionExternalRepresentation
 	default:
 		return InterventionReview
 	}

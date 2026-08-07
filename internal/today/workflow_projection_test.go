@@ -1,6 +1,7 @@
 package today
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -65,5 +66,57 @@ func TestFromWorkflowTasksRejectsUnknownActionTargets(t *testing.T) {
 	}
 	if items[0].ActionTargetType != "" || items[0].ActionTargetID != "" || items[0].Authority != nil {
 		t.Fatal("unknown action target must not become a navigable or authority-resolvable route")
+	}
+}
+
+func TestFromWorkflowTasksForActorUsesCanonicalMatterMetadataAndVisibility(t *testing.T) {
+	allowedScope := json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["actor-1"]}`)
+	blockedScope := json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["someone-else"]}`)
+	tasks := []workflow.Task{
+		{
+			ID: "allowed", TenantID: "bank", WorkflowKind: workflow.MatterActionWorkflowKind,
+			MatterID: "matter-canonical", MatterPriority: 5, MatterScope: allowedScope,
+			Responsibility: "ACCOUNTABLE_OWNER", PrincipalID: "actor-1", Title: "Handle material issue", Status: workflow.StatusReady,
+			Context: map[string]string{"matter_id": "matter-stale", "action_target_type": "MATTER", "action_target_id": "matter-spoofed", "materiality": "1"},
+		},
+		{
+			ID: "blocked", TenantID: "bank", WorkflowKind: workflow.MatterActionWorkflowKind,
+			MatterID: "matter-hidden", MatterPriority: 4, MatterScope: blockedScope,
+			Responsibility: "ACCOUNTABLE_OWNER", PrincipalID: "actor-1", Title: "Hidden issue", Status: workflow.StatusReady,
+		},
+		{
+			ID: "legacy", TenantID: "bank", WorkflowKind: "REVIEW", MatterID: "matter-canonical", MatterPriority: 5, MatterScope: allowedScope,
+			Responsibility: "REVIEWER", PrincipalID: "actor-1", Title: "Legacy task", Status: workflow.StatusReady,
+		},
+	}
+	items := FromWorkflowTasksForActor(tasks, "actor-1")
+	if len(items) != 1 {
+		t.Fatalf("expected only one visible supported Matter Action, got %#v", items)
+	}
+	item := items[0]
+	if item.ActionTargetType != "MATTER" || item.ActionTargetID != "matter-canonical" {
+		t.Fatalf("Task context overrode canonical Matter target: %#v", item)
+	}
+	if item.Authority == nil || item.Authority.Materiality != 5 {
+		t.Fatalf("canonical Matter priority was not used for authority inspection: %#v", item.Authority)
+	}
+}
+
+func TestFromWorkflowTasksRecognizesLifecycleResponsibilities(t *testing.T) {
+	for _, test := range []struct {
+		responsibility string
+		want           string
+	}{
+		{"PROPOSER", "PROPOSER"},
+		{"TRANSMITTER", "TRANSMITTER"},
+		{"ACKNOWLEDGEMENT_RECORDER", "ACKNOWLEDGEMENT_RECORDER"},
+	} {
+		items := FromWorkflowTasks([]workflow.Task{{
+			ID: test.responsibility, Responsibility: test.responsibility, Title: "Lifecycle work", Status: workflow.StatusReady,
+			Context: map[string]string{"action_target_type": "MATTER", "action_target_id": "matter-1"},
+		}})
+		if len(items) != 1 || items[0].Authority == nil || items[0].Authority.Responsibility != test.want {
+			t.Fatalf("%s was not retained as a lifecycle responsibility: %#v", test.responsibility, items)
+		}
 	}
 }

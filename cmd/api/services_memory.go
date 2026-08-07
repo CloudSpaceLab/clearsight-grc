@@ -22,6 +22,8 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
 
+const todayItemLimit = 50
+
 func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serviceSet, error) {
 	version, rules := authority.DemoPolicySet()
 	if !cfg.DemoMode {
@@ -76,11 +78,15 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 			return bankverticals.TodayItems(visible, time.Now().UTC()), nil
 		}
 
-		assigned, err := workflowService.List(loadCtx, workflow.ListFilter{TenantID: actor.TenantID, PrincipalID: actor.PrincipalID, Limit: 50})
+		assigned, err := workflowService.List(loadCtx, workflow.ListFilter{
+			TenantID: actor.TenantID, PrincipalID: actor.PrincipalID,
+			WorkflowKind: workflow.MatterActionWorkflowKind, ActiveOnly: true, VisibleMatterActionsOnly: true,
+			Limit: todayItemLimit,
+		})
 		if err != nil {
 			return nil, err
 		}
-		return today.FromWorkflowTasks(assigned), nil
+		return today.FromWorkflowTasksForActor(assigned, actor.PrincipalID), nil
 	})
 
 	return serviceSet{

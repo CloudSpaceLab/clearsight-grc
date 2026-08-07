@@ -46,7 +46,7 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 		if !bindPayloadIdentity(w, payload, actor, policy.BindLegalEntity) {
 			return
 		}
-		policy, err = a.lifecycleCommandPolicy(r.Context(), actor.TenantID, name, payload, policy)
+		policy, err = a.lifecycleCommandPolicy(r.Context(), r, actor.TenantID, name, payload, policy)
 		if err != nil {
 			writeContinuityError(w, err)
 			return
