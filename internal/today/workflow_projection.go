@@ -129,10 +129,10 @@ func workflowVerificationPlan(task workflow.Task) *VerificationPlan {
 		nextCheck = &value
 	}
 	return &VerificationPlan{
-		State: firstValue(context["verification_evidence_state"], "Outcome check ready"),
+		State:           firstValue(context["verification_evidence_state"], "Outcome check ready"),
 		ExpectedOutcome: strings.TrimSpace(context["verification_expected_outcome"]),
-		Method: method,
-		NextCheckAt: nextCheck,
+		Method:          method,
+		NextCheckAt:     nextCheck,
 	}
 }
 
