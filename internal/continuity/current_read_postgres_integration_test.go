@@ -24,7 +24,7 @@ func (q *queryCounter) TraceQueryStart(ctx context.Context, _ *pgx.Conn, _ pgx.T
 
 func (*queryCounter) TraceQueryEnd(context.Context, *pgx.Conn, pgx.TraceQueryEndData) {}
 
-func (q *queryCounter) Reset() { q.count.Store(0) }
+func (q *queryCounter) Reset()       { q.count.Store(0) }
 func (q *queryCounter) Count() int64 { return q.count.Load() }
 
 func TestCurrentPostgresReadsMatchReplayAndStayFixedQuery(t *testing.T) {
