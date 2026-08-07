@@ -8,16 +8,16 @@ import (
 type Responsibility string
 
 const (
-	ResponsibilityPerformer      Responsibility = "PERFORMER"
-	ResponsibilityOwner          Responsibility = "ACCOUNTABLE_OWNER"
-	ResponsibilityProposer       Responsibility = "PROPOSER"
-	ResponsibilityReviewer       Responsibility = "REVIEWER"
-	ResponsibilityChallenger     Responsibility = "INDEPENDENT_CHALLENGER"
-	ResponsibilityAuthorizer     Responsibility = "AUTHORIZER"
-	ResponsibilitySignatory      Responsibility = "SIGNATORY"
-	ResponsibilityTransmitter    Responsibility = "TRANSMITTER"
-	ResponsibilityAcknowledger   Responsibility = "ACKNOWLEDGEMENT_RECORDER"
-	ResponsibilityEscalation     Responsibility = "ESCALATION_OWNER"
+	ResponsibilityPerformer    Responsibility = "PERFORMER"
+	ResponsibilityOwner        Responsibility = "ACCOUNTABLE_OWNER"
+	ResponsibilityProposer     Responsibility = "PROPOSER"
+	ResponsibilityReviewer     Responsibility = "REVIEWER"
+	ResponsibilityChallenger   Responsibility = "INDEPENDENT_CHALLENGER"
+	ResponsibilityAuthorizer   Responsibility = "AUTHORIZER"
+	ResponsibilitySignatory    Responsibility = "SIGNATORY"
+	ResponsibilityTransmitter  Responsibility = "TRANSMITTER"
+	ResponsibilityAcknowledger Responsibility = "ACKNOWLEDGEMENT_RECORDER"
+	ResponsibilityEscalation   Responsibility = "ESCALATION_OWNER"
 )
 
 type Principal struct {
