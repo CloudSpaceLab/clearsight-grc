@@ -102,6 +102,56 @@ func TestFromWorkflowTasksForActorUsesCanonicalMatterMetadataAndVisibility(t *te
 	}
 }
 
+func TestFromWorkflowTasksForActorProjectsGovernedLifecycleVerification(t *testing.T) {
+	due := time.Date(2026, 8, 8, 9, 30, 0, 0, time.UTC)
+	task := workflow.Task{
+		ID: "verify-1", TenantID: "bank", WorkflowKind: workflow.MatterLifecycleWorkflowKind,
+		MatterID: "matter-verify", MatterPriority: 5, MatterScope: json.RawMessage(`{"access":"INTERNAL"}`),
+		Responsibility: "REVIEWER", PrincipalID: "actor-1", Title: "Confirm restored ATM availability", Status: workflow.StatusReady, DueAt: &due,
+		Context: map[string]string{
+			"primary_action": "Record outcome check", "intervention_class": "VERIFICATION", "decision_type": "matter.outcome.record",
+			"verification_contract_id": "contract-1", "verification_expected_outcome": "ATM remains available for one hour",
+			"verification_evidence_state": "Outcome check ready", "verification_independent": "true",
+		},
+	}
+	items := FromWorkflowTasksForActor([]workflow.Task{task}, "actor-1")
+	if len(items) != 1 {
+		t.Fatalf("expected lifecycle outcome check in Today, got %#v", items)
+	}
+	item := items[0]
+	if item.ActionTargetID != "matter-verify" || item.InterventionClass != InterventionVerification || item.PrimaryAction != "Record outcome check" {
+		t.Fatalf("unexpected lifecycle projection: %#v", item)
+	}
+	if item.Authority == nil || item.Authority.Responsibility != "REVIEWER" || item.Authority.Materiality != 5 {
+		t.Fatalf("unexpected lifecycle authority: %#v", item.Authority)
+	}
+	if item.Verification == nil || item.Verification.ExpectedOutcome != "ATM remains available for one hour" || item.Verification.Method != "Independent outcome review" || item.Verification.NextCheckAt == nil || !item.Verification.NextCheckAt.Equal(due) {
+		t.Fatalf("governed verification context was not projected: %#v", item.Verification)
+	}
+	if item.Recommendation != nil || item.PreparedWork != nil {
+		t.Fatal("lifecycle projection must not fabricate recommendation or prepared work")
+	}
+}
+
+func TestFromWorkflowTasksForActorProjectsAcknowledgementWithoutInventedReceipt(t *testing.T) {
+	task := workflow.Task{
+		ID: "ack-1", TenantID: "bank", WorkflowKind: workflow.MatterLifecycleWorkflowKind,
+		MatterID: "matter-response", MatterPriority: 4, MatterScope: json.RawMessage(`{"access":"INTERNAL"}`),
+		Responsibility: "ACKNOWLEDGEMENT_RECORDER", PrincipalID: "actor-1", Title: "NDPC response", Status: workflow.StatusReady,
+		Context: map[string]string{
+			"primary_action": "Record acknowledgement", "why_now": "The response was transmitted and is waiting for acknowledgement to be recorded.",
+			"intervention_class": "EXTERNAL_REPRESENTATION", "decision_type": "matter.response.transition",
+		},
+	}
+	items := FromWorkflowTasksForActor([]workflow.Task{task}, "actor-1")
+	if len(items) != 1 || items[0].InterventionClass != InterventionExternalRepresentation || items[0].PrimaryAction != "Record acknowledgement" {
+		t.Fatalf("unexpected response work projection: %#v", items)
+	}
+	if items[0].Recommendation != nil || items[0].PreparedWork != nil {
+		t.Fatal("response work must not be relabelled as recommendation or completed work")
+	}
+}
+
 func TestFromWorkflowTasksRecognizesLifecycleResponsibilities(t *testing.T) {
 	for _, test := range []struct {
 		responsibility string
