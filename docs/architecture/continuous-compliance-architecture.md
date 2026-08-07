@@ -52,7 +52,7 @@ Evidence Source observation/maintenance transaction
 → outbox_events
 → source-health reconciliation consumer
 → compliance Signal/Drift update or exact recovery resolution
-→ active Evidence Contract source dependency lookup
+→ active Evidence Contract and approved Requirement source dependency lookup
 → idempotent Program trigger
 → optional focused Matter through existing trigger policy
 → Program-status projection job
@@ -69,7 +69,7 @@ Delivery rules:
 - Retrying after a partial effect is safe because compliance Signals and Program triggers have independent dedupe keys.
 - Source recovery is accepted only from the governed source-health consumer, not generic Signal ingestion.
 - Program trigger dedupe includes the Program ID because trigger uniqueness is tenant-wide.
-- A source recovery may emit a Program recovery trigger only when all active Evidence Contract sources for that Program are currently healthy.
+- A source recovery may emit a Program recovery trigger only when all active Evidence Contract and currently effective approved Requirement sources for that Program are healthy.
 - Unhealthy-to-unhealthy source changes update source drift without opening a new degradation episode.
 
 This is the first implemented reconciliation class. Other evidence-aging, routing, control and verification event classes must use the same durable pattern rather than adding parallel event stores.
