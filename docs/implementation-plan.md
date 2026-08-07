@@ -2,35 +2,39 @@
 
 **Status date:** 2026-08-07  
 **P0 closure PR:** #30  
-**Pre-P0 baseline:** `main@df98a7f66c28642637a45a10662abac042dcd144` (PR #25)
+**P1.1 implementation PR:** #34
 
-This is the authoritative execution ledger. Product, design, architecture and enterprise-productization documents define requirements, but this file controls the current implementation order and capability truth.
+This is the authoritative execution ledger. Product, design, architecture and enterprise-productization documents define requirements, but this file controls current implementation order and capability truth.
 
 ## 1. Current sequence
 
 ### #26 P0 executable integrity — complete in PRs #25 and #30
 
-- [x] P0.1 typed route/access registry and verified actor/tenant binding.
-- [x] persisted capture consolidation and bounded invitation/session security.
-- [x] P0.2 durable source-health reconciliation through outbox/inbox → Signal/Drift → affected Program trigger/Matter → projection.
-- [x] P0.3 independent worker work classes with bounded retry/dead-letter behavior.
-- [x] P0.4 compound-command and post-commit response truth.
-- [x] P0.5 executable route/OpenAPI contract parity.
-- [x] P0.6 bounded effective-authority convergence across routing rules, assignments, grants, active delegations and segregation constraints.
-- [x] lower-priority audit findings are moved to linked P1/P2 follow-up issues before #26 closes.
+- [x] typed route/access registry and verified actor/tenant binding;
+- [x] persisted capture consolidation and bounded invitation/session security;
+- [x] durable source-health reconciliation through outbox/inbox → Signal/Drift → affected Program trigger/Matter → projection;
+- [x] independent worker work classes with bounded retry/dead-letter behavior;
+- [x] compound-command and post-commit response truth;
+- [x] executable route/OpenAPI contract parity;
+- [x] bounded effective-authority convergence across routing rules, assignments, grants, active delegations and segregation constraints;
+- [x] lower-priority audit findings moved to #32 P1 and #33 P2 before #26 closed.
 
-### Next: P1 semantic/current-state correctness
+### #32 P1 semantic/current-state correctness
 
-P1 is intentionally correctness-first rather than feature-first.
+P1 is correctness-first rather than feature-first.
 
-1. **P1.1 Program-state truth — first tranche**
-   - valid-time/effective-time selection;
-   - deterministic multi-source currentness;
-   - bounded evidence-assessment validity;
-   - mandatory unknown dimensions cannot become `CURRENT`;
-   - preserve configured Program period across pause/resume;
-   - expose assessed Program version/projection freshness and complete reason counts.
-2. **P1.2 Matter closure current-record truth**
+1. **P1.1 Program-state truth — IMPLEMENTED IN PR #34**
+   - [x] currently-effective Requirement, Applicability and Control Implementation selection;
+   - [x] Evidence Contracts affect current state only when their linked Requirement/Control target is currently effective;
+   - [x] Evidence Assessment validity is bounded by the Evidence Contract freshness interval in both state derivation and PostgreSQL persistence;
+   - [x] actual current required evidence-source health drives Source Quality rather than the latest source trigger alone;
+   - [x] future Requirement sources do not enter the current source denominator;
+   - [x] mandatory UNKNOWN dimensions, including Assurance and Source Quality, cannot become overall `CURRENT`;
+   - [x] pause/resume preserves the configured Program `effective_until`, including reconstruction of historical resume events that cleared it;
+   - [x] Program summaries expose command Program version, assessed Program version, projection version, stale state and reason totals/omissions;
+   - [x] stale last-known green snapshots render as `Updating status` and do not contribute to the UI current count;
+   - [x] PostgreSQL and rendered-state tests cover temporal, multi-source, freshness, stale-projection and pause/resume behavior.
+2. **P1.2 Matter closure current-record truth — NEXT**
    - current Decision/Response selection and supersession;
    - expiry/conditions at closure;
    - verification independence and observation-period enforcement.
@@ -57,9 +61,9 @@ These distinctions are mandatory:
 
 Do not add a parallel authorization, task, event, worker, receipt or generic workflow stack that duplicates these foundations.
 
-## 3. #26 P0 closure truth
+## 3. P0 closure truth
 
-### P0.1 — route and identity boundary
+### Route and identity boundary
 
 `internal/httpapi/route_registry.go` is the canonical executable route inventory.
 
@@ -71,7 +75,7 @@ Do not add a parallel authorization, task, event, worker, receipt or generic wor
 - [x] material commands resolve current authority at execution;
 - [x] registry tests fail on invalid/unclassified route definitions.
 
-Direct OIDC/SAML, directory synchronization, RLS/ABAC defense in depth and step-up assurance remain enterprise-release work, not #26 P0 blockers.
+Direct OIDC/SAML, directory synchronization, RLS/ABAC defense in depth and step-up assurance remain enterprise-release work, not P0 blockers.
 
 ### Capture consolidation/security
 
@@ -83,7 +87,7 @@ Direct OIDC/SAML, directory synchronization, RLS/ABAC defense in depth and step-
 - [x] request expiry is maintained;
 - [x] bearer capture CORS is supported.
 
-### P0.2 — durable source-health reconciliation
+### Durable source-health reconciliation
 
 - [x] `SourceHealthChanged` is internally consumed before publication completion;
 - [x] inbox receipts provide idempotent internal delivery;
@@ -94,27 +98,25 @@ Direct OIDC/SAML, directory synchronization, RLS/ABAC defense in depth and step-
 - [x] Program trigger/Matter/projection consequences reuse existing transactional continuity paths;
 - [x] PostgreSQL replay tests exercise active Program degradation, duplicate delivery and recovery.
 
-### P0.3 — worker failure isolation
+### Worker failure isolation
 
 - [x] evidence-source maintenance, Program projection, delegation lifecycle, workflow timers and outbox delivery run independently in one deployable worker;
 - [x] each class owns its interval, timeout, lease, batch, retry and backoff budget;
 - [x] ordinary class failures/panics do not terminate unrelated work;
 - [x] exhausted timers become `FAILED` and exhausted outbox events become dead-lettered;
 - [x] terminal work is not reclaimable;
-- [x] queue/class health exposes actionable lag/failure state;
-- [x] shared PostgreSQL integration fixtures are deterministic under serialized package execution.
+- [x] queue/class health exposes actionable lag/failure state.
 
-### P0.4 — transaction and command-response truth
+### Transaction and command-response truth
 
-Failed verification consequences already use `VerificationResultBundle` to commit the verification result together with required REOPEN/ESCALATE or CREATE_MATTER/link effects.
+Failed verification consequences use `VerificationResultBundle` to commit the verification result together with required REOPEN/ESCALATE or CREATE_MATTER/link effects.
 
-PR #30 closes the remaining response seam:
+PR #30 additionally guarantees:
 
 - [x] normalized Program/Matter version probes determine authoritative commit outcome without replaying event history;
 - [x] a material update that commits but later fails response reconstruction returns a small `COMMITTED` degraded-response receipt rather than a false 5xx;
 - [x] genuine pre-commit failures remain failures;
-- [x] API PostgreSQL composition uses a reliable repository wrapper that preserves only a just-committed create result as a short-lived response fallback if the immediate reconstruction fails;
-- [x] this fallback is never authoritative state and is deleted after normal reconstruction/fallback use;
+- [x] API PostgreSQL composition preserves only a just-committed create result as a short-lived non-authoritative response fallback;
 - [x] no second durable receipt or transaction-orchestration framework was introduced.
 
 Canonical transaction rule:
@@ -128,11 +130,11 @@ identity/current-authority check
 → optional detail/projection read
 ```
 
-The final optional read may degrade the response detail; it may not reverse or misreport the commit.
+The optional final read may degrade response detail; it may not reverse or misreport the commit.
 
-### P0.5 — executable API contract parity
+### Executable API contract parity
 
-`api/runtime.openapi.json` is the mechanically verified production route/access contract. Detailed domain schemas may remain modular, but they cannot redefine runtime paths or access classes.
+`api/runtime.openapi.json` is the mechanically verified production route/access contract.
 
 - [x] exact method/path inventory matches `route_registry.go`;
 - [x] access class and administrative permission match mechanically;
@@ -141,33 +143,78 @@ The final optional read may degrade the response detail; it may not reverse or m
 - [x] CI fails when a production route is added/removed/reclassified without contract update;
 - [x] CI uses `npm ci` against `web/package-lock.json`.
 
-Generated browser transport types/client consolidation is a later custom-code deletion tranche; P0 does not add a dependency solely to claim generation.
+Generated browser transport types/client consolidation remains a later custom-code deletion opportunity.
 
-### P0.6 — effective authority convergence
+### Effective authority convergence
 
-Migration `000014_effective_authority_routes` materializes current approved routing-policy rules into an indexed execution read model.
+Migration `000014_effective_authority_routes` materializes currently-effective approved routing-policy rules into an indexed execution read model.
 
-The production authority path now:
+Production authority now:
 
-1. resolves matching compiled routes **and** current responsibility assignments in one bounded ranked query;
+1. resolves matching compiled routes and current responsibility assignments in one bounded ranked query;
 2. applies deterministic priority + specificity and fails closed on same-rank ambiguity;
 3. expands active scoped delegation chains with cycle/depth protection;
-4. enforces current authority-grant materiality limits when grants govern that decision class/entity;
+4. enforces applicable authority-grant materiality limits;
 5. applies active segregation constraints;
 6. returns an explicit candidate set when several humans are currently eligible.
 
-Additional guarantees:
+Unresolved selectors are excluded from execution but remain visible as integrity findings. Collective TEAM/QUEUE/COMMITTEE routes remain collective/candidate semantics rather than arbitrary `LIMIT 1` selection.
 
-- [x] execution no longer performs selector N+1 work over every active policy JSON document;
-- [x] ROLE/POSITION selectors expand to current eligible occupants rather than arbitrary `LIMIT 1` selection;
-- [x] unresolved selectors are excluded from execution but remain visible as integrity findings;
-- [x] delegated actors may execute only when delegation scope/time/responsibility remains effective;
-- [x] expired delegation, grant limit and segregation paths fail closed in PostgreSQL integration tests;
-- [x] collective TEAM/QUEUE/COMMITTEE routes remain explicit collective/candidate semantics rather than pretending one arbitrary person is authoritative.
+## 4. P1.1 Program-state truth
 
-Full enterprise configuration administration—directory-backed principals, advanced quorum/committee workflow, step-up assurance, governed policy editing/version creation/impact preview/scheduled rollback—remains later enterprise work. P0 closes the unsafe execution seam without pretending those productization features already exist.
+### Current-time selection
 
-## 4. Current Today and automation truth
+The Program-state projection now evaluates current truth at projection time:
+
+- future Requirements are excluded until `effective_from`;
+- expired Requirements/Applicability/Control Implementations are excluded after `effective_until`;
+- the latest currently-effective Applicability record is selected deterministically;
+- inactive/future implementation targets cannot satisfy current implementation state;
+- active Evidence Contracts are considered only when their linked Requirement or Control Implementation is currently effective;
+- future Evidence Assessments do not affect current state.
+
+### Evidence freshness
+
+Evidence Assessment validity cannot outlive the Evidence Contract freshness interval.
+
+- the state engine always evaluates `min(valid_until, assessed_at + freshness)`;
+- migration `000015_program_state_truth` derives missing validity and safely caps an over-long supplied validity at the governed maximum;
+- non-positive validity windows remain invalid;
+- bank-reference seed/repair data now uses the same contract freshness rule rather than a hard-coded future date.
+
+### Source Quality
+
+The PostgreSQL projection reads the authoritative current source denominator rather than inferring whole-Program source health from the latest source trigger.
+
+Current dependencies include:
+
+- source IDs on currently-effective approved Requirements;
+- sources on ACTIVE Evidence Contracts whose target Requirement/Control Implementation is currently effective.
+
+A Program is source-current only when **every** currently-required active Evidence Source reports `CURRENT`. With no source dependency, Source Quality is explicitly `NOT_APPLICABLE`. A future Requirement source does not pollute the current denominator.
+
+### Unknown and overall state
+
+All compliance dimensions now participate in overall-state selection. `Assurance=UNKNOWN` or `SourceQuality=UNKNOWN` cannot silently produce `CURRENT`.
+
+### Program period and reconstruction
+
+Migration `000015` preserves a configured `effective_until` when a PAUSED Program resumes. Event replay applies the same semantic correction to historical resume payloads that wrote `effective_until=null`, keeping normalized current state and reconstructed history aligned.
+
+### Projection freshness and UI
+
+Program summaries expose:
+
+- `program_version`;
+- `assessed_program_version`;
+- `projection_version`;
+- `projection_stale`;
+- state generation time;
+- total and omitted status-reason counts.
+
+A stale last-known `CURRENT` snapshot is rendered as **Updating status**, counted as reassessing rather than current, and shows the assessed/current versions. Complete reasons remain available in Program detail; summary truncation is never silent.
+
+## 5. Current Today and automation truth
 
 ### Today
 
@@ -183,7 +230,7 @@ Today is not yet the complete event-driven intervention compiler envisioned by #
 
 Those claims require a real governed executor and persisted execution/verification evidence.
 
-## 5. Enterprise work after semantic P1
+## 6. Enterprise work after semantic P1
 
 Detailed enterprise requirements remain in `docs/engineering/enterprise-productization-implementation-plan.md` and product/design specifications.
 
@@ -200,7 +247,7 @@ Major later gates include:
 - backup/restore/provider-outage exercises;
 - pilot-bank legal/configuration approval and governed go-live.
 
-## 6. Release and validation rules
+## 7. Release and validation rules
 
 Checkboxes describe repository capability, not deployment readiness.
 

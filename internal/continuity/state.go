@@ -6,7 +6,18 @@ import (
 	"time"
 )
 
+type ProgramSourceState struct {
+	Required int
+	Current  bool
+	Known    bool
+}
+
 func deriveProgramState(aggregate ProgramAggregate, openMatters int, now time.Time) ProgramStateSnapshot {
+	return deriveProgramStateWithSourceState(aggregate, openMatters, now, inferProgramSourceState(aggregate, now))
+}
+
+func deriveProgramStateWithSourceState(aggregate ProgramAggregate, openMatters int, now time.Time, sourceState ProgramSourceState) ProgramStateSnapshot {
+	now = now.UTC()
 	dimensions := ComplianceDimensions{
 		Interpretation:         StateUnknown,
 		Applicability:          StateUnknown,
@@ -19,24 +30,27 @@ func deriveProgramState(aggregate ProgramAggregate, openMatters int, now time.Ti
 		Deadline:               StateCurrent,
 		SourceQuality:          StateUnknown,
 	}
-	reasons := make([]StateReason, 0, 12)
+	reasons := make([]StateReason, 0, 16)
 
 	approvedRequirements := make(map[string]Requirement)
 	for _, requirement := range aggregate.Requirements {
-		if requirement.Status == RequirementApproved && (requirement.EffectiveUntil == nil || now.Before(*requirement.EffectiveUntil)) {
+		if requirement.Status == RequirementApproved && effectiveAt(requirement.EffectiveFrom, requirement.EffectiveUntil, now) {
 			approvedRequirements[requirement.ID] = requirement
 		}
 	}
 	if len(approvedRequirements) == 0 {
-		reasons = append(reasons, StateReason{Code: "NO_APPROVED_REQUIREMENTS", Summary: "No approved requirements are in scope."})
+		reasons = append(reasons, StateReason{Code: "NO_APPROVED_REQUIREMENTS", Summary: "No currently-effective approved requirements are in scope."})
 	} else {
 		dimensions.Interpretation = StateCurrent
 	}
 
 	latestApplicability := make(map[string]Applicability)
 	for _, item := range aggregate.Applicability {
+		if !effectiveAt(item.EffectiveFrom, item.EffectiveUntil, now) {
+			continue
+		}
 		current, ok := latestApplicability[item.RequirementID]
-		if !ok || item.EffectiveFrom.After(current.EffectiveFrom) {
+		if !ok || item.EffectiveFrom.After(current.EffectiveFrom) || (item.EffectiveFrom.Equal(current.EffectiveFrom) && item.CreatedAt.After(current.CreatedAt)) {
 			latestApplicability[item.RequirementID] = item
 		}
 	}
@@ -45,9 +59,9 @@ func deriveProgramState(aggregate ProgramAggregate, openMatters int, now time.Ti
 	potentialCount := 0
 	for requirementID, requirement := range approvedRequirements {
 		item, ok := latestApplicability[requirementID]
-		if !ok {
+		if !ok || item.Status == ApplicabilitySuperseded {
 			potentialCount++
-			reasons = append(reasons, StateReason{Code: "APPLICABILITY_NOT_RECORDED", Summary: fmt.Sprintf("Applicability has not been confirmed for %s.", requirement.Title), ObjectType: "REQUIREMENT", ObjectID: requirementID})
+			reasons = append(reasons, StateReason{Code: "APPLICABILITY_NOT_RECORDED", Summary: fmt.Sprintf("Current applicability has not been confirmed for %s.", requirement.Title), ObjectType: "REQUIREMENT", ObjectID: requirementID})
 			continue
 		}
 		switch item.Status {
@@ -56,8 +70,10 @@ func deriveProgramState(aggregate ProgramAggregate, openMatters int, now time.Ti
 		case ApplicabilityPartial, ApplicabilityPotential, ApplicabilityLater:
 			potentialCount++
 			reasons = append(reasons, StateReason{Code: "APPLICABILITY_REVIEW_NEEDED", Summary: fmt.Sprintf("Applicability still needs review for %s.", requirement.Title), ObjectType: "REQUIREMENT", ObjectID: requirementID})
-		case ApplicabilityNotApplicable, ApplicabilitySuperseded:
+		case ApplicabilityNotApplicable:
 			notApplicableCount++
+		default:
+			potentialCount++
 		}
 	}
 	switch {
@@ -87,7 +103,7 @@ func deriveProgramState(aggregate ProgramAggregate, openMatters int, now time.Ti
 		}
 	}
 	switch {
-	case applicableCount == 0 && potentialCount == 0:
+	case applicableCount == 0 && potentialCount == 0 && len(approvedRequirements) > 0:
 		dimensions.ControlDesign = StateNotApplicable
 	case missingControlLinks > 0:
 		dimensions.ControlDesign = StateGapIdentified
@@ -99,13 +115,23 @@ func deriveProgramState(aggregate ProgramAggregate, openMatters int, now time.Ti
 
 	implementationStates := make(map[string]ControlImplementationStatus)
 	for _, implementation := range aggregate.ControlImplementations {
-		implementationStates[implementation.ID] = implementation.Status
+		if effectiveAt(implementation.EffectiveFrom, implementation.EffectiveUntil, now) {
+			implementationStates[implementation.ID] = implementation.Status
+		}
 	}
 	pendingImplementations := 0
 	inactiveImplementations := 0
 	activeImplementations := 0
 	for _, link := range aggregate.RequirementControlLinks {
-		state := implementationStates[link.ImplementationID]
+		item, ok := latestApplicability[link.RequirementID]
+		if !ok || (item.Status != ApplicabilityApplicable && item.Status != ApplicabilityPartial) {
+			continue
+		}
+		state, current := implementationStates[link.ImplementationID]
+		if !current {
+			inactiveImplementations++
+			continue
+		}
 		switch state {
 		case ImplementationImplemented:
 			activeImplementations++
@@ -132,11 +158,17 @@ func deriveProgramState(aggregate ProgramAggregate, openMatters int, now time.Ti
 	if pendingImplementations > 0 {
 		reasons = append(reasons, StateReason{Code: "IMPLEMENTATION_PENDING", Summary: fmt.Sprintf("%d control implementation(s) are not yet operating.", pendingImplementations)})
 	}
+	if inactiveImplementations > 0 {
+		reasons = append(reasons, StateReason{Code: "IMPLEMENTATION_NOT_CURRENT", Summary: fmt.Sprintf("%d linked control implementation(s) are not currently effective.", inactiveImplementations)})
+	}
 
 	latestAssessment := make(map[string]EvidenceAssessment)
 	for _, assessment := range aggregate.EvidenceAssessments {
+		if assessment.AssessedAt.After(now) {
+			continue
+		}
 		current, ok := latestAssessment[assessment.ContractID]
-		if !ok || assessment.AssessedAt.After(current.AssessedAt) {
+		if !ok || assessment.AssessedAt.After(current.AssessedAt) || (assessment.AssessedAt.Equal(current.AssessedAt) && assessment.CreatedAt.After(current.CreatedAt)) {
 			latestAssessment[assessment.ContractID] = assessment
 		}
 	}
@@ -155,7 +187,8 @@ func deriveProgramState(aggregate ProgramAggregate, openMatters int, now time.Ti
 			reasons = append(reasons, StateReason{Code: "EVIDENCE_NOT_ASSESSED", Summary: fmt.Sprintf("Evidence has not been assessed for %s.", contract.Name), ObjectType: "EVIDENCE_CONTRACT", ObjectID: contract.ID})
 			continue
 		}
-		if assessment.ValidUntil != nil && !now.Before(*assessment.ValidUntil) {
+		validUntil := boundedAssessmentValidity(assessment, contract)
+		if validUntil.IsZero() || !now.Before(validUntil) {
 			expiredContracts++
 			reasons = append(reasons, StateReason{Code: "EVIDENCE_EXPIRED", Summary: fmt.Sprintf("Evidence is out of date for %s.", contract.Name), ObjectType: "EVIDENCE_CONTRACT", ObjectID: contract.ID})
 			continue
@@ -190,36 +223,58 @@ func deriveProgramState(aggregate ProgramAggregate, openMatters int, now time.Ti
 		dimensions.EvidenceSufficiency = StateUnknown
 	}
 
-	dimensions.OperatingEffectiveness = StateUnknown
-	if dimensions.Implementation == StateCurrent && dimensions.EvidenceSufficiency == StateCurrent {
+	if dimensions.Implementation == StateNotApplicable && dimensions.EvidenceSufficiency == StateNotApplicable {
+		dimensions.OperatingEffectiveness = StateNotApplicable
+	} else if dimensions.Implementation == StateCurrent && dimensions.EvidenceSufficiency == StateCurrent {
 		dimensions.OperatingEffectiveness = StateCurrent
 	}
+
 	if openMatters > 0 {
 		dimensions.Exception = StateAtRisk
 		reasons = append(reasons, StateReason{Code: "OPEN_MATTERS", Summary: fmt.Sprintf("%d open issue(s) or change(s) affect this program.", openMatters)})
 	}
-	if aggregate.Program.Status == ProgramPaused {
+
+	switch {
+	case aggregate.Program.Status == ProgramPaused:
+		dimensions.Assurance = StateUnderReview
+	case dimensions.Applicability == StateNotApplicable:
+		dimensions.Assurance = StateNotApplicable
+	case dimensions.OperatingEffectiveness == StateCurrent && dimensions.EvidenceSufficiency == StateCurrent:
+		dimensions.Assurance = StateCurrent
+	case dimensions.EvidenceSufficiency == StateEvidenceInsufficient || dimensions.EvidenceSufficiency == StateGapIdentified:
 		dimensions.Assurance = StateUnderReview
 	}
-	latestSourceTrigger := Trigger{}
-	for _, trigger := range aggregate.Triggers {
-		if (trigger.Type == "SOURCE_DEGRADED" || trigger.Type == "SOURCE_RECOVERED") && (latestSourceTrigger.ID == "" || trigger.ObservedAt.After(latestSourceTrigger.ObservedAt)) {
-			latestSourceTrigger = trigger
+
+	switch {
+	case sourceState.Required == 0 && sourceState.Known:
+		dimensions.SourceQuality = StateNotApplicable
+	case sourceState.Known && sourceState.Current:
+		dimensions.SourceQuality = StateCurrent
+	case sourceState.Known:
+		dimensions.SourceQuality = StateAtRisk
+		reasons = append(reasons, StateReason{Code: "SOURCE_QUALITY_ISSUE", Summary: "A currently-required evidence source is stale, degraded or unavailable."})
+	default:
+		dimensions.SourceQuality = StateUnknown
+		if sourceState.Required > 0 {
+			reasons = append(reasons, StateReason{Code: "SOURCE_QUALITY_UNKNOWN", Summary: "Current source health has not yet been established for all required evidence sources."})
 		}
 	}
-	if latestSourceTrigger.Type == "SOURCE_DEGRADED" {
-		dimensions.SourceQuality = StateAtRisk
-		reasons = append(reasons, StateReason{Code: "SOURCE_QUALITY_ISSUE", Summary: "A source used by this program is stale, degraded or unavailable.", ObjectType: latestSourceTrigger.SubjectType, ObjectID: latestSourceTrigger.SubjectID})
-	} else if latestSourceTrigger.Type == "SOURCE_RECOVERED" {
-		dimensions.SourceQuality = StateCurrent
-	}
+
 	if aggregate.Program.EffectiveUntil != nil && !now.Before(*aggregate.Program.EffectiveUntil) {
 		dimensions.Deadline = StateOverdue
 		reasons = append(reasons, StateReason{Code: "PROGRAM_PERIOD_ENDED", Summary: "The current program period has ended."})
 	}
 
 	overall := chooseOverallState(dimensions)
-	sort.SliceStable(reasons, func(i, j int) bool { return reasons[i].Code < reasons[j].Code })
+	sort.SliceStable(reasons, func(i, j int) bool {
+		if reasons[i].Code == reasons[j].Code {
+			if reasons[i].ObjectType == reasons[j].ObjectType {
+				return reasons[i].ObjectID < reasons[j].ObjectID
+			}
+			return reasons[i].ObjectType < reasons[j].ObjectType
+		}
+		return reasons[i].Code < reasons[j].Code
+	})
 	return ProgramStateSnapshot{
 		TenantID:        aggregate.Program.TenantID,
 		ProgramID:       aggregate.Program.ID,
@@ -227,9 +282,64 @@ func deriveProgramState(aggregate ProgramAggregate, openMatters int, now time.Ti
 		Dimensions:      dimensions,
 		Reasons:         reasons,
 		OpenMatterCount: openMatters,
-		GeneratedAt:     now.UTC(),
+		GeneratedAt:     now,
 		ProgramVersion:  aggregate.Program.Version,
 	}
+}
+
+func effectiveAt(from time.Time, until *time.Time, at time.Time) bool {
+	if !from.IsZero() && from.After(at) {
+		return false
+	}
+	return until == nil || at.Before(*until)
+}
+
+func boundedAssessmentValidity(assessment EvidenceAssessment, contract EvidenceContract) time.Time {
+	if assessment.AssessedAt.IsZero() || contract.FreshnessMinutes <= 0 {
+		return time.Time{}
+	}
+	maximum := assessment.AssessedAt.UTC().Add(time.Duration(contract.FreshnessMinutes) * time.Minute)
+	if assessment.ValidUntil == nil || assessment.ValidUntil.After(maximum) {
+		return maximum
+	}
+	return assessment.ValidUntil.UTC()
+}
+
+func inferProgramSourceState(aggregate ProgramAggregate, now time.Time) ProgramSourceState {
+	required := map[string]struct{}{}
+	for _, requirement := range aggregate.Requirements {
+		if requirement.Status == RequirementApproved && requirement.SourceID != "" && effectiveAt(requirement.EffectiveFrom, requirement.EffectiveUntil, now) {
+			required[requirement.SourceID] = struct{}{}
+		}
+	}
+	for _, contract := range aggregate.EvidenceContracts {
+		if contract.Status != EvidenceContractActive {
+			continue
+		}
+		for _, sourceID := range contract.AcceptableSourceIDs {
+			if sourceID != "" {
+				required[sourceID] = struct{}{}
+			}
+		}
+	}
+	state := ProgramSourceState{Required: len(required), Known: len(required) == 0}
+	if state.Required == 0 {
+		return state
+	}
+	latest := Trigger{}
+	for _, trigger := range aggregate.Triggers {
+		if trigger.Type != "SOURCE_DEGRADED" && trigger.Type != "SOURCE_RECOVERED" {
+			continue
+		}
+		if latest.ID == "" || trigger.ObservedAt.After(latest.ObservedAt) {
+			latest = trigger
+		}
+	}
+	if latest.ID != "" {
+		state.Known = true
+		state.Current = latest.Type == "SOURCE_RECOVERED"
+	}
+	return state
 }
 
 func chooseOverallState(dimensions ComplianceDimensions) ProgramState {
@@ -252,18 +362,13 @@ func chooseOverallState(dimensions ComplianceDimensions) ProgramState {
 			}
 		}
 	}
-	core := []ProgramState{dimensions.Interpretation, dimensions.Applicability, dimensions.ControlDesign, dimensions.Implementation, dimensions.EvidenceSufficiency}
-	notApplicable := 0
-	for _, state := range core {
+	if dimensions.Applicability == StateNotApplicable {
+		return StateNotApplicable
+	}
+	for _, state := range states {
 		if state == StateUnknown {
 			return StateUnknown
 		}
-		if state == StateNotApplicable {
-			notApplicable++
-		}
-	}
-	if notApplicable == len(core)-1 || dimensions.Applicability == StateNotApplicable {
-		return StateNotApplicable
 	}
 	return StateCurrent
 }

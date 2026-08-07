@@ -5,10 +5,16 @@ export type ProgramSummary = {
   state_label: string;
   overall_state: ProgramState;
   reasons: StateReason[];
+  reasons_total: number;
+  reasons_omitted: number;
   open_matter_count: number;
   requirement_count: number;
   safeguard_count: number;
   evidence_check_count: number;
+  program_version: number;
+  assessed_program_version: number;
+  projection_version: number;
+  projection_stale: boolean;
   state_generated_at?: string;
 };
 

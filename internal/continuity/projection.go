@@ -179,7 +179,7 @@ func (m *ProjectionMaintainer) Maintain(ctx context.Context, now time.Time, limi
 	}
 	completed := 0
 	for _, job := range jobs {
-		if err := m.Service.refreshProgram(ctx, job.TenantID, job.AggregateID, job.Reason, job.TriggerID); err != nil {
+		if err := m.Service.refreshProgramCurrent(ctx, job.TenantID, job.AggregateID, job.Reason, job.TriggerID); err != nil {
 			retryAt := now.Add(time.Duration(min(job.Attempts+1, 10)) * time.Second)
 			_ = m.Repo.FailProgramState(ctx, job, err.Error(), retryAt)
 			continue

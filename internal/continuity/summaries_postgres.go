@@ -24,16 +24,17 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 			p.owning_function,COALESCE(p.owner_principal_id::text,''),COALESCE(p.authority_principal_id::text,''),
 			p.jurisdiction,p.scope,p.effective_from,p.effective_until,p.created_at,p.updated_at,p.version,
 			COALESCE(ps.overall_state,'UNKNOWN'),COALESCE(ps.reasons,'[]'::jsonb),COALESCE(ps.open_matter_count,0),ps.generated_at,
+			COALESCE(ps.program_version,0),COALESCE(ps.projection_version,0),
 			(SELECT count(*) FROM program_requirements pr WHERE pr.tenant_id=p.tenant_id AND pr.program_id=p.id),
 			(SELECT count(*) FROM control_implementations ci WHERE ci.tenant_id=p.tenant_id AND ci.program_id=p.id),
 			(SELECT count(*) FROM evidence_contracts ec WHERE ec.tenant_id=p.tenant_id AND ec.program_id=p.id)
 		FROM programs p
 		JOIN tenants t ON t.id=p.tenant_id
 		LEFT JOIN LATERAL (
-			SELECT overall_state,reasons,open_matter_count,generated_at
+			SELECT overall_state,reasons,open_matter_count,generated_at,program_version,projection_version
 			FROM program_state_snapshots
 			WHERE tenant_id=p.tenant_id AND program_id=p.id
-			ORDER BY generated_at DESC,id DESC
+			ORDER BY generated_at DESC,projection_version DESC
 			LIMIT 1
 		) ps ON TRUE
 		WHERE (t.id::text=$1 OR t.slug=$1)
@@ -63,6 +64,7 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 			&value.Program.AuthorityPrincipalID, &value.Program.Jurisdiction, &value.Program.Scope, &value.Program.EffectiveFrom,
 			&value.Program.EffectiveUntil, &value.Program.CreatedAt, &value.Program.UpdatedAt, &value.Program.Version,
 			&value.OverallState, &reasons, &value.OpenMatterCount, &generatedAt,
+			&value.AssessedProgramVersion, &value.ProjectionVersion,
 			&value.RequirementCount, &value.SafeguardCount, &value.EvidenceCheckCount,
 		); err != nil {
 			return ProgramSummaryPage{}, err
@@ -70,9 +72,13 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 		if err := json.Unmarshal(reasons, &value.Reasons); err != nil {
 			return ProgramSummaryPage{}, err
 		}
+		value.ReasonsTotal = len(value.Reasons)
 		if len(value.Reasons) > 6 {
 			value.Reasons = value.Reasons[:6]
 		}
+		value.ReasonsOmitted = max(0, value.ReasonsTotal-len(value.Reasons))
+		value.ProgramVersion = value.Program.Version
+		value.ProjectionStale = value.AssessedProgramVersion < value.Program.Version
 		value.StateGeneratedAt = generatedAt
 		switch value.Program.Status {
 		case ProgramDraft:

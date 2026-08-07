@@ -48,9 +48,19 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 				return ProgramAggregate{}, fmt.Errorf("decode program event: %w", err)
 			}
 		case EventProgramStatusChanged:
+			previousStatus := aggregate.Program.Status
+			previousUntil := aggregate.Program.EffectiveUntil
 			var value Program
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
 				return ProgramAggregate{}, err
+			}
+			// Historical resume events written before P1.1 cleared effective_until.
+			// Domain semantics treat that null as "keep the configured Program
+			// period" when resuming a paused Program, matching the normalized
+			// PostgreSQL projection invariant introduced in migration 000015.
+			if previousStatus == ProgramPaused && value.Status == ProgramActive && previousUntil != nil && value.EffectiveUntil == nil {
+				until := *previousUntil
+				value.EffectiveUntil = &until
 			}
 			aggregate.Program = value
 		case EventRequirementAdded:
