@@ -48,6 +48,46 @@ func TestDecisionLifecyclePreservesDistinctActors(t *testing.T) {
 	}
 }
 
+func TestResponseLifecyclePreservesActorsFromEventEnvelopeInMemory(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(NewMemoryRepository())
+	now := time.Date(2026, 8, 7, 16, 0, 0, 0, time.UTC)
+	service.now = func() time.Time { return now }
+
+	matter, err := service.CreateMatter(ctx, CreateMatterInput{TenantID: "bank", Type: MatterAuthorityRequest, Priority: 4, Title: "Regulator response", Summary: "Prepare and send the response.", Scope: json.RawMessage(`{}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	matter, err = service.AddResponsePackage(ctx, AddResponsePackageInput{TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, Purpose: "Provide records", Audience: "Regulator", Manifest: json.RawMessage(`[]`), ActorID: "preparer"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	responseID := matter.ResponsePackages[0].ID
+	if matter.ResponsePackages[0].PreparedBy != "preparer" {
+		t.Fatalf("preparer was not reconstructed from event actor: %#v", matter.ResponsePackages[0])
+	}
+
+	steps := []struct {
+		status ResponseStatus
+		actor  string
+		want   func(ResponsePackage) bool
+	}{
+		{ResponseInReview, "reviewer", func(v ResponsePackage) bool { return v.ReviewedBy == "reviewer" }},
+		{ResponseApproved, "signatory", func(v ResponsePackage) bool { return v.ApprovedBy == "signatory" }},
+		{ResponseTransmitted, "transmitter", func(v ResponsePackage) bool { return v.TransmittedBy == "transmitter" }},
+		{ResponseAcknowledged, "ack-recorder", func(v ResponsePackage) bool { return v.AcknowledgedBy == "ack-recorder" }},
+	}
+	for _, step := range steps {
+		matter, err = service.TransitionResponsePackage(ctx, TransitionResponseInput{TenantID: "bank", MatterID: matter.Matter.ID, ResponseID: responseID, ExpectedVersion: matter.Matter.Version, To: step.status, ActorID: step.actor, Rationale: "Lifecycle progression."})
+		if err != nil {
+			t.Fatalf("%s: %v", step.status, err)
+		}
+		if !step.want(matter.ResponsePackages[0]) {
+			t.Fatalf("%s actor was not preserved: %#v", step.status, matter.ResponsePackages[0])
+		}
+	}
+}
+
 func TestDecisionLifecycleRejectsInvalidTransition(t *testing.T) {
 	values := []Decision{{ID: "d1", Type: "POSITION", Status: DecisionApproved, CreatedAt: time.Now().UTC()}}
 	if err := ValidateDecisionLifecycle(values, "POSITION", DecisionInReview); !errors.Is(err, ErrInvalidState) {
