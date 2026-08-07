@@ -47,6 +47,12 @@ func validateDecisionLifecycle(values []Decision, decisionType string, target De
 
 func setDecisionActor(value *Decision, status DecisionStatus, actorID string) {
 	actorID = strings.TrimSpace(actorID)
+	value.ProposedBy = ""
+	value.ReviewedBy = ""
+	value.ChallengedBy = ""
+	if status != DecisionApproved && status != DecisionConditionallyApproved && status != DecisionRejected && status != DecisionExpired && status != DecisionSuperseded {
+		value.AuthorityPrincipalID = ""
+	}
 	switch status {
 	case DecisionProposed:
 		value.ProposedBy = actorID
