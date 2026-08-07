@@ -34,7 +34,7 @@ type Dependencies struct {
 	Evidence         *evidence.Service
 	DocumentImports  *documentimport.Service
 	Continuity       *continuity.Service
-	Today           *today.Service
+	Today            *today.Service
 	Workflow         *workflow.Service
 	Onboarding       *onboarding.Service
 	Autonomy         *autonomy.Service

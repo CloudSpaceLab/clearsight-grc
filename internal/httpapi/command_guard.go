@@ -89,7 +89,7 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 		}
 		decision, authErr := a.deps.CommandGuard.Authorize(r.Context(), commandauth.Request{
 			TenantID:       actor.TenantID,
-			LegalEntityID: legalEntityID,
+			LegalEntityID:  legalEntityID,
 			ObjectType:     policy.ObjectType,
 			ObjectID:       objectID,
 			Responsibility: responsibility,

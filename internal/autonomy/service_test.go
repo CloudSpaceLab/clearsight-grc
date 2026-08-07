@@ -63,8 +63,8 @@ func TestAutomationPoliciesAreTenantScopedLatestAndPreserveGuardrails(t *testing
 	policy := AutomationPolicy{
 		ID: "policy-2", TenantID: "bank-demo", Code: "EVIDENCE-REFRESH", Name: "Low-impact evidence refresh",
 		ActionClass: "REVERSIBLE_WRITE", Status: "ACTIVE", Version: 2,
-		Eligibility: json.RawMessage(`{"materiality_max":2}`),
-		BlastRadiusLimit: json.RawMessage(`{"max_records":25}`),
+		Eligibility:          json.RawMessage(`{"materiality_max":2}`),
+		BlastRadiusLimit:     json.RawMessage(`{"max_records":25}`),
 		VerificationContract: json.RawMessage(`{"method":"source_recheck"}`),
 	}
 	service := NewService(NewMemoryRepository(
