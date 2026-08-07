@@ -35,4 +35,5 @@ type Repository interface {
 	RevokeSession(context.Context, string, string, time.Time) error
 
 	CreateArtifact(context.Context, Artifact) (Artifact, error)
+	GetArtifact(context.Context, string, string, string) (Artifact, error)
 }

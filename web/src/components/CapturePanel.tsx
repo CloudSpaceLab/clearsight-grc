@@ -61,16 +61,16 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
     setAnswers((current) => ({ ...current, [fieldID]: value }));
   }
 
-  async function upload(field: CaptureField, file: File) {
+  async function upload(field: CaptureField, file: File, preferredPreviewURL?: string) {
     if (!request || uploadingField) return;
     const existingPreview = previewURLs.current[field.id];
     if (existingPreview) URL.revokeObjectURL(existingPreview);
-    let previewURL: string | undefined;
-    if (file.type.startsWith("image/") && typeof URL.createObjectURL === "function") {
+    delete previewURLs.current[field.id];
+
+    let previewURL = preferredPreviewURL;
+    if (!previewURL && file.type.startsWith("image/") && typeof URL.createObjectURL === "function") {
       previewURL = URL.createObjectURL(file);
       previewURLs.current[field.id] = previewURL;
-    } else {
-      delete previewURLs.current[field.id];
     }
 
     setAttachments((current) => ({ ...current, [field.id]: { file_name: file.name, media_type: file.type, size_bytes: file.size, preview_url: previewURL } }));
@@ -82,7 +82,8 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
       setAttachments((current) => ({ ...current, [field.id]: { id: artifact.id, file_name: artifact.file_name, media_type: artifact.media_type, size_bytes: artifact.size_bytes, preview_url: previewURL } }));
       updateAnswer(field.id, artifact.id);
     } catch (cause) {
-      if (previewURL) URL.revokeObjectURL(previewURL);
+      const revocable = previewURLs.current[field.id];
+      if (revocable) URL.revokeObjectURL(revocable);
       delete previewURLs.current[field.id];
       setAttachments((current) => {
         const next = { ...current };
@@ -135,16 +136,16 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
     <div className="why-you"><strong>Why this was sent to you</strong><span>{request.why_you}</span></div>
     {Object.keys(request.known_facts).length > 0 && <><h3>Already filled in</h3><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl></>}
     {unsupported.length > 0 && <div className="inline-error" role="alert"><strong>This request includes a field this version cannot safely collect.</strong><p>{unsupported.map((field) => field.label).join(", ")}. Ask the sender to update the request.</p></div>}
-    <div className="capture-form">{fields.map((field) => <FieldControl key={field.id} field={field} value={answers[field.id] ?? ""} attachment={attachments[field.id]} uploading={uploadingField === field.id} onChange={(value) => updateAnswer(field.id, value)} onUpload={(file) => void upload(field, file)}/>)}</div>
+    <div className="capture-form">{fields.map((field) => <FieldControl key={field.id} field={field} value={answers[field.id] ?? ""} attachment={attachments[field.id]} uploading={uploadingField === field.id} onChange={(value) => updateAnswer(field.id, value)} onUpload={(file, previewURL) => void upload(field, file, previewURL)}/>)}</div>
     {error && <p className="error-text" role="alert">{error}</p>}
     <div className="wizard-actions"><button className="primary-button" type="button" onClick={() => setReviewing(true)} disabled={requiredMissing || unsupported.length > 0 || Boolean(uploadingField)}>{uploadingField ? "Uploading…" : "Review and submit"}</button></div>
   </div>;
 }
 
-function FieldControl({ field, value, attachment, uploading, onChange, onUpload }: { field: CaptureField; value: string; attachment?: Attachment; uploading: boolean; onChange: (value: string) => void; onUpload: (file: File) => void }) {
+function FieldControl({ field, value, attachment, uploading, onChange, onUpload }: { field: CaptureField; value: string; attachment?: Attachment; uploading: boolean; onChange: (value: string) => void; onUpload: (file: File, previewURL?: string) => void }) {
   if (!supportedFieldType(field.type)) return null;
   const type = field.type.toLowerCase();
-  if (type === "signature") return <SignatureCapture value={value} label={`${field.label}${field.required ? " *" : ""}`} attestation={field.description} onChange={onChange}/>;
+  if (type === "signature") return <SignatureCapture value={attachment?.preview_url} label={`${field.label}${field.required ? " *" : ""}`} attestation={field.description} busy={uploading} onCapture={onUpload}/>;
   if (type === "photo" || type === "file") {
     const photo = type === "photo";
     const accept = field.accepted_formats?.join(",") || (photo ? "image/*" : undefined);
@@ -159,7 +160,7 @@ function FieldControl({ field, value, attachment, uploading, onChange, onUpload 
       fileName={attachment?.file_name}
       fileSize={attachment?.size_bytes}
       previewUrl={attachment?.preview_url}
-      onSelect={onUpload}
+      onSelect={(file) => onUpload(file)}
     /></div>;
   }
   if (type === "single_select" && (field.options?.length ?? 0) <= 4) return <fieldset className="capture-field"><legend>{field.label}{field.required ? " *" : ""}</legend>{field.description && <p className="field-help">{field.description}</p>}<div className="choice-grid">{field.options?.map((option) => <label className={value === option ? "choice-option selected" : "choice-option"} key={option}><input type="radio" name={field.id} value={option} checked={value === option} onChange={() => onChange(option)}/><span>{option}</span></label>)}</div></fieldset>;

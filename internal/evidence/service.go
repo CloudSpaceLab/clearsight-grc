@@ -96,6 +96,9 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if err := validateRequestInput(input); err != nil {
 		return Request{}, err
 	}
+	if err := validateFieldContracts(input.Fields); err != nil {
+		return Request{}, err
+	}
 	valueID, err := id.NewUUIDv7()
 	if err != nil {
 		return Request{}, err
@@ -143,7 +146,7 @@ func (s *Service) Submit(ctx context.Context, submission Submission) (Submission
 	if !requestOpenAt(request, now) {
 		return SubmissionReceipt{}, ErrRequestClosed
 	}
-	if err := validateAnswers(request, submission.Answers); err != nil {
+	if err := s.validateAnswers(ctx, request, submission.Answers); err != nil {
 		return SubmissionReceipt{}, err
 	}
 	if submission.ExpectedVersion < 1 {
@@ -278,7 +281,7 @@ func (s *Service) StoreArtifact(ctx context.Context, input ArtifactInput, reader
 		return Artifact{}, ErrRequestClosed
 	}
 	fileName := filepath.Base(strings.TrimSpace(input.FileName))
-	mediaType := strings.ToLower(strings.TrimSpace(strings.Split(input.MediaType, ";")[0]))
+	mediaType := normalizeMediaType(input.MediaType)
 	if fileName == "." || fileName == "" || !allowedMediaType(mediaType) {
 		return Artifact{}, ErrMediaType
 	}
@@ -324,28 +327,6 @@ func validateRequestInput(input CreateRequestInput) error {
 			return fmt.Errorf("field ids must be unique")
 		}
 		seen[field.ID] = struct{}{}
-	}
-	return nil
-}
-
-func validateAnswers(request Request, answers map[string]string) error {
-	for _, field := range request.Fields {
-		value := strings.TrimSpace(answers[field.ID])
-		if field.Required && value == "" {
-			return fmt.Errorf("%s is required", field.Label)
-		}
-		if field.Type == "single_select" && value != "" && len(field.Options) > 0 {
-			valid := false
-			for _, option := range field.Options {
-				if value == option {
-					valid = true
-					break
-				}
-			}
-			if !valid {
-				return fmt.Errorf("%s contains an invalid selection", field.Label)
-			}
-		}
 	}
 	return nil
 }
