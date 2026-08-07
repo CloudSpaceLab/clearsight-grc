@@ -68,7 +68,7 @@ func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, e
 
 func cloneTask(task Task) Task {
 	task.Context = clone(task.Context)
-	task.MatterScope = append(task.MatterScope[:0], task.MatterScope...)
+	task.MatterScope = append([]byte(nil), task.MatterScope...)
 	return task
 }
 
