@@ -274,7 +274,18 @@ func validatePolicyDefinition(value json.RawMessage) error {
 	if len(definition.Rules) == 0 {
 		return fmt.Errorf("policy must contain at least one rule")
 	}
-	allowedResponsibilities := map[string]bool{"PERFORMER": true, "ACCOUNTABLE_OWNER": true, "REVIEWER": true, "INDEPENDENT_CHALLENGER": true, "AUTHORIZER": true, "SIGNATORY": true, "ESCALATION_OWNER": true}
+	allowedResponsibilities := map[string]bool{
+		"PERFORMER":                true,
+		"ACCOUNTABLE_OWNER":        true,
+		"PROPOSER":                 true,
+		"REVIEWER":                 true,
+		"INDEPENDENT_CHALLENGER":   true,
+		"AUTHORIZER":               true,
+		"SIGNATORY":                true,
+		"TRANSMITTER":              true,
+		"ACKNOWLEDGEMENT_RECORDER": true,
+		"ESCALATION_OWNER":         true,
+	}
 	allowedSelectors := map[string]bool{"PRINCIPAL": true, "POSITION": true, "ROLE": true}
 	seenIDs := map[string]struct{}{}
 	seenRoutes := map[string]string{}

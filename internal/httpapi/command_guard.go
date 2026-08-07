@@ -27,9 +27,10 @@ type commandPolicy struct {
 	ActorField      string
 }
 
-// command binds verified identity before considering authorization mode.
-// ModeOff disables only authority resolution; request-body tenant and actor
-// fields never become authoritative.
+// command binds verified identity, resolves the lifecycle-specific authority
+// requirement from current aggregate state, and only then executes the command.
+// ModeOff disables only authority resolution; tenant/actor fields remain
+// server-bound and lifecycle validity is still enforced.
 func (a *API) command(name string, policy commandPolicy, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		payload, _, err := commandPayload(r)
@@ -43,6 +44,11 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 			return
 		}
 		if !bindPayloadIdentity(w, payload, actor, policy.BindLegalEntity) {
+			return
+		}
+		policy, err = a.lifecycleCommandPolicy(r.Context(), actor.TenantID, name, payload, policy)
+		if err != nil {
+			writeContinuityError(w, err)
 			return
 		}
 		if field := commandActorField(policy); field != "" {
@@ -67,14 +73,6 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 		} else if value, ok := numberValue(payload["priority"]); ok {
 			materiality = max(materiality, value)
 		}
-		responsibility := policy.Responsibility
-		if name == "matter.transition" {
-			to := strings.ToUpper(stringValue(payload["to"]))
-			if to == "CLOSED" || to == "CANCELLED" || to == "DECISION_REQUIRED" {
-				responsibility = authority.ResponsibilityAuthorizer
-				materiality = max(materiality, 4)
-			}
-		}
 		legalEntityID := actor.LegalEntityID
 		if legalEntityID == "*" {
 			if requested := stringValue(payload["legal_entity_id"]); requested != "" {
@@ -86,7 +84,7 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 			LegalEntityID:  legalEntityID,
 			ObjectType:     policy.ObjectType,
 			ObjectID:       objectID,
-			Responsibility: responsibility,
+			Responsibility: policy.Responsibility,
 			DecisionType:   name,
 			Materiality:    materiality,
 			AllowService:   policy.AllowService,

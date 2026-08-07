@@ -14,10 +14,13 @@ ClearSight keeps these responsibilities distinct:
 
 - **Performer** — carries out work or provides information.
 - **Accountable owner** — owns the obligation, Matter, control, service, or outcome.
-- **Reviewer** — checks evidence, recommendation, or work quality.
+- **Proposer** — prepares or resubmits a position, response, exception, or other governed recommendation without gaining approval authority.
+- **Reviewer** — checks evidence, recommendation, response, or work quality and may return/reject work where policy allows.
 - **Independent challenger** — provides second- or third-line challenge without inheriting ownership.
-- **Authorizer** — may approve a defined decision within authority.
-- **Signatory** — may represent the institution externally.
+- **Authorizer** — may approve, reject, expire, supersede, close, cancel, or reopen a defined decision/Matter within authority.
+- **Signatory** — may approve an external institutional representation within mandate.
+- **Transmitter** — may send an approved external response through the governed channel; transmission authority is distinct from signatory approval.
+- **Acknowledgement recorder** — may record authoritative receipt/acknowledgement after transmission; this does not create or approve the response.
 - **Escalation owner** — receives work when deadlines, materiality, authority, or routing failures require intervention.
 - **Observer or consulted party** — receives visibility without blocking progression unless policy says otherwise.
 
@@ -47,7 +50,9 @@ Examples:
 
 - accountable owner of Retail Payments;
 - performer for branch physical-security checks;
+- proposer for a regulator-response package;
 - reviewer for privileged-access evidence;
+- transmitter for an approved authority response;
 - DPO for one legal entity.
 
 ### Authority grant
@@ -68,7 +73,7 @@ Defines the authority, quorum, sequence, independence, rationale, and confirmati
 
 ### Routing policy
 
-Resolves who should perform, review, challenge, authorize, or receive a request at a specific workflow state.
+Resolves who should propose, perform, review, challenge, authorize, sign, transmit, record acknowledgement, or receive a request at a specific workflow state.
 
 ### Escalation policy
 
@@ -117,6 +122,7 @@ conditions:
   residual_rating: [high, critical]
   duration_days: "> 30"
 sequence:
+  - proposer: control_owner
   - reviewer: control_assurance
   - challenger: second_line_risk
   - authorizer: entity_cro
@@ -125,13 +131,42 @@ fallback:
   - functional_queue
   - group_cro
 segregation:
-  authorizer_not_in: [performers, evidence_submitters]
+  authorizer_not_in: [performers, proposers, evidence_submitters]
 time:
   due: 2_business_days
   escalate_after: 1_business_day
 ```
 
 The UI may present this as a matrix and visual sequence; the stored policy must remain structured, versioned, testable, and portable.
+
+### 4.1 Lifecycle-specific runtime routing
+
+A material HTTP route is not itself an authority role. ClearSight first loads the current record, validates the requested transition, and then resolves the responsibility required for that exact lifecycle step.
+
+Decision lifecycle:
+
+```text
+PROPOSED                     → PROPOSER
+IN_REVIEW / RETURNED         → REVIEWER
+CHALLENGED                   → INDEPENDENT_CHALLENGER
+APPROVED / CONDITIONALLY_APPROVED
+REJECTED / EXPIRED / SUPERSEDED
+                             → AUTHORIZER
+```
+
+External-response lifecycle:
+
+```text
+prepare / resubmit           → PROPOSER
+review / reject / return     → REVIEWER
+approve                      → SIGNATORY
+transmit approved response   → TRANSMITTER
+record acknowledgement       → ACKNOWLEDGEMENT_RECORDER
+```
+
+Matter transitions into `DECISION_REQUIRED`, `CLOSED`, or `CANCELLED`, and reopening a closed Matter, require current authorizer responsibility.
+
+The verified actor is recorded in the append-only event envelope and in the appropriate lifecycle field on the current Decision/Response record. A client-supplied actor identifier never determines authority.
 
 ## 5. Supported sequence patterns
 
@@ -147,9 +182,11 @@ The UI may present this as a matrix and visual sequence; the stored policy must 
 - return for evidence;
 - emergency authorization followed by mandatory retrospective review;
 - non-blocking consultation;
-- external signatory after internal approval.
+- external signatory after internal approval;
+- governed transmission after signatory approval;
+- acknowledgement recording after transmission.
 
-Every sequence must define what happens on approve, reject, abstain, conflict, timeout, delegation, unavailable user, and policy change.
+Every sequence must define what happens on propose, review, challenge, approve, reject, return, transmit, acknowledge, abstain, conflict, timeout, delegation, unavailable user, and policy change.
 
 ## 6. Escalation semantics
 
@@ -182,7 +219,7 @@ Policies must support:
 - business and calendar time;
 - tenant, entity, or recipient time zone;
 - working calendars and holidays;
-- acknowledgement, action, review, and authorization deadlines;
+- acknowledgement, action, review, challenge, authorization, signatory, and transmission deadlines;
 - pause rules for approved blockers;
 - regulatory deadlines that cannot be paused;
 - reminder cadence;
@@ -197,7 +234,8 @@ The UI must show the actual deadline, current owner, next escalation, and whethe
 Conflict rules may use:
 
 - same person or reporting line;
-- performer/reviewer/authorizer overlap;
+- proposer/performer/reviewer/challenger/authorizer overlap;
+- signatory/transmitter overlap where policy requires separation;
 - ownership of affected service, vendor, control, or evidence;
 - investigation subject or related party;
 - prior decision participation;
@@ -248,7 +286,7 @@ Create role templates from familiar banking responsibilities. Show current holde
 
 ### Responsibility matrix
 
-Rows represent objects or object classes; columns represent performer, owner, reviewer, challenger, authorizer, signatory, and escalation role.
+Rows represent objects or object classes; columns represent performer, owner, proposer, reviewer, challenger, authorizer, signatory, transmitter, acknowledgement recorder, and escalation role.
 
 The matrix must support filters, inheritance, exceptions, effective dates, and source-backed suggestions without becoming an unrestricted spreadsheet.
 
@@ -261,10 +299,13 @@ Define decision type, scope, thresholds, authority, quorum, challenge, signatory
 Use plain-language steps such as:
 
 ```text
-Ask the scoped control owner
+Ask the scoped control owner to propose
 → review by Control Assurance
 → if high impact, challenge by Operational Risk
 → authorize by entity CRO
+→ if external, approve representation by signatory
+→ transmit through Regulatory Affairs
+→ record authority acknowledgement
 → if overdue for 24 hours, notify function head
 → if unresolved at deadline, escalate to committee secretary
 ```
@@ -342,12 +383,14 @@ Authoritative records include:
 - authority grants and limits;
 - routing and escalation policies;
 - delegations, substitutions, conflicts, and recusals;
+- Decision lifecycle actors (proposer, reviewer, challenger, authorizer);
+- external-response lifecycle actors (preparer, reviewer, rejector/withdrawer, signatory, transmitter, acknowledgement recorder);
 - approval instances and votes;
 - effective and record time.
 
 Runtime resolution should use a materialized assignment index keyed by tenant, scope, relationship, role, responsibility type, and valid period. Policy results may be cached only with tenant, purpose, policy version, object version, and authorization context in the key.
 
-Material actions re-evaluate authority at execution even when routing was previously resolved.
+Material actions re-evaluate authority at execution even when routing was previously resolved. Current-record actor fields support explanation/audit; they do not substitute for execution-time authority resolution.
 
 ## 15. Performance targets
 
@@ -392,6 +435,10 @@ No valid authorizer exists for a new entity. The Matter enters a routing-failure
 
 An authorized executive uses a narrow break-glass path during a critical incident. The grant expires automatically and triggers independent retrospective review.
 
+### H. Regulator response
+
+A preparer drafts the response, a reviewer checks it, an authorized signatory approves the institutional representation, a permitted transmitter sends it, and an acknowledgement recorder records receipt. Each step preserves the verified actor; no earlier actor is silently treated as having completed a later responsibility.
+
 ## 17. Prohibited shortcuts
 
 Do not:
@@ -400,6 +447,7 @@ Do not:
 - equate application role with material decision authority;
 - let users delegate broader powers than they possess;
 - permit silent self-approval;
+- treat signatory approval as proof of transmission or acknowledgement;
 - hide escalation ownership in notification configuration;
 - create customer-specific hard-coded approval chains;
 - let configuration changes affect in-flight work without impact review;

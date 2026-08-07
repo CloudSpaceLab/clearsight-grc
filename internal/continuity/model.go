@@ -134,6 +134,8 @@ const (
 
 const (
 	DecisionProposed              DecisionStatus = "PROPOSED"
+	DecisionInReview              DecisionStatus = "IN_REVIEW"
+	DecisionChallenged            DecisionStatus = "CHALLENGED"
 	DecisionApproved              DecisionStatus = "APPROVED"
 	DecisionConditionallyApproved DecisionStatus = "CONDITIONALLY_APPROVED"
 	DecisionRejected              DecisionStatus = "REJECTED"
@@ -405,6 +407,9 @@ type Decision struct {
 	SelectedOption       string          `json:"selected_option,omitempty"`
 	Rationale            string          `json:"rationale"`
 	Conditions           json.RawMessage `json:"conditions"`
+	ProposedBy           string          `json:"proposed_by,omitempty"`
+	ReviewedBy           string          `json:"reviewed_by,omitempty"`
+	ChallengedBy         string          `json:"challenged_by,omitempty"`
 	AuthorityPrincipalID string          `json:"authority_principal_id,omitempty"`
 	DecidedAt            *time.Time      `json:"decided_at,omitempty"`
 	ExpiresAt            *time.Time      `json:"expires_at,omitempty"`
@@ -469,7 +474,13 @@ type ResponsePackage struct {
 	Audience       string          `json:"audience"`
 	Status         ResponseStatus  `json:"status"`
 	Manifest       json.RawMessage `json:"manifest"`
+	PreparedBy     string          `json:"prepared_by,omitempty"`
+	ReviewedBy     string          `json:"reviewed_by,omitempty"`
+	RejectedBy     string          `json:"rejected_by,omitempty"`
+	WithdrawnBy    string          `json:"withdrawn_by,omitempty"`
 	ApprovedBy     string          `json:"approved_by,omitempty"`
+	TransmittedBy  string          `json:"transmitted_by,omitempty"`
+	AcknowledgedBy string          `json:"acknowledged_by,omitempty"`
 	TransmittedAt  *time.Time      `json:"transmitted_at,omitempty"`
 	AcknowledgedAt *time.Time      `json:"acknowledged_at,omitempty"`
 	CreatedAt      time.Time       `json:"created_at"`

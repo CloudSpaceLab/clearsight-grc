@@ -54,10 +54,6 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
 				return ProgramAggregate{}, err
 			}
-			// Historical resume events written before P1.1 cleared effective_until.
-			// Domain semantics treat that null as "keep the configured Program
-			// period" when resuming a paused Program, matching the normalized
-			// PostgreSQL projection invariant introduced in migration 000015.
 			if previousStatus == ProgramPaused && value.Status == ProgramActive && previousUntil != nil && value.EffectiveUntil == nil {
 				until := *previousUntil
 				value.EffectiveUntil = &until
@@ -155,6 +151,7 @@ func reconstructMatter(events []Event) (MatterAggregate, error) {
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
 				return MatterAggregate{}, err
 			}
+			setDecisionActor(&value, value.Status, event.ActorID)
 			aggregate.Decisions = upsertDecision(aggregate.Decisions, value)
 		case EventActionAdded, EventActionStateChanged:
 			var value Action
@@ -179,6 +176,7 @@ func reconstructMatter(events []Event) (MatterAggregate, error) {
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
 				return MatterAggregate{}, err
 			}
+			setResponseActor(&value, value.Status, event.ActorID)
 			aggregate.ResponsePackages = upsertResponsePackage(aggregate.ResponsePackages, value)
 		default:
 			return MatterAggregate{}, fmt.Errorf("unsupported matter event %s", event.Type)
