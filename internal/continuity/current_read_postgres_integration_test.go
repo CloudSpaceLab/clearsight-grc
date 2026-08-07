@@ -54,7 +54,8 @@ func TestCurrentPostgresReadsMatchReplayAndStayFixedQuery(t *testing.T) {
 
 	raw := NewPostgresRepository(pool)
 	current := NewCurrentPostgresRepository(pool)
-	service := NewServiceWithClock(current, func() time.Time { return time.Date(2026, 8, 7, 18, 30, 0, 0, time.UTC) })
+	now := time.Date(2026, 8, 7, 18, 30, 0, 0, time.UTC)
+	service := NewServiceWithClock(current, func() time.Time { return now })
 
 	program, err := service.CreateProgram(ctx, CreateProgramInput{
 		TenantID: "bounded-current-test", Code: "BOUND", Name: "Bounded current reads", Type: "COMPLIANCE",
@@ -73,12 +74,28 @@ func TestCurrentPostgresReadsMatchReplayAndStayFixedQuery(t *testing.T) {
 			t.Fatalf("add requirement %d: %v", index, err)
 		}
 	}
+	state := ProgramStateSnapshot{
+		ID:              "97777777-7777-7777-8777-777777777772",
+		TenantID:        "bounded-current-test",
+		ProgramID:       program.Program.ID,
+		Overall:         StateAtRisk,
+		Dimensions:      ComplianceDimensions{Interpretation: StateCurrent, Applicability: StateCurrent, ControlDesign: StateAtRisk},
+		Reasons:         []StateReason{{Code: "BOUNDED_READ_TEST", Summary: "Current-state projection identity is preserved."}},
+		OpenMatterCount: 1,
+		TriggerType:     "TEST",
+		TriggerID:       "projection-parity",
+		GeneratedAt:     now.Add(time.Minute),
+	}
+	projectionVersion, err := current.SaveProgramState(ctx, "bounded-current-test", program.Program.ID, program.Program.Version, state)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	events, err := raw.ProgramEvents(ctx, "bounded-current-test", program.Program.ID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	replayedProgram, err := reconstructProgram(events)
+	replayedProgram, err := raw.GetProgram(ctx, "bounded-current-test", program.Program.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,8 +107,11 @@ func TestCurrentPostgresReadsMatchReplayAndStayFixedQuery(t *testing.T) {
 	if got := counter.Count(); got != 1 {
 		t.Fatalf("current Program detail used %d SQL calls after %d events; want exactly 1", got, len(events))
 	}
-	if !sameJSON(currentProgram.Program, replayedProgram.Program) || !sameJSON(currentProgram.Requirements, replayedProgram.Requirements) {
-		t.Fatalf("normalized Program current state diverged from replay\ncurrent=%#v\nreplayed=%#v", currentProgram, replayedProgram)
+	if !sameJSON(currentProgram.Program, replayedProgram.Program) || !sameJSON(currentProgram.Requirements, replayedProgram.Requirements) || !sameJSON(currentProgram.CurrentState, replayedProgram.CurrentState) {
+		t.Fatalf("normalized Program current state diverged from reconstruction\ncurrent=%#v\nreconstructed=%#v", currentProgram, replayedProgram)
+	}
+	if currentProgram.CurrentState == nil || currentProgram.CurrentState.Overall != StateAtRisk || currentProgram.CurrentState.ProjectionVersion != projectionVersion {
+		t.Fatalf("normalized Program detail lost state/projection identity: %#v", currentProgram.CurrentState)
 	}
 
 	matter, err := service.CreateMatter(ctx, CreateMatterInput{
