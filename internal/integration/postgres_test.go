@@ -8,10 +8,12 @@ import (
 	"errors"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
+	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -78,29 +80,70 @@ func TestPostgresRuntimeContracts(t *testing.T) {
 		}
 	})
 
-	t.Run("workflow reads and transitions stay tenant scoped and audited", func(t *testing.T) {
+	t.Run("workflow reads stay tenant scoped and Task state is projected from Matter Action", func(t *testing.T) {
+		const actionID = "11111111-1111-7111-8111-111111111122"
 		repo := workflow.NewPostgresRepository(pool)
+		projector := &workflow.MatterActionProjector{Repo: repo}
 		service := workflow.NewService(repo)
-		task, err := service.Create(ctx, workflow.CreateInput{TenantID: "integration-bank", WorkflowID: workflowID, StepKey: "review", Responsibility: "REVIEWER", Title: "Review integration policy"})
+		occurredAt := time.Date(2026, 8, 7, 20, 30, 0, 0, time.UTC)
+
+		plannedPayload, err := json.Marshal(map[string]any{
+			"id":                 actionID,
+			"tenant_id":          "integration-bank",
+			"matter_id":          subjectID,
+			"title":              "Review integration policy",
+			"owner_principal_id": principalNG,
+			"status":             "PLANNED",
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := service.Get(ctx, "other-bank", task.ID); !errors.Is(err, workflow.ErrTaskNotFound) {
-			t.Fatalf("expected tenant-scoped not found, got %v", err)
+		if err := projector.Publish(ctx, workflowruntime.OutboxEvent{ID: "integration-action-1", TenantID: "integration-bank", AggregateType: "MATTER", AggregateID: subjectID, EventType: "ACTION_ADDED", Payload: plannedPayload, OccurredAt: occurredAt}); err != nil {
+			t.Fatal(err)
 		}
-		updated, err := service.Transition(ctx, task.ID, workflow.TransitionInput{TenantID: "integration-bank", ActorID: principalNG, Status: workflow.StatusInProgress, ExpectedVersion: task.Version, Reason: "Reviewer accepted"})
+
+		tasks, err := service.List(ctx, workflow.ListFilter{TenantID: "integration-bank", PrincipalID: principalNG, Limit: 20})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if updated.ClaimedAt == nil {
-			t.Fatal("expected claimed_at")
+		if len(tasks) != 1 || tasks[0].Status != workflow.StatusReady || tasks[0].Context["action_id"] != actionID {
+			t.Fatalf("unexpected projected Task: %#v", tasks)
+		}
+		otherTenantTasks, err := service.List(ctx, workflow.ListFilter{TenantID: "other-bank", PrincipalID: principalNG, Limit: 20})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(otherTenantTasks) != 0 {
+			t.Fatalf("cross-tenant Task leakage: %#v", otherTenantTasks)
+		}
+
+		startedPayload, err := json.Marshal(map[string]any{
+			"id":                 actionID,
+			"tenant_id":          "integration-bank",
+			"matter_id":          subjectID,
+			"title":              "Review integration policy",
+			"owner_principal_id": principalNG,
+			"status":             "IN_PROGRESS",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := projector.Publish(ctx, workflowruntime.OutboxEvent{ID: "integration-action-2", TenantID: "integration-bank", AggregateType: "MATTER", AggregateID: subjectID, EventType: "ACTION_STATE_CHANGED", Payload: startedPayload, OccurredAt: occurredAt.Add(time.Minute)}); err != nil {
+			t.Fatal(err)
+		}
+		tasks, err = service.List(ctx, workflow.ListFilter{TenantID: "integration-bank", PrincipalID: principalNG, Limit: 20})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(tasks) != 1 || tasks[0].Status != workflow.StatusInProgress || tasks[0].ClaimedAt == nil {
+			t.Fatalf("Matter Action transition did not update its projected Task: %#v", tasks)
 		}
 		var events int
-		if err := pool.QueryRow(ctx, `SELECT count(*) FROM workflow_events WHERE task_id=$1::uuid`, task.ID).Scan(&events); err != nil {
+		if err := pool.QueryRow(ctx, `SELECT count(*) FROM workflow_events WHERE task_id=$1::uuid`, tasks[0].ID).Scan(&events); err != nil {
 			t.Fatal(err)
 		}
-		if events != 1 {
-			t.Fatalf("expected one workflow event, got %d", events)
+		if events != 2 {
+			t.Fatalf("expected two projection audit events, got %d", events)
 		}
 	})
 
