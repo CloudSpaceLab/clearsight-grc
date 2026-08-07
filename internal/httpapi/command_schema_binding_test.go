@@ -15,10 +15,10 @@ import (
 func TestCommandCanOmitUnsupportedActorFields(t *testing.T) {
 	api := &API{}
 	policy := commandPolicy{
-		ObjectType:       "PROJECTION",
-		Responsibility:   authority.ResponsibilityReviewer,
-		Materiality:      3,
-		OmitActorBinding: true,
+		ObjectType:     "PROJECTION",
+		Responsibility: authority.ResponsibilityReviewer,
+		Materiality:    3,
+		ActorField:     noActorField,
 	}
 	var received struct {
 		TenantID string `json:"tenant_id"`
