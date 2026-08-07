@@ -33,7 +33,7 @@ func TestCompileMatterWorkProjectsOnlyUnambiguousResponseTransitions(t *testing.
 func TestCompileMatterWorkDoesNotInventDecisionAssignee(t *testing.T) {
 	now := time.Date(2026, 8, 7, 22, 30, 0, 0, time.UTC)
 	aggregate := MatterAggregate{
-		Matter: Matter{ID: "matter-1", TenantID: "bank", Status: MatterDecisionRequired, Priority: 3},
+		Matter:    Matter{ID: "matter-1", TenantID: "bank", Status: MatterDecisionRequired, Priority: 3},
 		Decisions: []Decision{{ID: "decision-1", Type: "RISK_ACCEPTANCE", Status: DecisionInReview, UpdatedAt: now}},
 	}
 
@@ -51,8 +51,8 @@ func TestCompileMatterWorkWaitsForVerificationObservationPeriod(t *testing.T) {
 	implemented := now.Add(-40 * time.Minute)
 	contractCreated := now.Add(-2 * time.Hour)
 	aggregate := MatterAggregate{
-		Matter: Matter{ID: "matter-1", TenantID: "bank", Status: MatterVerification, Priority: 5},
-		Actions: []Action{{ID: "action-1", Status: ActionImplemented, OwnerPrincipalID: "owner-1", ImplementedAt: &implemented}},
+		Matter:                Matter{ID: "matter-1", TenantID: "bank", Status: MatterVerification, Priority: 5},
+		Actions:               []Action{{ID: "action-1", Status: ActionImplemented, OwnerPrincipalID: "owner-1", ImplementedAt: &implemented}},
 		VerificationContracts: []VerificationContract{{ID: "verify-1", ActionID: "action-1", ExpectedOutcome: "ATM is operating", ObservationPeriodMinutes: 60, AuthorityPrincipalID: "reviewer-1", Status: VerificationActive, CreatedAt: contractCreated}},
 	}
 
@@ -76,9 +76,9 @@ func TestCompileMatterWorkDoesNotRepeatRecordedVerification(t *testing.T) {
 	now := time.Date(2026, 8, 7, 22, 30, 0, 0, time.UTC)
 	created := now.Add(-2 * time.Hour)
 	aggregate := MatterAggregate{
-		Matter: Matter{ID: "matter-1", TenantID: "bank", Status: MatterVerification, Priority: 3},
+		Matter:                Matter{ID: "matter-1", TenantID: "bank", Status: MatterVerification, Priority: 3},
 		VerificationContracts: []VerificationContract{{ID: "verify-1", ExpectedOutcome: "Expected state", ObservationPeriodMinutes: 30, Status: VerificationActive, CreatedAt: created}},
-		VerificationResults: []VerificationResult{{ID: "result-1", ContractID: "verify-1", Result: VerificationInconclusive, Observations: json.RawMessage(`{}`), ObservedAt: now.Add(-time.Minute), CreatedAt: now.Add(-time.Minute)}},
+		VerificationResults:   []VerificationResult{{ID: "result-1", ContractID: "verify-1", Result: VerificationInconclusive, Observations: json.RawMessage(`{}`), ObservedAt: now.Add(-time.Minute), CreatedAt: now.Add(-time.Minute)}},
 	}
 
 	requirements, _ := CompileMatterWork(aggregate, now)
