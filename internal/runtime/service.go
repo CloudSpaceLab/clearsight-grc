@@ -3,10 +3,12 @@ package runtime
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
@@ -17,27 +19,39 @@ type Maintainer interface {
 }
 
 type Service struct {
-	repo        Repository
-	lifecycle   DelegationLifecycle
-	publisher   Publisher
-	maintainers []Maintainer
-	workerID    string
-	lease       time.Duration
-	batch       int
-	now         func() time.Time
+	repo         Repository
+	lifecycle    DelegationLifecycle
+	publisher    Publisher
+	maintainers  []namedMaintainer
+	classOptions map[string]WorkClassOptions
+	workerID     string
+	now          func() time.Time
+	logger       *slog.Logger
+	healthMu     sync.RWMutex
+	health       map[string]WorkClassHealth
 }
 
 func NewService(repo Repository, lifecycle DelegationLifecycle, publisher Publisher, workerID string) *Service {
 	if workerID == "" {
 		workerID = "worker"
 	}
-	return &Service{repo: repo, lifecycle: lifecycle, publisher: publisher, workerID: workerID, lease: 30 * time.Second, batch: 50, now: time.Now}
-}
-func (s *Service) AddMaintainer(maintainer Maintainer) {
-	if maintainer != nil {
-		s.maintainers = append(s.maintainers, maintainer)
+	service := &Service{
+		repo:         repo,
+		lifecycle:    lifecycle,
+		publisher:    publisher,
+		classOptions: map[string]WorkClassOptions{},
+		workerID:     workerID,
+		now:          time.Now,
+		health:       map[string]WorkClassHealth{},
 	}
+	if lifecycle != nil {
+		service.health[WorkClassDelegationLifecycle] = WorkClassHealth{Name: WorkClassDelegationLifecycle, State: WorkClassStarting}
+	}
+	service.health[WorkClassWorkflowTimers] = WorkClassHealth{Name: WorkClassWorkflowTimers, State: WorkClassStarting}
+	service.health[WorkClassOutboxDelivery] = WorkClassHealth{Name: WorkClassOutboxDelivery, State: WorkClassStarting}
+	return service
 }
+
 func (s *Service) Schedule(ctx context.Context, timer Timer) (Timer, error) {
 	if strings.TrimSpace(timer.TenantID) == "" || strings.TrimSpace(timer.WorkflowID) == "" || strings.TrimSpace(timer.Type) == "" || strings.TrimSpace(timer.DedupeKey) == "" || timer.DueAt.IsZero() {
 		return Timer{}, fmt.Errorf("tenant, workflow, type, due_at and dedupe_key are required")
@@ -52,76 +66,107 @@ func (s *Service) Schedule(ctx context.Context, timer Timer) (Timer, error) {
 	timer.ID, timer.State = valueID, TimerReady
 	return s.repo.ScheduleTimer(ctx, timer)
 }
-func (s *Service) Tick(ctx context.Context) error {
-	now := s.now().UTC()
-	for _, maintainer := range s.maintainers {
-		if _, err := maintainer.Maintain(ctx, now, s.batch); err != nil {
-			return fmt.Errorf("maintain governed source: %w", err)
-		}
+
+func (s *Service) maintainDelegations(ctx context.Context, run classRun) (int, error) {
+	if s.lifecycle == nil {
+		return 0, nil
 	}
-	if s.lifecycle != nil {
-		if _, err := s.lifecycle.ActivateDueDelegations(ctx, now, s.batch); err != nil {
-			return fmt.Errorf("activate delegations: %w", err)
-		}
-		if _, err := s.lifecycle.ExpireDueDelegations(ctx, now, s.batch); err != nil {
-			return fmt.Errorf("expire delegations: %w", err)
-		}
+	activated, activateErr := s.lifecycle.ActivateDueDelegations(ctx, run.now, run.batch)
+	if ctx.Err() != nil {
+		return activated, ctx.Err()
 	}
-	timers, err := s.repo.ClaimDueTimers(ctx, s.workerID, now, s.lease, s.batch)
+	expired, expireErr := s.lifecycle.ExpireDueDelegations(ctx, run.now, run.batch)
+	return activated + expired, errors.Join(activateErr, expireErr)
+}
+
+func (s *Service) maintainTimers(ctx context.Context, run classRun) (int, error) {
+	timers, err := s.repo.ClaimDueTimers(ctx, run.workerID, run.now, run.lease, run.batch)
 	if err != nil {
-		return err
+		return 0, err
 	}
+	processed := 0
+	var persistenceErrors []error
 	for _, timer := range timers {
-		eventID, err := id.NewUUIDv7()
-		if err != nil {
-			return err
+		if ctx.Err() != nil {
+			return processed, ctx.Err()
 		}
-		event := OutboxEvent{ID: eventID, TenantID: timer.TenantID, AggregateType: "WORKFLOW", AggregateID: timer.WorkflowID, EventType: "WorkflowTimerFired", Payload: timer.Payload, OccurredAt: now}
-		if err := s.repo.CompleteTimer(ctx, timer, event, now); err != nil {
-			_ = s.repo.FailTimer(ctx, timer, err.Error(), now.Add(backoff(timer.Attempts)))
-			continue
+		eventID, eventErr := id.NewUUIDv7()
+		if eventErr == nil {
+			event := OutboxEvent{ID: eventID, TenantID: timer.TenantID, AggregateType: "WORKFLOW", AggregateID: timer.WorkflowID, EventType: "WorkflowTimerFired", Payload: timer.Payload, OccurredAt: run.now}
+			eventErr = s.repo.CompleteTimer(ctx, timer, event, run.now)
 		}
+		if eventErr != nil {
+			terminal, failErr := s.repo.FailTimer(ctx, timer, run.maxAttempts, eventErr.Error(), run.now, run.now.Add(itemBackoff(timer.Attempts, run.maxBackoff)))
+			if failErr != nil {
+				persistenceErrors = append(persistenceErrors, fmt.Errorf("fail timer %s: %w", timer.ID, failErr))
+			} else if terminal && s.logger != nil {
+				s.logger.Warn("workflow timer moved to terminal failure", "work_class", WorkClassWorkflowTimers, "timer_id", timer.ID, "attempts", timer.Attempts)
+			}
+		}
+		processed++
 	}
-	events, err := s.repo.ClaimOutbox(ctx, s.workerID, now, s.lease, s.batch)
+	return processed, errors.Join(persistenceErrors...)
+}
+
+func (s *Service) maintainOutbox(ctx context.Context, run classRun) (int, error) {
+	events, err := s.repo.ClaimOutbox(ctx, run.workerID, run.now, run.lease, run.batch)
 	if err != nil {
-		return err
+		return 0, err
 	}
+	processed := 0
+	var persistenceErrors []error
 	for _, event := range events {
-		if err := s.publisher.Publish(ctx, event); err != nil {
-			_ = s.repo.MarkFailed(ctx, event, err.Error(), now.Add(backoff(event.Attempts)))
+		if ctx.Err() != nil {
+			return processed, ctx.Err()
+		}
+		publishErr := publishSafely(ctx, s.publisher, event)
+		if publishErr != nil {
+			terminal, failErr := s.repo.MarkFailed(ctx, event, run.maxAttempts, publishErr.Error(), run.now, run.now.Add(itemBackoff(event.Attempts, run.maxBackoff)))
+			if failErr != nil {
+				persistenceErrors = append(persistenceErrors, fmt.Errorf("fail outbox event %s: %w", event.ID, failErr))
+			} else if terminal && s.logger != nil {
+				s.logger.Warn("outbox event moved to dead letter", "work_class", WorkClassOutboxDelivery, "event_id", event.ID, "event_type", event.EventType, "attempts", event.Attempts)
+			}
+			processed++
 			continue
 		}
-		if err := s.repo.MarkPublished(ctx, event, now); err != nil {
-			return err
+		if err := s.repo.MarkPublished(ctx, event, run.now); err != nil {
+			persistenceErrors = append(persistenceErrors, fmt.Errorf("mark outbox event %s published: %w", event.ID, err))
 		}
+		processed++
 	}
-	return nil
+	return processed, errors.Join(persistenceErrors...)
 }
-func (s *Service) Run(ctx context.Context, poll time.Duration) error {
-	if poll <= 0 {
-		poll = time.Second
+
+func publishSafely(ctx context.Context, publisher Publisher, event OutboxEvent) (err error) {
+	if publisher == nil {
+		return errors.New("outbox publisher is not configured")
 	}
-	ticker := time.NewTicker(poll)
-	defer ticker.Stop()
-	for {
-		if err := s.Tick(ctx); err != nil {
-			return err
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = fmt.Errorf("publisher panic: %v", recovered)
 		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-		}
-	}
+	}()
+	return publisher.Publish(ctx, event)
 }
-func backoff(attempt int) time.Duration {
-	seconds := math.Min(300, math.Pow(2, float64(attempt)))
-	return time.Duration(seconds) * time.Second
+
+func itemBackoff(attempt int, maximum time.Duration) time.Duration {
+	if maximum <= 0 {
+		maximum = 5 * time.Minute
+	}
+	seconds := math.Pow(2, float64(max(attempt, 0)))
+	delay := time.Duration(seconds * float64(time.Second))
+	if delay <= 0 || delay > maximum {
+		return maximum
+	}
+	return delay
 }
 
 type LogPublisher struct{ Logger *slog.Logger }
 
 func (p LogPublisher) Publish(_ context.Context, event OutboxEvent) error {
-	p.Logger.Info("outbox event published", "event_id", event.ID, "type", event.EventType, "aggregate_type", event.AggregateType, "aggregate_id", event.AggregateID)
+	if p.Logger != nil {
+		p.Logger.Info("outbox event published", "event_id", event.ID, "type", event.EventType, "aggregate_type", event.AggregateType, "aggregate_id", event.AggregateID)
+	}
 	return nil
 }

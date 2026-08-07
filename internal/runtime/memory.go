@@ -61,20 +61,31 @@ func (r *MemoryRepository) CompleteTimer(_ context.Context, t Timer, e OutboxEve
 	v.State = TimerFired
 	v.LeaseUntil = nil
 	v.LockedBy = ""
+	v.LastError = ""
 	r.timers[t.ID] = v
 	r.outbox[e.ID] = e
 	return nil
 }
-func (r *MemoryRepository) FailTimer(_ context.Context, t Timer, message string, next time.Time) error {
+func (r *MemoryRepository) FailTimer(_ context.Context, t Timer, maxAttempts int, message string, at, next time.Time) (bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	v := r.timers[t.ID]
-	v.State = TimerReady
-	v.DueAt = next
+	v, ok := r.timers[t.ID]
+	if !ok || v.State != TimerClaimed || v.LockedBy != t.LockedBy {
+		return false, errors.New("timer claim lost")
+	}
+	terminal := maxAttempts > 0 && v.Attempts >= maxAttempts
+	v.LastError = message
 	v.LeaseUntil = nil
 	v.LockedBy = ""
+	if terminal {
+		v.State = TimerFailed
+		v.FailedAt = timePtr(at)
+	} else {
+		v.State = TimerReady
+		v.DueAt = next
+	}
 	r.timers[t.ID] = v
-	return nil
+	return terminal, nil
 }
 func (r *MemoryRepository) ClaimOutbox(_ context.Context, worker string, now time.Time, lease time.Duration, limit int) ([]OutboxEvent, error) {
 	r.mu.Lock()
@@ -84,11 +95,16 @@ func (r *MemoryRepository) ClaimOutbox(_ context.Context, worker string, now tim
 		if len(out) >= limit {
 			break
 		}
-		if value.NextAttemptAt != nil && value.NextAttemptAt.After(now) {
+		if value.DeadLetteredAt != nil || (value.NextAttemptAt != nil && value.NextAttemptAt.After(now)) {
 			continue
 		}
+		if value.LockedBy != "" && value.LeaseUntil != nil && !value.LeaseUntil.Before(now) {
+			continue
+		}
+		until := now.Add(lease)
 		value.Attempts++
 		value.LockedBy = worker
+		value.LeaseUntil = &until
 		r.outbox[id] = value
 		out = append(out, value)
 	}
@@ -104,17 +120,25 @@ func (r *MemoryRepository) MarkPublished(_ context.Context, e OutboxEvent, at ti
 	delete(r.outbox, e.ID)
 	return nil
 }
-func (r *MemoryRepository) MarkFailed(_ context.Context, e OutboxEvent, message string, next time.Time) error {
+func (r *MemoryRepository) MarkFailed(_ context.Context, e OutboxEvent, maxAttempts int, message string, at, next time.Time) (bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	value, ok := r.outbox[e.ID]
 	if !ok || value.LockedBy != e.LockedBy {
-		return errors.New("outbox claim lost")
+		return false, errors.New("outbox claim lost")
 	}
+	terminal := maxAttempts > 0 && value.Attempts >= maxAttempts
+	value.LastError = message
 	value.LockedBy = ""
-	value.NextAttemptAt = &next
+	value.LeaseUntil = nil
+	if terminal {
+		value.DeadLetteredAt = timePtr(at)
+		value.NextAttemptAt = nil
+	} else {
+		value.NextAttemptAt = timePtr(next)
+	}
 	r.outbox[e.ID] = value
-	return nil
+	return terminal, nil
 }
 func (r *MemoryRepository) InboxProcessed(_ context.Context, tenant, consumer, eventID string) (bool, error) {
 	r.mu.Lock()
@@ -131,4 +155,47 @@ func (r *MemoryRepository) RecordInbox(_ context.Context, tenant, consumer, even
 	}
 	r.inbox[k] = struct{}{}
 	return true, nil
+}
+func (r *MemoryRepository) TimerQueueHealth(context.Context) (QueueHealth, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var health QueueHealth
+	for _, timer := range r.timers {
+		switch timer.State {
+		case TimerReady, TimerClaimed:
+			health.Pending++
+			if timer.Attempts > health.HighestAttempts {
+				health.HighestAttempts = timer.Attempts
+			}
+			if health.OldestPending == nil || timer.DueAt.Before(*health.OldestPending) {
+				health.OldestPending = timePtr(timer.DueAt)
+			}
+		case TimerFailed:
+			health.Terminal++
+			if timer.Attempts > health.HighestAttempts {
+				health.HighestAttempts = timer.Attempts
+			}
+		}
+	}
+	return health, nil
+}
+func (r *MemoryRepository) OutboxQueueHealth(context.Context) (QueueHealth, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var health QueueHealth
+	for _, event := range r.outbox {
+		if event.Attempts > health.HighestAttempts {
+			health.HighestAttempts = event.Attempts
+		}
+		if event.DeadLetteredAt != nil {
+			health.Terminal++
+			continue
+		}
+		health.Pending++
+		pendingAt := event.OccurredAt
+		if health.OldestPending == nil || pendingAt.Before(*health.OldestPending) {
+			health.OldestPending = timePtr(pendingAt)
+		}
+	}
+	return health, nil
 }

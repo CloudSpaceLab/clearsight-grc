@@ -32,9 +32,10 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	}
 	publisher := workflowruntime.NewCompositePublisher(sourceHealth, workflowruntime.LogPublisher{Logger: logger})
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
+	configureWorkerRuntime(service, cfg, logger)
 
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
-	service.AddMaintainer(evidenceService)
-	service.AddMaintainer(&continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
+	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
+	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
 	return workerSet{Runtime: service, Close: pool.Close}, nil
 }

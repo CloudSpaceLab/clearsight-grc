@@ -17,10 +17,12 @@ func buildWorker(_ context.Context, cfg config.Config, logger *slog.Logger) (wor
 	repository := workflowruntime.NewMemoryRepository()
 	lifecycle := governance.NewMemoryRepository()
 	service := workflowruntime.NewService(repository, lifecycle, workflowruntime.LogPublisher{Logger: logger}, cfg.WorkerID)
+	configureWorkerRuntime(service, cfg, logger)
+
 	evidenceService := evidence.NewService(evidence.NewMemoryRepository(evidence.DemoSources(), evidence.DemoRequests()), evidence.NewMemoryObjectStore())
-	service.AddMaintainer(evidenceService)
+	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
 	continuityRepository := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepository)
-	service.AddMaintainer(&continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
+	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
 	return workerSet{Runtime: service, Close: func() {}}, nil
 }
