@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
@@ -13,22 +14,23 @@ import (
 func TestWorkflowTaskReadRejectsCrossPrincipalScopeAndRestrictedLeak(t *testing.T) {
 	allowed := json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["actor-1"]}`)
 	blocked := json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["actor-2"]}`)
+	now := time.Date(2026, 8, 7, 20, 0, 0, 0, time.UTC)
 	service := workflow.NewService(workflow.NewMemoryRepository([]workflow.Task{
 		{
 			ID: "visible", TenantID: "bank", PrincipalID: "actor-1", WorkflowKind: workflow.MatterActionWorkflowKind,
-			MatterID: "matter-visible", MatterScope: allowed, Status: workflow.StatusReady, Title: "Visible action",
+			MatterID: "matter-visible", MatterScope: allowed, Status: workflow.StatusReady, Title: "Visible action", UpdatedAt: now,
 		},
 		{
 			ID: "blocked", TenantID: "bank", PrincipalID: "actor-1", WorkflowKind: workflow.MatterActionWorkflowKind,
-			MatterID: "matter-blocked", MatterScope: blocked, Status: workflow.StatusReady, Title: "Protected action",
+			MatterID: "matter-blocked", MatterScope: blocked, Status: workflow.StatusReady, Title: "Protected action", UpdatedAt: now.Add(time.Hour),
 		},
 		{
 			ID: "legacy", TenantID: "bank", PrincipalID: "actor-1", WorkflowKind: "REVIEW",
-			MatterID: "matter-visible", MatterScope: allowed, Status: workflow.StatusReady, Title: "Legacy task",
+			MatterID: "matter-visible", MatterScope: allowed, Status: workflow.StatusReady, Title: "Legacy task", UpdatedAt: now.Add(2 * time.Hour),
 		},
 		{
 			ID: "other", TenantID: "bank", PrincipalID: "actor-2", WorkflowKind: workflow.MatterActionWorkflowKind,
-			MatterID: "matter-other", MatterScope: blocked, Status: workflow.StatusReady, Title: "Other actor work",
+			MatterID: "matter-other", MatterScope: blocked, Status: workflow.StatusReady, Title: "Other actor work", UpdatedAt: now.Add(3 * time.Hour),
 		},
 	}))
 	api := &API{deps: Dependencies{Workflow: service}}
@@ -42,7 +44,10 @@ func TestWorkflowTaskReadRejectsCrossPrincipalScopeAndRestrictedLeak(t *testing.
 		t.Fatalf("expected cross-principal read to be forbidden, got %d: %s", crossRecorder.Code, crossRecorder.Body.String())
 	}
 
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/workflow/tasks?tenant_id=bank", nil)
+	// The blocked and legacy rows are newer than the visible row. A one-row
+	// limit must still return the visible supported Task, proving filtering
+	// happens before the limit rather than afterward.
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/workflow/tasks?tenant_id=bank&limit=1", nil)
 	request = request.WithContext(identity.WithActor(request.Context(), actor))
 	recorder := httptest.NewRecorder()
 	api.listWorkflowTasks(recorder, request)
