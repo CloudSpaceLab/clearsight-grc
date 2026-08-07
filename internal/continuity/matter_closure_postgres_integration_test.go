@@ -4,6 +4,7 @@ package continuity
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -44,8 +45,8 @@ func TestPostgresMatterClosureUsesLatestDecisionInDecisionChain(t *testing.T) {
 
 	approved := Decision{
 		ID: "88888888-8888-7888-8888-888888888882", TenantID: "closure-truth-test", MatterID: matter.Matter.ID,
-		Type: "REGULATORY_POSITION", Status: DecisionApproved, SelectedOption: "NO_CHANGE_REQUIRED",
-		Rationale: "No change is required.", CreatedAt: now.Add(-2 * time.Minute), UpdatedAt: now.Add(-2 * time.Minute), Version: 1,
+		Type: "REGULATORY_POSITION", Status: DecisionApproved, Options: json.RawMessage(`[]`), SelectedOption: "NO_CHANGE_REQUIRED",
+		Rationale: "No change is required.", Conditions: json.RawMessage(`[]`), CreatedAt: now.Add(-2 * time.Minute), UpdatedAt: now.Add(-2 * time.Minute), Version: 1,
 	}
 	approvedEvent, err := newEvent("closure-truth-test", "MATTER", matter.Matter.ID, 2, EventDecisionAdded, approved, ActorSystem, "", now.Add(-2*time.Minute))
 	if err != nil {
@@ -57,8 +58,8 @@ func TestPostgresMatterClosureUsesLatestDecisionInDecisionChain(t *testing.T) {
 
 	rejected := Decision{
 		ID: "88888888-8888-7888-8888-888888888883", TenantID: "closure-truth-test", MatterID: matter.Matter.ID,
-		Type: "REGULATORY_POSITION", Status: DecisionRejected, SelectedOption: "NO_CHANGE_REQUIRED",
-		Rationale: "The earlier position was rejected on review.", CreatedAt: now.Add(-time.Minute), UpdatedAt: now.Add(-time.Minute), Version: 1,
+		Type: "REGULATORY_POSITION", Status: DecisionRejected, Options: json.RawMessage(`[]`), SelectedOption: "NO_CHANGE_REQUIRED",
+		Rationale: "The earlier position was rejected on review.", Conditions: json.RawMessage(`[]`), CreatedAt: now.Add(-time.Minute), UpdatedAt: now.Add(-time.Minute), Version: 1,
 	}
 	rejectedEvent, err := newEvent("closure-truth-test", "MATTER", matter.Matter.ID, 3, EventDecisionAdded, rejected, ActorSystem, "", now.Add(-time.Minute))
 	if err != nil {
