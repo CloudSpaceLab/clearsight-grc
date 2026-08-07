@@ -56,6 +56,7 @@ Architecture never overrides the simpler user-facing Program, issue/change, requ
 - maker-checker routing-policy and delegation administration;
 - durable Workflow Tasks, timers, outbox and inbox foundations;
 - Source Registry, source observations and freshness maintenance;
+- durable source-health reconciliation from evidence outbox events into exact source drift and dependent Program triggers, with inbox dedupe;
 - persisted evidence requests, submissions, invitations and sessions;
 - linked-request visibility derived from the subject Matter before PostgreSQL limits;
 - streamed development artifact storage and integrity manifests;
@@ -78,8 +79,8 @@ The repository is a strong working foundation and reference MVP. It is not yet a
 Issues #26 and #27 now share one execution path rather than parallel backlogs:
 
 1. #26 route/identity seam — implemented in PR #25;
-2. #26 evidence outbox/inbox reconciliation — next;
-3. #26 worker work-class isolation;
+2. #26 source-health outbox/inbox reconciliation — implemented in PR #25;
+3. #26 worker work-class isolation — next;
 4. #26 compound-command transaction truth;
 5. #26 API/OpenAPI/client contract reconciliation;
 6. #26 governance/configuration authorization matrix;

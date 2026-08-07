@@ -1,6 +1,6 @@
 # ClearSight implementation ledger
 
-**Status date:** 2026-08-06
+**Status date:** 2026-08-07
 
 This is the authoritative execution ledger for current repository work. Detailed product, design and enterprise-productization documents remain reference specifications, but they do not override the order below.
 
@@ -85,31 +85,26 @@ This order prevents duplicate auth middleware, duplicate task/execution models a
 
 **Still open within the wider identity boundary:** direct OIDC/SAML integration, directory synchronization, RLS/ABAC defense in depth, step-up assurance and a complete authorization matrix for governance/configuration writes.
 
-### P0.2 — evidence event reconciliation — NEXT
+### P0.2 — evidence event reconciliation — IMPLEMENTED IN PR #25
 
-Build the missing durable bridge from evidence/source events into canonical compliance state without synchronous cross-domain coupling.
+The first durable reconciliation bridge now reuses the existing evidence outbox, runtime inbox, compliance Signal/Drift model and Program trigger path rather than adding another event system.
 
-Required outcome:
+- [x] `SourceHealthChanged` is consumed internally before the outbox event can be marked published.
+- [x] inbox receipts make completed internal delivery idempotent.
+- [x] source degradation creates/upserts the exact `source_quality` drift.
+- [x] source recovery resolves only the matching active source drift.
+- [x] generic `/compliance/signals` ingestion cannot forge `SOURCE_RECOVERED`; recovery is an internal governed-source operation.
+- [x] active Evidence Contract source mappings resolve every affected Program without a silent fan-out cap.
+- [x] Program trigger dedupe keys include both source event and Program ID.
+- [x] unhealthy→unhealthy changes update drift but do not open a duplicate degradation episode/Matter.
+- [x] recovery reaches a Program only when all active evidence sources for that Program are currently `CURRENT`.
+- [x] existing transactional `ApplyTriggerBundle` remains responsible for Program trigger, optional Matter, outbox and projection-job truth.
+- [x] logging occurs after internal reconciliation; a failed internal delivery is retried instead of being logged-and-marked-published.
+- [x] no schema migration or broker was added.
 
-```text
-source/evidence transaction
-→ transactional outbox event
-→ dedicated reconciliation consumer
-→ inbox dedupe
-→ Program trigger and/or Matter update
-→ projection maintenance
-```
+**Still required before production release:** PostgreSQL-tagged integration evidence for the complete outbox → inbox → Signal/Drift → Program trigger/Matter → projection path and operational lag/poison-event observability.
 
-Acceptance requirements:
-
-- idempotent replay;
-- tenant-safe subject resolution;
-- no Signal treated as a conclusion by itself;
-- no successful evidence write reported as failed because downstream reconciliation is delayed;
-- bounded retries and observable lag;
-- PostgreSQL integration coverage proving outbox → inbox → canonical consequence.
-
-### P0.3 — worker work-class isolation — PLANNED
+### P0.3 — worker work-class isolation — NEXT
 
 Separate timer delivery, evidence reconciliation, projection maintenance and external publishers into explicit work classes with independent leases, retry budgets, metrics and failure isolation. Do not create one generic agent worker loop.
 
@@ -147,7 +142,7 @@ Production/non-demo Today is currently the actor-facing projection of **active W
 
 Demo/reference mode may project reference journeys for stakeholder presentation.
 
-Today is not yet the complete event-driven intervention compiler described by #27. Evidence/source changes reach the full model only when their workflow or canonical reconciliation path exists; P0.2 closes that seam.
+Today is not yet the complete event-driven intervention compiler described by #27. Source-health changes now reach canonical drift and dependent Program state through P0.2, but other signal classes and actor-facing intervention compilation remain explicit future work.
 
 ### Automation policy
 
