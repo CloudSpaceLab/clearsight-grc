@@ -129,7 +129,7 @@ func TestMatterCannotCloseUntilActionOutcomeIsVerified(t *testing.T) {
 		t.Fatalf("expected closure to be blocked, got %v", err)
 	}
 	contract := matter.VerificationContracts[0]
-	matter, err = service.RecordVerificationResult(ctx, RecordVerificationResultInput{TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, ContractID: contract.ID, Result: VerificationPassed, Observations: json.RawMessage(`{"unresolved":0}`), EvidenceReferences: json.RawMessage(`[]`), Rationale: "IAM report shows no unresolved accounts.", ObservedAt: now.Add(24 * time.Hour)})
+	matter, err = service.RecordVerificationResult(ctx, RecordVerificationResultInput{TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, ContractID: contract.ID, Result: VerificationPassed, Observations: json.RawMessage(`{"unresolved":0}`), EvidenceReferences: json.RawMessage(`[]`), ReviewerPrincipalID: "reviewer", Rationale: "IAM report shows no unresolved accounts.", ObservedAt: now})
 	if err != nil {
 		t.Fatal(err)
 	}

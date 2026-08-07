@@ -323,12 +323,32 @@ func (s *Service) seedLegacyFinding(ctx context.Context, config SeedConfig, prog
 	if err != nil {
 		return matter, err
 	}
-	contractID := matter.VerificationContracts[len(matter.VerificationContracts)-1].ID
+	contract := activeVerificationContract(matter, actionID)
+	if contract == nil {
+		return matter, fmt.Errorf("seeded outcome check is unavailable")
+	}
 	matter, err = s.continuity.TransitionMatter(ctx, continuity.TransitionInput{TenantID: config.TenantID, ID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, To: continuity.MatterVerification, ActorID: config.ActorID, Rationale: "Implementation is complete and independent checking has started."})
 	if err != nil {
 		return matter, err
 	}
-	matter, err = s.continuity.RecordVerificationResult(ctx, continuity.RecordVerificationResultInput{TenantID: config.TenantID, MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, ContractID: contractID, Result: continuity.VerificationPassed, Observations: mustJSON(map[string]any{"complete_records": 14, "exceptions": 0}), EvidenceReferences: mustJSON([]string{"processing inventory export", "retention owner approvals", "sample re-performance"}), ReviewerPrincipalID: config.ReviewerPrincipalID, Rationale: "The reviewer re-performed the check and confirmed all 14 records contain the required approved retention information.", ObservedAt: config.Now.Add(-24 * time.Hour)})
+	actions := currentActions(matter.Actions)
+	var action *continuity.Action
+	for index := range actions {
+		if actions[index].ID == actionID {
+			value := actions[index]
+			action = &value
+			break
+		}
+	}
+	if action == nil || action.ImplementedAt == nil {
+		return matter, fmt.Errorf("seeded remediation action is not implemented")
+	}
+	observedAt := *action.ImplementedAt
+	if contract.CreatedAt.After(observedAt) {
+		observedAt = contract.CreatedAt
+	}
+	observedAt = observedAt.Add(time.Duration(contract.ObservationPeriodMinutes) * time.Minute)
+	matter, err = s.continuity.RecordVerificationResult(ctx, continuity.RecordVerificationResultInput{TenantID: config.TenantID, MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, ContractID: contract.ID, Result: continuity.VerificationPassed, Observations: mustJSON(map[string]any{"complete_records": 14, "exceptions": 0}), EvidenceReferences: mustJSON([]string{"processing inventory export", "retention owner approvals", "sample re-performance"}), ReviewerPrincipalID: config.ReviewerPrincipalID, Rationale: "The reviewer re-performed the check and confirmed all 14 records contain the required approved retention information.", ObservedAt: observedAt})
 	if err != nil {
 		return matter, err
 	}

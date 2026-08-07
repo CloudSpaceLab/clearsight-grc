@@ -128,6 +128,10 @@ func buildNDPAJourney(program continuity.ProgramAggregate, request evidence.Requ
 	journey.NextAction = "Review the latest evidence and open issues"
 	updated := program.Program.UpdatedAt
 	journey.UpdatedAt = &updated
+	assessmentAt := program.Program.UpdatedAt.UTC()
+	if program.CurrentState != nil && !program.CurrentState.GeneratedAt.IsZero() {
+		assessmentAt = program.CurrentState.GeneratedAt.UTC()
+	}
 	if program.CurrentState == nil {
 		journey.Status = "STATUS_PENDING"
 		journey.StatusLabel = "Status update pending"
@@ -148,7 +152,7 @@ func buildNDPAJourney(program continuity.ProgramAggregate, request evidence.Requ
 		{Code: "requirements", Label: "Required bank obligations approved", Complete: hasApprovedRequirements(program, ndpaRequirementCodes)},
 		{Code: "safeguards", Label: "Implemented safeguards linked to each obligation", Complete: hasRequiredSafeguards(program, ndpaRequirementCodes)},
 		{Code: "evidence", Label: "Active evidence checks defined", Complete: hasActiveEvidenceContracts(program, ndpaEvidenceCodes)},
-		{Code: "review", Label: "Current evidence reviewed", Complete: hasCurrentEvidenceAssessments(program, ndpaEvidenceCodes, time.Now().UTC())},
+		{Code: "review", Label: "Current evidence reviewed", Complete: hasCurrentEvidenceAssessments(program, ndpaEvidenceCodes, assessmentAt)},
 		{Code: "active", Label: "Program approved and active", Complete: program.Program.Status == continuity.ProgramActive},
 	}
 	setJourneyAction(&journey, request, requestFound)

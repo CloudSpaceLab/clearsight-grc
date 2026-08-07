@@ -42,6 +42,9 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 	if !ok {
 		return MatterAggregate{}, fmt.Errorf("contract_id does not belong to this matter")
 	}
+	if contract.Status != VerificationActive {
+		return MatterAggregate{}, fmt.Errorf("the outcome check is not active")
+	}
 	observations, err := normalizedJSON(input.Observations, `{}`)
 	if err != nil {
 		return MatterAggregate{}, err
@@ -50,18 +53,21 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 	if err != nil {
 		return MatterAggregate{}, err
 	}
+	now := s.now().UTC()
 	if input.ObservedAt.IsZero() {
-		input.ObservedAt = s.now().UTC()
+		input.ObservedAt = now
+	}
+	if err := validateVerificationResult(aggregate, contract, input.ReviewerPrincipalID, input.ObservedAt, now); err != nil {
+		return MatterAggregate{}, err
 	}
 	valueID, err := id.NewUUIDv7()
 	if err != nil {
 		return MatterAggregate{}, err
 	}
-	now := s.now().UTC()
 	value := VerificationResult{
 		ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID,
 		ContractID: input.ContractID, Result: input.Result, Observations: observations,
-		EvidenceReferences: evidenceReferences, ReviewerPrincipalID: input.ReviewerPrincipalID,
+		EvidenceReferences: evidenceReferences, ReviewerPrincipalID: strings.TrimSpace(input.ReviewerPrincipalID),
 		Rationale: strings.TrimSpace(input.Rationale), ObservedAt: input.ObservedAt.UTC(), CreatedAt: now,
 	}
 	resultEvent, err := newEvent(input.TenantID, "MATTER", input.MatterID, input.ExpectedVersion+1, EventVerificationResultRecorded, value, actorFor(input.ReviewerPrincipalID), input.ReviewerPrincipalID, now)

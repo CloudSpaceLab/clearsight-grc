@@ -2,7 +2,8 @@
 
 **Status date:** 2026-08-07  
 **P0 closure PR:** #30  
-**P1.1 implementation PR:** #34
+**P1.1 implementation PR:** #34  
+**P1.2 implementation PR:** #35
 
 This is the authoritative execution ledger. Product, design, architecture and enterprise-productization documents define requirements, but this file controls current implementation order and capability truth.
 
@@ -23,24 +24,31 @@ This is the authoritative execution ledger. Product, design, architecture and en
 
 P1 is correctness-first rather than feature-first.
 
-1. **P1.1 Program-state truth — IMPLEMENTED IN PR #34**
+1. **P1.1 Program-state truth — IMPLEMENTED IN PR #34; consistency fixes in PR #35**
    - [x] currently-effective Requirement, Applicability and Control Implementation selection;
    - [x] Evidence Contracts affect current state only when their linked Requirement/Control target is currently effective;
-   - [x] Evidence Assessment validity is bounded by the Evidence Contract freshness interval in both state derivation and PostgreSQL persistence;
+   - [x] Evidence Assessment validity is bounded by the Evidence Contract freshness interval in state derivation and both PostgreSQL/memory persistence;
    - [x] actual current required evidence-source health drives Source Quality rather than the latest source trigger alone;
-   - [x] future Requirement sources do not enter the current source denominator;
+   - [x] future Requirement/contract sources do not enter the current source denominator;
    - [x] mandatory UNKNOWN dimensions, including Assurance and Source Quality, cannot become overall `CURRENT`;
    - [x] pause/resume preserves the configured Program `effective_until`, including reconstruction of historical resume events that cleared it;
    - [x] Program summaries expose command Program version, assessed Program version, projection version, stale state and reason totals/omissions;
    - [x] stale last-known green snapshots render as `Updating status` and do not contribute to the UI current count;
-   - [x] PostgreSQL and rendered-state tests cover temporal, multi-source, freshness, stale-projection and pause/resume behavior.
-2. **P1.2 Matter closure current-record truth — NEXT**
-   - current Decision/Response selection and supersession;
-   - expiry/conditions at closure;
-   - verification independence and observation-period enforcement.
-3. **P1.3 lifecycle-specific command responsibility**
+   - [x] deterministic reference scenarios evaluate Program state and evidence-review steps at the state/simulation clock rather than process wall-clock time;
+   - [x] PostgreSQL, memory and rendered-state tests cover temporal, multi-source, freshness, stale-projection and pause/resume behavior.
+2. **P1.2 Matter closure current-record truth — IMPLEMENTED IN PR #35**
+   - [x] current Decision is selected deterministically within each decision type; a later rejection/return/expiry/supersession cannot be bypassed by an older approval in that lineage;
+   - [x] Authority Request closure evaluates current response-package lineages rather than any favorable historical response;
+   - [x] expired exception authority cannot satisfy closure;
+   - [x] conditional exception authority requires explicit structured condition resolution; free-text conditions are not treated as proof of satisfaction;
+   - [x] latest verification PASS is revalidated at closure for assigned reviewer authority, action-owner independence, implementation chronology and observation-period completion;
+   - [x] the same verification invariants are enforced when recording the result, so invalid future/premature/self-reviewed results cannot enter authoritative state;
+   - [x] reference and integration producers use real implementation/contract chronology instead of fabricated future/past observations;
+   - [x] adversarial unit and PostgreSQL reconstruction tests cover approved→rejected history, expired/unresolved exception authority, withdrawn replacement response, premature/self review and valid independent PASS.
+3. **P1.3 lifecycle-specific command responsibility — NEXT**
    - proposer/reviewer/challenger/authorizer/signatory/transmitter/acknowledgement responsibilities vary by requested transition rather than static command name.
 4. **P1.4 bounded ordinary reads and explicit work-model projection contracts.**
+   - includes remaining read-contract cleanup such as detail-level projection-version parity and deterministic as-of closure preview where needed.
 5. **P1.5 document-import resource, durability and paging hardening.**
 
 Only after semantic/current-state correctness should wider #27 governed operator execution be treated as trustworthy execution rather than presentation.
@@ -164,7 +172,7 @@ Unresolved selectors are excluded from execution but remain visible as integrity
 
 ### Current-time selection
 
-The Program-state projection now evaluates current truth at projection time:
+The Program-state projection evaluates current truth at projection time:
 
 - future Requirements are excluded until `effective_from`;
 - expired Requirements/Applicability/Control Implementations are excluded after `effective_until`;
@@ -173,14 +181,17 @@ The Program-state projection now evaluates current truth at projection time:
 - active Evidence Contracts are considered only when their linked Requirement or Control Implementation is currently effective;
 - future Evidence Assessments do not affect current state.
 
+PR #35 additionally closes post-merge mode-consistency bugs found during review: effective-contract selection is now inside every derivation/source-inference path, memory persistence caps the stored assessment event itself to the governed freshness boundary, and reference journey evidence review uses the Program snapshot timestamp rather than process wall-clock time.
+
 ### Evidence freshness
 
 Evidence Assessment validity cannot outlive the Evidence Contract freshness interval.
 
 - the state engine always evaluates `min(valid_until, assessed_at + freshness)`;
 - migration `000015_program_state_truth` derives missing validity and safely caps an over-long supplied validity at the governed maximum;
+- memory persistence applies the same cap before storing the event used for current state and replay;
 - non-positive validity windows remain invalid;
-- bank-reference seed/repair data now uses the same contract freshness rule rather than a hard-coded future date.
+- bank-reference seed/repair data uses the same contract freshness rule rather than a hard-coded future date.
 
 ### Source Quality
 
@@ -191,11 +202,11 @@ Current dependencies include:
 - source IDs on currently-effective approved Requirements;
 - sources on ACTIVE Evidence Contracts whose target Requirement/Control Implementation is currently effective.
 
-A Program is source-current only when **every** currently-required active Evidence Source reports `CURRENT`. With no source dependency, Source Quality is explicitly `NOT_APPLICABLE`. A future Requirement source does not pollute the current denominator.
+A Program is source-current only when **every** currently-required active Evidence Source reports `CURRENT`. With no source dependency, Source Quality is explicitly `NOT_APPLICABLE`. A future Requirement/contract source does not pollute the current denominator.
 
 ### Unknown and overall state
 
-All compliance dimensions now participate in overall-state selection. `Assurance=UNKNOWN` or `SourceQuality=UNKNOWN` cannot silently produce `CURRENT`.
+All compliance dimensions participate in overall-state selection. `Assurance=UNKNOWN` or `SourceQuality=UNKNOWN` cannot silently produce `CURRENT`.
 
 ### Program period and reconstruction
 
@@ -214,7 +225,38 @@ Program summaries expose:
 
 A stale last-known `CURRENT` snapshot is rendered as **Updating status**, counted as reassessing rather than current, and shows the assessed/current versions. Complete reasons remain available in Program detail; summary truncation is never silent.
 
-## 5. Current Today and automation truth
+## 5. P1.2 Matter closure current-record truth
+
+Matter closure now evaluates current authoritative state rather than searching history for any favorable record.
+
+### Decisions and exceptions
+
+- Decisions are reduced to one current record per normalized decision type using decision/update time with a deterministic ID tie-breaker.
+- A rejected, returned, expired or superseded current decision cannot be bypassed by an older approval in that lineage.
+- Regulatory Change closure requires current approved decision authority; `NO_CHANGE_REQUIRED` remains the explicit path that does not require implementation/outcome evidence.
+- Exception closure requires current, unexpired authority or an explicitly resolved structured condition set.
+- Free-text condition descriptions are obligations, not evidence that the conditions were satisfied.
+
+### Responses
+
+Authority Request closure uses current Response Package lineages by purpose/audience. A later withdrawn/rejected replacement in the same lineage invalidates historical acknowledgement. Qualifying acknowledgement must be recorded at/after transmission.
+
+### Verification
+
+For each active Verification Contract, the latest result must PASS and remains valid only when:
+
+- the reviewer identity is present;
+- any contract-assigned reviewer authority matches;
+- a linked action exists and is actually `IMPLEMENTED`;
+- the reviewer is not the linked action owner;
+- observation occurs at/after implementation/contract creation plus the configured observation period;
+- the observation is not in the future.
+
+These rules execute both when recording the verification result and again when evaluating closure. Invalid verification therefore cannot enter authoritative state and cannot become valid later merely because a Matter reaches `CLOSED`.
+
+Reference/demo data and integration fixtures use the same chronology; they are not allowed to seed logically impossible PASS results.
+
+## 6. Current Today and automation truth
 
 ### Today
 
@@ -230,7 +272,7 @@ Today is not yet the complete event-driven intervention compiler envisioned by #
 
 Those claims require a real governed executor and persisted execution/verification evidence.
 
-## 6. Enterprise work after semantic P1
+## 7. Enterprise work after semantic P1
 
 Detailed enterprise requirements remain in `docs/engineering/enterprise-productization-implementation-plan.md` and product/design specifications.
 
@@ -247,7 +289,7 @@ Major later gates include:
 - backup/restore/provider-outage exercises;
 - pilot-bank legal/configuration approval and governed go-live.
 
-## 7. Release and validation rules
+## 8. Release and validation rules
 
 Checkboxes describe repository capability, not deployment readiness.
 

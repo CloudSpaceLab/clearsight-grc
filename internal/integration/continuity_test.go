@@ -178,7 +178,7 @@ func TestProgramMatterPostgresContracts(t *testing.T) {
 	if _, err := service.TransitionMatter(ctx, continuity.TransitionInput{TenantID: "continuity-bank", ID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, To: continuity.MatterClosed, ActorID: continuityReviewerID, Rationale: "Close."}); !errors.Is(err, continuity.ErrClosureBlocked) {
 		t.Fatalf("expected closure block, got %v", err)
 	}
-	matter, err = service.RecordVerificationResult(ctx, continuity.RecordVerificationResultInput{TenantID: "continuity-bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, ContractID: matter.VerificationContracts[0].ID, Result: continuity.VerificationPassed, Observations: json.RawMessage(`{"unresolved":0}`), EvidenceReferences: json.RawMessage(`[]`), ReviewerPrincipalID: continuityReviewerID, Rationale: "The current IAM population has no unresolved accounts.", ObservedAt: now.Add(24 * time.Hour)})
+	matter, err = service.RecordVerificationResult(ctx, continuity.RecordVerificationResultInput{TenantID: "continuity-bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, ContractID: matter.VerificationContracts[0].ID, Result: continuity.VerificationPassed, Observations: json.RawMessage(`{"unresolved":0}`), EvidenceReferences: json.RawMessage(`[]`), ReviewerPrincipalID: continuityReviewerID, Rationale: "The current IAM population has no unresolved accounts."})
 	if err != nil {
 		t.Fatal(err)
 	}

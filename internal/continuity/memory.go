@@ -3,6 +3,7 @@ package continuity
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -87,6 +88,11 @@ func (r *MemoryRepository) ApplyProgramEvent(_ context.Context, tenant, id strin
 	if event.AggregateVersion != expected+1 {
 		return 0, ErrVersionConflict
 	}
+	var err error
+	event, err = normalizeMemoryProgramEvent(aggregate, event)
+	if err != nil {
+		return 0, err
+	}
 	if err := applyProgramEventToAggregate(&aggregate, event); err != nil {
 		return 0, err
 	}
@@ -95,6 +101,37 @@ func (r *MemoryRepository) ApplyProgramEvent(_ context.Context, tenant, id strin
 	r.programs[tenant][id] = aggregate
 	r.programEvents[tenant][id] = append(r.programEvents[tenant][id], event)
 	return event.AggregateVersion, nil
+}
+
+func normalizeMemoryProgramEvent(aggregate ProgramAggregate, event Event) (Event, error) {
+	if event.Type != EventEvidenceAssessmentRecorded {
+		return event, nil
+	}
+	var assessment EvidenceAssessment
+	if err := json.Unmarshal(event.Payload, &assessment); err != nil {
+		return Event{}, err
+	}
+	var contract *EvidenceContract
+	for index := range aggregate.EvidenceContracts {
+		if aggregate.EvidenceContracts[index].ID == assessment.ContractID {
+			contract = &aggregate.EvidenceContracts[index]
+			break
+		}
+	}
+	if contract == nil {
+		return Event{}, ErrNotFound
+	}
+	validUntil := boundedAssessmentValidity(assessment, *contract)
+	if validUntil.IsZero() || !assessment.AssessedAt.Before(validUntil) {
+		return Event{}, fmt.Errorf("valid_until must be after assessed_at and within the evidence contract freshness boundary")
+	}
+	assessment.ValidUntil = &validUntil
+	payload, err := json.Marshal(assessment)
+	if err != nil {
+		return Event{}, err
+	}
+	event.Payload = payload
+	return event, nil
 }
 
 func (r *MemoryRepository) RecordProgramTrigger(_ context.Context, trigger Trigger) (bool, error) {
