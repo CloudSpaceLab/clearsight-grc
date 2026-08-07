@@ -7,25 +7,28 @@ import (
 )
 
 // refreshProgramCurrent is the projection-worker path. It augments the
-// event-backed aggregate with the current evidence-source denominator before
-// deriving status, while retaining the existing projection transaction model.
+// event-backed aggregate with current effective evidence targets and the
+// authoritative evidence-source denominator before deriving status, while
+// retaining the existing projection transaction model.
 func (s *Service) refreshProgramCurrent(ctx context.Context, tenant, programID, triggerType, triggerID string) error {
 	aggregate, err := s.repo.GetProgram(ctx, tenant, programID)
 	if err != nil {
 		return err
 	}
+	now := s.now().UTC()
+	aggregate.EvidenceContracts = effectiveEvidenceContracts(aggregate, now)
 	openMatters, err := s.repo.OpenMatterCount(ctx, tenant, programID)
 	if err != nil {
 		return err
 	}
-	sourceState := inferProgramSourceState(aggregate, s.now().UTC())
+	sourceState := inferProgramSourceState(aggregate, now)
 	if sourceRepo, ok := s.repo.(ProgramSourceStateRepository); ok {
 		sourceState, err = sourceRepo.CurrentProgramSourceState(ctx, tenant, programID)
 		if err != nil {
 			return err
 		}
 	}
-	state := deriveProgramStateWithSourceState(aggregate, openMatters, s.now().UTC(), sourceState)
+	state := deriveProgramStateWithSourceState(aggregate, openMatters, now, sourceState)
 	state.ID, err = id.NewUUIDv7()
 	if err != nil {
 		return err
