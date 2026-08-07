@@ -120,7 +120,7 @@ func assessClosureAt(aggregate MatterAggregate, now time.Time) ClosureAssessment
 		}
 	case MatterRegulatoryChange:
 		if !approvedDecision || adverseCurrentDecision {
-			reasons = append(reasons, "Every current regulatory decision must be resolved and at least one current position must be approved.")
+			reasons = append(reasons, "The current regulatory position is unresolved; every current regulatory decision must be resolved and at least one current position must be approved.")
 		}
 		if !noChangeRequired && activeContracts == 0 {
 			reasons = append(reasons, "No outcome check has been defined for the required change.")
