@@ -20,6 +20,13 @@
 .intervention-next > strong { font-size: 13px; line-height: 1.4; }
 .intervention-next > small { color: var(--muted); font-size: 10px; line-height: 1.45; }
 .intervention-next .primary-button { width: fit-content; min-height: 38px; margin-top: 6px; padding: 9px 13px; background: rgba(91,198,214,.11); }
+.intervention-verification { margin-top: 2px; }
+.intervention-verification summary { cursor: pointer; color: var(--text); font-size: 11px; line-height: 1.35; }
+.intervention-verification summary::marker { color: var(--cyan); }
+.intervention-verification dl { display: grid; gap: 6px; margin: 8px 0 2px; }
+.intervention-verification dl > div { display: grid; grid-template-columns: minmax(82px, .42fr) minmax(0, 1fr); gap: 8px; align-items: start; }
+.intervention-verification dt { color: var(--muted); font-size: 9px; line-height: 1.4; }
+.intervention-verification dd { margin: 0; color: var(--text); font-size: 10px; line-height: 1.45; text-align: left; overflow-wrap: anywhere; }
 .continuous-checks { margin-top: 22px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); color: var(--text); }
 .continuous-checks.quiet { display: flex; justify-content: space-between; gap: 18px; padding: 14px 2px; color: var(--muted); font-size: 11px; }
 .continuous-checks.quiet strong { color: var(--text); }
@@ -89,6 +96,7 @@
   .intervention-meta { display: grid; gap: 4px; }
   .intervention-meta span::after { display: none; }
   .intervention-next .primary-button { width: 100%; }
+  .intervention-verification dl > div { grid-template-columns: 1fr; gap: 2px; }
   .continuous-checks summary, .source-inventory summary { align-items: flex-start; flex-direction: column; }
   .continuous-checks summary > div:last-child { justify-items: start; }
   .continuous-checks-detail dl { grid-template-columns: 1fr; }

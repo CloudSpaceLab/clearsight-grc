@@ -56,13 +56,13 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		if err := continuity.ValidateDecisionLifecycle(aggregate.Decisions, decisionType, target); err != nil {
 			return policy, err
 		}
-		responsibility, materiality, err := decisionLifecyclePolicy(target)
+		lifecycle, err := continuity.DecisionLifecyclePolicy(target)
 		if err != nil {
 			return policy, err
 		}
 		policy.ActorField = "authority_principal_id"
-		policy.Responsibility = responsibility
-		policy.Materiality = max(materiality, matterPriority)
+		policy.Responsibility = authority.Responsibility(lifecycle.Responsibility)
+		policy.Materiality = max(lifecycle.Materiality, matterPriority)
 		return policy, nil
 
 	case "matter.action.add":
@@ -110,12 +110,12 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 			return policy, continuity.ErrNotFound
 		}
 		target := continuity.ResponseStatus(strings.ToUpper(stringValue(payload["to"])))
-		responsibility, materiality, err := responseLifecyclePolicy(current.Status, target)
+		lifecycle, err := continuity.ResponseLifecyclePolicy(current.Status, target)
 		if err != nil {
 			return policy, err
 		}
-		policy.Responsibility = responsibility
-		policy.Materiality = max(materiality, matterPriority)
+		policy.Responsibility = authority.Responsibility(lifecycle.Responsibility)
+		policy.Materiality = max(lifecycle.Materiality, matterPriority)
 		return policy, nil
 
 	default:
@@ -156,54 +156,4 @@ func boundLifecycleID(routeID, bodyID, field string) (string, error) {
 		return routeID, nil
 	}
 	return bodyID, nil
-}
-
-func decisionLifecyclePolicy(target continuity.DecisionStatus) (authority.Responsibility, int, error) {
-	switch target {
-	case continuity.DecisionProposed:
-		return authority.ResponsibilityProposer, 2, nil
-	case continuity.DecisionInReview, continuity.DecisionReturned:
-		return authority.ResponsibilityReviewer, 3, nil
-	case continuity.DecisionChallenged:
-		return authority.ResponsibilityChallenger, 3, nil
-	case continuity.DecisionApproved, continuity.DecisionConditionallyApproved, continuity.DecisionRejected, continuity.DecisionExpired, continuity.DecisionSuperseded:
-		return authority.ResponsibilityAuthorizer, 4, nil
-	default:
-		return "", 0, fmt.Errorf("%w: unsupported decision lifecycle target %s", continuity.ErrInvalidState, target)
-	}
-}
-
-func responseLifecyclePolicy(from, target continuity.ResponseStatus) (authority.Responsibility, int, error) {
-	allowed := map[continuity.ResponseStatus]map[continuity.ResponseStatus]bool{
-		continuity.ResponseDraft:       {continuity.ResponseInReview: true, continuity.ResponseWithdrawn: true},
-		continuity.ResponseInReview:    {continuity.ResponseApproved: true, continuity.ResponseRejected: true, continuity.ResponseDraft: true, continuity.ResponseWithdrawn: true},
-		continuity.ResponseApproved:    {continuity.ResponseTransmitted: true, continuity.ResponseWithdrawn: true},
-		continuity.ResponseTransmitted: {continuity.ResponseAcknowledged: true},
-		continuity.ResponseRejected:    {continuity.ResponseDraft: true},
-	}
-	if !allowed[from][target] {
-		return "", 0, fmt.Errorf("%w: response cannot move from %s to %s", continuity.ErrInvalidState, from, target)
-	}
-	switch target {
-	case continuity.ResponseInReview, continuity.ResponseRejected:
-		return authority.ResponsibilityReviewer, 3, nil
-	case continuity.ResponseApproved:
-		return authority.ResponsibilitySignatory, 4, nil
-	case continuity.ResponseTransmitted:
-		return authority.ResponsibilityTransmitter, 4, nil
-	case continuity.ResponseAcknowledged:
-		return authority.ResponsibilityAcknowledger, 3, nil
-	case continuity.ResponseDraft:
-		if from == continuity.ResponseRejected {
-			return authority.ResponsibilityProposer, 2, nil
-		}
-		return authority.ResponsibilityReviewer, 3, nil
-	case continuity.ResponseWithdrawn:
-		if from == continuity.ResponseApproved {
-			return authority.ResponsibilitySignatory, 4, nil
-		}
-		return authority.ResponsibilityProposer, 2, nil
-	default:
-		return "", 0, fmt.Errorf("%w: unsupported response lifecycle target %s", continuity.ErrInvalidState, target)
-	}
 }

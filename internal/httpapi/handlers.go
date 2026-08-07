@@ -111,6 +111,10 @@ func (a *API) listWorkflowTasks(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if tenantID != actor.TenantID {
+		httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This request is outside your signed-in bank scope.")
+		return
+	}
 	if requested := strings.TrimSpace(r.URL.Query().Get("principal_id")); requested != "" && requested != actor.PrincipalID {
 		httpx.WriteError(w, http.StatusForbidden, "principal_not_allowed", "This request is outside your signed-in user scope.")
 		return
@@ -122,8 +126,7 @@ func (a *API) listWorkflowTasks(w http.ResponseWriter, r *http.Request) {
 	status := workflow.Status(strings.TrimSpace(r.URL.Query().Get("status")))
 	values, err := a.deps.Workflow.List(r.Context(), workflow.ListFilter{
 		TenantID: tenantID, PrincipalID: actor.PrincipalID, Status: status,
-		WorkflowKind: workflow.MatterActionWorkflowKind, ActiveOnly: status == "", VisibleMatterActionsOnly: true,
-		Limit: limit,
+		ActiveOnly: status == "", VisibleMatterWorkOnly: true, Limit: limit,
 	})
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "workflow_failed", "Tasks could not be loaded.")
@@ -133,7 +136,7 @@ func (a *API) listWorkflowTasks(w http.ResponseWriter, r *http.Request) {
 	// as defense-in-depth against future query changes.
 	visible := values[:0]
 	for _, task := range values {
-		if workflow.MatterActionVisibleTo(task, actor.PrincipalID) {
+		if workflow.MatterWorkVisibleTo(task, actor.PrincipalID) {
 			visible = append(visible, task)
 		}
 	}

@@ -15,11 +15,11 @@ func FromWorkflowTasks(tasks []workflow.Task) []AttentionItem {
 }
 
 // FromWorkflowTasksForActor is the production-safe projection. It accepts only
-// the supported Matter Action work projection and rechecks the owning Matter's
+// supported Matter-backed work projections and rechecks the owning Matter's
 // access policy before exposing the item to the actor.
 func FromWorkflowTasksForActor(tasks []workflow.Task, principalID string) []AttentionItem {
 	return projectWorkflowTasks(tasks, func(task workflow.Task) bool {
-		return workflow.MatterActionVisibleTo(task, principalID)
+		return workflow.MatterWorkVisibleTo(task, principalID)
 	})
 }
 
@@ -53,6 +53,7 @@ func projectWorkflowTasks(tasks []workflow.Task, include func(workflow.Task) boo
 			MaterialConclusion: context["material_conclusion"],
 			ChangeSummary:      context["change_summary"],
 			Authority:          workflowAuthorityContext(task, targetType, targetID),
+			Verification:       workflowVerificationPlan(task),
 		})
 	}
 	return items
@@ -66,7 +67,7 @@ func workflowDueAt(value *time.Time) time.Time {
 }
 
 func workflowTarget(task workflow.Task) (string, string) {
-	if task.WorkflowKind == workflow.MatterActionWorkflowKind && strings.TrimSpace(task.MatterID) != "" {
+	if (task.WorkflowKind == workflow.MatterActionWorkflowKind || task.WorkflowKind == workflow.MatterLifecycleWorkflowKind) && strings.TrimSpace(task.MatterID) != "" {
 		return "MATTER", strings.TrimSpace(task.MatterID)
 	}
 	context := task.Context
@@ -110,6 +111,28 @@ func workflowAuthorityContext(task workflow.Task, targetType, targetID string) *
 		Responsibility: responsibility,
 		DecisionType:   strings.TrimSpace(task.Context["decision_type"]),
 		Materiality:    materiality,
+	}
+}
+
+func workflowVerificationPlan(task workflow.Task) *VerificationPlan {
+	context := task.Context
+	if strings.TrimSpace(context["verification_contract_id"]) == "" {
+		return nil
+	}
+	method := "Outcome review"
+	if strings.EqualFold(strings.TrimSpace(context["verification_independent"]), "true") {
+		method = "Independent outcome review"
+	}
+	var nextCheck *time.Time
+	if task.DueAt != nil {
+		value := task.DueAt.UTC()
+		nextCheck = &value
+	}
+	return &VerificationPlan{
+		State:           firstValue(context["verification_evidence_state"], "Outcome check ready"),
+		ExpectedOutcome: strings.TrimSpace(context["verification_expected_outcome"]),
+		Method:          method,
+		NextCheckAt:     nextCheck,
 	}
 }
 

@@ -33,6 +33,37 @@ describe("TodayInterventions", () => {
     expect(screen.queryByText("Recommended action")).toBeNull();
   });
 
+  it("shows governed verification context only as collapsed outcome-check detail", () => {
+    const verificationItem: AttentionItem = {
+      ...item,
+      id: "verification-1",
+      type: "MATTER_WORK",
+      title: "Confirm restored ATM availability",
+      recommendation: undefined,
+      intervention_class: "VERIFICATION",
+      primary_action: "Record outcome check",
+      material_conclusion: "The observation period has completed and this outcome check has no recorded result.",
+      evidence: "Outcome check ready",
+      authority: { responsibility: "REVIEWER", decision_type: "matter.outcome.record", materiality: 5 },
+      verification: { state: "Outcome check ready", expected_outcome: "ATM remains available for one hour after restoration.", method: "Independent outcome review", next_check_at: "2026-08-08T09:30:00Z" },
+    };
+    render(<TodayInterventions items={[verificationItem]} connection="live" readiness={readiness} readinessState="live" onOpenItem={vi.fn()}/>);
+    expect(screen.getByText("Outcome check", { selector: ".intervention-kind" })).toBeTruthy();
+    expect(screen.getByText("Record outcome check")).toBeTruthy();
+    const detail = screen.getByText("Outcome check details").closest("details") as HTMLDetailsElement | null;
+    expect(detail?.open).toBe(false);
+    expect(screen.getByText("ATM remains available for one hour after restoration.")).toBeTruthy();
+    expect(screen.queryByText("Recommended action")).toBeNull();
+    expect(screen.queryByText("Prepared next step")).toBeNull();
+  });
+
+  it("labels external representation work without implying approval", () => {
+    const responseItem: AttentionItem = { ...item, recommendation: undefined, intervention_class: "EXTERNAL_REPRESENTATION", primary_action: "Record acknowledgement" };
+    render(<TodayInterventions items={[responseItem]} connection="live" readiness={readiness} readinessState="live" onOpenItem={vi.fn()}/>);
+    expect(screen.getByText("External response", { selector: ".intervention-kind" })).toBeTruthy();
+    expect(screen.queryByText("External approval")).toBeNull();
+  });
+
   it("exposes item-scoped authority only when authority context exists", () => {
     const inspect = vi.fn();
     const authorized = { ...item, authority: { responsibility: "REVIEWER", materiality: 2 } };

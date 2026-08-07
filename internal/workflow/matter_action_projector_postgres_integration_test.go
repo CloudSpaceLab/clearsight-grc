@@ -69,7 +69,7 @@ func TestMatterActionProjectorIsIdempotentAndKeepsTaskDerived(t *testing.T) {
 	service := NewService(repo)
 	tasks, err := service.List(ctx, ListFilter{
 		TenantID: "action-work-test", PrincipalID: ownerID, WorkflowKind: MatterActionWorkflowKind,
-		ActiveOnly: true, VisibleMatterActionsOnly: true, Limit: 20,
+		ActiveOnly: true, VisibleMatterWorkOnly: true, Limit: 20,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -112,7 +112,7 @@ func TestMatterActionProjectorIsIdempotentAndKeepsTaskDerived(t *testing.T) {
 	// task remains visible to Today. Matter access is also evaluated before LIMIT.
 	active, err := service.List(ctx, ListFilter{
 		TenantID: "action-work-test", PrincipalID: ownerID, WorkflowKind: MatterActionWorkflowKind,
-		ActiveOnly: true, VisibleMatterActionsOnly: true, Limit: 1,
+		ActiveOnly: true, VisibleMatterWorkOnly: true, Limit: 1,
 	})
 	if err != nil {
 		t.Fatal(err)
