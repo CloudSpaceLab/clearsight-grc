@@ -15,14 +15,14 @@ import (
 // a generic transaction coordinator while ensuring the result and its required
 // consequence commit together.
 type VerificationResultBundle struct {
-	TenantID        string
-	MatterID        string
-	ExpectedVersion int64
-	ResultEvent     Event
-	TransitionEvent *Event
-	FollowUpMatter  *Matter
-	FollowUpEvent   *Event
-	FollowUpLink    *MatterLink
+	TenantID          string
+	MatterID          string
+	ExpectedVersion   int64
+	ResultEvent       Event
+	TransitionEvent   *Event
+	FollowUpMatter    *Matter
+	FollowUpEvent     *Event
+	FollowUpLink      *MatterLink
 	FollowUpLinkEvent *Event
 }
 
@@ -93,15 +93,10 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 			matter.Status = MatterDecisionRequired
 		}
 		matter.UpdatedAt = now
-		rationale := "The outcome check did not pass; additional action is required."
-		if contract.FailureResponse == "ESCALATE" {
-			rationale = "The outcome check did not pass and needs an authorized decision."
-		}
 		transitionEvent, eventErr := newEvent(input.TenantID, "MATTER", input.MatterID, input.ExpectedVersion+2, EventMatterStateChanged, matter, actorFor(input.ReviewerPrincipalID), input.ReviewerPrincipalID, now)
 		if eventErr != nil {
 			return MatterAggregate{}, eventErr
 		}
-		_ = rationale // rationale remains represented by the reviewer/result and transition actor; no hidden command is emitted.
 		bundle.TransitionEvent = &transitionEvent
 	case "CREATE_MATTER":
 		programIDs, lookupErr := s.repo.LinkedProgramIDs(ctx, input.TenantID, input.MatterID)
