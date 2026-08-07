@@ -16,21 +16,22 @@ func TestInvitationAndSessionRevocation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	issued, err := service.IssueInvitation(context.Background(), IssueInvitationInput{TenantID: "bank", RequestID: request.ID, Audience: "contact@example.com", Purpose: "Vendor response", TTLMinutes: 30})
+	const audience = "contact@example.com"
+	issued, err := service.IssueInvitation(context.Background(), IssueInvitationInput{TenantID: "bank", RequestID: request.ID, Audience: audience, Purpose: "Vendor response", TTLMinutes: 30})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := service.RevokeInvitation(context.Background(), "bank", issued.InvitationID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.RedeemInvitation(context.Background(), issued.Token); !errors.Is(err, ErrInvitationInvalid) {
+	if _, err := service.RedeemInvitation(context.Background(), issued.Token, audience); !errors.Is(err, ErrInvitationInvalid) {
 		t.Fatalf("expected revoked invitation rejection, got %v", err)
 	}
-	issued, err = service.IssueInvitation(context.Background(), IssueInvitationInput{TenantID: "bank", RequestID: request.ID, Audience: "contact@example.com", Purpose: "Vendor response", TTLMinutes: 30})
+	issued, err = service.IssueInvitation(context.Background(), IssueInvitationInput{TenantID: "bank", RequestID: request.ID, Audience: audience, Purpose: "Vendor response", TTLMinutes: 30})
 	if err != nil {
 		t.Fatal(err)
 	}
-	session, err := service.RedeemInvitation(context.Background(), issued.Token)
+	session, err := service.RedeemInvitation(context.Background(), issued.Token, audience)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -9,11 +9,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/capture"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
@@ -29,7 +27,7 @@ func testHandler() http.Handler {
 	return New(Dependencies{
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), AllowedOrigin: "http://localhost:5173", Mode: "test-memory",
 		Identity: identity.NewDevelopmentAuthenticator("bank-demo", "role-cro", "bank-ng"), Authority: authority.NewResolver(version, rules),
-		Capture: capture.NewService(capture.DemoRequests()), Invitations: capture.NewInvitationService(time.Now), Evidence: evidenceService,
+		Evidence: evidenceService,
 		Today: today.NewService(today.DemoItems()), Workflow: workflow.NewService(workflow.NewMemoryRepository(workflow.DemoTasks())),
 		Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()), Autonomy: auto, MaxArtifactBytes: 1 << 20,
 	})

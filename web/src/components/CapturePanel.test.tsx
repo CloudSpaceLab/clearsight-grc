@@ -18,7 +18,6 @@ const request: CaptureRequest = {
   known_facts: { process: "Treasury operations" },
   fields: [{ id: "owner", label: "Current owner", type: "text", required: true }],
   version: 3,
-  source: "evidence",
 };
 
 describe("CapturePanel", () => {
@@ -34,7 +33,7 @@ describe("CapturePanel", () => {
     expect(submitCaptureRequest).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Submit response" }));
-    await waitFor(() => expect(submitCaptureRequest).toHaveBeenCalledWith(request.id, 3, { owner: "Treasury Technology" }, "evidence"));
+    await waitFor(() => expect(submitCaptureRequest).toHaveBeenCalledWith(request.id, 3, { owner: "Treasury Technology" }));
     expect(await screen.findByRole("heading", { name: "Response submitted" })).toBeTruthy();
   });
 
