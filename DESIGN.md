@@ -63,7 +63,7 @@ Use an 8px spacing rhythm, 11–18px controls, 12–18px cards and 20–26px her
 ## Structural patterns
 
 - **Intervention Summary:** actor-scoped read projection for one human review, decision, authorization, evidence exception, escalation or outcome check. It is not new authoritative state.
-- **Today:** intervention queue first; quiet continuous-check context follows the human work rather than preceding it with a KPI wall.
+- **Today:** intervention queue first; quiet status-check context follows the work rather than preceding it with a KPI wall.
 - **Programs:** ongoing responsibilities, current status and reasons. Show the status reason before the complete requirement/evidence catalogue.
 - **Issues and changes:** bounded items needing review, decision, action, response or outcome confirmation. Show the current handoff before history.
 - **Work:** review queues and focused evidence. Complete source inventories are secondary context.
@@ -77,7 +77,7 @@ Do not default every concept to a dashboard card. Choose lists, rows, details, t
 
 Use the same reading burden across operational surfaces:
 
-1. **Queue:** human gate, material conclusion, scope, evidence state, deadline and prepared next step.
+1. **Queue:** human gate, material conclusion, scope, evidence state, deadline and next action.
 2. **Current handoff:** what changed or why the current state needs this actor.
 3. **Review context:** evidence, contradictions, alternatives, decisions, actions and verification.
 4. **Reconstruction:** complete Program/Matter, source lineage, imported material, operator receipt and immutable history.
@@ -96,9 +96,39 @@ Examples:
 - `MATTER` → **Issue or change** on general screens
 - `CONTROL_IMPLEMENTATION` → **Safeguard** on business-owner screens
 
+Keep useful product nouns when they already describe the job clearly. **Today**, **Programs**, **Work**, **Evidence**, **Imports** and **Configure** are practical navigation labels; do not replace them with generic phrases such as “Your work” merely to sound conversational.
+
 Every page answers: what is shown, current state, why now, owner, next action, source and time. Never replace an unknown population with sample or persuasive numbers.
 
 Authority copy follows the same rule: the interface may show only roles, stages, limits and explanations returned by the authority service or other canonical records. It must not invent a familiar approval chain when the runtime has not returned one.
+
+## Inputs and capture
+
+Ask for the smallest fact the user actually needs to supply. If the request already knows an ATM identifier, address, vendor, legal entity, date range or other context, render it as read-only context instead of asking the respondent to type it again.
+
+Choose controls by the fact being captured:
+
+- **Yes/no or 2–4 choices:** large tap/radio choices, especially on mobile and external capture.
+- **Short names, identifiers and one-line facts:** single-line text input.
+- **Explanations and exception notes:** textarea; do not use a textarea for ordinary short text.
+- **Dates:** native date control unless the domain requires a richer scheduling control.
+- **Numbers:** numeric input with the appropriate input mode and server-side range validation.
+- **Signature/attestation:** a bounded signature control attached to explicit attestation copy; signing does not replace the factual fields being attested.
+- **Files and photos:** use the upload pattern appropriate to the importance of the artifact rather than defaulting every attachment to the same large box.
+
+### File-upload patterns
+
+Use one shared dropzone interaction with three presentation levels:
+
+1. **Photo evidence:** prominent drop/tap area, camera-first on supported mobile devices, immediate thumbnail preview, filename/size, and replace action. The factual confirmation remains a separate field.
+2. **Document import or another file-primary task:** large dropzone with filename/type/size shown before the explicit import/submit action. Selecting or dropping a file must not silently commit it.
+3. **Incidental general attachment:** compact dropzone/file row with filename/size and replace action. Do not spend a large part of the form on an optional PDF or supporting file.
+
+Do not use a dropzone for settings or forms where the file is incidental to a different control. Do not enable multiple files unless the request contract explicitly permits multiple artifacts and defines how each is reviewed.
+
+Image preview is appropriate for image evidence. For PDFs, Office files and other documents, show trustworthy metadata before upload; do not fabricate a document preview before extraction/rendering has actually succeeded.
+
+External capture should minimize normal-path typing. A field-visit verification should ordinarily be completable through known context, tap choices, required photo evidence, an optional exception note and an attestation/signature. The interface target is under four minutes for a representative simple visit; that target is not considered proven until a timed usability run confirms it.
 
 ## States and recovery
 
@@ -149,7 +179,7 @@ Significant UI work requires:
 3. at least the required state matrix;
 4. rendered evidence at representative viewports;
 5. one highest-impact repair and re-check;
-6. design-token and copy review before merge.
+6. design-token, input and copy review before merge.
 
 Vitest/axe semantic checks are executable CI evidence, but jsdom does not prove visual contrast, 200% zoom, responsive replacement or theme parity. Those remain rendered-browser evidence gates.
 

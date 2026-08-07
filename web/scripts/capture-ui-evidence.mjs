@@ -22,12 +22,12 @@ const captures = [
   { name: "09-today-dark-tablet-1024x768", route: "#today", title: "Today", theme: "dark", density: "comfortable", viewport: { width: 1024, height: 768 }, touch: true, assertFirstActionVisible: true },
   { name: "10-today-light-mobile-390x844", route: "#today", title: "Today", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, assertFirstActionVisible: true },
   { name: "11-today-dark-reflow-320x800", route: "#today", title: "Today", theme: "dark", density: "comfortable", viewport: { width: 320, height: 800 }, touch: true },
-  { name: "17-today-empty-light-1440x900", route: "#today", title: "Today", fixture: "today-empty", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Nothing assigned right now" },
-  { name: "18-today-loading-dark-1440x900", route: "#today", title: "Today", fixture: "today-loading", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Loading your work…" },
-  { name: "19-today-unavailable-light-1440x900", route: "#today", title: "Today", fixture: "today-unavailable", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Your work is unavailable" },
+  { name: "17-today-empty-light-1440x900", route: "#today", title: "Today", fixture: "today-empty", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Nothing needs your action right now" },
+  { name: "18-today-loading-dark-1440x900", route: "#today", title: "Today", fixture: "today-loading", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Loading Today…" },
+  { name: "19-today-unavailable-light-1440x900", route: "#today", title: "Today", fixture: "today-unavailable", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Today is unavailable" },
   { name: "20-evidence-partial-light-1440x900", route: "#work/evidence", title: "Work", fixture: "evidence-requests-unavailable", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Evidence requests are unavailable" },
   { name: "21-configure-partial-dark-1440x900", route: "#configure", title: "Routing and approvals", fixture: "configure-partial", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Routing policies are unavailable" },
-  { name: "22-no-config-access-light-1440x900", route: "#configure", title: "Today", fixture: "no-config-access", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Your work", assertNoConfigureNav: true },
+  { name: "22-no-config-access-light-1440x900", route: "#configure", title: "Today", fixture: "no-config-access", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Reviews, approvals and evidence requests assigned to you.", assertNoConfigureNav: true },
   { name: "27-evidence-long-content-mobile-390x844", route: "#work/evidence", title: "Work", fixture: "long-content", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Confirm the accountable owner for the processor register" },
 ];
 
@@ -42,6 +42,7 @@ try {
   await captureMobileCaptureAndFocus();
   await captureZoomProxy();
   await captureFieldVisit();
+  await captureImportSelection();
 } catch (error) {
   failure = error instanceof Error ? error.message : String(error);
   throw error;
@@ -65,12 +66,17 @@ async function capturePage(capture) {
       await page.getByText("Identity and access records").waitFor({ state: "visible" });
     }
     if (capture.fixture === "configure-partial" && !(await page.getByText("Confirm the final DPCO review date").isVisible())) throw new Error("Configure partial-degradation state hid still-available workflow ownership");
-  } finally { await context.close(); }
+  } finally {
+    await context.close();
+  }
 }
 
 async function openPage({ route, title, theme, density, viewport, touch = false, fixture }) {
   const context = await browser.newContext({ viewport, colorScheme: theme, hasTouch: touch, reducedMotion: "reduce", locale: "en-NG", timezoneId: "Africa/Lagos" });
-  await context.addInitScript(({ theme, density }) => { localStorage.setItem("clearsight.theme", theme); localStorage.setItem("clearsight.density", density); }, { theme, density });
+  await context.addInitScript(({ theme, density }) => {
+    localStorage.setItem("clearsight.theme", theme);
+    localStorage.setItem("clearsight.density", density);
+  }, { theme, density });
   const page = await context.newPage();
   const browserErrors = [];
   page.on("pageerror", (error) => browserErrors.push(error.message));
@@ -84,13 +90,49 @@ async function openPage({ route, title, theme, density, viewport, touch = false,
   return { context, page };
 }
 
-async function saveScreenshot(page, name) { await page.screenshot({ path: path.join(outputDir, `${name}.png`), fullPage: false, animations: "disabled", caret: "hide" }); }
-async function layoutMetrics(page) { return page.evaluate(() => ({ clientWidth: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth, clientHeight: document.documentElement.clientHeight, scrollHeight: document.documentElement.scrollHeight, scrollY: window.scrollY, theme: document.documentElement.dataset.theme ?? "unknown", density: document.documentElement.dataset.density ?? "unknown", activeElement: document.activeElement instanceof HTMLElement ? document.activeElement.getAttribute("aria-label") ?? document.activeElement.textContent?.trim().slice(0, 80) ?? document.activeElement.tagName : "unknown" })); }
-async function assertNoHorizontalOverflow(page, name) { const metrics = await layoutMetrics(page); if (metrics.scrollWidth > metrics.clientWidth + 1) throw new Error(`${name} has horizontal overflow: ${metrics.scrollWidth}px content in ${metrics.clientWidth}px viewport`); }
-async function assertFirstActionVisible(page, viewportHeight, name, touch) { const action = page.locator(".intervention-next .primary-button").first(); await action.waitFor({ state: "visible" }); const box = await action.boundingBox(); const safeBottom = touch ? 82 : 0; if (!box || box.y < 0 || box.y + box.height > viewportHeight - safeBottom) throw new Error(`${name} does not keep the first assigned action inside the unobstructed first viewport`); }
-async function assertFocusInsideSheet(page, name) { const inside = await page.evaluate(() => Boolean(document.activeElement?.closest(".side-panel"))); if (!inside) throw new Error(`${name} allowed keyboard focus to escape the focused-work sheet`); }
-async function record(page, capture, state) { results.push({ name: capture.name, route: capture.route, fixture: capture.fixture ?? null, state, viewport: capture.viewport, theme: capture.theme, density: capture.density, metrics: await layoutMetrics(page) }); await writeManifest(); }
-async function writeManifest() { await writeFile(path.join(outputDir, "manifest.json"), JSON.stringify({ generatedAt: new Date().toISOString(), baseURL, failure, captures: results }, null, 2)); }
+async function saveScreenshot(page, name) {
+  await page.screenshot({ path: path.join(outputDir, `${name}.png`), fullPage: false, animations: "disabled", caret: "hide" });
+}
+
+async function layoutMetrics(page) {
+  return page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+    clientHeight: document.documentElement.clientHeight,
+    scrollHeight: document.documentElement.scrollHeight,
+    scrollY: window.scrollY,
+    theme: document.documentElement.dataset.theme ?? "unknown",
+    density: document.documentElement.dataset.density ?? "unknown",
+    activeElement: document.activeElement instanceof HTMLElement ? document.activeElement.getAttribute("aria-label") ?? document.activeElement.textContent?.trim().slice(0, 80) ?? document.activeElement.tagName : "unknown",
+  }));
+}
+
+async function assertNoHorizontalOverflow(page, name) {
+  const metrics = await layoutMetrics(page);
+  if (metrics.scrollWidth > metrics.clientWidth + 1) throw new Error(`${name} has horizontal overflow: ${metrics.scrollWidth}px content in ${metrics.clientWidth}px viewport`);
+}
+
+async function assertFirstActionVisible(page, viewportHeight, name, touch) {
+  const action = page.locator(".intervention-next .primary-button").first();
+  await action.waitFor({ state: "visible" });
+  const box = await action.boundingBox();
+  const safeBottom = touch ? 82 : 0;
+  if (!box || box.y < 0 || box.y + box.height > viewportHeight - safeBottom) throw new Error(`${name} does not keep the first Today action inside the unobstructed first viewport`);
+}
+
+async function assertFocusInsideSheet(page, name) {
+  const inside = await page.evaluate(() => Boolean(document.activeElement?.closest(".side-panel")));
+  if (!inside) throw new Error(`${name} allowed keyboard focus to escape the focused-work sheet`);
+}
+
+async function record(page, capture, state) {
+  results.push({ name: capture.name, route: capture.route, fixture: capture.fixture ?? null, state, viewport: capture.viewport, theme: capture.theme, density: capture.density, metrics: await layoutMetrics(page) });
+  await writeManifest();
+}
+
+async function writeManifest() {
+  await writeFile(path.join(outputDir, "manifest.json"), JSON.stringify({ generatedAt: new Date().toISOString(), baseURL, failure, captures: results }, null, 2));
+}
 
 async function captureRouting() {
   const capture = { name: "12-authority-dark-1440x900", route: "#today", title: "Today", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } };
@@ -103,7 +145,9 @@ async function captureRouting() {
     if (await page.getByText("Control Assurance", { exact: true }).count()) throw new Error("Authority evidence still contains the removed hard-coded Control Assurance stage");
     await saveScreenshot(page, capture.name);
     await record(page, capture, "exact-authority-candidate-set");
-  } finally { await context.close(); }
+  } finally {
+    await context.close();
+  }
 }
 
 async function captureAuthorityForbidden() {
@@ -116,7 +160,9 @@ async function captureAuthorityForbidden() {
     if (await page.getByText("Data Protection Compliance Officer").count()) throw new Error("Forbidden authority state leaked candidate details");
     await saveScreenshot(page, capture.name);
     await record(page, capture, "permission-denied");
-  } finally { await context.close(); }
+  } finally {
+    await context.close();
+  }
 }
 
 async function openEvidenceCapture(page) {
@@ -151,47 +197,95 @@ async function captureEvidenceReviewAndReceipt() {
     const receiptCapture = { ...capture, name: "15-capture-receipt-light-1440x900" };
     await saveScreenshot(page, receiptCapture.name);
     await record(page, receiptCapture, "submission-receipt");
-  } finally { await context.close(); }
+  } finally {
+    await context.close();
+  }
 }
 
 async function captureCaptureNotFound() {
   const capture = { name: "24-capture-not-found-dark-1440x900", route: "#today", title: "Today", fixture: "capture-not-found", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
-  try { await openEvidenceCapture(page); await page.getByRole("heading", { name: "This request is no longer available" }).waitFor(); await saveScreenshot(page, capture.name); await record(page, capture, "not-found"); } finally { await context.close(); }
+  try {
+    await openEvidenceCapture(page);
+    await page.getByRole("heading", { name: "This request is no longer available" }).waitFor();
+    await saveScreenshot(page, capture.name);
+    await record(page, capture, "not-found");
+  } finally {
+    await context.close();
+  }
 }
 
 async function captureCaptureTerminal() {
   const capture = { name: "25-capture-expired-light-1440x900", route: "#today", title: "Today", fixture: "capture-terminal", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
-  try { await openEvidenceCapture(page); await page.getByRole("heading", { name: "This request has expired" }).waitFor(); if (await page.getByRole("button", { name: "Review and submit" }).count()) throw new Error("Expired request still exposed response submission"); await saveScreenshot(page, capture.name); await record(page, capture, "terminal-expired"); } finally { await context.close(); }
+  try {
+    await openEvidenceCapture(page);
+    await page.getByRole("heading", { name: "This request has expired" }).waitFor();
+    if (await page.getByRole("button", { name: "Review and submit" }).count()) throw new Error("Expired request still exposed response submission");
+    await saveScreenshot(page, capture.name);
+    await record(page, capture, "terminal-expired");
+  } finally {
+    await context.close();
+  }
 }
 
 async function captureCaptureConflict() {
   const capture = { name: "26-capture-conflict-light-1440x900", route: "#today", title: "Today", fixture: "capture-conflict", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
-    await openEvidenceCapture(page); await page.getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor(); await fillCapture(page); await page.getByRole("button", { name: "Review and submit" }).click(); await page.getByRole("button", { name: "Submit response" }).click();
+    await openEvidenceCapture(page);
+    await page.getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
+    await fillCapture(page);
+    await page.getByRole("button", { name: "Review and submit" }).click();
+    await page.getByRole("button", { name: "Submit response" }).click();
     await page.getByText("This request changed while you were working. Reload it before submitting. Your current entries remain on this screen.").waitFor();
-    await page.getByRole("button", { name: "Reload request" }).waitFor(); await saveScreenshot(page, capture.name); await record(page, capture, "optimistic-conflict");
-  } finally { await context.close(); }
+    await page.getByRole("button", { name: "Reload request" }).waitFor();
+    await saveScreenshot(page, capture.name);
+    await record(page, capture, "optimistic-conflict");
+  } finally {
+    await context.close();
+  }
 }
 
 async function captureMobileCaptureAndFocus() {
   const capture = { name: "28-capture-mobile-light-390x844", route: "#today", title: "Today", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true };
   const { context, page } = await openPage(capture);
-  try { const more = page.getByText("More actions", { exact: true }); if (await more.count()) await more.click(); await page.getByRole("button", { name: "Respond to evidence request" }).click(); await page.getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor(); await assertFocusInsideSheet(page, capture.name); await assertNoHorizontalOverflow(page, capture.name); await page.keyboard.press("Tab"); await assertFocusInsideSheet(page, capture.name); await saveScreenshot(page, capture.name); await record(page, capture, "mobile-focused-capture"); } finally { await context.close(); }
+  try {
+    const more = page.getByText("More actions", { exact: true });
+    if (await more.count()) await more.click();
+    await page.getByRole("button", { name: "Respond to evidence request" }).click();
+    await page.getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
+    await assertFocusInsideSheet(page, capture.name);
+    await assertNoHorizontalOverflow(page, capture.name);
+    await page.keyboard.press("Tab");
+    await assertFocusInsideSheet(page, capture.name);
+    await saveScreenshot(page, capture.name);
+    await record(page, capture, "mobile-focused-capture");
+  } finally {
+    await context.close();
+  }
 }
 
 async function captureZoomProxy() {
   const capture = { name: "16-today-light-200pct-zoom-proxy", route: "#today", title: "Today", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
-  try { await page.evaluate(() => { document.documentElement.style.zoom = "2"; }); await saveScreenshot(page, capture.name); await record(page, capture, "css-zoom-200pct-proxy"); await assertNoHorizontalOverflow(page, capture.name); } finally { await context.close(); }
+  try {
+    await page.evaluate(() => { document.documentElement.style.zoom = "2"; });
+    await saveScreenshot(page, capture.name);
+    await record(page, capture, "css-zoom-200pct-proxy");
+    await assertNoHorizontalOverflow(page, capture.name);
+  } finally {
+    await context.close();
+  }
 }
 
 async function captureFieldVisit() {
   const capture = { name: "29-field-visit-entry-light-390x844", route: "?capture_invite=field-agent-demo", title: "Verify ATM location after your visit", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true };
   const context = await browser.newContext({ viewport: capture.viewport, colorScheme: capture.theme, hasTouch: true, reducedMotion: "reduce", locale: "en-NG", timezoneId: "Africa/Lagos" });
-  await context.addInitScript(() => { localStorage.setItem("clearsight.theme", "light"); localStorage.setItem("clearsight.density", "comfortable"); });
+  await context.addInitScript(() => {
+    localStorage.setItem("clearsight.theme", "light");
+    localStorage.setItem("clearsight.density", "comfortable");
+  });
   const page = await context.newPage();
   try {
     await page.goto(`${baseURL}/?capture_invite=field-agent-demo`, { waitUntil: "networkidle" });
@@ -199,25 +293,30 @@ async function captureFieldVisit() {
     await page.getByRole("textbox", { name: "Email or phone number" }).fill("field.agent@example.com");
     await page.getByRole("button", { name: "Open request" }).click();
     await page.getByRole("heading", { name: capture.title }).waitFor();
-    if (await page.locator("input").filter({ has: page.getByText("12 Admiralty Way") }).count()) throw new Error("Field visit asks the agent to re-enter the known address");
-    if (await page.locator(".capture-field textarea").count() > 1) throw new Error("Field visit exposes more than one free-text field");
-    if (await page.locator(".capture-field textarea[required]").count()) throw new Error("Field visit requires free-text entry on the normal verification path");
+    await page.getByText("12 Admiralty Way, Lekki Phase 1, Lagos", { exact: true }).waitFor();
+    if (await page.getByRole("textbox", { name: /address/i }).count()) throw new Error("Field visit asks the agent to re-enter the known address");
+    const note = page.locator('textarea[aria-label="Anything the reviewer should know?"]');
+    if (await note.count() !== 1) throw new Error("Field visit does not expose exactly one optional exception note");
+    if (await note.isVisible()) throw new Error("Optional field-visit note is expanded on the normal happy path");
     await page.getByRole("radio", { name: "Yes" }).nth(0).check();
     await page.getByRole("radio", { name: "Yes" }).nth(1).check();
-    const photo = page.locator('input[type="file"]').first();
-    await photo.setInputFiles({ name: "atm-site.jpg", mimeType: "image/jpeg", buffer: Buffer.from("field-visit-photo") });
-    await page.getByText("atm-site.jpg").waitFor();
+    const sitePhoto = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
+    await page.getByLabel(/Site photo/).setInputFiles({ name: "atm-site.png", mimeType: "image/png", buffer: sitePhoto });
+    await page.getByText(/atm-site\.png/).waitFor();
+    const photoPreview = page.locator(".file-dropzone-preview");
+    await photoPreview.waitFor({ state: "visible" });
     await page.getByRole("button", { name: "Add signature" }).click();
     await page.getByRole("button", { name: "Type" }).click();
     await page.getByRole("textbox", { name: "Your name" }).fill("Amina Bello");
     await page.getByRole("button", { name: "Use signature" }).click();
     if (!(await page.getByRole("button", { name: "Review and submit" }).isEnabled())) throw new Error("Field visit is not ready after two confirmations, one photo and one signature");
+    await photoPreview.scrollIntoViewIfNeeded();
     await assertNoHorizontalOverflow(page, capture.name);
     await saveScreenshot(page, capture.name);
     await record(page, capture, "external-field-visit-entry");
     await page.getByRole("button", { name: "Review and submit" }).click();
     await page.getByRole("heading", { name: "Check your response" }).waitFor();
-    await page.getByText("Photo attached · atm-site.jpg").waitFor();
+    await page.getByText("Photo attached · atm-site.png").waitFor();
     await page.getByText("Signed", { exact: true }).waitFor();
     const reviewCapture = { ...capture, name: "30-field-visit-review-light-390x844" };
     await saveScreenshot(page, reviewCapture.name);
@@ -227,5 +326,23 @@ async function captureFieldVisit() {
     const receiptCapture = { ...capture, name: "31-field-visit-receipt-light-390x844" };
     await saveScreenshot(page, receiptCapture.name);
     await record(page, receiptCapture, "external-field-visit-receipt");
-  } finally { await context.close(); }
+  } finally {
+    await context.close();
+  }
+}
+
+async function captureImportSelection() {
+  const capture = { name: "32-import-dropzone-selected-light-1440x900", route: "#imports", title: "Imports", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const { context, page } = await openPage(capture);
+  try {
+    const purpose = page.getByRole("textbox", { name: "What should reviewers look for?" });
+    if ((await purpose.inputValue()) !== "") throw new Error("Document import still starts with a persisted template purpose");
+    await page.locator(".document-import-form .file-dropzone-input").setInputFiles({ name: "outsourcing-policy.pdf", mimeType: "application/pdf", buffer: Buffer.from("sample-policy") });
+    await page.getByText(/outsourcing-policy\.pdf/).waitFor();
+    await assertNoHorizontalOverflow(page, capture.name);
+    await saveScreenshot(page, capture.name);
+    await record(page, capture, "document-selected-before-import");
+  } finally {
+    await context.close();
+  }
 }

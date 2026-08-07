@@ -4,6 +4,9 @@ import { importDocument, loadDocumentImport, loadDocumentImports, reviewDocument
 import type { DocumentImport, DocumentImportSummary, DocumentProposal, ProposalStatus } from "../documentTypes";
 import { apiErrorKind } from "../http";
 import { EmptyState } from "./EmptyState";
+import { FileDropzone } from "./FileDropzone";
+
+const documentAccept = ".txt,.md,.csv,.docx,.xlsx,.pdf,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 export function DocumentImportWorkspace() {
   const [documents, setDocuments] = useState<DocumentImportSummary[]>([]);
@@ -12,6 +15,7 @@ export function DocumentImportWorkspace() {
   const [uploading, setUploading] = useState(false);
   const [reviewingProposalID, setReviewingProposalID] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [purpose, setPurpose] = useState("");
   const [sourceType, setSourceType] = useState("DOCUMENT");
 
@@ -44,7 +48,7 @@ export function DocumentImportWorkspace() {
         setSelected(detail);
         setDocuments(summaries);
       } catch {
-        // Keep the last durable receipt visible. A later poll may recover.
+        // Preserve the last durable receipt. A later poll can recover.
       } finally {
         inFlight = false;
       }
@@ -58,10 +62,7 @@ export function DocumentImportWorkspace() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const input = form.elements.namedItem("document") as HTMLInputElement | null;
-    const file = input?.files?.[0];
-    if (!file) {
+    if (!pendingFile) {
       setError("Choose a document to import.");
       return;
     }
@@ -72,8 +73,8 @@ export function DocumentImportWorkspace() {
     setUploading(true);
     setError(null);
     try {
-      const created = await importDocument(file, purpose.trim(), sourceType);
-      form.reset();
+      const created = await importDocument(pendingFile, purpose.trim(), sourceType);
+      setPendingFile(null);
       setPurpose("");
       setSourceType("DOCUMENT");
       await refresh(created.id);
@@ -113,19 +114,39 @@ export function DocumentImportWorkspace() {
 
   return <section className="document-import-workspace" aria-labelledby="document-import-title">
     <div className="document-import-header">
-      <div><span className="eyebrow">Document import</span><h2 id="document-import-title">Import a document</h2><p>Store the original first. ClearSight processes supported content within bounded limits and shows source-anchored proposals for review before anything is accepted.</p></div>
-      <form className="document-import-form" onSubmit={submit}>
-        <label><span>Document</span><input name="document" type="file" accept=".txt,.md,.csv,.docx,.xlsx,.pdf,text/plain,text/markdown,text/csv,application/pdf" required disabled={uploading}/></label>
-        <label><span>What should reviewers look for?</span><input value={purpose} onChange={(event) => setPurpose(event.target.value)} placeholder="e.g. Changes affecting card operations" required disabled={uploading}/></label>
+      <div>
+        <span className="eyebrow">Document import</span>
+        <h2 id="document-import-title">Import a document</h2>
+        <p>Upload the original document. ClearSight will show processing status and any extracted proposals that need review.</p>
+      </div>
+      <form className="document-import-form" onSubmit={submit} noValidate>
+        <FileDropzone
+          label="Document"
+          description="Drop a supported document here or choose one from this device."
+          accept={documentAccept}
+          disabled={uploading}
+          busy={uploading}
+          actionLabel="Choose document"
+          fileName={pendingFile?.name}
+          fileSize={pendingFile?.size}
+          onSelect={setPendingFile}
+        />
+        <label><span>What should reviewers look for?</span><input value={purpose} onChange={(event) => setPurpose(event.target.value)} placeholder="e.g. Changes affecting card operations" aria-required="true" disabled={uploading}/></label>
         <label><span>Document type</span><select value={sourceType} onChange={(event) => setSourceType(event.target.value)} disabled={uploading}><option value="DOCUMENT">Internal document</option><option value="REGULATORY">Regulatory source</option><option value="POLICY">Policy or standard</option><option value="FINDING">Finding or report</option></select></label>
         <button className="primary-button" type="submit" disabled={uploading}>{uploading ? "Storing…" : "Import document"}</button>
       </form>
     </div>
     {error && <p className="error-text" role="alert">{error}</p>}
-    {state === "loading" ? <div className="workspace-loading" aria-live="polite">Loading imported documents…</div> : state === "unavailable" ? <EmptyState kind="unavailable" label="Document imports" title="Imported documents could not be loaded" description="Try again before relying on this list." action="Try again" onAction={() => void refresh()}/> : !documents.length ? <EmptyState label="Document imports" title="No documents imported" description="Import a TXT, Markdown, CSV, DOCX, XLSX or PDF document. PDFs are retained even when text extraction is not available."/> : <div className="document-import-layout">
-      <div className="document-import-list" aria-label="Imported documents">{documents.map((document) => <button key={document.id} type="button" disabled={Boolean(reviewingProposalID)} className={selected?.id === document.id ? "document-import-row active" : "document-import-row"} onClick={() => void choose(document.id)}><strong>{document.file_name}</strong><span>{summaryLabel(document)}</span><small>{new Date(document.created_at).toLocaleString()}</small></button>)}</div>
-      {selected && <DocumentInspector document={selected} reviewingProposalID={reviewingProposalID} onReview={review}/>} 
-    </div>}
+    {state === "loading"
+      ? <div className="workspace-loading" aria-live="polite">Loading imported documents…</div>
+      : state === "unavailable"
+        ? <EmptyState kind="unavailable" label="Document imports" title="Imported documents could not be loaded" description="Try again before relying on this list." action="Try again" onAction={() => void refresh()}/>
+        : !documents.length
+          ? <EmptyState label="Document imports" title="No documents imported" description="Import a TXT, Markdown, CSV, DOCX, XLSX or PDF document. PDFs are stored even when text extraction is unavailable."/>
+          : <div className="document-import-layout">
+              <div className="document-import-list" aria-label="Imported documents">{documents.map((document) => <button key={document.id} type="button" disabled={Boolean(reviewingProposalID)} className={selected?.id === document.id ? "document-import-row active" : "document-import-row"} onClick={() => void choose(document.id)}><strong>{document.file_name}</strong><span>{summaryLabel(document)}</span><small>{new Date(document.created_at).toLocaleString()}</small></button>)}</div>
+              {selected && <DocumentInspector document={selected} reviewingProposalID={reviewingProposalID} onReview={review}/>} 
+            </div>}
   </section>;
 }
 
@@ -137,16 +158,17 @@ function DocumentInspector({ document, reviewingProposalID, onReview }: { docume
   const sectionsOmitted = document.sections_omitted ?? 0;
   const contentTruncated = document.content_truncated ?? false;
   const terminalLabel = document.extraction_status === "FAILED" ? "Extraction failed" : document.extraction_status === "UNSUPPORTED" ? "Stored only" : pending.length ? `${pending.length} to review` : "No review pending";
+
   return <article className="document-import-inspector">
     <header><div><span className="eyebrow">{human(document.source_type)}</span><h2>{document.file_name}</h2><p>{document.purpose}</p></div><div className="document-state"><span>{human(document.extraction_status)}</span><strong>{processing ? "Processing stored source" : terminalLabel}</strong></div></header>
     <div className="import-review-summary" aria-label="Import review summary"><span><strong>{pending.length}</strong> to review</span><span><strong>{reviewed.length}</strong> reviewed</span><span><strong>{document.sections.length}</strong> of {sectionsTotal} source sections retained</span></div>
-    {processing && <section className="workspace-loading" aria-live="polite" aria-busy="true"><strong>Original stored successfully.</strong><p>Extraction and analysis are running as recoverable background work. This page will update when processing completes.</p></section>}
+    {processing && <section className="workspace-loading" aria-live="polite" aria-busy="true"><strong>Original stored successfully.</strong><p>Extraction and analysis are running in the background. This page will update when processing completes.</p></section>}
     {document.limitations.length > 0 && <section className="document-limitations"><h3>Important limitations</h3>{document.limitations.map((item) => <p key={item}>{item}</p>)}</section>}
     {!processing && <>
       <section><div className="section-header"><div><h3>Review required</h3><p>Accepting a proposal records your review. It does not by itself create or approve a requirement, control or conclusion.</p></div></div>{pending.length ? <div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview}/>)}</div> : <div className="calm-empty compact"><span>✓</span><div><strong>Nothing waiting for review</strong><p>{document.analysis_status === "UNAVAILABLE" ? "No review proposal is available from this source." : "Reviewed proposals remain available below."}</p></div></div>}</section>
       {reviewed.length > 0 && <details className="import-secondary"><summary><span>Reviewed proposals</span><strong>{reviewed.length}</strong></summary><div className="proposal-list">{reviewed.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} busy={false} locked={Boolean(reviewingProposalID)} onReview={onReview}/>)}</div></details>}
     </>}
-    <details className="import-secondary"><summary><span>Original source details</span><strong>{document.sections.length} retained</strong></summary><div><dl className="document-metadata"><div><dt>Original hash</dt><dd><code>{document.sha256}</code></dd></div><div><dt>File status</dt><dd>{human(document.artifact_status)}</dd></div><div><dt>Text extraction</dt><dd>{human(document.extraction_method)}</dd></div><div><dt>Completeness</dt><dd>{contentTruncated || sectionsOmitted ? `${sectionsOmitted} sections omitted; content bounded` : "Complete within configured extraction budgets"}</dd></div><div><dt>Version</dt><dd>{document.version}</dd></div></dl>{document.sections.length > 0 && <div className="document-sections">{document.sections.map((section) => <details key={section.id}><summary>{section.title}</summary><pre>{section.text}</pre></details>)}</div>}</div></details>
+    <details className="import-secondary"><summary><span>Original source details</span><strong>{document.sections.length} retained</strong></summary><div><dl className="document-metadata"><div><dt>Original hash</dt><dd><code>{document.sha256}</code></dd></div><div><dt>File status</dt><dd>{human(document.artifact_status)}</dd></div><div><dt>Text extraction</dt><dd>{human(document.extraction_method)}</dd></div><div><dt>Completeness</dt><dd>{contentTruncated || sectionsOmitted ? `${sectionsOmitted} sections omitted; content bounded` : "Complete within configured extraction limits"}</dd></div><div><dt>Version</dt><dd>{document.version}</dd></div></dl>{document.sections.length > 0 && <div className="document-sections">{document.sections.map((section) => <details key={section.id}><summary>{section.title}</summary><pre>{section.text}</pre></details>)}</div>}</div></details>
   </article>;
 }
 

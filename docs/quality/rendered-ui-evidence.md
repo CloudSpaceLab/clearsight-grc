@@ -25,30 +25,50 @@ The workflow is also triggered by backend read-contract changes that can alter w
 
 The capture suite prefers production components and realistic deterministic fixtures over hand-built visual mocks. Its artifact contains PNG renders plus `manifest.json` with the route, fixture, viewport, theme, density, active focus and layout metrics used for each capture.
 
-## UI foundation matrix
+## UI foundation and capture matrix
 
-The current foundation suite exercises 28 deterministic rendered states/interactions across:
+The current suite exercises **32 deterministic rendered states/interactions** across:
 
 - Today in light and dark themes;
 - comfortable and compact desktop density;
 - Program, Matter, Evidence, Imports and Configure workspaces;
 - tablet, 390px mobile and 320px reflow;
 - exact record-scoped authority resolution, including candidate-set semantics;
-- evidence response entry → exact assertion review → submission receipt;
+- evidence response entry → exact response review → submission receipt;
 - explicit Today empty, loading and service-unavailable states;
 - partial Evidence degradation where requests fail but source context remains reachable;
-- partial Configure degradation where one configuration source fails but other governed context remains visible;
+- partial Configure degradation where one configuration source fails but other context remains visible;
 - capability-constrained navigation where Configure is unavailable to the current role;
 - authority-inspection permission denial without candidate leakage;
 - evidence-request not-found and expired/read-only states;
 - optimistic submission conflict with an explicit reload route;
 - long translated-style/mobile content expansion;
 - focused mobile Capture with keyboard focus containment;
-- a 200% CSS-zoom proxy in addition to narrow reflow evidence.
+- a 200% CSS-zoom proxy in addition to narrow reflow evidence;
+- external field-agent ATM verification on a 390px phone: known address displayed read-only, two tap confirmations, one required photo, optional note, signature, review and receipt;
+- photo evidence preview before review;
+- document-import dropzone selection with filename/size visible and a blank user-authored purpose before the explicit import action.
 
-Mechanical checks fail CI for conditions such as unexpected horizontal overflow, browser runtime errors, loss of the first governed action from the unobstructed first viewport, focus escaping a focused-work sheet, authority-detail leakage in a forbidden state, terminal requests exposing submission actions, or partial-degradation views hiding the still-available context.
+Mechanical checks fail CI for conditions such as unexpected horizontal overflow, browser runtime errors, loss of the first Today action from the unobstructed first viewport, focus escaping a focused-work sheet, authority-detail leakage in a forbidden state, terminal requests exposing submission actions, degraded views hiding still-available context, external capture asking for a known address again, or a required field-agent happy path depending on free-text explanation.
 
-The suite deliberately uses a production-shaped readiness fixture with an **unknown/incomplete baseline** rather than inventing a complete governed denominator. Static fixture schemas for authority, projection health and reconciliation are test-locked to the current browser contracts.
+The suite deliberately uses production-shaped readiness and import fixtures rather than inventing stronger product truth. Static fixture schemas for authority, projection health, evidence capture and reconciliation are test-locked to the browser contracts they exercise.
+
+## Input and upload review
+
+Rendered review must inspect whether the chosen input is appropriate, not only whether it renders:
+
+- short factual answers use single-line controls;
+- explanations use textareas only when explanation is actually needed;
+- dates and numbers use their native typed controls;
+- small choice sets use touch-safe choices;
+- known request context is not re-entered;
+- photo evidence uses a prominent camera/drop/tap surface with immediate image preview;
+- document import uses a large dropzone because the document is the primary object, but selecting a file does not itself commit the import;
+- incidental attachments use a compact file surface rather than a large empty dropzone;
+- document metadata is shown before upload while visual previews are limited to formats the browser can truthfully preview;
+- multiple-file UI is not introduced unless the request contract explicitly permits multiple artifacts.
+
+A successful frontend upload interaction is not evidence integrity by itself. Server tests must independently verify that required photo/file/signature answers reference artifacts belonging to the exact request and satisfy the field's media contract.
 
 ## Why screenshots are reviewed, not blindly approved by pixel diff
 
@@ -60,24 +80,28 @@ A reviewer must inspect the actual PNGs, not only the successful workflow status
 
 1. Correct object, user and primary action.
 2. Accurate state, count, source, owner and deadline.
-3. Safe recovery and no misleading controls.
-4. Information hierarchy and scan speed.
-5. Responsive replacement.
-6. Keyboard, focus, semantics and contrast.
-7. Typography, spacing, assets and motion.
+3. Appropriate input method and minimum required effort.
+4. Safe recovery and no misleading controls.
+5. Information hierarchy and scan speed.
+6. Responsive replacement.
+7. Keyboard, focus, semantics and contrast.
+8. Typography, spacing, assets and motion.
 
-Fix the highest-impact failure first and re-check that evidence. Do not spend the first repair round polishing decoration while the workflow, copy or state is unclear.
+Fix the highest-impact failure first and re-check that evidence. Do not spend the first repair round polishing decoration while the workflow, copy, input or state is unclear.
 
 For qualitative review, explicitly ask:
 
 - Can the intended user state what this screen is for within a few seconds?
 - Is the dominant next action visible without reconstructing the workflow from several cards or sections?
+- Is the person typing only facts that the system does not already know?
+- Does each field use the easiest appropriate input method?
+- Is a file upload sized according to its importance to the task rather than shown as the same large control everywhere?
 - Does the screen distinguish current, unknown, stale, blocked, pending and verified states without relying on colour alone?
 - Are scope, owner, source, deadline and authority visible where they affect the decision?
 - Does mobile replace desktop composition rather than merely squeeze it?
 - Does light mode preserve the same hierarchy and semantic emphasis rather than becoming a recoloured dark screen?
 - Does compact density increase throughput without reducing comprehension or touch safety?
-- Is any illustration, panel, chip, border, gradient or explanatory copy consuming more attention than the governed work itself?
+- Is any illustration, panel, chip, border, gradient or explanatory copy consuming more attention than the actual work?
 
 ## State-gallery contract
 
@@ -92,3 +116,5 @@ Rendered evidence proves appearance and interaction for the tested fixtures. It 
 The UI foundation gate does **not** close the broader enterprise product experience. Governed decision/execution flows, full Configure builders, production Explore, notifications, enterprise identity/security surfaces, production illustration families and representative timed bank-user usability remain governed by their own implementation and release gates.
 
 A 200% CSS zoom capture is an automated approximation, not a substitute for browser/assistive-technology zoom testing. Final accessibility acceptance still requires actual rendered contrast, 200% browser zoom/reflow and representative assistive-technology review.
+
+The external field-visit fixture is designed around a three-minute interaction budget, but the product may not claim the under-four-minute target as proven until a representative human timed usability run confirms it.

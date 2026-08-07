@@ -16,22 +16,22 @@ type Props = {
 
 export function TodayInterventions({ items, connection, readiness, readinessState, onOpenItem, onInspectAuthority }: Props) {
   const heading = items.length === 1 ? "1 item needs your action" : `${items.length} items need your action`;
-  const title = connection === "loading" ? "Loading your work" : connection === "unavailable" ? "Your work is unavailable" : heading;
+  const title = connection === "loading" ? "Loading Today" : connection === "unavailable" ? "Today is unavailable" : heading;
 
   return <>
     <section className="intervention-brief" id="today-brief" aria-labelledby="intervention-heading">
       <header className="intervention-heading">
-        <div><span className="eyebrow">Your work</span><h2 id="intervention-heading">{title}</h2><p>Reviews, approvals and evidence requests currently assigned to you.</p></div>
+        <div><span className="eyebrow">Today</span><h2 id="intervention-heading">{title}</h2><p>Reviews, approvals and evidence requests assigned to you.</p></div>
       </header>
       {connection === "loading"
-        ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading your work…</div>
+        ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Today…</div>
         : connection === "unavailable"
-          ? <EmptyState kind="unavailable" label="Your work" title="Your work could not be loaded" description="Try again before relying on this list."/>
+          ? <EmptyState kind="unavailable" label="Today" title="Today could not be loaded" description="Try again before relying on this list."/>
           : items.length
             ? <div className="intervention-list" id="attention-list">{items.map((item) => <InterventionRow key={item.id} item={item} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>)}</div>
-            : <div id="attention-list"><EmptyState label="Your work" title="Nothing assigned right now" description="There are no open reviews, approvals or evidence requests assigned to you in this scope."/></div>}
+            : <div id="attention-list"><EmptyState label="Today" title="Nothing needs your action right now" description="There are no open reviews, approvals or evidence requests assigned to you in this scope."/></div>}
     </section>
-    <ContinuousChecks readiness={readiness} state={readinessState}/>
+    <StatusChecks readiness={readiness} state={readinessState}/>
   </>;
 }
 
@@ -60,7 +60,7 @@ function InterventionRow({ item, onOpen, onInspectAuthority }: { item: Attention
   </article>;
 }
 
-function ContinuousChecks({ readiness, state }: { readiness: Readiness | null; state: ReadinessState }) {
+function StatusChecks({ readiness, state }: { readiness: Readiness | null; state: ReadinessState }) {
   if (state === "loading") return <div className="continuous-checks quiet" aria-live="polite">Status checks are loading…</div>;
   if (state === "unavailable" || !readiness) return <div className="continuous-checks quiet"><strong>Status checks unavailable</strong><span>No readiness status is shown until the latest checks can be loaded.</span></div>;
   const dimensions = readiness.dimensions;

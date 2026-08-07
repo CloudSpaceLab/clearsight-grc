@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 
 type Props = {
-  value: string;
+  value?: string;
   label: string;
   attestation?: string;
-  onChange: (value: string) => void;
+  busy?: boolean;
+  onCapture: (file: File, previewUrl: string) => void;
 };
 
 type Mode = "draw" | "type";
 
-export function SignatureCapture({ value, label, attestation, onChange }: Props) {
+export function SignatureCapture({ value, label, attestation, busy = false, onCapture }: Props) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("draw");
   const [typedName, setTypedName] = useState("");
@@ -66,11 +67,16 @@ export function SignatureCapture({ value, label, attestation, onChange }: Props)
     canvas?.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
   }
 
+  function captureCanvas(canvas: HTMLCanvasElement) {
+    const previewUrl = canvas.toDataURL("image/png");
+    onCapture(dataURLFile(previewUrl, "signature.png"), previewUrl);
+    setOpen(false);
+  }
+
   function useDrawnSignature() {
     const canvas = canvasRef.current;
     if (!canvas || isCanvasBlank(canvas)) return;
-    onChange(canvas.toDataURL("image/png"));
-    setOpen(false);
+    captureCanvas(canvas);
   }
 
   function useTypedSignature() {
@@ -86,14 +92,13 @@ export function SignatureCapture({ value, label, attestation, onChange }: Props)
     context.font = "italic 54px Georgia, 'Times New Roman', serif";
     context.textBaseline = "middle";
     context.fillText(name, 28, canvas.height / 2, canvas.width - 56);
-    onChange(canvas.toDataURL("image/png"));
-    setOpen(false);
+    captureCanvas(canvas);
   }
 
   return <fieldset className="capture-field signature-field">
     <legend>{label}</legend>
     {attestation && <p className="field-help">{attestation}</p>}
-    {value ? <div className="signature-preview"><img src={value} alt="Your signature"/><div><strong>Signature added</strong><button type="button" className="text-button" onClick={() => setOpen(true)}>Change</button></div></div> : <button type="button" className="secondary-button signature-add" onClick={() => setOpen(true)}>Add signature</button>}
+    {value ? <div className="signature-preview"><img src={value} alt="Your signature"/><div><strong>{busy ? "Saving signature…" : "Signature added"}</strong><button type="button" className="text-button" disabled={busy} onClick={() => setOpen(true)}>Change</button></div></div> : <button type="button" className="secondary-button signature-add" disabled={busy} onClick={() => setOpen(true)}>{busy ? "Saving signature…" : "Add signature"}</button>}
     {open && <div className="signature-editor" role="dialog" aria-modal="false" aria-label={`Add ${label.toLowerCase()}`}>
       <div className="signature-mode" role="group" aria-label="Signature method"><button type="button" className={mode === "draw" ? "active" : ""} aria-pressed={mode === "draw"} onClick={() => setMode("draw")}>Draw</button><button type="button" className={mode === "type" ? "active" : ""} aria-pressed={mode === "type"} onClick={() => setMode("type")}>Type</button></div>
       {mode === "draw" ? <>
@@ -106,6 +111,14 @@ export function SignatureCapture({ value, label, attestation, onChange }: Props)
       </>}
     </div>}
   </fieldset>;
+}
+
+function dataURLFile(value: string, name: string) {
+  const encoded = value.split(",", 2)[1] ?? "";
+  const binary = atob(encoded);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return new File([bytes], name, { type: "image/png" });
 }
 
 function isCanvasBlank(canvas: HTMLCanvasElement) {
