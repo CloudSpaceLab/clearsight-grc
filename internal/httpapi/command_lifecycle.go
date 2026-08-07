@@ -59,6 +59,11 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, tenant, name string, p
 		policy.Materiality = materiality
 		return policy, nil
 
+	case "matter.response.add":
+		policy.Responsibility = authority.ResponsibilityProposer
+		policy.Materiality = 2
+		return policy, nil
+
 	case "matter.response.transition":
 		matterID := stringValue(payload["matter_id"])
 		responseID := stringValue(payload["response_id"])
