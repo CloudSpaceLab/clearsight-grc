@@ -15,6 +15,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
@@ -39,6 +40,7 @@ type Dependencies struct {
 	Onboarding       *onboarding.Service
 	Autonomy         *autonomy.Service
 	BankVerticals    *bankverticals.Service
+	BackgroundJobs   *operations.Service
 	MaxArtifactBytes int64
 }
 
