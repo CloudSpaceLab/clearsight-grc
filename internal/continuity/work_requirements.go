@@ -11,20 +11,23 @@ import (
 // action that is safe to project into Workflow. Canonical Matter state remains
 // the source of truth; this type only describes an executable next step.
 type WorkRequirement struct {
-	Key                 string
-	CommandName         string
-	TargetStatus        string
-	Responsibility      string
-	Materiality         int
-	Title               string
-	PrimaryAction       string
-	WhyNow              string
-	InterventionClass   string
-	SubresourceType     string
-	SubresourceID       string
-	DueAt               *time.Time
-	RequiredPrincipalID string
-	Verification        *WorkVerificationContext
+	Key                   string
+	CommandName           string
+	TargetStatus          string
+	AllowedTargets        []string
+	Responsibility        string
+	Materiality           int
+	Title                 string
+	PrimaryAction         string
+	WhyNow                string
+	InterventionClass     string
+	SubresourceType       string
+	SubresourceID         string
+	DueAt                 *time.Time
+	RequiredPrincipalID   string
+	SequenceRuleID        string
+	SequencePolicyVersion string
+	Verification          *WorkVerificationContext
 }
 
 type WorkVerificationContext struct {
@@ -35,12 +38,15 @@ type WorkVerificationContext struct {
 }
 
 type WorkAmbiguity struct {
-	Key             string
-	Title           string
-	Reason          string
-	SubresourceType string
-	SubresourceID   string
-	AllowedTargets  []string
+	Key              string
+	Title            string
+	Reason           string
+	CommandName      string
+	SubresourceType  string
+	SubresourceID    string
+	LifecycleState   string
+	LifecycleSubtype string
+	AllowedTargets   []string
 }
 
 type LifecyclePolicy struct {
@@ -98,7 +104,8 @@ func ResponseLifecyclePolicy(from, target ResponseStatus) (LifecyclePolicy, erro
 
 // CompileMatterWork derives only executable next steps that are unambiguous in
 // current canonical state. Ambiguous lifecycle branches are returned separately
-// so a projection can represent them as blocked without choosing an actor.
+// so governed routing policy may select the next responsibility without
+// inventing a substantive outcome.
 func CompileMatterWork(aggregate MatterAggregate, now time.Time) ([]WorkRequirement, []WorkAmbiguity) {
 	now = now.UTC()
 	if aggregate.Matter.Status == MatterClosed || aggregate.Matter.Status == MatterCancelled {
@@ -122,6 +129,7 @@ func CompileMatterWork(aggregate MatterAggregate, now time.Time) ([]WorkRequirem
 				Key:               "response:" + response.ID + ":" + string(target),
 				CommandName:       "matter.response.transition",
 				TargetStatus:      string(target),
+				AllowedTargets:    []string{string(target)},
 				Responsibility:    policy.Responsibility,
 				Materiality:       maxInt(policy.Materiality, priority),
 				Title:             firstNonBlank(response.Purpose, "External response"),
@@ -138,12 +146,15 @@ func CompileMatterWork(aggregate MatterAggregate, now time.Time) ([]WorkRequirem
 				values[index] = string(targets[index])
 			}
 			ambiguities = append(ambiguities, WorkAmbiguity{
-				Key:             "response:" + response.ID + ":branch",
-				Title:           firstNonBlank(response.Purpose, "External response"),
-				Reason:          "The response has more than one valid next transition; policy must select the next action before assignment.",
-				SubresourceType: "RESPONSE",
-				SubresourceID:   response.ID,
-				AllowedTargets:  values,
+				Key:              "response:" + response.ID + ":branch",
+				Title:            firstNonBlank(response.Purpose, "External response"),
+				Reason:           "The response has more than one valid next transition; routing policy must select the next responsibility before assignment.",
+				CommandName:      "matter.response.transition",
+				SubresourceType:  "RESPONSE",
+				SubresourceID:    response.ID,
+				LifecycleState:   string(response.Status),
+				LifecycleSubtype: response.Audience,
+				AllowedTargets:   values,
 			})
 		}
 	}
@@ -193,12 +204,15 @@ func CompileMatterWork(aggregate MatterAggregate, now time.Time) ([]WorkRequirem
 			values[index] = string(targets[index])
 		}
 		ambiguities = append(ambiguities, WorkAmbiguity{
-			Key:             "decision:" + decision.ID + ":branch",
-			Title:           firstNonBlank(decision.Type, "Decision"),
-			Reason:          "The decision has more than one valid next transition; state alone does not identify the next authorized action.",
-			SubresourceType: "DECISION",
-			SubresourceID:   decision.ID,
-			AllowedTargets:  values,
+			Key:              "decision:" + decision.ID + ":branch",
+			Title:            firstNonBlank(decision.Type, "Decision"),
+			Reason:           "The decision has more than one valid next transition; state alone does not identify the next authorized responsibility.",
+			CommandName:      "matter.decision.record",
+			SubresourceType:  "DECISION",
+			SubresourceID:    decision.ID,
+			LifecycleState:   string(decision.Status),
+			LifecycleSubtype: decision.Type,
+			AllowedTargets:   values,
 		})
 	}
 

@@ -15,6 +15,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 	"github.com/jackc/pgx/v5"
 )
@@ -25,6 +26,7 @@ type MatterLifecycleProjector struct {
 	Repo       *PostgresRepository
 	Continuity *continuity.Service
 	Authority  authority.Service
+	Sequence   governance.LifecycleSequenceResolver
 	Now        func() time.Time
 
 	cursorMu     sync.Mutex
@@ -51,10 +53,10 @@ func (p *MatterLifecycleProjector) Publish(ctx context.Context, event workflowru
 	return p.ReconcileMatter(ctx, event.TenantID, event.AggregateID, p.currentTime())
 }
 
-// Maintain reconciles only Matters that can currently yield executable
-// lifecycle work, plus Matters with an existing lifecycle projection that may
-// need reassignment or cleanup. Ambiguous compiler output does not create Task
-// rows and therefore does not turn Workflow into a shadow lifecycle register.
+// Maintain reconciles Matters that can currently yield lifecycle work, plus
+// Matters with an existing lifecycle projection that may need reassignment or
+// cleanup. Decision/Response candidates are included so routing-policy changes
+// converge even when the Matter itself did not emit a new event.
 func (p *MatterLifecycleProjector) Maintain(ctx context.Context, now time.Time, limit int) (int, error) {
 	if p == nil || p.Repo == nil || p.Continuity == nil || p.Authority == nil {
 		return 0, nil
@@ -87,7 +89,11 @@ func (p *MatterLifecycleProjector) Maintain(ctx context.Context, now time.Time, 
 		    OR EXISTS (
 		      SELECT 1 FROM response_packages rp
 		      WHERE rp.tenant_id=m.tenant_id AND rp.matter_id=m.id
-		        AND rp.status IN ('TRANSMITTED','REJECTED')
+		        AND rp.status <> 'ACKNOWLEDGED'
+		    )
+		    OR EXISTS (
+		      SELECT 1 FROM matter_decisions md
+		      WHERE md.tenant_id=m.tenant_id AND md.matter_id=m.id
 		    )
 		    OR EXISTS (
 		      SELECT 1
@@ -167,14 +173,38 @@ func (p *MatterLifecycleProjector) ReconcileMatter(ctx context.Context, tenant, 
 		}
 		return err
 	}
-	requirements, _ := continuity.CompileMatterWork(aggregate, at)
-	if len(requirements) == 0 {
+	requirements, ambiguities := continuity.CompileMatterWork(aggregate, at)
+	if len(requirements) == 0 && len(ambiguities) == 0 {
 		return p.completeMatterWorkflow(ctx, tenant, matterID, at)
 	}
 
 	legalEntity, legalEntityState, err := p.matterLegalEntity(ctx, tenant, matterID, at)
 	if err != nil {
 		return err
+	}
+	if len(ambiguities) > 0 && p.Sequence != nil && legalEntityState == "RESOLVED" {
+		choices := make([]continuity.WorkSequenceChoice, 0, len(ambiguities))
+		for _, ambiguity := range ambiguities {
+			resolution, resolveErr := p.Sequence.ResolveLifecycleSequence(ctx, governance.LifecycleSequenceInput{
+				TenantID: tenant, LegalEntityID: legalEntity, MatterID: matterID, MatterType: string(aggregate.Matter.Type),
+				CommandName: ambiguity.CommandName, LifecycleType: ambiguity.SubresourceType, LifecycleSubtype: ambiguity.LifecycleSubtype,
+				LifecycleState: ambiguity.LifecycleState, Materiality: aggregate.Matter.Priority, At: at,
+			})
+			switch {
+			case resolveErr == nil:
+				choices = append(choices, continuity.WorkSequenceChoice{AmbiguityKey: ambiguity.Key, Responsibility: resolution.Responsibility, RuleID: resolution.RuleID, PolicyVersion: resolution.PolicyVersion})
+			case errors.Is(resolveErr, governance.ErrNoLifecycleSequence):
+				continue
+			case errors.Is(resolveErr, governance.ErrAmbiguousLifecycleSequence):
+				return fmt.Errorf("resolve lifecycle sequence for %s: %w", ambiguity.Key, resolveErr)
+			default:
+				return fmt.Errorf("resolve lifecycle sequence for %s: %w", ambiguity.Key, resolveErr)
+			}
+		}
+		requirements, ambiguities = continuity.ApplyWorkSequenceChoices(aggregate, requirements, ambiguities, choices)
+	}
+	if len(requirements) == 0 {
+		return p.completeMatterWorkflow(ctx, tenant, matterID, at)
 	}
 
 	projected := make([]projectedMatterWork, 0, len(requirements))
@@ -266,12 +296,17 @@ func baseRequirementContext(aggregate continuity.MatterAggregate, requirement co
 		"work_requirement_key": requirement.Key,
 		"command_name":         requirement.CommandName,
 		"target_status":        requirement.TargetStatus,
+		"allowed_targets":      strings.Join(requirement.AllowedTargets, ","),
 		"subresource_type":     requirement.SubresourceType,
 		"subresource_id":       requirement.SubresourceID,
 		"decision_type":        requirement.CommandName,
 		"materiality":          strconv.Itoa(requirement.Materiality),
 		"scope":                firstMatterLabel(aggregate.Matter.Reference, aggregate.Matter.Title),
 		"evidence":             "Current governed record",
+	}
+	if requirement.SequenceRuleID != "" {
+		values["sequence_rule_id"] = requirement.SequenceRuleID
+		values["sequence_policy_version"] = requirement.SequencePolicyVersion
 	}
 	if requirement.Verification != nil {
 		values["verification_contract_id"] = requirement.Verification.ContractID

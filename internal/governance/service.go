@@ -77,7 +77,13 @@ func (s *Service) ApprovePolicy(ctx context.Context, input TransitionInput) (Rou
 	if input.ActorID == "" || input.ActorID == current.MakerID {
 		return RoutingPolicy{}, ErrMakerChecker
 	}
-	findings, err := s.repo.PolicyConflicts(ctx, current)
+	authorityDefinition, err := authorityOnlyPolicyDefinition(current.Definition)
+	if err != nil {
+		return RoutingPolicy{}, err
+	}
+	authorityPolicy := current
+	authorityPolicy.Definition = authorityDefinition
+	findings, err := s.repo.PolicyConflicts(ctx, authorityPolicy)
 	if err != nil {
 		return RoutingPolicy{}, err
 	}
@@ -251,18 +257,47 @@ func normalizeDefinition(value json.RawMessage) (json.RawMessage, string, error)
 	return json.RawMessage(compact.Bytes()), hex.EncodeToString(sum[:]), nil
 }
 
+func authorityOnlyPolicyDefinition(value json.RawMessage) (json.RawMessage, error) {
+	var definition struct {
+		Rules []json.RawMessage `json:"rules"`
+	}
+	if err := json.Unmarshal(value, &definition); err != nil {
+		return nil, fmt.Errorf("decode policy definition: %w", err)
+	}
+	authorityRules := make([]json.RawMessage, 0, len(definition.Rules))
+	for _, raw := range definition.Rules {
+		var rule struct {
+			LifecycleType  string `json:"lifecycle_type"`
+			LifecycleState string `json:"lifecycle_state"`
+		}
+		if err := json.Unmarshal(raw, &rule); err != nil {
+			return nil, fmt.Errorf("decode policy rule: %w", err)
+		}
+		if strings.TrimSpace(rule.LifecycleType) != "" || strings.TrimSpace(rule.LifecycleState) != "" {
+			continue
+		}
+		authorityRules = append(authorityRules, raw)
+	}
+	return json.Marshal(struct {
+		Rules []json.RawMessage `json:"rules"`
+	}{Rules: authorityRules})
+}
+
 func validatePolicyDefinition(value json.RawMessage) error {
 	var definition struct {
 		Rules []struct {
-			ID             string `json:"id"`
-			LegalEntityID  string `json:"legal_entity_id"`
-			ObjectType     string `json:"object_type"`
-			ObjectID       string `json:"object_id"`
-			Responsibility string `json:"responsibility"`
-			DecisionType   string `json:"decision_type"`
-			MinMateriality int    `json:"min_materiality"`
-			Priority       int    `json:"priority"`
-			Selector       struct {
+			ID               string `json:"id"`
+			LegalEntityID    string `json:"legal_entity_id"`
+			ObjectType       string `json:"object_type"`
+			ObjectID         string `json:"object_id"`
+			Responsibility   string `json:"responsibility"`
+			DecisionType     string `json:"decision_type"`
+			MinMateriality   int    `json:"min_materiality"`
+			Priority         int    `json:"priority"`
+			LifecycleType    string `json:"lifecycle_type"`
+			LifecycleSubtype string `json:"lifecycle_subtype"`
+			LifecycleState   string `json:"lifecycle_state"`
+			Selector         struct {
 				Kind string `json:"kind"`
 				Ref  string `json:"ref"`
 			} `json:"selector"`
@@ -291,19 +326,34 @@ func validatePolicyDefinition(value json.RawMessage) error {
 	seenRoutes := map[string]string{}
 	for _, rule := range definition.Rules {
 		kind := strings.ToUpper(strings.TrimSpace(rule.Selector.Kind))
+		selectorRef := strings.TrimSpace(rule.Selector.Ref)
 		responsibility := strings.ToUpper(strings.TrimSpace(rule.Responsibility))
-		if strings.TrimSpace(rule.ID) == "" || !allowedResponsibilities[responsibility] || !allowedSelectors[kind] || strings.TrimSpace(rule.Selector.Ref) == "" {
-			return fmt.Errorf("each policy rule requires a unique id, supported responsibility and supported selector")
+		if strings.TrimSpace(rule.ID) == "" || !allowedResponsibilities[responsibility] {
+			return fmt.Errorf("each policy rule requires a unique id and supported responsibility")
 		}
 		if rule.MinMateriality < 0 || rule.MinMateriality > 5 {
 			return fmt.Errorf("rule %s materiality must be between 0 and 5", rule.ID)
+		}
+		if err := validateLifecycleRuleDeclaration(rule.ID, rule.LifecycleType, rule.LifecycleState); err != nil {
+			return err
+		}
+		sequenceRule := strings.TrimSpace(rule.LifecycleType) != "" || strings.TrimSpace(rule.LifecycleState) != ""
+		if sequenceRule {
+			if kind != "" || selectorRef != "" {
+				return fmt.Errorf("lifecycle sequence rule %s must not define an actor selector", rule.ID)
+			}
+		} else if !allowedSelectors[kind] || selectorRef == "" {
+			return fmt.Errorf("authority routing rule %s requires a supported selector", rule.ID)
 		}
 		if _, ok := seenIDs[rule.ID]; ok {
 			return fmt.Errorf("duplicate policy rule id %s", rule.ID)
 		}
 		seenIDs[rule.ID] = struct{}{}
+		if sequenceRule {
+			continue
+		}
 		routeKey := strings.Join([]string{rule.LegalEntityID, rule.ObjectType, rule.ObjectID, responsibility, rule.DecisionType, fmt.Sprint(rule.MinMateriality), fmt.Sprint(rule.Priority)}, "|")
-		selectorKey := kind + ":" + rule.Selector.Ref
+		selectorKey := kind + ":" + selectorRef
 		if prior, ok := seenRoutes[routeKey]; ok && prior != selectorKey {
 			return fmt.Errorf("ambiguous policy rules share route priority with different selectors")
 		}
