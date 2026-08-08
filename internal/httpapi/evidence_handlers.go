@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 )
 
@@ -261,24 +262,42 @@ func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer file.Close()
-	tenant, requestID, createdBy := strings.TrimSpace(r.FormValue("tenant_id")), strings.TrimSpace(r.FormValue("request_id")), strings.TrimSpace(r.FormValue("created_by"))
-	if token := optionalBearerToken(r); token != "" {
+
+	tenant := strings.TrimSpace(r.FormValue("tenant_id"))
+	requestID := strings.TrimSpace(r.FormValue("request_id"))
+	createdBy := strings.TrimSpace(r.FormValue("created_by"))
+	sessionToken := ""
+	if actor, authenticated := identity.FromContext(r.Context()); authenticated {
+		if tenant != "" && tenant != actor.TenantID {
+			httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
+			return
+		}
+		tenant = actor.TenantID
+		createdBy = actor.PrincipalID
+	} else {
+		token := optionalBearerToken(r)
+		if token == "" {
+			httpx.WriteError(w, http.StatusUnauthorized, "session_required", "A capture session is required.")
+			return
+		}
 		session, request, sessionErr := service.SessionRequest(r.Context(), token)
 		if sessionErr != nil {
 			httpx.WriteError(w, http.StatusUnauthorized, "session_unavailable", "This capture session is unavailable.")
 			return
 		}
-		tenant, requestID = session.TenantID, request.ID
+		tenant, requestID, createdBy, sessionToken = session.TenantID, request.ID, "", token
 	}
 	if tenant == "" || requestID == "" {
 		httpx.WriteError(w, http.StatusBadRequest, "artifact_scope_required", "tenant_id and request_id are required.")
 		return
 	}
 	mediaType := multipartMediaType(header)
-	artifact, err := service.StoreArtifact(r.Context(), evidence.ArtifactInput{TenantID: tenant, RequestID: requestID, SubmissionID: strings.TrimSpace(r.FormValue("submission_id")), FileName: header.Filename, MediaType: mediaType, CreatedBy: createdBy}, file)
+	artifact, err := service.StoreArtifact(r.Context(), evidence.ArtifactInput{TenantID: tenant, RequestID: requestID, SubmissionID: strings.TrimSpace(r.FormValue("submission_id")), FileName: header.Filename, MediaType: mediaType, CreatedBy: createdBy, SessionToken: sessionToken}, file)
 	switch {
-	case errors.Is(err, evidence.ErrNotFound):
+	case errors.Is(err, evidence.ErrNotFound), errors.Is(err, evidence.ErrRecipientMismatch):
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
+	case errors.Is(err, evidence.ErrSessionInvalid):
+		httpx.WriteError(w, http.StatusUnauthorized, "session_unavailable", "This capture session is unavailable.")
 	case errors.Is(err, evidence.ErrRequestClosed):
 		httpx.WriteError(w, http.StatusConflict, "request_closed", "The request is no longer open for uploads.")
 	case errors.Is(err, evidence.ErrArtifactTooLarge):
