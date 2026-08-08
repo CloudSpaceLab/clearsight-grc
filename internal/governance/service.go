@@ -77,7 +77,13 @@ func (s *Service) ApprovePolicy(ctx context.Context, input TransitionInput) (Rou
 	if input.ActorID == "" || input.ActorID == current.MakerID {
 		return RoutingPolicy{}, ErrMakerChecker
 	}
-	findings, err := s.repo.PolicyConflicts(ctx, current)
+	authorityDefinition, err := authorityOnlyPolicyDefinition(current.Definition)
+	if err != nil {
+		return RoutingPolicy{}, err
+	}
+	authorityPolicy := current
+	authorityPolicy.Definition = authorityDefinition
+	findings, err := s.repo.PolicyConflicts(ctx, authorityPolicy)
 	if err != nil {
 		return RoutingPolicy{}, err
 	}
@@ -249,6 +255,32 @@ func normalizeDefinition(value json.RawMessage) (json.RawMessage, string, error)
 	}
 	sum := sha256.Sum256(compact.Bytes())
 	return json.RawMessage(compact.Bytes()), hex.EncodeToString(sum[:]), nil
+}
+
+func authorityOnlyPolicyDefinition(value json.RawMessage) (json.RawMessage, error) {
+	var definition struct {
+		Rules []json.RawMessage `json:"rules"`
+	}
+	if err := json.Unmarshal(value, &definition); err != nil {
+		return nil, fmt.Errorf("decode policy definition: %w", err)
+	}
+	authorityRules := make([]json.RawMessage, 0, len(definition.Rules))
+	for _, raw := range definition.Rules {
+		var rule struct {
+			LifecycleType  string `json:"lifecycle_type"`
+			LifecycleState string `json:"lifecycle_state"`
+		}
+		if err := json.Unmarshal(raw, &rule); err != nil {
+			return nil, fmt.Errorf("decode policy rule: %w", err)
+		}
+		if strings.TrimSpace(rule.LifecycleType) != "" || strings.TrimSpace(rule.LifecycleState) != "" {
+			continue
+		}
+		authorityRules = append(authorityRules, raw)
+	}
+	return json.Marshal(struct {
+		Rules []json.RawMessage `json:"rules"`
+	}{Rules: authorityRules})
 }
 
 func validatePolicyDefinition(value json.RawMessage) error {
