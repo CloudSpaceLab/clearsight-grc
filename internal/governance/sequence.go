@@ -19,6 +19,7 @@ var (
 type LifecycleSequenceInput struct {
 	TenantID         string
 	LegalEntityID    string
+	LegalEntityCode  string
 	MatterID         string
 	MatterType       string
 	CommandName      string
@@ -136,11 +137,8 @@ func matchLifecycleSequenceRule(policy RoutingPolicy, rule lifecycleSequenceRule
 	if lifecycleType == "" && lifecycleState == "" {
 		return lifecycleSequenceCandidate{}, false, nil
 	}
-	if lifecycleType == "" || lifecycleState == "" {
-		return lifecycleSequenceCandidate{}, false, fmt.Errorf("routing policy %s rule %s must declare both lifecycle_type and lifecycle_state", policy.Code, rule.ID)
-	}
-	if lifecycleType != "DECISION" && lifecycleType != "RESPONSE" {
-		return lifecycleSequenceCandidate{}, false, fmt.Errorf("routing policy %s rule %s has unsupported lifecycle_type %s", policy.Code, rule.ID, lifecycleType)
+	if err := validateLifecycleRuleDeclaration(rule.ID, lifecycleType, lifecycleState); err != nil {
+		return lifecycleSequenceCandidate{}, false, fmt.Errorf("routing policy %s: %w", policy.Code, err)
 	}
 	if lifecycleType != strings.ToUpper(input.LifecycleType) || lifecycleState != strings.ToUpper(input.LifecycleState) {
 		return lifecycleSequenceCandidate{}, false, nil
@@ -152,7 +150,7 @@ func matchLifecycleSequenceRule(policy RoutingPolicy, rule lifecycleSequenceRule
 	if rule.MinMateriality > input.Materiality {
 		return lifecycleSequenceCandidate{}, false, nil
 	}
-	if !wildcardMatch(rule.LegalEntityID, input.LegalEntityID) || !wildcardMatch(rule.ObjectType, "MATTER") || !wildcardMatch(rule.ObjectID, input.MatterID) {
+	if !legalEntityMatch(rule.LegalEntityID, input.LegalEntityID, input.LegalEntityCode) || !wildcardMatch(rule.ObjectType, "MATTER") || !wildcardMatch(rule.ObjectID, input.MatterID) {
 		return lifecycleSequenceCandidate{}, false, nil
 	}
 	if strings.TrimSpace(rule.DecisionType) != "" && !strings.EqualFold(strings.TrimSpace(rule.DecisionType), input.CommandName) {
@@ -186,6 +184,21 @@ func matchLifecycleSequenceRule(policy RoutingPolicy, rule lifecycleSequenceRule
 	}, true, nil
 }
 
+func validateLifecycleRuleDeclaration(ruleID, lifecycleType, lifecycleState string) error {
+	lifecycleType = strings.ToUpper(strings.TrimSpace(lifecycleType))
+	lifecycleState = strings.ToUpper(strings.TrimSpace(lifecycleState))
+	if lifecycleType == "" && lifecycleState == "" {
+		return nil
+	}
+	if lifecycleType == "" || lifecycleState == "" {
+		return fmt.Errorf("rule %s must declare both lifecycle_type and lifecycle_state", ruleID)
+	}
+	if lifecycleType != "DECISION" && lifecycleType != "RESPONSE" {
+		return fmt.Errorf("rule %s has unsupported lifecycle_type %s", ruleID, lifecycleType)
+	}
+	return nil
+}
+
 func validateLifecycleSequenceInput(input LifecycleSequenceInput) error {
 	if strings.TrimSpace(input.TenantID) == "" || strings.TrimSpace(input.MatterID) == "" || strings.TrimSpace(input.LifecycleType) == "" || strings.TrimSpace(input.LifecycleState) == "" {
 		return fmt.Errorf("tenant, matter, lifecycle type and lifecycle state are required")
@@ -201,6 +214,14 @@ func policyEffectiveAt(policy RoutingPolicy, at time.Time) bool {
 		return false
 	}
 	return policy.EffectiveUntil == nil || at.Before(policy.EffectiveUntil.UTC())
+}
+
+func legalEntityMatch(rule, id, code string) bool {
+	if isWildcard(rule) {
+		return true
+	}
+	rule = strings.TrimSpace(rule)
+	return strings.EqualFold(rule, strings.TrimSpace(id)) || strings.EqualFold(rule, strings.TrimSpace(code))
 }
 
 func wildcardMatch(rule, value string) bool {
