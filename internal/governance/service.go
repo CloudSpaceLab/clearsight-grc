@@ -294,9 +294,10 @@ func validatePolicyDefinition(value json.RawMessage) error {
 	seenRoutes := map[string]string{}
 	for _, rule := range definition.Rules {
 		kind := strings.ToUpper(strings.TrimSpace(rule.Selector.Kind))
+		selectorRef := strings.TrimSpace(rule.Selector.Ref)
 		responsibility := strings.ToUpper(strings.TrimSpace(rule.Responsibility))
-		if strings.TrimSpace(rule.ID) == "" || !allowedResponsibilities[responsibility] || !allowedSelectors[kind] || strings.TrimSpace(rule.Selector.Ref) == "" {
-			return fmt.Errorf("each policy rule requires a unique id, supported responsibility and supported selector")
+		if strings.TrimSpace(rule.ID) == "" || !allowedResponsibilities[responsibility] {
+			return fmt.Errorf("each policy rule requires a unique id and supported responsibility")
 		}
 		if rule.MinMateriality < 0 || rule.MinMateriality > 5 {
 			return fmt.Errorf("rule %s materiality must be between 0 and 5", rule.ID)
@@ -304,12 +305,23 @@ func validatePolicyDefinition(value json.RawMessage) error {
 		if err := validateLifecycleRuleDeclaration(rule.ID, rule.LifecycleType, rule.LifecycleState); err != nil {
 			return err
 		}
+		sequenceRule := strings.TrimSpace(rule.LifecycleType) != "" || strings.TrimSpace(rule.LifecycleState) != ""
+		if sequenceRule {
+			if kind != "" || selectorRef != "" {
+				return fmt.Errorf("lifecycle sequence rule %s must not define an actor selector", rule.ID)
+			}
+		} else if !allowedSelectors[kind] || selectorRef == "" {
+			return fmt.Errorf("authority routing rule %s requires a supported selector", rule.ID)
+		}
 		if _, ok := seenIDs[rule.ID]; ok {
 			return fmt.Errorf("duplicate policy rule id %s", rule.ID)
 		}
 		seenIDs[rule.ID] = struct{}{}
+		if sequenceRule {
+			continue
+		}
 		routeKey := strings.Join([]string{rule.LegalEntityID, rule.ObjectType, rule.ObjectID, responsibility, rule.DecisionType, fmt.Sprint(rule.MinMateriality), fmt.Sprint(rule.Priority)}, "|")
-		selectorKey := kind + ":" + rule.Selector.Ref
+		selectorKey := kind + ":" + selectorRef
 		if prior, ok := seenRoutes[routeKey]; ok && prior != selectorKey {
 			return fmt.Errorf("ambiguous policy rules share route priority with different selectors")
 		}
