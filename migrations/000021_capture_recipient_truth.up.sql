@@ -2,11 +2,13 @@ BEGIN;
 
 ALTER TABLE capture_requests
     ADD COLUMN recipient_type text,
-    ADD COLUMN recipient_principal_id uuid REFERENCES principals(id),
+    ADD COLUMN recipient_principal_id uuid,
     ADD COLUMN recipient_audience_hash bytea,
     ADD COLUMN recipient_hint text NOT NULL DEFAULT '';
 
 ALTER TABLE capture_requests
+    ADD CONSTRAINT capture_requests_recipient_tenant_fk
+        FOREIGN KEY (recipient_principal_id,tenant_id) REFERENCES principals(id,tenant_id),
     ADD CONSTRAINT capture_requests_recipient_shape_check CHECK (
         recipient_type IS NULL
         OR (
