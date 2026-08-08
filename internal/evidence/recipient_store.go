@@ -2,6 +2,10 @@ package evidence
 
 import "context"
 
+type SubjectAccessChecker interface {
+	CanReadSubject(context.Context, string, string, string, string) (bool, error)
+}
+
 type recipientStore interface {
 	CreateRequestWithRecipient(context.Context, Request) (Request, error)
 	GetRequestRecipient(context.Context, string, string) (Recipient, error)
@@ -27,4 +31,9 @@ func hydrateRequestRecipient(ctx context.Context, repo Repository, request Reque
 	}
 	request.Recipient = recipient
 	return request, nil
+}
+
+func cloneRecipient(value Recipient) Recipient {
+	value.AudienceHash = append([]byte(nil), value.AudienceHash...)
+	return value
 }
