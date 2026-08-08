@@ -40,6 +40,10 @@ type LifecycleSequenceResolver interface {
 	ResolveLifecycleSequence(context.Context, LifecycleSequenceInput) (LifecycleSequenceResolution, error)
 }
 
+type legalEntityAliasResolver interface {
+	ResolveLifecycleLegalEntity(context.Context, string, string, time.Time) (string, string, error)
+}
+
 type lifecycleSequenceRule struct {
 	ID               string `json:"id"`
 	LegalEntityID    string `json:"legal_entity_id"`
@@ -73,6 +77,22 @@ func (s *Service) ResolveLifecycleSequence(ctx context.Context, input LifecycleS
 	}
 	if err := validateLifecycleSequenceInput(input); err != nil {
 		return LifecycleSequenceResolution{}, err
+	}
+	if aliases, ok := s.repo.(legalEntityAliasResolver); ok {
+		ref := strings.TrimSpace(input.LegalEntityID)
+		if ref == "" {
+			ref = strings.TrimSpace(input.LegalEntityCode)
+		}
+		if ref != "" {
+			id, code, err := aliases.ResolveLifecycleLegalEntity(ctx, input.TenantID, ref, input.At)
+			if err != nil {
+				return LifecycleSequenceResolution{}, err
+			}
+			if id != "" {
+				input.LegalEntityID = id
+				input.LegalEntityCode = code
+			}
+		}
 	}
 	policies, err := s.repo.ListPolicies(ctx, input.TenantID)
 	if err != nil {
