@@ -217,6 +217,17 @@ func (s *Service) IssueInvitation(ctx context.Context, input IssueInvitationInpu
 	if !RequestManageableBy(request, input.CreatedBy) || !externalRecipientRequest(request) {
 		return IssuedInvitation{}, ErrRecipientMismatch
 	}
+	access, ok := s.repo.(SubjectAccessChecker)
+	if !ok {
+		return IssuedInvitation{}, fmt.Errorf("request manager access validation is unavailable")
+	}
+	allowed, err := access.CanReadSubject(ctx, request.TenantID, input.CreatedBy, request.SubjectType, request.SubjectID)
+	if err != nil {
+		return IssuedInvitation{}, err
+	}
+	if !allowed {
+		return IssuedInvitation{}, ErrRecipientMismatch
+	}
 	audience := normalizeAudience(input.Audience)
 	if audience == "" || strings.TrimSpace(input.Purpose) == "" {
 		return IssuedInvitation{}, fmt.Errorf("audience and purpose are required")
