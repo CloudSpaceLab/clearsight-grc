@@ -111,10 +111,5 @@ func nullableAudienceHash(recipient Recipient) any {
 	return recipient.AudienceHash
 }
 
-func cloneRecipient(value Recipient) Recipient {
-	value.AudienceHash = append([]byte(nil), value.AudienceHash...)
-	return value
-}
-
 var _ recipientStore = (*PostgresRepository)(nil)
 var _ internalRecipientDirectory = (*PostgresRepository)(nil)
