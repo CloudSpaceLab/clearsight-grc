@@ -128,8 +128,8 @@ type Request struct {
 	Status           RequestStatus     `json:"status"`
 	CreatedBy        string            `json:"created_by,omitempty"`
 	Version          int64             `json:"version"`
-	CreatedAt        time.Time          `json:"created_at"`
-	UpdatedAt        time.Time          `json:"updated_at"`
+	CreatedAt        time.Time         `json:"created_at"`
+	UpdatedAt        time.Time         `json:"updated_at"`
 }
 
 type CreateRequestInput struct {
