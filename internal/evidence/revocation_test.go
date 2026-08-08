@@ -17,12 +17,12 @@ func TestInvitationAndSessionRevocation(t *testing.T) {
 		TenantID: "bank", SubjectType: "VENDOR", SubjectID: "v", Title: "Provide evidence",
 		Purpose: "Complete assurance.", WhyYou: "You are the vendor contact.", Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR",
 		Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: audience}, EstimatedMinutes: 2,
-		Deadline: now.Add(time.Hour), Fields: []Field{{ID: "answer", Label: "Answer", Type: "text", Required: true}},
+		Deadline: now.Add(time.Hour), Fields: []Field{{ID: "answer", Label: "Answer", Type: "text", Required: true}}, CreatedBy: "creator",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	issued, err := service.IssueInvitation(context.Background(), IssueInvitationInput{TenantID: "bank", RequestID: request.ID, Audience: audience, Purpose: "Vendor response", TTLMinutes: 30})
+	issued, err := service.IssueInvitation(context.Background(), IssueInvitationInput{TenantID: "bank", RequestID: request.ID, Audience: audience, Purpose: "Vendor response", TTLMinutes: 30, CreatedBy: "creator"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +32,7 @@ func TestInvitationAndSessionRevocation(t *testing.T) {
 	if _, err := service.RedeemInvitation(context.Background(), issued.Token, audience); !errors.Is(err, ErrInvitationInvalid) {
 		t.Fatalf("expected revoked invitation rejection, got %v", err)
 	}
-	issued, err = service.IssueInvitation(context.Background(), IssueInvitationInput{TenantID: "bank", RequestID: request.ID, Audience: audience, Purpose: "Vendor response", TTLMinutes: 30})
+	issued, err = service.IssueInvitation(context.Background(), IssueInvitationInput{TenantID: "bank", RequestID: request.ID, Audience: audience, Purpose: "Vendor response", TTLMinutes: 30, CreatedBy: "creator"})
 	if err != nil {
 		t.Fatal(err)
 	}
