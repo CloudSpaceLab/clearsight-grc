@@ -6,10 +6,10 @@ import (
 )
 
 type WorkSequenceChoice struct {
-	AmbiguityKey string
+	AmbiguityKey   string
 	Responsibility string
-	RuleID string
-	PolicyVersion string
+	RuleID         string
+	PolicyVersion  string
 }
 
 // ApplyWorkSequenceChoices converts only policy-resolved ambiguities into
@@ -102,10 +102,14 @@ func sequenceRequirementKey(ambiguity WorkAmbiguity, responsibility string) stri
 func sequenceWorkCopy(subresourceType, responsibility string) (string, string) {
 	switch responsibility {
 	case "PROPOSER":
-		if subresourceType == "RESPONSE" { return "Prepare response", "EXTERNAL_REPRESENTATION" }
+		if subresourceType == "RESPONSE" {
+			return "Prepare response", "EXTERNAL_REPRESENTATION"
+		}
 		return "Prepare decision", "DECISION"
 	case "REVIEWER":
-		if subresourceType == "RESPONSE" { return "Review response", "REVIEW" }
+		if subresourceType == "RESPONSE" {
+			return "Review response", "REVIEW"
+		}
 		return "Review decision", "REVIEW"
 	case "INDEPENDENT_CHALLENGER":
 		return "Challenge decision", "REVIEW"
