@@ -35,7 +35,7 @@ func (r *PostgresRepository) ListVisibleRequests(ctx context.Context, tenant, pr
 							THEN EXISTS (
 								SELECT 1
 								FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') AS allowed(value)
-								WHERE btrim(allowed.value)=$2
+								WHERE btrim(allowed.value)=($2::uuid)::text
 							)
 							ELSE false
 						END
