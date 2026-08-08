@@ -214,7 +214,7 @@ func (s *Service) IssueInvitation(ctx context.Context, input IssueInvitationInpu
 	if !requestOpenAt(request, now) {
 		return IssuedInvitation{}, ErrRequestClosed
 	}
-	if !externalRecipientRequest(request) {
+	if !RequestManageableBy(request, input.CreatedBy) || !externalRecipientRequest(request) {
 		return IssuedInvitation{}, ErrRecipientMismatch
 	}
 	audience := normalizeAudience(input.Audience)
@@ -324,12 +324,15 @@ func (s *Service) StoreArtifact(ctx context.Context, input ArtifactInput, reader
 		return Artifact{}, fmt.Errorf("object store is unavailable")
 	}
 	now := s.now().UTC()
-	request, err := s.repo.GetRequest(ctx, input.TenantID, input.RequestID)
+	request, err := s.GetRequest(ctx, input.TenantID, input.RequestID)
 	if err != nil {
 		return Artifact{}, err
 	}
 	if !requestOpenAt(request, now) {
 		return Artifact{}, ErrRequestClosed
+	}
+	if err := s.authorizeArtifactUpload(ctx, request, input); err != nil {
+		return Artifact{}, err
 	}
 	fileName := filepath.Base(strings.TrimSpace(input.FileName))
 	mediaType := normalizeMediaType(input.MediaType)
@@ -352,6 +355,30 @@ func (s *Service) StoreArtifact(ctx context.Context, input ArtifactInput, reader
 		return Artifact{}, err
 	}
 	return created, nil
+}
+
+func (s *Service) authorizeArtifactUpload(ctx context.Context, request Request, input ArtifactInput) error {
+	switch request.Recipient.Type {
+	case RecipientInternalPrincipal:
+		if strings.TrimSpace(input.SessionToken) != "" || !RequestAssignedTo(request, input.CreatedBy) {
+			return ErrRecipientMismatch
+		}
+		return nil
+	case RecipientExternalAudience:
+		if strings.TrimSpace(input.CreatedBy) != "" || strings.TrimSpace(input.SessionToken) == "" {
+			return ErrRecipientMismatch
+		}
+		session, sessionRequest, err := s.SessionRequest(ctx, input.SessionToken)
+		if err != nil {
+			return ErrSessionInvalid
+		}
+		if session.TenantID != request.TenantID || session.RequestID != request.ID || sessionRequest.ID != request.ID {
+			return ErrSessionInvalid
+		}
+		return nil
+	default:
+		return ErrRecipientMismatch
+	}
 }
 
 func validateRequestInput(input CreateRequestInput) error {
