@@ -12,8 +12,8 @@ func TestResolveLifecycleSequenceSelectsResponsibilityNotOutcome(t *testing.T) {
 		Code: "DECISION-SEQ", Status: PolicyActive, CurrentVersion: 3,
 		EffectiveFrom: ptrSequenceTime(at.Add(-time.Hour)),
 		Definition: []byte(`{"rules":[
-			{"id":"generic-review","legal_entity_id":"*","object_type":"MATTER","object_id":"*","responsibility":"REVIEWER","decision_type":"matter.decision.record","min_materiality":0,"priority":10,"selector":{"kind":"ROLE","ref":"CONTROL_REVIEWER"},"lifecycle_type":"DECISION","lifecycle_state":"PROPOSED"},
-			{"id":"entity-review","legal_entity_id":"BANK-NG","object_type":"MATTER","object_id":"*","responsibility":"REVIEWER","decision_type":"matter.decision.record","min_materiality":2,"priority":10,"selector":{"kind":"ROLE","ref":"DPCO_REVIEWER"},"lifecycle_type":"DECISION","lifecycle_subtype":"PRIVACY_POSITION","lifecycle_state":"PROPOSED"}
+			{"id":"generic-review","legal_entity_id":"*","object_type":"MATTER","object_id":"*","responsibility":"REVIEWER","decision_type":"matter.decision.record","min_materiality":0,"priority":10,"lifecycle_type":"DECISION","lifecycle_state":"PROPOSED"},
+			{"id":"entity-review","legal_entity_id":"BANK-NG","object_type":"MATTER","object_id":"*","responsibility":"REVIEWER","decision_type":"matter.decision.record","min_materiality":2,"priority":10,"lifecycle_type":"DECISION","lifecycle_subtype":"PRIVACY_POSITION","lifecycle_state":"PROPOSED"}
 		]}`),
 	}}
 
@@ -34,7 +34,7 @@ func TestResolveLifecycleSequenceMatchesLegalEntityIDOrCode(t *testing.T) {
 	const entityID = "98888888-8888-7888-8888-888888888882"
 	policies := []RoutingPolicy{{
 		Code: "ENTITY-ID", Status: PolicyActive, CurrentVersion: 1,
-		Definition: []byte(`{"rules":[{"id":"review","legal_entity_id":"` + entityID + `","object_type":"MATTER","object_id":"*","responsibility":"REVIEWER","decision_type":"matter.decision.record","priority":10,"selector":{"kind":"ROLE","ref":"REVIEWER"},"lifecycle_type":"DECISION","lifecycle_state":"PROPOSED"}]}`),
+		Definition: []byte(`{"rules":[{"id":"review","legal_entity_id":"` + entityID + `","object_type":"MATTER","object_id":"*","responsibility":"REVIEWER","decision_type":"matter.decision.record","priority":10,"lifecycle_type":"DECISION","lifecycle_state":"PROPOSED"}]}`),
 	}}
 	resolution, err := resolveLifecycleSequence(policies, LifecycleSequenceInput{
 		TenantID: "bank", LegalEntityID: entityID, LegalEntityCode: "BANK-NG", MatterID: "matter-1",
@@ -50,8 +50,8 @@ func TestResolveLifecycleSequenceFailsClosedOnEqualRankDifferentResponsibilities
 	policies := []RoutingPolicy{{
 		Code: "AMBIG", Status: PolicyActive, CurrentVersion: 1,
 		Definition: []byte(`{"rules":[
-			{"id":"review","legal_entity_id":"*","object_type":"MATTER","object_id":"*","responsibility":"REVIEWER","priority":50,"selector":{"kind":"ROLE","ref":"REVIEWER"},"lifecycle_type":"DECISION","lifecycle_state":"PROPOSED"},
-			{"id":"challenge","legal_entity_id":"*","object_type":"MATTER","object_id":"*","responsibility":"INDEPENDENT_CHALLENGER","priority":50,"selector":{"kind":"ROLE","ref":"CHALLENGER"},"lifecycle_type":"DECISION","lifecycle_state":"PROPOSED"}
+			{"id":"review","legal_entity_id":"*","object_type":"MATTER","object_id":"*","responsibility":"REVIEWER","priority":50,"lifecycle_type":"DECISION","lifecycle_state":"PROPOSED"},
+			{"id":"challenge","legal_entity_id":"*","object_type":"MATTER","object_id":"*","responsibility":"INDEPENDENT_CHALLENGER","priority":50,"lifecycle_type":"DECISION","lifecycle_state":"PROPOSED"}
 		]}`),
 	}}
 	_, err := resolveLifecycleSequence(policies, LifecycleSequenceInput{TenantID: "bank", MatterID: "matter-1", LifecycleType: "DECISION", LifecycleState: "PROPOSED", Materiality: 3, At: at})
@@ -69,9 +69,23 @@ func TestResolveLifecycleSequenceIgnoresAuthorityOnlyRules(t *testing.T) {
 }
 
 func TestLifecycleSequenceDeclarationIsRejectedDuringPolicyValidation(t *testing.T) {
-	definition := []byte(`{"rules":[{"id":"bad","responsibility":"REVIEWER","selector":{"kind":"ROLE","ref":"REVIEWER"},"lifecycle_type":"DECISION"}]}`)
+	definition := []byte(`{"rules":[{"id":"bad","responsibility":"REVIEWER","lifecycle_type":"DECISION"}]}`)
 	if err := validatePolicyDefinition(definition); err == nil {
 		t.Fatal("partial lifecycle declaration passed routing-policy validation")
+	}
+}
+
+func TestLifecycleSequenceRuleRejectsActorSelector(t *testing.T) {
+	definition := []byte(`{"rules":[{"id":"bad","responsibility":"REVIEWER","selector":{"kind":"ROLE","ref":"REVIEWER"},"lifecycle_type":"DECISION","lifecycle_state":"PROPOSED"}]}`)
+	if err := validatePolicyDefinition(definition); err == nil {
+		t.Fatal("lifecycle sequence rule with actor selector passed policy validation")
+	}
+}
+
+func TestAuthorityRuleStillRequiresSelector(t *testing.T) {
+	definition := []byte(`{"rules":[{"id":"bad-authority","responsibility":"AUTHORIZER"}]}`)
+	if err := validatePolicyDefinition(definition); err == nil {
+		t.Fatal("ordinary authority rule without selector passed policy validation")
 	}
 }
 
