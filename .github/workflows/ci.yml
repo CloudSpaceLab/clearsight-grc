@@ -57,8 +57,13 @@ jobs:
         env:
           PGPASSWORD: clearsight
         run: |
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000019_schema_ownership_cleanup.down.sql
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000019_schema_ownership_cleanup.up.sql
+          latest_up="$(find migrations -maxdepth 1 -name '*.up.sql' -type f | sort | tail -n 1)"
+          test -n "$latest_up"
+          latest_down="${latest_up%.up.sql}.down.sql"
+          test -f "$latest_down"
+          echo "Rollback/reapply: $latest_up"
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$latest_down"
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$latest_up"
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.audit_events') IS NULL AND to_regclass('public.readiness_snapshots') IS NULL THEN 'ok' ELSE 'unexpected compatibility table' END" | grep -qx ok
       - name: PostgreSQL integration tests
         env:
