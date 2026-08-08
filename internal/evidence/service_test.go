@@ -93,12 +93,12 @@ func TestInvitationRedeemIsAudienceBoundOneTimeAndNonDestructiveOnMismatch(t *te
 		TenantID: "bank", SubjectType: "VENDOR", SubjectID: "v1", Title: "Provide current certificate",
 		Purpose: "Complete vendor assurance.", WhyYou: "You are the vendor contact.", Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR",
 		Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: "security@example.com"}, EstimatedMinutes: 3,
-		Deadline: now.Add(24 * time.Hour), Fields: []Field{{ID: "confirm", Label: "Certificate is current", Type: "single_select", Required: true, Options: []string{"Yes", "No"}}},
+		Deadline: now.Add(24 * time.Hour), Fields: []Field{{ID: "confirm", Label: "Certificate is current", Type: "single_select", Required: true, Options: []string{"Yes", "No"}}}, CreatedBy: "creator",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	issued, err := service.IssueInvitation(context.Background(), IssueInvitationInput{TenantID: "bank", RequestID: request.ID, Audience: "security@example.com", Purpose: "Vendor assurance response", TTLMinutes: 60})
+	issued, err := service.IssueInvitation(context.Background(), IssueInvitationInput{TenantID: "bank", RequestID: request.ID, Audience: "security@example.com", Purpose: "Vendor assurance response", TTLMinutes: 60, CreatedBy: "creator"})
 	if err != nil {
 		t.Fatal(err)
 	}
