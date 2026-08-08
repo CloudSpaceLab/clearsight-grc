@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -119,4 +118,3 @@ func cloneRecipient(value Recipient) Recipient {
 
 var _ recipientStore = (*PostgresRepository)(nil)
 var _ internalRecipientDirectory = (*PostgresRepository)(nil)
-var _ = time.Time{}
