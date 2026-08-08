@@ -116,6 +116,10 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 			return Request{}, ErrRecipientInvalid
 		}
 	}
+	store, err := recipientPersistence(s.repo)
+	if err != nil {
+		return Request{}, err
+	}
 	valueID, err := id.NewUUIDv7()
 	if err != nil {
 		return Request{}, err
@@ -125,7 +129,8 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if !deadline.After(now) {
 		return Request{}, fmt.Errorf("deadline must be in the future")
 	}
-	return s.repo.CreateRequest(ctx, Request{ID: valueID, TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: cloneFields(input.Fields), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now})
+	request := Request{ID: valueID, TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: cloneFields(input.Fields), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
+	return store.CreateRequestWithRecipient(ctx, request)
 }
 
 func (s *Service) ListRequests(ctx context.Context, tenant string, limit int) ([]Request, error) {
@@ -139,6 +144,11 @@ func (s *Service) ListRequests(ctx context.Context, tenant string, limit int) ([
 	now := s.now().UTC()
 	for index := range values {
 		values[index] = effectiveRequest(values[index], now)
+		withRecipient, hydrateErr := hydrateRequestRecipient(ctx, s.repo, values[index])
+		if hydrateErr != nil {
+			return nil, hydrateErr
+		}
+		values[index] = withRecipient
 	}
 	return values, nil
 }
@@ -151,11 +161,15 @@ func (s *Service) GetRequest(ctx context.Context, tenant, requestID string) (Req
 	if err != nil {
 		return Request{}, err
 	}
+	value, err = hydrateRequestRecipient(ctx, s.repo, value)
+	if err != nil {
+		return Request{}, err
+	}
 	return effectiveRequest(value, s.now().UTC()), nil
 }
 
 func (s *Service) Submit(ctx context.Context, submission Submission) (SubmissionReceipt, error) {
-	request, err := s.repo.GetRequest(ctx, submission.TenantID, submission.RequestID)
+	request, err := s.GetRequest(ctx, submission.TenantID, submission.RequestID)
 	if err != nil {
 		return SubmissionReceipt{}, err
 	}
@@ -192,7 +206,7 @@ func (s *Service) Submit(ctx context.Context, submission Submission) (Submission
 }
 
 func (s *Service) IssueInvitation(ctx context.Context, input IssueInvitationInput) (IssuedInvitation, error) {
-	request, err := s.repo.GetRequest(ctx, input.TenantID, input.RequestID)
+	request, err := s.GetRequest(ctx, input.TenantID, input.RequestID)
 	if err != nil {
 		return IssuedInvitation{}, err
 	}
@@ -259,7 +273,7 @@ func (s *Service) RedeemInvitation(ctx context.Context, token, audience string) 
 	if err != nil {
 		return RedeemedSession{}, ErrInvitationInvalid
 	}
-	request, err := s.repo.GetRequest(ctx, session.TenantID, session.RequestID)
+	request, err := s.GetRequest(ctx, session.TenantID, session.RequestID)
 	if err != nil || !externalAudienceMatches(request, audience) {
 		_ = s.repo.RevokeSession(ctx, session.TenantID, session.ID, now)
 		return RedeemedSession{}, ErrInvitationInvalid
@@ -273,7 +287,7 @@ func (s *Service) SessionRequest(ctx context.Context, sessionToken string) (Sess
 	if err != nil {
 		return Session{}, Request{}, ErrSessionInvalid
 	}
-	request, err := s.repo.GetRequest(ctx, session.TenantID, session.RequestID)
+	request, err := s.GetRequest(ctx, session.TenantID, session.RequestID)
 	if err != nil {
 		return Session{}, Request{}, err
 	}
