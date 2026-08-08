@@ -254,15 +254,18 @@ func normalizeDefinition(value json.RawMessage) (json.RawMessage, string, error)
 func validatePolicyDefinition(value json.RawMessage) error {
 	var definition struct {
 		Rules []struct {
-			ID             string `json:"id"`
-			LegalEntityID  string `json:"legal_entity_id"`
-			ObjectType     string `json:"object_type"`
-			ObjectID       string `json:"object_id"`
-			Responsibility string `json:"responsibility"`
-			DecisionType   string `json:"decision_type"`
-			MinMateriality int    `json:"min_materiality"`
-			Priority       int    `json:"priority"`
-			Selector       struct {
+			ID               string `json:"id"`
+			LegalEntityID    string `json:"legal_entity_id"`
+			ObjectType       string `json:"object_type"`
+			ObjectID         string `json:"object_id"`
+			Responsibility   string `json:"responsibility"`
+			DecisionType     string `json:"decision_type"`
+			MinMateriality   int    `json:"min_materiality"`
+			Priority         int    `json:"priority"`
+			LifecycleType    string `json:"lifecycle_type"`
+			LifecycleSubtype string `json:"lifecycle_subtype"`
+			LifecycleState   string `json:"lifecycle_state"`
+			Selector         struct {
 				Kind string `json:"kind"`
 				Ref  string `json:"ref"`
 			} `json:"selector"`
@@ -297,6 +300,9 @@ func validatePolicyDefinition(value json.RawMessage) error {
 		}
 		if rule.MinMateriality < 0 || rule.MinMateriality > 5 {
 			return fmt.Errorf("rule %s materiality must be between 0 and 5", rule.ID)
+		}
+		if err := validateLifecycleRuleDeclaration(rule.ID, rule.LifecycleType, rule.LifecycleState); err != nil {
+			return err
 		}
 		if _, ok := seenIDs[rule.ID]; ok {
 			return fmt.Errorf("duplicate policy rule id %s", rule.ID)
