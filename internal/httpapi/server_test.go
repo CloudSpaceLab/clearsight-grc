@@ -3,6 +3,7 @@ package httpapi
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -36,7 +37,8 @@ func testHandler() http.Handler {
 		external.WhyYou = "You are the designated external respondent."
 		external.Sensitivity = "CONFIDENTIAL"
 		external.AudienceType = "EXTERNAL"
-		external.Recipient = evidence.Recipient{Type: evidence.RecipientExternalAudience, AudienceHint: "m***@example.com"}
+		digest := sha256.Sum256([]byte("manager@example.com"))
+		external.Recipient = evidence.Recipient{Type: evidence.RecipientExternalAudience, AudienceHash: digest[:], AudienceHint: "m***@example.com"}
 		external.CreatedBy = "role-cro"
 		requests = append(requests, external)
 	}
