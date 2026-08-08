@@ -12,10 +12,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type legalEntityAliasResolver interface {
-	ResolveLifecycleLegalEntity(context.Context, string, string, time.Time) (string, string, error)
-}
-
 func (r *PostgresRepository) ResolveLifecycleLegalEntity(ctx context.Context, tenantID, ref string, at time.Time) (string, string, error) {
 	ref = strings.TrimSpace(ref)
 	if ref == "" {
