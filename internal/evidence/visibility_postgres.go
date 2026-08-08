@@ -15,19 +15,32 @@ func (r *PostgresRepository) ListVisibleRequests(ctx context.Context, tenant, pr
 		  AND er.recipient_principal_id=$2::uuid
 		  AND (
 			er.subject_type<>'MATTER' OR (
-				m.id IS NOT NULL AND (
-					NOT (m.scope ? 'access') OR
-					upper(COALESCE(m.scope->>'access','')) IN ('PUBLIC','INTERNAL') OR
-					(
-						upper(COALESCE(m.scope->>'access',''))='RESTRICTED' AND
-						jsonb_typeof(m.scope->'allowed_principal_ids')='array' AND
-						EXISTS (
-							SELECT 1
-							FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') allowed(principal_id)
-							WHERE allowed.principal_id=$2
-						)
-					)
-				)
+				m.id IS NOT NULL AND
+				CASE
+					WHEN NOT (m.scope ? 'access') THEN true
+					WHEN upper(btrim(COALESCE(m.scope->>'access',''))) IN ('PUBLIC','INTERNAL') THEN true
+					WHEN upper(btrim(COALESCE(m.scope->>'access','')))='RESTRICTED' THEN
+						CASE
+							WHEN jsonb_typeof(m.scope->'allowed_principal_ids')='array'
+							 AND NOT EXISTS (
+								SELECT 1
+								FROM jsonb_array_elements(m.scope->'allowed_principal_ids') AS entry(value)
+								WHERE jsonb_typeof(entry.value)<>'string'
+							 )
+							 AND EXISTS (
+								SELECT 1
+								FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') AS nonblank(value)
+								WHERE btrim(nonblank.value)<>''
+							 )
+							THEN EXISTS (
+								SELECT 1
+								FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') AS allowed(value)
+								WHERE btrim(allowed.value)=$2
+							)
+							ELSE false
+						END
+					ELSE false
+				END
 			)
 		  )
 		ORDER BY CASE er.status WHEN 'READY' THEN 0 WHEN 'IN_PROGRESS' THEN 1 ELSE 2 END,er.deadline,er.id
