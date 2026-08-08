@@ -1,6 +1,7 @@
 package governance
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -86,6 +87,28 @@ func TestAuthorityRuleStillRequiresSelector(t *testing.T) {
 	definition := []byte(`{"rules":[{"id":"bad-authority","responsibility":"AUTHORIZER"}]}`)
 	if err := validatePolicyDefinition(definition); err == nil {
 		t.Fatal("ordinary authority rule without selector passed policy validation")
+	}
+}
+
+func TestAuthorityOnlyPolicyDefinitionExcludesLifecycleSequenceRules(t *testing.T) {
+	definition := []byte(`{"rules":[
+		{"id":"sequence","responsibility":"REVIEWER","lifecycle_type":"DECISION","lifecycle_state":"PROPOSED"},
+		{"id":"authority","responsibility":"REVIEWER","selector":{"kind":"ROLE","ref":"REVIEWER"}}
+	]}`)
+	filtered, err := authorityOnlyPolicyDefinition(definition)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result struct {
+		Rules []struct {
+			ID string `json:"id"`
+		} `json:"rules"`
+	}
+	if err := json.Unmarshal(filtered, &result); err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Rules) != 1 || result.Rules[0].ID != "authority" {
+		t.Fatalf("selector conflict check still sees sequence rules: %s", filtered)
 	}
 }
 
