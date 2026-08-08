@@ -53,7 +53,10 @@ func TestMatterLifecycleProjectorRoutesPolicySelectedResponsibilityWithoutPredet
 	mustExecSequence(t, ctx, pool, `INSERT INTO matter_decisions(id,tenant_id,matter_id,decision_type,status,options,rationale,conditions,created_at,updated_at,version)
 		VALUES($1::uuid,$2::uuid,$3::uuid,'EXCEPTION_APPROVAL','PROPOSED','[]'::jsonb,'Await governed review','[]'::jsonb,$4,$4,1)`, decisionID, tenantID, matterID, now.Add(-30*time.Minute))
 
-	activateSequencePolicy(t, ctx, pool, tenantID, reviewPolicyID, reviewVersionID, "EXCEPTION-REVIEW", "review-gate", "REVIEWER", reviewerID, 50, now)
+	// The sequence rule deliberately stores the legal entity UUID while the
+	// lifecycle projector derives the canonical entity code. Governance must
+	// normalize both aliases before applying sequence policy.
+	activateSequencePolicy(t, ctx, pool, tenantID, entityID, reviewPolicyID, reviewVersionID, "EXCEPTION-REVIEW", "review-gate", "REVIEWER", reviewerID, 50, now)
 
 	repo := NewPostgresRepository(pool)
 	continuityService := continuity.NewService(continuity.NewCurrentPostgresRepository(pool))
@@ -87,7 +90,7 @@ func TestMatterLifecycleProjectorRoutesPolicySelectedResponsibilityWithoutPredet
 		t.Fatalf("sequence provenance missing from packet: %#v", packet.Context)
 	}
 
-	activateSequencePolicy(t, ctx, pool, tenantID, authorizerPolicyID, authorizerVersionID, "EXCEPTION-AUTH", "authorize-gate", "AUTHORIZER", authorizerID, 100, now.Add(time.Minute))
+	activateSequencePolicy(t, ctx, pool, tenantID, entityID, authorizerPolicyID, authorizerVersionID, "EXCEPTION-AUTH", "authorize-gate", "AUTHORIZER", authorizerID, 100, now.Add(time.Minute))
 	if err := projector.ReconcileMatter(ctx, "sequence-work-test", matterID, now.Add(time.Minute)); err != nil {
 		t.Fatal(err)
 	}
@@ -114,12 +117,12 @@ func TestMatterLifecycleProjectorRoutesPolicySelectedResponsibilityWithoutPredet
 	}
 }
 
-func activateSequencePolicy(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, policyID, versionID, code, ruleID, responsibility, principalID string, priority int, at time.Time) {
+func activateSequencePolicy(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, legalEntityRef, policyID, versionID, code, ruleID, responsibility, principalID string, priority int, at time.Time) {
 	t.Helper()
 	definition, err := json.Marshal(map[string]any{
 		"rules": []map[string]any{{
 			"id":                ruleID,
-			"legal_entity_id":   "BANK-NG",
+			"legal_entity_id":   legalEntityRef,
 			"object_type":       "MATTER",
 			"object_id":         "*",
 			"responsibility":    responsibility,
