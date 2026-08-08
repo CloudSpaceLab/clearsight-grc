@@ -178,7 +178,7 @@ func (s *Service) Submit(ctx context.Context, submission Submission) (Submission
 		return SubmissionReceipt{}, ErrRequestClosed
 	}
 	if strings.EqualFold(strings.TrimSpace(submission.Channel), "MAGIC_LINK") {
-		if request.AudienceType != "INVITED_EXTERNAL" || request.Recipient.Type != RecipientExternalAudience || strings.TrimSpace(submission.SessionID) == "" {
+		if !externalRecipientRequest(request) || strings.TrimSpace(submission.SessionID) == "" {
 			return SubmissionReceipt{}, ErrRecipientMismatch
 		}
 	} else {
@@ -214,7 +214,7 @@ func (s *Service) IssueInvitation(ctx context.Context, input IssueInvitationInpu
 	if !requestOpenAt(request, now) {
 		return IssuedInvitation{}, ErrRequestClosed
 	}
-	if request.AudienceType != "INVITED_EXTERNAL" || request.Recipient.Type != RecipientExternalAudience {
+	if !externalRecipientRequest(request) {
 		return IssuedInvitation{}, ErrRecipientMismatch
 	}
 	audience := normalizeAudience(input.Audience)
@@ -291,7 +291,7 @@ func (s *Service) SessionRequest(ctx context.Context, sessionToken string) (Sess
 	if err != nil {
 		return Session{}, Request{}, err
 	}
-	if !requestOpenAt(request, now) || request.AudienceType != "INVITED_EXTERNAL" || request.Recipient.Type != RecipientExternalAudience || request.Recipient.AudienceHint != session.AudienceHint {
+	if !requestOpenAt(request, now) || !externalRecipientRequest(request) || request.Recipient.AudienceHint != session.AudienceHint {
 		return Session{}, Request{}, ErrSessionInvalid
 	}
 	return session, request, nil
@@ -359,9 +359,9 @@ func validateRequestInput(input CreateRequestInput) error {
 		return fmt.Errorf("tenant, subject, title, purpose, recipient context, sensitivity and audience type are required")
 	}
 	switch input.AudienceType {
-	case "INTERNAL", "INVITED_EXTERNAL":
+	case "INTERNAL", "EXTERNAL", "CUSTOMER", "VENDOR", "AUTHORITY":
 	default:
-		return fmt.Errorf("audience_type must be INTERNAL or INVITED_EXTERNAL")
+		return fmt.Errorf("audience_type is invalid")
 	}
 	if input.Recipient.Type == "" {
 		return ErrRecipientRequired
