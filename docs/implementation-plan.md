@@ -1,13 +1,13 @@
 # ClearSight implementation ledger
 
-**Status date:** 2026-08-07  
+**Status date:** 2026-08-08  
 **P0 executable integrity:** PRs #25, #30 — complete  
 **P1 semantic/current-state correctness:** PRs #34–#39 — complete  
 **UI/UX foundation:** PR #31 — complete  
 **Simple capture/input closure:** PR #40 — complete  
 **P2 schema ownership / dead compatibility:** PRs #41, #42 — complete  
 **Today work-queue / Matter authority truth:** PR #43 — complete  
-**Lifecycle work-requirement compiler:** PR #45 — in progress  
+**Lifecycle work-requirement compiler:** PR #45 — complete  
 **Current execution issue:** #27  
 **Umbrella pilot/GA catalogue:** #13
 
@@ -57,51 +57,67 @@ This is the authoritative execution ledger. Product/design/architecture document
 - pre-limit terminal/unsupported/inaccessible filtering and deadline ordering;
 - canonical Action → Matter access/materiality joins for Today authority inspection.
 
-Closed foundation issues #26/#32/#33 and PRs #31/#40/#43 must not be recreated under new names or parallel frameworks.
+### #27.2a / PR #45
 
-## 2. Current work — #27.2a / PR #45
+- one shared Decision/Response lifecycle responsibility policy is used by command authorization and work compilation;
+- current Matter state compiles to non-authoritative `WorkRequirement` / `WorkAmbiguity` values;
+- deterministic Response transitions such as transmitted → acknowledgement and rejected → draft can become actor work;
+- active Verification Contracts become outcome-check work only after the observation period and only while no current result exists;
+- ambiguous Decision/Response branches remain **compiler ambiguity only** — no actor is guessed and no unusable Workflow Task is persisted;
+- current authority is resolved at projection time with Matter priority as materiality floor;
+- required/candidate actors must still be authority-eligible **and** able to read the Matter before a READY assignment exists;
+- delayed events resolve current authority rather than historical event-time authority;
+- Matter events project immediately through the existing outbox publisher;
+- a slower bounded maintainer reconciles restart/backfill and authority/delegation changes without another event/workflow stack;
+- reconciliation targets existing lifecycle projections, deterministic Response work and ready Verification Contracts rather than scanning every Matter;
+- migration `000020_workflow_projection_identity` gives deterministic `(tenant, kind, subject_type, subject_id)` Workflow identity;
+- no executable lifecycle work means no empty Workflow instance;
+- actor reads admit only `MATTER_ACTION` and `MATTER_LIFECYCLE`, with canonical Matter visibility enforced before limits and rechecked in Go;
+- Today can show real verification context through progressive disclosure without fabricating recommendation, prepared work or completion receipt;
+- external-representation work is labelled **External response**, not approval;
+- exact final head `e9af7743280a41e6d7ed41210fed334ba9793349` passed full CI run `31227792004` and 36-state UI evidence run `31227791999` before merge.
 
-**Goal:** extend actor work beyond Matter Actions only where current canonical state determines one safe executable next step.
+Closed foundation issues #26/#32/#33 and PRs #31/#40/#43/#45 must not be recreated under new names or parallel frameworks.
 
-Current PR contract:
+Detailed work-projection boundary: `docs/architecture/current-read-and-work-projection-boundary.md`.
 
-- [x] one shared Decision/Response lifecycle responsibility policy is used by command authorization and work compilation;
-- [x] current Matter state compiles to non-authoritative `WorkRequirement` / `WorkAmbiguity` values;
-- [x] deterministic Response transitions such as transmitted → acknowledgement and rejected → draft can become actor work;
-- [x] active Verification Contracts become outcome-check work only after the observation period and only while no current result exists;
-- [x] ambiguous Decision/Response branches remain **compiler ambiguity only** — no actor is guessed and no unusable Workflow Task is persisted;
-- [x] current authority is resolved at projection time with Matter priority as materiality floor;
-- [x] required/candidate actors must still be authority-eligible **and** able to read the Matter before a READY assignment exists;
-- [x] delayed events resolve current authority rather than historical event-time authority;
-- [x] Matter events project immediately through the existing outbox publisher;
-- [x] a slower bounded maintainer reconciles restart/backfill and authority/delegation changes without another event/workflow stack;
-- [x] reconciliation targets existing lifecycle projections, deterministic Response work and ready Verification Contracts rather than scanning every Matter;
-- [x] migration `000020_workflow_projection_identity` gives deterministic `(tenant, kind, subject_type, subject_id)` Workflow identity;
-- [x] no executable lifecycle work means no empty Workflow instance;
-- [x] actor reads admit only `MATTER_ACTION` and `MATTER_LIFECYCLE`, with canonical Matter visibility enforced before limits and rechecked in Go;
-- [x] Today can show real verification context through progressive disclosure without fabricating recommendation, prepared work or completion receipt;
-- [x] external-representation work is labelled **External response**, not approval;
-- [ ] final clean PR head must pass full CI plus the expanded **36-state** rendered evidence matrix before merge.
+## 2. Current work — #27.2b
 
-Detailed boundary: `docs/architecture/current-read-and-work-projection-boundary.md`.
+Two ownership gaps remain intentionally unresolved rather than guessed.
 
-## 3. Next — #27.2b
+### A. Policy-selected lifecycle branches
 
-Two ownership gaps remain intentionally unresolved rather than guessed:
+Decision and some Response states legitimately have several valid next transitions. State alone is not enough to choose one next actor/action.
 
-1. **Policy-selected lifecycle branches**
-   - define a governed, versioned selection contract for Decision/Response states with several valid next transitions;
-   - make selection authority-aware/auditable and invalidated by relevant state/policy changes;
-   - compile the selected branch through the existing `WorkRequirement → authority → Workflow` path.
+Required:
 
-2. **Evidence Request recipient contract**
-   - define canonical recipient/routing scope; `why_you`, `created_by` and invitation prose are not assignment truth;
-   - include delegation, conflict, expiry/revocation and protected-record visibility;
-   - only then project ordinary internal/external Evidence Requests into actor work.
+- define a canonical, versioned selection contract for an allowed lifecycle branch;
+- bind a selection to exact Matter/subresource/current version and transition;
+- record the selecting actor/policy and rationale;
+- require current authority for material selection/change;
+- invalidate or require re-evaluation when canonical lifecycle state, relevant authority/policy or scope materially changes;
+- keep unresolved branching visible as `WorkAmbiguity`, not a manufactured Task;
+- compile an accepted current selection through the existing `WorkRequirement → current authority → Workflow Task` path;
+- prove stale selection, replay, restart, reassignment, conflict, restricted-record and ambiguous-policy behavior in PostgreSQL.
 
-Both require PostgreSQL replay/restart/reassignment/restricted-record evidence before production Today exposure.
+Do not add a second lifecycle/state-machine/workflow framework merely to store branch choices.
 
-## 4. Later #27 sequence
+### B. Evidence Request recipient/routing truth
+
+The current Evidence Request model has secure invitations/capture, but descriptive values such as `why_you`, `created_by` and invitation prose are not assignment truth.
+
+Required before ordinary Evidence Requests enter production Today:
+
+- define canonical intended recipient/routing scope for internal and invited external requests;
+- distinguish person, position/role/group and external-address/capability targeting where applicable;
+- define delegation, redirect, wrong-recipient, insufficient-authority and conflict behavior;
+- define invitation expiry/revocation/replacement without leaking unrelated Matter context;
+- bind protected-record visibility before recipient projection and before queue limits;
+- converge identity/directory/delegation changes without duplicate requests or stale actor work;
+- keep Capture request/session as canonical request state and Workflow as rebuildable actor projection;
+- prove replay/restart/reassignment/revocation/restricted-record behavior in PostgreSQL and rendered mobile acceptance.
+
+## 3. Later #27 sequence
 
 After #27.2b:
 
@@ -111,7 +127,7 @@ After #27.2b:
 4. enterprise shell: production Explore/reconstruction, notifications, identity/session/step-up context;
 5. human-product acceptance: representative timed bank-user usability, real browser/assistive-technology validation and final responsive/asset closure.
 
-## 5. Canonical invariants
+## 4. Canonical invariants
 
 - Program = ongoing obligation/compliance continuity.
 - Matter = bounded change, exception, finding, decision, action, response or verification case.
@@ -128,7 +144,7 @@ After #27.2b:
 
 Do not add parallel authorization, task, event, worker, receipt, document or generic workflow stacks that duplicate these foundations.
 
-## 6. Current executable truth
+## 5. Current executable truth
 
 ### Route/access
 
@@ -177,7 +193,7 @@ stored original
 
 A stored artifact is not extracted content; extracted content is not exhaustive when truncation says otherwise; a proposal is not an approved conclusion.
 
-## 7. Release gates
+## 6. Release gates
 
 A tranche is not complete until relevant gates pass on its **exact final head**:
 
@@ -190,5 +206,7 @@ A tranche is not complete until relevant gates pass on its **exact final head**:
 - deterministic rendered UI evidence for user-facing changes;
 - adversarial identity/tenant/authority/replay/degraded-path tests;
 - representative query-count/performance/recovery evidence when cardinality or durability changes.
+
+The CI latest-migration rollback gate must discover the latest ordered `*.up.sql` migration dynamically; it must never be left hard-coded to an older migration number.
 
 Never claim a branch or PR is green from an older commit.
