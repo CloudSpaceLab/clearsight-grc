@@ -99,6 +99,23 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if err := validateFieldContracts(input.Fields); err != nil {
 		return Request{}, err
 	}
+	recipient, err := buildRecipient(ctx, s.repo, input.TenantID, input.AudienceType, input.Recipient)
+	if err != nil {
+		return Request{}, err
+	}
+	if recipient.Type == RecipientInternalPrincipal {
+		access, ok := s.repo.(SubjectAccessChecker)
+		if !ok {
+			return Request{}, fmt.Errorf("internal recipient access validation is unavailable")
+		}
+		allowed, err := access.CanReadSubject(ctx, input.TenantID, recipient.PrincipalID, input.SubjectType, input.SubjectID)
+		if err != nil {
+			return Request{}, err
+		}
+		if !allowed {
+			return Request{}, ErrRecipientInvalid
+		}
+	}
 	valueID, err := id.NewUUIDv7()
 	if err != nil {
 		return Request{}, err
@@ -108,7 +125,7 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if !deadline.After(now) {
 		return Request{}, fmt.Errorf("deadline must be in the future")
 	}
-	return s.repo.CreateRequest(ctx, Request{ID: valueID, TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: cloneFields(input.Fields), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now})
+	return s.repo.CreateRequest(ctx, Request{ID: valueID, TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: cloneFields(input.Fields), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now})
 }
 
 func (s *Service) ListRequests(ctx context.Context, tenant string, limit int) ([]Request, error) {
@@ -146,6 +163,18 @@ func (s *Service) Submit(ctx context.Context, submission Submission) (Submission
 	if !requestOpenAt(request, now) {
 		return SubmissionReceipt{}, ErrRequestClosed
 	}
+	if strings.EqualFold(strings.TrimSpace(submission.Channel), "MAGIC_LINK") {
+		if request.AudienceType != "INVITED_EXTERNAL" || request.Recipient.Type != RecipientExternalAudience || strings.TrimSpace(submission.SessionID) == "" {
+			return SubmissionReceipt{}, ErrRecipientMismatch
+		}
+	} else {
+		if strings.TrimSpace(submission.Channel) == "" {
+			submission.Channel = "INTERNAL"
+		}
+		if !internalSubmissionAllowed(request, submission) {
+			return SubmissionReceipt{}, ErrRecipientMismatch
+		}
+	}
 	if err := s.validateAnswers(ctx, request, submission.Answers); err != nil {
 		return SubmissionReceipt{}, err
 	}
@@ -157,9 +186,6 @@ func (s *Service) Submit(ctx context.Context, submission Submission) (Submission
 		return SubmissionReceipt{}, err
 	}
 	submission.ID = valueID
-	if strings.TrimSpace(submission.Channel) == "" {
-		submission.Channel = "INTERNAL"
-	}
 	submission.Answers = cloneMap(submission.Answers)
 	submission.SubmittedAt = now
 	return s.repo.Submit(ctx, submission)
@@ -174,9 +200,15 @@ func (s *Service) IssueInvitation(ctx context.Context, input IssueInvitationInpu
 	if !requestOpenAt(request, now) {
 		return IssuedInvitation{}, ErrRequestClosed
 	}
+	if request.AudienceType != "INVITED_EXTERNAL" || request.Recipient.Type != RecipientExternalAudience {
+		return IssuedInvitation{}, ErrRecipientMismatch
+	}
 	audience := normalizeAudience(input.Audience)
 	if audience == "" || strings.TrimSpace(input.Purpose) == "" {
 		return IssuedInvitation{}, fmt.Errorf("audience and purpose are required")
+	}
+	if !externalAudienceMatches(request, audience) {
+		return IssuedInvitation{}, ErrRecipientMismatch
 	}
 	ttl := input.TTL
 	if ttl <= 0 && input.TTLMinutes > 0 {
@@ -194,7 +226,7 @@ func (s *Service) IssueInvitation(ctx context.Context, input IssueInvitationInpu
 	if err != nil {
 		return IssuedInvitation{}, err
 	}
-	invitation := Invitation{ID: valueID, TenantID: input.TenantID, RequestID: input.RequestID, TokenHash: tokenHash, AudienceHash: audienceDigest[:], AudienceHint: audienceHint(audience), Purpose: input.Purpose, ExpiresAt: now.Add(ttl), MaxRedemptions: 1, CreatedBy: input.CreatedBy, CreatedAt: now}
+	invitation := Invitation{ID: valueID, TenantID: input.TenantID, RequestID: input.RequestID, TokenHash: tokenHash, AudienceHash: audienceDigest[:], AudienceHint: request.Recipient.AudienceHint, Purpose: input.Purpose, ExpiresAt: now.Add(ttl), MaxRedemptions: 1, CreatedBy: input.CreatedBy, CreatedAt: now}
 	if invitation.ExpiresAt.After(request.Deadline) {
 		invitation.ExpiresAt = request.Deadline
 	}
@@ -227,6 +259,11 @@ func (s *Service) RedeemInvitation(ctx context.Context, token, audience string) 
 	if err != nil {
 		return RedeemedSession{}, ErrInvitationInvalid
 	}
+	request, err := s.repo.GetRequest(ctx, session.TenantID, session.RequestID)
+	if err != nil || !externalAudienceMatches(request, audience) {
+		_ = s.repo.RevokeSession(ctx, session.TenantID, session.ID, now)
+		return RedeemedSession{}, ErrInvitationInvalid
+	}
 	return RedeemedSession{SessionID: session.ID, SessionToken: sessionToken, RequestID: session.RequestID, AudienceHint: session.AudienceHint, ExpiresAt: session.ExpiresAt}, nil
 }
 
@@ -240,7 +277,7 @@ func (s *Service) SessionRequest(ctx context.Context, sessionToken string) (Sess
 	if err != nil {
 		return Session{}, Request{}, err
 	}
-	if !requestOpenAt(request, now) {
+	if !requestOpenAt(request, now) || request.AudienceType != "INVITED_EXTERNAL" || request.Recipient.Type != RecipientExternalAudience || request.Recipient.AudienceHint != session.AudienceHint {
 		return Session{}, Request{}, ErrSessionInvalid
 	}
 	return session, request, nil
@@ -308,9 +345,12 @@ func validateRequestInput(input CreateRequestInput) error {
 		return fmt.Errorf("tenant, subject, title, purpose, recipient context, sensitivity and audience type are required")
 	}
 	switch input.AudienceType {
-	case "INTERNAL", "EXTERNAL", "CUSTOMER", "VENDOR", "AUTHORITY":
+	case "INTERNAL", "INVITED_EXTERNAL":
 	default:
-		return fmt.Errorf("audience_type is invalid")
+		return fmt.Errorf("audience_type must be INTERNAL or INVITED_EXTERNAL")
+	}
+	if input.Recipient.Type == "" {
+		return ErrRecipientRequired
 	}
 	if input.EstimatedMinutes < 1 || input.EstimatedMinutes > 60 || input.Deadline.IsZero() {
 		return fmt.Errorf("estimated_minutes must be 1-60 and deadline is required")
@@ -417,7 +457,7 @@ func DemoSources() []Source {
 
 func DemoRequests() []Request {
 	now := time.Now().UTC()
-	return []Request{{ID: "019fd333-3333-7333-8333-333333333333", TenantID: "bank-demo", SubjectType: "CONTROL", SubjectID: "branch-backup-power", Title: "Confirm branch backup-power condition", Purpose: "Complete the August resilience review for Enugu Main Branch.", WhyYou: "You are the current branch operations manager.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL", EstimatedMinutes: 2, Deadline: now.Add(48 * time.Hour), KnownFacts: map[string]string{"Branch": "Enugu Main Branch", "Last service": "18 Jul 2026", "Maintenance firm": "Northstar Engineering"}, Fields: []Field{{ID: "condition", Label: "Current generator condition", Type: "single_select", Required: true, Options: []string{"Operational", "Operational with concern", "Unavailable"}}, {ID: "concern", Label: "Concern or supporting note", Type: "text"}}, Status: RequestReady, Version: 1, CreatedAt: now, UpdatedAt: now}}
+	return []Request{{ID: "019fd333-3333-7333-8333-333333333333", TenantID: "bank-demo", SubjectType: "CONTROL", SubjectID: "branch-backup-power", Title: "Confirm branch backup-power condition", Purpose: "Complete the August resilience review for Enugu Main Branch.", WhyYou: "You are the current branch operations manager.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL", Recipient: Recipient{Type: RecipientInternalPrincipal, PrincipalID: "role-branch-manager"}, EstimatedMinutes: 2, Deadline: now.Add(48 * time.Hour), KnownFacts: map[string]string{"Branch": "Enugu Main Branch", "Last service": "18 Jul 2026", "Maintenance firm": "Northstar Engineering"}, Fields: []Field{{ID: "condition", Label: "Current generator condition", Type: "single_select", Required: true, Options: []string{"Operational", "Operational with concern", "Unavailable"}}, {ID: "concern", Label: "Concern or supporting note", Type: "text"}}, Status: RequestReady, Version: 1, CreatedAt: now, UpdatedAt: now}}
 }
 
 func sortSources(values []Source) {
