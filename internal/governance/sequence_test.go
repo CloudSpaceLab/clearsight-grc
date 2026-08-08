@@ -18,7 +18,7 @@ func TestResolveLifecycleSequenceSelectsResponsibilityNotOutcome(t *testing.T) {
 	}}
 
 	resolution, err := resolveLifecycleSequence(policies, LifecycleSequenceInput{
-		TenantID: "bank", LegalEntityID: "BANK-NG", MatterID: "matter-1", MatterType: "REGULATORY_CHANGE",
+		TenantID: "bank", LegalEntityCode: "BANK-NG", MatterID: "matter-1", MatterType: "REGULATORY_CHANGE",
 		CommandName: "matter.decision.record", LifecycleType: "DECISION", LifecycleSubtype: "PRIVACY_POSITION", LifecycleState: "PROPOSED", Materiality: 4, At: at,
 	})
 	if err != nil {
@@ -26,6 +26,22 @@ func TestResolveLifecycleSequenceSelectsResponsibilityNotOutcome(t *testing.T) {
 	}
 	if resolution.Responsibility != "REVIEWER" || resolution.RuleID != "DECISION-SEQ/entity-review" || resolution.PolicyVersion != "DECISION-SEQ:v3" {
 		t.Fatalf("unexpected sequence resolution: %#v", resolution)
+	}
+}
+
+func TestResolveLifecycleSequenceMatchesLegalEntityIDOrCode(t *testing.T) {
+	at := time.Date(2026, 8, 8, 12, 0, 0, 0, time.UTC)
+	const entityID = "98888888-8888-7888-8888-888888888882"
+	policies := []RoutingPolicy{{
+		Code: "ENTITY-ID", Status: PolicyActive, CurrentVersion: 1,
+		Definition: []byte(`{"rules":[{"id":"review","legal_entity_id":"` + entityID + `","object_type":"MATTER","object_id":"*","responsibility":"REVIEWER","decision_type":"matter.decision.record","priority":10,"selector":{"kind":"ROLE","ref":"REVIEWER"},"lifecycle_type":"DECISION","lifecycle_state":"PROPOSED"}]}`),
+	}}
+	resolution, err := resolveLifecycleSequence(policies, LifecycleSequenceInput{
+		TenantID: "bank", LegalEntityID: entityID, LegalEntityCode: "BANK-NG", MatterID: "matter-1",
+		CommandName: "matter.decision.record", LifecycleType: "DECISION", LifecycleState: "PROPOSED", Materiality: 3, At: at,
+	})
+	if err != nil || resolution.Responsibility != "REVIEWER" {
+		t.Fatalf("legal entity UUID alias did not match: %#v err=%v", resolution, err)
 	}
 }
 
@@ -52,11 +68,10 @@ func TestResolveLifecycleSequenceIgnoresAuthorityOnlyRules(t *testing.T) {
 	}
 }
 
-func TestResolveLifecycleSequenceRejectsPartialDeclaration(t *testing.T) {
-	policies := []RoutingPolicy{{Code: "BAD", Status: PolicyActive, CurrentVersion: 1, Definition: []byte(`{"rules":[{"id":"bad","responsibility":"REVIEWER","selector":{"kind":"ROLE","ref":"REVIEWER"},"lifecycle_type":"DECISION"}]}`)}}
-	_, err := resolveLifecycleSequence(policies, LifecycleSequenceInput{TenantID: "bank", MatterID: "matter-1", LifecycleType: "DECISION", LifecycleState: "PROPOSED", Materiality: 3, At: time.Now()})
-	if err == nil {
-		t.Fatal("expected malformed lifecycle declaration to fail closed")
+func TestLifecycleSequenceDeclarationIsRejectedDuringPolicyValidation(t *testing.T) {
+	definition := []byte(`{"rules":[{"id":"bad","responsibility":"REVIEWER","selector":{"kind":"ROLE","ref":"REVIEWER"},"lifecycle_type":"DECISION"}]}`)
+	if err := validatePolicyDefinition(definition); err == nil {
+		t.Fatal("partial lifecycle declaration passed routing-policy validation")
 	}
 }
 
