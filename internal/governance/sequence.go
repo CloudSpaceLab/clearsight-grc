@@ -56,6 +56,10 @@ type lifecycleSequenceRule struct {
 	LifecycleType    string `json:"lifecycle_type"`
 	LifecycleSubtype string `json:"lifecycle_subtype"`
 	LifecycleState   string `json:"lifecycle_state"`
+	Selector         struct {
+		Kind string `json:"kind"`
+		Ref  string `json:"ref"`
+	} `json:"selector"`
 }
 
 type lifecycleSequenceCandidate struct {
@@ -66,11 +70,11 @@ type lifecycleSequenceCandidate struct {
 	Specificity    int
 }
 
-// ResolveLifecycleSequence reads the already maker-checker-governed routing
-// policies. Only rules that explicitly declare lifecycle_type and
-// lifecycle_state participate in sequence selection; existing routing rules
-// remain authority-only. Sequence selection chooses the next responsibility,
-// never a substantive lifecycle outcome.
+// ResolveLifecycleSequence reads maker-checker-governed routing policies.
+// Selector-free rules that explicitly declare lifecycle_type and
+// lifecycle_state may select the next responsibility/gate. Ordinary routing
+// rules remain the only source of actor authority. Sequence selection never
+// chooses a substantive lifecycle outcome or principal.
 func (s *Service) ResolveLifecycleSequence(ctx context.Context, input LifecycleSequenceInput) (LifecycleSequenceResolution, error) {
 	if s == nil || s.repo == nil {
 		return LifecycleSequenceResolution{}, fmt.Errorf("governance service is unavailable")
@@ -159,6 +163,9 @@ func matchLifecycleSequenceRule(policy RoutingPolicy, rule lifecycleSequenceRule
 	}
 	if err := validateLifecycleRuleDeclaration(rule.ID, lifecycleType, lifecycleState); err != nil {
 		return lifecycleSequenceCandidate{}, false, fmt.Errorf("routing policy %s: %w", policy.Code, err)
+	}
+	if strings.TrimSpace(rule.Selector.Kind) != "" || strings.TrimSpace(rule.Selector.Ref) != "" {
+		return lifecycleSequenceCandidate{}, false, fmt.Errorf("routing policy %s lifecycle sequence rule %s must not define an actor selector", policy.Code, rule.ID)
 	}
 	if lifecycleType != strings.ToUpper(input.LifecycleType) || lifecycleState != strings.ToUpper(input.LifecycleState) {
 		return lifecycleSequenceCandidate{}, false, nil
