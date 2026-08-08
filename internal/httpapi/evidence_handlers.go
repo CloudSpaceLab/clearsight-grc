@@ -88,8 +88,15 @@ func (a *API) listEvidenceRequests(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	actor, authenticated := identity.FromContext(r.Context())
+	if !authenticated || actor.TenantID != tenant {
+		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence requests not found.")
+		return
+	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	values, err := service.ListRequests(r.Context(), tenant, limit)
+	values, err := service.ListManageableRequests(r.Context(), tenant, actor.PrincipalID, limit, func(value evidence.Request) bool {
+		return a.canReadEvidenceRequest(r.Context(), value)
+	})
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "requests_failed", "Evidence requests could not be loaded.")
 		return
