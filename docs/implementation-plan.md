@@ -8,7 +8,8 @@
 **P2 schema ownership / dead compatibility:** PRs #41, #42 — complete  
 **Today work-queue / Matter authority truth:** PR #43 — complete  
 **Deterministic lifecycle work compiler:** PR #45 — complete  
-**Governed lifecycle sequencing:** PR #46 — in progress  
+**Governed lifecycle sequencing:** PR #46 — complete  
+**Current execution:** #27.2b-B Evidence Request recipient truth  
 **Current execution issue:** #27  
 **Umbrella pilot/GA catalogue:** #13
 
@@ -48,39 +49,33 @@ Route-bound Matter authority, Matter-priority materiality floor, restricted-reco
 - Today admits supported `MATTER_ACTION` / `MATTER_LIFECYCLE` work without fabricating recommendation, prepared work, approval or verification receipts;
 - exact-head CI and 36-state rendered evidence passed before merge.
 
-Closed foundation issues #26/#32/#33 and completed PRs #31/#40/#43/#45 must not be recreated under new names or parallel frameworks.
+### #27.2b-A / PR #46
 
-## 2. Current work — #27.2b-A / PR #46
-
-**Goal:** resolve genuinely multi-branch Decision/Response handoffs without pre-deciding the human outcome.
-
-The key rule is:
-
-> Routing policy may select the next **responsibility/gate**. It may not select the substantive lifecycle outcome on behalf of that actor.
-
-Current PR contract:
-
-- [x] reuse existing maker-checker `RoutingPolicy`; no new policy/workflow table or public endpoint;
-- [x] lifecycle sequencing is opt-in through `lifecycle_type`, `lifecycle_state` and optional `lifecycle_subtype` rule metadata;
-- [x] authority-only rules remain authority-only;
-- [x] malformed lifecycle declarations fail ordinary RoutingPolicy validation before activation;
-- [x] sequence resolution selects responsibility with rule/policy provenance, never a principal or outcome;
-- [x] equal-ranked rules selecting different next responsibilities fail closed;
-- [x] legal-entity UUID/code aliases are normalized before sequence matching;
-- [x] the compiler keeps only currently legal transitions executable by the selected responsibility;
-- [x] multi-outcome packets preserve `allowed_targets` while leaving `target_status` empty;
-- [x] the existing authority engine still resolves the current actor/candidate set after responsibility selection;
-- [x] lifecycle metadata cannot introduce state-specific actor authority that bypasses existing selector-conflict checks;
-- [x] existing Matter visibility remains required before READY assignment;
-- [x] routing-policy changes converge through the existing bounded lifecycle reconciler without requiring a Matter event;
-- [x] PostgreSQL acceptance covers reviewer → authorizer policy convergence without a pre-decided outcome;
-- [ ] exact final PR head must pass full repository CI and baseline UI evidence before merge.
+- reuses existing maker-checker `RoutingPolicy`; no lifecycle-sequence table, event stack or public command surface;
+- lifecycle sequencing is opt-in through `lifecycle_type`, `lifecycle_state` and optional `lifecycle_subtype` metadata;
+- authority-only rules remain authority-only;
+- malformed lifecycle declarations fail ordinary RoutingPolicy validation before activation;
+- sequence policy selects the next **responsibility/gate**, never the substantive Decision/Response outcome;
+- equal-ranked rules selecting different next responsibilities fail closed;
+- legal-entity UUID/code aliases normalize before sequence matching;
+- the shared lifecycle policy derives only currently legal transitions executable by the selected responsibility;
+- multi-outcome packets retain `allowed_targets` while leaving `target_status` empty;
+- current authority still resolves the actor/candidate set after sequence selection;
+- lifecycle metadata cannot hide state-specific actor authority from existing route-selector conflict checks;
+- canonical Matter visibility remains required before READY assignment;
+- routing-policy changes converge through the existing bounded lifecycle reconciler without requiring a Matter event;
+- PostgreSQL acceptance proves reviewer → authorizer packet convergence without pre-deciding an outcome;
+- baseline CI and rendered UI evidence remain green.
 
 Focused boundary: `docs/architecture/lifecycle-work-sequencing.md`.
 
-## 3. Next — #27.2b-B Evidence Request recipient truth
+Closed foundation issues #26/#32/#33 and completed PRs #31/#40/#43/#45/#46 must not be recreated under new names or parallel frameworks.
+
+## 2. Current work — #27.2b-B Evidence Request recipient truth
 
 Ordinary Evidence Requests must not enter actor Today work from descriptive copy or invitation mechanics alone.
+
+`why_you`, `created_by` and invitation prose remain explicitly **not assignment truth**.
 
 Required:
 
@@ -91,21 +86,20 @@ Required:
 - [ ] bind protected-record visibility before recipient projection and before queue limits;
 - [ ] converge identity/directory/delegation changes without duplicate requests or stale actor work;
 - [ ] preserve Capture Request/session as canonical request state and Workflow as rebuildable actor projection;
-- [ ] prove replay/restart/reassignment/revocation/restricted-record behavior in PostgreSQL and rendered mobile acceptance.
+- [ ] prove replay/restart/reassignment/revocation/restricted-record behavior in PostgreSQL;
+- [ ] render mobile recipient/redirect/expiry/revocation states before production Today exposure.
 
-`why_you`, `created_by` and invitation prose remain explicitly **not assignment truth**.
-
-## 4. Later #27 sequence
+## 3. Later #27 sequence
 
 After #27.2b-B:
 
 1. operating Program/Work mutation UX, role-aware views and safe resume/delegate/recuse/escalate paths;
-2. Capture/Import lifecycle completion: provenance, wrong-recipient, draft/resume/amendment, invitation lifecycle, production scanning/quarantine/retry, governed multi-file requests, recurring mappings and canonical conversion;
+2. Capture/Import lifecycle completion: provenance, draft/resume/amendment, production scanning/quarantine/retry, governed multi-file requests, recurring mappings and canonical conversion;
 3. Configure productization: organization/identity, responsibility/authority matrices, routing/escalation, simulation, maker-checker, effective dating/rollback and security/notification policy;
 4. enterprise shell: production Explore/reconstruction, notifications, identity/session/step-up context;
 5. human-product acceptance: representative timed bank-user usability, real browser/assistive-technology validation and final responsive/asset closure.
 
-## 5. Canonical invariants
+## 4. Canonical invariants
 
 - Program = ongoing obligation/compliance continuity.
 - Matter = bounded change, exception, finding, decision, action, response or verification case.
@@ -119,12 +113,13 @@ After #27.2b-B:
 - WorkRequirement ≠ authoritative state.
 - WorkAmbiguity ≠ actor assignment.
 - Lifecycle sequence policy selects responsibility, **not outcome**.
-- Authority resolution selects current eligible actor after sequence selection.
+- Authority resolution selects the current eligible actor after sequence selection.
+- Evidence Request description/invitation ≠ recipient assignment.
 - Schema/spec existence ≠ capability.
 
 Do not add parallel authorization, task, event, worker, receipt, document or generic workflow stacks that duplicate these foundations.
 
-## 6. Current executable work truth
+## 5. Current executable work truth
 
 ```text
 canonical Matter state
@@ -142,7 +137,7 @@ canonical Matter state
 
 No sequence rule means no actor Task. Policy conflict means fail closed. A multi-outcome packet never writes the eventual Decision/Response state until the responsible actor executes an authoritative lifecycle command.
 
-## 7. Release gates
+## 6. Release gates
 
 A tranche is not complete until relevant gates pass on its **exact final head**:
 
