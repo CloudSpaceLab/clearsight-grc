@@ -52,7 +52,18 @@ func buildRecipient(ctx context.Context, repo Repository, tenant, audienceType s
 }
 
 func RequestAssignedTo(request Request, principalID string) bool {
-	return request.Recipient.Type == RecipientInternalPrincipal && strings.TrimSpace(principalID) != "" && request.Recipient.PrincipalID == strings.TrimSpace(principalID)
+	principalID = strings.TrimSpace(principalID)
+	return request.Recipient.Type == RecipientInternalPrincipal && principalID != "" && request.Recipient.PrincipalID == principalID
+}
+
+// RequestManageableBy is intentionally narrower than subject visibility. A
+// direct internal recipient may manage their request, while an external request
+// remains manageable by the verified creator who must issue/revoke capability
+// access and monitor completion. Legacy unassigned requests are never actor work
+// but remain manageable by their trusted creator.
+func RequestManageableBy(request Request, principalID string) bool {
+	principalID = strings.TrimSpace(principalID)
+	return principalID != "" && (RequestAssignedTo(request, principalID) || strings.TrimSpace(request.CreatedBy) == principalID)
 }
 
 func externalAudienceMatches(request Request, audience string) bool {
