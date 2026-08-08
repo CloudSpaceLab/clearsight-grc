@@ -17,6 +17,8 @@ import (
 const (
 	evidenceTenantID      = "33333333-3333-7333-8333-333333333331"
 	evidenceOtherTenantID = "33333333-3333-7333-8333-333333333332"
+	evidenceRequesterID   = "33333333-3333-7333-8333-333333333333"
+	evidenceRecipientID   = "33333333-3333-7333-8333-333333333334"
 )
 
 func TestEvidenceCapturePostgresContracts(t *testing.T) {
@@ -36,12 +38,17 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'evidence-bank','Evidence Bank'),($2::uuid,'other-bank','Other Bank')`, evidenceTenantID, evidenceOtherTenantID); err != nil {
 		t.Fatal(err)
 	}
+	now := time.Now().UTC().Truncate(time.Second)
+	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES
+		($1::uuid,$3::uuid,'PERSON','Evidence requester','ACTIVE',$4),
+		($2::uuid,$3::uuid,'PERSON','Evidence recipient','ACTIVE',$4)`, evidenceRequesterID, evidenceRecipientID, evidenceTenantID, now.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
 	store, err := evidence.NewLocalObjectStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
 	service := evidence.NewService(evidence.NewPostgresRepository(pool), store)
-	now := time.Now().UTC().Truncate(time.Second)
 
 	t.Run("source observations and freshness changes emit durable events", func(t *testing.T) {
 		source, err := service.CreateSource(ctx, evidence.CreateSourceInput{TenantID: "evidence-bank", Code: "IAM", Name: "Identity directory", Type: evidence.SourceSystem, AuthorityClass: "SYSTEM_OF_RECORD", ExpectedFreshnessMinutes: 30})
@@ -76,15 +83,15 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 		}
 	})
 
-	t.Run("request submission is tenant scoped and versioned", func(t *testing.T) {
-		request, err := createEvidenceRequest(ctx, service, now, "CONTROL", "control-1")
+	t.Run("request submission is tenant scoped recipient bound and versioned", func(t *testing.T) {
+		request, err := createInternalEvidenceRequest(ctx, service, now, "CONTROL", "control-1")
 		if err != nil {
 			t.Fatal(err)
 		}
 		if _, err := service.GetRequest(ctx, "other-bank", request.ID); !errors.Is(err, evidence.ErrNotFound) {
 			t.Fatalf("expected tenant-scoped not found, got %v", err)
 		}
-		receipt, err := service.Submit(ctx, evidence.Submission{TenantID: "evidence-bank", RequestID: request.ID, ExpectedVersion: request.Version, Answers: map[string]string{"state": "Operating"}})
+		receipt, err := service.Submit(ctx, evidence.Submission{TenantID: "evidence-bank", RequestID: request.ID, SubmittedBy: evidenceRecipientID, Channel: "INTERNAL", ExpectedVersion: request.Version, Answers: map[string]string{"state": "Operating"}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -103,13 +110,13 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 		}
 	})
 
-	t.Run("magic links are audience-bound hash-only one-time bounded and revocable", func(t *testing.T) {
-		request, err := createEvidenceRequest(ctx, service, now, "VENDOR", "vendor-1")
+	t.Run("magic links are canonical-audience-bound hash-only one-time bounded and revocable", func(t *testing.T) {
+		const audience = "security@example.com"
+		request, err := createExternalEvidenceRequest(ctx, service, now, "VENDOR", "vendor-1", audience)
 		if err != nil {
 			t.Fatal(err)
 		}
-		const audience = "security@example.com"
-		first, err := service.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "evidence-bank", RequestID: request.ID, Audience: audience, Purpose: "Vendor assurance response", TTLMinutes: 60})
+		first, err := service.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "evidence-bank", RequestID: request.ID, Audience: audience, Purpose: "Vendor assurance response", TTLMinutes: 60, CreatedBy: evidenceRequesterID})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -140,12 +147,12 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 			t.Fatalf("expected revoked session rejection, got %v", err)
 		}
 
-		cancelled, err := createEvidenceRequest(ctx, service, now, "VENDOR", "vendor-cancelled")
+		const cancelledAudience = "cancel@example.com"
+		cancelled, err := createExternalEvidenceRequest(ctx, service, now, "VENDOR", "vendor-cancelled", cancelledAudience)
 		if err != nil {
 			t.Fatal(err)
 		}
-		const cancelledAudience = "cancel@example.com"
-		issued, err := service.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "evidence-bank", RequestID: cancelled.ID, Audience: cancelledAudience, Purpose: "Cancelled response", TTLMinutes: 60})
+		issued, err := service.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "evidence-bank", RequestID: cancelled.ID, Audience: cancelledAudience, Purpose: "Cancelled response", TTLMinutes: 60, CreatedBy: evidenceRequesterID})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -158,7 +165,7 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 	})
 
 	t.Run("capture relationships reject cross-tenant rows", func(t *testing.T) {
-		request, err := createEvidenceRequest(ctx, service, now, "VENDOR", "vendor-tenant-integrity")
+		request, err := createExternalEvidenceRequest(ctx, service, now, "VENDOR", "vendor-tenant-integrity", "tenant@example.com")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -168,12 +175,12 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 		}
 	})
 
-	t.Run("artifact manifests preserve integrity and remain unscanned", func(t *testing.T) {
-		request, err := createEvidenceRequest(ctx, service, now, "CONTROL", "control-artifact")
+	t.Run("artifact manifests preserve integrity and require assigned internal recipient", func(t *testing.T) {
+		request, err := createInternalEvidenceRequest(ctx, service, now, "CONTROL", "control-artifact")
 		if err != nil {
 			t.Fatal(err)
 		}
-		artifact, err := service.StoreArtifact(ctx, evidence.ArtifactInput{TenantID: "evidence-bank", RequestID: request.ID, FileName: "control.txt", MediaType: "text/plain"}, bytes.NewBufferString("current control evidence"))
+		artifact, err := service.StoreArtifact(ctx, evidence.ArtifactInput{TenantID: "evidence-bank", RequestID: request.ID, FileName: "control.txt", MediaType: "text/plain", CreatedBy: evidenceRecipientID}, bytes.NewBufferString("current control evidence"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -190,6 +197,40 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 	})
 }
 
-func createEvidenceRequest(ctx context.Context, service *evidence.Service, now time.Time, subjectType, subjectID string) (evidence.Request, error) {
-	return service.CreateRequest(ctx, evidence.CreateRequestInput{TenantID: "evidence-bank", SubjectType: subjectType, SubjectID: subjectID, Title: "Confirm current evidence", Purpose: "Complete the current assurance review.", WhyYou: "You are the assigned evidence owner.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL", EstimatedMinutes: 2, Deadline: now.Add(24 * time.Hour), KnownFacts: map[string]string{"Scope": "Bank NG"}, Fields: []evidence.Field{{ID: "state", Label: "Current state", Type: "single_select", Required: true, Options: []string{"Operating", "Unavailable"}}}})
+func createInternalEvidenceRequest(ctx context.Context, service *evidence.Service, now time.Time, subjectType, subjectID string) (evidence.Request, error) {
+	return service.CreateRequest(ctx, evidence.CreateRequestInput{
+		TenantID:         "evidence-bank",
+		SubjectType:      subjectType,
+		SubjectID:        subjectID,
+		Title:            "Confirm current evidence",
+		Purpose:          "Complete the current assurance review.",
+		WhyYou:           "You are the assigned evidence owner.",
+		Sensitivity:      "INTERNAL",
+		AudienceType:     "INTERNAL",
+		Recipient:        evidence.RecipientInput{Type: evidence.RecipientInternalPrincipal, PrincipalID: evidenceRecipientID},
+		EstimatedMinutes: 2,
+		Deadline:         now.Add(24 * time.Hour),
+		KnownFacts:       map[string]string{"Scope": "Bank NG"},
+		Fields:           []evidence.Field{{ID: "state", Label: "Current state", Type: "single_select", Required: true, Options: []string{"Operating", "Unavailable"}}},
+		CreatedBy:        evidenceRequesterID,
+	})
+}
+
+func createExternalEvidenceRequest(ctx context.Context, service *evidence.Service, now time.Time, subjectType, subjectID, audience string) (evidence.Request, error) {
+	return service.CreateRequest(ctx, evidence.CreateRequestInput{
+		TenantID:         "evidence-bank",
+		SubjectType:      subjectType,
+		SubjectID:        subjectID,
+		Title:            "Confirm external evidence",
+		Purpose:          "Complete the current assurance review.",
+		WhyYou:           "You are the intended external respondent.",
+		Sensitivity:      "CONFIDENTIAL",
+		AudienceType:     "VENDOR",
+		Recipient:        evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: audience},
+		EstimatedMinutes: 2,
+		Deadline:         now.Add(24 * time.Hour),
+		KnownFacts:       map[string]string{"Scope": "Bank NG"},
+		Fields:           []evidence.Field{{ID: "state", Label: "Current state", Type: "single_select", Required: true, Options: []string{"Operating", "Unavailable"}}},
+		CreatedBy:        evidenceRequesterID,
+	})
 }

@@ -3,6 +3,7 @@ package httpapi
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -19,11 +20,29 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
 
+const demoExternalEvidenceRequestID = "019fd444-4444-7444-8444-444444444444"
+
 func testHandler() http.Handler {
 	version, rules := authority.DemoPolicySet()
 	auto := autonomy.NewService(autonomy.NewMemoryRepository())
 	autonomy.SeedDemo(context.Background(), auto)
-	evidenceService := evidence.NewService(evidence.NewMemoryRepository(evidence.DemoSources(), evidence.DemoRequests()), evidence.NewMemoryObjectStore())
+	requests := evidence.DemoRequests()
+	if len(requests) > 0 {
+		requests[0].Recipient = evidence.Recipient{Type: evidence.RecipientInternalPrincipal, PrincipalID: "role-cro"}
+		requests[0].CreatedBy = "role-cro"
+		external := requests[0]
+		external.ID = demoExternalEvidenceRequestID
+		external.Title = "Confirm external resilience response"
+		external.Purpose = "Collect one bounded response from the designated external contact."
+		external.WhyYou = "You are the designated external respondent."
+		external.Sensitivity = "CONFIDENTIAL"
+		external.AudienceType = "EXTERNAL"
+		digest := sha256.Sum256([]byte("manager@example.com"))
+		external.Recipient = evidence.Recipient{Type: evidence.RecipientExternalAudience, AudienceHash: digest[:], AudienceHint: "m***@example.com"}
+		external.CreatedBy = "role-cro"
+		requests = append(requests, external)
+	}
+	evidenceService := evidence.NewService(evidence.NewMemoryRepository(evidence.DemoSources(), requests), evidence.NewMemoryObjectStore())
 	return New(Dependencies{
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), AllowedOrigin: "http://localhost:5173", Mode: "test-memory",
 		Identity: identity.NewDevelopmentAuthenticator("bank-demo", "role-cro", "bank-ng"), Authority: authority.NewResolver(version, rules),

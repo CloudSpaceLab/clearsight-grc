@@ -37,7 +37,7 @@ func TestEvidenceMagicLinkSessionAndSubmission(t *testing.T) {
 	handler := testHandler()
 	const audience = "manager@example.com"
 	issuePayload := `{"tenant_id":"bank-demo","audience":"` + audience + `","purpose":"Branch resilience response","ttl_minutes":60}`
-	issue := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/requests/"+demoEvidenceRequestID+"/invitations", strings.NewReader(issuePayload))
+	issue := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/requests/"+demoExternalEvidenceRequestID+"/invitations", strings.NewReader(issuePayload))
 	issueResponse := httptest.NewRecorder()
 	handler.ServeHTTP(issueResponse, issue)
 	if issueResponse.Code != http.StatusCreated {
@@ -78,6 +78,34 @@ func TestEvidenceMagicLinkSessionAndSubmission(t *testing.T) {
 	if getResponse.Code != http.StatusOK {
 		t.Fatalf("session expected 200, got %d: %s", getResponse.Code, getResponse.Body.String())
 	}
+
+	var upload bytes.Buffer
+	uploadWriter := multipart.NewWriter(&upload)
+	uploadHeader := make(textproto.MIMEHeader)
+	uploadHeader.Set("Content-Disposition", `form-data; name="file"; filename="external-note.txt"`)
+	uploadHeader.Set("Content-Type", "text/plain")
+	uploadFile, err := uploadWriter.CreatePart(uploadHeader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = uploadFile.Write([]byte("external supporting note"))
+	_ = uploadWriter.Close()
+	uploadRequest := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/artifacts", &upload)
+	uploadRequest.Header.Set("Content-Type", uploadWriter.FormDataContentType())
+	uploadRequest.Header.Set("Authorization", "Bearer "+session.SessionToken)
+	uploadResponse := httptest.NewRecorder()
+	handler.ServeHTTP(uploadResponse, uploadRequest)
+	if uploadResponse.Code != http.StatusCreated {
+		t.Fatalf("external session upload expected 201, got %d: %s", uploadResponse.Code, uploadResponse.Body.String())
+	}
+	var externalArtifact evidence.Artifact
+	if err := json.NewDecoder(uploadResponse.Body).Decode(&externalArtifact); err != nil {
+		t.Fatal(err)
+	}
+	if externalArtifact.RequestID != demoExternalEvidenceRequestID || externalArtifact.CreatedBy != "" {
+		t.Fatalf("external artifact carried false principal identity or wrong request: %#v", externalArtifact)
+	}
+
 	submit := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/session/submissions", strings.NewReader(`{"answers":{"condition":"Operational"},"expected_version":1}`))
 	submit.Header.Set("Authorization", "Bearer "+session.SessionToken)
 	submitResponse := httptest.NewRecorder()
@@ -87,22 +115,22 @@ func TestEvidenceMagicLinkSessionAndSubmission(t *testing.T) {
 	}
 }
 
-func TestEvidenceArtifactUpload(t *testing.T) {
-	var body bytes.Buffer
-	writer := multipart.NewWriter(&body)
-	_ = writer.WriteField("tenant_id", "bank-demo")
-	_ = writer.WriteField("request_id", demoEvidenceRequestID)
-	header := make(textproto.MIMEHeader)
-	header.Set("Content-Disposition", `form-data; name="file"; filename="condition.txt"`)
-	header.Set("Content-Type", "text/plain")
-	file, err := writer.CreatePart(header)
-	if err != nil {
-		t.Fatal(err)
+func TestEvidenceInvitationRequiresCurrentRequestManager(t *testing.T) {
+	const audience = "manager@example.com"
+	payload := `{"tenant_id":"bank-demo","audience":"` + audience + `","purpose":"Branch resilience response","ttl_minutes":60}`
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/requests/"+demoExternalEvidenceRequestID+"/invitations", strings.NewReader(payload))
+	request.Header.Set("X-ClearSight-Demo-Principal", "role-other")
+	response := httptest.NewRecorder()
+	testHandler().ServeHTTP(response, request)
+	if response.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("non-manager invitation expected 422, got %d: %s", response.Code, response.Body.String())
 	}
-	_, _ = file.Write([]byte("generator operational"))
-	_ = writer.Close()
-	request := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/artifacts", &body)
-	request.Header.Set("Content-Type", writer.FormDataContentType())
+}
+
+func TestEvidenceArtifactUpload(t *testing.T) {
+	body, contentType := artifactUploadBody(t, "condition.txt", "text/plain", "generator operational")
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/artifacts", body)
+	request.Header.Set("Content-Type", contentType)
 	response := httptest.NewRecorder()
 	testHandler().ServeHTTP(response, request)
 	if response.Code != http.StatusCreated {
@@ -112,7 +140,37 @@ func TestEvidenceArtifactUpload(t *testing.T) {
 	if err := json.NewDecoder(response.Body).Decode(&artifact); err != nil {
 		t.Fatal(err)
 	}
-	if artifact.Status != evidence.ArtifactStoredUnscanned || artifact.SHA256 == "" {
+	if artifact.Status != evidence.ArtifactStoredUnscanned || artifact.SHA256 == "" || artifact.CreatedBy != "role-cro" {
 		t.Fatalf("unexpected artifact: %#v", artifact)
 	}
+}
+
+func TestEvidenceArtifactUploadRejectsNonRecipientActor(t *testing.T) {
+	body, contentType := artifactUploadBody(t, "condition.txt", "text/plain", "not my request")
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/artifacts", body)
+	request.Header.Set("Content-Type", contentType)
+	request.Header.Set("X-ClearSight-Demo-Principal", "role-other")
+	response := httptest.NewRecorder()
+	testHandler().ServeHTTP(response, request)
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("non-recipient upload expected 404, got %d: %s", response.Code, response.Body.String())
+	}
+}
+
+func artifactUploadBody(t *testing.T, fileName, mediaType, contents string) (*bytes.Buffer, string) {
+	t.Helper()
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	_ = writer.WriteField("tenant_id", "bank-demo")
+	_ = writer.WriteField("request_id", demoEvidenceRequestID)
+	header := make(textproto.MIMEHeader)
+	header.Set("Content-Disposition", `form-data; name="file"; filename="`+fileName+`"`)
+	header.Set("Content-Type", mediaType)
+	file, err := writer.CreatePart(header)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = file.Write([]byte(contents))
+	_ = writer.Close()
+	return &body, writer.FormDataContentType()
 }
