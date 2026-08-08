@@ -98,10 +98,10 @@ type Field struct {
 }
 
 type Recipient struct {
-	Type        RecipientType `json:"type,omitempty"`
-	PrincipalID string        `json:"principal_id,omitempty"`
-	AudienceHint string       `json:"audience_hint,omitempty"`
-	AudienceHash []byte       `json:"-"`
+	Type         RecipientType `json:"type,omitempty"`
+	PrincipalID  string        `json:"principal_id,omitempty"`
+	AudienceHint string        `json:"audience_hint,omitempty"`
+	AudienceHash []byte        `json:"-"`
 }
 
 type RecipientInput struct {
