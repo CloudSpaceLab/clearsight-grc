@@ -53,9 +53,10 @@ func TestMatterLifecycleProjectorRoutesPolicySelectedResponsibilityWithoutPredet
 	mustExecSequence(t, ctx, pool, `INSERT INTO matter_decisions(id,tenant_id,matter_id,decision_type,status,options,rationale,conditions,created_at,updated_at,version)
 		VALUES($1::uuid,$2::uuid,$3::uuid,'EXCEPTION_APPROVAL','PROPOSED','[]'::jsonb,'Await governed review','[]'::jsonb,$4,$4,1)`, decisionID, tenantID, matterID, now.Add(-30*time.Minute))
 
-	// The sequence rule deliberately stores the legal entity UUID while the
-	// lifecycle projector derives the canonical entity code. Governance must
-	// normalize both aliases before applying sequence policy.
+	// Sequence rules are selector-free and therefore cannot materialize actor
+	// authority. A separate ordinary authority rule resolves who holds the
+	// selected responsibility. The sequence rule deliberately stores the legal
+	// entity UUID while the lifecycle projector derives the canonical code.
 	activateSequencePolicy(t, ctx, pool, tenantID, entityID, reviewPolicyID, reviewVersionID, "EXCEPTION-REVIEW", "review-gate", "REVIEWER", reviewerID, 50, now)
 
 	repo := NewPostgresRepository(pool)
@@ -119,21 +120,34 @@ func TestMatterLifecycleProjectorRoutesPolicySelectedResponsibilityWithoutPredet
 
 func activateSequencePolicy(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, legalEntityRef, policyID, versionID, code, ruleID, responsibility, principalID string, priority int, at time.Time) {
 	t.Helper()
+	authorityRuleID := ruleID + "-authority"
 	definition, err := json.Marshal(map[string]any{
-		"rules": []map[string]any{{
-			"id":                ruleID,
-			"legal_entity_id":   legalEntityRef,
-			"object_type":       "MATTER",
-			"object_id":         "*",
-			"responsibility":    responsibility,
-			"decision_type":     "matter.decision.record",
-			"min_materiality":   0,
-			"priority":          priority,
-			"selector":          map[string]any{"kind": "PRINCIPAL", "ref": principalID},
-			"lifecycle_type":    "DECISION",
-			"lifecycle_state":   "PROPOSED",
-			"lifecycle_subtype": "EXCEPTION_APPROVAL",
-		}},
+		"rules": []map[string]any{
+			{
+				"id":                ruleID,
+				"legal_entity_id":   legalEntityRef,
+				"object_type":       "MATTER",
+				"object_id":         "*",
+				"responsibility":    responsibility,
+				"decision_type":     "matter.decision.record",
+				"min_materiality":   0,
+				"priority":          priority,
+				"lifecycle_type":    "DECISION",
+				"lifecycle_state":   "PROPOSED",
+				"lifecycle_subtype": "EXCEPTION_APPROVAL",
+			},
+			{
+				"id":              authorityRuleID,
+				"legal_entity_id": legalEntityRef,
+				"object_type":     "MATTER",
+				"object_id":       "*",
+				"responsibility":  responsibility,
+				"decision_type":   "matter.decision.record",
+				"min_materiality": 0,
+				"priority":        priority,
+				"selector":        map[string]any{"kind": "PRINCIPAL", "ref": principalID},
+			},
+		},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -143,12 +157,19 @@ func activateSequencePolicy(t *testing.T, ctx context.Context, pool *pgxpool.Poo
 	mustExecSequence(t, ctx, pool, `INSERT INTO routing_policy_versions(id,policy_id,version,definition,checksum,effective_from,approved_at)
 		VALUES($1::uuid,$2::uuid,1,$3::jsonb,'sequence-test',$4,$4)`, versionID, policyID, string(definition), at.Add(-time.Second))
 	mustExecSequence(t, ctx, pool, `UPDATE routing_policies SET status='ACTIVE' WHERE id=$1::uuid`, policyID)
-	var routes int
-	if err := pool.QueryRow(ctx, `SELECT count(*) FROM effective_authority_routes WHERE tenant_id=$1::uuid AND source_rule_id=$2`, tenantID, ruleID).Scan(&routes); err != nil {
+
+	var sequenceRoutes, authorityRoutes int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM effective_authority_routes WHERE tenant_id=$1::uuid AND source_rule_id=$2`, tenantID, ruleID).Scan(&sequenceRoutes); err != nil {
 		t.Fatal(err)
 	}
-	if routes != 1 {
-		t.Fatalf("sequence authority route was not materialized: %d", routes)
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM effective_authority_routes WHERE tenant_id=$1::uuid AND source_rule_id=$2`, tenantID, authorityRuleID).Scan(&authorityRoutes); err != nil {
+		t.Fatal(err)
+	}
+	if sequenceRoutes != 0 {
+		t.Fatalf("selector-free lifecycle sequence rule granted actor authority: %d routes", sequenceRoutes)
+	}
+	if authorityRoutes != 1 {
+		t.Fatalf("ordinary authority rule did not materialize exactly once: %d routes", authorityRoutes)
 	}
 }
 
