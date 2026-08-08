@@ -73,6 +73,8 @@ type SourceObservation struct {
 
 type RequestStatus string
 
+type RecipientType string
+
 const (
 	RequestDraft      RequestStatus = "DRAFT"
 	RequestReady      RequestStatus = "READY"
@@ -80,6 +82,9 @@ const (
 	RequestSubmitted  RequestStatus = "SUBMITTED"
 	RequestCancelled  RequestStatus = "CANCELLED"
 	RequestExpired    RequestStatus = "EXPIRED"
+
+	RecipientInternalPrincipal RecipientType = "INTERNAL_PRINCIPAL"
+	RecipientExternalAudience  RecipientType = "EXTERNAL_AUDIENCE"
 )
 
 type Field struct {
@@ -92,6 +97,19 @@ type Field struct {
 	AcceptedFormats []string `json:"accepted_formats,omitempty"`
 }
 
+type Recipient struct {
+	Type        RecipientType `json:"type,omitempty"`
+	PrincipalID string        `json:"principal_id,omitempty"`
+	AudienceHint string       `json:"audience_hint,omitempty"`
+	AudienceHash []byte       `json:"-"`
+}
+
+type RecipientInput struct {
+	Type        RecipientType `json:"type"`
+	PrincipalID string        `json:"principal_id,omitempty"`
+	Audience    string        `json:"audience,omitempty"`
+}
+
 type Request struct {
 	ID               string            `json:"id"`
 	TenantID         string            `json:"tenant_id"`
@@ -102,6 +120,7 @@ type Request struct {
 	WhyYou           string            `json:"why_you"`
 	Sensitivity      string            `json:"sensitivity"`
 	AudienceType     string            `json:"audience_type"`
+	Recipient        Recipient         `json:"recipient"`
 	EstimatedMinutes int               `json:"estimated_minutes"`
 	Deadline         time.Time         `json:"deadline"`
 	KnownFacts       map[string]string `json:"known_facts"`
@@ -109,8 +128,8 @@ type Request struct {
 	Status           RequestStatus     `json:"status"`
 	CreatedBy        string            `json:"created_by,omitempty"`
 	Version          int64             `json:"version"`
-	CreatedAt        time.Time         `json:"created_at"`
-	UpdatedAt        time.Time         `json:"updated_at"`
+	CreatedAt        time.Time          `json:"created_at"`
+	UpdatedAt        time.Time          `json:"updated_at"`
 }
 
 type CreateRequestInput struct {
@@ -122,6 +141,7 @@ type CreateRequestInput struct {
 	WhyYou           string            `json:"why_you"`
 	Sensitivity      string            `json:"sensitivity"`
 	AudienceType     string            `json:"audience_type"`
+	Recipient        RecipientInput    `json:"recipient"`
 	EstimatedMinutes int               `json:"estimated_minutes"`
 	Deadline         time.Time         `json:"deadline"`
 	KnownFacts       map[string]string `json:"known_facts"`
