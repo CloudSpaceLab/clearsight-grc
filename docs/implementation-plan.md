@@ -53,18 +53,21 @@ Route-bound Matter authority, Matter-priority materiality floor, restricted-reco
 
 - reuses existing maker-checker `RoutingPolicy`; no lifecycle-sequence table, event stack or public command surface;
 - lifecycle sequencing is opt-in through `lifecycle_type`, `lifecycle_state` and optional `lifecycle_subtype` metadata;
-- authority-only rules remain authority-only;
-- malformed lifecycle declarations fail ordinary RoutingPolicy validation before activation;
-- sequence policy selects the next **responsibility/gate**, never the substantive Decision/Response outcome;
-- equal-ranked rules selecting different next responsibilities fail closed;
+- lifecycle sequence rules are **selector-free** and select only the next responsibility/gate;
+- selector-free sequence rules materialize **zero** effective authority routes and cannot grant state-independent actor authority;
+- actor authority remains in separate ordinary authority rules/assignments/grants/delegations and is resolved only after sequence selection;
+- authority-only rules remain authority-only and still require supported actor selectors;
+- maker-checker selector-cardinality checks receive an authority-only projection of policy definitions, so sequence rules do not weaken or poison actor conflict checks;
+- malformed lifecycle declarations and lifecycle rules containing selectors fail policy validation;
+- sequence policy never selects the substantive Decision/Response outcome;
+- equal-ranked sequence rules selecting different next responsibilities fail closed;
 - legal-entity UUID/code aliases normalize before sequence matching;
 - the shared lifecycle policy derives only currently legal transitions executable by the selected responsibility;
 - multi-outcome packets retain `allowed_targets` while leaving `target_status` empty;
-- current authority still resolves the actor/candidate set after sequence selection;
-- lifecycle metadata cannot hide state-specific actor authority from existing route-selector conflict checks;
+- current authority resolves the actor/candidate set after responsibility selection;
 - canonical Matter visibility remains required before READY assignment;
 - routing-policy changes converge through the existing bounded lifecycle reconciler without requiring a Matter event;
-- PostgreSQL acceptance proves reviewer → authorizer packet convergence without pre-deciding an outcome;
+- PostgreSQL acceptance proves reviewer → authorizer packet convergence, zero authority routes from sequence rules, and separate current actor authority without pre-deciding an outcome;
 - baseline CI and rendered UI evidence remain green.
 
 Focused boundary: `docs/architecture/lifecycle-work-sequencing.md`.
@@ -112,8 +115,9 @@ After #27.2b-B:
 - Intervention Summary ≠ authoritative state.
 - WorkRequirement ≠ authoritative state.
 - WorkAmbiguity ≠ actor assignment.
-- Lifecycle sequence policy selects responsibility, **not outcome**.
-- Authority resolution selects the current eligible actor after sequence selection.
+- Lifecycle sequence policy selects responsibility, **not outcome or actor**.
+- Lifecycle sequence rule ≠ authority route.
+- Authority resolution selects the current eligible actor only after sequence selection.
 - Evidence Request description/invitation ≠ recipient assignment.
 - Schema/spec existence ≠ capability.
 
@@ -129,13 +133,13 @@ canonical Matter state
    │   → supported Workflow Task
    │   → Today
    └─ ambiguity
-       → optional governed RoutingPolicy sequence rule selects next responsibility
+       → selector-free governed RoutingPolicy sequence rule selects next responsibility
        → shared lifecycle policy derives legal actions for that responsibility
-       → current authority + record visibility
+       → separate current authority + record visibility resolves actor
        → one actor decision/review packet
 ```
 
-No sequence rule means no actor Task. Policy conflict means fail closed. A multi-outcome packet never writes the eventual Decision/Response state until the responsible actor executes an authoritative lifecycle command.
+No sequence rule means no actor Task. Sequence-policy conflict means fail closed. A sequence rule grants no actor authority. A multi-outcome packet never writes the eventual Decision/Response state until the separately authorized actor executes an authoritative lifecycle command.
 
 ## 6. Release gates
 
