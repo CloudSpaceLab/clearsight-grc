@@ -261,6 +261,7 @@ type ArtifactInput struct {
 	FileName     string
 	MediaType    string
 	CreatedBy    string
+	SessionToken string
 }
 
 type ObjectInfo struct {
