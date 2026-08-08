@@ -39,7 +39,7 @@ func buildRecipient(ctx context.Context, repo Repository, tenant, audienceType s
 			}
 		}
 		return Recipient{Type: RecipientInternalPrincipal, PrincipalID: strings.TrimSpace(input.PrincipalID)}, nil
-	case "INVITED_EXTERNAL":
+	case "EXTERNAL", "CUSTOMER", "VENDOR", "AUTHORITY":
 		audience := normalizeAudience(input.Audience)
 		if input.Type != RecipientExternalAudience || strings.TrimSpace(input.PrincipalID) != "" || audience == "" {
 			return Recipient{}, ErrRecipientInvalid
@@ -47,7 +47,7 @@ func buildRecipient(ctx context.Context, repo Repository, tenant, audienceType s
 		digest := sha256.Sum256([]byte(audience))
 		return Recipient{Type: RecipientExternalAudience, AudienceHash: digest[:], AudienceHint: audienceHint(audience)}, nil
 	default:
-		return Recipient{}, fmt.Errorf("audience_type must be INTERNAL or INVITED_EXTERNAL")
+		return Recipient{}, fmt.Errorf("audience_type is invalid")
 	}
 }
 
@@ -69,4 +69,16 @@ func externalAudienceMatches(request Request, audience string) bool {
 
 func internalSubmissionAllowed(request Request, submission Submission) bool {
 	return request.AudienceType == "INTERNAL" && RequestAssignedTo(request, submission.SubmittedBy) && strings.EqualFold(strings.TrimSpace(submission.Channel), "INTERNAL")
+}
+
+func externalRecipientRequest(request Request) bool {
+	if request.Recipient.Type != RecipientExternalAudience {
+		return false
+	}
+	switch request.AudienceType {
+	case "EXTERNAL", "CUSTOMER", "VENDOR", "AUTHORITY":
+		return true
+	default:
+		return false
+	}
 }
