@@ -12,11 +12,16 @@ func TestInvitationAndSessionRevocation(t *testing.T) {
 	repo := NewMemoryRepository(nil, nil)
 	service := NewService(repo, NewMemoryObjectStore())
 	service.now = func() time.Time { return now }
-	request, err := service.CreateRequest(context.Background(), CreateRequestInput{TenantID: "bank", SubjectType: "VENDOR", SubjectID: "v", Title: "Provide evidence", Purpose: "Complete assurance.", WhyYou: "You are the vendor contact.", Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR", EstimatedMinutes: 2, Deadline: now.Add(time.Hour), Fields: []Field{{ID: "answer", Label: "Answer", Type: "text", Required: true}}})
+	const audience = "contact@example.com"
+	request, err := service.CreateRequest(context.Background(), CreateRequestInput{
+		TenantID: "bank", SubjectType: "VENDOR", SubjectID: "v", Title: "Provide evidence",
+		Purpose: "Complete assurance.", WhyYou: "You are the vendor contact.", Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR",
+		Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: audience}, EstimatedMinutes: 2,
+		Deadline: now.Add(time.Hour), Fields: []Field{{ID: "answer", Label: "Answer", Type: "text", Required: true}},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	const audience = "contact@example.com"
 	issued, err := service.IssueInvitation(context.Background(), IssueInvitationInput{TenantID: "bank", RequestID: request.ID, Audience: audience, Purpose: "Vendor response", TTLMinutes: 30})
 	if err != nil {
 		t.Fatal(err)
