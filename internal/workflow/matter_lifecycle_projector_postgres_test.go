@@ -65,9 +65,12 @@ func TestLifecycleAssignmentFailsClosedForUnresolvedAuthorityShapes(t *testing.T
 			service: lifecycleAuthorityStub{resolution: authority.Resolution{
 				Principal: authority.Principal{ID: "allowed", Kind: "PERSON"},
 				CandidatePrincipals: []authority.Principal{
-					{ID: "allowed", Kind: "PERSON"}, {ID: "other", Kind: "PERSON"},
+					{ID: "allowed", Kind: "PERSON"},
+					{ID: "other", Kind: "PERSON"},
 				},
-				Strategy: "CANDIDATE_SET", RuleID: "rule-1", PolicyVersion: "v1",
+				Strategy:      "CANDIDATE_SET",
+				RuleID:        "rule-1",
+				PolicyVersion: "v1",
 			}},
 			wantState:  "CANDIDATE_SET",
 			wantStatus: StatusBlocked,
@@ -75,8 +78,10 @@ func TestLifecycleAssignmentFailsClosedForUnresolvedAuthorityShapes(t *testing.T
 		{
 			name: "non-person route",
 			service: lifecycleAuthorityStub{resolution: authority.Resolution{
-				Principal: authority.Principal{ID: "queue-1", Kind: "QUEUE"},
-				Strategy: "DIRECT", RuleID: "rule-2", PolicyVersion: "v2",
+				Principal:     authority.Principal{ID: "queue-1", Kind: "QUEUE"},
+				Strategy:      "DIRECT",
+				RuleID:        "rule-2",
+				PolicyVersion: "v2",
 			}},
 			wantState:  "NON_PERSON_ROUTE",
 			wantStatus: StatusBlocked,
@@ -84,8 +89,10 @@ func TestLifecycleAssignmentFailsClosedForUnresolvedAuthorityShapes(t *testing.T
 		{
 			name: "principal cannot read Matter",
 			service: lifecycleAuthorityStub{resolution: authority.Resolution{
-				Principal: authority.Principal{ID: "hidden", Kind: "PERSON"},
-				Strategy: "DIRECT", RuleID: "rule-3", PolicyVersion: "v3",
+				Principal:     authority.Principal{ID: "hidden", Kind: "PERSON"},
+				Strategy:      "DIRECT",
+				RuleID:        "rule-3",
+				PolicyVersion: "v3",
 			}},
 			wantState:  "ROUTE_NOT_VISIBLE",
 			wantStatus: StatusBlocked,
