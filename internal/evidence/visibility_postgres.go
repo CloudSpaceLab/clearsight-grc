@@ -11,6 +11,8 @@ func (r *PostgresRepository) ListVisibleRequests(ctx context.Context, tenant, pr
 		JOIN tenants t ON t.id=er.tenant_id
 		LEFT JOIN matters m ON er.subject_type='MATTER' AND m.tenant_id=er.tenant_id AND m.id::text=er.subject_id
 		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND er.recipient_type='INTERNAL_PRINCIPAL'
+		  AND er.recipient_principal_id=$2::uuid
 		  AND (
 			er.subject_type<>'MATTER' OR (
 				m.id IS NOT NULL AND (
@@ -28,7 +30,7 @@ func (r *PostgresRepository) ListVisibleRequests(ctx context.Context, tenant, pr
 				)
 			)
 		  )
-		ORDER BY er.deadline,er.id
+		ORDER BY CASE er.status WHEN 'READY' THEN 0 WHEN 'IN_PROGRESS' THEN 1 ELSE 2 END,er.deadline,er.id
 		LIMIT $3`, tenant, principal, limit)
 	if err != nil {
 		return nil, err
@@ -40,6 +42,7 @@ func (r *PostgresRepository) ListVisibleRequests(ctx context.Context, tenant, pr
 		if scanErr != nil {
 			return nil, scanErr
 		}
+		value.Recipient = Recipient{Type: RecipientInternalPrincipal, PrincipalID: principal}
 		values = append(values, value)
 	}
 	return values, rows.Err()
