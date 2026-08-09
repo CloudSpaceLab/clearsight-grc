@@ -34,6 +34,7 @@ export type ProgramReviewDigest = {
   changes: ProgramReviewChange[];
   changes_total: number;
   changes_omitted: number;
+  history_events_omitted: number;
   current_exceptions: StateReason[];
   current_exceptions_total: number;
   new_exceptions: StateReason[];
