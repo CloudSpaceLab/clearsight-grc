@@ -87,7 +87,7 @@ export function ProgramReviewDigest({ aggregate }: Props) {
       {digest.changes_omitted > 0 && <p>{digest.changes_omitted} additional change{digest.changes_omitted === 1 ? " is" : "s are"} outside this compact digest.</p>}
     </div>}
 
-    {changed && digest.history_events_omitted > 0 && <p className="inline-notice">{digest.history_events_omitted} older Program change event{digest.history_events_omitted === 1 ? " is" : "s are"} outside this bounded daily digest. Full Program history remains authoritative.</p>}
+    {changed && digest.history_truncated && <p className="inline-notice">Older Program change events are outside this bounded daily digest. Full Program history remains authoritative.</p>}
 
     {(noBaseline || changed) && digest.current_exceptions.length > 0 && <div className="status-reasons">
       <h4>{noBaseline ? "Current exceptions" : "Exceptions still current"}</h4>
