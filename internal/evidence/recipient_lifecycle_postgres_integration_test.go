@@ -49,7 +49,7 @@ func TestEvidenceRecipientLifecycleIsAuditableAtomicAndRevokesSupersededCapabili
 		TenantID: "recipient-lifecycle-test", SubjectType: "CONTROL", SubjectID: "control-1",
 		Title: "Confirm current control owner", Purpose: "Collect one current control fact.", WhyYou: "You are the intended respondent.",
 		Sensitivity: "INTERNAL", AudienceType: "INTERNAL",
-		Recipient: RecipientInput{Type: RecipientInternalPrincipal, PrincipalID: recipientA},
+		Recipient:        RecipientInput{Type: RecipientInternalPrincipal, PrincipalID: recipientA},
 		EstimatedMinutes: 2, Deadline: now.Add(2 * time.Hour),
 		Fields: []Field{{ID: "confirm", Label: "Confirm", Type: "text", Required: true}}, CreatedBy: creatorID,
 	})
@@ -121,7 +121,7 @@ func TestEvidenceRecipientLifecycleIsAuditableAtomicAndRevokesSupersededCapabili
 		TenantID: "recipient-lifecycle-test", SubjectType: "CONTROL", SubjectID: "control-2",
 		Title: "External confirmation", Purpose: "Collect one bounded external fact.", WhyYou: "You are the intended respondent.",
 		Sensitivity: "CONFIDENTIAL", AudienceType: "CUSTOMER",
-		Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: "first@example.com"},
+		Recipient:        RecipientInput{Type: RecipientExternalAudience, Audience: "first@example.com"},
 		EstimatedMinutes: 2, Deadline: now.Add(2 * time.Hour),
 		Fields: []Field{{ID: "confirm", Label: "Confirm", Type: "text", Required: true}}, CreatedBy: creatorID,
 	})
