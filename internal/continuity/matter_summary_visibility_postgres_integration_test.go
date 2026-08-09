@@ -74,12 +74,29 @@ func TestPostgresMatterSummariesMatchCanonicalRestrictedVisibilityBeforePaginati
 		t.Fatalf("search leaked malformed restricted record existence: %#v cursor=%q", search.Items, search.NextCursor)
 	}
 
+	current := NewCurrentPostgresRepository(pool)
+	listA, err := current.ListMatters(actorA, "matter-summary-visibility", "OPEN", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(listA) != 1 || listA[0].Matter.ID != visibleID {
+		t.Fatalf("restricted/malformed Matter consumed current-list limit: %#v", listA)
+	}
+
 	actorB := identity.WithActor(ctx, identity.Actor{TenantID: "matter-summary-visibility", PrincipalID: principalB})
 	allowed, err := repo.ListMatterSummaries(actorB, "matter-summary-visibility", SummaryQuery{Status: "OPEN", Limit: 2})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(allowed.Items) != 2 || allowed.Items[0].Matter.ID != hiddenID || allowed.Items[1].Matter.ID != visibleID {
-		t.Fatalf("canonical allowed principal lost restricted visibility: %#v", allowed.Items)
+		t.Fatalf("canonical allowed principal lost restricted summary visibility: %#v", allowed.Items)
+	}
+
+	listB, err := current.ListMatters(actorB, "matter-summary-visibility", "OPEN", 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(listB) != 2 || listB[0].Matter.ID != hiddenID || listB[1].Matter.ID != visibleID {
+		t.Fatalf("canonical allowed principal lost restricted current-list visibility: %#v", listB)
 	}
 }
