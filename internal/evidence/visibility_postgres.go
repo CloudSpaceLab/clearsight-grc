@@ -19,13 +19,14 @@ func (r *PostgresRepository) listActorRequests(ctx context.Context, tenant, prin
 	rows, err := r.pool.Query(ctx, `
 		SELECT er.id::text,t.slug,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,
 		       er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at,
-		       COALESCE(er.recipient_type,''),COALESCE(er.recipient_principal_id::text,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint
+		       COALESCE(er.recipient_type,''),COALESCE(er.recipient_principal_id::text,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
+		       er.recipient_state,er.recipient_revision,er.recipient_issue_reason
 		FROM capture_requests er
 		JOIN tenants t ON t.id=er.tenant_id
 		LEFT JOIN matters m ON er.subject_type='MATTER' AND m.tenant_id=er.tenant_id AND m.id::text=er.subject_id
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND (
-			(er.recipient_type='INTERNAL_PRINCIPAL' AND er.recipient_principal_id=$2::uuid)
+			(er.recipient_type='INTERNAL_PRINCIPAL' AND er.recipient_state='ASSIGNED' AND er.recipient_principal_id=$2::uuid)
 			OR ($4::boolean AND er.created_by=$2::uuid)
 		  )
 		  AND (
@@ -78,12 +79,12 @@ func (r *PostgresRepository) listActorRequests(ctx context.Context, tenant, prin
 func scanRequestWithRecipient(row scanner) (Request, error) {
 	var value Request
 	var facts, fields []byte
-	var recipientType, principalID, hint string
+	var recipientType, principalID, hint, state, issueReason string
 	var audienceHash []byte
 	if err := row.Scan(
 		&value.ID, &value.TenantID, &value.SubjectType, &value.SubjectID, &value.Title, &value.Purpose, &value.WhyYou, &value.Sensitivity, &value.AudienceType,
 		&value.EstimatedMinutes, &value.Deadline, &facts, &fields, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt,
-		&recipientType, &principalID, &audienceHash, &hint,
+		&recipientType, &principalID, &audienceHash, &hint, &state, &value.Recipient.Revision, &issueReason,
 	); err != nil {
 		return Request{}, err
 	}
@@ -98,6 +99,9 @@ func scanRequestWithRecipient(row scanner) (Request, error) {
 		PrincipalID:  principalID,
 		AudienceHash: append([]byte(nil), audienceHash...),
 		AudienceHint: hint,
+		State:        RecipientState(state),
+		Revision:     value.Recipient.Revision,
+		IssueReason:  issueReason,
 	}
 	return value, nil
 }
