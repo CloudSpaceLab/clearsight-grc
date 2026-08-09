@@ -10,11 +10,12 @@
 **Deterministic lifecycle work compiler:** PR #45 — complete  
 **Governed lifecycle sequencing:** PR #46 — complete  
 **Evidence recipient canonical truth (B1):** PR #49 — complete  
-**Current execution:** #27.2b-B2 Evidence Request recipient lifecycle + Today  
+**Evidence recipient lifecycle + Today (B2):** PR #50 — complete  
+**Current execution:** operating Program/Work governed mutations — PR #51  
 **Current execution issue:** #27  
 **Umbrella pilot/GA catalogue:** #13
 
-This is the authoritative execution ledger. Product/design/architecture documents define target behavior; this file controls **current implementation order and capability truth**. Completed-tranche detail belongs in focused documents and executable tests rather than being duplicated here indefinitely.
+This is the authoritative execution ledger. Product/design/architecture documents define target behavior; this file controls **current implementation order and capability truth**. Completed-tranche detail belongs in focused documents and executable tests rather than being duplicated under new frameworks.
 
 ## 1. Completed foundation — do not rebuild
 
@@ -47,74 +48,86 @@ Route-bound Matter authority, Matter-priority materiality floor, restricted-reco
 - delayed events cannot resurrect historical assignments;
 - bounded reconciliation provides restart/backfill/authority convergence;
 - deterministic Workflow projection identity prevents duplicate instances;
-- Today admits supported `MATTER_ACTION` / `MATTER_LIFECYCLE` work without fabricating recommendation, prepared work, approval or verification receipts;
-- exact-head CI and 36-state rendered evidence passed before merge.
+- Today admits supported Matter work without fabricated recommendation, prepared-work, approval or verification receipts.
 
 ### #27.2b-A / PR #46
 
-- reuses existing maker-checker `RoutingPolicy`; no lifecycle-sequence table, event stack or public command surface;
-- lifecycle sequencing is opt-in through `lifecycle_type`, `lifecycle_state` and optional `lifecycle_subtype` metadata;
-- lifecycle sequence rules are **selector-free** and select only the next responsibility/gate;
-- selector-free sequence rules materialize **zero** effective authority routes and cannot grant state-independent actor authority;
-- actor authority remains in separate ordinary authority rules/assignments/grants/delegations and is resolved only after sequence selection;
-- authority-only rules remain authority-only and still require supported actor selectors;
-- maker-checker selector-cardinality checks receive an authority-only projection of policy definitions, so sequence rules do not weaken or poison actor conflict checks;
-- malformed lifecycle declarations and lifecycle rules containing selectors fail policy validation;
-- sequence policy never selects the substantive Decision/Response outcome;
-- equal-ranked sequence rules selecting different next responsibilities fail closed;
-- legal-entity UUID/code aliases normalize before sequence matching;
-- the shared lifecycle policy derives only currently legal transitions executable by the selected responsibility;
-- multi-outcome packets retain `allowed_targets` while leaving `target_status` empty;
-- current authority resolves the actor/candidate set after sequence selection;
-- canonical Matter visibility remains required before READY assignment;
-- routing-policy changes converge through the existing bounded lifecycle reconciler without requiring a Matter event;
-- PostgreSQL acceptance proves reviewer → authorizer packet convergence, zero authority routes from sequence rules, and separate current actor authority without pre-deciding an outcome;
-- baseline CI and rendered UI evidence remain green.
+- existing maker-checker `RoutingPolicy` is reused; no second lifecycle policy/workflow stack;
+- lifecycle sequence rules select only the next responsibility/gate and materialize zero actor authority routes;
+- actor authority remains separately resolved from current rules/assignments/grants/delegations;
+- policy never pre-selects the substantive Decision/Response outcome;
+- multi-outcome packets retain `allowed_targets` with no guessed `target_status`;
+- malformed/conflicting selector-free sequence rules fail closed;
+- routing-policy changes converge active packets through the existing reconciler.
 
 Focused boundary: `docs/architecture/lifecycle-work-sequencing.md`.
 
 ### #27.2b-B1 / PR #49 — canonical Evidence Request recipient truth
 
 - every new request has one canonical recipient: exact active internal `PERSON` principal or hashed external audience;
-- `why_you`, `created_by`, invitation prose, subject readability and prior submitter identity are not assignment truth;
-- legacy requests are deliberately not backfilled from descriptive fields and remain outside recipient actor queues;
+- descriptive fields, creator identity, invitation copy and submitter identity are not assignment truth;
+- legacy requests are deliberately not backfilled from descriptive fields;
 - internal recipient eligibility is tenant/current-person/subject-visibility bound;
 - recipient and subject visibility filter actor queues before `LIMIT`;
-- exact internal request reads, submissions and authenticated artifact uploads require the canonical recipient;
-- external request rows retain a fixed hash plus masked hint rather than the raw audience;
-- invitation issuance must match canonical requester, audience and current subject visibility;
-- invitation/session remains capability security state rather than assignment state;
-- PostgreSQL adversarial coverage proves tenant recipient integrity, restricted-record behavior, pre-limit filtering, legacy exclusion and external audience binding;
-- migration `000021_capture_recipient_truth` is reversible and covered by the dynamic latest-migration gate.
+- exact internal reads/submissions/uploads require the canonical recipient;
+- external rows retain a fixed audience hash plus masked hint;
+- invitation issuance is bound to canonical requester, audience and current subject visibility;
+- invitation/session remains capability security state rather than assignment state.
 
 Focused boundary: `docs/architecture/evidence-recipient-boundary.md`.
 
-Closed foundation issues #26/#32/#33 and completed PRs #31/#40/#43/#45/#46/#49 must not be recreated under new names or parallel frameworks.
+### #27.2b-B2 / PR #50 — recipient lifecycle + Today
 
-## 2. Current work — #27.2b-B2 recipient lifecycle + Today
+- assigned internal recipient can explicitly declare wrong-recipient with required reason and optimistic versioning;
+- wrong-recipient immediately removes that actor's request/submission rights;
+- only the trusted original requester can correct/reassign the canonical recipient;
+- reassignment revalidates current recipient eligibility and supported subject visibility;
+- external recipient replacement revokes active invitation/session capability in the same PostgreSQL transaction;
+- recipient history records ordered `WRONG_RECIPIENT` / `REASSIGNED` events without becoming a generic assignment ledger;
+- eligible internal Evidence Requests project through existing `workflow_instances` / `workflow_tasks` as `EVIDENCE_REQUEST` actor work;
+- recipient/principal/visibility changes converge the same Workflow/Task identity instead of duplicating work;
+- Today admits Evidence Request work through the same pre-limit actor-visibility boundary;
+- terminal/ineligible requests that never had actor work do not manufacture empty Workflow history;
+- requester/respondent UI exposes progressive wrong-recipient/reassignment states without inventing team/role/queue targeting;
+- exact final head `34439ff986636d523e294c2e2987aebbeedec718` passed CI #631 and UI evidence #245 before squash merge.
 
-B1 establishes assignment truth. B2 must make recipient changes and actor-facing Evidence Request work operational without introducing a second assignment/workflow model.
+B2 does **not** imply generic redirect/delegation/team/role/queue recipient semantics. Those remain deferred until executable current membership/authority contracts exist.
 
-Required:
+Closed foundation issues #26/#32/#33 and completed PRs #31/#40/#43/#45/#46/#49/#50 must not be recreated under new names or parallel frameworks.
 
-- [ ] add internal wrong-recipient declaration with explicit, auditable semantics;
-- [ ] add requester correction/reassignment while preserving one canonical current recipient;
-- [ ] support redirect/delegation only where current executable authority/directory semantics can resolve it safely;
-- [ ] define insufficient-authority/conflict behavior without silently selecting another actor;
-- [ ] add explicit external invitation replacement/revocation and invalidate old invitations/sessions when recipient truth changes;
-- [ ] converge recipient, principal-status and supported delegation changes without duplicate requests or stale actor work;
-- [ ] project eligible internal Evidence Requests into existing Workflow/Today infrastructure as rebuildable actor work;
-- [ ] preserve Capture Request/session as canonical request state; Workflow remains a projection only;
-- [ ] prove replay/restart/reassignment/revocation/restricted-record and stale-capability behavior in PostgreSQL;
-- [ ] render recipient/wrong-recipient/reassignment/expiry/revocation states on desktop and mobile before production Today exposure.
+## 2. Current work — operating Program/Work governed mutations / PR #51
 
-Do not add team/role/queue recipient claims until one executable current membership-resolution contract exists. Do not infer recipient changes from display labels, `why_you`, invitation copy or broad subject visibility.
+The backend already owns Program/Matter state machines, command authorization, actor binding, optimistic versions and lifecycle work compilation. The current tranche makes those existing commands usable at the point of work; it must not create frontend lifecycle or authorization truth.
+
+Required for this tranche:
+
+- [x] thin typed clients over existing governed Program/Matter command routes; no client-supplied actor identity;
+- [x] current actor Matter work is loaded from the existing actor-scoped Workflow queue;
+- [x] Decision/Response/Verification forms use `command_name`, `allowed_targets`, subresource and rationale from current governed work packets;
+- [x] Matter Action Workflow projection carries executable `matter.action.transition` packet context with targets derived from the canonical Go action lifecycle;
+- [x] Action execution supports READY/IN_PROGRESS/BLOCKED owner work without inventing target states in React;
+- [x] Program status controls are hidden unless current `AUTHORIZER` resolution includes the actor;
+- [x] Program UI affordances mirror only the existing DRAFT→ACTIVE/RETIRED, ACTIVE→PAUSED/RETIRED and PAUSED→ACTIVE/RETIRED transitions; server lifecycle/authority/version/activation checks remain final;
+- [x] successful mutations replace displayed Program/Matter detail with the authoritative server aggregate;
+- [x] conflict/forbidden/not-found/degraded command states fail visibly rather than applying optimistic local truth;
+- [x] focused desktop/mobile command styling and targeted component tests;
+- [x] deterministic UI-evidence fixture asserts real operating controls, exact target lists and horizontal-overflow safety;
+- [ ] exact-final-head CI and UI evidence green;
+- [ ] promote/merge PR #51 and record final head/gate IDs here and in #27.
+
+Explicitly out of this tranche:
+
+- generic saved Work views;
+- arbitrary claim/delegate/recuse/escalate UX where no current domain command exists;
+- save/resume for complex multi-step decisions/responses;
+- broad Program authoring/configuration;
+- notification-centre or Explore expansion.
 
 ## 3. Later #27 sequence
 
-After #27.2b-B2:
+After PR #51:
 
-1. operating Program/Work mutation UX, role-aware views and safe resume/delegate/recuse/escalate paths;
+1. operating-work usability continuation only where executable domain contracts exist: change-since-last-review summaries, role-aware saved views, safe resume and supported delegate/recuse/escalate paths;
 2. Capture/Import lifecycle completion: provenance, draft/resume/amendment, production scanning/quarantine/retry, governed multi-file requests, recurring mappings and canonical conversion;
 3. Configure productization: organization/identity, responsibility/authority matrices, routing/escalation, simulation, maker-checker, effective dating/rollback and security/notification policy;
 4. enterprise shell: production Explore/reconstruction, notifications, identity/session/step-up context;
@@ -138,6 +151,8 @@ After #27.2b-B2:
 - Authority resolution selects the current eligible actor only after sequence selection.
 - Evidence Request description/invitation ≠ recipient assignment.
 - Evidence Request recipient is canonical request state; Workflow work is a rebuildable actor projection.
+- Workflow command packet is an executable projection, not authoritative domain state; every command is revalidated by the domain service.
+- Program UI transition choices are affordances only; Program command service remains authoritative.
 - Schema/spec existence ≠ capability.
 
 Do not add parallel authorization, task, event, worker, receipt, document or generic workflow stacks that duplicate these foundations.
@@ -146,25 +161,29 @@ Do not add parallel authorization, task, event, worker, receipt, document or gen
 
 ```text
 canonical Matter state
-→ deterministic work compiler
-   ├─ executable requirement
-   │   → current authority + record visibility
-   │   → supported Workflow Task
-   │   → Today
-   └─ ambiguity
-       → selector-free governed RoutingPolicy sequence rule selects next responsibility
-       → shared lifecycle policy derives legal actions for that responsibility
-       → separate current authority + record visibility resolves actor
-       → one actor decision/review packet
+→ deterministic work compiler / canonical Action event
+→ current authority or accountable owner + record visibility
+→ existing Workflow Task with executable command packet
+→ Today / Work
+→ governed domain command with verified actor + expected version
+→ authoritative Matter aggregate
+→ projection converges
+
+canonical Program
+→ authority resolution for AUTHORIZER
+→ lifecycle-valid UI affordance
+→ governed program.transition command
+→ server lifecycle + authority + version + activation-prerequisite checks
+→ authoritative Program aggregate
 
 canonical Evidence Request
 → canonical recipient + subject visibility
-→ B2 recipient lifecycle / current-recipient convergence
+→ recipient lifecycle / current-recipient convergence
 → rebuildable Workflow projection
-→ Today
+→ Today / Capture
 ```
 
-No sequence rule means no actor Task. Sequence-policy conflict means fail closed. A sequence rule grants no actor authority. A multi-outcome packet never writes the eventual Decision/Response state until the separately authorized actor executes an authoritative lifecycle command. Evidence Request presentation/capability state never substitutes for canonical recipient truth.
+No actor Task is created from ambiguity without a governed responsibility selection and separate actor authority. A multi-outcome packet never writes the eventual Decision/Response state until the separately authorized actor executes the authoritative lifecycle command. Presentation/projection/capability state never substitutes for canonical domain truth.
 
 ## 6. Release gates
 
