@@ -1,6 +1,6 @@
 # ClearSight implementation ledger
 
-**Status date:** 2026-08-08  
+**Status date:** 2026-08-09  
 **P0 executable integrity:** PRs #25, #30 — complete  
 **P1 semantic/current-state correctness:** PRs #34–#39 — complete  
 **UI/UX foundation:** PR #31 — complete  
@@ -9,7 +9,8 @@
 **Today work-queue / Matter authority truth:** PR #43 — complete  
 **Deterministic lifecycle work compiler:** PR #45 — complete  
 **Governed lifecycle sequencing:** PR #46 — complete  
-**Current execution:** #27.2b-B Evidence Request recipient truth  
+**Evidence recipient canonical truth (B1):** PR #49 — complete  
+**Current execution:** #27.2b-B2 Evidence Request recipient lifecycle + Today  
 **Current execution issue:** #27  
 **Umbrella pilot/GA catalogue:** #13
 
@@ -64,7 +65,7 @@ Route-bound Matter authority, Matter-priority materiality floor, restricted-reco
 - legal-entity UUID/code aliases normalize before sequence matching;
 - the shared lifecycle policy derives only currently legal transitions executable by the selected responsibility;
 - multi-outcome packets retain `allowed_targets` while leaving `target_status` empty;
-- current authority resolves the actor/candidate set after responsibility selection;
+- current authority resolves the actor/candidate set after sequence selection;
 - canonical Matter visibility remains required before READY assignment;
 - routing-policy changes converge through the existing bounded lifecycle reconciler without requiring a Matter event;
 - PostgreSQL acceptance proves reviewer → authorizer packet convergence, zero authority routes from sequence rules, and separate current actor authority without pre-deciding an outcome;
@@ -72,29 +73,46 @@ Route-bound Matter authority, Matter-priority materiality floor, restricted-reco
 
 Focused boundary: `docs/architecture/lifecycle-work-sequencing.md`.
 
-Closed foundation issues #26/#32/#33 and completed PRs #31/#40/#43/#45/#46 must not be recreated under new names or parallel frameworks.
+### #27.2b-B1 / PR #49 — canonical Evidence Request recipient truth
 
-## 2. Current work — #27.2b-B Evidence Request recipient truth
+- every new request has one canonical recipient: exact active internal `PERSON` principal or hashed external audience;
+- `why_you`, `created_by`, invitation prose, subject readability and prior submitter identity are not assignment truth;
+- legacy requests are deliberately not backfilled from descriptive fields and remain outside recipient actor queues;
+- internal recipient eligibility is tenant/current-person/subject-visibility bound;
+- recipient and subject visibility filter actor queues before `LIMIT`;
+- exact internal request reads, submissions and authenticated artifact uploads require the canonical recipient;
+- external request rows retain a fixed hash plus masked hint rather than the raw audience;
+- invitation issuance must match canonical requester, audience and current subject visibility;
+- invitation/session remains capability security state rather than assignment state;
+- PostgreSQL adversarial coverage proves tenant recipient integrity, restricted-record behavior, pre-limit filtering, legacy exclusion and external audience binding;
+- migration `000021_capture_recipient_truth` is reversible and covered by the dynamic latest-migration gate.
 
-Ordinary Evidence Requests must not enter actor Today work from descriptive copy or invitation mechanics alone.
+Focused boundary: `docs/architecture/evidence-recipient-boundary.md`.
 
-`why_you`, `created_by` and invitation prose remain explicitly **not assignment truth**.
+Closed foundation issues #26/#32/#33 and completed PRs #31/#40/#43/#45/#46/#49 must not be recreated under new names or parallel frameworks.
+
+## 2. Current work — #27.2b-B2 recipient lifecycle + Today
+
+B1 establishes assignment truth. B2 must make recipient changes and actor-facing Evidence Request work operational without introducing a second assignment/workflow model.
 
 Required:
 
-- [ ] define canonical intended-recipient/routing scope for internal and invited external requests;
-- [ ] distinguish person, position/role/group and external capability/address targeting where needed;
-- [ ] define redirect/delegate/wrong-recipient/insufficient-authority/conflict behavior;
-- [ ] define invitation expiry/revocation/replacement semantics without leaking unrelated Matter context;
-- [ ] bind protected-record visibility before recipient projection and before queue limits;
-- [ ] converge identity/directory/delegation changes without duplicate requests or stale actor work;
-- [ ] preserve Capture Request/session as canonical request state and Workflow as rebuildable actor projection;
-- [ ] prove replay/restart/reassignment/revocation/restricted-record behavior in PostgreSQL;
-- [ ] render mobile recipient/redirect/expiry/revocation states before production Today exposure.
+- [ ] add internal wrong-recipient declaration with explicit, auditable semantics;
+- [ ] add requester correction/reassignment while preserving one canonical current recipient;
+- [ ] support redirect/delegation only where current executable authority/directory semantics can resolve it safely;
+- [ ] define insufficient-authority/conflict behavior without silently selecting another actor;
+- [ ] add explicit external invitation replacement/revocation and invalidate old invitations/sessions when recipient truth changes;
+- [ ] converge recipient, principal-status and supported delegation changes without duplicate requests or stale actor work;
+- [ ] project eligible internal Evidence Requests into existing Workflow/Today infrastructure as rebuildable actor work;
+- [ ] preserve Capture Request/session as canonical request state; Workflow remains a projection only;
+- [ ] prove replay/restart/reassignment/revocation/restricted-record and stale-capability behavior in PostgreSQL;
+- [ ] render recipient/wrong-recipient/reassignment/expiry/revocation states on desktop and mobile before production Today exposure.
+
+Do not add team/role/queue recipient claims until one executable current membership-resolution contract exists. Do not infer recipient changes from display labels, `why_you`, invitation copy or broad subject visibility.
 
 ## 3. Later #27 sequence
 
-After #27.2b-B:
+After #27.2b-B2:
 
 1. operating Program/Work mutation UX, role-aware views and safe resume/delegate/recuse/escalate paths;
 2. Capture/Import lifecycle completion: provenance, draft/resume/amendment, production scanning/quarantine/retry, governed multi-file requests, recurring mappings and canonical conversion;
@@ -119,6 +137,7 @@ After #27.2b-B:
 - Lifecycle sequence rule ≠ authority route.
 - Authority resolution selects the current eligible actor only after sequence selection.
 - Evidence Request description/invitation ≠ recipient assignment.
+- Evidence Request recipient is canonical request state; Workflow work is a rebuildable actor projection.
 - Schema/spec existence ≠ capability.
 
 Do not add parallel authorization, task, event, worker, receipt, document or generic workflow stacks that duplicate these foundations.
@@ -137,9 +156,15 @@ canonical Matter state
        → shared lifecycle policy derives legal actions for that responsibility
        → separate current authority + record visibility resolves actor
        → one actor decision/review packet
+
+canonical Evidence Request
+→ canonical recipient + subject visibility
+→ B2 recipient lifecycle / current-recipient convergence
+→ rebuildable Workflow projection
+→ Today
 ```
 
-No sequence rule means no actor Task. Sequence-policy conflict means fail closed. A sequence rule grants no actor authority. A multi-outcome packet never writes the eventual Decision/Response state until the separately authorized actor executes an authoritative lifecycle command.
+No sequence rule means no actor Task. Sequence-policy conflict means fail closed. A sequence rule grants no actor authority. A multi-outcome packet never writes the eventual Decision/Response state until the separately authorized actor executes an authoritative lifecycle command. Evidence Request presentation/capability state never substitutes for canonical recipient truth.
 
 ## 6. Release gates
 
