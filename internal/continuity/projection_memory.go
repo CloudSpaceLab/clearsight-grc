@@ -105,16 +105,11 @@ func (r *MemoryRepository) ClaimProgramState(_ context.Context, workerID string,
 		job.UpdatedAt = now
 		data.jobs[idValue] = job
 		values = append(values, job)
-	}
-	sort.Slice(values, func(i, j int) bool {
-		if values[i].AvailableAt.Equal(values[j].AvailableAt) {
-			return values[i].ID < values[j].ID
+		if len(values) >= limit {
+			break
 		}
-		return values[i].AvailableAt.Before(values[j].AvailableAt)
-	})
-	if len(values) > limit {
-		values = values[:limit]
 	}
+	sort.Slice(values, func(i, j int) bool { return values[i].CreatedAt.Before(values[j].CreatedAt) })
 	return values, nil
 }
 
@@ -123,59 +118,217 @@ func (r *MemoryRepository) CompleteProgramState(_ context.Context, job Projectio
 	data.mu.Lock()
 	defer data.mu.Unlock()
 	current, ok := data.jobs[job.ID]
-	if !ok {
-		return ErrNotFound
-	}
-	if current.Status != ProjectionJobClaimed || current.ClaimedBy != job.ClaimedBy {
+	if !ok || current.ClaimedBy != job.ClaimedBy {
 		return ErrVersionConflict
 	}
-	completed := now
 	current.Status = ProjectionJobCompleted
-	current.CompletedAt = &completed
+	current.CompletedAt = &now
 	current.UpdatedAt = now
 	data.jobs[job.ID] = current
 	return nil
 }
 
-func (r *MemoryRepository) FailProgramState(_ context.Context, job ProjectionJob, failure string, retryAt time.Time, maxAttempts int) error {
+func (r *MemoryRepository) FailProgramState(_ context.Context, job ProjectionJob, message string, retryAt time.Time) error {
 	data := projectionData(r)
 	data.mu.Lock()
 	defer data.mu.Unlock()
 	current, ok := data.jobs[job.ID]
-	if !ok {
-		return ErrNotFound
-	}
-	if current.Status != ProjectionJobClaimed || current.ClaimedBy != job.ClaimedBy {
+	if !ok || current.ClaimedBy != job.ClaimedBy {
 		return ErrVersionConflict
 	}
-	current.LastError = failure
+	current.Status = ProjectionJobReady
+	if current.Attempts >= 5 {
+		current.Status = ProjectionJobFailed
+	}
+	current.LastError = message
+	current.AvailableAt = retryAt
 	current.ClaimedAt = nil
 	current.ClaimedBy = ""
 	current.UpdatedAt = time.Now().UTC()
-	if current.Attempts >= maxAttempts {
-		current.Status = ProjectionJobFailed
-	} else {
-		current.Status = ProjectionJobReady
-		current.AvailableAt = retryAt
-	}
 	data.jobs[job.ID] = current
 	return nil
 }
 
-func (r *MemoryRepository) ListProgramStateJobs(_ context.Context, tenant string, status ProjectionJobStatus, limit int) ([]ProjectionJob, error) {
+func (r *MemoryRepository) ProjectionHealth(_ context.Context, tenant string) ([]ProjectionHealth, error) {
 	data := projectionData(r)
 	data.mu.Lock()
 	defer data.mu.Unlock()
-	values := []ProjectionJob{}
+	health := ProjectionHealth{TenantID: tenant, Projection: ProjectionProgramState, DisplayName: "Program status updates", State: "CURRENT", UpdatedAt: time.Now().UTC()}
 	for _, job := range data.jobs {
-		if job.TenantID != tenant || (status != "" && job.Status != status) {
+		if job.TenantID != tenant {
 			continue
 		}
-		values = append(values, job)
+		switch job.Status {
+		case ProjectionJobReady, ProjectionJobClaimed:
+			health.Pending++
+			if health.OldestPending == nil || job.CreatedAt.Before(*health.OldestPending) {
+				value := job.CreatedAt
+				health.OldestPending = &value
+			}
+		case ProjectionJobFailed:
+			health.Failed++
+			health.LastError = job.LastError
+		case ProjectionJobCompleted:
+			if job.CompletedAt != nil && (health.LastCompleted == nil || job.CompletedAt.After(*health.LastCompleted)) {
+				value := *job.CompletedAt
+				health.LastCompleted = &value
+			}
+		}
 	}
-	sort.Slice(values, func(i, j int) bool { return values[i].UpdatedAt.After(values[j].UpdatedAt) })
-	if len(values) > limit {
-		values = values[:limit]
+	if health.Failed > 0 {
+		health.State = "NEEDS_ATTENTION"
+	} else if health.Pending > 0 {
+		health.State = "UPDATE_PENDING"
 	}
-	return values, nil
+	if health.OldestPending != nil {
+		health.LagSeconds = int64(time.Since(*health.OldestPending).Seconds())
+	}
+	return []ProjectionHealth{health}, nil
 }
+
+func (r *MemoryRepository) ReconcileProgramState(ctx context.Context, tenant string, limit int) (ReconcileResult, error) {
+	r.mu.RLock()
+	programs := make([]Program, 0, len(r.programs[tenant]))
+	for _, aggregate := range r.programs[tenant] {
+		programs = append(programs, aggregate.Program)
+	}
+	r.mu.RUnlock()
+	data := projectionData(r)
+	data.mu.Lock()
+	active := map[string]bool{}
+	for _, job := range data.jobs {
+		if job.TenantID == tenant && (job.Status == ProjectionJobReady || job.Status == ProjectionJobClaimed) {
+			active[job.AggregateID] = true
+		}
+	}
+	data.mu.Unlock()
+	type candidate struct {
+		program   Program
+		projected int64
+		queued    bool
+	}
+	candidates := make([]candidate, 0, len(programs))
+	for _, program := range programs {
+		state, _ := r.ProgramStateAt(ctx, tenant, program.ID, nil)
+		projected := int64(0)
+		if state != nil {
+			projected = state.ProgramVersion
+		}
+		candidates = append(candidates, candidate{program: program, projected: projected, queued: active[program.ID]})
+	}
+	sort.Slice(candidates, func(i, j int) bool {
+		left := candidates[i].projected < candidates[i].program.Version && !candidates[i].queued
+		right := candidates[j].projected < candidates[j].program.Version && !candidates[j].queued
+		if left != right {
+			return left
+		}
+		return candidates[i].program.UpdatedAt.Before(candidates[j].program.UpdatedAt)
+	})
+	result := ReconcileResult{TenantID: tenant}
+	for _, item := range candidates {
+		if result.Checked >= limit {
+			break
+		}
+		result.Checked++
+		if item.projected >= item.program.Version {
+			result.Current++
+			continue
+		}
+		if item.queued {
+			result.AlreadyQueued++
+			continue
+		}
+		if _, err := r.QueueProgramState(ctx, tenant, item.program.ID, item.program.Version, "RECONCILE", "", "system"); err != nil {
+			return result, err
+		}
+		result.Queued++
+	}
+	return result, nil
+}
+
+func (r *MemoryRepository) CreateMatterWithLink(_ context.Context, bundle MatterLinkBundle) (Matter, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	matter := bundle.Matter
+	if r.programs[matter.TenantID][bundle.Link.ProgramID].Program.ID == "" {
+		return Matter{}, ErrNotFound
+	}
+	if r.matters[matter.TenantID] == nil {
+		r.matters[matter.TenantID] = map[string]MatterAggregate{}
+		r.matterEvents[matter.TenantID] = map[string][]Event{}
+	}
+	if matter.TriggerKey != "" {
+		for _, existing := range r.matters[matter.TenantID] {
+			if existing.Matter.TriggerKey == matter.TriggerKey && existing.Matter.Status != MatterClosed && existing.Matter.Status != MatterCancelled {
+				return Matter{}, ErrDuplicate
+			}
+		}
+	}
+	aggregate := MatterAggregate{Matter: matter, Closure: ClosureAssessment{Ready: false}}
+	if err := applyMatterEventToAggregate(&aggregate, bundle.LinkEvent); err != nil {
+		return Matter{}, err
+	}
+	aggregate.Matter.Version = bundle.LinkEvent.AggregateVersion
+	aggregate.Matter.UpdatedAt = bundle.LinkEvent.OccurredAt
+	r.matters[matter.TenantID][matter.ID] = aggregate
+	r.matterEvents[matter.TenantID][matter.ID] = []Event{bundle.MatterEvent, bundle.LinkEvent}
+	return aggregate.Matter, nil
+}
+
+func (r *MemoryRepository) ApplyTriggerBundle(ctx context.Context, bundle TriggerBundle) (TriggerBundleResult, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	trigger := bundle.Trigger
+	program, ok := r.programs[trigger.TenantID][trigger.ProgramID]
+	if !ok {
+		return TriggerBundleResult{}, ErrNotFound
+	}
+	if r.triggers[trigger.TenantID] == nil {
+		r.triggers[trigger.TenantID] = map[string]Trigger{}
+	}
+	if _, exists := r.triggers[trigger.TenantID][trigger.DedupeKey]; exists {
+		for _, aggregate := range r.matters[trigger.TenantID] {
+			if aggregate.Matter.TriggerKey == trigger.DedupeKey && aggregate.Matter.Status != MatterClosed && aggregate.Matter.Status != MatterCancelled {
+				matter := aggregate.Matter
+				return TriggerBundleResult{Inserted: false, Matter: &matter}, nil
+			}
+		}
+		return TriggerBundleResult{Inserted: false}, nil
+	}
+	if bundle.ProgramEvent.AggregateVersion != program.Program.Version+1 {
+		return TriggerBundleResult{}, ErrVersionConflict
+	}
+	if err := applyProgramEventToAggregate(&program, bundle.ProgramEvent); err != nil {
+		return TriggerBundleResult{}, err
+	}
+	program.Program.Version = bundle.ProgramEvent.AggregateVersion
+	program.Program.UpdatedAt = bundle.ProgramEvent.OccurredAt
+	r.programs[trigger.TenantID][trigger.ProgramID] = program
+	r.programEvents[trigger.TenantID][trigger.ProgramID] = append(r.programEvents[trigger.TenantID][trigger.ProgramID], bundle.ProgramEvent)
+	r.triggers[trigger.TenantID][trigger.DedupeKey] = trigger
+	result := TriggerBundleResult{Inserted: true}
+	if bundle.Matter != nil && bundle.MatterEvent != nil && bundle.Link != nil && bundle.LinkEvent != nil {
+		matter := *bundle.Matter
+		if r.matters[matter.TenantID] == nil {
+			r.matters[matter.TenantID] = map[string]MatterAggregate{}
+			r.matterEvents[matter.TenantID] = map[string][]Event{}
+		}
+		aggregate := MatterAggregate{Matter: matter, Closure: ClosureAssessment{Ready: false}}
+		if err := applyMatterEventToAggregate(&aggregate, *bundle.LinkEvent); err != nil {
+			return TriggerBundleResult{}, err
+		}
+		aggregate.Matter.Version = bundle.LinkEvent.AggregateVersion
+		aggregate.Matter.UpdatedAt = bundle.LinkEvent.OccurredAt
+		r.matters[matter.TenantID][matter.ID] = aggregate
+		r.matterEvents[matter.TenantID][matter.ID] = []Event{*bundle.MatterEvent, *bundle.LinkEvent}
+		created := aggregate.Matter
+		result.Matter = &created
+	}
+	_, _ = r.QueueProgramState(ctx, trigger.TenantID, trigger.ProgramID, program.Program.Version, trigger.Type, trigger.ID, "system")
+	return result, nil
+}
+
+var _ ProgramStateRepository = (*MemoryRepository)(nil)
+var _ ProjectionRepository = (*MemoryRepository)(nil)
+var _ CompoundRepository = (*MemoryRepository)(nil)
+var _ TriggerBundleRepository = (*MemoryRepository)(nil)
