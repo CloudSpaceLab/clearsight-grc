@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { loadContext, resolveAuthority } from "../api";
 import { transitionProgram } from "../continuityCommands";
@@ -17,6 +17,11 @@ function humanize(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 }
 
+function defaultTarget(status: string) {
+  if (status === "PAUSED" || status === "DRAFT") return "ACTIVE";
+  return "PAUSED";
+}
+
 function errorMessage(error: unknown) {
   const kind = apiErrorKind(error);
   if (kind === "forbidden" || kind === "unauthorized") return "Your current authority no longer permits this status change.";
@@ -27,10 +32,18 @@ function errorMessage(error: unknown) {
 export function ProgramLifecycleControls({ aggregate, onUpdated }: Props) {
   const program = aggregate.program;
   const [access, setAccess] = useState<AccessState>("loading");
-  const [target, setTarget] = useState(program.status === "PAUSED" ? "ACTIVE" : program.status === "DRAFT" ? "ACTIVE" : "PAUSED");
+  const [target, setTarget] = useState(() => defaultTarget(program.status));
   const [rationale, setRationale] = useState("");
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [error, setError] = useState("");
+  const choices = useMemo(() => ["ACTIVE", "PAUSED", "RETIRED"].filter((value) => value !== program.status), [program.status]);
+  const selectedTarget = choices.includes(target) ? target : choices[0] ?? "";
+
+  useEffect(() => {
+    setTarget(defaultTarget(program.status));
+    setSubmitState("idle");
+    setError("");
+  }, [program.status]);
 
   useEffect(() => {
     let active = true;
@@ -38,6 +51,7 @@ export function ProgramLifecycleControls({ aggregate, onUpdated }: Props) {
       setAccess("read-only");
       return () => { active = false; };
     }
+    setAccess("loading");
     void Promise.all([
       loadContext(),
       resolveAuthority({ object_type: "PROGRAM", object_id: program.id, responsibility: "AUTHORIZER", decision_type: "program.transition", materiality: 3 }),
@@ -53,11 +67,11 @@ export function ProgramLifecycleControls({ aggregate, onUpdated }: Props) {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (submitState === "saving") return;
+    if (submitState === "saving" || !selectedTarget) return;
     setSubmitState("saving");
     setError("");
     try {
-      const updated = await transitionProgram(program.id, program.version, target, rationale.trim());
+      const updated = await transitionProgram(program.id, program.version, selectedTarget, rationale.trim());
       onUpdated(updated);
       setRationale("");
       setSubmitState("saved");
@@ -67,21 +81,18 @@ export function ProgramLifecycleControls({ aggregate, onUpdated }: Props) {
     }
   }
 
-  if (access !== "allowed" || program.status === "RETIRED") return null;
-
-  const choices = ["ACTIVE", "PAUSED", "RETIRED"].filter((value) => value !== program.status);
-  if (!choices.includes(target)) setTarget(choices[0] ?? "RETIRED");
+  if (access !== "allowed" || program.status === "RETIRED" || !choices.length) return null;
 
   return <section className="handoff-summary program-operation" aria-label="Program status action">
     <span className="eyebrow">Authorized Program action</span>
     <h3>Change operating status</h3>
     <p>The server rechecks authority, current version, lifecycle validity and activation prerequisites when this is submitted.</p>
     <form className="governed-command-form" onSubmit={submit}>
-      <label><span>Requested status</span><select value={target} onChange={(event) => setTarget(event.target.value)}>{choices.map((value) => <option value={value} key={value}>{humanize(value)}</option>)}</select></label>
+      <label><span>Requested status</span><select value={selectedTarget} onChange={(event) => setTarget(event.target.value)}>{choices.map((value) => <option value={value} key={value}>{humanize(value)}</option>)}</select></label>
       <label><span>Rationale</span><textarea rows={3} value={rationale} onChange={(event) => setRationale(event.target.value)} placeholder="Why should the Program status change now?" required/></label>
       {error && <p className="inline-error" role="alert">{error}</p>}
       {submitState === "saved" && <div className="inline-notice" role="status">Program status recorded from the authoritative server response.</div>}
-      <button className="primary-button" type="submit" disabled={submitState === "saving" || !target}>{submitState === "saving" ? "Recording…" : `Request ${humanize(target)}`}</button>
+      <button className="primary-button" type="submit" disabled={submitState === "saving" || !selectedTarget}>{submitState === "saving" ? "Recording…" : `Request ${humanize(selectedTarget)}`}</button>
     </form>
   </section>;
 }
