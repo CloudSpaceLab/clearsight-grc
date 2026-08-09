@@ -27,7 +27,7 @@ function allowedTargets(task: WorkflowTask) {
   return (task.context?.allowed_targets ?? "").split(",").map((value) => value.trim()).filter(Boolean);
 }
 
-function WorkCommand({ aggregate, task, onUpdated, onCompleted }: Props & { task: WorkflowTask; onCompleted: (taskID: string) => void }) {
+export function MatterWorkCommand({ aggregate, task, onUpdated, onCompleted }: Props & { task: WorkflowTask; onCompleted: (taskID: string) => void }) {
   const command = task.context?.command_name ?? "";
   const targets = useMemo(() => allowedTargets(task), [task]);
   const [target, setTarget] = useState(task.context?.target_status || targets[0] || "");
@@ -123,6 +123,6 @@ export function MatterWorkCommandPanel({ aggregate, onUpdated }: Props) {
   if (!tasks.length) return null;
 
   return <div className="governed-command-stack" aria-label="Assigned governed actions">
-    {tasks.map((task) => <WorkCommand key={task.id} aggregate={aggregate} task={task} onUpdated={onUpdated} onCompleted={(taskID) => setTasks((current) => current.filter((item) => item.id !== taskID))}/>) }
+    {tasks.map((task) => <MatterWorkCommand key={task.id} aggregate={aggregate} task={task} onUpdated={onUpdated} onCompleted={(taskID) => setTasks((current) => current.filter((item) => item.id !== taskID))}/>) }
   </div>;
 }
