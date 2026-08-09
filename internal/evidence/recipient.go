@@ -1,6 +1,7 @@
 package evidence
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -57,6 +58,20 @@ func recipientIsAssigned(recipient Recipient) bool {
 	// Empty state is accepted only for pre-B2 in-memory fixtures. PostgreSQL B2
 	// rows always carry an explicit state.
 	return recipient.State == "" || recipient.State == RecipientStateAssigned
+}
+
+func sameRecipient(left, right Recipient) bool {
+	if left.Type != right.Type {
+		return false
+	}
+	switch left.Type {
+	case RecipientInternalPrincipal:
+		return left.PrincipalID == right.PrincipalID
+	case RecipientExternalAudience:
+		return bytes.Equal(left.AudienceHash, right.AudienceHash)
+	default:
+		return false
+	}
 }
 
 func RequestAssignedTo(request Request, principalID string) bool {
