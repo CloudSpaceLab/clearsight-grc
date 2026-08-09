@@ -85,8 +85,10 @@ func (r *CurrentPostgresRepository) GetMatter(ctx context.Context, tenant, id st
 func (r *CurrentPostgresRepository) ListMatters(ctx context.Context, tenant, status string, limit int) ([]MatterAggregate, error) {
 	actor, enforceVisibility := identity.FromContext(ctx)
 	principalID := ""
+	actorTenant := ""
 	if enforceVisibility {
 		principalID = actor.PrincipalID
+		actorTenant = actor.TenantID
 	}
 	rows, err := r.pool.Query(ctx, `
 		SELECT m.id::text
@@ -94,6 +96,7 @@ func (r *CurrentPostgresRepository) ListMatters(ctx context.Context, tenant, sta
 		JOIN tenants t ON t.id=m.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND ($2='' OR ($2='OPEN' AND m.status NOT IN ('CLOSED','CANCELLED')) OR m.status=$2)
+		  AND (NOT $3 OR t.id::text=$5 OR t.slug=$5)
 		  AND (
 			NOT $3 OR
 			CASE
@@ -121,7 +124,7 @@ func (r *CurrentPostgresRepository) ListMatters(ctx context.Context, tenant, sta
 			END
 		  )
 		ORDER BY m.priority DESC,m.due_at NULLS LAST,m.updated_at DESC,m.id
-		LIMIT $5`, tenant, status, enforceVisibility, principalID, limit)
+		LIMIT $6`, tenant, status, enforceVisibility, principalID, actorTenant, limit)
 	if err != nil {
 		return nil, err
 	}
