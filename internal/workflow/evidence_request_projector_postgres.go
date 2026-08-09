@@ -25,11 +25,14 @@ type evidenceRequestProjection struct {
 	Deadline             time.Time
 	EstimatedMinutes     int
 	PrincipalActive      bool
+	SubjectVisible       bool
 }
 
 // Maintain reconciles only requests whose desired projection differs from the
 // existing actor work. It is restart-safe and does not walk stable requests on
-// every pass.
+// every pass. A request with no existing Workflow projection is materialized
+// only when it is currently actionable; terminal/ineligible requests do not
+// create empty cancelled work merely for historical completeness.
 func (p *EvidenceRequestProjector) Maintain(ctx context.Context, now time.Time, limit int) (int, error) {
 	if p == nil || p.Repo == nil {
 		return 0, nil
@@ -38,23 +41,99 @@ func (p *EvidenceRequestProjector) Maintain(ctx context.Context, now time.Time, 
 		limit = 100
 	}
 	rows, err := p.Repo.pool.Query(ctx, `
-		SELECT cr.id::text,t.slug,cr.title,cr.purpose,cr.subject_type,cr.subject_id,
-		       COALESCE(cr.recipient_principal_id::text,''),cr.recipient_state,cr.status,cr.deadline,cr.estimated_minutes,
-		       COALESCE(p.status='ACTIVE' AND p.valid_from<=$2 AND (p.valid_until IS NULL OR $2<p.valid_until),false)
-		FROM capture_requests cr
-		JOIN tenants t ON t.id=cr.tenant_id
-		LEFT JOIN principals p ON p.id=cr.recipient_principal_id AND p.tenant_id=cr.tenant_id AND p.kind='PERSON'
-		LEFT JOIN workflow_instances wi ON wi.tenant_id=cr.tenant_id AND wi.kind='EVIDENCE_REQUEST' AND wi.subject_type='EVIDENCE_REQUEST' AND wi.subject_id=cr.id::text
-		LEFT JOIN workflow_tasks wt ON wt.workflow_id=wi.id AND wt.step_key='evidence-response'
-		WHERE cr.recipient_type='INTERNAL_PRINCIPAL'
-		  AND (
-			wi.id IS NULL
-			OR cr.updated_at>wi.updated_at
-			OR (cr.recipient_state='ASSIGNED' AND cr.status='READY' AND cr.deadline>$2 AND COALESCE(p.status='ACTIVE' AND p.valid_from<=$2 AND (p.valid_until IS NULL OR $2<p.valid_until),false) AND wt.status IS DISTINCT FROM 'READY')
-			OR (cr.recipient_state='ASSIGNED' AND cr.status='IN_PROGRESS' AND cr.deadline>$2 AND COALESCE(p.status='ACTIVE' AND p.valid_from<=$2 AND (p.valid_until IS NULL OR $2<p.valid_until),false) AND wt.status IS DISTINCT FROM 'IN_PROGRESS')
-			OR ((cr.recipient_state<>'ASSIGNED' OR cr.status NOT IN ('READY','IN_PROGRESS') OR cr.deadline<=$2 OR NOT COALESCE(p.status='ACTIVE' AND p.valid_from<=$2 AND (p.valid_until IS NULL OR $2<p.valid_until),false)) AND wt.status NOT IN ('COMPLETED','CANCELLED'))
+		WITH candidate_requests AS (
+			SELECT cr.id,cr.id::text AS request_id,t.slug,cr.title,cr.purpose,cr.subject_type,cr.subject_id,
+			       COALESCE(cr.recipient_principal_id::text,'') AS recipient_principal_id,
+			       cr.recipient_state,cr.status,cr.deadline,cr.estimated_minutes,cr.updated_at,
+			       COALESCE(p.status='ACTIVE' AND p.valid_from<=$2 AND (p.valid_until IS NULL OR $2<p.valid_until),false) AS principal_active,
+			       CASE
+			         WHEN cr.subject_type<>'MATTER' THEN true
+			         WHEN m.id IS NULL THEN false
+			         WHEN NOT (m.scope ? 'access') THEN true
+			         WHEN upper(btrim(COALESCE(m.scope->>'access',''))) IN ('PUBLIC','INTERNAL') THEN true
+			         WHEN upper(btrim(COALESCE(m.scope->>'access','')))='RESTRICTED' THEN
+			           CASE
+			             WHEN jsonb_typeof(m.scope->'allowed_principal_ids')='array'
+			              AND NOT EXISTS (
+			                SELECT 1
+			                FROM jsonb_array_elements(m.scope->'allowed_principal_ids') AS entry(value)
+			                WHERE jsonb_typeof(entry.value)<>'string'
+			              )
+			              AND EXISTS (
+			                SELECT 1
+			                FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') AS nonblank(value)
+			                WHERE btrim(nonblank.value)<>''
+			              )
+			             THEN EXISTS (
+			               SELECT 1
+			               FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') AS allowed(value)
+			               WHERE btrim(allowed.value)=COALESCE(cr.recipient_principal_id::text,'')
+			             )
+			             ELSE false
+			           END
+			         ELSE false
+			       END AS subject_visible
+			FROM capture_requests cr
+			JOIN tenants t ON t.id=cr.tenant_id
+			LEFT JOIN principals p
+			  ON p.id=cr.recipient_principal_id
+			 AND p.tenant_id=cr.tenant_id
+			 AND p.kind='PERSON'
+			LEFT JOIN matters m
+			  ON cr.subject_type='MATTER'
+			 AND m.tenant_id=cr.tenant_id
+			 AND m.id::text=cr.subject_id
+			WHERE cr.recipient_type='INTERNAL_PRINCIPAL'
+		)
+		SELECT c.request_id,c.slug,c.title,c.purpose,c.subject_type,c.subject_id,
+		       c.recipient_principal_id,c.recipient_state,c.status,c.deadline,c.estimated_minutes,
+		       c.principal_active,c.subject_visible
+		FROM candidate_requests c
+		LEFT JOIN workflow_instances wi
+		  ON wi.tenant_id=(SELECT id FROM tenants WHERE slug=c.slug)
+		 AND wi.kind='EVIDENCE_REQUEST'
+		 AND wi.subject_type='EVIDENCE_REQUEST'
+		 AND wi.subject_id=c.id
+		LEFT JOIN workflow_tasks wt
+		  ON wt.workflow_id=wi.id
+		 AND wt.step_key='evidence-response'
+		WHERE
+		  (
+		    wi.id IS NULL
+		    AND c.recipient_state='ASSIGNED'
+		    AND c.status IN ('READY','IN_PROGRESS')
+		    AND c.deadline>$2
+		    AND c.principal_active
+		    AND c.subject_visible
 		  )
-		ORDER BY cr.updated_at,cr.id
+		  OR (
+		    wi.id IS NOT NULL
+		    AND (
+		      c.updated_at>wi.updated_at
+		      OR (
+		        c.recipient_state='ASSIGNED' AND c.status='READY' AND c.deadline>$2
+		        AND c.principal_active AND c.subject_visible
+		        AND wt.status IS DISTINCT FROM 'READY'
+		      )
+		      OR (
+		        c.recipient_state='ASSIGNED' AND c.status='IN_PROGRESS' AND c.deadline>$2
+		        AND c.principal_active AND c.subject_visible
+		        AND wt.status IS DISTINCT FROM 'IN_PROGRESS'
+		      )
+		      OR (c.status='SUBMITTED' AND wt.status IS DISTINCT FROM 'COMPLETED')
+		      OR (
+		        (
+		          c.recipient_state<>'ASSIGNED'
+		          OR c.status NOT IN ('READY','IN_PROGRESS','SUBMITTED')
+		          OR c.deadline<=$2
+		          OR NOT c.principal_active
+		          OR NOT c.subject_visible
+		        )
+		        AND wt.status NOT IN ('COMPLETED','CANCELLED')
+		      )
+		    )
+		  )
+		ORDER BY c.updated_at,c.id
 		LIMIT $1`, limit, now)
 	if err != nil {
 		return 0, fmt.Errorf("list evidence request projection drift: %w", err)
@@ -66,7 +145,7 @@ func (p *EvidenceRequestProjector) Maintain(ctx context.Context, now time.Time, 
 		if err := rows.Scan(
 			&value.ID, &value.TenantID, &value.Title, &value.Purpose, &value.SubjectType, &value.SubjectID,
 			&value.RecipientPrincipalID, &value.RecipientState, &value.RequestStatus, &value.Deadline, &value.EstimatedMinutes,
-			&value.PrincipalActive,
+			&value.PrincipalActive, &value.SubjectVisible,
 		); err != nil {
 			return 0, err
 		}
@@ -88,7 +167,7 @@ func (p *EvidenceRequestProjector) Maintain(ctx context.Context, now time.Time, 
 func (p *EvidenceRequestProjector) reconcileEvidenceRequest(ctx context.Context, request evidenceRequestProjection, now time.Time) error {
 	status := StatusCancelled
 	principalID := ""
-	if request.RecipientState == "ASSIGNED" && request.PrincipalActive && now.Before(request.Deadline) {
+	if request.RecipientState == "ASSIGNED" && request.PrincipalActive && request.SubjectVisible && now.Before(request.Deadline) {
 		switch request.RequestStatus {
 		case "READY":
 			status = StatusReady
@@ -126,7 +205,7 @@ func (p *EvidenceRequestProjector) reconcileEvidenceRequest(ctx context.Context,
 	var workflowID string
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO workflow_instances(tenant_id,kind,subject_type,subject_id,state,policy_version,context_version,due_at,created_at,updated_at)
-		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),'EVIDENCE_REQUEST','EVIDENCE_REQUEST',$2,$3,'capture-recipient-v1',1,$4,$5,$5)
+		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),'EVIDENCE_REQUEST','EVIDENCE_REQUEST',$2::uuid,$3,'capture-recipient-v1',1,$4,$5,$5)
 		ON CONFLICT(tenant_id,kind,subject_type,subject_id)
 		DO UPDATE SET state=EXCLUDED.state,due_at=EXCLUDED.due_at,updated_at=EXCLUDED.updated_at,version=workflow_instances.version+1
 		RETURNING id::text`, request.TenantID, request.ID, string(status), request.Deadline, now).Scan(&workflowID); err != nil {
