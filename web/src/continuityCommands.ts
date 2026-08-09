@@ -1,4 +1,4 @@
-import { loadContext } from "./api";
+import { loadContext, resolveAuthority } from "./api";
 import { requestJSON } from "./http";
 import type { MatterAggregate, ProgramAggregate, WorkflowTask } from "./types";
 
@@ -46,6 +46,19 @@ async function command<T>(path: string, body: Record<string, unknown>): Promise<
     method: "POST",
     body: JSON.stringify({ tenant_id: context.tenant.id, ...body }),
   });
+}
+
+export async function canCurrentActorTransitionProgram(programID: string): Promise<boolean> {
+  const context = await loadContext();
+  const resolution = await resolveAuthority({
+    object_type: "PROGRAM",
+    object_id: programID,
+    responsibility: "AUTHORIZER",
+    decision_type: "program.transition",
+    materiality: 3,
+  });
+  return [resolution.principal, ...(resolution.candidate_principals ?? [])]
+    .some((candidate) => candidate?.id === context.actor.id);
 }
 
 export async function loadActorMatterWork(limit = 100): Promise<WorkflowTask[]> {
