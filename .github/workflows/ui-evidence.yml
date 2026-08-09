@@ -7,6 +7,8 @@ on:
       - "internal/today/**"
       - "internal/workflow/**"
       - "internal/continuity/work_requirements.go"
+      - "internal/continuity/program_review.go"
+      - "internal/httpapi/program_review_handlers.go"
       - "internal/authority/model.go"
       - "internal/httpapi/actor_read_handlers.go"
       - "internal/identity/**"
@@ -72,6 +74,7 @@ jobs:
           node scripts/capture-ui-evidence.mjs
           node scripts/capture-lifecycle-ui-evidence.mjs
           node scripts/capture-operating-mutations-evidence.mjs
+          node scripts/capture-program-review-evidence.mjs
       - name: Upload screenshots and manifest
         if: always()
         uses: actions/upload-artifact@v4
