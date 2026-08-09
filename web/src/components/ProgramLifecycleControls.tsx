@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { loadContext, resolveAuthority } from "../api";
-import { transitionProgram } from "../continuityCommands";
+import { canCurrentActorTransitionProgram, transitionProgram } from "../continuityCommands";
 import { apiErrorKind } from "../http";
 import type { ProgramAggregate } from "../types";
 
@@ -52,13 +51,8 @@ export function ProgramLifecycleControls({ aggregate, onUpdated }: Props) {
       return () => { active = false; };
     }
     setAccess("loading");
-    void Promise.all([
-      loadContext(),
-      resolveAuthority({ object_type: "PROGRAM", object_id: program.id, responsibility: "AUTHORIZER", decision_type: "program.transition", materiality: 3 }),
-    ]).then(([context, resolution]) => {
-      if (!active) return;
-      const candidates = [resolution.principal, ...(resolution.candidate_principals ?? [])].filter(Boolean);
-      setAccess(candidates.some((candidate) => candidate.id === context.actor.id) ? "allowed" : "read-only");
+    void canCurrentActorTransitionProgram(program.id).then((allowed) => {
+      if (active) setAccess(allowed ? "allowed" : "read-only");
     }).catch(() => {
       if (active) setAccess("read-only");
     });
