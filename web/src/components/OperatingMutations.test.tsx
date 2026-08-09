@@ -32,7 +32,7 @@ const matter: MatterAggregate = {
   },
   links: [],
   decisions: [{ id: "decision-stage-1", type: "TREATMENT", status: "IN_REVIEW", rationale: "Prepared for authority review." }],
-  actions: [{ id: "action-1", tenant_id: "bank-1", matter_id: "matter-1", title: "Correct owner record", description: "Update the accountable owner.", owner_principal_id: "actor-1", status: "PLANNED", created_at: "2026-08-09T09:00:00Z", updated_at: "2026-08-09T09:00:00Z", version: 1 }],
+  actions: [{ id: "action-1", title: "Correct owner record", description: "Update the accountable owner.", status: "PLANNED" }],
   verification_contracts: [], verification_results: [], response_packages: [], closure: { ready: false, reasons: [] },
 };
 
@@ -96,7 +96,7 @@ describe("governed operating mutations", () => {
 
   it("executes Matter Action transitions only from projected canonical targets", async () => {
     vi.mocked(loadActorMatterWork).mockResolvedValue([actionTask]);
-    vi.mocked(transitionMatterAction).mockResolvedValue({ ...matter, matter: { ...matter.matter, version: 8 }, actions: [{ ...matter.actions[0], status: "IN_PROGRESS", version: 2 }] });
+    vi.mocked(transitionMatterAction).mockResolvedValue({ ...matter, matter: { ...matter.matter, version: 8 }, actions: [{ ...matter.actions[0], status: "IN_PROGRESS" }] });
     const onUpdated = vi.fn();
 
     render(<MatterWorkCommandPanel aggregate={matter} onUpdated={onUpdated}/>);
