@@ -72,8 +72,8 @@ type SourceObservation struct {
 }
 
 type RequestStatus string
-
 type RecipientType string
+type RecipientState string
 
 const (
 	RequestDraft      RequestStatus = "DRAFT"
@@ -85,6 +85,10 @@ const (
 
 	RecipientInternalPrincipal RecipientType = "INTERNAL_PRINCIPAL"
 	RecipientExternalAudience  RecipientType = "EXTERNAL_AUDIENCE"
+
+	RecipientStateAssigned             RecipientState = "ASSIGNED"
+	RecipientStateReassignmentRequired RecipientState = "REASSIGNMENT_REQUIRED"
+	RecipientStateLegacyUnassigned     RecipientState = "LEGACY_UNASSIGNED"
 )
 
 type Field struct {
@@ -98,10 +102,13 @@ type Field struct {
 }
 
 type Recipient struct {
-	Type         RecipientType `json:"type,omitempty"`
-	PrincipalID  string        `json:"principal_id,omitempty"`
-	AudienceHint string        `json:"audience_hint,omitempty"`
-	AudienceHash []byte        `json:"-"`
+	Type         RecipientType  `json:"type,omitempty"`
+	PrincipalID  string         `json:"principal_id,omitempty"`
+	AudienceHint string         `json:"audience_hint,omitempty"`
+	State        RecipientState `json:"state,omitempty"`
+	Revision     int64          `json:"revision,omitempty"`
+	IssueReason  string         `json:"issue_reason,omitempty"`
+	AudienceHash []byte         `json:"-"`
 }
 
 type RecipientInput struct {
@@ -149,6 +156,23 @@ type CreateRequestInput struct {
 	CreatedBy        string            `json:"created_by,omitempty"`
 }
 
+type DeclareWrongRecipientInput struct {
+	TenantID        string `json:"tenant_id"`
+	RequestID       string `json:"request_id"`
+	ActorPrincipalID string `json:"actor_principal_id,omitempty"`
+	Reason          string `json:"reason"`
+	ExpectedVersion int64  `json:"expected_version"`
+}
+
+type ReassignRecipientInput struct {
+	TenantID         string         `json:"tenant_id"`
+	RequestID        string         `json:"request_id"`
+	ActorPrincipalID string         `json:"actor_principal_id,omitempty"`
+	Recipient        RecipientInput `json:"recipient"`
+	Reason           string         `json:"reason"`
+	ExpectedVersion  int64          `json:"expected_version"`
+}
+
 type Submission struct {
 	ID              string            `json:"id"`
 	TenantID        string            `json:"tenant_id"`
@@ -170,19 +194,20 @@ type SubmissionReceipt struct {
 }
 
 type Invitation struct {
-	ID             string     `json:"id"`
-	TenantID       string     `json:"tenant_id"`
-	RequestID      string     `json:"request_id"`
-	TokenHash      []byte     `json:"-"`
-	AudienceHash   []byte     `json:"-"`
-	AudienceHint   string     `json:"audience_hint"`
-	Purpose        string     `json:"purpose"`
-	ExpiresAt      time.Time  `json:"expires_at"`
-	MaxRedemptions int        `json:"max_redemptions"`
-	Redemptions    int        `json:"redemptions"`
-	RevokedAt      *time.Time `json:"revoked_at,omitempty"`
-	CreatedBy      string     `json:"created_by,omitempty"`
-	CreatedAt      time.Time  `json:"created_at"`
+	ID                string     `json:"id"`
+	TenantID          string     `json:"tenant_id"`
+	RequestID         string     `json:"request_id"`
+	TokenHash         []byte     `json:"-"`
+	AudienceHash      []byte     `json:"-"`
+	AudienceHint      string     `json:"audience_hint"`
+	RecipientRevision int64      `json:"recipient_revision"`
+	Purpose           string     `json:"purpose"`
+	ExpiresAt         time.Time  `json:"expires_at"`
+	MaxRedemptions    int        `json:"max_redemptions"`
+	Redemptions       int        `json:"redemptions"`
+	RevokedAt         *time.Time `json:"revoked_at,omitempty"`
+	CreatedBy         string     `json:"created_by,omitempty"`
+	CreatedAt         time.Time  `json:"created_at"`
 }
 
 type IssueInvitationInput struct {
@@ -203,14 +228,15 @@ type IssuedInvitation struct {
 }
 
 type Session struct {
-	ID           string     `json:"id"`
-	TenantID     string     `json:"tenant_id"`
-	RequestID    string     `json:"request_id"`
-	AudienceHint string     `json:"audience_hint"`
-	TokenHash    []byte     `json:"-"`
-	ExpiresAt    time.Time  `json:"expires_at"`
-	RevokedAt    *time.Time `json:"revoked_at,omitempty"`
-	CreatedAt    time.Time  `json:"created_at"`
+	ID                string     `json:"id"`
+	TenantID          string     `json:"tenant_id"`
+	RequestID         string     `json:"request_id"`
+	AudienceHint      string     `json:"audience_hint"`
+	RecipientRevision int64      `json:"recipient_revision"`
+	TokenHash         []byte     `json:"-"`
+	ExpiresAt         time.Time  `json:"expires_at"`
+	RevokedAt         *time.Time `json:"revoked_at,omitempty"`
+	CreatedAt         time.Time  `json:"created_at"`
 }
 
 type RedeemedSession struct {
