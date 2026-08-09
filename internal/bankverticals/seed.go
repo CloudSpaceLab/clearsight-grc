@@ -207,6 +207,7 @@ func (s *Service) seedNDPAEvidenceRequest(ctx context.Context, config SeedConfig
 		WhyYou:           "You own the three changes that do not yet have an approved privacy review record.",
 		Sensitivity:      "CONFIDENTIAL",
 		AudienceType:     "INTERNAL",
+		Recipient:        evidence.RecipientInput{Type: evidence.RecipientInternalPrincipal, PrincipalID: config.OwnerPrincipalID},
 		EstimatedMinutes: 12,
 		Deadline:         config.Now.Add(5 * 24 * time.Hour),
 		KnownFacts:       map[string]string{"high_risk_changes": "12", "approved_assessments": "9", "outstanding_changes": "3"},
@@ -265,7 +266,7 @@ func (s *Service) seedAuthorityRequest(ctx context.Context, config SeedConfig, p
 	if err != nil {
 		return matter, err
 	}
-	request, err := s.evidence.CreateRequest(ctx, evidence.CreateRequestInput{TenantID: config.TenantID, SubjectType: "MATTER", SubjectID: matter.Matter.ID, Title: "Provide incident containment and customer communication records", Purpose: "Complete the restricted NDPC response package.", WhyYou: "You own the incident response records requested by Regulatory Affairs.", Sensitivity: "RESTRICTED", AudienceType: "INTERNAL", EstimatedMinutes: 10, Deadline: config.Now.Add(48 * time.Hour), KnownFacts: map[string]string{"case_reference": "NDPC/ENF/2026/0142", "incident_reference": "PRI-2026-008"}, Fields: []evidence.Field{{ID: "containment_record", Label: "Containment record reference", Type: "TEXT", Required: true, Description: "Enter the incident containment record reference."}, {ID: "communication_decision", Label: "Customer communication decision", Type: "TEXT", Required: true, Description: "State the approved decision and approving authority."}}, CreatedBy: config.ActorID})
+	request, err := s.evidence.CreateRequest(ctx, evidence.CreateRequestInput{TenantID: config.TenantID, SubjectType: "MATTER", SubjectID: matter.Matter.ID, Title: "Provide incident containment and customer communication records", Purpose: "Complete the restricted NDPC response package.", WhyYou: "You own the incident response records requested by Regulatory Affairs.", Sensitivity: "RESTRICTED", AudienceType: "INTERNAL", Recipient: evidence.RecipientInput{Type: evidence.RecipientInternalPrincipal, PrincipalID: config.OwnerPrincipalID}, EstimatedMinutes: 10, Deadline: config.Now.Add(48 * time.Hour), KnownFacts: map[string]string{"case_reference": "NDPC/ENF/2026/0142", "incident_reference": "PRI-2026-008"}, Fields: []evidence.Field{{ID: "containment_record", Label: "Containment record reference", Type: "TEXT", Required: true, Description: "Enter the incident containment record reference."}, {ID: "communication_decision", Label: "Customer communication decision", Type: "TEXT", Required: true, Description: "State the approved decision and approving authority."}}, CreatedBy: config.ActorID})
 	if err != nil {
 		return matter, err
 	}

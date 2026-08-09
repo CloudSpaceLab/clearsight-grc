@@ -12,21 +12,26 @@ func TestRequestSubmissionAndVersioning(t *testing.T) {
 	service := NewService(NewMemoryRepository(nil, nil), NewMemoryObjectStore())
 	now := time.Date(2026, 8, 5, 10, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
-	request, err := service.CreateRequest(context.Background(), CreateRequestInput{TenantID: "bank", SubjectType: "CONTROL", SubjectID: "c1", Title: "Confirm control operation", Purpose: "Complete the quarterly review.", WhyYou: "You operate the control.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL", EstimatedMinutes: 2, Deadline: now.Add(time.Hour), Fields: []Field{{ID: "state", Label: "Current state", Type: "single_select", Required: true, Options: []string{"Operating", "Unavailable"}}}})
+	request, err := service.CreateRequest(context.Background(), CreateRequestInput{
+		TenantID: "bank", SubjectType: "CONTROL", SubjectID: "c1", Title: "Confirm control operation",
+		Purpose: "Complete the quarterly review.", WhyYou: "You operate the control.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL",
+		Recipient: RecipientInput{Type: RecipientInternalPrincipal, PrincipalID: testCaptureRecipient}, EstimatedMinutes: 2,
+		Deadline: now.Add(time.Hour), Fields: []Field{{ID: "state", Label: "Current state", Type: "single_select", Required: true, Options: []string{"Operating", "Unavailable"}}},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.Submit(context.Background(), Submission{TenantID: "bank", RequestID: request.ID, ExpectedVersion: request.Version, Answers: map[string]string{}}); err == nil {
+	if _, err := service.Submit(context.Background(), testSubmission(request, map[string]string{})); err == nil {
 		t.Fatal("expected required-field validation")
 	}
-	receipt, err := service.Submit(context.Background(), Submission{TenantID: "bank", RequestID: request.ID, ExpectedVersion: request.Version, Answers: map[string]string{"state": "Operating"}})
+	receipt, err := service.Submit(context.Background(), testSubmission(request, map[string]string{"state": "Operating"}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if receipt.Status != RequestSubmitted || receipt.Version != 2 {
 		t.Fatalf("unexpected receipt: %#v", receipt)
 	}
-	if _, err := service.Submit(context.Background(), Submission{TenantID: "bank", RequestID: request.ID, ExpectedVersion: request.Version, Answers: map[string]string{"state": "Operating"}}); !errors.Is(err, ErrRequestClosed) {
+	if _, err := service.Submit(context.Background(), testSubmission(request, map[string]string{"state": "Operating"})); !errors.Is(err, ErrRequestClosed) {
 		t.Fatalf("expected closed request, got %v", err)
 	}
 }
@@ -35,7 +40,12 @@ func TestCreateRequestRejectsPastDeadline(t *testing.T) {
 	service := NewService(NewMemoryRepository(nil, nil), NewMemoryObjectStore())
 	now := time.Date(2026, 8, 5, 10, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
-	_, err := service.CreateRequest(context.Background(), CreateRequestInput{TenantID: "bank", SubjectType: "CONTROL", SubjectID: "c1", Title: "Expired request", Purpose: "Test deadline enforcement.", WhyYou: "You own the control.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL", EstimatedMinutes: 2, Deadline: now.Add(-time.Minute), Fields: []Field{{ID: "note", Label: "Note", Type: "text"}}})
+	_, err := service.CreateRequest(context.Background(), CreateRequestInput{
+		TenantID: "bank", SubjectType: "CONTROL", SubjectID: "c1", Title: "Expired request",
+		Purpose: "Test deadline enforcement.", WhyYou: "You own the control.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL",
+		Recipient: RecipientInput{Type: RecipientInternalPrincipal, PrincipalID: testCaptureRecipient}, EstimatedMinutes: 2,
+		Deadline: now.Add(-time.Minute), Fields: []Field{{ID: "note", Label: "Note", Type: "text"}},
+	})
 	if err == nil {
 		t.Fatal("expected past deadline to be rejected")
 	}
@@ -46,15 +56,20 @@ func TestExpiredRequestRejectsSubmissionAndArtifactAndPersistsExpiry(t *testing.
 	service := NewService(repo, NewMemoryObjectStore())
 	now := time.Date(2026, 8, 5, 10, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
-	request, err := service.CreateRequest(context.Background(), CreateRequestInput{TenantID: "bank", SubjectType: "CONTROL", SubjectID: "c1", Title: "Short request", Purpose: "Test expiry.", WhyYou: "You own the control.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL", EstimatedMinutes: 2, Deadline: now.Add(time.Minute), Fields: []Field{{ID: "note", Label: "Note", Type: "text"}}})
+	request, err := service.CreateRequest(context.Background(), CreateRequestInput{
+		TenantID: "bank", SubjectType: "CONTROL", SubjectID: "c1", Title: "Short request",
+		Purpose: "Test expiry.", WhyYou: "You own the control.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL",
+		Recipient: RecipientInput{Type: RecipientInternalPrincipal, PrincipalID: testCaptureRecipient}, EstimatedMinutes: 2,
+		Deadline: now.Add(time.Minute), Fields: []Field{{ID: "note", Label: "Note", Type: "text"}},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	now = now.Add(2 * time.Minute)
-	if _, err := service.Submit(context.Background(), Submission{TenantID: "bank", RequestID: request.ID, ExpectedVersion: request.Version, Answers: map[string]string{"note": "late"}}); !errors.Is(err, ErrRequestClosed) {
+	if _, err := service.Submit(context.Background(), testSubmission(request, map[string]string{"note": "late"})); !errors.Is(err, ErrRequestClosed) {
 		t.Fatalf("late submission should be closed, got %v", err)
 	}
-	if _, err := service.StoreArtifact(context.Background(), ArtifactInput{TenantID: "bank", RequestID: request.ID, FileName: "proof.txt", MediaType: "text/plain"}, bytes.NewBufferString("evidence")); !errors.Is(err, ErrRequestClosed) {
+	if _, err := service.StoreArtifact(context.Background(), ArtifactInput{TenantID: "bank", RequestID: request.ID, FileName: "proof.txt", MediaType: "text/plain", CreatedBy: testCaptureRecipient}, bytes.NewBufferString("evidence")); !errors.Is(err, ErrRequestClosed) {
 		t.Fatalf("late artifact should be closed, got %v", err)
 	}
 	count, err := service.Maintain(context.Background(), now, 10)
@@ -74,11 +89,16 @@ func TestInvitationRedeemIsAudienceBoundOneTimeAndNonDestructiveOnMismatch(t *te
 	service := NewService(NewMemoryRepository(nil, nil), NewMemoryObjectStore())
 	now := time.Date(2026, 8, 5, 10, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
-	request, err := service.CreateRequest(context.Background(), CreateRequestInput{TenantID: "bank", SubjectType: "VENDOR", SubjectID: "v1", Title: "Provide current certificate", Purpose: "Complete vendor assurance.", WhyYou: "You are the vendor contact.", Sensitivity: "CONFIDENTIAL", AudienceType: "EXTERNAL", EstimatedMinutes: 3, Deadline: now.Add(24 * time.Hour), Fields: []Field{{ID: "confirm", Label: "Certificate is current", Type: "single_select", Required: true, Options: []string{"Yes", "No"}}}})
+	request, err := service.CreateRequest(context.Background(), CreateRequestInput{
+		TenantID: "bank", SubjectType: "VENDOR", SubjectID: "v1", Title: "Provide current certificate",
+		Purpose: "Complete vendor assurance.", WhyYou: "You are the vendor contact.", Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR",
+		Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: "security@example.com"}, EstimatedMinutes: 3,
+		Deadline: now.Add(24 * time.Hour), Fields: []Field{{ID: "confirm", Label: "Certificate is current", Type: "single_select", Required: true, Options: []string{"Yes", "No"}}}, CreatedBy: "creator",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	issued, err := service.IssueInvitation(context.Background(), IssueInvitationInput{TenantID: "bank", RequestID: request.ID, Audience: "security@example.com", Purpose: "Vendor assurance response", TTLMinutes: 60})
+	issued, err := service.IssueInvitation(context.Background(), IssueInvitationInput{TenantID: "bank", RequestID: request.ID, Audience: "security@example.com", Purpose: "Vendor assurance response", TTLMinutes: 60, CreatedBy: "creator"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,18 +127,23 @@ func TestArtifactManifestAndSizeLimit(t *testing.T) {
 	now := time.Date(2026, 8, 5, 10, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
 	service.Configure(time.Minute, 8)
-	request, err := service.CreateRequest(context.Background(), CreateRequestInput{TenantID: "bank", SubjectType: "CONTROL", SubjectID: "c1", Title: "Upload evidence", Purpose: "Record current proof.", WhyYou: "You own the control.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL", EstimatedMinutes: 2, Deadline: now.Add(time.Hour), Fields: []Field{{ID: "note", Label: "Note", Type: "text"}}})
+	request, err := service.CreateRequest(context.Background(), CreateRequestInput{
+		TenantID: "bank", SubjectType: "CONTROL", SubjectID: "c1", Title: "Upload evidence",
+		Purpose: "Record current proof.", WhyYou: "You own the control.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL",
+		Recipient: RecipientInput{Type: RecipientInternalPrincipal, PrincipalID: testCaptureRecipient}, EstimatedMinutes: 2,
+		Deadline: now.Add(time.Hour), Fields: []Field{{ID: "note", Label: "Note", Type: "text"}},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	artifact, err := service.StoreArtifact(context.Background(), ArtifactInput{TenantID: "bank", RequestID: request.ID, FileName: "proof.txt", MediaType: "text/plain"}, bytes.NewBufferString("evidence"))
+	artifact, err := service.StoreArtifact(context.Background(), ArtifactInput{TenantID: "bank", RequestID: request.ID, FileName: "proof.txt", MediaType: "text/plain", CreatedBy: testCaptureRecipient}, bytes.NewBufferString("evidence"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if artifact.Status != ArtifactStoredUnscanned || artifact.SHA256 == "" || artifact.SizeBytes != 8 {
 		t.Fatalf("unexpected artifact: %#v", artifact)
 	}
-	if _, err := service.StoreArtifact(context.Background(), ArtifactInput{TenantID: "bank", RequestID: request.ID, FileName: "large.txt", MediaType: "text/plain"}, bytes.NewBufferString("too-large")); !errors.Is(err, ErrArtifactTooLarge) {
+	if _, err := service.StoreArtifact(context.Background(), ArtifactInput{TenantID: "bank", RequestID: request.ID, FileName: "large.txt", MediaType: "text/plain", CreatedBy: testCaptureRecipient}, bytes.NewBufferString("too-large")); !errors.Is(err, ErrArtifactTooLarge) {
 		t.Fatalf("expected size rejection, got %v", err)
 	}
 }

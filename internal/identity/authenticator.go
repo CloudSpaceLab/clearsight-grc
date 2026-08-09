@@ -103,12 +103,25 @@ func NewDevelopmentAuthenticator(tenantID, principalID, legalEntityID string, ro
 }
 
 func (a *DevelopmentAuthenticator) Authenticate(r *http.Request) (Actor, bool, error) {
-	tenant := strings.TrimSpace(r.Header.Get("X-ClearSight-Demo-Tenant"))
-	principal := strings.TrimSpace(r.Header.Get("X-ClearSight-Demo-Principal"))
-	entity := strings.TrimSpace(r.Header.Get("X-ClearSight-Demo-Legal-Entity"))
+	tenantHeader := strings.TrimSpace(r.Header.Get("X-ClearSight-Demo-Tenant"))
+	principalHeader := strings.TrimSpace(r.Header.Get("X-ClearSight-Demo-Principal"))
+	entityHeader := strings.TrimSpace(r.Header.Get("X-ClearSight-Demo-Legal-Entity"))
+	rolesHeader := strings.TrimSpace(r.Header.Get("X-ClearSight-Demo-Roles"))
+	if tenantHeader == "" && principalHeader == "" && entityHeader == "" && rolesHeader == "" {
+		authorization := strings.TrimSpace(r.Header.Get("Authorization"))
+		if len(authorization) >= 7 && strings.EqualFold(authorization[:7], "Bearer ") {
+			// Development identity must not shadow bounded capture capability
+			// requests. Explicit demo identity headers still opt into staff mode.
+			return Actor{}, false, nil
+		}
+	}
+
+	tenant := tenantHeader
+	principal := principalHeader
+	entity := entityHeader
 	roles := a.RoleCodes
-	if headerRoles := strings.TrimSpace(r.Header.Get("X-ClearSight-Demo-Roles")); headerRoles != "" {
-		roles = NormalizeRoleCodes(strings.Split(headerRoles, ","))
+	if rolesHeader != "" {
+		roles = NormalizeRoleCodes(strings.Split(rolesHeader, ","))
 	}
 	if tenant == "" {
 		tenant = a.TenantID
