@@ -50,9 +50,9 @@ func TestPostgresMatterSummariesMatchCanonicalRestrictedVisibilityBeforePaginati
 			id,tenant_id,reference,matter_type,status,priority,title,summary,scope,
 			known_facts,missing_facts,contradictions,created_at,updated_at,version
 		) VALUES
-		($1::uuid,$4::uuid,'VIS-001','AUTHORITY_REQUEST','ASSESSMENT',5,'Hidden restricted','hidden restricted','{"access":"RESTRICTED","allowed_principal_ids":["95555555-5555-7555-8555-555555555553"]}'::jsonb,'{}','[]','[]',$7,$7,1),
-		($2::uuid,$4::uuid,'VIS-002','AUTHORITY_REQUEST','ASSESSMENT',4,'Mixed secret','mixed-secret','{"access":"RESTRICTED","allowed_principal_ids":["95555555-5555-7555-8555-555555555552",42]}'::jsonb,'{}','[]','[]',$7,$7,1),
-		($3::uuid,$4::uuid,'VIS-003','REGULATORY_CHANGE','ASSESSMENT',3,'Visible internal','visible internal','{"access":"INTERNAL"}'::jsonb,'{}','[]','[]',$7,$7,1)`, hiddenID, mixedID, visibleID, tenantID, principalA, principalB, now); err != nil {
+		($1::uuid,$4::uuid,'VIS-001','AUTHORITY_REQUEST','ASSESSMENT',5,'Hidden restricted','hidden restricted','{"access":"RESTRICTED","allowed_principal_ids":["95555555-5555-7555-8555-555555555553"]}'::jsonb,'{}','[]','[]',$5,$5,1),
+		($2::uuid,$4::uuid,'VIS-002','AUTHORITY_REQUEST','ASSESSMENT',4,'Mixed secret','mixed-secret','{"access":"RESTRICTED","allowed_principal_ids":["95555555-5555-7555-8555-555555555552",42]}'::jsonb,'{}','[]','[]',$5,$5,1),
+		($3::uuid,$4::uuid,'VIS-003','REGULATORY_CHANGE','ASSESSMENT',3,'Visible internal','visible internal','{"access":"INTERNAL"}'::jsonb,'{}','[]','[]',$5,$5,1)`, hiddenID, mixedID, visibleID, tenantID, now); err != nil {
 		t.Fatal(err)
 	}
 
