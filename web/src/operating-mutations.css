@@ -60,6 +60,43 @@
   border-color: color-mix(in srgb, var(--cyan) 28%, var(--border));
 }
 
+.operating-evidence-page {
+  min-height: 100vh;
+  padding: 32px;
+  background: var(--bg);
+}
+
+.operating-evidence-page .topbar {
+  max-width: 1180px;
+  margin: 0 auto 22px;
+}
+
+.operating-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.operating-evidence-grid > section {
+  min-width: 0;
+}
+
+.operating-evidence-grid > section > h2 {
+  margin: 6px 0 8px;
+}
+
+@media (max-width: 840px) {
+  .operating-evidence-page {
+    padding: 20px 16px 36px;
+  }
+
+  .operating-evidence-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 660px) {
   .governed-command-form {
     grid-template-columns: 1fr;
