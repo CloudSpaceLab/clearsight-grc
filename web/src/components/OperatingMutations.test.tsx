@@ -2,11 +2,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MatterAggregate, ProgramAggregate, WorkflowTask } from "../types";
 import { MatterWorkCommandPanel } from "./MatterWorkCommandPanel";
-import { ProgramLifecycleControls } from "./ProgramLifecycleControls";
+import { ProgramLifecycleControls, programTransitionTargets } from "./ProgramLifecycleControls";
 import {
   canCurrentActorTransitionProgram,
   loadActorMatterWork,
   recordMatterDecision,
+  transitionMatterAction,
   transitionProgram,
 } from "../continuityCommands";
 
@@ -15,6 +16,7 @@ vi.mock("../continuityCommands", () => ({
   loadActorMatterWork: vi.fn(),
   recordMatterDecision: vi.fn(),
   recordVerificationResult: vi.fn(),
+  transitionMatterAction: vi.fn(),
   transitionResponsePackage: vi.fn(),
   transitionProgram: vi.fn(),
 }));
@@ -30,7 +32,8 @@ const matter: MatterAggregate = {
   },
   links: [],
   decisions: [{ id: "decision-stage-1", type: "TREATMENT", status: "IN_REVIEW", rationale: "Prepared for authority review." }],
-  actions: [], verification_contracts: [], verification_results: [], response_packages: [], closure: { ready: false, reasons: [] },
+  actions: [{ id: "action-1", tenant_id: "bank-1", matter_id: "matter-1", title: "Correct owner record", description: "Update the accountable owner.", owner_principal_id: "actor-1", status: "PLANNED", created_at: "2026-08-09T09:00:00Z", updated_at: "2026-08-09T09:00:00Z", version: 1 }],
+  verification_contracts: [], verification_results: [], response_packages: [], closure: { ready: false, reasons: [] },
 };
 
 const decisionTask: WorkflowTask = {
@@ -39,6 +42,15 @@ const decisionTask: WorkflowTask = {
   context: {
     type: "MATTER_WORK", matter_id: "matter-1", command_name: "matter.decision.record", subresource_type: "DECISION", subresource_id: "decision-stage-1",
     allowed_targets: "APPROVED,REJECTED", target_status: "", primary_action: "Decide", why_now: "Current policy routes this decision to you.",
+  },
+};
+
+const actionTask: WorkflowTask = {
+  id: "task-action", tenant_id: "bank-1", workflow_id: "workflow-action", step_key: "matter-action", responsibility: "ACCOUNTABLE_OWNER",
+  principal_id: "actor-1", title: "Correct owner record", status: "READY", version: 1,
+  context: {
+    type: "MATTER_ACTION", matter_id: "matter-1", action_id: "action-1", command_name: "matter.action.transition", subresource_type: "ACTION", subresource_id: "action-1",
+    allowed_targets: "IN_PROGRESS,BLOCKED,CANCELLED", target_status: "", primary_action: "Update action", why_now: "This accountable issue action requires your attention.",
   },
 };
 
@@ -82,11 +94,34 @@ describe("governed operating mutations", () => {
     expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ matter: expect.objectContaining({ version: 8 }) }));
   });
 
+  it("executes Matter Action transitions only from projected canonical targets", async () => {
+    vi.mocked(loadActorMatterWork).mockResolvedValue([actionTask]);
+    vi.mocked(transitionMatterAction).mockResolvedValue({ ...matter, matter: { ...matter.matter, version: 8 }, actions: [{ ...matter.actions[0], status: "IN_PROGRESS", version: 2 }] });
+    const onUpdated = vi.fn();
+
+    render(<MatterWorkCommandPanel aggregate={matter} onUpdated={onUpdated}/>);
+    expect(await screen.findByRole("heading", { name: "Update action" })).toBeTruthy();
+    const nextState = screen.getByLabelText("Next state") as HTMLSelectElement;
+    expect([...nextState.options].map((option) => option.value)).toEqual(["IN_PROGRESS", "BLOCKED", "CANCELLED"]);
+    expect(screen.getByLabelText("Rationale (optional)")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Update action" }));
+
+    await waitFor(() => expect(transitionMatterAction).toHaveBeenCalledWith("matter-1", "action-1", 7, "IN_PROGRESS", ""));
+    expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ matter: expect.objectContaining({ version: 8 }) }));
+  });
+
   it("does not invent Matter action controls when no current actor packet exists", async () => {
     vi.mocked(loadActorMatterWork).mockResolvedValue([]);
     render(<MatterWorkCommandPanel aggregate={matter} onUpdated={vi.fn()}/>);
     await waitFor(() => expect(loadActorMatterWork).toHaveBeenCalled());
     expect(screen.queryByText("Your governed action")).toBeNull();
+  });
+
+  it("mirrors only the existing Program lifecycle affordances before server revalidation", () => {
+    expect(programTransitionTargets("DRAFT")).toEqual(["ACTIVE", "RETIRED"]);
+    expect(programTransitionTargets("ACTIVE")).toEqual(["PAUSED", "RETIRED"]);
+    expect(programTransitionTargets("PAUSED")).toEqual(["ACTIVE", "RETIRED"]);
+    expect(programTransitionTargets("RETIRED")).toEqual([]);
   });
 
   it("keeps Program status read-only when current authority cannot be resolved to the actor", async () => {
@@ -104,7 +139,9 @@ describe("governed operating mutations", () => {
     render(<ProgramLifecycleControls aggregate={program} onUpdated={onUpdated}/>);
 
     expect(await screen.findByRole("heading", { name: "Change operating status" })).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Requested status"), { target: { value: "PAUSED" } });
+    const requestedStatus = screen.getByLabelText("Requested status") as HTMLSelectElement;
+    expect([...requestedStatus.options].map((option) => option.value)).toEqual(["PAUSED", "RETIRED"]);
+    fireEvent.change(requestedStatus, { target: { value: "PAUSED" } });
     fireEvent.change(screen.getByLabelText("Rationale"), { target: { value: "Pause while ownership is corrected." } });
     fireEvent.click(screen.getByRole("button", { name: "Request Paused" }));
 
