@@ -4,12 +4,12 @@ package continuity
 
 import "context"
 
-func (r *PostgresRepository) ProgramEventsAfterVersion(ctx context.Context, tenant, programID string, afterVersion int64, limit int) ([]Event, int, error) {
+func (r *PostgresRepository) ProgramEventsAfterVersion(ctx context.Context, tenant, programID string, afterVersion int64, limit int) ([]Event, bool, error) {
 	if limit <= 0 {
-		return []Event{}, 0, nil
+		return []Event{}, false, nil
 	}
 	rows, err := r.pool.Query(ctx, `
-		SELECT count(*) OVER(),ce.id::text,t.slug,ce.aggregate_type,ce.aggregate_id::text,
+		SELECT ce.id::text,t.slug,ce.aggregate_type,ce.aggregate_id::text,
 		       ce.aggregate_version,ce.event_type,ce.payload,ce.actor_type,
 		       COALESCE(ce.actor_id::text,''),ce.occurred_at
 		FROM continuity_events ce
@@ -19,18 +19,16 @@ func (r *PostgresRepository) ProgramEventsAfterVersion(ctx context.Context, tena
 		  AND ce.aggregate_id=$2::uuid
 		  AND ce.aggregate_version>$3
 		ORDER BY ce.aggregate_version DESC
-		LIMIT $4`, tenant, programID, afterVersion, limit)
+		LIMIT $4`, tenant, programID, afterVersion, limit+1)
 	if err != nil {
-		return nil, 0, err
+		return nil, false, err
 	}
 	defer rows.Close()
 
-	values := make([]Event, 0, limit)
-	total := 0
+	values := make([]Event, 0, limit+1)
 	for rows.Next() {
 		var value Event
 		if err := rows.Scan(
-			&total,
 			&value.ID,
 			&value.TenantID,
 			&value.AggregateType,
@@ -42,12 +40,15 @@ func (r *PostgresRepository) ProgramEventsAfterVersion(ctx context.Context, tena
 			&value.ActorID,
 			&value.OccurredAt,
 		); err != nil {
-			return nil, 0, err
+			return nil, false, err
 		}
 		values = append(values, value)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, 0, err
+		return nil, false, err
 	}
-	return values, total, nil
+	if len(values) > limit {
+		return values[:limit], true, nil
+	}
+	return values, false, nil
 }
