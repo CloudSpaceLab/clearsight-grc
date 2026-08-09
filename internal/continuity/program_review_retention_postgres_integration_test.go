@@ -30,8 +30,13 @@ func TestAcceptedProgramReviewPreventsBaselineSnapshotDeletion(t *testing.T) {
 		tenantID    = "94444444-4444-7444-8444-444444444441"
 		principalID = "94444444-4444-7444-8444-444444444442"
 	)
+	_, _ = pool.Exec(ctx, `DELETE FROM program_review_checkpoints WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
-	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
+	t.Cleanup(func() {
+		cleanup := context.Background()
+		_, _ = pool.Exec(cleanup, `DELETE FROM program_review_checkpoints WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = pool.Exec(cleanup, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	})
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'review-retention','Review Retention')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
