@@ -1,6 +1,6 @@
 import { loadContext } from "./api";
 import { requestJSON } from "./http";
-import type { MatterAggregate, ProgramAggregate } from "./types";
+import type { MatterAggregate, ProgramAggregate, WorkflowTask } from "./types";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -46,6 +46,12 @@ async function command<T>(path: string, body: Record<string, unknown>): Promise<
     method: "POST",
     body: JSON.stringify({ tenant_id: context.tenant.id, ...body }),
   });
+}
+
+export async function loadActorMatterWork(limit = 100): Promise<WorkflowTask[]> {
+  const context = await loadContext();
+  const params = new URLSearchParams({ tenant_id: context.tenant.id, limit: String(limit) });
+  return (await requestJSON<{ items: WorkflowTask[] }>(apiBase, `/api/v1/workflow/tasks?${params.toString()}`)).items;
 }
 
 export function transitionProgram(programID: string, expectedVersion: number, to: string, rationale: string): Promise<ProgramAggregate> {
