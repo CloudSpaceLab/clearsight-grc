@@ -57,6 +57,7 @@ func TestPostgresMatterSummariesMatchCanonicalRestrictedVisibilityBeforePaginati
 	}
 
 	repo := NewPostgresRepository(pool)
+	current := NewCurrentPostgresRepository(pool)
 	actorA := identity.WithActor(ctx, identity.Actor{TenantID: "matter-summary-visibility", PrincipalID: principalA})
 	page, err := repo.ListMatterSummaries(actorA, "matter-summary-visibility", SummaryQuery{Status: "OPEN", Limit: 2})
 	if err != nil {
@@ -74,13 +75,28 @@ func TestPostgresMatterSummariesMatchCanonicalRestrictedVisibilityBeforePaginati
 		t.Fatalf("search leaked malformed restricted record existence: %#v cursor=%q", search.Items, search.NextCursor)
 	}
 
-	current := NewCurrentPostgresRepository(pool)
 	listA, err := current.ListMatters(actorA, "matter-summary-visibility", "OPEN", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(listA) != 1 || listA[0].Matter.ID != visibleID {
 		t.Fatalf("restricted/malformed Matter consumed current-list limit: %#v", listA)
+	}
+
+	wrongTenant := identity.WithActor(ctx, identity.Actor{TenantID: "other-bank", PrincipalID: principalA})
+	wrongPage, err := repo.ListMatterSummaries(wrongTenant, "matter-summary-visibility", SummaryQuery{Status: "OPEN", Limit: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(wrongPage.Items) != 0 || wrongPage.NextCursor != "" {
+		t.Fatalf("summary repository trusted caller tenant over verified actor tenant: %#v", wrongPage)
+	}
+	wrongList, err := current.ListMatters(wrongTenant, "matter-summary-visibility", "OPEN", 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(wrongList) != 0 {
+		t.Fatalf("current Matter list trusted caller tenant over verified actor tenant: %#v", wrongList)
 	}
 
 	actorB := identity.WithActor(ctx, identity.Actor{TenantID: "matter-summary-visibility", PrincipalID: principalB})
