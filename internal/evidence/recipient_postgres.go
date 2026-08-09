@@ -58,24 +58,36 @@ func (r *PostgresRepository) CreateRequestWithRecipient(ctx context.Context, val
 		return Request{}, fmt.Errorf("create evidence request with recipient: %w", err)
 	}
 	created.Recipient = cloneRecipient(value.Recipient)
+	if created.Recipient.State == "" {
+		created.Recipient.State = RecipientStateAssigned
+	}
+	if created.Recipient.Revision <= 0 {
+		created.Recipient.Revision = 1
+	}
 	return created, nil
 }
 
 func (r *PostgresRepository) GetRequestRecipient(ctx context.Context, tenant, requestID string) (Recipient, error) {
-	var recipientType, principalID, hint string
+	var recipientType, principalID, hint, state, issueReason string
 	var audienceHash []byte
+	var revision int64
 	err := r.pool.QueryRow(ctx, `
-		SELECT COALESCE(er.recipient_type,''),COALESCE(er.recipient_principal_id::text,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint
+		SELECT COALESCE(er.recipient_type,''),COALESCE(er.recipient_principal_id::text,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
+		       er.recipient_state,er.recipient_revision,er.recipient_issue_reason
 		FROM capture_requests er
 		JOIN tenants t ON t.id=er.tenant_id
-		WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2)`, requestID, tenant).Scan(&recipientType, &principalID, &audienceHash, &hint)
+		WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2)`, requestID, tenant).Scan(&recipientType, &principalID, &audienceHash, &hint, &state, &revision, &issueReason)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Recipient{}, ErrNotFound
 	}
 	if err != nil {
 		return Recipient{}, err
 	}
-	return Recipient{Type: RecipientType(recipientType), PrincipalID: principalID, AudienceHash: append([]byte(nil), audienceHash...), AudienceHint: hint}, nil
+	return Recipient{
+		Type: RecipientType(recipientType), PrincipalID: principalID,
+		AudienceHash: append([]byte(nil), audienceHash...), AudienceHint: hint,
+		State: RecipientState(state), Revision: revision, IssueReason: issueReason,
+	}, nil
 }
 
 func (r *PostgresRepository) ListRecipientRequests(ctx context.Context, tenant, principalID string, limit int) ([]Request, error) {
@@ -85,6 +97,7 @@ func (r *PostgresRepository) ListRecipientRequests(ctx context.Context, tenant, 
 		JOIN tenants t ON t.id=er.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND er.recipient_type='INTERNAL_PRINCIPAL'
+		  AND er.recipient_state='ASSIGNED'
 		  AND er.recipient_principal_id=$2::uuid
 		ORDER BY CASE er.status WHEN 'READY' THEN 0 WHEN 'IN_PROGRESS' THEN 1 ELSE 2 END,er.deadline,er.id
 		LIMIT $3`, tenant, principalID, limit)
@@ -98,7 +111,10 @@ func (r *PostgresRepository) ListRecipientRequests(ctx context.Context, tenant, 
 		if err != nil {
 			return nil, err
 		}
-		value.Recipient = Recipient{Type: RecipientInternalPrincipal, PrincipalID: principalID}
+		value.Recipient, err = r.GetRequestRecipient(ctx, tenant, value.ID)
+		if err != nil {
+			return nil, err
+		}
 		values = append(values, value)
 	}
 	return values, rows.Err()
