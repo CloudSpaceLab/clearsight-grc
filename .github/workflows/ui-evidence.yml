@@ -71,6 +71,7 @@ jobs:
         run: |
           node scripts/capture-ui-evidence.mjs
           node scripts/capture-lifecycle-ui-evidence.mjs
+          node scripts/capture-operating-mutations-evidence.mjs
       - name: Upload screenshots and manifest
         if: always()
         uses: actions/upload-artifact@v4

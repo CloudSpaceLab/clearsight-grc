@@ -33,7 +33,9 @@ func TestEvidenceRequestProjectorConvergesRecipientVisibilityWithoutDuplicateWor
 		requestID         = "95555555-5555-7555-8555-555555555556"
 		terminalRequestID = "95555555-5555-7555-8555-555555555557"
 	)
-	now := time.Date(2026, 8, 9, 9, 30, 0, 0, time.UTC)
+	// Actor visibility uses database now(), so keep this integration fixture
+	// relative to the executing database clock rather than a wall-clock date.
+	now := time.Now().UTC().Truncate(time.Second)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 

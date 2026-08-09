@@ -1,0 +1,116 @@
+.governed-command-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.governed-command-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.governed-command-form label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.governed-command-form label:has(textarea),
+.governed-command-form .inline-error,
+.governed-command-form .inline-notice,
+.governed-command-form .primary-button {
+  grid-column: 1 / -1;
+}
+
+.governed-command-form input,
+.governed-command-form select,
+.governed-command-form textarea {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.governed-command-form textarea {
+  min-height: 86px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.governed-command-form input:focus,
+.governed-command-form select:focus,
+.governed-command-form textarea:focus {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.governed-command-form .primary-button {
+  justify-self: start;
+  min-width: 160px;
+}
+
+.program-operation {
+  border-color: color-mix(in srgb, var(--cyan) 28%, var(--border));
+}
+
+.operating-evidence-page {
+  min-height: 100vh;
+  padding: 32px;
+  background: var(--bg);
+}
+
+.operating-evidence-page .topbar {
+  max-width: 1180px;
+  margin: 0 auto 22px;
+}
+
+.operating-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.operating-evidence-grid > section {
+  min-width: 0;
+}
+
+.operating-evidence-grid > section > h2 {
+  margin: 6px 0 8px;
+}
+
+@media (max-width: 840px) {
+  .operating-evidence-page {
+    padding: 20px 16px 36px;
+  }
+
+  .operating-evidence-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 660px) {
+  .governed-command-form {
+    grid-template-columns: 1fr;
+  }
+
+  .governed-command-form label,
+  .governed-command-form label:has(textarea),
+  .governed-command-form .inline-error,
+  .governed-command-form .inline-notice,
+  .governed-command-form .primary-button {
+    grid-column: 1;
+  }
+
+  .governed-command-form .primary-button {
+    width: 100%;
+  }
+}
