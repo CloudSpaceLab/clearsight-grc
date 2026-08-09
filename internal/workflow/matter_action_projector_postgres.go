@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 )
 
@@ -46,6 +47,15 @@ func (p *MatterActionProjector) Publish(ctx context.Context, event workflowrunti
 	if err != nil {
 		return err
 	}
+	actionTargets := continuity.AllowedActionTargets(continuity.ActionStatus(strings.ToUpper(strings.TrimSpace(action.Status))))
+	allowedTargets := make([]string, len(actionTargets))
+	for index := range actionTargets {
+		allowedTargets[index] = string(actionTargets[index])
+	}
+	targetStatus := ""
+	if len(allowedTargets) == 1 {
+		targetStatus = allowedTargets[0]
+	}
 
 	tx, err := p.Repo.pool.Begin(ctx)
 	if err != nil {
@@ -78,9 +88,14 @@ func (p *MatterActionProjector) Publish(ctx context.Context, event workflowrunti
 		"type":               "MATTER_ACTION",
 		"matter_id":          action.MatterID,
 		"action_id":          action.ID,
+		"command_name":       "matter.action.transition",
+		"target_status":      targetStatus,
+		"allowed_targets":    strings.Join(allowedTargets, ","),
+		"subresource_type":   "ACTION",
+		"subresource_id":     action.ID,
 		"action_target_type": "MATTER",
 		"action_target_id":   action.MatterID,
-		"primary_action":     "Open issue",
+		"primary_action":     "Update action",
 		"why_now":            "This accountable issue action requires your attention.",
 	})
 	if err != nil {
