@@ -32,9 +32,16 @@ func TestProgramReviewPostgresKeepsActorTenantAndVersionTruth(t *testing.T) {
 		principalA = "91111111-1111-7111-8111-111111111112"
 		principalB = "92222222-2222-7222-8222-222222222223"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id IN ($1::uuid,$2::uuid)`, tenantA, tenantB)
+	for _, tenantID := range []string{tenantA, tenantB} {
+		_, _ = pool.Exec(ctx, `DELETE FROM program_review_checkpoints WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	}
 	t.Cleanup(func() {
-		_, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id IN ($1::uuid,$2::uuid)`, tenantA, tenantB)
+		cleanup := context.Background()
+		for _, tenantID := range []string{tenantA, tenantB} {
+			_, _ = pool.Exec(cleanup, `DELETE FROM program_review_checkpoints WHERE tenant_id=$1::uuid`, tenantID)
+			_, _ = pool.Exec(cleanup, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+		}
 	})
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO tenants(id,slug,name) VALUES
