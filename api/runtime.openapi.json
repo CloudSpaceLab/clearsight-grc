@@ -50,6 +50,8 @@
     },
     "/api/v1/programs/{id}": { "get": { "operationId": "getProgram", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/programs/{id}/history": { "get": { "operationId": "getProgramHistory", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/programs/{id}/review-digest": { "get": { "operationId": "getProgramReviewDigest", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/programs/{id}/reviews": { "post": { "operationId": "acceptProgramReview", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/programs/{id}/transition": { "post": { "operationId": "transitionProgram", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/programs/{id}/requirements": { "post": { "operationId": "addProgramRequirement", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/programs/{id}/applicability": { "post": { "operationId": "determineProgramApplicability", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
