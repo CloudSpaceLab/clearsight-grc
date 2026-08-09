@@ -157,11 +157,11 @@ type CreateRequestInput struct {
 }
 
 type DeclareWrongRecipientInput struct {
-	TenantID        string `json:"tenant_id"`
-	RequestID       string `json:"request_id"`
+	TenantID         string `json:"tenant_id"`
+	RequestID        string `json:"request_id"`
 	ActorPrincipalID string `json:"actor_principal_id,omitempty"`
-	Reason          string `json:"reason"`
-	ExpectedVersion int64  `json:"expected_version"`
+	Reason           string `json:"reason"`
+	ExpectedVersion  int64  `json:"expected_version"`
 }
 
 type ReassignRecipientInput struct {
@@ -194,20 +194,19 @@ type SubmissionReceipt struct {
 }
 
 type Invitation struct {
-	ID                string     `json:"id"`
-	TenantID          string     `json:"tenant_id"`
-	RequestID         string     `json:"request_id"`
-	TokenHash         []byte     `json:"-"`
-	AudienceHash      []byte     `json:"-"`
-	AudienceHint      string     `json:"audience_hint"`
-	RecipientRevision int64      `json:"recipient_revision"`
-	Purpose           string     `json:"purpose"`
-	ExpiresAt         time.Time  `json:"expires_at"`
-	MaxRedemptions    int        `json:"max_redemptions"`
-	Redemptions       int        `json:"redemptions"`
-	RevokedAt         *time.Time `json:"revoked_at,omitempty"`
-	CreatedBy         string     `json:"created_by,omitempty"`
-	CreatedAt         time.Time  `json:"created_at"`
+	ID             string     `json:"id"`
+	TenantID       string     `json:"tenant_id"`
+	RequestID      string     `json:"request_id"`
+	TokenHash      []byte     `json:"-"`
+	AudienceHash   []byte     `json:"-"`
+	AudienceHint   string     `json:"audience_hint"`
+	Purpose        string     `json:"purpose"`
+	ExpiresAt      time.Time  `json:"expires_at"`
+	MaxRedemptions int        `json:"max_redemptions"`
+	Redemptions    int        `json:"redemptions"`
+	RevokedAt      *time.Time `json:"revoked_at,omitempty"`
+	CreatedBy      string     `json:"created_by,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
 }
 
 type IssueInvitationInput struct {
@@ -228,15 +227,14 @@ type IssuedInvitation struct {
 }
 
 type Session struct {
-	ID                string     `json:"id"`
-	TenantID          string     `json:"tenant_id"`
-	RequestID         string     `json:"request_id"`
-	AudienceHint      string     `json:"audience_hint"`
-	RecipientRevision int64      `json:"recipient_revision"`
-	TokenHash         []byte     `json:"-"`
-	ExpiresAt         time.Time  `json:"expires_at"`
-	RevokedAt         *time.Time `json:"revoked_at,omitempty"`
-	CreatedAt         time.Time  `json:"created_at"`
+	ID           string     `json:"id"`
+	TenantID     string     `json:"tenant_id"`
+	RequestID    string     `json:"request_id"`
+	AudienceHint string     `json:"audience_hint"`
+	TokenHash    []byte     `json:"-"`
+	ExpiresAt    time.Time  `json:"expires_at"`
+	RevokedAt    *time.Time `json:"revoked_at,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
 }
 
 type RedeemedSession struct {
