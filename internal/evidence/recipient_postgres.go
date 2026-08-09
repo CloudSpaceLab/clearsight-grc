@@ -40,30 +40,34 @@ func (r *PostgresRepository) CreateRequestWithRecipient(ctx context.Context, val
 	if err != nil {
 		return Request{}, err
 	}
+	state := value.Recipient.State
+	if state == "" {
+		state = RecipientStateAssigned
+	}
+	revision := value.Recipient.Revision
+	if revision <= 0 {
+		revision = 1
+	}
 	row := r.pool.QueryRow(ctx, `
 		INSERT INTO capture_requests(
 			id,tenant_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
-			recipient_type,recipient_principal_id,recipient_audience_hash,recipient_hint,
+			recipient_type,recipient_principal_id,recipient_audience_hash,recipient_hint,recipient_state,recipient_revision,recipient_issue_reason,
 			estimated_minutes,deadline,known_facts,fields,status,created_by,version,created_at,updated_at
 		) VALUES(
 			$1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4,$5,$6,$7,$8,$9,
-			$10,NULLIF($11,'')::uuid,$12,$13,$14,$15,$16::jsonb,$17::jsonb,$18,NULLIF($19,'')::uuid,$20,$21,$21
+			$10,NULLIF($11,'')::uuid,$12,$13,$14,$15,'',$16,$17,$18::jsonb,$19::jsonb,$20,NULLIF($21,'')::uuid,$22,$23,$23
 		)
 		RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,known_facts,fields,status,COALESCE(created_by::text,''),version,created_at,updated_at`,
 		value.ID, value.TenantID, value.SubjectType, value.SubjectID, value.Title, value.Purpose, value.WhyYou, value.Sensitivity, value.AudienceType,
-		value.Recipient.Type, value.Recipient.PrincipalID, nullableAudienceHash(value.Recipient), value.Recipient.AudienceHint,
+		value.Recipient.Type, value.Recipient.PrincipalID, nullableAudienceHash(value.Recipient), value.Recipient.AudienceHint, state, revision,
 		value.EstimatedMinutes, value.Deadline, string(facts), string(fields), value.Status, value.CreatedBy, value.Version, value.CreatedAt)
 	created, err := scanRequest(row)
 	if err != nil {
 		return Request{}, fmt.Errorf("create evidence request with recipient: %w", err)
 	}
 	created.Recipient = cloneRecipient(value.Recipient)
-	if created.Recipient.State == "" {
-		created.Recipient.State = RecipientStateAssigned
-	}
-	if created.Recipient.Revision <= 0 {
-		created.Recipient.Revision = 1
-	}
+	created.Recipient.State = state
+	created.Recipient.Revision = revision
 	return created, nil
 }
 
@@ -92,7 +96,10 @@ func (r *PostgresRepository) GetRequestRecipient(ctx context.Context, tenant, re
 
 func (r *PostgresRepository) ListRecipientRequests(ctx context.Context, tenant, principalID string, limit int) ([]Request, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT er.id::text,t.slug,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at
+		SELECT er.id::text,t.slug,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,
+		       er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at,
+		       er.recipient_type,COALESCE(er.recipient_principal_id::text,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
+		       er.recipient_state,er.recipient_revision,er.recipient_issue_reason
 		FROM capture_requests er
 		JOIN tenants t ON t.id=er.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1)
@@ -107,17 +114,40 @@ func (r *PostgresRepository) ListRecipientRequests(ctx context.Context, tenant, 
 	defer rows.Close()
 	values := make([]Request, 0, limit)
 	for rows.Next() {
-		value, err := scanRequest(rows)
-		if err != nil {
-			return nil, err
-		}
-		value.Recipient, err = r.GetRequestRecipient(ctx, tenant, value.ID)
+		value, err := scanRequestWithRecipient(rows)
 		if err != nil {
 			return nil, err
 		}
 		values = append(values, value)
 	}
 	return values, rows.Err()
+}
+
+func scanRequestWithRecipient(row scanner) (Request, error) {
+	var value Request
+	var facts, fields []byte
+	var recipientType, principalID, hint, state, issueReason string
+	var audienceHash []byte
+	if err := row.Scan(
+		&value.ID, &value.TenantID, &value.SubjectType, &value.SubjectID, &value.Title, &value.Purpose, &value.WhyYou, &value.Sensitivity, &value.AudienceType,
+		&value.EstimatedMinutes, &value.Deadline, &facts, &fields, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt,
+		&recipientType, &principalID, &audienceHash, &hint, &state, &value.Recipient.Revision, &issueReason,
+	); err != nil {
+		return Request{}, err
+	}
+	if err := json.Unmarshal(facts, &value.KnownFacts); err != nil {
+		return Request{}, err
+	}
+	if err := json.Unmarshal(fields, &value.Fields); err != nil {
+		return Request{}, err
+	}
+	value.Recipient.Type = RecipientType(recipientType)
+	value.Recipient.PrincipalID = principalID
+	value.Recipient.AudienceHash = append([]byte(nil), audienceHash...)
+	value.Recipient.AudienceHint = hint
+	value.Recipient.State = RecipientState(state)
+	value.Recipient.IssueReason = issueReason
+	return value, nil
 }
 
 func nullableAudienceHash(recipient Recipient) any {
