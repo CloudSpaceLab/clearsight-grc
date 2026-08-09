@@ -11,7 +11,8 @@
 **Governed lifecycle sequencing:** PR #46 — complete  
 **Evidence recipient canonical truth (B1):** PR #49 — complete  
 **Evidence recipient lifecycle + Today (B2):** PR #50 — complete  
-**Current execution:** operating Program/Work governed mutations — PR #51  
+**Operating Program/Work governed mutations:** PR #51 — complete  
+**Current execution:** remaining operating-work usability  
 **Current execution issue:** #27  
 **Umbrella pilot/GA catalogue:** #13
 
@@ -93,45 +94,53 @@ Focused boundary: `docs/architecture/evidence-recipient-boundary.md`.
 
 B2 does **not** imply generic redirect/delegation/team/role/queue recipient semantics. Those remain deferred until executable current membership/authority contracts exist.
 
-Closed foundation issues #26/#32/#33 and completed PRs #31/#40/#43/#45/#46/#49/#50 must not be recreated under new names or parallel frameworks.
+### Operating Program/Work governed mutations / PR #51
 
-## 2. Current work — operating Program/Work governed mutations / PR #51
+- thin typed clients reuse existing governed Program/Matter commands and never send client-supplied actor identity;
+- Work consumes the existing actor-scoped Workflow queue; there is no second frontend task model;
+- Decision/Response/Verification controls use current `command_name`, `allowed_targets`, subresource and rationale packet fields;
+- Matter Action projection carries executable `matter.action.transition` context with targets derived from the canonical Go Action lifecycle;
+- Action owners can progress READY/IN_PROGRESS/BLOCKED work without React inventing legal target states;
+- Program status controls remain hidden unless current `AUTHORIZER` resolution includes the actor;
+- Program affordances mirror only the existing DRAFT→ACTIVE/RETIRED, ACTIVE→PAUSED/RETIRED and PAUSED→ACTIVE/RETIRED lifecycle; server authority/version/lifecycle/activation checks remain final;
+- successful mutations replace displayed Program/Matter detail with the authoritative server aggregate;
+- stale-version/forbidden/not-found/degraded failures remain visible and fail closed;
+- deterministic operating UI evidence covers 1440×900 and 390×844 rendering, exact Action/Program target lists and horizontal-overflow safety;
+- B2's PostgreSQL regression fixture was made database-clock-relative after its fixed same-day deadline expired; production expiry semantics were unchanged;
+- exact final head `59f4d37e3cc11805242b46e7637103b8ad59a36b` passed CI #664 and UI evidence #277;
+- squash-merged as `3da504cef68651ab34c9ccb1f3c70e7053c1dfc2`.
 
-The backend already owns Program/Matter state machines, command authorization, actor binding, optimistic versions and lifecycle work compilation. The current tranche makes those existing commands usable at the point of work; it must not create frontend lifecycle or authorization truth.
+Closed foundation issues #26/#32/#33 and completed PRs #31/#40/#43/#45/#46/#49/#50/#51 must not be recreated under new names or parallel frameworks.
 
-Required for this tranche:
+## 2. Current work — remaining operating-work usability
 
-- [x] thin typed clients over existing governed Program/Matter command routes; no client-supplied actor identity;
-- [x] current actor Matter work is loaded from the existing actor-scoped Workflow queue;
-- [x] Decision/Response/Verification forms use `command_name`, `allowed_targets`, subresource and rationale from current governed work packets;
-- [x] Matter Action Workflow projection carries executable `matter.action.transition` packet context with targets derived from the canonical Go action lifecycle;
-- [x] Action execution supports READY/IN_PROGRESS/BLOCKED owner work without inventing target states in React;
-- [x] Program status controls are hidden unless current `AUTHORIZER` resolution includes the actor;
-- [x] Program UI affordances mirror only the existing DRAFT→ACTIVE/RETIRED, ACTIVE→PAUSED/RETIRED and PAUSED→ACTIVE/RETIRED transitions; server lifecycle/authority/version/activation checks remain final;
-- [x] successful mutations replace displayed Program/Matter detail with the authoritative server aggregate;
-- [x] conflict/forbidden/not-found/degraded command states fail visibly rather than applying optimistic local truth;
-- [x] focused desktop/mobile command styling and targeted component tests;
-- [x] deterministic UI-evidence fixture asserts real operating controls, exact target lists and horizontal-overflow safety;
-- [ ] exact-final-head CI and UI evidence green;
-- [ ] promote/merge PR #51 and record final head/gate IDs here and in #27.
+The core operating commands are now usable. The next work must reduce daily operator effort **without inventing domain commands, task models, or authorization truth**.
 
-Explicitly out of this tranche:
+Execute in this order unless code-level evidence changes the dependency:
 
-- generic saved Work views;
-- arbitrary claim/delegate/recuse/escalate UX where no current domain command exists;
-- save/resume for complex multi-step decisions/responses;
+1. [ ] change-since-last-accepted-review and material-exception summaries derived from canonical state/history;
+2. [ ] role-aware saved Work views over the existing actor-visible queries rather than a second task model;
+3. [ ] protected-record focused mode that avoids unrelated existence leakage;
+4. [ ] save/resume for genuinely complex Decisions/Responses only where a durable draft contract exists;
+5. [ ] redirect/delegate/recuse/conflict/escalate only where executable authority/membership/domain commands exist.
+
+Owner/executive views must remain projections of the same canonical state rather than separate dashboard state.
+
+Explicitly out of this immediate continuation:
+
 - broad Program authoring/configuration;
-- notification-centre or Explore expansion.
+- generic notification-centre or Explore expansion;
+- invented delegation/team/group behavior without executable membership/authority contracts;
+- presentation-only audit or verification receipts.
 
 ## 3. Later #27 sequence
 
-After PR #51:
+After the operating-work usability continuation:
 
-1. operating-work usability continuation only where executable domain contracts exist: change-since-last-review summaries, role-aware saved views, safe resume and supported delegate/recuse/escalate paths;
-2. Capture/Import lifecycle completion: provenance, draft/resume/amendment, production scanning/quarantine/retry, governed multi-file requests, recurring mappings and canonical conversion;
-3. Configure productization: organization/identity, responsibility/authority matrices, routing/escalation, simulation, maker-checker, effective dating/rollback and security/notification policy;
-4. enterprise shell: production Explore/reconstruction, notifications, identity/session/step-up context;
-5. human-product acceptance: representative timed bank-user usability, real browser/assistive-technology validation and final responsive/asset closure.
+1. Capture/Import lifecycle completion: provenance, draft/resume/amendment, production scanning/quarantine/retry, governed multi-file requests, recurring mappings and canonical conversion;
+2. Configure productization: organization/identity, responsibility/authority matrices, routing/escalation, simulation, maker-checker, effective dating/rollback and security/notification policy;
+3. enterprise shell: production Explore/reconstruction, notifications, identity/session/step-up context;
+4. human-product acceptance: representative timed bank-user usability, real browser/assistive-technology validation and final responsive/asset closure.
 
 ## 4. Canonical invariants
 
@@ -153,6 +162,7 @@ After PR #51:
 - Evidence Request recipient is canonical request state; Workflow work is a rebuildable actor projection.
 - Workflow command packet is an executable projection, not authoritative domain state; every command is revalidated by the domain service.
 - Program UI transition choices are affordances only; Program command service remains authoritative.
+- Saved Work view ≠ new task ownership or authorization state.
 - Schema/spec existence ≠ capability.
 
 Do not add parallel authorization, task, event, worker, receipt, document or generic workflow stacks that duplicate these foundations.
