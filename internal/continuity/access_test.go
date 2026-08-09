@@ -12,9 +12,11 @@ func TestMatterAccessPolicyFailsClosed(t *testing.T) {
 	}{
 		{name: "missing scope", scope: nil},
 		{name: "malformed json", scope: json.RawMessage(`{"access":`)},
+		{name: "non-string access", scope: json.RawMessage(`{"access":42}`)},
 		{name: "unknown access", scope: json.RawMessage(`{"access":"SECRET"}`)},
 		{name: "restricted without allow list", scope: json.RawMessage(`{"access":"RESTRICTED"}`)},
 		{name: "restricted empty allow list", scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":[]}`)},
+		{name: "restricted mixed-type allow list", scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["person-1",42]}`)},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
