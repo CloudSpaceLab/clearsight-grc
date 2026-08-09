@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-const EvidenceRequestWorkflowKind = "EVIDENCE_REQUEST"
-
 type EvidenceRequestProjector struct{ Repo *PostgresRepository }
 
 type evidenceRequestProjection struct {
