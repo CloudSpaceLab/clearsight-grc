@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -82,17 +83,48 @@ func (r *CurrentPostgresRepository) GetMatter(ctx context.Context, tenant, id st
 }
 
 func (r *CurrentPostgresRepository) ListMatters(ctx context.Context, tenant, status string, limit int) ([]MatterAggregate, error) {
-	query := `SELECT m.id::text FROM matters m JOIN tenants t ON t.id=m.tenant_id WHERE (t.id::text=$1 OR t.slug=$1)`
-	args := []any{tenant}
-	if status == "OPEN" {
-		query += ` AND m.status NOT IN ('CLOSED','CANCELLED')`
-	} else if status != "" {
-		query += fmt.Sprintf(` AND m.status=$%d`, len(args)+1)
-		args = append(args, status)
+	actor, enforceVisibility := identity.FromContext(ctx)
+	principalID := ""
+	actorTenant := ""
+	if enforceVisibility {
+		principalID = actor.PrincipalID
+		actorTenant = actor.TenantID
 	}
-	query += fmt.Sprintf(` ORDER BY m.priority DESC,m.due_at NULLS LAST,m.updated_at DESC,m.id LIMIT $%d`, len(args)+1)
-	args = append(args, limit)
-	rows, err := r.pool.Query(ctx, query, args...)
+	rows, err := r.pool.Query(ctx, `
+		SELECT m.id::text
+		FROM matters m
+		JOIN tenants t ON t.id=m.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND ($2='' OR ($2='OPEN' AND m.status NOT IN ('CLOSED','CANCELLED')) OR m.status=$2)
+		  AND (NOT $3 OR t.id::text=$5 OR t.slug=$5)
+		  AND (
+			NOT $3 OR
+			CASE
+				WHEN NOT (m.scope ? 'access') THEN true
+				WHEN jsonb_typeof(m.scope->'access')<>'string' THEN false
+				WHEN upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL') THEN true
+				WHEN upper(btrim(m.scope->>'access'))='RESTRICTED' THEN
+					CASE
+						WHEN jsonb_typeof(m.scope->'allowed_principal_ids')<>'array' THEN false
+						ELSE
+							NOT EXISTS (
+								SELECT 1 FROM jsonb_array_elements(m.scope->'allowed_principal_ids') entry(value)
+								WHERE jsonb_typeof(entry.value)<>'string'
+							)
+							AND EXISTS (
+								SELECT 1 FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') nonblank(value)
+								WHERE btrim(nonblank.value)<>''
+							)
+							AND EXISTS (
+								SELECT 1 FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') allowed(value)
+								WHERE btrim(allowed.value)=$4
+							)
+					END
+				ELSE false
+			END
+		  )
+		ORDER BY m.priority DESC,m.due_at NULLS LAST,m.updated_at DESC,m.id
+		LIMIT $6`, tenant, status, enforceVisibility, principalID, actorTenant, limit)
 	if err != nil {
 		return nil, err
 	}

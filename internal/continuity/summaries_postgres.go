@@ -117,8 +117,10 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 	hasCursor := cursor.ID != ""
 	actor, enforceVisibility := identity.FromContext(ctx)
 	principalID := ""
+	actorTenant := ""
 	if enforceVisibility {
 		principalID = actor.PrincipalID
+		actorTenant = actor.TenantID
 	}
 	rows, err := r.pool.Query(ctx, `
 		SELECT
@@ -142,27 +144,42 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND ($2='' OR ($2='OPEN' AND m.status NOT IN ('CLOSED','CANCELLED')) OR m.status=$2)
 		  AND ($3='' OR m.search_document @@ websearch_to_tsquery('simple'::regconfig,$3))
+		  AND (NOT $4 OR t.id::text=$6 OR t.slug=$6)
 		  AND (
-			NOT $4 OR (
-				NOT (m.scope ? 'access') OR
-				upper(COALESCE(m.scope->>'access','')) IN ('PUBLIC','INTERNAL') OR
-				(
-					upper(COALESCE(m.scope->>'access',''))='RESTRICTED' AND
-					jsonb_typeof(m.scope->'allowed_principal_ids')='array' AND
-					EXISTS (
-						SELECT 1
-						FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') allowed(principal_id)
-						WHERE allowed.principal_id=$5
-					)
-				)
-			)
+			NOT $4 OR
+			CASE
+				WHEN NOT (m.scope ? 'access') THEN true
+				WHEN jsonb_typeof(m.scope->'access')<>'string' THEN false
+				WHEN upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL') THEN true
+				WHEN upper(btrim(m.scope->>'access'))='RESTRICTED' THEN
+					CASE
+						WHEN jsonb_typeof(m.scope->'allowed_principal_ids')<>'array' THEN false
+						ELSE
+							NOT EXISTS (
+								SELECT 1
+								FROM jsonb_array_elements(m.scope->'allowed_principal_ids') entry(value)
+								WHERE jsonb_typeof(entry.value)<>'string'
+							)
+							AND EXISTS (
+								SELECT 1
+								FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') nonblank(value)
+								WHERE btrim(nonblank.value)<>''
+							)
+							AND EXISTS (
+								SELECT 1
+								FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') allowed(value)
+								WHERE btrim(allowed.value)=$5
+							)
+					END
+				ELSE false
+			END
 		  )
 		  AND (
-			NOT $6 OR m.priority < $7 OR
-			(m.priority = $7 AND (m.updated_at < $8 OR (m.updated_at = $8 AND m.id < NULLIF($9,'')::uuid)))
+			NOT $7 OR m.priority < $8 OR
+			(m.priority = $8 AND (m.updated_at < $9 OR (m.updated_at = $9 AND m.id < NULLIF($10,'')::uuid)))
 		  )
 		ORDER BY m.priority DESC,m.updated_at DESC,m.id DESC
-		LIMIT $10`, tenant, query.Status, query.Search, enforceVisibility, principalID, hasCursor, cursor.Priority, cursor.UpdatedAt, cursor.ID, limit+1)
+		LIMIT $11`, tenant, query.Status, query.Search, enforceVisibility, principalID, actorTenant, hasCursor, cursor.Priority, cursor.UpdatedAt, cursor.ID, limit+1)
 	if err != nil {
 		return MatterSummaryPage{}, err
 	}

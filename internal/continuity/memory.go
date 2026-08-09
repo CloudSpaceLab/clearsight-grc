@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 type MemoryRepository struct {
@@ -179,11 +181,15 @@ func (r *MemoryRepository) CreateMatter(_ context.Context, matter Matter, event 
 	return matter, nil
 }
 
-func (r *MemoryRepository) ListMatters(_ context.Context, tenant, status string, limit int) ([]MatterAggregate, error) {
+func (r *MemoryRepository) ListMatters(ctx context.Context, tenant, status string, limit int) ([]MatterAggregate, error) {
+	actor, enforceVisibility := identity.FromContext(ctx)
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	values := make([]MatterAggregate, 0, len(r.matters[tenant]))
 	for _, aggregate := range r.matters[tenant] {
+		if enforceVisibility && (aggregate.Matter.TenantID != actor.TenantID || !MatterVisibleTo(aggregate.Matter, actor.PrincipalID)) {
+			continue
+		}
 		if status == "OPEN" && (aggregate.Matter.Status == MatterClosed || aggregate.Matter.Status == MatterCancelled) {
 			continue
 		}
