@@ -57,8 +57,6 @@ func TestEvidenceRequestProjectorConvergesRecipientVisibilityWithoutDuplicateWor
 			$1::uuid,$2::uuid,'MATTER',$3,'Provide current evidence','Confirm the current control evidence.','You are the current respondent.','RESTRICTED','INTERNAL',
 			'INTERNAL_PRINCIPAL',$4::uuid,'ASSIGNED',1,3,$5,'{}'::jsonb,'[{"id":"confirm","label":"Confirm","type":"text","required":true}]'::jsonb,'READY',$6::uuid,1,$7,$7
 		)`, requestID, tenantID, matterID, recipientA, now.Add(2*time.Hour), creatorID, now)
-	// A terminal request that never produced actor work must not cause the
-	// reconciler to manufacture an empty cancelled Workflow instance.
 	mustExecEvidenceWork(t, ctx, pool, `
 		INSERT INTO capture_requests(
 			id,tenant_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
@@ -120,9 +118,8 @@ func TestEvidenceRequestProjectorConvergesRecipientVisibilityWithoutDuplicateWor
 	}
 	assertEvidenceWorkCardinality(t, ctx, pool, tenantID, 1, 1)
 
-	// Malformed restricted access fails closed both in projection and reads.
 	visibilityLostAt := now.Add(3 * time.Minute)
-	malformed := fmt.Sprintf(`{"access":"RESTRICTED","allowed_principal_ids":["%s",7]}`, recipientB)
+	malformed := fmt.Sprintf("{\"access\":\"RESTRICTED\",\"allowed_principal_ids\":[\"%s\",7]}", recipientB)
 	mustExecEvidenceWork(t, ctx, pool, `UPDATE matters SET scope=$2::jsonb,updated_at=$3 WHERE id=$1::uuid`, matterID, malformed, visibilityLostAt)
 	if processed, err := projector.Maintain(ctx, visibilityLostAt, 20); err != nil || processed != 1 {
 		t.Fatalf("visibility-loss convergence processed=%d err=%v", processed, err)
@@ -152,7 +149,7 @@ func TestEvidenceRequestProjectorConvergesRecipientVisibilityWithoutDuplicateWor
 }
 
 func restrictedScope(principalID string) string {
-	return fmt.Sprintf(`{"access":"RESTRICTED","allowed_principal_ids":["%s"]}`, principalID)
+	return fmt.Sprintf("{\"access\":\"RESTRICTED\",\"allowed_principal_ids\":[\"%s\"]}", principalID)
 }
 
 func assertEvidenceProjectedIdentity(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, workflowID, taskID, status, principalID string) {
