@@ -81,6 +81,9 @@ func TestMatterActionProjectorIsIdempotentAndKeepsTaskDerived(t *testing.T) {
 	if task.Status != StatusReady || task.DueAt != nil || task.Context["matter_id"] != matterID || task.Context["action_id"] != actionID {
 		t.Fatalf("unexpected projected task: %#v", task)
 	}
+	if task.Context["command_name"] != "matter.action.transition" || task.Context["subresource_type"] != "ACTION" || task.Context["subresource_id"] != actionID || task.Context["allowed_targets"] != "IN_PROGRESS,BLOCKED,CANCELLED" {
+		t.Fatalf("Matter Action task is not executable from canonical packet context: %#v", task.Context)
+	}
 	if task.WorkflowKind != MatterActionWorkflowKind || task.MatterID != matterID || task.MatterPriority != 5 || !MatterActionVisibleTo(task, ownerID) {
 		t.Fatalf("canonical Matter metadata was not joined into Task read: %#v", task)
 	}
