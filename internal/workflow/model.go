@@ -34,12 +34,15 @@ type Task struct {
 	UpdatedAt      time.Time         `json:"updated_at"`
 
 	// Projection metadata is intentionally internal-only. It lets actor-facing
-	// reads enforce canonical Matter visibility/materiality without leaking raw
-	// access policy or duplicating Matter state into the Task API contract.
-	WorkflowKind   string          `json:"-"`
-	MatterID       string          `json:"-"`
-	MatterPriority int             `json:"-"`
-	MatterScope    json.RawMessage `json:"-"`
+	// reads enforce canonical source-domain visibility without leaking access
+	// policy or duplicating source-domain state into the Task API contract.
+	WorkflowKind             string          `json:"-"`
+	MatterID                 string          `json:"-"`
+	MatterPriority           int             `json:"-"`
+	MatterScope              json.RawMessage `json:"-"`
+	EvidenceRequestID        string          `json:"-"`
+	EvidenceRecipientID      string          `json:"-"`
+	EvidenceSubjectVisible   bool            `json:"-"`
 }
 
 type ListFilter struct {
@@ -49,5 +52,6 @@ type ListFilter struct {
 	WorkflowKind          string
 	ActiveOnly            bool
 	VisibleMatterWorkOnly bool
+	VisibleActorWorkOnly  bool
 	Limit                 int
 }
