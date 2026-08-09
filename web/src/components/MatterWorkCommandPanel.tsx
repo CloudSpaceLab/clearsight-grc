@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { apiErrorKind } from "../http";
-import { loadActorMatterWork, recordMatterDecision, recordVerificationResult, transitionResponsePackage } from "../continuityCommands";
+import { loadActorMatterWork, recordMatterDecision, recordVerificationResult, transitionMatterAction, transitionResponsePackage } from "../continuityCommands";
 import type { MatterAggregate, WorkflowTask } from "../types";
 
 type Props = {
@@ -37,10 +37,13 @@ function WorkCommand({ aggregate, task, onUpdated, onCompleted }: Props & { task
   const [state, setState] = useState<SubmitState>("idle");
   const [error, setError] = useState("");
 
-  const subresourceID = task.context?.subresource_id ?? task.context?.verification_contract_id ?? "";
+  const subresourceID = task.context?.subresource_id ?? task.context?.verification_contract_id ?? task.context?.action_id ?? "";
   const currentDecision = aggregate.decisions.find((decision) => decision.id === subresourceID);
   const currentResponse = aggregate.response_packages.find((response) => response.id === subresourceID);
   const currentContract = aggregate.verification_contracts.find((contract) => contract.id === subresourceID);
+  const currentAction = aggregate.actions.find((action) => action.id === subresourceID);
+  const actionCommand = command === "matter.action.transition";
+  const rationaleRequired = !actionCommand || target === "BLOCKED" || target === "CANCELLED";
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -49,7 +52,9 @@ function WorkCommand({ aggregate, task, onUpdated, onCompleted }: Props & { task
     setError("");
     try {
       let updated: MatterAggregate;
-      if (command === "matter.response.transition" && currentResponse && target) {
+      if (actionCommand && currentAction && target) {
+        updated = await transitionMatterAction(aggregate.matter.id, currentAction.id, aggregate.matter.version, target, rationale.trim());
+      } else if (command === "matter.response.transition" && currentResponse && target) {
         updated = await transitionResponsePackage(aggregate.matter.id, currentResponse.id, aggregate.matter.version, target, rationale.trim());
       } else if (command === "matter.outcome.record" && currentContract) {
         updated = await recordVerificationResult(aggregate.matter.id, aggregate.matter.version, {
@@ -76,9 +81,10 @@ function WorkCommand({ aggregate, task, onUpdated, onCompleted }: Props & { task
     }
   }
 
-  const supported = (command === "matter.response.transition" && Boolean(currentResponse))
+  const supported = (actionCommand && Boolean(currentAction) && targets.length > 0)
+    || (command === "matter.response.transition" && Boolean(currentResponse) && targets.length > 0)
     || (command === "matter.outcome.record" && Boolean(currentContract))
-    || (command === "matter.decision.record" && Boolean(currentDecision));
+    || (command === "matter.decision.record" && Boolean(currentDecision) && targets.length > 0);
 
   if (!supported) return null;
 
@@ -87,10 +93,10 @@ function WorkCommand({ aggregate, task, onUpdated, onCompleted }: Props & { task
     <h3 id={`work-command-${task.id}`}>{task.context?.primary_action || task.title}</h3>
     <p>{task.context?.why_now || "This action is assigned to you by the current workflow and authority policy."}</p>
     <form className="governed-command-form" onSubmit={submit}>
-      {(command === "matter.response.transition" || command === "matter.decision.record") && <label><span>Outcome</span><select value={target} onChange={(event) => setTarget(event.target.value)} required>{targets.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select></label>}
+      {(actionCommand || command === "matter.response.transition" || command === "matter.decision.record") && <label><span>{actionCommand ? "Next state" : "Outcome"}</span><select value={target} onChange={(event) => setTarget(event.target.value)} required>{targets.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select></label>}
       {command === "matter.decision.record" && ["APPROVED", "CONDITIONALLY_APPROVED", "REJECTED"].includes(target) && <label><span>Selected option</span><input value={selectedOption} onChange={(event) => setSelectedOption(event.target.value)} placeholder={currentDecision?.selected_option || "Decision option"} required={!currentDecision?.selected_option}/></label>}
       {command === "matter.outcome.record" && <label><span>Outcome check</span><select value={result} onChange={(event) => setResult(event.target.value as typeof result)}><option value="PASS">Outcome confirmed</option><option value="FAIL">Outcome not achieved</option><option value="INCONCLUSIVE">More evidence needed</option></select></label>}
-      <label><span>Rationale</span><textarea value={rationale} onChange={(event) => setRationale(event.target.value)} placeholder="Record the concise basis for this action" required rows={3}/></label>
+      <label><span>Rationale{rationaleRequired ? "" : " (optional)"}</span><textarea value={rationale} onChange={(event) => setRationale(event.target.value)} placeholder={rationaleRequired ? "Record the concise basis for this action" : "Add context only if it helps the next reviewer"} required={rationaleRequired} rows={3}/></label>
       {error && <p className="inline-error" role="alert">{error}</p>}
       {state === "saved" ? <div className="inline-notice" role="status">Recorded. The issue detail now reflects the authoritative server result; routed work will converge on the next projection cycle.</div> : <button className="primary-button" type="submit" disabled={state === "saving" || (!target && command !== "matter.outcome.record")}>{state === "saving" ? "Recording…" : task.context?.primary_action || "Record action"}</button>}
     </form>
@@ -106,7 +112,7 @@ export function MatterWorkCommandPanel({ aggregate, onUpdated }: Props) {
     void loadActorMatterWork().then((values) => {
       if (!active) return;
       setUnavailable(false);
-      setTasks(values.filter((task) => task.context?.matter_id === aggregate.matter.id && Boolean(task.context?.command_name) && ["READY", "IN_PROGRESS"].includes(task.status)));
+      setTasks(values.filter((task) => task.context?.matter_id === aggregate.matter.id && Boolean(task.context?.command_name) && ["READY", "IN_PROGRESS", "BLOCKED"].includes(task.status)));
     }).catch(() => {
       if (active) setUnavailable(true);
     });
