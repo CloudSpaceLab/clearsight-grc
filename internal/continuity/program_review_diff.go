@@ -34,10 +34,35 @@ func deriveProgramReviewChanges(aggregate ProgramAggregate, baseline, current Pr
 	for _, reason := range newReasons {
 		appendChange(ProgramReviewChange{Kind: "EXCEPTION", Summary: reason.Summary, ObjectType: reason.ObjectType, ObjectID: reason.ObjectID})
 	}
+	for _, change := range reasonExplanationChanges(baseline.Reasons, current.Reasons) {
+		appendChange(change)
+	}
 	for _, event := range events {
 		if change, ok := programEventChange(aggregate, event); ok {
 			appendChange(change)
 		}
+	}
+	return changes
+}
+
+func reasonExplanationChanges(before, after []StateReason) []ProgramReviewChange {
+	beforeByKey := make(map[string]StateReason, len(before))
+	for _, reason := range before {
+		beforeByKey[stateReasonKey(reason)] = reason
+	}
+	changes := make([]ProgramReviewChange, 0)
+	for _, reason := range after {
+		previous, exists := beforeByKey[stateReasonKey(reason)]
+		if !exists || strings.TrimSpace(previous.Summary) == strings.TrimSpace(reason.Summary) {
+			continue
+		}
+		summary := strings.TrimSpace(reason.Summary)
+		if summary == "" {
+			summary = "The explanation for a current status reason changed."
+		} else {
+			summary = "Status explanation updated: " + summary
+		}
+		changes = append(changes, ProgramReviewChange{Kind: "EXPLANATION", Summary: summary, ObjectType: reason.ObjectType, ObjectID: reason.ObjectID})
 	}
 	return changes
 }
