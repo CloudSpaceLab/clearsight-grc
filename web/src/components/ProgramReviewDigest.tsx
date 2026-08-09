@@ -69,7 +69,9 @@ export function ProgramReviewDigest({ aggregate }: Props) {
   const heading = noBaseline
     ? "Start review-by-exception"
     : changed
-      ? `${digest.changes_total} change${digest.changes_total === 1 ? "" : "s"} since your last review`
+      ? digest.changes_total > 0
+        ? `${digest.changes_total} change${digest.changes_total === 1 ? "" : "s"} since your last review`
+        : "Program changed since your last review"
       : "No changes since your review";
 
   return <section className="handoff-summary program-review-digest" aria-labelledby={`program-review-${program.id}`}>
@@ -84,6 +86,8 @@ export function ProgramReviewDigest({ aggregate }: Props) {
       <ul>{digest.changes.map((change, index) => <li key={`${change.kind}-${change.object_type ?? ""}-${change.object_id ?? ""}-${index}`}>{change.summary}</li>)}</ul>
       {digest.changes_omitted > 0 && <p>{digest.changes_omitted} additional change{digest.changes_omitted === 1 ? " is" : "s are"} outside this compact digest.</p>}
     </div>}
+
+    {changed && digest.history_events_omitted > 0 && <p className="inline-notice">{digest.history_events_omitted} older Program change event{digest.history_events_omitted === 1 ? " is" : "s are"} outside this bounded daily digest. Full Program history remains authoritative.</p>}
 
     {(noBaseline || changed) && digest.current_exceptions.length > 0 && <div className="status-reasons">
       <h4>{noBaseline ? "Current exceptions" : "Exceptions still current"}</h4>
