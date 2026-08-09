@@ -14,11 +14,11 @@ import (
 )
 
 type lockedRecipientRequest struct {
-	status      RequestStatus
-	deadline    time.Time
-	createdBy   string
-	version     int64
-	recipient   Recipient
+	status    RequestStatus
+	deadline  time.Time
+	createdBy string
+	version   int64
+	recipient Recipient
 }
 
 func (r *PostgresRepository) lockRecipientRequest(ctx context.Context, tx pgx.Tx, tenant, requestID string) (lockedRecipientRequest, error) {
@@ -64,7 +64,7 @@ func (r *PostgresRepository) DeclareWrongRecipient(ctx context.Context, input De
 	if err != nil {
 		return err
 	}
-	if current.status != RequestReady && current.status != RequestInProgress || !now.Before(current.deadline) {
+	if (current.status != RequestReady && current.status != RequestInProgress) || !now.Before(current.deadline) {
 		return ErrRequestClosed
 	}
 	if input.ExpectedVersion <= 0 || current.version != input.ExpectedVersion {
@@ -108,7 +108,7 @@ func (r *PostgresRepository) ReassignRecipient(ctx context.Context, input Reassi
 	if err != nil {
 		return err
 	}
-	if current.status != RequestReady && current.status != RequestInProgress || !now.Before(current.deadline) {
+	if (current.status != RequestReady && current.status != RequestInProgress) || !now.Before(current.deadline) {
 		return ErrRequestClosed
 	}
 	if input.ExpectedVersion <= 0 || current.version != input.ExpectedVersion {
