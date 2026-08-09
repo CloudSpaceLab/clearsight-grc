@@ -24,12 +24,6 @@ ALTER TABLE capture_requests
     ),
     ADD CONSTRAINT capture_requests_id_tenant_unique UNIQUE(id,tenant_id);
 
-ALTER TABLE capture_invitations
-    ADD COLUMN recipient_revision bigint NOT NULL DEFAULT 1 CHECK (recipient_revision >= 1);
-
-ALTER TABLE capture_sessions
-    ADD COLUMN recipient_revision bigint NOT NULL DEFAULT 1 CHECK (recipient_revision >= 1);
-
 CREATE TABLE capture_recipient_history (
     id uuid PRIMARY KEY DEFAULT uuidv7(),
     tenant_id uuid NOT NULL,
