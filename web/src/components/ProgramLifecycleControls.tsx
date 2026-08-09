@@ -63,7 +63,7 @@ export function ProgramLifecycleControls({ aggregate, onUpdated }: Props) {
       if (active) setAccess("read-only");
     });
     return () => { active = false; };
-  }, [program.id, choices.length]);
+  }, [program.id, program.status]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
