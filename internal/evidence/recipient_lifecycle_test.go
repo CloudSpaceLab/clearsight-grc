@@ -18,7 +18,7 @@ func TestWrongRecipientRemovesWorkUntilRequesterReassigns(t *testing.T) {
 		TenantID: "bank", SubjectType: "CONTROL", SubjectID: "control-1",
 		Title: "Confirm owner", Purpose: "Collect the current owner.", WhyYou: "You were selected as respondent.",
 		Sensitivity: "INTERNAL", AudienceType: "INTERNAL",
-		Recipient: RecipientInput{Type: RecipientInternalPrincipal, PrincipalID: "actor-a"},
+		Recipient:        RecipientInput{Type: RecipientInternalPrincipal, PrincipalID: "actor-a"},
 		EstimatedMinutes: 2, Deadline: now.Add(time.Hour),
 		Fields: []Field{{ID: "owner", Label: "Owner", Type: "text", Required: true}}, CreatedBy: "creator",
 	})
@@ -51,7 +51,7 @@ func TestWrongRecipientRemovesWorkUntilRequesterReassigns(t *testing.T) {
 	if _, err := service.ReassignRecipient(ctx, ReassignRecipientInput{
 		TenantID: "bank", RequestID: request.ID, ActorPrincipalID: "actor-a",
 		Recipient: RecipientInput{Type: RecipientInternalPrincipal, PrincipalID: "actor-b"},
-		Reason: "Redirect to Operations.", ExpectedVersion: wrong.Version,
+		Reason:    "Redirect to Operations.", ExpectedVersion: wrong.Version,
 	}); !errors.Is(err, ErrRecipientManagerRequired) {
 		t.Fatalf("recipient was allowed to self-redirect without requester authority: %v", err)
 	}
@@ -59,7 +59,7 @@ func TestWrongRecipientRemovesWorkUntilRequesterReassigns(t *testing.T) {
 	reassigned, err := service.ReassignRecipient(ctx, ReassignRecipientInput{
 		TenantID: "bank", RequestID: request.ID, ActorPrincipalID: "creator",
 		Recipient: RecipientInput{Type: RecipientInternalPrincipal, PrincipalID: "actor-b"},
-		Reason: "Operations now owns the response.", ExpectedVersion: wrong.Version,
+		Reason:    "Operations now owns the response.", ExpectedVersion: wrong.Version,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -84,7 +84,7 @@ func TestExternalRecipientChangeRevokesExistingCapability(t *testing.T) {
 		TenantID: "bank", SubjectType: "CONTROL", SubjectID: "control-1",
 		Title: "External confirmation", Purpose: "Collect one external fact.", WhyYou: "You are the intended respondent.",
 		Sensitivity: "CONFIDENTIAL", AudienceType: "CUSTOMER",
-		Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: "first@example.com"},
+		Recipient:        RecipientInput{Type: RecipientExternalAudience, Audience: "first@example.com"},
 		EstimatedMinutes: 2, Deadline: now.Add(2 * time.Hour),
 		Fields: []Field{{ID: "confirm", Label: "Confirm", Type: "text", Required: true}}, CreatedBy: "creator",
 	})
@@ -108,7 +108,7 @@ func TestExternalRecipientChangeRevokesExistingCapability(t *testing.T) {
 	reassigned, err := service.ReassignRecipient(ctx, ReassignRecipientInput{
 		TenantID: "bank", RequestID: request.ID, ActorPrincipalID: "creator",
 		Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: "second@example.com"},
-		Reason: "Customer contact was corrected.", ExpectedVersion: request.Version,
+		Reason:    "Customer contact was corrected.", ExpectedVersion: request.Version,
 	})
 	if err != nil {
 		t.Fatal(err)
