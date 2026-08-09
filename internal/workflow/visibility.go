@@ -9,6 +9,7 @@ import (
 const (
 	MatterActionWorkflowKind    = "MATTER_ACTION"
 	MatterLifecycleWorkflowKind = "MATTER_LIFECYCLE"
+	EvidenceRequestWorkflowKind = "EVIDENCE_REQUEST"
 )
 
 // ActorWorkVisibleTo is the defense-in-depth actor-work boundary after the
