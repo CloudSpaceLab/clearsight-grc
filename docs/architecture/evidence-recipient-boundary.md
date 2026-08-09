@@ -1,8 +1,8 @@
 # Evidence Request recipient boundary
 
-**Status:** #27.2b-B1 backend contract  
+**Status:** #27.2b-B1 backend recipient contract — complete  
 **Issue:** #27  
-**Implementation:** PR #47
+**Implementation:** PR #49
 
 This document defines who an Evidence Request is actually assigned to. It separates recipient assignment from subject visibility, request creation authority, and invitation/session capability security so ClearSight does not infer work ownership from descriptive copy.
 
@@ -163,13 +163,14 @@ B1 is complete only when exact-head CI proves:
 
 ## 12. Next slice — B2
 
-After B1 is proven, the next recipient tranche may add:
+B2 completes recipient lifecycle and actor-product integration without weakening the B1 assignment boundary:
 
 - internal wrong-recipient declaration;
 - requester correction/reassignment;
-- recipient redirect/delegation where authority/directory semantics exist;
+- recipient redirect/delegation only where executable authority/directory semantics exist;
 - explicit external invitation replacement/revocation;
 - invalidation of old external sessions on recipient replacement;
+- convergence of recipient/identity changes without stale duplicate actor work;
 - recipient-bound Evidence Request projection into Today;
 - mobile redirect/expiry/revocation acceptance evidence.
 
