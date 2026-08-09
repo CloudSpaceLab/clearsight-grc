@@ -1,14 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { apiErrorKind } from "../http";
-import { recordMatterDecision, recordVerificationResult, transitionResponsePackage } from "../continuityCommands";
+import { loadActorMatterWork, recordMatterDecision, recordVerificationResult, transitionResponsePackage } from "../continuityCommands";
 import type { MatterAggregate, WorkflowTask } from "../types";
 
 type Props = {
   aggregate: MatterAggregate;
-  task: WorkflowTask;
   onUpdated: (value: MatterAggregate) => void;
-  onCompleted: (taskID: string) => void;
 };
 
 type SubmitState = "idle" | "saving" | "saved" | "error";
@@ -29,7 +27,7 @@ function allowedTargets(task: WorkflowTask) {
   return (task.context?.allowed_targets ?? "").split(",").map((value) => value.trim()).filter(Boolean);
 }
 
-export function MatterWorkCommandPanel({ aggregate, task, onUpdated, onCompleted }: Props) {
+function WorkCommand({ aggregate, task, onUpdated, onCompleted }: Props & { task: WorkflowTask; onCompleted: (taskID: string) => void }) {
   const command = task.context?.command_name ?? "";
   const targets = useMemo(() => allowedTargets(task), [task]);
   const [target, setTarget] = useState(task.context?.target_status || targets[0] || "");
@@ -82,7 +80,7 @@ export function MatterWorkCommandPanel({ aggregate, task, onUpdated, onCompleted
     || (command === "matter.outcome.record" && Boolean(currentContract))
     || (command === "matter.decision.record" && Boolean(currentDecision));
 
-  if (!supported) return <section className="handoff-summary"><h3>Current governed work</h3><strong>{task.title}</strong><p>The current work packet cannot be executed from this screen. Its canonical record remains unchanged.</p></section>;
+  if (!supported) return null;
 
   return <section className="handoff-summary" aria-labelledby={`work-command-${task.id}`}>
     <span className="eyebrow">Your governed action</span>
@@ -94,7 +92,31 @@ export function MatterWorkCommandPanel({ aggregate, task, onUpdated, onCompleted
       {command === "matter.outcome.record" && <label><span>Outcome check</span><select value={result} onChange={(event) => setResult(event.target.value as typeof result)}><option value="PASS">Outcome confirmed</option><option value="FAIL">Outcome not achieved</option><option value="INCONCLUSIVE">More evidence needed</option></select></label>}
       <label><span>Rationale</span><textarea value={rationale} onChange={(event) => setRationale(event.target.value)} placeholder="Record the concise basis for this action" required rows={3}/></label>
       {error && <p className="inline-error" role="alert">{error}</p>}
-      {state === "saved" ? <div className="inline-notice" role="status">Recorded. The issue detail now reflects the authoritative server result; routed work will converge on the next projection cycle.</div> : <button className="primary-button" type="submit" disabled={state === "saving" || !target && command !== "matter.outcome.record"}>{state === "saving" ? "Recording…" : task.context?.primary_action || "Record action"}</button>}
+      {state === "saved" ? <div className="inline-notice" role="status">Recorded. The issue detail now reflects the authoritative server result; routed work will converge on the next projection cycle.</div> : <button className="primary-button" type="submit" disabled={state === "saving" || (!target && command !== "matter.outcome.record")}>{state === "saving" ? "Recording…" : task.context?.primary_action || "Record action"}</button>}
     </form>
   </section>;
+}
+
+export function MatterWorkCommandPanel({ aggregate, onUpdated }: Props) {
+  const [tasks, setTasks] = useState<WorkflowTask[]>([]);
+  const [unavailable, setUnavailable] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void loadActorMatterWork().then((values) => {
+      if (!active) return;
+      setUnavailable(false);
+      setTasks(values.filter((task) => task.context?.matter_id === aggregate.matter.id && Boolean(task.context?.command_name) && ["READY", "IN_PROGRESS"].includes(task.status)));
+    }).catch(() => {
+      if (active) setUnavailable(true);
+    });
+    return () => { active = false; };
+  }, [aggregate.matter.id]);
+
+  if (unavailable) return <div className="inline-notice">Assigned actions could not be loaded. The issue remains read-only until current workflow routing is available.</div>;
+  if (!tasks.length) return null;
+
+  return <div className="governed-command-stack" aria-label="Assigned governed actions">
+    {tasks.map((task) => <WorkCommand key={task.id} aggregate={aggregate} task={task} onUpdated={onUpdated} onCompleted={(taskID) => setTasks((current) => current.filter((item) => item.id !== taskID))}/>) }
+  </div>;
 }
