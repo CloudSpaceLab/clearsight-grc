@@ -45,7 +45,7 @@ type ProgramReviewDigest struct {
 	Changes                  []ProgramReviewChange    `json:"changes"`
 	ChangesTotal             int                      `json:"changes_total"`
 	ChangesOmitted           int                      `json:"changes_omitted"`
-	HistoryEventsOmitted     int                      `json:"history_events_omitted"`
+	HistoryTruncated         bool                     `json:"history_truncated"`
 	CurrentExceptions        []StateReason            `json:"current_exceptions"`
 	CurrentExceptionsTotal   int                      `json:"current_exceptions_total"`
 	NewExceptions            []StateReason            `json:"new_exceptions"`
@@ -66,7 +66,7 @@ type ProgramReviewRepository interface {
 	LatestProgramReview(ctx context.Context, tenant, programID, principalID string) (*ProgramReviewCheckpoint, error)
 	RecordProgramReview(ctx context.Context, checkpoint ProgramReviewCheckpoint) (ProgramReviewCheckpoint, error)
 	ProgramStateVersion(ctx context.Context, tenant, programID string, projectionVersion int64) (*ProgramStateSnapshot, error)
-	ProgramEventsAfterVersion(ctx context.Context, tenant, programID string, afterVersion int64, limit int) ([]Event, int, error)
+	ProgramEventsAfterVersion(ctx context.Context, tenant, programID string, afterVersion int64, limit int) ([]Event, bool, error)
 }
 
 func (s *Service) ProgramReviewDigest(ctx context.Context, tenant, programID, principalID string) (ProgramReviewDigest, error) {
@@ -126,13 +126,11 @@ func (s *Service) ProgramReviewDigest(ctx context.Context, tenant, programID, pr
 	digest.ResolvedExceptionsTotal = len(resolvedReasons)
 	digest.ResolvedExceptions = limitReasons(resolvedReasons, programReviewItemLimit)
 
-	events, eventTotal, err := repo.ProgramEventsAfterVersion(ctx, tenant, programID, checkpoint.ProgramVersion, programReviewEventScanLimit)
+	events, truncated, err := repo.ProgramEventsAfterVersion(ctx, tenant, programID, checkpoint.ProgramVersion, programReviewEventScanLimit)
 	if err != nil {
 		return ProgramReviewDigest{}, err
 	}
-	if eventTotal > len(events) {
-		digest.HistoryEventsOmitted = eventTotal - len(events)
-	}
+	digest.HistoryTruncated = truncated
 	changes := deriveProgramReviewChanges(aggregate, *baseline, *current, events, newReasons)
 	digest.ChangesTotal = len(changes)
 	if len(changes) > programReviewItemLimit {
