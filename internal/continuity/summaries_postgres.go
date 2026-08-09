@@ -117,8 +117,10 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 	hasCursor := cursor.ID != ""
 	actor, enforceVisibility := identity.FromContext(ctx)
 	principalID := ""
+	actorTenant := ""
 	if enforceVisibility {
 		principalID = actor.PrincipalID
+		actorTenant = actor.TenantID
 	}
 	rows, err := r.pool.Query(ctx, `
 		SELECT
@@ -142,6 +144,7 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND ($2='' OR ($2='OPEN' AND m.status NOT IN ('CLOSED','CANCELLED')) OR m.status=$2)
 		  AND ($3='' OR m.search_document @@ websearch_to_tsquery('simple'::regconfig,$3))
+		  AND (NOT $4 OR t.id::text=$6 OR t.slug=$6)
 		  AND (
 			NOT $4 OR
 			CASE
@@ -172,11 +175,11 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 			END
 		  )
 		  AND (
-			NOT $6 OR m.priority < $7 OR
-			(m.priority = $7 AND (m.updated_at < $8 OR (m.updated_at = $8 AND m.id < NULLIF($9,'')::uuid)))
+			NOT $7 OR m.priority < $8 OR
+			(m.priority = $8 AND (m.updated_at < $9 OR (m.updated_at = $9 AND m.id < NULLIF($10,'')::uuid)))
 		  )
 		ORDER BY m.priority DESC,m.updated_at DESC,m.id DESC
-		LIMIT $10`, tenant, query.Status, query.Search, enforceVisibility, principalID, hasCursor, cursor.Priority, cursor.UpdatedAt, cursor.ID, limit+1)
+		LIMIT $11`, tenant, query.Status, query.Search, enforceVisibility, principalID, actorTenant, hasCursor, cursor.Priority, cursor.UpdatedAt, cursor.ID, limit+1)
 	if err != nil {
 		return MatterSummaryPage{}, err
 	}
