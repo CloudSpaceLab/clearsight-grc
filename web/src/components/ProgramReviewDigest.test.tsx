@@ -73,7 +73,8 @@ describe("Program review digest", () => {
     vi.mocked(acceptProgramReview).mockRejectedValue(new ApiError(409, "version conflict", "version_conflict"));
     render(<ProgramReviewDigest aggregate={aggregate}/>);
     fireEvent.click(await screen.findByRole("button", { name: "Mark current state reviewed" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("changed while you were reviewing");
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("changed while you were reviewing");
   });
 
   it("degrades to current Program truth when actor review history is unavailable", async () => {
