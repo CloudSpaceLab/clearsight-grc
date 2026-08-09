@@ -64,7 +64,7 @@ func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Tas
 		  ON wi.kind='EVIDENCE_REQUEST'
 		 AND wi.subject_type='EVIDENCE_REQUEST'
 		 AND cr.tenant_id=wi.tenant_id
-		 AND cr.id::text=wi.subject_id
+		 AND cr.id=wi.subject_id
 		LEFT JOIN matters em
 		  ON cr.subject_type='MATTER'
 		 AND em.tenant_id=cr.tenant_id
