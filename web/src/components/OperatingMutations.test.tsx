@@ -96,7 +96,11 @@ describe("governed operating mutations", () => {
 
   it("executes Matter Action transitions only from projected canonical targets", async () => {
     vi.mocked(loadActorMatterWork).mockResolvedValue([actionTask]);
-    vi.mocked(transitionMatterAction).mockResolvedValue({ ...matter, matter: { ...matter.matter, version: 8 }, actions: [{ ...matter.actions[0], status: "IN_PROGRESS" }] });
+    vi.mocked(transitionMatterAction).mockResolvedValue({
+      ...matter,
+      matter: { ...matter.matter, version: 8 },
+      actions: [{ id: "action-1", title: "Correct owner record", description: "Update the accountable owner.", status: "IN_PROGRESS" }],
+    });
     const onUpdated = vi.fn();
 
     render(<MatterWorkCommandPanel aggregate={matter} onUpdated={onUpdated}/>);
