@@ -5,6 +5,7 @@ import type { ProgramSummary } from "../summaryTypes";
 import type { ProgramAggregate, ProgramState } from "../types";
 import { EmptyState } from "./EmptyState";
 import { ProgramLifecycleControls } from "./ProgramLifecycleControls";
+import { ProgramReviewDigest } from "./ProgramReviewDigest";
 
 type LoadState = "loading" | "live" | "unavailable";
 type Props = { targetID?: string; openFirst?: boolean };
@@ -164,7 +165,7 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
 
   return <div id="programs-workspace">
     <section className="workspace-brief">
-      <div><span className="eyebrow">Ongoing compliance</span><h2>{briefTitle}</h2><p>Open a Program for status reasons, evidence expectations or an authority-checked operating status change.</p></div>
+      <div><span className="eyebrow">Ongoing compliance</span><h2>{briefTitle}</h2><p>Open a Program for changes since your last review, current status reasons, evidence expectations or an authority-checked operating status change.</p></div>
       <div className="workspace-brief-facts" aria-label="Loaded Program status"><span><strong>{summary.attention}</strong> follow-up</span><span><strong>{summary.current}</strong> current</span><span><strong>{summary.setup}</strong> setup or reassessing</span></div>
     </section>
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
@@ -199,6 +200,7 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
             {currentDetailState === "unavailable" && <div className="inline-error"><p>Program details could not be loaded.</p><button className="secondary-button" onClick={() => void fetchDetail(program.id)}>Try again</button></div>}
             {detail && <>
               {summaryItem.projection_stale && <div className="inline-notice" role="status">The Program changed after the latest assessment. The last known reasons remain available below while status is recalculated.</div>}
+              <ProgramReviewDigest aggregate={detail}/>
               <ProgramLifecycleControls aggregate={detail} onUpdated={applyDetailUpdate}/>
               <section className="status-reasons"><h3>Why this status</h3>{detail.current_state?.reasons?.length ? <ul>{detail.current_state.reasons.map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul> : <p>No status reasons are recorded for the latest assessment.</p>}{summaryItem.reasons_omitted > 0 && <p>{summaryItem.reasons_omitted} additional status reason{summaryItem.reasons_omitted === 1 ? " is" : "s are"} available in the full Program record.</p>}</section>
               <details className="progressive-section"><summary><span>Requirements</span><strong>{detail.requirements.length}</strong></summary><div>{detail.requirements.length ? detail.requirements.map((requirement) => <div className="detail-row" key={requirement.id}><div><strong>{requirement.title}</strong><small>{requirement.statement}</small>{requirement.source_anchor && <small>Source: {requirement.source_anchor}</small>}</div><span>{requirementStatusLabel(requirement.status)}</span></div>) : <p>No approved requirements have been added.</p>}</div></details>

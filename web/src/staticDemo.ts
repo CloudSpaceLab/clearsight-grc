@@ -36,9 +36,38 @@ const programDetail = {
     { id: "contract-training", code: "PRIV-TRAIN", name: "Privacy role training", claim: "Assigned privacy responsibilities have current training evidence.", status: "ACTIVE", freshness_minutes: 525600, minimum_coverage: .95 },
   ],
   evidence_assessments: [{ id: "assessment-1", contract_id: "contract-return", conclusion: "PARTIALLY_SUPPORTED", coverage: .8, assessed_at: now }],
-  current_state: { id: "state-1", overall_state: "EVIDENCE_INSUFFICIENT", dimensions: { requirements: "CURRENT", controls: "CURRENT", evidence: "EVIDENCE_INSUFFICIENT" }, reasons: programSummary.reasons, open_matter_count: 2, generated_at: now, program_version: 12 },
+  current_state: { id: "state-1", overall_state: "EVIDENCE_INSUFFICIENT", dimensions: { requirements: "CURRENT", controls: "CURRENT", evidence: "EVIDENCE_INSUFFICIENT" }, reasons: programSummary.reasons, open_matter_count: 2, generated_at: now, program_version: 12, projection_version: 3 },
   triggers: [{ id: "trigger-1", type: "REQUIREMENT_CHANGED", observed_at: "2026-08-04T10:00:00Z", source: "NDPC publication monitor" }],
 };
+
+let programReviewAcknowledged = false;
+function programReviewDigest() {
+  const checkpoint = {
+    id: "review-ndpa-1", tenant_id: "bank-demo", program_id: programID, principal_id: "role-cro",
+    program_version: programReviewAcknowledged ? 12 : 10, projection_version: programReviewAcknowledged ? 3 : 2,
+    accepted_at: programReviewAcknowledged ? now : "2026-08-04T09:00:00Z",
+  };
+  if (programReviewAcknowledged) return {
+    program_id: programID, state: "CURRENT", review_required: false, checkpoint,
+    current_program_version: 12, current_projection_version: 3, current_overall: "EVIDENCE_INSUFFICIENT", baseline_overall: "EVIDENCE_INSUFFICIENT",
+    open_matter_count: 2, open_matter_delta: 0, changes: [], changes_total: 0, changes_omitted: 0,
+    current_exceptions: programSummary.reasons, current_exceptions_total: 1, new_exceptions: [], new_exceptions_total: 0, resolved_exceptions: [], resolved_exceptions_total: 0,
+  };
+  return {
+    program_id: programID, state: "CHANGED", review_required: true, checkpoint,
+    current_program_version: 12, current_projection_version: 3, current_overall: "EVIDENCE_INSUFFICIENT", baseline_overall: "CURRENT",
+    open_matter_count: 2, open_matter_delta: 2,
+    changes: [
+      { kind: "STATE", summary: "Overall status changed from current to evidence insufficient." },
+      { kind: "EVIDENCE", summary: "Evidence for Annual return evidence package was assessed as partially supported.", object_type: "EVIDENCE_CONTRACT", object_id: "contract-return" },
+      { kind: "CHANGE", summary: "Observed change: requirement changed.", object_type: "REQUIREMENT", object_id: "req-2" },
+    ],
+    changes_total: 3, changes_omitted: 0,
+    current_exceptions: programSummary.reasons, current_exceptions_total: 1,
+    new_exceptions: programSummary.reasons, new_exceptions_total: 1,
+    resolved_exceptions: [], resolved_exceptions_total: 0,
+  };
+}
 
 const matter = {
   id: matterID, tenant_id: "bank-demo", reference: "CHG-2026-0042", type: "REGULATORY_CHANGE", status: "ACTION_IN_PROGRESS", priority: 4, title: "Implement GAID annual-return evidence requirements", summary: "Update the annual return process, evidence ownership and internal approval date.", scope: { journey_code: "REGULATORY_CHANGE", filing_year: 2027 }, known_facts: { official_source: "GAID 2025", filing_deadline: "31 March 2027", affected_process: "Annual privacy compliance return", complete_sections: 8, required_sections: 10 }, missing_facts: ["Owner for the processor register section", "Final DPCO review date"], contradictions: [], owner_principal_id: "role-dpo", required_authority: "AUTHORIZER", due_at: future, created_at: "2026-08-04T10:00:00Z", updated_at: now, version: 8,
@@ -97,6 +126,13 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/compliance/readiness") return clone({ tenant_id: "bank-demo", status: "AT_RISK", baseline_known: false, generated_at: now, dimensions: { current: 0, aging: 1, at_risk: 1, unknown: 1, blocked_routing: 0, pending_human: 1 }, active_drifts: [{ id: "drift-1", subject_type: "PROGRAM", subject_id: programID, dimension: "EVIDENCE", severity: 4, summary: "Two annual-return evidence sections are incomplete.", required_action: "Assign owners and complete DPCO review.", detected_at: now }], recommended_actions: ["Complete the two missing evidence ownership records.", "Confirm the final DPCO review date."] }) as T;
   if (pathname === "/api/v1/program-summaries") return clone({ items: matches(url, programSummary.program.name, programSummary.program.code) ? [programSummary] : [], generated_at: now }) as T;
   if (pathname === `/api/v1/programs/${programID}`) return clone(programDetail) as T;
+  if (pathname === `/api/v1/programs/${programID}/review-digest` && method === "GET") return clone(programReviewDigest()) as T;
+  if (pathname === `/api/v1/programs/${programID}/reviews` && method === "POST") {
+    const input = parseBody(init) as { expected_program_version?: number; expected_projection_version?: number };
+    if (input.expected_program_version !== 12 || input.expected_projection_version !== 3) throw new StaticDemoHTTPError(409, "version_conflict", "The Program changed while it was being reviewed.");
+    programReviewAcknowledged = true;
+    return clone(programReviewDigest()) as T;
+  }
   if (pathname === "/api/v1/matter-summaries") return clone({ items: matches(url, matter.title, matter.reference) ? [matterSummary] : [], generated_at: now }) as T;
   if (pathname === `/api/v1/matters/${matterID}`) return clone(matterDetail) as T;
   if (pathname === "/api/v1/evidence/sources") return clone({ items: [{ id: "source-ndpc", tenant_id: "bank-demo", legal_entity_id: "bank-ng", code: "NDPC-PUBLICATIONS", name: "NDPC official publications", type: "REGULATORY", authority_class: "AUTHORITATIVE", expected_freshness_minutes: 1440, last_observed_at: now, last_success_at: now, health: "CURRENT", status: "ACTIVE", version: 3 }, { id: "source-iam", tenant_id: "bank-demo", legal_entity_id: "bank-ng", code: "IAM-ENTITLEMENTS", name: "Identity and access records", type: "SYSTEM", authority_class: "SYSTEM_OF_RECORD", expected_freshness_minutes: 60, last_observed_at: now, last_success_at: "2026-08-06T14:30:00Z", health: "DEGRADED", status: "ACTIVE", version: 8 }] }) as T;

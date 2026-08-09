@@ -40,6 +40,7 @@ func (r *MemoryRepository) SaveProgramState(_ context.Context, tenant, programID
 	}
 	version := int64(len(data.states[tenant][programID]) + 1)
 	state.ProgramVersion = expectedProgramVersion
+	state.ProjectionVersion = version
 	data.states[tenant][programID] = append(data.states[tenant][programID], state)
 	aggregate.CurrentState = &state
 	r.programs[tenant][programID] = aggregate

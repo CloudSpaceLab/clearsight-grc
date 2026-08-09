@@ -84,6 +84,8 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/programs", "program.create", a.createProgram, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2, BindLegalEntity: true}),
 		read("/api/v1/programs/{id}", a.getProgram),
 		read("/api/v1/programs/{id}/history", a.getProgramHistory),
+		read("/api/v1/programs/{id}/review-digest", a.getProgramReviewDigest),
+		write(http.MethodPost, "/api/v1/programs/{id}/reviews", a.acceptProgramReview, nil),
 		material("/api/v1/programs/{id}/transition", "program.transition", a.transitionProgram, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3}),
 		material("/api/v1/programs/{id}/requirements", "program.requirement.add", a.addProgramRequirement, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
 		material("/api/v1/programs/{id}/applicability", "program.applicability.decide", a.determineProgramApplicability, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3, ActorField: "approved_by"}),
