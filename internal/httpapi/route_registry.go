@@ -120,6 +120,8 @@ func (a *API) routes() []routeSpec {
 		read("/api/v1/evidence/requests", a.listVisibleEvidenceRequests),
 		write(http.MethodPost, "/api/v1/evidence/requests", a.createEvidenceRequest, bindJSONIdentity(false, "created_by")),
 		read("/api/v1/evidence/requests/{id}", a.getEvidenceRequest),
+		write(http.MethodPost, "/api/v1/evidence/requests/{id}/wrong-recipient", a.declareEvidenceWrongRecipient, bindJSONIdentity(false, "actor_principal_id")),
+		write(http.MethodPut, "/api/v1/evidence/requests/{id}/recipient", a.reassignEvidenceRecipient, bindJSONIdentity(false, "actor_principal_id")),
 		write(http.MethodPost, "/api/v1/evidence/requests/{id}/submissions", a.submitEvidenceRequest, bindJSONIdentity(false, "submitted_by")),
 		write(http.MethodPost, "/api/v1/evidence/requests/{id}/invitations", a.issueEvidenceInvitation, bindJSONIdentity(false, "created_by")),
 		capability(http.MethodPost, "/api/v1/evidence/invitations/redeem", a.redeemEvidenceInvitation),

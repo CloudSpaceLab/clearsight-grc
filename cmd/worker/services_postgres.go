@@ -20,7 +20,10 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
 
-const matterWorkProjectionClass = "matter-work-projection"
+const (
+	matterWorkProjectionClass   = "matter-work-projection"
+	evidenceWorkProjectionClass = "evidence-request-work-projection"
+)
 
 func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (workerSet, error) {
 	pool, err := database.Open(ctx, cfg)
@@ -47,6 +50,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	lifecycleWork := &workflow.MatterLifecycleProjector{
 		Repo: workflowRepository, Continuity: continuityService, Authority: authority.NewEffectivePostgresService(pool), Sequence: governanceService,
 	}
+	evidenceWork := &workflow.EvidenceRequestProjector{Repo: workflowRepository}
 	documentService := documentimport.NewService(documentimport.NewPostgresRepository(pool), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
 	publisher := workflowruntime.NewCompositePublisher(sourceHealth, actionWork, lifecycleWork, documentService, workflowruntime.LogPublisher{Logger: logger})
@@ -56,10 +60,16 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	// reconciliation pass exists for restart/backfill and authority/delegation/
 	// routing-policy convergence rather than continuously scanning all Matters.
 	service.ConfigureClass(matterWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 30 * time.Second, Batch: 100})
+	// Evidence Request assignment is canonical request state rather than an
+	// authority route. A short bounded reconciliation pass gives create/
+	// reassignment/wrong-recipient/principal-status changes one rebuildable Today
+	// projection without adding another event or worker stack.
+	service.ConfigureClass(evidenceWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 5 * time.Second, Batch: 100})
 
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), store)
 	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
 	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
 	service.AddMaintainerClass(matterWorkProjectionClass, lifecycleWork)
+	service.AddMaintainerClass(evidenceWorkProjectionClass, evidenceWork)
 	return workerSet{Runtime: service, Close: pool.Close}, nil
 }

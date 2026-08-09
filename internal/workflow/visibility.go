@@ -9,7 +9,26 @@ import (
 const (
 	MatterActionWorkflowKind    = "MATTER_ACTION"
 	MatterLifecycleWorkflowKind = "MATTER_LIFECYCLE"
+	EvidenceRequestWorkflowKind = "EVIDENCE_REQUEST"
 )
+
+// ActorWorkVisibleTo is the defense-in-depth actor-work boundary after the
+// PostgreSQL read has already applied canonical visibility before LIMIT.
+func ActorWorkVisibleTo(task Task, principalID string) bool {
+	principalID = strings.TrimSpace(principalID)
+	if principalID == "" || task.PrincipalID != principalID {
+		return false
+	}
+	if supportedMatterWorkflowKind(task.WorkflowKind) {
+		return MatterWorkVisibleTo(task, principalID)
+	}
+	if task.WorkflowKind == EvidenceRequestWorkflowKind {
+		return strings.TrimSpace(task.EvidenceRequestID) != "" &&
+			task.EvidenceRecipientID == principalID &&
+			task.EvidenceSubjectVisible
+	}
+	return false
+}
 
 // MatterWorkVisibleTo verifies that an actor-facing Task is one of the supported
 // Matter-backed projections and that the actor may read its owning Matter.

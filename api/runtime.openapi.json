@@ -92,6 +92,8 @@
       "post": { "operationId": "createEvidenceRequest", "x-clearsight-route-class": "AUTHENTICATED_WRITE" }
     },
     "/api/v1/evidence/requests/{id}": { "get": { "operationId": "getEvidenceRequest", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/evidence/requests/{id}/wrong-recipient": { "post": { "operationId": "declareEvidenceWrongRecipient", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
+    "/api/v1/evidence/requests/{id}/recipient": { "put": { "operationId": "reassignEvidenceRecipient", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/evidence/requests/{id}/submissions": { "post": { "operationId": "submitEvidenceRequest", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/evidence/requests/{id}/invitations": { "post": { "operationId": "issueEvidenceInvitation", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/evidence/invitations/redeem": { "post": { "operationId": "redeemEvidenceInvitation", "security": [], "x-clearsight-route-class": "BOUNDED_CAPABILITY" } },

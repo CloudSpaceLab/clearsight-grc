@@ -72,8 +72,8 @@ type SourceObservation struct {
 }
 
 type RequestStatus string
-
 type RecipientType string
+type RecipientState string
 
 const (
 	RequestDraft      RequestStatus = "DRAFT"
@@ -85,6 +85,10 @@ const (
 
 	RecipientInternalPrincipal RecipientType = "INTERNAL_PRINCIPAL"
 	RecipientExternalAudience  RecipientType = "EXTERNAL_AUDIENCE"
+
+	RecipientStateAssigned             RecipientState = "ASSIGNED"
+	RecipientStateReassignmentRequired RecipientState = "REASSIGNMENT_REQUIRED"
+	RecipientStateLegacyUnassigned     RecipientState = "LEGACY_UNASSIGNED"
 )
 
 type Field struct {
@@ -98,10 +102,13 @@ type Field struct {
 }
 
 type Recipient struct {
-	Type         RecipientType `json:"type,omitempty"`
-	PrincipalID  string        `json:"principal_id,omitempty"`
-	AudienceHint string        `json:"audience_hint,omitempty"`
-	AudienceHash []byte        `json:"-"`
+	Type         RecipientType  `json:"type,omitempty"`
+	PrincipalID  string         `json:"principal_id,omitempty"`
+	AudienceHint string         `json:"audience_hint,omitempty"`
+	State        RecipientState `json:"state,omitempty"`
+	Revision     int64          `json:"revision,omitempty"`
+	IssueReason  string         `json:"issue_reason,omitempty"`
+	AudienceHash []byte         `json:"-"`
 }
 
 type RecipientInput struct {
@@ -147,6 +154,23 @@ type CreateRequestInput struct {
 	KnownFacts       map[string]string `json:"known_facts"`
 	Fields           []Field           `json:"fields"`
 	CreatedBy        string            `json:"created_by,omitempty"`
+}
+
+type DeclareWrongRecipientInput struct {
+	TenantID         string `json:"tenant_id"`
+	RequestID        string `json:"request_id"`
+	ActorPrincipalID string `json:"actor_principal_id,omitempty"`
+	Reason           string `json:"reason"`
+	ExpectedVersion  int64  `json:"expected_version"`
+}
+
+type ReassignRecipientInput struct {
+	TenantID         string         `json:"tenant_id"`
+	RequestID        string         `json:"request_id"`
+	ActorPrincipalID string         `json:"actor_principal_id,omitempty"`
+	Recipient        RecipientInput `json:"recipient"`
+	Reason           string         `json:"reason"`
+	ExpectedVersion  int64          `json:"expected_version"`
 }
 
 type Submission struct {

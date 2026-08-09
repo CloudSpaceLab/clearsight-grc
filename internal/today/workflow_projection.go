@@ -15,11 +15,11 @@ func FromWorkflowTasks(tasks []workflow.Task) []AttentionItem {
 }
 
 // FromWorkflowTasksForActor is the production-safe projection. It accepts only
-// supported Matter-backed work projections and rechecks the owning Matter's
-// access policy before exposing the item to the actor.
+// canonical actor-visible work and rechecks its source-domain visibility before
+// exposing the item to the actor.
 func FromWorkflowTasksForActor(tasks []workflow.Task, principalID string) []AttentionItem {
 	return projectWorkflowTasks(tasks, func(task workflow.Task) bool {
-		return workflow.MatterWorkVisibleTo(task, principalID)
+		return workflow.ActorWorkVisibleTo(task, principalID)
 	})
 }
 
