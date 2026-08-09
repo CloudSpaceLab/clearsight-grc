@@ -16,9 +16,15 @@ function humanize(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 }
 
-function defaultTarget(status: string) {
-  if (status === "PAUSED" || status === "DRAFT") return "ACTIVE";
-  return "PAUSED";
+// UI affordance only. The command service remains authoritative and rechecks
+// lifecycle legality, actor authority, optimistic version and activation gates.
+export function programTransitionTargets(status: string): string[] {
+  switch (status) {
+    case "DRAFT": return ["ACTIVE", "RETIRED"];
+    case "ACTIVE": return ["PAUSED", "RETIRED"];
+    case "PAUSED": return ["ACTIVE", "RETIRED"];
+    default: return [];
+  }
 }
 
 function errorMessage(error: unknown) {
@@ -31,22 +37,22 @@ function errorMessage(error: unknown) {
 export function ProgramLifecycleControls({ aggregate, onUpdated }: Props) {
   const program = aggregate.program;
   const [access, setAccess] = useState<AccessState>("loading");
-  const [target, setTarget] = useState(() => defaultTarget(program.status));
+  const choices = useMemo(() => programTransitionTargets(program.status), [program.status]);
+  const [target, setTarget] = useState(() => programTransitionTargets(program.status)[0] ?? "");
   const [rationale, setRationale] = useState("");
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [error, setError] = useState("");
-  const choices = useMemo(() => ["ACTIVE", "PAUSED", "RETIRED"].filter((value) => value !== program.status), [program.status]);
   const selectedTarget = choices.includes(target) ? target : choices[0] ?? "";
 
   useEffect(() => {
-    setTarget(defaultTarget(program.status));
+    setTarget(programTransitionTargets(program.status)[0] ?? "");
     setSubmitState("idle");
     setError("");
   }, [program.status]);
 
   useEffect(() => {
     let active = true;
-    if (program.status === "RETIRED") {
+    if (!choices.length) {
       setAccess("read-only");
       return () => { active = false; };
     }
@@ -57,7 +63,7 @@ export function ProgramLifecycleControls({ aggregate, onUpdated }: Props) {
       if (active) setAccess("read-only");
     });
     return () => { active = false; };
-  }, [program.id, program.status]);
+  }, [program.id, choices.length]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -75,7 +81,7 @@ export function ProgramLifecycleControls({ aggregate, onUpdated }: Props) {
     }
   }
 
-  if (access !== "allowed" || program.status === "RETIRED" || !choices.length) return null;
+  if (access !== "allowed" || !choices.length) return null;
 
   return <section className="handoff-summary program-operation" aria-label="Program status action">
     <span className="eyebrow">Authorized Program action</span>
