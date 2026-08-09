@@ -16,6 +16,7 @@ import "./product-finish.css";
 import "./ui-preferences.css";
 import "./visual-review-fixes.css";
 import "./capture-inputs.css";
+import "./operating-mutations.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Application root is missing");
