@@ -123,33 +123,6 @@ func (r *PostgresRepository) ListRecipientRequests(ctx context.Context, tenant, 
 	return values, rows.Err()
 }
 
-func scanRequestWithRecipient(row scanner) (Request, error) {
-	var value Request
-	var facts, fields []byte
-	var recipientType, principalID, hint, state, issueReason string
-	var audienceHash []byte
-	if err := row.Scan(
-		&value.ID, &value.TenantID, &value.SubjectType, &value.SubjectID, &value.Title, &value.Purpose, &value.WhyYou, &value.Sensitivity, &value.AudienceType,
-		&value.EstimatedMinutes, &value.Deadline, &facts, &fields, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt,
-		&recipientType, &principalID, &audienceHash, &hint, &state, &value.Recipient.Revision, &issueReason,
-	); err != nil {
-		return Request{}, err
-	}
-	if err := json.Unmarshal(facts, &value.KnownFacts); err != nil {
-		return Request{}, err
-	}
-	if err := json.Unmarshal(fields, &value.Fields); err != nil {
-		return Request{}, err
-	}
-	value.Recipient.Type = RecipientType(recipientType)
-	value.Recipient.PrincipalID = principalID
-	value.Recipient.AudienceHash = append([]byte(nil), audienceHash...)
-	value.Recipient.AudienceHint = hint
-	value.Recipient.State = RecipientState(state)
-	value.Recipient.IssueReason = issueReason
-	return value, nil
-}
-
 func nullableAudienceHash(recipient Recipient) any {
 	if recipient.Type != RecipientExternalAudience || len(recipient.AudienceHash) == 0 {
 		return nil
