@@ -1,6 +1,6 @@
 import { loadContext } from "./api";
 import { requestJSON } from "./http";
-import type { CaptureRequest } from "./types";
+import type { CaptureRequest, EvidenceRecipient } from "./types";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -53,6 +53,27 @@ export async function uploadInternalCaptureArtifact(requestID: string, file: Fil
   body.append("request_id", requestID);
   body.append("file", file, file.name);
   return request<CaptureArtifact>("/api/v1/evidence/artifacts", { method: "POST", body });
+}
+
+export async function declareWrongCaptureRecipient(requestID: string, expectedVersion: number, reason: string): Promise<CaptureRequest> {
+  const context = await loadContext();
+  return request<CaptureRequest>(`/api/v1/evidence/requests/${encodeURIComponent(requestID)}/wrong-recipient?tenant_id=${encodeURIComponent(context.tenant.id)}`, {
+    method: "POST",
+    body: JSON.stringify({ expected_version: expectedVersion, reason }),
+  });
+}
+
+export async function reassignCaptureRecipient(
+  requestID: string,
+  expectedVersion: number,
+  recipient: Pick<EvidenceRecipient, "type" | "principal_id"> & { audience?: string },
+  reason: string,
+): Promise<CaptureRequest> {
+  const context = await loadContext();
+  return request<CaptureRequest>(`/api/v1/evidence/requests/${encodeURIComponent(requestID)}/recipient?tenant_id=${encodeURIComponent(context.tenant.id)}`, {
+    method: "PUT",
+    body: JSON.stringify({ expected_version: expectedVersion, recipient, reason }),
+  });
 }
 
 export function redeemCaptureInvitation(token: string, audience: string): Promise<RedeemedCaptureSession> {
