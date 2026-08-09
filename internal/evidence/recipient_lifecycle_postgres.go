@@ -3,7 +3,6 @@
 package evidence
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -181,20 +180,6 @@ func (r *PostgresRepository) ReassignRecipient(ctx context.Context, input Reassi
 		return fmt.Errorf("record recipient reassignment history: %w", err)
 	}
 	return tx.Commit(ctx)
-}
-
-func sameRecipient(left, right Recipient) bool {
-	if left.Type != right.Type {
-		return false
-	}
-	switch left.Type {
-	case RecipientInternalPrincipal:
-		return left.PrincipalID == right.PrincipalID
-	case RecipientExternalAudience:
-		return bytes.Equal(left.AudienceHash, right.AudienceHash)
-	default:
-		return false
-	}
 }
 
 var _ recipientLifecycleStore = (*PostgresRepository)(nil)
