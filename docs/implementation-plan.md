@@ -12,7 +12,8 @@
 **Evidence recipient canonical truth (B1):** PR #49 — complete  
 **Evidence recipient lifecycle + Today (B2):** PR #50 — complete  
 **Operating Program/Work governed mutations:** PR #51 — complete  
-**Current execution:** actor Program review baseline + canonical change/exception digest — PR #53  
+**Actor Program review baseline + review-by-exception:** PR #53 — complete  
+**Current execution:** re-derive the next tranche from merged executable gaps; no tranche is preselected by backlog order  
 **Current execution issue:** #27  
 **Umbrella pilot/GA catalogue:** #13
 
@@ -110,52 +111,33 @@ B2 does **not** imply generic redirect/delegation/team/role/queue recipient sema
 - exact final head `59f4d37e3cc11805242b46e7637103b8ad59a36b` passed CI #664 and UI evidence #277;
 - squash-merged as `3da504cef68651ab34c9ccb1f3c70e7053c1dfc2`.
 
-Closed foundation issues #26/#32/#33 and completed PRs #31/#40/#43/#45/#46/#49/#50/#51 must not be recreated under new names or parallel frameworks.
+### Actor Program review baseline + review-by-exception / PR #53
 
-## 2. Current work — actor Program review baseline + review-by-exception / PR #53
+This tranche was selected from the merged codebase rather than from backlog ordering.
 
-This tranche was selected from the merged codebase, not from backlog ordering.
+- actor-owned review checkpoint is separate from Program business state; accepting a review does not increment Program version or create a continuity business event;
+- checkpoint stores only tenant/program/principal, accepted Program version, accepted projection version and timestamp — no duplicate Program snapshot;
+- tenant-safe Program/principal foreign keys reject cross-bank acknowledgement state;
+- accepted checkpoint is FK-bound to the exact `(tenant, Program, projection_version)` snapshot, protecting the baseline from later projection cleanup while the acknowledgement exists;
+- acceptance is optimistic on both Program and projection version and is idempotent for the same canonical baseline;
+- current/baseline state and exception deltas come from canonical `program_state_snapshots`;
+- exception identity uses canonical reason code/object identity rather than explanatory wording;
+- routine event detail reuses the existing aggregate/version index and reads at most 65 rows to return the newest 64 plus `history_truncated`; there is no lifetime replay or `COUNT(*)` on the Program page path;
+- no fabricated “material exception” cutoff was introduced because the domain has no canonical threshold; the UI reports canonical state/status reasons and open-Matter delta;
+- Program detail presents review-by-exception before lifecycle controls/full reasons/requirements/evidence;
+- stale acknowledgement conflicts and unavailable review state fail visibly without hiding current Program truth;
+- PostgreSQL proves actor/tenant integrity, idempotency, production projection boundary, stale-version rejection, bounded newest-first history and baseline-snapshot retention;
+- deterministic browser evidence proves changed → acknowledged behavior plus mobile reflow/touch constraints;
+- exact final head `e2407eaf182c4d149df1338a18629c689e0a5ebd` passed CI #700 and UI evidence #307;
+- squash-merged as `60ad9fc24e8cc4980dfdc0e366cb0dedac053742`.
 
-### Why this is the actual next dependency
+Closed foundation issues #26/#32/#33 and completed PRs #31/#40/#43/#45/#46/#49/#50/#51/#53 must not be recreated under new names or parallel frameworks.
 
-The repository already had bounded current Program summaries, canonical `program_state_snapshots`, continuity event history/replay and a Program detail page. It did **not** have any actor-specific accepted-review checkpoint. `generated_at`, projection timestamps and Program events are not human acknowledgement truth, so none can truthfully mean “last reviewed by this person.” The Program UI therefore forced repeat users to reread current status reasons, requirements and evidence even when almost nothing changed.
-
-The product operating model/ease-of-use requirements explicitly call for recent changes, exception-first review and acknowledgement. Saved Work views also require new actor persistence, but they do not close this existing Program-page rereading gap. Therefore #53 adds the smallest truthful acknowledgement primitive and derives the rest from canonical history.
-
-### Required / implemented boundary
-
-- [x] actor-owned Program review checkpoint is separate from Program business state; accepting a review does not increment Program version or create a continuity business event;
-- [x] checkpoint stores only tenant/program/principal, accepted Program version, accepted projection version and timestamp — no duplicate Program snapshot;
-- [x] tenant-safe Program/principal foreign keys reject cross-bank acknowledgement state;
-- [x] checkpoint references the exact `(tenant, Program, projection_version)` snapshot, so an accepted baseline cannot be deleted by later projection cleanup while the acknowledgement remains;
-- [x] acceptance is optimistic on both Program and projection version; stale screens fail closed;
-- [x] re-accepting the same canonical baseline is idempotent;
-- [x] current/baseline state and exception deltas come from canonical `program_state_snapshots`;
-- [x] exception identity uses canonical reason code/object identity rather than explanatory wording;
-- [x] recent Program event detail uses the existing aggregate/version index and reads at most 65 rows to return the newest 64 plus a truncation flag — no lifetime event replay or `COUNT(*)` on the routine page path;
-- [x] compact digest is capped and states explicitly when older audit history is outside the daily digest;
-- [x] no fabricated “material” threshold was introduced because the current domain has no canonical material-exception cutoff; the UI reports canonical status reasons, state transitions and open-Matter delta instead;
-- [x] Program detail now presents actor change review before lifecycle controls/full reasons/requirements/evidence;
-- [x] acknowledgement and stale-version failure are rendered as explicit user states;
-- [x] deterministic desktop/mobile evidence exercises changed → acknowledged behavior and overflow/touch constraints;
-- [x] runtime route contract and durable-schema ownership register include the new bounded capability;
-- [ ] exact-final-head CI + UI evidence after the baseline-retention FK addition;
-- [ ] promote/merge PR #53 and record final gate/head IDs.
-
-### Explicitly not introduced
-
-- generic user-preference/review framework;
-- second Program snapshot store;
-- frontend lifecycle/authorization truth;
-- generic dashboard or KPI wall;
-- fake materiality classification;
-- unbounded Program history scan on routine reads.
-
-## 3. Next tranche selection after #53
+## 2. Next tranche selection — re-derive from code, do not guess
 
 Do **not** simply advance to the next unchecked bullet by list order.
 
-After #53 merges, inspect the remaining executable code/contracts again before selecting among:
+Before selecting the next tranche, inspect the merged implementation and executable contracts around:
 
 - actor-visible Work filtering/saved views;
 - protected-record focused mode and restricted-existence leakage;
@@ -163,16 +145,16 @@ After #53 merges, inspect the remaining executable code/contracts again before s
 - supported delegate/recuse/conflict/escalate paths;
 - Capture/Import lifecycle completion.
 
-The selected tranche must be the highest-leverage real product gap that can be implemented from existing canonical state/authority contracts without creating parallel models. If a candidate requires a missing domain contract, either establish the narrow contract first or defer the UI claim.
+Select the highest-leverage real product gap that can be implemented from existing canonical state/authority contracts without creating parallel models. If a candidate requires a missing domain contract, establish only the narrow missing contract first or defer the UI claim.
 
-## 4. Later productization still required
+## 3. Later productization still required
 
 - Capture/Import lifecycle completion: provenance, draft/resume/amendment, production scanning/quarantine/retry, governed multi-file requests, recurring mappings and canonical conversion;
 - Configure productization: organization/identity, responsibility/authority matrices, routing/escalation, simulation, maker-checker, effective dating/rollback and security/notification policy;
 - enterprise shell: production Explore/reconstruction, notifications, identity/session/step-up context;
 - human-product acceptance: representative timed bank-user usability, real browser/assistive-technology validation and final responsive/asset closure.
 
-## 5. Canonical invariants
+## 4. Canonical invariants
 
 - Program = ongoing obligation/compliance continuity.
 - Matter = bounded change, exception, finding, decision, action, response or verification case.
@@ -198,7 +180,7 @@ The selected tranche must be the highest-leverage real product gap that can be i
 
 Do not add parallel authorization, task, event, worker, receipt, document or generic workflow stacks that duplicate these foundations.
 
-## 6. Current executable work truth
+## 5. Current executable work truth
 
 ```text
 canonical Matter state
@@ -227,7 +209,7 @@ canonical Evidence Request
 
 Presentation/projection/acknowledgement state never substitutes for canonical domain truth.
 
-## 7. Release gates
+## 6. Release gates
 
 A tranche is not complete until relevant gates pass on its **exact final head**:
 
