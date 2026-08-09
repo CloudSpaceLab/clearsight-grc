@@ -2,7 +2,7 @@ BEGIN;
 
 ALTER TABLE capture_requests
     ADD COLUMN recipient_state text,
-    ADD COLUMN recipient_revision bigint NOT NULL DEFAULT 1,
+    ADD COLUMN recipient_revision bigint NOT NULL DEFAULT 0,
     ADD COLUMN recipient_issue_reason text NOT NULL DEFAULT '';
 
 UPDATE capture_requests
@@ -17,7 +17,7 @@ END;
 
 ALTER TABLE capture_requests
     ALTER COLUMN recipient_state SET NOT NULL,
-    ALTER COLUMN recipient_state SET DEFAULT 'ASSIGNED',
+    ALTER COLUMN recipient_state SET DEFAULT 'LEGACY_UNASSIGNED',
     ADD CONSTRAINT capture_requests_recipient_state_check CHECK (
         (recipient_type IS NULL AND recipient_state='LEGACY_UNASSIGNED' AND recipient_revision=0 AND recipient_issue_reason='') OR
         (recipient_type IS NOT NULL AND recipient_state IN ('ASSIGNED','REASSIGNMENT_REQUIRED') AND recipient_revision >= 1)
