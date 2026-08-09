@@ -50,7 +50,7 @@ func TestProgramReviewPostgresKeepsActorTenantAndVersionTruth(t *testing.T) {
 	}
 
 	now := time.Now().UTC().Truncate(time.Second)
-	repo := NewPostgresRepository(pool)
+	repo := NewCurrentPostgresRepository(pool)
 	service := NewServiceWithClock(repo, func() time.Time { return now })
 	program, err := service.CreateProgram(ctx, CreateProgramInput{
 		TenantID:       "program-review-a",
@@ -64,8 +64,15 @@ func TestProgramReviewPostgresKeepsActorTenantAndVersionTruth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := service.refreshProgramCurrent(ctx, "program-review-a", program.Program.ID, "TEST_SETUP", ""); err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.GetProgram(ctx, "program-review-a", program.Program.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if program.CurrentState == nil || program.CurrentState.ProjectionVersion < 1 {
-		t.Fatalf("expected current state before accepting review: %#v", program.CurrentState)
+		t.Fatalf("expected worker-projected current state before accepting review: %#v", program.CurrentState)
 	}
 
 	accepted, err := service.AcceptProgramReview(ctx, AcceptProgramReviewInput{
@@ -130,6 +137,13 @@ func TestProgramReviewPostgresKeepsActorTenantAndVersionTruth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := service.refreshProgramCurrent(ctx, "program-review-a", updated.Program.ID, "TEST_REQUIREMENT_CHANGE", ""); err != nil {
+		t.Fatal(err)
+	}
+	updated, err = service.GetProgram(ctx, "program-review-a", updated.Program.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	changed, err := service.ProgramReviewDigest(ctx, "program-review-a", program.Program.ID, principalA)
 	if err != nil {
 		t.Fatal(err)
@@ -146,7 +160,7 @@ func TestProgramReviewPostgresKeepsActorTenantAndVersionTruth(t *testing.T) {
 	}); !errors.Is(err, ErrVersionConflict) {
 		t.Fatalf("stale expected versions should fail closed, got %v", err)
 	}
-	if updated.CurrentState == nil {
-		t.Fatal("updated Program lost current state")
+	if updated.CurrentState == nil || updated.CurrentState.ProgramVersion != updated.Program.Version {
+		t.Fatalf("updated Program was not projected to current state: %#v", updated.CurrentState)
 	}
 }
