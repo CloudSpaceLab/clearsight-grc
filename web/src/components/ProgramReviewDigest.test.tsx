@@ -31,7 +31,7 @@ const changed: Digest = {
   current_program_version: 12, current_projection_version: 3, current_overall: "EVIDENCE_INSUFFICIENT", baseline_overall: "CURRENT",
   open_matter_count: 2, open_matter_delta: 2,
   changes: [{ kind: "EVIDENCE", summary: "Evidence for Annual evidence was assessed as expired.", object_type: "EVIDENCE_CONTRACT", object_id: "contract-1" }],
-  changes_total: 1, changes_omitted: 0, history_events_omitted: 0,
+  changes_total: 1, changes_omitted: 0, history_truncated: false,
   current_exceptions: aggregate.current_state!.reasons, current_exceptions_total: 1,
   new_exceptions: aggregate.current_state!.reasons, new_exceptions_total: 1,
   resolved_exceptions: [], resolved_exceptions_total: 0,
@@ -69,9 +69,9 @@ describe("Program review digest", () => {
   });
 
   it("states when older canonical change events are outside the bounded daily digest", async () => {
-    vi.mocked(loadProgramReviewDigest).mockResolvedValue({ ...changed, history_events_omitted: 7 });
+    vi.mocked(loadProgramReviewDigest).mockResolvedValue({ ...changed, history_truncated: true });
     render(<ProgramReviewDigest aggregate={aggregate}/>);
-    expect(await screen.findByText(/7 older Program change events are outside this bounded daily digest/)).toBeTruthy();
+    expect(await screen.findByText(/Older Program change events are outside this bounded daily digest/)).toBeTruthy();
   });
 
   it("fails visibly when the Program moves before acknowledgement", async () => {
