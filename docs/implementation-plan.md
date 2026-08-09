@@ -12,7 +12,7 @@
 **Evidence recipient canonical truth (B1):** PR #49 — complete  
 **Evidence recipient lifecycle + Today (B2):** PR #50 — complete  
 **Operating Program/Work governed mutations:** PR #51 — complete  
-**Current execution:** remaining operating-work usability  
+**Current execution:** actor Program review baseline + canonical change/exception digest — PR #53  
 **Current execution issue:** #27  
 **Umbrella pilot/GA catalogue:** #13
 
@@ -112,37 +112,67 @@ B2 does **not** imply generic redirect/delegation/team/role/queue recipient sema
 
 Closed foundation issues #26/#32/#33 and completed PRs #31/#40/#43/#45/#46/#49/#50/#51 must not be recreated under new names or parallel frameworks.
 
-## 2. Current work — remaining operating-work usability
+## 2. Current work — actor Program review baseline + review-by-exception / PR #53
 
-The core operating commands are now usable. The next work must reduce daily operator effort **without inventing domain commands, task models, or authorization truth**.
+This tranche was selected from the merged codebase, not from backlog ordering.
 
-Execute in this order unless code-level evidence changes the dependency:
+### Why this is the actual next dependency
 
-1. [ ] change-since-last-accepted-review and material-exception summaries derived from canonical state/history;
-2. [ ] role-aware saved Work views over the existing actor-visible queries rather than a second task model;
-3. [ ] protected-record focused mode that avoids unrelated existence leakage;
-4. [ ] save/resume for genuinely complex Decisions/Responses only where a durable draft contract exists;
-5. [ ] redirect/delegate/recuse/conflict/escalate only where executable authority/membership/domain commands exist.
+The repository already had bounded current Program summaries, canonical `program_state_snapshots`, continuity event history/replay and a Program detail page. It did **not** have any actor-specific accepted-review checkpoint. `generated_at`, projection timestamps and Program events are not human acknowledgement truth, so none can truthfully mean “last reviewed by this person.” The Program UI therefore forced repeat users to reread current status reasons, requirements and evidence even when almost nothing changed.
 
-Owner/executive views must remain projections of the same canonical state rather than separate dashboard state.
+The product operating model/ease-of-use requirements explicitly call for recent changes, exception-first review and acknowledgement. Saved Work views also require new actor persistence, but they do not close this existing Program-page rereading gap. Therefore #53 adds the smallest truthful acknowledgement primitive and derives the rest from canonical history.
 
-Explicitly out of this immediate continuation:
+### Required / implemented boundary
 
-- broad Program authoring/configuration;
-- generic notification-centre or Explore expansion;
-- invented delegation/team/group behavior without executable membership/authority contracts;
-- presentation-only audit or verification receipts.
+- [x] actor-owned Program review checkpoint is separate from Program business state; accepting a review does not increment Program version or create a continuity business event;
+- [x] checkpoint stores only tenant/program/principal, accepted Program version, accepted projection version and timestamp — no duplicate Program snapshot;
+- [x] tenant-safe Program/principal foreign keys reject cross-bank acknowledgement state;
+- [x] checkpoint references the exact `(tenant, Program, projection_version)` snapshot, so an accepted baseline cannot be deleted by later projection cleanup while the acknowledgement remains;
+- [x] acceptance is optimistic on both Program and projection version; stale screens fail closed;
+- [x] re-accepting the same canonical baseline is idempotent;
+- [x] current/baseline state and exception deltas come from canonical `program_state_snapshots`;
+- [x] exception identity uses canonical reason code/object identity rather than explanatory wording;
+- [x] recent Program event detail uses the existing aggregate/version index and reads at most 65 rows to return the newest 64 plus a truncation flag — no lifetime event replay or `COUNT(*)` on the routine page path;
+- [x] compact digest is capped and states explicitly when older audit history is outside the daily digest;
+- [x] no fabricated “material” threshold was introduced because the current domain has no canonical material-exception cutoff; the UI reports canonical status reasons, state transitions and open-Matter delta instead;
+- [x] Program detail now presents actor change review before lifecycle controls/full reasons/requirements/evidence;
+- [x] acknowledgement and stale-version failure are rendered as explicit user states;
+- [x] deterministic desktop/mobile evidence exercises changed → acknowledged behavior and overflow/touch constraints;
+- [x] runtime route contract and durable-schema ownership register include the new bounded capability;
+- [ ] exact-final-head CI + UI evidence after the baseline-retention FK addition;
+- [ ] promote/merge PR #53 and record final gate/head IDs.
 
-## 3. Later #27 sequence
+### Explicitly not introduced
 
-After the operating-work usability continuation:
+- generic user-preference/review framework;
+- second Program snapshot store;
+- frontend lifecycle/authorization truth;
+- generic dashboard or KPI wall;
+- fake materiality classification;
+- unbounded Program history scan on routine reads.
 
-1. Capture/Import lifecycle completion: provenance, draft/resume/amendment, production scanning/quarantine/retry, governed multi-file requests, recurring mappings and canonical conversion;
-2. Configure productization: organization/identity, responsibility/authority matrices, routing/escalation, simulation, maker-checker, effective dating/rollback and security/notification policy;
-3. enterprise shell: production Explore/reconstruction, notifications, identity/session/step-up context;
-4. human-product acceptance: representative timed bank-user usability, real browser/assistive-technology validation and final responsive/asset closure.
+## 3. Next tranche selection after #53
 
-## 4. Canonical invariants
+Do **not** simply advance to the next unchecked bullet by list order.
+
+After #53 merges, inspect the remaining executable code/contracts again before selecting among:
+
+- actor-visible Work filtering/saved views;
+- protected-record focused mode and restricted-existence leakage;
+- durable draft/resume for genuinely complex Decision/Response work;
+- supported delegate/recuse/conflict/escalate paths;
+- Capture/Import lifecycle completion.
+
+The selected tranche must be the highest-leverage real product gap that can be implemented from existing canonical state/authority contracts without creating parallel models. If a candidate requires a missing domain contract, either establish the narrow contract first or defer the UI claim.
+
+## 4. Later productization still required
+
+- Capture/Import lifecycle completion: provenance, draft/resume/amendment, production scanning/quarantine/retry, governed multi-file requests, recurring mappings and canonical conversion;
+- Configure productization: organization/identity, responsibility/authority matrices, routing/escalation, simulation, maker-checker, effective dating/rollback and security/notification policy;
+- enterprise shell: production Explore/reconstruction, notifications, identity/session/step-up context;
+- human-product acceptance: representative timed bank-user usability, real browser/assistive-technology validation and final responsive/asset closure.
+
+## 5. Canonical invariants
 
 - Program = ongoing obligation/compliance continuity.
 - Matter = bounded change, exception, finding, decision, action, response or verification case.
@@ -158,16 +188,17 @@ After the operating-work usability continuation:
 - Lifecycle sequence policy selects responsibility, **not outcome or actor**.
 - Lifecycle sequence rule ≠ authority route.
 - Authority resolution selects the current eligible actor only after sequence selection.
-- Evidence Request description/invitation ≠ recipient assignment.
 - Evidence Request recipient is canonical request state; Workflow work is a rebuildable actor projection.
 - Workflow command packet is an executable projection, not authoritative domain state; every command is revalidated by the domain service.
 - Program UI transition choices are affordances only; Program command service remains authoritative.
+- Program review checkpoint = actor acknowledgement of exact canonical versions; it is not Program state or approval.
+- Program review digest = bounded derived presentation; full continuity history remains authoritative.
 - Saved Work view ≠ new task ownership or authorization state.
 - Schema/spec existence ≠ capability.
 
 Do not add parallel authorization, task, event, worker, receipt, document or generic workflow stacks that duplicate these foundations.
 
-## 5. Current executable work truth
+## 6. Current executable work truth
 
 ```text
 canonical Matter state
@@ -180,11 +211,12 @@ canonical Matter state
 → projection converges
 
 canonical Program
-→ authority resolution for AUTHORIZER
-→ lifecycle-valid UI affordance
-→ governed program.transition command
-→ server lifecycle + authority + version + activation-prerequisite checks
-→ authoritative Program aggregate
+→ current Program + canonical current-state projection
+→ actor's last accepted Program/projection version checkpoint
+→ exact baseline snapshot + bounded newest post-baseline Program events
+→ compact change/status-reason/open-Matter delta
+→ Program review-by-exception UI
+→ actor acknowledges exact current versions
 
 canonical Evidence Request
 → canonical recipient + subject visibility
@@ -193,9 +225,9 @@ canonical Evidence Request
 → Today / Capture
 ```
 
-No actor Task is created from ambiguity without a governed responsibility selection and separate actor authority. A multi-outcome packet never writes the eventual Decision/Response state until the separately authorized actor executes the authoritative lifecycle command. Presentation/projection/capability state never substitutes for canonical domain truth.
+Presentation/projection/acknowledgement state never substitutes for canonical domain truth.
 
-## 6. Release gates
+## 7. Release gates
 
 A tranche is not complete until relevant gates pass on its **exact final head**:
 
