@@ -13,9 +13,8 @@ const matter: MatterAggregate = {
   },
   links: [], decisions: [],
   actions: [{
-    id: "action-operating-evidence", tenant_id: "bank-demo", matter_id: "matter-operating-evidence", title: "Complete the annual return evidence checklist",
-    description: "Assign the remaining section owners and record the approved review date.", owner_principal_id: "role-cro", status: "IN_PROGRESS",
-    created_at: "2026-08-09T08:00:00Z", updated_at: "2026-08-09T10:00:00Z", version: 2,
+    id: "action-operating-evidence", title: "Complete the annual return evidence checklist",
+    description: "Assign the remaining section owners and record the approved review date.", status: "IN_PROGRESS",
   }],
   verification_contracts: [], verification_results: [], response_packages: [], closure: { ready: false, reasons: ["One action remains open."] },
 };
