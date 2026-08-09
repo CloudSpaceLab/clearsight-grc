@@ -10,9 +10,11 @@ import (
 )
 
 var (
-	ErrRecipientRequired = errors.New("evidence request recipient is required")
-	ErrRecipientInvalid  = errors.New("evidence request recipient is invalid")
-	ErrRecipientMismatch = errors.New("evidence request is assigned to a different recipient")
+	ErrRecipientRequired           = errors.New("evidence request recipient is required")
+	ErrRecipientInvalid            = errors.New("evidence request recipient is invalid")
+	ErrRecipientMismatch           = errors.New("evidence request is assigned to a different recipient")
+	ErrRecipientReassignmentNeeded = errors.New("evidence request recipient requires reassignment")
+	ErrRecipientManagerRequired    = errors.New("evidence request recipient change requires the request creator")
 )
 
 type internalRecipientDirectory interface {
@@ -38,22 +40,28 @@ func buildRecipient(ctx context.Context, repo Repository, tenant, audienceType s
 				return Recipient{}, ErrRecipientInvalid
 			}
 		}
-		return Recipient{Type: RecipientInternalPrincipal, PrincipalID: strings.TrimSpace(input.PrincipalID)}, nil
+		return Recipient{Type: RecipientInternalPrincipal, PrincipalID: strings.TrimSpace(input.PrincipalID), State: RecipientStateAssigned, Revision: 1}, nil
 	case "EXTERNAL", "CUSTOMER", "VENDOR", "AUTHORITY":
 		audience := normalizeAudience(input.Audience)
 		if input.Type != RecipientExternalAudience || strings.TrimSpace(input.PrincipalID) != "" || audience == "" {
 			return Recipient{}, ErrRecipientInvalid
 		}
 		digest := sha256.Sum256([]byte(audience))
-		return Recipient{Type: RecipientExternalAudience, AudienceHash: digest[:], AudienceHint: audienceHint(audience)}, nil
+		return Recipient{Type: RecipientExternalAudience, AudienceHash: digest[:], AudienceHint: audienceHint(audience), State: RecipientStateAssigned, Revision: 1}, nil
 	default:
 		return Recipient{}, fmt.Errorf("audience_type is invalid")
 	}
 }
 
+func recipientIsAssigned(recipient Recipient) bool {
+	// Empty state is accepted only for pre-B2 in-memory fixtures. PostgreSQL B2
+	// rows always carry an explicit state.
+	return recipient.State == "" || recipient.State == RecipientStateAssigned
+}
+
 func RequestAssignedTo(request Request, principalID string) bool {
 	principalID = strings.TrimSpace(principalID)
-	return request.Recipient.Type == RecipientInternalPrincipal && principalID != "" && request.Recipient.PrincipalID == principalID
+	return recipientIsAssigned(request.Recipient) && request.Recipient.Type == RecipientInternalPrincipal && principalID != "" && request.Recipient.PrincipalID == principalID
 }
 
 // RequestManageableBy is intentionally narrower than subject visibility. A
@@ -67,7 +75,7 @@ func RequestManageableBy(request Request, principalID string) bool {
 }
 
 func externalAudienceMatches(request Request, audience string) bool {
-	if request.Recipient.Type != RecipientExternalAudience || len(request.Recipient.AudienceHash) != sha256.Size {
+	if !recipientIsAssigned(request.Recipient) || request.Recipient.Type != RecipientExternalAudience || len(request.Recipient.AudienceHash) != sha256.Size {
 		return false
 	}
 	audience = normalizeAudience(audience)
@@ -83,7 +91,7 @@ func internalSubmissionAllowed(request Request, submission Submission) bool {
 }
 
 func externalRecipientRequest(request Request) bool {
-	if request.Recipient.Type != RecipientExternalAudience {
+	if !recipientIsAssigned(request.Recipient) || request.Recipient.Type != RecipientExternalAudience {
 		return false
 	}
 	switch request.AudienceType {
