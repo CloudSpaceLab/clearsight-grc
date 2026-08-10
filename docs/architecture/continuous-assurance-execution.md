@@ -1,7 +1,7 @@
 # Continuous assurance and connected-data execution
 
-**Status:** T0 execution kernel implemented; durable population/rule/run configuration remains future work under #57.  
-**Scope:** deterministic schema/profile/condition semantics that future connected-source execution must reuse.
+**Status:** T0 deterministic kernel is merged; isolated PostgreSQL source execution is implemented as the next bounded execution tranche. Durable population/rule/run configuration and worker scheduling remain future work under #57.  
+**Scope:** deterministic schema/profile/condition semantics plus an isolated, read-only PostgreSQL execution boundary that future continuous checks must reuse.
 
 ## Purpose
 
@@ -28,7 +28,7 @@ A future rule match must enter those existing seams rather than creating a secon
 
 ## T0 kernel
 
-`internal/assurance` owns only deterministic, side-effect-free execution semantics:
+`internal/assurance` owns only deterministic execution semantics:
 
 ```text
 native source fields
@@ -42,22 +42,13 @@ native source fields
 → parameterized PostgreSQL match/unknown predicates
 ```
 
-T0 intentionally has:
-
-- no database tables;
-- no API routes;
-- no worker class;
-- no credentials;
-- no AI dependency;
-- no domain-specific Account/Server/Vendor monitor types.
-
-This keeps the first contract cheap to change before persistence or product UI depends on it.
+T0 intentionally introduced no database tables, API routes, worker class, credentials, AI dependency or domain-specific Account/Server/Vendor monitor types. This kept the first semantic contract cheap to change before persistence or product UI depended on it.
 
 ## Schema and profiling semantics
 
 Logical types are deliberately small: string, number, boolean, time and unknown.
 
-Schema fingerprints are stable across column ordering but change when a named field's logical type or nullability changes. Reordering a source SELECT therefore does not create false schema drift, while a material type/nullability change does.
+Schema fingerprints are stable across column ordering but change when a named field's logical type or nullability changes. Reordering a SELECT projection therefore does not create false schema drift, while a material type/nullability change does.
 
 Profiles are summaries, not stored samples. Hard ceilings cap fields, rows, distinct values, top values, display bytes and cell bytes. A separate total field×row cell budget prevents individually legal field and row limits from multiplying into an unexpectedly large in-process profile. Oversized or incompatible cells are counted as invalid rather than retained.
 
@@ -100,7 +91,7 @@ Boolean composition preserves three-valued semantics:
 
 This distinction is mandatory because missing/invalid source data may not be represented as a clean result.
 
-## PostgreSQL pushdown contract
+## PostgreSQL predicate pushdown contract
 
 The PostgreSQL compiler produces two parameterized predicates from the same validated AST:
 
@@ -109,9 +100,84 @@ The PostgreSQL compiler produces two parameterized predicates from the same vali
 
 Field identifiers come only from the validated schema and are quoted as PostgreSQL identifiers. Rule values remain positional parameters. Logical strings are normalized to PostgreSQL text semantics, including UUID-backed source fields; T0 numbers are compared through bounded double-precision semantics so source-side execution does not silently become more precise than the pure evaluator. Unsafe numeric casts are guarded behind the bounded validity test. PostgreSQL pushdown rejects time literals finer than PostgreSQL's microsecond precision rather than silently changing their meaning.
 
-This compiler does **not** make arbitrary SQL safe. Future Population Definitions still require approved read-only source identities, separate source connection pools, timeouts, concurrency limits and one-statement query governance.
+This compiler does **not** make arbitrary SQL safe. Population Definitions require governed query ownership and a dedicated source identity. The purpose of predicate compilation is performance and truth parity: capable sources filter/project data before transfer instead of sending every clear row to ClearSight for application-memory evaluation.
 
-The purpose of predicate compilation is performance and truth parity: capable sources should filter/project data before transfer instead of sending every clear row to ClearSight for application-memory evaluation. PostgreSQL integration tests execute nested Boolean, bounded-invalid, UUID/string and cross-field predicates and require their MATCH/CLEAR/UNKNOWN result to equal the pure evaluator, rather than treating generated SQL text shape as sufficient evidence.
+## Isolated PostgreSQL source execution
+
+`PostgresSourceExecutor` proves the first connected-source boundary without introducing persistent population/rule state or worker scheduling.
+
+### Connection ownership
+
+The executor creates its own pgx pool from an opaque secret reference. It cannot accept or reuse the authoritative ClearSight application pool.
+
+The secret resolver must return an explicit PostgreSQL URI containing a host, user and database. Partial keyword/URI forms that could inherit process-environment defaults are rejected. The secret reference and raw URI are not persisted in ClearSight records, receipts, events, logs, API responses or browser state. The pgx pool necessarily retains the in-process connection configuration needed to reconnect for the lifetime of that executor; this is transient process memory, not ClearSight durable state.
+
+Per-executor pool size, connection/query/lock/idle/ping timeouts, connection lifetime and idle lifetime have defaults and non-raiseable ceilings. `MinConns` and `MinIdleConns` remain zero so an inactive source does not reserve connections.
+
+### Least privilege and read-only defense
+
+Session startup forces:
+
+- `default_transaction_read_only=on`;
+- bounded `statement_timeout`;
+- bounded `lock_timeout`;
+- bounded `idle_in_transaction_session_timeout`;
+- UTC timezone;
+- a generic ClearSight source-execution application name.
+
+DSN-level `options` overrides are discarded before connection creation.
+
+Every inspection/evaluation also starts an explicit `REPEATABLE READ READ ONLY` transaction. PostgreSQL identities with superuser, create-role, create-database, replication or bypass-RLS attributes are rejected at executor creation. Production source accounts are still expected to be purpose-built read identities; transaction read-only is defense in depth, not permission to reuse administrative credentials or to treat an arbitrary SELECT/WITH query as harmless. Approved query ownership and least-privilege source grants remain mandatory because database functions and extensions can have behavior beyond ordinary table reads.
+
+A bounded client context wraps every operation independently of server-side GUCs. Server timeout, client cancellation and source-pool bounds therefore cooperate rather than relying on any one mechanism.
+
+### Population query hygiene
+
+A transient `PopulationDefinition` contains an ID, one bounded SELECT/WITH query and a stable subject key. The current hygiene check deliberately accepts only one SELECT/WITH statement, rejects NUL/multi-statement input and bounds query size.
+
+This hygiene is **not** the SQL security boundary: conservative false negatives are acceptable, and approved source queries may legitimately contain complex joins/CTEs. Dedicated source privileges, explicit read-only transaction semantics and configuration governance remain the safety boundary.
+
+The query text is hashed with the subject key into a population fingerprint. Evaluation receipts contain that fingerprint rather than the raw query.
+
+### Schema inspection and drift
+
+Schema inspection runs `LIMIT 0` inside the same read-only source transaction and uses pgx field OIDs/type metadata. Arbitrary derived queries are treated as conservatively nullable because base-table `NOT NULL` semantics do not necessarily survive joins/expressions.
+
+Projected schema width is bounded. The configured subject key must be present. Unknown native types remain `UNKNOWN` rather than being guessed.
+
+The complete current logical schema fingerprint is retained in inspection/evaluation receipts for reconstruction and diagnostics. Blocking drift is narrower: the executor fingerprints the fields that can change the compiled condition result plus the stable subject key. Evaluation re-inspects those execution-critical fields inside the same repeatable-read snapshot and fails before running the condition when their type/nullability shape changes or a required field disappears. An unrelated projected-column type change is recorded by the full schema fingerprint but does not manufacture a blocking rule failure.
+
+### Count-only evaluation
+
+Current-state evaluation executes one aggregate source query using the T0 PostgreSQL predicates and returns only:
+
+- total population count;
+- MATCH count;
+- UNKNOWN count;
+- derived CLEAR count;
+- population/schema fingerprints;
+- evaluation time and completeness.
+
+No clear-row population is transferred or stored. The executor also asserts that MATCH and UNKNOWN do not overlap before issuing a complete receipt.
+
+Source failure, timeout, credential failure and execution-critical schema change are errors; none produces a complete zero-match receipt. The exact denominator still requires work in the source system; predicate pushdown reduces transfer and ClearSight-side computation, not the source database's inherent evaluation cost.
+
+## What remains deliberately absent
+
+This tranche still does **not** add:
+
+- durable Population Definition, Rule, Run or affected-subject tables;
+- a credential store;
+- global source-pool manager or worker composition;
+- API/configuration UI;
+- scheduling;
+- CDC/transition state;
+- KRI/window aggregation;
+- affected-row persistence;
+- Signal/Drift/Program/Matter integration;
+- generic SQL/HTTP connector framework.
+
+Those are separate decisions after this execution boundary is proven and benchmarked. In particular, a future source-pool manager must enforce a deployment-wide connection budget before multiple persistent source executors are composed into workers.
 
 ## Future connected-source execution
 
@@ -127,8 +193,6 @@ existing Evidence Source
 → existing Signal/Drift → Program Trigger → Matter/Work
 ```
 
-External source connections must be isolated from ClearSight's own authoritative PostgreSQL pool. Credential material is resolved from opaque secret references at the executor boundary and never enters Source endpoints, run records, events, logs or browser state.
-
 Ordinary current-state rule storage should scale with runs plus configured affected detail, not full source population multiplied by run history.
 
 Transition and window/KRI rules are separate execution tiers because they require CDC/prior values or explicit denominator/window semantics. They must not silently cause complete source-row replication.
@@ -139,18 +203,19 @@ Successful routine checks should produce no Today noise. Human work appears only
 
 Configure may later expose a focused Sources & checks flow; Programs may expose current check coverage/state; Matters/Work may expose exact originating rule/run context. None of these presentation surfaces becomes a second state or workflow system.
 
-## T0 acceptance corpus
+## Acceptance corpus
 
-Permanent tests prove the same kernel works across materially different shapes:
+Permanent T0 tests cover account/KYC, server/security, vendor and resilience/BIA shapes; null/invalid/oversized/schema-change cases; numeric/string bounds; profile/condition aggregate budgets; and PostgreSQL/pure-evaluator parity.
 
-- customer/account status and KYC review fields;
-- server patch/support/certificate fields;
-- vendor tier/assurance fields;
-- resilience target versus observed RTO fields;
-- null, invalid, oversized, schema-change and identifier-quoting adversarial cases;
-- out-of-domain integer and floating-point values and literals do not silently participate in approximate comparison;
-- high-cardinality categorical fields do not publish or continue retaining sampled top values;
-- field×row profiling and aggregate condition-literal budgets prevent cross-product resource expansion;
-- PostgreSQL pushdown and pure evaluation agree on nested Boolean, bounded-invalid, UUID/string and cross-field tri-state cases.
+The isolated PostgreSQL executor integration test additionally proves:
 
-No domain-specific evaluator is permitted unless a later use case demonstrates semantics that cannot be represented safely by the shared contract.
+- privileged source credentials are rejected;
+- a non-superuser source role with an otherwise-permitted DELETE still cannot mutate through the executor's read-only transaction;
+- source session read-only/UTC/timeout settings are active;
+- UUID/text/numeric schema normalization;
+- a representative four-row population evaluates to one MATCH, two UNKNOWN and one CLEAR;
+- unrelated projected-column drift remains evaluable while changing the full schema fingerprint;
+- condition-dependency or stable-subject-key schema drift fails closed;
+- slow source execution is bounded and query text is not returned in errors.
+
+No domain-specific evaluator or connector is permitted unless a later use case demonstrates semantics that cannot be represented safely by these shared contracts.
