@@ -1,7 +1,5 @@
 BEGIN;
 
-DROP TABLE IF EXISTS principal_role_bindings;
-
 ALTER TABLE role_templates
     DROP CONSTRAINT IF EXISTS role_templates_capability_count_check,
     DROP COLUMN IF EXISTS capabilities;
