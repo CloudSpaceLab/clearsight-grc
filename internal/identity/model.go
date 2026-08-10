@@ -56,22 +56,28 @@ func (a Actor) Valid(now time.Time) error {
 	if len(a.RoleCodes) > 32 || len(a.PermissionCodes) > 64 || len(a.DepartmentGrants) > 32 {
 		return ErrInvalidIdentity
 	}
-	for _, role := range a.RoleCodes {
-		if len(strings.TrimSpace(role)) > 80 {
-			return ErrInvalidIdentity
-		}
-	}
-	for _, permission := range a.PermissionCodes {
-		if len(strings.TrimSpace(permission)) > 100 {
-			return ErrInvalidIdentity
-		}
+	if !validCodes(a.RoleCodes, 80) || !validCodes(a.PermissionCodes, 100) {
+		return ErrInvalidIdentity
 	}
 	for _, grant := range a.DepartmentGrants {
 		if _, err := NormalizeDepartmentPath(grant.Path); err != nil || len(grant.RoleCodes) > 32 || len(grant.PermissionCodes) > 64 {
 			return ErrInvalidIdentity
 		}
+		if !validCodes(grant.RoleCodes, 80) || !validCodes(grant.PermissionCodes, 100) {
+			return ErrInvalidIdentity
+		}
 	}
 	return nil
+}
+
+func validCodes(values []string, maxLength int) bool {
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" || len(value) > maxLength {
+			return false
+		}
+	}
+	return true
 }
 
 func NormalizeRoleCodes(values []string) []string {
