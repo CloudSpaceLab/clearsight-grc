@@ -63,6 +63,7 @@ func CORS(allowedOrigin string) func(http.Handler) http.Handler {
 			origin := r.Header.Get("Origin")
 			if origin != "" && origin == allowedOrigin {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
 				w.Header().Set("Vary", "Origin")
 				w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-ID, X-ClearSight-Identity, X-ClearSight-Identity-Timestamp, X-ClearSight-Identity-Signature, X-ClearSight-Demo-Tenant, X-ClearSight-Demo-Principal, X-ClearSight-Demo-Legal-Entity")
 				w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID, X-ClearSight-Command-Authorization")
