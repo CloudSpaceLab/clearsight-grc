@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,7 +23,7 @@ type fakeAccessResolver struct {
 	calls      int
 }
 
-func (r *fakeAccessResolver) ResolveOIDC(context.Context, string, string, string) (access.Resolution, error) {
+func (r *fakeAccessResolver) ResolveOIDC(context.Context, string, string, string, string) (access.Resolution, error) {
 	r.calls++
 	return r.resolution, r.err
 }
@@ -107,7 +108,7 @@ func TestBeginCreatesStateNonceAndPKCES256(t *testing.T) {
 		sessions: sessions,
 	}
 	handler := sessions.LoadAndSave(http.HandlerFunc(service.Begin))
-	req := httptest.NewRequest(http.MethodGet, "https://api.example.test/auth/oidc/login?tenant=bank-demo&return_to=%2Ftoday", nil)
+	req := httptest.NewRequest(http.MethodGet, "https://api.example.test/auth/oidc/login?tenant=bank-demo&legal_entity=BANK-NG&return_to=%2Ftoday", nil)
 	recorder := httptest.NewRecorder()
 	handler.ServeHTTP(recorder, req)
 	if recorder.Code != http.StatusFound {
@@ -128,18 +129,45 @@ func TestBeginCreatesStateNonceAndPKCES256(t *testing.T) {
 	}
 }
 
-func TestSafeReturnPathRejectsExternalTargets(t *testing.T) {
+func TestBeginRequiresBoundedTenantAndLegalEntity(t *testing.T) {
+	sessions := newTestSessions()
+	service := &Service{sessions: sessions}
+	handler := sessions.LoadAndSave(http.HandlerFunc(service.Begin))
+
+	for _, rawURL := range []string{
+		"https://api.example.test/auth/oidc/login?tenant=bank-demo",
+		"https://api.example.test/auth/oidc/login?tenant=bank-demo&legal_entity=" + strings.Repeat("x", maxScopeValueBytes+1),
+	} {
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, rawURL, nil))
+		if recorder.Code != http.StatusBadRequest {
+			t.Fatalf("expected invalid login scope to be rejected, url=%s status=%d", rawURL, recorder.Code)
+		}
+	}
+}
+
+func TestSafeReturnPathRejectsExternalAndOversizedTargets(t *testing.T) {
 	cases := map[string]string{
-		"":                        "/",
-		"/today?view=mine":        "/today?view=mine",
-		"https://evil.test/steal": "/",
-		"//evil.test/steal":       "/",
-		"javascript:alert(1)":     "/",
+		"":                                "/",
+		"/today?view=mine":                "/today?view=mine",
+		"https://evil.test/steal":         "/",
+		"//evil.test/steal":               "/",
+		"javascript:alert(1)":             "/",
+		"/" + strings.Repeat("x", 2048): "/",
 	}
 	for input, expected := range cases {
 		if actual := safeReturnPath(input); actual != expected {
 			t.Errorf("safeReturnPath(%q)=%q want %q", input, actual, expected)
 		}
+	}
+}
+
+func TestAssuranceFromClaimsIsBounded(t *testing.T) {
+	if got := assuranceFromClaims(strings.Repeat("x", maxAssuranceBytes+1), []string{"pwd", "mfa"}); got != "OIDC:pwd,mfa" {
+		t.Fatalf("expected bounded AMR fallback, got %q", got)
+	}
+	if got := assuranceFromClaims("urn:example:aal2", nil); got != "urn:example:aal2" {
+		t.Fatalf("expected ACR to be preserved, got %q", got)
 	}
 }
 
