@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"slices"
 	"testing"
 	"time"
 
@@ -26,16 +27,16 @@ func TestPostgresResolverKeepsDepartmentCapabilitiesScoped(t *testing.T) {
 	defer pool.Close()
 
 	const (
-		tenantID       = "8a111111-1111-7111-8111-111111111111"
-		entityID       = "8a111111-1111-7111-8111-111111111112"
-		principalID    = "8a111111-1111-7111-8111-111111111113"
-		globalRoleID   = "8a111111-1111-7111-8111-111111111114"
-		paymentRoleID  = "8a111111-1111-7111-8111-111111111115"
-		globalPosID    = "8a111111-1111-7111-8111-111111111116"
-		paymentPosID   = "8a111111-1111-7111-8111-111111111117"
-		globalBindID   = "8a111111-1111-7111-8111-111111111118"
-		paymentBindID  = "8a111111-1111-7111-8111-111111111119"
-		identityID     = "8a111111-1111-7111-8111-111111111120"
+		tenantID      = "8a111111-1111-7111-8111-111111111111"
+		entityID      = "8a111111-1111-7111-8111-111111111112"
+		principalID   = "8a111111-1111-7111-8111-111111111113"
+		globalRoleID  = "8a111111-1111-7111-8111-111111111114"
+		paymentRoleID = "8a111111-1111-7111-8111-111111111115"
+		globalPosID   = "8a111111-1111-7111-8111-111111111116"
+		paymentPosID  = "8a111111-1111-7111-8111-111111111117"
+		globalBindID  = "8a111111-1111-7111-8111-111111111118"
+		paymentBindID = "8a111111-1111-7111-8111-111111111119"
+		identityID    = "8a111111-1111-7111-8111-111111111120"
 	)
 	cleanup := func(cleanCtx context.Context) {
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM position_role_bindings WHERE id IN ($1::uuid,$2::uuid)`, globalBindID, paymentBindID)
@@ -82,6 +83,9 @@ func TestPostgresResolverKeepsDepartmentCapabilitiesScoped(t *testing.T) {
 	resolved, err := resolver.ResolveOIDC(ctx, "eia-access-test", "https://issuer.example", "alice-subject")
 	if err != nil {
 		t.Fatal(err)
+	}
+	if !slices.Contains(resolved.RoleCodes, "BANK_READER") || slices.Contains(resolved.RoleCodes, "PAYMENT_REVIEWER") {
+		t.Fatalf("department role leaked into global role codes: %#v", resolved.RoleCodes)
 	}
 	actor := identity.Actor{PermissionCodes: resolved.PermissionCodes, DepartmentGrants: resolved.DepartmentGrants}
 	if !identity.HasPermission(actor, identity.PermissionConfigRead) {
