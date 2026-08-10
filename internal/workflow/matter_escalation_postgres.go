@@ -246,8 +246,12 @@ func (c *MatterEscalationCoordinator) processEscalation(ctx context.Context, ten
 	step := sequence.Steps[payload.StepIndex]
 	targetDepartment, departmentState := escalationDepartmentScope(payload.BaseDepartmentPath, payload.BaseDepartmentState, step.DepartmentLevelsUp)
 	if step.DepartmentLevelsUp != nil && departmentState != "RESOLVED" {
-		if _, err := c.recordUnresolved(ctx, tenant, task, payload, step, departmentState, now); err != nil {
+		applied, err := c.recordUnresolved(ctx, tenant, task, payload, step, departmentState, now)
+		if err != nil {
 			return err
+		}
+		if !applied {
+			return nil
 		}
 		return c.scheduleNext(ctx, tenant, payload)
 	}
@@ -264,8 +268,12 @@ func (c *MatterEscalationCoordinator) processEscalation(ctx context.Context, ten
 		} else if !errors.Is(err, authority.ErrNoRoute) {
 			return fmt.Errorf("resolve escalation authority: %w", err)
 		}
-		if _, err := c.recordUnresolved(ctx, tenant, task, payload, step, reason, now); err != nil {
+		applied, err := c.recordUnresolved(ctx, tenant, task, payload, step, reason, now)
+		if err != nil {
 			return err
+		}
+		if !applied {
+			return nil
 		}
 		return c.scheduleNext(ctx, tenant, payload)
 	}
@@ -281,13 +289,21 @@ func (c *MatterEscalationCoordinator) processEscalation(ctx context.Context, ten
 		if len(principals) > 1 {
 			reason = "CANDIDATE_SET"
 		}
-		if _, err := c.recordUnresolved(ctx, tenant, task, payload, step, reason, now); err != nil {
+		applied, err := c.recordUnresolved(ctx, tenant, task, payload, step, reason, now)
+		if err != nil {
 			return err
+		}
+		if !applied {
+			return nil
 		}
 		return c.scheduleNext(ctx, tenant, payload)
 	}
-	if _, err := c.applyEscalation(ctx, tenant, task, payload, step, principals[0], resolution.RuleID, targetDepartment, now); err != nil {
+	applied, err := c.applyEscalation(ctx, tenant, task, payload, step, principals[0], resolution.RuleID, targetDepartment, now)
+	if err != nil {
 		return err
+	}
+	if !applied {
+		return nil
 	}
 	return c.scheduleNext(ctx, tenant, payload)
 }
@@ -520,7 +536,7 @@ func (c *MatterEscalationCoordinator) applyEscalation(ctx context.Context, tenan
 	_, err = tx.Exec(ctx, `
 		INSERT INTO workflow_events(tenant_id,workflow_id,event_type,safe_metadata,occurred_at)
 		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,'WORK_ESCALATED',
-		       jsonb_build_object('task_id',$3,'sequence_id',$4,'step_index',$5,'responsibility',$6,'principal_id',$7),$8)`,
+		       jsonb_build_object('task_id',$3::text,'sequence_id',$4::text,'step_index',$5::int,'responsibility',$6::text,'principal_id',$7::text),$8)`,
 		tenant, task.WorkflowID, task.ID, payload.SequenceID, payload.StepIndex, step.Responsibility, principal.ID, at)
 	if err != nil {
 		return false, fmt.Errorf("record workflow escalation event: %w", err)
@@ -558,7 +574,7 @@ func (c *MatterEscalationCoordinator) recordUnresolved(ctx context.Context, tena
 	_, err = tx.Exec(ctx, `
 		INSERT INTO workflow_events(tenant_id,workflow_id,event_type,safe_metadata,occurred_at)
 		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,'WORK_ESCALATION_UNRESOLVED',
-		       jsonb_build_object('task_id',$3,'sequence_id',$4,'step_index',$5,'responsibility',$6,'reason',$7),$8)`,
+		       jsonb_build_object('task_id',$3::text,'sequence_id',$4::text,'step_index',$5::int,'responsibility',$6::text,'reason',$7::text),$8)`,
 		tenant, task.WorkflowID, task.ID, payload.SequenceID, payload.StepIndex, step.Responsibility, reason, at)
 	if err != nil {
 		return false, fmt.Errorf("record unresolved escalation event: %w", err)
