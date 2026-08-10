@@ -422,6 +422,9 @@ func validateLiteral(expected LogicalType, value Literal, limits ConditionLimits
 		if math.IsNaN(value.Number) || math.IsInf(value.Number, 0) {
 			return fmt.Errorf("number literal must be finite")
 		}
+		if math.Abs(value.Number) > float64(maxExactFloatInteger) {
+			return fmt.Errorf("number literal exceeds bounded T0 magnitude %d", maxExactFloatInteger)
+		}
 	case TypeBool:
 	case TypeTime:
 		if value.Time.IsZero() {
