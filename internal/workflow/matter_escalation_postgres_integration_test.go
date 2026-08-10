@@ -123,7 +123,7 @@ func TestMatterEscalationExecutesOrderedDepartmentSequenceAndCancelsOnCompletion
 	current := now
 	coordinator := &MatterEscalationCoordinator{
 		Repo: NewPostgresRepository(pool), Runtime: runtimeRepo,
-		Authority: authority.NewEffectivePostgresService(pool),
+		Authority:  authority.NewEffectivePostgresService(pool),
 		Continuity: continuity.NewService(continuity.NewCurrentPostgresRepository(pool)),
 		Now:        func() time.Time { return current },
 	}
@@ -211,7 +211,7 @@ func fireEscalationTimer(t *testing.T, ctx context.Context, pool *pgxpool.Pool, 
 		t.Fatalf("fire escalation step %d: %v", step, err)
 	}
 	return workflowruntime.OutboxEvent{
-		ID: "97777777-7777-7777-8777-7777777778" + string(rune('0'+step)),
+		ID:       "97777777-7777-7777-8777-7777777778" + string(rune('0'+step)),
 		TenantID: tenantSlug, AggregateType: "WORKFLOW", AggregateID: workflowID,
 		EventType: "WorkflowTimerFired", Payload: payload, OccurredAt: at,
 	}
