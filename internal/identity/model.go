@@ -44,7 +44,10 @@ type Actor struct {
 }
 
 func (a Actor) Valid(now time.Time) error {
-	if strings.TrimSpace(a.TenantID) == "" || strings.TrimSpace(a.PrincipalID) == "" || strings.TrimSpace(a.LegalEntityID) == "" {
+	if !validIdentifier(a.TenantID, 128) || !validIdentifier(a.PrincipalID, 128) || !validIdentifier(a.LegalEntityID, 128) {
+		return ErrInvalidIdentity
+	}
+	if len(strings.TrimSpace(a.Kind)) > 32 || len(strings.TrimSpace(a.AuthenticationMethod)) > 64 || len(strings.TrimSpace(a.AssuranceLevel)) > 512 || len(strings.TrimSpace(a.SessionID)) > 128 {
 		return ErrInvalidIdentity
 	}
 	if a.ExpiresAt.IsZero() || !now.Before(a.ExpiresAt) {
@@ -68,6 +71,19 @@ func (a Actor) Valid(now time.Time) error {
 		}
 	}
 	return nil
+}
+
+func validIdentifier(value string, maxLength int) bool {
+	value = strings.TrimSpace(value)
+	if value == "" || len(value) > maxLength {
+		return false
+	}
+	for _, r := range value {
+		if r < 0x20 || r == 0x7f {
+			return false
+		}
+	}
+	return true
 }
 
 func validCodes(values []string, maxLength int) bool {
