@@ -39,18 +39,20 @@ type Config struct {
 	ClientID        string
 	ClientSecret    string
 	RedirectURL     string
+	ApplicationURL  string
 	SessionLifetime time.Duration
 	IdleTimeout     time.Duration
 	SecureCookies   bool
 }
 
 type Service struct {
-	issuer   string
-	oauth    oauth2.Config
-	verifier *oidc.IDTokenVerifier
-	sessions *scs.SessionManager
-	access   access.Resolver
-	now      func() time.Time
+	issuer         string
+	applicationURL string
+	oauth          oauth2.Config
+	verifier       *oidc.IDTokenVerifier
+	sessions       *scs.SessionManager
+	access         access.Resolver
+	now            func() time.Time
 }
 
 func New(ctx context.Context, cfg Config, store scs.Store, resolver access.Resolver) (*Service, error) {
@@ -58,14 +60,18 @@ func New(ctx context.Context, cfg Config, store scs.Store, resolver access.Resol
 	cfg.ClientID = strings.TrimSpace(cfg.ClientID)
 	cfg.ClientSecret = strings.TrimSpace(cfg.ClientSecret)
 	cfg.RedirectURL = strings.TrimSpace(cfg.RedirectURL)
-	if cfg.Issuer == "" || cfg.ClientID == "" || cfg.ClientSecret == "" || cfg.RedirectURL == "" || store == nil || resolver == nil {
-		return nil, fmt.Errorf("OIDC issuer, client, redirect, session store and access resolver are required")
+	cfg.ApplicationURL = strings.TrimRight(strings.TrimSpace(cfg.ApplicationURL), "/")
+	if cfg.Issuer == "" || cfg.ClientID == "" || cfg.ClientSecret == "" || cfg.RedirectURL == "" || cfg.ApplicationURL == "" || store == nil || resolver == nil {
+		return nil, fmt.Errorf("OIDC issuer, client, redirect, application URL, session store and access resolver are required")
 	}
 	if err := validateAbsoluteURL(cfg.Issuer, cfg.SecureCookies, false); err != nil {
 		return nil, fmt.Errorf("invalid OIDC issuer: %w", err)
 	}
 	if err := validateAbsoluteURL(cfg.RedirectURL, cfg.SecureCookies, true); err != nil {
 		return nil, fmt.Errorf("invalid OIDC redirect URL: %w", err)
+	}
+	if err := validateAbsoluteURL(cfg.ApplicationURL, cfg.SecureCookies, false); err != nil {
+		return nil, fmt.Errorf("invalid application URL: %w", err)
 	}
 	provider, err := oidc.NewProvider(ctx, cfg.Issuer)
 	if err != nil {
@@ -90,7 +96,7 @@ func New(ctx context.Context, cfg Config, store scs.Store, resolver access.Resol
 	sessions.Cookie.Path = "/"
 
 	return &Service{
-		issuer: cfg.Issuer,
+		issuer: cfg.Issuer, applicationURL: cfg.ApplicationURL,
 		oauth: oauth2.Config{
 			ClientID: cfg.ClientID, ClientSecret: cfg.ClientSecret, RedirectURL: cfg.RedirectURL,
 			Endpoint: provider.Endpoint(), Scopes: []string{oidc.ScopeOpenID},
@@ -118,7 +124,7 @@ func (s *Service) Authenticate(r *http.Request) (identity.Actor, bool, error) {
 	if err != nil {
 		_ = s.sessions.Destroy(ctx)
 		if errors.Is(err, access.ErrPrincipalUnavailable) {
-			return identity.Actor{}, false, identity.ErrInvalidIdentity
+			return identity.Actor{}, false, nil
 		}
 		return identity.Actor{}, false, fmt.Errorf("refresh session access: %w", err)
 	}
@@ -132,15 +138,15 @@ func (s *Service) Authenticate(r *http.Request) (identity.Actor, bool, error) {
 	}
 	if err := actor.Valid(s.now().UTC()); err != nil {
 		_ = s.sessions.Destroy(ctx)
-		return identity.Actor{}, false, err
+		return identity.Actor{}, false, nil
 	}
 	return actor, true, nil
 }
 
 func (s *Service) Begin(w http.ResponseWriter, r *http.Request) {
-	tenantID := strings.TrimSpace(r.URL.Query().Get("tenant_id"))
+	tenantID := strings.TrimSpace(r.URL.Query().Get("tenant"))
 	if tenantID == "" {
-		http.Error(w, "tenant_id is required", http.StatusBadRequest)
+		http.Error(w, "tenant is required", http.StatusBadRequest)
 		return
 	}
 	state, err := randomToken(32)
@@ -261,7 +267,7 @@ func (s *Service) Callback(w http.ResponseWriter, r *http.Request) {
 	s.sessions.Put(r.Context(), sessionSessionID, sessionID)
 	s.sessions.Put(r.Context(), sessionIssuedAt, now)
 	s.sessions.Put(r.Context(), sessionAssurance, assurance)
-	http.Redirect(w, r, returnTo, http.StatusSeeOther)
+	http.Redirect(w, r, s.applicationURL+returnTo, http.StatusSeeOther)
 }
 
 func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
