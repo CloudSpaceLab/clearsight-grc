@@ -49,14 +49,10 @@ type escalationTimerPayload struct {
 	Kind                string   `json:"kind"`
 	TaskID              string   `json:"task_id"`
 	WorkflowID          string   `json:"workflow_id"`
-	MatterID            string   `json:"matter_id"`
-	LegalEntityID       string   `json:"legal_entity_id"`
 	PolicyVersion       string   `json:"policy_version"`
 	SequenceID          string   `json:"sequence_id"`
 	Trigger             string   `json:"trigger"`
 	StepIndex           int      `json:"step_index"`
-	DecisionType        string   `json:"decision_type,omitempty"`
-	Materiality         int      `json:"materiality"`
 	BaselineDueAt       string   `json:"baseline_due_at"`
 	BaseDepartmentPath  []string `json:"base_department_path,omitempty"`
 	BaseDepartmentState string   `json:"base_department_state,omitempty"`
@@ -127,31 +123,13 @@ func (c *MatterEscalationCoordinator) Maintain(ctx context.Context, now time.Tim
 		if err != nil {
 			return processed, fmt.Errorf("resolve escalation sequence for task %s: %w", task.ID, err)
 		}
-
-		matterID := strings.TrimSpace(task.Context["matter_id"])
-		if matterID == "" {
+		if strings.TrimSpace(task.Context["matter_id"]) == "" {
 			return processed, fmt.Errorf("task %s is missing matter_id escalation context", task.ID)
 		}
-		legalEntity, legalEntityState, err := (&MatterLifecycleProjector{Repo: c.Repo}).matterLegalEntity(ctx, task.TenantID, matterID, now)
-		if err != nil {
-			return processed, err
-		}
-		if legalEntityState != "RESOLVED" {
-			return processed, fmt.Errorf("task %s legal entity is not resolved for escalation: %s", task.ID, legalEntityState)
-		}
-		materiality, err := parseEscalationMateriality(task.Context["materiality"])
-		if err != nil {
-			return processed, fmt.Errorf("task %s: %w", task.ID, err)
-		}
-		baseDepartment, departmentState, err := c.principalDepartmentPath(ctx, task.TenantID, legalEntity, task.Principal, now)
-		if err != nil {
-			return processed, fmt.Errorf("resolve task %s department: %w", task.ID, err)
-		}
 		payload := escalationTimerPayload{
-			Kind: "MATTER_ESCALATION", TaskID: task.ID, WorkflowID: task.WorkflowID, MatterID: matterID,
-			LegalEntityID: legalEntity, PolicyVersion: policyVersion, SequenceID: sequence.ID, Trigger: sequence.Trigger,
-			StepIndex: 0, DecisionType: strings.TrimSpace(task.Context["decision_type"]), Materiality: materiality,
-			BaselineDueAt: task.DueAt.UTC().Format(time.RFC3339Nano), BaseDepartmentPath: baseDepartment, BaseDepartmentState: departmentState,
+			Kind: "MATTER_ESCALATION", TaskID: task.ID, WorkflowID: task.WorkflowID,
+			PolicyVersion: policyVersion, SequenceID: sequence.ID, Trigger: sequence.Trigger,
+			StepIndex: 0, BaselineDueAt: task.DueAt.UTC().Format(time.RFC3339Nano),
 		}
 		if err := c.scheduleStep(ctx, task.TenantID, task.WorkflowID, task.ID, payload, sequence.Steps[0]); err != nil {
 			return processed, fmt.Errorf("schedule escalation for task %s: %w", task.ID, err)
@@ -216,11 +194,39 @@ func (c *MatterEscalationCoordinator) processEscalation(ctx context.Context, ten
 	if err != nil || !task.DueAt.UTC().Equal(baseline.UTC()) {
 		return nil
 	}
-	if strings.TrimSpace(task.Context["authority_policy_version"]) != payload.PolicyVersion || strings.TrimSpace(task.Context["matter_id"]) != payload.MatterID {
+	if strings.TrimSpace(task.Context["authority_policy_version"]) != payload.PolicyVersion {
 		return nil
+	}
+	if err := hydrateEscalationDepartment(&payload, task.Context); err != nil {
+		return err
 	}
 	if task.Context["escalation_attempt_key"] == escalationAttemptKey(payload) {
 		return c.scheduleNext(ctx, tenant, payload)
+	}
+
+	matterID := strings.TrimSpace(task.Context["matter_id"])
+	if matterID == "" {
+		return fmt.Errorf("task %s is missing matter_id escalation context", task.ID)
+	}
+	materiality, err := parseEscalationMateriality(task.Context["materiality"])
+	if err != nil {
+		return fmt.Errorf("task %s: %w", task.ID, err)
+	}
+	decisionType := strings.TrimSpace(task.Context["decision_type"])
+	legalEntity, legalEntityState, err := (&MatterLifecycleProjector{Repo: c.Repo}).matterLegalEntity(ctx, tenant, matterID, now)
+	if err != nil {
+		return err
+	}
+	if legalEntityState != "RESOLVED" {
+		return fmt.Errorf("task %s legal entity is not resolved for escalation: %s", task.ID, legalEntityState)
+	}
+	if payload.StepIndex == 0 && payload.BaseDepartmentState == "" {
+		baseDepartment, departmentState, err := c.principalDepartmentPath(ctx, tenant, legalEntity, task.Principal, now)
+		if err != nil {
+			return fmt.Errorf("resolve task %s department: %w", task.ID, err)
+		}
+		payload.BaseDepartmentPath = baseDepartment
+		payload.BaseDepartmentState = departmentState
 	}
 
 	sequence, err := c.sequenceByID(ctx, tenant, payload.PolicyVersion, payload.SequenceID, payload.Trigger)
@@ -230,7 +236,7 @@ func (c *MatterEscalationCoordinator) processEscalation(ctx context.Context, ten
 	if payload.StepIndex < 0 || payload.StepIndex >= len(sequence.Steps) {
 		return fmt.Errorf("escalation step index %d is out of range", payload.StepIndex)
 	}
-	matter, err := c.Continuity.GetMatter(ctx, tenant, payload.MatterID)
+	matter, err := c.Continuity.GetMatter(ctx, tenant, matterID)
 	if errors.Is(err, continuity.ErrNotFound) {
 		_, cancelErr := c.Runtime.CancelPendingTaskTimers(ctx, tenant, task.ID, matterEscalationTimerType)
 		return cancelErr
@@ -257,9 +263,9 @@ func (c *MatterEscalationCoordinator) processEscalation(ctx context.Context, ten
 	}
 
 	resolution, err := c.Authority.Resolve(ctx, authority.ResolveInput{
-		TenantID: tenant, LegalEntityID: payload.LegalEntityID, ObjectType: "MATTER", ObjectID: payload.MatterID,
-		Responsibility: authority.Responsibility(step.Responsibility), DecisionType: payload.DecisionType,
-		Materiality: payload.Materiality, At: now,
+		TenantID: tenant, LegalEntityID: legalEntity, ObjectType: "MATTER", ObjectID: matterID,
+		Responsibility: authority.Responsibility(step.Responsibility), DecisionType: decisionType,
+		Materiality: materiality, At: now,
 	})
 	if err != nil {
 		reason := "NO_ROUTE"
@@ -279,7 +285,7 @@ func (c *MatterEscalationCoordinator) processEscalation(ctx context.Context, ten
 	}
 	principals := visibleAuthorityPrincipals(matter.Matter, resolution)
 	if step.DepartmentLevelsUp != nil {
-		principals, err = c.filterDepartmentPrincipals(ctx, tenant, payload.LegalEntityID, targetDepartment, principals, now)
+		principals, err = c.filterDepartmentPrincipals(ctx, tenant, legalEntity, targetDepartment, principals, now)
 		if err != nil {
 			return err
 		}
@@ -617,7 +623,8 @@ func (c *MatterEscalationCoordinator) scheduleStep(ctx context.Context, tenant, 
 }
 
 func escalationOverlay(payload escalationTimerPayload, step governance.EscalationStep, status string, targetDepartment []string) map[string]string {
-	pathJSON, _ := json.Marshal(targetDepartment)
+	targetJSON, _ := json.Marshal(targetDepartment)
+	baseJSON, _ := json.Marshal(payload.BaseDepartmentPath)
 	return map[string]string{
 		"escalation_trigger":                payload.Trigger,
 		"escalation_sequence_id":            payload.SequenceID,
@@ -627,8 +634,35 @@ func escalationOverlay(payload escalationTimerPayload, step governance.Escalatio
 		"escalation_status":                 status,
 		"escalation_responsibility":         step.Responsibility,
 		"escalation_baseline_due_at":        payload.BaselineDueAt,
-		"escalation_target_department_path": string(pathJSON),
+		"escalation_base_department_path":   string(baseJSON),
+		"escalation_base_department_state":  payload.BaseDepartmentState,
+		"escalation_target_department_path": string(targetJSON),
 	}
+}
+
+func hydrateEscalationDepartment(payload *escalationTimerPayload, context map[string]string) error {
+	if payload == nil || payload.BaseDepartmentState != "" {
+		return nil
+	}
+	state := strings.TrimSpace(context["escalation_base_department_state"])
+	pathRaw := strings.TrimSpace(context["escalation_base_department_path"])
+	if state == "" && pathRaw == "" {
+		return nil
+	}
+	payload.BaseDepartmentState = state
+	if pathRaw == "" {
+		return nil
+	}
+	var path []string
+	if err := json.Unmarshal([]byte(pathRaw), &path); err != nil {
+		return fmt.Errorf("decode escalation base department path: %w", err)
+	}
+	normalized, err := identity.NormalizeDepartmentPath(path)
+	if err != nil {
+		return fmt.Errorf("normalize escalation base department path: %w", err)
+	}
+	payload.BaseDepartmentPath = normalized
+	return nil
 }
 
 func escalationDepartmentScope(base []string, baseState string, levels *int) ([]string, string) {
@@ -654,7 +688,7 @@ func parseEscalationMateriality(value string) (int, error) {
 }
 
 func validateEscalationTimerPayload(payload escalationTimerPayload) error {
-	if payload.Kind != "MATTER_ESCALATION" || strings.TrimSpace(payload.TaskID) == "" || strings.TrimSpace(payload.WorkflowID) == "" || strings.TrimSpace(payload.MatterID) == "" || strings.TrimSpace(payload.LegalEntityID) == "" || strings.TrimSpace(payload.PolicyVersion) == "" || strings.TrimSpace(payload.SequenceID) == "" || payload.Trigger != "OVERDUE" || payload.StepIndex < 0 || payload.Materiality < 0 || payload.Materiality > 5 || payloadBaseline(payload).IsZero() {
+	if payload.Kind != "MATTER_ESCALATION" || strings.TrimSpace(payload.TaskID) == "" || strings.TrimSpace(payload.WorkflowID) == "" || strings.TrimSpace(payload.PolicyVersion) == "" || strings.TrimSpace(payload.SequenceID) == "" || payload.Trigger != "OVERDUE" || payload.StepIndex < 0 || payloadBaseline(payload).IsZero() {
 		return fmt.Errorf("invalid Matter escalation timer payload")
 	}
 	if len(payload.BaseDepartmentPath) > 0 {
