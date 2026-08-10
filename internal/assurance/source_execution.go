@@ -12,15 +12,15 @@ import (
 
 const (
 	hardMaxPopulationQueryBytes = 32 << 10
-	hardMaxSubjectKeyBytes       = 256
+	hardMaxSubjectKeyBytes      = 256
 )
 
 var (
-	ErrPopulationInvalid    = errors.New("population definition is invalid")
-	ErrSourceCredentials    = errors.New("source credentials are unavailable")
-	ErrSourceConnection     = errors.New("source connection is unavailable")
-	ErrSourceExecution      = errors.New("source execution failed")
-	ErrSourceSchemaChanged  = errors.New("source schema changed")
+	ErrPopulationInvalid   = errors.New("population definition is invalid")
+	ErrSourceCredentials   = errors.New("source credentials are unavailable")
+	ErrSourceConnection    = errors.New("source connection is unavailable")
+	ErrSourceExecution     = errors.New("source execution failed")
+	ErrSourceSchemaChanged = errors.New("source schema changed")
 )
 
 // SourceSecretResolver resolves an opaque deployment-managed secret reference.
