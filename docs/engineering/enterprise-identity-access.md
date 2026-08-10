@@ -1,6 +1,6 @@
 # Enterprise identity and access
 
-**Status:** EIA-0 implemented; EIA-1/EIA-2 implemented on PR #59 pending exact-head validation  
+**Status:** EIA-0 through EIA-3 implemented on PR #59; EIA-4/EIA-5 remain  
 **Scope:** enterprise sign-in, provisioning, department-aware role eligibility, and governed escalation  
 **Supersedes:** the greenfield LDAP/SAML portions of the older enterprise-productization P2/P3 plan
 
@@ -44,7 +44,7 @@ Enterprise identity establishes the local principal and broad capability eligibi
 
 A separate department CRUD/domain model is not required for the pilot.
 
-Departments are represented as a **stable hierarchical path of source-backed codes** on organizational positions and, when later needed, group role bindings:
+Departments are represented as a **stable hierarchical path of source-backed codes** on organizational positions and group role bindings:
 
 ```text
 ["BANK", "OPERATIONS", "PAYMENTS"]
@@ -53,13 +53,13 @@ Departments are represented as a **stable hierarchical path of source-backed cod
 Rules:
 
 - path values are stable codes, not display names;
-- an empty path means tenant/legal-entity scope rather than an invented department;
+- an empty path means legal-entity scope rather than an invented department;
 - a position may belong to one current department path;
 - department hierarchy comes from path prefixes;
-- directory synchronization may update paths, but ClearSight preserves historical command attribution through existing principal/event history;
+- provisioning may update organizational facts, but ClearSight preserves historical command attribution through existing principal/event history;
 - department capabilities require an exact department path unless a governed server-side policy explicitly defines inheritance.
 
-This supports department-level access and escalation without adding `departments`, department-membership, or department-history tables before they are proven necessary.
+This supports department-level access and escalation without adding a separate department hierarchy, membership, or history subsystem.
 
 ## 4. Capability model
 
@@ -73,18 +73,23 @@ This supports department-level access and escalation without adding `departments
 - `IDENTITY_READ`, `IDENTITY_CONFIGURE`;
 - `PLATFORM_OPERATIONS_READ`, `PLATFORM_OPERATIONS_WRITE`.
 
-The first executable source is the existing position → role binding. Direct principal bindings are still deferred because there is no proven case that cannot be represented through current positions; approved directory-group bindings belong to EIA-3.
+Executable role sources are deliberately limited to:
+
+1. existing position → role bindings; and
+2. approved directory group → existing role-template bindings introduced by EIA-3.
+
+No second role catalogue exists.
 
 Effective access is deliberately split:
 
 ```text
 empty department path role
 → actor.role_codes + actor.permission_codes
-→ may satisfy existing tenant/legal-entity-wide route permissions
+→ may satisfy existing legal-entity-wide route permissions
 
 non-empty department path role
 → actor.department_grants[path]
-→ may satisfy only a future route whose department scope is derived server-side
+→ may satisfy only a route whose department scope is derived server-side
 ```
 
 A client-supplied department path never selects authorization scope. Department scope narrows role eligibility; it never broadens tenant, legal-entity, object, or protected-record visibility.
@@ -132,7 +137,7 @@ Semantics:
 - array order is the escalation order; no redundant `level` field;
 - `department_levels_up: 0` = current department;
 - `1` = parent department; `2` = grandparent, and so on;
-- omitted `department_levels_up` = legal-entity/tenant routing scope;
+- omitted `department_levels_up` = legal-entity routing scope;
 - each step selects a **responsibility and scope**, not a person;
 - the existing authority/routing rules resolve the actor for that responsibility;
 - `after` values are cumulative elapsed thresholds and must be monotonic;
@@ -156,7 +161,9 @@ Runtime support can be introduced trigger-by-trigger. Policy-schema support is n
 
 - OIDC relying party: `github.com/coreos/go-oidc/v3/oidc` + `golang.org/x/oauth2`;
 - server-side sessions: `github.com/alexedwards/scs/v2` with `github.com/alexedwards/scs/pgxstore`;
-- SCIM protocol adapter in EIA-3: `github.com/elimity-com/scim`, contained behind a ClearSight service adapter.
+- SCIM protocol adapter: exact-pinned `github.com/elimity-com/scim` commit `2641426a1539`, contained behind `internal/scimapi`.
+
+The SCIM library owns protocol parsing, discovery, filtering/pagination and PATCH transport. ClearSight owns tenant authentication, canonical principal/group persistence and group-to-role semantics. Library types do not escape the adapter boundary.
 
 ### External open-source IAM
 
@@ -177,7 +184,7 @@ Implemented on PR #59:
 
 ### EIA-1 — OIDC + server session
 
-Implemented on PR #59 pending exact-head validation:
+Implemented on PR #59:
 
 - `CLEARSIGHT_IDENTITY_MODE=oidc` while retaining `development` and the signed-gateway compatibility mode;
 - one operationally configured OIDC connection for the first tranche rather than premature connection-management CRUD;
@@ -195,25 +202,38 @@ Implemented on PR #59 pending exact-head validation:
 
 ### EIA-2 — local department-aware capability resolver
 
-Implemented on PR #59 pending exact-head validation:
+Implemented on PR #59:
 
 - OIDC session state stores only canonical tenant/principal/legal-entity/session/assurance facts;
 - each authenticated request re-resolves the principal and current roles/capabilities from PostgreSQL;
 - deactivated/expired principals therefore lose current application access without an IdP/LDAP/SCIM call;
-- current capabilities derive from existing `org_positions → position_role_bindings → role_templates` only;
-- empty-department roles become global actor roles/capabilities;
+- position-derived capabilities use existing `org_positions → position_role_bindings → role_templates`;
+- empty-department roles become legal-entity-wide actor roles/capabilities;
 - non-empty department roles/capabilities remain exact-scope `department_grants` and cannot satisfy existing global route permissions;
 - parent/child department access is not inferred;
 - native OIDC does not consume IdP role/group/permission claims as ClearSight authorization truth;
 - existing material commands still additionally pass `commandauth.Guard`, current responsibility/authority resolution, delegation, segregation, visibility, and lifecycle checks.
 
-## 8. Next sequence
-
 ### EIA-3 — SCIM Users + Groups
 
-Expose the minimal SCIM 2.0 service-provider surface required for enterprise provisioning. Map Users into existing principals/`principal_identities`; map Groups into a narrow directory-group projection; support explicit approved group-to-role bindings.
+Implemented on PR #59:
 
-A directory group may grant role eligibility/capabilities. It must never directly grant responsibility, decision authority, signatory authority, or protected-record visibility.
+- `/scim/v2` is a separate machine-to-machine protocol edge authenticated by tenant-scoped bearer credentials whose SHA-256 digest is stored in `scim_sources`;
+- SCIM discovery plus Users/Groups create/read/list/replace/delete/PATCH, bounded filtering and pagination are provided through the contained open-source adapter;
+- a SCIM User creates and owns a canonical `PERSON` principal; ClearSight does **not** match by email and silently take over an existing manually governed principal;
+- a source may explicitly correlate its immutable `externalId` or `userName` to the configured OIDC issuer/subject, producing the same `principal_identities` used by EIA-1;
+- deactivation immediately inactivates the owned principal and revokes the source-linked OIDC identity; reactivation restores the governed source-owned identity;
+- `directory_groups` and `directory_group_members` store direct source facts only; nested groups are rejected in this tranche and no closure table is introduced;
+- SCIM cannot write `directory_group_role_bindings`;
+- a ClearSight-controlled effective-dated group→existing-role binding may add legal-entity-wide or exact-department capability eligibility;
+- group-derived roles are resolved through the same EIA-2 local capability evaluator as position-derived roles;
+- deleting a group or removing/deactivating a user removes group-derived eligibility on the next request;
+- the authority resolver, responsibility assignments, authority grants, delegations, segregation and protected-record visibility are unchanged, so directory membership cannot manufacture material decision authority;
+- the SCIM edge is explicitly isolated from browser session/identity middleware; every human application request still returns through the normal OIDC/session/access/authority path.
+
+The executable EIA-3 implementation head `8d0f95303af6fd6a348e24e93b20ea8ed099a195` passed CI #836 and UI-evidence #402 before final documentation/test-contract cleanup. The final head must pass the same normal release gates before merge.
+
+## 8. Next sequence
 
 ### EIA-4 — escalation runtime
 
@@ -233,6 +253,8 @@ Add one compact **Identity & access** Configure area for connection status, prov
 
 Provide reference authentik configuration for AD/LDAP/SAML bridging, but do not vendor or fork authentik.
 
+Source-token bootstrap/rotation and group-role administration belong here rather than expanding the SCIM protocol surface into an IAM console.
+
 ## 9. Acceptance gates
 
 ### Identity / provisioning
@@ -244,18 +266,22 @@ Provide reference authentik configuration for AD/LDAP/SAML bridging, but do not 
 - session data contains no OIDC access/refresh token and no cached role/capability authorization truth;
 - cross-origin unsafe requests outside the trusted application origin are rejected;
 - post-login return paths cannot redirect to an external origin;
-- SCIM credentials are tenant-bound once EIA-3 is implemented;
-- duplicate provisioning is idempotent once EIA-3 is implemented;
-- group membership alone never creates material authority.
+- SCIM credentials are tenant-bound and stored only as fixed-size digests;
+- SCIM cannot attach an incoming user to an unrelated existing principal by email;
+- duplicate source identifiers fail deterministically rather than creating ambiguous principals;
+- group membership is direct, source-scoped and cannot reference another source or nested group;
+- group membership alone never creates responsibility or material authority;
+- source/user/group deactivation or deletion removes current access eligibility without directory network calls.
 
 ### Departments / capabilities
 
+- position-derived and group-derived roles use the same capability evaluator;
 - global and department-scoped role codes remain distinct;
 - same capability in two departments resolves only at the exact requested department scope;
 - parent department does not inherit child access unless an explicit future server-side rule says so;
-- department capability cannot satisfy a tenant-wide administrative route;
+- department capability cannot satisfy a legal-entity-wide administrative route;
 - tenant/legal-entity scope remains authoritative above department scope;
-- removing a role or deactivating a principal changes current access without rewriting authority routes or re-authenticating at the IdP.
+- removing a role, group binding, group membership, position, or principal changes current access without rewriting material authority routes or re-authenticating at the IdP.
 
 ### Escalation
 
@@ -277,6 +303,7 @@ Do not build in ClearSight:
 - Kerberos;
 - MFA/passkey enrollment;
 - generic IAM administration;
+- nested-directory-group materialization before a proven requirement;
 - a second organization hierarchy;
 - a second role/policy/authority engine;
 - a second scheduler or workflow engine.
