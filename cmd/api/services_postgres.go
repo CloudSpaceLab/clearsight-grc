@@ -21,6 +21,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/scimapi"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 	"github.com/alexedwards/scs/pgxstore"
@@ -73,6 +74,12 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		return today.FromWorkflowTasksForActor(assigned, actor.PrincipalID), nil
 	})
 	sessionStore := pgxstore.NewWithConfig(pool, pgxstore.Config{CleanUpInterval: 5 * time.Minute, TableName: "web_sessions"})
+	scimService, err := scimapi.New(scimapi.NewPostgresRepository(pool), logger)
+	if err != nil {
+		sessionStore.StopCleanup()
+		pool.Close()
+		return serviceSet{}, err
+	}
 	closeServices := func() {
 		sessionStore.StopCleanup()
 		pool.Close()
@@ -83,6 +90,6 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		Evidence: evidenceService, DocumentImports: documentService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
 		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo),
-		Access: access.NewPostgresResolver(pool), SessionStore: sessionStore, Close: closeServices,
+		Access: access.NewPostgresResolver(pool), SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
 	}, nil
 }
