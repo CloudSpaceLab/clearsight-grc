@@ -28,3 +28,13 @@ func TestNumberEvaluationRejectsIntegersOutsideExactFloatRange(t *testing.T) {
 		t.Fatalf("largest exactly representable integer should remain evaluable, got %s", got)
 	}
 }
+
+func TestConditionRejectsNumericLiteralOutsideBoundedDomain(t *testing.T) {
+	schema := Schema{Fields: []Field{{Name: "amount", Type: TypeNumber}}}
+	if _, err := CompileCondition(schema, Condition{Op: OpGT, Field: "amount", Value: NumberLiteral(float64(maxExactFloatInteger) + 2)}, ConditionLimits{}); err == nil {
+		t.Fatal("numeric literal outside the T0 bounded domain must be rejected")
+	}
+	if _, err := CompileCondition(schema, Condition{Op: OpGT, Field: "amount", Value: NumberLiteral(float64(maxExactFloatInteger))}, ConditionLimits{}); err != nil {
+		t.Fatalf("bounded numeric literal should remain valid: %v", err)
+	}
+}
