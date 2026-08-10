@@ -8,7 +8,10 @@ import (
 	"time"
 )
 
-const hardMaxEvaluatedStringBytes = 64 << 10
+const (
+	hardMaxEvaluatedStringBytes = 64 << 10
+	maxExactFloatInteger         = int64(1 << 53)
+)
 
 func coerceValue(kind LogicalType, raw any) (typedValue, bool) {
 	switch kind {
@@ -44,7 +47,7 @@ func coerceValue(kind LogicalType, raw any) (typedValue, bool) {
 func numericValue(raw any) (float64, bool) {
 	switch value := raw.(type) {
 	case int:
-		return float64(value), true
+		return exactSignedInteger(int64(value))
 	case int8:
 		return float64(value), true
 	case int16:
@@ -52,9 +55,9 @@ func numericValue(raw any) (float64, bool) {
 	case int32:
 		return float64(value), true
 	case int64:
-		return float64(value), true
+		return exactSignedInteger(value)
 	case uint:
-		return float64(value), true
+		return exactUnsignedInteger(uint64(value))
 	case uint8:
 		return float64(value), true
 	case uint16:
@@ -62,20 +65,37 @@ func numericValue(raw any) (float64, bool) {
 	case uint32:
 		return float64(value), true
 	case uint64:
-		if value > 1<<53 {
-			return 0, false
-		}
-		return float64(value), true
+		return exactUnsignedInteger(value)
 	case float32:
 		return float64(value), true
 	case float64:
 		return value, true
 	case json.Number:
 		parsed, err := value.Float64()
-		return parsed, err == nil
+		if err != nil || math.IsNaN(parsed) || math.IsInf(parsed, 0) {
+			return 0, false
+		}
+		if integer, intErr := value.Int64(); intErr == nil {
+			return exactSignedInteger(integer)
+		}
+		return parsed, true
 	default:
 		return 0, false
 	}
+}
+
+func exactSignedInteger(value int64) (float64, bool) {
+	if value > maxExactFloatInteger || value < -maxExactFloatInteger {
+		return 0, false
+	}
+	return float64(value), true
+}
+
+func exactUnsignedInteger(value uint64) (float64, bool) {
+	if value > uint64(maxExactFloatInteger) {
+		return 0, false
+	}
+	return float64(value), true
 }
 
 func timeValue(raw any) (time.Time, bool) {
