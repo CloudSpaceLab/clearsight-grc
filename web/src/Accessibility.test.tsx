@@ -50,7 +50,7 @@ const request: CaptureRequest = {
   status: "READY",
   sensitivity: "INTERNAL",
   estimated_minutes: 2,
-  deadline: "2026-08-10T12:00:00Z",
+  deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
   known_facts: { application: "Mobile Banking" },
   fields: [{ id: "owner", label: "Current accountable owner", type: "text", required: true }],
   version: 1,
