@@ -114,7 +114,7 @@ type Administrator interface {
 	RotateSCIMSourceToken(context.Context, string, string, string, []byte) error
 	RevokeSCIMSource(context.Context, string, string, string) error
 	CreateGroupRoleBinding(context.Context, CreateGroupRoleBindingInput) (GroupRoleBindingSummary, error)
-	RetireGroupRoleBinding(context.Context, string, string, string, string) error
+	RetireGroupRoleBinding(context.Context, string, string, string) error
 }
 
 func NewProvisioningToken() (string, [32]byte, error) {
