@@ -47,6 +47,7 @@ type Rule struct {
 type ResolveInput struct {
 	TenantID       string         `json:"tenant_id"`
 	LegalEntityID  string         `json:"legal_entity_id"`
+	DepartmentPath []string       `json:"department_path,omitempty"`
 	ObjectType     string         `json:"object_type"`
 	ObjectID       string         `json:"object_id"`
 	Responsibility Responsibility `json:"responsibility"`
