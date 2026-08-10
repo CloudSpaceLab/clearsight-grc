@@ -140,7 +140,24 @@ func (a *API) retireDirectoryGroupRoleBinding(w http.ResponseWriter, r *http.Req
 	if !ok {
 		return
 	}
-	if err := a.deps.AccessAdmin.RetireGroupRoleBinding(r.Context(), actor.TenantID, actor.LegalEntityID, r.PathValue("id"), actor.PrincipalID); err != nil {
+	bindingID := strings.TrimSpace(r.PathValue("id"))
+	overview, err := a.deps.AccessAdmin.Overview(r.Context(), actor.TenantID, actor.LegalEntityID, 100)
+	if err != nil {
+		writeIdentityAccessError(w, err)
+		return
+	}
+	found := false
+	for _, binding := range overview.Bindings {
+		if binding.ID == bindingID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		writeIdentityAccessError(w, access.ErrAdminNotFound)
+		return
+	}
+	if err := a.deps.AccessAdmin.RetireGroupRoleBinding(r.Context(), actor.TenantID, bindingID, actor.PrincipalID); err != nil {
 		writeIdentityAccessError(w, err)
 		return
 	}
