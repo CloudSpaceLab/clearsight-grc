@@ -28,6 +28,13 @@ type Config struct {
 	IdentityMode                         string
 	IdentityHMACSecret                   string
 	IdentityMaxSkew                      time.Duration
+	OIDCIssuer                           string
+	OIDCClientID                         string
+	OIDCClientSecret                     string
+	OIDCRedirectURL                      string
+	OIDCSessionLifetime                  time.Duration
+	OIDCSessionIdleTimeout               time.Duration
+	OIDCSecureCookies                    bool
 	CommandAuthorizationMode             string
 	DemoMode                             bool
 	DocumentImportAllowUnscannedAnalysis bool
@@ -66,6 +73,13 @@ func Load() (Config, error) {
 		IdentityMode:                         strings.ToLower(env("CLEARSIGHT_IDENTITY_MODE", defaultIdentityMode)),
 		IdentityHMACSecret:                   env("CLEARSIGHT_IDENTITY_HMAC_SECRET", ""),
 		IdentityMaxSkew:                      2 * time.Minute,
+		OIDCIssuer:                           env("CLEARSIGHT_OIDC_ISSUER", ""),
+		OIDCClientID:                         env("CLEARSIGHT_OIDC_CLIENT_ID", ""),
+		OIDCClientSecret:                     env("CLEARSIGHT_OIDC_CLIENT_SECRET", ""),
+		OIDCRedirectURL:                      env("CLEARSIGHT_OIDC_REDIRECT_URL", ""),
+		OIDCSessionLifetime:                  8 * time.Hour,
+		OIDCSessionIdleTimeout:               30 * time.Minute,
+		OIDCSecureCookies:                    production,
 		CommandAuthorizationMode:             strings.ToLower(env("CLEARSIGHT_COMMAND_AUTHORIZATION", defaultCommandMode)),
 		DemoMode:                             !production,
 		DocumentImportAllowUnscannedAnalysis: !production,
@@ -97,6 +111,15 @@ func Load() (Config, error) {
 	if cfg.IdentityMaxSkew, err = duration("CLEARSIGHT_IDENTITY_MAX_SKEW", cfg.IdentityMaxSkew); err != nil {
 		return Config{}, err
 	}
+	if cfg.OIDCSessionLifetime, err = duration("CLEARSIGHT_OIDC_SESSION_LIFETIME", cfg.OIDCSessionLifetime); err != nil {
+		return Config{}, err
+	}
+	if cfg.OIDCSessionIdleTimeout, err = duration("CLEARSIGHT_OIDC_SESSION_IDLE_TIMEOUT", cfg.OIDCSessionIdleTimeout); err != nil {
+		return Config{}, err
+	}
+	if cfg.OIDCSecureCookies, err = boolValue("CLEARSIGHT_OIDC_SECURE_COOKIES", cfg.OIDCSecureCookies); err != nil {
+		return Config{}, err
+	}
 	if cfg.DemoMode, err = boolValue("CLEARSIGHT_DEMO_MODE", cfg.DemoMode); err != nil {
 		return Config{}, err
 	}
@@ -108,6 +131,9 @@ func Load() (Config, error) {
 	}
 	if cfg.IdentityMaxSkew <= 0 || cfg.IdentityMaxSkew > 10*time.Minute {
 		return Config{}, fmt.Errorf("identity maximum clock skew must be between 1 second and 10 minutes")
+	}
+	if cfg.OIDCSessionLifetime < 5*time.Minute || cfg.OIDCSessionLifetime > 24*time.Hour || cfg.OIDCSessionIdleTimeout < time.Minute || cfg.OIDCSessionIdleTimeout > cfg.OIDCSessionLifetime {
+		return Config{}, fmt.Errorf("OIDC session lifetime must be 5 minutes-24 hours and idle timeout must be 1 minute-lifetime")
 	}
 	if cfg.DatabaseMinConns, err = int32Value("CLEARSIGHT_DB_MIN_CONNS", cfg.DatabaseMinConns); err != nil {
 		return Config{}, err
@@ -133,8 +159,15 @@ func Load() (Config, error) {
 		if len(cfg.IdentityHMACSecret) < 32 {
 			return Config{}, fmt.Errorf("CLEARSIGHT_IDENTITY_HMAC_SECRET must contain at least 32 characters in signed identity mode")
 		}
+	case "oidc":
+		if cfg.DatabaseURL == "" {
+			return Config{}, fmt.Errorf("OIDC identity mode requires DATABASE_URL")
+		}
+		if cfg.OIDCIssuer == "" || cfg.OIDCClientID == "" || cfg.OIDCClientSecret == "" || cfg.OIDCRedirectURL == "" {
+			return Config{}, fmt.Errorf("OIDC identity mode requires issuer, client id, client secret and redirect URL")
+		}
 	default:
-		return Config{}, fmt.Errorf("CLEARSIGHT_IDENTITY_MODE must be development or signed")
+		return Config{}, fmt.Errorf("CLEARSIGHT_IDENTITY_MODE must be development, signed or oidc")
 	}
 	switch cfg.CommandAuthorizationMode {
 	case "off", "audit", "enforce":
@@ -142,8 +175,11 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("CLEARSIGHT_COMMAND_AUTHORIZATION must be off, audit or enforce")
 	}
 	if production {
-		if cfg.IdentityMode != "signed" || cfg.CommandAuthorizationMode != "enforce" {
-			return Config{}, fmt.Errorf("production requires signed identity and enforced command authorization")
+		if (cfg.IdentityMode != "signed" && cfg.IdentityMode != "oidc") || cfg.CommandAuthorizationMode != "enforce" {
+			return Config{}, fmt.Errorf("production requires signed or OIDC identity and enforced command authorization")
+		}
+		if cfg.IdentityMode == "oidc" && !cfg.OIDCSecureCookies {
+			return Config{}, fmt.Errorf("production OIDC requires secure session cookies")
 		}
 		if cfg.DemoMode {
 			return Config{}, fmt.Errorf("production does not permit CLEARSIGHT_DEMO_MODE=true")
