@@ -12,12 +12,12 @@ import (
 const DefaultHintPackVersion = "bank-core-v1"
 
 const (
-	hardMaxProfileFields           = 512
-	hardMaxProfileRows             = 4096
-	hardMaxProfileDistinct         = 4096
-	hardMaxProfileTopValues        = 32
-	hardMaxProfileValueBytes       = 512
-	hardMaxProfileCellBytes        = 64 << 10
+	hardMaxProfileFields          = 512
+	hardMaxProfileRows            = 4096
+	hardMaxProfileDistinct        = 4096
+	hardMaxProfileTopValues       = 32
+	hardMaxProfileValueBytes      = 512
+	hardMaxProfileCellBytes       = 64 << 10
 	maxPublishedCategoricalValues = 20
 )
 
