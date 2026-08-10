@@ -27,20 +27,20 @@ func TestPostgresResolverKeepsDepartmentCapabilitiesScoped(t *testing.T) {
 	defer pool.Close()
 
 	const (
-		tenantID        = "8a111111-1111-7111-8111-111111111111"
-		entityID        = "8a111111-1111-7111-8111-111111111112"
-		principalID     = "8a111111-1111-7111-8111-111111111113"
-		globalRoleID    = "8a111111-1111-7111-8111-111111111114"
-		paymentRoleID   = "8a111111-1111-7111-8111-111111111115"
-		globalPosID     = "8a111111-1111-7111-8111-111111111116"
-		paymentPosID    = "8a111111-1111-7111-8111-111111111117"
-		globalBindID    = "8a111111-1111-7111-8111-111111111118"
-		paymentBindID   = "8a111111-1111-7111-8111-111111111119"
-		identityID      = "8a111111-1111-7111-8111-111111111120"
-		secondEntityID  = "8a111111-1111-7111-8111-111111111121"
-		deniedEntityID  = "8a111111-1111-7111-8111-111111111122"
-		secondPosID     = "8a111111-1111-7111-8111-111111111123"
-		secondBindID    = "8a111111-1111-7111-8111-111111111124"
+		tenantID       = "8a111111-1111-7111-8111-111111111111"
+		entityID       = "8a111111-1111-7111-8111-111111111112"
+		principalID    = "8a111111-1111-7111-8111-111111111113"
+		globalRoleID   = "8a111111-1111-7111-8111-111111111114"
+		paymentRoleID  = "8a111111-1111-7111-8111-111111111115"
+		globalPosID    = "8a111111-1111-7111-8111-111111111116"
+		paymentPosID   = "8a111111-1111-7111-8111-111111111117"
+		globalBindID   = "8a111111-1111-7111-8111-111111111118"
+		paymentBindID  = "8a111111-1111-7111-8111-111111111119"
+		identityID     = "8a111111-1111-7111-8111-111111111120"
+		secondEntityID = "8a111111-1111-7111-8111-111111111121"
+		deniedEntityID = "8a111111-1111-7111-8111-111111111122"
+		secondPosID    = "8a111111-1111-7111-8111-111111111123"
+		secondBindID   = "8a111111-1111-7111-8111-111111111124"
 	)
 	cleanup := func(cleanCtx context.Context) {
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM position_role_bindings WHERE id IN ($1::uuid,$2::uuid,$3::uuid)`, globalBindID, paymentBindID, secondBindID)
