@@ -245,9 +245,9 @@ func resourceFromGroup(group Group) scim.Resource {
 		members = append(members, map[string]any{"value": member.UserID, "type": "User", "display": member.DisplayName})
 	}
 	resource := scim.Resource{
-		ID: group.ID,
+		ID:         group.ID,
 		Attributes: scim.ResourceAttributes{"displayName": group.DisplayName, "members": members},
-		Meta: scim.Meta{Created: &created, LastModified: &updated},
+		Meta:       scim.Meta{Created: &created, LastModified: &updated},
 	}
 	if group.ExternalID != "" {
 		resource.ExternalID = optional.NewString(group.ExternalID)
