@@ -28,7 +28,8 @@ The documentation is layered so product semantics, safety, architecture, experie
 22. [`implementation-plan.md`](implementation-plan.md) — **authoritative current execution ledger and sequencing**.
 23. [`design/enterprise-productization-design-plan.md`](design/enterprise-productization-design-plan.md) — finished enterprise experience reference.
 24. [`engineering/enterprise-productization-implementation-plan.md`](engineering/enterprise-productization-implementation-plan.md) — detailed enterprise work/reference phases; current execution order is controlled by `implementation-plan.md`.
-25. [`quality/release-gates-and-traceability.md`](quality/release-gates-and-traceability.md), [`quality/rendered-ui-evidence.md`](quality/rendered-ui-evidence.md) and domain acceptance tests.
+25. [`engineering/enterprise-identity-access.md`](engineering/enterprise-identity-access.md) — focused OSS-first identity, department-aware capabilities and multi-level escalation implementation boundary; supersedes greenfield LDAP/SAML implementation guidance.
+26. [`quality/release-gates-and-traceability.md`](quality/release-gates-and-traceability.md), [`quality/rendered-ui-evidence.md`](quality/rendered-ui-evidence.md) and domain acceptance tests.
 
 ## Canonical precedence
 
@@ -42,7 +43,7 @@ When requirements conflict:
 6. AGENTS implementation rules;
 7. architecture and ADRs;
 8. **the current execution order in `implementation-plan.md`;**
-9. enterprise productization design/implementation references;
+9. focused enterprise implementation plans, then broader enterprise productization references;
 10. acceptance detail.
 
 Architecture never overrides the simpler user-facing Program, issue/change, request, decision and outcome model.
@@ -81,16 +82,11 @@ Architecture never overrides the simpler user-facing Program, issue/change, requ
 
 The repository is a strong working foundation and reference MVP. It is not yet a completed banking product.
 
-The foundational execution sequence is now complete:
-
-1. #26 P0 executable integrity — complete;
-2. #32 P1 semantic/current-state correctness — complete;
-3. PR #31 UI/UX foundation reconciliation on completed P1 — complete;
-4. #33 P2 durable-schema ownership and dead compatibility cleanup — complete in merged PR #41.
+The foundational execution sequence is complete through the current-state/schema/product foundation tranches. The current implementation ledger now selects **EIA-0**, the small enterprise identity/access foundation: department paths on existing organizational positions, capabilities on existing role templates, and bounded multi-level escalation policy validation. It does not claim executable OIDC, SCIM, department-aware capability enforcement, or escalation runtime yet.
 
 Current execution truth is maintained in [`implementation-plan.md`](implementation-plan.md). Do not infer capability from historical issue text, a durable table name, a descriptive API schema, or an older branch.
 
-The remaining enterprise identity, RBAC, notifications, MFA, production storage, accessibility, recovery, scale and governed-operator workflows remain specified in the enterprise productization documents, but those documents do not supersede the current implementation ledger.
+The remaining enterprise identity, notifications, production storage, accessibility, recovery, scale and governed-operator workflows remain specified in focused/broader enterprise plans, but those documents do not supersede the current implementation ledger.
 
 ## Semantic guardrails
 
@@ -103,6 +99,9 @@ Do not collapse these objects while implementing later work:
 - Automation Policy = permission boundary, not execution proof.
 - Intervention Summary = actor-facing read projection, not authoritative state.
 - Durable table = storage construct whose capability meaning depends on its registered executable owner.
+- Department path = organizational scope, not authorization by itself.
+- Directory group = source-backed membership, not material authority.
+- Escalation sequence = ordered responsibility/scope selection, not a hard-coded assignee chain.
 
 ## Traceability
 
