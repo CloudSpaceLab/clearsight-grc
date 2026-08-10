@@ -147,7 +147,7 @@ func (e *PostgresSourceExecutor) Evaluate(ctx context.Context, population Popula
 	if err != nil {
 		return EvaluationReceipt{}, err
 	}
-	expectedSchema, err := condition.SchemaFingerprint()
+	expectedRequiredSchema, err := condition.RequiredSchemaFingerprint(population.SubjectKey)
 	if err != nil {
 		return EvaluationReceipt{}, err
 	}
@@ -164,7 +164,11 @@ func (e *PostgresSourceExecutor) Evaluate(ctx context.Context, population Popula
 	if err != nil {
 		return EvaluationReceipt{}, err
 	}
-	if currentSchema.SchemaFingerprint != expectedSchema {
+	currentRequiredSchema, err := schemaFingerprintForFields(currentSchema.Schema, condition.requiredSchemaFields(population.SubjectKey))
+	if err != nil {
+		return EvaluationReceipt{}, err
+	}
+	if currentRequiredSchema != expectedRequiredSchema {
 		return EvaluationReceipt{}, ErrSourceSchemaChanged
 	}
 
