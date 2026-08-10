@@ -148,11 +148,11 @@ func TestBeginRequiresBoundedTenantAndLegalEntity(t *testing.T) {
 
 func TestSafeReturnPathRejectsExternalAndOversizedTargets(t *testing.T) {
 	cases := map[string]string{
-		"":                                "/",
-		"/today?view=mine":                "/today?view=mine",
-		"https://evil.test/steal":         "/",
-		"//evil.test/steal":               "/",
-		"javascript:alert(1)":             "/",
+		"":                              "/",
+		"/today?view=mine":              "/today?view=mine",
+		"https://evil.test/steal":       "/",
+		"//evil.test/steal":             "/",
+		"javascript:alert(1)":           "/",
 		"/" + strings.Repeat("x", 2048): "/",
 	}
 	for input, expected := range cases {
