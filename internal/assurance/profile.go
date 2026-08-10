@@ -12,12 +12,13 @@ import (
 const DefaultHintPackVersion = "bank-core-v1"
 
 const (
-	hardMaxProfileFields          = 512
-	hardMaxProfileRows            = 4096
-	hardMaxProfileDistinct        = 4096
-	hardMaxProfileTopValues       = 32
-	hardMaxProfileValueBytes      = 512
-	hardMaxProfileCellBytes       = 64 << 10
+	hardMaxProfileFields           = 512
+	hardMaxProfileRows             = 4096
+	hardMaxProfileCells            = 64 << 10
+	hardMaxProfileDistinct         = 4096
+	hardMaxProfileTopValues        = 32
+	hardMaxProfileValueBytes       = 512
+	hardMaxProfileCellBytes        = 64 << 10
 	maxPublishedCategoricalValues = 20
 )
 
@@ -109,10 +110,7 @@ func ProfileRows(schema Schema, rows []map[string]any, limits ProfileLimits) (Po
 		return PopulationProfile{}, err
 	}
 
-	observed := len(rows)
-	if observed > limits.MaxRows {
-		observed = limits.MaxRows
-	}
+	observed := boundedProfileRows(len(rows), len(schema.Fields), limits.MaxRows)
 	profile := PopulationProfile{
 		SchemaFingerprint: fingerprint,
 		RowsObserved:      observed,
@@ -167,6 +165,24 @@ func ProfileRows(schema Schema, rows []map[string]any, limits ProfileLimits) (Po
 	return profile, nil
 }
 
+func boundedProfileRows(rowCount, fieldCount, configuredMaxRows int) int {
+	observed := rowCount
+	if observed > configuredMaxRows {
+		observed = configuredMaxRows
+	}
+	if fieldCount <= 0 {
+		return observed
+	}
+	maxRowsByCells := hardMaxProfileCells / fieldCount
+	if maxRowsByCells < 1 {
+		maxRowsByCells = 1
+	}
+	if observed > maxRowsByCells {
+		observed = maxRowsByCells
+	}
+	return observed
+}
+
 type profileState struct {
 	distinct       map[string]struct{}
 	distinctCapped bool
@@ -179,14 +195,18 @@ func (s *profileState) observeDistinct(value typedValue, limits ProfileLimits) {
 	if _, exists := s.distinct[key]; !exists {
 		if len(s.distinct) >= limits.MaxDistinct {
 			s.distinctCapped = true
+			s.captureTop = false
+			s.valueCounts = nil
 		} else {
 			s.distinct[key] = struct{}{}
+			if len(s.distinct) > maxPublishedCategoricalValues {
+				s.captureTop = false
+				s.valueCounts = nil
+			}
 		}
 	}
 	if s.captureTop && display != "" {
-		if _, exists := s.valueCounts[display]; exists || len(s.valueCounts) < limits.MaxDistinct {
-			s.valueCounts[display]++
-		}
+		s.valueCounts[display]++
 	}
 }
 
