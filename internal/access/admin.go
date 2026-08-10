@@ -74,20 +74,20 @@ type GroupRoleBindingSummary struct {
 }
 
 type EscalationRuntimeStatus struct {
-	PendingTimers   int `json:"pending_timers"`
-	EscalatedTasks  int `json:"escalated_tasks"`
-	Unresolved24h   int `json:"unresolved_24h"`
-	FailedTimers    int `json:"failed_timers"`
+	PendingTimers  int `json:"pending_timers"`
+	EscalatedTasks int `json:"escalated_tasks"`
+	Unresolved24h  int `json:"unresolved_24h"`
+	FailedTimers   int `json:"failed_timers"`
 }
 
 type AdminOverview struct {
-	Sources      []SCIMSourceSummary       `json:"sources"`
-	People       []PersonSummary           `json:"people"`
-	Groups       []GroupSummary            `json:"groups"`
-	Roles        []RoleTemplateSummary     `json:"roles"`
-	LegalEntities []LegalEntitySummary     `json:"legal_entities"`
-	Bindings     []GroupRoleBindingSummary `json:"bindings"`
-	Escalation   EscalationRuntimeStatus   `json:"escalation"`
+	Sources       []SCIMSourceSummary       `json:"sources"`
+	People        []PersonSummary           `json:"people"`
+	Groups        []GroupSummary            `json:"groups"`
+	Roles         []RoleTemplateSummary     `json:"roles"`
+	LegalEntities []LegalEntitySummary      `json:"legal_entities"`
+	Bindings      []GroupRoleBindingSummary `json:"bindings"`
+	Escalation    EscalationRuntimeStatus   `json:"escalation"`
 }
 
 type CreateSCIMSourceInput struct {
@@ -99,12 +99,12 @@ type CreateSCIMSourceInput struct {
 }
 
 type CreateGroupRoleBindingInput struct {
-	TenantID        string   `json:"tenant_id"`
-	GroupID         string   `json:"group_id"`
-	RoleTemplateID  string   `json:"role_template_id"`
-	LegalEntityID   string   `json:"legal_entity_id"`
-	DepartmentPath  []string `json:"department_path"`
-	ActorID         string   `json:"-"`
+	TenantID       string   `json:"tenant_id"`
+	GroupID        string   `json:"group_id"`
+	RoleTemplateID string   `json:"role_template_id"`
+	LegalEntityID  string   `json:"legal_entity_id"`
+	DepartmentPath []string `json:"department_path"`
+	ActorID        string   `json:"-"`
 }
 
 type Administrator interface {
@@ -113,7 +113,7 @@ type Administrator interface {
 	RotateSCIMSourceToken(context.Context, string, string, string, []byte) error
 	RevokeSCIMSource(context.Context, string, string, string) error
 	CreateGroupRoleBinding(context.Context, CreateGroupRoleBindingInput) (GroupRoleBindingSummary, error)
-	RetireGroupRoleBinding(context.Context, string, string, string) error
+	RetireGroupRoleBinding(context.Context, string, string, string, string) error
 }
 
 func NewProvisioningToken() (string, [32]byte, error) {
