@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -113,7 +114,7 @@ type Administrator interface {
 	RotateSCIMSourceToken(context.Context, string, string, string, []byte) error
 	RevokeSCIMSource(context.Context, string, string, string) error
 	CreateGroupRoleBinding(context.Context, CreateGroupRoleBindingInput) (GroupRoleBindingSummary, error)
-	RetireGroupRoleBinding(context.Context, string, string, string, string) error
+	RetireGroupRoleBinding(context.Context, string, string, string) error
 }
 
 func NewProvisioningToken() (string, [32]byte, error) {
@@ -145,8 +146,11 @@ func normalizeSCIMSourceInput(input CreateSCIMSourceInput) (CreateSCIMSourceInpu
 	if input.SubjectAttribute != "externalId" && input.SubjectAttribute != "userName" {
 		return CreateSCIMSourceInput{}, ErrAdminInvalid
 	}
-	if len(input.IdentityIssuer) > 2048 {
-		return CreateSCIMSourceInput{}, ErrAdminInvalid
+	if input.IdentityIssuer != "" {
+		issuer, err := url.Parse(input.IdentityIssuer)
+		if err != nil || issuer.Scheme != "https" || issuer.Host == "" || issuer.User != nil || issuer.Fragment != "" || len(input.IdentityIssuer) > 2048 {
+			return CreateSCIMSourceInput{}, ErrAdminInvalid
+		}
 	}
 	return input, nil
 }
