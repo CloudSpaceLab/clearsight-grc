@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 )
@@ -34,6 +35,25 @@ func TestPolicyMakerCheckerLifecycle(t *testing.T) {
 	}
 	if p.Status != PolicyActive || p.CheckerID != "checker" {
 		t.Fatalf("unexpected policy %#v", p)
+	}
+}
+
+func TestPolicyCreationRejectsInvalidEscalationSequence(t *testing.T) {
+	svc := NewService(NewMemoryRepository())
+	definition := json.RawMessage(`{
+		"rules":[{"id":"r1","responsibility":"ESCALATION_OWNER","selector":{"kind":"ROLE","ref":"RISK_MANAGER"}}],
+		"escalations":[{
+			"id":"overdue-review",
+			"trigger":"OVERDUE",
+			"steps":[
+				{"after":"4h","responsibility":"ACCOUNTABLE_OWNER","department_levels_up":0},
+				{"after":"4h","responsibility":"ESCALATION_OWNER","department_levels_up":1}
+			]
+		}]
+	}`)
+	_, err := svc.CreatePolicy(context.Background(), CreatePolicyInput{TenantID: "t1", Code: "risk", Name: "Risk", MakerID: "maker", Definition: definition})
+	if err == nil || !strings.Contains(err.Error(), "must increase") {
+		t.Fatalf("expected escalation validation error, got %v", err)
 	}
 }
 
