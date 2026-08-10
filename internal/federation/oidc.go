@@ -21,17 +21,23 @@ import (
 )
 
 const (
-	sessionTenantID      = "auth.tenant_id"
-	sessionPrincipalID   = "auth.principal_id"
-	sessionLegalEntityID = "auth.legal_entity_id"
-	sessionSessionID     = "auth.session_id"
-	sessionIssuedAt      = "auth.issued_at"
-	sessionAssurance     = "auth.assurance"
-	transactionState     = "oidc.state"
-	transactionNonce     = "oidc.nonce"
-	transactionVerifier  = "oidc.verifier"
-	transactionTenant    = "oidc.tenant"
-	transactionReturnTo  = "oidc.return_to"
+	sessionTenantID         = "auth.tenant_id"
+	sessionPrincipalID      = "auth.principal_id"
+	sessionLegalEntityID    = "auth.legal_entity_id"
+	sessionSessionID        = "auth.session_id"
+	sessionIssuedAt         = "auth.issued_at"
+	sessionAssurance        = "auth.assurance"
+	transactionState        = "oidc.state"
+	transactionNonce        = "oidc.nonce"
+	transactionVerifier     = "oidc.verifier"
+	transactionTenant       = "oidc.tenant"
+	transactionLegalEntity  = "oidc.legal_entity"
+	transactionReturnTo     = "oidc.return_to"
+	maxScopeValueBytes      = 128
+	maxReturnPathBytes      = 2048
+	maxOIDCSubjectBytes     = 2048
+	maxAssuranceBytes       = 512
+	maxAuthenticationMethod = 16
 )
 
 type Config struct {
@@ -145,8 +151,9 @@ func (s *Service) Authenticate(r *http.Request) (identity.Actor, bool, error) {
 
 func (s *Service) Begin(w http.ResponseWriter, r *http.Request) {
 	tenantID := strings.TrimSpace(r.URL.Query().Get("tenant"))
-	if tenantID == "" {
-		http.Error(w, "tenant is required", http.StatusBadRequest)
+	legalEntityID := strings.TrimSpace(r.URL.Query().Get("legal_entity"))
+	if !validScopeValue(tenantID) || !validScopeValue(legalEntityID) {
+		http.Error(w, "tenant and legal_entity are required", http.StatusBadRequest)
 		return
 	}
 	state, err := randomToken(32)
@@ -168,6 +175,7 @@ func (s *Service) Begin(w http.ResponseWriter, r *http.Request) {
 	s.sessions.Put(r.Context(), transactionNonce, nonce)
 	s.sessions.Put(r.Context(), transactionVerifier, verifier)
 	s.sessions.Put(r.Context(), transactionTenant, tenantID)
+	s.sessions.Put(r.Context(), transactionLegalEntity, legalEntityID)
 	s.sessions.Put(r.Context(), transactionReturnTo, safeReturnPath(r.URL.Query().Get("return_to")))
 
 	destination := s.oauth.AuthCodeURL(state, oidc.Nonce(nonce), oauth2.S256ChallengeOption(verifier))
@@ -192,9 +200,10 @@ func (s *Service) Callback(w http.ResponseWriter, r *http.Request) {
 	nonce := s.sessions.PopString(r.Context(), transactionNonce)
 	verifier := s.sessions.PopString(r.Context(), transactionVerifier)
 	tenantID := s.sessions.PopString(r.Context(), transactionTenant)
+	legalEntityID := s.sessions.PopString(r.Context(), transactionLegalEntity)
 	returnTo := safeReturnPath(s.sessions.PopString(r.Context(), transactionReturnTo))
 	code := strings.TrimSpace(r.URL.Query().Get("code"))
-	if nonce == "" || verifier == "" || tenantID == "" || code == "" {
+	if nonce == "" || verifier == "" || !validScopeValue(tenantID) || !validScopeValue(legalEntityID) || code == "" {
 		_ = s.sessions.Destroy(r.Context())
 		http.Error(w, "sign-in transaction is incomplete", http.StatusUnauthorized)
 		return
@@ -228,11 +237,16 @@ func (s *Service) Callback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "identity token transaction could not be verified", http.StatusUnauthorized)
 		return
 	}
-	resolved, err := s.access.ResolveOIDC(r.Context(), tenantID, s.issuer, idToken.Subject)
+	if subject := strings.TrimSpace(idToken.Subject); subject == "" || len(subject) > maxOIDCSubjectBytes {
+		_ = s.sessions.Destroy(r.Context())
+		http.Error(w, "identity subject could not be verified", http.StatusUnauthorized)
+		return
+	}
+	resolved, err := s.access.ResolveOIDC(r.Context(), tenantID, legalEntityID, s.issuer, idToken.Subject)
 	if err != nil {
 		_ = s.sessions.Destroy(r.Context())
-		if errors.Is(err, access.ErrIdentityNotProvisioned) {
-			http.Error(w, "this identity is not provisioned for ClearSight", http.StatusForbidden)
+		if errors.Is(err, access.ErrIdentityNotProvisioned) || errors.Is(err, access.ErrPrincipalUnavailable) {
+			http.Error(w, "this identity is not provisioned for the requested ClearSight scope", http.StatusForbidden)
 			return
 		}
 		http.Error(w, "identity access could not be resolved", http.StatusServiceUnavailable)
@@ -254,19 +268,12 @@ func (s *Service) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := s.now().UTC()
-	assurance := strings.TrimSpace(claims.ACR)
-	if assurance == "" && len(claims.AMR) > 0 {
-		assurance = "OIDC:" + strings.Join(claims.AMR, ",")
-	}
-	if assurance == "" {
-		assurance = "OIDC"
-	}
 	s.sessions.Put(r.Context(), sessionTenantID, resolved.TenantID)
 	s.sessions.Put(r.Context(), sessionPrincipalID, resolved.PrincipalID)
 	s.sessions.Put(r.Context(), sessionLegalEntityID, resolved.LegalEntityID)
 	s.sessions.Put(r.Context(), sessionSessionID, sessionID)
 	s.sessions.Put(r.Context(), sessionIssuedAt, now)
-	s.sessions.Put(r.Context(), sessionAssurance, assurance)
+	s.sessions.Put(r.Context(), sessionAssurance, assuranceFromClaims(claims.ACR, claims.AMR))
 	http.Redirect(w, r, s.applicationURL+returnTo, http.StatusSeeOther)
 }
 
@@ -293,9 +300,22 @@ func constantTimeEqual(left, right string) bool {
 	return subtle.ConstantTimeCompare([]byte(left), []byte(right)) == 1
 }
 
+func validScopeValue(value string) bool {
+	value = strings.TrimSpace(value)
+	if value == "" || len(value) > maxScopeValueBytes {
+		return false
+	}
+	for _, r := range value {
+		if r < 0x20 || r == 0x7f {
+			return false
+		}
+	}
+	return true
+}
+
 func safeReturnPath(value string) string {
 	value = strings.TrimSpace(value)
-	if value == "" {
+	if value == "" || len(value) > maxReturnPathBytes {
 		return "/"
 	}
 	parsed, err := url.Parse(value)
@@ -306,6 +326,31 @@ func safeReturnPath(value string) string {
 		return "/"
 	}
 	return parsed.RequestURI()
+}
+
+func assuranceFromClaims(acr string, amr []string) string {
+	acr = strings.TrimSpace(acr)
+	if acr != "" && len(acr) <= maxAssuranceBytes {
+		return acr
+	}
+	methods := make([]string, 0, min(len(amr), maxAuthenticationMethod))
+	for _, value := range amr {
+		value = strings.TrimSpace(value)
+		if value == "" || len(value) > 64 {
+			continue
+		}
+		methods = append(methods, value)
+		if len(methods) == maxAuthenticationMethod {
+			break
+		}
+	}
+	if len(methods) > 0 {
+		value := "OIDC:" + strings.Join(methods, ",")
+		if len(value) <= maxAssuranceBytes {
+			return value
+		}
+	}
+	return "OIDC"
 }
 
 func validateAbsoluteURL(value string, requireHTTPS, allowQuery bool) error {
