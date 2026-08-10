@@ -2,7 +2,6 @@ package assurance
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -277,5 +276,3 @@ func sourceDatabaseError(ctx context.Context, fallback error) error {
 	}
 	return fallback
 }
-
-var _ = errors.Is
