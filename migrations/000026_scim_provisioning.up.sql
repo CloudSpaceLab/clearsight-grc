@@ -92,8 +92,7 @@ CREATE TABLE directory_group_role_bindings (
     FOREIGN KEY (tenant_id, role_template_id) REFERENCES role_templates(tenant_id, id),
     FOREIGN KEY (tenant_id, legal_entity_id) REFERENCES legal_entities(tenant_id, id),
     CHECK (valid_until IS NULL OR valid_from < valid_until),
-    CHECK (cardinality(department_path) <= 12),
-    CHECK (NOT EXISTS (SELECT 1 FROM unnest(department_path) AS segment WHERE length(btrim(segment)) = 0 OR length(segment) > 80))
+    CHECK (cardinality(department_path) <= 12)
 );
 CREATE INDEX directory_group_role_bindings_effective_idx
     ON directory_group_role_bindings(tenant_id, legal_entity_id, group_id, valid_from, valid_until);
