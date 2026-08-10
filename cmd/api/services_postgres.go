@@ -90,6 +90,6 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		Evidence: evidenceService, DocumentImports: documentService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
 		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo),
-		Access: access.NewPostgresResolver(pool), SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
+		Access: access.NewPostgresResolver(pool), AccessAdmin: access.NewPostgresAdministrator(pool), SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
 	}, nil
 }
