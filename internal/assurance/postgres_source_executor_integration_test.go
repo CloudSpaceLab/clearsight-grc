@@ -150,17 +150,32 @@ func TestPostgresSourceExecutorIsolationAndEvaluation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !receipt.Complete || receipt.TotalCount != 4 || receipt.MatchCount != 1 || receipt.UnknownCount != 2 || receipt.ClearCount != 1 {
-		t.Fatalf("unexpected evaluation receipt: %#v", receipt)
-	}
+	assertSourceReceiptCounts(t, receipt)
 	if receipt.PopulationFingerprint != inspected.PopulationFingerprint || receipt.SchemaFingerprint != inspected.SchemaFingerprint {
 		t.Fatalf("evaluation did not preserve inspected identities: inspected=%#v receipt=%#v", inspected, receipt)
 	}
 
-	changedPopulation := population
-	changedPopulation.Query = `SELECT id,status,patch_age_days::text AS patch_age_days,owner_id FROM ` + sourceExecutorFixture
-	if _, err := executor.Evaluate(ctx, changedPopulation, condition); !errors.Is(err, ErrSourceSchemaChanged) {
-		t.Fatalf("schema change must fail closed before evaluation, got %v", err)
+	unrelatedChange := population
+	unrelatedChange.Query = `SELECT id,status,patch_age_days,length(owner_id)::numeric AS owner_id FROM ` + sourceExecutorFixture
+	unrelatedReceipt, err := executor.Evaluate(ctx, unrelatedChange, condition)
+	if err != nil {
+		t.Fatalf("unrelated projected-column type change should remain evaluable: %v", err)
+	}
+	assertSourceReceiptCounts(t, unrelatedReceipt)
+	if unrelatedReceipt.SchemaFingerprint == inspected.SchemaFingerprint {
+		t.Fatal("complete schema fingerprint did not record unrelated projected-column change")
+	}
+
+	dependencyChange := population
+	dependencyChange.Query = `SELECT id,status,patch_age_days::text AS patch_age_days,owner_id FROM ` + sourceExecutorFixture
+	if _, err := executor.Evaluate(ctx, dependencyChange, condition); !errors.Is(err, ErrSourceSchemaChanged) {
+		t.Fatalf("condition dependency schema change must fail closed before evaluation, got %v", err)
+	}
+
+	subjectKeyChange := population
+	subjectKeyChange.Query = `SELECT length(id::text)::numeric AS id,status,patch_age_days,owner_id FROM ` + sourceExecutorFixture
+	if _, err := executor.Evaluate(ctx, subjectKeyChange, condition); !errors.Is(err, ErrSourceSchemaChanged) {
+		t.Fatalf("subject-key schema change must fail closed before evaluation, got %v", err)
 	}
 
 	slowPopulation := population
@@ -175,6 +190,13 @@ func TestPostgresSourceExecutorIsolationAndEvaluation(t *testing.T) {
 	}
 	if time.Since(started) > 3*time.Second {
 		t.Fatalf("source timeout exceeded bounded execution window: %s", time.Since(started))
+	}
+}
+
+func assertSourceReceiptCounts(t *testing.T, receipt EvaluationReceipt) {
+	t.Helper()
+	if !receipt.Complete || receipt.TotalCount != 4 || receipt.MatchCount != 1 || receipt.UnknownCount != 2 || receipt.ClearCount != 1 {
+		t.Fatalf("unexpected evaluation receipt: %#v", receipt)
 	}
 }
 
