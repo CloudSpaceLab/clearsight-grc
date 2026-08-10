@@ -35,6 +35,7 @@ type serviceSet struct {
 	BankVerticals   *bankverticals.Service
 	BackgroundJobs  *operations.Service
 	Access          access.Resolver
+	AccessAdmin     access.Administrator
 	SessionStore    scs.Store
 	SCIM            *scimapi.Service
 	Close           func()
