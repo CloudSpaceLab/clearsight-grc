@@ -49,7 +49,9 @@ func (f *fakeRepository) CreateGroup(_ context.Context, _ Source, group Group) (
 	f.group = group
 	return group, nil
 }
-func (f *fakeRepository) GetGroup(context.Context, Source, string) (Group, error) { return f.group, nil }
+func (f *fakeRepository) GetGroup(context.Context, Source, string) (Group, error) {
+	return f.group, nil
+}
 func (f *fakeRepository) ListGroups(context.Context, Source, GroupFilter, int, int) ([]Group, int, error) {
 	return []Group{f.group}, 1, nil
 }
