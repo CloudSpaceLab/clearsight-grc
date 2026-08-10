@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/federation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
@@ -26,6 +28,7 @@ type Dependencies struct {
 	Mode             string
 	DemoMode         bool
 	Identity         identity.Authenticator
+	Federation       *federation.Service
 	CommandGuard     *commandauth.Guard
 	Authority        authority.Service
 	Governance       *governance.Service
@@ -47,7 +50,7 @@ func New(deps Dependencies) http.Handler {
 	api := &API{deps: deps}
 	mux := http.NewServeMux()
 	api.registerRoutes(mux)
-	return httpx.Chain(
+	handler := httpx.Chain(
 		mux,
 		httpx.CORS(deps.AllowedOrigin),
 		httpx.RequestID,
@@ -56,4 +59,14 @@ func New(deps Dependencies) http.Handler {
 		httpx.Recover(deps.Logger),
 		httpx.AccessLog(deps.Logger),
 	)
+	if deps.Federation != nil {
+		handler = deps.Federation.Middleware(handler)
+	}
+	protection := http.NewCrossOriginProtection()
+	if deps.AllowedOrigin != "" {
+		if err := protection.AddTrustedOrigin(deps.AllowedOrigin); err != nil {
+			panic(fmt.Errorf("configure trusted origin: %w", err))
+		}
+	}
+	return protection.Handler(handler)
 }
