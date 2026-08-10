@@ -103,8 +103,8 @@ func New(ctx context.Context, cfg Config, store scs.Store, resolver access.Resol
 		},
 		verifier: provider.Verifier(&oidc.Config{ClientID: cfg.ClientID}),
 		sessions: sessions,
-		access: resolver,
-		now: time.Now,
+		access:   resolver,
+		now:      time.Now,
 	}, nil
 }
 
@@ -131,7 +131,7 @@ func (s *Service) Authenticate(r *http.Request) (identity.Actor, bool, error) {
 	actor := identity.Actor{
 		TenantID: resolved.TenantID, PrincipalID: resolved.PrincipalID, LegalEntityID: resolved.LegalEntityID,
 		Kind: resolved.Kind, RoleCodes: resolved.RoleCodes, PermissionCodes: resolved.PermissionCodes,
-		DepartmentGrants: resolved.DepartmentGrants,
+		DepartmentGrants:     resolved.DepartmentGrants,
 		AuthenticationMethod: "OIDC", AssuranceLevel: s.sessions.GetString(ctx, sessionAssurance),
 		SessionID: s.sessions.GetString(ctx, sessionSessionID), IssuedAt: s.sessions.GetTime(ctx, sessionIssuedAt),
 		ExpiresAt: s.sessions.Deadline(ctx),
