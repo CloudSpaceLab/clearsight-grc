@@ -49,8 +49,9 @@ export function IdentityAccessPanel() {
   const sequences = selectedPolicy?.sequences ?? [];
 
   useEffect(() => {
-    if (!overview?.escalation_policies.length) return;
-    if (!policyID) setPolicyID(overview.escalation_policies[0].policy_id);
+    if (policyID) return;
+    const firstPolicy = overview?.escalation_policies[0];
+    if (firstPolicy) setPolicyID(firstPolicy.policy_id);
   }, [overview, policyID]);
 
   useEffect(() => {
