@@ -1,6 +1,11 @@
 package identity
 
-import "testing"
+import (
+	"errors"
+	"strings"
+	"testing"
+	"time"
+)
 
 func TestHasDepartmentPermissionRequiresExactScope(t *testing.T) {
 	actor := Actor{DepartmentGrants: []DepartmentGrant{{
@@ -20,5 +25,17 @@ func TestHasDepartmentPermissionRequiresExactScope(t *testing.T) {
 func TestNormalizeDepartmentPathRejectsEmptySegment(t *testing.T) {
 	if _, err := NormalizeDepartmentPath([]string{"BANK", " "}); err == nil {
 		t.Fatal("expected empty department segment to fail")
+	}
+}
+
+func TestActorValidRejectsOversizedSessionMetadata(t *testing.T) {
+	now := time.Now().UTC()
+	actor := Actor{
+		TenantID: "bank-demo", PrincipalID: "principal-1", LegalEntityID: "BANK-NG",
+		AuthenticationMethod: "OIDC", AssuranceLevel: strings.Repeat("x", 513), SessionID: "ses_test",
+		IssuedAt: now, ExpiresAt: now.Add(time.Hour),
+	}
+	if err := actor.Valid(now); !errors.Is(err, ErrInvalidIdentity) {
+		t.Fatalf("expected oversized assurance to invalidate actor, got %v", err)
 	}
 }
