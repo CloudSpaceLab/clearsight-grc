@@ -57,7 +57,7 @@ func (a *API) identityAccessOverview(w http.ResponseWriter, r *http.Request) {
 			"authentication": actor.AuthenticationMethod, "assurance_level": actor.AssuranceLevel,
 		},
 		"can_configure": identity.HasPermission(actor, identity.PermissionIdentityConfigure),
-		"sources": overview.Sources, "people": overview.People, "groups": overview.Groups,
+		"sources":       overview.Sources, "people": overview.People, "groups": overview.Groups,
 		"roles": overview.Roles, "legal_entities": overview.LegalEntities, "bindings": overview.Bindings,
 		"escalation": overview.Escalation, "escalation_policies": policies,
 	})
