@@ -55,7 +55,6 @@ func New(deps Dependencies) http.Handler {
 	api := &API{deps: deps}
 	mux := http.NewServeMux()
 	api.registerFederationRoutes(mux)
-	api.registerIdentityAccessRoutes(mux)
 	api.registerRoutes(mux)
 	appHandler := httpx.Chain(
 		mux,
