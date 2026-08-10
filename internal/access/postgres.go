@@ -18,38 +18,35 @@ func NewPostgresResolver(pool *pgxpool.Pool) *PostgresResolver {
 	return &PostgresResolver{pool: pool}
 }
 
-func (r *PostgresResolver) ResolveOIDC(ctx context.Context, tenantID, issuer, subject string) (Resolution, error) {
+func (r *PostgresResolver) ResolveOIDC(ctx context.Context, tenantID, legalEntityID, issuer, subject string) (Resolution, error) {
 	tenantID = strings.TrimSpace(tenantID)
+	legalEntityID = strings.TrimSpace(legalEntityID)
 	issuer = strings.TrimSpace(issuer)
 	subject = strings.TrimSpace(subject)
-	if tenantID == "" || issuer == "" || subject == "" {
+	if tenantID == "" || legalEntityID == "" || issuer == "" || subject == "" {
 		return Resolution{}, ErrIdentityNotProvisioned
 	}
 
-	var value Resolution
+	var principalID string
 	err := r.pool.QueryRow(ctx, `
-		SELECT t.slug,p.id::text,le.code,p.display_name,p.kind
+		SELECT p.id::text
 		FROM principal_identities pi
 		JOIN tenants t ON t.id=pi.tenant_id
 		JOIN principals p ON p.id=pi.principal_id AND p.tenant_id=pi.tenant_id
-		JOIN legal_entities le ON le.id=pi.legal_entity_id AND le.tenant_id=pi.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND pi.issuer=$2
 		  AND pi.subject=$3
 		  AND pi.status='ACTIVE'
 		  AND p.status='ACTIVE'
 		  AND p.valid_from<=clock_timestamp()
-		  AND (p.valid_until IS NULL OR clock_timestamp()<p.valid_until)
-		  AND le.valid_from<=clock_timestamp()
-		  AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)`, tenantID, issuer, subject).
-		Scan(&value.TenantID, &value.PrincipalID, &value.LegalEntityID, &value.DisplayName, &value.Kind)
+		  AND (p.valid_until IS NULL OR clock_timestamp()<p.valid_until)`, tenantID, issuer, subject).Scan(&principalID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Resolution{}, ErrIdentityNotProvisioned
 	}
 	if err != nil {
 		return Resolution{}, fmt.Errorf("resolve OIDC principal: %w", err)
 	}
-	return r.withRoles(ctx, value)
+	return r.ResolvePrincipal(ctx, tenantID, principalID, legalEntityID)
 }
 
 func (r *PostgresResolver) ResolvePrincipal(ctx context.Context, tenantID, principalID, legalEntityID string) (Resolution, error) {
@@ -73,7 +70,16 @@ func (r *PostgresResolver) ResolvePrincipal(ctx context.Context, tenantID, princ
 		  AND p.valid_from<=clock_timestamp()
 		  AND (p.valid_until IS NULL OR clock_timestamp()<p.valid_until)
 		  AND le.valid_from<=clock_timestamp()
-		  AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)`, tenantID, principalID, legalEntityID).
+		  AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)
+		  AND EXISTS (
+		      SELECT 1
+		      FROM org_positions op
+		      WHERE op.tenant_id=t.id
+		        AND op.occupant_principal_id=p.id
+		        AND (op.legal_entity_id IS NULL OR op.legal_entity_id=le.id)
+		        AND op.valid_from<=clock_timestamp()
+		        AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
+		  )`, tenantID, principalID, legalEntityID).
 		Scan(&value.TenantID, &value.PrincipalID, &value.LegalEntityID, &value.DisplayName, &value.Kind)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Resolution{}, ErrPrincipalUnavailable
