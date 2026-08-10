@@ -14,7 +14,6 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/federation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
@@ -24,6 +23,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
+	"github.com/alexedwards/scs/pgxstore"
 )
 
 const todayItemLimit = 50
@@ -72,12 +72,17 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		}
 		return today.FromWorkflowTasksForActor(assigned, actor.PrincipalID), nil
 	})
+	sessionStore := pgxstore.NewWithConfig(pool, pgxstore.Config{CleanUpInterval: 5 * time.Minute, TableName: "web_sessions"})
+	closeServices := func() {
+		sessionStore.StopCleanup()
+		pool.Close()
+	}
 	logger.Info("postgres repositories enabled", "max_connections", cfg.DatabaseMaxConns, "artifact_root", cfg.ArtifactRoot, "demo_mode", cfg.DemoMode)
 	return serviceSet{
 		Mode: "postgres", Authority: authority.NewEffectivePostgresService(pool), Governance: governance.NewService(governance.NewPostgresRepository(pool)),
 		Evidence: evidenceService, DocumentImports: documentService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
 		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo),
-		Access: access.NewPostgresResolver(pool), SessionStore: federation.NewPostgresSessionStore(pool), Close: pool.Close,
+		Access: access.NewPostgresResolver(pool), SessionStore: sessionStore, Close: closeServices,
 	}, nil
 }
