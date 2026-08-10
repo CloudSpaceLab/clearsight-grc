@@ -110,7 +110,7 @@ func (r *PostgresResolver) withRoles(ctx context.Context, value Resolution) (Res
 	}
 	defer rows.Close()
 
-	allRoles := make([]string, 0, 8)
+	globalRoles := make([]string, 0, 8)
 	globalPermissions := make([]string, 0, 8)
 	type grantAccumulator struct {
 		path        []string
@@ -133,8 +133,8 @@ func (r *PostgresResolver) withRoles(ctx context.Context, value Resolution) (Res
 		}
 		roleCodes := identity.NormalizeRoleCodes([]string{role})
 		permissions := identity.NormalizePermissionCodes(capabilities)
-		allRoles = append(allRoles, roleCodes...)
 		if len(path) == 0 {
+			globalRoles = append(globalRoles, roleCodes...)
 			globalPermissions = append(globalPermissions, permissions...)
 			continue
 		}
@@ -152,7 +152,7 @@ func (r *PostgresResolver) withRoles(ctx context.Context, value Resolution) (Res
 		return Resolution{}, err
 	}
 
-	value.RoleCodes = identity.NormalizeRoleCodes(allRoles)
+	value.RoleCodes = identity.NormalizeRoleCodes(globalRoles)
 	value.PermissionCodes = identity.NormalizePermissionCodes(globalPermissions)
 	sort.Strings(value.RoleCodes)
 	sort.Strings(value.PermissionCodes)
