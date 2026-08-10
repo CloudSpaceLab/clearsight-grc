@@ -36,6 +36,19 @@ func TestParseEscalationSequencesSupportsDepartmentHierarchy(t *testing.T) {
 	}
 }
 
+func TestParseEscalationSequencesRejectsDuplicateTrigger(t *testing.T) {
+	definition := json.RawMessage(`{
+		"escalations":[
+			{"id":"overdue-owner","trigger":"OVERDUE","steps":[{"after":"0s","responsibility":"ACCOUNTABLE_OWNER"}]},
+			{"id":"overdue-risk","trigger":"OVERDUE","steps":[{"after":"1h","responsibility":"ESCALATION_OWNER"}]}
+		]
+	}`)
+	_, err := ParseEscalationSequences(definition)
+	if err == nil || !strings.Contains(err.Error(), "already defined") {
+		t.Fatalf("expected duplicate trigger rejection, got %v", err)
+	}
+}
+
 func TestParseEscalationSequencesRejectsNonIncreasingThresholds(t *testing.T) {
 	definition := json.RawMessage(`{
 		"escalations":[{
