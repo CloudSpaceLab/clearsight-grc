@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
@@ -16,6 +17,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
+	"github.com/alexedwards/scs/v2"
 )
 
 type serviceSet struct {
@@ -31,6 +33,8 @@ type serviceSet struct {
 	Autonomy        *autonomy.Service
 	BankVerticals   *bankverticals.Service
 	BackgroundJobs  *operations.Service
+	Access          access.Resolver
+	SessionStore    scs.Store
 	Close           func()
 }
 
