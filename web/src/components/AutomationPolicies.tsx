@@ -1,3 +1,4 @@
+import "../identity-access.css";
 import type { AutomationPolicy } from "../types";
 import { EmptyState } from "./EmptyState";
 import { IdentityAccessPanel } from "./IdentityAccessPanel";
