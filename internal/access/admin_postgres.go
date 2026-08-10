@@ -5,9 +5,7 @@ package access
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
-	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/jackc/pgx/v5"
@@ -22,23 +20,15 @@ func NewPostgresAdministrator(pool *pgxpool.Pool) *PostgresAdministrator {
 }
 
 func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntity string, limit int) (AdminOverview, error) {
-	tenant = strings.TrimSpace(tenant)
-	legalEntity = strings.TrimSpace(legalEntity)
+	tenant, legalEntity = strings.TrimSpace(tenant), strings.TrimSpace(legalEntity)
 	if tenant == "" || legalEntity == "" {
 		return AdminOverview{}, ErrAdminInvalid
 	}
 	if limit <= 0 || limit > 100 {
 		limit = 50
 	}
-	var tenantID, entityID string
-	if err := a.pool.QueryRow(ctx, `SELECT id::text FROM tenants WHERE id::text=$1 OR slug=$1`, tenant).Scan(&tenantID); errors.Is(err, pgx.ErrNoRows) {
-		return AdminOverview{}, ErrAdminNotFound
-	} else if err != nil {
-		return AdminOverview{}, err
-	}
-	if err := a.pool.QueryRow(ctx, `SELECT id::text FROM legal_entities WHERE tenant_id=$1::uuid AND (id::text=$2 OR code=$2) AND valid_from<=clock_timestamp() AND (valid_until IS NULL OR clock_timestamp()<valid_until) LIMIT 1`, tenantID, legalEntity).Scan(&entityID); errors.Is(err, pgx.ErrNoRows) {
-		return AdminOverview{}, ErrAdminNotFound
-	} else if err != nil {
+	tenantID, entityID, err := a.scopeIDs(ctx, tenant, legalEntity)
+	if err != nil {
 		return AdminOverview{}, err
 	}
 
@@ -63,11 +53,9 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 		}
 		result.Sources = append(result.Sources, value)
 	}
-	if err := rows.Err(); err != nil {
-		rows.Close()
+	if err := closeRows(rows); err != nil {
 		return AdminOverview{}, err
 	}
-	rows.Close()
 
 	rows, err = a.pool.Query(ctx, `
 		SELECT p.id::text,p.display_name,p.status,COALESCE(su.user_name,''),COALESCE(ss.code,''),COALESCE(ss.status,'')
@@ -87,11 +75,9 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 		}
 		result.People = append(result.People, value)
 	}
-	if err := rows.Err(); err != nil {
-		rows.Close()
+	if err := closeRows(rows); err != nil {
 		return AdminOverview{}, err
 	}
-	rows.Close()
 
 	rows, err = a.pool.Query(ctx, `
 		SELECT dg.id::text,dg.display_name,COALESCE(dg.external_id,''),ss.code,ss.status,count(dgm.scim_user_id)
@@ -112,11 +98,9 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 		}
 		result.Groups = append(result.Groups, value)
 	}
-	if err := rows.Err(); err != nil {
-		rows.Close()
+	if err := closeRows(rows); err != nil {
 		return AdminOverview{}, err
 	}
-	rows.Close()
 
 	rows, err = a.pool.Query(ctx, `
 		SELECT id::text,code,name,capabilities FROM role_templates
@@ -133,11 +117,9 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 		}
 		result.Roles = append(result.Roles, value)
 	}
-	if err := rows.Err(); err != nil {
-		rows.Close()
+	if err := closeRows(rows); err != nil {
 		return AdminOverview{}, err
 	}
-	rows.Close()
 
 	rows, err = a.pool.Query(ctx, `
 		SELECT id::text,code,name FROM legal_entities
@@ -154,14 +136,13 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 		}
 		result.LegalEntities = append(result.LegalEntities, value)
 	}
-	if err := rows.Err(); err != nil {
-		rows.Close()
+	if err := closeRows(rows); err != nil {
 		return AdminOverview{}, err
 	}
-	rows.Close()
 
 	rows, err = a.pool.Query(ctx, `
-		SELECT b.id::text,b.group_id::text,dg.display_name,b.role_template_id::text,rt.code,b.legal_entity_id::text,le.code,b.department_path,b.valid_from,b.valid_until
+		SELECT b.id::text,b.group_id::text,dg.display_name,b.role_template_id::text,rt.code,
+		       b.legal_entity_id::text,le.code,b.department_path,b.valid_from,b.valid_until
 		FROM directory_group_role_bindings b
 		JOIN directory_groups dg ON dg.tenant_id=b.tenant_id AND dg.id=b.group_id
 		JOIN role_templates rt ON rt.tenant_id=b.tenant_id AND rt.id=b.role_template_id
@@ -180,11 +161,9 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 		}
 		result.Bindings = append(result.Bindings, value)
 	}
-	if err := rows.Err(); err != nil {
-		rows.Close()
+	if err := closeRows(rows); err != nil {
 		return AdminOverview{}, err
 	}
-	rows.Close()
 
 	if err := a.pool.QueryRow(ctx, `
 		SELECT
@@ -212,14 +191,13 @@ func (a *PostgresAdministrator) CreateSCIMSource(ctx context.Context, input Crea
 		return SCIMSourceSummary{}, err
 	}
 	var id string
-	err = tx.QueryRow(ctx, `
+	if err := tx.QueryRow(ctx, `
 		INSERT INTO scim_sources(tenant_id,code,token_hash,identity_issuer,subject_attribute)
 		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2,$3,NULLIF($4,''),$5)
-		RETURNING id::text`, input.TenantID, input.Code, tokenHash, input.IdentityIssuer, input.SubjectAttribute).Scan(&id)
-	if err != nil {
+		RETURNING id::text`, input.TenantID, input.Code, tokenHash, input.IdentityIssuer, input.SubjectAttribute).Scan(&id); err != nil {
 		return SCIMSourceSummary{}, mapAdminPgError(err)
 	}
-	if err := recordAdminAudit(ctx, tx, input.TenantID, input.ActorID, "SCIM_SOURCE_CREATED", "SCIM_SOURCE", id, map[string]any{"code": input.Code}); err != nil {
+	if err := recordAdminDecision(ctx, tx, input.TenantID, input.ActorID, "SCIM_SOURCE_CREATED", "SCIM_SOURCE", id); err != nil {
 		return SCIMSourceSummary{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -234,10 +212,7 @@ func (a *PostgresAdministrator) RotateSCIMSourceToken(ctx context.Context, tenan
 	}
 	return a.mutateSCIMSource(ctx, tenant, sourceID, actorID, "SCIM_SOURCE_TOKEN_ROTATED", func(ctx context.Context, tx pgx.Tx) (int64, error) {
 		tag, err := tx.Exec(ctx, `UPDATE scim_sources SET token_hash=$1,updated_at=clock_timestamp() WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) AND id::text=$3 AND status='ACTIVE'`, tokenHash, tenant, strings.TrimSpace(sourceID))
-		if err != nil {
-			return 0, mapAdminPgError(err)
-		}
-		return tag.RowsAffected(), nil
+		return tag.RowsAffected(), err
 	})
 }
 
@@ -268,7 +243,7 @@ func (a *PostgresAdministrator) mutateSCIMSource(ctx context.Context, tenant, so
 	if changed != 1 {
 		return ErrAdminNotFound
 	}
-	if err := recordAdminAudit(ctx, tx, tenant, actorID, eventType, "SCIM_SOURCE", sourceID, nil); err != nil {
+	if err := recordAdminDecision(ctx, tx, tenant, actorID, eventType, "SCIM_SOURCE", sourceID); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
@@ -293,7 +268,7 @@ func (a *PostgresAdministrator) CreateGroupRoleBinding(ctx context.Context, inpu
 		return GroupRoleBindingSummary{}, err
 	}
 	var id string
-	err = tx.QueryRow(ctx, `
+	if err := tx.QueryRow(ctx, `
 		INSERT INTO directory_group_role_bindings(tenant_id,group_id,role_template_id,legal_entity_id,department_path,valid_from)
 		SELECT t.id,dg.id,rt.id,le.id,$5::text[],clock_timestamp()
 		FROM tenants t
@@ -302,14 +277,13 @@ func (a *PostgresAdministrator) CreateGroupRoleBinding(ctx context.Context, inpu
 		JOIN role_templates rt ON rt.tenant_id=t.id AND rt.id::text=$3 AND rt.valid_from<=clock_timestamp() AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
 		JOIN legal_entities le ON le.tenant_id=t.id AND le.id::text=$4 AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)
 		WHERE (t.id::text=$1 OR t.slug=$1)
-		RETURNING id::text`, input.TenantID, input.GroupID, input.RoleTemplateID, input.LegalEntityID, path).Scan(&id)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return GroupRoleBindingSummary{}, ErrAdminNotFound
-	}
-	if err != nil {
+		RETURNING id::text`, input.TenantID, input.GroupID, input.RoleTemplateID, input.LegalEntityID, path).Scan(&id); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return GroupRoleBindingSummary{}, ErrAdminNotFound
+		}
 		return GroupRoleBindingSummary{}, mapAdminPgError(err)
 	}
-	if err := recordAdminAudit(ctx, tx, input.TenantID, input.ActorID, "DIRECTORY_GROUP_ROLE_BOUND", "DIRECTORY_GROUP_ROLE_BINDING", id, map[string]any{"department_path": path}); err != nil {
+	if err := recordAdminDecision(ctx, tx, input.TenantID, input.ActorID, "DIRECTORY_GROUP_ROLE_BOUND", "DIRECTORY_GROUP_ROLE_BINDING", id); err != nil {
 		return GroupRoleBindingSummary{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -338,10 +312,25 @@ func (a *PostgresAdministrator) RetireGroupRoleBinding(ctx context.Context, tena
 	if tag.RowsAffected() != 1 {
 		return ErrAdminNotFound
 	}
-	if err := recordAdminAudit(ctx, tx, tenant, actorID, "DIRECTORY_GROUP_ROLE_RETIRED", "DIRECTORY_GROUP_ROLE_BINDING", bindingID, nil); err != nil {
+	if err := recordAdminDecision(ctx, tx, tenant, actorID, "DIRECTORY_GROUP_ROLE_RETIRED", "DIRECTORY_GROUP_ROLE_BINDING", bindingID); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+func (a *PostgresAdministrator) scopeIDs(ctx context.Context, tenant, legalEntity string) (string, string, error) {
+	var tenantID, entityID string
+	if err := a.pool.QueryRow(ctx, `SELECT id::text FROM tenants WHERE id::text=$1 OR slug=$1`, tenant).Scan(&tenantID); errors.Is(err, pgx.ErrNoRows) {
+		return "", "", ErrAdminNotFound
+	} else if err != nil {
+		return "", "", err
+	}
+	if err := a.pool.QueryRow(ctx, `SELECT id::text FROM legal_entities WHERE tenant_id=$1::uuid AND (id::text=$2 OR code=$2) AND valid_from<=clock_timestamp() AND (valid_until IS NULL OR clock_timestamp()<valid_until) LIMIT 1`, tenantID, legalEntity).Scan(&entityID); errors.Is(err, pgx.ErrNoRows) {
+		return "", "", ErrAdminNotFound
+	} else if err != nil {
+		return "", "", err
+	}
+	return tenantID, entityID, nil
 }
 
 func (a *PostgresAdministrator) scimSourceByID(ctx context.Context, tenant, id string) (SCIMSourceSummary, error) {
@@ -389,14 +378,26 @@ func ensureAdminActor(ctx context.Context, tx pgx.Tx, tenant, actorID string) er
 	return nil
 }
 
-func recordAdminAudit(ctx context.Context, tx pgx.Tx, tenant, actorID, eventType, subjectType, subjectID string, metadata map[string]any) error {
-	if metadata == nil {
-		metadata = map[string]any{}
-	}
+func recordAdminDecision(ctx context.Context, tx pgx.Tx, tenant, actorID, eventType, objectType, objectID string) error {
+	fromState, toState := adminDecisionStates(eventType)
 	_, err := tx.Exec(ctx, `
-		INSERT INTO audit_events(tenant_id,actor_id,event_type,subject_type,subject_id,purpose,safe_metadata)
-		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,$3,$4,$5::uuid,'IDENTITY_ACCESS_ADMIN',$6::jsonb)`, tenant, actorID, eventType, subjectType, subjectID, metadata)
+		INSERT INTO governance_decisions(tenant_id,object_type,object_id,from_state,to_state,actor_type,actor_id,rationale)
+		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2,$3::uuid,$4,$5,'PRINCIPAL',$6::uuid,$7)`,
+		tenant, objectType, objectID, fromState, toState, actorID, eventType)
 	return err
+}
+
+func adminDecisionStates(eventType string) (string, string) {
+	switch eventType {
+	case "SCIM_SOURCE_CREATED", "DIRECTORY_GROUP_ROLE_BOUND":
+		return "NONE", "ACTIVE"
+	case "SCIM_SOURCE_REVOKED":
+		return "ACTIVE", "REVOKED"
+	case "DIRECTORY_GROUP_ROLE_RETIRED":
+		return "ACTIVE", "RETIRED"
+	default:
+		return "ACTIVE", "ACTIVE"
+	}
 }
 
 func mapAdminPgError(err error) error {
@@ -407,6 +408,10 @@ func mapAdminPgError(err error) error {
 	return err
 }
 
+func closeRows(rows pgx.Rows) error {
+	err := rows.Err()
+	rows.Close()
+	return err
+}
+
 var _ Administrator = (*PostgresAdministrator)(nil)
-var _ = fmt.Sprintf
-var _ = time.Time{}
