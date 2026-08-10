@@ -61,7 +61,7 @@ Schema fingerprints are stable across column ordering but change when a named fi
 
 Profiles are summaries, not stored samples. Hard ceilings cap fields, rows, distinct values, top values, display bytes and cell bytes. Oversized or incompatible cells are counted as invalid rather than retained.
 
-Top values are exposed only for lexically safe categorical fields. Fields resembling account numbers, identity numbers, secrets, tokens, email or phone data never expose sampled values through the profile.
+Top values are exposed only for lexically safe, demonstrably low-cardinality categorical fields. Fields resembling account numbers, identity numbers, secrets, tokens, email or phone data never expose sampled values through the profile.
 
 Hints identify useful candidate semantics from field names, logical types and bounded cardinality. They carry explicit provenance and confidence and are never treated as approved mappings.
 
@@ -78,7 +78,7 @@ The T0 AST supports bounded Boolean composition plus:
 
 There is no arbitrary scripting language or implicit string-to-number/type coercion.
 
-T0 `NUMBER` evaluation is deliberately limited to finite IEEE-754 values. Integer inputs outside the exact ±2^53 range fail closed as `UNKNOWN`; the kernel does **not** claim exact-decimal or monetary arithmetic. A future rule may not use approximate `NUMBER` semantics where exact decimal/money comparison is material — that requires a separate explicit decimal contract before activation.
+T0 `NUMBER` evaluation is deliberately limited to finite IEEE-754 values within the bounded ±2^53 magnitude used by the current evaluator. Integer, floating-point and JSON-number source values outside that domain fail closed as `UNKNOWN`; the kernel does **not** claim exact-decimal or monetary arithmetic. A future rule may not use approximate `NUMBER` semantics where exact decimal/money comparison is material — that requires a separate explicit decimal contract before activation.
 
 Hard ceilings cap AST depth, node count, IN cardinality and literal size even when a caller requests higher limits.
 
@@ -90,7 +90,7 @@ Per record:
 
 - `MATCH` means the condition is demonstrably true;
 - `CLEAR` means demonstrably false;
-- `UNKNOWN` means a required value is null, absent or incompatible.
+- `UNKNOWN` means a required value is null, absent, incompatible or outside the bounded logical domain.
 
 Boolean composition preserves three-valued semantics:
 
@@ -105,13 +105,13 @@ This distinction is mandatory because missing/invalid source data may not be rep
 The PostgreSQL compiler produces two parameterized predicates from the same validated AST:
 
 - `MatchSQL` selects demonstrable matches;
-- `UnknownSQL` selects null-dependent unknown rows.
+- `UnknownSQL` selects null, invalid, oversized or otherwise out-of-domain rows that cannot be safely classified by the T0 evaluator.
 
-Field identifiers come only from the validated schema and are quoted as PostgreSQL identifiers. Rule values remain positional parameters.
+Field identifiers come only from the validated schema and are quoted as PostgreSQL identifiers. Rule values remain positional parameters. Logical strings are normalized to PostgreSQL text semantics, including UUID-backed source fields; T0 numbers are compared through bounded double-precision semantics so source-side execution does not silently become more precise than the pure evaluator. Unsafe numeric casts are guarded behind the bounded validity test. PostgreSQL pushdown rejects time literals finer than PostgreSQL's microsecond precision rather than silently changing their meaning.
 
 This compiler does **not** make arbitrary SQL safe. Future Population Definitions still require approved read-only source identities, separate source connection pools, timeouts, concurrency limits and one-statement query governance.
 
-The purpose of predicate compilation is performance and truth parity: capable sources should filter/project data before transfer instead of sending every clear row to ClearSight for application-memory evaluation. PostgreSQL integration tests execute nested Boolean and cross-field predicates and require their MATCH/CLEAR/UNKNOWN result to equal the pure evaluator, rather than treating generated SQL text shape as sufficient evidence.
+The purpose of predicate compilation is performance and truth parity: capable sources should filter/project data before transfer instead of sending every clear row to ClearSight for application-memory evaluation. PostgreSQL integration tests execute nested Boolean, bounded-invalid, UUID/string and cross-field predicates and require their MATCH/CLEAR/UNKNOWN result to equal the pure evaluator, rather than treating generated SQL text shape as sufficient evidence.
 
 ## Future connected-source execution
 
@@ -148,7 +148,8 @@ Permanent tests prove the same kernel works across materially different shapes:
 - vendor tier/assurance fields;
 - resilience target versus observed RTO fields;
 - null, invalid, oversized, schema-change and identifier-quoting adversarial cases;
-- out-of-range integer values fail closed rather than being compared imprecisely;
-- PostgreSQL pushdown and pure evaluation agree on nested Boolean and cross-field tri-state cases.
+- out-of-domain integer and floating-point values fail closed rather than being compared imprecisely;
+- high-cardinality categorical fields do not publish sampled top values;
+- PostgreSQL pushdown and pure evaluation agree on nested Boolean, bounded-invalid, UUID/string and cross-field tri-state cases.
 
 No domain-specific evaluator is permitted unless a later use case demonstrates semantics that cannot be represented safely by the shared contract.
