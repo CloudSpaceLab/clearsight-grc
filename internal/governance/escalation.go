@@ -109,6 +109,23 @@ func ParseEscalationSequences(definition json.RawMessage) ([]EscalationSequence,
 	return result, nil
 }
 
+// DepartmentScope applies an escalation step's department ancestry rule to a
+// normalized department path. A nil level means legal-entity scope. A false
+// result means the requested ancestry exceeds the supplied path.
+func DepartmentScope(base []string, levels *int) ([]string, bool) {
+	if levels == nil {
+		return nil, true
+	}
+	if *levels < 0 || len(base) == 0 {
+		return nil, false
+	}
+	keep := len(base) - *levels
+	if keep < 1 {
+		return nil, false
+	}
+	return append([]string(nil), base[:keep]...), true
+}
+
 func validateEscalationSequences(definition json.RawMessage) error {
 	_, err := ParseEscalationSequences(definition)
 	return err
