@@ -110,7 +110,7 @@ This compiler does **not** make arbitrary SQL safe. Population Definitions requi
 
 The executor creates its own pgx pool from an opaque secret reference. It cannot accept or reuse the authoritative ClearSight application pool.
 
-The secret resolver must return an explicit PostgreSQL URI containing a host, user and database. Partial keyword/URI forms that could inherit process-environment defaults are rejected. Credential material is not retained in executor state, receipts, events or API objects.
+The secret resolver must return an explicit PostgreSQL URI containing a host, user and database. Partial keyword/URI forms that could inherit process-environment defaults are rejected. The secret reference and raw URI are not persisted in ClearSight records, receipts, events, logs, API responses or browser state. The pgx pool necessarily retains the in-process connection configuration needed to reconnect for the lifetime of that executor; this is transient process memory, not ClearSight durable state.
 
 Per-executor pool size, connection/query/lock/idle/ping timeouts, connection lifetime and idle lifetime have defaults and non-raiseable ceilings. `MinConns` and `MinIdleConns` remain zero so an inactive source does not reserve connections.
 
@@ -127,7 +127,7 @@ Session startup forces:
 
 DSN-level `options` overrides are discarded before connection creation.
 
-Every inspection/evaluation also starts an explicit `REPEATABLE READ READ ONLY` transaction. PostgreSQL identities with superuser, create-role, create-database, replication or bypass-RLS attributes are rejected at executor creation. Production source accounts are still expected to be purpose-built read identities; transaction read-only is defense in depth, not permission to reuse administrative credentials.
+Every inspection/evaluation also starts an explicit `REPEATABLE READ READ ONLY` transaction. PostgreSQL identities with superuser, create-role, create-database, replication or bypass-RLS attributes are rejected at executor creation. Production source accounts are still expected to be purpose-built read identities; transaction read-only is defense in depth, not permission to reuse administrative credentials or to treat an arbitrary SELECT/WITH query as harmless. Approved query ownership and least-privilege source grants remain mandatory because database functions and extensions can have behavior beyond ordinary table reads.
 
 A bounded client context wraps every operation independently of server-side GUCs. Server timeout, client cancellation and source-pool bounds therefore cooperate rather than relying on any one mechanism.
 
@@ -145,7 +145,7 @@ Schema inspection runs `LIMIT 0` inside the same read-only source transaction an
 
 Projected schema width is bounded. The configured subject key must be present. Unknown native types remain `UNKNOWN` rather than being guessed.
 
-A compiled condition carries the logical schema fingerprint it was validated against. Evaluation re-inspects the current source schema in the same repeatable-read snapshot and fails with schema-change state before running the condition when the fingerprint differs. Schema drift therefore cannot appear as zero matches.
+The complete current logical schema fingerprint is retained in inspection/evaluation receipts for reconstruction and diagnostics. Blocking drift is narrower: the executor fingerprints the fields that can change the compiled condition result plus the stable subject key. Evaluation re-inspects those execution-critical fields inside the same repeatable-read snapshot and fails before running the condition when their type/nullability shape changes or a required field disappears. An unrelated projected-column type change is recorded by the full schema fingerprint but does not manufacture a blocking rule failure.
 
 ### Count-only evaluation
 
@@ -160,7 +160,7 @@ Current-state evaluation executes one aggregate source query using the T0 Postgr
 
 No clear-row population is transferred or stored. The executor also asserts that MATCH and UNKNOWN do not overlap before issuing a complete receipt.
 
-Source failure, timeout, credential failure and schema change are errors; none produces a complete zero-match receipt.
+Source failure, timeout, credential failure and execution-critical schema change are errors; none produces a complete zero-match receipt. The exact denominator still requires work in the source system; predicate pushdown reduces transfer and ClearSight-side computation, not the source database's inherent evaluation cost.
 
 ## What remains deliberately absent
 
@@ -214,7 +214,8 @@ The isolated PostgreSQL executor integration test additionally proves:
 - source session read-only/UTC/timeout settings are active;
 - UUID/text/numeric schema normalization;
 - a representative four-row population evaluates to one MATCH, two UNKNOWN and one CLEAR;
-- schema drift fails closed;
+- unrelated projected-column drift remains evaluable while changing the full schema fingerprint;
+- condition-dependency or stable-subject-key schema drift fails closed;
 - slow source execution is bounded and query text is not returned in errors.
 
 No domain-specific evaluator or connector is permitted unless a later use case demonstrates semantics that cannot be represented safely by these shared contracts.
