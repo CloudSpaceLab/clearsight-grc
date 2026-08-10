@@ -59,9 +59,9 @@ Logical types are deliberately small: string, number, boolean, time and unknown.
 
 Schema fingerprints are stable across column ordering but change when a named field's logical type or nullability changes. Reordering a source SELECT therefore does not create false schema drift, while a material type/nullability change does.
 
-Profiles are summaries, not stored samples. Hard ceilings cap fields, rows, distinct values, top values, display bytes and cell bytes. Oversized or incompatible cells are counted as invalid rather than retained.
+Profiles are summaries, not stored samples. Hard ceilings cap fields, rows, distinct values, top values, display bytes and cell bytes. A separate total field×row cell budget prevents individually legal field and row limits from multiplying into an unexpectedly large in-process profile. Oversized or incompatible cells are counted as invalid rather than retained.
 
-Top values are exposed only for lexically safe, demonstrably low-cardinality categorical fields. Fields resembling account numbers, identity numbers, secrets, tokens, email or phone data never expose sampled values through the profile.
+Top values are exposed only for lexically safe, demonstrably low-cardinality categorical fields. Candidate raw categorical values stop being retained as soon as the observed field ceases to satisfy that low-cardinality bound. Fields resembling account numbers, identity numbers, secrets, tokens, email or phone data never expose sampled values through the profile.
 
 Hints identify useful candidate semantics from field names, logical types and bounded cardinality. They carry explicit provenance and confidence and are never treated as approved mappings.
 
@@ -78,9 +78,9 @@ The T0 AST supports bounded Boolean composition plus:
 
 There is no arbitrary scripting language or implicit string-to-number/type coercion.
 
-T0 `NUMBER` evaluation is deliberately limited to finite IEEE-754 values within the bounded ±2^53 magnitude used by the current evaluator. Integer, floating-point and JSON-number source values outside that domain fail closed as `UNKNOWN`; the kernel does **not** claim exact-decimal or monetary arithmetic. A future rule may not use approximate `NUMBER` semantics where exact decimal/money comparison is material — that requires a separate explicit decimal contract before activation.
+T0 `NUMBER` evaluation is deliberately limited to finite IEEE-754 values within the bounded ±2^53 magnitude used by the current evaluator. Source values and numeric rule literals outside that domain are rejected or fail closed; the kernel does **not** claim exact-decimal or monetary arithmetic. A future rule may not use approximate `NUMBER` semantics where exact decimal/money comparison is material — that requires a separate explicit decimal contract before activation.
 
-Hard ceilings cap AST depth, node count, IN cardinality and literal size even when a caller requests higher limits.
+Hard ceilings cap AST depth, node count, per-`IN` cardinality and per-literal size. Aggregate budgets also cap total literal count and total literal bytes across the complete condition tree, so many individually legal nodes cannot combine into an unbounded rule payload.
 
 `CompileCondition` deep-copies the accepted condition and extracts its exact field dependencies so later execution can project only the required source columns.
 
@@ -148,8 +148,9 @@ Permanent tests prove the same kernel works across materially different shapes:
 - vendor tier/assurance fields;
 - resilience target versus observed RTO fields;
 - null, invalid, oversized, schema-change and identifier-quoting adversarial cases;
-- out-of-domain integer and floating-point values fail closed rather than being compared imprecisely;
-- high-cardinality categorical fields do not publish sampled top values;
+- out-of-domain integer and floating-point values and literals do not silently participate in approximate comparison;
+- high-cardinality categorical fields do not publish or continue retaining sampled top values;
+- field×row profiling and aggregate condition-literal budgets prevent cross-product resource expansion;
 - PostgreSQL pushdown and pure evaluation agree on nested Boolean, bounded-invalid, UUID/string and cross-field tri-state cases.
 
 No domain-specific evaluator is permitted unless a later use case demonstrates semantics that cannot be represented safely by the shared contract.
