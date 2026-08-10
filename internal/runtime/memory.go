@@ -87,6 +87,20 @@ func (r *MemoryRepository) FailTimer(_ context.Context, t Timer, maxAttempts int
 	r.timers[t.ID] = v
 	return terminal, nil
 }
+func (r *MemoryRepository) CancelPendingTaskTimers(_ context.Context, tenant, taskID, timerType string) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	cancelled := 0
+	for id, timer := range r.timers {
+		if timer.TenantID != tenant || timer.TaskID != taskID || timer.Type != timerType || timer.State != TimerReady {
+			continue
+		}
+		timer.State = TimerCancelled
+		r.timers[id] = timer
+		cancelled++
+	}
+	return cancelled, nil
+}
 func (r *MemoryRepository) ClaimOutbox(_ context.Context, worker string, now time.Time, lease time.Duration, limit int) ([]OutboxEvent, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
