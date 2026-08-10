@@ -13,13 +13,13 @@ var (
 )
 
 type Resolution struct {
-	TenantID        string
-	PrincipalID     string
-	LegalEntityID   string
-	DisplayName     string
-	Kind            string
-	RoleCodes       []string
-	PermissionCodes []string
+	TenantID         string
+	PrincipalID      string
+	LegalEntityID    string
+	DisplayName      string
+	Kind             string
+	RoleCodes        []string
+	PermissionCodes  []string
 	DepartmentGrants []identity.DepartmentGrant
 }
 
