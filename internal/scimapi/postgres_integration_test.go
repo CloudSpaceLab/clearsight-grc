@@ -14,7 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func TestSCIMProvisioningFeedsScopedLocalAccessWithoutMaterialAuthority(t *testing.T) {
+func TestSCIMProvisioningFeedsScopedLocalAccess(t *testing.T) {
 	url := os.Getenv("TEST_DATABASE_URL")
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL is not configured")
