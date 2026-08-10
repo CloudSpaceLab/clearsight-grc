@@ -10,7 +10,7 @@ export class StaticDemoHTTPError extends Error {
 }
 
 const now = "2026-08-06T15:30:00Z";
-const future = "2026-08-09T15:30:00Z";
+const future = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
 const programID = "program-ndpa";
 const matterID = "matter-gaid-change";
 const evidenceID = "evidence-annual-return";
