@@ -166,8 +166,8 @@ func (b *postgresBuilder) field(name string) (postgresFieldExpression, error) {
 		result.comparable = "(" + raw + "::text COLLATE \"C\")"
 		result.valid = fmt.Sprintf("(%s IS NOT NULL AND octet_length(%s::text) <= %d)", raw, raw, hardMaxEvaluatedStringBytes)
 	case TypeNumber:
-		result.comparable = "(" + raw + "::double precision)"
 		result.valid = fmt.Sprintf("(%s IS NOT NULL AND %s >= -%d AND %s <= %d)", raw, raw, maxExactFloatInteger, raw, maxExactFloatInteger)
+		result.comparable = fmt.Sprintf("(CASE WHEN %s THEN %s::double precision END)", result.valid, raw)
 	case TypeBool, TypeTime:
 		result.comparable = raw
 		result.valid = "(" + raw + " IS NOT NULL)"
