@@ -306,6 +306,9 @@ func validatePolicyDefinition(value json.RawMessage) error {
 	if err := json.Unmarshal(value, &definition); err != nil {
 		return fmt.Errorf("decode policy definition: %w", err)
 	}
+	if err := validateEscalationSequences(value); err != nil {
+		return err
+	}
 	if len(definition.Rules) == 0 {
 		return fmt.Errorf("policy must contain at least one rule")
 	}
