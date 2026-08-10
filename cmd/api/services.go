@@ -15,6 +15,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/scimapi"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 	"github.com/alexedwards/scs/v2"
@@ -35,6 +36,7 @@ type serviceSet struct {
 	BackgroundJobs  *operations.Service
 	Access          access.Resolver
 	SessionStore    scs.Store
+	SCIM            *scimapi.Service
 	Close           func()
 }
 
