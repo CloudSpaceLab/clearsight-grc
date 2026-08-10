@@ -83,7 +83,8 @@ func buildIdentity(ctx context.Context, cfg config.Config, services serviceSet) 
 			return nil, nil, fmt.Errorf("OIDC identity mode requires PostgreSQL access and session services")
 		}
 		service, err := federation.New(ctx, federation.Config{
-			Issuer: cfg.OIDCIssuer, ClientID: cfg.OIDCClientID, ClientSecret: cfg.OIDCClientSecret, RedirectURL: cfg.OIDCRedirectURL,
+			Issuer: cfg.OIDCIssuer, ClientID: cfg.OIDCClientID, ClientSecret: cfg.OIDCClientSecret,
+			RedirectURL: cfg.OIDCRedirectURL, ApplicationURL: cfg.AllowedOrigin,
 			SessionLifetime: cfg.OIDCSessionLifetime, IdleTimeout: cfg.OIDCSessionIdleTimeout, SecureCookies: cfg.OIDCSecureCookies,
 		}, services.SessionStore, services.Access)
 		if err != nil {
