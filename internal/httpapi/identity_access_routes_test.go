@@ -2,6 +2,8 @@ package httpapi
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -47,9 +49,10 @@ func TestIdentityAccessRoutesSeparateReadFromConfigure(t *testing.T) {
 		AuthenticationMethod: "test", AssuranceLevel: "test", SessionID: "session", IssuedAt: now, ExpiresAt: now.Add(time.Hour),
 	}
 	admin := &fakeAccessAdministrator{}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	readOnly := base
 	readOnly.PermissionCodes = []string{identity.PermissionIdentityRead}
-	handler := New(Dependencies{Identity: staticIdentityAuthenticator{actor: readOnly}, AccessAdmin: admin})
+	handler := New(Dependencies{Logger: logger, Identity: staticIdentityAuthenticator{actor: readOnly}, AccessAdmin: admin})
 
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/access/overview", nil)
 	response := httptest.NewRecorder()
@@ -68,7 +71,7 @@ func TestIdentityAccessRoutesSeparateReadFromConfigure(t *testing.T) {
 
 	configure := base
 	configure.PermissionCodes = []string{identity.PermissionIdentityRead, identity.PermissionIdentityConfigure}
-	handler = New(Dependencies{Identity: staticIdentityAuthenticator{actor: configure}, AccessAdmin: admin})
+	handler = New(Dependencies{Logger: logger, Identity: staticIdentityAuthenticator{actor: configure}, AccessAdmin: admin})
 	request = httptest.NewRequest(http.MethodPost, "/api/v1/access/scim-sources", strings.NewReader(`{"code":"ENTRA","subject_attribute":"externalId"}`))
 	request.Header.Set("Content-Type", "application/json")
 	response = httptest.NewRecorder()
