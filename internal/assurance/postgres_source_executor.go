@@ -75,6 +75,10 @@ func OpenPostgresSourceExecutor(ctx context.Context, sourceID, secretRef string,
 	if poolConfig.ConnConfig.RuntimeParams == nil {
 		poolConfig.ConnConfig.RuntimeParams = make(map[string]string)
 	}
+	// DSN-level PGOPTIONS can carry arbitrary -c overrides. Drop it and own the
+	// execution guardrails explicitly below; the approved population query is
+	// the configurable input, not the session safety policy.
+	delete(poolConfig.ConnConfig.RuntimeParams, "options")
 	poolConfig.ConnConfig.RuntimeParams["application_name"] = "clearsight-assurance-source"
 	poolConfig.ConnConfig.RuntimeParams["default_transaction_read_only"] = "on"
 	poolConfig.ConnConfig.RuntimeParams["statement_timeout"] = postgresDuration(options.StatementTimeout)
@@ -115,7 +119,7 @@ func (e *PostgresSourceExecutor) InspectSchema(ctx context.Context, population P
 	if err != nil {
 		return SourceSchema{}, sourceDatabaseError(operationCtx, ErrSourceExecution)
 	}
-	defer func() { _ = tx.Rollback(context.Background()) }()
+	defer e.rollback(tx)
 	return e.inspectSchemaTx(operationCtx, tx, population)
 }
 
@@ -145,7 +149,7 @@ func (e *PostgresSourceExecutor) Evaluate(ctx context.Context, population Popula
 	if err != nil {
 		return EvaluationReceipt{}, sourceDatabaseError(operationCtx, ErrSourceExecution)
 	}
-	defer func() { _ = tx.Rollback(context.Background()) }()
+	defer e.rollback(tx)
 
 	currentSchema, err := e.inspectSchemaTx(operationCtx, tx, population)
 	if err != nil {
@@ -183,6 +187,15 @@ func (e *PostgresSourceExecutor) Evaluate(ctx context.Context, population Popula
 
 func (e *PostgresSourceExecutor) beginReadOnly(ctx context.Context) (pgx.Tx, error) {
 	return e.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
+}
+
+func (e *PostgresSourceExecutor) rollback(tx pgx.Tx) {
+	if e == nil || tx == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), e.options.PingTimeout)
+	defer cancel()
+	_ = tx.Rollback(ctx)
 }
 
 func (e *PostgresSourceExecutor) inspectSchemaTx(ctx context.Context, tx pgx.Tx, population PopulationDefinition) (SourceSchema, error) {
