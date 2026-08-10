@@ -3,6 +3,7 @@ package assurance
 import (
 	"context"
 	"fmt"
+	neturl "net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -58,6 +59,10 @@ func OpenPostgresSourceExecutor(ctx context.Context, sourceID, secretRef string,
 		}
 		return nil, ErrSourceCredentials
 	}
+	if err := validateExplicitPostgresSourceDSN(connectionString); err != nil {
+		connectionString = ""
+		return nil, ErrSourceConnection
+	}
 
 	poolConfig, err := pgxpool.ParseConfig(connectionString)
 	connectionString = ""
@@ -95,6 +100,10 @@ func OpenPostgresSourceExecutor(ctx context.Context, sourceID, secretRef string,
 	if err := pool.Ping(pingCtx); err != nil {
 		pool.Close()
 		return nil, sourceDatabaseError(pingCtx, ErrSourceConnection)
+	}
+	if err := verifyPostgresSourcePrincipal(pingCtx, pool); err != nil {
+		pool.Close()
+		return nil, err
 	}
 	return &PostgresSourceExecutor{sourceID: strings.TrimSpace(sourceID), pool: pool, options: options, now: time.Now}, nil
 }
@@ -208,6 +217,9 @@ func (e *PostgresSourceExecutor) inspectSchemaTx(ctx context.Context, tx pgx.Tx,
 	if err := rows.Err(); err != nil {
 		return SourceSchema{}, sourceDatabaseError(ctx, ErrSourceExecution)
 	}
+	if len(descriptions) > hardMaxProfileFields {
+		return SourceSchema{}, fmt.Errorf("%w: source schema exceeds %d projected fields", ErrPopulationInvalid, hardMaxProfileFields)
+	}
 	native := make([]NativeField, 0, len(descriptions))
 	for _, description := range descriptions {
 		nativeType := "oid:" + strconv.FormatUint(uint64(description.DataTypeOID), 10)
@@ -238,7 +250,7 @@ func (e *PostgresSourceExecutor) inspectSchemaTx(ctx context.Context, tx pgx.Tx,
 }
 
 func (e *PostgresSourceExecutor) operationContext(ctx context.Context) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(ctx, e.options.ConnectTimeout+e.options.StatementTimeout+e.options.PingTimeout)
+	return context.WithTimeout(ctx, e.options.StatementTimeout+e.options.PingTimeout)
 }
 
 func normalizedPostgresSourceOptions(value PostgresSourceOptions) PostgresSourceOptions {
@@ -276,6 +288,25 @@ func postgresDuration(value time.Duration) string {
 		milliseconds = 1
 	}
 	return strconv.FormatInt(milliseconds, 10) + "ms"
+}
+
+func validateExplicitPostgresSourceDSN(value string) error {
+	parsed, err := neturl.Parse(strings.TrimSpace(value))
+	if err != nil || (parsed.Scheme != "postgres" && parsed.Scheme != "postgresql") || parsed.Hostname() == "" || parsed.User == nil || strings.TrimSpace(parsed.User.Username()) == "" || strings.Trim(parsed.Path, "/") == "" {
+		return ErrSourceConnection
+	}
+	return nil
+}
+
+func verifyPostgresSourcePrincipal(ctx context.Context, pool *pgxpool.Pool) error {
+	var superuser, createRole, createDB, replication, bypassRLS bool
+	if err := pool.QueryRow(ctx, `SELECT rolsuper,rolcreaterole,rolcreatedb,rolreplication,rolbypassrls FROM pg_roles WHERE rolname=current_user`).Scan(&superuser, &createRole, &createDB, &replication, &bypassRLS); err != nil {
+		return sourceDatabaseError(ctx, ErrSourceConnection)
+	}
+	if superuser || createRole || createDB || replication || bypassRLS {
+		return ErrSourcePrivileges
+	}
+	return nil
 }
 
 func sourceDatabaseError(ctx context.Context, fallback error) error {
