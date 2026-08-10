@@ -35,13 +35,13 @@ const (
 )
 
 type Config struct {
-	Issuer         string
-	ClientID       string
-	ClientSecret   string
-	RedirectURL    string
+	Issuer          string
+	ClientID        string
+	ClientSecret    string
+	RedirectURL     string
 	SessionLifetime time.Duration
-	IdleTimeout    time.Duration
-	SecureCookies  bool
+	IdleTimeout     time.Duration
+	SecureCookies   bool
 }
 
 type Service struct {
@@ -54,14 +54,17 @@ type Service struct {
 }
 
 func New(ctx context.Context, cfg Config, store scs.Store, resolver access.Resolver) (*Service, error) {
-	cfg.Issuer = strings.TrimRight(strings.TrimSpace(cfg.Issuer), "/")
+	cfg.Issuer = strings.TrimSpace(cfg.Issuer)
 	cfg.ClientID = strings.TrimSpace(cfg.ClientID)
 	cfg.ClientSecret = strings.TrimSpace(cfg.ClientSecret)
 	cfg.RedirectURL = strings.TrimSpace(cfg.RedirectURL)
 	if cfg.Issuer == "" || cfg.ClientID == "" || cfg.ClientSecret == "" || cfg.RedirectURL == "" || store == nil || resolver == nil {
 		return nil, fmt.Errorf("OIDC issuer, client, redirect, session store and access resolver are required")
 	}
-	if _, err := url.ParseRequestURI(cfg.RedirectURL); err != nil {
+	if err := validateAbsoluteURL(cfg.Issuer, cfg.SecureCookies, false); err != nil {
+		return nil, fmt.Errorf("invalid OIDC issuer: %w", err)
+	}
+	if err := validateAbsoluteURL(cfg.RedirectURL, cfg.SecureCookies, true); err != nil {
 		return nil, fmt.Errorf("invalid OIDC redirect URL: %w", err)
 	}
 	provider, err := oidc.NewProvider(ctx, cfg.Issuer)
@@ -174,6 +177,7 @@ func (s *Service) Callback(w http.ResponseWriter, r *http.Request) {
 	providedState := strings.TrimSpace(r.URL.Query().Get("state"))
 	expectedState := s.sessions.GetString(r.Context(), transactionState)
 	if providedState == "" || expectedState == "" || !constantTimeEqual(providedState, expectedState) {
+		_ = s.sessions.Destroy(r.Context())
 		http.Error(w, "sign-in transaction could not be verified", http.StatusUnauthorized)
 		return
 	}
@@ -185,22 +189,26 @@ func (s *Service) Callback(w http.ResponseWriter, r *http.Request) {
 	returnTo := safeReturnPath(s.sessions.PopString(r.Context(), transactionReturnTo))
 	code := strings.TrimSpace(r.URL.Query().Get("code"))
 	if nonce == "" || verifier == "" || tenantID == "" || code == "" {
+		_ = s.sessions.Destroy(r.Context())
 		http.Error(w, "sign-in transaction is incomplete", http.StatusUnauthorized)
 		return
 	}
 
 	token, err := s.oauth.Exchange(r.Context(), code, oauth2.VerifierOption(verifier))
 	if err != nil {
+		_ = s.sessions.Destroy(r.Context())
 		http.Error(w, "sign-in code could not be exchanged", http.StatusUnauthorized)
 		return
 	}
 	rawIDToken, ok := token.Extra("id_token").(string)
 	if !ok || strings.TrimSpace(rawIDToken) == "" {
+		_ = s.sessions.Destroy(r.Context())
 		http.Error(w, "identity token was not returned", http.StatusUnauthorized)
 		return
 	}
 	idToken, err := s.verifier.Verify(r.Context(), rawIDToken)
 	if err != nil {
+		_ = s.sessions.Destroy(r.Context())
 		http.Error(w, "identity token could not be verified", http.StatusUnauthorized)
 		return
 	}
@@ -210,11 +218,13 @@ func (s *Service) Callback(w http.ResponseWriter, r *http.Request) {
 		AMR   []string `json:"amr"`
 	}
 	if err := idToken.Claims(&claims); err != nil || !constantTimeEqual(claims.Nonce, nonce) {
+		_ = s.sessions.Destroy(r.Context())
 		http.Error(w, "identity token transaction could not be verified", http.StatusUnauthorized)
 		return
 	}
 	resolved, err := s.access.ResolveOIDC(r.Context(), tenantID, s.issuer, idToken.Subject)
 	if err != nil {
+		_ = s.sessions.Destroy(r.Context())
 		if errors.Is(err, access.ErrIdentityNotProvisioned) {
 			http.Error(w, "this identity is not provisioned for ClearSight", http.StatusForbidden)
 			return
@@ -226,9 +236,14 @@ func (s *Service) Callback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "sign-in session could not be secured", http.StatusInternalServerError)
 		return
 	}
-	_ = s.sessions.Clear(r.Context())
+	if err := s.sessions.Clear(r.Context()); err != nil {
+		_ = s.sessions.Destroy(r.Context())
+		http.Error(w, "sign-in session could not be initialized", http.StatusInternalServerError)
+		return
+	}
 	sessionID, err := id.New("ses", 16)
 	if err != nil {
+		_ = s.sessions.Destroy(r.Context())
 		http.Error(w, "sign-in session could not be created", http.StatusInternalServerError)
 		return
 	}
@@ -257,8 +272,8 @@ func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func randomToken(bytes int) (string, error) {
-	value := make([]byte, bytes)
+func randomToken(size int) (string, error) {
+	value := make([]byte, size)
 	if _, err := rand.Read(value); err != nil {
 		return "", err
 	}
@@ -285,4 +300,21 @@ func safeReturnPath(value string) string {
 		return "/"
 	}
 	return parsed.RequestURI()
+}
+
+func validateAbsoluteURL(value string, requireHTTPS, allowQuery bool) error {
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" || parsed.User != nil || parsed.Fragment != "" {
+		return fmt.Errorf("must be an absolute URL without user info or fragment")
+	}
+	if requireHTTPS && !strings.EqualFold(parsed.Scheme, "https") {
+		return fmt.Errorf("must use https")
+	}
+	if !strings.EqualFold(parsed.Scheme, "https") && !strings.EqualFold(parsed.Scheme, "http") {
+		return fmt.Errorf("must use http or https")
+	}
+	if !allowQuery && parsed.RawQuery != "" {
+		return fmt.Errorf("must not contain a query string")
+	}
+	return nil
 }
