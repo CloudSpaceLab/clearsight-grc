@@ -29,8 +29,14 @@ func TestEscalationOverlayDoesNotSurviveMaterialRoutingChange(t *testing.T) {
 		taskID     = "97777777-7777-7777-8777-777777777733"
 		subjectID  = "97777777-7777-7777-8777-777777777734"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
-	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
+	cleanup := func(cleanCtx context.Context) {
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM workflow_tasks WHERE id=$1::uuid`, taskID)
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM workflow_instances WHERE id=$1::uuid`, workflowID)
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	}
+	cleanup(ctx)
+	t.Cleanup(func() { cleanup(context.Background()) })
+
 	now := time.Now().UTC().Truncate(time.Second)
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'overlay-semantic-test','Overlay semantic test')`, tenantID); err != nil {
 		t.Fatal(err)
