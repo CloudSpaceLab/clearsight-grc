@@ -124,12 +124,12 @@ func TestIdentityAccessAdminRevokesSourceDerivedEligibilityWithoutDeletingPrinci
 	if err := admin.RetireGroupRoleBinding(ctx, tenantID, binding.ID, adminID); err != nil {
 		t.Fatal(err)
 	}
-	var auditCount int
-	if err := pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE tenant_id=$1::uuid AND purpose='IDENTITY_ACCESS_ADMIN'`, tenantID).Scan(&auditCount); err != nil {
+	var decisionCount int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM governance_decisions WHERE tenant_id=$1::uuid AND object_type IN ('SCIM_SOURCE','DIRECTORY_GROUP_ROLE_BINDING')`, tenantID).Scan(&decisionCount); err != nil {
 		t.Fatal(err)
 	}
-	if auditCount < 4 {
-		t.Fatalf("expected audited source/binding administration, got %d events", auditCount)
+	if decisionCount < 4 {
+		t.Fatalf("expected governed source/binding administration history, got %d decisions", decisionCount)
 	}
 }
 
