@@ -5,6 +5,7 @@ package assurance
 import (
 	"context"
 	"errors"
+	neturl "net/url"
 	"os"
 	"strings"
 	"testing"
@@ -13,21 +14,31 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const sourceExecutorFixture = "assurance_source_executor_fixture"
+const (
+	sourceExecutorFixture = "assurance_source_executor_fixture"
+	sourceExecutorRole    = "assurance_source_executor_reader"
+	sourceExecutorPass    = "assurance-source-test-password"
+)
 
 func TestPostgresSourceExecutorIsolationAndEvaluation(t *testing.T) {
-	url := os.Getenv("TEST_DATABASE_URL")
-	if url == "" {
+	databaseURL := os.Getenv("TEST_DATABASE_URL")
+	if databaseURL == "" {
 		t.Skip("TEST_DATABASE_URL is not configured")
 	}
 	ctx := context.Background()
-	setup, err := pgxpool.New(ctx, url)
+	setup, err := pgxpool.New(ctx, databaseURL)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer setup.Close()
 	_, _ = setup.Exec(ctx, `DROP TABLE IF EXISTS `+sourceExecutorFixture)
-	t.Cleanup(func() { _, _ = setup.Exec(context.Background(), `DROP TABLE IF EXISTS `+sourceExecutorFixture) })
+	_, _ = setup.Exec(ctx, `DROP OWNED BY `+sourceExecutorRole)
+	_, _ = setup.Exec(ctx, `DROP ROLE IF EXISTS `+sourceExecutorRole)
+	t.Cleanup(func() {
+		_, _ = setup.Exec(context.Background(), `DROP TABLE IF EXISTS `+sourceExecutorFixture)
+		_, _ = setup.Exec(context.Background(), `DROP OWNED BY `+sourceExecutorRole)
+		_, _ = setup.Exec(context.Background(), `DROP ROLE IF EXISTS `+sourceExecutorRole)
+	})
 	if _, err := setup.Exec(ctx, `CREATE TABLE `+sourceExecutorFixture+` (
 		id uuid PRIMARY KEY,
 		status text NOT NULL,
@@ -43,8 +54,27 @@ func TestPostgresSourceExecutorIsolationAndEvaluation(t *testing.T) {
 		('84444444-4444-7444-8444-444444444444','ACTIVE',9007199254740994,'owner-4')`); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := setup.Exec(ctx, `CREATE ROLE `+sourceExecutorRole+` LOGIN PASSWORD '`+sourceExecutorPass+`' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := setup.Exec(ctx, `GRANT USAGE ON SCHEMA public TO `+sourceExecutorRole); err != nil {
+		t.Fatal(err)
+	}
+	// DELETE is intentional: the test proves the executor's READ ONLY
+	// transaction blocks a mutation that the database role itself could perform.
+	if _, err := setup.Exec(ctx, `GRANT SELECT,DELETE ON `+sourceExecutorFixture+` TO `+sourceExecutorRole); err != nil {
+		t.Fatal(err)
+	}
 
-	executor, err := OpenPostgresSourceExecutor(ctx, "source-fixture", "secret-ref", testSecretResolver{value: url}, PostgresSourceOptions{
+	if unsafe, err := OpenPostgresSourceExecutor(ctx, "source-fixture", "superuser-ref", testSecretResolver{value: databaseURL}, PostgresSourceOptions{}); !errors.Is(err, ErrSourcePrivileges) {
+		if unsafe != nil {
+			unsafe.Close()
+		}
+		t.Fatalf("superuser source credential must be rejected, got %v", err)
+	}
+
+	readerURL := postgresTestRoleURL(t, databaseURL, sourceExecutorRole, sourceExecutorPass)
+	executor, err := OpenPostgresSourceExecutor(ctx, "source-fixture", "secret-ref", testSecretResolver{value: readerURL}, PostgresSourceOptions{
 		MaxConns:         1,
 		StatementTimeout: 150 * time.Millisecond,
 		LockTimeout:      100 * time.Millisecond,
@@ -146,4 +176,14 @@ func TestPostgresSourceExecutorIsolationAndEvaluation(t *testing.T) {
 	if time.Since(started) > 3*time.Second {
 		t.Fatalf("source timeout exceeded bounded execution window: %s", time.Since(started))
 	}
+}
+
+func postgresTestRoleURL(t *testing.T, raw, username, password string) string {
+	t.Helper()
+	parsed, err := neturl.Parse(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed.User = neturl.UserPassword(username, password)
+	return parsed.String()
 }
