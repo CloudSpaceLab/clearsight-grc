@@ -55,30 +55,33 @@ The architectural rule remains narrow: ClearSight owns OIDC, server sessions, lo
 - policy validation rejects malformed, unknown, trailing, non-monotonic and over-deep escalation definitions;
 - no new escalation table, routing engine, worker or UI surface was introduced.
 
-### EIA-1 — implemented on PR #59, exact-head validation pending
+### EIA-1 — implemented on PR #59
 
 - native `oidc` identity mode using Authorization Code + state + nonce + PKCE S256;
 - immutable tenant-bound issuer + subject mapping through `principal_identities`;
+- one federated identity maps to one local principal, not one legal entity; active legal-entity access is revalidated from current organization positions;
 - unknown OIDC subjects are denied rather than silently privileged through JIT provisioning;
 - server-side SCS sessions use the maintained pgx store and `web_sessions` infrastructure ledger;
 - session token is renewed at login and roles/permissions are not stored as browser or OIDC token truth;
 - callback returns only to the configured trusted application origin + bounded local path;
+- tenant, legal-entity, return-path and assurance values entering session state are bounded;
 - credentialed browser requests are limited to the trusted origin and unsafe cross-origin requests use Go's cross-origin protection;
 - development and signed-gateway compatibility modes remain available;
 - the three `/auth/...` endpoints are a narrow protocol edge; `/api/v1` route/access truth remains the existing typed registry.
 
-### EIA-2 — implemented on PR #59, exact-head validation pending
+### EIA-2 — implemented on PR #59
 
-- each OIDC-authenticated application request re-resolves the active principal, legal entity, positions, role templates and capabilities from PostgreSQL;
+- each OIDC-authenticated application request re-resolves the active principal, active legal entity, current positions, role templates and capabilities from PostgreSQL;
 - native OIDC never trusts IdP group/role/permission claims as ClearSight authorization truth;
-- empty department path roles become global actor roles/capabilities and can satisfy existing tenant/legal-entity-wide route permissions;
+- empty department path roles become legal-entity-wide actor roles/capabilities and can satisfy existing unscoped route permissions;
 - non-empty department roles/capabilities remain exact-scope `department_grants` and cannot satisfy existing global route permissions;
 - no client-supplied department path can select authorization scope;
 - parent/child department capability inheritance is not inferred;
-- principal deactivation or current role removal changes access without re-authenticating at the IdP;
+- principal deactivation, legal-entity position removal or current role removal changes access without re-authenticating at the IdP;
+- the same principal may operate across multiple legal entities only where current positions make each entity eligible;
 - material commands continue through existing object visibility, lifecycle-specific `commandauth.Guard`, authority resolution, delegation and segregation.
 
-Do not mark EIA-1/EIA-2 complete until the current exact PR head passes the normal release gates.
+EIA-1/EIA-2 implementation head passed CI #811 against current `main`, including race-enabled unit tests, PostgreSQL composition, migration `000025` apply/rollback/reapply, serialized PostgreSQL integration tests, `go vet`, strict web typecheck, rendered/axe tests, production build and UI-evidence workflow. Any later documentation-only head must remain green before merge.
 
 ### Next after EIA-1/EIA-2
 
@@ -132,10 +135,11 @@ Do not represent policy-schema support as executable escalation until EIA-4 exis
 - Lifecycle sequence rule ≠ authority route.
 - Escalation sequence selects responsibility + scope, not a person or bypass route.
 - Department scope narrows eligibility; it never broadens tenant/legal-entity/object visibility.
-- Department-scoped role/capability ≠ tenant-wide role/capability.
+- Department-scoped role/capability ≠ legal-entity-wide role/capability.
 - Client-supplied department scope ≠ authorization scope.
 - Directory group membership ≠ responsibility or material authority.
 - OIDC identity assertion ≠ ClearSight role/capability authority.
+- OIDC identity correlation ≠ legal-entity authorization; current organization state determines eligible entity context.
 - Evidence Request recipient is canonical request state; Workflow work is a rebuildable actor projection.
 - Workflow command packet is an executable projection; every mutation is revalidated by the domain service.
 - Program UI lifecycle choices are affordances only; server lifecycle/authority/version checks remain final.
@@ -153,6 +157,8 @@ Do not add parallel authorization, task, workflow, event, worker, receipt, revie
 enterprise sign-in
 OIDC issuer + subject
 → provisioned local principal identity
+→ selected legal-entity context
+→ current position proves entity eligibility
 → server-side session
 → current local roles/capabilities resolved on each request
 → existing identity middleware
