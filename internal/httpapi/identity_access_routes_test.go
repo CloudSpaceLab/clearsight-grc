@@ -27,12 +27,18 @@ func (a *fakeAccessAdministrator) CreateSCIMSource(_ context.Context, _ access.C
 	a.created = len(digest) == 32
 	return access.SCIMSourceSummary{ID: "source-1", Code: "ENTRA", Status: "ACTIVE", SubjectAttribute: "externalId"}, nil
 }
-func (*fakeAccessAdministrator) RotateSCIMSourceToken(context.Context, string, string, string, []byte) error { return nil }
-func (*fakeAccessAdministrator) RevokeSCIMSource(context.Context, string, string, string) error { return nil }
+func (*fakeAccessAdministrator) RotateSCIMSourceToken(context.Context, string, string, string, []byte) error {
+	return nil
+}
+func (*fakeAccessAdministrator) RevokeSCIMSource(context.Context, string, string, string) error {
+	return nil
+}
 func (*fakeAccessAdministrator) CreateGroupRoleBinding(context.Context, access.CreateGroupRoleBindingInput) (access.GroupRoleBindingSummary, error) {
 	return access.GroupRoleBindingSummary{}, nil
 }
-func (*fakeAccessAdministrator) RetireGroupRoleBinding(context.Context, string, string, string) error { return nil }
+func (*fakeAccessAdministrator) RetireGroupRoleBinding(context.Context, string, string, string) error {
+	return nil
+}
 
 func TestIdentityAccessRoutesSeparateReadFromConfigure(t *testing.T) {
 	now := time.Now().UTC()
