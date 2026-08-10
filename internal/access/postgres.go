@@ -84,8 +84,9 @@ func (r *PostgresResolver) ResolvePrincipal(ctx context.Context, tenantID, princ
 		      OR EXISTS (
 		          SELECT 1
 		          FROM scim_users su
+		          JOIN scim_sources ss ON ss.tenant_id=su.tenant_id AND ss.id=su.source_id AND ss.status='ACTIVE'
 		          JOIN directory_group_members dgm ON dgm.tenant_id=su.tenant_id AND dgm.scim_user_id=su.id
-		          JOIN directory_groups dg ON dg.tenant_id=dgm.tenant_id AND dg.id=dgm.group_id
+		          JOIN directory_groups dg ON dg.tenant_id=dgm.tenant_id AND dg.id=dgm.group_id AND dg.source_id=su.source_id
 		          JOIN directory_group_role_bindings dgrb ON dgrb.tenant_id=dg.tenant_id AND dgrb.group_id=dg.id
 		          JOIN role_templates rt ON rt.tenant_id=dgrb.tenant_id AND rt.id=dgrb.role_template_id
 		          WHERE su.tenant_id=t.id
@@ -140,8 +141,9 @@ func (r *PostgresResolver) withRoles(ctx context.Context, value Resolution) (Res
 			SELECT rt.code,rt.capabilities,dgrb.department_path
 			FROM tenants t
 			JOIN scim_users su ON su.tenant_id=t.id AND su.principal_id::text=$2 AND su.active AND su.deleted_at IS NULL
+			JOIN scim_sources ss ON ss.tenant_id=su.tenant_id AND ss.id=su.source_id AND ss.status='ACTIVE'
 			JOIN directory_group_members dgm ON dgm.tenant_id=su.tenant_id AND dgm.scim_user_id=su.id
-			JOIN directory_groups dg ON dg.tenant_id=dgm.tenant_id AND dg.id=dgm.group_id AND dg.deleted_at IS NULL
+			JOIN directory_groups dg ON dg.tenant_id=dgm.tenant_id AND dg.id=dgm.group_id AND dg.source_id=su.source_id AND dg.deleted_at IS NULL
 			JOIN directory_group_role_bindings dgrb ON dgrb.tenant_id=dg.tenant_id AND dgrb.group_id=dg.id AND dgrb.legal_entity_id=(SELECT id FROM current_entity)
 			JOIN role_templates rt ON rt.tenant_id=t.id AND rt.id=dgrb.role_template_id
 			WHERE t.slug=$1
