@@ -12,12 +12,13 @@ import (
 const DefaultHintPackVersion = "bank-core-v1"
 
 const (
-	hardMaxProfileFields     = 512
-	hardMaxProfileRows       = 4096
-	hardMaxProfileDistinct   = 4096
-	hardMaxProfileTopValues  = 32
-	hardMaxProfileValueBytes = 512
-	hardMaxProfileCellBytes  = 64 << 10
+	hardMaxProfileFields           = 512
+	hardMaxProfileRows             = 4096
+	hardMaxProfileDistinct         = 4096
+	hardMaxProfileTopValues        = 32
+	hardMaxProfileValueBytes       = 512
+	hardMaxProfileCellBytes        = 64 << 10
+	maxPublishedCategoricalValues = 20
 )
 
 type ProfileLimits struct {
@@ -158,7 +159,9 @@ func ProfileRows(schema Schema, rows []map[string]any, limits ProfileLimits) (Po
 		state := &states[index]
 		profile.Fields[index].DistinctObserved = len(state.distinct)
 		profile.Fields[index].DistinctCapped = state.distinctCapped
-		profile.Fields[index].TopValues = state.topValues(limits.MaxTopValues)
+		if !state.distinctCapped && len(state.distinct) <= maxPublishedCategoricalValues {
+			profile.Fields[index].TopValues = state.topValues(limits.MaxTopValues)
+		}
 		profile.Fields[index].Hints = inferHints(field, profile.Fields[index])
 	}
 	return profile, nil
@@ -272,7 +275,11 @@ func profileValueKey(value typedValue, maxDisplayBytes int) (string, string) {
 	case TypeString:
 		canonical = value.stringValue
 	case TypeNumber:
-		canonical = fmt.Sprintf("%.17g", value.numberValue)
+		if value.numberValue == 0 {
+			canonical = "0"
+		} else {
+			canonical = fmt.Sprintf("%.17g", value.numberValue)
+		}
 	case TypeBool:
 		if value.boolValue {
 			canonical = "true"

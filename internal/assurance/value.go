@@ -23,7 +23,7 @@ func coerceValue(kind LogicalType, raw any) (typedValue, bool) {
 		return typedValue{kind: kind, stringValue: value}, true
 	case TypeNumber:
 		value, ok := numericValue(raw)
-		if !ok || math.IsNaN(value) || math.IsInf(value, 0) {
+		if !ok {
 			return typedValue{}, false
 		}
 		return typedValue{kind: kind, numberValue: value}, true
@@ -67,18 +67,18 @@ func numericValue(raw any) (float64, bool) {
 	case uint64:
 		return exactUnsignedInteger(value)
 	case float32:
-		return float64(value), true
+		return boundedFloat(float64(value))
 	case float64:
-		return value, true
+		return boundedFloat(value)
 	case json.Number:
-		parsed, err := value.Float64()
-		if err != nil || math.IsNaN(parsed) || math.IsInf(parsed, 0) {
-			return 0, false
-		}
-		if integer, intErr := value.Int64(); intErr == nil {
+		if integer, err := value.Int64(); err == nil {
 			return exactSignedInteger(integer)
 		}
-		return parsed, true
+		parsed, err := value.Float64()
+		if err != nil {
+			return 0, false
+		}
+		return boundedFloat(parsed)
 	default:
 		return 0, false
 	}
@@ -96,6 +96,13 @@ func exactUnsignedInteger(value uint64) (float64, bool) {
 		return 0, false
 	}
 	return float64(value), true
+}
+
+func boundedFloat(value float64) (float64, bool) {
+	if math.IsNaN(value) || math.IsInf(value, 0) || math.Abs(value) > float64(maxExactFloatInteger) {
+		return 0, false
+	}
+	return value, true
 }
 
 func timeValue(raw any) (time.Time, bool) {

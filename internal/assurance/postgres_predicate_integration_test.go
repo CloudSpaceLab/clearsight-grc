@@ -4,7 +4,9 @@ package assurance
 
 import (
 	"context"
+	"math"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -21,6 +23,9 @@ func TestPostgresPredicateMatchesPureTriStateEvaluator(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer pool.Close()
+	if _, err := pool.Exec(ctx, `SET TIME ZONE 'UTC'`); err != nil {
+		t.Fatal(err)
+	}
 
 	t.Run("nested boolean semantics", func(t *testing.T) {
 		schema := Schema{Fields: []Field{
@@ -64,6 +69,64 @@ func TestPostgresPredicateMatchesPureTriStateEvaluator(t *testing.T) {
 			{name: "clear", sourceSQL: `SELECT 30::double precision AS target_rto_minutes, 20::double precision AS actual_rto_minutes`, row: map[string]any{"target_rto_minutes": 30, "actual_rto_minutes": 20}},
 		}
 		assertPostgresParity(t, ctx, pool, compiled, cases)
+	})
+
+	t.Run("bounded source domain", func(t *testing.T) {
+		t.Run("oversized string is unknown", func(t *testing.T) {
+			schema := Schema{Fields: []Field{{Name: "status", Type: TypeString}}}
+			compiled, err := CompileCondition(schema, Condition{Op: OpEQ, Field: "status", Value: StringLiteral("ACTIVE")}, ConditionLimits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			value := strings.Repeat("A", hardMaxEvaluatedStringBytes+1)
+			assertPostgresParity(t, ctx, pool, compiled, []postgresParityCase{{
+				name:      "oversized",
+				sourceSQL: `SELECT repeat('A', 65537)::text AS status`,
+				row:       map[string]any{"status": value},
+			}})
+		})
+
+		t.Run("out-of-domain number is unknown", func(t *testing.T) {
+			schema := Schema{Fields: []Field{{Name: "amount", Type: TypeNumber}}}
+			compiled, err := CompileCondition(schema, Condition{Op: OpGT, Field: "amount", Value: NumberLiteral(1)}, ConditionLimits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			assertPostgresParity(t, ctx, pool, compiled, []postgresParityCase{
+				{name: "integer", sourceSQL: `SELECT 9007199254740993::numeric AS amount`, row: map[string]any{"amount": int64(maxExactFloatInteger + 1)}},
+				{name: "float", sourceSQL: `SELECT 9007199254740994::double precision AS amount`, row: map[string]any{"amount": float64(maxExactFloatInteger) + 2}},
+				{name: "nan", sourceSQL: `SELECT 'NaN'::double precision AS amount`, row: map[string]any{"amount": math.NaN()}},
+			})
+		})
+	})
+
+	t.Run("logical normalization parity", func(t *testing.T) {
+		t.Run("uuid string", func(t *testing.T) {
+			const id = "83333333-3333-7333-8333-333333333331"
+			schema := Schema{Fields: []Field{{Name: "subject_id", Type: TypeString}}}
+			compiled, err := CompileCondition(schema, Condition{Op: OpEQ, Field: "subject_id", Value: StringLiteral(id)}, ConditionLimits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			assertPostgresParity(t, ctx, pool, compiled, []postgresParityCase{{
+				name:      "uuid",
+				sourceSQL: `SELECT '83333333-3333-7333-8333-333333333331'::uuid AS subject_id`,
+				row:       map[string]any{"subject_id": id},
+			}})
+		})
+
+		t.Run("numeric field comparison uses float semantics", func(t *testing.T) {
+			schema := Schema{Fields: []Field{{Name: "left_value", Type: TypeNumber}, {Name: "right_value", Type: TypeNumber}}}
+			compiled, err := CompileCondition(schema, Condition{Op: OpEQ, Field: "left_value", OtherField: "right_value"}, ConditionLimits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			assertPostgresParity(t, ctx, pool, compiled, []postgresParityCase{{
+				name:      "rounded-to-same-float",
+				sourceSQL: `SELECT 0.1::numeric AS left_value, 0.10000000000000001::numeric AS right_value`,
+				row:       map[string]any{"left_value": float64(0.1), "right_value": float64(0.1)},
+			}})
+		})
 	})
 }
 
