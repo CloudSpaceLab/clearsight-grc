@@ -41,29 +41,50 @@ Selected from a fresh merged-code audit rather than backlog order.
 - exact final head `e245754bebea013475499a7fbdb0f6da0db62032` passed CI #717;
 - squash-merged as `e9e61cafa5d6715b3e94bd72454b58b3ead87ff4`.
 
-## 2. Current execution — enterprise identity/access foundation
+## 2. Current execution — enterprise identity/access
 
-A fresh review of the production-readiness boundary selected **EIA-0** from `docs/engineering/enterprise-identity-access.md`.
+PR #59 implements the focused OSS-first identity/access boundary from `docs/engineering/enterprise-identity-access.md`.
 
-The decision is intentionally narrow: do not build LDAP, SAML, MFA, another RBAC engine, another organization hierarchy, or another escalation scheduler in ClearSight. The native boundary is OIDC + SCIM around the identity/authority foundations already implemented; authentik is the reference open-source compatibility bridge for legacy LDAP/AD/SAML environments.
+The architectural rule remains narrow: ClearSight owns OIDC, server sessions, local capabilities, SCIM provisioning and integration with existing authority. LDAP/AD/SAML/Kerberos/password/MFA infrastructure remains upstream in authentik, an existing bank Keycloak deployment, or another standards-compliant identity layer.
 
-### EIA-0 — in progress
+### EIA-0 — implemented on PR #59
 
-This tranche establishes only shared semantics needed by later OIDC/SCIM/runtime work:
+- `org_positions.department_path` provides stable hierarchical department scope without a department subsystem;
+- `role_templates.capabilities` provides bounded coarse application eligibility;
+- routing-policy definitions accept strict bounded multi-level escalation sequences that select responsibility + department ancestry rather than hard-coded people;
+- policy validation rejects malformed, unknown, trailing, non-monotonic and over-deep escalation definitions;
+- no new escalation table, routing engine, worker or UI surface was introduced.
 
-- `org_positions.department_path` for stable hierarchical department scope;
-- `role_templates.capabilities` for coarse application eligibility;
-- bounded parser/validation for multi-level escalation sequences stored inside existing routing-policy definitions;
-- escalation steps select responsibility + department level, never a hard-coded person;
-- no new durable table, authorization engine, routing engine, worker or UI surface.
+### EIA-1 — implemented on PR #59, exact-head validation pending
 
-The next identity/access tranche is selected only after EIA-0 is exact-head green. Planned sequence:
+- native `oidc` identity mode using Authorization Code + state + nonce + PKCE S256;
+- immutable tenant-bound issuer + subject mapping through `principal_identities`;
+- unknown OIDC subjects are denied rather than silently privileged through JIT provisioning;
+- server-side SCS sessions use the maintained pgx store and `web_sessions` infrastructure ledger;
+- session token is renewed at login and roles/permissions are not stored as browser or OIDC token truth;
+- callback returns only to the configured trusted application origin + bounded local path;
+- credentialed browser requests are limited to the trusted origin and unsafe cross-origin requests use Go's cross-origin protection;
+- development and signed-gateway compatibility modes remain available;
+- the three `/auth/...` endpoints are a narrow protocol edge; `/api/v1` route/access truth remains the existing typed registry.
 
-1. **EIA-1:** OIDC relying party + server-side sessions;
-2. **EIA-2:** local capability evaluator using existing position-role bindings and department scope;
-3. **EIA-3:** minimal SCIM Users/Groups + explicit group-to-role mapping;
-4. **EIA-4:** escalation runtime over existing routing policy, authority resolver and `workflow_timers`;
-5. **EIA-5:** compact Identity & access Configure surface + reference authentik deployment guidance.
+### EIA-2 — implemented on PR #59, exact-head validation pending
+
+- each OIDC-authenticated application request re-resolves the active principal, legal entity, positions, role templates and capabilities from PostgreSQL;
+- native OIDC never trusts IdP group/role/permission claims as ClearSight authorization truth;
+- empty department path roles become global actor roles/capabilities and can satisfy existing tenant/legal-entity-wide route permissions;
+- non-empty department roles/capabilities remain exact-scope `department_grants` and cannot satisfy existing global route permissions;
+- no client-supplied department path can select authorization scope;
+- parent/child department capability inheritance is not inferred;
+- principal deactivation or current role removal changes access without re-authenticating at the IdP;
+- material commands continue through existing object visibility, lifecycle-specific `commandauth.Guard`, authority resolution, delegation and segregation.
+
+Do not mark EIA-1/EIA-2 complete until the current exact PR head passes the normal release gates.
+
+### Next after EIA-1/EIA-2
+
+1. **EIA-3:** minimal SCIM Users/Groups + explicit approved group-to-role mapping;
+2. **EIA-4:** escalation execution over existing routing policy, authority resolver and `workflow_timers`;
+3. **EIA-5:** compact Identity & access Configure surface + reference authentik deployment guidance.
 
 Do not represent policy-schema support as executable escalation until EIA-4 exists.
 
@@ -80,7 +101,7 @@ Do not represent policy-schema support as executable escalation until EIA-4 exis
 
 ### Configure / enterprise administration
 
-- EIA-1–EIA-5 enterprise sign-in, provisioning, department-aware capability resolution and escalation;
+- EIA-3–EIA-5 provisioning, group mapping, escalation runtime and compact administration;
 - responsibility and decision-authority matrices where current backend configuration is not yet operable from the UI;
 - governed delegation/substitution/absence;
 - maker-checker, effective dating, impact preview and rollback;
@@ -111,7 +132,10 @@ Do not represent policy-schema support as executable escalation until EIA-4 exis
 - Lifecycle sequence rule ≠ authority route.
 - Escalation sequence selects responsibility + scope, not a person or bypass route.
 - Department scope narrows eligibility; it never broadens tenant/legal-entity/object visibility.
+- Department-scoped role/capability ≠ tenant-wide role/capability.
+- Client-supplied department scope ≠ authorization scope.
 - Directory group membership ≠ responsibility or material authority.
+- OIDC identity assertion ≠ ClearSight role/capability authority.
 - Evidence Request recipient is canonical request state; Workflow work is a rebuildable actor projection.
 - Workflow command packet is an executable projection; every mutation is revalidated by the domain service.
 - Program UI lifecycle choices are affordances only; server lifecycle/authority/version checks remain final.
@@ -126,6 +150,14 @@ Do not add parallel authorization, task, workflow, event, worker, receipt, revie
 ## 5. Current executable flow truth
 
 ```text
+enterprise sign-in
+OIDC issuer + subject
+→ provisioned local principal identity
+→ server-side session
+→ current local roles/capabilities resolved on each request
+→ existing identity middleware
+→ existing /api/v1 route permission / object visibility / command authority
+
 Matter
 canonical state + canonical visibility
 → deterministic work compiler / canonical Action
@@ -150,7 +182,7 @@ canonical recipient + subject visibility
 → Today / Capture
 ```
 
-Presentation/projection/acknowledgement state never substitutes for canonical domain truth.
+Presentation/projection/acknowledgement/session state never substitutes for canonical domain or authority truth.
 
 ## 6. Release gates
 
