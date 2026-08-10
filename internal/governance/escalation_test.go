@@ -77,3 +77,16 @@ func TestParseEscalationSequencesRejectsUnknownFieldsAndDeepTraversal(t *testing
 		t.Fatalf("expected department traversal bound error, got %v", err)
 	}
 }
+
+func TestParseEscalationSequencesRejectsTrailingJSON(t *testing.T) {
+	definition := json.RawMessage(`{
+		"escalations":[{
+			"id":"overdue-review",
+			"trigger":"OVERDUE",
+			"steps":[{"after":"0s","responsibility":"ESCALATION_OWNER"}]
+		}]
+	} {"unexpected":true}`)
+	if _, err := ParseEscalationSequences(definition); err == nil {
+		t.Fatal("expected trailing top-level JSON to be rejected")
+	}
+}
