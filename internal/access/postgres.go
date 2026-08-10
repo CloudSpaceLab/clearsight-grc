@@ -71,14 +71,31 @@ func (r *PostgresResolver) ResolvePrincipal(ctx context.Context, tenantID, princ
 		  AND (p.valid_until IS NULL OR clock_timestamp()<p.valid_until)
 		  AND le.valid_from<=clock_timestamp()
 		  AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)
-		  AND EXISTS (
-		      SELECT 1
-		      FROM org_positions op
-		      WHERE op.tenant_id=t.id
-		        AND op.occupant_principal_id=p.id
-		        AND (op.legal_entity_id IS NULL OR op.legal_entity_id=le.id)
-		        AND op.valid_from<=clock_timestamp()
-		        AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
+		  AND (
+		      EXISTS (
+		          SELECT 1
+		          FROM org_positions op
+		          WHERE op.tenant_id=t.id
+		            AND op.occupant_principal_id=p.id
+		            AND (op.legal_entity_id IS NULL OR op.legal_entity_id=le.id)
+		            AND op.valid_from<=clock_timestamp()
+		            AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
+		      )
+		      OR EXISTS (
+		          SELECT 1
+		          FROM scim_users su
+		          JOIN directory_group_members dgm ON dgm.tenant_id=su.tenant_id AND dgm.scim_user_id=su.id
+		          JOIN directory_groups dg ON dg.tenant_id=dgm.tenant_id AND dg.id=dgm.group_id
+		          JOIN directory_group_role_bindings dgrb ON dgrb.tenant_id=dg.tenant_id AND dgrb.group_id=dg.id
+		          WHERE su.tenant_id=t.id
+		            AND su.principal_id=p.id
+		            AND su.active
+		            AND su.deleted_at IS NULL
+		            AND dg.deleted_at IS NULL
+		            AND dgrb.legal_entity_id=le.id
+		            AND dgrb.valid_from<=clock_timestamp()
+		            AND (dgrb.valid_until IS NULL OR clock_timestamp()<dgrb.valid_until)
+		      )
 		  )`, tenantID, principalID, legalEntityID).
 		Scan(&value.TenantID, &value.PrincipalID, &value.LegalEntityID, &value.DisplayName, &value.Kind)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -92,25 +109,47 @@ func (r *PostgresResolver) ResolvePrincipal(ctx context.Context, tenantID, princ
 
 func (r *PostgresResolver) withRoles(ctx context.Context, value Resolution) (Resolution, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT rt.code,rt.capabilities,op.department_path
-		FROM tenants t
-		JOIN principals p ON p.tenant_id=t.id
-		JOIN org_positions op ON op.tenant_id=t.id AND op.occupant_principal_id=p.id
-		JOIN position_role_bindings prb ON prb.tenant_id=t.id AND prb.position_id=op.id
-		JOIN role_templates rt ON rt.tenant_id=t.id AND rt.id=prb.role_template_id
-		WHERE t.slug=$1
-		  AND p.id::text=$2
-		  AND (op.legal_entity_id IS NULL OR op.legal_entity_id=(
-		      SELECT le.id FROM legal_entities le
-		      WHERE le.tenant_id=t.id AND (le.id::text=$3 OR le.code=$3)
-		  ))
-		  AND op.valid_from<=clock_timestamp()
-		  AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
-		  AND prb.valid_from<=clock_timestamp()
-		  AND (prb.valid_until IS NULL OR clock_timestamp()<prb.valid_until)
-		  AND rt.valid_from<=clock_timestamp()
-		  AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
-		ORDER BY cardinality(op.department_path),op.department_path,rt.code`, value.TenantID, value.PrincipalID, value.LegalEntityID)
+		WITH current_entity AS (
+			SELECT le.id
+			FROM tenants t
+			JOIN legal_entities le ON le.tenant_id=t.id
+			WHERE t.slug=$1 AND (le.id::text=$3 OR le.code=$3)
+			LIMIT 1
+		), effective_roles AS (
+			SELECT rt.code,rt.capabilities,op.department_path
+			FROM tenants t
+			JOIN principals p ON p.tenant_id=t.id
+			JOIN org_positions op ON op.tenant_id=t.id AND op.occupant_principal_id=p.id
+			JOIN position_role_bindings prb ON prb.tenant_id=t.id AND prb.position_id=op.id
+			JOIN role_templates rt ON rt.tenant_id=t.id AND rt.id=prb.role_template_id
+			WHERE t.slug=$1
+			  AND p.id::text=$2
+			  AND (op.legal_entity_id IS NULL OR op.legal_entity_id=(SELECT id FROM current_entity))
+			  AND op.valid_from<=clock_timestamp()
+			  AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
+			  AND prb.valid_from<=clock_timestamp()
+			  AND (prb.valid_until IS NULL OR clock_timestamp()<prb.valid_until)
+			  AND rt.valid_from<=clock_timestamp()
+			  AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
+
+			UNION ALL
+
+			SELECT rt.code,rt.capabilities,dgrb.department_path
+			FROM tenants t
+			JOIN scim_users su ON su.tenant_id=t.id AND su.principal_id::text=$2 AND su.active AND su.deleted_at IS NULL
+			JOIN directory_group_members dgm ON dgm.tenant_id=su.tenant_id AND dgm.scim_user_id=su.id
+			JOIN directory_groups dg ON dg.tenant_id=dgm.tenant_id AND dg.id=dgm.group_id AND dg.deleted_at IS NULL
+			JOIN directory_group_role_bindings dgrb ON dgrb.tenant_id=dg.tenant_id AND dgrb.group_id=dg.id AND dgrb.legal_entity_id=(SELECT id FROM current_entity)
+			JOIN role_templates rt ON rt.tenant_id=t.id AND rt.id=dgrb.role_template_id
+			WHERE t.slug=$1
+			  AND dgrb.valid_from<=clock_timestamp()
+			  AND (dgrb.valid_until IS NULL OR clock_timestamp()<dgrb.valid_until)
+			  AND rt.valid_from<=clock_timestamp()
+			  AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
+		)
+		SELECT code,capabilities,department_path
+		FROM effective_roles
+		ORDER BY cardinality(department_path),department_path,code`, value.TenantID, value.PrincipalID, value.LegalEntityID)
 	if err != nil {
 		return Resolution{}, fmt.Errorf("resolve principal roles: %w", err)
 	}
