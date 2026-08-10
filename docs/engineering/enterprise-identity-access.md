@@ -44,7 +44,7 @@ Enterprise identity establishes the local principal and broad capability eligibi
 
 A separate department CRUD/domain model is not required for the pilot.
 
-Departments are represented as a **stable hierarchical path of source-backed codes** on organizational positions and role bindings:
+Departments are represented as a **stable hierarchical path of source-backed codes** on organizational positions and, when later needed, direct/group role bindings:
 
 ```text
 ["BANK", "OPERATIONS", "PAYMENTS"]
@@ -55,7 +55,6 @@ Rules:
 - path values are stable codes, not display names;
 - an empty path means tenant/legal-entity scope rather than an invented department;
 - a position may belong to one current department path;
-- a direct role binding may be restricted to one department path;
 - department hierarchy comes from path prefixes;
 - directory synchronization may update paths, but ClearSight preserves historical command attribution through existing principal/event history.
 
@@ -73,11 +72,7 @@ This supports department-level access and escalation without adding `departments
 - `IDENTITY_READ`, `IDENTITY_CONFIGURE`;
 - `PLATFORM_OPERATIONS_READ`, `PLATFORM_OPERATIONS_WRITE`.
 
-Effective capabilities are the union of currently effective role bindings from:
-
-1. direct principal role bindings;
-2. the principal's current organizational position role bindings;
-3. approved directory-group role bindings once SCIM Groups are implemented.
+The first executable source is the existing position → role binding. Direct principal bindings and approved directory-group bindings are added only when EIA-2/EIA-3 need them; they are not pre-created as empty schema.
 
 Department scope narrows role eligibility; it never broadens object visibility.
 
@@ -164,11 +159,10 @@ Implement first:
 
 - `org_positions.department_path`;
 - `role_templates.capabilities`;
-- current/effective `principal_role_bindings` with optional department scope;
-- validated multi-level `escalations` inside existing routing policy definitions;
-- documentation and migration ownership gates.
+- reusable parser/validation for bounded multi-level `escalations` inside existing routing policy definitions;
+- documentation and migration rollback gates.
 
-No OIDC, SCIM, UI, or escalation execution in this tranche.
+No new durable table, OIDC, SCIM, UI, or escalation execution in this tranche.
 
 ### EIA-1 — OIDC + server session
 
@@ -178,7 +172,7 @@ Keep the current signed-gateway authenticator for development/compatibility. Nat
 
 ### EIA-2 — local capability evaluator
 
-Resolve current capabilities from direct/position role bindings and department scope. Bind the existing route permission metadata to this evaluator. Material commands additionally continue through `commandauth.Guard` and current authority resolution.
+Resolve current capabilities first from position role bindings and department path. Add a narrow direct-principal role binding only if a real administrator/use case cannot be represented through a position. Bind the existing route permission metadata to this evaluator. Material commands additionally continue through `commandauth.Guard` and current authority resolution.
 
 ### EIA-3 — SCIM Users + Groups
 
