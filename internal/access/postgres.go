@@ -87,6 +87,7 @@ func (r *PostgresResolver) ResolvePrincipal(ctx context.Context, tenantID, princ
 		          JOIN directory_group_members dgm ON dgm.tenant_id=su.tenant_id AND dgm.scim_user_id=su.id
 		          JOIN directory_groups dg ON dg.tenant_id=dgm.tenant_id AND dg.id=dgm.group_id
 		          JOIN directory_group_role_bindings dgrb ON dgrb.tenant_id=dg.tenant_id AND dgrb.group_id=dg.id
+		          JOIN role_templates rt ON rt.tenant_id=dgrb.tenant_id AND rt.id=dgrb.role_template_id
 		          WHERE su.tenant_id=t.id
 		            AND su.principal_id=p.id
 		            AND su.active
@@ -95,6 +96,8 @@ func (r *PostgresResolver) ResolvePrincipal(ctx context.Context, tenantID, princ
 		            AND dgrb.legal_entity_id=le.id
 		            AND dgrb.valid_from<=clock_timestamp()
 		            AND (dgrb.valid_until IS NULL OR clock_timestamp()<dgrb.valid_until)
+		            AND rt.valid_from<=clock_timestamp()
+		            AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
 		      )
 		  )`, tenantID, principalID, legalEntityID).
 		Scan(&value.TenantID, &value.PrincipalID, &value.LegalEntityID, &value.DisplayName, &value.Kind)
