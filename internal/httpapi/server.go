@@ -29,6 +29,7 @@ type Dependencies struct {
 	DemoMode         bool
 	Identity         identity.Authenticator
 	Federation       *federation.Service
+	SCIM             http.Handler
 	CommandGuard     *commandauth.Guard
 	Authority        authority.Service
 	Governance       *governance.Service
@@ -51,7 +52,7 @@ func New(deps Dependencies) http.Handler {
 	mux := http.NewServeMux()
 	api.registerFederationRoutes(mux)
 	api.registerRoutes(mux)
-	handler := httpx.Chain(
+	appHandler := httpx.Chain(
 		mux,
 		httpx.CORS(deps.AllowedOrigin),
 		httpx.RequestID,
@@ -61,7 +62,7 @@ func New(deps Dependencies) http.Handler {
 		httpx.AccessLog(deps.Logger),
 	)
 	if deps.Federation != nil {
-		handler = deps.Federation.Middleware(handler)
+		appHandler = deps.Federation.Middleware(appHandler)
 	}
 	protection := http.NewCrossOriginProtection()
 	if deps.AllowedOrigin != "" {
@@ -69,5 +70,25 @@ func New(deps Dependencies) http.Handler {
 			panic(fmt.Errorf("configure trusted origin: %w", err))
 		}
 	}
-	return protection.Handler(handler)
+	appHandler = protection.Handler(appHandler)
+
+	if deps.SCIM == nil {
+		return appHandler
+	}
+
+	// SCIM is a machine-to-machine protocol edge authenticated by its own
+	// tenant-scoped bearer token. Browser session, CORS and actor middleware do
+	// not apply here; all post-provisioning application access still flows
+	// through the normal identity/permission/authority stack above.
+	scimHandler := httpx.Chain(
+		deps.SCIM,
+		httpx.RequestID,
+		httpx.SecurityHeaders,
+		httpx.Recover(deps.Logger),
+		httpx.AccessLog(deps.Logger),
+	)
+	root := http.NewServeMux()
+	root.Handle("/scim/v2/", scimHandler)
+	root.Handle("/", appHandler)
+	return root
 }
