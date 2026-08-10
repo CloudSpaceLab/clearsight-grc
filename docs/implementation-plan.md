@@ -1,6 +1,6 @@
 # ClearSight implementation ledger
 
-**Status date:** 2026-08-09  
+**Status date:** 2026-08-10  
 **Current execution issue:** #27  
 **Umbrella pilot/GA catalogue:** #13
 
@@ -41,21 +41,31 @@ Selected from a fresh merged-code audit rather than backlog order.
 - exact final head `e245754bebea013475499a7fbdb0f6da0db62032` passed CI #717;
 - squash-merged as `e9e61cafa5d6715b3e94bd72454b58b3ead87ff4`.
 
-## 2. Current execution — re-derive again from merged code
+## 2. Current execution — enterprise identity/access foundation
 
-There is deliberately **no preselected next tranche** after #55.
+A fresh review of the production-readiness boundary selected **EIA-0** from `docs/engineering/enterprise-identity-access.md`.
 
-Before the next implementation, inspect the merged executable contracts again and rank the remaining gaps by user impact, correctness/security risk, and whether canonical domain support already exists.
+The decision is intentionally narrow: do not build LDAP, SAML, MFA, another RBAC engine, another organization hierarchy, or another escalation scheduler in ClearSight. The native boundary is OIDC + SCIM around the identity/authority foundations already implemented; authentik is the reference open-source compatibility bridge for legacy LDAP/AD/SAML environments.
 
-Current candidates include:
+### EIA-0 — in progress
 
-1. actor-visible Work filtering / saved views;
-2. protected-record focused mode beyond the now-correct list/search boundary;
-3. durable draft/resume for genuinely complex Decision/Response work;
-4. supported delegate/recuse/conflict/escalate flows where executable authority/domain commands exist;
-5. Capture/Import lifecycle completion.
+This tranche establishes only shared semantics needed by later OIDC/SCIM/runtime work:
 
-Do not select a candidate merely because it appears first. If a UI claim requires a missing domain contract, either establish only that narrow contract first or defer the claim.
+- `org_positions.department_path` for stable hierarchical department scope;
+- `role_templates.capabilities` for coarse application eligibility;
+- bounded parser/validation for multi-level escalation sequences stored inside existing routing-policy definitions;
+- escalation steps select responsibility + department level, never a hard-coded person;
+- no new durable table, authorization engine, routing engine, worker or UI surface.
+
+The next identity/access tranche is selected only after EIA-0 is exact-head green. Planned sequence:
+
+1. **EIA-1:** OIDC relying party + server-side sessions;
+2. **EIA-2:** local capability evaluator using existing position-role bindings and department scope;
+3. **EIA-3:** minimal SCIM Users/Groups + explicit group-to-role mapping;
+4. **EIA-4:** escalation runtime over existing routing policy, authority resolver and `workflow_timers`;
+5. **EIA-5:** compact Identity & access Configure surface + reference authentik deployment guidance.
+
+Do not represent policy-schema support as executable escalation until EIA-4 exists.
 
 ## 3. Later productization still required
 
@@ -70,9 +80,8 @@ Do not select a candidate merely because it appears first. If a UI claim require
 
 ### Configure / enterprise administration
 
-- production directory/identity synchronization;
-- responsibility and decision-authority matrices;
-- routing/escalation configuration, simulation and candidate explanation;
+- EIA-1–EIA-5 enterprise sign-in, provisioning, department-aware capability resolution and escalation;
+- responsibility and decision-authority matrices where current backend configuration is not yet operable from the UI;
 - governed delegation/substitution/absence;
 - maker-checker, effective dating, impact preview and rollback;
 - security/session/notification/integration policy surfaces tied to real backend capability.
@@ -100,6 +109,9 @@ Do not select a candidate merely because it appears first. If a UI claim require
 - WorkAmbiguity ≠ actor assignment.
 - Lifecycle sequence policy selects responsibility, not outcome or actor.
 - Lifecycle sequence rule ≠ authority route.
+- Escalation sequence selects responsibility + scope, not a person or bypass route.
+- Department scope narrows eligibility; it never broadens tenant/legal-entity/object visibility.
+- Directory group membership ≠ responsibility or material authority.
 - Evidence Request recipient is canonical request state; Workflow work is a rebuildable actor projection.
 - Workflow command packet is an executable projection; every mutation is revalidated by the domain service.
 - Program UI lifecycle choices are affordances only; server lifecycle/authority/version checks remain final.
