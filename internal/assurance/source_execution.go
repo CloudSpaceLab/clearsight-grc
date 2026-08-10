@@ -19,6 +19,7 @@ var (
 	ErrPopulationInvalid   = errors.New("population definition is invalid")
 	ErrSourceCredentials   = errors.New("source credentials are unavailable")
 	ErrSourceConnection    = errors.New("source connection is unavailable")
+	ErrSourcePrivileges    = errors.New("source credential has unsafe privileges")
 	ErrSourceExecution     = errors.New("source execution failed")
 	ErrSourceSchemaChanged = errors.New("source schema changed")
 )
