@@ -1,123 +1,70 @@
 # Enterprise identity and access
 
-**Status:** EIA-0 through EIA-3 implemented on PR #59; EIA-4/EIA-5 remain  
-**Scope:** enterprise sign-in, provisioning, department-aware role eligibility, and governed escalation  
+**Status:** EIA-0 through EIA-4 implemented on PR #59; EIA-5 remains  
+**Scope:** enterprise sign-in, provisioning, department-aware access, and governed escalation  
 **Supersedes:** the greenfield LDAP/SAML portions of the older enterprise-productization P2/P3 plan
 
-## 1. Decision
+## 1. Boundary
 
-ClearSight will not become an IAM product.
-
-The native enterprise boundary is deliberately small:
+ClearSight is not an IAM product. Its native enterprise boundary is deliberately small:
 
 ```text
 authentication      OIDC
 provisioning        SCIM 2.0
 session             server-side ClearSight session
-coarse access       existing role templates + local capabilities
+coarse access       existing roles + local capabilities
 governed actions    existing responsibility / authority / delegation / segregation
 legacy federation   upstream open-source IAM bridge
 ```
 
-Reference open-source bridge: **authentik**. Existing bank Keycloak, Entra, Okta, or another standards-compliant OIDC provider connects directly. LDAP/Active Directory, SAML, Kerberos, passwords, MFA, passkeys, and recovery remain upstream identity-provider concerns.
+Reference OSS bridge: **authentik**. Existing bank Keycloak, Entra, Okta, or another standards-compliant OIDC provider can connect directly. LDAP/AD, SAML, Kerberos, passwords, MFA, passkeys, and recovery stay upstream.
 
-ClearSight must never require an LDAP, SAML, SCIM, or IdP network call on an ordinary authenticated read or command path.
+Ordinary authenticated reads and commands must make zero LDAP/SAML/SCIM/IdP network calls.
 
-## 2. Existing foundations to reuse
+## 2. Existing foundations remain authoritative
 
 Do not replace:
 
 - `principals`;
-- `org_positions` and `parent_position_id`;
-- `role_templates` and `position_role_bindings`;
-- `responsibility_assignments`;
-- `authority_grants`;
-- `routing_policies` / `routing_policy_versions`;
-- `effective_authority_routes`;
-- `delegations` and segregation checks;
-- `workflow_timers`, outbox/inbox, and current worker infrastructure;
+- `org_positions`, `role_templates`, and `position_role_bindings`;
+- `responsibility_assignments`, `authority_grants`, `delegations`, and segregation checks;
+- `routing_policies` / `routing_policy_versions` / `effective_authority_routes`;
+- `workflow_tasks`, `workflow_timers`, outbox/inbox, and current worker infrastructure;
 - `internal/identity`, `internal/authority`, and `internal/commandauth` trust boundaries.
 
-Enterprise identity establishes the local principal and broad capability eligibility. It does not replace current object visibility or material command authority.
+Enterprise identity establishes a local principal and coarse eligibility. Existing object visibility and material command authority remain final.
 
-## 3. Department model without another organization subsystem
+## 3. Departments and capabilities
 
-A separate department CRUD/domain model is not required for the pilot.
-
-Departments are represented as a **stable hierarchical path of source-backed codes** on organizational positions and group role bindings:
+Departments are stable hierarchical paths on existing organization/access state, for example:
 
 ```text
 ["BANK", "OPERATIONS", "PAYMENTS"]
 ```
 
-Rules:
+No separate department subsystem exists. Empty path means legal-entity scope. Non-empty paths are exact scope unless a governed server-side rule explicitly says otherwise; a client-supplied path never selects authorization scope.
 
-- path values are stable codes, not display names;
-- an empty path means legal-entity scope rather than an invented department;
-- a position may belong to one current department path;
-- department hierarchy comes from path prefixes;
-- provisioning may update organizational facts, but ClearSight preserves historical command attribution through existing principal/event history;
-- department capabilities require an exact department path unless a governed server-side policy explicitly defines inheritance.
-
-This supports department-level access and escalation without adding a separate department hierarchy, membership, or history subsystem.
-
-## 4. Capability model
-
-`role_templates` owns a bounded set of coarse capabilities. Initial families should remain small:
-
-- `PROGRAM_READ`, `PROGRAM_CONFIGURE`;
-- `MATTER_READ`, `MATTER_CREATE`;
-- `EVIDENCE_READ`, `EVIDENCE_REQUEST`, `EVIDENCE_RESPOND`, `EVIDENCE_REVIEW`;
-- `IMPORT_READ`, `IMPORT_CREATE`, `IMPORT_REVIEW`;
-- `AUTHORITY_READ`, `AUTHORITY_CONFIGURE`;
-- `IDENTITY_READ`, `IDENTITY_CONFIGURE`;
-- `PLATFORM_OPERATIONS_READ`, `PLATFORM_OPERATIONS_WRITE`.
-
-Executable role sources are deliberately limited to:
+`role_templates.capabilities` owns bounded coarse capabilities. Effective role sources are only:
 
 1. existing position → role bindings; and
-2. approved directory group → existing role-template bindings introduced by EIA-3.
-
-No second role catalogue exists.
-
-Effective access is deliberately split:
+2. approved directory group → existing role bindings.
 
 ```text
-empty department path role
-→ actor.role_codes + actor.permission_codes
-→ may satisfy existing legal-entity-wide route permissions
+empty department role
+→ legal-entity-wide actor role/capability
 
-non-empty department path role
-→ actor.department_grants[path]
-→ may satisfy only a route whose department scope is derived server-side
+non-empty department role
+→ exact department grant
 ```
 
-A client-supplied department path never selects authorization scope. Department scope narrows role eligibility; it never broadens tenant, legal-entity, object, or protected-record visibility.
+A capability answers **which class of product function may this actor use?** The existing authority resolver still answers **may this actor perform this governed action on this object now?**
 
-A role/capability answers **which class of function may this actor use?** The existing authority resolver still answers **may this actor perform this governed action on this exact object now?**
+## 4. Multi-level escalation contract
 
-## 5. Multi-level escalation
-
-Do not add an escalation-policy table or a second routing engine.
-
-Escalation sequences live inside the already versioned and maker-checker governed `routing_policy_versions.definition` alongside routing rules.
-
-Canonical shape:
+Escalation sequences live inside existing versioned `routing_policy_versions.definition`; there is no escalation-policy table or second routing engine.
 
 ```json
 {
-  "rules": [
-    {
-      "id": "department-owner",
-      "responsibility": "ACCOUNTABLE_OWNER",
-      "selector": {"kind": "ROLE", "ref": "DEPARTMENT_OWNER"}
-    },
-    {
-      "id": "risk-escalation",
-      "responsibility": "ESCALATION_OWNER",
-      "selector": {"kind": "ROLE", "ref": "RISK_MANAGER"}
-    }
-  ],
   "escalations": [
     {
       "id": "overdue-control-work",
@@ -125,187 +72,164 @@ Canonical shape:
       "steps": [
         {"after": "0s", "responsibility": "ACCOUNTABLE_OWNER", "department_levels_up": 0},
         {"after": "4h", "responsibility": "ESCALATION_OWNER", "department_levels_up": 1},
-        {"after": "24h", "responsibility": "ESCALATION_OWNER"}
+        {"after": "24h", "responsibility": "AUTHORIZER"}
       ]
     }
   ]
 }
 ```
 
-Semantics:
+Rules:
 
-- array order is the escalation order; no redundant `level` field;
-- `department_levels_up: 0` = current department;
-- `1` = parent department; `2` = grandparent, and so on;
-- omitted `department_levels_up` = legal-entity routing scope;
-- each step selects a **responsibility and scope**, not a person;
-- the existing authority/routing rules resolve the actor for that responsibility;
-- `after` values are cumulative elapsed thresholds and must be monotonic;
-- sequence execution reuses `workflow_timers`; it must not create another scheduler;
-- reminder-only behavior stays separate from an ownership/authority escalation.
+- array order is escalation order;
+- only one sequence may exist for a trigger in a policy version;
+- `department_levels_up: 0` means the triggering work department, `1` its parent, etc.;
+- omitted `department_levels_up` means legal-entity routing scope;
+- steps select responsibility + scope, never a hard-coded person;
+- `after` values are cumulative thresholds and strictly increasing;
+- only the next level is scheduled;
+- assignment by escalation does **not** grant material command authority.
 
-Initial triggers supported by the policy contract:
+The policy schema recognizes `OVERDUE`, `NO_ROUTE`, `AUTHORITY_INSUFFICIENT`, `MATERIALITY_INCREASE`, `RECIPIENT_UNAVAILABLE`, and `CONFLICT`. **EIA-4 makes `OVERDUE` executable.** The others remain schema-valid until their real domain event adapters are implemented; do not manufacture timestamps/events merely to claim coverage.
 
-- `OVERDUE`;
-- `NO_ROUTE`;
-- `AUTHORITY_INSUFFICIENT`;
-- `MATERIALITY_INCREASE`;
-- `RECIPIENT_UNAVAILABLE`;
-- `CONFLICT`.
+## 5. OSS component boundary
 
-Runtime support can be introduced trigger-by-trigger. Policy-schema support is not executable escalation until EIA-4 compiles it into existing timer/workflow infrastructure.
+Native libraries:
 
-## 6. Open-source component boundary
+- OIDC: `github.com/coreos/go-oidc/v3/oidc` + `golang.org/x/oauth2`;
+- sessions: `github.com/alexedwards/scs/v2` + `github.com/alexedwards/scs/pgxstore`;
+- SCIM: exact-pinned `github.com/elimity-com/scim` commit `2641426a1539`, contained behind `internal/scimapi`.
 
-### Native libraries
+External IAM:
 
-- OIDC relying party: `github.com/coreos/go-oidc/v3/oidc` + `golang.org/x/oauth2`;
-- server-side sessions: `github.com/alexedwards/scs/v2` with `github.com/alexedwards/scs/pgxstore`;
-- SCIM protocol adapter: exact-pinned `github.com/elimity-com/scim` commit `2641426a1539`, contained behind `internal/scimapi`.
+- **authentik** is the reference LDAP/AD/SAML → OIDC/SCIM bridge;
+- existing **Keycloak** is a first-class direct OIDC target.
 
-The SCIM library owns protocol parsing, discovery, filtering/pagination and PATCH transport. ClearSight owns tenant authentication, canonical principal/group persistence and group-to-role semantics. Library types do not escape the adapter boundary.
+Do not add Casbin, OPA, Cerbos, another workflow engine, event bus, scheduler, or policy database for this work.
 
-### External open-source IAM
+## 6. Implemented tranches
 
-**authentik** is the reference compatibility bridge for LDAP/AD/SAML to ClearSight OIDC + SCIM. **Keycloak** is a first-class direct OIDC compatibility target when already deployed by the bank. ClearSight does not depend on either vendor's internal APIs for authorization.
-
-Do not add Casbin, OPA, Cerbos, another workflow engine, another event bus, or another policy database for this work.
-
-## 7. Implemented tranches
-
-### EIA-0 — shared access and escalation contract
-
-Implemented on PR #59:
+### EIA-0 — shared access/escalation contract
 
 - `org_positions.department_path`;
 - `role_templates.capabilities`;
-- strict bounded parser/validation for multi-level `escalations` inside existing routing policy definitions;
-- no department table, escalation table, authorization engine, worker, or UI surface.
+- strict bounded escalation parser/validation in existing routing-policy definitions;
+- no department table, escalation table, authorization engine, scheduler, or UI framework.
 
 ### EIA-1 — OIDC + server session
 
-Implemented on PR #59:
+- Authorization Code + state + nonce + PKCE S256;
+- immutable tenant-bound issuer + subject correlation through `principal_identities`;
+- unknown subjects fail closed rather than privileged JIT creation;
+- one federated identity maps to a principal, not a legal entity;
+- SCS server sessions with maintained pgx store;
+- no OIDC access/refresh token or cached authorization truth in browser session state;
+- bounded trusted-origin callback/CORS/cross-origin protections;
+- signed-gateway and development modes remain compatibility modes.
 
-- `CLEARSIGHT_IDENTITY_MODE=oidc` while retaining `development` and the signed-gateway compatibility mode;
-- one operationally configured OIDC connection for the first tranche rather than premature connection-management CRUD;
-- Authorization Code flow with state, nonce, and PKCE S256;
-- exact OIDC issuer + subject correlation through tenant-bound `principal_identities`;
-- no just-in-time privileged account creation: an unknown subject is denied until provisioned;
-- SCS server-side sessions stored through the maintained pgx store;
-- session fixation protection through token renewal at login;
-- session cookie is `HttpOnly`, `SameSite=Lax`, and required `Secure` in production;
-- the browser stores no OIDC access/refresh token and no authorization truth;
-- existing signed identity and development modes remain intact;
-- OIDC transport routes are the narrow `/auth/...` protocol edge; all application authorization continues through the existing identity middleware and `/api/v1` route registry;
-- credentialed CORS is limited to the configured application origin, with Go standard-library cross-origin protection on unsafe requests;
-- callback return paths are local paths joined only to that configured trusted application origin.
+### EIA-2 — local department-aware capability resolution
 
-### EIA-2 — local department-aware capability resolver
-
-Implemented on PR #59:
-
-- OIDC session state stores only canonical tenant/principal/legal-entity/session/assurance facts;
-- each authenticated request re-resolves the principal and current roles/capabilities from PostgreSQL;
-- deactivated/expired principals therefore lose current application access without an IdP/LDAP/SCIM call;
-- position-derived capabilities use existing `org_positions → position_role_bindings → role_templates`;
-- empty-department roles become legal-entity-wide actor roles/capabilities;
-- non-empty department roles/capabilities remain exact-scope `department_grants` and cannot satisfy existing global route permissions;
-- parent/child department access is not inferred;
-- native OIDC does not consume IdP role/group/permission claims as ClearSight authorization truth;
-- existing material commands still additionally pass `commandauth.Guard`, current responsibility/authority resolution, delegation, segregation, visibility, and lifecycle checks.
+- each OIDC application request reloads current principal/entity/access-source/role/capability state from PostgreSQL;
+- IdP role/group/permission claims are not authorization truth;
+- position and governed group bindings use the same capability evaluator;
+- department grants remain exact-scope and cannot satisfy unscoped permissions;
+- current revocation/expiry takes effect without IdP reauthentication;
+- material commands still pass visibility + `commandauth.Guard` + current authority/delegation/segregation.
 
 ### EIA-3 — SCIM Users + Groups
 
-Implemented on PR #59:
+- isolated `/scim/v2` machine edge with tenant-scoped bearer credentials stored only as SHA-256 digests;
+- bounded discovery, Users/Groups CRUD, PATCH, equality filters, and pagination;
+- SCIM Users create and own canonical `PERSON` principals; no email-based takeover of unrelated principals;
+- explicit source correlation may map `externalId` or `userName` to the EIA-1 OIDC issuer/subject model;
+- direct same-source group membership only; nested groups are rejected and no closure table exists;
+- SCIM cannot write group→role bindings;
+- ClearSight-owned effective-dated group→existing-role bindings provide legal-entity or exact-department capability eligibility;
+- directory state cannot manufacture responsibility, signatory rights, authority grants, delegation, or protected-record visibility.
 
-- `/scim/v2` is a separate machine-to-machine protocol edge authenticated by tenant-scoped bearer credentials whose SHA-256 digest is stored in `scim_sources`;
-- SCIM discovery plus Users/Groups create/read/list/replace/delete/PATCH, bounded filtering and pagination are provided through the contained open-source adapter;
-- a SCIM User creates and owns a canonical `PERSON` principal; ClearSight does **not** match by email and silently take over an existing manually governed principal;
-- a source may explicitly correlate its immutable `externalId` or `userName` to the configured OIDC issuer/subject, producing the same `principal_identities` used by EIA-1;
-- deactivation immediately inactivates the owned principal and revokes the source-linked OIDC identity; reactivation restores the governed source-owned identity;
-- `directory_groups` and `directory_group_members` store direct source facts only; nested groups are rejected in this tranche and no closure table is introduced;
-- SCIM cannot write `directory_group_role_bindings`;
-- a ClearSight-controlled effective-dated group→existing-role binding may add legal-entity-wide or exact-department capability eligibility;
-- group-derived roles are resolved through the same EIA-2 local capability evaluator as position-derived roles;
-- deleting a group or removing/deactivating a user removes group-derived eligibility on the next request;
-- the authority resolver, responsibility assignments, authority grants, delegations, segregation and protected-record visibility are unchanged, so directory membership cannot manufacture material decision authority;
-- the SCIM edge is explicitly isolated from browser session/identity middleware; every human application request still returns through the normal OIDC/session/access/authority path.
+### EIA-4 — executable multi-level OVERDUE escalation
 
-The executable EIA-3 implementation head `8d0f95303af6fd6a348e24e93b20ea8ed099a195` passed CI #836 and UI-evidence #402 before final documentation/test-contract cleanup. The final head must pass the same normal release gates before merge.
+Implemented on the existing runtime stack with **no new durable table**:
 
-## 8. Next sequence
+```text
+overdue Matter workflow task
+→ active pinned routing-policy escalation sequence
+→ one workflow_timers row for next level
+→ existing timer claim/fire
+→ WorkflowTimerFired outbox event
+→ idempotent escalation consumer / inbox receipt
+→ re-read current Matter + task authorization facts
+→ current authority resolution
+→ protected-Matter visibility
+→ delegation + authority grants + segregation
+→ exact department boundary for scoped level
+→ update same Workflow task as ESCALATED overlay
+→ schedule next level only
+```
 
-### EIA-4 — escalation runtime
+Important semantics:
 
-Compile active routing-policy escalation sequences into the existing workflow timer infrastructure. For each fired level:
+- the timer carries only escalation lineage (`task`, workflow, policy version, sequence, level, baseline due date) rather than stale materiality/legal-entity/decision authority facts;
+- each fired level re-reads current Matter ID, legal entity, decision type, materiality, activity/visibility and authority state;
+- the triggering task's department path is resolved when level 0 actually fires and then pinned as the ancestry base for that escalation lineage;
+- authority resolution remains unchanged; department filtering is applied to the already authority/delegation/grant/segregation-filtered candidate set;
+- exactly one candidate is required for an automatic reassignment; no-route, ambiguous, hidden, or multi-candidate states record `WORK_ESCALATION_UNRESOLVED` and never silently assign an administrator;
+- successful levels record `WORK_ESCALATED` and update the existing task, not a parallel escalation task;
+- outbox replay is idempotent via the existing inbox ledger and per-level attempt key;
+- stale due-date/policy races fail closed and do not schedule a stale next level;
+- a tiny database overlay invariant prevents ordinary projector reconciliation from erasing an active escalation when the canonical work requirement, due date and policy are unchanged; genuine source changes can replace it;
+- completing/cancelling work cancels the pending next escalation timer;
+- escalation assignment remains a work-routing projection: a material action still requires the normal command guard and current authority at execution time.
 
-1. derive the applicable department prefix from current work scope;
-2. resolve the step responsibility through current authority/routing policy;
-3. apply delegation, segregation, principal activity and visibility checks;
-4. update the existing Workflow projection or create a routing-integrity intervention;
-5. schedule only the next level using the existing deduplicated timer ledger.
+## 7. EIA-5 remaining
 
-Do not pre-materialize every future escalation level as tasks/timers.
+Add one compact **Configure → Identity & access** surface for:
 
-### EIA-5 — minimal Configure surface + OSS reference deployment
-
-Add one compact **Identity & access** Configure area for connection status, provisioning health, roles/capabilities, department scope, group mappings, and escalation simulation.
+- sign-in connection status;
+- provisioning/source health and token bootstrap/rotation;
+- people/groups inspection;
+- role/capability and group→role administration;
+- department scope inspection;
+- escalation policy simulation/status.
 
 Provide reference authentik configuration for AD/LDAP/SAML bridging, but do not vendor or fork authentik.
 
-Source-token bootstrap/rotation and group-role administration belong here rather than expanding the SCIM protocol surface into an IAM console.
+## 8. Acceptance invariants
 
-## 9. Acceptance gates
-
-### Identity / provisioning
+Identity/provisioning:
 
 - wrong OIDC issuer/audience/state/nonce/PKCE fails closed;
-- unknown OIDC subject is not silently provisioned;
-- disabled principal loses an existing ClearSight session on the next authenticated request;
-- ordinary authenticated reads/commands make zero LDAP/SAML/SCIM/IdP network calls;
-- session data contains no OIDC access/refresh token and no cached role/capability authorization truth;
-- cross-origin unsafe requests outside the trusted application origin are rejected;
-- post-login return paths cannot redirect to an external origin;
-- SCIM credentials are tenant-bound and stored only as fixed-size digests;
-- SCIM cannot attach an incoming user to an unrelated existing principal by email;
-- duplicate source identifiers fail deterministically rather than creating ambiguous principals;
-- group membership is direct, source-scoped and cannot reference another source or nested group;
-- group membership alone never creates responsibility or material authority;
-- source/user/group deactivation or deletion removes current access eligibility without directory network calls.
+- unknown/disabled principal cannot silently retain access;
+- ordinary requests never query LDAP/SAML/SCIM/IdP;
+- group membership alone never creates material authority;
+- provisioning cannot seize an unrelated principal by email.
 
-### Departments / capabilities
+Departments/capabilities:
 
-- position-derived and group-derived roles use the same capability evaluator;
-- global and department-scoped role codes remain distinct;
-- same capability in two departments resolves only at the exact requested department scope;
-- parent department does not inherit child access unless an explicit future server-side rule says so;
-- department capability cannot satisfy a legal-entity-wide administrative route;
-- tenant/legal-entity scope remains authoritative above department scope;
-- removing a role, group binding, group membership, position, or principal changes current access without rewriting material authority routes or re-authenticating at the IdP.
+- global and department-scoped roles remain distinct;
+- exact department grants do not inherit parent/child access automatically;
+- department scope never broadens tenant/legal-entity/object visibility.
 
-### Escalation
+Escalation:
 
-- levels execute in configured order and only once once EIA-4 exists;
-- non-monotonic/duplicate/invalid sequences are rejected before policy activation;
-- department level traversal stops safely at the available hierarchy once EIA-4 exists;
-- no-route/conflict cannot silently assign an administrator;
-- escalation never bypasses authority, delegation, segregation, or protected-record visibility;
-- completion/cancellation cancels the pending next timer once EIA-4 exists;
-- policy changes are effective-dated and do not rewrite historical decisions.
+- levels execute in configured order and at most once per lineage attempt;
+- only the next level is pre-scheduled;
+- every fired level uses current materiality/legal entity/visibility/authority facts;
+- department traversal fails closed if the base path is absent, ambiguous, or exhausted;
+- no-route/ambiguity cannot assign an administrator by fallback;
+- projector reconciliation cannot erase an active escalation without a genuine source change;
+- completion/cancellation cancels the pending next timer;
+- policy version + baseline due date preserve escalation lineage without rewriting historical decisions;
+- escalation assignment ≠ command authority.
 
-## 10. Non-goals
+## 9. Non-goals
 
-Do not build in ClearSight:
+Do not build inside ClearSight:
 
-- passwords or account recovery;
-- LDAP/Active Directory clients;
-- SAML XML processing;
-- Kerberos;
-- MFA/passkey enrollment;
+- passwords/recovery/MFA/passkey enrollment;
+- LDAP/AD clients, SAML XML, or Kerberos;
 - generic IAM administration;
-- nested-directory-group materialization before a proven requirement;
-- a second organization hierarchy;
-- a second role/policy/authority engine;
-- a second scheduler or workflow engine.
+- nested-directory-group materialization without a proven requirement;
+- a second organization hierarchy, role engine, authority engine, scheduler, workflow engine, or escalation task stack.
 
-The result is a small enterprise interoperability layer around the authority model ClearSight already owns.
+The result is a small enterprise interoperability and work-routing layer around the authority model ClearSight already owns.
