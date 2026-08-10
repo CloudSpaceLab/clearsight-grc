@@ -159,6 +159,8 @@ func developmentPermissions(roles []string) []string {
 			permissions = append(permissions,
 				PermissionConfigRead,
 				PermissionConfigWrite,
+				PermissionIdentityRead,
+				PermissionIdentityConfigure,
 				PermissionPlatformOperationsRead,
 				PermissionPlatformOperationsWrite,
 				PermissionPlatformJobsRead,
