@@ -24,6 +24,6 @@ type Resolution struct {
 }
 
 type Resolver interface {
-	ResolveOIDC(context.Context, string, string, string) (Resolution, error)
+	ResolveOIDC(context.Context, string, string, string, string) (Resolution, error)
 	ResolvePrincipal(context.Context, string, string, string) (Resolution, error)
 }
