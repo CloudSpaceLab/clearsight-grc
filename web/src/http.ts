@@ -31,7 +31,7 @@ export async function parseJSON<T>(response: Response): Promise<T> {
 export async function requestJSON<T>(apiBase: string, path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   if (!(init?.body instanceof FormData) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  return parseJSON<T>(await fetch(`${apiBase}${path}`, { ...init, headers }));
+  return parseJSON<T>(await fetch(`${apiBase}${path}`, { ...init, credentials: init?.credentials ?? "include", headers }));
 }
 
 export function apiErrorKind(error: unknown): ApiErrorKind {
