@@ -51,10 +51,12 @@ type Condition struct {
 }
 
 const (
-	hardMaxConditionDepth       = 16
-	hardMaxConditionNodes       = 256
-	hardMaxConditionInValues    = 256
-	hardMaxConditionStringBytes = 4096
+	hardMaxConditionDepth        = 16
+	hardMaxConditionNodes        = 256
+	hardMaxConditionInValues     = 256
+	hardMaxConditionStringBytes  = 4096
+	hardMaxConditionTotalValues  = 1024
+	hardMaxConditionLiteralBytes = 64 << 10
 )
 
 type ConditionLimits struct {
@@ -228,10 +230,12 @@ func (c *CompiledCondition) evaluate(condition Condition, row map[string]any) Re
 }
 
 type validationState struct {
-	fields       map[string]Field
-	limits       ConditionLimits
-	nodes        int
-	dependencies map[string]struct{}
+	fields            map[string]Field
+	limits            ConditionLimits
+	nodes             int
+	dependencies      map[string]struct{}
+	totalValues       int
+	totalLiteralBytes int
 }
 
 func (s *validationState) validate(condition Condition, depth int) error {
@@ -293,7 +297,7 @@ func (s *validationState) validate(condition Condition, depth int) error {
 			return fmt.Errorf("%s requires 1-%d values", condition.Op, s.limits.MaxInValues)
 		}
 		for _, value := range condition.Values {
-			if err := validateLiteral(field.Type, value, s.limits); err != nil {
+			if err := s.validateLiteral(field.Type, value); err != nil {
 				return fmt.Errorf("%s field %q: %w", condition.Op, field.Name, err)
 			}
 		}
@@ -306,7 +310,7 @@ func (s *validationState) validate(condition Condition, depth int) error {
 			return fmt.Errorf("BETWEEN requires NUMBER or TIME field")
 		}
 		for _, value := range condition.Values {
-			if err := validateLiteral(field.Type, value, s.limits); err != nil {
+			if err := s.validateLiteral(field.Type, value); err != nil {
 				return err
 			}
 		}
@@ -321,7 +325,7 @@ func (s *validationState) validate(condition Condition, depth int) error {
 		if condition.OtherField != "" || len(condition.Values) != 0 {
 			return fmt.Errorf("CONTAINS requires one string literal")
 		}
-		if err := validateLiteral(TypeString, condition.Value, s.limits); err != nil {
+		if err := s.validateLiteral(TypeString, condition.Value); err != nil {
 			return err
 		}
 		if condition.Value.String == "" {
@@ -344,7 +348,7 @@ func (s *validationState) validate(condition Condition, depth int) error {
 				return fmt.Errorf("field comparison requires matching logical types")
 			}
 			s.dependencies[condition.OtherField] = struct{}{}
-		} else if err := validateLiteral(field.Type, condition.Value, s.limits); err != nil {
+		} else if err := s.validateLiteral(field.Type, condition.Value); err != nil {
 			return err
 		}
 		if orderedOperator(condition.Op) && field.Type != TypeNumber && field.Type != TypeTime {
@@ -353,6 +357,34 @@ func (s *validationState) validate(condition Condition, depth int) error {
 		return nil
 	default:
 		return fmt.Errorf("unsupported condition operator %q", condition.Op)
+	}
+}
+
+func (s *validationState) validateLiteral(expected LogicalType, value Literal) error {
+	if err := validateLiteral(expected, value, s.limits); err != nil {
+		return err
+	}
+	s.totalValues++
+	if s.totalValues > hardMaxConditionTotalValues {
+		return fmt.Errorf("condition exceeds %d total literal values", hardMaxConditionTotalValues)
+	}
+	s.totalLiteralBytes += literalBudgetBytes(value)
+	if s.totalLiteralBytes > hardMaxConditionLiteralBytes {
+		return fmt.Errorf("condition literal payload exceeds %d bytes", hardMaxConditionLiteralBytes)
+	}
+	return nil
+}
+
+func literalBudgetBytes(value Literal) int {
+	switch value.Type {
+	case TypeString:
+		return len(value.String)
+	case TypeNumber, TypeTime:
+		return 16
+	case TypeBool:
+		return 1
+	default:
+		return 0
 	}
 }
 
