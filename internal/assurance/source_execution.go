@@ -113,9 +113,8 @@ func populationFingerprint(population PopulationDefinition) string {
 	return hex.EncodeToString(hash[:])
 }
 
-// SchemaFingerprint returns the exact logical schema against which this
-// condition was compiled. Executors use it to fail closed on source-schema drift
-// before evaluating a predicate built for an older shape.
+// SchemaFingerprint returns the complete logical schema against which this
+// condition was compiled. It is useful for reconstruction and diagnostics.
 func (c *CompiledCondition) SchemaFingerprint() (string, error) {
 	if c == nil {
 		return "", fmt.Errorf("compiled condition is required")
@@ -125,4 +124,49 @@ func (c *CompiledCondition) SchemaFingerprint() (string, error) {
 		fields = append(fields, field)
 	}
 	return (Schema{Fields: fields}).Fingerprint()
+}
+
+// RequiredSchemaFingerprint identifies only fields that can change the rule's
+// result plus the stable subject key. Unrelated projected columns may evolve
+// without turning an otherwise evaluable rule into false schema drift.
+func (c *CompiledCondition) RequiredSchemaFingerprint(subjectKey string) (string, error) {
+	if c == nil {
+		return "", fmt.Errorf("compiled condition is required")
+	}
+	return schemaFingerprintForFields(Schema{Fields: mapFields(c.fields)}, c.requiredSchemaFields(subjectKey))
+}
+
+func (c *CompiledCondition) requiredSchemaFields(subjectKey string) []string {
+	fields := append([]string(nil), c.dependencies...)
+	for _, name := range fields {
+		if name == subjectKey {
+			return fields
+		}
+	}
+	return append(fields, subjectKey)
+}
+
+func schemaFingerprintForFields(schema Schema, names []string) (string, error) {
+	fields := make([]Field, 0, len(names))
+	seen := make(map[string]struct{}, len(names))
+	for _, name := range names {
+		if _, exists := seen[name]; exists {
+			continue
+		}
+		field, exists := schema.Field(name)
+		if !exists {
+			return "", fmt.Errorf("%w: execution-critical field %q is missing", ErrSourceSchemaChanged, name)
+		}
+		seen[name] = struct{}{}
+		fields = append(fields, field)
+	}
+	return (Schema{Fields: fields}).Fingerprint()
+}
+
+func mapFields(values map[string]Field) []Field {
+	fields := make([]Field, 0, len(values))
+	for _, field := range values {
+		fields = append(fields, field)
+	}
+	return fields
 }
