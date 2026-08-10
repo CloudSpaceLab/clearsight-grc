@@ -55,7 +55,8 @@ func ParseEscalationSequences(definition json.RawMessage) ([]EscalationSequence,
 		return nil, fmt.Errorf("policy supports at most %d escalation sequences", maxEscalationSequences)
 	}
 
-	seen := make(map[string]struct{}, len(envelope.Escalations))
+	seenIDs := make(map[string]struct{}, len(envelope.Escalations))
+	seenTriggers := make(map[string]string, len(envelope.Escalations))
 	result := make([]EscalationSequence, 0, len(envelope.Escalations))
 	for _, raw := range envelope.Escalations {
 		var value escalationSequenceDefinition
@@ -67,10 +68,14 @@ func ParseEscalationSequences(definition json.RawMessage) ([]EscalationSequence,
 		if id == "" || !supportedEscalationTrigger(trigger) {
 			return nil, fmt.Errorf("each escalation sequence requires a unique id and supported trigger")
 		}
-		if _, exists := seen[id]; exists {
+		if _, exists := seenIDs[id]; exists {
 			return nil, fmt.Errorf("duplicate escalation sequence id %s", id)
 		}
-		seen[id] = struct{}{}
+		seenIDs[id] = struct{}{}
+		if prior, exists := seenTriggers[trigger]; exists {
+			return nil, fmt.Errorf("escalation trigger %s is already defined by sequence %s", trigger, prior)
+		}
+		seenTriggers[trigger] = id
 		if len(value.Steps) == 0 || len(value.Steps) > maxEscalationSteps {
 			return nil, fmt.Errorf("escalation sequence %s must contain 1-%d steps", id, maxEscalationSteps)
 		}
