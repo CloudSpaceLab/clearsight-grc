@@ -130,11 +130,11 @@ func TestBeginCreatesStateNonceAndPKCES256(t *testing.T) {
 
 func TestSafeReturnPathRejectsExternalTargets(t *testing.T) {
 	cases := map[string]string{
-		"":                         "/",
-		"/today?view=mine":         "/today?view=mine",
-		"https://evil.test/steal":  "/",
-		"//evil.test/steal":        "/",
-		"javascript:alert(1)":      "/",
+		"":                        "/",
+		"/today?view=mine":        "/today?view=mine",
+		"https://evil.test/steal": "/",
+		"//evil.test/steal":       "/",
+		"javascript:alert(1)":     "/",
 	}
 	for input, expected := range cases {
 		if actual := safeReturnPath(input); actual != expected {
