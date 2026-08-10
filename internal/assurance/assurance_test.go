@@ -186,8 +186,8 @@ func TestPostgresPredicatePreservesTriStateAndQuotesIdentifiers(t *testing.T) {
 	if len(predicate.Args) != 2 || predicate.Args[0] != float64(80) || predicate.Args[1] != "BLOCKED" {
 		t.Fatalf("unexpected args: %#v", predicate.Args)
 	}
-	if !strings.Contains(predicate.UnknownSQL, "NOT") || !strings.Contains(predicate.UnknownSQL, "IS NULL") {
-		t.Fatalf("OR unknown semantics missing: %s", predicate.UnknownSQL)
+	if !strings.Contains(predicate.UnknownSQL, "NOT") || !strings.Contains(predicate.UnknownSQL, "octet_length") || !strings.Contains(predicate.UnknownSQL, "9007199254740992") {
+		t.Fatalf("OR bounded unknown semantics missing: %s", predicate.UnknownSQL)
 	}
 }
 
@@ -257,7 +257,7 @@ func TestContainsHasPureAndPostgresParityShape(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(predicate.MatchSQL, "POSITION($1 IN") || len(predicate.Args) != 1 {
+	if !strings.Contains(predicate.MatchSQL, "strpos(") || !strings.Contains(predicate.MatchSQL, "octet_length") || len(predicate.Args) != 1 {
 		t.Fatalf("unexpected predicate: %+v", predicate)
 	}
 }
