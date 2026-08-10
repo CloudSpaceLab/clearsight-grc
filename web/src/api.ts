@@ -6,10 +6,25 @@ import type { BankJourneysResponse } from "./verticalTypes";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
+export type DepartmentGrant = {
+  path: string[];
+  role_codes?: string[];
+  permission_codes?: string[];
+};
+
 export type RuntimeContext = {
   tenant: { id: string; name: string };
   legal_entity: { id: string; name: string };
-  actor: { id: string; name: string; kind?: string; assurance_level?: string; authentication?: string; session_id?: string; role_codes?: string[] };
+  actor: {
+    id: string;
+    name: string;
+    kind?: string;
+    assurance_level?: string;
+    authentication?: string;
+    session_id?: string;
+    role_codes?: string[];
+    department_grants?: DepartmentGrant[];
+  };
   mode: string;
 };
 
