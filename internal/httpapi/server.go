@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
@@ -27,9 +28,12 @@ type Dependencies struct {
 	AllowedOrigin    string
 	Mode             string
 	DemoMode         bool
+	IdentityMode     string
+	OIDCIssuer       string
 	Identity         identity.Authenticator
 	Federation       *federation.Service
 	SCIM             http.Handler
+	AccessAdmin      access.Administrator
 	CommandGuard     *commandauth.Guard
 	Authority        authority.Service
 	Governance       *governance.Service
