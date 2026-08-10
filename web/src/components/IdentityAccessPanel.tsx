@@ -70,8 +70,14 @@ export function IdentityAccessPanel() {
     event.preventDefault();
     await run("source-create", async () => {
       const result = await createIdentitySource({ code: sourceCode, identity_issuer: issuer || undefined, subject_attribute: subjectAttribute });
-      setToken(result.token); setSourceCode(""); setIssuer(""); setNotice("Provisioning source created. Copy the token now; it will not be shown again.");
-      await reload();
+      setToken(result.token);
+      setSourceCode("");
+      setIssuer("");
+      setNotice("Provisioning source created. Copy the token now; it will not be shown again.");
+      setOverview((current) => current ? {
+        ...current,
+        sources: [...current.sources, result.source].sort((left, right) => left.code.localeCompare(right.code)),
+      } : current);
     });
   }
 
@@ -113,7 +119,7 @@ export function IdentityAccessPanel() {
 
       <article className="config-card"><div className="section-header"><div><h3>People & groups</h3><p>Bounded directory inspection, not a second directory console.</p></div></div><div className="identity-directory-columns"><div><h4>People</h4>{overview.people.slice(0, 8).map((person) => <div className="identity-mini-row" key={person.id}><strong>{person.display_name}</strong><span>{person.source_code ? `${person.source_code} · ${person.source_state}` : "Local principal"}</span></div>)}{!overview.people.length && <p className="muted-copy">No people found.</p>}</div><div><h4>Groups</h4>{overview.groups.slice(0, 8).map((group) => <div className="identity-mini-row" key={group.id}><strong>{group.display_name}</strong><span>{group.member_count} members · {group.source_code} · {group.source_state}</span></div>)}{!overview.groups.length && <p className="muted-copy">No directory groups found.</p>}</div></div></article>
 
-      <article className="config-card identity-escalation-card"><div className="section-header"><div><h3>Escalation runtime</h3><p>Current OVERDUE routing health and hierarchy preview.</p></div></div><div className="identity-metrics"><div><strong>{overview.escalation.escalated_tasks}</strong><span>Escalated work</span></div><div><strong>{overview.escalation.pending_timers}</strong><span>Pending levels</span></div><div><strong>{overview.escalation.unresolved_24h}</strong><span>Unresolved · 24h</span></div><div><strong>{overview.escalation.failed_timers}</strong><span>Failed timers</span></div></div>
+      <article className="config-card identity-escalation-card"><div className="section-header"><div><h3>Bank-wide escalation runtime</h3><p>Current OVERDUE routing health and hierarchy preview.</p></div></div><div className="identity-metrics"><div><strong>{overview.escalation.escalated_tasks}</strong><span>Escalated work</span></div><div><strong>{overview.escalation.pending_timers}</strong><span>Pending levels</span></div><div><strong>{overview.escalation.unresolved_24h}</strong><span>Unresolved · 24h</span></div><div><strong>{overview.escalation.failed_timers}</strong><span>Failed timers</span></div></div>
         {overview.escalation_policies.length ? <form className="identity-inline-form" onSubmit={(event) => void loadPreview(event)}><h4>Preview hierarchy</h4><label>Policy<select value={policyID} onChange={(event) => { setPolicyID(event.target.value); setPreview(null); }}><option value="">Choose policy</option>{overview.escalation_policies.map((policy) => <option key={policy.policy_id} value={policy.policy_id}>{policy.code} · v{policy.version}</option>)}</select></label><label>Sequence<select value={sequenceID} onChange={(event) => { setSequenceID(event.target.value); setPreview(null); }}><option value="">Choose sequence</option>{sequences.map((sequence) => <option key={sequence.ID} value={sequence.ID}>{sequence.ID} · {sequence.Trigger}</option>)}</select></label><label>Starting department<input value={previewDepartment} onChange={(event) => setPreviewDepartment(event.target.value)} placeholder="BANK / RISK / OPERATIONS"/></label><button className="secondary-button" disabled={!policyID || !sequenceID || busy !== ""} type="submit">Preview levels</button></form> : <p className="muted-copy">No active escalation sequence is configured.</p>}
         {preview && <ol className="identity-preview">{preview.steps.map((step) => <li key={step.index}><span>After {step.after}</span><strong>{humanize(step.responsibility)}</strong><small>{step.scope === "DEPARTMENT" ? step.department_path?.join(" / ") : step.scope === "LEGAL_ENTITY" ? "Legal entity scope" : "Department ancestry unavailable"}</small></li>)}</ol>}
         <p className="identity-footnote">Preview shows policy order and department scope only. The actual person is resolved from current authority, delegation, grants, segregation and visibility when the level fires.</p>
