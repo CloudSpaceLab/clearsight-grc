@@ -3,7 +3,6 @@ package scimapi
 import (
 	"context"
 	"crypto/sha256"
-	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -254,8 +253,4 @@ func resourceFromGroup(group Group) scim.Resource {
 		resource.ExternalID = optional.NewString(group.ExternalID)
 	}
 	return resource
-}
-
-func constantTimeBytesEqual(left, right []byte) bool {
-	return len(left) == len(right) && subtle.ConstantTimeCompare(left, right) == 1
 }
