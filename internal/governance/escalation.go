@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 )
@@ -132,8 +133,11 @@ func decodeStrictJSON(raw []byte, target any) error {
 	if err := decoder.Decode(target); err != nil {
 		return err
 	}
-	if decoder.More() {
-		return fmt.Errorf("unexpected trailing JSON")
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		if err == nil {
+			return fmt.Errorf("unexpected trailing JSON")
+		}
+		return err
 	}
 	return nil
 }
