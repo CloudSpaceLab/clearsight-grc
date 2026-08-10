@@ -10,7 +10,7 @@ import (
 
 const (
 	hardMaxEvaluatedStringBytes = 64 << 10
-	maxExactFloatInteger         = int64(1 << 53)
+	maxExactFloatInteger        = int64(1 << 53)
 )
 
 func coerceValue(kind LogicalType, raw any) (typedValue, bool) {
