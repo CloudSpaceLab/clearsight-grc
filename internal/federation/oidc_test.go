@@ -102,7 +102,7 @@ func TestBeginCreatesStateNonceAndPKCES256(t *testing.T) {
 		oauth: oauth2.Config{
 			ClientID: "client", RedirectURL: "https://api.example.test/auth/oidc/callback",
 			Endpoint: oauth2.Endpoint{AuthURL: "https://idp.example.test/authorize", TokenURL: "https://idp.example.test/token"},
-			Scopes: []string{"openid"},
+			Scopes:   []string{"openid"},
 		},
 		sessions: sessions,
 	}
