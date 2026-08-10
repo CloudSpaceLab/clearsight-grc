@@ -27,10 +27,10 @@ func TestIdentityAccessAdminRevokesSourceDerivedEligibilityWithoutDeletingPrinci
 	defer pool.Close()
 
 	const (
-		tenantID   = "8a333333-3333-7333-8333-333333333331"
-		entityID   = "8a333333-3333-7333-8333-333333333332"
-		adminID    = "8a333333-3333-7333-8333-333333333333"
-		roleID     = "8a333333-3333-7333-8333-333333333334"
+		tenantID = "8a333333-3333-7333-8333-333333333331"
+		entityID = "8a333333-3333-7333-8333-333333333332"
+		adminID  = "8a333333-3333-7333-8333-333333333333"
+		roleID   = "8a333333-3333-7333-8333-333333333334"
 	)
 	cleanup := func(cleanCtx context.Context) {
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
