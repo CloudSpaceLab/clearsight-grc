@@ -78,6 +78,8 @@ The T0 AST supports bounded Boolean composition plus:
 
 There is no arbitrary scripting language or implicit string-to-number/type coercion.
 
+T0 `NUMBER` evaluation is deliberately limited to finite IEEE-754 values. Integer inputs outside the exact ±2^53 range fail closed as `UNKNOWN`; the kernel does **not** claim exact-decimal or monetary arithmetic. A future rule may not use approximate `NUMBER` semantics where exact decimal/money comparison is material — that requires a separate explicit decimal contract before activation.
+
 Hard ceilings cap AST depth, node count, IN cardinality and literal size even when a caller requests higher limits.
 
 `CompileCondition` deep-copies the accepted condition and extracts its exact field dependencies so later execution can project only the required source columns.
@@ -109,7 +111,7 @@ Field identifiers come only from the validated schema and are quoted as PostgreS
 
 This compiler does **not** make arbitrary SQL safe. Future Population Definitions still require approved read-only source identities, separate source connection pools, timeouts, concurrency limits and one-statement query governance.
 
-The purpose of predicate compilation is performance and truth parity: capable sources should filter/project data before transfer instead of sending every clear row to ClearSight for application-memory evaluation.
+The purpose of predicate compilation is performance and truth parity: capable sources should filter/project data before transfer instead of sending every clear row to ClearSight for application-memory evaluation. PostgreSQL integration tests execute nested Boolean and cross-field predicates and require their MATCH/CLEAR/UNKNOWN result to equal the pure evaluator, rather than treating generated SQL text shape as sufficient evidence.
 
 ## Future connected-source execution
 
@@ -145,6 +147,8 @@ Permanent tests prove the same kernel works across materially different shapes:
 - server patch/support/certificate fields;
 - vendor tier/assurance fields;
 - resilience target versus observed RTO fields;
-- null, invalid, oversized, schema-change and identifier-quoting adversarial cases.
+- null, invalid, oversized, schema-change and identifier-quoting adversarial cases;
+- out-of-range integer values fail closed rather than being compared imprecisely;
+- PostgreSQL pushdown and pure evaluation agree on nested Boolean and cross-field tri-state cases.
 
 No domain-specific evaluator is permitted unless a later use case demonstrates semantics that cannot be represented safely by the shared contract.
