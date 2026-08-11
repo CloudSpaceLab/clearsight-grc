@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
@@ -81,5 +82,37 @@ func TestIdentityAccessRoutesSeparateReadFromConfigure(t *testing.T) {
 	}
 	if !strings.Contains(response.Body.String(), `"token":"cs_scim_`) {
 		t.Fatalf("create must return a reveal-once provisioning token: %s", response.Body.String())
+	}
+}
+
+func TestEscalationGuardMutationRequiresIdentityAndGovernanceConfigure(t *testing.T) {
+	now := time.Now().UTC()
+	base := identity.Actor{
+		TenantID: "bank", PrincipalID: "principal", LegalEntityID: "bank-ng", Kind: "PERSON",
+		AuthenticationMethod: "test", AssuranceLevel: "test", SessionID: "session", IssuedAt: now, ExpiresAt: now.Add(time.Hour),
+	}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	governanceService := governance.NewService(governance.NewMemoryRepository())
+
+	identityOnly := base
+	identityOnly.PermissionCodes = []string{identity.PermissionIdentityRead, identity.PermissionIdentityConfigure}
+	handler := New(Dependencies{Logger: logger, Identity: staticIdentityAuthenticator{actor: identityOnly}, Governance: governanceService})
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/access/escalation-guard-revisions", strings.NewReader(`{"policy_id":"policy","sequence_id":"overdue","step_index":0,"expected_policy_version":1}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("identity configure without governance configure must not mutate escalation policy, got %d: %s", response.Code, response.Body.String())
+	}
+
+	governed := base
+	governed.PermissionCodes = []string{identity.PermissionIdentityRead, identity.PermissionIdentityConfigure, identity.PermissionConfigWrite}
+	handler = New(Dependencies{Logger: logger, Identity: staticIdentityAuthenticator{actor: governed}, Governance: governanceService})
+	request = httptest.NewRequest(http.MethodPost, "/api/v1/access/escalation-guard-revisions", strings.NewReader(`{"policy_id":"policy","sequence_id":"overdue","step_index":0,"expected_policy_version":1}`))
+	request.Header.Set("Content-Type", "application/json")
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code == http.StatusForbidden {
+		t.Fatalf("actor with both configuration permissions should reach governed service validation, got %d: %s", response.Code, response.Body.String())
 	}
 }
