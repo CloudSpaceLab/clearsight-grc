@@ -36,6 +36,53 @@ func TestParseEscalationSequencesSupportsDepartmentHierarchy(t *testing.T) {
 	}
 }
 
+func TestParseEscalationSequencesSupportsSourceRoleAndTargetRoleOrGroup(t *testing.T) {
+	definition := json.RawMessage(`{
+		"escalations":[{
+			"id":"compliance-overdue",
+			"trigger":"OVERDUE",
+			"steps":[{
+				"after":"0s",
+				"responsibility":"ESCALATION_OWNER",
+				"source_roles":["Compliance Officer"],
+				"targets":{
+					"roles":["Supervisor"],
+					"groups":["019fede5-67de-733a-95ae-97f4db546c1e"]
+				}
+			}]
+		}]
+	}`)
+
+	sequences, err := ParseEscalationSequences(definition)
+	if err != nil {
+		t.Fatal(err)
+	}
+	step := sequences[0].Steps[0]
+	if len(step.SourceRoles) != 1 || step.SourceRoles[0] != "COMPLIANCE_OFFICER" {
+		t.Fatalf("unexpected source roles: %#v", step.SourceRoles)
+	}
+	if len(step.TargetRoles) != 1 || step.TargetRoles[0] != "SUPERVISOR" {
+		t.Fatalf("unexpected target roles: %#v", step.TargetRoles)
+	}
+	if len(step.TargetGroupIDs) != 1 || step.TargetGroupIDs[0] != "019fede5-67de-733a-95ae-97f4db546c1e" {
+		t.Fatalf("unexpected target groups: %#v", step.TargetGroupIDs)
+	}
+}
+
+func TestParseEscalationSequencesRejectsEmptyOrInvalidTargetConstraints(t *testing.T) {
+	cases := []string{
+		`{"escalations":[{"id":"bad","trigger":"OVERDUE","steps":[{"after":"0s","responsibility":"ESCALATION_OWNER","source_roles":[]}]}]}`,
+		`{"escalations":[{"id":"bad","trigger":"OVERDUE","steps":[{"after":"0s","responsibility":"ESCALATION_OWNER","targets":{}}]}]}`,
+		`{"escalations":[{"id":"bad","trigger":"OVERDUE","steps":[{"after":"0s","responsibility":"ESCALATION_OWNER","targets":{"groups":["not-a-uuid"]}}]}]}`,
+		`{"escalations":[{"id":"bad","trigger":"OVERDUE","steps":[{"after":"0s","responsibility":"ESCALATION_OWNER","targets":{"roles":["SUPERVISOR","supervisor"]}}]}]}`,
+	}
+	for _, raw := range cases {
+		if _, err := ParseEscalationSequences(json.RawMessage(raw)); err == nil {
+			t.Fatalf("expected target constraint rejection for %s", raw)
+		}
+	}
+}
+
 func TestParseEscalationSequencesRejectsDuplicateTrigger(t *testing.T) {
 	definition := json.RawMessage(`{
 		"escalations":[
