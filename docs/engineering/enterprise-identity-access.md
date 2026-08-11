@@ -77,29 +77,44 @@ Current identity-administration capabilities are:
 - `IDENTITY_READ` — inspect sign-in/provisioning, bounded people/groups, mappings and escalation health/preview;
 - `IDENTITY_CONFIGURE` — create/rotate/revoke SCIM sources and create/retire group-role mappings.
 
+Changing an escalation candidate guard is intentionally stricter: the actor needs **both** `IDENTITY_CONFIGURE` and governance `CONFIG_WRITE`, because the change produces a new version of an existing routing policy rather than identity-only state.
+
 Capability answers **which product function may this actor use?** Existing authority still answers **may this actor perform this governed action on this exact object now?**
 
-## 5. Multi-level escalation
+## 5. Multi-level escalation and candidate guards
 
 Escalation sequences remain inside versioned, maker-checker governed routing-policy definitions. No escalation-policy table or second scheduler exists.
 
-Example:
+A step may optionally restrict both the originating work role and the population to which that responsibility may escalate:
 
 ```json
 {
   "escalations": [
     {
-      "id": "overdue-control-work",
+      "id": "compliance-overdue",
       "trigger": "OVERDUE",
       "steps": [
-        {"after": "0s", "responsibility": "ACCOUNTABLE_OWNER", "department_levels_up": 0},
-        {"after": "4h", "responsibility": "ESCALATION_OWNER", "department_levels_up": 1},
-        {"after": "24h", "responsibility": "AUTHORIZER"}
+        {
+          "after": "0s",
+          "responsibility": "ESCALATION_OWNER",
+          "source_roles": ["COMPLIANCE_OFFICER"],
+          "targets": {
+            "roles": ["SUPERVISOR"],
+            "groups": ["<network-auditors-directory-group-uuid>"]
+          }
+        },
+        {
+          "after": "4h",
+          "responsibility": "AUTHORIZER",
+          "department_levels_up": 1
+        }
       ]
     }
   ]
 }
 ```
+
+This means, for example, that work currently owned by a **Compliance Officer** may escalate only to a candidate who is already eligible under normal authority and is either in the **Network Auditors** directory group **or** currently holds the **Supervisor** role.
 
 Semantics:
 
@@ -107,11 +122,33 @@ Semantics:
 - `department_levels_up: 0` = starting department;
 - `1` = parent, `2` = grandparent, etc.;
 - omitted level = legal-entity routing scope;
-- each level selects responsibility + scope, not a person;
-- the existing authority resolver chooses current candidates;
+- `source_roles` is optional and is checked against the current task principal when the level fires;
+- `targets.roles` and `targets.groups` are optional candidate filters and are combined with **OR** semantics;
+- directory-group matching uses direct current SCIM membership only and requires an active source/user/group relationship;
+- target-role matching uses current effective position-role or governed directory-group-role state;
+- role/group guards run only after normal authority/delegation/grant/segregation, record visibility and any department boundary have narrowed the candidate set;
+- a guard never creates responsibility, authority or protected-record visibility;
+- if the guard removes every candidate, escalation records an unresolved state and never falls back to an administrator;
 - only the next level is scheduled in `workflow_timers`;
-- current authority/delegation/grant/segregation/visibility is re-read when a level fires;
+- current authority and current role/group state are re-read when a level fires;
 - assignment to escalated work is not material command authority.
+
+### Guard change lifecycle
+
+The EIA-5 setter does not mutate an active routing definition in place and does not add an override table.
+
+```text
+approved routing policy vN remains current
+→ authorized maker changes one escalation step guard
+→ routing_policy_versions vN+1 is created unapproved
+→ current_version remains N
+→ maker can preview the proposal
+→ different authorized checker reviews it
+→ full policy + authority conflicts + current role/group references revalidated
+→ approval effective-dates vN out and activates vN+1 atomically
+```
+
+A maker cannot approve their own revision. Another maker cannot overwrite someone else's pending revision. If a referenced role/group disappears before approval, activation fails and the currently approved policy stays live. If it disappears later, runtime evaluation fails closed from current state.
 
 `OVERDUE` is executable. `NO_ROUTE`, `AUTHORITY_INSUFFICIENT`, `MATERIALITY_INCREASE`, `RECIPIENT_UNAVAILABLE`, and `CONFLICT` remain schema-valid until their canonical domain event source exists.
 
@@ -174,7 +211,8 @@ Do not add Casbin, OPA, Cerbos, another policy DB, another workflow engine, anot
 - existing timer → outbox → inbox-idempotent consumer path;
 - same Workflow Task carries the escalation overlay;
 - exact department ancestry can narrow already-eligible authority candidates;
-- no-route/ambiguity/multi-candidate/hidden states fail closed;
+- optional current source-role and target role/group guards further narrow that candidate set;
+- no-route/ambiguity/multi-candidate/hidden/guard-mismatch states fail closed;
 - replay is idempotent;
 - completion/cancellation cancels the pending next level;
 - timer stores lineage, not stale authorization truth.
@@ -208,23 +246,30 @@ Implemented inside the existing Configure workspace, not as a new IAM shell.
 - bounded read-only inspection only;
 - deliberately not a directory CRUD clone.
 
-**Escalation runtime**
+**Bank-wide escalation runtime and guard administration**
 
 - current escalated task count;
 - pending escalation timer count;
 - unresolved events in the last 24h;
 - failed escalation timer count;
 - policy/sequence hierarchy preview using the same department ancestry function as runtime;
+- human-readable `From` and `Allowed target` role/group constraints;
+- level-specific originating-role and target-role/group multi-selection;
+- proposal preview before activation;
+- pending-revision state and independent checker approval;
+- the currently approved policy stays live while a guard revision is pending;
+- approval revalidates current referenced roles/groups and normal authority conflicts;
 - preview never pretends to know the future actor: current authority is resolved only when a level fires.
 
 **Administration history**
 
 - source creation/token rotation/revocation and group-role binding/retirement reuse the existing append-only `governance_decisions` ledger;
-- migration `000028` expands only its bounded object-type constraint and adds mapping uniqueness; it creates no table.
+- routing guard activation records the existing governed decision/outbox history;
+- migration `000028` expands only its bounded object-type constraint and adds mapping uniqueness; candidate guards require no new table or migration.
 
 **Canonical route inventory**
 
-Seven EIA-5 routes live in the existing `internal/httpapi/route_registry.go` and are projected into `api/runtime.openapi.json`. No parallel route registry exists.
+Nine EIA-5 routes live in the existing `internal/httpapi/route_registry.go` and are projected into `api/runtime.openapi.json`. No parallel route registry exists.
 
 ## 8. Bugs closed during the final review
 
@@ -234,6 +279,7 @@ Seven EIA-5 routes live in the existing `internal/httpapi/route_registry.go` and
 4. **Identity routes initially formed a parallel mini registry.** They were consolidated into the canonical route registry and runtime OpenAPI projection.
 5. **Identity administration initially targeted removed generic `audit_events`.** It now reuses `governance_decisions`; the removed compatibility table remains absent.
 6. **Shared escalation test fixture could leak into another integration test.** The overlay regression is transaction-local and rolls back.
+7. **Role-only/group-only guard evaluation could serialize the absent side as JSON `null`.** Empty selectors are now normalized to JSON arrays before PostgreSQL evaluation, so role-only, group-only and mixed guards behave consistently.
 
 ## 9. Acceptance gates
 
@@ -248,7 +294,8 @@ Seven EIA-5 routes live in the existing `internal/httpapi/route_registry.go` and
 - direct group membership cannot create material authority;
 - duplicate active group-role mappings fail deterministically;
 - `IDENTITY_READ` cannot mutate identity configuration;
-- `IDENTITY_CONFIGURE` is required for source and mapping writes.
+- `IDENTITY_CONFIGURE` is required for source and mapping writes;
+- escalation guard mutation additionally requires governance `CONFIG_WRITE`.
 
 ### Departments and capabilities
 
@@ -263,6 +310,13 @@ Seven EIA-5 routes live in the existing `internal/httpapi/route_registry.go` and
 - department traversal fails closed beyond available hierarchy;
 - no-route/conflict cannot silently assign an administrator;
 - current authority/delegation/grant/segregation/visibility is applied when the level fires;
+- a configured source role is evaluated from current role state;
+- candidates outside configured target roles/groups are removed even when they otherwise possess escalation authority;
+- target role/group constraints are ORed and never expand the authority candidate set;
+- group-source revocation removes group qualification on the next escalation evaluation;
+- a pending guard revision cannot displace the current approved routing policy;
+- a maker cannot approve their own guard revision;
+- a stale/missing role or group blocks activation without changing `current_version`;
 - material source changes clear stale escalation overlays;
 - completion/cancellation cancels the pending next level.
 
@@ -273,6 +327,9 @@ Seven EIA-5 routes live in the existing `internal/httpapi/route_registry.go` and
 - source revocation warns that source-derived access will stop;
 - group mappings state that material authority is unchanged;
 - escalation preview distinguishes department, legal-entity and out-of-range scope;
+- pending guard revisions are visibly distinct from the approved live policy;
+- the maker sees an awaiting-checker state rather than an activation control;
+- an independent authorized checker sees rationale + approve/activate;
 - narrow viewport remains usable without creating another navigation hierarchy.
 
 ## 10. Remaining work outside EIA-0…5
