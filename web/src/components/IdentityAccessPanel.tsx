@@ -1,10 +1,12 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ApiError } from "../http";
 import {
+  approveEscalationGuardRevision,
   createGroupRoleBinding,
   createIdentitySource,
   loadIdentityAccessOverview,
   previewEscalation,
+  proposeEscalationGuardRevision,
   retireGroupRoleBinding,
   revokeIdentitySource,
   rotateIdentitySourceToken,
@@ -28,6 +30,11 @@ export function IdentityAccessPanel() {
   const [sequenceID, setSequenceID] = useState("");
   const [previewDepartment, setPreviewDepartment] = useState("");
   const [preview, setPreview] = useState<EscalationPreview | null>(null);
+  const [guardStepIndex, setGuardStepIndex] = useState(0);
+  const [guardSourceRoles, setGuardSourceRoles] = useState<string[]>([]);
+  const [guardTargetRoles, setGuardTargetRoles] = useState<string[]>([]);
+  const [guardTargetGroups, setGuardTargetGroups] = useState<string[]>([]);
+  const [approvalRationale, setApprovalRationale] = useState("");
 
   async function reload() {
     setState("loading");
@@ -47,8 +54,11 @@ export function IdentityAccessPanel() {
   const activeRoles = overview?.roles ?? [];
   const groupNames = useMemo(() => new Map((overview?.groups ?? []).map((group) => [group.id, group.display_name])), [overview]);
   const selectedPolicy = overview?.escalation_policies.find((policy) => policy.policy_id === policyID);
-  const sequences = selectedPolicy?.sequences ?? [];
+  const pendingRevision = selectedPolicy?.pending_revision;
+  const sequences = pendingRevision?.sequences ?? selectedPolicy?.sequences ?? [];
   const selectedSequence = sequences.find((sequence) => sequence.ID === sequenceID);
+  const selectedGuardStep = selectedSequence?.Steps[guardStepIndex];
+  const pendingFromAnotherMaker = Boolean(pendingRevision && pendingRevision.maker_id !== overview?.actor_principal_id);
   const hasCandidateGuards = selectedSequence?.Steps.some((step) => (step.SourceRoles?.length ?? 0) > 0 || (step.TargetRoles?.length ?? 0) > 0 || (step.TargetGroupIDs?.length ?? 0) > 0) ?? false;
 
   useEffect(() => {
@@ -61,6 +71,26 @@ export function IdentityAccessPanel() {
     const first = sequences[0]?.ID;
     if (first && !sequences.some((sequence) => sequence.ID === sequenceID)) setSequenceID(first);
   }, [sequences, sequenceID]);
+
+  useEffect(() => {
+    if (!selectedSequence?.Steps.length) {
+      setGuardStepIndex(0);
+      return;
+    }
+    if (guardStepIndex >= selectedSequence.Steps.length) setGuardStepIndex(0);
+  }, [selectedSequence, guardStepIndex]);
+
+  useEffect(() => {
+    if (!selectedGuardStep) {
+      setGuardSourceRoles([]);
+      setGuardTargetRoles([]);
+      setGuardTargetGroups([]);
+      return;
+    }
+    setGuardSourceRoles(selectedGuardStep.SourceRoles ?? []);
+    setGuardTargetRoles(selectedGuardStep.TargetRoles ?? []);
+    setGuardTargetGroups(selectedGuardStep.TargetGroupIDs ?? []);
+  }, [selectedGuardStep]);
 
   async function run(label: string, action: () => Promise<void>) {
     setBusy(label); setNotice("");
@@ -93,9 +123,50 @@ export function IdentityAccessPanel() {
     });
   }
 
+  async function proposeGuard(event: FormEvent) {
+    event.preventDefault();
+    if (!selectedPolicy || !selectedSequence) return;
+    await run("guard-propose", async () => {
+      const revision = await proposeEscalationGuardRevision({
+        policy_id: selectedPolicy.policy_id,
+        sequence_id: selectedSequence.ID,
+        step_index: guardStepIndex,
+        source_roles: guardSourceRoles,
+        target_roles: guardTargetRoles,
+        target_group_ids: guardTargetGroups,
+        expected_policy_version: selectedPolicy.record_version,
+      });
+      setNotice(`Guard revision v${revision.version} proposed. The active routing policy is unchanged until an independent checker approves it.`);
+      setPreview(null);
+      await reload();
+    });
+  }
+
+  async function approveGuard(event: FormEvent) {
+    event.preventDefault();
+    if (!selectedPolicy || !pendingRevision) return;
+    await run("guard-approve", async () => {
+      await approveEscalationGuardRevision(selectedPolicy.policy_id, pendingRevision.version, {
+        expected_policy_version: selectedPolicy.record_version,
+        rationale: approvalRationale,
+      });
+      setApprovalRationale("");
+      setNotice(`Guard revision v${pendingRevision.version} approved and activated. Existing in-flight escalation lineage remains pinned while new resolution uses current authority.`);
+      setPreview(null);
+      await reload();
+    });
+  }
+
   async function loadPreview(event: FormEvent) {
     event.preventDefault(); setBusy("preview"); setNotice("");
-    try { setPreview(await previewEscalation({ policy_id: policyID, sequence_id: sequenceID, department_path: parseDepartmentPath(previewDepartment) })); }
+    try {
+      setPreview(await previewEscalation({
+        policy_id: policyID,
+        sequence_id: sequenceID,
+        department_path: parseDepartmentPath(previewDepartment),
+        revision_version: pendingRevision?.version,
+      }));
+    }
     catch (error) { setPreview(null); setNotice(error instanceof Error ? error.message : "Escalation preview could not be loaded."); }
     finally { setBusy(""); }
   }
@@ -122,11 +193,17 @@ export function IdentityAccessPanel() {
 
       <article className="config-card"><div className="section-header"><div><h3>People & groups</h3><p>Bounded directory inspection, not a second directory console.</p></div></div><div className="identity-directory-columns"><div><h4>People</h4>{overview.people.slice(0, 8).map((person) => <div className="identity-mini-row" key={person.id}><strong>{person.display_name}</strong><span>{person.source_code ? `${person.source_code} · ${person.source_state}` : "Local principal"}</span></div>)}{!overview.people.length && <p className="muted-copy">No people found.</p>}</div><div><h4>Groups</h4>{overview.groups.slice(0, 8).map((group) => <div className="identity-mini-row" key={group.id}><strong>{group.display_name}</strong><span>{group.member_count} members · {group.source_code} · {group.source_state}</span></div>)}{!overview.groups.length && <p className="muted-copy">No directory groups found.</p>}</div></div></article>
 
-      <article className="config-card identity-escalation-card"><div className="section-header"><div><h3>Bank-wide escalation runtime</h3><p>Current OVERDUE routing health, hierarchy and role/group guard preview.</p></div></div><div className="identity-metrics"><div><strong>{overview.escalation.escalated_tasks}</strong><span>Escalated work</span></div><div><strong>{overview.escalation.pending_timers}</strong><span>Pending levels</span></div><div><strong>{overview.escalation.unresolved_24h}</strong><span>Unresolved · 24h</span></div><div><strong>{overview.escalation.failed_timers}</strong><span>Failed timers</span></div></div>
-        {overview.escalation_policies.length ? <form className="identity-inline-form" onSubmit={(event) => void loadPreview(event)}><h4>Preview hierarchy & guards</h4><label>Policy<select value={policyID} onChange={(event) => { setPolicyID(event.target.value); setPreview(null); }}><option value="">Choose policy</option>{overview.escalation_policies.map((policy) => <option key={policy.policy_id} value={policy.policy_id}>{policy.code} · v{policy.version}</option>)}</select></label><label>Sequence<select value={sequenceID} onChange={(event) => { setSequenceID(event.target.value); setPreview(null); }}><option value="">Choose sequence</option>{sequences.map((sequence) => <option key={sequence.ID} value={sequence.ID}>{sequence.ID} · {sequence.Trigger}</option>)}</select></label><label>Starting department<input value={previewDepartment} onChange={(event) => setPreviewDepartment(event.target.value)} placeholder="BANK / RISK / OPERATIONS"/></label><button className="secondary-button" disabled={!policyID || !sequenceID || busy !== ""} type="submit">Preview levels</button></form> : <p className="muted-copy">No active escalation sequence is configured.</p>}
+      <article className="config-card identity-escalation-card"><div className="section-header"><div><h3>Bank-wide escalation runtime</h3><p>Current OVERDUE routing health, hierarchy and role/group candidate guards.</p></div>{pendingRevision && <span className="identity-health">Revision v{pendingRevision.version} pending</span>}</div><div className="identity-metrics"><div><strong>{overview.escalation.escalated_tasks}</strong><span>Escalated work</span></div><div><strong>{overview.escalation.pending_timers}</strong><span>Pending levels</span></div><div><strong>{overview.escalation.unresolved_24h}</strong><span>Unresolved · 24h</span></div><div><strong>{overview.escalation.failed_timers}</strong><span>Failed timers</span></div></div>
+        {overview.escalation_policies.length ? <form className="identity-inline-form" onSubmit={(event) => void loadPreview(event)}><h4>Preview hierarchy & guards</h4><label>Policy<select value={policyID} onChange={(event) => { setPolicyID(event.target.value); setPreview(null); setGuardStepIndex(0); }}><option value="">Choose policy</option>{overview.escalation_policies.map((policy) => <option key={policy.policy_id} value={policy.policy_id}>{policy.code} · active v{policy.version}{policy.pending_revision ? ` · proposed v${policy.pending_revision.version}` : ""}</option>)}</select></label><label>Sequence<select value={sequenceID} onChange={(event) => { setSequenceID(event.target.value); setPreview(null); setGuardStepIndex(0); }}><option value="">Choose sequence</option>{sequences.map((sequence) => <option key={sequence.ID} value={sequence.ID}>{sequence.ID} · {sequence.Trigger}</option>)}</select></label><label>Starting department<input value={previewDepartment} onChange={(event) => setPreviewDepartment(event.target.value)} placeholder="BANK / RISK / OPERATIONS"/></label><button className="secondary-button" disabled={!policyID || !sequenceID || busy !== ""} type="submit">Preview {pendingRevision ? "proposed" : "active"} levels</button></form> : <p className="muted-copy">No active escalation sequence is configured.</p>}
         {selectedSequence && <div className={`identity-guard-summary ${hasCandidateGuards ? "configured" : "open"}`}><strong>{hasCandidateGuards ? "Candidate guards configured" : "No role/group guard on this sequence"}</strong><span>{hasCandidateGuards ? "Configured guards narrow current authority candidates at each step." : "The sequence relies on responsibility, authority, visibility and department scope only."}</span></div>}
+
+        {overview.can_configure_escalation && selectedPolicy && selectedSequence && !pendingFromAnotherMaker && <form className="identity-inline-form identity-guard-editor" onSubmit={(event) => void proposeGuard(event)}><h4>{pendingRevision ? `Update proposed revision v${pendingRevision.version}` : "Set candidate guard"}</h4><p className="muted-copy">Saving creates an unapproved routing-policy version. The current approved policy stays live until a different authorized principal approves the proposal.</p><label>Escalation level<select value={guardStepIndex} onChange={(event) => setGuardStepIndex(Number(event.target.value))}>{selectedSequence.Steps.map((step, index) => <option key={`${selectedSequence.ID}-${index}`} value={index}>Level {index + 1} · {humanize(step.Responsibility)}</option>)}</select></label><label>Originating roles <span>(optional; Ctrl/Cmd-click for several)</span><select multiple size={Math.min(5, Math.max(2, activeRoles.length))} value={guardSourceRoles} onChange={(event) => setGuardSourceRoles(selectedValues(event.currentTarget))}>{activeRoles.map((role) => <option key={role.id} value={role.code}>{role.name} · {role.code}</option>)}</select></label><label>Allowed target roles <span>(optional; OR with groups)</span><select multiple size={Math.min(5, Math.max(2, activeRoles.length))} value={guardTargetRoles} onChange={(event) => setGuardTargetRoles(selectedValues(event.currentTarget))}>{activeRoles.map((role) => <option key={role.id} value={role.code}>{role.name} · {role.code}</option>)}</select></label><label>Allowed target groups <span>(optional; OR with roles)</span><select multiple size={Math.min(5, Math.max(2, activeGroups.length))} value={guardTargetGroups} onChange={(event) => setGuardTargetGroups(selectedValues(event.currentTarget))}>{activeGroups.map((group) => <option key={group.id} value={group.id}>{group.display_name} · {group.source_code}</option>)}</select></label><div className="identity-guard-actions"><button className="secondary-button" disabled={busy !== ""} type="submit">{pendingRevision ? "Update proposal" : "Propose guard"}</button>{(guardSourceRoles.length > 0 || guardTargetRoles.length > 0 || guardTargetGroups.length > 0) && <button className="text-button" type="button" disabled={busy !== ""} onClick={() => { setGuardSourceRoles([]); setGuardTargetRoles([]); setGuardTargetGroups([]); }}>Clear selections</button>}</div></form>}
+
+        {pendingRevision && pendingFromAnotherMaker && overview.can_configure_escalation && <form className="identity-inline-form identity-guard-approval" onSubmit={(event) => void approveGuard(event)}><h4>Independent approval required</h4><p className="muted-copy">Revision v{pendingRevision.version} was proposed by another principal. Approval validates current roles/groups and authority conflicts again before atomically activating it.</p><label>Approval rationale<input required value={approvalRationale} onChange={(event) => setApprovalRationale(event.target.value)} placeholder="Reviewed escalation boundary and target population"/></label><button className="secondary-button" disabled={busy !== "" || !approvalRationale.trim()} type="submit">Approve & activate v{pendingRevision.version}</button></form>}
+        {pendingRevision && pendingRevision.maker_id === overview.actor_principal_id && <div className="identity-guard-summary configured"><strong>Awaiting independent checker</strong><span>Your proposed revision v{pendingRevision.version} is not active. A different principal with Identity Configure + Governance Configure must approve it.</span></div>}
+
         {preview && <ol className="identity-preview">{preview.steps.map((step) => <li key={step.index}><span>After {step.after}</span><strong>{humanize(step.responsibility)}</strong><small>{step.scope === "DEPARTMENT" ? step.department_path?.join(" / ") : step.scope === "LEGAL_ENTITY" ? "Legal entity scope" : "Department ancestry unavailable"}</small>{(step.source_roles?.length ?? 0) > 0 && <small className="identity-guard-line"><b>From:</b> {step.source_roles?.map(humanize).join(" or ")}</small>}{((step.target_roles?.length ?? 0) > 0 || (step.target_group_ids?.length ?? 0) > 0) && <small className="identity-guard-line"><b>Allowed target:</b> {formatTargetGuards(step.target_roles ?? [], step.target_group_ids ?? [], groupNames)}</small>}</li>)}</ol>}
-        <p className="identity-footnote">Role/group guards only narrow the candidate set already allowed by current authority, delegation, grants, segregation, visibility and department scope. They never create material authority. Changes remain part of the governed routing-policy maker/checker lifecycle.</p>
+        <p className="identity-footnote">Role/group guards only narrow the candidate set already allowed by current authority, delegation, grants, segregation, visibility and department scope. They never create material authority. Active policy changes are versioned and maker/checker governed.</p>
       </article>
     </div>
   </section>;
@@ -134,6 +211,9 @@ export function IdentityAccessPanel() {
 
 function parseDepartmentPath(value: string): string[] {
   return value.split(/[/>]/).map((part) => part.trim()).filter(Boolean);
+}
+function selectedValues(select: HTMLSelectElement): string[] {
+  return Array.from(select.selectedOptions, (option) => option.value);
 }
 function formatTargetGuards(roles: string[], groupIDs: string[], groupNames: Map<string, string>) {
   const values = [
