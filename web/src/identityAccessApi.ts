@@ -50,7 +50,14 @@ export type GroupRoleBinding = {
 export type EscalationSequence = {
   ID: string;
   Trigger: string;
-  Steps: Array<{ After: number; Responsibility: string; DepartmentLevelsUp?: number }>;
+  Steps: Array<{
+    After: number;
+    Responsibility: string;
+    DepartmentLevelsUp?: number;
+    SourceRoles?: string[];
+    TargetRoles?: string[];
+    TargetGroupIDs?: string[];
+  }>;
 };
 export type EscalationPolicy = { policy_id: string; code: string; name: string; version: number; sequences: EscalationSequence[] };
 export type IdentityAccessOverview = {
@@ -71,7 +78,16 @@ export type EscalationPreview = {
   policy_version: number;
   sequence_id: string;
   trigger: string;
-  steps: Array<{ index: number; after: string; responsibility: string; scope: string; department_path?: string[] }>;
+  steps: Array<{
+    index: number;
+    after: string;
+    responsibility: string;
+    scope: string;
+    department_path?: string[];
+    source_roles?: string[];
+    target_roles?: string[];
+    target_group_ids?: string[];
+  }>;
 };
 
 function request<T>(path: string, init?: RequestInit): Promise<T> {
