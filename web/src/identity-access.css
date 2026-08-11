@@ -23,6 +23,10 @@
 .identity-inline-form label { display: grid; gap: 5px; font-size: .78rem; font-weight: 650; }
 .identity-inline-form label span { color: var(--muted, #667085); font-weight: 450; }
 .identity-inline-form input, .identity-inline-form select { width: 100%; min-height: 38px; padding: 8px 10px; border: 1px solid var(--line-strong, #cfd5dd); border-radius: 9px; background: var(--surface, #fff); color: inherit; font: inherit; }
+.identity-guard-editor select[multiple] { min-height: 92px; padding: 5px; }
+.identity-guard-editor select[multiple] option { padding: 6px 7px; border-radius: 6px; }
+.identity-guard-actions { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.identity-guard-approval { padding: 12px; border: 1px solid var(--line-strong, #cfd5dd); border-radius: 12px; background: var(--surface-2, #f7f8fa); }
 
 .identity-token { display: flex; justify-content: space-between; gap: 18px; margin-top: 14px; padding: 14px; border: 1px solid var(--line-strong, #cfd5dd); border-radius: 12px; background: var(--surface-2, #f7f8fa); }
 .identity-token > div:first-child { min-width: 0; }
