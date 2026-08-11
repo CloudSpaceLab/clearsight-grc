@@ -30,9 +30,9 @@ type EscalationStep struct {
 	After              time.Duration
 	Responsibility     string
 	DepartmentLevelsUp *int
-	SourceRoles         []string
-	TargetRoles         []string
-	TargetGroupIDs      []string
+	SourceRoles        []string
+	TargetRoles        []string
+	TargetGroupIDs     []string
 }
 
 type escalationEnvelope struct {
@@ -140,9 +140,9 @@ func ParseEscalationSequences(definition json.RawMessage) ([]EscalationSequence,
 				After:              after,
 				Responsibility:     responsibility,
 				DepartmentLevelsUp: step.DepartmentLevelsUp,
-				SourceRoles:         sourceRoles,
-				TargetRoles:         targetRoles,
-				TargetGroupIDs:      targetGroups,
+				SourceRoles:        sourceRoles,
+				TargetRoles:        targetRoles,
+				TargetGroupIDs:     targetGroups,
 			})
 			previous = after
 		}
