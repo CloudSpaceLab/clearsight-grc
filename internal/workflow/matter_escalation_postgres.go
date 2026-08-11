@@ -250,6 +250,24 @@ func (c *MatterEscalationCoordinator) processEscalation(ctx context.Context, ten
 	}
 
 	step := sequence.Steps[payload.StepIndex]
+	if len(step.SourceRoles) > 0 {
+		source := []authority.Principal{{ID: task.Principal}}
+		source, err = c.filterEscalationTargetPrincipals(ctx, tenant, legalEntity, source, step.SourceRoles, nil, now)
+		if err != nil {
+			return err
+		}
+		if len(source) != 1 {
+			applied, err := c.recordUnresolved(ctx, tenant, task, payload, step, "SOURCE_ROLE_NOT_ALLOWED", now)
+			if err != nil {
+				return err
+			}
+			if !applied {
+				return nil
+			}
+			return c.scheduleNext(ctx, tenant, payload)
+		}
+	}
+
 	targetDepartment, departmentState := escalationDepartmentScope(payload.BaseDepartmentPath, payload.BaseDepartmentState, step.DepartmentLevelsUp)
 	if step.DepartmentLevelsUp != nil && departmentState != "RESOLVED" {
 		applied, err := c.recordUnresolved(ctx, tenant, task, payload, step, departmentState, now)
@@ -288,6 +306,23 @@ func (c *MatterEscalationCoordinator) processEscalation(ctx context.Context, ten
 		principals, err = c.filterDepartmentPrincipals(ctx, tenant, legalEntity, targetDepartment, principals, now)
 		if err != nil {
 			return err
+		}
+	}
+	if len(step.TargetRoles) > 0 || len(step.TargetGroupIDs) > 0 {
+		beforeConstraint := len(principals)
+		principals, err = c.filterEscalationTargetPrincipals(ctx, tenant, legalEntity, principals, step.TargetRoles, step.TargetGroupIDs, now)
+		if err != nil {
+			return err
+		}
+		if beforeConstraint > 0 && len(principals) == 0 {
+			applied, err := c.recordUnresolved(ctx, tenant, task, payload, step, "TARGET_CONSTRAINT_NO_MATCH", now)
+			if err != nil {
+				return err
+			}
+			if !applied {
+				return nil
+			}
+			return c.scheduleNext(ctx, tenant, payload)
 		}
 	}
 	if len(principals) != 1 {
@@ -488,6 +523,112 @@ func (c *MatterEscalationCoordinator) filterDepartmentPrincipals(ctx context.Con
 	return filtered, nil
 }
 
+func (c *MatterEscalationCoordinator) filterEscalationTargetPrincipals(ctx context.Context, tenant, legalEntity string, candidates []authority.Principal, roleCodes, groupIDs []string, at time.Time) ([]authority.Principal, error) {
+	if len(candidates) == 0 || (len(roleCodes) == 0 && len(groupIDs) == 0) {
+		return candidates, nil
+	}
+	candidateIDs := make([]string, 0, len(candidates))
+	for _, candidate := range candidates {
+		if strings.TrimSpace(candidate.ID) != "" {
+			candidateIDs = append(candidateIDs, candidate.ID)
+		}
+	}
+	if len(candidateIDs) == 0 {
+		return nil, nil
+	}
+	encodedCandidates, err := json.Marshal(candidateIDs)
+	if err != nil {
+		return nil, err
+	}
+	encodedRoles, err := json.Marshal(roleCodes)
+	if err != nil {
+		return nil, err
+	}
+	encodedGroups, err := json.Marshal(groupIDs)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := c.Repo.pool.Query(ctx, `
+		WITH requested(id) AS (
+			SELECT DISTINCT value::uuid FROM jsonb_array_elements_text($3::jsonb)
+		), requested_roles(code) AS (
+			SELECT DISTINCT value FROM jsonb_array_elements_text($4::jsonb)
+		), requested_groups(id) AS (
+			SELECT DISTINCT value::uuid FROM jsonb_array_elements_text($5::jsonb)
+		), current_entity(id) AS (
+			SELECT le.id
+			FROM tenants t
+			JOIN legal_entities le ON le.tenant_id=t.id
+			WHERE (t.id::text=$1 OR t.slug=$1)
+			  AND (le.id::text=$2 OR le.code=$2)
+			  AND le.valid_from<=$6 AND (le.valid_until IS NULL OR $6<le.valid_until)
+			LIMIT 1
+		), role_matches(principal_id) AS (
+			SELECT DISTINCT requested.id
+			FROM requested
+			JOIN org_positions op ON op.occupant_principal_id=requested.id
+			JOIN position_role_bindings prb ON prb.tenant_id=op.tenant_id AND prb.position_id=op.id
+			JOIN role_templates rt ON rt.tenant_id=op.tenant_id AND rt.id=prb.role_template_id
+			JOIN requested_roles rr ON rr.code=rt.code
+			WHERE op.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+			  AND (op.legal_entity_id IS NULL OR op.legal_entity_id=(SELECT id FROM current_entity))
+			  AND op.valid_from<=$6 AND (op.valid_until IS NULL OR $6<op.valid_until)
+			  AND prb.valid_from<=$6 AND (prb.valid_until IS NULL OR $6<prb.valid_until)
+			  AND rt.valid_from<=$6 AND (rt.valid_until IS NULL OR $6<rt.valid_until)
+
+			UNION
+
+			SELECT DISTINCT requested.id
+			FROM requested
+			JOIN scim_users su ON su.principal_id=requested.id AND su.active AND su.deleted_at IS NULL
+			JOIN scim_sources ss ON ss.tenant_id=su.tenant_id AND ss.id=su.source_id AND ss.status='ACTIVE'
+			JOIN directory_group_members dgm ON dgm.tenant_id=su.tenant_id AND dgm.scim_user_id=su.id
+			JOIN directory_groups dg ON dg.tenant_id=dgm.tenant_id AND dg.id=dgm.group_id AND dg.source_id=su.source_id AND dg.deleted_at IS NULL
+			JOIN directory_group_role_bindings dgrb ON dgrb.tenant_id=dg.tenant_id AND dgrb.group_id=dg.id AND dgrb.legal_entity_id=(SELECT id FROM current_entity)
+			JOIN role_templates rt ON rt.tenant_id=dgrb.tenant_id AND rt.id=dgrb.role_template_id
+			JOIN requested_roles rr ON rr.code=rt.code
+			WHERE su.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+			  AND dgrb.valid_from<=$6 AND (dgrb.valid_until IS NULL OR $6<dgrb.valid_until)
+			  AND rt.valid_from<=$6 AND (rt.valid_until IS NULL OR $6<rt.valid_until)
+		), group_matches(principal_id) AS (
+			SELECT DISTINCT requested.id
+			FROM requested
+			JOIN scim_users su ON su.principal_id=requested.id AND su.active AND su.deleted_at IS NULL
+			JOIN scim_sources ss ON ss.tenant_id=su.tenant_id AND ss.id=su.source_id AND ss.status='ACTIVE'
+			JOIN directory_group_members dgm ON dgm.tenant_id=su.tenant_id AND dgm.scim_user_id=su.id
+			JOIN directory_groups dg ON dg.tenant_id=dgm.tenant_id AND dg.id=dgm.group_id AND dg.source_id=su.source_id AND dg.deleted_at IS NULL
+			JOIN requested_groups rg ON rg.id=dg.id
+			WHERE su.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+		)
+		SELECT DISTINCT requested.id::text
+		FROM requested
+		WHERE EXISTS (SELECT 1 FROM role_matches rm WHERE rm.principal_id=requested.id)
+		   OR EXISTS (SELECT 1 FROM group_matches gm WHERE gm.principal_id=requested.id)`,
+		tenant, legalEntity, string(encodedCandidates), string(encodedRoles), string(encodedGroups), at)
+	if err != nil {
+		return nil, fmt.Errorf("apply escalation role/group target boundary: %w", err)
+	}
+	defer rows.Close()
+	allowed := make(map[string]struct{}, len(candidates))
+	for rows.Next() {
+		var principalID string
+		if err := rows.Scan(&principalID); err != nil {
+			return nil, err
+		}
+		allowed[principalID] = struct{}{}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	filtered := make([]authority.Principal, 0, len(candidates))
+	for _, candidate := range candidates {
+		if _, ok := allowed[candidate.ID]; ok {
+			filtered = append(filtered, candidate)
+		}
+	}
+	return filtered, nil
+}
+
 func (c *MatterEscalationCoordinator) loadTask(ctx context.Context, tenant, taskID string) (escalationTask, string, error) {
 	var task escalationTask
 	var rawContext []byte
@@ -625,6 +766,9 @@ func (c *MatterEscalationCoordinator) scheduleStep(ctx context.Context, tenant, 
 func escalationOverlay(payload escalationTimerPayload, step governance.EscalationStep, status string, targetDepartment []string) map[string]string {
 	targetJSON, _ := json.Marshal(targetDepartment)
 	baseJSON, _ := json.Marshal(payload.BaseDepartmentPath)
+	sourceRolesJSON, _ := json.Marshal(step.SourceRoles)
+	targetRolesJSON, _ := json.Marshal(step.TargetRoles)
+	targetGroupsJSON, _ := json.Marshal(step.TargetGroupIDs)
 	return map[string]string{
 		"escalation_trigger":                payload.Trigger,
 		"escalation_sequence_id":            payload.SequenceID,
@@ -637,6 +781,9 @@ func escalationOverlay(payload escalationTimerPayload, step governance.Escalatio
 		"escalation_base_department_path":   string(baseJSON),
 		"escalation_base_department_state":  payload.BaseDepartmentState,
 		"escalation_target_department_path": string(targetJSON),
+		"escalation_source_roles":           string(sourceRolesJSON),
+		"escalation_target_roles":           string(targetRolesJSON),
+		"escalation_target_groups":          string(targetGroupsJSON),
 	}
 }
 
