@@ -59,10 +59,29 @@ export type EscalationSequence = {
     TargetGroupIDs?: string[];
   }>;
 };
-export type EscalationPolicy = { policy_id: string; code: string; name: string; version: number; sequences: EscalationSequence[] };
+export type EscalationGuardRevision = {
+  policy_id: string;
+  tenant_id?: string;
+  version: number;
+  base_version: number;
+  maker_id: string;
+  created_at: string;
+  sequences?: EscalationSequence[];
+};
+export type EscalationPolicy = {
+  policy_id: string;
+  code: string;
+  name: string;
+  version: number;
+  record_version: number;
+  sequences: EscalationSequence[];
+  pending_revision?: EscalationGuardRevision;
+};
 export type IdentityAccessOverview = {
   sign_in: { mode: string; issuer?: string; authentication?: string; assurance_level?: string };
+  actor_principal_id: string;
   can_configure: boolean;
+  can_configure_escalation: boolean;
   sources: IdentitySource[];
   people: IdentityPerson[];
   groups: IdentityGroup[];
@@ -127,6 +146,22 @@ export function retireGroupRoleBinding(id: string): Promise<void> {
   return requestVoid(`/api/v1/access/group-role-bindings/${encodeURIComponent(id)}/retire`, { method: "POST", body: "{}" });
 }
 
-export function previewEscalation(input: { policy_id: string; sequence_id: string; department_path: string[] }): Promise<EscalationPreview> {
+export function proposeEscalationGuardRevision(input: {
+  policy_id: string;
+  sequence_id: string;
+  step_index: number;
+  source_roles: string[];
+  target_roles: string[];
+  target_group_ids: string[];
+  expected_policy_version: number;
+}): Promise<EscalationGuardRevision> {
+  return request("/api/v1/access/escalation-guard-revisions", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function approveEscalationGuardRevision(policyID: string, revisionVersion: number, input: { expected_policy_version: number; rationale: string }): Promise<void> {
+  return requestVoid(`/api/v1/access/escalation-guard-revisions/${encodeURIComponent(policyID)}/${revisionVersion}/approve`, { method: "POST", body: JSON.stringify(input) });
+}
+
+export function previewEscalation(input: { policy_id: string; sequence_id: string; department_path: string[]; revision_version?: number }): Promise<EscalationPreview> {
   return request("/api/v1/access/escalations/preview", { method: "POST", body: JSON.stringify(input) });
 }
