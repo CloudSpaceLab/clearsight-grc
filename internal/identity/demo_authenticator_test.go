@@ -78,7 +78,7 @@ func TestDemoAuthenticatorRoleCatalogueAndSignedSession(t *testing.T) {
 	if err != nil || !present {
 		t.Fatalf("valid demo session did not authenticate: present=%v err=%v", present, err)
 	}
-	if actor.PrincipalID != "role-system-admin" || !actor.HasPermission(PermissionIdentityConfigure) || actor.AuthenticationMethod != "DEMO" {
+	if actor.PrincipalID != "role-system-admin" || !HasPermission(actor, PermissionIdentityConfigure) || actor.AuthenticationMethod != "DEMO" {
 		t.Fatalf("unexpected demo actor: %#v", actor)
 	}
 
