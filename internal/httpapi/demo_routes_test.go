@@ -17,7 +17,7 @@ func TestDemoLoginRoutesAreAbsentOutsideDemoMode(t *testing.T) {
 		t.Fatal(err)
 	}
 	handler := New(Dependencies{
-		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Identity: authenticator,
 		DemoMode: false,
 	})
@@ -34,10 +34,10 @@ func TestDemoLoginCreatesRoleSessionAndLogoutClearsIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	handler := New(Dependencies{
-		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Identity: authenticator,
 		DemoMode: true,
-		Mode: "memory",
+		Mode:     "memory",
 	})
 
 	accounts := httptest.NewRecorder()
