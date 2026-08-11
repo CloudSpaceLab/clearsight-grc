@@ -110,12 +110,12 @@ func TestEscalationGuardRevisionKeepsApprovedPolicyLiveUntilCheckerActivation(t 
 	if pendingApproved != nil {
 		t.Fatalf("pending revision was prematurely approved at %v", pendingApproved)
 	}
-	var activeRouteVersion int
-	if err := pool.QueryRow(ctx, `SELECT policy_version FROM effective_authority_routes WHERE policy_id=$1::uuid AND effective_until IS NULL ORDER BY priority DESC LIMIT 1`, policy.ID).Scan(&activeRouteVersion); err != nil {
+	var activeRouteVersion string
+	if err := pool.QueryRow(ctx, `SELECT policy_version FROM effective_authority_routes WHERE source_policy_id=$1::uuid AND valid_until IS NULL ORDER BY priority DESC LIMIT 1`, policy.ID).Scan(&activeRouteVersion); err != nil {
 		t.Fatal(err)
 	}
-	if activeRouteVersion != 1 {
-		t.Fatalf("pending guard revision changed effective authority route version: %d", activeRouteVersion)
+	if activeRouteVersion != "EIA5:v1" {
+		t.Fatalf("pending guard revision changed effective authority route version: %s", activeRouteVersion)
 	}
 
 	if _, err := svc.ApprovePolicyRevision(ctx, ApprovePolicyRevisionInput{
@@ -146,11 +146,11 @@ func TestEscalationGuardRevisionKeepsApprovedPolicyLiveUntilCheckerActivation(t 
 	if oldUntil == nil || newApproved == nil {
 		t.Fatalf("policy version handoff was not effective-dated: old_until=%v new_approved=%v", oldUntil, newApproved)
 	}
-	if err := pool.QueryRow(ctx, `SELECT policy_version FROM effective_authority_routes WHERE policy_id=$1::uuid AND effective_until IS NULL ORDER BY priority DESC LIMIT 1`, policy.ID).Scan(&activeRouteVersion); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT policy_version FROM effective_authority_routes WHERE source_policy_id=$1::uuid AND valid_until IS NULL ORDER BY priority DESC LIMIT 1`, policy.ID).Scan(&activeRouteVersion); err != nil {
 		t.Fatal(err)
 	}
-	if activeRouteVersion != 2 {
-		t.Fatalf("approved revision did not refresh effective authority route: %d", activeRouteVersion)
+	if activeRouteVersion != "EIA5:v2" {
+		t.Fatalf("approved revision did not refresh effective authority route: %s", activeRouteVersion)
 	}
 
 	// A stale/nonexistent group may be proposed, but activation must validate
