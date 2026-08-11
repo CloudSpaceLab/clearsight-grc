@@ -39,7 +39,7 @@ func TestEscalationGuardRevisionPreservesActivePolicyUntilIndependentApproval(t 
 		TenantID: "bank", PolicyID: policy.ID, SequenceID: "compliance-overdue", StepIndex: 0,
 		SourceRoles: []string{"Compliance Officer"}, TargetRoles: []string{"Supervisor"},
 		TargetGroupIDs: []string{"019fede5-67de-733a-95ae-97f4db546c1e"},
-		ActorID: "guard-maker", ExpectedPolicyVersion: policy.Version,
+		ActorID:        "guard-maker", ExpectedPolicyVersion: policy.Version,
 	})
 	if err != nil {
 		t.Fatal(err)
