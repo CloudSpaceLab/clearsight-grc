@@ -2,17 +2,22 @@ package governance
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 const (
-	maxEscalationSequences = 16
-	maxEscalationSteps     = 8
-	maxDepartmentLevelsUp  = 8
+	maxEscalationSequences    = 16
+	maxEscalationSteps        = 8
+	maxDepartmentLevelsUp     = 8
+	maxEscalationRoleTargets  = 8
+	maxEscalationGroupTargets = 8
 )
 
 type EscalationSequence struct {
@@ -25,6 +30,9 @@ type EscalationStep struct {
 	After              time.Duration
 	Responsibility     string
 	DepartmentLevelsUp *int
+	SourceRoles         []string
+	TargetRoles         []string
+	TargetGroupIDs      []string
 }
 
 type escalationEnvelope struct {
@@ -38,9 +46,16 @@ type escalationSequenceDefinition struct {
 }
 
 type escalationStepDefinition struct {
-	After              string `json:"after"`
-	Responsibility     string `json:"responsibility"`
-	DepartmentLevelsUp *int   `json:"department_levels_up,omitempty"`
+	After              string                      `json:"after"`
+	Responsibility     string                      `json:"responsibility"`
+	DepartmentLevelsUp *int                        `json:"department_levels_up,omitempty"`
+	SourceRoles        []string                    `json:"source_roles,omitempty"`
+	Targets            *escalationTargetDefinition `json:"targets,omitempty"`
+}
+
+type escalationTargetDefinition struct {
+	Roles  []string `json:"roles,omitempty"`
+	Groups []string `json:"groups,omitempty"`
 }
 
 func ParseEscalationSequences(definition json.RawMessage) ([]EscalationSequence, error) {
@@ -97,10 +112,37 @@ func ParseEscalationSequences(definition json.RawMessage) ([]EscalationSequence,
 			if step.DepartmentLevelsUp != nil && (*step.DepartmentLevelsUp < 0 || *step.DepartmentLevelsUp > maxDepartmentLevelsUp) {
 				return nil, fmt.Errorf("escalation sequence %s step %d department_levels_up must be between 0 and %d", id, index+1, maxDepartmentLevelsUp)
 			}
+
+			sourceRoles, err := normalizeEscalationRoles(step.SourceRoles, maxEscalationRoleTargets)
+			if err != nil {
+				return nil, fmt.Errorf("escalation sequence %s step %d source_roles: %w", id, index+1, err)
+			}
+			if step.SourceRoles != nil && len(sourceRoles) == 0 {
+				return nil, fmt.Errorf("escalation sequence %s step %d source_roles cannot be empty", id, index+1)
+			}
+
+			var targetRoles, targetGroups []string
+			if step.Targets != nil {
+				targetRoles, err = normalizeEscalationRoles(step.Targets.Roles, maxEscalationRoleTargets)
+				if err != nil {
+					return nil, fmt.Errorf("escalation sequence %s step %d target roles: %w", id, index+1, err)
+				}
+				targetGroups, err = normalizeEscalationGroupIDs(step.Targets.Groups)
+				if err != nil {
+					return nil, fmt.Errorf("escalation sequence %s step %d target groups: %w", id, index+1, err)
+				}
+				if len(targetRoles) == 0 && len(targetGroups) == 0 {
+					return nil, fmt.Errorf("escalation sequence %s step %d targets must contain at least one role or group", id, index+1)
+				}
+			}
+
 			sequence.Steps = append(sequence.Steps, EscalationStep{
 				After:              after,
 				Responsibility:     responsibility,
 				DepartmentLevelsUp: step.DepartmentLevelsUp,
+				SourceRoles:         sourceRoles,
+				TargetRoles:         targetRoles,
+				TargetGroupIDs:      targetGroups,
 			})
 			previous = after
 		}
@@ -129,6 +171,54 @@ func DepartmentScope(base []string, levels *int) ([]string, bool) {
 func validateEscalationSequences(definition json.RawMessage) error {
 	_, err := ParseEscalationSequences(definition)
 	return err
+}
+
+func normalizeEscalationRoles(values []string, limit int) ([]string, error) {
+	if len(values) > limit {
+		return nil, fmt.Errorf("supports at most %d role selectors", limit)
+	}
+	normalized := identity.NormalizeRoleCodes(values)
+	if len(normalized) != len(values) {
+		return nil, fmt.Errorf("role selectors must be non-empty and unique")
+	}
+	for _, role := range normalized {
+		if len(role) > 80 {
+			return nil, fmt.Errorf("role selector is too long")
+		}
+	}
+	return normalized, nil
+}
+
+func normalizeEscalationGroupIDs(values []string) ([]string, error) {
+	if len(values) > maxEscalationGroupTargets {
+		return nil, fmt.Errorf("supports at most %d group selectors", maxEscalationGroupTargets)
+	}
+	result := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		value = strings.ToLower(strings.TrimSpace(value))
+		if !validUUID(value) {
+			return nil, fmt.Errorf("group selectors must be ClearSight directory group UUIDs")
+		}
+		if _, exists := seen[value]; exists {
+			return nil, fmt.Errorf("group selectors must be unique")
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	return result, nil
+}
+
+func validUUID(value string) bool {
+	if len(value) != 36 || value[8] != '-' || value[13] != '-' || value[18] != '-' || value[23] != '-' {
+		return false
+	}
+	raw := strings.ReplaceAll(value, "-", "")
+	if len(raw) != 32 {
+		return false
+	}
+	_, err := hex.DecodeString(raw)
+	return err == nil
 }
 
 func supportedEscalationTrigger(value string) bool {
