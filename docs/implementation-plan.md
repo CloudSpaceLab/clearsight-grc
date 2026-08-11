@@ -1,6 +1,6 @@
 # ClearSight implementation ledger
 
-**Status date:** 2026-08-10  
+**Status date:** 2026-08-11  
 **Current execution issue:** #27  
 **Umbrella pilot/GA catalogue:** #13
 
@@ -45,6 +45,7 @@ OVERDUE escalation
 → existing routing-policy sequence
 → next workflow timer only
 → current authority/delegation/grant/segregation/visibility
+→ optional current source-role + target role/group guard
 → same Workflow Task escalation overlay
 ```
 
@@ -95,7 +96,12 @@ LDAP/AD/SAML/Kerberos/password/MFA infrastructure remains upstream in authentik,
 - existing timer → outbox → inbox-idempotent consumer path;
 - current Matter/legal entity/materiality/decision type/visibility/authority is re-read when a level fires;
 - exact department ancestry narrows already-eligible authority candidates;
-- no-route/ambiguity/multi-candidate/hidden states fail closed;
+- optional `source_roles` validates the current originating task principal;
+- optional `targets.roles` / `targets.groups` further narrow already-authorized target candidates with OR semantics;
+- directory-group guards use current direct membership and require an active SCIM source;
+- target-role guards use current effective position-role or governed group-role state;
+- guards never manufacture responsibility, authority or protected-record visibility;
+- no-route/ambiguity/multi-candidate/hidden/source-role/target-guard mismatches fail closed;
 - replay is idempotent;
 - only the next level is scheduled;
 - completion/cancellation cancels pending escalation;
@@ -117,9 +123,19 @@ Implemented inside the existing Configure workspace rather than creating a secon
 - duplicate current mappings are prevented;
 - mapping retirement preserves history;
 - escalation runtime health shows active escalations, pending levels, recent unresolved events and failed timers;
-- hierarchy preview uses the same department-ancestry semantics as runtime but never predicts the future actor;
-- identity configuration changes reuse `governance_decisions` rather than recreating removed generic `audit_events`;
-- all seven EIA-5 endpoints live in the canonical `route_registry.go` and `api/runtime.openapi.json` projection;
+- hierarchy/guard preview uses the same runtime semantics and never predicts the future actor;
+- operators can select one escalation level, optional originating role(s), and allowed target role(s)/directory group(s);
+- escalation guard changes require both `IDENTITY_CONFIGURE` and governance `CONFIG_WRITE`;
+- saving a guard creates the next **unapproved** `routing_policy_versions` row rather than mutating the active policy or creating an override table;
+- `routing_policies.current_version` remains on the approved version while a proposal is pending, so current routing stays live;
+- the proposal maker can preview/update their proposal but cannot approve it;
+- another maker cannot overwrite the pending proposal;
+- a different authorized checker supplies rationale and activates the latest revision;
+- approval revalidates the whole policy, existing authority conflicts and current role/group references;
+- stale/missing roles or groups block activation without changing the approved current version;
+- activation effective-dates the old version out and the new version in atomically and refreshes the existing effective authority projection;
+- source/token/mapping and guard activation history reuse existing governed decision/outbox infrastructure;
+- all nine EIA-5 staff routes live in the canonical `route_registry.go` and `api/runtime.openapi.json` projection;
 - `deploy/reference-identity/authentik/README.md` documents the optional AD/LDAP/SAML → authentik → OIDC/SCIM bridge without bundling or forking authentik.
 
 ### Final review bugs closed
@@ -129,9 +145,10 @@ Implemented inside the existing Configure workspace rather than creating a secon
 - an early EIA-5 browser error path could resend a mutation;
 - identity-admin routes were initially placed in a parallel mini-registry before being consolidated into the one canonical route inventory;
 - an early EIA-5 audit implementation targeted deliberately removed `audit_events`; governed history now reuses `governance_decisions`;
-- the new overlay regression fixture was made transaction-local so it cannot contaminate the global escalation maintainer.
+- the overlay regression fixture was made transaction-local so it cannot contaminate the global escalation maintainer;
+- role-only/group-only candidate guards originally encoded the absent selector side as JSON `null`; evaluation now normalizes absent selectors to empty arrays before PostgreSQL filtering.
 
-Executable EIA-5 code head `2b480deeffb8d6596025602397414919df04c49f` passed merge-context CI #909, including race-enabled unit tests, PostgreSQL composition, migration `000028` apply/rollback/reapply, serialized PostgreSQL integration, source-revocation/access-history tests, escalation-overlay semantic invalidation, `go vet`, strict TypeScript, rendered/axe tests and production build. Final documentation head must pass the same normal release gates before merge.
+The exact final PR head must pass the normal release gates below before merge; do not rely on an older green EIA-5 head after candidate-guard changes.
 
 ## 3. Productization still required outside the identity tranche
 
@@ -148,7 +165,6 @@ Executable EIA-5 code head `2b480deeffb8d6596025602397414919df04c49f` passed mer
 
 - responsibility and decision-authority matrices where existing backend configuration is not yet operable from the UI;
 - governed delegation/substitution/absence where the current product surface is insufficient;
-- maker-checker, impact preview and rollback where material configuration changes require it;
 - security/session/notification/integration policy surfaces tied to real backend capability.
 
 Do not reopen generic IAM/directory scope merely because adjacent enterprise administration remains.
@@ -180,7 +196,10 @@ Add `NO_ROUTE`, `AUTHORITY_INSUFFICIENT`, `MATERIALITY_INCREASE`, `RECIPIENT_UNA
 - WorkAmbiguity ≠ actor assignment.
 - Lifecycle sequence policy selects responsibility, not outcome or actor.
 - Lifecycle sequence rule ≠ authority route.
-- Escalation sequence selects responsibility + scope, not a person or bypass route.
+- Escalation sequence selects responsibility + scope; optional role/group guards only narrow current candidates.
+- Escalation candidate guard ≠ authority grant.
+- Target role/group guard = OR filter over candidates already admitted by authority/visibility/department constraints.
+- Pending routing-policy revision ≠ active routing truth.
 - Escalation assignment ≠ material command authority.
 - Escalation timer lineage ≠ authorization truth.
 - Department scope narrows eligibility; it never broadens tenant/legal-entity/object visibility.
@@ -231,14 +250,26 @@ IDENTITY_READ / IDENTITY_CONFIGURE
 → governance_decisions history
 → current access resolver on next request
 
+governed escalation guard change
+IDENTITY_CONFIGURE + CONFIG_WRITE
+→ select active policy / sequence / level
+→ optional source roles + target roles/groups
+→ create unapproved routing_policy_versions revision
+→ approved current_version stays live
+→ independent checker + rationale
+→ revalidate policy / authority conflicts / current references
+→ atomically activate new current_version
+
 OVERDUE Matter work
 canonical due date + pinned escalation lineage
 → next workflow timer only
 → timer fire / outbox / inbox-idempotent consumer
+→ current source-role qualification
 → current legal entity + materiality + decision + visibility
 → current authority/delegation/grant/segregation
 → exact department ancestry boundary where configured
-→ same Workflow task escalation overlay
+→ optional current target role/group guard
+→ same Workflow task escalation overlay or unresolved receipt
 → next timer only
 → material action still requires current command authority
 ```
