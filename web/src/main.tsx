@@ -2,6 +2,7 @@ import "./staticDemoBootstrap";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { DemoAuthGate } from "./components/DemoAuthGate";
 import { ExternalCaptureApp } from "./components/ExternalCaptureApp";
 import { LifecycleTodayEvidencePage } from "./components/LifecycleTodayEvidencePage";
 import { OperatingMutationsEvidencePage } from "./components/OperatingMutationsEvidencePage";
@@ -18,6 +19,7 @@ import "./ui-preferences.css";
 import "./visual-review-fixes.css";
 import "./capture-inputs.css";
 import "./operating-mutations.css";
+import "./demo-login.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Application root is missing");
@@ -32,5 +34,5 @@ const application = invitationToken
     ? <LifecycleTodayEvidencePage/>
     : operatingEvidence
       ? <OperatingMutationsEvidencePage/>
-      : <App/>;
+      : <DemoAuthGate><App/></DemoAuthGate>;
 createRoot(root).render(<StrictMode><DisplayPreferencesRoot>{application}</DisplayPreferencesRoot></StrictMode>);
