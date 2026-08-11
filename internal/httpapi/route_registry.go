@@ -15,6 +15,7 @@ type routeClass string
 
 const (
 	routePublic                    routeClass = "PUBLIC"
+	routeDemoOnly                  routeClass = "DEMO_ONLY"
 	routeAuthenticatedRead         routeClass = "AUTHENTICATED_READ"
 	routeAuthenticatedOperation    routeClass = "AUTHENTICATED_OPERATION"
 	routeAuthenticatedWrite        routeClass = "AUTHENTICATED_WRITE"
@@ -160,6 +161,15 @@ func (a *API) routes() []routeSpec {
 		withPermission(write(http.MethodPost, "/api/v1/access/escalation-guard-revisions/{policy_id}/{version}/approve", a.approveEscalationGuardRevision, nil), identity.PermissionIdentityConfigure),
 		withPermission(operation("/api/v1/access/escalations/preview", a.previewEscalation, nil), identity.PermissionIdentityRead),
 	)
+	if a.deps.DemoMode {
+		if _, ok := a.deps.Identity.(identity.DemoSessionAuthenticator); ok {
+			routes = append(routes,
+				demoOnly(http.MethodGet, "/api/v1/demo/accounts", a.demoAccounts),
+				demoOnly(http.MethodPost, "/api/v1/demo/login", a.demoLogin),
+				demoOnly(http.MethodPost, "/api/v1/demo/logout", a.demoLogout),
+			)
+		}
+	}
 	if a.deps.DemoMode && a.deps.BankVerticals != nil {
 		routes = append(routes, read("/api/v1/bank-journeys", a.listBankJourneys))
 	}
@@ -168,6 +178,9 @@ func (a *API) routes() []routeSpec {
 
 func public(method, path string, handler http.HandlerFunc) routeSpec {
 	return routeSpec{Method: method, Path: path, Class: routePublic, Handler: handler}
+}
+func demoOnly(method, path string, handler http.HandlerFunc) routeSpec {
+	return routeSpec{Method: method, Path: path, Class: routeDemoOnly, Handler: handler}
 }
 func read(path string, handler http.HandlerFunc) routeSpec {
 	return routeSpec{Method: http.MethodGet, Path: path, Class: routeAuthenticatedRead, Handler: handler}
@@ -213,8 +226,11 @@ func validateRoutes(routes []routeSpec) error {
 		if route.Class == routePublic && route.Method != http.MethodGet {
 			return fmt.Errorf("public mutating route is prohibited: %s", key)
 		}
-		if (route.Class == routePublic || route.Class == routeCapability) && route.Permission != "" {
-			return fmt.Errorf("public or capability route cannot require staff permission: %s", key)
+		if route.Class == routeDemoOnly && !strings.HasPrefix(route.Path, "/api/v1/demo/") {
+			return fmt.Errorf("demo-only route must use the demo namespace: %s", key)
+		}
+		if (route.Class == routePublic || route.Class == routeCapability || route.Class == routeDemoOnly) && route.Permission != "" {
+			return fmt.Errorf("public, demo-only or capability route cannot require staff permission: %s", key)
 		}
 		if route.Class == routeMaterialCommand && route.Command == nil {
 			return fmt.Errorf("material route lacks command policy: %s", key)
@@ -229,7 +245,7 @@ func validateRoutes(routes []routeSpec) error {
 func (a *API) routeAccess(spec routeSpec, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch spec.Class {
-		case routePublic, routeCapability:
+		case routePublic, routeCapability, routeDemoOnly:
 			handler(w, r)
 			return
 		case routeAuthenticatedOrCapability:
