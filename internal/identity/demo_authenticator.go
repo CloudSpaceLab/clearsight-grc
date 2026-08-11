@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -188,12 +187,4 @@ func constantTimeCredentialEqual(provided, expected string) bool {
 	providedHash := sha256.Sum256([]byte(provided))
 	expectedHash := sha256.Sum256([]byte(expected))
 	return subtle.ConstantTimeCompare(providedHash[:], expectedHash[:]) == 1
-}
-
-func demoSessionExpiry(value string) (time.Time, bool) {
-	unix, err := strconv.ParseInt(value, 10, 64)
-	if err != nil || unix <= 0 {
-		return time.Time{}, false
-	}
-	return time.Unix(unix, 0).UTC(), true
 }
