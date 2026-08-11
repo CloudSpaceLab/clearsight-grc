@@ -23,6 +23,8 @@ ClearSight does **not** implement LDAP/Active Directory, SAML XML, Kerberos, pas
 
 An ordinary authenticated read or command must make zero LDAP/SAML/SCIM/IdP network calls for authorization.
 
+Non-production stakeholder role credentials are a separate fixture contract documented in [`demo-role-login.md`](demo-role-login.md). Demo login is not an enterprise password-authentication path and is absent when demo mode is disabled.
+
 ## 2. Foundations reused
 
 Do not replace:
@@ -269,7 +271,7 @@ Implemented inside the existing Configure workspace, not as a new IAM shell.
 
 **Canonical route inventory**
 
-Nine EIA-5 routes live in the existing `internal/httpapi/route_registry.go` and are projected into `api/runtime.openapi.json`. No parallel route registry exists.
+Nine EIA-5 staff routes live in the existing `internal/httpapi/route_registry.go` and are projected into `api/runtime.openapi.json`. The additional demo-only login routes are conditional `DEMO_ONLY` entries in the same registry and deliberately excluded from the production runtime OpenAPI contract.
 
 ## 8. Bugs closed during the final review
 
@@ -280,6 +282,8 @@ Nine EIA-5 routes live in the existing `internal/httpapi/route_registry.go` and 
 5. **Identity administration initially targeted removed generic `audit_events`.** It now reuses `governance_decisions`; the removed compatibility table remains absent.
 6. **Shared escalation test fixture could leak into another integration test.** The overlay regression is transaction-local and rolls back.
 7. **Role-only/group-only guard evaluation could serialize the absent side as JSON `null`.** Empty selectors are now normalized to JSON arrays before PostgreSQL evaluation, so role-only, group-only and mixed guards behave consistently.
+8. **Demo mode silently injected one actor and had no real role-selection login.** Demo mode now requires explicit supplied role login, and switching roles remounts the app so stale role-scoped state cannot cross identities.
+9. **Demo login briefly started as a parallel route surface during review.** The final implementation uses conditional `DEMO_ONLY` entries in the canonical route registry and exposes no demo route when demo mode is disabled.
 
 ## 9. Acceptance gates
 
@@ -296,6 +300,16 @@ Nine EIA-5 routes live in the existing `internal/httpapi/route_registry.go` and 
 - `IDENTITY_READ` cannot mutate identity configuration;
 - `IDENTITY_CONFIGURE` is required for source and mapping writes;
 - escalation guard mutation additionally requires governance `CONFIG_WRITE`.
+
+### Demo isolation
+
+- demo mode without a role session/header has no silently injected staff actor;
+- invalid credentials return 401;
+- tampered and expired demo cookies fail closed;
+- bounded bearer/capture credentials are not interpreted as staff demo identity;
+- role switching logs out and remounts the application;
+- `/api/v1/demo/*` is absent outside demo mode;
+- production OIDC/signed flows are unchanged.
 
 ### Departments and capabilities
 
@@ -330,6 +344,8 @@ Nine EIA-5 routes live in the existing `internal/httpapi/route_registry.go` and 
 - pending guard revisions are visibly distinct from the approved live policy;
 - the maker sees an awaiting-checker state rather than an activation control;
 - an independent authorized checker sees rationale + approve/activate;
+- demo login visibly supplies role credentials and labels them non-production;
+- demo login passes semantic/axe checks and remains usable at narrow viewport;
 - narrow viewport remains usable without creating another navigation hierarchy.
 
 ## 10. Remaining work outside EIA-0…5
