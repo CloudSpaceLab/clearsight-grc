@@ -57,9 +57,10 @@ func NewDemoAuthenticator(tenantID, defaultPrincipalID, legalEntityID string) (*
 	}
 	accounts := []DemoAccount{
 		{Label: "Chief Risk Officer", Username: "cro@demo.clearsight.local", Password: "demo", PrincipalID: defaultPrincipalID, RoleCodes: []string{"CRO", "EXECUTIVE"}},
-		{Label: "Chief Compliance Officer", Username: "cco@demo.clearsight.local", Password: "demo", PrincipalID: "role-cco", RoleCodes: []string{"CCO", "EXECUTIVE"}},
+		{Label: "Chief Compliance Officer", Username: "cco@demo.clearsight.local", Password: "demo", PrincipalID: "role-cco", RoleCodes: []string{"CCO", "EXECUTIVE", "COMPLIANCE_OFFICER"}},
 		{Label: "Chief Information Security Officer", Username: "ciso@demo.clearsight.local", Password: "demo", PrincipalID: "role-ciso", RoleCodes: []string{"CISO", "EXECUTIVE"}},
 		{Label: "GRC Administrator", Username: "grc-admin@demo.clearsight.local", Password: "demo", PrincipalID: "role-grc-admin", RoleCodes: []string{"GRC_ADMIN"}},
+		{Label: "System Administrator", Username: "system-admin@demo.clearsight.local", Password: "demo", PrincipalID: "role-system-admin", RoleCodes: []string{"SYSTEM_ADMIN"}},
 		{Label: "Internal Auditor", Username: "auditor@demo.clearsight.local", Password: "demo", PrincipalID: "role-auditor", RoleCodes: []string{"AUDITOR", "REVIEWER"}},
 		{Label: "Program Owner", Username: "owner@demo.clearsight.local", Password: "demo", PrincipalID: "role-program-owner", RoleCodes: []string{"PROGRAM_OWNER"}},
 		{Label: "Evidence Respondent", Username: "evidence@demo.clearsight.local", Password: "demo", PrincipalID: "role-evidence-respondent", RoleCodes: []string{"EVIDENCE_RESPONDENT"}},
