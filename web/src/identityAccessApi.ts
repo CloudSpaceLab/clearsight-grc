@@ -1,8 +1,6 @@
-import { ApiError, requestJSON } from "./http";
+import { requestJSON, requestVoid as requestNoContent } from "./http";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
-
-type ErrorEnvelope = { message?: string; error?: { code?: string; message?: string } };
 
 export type IdentitySource = {
   id: string;
@@ -113,15 +111,6 @@ function request<T>(path: string, init?: RequestInit): Promise<T> {
   return requestJSON<T>(apiBase, path, init);
 }
 
-async function requestVoid(path: string, init?: RequestInit): Promise<void> {
-  const headers = new Headers(init?.headers);
-  if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  const response = await fetch(`${apiBase}${path}`, { ...init, credentials: init?.credentials ?? "include", headers });
-  if (response.ok) return;
-  const body = await response.json().catch(() => null) as ErrorEnvelope | null;
-  throw new ApiError(response.status, body?.error?.message ?? body?.message ?? `Request failed with ${response.status}`, body?.error?.code);
-}
-
 export function loadIdentityAccessOverview(): Promise<IdentityAccessOverview> {
   return request<IdentityAccessOverview>("/api/v1/access/overview?limit=50");
 }
@@ -135,7 +124,7 @@ export function rotateIdentitySourceToken(id: string): Promise<{ token: string }
 }
 
 export function revokeIdentitySource(id: string): Promise<void> {
-  return requestVoid(`/api/v1/access/scim-sources/${encodeURIComponent(id)}/revoke`, { method: "POST", body: "{}" });
+  return requestNoContent(apiBase, `/api/v1/access/scim-sources/${encodeURIComponent(id)}/revoke`, { method: "POST", body: "{}" });
 }
 
 export function createGroupRoleBinding(input: { group_id: string; role_template_id: string; department_path: string[] }): Promise<GroupRoleBinding> {
@@ -143,7 +132,7 @@ export function createGroupRoleBinding(input: { group_id: string; role_template_
 }
 
 export function retireGroupRoleBinding(id: string): Promise<void> {
-  return requestVoid(`/api/v1/access/group-role-bindings/${encodeURIComponent(id)}/retire`, { method: "POST", body: "{}" });
+  return requestNoContent(apiBase, `/api/v1/access/group-role-bindings/${encodeURIComponent(id)}/retire`, { method: "POST", body: "{}" });
 }
 
 export function proposeEscalationGuardRevision(input: {
@@ -159,7 +148,7 @@ export function proposeEscalationGuardRevision(input: {
 }
 
 export function approveEscalationGuardRevision(policyID: string, revisionVersion: number, input: { expected_policy_version: number; rationale: string }): Promise<void> {
-  return requestVoid(`/api/v1/access/escalation-guard-revisions/${encodeURIComponent(policyID)}/${revisionVersion}/approve`, { method: "POST", body: JSON.stringify(input) });
+  return requestNoContent(apiBase, `/api/v1/access/escalation-guard-revisions/${encodeURIComponent(policyID)}/${revisionVersion}/approve`, { method: "POST", body: JSON.stringify(input) });
 }
 
 export function previewEscalation(input: { policy_id: string; sequence_id: string; department_path: string[]; revision_version?: number }): Promise<EscalationPreview> {
