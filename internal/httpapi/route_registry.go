@@ -156,6 +156,8 @@ func (a *API) routes() []routeSpec {
 		withPermission(write(http.MethodPost, "/api/v1/access/scim-sources/{id}/revoke", a.revokeSCIMSource, nil), identity.PermissionIdentityConfigure),
 		withPermission(write(http.MethodPost, "/api/v1/access/group-role-bindings", a.createDirectoryGroupRoleBinding, nil), identity.PermissionIdentityConfigure),
 		withPermission(write(http.MethodPost, "/api/v1/access/group-role-bindings/{id}/retire", a.retireDirectoryGroupRoleBinding, nil), identity.PermissionIdentityConfigure),
+		withPermission(write(http.MethodPost, "/api/v1/access/escalation-guard-revisions", a.proposeEscalationGuardRevision, nil), identity.PermissionIdentityConfigure),
+		withPermission(write(http.MethodPost, "/api/v1/access/escalation-guard-revisions/{policy_id}/{version}/approve", a.approveEscalationGuardRevision, nil), identity.PermissionIdentityConfigure),
 		withPermission(operation("/api/v1/access/escalations/preview", a.previewEscalation, nil), identity.PermissionIdentityRead),
 	)
 	if a.deps.DemoMode && a.deps.BankVerticals != nil {
