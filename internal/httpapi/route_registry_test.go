@@ -64,6 +64,8 @@ func TestAdministrativePermissionsLiveInRouteRegistry(t *testing.T) {
 	addExpected(http.MethodPost, "/api/v1/access/scim-sources/{id}/revoke", identity.PermissionIdentityConfigure)
 	addExpected(http.MethodPost, "/api/v1/access/group-role-bindings", identity.PermissionIdentityConfigure)
 	addExpected(http.MethodPost, "/api/v1/access/group-role-bindings/{id}/retire", identity.PermissionIdentityConfigure)
+	addExpected(http.MethodPost, "/api/v1/access/escalation-guard-revisions", identity.PermissionIdentityConfigure)
+	addExpected(http.MethodPost, "/api/v1/access/escalation-guard-revisions/{policy_id}/{version}/approve", identity.PermissionIdentityConfigure)
 	addExpected(http.MethodPost, "/api/v1/access/escalations/preview", identity.PermissionIdentityRead)
 
 	seen := map[string]string{}
