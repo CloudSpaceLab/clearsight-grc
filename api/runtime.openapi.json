@@ -130,6 +130,8 @@
     "/api/v1/access/scim-sources/{id}/revoke": { "post": { "operationId": "revokeSCIMSource", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "IDENTITY_CONFIGURE" } },
     "/api/v1/access/group-role-bindings": { "post": { "operationId": "createDirectoryGroupRoleBinding", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "IDENTITY_CONFIGURE" } },
     "/api/v1/access/group-role-bindings/{id}/retire": { "post": { "operationId": "retireDirectoryGroupRoleBinding", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "IDENTITY_CONFIGURE" } },
+    "/api/v1/access/escalation-guard-revisions": { "post": { "operationId": "proposeEscalationGuardRevision", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "IDENTITY_CONFIGURE" } },
+    "/api/v1/access/escalation-guard-revisions/{policy_id}/{version}/approve": { "post": { "operationId": "approveEscalationGuardRevision", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "IDENTITY_CONFIGURE" } },
     "/api/v1/access/escalations/preview": { "post": { "operationId": "previewEscalation", "x-clearsight-route-class": "AUTHENTICATED_OPERATION", "x-clearsight-permission": "IDENTITY_READ" } }
   }
 }
