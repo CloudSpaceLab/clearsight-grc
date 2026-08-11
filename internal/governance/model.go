@@ -32,6 +32,7 @@ var (
 	ErrInvalidTransition = errors.New("invalid governance transition")
 	ErrMakerChecker      = errors.New("maker and checker must be different principals")
 	ErrConflict          = errors.New("segregation or delegation conflict")
+	ErrRevisionStale     = errors.New("routing policy revision is stale")
 )
 
 type RoutingPolicy struct {
@@ -53,6 +54,42 @@ type RoutingPolicy struct {
 	CreatedAt      time.Time       `json:"created_at"`
 	UpdatedAt      time.Time       `json:"updated_at"`
 	Version        int64           `json:"version"`
+}
+
+type RoutingPolicyRevision struct {
+	PolicyID       string          `json:"policy_id"`
+	TenantID       string          `json:"tenant_id"`
+	Version        int             `json:"version"`
+	BaseVersion    int             `json:"base_version"`
+	Definition     json.RawMessage `json:"definition"`
+	Checksum       string          `json:"checksum"`
+	MakerID        string          `json:"maker_id"`
+	CreatedAt      time.Time       `json:"created_at"`
+	ApprovedBy     string          `json:"approved_by,omitempty"`
+	ApprovedAt     *time.Time      `json:"approved_at,omitempty"`
+	EffectiveFrom  *time.Time      `json:"effective_from,omitempty"`
+	EffectiveUntil *time.Time      `json:"effective_until,omitempty"`
+}
+
+type EscalationGuardRevisionInput struct {
+	TenantID              string   `json:"tenant_id"`
+	PolicyID              string   `json:"policy_id"`
+	SequenceID            string   `json:"sequence_id"`
+	StepIndex             int      `json:"step_index"`
+	SourceRoles           []string `json:"source_roles"`
+	TargetRoles           []string `json:"target_roles"`
+	TargetGroupIDs        []string `json:"target_group_ids"`
+	ActorID               string   `json:"actor_id"`
+	ExpectedPolicyVersion int64    `json:"expected_policy_version"`
+}
+
+type ApprovePolicyRevisionInput struct {
+	TenantID              string `json:"tenant_id"`
+	PolicyID              string `json:"policy_id"`
+	RevisionVersion       int    `json:"revision_version"`
+	ActorID               string `json:"actor_id"`
+	ExpectedPolicyVersion int64  `json:"expected_policy_version"`
+	Rationale             string `json:"rationale"`
 }
 
 type Delegation struct {
