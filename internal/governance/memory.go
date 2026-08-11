@@ -10,12 +10,16 @@ import (
 type MemoryRepository struct {
 	mu          sync.Mutex
 	policies    map[string]RoutingPolicy
+	revisions   map[string][]RoutingPolicyRevision
 	delegations map[string]Delegation
 	conflicts   map[string][]ConflictFinding
 }
 
 func NewMemoryRepository() *MemoryRepository {
-	return &MemoryRepository{policies: map[string]RoutingPolicy{}, delegations: map[string]Delegation{}, conflicts: map[string][]ConflictFinding{}}
+	return &MemoryRepository{
+		policies: map[string]RoutingPolicy{}, revisions: map[string][]RoutingPolicyRevision{},
+		delegations: map[string]Delegation{}, conflicts: map[string][]ConflictFinding{},
+	}
 }
 func key(tenantID, id string) string { return tenantID + ":" + id }
 
@@ -79,10 +83,109 @@ func (r *MemoryRepository) TransitionPolicy(_ context.Context, tenantID, id stri
 	r.policies[k] = v
 	return v, nil
 }
+func (r *MemoryRepository) CreatePolicyRevision(_ context.Context, tenantID, id string, expected int64, actor string, definition []byte, checksum string, at time.Time) (RoutingPolicyRevision, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	k := key(tenantID, id)
+	policy, ok := r.policies[k]
+	if !ok {
+		return RoutingPolicyRevision{}, ErrNotFound
+	}
+	if policy.Status != PolicyActive {
+		return RoutingPolicyRevision{}, ErrInvalidTransition
+	}
+	if policy.Version != expected {
+		return RoutingPolicyRevision{}, ErrVersionConflict
+	}
+	version := policy.CurrentVersion + 1
+	for _, revision := range r.revisions[k] {
+		if revision.Version >= version {
+			version = revision.Version + 1
+		}
+	}
+	revision := RoutingPolicyRevision{
+		PolicyID: id, TenantID: tenantID, Version: version, BaseVersion: policy.CurrentVersion,
+		Definition: append([]byte(nil), definition...), Checksum: checksum, MakerID: actor, CreatedAt: at,
+	}
+	r.revisions[k] = append(r.revisions[k], revision)
+	policy.Version++
+	policy.UpdatedAt = at
+	r.policies[k] = policy
+	return revision, nil
+}
+func (r *MemoryRepository) PendingPolicyRevision(_ context.Context, tenantID, id string) (RoutingPolicyRevision, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	k := key(tenantID, id)
+	policy, ok := r.policies[k]
+	if !ok {
+		return RoutingPolicyRevision{}, ErrNotFound
+	}
+	var selected RoutingPolicyRevision
+	found := false
+	for _, revision := range r.revisions[k] {
+		if revision.Version <= policy.CurrentVersion || revision.ApprovedAt != nil {
+			continue
+		}
+		if !found || revision.Version > selected.Version {
+			selected, found = revision, true
+		}
+	}
+	if !found {
+		return RoutingPolicyRevision{}, ErrNotFound
+	}
+	return selected, nil
+}
+func (r *MemoryRepository) ActivatePolicyRevision(_ context.Context, tenantID, id string, expected int64, revisionVersion int, actor, rationale string, at time.Time) (RoutingPolicy, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	k := key(tenantID, id)
+	policy, ok := r.policies[k]
+	if !ok {
+		return RoutingPolicy{}, ErrNotFound
+	}
+	if policy.Status != PolicyActive {
+		return RoutingPolicy{}, ErrInvalidTransition
+	}
+	if policy.Version != expected {
+		return RoutingPolicy{}, ErrVersionConflict
+	}
+	latest := -1
+	index := -1
+	for i, revision := range r.revisions[k] {
+		if revision.Version > policy.CurrentVersion && revision.ApprovedAt == nil && revision.Version > latest {
+			latest, index = revision.Version, i
+		}
+	}
+	if index < 0 || latest != revisionVersion {
+		return RoutingPolicy{}, ErrRevisionStale
+	}
+	revision := r.revisions[k][index]
+	if revision.MakerID == actor {
+		return RoutingPolicy{}, ErrMakerChecker
+	}
+	revision.ApprovedBy = actor
+	revision.ApprovedAt = &at
+	revision.EffectiveFrom = &at
+	r.revisions[k][index] = revision
+	policy.CurrentVersion = revision.Version
+	policy.Definition = append([]byte(nil), revision.Definition...)
+	policy.Checksum = revision.Checksum
+	policy.CheckerID = actor
+	policy.ApprovedAt = &at
+	policy.EffectiveFrom = &at
+	policy.Version++
+	policy.UpdatedAt = at
+	r.policies[k] = policy
+	return policy, nil
+}
 func (r *MemoryRepository) PolicyConflicts(_ context.Context, policy RoutingPolicy) ([]ConflictFinding, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return append([]ConflictFinding(nil), r.conflicts[policy.TenantID+":policy:"+policy.ID]...), nil
+}
+func (r *MemoryRepository) EscalationReferenceConflicts(_ context.Context, _ string, _ []byte) ([]ConflictFinding, error) {
+	return nil, nil
 }
 func (r *MemoryRepository) ListDelegations(_ context.Context, tenantID string) ([]Delegation, error) {
 	r.mu.Lock()
