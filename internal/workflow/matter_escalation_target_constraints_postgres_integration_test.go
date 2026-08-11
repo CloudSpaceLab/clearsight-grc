@@ -153,9 +153,13 @@ func TestMatterEscalationRoleAndGroupGuardsNarrowCurrentAuthorityCandidates(t *t
 
 func createEscalationGuardWork(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, principalID, suffix string, due time.Time) string {
 	t.Helper()
-	matterID := "98888888-8888-7888-8888-888888888" + suffix[:1] + "1"
-	workflowID := "98888888-8888-7888-8888-888888888" + suffix[:1] + "2"
-	taskID := "98888888-8888-7888-8888-888888888" + suffix[:1] + "3"
+	if len(suffix) < 2 {
+		t.Fatalf("escalation guard suffix must contain at least two characters")
+	}
+	idPrefix := "98888888-8888-7888-8888-888888888" + suffix[:2]
+	matterID := idPrefix + "1"
+	workflowID := idPrefix + "2"
+	taskID := idPrefix + "3"
 	mustExecEscalation(t, ctx, pool, `INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,due_at,created_at,updated_at)
 		VALUES($1::uuid,$2::uuid,$3,'EXCEPTION','ASSESSMENT',4,'Guard test','Escalation guard test','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4,$5,$5)`, matterID, tenantID, "MAT-GUARD-"+suffix, due, due.Add(-time.Minute))
 	mustExecEscalation(t, ctx, pool, `INSERT INTO workflow_instances(id,tenant_id,kind,subject_type,subject_id,state,policy_version,due_at,created_at,updated_at,version)
