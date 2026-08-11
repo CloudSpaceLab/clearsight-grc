@@ -536,6 +536,12 @@ func (c *MatterEscalationCoordinator) filterEscalationTargetPrincipals(ctx conte
 	if len(candidateIDs) == 0 {
 		return nil, nil
 	}
+	if roleCodes == nil {
+		roleCodes = []string{}
+	}
+	if groupIDs == nil {
+		groupIDs = []string{}
+	}
 	encodedCandidates, err := json.Marshal(candidateIDs)
 	if err != nil {
 		return nil, err
