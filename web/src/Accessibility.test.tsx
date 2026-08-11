@@ -2,9 +2,11 @@ import axe from "axe-core";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { CapturePanel } from "./components/CapturePanel";
+import { DemoLoginPage } from "./components/DemoLoginPage";
 import { MattersWorkspace } from "./components/MattersWorkspace";
 import { ProgramsWorkspace } from "./components/ProgramsWorkspace";
 import { TodayInterventions } from "./components/TodayInterventions";
+import type { DemoAccount } from "./api";
 import type { AttentionItem, CaptureRequest, Readiness } from "./types";
 
 vi.mock("./api", () => ({
@@ -13,6 +15,7 @@ vi.mock("./api", () => ({
   loadMatterSummaries: vi.fn().mockResolvedValue({ items: [], next_cursor: "", generated_at: "2026-08-07T13:00:00Z" }),
   loadMatter: vi.fn(),
   submitCaptureRequest: vi.fn(),
+  loginDemo: vi.fn().mockResolvedValue(undefined),
 }));
 
 const item: AttentionItem = {
@@ -56,6 +59,11 @@ const request: CaptureRequest = {
   version: 1,
 };
 
+const demoAccounts: DemoAccount[] = [
+  { label: "Chief Risk Officer", username: "cro@demo.clearsight.local", password: "demo", role_codes: ["CRO", "EXECUTIVE"] },
+  { label: "System Administrator", username: "system-admin@demo.clearsight.local", password: "demo", role_codes: ["SYSTEM_ADMIN"] },
+];
+
 async function expectNoSemanticViolations(container: HTMLElement) {
   const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
   expect(results.violations.map((violation) => violation.id)).toEqual([]);
@@ -76,6 +84,14 @@ describe("semantic accessibility gates", () => {
     fireEvent.change(screen.getByRole("textbox", { name: /Current accountable owner/ }), { target: { value: "Ada Okafor" } });
     fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
     expect(screen.getByRole("heading", { name: "Check your response" })).toBeTruthy();
+    await expectNoSemanticViolations(container);
+  });
+
+  it("passes axe for the role-aware demo login and exposes supplied credentials", async () => {
+    const { container } = render(<DemoLoginPage accounts={demoAccounts} onAuthenticated={vi.fn().mockResolvedValue(undefined)}/>);
+    expect(screen.getByText("cro@demo.clearsight.local")).toBeTruthy();
+    expect(screen.getAllByText("demo").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /System Administrator/ })).toBeTruthy();
     await expectNoSemanticViolations(container);
   });
 
