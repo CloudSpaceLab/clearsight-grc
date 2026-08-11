@@ -97,6 +97,10 @@ func buildIdentity(ctx context.Context, cfg config.Config, services serviceSet) 
 		authenticator, err := identity.NewSignedAuthenticator(cfg.IdentityHMACSecret, cfg.IdentityMaxSkew)
 		return authenticator, nil, err
 	case "development":
+		if cfg.DemoMode {
+			authenticator, err := identity.NewDemoAuthenticator(cfg.DemoTenantID, cfg.DemoPrincipalID, cfg.DemoLegalEntityID)
+			return authenticator, nil, err
+		}
 		return identity.NewDevelopmentAuthenticator(cfg.DemoTenantID, cfg.DemoPrincipalID, cfg.DemoLegalEntityID, cfg.DemoRoleCodes...), nil, nil
 	default:
 		return nil, nil, fmt.Errorf("unsupported identity mode %q", cfg.IdentityMode)
