@@ -122,6 +122,16 @@
 
     "/api/v1/compliance/readiness": { "get": { "operationId": "readiness", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/compliance/automation-policies": { "get": { "operationId": "automationPolicies", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
-    "/api/v1/compliance/signals": { "post": { "operationId": "ingestSignal", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } }
+    "/api/v1/compliance/signals": { "post": { "operationId": "ingestSignal", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
+
+    "/api/v1/access/overview": { "get": { "operationId": "identityAccessOverview", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "IDENTITY_READ" } },
+    "/api/v1/access/scim-sources": { "post": { "operationId": "createSCIMSource", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "IDENTITY_CONFIGURE" } },
+    "/api/v1/access/scim-sources/{id}/rotate-token": { "post": { "operationId": "rotateSCIMSourceToken", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "IDENTITY_CONFIGURE" } },
+    "/api/v1/access/scim-sources/{id}/revoke": { "post": { "operationId": "revokeSCIMSource", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "IDENTITY_CONFIGURE" } },
+    "/api/v1/access/group-role-bindings": { "post": { "operationId": "createDirectoryGroupRoleBinding", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "IDENTITY_CONFIGURE" } },
+    "/api/v1/access/group-role-bindings/{id}/retire": { "post": { "operationId": "retireDirectoryGroupRoleBinding", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "IDENTITY_CONFIGURE" } },
+    "/api/v1/access/escalation-guard-revisions": { "post": { "operationId": "proposeEscalationGuardRevision", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "IDENTITY_CONFIGURE" } },
+    "/api/v1/access/escalation-guard-revisions/{policy_id}/{version}/approve": { "post": { "operationId": "approveEscalationGuardRevision", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "IDENTITY_CONFIGURE" } },
+    "/api/v1/access/escalations/preview": { "post": { "operationId": "previewEscalation", "x-clearsight-route-class": "AUTHENTICATED_OPERATION", "x-clearsight-permission": "IDENTITY_READ" } }
   }
 }

@@ -22,7 +22,8 @@ func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
 		"legal_entity": map[string]string{"id": actor.LegalEntityID, "name": actor.LegalEntityID},
 		"actor": map[string]any{
 			"id": actor.PrincipalID, "name": actor.PrincipalID, "kind": actor.Kind, "role_codes": roleCodes,
-			"assurance_level": actor.AssuranceLevel, "authentication": actor.AuthenticationMethod, "session_id": actor.SessionID,
+			"department_grants": actor.DepartmentGrants,
+			"assurance_level":   actor.AssuranceLevel, "authentication": actor.AuthenticationMethod, "session_id": actor.SessionID,
 		},
 		"mode":      a.deps.Mode,
 		"demo_mode": a.deps.DemoMode,
@@ -31,6 +32,8 @@ func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
 			"reference_journeys":        a.deps.DemoMode && a.deps.BankVerticals != nil,
 			"config_read":               identity.HasPermission(actor, identity.PermissionConfigRead),
 			"config_write":              identity.HasPermission(actor, identity.PermissionConfigWrite),
+			"identity_read":             identity.HasPermission(actor, identity.PermissionIdentityRead),
+			"identity_configure":        identity.HasPermission(actor, identity.PermissionIdentityConfigure),
 			"platform_operations_read":  identity.HasPermission(actor, identity.PermissionPlatformOperationsRead),
 			"platform_operations_write": identity.HasPermission(actor, identity.PermissionPlatformOperationsWrite),
 		},

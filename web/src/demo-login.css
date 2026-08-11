@@ -1,0 +1,62 @@
+.demo-login-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(24px, 5vw, 64px);
+  background:
+    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--accent, #3b63f3) 9%, transparent), transparent 28rem),
+    var(--background, #f6f7f9);
+}
+
+.demo-login-panel {
+  width: min(1120px, 100%);
+  display: grid;
+  gap: 28px;
+  padding: clamp(24px, 4vw, 44px);
+  border: 1px solid var(--line, #dfe4ea);
+  border-radius: 24px;
+  background: var(--surface, #fff);
+  box-shadow: 0 24px 70px rgb(15 23 42 / 8%);
+}
+.demo-login-panel.compact { width: min(520px, 100%); gap: 8px; }
+.demo-login-panel.compact h1 { margin: 0; font-size: 1.3rem; }
+
+.demo-login-intro { max-width: 720px; }
+.demo-login-intro h1 { max-width: 640px; margin: 7px 0 10px; font-size: clamp(2rem, 4vw, 3.6rem); line-height: 1.02; letter-spacing: -.045em; }
+.demo-login-intro p { max-width: 680px; margin: 0; color: var(--muted, #667085); font-size: .98rem; line-height: 1.65; }
+.demo-login-brand { width: 42px; height: 42px; display: grid; place-items: center; margin-bottom: 18px; border-radius: 13px; background: #111827; color: #fff; font-weight: 800; }
+
+.demo-login-layout { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, .75fr); gap: 28px; align-items: start; }
+.demo-account-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.demo-account-card { min-width: 0; display: grid; gap: 5px; padding: 15px; text-align: left; border: 1px solid var(--line, #dfe4ea); border-radius: 14px; background: var(--surface, #fff); color: inherit; cursor: pointer; transition: border-color .16s ease, background .16s ease, transform .16s ease; }
+.demo-account-card:hover { transform: translateY(-1px); border-color: var(--line-strong, #c7ced8); }
+.demo-account-card.selected { border-color: #8da2f7; background: color-mix(in srgb, #3b63f3 5%, var(--surface, #fff)); box-shadow: inset 3px 0 #3b63f3; }
+.demo-account-role { color: var(--muted, #667085); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .065em; }
+.demo-account-card > strong { margin-bottom: 5px; font-size: .91rem; }
+.demo-account-credential { min-width: 0; display: grid; grid-template-columns: 58px minmax(0, 1fr); align-items: baseline; gap: 7px; color: var(--muted, #667085); font-size: .72rem; }
+.demo-account-credential b { font-weight: 650; }
+.demo-account-credential code { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text, #111827); font-size: .73rem; }
+
+.demo-login-form { position: sticky; top: 24px; display: grid; gap: 14px; padding: 20px; border: 1px solid var(--line, #dfe4ea); border-radius: 16px; background: var(--surface-2, #f7f8fa); }
+.demo-login-form h2 { margin: 4px 0 3px; font-size: 1.25rem; }
+.demo-login-form p, .demo-login-form small { margin: 0; color: var(--muted, #667085); line-height: 1.45; }
+.demo-login-form label { display: grid; gap: 6px; font-size: .78rem; font-weight: 700; }
+.demo-login-form input { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid var(--line-strong, #cfd5dd); border-radius: 10px; background: var(--surface, #fff); color: inherit; font: inherit; }
+.demo-login-error { padding: 10px 12px; border-radius: 9px; background: #fff1f0; color: #b42318; font-size: .8rem; }
+
+.demo-role-switch-wrap { position: fixed; right: 18px; bottom: 18px; z-index: 70; display: grid; justify-items: end; gap: 5px; }
+.demo-role-switch-wrap > span { max-width: 280px; padding: 6px 9px; border-radius: 8px; background: #fff1f0; color: #b42318; box-shadow: 0 8px 24px rgb(15 23 42 / 12%); font-size: .72rem; }
+.demo-role-switch { min-height: 34px; padding: 7px 11px; border: 1px solid var(--line, #dfe4ea); border-radius: 999px; background: var(--surface, #fff); color: var(--muted, #667085); box-shadow: 0 8px 24px rgb(15 23 42 / 9%); font: inherit; font-size: .76rem; cursor: pointer; }
+.demo-role-switch:hover { color: var(--text, #111827); border-color: var(--line-strong, #c7ced8); }
+
+@media (max-width: 820px) {
+  .demo-login-layout { grid-template-columns: 1fr; }
+  .demo-login-form { position: static; order: -1; }
+}
+
+@media (max-width: 560px) {
+  .demo-login-shell { padding: 12px; place-items: start center; }
+  .demo-login-panel { padding: 20px 16px; border-radius: 18px; }
+  .demo-account-list { grid-template-columns: 1fr; }
+  .demo-role-switch-wrap { right: 12px; bottom: 76px; }
+}

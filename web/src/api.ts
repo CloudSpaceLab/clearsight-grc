@@ -1,4 +1,4 @@
-import { requestJSON } from "./http";
+import { requestJSON, requestVoid } from "./http";
 import type { AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, OnboardingGuide, OnboardingState, PolicySummary, ProgramAggregate, Readiness, WorkflowTask } from "./types";
 import type { MatterSummary, ProgramSummary, SummaryPage, SummaryQuery } from "./summaryTypes";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
@@ -6,11 +6,33 @@ import type { BankJourneysResponse } from "./verticalTypes";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
+export type DepartmentGrant = {
+  path: string[];
+  role_codes?: string[];
+  permission_codes?: string[];
+};
+
 export type RuntimeContext = {
   tenant: { id: string; name: string };
   legal_entity: { id: string; name: string };
-  actor: { id: string; name: string; kind?: string; assurance_level?: string; authentication?: string; session_id?: string; role_codes?: string[] };
+  actor: {
+    id: string;
+    name: string;
+    kind?: string;
+    assurance_level?: string;
+    authentication?: string;
+    session_id?: string;
+    role_codes?: string[];
+    department_grants?: DepartmentGrant[];
+  };
   mode: string;
+};
+
+export type DemoAccount = {
+  label: string;
+  username: string;
+  password: string;
+  role_codes: string[];
 };
 
 export type TodaySnapshot = { items: AttentionItem[]; generated_at?: string };
@@ -34,6 +56,20 @@ export function loadContext(): Promise<RuntimeContext> {
     throw error;
   });
   return runtimeContext;
+}
+
+export async function loadDemoAccounts(): Promise<DemoAccount[]> {
+  return (await request<{ accounts: DemoAccount[] }>("/api/v1/demo/accounts")).accounts;
+}
+
+export async function loginDemo(username: string, password: string): Promise<void> {
+  await request<{ account: DemoAccount }>("/api/v1/demo/login", { method: "POST", body: JSON.stringify({ username, password }) });
+  runtimeContext = undefined;
+}
+
+export async function logoutDemo(): Promise<void> {
+  await requestVoid(apiBase, "/api/v1/demo/logout", { method: "POST", body: "{}" });
+  runtimeContext = undefined;
 }
 
 async function scopedPath(path: string, values: Record<string, string | number | undefined> = {}) {

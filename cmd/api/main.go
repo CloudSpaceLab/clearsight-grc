@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/federation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/httpapi"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
@@ -30,7 +32,7 @@ func main() {
 		os.Exit(1)
 	}
 	defer services.Close()
-	authenticator, err := buildAuthenticator(cfg)
+	authenticator, federationService, err := buildIdentity(ctx, cfg, services)
 	if err != nil {
 		logger.Error("identity initialization failed", "error", err)
 		os.Exit(1)
@@ -42,7 +44,9 @@ func main() {
 	}
 	handler := httpapi.New(httpapi.Dependencies{
 		Logger: logger, AllowedOrigin: cfg.AllowedOrigin, Mode: services.Mode, DemoMode: cfg.DemoMode,
-		Identity: authenticator, CommandGuard: guard, Authority: services.Authority, Governance: services.Governance,
+		IdentityMode: cfg.IdentityMode, OIDCIssuer: cfg.OIDCIssuer,
+		Identity: authenticator, Federation: federationService, SCIM: services.SCIM, AccessAdmin: services.AccessAdmin,
+		CommandGuard: guard, Authority: services.Authority, Governance: services.Governance,
 		Evidence: services.Evidence, DocumentImports: services.DocumentImports,
 		Continuity: services.Continuity, Today: services.Today, Workflow: services.Workflow, Onboarding: services.Onboarding,
 		Autonomy: services.Autonomy, BankVerticals: services.BankVerticals, BackgroundJobs: services.BackgroundJobs,
@@ -74,9 +78,31 @@ func main() {
 	}
 }
 
-func buildAuthenticator(cfg config.Config) (identity.Authenticator, error) {
-	if cfg.IdentityMode == "signed" {
-		return identity.NewSignedAuthenticator(cfg.IdentityHMACSecret, cfg.IdentityMaxSkew)
+func buildIdentity(ctx context.Context, cfg config.Config, services serviceSet) (identity.Authenticator, *federation.Service, error) {
+	switch cfg.IdentityMode {
+	case "oidc":
+		if services.Access == nil || services.SessionStore == nil {
+			return nil, nil, fmt.Errorf("OIDC identity mode requires PostgreSQL access and session services")
+		}
+		service, err := federation.New(ctx, federation.Config{
+			Issuer: cfg.OIDCIssuer, ClientID: cfg.OIDCClientID, ClientSecret: cfg.OIDCClientSecret,
+			RedirectURL: cfg.OIDCRedirectURL, ApplicationURL: cfg.AllowedOrigin,
+			SessionLifetime: cfg.OIDCSessionLifetime, IdleTimeout: cfg.OIDCSessionIdleTimeout, SecureCookies: cfg.OIDCSecureCookies,
+		}, services.SessionStore, services.Access)
+		if err != nil {
+			return nil, nil, err
+		}
+		return service, service, nil
+	case "signed":
+		authenticator, err := identity.NewSignedAuthenticator(cfg.IdentityHMACSecret, cfg.IdentityMaxSkew)
+		return authenticator, nil, err
+	case "development":
+		if cfg.DemoMode {
+			authenticator, err := identity.NewDemoAuthenticator(cfg.DemoTenantID, cfg.DemoPrincipalID, cfg.DemoLegalEntityID)
+			return authenticator, nil, err
+		}
+		return identity.NewDevelopmentAuthenticator(cfg.DemoTenantID, cfg.DemoPrincipalID, cfg.DemoLegalEntityID, cfg.DemoRoleCodes...), nil, nil
+	default:
+		return nil, nil, fmt.Errorf("unsupported identity mode %q", cfg.IdentityMode)
 	}
-	return identity.NewDevelopmentAuthenticator(cfg.DemoTenantID, cfg.DemoPrincipalID, cfg.DemoLegalEntityID, cfg.DemoRoleCodes...), nil
 }

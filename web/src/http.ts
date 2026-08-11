@@ -17,25 +17,34 @@ export class ApiError extends Error {
 }
 
 export async function parseJSON<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const body = await response.json().catch(() => null) as ErrorEnvelope | null;
-    throw new ApiError(
-      response.status,
-      body?.error?.message ?? body?.message ?? `Request failed with ${response.status}`,
-      body?.error?.code,
-    );
-  }
+  if (!response.ok) throw await responseError(response);
   return await response.json() as T;
 }
 
 export async function requestJSON<T>(apiBase: string, path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   if (!(init?.body instanceof FormData) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  return parseJSON<T>(await fetch(`${apiBase}${path}`, { ...init, headers }));
+  return parseJSON<T>(await fetch(`${apiBase}${path}`, { ...init, credentials: init?.credentials ?? "include", headers }));
+}
+
+export async function requestVoid(apiBase: string, path: string, init?: RequestInit): Promise<void> {
+  const headers = new Headers(init?.headers);
+  if (!(init?.body instanceof FormData) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  const response = await fetch(`${apiBase}${path}`, { ...init, credentials: init?.credentials ?? "include", headers });
+  if (!response.ok) throw await responseError(response);
 }
 
 export function apiErrorKind(error: unknown): ApiErrorKind {
   return error instanceof ApiError ? error.kind : "unknown";
+}
+
+async function responseError(response: Response): Promise<ApiError> {
+  const body = await response.json().catch(() => null) as ErrorEnvelope | null;
+  return new ApiError(
+    response.status,
+    body?.error?.message ?? body?.message ?? `Request failed with ${response.status}`,
+    body?.error?.code,
+  );
 }
 
 function kindFromStatus(status: number): ApiErrorKind {

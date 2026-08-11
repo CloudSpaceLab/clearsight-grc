@@ -1,9 +1,11 @@
 package httpapi
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
@@ -11,6 +13,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/federation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
@@ -25,7 +28,12 @@ type Dependencies struct {
 	AllowedOrigin    string
 	Mode             string
 	DemoMode         bool
+	IdentityMode     string
+	OIDCIssuer       string
 	Identity         identity.Authenticator
+	Federation       *federation.Service
+	SCIM             http.Handler
+	AccessAdmin      access.Administrator
 	CommandGuard     *commandauth.Guard
 	Authority        authority.Service
 	Governance       *governance.Service
@@ -46,8 +54,9 @@ type API struct{ deps Dependencies }
 func New(deps Dependencies) http.Handler {
 	api := &API{deps: deps}
 	mux := http.NewServeMux()
+	api.registerFederationRoutes(mux)
 	api.registerRoutes(mux)
-	return httpx.Chain(
+	appHandler := httpx.Chain(
 		mux,
 		httpx.CORS(deps.AllowedOrigin),
 		httpx.RequestID,
@@ -56,4 +65,34 @@ func New(deps Dependencies) http.Handler {
 		httpx.Recover(deps.Logger),
 		httpx.AccessLog(deps.Logger),
 	)
+	if deps.Federation != nil {
+		appHandler = deps.Federation.Middleware(appHandler)
+	}
+	protection := http.NewCrossOriginProtection()
+	if deps.AllowedOrigin != "" {
+		if err := protection.AddTrustedOrigin(deps.AllowedOrigin); err != nil {
+			panic(fmt.Errorf("configure trusted origin: %w", err))
+		}
+	}
+	appHandler = protection.Handler(appHandler)
+
+	if deps.SCIM == nil {
+		return appHandler
+	}
+
+	// SCIM is a machine-to-machine protocol edge authenticated by its own
+	// tenant-scoped bearer token. Browser session, CORS and actor middleware do
+	// not apply here; all post-provisioning application access still flows
+	// through the normal identity/permission/authority stack above.
+	scimHandler := httpx.Chain(
+		deps.SCIM,
+		httpx.RequestID,
+		httpx.SecurityHeaders,
+		httpx.Recover(deps.Logger),
+		httpx.AccessLog(deps.Logger),
+	)
+	root := http.NewServeMux()
+	root.Handle("/scim/v2/", scimHandler)
+	root.Handle("/", appHandler)
+	return root
 }

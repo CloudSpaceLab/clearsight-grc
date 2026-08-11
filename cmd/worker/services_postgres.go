@@ -40,6 +40,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	governanceService := governance.NewService(lifecycle)
 	continuityRepository := continuity.NewCurrentPostgresRepository(pool)
 	continuityService := continuity.NewService(continuityRepository)
+	authorityService := authority.NewEffectivePostgresService(pool)
 	autonomyService := autonomy.NewService(autonomy.NewPostgresRepository(pool))
 	sourceHealth := &reconciliation.SourceHealthConsumer{
 		Inbox: runtimeRepository, Dependencies: continuityRepository,
@@ -48,18 +49,24 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	workflowRepository := workflow.NewPostgresRepository(pool)
 	actionWork := &workflow.MatterActionProjector{Repo: workflowRepository}
 	lifecycleWork := &workflow.MatterLifecycleProjector{
-		Repo: workflowRepository, Continuity: continuityService, Authority: authority.NewEffectivePostgresService(pool), Sequence: governanceService,
+		Repo: workflowRepository, Continuity: continuityService, Authority: authorityService, Sequence: governanceService,
+	}
+	escalationWork := &workflow.MatterEscalationCoordinator{
+		Repo: workflowRepository, Runtime: runtimeRepository, Authority: authorityService, Continuity: continuityService,
 	}
 	evidenceWork := &workflow.EvidenceRequestProjector{Repo: workflowRepository}
 	documentService := documentimport.NewService(documentimport.NewPostgresRepository(pool), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
-	publisher := workflowruntime.NewCompositePublisher(sourceHealth, actionWork, lifecycleWork, documentService, workflowruntime.LogPublisher{Logger: logger})
+	publisher := workflowruntime.NewCompositePublisher(sourceHealth, actionWork, lifecycleWork, escalationWork, documentService, workflowruntime.LogPublisher{Logger: logger})
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
 	configureWorkerRuntime(service, cfg, logger)
 	// Matter events update immediately through the outbox publisher. This slower
 	// reconciliation pass exists for restart/backfill and authority/delegation/
 	// routing-policy convergence rather than continuously scanning all Matters.
 	service.ConfigureClass(matterWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 30 * time.Second, Batch: 100})
+	// Escalation scheduling is another bounded maintainer on the existing runtime.
+	// Timer firing and retries continue to use the shared workflow-timer/outbox path.
+	service.ConfigureClass(workflow.MatterEscalationWorkClass, workflowruntime.WorkClassOptions{Poll: 5 * time.Second, Batch: 100})
 	// Evidence Request assignment is canonical request state rather than an
 	// authority route. A short bounded reconciliation pass gives create/
 	// reassignment/wrong-recipient/principal-status changes one rebuildable Today
@@ -70,6 +77,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
 	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
 	service.AddMaintainerClass(matterWorkProjectionClass, lifecycleWork)
+	service.AddMaintainerClass(workflow.MatterEscalationWorkClass, escalationWork)
 	service.AddMaintainerClass(evidenceWorkProjectionClass, evidenceWork)
 	return workerSet{Runtime: service, Close: pool.Close}, nil
 }

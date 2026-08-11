@@ -1,5 +1,7 @@
+import "../identity-access.css";
 import type { AutomationPolicy } from "../types";
 import { EmptyState } from "./EmptyState";
+import { IdentityAccessPanel } from "./IdentityAccessPanel";
 
 type LoadState = "loading" | "live" | "unavailable";
 
@@ -9,6 +11,13 @@ type Props = {
 };
 
 export function AutomationPolicies({ policies, state }: Props) {
+  return <>
+    <IdentityAccessPanel/>
+    <AutomationPolicyContent policies={policies} state={state}/>
+  </>;
+}
+
+function AutomationPolicyContent({ policies, state }: Props) {
   if (state === "loading") {
     return <section className="automation-policies workspace-loading" aria-live="polite" aria-busy="true">Loading automation policies…</section>;
   }

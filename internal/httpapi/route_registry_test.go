@@ -47,15 +47,27 @@ func TestRouteRegistryHasExplicitAccessClasses(t *testing.T) {
 
 func TestAdministrativePermissionsLiveInRouteRegistry(t *testing.T) {
 	routes := (&API{}).routes()
-	expected := map[string]string{
-		"GET /api/v1/governance/policies":               identity.PermissionConfigRead,
-		"POST /api/v1/governance/policies":              identity.PermissionConfigWrite,
-		"POST /api/v1/authority/simulate":               identity.PermissionConfigRead,
-		"GET /api/v1/operations/projections":            identity.PermissionPlatformOperationsRead,
-		"POST /api/v1/operations/projections/reconcile": identity.PermissionPlatformOperationsWrite,
-		"GET /api/v1/operations/background-jobs":        identity.PermissionPlatformJobsRead,
-		"GET /api/v1/compliance/automation-policies":    identity.PermissionConfigRead,
+	expected := map[string]string{}
+	addExpected := func(method, path, permission string) {
+		expected[method+" "+path] = permission
 	}
+	addExpected(http.MethodGet, "/api/v1/governance/policies", identity.PermissionConfigRead)
+	addExpected(http.MethodPost, "/api/v1/governance/policies", identity.PermissionConfigWrite)
+	addExpected(http.MethodPost, "/api/v1/authority/simulate", identity.PermissionConfigRead)
+	addExpected(http.MethodGet, "/api/v1/operations/projections", identity.PermissionPlatformOperationsRead)
+	addExpected(http.MethodPost, "/api/v1/operations/projections/reconcile", identity.PermissionPlatformOperationsWrite)
+	addExpected(http.MethodGet, "/api/v1/operations/background-jobs", identity.PermissionPlatformJobsRead)
+	addExpected(http.MethodGet, "/api/v1/compliance/automation-policies", identity.PermissionConfigRead)
+	addExpected(http.MethodGet, "/api/v1/access/overview", identity.PermissionIdentityRead)
+	addExpected(http.MethodPost, "/api/v1/access/scim-sources", identity.PermissionIdentityConfigure)
+	addExpected(http.MethodPost, "/api/v1/access/scim-sources/{id}/rotate-token", identity.PermissionIdentityConfigure)
+	addExpected(http.MethodPost, "/api/v1/access/scim-sources/{id}/revoke", identity.PermissionIdentityConfigure)
+	addExpected(http.MethodPost, "/api/v1/access/group-role-bindings", identity.PermissionIdentityConfigure)
+	addExpected(http.MethodPost, "/api/v1/access/group-role-bindings/{id}/retire", identity.PermissionIdentityConfigure)
+	addExpected(http.MethodPost, "/api/v1/access/escalation-guard-revisions", identity.PermissionIdentityConfigure)
+	addExpected(http.MethodPost, "/api/v1/access/escalation-guard-revisions/{policy_id}/{version}/approve", identity.PermissionIdentityConfigure)
+	addExpected(http.MethodPost, "/api/v1/access/escalations/preview", identity.PermissionIdentityRead)
+
 	seen := map[string]string{}
 	for _, route := range routes {
 		key := route.Method + " " + route.Path

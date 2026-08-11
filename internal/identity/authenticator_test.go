@@ -66,3 +66,14 @@ func TestDevelopmentAuthenticatorExposesConfiguredAndOverrideRoles(t *testing.T)
 		t.Fatalf("unexpected override roles: %#v present=%v err=%v", actor, present, err)
 	}
 }
+
+func TestDevelopmentSystemAdminIncludesIdentityAdministrationCapabilities(t *testing.T) {
+	authenticator := NewDevelopmentAuthenticator("bank", "admin", "entity", "SYSTEM_ADMIN")
+	actor, present, err := authenticator.Authenticate(httptest.NewRequest("GET", "https://example.test/api/v1/context", nil))
+	if err != nil || !present {
+		t.Fatalf("development system admin not authenticated: present=%v err=%v", present, err)
+	}
+	if !HasPermission(actor, PermissionIdentityRead) || !HasPermission(actor, PermissionIdentityConfigure) {
+		t.Fatalf("development system admin missing identity administration permissions: %#v", actor.PermissionCodes)
+	}
+}

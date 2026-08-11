@@ -10,6 +10,7 @@ type Repository interface {
 	ClaimDueTimers(context.Context, string, time.Time, time.Duration, int) ([]Timer, error)
 	CompleteTimer(context.Context, Timer, OutboxEvent, time.Time) error
 	FailTimer(context.Context, Timer, int, string, time.Time, time.Time) (bool, error)
+	CancelPendingTaskTimers(context.Context, string, string, string) (int, error)
 	ClaimOutbox(context.Context, string, time.Time, time.Duration, int) ([]OutboxEvent, error)
 	MarkPublished(context.Context, OutboxEvent, time.Time) error
 	MarkFailed(context.Context, OutboxEvent, int, string, time.Time, time.Time) (bool, error)
