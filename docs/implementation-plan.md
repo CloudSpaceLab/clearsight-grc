@@ -138,6 +138,22 @@ Implemented inside the existing Configure workspace rather than creating a secon
 - all nine EIA-5 staff routes live in the canonical `route_registry.go` and `api/runtime.openapi.json` projection;
 - `deploy/reference-identity/authentik/README.md` documents the optional AD/LDAP/SAML → authentik → OIDC/SCIM bridge without bundling or forking authentik.
 
+### Demo stakeholder login — non-production fixture
+
+Demo mode no longer silently injects one configured actor. When `CLEARSIGHT_DEMO_MODE=true` with development identity mode:
+
+- the login page supplies CRO, CCO/Compliance Officer, CISO, GRC Administrator, System Administrator, Internal Auditor, Program Owner and Evidence Respondent accounts;
+- all supplied accounts use the explicit fixture password `demo`;
+- a successful selection creates an HttpOnly, SameSite=Lax, HMAC-signed eight-hour demo session;
+- the process-local signing key means restart invalidates existing demo sessions;
+- tampered and expired sessions fail closed;
+- a bounded bearer/capture token is never interpreted as staff identity;
+- `Switch demo role` logs out and unmounts the entire application before another role is selected so role-scoped UI state cannot leak between identities;
+- the three `/api/v1/demo/*` routes use the same canonical route registry with `DEMO_ONLY` classification and are absent when demo mode is off;
+- production OIDC/signed authentication is unchanged and production configuration rejects demo mode.
+
+The fixture contract is documented in [`engineering/demo-role-login.md`](engineering/demo-role-login.md). It is not an enterprise password-authentication subsystem.
+
 ### Final review bugs closed
 
 - revoked SCIM source previously could retain group-derived access;
@@ -146,9 +162,11 @@ Implemented inside the existing Configure workspace rather than creating a secon
 - identity-admin routes were initially placed in a parallel mini-registry before being consolidated into the one canonical route inventory;
 - an early EIA-5 audit implementation targeted deliberately removed `audit_events`; governed history now reuses `governance_decisions`;
 - the overlay regression fixture was made transaction-local so it cannot contaminate the global escalation maintainer;
-- role-only/group-only candidate guards originally encoded the absent selector side as JSON `null`; evaluation now normalizes absent selectors to empty arrays before PostgreSQL filtering.
+- role-only/group-only candidate guards originally encoded the absent selector side as JSON `null`; evaluation now normalizes absent selectors to empty arrays before PostgreSQL filtering;
+- demo mode previously auto-authenticated one actor without a real role-selection/login flow; the top-level demo auth gate now requires an explicit supplied role and resets the whole app on role switch;
+- demo auth endpoints were briefly implemented as a mini route registry during review and were consolidated into the canonical route inventory before merge.
 
-The exact final PR head must pass the normal release gates below before merge; do not rely on an older green EIA-5 head after candidate-guard changes.
+The exact final PR head must pass the normal release gates below before merge; do not rely on an older green head after documentation or demo-login changes.
 
 ## 3. Productization still required outside the identity tranche
 
@@ -211,6 +229,7 @@ Add `NO_ROUTE`, `AUTHORITY_INSUFFICIENT`, `MATERIALITY_INCREASE`, `RECIPIENT_UNA
 - SCIM lifecycle ≠ generic IAM administration inside ClearSight.
 - OIDC assertion ≠ ClearSight role/capability authority.
 - OIDC correlation ≠ legal-entity authorization.
+- Demo role credential ≠ production authentication mechanism.
 - Identity configuration history belongs to governed decision history, not a resurrected generic audit table.
 - Evidence Request recipient is canonical request state; Workflow work is rebuildable actor projection.
 - Workflow command packet is an executable projection; mutations are revalidated by domain service.
@@ -260,6 +279,13 @@ IDENTITY_CONFIGURE + CONFIG_WRITE
 → revalidate policy / authority conflicts / current references
 → atomically activate new current_version
 
+stakeholder demo login
+DEMO_ONLY supplied role catalogue
+→ explicit non-production credential
+→ signed HttpOnly demo session
+→ normal identity middleware / role-scoped demo work
+→ switch role logs out and remounts application
+
 OVERDUE Matter work
 canonical due date + pinned escalation lineage
 → next workflow timer only
@@ -274,7 +300,7 @@ canonical due date + pinned escalation lineage
 → material action still requires current command authority
 ```
 
-Presentation/projection/session/provisioning/escalation/admin state never substitutes for canonical domain or material authority truth.
+Presentation/projection/session/provisioning/escalation/admin/demo state never substitutes for canonical domain or material authority truth.
 
 ## 6. Release gates
 
