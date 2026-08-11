@@ -29,7 +29,8 @@ The documentation is layered so product semantics, safety, architecture, experie
 23. [`design/enterprise-productization-design-plan.md`](design/enterprise-productization-design-plan.md) — finished enterprise experience reference.
 24. [`engineering/enterprise-productization-implementation-plan.md`](engineering/enterprise-productization-implementation-plan.md) — detailed enterprise work/reference phases; current execution order is controlled by `implementation-plan.md`.
 25. [`engineering/enterprise-identity-access.md`](engineering/enterprise-identity-access.md) — focused OSS-first identity, department-aware capabilities and multi-level escalation implementation boundary; supersedes greenfield LDAP/SAML implementation guidance.
-26. [`quality/release-gates-and-traceability.md`](quality/release-gates-and-traceability.md), [`quality/rendered-ui-evidence.md`](quality/rendered-ui-evidence.md) and domain acceptance tests.
+26. [`engineering/demo-role-login.md`](engineering/demo-role-login.md) — non-production stakeholder role catalogue, supplied demo credentials, signed demo session and production isolation boundary.
+27. [`quality/release-gates-and-traceability.md`](quality/release-gates-and-traceability.md), [`quality/rendered-ui-evidence.md`](quality/rendered-ui-evidence.md) and domain acceptance tests.
 
 ## Canonical precedence
 
@@ -50,12 +51,16 @@ Architecture never overrides the simpler user-facing Program, issue/change, requ
 
 ## Current executable modules
 
-- verified request identity with tenant, principal and legal-entity scope;
-- one typed HTTP route registry classifying public, authenticated, material-command and bounded-capability routes;
+- native OIDC enterprise sign-in with server-side sessions plus signed-gateway/development compatibility;
+- SCIM Users/Groups provisioning with explicit governed directory-group → existing-role mappings;
+- local legal-entity and exact-department capability resolution from current ClearSight state;
+- demo-only supplied role credentials and signed role-switching sessions, absent from production route inventory;
+- one typed HTTP route registry classifying public, demo-only, authenticated, material-command and bounded-capability routes;
 - server-bound tenant/actor fields for protected writes and explicit material-command authority policies;
 - fail-closed restricted-record policy parsing and pre-pagination Matter visibility;
 - authority routing, simulation, integrity and policy resolution;
-- maker-checker routing-policy and delegation administration;
+- maker-checker routing-policy, escalation-guard revision and delegation administration;
+- multi-level `OVERDUE` escalation with department ancestry and optional source-role / target-role-or-group candidate guards;
 - Matter Action-driven Workflow Task projection, leased timers, outbox and inbox foundations;
 - independent in-process worker classes for evidence maintenance, Program projection, delegation lifecycle, timers and outbox delivery;
 - bounded timer/outbox retry budgets with durable terminal failure and queue health rather than infinite poison-item retry;
@@ -72,21 +77,21 @@ Architecture never overrides the simpler user-facing Program, issue/change, requ
 - compliance Signal ingestion, drift and readiness;
 - non-demo Today projection from active Workflow Tasks assigned to the verified principal;
 - intervention-first Today and progressively disclosed Programs, Work/Evidence and Imports;
-- automation-policy read visibility in Configure;
+- Identity & Access and automation-policy administration in Configure;
 - exact record launchers to linked Programs, Matters and evidence requests;
 - recoverable opt-in Nigerian-bank reference installation for non-production environments;
 - machine-checked ownership classification for every live durable PostgreSQL table;
-- one mechanically verified executable runtime route/access contract, with bounded domain schemas kept descriptive.
+- one mechanically verified executable production runtime route/access contract, with bounded domain schemas kept descriptive.
 
 ## Current execution status
 
 The repository is a strong working foundation and reference MVP. It is not yet a completed banking product.
 
-The foundational execution sequence is complete through the current-state/schema/product foundation tranches. The current implementation ledger now selects **EIA-0**, the small enterprise identity/access foundation: department paths on existing organizational positions, capabilities on existing role templates, and bounded multi-level escalation policy validation. It does not claim executable OIDC, SCIM, department-aware capability enforcement, or escalation runtime yet.
+The enterprise identity/access sequence **EIA-0 through EIA-5 is implemented on PR #59**: OIDC, server sessions, SCIM, department-aware capabilities, governed directory-group mappings, executable multi-level `OVERDUE` escalation, role/group escalation guards, maker-checker guard revisions, and the compact Configure → Identity & Access surface. Demo mode additionally exposes a supplied role catalogue on a dedicated login page; those routes and credentials do not exist when demo mode is disabled.
 
 Current execution truth is maintained in [`implementation-plan.md`](implementation-plan.md). Do not infer capability from historical issue text, a durable table name, a descriptive API schema, or an older branch.
 
-The remaining enterprise identity, notifications, production storage, accessibility, recovery, scale and governed-operator workflows remain specified in focused/broader enterprise plans, but those documents do not supersede the current implementation ledger.
+Remaining productization is outside generic IAM: non-`OVERDUE` escalation adapters when real domain events exist, broader enterprise operator surfaces where backend capability already exists, production storage/security/recovery/scale evidence, and representative bank-user acceptance.
 
 ## Semantic guardrails
 
@@ -102,6 +107,8 @@ Do not collapse these objects while implementing later work:
 - Department path = organizational scope, not authorization by itself.
 - Directory group = source-backed membership, not material authority.
 - Escalation sequence = ordered responsibility/scope selection, not a hard-coded assignee chain.
+- Escalation role/group guard = candidate restriction, not an authority grant.
+- Demo role credential = non-production fixture, not an enterprise authentication mechanism.
 
 ## Traceability
 
