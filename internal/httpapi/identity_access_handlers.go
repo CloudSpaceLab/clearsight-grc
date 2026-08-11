@@ -24,6 +24,9 @@ type escalationPreviewStep struct {
 	Responsibility string   `json:"responsibility"`
 	Scope          string   `json:"scope"`
 	DepartmentPath []string `json:"department_path,omitempty"`
+	SourceRoles    []string `json:"source_roles,omitempty"`
+	TargetRoles    []string `json:"target_roles,omitempty"`
+	TargetGroupIDs []string `json:"target_group_ids,omitempty"`
 }
 
 func (a *API) identityAccessOverview(w http.ResponseWriter, r *http.Request) {
@@ -204,7 +207,10 @@ func (a *API) previewEscalation(w http.ResponseWriter, r *http.Request) {
 			}
 			steps := make([]escalationPreviewStep, 0, len(sequence.Steps))
 			for index, step := range sequence.Steps {
-				preview := escalationPreviewStep{Index: index, After: step.After.String(), Responsibility: step.Responsibility, Scope: "LEGAL_ENTITY"}
+				preview := escalationPreviewStep{
+					Index: index, After: step.After.String(), Responsibility: step.Responsibility, Scope: "LEGAL_ENTITY",
+					SourceRoles: append([]string(nil), step.SourceRoles...), TargetRoles: append([]string(nil), step.TargetRoles...), TargetGroupIDs: append([]string(nil), step.TargetGroupIDs...),
+				}
 				if step.DepartmentLevelsUp != nil {
 					preview.Scope = "DEPARTMENT"
 					if scoped, exists := governance.DepartmentScope(path, step.DepartmentLevelsUp); exists {
