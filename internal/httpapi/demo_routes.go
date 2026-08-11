@@ -14,36 +14,44 @@ type demoLoginInput struct {
 	Password string `json:"password"`
 }
 
-func (a *API) registerDemoRoutes(mux *http.ServeMux) {
-	if !a.deps.DemoMode {
-		return
-	}
+func (a *API) demoAccounts(w http.ResponseWriter, _ *http.Request) {
 	authenticator, ok := a.deps.Identity.(identity.DemoSessionAuthenticator)
-	if !ok {
+	if !a.deps.DemoMode || !ok {
+		http.NotFound(w, nil)
 		return
 	}
-	mux.HandleFunc("GET /api/v1/demo/accounts", func(w http.ResponseWriter, _ *http.Request) {
-		httpx.WriteJSON(w, http.StatusOK, map[string]any{"accounts": authenticator.Accounts()})
-	})
-	mux.HandleFunc("POST /api/v1/demo/login", func(w http.ResponseWriter, r *http.Request) {
-		var input demoLoginInput
-		if err := httpx.DecodeJSON(w, r, &input); err != nil {
-			httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "Username and password are required.")
-			return
-		}
-		account, err := authenticator.Login(w, strings.TrimSpace(input.Username), input.Password)
-		if errors.Is(err, identity.ErrInvalidDemoCredentials) {
-			httpx.WriteError(w, http.StatusUnauthorized, "invalid_demo_credentials", "The selected demo credentials are invalid.")
-			return
-		}
-		if err != nil {
-			httpx.WriteError(w, http.StatusInternalServerError, "demo_login_failed", "The demo session could not be created.")
-			return
-		}
-		httpx.WriteJSON(w, http.StatusOK, map[string]any{"account": account})
-	})
-	mux.HandleFunc("POST /api/v1/demo/logout", func(w http.ResponseWriter, _ *http.Request) {
-		authenticator.Logout(w)
-		w.WriteHeader(http.StatusNoContent)
-	})
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"accounts": authenticator.Accounts()})
+}
+
+func (a *API) demoLogin(w http.ResponseWriter, r *http.Request) {
+	authenticator, ok := a.deps.Identity.(identity.DemoSessionAuthenticator)
+	if !a.deps.DemoMode || !ok {
+		http.NotFound(w, r)
+		return
+	}
+	var input demoLoginInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "Username and password are required.")
+		return
+	}
+	_, err := authenticator.Login(w, strings.TrimSpace(input.Username), input.Password)
+	if errors.Is(err, identity.ErrInvalidDemoCredentials) {
+		httpx.WriteError(w, http.StatusUnauthorized, "invalid_demo_credentials", "The selected demo credentials are invalid.")
+		return
+	}
+	if err != nil {
+		httpx.WriteError(w, http.StatusInternalServerError, "demo_login_failed", "The demo session could not be created.")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *API) demoLogout(w http.ResponseWriter, r *http.Request) {
+	authenticator, ok := a.deps.Identity.(identity.DemoSessionAuthenticator)
+	if !a.deps.DemoMode || !ok {
+		http.NotFound(w, r)
+		return
+	}
+	authenticator.Logout(w)
+	w.WriteHeader(http.StatusNoContent)
 }
