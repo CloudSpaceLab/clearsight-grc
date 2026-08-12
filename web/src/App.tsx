@@ -26,6 +26,7 @@ import type { CaptureLoadState } from "./components/CapturePanel";
 import { apiErrorKind } from "./http";
 import { parseRoute, routeHash } from "./appRouting";
 import type { View, WorkspaceTarget, WorkTab } from "./appRouting";
+import type { RuntimePresentation } from "./runtimePresentation";
 import type { AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, GuideStep, IntegrityFinding, PolicySummary, Readiness, WorkflowTask } from "./types";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 
@@ -50,7 +51,7 @@ const fallbackItems: AttentionItem[] = [{
   id: "fallback-change", type: "REGULATORY_CHANGE", title: "Review proposed digital-channel requirements", why_now: "Seven provisions may affect mobile banking and two payment vendors.", scope: "Digital Channels · Reference data", state: "Applicability review", evidence: "Official source recorded", owner: "Regulatory Compliance", due_at: new Date(Date.now() + 3 * 86400000).toISOString(), primary_action: "Review the proposed requirements", intervention_class: "REVIEW", material_conclusion: "Seven source-linked provisions may change digital-channel obligations.", recommendation: { proposed_action: "Review the proposed requirements", rationale: "The source change may affect mobile banking and two payment vendors." },
 }];
 
-function App() {
+function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) {
   const initialRoute = parseRoute(window.location.hash);
   const [runtime, setRuntime] = useState<ProductRuntime | null>(null);
   const [activeView, setActiveView] = useState<View>(initialRoute.view);
@@ -87,7 +88,8 @@ function App() {
   const routingLoadID = useRef(0);
   const evidenceTargetAttempts = useRef(new Set<string>());
 
-  const demoMode = runtime?.demo_mode === true;
+  const serverDemoMode = runtime?.demo_mode === true;
+  const demoMode = serverDemoMode && presentation === "demo";
   const importsEnabled = runtime != null && runtime.capabilities?.document_import !== false;
   const configureEnabled = runtime != null && runtime.capabilities?.config_read !== false;
 
@@ -95,7 +97,8 @@ function App() {
     void Promise.allSettled([loadContext(), loadToday(), loadReadiness()]).then(([contextResult, todayResult, readinessResult]) => {
       const currentRuntime = contextResult.status === "fulfilled" ? contextResult.value as ProductRuntime : null;
       setRuntime(currentRuntime);
-      const allowFallback = currentRuntime?.demo_mode === true || (currentRuntime == null && sampleMode);
+      const allowFallback = (currentRuntime?.demo_mode === true && presentation === "demo") ||
+        (currentRuntime == null && sampleMode && presentation === "demo");
       if (todayResult.status === "fulfilled") {
         setItems(todayResult.value.items);
         setTodayGeneratedAt(todayResult.value.generated_at);
@@ -117,7 +120,7 @@ function App() {
         setReadinessState("unavailable");
       }
     });
-  }, []);
+  }, [presentation]);
 
   useEffect(() => {
     const syncRoute = () => {
@@ -281,7 +284,7 @@ function App() {
   return <div className="app-shell">
     <aside className="sidebar" aria-label="Primary navigation"><div className="brand-mark" aria-label="ClearSight">C</div><nav>{navigation.map(({ label, view }) => <button className={view === activeView ? "nav-item active" : "nav-item"} key={view} aria-current={view === activeView ? "page" : undefined} onClick={() => navigate(view)}><NavigationIcon view={view}/><b>{label}</b></button>)}</nav><div className="avatar" aria-label={`Signed in as ${actorName}`}>{initials(actorName)}</div></aside>
     <main>
-      <div className="context-bar" aria-label="Active workspace context"><div><strong>{organizationName}</strong><span>{legalEntityName}</span></div><div className="context-role"><DisplayPreferencesMenu/><span>{roleName}</span>{demoMode && <mark>Stakeholder demo</mark>}</div></div>
+      <div className="context-bar" aria-label="Active workspace context"><div><strong>{organizationName}</strong><span>{legalEntityName}</span></div><div className="context-role"><DisplayPreferencesMenu/><span>{roleName}</span>{demoMode ? <mark>Stakeholder demo</mark> : serverDemoMode && presentation === "live-preview" ? <mark>Live preview · Non-production</mark> : null}</div></div>
       {activeView === "today" && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>} 
       {activeView === "programs" && <ProgramsView organizationName={organizationName} targetID={target.programID} openFirst={target.openFirstProgram}/>} 
       {activeView === "work" && <WorkView organizationName={organizationName} tab={workTab} onTab={(tab) => navigate("work", {}, tab)} sources={sources} requests={evidenceRequests} evidenceSourceState={evidenceSourceState === "idle" ? "loading" : evidenceSourceState} evidenceRequestState={evidenceRequestState === "idle" ? "loading" : evidenceRequestState} onEvidenceRetry={() => void loadEvidenceWorkspace(target.evidenceID)} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)}/>} 

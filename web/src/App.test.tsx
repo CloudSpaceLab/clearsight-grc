@@ -69,6 +69,16 @@ describe("runtime navigation", () => {
     await waitFor(() => expect(document.documentElement.dataset.clearsightDemo).toBe("on"));
   });
 
+  it("uses live API data without demo-only presentation when requested", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(true));
+    render(<App presentation="live-preview" />);
+
+    await screen.findByText("Live preview · Non-production");
+    await waitFor(() => expect(document.documentElement.dataset.clearsightDemo).toBe("off"));
+    expect(screen.queryByText("Stakeholder demo")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Explore/ })).toBeNull();
+  });
+
   it("opens the exact Program encoded by a Today intervention", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     vi.mocked(loadToday).mockResolvedValue({ items: [{ id: "today-program", type: "PROGRAM", title: "Review privacy programme", why_now: "Evidence changed.", scope: "Privacy", state: "Evidence incomplete", evidence: "One gap", owner: "DPO", due_at: "2026-08-09T12:00:00Z", primary_action: "Review reasons", action_target_type: "PROGRAM", action_target_id: "program-123" }], generated_at: "2026-08-07T15:00:00Z" });

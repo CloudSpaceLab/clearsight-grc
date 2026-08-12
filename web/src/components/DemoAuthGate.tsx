@@ -1,12 +1,13 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { loadContext, loadDemoAccounts, logoutDemo, type DemoAccount, type RuntimeContext } from "../api";
 import { apiErrorKind } from "../http";
+import type { RuntimePresentation } from "../runtimePresentation";
 import { DemoLoginPage } from "./DemoLoginPage";
 
 type GateState = "checking" | "ready" | "login";
 type DemoRuntime = RuntimeContext & { demo_mode?: boolean };
 
-export function DemoAuthGate({ children }: { children: ReactNode }) {
+export function DemoAuthGate({ children, presentation = "demo" }: { children: ReactNode; presentation?: RuntimePresentation }) {
   const [state, setState] = useState<GateState>("checking");
   const [accounts, setAccounts] = useState<DemoAccount[]>([]);
   const [demoMode, setDemoMode] = useState(false);
@@ -62,7 +63,7 @@ export function DemoAuthGate({ children }: { children: ReactNode }) {
   }
   if (state === "login") return <DemoLoginPage accounts={accounts} onAuthenticated={enter}/>;
 
-  const canSwitchRole = demoMode && import.meta.env.VITE_STATIC_DEMO !== "true";
+  const canSwitchRole = demoMode && presentation === "demo" && import.meta.env.VITE_STATIC_DEMO !== "true";
   return <>
     {children}
     {canSwitchRole && <div className="demo-role-switch-wrap">
