@@ -23,6 +23,7 @@ install -d -m 0750 "$root" "$root/config" "$root/data" "$root/data/artifacts" \
   "$root/incoming" "$root/releases" "$root/state"
 
 sudo -u postgres psql -X -v ON_ERROR_STOP=1 -v role_password="$database_password" <<'SQL'
+SET password_encryption = 'scram-sha-256';
 SELECT format('CREATE ROLE clearsight LOGIN PASSWORD %L', :'role_password')
 WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'clearsight') \gexec
 ALTER ROLE clearsight LOGIN PASSWORD :'role_password';
