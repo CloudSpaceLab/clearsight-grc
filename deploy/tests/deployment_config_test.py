@@ -93,6 +93,7 @@ class DeploymentConfigTest(unittest.TestCase):
             dockerfile = self.read(dockerfile_name)
             self.assertIn("COPY api ./api", dockerfile)
             self.assertIn("COPY migrations ./migrations", dockerfile)
+            self.assertIn("COPY docs/architecture/durable-schema-ownership.md ./docs/architecture/durable-schema-ownership.md", dockerfile)
 
 
 if __name__ == "__main__":
