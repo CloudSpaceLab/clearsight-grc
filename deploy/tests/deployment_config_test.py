@@ -77,6 +77,17 @@ class DeploymentConfigTest(unittest.TestCase):
             self.assertIn(f'clearsight-{component}:$RELEASE_SHA', workflow)
         self.assertNotIn("bigbundle.pem", workflow)
 
+    def test_postgres_demo_is_seeded_and_artifacts_are_writable(self) -> None:
+        dockerfile = self.read("Dockerfile.api")
+        release = self.read("deploy/scripts/release.sh")
+        compose = self.read("deploy/compose.demo.yaml")
+        bootstrap = self.read("deploy/scripts/bootstrap-server.sh")
+        self.assertIn("./cmd/seed-bank-reference", dockerfile)
+        self.assertIn("/clearsight-seed-bank-reference", release)
+        self.assertIn("-tenant bank-demo", release)
+        self.assertIn("/var/lib/clearsight/artifacts:Z", compose)
+        self.assertIn("chown 65532:65532", bootstrap)
+
 
 if __name__ == "__main__":
     unittest.main()

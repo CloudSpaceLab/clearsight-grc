@@ -59,6 +59,10 @@ rollback() {
 trap rollback ERR
 
 "$release/scripts/migrate.sh" "$release/migrations"
+docker run --rm --network host --env-file "$config" \
+  --entrypoint /clearsight-seed-bank-reference "clearsight-api:$sha" \
+  -tenant bank-demo -legal-entity bank-ng -actor role-cro \
+  -owner role-program-owner -reviewer role-auditor -signatory role-cco >/dev/null
 phase=running
 docker compose -p clearsight --env-file "$config" -f "$compose" up -d --no-build --remove-orphans
 
@@ -87,7 +91,9 @@ trap - ERR
 while IFS= read -r image_id; do
   tags="$(docker image inspect -f '{{join .RepoTags " "}}' "$image_id")"
   [[ "$tags" == *"clearsight-"* ]] || continue
-  [[ "$tags" == *":$sha"* || (-n "$previous" && "$tags" == *":$previous"*) ]] && continue
+  if [[ "$tags" == *":$sha"* ]] || [[ -n "$previous" && "$tags" == *":$previous"* ]]; then
+    continue
+  fi
   docker image rm "$image_id" >/dev/null 2>&1 || true
 done < <(docker image ls -q --filter label=com.cloudspacelab.clearsight=true | sort -u)
 

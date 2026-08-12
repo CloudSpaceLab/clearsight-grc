@@ -21,6 +21,7 @@ sudo -u postgres psql -XAtqc 'select 1' | grep -qx 1
 
 install -d -m 0750 "$root" "$root/config" "$root/data" "$root/data/artifacts" \
   "$root/incoming" "$root/releases" "$root/state"
+chown 65532:65532 "$root/data/artifacts"
 
 sudo -u postgres psql -X -v ON_ERROR_STOP=1 -v role_password="$database_password" <<'SQL'
 SET password_encryption = 'scram-sha-256';
