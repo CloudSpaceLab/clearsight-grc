@@ -1,5 +1,5 @@
 import { requestJSON, requestVoid } from "./http";
-import type { AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, OnboardingGuide, OnboardingState, PolicySummary, ProgramAggregate, Readiness, WorkflowTask } from "./types";
+import type { AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, PolicySummary, ProgramAggregate, Readiness, WorkflowTask } from "./types";
 import type { MatterSummary, ProgramSummary, SummaryPage, SummaryQuery } from "./summaryTypes";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 import type { BankJourneysResponse } from "./verticalTypes";
@@ -151,23 +151,6 @@ export async function loadPolicies(): Promise<PolicySummary[]> {
 
 export async function loadWorkflowTasks(): Promise<WorkflowTask[]> {
   return (await scopedRequest<{ items: WorkflowTask[] }>("/api/v1/workflow/tasks", { limit: 20 })).items;
-}
-
-export function loadOnboardingGuide(): Promise<OnboardingGuide> {
-  return request<OnboardingGuide>("/api/v1/onboarding/guide?code=control-assurance-first-run");
-}
-
-export async function loadOnboardingState(): Promise<OnboardingState> {
-  const context = await loadContext();
-  return scopedRequest<OnboardingState>("/api/v1/onboarding/state", { principal_id: context.actor.id, guide_code: "control-assurance-first-run" });
-}
-
-export async function saveOnboardingState(value: Pick<OnboardingState, "current_step" | "completed" | "dismissed" | "version">): Promise<OnboardingState> {
-  const context = await loadContext();
-  return scopedRequest<OnboardingState>("/api/v1/onboarding/state", { principal_id: context.actor.id, guide_code: "control-assurance-first-run" }, {
-    method: "PUT",
-    body: JSON.stringify({ current_step: value.current_step, completed: value.completed, dismissed: value.dismissed, expected_version: value.version }),
-  });
 }
 
 export async function loadEvidenceSources(): Promise<EvidenceSource[]> {
