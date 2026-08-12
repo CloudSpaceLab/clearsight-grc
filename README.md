@@ -241,11 +241,12 @@ The repository does not yet claim production completion for:
 2. [`docs/product/use-case-catalogue.md`](docs/product/use-case-catalogue.md)
 3. [`docs/product/continuous-compliance-operating-model.md`](docs/product/continuous-compliance-operating-model.md)
 4. [`docs/engineering/governed-document-imports.md`](docs/engineering/governed-document-imports.md)
-5. [`docs/product/nigerian-bank-reference-journeys.md`](docs/product/nigerian-bank-reference-journeys.md)
-6. [`docs/architecture/program-and-matter-foundation.md`](docs/architecture/program-and-matter-foundation.md)
-7. [`docs/architecture/source-evidence-and-secure-capture.md`](docs/architecture/source-evidence-and-secure-capture.md)
-8. [`docs/architecture/application-architecture.md`](docs/architecture/application-architecture.md)
-9. [`docs/implementation-plan.md`](docs/implementation-plan.md)
-10. [`AGENTS.md`](AGENTS.md)
+5. [`docs/engineering/demo-deployment.md`](docs/engineering/demo-deployment.md)
+6. [`docs/product/nigerian-bank-reference-journeys.md`](docs/product/nigerian-bank-reference-journeys.md)
+7. [`docs/architecture/program-and-matter-foundation.md`](docs/architecture/program-and-matter-foundation.md)
+8. [`docs/architecture/source-evidence-and-secure-capture.md`](docs/architecture/source-evidence-and-secure-capture.md)
+9. [`docs/architecture/application-architecture.md`](docs/architecture/application-architecture.md)
+10. [`docs/implementation-plan.md`](docs/implementation-plan.md)
+11. [`AGENTS.md`](AGENTS.md)
 
 **ClearSight succeeds when governance work is current, understandable, correctly routed, minimally demanding and reconstructable.**
