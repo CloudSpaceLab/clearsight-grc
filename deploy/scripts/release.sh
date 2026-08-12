@@ -32,6 +32,7 @@ done
 install -d -m 0750 "$release" "$release/scripts" "$release/migrations"
 install -m 0640 "$stage/compose.demo.yaml" "$compose"
 install -m 0700 "$stage/scripts/migrate.sh" "$release/scripts/migrate.sh"
+install -m 0700 "$stage/scripts/seed-demo-foundation.sh" "$release/scripts/seed-demo-foundation.sh"
 cp -a "$stage/migrations/." "$release/migrations/"
 if [[ -f "$stage/schema-backward-compatible" ]]; then
   install -m 0640 "$stage/schema-backward-compatible" "$release/schema-backward-compatible"

@@ -92,6 +92,7 @@ class DeploymentConfigTest(unittest.TestCase):
         self.assertIn("INSERT INTO tenants", foundation)
         self.assertIn("INSERT INTO legal_entities", foundation)
         self.assertIn("INSERT INTO principals", foundation)
+        self.assertIn('install -m 0700 "$stage/scripts/seed-demo-foundation.sh"', release)
 
     def test_go_image_tests_include_repository_contract_fixtures(self) -> None:
         for dockerfile_name in ("Dockerfile.api", "Dockerfile.worker"):
