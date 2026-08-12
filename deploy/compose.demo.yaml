@@ -1,0 +1,39 @@
+services:
+  api:
+    image: clearsight-api:${CLEARSIGHT_IMAGE_TAG:?CLEARSIGHT_IMAGE_TAG is required}
+    network_mode: host
+    restart: unless-stopped
+    env_file: /opt/clearsight-grc/config/app.env
+    environment:
+      CLEARSIGHT_HTTP_ADDR: 127.0.0.1:13281
+    volumes:
+      - /opt/clearsight-grc/data/artifacts:/var/lib/clearsight/artifacts
+    labels:
+      com.cloudspacelab.clearsight: "true"
+      org.opencontainers.image.revision: ${CLEARSIGHT_IMAGE_TAG}
+
+  worker:
+    image: clearsight-worker:${CLEARSIGHT_IMAGE_TAG:?CLEARSIGHT_IMAGE_TAG is required}
+    network_mode: host
+    restart: unless-stopped
+    env_file: /opt/clearsight-grc/config/app.env
+    environment:
+      CLEARSIGHT_WORKER_ID: worker-demo
+    depends_on:
+      api:
+        condition: service_healthy
+    labels:
+      com.cloudspacelab.clearsight: "true"
+      org.opencontainers.image.revision: ${CLEARSIGHT_IMAGE_TAG}
+
+  web:
+    image: clearsight-web:${CLEARSIGHT_IMAGE_TAG:?CLEARSIGHT_IMAGE_TAG is required}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:13280:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    labels:
+      com.cloudspacelab.clearsight: "true"
+      org.opencontainers.image.revision: ${CLEARSIGHT_IMAGE_TAG}
