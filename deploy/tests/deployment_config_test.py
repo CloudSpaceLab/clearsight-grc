@@ -88,6 +88,12 @@ class DeploymentConfigTest(unittest.TestCase):
         self.assertIn("/var/lib/clearsight/artifacts:Z", compose)
         self.assertIn("chown 65532:65532", bootstrap)
 
+    def test_go_image_tests_include_repository_contract_fixtures(self) -> None:
+        for dockerfile_name in ("Dockerfile.api", "Dockerfile.worker"):
+            dockerfile = self.read(dockerfile_name)
+            self.assertIn("COPY api ./api", dockerfile)
+            self.assertIn("COPY migrations ./migrations", dockerfile)
+
 
 if __name__ == "__main__":
     unittest.main()
