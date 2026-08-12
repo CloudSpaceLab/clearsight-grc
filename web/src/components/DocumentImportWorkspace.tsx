@@ -128,7 +128,7 @@ export function DocumentImportWorkspace() {
         <div className="document-import-form-heading"><div><strong>Import a document</strong><span>TXT, Markdown, CSV, DOCX, XLSX or PDF · maximum 20 MB</span></div>{documents.length > 0 && <button type="button" aria-label="Close import form" onClick={() => setIntakeOpen(false)}>Close</button>}</div>
         <FileDropzone
           label="Document"
-          description="Drop a supported file here or choose one from this device. PDFs are stored and hashed; automated PDF text review is not available yet."
+          description="Drop a supported file here or choose one from this device. Searchable PDFs are extracted automatically with page references. Scanned PDFs remain stored and clearly report when OCR is required."
           accept={documentAccept}
           disabled={uploading}
           busy={uploading}
@@ -156,7 +156,7 @@ export function DocumentImportWorkspace() {
       : state === "unavailable"
         ? <EmptyState kind="unavailable" label="Document imports" title="Imported documents could not be loaded" description="Try again before relying on this list." action="Try again" onAction={() => void refresh()}/>
         : !documents.length
-          ? <EmptyState label="Document imports" title="No documents imported" description="Import a TXT, Markdown, CSV, DOCX, XLSX or PDF document. PDFs are stored even when text extraction is unavailable."/>
+          ? <EmptyState label="Document imports" title="No documents imported" description="Import a TXT, Markdown, CSV, DOCX, XLSX or PDF document. Searchable PDFs are extracted automatically; scanned PDFs remain stored and report when OCR is required."/>
           : <div className="document-import-layout">
               <div className="document-import-list" aria-label="Imported documents">{documents.map((document) => <button key={document.id} type="button" disabled={Boolean(reviewingProposalID)} className={selected?.id === document.id ? "document-import-row active" : "document-import-row"} onClick={() => void choose(document.id)}><strong>{document.file_name}</strong><span>{summaryLabel(document)}</span><small>{new Date(document.created_at).toLocaleString()}</small></button>)}</div>
               {selected && <DocumentInspector document={selected} reviewingProposalID={reviewingProposalID} onReview={review}/>} 

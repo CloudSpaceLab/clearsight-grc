@@ -124,7 +124,7 @@ func ExtractWithPolicy(ctx context.Context, fileName, mediaType string, data []b
 		method = "XLSX_XML_STREAM_V2"
 		err = xlsxSections(ctx, data, collector, policy)
 	case ".pdf":
-		return collector.result(ExtractionUnsupported, "NONE", "The original PDF was stored, but this build has no approved PDF text extractor or OCR adapter.", "No compliance proposal was generated from the PDF.")
+		return extractPDF(ctx, data, collector, policy)
 	default:
 		if strings.HasPrefix(strings.ToLower(mediaType), "text/") {
 			method = "PLAIN_TEXT_V2"

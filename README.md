@@ -35,7 +35,7 @@ The repository contains a working application foundation for ongoing Programs an
 - rendered-state and axe accessibility tests enforced in CI;
 - mechanically verified runtime API/access contract, Docker Compose, CI and PostgreSQL integration tests.
 
-The default build uses in-memory repositories for local development. The `postgres` build tag activates PostgreSQL repositories. The local artifact-store adapter is for development and testing only; production object storage, malware scanning, PDF extraction and OCR are not implemented.
+The default build uses in-memory repositories for local development. The `postgres` build tag activates PostgreSQL repositories. The local artifact-store adapter is for development and testing only; production object storage, malware scanning and OCR are not implemented. Searchable PDFs are extracted automatically by the durable worker through bounded Poppler utilities.
 
 ## Product model
 
@@ -74,7 +74,7 @@ Every import records the original file metadata, content digest, artifact state,
 
 A reviewer may accept or reject a proposal using optimistic concurrency. Acceptance records that the statement should proceed to governed follow-up; it does **not** automatically create or approve a Requirement, Program, Matter, control, legal interpretation or compliance conclusion.
 
-PDF originals are stored and hashed, but this build reports PDF extraction as unsupported until an approved PDF/OCR adapter is implemented.
+PDF originals are stored and hashed. Searchable PDFs are extracted automatically into page-numbered sections through a bounded Poppler adapter, and candidate proposals retain exact page anchors. Image-only PDFs are reported explicitly as requiring OCR and never produce fabricated text.
 
 ## Demo and operational modes
 
@@ -227,7 +227,7 @@ The repository does not yet claim production completion for:
 - authorization on every governance/evidence mutation;
 - bulk Program setup and controlled configuration changes;
 - production object storage, malware scanning, retention and legal hold;
-- PDF extraction, OCR, password-protected documents and extraction-provider isolation;
+- OCR, password-protected document support and stronger extraction-provider isolation;
 - resumable multipart uploads, saved mappings and repeat-import reconciliation;
 - authorized conversion of accepted proposals into versioned governed records;
 - direct NDPC/CBN ingestion or external authority-channel transmission;

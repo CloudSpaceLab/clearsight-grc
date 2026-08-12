@@ -80,13 +80,15 @@ describe("DocumentImportWorkspace", () => {
     expect(importDocument).not.toHaveBeenCalled();
   });
 
-  it("keeps existing document review primary until import is requested", async () => {
+  it("keeps existing review primary and describes automated searchable-PDF extraction", async () => {
     render(<DocumentImportWorkspace/>);
     await screen.findByRole("heading", { name: "regulatory-notice.md" });
     expect(screen.queryByRole("textbox", { name: "What should reviewers look for?" })).toBeNull();
     await openImport();
     expect(screen.getByRole("textbox", { name: "What should reviewers look for?" })).toBeTruthy();
     expect(screen.getByText(/TXT, Markdown, CSV, DOCX, XLSX or PDF.*20 MB/i)).toBeTruthy();
+    expect(screen.getByText(/Searchable PDFs are extracted automatically with page references/i)).toBeTruthy();
+    expect(screen.getByText(/Scanned PDFs remain stored and clearly report when OCR is required/i)).toBeTruthy();
   });
 
   it("preserves the selected document and purpose when upload fails", async () => {
@@ -176,7 +178,7 @@ describe("DocumentImportWorkspace", () => {
     render(<DocumentImportWorkspace/>);
     expect(await screen.findByRole("heading", { name: "No documents imported" })).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "What should reviewers look for?" })).toBeTruthy();
-    expect(screen.getByText(/PDFs are stored even when text extraction is unavailable/)).toBeTruthy();
+    expect(screen.getByText(/Searchable PDFs are extracted automatically; scanned PDFs remain stored and report when OCR is required/)).toBeTruthy();
   });
 
   it("does not show import claims when the service is unavailable", async () => {

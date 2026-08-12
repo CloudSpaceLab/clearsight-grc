@@ -111,6 +111,13 @@ class DeploymentConfigTest(unittest.TestCase):
             self.assertIn("COPY migrations ./migrations", dockerfile)
             self.assertIn("COPY docs/architecture/durable-schema-ownership.md ./docs/architecture/durable-schema-ownership.md", dockerfile)
 
+    def test_worker_packages_pdf_extraction_and_remains_non_root(self) -> None:
+        worker = self.read("Dockerfile.worker")
+        ci = self.read(".github/workflows/ci.yml")
+        for value in ("debian:12.12-slim", "poppler-utils", "USER 65532:65532"):
+            self.assertIn(value, worker)
+        self.assertIn("poppler-utils postgresql-client", ci)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -30,7 +30,7 @@ Memory/demo repositories deliberately retain synchronous processing so determini
 
 ## 2. Artifact and worker durability
 
-The API and PostgreSQL worker use the same configured artifact root. The worker can therefore restart and reopen an artifact written by the API rather than depending on a process-local memory store.
+The API and PostgreSQL worker use the same configured artifact root. The worker can therefore restart and reopen an artifact written by the API rather than depending on a process-local memory store. Searchable-PDF text conversion is isolated to the non-root worker runtime, which supplies `pdfinfo` and `pdftotext`; the API image does not carry those tools.
 
 A horizontally separated deployment must mount or replace that root with storage accessible to both API and worker processes. Production object-storage adapters, malware scanning and retention policy remain enterprise-productization work; P1.5 does not pretend local storage is a distributed object store.
 
@@ -120,4 +120,4 @@ Permanent tests cover:
 - cancellation;
 - rendered processing/review/unavailable states and accessibility.
 
-P1.5 closes the correctness/resource boundary. Wider capacity tuning, distributed object storage, malware scanning, PDF/OCR provider isolation and production retention remain later enterprise work and must be validated from measured deployment requirements rather than added speculatively.
+P1.5 closes the correctness/resource boundary. The searchable-PDF adapter adds page-count, deadline and command-output gates while preserving the existing artifact and review budgets. Wider capacity tuning, distributed object storage, malware scanning, OCR/provider sandbox isolation and production retention remain later enterprise work and must be validated from measured deployment requirements rather than added speculatively.

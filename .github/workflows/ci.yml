@@ -32,6 +32,8 @@ jobs:
           go-version: 1.26.5
           cache: true
       - run: go mod download
+      - name: Install PDF and PostgreSQL tools
+        run: sudo apt-get update -qq && sudo apt-get install -y poppler-utils postgresql-client
       - name: Format
         run: |
           files="$(gofmt -l $(find cmd internal -name '*.go' -type f))"
@@ -44,8 +46,6 @@ jobs:
         run: go test -race -coverprofile=coverage.out ./...
       - name: PostgreSQL composition
         run: go test -tags postgres ./...
-      - name: Install PostgreSQL client
-        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
       - name: Apply migrations
         env:
           PGPASSWORD: clearsight

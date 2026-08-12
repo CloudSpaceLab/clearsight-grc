@@ -1,6 +1,9 @@
 package documentimport
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // ExtractionPolicy bounds both decompression and semantic materialization. Hard
 // structural limits fail extraction; retained-text/section limits truncate the
@@ -20,6 +23,8 @@ type ExtractionPolicy struct {
 	MaxExtractedTextBytes int64
 	MaxSections           int
 	MaxProposals          int
+	MaxPDFPages           int
+	PDFExtractionTimeout  time.Duration
 }
 
 func DefaultExtractionPolicy() ExtractionPolicy {
@@ -38,6 +43,8 @@ func DefaultExtractionPolicy() ExtractionPolicy {
 		MaxExtractedTextBytes: 8 << 20,
 		MaxSections:           5000,
 		MaxProposals:          500,
+		MaxPDFPages:           500,
+		PDFExtractionTimeout:  30 * time.Second,
 	}
 }
 
@@ -84,6 +91,12 @@ func (p ExtractionPolicy) normalized() ExtractionPolicy {
 	}
 	if p.MaxProposals <= 0 {
 		p.MaxProposals = defaults.MaxProposals
+	}
+	if p.MaxPDFPages <= 0 {
+		p.MaxPDFPages = defaults.MaxPDFPages
+	}
+	if p.PDFExtractionTimeout <= 0 {
+		p.PDFExtractionTimeout = defaults.PDFExtractionTimeout
 	}
 	return p
 }
