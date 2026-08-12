@@ -59,10 +59,15 @@ rollback() {
 trap rollback ERR
 
 "$release/scripts/migrate.sh" "$release/migrations"
+"$release/scripts/seed-demo-foundation.sh"
 docker run --rm --network host --env-file "$config" \
   --entrypoint /clearsight-seed-bank-reference "clearsight-api:$sha" \
-  -tenant bank-demo -legal-entity bank-ng -actor role-cro \
-  -owner role-program-owner -reviewer role-auditor -signatory role-cco >/dev/null
+  -tenant 00000000-0000-4000-8000-000000000001 \
+  -legal-entity 00000000-0000-4000-8000-000000000002 \
+  -actor 00000000-0000-4000-8000-000000000101 \
+  -owner 00000000-0000-4000-8000-000000000107 \
+  -reviewer 00000000-0000-4000-8000-000000000106 \
+  -signatory 00000000-0000-4000-8000-000000000102 >/dev/null
 phase=running
 docker compose -p clearsight --env-file "$config" -f "$compose" up -d --no-build --remove-orphans
 

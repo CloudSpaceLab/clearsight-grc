@@ -18,6 +18,19 @@ const demoSessionCookie = "clearsight_demo_session"
 
 var ErrInvalidDemoCredentials = errors.New("invalid demo credentials")
 
+const (
+	DurableDemoTenantID                    = "00000000-0000-4000-8000-000000000001"
+	DurableDemoLegalEntityID               = "00000000-0000-4000-8000-000000000002"
+	DurableDemoPrincipalCRO                = "00000000-0000-4000-8000-000000000101"
+	DurableDemoPrincipalCCO                = "00000000-0000-4000-8000-000000000102"
+	DurableDemoPrincipalCISO               = "00000000-0000-4000-8000-000000000103"
+	DurableDemoPrincipalGRCAdmin           = "00000000-0000-4000-8000-000000000104"
+	DurableDemoPrincipalSystemAdmin        = "00000000-0000-4000-8000-000000000105"
+	DurableDemoPrincipalAuditor            = "00000000-0000-4000-8000-000000000106"
+	DurableDemoPrincipalProgramOwner       = "00000000-0000-4000-8000-000000000107"
+	DurableDemoPrincipalEvidenceRespondent = "00000000-0000-4000-8000-000000000108"
+)
+
 type DemoAccount struct {
 	Label       string   `json:"label"`
 	Username    string   `json:"username"`
@@ -64,6 +77,16 @@ func NewDemoAuthenticator(tenantID, defaultPrincipalID, legalEntityID string) (*
 		{Label: "Internal Auditor", Username: "auditor@demo.clearsight.local", Password: "demo", PrincipalID: "role-auditor", RoleCodes: []string{"AUDITOR", "REVIEWER"}},
 		{Label: "Program Owner", Username: "owner@demo.clearsight.local", Password: "demo", PrincipalID: "role-program-owner", RoleCodes: []string{"PROGRAM_OWNER"}},
 		{Label: "Evidence Respondent", Username: "evidence@demo.clearsight.local", Password: "demo", PrincipalID: "role-evidence-respondent", RoleCodes: []string{"EVIDENCE_RESPONDENT"}},
+	}
+	if tenantID == DurableDemoTenantID {
+		accounts[0].PrincipalID = DurableDemoPrincipalCRO
+		accounts[1].PrincipalID = DurableDemoPrincipalCCO
+		accounts[2].PrincipalID = DurableDemoPrincipalCISO
+		accounts[3].PrincipalID = DurableDemoPrincipalGRCAdmin
+		accounts[4].PrincipalID = DurableDemoPrincipalSystemAdmin
+		accounts[5].PrincipalID = DurableDemoPrincipalAuditor
+		accounts[6].PrincipalID = DurableDemoPrincipalProgramOwner
+		accounts[7].PrincipalID = DurableDemoPrincipalEvidenceRespondent
 	}
 	byUsername := make(map[string]DemoAccount, len(accounts))
 	for i := range accounts {

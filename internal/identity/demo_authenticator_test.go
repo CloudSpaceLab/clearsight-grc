@@ -98,6 +98,28 @@ func TestDemoAuthenticatorRoleCatalogueAndSignedSession(t *testing.T) {
 	}
 }
 
+func TestDemoAuthenticatorUsesDurablePrincipalIDsForPostgresDemo(t *testing.T) {
+	authenticator, err := NewDemoAuthenticator(DurableDemoTenantID, DurableDemoPrincipalCRO, DurableDemoLegalEntityID)
+	if err != nil {
+		t.Fatalf("new durable demo authenticator: %v", err)
+	}
+	want := map[string]string{
+		"cro@demo.clearsight.local":          DurableDemoPrincipalCRO,
+		"cco@demo.clearsight.local":          DurableDemoPrincipalCCO,
+		"ciso@demo.clearsight.local":         DurableDemoPrincipalCISO,
+		"grc-admin@demo.clearsight.local":    DurableDemoPrincipalGRCAdmin,
+		"system-admin@demo.clearsight.local": DurableDemoPrincipalSystemAdmin,
+		"auditor@demo.clearsight.local":      DurableDemoPrincipalAuditor,
+		"owner@demo.clearsight.local":        DurableDemoPrincipalProgramOwner,
+		"evidence@demo.clearsight.local":     DurableDemoPrincipalEvidenceRespondent,
+	}
+	for _, account := range authenticator.Accounts() {
+		if account.PrincipalID != want[account.Username] {
+			t.Fatalf("principal for %s = %q, want %q", account.Username, account.PrincipalID, want[account.Username])
+		}
+	}
+}
+
 func containsRole(values []string, target string) bool {
 	for _, value := range values {
 		if value == target {

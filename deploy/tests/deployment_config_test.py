@@ -84,9 +84,14 @@ class DeploymentConfigTest(unittest.TestCase):
         bootstrap = self.read("deploy/scripts/bootstrap-server.sh")
         self.assertIn("./cmd/seed-bank-reference", dockerfile)
         self.assertIn("/clearsight-seed-bank-reference", release)
-        self.assertIn("-tenant bank-demo", release)
+        self.assertIn("-tenant 00000000-0000-4000-8000-000000000001", release)
         self.assertIn("/var/lib/clearsight/artifacts:Z", compose)
         self.assertIn("chown 65532:65532", bootstrap)
+        self.assertIn("CLEARSIGHT_DEMO_TENANT_ID=00000000-0000-4000-8000-000000000001", bootstrap)
+        foundation = self.read("deploy/scripts/seed-demo-foundation.sh")
+        self.assertIn("INSERT INTO tenants", foundation)
+        self.assertIn("INSERT INTO legal_entities", foundation)
+        self.assertIn("INSERT INTO principals", foundation)
 
     def test_go_image_tests_include_repository_contract_fixtures(self) -> None:
         for dockerfile_name in ("Dockerfile.api", "Dockerfile.worker"):
