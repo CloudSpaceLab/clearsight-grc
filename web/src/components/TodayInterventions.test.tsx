@@ -72,6 +72,12 @@ describe("TodayInterventions", () => {
     expect(inspect).toHaveBeenCalledWith(authorized);
   });
 
+  it("tolerates a null Today payload and falls back to an empty summary", () => {
+    render(<TodayInterventions items={null as any} connection="live" readiness={readiness} readinessState="live" onOpenItem={vi.fn()}/>);
+    expect(screen.getByRole("heading", { name: "0 items need your action" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Nothing needs your action right now" })).toBeTruthy();
+  });
+
   it("does not claim an empty Today list while assigned work is still loading", () => {
     render(<TodayInterventions items={[]} connection="loading" readiness={null} readinessState="loading" onOpenItem={vi.fn()}/>);
     expect(screen.getByRole("heading", { name: "Loading Today" })).toBeTruthy();

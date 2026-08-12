@@ -6,7 +6,7 @@ type ConnectionState = "loading" | "live" | "sample" | "unavailable";
 type ReadinessState = "loading" | "live" | "unavailable";
 
 type Props = {
-  items: AttentionItem[];
+  items?: AttentionItem[] | null;
   connection: ConnectionState;
   readiness: Readiness | null;
   readinessState: ReadinessState;
@@ -15,7 +15,8 @@ type Props = {
 };
 
 export function TodayInterventions({ items, connection, readiness, readinessState, onOpenItem, onInspectAuthority }: Props) {
-  const heading = items.length === 1 ? "1 item needs your action" : `${items.length} items need your action`;
+  const safeItems = Array.isArray(items) ? items : [];
+  const heading = safeItems.length === 1 ? "1 item needs your action" : `${safeItems.length} items need your action`;
   const title = connection === "loading" ? "Loading Today" : connection === "unavailable" ? "Today is unavailable" : heading;
 
   return <>
@@ -27,8 +28,8 @@ export function TodayInterventions({ items, connection, readiness, readinessStat
         ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Today…</div>
         : connection === "unavailable"
           ? <EmptyState kind="unavailable" label="Today" title="Today could not be loaded" description="Try again before relying on this list."/>
-          : items.length
-            ? <div className="intervention-list" id="attention-list">{items.map((item) => <InterventionRow key={item.id} item={item} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>)}</div>
+          : safeItems.length
+            ? <div className="intervention-list" id="attention-list">{safeItems.map((item) => <InterventionRow key={item.id} item={item} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>)}</div>
             : <div id="attention-list"><EmptyState label="Today" title="Nothing needs your action right now" description="There are no open reviews, approvals or evidence requests assigned to you in this scope."/></div>}
     </section>
     <StatusChecks readiness={readiness} state={readinessState}/>

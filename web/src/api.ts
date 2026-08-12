@@ -36,6 +36,7 @@ export type DemoAccount = {
 };
 
 export type TodaySnapshot = { items: AttentionItem[]; generated_at?: string };
+export type TodaySnapshotPayload = { items?: AttentionItem[] | null; generated_at?: string };
 export type AuthorityResolveInput = {
   object_type: "PROGRAM" | "MATTER" | "EVIDENCE_REQUEST";
   object_id: string;
@@ -93,8 +94,12 @@ export function loadBankJourneys(): Promise<BankJourneysResponse> {
   return request<BankJourneysResponse>("/api/v1/bank-journeys");
 }
 
-export function loadToday(): Promise<TodaySnapshot> {
-  return request<TodaySnapshot>("/api/v1/today");
+export async function loadToday(): Promise<TodaySnapshot> {
+  const payload = await request<TodaySnapshotPayload>("/api/v1/today");
+  return {
+    items: Array.isArray(payload.items) ? payload.items : [],
+    generated_at: payload.generated_at,
+  };
 }
 
 export async function resolveAuthority(input: AuthorityResolveInput): Promise<AuthorityResolution> {

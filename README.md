@@ -1,6 +1,6 @@
 # ClearSight GRC
 
-> **The AI-native continuous compliance and risk operating system for banks.**  
+> **The AI-native continuous compliance and risk operating system for banks.**
 > Know what applies. Keep proof current. Route the right people. Detect change. Confirm the outcome.
 
 ClearSight helps bank compliance, risk, security, privacy, resilience, audit, legal, business and executive teams work from one evidence-backed institutional record instead of disconnected registers, questionnaires, email and manually assembled reports.

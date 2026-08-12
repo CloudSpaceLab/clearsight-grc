@@ -12,8 +12,23 @@ services:
       timeout: 3s
       retries: 20
     volumes:
-      - clearsight-postgres:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d:ro
+      - clearsight-postgres:/var/lib/postgresql
+      # - ./migrations:/docker-entrypoint-initdb.d:ro
+
+  migrate:
+    image: migrate/migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/migrations
+    command:
+      [
+        "-path=/migrations",
+        "-database=postgres://clearsight:clearsight@postgres:5432/clearsight?sslmode=disable",
+         "up"
+      ]
+
   api:
     build:
       context: .
@@ -30,8 +45,11 @@ services:
     volumes:
       - clearsight-artifacts:/var/lib/clearsight/artifacts
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      # postgres:
+      #   condition: service_healthy
+
   worker:
     build:
       context: .
@@ -42,8 +60,11 @@ services:
       CLEARSIGHT_WORKER_POLL: 1s
       DATABASE_URL: postgres://clearsight:clearsight@postgres:5432/clearsight?sslmode=disable
     depends_on:
-      postgres:
-        condition: service_healthy
+      # postgres:
+      #   condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
   web:
     image: node:24.18.0-alpine
     working_dir: /app
@@ -55,6 +76,7 @@ services:
       - ./web:/app
       - clearsight-node-modules:/app/node_modules
     depends_on: [api]
+
 volumes:
   clearsight-postgres:
   clearsight-artifacts:

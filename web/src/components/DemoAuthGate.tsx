@@ -31,16 +31,17 @@ export function DemoAuthGate({ children }: { children: ReactNode }) {
     }
 
     const available = await loadDemoAccounts().catch(() => []);
-    if (!available.length) {
-      // Production OIDC/signed deployments do not expose the demo catalogue;
-      // defer to the existing application behavior there.
-      setDemoMode(false);
-      setState("ready");
+    if (available.length) {
+      setAccounts(available);
+      setDemoMode(true);
+      setState("login");
       return;
     }
-    setAccounts(available);
-    setDemoMode(true);
-    setState("login");
+    // Preserve the existing application's degraded-state handling.
+    // Production OIDC/signed deployments do not expose the demo catalogue;
+    // defer to the existing application behavior there.
+    setDemoMode(false);
+    setState("ready");
   }
 
   useEffect(() => { void enter(); }, []);

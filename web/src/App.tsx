@@ -97,7 +97,8 @@ function App() {
       setRuntime(currentRuntime);
       const allowFallback = currentRuntime?.demo_mode === true || (currentRuntime == null && sampleMode);
       if (todayResult.status === "fulfilled") {
-        setItems(todayResult.value.items);
+        const nextItems = Array.isArray(todayResult.value?.items) ? todayResult.value.items : [];
+        setItems(nextItems);
         setTodayGeneratedAt(todayResult.value.generated_at);
         setConnection("live");
       } else if (allowFallback) {
