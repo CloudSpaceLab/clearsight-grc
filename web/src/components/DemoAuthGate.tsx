@@ -19,8 +19,15 @@ export function DemoAuthGate({ children, presentation = "demo" }: { children: Re
   async function rememberContext(context: DemoRuntime) {
     const isDemo = context.demo_mode === true;
     setDemoMode(isDemo);
-    setCurrentAccountLabel(context.actor.name || "Demo account");
-    if (isDemo) setAccounts(await loadDemoAccounts().catch(() => []));
+    if (isDemo) {
+      const available = await loadDemoAccounts().catch(() => []);
+      setAccounts(available);
+      const actorRoles = new Set(context.actor.role_codes ?? []);
+      const matched = available.find((account) => account.role_codes.some((role) => actorRoles.has(role)));
+      setCurrentAccountLabel(matched?.label ?? context.actor.name ?? "Demo account");
+      return;
+    }
+    setCurrentAccountLabel(context.actor.name || "Signed-in account");
   }
 
   async function enter() {

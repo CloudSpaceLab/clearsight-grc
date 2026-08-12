@@ -62,6 +62,21 @@ it("loads protected context after session discovery confirms authentication", as
   await waitFor(() => expect(screen.getByRole("button", { name: "Viewing as Chief Risk Officer" })).not.toBeNull());
 });
 
+it("uses the demo catalogue label when runtime context exposes a principal id", async () => {
+  vi.mocked(loadContext).mockResolvedValue({
+    tenant: { id: "bank-demo", name: "Demo Bank" },
+    legal_entity: { id: "bank-ng", name: "Demo Bank Nigeria" },
+    actor: { id: "role-admin", name: "00000000-0000-4000-8000-000000000104", role_codes: ["SYSTEM_ADMIN"] },
+    mode: "postgres",
+    demo_mode: true,
+  } as RuntimeContext & { demo_mode: boolean });
+
+  render(<DemoAuthGate><div>Workspace</div></DemoAuthGate>);
+
+  expect(await screen.findByRole("button", { name: "Viewing as System Administrator" })).toBeTruthy();
+  expect(screen.queryByText("00000000-0000-4000-8000-000000000104")).toBeNull();
+});
+
 it("switches directly to another demo account after securely logging out", async () => {
   render(<DemoAuthGate><div>Workspace</div></DemoAuthGate>);
 
