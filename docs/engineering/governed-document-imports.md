@@ -28,6 +28,8 @@ Current deterministic extraction supports:
 
 PDF originals are stored and hashed, but the current build deliberately reports extraction as unsupported. PDF text extraction and OCR require an approved adapter with page anchors, resource limits and failure evidence.
 
+The Imports workspace keeps existing review records primary and reveals intake on request. It states the supported formats and 20 MiB limit before upload, rejects a larger browser-selected file immediately while retaining server enforcement, and renders the terminal PDF result as `Original stored` / `Text review unavailable` rather than as a failed upload.
+
 Image-only documents are not OCRed.
 
 ## Analysis contract

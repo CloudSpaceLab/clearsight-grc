@@ -87,11 +87,12 @@ describe("semantic accessibility gates", () => {
     await expectNoSemanticViolations(container);
   });
 
-  it("passes axe for the role-aware demo login and exposes supplied credentials", async () => {
+  it("passes axe for the role-aware demo login without repeating shared credentials", async () => {
     const { container } = render(<DemoLoginPage accounts={demoAccounts} onAuthenticated={vi.fn().mockResolvedValue(undefined)}/>);
     expect(screen.getByText("cro@demo.clearsight.local")).toBeTruthy();
-    expect(screen.getAllByText("demo").length).toBeGreaterThan(0);
+    expect(screen.queryByText("demo")).toBeNull();
     expect(screen.getByRole("button", { name: /System Administrator/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Continue as Chief Risk Officer" })).toBeTruthy();
     await expectNoSemanticViolations(container);
   });
 

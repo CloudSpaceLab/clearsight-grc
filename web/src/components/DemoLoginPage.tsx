@@ -1,26 +1,21 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useState } from "react";
 import { loginDemo, type DemoAccount } from "../api";
 
-export function DemoLoginPage({ accounts, onAuthenticated }: { accounts: DemoAccount[]; onAuthenticated: () => Promise<void> }) {
-  const initial = accounts[0];
-  const [username, setUsername] = useState(initial?.username ?? "");
-  const [password, setPassword] = useState(initial?.password ?? "");
+export function DemoLoginPage({ accounts, onAuthenticated, initialError = "" }: { accounts: DemoAccount[]; onAuthenticated: () => Promise<void>; initialError?: string }) {
+  const [selected, setSelected] = useState<DemoAccount | undefined>(accounts[0]);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const selected = useMemo(() => accounts.find((account) => account.username === username), [accounts, username]);
-
-  function choose(account: DemoAccount) {
-    setUsername(account.username);
-    setPassword(account.password);
-    setError("");
-  }
+  const [error, setError] = useState(initialError);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (!selected) {
+      setError("Choose a demo account to continue.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
-      await loginDemo(username, password);
+      await loginDemo(selected.username, selected.password);
       await onAuthenticated();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Demo sign-in could not be completed.");
@@ -35,7 +30,7 @@ export function DemoLoginPage({ accounts, onAuthenticated }: { accounts: DemoAcc
         <div className="demo-login-brand" aria-hidden="true">C</div>
         <span className="eyebrow">ClearSight stakeholder demo</span>
         <h1 id="demo-login-title">See the bank from a real role</h1>
-        <p>Choose a default demo identity to inspect the exact work, visibility and configuration that role receives. These accounts exist only while demo mode is enabled.</p>
+        <p>Choose an account to see the work, visibility and decisions assigned to that role. Demo accounts are isolated from production identities.</p>
       </div>
 
       <div className="demo-login-layout">
@@ -45,22 +40,18 @@ export function DemoLoginPage({ accounts, onAuthenticated }: { accounts: DemoAcc
             type="button"
             className={`demo-account-card${selected?.username === account.username ? " selected" : ""}`}
             aria-pressed={selected?.username === account.username}
-            onClick={() => choose(account)}
+            onClick={() => { setSelected(account); setError(""); }}
           >
-            <span className="demo-account-role">{account.label}</span>
-            <strong>{account.role_codes.map(humanize).join(" · ")}</strong>
-            <span className="demo-account-credential"><b>User</b><code>{account.username}</code></span>
-            <span className="demo-account-credential"><b>Password</b><code>{account.password}</code></span>
+            <strong>{account.label}</strong>
+            <span className="demo-account-role">{account.role_codes.map(humanize).join(" · ")}</span>
           </button>)}
         </div>
 
         <form className="demo-login-form" onSubmit={(event) => void submit(event)}>
-          <div><span className="eyebrow">Selected identity</span><h2>{selected?.label ?? "Demo sign-in"}</h2><p>Credentials are intentionally visible because this is a non-production role simulator.</p></div>
-          <label>Email<input type="email" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} required/></label>
-          <label>Password<input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required/></label>
+          <div><span className="eyebrow">Selected account</span><h2>{selected?.label ?? "Choose an account"}</h2><p>{selected?.username ?? "Select a role from the list."}</p></div>
           {error && <div className="demo-login-error" role="alert">{error}</div>}
-          <button className="primary-button" type="submit" disabled={busy}>{busy ? "Signing in…" : "Enter demo"}</button>
-          <small>No production password, OIDC token or customer identity is exposed by this page.</small>
+          <button className="primary-button" type="submit" disabled={busy || !selected}>{busy ? "Opening workspace…" : `Continue as ${selected?.label ?? "selected account"}`}</button>
+          <small>Switch accounts at any time from the account control in the workspace.</small>
         </form>
       </div>
     </section>

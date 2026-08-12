@@ -7,6 +7,7 @@ import { EmptyState } from "./EmptyState";
 import { FileDropzone } from "./FileDropzone";
 
 const documentAccept = ".txt,.md,.csv,.docx,.xlsx,.pdf,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const maximumDocumentBytes = 20 * 1024 * 1024;
 
 export function DocumentImportWorkspace() {
   const [documents, setDocuments] = useState<DocumentImportSummary[]>([]);
@@ -18,12 +19,14 @@ export function DocumentImportWorkspace() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [purpose, setPurpose] = useState("");
   const [sourceType, setSourceType] = useState("DOCUMENT");
+  const [intakeOpen, setIntakeOpen] = useState(false);
 
   async function refresh(selectID?: string) {
     setState("loading");
     try {
       const values = await loadDocumentImports();
       setDocuments(values);
+      if (!values.length) setIntakeOpen(true);
       const target = selectID ?? selected?.id ?? values[0]?.id;
       setSelected(target ? await loadDocumentImport(target) : null);
       setState("live");
@@ -77,6 +80,7 @@ export function DocumentImportWorkspace() {
       setPendingFile(null);
       setPurpose("");
       setSourceType("DOCUMENT");
+      setIntakeOpen(false);
       await refresh(created.id);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The document could not be imported.");
@@ -113,28 +117,38 @@ export function DocumentImportWorkspace() {
   }
 
   return <section className="document-import-workspace" aria-labelledby="document-import-title">
-    <div className="document-import-header">
+    <div className={`document-import-header${intakeOpen ? " intake-open" : ""}`}>
       <div>
         <span className="eyebrow">Document import</span>
-        <h2 id="document-import-title">Import a document</h2>
-        <p>Upload the original document. ClearSight will show processing status and any extracted proposals that need review.</p>
+        <h2 id="document-import-title">Imported documents</h2>
+        <p>Review stored source documents and any extracted proposals. Uploading never creates a compliance conclusion.</p>
+        {!intakeOpen && <button className="primary-button document-import-open" type="button" onClick={() => setIntakeOpen(true)}>Import document</button>}
       </div>
-      <form className="document-import-form" onSubmit={submit} noValidate>
+      {intakeOpen && <form className="document-import-form" onSubmit={submit} noValidate>
+        <div className="document-import-form-heading"><div><strong>Import a document</strong><span>TXT, Markdown, CSV, DOCX, XLSX or PDF · maximum 20 MB</span></div>{documents.length > 0 && <button type="button" aria-label="Close import form" onClick={() => setIntakeOpen(false)}>Close</button>}</div>
         <FileDropzone
           label="Document"
-          description="Drop a supported document here or choose one from this device."
+          description="Drop a supported file here or choose one from this device. PDFs are stored and hashed; automated PDF text review is not available yet."
           accept={documentAccept}
           disabled={uploading}
           busy={uploading}
           actionLabel="Choose document"
           fileName={pendingFile?.name}
           fileSize={pendingFile?.size}
-          onSelect={setPendingFile}
+          onSelect={(file) => {
+            if (file.size > maximumDocumentBytes) {
+              setPendingFile(null);
+              setError("Choose a document no larger than 20 MB.");
+              return;
+            }
+            setPendingFile(file);
+            setError(null);
+          }}
         />
         <label><span>What should reviewers look for?</span><input value={purpose} onChange={(event) => setPurpose(event.target.value)} placeholder="e.g. Changes affecting card operations" aria-required="true" disabled={uploading}/></label>
         <label><span>Document type</span><select value={sourceType} onChange={(event) => setSourceType(event.target.value)} disabled={uploading}><option value="DOCUMENT">Internal document</option><option value="REGULATORY">Regulatory source</option><option value="POLICY">Policy or standard</option><option value="FINDING">Finding or report</option></select></label>
         <button className="primary-button" type="submit" disabled={uploading}>{uploading ? "Storing…" : "Import document"}</button>
-      </form>
+      </form>}
     </div>
     {error && <p className="error-text" role="alert">{error}</p>}
     {state === "loading"
@@ -157,10 +171,12 @@ function DocumentInspector({ document, reviewingProposalID, onReview }: { docume
   const sectionsTotal = document.sections_total ?? document.sections.length;
   const sectionsOmitted = document.sections_omitted ?? 0;
   const contentTruncated = document.content_truncated ?? false;
-  const terminalLabel = document.extraction_status === "FAILED" ? "Extraction failed" : document.extraction_status === "UNSUPPORTED" ? "Stored only" : pending.length ? `${pending.length} to review` : "No review pending";
+  const storedOnly = document.extraction_status === "UNSUPPORTED";
+  const stateLabel = storedOnly ? "Original stored" : human(document.extraction_status);
+  const terminalLabel = document.extraction_status === "FAILED" ? "Extraction failed" : storedOnly ? "Text review unavailable" : pending.length ? `${pending.length} to review` : "No review pending";
 
   return <article className="document-import-inspector">
-    <header><div><span className="eyebrow">{human(document.source_type)}</span><h2>{document.file_name}</h2><p>{document.purpose}</p></div><div className="document-state"><span>{human(document.extraction_status)}</span><strong>{processing ? "Processing stored source" : terminalLabel}</strong></div></header>
+    <header><div><span className="eyebrow">{human(document.source_type)}</span><h2>{document.file_name}</h2><p>{document.purpose}</p></div><div className="document-state"><span>{stateLabel}</span><strong>{processing ? "Processing stored source" : terminalLabel}</strong></div></header>
     <div className="import-review-summary" aria-label="Import review summary"><span><strong>{pending.length}</strong> to review</span><span><strong>{reviewed.length}</strong> reviewed</span><span><strong>{document.sections.length}</strong> of {sectionsTotal} source sections retained</span></div>
     {processing && <section className="workspace-loading" aria-live="polite" aria-busy="true"><strong>Original stored successfully.</strong><p>Extraction and analysis are running in the background. This page will update when processing completes.</p></section>}
     {document.limitations.length > 0 && <section className="document-limitations"><h3>Important limitations</h3>{document.limitations.map((item) => <p key={item}>{item}</p>)}</section>}

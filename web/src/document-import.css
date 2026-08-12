@@ -1,8 +1,14 @@
 [data-clearsight-demo="off"] #capture-action { display: none; }
 .document-import-workspace { margin-top: 32px; display: grid; gap: 18px; }
-.document-import-header { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, .8fr); gap: 28px; align-items: start; padding: 22px 2px 20px; border-bottom: 1px solid var(--border); }
+.document-import-header { display: grid; grid-template-columns: 1fr; gap: 18px; align-items: start; padding: 18px 2px 20px; border-bottom: 1px solid var(--border); }
+.document-import-header.intake-open { grid-template-columns: minmax(0, .8fr) minmax(360px, 1.2fr); }
 .document-import-header h2 { margin-top: 8px; font-size: 28px; }
+.document-import-open { margin-top: 16px; }
 .document-import-form { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: rgba(13,24,38,.6); }
+.document-import-form-heading { display: flex; justify-content: space-between; gap: 16px; align-items: start; }
+.document-import-form-heading > div { display: grid; gap: 3px; }
+.document-import-form-heading span { color: var(--muted); font-size: 11px; }
+.document-import-form-heading > button { min-height: 36px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; }
 .document-import-form label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; }
 .document-import-form input, .document-import-form select { width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); }
 .document-import-layout { display: grid; grid-template-columns: minmax(250px, .32fr) minmax(0, 1fr); gap: 18px; align-items: start; }
@@ -47,6 +53,6 @@
 .document-sections details { border-top: 1px solid var(--border); padding: 10px 0; }
 .document-sections summary { cursor: pointer; font-weight: 650; font-size: 11px; }
 .document-sections pre { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); font: inherit; font-size: 11px; line-height: 1.55; }
-@media (max-width: 900px) { .document-import-header, .document-import-layout { grid-template-columns: 1fr; } .document-import-list { position: static; } }
+@media (max-width: 900px) { .document-import-header, .document-import-header.intake-open, .document-import-layout { grid-template-columns: 1fr; } .document-import-list { position: static; } }
 @media (max-width: 620px) { .document-import-header { padding-top: 12px; } .document-import-inspector > header, .proposal-title { flex-direction: column; } .document-state { justify-items: start; } .document-metadata { grid-template-columns: 1fr; } .proposal-actions { flex-direction: column-reverse; } .proposal-actions button { width: 100%; } }
 @media (prefers-reduced-motion: reduce) { .document-import-row, .proposal-card { scroll-behavior: auto; } }

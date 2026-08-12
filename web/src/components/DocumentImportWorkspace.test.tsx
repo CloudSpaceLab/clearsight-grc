@@ -19,6 +19,19 @@ const documentSummary: DocumentImportSummary = {
 const acceptedDocument: DocumentImport = { ...documentRecord, version: 3, proposals: [{ ...documentRecord.proposals[0]!, status: "ACCEPTED", reviewed_by: "reviewer-2", reviewed_at: "2026-08-06T10:05:00Z" }] };
 const processingDocument: DocumentImport = { ...documentRecord, extraction_status: "PENDING", extraction_method: "PENDING", analysis_status: "PENDING", sections: [], proposals: [], sections_total: 0, proposals_total: 0, processed_at: undefined, version: 1 };
 const processingSummary: DocumentImportSummary = { ...documentSummary, extraction_status: "PENDING", analysis_status: "PENDING", sections_total: 0, proposals_total: 0, pending_proposal_count: 0, processed_at: undefined, version: 1 };
+const storedOnlyPDF: DocumentImport = {
+  ...documentRecord,
+  file_name: "official-regulation.pdf",
+  media_type: "application/pdf",
+  extraction_status: "UNSUPPORTED",
+  extraction_method: "NONE",
+  analysis_status: "UNAVAILABLE",
+  sections: [],
+  proposals: [],
+  sections_total: 0,
+  proposals_total: 0,
+  limitations: ["The original PDF was stored, but this build has no approved PDF text extractor or OCR adapter."],
+};
 
 beforeEach(() => {
   vi.mocked(loadDocumentImports).mockResolvedValue([documentSummary]);
@@ -28,6 +41,10 @@ beforeEach(() => {
 });
 
 describe("DocumentImportWorkspace", () => {
+  async function openImport() {
+    fireEvent.click(await screen.findByRole("button", { name: "Import document" }));
+  }
+
   it("renders source-anchored review evidence without axe violations", async () => {
     const { container } = render(<DocumentImportWorkspace/>);
     expect(await screen.findByRole("heading", { name: "regulatory-notice.md" })).toBeTruthy();
@@ -41,6 +58,7 @@ describe("DocumentImportWorkspace", () => {
   it("starts with no templated purpose and previews the selected document before import", async () => {
     render(<DocumentImportWorkspace/>);
     await screen.findByRole("heading", { name: "regulatory-notice.md" });
+    await openImport();
     const purpose = screen.getByRole("textbox", { name: "What should reviewers look for?" }) as HTMLInputElement;
     expect(purpose.value).toBe("");
     const file = new File(["notice"], "new-notice.pdf", { type: "application/pdf" });
@@ -54,11 +72,56 @@ describe("DocumentImportWorkspace", () => {
   it("does not allow a generic blank purpose to be persisted", async () => {
     render(<DocumentImportWorkspace/>);
     await screen.findByRole("heading", { name: "regulatory-notice.md" });
+    await openImport();
     const file = new File(["notice"], "new-notice.pdf", { type: "application/pdf" });
     fireEvent.change(screen.getByLabelText("Document"), { target: { files: [file] } });
     fireEvent.click(screen.getByRole("button", { name: "Import document" }));
     expect((await screen.findByRole("alert")).textContent).toContain("Say what reviewers should look for in this document.");
     expect(importDocument).not.toHaveBeenCalled();
+  });
+
+  it("keeps existing document review primary until import is requested", async () => {
+    render(<DocumentImportWorkspace/>);
+    await screen.findByRole("heading", { name: "regulatory-notice.md" });
+    expect(screen.queryByRole("textbox", { name: "What should reviewers look for?" })).toBeNull();
+    await openImport();
+    expect(screen.getByRole("textbox", { name: "What should reviewers look for?" })).toBeTruthy();
+    expect(screen.getByText(/TXT, Markdown, CSV, DOCX, XLSX or PDF.*20 MB/i)).toBeTruthy();
+  });
+
+  it("preserves the selected document and purpose when upload fails", async () => {
+    vi.mocked(importDocument).mockRejectedValue(new Error("Upload interrupted"));
+    render(<DocumentImportWorkspace/>);
+    await screen.findByRole("heading", { name: "regulatory-notice.md" });
+    await openImport();
+    const file = new File(["notice"], "retry-notice.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText("Document"), { target: { files: [file] } });
+    fireEvent.change(screen.getByRole("textbox", { name: "What should reviewers look for?" }), { target: { value: "Review payment requirements" } });
+    fireEvent.click(screen.getByRole("button", { name: "Import document" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("Upload interrupted");
+    expect(screen.getByText(/retry-notice\.pdf/)).toBeTruthy();
+    expect((screen.getByRole("textbox", { name: "What should reviewers look for?" }) as HTMLInputElement).value).toBe("Review payment requirements");
+  });
+
+  it("rejects a document larger than the stated 20 MB limit before upload", async () => {
+    render(<DocumentImportWorkspace/>);
+    await screen.findByRole("heading", { name: "regulatory-notice.md" });
+    await openImport();
+    const file = new File(["oversized"], "oversized.pdf", { type: "application/pdf" });
+    Object.defineProperty(file, "size", { value: 20 * 1024 * 1024 + 1 });
+    fireEvent.change(screen.getByLabelText("Document"), { target: { files: [file] } });
+    expect((await screen.findByRole("alert")).textContent).toContain("no larger than 20 MB");
+    fireEvent.change(screen.getByRole("textbox", { name: "What should reviewers look for?" }), { target: { value: "Review requirements" } });
+    fireEvent.click(screen.getByRole("button", { name: "Import document" }));
+    expect(importDocument).not.toHaveBeenCalled();
+  });
+
+  it("describes a PDF as stored only when automated text review is unavailable", async () => {
+    vi.mocked(loadDocumentImport).mockResolvedValue(storedOnlyPDF);
+    render(<DocumentImportWorkspace/>);
+    expect(await screen.findByText("Original stored")).toBeTruthy();
+    expect(screen.getByText("Text review unavailable")).toBeTruthy();
+    expect(screen.queryByText("Extraction failed")).toBeNull();
   });
 
   it("records an explicit proposal review", async () => {
@@ -112,6 +175,7 @@ describe("DocumentImportWorkspace", () => {
     vi.mocked(loadDocumentImports).mockResolvedValue([]);
     render(<DocumentImportWorkspace/>);
     expect(await screen.findByRole("heading", { name: "No documents imported" })).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "What should reviewers look for?" })).toBeTruthy();
     expect(screen.getByText(/PDFs are stored even when text extraction is unavailable/)).toBeTruthy();
   });
 
