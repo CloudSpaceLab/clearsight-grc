@@ -96,7 +96,7 @@ func (r *PostgresRepository) GetRequestRecipient(ctx context.Context, tenant, re
 
 func (r *PostgresRepository) ListRecipientRequests(ctx context.Context, tenant, principalID string, limit int) ([]Request, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT er.id::text,t.slug,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,
+		SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,
 		       er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at,
 		       er.recipient_type,COALESCE(er.recipient_principal_id::text,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
 		       er.recipient_state,er.recipient_revision,er.recipient_issue_reason

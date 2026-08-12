@@ -46,6 +46,12 @@ func TestDemoLoginCreatesRoleSessionAndLogoutClearsIt(t *testing.T) {
 		t.Fatalf("demo catalogue missing role credentials: %d %s", accounts.Code, accounts.Body.String())
 	}
 
+	signedOutStatus := httptest.NewRecorder()
+	handler.ServeHTTP(signedOutStatus, httptest.NewRequest(http.MethodGet, "/api/v1/session/status", nil))
+	if signedOutStatus.Code != http.StatusOK || signedOutStatus.Body.String() != "{\"authenticated\":false,\"demo_login_available\":true}\n" {
+		t.Fatalf("signed-out session status = %d %s", signedOutStatus.Code, signedOutStatus.Body.String())
+	}
+
 	bad := httptest.NewRecorder()
 	badRequest := httptest.NewRequest(http.MethodPost, "/api/v1/demo/login", strings.NewReader(`{"username":"cro@demo.clearsight.local","password":"wrong"}`))
 	badRequest.Header.Set("Content-Type", "application/json")
@@ -72,6 +78,14 @@ func TestDemoLoginCreatesRoleSessionAndLogoutClearsIt(t *testing.T) {
 	handler.ServeHTTP(contextResponse, contextRequest)
 	if contextResponse.Code != http.StatusOK || !strings.Contains(contextResponse.Body.String(), `"SYSTEM_ADMIN"`) || !strings.Contains(contextResponse.Body.String(), `"identity_configure":true`) {
 		t.Fatalf("demo session did not reach role-aware context: %d %s", contextResponse.Code, contextResponse.Body.String())
+	}
+
+	signedInStatus := httptest.NewRecorder()
+	signedInStatusRequest := httptest.NewRequest(http.MethodGet, "/api/v1/session/status", nil)
+	signedInStatusRequest.AddCookie(cookies[0])
+	handler.ServeHTTP(signedInStatus, signedInStatusRequest)
+	if signedInStatus.Code != http.StatusOK || signedInStatus.Body.String() != "{\"authenticated\":true,\"demo_login_available\":true}\n" {
+		t.Fatalf("signed-in session status = %d %s", signedInStatus.Code, signedInStatus.Body.String())
 	}
 
 	logout := httptest.NewRecorder()

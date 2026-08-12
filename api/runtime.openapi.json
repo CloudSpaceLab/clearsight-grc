@@ -19,6 +19,7 @@
   "paths": {
     "/health/live": { "get": { "operationId": "live", "security": [], "x-clearsight-route-class": "PUBLIC" } },
     "/health/ready": { "get": { "operationId": "ready", "security": [], "x-clearsight-route-class": "PUBLIC" } },
+    "/api/v1/session/status": { "get": { "operationId": "sessionStatus", "security": [], "x-clearsight-route-class": "PUBLIC" } },
     "/api/v1/context": { "get": { "operationId": "actorContext", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/today": { "get": { "operationId": "actorToday", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
 

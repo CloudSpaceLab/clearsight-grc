@@ -30,7 +30,7 @@ func (r *PostgresRepository) CreateSource(ctx context.Context, value Source) (So
 }
 
 func (r *PostgresRepository) ListSources(ctx context.Context, tenant string, limit int) ([]Source, error) {
-	rows, err := r.pool.Query(ctx, `SELECT es.id::text,t.slug,COALESCE(es.legal_entity_id::text,''),es.code,es.name,es.source_type,es.authority_class,COALESCE(es.owner_principal_id::text,''),es.endpoint,es.expected_freshness_minutes,es.last_observed_at,es.last_success_at,es.health,es.status,es.version,es.created_at,es.updated_at FROM evidence_sources es JOIN tenants t ON t.id=es.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) ORDER BY es.name,es.id LIMIT $2`, tenant, limit)
+	rows, err := r.pool.Query(ctx, `SELECT es.id::text,t.id::text,COALESCE(es.legal_entity_id::text,''),es.code,es.name,es.source_type,es.authority_class,COALESCE(es.owner_principal_id::text,''),es.endpoint,es.expected_freshness_minutes,es.last_observed_at,es.last_success_at,es.health,es.status,es.version,es.created_at,es.updated_at FROM evidence_sources es JOIN tenants t ON t.id=es.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) ORDER BY es.name,es.id LIMIT $2`, tenant, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list evidence sources: %w", err)
 	}
@@ -52,7 +52,7 @@ func (r *PostgresRepository) RecordSourceObservation(ctx context.Context, observ
 		return Source{}, err
 	}
 	defer tx.Rollback(ctx)
-	current, err := scanSource(tx.QueryRow(ctx, `SELECT es.id::text,t.slug,COALESCE(es.legal_entity_id::text,''),es.code,es.name,es.source_type,es.authority_class,COALESCE(es.owner_principal_id::text,''),es.endpoint,es.expected_freshness_minutes,es.last_observed_at,es.last_success_at,es.health,es.status,es.version,es.created_at,es.updated_at FROM evidence_sources es JOIN tenants t ON t.id=es.tenant_id WHERE es.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, observation.SourceID, observation.TenantID))
+	current, err := scanSource(tx.QueryRow(ctx, `SELECT es.id::text,t.id::text,COALESCE(es.legal_entity_id::text,''),es.code,es.name,es.source_type,es.authority_class,COALESCE(es.owner_principal_id::text,''),es.endpoint,es.expected_freshness_minutes,es.last_observed_at,es.last_success_at,es.health,es.status,es.version,es.created_at,es.updated_at FROM evidence_sources es JOIN tenants t ON t.id=es.tenant_id WHERE es.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, observation.SourceID, observation.TenantID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Source{}, ErrNotFound
 	}
@@ -176,7 +176,7 @@ func (r *PostgresRepository) CreateRequest(ctx context.Context, value Request) (
 }
 
 func (r *PostgresRepository) ListRequests(ctx context.Context, tenant string, limit int) ([]Request, error) {
-	rows, err := r.pool.Query(ctx, `SELECT er.id::text,t.slug,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) ORDER BY er.deadline,er.id LIMIT $2`, tenant, limit)
+	rows, err := r.pool.Query(ctx, `SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) ORDER BY er.deadline,er.id LIMIT $2`, tenant, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +193,7 @@ func (r *PostgresRepository) ListRequests(ctx context.Context, tenant string, li
 }
 
 func (r *PostgresRepository) GetRequest(ctx context.Context, tenant, id string) (Request, error) {
-	value, err := scanRequest(r.pool.QueryRow(ctx, `SELECT er.id::text,t.slug,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2)`, id, tenant))
+	value, err := scanRequest(r.pool.QueryRow(ctx, `SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2)`, id, tenant))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Request{}, ErrNotFound
 	}
@@ -206,7 +206,7 @@ func (r *PostgresRepository) Submit(ctx context.Context, submission Submission) 
 		return SubmissionReceipt{}, err
 	}
 	defer tx.Rollback(ctx)
-	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.slug,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, submission.RequestID, submission.TenantID))
+	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, submission.RequestID, submission.TenantID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return SubmissionReceipt{}, ErrNotFound
 	}
@@ -246,7 +246,7 @@ func (r *PostgresRepository) CreateInvitation(ctx context.Context, value Invitat
 		return err
 	}
 	defer tx.Rollback(ctx)
-	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.slug,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, value.RequestID, value.TenantID))
+	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, value.RequestID, value.TenantID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}
@@ -340,7 +340,7 @@ func (r *PostgresRepository) CreateArtifact(ctx context.Context, value Artifact)
 		return Artifact{}, err
 	}
 	defer tx.Rollback(ctx)
-	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.slug,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, value.RequestID, value.TenantID))
+	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, value.RequestID, value.TenantID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Artifact{}, ErrNotFound
 	}

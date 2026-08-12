@@ -32,8 +32,9 @@ func TestRouteRegistryHasExplicitAccessClasses(t *testing.T) {
 		}
 	}
 	expected := map[string]bool{
-		http.MethodGet + " /health/live":  true,
-		http.MethodGet + " /health/ready": true,
+		http.MethodGet + " /health/live":           true,
+		http.MethodGet + " /health/ready":          true,
+		http.MethodGet + " /api/v1/session/status": true,
 	}
 	if len(public) != len(expected) {
 		t.Fatalf("unexpected public route set: %#v", public)

@@ -93,6 +93,15 @@ class DeploymentConfigTest(unittest.TestCase):
         self.assertIn("INSERT INTO tenants", foundation)
         self.assertIn("INSERT INTO legal_entities", foundation)
         self.assertIn("INSERT INTO principals", foundation)
+        for value in ("CLEARSIGHT-DEMO-AUTHORITY", "routing_policy_versions",
+                      "refresh_effective_authority_routes", "demo-program-authorizer",
+                      "ACCOUNTABLE_OWNER", "REVIEWER", "AUTHORIZER", "SIGNATORY",
+                      "TRANSMITTER", "ACKNOWLEDGEMENT_RECORDER",
+                      "00000000-0000-4000-8000-000000000104",
+                      "00000000-0000-4000-8000-000000000106",
+                      "d315abab6729fac5611327a56aa0f3d4ed07aad2ba160106beb0ce7a3f99e91e",
+                      "definition IS DISTINCT FROM expected_definition"):
+            self.assertIn(value, foundation)
         self.assertIn('install -m 0700 "$stage/scripts/seed-demo-foundation.sh"', release)
 
     def test_go_image_tests_include_repository_contract_fixtures(self) -> None:

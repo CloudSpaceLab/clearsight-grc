@@ -20,7 +20,7 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 	hasCursor := cursor.ID != ""
 	rows, err := r.pool.Query(ctx, `
 		SELECT
-			p.id::text,t.slug,COALESCE(p.legal_entity_id::text,''),p.code,p.name,p.program_type,p.status,
+			p.id::text,t.id::text,COALESCE(p.legal_entity_id::text,''),p.code,p.name,p.program_type,p.status,
 			p.owning_function,COALESCE(p.owner_principal_id::text,''),COALESCE(p.authority_principal_id::text,''),
 			p.jurisdiction,p.scope,p.effective_from,p.effective_until,p.created_at,p.updated_at,p.version,
 			COALESCE(ps.overall_state,'UNKNOWN'),COALESCE(ps.reasons,'[]'::jsonb),COALESCE(ps.open_matter_count,0),ps.generated_at,
@@ -124,7 +124,7 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 	}
 	rows, err := r.pool.Query(ctx, `
 		SELECT
-			m.id::text,t.slug,m.reference,m.matter_type,m.status,m.priority,m.title,m.summary,m.scope,
+			m.id::text,t.id::text,m.reference,m.matter_type,m.status,m.priority,m.title,m.summary,m.scope,
 			m.source_type,COALESCE(m.source_id::text,''),m.trigger_type,COALESCE(m.trigger_id::text,''),m.trigger_key,m.known_facts,m.missing_facts,m.contradictions,
 			COALESCE(m.owner_principal_id::text,''),m.required_authority,m.due_at,m.closed_at,m.closure_reason,m.reopen_count,
 			m.created_at,m.updated_at,m.version,

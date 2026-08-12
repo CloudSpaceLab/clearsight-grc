@@ -10,6 +10,8 @@ The application reuses the server's native PostgreSQL 18 service. It owns only t
 
 This environment deliberately uses development identity, demo sessions, audit-mode command authorization, local artifact storage, and unscanned local document analysis. It is not production-ready; the production boundaries listed in the repository README still apply.
 
+PostgreSQL lookups may accept either the demo tenant slug or UUID, but actor-facing continuity, evidence and workflow records return the canonical tenant UUID. Deployment also runs the idempotent demo foundation fixture: it maintains one active `CLEARSIGHT-DEMO-AUTHORITY` policy, records GRC Administrator as maker and Internal Auditor as the independent checker, and projects direct routes for the material workflow responsibilities. Incompatible stable-ID or policy-code collisions fail the deployment instead of overwriting unrelated governance data.
+
 ## GitHub Actions secrets
 
 - `CLEARSIGHT_DEPLOY_KEY`: the dedicated Ed25519 private key whose public half is forced to `/usr/local/sbin/clearsight-ci-entrypoint` on the server.

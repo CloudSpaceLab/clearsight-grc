@@ -60,6 +60,7 @@ func (a *API) routes() []routeSpec {
 	routes := []routeSpec{
 		public(http.MethodGet, "/health/live", a.live),
 		public(http.MethodGet, "/health/ready", a.ready),
+		public(http.MethodGet, "/api/v1/session/status", a.sessionStatus),
 		read("/api/v1/context", a.actorContext),
 		read("/api/v1/today", a.actorToday),
 

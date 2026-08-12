@@ -35,6 +35,11 @@ export type DemoAccount = {
   role_codes: string[];
 };
 
+export type SessionStatus = {
+  authenticated: boolean;
+  demo_login_available: boolean;
+};
+
 export type TodaySnapshot = { items: AttentionItem[]; generated_at?: string };
 export type AuthorityResolveInput = {
   object_type: "PROGRAM" | "MATTER" | "EVIDENCE_REQUEST";
@@ -56,6 +61,10 @@ export function loadContext(): Promise<RuntimeContext> {
     throw error;
   });
   return runtimeContext;
+}
+
+export function loadSessionStatus(): Promise<SessionStatus> {
+  return request<SessionStatus>("/api/v1/session/status");
 }
 
 export async function loadDemoAccounts(): Promise<DemoAccount[]> {

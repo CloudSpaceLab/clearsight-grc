@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { loadContext, loadDemoAccounts, logoutDemo, type DemoAccount, type RuntimeContext } from "../api";
+import { loadContext, loadDemoAccounts, loadSessionStatus, logoutDemo, type DemoAccount, type RuntimeContext } from "../api";
 import { apiErrorKind } from "../http";
 import type { RuntimePresentation } from "../runtimePresentation";
 import { DemoLoginPage } from "./DemoLoginPage";
@@ -16,6 +16,39 @@ export function DemoAuthGate({ children, presentation = "demo" }: { children: Re
   async function enter() {
     setState("checking");
     setSwitchError("");
+    let status;
+    try {
+      status = await loadSessionStatus();
+    } catch {
+      // Older deployments have no session-status route. Preserve the existing
+      // context-first fallback until the API and web release are in lockstep.
+    }
+
+    if (status && !status.authenticated && status.demo_login_available) {
+      const available = await loadDemoAccounts().catch(() => []);
+      setAccounts(available);
+      setDemoMode(true);
+      setState(available.length ? "login" : "ready");
+      return;
+    }
+    if (status?.authenticated) {
+      try {
+        const context = await loadContext() as DemoRuntime;
+        setDemoMode(context.demo_mode === true);
+      } catch (error) {
+        if (apiErrorKind(error) === "unauthorized" && status.demo_login_available) {
+          const available = await loadDemoAccounts().catch(() => []);
+          setAccounts(available);
+          setDemoMode(true);
+          setState(available.length ? "login" : "ready");
+          return;
+        }
+        setDemoMode(false);
+      }
+      setState("ready");
+      return;
+    }
+
     try {
       const context = await loadContext() as DemoRuntime;
       setDemoMode(context.demo_mode === true);

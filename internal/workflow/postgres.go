@@ -18,7 +18,7 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 
 func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Task, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT wt.id::text,t.slug,wt.workflow_id::text,wt.step_key,wt.responsibility,
+		SELECT wt.id::text,t.id::text,wt.workflow_id::text,wt.step_key,wt.responsibility,
 		       COALESCE(wt.principal_id::text,''),wt.title,wt.status,wt.due_at,wt.claimed_at,wt.completed_at,
 		       wt.context,wt.version,wt.created_at,wt.updated_at,
 		       wi.kind,COALESCE(m.id::text,''),COALESCE(m.priority,0),COALESCE(m.scope,'{}'::jsonb),

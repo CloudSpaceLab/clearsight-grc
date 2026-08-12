@@ -82,6 +82,9 @@ func TestEvidenceRequestProjectorConvergesRecipientVisibilityWithoutDuplicateWor
 	if len(assignedA) != 1 || assignedA[0].WorkflowKind != EvidenceRequestWorkflowKind || assignedA[0].EvidenceRequestID != requestID || !ActorWorkVisibleTo(assignedA[0], recipientA) {
 		t.Fatalf("canonical evidence request was not visible as one actor item: %#v", assignedA)
 	}
+	if assignedA[0].TenantID != tenantID {
+		t.Fatalf("workflow Task tenant identity = %q, want canonical UUID %q", assignedA[0].TenantID, tenantID)
+	}
 	workflowID, taskID := assignedA[0].WorkflowID, assignedA[0].ID
 	assertEvidenceWorkCardinality(t, ctx, pool, tenantID, 1, 1)
 

@@ -58,13 +58,16 @@ func TestPostgresMatterSummariesMatchCanonicalRestrictedVisibilityBeforePaginati
 
 	repo := NewPostgresRepository(pool)
 	current := NewCurrentPostgresRepository(pool)
-	actorA := identity.WithActor(ctx, identity.Actor{TenantID: "matter-summary-visibility", PrincipalID: principalA})
-	page, err := repo.ListMatterSummaries(actorA, "matter-summary-visibility", SummaryQuery{Status: "OPEN", Limit: 2})
+	actorA := identity.WithActor(ctx, identity.Actor{TenantID: tenantID, PrincipalID: principalA})
+	page, err := repo.ListMatterSummaries(actorA, tenantID, SummaryQuery{Status: "OPEN", Limit: 2})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(page.Items) != 1 || page.Items[0].Matter.ID != visibleID || page.NextCursor != "" {
 		t.Fatalf("malformed/restricted rows affected actor-visible pagination: %#v cursor=%q", page.Items, page.NextCursor)
+	}
+	if page.Items[0].Matter.TenantID != tenantID {
+		t.Fatalf("Matter summary tenant identity = %q, want canonical UUID %q", page.Items[0].Matter.TenantID, tenantID)
 	}
 
 	search, err := repo.ListMatterSummaries(actorA, "matter-summary-visibility", SummaryQuery{Search: "mixed-secret", Status: "OPEN", Limit: 2})
@@ -75,12 +78,15 @@ func TestPostgresMatterSummariesMatchCanonicalRestrictedVisibilityBeforePaginati
 		t.Fatalf("search leaked malformed restricted record existence: %#v cursor=%q", search.Items, search.NextCursor)
 	}
 
-	listA, err := current.ListMatters(actorA, "matter-summary-visibility", "OPEN", 1)
+	listA, err := current.ListMatters(actorA, tenantID, "OPEN", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(listA) != 1 || listA[0].Matter.ID != visibleID {
 		t.Fatalf("restricted/malformed Matter consumed current-list limit: %#v", listA)
+	}
+	if listA[0].Matter.TenantID != tenantID {
+		t.Fatalf("current Matter tenant identity = %q, want canonical UUID %q", listA[0].Matter.TenantID, tenantID)
 	}
 
 	wrongTenant := identity.WithActor(ctx, identity.Actor{TenantID: "other-bank", PrincipalID: principalA})
