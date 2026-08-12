@@ -36,8 +36,9 @@ class DeploymentConfigTest(unittest.TestCase):
     def test_forced_command_accepts_only_sha_deployments(self) -> None:
         script = self.read("deploy/scripts/ci-entrypoint.sh")
         for value in ("^deploy ([0-9a-f]{40})$", 'root=/opt/clearsight-grc', '"$root/incoming"',
-                      "unsafe release path", 'exec "$stage/scripts/release.sh"'):
+                      "unsafe release path", "iflag=fullblock", '"$stage/scripts/release.sh" "$sha" "$stage"'):
             self.assertIn(value, script)
+        self.assertNotIn('exec "$stage/scripts/release.sh"', script)
 
     def test_release_is_scoped_and_health_checked(self) -> None:
         script = self.read("deploy/scripts/release.sh")

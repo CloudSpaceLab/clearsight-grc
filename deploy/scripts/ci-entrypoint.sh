@@ -15,7 +15,7 @@ stage="$(mktemp -d "$root/incoming/${sha}.XXXXXX")"
 trap 'rm -rf -- "$stage"' EXIT
 
 archive="$stage/release.tar"
-dd bs=1M count=4097 status=none of="$archive"
+dd bs=1M count=4097 iflag=fullblock status=none of="$archive"
 if (( $(stat -c %s "$archive") > 4294967296 )); then
   echo "release bundle exceeds 4 GiB" >&2
   exit 65
@@ -40,4 +40,4 @@ test -f "$stage/scripts/migrate.sh"
 test -f "$stage/scripts/seed-demo-foundation.sh"
 test -f "$stage/scripts/release.sh"
 chmod 0700 "$stage/scripts/migrate.sh" "$stage/scripts/seed-demo-foundation.sh" "$stage/scripts/release.sh"
-exec "$stage/scripts/release.sh" "$sha" "$stage"
+"$stage/scripts/release.sh" "$sha" "$stage"
