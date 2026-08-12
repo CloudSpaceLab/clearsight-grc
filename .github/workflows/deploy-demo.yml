@@ -1,0 +1,88 @@
+name: Deploy demo
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clearsight-demo-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Ignore superseded main revisions
+        id: freshness
+        run: |
+          git fetch origin main
+          if [ "$(git rev-parse origin/main)" = "$RELEASE_SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build immutable images
+        if: steps.freshness.outputs.current == 'true'
+        run: |
+          common_labels=(
+            --label com.cloudspacelab.clearsight=true
+            --label "org.opencontainers.image.revision=$RELEASE_SHA"
+          )
+          docker build "${common_labels[@]}" -f Dockerfile.api -t "clearsight-api:$RELEASE_SHA" .
+          docker build "${common_labels[@]}" -f Dockerfile.worker -t "clearsight-worker:$RELEASE_SHA" .
+          docker build "${common_labels[@]}" -f Dockerfile.web -t "clearsight-web:$RELEASE_SHA" .
+
+      - name: Assemble release bundle
+        if: steps.freshness.outputs.current == 'true'
+        run: |
+          release="$RUNNER_TEMP/release"
+          install -d "$release/scripts" "$release/migrations"
+          docker save \
+            "clearsight-api:$RELEASE_SHA" \
+            "clearsight-worker:$RELEASE_SHA" \
+            "clearsight-web:$RELEASE_SHA" \
+            -o "$release/images.tar"
+          install -m 0644 deploy/compose.demo.yaml "$release/compose.demo.yaml"
+          install -m 0755 deploy/scripts/migrate.sh "$release/scripts/migrate.sh"
+          install -m 0755 deploy/scripts/release.sh "$release/scripts/release.sh"
+          cp migrations/*.up.sql "$release/migrations/"
+          printf 'false\n' > "$release/schema-backward-compatible"
+
+      - name: Configure constrained SSH identity
+        if: steps.freshness.outputs.current == 'true'
+        env:
+          DEPLOY_KEY: ${{ secrets.CLEARSIGHT_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.CLEARSIGHT_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$HOME/.ssh/clearsight_deploy"
+          printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 0600 "$HOME/.ssh/clearsight_deploy" "$HOME/.ssh/known_hosts"
+
+      - name: Deploy exact SHA
+        if: steps.freshness.outputs.current == 'true'
+        env:
+          DEPLOY_HOST: ${{ secrets.CLEARSIGHT_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.CLEARSIGHT_DEPLOY_USER }}
+        run: |
+          tar -C "$RUNNER_TEMP/release" -cf - . | \
+            ssh -i "$HOME/.ssh/clearsight_deploy" \
+              -o BatchMode=yes \
+              -o IdentitiesOnly=yes \
+              "$DEPLOY_USER@$DEPLOY_HOST" "deploy $RELEASE_SHA"

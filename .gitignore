@@ -16,6 +16,8 @@ web/.vite/
 # IDE and OS
 .idea/
 .vscode/
+__pycache__/
+*.py[cod]
 .DS_Store
 Thumbs.db
 

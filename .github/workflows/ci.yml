@@ -65,6 +65,27 @@ jobs:
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$latest_down"
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$latest_up"
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.audit_events') IS NULL AND to_regclass('public.readiness_snapshots') IS NULL THEN 'ok' ELSE 'unexpected compatibility table' END" | grep -qx ok
+      - name: Verify deployment migration ledger
+        env:
+          PGPASSWORD: clearsight
+          DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight_deploy_test?sslmode=disable
+        run: |
+          createdb -h localhost -U clearsight clearsight_deploy_test
+          bash deploy/scripts/migrate.sh migrations
+          bash deploy/scripts/migrate.sh migrations
+          migration_copy="$(mktemp -d)"
+          cp migrations/*.up.sql "$migration_copy/"
+          printf '\n-- checksum mismatch proof\n' >> "$migration_copy/000001_foundation.up.sql"
+          if bash deploy/scripts/migrate.sh "$migration_copy" 2>migration-error.log; then
+            echo "changed migration unexpectedly succeeded"
+            exit 1
+          fi
+          grep -q "checksum mismatch: 000001_foundation.up.sql" migration-error.log
+      - name: Remove deployment migration test database
+        if: always()
+        env:
+          PGPASSWORD: clearsight
+        run: dropdb -h localhost -U clearsight --if-exists clearsight_deploy_test
       - name: PostgreSQL integration tests
         env:
           TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
