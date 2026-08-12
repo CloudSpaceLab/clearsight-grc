@@ -19,6 +19,8 @@ services:
     env_file: /opt/clearsight-grc/config/app.env
     environment:
       CLEARSIGHT_WORKER_ID: worker-demo
+    volumes:
+      - /opt/clearsight-grc/data/artifacts:/var/lib/clearsight/artifacts:Z
     depends_on:
       api:
         condition: service_healthy

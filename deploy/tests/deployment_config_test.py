@@ -86,6 +86,7 @@ class DeploymentConfigTest(unittest.TestCase):
         self.assertIn("/clearsight-seed-bank-reference", release)
         self.assertIn("-tenant 00000000-0000-4000-8000-000000000001", release)
         self.assertIn("/var/lib/clearsight/artifacts:Z", compose)
+        self.assertEqual(compose.count("/var/lib/clearsight/artifacts:Z"), 2)
         self.assertIn("chown 65532:65532", bootstrap)
         self.assertIn("CLEARSIGHT_DEMO_TENANT_ID=00000000-0000-4000-8000-000000000001", bootstrap)
         foundation = self.read("deploy/scripts/seed-demo-foundation.sh")
