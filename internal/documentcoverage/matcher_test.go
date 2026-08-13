@@ -69,7 +69,7 @@ func TestMatchCandidateRecognizesOfficialCARWording(t *testing.T) {
 		ID: "candidate-car", Fingerprint: parsed.Fingerprint, Eligible: true, Statement: statement,
 		Modality: parsed.Modality, Actor: parsed.Actor, Action: parsed.Action, Object: parsed.Object,
 		Citations: parsed.Citations, Dates: parsed.Dates, Topics: parsed.Topics,
-		Jurisdiction: "Nigeria", ProgramType: "PRIVACY",
+		Jurisdiction: "Nigeria", Regulator: "Nigeria Data Protection Commission", ProgramType: "PRIVACY",
 	}
 	targetText := "The bank must maintain the records and independent review needed for its annual Compliance Audit Return. GAID 2025, Articles 10.7 and 10.8; filing before 31 March"
 	target := documentimport.ParseObligation(targetText, "REQUIREMENT_CANDIDATE")

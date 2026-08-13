@@ -69,6 +69,27 @@ func TestServiceProcessesAndReviewsCompleteCoverage(t *testing.T) {
 	}
 }
 
+func TestServiceUsesRequestedTenantIdentifierForProgramSnapshots(t *testing.T) {
+	now := time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC)
+	documents := documentimport.NewMemoryRepository()
+	document, err := documents.Create(context.Background(), extractedCoverageDocument(now))
+	if err != nil {
+		t.Fatal(err)
+	}
+	program := completeCoverageProgram(now)
+	program.Program.TenantID = "00000000-0000-4000-8000-000000000001"
+	service := NewService(NewMemoryRepository(), documents, &serviceContinuity{programs: []continuity.ProgramAggregate{program}})
+	service.now = func() time.Time { return now }
+
+	assessment, err := service.Process(context.Background(), document.TenantID, document.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(assessment.Candidates) != 1 || len(assessment.Candidates[0].Matches) != 1 {
+		t.Fatalf("tenant slug and canonical UUID must describe the same scoped snapshot: %#v", assessment.Candidates)
+	}
+}
+
 func TestServiceMarksPriorAssessmentStale(t *testing.T) {
 	now := time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC)
 	documents := documentimport.NewMemoryRepository()

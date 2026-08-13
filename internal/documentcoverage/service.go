@@ -429,7 +429,7 @@ func (s *Service) programSnapshots(ctx context.Context, tenant string) ([]Progra
 		}
 		coverage := continuity.CurrentRequirementCoverage(aggregate, now)
 		program := ProgramSnapshot{
-			TenantID: aggregate.Program.TenantID, LegalEntityID: aggregate.Program.LegalEntityID,
+			TenantID: tenant, LegalEntityID: aggregate.Program.LegalEntityID,
 			ProgramID: aggregate.Program.ID, Code: aggregate.Program.Code, Name: aggregate.Program.Name,
 			Type: aggregate.Program.Type, Status: aggregate.Program.Status, Jurisdiction: aggregate.Program.Jurisdiction,
 			Regulator: regulatorFromScope(aggregate.Program.Scope), Version: aggregate.Program.Version, Requirements: []RequirementTarget{},
