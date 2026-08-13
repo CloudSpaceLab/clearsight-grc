@@ -154,6 +154,15 @@ type ReviewDecision struct {
 	ReviewedAt time.Time `json:"reviewed_at"`
 }
 
+type ReviewRecord struct {
+	CandidateID string    `json:"candidate_id"`
+	Decision    Decision  `json:"decision"`
+	MatchID     string    `json:"match_id,omitempty"`
+	Reason      string    `json:"reason,omitempty"`
+	ReviewerID  string    `json:"reviewer_id"`
+	ReviewedAt  time.Time `json:"reviewed_at"`
+}
+
 type Suggestion struct {
 	ID             string           `json:"id"`
 	CandidateID    string           `json:"candidate_id"`
@@ -199,6 +208,7 @@ type Assessment struct {
 	ScoringPolicyVersion string           `json:"scoring_policy_version"`
 	ProgramSnapshotHash  string           `json:"program_snapshot_hash"`
 	Candidates           []Candidate      `json:"candidates"`
+	Reviews              []ReviewRecord   `json:"reviews"`
 	Suggestions          []Suggestion     `json:"suggestions"`
 	Metrics              Metrics          `json:"metrics"`
 	Limitations          []string         `json:"limitations"`
@@ -207,4 +217,46 @@ type Assessment struct {
 	CreatedAt            time.Time        `json:"created_at"`
 	UpdatedAt            time.Time        `json:"updated_at"`
 	Version              int64            `json:"version"`
+}
+
+type MatterContext struct {
+	CandidateID string                  `json:"candidate_id"`
+	MatterID    string                  `json:"matter_id"`
+	Reference   string                  `json:"reference"`
+	Type        continuity.MatterType   `json:"type"`
+	Status      continuity.MatterStatus `json:"status"`
+	Title       string                  `json:"title"`
+	Summary     string                  `json:"summary"`
+	Score       float64                 `json:"score"`
+}
+
+type View struct {
+	Assessment
+	Status     ViewStatus      `json:"status"`
+	Matters    []MatterContext `json:"matters"`
+	NextCursor string          `json:"next_cursor,omitempty"`
+}
+
+type DecisionInput struct {
+	CandidateID string   `json:"candidate_id"`
+	Decision    Decision `json:"decision"`
+	MatchID     string   `json:"match_id,omitempty"`
+	Reason      string   `json:"reason,omitempty"`
+}
+
+type ReviewInput struct {
+	TenantID        string          `json:"tenant_id,omitempty"`
+	DocumentID      string          `json:"document_id,omitempty"`
+	ExpectedVersion int64           `json:"expected_version"`
+	ReviewerID      string          `json:"reviewer_id,omitempty"`
+	Decisions       []DecisionInput `json:"decisions"`
+}
+
+type ReadInput struct {
+	TenantID      string
+	LegalEntityID string
+	DocumentID    string
+	PrincipalID   string
+	Cursor        string
+	Limit         int
 }
