@@ -18,6 +18,7 @@ export function RoleAwareOnboarding({ runtime, onStep }: Props) {
   const [state, setState] = useState<OnboardingState | null>(null);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
+  const [persistenceError, setPersistenceError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!runtime) return;
@@ -28,6 +29,7 @@ export function RoleAwareOnboarding({ runtime, onStep }: Props) {
       setGuide(resolved);
       setState(saved);
       setOpen(tourMode === "on" || (tourMode !== "off" && !saved.completed && !saved.dismissed));
+      setPersistenceError(null);
     } catch {
       setGuide(null);
       setState(null);
@@ -39,12 +41,19 @@ export function RoleAwareOnboarding({ runtime, onStep }: Props) {
 
   async function persist(next: OnboardingState) {
     if (!guide) return;
-    const saved = await saveGuideState(guide.code, next).catch(async () => {
-      const current = await loadGuideState(guide.code);
-      return saveGuideState(guide.code, { ...next, version: current.version });
-    });
-    setState(saved);
-    setOpen(!saved.completed && !saved.dismissed);
+    setState(next);
+    setOpen(!next.completed && !next.dismissed);
+    try {
+      const saved = await saveGuideState(guide.code, next).catch(async () => {
+        const current = await loadGuideState(guide.code);
+        return saveGuideState(guide.code, { ...next, version: current.version });
+      });
+      setState(saved);
+      setOpen(!saved.completed && !saved.dismissed);
+      setPersistenceError(null);
+    } catch {
+      setPersistenceError("Guide progress could not be saved. You can continue; it may restart next time you sign in.");
+    }
   }
 
   async function advance(step: GuideStep, next: OnboardingState) {
@@ -97,7 +106,8 @@ export function RoleAwareOnboarding({ runtime, onStep }: Props) {
     <button className="guide-launcher" type="button" onClick={() => void restart()} aria-label={`Restart ${guide.role} introduction`} disabled={busy}>
       <span aria-hidden="true">?</span><strong>Guide</strong>
     </button>
-    {open && <IntroGuide guide={guide} state={state} busy={busy} onAdvance={advance} onBack={back} onDismiss={dismiss}/>} 
+    {persistenceError && !open && <p className="guide-save-warning guide-launcher-warning" role="status">{persistenceError}</p>}
+    {open && <IntroGuide guide={guide} state={state} busy={busy} persistenceError={persistenceError} onAdvance={advance} onBack={back} onDismiss={dismiss}/>}
   </>;
 }
 

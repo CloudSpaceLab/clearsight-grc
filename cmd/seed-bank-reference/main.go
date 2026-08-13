@@ -19,6 +19,7 @@ import (
 )
 
 func main() {
+	fatalIf(config.LoadEnvironmentFile(".env"))
 	var seed bankverticals.SeedConfig
 	flag.StringVar(&seed.TenantID, "tenant", "", "existing tenant UUID or slug")
 	flag.StringVar(&seed.LegalEntityID, "legal-entity", "", "existing legal-entity UUID or code")

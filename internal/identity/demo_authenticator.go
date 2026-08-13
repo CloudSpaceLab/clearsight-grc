@@ -22,7 +22,8 @@ type DemoAccount struct {
 	Label       string   `json:"label"`
 	Username    string   `json:"username"`
 	Password    string   `json:"password"`
-	PrincipalID string   `json:"-"`
+	TenantID    string   `json:"tenant_id"`
+	PrincipalID string   `json:"principal_id"`
 	RoleCodes   []string `json:"role_codes"`
 }
 
@@ -56,15 +57,15 @@ func NewDemoAuthenticator(tenantID, defaultPrincipalID, legalEntityID string) (*
 		return nil, fmt.Errorf("generate demo session key: %w", err)
 	}
 	accounts := []DemoAccount{
-		{Label: "Chief Risk Officer", Username: "cro@demo.clearsight.local", Password: "demo", PrincipalID:"", RoleCodes: []string{"CRO", "EXECUTIVE"}},
-		{Label: "Chief Compliance Officer", Username: "cco@demo.clearsight.local", Password: "demo", PrincipalID: "role-cco", RoleCodes: []string{"CCO", "EXECUTIVE", "COMPLIANCE_OFFICER"}},
-		{Label: "Chief Information Security Officer", Username: "ciso@demo.clearsight.local", Password: "demo", PrincipalID: "role-ciso", RoleCodes: []string{"CISO", "EXECUTIVE"}},
-		{Label: "GRC Administrator", Username: "grc-admin@demo.clearsight.local", Password: "demo", PrincipalID: "role-grc-admin", RoleCodes: []string{"GRC_ADMIN"}},
-		{Label: "System Administrator", Username: "system-admin@demo.clearsight.local", Password: "demo", PrincipalID: "role-system-admin", RoleCodes: []string{"SYSTEM_ADMIN"}},
-		{Label: "Internal Auditor", Username: "auditor@demo.clearsight.local", Password: "demo", PrincipalID: "role-auditor", RoleCodes: []string{"AUDITOR", "REVIEWER"}},
-		{Label: "Program Owner", Username: "owner@demo.clearsight.local", Password: "demo", PrincipalID: "role-program-owner", RoleCodes: []string{"PROGRAM_OWNER"}},
-		{Label: "Evidence Respondent", Username: "evidence@demo.clearsight.local", Password: "demo", PrincipalID: "role-evidence-respondent", RoleCodes: []string{"EVIDENCE_RESPONDENT"}},
-		{Label: "Chief Risk Officer 0y3", Username: "crooye@demo.clearsight.local", Password: "demo", PrincipalID:"019ff86f-086c-78f1-bbdc-ecb4ae11eaea", RoleCodes: []string{"CRO", "EXECUTIVE"}},
+		{Label: "Chief Risk Officer", Username: "cro@demo.clearsight.local", Password: "demo", TenantID: "019ffa86-b181-709d-8bb0-df200a66a4aa", PrincipalID: "019ffa89-89d8-764b-aa7c-7503e048b814", RoleCodes: []string{"CRO", "EXECUTIVE"}},
+		{Label: "Chief Compliance Officer", Username: "cco@demo.clearsight.local", Password: "demo", TenantID: "", PrincipalID: "role-cco", RoleCodes: []string{"CCO", "EXECUTIVE", "COMPLIANCE_OFFICER"}},
+		{Label: "Chief Information Security Officer", Username: "ciso@demo.clearsight.local", Password: "demo", TenantID: "", PrincipalID: "role-ciso", RoleCodes: []string{"CISO", "EXECUTIVE"}},
+		{Label: "GRC Administrator", Username: "grc-admin@demo.clearsight.local", Password: "demo", TenantID: "", PrincipalID: "role-grc-admin", RoleCodes: []string{"GRC_ADMIN"}},
+		{Label: "System Administrator", Username: "system-admin@demo.clearsight.local", Password: "demo", TenantID: "", PrincipalID: "role-system-admin", RoleCodes: []string{"SYSTEM_ADMIN"}},
+		{Label: "Internal Auditor", Username: "auditor@demo.clearsight.local", Password: "demo", TenantID: "", PrincipalID: "role-auditor", RoleCodes: []string{"AUDITOR", "REVIEWER"}},
+		{Label: "Program Owner", Username: "owner@demo.clearsight.local", Password: "demo", TenantID: "", PrincipalID: "role-program-owner", RoleCodes: []string{"PROGRAM_OWNER"}},
+		{Label: "Evidence Respondent", Username: "evidence@demo.clearsight.local", Password: "demo", TenantID: "", PrincipalID: "role-evidence-respondent", RoleCodes: []string{"EVIDENCE_RESPONDENT"}},
+		{Label: "Chief Risk Officer 0y3", Username: "crooye@demo.clearsight.local", Password: "demo", TenantID: "019ff863-ac4e-7559-9075-13a6cfbb21f6", PrincipalID: "019ff86f-086c-78f1-bbdc-ecb4ae11eaea", RoleCodes: []string{"CRO", "EXECUTIVE"}},
 	}
 	byUsername := make(map[string]DemoAccount, len(accounts))
 	for i := range accounts {
@@ -81,7 +82,7 @@ func NewDemoAuthenticator(tenantID, defaultPrincipalID, legalEntityID string) (*
 func (a *DemoAuthenticator) Accounts() []DemoAccount {
 	out := make([]DemoAccount, len(a.accounts))
 	for i, account := range a.accounts {
-		out[i] = account
+		out[i] = a.withEffectiveTenant(account)
 		out[i].RoleCodes = append([]string(nil), account.RoleCodes...)
 	}
 	return out
@@ -109,9 +110,10 @@ func (a *DemoAuthenticator) Authenticate(r *http.Request) (Actor, bool, error) {
 	if !ok {
 		return Actor{}, false, nil
 	}
+	account = a.withEffectiveTenant(account)
 	now := a.now().UTC()
 	return Actor{
-		TenantID: a.tenantID, PrincipalID: account.PrincipalID, LegalEntityID: a.legalEntityID, Kind: "PERSON",
+		TenantID: account.TenantID, PrincipalID: account.PrincipalID, LegalEntityID: a.legalEntityID, Kind: "PERSON",
 		RoleCodes: account.RoleCodes, PermissionCodes: developmentPermissions(account.RoleCodes),
 		AuthenticationMethod: "DEMO", AssuranceLevel: "DEMO", SessionID: "demo:" + account.Username,
 		IssuedAt: now, ExpiresAt: expiry,
@@ -129,7 +131,14 @@ func (a *DemoAuthenticator) Login(w http.ResponseWriter, username, password stri
 		Name: demoSessionCookie, Value: a.signSession(username, expires), Path: "/", HttpOnly: true,
 		SameSite: http.SameSiteLaxMode, Secure: false, MaxAge: int(a.ttl.Seconds()), Expires: expires,
 	})
-	return account, nil
+	return a.withEffectiveTenant(account), nil
+}
+
+func (a *DemoAuthenticator) withEffectiveTenant(account DemoAccount) DemoAccount {
+	if strings.TrimSpace(account.TenantID) == "" {
+		account.TenantID = a.tenantID
+	}
+	return account
 }
 
 func (a *DemoAuthenticator) Logout(w http.ResponseWriter) {

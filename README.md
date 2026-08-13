@@ -208,6 +208,13 @@ make check
 make run-api
 ```
 
+The API, worker and reference-data installer load `.env` for local development.
+Variables already provided by the operating system, Docker Compose or CI take
+precedence. In demo mode, `CLEARSIGHT_DEMO_TENANT_ID`,
+`CLEARSIGHT_DEMO_PRINCIPAL_ID` and `CLEARSIGHT_DEMO_LEGAL_ENTITY_ID` provide
+the default verified scope. A demo account with its own `TenantID` uses that
+tenant instead of `CLEARSIGHT_DEMO_TENANT_ID`.
+
 For PostgreSQL repositories and local artifact storage:
 
 ```bash

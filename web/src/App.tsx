@@ -267,7 +267,7 @@ function App() {
   async function executeGuideStep(step: GuideStep) {
     if (step.intent === "open-routing") { navigate("today"); const authorityItem = items.find((item) => item.authority && item.action_target_type && item.action_target_id); if (authorityItem) await inspectRouting(authorityItem); return; }
     if (step.intent === "open-capture") { navigate("today"); await openPrimaryEvidence(); return; }
-    if (step.intent === "open-first-attention" && items[0]) { openAttention(items[0]); return; }
+    if (step.intent === "open-first-attention") { navigate("today"); if (items[0]) openAttention(items[0]); return; }
     if (step.intent === "open-first-program") { navigate("programs", { openFirstProgram: true }); return; }
     if (step.intent === "open-first-matter") { navigate("work", { openFirstMatter: true }, "matters"); return; }
     if (step.intent === "switch-evidence" || step.intent === "open-first-evidence") {

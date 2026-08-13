@@ -19,6 +19,9 @@ import (
 )
 
 func main() {
+	if err := config.LoadEnvironmentFile(".env"); err != nil {
+		panic(err)
+	}
 	cfg, err := config.Load()
 	if err != nil {
 		panic(err)

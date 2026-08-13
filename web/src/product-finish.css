@@ -68,6 +68,8 @@ main { padding-top: 24px; }
 .guide-progress li.current::before { background: var(--cyan); box-shadow: 0 0 12px rgba(91,198,214,.45); }
 .guide-progress li.complete::before { background: var(--green); }
 .guide-primary-actions { display: flex; align-items: center; gap: 9px; }
+.guide-save-warning { margin: 12px 0 0; padding: 9px 11px; border: 1px solid rgba(233,183,90,.45); border-radius: 9px; color: var(--text); background: rgba(233,183,90,.10); font-size: 12px; line-height: 1.4; }
+.guide-launcher-warning { position: fixed; right: 20px; bottom: 70px; z-index: 15; width: min(360px, calc(100vw - 40px)); }
 .guide-launcher { position: fixed; right: 20px; bottom: 20px; z-index: 15; border: 1px solid rgba(91,198,214,.46); border-radius: 999px; padding: 9px 13px 9px 9px; display: flex; align-items: center; gap: 8px; color: var(--text); background: rgba(12,27,43,.94); box-shadow: var(--shadow-soft); cursor: pointer; }
 .guide-launcher > span { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 50%; color: var(--cyan); background: rgba(91,198,214,.10); font-weight: 800; }
 .guide-launcher strong { font-size: 11px; }

@@ -98,6 +98,44 @@ func TestDemoAuthenticatorRoleCatalogueAndSignedSession(t *testing.T) {
 	}
 }
 
+func TestDemoAuthenticatorUsesAccountTenantWithConfiguredFallback(t *testing.T) {
+	authenticator, err := NewDemoAuthenticator("tenant-from-env", "default-principal", "bank-ng")
+	if err != nil {
+		t.Fatal(err)
+	}
+	authenticator.accounts = []DemoAccount{
+		{Label: "Fallback", Username: "fallback@example.test", Password: "demo", PrincipalID: "fallback-principal"},
+		{Label: "Assigned", Username: "assigned@example.test", Password: "demo", TenantID: "tenant-from-account", PrincipalID: "assigned-principal"},
+	}
+	authenticator.byUsername = map[string]DemoAccount{
+		"fallback@example.test": authenticator.accounts[0],
+		"assigned@example.test": authenticator.accounts[1],
+	}
+
+	for _, scenario := range []struct {
+		username   string
+		wantTenant string
+	}{
+		{username: "fallback@example.test", wantTenant: "tenant-from-env"},
+		{username: "assigned@example.test", wantTenant: "tenant-from-account"},
+	} {
+		recorder := httptest.NewRecorder()
+		account, err := authenticator.Login(recorder, scenario.username, "demo")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if account.TenantID != scenario.wantTenant {
+			t.Fatalf("login tenant for %s = %q, want %q", scenario.username, account.TenantID, scenario.wantTenant)
+		}
+		request := httptest.NewRequest(http.MethodGet, "/api/v1/context", nil)
+		request.AddCookie(recorder.Result().Cookies()[0])
+		actor, present, err := authenticator.Authenticate(request)
+		if err != nil || !present || actor.TenantID != scenario.wantTenant {
+			t.Fatalf("actor for %s = %#v, present=%v, err=%v", scenario.username, actor, present, err)
+		}
+	}
+}
+
 func containsRole(values []string, target string) bool {
 	for _, value := range values {
 		if value == target {

@@ -42,4 +42,16 @@ describe("RoleAwareOnboarding", () => {
     expect(await screen.findByRole("dialog")).toBeTruthy();
     expect(saveGuideState).toHaveBeenCalledWith(guide.code, { current_step: 0, completed: false, dismissed: false, version: 3 });
   });
+
+  it("does not trap the user when guide state cannot be saved", async () => {
+    vi.mocked(loadRoleGuide).mockResolvedValue(guide);
+    vi.mocked(loadGuideState).mockResolvedValue(initial);
+    vi.mocked(saveGuideState).mockRejectedValue(new Error("onboarding unavailable"));
+    render(<RoleAwareOnboarding runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Skip for now" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(await screen.findByText(/Guide progress could not be saved/)).toBeTruthy();
+  });
 });

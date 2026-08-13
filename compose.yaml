@@ -33,6 +33,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.api
+    env_file: .env
     environment:
       CLEARSIGHT_ENV: development
       CLEARSIGHT_HTTP_ADDR: :8080
@@ -54,6 +55,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.worker
+    env_file: .env
     environment:
       CLEARSIGHT_ENV: development
       CLEARSIGHT_WORKER_ID: worker-compose

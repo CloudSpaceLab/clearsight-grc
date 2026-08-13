@@ -6,12 +6,13 @@ type Props = {
   guide: OnboardingGuide;
   state: OnboardingState;
   busy?: boolean;
+  persistenceError?: string | null;
   onAdvance: (step: GuideStep, next: OnboardingState) => void | Promise<void>;
   onBack: (next: OnboardingState) => void | Promise<void>;
   onDismiss: () => void | Promise<void>;
 };
 
-export function IntroGuide({ guide, state, busy = false, onAdvance, onBack, onDismiss }: Props) {
+export function IntroGuide({ guide, state, busy = false, persistenceError, onAdvance, onBack, onDismiss }: Props) {
   const cardRef = useRef<HTMLElement>(null);
   const index = Math.min(state.current_step, Math.max(guide.steps.length - 1, 0));
   const step = guide.steps[index] ?? guide.steps[0];
@@ -71,6 +72,7 @@ export function IntroGuide({ guide, state, busy = false, onAdvance, onBack, onDi
         <span className="eyebrow">{guide.role} · Step {index + 1} of {guide.steps.length}</span>
         <h2 id="guide-title">{step.title}</h2>
         <p id="guide-description">{index === 0 ? `${guide.description} ${step.description}` : step.description}</p>
+        {persistenceError && <p className="guide-save-warning" role="status">{persistenceError}</p>}
         <ol className="guide-progress" aria-label="Introduction progress">
           {guide.steps.map((item, itemIndex) => <li key={item.id} className={itemIndex < index ? "complete" : itemIndex === index ? "current" : ""}><span className="sr-only">{itemIndex < index ? "Completed" : itemIndex === index ? "Current" : "Upcoming"}: </span>{item.title}</li>)}
         </ol>
