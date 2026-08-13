@@ -36,7 +36,11 @@ func AnalyzeBounded(sections []Section, maximum int) AnalysisResult {
 			if kind == "" {
 				continue
 			}
+			obligation := ParseObligation(statement, kind)
 			key := kind + "\x00" + strings.ToLower(statement)
+			if obligation.Eligible {
+				key = "obligation\x00" + obligation.Fingerprint
+			}
 			if _, ok := seen[key]; ok {
 				continue
 			}
@@ -60,7 +64,8 @@ func AnalyzeBounded(sections []Section, maximum int) AnalysisResult {
 					RowStart:  section.RowStart,
 					RowEnd:    section.RowEnd,
 				},
-				Status: ProposalPending,
+				Status:     ProposalPending,
+				Obligation: &obligation,
 			})
 		}
 	}

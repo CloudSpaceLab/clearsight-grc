@@ -103,5 +103,16 @@ func cloneDocument(value Document) Document {
 	value.Limitations = append([]string(nil), value.Limitations...)
 	value.Sections = append([]Section(nil), value.Sections...)
 	value.Proposals = append([]Proposal(nil), value.Proposals...)
+	for index := range value.Proposals {
+		if value.Proposals[index].Obligation == nil {
+			continue
+		}
+		obligation := *value.Proposals[index].Obligation
+		obligation.Citations = append([]string(nil), obligation.Citations...)
+		obligation.Dates = append([]string(nil), obligation.Dates...)
+		obligation.Topics = append([]string(nil), obligation.Topics...)
+		obligation.Uncertainty = append([]string(nil), obligation.Uncertainty...)
+		value.Proposals[index].Obligation = &obligation
+	}
 	return value
 }
