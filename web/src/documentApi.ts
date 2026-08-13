@@ -1,4 +1,4 @@
-import type { DocumentImport, DocumentImportSummary, ProposalStatus } from "./documentTypes";
+import type { CoverageApplyResult, CoverageReviewInput, DocumentCoverage, DocumentImport, DocumentImportSummary, ProposalStatus } from "./documentTypes";
 import { requestJSON } from "./http";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -25,6 +25,34 @@ export async function reviewDocumentProposal(documentID: string, proposalID: str
     method: "POST",
     body: JSON.stringify({ status, note, expected_version: expectedVersion }),
   }));
+}
+
+export async function loadDocumentCoverage(id: string, cursor = "", limit = 25): Promise<DocumentCoverage> {
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (cursor) query.set("cursor", cursor);
+  return normalizeCoverage(await requestJSON<DocumentCoverage>(apiBase, `/api/v1/document-imports/${encodeURIComponent(id)}/coverage?${query}`));
+}
+
+export async function reviewDocumentCoverage(id: string, expectedVersion: number, decisions: CoverageReviewInput[]): Promise<DocumentCoverage> {
+  return normalizeCoverage(await requestJSON<DocumentCoverage>(apiBase, `/api/v1/document-imports/${encodeURIComponent(id)}/coverage/review`, {
+    method: "POST",
+    body: JSON.stringify({ expected_version: expectedVersion, decisions }),
+  }));
+}
+
+export async function recompareDocumentCoverage(id: string): Promise<void> {
+  await requestJSON<{ status: string }>(apiBase, `/api/v1/document-imports/${encodeURIComponent(id)}/coverage/recompare`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function applyDocumentCoverageSuggestion(id: string, suggestionID: string, expectedVersion: number): Promise<CoverageApplyResult> {
+  const value = await requestJSON<CoverageApplyResult>(apiBase, `/api/v1/document-imports/${encodeURIComponent(id)}/coverage/suggestions/${encodeURIComponent(suggestionID)}/apply`, {
+    method: "POST",
+    body: JSON.stringify({ expected_version: expectedVersion }),
+  });
+  return { ...value, assessment: normalizeCoverage(value.assessment) };
 }
 
 function normalizeDetail(value: DocumentImport): DocumentImport {
@@ -70,5 +98,30 @@ function normalizeSummary(value: DocumentImportSummary | DocumentImport): Docume
     created_at: value.created_at,
     updated_at: value.updated_at,
     version: value.version,
+  };
+}
+
+function normalizeCoverage(value: DocumentCoverage): DocumentCoverage {
+  const zero = { numerator: 0, denominator: 0 };
+  return {
+    ...value,
+    candidates: Array.isArray(value.candidates) ? value.candidates.map((candidate) => ({
+      ...candidate,
+      citations: Array.isArray(candidate.citations) ? candidate.citations : [],
+      dates: Array.isArray(candidate.dates) ? candidate.dates : [],
+      topics: Array.isArray(candidate.topics) ? candidate.topics : [],
+      uncertainty: Array.isArray(candidate.uncertainty) ? candidate.uncertainty : [],
+      matches: Array.isArray(candidate.matches) ? candidate.matches : [],
+    })) : [],
+    suggestions: Array.isArray(value.suggestions) ? value.suggestions : [],
+    matters: Array.isArray(value.matters) ? value.matters : [],
+    limitations: Array.isArray(value.limitations) ? value.limitations : [],
+    metrics: {
+      estimated_verified: value.metrics?.estimated_verified ?? zero,
+      verified: value.metrics?.verified ?? zero,
+      requirement_mapped: value.metrics?.requirement_mapped ?? zero,
+      control_implemented: value.metrics?.control_implemented ?? zero,
+      evidence_supported: value.metrics?.evidence_supported ?? zero,
+    },
   };
 }
