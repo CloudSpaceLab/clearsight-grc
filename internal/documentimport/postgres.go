@@ -193,9 +193,11 @@ func insertDocument(ctx context.Context, queryer documentQueryer, value Document
 			sections_total,sections_omitted,proposals_total,proposals_omitted,content_truncated,processed_at,
 			created_by,created_at,updated_at,version)
 		SELECT $2::uuid,t.id,
-		       CASE WHEN $3='' THEN NULL ELSE (SELECT le.id FROM legal_entities le WHERE le.tenant_id=t.id AND le.id=$3::uuid) END,
+		       CASE WHEN $3='' THEN NULL ELSE (SELECT le.id FROM legal_entities le WHERE le.tenant_id=t.id AND (le.id::text=$3 OR le.code=$3) LIMIT 1) END,
 		       $4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,$17::jsonb,$18::jsonb,
-		       $19,$20,$21,$22,$23,$24,$25::uuid,$26,$27,1
+		       $19,$20,$21,$22,$23,$24,
+		       (SELECT p.id FROM principals p WHERE p.tenant_id=t.id AND (p.id::text=$25 OR p.external_ref=$25) LIMIT 1),
+		       $26,$27,1
 		FROM tenants t WHERE t.id::text=$1 OR t.slug=$1
 		RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),COALESCE(legal_entity_id::text,''),file_name,media_type,purpose,source_type,
 		          size_bytes,sha256,storage_key,artifact_status,extraction_status,extraction_method,analysis_status,analysis_method,

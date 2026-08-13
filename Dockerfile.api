@@ -14,11 +14,13 @@ COPY migrations ./migrations
 
 RUN CGO_ENABLED=0 go test ./... && \
     CGO_ENABLED=0 go test -tags postgres ./... && \
-    CGO_ENABLED=0 go build -tags postgres -trimpath -ldflags="-s -w" -o /out/clearsight-api ./cmd/api
+    CGO_ENABLED=0 go build -tags postgres -trimpath -ldflags="-s -w" -o /out/clearsight-api ./cmd/api && \
+    mkdir -p /out/artifacts && chown -R 65532:65532 /out/artifacts
 
 FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=build /out/clearsight-api /clearsight-api
+COPY --from=build --chown=65532:65532 /out/artifacts /var/lib/clearsight/artifacts
 
 EXPOSE 8080
 

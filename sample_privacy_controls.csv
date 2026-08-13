@@ -1,0 +1,5 @@
+Requirement ID,Category,Control Objective,Implementation Standard
+REQ-PRIV-01,Data Collection,Consent,All customer data collection forms must include explicit opt-in checkboxes that are not pre-ticked.
+REQ-PRIV-02,Data Storage,Encryption,Customer PII in databases must be encrypted using AES-256.
+REQ-PRIV-03,Data Retention,Purging,Inactive customer records must be securely deleted after 7 years of account closure.
+REQ-PRIV-04,Subject Rights,Access,Customers must be able to download their complete account history in a machine-readable format within 14 days of request.

@@ -21,27 +21,30 @@ export function DemoAuthGate({ children }: { children: ReactNode }) {
       setState("ready");
       return;
     } catch (error) {
-      if (apiErrorKind(error) !== "unauthorized") {
-        // Preserve the existing application's degraded-state handling when the
-        // problem is not an unauthenticated demo session.
+      const kind = apiErrorKind(error);
+      const available = await loadDemoAccounts().catch(() => []);
+
+      if (available.length) {
+        setAccounts(available);
+        setDemoMode(true);
+        setState("login");
+        return;
+      }
+
+      if (kind !== "unauthorized") {
+        // Keep a protected workspace from mounting on an identity bootstrap failure.
+        // In a non-demo deployment, the app can still try the UX shell with a safe
+        // null runtime channel, but this gate must not silently cross the auth line.
         setDemoMode(false);
         setState("ready");
         return;
       }
-    }
 
-    const available = await loadDemoAccounts().catch(() => []);
-    if (available.length) {
-      setAccounts(available);
-      setDemoMode(true);
-      setState("login");
-      return;
+      // Production OIDC/signed deployments do not expose the demo catalogue;
+      // defer to the existing application behavior there.
+      setDemoMode(false);
+      setState("ready");
     }
-    // Preserve the existing application's degraded-state handling.
-    // Production OIDC/signed deployments do not expose the demo catalogue;
-    // defer to the existing application behavior there.
-    setDemoMode(false);
-    setState("ready");
   }
 
   useEffect(() => { void enter(); }, []);

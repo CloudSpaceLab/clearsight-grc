@@ -58,7 +58,10 @@ services:
       CLEARSIGHT_ENV: development
       CLEARSIGHT_WORKER_ID: worker-compose
       CLEARSIGHT_WORKER_POLL: 1s
+      CLEARSIGHT_ARTIFACT_ROOT: /var/lib/clearsight/artifacts
       DATABASE_URL: postgres://clearsight:clearsight@postgres:5432/clearsight?sslmode=disable
+    volumes:
+      - clearsight-artifacts:/var/lib/clearsight/artifacts
     depends_on:
       # postgres:
       #   condition: service_healthy
