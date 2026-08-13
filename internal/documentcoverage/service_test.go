@@ -88,6 +88,17 @@ func TestServiceUsesRequestedTenantIdentifierForProgramSnapshots(t *testing.T) {
 	if len(assessment.Candidates) != 1 || len(assessment.Candidates[0].Matches) != 1 {
 		t.Fatalf("tenant slug and canonical UUID must describe the same scoped snapshot: %#v", assessment.Candidates)
 	}
+	_, slugHash, err := service.programSnapshots(context.Background(), document.TenantID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, canonicalHash, err := service.programSnapshots(context.Background(), program.Program.TenantID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slugHash != canonicalHash {
+		t.Fatalf("Program snapshot hash must not depend on tenant alias: slug=%s canonical=%s", slugHash, canonicalHash)
+	}
 }
 
 func TestServiceMarksPriorAssessmentStale(t *testing.T) {

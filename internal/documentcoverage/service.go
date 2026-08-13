@@ -91,7 +91,11 @@ func (s *Service) Process(ctx context.Context, tenant, documentID string) (Asses
 	if started.Status == AssessmentReady {
 		return started, nil
 	}
-	evaluation := Evaluate(candidatesFromDocument(document), programs)
+	canonicalTenantID := document.TenantID
+	if len(programs) > 0 && programs[0].TenantID != "" {
+		canonicalTenantID = programs[0].TenantID
+	}
+	evaluation := Evaluate(candidatesFromDocument(document, canonicalTenantID), programs)
 	started.Status = AssessmentReady
 	started.Candidates = evaluation.Candidates
 	started.Suggestions = evaluation.Suggestions
@@ -429,7 +433,7 @@ func (s *Service) programSnapshots(ctx context.Context, tenant string) ([]Progra
 		}
 		coverage := continuity.CurrentRequirementCoverage(aggregate, now)
 		program := ProgramSnapshot{
-			TenantID: tenant, LegalEntityID: aggregate.Program.LegalEntityID,
+			TenantID: aggregate.Program.TenantID, LegalEntityID: aggregate.Program.LegalEntityID,
 			ProgramID: aggregate.Program.ID, Code: aggregate.Program.Code, Name: aggregate.Program.Name,
 			Type: aggregate.Program.Type, Status: aggregate.Program.Status, Jurisdiction: aggregate.Program.Jurisdiction,
 			Regulator: regulatorFromScope(aggregate.Program.Scope), Version: aggregate.Program.Version, Requirements: []RequirementTarget{},
@@ -459,7 +463,7 @@ func (s *Service) programSnapshots(ctx context.Context, tenant string) ([]Progra
 	return programs, hex.EncodeToString(digest[:]), nil
 }
 
-func candidatesFromDocument(document documentimport.Document) []Candidate {
+func candidatesFromDocument(document documentimport.Document, canonicalTenantID string) []Candidate {
 	jurisdiction := inferJurisdiction(document)
 	regulator := inferRegulator(document)
 	programType := inferProgramType(document)
@@ -475,7 +479,7 @@ func candidatesFromDocument(document documentimport.Document) []Candidate {
 			Actor: obligation.Actor, Action: obligation.Action, Object: obligation.Object,
 			Citations: append([]string(nil), obligation.Citations...), Dates: append([]string(nil), obligation.Dates...),
 			Topics: append([]string(nil), obligation.Topics...), Uncertainty: append([]string(nil), obligation.Uncertainty...),
-			TenantID: document.TenantID, LegalEntityID: document.LegalEntityID, Jurisdiction: jurisdiction,
+			TenantID: canonicalTenantID, LegalEntityID: document.LegalEntityID, Jurisdiction: jurisdiction,
 			Regulator: regulator, ProgramType: programType,
 		})
 	}
