@@ -96,3 +96,28 @@ func TestDemoLoginCreatesRoleSessionAndLogoutClearsIt(t *testing.T) {
 		t.Fatalf("demo logout did not expire session: %d %#v", logout.Code, logout.Result().Cookies())
 	}
 }
+
+func TestDurableDemoContextUsesFriendlyWorkspaceNames(t *testing.T) {
+	authenticator, err := identity.NewDemoAuthenticator(identity.DurableDemoTenantID, identity.DurableDemoPrincipalCRO, identity.DurableDemoLegalEntityID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: authenticator, DemoMode: true, Mode: "postgres"})
+	login := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/demo/login", strings.NewReader(`{"username":"cro@demo.clearsight.local","password":"demo"}`))
+	request.Header.Set("Content-Type", "application/json")
+	handler.ServeHTTP(login, request)
+	if login.Code != http.StatusOK {
+		t.Fatalf("demo login returned %d: %s", login.Code, login.Body.String())
+	}
+
+	response := httptest.NewRecorder()
+	contextRequest := httptest.NewRequest(http.MethodGet, "/api/v1/context", nil)
+	contextRequest.AddCookie(login.Result().Cookies()[0])
+	handler.ServeHTTP(response, contextRequest)
+	for _, expected := range []string{"ClearSight Demonstration Bank", "Demonstration Bank Nigeria", "Chief Risk Officer"} {
+		if !strings.Contains(response.Body.String(), expected) {
+			t.Fatalf("durable demo context missing %q: %s", expected, response.Body.String())
+		}
+	}
+}
