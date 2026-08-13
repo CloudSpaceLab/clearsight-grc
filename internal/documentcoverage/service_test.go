@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -245,6 +246,47 @@ func TestServiceAppliesCreateProgramSuggestionAsDraft(t *testing.T) {
 	}
 	if program.Program.Status != continuity.ProgramDraft || program.Program.LegalEntityID != document.LegalEntityID {
 		t.Fatalf("suggestion must create a scoped draft Program: %#v", program.Program)
+	}
+}
+
+func TestServiceAppliesAddRequirementWithoutMisusingEvidenceSourceID(t *testing.T) {
+	now := time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC)
+	documents := documentimport.NewMemoryRepository()
+	document, _ := documents.Create(context.Background(), extractedCoverageDocument(now))
+	continuityService := continuity.NewService(continuity.NewMemoryRepository())
+	program, err := continuityService.CreateProgram(context.Background(), continuity.CreateProgramInput{
+		TenantID: document.TenantID, LegalEntityID: document.LegalEntityID, Code: "NDPA-BASE", Name: "Nigeria privacy baseline",
+		Type: "PRIVACY", OwningFunction: "Privacy", Jurisdiction: "Nigeria", Scope: json.RawMessage(`{}`), EffectiveFrom: now.Add(-time.Hour), ActorID: "reviewer-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(NewMemoryRepository(), documents, continuityService)
+	service.now = func() time.Time { return now }
+	assessment, err := service.Process(context.Background(), document.TenantID, document.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(assessment.Suggestions) != 1 || assessment.Suggestions[0].Type != SuggestionAddRequirement {
+		t.Fatalf("expected an add-requirement suggestion, got %#v", assessment.Suggestions)
+	}
+	result, err := service.ApplySuggestion(context.Background(), ApplySuggestionInput{
+		TenantID: document.TenantID, LegalEntityID: document.LegalEntityID, DocumentID: document.ID,
+		SuggestionID: assessment.Suggestions[0].ID, ExpectedVersion: assessment.Version, ActorID: "reviewer-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	updated, err := continuityService.GetProgram(context.Background(), document.TenantID, program.Program.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.ObjectType != "REQUIREMENT" || len(updated.Requirements) != 1 {
+		t.Fatalf("expected one governed draft requirement, result=%#v program=%#v", result, updated)
+	}
+	requirement := updated.Requirements[0]
+	if requirement.Status != continuity.RequirementDraft || requirement.SourceID != "" || !strings.Contains(requirement.SourceAnchor, document.ID) {
+		t.Fatalf("document provenance must use the source anchor, not the evidence-source foreign key: %#v", requirement)
 	}
 }
 

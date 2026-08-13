@@ -320,7 +320,7 @@ func (s *Service) ApplySuggestion(ctx context.Context, input ApplySuggestionInpu
 		}
 		program, commandErr := commander.AddRequirement(ctx, continuity.AddRequirementInput{
 			TenantID: input.TenantID, ProgramID: prepared.Suggestion.ProgramID, ExpectedVersion: prepared.ProgramVersion,
-			SourceID: input.DocumentID, Code: suggestionCode("DOC", prepared.Candidate.Fingerprint),
+			Code:  suggestionCode("DOC", prepared.Candidate.Fingerprint),
 			Title: boundedTitle(prepared.Candidate.Statement), Statement: prepared.Candidate.Statement,
 			SourceAnchor: sourceAnchor(input.DocumentID, prepared.Candidate.Anchor), Modality: continuityModality(prepared.Candidate.Modality),
 			Actor: prepared.Candidate.Actor, Action: prepared.Candidate.Action, Object: prepared.Candidate.Object,
