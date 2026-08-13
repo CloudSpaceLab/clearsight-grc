@@ -11,6 +11,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/documentcoverage"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/federation"
@@ -39,6 +40,7 @@ type Dependencies struct {
 	Governance       *governance.Service
 	Evidence         *evidence.Service
 	DocumentImports  *documentimport.Service
+	Coverage         *documentcoverage.Service
 	Continuity       *continuity.Service
 	Today            *today.Service
 	Workflow         *workflow.Service

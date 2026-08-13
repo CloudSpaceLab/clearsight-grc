@@ -139,6 +139,10 @@ func (a *API) routes() []routeSpec {
 		write(http.MethodPost, "/api/v1/document-imports", a.createDocumentImport, nil),
 		read("/api/v1/document-imports/{id}", a.getDocumentImport),
 		write(http.MethodPost, "/api/v1/document-imports/{id}/proposals/{proposal_id}/review", a.reviewDocumentProposal, nil),
+		read("/api/v1/document-imports/{id}/coverage", a.getDocumentCoverage),
+		write(http.MethodPost, "/api/v1/document-imports/{id}/coverage/review", a.reviewDocumentCoverage, nil),
+		write(http.MethodPost, "/api/v1/document-imports/{id}/coverage/recompare", a.recompareDocumentCoverage, nil),
+		write(http.MethodPost, "/api/v1/document-imports/{id}/coverage/suggestions/{suggestion_id}/apply", a.applyDocumentCoverageSuggestion, nil),
 
 		read("/api/v1/workflow/tasks", a.listWorkflowTasks),
 

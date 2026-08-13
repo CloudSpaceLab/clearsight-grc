@@ -3,11 +3,13 @@ package documentcoverage
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,6 +28,13 @@ type DocumentReader interface {
 type ContinuityReader interface {
 	ListPrograms(context.Context, string, int) ([]continuity.ProgramAggregate, error)
 	ListMatters(context.Context, string, string, int) ([]continuity.MatterAggregate, error)
+}
+
+type continuityCommander interface {
+	ContinuityReader
+	AddRequirement(context.Context, continuity.AddRequirementInput) (continuity.ProgramAggregate, error)
+	CreateMatter(context.Context, continuity.CreateMatterInput) (continuity.MatterAggregate, error)
+	CreateProgram(context.Context, continuity.CreateProgramInput) (continuity.ProgramAggregate, error)
 }
 
 type Service struct {
@@ -128,7 +137,21 @@ func (s *Service) Get(ctx context.Context, input ReadInput) (View, error) {
 	if err != nil {
 		return View{}, err
 	}
-	return View{Assessment: assessment, Status: viewStatus, Matters: matters}, nil
+	page, next, pageErr := paginateAssessment(assessment, input.Cursor, input.Limit)
+	if pageErr != nil {
+		return View{}, pageErr
+	}
+	visibleCandidates := make(map[string]struct{}, len(page.Candidates))
+	for _, candidate := range page.Candidates {
+		visibleCandidates[candidate.ID] = struct{}{}
+	}
+	filteredMatters := make([]MatterContext, 0, len(matters))
+	for _, matter := range matters {
+		if _, ok := visibleCandidates[matter.CandidateID]; ok {
+			filteredMatters = append(filteredMatters, matter)
+		}
+	}
+	return View{Assessment: page, Status: viewStatus, Matters: filteredMatters, NextCursor: next}, nil
 }
 
 func (s *Service) Review(ctx context.Context, input ReviewInput) (Assessment, error) {
@@ -211,6 +234,156 @@ func (s *Service) Recompare(ctx context.Context, tenant, documentID string) erro
 	return s.repo.QueueRecompare(ctx, tenant, documentID)
 }
 
+func (s *Service) PrepareSuggestion(ctx context.Context, input ApplySuggestionInput) (PreparedSuggestion, error) {
+	current, programs, err := s.currentSuggestionContext(ctx, input)
+	if err != nil {
+		return PreparedSuggestion{}, err
+	}
+	var suggestion *Suggestion
+	for index := range current.Suggestions {
+		if current.Suggestions[index].ID == input.SuggestionID && current.Suggestions[index].Status == SuggestionProposed {
+			suggestion = &current.Suggestions[index]
+			break
+		}
+	}
+	if suggestion == nil {
+		return PreparedSuggestion{}, ErrNotFound
+	}
+	var candidate *Candidate
+	for index := range current.Candidates {
+		if current.Candidates[index].ID == suggestion.CandidateID {
+			candidate = &current.Candidates[index]
+			break
+		}
+	}
+	if candidate == nil {
+		return PreparedSuggestion{}, ErrNotFound
+	}
+	prepared := PreparedSuggestion{AssessmentVersion: current.Version, Suggestion: *suggestion, Candidate: cloneCandidate(*candidate)}
+	for _, match := range candidate.Matches {
+		if match.RequirementID == suggestion.RequirementID || (suggestion.RequirementID == "" && match.ProgramID == suggestion.ProgramID) {
+			matched := match
+			prepared.Match = &matched
+			prepared.ProgramVersion = match.ProgramVersion
+			break
+		}
+	}
+	if prepared.ProgramVersion == 0 && suggestion.ProgramID != "" {
+		for _, program := range programs {
+			if program.ProgramID == suggestion.ProgramID {
+				prepared.ProgramVersion = program.Version
+				break
+			}
+		}
+	}
+	return prepared, nil
+}
+
+func (s *Service) ApplySuggestion(ctx context.Context, input ApplySuggestionInput) (ApplySuggestionResult, error) {
+	input.TenantID = strings.TrimSpace(input.TenantID)
+	input.DocumentID = strings.TrimSpace(input.DocumentID)
+	input.SuggestionID = strings.TrimSpace(input.SuggestionID)
+	input.ActorID = strings.TrimSpace(input.ActorID)
+	if input.TenantID == "" || input.DocumentID == "" || input.SuggestionID == "" || input.ActorID == "" || input.ExpectedVersion < 1 {
+		return ApplySuggestionResult{}, ErrInvalidReview
+	}
+	prepared, err := s.PrepareSuggestion(ctx, input)
+	if err != nil {
+		return ApplySuggestionResult{}, err
+	}
+	commander, ok := s.continuity.(continuityCommander)
+	if !ok {
+		return ApplySuggestionResult{}, fmt.Errorf("governed suggestion application is unavailable")
+	}
+	now := s.now().UTC()
+	objectType, objectID := "", ""
+	switch prepared.Suggestion.Type {
+	case SuggestionLinkRequirement:
+		if prepared.Match == nil {
+			return ApplySuggestionResult{}, ErrInvalidReview
+		}
+		assessment, reviewErr := s.Review(ctx, ReviewInput{
+			TenantID: input.TenantID, DocumentID: input.DocumentID, ExpectedVersion: input.ExpectedVersion, ReviewerID: input.ActorID,
+			Decisions: []DecisionInput{{CandidateID: prepared.Candidate.ID, Decision: DecisionAccept, MatchID: prepared.Match.ID}},
+		})
+		if reviewErr != nil {
+			return ApplySuggestionResult{}, reviewErr
+		}
+		return ApplySuggestionResult{Assessment: assessment}, nil
+	case SuggestionAddRequirement:
+		if prepared.Suggestion.ProgramID == "" || prepared.ProgramVersion < 1 {
+			return ApplySuggestionResult{}, ErrInvalidReview
+		}
+		program, commandErr := commander.AddRequirement(ctx, continuity.AddRequirementInput{
+			TenantID: input.TenantID, ProgramID: prepared.Suggestion.ProgramID, ExpectedVersion: prepared.ProgramVersion,
+			SourceID: input.DocumentID, Code: suggestionCode("DOC", prepared.Candidate.Fingerprint),
+			Title: boundedTitle(prepared.Candidate.Statement), Statement: prepared.Candidate.Statement,
+			SourceAnchor: sourceAnchor(input.DocumentID, prepared.Candidate.Anchor), Modality: continuityModality(prepared.Candidate.Modality),
+			Actor: prepared.Candidate.Actor, Action: prepared.Candidate.Action, Object: prepared.Candidate.Object,
+			Status: continuity.RequirementDraft, EffectiveFrom: now, ActorID: input.ActorID,
+		})
+		if commandErr != nil {
+			return ApplySuggestionResult{}, commandErr
+		}
+		objectType, objectID = "REQUIREMENT", latestRequirementID(program)
+	case SuggestionCreateMatter:
+		matterType := continuity.MatterRegulatoryChange
+		if prepared.Match != nil && (!prepared.Match.Coverage.ControlImplemented || !prepared.Match.Coverage.EvidenceSupported) {
+			matterType = continuity.MatterControlGap
+		}
+		known, _ := json.Marshal(map[string]any{"document_id": input.DocumentID, "candidate_id": prepared.Candidate.ID, "quote": prepared.Candidate.Anchor.Quote, "page": prepared.Candidate.Anchor.Page})
+		matter, commandErr := commander.CreateMatter(ctx, continuity.CreateMatterInput{
+			TenantID: input.TenantID, Type: matterType, Priority: 3,
+			Title: boundedTitle(prepared.Candidate.Statement), Summary: "Review and address the source-backed regulatory obligation.",
+			Scope: json.RawMessage(`{"access":"INTERNAL"}`), SourceType: "DOCUMENT_IMPORT", SourceID: input.DocumentID,
+			TriggerType: "DOCUMENT_COVERAGE", TriggerID: input.DocumentID, TriggerKey: prepared.Suggestion.ID,
+			KnownFacts: known, MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`),
+			ProgramID: prepared.Suggestion.ProgramID, RequirementID: prepared.Suggestion.RequirementID, ActorID: input.ActorID,
+		})
+		if commandErr != nil {
+			return ApplySuggestionResult{}, commandErr
+		}
+		objectType, objectID = "MATTER", matter.Matter.ID
+	case SuggestionCreateProgram:
+		programType := prepared.Candidate.ProgramType
+		if programType == "" {
+			programType = "COMPLIANCE"
+		}
+		program, commandErr := commander.CreateProgram(ctx, continuity.CreateProgramInput{
+			TenantID: input.TenantID, LegalEntityID: input.LegalEntityID,
+			Code: suggestionCode("DOC", prepared.Candidate.Fingerprint), Name: boundedTitle(prepared.Candidate.Statement),
+			Type: programType, OwningFunction: "Compliance", Jurisdiction: prepared.Candidate.Jurisdiction,
+			Scope: json.RawMessage(`{"source":"DOCUMENT_COVERAGE"}`), EffectiveFrom: now, ActorID: input.ActorID,
+		})
+		if commandErr != nil {
+			return ApplySuggestionResult{}, commandErr
+		}
+		objectType, objectID = "PROGRAM", program.Program.ID
+	default:
+		return ApplySuggestionResult{}, ErrInvalidReview
+	}
+	current, err := s.repo.Current(ctx, input.TenantID, input.DocumentID)
+	if err != nil {
+		return ApplySuggestionResult{}, err
+	}
+	if current.Version != input.ExpectedVersion {
+		return ApplySuggestionResult{}, ErrVersionConflict
+	}
+	for index := range current.Suggestions {
+		if current.Suggestions[index].ID == input.SuggestionID {
+			current.Suggestions[index].Status = SuggestionApplied
+			current.Suggestions[index].AppliedType = objectType
+			current.Suggestions[index].AppliedID = objectID
+		}
+	}
+	current.UpdatedAt = now
+	updated, err := s.repo.Review(ctx, current, current.Version)
+	if err != nil {
+		return ApplySuggestionResult{}, err
+	}
+	return ApplySuggestionResult{Assessment: updated, ObjectType: objectType, ObjectID: objectID}, nil
+}
+
 func (s *Service) Publish(ctx context.Context, event workflowruntime.OutboxEvent) error {
 	if s == nil || event.AggregateType != "DOCUMENT_IMPORT" {
 		return nil
@@ -223,6 +396,24 @@ func (s *Service) Publish(ctx context.Context, event workflowruntime.OutboxEvent
 		return nil
 	}
 	return err
+}
+
+func (s *Service) currentSuggestionContext(ctx context.Context, input ApplySuggestionInput) (Assessment, []ProgramSnapshot, error) {
+	current, err := s.repo.Current(ctx, strings.TrimSpace(input.TenantID), strings.TrimSpace(input.DocumentID))
+	if err != nil {
+		return Assessment{}, nil, err
+	}
+	if current.Version != input.ExpectedVersion {
+		return Assessment{}, nil, ErrVersionConflict
+	}
+	programs, hash, err := s.programSnapshots(ctx, input.TenantID)
+	if err != nil {
+		return Assessment{}, nil, err
+	}
+	if hash != current.ProgramSnapshotHash {
+		return Assessment{}, nil, ErrStaleAssessment
+	}
+	return current, programs, nil
 }
 
 func (s *Service) programSnapshots(ctx context.Context, tenant string) ([]ProgramSnapshot, string, error) {
@@ -411,6 +602,113 @@ func inferProgramType(document documentimport.Document) string {
 	default:
 		return ""
 	}
+}
+
+func paginateAssessment(value Assessment, cursor string, limit int) (Assessment, string, error) {
+	if limit <= 0 {
+		limit = 25
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	start := 0
+	if strings.TrimSpace(cursor) != "" {
+		raw, err := base64.RawURLEncoding.DecodeString(strings.TrimSpace(cursor))
+		if err != nil {
+			return Assessment{}, "", ErrInvalidCursor
+		}
+		parts := strings.SplitN(string(raw), "\x00", 2)
+		if len(parts) != 2 {
+			return Assessment{}, "", ErrInvalidCursor
+		}
+		ordinal, err := strconv.Atoi(parts[0])
+		if err != nil || ordinal < 0 || ordinal >= len(value.Candidates) || value.Candidates[ordinal].ID != parts[1] {
+			return Assessment{}, "", ErrInvalidCursor
+		}
+		start = ordinal + 1
+	}
+	end := start + limit
+	if end > len(value.Candidates) {
+		end = len(value.Candidates)
+	}
+	page := cloneAssessment(value)
+	page.Candidates = append([]Candidate(nil), value.Candidates[start:end]...)
+	visible := make(map[string]struct{}, len(page.Candidates))
+	for _, candidate := range page.Candidates {
+		visible[candidate.ID] = struct{}{}
+	}
+	page.Reviews = page.Reviews[:0]
+	for _, review := range value.Reviews {
+		if _, ok := visible[review.CandidateID]; ok {
+			page.Reviews = append(page.Reviews, review)
+		}
+	}
+	page.Suggestions = page.Suggestions[:0]
+	for _, suggestion := range value.Suggestions {
+		if _, ok := visible[suggestion.CandidateID]; ok {
+			page.Suggestions = append(page.Suggestions, suggestion)
+		}
+	}
+	next := ""
+	if end < len(value.Candidates) && end > 0 {
+		next = base64.RawURLEncoding.EncodeToString([]byte(strconv.Itoa(end-1) + "\x00" + value.Candidates[end-1].ID))
+	}
+	return page, next, nil
+}
+
+func suggestionCode(prefix, fingerprint string) string {
+	fingerprint = strings.ToUpper(strings.TrimSpace(fingerprint))
+	if len(fingerprint) > 8 {
+		fingerprint = fingerprint[:8]
+	}
+	if fingerprint == "" {
+		fingerprint = "REVIEW"
+	}
+	return strings.ToUpper(strings.TrimSpace(prefix)) + "-" + fingerprint
+}
+
+func boundedTitle(value string) string {
+	value = strings.TrimSpace(value)
+	runes := []rune(value)
+	if len(runes) <= 120 {
+		return value
+	}
+	return strings.TrimSpace(string(runes[:117])) + "..."
+}
+
+func sourceAnchor(documentID string, anchor documentimport.Anchor) string {
+	if anchor.Page > 0 {
+		return fmt.Sprintf("document:%s page:%d", documentID, anchor.Page)
+	}
+	return "document:" + documentID + " section:" + anchor.SectionID
+}
+
+func continuityModality(value string) string {
+	switch strings.ToUpper(strings.TrimSpace(value)) {
+	case "MUST_NOT":
+		return "MUST_NOT"
+	case "MAY":
+		return "MAY"
+	case "SHOULD":
+		return "SHOULD"
+	case "EXPECTED":
+		return "EXPECTED"
+	default:
+		return "MUST"
+	}
+}
+
+func latestRequirementID(program continuity.ProgramAggregate) string {
+	if len(program.Requirements) == 0 {
+		return ""
+	}
+	latest := program.Requirements[0]
+	for _, requirement := range program.Requirements[1:] {
+		if requirement.CreatedAt.After(latest.CreatedAt) || (requirement.CreatedAt.Equal(latest.CreatedAt) && requirement.ID > latest.ID) {
+			latest = requirement
+		}
+	}
+	return latest.ID
 }
 
 var _ workflowruntime.Publisher = (*Service)(nil)

@@ -47,7 +47,7 @@ func main() {
 		IdentityMode: cfg.IdentityMode, OIDCIssuer: cfg.OIDCIssuer,
 		Identity: authenticator, Federation: federationService, SCIM: services.SCIM, AccessAdmin: services.AccessAdmin,
 		CommandGuard: guard, Authority: services.Authority, Governance: services.Governance,
-		Evidence: services.Evidence, DocumentImports: services.DocumentImports,
+		Evidence: services.Evidence, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
 		Continuity: services.Continuity, Today: services.Today, Workflow: services.Workflow, Onboarding: services.Onboarding,
 		Autonomy: services.Autonomy, BankVerticals: services.BankVerticals, BackgroundJobs: services.BackgroundJobs,
 		MaxArtifactBytes: cfg.MaxArtifactBytes,

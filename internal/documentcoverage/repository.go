@@ -9,6 +9,7 @@ var (
 	ErrNotFound         = errors.New("document coverage assessment not found")
 	ErrVersionConflict  = errors.New("document coverage assessment version conflict")
 	ErrInvalidReview    = errors.New("invalid document coverage review")
+	ErrInvalidCursor    = errors.New("invalid document coverage cursor")
 	ErrStaleAssessment  = errors.New("document coverage assessment is stale")
 	ErrDocumentNotReady = errors.New("document extraction is not ready for coverage assessment")
 )

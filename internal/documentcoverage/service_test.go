@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -141,6 +142,77 @@ func TestServiceRejectsUnsupportedExtraction(t *testing.T) {
 	service := NewService(NewMemoryRepository(), documents, &serviceContinuity{})
 	if _, err := service.Process(context.Background(), document.TenantID, document.ID); !errors.Is(err, ErrDocumentNotReady) {
 		t.Fatalf("unsupported extraction must not invent coverage: %v", err)
+	}
+}
+
+func TestServicePaginatesCandidatesWithOpaqueCursor(t *testing.T) {
+	now := time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC)
+	documents := documentimport.NewMemoryRepository()
+	document := extractedCoverageDocument(now)
+	document.Proposals = nil
+	for index := 1; index <= 30; index++ {
+		statement := fmt.Sprintf("The regulated bank must retain compliance record %d for five years under rule %d.", index, index)
+		obligation := documentimport.ParseObligation(statement, "REQUIREMENT_CANDIDATE")
+		document.Proposals = append(document.Proposals, documentimport.Proposal{
+			ID: fmt.Sprintf("candidate-%02d", index), Kind: "REQUIREMENT_CANDIDATE", Statement: statement,
+			Anchor: documentimport.Anchor{SectionID: fmt.Sprintf("page-%d", index), Page: index, Quote: statement}, Obligation: &obligation,
+		})
+	}
+	document, _ = documents.Create(context.Background(), document)
+	service := NewService(NewMemoryRepository(), documents, &serviceContinuity{})
+	service.now = func() time.Time { return now }
+	if _, err := service.Process(context.Background(), document.TenantID, document.ID); err != nil {
+		t.Fatal(err)
+	}
+	first, err := service.Get(context.Background(), ReadInput{TenantID: document.TenantID, DocumentID: document.ID, PrincipalID: "reviewer-1", Limit: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(first.Candidates) != 10 || first.NextCursor == "" || first.Metrics.RequirementMapped.Denominator != 30 {
+		t.Fatalf("unexpected first page: candidates=%d cursor=%q metrics=%#v", len(first.Candidates), first.NextCursor, first.Metrics)
+	}
+	second, err := service.Get(context.Background(), ReadInput{TenantID: document.TenantID, DocumentID: document.ID, PrincipalID: "reviewer-1", Limit: 10, Cursor: first.NextCursor})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(second.Candidates) != 10 || second.Candidates[0].ID == first.Candidates[0].ID {
+		t.Fatalf("unexpected second page: %#v", second.Candidates)
+	}
+	if _, err := service.Get(context.Background(), ReadInput{TenantID: document.TenantID, DocumentID: document.ID, Cursor: "not-a-valid-cursor"}); !errors.Is(err, ErrInvalidCursor) {
+		t.Fatalf("expected invalid cursor, got %v", err)
+	}
+}
+
+func TestServiceAppliesCreateProgramSuggestionAsDraft(t *testing.T) {
+	now := time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC)
+	documents := documentimport.NewMemoryRepository()
+	document, _ := documents.Create(context.Background(), extractedCoverageDocument(now))
+	continuityService := continuity.NewService(continuity.NewMemoryRepository())
+	service := NewService(NewMemoryRepository(), documents, continuityService)
+	service.now = func() time.Time { return now }
+	assessment, err := service.Process(context.Background(), document.TenantID, document.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(assessment.Suggestions) != 1 || assessment.Suggestions[0].Type != SuggestionCreateProgram {
+		t.Fatalf("expected a create Program suggestion, got %#v", assessment.Suggestions)
+	}
+	result, err := service.ApplySuggestion(context.Background(), ApplySuggestionInput{
+		TenantID: document.TenantID, LegalEntityID: document.LegalEntityID, DocumentID: document.ID,
+		SuggestionID: assessment.Suggestions[0].ID, ExpectedVersion: assessment.Version, ActorID: "reviewer-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.ObjectType != "PROGRAM" || result.ObjectID == "" || result.Assessment.Version != 2 || result.Assessment.Suggestions[0].Status != SuggestionApplied {
+		t.Fatalf("unexpected applied suggestion result: %#v", result)
+	}
+	program, err := continuityService.GetProgram(context.Background(), document.TenantID, result.ObjectID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if program.Program.Status != continuity.ProgramDraft || program.Program.LegalEntityID != document.LegalEntityID {
+		t.Fatalf("suggestion must create a scoped draft Program: %#v", program.Program)
 	}
 }
 

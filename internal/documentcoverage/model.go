@@ -260,3 +260,26 @@ type ReadInput struct {
 	Cursor        string
 	Limit         int
 }
+
+type PreparedSuggestion struct {
+	AssessmentVersion int64      `json:"assessment_version"`
+	Suggestion        Suggestion `json:"suggestion"`
+	Candidate         Candidate  `json:"candidate"`
+	Match             *Match     `json:"match,omitempty"`
+	ProgramVersion    int64      `json:"program_version,omitempty"`
+}
+
+type ApplySuggestionInput struct {
+	TenantID        string
+	LegalEntityID   string
+	DocumentID      string
+	SuggestionID    string
+	ExpectedVersion int64
+	ActorID         string
+}
+
+type ApplySuggestionResult struct {
+	Assessment Assessment `json:"assessment"`
+	ObjectType string     `json:"object_type,omitempty"`
+	ObjectID   string     `json:"object_id,omitempty"`
+}
