@@ -1,4 +1,4 @@
-import type { DocumentImport, ProposalStatus } from "./documentTypes";
+import type { CoverageDecision, DocumentCoverage, DocumentImport, ProposalStatus } from "./documentTypes";
 
 export const staticDemoEnabled = import.meta.env.VITE_STATIC_DEMO === "true";
 
@@ -96,6 +96,35 @@ let document: DocumentImport = {
   id: "document-gaid", tenant_id: "bank-demo", legal_entity_id: "bank-ng", file_name: "gaid-annual-return-notice.docx", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", purpose: "Assess updated annual return requirements", source_type: "REGULATORY", size_bytes: 186420, sha256: "c6c882f6f0a23c3b7aa213a7ddab2b62d2fa86289d5378a430da356228b551d8", storage_key: "document-imports/bank-demo/document-gaid/gaid-annual-return-notice.docx", artifact_status: "STORED_UNSCANNED", extraction_status: "EXTRACTED", extraction_method: "DOCX_XML_V1", analysis_status: "REVIEW_REQUIRED", analysis_method: "DETERMINISTIC_RULES_V1", limitations: ["This stakeholder deployment uses retained reference data; no original customer or bank document is present.", "Analysis proposals require human review and do not create a legal interpretation or compliance conclusion."], sections: [{ id: "section-return", sequence: 1, title: "Annual return requirements", text: "The institution must maintain an accountable owner and authoritative source for every required annual return section. The completed return shall be reviewed before filing." }], proposals: [{ id: "proposal-owner", kind: "REQUIREMENT_CANDIDATE", title: "Possible requirement", statement: "The institution must maintain an accountable owner and authoritative source for every required annual return section.", confidence: .86, anchor: { section_id: "section-return", quote: "The institution must maintain an accountable owner and authoritative source for every required annual return section." }, status: "PENDING_REVIEW" }], created_by: "role-cro", created_at: now, updated_at: now, version: 1,
 };
 
+let documentCoverage: DocumentCoverage = {
+  id: "coverage-gaid", tenant_id: "bank-demo", legal_entity_id: "bank-ng", document_id: document.id, document_sha256: document.sha256,
+  status: "READY", analyzer_version: "STRUCTURED_OBLIGATION_V1", matcher_version: "EXPLAINABLE_MATCHER_V1", scoring_policy_version: "COVERAGE_POLICY_V1",
+  program_snapshot_hash: "static-program-snapshot-v1", version: 1, assessed_at: now, updated_at: now, next_cursor: "", limitations: ["Extracted obligations require human review before coverage is verified."],
+  metrics: {
+    estimated_verified: { numerator: 0, denominator: 2 }, verified: { numerator: 0, denominator: 2 },
+    requirement_mapped: { numerator: 1, denominator: 2 }, control_implemented: { numerator: 1, denominator: 2 }, evidence_supported: { numerator: 0, denominator: 2 },
+  },
+  candidates: [{
+    id: "coverage-owner", fingerprint: "gaid-owner", eligible: true,
+    statement: "The institution must maintain an accountable owner and authoritative source for every required annual return section.",
+    anchor: { section_id: "section-return", page: 3, quote: "The institution must maintain an accountable owner and authoritative source for every required annual return section." },
+    modality: "MUST", actor: "the institution", action: "maintain", object: "an accountable owner and authoritative source", citations: ["GAID 2025 annual return"], dates: [], topics: ["governance", "records"], uncertainty: [], jurisdiction: "Nigeria", regulator: "Nigeria Data Protection Commission", program_type: "PRIVACY", classification: "MAPPED_NO_CURRENT_EVIDENCE",
+    matches: [{
+      id: "match-owner", program_id: programID, program_code: "NDPA", program_name: "Nigeria Data Protection Programme", program_version: 12,
+      requirement_id: "req-1", requirement_code: "NDPA-RET-01", requirement_title: "Maintain accountable data-processing governance", requirement_version: 1,
+      score: .89, band: "STRONG", rationale: "The obligation and approved requirement share the same accountable-owner, source-record and Nigerian privacy scope.", conflicts: [],
+      components: [{ name: "SEMANTIC", weight: .35, score: .94, reason: "Accountable ownership and authoritative records align." }, { name: "SCOPE", weight: .3, score: 1, reason: "Both apply to the same Nigerian legal entity and privacy Program." }, { name: "MODALITY", weight: .2, score: 1, reason: "Both are mandatory obligations." }, { name: "CITATION", weight: .15, score: .55, reason: "The source families differ but address the same governance duty." }],
+      coverage: { requirement_id: "req-1", applicability: "APPLICABLE", applicable: true, control_implemented: true, evidence_supported: false, complete: false, control_ids: ["control-1"], evidence_contract_ids: ["contract-training"], reasons: ["EVIDENCE_NOT_ASSESSED"] },
+    }],
+  }, {
+    id: "coverage-review", fingerprint: "gaid-review", eligible: true,
+    statement: "The completed return shall be reviewed before filing.", anchor: { section_id: "section-return", page: 3, quote: "The completed return shall be reviewed before filing." },
+    modality: "MUST", actor: "the institution", action: "review", object: "the completed return", citations: ["GAID 2025 annual return"], dates: ["before filing"], topics: ["review", "filing"], uncertainty: [], jurisdiction: "Nigeria", regulator: "Nigeria Data Protection Commission", program_type: "PRIVACY", classification: "GAP", matches: [],
+  }],
+  suggestions: [{ id: "suggestion-review", candidate_id: "coverage-review", type: "ADD_REQUIREMENT", status: "PROPOSED", title: "Add the pre-filing review requirement", rationale: "The privacy Program is in scope, but no approved requirement captures this review-before-filing duty.", program_id: programID }],
+  matters: [{ candidate_id: "coverage-owner", matter_id: matterID, reference: matter.reference, type: matter.type, status: matter.status, title: matter.title, summary: matter.summary, score: .82 }],
+};
+
 const guide = { code: "executive-first-run", profile: "executive", role: "Executive risk or compliance leader", version: 1, title: "Read the operating brief", description: "Distinguish current status from unknown, stale, at-risk and overdue work without opening several dashboards.", illustration: "guided-orbit", steps: [
   { id: "brief", title: "Start with what needs attention", description: "Today separates assigned work, due items and readiness so an empty count is never mistaken for a complete population.", action: "Review Today", view: "today", target: "today-brief" },
   { id: "attention", title: "Open one material record", description: "Move from the brief to the exact Program, issue or evidence request instead of a generic dashboard.", action: "Open first item", view: "today", target: "attention-list", intent: "open-first-attention" },
@@ -157,6 +186,27 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/compliance/automation-policies") return clone({ items: [] }) as T;
   if (pathname === "/api/v1/bank-journeys") return clone({ items: [], sample: true }) as T;
   if (pathname === "/api/v1/document-imports") return method === "POST" ? clone(document) as T : clone({ items: [document] }) as T;
+  if (pathname === `/api/v1/document-imports/${document.id}/coverage` && method === "GET") return clone(documentCoverage) as T;
+  if (pathname === `/api/v1/document-imports/${document.id}/coverage/review` && method === "POST") {
+    const input = parseBody(init) as { expected_version?: number; decisions?: Array<{ candidate_id?: string; decision?: CoverageDecision; match_id?: string; reason?: string }> };
+    if (input.expected_version !== documentCoverage.version) throw new StaticDemoHTTPError(409, "version_conflict", "The coverage assessment changed while it was being reviewed.");
+    const decisions = input.decisions ?? [];
+    documentCoverage = {
+      ...documentCoverage, version: documentCoverage.version + 1, updated_at: now,
+      candidates: documentCoverage.candidates.map((candidate) => {
+        const decision = decisions.find((item) => item.candidate_id === candidate.id);
+        return decision?.decision ? { ...candidate, classification: decision.decision === "NOT_APPLICABLE" ? "NOT_APPLICABLE" : candidate.classification, review: { decision: decision.decision, match_id: decision.match_id, reason: decision.reason, reviewer_id: "role-cro", reviewed_at: now } } : candidate;
+      }),
+    };
+    return clone(documentCoverage) as T;
+  }
+  if (pathname === `/api/v1/document-imports/${document.id}/coverage/recompare` && method === "POST") return clone({ status: "QUEUED" }) as T;
+  if (pathname.includes(`/api/v1/document-imports/${document.id}/coverage/suggestions/`) && pathname.endsWith("/apply") && method === "POST") {
+    const input = parseBody(init) as { expected_version?: number };
+    if (input.expected_version !== documentCoverage.version) throw new StaticDemoHTTPError(409, "version_conflict", "The coverage assessment changed while the recommendation was being applied.");
+    documentCoverage = { ...documentCoverage, version: documentCoverage.version + 1, updated_at: now, suggestions: documentCoverage.suggestions.map((suggestion) => ({ ...suggestion, status: "APPLIED", applied_type: "REQUIREMENT", applied_id: "req-gaid-review-draft" })) };
+    return clone({ assessment: documentCoverage, object_type: "REQUIREMENT", object_id: "req-gaid-review-draft" }) as T;
+  }
   if (pathname === `/api/v1/document-imports/${document.id}`) return clone(document) as T;
   if (pathname.includes(`/api/v1/document-imports/${document.id}/proposals/`) && method === "POST") {
     const body = parseBody(init) as { status?: ProposalStatus; note?: string };
