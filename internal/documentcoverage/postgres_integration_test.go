@@ -35,16 +35,30 @@ func TestPostgresCoverageRoundTripReviewConflictAndQueue(t *testing.T) {
 	)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
-	if _, err := pool.Exec(ctx, `
-		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'coverage-postgres-test','Coverage PostgreSQL Test');
-		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($2::uuid,$1::uuid,'NG','Nigeria Entity','Nigeria');
-		INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($3::uuid,$1::uuid,'PERSON','Coverage Reviewer');
-		INSERT INTO document_imports(
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback(context.Background()) }()
+	setup := []struct {
+		query string
+		args  []any
+	}{
+		{`INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'coverage-postgres-test','Coverage PostgreSQL Test')`, []any{tenantID}},
+		{`INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($2::uuid,$1::uuid,'NG','Nigeria Entity','Nigeria')`, []any{tenantID, legalEntityID}},
+		{`INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($2::uuid,$1::uuid,'PERSON','Coverage Reviewer')`, []any{tenantID, principalID}},
+		{`INSERT INTO document_imports(
 			id,tenant_id,legal_entity_id,file_name,media_type,purpose,source_type,size_bytes,sha256,storage_key,
 			artifact_status,extraction_status,extraction_method,analysis_status,analysis_method,created_by)
 		VALUES($4::uuid,$1::uuid,$2::uuid,'ndpc.pdf','application/pdf','Coverage review','REGULATORY',100,
-		       repeat('a',64),'document-imports/test/ndpc.pdf','STORED_UNSCANNED','EXTRACTED','POPPLER_TEXT_V1','REVIEW_REQUIRED','STRUCTURED_OBLIGATION_V1',$3::uuid)`,
-		tenantID, legalEntityID, principalID, documentID); err != nil {
+		       repeat('a',64),'document-imports/test/ndpc.pdf','STORED_UNSCANNED','EXTRACTED','POPPLER_TEXT_V1','REVIEW_REQUIRED','STRUCTURED_OBLIGATION_V1',$3::uuid)`, []any{tenantID, legalEntityID, principalID, documentID}},
+	}
+	for _, statement := range setup {
+		if _, err := tx.Exec(ctx, statement.query, statement.args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
 
