@@ -438,7 +438,7 @@ func (s *Service) programSnapshots(ctx context.Context, tenant string) ([]Progra
 			if requirement.Status != continuity.RequirementApproved {
 				continue
 			}
-			parsed := documentimport.ParseObligation(requirement.Statement, "REQUIREMENT_CANDIDATE")
+			parsed := documentimport.ParseObligation(strings.TrimSpace(requirement.Statement+" "+requirement.SourceAnchor), "REQUIREMENT_CANDIDATE")
 			program.Requirements = append(program.Requirements, RequirementTarget{
 				ID: requirement.ID, Code: requirement.Code, Title: requirement.Title, Statement: requirement.Statement,
 				SourceAnchor: requirement.SourceAnchor, Status: requirement.Status, Version: requirement.Version,

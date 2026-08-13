@@ -13,14 +13,14 @@ var (
 	obligationToken      = regexp.MustCompile(`[a-z0-9]+`)
 	citationPattern      = regexp.MustCompile(`\b(?:section|article|regulation|paragraph|rule|part)\s+[a-z0-9][a-z0-9().-]*`)
 	boundedTimePattern   = regexp.MustCompile(`\bwithin\s+\d+\s+(?:(?:business|calendar)\s+)?(?:hours?|days?|weeks?|months?|years?)\b`)
-	deadlinePattern      = regexp.MustCompile(`\b(?:annually|quarterly|monthly|weekly|daily|no later than\s+[^,.;]{1,48})\b`)
+	deadlinePattern      = regexp.MustCompile(`\b(?:annually|quarterly|monthly|weekly|daily|no later than\s+[^,.;]{1,48}|before\s+\d{1,2}(?:st|nd|rd|th)?\s+[a-z]+|deadline\s+for\s+[^,.;]{1,64})\b`)
 	leadingArticle       = regexp.MustCompile(`^(?:a|an|the)\s+`)
 	modalityPatterns     = []struct {
 		value string
 		rx    *regexp.Regexp
 	}{
 		{value: "MUST_NOT", rx: regexp.MustCompile(`\b(?:must\s+not|shall\s+not)\b`)},
-		{value: "MUST", rx: regexp.MustCompile(`\b(?:must|shall|is\s+required\s+to|are\s+required\s+to)\b`)},
+		{value: "MUST", rx: regexp.MustCompile(`\b(?:must|shall|is\s+required\s+to|are\s+required\s+to|is\s+to|are\s+to)\b`)},
 		{value: "SHOULD", rx: regexp.MustCompile(`\bshould\b`)},
 		{value: "EXPECTED", rx: regexp.MustCompile(`\b(?:is|are)\s+expected\s+to\b`)},
 		{value: "MAY", rx: regexp.MustCompile(`\bmay\b`)},

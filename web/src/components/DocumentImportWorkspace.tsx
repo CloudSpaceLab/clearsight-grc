@@ -261,12 +261,13 @@ function DocumentInspector({ document, coverage, coverageActionID, coverageNotic
   const contentTruncated = document.content_truncated ?? false;
   const storedOnly = document.extraction_status === "UNSUPPORTED";
   const stateLabel = storedOnly ? "Original stored" : human(document.extraction_status);
-  const coveragePending = coverage?.candidates.filter((candidate) => !candidate.review).length ?? 0;
-  const terminalLabel = document.extraction_status === "FAILED" ? "Extraction failed" : storedOnly ? "Text review unavailable" : coverage ? `${coveragePending} obligation${coveragePending === 1 ? "" : "s"} to review` : pending.length ? `${pending.length} to review` : "No review pending";
+  const coveragePending = coverage?.candidates.filter((candidate) => candidate.eligible && !candidate.review).length ?? 0;
+  const coverageTotal = coverage?.metrics.verified.denominator ?? 0;
+  const terminalLabel = document.extraction_status === "FAILED" ? "Extraction failed" : storedOnly ? "Text review unavailable" : coverage ? `${coverageTotal} eligible obligation${coverageTotal === 1 ? "" : "s"}` : pending.length ? `${pending.length} to review` : "No review pending";
 
   return <article className="document-import-inspector">
     <header><div><span className="eyebrow">{human(document.source_type)}</span><h2>{document.file_name}</h2><p>{document.purpose}</p></div><div className="document-state"><span>{stateLabel}</span><strong>{processing ? "Processing stored source" : terminalLabel}</strong></div></header>
-    <div className="import-review-summary" aria-label="Import review summary">{coverage ? <><span><strong>{coverage.metrics.verified.denominator}</strong> eligible obligations</span><span><strong>{coveragePending}</strong> awaiting coverage review</span><span><strong>{document.sections.length}</strong> of {sectionsTotal} source sections retained</span></> : <><span><strong>{pending.length}</strong> to review</span><span><strong>{reviewed.length}</strong> reviewed</span><span><strong>{document.sections.length}</strong> of {sectionsTotal} source sections retained</span></>}</div>
+    <div className="import-review-summary" aria-label="Import review summary">{coverage ? <><span><strong>{coverage.metrics.verified.denominator}</strong> eligible obligations</span><span><strong>{coveragePending}</strong> loaded for review</span><span><strong>{document.sections.length}</strong> of {sectionsTotal} source sections retained</span></> : <><span><strong>{pending.length}</strong> to review</span><span><strong>{reviewed.length}</strong> reviewed</span><span><strong>{document.sections.length}</strong> of {sectionsTotal} source sections retained</span></>}</div>
     {processing && <section className="workspace-loading" aria-live="polite" aria-busy="true"><strong>Original stored successfully.</strong><p>Extraction and analysis are running in the background. This page will update when processing completes.</p></section>}
     {!processing && coverage && <CoverageAssessment coverage={coverage} actionID={coverageActionID} notice={coverageNotice} onReview={onCoverageReview} onApply={onApplySuggestion} onRecompare={onRecompare} onLoadMore={onLoadMore}/>}
     {document.limitations.length > 0 && <section className="document-limitations"><h3>Important limitations</h3>{document.limitations.map((item) => <p key={item}>{item}</p>)}</section>}
@@ -294,7 +295,7 @@ function CoverageAssessment({ coverage, actionID, notice, onReview, onApply, onR
   const denominator = coverage.metrics.verified.denominator;
   const verified = coverage.metrics.verified.numerator;
   const estimated = coverage.metrics.estimated_verified.numerator;
-  const candidates = coverage.candidates.filter((candidate) => {
+  const candidates = coverage.candidates.filter((candidate) => candidate.eligible).filter((candidate) => {
     if (filter === "REVIEW") return !candidate.review;
     if (filter === "GAPS") return candidate.classification === "GAP" || candidate.classification === "MAPPED_CONTROL_GAP" || candidate.classification === "MAPPED_NO_CURRENT_EVIDENCE";
     if (filter === "COVERED") return candidate.classification === "VERIFIED_COVERAGE";

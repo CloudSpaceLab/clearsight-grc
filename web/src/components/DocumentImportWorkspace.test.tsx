@@ -59,6 +59,10 @@ const coverageRecord: DocumentCoverage = {
     statement: "The bank must notify the regulator within 72 hours.", anchor: { section_id: "section-notice", quote: "The bank must notify the regulator within 72 hours.", page: 8 },
     modality: "MUST", actor: "the bank", action: "notify", object: "the regulator", citations: [], dates: ["72 hours"], topics: ["notification"], uncertainty: [],
     jurisdiction: "Nigeria", classification: "GAP", matches: [],
+  }, {
+    id: "coverage-context", fingerprint: "context", eligible: false,
+    statement: "Nigeria Data Protection Act", anchor: { section_id: "heading", quote: "Nigeria Data Protection Act", page: 1 },
+    citations: [], dates: [], topics: [], uncertainty: [], classification: "NEEDS_REVIEW", matches: [],
   }],
   suggestions: [{ id: "suggestion-1", candidate_id: "coverage-candidate-2", type: "CREATE_PROGRAM", status: "PROPOSED", title: "Create a notification Program", rationale: "No in-scope Program covers this obligation." }],
   matters: [],
@@ -123,6 +127,7 @@ describe("DocumentImportWorkspace", () => {
     expect(screen.getByText("Nigeria data protection")).toBeTruthy();
     expect(screen.getByText(/page 7/i)).toBeTruthy();
     expect(screen.getByText(/Strong source, topic and obligation-language alignment/i)).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Nigeria Data Protection Act" })).toBeNull();
   });
 
   it("confirms a proposed Program match using the current assessment version", async () => {

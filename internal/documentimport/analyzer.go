@@ -8,7 +8,11 @@ import (
 	"unicode"
 )
 
-var sentenceBoundary = regexp.MustCompile(`(?m)([^.!?\n]+[.!?]?)`)
+var enumeratedLine = regexp.MustCompile(`(?i)^(?:[-*•▪]\s+|\(?[a-zivx]+\)\s+|\d+(?:\.\d+)*[.)]\s+)`)
+
+var regulatorAction = regexp.MustCompile(`(?i)^\s*(?:\(?[a-zivx]+\)?[.)]\s+)?(?:the\s+)?commission\s+(?:must|shall|should|is\s+(?:required\s+)?to)\b`)
+var danglingListLead = regexp.MustCompile(`(?i):\s*[ivx]+[.]?$`)
+var bareEnumeratedModality = regexp.MustCompile(`(?i)^\s*\(?[a-zivx]+\)?[.)]\s+(?:must|shall|should|is\s+(?:required\s+)?to|are\s+(?:required\s+)?to)\b`)
 
 type AnalysisResult struct {
 	Proposals []Proposal
@@ -27,7 +31,7 @@ func AnalyzeBounded(sections []Section, maximum int) AnalysisResult {
 	result := AnalysisResult{Proposals: make([]Proposal, 0, min(maximum, 64))}
 	seen := map[string]struct{}{}
 	for _, section := range sections {
-		for _, match := range sentenceBoundary.FindAllString(section.Text, -1) {
+		for _, match := range analysisStatements(section.Text) {
 			statement := strings.TrimSpace(match)
 			if len(statement) < 18 || len(statement) > 1200 {
 				continue
@@ -83,7 +87,17 @@ func classify(statement string) (string, float64) {
 		return false
 	}
 	switch {
-	case contains(" must ", " shall ", " is required to ", " are required to ", " required by ", " obligation "):
+	case strings.HasPrefix(strings.TrimSpace(strings.ToLower(statement)), "whereas"):
+		return "AUTHORITY_REFERENCE", 0.84
+	case regulatorAction.MatchString(statement):
+		return "AUTHORITY_REFERENCE", 0.84
+	case bareEnumeratedModality.MatchString(statement):
+		return "AUTHORITY_REFERENCE", 0.72
+	case contains(" enforcement order", " sanction ", " penalty ", " maximum amount", " gross revenue", " default fee"):
+		return "RISK_SIGNAL", 0.84
+	case danglingListLead.MatchString(strings.TrimSpace(statement)):
+		return "AUTHORITY_REFERENCE", 0.65
+	case contains(" must ", " shall ", " should ", " is required to ", " are required to ", " is to ", " are to ", " required by ", " obligation "):
 		return "REQUIREMENT_CANDIDATE", 0.86
 	case contains(" within ", " no later than ", " deadline ", " business days", " calendar days", " annually", " quarterly", " monthly"):
 		return "DEADLINE_CANDIDATE", 0.80
@@ -96,6 +110,99 @@ func classify(statement string) (string, float64) {
 	default:
 		return "", 0
 	}
+}
+
+// analysisStatements reconstructs logical prose before sentence analysis.
+// Layout-preserving PDF extraction intentionally retains printed line wraps;
+// those wraps are not semantic boundaries and must not become obligations.
+func analysisStatements(value string) []string {
+	lines := strings.Split(normalizeText(value), "\n")
+	paragraphs := make([]string, 0, len(lines)/2+1)
+	var current strings.Builder
+	flush := func() {
+		text := strings.TrimSpace(current.String())
+		current.Reset()
+		if text != "" {
+			paragraphs = append(paragraphs, text)
+		}
+	}
+	for _, raw := range lines {
+		line := strings.Join(strings.Fields(raw), " ")
+		if line == "" {
+			flush()
+			continue
+		}
+		if analysisHeading(line) {
+			flush()
+			continue
+		}
+		if enumeratedLine.MatchString(line) && current.Len() > 0 {
+			flush()
+		}
+		if current.Len() > 0 {
+			text := current.String()
+			if strings.HasSuffix(text, "-") && len(line) > 0 && unicode.IsLower(rune(line[0])) {
+				current.WriteString(line)
+			} else {
+				current.WriteByte(' ')
+				current.WriteString(line)
+			}
+		} else {
+			current.WriteString(line)
+		}
+		if strings.HasSuffix(line, ".") || strings.HasSuffix(line, "?") || strings.HasSuffix(line, "!") || strings.HasSuffix(line, ";") {
+			flush()
+		}
+	}
+	flush()
+
+	statements := make([]string, 0, len(paragraphs))
+	for _, paragraph := range paragraphs {
+		statements = append(statements, splitAnalysisSentences(paragraph)...)
+	}
+	return statements
+}
+
+func splitAnalysisSentences(paragraph string) []string {
+	statements := make([]string, 0, 2)
+	start := 0
+	for index := 0; index < len(paragraph); index++ {
+		character := paragraph[index]
+		if character != '.' && character != '!' && character != '?' {
+			continue
+		}
+		if character == '.' && index > 0 && index+1 < len(paragraph) && paragraph[index-1] >= '0' && paragraph[index-1] <= '9' && paragraph[index+1] >= '0' && paragraph[index+1] <= '9' {
+			continue
+		}
+		statement := strings.TrimSpace(paragraph[start : index+1])
+		if statement != "" {
+			statements = append(statements, statement)
+		}
+		start = index + 1
+	}
+	if remainder := strings.TrimSpace(paragraph[start:]); remainder != "" {
+		statements = append(statements, remainder)
+	}
+	return statements
+}
+
+func analysisHeading(value string) bool {
+	value = strings.TrimSpace(value)
+	value = strings.TrimSpace(enumeratedLine.ReplaceAllString(value, ""))
+	if value == "" || len(value) > 160 || strings.ContainsAny(value, ".!?;") {
+		return false
+	}
+	letters, upper := 0, 0
+	for _, character := range value {
+		if !unicode.IsLetter(character) {
+			continue
+		}
+		letters++
+		if unicode.IsUpper(character) {
+			upper++
+		}
+	}
+	return letters >= 4 && float64(upper)/float64(letters) >= .8
 }
 
 func proposalTitle(kind string) string {

@@ -90,14 +90,14 @@ func hardScopeConflict(candidate Candidate, program ProgramSnapshot) bool {
 
 func scoreComponents(candidate Candidate, program ProgramSnapshot, requirement RequirementTarget) []ScoreComponent {
 	citation := similarity(candidate.Citations, requirement.Citations)
-	if len(candidate.Citations) == 0 && len(requirement.Citations) == 0 {
-		citation = codeCitationSimilarity(candidate, requirement)
+	if instrument := instrumentSimilarity(candidate, program, requirement); instrument > citation {
+		citation = instrument
 	}
-	candidateTerms := append(append(append([]string{}, candidate.Topics...), candidate.Action), candidate.Object)
-	targetTerms := append(append(append([]string{}, requirement.Topics...), requirement.Action), requirement.Object)
-	content := similarity(tokenize(strings.Join(candidateTerms, " ")), tokenize(strings.Join(targetTerms, " ")))
+	candidateTerms := append(append(append([]string{candidate.Statement}, candidate.Topics...), candidate.Action), candidate.Object)
+	targetTerms := append(append(append([]string{requirement.Title, requirement.Statement, requirement.SourceAnchor}, requirement.Topics...), requirement.Action), requirement.Object)
+	content := semanticSimilarity(candidateTerms, targetTerms)
 	scopeParts := []float64{}
-	scopeParts = append(scopeParts, compatibleField(candidate.Actor, requirement.Actor))
+	scopeParts = append(scopeParts, compatibleActor(candidate.Actor, requirement.Actor, program.Type))
 	scopeParts = append(scopeParts, compatibleField(candidate.Jurisdiction, program.Jurisdiction))
 	scopeParts = append(scopeParts, compatibleField(candidate.ProgramType, program.Type))
 	scope := averageKnown(scopeParts)
@@ -153,17 +153,49 @@ func tokenize(value string) []string {
 		if len(value) < 3 {
 			continue
 		}
-		if _, stop := matchStopWords[value]; stop {
-			continue
+		for _, token := range canonicalTokens(value) {
+			if _, stop := matchStopWords[token]; stop {
+				continue
+			}
+			if _, ok := seen[token]; ok {
+				continue
+			}
+			seen[token] = struct{}{}
+			result = append(result, token)
 		}
-		if _, ok := seen[value]; ok {
-			continue
-		}
-		seen[value] = struct{}{}
-		result = append(result, value)
 	}
 	sort.Strings(result)
 	return result
+}
+
+func canonicalTokens(value string) []string {
+	switch value {
+	case "car":
+		return []string{"car", "compliance", "audit", "return"}
+	case "ndpa":
+		return []string{"ndpa", "nigeria", "data", "protection", "act"}
+	case "ndpr":
+		return []string{"ndpr", "nigeria", "data", "protection", "regulation"}
+	case "gaid":
+		return []string{"gaid", "general", "application", "implementation", "directive"}
+	case "annually":
+		return []string{"annual"}
+	case "filed", "files", "filing":
+		return []string{"file"}
+	case "needed":
+		return []string{"need"}
+	case "required":
+		return []string{"require"}
+	case "reviewed", "reviewing", "reviews":
+		return []string{"review"}
+	}
+	if len(value) > 4 && strings.HasSuffix(value, "ies") {
+		return []string{strings.TrimSuffix(value, "ies") + "y"}
+	}
+	if len(value) > 3 && strings.HasSuffix(value, "s") && !strings.HasSuffix(value, "ss") && !strings.HasSuffix(value, "us") && !strings.HasSuffix(value, "is") {
+		return []string{strings.TrimSuffix(value, "s")}
+	}
+	return []string{value}
 }
 
 func similarity(left, right []string) float64 {
@@ -185,6 +217,34 @@ func similarity(left, right []string) float64 {
 	return float64(2*intersection) / float64(len(leftTokens)+len(rightTokens))
 }
 
+func semanticSimilarity(left, right []string) float64 {
+	leftTokens := tokenize(strings.Join(left, " "))
+	rightTokens := tokenize(strings.Join(right, " "))
+	if len(leftTokens) == 0 || len(rightTokens) == 0 {
+		return 0
+	}
+	rightSet := make(map[string]struct{}, len(rightTokens))
+	for _, value := range rightTokens {
+		rightSet[value] = struct{}{}
+	}
+	intersection := 0
+	for _, value := range leftTokens {
+		if _, ok := rightSet[value]; ok {
+			intersection++
+		}
+	}
+	denominator := len(leftTokens)
+	if len(rightTokens) < denominator {
+		denominator = len(rightTokens)
+	}
+	containment := float64(intersection) / float64(denominator)
+	dice := float64(2*intersection) / float64(len(leftTokens)+len(rightTokens))
+	if containment > dice {
+		return containment
+	}
+	return dice
+}
+
 func compatibleField(left, right string) float64 {
 	if strings.TrimSpace(left) == "" || strings.TrimSpace(right) == "" {
 		return -1
@@ -193,6 +253,30 @@ func compatibleField(left, right string) float64 {
 		return 1
 	}
 	return similarity(tokenize(left), tokenize(right))
+}
+
+func compatibleActor(left, right, programType string) float64 {
+	if strings.TrimSpace(left) == "" || strings.TrimSpace(right) == "" {
+		return -1
+	}
+	if normalizeText(programType) == "privacy" {
+		leftRole := isPrivacyOrganizationActor(left)
+		rightRole := isPrivacyOrganizationActor(right)
+		if leftRole && rightRole {
+			return 1
+		}
+	}
+	return compatibleField(left, right)
+}
+
+func isPrivacyOrganizationActor(value string) bool {
+	value = normalizeText(value)
+	for _, role := range []string{"bank", "company", "data controller", "data processor", "organization", "organisation"} {
+		if strings.Contains(value, role) {
+			return true
+		}
+	}
+	return false
 }
 
 func averageKnown(values []float64) float64 {
@@ -210,10 +294,13 @@ func averageKnown(values []float64) float64 {
 	return total / float64(count)
 }
 
-func codeCitationSimilarity(candidate Candidate, requirement RequirementTarget) float64 {
-	terms := tokenize(candidate.Statement)
-	code := tokenize(requirement.Code + " " + requirement.SourceAnchor)
-	return similarity(terms, code)
+func instrumentSimilarity(candidate Candidate, program ProgramSnapshot, requirement RequirementTarget) float64 {
+	left := []string{candidate.Statement, strings.Join(candidate.Citations, " "), candidate.Regulator}
+	right := []string{
+		program.Code, program.Name, program.Regulator,
+		requirement.Code, requirement.SourceAnchor, strings.Join(requirement.Citations, " "),
+	}
+	return semanticSimilarity(left, right)
 }
 
 func scoreReason(score float64, label string) string {

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 )
 
 func TestMatchCandidateRejectsCrossJurisdictionKeywordOverlap(t *testing.T) {
@@ -58,5 +59,45 @@ func TestMatchCandidateReturnsExplainableStrongMatch(t *testing.T) {
 func TestMatchCandidateThresholdBands(t *testing.T) {
 	if matchBand(StrongMatchThreshold) != MatchStrong || matchBand(PossibleMatchThreshold) != MatchPossible || matchBand(PossibleMatchThreshold-.01) != MatchWeak {
 		t.Fatalf("threshold bands changed")
+	}
+}
+
+func TestMatchCandidateRecognizesOfficialCARWording(t *testing.T) {
+	statement := "Data Controllers and Data Processors are to rely on Articles 4.1(5) and (7) of the NDPR to file CAR with the Commission."
+	parsed := documentimport.ParseObligation(statement, "REQUIREMENT_CANDIDATE")
+	candidate := Candidate{
+		ID: "candidate-car", Fingerprint: parsed.Fingerprint, Eligible: true, Statement: statement,
+		Modality: parsed.Modality, Actor: parsed.Actor, Action: parsed.Action, Object: parsed.Object,
+		Citations: parsed.Citations, Dates: parsed.Dates, Topics: parsed.Topics,
+		Jurisdiction: "Nigeria", ProgramType: "PRIVACY",
+	}
+	targetText := "The bank must maintain the records and independent review needed for its annual Compliance Audit Return. GAID 2025, Articles 10.7 and 10.8; filing before 31 March"
+	target := documentimport.ParseObligation(targetText, "REQUIREMENT_CANDIDATE")
+	program := ProgramSnapshot{
+		TenantID: "bank", ProgramID: "program-ndpa", Code: "NDPA-2023", Name: "Nigeria data protection",
+		Type: "PRIVACY", Status: continuity.ProgramActive, Jurisdiction: "Nigeria",
+		Requirements: []RequirementTarget{{
+			ID: "req-car", Code: "CAR-ANNUAL", Title: "Prepare the annual compliance audit return",
+			Statement:    "The bank must maintain the records and independent review needed for its annual Compliance Audit Return.",
+			SourceAnchor: "GAID 2025, Articles 10.7 and 10.8; filing before 31 March", Status: continuity.RequirementApproved,
+			Modality: "MUST", Actor: "Bank", Action: "Maintain", Object: "Prepare the annual compliance audit return",
+			Citations: target.Citations, Dates: target.Dates, Topics: target.Topics, Applicability: continuity.ApplicabilityApplicable,
+		}},
+	}
+	matches := MatchCandidate(candidate, []ProgramSnapshot{program})
+	if len(matches) != 1 || matches[0].Score < PossibleMatchThreshold {
+		t.Fatalf("official CAR wording should produce an explainable candidate match: %#v", matches)
+	}
+
+	unrelated := candidate
+	unrelated.ID = "candidate-penalty"
+	unrelated.Statement = "A person may be ordered to pay the standard maximum penalty."
+	unrelated.Action = "pay"
+	unrelated.Object = "standard maximum penalty"
+	unrelated.Topics = []string{"person", "penalty", "maximum", "pay"}
+	unrelated.Citations = nil
+	unrelated.Dates = nil
+	if matches := MatchCandidate(unrelated, []ProgramSnapshot{program}); len(matches) != 0 {
+		t.Fatalf("generic enforcement text must not map to the CAR requirement: %#v", matches)
 	}
 }

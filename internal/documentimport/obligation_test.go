@@ -56,3 +56,47 @@ func TestAnalyzeBoundedDeduplicatesNormalizedObligation(t *testing.T) {
 		t.Fatalf("expected one normalized obligation, total=%d proposals=%#v", result.Total, result.Proposals)
 	}
 }
+
+func TestAnalyzeBoundedReconstructsWrappedPDFObligations(t *testing.T) {
+	result := AnalyzeBounded([]Section{{
+		ID: "page-1", Page: 1,
+		Text: "WHEREAS, the Nigeria Data Protection Act 2023 preserves the\nfiling of Compliance Audit Returns, which is an\nobligation for data controllers and data processors under the regulation;\n\n1. RELIANCE ON NDPR FOR FILING OF CAR\nData Controllers and Data Processors are required to file\nCompliance Audit Returns with the Commission annually.",
+	}}, 10)
+	if len(result.Proposals) != 2 {
+		t.Fatalf("expected two complete source statements, got %#v", result.Proposals)
+	}
+	for _, proposal := range result.Proposals {
+		if proposal.Anchor.Page != 1 || len(proposal.Statement) < 70 {
+			t.Fatalf("layout line fragment escaped into analysis: %#v", proposal)
+		}
+	}
+	if result.Proposals[1].Statement != "Data Controllers and Data Processors are required to file Compliance Audit Returns with the Commission annually." {
+		t.Fatalf("wrapped requirement was not reconstructed: %q", result.Proposals[1].Statement)
+	}
+}
+
+func TestAnalyzeBoundedKeepsEnumeratedDutiesSeparate(t *testing.T) {
+	result := AnalyzeBounded([]Section{{
+		ID: "page-2", Page: 2,
+		Text: "a) Data Protection Compliance Organizations are to facilitate\nthe filing of CAR with the Commission.\nb) Data controllers shall retain evidence of the filing for five years.",
+	}}, 10)
+	if len(result.Proposals) != 2 {
+		t.Fatalf("expected separate enumerated duties, got %#v", result.Proposals)
+	}
+	if result.Proposals[0].Anchor.Quote == result.Proposals[1].Anchor.Quote {
+		t.Fatalf("enumerated duties were conflated: %#v", result.Proposals)
+	}
+}
+
+func TestAnalyzeBoundedDoesNotSplitDecimalArticleCitations(t *testing.T) {
+	result := AnalyzeBounded([]Section{{
+		ID: "page-1", Page: 1,
+		Text: "Data Controllers and Data Processors are to rely on Articles 4.1(5) and (7) of the NDPR to file CAR with the Commission.",
+	}}, 10)
+	if len(result.Proposals) != 1 || result.Proposals[0].Statement != "Data Controllers and Data Processors are to rely on Articles 4.1(5) and (7) of the NDPR to file CAR with the Commission." {
+		t.Fatalf("decimal citation was split: %#v", result.Proposals)
+	}
+	if result.Proposals[0].Obligation == nil || result.Proposals[0].Obligation.Modality != "MUST" {
+		t.Fatalf("prescriptive 'are to' wording was not structured: %#v", result.Proposals[0])
+	}
+}
