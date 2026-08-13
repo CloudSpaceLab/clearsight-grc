@@ -10,6 +10,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/documentcoverage"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
@@ -57,7 +58,8 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	evidenceWork := &workflow.EvidenceRequestProjector{Repo: workflowRepository}
 	documentService := documentimport.NewService(documentimport.NewPostgresRepository(pool), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
-	publisher := workflowruntime.NewCompositePublisher(sourceHealth, actionWork, lifecycleWork, escalationWork, documentService, workflowruntime.LogPublisher{Logger: logger})
+	coverageService := documentcoverage.NewService(documentcoverage.NewPostgresRepository(pool), documentService, continuityService)
+	publisher := workflowruntime.NewCompositePublisher(sourceHealth, actionWork, lifecycleWork, escalationWork, documentService, coverageService, workflowruntime.LogPublisher{Logger: logger})
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
 	configureWorkerRuntime(service, cfg, logger)
 	// Matter events update immediately through the outbox publisher. This slower

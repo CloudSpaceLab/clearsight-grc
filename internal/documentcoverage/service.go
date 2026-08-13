@@ -14,7 +14,10 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
+	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 )
+
+const EventCoverageComparisonRequested = "DocumentCoverageComparisonRequested"
 
 type DocumentReader interface {
 	Get(context.Context, string, string) (documentimport.Document, error)
@@ -208,6 +211,20 @@ func (s *Service) Recompare(ctx context.Context, tenant, documentID string) erro
 	return s.repo.QueueRecompare(ctx, tenant, documentID)
 }
 
+func (s *Service) Publish(ctx context.Context, event workflowruntime.OutboxEvent) error {
+	if s == nil || event.AggregateType != "DOCUMENT_IMPORT" {
+		return nil
+	}
+	if event.EventType != documentimport.EventDocumentProcessingRequested && event.EventType != EventCoverageComparisonRequested {
+		return nil
+	}
+	_, err := s.Process(ctx, event.TenantID, event.AggregateID)
+	if errors.Is(err, ErrDocumentNotReady) {
+		return nil
+	}
+	return err
+}
+
 func (s *Service) programSnapshots(ctx context.Context, tenant string) ([]ProgramSnapshot, string, error) {
 	aggregates, err := s.continuity.ListPrograms(ctx, tenant, 100)
 	if err != nil {
@@ -395,3 +412,5 @@ func inferProgramType(document documentimport.Document) string {
 		return ""
 	}
 }
+
+var _ workflowruntime.Publisher = (*Service)(nil)

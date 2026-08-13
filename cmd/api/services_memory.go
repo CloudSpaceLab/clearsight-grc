@@ -11,6 +11,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/documentcoverage"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
@@ -41,6 +42,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepo)
+	coverageService := documentcoverage.NewService(documentcoverage.NewMemoryRepository(), documentService, continuityService)
 	verticals := bankverticals.NewService(continuityService, evidenceService)
 	if cfg.DemoMode {
 		if _, err := verticals.InstallSample(ctx, bankverticals.DemoSeedConfig()); err != nil {
@@ -90,7 +92,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 
 	return serviceSet{
 		Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()),
-		Evidence: evidenceService, DocumentImports: documentService, Continuity: continuityService, Today: todayService,
+		Evidence: evidenceService, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
 		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo), Close: func() {},
 	}, nil
