@@ -78,6 +78,7 @@ async function auditProgramStatusControl() {
     if (!(await saving.isDisabled())) throw new Error("Program status action is not disabled while the command is in flight");
     await saving.evaluate((element) => element.click());
     await page.getByText("Program status updated.", { exact: true }).waitFor({ state: "visible" });
+    await page.getByRole("button", { name: "Request activation" }).waitFor({ state: "visible" });
     const calls = await delayedFetchCalls(page);
     if (calls !== 1) throw new Error(`Program status action submitted ${calls} commands instead of one`);
     assertNoBrowserErrors(browserErrors, "program-status-control");
