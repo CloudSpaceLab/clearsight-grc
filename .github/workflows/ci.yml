@@ -53,6 +53,10 @@ jobs:
           for migration in migrations/*.up.sql; do
             psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$migration"
           done
+      - name: Source-access tranche acceptance
+        env:
+          TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
+        run: bash scripts/verify-sourceaccess-tranche.sh auto
       - name: Verify latest migration rollback and reapply
         env:
           PGPASSWORD: clearsight
@@ -79,7 +83,7 @@ jobs:
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$latest_up"
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='evidence_sources' AND column_name='endpoint'" | grep -qx 0
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM source_connections WHERE source_id='6f300000-0000-7000-8000-000000000002' AND code='PRIMARY_REFERENCE' AND adapter_kind='REFERENCE' AND adapter_version='reference-v1' AND status='ACTIVE' AND is_current AND version=1 AND definition->>'endpoint'='https://legacy.example.invalid/source'" | grep -qx 1
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -c "DELETE FROM evidence_sources WHERE id='6f300000-0000-7000-8000-000000000002'; DELETE FROM tenants WHERE id='6f300000-0000-7000-8000-000000000001';"
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -c "DELETE FROM source_connections WHERE source_id='6f300000-0000-7000-8000-000000000002'; DELETE FROM evidence_sources WHERE id='6f300000-0000-7000-8000-000000000002'; DELETE FROM tenants WHERE id='6f300000-0000-7000-8000-000000000001';"
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.audit_events') IS NULL AND to_regclass('public.readiness_snapshots') IS NULL THEN 'ok' ELSE 'unexpected compatibility table' END" | grep -qx ok
       - name: Verify deployment migration ledger
         env:
