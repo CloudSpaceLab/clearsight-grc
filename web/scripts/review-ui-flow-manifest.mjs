@@ -87,8 +87,16 @@ const safeReadJSON = async (name) => {
 const runner = await safeReadJSON("runner.json");
 if (runner) {
   const failedRuns = runner.runs.filter((run) => run.status !== 0);
-  checks.push({ name: "flow runners", status: failedRuns.length ? "FAIL" : "PASS", detail: `${runner.runs.length} scripts executed` });
+  checks.push({ name: "executable review runners", status: failedRuns.length ? "FAIL" : "PASS", detail: `${runner.runs.length} scripts executed` });
   for (const run of failedRuns) failures.push(`${run.script} exited with status ${run.status}`);
+}
+
+const defects = await safeReadJSON("defects.json");
+if (defects) {
+  if (defects.failure) failures.push(`defect review failed: ${defects.failure}`);
+  const failed = defects.scenarios.filter((scenario) => scenario.status !== "PASS");
+  for (const scenario of failed) failures.push(`${scenario.name}: ${scenario.detail ?? "failed"}`);
+  checks.push({ name: "UI/UX and functional defect review", status: defects.failure || failed.length ? "FAIL" : "PASS", detail: `${defects.scenarios.length} behavioral scenarios` });
 }
 
 const manifest = await safeReadJSON("manifest.json");
@@ -105,17 +113,13 @@ if (manifest) {
   const missingStates = requiredStates.filter((state) => !states.has(state));
   if (missingStates.length) failures.push(`flow state coverage is missing: ${missingStates.join(", ")}`);
   for (const capture of manifest.captures) {
-    if (capture.metrics && capture.metrics.scrollWidth > capture.metrics.clientWidth + 1) {
-      failures.push(`${capture.name} recorded horizontal overflow`);
-    }
+    if (capture.metrics && capture.metrics.scrollWidth > capture.metrics.clientWidth + 1) failures.push(`${capture.name} recorded horizontal overflow`);
   }
   const widths = new Set(manifest.captures.map((capture) => capture.viewport?.width));
   const themes = new Set(manifest.captures.map((capture) => capture.theme));
-  if (![...widths].some((width) => width >= 1280) || !widths.has(1024) || !widths.has(390) || !widths.has(320)) {
-    failures.push("responsive coverage must include desktop, tablet, mobile and 320px reflow");
-  }
+  if (![...widths].some((width) => width >= 1280) || !widths.has(1024) || !widths.has(390) || !widths.has(320)) failures.push("responsive coverage must include desktop, tablet, mobile and 320px reflow");
   if (!themes.has("light") || !themes.has("dark")) failures.push("theme coverage must include light and dark modes");
-  checks.push({ name: "semantic flow matrix", status: missingRecords.length || unexpectedRecords.length || missingStates.length ? "FAIL" : "PASS", detail: `${uniqueNames.size}/${expectedNames.length} flow records` });
+  checks.push({ name: "rendered state coverage", status: missingRecords.length || unexpectedRecords.length || missingStates.length ? "FAIL" : "PASS", detail: `${uniqueNames.size}/${expectedNames.length} flow records` });
 }
 
 let evidence = [];
@@ -133,9 +137,9 @@ try {
     if (metadata.size < 1024) failures.push(`${file} is unexpectedly small (${metadata.size} bytes)`);
     evidence.push({ file, bytes: metadata.size, sha256: createHash("sha256").update(bytes).digest("hex") });
   }
-  checks.push({ name: "deterministic evidence", status: missingFiles.length || unexpectedFiles.length ? "FAIL" : "PASS", detail: `${files.length}/${expectedFiles.length} screenshots hashed` });
+  checks.push({ name: "review artifact completeness", status: missingFiles.length || unexpectedFiles.length ? "FAIL" : "PASS", detail: `${files.length}/${expectedFiles.length} screenshots retained` });
 } catch (error) {
-  failures.push(`screenshot evidence could not be read: ${error instanceof Error ? error.message : String(error)}`);
+  failures.push(`screenshot artifacts could not be read: ${error instanceof Error ? error.message : String(error)}`);
 }
 
 const accessibility = await safeReadJSON("accessibility.json");
@@ -170,19 +174,19 @@ try {
 }
 
 const status = failures.length ? "FAIL" : "PASS";
-const review = { generatedAt: new Date().toISOString(), status, checks, failures, bundle, evidence };
+const review = { generatedAt: new Date().toISOString(), status, checks, failures, bundle, defects, evidence };
 await writeFile(path.join(outputDir, "review.json"), JSON.stringify(review, null, 2));
 const markdown = [
-  "# Automated UI/UX flow review",
+  "# Automated UI/UX and functional defect review",
   "",
   `**Status:** ${status}`,
   "",
   ...checks.map((check) => `- ${check.status === "PASS" ? "✅" : "❌"} **${check.name}:** ${check.detail}`),
   "",
-  failures.length ? "## Blocking findings" : "All deterministic flow, accessibility, responsive-layout and bundle-budget gates passed.",
+  failures.length ? "## Blocking findings" : "All executable usability, functional, accessibility, responsive-layout and bundle-budget gates passed.",
   ...(failures.length ? failures.map((failure) => `- ${failure}`) : []),
   "",
-  `Evidence: ${evidence.length} screenshots with SHA-256 digests in \`review.json\`.`,
+  `Artifacts: ${evidence.length} screenshots retained for diagnosis. Digests in \`review.json\` are metadata only and do not determine PASS.`,
 ].join("\n");
 await writeFile(path.join(outputDir, "review.md"), markdown);
 process.stdout.write(`${markdown}\n`);

@@ -9,6 +9,7 @@ const scripts = [
   "scripts/capture-lifecycle-ui-evidence.mjs",
   "scripts/capture-operating-mutations-evidence.mjs",
   "scripts/capture-program-review-evidence.mjs",
+  "scripts/review-ui-defects.mjs",
   "scripts/review-ui-accessibility.mjs",
 ];
 
@@ -50,7 +51,5 @@ if (review.stdout) process.stdout.write(review.stdout);
 if (review.stderr) process.stderr.write(review.stderr);
 
 const failedRun = runs.find((run) => run.status !== 0);
-if (failedRun) {
-  process.stderr.write(`UI/UX flow runner failed in ${failedRun.script}.\n`);
-}
+if (failedRun) process.stderr.write(`UI/UX defect runner failed in ${failedRun.script}.\n`);
 if (failedRun || review.status !== 0) process.exit(1);
