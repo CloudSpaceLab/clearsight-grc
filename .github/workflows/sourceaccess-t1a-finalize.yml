@@ -27,167 +27,59 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          def replace_once(path: str, old: str, new: str) -> None:
-              file = Path(path)
-              text = file.read_text()
-              if old not in text:
-                  if new in text:
-                      return
-                  raise SystemExit(f"expected text not found in {path}")
-              file.write_text(text.replace(old, new, 1))
-
           validation = Path("internal/sourceaccess/catalog_validation.go")
           text = validation.read_text()
-          adapter_old = (
-              "\tvalue.Code = strings.TrimSpace(value.Code)\n"
-              "\tvalue.Name = strings.TrimSpace(value.Name)\n"
-              "\tvalue.AdapterVersion = strings.TrimSpace(value.AdapterVersion)\n"
-          )
-          adapter_new = (
-              "\tvalue.Code = strings.TrimSpace(value.Code)\n"
-              "\tvalue.Name = strings.TrimSpace(value.Name)\n"
-              "\tvalue.AdapterKind = AdapterKind(strings.TrimSpace(string(value.AdapterKind)))\n"
-              "\tvalue.AdapterVersion = strings.TrimSpace(value.AdapterVersion)\n"
-          )
-          if adapter_new not in text:
-              if adapter_old not in text:
+          old = "\tvalue.Name = strings.TrimSpace(value.Name)\n\tvalue.AdapterVersion = strings.TrimSpace(value.AdapterVersion)\n"
+          new = "\tvalue.Name = strings.TrimSpace(value.Name)\n\tvalue.AdapterKind = AdapterKind(strings.TrimSpace(string(value.AdapterKind)))\n\tvalue.AdapterVersion = strings.TrimSpace(value.AdapterVersion)\n"
+          if new not in text:
+              if old not in text:
                   raise SystemExit("connection normalization anchor not found")
-              text = text.replace(adapter_old, adapter_new, 1)
+              text = text.replace(old, new, 1)
 
-          reference_old = (
-              "\t\tvar reference map[string]any\n"
-              "\t\tif err := json.Unmarshal(value.Definition, &reference); err != nil {\n"
-              "\t\t\treturn ConnectionRevision{}, catalogInvalid(\"reference connection definition is invalid\")\n"
-              "\t\t}\n"
-              "\t\tendpoint, ok := reference[\"endpoint\"].(string)\n"
-              "\t\tif !ok || strings.TrimSpace(endpoint) == \"\" {\n"
-              "\t\t\treturn ConnectionRevision{}, catalogInvalid(\"reference connections require an endpoint\")\n"
-              "\t\t}\n"
-          )
-          reference_new = (
-              "\t\tvar reference map[string]any\n"
-              "\t\tif err := json.Unmarshal(value.Definition, &reference); err != nil {\n"
-              "\t\t\treturn ConnectionRevision{}, catalogInvalid(\"reference connection definition is invalid\")\n"
-              "\t\t}\n"
-              "\t\tendpoint, ok := reference[\"endpoint\"].(string)\n"
-              "\t\tendpoint = strings.TrimSpace(endpoint)\n"
-              "\t\tif !ok || endpoint == \"\" || containsControl(endpoint) {\n"
-              "\t\t\treturn ConnectionRevision{}, catalogInvalid(\"reference connections require a bounded endpoint without control characters\")\n"
-              "\t\t}\n"
-              "\t\treference[\"endpoint\"] = endpoint\n"
-              "\t\tencoded, err := json.Marshal(reference)\n"
-              "\t\tif err != nil || len(encoded) > HardMaxDefinitionBytes {\n"
-              "\t\t\treturn ConnectionRevision{}, catalogInvalid(\"reference connection definition exceeds the size limit\")\n"
-              "\t\t}\n"
-              "\t\tvalue.Definition = encoded\n"
-          )
-          if reference_new not in text:
-              if reference_old not in text:
+          old = "\t\tendpoint, ok := reference[\"endpoint\"].(string)\n\t\tif !ok || strings.TrimSpace(endpoint) == \"\" {\n\t\t\treturn ConnectionRevision{}, catalogInvalid(\"reference connections require an endpoint\")\n\t\t}\n"
+          new = "\t\tendpoint, ok := reference[\"endpoint\"].(string)\n\t\tendpoint = strings.TrimSpace(endpoint)\n\t\tif !ok || endpoint == \"\" || containsControl(endpoint) {\n\t\t\treturn ConnectionRevision{}, catalogInvalid(\"reference connections require a bounded endpoint without control characters\")\n\t\t}\n\t\treference[\"endpoint\"] = endpoint\n\t\tencoded, err := json.Marshal(reference)\n\t\tif err != nil || len(encoded) > HardMaxDefinitionBytes {\n\t\t\treturn ConnectionRevision{}, catalogInvalid(\"reference connection definition exceeds the size limit\")\n\t\t}\n\t\tvalue.Definition = encoded\n"
+          if new not in text:
+              if old not in text:
                   raise SystemExit("reference endpoint normalization block not found")
-              text = text.replace(reference_old, reference_new, 1)
+              text = text.replace(old, new, 1)
           validation.write_text(text)
 
           scanner = Path("internal/sourceaccess/catalog_postgres_scan.go")
           text = scanner.read_text()
           if '"context"' not in text.split(')', 1)[0]:
               text = text.replace('import (\n\t"database/sql"', 'import (\n\t"context"\n\t"database/sql"', 1)
-          read_old = (
-              "func catalogReadError(err error) error {\n"
-              "\tif errors.Is(err, pgx.ErrNoRows) {\n"
-              "\t\treturn ErrCatalogNotFound\n"
-              "\t}\n"
-              "\treturn ErrCatalogStorage\n"
-              "}\n"
-          )
-          read_new = (
-              "func catalogReadError(err error) error {\n"
-              "\tif errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {\n"
-              "\t\treturn err\n"
-              "\t}\n"
-              "\tif errors.Is(err, pgx.ErrNoRows) {\n"
-              "\t\treturn ErrCatalogNotFound\n"
-              "\t}\n"
-              "\tvar databaseError *pgconn.PgError\n"
-              "\tif errors.As(err, &databaseError) && (databaseError.Code == \"22P02\" || databaseError.Code == \"22023\") {\n"
-              "\t\treturn ErrCatalogInvalid\n"
-              "\t}\n"
-              "\treturn ErrCatalogStorage\n"
-              "}\n"
-          )
-          if read_new not in text:
-              if read_old not in text:
+          old = "func catalogReadError(err error) error {\n\tif errors.Is(err, pgx.ErrNoRows) {\n\t\treturn ErrCatalogNotFound\n\t}\n\treturn ErrCatalogStorage\n}\n"
+          new = "func catalogReadError(err error) error {\n\tif errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {\n\t\treturn err\n\t}\n\tif errors.Is(err, pgx.ErrNoRows) {\n\t\treturn ErrCatalogNotFound\n\t}\n\tvar databaseError *pgconn.PgError\n\tif errors.As(err, &databaseError) && (databaseError.Code == \"22P02\" || databaseError.Code == \"22023\") {\n\t\treturn ErrCatalogInvalid\n\t}\n\treturn ErrCatalogStorage\n}\n"
+          if new not in text:
+              if old not in text:
                   raise SystemExit("catalogReadError block not found")
-              text = text.replace(read_old, read_new, 1)
-          write_old = (
-              "func catalogWriteError(err error) error {\n"
-              "\tif err == nil {\n"
-              "\t\treturn nil\n"
-              "\t}\n"
-              "\tif errors.Is(err, pgx.ErrNoRows) {\n"
-          )
-          write_new = (
-              "func catalogWriteError(err error) error {\n"
-              "\tif err == nil {\n"
-              "\t\treturn nil\n"
-              "\t}\n"
-              "\tif errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {\n"
-              "\t\treturn err\n"
-              "\t}\n"
-              "\tif errors.Is(err, pgx.ErrNoRows) {\n"
-          )
-          if write_new not in text:
-              if write_old not in text:
+              text = text.replace(old, new, 1)
+          old = "func catalogWriteError(err error) error {\n\tif err == nil {\n\t\treturn nil\n\t}\n\tif errors.Is(err, pgx.ErrNoRows) {\n"
+          new = "func catalogWriteError(err error) error {\n\tif err == nil {\n\t\treturn nil\n\t}\n\tif errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {\n\t\treturn err\n\t}\n\tif errors.Is(err, pgx.ErrNoRows) {\n"
+          if new not in text:
+              if old not in text:
                   raise SystemExit("catalogWriteError block not found")
-              text = text.replace(write_old, write_new, 1)
+              text = text.replace(old, new, 1)
           scanner.write_text(text)
 
           service = Path("internal/evidence/service.go")
           text = service.read_text()
           if '"unicode"' not in text.split(')', 1)[0]:
               text = text.replace('\t"time"\n', '\t"time"\n\t"unicode"\n', 1)
-          condition_old = 'len(input.Endpoint) > 32<<10 || strings.IndexByte(input.Endpoint, 0) >= 0 || strings.ContainsAny(input.Endpoint, "\\r\\n")'
-          condition_new = 'len(input.Endpoint) > 32<<10 || strings.IndexFunc(input.Endpoint, unicode.IsControl) >= 0'
-          if condition_new not in text:
-              if condition_old not in text:
+          old = 'len(input.Endpoint) > 32<<10 || strings.IndexByte(input.Endpoint, 0) >= 0 || strings.ContainsAny(input.Endpoint, "\\r\\n")'
+          new = 'len(input.Endpoint) > 32<<10 || strings.IndexFunc(input.Endpoint, unicode.IsControl) >= 0'
+          if new not in text:
+              if old not in text:
                   raise SystemExit("endpoint service validation not found")
-              text = text.replace(condition_old, condition_new, 1)
+              text = text.replace(old, new, 1)
           service.write_text(text)
 
           ownership = Path("docs/architecture/durable-schema-ownership.md")
-          text = ownership.read_text()
-          text = text.replace(
+          text = ownership.read_text().replace(
               "assurance and future form, evidence and workflow consumers",
               "assurance and configured consumers",
           )
           ownership.write_text(text)
-
-          tests = Path("internal/sourceaccess/catalog_validation_test.go")
-          text = tests.read_text()
-          marker = "func TestReferenceConnectionCanonicalizesEndpoint"
-          if marker not in text:
-              text += '''
-
-func TestReferenceConnectionCanonicalizesEndpoint(t *testing.T) {
-	now := time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC)
-	value := catalogConnectionRevision(now)
-	value.AdapterKind = AdapterKind("  REFERENCE  ")
-	value.AdapterVersion = ReferenceAdapterVersion
-	value.Code = ReferenceConnectionCode
-	value.Name = ReferenceConnectionName
-	value.SecretRef = ""
-	value.Definition = json.RawMessage(`{"endpoint":"  https://example.invalid/source  "}`)
-	value.DeclaredCapabilities = nil
-	value.VerifiedCapabilities = nil
-	normalized, err := normalizeConnectionRevision(value)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if normalized.AdapterKind != AdapterReference || string(normalized.Definition) != `{"endpoint":"https://example.invalid/source"}` {
-		t.Fatalf("reference connection was not canonicalized: %#v", normalized)
-	}
-}
-'''
-              tests.write_text(text)
           PY
       - name: Format and test
         shell: bash
