@@ -243,7 +243,7 @@ func (s *catalogFakeSession) Inspect(_ context.Context, view View) (SchemaResult
 	fingerprint := strings.Repeat("a", 64)
 	return SchemaResult{
 		Fields:  []NativeField{{Name: "account_id", NativeType: "uuid"}},
-		Receipt: OperationReceipt{SourceID: s.connection.SourceID, ConnectionID: s.connection.ID, ViewID: view.ID, Operation: OperationInspect, SchemaFingerprint: fingerprint, Completeness: CompletenessComplete},
+		Receipt: OperationReceipt{SourceID: s.connection.SourceID, ConnectionID: s.connection.ID, ConnectionVersion: s.connection.Version, AdapterKind: s.connection.AdapterKind, AdapterVersion: s.connection.AdapterVersion, ViewID: view.ID, ViewVersion: view.Version, Operation: OperationInspect, SchemaFingerprint: fingerprint, Count: 1, Completeness: CompletenessComplete},
 	}, nil
 }
 func (s *catalogFakeSession) ReadPage(_ context.Context, view View, binding Binding, request PageRequest) (RecordPage, error) {
@@ -252,5 +252,5 @@ func (s *catalogFakeSession) ReadPage(_ context.Context, view View, binding Bind
 	for index := range records {
 		records[index] = Record{"account_id": StringValue("account")}
 	}
-	return RecordPage{Records: records, Receipt: OperationReceipt{SourceID: s.connection.SourceID, ConnectionID: s.connection.ID, ViewID: view.ID, BindingID: binding.ID, Operation: OperationPage, Count: int64(len(records)), Bytes: int64(len(records) * 16), Completeness: CompletenessPartial}}, nil
+	return RecordPage{Records: records, Receipt: OperationReceipt{SourceID: s.connection.SourceID, ConnectionID: s.connection.ID, ConnectionVersion: s.connection.Version, AdapterKind: s.connection.AdapterKind, AdapterVersion: s.connection.AdapterVersion, ViewID: view.ID, ViewVersion: view.Version, BindingID: binding.ID, BindingVersion: binding.Version, Operation: OperationPage, Count: int64(len(records)), Bytes: int64(len(records) * 16), Completeness: CompletenessPartial}}, nil
 }

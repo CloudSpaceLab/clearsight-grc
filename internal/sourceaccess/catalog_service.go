@@ -266,6 +266,9 @@ func (s *CatalogService) InspectViewDraft(ctx context.Context, actor CatalogActo
 	if err != nil {
 		return InspectedViewDraft{}, err
 	}
+	if err := validateCatalogReceipt(result.Receipt, connection, view, Binding{}, OperationInspect, int64(len(result.Fields))); err != nil {
+		return InspectedViewDraft{}, err
+	}
 	if len(result.Fields) == 0 || len(result.Fields) > HardMaxSchemaFields {
 		return InspectedViewDraft{}, ErrLimitExceeded
 	}
@@ -397,6 +400,9 @@ func (s *CatalogService) PreviewBinding(ctx context.Context, tenantID, bindingID
 	if err != nil {
 		return RecordPage{}, err
 	}
+	if err := validateCatalogReceipt(page.Receipt, connection, view, binding, OperationPage, int64(len(page.Records))); err != nil {
+		return RecordPage{}, err
+	}
 	if len(page.Records) > request.Limit || page.Receipt.Bytes > limits.ResponseBytes {
 		return RecordPage{}, ErrLimitExceeded
 	}
@@ -440,6 +446,35 @@ func (s *CatalogService) WhereUsed(ctx context.Context, tenantID string, kind Ca
 		return CatalogUsageReport{}, ErrCatalogInvalid
 	}
 	return report, nil
+}
+
+func validateCatalogReceipt(receipt OperationReceipt, connection Connection, view View, binding Binding, operation Operation, expectedCount int64) error {
+	if receipt.SourceID != connection.SourceID ||
+		receipt.ConnectionID != connection.ID ||
+		receipt.ConnectionVersion != connection.Version ||
+		receipt.AdapterKind != connection.AdapterKind ||
+		receipt.AdapterVersion != connection.AdapterVersion ||
+		receipt.ViewID != view.ID ||
+		receipt.ViewVersion != view.Version ||
+		receipt.Operation != operation ||
+		receipt.Count != expectedCount ||
+		receipt.Bytes < 0 {
+		return ErrExecution
+	}
+	switch operation {
+	case OperationInspect:
+		if receipt.BindingID != "" || receipt.BindingVersion != "" || receipt.Completeness != CompletenessComplete {
+			return ErrExecution
+		}
+	case OperationPage:
+		if receipt.BindingID != binding.ID || receipt.BindingVersion != binding.Version ||
+			(receipt.Completeness != CompletenessComplete && receipt.Completeness != CompletenessPartial) {
+			return ErrExecution
+		}
+	default:
+		return ErrExecution
+	}
+	return nil
 }
 
 func (s *CatalogService) validateDraftAdapter(input CreateConnectionDraftInput) error {

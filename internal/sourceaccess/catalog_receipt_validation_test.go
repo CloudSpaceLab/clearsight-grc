@@ -118,7 +118,7 @@ type receiptValidationSession struct {
 	pageResult    RecordPage
 }
 
-func (s *receiptValidationSession) Connection() Connection     { return s.connection }
+func (s *receiptValidationSession) Connection() Connection      { return s.connection }
 func (s *receiptValidationSession) Capabilities() CapabilitySet { return s.capabilities }
 func (s *receiptValidationSession) Close() error                { return nil }
 func (s *receiptValidationSession) Inspect(context.Context, View) (SchemaResult, error) {
