@@ -67,6 +67,22 @@ describe("static stakeholder demo transport", () => {
     expect(applied.assessment.suggestions[0]?.status).toBe("APPLIED");
   });
 
+  it("executes a governed Program transition and rejects stale replays", async () => {
+    const { StaticDemoHTTPError, staticDemoRequest } = await demo();
+    const current = await staticDemoRequest<{ program: { status: string; version: number } }>("/api/v1/programs/program-ndpa");
+    const updated = await staticDemoRequest<{ program: { status: string; version: number } }>("/api/v1/programs/program-ndpa/transition", {
+      method: "POST",
+      body: JSON.stringify({ expected_version: current.program.version, to: "PAUSED", rationale: "Pause while ownership is corrected." }),
+    });
+
+    expect(updated.program.status).toBe("PAUSED");
+    expect(updated.program.version).toBe(current.program.version + 1);
+    await expect(staticDemoRequest("/api/v1/programs/program-ndpa/transition", {
+      method: "POST",
+      body: JSON.stringify({ expected_version: current.program.version, to: "RETIRED", rationale: "Stale replay." }),
+    })).rejects.toMatchObject({ status: 409, code: "version_conflict" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
+  });
+
   it("can deterministically exercise permission and conflict fixtures", async () => {
     window.history.replaceState(null, "", "/?fixture=authority-forbidden");
     const { StaticDemoHTTPError, staticDemoRequest } = await demo();

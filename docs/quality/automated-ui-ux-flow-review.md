@@ -1,30 +1,33 @@
-# Automated UI/UX flow review
+# Automated UI/UX and functional defect review
 
-ClearSight merge readiness uses the `UI/UX flow review` GitHub Actions check rather than a screenshot-approval or reviewer-sign-off gate.
+ClearSight merge readiness uses the `UI/UX flow review` GitHub Actions check rather than screenshot approval or reviewer sign-off.
 
-The check builds the deterministic stakeholder application and exercises the product as rendered in Chromium. It fails the pull request when a governed flow, responsive state, accessibility boundary or interaction budget regresses.
+The check builds the deterministic stakeholder application and exercises it as rendered in Chromium. Screenshots are retained to diagnose failures, but screenshot hashes do not determine whether a change passes. PASS is produced only by executable assertions over usability, state transitions, responsive behavior, accessibility and functional outcomes.
 
-## Enforced flow matrix
+## Defects the gate must catch
 
-The current matrix produces 41 uniquely named, SHA-256-hashed screenshots while asserting behavior rather than merely capturing pixels. Coverage includes:
+The review fails when it detects, among other things:
 
-- Today, Program, Matter, Evidence, Import and Configure workspaces;
-- light, dark, comfortable and compact presentation modes;
-- 1440 px desktop, 1024 px tablet, 390 px mobile and 320 px reflow layouts;
-- loading, empty, unavailable, partial-degradation and permission-denied states;
-- authority disclosure, evidence entry/review/receipt, not-found, expired and optimistic-conflict paths;
-- mobile focus containment, 200% zoom proxy, field-visit upload/signature and lifecycle disclosure;
-- operating mutations and Program review acknowledgement.
+- sticky or fixed chrome covering the work, selected target or current action;
+- horizontal overflow, broken mobile reflow or an invalid 200% zoom layout;
+- undersized exposed controls on field-device flows;
+- browser and console errors;
+- unavailable, forbidden, stale, empty or conflict states rendered with misleading semantics;
+- enabled actions with missing or whitespace-only required input;
+- duplicate commands while a mutation or submission is in flight;
+- a completed flow without the expected receipt or updated state;
+- grammatically incorrect operational counts or unnecessarily noisy timestamps;
+- accessibility A/AA violations across core routes and failure states;
+- interaction bundles above the agreed JavaScript and CSS budgets.
 
-## Automated quality boundaries
+## Executable flow coverage
 
-The gate combines:
+The current review exercises Today, Program, Matter, Evidence, Import and Configure workspaces across light/dark modes and desktop, tablet, mobile and 320-pixel reflow layouts. It includes loading, empty, unavailable, partial-degradation and permission-denied states; authority disclosure; evidence entry/review/receipt; not-found, expiry and optimistic conflict; external field-visit upload/signature; lifecycle disclosure; operating mutations; and Program review acknowledgement.
 
-1. TypeScript compilation, rendered component tests and existing axe assertions.
-2. Playwright semantic flow checks using accessible roles and exact governed states.
-3. Browser error, horizontal-overflow, initial-action visibility, focus-containment and critical mobile touch-target checks.
-4. A rendered WCAG A/AA sweep across core route and failure states.
-5. A complete evidence manifest with no missing, duplicate, stale or unexpectedly small captures.
-6. Interaction bundle budgets of 500 KiB raw / 160 KiB gzip JavaScript and 32 KiB gzip CSS.
+A dedicated behavioral defect runner additionally checks deep-link visibility beneath sticky headers, fixed-navigation overlap, actual 200% CSS-pixel reflow, required-rationale validation, in-flight double-submit prevention, concise operational copy and mobile target sizing.
 
-`web/ui-evidence/review.json` is the machine-readable decision receipt. `review.md` is written to the GitHub Actions step summary, and screenshots plus logs are retained as build artifacts. Any blocking finding exits non-zero; no manual interpretation is required for the merge gate.
+## Review receipts
+
+`web/ui-evidence/defects.json` records the behavioral scenarios and any blocking defect. `review.json` combines those results with rendered-state coverage, accessibility and bundle budgets. `review.md` is written to the GitHub Actions step summary. Screenshots, logs and digests are retained as diagnostic artifacts only.
+
+Any blocking finding exits non-zero. No manual interpretation is required for the merge gate.
