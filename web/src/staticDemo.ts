@@ -125,11 +125,11 @@ let documentCoverage: DocumentCoverage = {
   matters: [{ candidate_id: "coverage-owner", matter_id: matterID, reference: matter.reference, type: matter.type, status: matter.status, title: matter.title, summary: matter.summary, score: .82 }],
 };
 
-const guide = { code: "executive-first-run", profile: "executive", role: "Executive risk or compliance leader", version: 1, title: "Read the operating brief", description: "Distinguish current status from unknown, stale, at-risk and overdue work without opening several dashboards.", illustration: "guided-orbit", steps: [
-  { id: "brief", title: "Start with what needs attention", description: "Today separates assigned work, due items and readiness so an empty count is never mistaken for a complete population.", action: "Review Today", view: "today", target: "today-brief" },
-  { id: "attention", title: "Open one material record", description: "Move from the brief to the exact Program, issue or evidence request instead of a generic dashboard.", action: "Open first item", view: "today", target: "attention-list", intent: "open-first-attention" },
-  { id: "programs", title: "Understand ongoing exposure", description: "Programs explain current status from requirements, safeguards, evidence and open issues.", action: "Open Programs", view: "programs", target: "programs-workspace" },
-  { id: "finish", title: "Use the reason, not only the colour", description: "Every material status should expose the source, reason, owner and next valid action.", action: "Finish introduction", view: "programs", target: "programs-workspace" },
+const guide = { code: "executive-first-run", profile: "executive", role: "Executive risk or compliance leader", version: 1, title: "Executive review", description: "Review priority work, Program status and supporting evidence.", illustration: "guided-orbit", steps: [
+  { id: "brief", title: "Review priority work", description: "Today shows work assigned to you, due dates and data freshness.", action: "Open Today", view: "today", target: "today-brief" },
+  { id: "attention", title: "Review a priority item", description: "Open the first Program, issue or evidence request in the queue.", action: "Review first item", view: "today", target: "attention-list", intent: "open-first-attention" },
+  { id: "programs", title: "Check Program status", description: "Programs show status, requirements, controls, evidence and open issues.", action: "Open Programs", view: "programs", target: "programs-workspace" },
+  { id: "finish", title: "Review status details", description: "Check the status reason, source, owner and next action.", action: "Done", view: "programs", target: "programs-workspace" },
 ] };
 
 export async function staticDemoRequest<T>(path: string, init?: RequestInit): Promise<T> {

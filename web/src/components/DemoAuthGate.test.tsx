@@ -49,7 +49,7 @@ it("opens demo role login without probing protected context while signed out", a
 
   render(<DemoAuthGate><div>Workspace</div></DemoAuthGate>);
 
-  expect(await screen.findByRole("heading", { name: "See the bank from a real role" })).not.toBeNull();
+  expect(await screen.findByRole("heading", { name: "Choose a demo account" })).not.toBeNull();
   expect(loadContext).not.toHaveBeenCalled();
 });
 
@@ -95,7 +95,7 @@ it("returns to the account chooser when the replacement account cannot sign in",
   fireEvent.click(await screen.findByRole("button", { name: "Viewing as Chief Risk Officer" }));
   fireEvent.click(screen.getByRole("button", { name: "Switch to System Administrator" }));
 
-  expect(await screen.findByRole("heading", { name: "See the bank from a real role" })).toBeTruthy();
+  expect(await screen.findByRole("heading", { name: "Choose a demo account" })).toBeTruthy();
   expect(screen.getByRole("alert").textContent).toContain("Replacement sign-in failed");
 });
 
@@ -119,7 +119,7 @@ it("returns to demo role login when the session expires before context loads", a
 
   render(<DemoAuthGate><div>Workspace</div></DemoAuthGate>);
 
-  expect(await screen.findByRole("heading", { name: "See the bank from a real role" })).not.toBeNull();
+  expect(await screen.findByRole("heading", { name: "Choose a demo account" })).not.toBeNull();
   expect(screen.queryByText("Workspace")).toBeNull();
 });
 

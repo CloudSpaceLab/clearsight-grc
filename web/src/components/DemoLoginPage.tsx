@@ -29,8 +29,8 @@ export function DemoLoginPage({ accounts, onAuthenticated, initialError = "" }: 
       <div className="demo-login-intro">
         <div className="demo-login-brand" aria-hidden="true">C</div>
         <span className="eyebrow">ClearSight stakeholder demo</span>
-        <h1 id="demo-login-title">See the bank from a real role</h1>
-        <p>Choose an account to see the work, visibility and decisions assigned to that role. Demo accounts are isolated from production identities.</p>
+        <h1 id="demo-login-title">Choose a demo account</h1>
+        <p>Each account has different responsibilities and access. You can switch accounts from the workspace at any time.</p>
       </div>
 
       <div className="demo-login-layout">

@@ -94,9 +94,9 @@ export function RoleAwareOnboarding({ runtime, onStep }: Props) {
 
   if (!guide || !state) return null;
   return <>
-    <button className="guide-launcher" type="button" onClick={() => void restart()} aria-label={`Restart ${guide.role} introduction`} disabled={busy}>
+    {!open && <button className="guide-launcher" type="button" onClick={() => void restart()} aria-label={`Restart ${guide.role} guide`} disabled={busy}>
       <span aria-hidden="true">?</span><strong>Guide</strong>
-    </button>
+    </button>}
     {open && <IntroGuide guide={guide} state={state} busy={busy} onAdvance={advance} onBack={back} onDismiss={dismiss}/>} 
   </>;
 }
