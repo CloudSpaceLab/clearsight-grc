@@ -1,0 +1,29 @@
+name: Source-access T1b receipt closeout
+
+on:
+  push:
+    branches:
+      - codex/issue-61-sourceaccess-t1b
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sourceaccess-t1b-receipt-closeout-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  closeout:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/issue-61-sourceaccess-t1b
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+      - name: Close adapter receipt trust-boundary defects
+        run: bash scripts/apply-sourceaccess-t1b-receipt-closeout.sh
