@@ -62,7 +62,7 @@ async function auditDeepLinkedWorkspaces() {
 async function auditProgramStatusControl() {
   const { context, page, browserErrors } = await openPage({ viewport: { width: 1440, height: 900 }, query: "fixture=operating-mutations", heading: "Operating actions" });
   try {
-    const rationale = page.getByLabel("Rationale");
+    const rationale = page.getByLabel("Rationale", { exact: true });
     const submit = page.getByRole("button", { name: "Request pause" });
     await rationale.waitFor({ state: "visible" });
     if (await submit.isEnabled()) throw new Error("Program status action is enabled before a rationale is entered");
