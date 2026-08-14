@@ -70,8 +70,16 @@ export function RoleAwareOnboarding({ runtime, onStep }: Props) {
   async function dismiss() {
     if (!state) return;
     setBusy(true);
+    setOpen(false);
     try {
       await persist({ ...state, completed: false, dismissed: true });
+    } catch {
+      try {
+        setState(await loadGuideState(state.guide_code));
+      } catch {
+        // The guide is optional and must stay out of the user's way.
+      }
+      setOpen(false);
     } finally {
       setBusy(false);
     }

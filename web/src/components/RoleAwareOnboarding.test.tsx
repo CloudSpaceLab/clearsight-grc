@@ -59,4 +59,20 @@ describe("RoleAwareOnboarding", () => {
     expect(document.activeElement).toBe(workspaceAction);
     workspaceAction.remove();
   });
+
+  it("closes the guide even when concurrent state changes exhaust the save retry", async () => {
+    vi.mocked(loadRoleGuide).mockResolvedValue(guide);
+    vi.mocked(loadGuideState)
+      .mockResolvedValueOnce(initial)
+      .mockResolvedValue({ ...initial, version: 2 });
+    vi.mocked(saveGuideState).mockRejectedValue(new Error("Onboarding state changed"));
+
+    render(<RoleAwareOnboarding runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Dismiss" }));
+
+    await waitFor(() => expect(saveGuideState).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole("complementary", { name: "Getting started" })).toBeNull();
+    expect(screen.getByRole("button", { name: /Restart Executive risk or compliance leader guide/ })).toBeTruthy();
+  });
 });
