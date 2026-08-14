@@ -33,7 +33,7 @@ func TestCatalogServiceCreatesInspectedServerOwnedDraftHierarchy(t *testing.T) {
 
 	connection, err := service.CreateConnectionDraft(context.Background(), actor, catalogSourceID, CreateConnectionDraftInput{
 		Code: "RISK_DATABASE", Name: "Risk database", AdapterKind: AdapterPostgres,
-		AdapterVersion: PostgresAdapterVersion, SecretRef: "env://RISK_READER_DSN",
+		AdapterVersion: PostgresAdapterVersion, SecretRef: "vault://bank-a/source-readers/risk",
 		DeclaredCapabilities: []Capability{CapabilityInspect, CapabilityPage},
 	})
 	if err != nil {
@@ -44,6 +44,10 @@ func TestCatalogServiceCreatesInspectedServerOwnedDraftHierarchy(t *testing.T) {
 	}
 	if connection.Status != RevisionDraft || connection.IsCurrent || connection.Version != 1 || connection.EffectiveFrom != nil || len(connection.VerifiedCapabilities) != 0 {
 		t.Fatalf("connection was not created as an unverified draft: %#v", connection)
+	}
+	connections, err := service.Connections(context.Background(), actor.TenantID, catalogSourceID, 20)
+	if err != nil || len(connections) != 1 || connections[0].ConnectionID != connection.ConnectionID {
+		t.Fatalf("created draft disappeared from configuration list: values=%#v err=%v", connections, err)
 	}
 
 	if _, err := service.CreateViewDraft(context.Background(), actor, connection.ConnectionID, CreateViewDraftInput{
@@ -71,6 +75,10 @@ func TestCatalogServiceCreatesInspectedServerOwnedDraftHierarchy(t *testing.T) {
 	if inspected.View.ViewID != view.ViewID || inspected.View.Version != 2 || inspected.View.Status != RevisionDraft || inspected.View.IsCurrent || inspected.View.SchemaFingerprint == "" || len(inspected.View.NativeSchema) != 1 || len(inspected.View.StableKeys) != 1 {
 		t.Fatalf("inspection did not create an immutable schema-bearing revision: %#v", inspected.View)
 	}
+	views, err := service.Views(context.Background(), actor.TenantID, connection.ConnectionID, 20)
+	if err != nil || len(views) != 2 || views[0].Version != 2 || views[1].Version != 1 {
+		t.Fatalf("View revision history is incomplete or unordered: values=%#v err=%v", views, err)
+	}
 
 	binding, err := service.CreateBindingDraft(context.Background(), actor, inspected.View.ViewID, CreateBindingDraftInput{
 		ViewVersion: inspected.View.Version, Code: "ACCOUNT_PAGE", Name: "Account page", Purpose: "account-review",
@@ -82,6 +90,10 @@ func TestCatalogServiceCreatesInspectedServerOwnedDraftHierarchy(t *testing.T) {
 	}
 	if binding.ViewID != view.ViewID || binding.ViewVersion != inspected.View.Version || binding.Status != RevisionDraft || binding.IsCurrent {
 		t.Fatalf("binding parent scope or lifecycle changed: %#v", binding)
+	}
+	bindings, err := service.Bindings(context.Background(), actor.TenantID, view.ViewID, 20)
+	if err != nil || len(bindings) != 1 || bindings[0].BindingID != binding.BindingID {
+		t.Fatalf("created Binding draft disappeared from configuration list: values=%#v err=%v", bindings, err)
 	}
 }
 
@@ -125,6 +137,20 @@ func TestCatalogServiceInspectPreviewAndWhereUsedAreBounded(t *testing.T) {
 		t.Fatalf("preview was not bounded by the activated binding: limit=%d records=%d opens=%d closes=%d", session.pageLimit, len(page.Records), adapter.opens, session.closes)
 	}
 
+	retired := binding
+	retired.RevisionID = "59999999-9999-7999-8999-999999999999"
+	retired.Version = 2
+	retired.Status = RevisionRetired
+	retired.IsCurrent = false
+	retired.EffectiveUntil = timePointer(now.Add(time.Hour))
+	retired.UpdatedAt = now.Add(time.Hour)
+	if _, err := repository.CreateBindingRevision(ctx, retired); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.PreviewBinding(ctx, catalogTenantID, binding.BindingID, retired.Version, PageRequest{}); !errors.Is(err, ErrCatalogInvalid) {
+		t.Fatalf("retired Binding remained previewable, got %v", err)
+	}
+
 	connectionUsage, err := service.WhereUsed(ctx, catalogTenantID, UsageConnection, connection.ConnectionID, 20)
 	if err != nil {
 		t.Fatal(err)
@@ -145,26 +171,29 @@ func TestCatalogServiceInspectPreviewAndWhereUsedAreBounded(t *testing.T) {
 	}
 }
 
-func TestCatalogServiceRejectsUnsupportedAdapterAndUnsafeSecretReference(t *testing.T) {
+func TestCatalogServiceRejectsOwnerSpoofingAndKeepsSecretReferencesOpaque(t *testing.T) {
 	ctx := context.Background()
 	repository := NewMemoryCatalogRepository([]SourceScope{{TenantID: catalogTenantID, SourceID: catalogSourceID}})
-	service := NewCatalogService(repository, catalogFakeSecrets{}, nil)
+	adapter := &catalogFakeAdapter{session: &catalogFakeSession{}}
+	service := NewCatalogService(repository, catalogFakeSecrets{}, map[AdapterKind]Adapter{AdapterPostgres: adapter})
 	actor := CatalogActor{TenantID: catalogTenantID, PrincipalID: catalogActorID}
 	if _, err := service.CreateConnectionDraft(ctx, actor, catalogSourceID, CreateConnectionDraftInput{
-		Code: "UNSUPPORTED", Name: "Unsupported", AdapterKind: AdapterPostgres, AdapterVersion: PostgresAdapterVersion, SecretRef: "env://READER_DSN",
+		Code: "SPOOFED_OWNER", Name: "Spoofed owner", AdapterKind: AdapterPostgres, AdapterVersion: PostgresAdapterVersion,
+		SecretRef: "vault://bank-a/risk-reader", OwnerPrincipalID: "60000000-0000-7000-8000-000000000000",
 	}); !errors.Is(err, ErrCatalogInvalid) {
-		t.Fatalf("unregistered adapter should fail, got %v", err)
+		t.Fatalf("unverified owner override should fail, got %v", err)
 	}
-	service = NewCatalogService(repository, catalogFakeSecrets{}, map[AdapterKind]Adapter{AdapterPostgres: &catalogFakeAdapter{session: &catalogFakeSession{}}})
-	if _, err := service.CreateConnectionDraft(ctx, actor, catalogSourceID, CreateConnectionDraftInput{
-		Code: "BAD_SECRET", Name: "Bad secret", AdapterKind: AdapterPostgres, AdapterVersion: PostgresAdapterVersion, SecretRef: "plain-secret-name",
-	}); !errors.Is(err, ErrCatalogInvalid) {
-		t.Fatalf("plain secret reference should fail, got %v", err)
+	created, err := service.CreateConnectionDraft(ctx, actor, catalogSourceID, CreateConnectionDraftInput{
+		Code: "OPAQUE_SECRET", Name: "Opaque secret", AdapterKind: AdapterPostgres, AdapterVersion: PostgresAdapterVersion,
+		SecretRef: "vault://bank-a/risk-reader",
+	})
+	if err != nil || created.SecretRef != "vault://bank-a/risk-reader" {
+		t.Fatalf("opaque secret reference was not retained: value=%#v err=%v", created, err)
 	}
 
 	resolver := EnvironmentSecretResolver{}
-	if _, err := resolver.Resolve(ctx, "plain-secret-name"); !errors.Is(err, ErrCredentials) {
-		t.Fatalf("plain secret reference should fail at resolution, got %v", err)
+	if _, err := resolver.Resolve(ctx, created.SecretRef); !errors.Is(err, ErrCredentials) {
+		t.Fatalf("default environment resolver should not reinterpret opaque references, got %v", err)
 	}
 	t.Setenv("CATALOG_TEST_DSN", "postgres://reader:secret@example.invalid/risk")
 	value, err := resolver.Resolve(ctx, "env://CATALOG_TEST_DSN")
@@ -207,13 +236,13 @@ type catalogFakeSession struct {
 	pageLimit    int
 }
 
-func (s *catalogFakeSession) Connection() Connection      { return s.connection }
+func (s *catalogFakeSession) Connection() Connection     { return s.connection }
 func (s *catalogFakeSession) Capabilities() CapabilitySet { return s.capabilities }
 func (s *catalogFakeSession) Close() error                { s.closes++; return nil }
 func (s *catalogFakeSession) Inspect(_ context.Context, view View) (SchemaResult, error) {
 	fingerprint := strings.Repeat("a", 64)
 	return SchemaResult{
-		Fields:  []NativeField{{Name: "account_id", NativeType: "uuid"}},
+		Fields: []NativeField{{Name: "account_id", NativeType: "uuid"}},
 		Receipt: OperationReceipt{SourceID: s.connection.SourceID, ConnectionID: s.connection.ID, ViewID: view.ID, Operation: OperationInspect, SchemaFingerprint: fingerprint, Completeness: CompletenessComplete},
 	}, nil
 }
