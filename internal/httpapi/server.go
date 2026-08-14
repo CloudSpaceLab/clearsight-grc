@@ -20,6 +20,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
@@ -39,6 +40,7 @@ type Dependencies struct {
 	Authority        authority.Service
 	Governance       *governance.Service
 	Evidence         *evidence.Service
+	SourceCatalog    *sourceaccess.CatalogService
 	DocumentImports  *documentimport.Service
 	Coverage         *documentcoverage.Service
 	Continuity       *continuity.Service

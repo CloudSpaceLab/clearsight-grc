@@ -17,6 +17,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/scimapi"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 	"github.com/alexedwards/scs/v2"
@@ -27,6 +28,7 @@ type serviceSet struct {
 	Authority       authority.Service
 	Governance      *governance.Service
 	Evidence        *evidence.Service
+	SourceCatalog   *sourceaccess.CatalogService
 	DocumentImports *documentimport.Service
 	Coverage        *documentcoverage.Service
 	Continuity      *continuity.Service

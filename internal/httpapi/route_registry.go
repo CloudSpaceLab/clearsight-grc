@@ -9,6 +9,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
 type routeClass string
@@ -117,6 +118,21 @@ func (a *API) routes() []routeSpec {
 		withPermission(materialService("/api/v1/operations/projections/reconcile", "projection.reconcile", a.reconcileProgramState, commandPolicy{ObjectType: "PROJECTION", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: noActorField}), identity.PermissionPlatformOperationsWrite),
 		withPermission(material("/api/v1/operations/projections/rebuild", "projection.rebuild", a.rebuildProgramState, commandPolicy{ObjectType: "PROJECTION", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: noActorField}), identity.PermissionPlatformOperationsWrite),
 		withPermission(read("/api/v1/operations/background-jobs", a.backgroundJobs), identity.PermissionPlatformJobsRead),
+
+		withPermission(read("/api/v1/config/sources/{source_id}/connections", a.listSourceConnections), identity.PermissionConfigRead),
+		withPermission(write(http.MethodPost, "/api/v1/config/sources/{source_id}/connections", a.createSourceConnectionDraft, nil), identity.PermissionConfigWrite),
+		withPermission(read("/api/v1/config/source-connections/{connection_id}", a.getSourceConnection), identity.PermissionConfigRead),
+		withPermission(read("/api/v1/config/source-connections/{connection_id}/views", a.listSourceViews), identity.PermissionConfigRead),
+		withPermission(write(http.MethodPost, "/api/v1/config/source-connections/{connection_id}/views", a.createSourceViewDraft, nil), identity.PermissionConfigWrite),
+		withPermission(read("/api/v1/config/source-connections/{connection_id}/where-used", a.sourceCatalogWhereUsed(sourceaccess.UsageConnection, "connection_id")), identity.PermissionConfigRead),
+		withPermission(read("/api/v1/config/source-views/{view_id}", a.getSourceView), identity.PermissionConfigRead),
+		withPermission(write(http.MethodPost, "/api/v1/config/source-views/{view_id}/inspect", a.inspectSourceView, nil), identity.PermissionConfigWrite),
+		withPermission(read("/api/v1/config/source-views/{view_id}/bindings", a.listSourceBindings), identity.PermissionConfigRead),
+		withPermission(write(http.MethodPost, "/api/v1/config/source-views/{view_id}/bindings", a.createSourceBindingDraft, nil), identity.PermissionConfigWrite),
+		withPermission(read("/api/v1/config/source-views/{view_id}/where-used", a.sourceCatalogWhereUsed(sourceaccess.UsageView, "view_id")), identity.PermissionConfigRead),
+		withPermission(read("/api/v1/config/source-bindings/{binding_id}", a.getSourceBinding), identity.PermissionConfigRead),
+		withPermission(operation("/api/v1/config/source-bindings/{binding_id}/preview", a.previewSourceBinding, nil), identity.PermissionConfigRead),
+		withPermission(read("/api/v1/config/source-bindings/{binding_id}/where-used", a.sourceCatalogWhereUsed(sourceaccess.UsageBinding, "binding_id")), identity.PermissionConfigRead),
 
 		read("/api/v1/evidence/sources", a.listEvidenceSources),
 		write(http.MethodPost, "/api/v1/evidence/sources", a.createEvidenceSource, bindJSONIdentity(true)),
