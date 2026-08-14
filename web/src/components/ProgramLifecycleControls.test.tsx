@@ -39,12 +39,12 @@ it("rejects blank and whitespace-only rationale before issuing a command", async
   expect(transitionProgram).not.toHaveBeenCalled();
 });
 
-it("disables the command while saving and submits the trimmed rationale once", async () => {
+it("disables the command, submits once and preserves the receipt through the status rerender", async () => {
   vi.mocked(canCurrentActorTransitionProgram).mockResolvedValue(true);
   let resolveCommand: ((value: ProgramAggregate) => void) | undefined;
   vi.mocked(transitionProgram).mockReturnValue(new Promise((resolve) => { resolveCommand = resolve; }));
   const onUpdated = vi.fn();
-  render(<ProgramLifecycleControls aggregate={program} onUpdated={onUpdated}/>);
+  const { rerender } = render(<ProgramLifecycleControls aggregate={program} onUpdated={onUpdated}/>);
 
   const submit = await screen.findByRole("button", { name: "Request pause" });
   fireEvent.change(screen.getByLabelText("Rationale"), { target: { value: "  Pause while ownership is corrected.  " } });
@@ -56,6 +56,12 @@ it("disables the command while saving and submits the trimmed rationale once", a
   expect(transitionProgram).toHaveBeenCalledTimes(1);
   expect(transitionProgram).toHaveBeenCalledWith("program-1", 5, "PAUSED", "Pause while ownership is corrected.");
 
-  resolveCommand?.({ ...program, program: { ...program.program, status: "PAUSED", version: 6 } });
+  const updated = { ...program, program: { ...program.program, status: "PAUSED", version: 6 } };
+  resolveCommand?.(updated);
   await waitFor(() => expect(onUpdated).toHaveBeenCalledTimes(1));
+  expect(await screen.findByText("Program status updated.", { exact: true })).toBeTruthy();
+
+  rerender(<ProgramLifecycleControls aggregate={updated} onUpdated={onUpdated}/>);
+  expect(await screen.findByText("Program status updated.", { exact: true })).toBeTruthy();
+  expect((await screen.findByRole("button", { name: "Request activation" }) as HTMLButtonElement).disabled).toBe(true);
 });

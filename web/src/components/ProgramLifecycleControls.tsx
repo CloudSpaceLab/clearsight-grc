@@ -57,9 +57,13 @@ export function ProgramLifecycleControls({ aggregate, onUpdated }: Props) {
 
   useEffect(() => {
     setTarget(programTransitionTargets(program.status)[0] ?? "");
-    setSubmitState("idle");
+    setRationale("");
     setError("");
-  }, [program.status]);
+  }, [program.id, program.status]);
+
+  useEffect(() => {
+    setSubmitState("idle");
+  }, [program.id]);
 
   useEffect(() => {
     let active = true;
