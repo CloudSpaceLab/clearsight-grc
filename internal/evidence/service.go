@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 )
@@ -44,7 +45,7 @@ func (s *Service) CreateSource(ctx context.Context, input CreateSourceInput) (So
 		return Source{}, fmt.Errorf("expected_freshness_minutes must be between 1 and 525600")
 	}
 	input.Endpoint = strings.TrimSpace(input.Endpoint)
-	if len(input.Endpoint) > 32<<10 || strings.IndexByte(input.Endpoint, 0) >= 0 || strings.ContainsAny(input.Endpoint, "\r\n") {
+	if len(input.Endpoint) > 32<<10 || strings.IndexFunc(input.Endpoint, unicode.IsControl) >= 0 {
 		return Source{}, fmt.Errorf("endpoint must be no more than 32768 bytes and contain no control characters")
 	}
 	valueID, err := id.NewUUIDv7()

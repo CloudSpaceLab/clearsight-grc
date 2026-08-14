@@ -19,6 +19,7 @@ const (
 func normalizeConnectionRevision(value ConnectionRevision) (ConnectionRevision, error) {
 	value.Code = strings.TrimSpace(value.Code)
 	value.Name = strings.TrimSpace(value.Name)
+	value.AdapterKind = AdapterKind(strings.TrimSpace(string(value.AdapterKind)))
 	value.AdapterVersion = strings.TrimSpace(value.AdapterVersion)
 	value.SecretRef = strings.TrimSpace(value.SecretRef)
 	value.OwnerPrincipalID = strings.TrimSpace(value.OwnerPrincipalID)
@@ -67,9 +68,16 @@ func normalizeConnectionRevision(value ConnectionRevision) (ConnectionRevision, 
 			return ConnectionRevision{}, catalogInvalid("reference connection definition is invalid")
 		}
 		endpoint, ok := reference["endpoint"].(string)
-		if !ok || strings.TrimSpace(endpoint) == "" {
-			return ConnectionRevision{}, catalogInvalid("reference connections require an endpoint")
+		endpoint = strings.TrimSpace(endpoint)
+		if !ok || endpoint == "" || containsControl(endpoint) {
+			return ConnectionRevision{}, catalogInvalid("reference connections require a bounded endpoint without control characters")
 		}
+		reference["endpoint"] = endpoint
+		encoded, err := json.Marshal(reference)
+		if err != nil || len(encoded) > HardMaxDefinitionBytes {
+			return ConnectionRevision{}, catalogInvalid("reference connection definition exceeds the size limit")
+		}
+		value.Definition = encoded
 	}
 	value.DeclaredCapabilities = declared
 	value.VerifiedCapabilities = verified

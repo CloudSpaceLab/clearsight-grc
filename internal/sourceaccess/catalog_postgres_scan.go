@@ -3,6 +3,7 @@
 package sourceaccess
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -266,8 +267,15 @@ func setLifecycleTimes(value *RevisionLifecycle, effectiveFrom, effectiveUntil s
 }
 
 func catalogReadError(err error) error {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrCatalogNotFound
+	}
+	var databaseError *pgconn.PgError
+	if errors.As(err, &databaseError) && (databaseError.Code == "22P02" || databaseError.Code == "22023") {
+		return ErrCatalogInvalid
 	}
 	return ErrCatalogStorage
 }
@@ -275,6 +283,9 @@ func catalogReadError(err error) error {
 func catalogWriteError(err error) error {
 	if err == nil {
 		return nil
+	}
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
 	}
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrCatalogNotFound
