@@ -34,6 +34,35 @@ func TestReferenceConnectionCannotCarryCredentialsOrExecutionCapabilities(t *tes
 	}
 }
 
+func TestReferenceConnectionCanonicalizesEndpoint(t *testing.T) {
+	now := time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC)
+	value := catalogConnectionRevision(now)
+	value.AdapterKind = AdapterKind("  REFERENCE  ")
+	value.AdapterVersion = ReferenceAdapterVersion
+	value.Code = ReferenceConnectionCode
+	value.Name = ReferenceConnectionName
+	value.SecretRef = ""
+	value.Definition = json.RawMessage(`{"endpoint":"  https://example.invalid/source  "}`)
+	value.DeclaredCapabilities = nil
+	value.VerifiedCapabilities = nil
+
+	normalized, err := normalizeConnectionRevision(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if normalized.AdapterKind != AdapterReference {
+		t.Fatalf("adapter kind=%q want=%q", normalized.AdapterKind, AdapterReference)
+	}
+	if string(normalized.Definition) != `{"endpoint":"https://example.invalid/source"}` {
+		t.Fatalf("reference definition was not canonicalized: %s", normalized.Definition)
+	}
+
+	value.Definition = json.RawMessage(`{"endpoint":"https://example.invalid/source\nvalue"}`)
+	if _, err := normalizeConnectionRevision(value); !errors.Is(err, ErrCatalogInvalid) {
+		t.Fatalf("reference endpoint with control characters should fail, got %v", err)
+	}
+}
+
 func TestCatalogJSONObjectsRejectNullAndExpandedOversizeValues(t *testing.T) {
 	if _, err := normalizeJSONObject(json.RawMessage(`null`), HardMaxDefinitionBytes, "definition"); !errors.Is(err, ErrCatalogInvalid) {
 		t.Fatalf("JSON null should fail, got %v", err)
