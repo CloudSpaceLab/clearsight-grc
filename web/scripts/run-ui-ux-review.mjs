@@ -36,7 +36,6 @@ for (const script of scripts) {
     path.join(logDir, `${path.basename(script, ".mjs")}.log`),
     `${run.stdout}${run.stderr ? `\n${run.stderr}` : ""}`,
   );
-  if (run.status !== 0) break;
 }
 
 await writeFile(path.join(outputDir, "runner.json"), JSON.stringify({ runs }, null, 2));
@@ -50,6 +49,6 @@ const review = spawnSync(process.execPath, ["scripts/review-ui-flow-manifest.mjs
 if (review.stdout) process.stdout.write(review.stdout);
 if (review.stderr) process.stderr.write(review.stderr);
 
-const failedRun = runs.find((run) => run.status !== 0);
-if (failedRun) process.stderr.write(`UI/UX defect runner failed in ${failedRun.script}.\n`);
-if (failedRun || review.status !== 0) process.exit(1);
+const failedRuns = runs.filter((run) => run.status !== 0);
+if (failedRuns.length) process.stderr.write(`UI/UX review runners failed: ${failedRuns.map((run) => run.script).join(", ")}.\n`);
+if (failedRuns.length || review.status !== 0) process.exit(1);
