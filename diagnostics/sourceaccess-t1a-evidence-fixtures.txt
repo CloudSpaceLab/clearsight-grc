@@ -128,44 +128,6 @@ internal/evidence/model.go-76-type RecipientState string
 internal/evidence/model.go-77-
 internal/evidence/model.go-78-const (
 --
-internal/evidence/lookup_postgres.go-14-	err := r.pool.QueryRow(ctx, `
-internal/evidence/lookup_postgres.go-15-		SELECT cr.id::text
-internal/evidence/lookup_postgres.go-16-		FROM capture_requests cr
-internal/evidence/lookup_postgres.go-17-		JOIN tenants t ON t.id=cr.tenant_id
-internal/evidence/lookup_postgres.go-18-		WHERE (t.id::text=$1 OR t.slug=$1) AND cr.subject_type=$2 AND cr.subject_id=$3
-internal/evidence/lookup_postgres.go-19-		ORDER BY
-internal/evidence/lookup_postgres.go-20-			CASE WHEN cr.status IN ('DRAFT','READY','IN_PROGRESS') THEN 0 ELSE 1 END,
-internal/evidence/lookup_postgres.go-21-			CASE WHEN cr.status IN ('DRAFT','READY','IN_PROGRESS') THEN cr.deadline END ASC NULLS LAST,
-internal/evidence/lookup_postgres.go-22-			cr.updated_at DESC,cr.id DESC
-internal/evidence/lookup_postgres.go-23-		LIMIT 1`, tenant, subjectType, subjectID).Scan(&id)
-internal/evidence/lookup_postgres.go-24-	if errors.Is(err, pgx.ErrNoRows) {
-internal/evidence/lookup_postgres.go-25-		return Request{}, ErrNotFound
-internal/evidence/lookup_postgres.go-26-	}
-internal/evidence/lookup_postgres.go-27-	if err != nil {
-internal/evidence/lookup_postgres.go-28-		return Request{}, err
-internal/evidence/lookup_postgres.go-29-	}
-internal/evidence/lookup_postgres.go-30-	return r.GetRequest(ctx, tenant, id)
-internal/evidence/lookup_postgres.go-31-}
-internal/evidence/lookup_postgres.go-32-
-internal/evidence/lookup_postgres.go-33-func (r *PostgresRepository) SourcesByCodes(ctx context.Context, tenant string, codes []string) ([]Source, error) {
-internal/evidence/lookup_postgres.go:34:	rows, err := r.pool.Query(ctx, `SELECT es.id::text,t.id::text,COALESCE(es.legal_entity_id::text,''),es.code,es.name,es.source_type,es.authority_class,COALESCE(es.owner_principal_id::text,''),es.endpoint,es.expected_freshness_minutes,es.last_observed_at,es.last_success_at,es.health,es.status,es.version,es.created_at,es.updated_at FROM evidence_sources es JOIN tenants t ON t.id=es.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND es.code=ANY($2::text[]) ORDER BY es.code`, tenant, codes)
-internal/evidence/lookup_postgres.go-35-	if err != nil {
-internal/evidence/lookup_postgres.go-36-		return nil, err
-internal/evidence/lookup_postgres.go-37-	}
-internal/evidence/lookup_postgres.go-38-	defer rows.Close()
-internal/evidence/lookup_postgres.go-39-	values := []Source{}
-internal/evidence/lookup_postgres.go-40-	for rows.Next() {
-internal/evidence/lookup_postgres.go-41-		value, err := scanSource(rows)
-internal/evidence/lookup_postgres.go-42-		if err != nil {
-internal/evidence/lookup_postgres.go-43-			return nil, err
-internal/evidence/lookup_postgres.go-44-		}
-internal/evidence/lookup_postgres.go-45-		values = append(values, value)
-internal/evidence/lookup_postgres.go-46-	}
-internal/evidence/lookup_postgres.go-47-	return values, rows.Err()
-internal/evidence/lookup_postgres.go-48-}
-internal/evidence/lookup_postgres.go-49-
-internal/evidence/lookup_postgres.go-50-var _ subjectLookupRepository = (*PostgresRepository)(nil)
---
 internal/evidence/source_catalog_postgres_integration_test.go-51-		ID:                       sourceCatalogSourceID,
 internal/evidence/source_catalog_postgres_integration_test.go-52-		TenantID:                 sourceCatalogTenantID,
 internal/evidence/source_catalog_postgres_integration_test.go-53-		LegalEntityID:            sourceCatalogEntityID,
