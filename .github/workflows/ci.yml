@@ -108,12 +108,6 @@ jobs:
         env:
           PGPASSWORD: clearsight
         run: dropdb -h localhost -U clearsight --if-exists clearsight_deploy_test
-      - name: Locate legacy Evidence integration fixture
-        run: |
-          grep -R -n -C 8 \
-            -e 'TestPostgresEvidenceRepository' \
-            -e 'TestPostgresMaintenanceBatchesAreBounded' \
-            internal/evidence
       - name: PostgreSQL integration tests
         env:
           TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
