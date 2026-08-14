@@ -1,34 +1,20 @@
-name: UI evidence
+name: UI/UX flow review
 
 on:
   pull_request:
-    paths:
-      - "web/**"
-      - "internal/today/**"
-      - "internal/workflow/**"
-      - "internal/continuity/work_requirements.go"
-      - "internal/continuity/program_review.go"
-      - "internal/httpapi/program_review_handlers.go"
-      - "internal/authority/model.go"
-      - "internal/httpapi/actor_read_handlers.go"
-      - "internal/identity/**"
-      - "api/runtime.openapi.json"
-      - "DESIGN.md"
-      - "docs/design/**"
-      - "docs/product/**"
-      - "docs/quality/**"
-      - ".github/workflows/ui-evidence.yml"
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ui-evidence-${{ github.event.pull_request.number || github.ref }}
+  group: ui-ux-flow-review-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  capture:
+  review:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -41,15 +27,15 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci --no-audit --no-fund
-      - name: Install pinned Playwright runtime for evidence only
+      - name: Install pinned Playwright review runtime
         run: npm install --no-save --package-lock=false playwright@1.55.0
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Validate web before capture
+      - name: Validate component contracts
         run: |
           npm run typecheck
           npm test
-      - name: Build deterministic static stakeholder app
+      - name: Build deterministic stakeholder application
         env:
           VITE_STATIC_DEMO: "true"
           VITE_API_BASE_URL: ""
@@ -66,30 +52,38 @@ jobs:
           done
           cat /tmp/clearsight-ui-preview.log
           exit 1
-      - name: Capture deterministic UI evidence
+      - name: Run deterministic UI/UX flow review
         env:
           PAGE_URL: http://127.0.0.1:4173
           UI_EVIDENCE_DIR: ui-evidence
+        run: npm run review:ui
+      - name: Publish review receipt
+        if: always()
         run: |
-          node scripts/capture-ui-evidence.mjs
-          node scripts/capture-lifecycle-ui-evidence.mjs
-          node scripts/capture-operating-mutations-evidence.mjs
-          node scripts/capture-program-review-evidence.mjs
-      - name: Upload screenshots and manifest
+          if [ -f ui-evidence/review.md ]; then
+            cat ui-evidence/review.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Automated UI/UX flow review" >> "$GITHUB_STEP_SUMMARY"
+            echo >> "$GITHUB_STEP_SUMMARY"
+            echo "❌ Review receipt was not produced." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload UI/UX review evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ui-evidence-${{ github.sha }}
+          name: ui-ux-flow-review-${{ github.sha }}
           path: |
             web/ui-evidence/*.png
-            web/ui-evidence/manifest.json
+            web/ui-evidence/*.json
+            web/ui-evidence/*.md
+            web/ui-evidence/flow-logs/*.log
           if-no-files-found: error
           retention-days: 14
       - name: Upload preview log on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: ui-evidence-preview-log-${{ github.sha }}
+          name: ui-ux-preview-log-${{ github.sha }}
           path: /tmp/clearsight-ui-preview.log
           if-no-files-found: ignore
           retention-days: 7
