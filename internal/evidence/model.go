@@ -36,7 +36,7 @@ type Source struct {
 	Type                     SourceType   `json:"type"`
 	AuthorityClass           string       `json:"authority_class"`
 	OwnerPrincipalID         string       `json:"owner_principal_id,omitempty"`
-	Endpoint                 string       `json:"endpoint,omitempty"`
+	Endpoint                 string       `json:"-"`
 	ExpectedFreshnessMinutes int          `json:"expected_freshness_minutes"`
 	LastObservedAt           *time.Time   `json:"last_observed_at,omitempty"`
 	LastSuccessAt            *time.Time   `json:"last_success_at,omitempty"`

@@ -8,8 +8,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -21,16 +23,39 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 }
 
 func (r *PostgresRepository) CreateSource(ctx context.Context, value Source) (Source, error) {
-	row := r.pool.QueryRow(ctx, `INSERT INTO evidence_sources(id,tenant_id,legal_entity_id,code,name,source_type,authority_class,owner_principal_id,endpoint,expected_freshness_minutes,health,status,version,created_at,updated_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),(SELECT id FROM legal_entities WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) AND (id::text=$3 OR code=$3) LIMIT 1),$4,$5,$6,$7,NULLIF($8,'')::uuid,$9,$10,$11,$12,$13,$14,$14) RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),COALESCE(legal_entity_id::text,''),code,name,source_type,authority_class,COALESCE(owner_principal_id::text,''),endpoint,expected_freshness_minutes,last_observed_at,last_success_at,health,status,version,created_at,updated_at`, value.ID, value.TenantID, value.LegalEntityID, value.Code, value.Name, value.Type, value.AuthorityClass, value.OwnerPrincipalID, value.Endpoint, value.ExpectedFreshnessMinutes, value.Health, value.Status, value.Version, value.CreatedAt)
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return Source{}, err
+	}
+	defer tx.Rollback(ctx)
+	row := tx.QueryRow(ctx, `INSERT INTO evidence_sources(id,tenant_id,legal_entity_id,code,name,source_type,authority_class,owner_principal_id,expected_freshness_minutes,health,status,version,created_at,updated_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),(SELECT id FROM legal_entities WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) AND (id::text=$3 OR code=$3) LIMIT 1),$4,$5,$6,$7,NULLIF($8,'')::uuid,$9,$10,$11,$12,$13,$13) RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),COALESCE(legal_entity_id::text,''),code,name,source_type,authority_class,COALESCE(owner_principal_id::text,''),expected_freshness_minutes,last_observed_at,last_success_at,health,status,version,created_at,updated_at`, value.ID, value.TenantID, value.LegalEntityID, value.Code, value.Name, value.Type, value.AuthorityClass, value.OwnerPrincipalID, value.ExpectedFreshnessMinutes, value.Health, value.Status, value.Version, value.CreatedAt)
 	created, err := scanSource(row)
 	if err != nil {
 		return Source{}, fmt.Errorf("create evidence source: %w", err)
+	}
+	endpoint := strings.TrimSpace(value.Endpoint)
+	if endpoint != "" {
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO source_connections(
+				tenant_id,source_id,code,name,adapter_kind,adapter_version,secret_ref,definition,
+				declared_capabilities,verified_capabilities,owner_principal_id,status,is_current,
+				effective_from,version,created_by,created_at,updated_at
+			) VALUES (
+				(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,$3,$4,$5,$6,'',
+				jsonb_build_object('endpoint',$7),'[]'::jsonb,'[]'::jsonb,NULLIF($8,'')::uuid,
+				'ACTIVE',true,$9,1,NULLIF($8,'')::uuid,$9,$9
+			)`, value.TenantID, created.ID, sourceaccess.ReferenceConnectionCode, sourceaccess.ReferenceConnectionName, sourceaccess.AdapterReference, sourceaccess.ReferenceAdapterVersion, endpoint, value.OwnerPrincipalID, value.CreatedAt); err != nil {
+			return Source{}, fmt.Errorf("create source reference connection: %w", err)
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Source{}, err
 	}
 	return created, nil
 }
 
 func (r *PostgresRepository) ListSources(ctx context.Context, tenant string, limit int) ([]Source, error) {
-	rows, err := r.pool.Query(ctx, `SELECT es.id::text,t.id::text,COALESCE(es.legal_entity_id::text,''),es.code,es.name,es.source_type,es.authority_class,COALESCE(es.owner_principal_id::text,''),es.endpoint,es.expected_freshness_minutes,es.last_observed_at,es.last_success_at,es.health,es.status,es.version,es.created_at,es.updated_at FROM evidence_sources es JOIN tenants t ON t.id=es.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) ORDER BY es.name,es.id LIMIT $2`, tenant, limit)
+	rows, err := r.pool.Query(ctx, `SELECT es.id::text,t.id::text,COALESCE(es.legal_entity_id::text,''),es.code,es.name,es.source_type,es.authority_class,COALESCE(es.owner_principal_id::text,''),es.expected_freshness_minutes,es.last_observed_at,es.last_success_at,es.health,es.status,es.version,es.created_at,es.updated_at FROM evidence_sources es JOIN tenants t ON t.id=es.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) ORDER BY es.name,es.id LIMIT $2`, tenant, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list evidence sources: %w", err)
 	}
@@ -52,7 +77,7 @@ func (r *PostgresRepository) RecordSourceObservation(ctx context.Context, observ
 		return Source{}, err
 	}
 	defer tx.Rollback(ctx)
-	current, err := scanSource(tx.QueryRow(ctx, `SELECT es.id::text,t.id::text,COALESCE(es.legal_entity_id::text,''),es.code,es.name,es.source_type,es.authority_class,COALESCE(es.owner_principal_id::text,''),es.endpoint,es.expected_freshness_minutes,es.last_observed_at,es.last_success_at,es.health,es.status,es.version,es.created_at,es.updated_at FROM evidence_sources es JOIN tenants t ON t.id=es.tenant_id WHERE es.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, observation.SourceID, observation.TenantID))
+	current, err := scanSource(tx.QueryRow(ctx, `SELECT es.id::text,t.id::text,COALESCE(es.legal_entity_id::text,''),es.code,es.name,es.source_type,es.authority_class,COALESCE(es.owner_principal_id::text,''),es.expected_freshness_minutes,es.last_observed_at,es.last_success_at,es.health,es.status,es.version,es.created_at,es.updated_at FROM evidence_sources es JOIN tenants t ON t.id=es.tenant_id WHERE es.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, observation.SourceID, observation.TenantID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Source{}, ErrNotFound
 	}
@@ -63,7 +88,7 @@ func (r *PostgresRepository) RecordSourceObservation(ctx context.Context, observ
 	if err != nil {
 		return Source{}, err
 	}
-	row := tx.QueryRow(ctx, `UPDATE evidence_sources SET last_observed_at=$3,last_success_at=CASE WHEN $4 THEN $3 ELSE last_success_at END,health=$5,version=version+1,updated_at=$3 WHERE id=$1::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),COALESCE(legal_entity_id::text,''),code,name,source_type,authority_class,COALESCE(owner_principal_id::text,''),endpoint,expected_freshness_minutes,last_observed_at,last_success_at,health,status,version,created_at,updated_at`, observation.SourceID, observation.TenantID, observation.ObservedAt, observation.Success, health)
+	row := tx.QueryRow(ctx, `UPDATE evidence_sources SET last_observed_at=$3,last_success_at=CASE WHEN $4 THEN $3 ELSE last_success_at END,health=$5,version=version+1,updated_at=$3 WHERE id=$1::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),COALESCE(legal_entity_id::text,''),code,name,source_type,authority_class,COALESCE(owner_principal_id::text,''),expected_freshness_minutes,last_observed_at,last_success_at,health,status,version,created_at,updated_at`, observation.SourceID, observation.TenantID, observation.ObservedAt, observation.Success, health)
 	updated, err := scanSource(row)
 	if err != nil {
 		return Source{}, err
@@ -366,7 +391,7 @@ type scanner interface{ Scan(...any) error }
 func scanSource(row scanner) (Source, error) {
 	var value Source
 	var observed, success sql.NullTime
-	if err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.Code, &value.Name, &value.Type, &value.AuthorityClass, &value.OwnerPrincipalID, &value.Endpoint, &value.ExpectedFreshnessMinutes, &observed, &success, &value.Health, &value.Status, &value.Version, &value.CreatedAt, &value.UpdatedAt); err != nil {
+	if err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.Code, &value.Name, &value.Type, &value.AuthorityClass, &value.OwnerPrincipalID, &value.ExpectedFreshnessMinutes, &observed, &success, &value.Health, &value.Status, &value.Version, &value.CreatedAt, &value.UpdatedAt); err != nil {
 		return Source{}, err
 	}
 	if observed.Valid {
