@@ -3,241 +3,123 @@ package assurance
 import (
 	"context"
 	"fmt"
-	neturl "net/url"
-	"strconv"
 	"strings"
-	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
-const hardMaxPostgresSourceConns int32 = 4
+const hardMaxPostgresSourceConns int32 = sourceaccess.HardMaxPostgresSourceConns
 
-type PostgresSourceOptions struct {
-	MaxConns          int32
-	ConnectTimeout    time.Duration
-	StatementTimeout  time.Duration
-	LockTimeout       time.Duration
-	IdleTxTimeout     time.Duration
-	PingTimeout       time.Duration
-	MaxConnLifetime   time.Duration
-	MaxConnIdleTime   time.Duration
-	HealthCheckPeriod time.Duration
-}
+type PostgresSourceOptions = sourceaccess.PostgresOptions
 
 func DefaultPostgresSourceOptions() PostgresSourceOptions {
-	return PostgresSourceOptions{
-		MaxConns:          2,
-		ConnectTimeout:    5 * time.Second,
-		StatementTimeout:  5 * time.Second,
-		LockTimeout:       500 * time.Millisecond,
-		IdleTxTimeout:     10 * time.Second,
-		PingTimeout:       2 * time.Second,
-		MaxConnLifetime:   15 * time.Minute,
-		MaxConnIdleTime:   5 * time.Minute,
-		HealthCheckPeriod: 30 * time.Second,
-	}
+	return sourceaccess.DefaultPostgresOptions()
 }
 
+// PostgresSourceExecutor is the assurance consumer over a reusable sourceaccess
+// session. The compatibility Open function owns its session; composition through
+// NewPostgresSourceExecutorWithSession leaves lifecycle ownership with the
+// caller so forms, evidence, workflows and assurance can share one connection.
 type PostgresSourceExecutor struct {
-	sourceID string
-	pool     *pgxpool.Pool
-	options  PostgresSourceOptions
-	now      func() time.Time
+	sourceID    string
+	session     sourceaccess.Session
+	ownsSession bool
 }
 
 func OpenPostgresSourceExecutor(ctx context.Context, sourceID, secretRef string, resolver SourceSecretResolver, options PostgresSourceOptions) (*PostgresSourceExecutor, error) {
-	if strings.TrimSpace(sourceID) == "" || strings.TrimSpace(secretRef) == "" || resolver == nil {
+	sourceID = strings.TrimSpace(sourceID)
+	if sourceID == "" || strings.TrimSpace(secretRef) == "" || resolver == nil {
 		return nil, fmt.Errorf("%w: source_id, secret_ref and resolver are required", ErrPopulationInvalid)
 	}
-	options = normalizedPostgresSourceOptions(options)
-	connectionString, err := resolver.Resolve(ctx, secretRef)
-	if err != nil || strings.TrimSpace(connectionString) == "" {
-		if ctxErr := ctx.Err(); ctxErr != nil {
-			return nil, ctxErr
-		}
-		return nil, ErrSourceCredentials
-	}
-	if err := validateExplicitPostgresSourceDSN(connectionString); err != nil {
-		connectionString = ""
-		return nil, ErrSourceConnection
-	}
-
-	poolConfig, err := pgxpool.ParseConfig(connectionString)
-	connectionString = ""
+	connection := sourceaccess.NewPostgresConnection(sourceID, sourceID, "legacy-v1", secretRef)
+	session, err := sourceaccess.NewPostgresAdapter(options).Open(ctx, connection, resolver)
 	if err != nil {
-		return nil, ErrSourceConnection
+		return nil, mapSourceAccessError(err)
 	}
-	poolConfig.MinConns = 0
-	poolConfig.MinIdleConns = 0
-	poolConfig.MaxConns = options.MaxConns
-	poolConfig.MaxConnLifetime = options.MaxConnLifetime
-	poolConfig.MaxConnIdleTime = options.MaxConnIdleTime
-	poolConfig.HealthCheckPeriod = options.HealthCheckPeriod
-	poolConfig.PingTimeout = options.PingTimeout
-	poolConfig.ConnConfig.ConnectTimeout = options.ConnectTimeout
-	if poolConfig.ConnConfig.RuntimeParams == nil {
-		poolConfig.ConnConfig.RuntimeParams = make(map[string]string)
-	}
-	// DSN-level PGOPTIONS can carry arbitrary -c overrides. Drop it and own the
-	// execution guardrails explicitly below; the approved population query is
-	// the configurable input, not the session safety policy.
-	delete(poolConfig.ConnConfig.RuntimeParams, "options")
-	poolConfig.ConnConfig.RuntimeParams["application_name"] = "clearsight-assurance-source"
-	poolConfig.ConnConfig.RuntimeParams["default_transaction_read_only"] = "on"
-	poolConfig.ConnConfig.RuntimeParams["statement_timeout"] = postgresDuration(options.StatementTimeout)
-	poolConfig.ConnConfig.RuntimeParams["lock_timeout"] = postgresDuration(options.LockTimeout)
-	poolConfig.ConnConfig.RuntimeParams["idle_in_transaction_session_timeout"] = postgresDuration(options.IdleTxTimeout)
-	poolConfig.ConnConfig.RuntimeParams["timezone"] = "UTC"
-
-	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+	executor, err := NewPostgresSourceExecutorWithSession(sourceID, session)
 	if err != nil {
-		return nil, sourceDatabaseError(ctx, ErrSourceConnection)
-	}
-	pingCtx, cancel := context.WithTimeout(ctx, options.ConnectTimeout+options.PingTimeout)
-	defer cancel()
-	if err := pool.Ping(pingCtx); err != nil {
-		pool.Close()
-		return nil, sourceDatabaseError(pingCtx, ErrSourceConnection)
-	}
-	if err := verifyPostgresSourcePrincipal(pingCtx, pool); err != nil {
-		pool.Close()
+		_ = session.Close()
 		return nil, err
 	}
-	return &PostgresSourceExecutor{sourceID: strings.TrimSpace(sourceID), pool: pool, options: options, now: time.Now}, nil
+	executor.ownsSession = true
+	return executor, nil
+}
+
+func NewPostgresSourceExecutorWithSession(sourceID string, session sourceaccess.Session) (*PostgresSourceExecutor, error) {
+	sourceID = strings.TrimSpace(sourceID)
+	if sourceID == "" || session == nil {
+		return nil, fmt.Errorf("%w: source_id and source session are required", ErrPopulationInvalid)
+	}
+	connection := session.Connection()
+	if connection.SourceID != sourceID || connection.AdapterKind != sourceaccess.AdapterPostgres {
+		return nil, fmt.Errorf("%w: source session does not match the assurance source", ErrPopulationInvalid)
+	}
+	if !session.Capabilities().Has(sourceaccess.CapabilityInspect) || !session.Capabilities().Has(sourceaccess.CapabilityAggregate) {
+		return nil, fmt.Errorf("%w: source session lacks assurance capabilities", ErrPopulationInvalid)
+	}
+	if _, ok := session.(sourceaccess.SchemaReader); !ok {
+		return nil, fmt.Errorf("%w: source session cannot inspect schema", ErrPopulationInvalid)
+	}
+	if _, ok := session.(sourceaccess.PostgresPredicateEvaluator); !ok {
+		return nil, fmt.Errorf("%w: source session cannot evaluate PostgreSQL predicates", ErrPopulationInvalid)
+	}
+	return &PostgresSourceExecutor{sourceID: sourceID, session: session}, nil
 }
 
 func (e *PostgresSourceExecutor) Close() {
-	if e != nil && e.pool != nil {
-		e.pool.Close()
+	if e != nil && e.ownsSession && e.session != nil {
+		_ = e.session.Close()
 	}
 }
 
 func (e *PostgresSourceExecutor) InspectSchema(ctx context.Context, population PopulationDefinition) (SourceSchema, error) {
-	if e == nil || e.pool == nil {
-		return SourceSchema{}, ErrSourceConnection
-	}
-	population, err := normalizePopulationDefinition(population)
+	population, view, err := e.legacyView(population)
 	if err != nil {
 		return SourceSchema{}, err
 	}
-	operationCtx, cancel := e.operationContext(ctx)
-	defer cancel()
-	tx, err := e.beginReadOnly(operationCtx)
-	if err != nil {
-		return SourceSchema{}, sourceDatabaseError(operationCtx, ErrSourceExecution)
-	}
-	defer e.rollback(tx)
-	return e.inspectSchemaTx(operationCtx, tx, population)
+	return e.inspect(ctx, view, population.ID, populationFingerprint(population), population.SubjectKey, nil)
 }
 
-func (e *PostgresSourceExecutor) Evaluate(ctx context.Context, population PopulationDefinition, condition *CompiledCondition) (EvaluationReceipt, error) {
-	if e == nil || e.pool == nil {
-		return EvaluationReceipt{}, ErrSourceConnection
+// InspectBinding exposes the assurance logical schema for a reusable source
+// Binding without making the PopulationDefinition a connector authority.
+func (e *PostgresSourceExecutor) InspectBinding(ctx context.Context, view sourceaccess.View, binding sourceaccess.Binding) (SourceSchema, error) {
+	if e == nil || e.session == nil {
+		return SourceSchema{}, ErrSourceConnection
 	}
-	population, err := normalizePopulationDefinition(population)
+	subjectKey, err := validateAssuranceBinding(view, binding)
 	if err != nil {
-		return EvaluationReceipt{}, err
+		return SourceSchema{}, err
 	}
-	if condition == nil {
-		return EvaluationReceipt{}, fmt.Errorf("%w: compiled condition is required", ErrPopulationInvalid)
-	}
-	predicate, err := condition.PostgresPredicate()
+	fingerprint, err := sourceaccess.BindingFingerprint(view, binding)
 	if err != nil {
-		return EvaluationReceipt{}, err
+		return SourceSchema{}, mapSourceAccessError(err)
 	}
-	expectedRequiredSchema, err := condition.RequiredSchemaFingerprint(population.SubjectKey)
-	if err != nil {
-		return EvaluationReceipt{}, err
-	}
-
-	operationCtx, cancel := e.operationContext(ctx)
-	defer cancel()
-	tx, err := e.beginReadOnly(operationCtx)
-	if err != nil {
-		return EvaluationReceipt{}, sourceDatabaseError(operationCtx, ErrSourceExecution)
-	}
-	defer e.rollback(tx)
-
-	currentSchema, err := e.inspectSchemaTx(operationCtx, tx, population)
-	if err != nil {
-		return EvaluationReceipt{}, err
-	}
-	currentRequiredSchema, err := schemaFingerprintForFields(currentSchema.Schema, condition.requiredSchemaFields(population.SubjectKey))
-	if err != nil {
-		return EvaluationReceipt{}, err
-	}
-	if currentRequiredSchema != expectedRequiredSchema {
-		return EvaluationReceipt{}, ErrSourceSchemaChanged
-	}
-
-	query := `SELECT count(*)::bigint, ` +
-		`count(*) FILTER (WHERE ` + predicate.MatchSQL + `)::bigint, ` +
-		`count(*) FILTER (WHERE ` + predicate.UnknownSQL + `)::bigint, ` +
-		`count(*) FILTER (WHERE (` + predicate.MatchSQL + `) AND (` + predicate.UnknownSQL + `))::bigint ` +
-		`FROM (` + population.Query + `) AS clearsight_population`
-	var total, matched, unknown, overlap int64
-	if err := tx.QueryRow(operationCtx, query, predicate.Args...).Scan(&total, &matched, &unknown, &overlap); err != nil {
-		return EvaluationReceipt{}, sourceDatabaseError(operationCtx, ErrSourceExecution)
-	}
-	if total < 0 || matched < 0 || unknown < 0 || overlap != 0 || matched+unknown > total {
-		return EvaluationReceipt{}, ErrSourceExecution
-	}
-	return EvaluationReceipt{
-		SourceID:              e.sourceID,
-		PopulationID:          population.ID,
-		PopulationFingerprint: populationFingerprint(population),
-		SchemaFingerprint:     currentSchema.SchemaFingerprint,
-		TotalCount:            total,
-		MatchCount:            matched,
-		UnknownCount:          unknown,
-		ClearCount:            total - matched - unknown,
-		EvaluatedAt:           e.now().UTC(),
-		Complete:              true,
-	}, nil
+	return e.inspect(ctx, view, binding.ID, fingerprint, subjectKey, binding.SelectedFields)
 }
 
-func (e *PostgresSourceExecutor) beginReadOnly(ctx context.Context) (pgx.Tx, error) {
-	return e.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
-}
-
-func (e *PostgresSourceExecutor) rollback(tx pgx.Tx) {
-	if e == nil || tx == nil {
-		return
+func (e *PostgresSourceExecutor) inspect(ctx context.Context, view sourceaccess.View, populationID, populationDefinitionFingerprint, subjectKey string, selectedFields []string) (SourceSchema, error) {
+	if e == nil || e.session == nil {
+		return SourceSchema{}, ErrSourceConnection
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), e.options.PingTimeout)
-	defer cancel()
-	_ = tx.Rollback(ctx)
-}
-
-func (e *PostgresSourceExecutor) inspectSchemaTx(ctx context.Context, tx pgx.Tx, population PopulationDefinition) (SourceSchema, error) {
-	rows, err := tx.Query(ctx, `SELECT * FROM (`+population.Query+`) AS clearsight_population LIMIT 0`)
+	reader, ok := e.session.(sourceaccess.SchemaReader)
+	if !ok {
+		return SourceSchema{}, ErrSourceConnection
+	}
+	result, err := reader.Inspect(ctx, view)
 	if err != nil {
-		return SourceSchema{}, sourceDatabaseError(ctx, ErrSourceExecution)
+		return SourceSchema{}, mapSourceAccessError(err)
 	}
-	descriptions := rows.FieldDescriptions()
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return SourceSchema{}, sourceDatabaseError(ctx, ErrSourceExecution)
+	schema, err := logicalSchemaForFields(result.Fields, selectedFields)
+	if err != nil {
+		return SourceSchema{}, err
 	}
-	if len(descriptions) > hardMaxProfileFields {
-		return SourceSchema{}, fmt.Errorf("%w: source schema exceeds %d projected fields", ErrPopulationInvalid, hardMaxProfileFields)
+	if _, exists := schema.Field(subjectKey); !exists {
+		return SourceSchema{}, fmt.Errorf("%w: subject_key is not projected by the source view", ErrPopulationInvalid)
 	}
-	native := make([]NativeField, 0, len(descriptions))
-	for _, description := range descriptions {
-		nativeType := "oid:" + strconv.FormatUint(uint64(description.DataTypeOID), 10)
-		if dataType, ok := tx.Conn().TypeMap().TypeForOID(description.DataTypeOID); ok {
-			nativeType = dataType.Name
+	for _, name := range selectedFields {
+		if _, exists := schema.Field(name); !exists {
+			return SourceSchema{}, fmt.Errorf("%w: selected binding field %q is not projected by the source view", ErrPopulationInvalid, name)
 		}
-		native = append(native, NativeField{Name: description.Name, NativeType: nativeType, Nullable: true})
-	}
-	schema, err := NormalizeSchema(native)
-	if err != nil {
-		return SourceSchema{}, fmt.Errorf("%w: source schema is ambiguous or unsupported", ErrPopulationInvalid)
-	}
-	if _, exists := schema.Field(population.SubjectKey); !exists {
-		return SourceSchema{}, fmt.Errorf("%w: subject_key is not projected by the population", ErrPopulationInvalid)
 	}
 	fingerprint, err := schema.Fingerprint()
 	if err != nil {
@@ -245,82 +127,10 @@ func (e *PostgresSourceExecutor) inspectSchemaTx(ctx context.Context, tx pgx.Tx,
 	}
 	return SourceSchema{
 		SourceID:              e.sourceID,
-		PopulationID:          population.ID,
-		PopulationFingerprint: populationFingerprint(population),
+		PopulationID:          populationID,
+		PopulationFingerprint: populationDefinitionFingerprint,
 		SchemaFingerprint:     fingerprint,
 		Schema:                schema,
-		InspectedAt:           e.now().UTC(),
+		InspectedAt:           result.Receipt.ObservedAt,
 	}, nil
-}
-
-func (e *PostgresSourceExecutor) operationContext(ctx context.Context) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(ctx, e.options.StatementTimeout+e.options.PingTimeout)
-}
-
-func normalizedPostgresSourceOptions(value PostgresSourceOptions) PostgresSourceOptions {
-	defaults := DefaultPostgresSourceOptions()
-	if value.MaxConns <= 0 {
-		value.MaxConns = defaults.MaxConns
-	}
-	if value.MaxConns > hardMaxPostgresSourceConns {
-		value.MaxConns = hardMaxPostgresSourceConns
-	}
-	value.ConnectTimeout = boundedDuration(value.ConnectTimeout, defaults.ConnectTimeout, 15*time.Second)
-	value.StatementTimeout = boundedDuration(value.StatementTimeout, defaults.StatementTimeout, 30*time.Second)
-	value.LockTimeout = boundedDuration(value.LockTimeout, defaults.LockTimeout, 5*time.Second)
-	value.IdleTxTimeout = boundedDuration(value.IdleTxTimeout, defaults.IdleTxTimeout, 30*time.Second)
-	value.PingTimeout = boundedDuration(value.PingTimeout, defaults.PingTimeout, 5*time.Second)
-	value.MaxConnLifetime = boundedDuration(value.MaxConnLifetime, defaults.MaxConnLifetime, time.Hour)
-	value.MaxConnIdleTime = boundedDuration(value.MaxConnIdleTime, defaults.MaxConnIdleTime, 15*time.Minute)
-	value.HealthCheckPeriod = boundedDuration(value.HealthCheckPeriod, defaults.HealthCheckPeriod, 2*time.Minute)
-	return value
-}
-
-func boundedDuration(value, fallback, maximum time.Duration) time.Duration {
-	if value <= 0 {
-		value = fallback
-	}
-	if value > maximum {
-		return maximum
-	}
-	return value
-}
-
-func postgresDuration(value time.Duration) string {
-	milliseconds := value.Milliseconds()
-	if milliseconds < 1 {
-		milliseconds = 1
-	}
-	return strconv.FormatInt(milliseconds, 10) + "ms"
-}
-
-func validateExplicitPostgresSourceDSN(value string) error {
-	parsed, err := neturl.Parse(strings.TrimSpace(value))
-	if err != nil || (parsed.Scheme != "postgres" && parsed.Scheme != "postgresql") || parsed.Hostname() == "" || parsed.User == nil || strings.TrimSpace(parsed.User.Username()) == "" || strings.Trim(parsed.Path, "/") == "" {
-		return ErrSourceConnection
-	}
-	return nil
-}
-
-func verifyPostgresSourcePrincipal(ctx context.Context, pool *pgxpool.Pool) error {
-	var superuser, createRole, createDB, replication, bypassRLS bool
-	if err := pool.QueryRow(ctx, `SELECT rolsuper,rolcreaterole,rolcreatedb,rolreplication,rolbypassrls FROM pg_roles WHERE rolname=current_user`).Scan(&superuser, &createRole, &createDB, &replication, &bypassRLS); err != nil {
-		return sourceDatabaseError(ctx, ErrSourceConnection)
-	}
-	if superuser || createRole || createDB || replication || bypassRLS {
-		return ErrSourcePrivileges
-	}
-	return nil
-}
-
-func sourceDatabaseError(ctx context.Context, fallback error) error {
-	if ctx != nil {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-	}
-	if fallback == nil {
-		return ErrSourceExecution
-	}
-	return fallback
 }
