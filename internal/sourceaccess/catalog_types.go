@@ -13,7 +13,7 @@ const (
 	ReferenceAdapterVersion             = "reference-v1"
 	ReferenceConnectionCode             = "PRIMARY_REFERENCE"
 	ReferenceConnectionName             = "Primary reference"
-	HardMaxCatalogListRows               = 500
+	HardMaxCatalogListRows              = 500
 )
 
 type RevisionStatus string

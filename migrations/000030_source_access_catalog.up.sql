@@ -107,6 +107,7 @@ CREATE TABLE source_connections (
         OR (status IN ('DRAFT','PENDING_APPROVAL','REJECTED') AND NOT is_current AND effective_from IS NULL AND effective_until IS NULL)
     )
 );
+ALTER TABLE source_connections ADD CONSTRAINT source_connections_reference_shape_ck CHECK (adapter_kind<>'REFERENCE' OR (adapter_version='reference-v1' AND secret_ref='' AND declared_capabilities='[]'::jsonb AND verified_capabilities='[]'::jsonb AND jsonb_typeof(definition->'endpoint')='string' AND NULLIF(btrim(definition->>'endpoint'),'') IS NOT NULL));
 CREATE UNIQUE INDEX source_connections_current_id_idx ON source_connections(connection_id) WHERE is_current;
 CREATE UNIQUE INDEX source_connections_current_code_idx ON source_connections(tenant_id,source_id,code) WHERE is_current;
 CREATE INDEX source_connections_source_idx ON source_connections(tenant_id,source_id,is_current,code,connection_id);

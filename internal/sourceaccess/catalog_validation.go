@@ -63,7 +63,11 @@ func normalizeConnectionRevision(value ConnectionRevision) (ConnectionRevision, 
 			return ConnectionRevision{}, catalogInvalid("reference connections cannot carry credentials or execution capabilities")
 		}
 		var reference map[string]any
-		if err := json.Unmarshal(value.Definition, &reference); err != nil || strings.TrimSpace(fmt.Sprint(reference["endpoint"])) == "" {
+		if err := json.Unmarshal(value.Definition, &reference); err != nil {
+			return ConnectionRevision{}, catalogInvalid("reference connection definition is invalid")
+		}
+		endpoint, ok := reference["endpoint"].(string)
+		if !ok || strings.TrimSpace(endpoint) == "" {
 			return ConnectionRevision{}, catalogInvalid("reference connections require an endpoint")
 		}
 	}

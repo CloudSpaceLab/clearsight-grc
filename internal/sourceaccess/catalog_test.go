@@ -82,7 +82,7 @@ func TestMemoryCatalogPersistsExactReusableRevisions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(reloadedConnection.Definition) != `{"database":"risk"}` || reloadedBinding.SelectedFields[0] != "account_id" {
+	if string(reloadedConnection.Definition) != `{}` || reloadedBinding.SelectedFields[0] != "account_id" {
 		t.Fatal("catalog returned mutable internal state")
 	}
 }
@@ -186,36 +186,36 @@ func TestCatalogNormalizesJSONCapabilitiesAndLimits(t *testing.T) {
 
 func catalogConnectionRevision(now time.Time) ConnectionRevision {
 	return ConnectionRevision{
-		RevisionID: "31111111-1111-7111-8111-111111111111",
-		ConnectionID: catalogConnectionID,
-		TenantID: catalogTenantID,
-		SourceID: catalogSourceID,
-		Code: "RISK_DATABASE",
-		Name: "Risk database",
-		AdapterKind: AdapterPostgres,
-		AdapterVersion: PostgresAdapterVersion,
-		SecretRef: "secret://risk/reader",
-		Definition: json.RawMessage(`{"database":"risk"}`),
+		RevisionID:           "31111111-1111-7111-8111-111111111111",
+		ConnectionID:         catalogConnectionID,
+		TenantID:             catalogTenantID,
+		SourceID:             catalogSourceID,
+		Code:                 "RISK_DATABASE",
+		Name:                 "Risk database",
+		AdapterKind:          AdapterPostgres,
+		AdapterVersion:       PostgresAdapterVersion,
+		SecretRef:            "secret://risk/reader",
+		Definition:           json.RawMessage(`{}`),
 		DeclaredCapabilities: []Capability{CapabilityInspect, CapabilityPage, CapabilityLookup, CapabilityAggregate},
 		VerifiedCapabilities: []Capability{CapabilityInspect, CapabilityLookup, CapabilityAggregate},
-		OwnerPrincipalID: catalogActorID,
-		RevisionLifecycle: activeCatalogLifecycle(now, 1),
+		OwnerPrincipalID:     catalogActorID,
+		RevisionLifecycle:    activeCatalogLifecycle(now, 1),
 	}
 }
 
 func catalogViewRevision(now time.Time) ViewRevision {
 	return ViewRevision{
-		RevisionID: "32222222-2222-7222-8222-222222222222",
-		ViewID: catalogViewID,
-		TenantID: catalogTenantID,
-		SourceID: catalogSourceID,
-		ConnectionID: catalogConnectionID,
+		RevisionID:        "32222222-2222-7222-8222-222222222222",
+		ViewID:            catalogViewID,
+		TenantID:          catalogTenantID,
+		SourceID:          catalogSourceID,
+		ConnectionID:      catalogConnectionID,
 		ConnectionVersion: 1,
-		Code: "ACTIVE_ACCOUNTS",
-		Name: "Active accounts",
-		Definition: json.RawMessage(`{"query":"SELECT account_id,status,balance FROM active_accounts"}`),
-		OutputKind: OutputRecords,
-		StableKeys: []string{"account_id"},
+		Code:              "ACTIVE_ACCOUNTS",
+		Name:              "Active accounts",
+		Definition:        json.RawMessage(`{"query":"SELECT account_id,status,balance FROM active_accounts"}`),
+		OutputKind:        OutputRecords,
+		StableKeys:        []string{"account_id"},
 		NativeSchema: []NativeField{
 			{Name: "account_id", NativeType: "uuid", Nullable: false},
 			{Name: "status", NativeType: "text", Nullable: false},
@@ -228,38 +228,38 @@ func catalogViewRevision(now time.Time) ViewRevision {
 
 func catalogBindingRevision(now time.Time) BindingRevision {
 	return BindingRevision{
-		RevisionID: "33333333-3333-7333-8333-333333333333",
-		BindingID: catalogBindingID,
-		TenantID: catalogTenantID,
-		SourceID: catalogSourceID,
-		ViewID: catalogViewID,
-		ViewVersion: 1,
-		Code: "ACCOUNT_STATUS_LOOKUP",
-		Name: "Account status lookup",
-		Purpose: "account-status-validation",
-		Operations: []Operation{OperationLookup, OperationPage, OperationAggregate},
-		SelectedFields: []string{"account_id", "status", "balance"},
-		KeyFields: []string{"account_id"},
-		Limits: ResourceLimits{PageRows: 25, ResponseBytes: 64 << 10, LookupValues: 10, Timeout: 2 * time.Second},
-		Mapping: json.RawMessage(`{"account_id":"account_id"}`),
-		ParameterSchema: json.RawMessage(`{"type":"object"}`),
-		OutputSchema: json.RawMessage(`{"type":"object"}`),
+		RevisionID:               "33333333-3333-7333-8333-333333333333",
+		BindingID:                catalogBindingID,
+		TenantID:                 catalogTenantID,
+		SourceID:                 catalogSourceID,
+		ViewID:                   catalogViewID,
+		ViewVersion:              1,
+		Code:                     "ACCOUNT_STATUS_LOOKUP",
+		Name:                     "Account status lookup",
+		Purpose:                  "account-status-validation",
+		Operations:               []Operation{OperationLookup, OperationPage, OperationAggregate},
+		SelectedFields:           []string{"account_id", "status", "balance"},
+		KeyFields:                []string{"account_id"},
+		Limits:                   ResourceLimits{PageRows: 25, ResponseBytes: 64 << 10, LookupValues: 10, Timeout: 2 * time.Second},
+		Mapping:                  json.RawMessage(`{"account_id":"account_id"}`),
+		ParameterSchema:          json.RawMessage(`{"type":"object"}`),
+		OutputSchema:             json.RawMessage(`{"type":"object"}`),
 		RequiredFreshnessMinutes: 15,
-		Completeness: CompletenessRequireFull,
-		SensitivityHandling: json.RawMessage(`{"classification":"RESTRICTED"}`),
-		RevisionLifecycle: activeCatalogLifecycle(now, 1),
+		Completeness:             CompletenessRequireFull,
+		SensitivityHandling:      json.RawMessage(`{"classification":"RESTRICTED"}`),
+		RevisionLifecycle:        activeCatalogLifecycle(now, 1),
 	}
 }
 
 func activeCatalogLifecycle(now time.Time, version int64) RevisionLifecycle {
 	return RevisionLifecycle{
-		Status: RevisionActive,
-		IsCurrent: true,
+		Status:        RevisionActive,
+		IsCurrent:     true,
 		EffectiveFrom: timePointer(now),
-		Version: version,
-		CreatedBy: catalogActorID,
-		CreatedAt: now,
-		UpdatedAt: now,
+		Version:       version,
+		CreatedBy:     catalogActorID,
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}
 }
 

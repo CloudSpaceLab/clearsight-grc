@@ -48,21 +48,21 @@ func TestCreateSourceStoresEndpointOnlyAsReferenceConnection(t *testing.T) {
 	now := time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC)
 	repository := NewPostgresRepository(pool)
 	created, err := repository.CreateSource(ctx, Source{
-		ID: sourceCatalogSourceID,
-		TenantID: sourceCatalogTenantID,
-		LegalEntityID: sourceCatalogEntityID,
-		Code: "CORE-BANKING",
-		Name: "Core banking",
-		Type: SourceSystem,
-		AuthorityClass: "SYSTEM_OF_RECORD",
-		OwnerPrincipalID: sourceCatalogActorID,
-		Endpoint: " https://core.example.invalid/reference ",
+		ID:                       sourceCatalogSourceID,
+		TenantID:                 sourceCatalogTenantID,
+		LegalEntityID:            sourceCatalogEntityID,
+		Code:                     "CORE-BANKING",
+		Name:                     "Core banking",
+		Type:                     SourceSystem,
+		AuthorityClass:           "SYSTEM_OF_RECORD",
+		OwnerPrincipalID:         sourceCatalogActorID,
+		Endpoint:                 " https://core.example.invalid/reference ",
 		ExpectedFreshnessMinutes: 15,
-		Health: HealthUnknown,
-		Status: SourceActive,
-		Version: 1,
-		CreatedAt: now,
-		UpdatedAt: now,
+		Health:                   HealthUnknown,
+		Status:                   SourceActive,
+		Version:                  1,
+		CreatedAt:                now,
+		UpdatedAt:                now,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -108,20 +108,20 @@ func TestCreateSourceStoresEndpointOnlyAsReferenceConnection(t *testing.T) {
 
 	withoutReferenceID := "55555555-5555-7555-8555-555555555555"
 	if _, err := repository.CreateSource(ctx, Source{
-		ID: withoutReferenceID,
-		TenantID: sourceCatalogTenantID,
-		LegalEntityID: sourceCatalogEntityID,
-		Code: "MANUAL-SOURCE",
-		Name: "Manual source",
-		Type: SourceHuman,
-		AuthorityClass: "ATTESTATION",
-		OwnerPrincipalID: sourceCatalogActorID,
+		ID:                       withoutReferenceID,
+		TenantID:                 sourceCatalogTenantID,
+		LegalEntityID:            sourceCatalogEntityID,
+		Code:                     "MANUAL-SOURCE",
+		Name:                     "Manual source",
+		Type:                     SourceHuman,
+		AuthorityClass:           "ATTESTATION",
+		OwnerPrincipalID:         sourceCatalogActorID,
 		ExpectedFreshnessMinutes: 1440,
-		Health: HealthUnknown,
-		Status: SourceActive,
-		Version: 1,
-		CreatedAt: now,
-		UpdatedAt: now,
+		Health:                   HealthUnknown,
+		Status:                   SourceActive,
+		Version:                  1,
+		CreatedAt:                now,
+		UpdatedAt:                now,
 	}); err != nil {
 		t.Fatal(err)
 	}

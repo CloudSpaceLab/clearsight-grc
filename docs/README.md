@@ -66,7 +66,7 @@ Architecture never overrides the simpler user-facing Program, issue/change, requ
 - independent in-process worker classes for evidence maintenance, Program projection, delegation lifecycle, timers and outbox delivery;
 - bounded timer/outbox retry budgets with durable terminal failure and queue health rather than infinite poison-item retry;
 - Source Registry, source observations and freshness maintenance;
-- transient reusable Source Connection/View/Binding contracts with bounded PostgreSQL schema, page, lookup and aggregate capabilities;
+- durable versioned Source Connection/View/Binding catalog with bounded PostgreSQL schema, page, lookup and aggregate capabilities;
 - assurance consumption of shared source sessions without a second connector registry, copied source population or gateway-specific bundle format;
 - durable source-health reconciliation from evidence outbox events into exact source drift and dependent Program triggers, with inbox dedupe;
 - persisted evidence requests, submissions, invitations and sessions;
