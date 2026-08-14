@@ -1,0 +1,154 @@
+name: Source access T1a SQL finalizer
+
+on:
+  push:
+    branches:
+      - codex/issue-61-sourceaccess-t1a
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/issue-61-sourceaccess-t1a
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Apply final SQL corrections
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          evidence = Path("internal/evidence/postgres.go")
+          text = evidence.read_text()
+          old = "jsonb_build_object('endpoint',$7)"
+          new = "jsonb_build_object('endpoint',$7::text)"
+          if new not in text:
+              if old not in text:
+                  raise SystemExit("reference endpoint SQL anchor not found")
+              evidence.write_text(text.replace(old, new, 1))
+
+          migration = Path("migrations/000030_source_access_catalog.up.sql")
+          text = migration.read_text()
+
+          view_anchor = """    IF parent_kind='REFERENCE' THEN
+        RAISE EXCEPTION 'reference connections cannot own executable views' USING ERRCODE='23514';
+    END IF;
+    RETURN NEW;
+END
+$$;
+"""
+          view_replacement = """    IF parent_kind='REFERENCE' THEN
+        RAISE EXCEPTION 'reference connections cannot own executable views' USING ERRCODE='23514';
+    END IF;
+    IF EXISTS (
+        SELECT 1
+          FROM jsonb_array_elements_text(NEW.stable_keys) AS keys(key_name)
+         WHERE NOT EXISTS (
+             SELECT 1
+               FROM jsonb_array_elements(NEW.native_schema) AS fields(field)
+              WHERE fields.field->>'name'=keys.key_name
+         )
+    ) THEN
+        RAISE EXCEPTION 'source view stable keys must exist in the native schema' USING ERRCODE='23514';
+    END IF;
+    RETURN NEW;
+END
+$$;
+"""
+          if view_replacement not in text:
+              if view_anchor not in text:
+                  raise SystemExit("source view guard anchor not found")
+              text = text.replace(view_anchor, view_replacement, 1)
+
+          declaration_old = """CREATE FUNCTION source_binding_revision_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE
+    parent_current boolean;
+BEGIN
+"""
+          declaration_new = """CREATE FUNCTION source_binding_revision_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE
+    parent_current boolean;
+    parent_stable_keys jsonb;
+    parent_native_schema jsonb;
+BEGIN
+"""
+          if declaration_new not in text:
+              if declaration_old not in text:
+                  raise SystemExit("source binding declaration anchor not found")
+              text = text.replace(declaration_old, declaration_new, 1)
+
+          select_old = """    SELECT is_current INTO parent_current
+      FROM source_views
+     WHERE view_id=NEW.view_id AND tenant_id=NEW.tenant_id AND source_id=NEW.source_id AND version=NEW.view_version;
+    IF NEW.is_current AND NOT COALESCE(parent_current,false) THEN
+        RAISE EXCEPTION 'current source binding requires its current view revision' USING ERRCODE='23514';
+    END IF;
+    RETURN NEW;
+END
+$$;
+"""
+          select_new = """    SELECT is_current,stable_keys,native_schema
+      INTO parent_current,parent_stable_keys,parent_native_schema
+      FROM source_views
+     WHERE view_id=NEW.view_id AND tenant_id=NEW.tenant_id AND source_id=NEW.source_id AND version=NEW.view_version;
+    IF NEW.is_current AND NOT COALESCE(parent_current,false) THEN
+        RAISE EXCEPTION 'current source binding requires its current view revision' USING ERRCODE='23514';
+    END IF;
+    IF EXISTS (
+        SELECT 1
+          FROM jsonb_array_elements_text(NEW.selected_fields) AS selected(field_name)
+         WHERE NOT EXISTS (
+             SELECT 1
+               FROM jsonb_array_elements(parent_native_schema) AS fields(field)
+              WHERE fields.field->>'name'=selected.field_name
+         )
+    ) THEN
+        RAISE EXCEPTION 'source binding selected fields must exist in the view schema' USING ERRCODE='23514';
+    END IF;
+    IF EXISTS (
+        SELECT 1
+          FROM jsonb_array_elements_text(NEW.key_fields) AS keys(key_name)
+         WHERE NOT (NEW.selected_fields ? keys.key_name)
+            OR NOT (parent_stable_keys ? keys.key_name)
+    ) THEN
+        RAISE EXCEPTION 'source binding key fields must be selected stable view keys' USING ERRCODE='23514';
+    END IF;
+    IF (NEW.operations ? 'PAGE' OR NEW.operations ? 'LOOKUP') AND jsonb_array_length(NEW.key_fields)=0 THEN
+        RAISE EXCEPTION 'page and lookup bindings require a stable key' USING ERRCODE='23514';
+    END IF;
+    RETURN NEW;
+END
+$$;
+"""
+          if select_new not in text:
+              if select_old not in text:
+                  raise SystemExit("source binding parent anchor not found")
+              text = text.replace(select_old, select_new, 1)
+
+          migration.write_text(text)
+          PY
+      - name: Verify focused compilation
+        shell: bash
+        run: |
+          gofmt -w internal/evidence/postgres.go internal/sourceaccess/*.go
+          git diff --check
+          go test ./internal/sourceaccess ./internal/evidence
+          go test -tags postgres ./internal/sourceaccess ./internal/evidence
+      - name: Commit final branch state
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/sourceaccess-t1a-final-sql.yml
+          git add internal/evidence/postgres.go internal/sourceaccess migrations/000030_source_access_catalog.up.sql
+          git commit -m "fix(sourceaccess): enforce catalog SQL invariants"
+          git push origin HEAD:codex/issue-61-sourceaccess-t1a
