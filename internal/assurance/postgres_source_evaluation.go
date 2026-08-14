@@ -8,6 +8,13 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
+type evaluationSchemaScope uint8
+
+const (
+	evaluationSelectedSchema evaluationSchemaScope = iota
+	evaluationFullViewSchema
+)
+
 func (e *PostgresSourceExecutor) Evaluate(ctx context.Context, population PopulationDefinition, condition *CompiledCondition) (EvaluationReceipt, error) {
 	population, view, err := e.legacyView(population)
 	if err != nil {
@@ -25,7 +32,7 @@ func (e *PostgresSourceExecutor) Evaluate(ctx context.Context, population Popula
 		SelectedFields: condition.requiredSchemaFields(population.SubjectKey),
 		KeyFields:      []string{population.SubjectKey},
 	}
-	receipt, err := e.evaluateBinding(ctx, view, binding, condition)
+	receipt, err := e.evaluateBinding(ctx, view, binding, condition, evaluationFullViewSchema)
 	if err != nil {
 		return EvaluationReceipt{}, err
 	}
@@ -34,14 +41,13 @@ func (e *PostgresSourceExecutor) Evaluate(ctx context.Context, population Popula
 	return receipt, nil
 }
 
-// EvaluateBinding consumes the same reusable Binding that can also serve a
-// bounded lookup/page reader. Assurance retains condition compilation and
-// tri-state semantics; sourceaccess retains connection and transaction safety.
+// EvaluateBinding evaluates a governed assurance condition through a reusable
+// source binding. The source session retains connection and transaction safety.
 func (e *PostgresSourceExecutor) EvaluateBinding(ctx context.Context, view sourceaccess.View, binding sourceaccess.Binding, condition *CompiledCondition) (EvaluationReceipt, error) {
-	return e.evaluateBinding(ctx, view, binding, condition)
+	return e.evaluateBinding(ctx, view, binding, condition, evaluationSelectedSchema)
 }
 
-func (e *PostgresSourceExecutor) evaluateBinding(ctx context.Context, view sourceaccess.View, binding sourceaccess.Binding, condition *CompiledCondition) (EvaluationReceipt, error) {
+func (e *PostgresSourceExecutor) evaluateBinding(ctx context.Context, view sourceaccess.View, binding sourceaccess.Binding, condition *CompiledCondition, schemaScope evaluationSchemaScope) (EvaluationReceipt, error) {
 	if e == nil || e.session == nil {
 		return EvaluationReceipt{}, ErrSourceConnection
 	}
@@ -76,7 +82,16 @@ func (e *PostgresSourceExecutor) evaluateBinding(ctx context.Context, view sourc
 	result, err := evaluator.EvaluatePredicate(ctx, view, binding, sourceaccess.PostgresPredicate{
 		MatchSQL: predicate.MatchSQL, UnknownSQL: predicate.UnknownSQL, Args: append([]any(nil), predicate.Args...),
 	}, func(fields []sourceaccess.NativeField) error {
-		schema, err := logicalSchemaForFields(fields, binding.SelectedFields)
+		var schema Schema
+		var err error
+		switch schemaScope {
+		case evaluationSelectedSchema:
+			schema, err = logicalSchemaForFields(fields, binding.SelectedFields)
+		case evaluationFullViewSchema:
+			schema, err = logicalSchema(fields)
+		default:
+			return ErrSourceExecution
+		}
 		if err != nil {
 			return err
 		}
@@ -148,6 +163,9 @@ func logicalSchemaForFields(fields []sourceaccess.NativeField, selected []string
 	}
 	available := make(map[string]sourceaccess.NativeField, len(fields))
 	for _, field := range fields {
+		if _, exists := available[field.Name]; exists {
+			return Schema{}, fmt.Errorf("%w: source schema contains duplicate field %q", ErrPopulationInvalid, field.Name)
+		}
 		available[field.Name] = field
 	}
 	filtered := make([]sourceaccess.NativeField, 0, len(selected))
@@ -214,7 +232,14 @@ func mapSourceAccessError(err error) error {
 		return fmt.Errorf("%w: %w", ErrPopulationInvalid, sourceaccess.ErrDefinitionInvalid)
 	case errors.Is(err, sourceaccess.ErrCapabilityUnavailable):
 		return fmt.Errorf("%w: %w", ErrPopulationInvalid, sourceaccess.ErrCapabilityUnavailable)
-	default:
+	case errors.Is(err, ErrSourceSchemaChanged),
+		errors.Is(err, ErrPopulationInvalid),
+		errors.Is(err, ErrSourceCredentials),
+		errors.Is(err, ErrSourceConnection),
+		errors.Is(err, ErrSourcePrivileges),
+		errors.Is(err, ErrSourceExecution):
 		return err
+	default:
+		return ErrSourceExecution
 	}
 }

@@ -47,7 +47,8 @@ func (s *PostgresSession) EvaluatePredicate(ctx context.Context, view View, bind
 	if err != nil {
 		return AggregateResult{}, err
 	}
-	if _, err := selectedFieldKinds(fields, binding.SelectedFields); err != nil {
+	selectedFields, err := selectedNativeFields(fields, binding.SelectedFields)
+	if err != nil {
 		return AggregateResult{}, err
 	}
 	if guard != nil {
@@ -72,7 +73,7 @@ func (s *PostgresSession) EvaluatePredicate(ctx context.Context, view View, bind
 		return AggregateResult{}, err
 	}
 	return AggregateResult{
-		Fields:       fields,
+		Fields:       selectedFields,
 		TotalCount:   total,
 		MatchCount:   matched,
 		UnknownCount: unknown,

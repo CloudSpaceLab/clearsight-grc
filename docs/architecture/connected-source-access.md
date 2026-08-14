@@ -1,53 +1,25 @@
-# Reusable connected-source access
+# Connected source access
 
-## Purpose
+## Scope
 
-ClearSight must connect to bank data without turning every use case into a new connector, copying source populations into ClearSight, or forcing every institution into one data representation.
-
-The shared boundary is:
+Connected source access provides one bounded execution contract for external operational data. It prevents connector configuration from being copied into assurance rules or other product domains and does not copy source populations into ClearSight.
 
 ```text
-Evidence Source                    business authority and ownership
-  └─ Source Connection             one technical access path
-       └─ Source View              reusable logical resource in native shape
-            └─ Source Binding      purpose-bound read and mapping contract
-                 ├─ continuous assurance
-                 ├─ form prefill, options and validation
-                 ├─ evidence search and capture
-                 ├─ workflow context
-                 └─ AI governance policy resolution
+Evidence Source                    business identity and ownership
+  └─ Source Connection             technical access path
+       └─ Source View              logical resource in the source's native shape
+            └─ Source Binding      purpose-bound operations, fields and limits
 ```
 
-`internal/evidence.Source` remains the canonical business-level source registry. The source-access package does not replace it and does not determine evidence sufficiency, compliance, workflow state or action authority.
+`internal/evidence.Source` remains the authoritative business-level source record. Connected source access does not determine evidence sufficiency, compliance state, workflow state or action authority.
 
-## T0 implementation decision
+The current implementation is transient. It defines the execution contract and PostgreSQL adapter without durable Connection, View or Binding records, API routes or administration UI.
 
-The first implementation tranche introduces a transient, reusable execution boundary in `internal/sourceaccess` and moves PostgreSQL connection/session ownership out of `internal/assurance`.
-
-T0 deliberately adds:
-
-- pure Connection, View and Binding contracts;
-- capability-specific session interfaces;
-- bounded schema inspection, keyset paging, lookup and aggregate execution;
-- compact operation receipts;
-- one PostgreSQL adapter retaining the existing isolation and timeout controls;
-- an assurance compatibility consumer over a shared source session;
-- executable proof that one View and Binding can drive both assurance evaluation and a non-assurance lookup.
-
-T0 deliberately does **not** add:
-
-- durable Connection, View or Binding tables;
-- routes or user interface;
-- a generic source-record table or copied source population;
-- a scheduler, event bus, connector-health product or secrets platform;
-- HMAC sensitivity bundles, signed lineage headers or another gateway-specific data representation;
-- REST, file or event adapters before the shared contract is proven by the existing PostgreSQL implementation.
-
-## Contract ownership
+## Domain model
 
 ### Evidence Source
 
-The existing Evidence Source remains the authority for:
+The existing Evidence Source owns:
 
 - tenant and legal-entity scope;
 - business identity and authority class;
@@ -57,49 +29,45 @@ The existing Evidence Source remains the authority for:
 
 ### Source Connection
 
-A Connection identifies one technical path beneath an Evidence Source. The T0 contract records:
+A Connection identifies one technical access path beneath an Evidence Source. It contains:
 
 - connection ID and version;
 - parent Source ID;
-- adapter kind and adapter-definition version;
+- adapter kind and adapter version;
 - opaque secret reference;
-- bounded adapter-owned definition when an adapter needs one.
+- bounded adapter-owned configuration where required.
 
-Credential material is resolved only when the adapter opens a session. It is never placed in a Connection, View, Binding, operation receipt, log or domain event.
+Credentials are resolved only while opening an adapter session. Credential material is excluded from Connections, Views, Bindings, receipts, logs and domain events.
 
-A Source may later have several Connections, such as a database read replica, REST API, SFTP delivery and event endpoint. T0 keeps the type transient until more than one consumer has proved the lifecycle and persistence requirements.
+The PostgreSQL adapter currently accepts no connection configuration beyond the secret reference. The resolved secret must be a complete PostgreSQL URL.
 
 ### Source View
 
-A View is a named, versioned logical resource exposed through one Connection. It stores an adapter-owned resource definition, output kind and declared stable keys. It does not store source rows.
+A View is a named and versioned logical resource exposed through one Connection. It contains:
 
-Examples include:
+- adapter-owned resource definition;
+- output kind;
+- declared stable keys.
 
-- `active_customer_accounts`;
-- `privileged_identities`;
-- `critical_servers`;
-- `vendor_assurance_documents`;
-- `approved_model_inventory`.
+A View stores no source records. Native field names and types are retained. PostgreSQL identifiers are quoted, so source fields may use mixed case, spaces, punctuation or Unicode without a ClearSight-wide rename.
 
-Native source names and types are preserved. Field names may contain spaces, punctuation, mixed case or Unicode when the source exposes them. The PostgreSQL adapter quotes identifiers mechanically; ClearSight does not require a bank to rename its fields into a universal schema before the source can be used.
+Stable keys are optional for schema inspection and aggregate execution. PostgreSQL page and lookup operations require exactly one selected stable key.
 
 ### Source Binding
 
-A Binding is the reusable consumer contract over a View. It records:
+A Binding defines the permitted use of a View. It contains:
 
 - binding ID, version and purpose;
 - allowed operations;
 - selected native fields;
-- stable key fields used by lookup or paging;
-- hard row, value, byte and time limits.
+- stable key fields for page and lookup operations;
+- row, value, byte and time limits.
 
-A Binding contains no query, URL, credential or copied Connection definition. Consumers reference the Binding rather than reproducing integration configuration.
+A Binding contains no query, endpoint, credential or copied Connection configuration. Consumer domains retain the Binding identity and version instead of duplicating source configuration.
 
-One Binding may allow more than one compatible read operation. This is intentional: a governed account binding can support source-side assurance aggregation and a form or workflow lookup without creating two copies of the same source mapping.
+## Adapter contracts
 
-## Capability-specific adapter boundary
-
-The common contract is intentionally small:
+The common interfaces are capability-specific:
 
 ```go
 type Adapter interface {
@@ -125,13 +93,11 @@ type LookupReader interface {
 }
 ```
 
-Adapters implement only the capabilities they support. A later REST adapter does not have to pretend it supports SQL predicates or transactions. A later file adapter does not have to pretend it is a live lookup service.
+Adapters expose only supported capabilities. PostgreSQL predicate aggregation is a PostgreSQL-specific extension used by continuous assurance; it is not part of the generic Session interface.
 
-PostgreSQL source-side predicate aggregation remains an explicit adapter extension consumed by assurance. The generic Session interface is not expanded into a fat connector API merely to hide that capability difference.
+## Resource limits
 
-## Hard resource limits
-
-T0 enforces non-raiseable ceilings before source execution:
+The execution boundary enforces hard ceilings:
 
 | Resource | Hard ceiling |
 |---|---:|
@@ -145,30 +111,30 @@ T0 enforces non-raiseable ceilings before source execution:
 | operation timeout | 30 seconds |
 | PostgreSQL connections per session | 4 |
 
-Each Binding may choose lower limits. A caller cannot raise a Binding or adapter above the hard ceiling.
+A Binding may set lower limits. Values above a hard ceiling are rejected before source execution.
 
-Page and lookup operations currently require one declared stable key for PostgreSQL. They reject null or duplicate key results rather than silently skipping, repeating or mis-paginating records. Lookup result rows are bounded by the number of requested stable keys even when a misconfigured source view violates uniqueness.
+PostgreSQL page execution uses keyset pagination and one look-ahead key. The look-ahead record is excluded from the returned-byte budget. Null or duplicate stable keys fail the operation.
 
-## Source values
+## Value representation
 
-Read operations return bounded records whose values use a small transport representation:
+Bounded records use five transport value kinds:
 
 ```text
 NULL | STRING | NUMBER | BOOL | TIME
 ```
 
-Numbers remain canonical text rather than passing through `float64`; large account-related numbers and precise decimals therefore retain their exact source value. PostgreSQL timestamps are normalized to UTC for safe cursor reuse. Unsupported compound or ambiguous values fail explicitly rather than being stringified silently.
+Numbers remain canonical text in returned records to preserve integers and decimals without `float64` coercion. Lookup values and cursors are converted to the native PostgreSQL key type before parameter binding. Dates and timestamps use explicit PostgreSQL parameter types, and timestamps are normalized to UTC in returned records.
 
-This transport representation is not a universal bank ontology. Assurance separately maps native database types into its bounded logical condition types. Other consumers may retain native mappings appropriate to their purpose.
+Compound or unsupported values fail explicitly. The transport representation is not a universal data ontology; assurance applies its own bounded logical type mapping.
 
-## PostgreSQL safety and consistency
+## PostgreSQL controls
 
-The extracted PostgreSQL adapter preserves the existing source executor controls:
+The PostgreSQL adapter enforces:
 
 - a pool separate from ClearSight's application database pool;
-- explicit complete PostgreSQL URL rather than environment fallback;
-- deployment-owned opaque secret resolution;
-- rejection of superuser, role-creation, database-creation, replication and row-security-bypass principals;
+- a complete PostgreSQL URL with no environment fallback;
+- opaque secret resolution at session open;
+- rejection of superuser, role-creation, database-creation, replication, row-security-bypass and non-system relation-owning principals;
 - `default_transaction_read_only=on`;
 - repeatable-read, read-only operation transactions;
 - statement, lock and idle-transaction timeouts;
@@ -178,71 +144,48 @@ The extracted PostgreSQL adapter preserves the existing source executor controls
 - parameterized lookup and cursor values;
 - sanitized connection and execution errors.
 
-SELECT/WITH and one-statement checks remain configuration hygiene, not the security boundary. Least-privilege credentials, read-only transactions and bounded execution are the security boundary.
+SELECT/WITH and single-statement validation provide configuration hygiene. The security boundary is the dedicated non-owner source credential, read-only transaction, bounded connection pool and operation deadline.
 
-Schema inspection and assurance aggregate evaluation run in the same repeatable-read transaction. The assurance-owned schema guard is evaluated before the aggregate query. A condition dependency or subject-key type change therefore fails closed without evaluating against a different schema snapshot.
+Schema inspection and assurance aggregation run in the same repeatable-read transaction. Assurance validates condition dependencies and the subject-key type before running the aggregate query.
 
 ## Operation receipts
 
-Every successful operation returns a compact receipt containing:
+Each successful operation returns a receipt containing:
 
 - Source ID;
 - Connection ID and version;
 - adapter kind and version;
 - View ID and version;
 - Binding ID and version when applicable;
-- canonical definition fingerprint;
+- definition fingerprint;
 - native schema fingerprint;
 - operation;
 - observed time;
 - count, returned bytes and completeness.
 
-Receipts contain no source query, secret reference, credentials or source values. T0 returns them to the consumer but does not add a global receipt table. A consuming domain persists a receipt only when its own reconstruction contract requires it.
+Receipts exclude queries, secret references, credentials and source values. The current runtime returns receipts to the caller and does not persist them globally.
 
-`PARTIAL` is explicit for a page with a continuation cursor. Source failure, schema mismatch, unsupported value and limit exhaustion are errors; they are never translated into an empty or complete result.
+`PARTIAL` identifies a page with a continuation cursor. Invalid definitions, unsupported capabilities, limit exhaustion, source failure, schema change and caller cancellation remain separate outcomes.
 
-## Assurance compatibility and reuse proof
+## Assurance integration
 
-`PopulationDefinition` remains an assurance execution input, not connector authority. The compatibility executor compiles it into a transient PostgreSQL View and Binding and produces the same tri-state counts and schema-drift behavior as before.
+`PopulationDefinition` remains a compatibility input for continuous assurance. The assurance executor compiles it into a transient PostgreSQL View and Binding while retaining the previous population and full-schema fingerprints.
 
-For shared composition:
+For reusable bindings, assurance records the selected logical schema. A condition dependency or subject-key type change fails closed; changes to unselected fields do not invalidate the condition.
 
-```text
-open sourceaccess Session once
-→ pass Session to assurance consumer
-→ use the same Session/View/Binding through LookupReader
-→ assurance evaluates source-side predicate
-→ form/workflow/evidence consumer performs bounded lookup
-→ both receipts identify the same Binding fingerprint
-```
+A caller may open one source session and provide it to assurance and another bounded reader. The caller owns the lifecycle of an injected session. The compatibility constructor owns and closes the session it opens.
 
-The assurance wrapper closes only sessions opened through its legacy compatibility constructor. A session supplied by composition remains owned by the caller and reusable by other consumers.
+## Deferred capabilities
 
-## Failure truth
+The following capabilities are not implemented in the current source-access tranche:
 
-The following remain distinct:
+- durable, effective-dated Connection, View and Binding records;
+- maker-checker administration and where-used references;
+- source-access API routes and configuration UI;
+- connection-, view- or binding-level health reconciliation;
+- cursor or watermark checkpoints;
+- REST, file, event and non-PostgreSQL database adapters;
+- form, evidence and workflow binding references;
+- persistent source-operation receipts.
 
-- invalid Connection/View/Binding definition;
-- unavailable credentials;
-- unavailable connection;
-- unsafe source principal;
-- unsupported capability;
-- resource limit exhausted;
-- source execution failure;
-- caller cancellation or deadline;
-- assurance-critical schema change.
-
-Errors returned across the adapter boundary are sanitized. A failed source query does not expose connection strings, credentials, query text or source table names.
-
-## Next persistence gate
-
-Do not add `source_connections`, `source_views`, `source_bindings` or checkpoint tables merely because T0 types exist. Persistence begins only after the shared contract has been used by at least two real product consumers and the following are explicit:
-
-- maker-checker lifecycle and effective dating;
-- tenant/legal-entity ownership and repository boundaries;
-- where-used references;
-- adapter configuration validation and preview;
-- secret-reference rotation behavior;
-- source observation aggregation;
-- checkpoint atomicity and replay semantics where required;
-- migration ownership, retention and reconstruction tests.
+Durable source-access records require explicit ownership, lifecycle, secret rotation, health, checkpoint, retention and reconstruction contracts.

@@ -16,10 +16,9 @@ func DefaultPostgresSourceOptions() PostgresSourceOptions {
 	return sourceaccess.DefaultPostgresOptions()
 }
 
-// PostgresSourceExecutor is the assurance consumer over a reusable sourceaccess
-// session. The compatibility Open function owns its session; composition through
-// NewPostgresSourceExecutorWithSession leaves lifecycle ownership with the
-// caller so forms, evidence, workflows and assurance can share one connection.
+// PostgresSourceExecutor evaluates assurance conditions through a PostgreSQL
+// sourceaccess session. Sessions opened by the compatibility constructor are
+// owned by the executor; injected sessions remain caller-owned.
 type PostgresSourceExecutor struct {
 	sourceID    string
 	session     sourceaccess.Session
@@ -51,8 +50,11 @@ func NewPostgresSourceExecutorWithSession(sourceID string, session sourceaccess.
 		return nil, fmt.Errorf("%w: source_id and source session are required", ErrPopulationInvalid)
 	}
 	connection := session.Connection()
-	if connection.SourceID != sourceID || connection.AdapterKind != sourceaccess.AdapterPostgres {
-		return nil, fmt.Errorf("%w: source session does not match the assurance source", ErrPopulationInvalid)
+	if err := connection.Validate(); err != nil {
+		return nil, mapSourceAccessError(err)
+	}
+	if connection.SourceID != sourceID || connection.AdapterKind != sourceaccess.AdapterPostgres || connection.AdapterVersion != sourceaccess.PostgresAdapterVersion {
+		return nil, fmt.Errorf("%w: source session does not match the PostgreSQL assurance adapter", ErrPopulationInvalid)
 	}
 	if !session.Capabilities().Has(sourceaccess.CapabilityInspect) || !session.Capabilities().Has(sourceaccess.CapabilityAggregate) {
 		return nil, fmt.Errorf("%w: source session lacks assurance capabilities", ErrPopulationInvalid)
@@ -80,8 +82,7 @@ func (e *PostgresSourceExecutor) InspectSchema(ctx context.Context, population P
 	return e.inspect(ctx, view, population.ID, populationFingerprint(population), population.SubjectKey, nil)
 }
 
-// InspectBinding exposes the assurance logical schema for a reusable source
-// Binding without making the PopulationDefinition a connector authority.
+// InspectBinding returns the assurance schema exposed by a reusable binding.
 func (e *PostgresSourceExecutor) InspectBinding(ctx context.Context, view sourceaccess.View, binding sourceaccess.Binding) (SourceSchema, error) {
 	if e == nil || e.session == nil {
 		return SourceSchema{}, ErrSourceConnection

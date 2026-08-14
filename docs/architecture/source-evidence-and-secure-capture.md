@@ -16,23 +16,23 @@ It does **not** decide that evidence is sufficient, that a control operated effe
 - **Capture Session** — a bounded server-side session created after invitation exchange.
 - **Artifact Manifest** — file metadata, storage key, byte count, SHA-256 and inspection state.
 
-## Reusable connected-source access
+## Connected source access
 
-An Evidence Source remains the canonical business and authority identity. Reusable technical access sits beneath it:
+Evidence Source remains the business and authority record. Technical access is structured beneath it:
 
 ```text
 Evidence Source
 → Source Connection
 → Source View
 → Source Binding
-→ assurance, forms, evidence, workflows or AI governance
+→ bounded consumer operation
 ```
 
-The executable T0 boundary is documented in [`connected-source-access.md`](connected-source-access.md).
+The current execution contract is documented in [`connected-source-access.md`](connected-source-access.md).
 
-A Connection/View/Binding is not another source registry and does not copy a source population into ClearSight. It records a reusable technical path, native logical resource and purpose-bound mapping/read contract. The same Binding can be referenced by several product consumers without copying a query, URL, credential or field mapping into each workflow.
+A Connection identifies a technical path, a View identifies a native logical resource, and a Binding limits the permitted operations and fields. None of these contracts stores the source population. Consumers reference a Binding instead of copying a query, endpoint, credential or field mapping.
 
-Source-access operation receipts establish what connection, view, binding, adapter and schema version produced a bounded result. They do not establish evidence sufficiency or a compliance conclusion. A consuming evidence or workflow domain persists a receipt only when its own reconstruction contract requires it.
+Operation receipts identify the Connection, View, Binding, adapter and schema version used for a bounded result. A receipt is provenance, not evidence sufficiency or a compliance conclusion. Consumer domains persist receipts only when their reconstruction contract requires them.
 
 ## Source-health path
 
@@ -46,11 +46,9 @@ Source definition
 → downstream drift/readiness evaluation
 ```
 
-Freshness is deterministic. AI is not required to determine that a source missed its expected update interval.
+Freshness is deterministic. The worker evaluates only bounded batches. Source updates and their outbox events commit in one PostgreSQL transaction.
 
-The worker evaluates only bounded batches. Source updates and their outbox events commit in one PostgreSQL transaction.
-
-Connection/View/Binding observations may later roll up into this existing Source health path. They must not create a second connector-health product or parallel Signal/Drift path.
+Future Connection-, View- or Binding-level observations must reconcile into the existing Source health path. They must not introduce a parallel connector-health or Signal/Drift model.
 
 ## Request and submission path
 
@@ -63,7 +61,7 @@ Known facts + unresolved fields
 → immutable Submission
 → request status/version update
 → EvidenceResponseSubmitted outbox event
-→ later evidence-sufficiency review
+→ evidence-sufficiency review
 ```
 
 A submission is not evidence sufficiency. A stored file is not approved evidence. A completed request is not a verified control outcome.
@@ -84,7 +82,7 @@ An invitation is:
 
 Redemption occurs in one transaction: lock invitation, re-check revocation, expiry, redemption count and request state, increment redemption count, then create a bounded session. Failed session creation rolls the transaction back.
 
-The current foundation is possession-bound. Verified recipient identity, OTP/step-up authentication and enterprise identity federation remain separate work and must not be implied by the UI.
+The current foundation is possession-bound. Verified recipient identity, OTP or step-up authentication, and enterprise identity federation are not implemented in this flow and must not be implied by the interface.
 
 ## Artifact path
 
@@ -96,11 +94,11 @@ bounded upload stream
 → atomic object completion
 → PostgreSQL manifest
 → STORED_UNSCANNED
-→ future malware/content inspection
+→ malware/content inspection
 → AVAILABLE or QUARANTINED
 ```
 
-Artifacts in `STORED_UNSCANNED` are not downloadable or eligible for evidence conclusions. The local filesystem adapter exists for development and integration testing only. Production object storage, encryption-key policy, malware scanning, content disarm, legal hold and retention workers are not yet implemented.
+Artifacts in `STORED_UNSCANNED` are not downloadable or eligible for evidence conclusions. The local filesystem adapter is limited to development and integration testing. Production object storage, encryption-key policy, malware scanning, content disarm, legal hold and retention workers are not implemented.
 
 ## Consistency and performance
 
@@ -127,7 +125,7 @@ Initial objectives:
 
 All population reads remain tenant-filtered and bounded. High-volume observation history uses tenant/source/time indexes. Composite foreign keys enforce tenant and request consistency across sources, observations, invitations, sessions, submissions and artifacts even when application repositories are bypassed.
 
-External source reads use adapter-specific pools/sessions, limits and cancellation rather than ClearSight's authoritative application database pool. The current PostgreSQL source adapter is read-only, repeatable-read and bounded by connection, statement, row, field, byte and time ceilings.
+External source reads use adapter-specific sessions, limits and cancellation rather than ClearSight's application database pool. The PostgreSQL source adapter uses a bounded separate pool, read-only repeatable-read transactions, native parameter types, response-byte limits and operation deadlines.
 
 ## Failure behavior
 
@@ -136,17 +134,18 @@ External source reads use adapter-specific pools/sessions, limits and cancellati
 - A failed source-health transaction creates neither the state change nor its event.
 - A stale request version rejects submission without modifying answers or request state.
 - API or worker unavailability does not change existing source, request or artifact records.
-- A failed source-access operation does not become an empty result or current evidence.
-- An invalid Binding, unsupported capability, partial result, schema mismatch, source failure and caller timeout remain distinct.
+- A failed source operation does not become an empty result or current evidence.
+- Invalid configuration, unsupported capability, partial result, schema mismatch, source failure and caller timeout remain distinct.
 
-## Production work still required
+## Remaining production work
 
-- durable governed Source Connection/View/Binding lifecycle after the shared T0 contract is proven by real consumers;
-- REST/JSON, tabular-file and webhook/event adapters driven by pilot source requirements;
-- production object-storage adapter and encryption policy;
+- durable, governed Source Connection, View and Binding lifecycle;
+- connection-, view- and binding-level health reconciliation;
+- REST/JSON, tabular-file and webhook/event adapters;
+- production object storage and encryption policy;
 - malware scanning and quarantine release workflow;
 - legal hold, retention and deletion orchestration;
-- OTP/step-up and verified external identity;
+- OTP or step-up authentication and verified external identity;
 - protected-report identity/content separation;
 - resumable multipart uploads and large import jobs;
 - evidence contracts, sufficiency evaluation and reusable evidence matching.

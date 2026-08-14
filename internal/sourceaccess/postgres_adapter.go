@@ -152,9 +152,6 @@ func (a PostgresAdapter) Open(ctx context.Context, connection Connection, resolv
 	if poolConfig.ConnConfig.RuntimeParams == nil {
 		poolConfig.ConnConfig.RuntimeParams = make(map[string]string)
 	}
-	// PGOPTIONS can carry arbitrary -c overrides. The adapter owns all session
-	// safety parameters; the approved view query is data configuration, not a way
-	// to change connection guardrails.
 	delete(poolConfig.ConnConfig.RuntimeParams, "options")
 	poolConfig.ConnConfig.RuntimeParams["application_name"] = "clearsight-sourceaccess"
 	poolConfig.ConnConfig.RuntimeParams["default_transaction_read_only"] = "on"
@@ -223,10 +220,6 @@ func (s *PostgresSession) operationContext(ctx context.Context, requested time.D
 	if timeout <= 0 || timeout > s.options.StatementTimeout {
 		timeout = s.options.StatementTimeout
 	}
-	// When the session statement timeout is the active ceiling, leave a small
-	// client-side grace period so PostgreSQL can cancel and sanitize the query as
-	// an execution failure. A stricter binding timeout remains an exact caller
-	// deadline and is therefore distinguishable from a database-side timeout.
 	if timeout == s.options.StatementTimeout {
 		timeout += s.options.PingTimeout
 	}
@@ -260,11 +253,27 @@ func ValidatePostgresDSN(value string) error {
 }
 
 func verifyPostgresPrincipal(ctx context.Context, pool *pgxpool.Pool) error {
-	var superuser, createRole, createDB, replication, bypassRLS bool
-	if err := pool.QueryRow(ctx, `SELECT rolsuper,rolcreaterole,rolcreatedb,rolreplication,rolbypassrls FROM pg_roles WHERE rolname=current_user`).Scan(&superuser, &createRole, &createDB, &replication, &bypassRLS); err != nil {
+	var superuser, createRole, createDB, replication, bypassRLS, ownsRelation bool
+	if err := pool.QueryRow(ctx, `
+		SELECT r.rolsuper,
+		       r.rolcreaterole,
+		       r.rolcreatedb,
+		       r.rolreplication,
+		       r.rolbypassrls,
+		       EXISTS (
+		           SELECT 1
+		             FROM pg_class c
+		             JOIN pg_namespace n ON n.oid = c.relnamespace
+		            WHERE c.relowner = r.oid
+		              AND c.relkind IN ('r','p','v','m','f')
+		              AND n.nspname <> 'information_schema'
+		              AND n.nspname NOT LIKE 'pg_%'
+		       )
+		  FROM pg_roles r
+		 WHERE r.rolname = current_user`).Scan(&superuser, &createRole, &createDB, &replication, &bypassRLS, &ownsRelation); err != nil {
 		return postgresDatabaseError(ctx, ErrConnection)
 	}
-	if superuser || createRole || createDB || replication || bypassRLS {
+	if superuser || createRole || createDB || replication || bypassRLS || ownsRelation {
 		return ErrPrivileges
 	}
 	return nil

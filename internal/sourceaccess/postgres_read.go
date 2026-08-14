@@ -42,7 +42,7 @@ func (s *PostgresSession) ReadPage(ctx context.Context, view View, binding Bindi
 		return RecordPage{}, err
 	}
 	if len(binding.KeyFields) != 1 {
-		return RecordPage{}, fmt.Errorf("%w: PostgreSQL page currently requires one stable key", ErrCapabilityUnavailable)
+		return RecordPage{}, fmt.Errorf("%w: PostgreSQL page requires one stable key", ErrCapabilityUnavailable)
 	}
 	limit := request.Limit
 	if limit < 0 {
@@ -54,18 +54,10 @@ func (s *PostgresSession) ReadPage(ctx context.Context, view View, binding Bindi
 	if limit > limits.PageRows {
 		return RecordPage{}, ErrLimitExceeded
 	}
-	var args []any
-	where := ""
 	if request.After != nil {
 		if err := request.After.ValidateInput(); err != nil {
 			return RecordPage{}, err
 		}
-		argument, err := postgresScalarArgument(*request.After)
-		if err != nil {
-			return RecordPage{}, err
-		}
-		args = append(args, argument)
-		where = " WHERE " + qualifiedField(binding.KeyFields[0]) + " > $1"
 	}
 
 	operationCtx, cancel := s.operationContext(ctx, limits.Timeout)
@@ -83,38 +75,63 @@ func (s *PostgresSession) ReadPage(ctx context.Context, view View, binding Bindi
 	if err != nil {
 		return RecordPage{}, err
 	}
-	keyKind := fieldKinds[binding.KeyFields[0]]
-	if request.After != nil && request.After.Kind != keyKind {
-		return RecordPage{}, fmt.Errorf("%w: page cursor type does not match the stable key", ErrDefinitionInvalid)
+	keyName := binding.KeyFields[0]
+	keyField, err := nativeFieldByName(fields, keyName)
+	if err != nil {
+		return RecordPage{}, err
 	}
+	keyKind := fieldKinds[keyName]
+
+	var args []any
+	where := ""
+	if request.After != nil {
+		if request.After.Kind != keyKind {
+			return RecordPage{}, fmt.Errorf("%w: page cursor type does not match the stable key", ErrDefinitionInvalid)
+		}
+		argument, err := postgresScalarArgument(*request.After, keyField.NativeType)
+		if err != nil {
+			return RecordPage{}, err
+		}
+		args = append(args, argument)
+		where = " WHERE " + qualifiedField(keyName) + " > $1"
+	}
+
 	inner := "SELECT " + selectedProjection(binding.SelectedFields) +
 		" FROM (" + definition.Query + ") AS clearsight_source_view" + where +
-		" ORDER BY " + qualifiedField(binding.KeyFields[0]) +
+		" ORDER BY " + qualifiedField(keyName) +
 		" LIMIT " + strconv.Itoa(limit+1)
 	args = append(args, limits.ResponseBytes)
-	query := boundedPayloadQuery(inner, binding.KeyFields[0], len(args))
+	query := boundedPagePayloadQuery(inner, keyName, limit, len(args))
 	rows, err := tx.Query(operationCtx, query, args...)
 	if err != nil {
 		return RecordPage{}, postgresDatabaseError(operationCtx, ErrExecution)
 	}
-	records, byteCount, err := readJSONRecords(operationCtx, rows, binding.SelectedFields, fieldKinds, limits.ResponseBytes)
+	records, byteCount, lookahead, err := readJSONPageRecords(operationCtx, rows, binding.SelectedFields, fieldKinds, keyKind, limits.ResponseBytes)
 	if err != nil {
 		return RecordPage{}, err
 	}
-	if err := validateStableRecords(records, binding.KeyFields[0], keyKind); err != nil {
+	if len(records) > limit {
+		return RecordPage{}, ErrExecution
+	}
+	if err := validateStableRecords(records, keyName, keyKind); err != nil {
 		return RecordPage{}, err
 	}
-	more := len(records) > limit
+
+	more := lookahead != nil
 	if more {
-		records = records[:limit]
-	}
-	var next *Scalar
-	completeness := CompletenessComplete
-	if more && len(records) > 0 {
-		cursor, exists := records[len(records)-1][binding.KeyFields[0]]
-		if !exists || cursor.Kind == ScalarNull {
+		if len(records) != limit || len(records) == 0 {
 			return RecordPage{}, ErrExecution
 		}
+		last, exists := records[len(records)-1][keyName]
+		if !exists || last.Kind == ScalarNull || scalarIdentity(last) == scalarIdentity(*lookahead) {
+			return RecordPage{}, ErrExecution
+		}
+	}
+
+	var next *Scalar
+	completeness := CompletenessComplete
+	if more {
+		cursor := records[len(records)-1][keyName]
 		cursorCopy := cursor
 		next = &cursorCopy
 		completeness = CompletenessPartial
@@ -136,13 +153,11 @@ func (s *PostgresSession) Lookup(ctx context.Context, view View, binding Binding
 		return LookupResult{}, err
 	}
 	if len(binding.KeyFields) != 1 {
-		return LookupResult{}, fmt.Errorf("%w: PostgreSQL lookup currently requires one stable key", ErrCapabilityUnavailable)
+		return LookupResult{}, fmt.Errorf("%w: PostgreSQL lookup requires one stable key", ErrCapabilityUnavailable)
 	}
 	if len(request.Values) == 0 || len(request.Values) > limits.LookupValues {
 		return LookupResult{}, ErrLimitExceeded
 	}
-	args := make([]any, 0, len(request.Values))
-	placeholders := make([]string, 0, len(request.Values))
 	seen := make(map[string]struct{}, len(request.Values))
 	var kind ScalarKind
 	for index, value := range request.Values {
@@ -154,17 +169,11 @@ func (s *PostgresSession) Lookup(ctx context.Context, view View, binding Binding
 		} else if value.Kind != kind {
 			return LookupResult{}, fmt.Errorf("%w: lookup values must use one scalar type", ErrDefinitionInvalid)
 		}
-		identity := string(value.Kind) + "\x1f" + value.Text
+		identity := scalarIdentity(value)
 		if _, exists := seen[identity]; exists {
 			return LookupResult{}, fmt.Errorf("%w: duplicate lookup value", ErrDefinitionInvalid)
 		}
 		seen[identity] = struct{}{}
-		argument, err := postgresScalarArgument(value)
-		if err != nil {
-			return LookupResult{}, err
-		}
-		args = append(args, argument)
-		placeholders = append(placeholders, "$"+strconv.Itoa(index+1))
 	}
 
 	operationCtx, cancel := s.operationContext(ctx, limits.Timeout)
@@ -182,17 +191,33 @@ func (s *PostgresSession) Lookup(ctx context.Context, view View, binding Binding
 	if err != nil {
 		return LookupResult{}, err
 	}
-	keyKind := fieldKinds[binding.KeyFields[0]]
+	keyName := binding.KeyFields[0]
+	keyField, err := nativeFieldByName(fields, keyName)
+	if err != nil {
+		return LookupResult{}, err
+	}
+	keyKind := fieldKinds[keyName]
 	if kind != keyKind {
 		return LookupResult{}, fmt.Errorf("%w: lookup value type does not match the stable key", ErrDefinitionInvalid)
 	}
+
+	args := make([]any, 0, len(request.Values)+1)
+	placeholders := make([]string, 0, len(request.Values))
+	for index, value := range request.Values {
+		argument, err := postgresScalarArgument(value, keyField.NativeType)
+		if err != nil {
+			return LookupResult{}, err
+		}
+		args = append(args, argument)
+		placeholders = append(placeholders, "$"+strconv.Itoa(index+1))
+	}
 	inner := "SELECT " + selectedProjection(binding.SelectedFields) +
 		" FROM (" + definition.Query + ") AS clearsight_source_view" +
-		" WHERE " + qualifiedField(binding.KeyFields[0]) + " IN (" + strings.Join(placeholders, ",") + ")" +
-		" ORDER BY " + qualifiedField(binding.KeyFields[0]) +
+		" WHERE " + qualifiedField(keyName) + " IN (" + strings.Join(placeholders, ",") + ")" +
+		" ORDER BY " + qualifiedField(keyName) +
 		" LIMIT " + strconv.Itoa(len(request.Values)+1)
 	args = append(args, limits.ResponseBytes)
-	query := boundedPayloadQuery(inner, binding.KeyFields[0], len(args))
+	query := boundedPayloadQuery(inner, keyName, len(args))
 	rows, err := tx.Query(operationCtx, query, args...)
 	if err != nil {
 		return LookupResult{}, postgresDatabaseError(operationCtx, ErrExecution)
@@ -204,7 +229,7 @@ func (s *PostgresSession) Lookup(ctx context.Context, view View, binding Binding
 	if len(records) > len(request.Values) {
 		return LookupResult{}, ErrExecution
 	}
-	if err := validateStableRecords(records, binding.KeyFields[0], keyKind); err != nil {
+	if err := validateStableRecords(records, keyName, keyKind); err != nil {
 		return LookupResult{}, err
 	}
 	fingerprint, err := BindingFingerprint(view, binding)

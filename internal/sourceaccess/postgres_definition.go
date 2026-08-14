@@ -90,18 +90,53 @@ func (s *PostgresSession) inspectSchemaTx(ctx context.Context, tx pgx.Tx, defini
 	return fields, fingerprint, nil
 }
 
-func selectedFieldKinds(schema []NativeField, selected []string) (map[string]ScalarKind, error) {
+func nativeFieldsByName(schema []NativeField) (map[string]NativeField, error) {
 	available := make(map[string]NativeField, len(schema))
 	for _, field := range schema {
+		if _, exists := available[field.Name]; exists {
+			return nil, fmt.Errorf("%w: source schema contains duplicate field %q", ErrDefinitionInvalid, field.Name)
+		}
 		available[field.Name] = field
 	}
-	result := make(map[string]ScalarKind, len(selected))
+	return available, nil
+}
+
+func selectedNativeFields(schema []NativeField, selected []string) ([]NativeField, error) {
+	available, err := nativeFieldsByName(schema)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]NativeField, 0, len(selected))
 	for _, name := range selected {
 		field, exists := available[name]
 		if !exists {
 			return nil, fmt.Errorf("%w: selected field is not projected by the view", ErrDefinitionInvalid)
 		}
-		result[name] = postgresScalarKind(field.NativeType)
+		result = append(result, field)
+	}
+	return result, nil
+}
+
+func nativeFieldByName(schema []NativeField, name string) (NativeField, error) {
+	available, err := nativeFieldsByName(schema)
+	if err != nil {
+		return NativeField{}, err
+	}
+	field, exists := available[name]
+	if !exists {
+		return NativeField{}, fmt.Errorf("%w: selected field is not projected by the view", ErrDefinitionInvalid)
+	}
+	return field, nil
+}
+
+func selectedFieldKinds(schema []NativeField, selected []string) (map[string]ScalarKind, error) {
+	fields, err := selectedNativeFields(schema, selected)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]ScalarKind, len(fields))
+	for _, field := range fields {
+		result[field.Name] = postgresScalarKind(field.NativeType)
 	}
 	return result, nil
 }
@@ -148,9 +183,8 @@ func nativeSchemaFingerprint(fields []NativeField) (string, error) {
 		}
 		seen[field.Name] = struct{}{}
 	}
-	// Field order is intentionally preserved here because adapter-native
-	// projection order can affect page/export consumers. Assurance separately
-	// owns its order-independent logical schema fingerprint.
+	// Projection order is part of the native schema receipt. Assurance uses its
+	// own order-independent logical schema fingerprint.
 	hash := sha256.New()
 	for _, field := range ordered {
 		_, _ = fmt.Fprintf(hash, "%s\x1f%s\x1f%t\n", field.Name, field.NativeType, field.Nullable)
