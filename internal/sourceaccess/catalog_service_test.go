@@ -236,13 +236,13 @@ type catalogFakeSession struct {
 	pageLimit    int
 }
 
-func (s *catalogFakeSession) Connection() Connection     { return s.connection }
+func (s *catalogFakeSession) Connection() Connection      { return s.connection }
 func (s *catalogFakeSession) Capabilities() CapabilitySet { return s.capabilities }
 func (s *catalogFakeSession) Close() error                { s.closes++; return nil }
 func (s *catalogFakeSession) Inspect(_ context.Context, view View) (SchemaResult, error) {
 	fingerprint := strings.Repeat("a", 64)
 	return SchemaResult{
-		Fields: []NativeField{{Name: "account_id", NativeType: "uuid"}},
+		Fields:  []NativeField{{Name: "account_id", NativeType: "uuid"}},
 		Receipt: OperationReceipt{SourceID: s.connection.SourceID, ConnectionID: s.connection.ID, ViewID: view.ID, Operation: OperationInspect, SchemaFingerprint: fingerprint, Completeness: CompletenessComplete},
 	}, nil
 }

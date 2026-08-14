@@ -119,16 +119,19 @@ type CatalogRepository interface {
 	ConnectionRevision(context.Context, string, string, int64) (ConnectionRevision, error)
 	CurrentConnection(context.Context, string, string) (ConnectionRevision, error)
 	ListCurrentConnections(context.Context, string, string, int) ([]ConnectionRevision, error)
+	ListConnectionRevisions(context.Context, string, string, int) ([]ConnectionRevision, error)
 
 	CreateViewRevision(context.Context, ViewRevision) (ViewRevision, error)
 	ViewRevision(context.Context, string, string, int64) (ViewRevision, error)
 	CurrentView(context.Context, string, string) (ViewRevision, error)
 	ListCurrentViews(context.Context, string, string, int) ([]ViewRevision, error)
+	ListViewRevisions(context.Context, string, string, int) ([]ViewRevision, error)
 
 	CreateBindingRevision(context.Context, BindingRevision) (BindingRevision, error)
 	BindingRevision(context.Context, string, string, int64) (BindingRevision, error)
 	CurrentBinding(context.Context, string, string) (BindingRevision, error)
 	ListCurrentBindings(context.Context, string, string, int) ([]BindingRevision, error)
+	ListBindingRevisions(context.Context, string, string, int) ([]BindingRevision, error)
 }
 
 func (value ConnectionRevision) Contract() (Connection, error) {

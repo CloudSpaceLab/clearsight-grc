@@ -135,6 +135,36 @@ func (r *PostgresCatalogRepository) ListCurrentConnections(ctx context.Context, 
 	return values, nil
 }
 
+func (r *PostgresCatalogRepository) ListConnectionRevisions(ctx context.Context, tenantID, sourceID string, limit int) ([]ConnectionRevision, error) {
+	if r == nil || r.pool == nil {
+		return nil, ErrCatalogStorage
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT `+connectionRevisionColumns+`
+		  FROM source_connections sc
+		  JOIN tenants t ON t.id=sc.tenant_id
+		 WHERE (t.id::text=$1 OR t.slug=$1)
+		   AND sc.source_id=$2::uuid
+		 ORDER BY sc.code,sc.connection_id,sc.version DESC
+		 LIMIT $3`, tenantID, sourceID, catalogListLimit(limit))
+	if err != nil {
+		return nil, catalogReadError(err)
+	}
+	defer rows.Close()
+	values := make([]ConnectionRevision, 0)
+	for rows.Next() {
+		value, scanErr := scanConnectionRevision(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		values = append(values, value)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, catalogReadError(err)
+	}
+	return values, nil
+}
+
 func requireCatalogSource(ctx context.Context, tx pgx.Tx, tenantID, sourceID string) error {
 	var exists bool
 	if err := tx.QueryRow(ctx, `

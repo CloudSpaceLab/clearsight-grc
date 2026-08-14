@@ -61,8 +61,8 @@ func TestSourceCatalogCreateConnectionUsesVerifiedActorScopeAndRemainsListable(t
 func TestSourceCatalogRoutesUseConfigurationPermissions(t *testing.T) {
 	api := &API{}
 	expected := map[string]string{
-		http.MethodGet + " /api/v1/config/sources/{source_id}/connections":              identity.PermissionConfigRead,
-		http.MethodPost + " /api/v1/config/sources/{source_id}/connections":             identity.PermissionConfigWrite,
+		http.MethodGet + " /api/v1/config/sources/{source_id}/connections":               identity.PermissionConfigRead,
+		http.MethodPost + " /api/v1/config/sources/{source_id}/connections":              identity.PermissionConfigWrite,
 		http.MethodGet + " /api/v1/config/source-connections/{connection_id}":            identity.PermissionConfigRead,
 		http.MethodGet + " /api/v1/config/source-connections/{connection_id}/views":      identity.PermissionConfigRead,
 		http.MethodPost + " /api/v1/config/source-connections/{connection_id}/views":     identity.PermissionConfigWrite,

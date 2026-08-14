@@ -173,9 +173,10 @@ func (s *CatalogService) CreateConnectionDraft(ctx context.Context, actor Catalo
 	}
 	now := s.now().UTC()
 	owner := strings.TrimSpace(input.OwnerPrincipalID)
-	if owner == "" {
-		owner = actor.PrincipalID
+	if owner != "" && owner != actor.PrincipalID {
+		return ConnectionRevision{}, fmt.Errorf("%w: owner assignment requires a governed principal-selection command", ErrCatalogInvalid)
 	}
+	owner = actor.PrincipalID
 	value := ConnectionRevision{
 		RevisionID: revisionID, ConnectionID: connectionID, TenantID: actor.TenantID, SourceID: strings.TrimSpace(sourceID),
 		Code: input.Code, Name: input.Name, AdapterKind: input.AdapterKind, AdapterVersion: input.AdapterVersion,
@@ -323,7 +324,7 @@ func (s *CatalogService) CreateBindingDraft(ctx context.Context, actor CatalogAc
 }
 
 func (s *CatalogService) Connections(ctx context.Context, tenantID, sourceID string, limit int) ([]ConnectionRevision, error) {
-	return s.repoOrError().ListCurrentConnections(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(sourceID), limit)
+	return s.repoOrError().ListConnectionRevisions(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(sourceID), limit)
 }
 
 func (s *CatalogService) Connection(ctx context.Context, tenantID, connectionID string, version int64) (ConnectionRevision, error) {
@@ -331,7 +332,7 @@ func (s *CatalogService) Connection(ctx context.Context, tenantID, connectionID 
 }
 
 func (s *CatalogService) Views(ctx context.Context, tenantID, connectionID string, limit int) ([]ViewRevision, error) {
-	return s.repoOrError().ListCurrentViews(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(connectionID), limit)
+	return s.repoOrError().ListViewRevisions(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(connectionID), limit)
 }
 
 func (s *CatalogService) View(ctx context.Context, tenantID, viewID string, version int64) (ViewRevision, error) {
@@ -339,7 +340,7 @@ func (s *CatalogService) View(ctx context.Context, tenantID, viewID string, vers
 }
 
 func (s *CatalogService) Bindings(ctx context.Context, tenantID, viewID string, limit int) ([]BindingRevision, error) {
-	return s.repoOrError().ListCurrentBindings(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(viewID), limit)
+	return s.repoOrError().ListBindingRevisions(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(viewID), limit)
 }
 
 func (s *CatalogService) Binding(ctx context.Context, tenantID, bindingID string, version int64) (BindingRevision, error) {
@@ -350,6 +351,9 @@ func (s *CatalogService) PreviewBinding(ctx context.Context, tenantID, bindingID
 	bindingRevision, err := s.binding(ctx, tenantID, bindingID, version)
 	if err != nil {
 		return RecordPage{}, err
+	}
+	if !revisionExecutable(bindingRevision.Status) {
+		return RecordPage{}, ErrCatalogInvalid
 	}
 	viewRevision, err := s.repoOrError().ViewRevision(ctx, tenantID, bindingRevision.ViewID, bindingRevision.ViewVersion)
 	if err != nil {
@@ -410,7 +414,7 @@ func (s *CatalogService) WhereUsed(ctx context.Context, tenantID string, kind Ca
 		if _, err := s.connection(ctx, tenantID, resourceID, 0); err != nil {
 			return CatalogUsageReport{}, err
 		}
-		values, err := s.Views(ctx, tenantID, resourceID, limit)
+		values, err := s.repoOrError().ListCurrentViews(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(resourceID), limit)
 		if err != nil {
 			return CatalogUsageReport{}, err
 		}
@@ -421,7 +425,7 @@ func (s *CatalogService) WhereUsed(ctx context.Context, tenantID string, kind Ca
 		if _, err := s.view(ctx, tenantID, resourceID, 0); err != nil {
 			return CatalogUsageReport{}, err
 		}
-		values, err := s.Bindings(ctx, tenantID, resourceID, limit)
+		values, err := s.repoOrError().ListCurrentBindings(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(resourceID), limit)
 		if err != nil {
 			return CatalogUsageReport{}, err
 		}
@@ -446,8 +450,9 @@ func (s *CatalogService) validateDraftAdapter(input CreateConnectionDraftInput) 
 		return err
 	}
 	if input.AdapterKind == AdapterPostgres {
-		if _, ok := environmentSecretName(input.SecretRef); !ok {
-			return fmt.Errorf("%w: PostgreSQL credentials require an env:// secret reference", ErrCatalogInvalid)
+		secretRef := strings.TrimSpace(input.SecretRef)
+		if secretRef == "" || secretRef != input.SecretRef || len(secretRef) > HardMaxIdentifierBytes || containsControl(secretRef) {
+			return fmt.Errorf("%w: PostgreSQL connections require a bounded opaque secret reference", ErrCatalogInvalid)
 		}
 		definition, err := normalizeJSONObject(defaultJSONObject(input.Definition), HardMaxDefinitionBytes, "connection definition")
 		if err != nil {
@@ -612,6 +617,9 @@ func (unavailableCatalogRepository) CurrentConnection(context.Context, string, s
 func (unavailableCatalogRepository) ListCurrentConnections(context.Context, string, string, int) ([]ConnectionRevision, error) {
 	return nil, ErrCatalogStorage
 }
+func (unavailableCatalogRepository) ListConnectionRevisions(context.Context, string, string, int) ([]ConnectionRevision, error) {
+	return nil, ErrCatalogStorage
+}
 func (unavailableCatalogRepository) CreateViewRevision(context.Context, ViewRevision) (ViewRevision, error) {
 	return ViewRevision{}, ErrCatalogStorage
 }
@@ -624,6 +632,9 @@ func (unavailableCatalogRepository) CurrentView(context.Context, string, string)
 func (unavailableCatalogRepository) ListCurrentViews(context.Context, string, string, int) ([]ViewRevision, error) {
 	return nil, ErrCatalogStorage
 }
+func (unavailableCatalogRepository) ListViewRevisions(context.Context, string, string, int) ([]ViewRevision, error) {
+	return nil, ErrCatalogStorage
+}
 func (unavailableCatalogRepository) CreateBindingRevision(context.Context, BindingRevision) (BindingRevision, error) {
 	return BindingRevision{}, ErrCatalogStorage
 }
@@ -634,5 +645,8 @@ func (unavailableCatalogRepository) CurrentBinding(context.Context, string, stri
 	return BindingRevision{}, ErrCatalogStorage
 }
 func (unavailableCatalogRepository) ListCurrentBindings(context.Context, string, string, int) ([]BindingRevision, error) {
+	return nil, ErrCatalogStorage
+}
+func (unavailableCatalogRepository) ListBindingRevisions(context.Context, string, string, int) ([]BindingRevision, error) {
 	return nil, ErrCatalogStorage
 }
