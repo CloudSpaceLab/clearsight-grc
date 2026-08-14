@@ -198,7 +198,7 @@ export function DocumentImportWorkspace() {
       <div>
         <span className="eyebrow">Document import</span>
         <h2 id="document-import-title">Imported documents</h2>
-        <p>Upload regulatory sources, extract obligations, and compare them with current Programs, controls and evidence.</p>
+        <p>Review imported documents and extracted obligations.</p>
         {!intakeOpen && <button className="primary-button document-import-open" type="button" onClick={() => setIntakeOpen(true)}>Import document</button>}
       </div>
       {intakeOpen && <form className="document-import-form" onSubmit={submit} noValidate>
@@ -272,11 +272,11 @@ function DocumentInspector({ document, coverage, coverageActionID, coverageNotic
     {!processing && coverage && <CoverageAssessment coverage={coverage} actionID={coverageActionID} notice={coverageNotice} onReview={onCoverageReview} onApply={onApplySuggestion} onRecompare={onRecompare} onLoadMore={onLoadMore}/>}
     {document.limitations.length > 0 && <section className="document-limitations"><h3>Important limitations</h3>{document.limitations.map((item) => <p key={item}>{item}</p>)}</section>}
     {!processing && <>
-      {!coverage && <section><div className="section-header"><div><h3>Review required</h3><p>Accepting a proposal records your review. It does not by itself create or approve a requirement, control or conclusion.</p></div></div>{pending.length ? <div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview}/>)}</div> : <div className="calm-empty compact"><span>✓</span><div><strong>Nothing waiting for review</strong><p>{document.analysis_status === "UNAVAILABLE" ? "No review proposal is available from this source." : "Reviewed proposals remain available below."}</p></div></div>}</section>}
+      {!coverage && <section><div className="section-header"><div><h3>Review required</h3><p>Accept or reject each extracted proposal. Requirements and controls still require approval before they become active.</p></div></div>{pending.length ? <div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview}/>)}</div> : <div className="calm-empty compact"><span>✓</span><div><strong>Nothing waiting for review</strong><p>{document.analysis_status === "UNAVAILABLE" ? "No review proposal is available from this source." : "Reviewed proposals remain available below."}</p></div></div>}</section>}
       {coverage && pending.length > 0 && <details className="import-secondary"><summary><span>Extraction proposals</span><strong>{pending.length} unreviewed</strong></summary><div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview}/>)}</div></details>}
       {reviewed.length > 0 && <details className="import-secondary"><summary><span>Reviewed proposals</span><strong>{reviewed.length}</strong></summary><div className="proposal-list">{reviewed.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} busy={false} locked={Boolean(reviewingProposalID)} onReview={onReview}/>)}</div></details>}
     </>}
-    <details className="import-secondary"><summary><span>Original source details</span><strong>{document.sections.length} retained</strong></summary><div><dl className="document-metadata"><div><dt>Original hash</dt><dd><code>{document.sha256}</code></dd></div><div><dt>File status</dt><dd>{human(document.artifact_status)}</dd></div><div><dt>Text extraction</dt><dd>{human(document.extraction_method)}</dd></div><div><dt>Completeness</dt><dd>{contentTruncated || sectionsOmitted ? `${sectionsOmitted} sections omitted; content bounded` : "Complete within configured extraction limits"}</dd></div><div><dt>Version</dt><dd>{document.version}</dd></div></dl>{document.sections.length > 0 && <div className="document-sections">{document.sections.map((section) => <details key={section.id}><summary>{section.title}</summary><pre>{section.text}</pre></details>)}</div>}</div></details>
+    <details className="import-secondary"><summary><span>Original source details</span><strong>{document.sections.length} extracted</strong></summary><div><dl className="document-metadata"><div><dt>Original hash</dt><dd><code>{document.sha256}</code></dd></div><div><dt>File status</dt><dd>{human(document.artifact_status)}</dd></div><div><dt>Text extraction</dt><dd>{human(document.extraction_method)}</dd></div><div><dt>Completeness</dt><dd>{contentTruncated || sectionsOmitted ? `${document.sections.length} of ${sectionsTotal} sections extracted` : `All ${sectionsTotal} sections extracted`}</dd></div><div><dt>Version</dt><dd>{document.version}</dd></div></dl>{document.sections.length > 0 && <div className="document-sections">{document.sections.map((section) => <details key={section.id}><summary>{section.title}</summary><pre>{section.text}</pre></details>)}</div>}</div></details>
   </article>;
 }
 
@@ -302,7 +302,7 @@ function CoverageAssessment({ coverage, actionID, notice, onReview, onApply, onR
     return true;
   });
   if (coverage.status === "PENDING" || coverage.status === "COMPARING") {
-    return <section className="coverage-assessment workspace-loading" aria-live="polite" aria-busy="true"><strong>Comparing extracted obligations with current Programs…</strong><p>Controls, evidence and related issues are checked as one coverage chain.</p></section>;
+    return <section className="coverage-assessment workspace-loading" aria-live="polite" aria-busy="true"><strong>Comparing extracted obligations with current Programs…</strong><p>Checking requirement matches, controls, evidence and related issues.</p></section>;
   }
   if (coverage.status === "FAILED") {
     return <section className="coverage-assessment coverage-callout danger"><div><strong>Coverage comparison needs attention</strong><p>{coverage.failure_message || "The source was retained, but the comparison did not complete."}</p></div><button className="secondary-button" type="button" onClick={onRecompare}>Try comparison again</button></section>;
@@ -312,7 +312,7 @@ function CoverageAssessment({ coverage, actionID, notice, onReview, onApply, onR
       <div><span className="eyebrow">Program comparison</span><h3 id="coverage-assessment-title">Coverage assessment</h3><p>Verified coverage requires an accepted requirement match, an implemented control, and current supporting evidence.</p></div>
       {coverage.status === "STALE" && <button className="primary-button" type="button" disabled={Boolean(actionID)} onClick={onRecompare}>Compare again</button>}
     </div>
-    {coverage.status === "STALE" && <div className="coverage-callout warning"><strong>Program truth changed</strong><p>These results are preserved for audit, but must be compared again before review or updates.</p></div>}
+    {coverage.status === "STALE" && <div className="coverage-callout warning"><strong>Programs changed after this comparison</strong><p>Compare again before reviewing matches or applying updates.</p></div>}
     {notice && <p className="coverage-notice" role="status">{notice}</p>}
     <div className="coverage-scoreboard" aria-label="Document coverage summary">
       <div className="coverage-primary"><span>Verified document coverage</span><strong className="coverage-primary-value">{percentage(verified, denominator)}</strong><small>{verified} of {denominator} obligations verified after review</small></div>
@@ -350,7 +350,7 @@ function CoverageCandidateCard({ candidate, suggestion, matters, busy, locked, o
       <div className="coverage-match-heading"><div><span>Best existing match · {Math.round(match.score * 100)}%</span><strong>{match.program_name}</strong><small>{match.program_code} / {match.requirement_code} · {match.requirement_title}</small></div><CoverageChain match={match}/></div>
       <p>{match.rationale}</p>
       <details><summary>Why this match</summary><div>{match.components.map((component) => <p key={component.name}><strong>{human(component.name)}</strong><span>{Math.round(component.score * 100)}%</span><small>{component.reason}</small></p>)}</div></details>
-    </div> : <div className="coverage-no-match"><strong>No reliable in-scope requirement match</strong><p>The obligation remains a gap until a reviewer links it or creates governed Program content.</p></div>}
+    </div> : <div className="coverage-no-match"><strong>No reliable requirement match</strong><p>Link this obligation to an existing requirement or create a draft Program.</p></div>}
     {matters.map((matter) => <div className="coverage-matter" key={matter.matter_id}><span>Related issue</span><strong>{matter.reference} · {matter.title}</strong><small>{human(matter.status)}</small></div>)}
     {candidate.review ? <p className="coverage-reviewed">Reviewed: {human(candidate.review.decision)}{candidate.review.reason ? ` · ${candidate.review.reason}` : ""}</p> : <div className="coverage-actions">
       {match && <button className="primary-button" type="button" disabled={locked} onClick={() => onReview(candidate, "ACCEPT_MATCH")}>{busy ? "Recording…" : "Confirm match"}</button>}

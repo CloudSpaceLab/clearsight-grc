@@ -165,7 +165,7 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
 
   return <div id="programs-workspace">
     <section className="workspace-brief">
-      <div><span className="eyebrow">Ongoing compliance</span><h2>{briefTitle}</h2><p>Open a Program for changes since your last review, current status reasons, evidence expectations or an authority-checked operating status change.</p></div>
+        <div><span className="eyebrow">Ongoing compliance</span><h2>{briefTitle}</h2><p>Open a Program to review status, recent changes, requirements, evidence and available actions.</p></div>
       <div className="workspace-brief-facts" aria-label="Loaded Program status"><span><strong>{summary.attention}</strong> follow-up</span><span><strong>{summary.current}</strong> current</span><span><strong>{summary.setup}</strong> setup or reassessing</span></div>
     </section>
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
@@ -176,7 +176,7 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
     </form>
     {targetLoading && <div className="workspace-loading compact" aria-live="polite" aria-busy="true">Loading requested Program…</div>}
     {targetUnavailable && <EmptyState label="Requested Program" title="The requested Program could not be loaded" description="It may be outside your current access scope or no longer available."/>}
-    {!items.length && !targetLoading && !targetUnavailable ? <EmptyState label="Programs" title={search || status ? "No programs match these filters" : "No programs in this scope"} description={search || status ? "Change the search or status filter to see other programs." : "There are no ongoing compliance or control programs in the connected bank scope."} action={search || status ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="program-list">
+      {!items.length && !targetLoading && !targetUnavailable ? <EmptyState label="Programs" title={search || status ? "No programs match these filters" : "No programs in this scope"} description={search || status ? "Change the search or status filter to see other programs." : "There are no ongoing compliance or control Programs in your current access scope."} action={search || status ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="program-list">
       {items.map((summaryItem) => {
         const program = summaryItem.program;
         const isOpen = openID === program.id;

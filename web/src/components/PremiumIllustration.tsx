@@ -5,11 +5,11 @@ type Props = { variant?: "guided" | "empty" | "readiness" | "routing"; className
 export function PremiumIllustration({ variant = "guided", className = "" }: Props) {
   const uid = useId().replace(/:/g, "");
   const accent = variant === "readiness" ? "var(--green)" : variant === "routing" ? "var(--violet)" : "var(--cyan)";
-  const title = variant === "empty" ? "ClearSight empty-state illustration" : variant === "routing" ? "ClearSight governance-routing illustration" : variant === "readiness" ? "ClearSight readiness illustration" : "ClearSight guided-experience illustration";
+  const title = variant === "empty" ? "No results illustration" : variant === "routing" ? "Approval route illustration" : variant === "readiness" ? "Readiness illustration" : "Workspace guide illustration";
   return (
     <svg className={`premium-illustration ${className}`} viewBox="0 0 520 320" role="img" aria-labelledby={`${uid}-title ${uid}-description`}>
       <title id={`${uid}-title`}>{title}</title>
-      <desc id={`${uid}-description`}>Abstract institutional diagram showing connected governed records and a verified checkpoint.</desc>
+      <desc id={`${uid}-description`}>Abstract diagram of related work and a completed review checkpoint.</desc>
       <defs>
         <linearGradient id={`${uid}-panel`} x1="0" y1="0" x2="1" y2="1"><stop stopColor="var(--illustration-panel-start)"/><stop offset="1" stopColor="var(--illustration-panel-end)"/></linearGradient>
         <radialGradient id={`${uid}-orb`}><stop stopColor={accent} stopOpacity=".72"/><stop offset="1" stopColor={accent} stopOpacity="0"/></radialGradient>

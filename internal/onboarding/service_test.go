@@ -68,6 +68,17 @@ func TestDemoGuidesAvoidScriptedTourCopy(t *testing.T) {
 		"resolve the smallest evidence gap",
 		"use the reason, not only the colour",
 		"see the bank from a real role",
+		"generic dashboard",
+		"exact record",
+		"authoritative server",
+		"bounded daily digest",
+		"current canonical",
+		"second directory console",
+		"governed candidate set",
+		"without needing to know",
+		"product behaviour",
+		"program truth",
+		"is inferred",
 	}
 	for _, guide := range DemoGuides() {
 		visible := guide.Title + " " + guide.Description

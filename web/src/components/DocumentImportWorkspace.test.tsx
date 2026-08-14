@@ -143,9 +143,10 @@ describe("DocumentImportWorkspace", () => {
     expect(await screen.findByText(/Draft Program created/i)).toBeTruthy();
   });
 
-  it("offers a one-step refresh when Program truth changed", async () => {
+  it("offers a one-step refresh when Programs changed after comparison", async () => {
     vi.mocked(loadDocumentCoverage).mockResolvedValue({ ...coverageRecord, status: "STALE" });
     render(<DocumentImportWorkspace/>);
+    expect(await screen.findByText("Programs changed after this comparison")).toBeTruthy();
     fireEvent.click(await screen.findByRole("button", { name: "Compare again" }));
     await waitFor(() => expect(recompareDocumentCoverage).toHaveBeenCalledWith(documentRecord.id));
   });

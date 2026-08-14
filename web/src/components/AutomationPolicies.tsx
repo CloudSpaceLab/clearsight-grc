@@ -22,17 +22,17 @@ function AutomationPolicyContent({ policies, state }: Props) {
     return <section className="automation-policies workspace-loading" aria-live="polite" aria-busy="true">Loading automation policies…</section>;
   }
   if (state === "unavailable") {
-    return <section className="automation-policies"><EmptyState label="Automation policy" title="Automation policies could not be loaded" description="No automation permission or limit is inferred while the policy service is unavailable."/></section>;
+    return <section className="automation-policies"><EmptyState label="Automation policy" title="Automation policies could not be loaded" description="Try again before reviewing or changing automated actions."/></section>;
   }
 
   return <section className="automation-policies" aria-labelledby="automation-policy-heading">
     <header className="section-header">
-      <div><h2 id="automation-policy-heading">Automation boundaries</h2><p>Governed rules that define whether bounded actions may run without a new human decision.</p></div>
+      <div><h2 id="automation-policy-heading">Automation policies</h2><p>Approved automated actions, eligibility rules, limits and outcome checks.</p></div>
     </header>
     {!policies.length
-      ? <EmptyState label="Automation policy" title="No automation policies in this scope" description="No automated write permission is represented for the connected institution."/>
+      ? <EmptyState label="Automation policy" title="No automation policies in this scope" description="No automated actions are approved for the current scope."/>
       : <div className="automation-policy-list">{policies.map((policy) => <PolicyRow key={policy.id} policy={policy}/>)}</div>}
-    <p className="automation-policy-note">Only an active, currently effective policy can permit eligible automation. A listed policy does not prove that an action ran or that its outcome was verified.</p>
+    <p className="automation-policy-note">Only active policies can run actions. Review execution history for completed actions and outcome checks.</p>
   </section>;
 }
 
@@ -43,11 +43,11 @@ function PolicyRow({ policy }: { policy: AutomationPolicy }) {
       <div className="automation-policy-state"><mark className={`policy-${policy.status.toLowerCase()}`}>{humanize(policy.status)}</mark>{policy.effective_until && <span>Ends {formatDate(policy.effective_until)}</span>}</div>
     </div>
     <details>
-      <summary>View governed limits</summary>
+      <summary>View limits</summary>
       <div className="automation-guardrails">
         <GuardrailGroup title="Eligible when" value={policy.eligibility}/>
-        <GuardrailGroup title="Blast-radius limit" value={policy.blast_radius_limit}/>
-        <GuardrailGroup title="Outcome verification" value={policy.verification_contract}/>
+        <GuardrailGroup title="Maximum scope" value={policy.blast_radius_limit}/>
+        <GuardrailGroup title="Outcome check" value={policy.verification_contract}/>
       </div>
     </details>
   </article>;

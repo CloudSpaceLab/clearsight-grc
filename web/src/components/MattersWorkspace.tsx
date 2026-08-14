@@ -184,7 +184,7 @@ export function MattersWorkspace({ targetID, openFirst = false }: Props) {
 
   return <div id="matters-workspace">
     <section className="workspace-brief">
-      <div><span className="eyebrow">Issues and changes</span><h2>{items.length ? `${items.length} loaded item${items.length === 1 ? "" : "s"}` : "No open items in this view"}</h2><p>Start with the current handoff; when work is routed to you, the executable action appears directly in the issue.</p></div>
+        <div><span className="eyebrow">Issues and changes</span><h2>{items.length ? `${items.length} loaded item${items.length === 1 ? "" : "s"}` : "No open items in this view"}</h2><p>Open an item to review its current handoff, facts, actions and outcome checks.</p></div>
       <div className="workspace-brief-facts" aria-label="Loaded work summary"><span><strong>{summary.decisions}</strong> decisions</span><span><strong>{summary.overdue}</strong> overdue</span><span><strong>{summary.checking}</strong> outcome checks</span></div>
     </section>
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
@@ -195,7 +195,7 @@ export function MattersWorkspace({ targetID, openFirst = false }: Props) {
     </form>
     {targetLoading && <div className="workspace-loading compact" aria-live="polite" aria-busy="true">Loading requested issue or change…</div>}
     {targetUnavailable && <EmptyState label="Requested issue or change" title="The requested record could not be loaded" description="It may be outside your current access scope or no longer available."/>}
-    {!items.length && !targetLoading && !targetUnavailable ? <EmptyState label="Issues and changes" title={search || status !== "OPEN" ? "No items match these filters" : "No open issues or changes"} description={search || status !== "OPEN" ? "Change the search or status filter to see other work." : "There are no recorded open changes, gaps, findings, exceptions or response items in the connected scope."} action={search || status !== "OPEN" ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="matter-list">{items.map((summaryItem) => {
+      {!items.length && !targetLoading && !targetUnavailable ? <EmptyState label="Issues and changes" title={search || status !== "OPEN" ? "No items match these filters" : "No open issues or changes"} description={search || status !== "OPEN" ? "Change the search or status filter to see other work." : "There are no open changes, gaps, findings, exceptions or responses in your current access scope."} action={search || status !== "OPEN" ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="matter-list">{items.map((summaryItem) => {
       const matter = summaryItem.matter;
       const isOpen = openID === matter.id;
       const detail = details[matter.id];

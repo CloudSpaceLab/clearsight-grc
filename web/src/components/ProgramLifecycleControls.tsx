@@ -84,14 +84,14 @@ export function ProgramLifecycleControls({ aggregate, onUpdated }: Props) {
   if (access !== "allowed" || !choices.length) return null;
 
   return <section className="handoff-summary program-operation" aria-label="Program status action">
-    <span className="eyebrow">Authorized Program action</span>
+    <span className="eyebrow">Program status</span>
     <h3>Change operating status</h3>
-    <p>The server rechecks authority, current version, lifecycle validity and activation prerequisites when this is submitted.</p>
+    <p>Choose a permitted status and record the reason for the change.</p>
     <form className="governed-command-form" onSubmit={submit}>
       <label><span>Requested status</span><select value={selectedTarget} onChange={(event) => setTarget(event.target.value)}>{choices.map((value) => <option value={value} key={value}>{humanize(value)}</option>)}</select></label>
       <label><span>Rationale</span><textarea rows={3} value={rationale} onChange={(event) => setRationale(event.target.value)} placeholder="Why should the Program status change now?" required/></label>
       {error && <p className="inline-error" role="alert">{error}</p>}
-      {submitState === "saved" && <div className="inline-notice" role="status">Program status recorded from the authoritative server response.</div>}
+      {submitState === "saved" && <div className="inline-notice" role="status">Program status updated.</div>}
       <button className="primary-button" type="submit" disabled={submitState === "saving" || !selectedTarget}>{submitState === "saving" ? "Recording…" : `Request ${humanize(selectedTarget)}`}</button>
     </form>
   </section>;
