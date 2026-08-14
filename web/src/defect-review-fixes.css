@@ -1,0 +1,49 @@
+/* Behavioral UI fixes kept separate so review gates can target them explicitly. */
+
+html {
+  scroll-padding-top: 104px;
+  scroll-padding-bottom: 104px;
+}
+
+.program-card,
+.matter-card,
+.request-row,
+.program-review-digest,
+.program-operation,
+.evidence-workbench,
+.document-import-workspace {
+  scroll-margin-top: 104px;
+  scroll-margin-bottom: 104px;
+}
+
+@media (max-width: 820px) {
+  html {
+    scroll-padding-top: 88px;
+    scroll-padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+
+  body {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
+  main {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-nav {
+    bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .program-card,
+  .matter-card,
+  .request-row,
+  .program-review-digest,
+  .program-operation,
+  .evidence-workbench,
+  .document-import-workspace,
+  .wizard-actions,
+  .request-actions {
+    scroll-margin-top: 88px;
+    scroll-margin-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+}

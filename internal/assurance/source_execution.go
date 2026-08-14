@@ -1,13 +1,14 @@
 package assurance
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
 const (
@@ -24,16 +25,13 @@ var (
 	ErrSourceSchemaChanged = errors.New("source schema changed")
 )
 
-// SourceSecretResolver resolves an opaque deployment-managed secret reference.
-// Implementations must return credential material only to the executor boundary;
-// callers must never persist the returned value in ClearSight state or events.
-type SourceSecretResolver interface {
-	Resolve(ctx context.Context, secretRef string) (string, error)
-}
+// SourceSecretResolver is the compatibility name for the shared adapter-bound
+// secret resolver. Credential material remains inside sourceaccess sessions.
+type SourceSecretResolver = sourceaccess.SecretResolver
 
 // PopulationDefinition describes one approved queryable population within an
-// existing Evidence Source. It is an execution input only in this tranche; it is
-// not durable configuration yet.
+// existing Evidence Source. It is an assurance execution input compiled from a
+// reusable source Binding; it is not connector authority.
 type PopulationDefinition struct {
 	ID         string `json:"id"`
 	Query      string `json:"query"`

@@ -14,23 +14,24 @@ The documentation is layered so product semantics, safety, architecture, experie
 8. [`architecture/command-integrity-and-projection-operations.md`](architecture/command-integrity-and-projection-operations.md) — executable route classes, verified actor binding, authority checks, transaction truth and Program-status operations.
 9. [`architecture/durable-schema-ownership.md`](architecture/durable-schema-ownership.md) — live durable-table ownership, maturity and retention contract.
 10. [`architecture/source-evidence-and-secure-capture.md`](architecture/source-evidence-and-secure-capture.md) — source health, persisted requests, bounded capture capabilities and artifact integrity.
-11. [`product/nigerian-bank-reference-journeys.md`](product/nigerian-bank-reference-journeys.md) — connected, actionable Nigerian-bank reference journeys.
-12. [`product/respond-and-capture.md`](product/respond-and-capture.md) — request-scoped internal/external capture.
-13. [`product/illustration-and-guided-experience.md`](product/illustration-and-guided-experience.md) — illustrations, empty states and role-specific onboarding.
-14. [`product/enterprise-copy-and-content-design.md`](product/enterprise-copy-and-content-design.md) and [`product/plain-language-content-standard.md`](product/plain-language-content-standard.md) — human working language, count integrity and content acceptance.
-15. [`design/ui-delivery-workflow.md`](design/ui-delivery-workflow.md) — decision briefs, baselines, rendered review and drift control.
-16. [`product/ease-of-use-standard.md`](product/ease-of-use-standard.md) — active-effort and minimum-question standards.
-17. [`product/operating-model.md`](product/operating-model.md) — canonical domain objects.
-18. [`product/experience-principles.md`](product/experience-principles.md) and [`product/ux-and-visual-language.md`](product/ux-and-visual-language.md) — experience and visual system.
-19. [`architecture/application-architecture.md`](architecture/application-architecture.md) — executable application boundaries.
-20. [`architecture/system-data-and-performance.md`](architecture/system-data-and-performance.md) and [`architecture/data-model-and-storage.md`](architecture/data-model-and-storage.md) — scale, consistency and storage.
-21. [`../AGENTS.md`](../AGENTS.md) — mandatory implementation rules.
-22. [`implementation-plan.md`](implementation-plan.md) — **authoritative current execution ledger and sequencing**.
-23. [`design/enterprise-productization-design-plan.md`](design/enterprise-productization-design-plan.md) — finished enterprise experience reference.
-24. [`engineering/enterprise-productization-implementation-plan.md`](engineering/enterprise-productization-implementation-plan.md) — detailed enterprise work/reference phases; current execution order is controlled by `implementation-plan.md`.
-25. [`engineering/enterprise-identity-access.md`](engineering/enterprise-identity-access.md) — focused OSS-first identity, department-aware capabilities and multi-level escalation implementation boundary; supersedes greenfield LDAP/SAML implementation guidance.
-26. [`engineering/demo-role-login.md`](engineering/demo-role-login.md) — non-production stakeholder role catalogue, supplied demo credentials, signed demo session and production isolation boundary.
-27. [`quality/release-gates-and-traceability.md`](quality/release-gates-and-traceability.md), [`quality/rendered-ui-evidence.md`](quality/rendered-ui-evidence.md) and domain acceptance tests.
+11. [`architecture/connected-source-access.md`](architecture/connected-source-access.md) — reusable Connection/View/Binding contracts, adapter capabilities, bounded source reads and assurance compatibility.
+12. [`product/nigerian-bank-reference-journeys.md`](product/nigerian-bank-reference-journeys.md) — connected, actionable Nigerian-bank reference journeys.
+13. [`product/respond-and-capture.md`](product/respond-and-capture.md) — request-scoped internal/external capture.
+14. [`product/illustration-and-guided-experience.md`](product/illustration-and-guided-experience.md) — illustrations, empty states and role-specific onboarding.
+15. [`product/enterprise-copy-and-content-design.md`](product/enterprise-copy-and-content-design.md) and [`product/plain-language-content-standard.md`](product/plain-language-content-standard.md) — human working language, count integrity and content acceptance.
+16. [`design/ui-delivery-workflow.md`](design/ui-delivery-workflow.md) — decision briefs, baselines, rendered review and drift control.
+17. [`product/ease-of-use-standard.md`](product/ease-of-use-standard.md) — active-effort and minimum-question standards.
+18. [`product/operating-model.md`](product/operating-model.md) — canonical domain objects.
+19. [`product/experience-principles.md`](product/experience-principles.md) and [`product/ux-and-visual-language.md`](product/ux-and-visual-language.md) — experience and visual system.
+20. [`architecture/application-architecture.md`](architecture/application-architecture.md) — executable application boundaries.
+21. [`architecture/system-data-and-performance.md`](architecture/system-data-and-performance.md) and [`architecture/data-model-and-storage.md`](architecture/data-model-and-storage.md) — scale, consistency and storage.
+22. [`../AGENTS.md`](../AGENTS.md) — mandatory implementation rules.
+23. [`implementation-plan.md`](implementation-plan.md) — **authoritative current execution ledger and sequencing**.
+24. [`design/enterprise-productization-design-plan.md`](design/enterprise-productization-design-plan.md) — finished enterprise experience reference.
+25. [`engineering/enterprise-productization-implementation-plan.md`](engineering/enterprise-productization-implementation-plan.md) — detailed enterprise work/reference phases; current execution order is controlled by `implementation-plan.md`.
+26. [`engineering/enterprise-identity-access.md`](engineering/enterprise-identity-access.md) — focused OSS-first identity, department-aware capabilities and multi-level escalation implementation boundary; supersedes greenfield LDAP/SAML implementation guidance.
+27. [`engineering/demo-role-login.md`](engineering/demo-role-login.md) — non-production stakeholder role catalogue, supplied demo credentials, signed demo session and production isolation boundary.
+28. [`quality/release-gates-and-traceability.md`](quality/release-gates-and-traceability.md), [`quality/rendered-ui-evidence.md`](quality/rendered-ui-evidence.md) and domain acceptance tests.
 
 ## Canonical precedence
 
@@ -65,6 +66,8 @@ Architecture never overrides the simpler user-facing Program, issue/change, requ
 - independent in-process worker classes for evidence maintenance, Program projection, delegation lifecycle, timers and outbox delivery;
 - bounded timer/outbox retry budgets with durable terminal failure and queue health rather than infinite poison-item retry;
 - Source Registry, source observations and freshness maintenance;
+- transient reusable Source Connection/View/Binding contracts with bounded PostgreSQL schema, page, lookup and aggregate capabilities;
+- assurance consumption of shared source sessions without a second connector registry, copied source population or gateway-specific bundle format;
 - durable source-health reconciliation from evidence outbox events into exact source drift and dependent Program triggers, with inbox dedupe;
 - persisted evidence requests, submissions, invitations and sessions;
 - linked-request visibility derived from the subject Matter before PostgreSQL limits;
@@ -104,6 +107,8 @@ Do not collapse these objects while implementing later work:
 - Automation Policy = permission boundary, not execution proof.
 - Intervention Summary = actor-facing read projection, not authoritative state.
 - Durable table = storage construct whose capability meaning depends on its registered executable owner.
+- Evidence Source = business authority identity; Source Connection/View/Binding = reusable technical access contracts beneath it.
+- Source Binding = purpose-bound read/mapping contract, not copied source data, evidence sufficiency or workflow authority.
 - Department path = organizational scope, not authorization by itself.
 - Directory group = source-backed membership, not material authority.
 - Escalation sequence = ordered responsibility/scope selection, not a hard-coded assignee chain.

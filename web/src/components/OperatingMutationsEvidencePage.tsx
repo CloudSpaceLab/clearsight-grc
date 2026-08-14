@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { MatterAggregate, ProgramAggregate, WorkflowTask } from "../types";
 import { MatterWorkCommand } from "./MatterWorkCommandPanel";
 import { ProgramLifecycleControls } from "./ProgramLifecycleControls";
@@ -40,6 +41,7 @@ const program: ProgramAggregate = {
 };
 
 export function OperatingMutationsEvidencePage() {
+  const [currentProgram, setCurrentProgram] = useState<ProgramAggregate>(program);
   return <main className="operating-evidence-page">
     <header className="topbar"><div><span className="eyebrow">Review workspace</span><h1>Operating actions</h1><p>Review assigned issue actions and permitted Program status changes.</p></div></header>
     <div className="operating-evidence-grid">
@@ -53,7 +55,7 @@ export function OperatingMutationsEvidencePage() {
         <span className="eyebrow">Program status</span>
         <h2 id="program-evidence-title">{program.program.name}</h2>
         <p>Available status changes depend on the current Program status and your approval authority.</p>
-        <ProgramLifecycleControls aggregate={program} onUpdated={() => undefined}/>
+        <ProgramLifecycleControls aggregate={currentProgram} onUpdated={setCurrentProgram}/>
       </section>
     </div>
   </main>;

@@ -335,9 +335,14 @@ async function captureImportSelection() {
   const capture = { name: "32-import-dropzone-selected-light-1440x900", route: "#imports", title: "Imports", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
-    const purpose = page.getByRole("textbox", { name: "What should reviewers look for?" });
+    const form = page.locator(".document-import-form");
+    if (!(await form.isVisible())) {
+      await page.getByRole("button", { name: "Import document", exact: true }).click();
+      await form.waitFor({ state: "visible" });
+    }
+    const purpose = form.getByRole("textbox", { name: "What should reviewers look for?" });
     if ((await purpose.inputValue()) !== "") throw new Error("Document import still starts with a persisted template purpose");
-    await page.locator(".document-import-form .file-dropzone-input").setInputFiles({ name: "outsourcing-policy.pdf", mimeType: "application/pdf", buffer: Buffer.from("sample-policy") });
+    await form.locator(".file-dropzone-input").setInputFiles({ name: "outsourcing-policy.pdf", mimeType: "application/pdf", buffer: Buffer.from("sample-policy") });
     await page.getByText(/outsourcing-policy\.pdf/).waitFor();
     await assertNoHorizontalOverflow(page, capture.name);
     await saveScreenshot(page, capture.name);
