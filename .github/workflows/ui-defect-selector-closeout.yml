@@ -1,0 +1,25 @@
+name: UI defect selector closeout
+
+on:
+  push:
+    branches:
+      - codex/issue-61-sourceaccess-t0
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ui-defect-selector-closeout-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  closeout:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/issue-61-sourceaccess-t0
+          fetch-depth: 0
+      - name: Tighten defect review selector
+        run: bash scripts/apply-ui-defect-selector-closeout.sh
