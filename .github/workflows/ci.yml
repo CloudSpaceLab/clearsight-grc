@@ -67,7 +67,23 @@ jobs:
           test -f "$latest_down"
           echo "Rollback/reapply: $latest_up"
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$latest_down"
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO tenants(id,slug,name)
+          VALUES('6f300000-0000-7000-8000-000000000001','source-catalog-migration','Source catalog migration');
+          INSERT INTO evidence_sources(
+              id,tenant_id,code,name,source_type,authority_class,endpoint,
+              expected_freshness_minutes,health,status,version
+          ) VALUES (
+              '6f300000-0000-7000-8000-000000000002',
+              '6f300000-0000-7000-8000-000000000001',
+              'LEGACY-ENDPOINT','Legacy endpoint','SYSTEM','SYSTEM_OF_RECORD',
+              ' https://legacy.example.invalid/source ',15,'UNKNOWN','ACTIVE',1
+          );
+          SQL
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$latest_up"
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='evidence_sources' AND column_name='endpoint'" | grep -qx 0
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM source_connections WHERE source_id='6f300000-0000-7000-8000-000000000002' AND code='PRIMARY_REFERENCE' AND adapter_kind='REFERENCE' AND adapter_version='reference-v1' AND status='ACTIVE' AND is_current AND version=1 AND definition->>'endpoint'='https://legacy.example.invalid/source'" | grep -qx 1
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -c "DELETE FROM source_connections WHERE source_id='6f300000-0000-7000-8000-000000000002'; DELETE FROM evidence_sources WHERE id='6f300000-0000-7000-8000-000000000002'; DELETE FROM tenants WHERE id='6f300000-0000-7000-8000-000000000001';"
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.audit_events') IS NULL AND to_regclass('public.readiness_snapshots') IS NULL THEN 'ok' ELSE 'unexpected compatibility table' END" | grep -qx ok
       - name: Verify deployment migration ledger
         env:

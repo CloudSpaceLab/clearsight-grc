@@ -4,11 +4,14 @@
 
 This layer maintains the operational facts behind compliance conclusions. It records where facts came from, whether the source is current, what information was requested, who or what submitted it, and the integrity state of uploaded artifacts.
 
-It does **not** decide that evidence is sufficient, that a control operated effectively, or that a Program is compliant. Those conclusions remain separate governed records.
+It does not decide that evidence is sufficient, that a control operated effectively, or that a Program is compliant. Those conclusions remain separate governed records.
 
 ## Core objects
 
-- **Evidence Source** — an authoritative or operational origin with ownership, authority class and expected freshness.
+- **Evidence Source** — the business identity, authority class, owner and freshness policy for an operational or authoritative origin.
+- **Source Connection** — a versioned technical access path beneath an Evidence Source.
+- **Source View** — a versioned logical resource exposed through one exact Connection revision.
+- **Source Binding** — a versioned, purpose-bound set of permitted operations, fields and limits over one exact View revision.
 - **Source Observation** — a timestamped success, degradation or unavailability result.
 - **Evidence Request** — a purpose-bound set of unresolved fields for a named subject and audience type.
 - **Submission** — immutable answers received through an internal, magic-link or API channel.
@@ -16,39 +19,37 @@ It does **not** decide that evidence is sufficient, that a control operated effe
 - **Capture Session** — a bounded server-side session created after invitation exchange.
 - **Artifact Manifest** — file metadata, storage key, byte count, SHA-256 and inspection state.
 
-## Connected source access
-
-Evidence Source remains the business and authority record. Technical access is structured beneath it:
+## Connected source catalog
 
 ```text
 Evidence Source
-→ Source Connection
-→ Source View
-→ Source Binding
+→ Connection revision
+→ View revision
+→ Binding revision
 → bounded consumer operation
 ```
 
-The current execution contract is documented in [`connected-source-access.md`](connected-source-access.md).
+Evidence Source remains the business-level authority record. Technical configuration is stored only in the source-access catalog. The former `evidence_sources.endpoint` column has been removed; a legacy endpoint is represented as a non-executable `REFERENCE` Connection.
 
-A Connection identifies a technical path, a View identifies a native logical resource, and a Binding limits the permitted operations and fields. None of these contracts stores the source population. Consumers reference a Binding instead of copying a query, endpoint, credential or field mapping.
+Connections, Views and Bindings use stable resource IDs plus immutable version rows. Current children reference the exact current parent revision. A stable resource cannot move across tenant, Evidence Source or parent scope. The catalog does not store source records.
 
-Operation receipts identify the Connection, View, Binding, adapter and schema version used for a bounded result. A receipt is provenance, not evidence sufficiency or a compliance conclusion. Consumer domains persist receipts only when their reconstruction contract requires them.
+The detailed execution and storage contract is defined in [`connected-source-access.md`](connected-source-access.md).
 
 ## Source-health path
 
 ```text
-Source definition
+Evidence Source
 → Observation
-→ Current / degraded / unavailable
-→ Freshness timer
-→ Stale when last success exceeds policy
+→ current / degraded / unavailable
+→ freshness evaluation
+→ stale when the last success exceeds policy
 → SourceHealthChanged outbox event
-→ downstream drift/readiness evaluation
+→ downstream drift and readiness evaluation
 ```
 
-Freshness is deterministic. The worker evaluates only bounded batches. Source updates and their outbox events commit in one PostgreSQL transaction.
+Freshness is deterministic. The worker evaluates bounded batches. Source updates and outbox events commit in one PostgreSQL transaction.
 
-Future Connection-, View- or Binding-level observations must reconcile into the existing Source health path. They must not introduce a parallel connector-health or Signal/Drift model.
+Connection-, View- and Binding-level observations are not yet implemented. When introduced, they must reconcile into the existing Evidence Source health path rather than create a second health or Signal/Drift model.
 
 ## Request and submission path
 
@@ -64,32 +65,32 @@ Known facts + unresolved fields
 → evidence-sufficiency review
 ```
 
-A submission is not evidence sufficiency. A stored file is not approved evidence. A completed request is not a verified control outcome.
+A Submission is not evidence sufficiency. A stored file is not approved evidence. A completed request is not a verified control outcome.
 
-## Magic-link security
+## Invitation security
 
-Invitation tokens and session tokens contain at least 256 bits of random entropy. Only SHA-256 hashes are stored.
+Invitation and session tokens contain at least 256 bits of random entropy. Only SHA-256 hashes are stored.
 
 An invitation is:
 
 - tenant and request scoped;
 - purpose labelled;
-- audience-hinted without storing a clear address for display;
+- audience-hinted without displaying a clear address;
 - time limited;
 - one-time by default;
 - revocable;
 - invalid when the request is no longer open.
 
-Redemption occurs in one transaction: lock invitation, re-check revocation, expiry, redemption count and request state, increment redemption count, then create a bounded session. Failed session creation rolls the transaction back.
+Redemption occurs in one transaction: lock the invitation, re-check revocation, expiry, redemption count and request state, increment the redemption count, then create a bounded session. Failed session creation rolls the transaction back.
 
-The current foundation is possession-bound. Verified recipient identity, OTP or step-up authentication, and enterprise identity federation are not implemented in this flow and must not be implied by the interface.
+The current external-capture path is possession-bound. Verified recipient identity, OTP or step-up authentication and enterprise identity federation are not implemented in this flow and must not be implied by the interface.
 
 ## Artifact path
 
 ```text
 bounded upload stream
 → allowed declared media type
-→ local/object-store write
+→ object write
 → byte count + SHA-256 during streaming
 → atomic object completion
 → PostgreSQL manifest
@@ -98,12 +99,13 @@ bounded upload stream
 → AVAILABLE or QUARANTINED
 ```
 
-Artifacts in `STORED_UNSCANNED` are not downloadable or eligible for evidence conclusions. The local filesystem adapter is limited to development and integration testing. Production object storage, encryption-key policy, malware scanning, content disarm, legal hold and retention workers are not implemented.
+Artifacts in `STORED_UNSCANNED` are not downloadable or eligible for evidence conclusions. The local filesystem adapter is limited to development and integration testing. Production object storage, encryption policy, malware scanning, content disarm, legal hold and retention workers are not implemented.
 
 ## Consistency and performance
 
 Strong consistency is required for:
 
+- Evidence Source creation and initial Reference Connection creation;
 - request submission and version change;
 - invitation redemption;
 - revocation;
@@ -115,7 +117,7 @@ Large files never pass through JSON. Uploads stream with a hard byte limit and b
 Initial objectives:
 
 | Operation | Objective |
-|---|---:|
+| --- | ---: |
 | source list | p95 ≤ 500 ms for 200 rows |
 | request list | p95 ≤ 750 ms for 200 rows |
 | invitation redemption | p95 ≤ 500 ms |
@@ -123,9 +125,9 @@ Initial objectives:
 | artifact manifest acknowledgement | p95 ≤ 750 ms after object write |
 | source maintenance batch | 50 sources per transaction |
 
-All population reads remain tenant-filtered and bounded. High-volume observation history uses tenant/source/time indexes. Composite foreign keys enforce tenant and request consistency across sources, observations, invitations, sessions, submissions and artifacts even when application repositories are bypassed.
+All population reads remain tenant-filtered and bounded. High-volume observation history uses tenant/source/time indexes. Composite foreign keys enforce tenant and parent consistency across the source catalog and capture records.
 
-External source reads use adapter-specific sessions, limits and cancellation rather than ClearSight's application database pool. The PostgreSQL source adapter uses a bounded separate pool, read-only repeatable-read transactions, native parameter types, response-byte limits and operation deadlines.
+External source reads use adapter-specific sessions rather than ClearSight's application database pool. The PostgreSQL source adapter uses a bounded separate pool, dedicated non-owner credentials, read-only repeatable-read transactions, native parameter types, response-byte limits and operation deadlines.
 
 ## Failure behavior
 
@@ -133,19 +135,16 @@ External source reads use adapter-specific sessions, limits and cancellation rat
 - If artifact metadata persistence fails, the newly written object is deleted on a best-effort basis.
 - A failed source-health transaction creates neither the state change nor its event.
 - A stale request version rejects submission without modifying answers or request state.
-- API or worker unavailability does not change existing source, request or artifact records.
+- Evidence Source creation and initial Reference Connection creation succeed or fail together.
 - A failed source operation does not become an empty result or current evidence.
 - Invalid configuration, unsupported capability, partial result, schema mismatch, source failure and caller timeout remain distinct.
 
-## Remaining production work
+## Current limitations
 
-- durable, governed Source Connection, View and Binding lifecycle;
-- connection-, view- and binding-level health reconciliation;
-- REST/JSON, tabular-file and webhook/event adapters;
-- production object storage and encryption policy;
-- malware scanning and quarantine release workflow;
-- legal hold, retention and deletion orchestration;
-- OTP or step-up authentication and verified external identity;
-- protected-report identity/content separation;
-- resumable multipart uploads and large import jobs;
-- evidence contracts, sufficiency evaluation and reusable evidence matching.
+- Source catalog lifecycle transitions and maker-checker administration are not implemented.
+- Source catalog API routes and administration UI are not implemented.
+- Connection-, View- and Binding-level health reconciliation is not implemented.
+- REST/JSON, tabular-file, event and non-PostgreSQL database adapters are not implemented.
+- Production object storage, malware inspection, legal hold and retention orchestration are not implemented.
+- OTP or step-up authentication and verified external identity are not implemented.
+- Evidence contracts, sufficiency evaluation and reusable evidence matching remain separate work.
