@@ -4,6 +4,43 @@ set -euo pipefail
 python3 - <<'PY'
 from pathlib import Path
 
+fixture = Path("internal/sourceaccess/catalog_concurrency_postgres_integration_test.go")
+fixture_text = fixture.read_text()
+old_fixture = '''func setupCatalogConcurrencyFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
+	t.Helper()
+	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, catalogConcurrencyTenantID)
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, catalogConcurrencyTenantID)
+	})
+'''
+new_fixture = '''func setupCatalogConcurrencyFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
+	t.Helper()
+	cleanupCatalogConcurrencyFixture(ctx, pool)
+	t.Cleanup(func() { cleanupCatalogConcurrencyFixture(context.Background(), pool) })
+'''
+if old_fixture not in fixture_text:
+    raise SystemExit("catalog concurrency fixture setup changed")
+fixture_text = fixture_text.replace(old_fixture, new_fixture, 1)
+insert_before = '''func insertConcurrencyConnection(ctx context.Context, executor interface {
+'''
+cleanup_helper = '''func cleanupCatalogConcurrencyFixture(ctx context.Context, pool *pgxpool.Pool) {
+	for _, statement := range []string{
+		`DELETE FROM source_bindings WHERE tenant_id=$1::uuid`,
+		`DELETE FROM source_views WHERE tenant_id=$1::uuid`,
+		`DELETE FROM source_connections WHERE tenant_id=$1::uuid`,
+		`DELETE FROM evidence_sources WHERE tenant_id=$1::uuid`,
+		`DELETE FROM principals WHERE tenant_id=$1::uuid`,
+		`DELETE FROM tenants WHERE id=$1::uuid`,
+	} {
+		_, _ = pool.Exec(ctx, statement, catalogConcurrencyTenantID)
+	}
+}
+
+'''
+if insert_before not in fixture_text:
+    raise SystemExit("catalog concurrency helper insertion point changed")
+fixture.write_text(fixture_text.replace(insert_before, cleanup_helper + insert_before, 1))
+
 migration = Path("migrations/000030_source_access_catalog.up.sql")
 text = migration.read_text()
 replacements = [
@@ -83,6 +120,7 @@ git add migrations/000030_source_access_catalog.up.sql \
   internal/sourceaccess/catalog_postgres_view.go \
   internal/sourceaccess/catalog_postgres_binding.go \
   internal/sourceaccess/catalog_concurrency_postgres_integration_test.go \
+  internal/sourceaccess/catalog_postgres_read_guard_test.go \
   .github/workflows/sourceaccess-concurrency-closeout.yml \
   scripts/apply-sourceaccess-concurrency-closeout.sh
 git commit -m "fix(sourceaccess): serialize catalog invariants"
