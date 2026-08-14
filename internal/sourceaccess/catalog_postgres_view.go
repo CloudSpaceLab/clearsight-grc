@@ -87,7 +87,10 @@ func (r *PostgresCatalogRepository) CreateViewRevision(ctx context.Context, valu
 }
 
 func (r *PostgresCatalogRepository) ViewRevision(ctx context.Context, tenantID, viewID string, version int64) (ViewRevision, error) {
-	if r == nil || r.pool == nil || version < 1 {
+	if r == nil || r.pool == nil {
+		return ViewRevision{}, ErrCatalogStorage
+	}
+	if version < 1 {
 		return ViewRevision{}, ErrCatalogInvalid
 	}
 	return scanViewRevision(r.pool.QueryRow(ctx, `
@@ -151,5 +154,6 @@ func connectionRevisionForChild(ctx context.Context, tx pgx.Tx, tenantID, source
 		 WHERE (t.id::text=$1 OR t.slug=$1)
 		   AND sc.source_id=$2::uuid
 		   AND sc.connection_id=$3::uuid
-		   AND sc.version=$4`, tenantID, sourceID, connectionID, version))
+		   AND sc.version=$4
+		 FOR SHARE`, tenantID, sourceID, connectionID, version))
 }

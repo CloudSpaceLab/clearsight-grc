@@ -199,6 +199,7 @@ CREATE INDEX source_bindings_history_idx ON source_bindings(binding_id,version D
 
 CREATE FUNCTION source_connection_revision_guard() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
+    PERFORM pg_advisory_xact_lock(hashtextextended('source_connection:' || NEW.connection_id::text,0));
     IF TG_OP='UPDATE' THEN
         IF ROW(OLD.revision_id,OLD.connection_id,OLD.tenant_id,OLD.source_id,OLD.code,OLD.name,OLD.adapter_kind,OLD.adapter_version,OLD.secret_ref,OLD.definition,OLD.declared_capabilities,OLD.verified_capabilities,OLD.owner_principal_id,OLD.version,OLD.created_by,OLD.created_at)
            IS DISTINCT FROM
@@ -235,6 +236,7 @@ DECLARE
     parent_current boolean;
     parent_kind text;
 BEGIN
+    PERFORM pg_advisory_xact_lock(hashtextextended('source_view:' || NEW.view_id::text,0));
     IF TG_OP='UPDATE' THEN
         IF ROW(OLD.revision_id,OLD.view_id,OLD.tenant_id,OLD.source_id,OLD.connection_id,OLD.connection_version,OLD.code,OLD.name,OLD.definition,OLD.output_kind,OLD.stable_keys,OLD.native_schema,OLD.schema_fingerprint,OLD.version,OLD.created_by,OLD.created_at)
            IS DISTINCT FROM
@@ -263,7 +265,8 @@ BEGIN
     END IF;
     SELECT is_current,adapter_kind INTO parent_current,parent_kind
       FROM source_connections
-     WHERE connection_id=NEW.connection_id AND tenant_id=NEW.tenant_id AND source_id=NEW.source_id AND version=NEW.connection_version;
+     WHERE connection_id=NEW.connection_id AND tenant_id=NEW.tenant_id AND source_id=NEW.source_id AND version=NEW.connection_version
+     FOR SHARE;
     IF NEW.is_current AND NOT COALESCE(parent_current,false) THEN
         RAISE EXCEPTION 'current source view requires its current connection revision' USING ERRCODE='23514';
     END IF;
@@ -292,6 +295,7 @@ DECLARE
     parent_stable_keys jsonb;
     parent_native_schema jsonb;
 BEGIN
+    PERFORM pg_advisory_xact_lock(hashtextextended('source_binding:' || NEW.binding_id::text,0));
     IF TG_OP='UPDATE' THEN
         IF ROW(OLD.revision_id,OLD.binding_id,OLD.tenant_id,OLD.source_id,OLD.view_id,OLD.view_version,OLD.code,OLD.name,OLD.purpose,OLD.operations,OLD.selected_fields,OLD.key_fields,OLD.page_rows,OLD.response_bytes,OLD.lookup_values,OLD.timeout_ms,OLD.mapping,OLD.parameter_schema,OLD.output_schema,OLD.required_freshness_minutes,OLD.completeness,OLD.sensitivity_handling,OLD.version,OLD.created_by,OLD.created_at)
            IS DISTINCT FROM
@@ -313,7 +317,8 @@ BEGIN
     SELECT is_current,stable_keys,native_schema
       INTO parent_current,parent_stable_keys,parent_native_schema
       FROM source_views
-     WHERE view_id=NEW.view_id AND tenant_id=NEW.tenant_id AND source_id=NEW.source_id AND version=NEW.view_version;
+     WHERE view_id=NEW.view_id AND tenant_id=NEW.tenant_id AND source_id=NEW.source_id AND version=NEW.view_version
+     FOR SHARE;
     IF NEW.is_current AND NOT COALESCE(parent_current,false) THEN
         RAISE EXCEPTION 'current source binding requires its current view revision' USING ERRCODE='23514';
     END IF;

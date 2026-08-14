@@ -76,7 +76,10 @@ func (r *PostgresCatalogRepository) CreateConnectionRevision(ctx context.Context
 }
 
 func (r *PostgresCatalogRepository) ConnectionRevision(ctx context.Context, tenantID, connectionID string, version int64) (ConnectionRevision, error) {
-	if r == nil || r.pool == nil || version < 1 {
+	if r == nil || r.pool == nil {
+		return ConnectionRevision{}, ErrCatalogStorage
+	}
+	if version < 1 {
 		return ConnectionRevision{}, ErrCatalogInvalid
 	}
 	return scanConnectionRevision(r.pool.QueryRow(ctx, `

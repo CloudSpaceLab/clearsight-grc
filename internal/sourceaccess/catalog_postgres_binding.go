@@ -101,7 +101,10 @@ func (r *PostgresCatalogRepository) CreateBindingRevision(ctx context.Context, v
 }
 
 func (r *PostgresCatalogRepository) BindingRevision(ctx context.Context, tenantID, bindingID string, version int64) (BindingRevision, error) {
-	if r == nil || r.pool == nil || version < 1 {
+	if r == nil || r.pool == nil {
+		return BindingRevision{}, ErrCatalogStorage
+	}
+	if version < 1 {
 		return BindingRevision{}, ErrCatalogInvalid
 	}
 	return scanBindingRevision(r.pool.QueryRow(ctx, `
@@ -165,5 +168,6 @@ func viewRevisionForChild(ctx context.Context, tx pgx.Tx, tenantID, sourceID, vi
 		 WHERE (t.id::text=$1 OR t.slug=$1)
 		   AND sv.source_id=$2::uuid
 		   AND sv.view_id=$3::uuid
-		   AND sv.version=$4`, tenantID, sourceID, viewID, version))
+		   AND sv.version=$4
+		 FOR SHARE`, tenantID, sourceID, viewID, version))
 }

@@ -157,10 +157,8 @@ func catalogConcurrencyPool(t *testing.T) *pgxpool.Pool {
 
 func setupCatalogConcurrencyFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
 	t.Helper()
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, catalogConcurrencyTenantID)
-	t.Cleanup(func() {
-		_, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, catalogConcurrencyTenantID)
-	})
+	cleanupCatalogConcurrencyFixture(ctx, pool)
+	t.Cleanup(func() { cleanupCatalogConcurrencyFixture(context.Background(), pool) })
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'source-catalog-concurrency','Source catalog concurrency')`, catalogConcurrencyTenantID); err != nil {
 		t.Fatal(err)
 	}
@@ -173,6 +171,19 @@ func setupCatalogConcurrencyFixture(t *testing.T, ctx context.Context, pool *pgx
 			($1::uuid,$3::uuid,'SOURCE-A','Source A','SYSTEM','SYSTEM_OF_RECORD',$4::uuid,15,'UNKNOWN','ACTIVE',1),
 			($2::uuid,$3::uuid,'SOURCE-B','Source B','SYSTEM','SYSTEM_OF_RECORD',$4::uuid,15,'UNKNOWN','ACTIVE',1)`, catalogConcurrencySourceAID, catalogConcurrencySourceBID, catalogConcurrencyTenantID, catalogConcurrencyActorID); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func cleanupCatalogConcurrencyFixture(ctx context.Context, pool *pgxpool.Pool) {
+	for _, statement := range []string{
+		`DELETE FROM source_bindings WHERE tenant_id=$1::uuid`,
+		`DELETE FROM source_views WHERE tenant_id=$1::uuid`,
+		`DELETE FROM source_connections WHERE tenant_id=$1::uuid`,
+		`DELETE FROM evidence_sources WHERE tenant_id=$1::uuid`,
+		`DELETE FROM principals WHERE tenant_id=$1::uuid`,
+		`DELETE FROM tenants WHERE id=$1::uuid`,
+	} {
+		_, _ = pool.Exec(ctx, statement, catalogConcurrencyTenantID)
 	}
 }
 
