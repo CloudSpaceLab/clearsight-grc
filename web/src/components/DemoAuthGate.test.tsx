@@ -44,12 +44,13 @@ it("opens demo role login without probing protected context while signed out", a
     label: "Chief Risk Officer",
     username: "cro@demo.clearsight.local",
     password: "demo",
-    role_codes: ["CHIEF_RISK_OFFICER"],
+    role_codes: ["CRO", "EXECUTIVE"],
   }]);
 
   render(<DemoAuthGate><div>Workspace</div></DemoAuthGate>);
 
   expect(await screen.findByRole("heading", { name: "Choose a demo account" })).not.toBeNull();
+  expect(screen.getByRole("button", { name: /Chief Risk Officer\s*CRO · Executive/ })).toBeTruthy();
   expect(loadContext).not.toHaveBeenCalled();
 });
 

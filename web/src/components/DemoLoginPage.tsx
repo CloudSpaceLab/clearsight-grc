@@ -59,5 +59,8 @@ export function DemoLoginPage({ accounts, onAuthenticated, initialError = "" }: 
 }
 
 function humanize(value: string) {
-  return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+  const acronyms = new Set(["CEO", "CFO", "CISO", "COO", "CRO", "CCO", "CTO", "DPO", "GRC"]);
+  return value.split("_").map((part) => acronyms.has(part)
+    ? part
+    : part.toLowerCase().replace(/^\S/, (letter) => letter.toUpperCase())).join(" ");
 }
