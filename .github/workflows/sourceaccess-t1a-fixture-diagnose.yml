@@ -1,0 +1,22 @@
+name: Source access T1a fixture diagnosis
+
+on:
+  push:
+    branches:
+      - codex/issue-61-sourceaccess-t1a
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/issue-61-sourceaccess-t1a
+      - name: Show obsolete endpoint fixtures
+        shell: bash
+        run: |
+          test -f internal/evidence/postgres_integration_test.go
+          grep -n -C 5 "endpoint" internal/evidence/postgres_integration_test.go
