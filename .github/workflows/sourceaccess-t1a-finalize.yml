@@ -21,7 +21,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - name: Update checked documentation and compatibility types
+      - name: Apply final review corrections
         shell: bash
         run: |
           python - <<'PY'
@@ -36,57 +36,25 @@ jobs:
                   raise SystemExit(f"expected text not found in {path}")
               file.write_text(text.replace(old, new, 1))
 
-          ownership = Path("docs/architecture/durable-schema-ownership.md")
-          text = ownership.read_text()
-          if "| `source_connections` |" not in text:
-              anchor = "| `evidence_sources` | active authoritative state | evidence | evidence service/installers | evidence health and continuity source-quality | active/inactive source configuration | retain while assessments depend on source | evidence repository; continuity source tests |\n"
-              rows = (
-                  "| `source_connections` | active authoritative state | source access | source catalog repository and Evidence Source creation/migration | source-access configuration and bounded runtime composition | immutable revision lineage with one current effective revision per Connection | retain revision history while Views, evidence or reconstruction require it | `internal/sourceaccess/catalog_postgres_connection.go`; migration `000030_source_access_catalog`; source catalog integration |\n"
-                  "| `source_views` | active authoritative state | source access | source catalog repository | source-access configuration, assurance and bounded consumers | immutable revision lineage tied to an exact Connection revision | retain revision history while Bindings, evidence or reconstruction require it | `internal/sourceaccess/catalog_postgres_view.go`; migration `000030_source_access_catalog`; source catalog integration |\n"
-                  "| `source_bindings` | active authoritative state | source access | source catalog repository | assurance and future form, evidence and workflow consumers | immutable revision lineage tied to an exact View revision | retain revision history while consumers or reconstruction require it | `internal/sourceaccess/catalog_postgres_binding.go`; migration `000030_source_access_catalog`; source catalog integration |\n"
-              )
-              if anchor not in text:
-                  raise SystemExit("evidence_sources ownership row not found")
-              ownership.write_text(text.replace(anchor, anchor + rows, 1))
+          validation = Path("internal/sourceaccess/catalog_validation.go")
+          text = validation.read_text()
+          adapter_old = (
+              "\tvalue.Code = strings.TrimSpace(value.Code)\n"
+              "\tvalue.Name = strings.TrimSpace(value.Name)\n"
+              "\tvalue.AdapterVersion = strings.TrimSpace(value.AdapterVersion)\n"
+          )
+          adapter_new = (
+              "\tvalue.Code = strings.TrimSpace(value.Code)\n"
+              "\tvalue.Name = strings.TrimSpace(value.Name)\n"
+              "\tvalue.AdapterKind = AdapterKind(strings.TrimSpace(string(value.AdapterKind)))\n"
+              "\tvalue.AdapterVersion = strings.TrimSpace(value.AdapterVersion)\n"
+          )
+          if adapter_new not in text:
+              if adapter_old not in text:
+                  raise SystemExit("connection normalization anchor not found")
+              text = text.replace(adapter_old, adapter_new, 1)
 
-          replace_once(
-              "docs/README.md",
-              "- transient reusable Source Connection/View/Binding contracts with bounded PostgreSQL schema, page, lookup and aggregate capabilities;",
-              "- durable versioned Source Connection/View/Binding catalog with bounded PostgreSQL schema, page, lookup and aggregate capabilities;",
-          )
-          replace_once(
-              "web/src/types.ts",
-              "owner_principal_id?: string; endpoint?: string; expected_freshness_minutes",
-              "owner_principal_id?: string; expected_freshness_minutes",
-          )
-
-          service = Path("internal/evidence/service.go")
-          text = service.read_text()
-          validation = (
-              "\tinput.Endpoint = strings.TrimSpace(input.Endpoint)\n"
-              "\tif len(input.Endpoint) > 32<<10 || strings.IndexByte(input.Endpoint, 0) >= 0 || strings.ContainsAny(input.Endpoint, \"\\r\\n\") {\n"
-              "\t\treturn Source{}, fmt.Errorf(\"endpoint must be no more than 32768 bytes and contain no control characters\")\n"
-              "\t}\n"
-          )
-          if validation not in text:
-              anchor = (
-                  "\tif input.ExpectedFreshnessMinutes < 1 || input.ExpectedFreshnessMinutes > 525600 {\n"
-                  "\t\treturn Source{}, fmt.Errorf(\"expected_freshness_minutes must be between 1 and 525600\")\n"
-                  "\t}\n"
-              )
-              if anchor not in text:
-                  raise SystemExit("CreateSource freshness validation not found")
-              service.write_text(text.replace(anchor, anchor + validation, 1))
-
-          validation_file = Path("internal/sourceaccess/catalog_validation.go")
-          text = validation_file.read_text()
-          old = (
-              "\t\tvar reference map[string]any\n"
-              "\t\tif err := json.Unmarshal(value.Definition, &reference); err != nil || strings.TrimSpace(fmt.Sprint(reference[\"endpoint\"])) == \"\" {\n"
-              "\t\t\treturn ConnectionRevision{}, catalogInvalid(\"reference connections require an endpoint\")\n"
-              "\t\t}\n"
-          )
-          new = (
+          reference_old = (
               "\t\tvar reference map[string]any\n"
               "\t\tif err := json.Unmarshal(value.Definition, &reference); err != nil {\n"
               "\t\t\treturn ConnectionRevision{}, catalogInvalid(\"reference connection definition is invalid\")\n"
@@ -96,37 +64,144 @@ jobs:
               "\t\t\treturn ConnectionRevision{}, catalogInvalid(\"reference connections require an endpoint\")\n"
               "\t\t}\n"
           )
-          if old in text:
-              validation_file.write_text(text.replace(old, new, 1))
+          reference_new = (
+              "\t\tvar reference map[string]any\n"
+              "\t\tif err := json.Unmarshal(value.Definition, &reference); err != nil {\n"
+              "\t\t\treturn ConnectionRevision{}, catalogInvalid(\"reference connection definition is invalid\")\n"
+              "\t\t}\n"
+              "\t\tendpoint, ok := reference[\"endpoint\"].(string)\n"
+              "\t\tendpoint = strings.TrimSpace(endpoint)\n"
+              "\t\tif !ok || endpoint == \"\" || containsControl(endpoint) {\n"
+              "\t\t\treturn ConnectionRevision{}, catalogInvalid(\"reference connections require a bounded endpoint without control characters\")\n"
+              "\t\t}\n"
+              "\t\treference[\"endpoint\"] = endpoint\n"
+              "\t\tencoded, err := json.Marshal(reference)\n"
+              "\t\tif err != nil || len(encoded) > HardMaxDefinitionBytes {\n"
+              "\t\t\treturn ConnectionRevision{}, catalogInvalid(\"reference connection definition exceeds the size limit\")\n"
+              "\t\t}\n"
+              "\t\tvalue.Definition = encoded\n"
+          )
+          if reference_new not in text:
+              if reference_old not in text:
+                  raise SystemExit("reference endpoint normalization block not found")
+              text = text.replace(reference_old, reference_new, 1)
+          validation.write_text(text)
 
-          catalog_test = Path("internal/sourceaccess/catalog_test.go")
-          text = catalog_test.read_text()
-          text = text.replace('string(reloadedConnection.Definition) != `{"database":"risk"}`', 'string(reloadedConnection.Definition) != `{}`')
-          text = text.replace('Definition: json.RawMessage(`{"database":"risk"}`),', 'Definition: json.RawMessage(`{}`),')
-          catalog_test.write_text(text)
+          scanner = Path("internal/sourceaccess/catalog_postgres_scan.go")
+          text = scanner.read_text()
+          if '"context"' not in text.split(')', 1)[0]:
+              text = text.replace('import (\n\t"database/sql"', 'import (\n\t"context"\n\t"database/sql"', 1)
+          read_old = (
+              "func catalogReadError(err error) error {\n"
+              "\tif errors.Is(err, pgx.ErrNoRows) {\n"
+              "\t\treturn ErrCatalogNotFound\n"
+              "\t}\n"
+              "\treturn ErrCatalogStorage\n"
+              "}\n"
+          )
+          read_new = (
+              "func catalogReadError(err error) error {\n"
+              "\tif errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {\n"
+              "\t\treturn err\n"
+              "\t}\n"
+              "\tif errors.Is(err, pgx.ErrNoRows) {\n"
+              "\t\treturn ErrCatalogNotFound\n"
+              "\t}\n"
+              "\tvar databaseError *pgconn.PgError\n"
+              "\tif errors.As(err, &databaseError) && (databaseError.Code == \"22P02\" || databaseError.Code == \"22023\") {\n"
+              "\t\treturn ErrCatalogInvalid\n"
+              "\t}\n"
+              "\treturn ErrCatalogStorage\n"
+              "}\n"
+          )
+          if read_new not in text:
+              if read_old not in text:
+                  raise SystemExit("catalogReadError block not found")
+              text = text.replace(read_old, read_new, 1)
+          write_old = (
+              "func catalogWriteError(err error) error {\n"
+              "\tif err == nil {\n"
+              "\t\treturn nil\n"
+              "\t}\n"
+              "\tif errors.Is(err, pgx.ErrNoRows) {\n"
+          )
+          write_new = (
+              "func catalogWriteError(err error) error {\n"
+              "\tif err == nil {\n"
+              "\t\treturn nil\n"
+              "\t}\n"
+              "\tif errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {\n"
+              "\t\treturn err\n"
+              "\t}\n"
+              "\tif errors.Is(err, pgx.ErrNoRows) {\n"
+          )
+          if write_new not in text:
+              if write_old not in text:
+                  raise SystemExit("catalogWriteError block not found")
+              text = text.replace(write_old, write_new, 1)
+          scanner.write_text(text)
 
-          migration = Path("migrations/000030_source_access_catalog.up.sql")
-          text = migration.read_text()
-          constraint = "ALTER TABLE source_connections ADD CONSTRAINT source_connections_reference_shape_ck CHECK (adapter_kind<>'REFERENCE' OR (adapter_version='reference-v1' AND secret_ref='' AND declared_capabilities='[]'::jsonb AND verified_capabilities='[]'::jsonb AND jsonb_typeof(definition->'endpoint')='string' AND NULLIF(btrim(definition->>'endpoint'),'') IS NOT NULL));\n"
-          if constraint not in text:
-              anchor = ");\nCREATE UNIQUE INDEX source_connections_current_id_idx"
-              if anchor not in text:
-                  raise SystemExit("source_connections table terminator not found")
-              migration.write_text(text.replace(anchor, ");\n" + constraint + "CREATE UNIQUE INDEX source_connections_current_id_idx", 1))
+          service = Path("internal/evidence/service.go")
+          text = service.read_text()
+          if '"unicode"' not in text.split(')', 1)[0]:
+              text = text.replace('\t"time"\n', '\t"time"\n\t"unicode"\n', 1)
+          condition_old = 'len(input.Endpoint) > 32<<10 || strings.IndexByte(input.Endpoint, 0) >= 0 || strings.ContainsAny(input.Endpoint, "\\r\\n")'
+          condition_new = 'len(input.Endpoint) > 32<<10 || strings.IndexFunc(input.Endpoint, unicode.IsControl) >= 0'
+          if condition_new not in text:
+              if condition_old not in text:
+                  raise SystemExit("endpoint service validation not found")
+              text = text.replace(condition_old, condition_new, 1)
+          service.write_text(text)
+
+          ownership = Path("docs/architecture/durable-schema-ownership.md")
+          text = ownership.read_text()
+          text = text.replace(
+              "assurance and future form, evidence and workflow consumers",
+              "assurance and configured consumers",
+          )
+          ownership.write_text(text)
+
+          tests = Path("internal/sourceaccess/catalog_validation_test.go")
+          text = tests.read_text()
+          marker = "func TestReferenceConnectionCanonicalizesEndpoint"
+          if marker not in text:
+              text += '''
+
+func TestReferenceConnectionCanonicalizesEndpoint(t *testing.T) {
+	now := time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC)
+	value := catalogConnectionRevision(now)
+	value.AdapterKind = AdapterKind("  REFERENCE  ")
+	value.AdapterVersion = ReferenceAdapterVersion
+	value.Code = ReferenceConnectionCode
+	value.Name = ReferenceConnectionName
+	value.SecretRef = ""
+	value.Definition = json.RawMessage(`{"endpoint":"  https://example.invalid/source  "}`)
+	value.DeclaredCapabilities = nil
+	value.VerifiedCapabilities = nil
+	normalized, err := normalizeConnectionRevision(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if normalized.AdapterKind != AdapterReference || string(normalized.Definition) != `{"endpoint":"https://example.invalid/source"}` {
+		t.Fatalf("reference connection was not canonicalized: %#v", normalized)
+	}
+}
+'''
+              tests.write_text(text)
           PY
-      - name: Format Go files
+      - name: Format and test
         shell: bash
         run: |
-          gofmt -w internal/sourceaccess/*.go internal/evidence/model.go internal/evidence/postgres.go internal/evidence/source_catalog*.go internal/evidence/service.go
+          gofmt -w internal/sourceaccess/*.go internal/evidence/service.go
           git diff --check
-      - name: Commit generated updates
+          go test ./internal/sourceaccess ./internal/evidence
+          go test -tags postgres ./internal/sourceaccess ./internal/evidence
+      - name: Commit final branch state
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/architecture/durable-schema-ownership.md docs/README.md web/src/types.ts internal/evidence/service.go internal/sourceaccess internal/evidence/model.go internal/evidence/postgres.go internal/evidence/source_catalog*.go migrations/000030_source_access_catalog.up.sql
-          if git diff --cached --quiet; then
-            exit 0
-          fi
-          git commit -m "chore(sourceaccess): format and register durable catalog"
+          git rm .github/workflows/sourceaccess-t1a-finalize.yml
+          git add internal/sourceaccess internal/evidence/service.go docs/architecture/durable-schema-ownership.md
+          git commit -m "fix(sourceaccess): finalize durable catalog invariants"
           git push origin HEAD:codex/issue-61-sourceaccess-t1a
