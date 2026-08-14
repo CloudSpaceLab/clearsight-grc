@@ -73,8 +73,10 @@ async function auditProgramStatusControl() {
 
     await installDelayedFetch(page, "/api/v1/programs/program-ndpa/transition", 250);
     await submit.click();
-    if (!(await submit.isDisabled())) throw new Error("Program status action is not disabled while the command is in flight");
-    await submit.evaluate((element) => element.click());
+    const saving = page.getByRole("button", { name: "Recording…" });
+    await saving.waitFor({ state: "visible" });
+    if (!(await saving.isDisabled())) throw new Error("Program status action is not disabled while the command is in flight");
+    await saving.evaluate((element) => element.click());
     await page.getByText("Program status updated.", { exact: true }).waitFor({ state: "visible" });
     const calls = await delayedFetchCalls(page);
     if (calls !== 1) throw new Error(`Program status action submitted ${calls} commands instead of one`);
@@ -95,8 +97,10 @@ async function auditEvidenceCaptureSubmission() {
     const submit = page.getByRole("button", { name: "Submit response" });
     await installDelayedFetch(page, "/submissions", 250);
     await submit.click();
-    if (!(await submit.isDisabled())) throw new Error("Evidence submission is not disabled while the request is in flight");
-    await submit.evaluate((element) => element.click());
+    const saving = page.getByRole("button", { name: "Submitting…" });
+    await saving.waitFor({ state: "visible" });
+    if (!(await saving.isDisabled())) throw new Error("Evidence submission is not disabled while the request is in flight");
+    await saving.evaluate((element) => element.click());
     await page.getByRole("heading", { name: "Response submitted" }).waitFor({ state: "visible" });
     const calls = await delayedFetchCalls(page);
     if (calls !== 1) throw new Error(`Evidence response submitted ${calls} times instead of once`);
