@@ -127,6 +127,11 @@ func normalizeViewRevision(value ViewRevision) (ViewRevision, error) {
 		}
 		seen[field.Name] = struct{}{}
 	}
+	for _, key := range value.StableKeys {
+		if _, exists := seen[key]; !exists {
+			return ViewRevision{}, catalogInvalid("stable keys must exist in the native schema")
+		}
+	}
 	if value.SchemaFingerprint != "" && !isLowerHex(value.SchemaFingerprint, 64) {
 		return ViewRevision{}, catalogInvalid("schema fingerprint must be a lowercase SHA-256 value")
 	}

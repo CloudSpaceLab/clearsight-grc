@@ -20,6 +20,7 @@ BEGIN
             OR effective_until IS NOT NULL
             OR jsonb_typeof(definition)<>'object'
             OR NULLIF(btrim(definition->>'endpoint'),'') IS NULL
+            OR definition <> jsonb_build_object('endpoint',definition->>'endpoint')
     ) THEN
         RAISE EXCEPTION 'non-legacy source connection data exists; migrate it before rolling back the source catalog';
     END IF;

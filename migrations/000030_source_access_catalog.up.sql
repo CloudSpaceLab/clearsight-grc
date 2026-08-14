@@ -107,7 +107,7 @@ CREATE TABLE source_connections (
         OR (status IN ('DRAFT','PENDING_APPROVAL','REJECTED') AND NOT is_current AND effective_from IS NULL AND effective_until IS NULL)
     )
 );
-ALTER TABLE source_connections ADD CONSTRAINT source_connections_reference_shape_ck CHECK (adapter_kind<>'REFERENCE' OR (adapter_version='reference-v1' AND secret_ref='' AND declared_capabilities='[]'::jsonb AND verified_capabilities='[]'::jsonb AND jsonb_typeof(definition->'endpoint')='string' AND NULLIF(btrim(definition->>'endpoint'),'') IS NOT NULL));
+ALTER TABLE source_connections ADD CONSTRAINT source_connections_reference_shape_ck CHECK (adapter_kind<>'REFERENCE' OR (adapter_version='reference-v1' AND secret_ref='' AND declared_capabilities='[]'::jsonb AND verified_capabilities='[]'::jsonb AND jsonb_typeof(definition->'endpoint')='string' AND NULLIF(btrim(definition->>'endpoint'),'') IS NOT NULL AND NOT ((definition->>'endpoint') ~ '[[:cntrl:]]')));
 CREATE UNIQUE INDEX source_connections_current_id_idx ON source_connections(connection_id) WHERE is_current;
 CREATE UNIQUE INDEX source_connections_current_code_idx ON source_connections(tenant_id,source_id,code) WHERE is_current;
 CREATE INDEX source_connections_source_idx ON source_connections(tenant_id,source_id,is_current,code,connection_id);
@@ -270,6 +270,17 @@ BEGIN
     IF parent_kind='REFERENCE' THEN
         RAISE EXCEPTION 'reference connections cannot own executable views' USING ERRCODE='23514';
     END IF;
+    IF EXISTS (
+        SELECT 1
+          FROM jsonb_array_elements_text(NEW.stable_keys) AS keys(key_name)
+         WHERE NOT EXISTS (
+             SELECT 1
+               FROM jsonb_array_elements(NEW.native_schema) AS fields(field)
+              WHERE fields.field->>'name'=keys.key_name
+         )
+    ) THEN
+        RAISE EXCEPTION 'source view stable keys must exist in the native schema' USING ERRCODE='23514';
+    END IF;
     RETURN NEW;
 END
 $$;
@@ -278,6 +289,8 @@ CREATE TRIGGER source_view_revision_guard_trigger BEFORE INSERT OR UPDATE ON sou
 CREATE FUNCTION source_binding_revision_guard() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
     parent_current boolean;
+    parent_stable_keys jsonb;
+    parent_native_schema jsonb;
 BEGIN
     IF TG_OP='UPDATE' THEN
         IF ROW(OLD.revision_id,OLD.binding_id,OLD.tenant_id,OLD.source_id,OLD.view_id,OLD.view_version,OLD.code,OLD.name,OLD.purpose,OLD.operations,OLD.selected_fields,OLD.key_fields,OLD.page_rows,OLD.response_bytes,OLD.lookup_values,OLD.timeout_ms,OLD.mapping,OLD.parameter_schema,OLD.output_schema,OLD.required_freshness_minutes,OLD.completeness,OLD.sensitivity_handling,OLD.version,OLD.created_by,OLD.created_at)
@@ -297,11 +310,34 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'source binding identity cannot change tenant, source or view' USING ERRCODE='23514';
     END IF;
-    SELECT is_current INTO parent_current
+    SELECT is_current,stable_keys,native_schema
+      INTO parent_current,parent_stable_keys,parent_native_schema
       FROM source_views
      WHERE view_id=NEW.view_id AND tenant_id=NEW.tenant_id AND source_id=NEW.source_id AND version=NEW.view_version;
     IF NEW.is_current AND NOT COALESCE(parent_current,false) THEN
         RAISE EXCEPTION 'current source binding requires its current view revision' USING ERRCODE='23514';
+    END IF;
+    IF EXISTS (
+        SELECT 1
+          FROM jsonb_array_elements_text(NEW.selected_fields) AS selected(field_name)
+         WHERE NOT EXISTS (
+             SELECT 1
+               FROM jsonb_array_elements(parent_native_schema) AS fields(field)
+              WHERE fields.field->>'name'=selected.field_name
+         )
+    ) THEN
+        RAISE EXCEPTION 'source binding selected fields must exist in the view schema' USING ERRCODE='23514';
+    END IF;
+    IF EXISTS (
+        SELECT 1
+          FROM jsonb_array_elements_text(NEW.key_fields) AS keys(key_name)
+         WHERE NOT (NEW.selected_fields ? keys.key_name)
+            OR NOT (parent_stable_keys ? keys.key_name)
+    ) THEN
+        RAISE EXCEPTION 'source binding key fields must be selected stable view keys' USING ERRCODE='23514';
+    END IF;
+    IF (NEW.operations ? 'PAGE' OR NEW.operations ? 'LOOKUP') AND jsonb_array_length(NEW.key_fields)=0 THEN
+        RAISE EXCEPTION 'page and lookup bindings require a stable key' USING ERRCODE='23514';
     END IF;
     RETURN NEW;
 END
@@ -313,9 +349,12 @@ BEGIN
     IF EXISTS (
         SELECT 1 FROM evidence_sources
          WHERE btrim(endpoint)<>''
-           AND octet_length(jsonb_build_object('endpoint',btrim(endpoint))::text)>32768
+           AND (
+               octet_length(jsonb_build_object('endpoint',btrim(endpoint))::text)>32768
+               OR endpoint ~ '[[:cntrl:]]'
+           )
     ) THEN
-        RAISE EXCEPTION 'legacy evidence source endpoint exceeds the source connection definition limit';
+        RAISE EXCEPTION 'legacy evidence source endpoint is invalid for source connection migration';
     END IF;
 END
 $$;

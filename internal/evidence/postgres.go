@@ -42,7 +42,7 @@ func (r *PostgresRepository) CreateSource(ctx context.Context, value Source) (So
 				effective_from,version,created_by,created_at,updated_at
 			) VALUES (
 				(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,$3,$4,$5,$6,'',
-				jsonb_build_object('endpoint',$7),'[]'::jsonb,'[]'::jsonb,NULLIF($8,'')::uuid,
+				jsonb_build_object('endpoint',$7::text),'[]'::jsonb,'[]'::jsonb,NULLIF($8,'')::uuid,
 				'ACTIVE',true,$9,1,NULLIF($8,'')::uuid,$9,$9
 			)`, value.TenantID, created.ID, sourceaccess.ReferenceConnectionCode, sourceaccess.ReferenceConnectionName, sourceaccess.AdapterReference, sourceaccess.ReferenceAdapterVersion, endpoint, value.OwnerPrincipalID, value.CreatedAt); err != nil {
 			return Source{}, fmt.Errorf("create source reference connection: %w", err)
