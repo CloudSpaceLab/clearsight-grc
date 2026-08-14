@@ -29,7 +29,7 @@ block = '''\t\twithPermission(read("/api/v1/config/sources/{source_id}/connectio
 \t\twithPermission(write(http.MethodPost, "/api/v1/config/source-connections/{connection_id}/views", a.createSourceViewDraft, nil), identity.PermissionConfigWrite),
 \t\twithPermission(read("/api/v1/config/source-connections/{connection_id}/where-used", a.sourceCatalogWhereUsed(sourceaccess.UsageConnection, "connection_id")), identity.PermissionConfigRead),
 \t\twithPermission(read("/api/v1/config/source-views/{view_id}", a.getSourceView), identity.PermissionConfigRead),
-\t\twithPermission(operation("/api/v1/config/source-views/{view_id}/inspect", a.inspectSourceView, nil), identity.PermissionConfigRead),
+\t\twithPermission(write(http.MethodPost, "/api/v1/config/source-views/{view_id}/inspect", a.inspectSourceView, nil), identity.PermissionConfigWrite),
 \t\twithPermission(read("/api/v1/config/source-views/{view_id}/bindings", a.listSourceBindings), identity.PermissionConfigRead),
 \t\twithPermission(write(http.MethodPost, "/api/v1/config/source-views/{view_id}/bindings", a.createSourceBindingDraft, nil), identity.PermissionConfigWrite),
 \t\twithPermission(read("/api/v1/config/source-views/{view_id}/where-used", a.sourceCatalogWhereUsed(sourceaccess.UsageView, "view_id")), identity.PermissionConfigRead),
@@ -47,6 +47,36 @@ new = '"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"\n\t"git
 if old not in text:
     raise SystemExit("route registry import insertion point changed")
 path.write_text(text.replace(old, new, 1))
+
+# Runtime route/permission contract.
+path = Path("api/runtime.openapi.json")
+text = path.read_text()
+needle = '    "/api/v1/evidence/sources": {'
+block = '''    "/api/v1/config/sources/{source_id}/connections": {
+      "get": { "operationId": "listSourceConnections", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" },
+      "post": { "operationId": "createSourceConnectionDraft", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" }
+    },
+    "/api/v1/config/source-connections/{connection_id}": { "get": { "operationId": "getSourceConnection", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/config/source-connections/{connection_id}/views": {
+      "get": { "operationId": "listSourceViews", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" },
+      "post": { "operationId": "createSourceViewDraft", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" }
+    },
+    "/api/v1/config/source-connections/{connection_id}/where-used": { "get": { "operationId": "sourceConnectionWhereUsed", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/config/source-views/{view_id}": { "get": { "operationId": "getSourceView", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/config/source-views/{view_id}/inspect": { "post": { "operationId": "inspectSourceViewDraft", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/config/source-views/{view_id}/bindings": {
+      "get": { "operationId": "listSourceBindings", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" },
+      "post": { "operationId": "createSourceBindingDraft", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" }
+    },
+    "/api/v1/config/source-views/{view_id}/where-used": { "get": { "operationId": "sourceViewWhereUsed", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/config/source-bindings/{binding_id}": { "get": { "operationId": "getSourceBinding", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/config/source-bindings/{binding_id}/preview": { "post": { "operationId": "previewSourceBinding", "x-clearsight-route-class": "AUTHENTICATED_OPERATION", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/config/source-bindings/{binding_id}/where-used": { "get": { "operationId": "sourceBindingWhereUsed", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+
+    "/api/v1/evidence/sources": {'''
+if needle not in text:
+    raise SystemExit("runtime OpenAPI insertion point changed")
+path.write_text(text.replace(needle, block, 1))
 
 # Service set.
 path = Path("cmd/api/services.go")
@@ -150,6 +180,7 @@ git add \
   cmd/api/services_memory.go \
   cmd/api/services_postgres.go \
   cmd/api/main.go \
+  api/runtime.openapi.json \
   .github/workflows/sourceaccess-t1b-bootstrap.yml \
   scripts/apply-sourceaccess-t1b-bootstrap.sh
 git commit -m "feat(sourceaccess): expose governed catalog operations"

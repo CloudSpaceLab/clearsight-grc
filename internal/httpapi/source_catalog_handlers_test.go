@@ -19,7 +19,7 @@ func TestSourceCatalogCreateConnectionUsesVerifiedActorScope(t *testing.T) {
 	sourceID := "12222222-2222-7222-8222-222222222222"
 	principalID := "13333333-3333-7333-8333-333333333333"
 	repository := sourceaccess.NewMemoryCatalogRepository([]sourceaccess.SourceScope{{TenantID: tenantID, SourceID: sourceID}})
-	service := sourceaccess.NewCatalogService(repository, nil, nil)
+	service := sourceaccess.NewCatalogService(repository, nil, sourceaccess.DefaultCatalogAdapters())
 	api := &API{deps: Dependencies{SourceCatalog: service}}
 	body := `{"code":"CORE_BANKING","name":"Core banking","adapter_kind":"POSTGRES","adapter_version":"postgres-v1","secret_ref":"env://CORE_BANKING_READER_DSN","declared_capabilities":["INSPECT","PAGE"]}`
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/config/sources/"+sourceID+"/connections", strings.NewReader(body))
@@ -43,20 +43,20 @@ func TestSourceCatalogCreateConnectionUsesVerifiedActorScope(t *testing.T) {
 func TestSourceCatalogRoutesUseConfigurationPermissions(t *testing.T) {
 	api := &API{}
 	expected := map[string]string{
-		http.MethodGet + " /api/v1/config/sources/{source_id}/connections":                         identity.PermissionConfigRead,
-		http.MethodPost + " /api/v1/config/sources/{source_id}/connections":                        identity.PermissionConfigWrite,
-		http.MethodGet + " /api/v1/config/source-connections/{connection_id}":                       identity.PermissionConfigRead,
-		http.MethodGet + " /api/v1/config/source-connections/{connection_id}/views":                 identity.PermissionConfigRead,
-		http.MethodPost + " /api/v1/config/source-connections/{connection_id}/views":                identity.PermissionConfigWrite,
-		http.MethodGet + " /api/v1/config/source-connections/{connection_id}/where-used":            identity.PermissionConfigRead,
-		http.MethodGet + " /api/v1/config/source-views/{view_id}":                                    identity.PermissionConfigRead,
-		http.MethodPost + " /api/v1/config/source-views/{view_id}/inspect":                           identity.PermissionConfigRead,
-		http.MethodGet + " /api/v1/config/source-views/{view_id}/bindings":                           identity.PermissionConfigRead,
-		http.MethodPost + " /api/v1/config/source-views/{view_id}/bindings":                          identity.PermissionConfigWrite,
-		http.MethodGet + " /api/v1/config/source-views/{view_id}/where-used":                         identity.PermissionConfigRead,
-		http.MethodGet + " /api/v1/config/source-bindings/{binding_id}":                              identity.PermissionConfigRead,
-		http.MethodPost + " /api/v1/config/source-bindings/{binding_id}/preview":                     identity.PermissionConfigRead,
-		http.MethodGet + " /api/v1/config/source-bindings/{binding_id}/where-used":                   identity.PermissionConfigRead,
+		http.MethodGet + " /api/v1/config/sources/{source_id}/connections":               identity.PermissionConfigRead,
+		http.MethodPost + " /api/v1/config/sources/{source_id}/connections":              identity.PermissionConfigWrite,
+		http.MethodGet + " /api/v1/config/source-connections/{connection_id}":             identity.PermissionConfigRead,
+		http.MethodGet + " /api/v1/config/source-connections/{connection_id}/views":       identity.PermissionConfigRead,
+		http.MethodPost + " /api/v1/config/source-connections/{connection_id}/views":      identity.PermissionConfigWrite,
+		http.MethodGet + " /api/v1/config/source-connections/{connection_id}/where-used":  identity.PermissionConfigRead,
+		http.MethodGet + " /api/v1/config/source-views/{view_id}":                          identity.PermissionConfigRead,
+		http.MethodPost + " /api/v1/config/source-views/{view_id}/inspect":                 identity.PermissionConfigWrite,
+		http.MethodGet + " /api/v1/config/source-views/{view_id}/bindings":                 identity.PermissionConfigRead,
+		http.MethodPost + " /api/v1/config/source-views/{view_id}/bindings":                identity.PermissionConfigWrite,
+		http.MethodGet + " /api/v1/config/source-views/{view_id}/where-used":               identity.PermissionConfigRead,
+		http.MethodGet + " /api/v1/config/source-bindings/{binding_id}":                    identity.PermissionConfigRead,
+		http.MethodPost + " /api/v1/config/source-bindings/{binding_id}/preview":           identity.PermissionConfigRead,
+		http.MethodGet + " /api/v1/config/source-bindings/{binding_id}/where-used":         identity.PermissionConfigRead,
 	}
 	for _, route := range api.routes() {
 		key := route.Method + " " + route.Path

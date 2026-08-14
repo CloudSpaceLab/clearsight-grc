@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"strings"
 	"time"
@@ -41,6 +42,15 @@ type CreateViewDraftInput struct {
 	Definition        json.RawMessage `json:"definition"`
 	OutputKind        OutputKind      `json:"output_kind,omitempty"`
 	StableKeys        []string        `json:"stable_keys,omitempty"`
+}
+
+type InspectViewDraftInput struct {
+	StableKeys []string `json:"stable_keys,omitempty"`
+}
+
+type InspectedViewDraft struct {
+	View   ViewRevision `json:"view"`
+	Schema SchemaResult `json:"schema"`
 }
 
 type CreateBindingDraftInput struct {
@@ -109,7 +119,7 @@ func DefaultCatalogAdapters() map[AdapterKind]Adapter {
 }
 
 // EnvironmentSecretResolver keeps credential values out of catalog records.
-// A SecretRef must be env://NAME; only NAME is persisted, while the value is
+// A SecretRef must be env://NAME; only NAME is persisted, while its value is
 // resolved inside the adapter process boundary.
 type EnvironmentSecretResolver struct{}
 
@@ -117,16 +127,24 @@ func (EnvironmentSecretResolver) Resolve(ctx context.Context, secretRef string) 
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
-	trimmed := strings.TrimSpace(secretRef)
-	name := strings.TrimPrefix(trimmed, "env://")
-	if name == trimmed || !validEnvironmentSecretName(name) {
+	name, ok := environmentSecretName(secretRef)
+	if !ok {
 		return "", ErrCredentials
 	}
-	value, ok := os.LookupEnv(name)
-	if !ok || strings.TrimSpace(value) == "" {
+	value, exists := os.LookupEnv(name)
+	if !exists || strings.TrimSpace(value) == "" {
 		return "", ErrCredentials
 	}
 	return value, nil
+}
+
+func environmentSecretName(secretRef string) (string, bool) {
+	trimmed := strings.TrimSpace(secretRef)
+	name := strings.TrimPrefix(trimmed, "env://")
+	if name == trimmed || !validEnvironmentSecretName(name) {
+		return "", false
+	}
+	return name, true
 }
 
 func validEnvironmentSecretName(value string) bool {
@@ -145,6 +163,9 @@ func validEnvironmentSecretName(value string) bool {
 func (s *CatalogService) CreateConnectionDraft(ctx context.Context, actor CatalogActor, sourceID string, input CreateConnectionDraftInput) (ConnectionRevision, error) {
 	if err := validateCatalogActor(actor); err != nil || strings.TrimSpace(sourceID) == "" {
 		return ConnectionRevision{}, ErrCatalogInvalid
+	}
+	if err := s.validateDraftAdapter(input); err != nil {
+		return ConnectionRevision{}, err
 	}
 	revisionID, connectionID, err := s.twoIDs()
 	if err != nil {
@@ -169,12 +190,18 @@ func (s *CatalogService) CreateViewDraft(ctx context.Context, actor CatalogActor
 	if err := validateCatalogActor(actor); err != nil {
 		return ViewRevision{}, err
 	}
+	if len(input.StableKeys) != 0 {
+		return ViewRevision{}, fmt.Errorf("%w: stable keys are selected from the inspected native schema", ErrCatalogInvalid)
+	}
 	connection, err := s.connection(ctx, actor.TenantID, connectionID, input.ConnectionVersion)
 	if err != nil {
 		return ViewRevision{}, err
 	}
 	if connection.AdapterKind == AdapterReference || !revisionUsableAsParent(connection.Status) {
 		return ViewRevision{}, ErrCatalogInvalid
+	}
+	if _, err := s.adapterFor(connection.AdapterKind, connection.AdapterVersion); err != nil {
+		return ViewRevision{}, err
 	}
 	revisionID, viewID, err := s.twoIDs()
 	if err != nil {
@@ -184,14 +211,87 @@ func (s *CatalogService) CreateViewDraft(ctx context.Context, actor CatalogActor
 	if outputKind == "" {
 		outputKind = OutputRecords
 	}
+	definition, err := normalizeDraftViewDefinition(connection, viewID, outputKind, input.Definition)
+	if err != nil {
+		return ViewRevision{}, err
+	}
 	now := s.now().UTC()
 	value := ViewRevision{
 		RevisionID: revisionID, ViewID: viewID, TenantID: actor.TenantID, SourceID: connection.SourceID,
 		ConnectionID: connection.ConnectionID, ConnectionVersion: connection.Version,
-		Code: input.Code, Name: input.Name, Definition: cloneRawMessage(input.Definition), OutputKind: outputKind,
-		StableKeys: append([]string(nil), input.StableKeys...), RevisionLifecycle: draftLifecycle(actor.PrincipalID, now),
+		Code: input.Code, Name: input.Name, Definition: definition, OutputKind: outputKind,
+		RevisionLifecycle: draftLifecycle(actor.PrincipalID, now),
 	}
 	return s.repoOrError().CreateViewRevision(ctx, value)
+}
+
+// InspectViewDraft executes the exact View revision and persists the observed
+// native schema as a new immutable draft revision. Stable keys are therefore
+// validated against observed fields rather than accepted as an assertion.
+func (s *CatalogService) InspectViewDraft(ctx context.Context, actor CatalogActor, viewID string, version int64, input InspectViewDraftInput) (InspectedViewDraft, error) {
+	if err := validateCatalogActor(actor); err != nil {
+		return InspectedViewDraft{}, err
+	}
+	viewRevision, err := s.view(ctx, actor.TenantID, viewID, version)
+	if err != nil {
+		return InspectedViewDraft{}, err
+	}
+	if !revisionUsableAsParent(viewRevision.Status) || viewRevision.Version == math.MaxInt64 {
+		return InspectedViewDraft{}, ErrCatalogInvalid
+	}
+	connectionRevision, err := s.repoOrError().ConnectionRevision(ctx, actor.TenantID, viewRevision.ConnectionID, viewRevision.ConnectionVersion)
+	if err != nil {
+		return InspectedViewDraft{}, err
+	}
+	connection, view, adapter, err := s.executionContracts(connectionRevision, viewRevision)
+	if err != nil {
+		return InspectedViewDraft{}, err
+	}
+	operationCtx, cancel := context.WithTimeout(ctx, DefaultInspectTimeout)
+	defer cancel()
+	session, err := adapter.Open(operationCtx, connection, s.secrets)
+	if err != nil {
+		return InspectedViewDraft{}, err
+	}
+	defer session.Close()
+	if !session.Capabilities().Has(CapabilityInspect) {
+		return InspectedViewDraft{}, ErrCapabilityUnavailable
+	}
+	reader, ok := session.(SchemaReader)
+	if !ok {
+		return InspectedViewDraft{}, ErrCapabilityUnavailable
+	}
+	result, err := reader.Inspect(operationCtx, view)
+	if err != nil {
+		return InspectedViewDraft{}, err
+	}
+	if len(result.Fields) == 0 || len(result.Fields) > HardMaxSchemaFields {
+		return InspectedViewDraft{}, ErrLimitExceeded
+	}
+	fingerprint := strings.TrimSpace(result.Receipt.SchemaFingerprint)
+	if !isLowerHex(fingerprint, 64) {
+		fingerprint, err = nativeSchemaFingerprint(result.Fields)
+		if err != nil {
+			return InspectedViewDraft{}, err
+		}
+	}
+	revisionID, err := s.oneID()
+	if err != nil {
+		return InspectedViewDraft{}, err
+	}
+	now := s.now().UTC()
+	inspected := ViewRevision{
+		RevisionID: revisionID, ViewID: viewRevision.ViewID, TenantID: viewRevision.TenantID, SourceID: viewRevision.SourceID,
+		ConnectionID: viewRevision.ConnectionID, ConnectionVersion: viewRevision.ConnectionVersion,
+		Code: viewRevision.Code, Name: viewRevision.Name, Definition: cloneRawMessage(viewRevision.Definition), OutputKind: viewRevision.OutputKind,
+		StableKeys: append([]string(nil), input.StableKeys...), NativeSchema: append([]NativeField(nil), result.Fields...), SchemaFingerprint: fingerprint,
+		RevisionLifecycle: RevisionLifecycle{Status: RevisionDraft, IsCurrent: false, Version: viewRevision.Version + 1, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now},
+	}
+	created, err := s.repoOrError().CreateViewRevision(ctx, inspected)
+	if err != nil {
+		return InspectedViewDraft{}, err
+	}
+	return InspectedViewDraft{View: created, Schema: result}, nil
 }
 
 func (s *CatalogService) CreateBindingDraft(ctx context.Context, actor CatalogActor, viewID string, input CreateBindingDraftInput) (BindingRevision, error) {
@@ -202,7 +302,7 @@ func (s *CatalogService) CreateBindingDraft(ctx context.Context, actor CatalogAc
 	if err != nil {
 		return BindingRevision{}, err
 	}
-	if !revisionUsableAsParent(view.Status) || len(view.NativeSchema) == 0 {
+	if !revisionUsableAsParent(view.Status) || len(view.NativeSchema) == 0 || view.SchemaFingerprint == "" {
 		return BindingRevision{}, fmt.Errorf("%w: binding parent requires an inspected schema", ErrCatalogInvalid)
 	}
 	revisionID, bindingID, err := s.twoIDs()
@@ -244,43 +344,6 @@ func (s *CatalogService) Bindings(ctx context.Context, tenantID, viewID string, 
 
 func (s *CatalogService) Binding(ctx context.Context, tenantID, bindingID string, version int64) (BindingRevision, error) {
 	return s.binding(ctx, tenantID, bindingID, version)
-}
-
-func (s *CatalogService) InspectView(ctx context.Context, tenantID, viewID string, version int64) (SchemaResult, error) {
-	viewRevision, err := s.view(ctx, tenantID, viewID, version)
-	if err != nil {
-		return SchemaResult{}, err
-	}
-	connectionRevision, err := s.repoOrError().ConnectionRevision(ctx, tenantID, viewRevision.ConnectionID, viewRevision.ConnectionVersion)
-	if err != nil {
-		return SchemaResult{}, err
-	}
-	connection, view, adapter, err := s.executionContracts(connectionRevision, viewRevision)
-	if err != nil {
-		return SchemaResult{}, err
-	}
-	operationCtx, cancel := context.WithTimeout(ctx, DefaultInspectTimeout)
-	defer cancel()
-	session, err := adapter.Open(operationCtx, connection, s.secrets)
-	if err != nil {
-		return SchemaResult{}, err
-	}
-	defer session.Close()
-	if !session.Capabilities().Has(CapabilityInspect) {
-		return SchemaResult{}, ErrCapabilityUnavailable
-	}
-	reader, ok := session.(SchemaReader)
-	if !ok {
-		return SchemaResult{}, ErrCapabilityUnavailable
-	}
-	result, err := reader.Inspect(operationCtx, view)
-	if err != nil {
-		return SchemaResult{}, err
-	}
-	if len(result.Fields) > HardMaxSchemaFields {
-		return SchemaResult{}, ErrLimitExceeded
-	}
-	return result, nil
 }
 
 func (s *CatalogService) PreviewBinding(ctx context.Context, tenantID, bindingID string, version int64, request PageRequest) (RecordPage, error) {
@@ -375,6 +438,61 @@ func (s *CatalogService) WhereUsed(ctx context.Context, tenantID string, kind Ca
 	return report, nil
 }
 
+func (s *CatalogService) validateDraftAdapter(input CreateConnectionDraftInput) error {
+	if input.AdapterKind == AdapterReference {
+		return fmt.Errorf("%w: reference connections are created only by legacy migration", ErrCatalogInvalid)
+	}
+	if _, err := s.adapterFor(input.AdapterKind, input.AdapterVersion); err != nil {
+		return err
+	}
+	if input.AdapterKind == AdapterPostgres {
+		if _, ok := environmentSecretName(input.SecretRef); !ok {
+			return fmt.Errorf("%w: PostgreSQL credentials require an env:// secret reference", ErrCatalogInvalid)
+		}
+		definition, err := normalizeJSONObject(defaultJSONObject(input.Definition), HardMaxDefinitionBytes, "connection definition")
+		if err != nil {
+			return err
+		}
+		if string(definition) != "{}" {
+			return fmt.Errorf("%w: PostgreSQL connection definitions are not supported", ErrCatalogInvalid)
+		}
+	}
+	return nil
+}
+
+func (s *CatalogService) adapterFor(kind AdapterKind, version string) (Adapter, error) {
+	if s == nil || s.adapters == nil || s.adapters[kind] == nil {
+		return nil, fmt.Errorf("%w: source adapter is not registered", ErrCatalogInvalid)
+	}
+	if kind == AdapterPostgres && version != PostgresAdapterVersion {
+		return nil, fmt.Errorf("%w: unsupported PostgreSQL adapter version", ErrCatalogInvalid)
+	}
+	return s.adapters[kind], nil
+}
+
+func normalizeDraftViewDefinition(connection ConnectionRevision, viewID string, outputKind OutputKind, raw json.RawMessage) (json.RawMessage, error) {
+	candidate := View{ID: viewID, ConnectionID: connection.ConnectionID, Version: "1", OutputKind: outputKind, Definition: cloneRawMessage(raw)}
+	connectionContract, err := connection.Contract()
+	if err != nil {
+		return nil, err
+	}
+	if err := candidate.Validate(connectionContract); err != nil {
+		return nil, errors.Join(ErrCatalogInvalid, err)
+	}
+	if connection.AdapterKind == AdapterPostgres {
+		definition, err := decodePostgresView(candidate)
+		if err != nil {
+			return nil, errors.Join(ErrCatalogInvalid, err)
+		}
+		encoded, err := json.Marshal(definition)
+		if err != nil {
+			return nil, errors.Join(ErrCatalogInvalid, err)
+		}
+		return encoded, nil
+	}
+	return normalizeJSONObject(raw, HardMaxDefinitionBytes, "view definition")
+}
+
 func (s *CatalogService) executionContracts(connectionRevision ConnectionRevision, viewRevision ViewRevision) (Connection, View, Adapter, error) {
 	if !revisionExecutable(connectionRevision.Status) || !revisionExecutable(viewRevision.Status) || connectionRevision.AdapterKind == AdapterReference {
 		return Connection{}, View{}, nil, ErrCatalogInvalid
@@ -387,8 +505,8 @@ func (s *CatalogService) executionContracts(connectionRevision ConnectionRevisio
 	if err != nil {
 		return Connection{}, View{}, nil, err
 	}
-	adapter := s.adapters[connection.AdapterKind]
-	if adapter == nil || s.secrets == nil {
+	adapter, err := s.adapterFor(connection.AdapterKind, connection.AdapterVersion)
+	if err != nil || s.secrets == nil {
 		return Connection{}, View{}, nil, ErrCapabilityUnavailable
 	}
 	return connection, view, adapter, nil
@@ -425,17 +543,25 @@ func (s *CatalogService) repoOrError() CatalogRepository {
 	return s.repo
 }
 
-func (s *CatalogService) twoIDs() (string, string, error) {
+func (s *CatalogService) oneID() (string, error) {
 	if s == nil || s.newID == nil || s.now == nil {
-		return "", "", ErrCatalogStorage
+		return "", ErrCatalogStorage
 	}
-	first, err := s.newID()
+	value, err := s.newID()
 	if err != nil {
-		return "", "", errors.Join(ErrCatalogStorage, err)
+		return "", errors.Join(ErrCatalogStorage, err)
 	}
-	second, err := s.newID()
+	return value, nil
+}
+
+func (s *CatalogService) twoIDs() (string, string, error) {
+	first, err := s.oneID()
 	if err != nil {
-		return "", "", errors.Join(ErrCatalogStorage, err)
+		return "", "", err
+	}
+	second, err := s.oneID()
+	if err != nil {
+		return "", "", err
 	}
 	return first, second, nil
 }
@@ -449,7 +575,7 @@ func revisionUsableAsParent(status RevisionStatus) bool {
 }
 
 func revisionExecutable(status RevisionStatus) bool {
-	return status == RevisionDraft || status == RevisionPendingApproval || status == RevisionActive || status == RevisionPaused
+	return revisionUsableAsParent(status)
 }
 
 func boundedPreviewRows(requested, bindingLimit int) int {
@@ -474,15 +600,39 @@ func validateCatalogActor(actor CatalogActor) error {
 
 type unavailableCatalogRepository struct{}
 
-func (unavailableCatalogRepository) CreateConnectionRevision(context.Context, ConnectionRevision) (ConnectionRevision, error) { return ConnectionRevision{}, ErrCatalogStorage }
-func (unavailableCatalogRepository) ConnectionRevision(context.Context, string, string, int64) (ConnectionRevision, error) { return ConnectionRevision{}, ErrCatalogStorage }
-func (unavailableCatalogRepository) CurrentConnection(context.Context, string, string) (ConnectionRevision, error) { return ConnectionRevision{}, ErrCatalogStorage }
-func (unavailableCatalogRepository) ListCurrentConnections(context.Context, string, string, int) ([]ConnectionRevision, error) { return nil, ErrCatalogStorage }
-func (unavailableCatalogRepository) CreateViewRevision(context.Context, ViewRevision) (ViewRevision, error) { return ViewRevision{}, ErrCatalogStorage }
-func (unavailableCatalogRepository) ViewRevision(context.Context, string, string, int64) (ViewRevision, error) { return ViewRevision{}, ErrCatalogStorage }
-func (unavailableCatalogRepository) CurrentView(context.Context, string, string) (ViewRevision, error) { return ViewRevision{}, ErrCatalogStorage }
-func (unavailableCatalogRepository) ListCurrentViews(context.Context, string, string, int) ([]ViewRevision, error) { return nil, ErrCatalogStorage }
-func (unavailableCatalogRepository) CreateBindingRevision(context.Context, BindingRevision) (BindingRevision, error) { return BindingRevision{}, ErrCatalogStorage }
-func (unavailableCatalogRepository) BindingRevision(context.Context, string, string, int64) (BindingRevision, error) { return BindingRevision{}, ErrCatalogStorage }
-func (unavailableCatalogRepository) CurrentBinding(context.Context, string, string) (BindingRevision, error) { return BindingRevision{}, ErrCatalogStorage }
-func (unavailableCatalogRepository) ListCurrentBindings(context.Context, string, string, int) ([]BindingRevision, error) { return nil, ErrCatalogStorage }
+func (unavailableCatalogRepository) CreateConnectionRevision(context.Context, ConnectionRevision) (ConnectionRevision, error) {
+	return ConnectionRevision{}, ErrCatalogStorage
+}
+func (unavailableCatalogRepository) ConnectionRevision(context.Context, string, string, int64) (ConnectionRevision, error) {
+	return ConnectionRevision{}, ErrCatalogStorage
+}
+func (unavailableCatalogRepository) CurrentConnection(context.Context, string, string) (ConnectionRevision, error) {
+	return ConnectionRevision{}, ErrCatalogStorage
+}
+func (unavailableCatalogRepository) ListCurrentConnections(context.Context, string, string, int) ([]ConnectionRevision, error) {
+	return nil, ErrCatalogStorage
+}
+func (unavailableCatalogRepository) CreateViewRevision(context.Context, ViewRevision) (ViewRevision, error) {
+	return ViewRevision{}, ErrCatalogStorage
+}
+func (unavailableCatalogRepository) ViewRevision(context.Context, string, string, int64) (ViewRevision, error) {
+	return ViewRevision{}, ErrCatalogStorage
+}
+func (unavailableCatalogRepository) CurrentView(context.Context, string, string) (ViewRevision, error) {
+	return ViewRevision{}, ErrCatalogStorage
+}
+func (unavailableCatalogRepository) ListCurrentViews(context.Context, string, string, int) ([]ViewRevision, error) {
+	return nil, ErrCatalogStorage
+}
+func (unavailableCatalogRepository) CreateBindingRevision(context.Context, BindingRevision) (BindingRevision, error) {
+	return BindingRevision{}, ErrCatalogStorage
+}
+func (unavailableCatalogRepository) BindingRevision(context.Context, string, string, int64) (BindingRevision, error) {
+	return BindingRevision{}, ErrCatalogStorage
+}
+func (unavailableCatalogRepository) CurrentBinding(context.Context, string, string) (BindingRevision, error) {
+	return BindingRevision{}, ErrCatalogStorage
+}
+func (unavailableCatalogRepository) ListCurrentBindings(context.Context, string, string, int) ([]BindingRevision, error) {
+	return nil, ErrCatalogStorage
+}

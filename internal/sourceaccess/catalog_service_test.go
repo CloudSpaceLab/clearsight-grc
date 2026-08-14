@@ -4,19 +4,25 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
 
-func TestCatalogServiceCreatesServerOwnedDrafts(t *testing.T) {
+func TestCatalogServiceCreatesInspectedServerOwnedDraftHierarchy(t *testing.T) {
 	repository := NewMemoryCatalogRepository([]SourceScope{{TenantID: catalogTenantID, SourceID: catalogSourceID}})
-	service := NewCatalogService(repository, nil, nil)
+	session := &catalogFakeSession{capabilities: NewCapabilitySet(CapabilityInspect, CapabilityPage)}
+	adapter := &catalogFakeAdapter{session: session}
+	service := NewCatalogService(repository, catalogFakeSecrets{}, map[AdapterKind]Adapter{AdapterPostgres: adapter})
 	service.now = func() time.Time { return time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC) }
 	ids := []string{
 		"51111111-1111-7111-8111-111111111111",
 		"52222222-2222-7222-8222-222222222222",
 		"53333333-3333-7333-8333-333333333333",
 		"54444444-4444-7444-8444-444444444444",
+		"55555555-5555-7555-8555-555555555555",
+		"56666666-6666-7666-8666-666666666666",
+		"57777777-7777-7777-8777-777777777777",
 	}
 	service.newID = func() (string, error) {
 		value := ids[0]
@@ -40,21 +46,42 @@ func TestCatalogServiceCreatesServerOwnedDrafts(t *testing.T) {
 		t.Fatalf("connection was not created as an unverified draft: %#v", connection)
 	}
 
+	if _, err := service.CreateViewDraft(context.Background(), actor, connection.ConnectionID, CreateViewDraftInput{
+		ConnectionVersion: connection.Version, Code: "INVALID", Name: "Invalid",
+		Definition: []byte(`{"query":"SELECT account_id FROM active_accounts"}`), StableKeys: []string{"account_id"},
+	}); !errors.Is(err, ErrCatalogInvalid) {
+		t.Fatalf("unobserved stable keys should fail, got %v", err)
+	}
+
 	view, err := service.CreateViewDraft(context.Background(), actor, connection.ConnectionID, CreateViewDraftInput{
 		ConnectionVersion: connection.Version, Code: "ACTIVE_ACCOUNTS", Name: "Active accounts",
-		Definition: []byte(`{"query":"SELECT account_id,status FROM active_accounts"}`), StableKeys: []string{"account_id"},
+		Definition: []byte(`{"query":"SELECT account_id,status FROM active_accounts"}`),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if view.ConnectionID != connection.ConnectionID || view.ConnectionVersion != connection.Version || view.SourceID != connection.SourceID || view.Status != RevisionDraft || view.IsCurrent {
-		t.Fatalf("view parent scope or lifecycle changed: %#v", view)
+	if view.ConnectionID != connection.ConnectionID || view.ConnectionVersion != connection.Version || view.SourceID != connection.SourceID || view.Status != RevisionDraft || view.IsCurrent || len(view.NativeSchema) != 0 || len(view.StableKeys) != 0 {
+		t.Fatalf("view parent scope or pre-inspection lifecycle changed: %#v", view)
 	}
-	if _, err := service.CreateBindingDraft(context.Background(), actor, view.ViewID, CreateBindingDraftInput{
-		ViewVersion: view.Version, Code: "ACCOUNT_LOOKUP", Name: "Account lookup", Purpose: "validation",
+
+	inspected, err := service.InspectViewDraft(context.Background(), actor, view.ViewID, view.Version, InspectViewDraftInput{StableKeys: []string{"account_id"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if inspected.View.ViewID != view.ViewID || inspected.View.Version != 2 || inspected.View.Status != RevisionDraft || inspected.View.IsCurrent || inspected.View.SchemaFingerprint == "" || len(inspected.View.NativeSchema) != 1 || len(inspected.View.StableKeys) != 1 {
+		t.Fatalf("inspection did not create an immutable schema-bearing revision: %#v", inspected.View)
+	}
+
+	binding, err := service.CreateBindingDraft(context.Background(), actor, inspected.View.ViewID, CreateBindingDraftInput{
+		ViewVersion: inspected.View.Version, Code: "ACCOUNT_PAGE", Name: "Account page", Purpose: "account-review",
 		Operations: []Operation{OperationPage}, SelectedFields: []string{"account_id"}, KeyFields: []string{"account_id"},
-	}); !errors.Is(err, ErrCatalogInvalid) {
-		t.Fatalf("binding over an uninspected draft view should fail, got %v", err)
+		Limits: ResourceLimits{PageRows: 25, ResponseBytes: 64 << 10, LookupValues: 10, Timeout: 2 * time.Second},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if binding.ViewID != view.ViewID || binding.ViewVersion != inspected.View.Version || binding.Status != RevisionDraft || binding.IsCurrent {
+		t.Fatalf("binding parent scope or lifecycle changed: %#v", binding)
 	}
 }
 
@@ -78,13 +105,16 @@ func TestCatalogServiceInspectPreviewAndWhereUsedAreBounded(t *testing.T) {
 	session := &catalogFakeSession{connection: mustConnection(t, connection), capabilities: NewCapabilitySet(CapabilityInspect, CapabilityPage)}
 	adapter := &catalogFakeAdapter{session: session}
 	service := NewCatalogService(repository, catalogFakeSecrets{}, map[AdapterKind]Adapter{AdapterPostgres: adapter})
+	ids := []string{"58888888-8888-7888-8888-888888888888"}
+	service.newID = func() (string, error) { value := ids[0]; ids = ids[1:]; return value, nil }
+	service.now = func() time.Time { return now.Add(time.Minute) }
 
-	schema, err := service.InspectView(ctx, catalogTenantID, view.ViewID, view.Version)
+	inspected, err := service.InspectViewDraft(ctx, CatalogActor{TenantID: catalogTenantID, PrincipalID: catalogActorID}, view.ViewID, view.Version, InspectViewDraftInput{StableKeys: []string{"account_id"}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(schema.Fields) != 1 || schema.Fields[0].Name != "account_id" || adapter.opens != 1 || session.closes != 1 {
-		t.Fatalf("inspect result/session lifecycle changed: schema=%#v opens=%d closes=%d", schema, adapter.opens, session.closes)
+	if len(inspected.Schema.Fields) != 1 || inspected.Schema.Fields[0].Name != "account_id" || adapter.opens != 1 || session.closes != 1 {
+		t.Fatalf("inspect result/session lifecycle changed: result=%#v opens=%d closes=%d", inspected, adapter.opens, session.closes)
 	}
 
 	page, err := service.PreviewBinding(ctx, catalogTenantID, binding.BindingID, binding.Version, PageRequest{Limit: 500})
@@ -115,26 +145,26 @@ func TestCatalogServiceInspectPreviewAndWhereUsedAreBounded(t *testing.T) {
 	}
 }
 
-func TestCatalogServiceRejectsMissingAdapterAndUnsafeSecretReference(t *testing.T) {
+func TestCatalogServiceRejectsUnsupportedAdapterAndUnsafeSecretReference(t *testing.T) {
 	ctx := context.Background()
 	repository := NewMemoryCatalogRepository([]SourceScope{{TenantID: catalogTenantID, SourceID: catalogSourceID}})
-	now := time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC)
-	connection := catalogConnectionRevision(now)
-	view := catalogViewRevision(now)
-	if _, err := repository.CreateConnectionRevision(ctx, connection); err != nil {
-		t.Fatal(err)
+	service := NewCatalogService(repository, catalogFakeSecrets{}, nil)
+	actor := CatalogActor{TenantID: catalogTenantID, PrincipalID: catalogActorID}
+	if _, err := service.CreateConnectionDraft(ctx, actor, catalogSourceID, CreateConnectionDraftInput{
+		Code: "UNSUPPORTED", Name: "Unsupported", AdapterKind: AdapterPostgres, AdapterVersion: PostgresAdapterVersion, SecretRef: "env://READER_DSN",
+	}); !errors.Is(err, ErrCatalogInvalid) {
+		t.Fatalf("unregistered adapter should fail, got %v", err)
 	}
-	if _, err := repository.CreateViewRevision(ctx, view); err != nil {
-		t.Fatal(err)
-	}
-	service := NewCatalogService(repository, nil, nil)
-	if _, err := service.InspectView(ctx, catalogTenantID, view.ViewID, view.Version); !errors.Is(err, ErrCapabilityUnavailable) {
-		t.Fatalf("missing adapter boundary should be explicit, got %v", err)
+	service = NewCatalogService(repository, catalogFakeSecrets{}, map[AdapterKind]Adapter{AdapterPostgres: &catalogFakeAdapter{session: &catalogFakeSession{}}})
+	if _, err := service.CreateConnectionDraft(ctx, actor, catalogSourceID, CreateConnectionDraftInput{
+		Code: "BAD_SECRET", Name: "Bad secret", AdapterKind: AdapterPostgres, AdapterVersion: PostgresAdapterVersion, SecretRef: "plain-secret-name",
+	}); !errors.Is(err, ErrCatalogInvalid) {
+		t.Fatalf("plain secret reference should fail, got %v", err)
 	}
 
 	resolver := EnvironmentSecretResolver{}
 	if _, err := resolver.Resolve(ctx, "plain-secret-name"); !errors.Is(err, ErrCredentials) {
-		t.Fatalf("plain secret reference should fail, got %v", err)
+		t.Fatalf("plain secret reference should fail at resolution, got %v", err)
 	}
 	t.Setenv("CATALOG_TEST_DSN", "postgres://reader:secret@example.invalid/risk")
 	value, err := resolver.Resolve(ctx, "env://CATALOG_TEST_DSN")
@@ -177,11 +207,15 @@ type catalogFakeSession struct {
 	pageLimit    int
 }
 
-func (s *catalogFakeSession) Connection() Connection       { return s.connection }
-func (s *catalogFakeSession) Capabilities() CapabilitySet   { return s.capabilities }
-func (s *catalogFakeSession) Close() error                  { s.closes++; return nil }
+func (s *catalogFakeSession) Connection() Connection     { return s.connection }
+func (s *catalogFakeSession) Capabilities() CapabilitySet { return s.capabilities }
+func (s *catalogFakeSession) Close() error                { s.closes++; return nil }
 func (s *catalogFakeSession) Inspect(_ context.Context, view View) (SchemaResult, error) {
-	return SchemaResult{Fields: []NativeField{{Name: "account_id", NativeType: "uuid"}}, Receipt: OperationReceipt{SourceID: s.connection.SourceID, ConnectionID: s.connection.ID, ViewID: view.ID, Operation: OperationInspect, Completeness: CompletenessComplete}}, nil
+	fingerprint := strings.Repeat("a", 64)
+	return SchemaResult{
+		Fields: []NativeField{{Name: "account_id", NativeType: "uuid"}},
+		Receipt: OperationReceipt{SourceID: s.connection.SourceID, ConnectionID: s.connection.ID, ViewID: view.ID, Operation: OperationInspect, SchemaFingerprint: fingerprint, Completeness: CompletenessComplete},
+	}, nil
 }
 func (s *catalogFakeSession) ReadPage(_ context.Context, view View, binding Binding, request PageRequest) (RecordPage, error) {
 	s.pageLimit = request.Limit

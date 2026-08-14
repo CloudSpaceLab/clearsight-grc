@@ -133,12 +133,17 @@ func (a *API) inspectSourceView(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	value, err := service.InspectView(r.Context(), actor.TenantID, r.PathValue("view_id"), version)
+	var input sourceaccess.InspectViewDraftInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	value, err := service.InspectViewDraft(r.Context(), actor, r.PathValue("view_id"), version, input)
 	if err != nil {
 		writeSourceCatalogError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, value)
+	httpx.WriteJSON(w, http.StatusCreated, value)
 }
 
 func (a *API) listSourceBindings(w http.ResponseWriter, r *http.Request) {
