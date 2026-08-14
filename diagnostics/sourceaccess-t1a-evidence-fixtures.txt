@@ -1,0 +1,315 @@
+internal/evidence/source_catalog_test.go-1-package evidence
+internal/evidence/source_catalog_test.go-2-
+internal/evidence/source_catalog_test.go-3-import (
+internal/evidence/source_catalog_test.go-4-	"context"
+internal/evidence/source_catalog_test.go-5-	"encoding/json"
+internal/evidence/source_catalog_test.go-6-	"strings"
+internal/evidence/source_catalog_test.go-7-	"testing"
+internal/evidence/source_catalog_test.go-8-	"time"
+internal/evidence/source_catalog_test.go-9-)
+internal/evidence/source_catalog_test.go-10-
+internal/evidence/source_catalog_test.go-11-func TestEvidenceSourceEndpointIsInputOnly(t *testing.T) {
+internal/evidence/source_catalog_test.go-12-	value := Source{ID: "source-1", Endpoint: "https://example.invalid/source"}
+internal/evidence/source_catalog_test.go-13-	encoded, err := json.Marshal(value)
+internal/evidence/source_catalog_test.go-14-	if err != nil {
+internal/evidence/source_catalog_test.go-15-		t.Fatal(err)
+internal/evidence/source_catalog_test.go-16-	}
+internal/evidence/source_catalog_test.go:17:	if strings.Contains(string(encoded), "endpoint") || strings.Contains(string(encoded), value.Endpoint) {
+internal/evidence/source_catalog_test.go:18:		t.Fatalf("source JSON exposed endpoint configuration: %s", encoded)
+internal/evidence/source_catalog_test.go-19-	}
+internal/evidence/source_catalog_test.go-20-}
+internal/evidence/source_catalog_test.go-21-
+internal/evidence/source_catalog_test.go-22-func TestCreateSourceRejectsUnsafeReferenceEndpoint(t *testing.T) {
+internal/evidence/source_catalog_test.go-23-	repository := NewMemoryRepository(nil, nil)
+internal/evidence/source_catalog_test.go-24-	service := NewService(repository, nil)
+internal/evidence/source_catalog_test.go-25-	service.now = func() time.Time { return time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC) }
+internal/evidence/source_catalog_test.go-26-	base := CreateSourceInput{
+internal/evidence/source_catalog_test.go-27-		TenantID:                 "bank-demo",
+internal/evidence/source_catalog_test.go-28-		Code:                     "CORE",
+internal/evidence/source_catalog_test.go-29-		Name:                     "Core source",
+internal/evidence/source_catalog_test.go-30-		Type:                     SourceSystem,
+internal/evidence/source_catalog_test.go-31-		AuthorityClass:           "SYSTEM_OF_RECORD",
+internal/evidence/source_catalog_test.go-32-		ExpectedFreshnessMinutes: 15,
+internal/evidence/source_catalog_test.go-33-	}
+internal/evidence/source_catalog_test.go:34:	for _, endpoint := range []string{
+internal/evidence/source_catalog_test.go-35-		strings.Repeat("x", (32<<10)+1),
+internal/evidence/source_catalog_test.go-36-		"https://example.invalid/source\nInjected: value",
+internal/evidence/source_catalog_test.go-37-		"https://example.invalid/source\x00tail",
+internal/evidence/source_catalog_test.go-38-	} {
+internal/evidence/source_catalog_test.go-39-		input := base
+internal/evidence/source_catalog_test.go:40:		input.Endpoint = endpoint
+internal/evidence/source_catalog_test.go-41-		if _, err := service.CreateSource(context.Background(), input); err == nil {
+internal/evidence/source_catalog_test.go:42:			t.Fatalf("unsafe endpoint %q was accepted", endpoint)
+internal/evidence/source_catalog_test.go-43-		}
+internal/evidence/source_catalog_test.go-44-	}
+internal/evidence/source_catalog_test.go-45-}
+--
+internal/evidence/service.go-29-}
+internal/evidence/service.go-30-
+internal/evidence/service.go-31-func (s *Service) Configure(sessionTTL time.Duration, maxArtifactBytes int64) {
+internal/evidence/service.go-32-	if sessionTTL > 0 {
+internal/evidence/service.go-33-		s.sessionTTL = sessionTTL
+internal/evidence/service.go-34-	}
+internal/evidence/service.go-35-	if maxArtifactBytes > 0 {
+internal/evidence/service.go-36-		s.maxArtifactBytes = maxArtifactBytes
+internal/evidence/service.go-37-	}
+internal/evidence/service.go-38-}
+internal/evidence/service.go-39-
+internal/evidence/service.go-40-func (s *Service) CreateSource(ctx context.Context, input CreateSourceInput) (Source, error) {
+internal/evidence/service.go-41-	if strings.TrimSpace(input.TenantID) == "" || strings.TrimSpace(input.Code) == "" || strings.TrimSpace(input.Name) == "" || !validSourceType(input.Type) || strings.TrimSpace(input.AuthorityClass) == "" {
+internal/evidence/service.go-42-		return Source{}, fmt.Errorf("tenant, code, name, source type and authority class are required")
+internal/evidence/service.go-43-	}
+internal/evidence/service.go-44-	if input.ExpectedFreshnessMinutes < 1 || input.ExpectedFreshnessMinutes > 525600 {
+internal/evidence/service.go-45-		return Source{}, fmt.Errorf("expected_freshness_minutes must be between 1 and 525600")
+internal/evidence/service.go-46-	}
+internal/evidence/service.go-47-	input.Endpoint = strings.TrimSpace(input.Endpoint)
+internal/evidence/service.go-48-	if len(input.Endpoint) > 32<<10 || strings.IndexFunc(input.Endpoint, unicode.IsControl) >= 0 {
+internal/evidence/service.go:49:		return Source{}, fmt.Errorf("endpoint must be no more than 32768 bytes and contain no control characters")
+internal/evidence/service.go-50-	}
+internal/evidence/service.go-51-	valueID, err := id.NewUUIDv7()
+internal/evidence/service.go-52-	if err != nil {
+internal/evidence/service.go-53-		return Source{}, err
+internal/evidence/service.go-54-	}
+internal/evidence/service.go-55-	now := s.now().UTC()
+internal/evidence/service.go-56-	return s.repo.CreateSource(ctx, Source{ID: valueID, TenantID: input.TenantID, LegalEntityID: input.LegalEntityID, Code: input.Code, Name: input.Name, Type: input.Type, AuthorityClass: input.AuthorityClass, OwnerPrincipalID: input.OwnerPrincipalID, Endpoint: input.Endpoint, ExpectedFreshnessMinutes: input.ExpectedFreshnessMinutes, Health: HealthUnknown, Status: SourceActive, Version: 1, CreatedAt: now, UpdatedAt: now})
+internal/evidence/service.go-57-}
+internal/evidence/service.go-58-
+internal/evidence/service.go-59-func (s *Service) ListSources(ctx context.Context, tenant string, limit int) ([]Source, error) {
+internal/evidence/service.go-60-	if strings.TrimSpace(tenant) == "" {
+internal/evidence/service.go-61-		return nil, fmt.Errorf("tenant_id is required")
+internal/evidence/service.go-62-	}
+internal/evidence/service.go-63-	return s.repo.ListSources(ctx, tenant, bounded(limit))
+internal/evidence/service.go-64-}
+internal/evidence/service.go-65-
+internal/evidence/service.go-66-func (s *Service) RecordSourceObservation(ctx context.Context, observation SourceObservation) (Source, error) {
+internal/evidence/service.go-67-	if strings.TrimSpace(observation.TenantID) == "" || strings.TrimSpace(observation.SourceID) == "" {
+internal/evidence/service.go-68-		return Source{}, fmt.Errorf("tenant and source are required")
+internal/evidence/service.go-69-	}
+--
+internal/evidence/model.go-38-	OwnerPrincipalID         string       `json:"owner_principal_id,omitempty"`
+internal/evidence/model.go-39-	Endpoint                 string       `json:"-"`
+internal/evidence/model.go-40-	ExpectedFreshnessMinutes int          `json:"expected_freshness_minutes"`
+internal/evidence/model.go-41-	LastObservedAt           *time.Time   `json:"last_observed_at,omitempty"`
+internal/evidence/model.go-42-	LastSuccessAt            *time.Time   `json:"last_success_at,omitempty"`
+internal/evidence/model.go-43-	Health                   SourceHealth `json:"health"`
+internal/evidence/model.go-44-	Status                   SourceStatus `json:"status"`
+internal/evidence/model.go-45-	Version                  int64        `json:"version"`
+internal/evidence/model.go-46-	CreatedAt                time.Time    `json:"created_at"`
+internal/evidence/model.go-47-	UpdatedAt                time.Time    `json:"updated_at"`
+internal/evidence/model.go-48-}
+internal/evidence/model.go-49-
+internal/evidence/model.go-50-type CreateSourceInput struct {
+internal/evidence/model.go-51-	TenantID                 string     `json:"tenant_id"`
+internal/evidence/model.go-52-	LegalEntityID            string     `json:"legal_entity_id,omitempty"`
+internal/evidence/model.go-53-	Code                     string     `json:"code"`
+internal/evidence/model.go-54-	Name                     string     `json:"name"`
+internal/evidence/model.go-55-	Type                     SourceType `json:"type"`
+internal/evidence/model.go-56-	AuthorityClass           string     `json:"authority_class"`
+internal/evidence/model.go-57-	OwnerPrincipalID         string     `json:"owner_principal_id,omitempty"`
+internal/evidence/model.go:58:	Endpoint                 string     `json:"endpoint,omitempty"`
+internal/evidence/model.go-59-	ExpectedFreshnessMinutes int        `json:"expected_freshness_minutes"`
+internal/evidence/model.go-60-}
+internal/evidence/model.go-61-
+internal/evidence/model.go-62-type SourceObservation struct {
+internal/evidence/model.go-63-	ID          string    `json:"id"`
+internal/evidence/model.go-64-	TenantID    string    `json:"tenant_id"`
+internal/evidence/model.go-65-	SourceID    string    `json:"source_id"`
+internal/evidence/model.go-66-	ObservedAt  time.Time `json:"observed_at"`
+internal/evidence/model.go-67-	Success     bool      `json:"success"`
+internal/evidence/model.go-68-	Unavailable bool      `json:"unavailable"`
+internal/evidence/model.go-69-	LatencyMS   int       `json:"latency_ms,omitempty"`
+internal/evidence/model.go-70-	Detail      string    `json:"detail,omitempty"`
+internal/evidence/model.go-71-	RecordedBy  string    `json:"recorded_by,omitempty"`
+internal/evidence/model.go-72-}
+internal/evidence/model.go-73-
+internal/evidence/model.go-74-type RequestStatus string
+internal/evidence/model.go-75-type RecipientType string
+internal/evidence/model.go-76-type RecipientState string
+internal/evidence/model.go-77-
+internal/evidence/model.go-78-const (
+--
+internal/evidence/lookup_postgres.go-14-	err := r.pool.QueryRow(ctx, `
+internal/evidence/lookup_postgres.go-15-		SELECT cr.id::text
+internal/evidence/lookup_postgres.go-16-		FROM capture_requests cr
+internal/evidence/lookup_postgres.go-17-		JOIN tenants t ON t.id=cr.tenant_id
+internal/evidence/lookup_postgres.go-18-		WHERE (t.id::text=$1 OR t.slug=$1) AND cr.subject_type=$2 AND cr.subject_id=$3
+internal/evidence/lookup_postgres.go-19-		ORDER BY
+internal/evidence/lookup_postgres.go-20-			CASE WHEN cr.status IN ('DRAFT','READY','IN_PROGRESS') THEN 0 ELSE 1 END,
+internal/evidence/lookup_postgres.go-21-			CASE WHEN cr.status IN ('DRAFT','READY','IN_PROGRESS') THEN cr.deadline END ASC NULLS LAST,
+internal/evidence/lookup_postgres.go-22-			cr.updated_at DESC,cr.id DESC
+internal/evidence/lookup_postgres.go-23-		LIMIT 1`, tenant, subjectType, subjectID).Scan(&id)
+internal/evidence/lookup_postgres.go-24-	if errors.Is(err, pgx.ErrNoRows) {
+internal/evidence/lookup_postgres.go-25-		return Request{}, ErrNotFound
+internal/evidence/lookup_postgres.go-26-	}
+internal/evidence/lookup_postgres.go-27-	if err != nil {
+internal/evidence/lookup_postgres.go-28-		return Request{}, err
+internal/evidence/lookup_postgres.go-29-	}
+internal/evidence/lookup_postgres.go-30-	return r.GetRequest(ctx, tenant, id)
+internal/evidence/lookup_postgres.go-31-}
+internal/evidence/lookup_postgres.go-32-
+internal/evidence/lookup_postgres.go-33-func (r *PostgresRepository) SourcesByCodes(ctx context.Context, tenant string, codes []string) ([]Source, error) {
+internal/evidence/lookup_postgres.go:34:	rows, err := r.pool.Query(ctx, `SELECT es.id::text,t.id::text,COALESCE(es.legal_entity_id::text,''),es.code,es.name,es.source_type,es.authority_class,COALESCE(es.owner_principal_id::text,''),es.endpoint,es.expected_freshness_minutes,es.last_observed_at,es.last_success_at,es.health,es.status,es.version,es.created_at,es.updated_at FROM evidence_sources es JOIN tenants t ON t.id=es.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND es.code=ANY($2::text[]) ORDER BY es.code`, tenant, codes)
+internal/evidence/lookup_postgres.go-35-	if err != nil {
+internal/evidence/lookup_postgres.go-36-		return nil, err
+internal/evidence/lookup_postgres.go-37-	}
+internal/evidence/lookup_postgres.go-38-	defer rows.Close()
+internal/evidence/lookup_postgres.go-39-	values := []Source{}
+internal/evidence/lookup_postgres.go-40-	for rows.Next() {
+internal/evidence/lookup_postgres.go-41-		value, err := scanSource(rows)
+internal/evidence/lookup_postgres.go-42-		if err != nil {
+internal/evidence/lookup_postgres.go-43-			return nil, err
+internal/evidence/lookup_postgres.go-44-		}
+internal/evidence/lookup_postgres.go-45-		values = append(values, value)
+internal/evidence/lookup_postgres.go-46-	}
+internal/evidence/lookup_postgres.go-47-	return values, rows.Err()
+internal/evidence/lookup_postgres.go-48-}
+internal/evidence/lookup_postgres.go-49-
+internal/evidence/lookup_postgres.go-50-var _ subjectLookupRepository = (*PostgresRepository)(nil)
+--
+internal/evidence/source_catalog_postgres_integration_test.go-51-		ID:                       sourceCatalogSourceID,
+internal/evidence/source_catalog_postgres_integration_test.go-52-		TenantID:                 sourceCatalogTenantID,
+internal/evidence/source_catalog_postgres_integration_test.go-53-		LegalEntityID:            sourceCatalogEntityID,
+internal/evidence/source_catalog_postgres_integration_test.go-54-		Code:                     "CORE-BANKING",
+internal/evidence/source_catalog_postgres_integration_test.go-55-		Name:                     "Core banking",
+internal/evidence/source_catalog_postgres_integration_test.go-56-		Type:                     SourceSystem,
+internal/evidence/source_catalog_postgres_integration_test.go-57-		AuthorityClass:           "SYSTEM_OF_RECORD",
+internal/evidence/source_catalog_postgres_integration_test.go-58-		OwnerPrincipalID:         sourceCatalogActorID,
+internal/evidence/source_catalog_postgres_integration_test.go-59-		Endpoint:                 " https://core.example.invalid/reference ",
+internal/evidence/source_catalog_postgres_integration_test.go-60-		ExpectedFreshnessMinutes: 15,
+internal/evidence/source_catalog_postgres_integration_test.go-61-		Health:                   HealthUnknown,
+internal/evidence/source_catalog_postgres_integration_test.go-62-		Status:                   SourceActive,
+internal/evidence/source_catalog_postgres_integration_test.go-63-		Version:                  1,
+internal/evidence/source_catalog_postgres_integration_test.go-64-		CreatedAt:                now,
+internal/evidence/source_catalog_postgres_integration_test.go-65-		UpdatedAt:                now,
+internal/evidence/source_catalog_postgres_integration_test.go-66-	})
+internal/evidence/source_catalog_postgres_integration_test.go-67-	if err != nil {
+internal/evidence/source_catalog_postgres_integration_test.go-68-		t.Fatal(err)
+internal/evidence/source_catalog_postgres_integration_test.go-69-	}
+internal/evidence/source_catalog_postgres_integration_test.go-70-	if created.Endpoint != "" {
+internal/evidence/source_catalog_postgres_integration_test.go:71:		t.Fatalf("source returned a legacy endpoint: %#v", created)
+internal/evidence/source_catalog_postgres_integration_test.go-72-	}
+internal/evidence/source_catalog_postgres_integration_test.go-73-	encoded, err := json.Marshal(created)
+internal/evidence/source_catalog_postgres_integration_test.go-74-	if err != nil {
+internal/evidence/source_catalog_postgres_integration_test.go-75-		t.Fatal(err)
+internal/evidence/source_catalog_postgres_integration_test.go-76-	}
+internal/evidence/source_catalog_postgres_integration_test.go:77:	if strings.Contains(string(encoded), "endpoint") {
+internal/evidence/source_catalog_postgres_integration_test.go:78:		t.Fatalf("source JSON exposed endpoint state: %s", encoded)
+internal/evidence/source_catalog_postgres_integration_test.go-79-	}
+internal/evidence/source_catalog_postgres_integration_test.go-80-
+internal/evidence/source_catalog_postgres_integration_test.go-81-	catalog := sourceaccess.NewPostgresCatalogRepository(pool)
+internal/evidence/source_catalog_postgres_integration_test.go-82-	connections, err := catalog.ListCurrentConnections(ctx, sourceCatalogTenantID, sourceCatalogSourceID, 10)
+internal/evidence/source_catalog_postgres_integration_test.go-83-	if err != nil {
+internal/evidence/source_catalog_postgres_integration_test.go-84-		t.Fatal(err)
+internal/evidence/source_catalog_postgres_integration_test.go-85-	}
+internal/evidence/source_catalog_postgres_integration_test.go-86-	if len(connections) != 1 {
+internal/evidence/source_catalog_postgres_integration_test.go-87-		t.Fatalf("reference connections=%d want=1", len(connections))
+internal/evidence/source_catalog_postgres_integration_test.go-88-	}
+internal/evidence/source_catalog_postgres_integration_test.go-89-	connection := connections[0]
+internal/evidence/source_catalog_postgres_integration_test.go-90-	if connection.Code != sourceaccess.ReferenceConnectionCode || connection.AdapterKind != sourceaccess.AdapterReference || connection.AdapterVersion != sourceaccess.ReferenceAdapterVersion || connection.SecretRef != "" {
+internal/evidence/source_catalog_postgres_integration_test.go-91-		t.Fatalf("unexpected reference connection: %#v", connection)
+internal/evidence/source_catalog_postgres_integration_test.go-92-	}
+internal/evidence/source_catalog_postgres_integration_test.go-93-	var definition map[string]string
+internal/evidence/source_catalog_postgres_integration_test.go-94-	if err := json.Unmarshal(connection.Definition, &definition); err != nil {
+internal/evidence/source_catalog_postgres_integration_test.go-95-		t.Fatal(err)
+internal/evidence/source_catalog_postgres_integration_test.go-96-	}
+internal/evidence/source_catalog_postgres_integration_test.go:97:	if definition["endpoint"] != "https://core.example.invalid/reference" {
+internal/evidence/source_catalog_postgres_integration_test.go:98:		t.Fatalf("reference endpoint=%q", definition["endpoint"])
+internal/evidence/source_catalog_postgres_integration_test.go-99-	}
+internal/evidence/source_catalog_postgres_integration_test.go-100-
+internal/evidence/source_catalog_postgres_integration_test.go:101:	var endpointColumns int
+internal/evidence/source_catalog_postgres_integration_test.go:102:	if err := pool.QueryRow(ctx, `SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='evidence_sources' AND column_name='endpoint'`).Scan(&endpointColumns); err != nil {
+internal/evidence/source_catalog_postgres_integration_test.go-103-		t.Fatal(err)
+internal/evidence/source_catalog_postgres_integration_test.go-104-	}
+internal/evidence/source_catalog_postgres_integration_test.go:105:	if endpointColumns != 0 {
+internal/evidence/source_catalog_postgres_integration_test.go:106:		t.Fatal("evidence_sources still has an endpoint column")
+internal/evidence/source_catalog_postgres_integration_test.go-107-	}
+internal/evidence/source_catalog_postgres_integration_test.go-108-
+internal/evidence/source_catalog_postgres_integration_test.go-109-	withoutReferenceID := "55555555-5555-7555-8555-555555555555"
+internal/evidence/source_catalog_postgres_integration_test.go-110-	if _, err := repository.CreateSource(ctx, Source{
+internal/evidence/source_catalog_postgres_integration_test.go-111-		ID:                       withoutReferenceID,
+internal/evidence/source_catalog_postgres_integration_test.go-112-		TenantID:                 sourceCatalogTenantID,
+internal/evidence/source_catalog_postgres_integration_test.go-113-		LegalEntityID:            sourceCatalogEntityID,
+internal/evidence/source_catalog_postgres_integration_test.go-114-		Code:                     "MANUAL-SOURCE",
+internal/evidence/source_catalog_postgres_integration_test.go-115-		Name:                     "Manual source",
+internal/evidence/source_catalog_postgres_integration_test.go-116-		Type:                     SourceHuman,
+internal/evidence/source_catalog_postgres_integration_test.go-117-		AuthorityClass:           "ATTESTATION",
+internal/evidence/source_catalog_postgres_integration_test.go-118-		OwnerPrincipalID:         sourceCatalogActorID,
+internal/evidence/source_catalog_postgres_integration_test.go-119-		ExpectedFreshnessMinutes: 1440,
+internal/evidence/source_catalog_postgres_integration_test.go-120-		Health:                   HealthUnknown,
+internal/evidence/source_catalog_postgres_integration_test.go-121-		Status:                   SourceActive,
+internal/evidence/source_catalog_postgres_integration_test.go-122-		Version:                  1,
+internal/evidence/source_catalog_postgres_integration_test.go-123-		CreatedAt:                now,
+internal/evidence/source_catalog_postgres_integration_test.go-124-		UpdatedAt:                now,
+internal/evidence/source_catalog_postgres_integration_test.go-125-	}); err != nil {
+internal/evidence/source_catalog_postgres_integration_test.go-126-		t.Fatal(err)
+internal/evidence/source_catalog_postgres_integration_test.go-127-	}
+internal/evidence/source_catalog_postgres_integration_test.go-128-	connections, err = catalog.ListCurrentConnections(ctx, sourceCatalogTenantID, withoutReferenceID, 10)
+internal/evidence/source_catalog_postgres_integration_test.go-129-	if err != nil {
+internal/evidence/source_catalog_postgres_integration_test.go-130-		t.Fatal(err)
+internal/evidence/source_catalog_postgres_integration_test.go-131-	}
+internal/evidence/source_catalog_postgres_integration_test.go-132-	if len(connections) != 0 {
+internal/evidence/source_catalog_postgres_integration_test.go:133:		t.Fatalf("blank endpoint created a reference connection: %#v", connections)
+internal/evidence/source_catalog_postgres_integration_test.go-134-	}
+internal/evidence/source_catalog_postgres_integration_test.go-135-}
+internal/evidence/source_catalog_postgres_integration_test.go-136-
+internal/evidence/source_catalog_postgres_integration_test.go-137-func cleanupSourceCatalogFixture(ctx context.Context, pool *pgxpool.Pool) {
+internal/evidence/source_catalog_postgres_integration_test.go-138-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, sourceCatalogTenantID)
+internal/evidence/source_catalog_postgres_integration_test.go-139-}
+--
+internal/evidence/postgres.go-11-	"strings"
+internal/evidence/postgres.go-12-	"time"
+internal/evidence/postgres.go-13-
+internal/evidence/postgres.go-14-	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
+internal/evidence/postgres.go-15-	"github.com/jackc/pgx/v5"
+internal/evidence/postgres.go-16-	"github.com/jackc/pgx/v5/pgxpool"
+internal/evidence/postgres.go-17-)
+internal/evidence/postgres.go-18-
+internal/evidence/postgres.go-19-type PostgresRepository struct{ pool *pgxpool.Pool }
+internal/evidence/postgres.go-20-
+internal/evidence/postgres.go-21-func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
+internal/evidence/postgres.go-22-	return &PostgresRepository{pool: pool}
+internal/evidence/postgres.go-23-}
+internal/evidence/postgres.go-24-
+internal/evidence/postgres.go-25-func (r *PostgresRepository) CreateSource(ctx context.Context, value Source) (Source, error) {
+internal/evidence/postgres.go-26-	tx, err := r.pool.Begin(ctx)
+internal/evidence/postgres.go-27-	if err != nil {
+internal/evidence/postgres.go-28-		return Source{}, err
+internal/evidence/postgres.go-29-	}
+internal/evidence/postgres.go-30-	defer tx.Rollback(ctx)
+internal/evidence/postgres.go:31:	row := tx.QueryRow(ctx, `INSERT INTO evidence_sources(id,tenant_id,legal_entity_id,code,name,source_type,authority_class,owner_principal_id,expected_freshness_minutes,health,status,version,created_at,updated_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),(SELECT id FROM legal_entities WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) AND (id::text=$3 OR code=$3) LIMIT 1),$4,$5,$6,$7,NULLIF($8,'')::uuid,$9,$10,$11,$12,$13,$13) RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),COALESCE(legal_entity_id::text,''),code,name,source_type,authority_class,COALESCE(owner_principal_id::text,''),expected_freshness_minutes,last_observed_at,last_success_at,health,status,version,created_at,updated_at`, value.ID, value.TenantID, value.LegalEntityID, value.Code, value.Name, value.Type, value.AuthorityClass, value.OwnerPrincipalID, value.ExpectedFreshnessMinutes, value.Health, value.Status, value.Version, value.CreatedAt)
+internal/evidence/postgres.go-32-	created, err := scanSource(row)
+internal/evidence/postgres.go-33-	if err != nil {
+internal/evidence/postgres.go-34-		return Source{}, fmt.Errorf("create evidence source: %w", err)
+internal/evidence/postgres.go-35-	}
+internal/evidence/postgres.go:36:	endpoint := strings.TrimSpace(value.Endpoint)
+internal/evidence/postgres.go:37:	if endpoint != "" {
+internal/evidence/postgres.go-38-		if _, err := tx.Exec(ctx, `
+internal/evidence/postgres.go-39-			INSERT INTO source_connections(
+internal/evidence/postgres.go-40-				tenant_id,source_id,code,name,adapter_kind,adapter_version,secret_ref,definition,
+internal/evidence/postgres.go-41-				declared_capabilities,verified_capabilities,owner_principal_id,status,is_current,
+internal/evidence/postgres.go-42-				effective_from,version,created_by,created_at,updated_at
+internal/evidence/postgres.go-43-			) VALUES (
+internal/evidence/postgres.go-44-				(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,$3,$4,$5,$6,'',
+internal/evidence/postgres.go:45:				jsonb_build_object('endpoint',$7),'[]'::jsonb,'[]'::jsonb,NULLIF($8,'')::uuid,
+internal/evidence/postgres.go-46-				'ACTIVE',true,$9,1,NULLIF($8,'')::uuid,$9,$9
+internal/evidence/postgres.go:47:			)`, value.TenantID, created.ID, sourceaccess.ReferenceConnectionCode, sourceaccess.ReferenceConnectionName, sourceaccess.AdapterReference, sourceaccess.ReferenceAdapterVersion, endpoint, value.OwnerPrincipalID, value.CreatedAt); err != nil {
+internal/evidence/postgres.go-48-			return Source{}, fmt.Errorf("create source reference connection: %w", err)
+internal/evidence/postgres.go-49-		}
+internal/evidence/postgres.go-50-	}
+internal/evidence/postgres.go-51-	if err := tx.Commit(ctx); err != nil {
+internal/evidence/postgres.go-52-		return Source{}, err
+internal/evidence/postgres.go-53-	}
+internal/evidence/postgres.go-54-	return created, nil
+internal/evidence/postgres.go-55-}
+internal/evidence/postgres.go-56-
+internal/evidence/postgres.go-57-func (r *PostgresRepository) ListSources(ctx context.Context, tenant string, limit int) ([]Source, error) {
+internal/evidence/postgres.go-58-	rows, err := r.pool.Query(ctx, `SELECT es.id::text,t.id::text,COALESCE(es.legal_entity_id::text,''),es.code,es.name,es.source_type,es.authority_class,COALESCE(es.owner_principal_id::text,''),es.expected_freshness_minutes,es.last_observed_at,es.last_success_at,es.health,es.status,es.version,es.created_at,es.updated_at FROM evidence_sources es JOIN tenants t ON t.id=es.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) ORDER BY es.name,es.id LIMIT $2`, tenant, limit)
+internal/evidence/postgres.go-59-	if err != nil {
+internal/evidence/postgres.go-60-		return nil, fmt.Errorf("list evidence sources: %w", err)
+internal/evidence/postgres.go-61-	}
+internal/evidence/postgres.go-62-	defer rows.Close()
+internal/evidence/postgres.go-63-	values := []Source{}
+internal/evidence/postgres.go-64-	for rows.Next() {
+internal/evidence/postgres.go-65-		value, err := scanSource(rows)
+internal/evidence/postgres.go-66-		if err != nil {
+internal/evidence/postgres.go-67-			return nil, err
