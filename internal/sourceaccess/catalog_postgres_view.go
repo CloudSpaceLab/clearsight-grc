@@ -146,6 +146,36 @@ func (r *PostgresCatalogRepository) ListCurrentViews(ctx context.Context, tenant
 	return values, nil
 }
 
+func (r *PostgresCatalogRepository) ListViewRevisions(ctx context.Context, tenantID, connectionID string, limit int) ([]ViewRevision, error) {
+	if r == nil || r.pool == nil {
+		return nil, ErrCatalogStorage
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT `+viewRevisionColumns+`
+		  FROM source_views sv
+		  JOIN tenants t ON t.id=sv.tenant_id
+		 WHERE (t.id::text=$1 OR t.slug=$1)
+		   AND sv.connection_id=$2::uuid
+		 ORDER BY sv.code,sv.view_id,sv.version DESC
+		 LIMIT $3`, tenantID, connectionID, catalogListLimit(limit))
+	if err != nil {
+		return nil, catalogReadError(err)
+	}
+	defer rows.Close()
+	values := make([]ViewRevision, 0)
+	for rows.Next() {
+		value, scanErr := scanViewRevision(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		values = append(values, value)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, catalogReadError(err)
+	}
+	return values, nil
+}
+
 func connectionRevisionForChild(ctx context.Context, tx pgx.Tx, tenantID, sourceID, connectionID string, version int64) (ConnectionRevision, error) {
 	return scanConnectionRevision(tx.QueryRow(ctx, `
 		SELECT `+connectionRevisionColumns+`

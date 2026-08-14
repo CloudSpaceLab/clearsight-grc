@@ -88,6 +88,27 @@ func (r *MemoryCatalogRepository) ListCurrentConnections(_ context.Context, tena
 	return limitConnections(values, catalogListLimit(limit)), nil
 }
 
+func (r *MemoryCatalogRepository) ListConnectionRevisions(_ context.Context, tenantID, sourceID string, limit int) ([]ConnectionRevision, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	values := make([]ConnectionRevision, 0)
+	for _, value := range r.connections {
+		if value.TenantID == tenantID && value.SourceID == sourceID {
+			values = append(values, cloneConnectionRevision(value))
+		}
+	}
+	sort.Slice(values, func(i, j int) bool {
+		if values[i].Code != values[j].Code {
+			return values[i].Code < values[j].Code
+		}
+		if values[i].ConnectionID != values[j].ConnectionID {
+			return values[i].ConnectionID < values[j].ConnectionID
+		}
+		return values[i].Version > values[j].Version
+	})
+	return limitConnections(values, catalogListLimit(limit)), nil
+}
+
 func (r *MemoryCatalogRepository) CreateViewRevision(_ context.Context, value ViewRevision) (ViewRevision, error) {
 	value, err := normalizeViewRevision(value)
 	if err != nil {
@@ -156,6 +177,27 @@ func (r *MemoryCatalogRepository) ListCurrentViews(_ context.Context, tenantID, 
 	return limitViews(values, catalogListLimit(limit)), nil
 }
 
+func (r *MemoryCatalogRepository) ListViewRevisions(_ context.Context, tenantID, connectionID string, limit int) ([]ViewRevision, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	values := make([]ViewRevision, 0)
+	for _, value := range r.views {
+		if value.TenantID == tenantID && value.ConnectionID == connectionID {
+			values = append(values, cloneViewRevision(value))
+		}
+	}
+	sort.Slice(values, func(i, j int) bool {
+		if values[i].Code != values[j].Code {
+			return values[i].Code < values[j].Code
+		}
+		if values[i].ViewID != values[j].ViewID {
+			return values[i].ViewID < values[j].ViewID
+		}
+		return values[i].Version > values[j].Version
+	})
+	return limitViews(values, catalogListLimit(limit)), nil
+}
+
 func (r *MemoryCatalogRepository) CreateBindingRevision(_ context.Context, value BindingRevision) (BindingRevision, error) {
 	value, err := normalizeBindingRevision(value)
 	if err != nil {
@@ -217,6 +259,27 @@ func (r *MemoryCatalogRepository) ListCurrentBindings(_ context.Context, tenantI
 			return values[i].BindingID < values[j].BindingID
 		}
 		return values[i].Code < values[j].Code
+	})
+	return limitBindings(values, catalogListLimit(limit)), nil
+}
+
+func (r *MemoryCatalogRepository) ListBindingRevisions(_ context.Context, tenantID, viewID string, limit int) ([]BindingRevision, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	values := make([]BindingRevision, 0)
+	for _, value := range r.bindings {
+		if value.TenantID == tenantID && value.ViewID == viewID {
+			values = append(values, cloneBindingRevision(value))
+		}
+	}
+	sort.Slice(values, func(i, j int) bool {
+		if values[i].Code != values[j].Code {
+			return values[i].Code < values[j].Code
+		}
+		if values[i].BindingID != values[j].BindingID {
+			return values[i].BindingID < values[j].BindingID
+		}
+		return values[i].Version > values[j].Version
 	})
 	return limitBindings(values, catalogListLimit(limit)), nil
 }

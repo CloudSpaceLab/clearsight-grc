@@ -85,6 +85,27 @@
     "/api/v1/operations/projections/rebuild": { "post": { "operationId": "rebuildProgramState", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "PLATFORM_OPERATIONS_WRITE" } },
     "/api/v1/operations/background-jobs": { "get": { "operationId": "backgroundJobs", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "PLATFORM_JOBS_READ" } },
 
+    "/api/v1/config/sources/{source_id}/connections": {
+      "get": { "operationId": "listSourceConnections", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" },
+      "post": { "operationId": "createSourceConnectionDraft", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" }
+    },
+    "/api/v1/config/source-connections/{connection_id}": { "get": { "operationId": "getSourceConnection", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/config/source-connections/{connection_id}/views": {
+      "get": { "operationId": "listSourceViews", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" },
+      "post": { "operationId": "createSourceViewDraft", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" }
+    },
+    "/api/v1/config/source-connections/{connection_id}/where-used": { "get": { "operationId": "sourceConnectionWhereUsed", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/config/source-views/{view_id}": { "get": { "operationId": "getSourceView", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/config/source-views/{view_id}/inspect": { "post": { "operationId": "inspectSourceViewDraft", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/config/source-views/{view_id}/bindings": {
+      "get": { "operationId": "listSourceBindings", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" },
+      "post": { "operationId": "createSourceBindingDraft", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" }
+    },
+    "/api/v1/config/source-views/{view_id}/where-used": { "get": { "operationId": "sourceViewWhereUsed", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/config/source-bindings/{binding_id}": { "get": { "operationId": "getSourceBinding", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/config/source-bindings/{binding_id}/preview": { "post": { "operationId": "previewSourceBinding", "x-clearsight-route-class": "AUTHENTICATED_OPERATION", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/config/source-bindings/{binding_id}/where-used": { "get": { "operationId": "sourceBindingWhereUsed", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+
     "/api/v1/evidence/sources": {
       "get": { "operationId": "listEvidenceSources", "x-clearsight-route-class": "AUTHENTICATED_READ" },
       "post": { "operationId": "createEvidenceSource", "x-clearsight-route-class": "AUTHENTICATED_WRITE" }

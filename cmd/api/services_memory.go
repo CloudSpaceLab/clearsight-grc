@@ -19,6 +19,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
@@ -38,6 +39,13 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	store := evidence.NewMemoryObjectStore()
 	evidenceService := evidence.NewService(evidence.NewMemoryRepository(nil, nil), store)
 	evidenceService.Configure(cfg.CaptureSessionTTL, cfg.MaxArtifactBytes)
+	sourceScopes := []sourceaccess.SourceScope{}
+	if cfg.DemoMode {
+		for _, source := range evidence.DemoSources() {
+			sourceScopes = append(sourceScopes, sourceaccess.SourceScope{TenantID: source.TenantID, SourceID: source.ID})
+		}
+	}
+	sourceCatalog := sourceaccess.NewCatalogService(sourceaccess.NewMemoryCatalogRepository(sourceScopes), sourceaccess.EnvironmentSecretResolver{}, sourceaccess.DefaultCatalogAdapters())
 	documentService := documentimport.NewService(documentimport.NewMemoryRepository(), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
 	continuityRepo := continuity.NewMemoryRepository()
@@ -92,7 +100,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 
 	return serviceSet{
 		Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()),
-		Evidence: evidenceService, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
+		Evidence: evidenceService, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
 		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo), Close: func() {},
 	}, nil

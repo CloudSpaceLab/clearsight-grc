@@ -160,6 +160,36 @@ func (r *PostgresCatalogRepository) ListCurrentBindings(ctx context.Context, ten
 	return values, nil
 }
 
+func (r *PostgresCatalogRepository) ListBindingRevisions(ctx context.Context, tenantID, viewID string, limit int) ([]BindingRevision, error) {
+	if r == nil || r.pool == nil {
+		return nil, ErrCatalogStorage
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT `+bindingRevisionColumns+`
+		  FROM source_bindings sb
+		  JOIN tenants t ON t.id=sb.tenant_id
+		 WHERE (t.id::text=$1 OR t.slug=$1)
+		   AND sb.view_id=$2::uuid
+		 ORDER BY sb.code,sb.binding_id,sb.version DESC
+		 LIMIT $3`, tenantID, viewID, catalogListLimit(limit))
+	if err != nil {
+		return nil, catalogReadError(err)
+	}
+	defer rows.Close()
+	values := make([]BindingRevision, 0)
+	for rows.Next() {
+		value, scanErr := scanBindingRevision(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		values = append(values, value)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, catalogReadError(err)
+	}
+	return values, nil
+}
+
 func viewRevisionForChild(ctx context.Context, tx pgx.Tx, tenantID, sourceID, viewID string, version int64) (ViewRevision, error) {
 	return scanViewRevision(tx.QueryRow(ctx, `
 		SELECT `+viewRevisionColumns+`

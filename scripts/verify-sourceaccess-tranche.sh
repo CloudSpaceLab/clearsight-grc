@@ -3,14 +3,16 @@ set -euo pipefail
 
 tranche="${1:-auto}"
 if [[ "$tranche" == "auto" ]]; then
-  if [[ -f migrations/000030_source_access_catalog.up.sql ]]; then
+  if [[ -f internal/sourceaccess/catalog_service.go && -f internal/httpapi/source_catalog_handlers.go ]]; then
+    tranche="t1b"
+  elif [[ -f migrations/000030_source_access_catalog.up.sql ]]; then
     tranche="t1a"
   else
     tranche="t0"
   fi
 fi
-if [[ "$tranche" != "t0" && "$tranche" != "t1a" ]]; then
-  echo "usage: $0 [auto|t0|t1a]" >&2
+if [[ "$tranche" != "t0" && "$tranche" != "t1a" && "$tranche" != "t1b" ]]; then
+  echo "usage: $0 [auto|t0|t1a|t1b]" >&2
   exit 2
 fi
 
@@ -109,7 +111,81 @@ END
 $$;
 SQL
   fi
-  summary="T0 contracts plus T1a durable Connection/View/Binding catalog, migration and legacy endpoint retirement passed."
+
+  if [[ "$tranche" == "t1a" ]]; then
+    summary="T0 contracts plus T1a durable Connection/View/Binding catalog, migration and legacy endpoint retirement passed."
+  else
+    required_t1b=(
+      internal/sourceaccess/catalog_service.go
+      internal/sourceaccess/catalog_service_test.go
+      internal/sourceaccess/catalog_history_postgres_integration_test.go
+      internal/httpapi/source_catalog_handlers.go
+      internal/httpapi/source_catalog_handlers_test.go
+      api/runtime.openapi.json
+      cmd/api/services.go
+      cmd/api/services_memory.go
+      cmd/api/services_postgres.go
+    )
+    for file in "${required_t1b[@]}"; do
+      test -s "$file" || { echo "missing T1b contract: $file" >&2; exit 1; }
+    done
+
+    grep -q 'ListConnectionRevisions' internal/sourceaccess/catalog_service.go || {
+      echo "T1b configuration reads do not retain Connection draft history" >&2
+      exit 1
+    }
+    grep -q 'ListViewRevisions' internal/sourceaccess/catalog_service.go || {
+      echo "T1b configuration reads do not retain View draft history" >&2
+      exit 1
+    }
+    grep -q 'ListBindingRevisions' internal/sourceaccess/catalog_service.go || {
+      echo "T1b configuration reads do not retain Binding draft history" >&2
+      exit 1
+    }
+    grep -q '!revisionExecutable(bindingRevision.Status)' internal/sourceaccess/catalog_service.go || {
+      echo "T1b preview does not reject retired or rejected Binding revisions" >&2
+      exit 1
+    }
+    grep -q 'InspectViewDraft' internal/sourceaccess/catalog_service.go || {
+      echo "T1b inspection does not create an immutable schema-bearing View revision" >&2
+      exit 1
+    }
+
+    python3 - <<'PY'
+import json
+from pathlib import Path
+
+expected = {
+    ("get", "/api/v1/config/sources/{source_id}/connections"): ("AUTHENTICATED_READ", "CONFIG_READ"),
+    ("post", "/api/v1/config/sources/{source_id}/connections"): ("AUTHENTICATED_WRITE", "CONFIG_WRITE"),
+    ("get", "/api/v1/config/source-connections/{connection_id}"): ("AUTHENTICATED_READ", "CONFIG_READ"),
+    ("get", "/api/v1/config/source-connections/{connection_id}/views"): ("AUTHENTICATED_READ", "CONFIG_READ"),
+    ("post", "/api/v1/config/source-connections/{connection_id}/views"): ("AUTHENTICATED_WRITE", "CONFIG_WRITE"),
+    ("get", "/api/v1/config/source-connections/{connection_id}/where-used"): ("AUTHENTICATED_READ", "CONFIG_READ"),
+    ("get", "/api/v1/config/source-views/{view_id}"): ("AUTHENTICATED_READ", "CONFIG_READ"),
+    ("post", "/api/v1/config/source-views/{view_id}/inspect"): ("AUTHENTICATED_WRITE", "CONFIG_WRITE"),
+    ("get", "/api/v1/config/source-views/{view_id}/bindings"): ("AUTHENTICATED_READ", "CONFIG_READ"),
+    ("post", "/api/v1/config/source-views/{view_id}/bindings"): ("AUTHENTICATED_WRITE", "CONFIG_WRITE"),
+    ("get", "/api/v1/config/source-views/{view_id}/where-used"): ("AUTHENTICATED_READ", "CONFIG_READ"),
+    ("get", "/api/v1/config/source-bindings/{binding_id}"): ("AUTHENTICATED_READ", "CONFIG_READ"),
+    ("post", "/api/v1/config/source-bindings/{binding_id}/preview"): ("AUTHENTICATED_OPERATION", "CONFIG_READ"),
+    ("get", "/api/v1/config/source-bindings/{binding_id}/where-used"): ("AUTHENTICATED_READ", "CONFIG_READ"),
+}
+document = json.loads(Path("api/runtime.openapi.json").read_text())
+for (method, path), (route_class, permission) in expected.items():
+    operation = document.get("paths", {}).get(path, {}).get(method)
+    if not operation:
+        raise SystemExit(f"runtime OpenAPI is missing {method.upper()} {path}")
+    if operation.get("x-clearsight-route-class") != route_class:
+        raise SystemExit(f"wrong route class for {method.upper()} {path}")
+    if operation.get("x-clearsight-permission") != permission:
+        raise SystemExit(f"wrong permission for {method.upper()} {path}")
+PY
+
+    go test ./internal/sourceaccess ./internal/httpapi ./cmd/api
+    go test -tags postgres ./internal/sourceaccess ./internal/httpapi ./cmd/api
+    summary="T0 and T1a plus T1b governed draft operations, bounded inspect/preview, revision-history reads, route permissions and runtime contract passed."
+  fi
 fi
 
 printf '%s\n' "$summary"
