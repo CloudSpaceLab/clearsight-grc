@@ -273,9 +273,19 @@ func catalogReadError(err error) error {
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrCatalogNotFound
 	}
+	if errors.Is(err, ErrCatalogNotFound) || errors.Is(err, ErrCatalogConflict) || errors.Is(err, ErrCatalogInvalid) || errors.Is(err, ErrCatalogStorage) {
+		return err
+	}
 	var databaseError *pgconn.PgError
-	if errors.As(err, &databaseError) && (databaseError.Code == "22P02" || databaseError.Code == "22023") {
-		return ErrCatalogInvalid
+	if errors.As(err, &databaseError) {
+		switch databaseError.Code {
+		case "23505":
+			return ErrCatalogConflict
+		case "23503":
+			return ErrCatalogNotFound
+		case "23514", "22P02", "22023":
+			return ErrCatalogInvalid
+		}
 	}
 	return ErrCatalogStorage
 }
@@ -285,6 +295,9 @@ func catalogWriteError(err error) error {
 		return nil
 	}
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	if errors.Is(err, ErrCatalogNotFound) || errors.Is(err, ErrCatalogConflict) || errors.Is(err, ErrCatalogInvalid) || errors.Is(err, ErrCatalogStorage) {
 		return err
 	}
 	if errors.Is(err, pgx.ErrNoRows) {
