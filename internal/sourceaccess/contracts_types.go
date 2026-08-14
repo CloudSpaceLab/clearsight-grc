@@ -105,9 +105,8 @@ type View struct {
 	StableKeys   []string        `json:"stable_keys"`
 }
 
-// Binding is the reusable, purpose-bound read contract consumed by assurance,
-// forms, evidence, workflows and gateway policy. Consumers retain its ID and
-// version rather than copying connection/query/mapping details.
+// Binding is a reusable, purpose-bound read contract. Consumer domains retain
+// its ID and version rather than copying connection, query or mapping details.
 type Binding struct {
 	ID             string         `json:"id"`
 	ViewID         string         `json:"view_id"`

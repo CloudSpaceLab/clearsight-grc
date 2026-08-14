@@ -175,9 +175,9 @@ For reusable bindings, assurance records the selected logical schema. A conditio
 
 A caller may open one source session and provide it to assurance and another bounded reader. The caller owns the lifecycle of an injected session. The compatibility constructor owns and closes the session it opens.
 
-## Deferred capabilities
+## Not implemented
 
-The following capabilities are not implemented in the current source-access tranche:
+The current source-access implementation does not include:
 
 - durable, effective-dated Connection, View and Binding records;
 - maker-checker administration and where-used references;
