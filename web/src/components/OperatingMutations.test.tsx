@@ -148,7 +148,7 @@ describe("governed operating mutations", () => {
     expect([...requestedStatus.options].map((option) => option.value)).toEqual(["PAUSED", "RETIRED"]);
     fireEvent.change(requestedStatus, { target: { value: "PAUSED" } });
     fireEvent.change(screen.getByLabelText("Rationale"), { target: { value: "Pause while ownership is corrected." } });
-    fireEvent.click(screen.getByRole("button", { name: "Request Paused" }));
+    fireEvent.click(screen.getByRole("button", { name: "Request pause" }));
 
     await waitFor(() => expect(transitionProgram).toHaveBeenCalledWith("program-1", 5, "PAUSED", "Pause while ownership is corrected."));
     expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ program: expect.objectContaining({ status: "PAUSED", version: 6 }) }));
