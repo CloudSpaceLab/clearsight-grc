@@ -156,7 +156,6 @@ func (s *session) CaptureChange(ctx context.Context, view sourceaccess.View, bin
 	}
 	receipt := sourceaccess.OperationReceipt{SourceID: s.connection.SourceID, ConnectionID: s.connection.ID, ConnectionVersion: s.connection.Version, AdapterKind: s.connection.AdapterKind, AdapterVersion: s.connection.AdapterVersion, ViewID: view.ID, ViewVersion: view.Version, BindingID: binding.ID, BindingVersion: binding.Version, DefinitionFingerprint: definitionFingerprint, SchemaFingerprint: schemaFingerprint, Operation: sourceaccess.OperationChanges, ObservedAt: now, Count: 1, Bytes: int64(len(event.Payload)), Completeness: sourceaccess.CompletenessComplete, Position: &position, RetryIdentity: webhookRetryIdentity(view, binding, event.EventID, position.Value, event.Payload)}
 	if duplicate {
-		_ = s.reconcileDuplicate(ctx, checkpoint, definition.PositionKind, position, now)
 		return sourceaccess.ChangeCaptureResult{Accepted: true, Duplicate: true, Receipt: receipt}, nil
 	}
 	transitionID, err := sourceaccess.CheckpointInboxEventID(checkpoint, checkpointConsumer, position)
@@ -179,9 +178,6 @@ func (s *session) CaptureChange(ctx context.Context, view sourceaccess.View, bin
 		return sourceaccess.ChangeCaptureResult{}, err
 	}
 	if !created {
-		if current, getErr := s.adapter.checkpoints.Get(ctx, s.connection.TenantID, binding.ID, bindingVersion); getErr == nil {
-			_ = s.reconcileDuplicate(ctx, current, definition.PositionKind, position, now)
-		}
 		return sourceaccess.ChangeCaptureResult{Accepted: true, Duplicate: true, Receipt: receipt}, nil
 	}
 	_ = s.advanceAccepted(ctx, checkpoint, definition.PositionKind, position, now)

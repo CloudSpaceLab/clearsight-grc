@@ -117,3 +117,30 @@ func eventContracts(t *testing.T, s *session, mode sourceaccess.CheckpointPositi
 	binding := sourceaccess.Binding{ID: "binding-a", ViewID: "view-a", Version: "1", Purpose: "event", Operations: []sourceaccess.Operation{sourceaccess.OperationChanges}, SelectedFields: []string{"account_id", "risk_score"}, Limits: sourceaccess.DefaultResourceLimits()}
 	return view, binding
 }
+
+func TestDuplicateProviderEventCannotMoveWatermarkOrRepublish(t *testing.T) {
+	ctx := context.Background()
+	runtimeRepo := runtime.NewMemoryRepository()
+	checkpointRepo := &checkpointRepo{}
+	s := mustSession(t, NewAdapter(runtimeRepo, sourceaccess.NewCheckpointService(checkpointRepo, runtimeRepo)))
+	view, binding := eventContracts(t, s, sourceaccess.CheckpointWatermark)
+	first := sourceaccess.ChangeEvent{EventID: "evt-fixed", Position: &sourceaccess.CheckpointPosition{Kind: sourceaccess.CheckpointWatermark, Value: "10"}, Payload: json.RawMessage(`{"account_id":"A1","risk_score":1}`)}
+	if _, err := s.CaptureChange(ctx, view, binding, first); err != nil {
+		t.Fatal(err)
+	}
+	replay := sourceaccess.ChangeEvent{EventID: "evt-fixed", Position: &sourceaccess.CheckpointPosition{Kind: sourceaccess.CheckpointWatermark, Value: "99"}, Payload: json.RawMessage(`{"account_id":"ALTERED","risk_score":999}`)}
+	result, err := s.CaptureChange(ctx, view, binding, replay)
+	if err != nil || !result.Accepted || !result.Duplicate {
+		t.Fatalf("replay=%#v err=%v", result, err)
+	}
+	if checkpointRepo.value.Position.Value != "10" || checkpointRepo.value.Generation != 1 {
+		t.Fatalf("duplicate provider ID moved checkpoint: %#v", checkpointRepo.value)
+	}
+	claimed, err := runtimeRepo.ClaimOutbox(ctx, "audit", time.Now().UTC(), time.Minute, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(claimed) != 1 {
+		t.Fatalf("duplicate provider ID published %d outbox events; want 1", len(claimed))
+	}
+}
