@@ -31,7 +31,7 @@ jobs:
           text = path.read_text()
           text = text.replace(
               'const TabularParserVersion = "TABULAR_V1"\n',
-              'const (\n\tTabularParserVersion        = "TABULAR_V1"\n\tHardMaxTabularMetadataBytes = 2 << 20\n)\n',
+              'const (\n\tTabularParserVersion         = "TABULAR_V1"\n\tHardMaxTabularMetadataBytes = 2 << 20\n)\n',
               1,
           )
           old = '''\tmetadata := state.metadata()
@@ -74,7 +74,7 @@ jobs:
           \tif compactErr != nil || len(compactEncoded) > HardMaxTabularMetadataBytes {
           \t\tcompact.RowErrors = nil
           \t}
-          \treturn compact, limitError(message)
+          \treturn compact, limitError("%s", message)
           }
           '''
           if old not in text:
