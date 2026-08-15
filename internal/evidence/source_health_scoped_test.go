@@ -114,6 +114,48 @@ func TestScopedSourceHealthMaintenanceMarksSuccessfulScopesStale(t *testing.T) {
 	}
 }
 
+func TestScopedSourceHealthMaintenanceBoundsProcessedSourcesNotOnlyChanges(t *testing.T) {
+	now := time.Date(2026, 8, 15, 6, 0, 0, 0, time.UTC)
+	oldSuccess := now.Add(-time.Hour)
+	sources := []Source{
+		{ID: "source-1", TenantID: "bank", Code: "A", Name: "A", Type: SourceSystem, AuthorityClass: "SYSTEM_OF_RECORD", ExpectedFreshnessMinutes: 5, Health: HealthCurrent, Status: SourceActive, Version: 1, CreatedAt: now.Add(-2 * time.Hour), UpdatedAt: now.Add(-time.Hour)},
+		{ID: "source-2", TenantID: "bank", Code: "B", Name: "B", Type: SourceSystem, AuthorityClass: "SYSTEM_OF_RECORD", ExpectedFreshnessMinutes: 5, LastSuccessAt: &oldSuccess, Health: HealthCurrent, Status: SourceActive, Version: 1, CreatedAt: now.Add(-2 * time.Hour), UpdatedAt: now.Add(-time.Hour)},
+	}
+	repo := NewMemoryRepository(sources, nil)
+	changed, err := repo.EvaluateScopedSourceHealth(context.Background(), now, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed != 0 {
+		t.Fatalf("maintenance exceeded one processed source and changed=%d", changed)
+	}
+	values, err := repo.ListSources(context.Background(), "bank", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, value := range values {
+		if value.ID == "source-2" && value.Health != HealthCurrent {
+			t.Fatalf("source beyond processing budget was changed: %#v", value)
+		}
+	}
+}
+
+func TestScopedSourceHealthRejectsFarFutureObservation(t *testing.T) {
+	now := time.Date(2026, 8, 15, 6, 0, 0, 0, time.UTC)
+	source := Source{ID: "source-1", TenantID: "bank", Code: "CORE", Name: "Core", Type: SourceSystem, AuthorityClass: "SYSTEM_OF_RECORD", ExpectedFreshnessMinutes: 30, Health: HealthUnknown, Status: SourceActive, Version: 1, CreatedAt: now.Add(-time.Hour), UpdatedAt: now.Add(-time.Hour)}
+	repo := NewMemoryRepository([]Source{source}, nil)
+	service := NewService(repo, NewMemoryObjectStore())
+	service.now = func() time.Time { return now }
+	observation := SourceObservation{TenantID: "bank", SourceID: source.ID, Scope: ObservationScopeSource, ObservedAt: now.Add(MaxSourceObservationFutureSkew + time.Second), Success: true}
+	if _, err := service.RecordSourceObservation(context.Background(), observation); err == nil {
+		t.Fatal("far-future success observation was accepted")
+	}
+	values, err := service.ListSources(context.Background(), "bank", 10)
+	if err != nil || len(values) != 1 || values[0].Health != HealthUnknown || values[0].LastObservedAt != nil {
+		t.Fatalf("future observation changed source health: values=%#v err=%v", values, err)
+	}
+}
+
 func TestScopedObservationShapeIsExplicit(t *testing.T) {
 	_, err := normalizeSourceObservationScope(SourceObservation{
 		TenantID: "bank", SourceID: "source", Scope: ObservationScopeBinding,
