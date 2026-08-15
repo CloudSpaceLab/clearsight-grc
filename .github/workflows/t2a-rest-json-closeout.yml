@@ -1,0 +1,667 @@
+name: T2a REST JSON source-access closeout
+
+on:
+  push:
+    branches:
+      - codex/issue-61-sourceaccess-t2a-rest-json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: t2a-rest-json-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  closeout:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/issue-61-sourceaccess-t2a-rest-json
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+      - name: Integrate REST JSON adapter with shared contracts
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # Shared source-access contracts: second adapter kind, observed schema and compact position receipt.
+          path = Path('internal/sourceaccess/contracts_types.go')
+          text = path.read_text()
+          text = text.replace(
+              '\tErrUnsupportedValue      = errors.New("source value is unsupported")\n',
+              '\tErrUnsupportedValue      = errors.New("source value is unsupported")\n\tErrSchemaDrift           = errors.New("source schema drift detected")\n',
+              1,
+          )
+          text = text.replace(
+              'const AdapterPostgres AdapterKind = "POSTGRES"\n',
+              'const (\n\tAdapterPostgres AdapterKind = "POSTGRES"\n\tAdapterRESTJSON AdapterKind = "REST_JSON"\n)\n',
+              1,
+          )
+          old = '''type View struct {
+          \tID           string          `json:"id"`
+          \tConnectionID string          `json:"connection_id"`
+          \tVersion      string          `json:"version"`
+          \tOutputKind   OutputKind      `json:"output_kind"`
+          \tDefinition   json.RawMessage `json:"definition"`
+          \tStableKeys   []string        `json:"stable_keys"`
+          }
+          '''
+          new = '''type View struct {
+          \tID                string          `json:"id"`
+          \tConnectionID      string          `json:"connection_id"`
+          \tVersion           string          `json:"version"`
+          \tOutputKind        OutputKind      `json:"output_kind"`
+          \tDefinition        json.RawMessage `json:"definition"`
+          \tStableKeys        []string        `json:"stable_keys"`
+          \tNativeSchema      []NativeField   `json:"native_schema,omitempty"`
+          \tSchemaFingerprint string          `json:"schema_fingerprint,omitempty"`
+          }
+          '''
+          if old not in text:
+              raise SystemExit('View contract changed')
+          text = text.replace(old, new, 1)
+          old = '''\tCompleteness          Completeness `json:"completeness"`
+          }
+          '''
+          new = '''\tCompleteness          Completeness       `json:"completeness"`
+          \tPosition              *CheckpointPosition `json:"position,omitempty"`
+          \tRetryIdentity         string             `json:"retry_identity,omitempty"`
+          }
+          '''
+          if old not in text:
+              raise SystemExit('OperationReceipt contract changed')
+          path.write_text(text.replace(old, new, 1))
+
+          # Validate optional inspected schema on the reusable View contract.
+          path = Path('internal/sourceaccess/contracts_validation.go')
+          text = path.read_text()
+          needle = '''\tif err := validateFields(v.StableKeys, HardMaxStableKeyFields); err != nil {
+          \t\treturn err
+          \t}
+          \treturn nil
+          }
+          '''
+          replacement = '''\tif err := validateFields(v.StableKeys, HardMaxStableKeyFields); err != nil {
+          \t\treturn err
+          \t}
+          \tif len(v.NativeSchema) > HardMaxSchemaFields {
+          \t\treturn ErrLimitExceeded
+          \t}
+          \tif (len(v.NativeSchema) == 0) != (v.SchemaFingerprint == "") {
+          \t\treturn fmt.Errorf("%w: native schema and schema fingerprint must be supplied together", ErrDefinitionInvalid)
+          \t}
+          \tif v.SchemaFingerprint != "" && !isLowerHex(v.SchemaFingerprint, 64) {
+          \t\treturn fmt.Errorf("%w: schema fingerprint must be a lowercase SHA-256 value", ErrDefinitionInvalid)
+          \t}
+          \tif len(v.NativeSchema) > 0 {
+          \t\tseen := make(map[string]struct{}, len(v.NativeSchema))
+          \t\tfor _, field := range v.NativeSchema {
+          \t\t\tif !ValidFieldName(field.Name) || strings.TrimSpace(field.NativeType) == "" || field.NativeType != strings.TrimSpace(field.NativeType) || len(field.NativeType) > HardMaxIdentifierBytes || containsControl(field.NativeType) {
+          \t\t\t\treturn fmt.Errorf("%w: source schema contains an invalid field", ErrDefinitionInvalid)
+          \t\t\t}
+          \t\t\tif _, exists := seen[field.Name]; exists {
+          \t\t\t\treturn fmt.Errorf("%w: source schema contains duplicate fields", ErrDefinitionInvalid)
+          \t\t\t}
+          \t\t\tseen[field.Name] = struct{}{}
+          \t\t}
+          \t\tfor _, key := range v.StableKeys {
+          \t\t\tif _, exists := seen[key]; !exists {
+          \t\t\t\treturn fmt.Errorf("%w: stable keys must exist in the inspected native schema", ErrDefinitionInvalid)
+          \t\t\t}
+          \t\t}
+          \t}
+          \treturn nil
+          }
+          '''
+          if needle not in text:
+              raise SystemExit('View validation insertion point changed')
+          path.write_text(text.replace(needle, replacement, 1))
+
+          # Preserve observed schema in runtime View contracts without changing definition fingerprints.
+          path = Path('internal/sourceaccess/catalog_types.go')
+          text = path.read_text()
+          old = '''\tcontract := View{
+          \t\tID:           value.ViewID,
+          \t\tConnectionID: value.ConnectionID,
+          \t\tVersion:      strconv.FormatInt(value.Version, 10),
+          \t\tOutputKind:   value.OutputKind,
+          \t\tDefinition:   cloneRawMessage(value.Definition),
+          \t\tStableKeys:   append([]string(nil), value.StableKeys...),
+          \t}
+          '''
+          new = '''\tcontract := View{
+          \t\tID:                value.ViewID,
+          \t\tConnectionID:      value.ConnectionID,
+          \t\tVersion:           strconv.FormatInt(value.Version, 10),
+          \t\tOutputKind:        value.OutputKind,
+          \t\tDefinition:        cloneRawMessage(value.Definition),
+          \t\tStableKeys:        append([]string(nil), value.StableKeys...),
+          \t\tNativeSchema:      append([]NativeField(nil), value.NativeSchema...),
+          \t\tSchemaFingerprint: value.SchemaFingerprint,
+          \t}
+          '''
+          if old not in text:
+              raise SystemExit('ViewRevision.Contract changed')
+          text = text.replace(old, new, 1)
+          old = '''\tviewContract := View{
+          \t\tID:           view.ViewID,
+          \t\tConnectionID: view.ConnectionID,
+          \t\tVersion:      strconv.FormatInt(view.Version, 10),
+          \t\tOutputKind:   view.OutputKind,
+          \t\tDefinition:   cloneRawMessage(view.Definition),
+          \t\tStableKeys:   append([]string(nil), view.StableKeys...),
+          \t}
+          '''
+          new = '''\tviewContract := View{
+          \t\tID:                view.ViewID,
+          \t\tConnectionID:      view.ConnectionID,
+          \t\tVersion:           strconv.FormatInt(view.Version, 10),
+          \t\tOutputKind:        view.OutputKind,
+          \t\tDefinition:        cloneRawMessage(view.Definition),
+          \t\tStableKeys:        append([]string(nil), view.StableKeys...),
+          \t\tNativeSchema:      append([]NativeField(nil), view.NativeSchema...),
+          \t\tSchemaFingerprint: view.SchemaFingerprint,
+          \t}
+          '''
+          if old not in text:
+              raise SystemExit('BindingRevision view contract changed')
+          path.write_text(text.replace(old, new, 1))
+
+          path = Path('internal/sourceaccess/contracts_fingerprint.go')
+          text = path.read_text()
+          needle = '''\tview.Definition = definition
+          \tview.StableKeys = append([]string{}, view.StableKeys...)
+          \treturn view, nil
+          }
+          '''
+          replacement = '''\tview.Definition = definition
+          \tview.StableKeys = append([]string{}, view.StableKeys...)
+          \t// Definition fingerprints describe executable configuration only. The
+          \t// independently observed native schema is carried by SchemaFingerprint.
+          \tview.NativeSchema = nil
+          \tview.SchemaFingerprint = ""
+          \treturn view, nil
+          }
+          '''
+          if needle not in text:
+              raise SystemExit('canonicalView changed')
+          path.write_text(text.replace(needle, replacement, 1))
+
+          # Catalog registration, strict REST definition normalization, lookup reuse and schema drift gate.
+          path = Path('internal/sourceaccess/catalog_service.go')
+          text = path.read_text()
+          text = text.replace(
+              'return map[AdapterKind]Adapter{AdapterPostgres: NewPostgresAdapter(DefaultPostgresOptions())}',
+              'return map[AdapterKind]Adapter{\n\t\tAdapterPostgres: NewPostgresAdapter(DefaultPostgresOptions()),\n\t\tAdapterRESTJSON: NewRESTJSONAdapter(DefaultRESTJSONOptions()),\n\t}',
+              1,
+          )
+          old = '''\tif input.AdapterKind == AdapterPostgres {
+          \t\tsecretRef := strings.TrimSpace(input.SecretRef)
+          \t\tif secretRef == "" || secretRef != input.SecretRef || len(secretRef) > HardMaxIdentifierBytes || containsControl(secretRef) {
+          \t\t\treturn fmt.Errorf("%w: PostgreSQL connections require a bounded opaque secret reference", ErrCatalogInvalid)
+          \t\t}
+          \t\tdefinition, err := normalizeJSONObject(defaultJSONObject(input.Definition), HardMaxDefinitionBytes, "connection definition")
+          \t\tif err != nil {
+          \t\t\treturn err
+          \t\t}
+          \t\tif string(definition) != "{}" {
+          \t\t\treturn fmt.Errorf("%w: PostgreSQL connection definitions are not supported", ErrCatalogInvalid)
+          \t\t}
+          \t}
+          \treturn nil
+          }
+          '''
+          new = '''\tswitch input.AdapterKind {
+          \tcase AdapterPostgres:
+          \t\tsecretRef := strings.TrimSpace(input.SecretRef)
+          \t\tif secretRef == "" || secretRef != input.SecretRef || len(secretRef) > HardMaxIdentifierBytes || containsControl(secretRef) {
+          \t\t\treturn fmt.Errorf("%w: PostgreSQL connections require a bounded opaque secret reference", ErrCatalogInvalid)
+          \t\t}
+          \t\tdefinition, err := normalizeJSONObject(defaultJSONObject(input.Definition), HardMaxDefinitionBytes, "connection definition")
+          \t\tif err != nil {
+          \t\t\treturn err
+          \t\t}
+          \t\tif string(definition) != "{}" {
+          \t\t\treturn fmt.Errorf("%w: PostgreSQL connection definitions are not supported", ErrCatalogInvalid)
+          \t\t}
+          \tcase AdapterRESTJSON:
+          \t\tif _, err := normalizeRESTJSONConnectionDefinition(defaultJSONObject(input.Definition), strings.TrimSpace(input.SecretRef)); err != nil {
+          \t\t\treturn errors.Join(ErrCatalogInvalid, err)
+          \t\t}
+          \t}
+          \treturn nil
+          }
+          '''
+          if old not in text:
+              raise SystemExit('validateDraftAdapter changed')
+          text = text.replace(old, new, 1)
+          old = '''\tif kind == AdapterPostgres && version != PostgresAdapterVersion {
+          \t\treturn nil, fmt.Errorf("%w: unsupported PostgreSQL adapter version", ErrCatalogInvalid)
+          \t}
+          \treturn s.adapters[kind], nil
+          }
+          '''
+          new = '''\tswitch kind {
+          \tcase AdapterPostgres:
+          \t\tif version != PostgresAdapterVersion {
+          \t\t\treturn nil, fmt.Errorf("%w: unsupported PostgreSQL adapter version", ErrCatalogInvalid)
+          \t\t}
+          \tcase AdapterRESTJSON:
+          \t\tif version != RESTJSONAdapterVersion {
+          \t\t\treturn nil, fmt.Errorf("%w: unsupported REST/JSON adapter version", ErrCatalogInvalid)
+          \t\t}
+          \t}
+          \treturn s.adapters[kind], nil
+          }
+          '''
+          if old not in text:
+              raise SystemExit('adapterFor changed')
+          text = text.replace(old, new, 1)
+          needle = '''\tif connection.AdapterKind == AdapterPostgres {
+          \t\tdefinition, err := decodePostgresView(candidate)
+          \t\tif err != nil {
+          \t\t\treturn nil, errors.Join(ErrCatalogInvalid, err)
+          \t\t}
+          \t\tencoded, err := json.Marshal(definition)
+          \t\tif err != nil {
+          \t\t\treturn nil, errors.Join(ErrCatalogInvalid, err)
+          \t\t}
+          \t\treturn encoded, nil
+          \t}
+          \treturn normalizeJSONObject(raw, HardMaxDefinitionBytes, "view definition")
+          }
+          '''
+          replacement = '''\tif connection.AdapterKind == AdapterPostgres {
+          \t\tdefinition, err := decodePostgresView(candidate)
+          \t\tif err != nil {
+          \t\t\treturn nil, errors.Join(ErrCatalogInvalid, err)
+          \t\t}
+          \t\tencoded, err := json.Marshal(definition)
+          \t\tif err != nil {
+          \t\t\treturn nil, errors.Join(ErrCatalogInvalid, err)
+          \t\t}
+          \t\treturn encoded, nil
+          \t}
+          \tif connection.AdapterKind == AdapterRESTJSON {
+          \t\tdefinition, err := normalizeRESTJSONViewDefinition(raw)
+          \t\tif err != nil {
+          \t\t\treturn nil, errors.Join(ErrCatalogInvalid, err)
+          \t\t}
+          \t\treturn definition, nil
+          \t}
+          \treturn normalizeJSONObject(raw, HardMaxDefinitionBytes, "view definition")
+          }
+          '''
+          if needle not in text:
+              raise SystemExit('normalizeDraftViewDefinition changed')
+          text = text.replace(needle, replacement, 1)
+          needle = '''\tif err := validateCatalogReceipt(page.Receipt, connection, view, binding, OperationPage, int64(len(page.Records))); err != nil {
+          \t\treturn RecordPage{}, err
+          \t}
+          \tif len(page.Records) > request.Limit || page.Receipt.Bytes > limits.ResponseBytes {
+          '''
+          replacement = '''\tif err := validateCatalogReceipt(page.Receipt, connection, view, binding, OperationPage, int64(len(page.Records))); err != nil {
+          \t\treturn RecordPage{}, err
+          \t}
+          \tif err := validateExpectedSchema(view, page.Receipt.SchemaFingerprint); err != nil {
+          \t\treturn RecordPage{}, err
+          \t}
+          \tif len(page.Records) > request.Limit || page.Receipt.Bytes > limits.ResponseBytes {
+          '''
+          if needle not in text:
+              raise SystemExit('PreviewBinding receipt block changed')
+          text = text.replace(needle, replacement, 1)
+          marker = '''\treturn page, nil
+          }
+
+          func (s *CatalogService) WhereUsed'''
+          lookup_method = '''\treturn page, nil
+          }
+
+          // LookupBinding resolves an exact governed Binding through its registered adapter.
+          // It is an internal reusable operation for forms/evidence/workflow consumers; no
+          // connector configuration or query material is copied into those domains.
+          func (s *CatalogService) LookupBinding(ctx context.Context, tenantID, bindingID string, version int64, request LookupRequest) (LookupResult, error) {
+          \tbindingRevision, err := s.binding(ctx, tenantID, bindingID, version)
+          \tif err != nil {
+          \t\treturn LookupResult{}, err
+          \t}
+          \tif !revisionExecutable(bindingRevision.Status) {
+          \t\treturn LookupResult{}, ErrCatalogInvalid
+          \t}
+          \tviewRevision, err := s.repoOrError().ViewRevision(ctx, tenantID, bindingRevision.ViewID, bindingRevision.ViewVersion)
+          \tif err != nil {
+          \t\treturn LookupResult{}, err
+          \t}
+          \tconnectionRevision, err := s.repoOrError().ConnectionRevision(ctx, tenantID, viewRevision.ConnectionID, viewRevision.ConnectionVersion)
+          \tif err != nil {
+          \t\treturn LookupResult{}, err
+          \t}
+          \tconnection, view, adapter, err := s.executionContracts(connectionRevision, viewRevision)
+          \tif err != nil {
+          \t\treturn LookupResult{}, err
+          \t}
+          \tbinding, err := bindingRevision.Contract(viewRevision)
+          \tif err != nil {
+          \t\treturn LookupResult{}, err
+          \t}
+          \tif !binding.Allows(OperationLookup) {
+          \t\treturn LookupResult{}, ErrCapabilityUnavailable
+          \t}
+          \tlimits, err := binding.NormalizedLimits()
+          \tif err != nil {
+          \t\treturn LookupResult{}, err
+          \t}
+          \toperationCtx, cancel := context.WithTimeout(ctx, limits.Timeout)
+          \tdefer cancel()
+          \tsession, err := adapter.Open(operationCtx, connection, s.secrets)
+          \tif err != nil {
+          \t\treturn LookupResult{}, err
+          \t}
+          \tdefer session.Close()
+          \tif !session.Capabilities().Has(CapabilityLookup) {
+          \t\treturn LookupResult{}, ErrCapabilityUnavailable
+          \t}
+          \treader, ok := session.(LookupReader)
+          \tif !ok {
+          \t\treturn LookupResult{}, ErrCapabilityUnavailable
+          \t}
+          \tresult, err := reader.Lookup(operationCtx, view, binding, request)
+          \tif err != nil {
+          \t\treturn LookupResult{}, err
+          \t}
+          \tif err := validateCatalogReceipt(result.Receipt, connection, view, binding, OperationLookup, int64(len(result.Records))); err != nil {
+          \t\treturn LookupResult{}, err
+          \t}
+          \tif err := validateExpectedSchema(view, result.Receipt.SchemaFingerprint); err != nil {
+          \t\treturn LookupResult{}, err
+          \t}
+          \tif len(result.Records) > limits.LookupValues || result.Receipt.Bytes > limits.ResponseBytes {
+          \t\treturn LookupResult{}, ErrLimitExceeded
+          \t}
+          \treturn result, nil
+          }
+
+          func (s *CatalogService) WhereUsed'''
+          if marker not in text:
+              raise SystemExit('LookupBinding insertion point changed')
+          text = text.replace(marker, lookup_method, 1)
+          old = '''\tcase OperationPage:
+          \t\tif receipt.BindingID != binding.ID || receipt.BindingVersion != binding.Version ||
+          \t\t\t(receipt.Completeness != CompletenessComplete && receipt.Completeness != CompletenessPartial) {
+          \t\t\treturn ErrExecution
+          \t\t}
+          \tdefault:
+          '''
+          new = '''\tcase OperationPage:
+          \t\tif receipt.BindingID != binding.ID || receipt.BindingVersion != binding.Version ||
+          \t\t\t(receipt.Completeness != CompletenessComplete && receipt.Completeness != CompletenessPartial) {
+          \t\t\treturn ErrExecution
+          \t\t}
+          \tcase OperationLookup:
+          \t\tif receipt.BindingID != binding.ID || receipt.BindingVersion != binding.Version || receipt.Completeness != CompletenessComplete {
+          \t\t\treturn ErrExecution
+          \t\t}
+          \tdefault:
+          '''
+          if old not in text:
+              raise SystemExit('validateCatalogReceipt switch changed')
+          path.write_text(text.replace(old, new, 1))
+
+          # PostgreSQL benefits from the same catalog schema-drift guard.
+          path = Path('internal/sourceaccess/postgres_read.go')
+          text = path.read_text()
+          page_needle = '''\tfields, schemaFingerprint, err := s.inspectSchemaTx(operationCtx, tx, definition)
+          \tif err != nil {
+          \t\treturn RecordPage{}, err
+          \t}
+          \tfieldKinds, err := selectedFieldKinds(fields, binding.SelectedFields)
+          '''
+          page_replacement = '''\tfields, schemaFingerprint, err := s.inspectSchemaTx(operationCtx, tx, definition)
+          \tif err != nil {
+          \t\treturn RecordPage{}, err
+          \t}
+          \tif err := validateExpectedSchema(view, schemaFingerprint); err != nil {
+          \t\treturn RecordPage{}, err
+          \t}
+          \tfieldKinds, err := selectedFieldKinds(fields, binding.SelectedFields)
+          '''
+          if page_needle not in text:
+              raise SystemExit('PostgreSQL page schema block changed')
+          text = text.replace(page_needle, page_replacement, 1)
+          lookup_needle = '''\tfields, schemaFingerprint, err := s.inspectSchemaTx(operationCtx, tx, definition)
+          \tif err != nil {
+          \t\treturn LookupResult{}, err
+          \t}
+          \tfieldKinds, err := selectedFieldKinds(fields, binding.SelectedFields)
+          '''
+          lookup_replacement = '''\tfields, schemaFingerprint, err := s.inspectSchemaTx(operationCtx, tx, definition)
+          \tif err != nil {
+          \t\treturn LookupResult{}, err
+          \t}
+          \tif err := validateExpectedSchema(view, schemaFingerprint); err != nil {
+          \t\treturn LookupResult{}, err
+          \t}
+          \tfieldKinds, err := selectedFieldKinds(fields, binding.SelectedFields)
+          '''
+          if lookup_needle not in text:
+              raise SystemExit('PostgreSQL lookup schema block changed')
+          path.write_text(text.replace(lookup_needle, lookup_replacement, 1))
+
+          path = Path('internal/sourceaccess/postgres_aggregate.go')
+          text = path.read_text()
+          needle = '''\tfields, schemaFingerprint, err := s.inspectSchemaTx(operationCtx, tx, definition)
+          \tif err != nil {
+          \t\treturn AggregateResult{}, err
+          \t}
+          \tselectedFields, err := selectedNativeFields(fields, binding.SelectedFields)
+          '''
+          replacement = '''\tfields, schemaFingerprint, err := s.inspectSchemaTx(operationCtx, tx, definition)
+          \tif err != nil {
+          \t\treturn AggregateResult{}, err
+          \t}
+          \tif err := validateExpectedSchema(view, schemaFingerprint); err != nil {
+          \t\treturn AggregateResult{}, err
+          \t}
+          \tselectedFields, err := selectedNativeFields(fields, binding.SelectedFields)
+          '''
+          if needle not in text:
+              raise SystemExit('PostgreSQL aggregate schema block changed')
+          path.write_text(text.replace(needle, replacement, 1))
+
+          # REST JSON page/lookup schema checks must tolerate optional fields while blocking new/type-drift fields.
+          path = Path('internal/sourceaccess/rest_json_read.go')
+          text = path.read_text()
+          text = text.replace('\t"errors"\n', '', 1)
+          text = text.replace('\t"time"\n', '', 1)
+          old = '''\tschemaFingerprint := view.SchemaFingerprint
+          \tif len(fullRecords) > 0 {
+          \t\t_, observedFingerprint, err := inferRESTSchema(fullRecords)
+          \t\tif err != nil {
+          \t\t\treturn RecordPage{}, err
+          \t\t}
+          \t\tif err := validateExpectedSchema(view, observedFingerprint); err != nil {
+          \t\t\treturn RecordPage{}, err
+          \t\t}
+          \t\tschemaFingerprint = observedFingerprint
+          \t}
+          '''
+          new = '''\tschemaFingerprint, err := restObservedSchemaFingerprint(view, fullRecords)
+          \tif err != nil {
+          \t\treturn RecordPage{}, err
+          \t}
+          '''
+          if old not in text:
+              raise SystemExit('REST page schema block changed')
+          text = text.replace(old, new, 1)
+          old = '''\tschemaFingerprint := view.SchemaFingerprint
+          \tif len(fullRecords) > 0 {
+          \t\t_, observedFingerprint, err := inferRESTSchema(fullRecords)
+          \t\tif err != nil {
+          \t\t\treturn LookupResult{}, err
+          \t\t}
+          \t\tif err := validateExpectedSchema(view, observedFingerprint); err != nil {
+          \t\t\treturn LookupResult{}, err
+          \t\t}
+          \t\tschemaFingerprint = observedFingerprint
+          \t}
+          '''
+          new = '''\tschemaFingerprint, err := restObservedSchemaFingerprint(view, fullRecords)
+          \tif err != nil {
+          \t\treturn LookupResult{}, err
+          \t}
+          '''
+          if old not in text:
+              raise SystemExit('REST lookup schema block changed')
+          text = text.replace(old, new, 1)
+          duplicate = '''func validateExpectedSchema(view View, observed string) error {
+          \tif view.SchemaFingerprint != "" && observed != "" && view.SchemaFingerprint != observed {
+          \t\treturn ErrSchemaDrift
+          \t}
+          \treturn nil
+          }
+
+          '''
+          text = text.replace(duplicate, '', 1)
+          tail = '''var _ SchemaReader = (*RESTJSONSession)(nil)
+          var _ PageReader = (*RESTJSONSession)(nil)
+          var _ LookupReader = (*RESTJSONSession)(nil)
+
+          func restIsContextError(err error) bool {
+          \treturn errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+          }
+
+          var _ = time.UTC
+          '''
+          replacement = '''func restObservedSchemaFingerprint(view View, records []map[string]any) (string, error) {
+          \tif len(records) == 0 {
+          \t\treturn view.SchemaFingerprint, nil
+          \t}
+          \tif len(view.NativeSchema) == 0 || view.SchemaFingerprint == "" {
+          \t\t_, fingerprint, err := inferRESTSchema(records)
+          \t\treturn fingerprint, err
+          \t}
+          \tif err := validateRESTRecordsAgainstSchema(view.NativeSchema, records); err != nil {
+          \t\treturn "", err
+          \t}
+          \treturn view.SchemaFingerprint, nil
+          }
+
+          func validateRESTRecordsAgainstSchema(schema []NativeField, records []map[string]any) error {
+          \texpected := make(map[string]NativeField, len(schema))
+          \tfor _, field := range schema {
+          \t\texpected[field.Name] = field
+          \t}
+          \tfor _, record := range records {
+          \t\tfor name, value := range record {
+          \t\t\tfield, exists := expected[name]
+          \t\t\tif !exists {
+          \t\t\t\treturn ErrSchemaDrift
+          \t\t\t}
+          \t\t\tif value == nil || field.NativeType == "json:mixed" {
+          \t\t\t\tcontinue
+          \t\t\t}
+          \t\t\tif restNativeType(value) != field.NativeType {
+          \t\t\t\treturn ErrSchemaDrift
+          \t\t\t}
+          \t\t}
+          \t\tfor _, field := range schema {
+          \t\t\tif _, exists := record[field.Name]; !exists && !field.Nullable {
+          \t\t\t\treturn ErrSchemaDrift
+          \t\t\t}
+          \t\t}
+          \t}
+          \treturn nil
+          }
+
+          var _ SchemaReader = (*RESTJSONSession)(nil)
+          var _ PageReader = (*RESTJSONSession)(nil)
+          var _ LookupReader = (*RESTJSONSession)(nil)
+          '''
+          if tail not in text:
+              raise SystemExit('REST read tail changed')
+          path.write_text(text.replace(tail, replacement, 1))
+
+          # Document the first T2 slice without claiming tabular/webhook completion.
+          path = Path('docs/architecture/connected-source-access.md')
+          text = path.read_text()
+          marker = '## Current limitations\n'
+          addition = '''## REST/JSON adapter — T2a\n\n`REST_JSON` is the second executable adapter and intentionally remains narrower than a generic HTTP client. A Connection owns one fixed HTTPS base origin and an optional bearer or safe-header secret reference. A View owns fixed GET paths, fixed query values, a JSON records pointer, optional bounded cursor/ETag pagination and an optional repeated-query lookup contract. Runtime callers can supply only bounded page cursors or lookup scalar values through an activated Binding; they cannot supply URLs, paths, headers or arbitrary request templates.\n\nSuccessful reads return the same bounded `Record`, schema and operation-receipt contracts as PostgreSQL. Response bodies are size-bounded after decompression, redirects are rejected, authentication material is never copied into receipts, and the inspected native schema is checked on later reads. JSON optional fields may be absent, but new fields or incompatible scalar types are treated as schema drift instead of silently changing the Binding contract.\n\nREST pagination exposes opaque cursor or ETag source positions through the existing checkpoint representation. Scheduling/retry remains owned by `internal/runtime`; the adapter does not add a pull scheduler or cache.\n\n'''
+          if marker not in text:
+              raise SystemExit('connected source limitations heading missing')
+          if '## REST/JSON adapter — T2a' not in text:
+              text = text.replace(marker, addition + marker, 1)
+          text = text.replace('- PostgreSQL is the only executable adapter.\n', '- PostgreSQL and REST/JSON are executable adapters; tabular-file and webhook/event adapters remain T2 work.\n', 1)
+          path.write_text(text)
+
+          # Add an explicit T2a acceptance mode. No migration/table is allowed in this adapter-only slice.
+          path = Path('scripts/verify-sourceaccess-tranche.sh')
+          text = path.read_text()
+          text = text.replace(
+              'if [[ -f migrations/000031_source_access_runtime_state.up.sql && -f internal/sourceaccess/checkpoint.go && -f internal/evidence/source_health_scoped.go ]]; then\n    tranche="t1c"',
+              'if [[ -f internal/sourceaccess/rest_json_adapter.go && -f internal/sourceaccess/rest_json_read.go ]]; then\n    tranche="t2a"\n  elif [[ -f migrations/000031_source_access_runtime_state.up.sql && -f internal/sourceaccess/checkpoint.go && -f internal/evidence/source_health_scoped.go ]]; then\n    tranche="t1c"',
+              1,
+          )
+          text = text.replace(
+              'if [[ "$tranche" != "t0" && "$tranche" != "t1a" && "$tranche" != "t1b" && "$tranche" != "t1c" ]]; then\n  echo "usage: $0 [auto|t0|t1a|t1b|t1c]" >&2',
+              'if [[ "$tranche" != "t0" && "$tranche" != "t1a" && "$tranche" != "t1b" && "$tranche" != "t1c" && "$tranche" != "t2a" ]]; then\n  echo "usage: $0 [auto|t0|t1a|t1b|t1c|t2a]" >&2',
+              1,
+          )
+          # T1c block currently handles every tranche after t1b. Retain it, then extend only for t2a.
+          needle = '      summary="Complete T1 durable reusable sources passed: catalog, governed operations, replay-safe checkpoints, scoped health aggregation, schema ownership and rollback/reapply controls."\n'
+          addition = '''      summary="Complete T1 durable reusable sources passed: catalog, governed operations, replay-safe checkpoints, scoped health aggregation, schema ownership and rollback/reapply controls."
+          \t  if [[ "$tranche" == "t2a" ]]; then
+          \t    required_t2a=(
+          \t      internal/sourceaccess/rest_json_adapter.go
+          \t      internal/sourceaccess/rest_json_definition.go
+          \t      internal/sourceaccess/rest_json_read.go
+          \t      internal/sourceaccess/rest_json_test.go
+          \t      internal/sourceaccess/schema_guard.go
+          \t    )
+          \t    for file in "${required_t2a[@]}"; do
+          \t      test -s "$file" || { echo "missing T2a contract: $file" >&2; exit 1; }
+          \t    done
+          \t    grep -q 'AdapterRESTJSON' internal/sourceaccess/contracts_types.go || { echo "REST/JSON adapter kind is not in the shared contract" >&2; exit 1; }
+          \t    grep -q 'AdapterRESTJSON: NewRESTJSONAdapter' internal/sourceaccess/catalog_service.go || { echo "REST/JSON adapter is not registered in the catalog" >&2; exit 1; }
+          \t    grep -q 'parsed.Scheme != "https"' internal/sourceaccess/rest_json_definition.go || { echo "REST/JSON adapter does not enforce HTTPS origins" >&2; exit 1; }
+          \t    grep -q 'http.ErrUseLastResponse' internal/sourceaccess/rest_json_adapter.go || { echo "REST/JSON redirects are not explicitly disabled" >&2; exit 1; }
+          \t    if grep -R -nE --include='rest_json*.go' '(POST|PUT|PATCH|DELETE).*http.Method' internal/sourceaccess; then
+          \t      echo "T2a REST/JSON adapter introduced a write method" >&2
+          \t      exit 1
+          \t    fi
+          \t    if compgen -G 'migrations/000032*' >/dev/null; then
+          \t      echo "T2a REST/JSON adapter must not introduce durable tables or migration 32" >&2
+          \t      exit 1
+          \t    fi
+          \t    go test ./internal/sourceaccess
+          \t    go test -tags postgres ./internal/sourceaccess ./internal/assurance
+          \t    summary="T2a REST/JSON source access passed: fixed HTTPS origin, strict templates, bounded inspect/page/lookup, cursor/ETag positions, secret isolation and schema-drift blocking."
+          \t  fi
+          '''
+          if needle not in text:
+              raise SystemExit('T1c summary insertion point changed')
+          text = text.replace(needle, addition, 1)
+          path.write_text(text)
+          PY
+
+          gofmt -w $(find cmd internal -name '*.go' -type f)
+          go test ./internal/sourceaccess ./internal/assurance ./internal/httpapi ./internal/runtime
+          go test -tags postgres ./internal/sourceaccess ./internal/assurance ./internal/httpapi ./internal/runtime
+          bash scripts/verify-sourceaccess-tranche.sh t2a
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add internal docs scripts
+          if git diff --cached --quiet; then
+            echo "No T2a integration changes to publish."
+            exit 0
+          fi
+          git commit -m "feat(sourceaccess): integrate REST JSON T2a adapter"
+          git push origin HEAD:codex/issue-61-sourceaccess-t2a-rest-json
