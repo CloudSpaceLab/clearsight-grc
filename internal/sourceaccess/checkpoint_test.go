@@ -92,6 +92,38 @@ func TestCheckpointLeaseExpiryReplaysSamePositionAndFailureBacksOff(t *testing.T
 	}
 }
 
+func TestCheckpointLeaseGenerationFencesStaleClaimFromSameWorker(t *testing.T) {
+	ctx := context.Background()
+	catalog, binding := memoryCheckpointCatalog(t)
+	repository := NewMemoryCheckpointRepository(catalog)
+	now := time.Date(2026, 8, 15, 6, 0, 0, 0, time.UTC)
+	if _, err := repository.EnsureBindingCheckpoint(ctx, binding.TenantID, binding.SourceID, binding.BindingID, binding.Version, now); err != nil {
+		t.Fatal(err)
+	}
+	first, err := repository.ClaimBindingCheckpoints(ctx, "worker-a", now, time.Minute, 1)
+	if err != nil || len(first) != 1 {
+		t.Fatalf("first claim=%#v err=%v", first, err)
+	}
+	second, err := repository.ClaimBindingCheckpoints(ctx, "worker-a", now.Add(2*time.Minute), time.Minute, 1)
+	if err != nil || len(second) != 1 {
+		t.Fatalf("same worker did not reclaim expired lease: claims=%#v err=%v", second, err)
+	}
+	if first[0].LeaseUntil == nil || second[0].LeaseUntil == nil || first[0].LeaseUntil.Equal(*second[0].LeaseUntil) {
+		t.Fatalf("lease generation did not change: first=%#v second=%#v", first[0], second[0])
+	}
+	at := now.Add(2*time.Minute + 10*time.Second)
+	if _, err := repository.AdvanceBindingCheckpoint(ctx, first[0], CheckpointPosition{Kind: CheckpointCursor, Value: "stale"}, at, now.Add(4*time.Minute)); !errors.Is(err, ErrCheckpointClaimLost) {
+		t.Fatalf("stale same-worker claim advanced the newer lease: %v", err)
+	}
+	if _, err := repository.FailBindingCheckpoint(ctx, first[0], 3, "STALE_FAILURE", at, now.Add(4*time.Minute)); !errors.Is(err, ErrCheckpointClaimLost) {
+		t.Fatalf("stale same-worker claim failed the newer lease: %v", err)
+	}
+	advanced, err := repository.AdvanceBindingCheckpoint(ctx, second[0], CheckpointPosition{Kind: CheckpointCursor, Value: "current"}, at, now.Add(4*time.Minute))
+	if err != nil || advanced.Position.Value != "current" {
+		t.Fatalf("current lease could not advance: checkpoint=%#v err=%v", advanced, err)
+	}
+}
+
 func TestCheckpointRequiresCurrentActiveStatefulBinding(t *testing.T) {
 	ctx := context.Background()
 	catalog, binding := memoryCheckpointCatalog(t)
