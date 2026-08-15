@@ -20,8 +20,9 @@ import (
 )
 
 const (
-	providerConsumer   = "source-webhook-provider-v1"
-	checkpointConsumer = "source-webhook-checkpoint-v1"
+	providerConsumer            = "source-webhook-provider-v1"
+	providerFingerprintConsumer = "source-webhook-content-v1"
+	checkpointConsumer          = "source-webhook-checkpoint-v1"
 )
 
 type RuntimeStore interface {
@@ -141,6 +142,10 @@ func (s *session) CaptureChange(ctx context.Context, view sourceaccess.View, bin
 		return sourceaccess.ChangeCaptureResult{}, err
 	}
 	providerID := providerInboxEventID(s.connection, binding, event.EventID)
+	fingerprintID, err := providerFingerprintInboxEventID(s.connection, binding, event, position)
+	if err != nil {
+		return sourceaccess.ChangeCaptureResult{}, err
+	}
 	duplicate, err := s.adapter.store.InboxProcessed(ctx, s.connection.TenantID, providerConsumer, providerID)
 	if err != nil {
 		return sourceaccess.ChangeCaptureResult{}, err
@@ -156,6 +161,13 @@ func (s *session) CaptureChange(ctx context.Context, view sourceaccess.View, bin
 	}
 	receipt := sourceaccess.OperationReceipt{SourceID: s.connection.SourceID, ConnectionID: s.connection.ID, ConnectionVersion: s.connection.Version, AdapterKind: s.connection.AdapterKind, AdapterVersion: s.connection.AdapterVersion, ViewID: view.ID, ViewVersion: view.Version, BindingID: binding.ID, BindingVersion: binding.Version, DefinitionFingerprint: definitionFingerprint, SchemaFingerprint: schemaFingerprint, Operation: sourceaccess.OperationChanges, ObservedAt: now, Count: 1, Bytes: int64(len(event.Payload)), Completeness: sourceaccess.CompletenessComplete, Position: &position, RetryIdentity: webhookRetryIdentity(view, binding, event.EventID, position.Value, event.Payload)}
 	if duplicate {
+		sameEvent, checkErr := s.adapter.store.InboxProcessed(ctx, s.connection.TenantID, providerFingerprintConsumer, fingerprintID)
+		if checkErr != nil {
+			return sourceaccess.ChangeCaptureResult{}, checkErr
+		}
+		if !sameEvent {
+			return sourceaccess.ChangeCaptureResult{}, sourceaccess.ErrEventConflict
+		}
 		return sourceaccess.ChangeCaptureResult{Accepted: true, Duplicate: true, Receipt: receipt}, nil
 	}
 	transitionID, err := sourceaccess.CheckpointInboxEventID(checkpoint, checkpointConsumer, position)
@@ -170,7 +182,7 @@ func (s *session) CaptureChange(ctx context.Context, view sourceaccess.View, bin
 	if err != nil {
 		return sourceaccess.ChangeCaptureResult{}, err
 	}
-	created, err := s.adapter.store.RecordInboxWithOutbox(ctx, []runtime.InboxReceipt{{TenantID: s.connection.TenantID, Consumer: providerConsumer, EventID: providerID}, {TenantID: s.connection.TenantID, Consumer: checkpointConsumer, EventID: transitionID}}, runtime.OutboxEvent{ID: outboxID, TenantID: s.connection.TenantID, AggregateType: "SOURCE_BINDING", AggregateID: binding.ID, EventType: "SourceBindingChanged", Payload: outbound, OccurredAt: now}, now)
+	created, err := s.adapter.store.RecordInboxWithOutbox(ctx, []runtime.InboxReceipt{{TenantID: s.connection.TenantID, Consumer: providerConsumer, EventID: providerID}, {TenantID: s.connection.TenantID, Consumer: providerFingerprintConsumer, EventID: fingerprintID}, {TenantID: s.connection.TenantID, Consumer: checkpointConsumer, EventID: transitionID}}, runtime.OutboxEvent{ID: outboxID, TenantID: s.connection.TenantID, AggregateType: "SOURCE_BINDING", AggregateID: binding.ID, EventType: "SourceBindingChanged", Payload: outbound, OccurredAt: now}, now)
 	if err != nil {
 		if errors.Is(err, runtime.ErrInboxReceiptConflict) {
 			return sourceaccess.ChangeCaptureResult{}, sourceaccess.ErrCheckpointConflict
@@ -314,7 +326,7 @@ func decodeRecord(payload json.RawMessage, fields []sourceaccess.NativeField, se
 	decoder := json.NewDecoder(bytes.NewReader(payload))
 	decoder.UseNumber()
 	var object map[string]any
-	if err := decoder.Decode(&object); err != nil {
+	if err := decoder.Decode(&object); err != nil || object == nil {
 		return nil, sourceaccess.ErrDefinitionInvalid
 	}
 	var trailing any
@@ -415,6 +427,25 @@ func providerInboxEventID(connection sourceaccess.Connection, binding sourceacce
 	hash := sha256.New()
 	_, _ = fmt.Fprintf(hash, "%s\x1f%s\x1f%s\x1f%s\x1f%s", connection.TenantID, connection.SourceID, binding.ID, binding.Version, eventID)
 	return "source-webhook:" + hex.EncodeToString(hash.Sum(nil))
+}
+func providerFingerprintInboxEventID(connection sourceaccess.Connection, binding sourceaccess.Binding, event sourceaccess.ChangeEvent, position sourceaccess.CheckpointPosition) (string, error) {
+	decoder := json.NewDecoder(bytes.NewReader(event.Payload))
+	decoder.UseNumber()
+	var object map[string]any
+	if err := decoder.Decode(&object); err != nil || object == nil {
+		return "", sourceaccess.ErrDefinitionInvalid
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		return "", sourceaccess.ErrDefinitionInvalid
+	}
+	canonical, err := json.Marshal(object)
+	if err != nil {
+		return "", sourceaccess.ErrDefinitionInvalid
+	}
+	hash := sha256.New()
+	_, _ = fmt.Fprintf(hash, "%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s", connection.TenantID, connection.SourceID, binding.ID, binding.Version, event.EventID, position.Kind, position.Value, canonical)
+	return "source-webhook-content:" + hex.EncodeToString(hash.Sum(nil)), nil
 }
 func webhookRetryIdentity(view sourceaccess.View, binding sourceaccess.Binding, eventID, position string, payload []byte) string {
 	payloadHash := sha256.Sum256(payload)

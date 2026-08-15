@@ -36,6 +36,7 @@ var (
 	ErrLimitExceeded         = errors.New("source access limit exceeded")
 	ErrUnsupportedValue      = errors.New("source value is unsupported")
 	ErrSchemaDrift           = errors.New("source schema drift detected")
+	ErrEventConflict         = errors.New("source event conflicts with an accepted event")
 )
 
 type AdapterKind string

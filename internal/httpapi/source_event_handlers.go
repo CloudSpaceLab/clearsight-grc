@@ -45,6 +45,8 @@ func (a *API) ingestSourceBindingEvent(w http.ResponseWriter, r *http.Request) {
 
 func writeSourceEventError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, sourceaccess.ErrEventConflict):
+		httpx.WriteError(w, http.StatusConflict, "source_event_replay_conflict", "This event ID was already accepted with different content. Replay the original event or send a new event ID.")
 	case errors.Is(err, sourceaccess.ErrCheckpointConflict):
 		httpx.WriteError(w, http.StatusConflict, "source_event_out_of_order", "Send a source event with a position after the last accepted event, or replay the same event ID.")
 	case errors.Is(err, sourceaccess.ErrSchemaDrift):

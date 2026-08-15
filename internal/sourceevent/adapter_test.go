@@ -129,9 +129,9 @@ func TestDuplicateProviderEventCannotMoveWatermarkOrRepublish(t *testing.T) {
 		t.Fatal(err)
 	}
 	replay := sourceaccess.ChangeEvent{EventID: "evt-fixed", Position: &sourceaccess.CheckpointPosition{Kind: sourceaccess.CheckpointWatermark, Value: "99"}, Payload: json.RawMessage(`{"account_id":"ALTERED","risk_score":999}`)}
-	result, err := s.CaptureChange(ctx, view, binding, replay)
-	if err != nil || !result.Accepted || !result.Duplicate {
-		t.Fatalf("replay=%#v err=%v", result, err)
+	_, err := s.CaptureChange(ctx, view, binding, replay)
+	if !errors.Is(err, sourceaccess.ErrEventConflict) {
+		t.Fatalf("conflicting replay err=%v", err)
 	}
 	if checkpointRepo.value.Position.Value != "10" || checkpointRepo.value.Generation != 1 {
 		t.Fatalf("duplicate provider ID moved checkpoint: %#v", checkpointRepo.value)
