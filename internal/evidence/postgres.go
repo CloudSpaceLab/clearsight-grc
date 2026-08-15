@@ -192,7 +192,15 @@ func (r *PostgresRepository) CreateRequest(ctx context.Context, value Request) (
 	if err != nil {
 		return Request{}, err
 	}
-	row := r.pool.QueryRow(ctx, `INSERT INTO capture_requests(id,tenant_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,known_facts,fields,status,created_by,version,created_at,updated_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13::jsonb,$14,NULLIF($15,'')::uuid,$16,$17,$17) RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,known_facts,fields,status,COALESCE(created_by::text,''),version,created_at,updated_at`, value.ID, value.TenantID, value.SubjectType, value.SubjectID, value.Title, value.Purpose, value.WhyYou, value.Sensitivity, value.AudienceType, value.EstimatedMinutes, value.Deadline, string(facts), string(fields), value.Status, value.CreatedBy, value.Version, value.CreatedAt)
+	sourceBindingValues := value.SourceBindings
+	if sourceBindingValues == nil {
+		sourceBindingValues = []RequestBindingReference{}
+	}
+	sourceBindings, err := json.Marshal(sourceBindingValues)
+	if err != nil {
+		return Request{}, err
+	}
+	row := r.pool.QueryRow(ctx, `INSERT INTO capture_requests(id,tenant_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,known_facts,fields,source_bindings,status,created_by,version,created_at,updated_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13::jsonb,$14::jsonb,$15,NULLIF($16,'')::uuid,$17,$18,$18) RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,known_facts,fields,source_bindings,status,COALESCE(created_by::text,''),version,created_at,updated_at`, value.ID, value.TenantID, value.SubjectType, value.SubjectID, value.Title, value.Purpose, value.WhyYou, value.Sensitivity, value.AudienceType, value.EstimatedMinutes, value.Deadline, string(facts), string(fields), string(sourceBindings), value.Status, value.CreatedBy, value.Version, value.CreatedAt)
 	created, err := scanRequest(row)
 	if err != nil {
 		return Request{}, fmt.Errorf("create evidence request: %w", err)
@@ -201,7 +209,7 @@ func (r *PostgresRepository) CreateRequest(ctx context.Context, value Request) (
 }
 
 func (r *PostgresRepository) ListRequests(ctx context.Context, tenant string, limit int) ([]Request, error) {
-	rows, err := r.pool.Query(ctx, `SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) ORDER BY er.deadline,er.id LIMIT $2`, tenant, limit)
+	rows, err := r.pool.Query(ctx, `SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) ORDER BY er.deadline,er.id LIMIT $2`, tenant, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +226,7 @@ func (r *PostgresRepository) ListRequests(ctx context.Context, tenant string, li
 }
 
 func (r *PostgresRepository) GetRequest(ctx context.Context, tenant, id string) (Request, error) {
-	value, err := scanRequest(r.pool.QueryRow(ctx, `SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2)`, id, tenant))
+	value, err := scanRequest(r.pool.QueryRow(ctx, `SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2)`, id, tenant))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Request{}, ErrNotFound
 	}
@@ -231,7 +239,7 @@ func (r *PostgresRepository) Submit(ctx context.Context, submission Submission) 
 		return SubmissionReceipt{}, err
 	}
 	defer tx.Rollback(ctx)
-	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, submission.RequestID, submission.TenantID))
+	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, submission.RequestID, submission.TenantID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return SubmissionReceipt{}, ErrNotFound
 	}
@@ -248,7 +256,15 @@ func (r *PostgresRepository) Submit(ctx context.Context, submission Submission) 
 	if err != nil {
 		return SubmissionReceipt{}, err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO capture_submissions(id,tenant_id,request_id,session_id,submitted_by,channel,answers,submitted_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,NULLIF($5,'')::uuid,$6,$7::jsonb,$8)`, submission.ID, submission.TenantID, submission.RequestID, submission.SessionID, submission.SubmittedBy, submission.Channel, string(answers), submission.SubmittedAt)
+	answerProvenanceValues := submission.AnswerProvenance
+	if answerProvenanceValues == nil {
+		answerProvenanceValues = map[string]AnswerProvenance{}
+	}
+	answerProvenance, err := json.Marshal(answerProvenanceValues)
+	if err != nil {
+		return SubmissionReceipt{}, err
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO capture_submissions(id,tenant_id,request_id,session_id,submitted_by,channel,answers,answer_provenance,submitted_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,NULLIF($5,'')::uuid,$6,$7::jsonb,$8::jsonb,$9)`, submission.ID, submission.TenantID, submission.RequestID, submission.SessionID, submission.SubmittedBy, submission.Channel, string(answers), string(answerProvenance), submission.SubmittedAt)
 	if err != nil {
 		return SubmissionReceipt{}, err
 	}
@@ -271,7 +287,7 @@ func (r *PostgresRepository) CreateInvitation(ctx context.Context, value Invitat
 		return err
 	}
 	defer tx.Rollback(ctx)
-	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, value.RequestID, value.TenantID))
+	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, value.RequestID, value.TenantID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}
@@ -365,7 +381,7 @@ func (r *PostgresRepository) CreateArtifact(ctx context.Context, value Artifact)
 		return Artifact{}, err
 	}
 	defer tx.Rollback(ctx)
-	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, value.RequestID, value.TenantID))
+	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, value.RequestID, value.TenantID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Artifact{}, ErrNotFound
 	}
@@ -405,14 +421,17 @@ func scanSource(row scanner) (Source, error) {
 
 func scanRequest(row scanner) (Request, error) {
 	var value Request
-	var facts, fields []byte
-	if err := row.Scan(&value.ID, &value.TenantID, &value.SubjectType, &value.SubjectID, &value.Title, &value.Purpose, &value.WhyYou, &value.Sensitivity, &value.AudienceType, &value.EstimatedMinutes, &value.Deadline, &facts, &fields, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt); err != nil {
+	var facts, fields, sourceBindings []byte
+	if err := row.Scan(&value.ID, &value.TenantID, &value.SubjectType, &value.SubjectID, &value.Title, &value.Purpose, &value.WhyYou, &value.Sensitivity, &value.AudienceType, &value.EstimatedMinutes, &value.Deadline, &facts, &fields, &sourceBindings, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt); err != nil {
 		return Request{}, err
 	}
 	if err := json.Unmarshal(facts, &value.KnownFacts); err != nil {
 		return Request{}, err
 	}
 	if err := json.Unmarshal(fields, &value.Fields); err != nil {
+		return Request{}, err
+	}
+	if err := json.Unmarshal(sourceBindings, &value.SourceBindings); err != nil {
 		return Request{}, err
 	}
 	return value, nil

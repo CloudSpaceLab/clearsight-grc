@@ -131,3 +131,7 @@ Use-case ID
 ```
 
 A feature without this chain is not implementation-ready.
+
+### T2 product reuse
+
+Forms/capture now retain exact field-level Source Binding references for `PREFILL`, `OPTIONS`, `VALIDATE` and `EVIDENCE`. Connected values carry canonical operation receipts and remain visibly distinct from respondent-entered or corrected answers. Evidence requests can search configured bindings before asking a person, while workflow tasks project only the exact binding IDs/versions and continue to treat the request—not the Binding—as domain truth. See [`acceptance/t2-binding-reuse.md`](acceptance/t2-binding-reuse.md).

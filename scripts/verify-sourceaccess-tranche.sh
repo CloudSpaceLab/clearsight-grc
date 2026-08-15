@@ -3,7 +3,9 @@ set -euo pipefail
 
 tranche="${1:-auto}"
 if [[ "$tranche" == "auto" ]]; then
-  if [[ -f internal/sourceevent/adapter.go && -f internal/sourceevent/projector.go ]]; then
+  if [[ -f internal/evidence/source_bindings.go && -f migrations/000033_t2_binding_reuse.up.sql && -f scripts/verify-t2-binding-reuse.sh ]]; then
+    tranche="t2"
+  elif [[ -f internal/sourceevent/adapter.go && -f internal/sourceevent/projector.go ]]; then
     tranche="t2c"
   elif [[ -f internal/documentimport/sourceaccess_adapter.go && -f migrations/000032_document_import_tabular_metadata.up.sql ]]; then
     tranche="t2b"
@@ -19,8 +21,8 @@ if [[ "$tranche" == "auto" ]]; then
     tranche="t0"
   fi
 fi
-if [[ "$tranche" != "t0" && "$tranche" != "t1a" && "$tranche" != "t1b" && "$tranche" != "t1c" && "$tranche" != "t2a" && "$tranche" != "t2b" && "$tranche" != "t2c" ]]; then
-  echo "usage: $0 [auto|t0|t1a|t1b|t1c|t2a|t2b|t2c]" >&2
+if [[ "$tranche" != "t0" && "$tranche" != "t1a" && "$tranche" != "t1b" && "$tranche" != "t1c" && "$tranche" != "t2a" && "$tranche" != "t2b" && "$tranche" != "t2c" && "$tranche" != "t2" ]]; then
+  echo "usage: $0 [auto|t0|t1a|t1b|t1c|t2a|t2b|t2c|t2]" >&2
   exit 2
 fi
 
@@ -230,7 +232,7 @@ PY
       go test ./internal/sourceaccess ./internal/evidence ./internal/httpapi ./internal/runtime
       go test -tags postgres ./internal/sourceaccess ./internal/evidence ./internal/httpapi ./internal/runtime
       summary="Complete T1 durable reusable sources passed: catalog, governed operations, replay-safe checkpoints, scoped health aggregation, schema ownership and rollback/reapply controls."
-	  if [[ "$tranche" == "t2a" || "$tranche" == "t2b" || "$tranche" == "t2c" ]]; then
+	  if [[ "$tranche" == "t2a" || "$tranche" == "t2b" || "$tranche" == "t2c" || "$tranche" == "t2" ]]; then
 	    required_t2a=(
 	      internal/sourceaccess/rest_json_adapter.go
 	      internal/sourceaccess/rest_json_definition.go
@@ -256,7 +258,7 @@ PY
 	    go test ./internal/sourceaccess
 	    go test -tags postgres ./internal/sourceaccess ./internal/assurance
 	    summary="T2a REST/JSON source access passed: fixed HTTPS origin, strict templates, bounded inspect/page/lookup, cursor/ETag positions, secret isolation and schema-drift blocking."
-	    if [[ "$tranche" == "t2b" || "$tranche" == "t2c" ]]; then
+	    if [[ "$tranche" == "t2b" || "$tranche" == "t2c" || "$tranche" == "t2" ]]; then
 	      required_t2b=(
 	        internal/documentimport/tabular.go
 	        internal/documentimport/sourceaccess_adapter.go
@@ -284,7 +286,7 @@ PY
 	      go test -tags postgres ./internal/documentimport ./internal/sourceaccess ./internal/assurance ./cmd/api
 	      summary="T2b governed tabular capture passed: CSV/JSON/NDJSON/XLSX originals, bounded parser receipts, row diagnostics/schema fingerprints and reusable artifact-backed inspect/page/lookup without a source-row table."
 	    fi
-	    if [[ "$tranche" == "t2c" ]]; then
+	    if [[ "$tranche" == "t2c" || "$tranche" == "t2" ]]; then
 	      required_t2c=(
 	        internal/sourceevent/adapter.go
 	        internal/sourceevent/adapter_test.go
@@ -308,13 +310,30 @@ PY
 	        echo "sourceaccess production code depends on runtime/sourceevent" >&2
 	        exit 1
 	      fi
-	      if compgen -G 'migrations/000033*' >/dev/null; then
-	        echo "T2c webhook/event capture must not introduce an adapter/event table" >&2
+	      if [[ "$tranche" == "t2c" ]] && compgen -G 'migrations/000033*' >/dev/null; then
+	        echo "T2c webhook/event capture must not introduce migration 33" >&2
 	        exit 1
+	      fi
+	      if [[ "$tranche" == "t2" ]]; then
+	        test -s migrations/000033_t2_binding_reuse.up.sql || { echo "missing T2 Binding-reuse migration" >&2; exit 1; }
+	        test -s scripts/verify-t2-binding-reuse.sh || { echo "missing T2 Binding-reuse acceptance" >&2; exit 1; }
+	        if grep -qiE 'CREATE[[:space:]]+TABLE' migrations/000033_t2_binding_reuse.up.sql; then
+	          echo "T2 Binding reuse introduced a parallel durable table" >&2
+	          exit 1
+	        fi
 	      fi
 	      go test ./internal/sourceevent ./internal/sourceaccess ./internal/runtime ./internal/httpapi ./cmd/api ./cmd/worker
 	      go test -tags postgres ./internal/sourceevent ./internal/sourceaccess ./internal/runtime ./internal/httpapi ./cmd/api ./cmd/worker
 	      summary="T2c webhook/event capture passed: service-only bounded CHANGES ingress, atomic provider-event dedupe and outbox durability, strict event/watermark positions, and retrying inbox-backed Binding checkpoint convergence without a webhook table or second event bus."
+	      if [[ "$tranche" == "t2" ]]; then
+	        database_url="${DATABASE_URL:-${TEST_DATABASE_URL:-}}"
+	        if [[ -n "$database_url" ]]; then
+	          DATABASE_URL="$database_url" bash scripts/verify-t2-binding-reuse.sh
+	        else
+	          bash -n scripts/verify-t2-binding-reuse.sh
+	        fi
+	        summary="Complete T2 passed: four bounded adapter modes plus form prefill/options/validation/evidence provenance and exact Evidence-to-Workflow Binding reuse without parallel connector, source-row, queue, RBAC, health or workflow stacks."
+	      fi
 	    fi
 	  fi
     fi

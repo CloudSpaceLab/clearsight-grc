@@ -22,6 +22,7 @@ type Service struct {
 	now              func() time.Time
 	sessionTTL       time.Duration
 	maxArtifactBytes int64
+	bindings         BindingReader
 }
 
 func NewService(repo Repository, store ObjectStore) *Service {
@@ -130,6 +131,13 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if err := validateFieldContracts(input.Fields); err != nil {
 		return Request{}, err
 	}
+	fields, sourceBindings, err := s.prepareRequestBindings(ctx, input)
+	if err != nil {
+		return Request{}, err
+	}
+	if err := validateFieldContracts(fields); err != nil {
+		return Request{}, err
+	}
 	recipient, err := buildRecipient(ctx, s.repo, input.TenantID, input.AudienceType, input.Recipient)
 	if err != nil {
 		return Request{}, err
@@ -160,7 +168,7 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if !deadline.After(now) {
 		return Request{}, fmt.Errorf("deadline must be in the future")
 	}
-	request := Request{ID: valueID, TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: cloneFields(input.Fields), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
+	request := Request{ID: valueID, TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: fields, SourceBindings: sourceBindings, Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
 	return store.CreateRequestWithRecipient(ctx, request)
 }
 
@@ -232,6 +240,7 @@ func (s *Service) Submit(ctx context.Context, submission Submission) (Submission
 	}
 	submission.ID = valueID
 	submission.Answers = cloneMap(submission.Answers)
+	submission.AnswerProvenance = s.deriveAnswerProvenance(ctx, request, submission.Answers)
 	submission.SubmittedAt = now
 	return s.repo.Submit(ctx, submission)
 }
@@ -336,7 +345,7 @@ func (s *Service) SessionRequest(ctx context.Context, sessionToken string) (Sess
 	if !requestOpenAt(request, now) || !externalRecipientRequest(request) || request.Recipient.AudienceHint != session.AudienceHint {
 		return Session{}, Request{}, ErrSessionInvalid
 	}
-	return session, request, nil
+	return session, RespondentRequest(request), nil
 }
 
 func (s *Service) SubmitSession(ctx context.Context, sessionToken string, answers map[string]string, expectedVersion int64) (SubmissionReceipt, error) {
@@ -528,6 +537,14 @@ func cloneFields(input []Field) []Field {
 	for index := range out {
 		out[index].Options = append([]string(nil), out[index].Options...)
 		out[index].AcceptedFormats = append([]string(nil), out[index].AcceptedFormats...)
+		out[index].Bindings = append([]FieldBindingReference(nil), out[index].Bindings...)
+		for bindingIndex := range out[index].Bindings {
+			if input[index].Bindings[bindingIndex].LookupValue != nil {
+				lookup := *input[index].Bindings[bindingIndex].LookupValue
+				out[index].Bindings[bindingIndex].LookupValue = &lookup
+			}
+		}
+		out[index].SourceResolutions = cloneSourceResolutions(input[index].SourceResolutions)
 	}
 	return out
 }

@@ -20,7 +20,7 @@ func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Tas
 	rows, err := r.pool.Query(ctx, `
 		SELECT wt.id::text,t.id::text,wt.workflow_id::text,wt.step_key,wt.responsibility,
 		       COALESCE(wt.principal_id::text,''),wt.title,wt.status,wt.due_at,wt.claimed_at,wt.completed_at,
-		       wt.context,wt.version,wt.created_at,wt.updated_at,
+		       wt.context,wt.source_bindings,wt.version,wt.created_at,wt.updated_at,
 		       wi.kind,COALESCE(m.id::text,''),COALESCE(m.priority,0),COALESCE(m.scope,'{}'::jsonb),
 		       COALESCE(cr.id::text,''),COALESCE(cr.recipient_principal_id::text,''),
 		       CASE
@@ -190,11 +190,12 @@ type scanner interface{ Scan(...any) error }
 func scanTask(row scanner) (Task, error) {
 	var task Task
 	var contextJSON []byte
+	var sourceBindingsJSON []byte
 	var matterScope []byte
 	if err := row.Scan(
 		&task.ID, &task.TenantID, &task.WorkflowID, &task.StepKey, &task.Responsibility,
 		&task.PrincipalID, &task.Title, &task.Status, &task.DueAt, &task.ClaimedAt, &task.CompletedAt,
-		&contextJSON, &task.Version, &task.CreatedAt, &task.UpdatedAt,
+		&contextJSON, &sourceBindingsJSON, &task.Version, &task.CreatedAt, &task.UpdatedAt,
 		&task.WorkflowKind, &task.MatterID, &task.MatterPriority, &matterScope,
 		&task.EvidenceRequestID, &task.EvidenceRecipientID, &task.EvidenceSubjectVisible,
 	); err != nil {
@@ -202,6 +203,9 @@ func scanTask(row scanner) (Task, error) {
 	}
 	if err := json.Unmarshal(contextJSON, &task.Context); err != nil {
 		return Task{}, fmt.Errorf("decode workflow context: %w", err)
+	}
+	if err := json.Unmarshal(sourceBindingsJSON, &task.SourceBindings); err != nil {
+		return Task{}, fmt.Errorf("decode workflow source bindings: %w", err)
 	}
 	task.MatterScope = append(task.MatterScope[:0], matterScope...)
 	return task, nil

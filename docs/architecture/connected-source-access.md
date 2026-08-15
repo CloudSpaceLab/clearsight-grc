@@ -210,3 +210,9 @@ Acceptance commits a stable provider-event inbox receipt, the exact checkpoint-t
 - Lifecycle transition and maker-checker services are not implemented.
 - Non-PostgreSQL database and broker-specific streaming adapters are not implemented.
 - Forms, evidence contracts and workflows do not yet retain Binding references.
+
+## Product reuse (T2d/T2e)
+
+Consumer domains store exact Binding IDs/versions in their own records. Capture fields support `PREFILL`, `OPTIONS`, `VALIDATE` and `EVIDENCE`; evidence requests also own bounded pre-human source searches. Stored results contain selected native values or bounded evidence records plus canonical operation receipts, never copied connector configuration. Respondent views receive only current prefill/options provenance and no evidence rows or validation rules.
+
+Workflow tasks project a deduplicated list of exact Binding references from the authoritative evidence request. They do not copy source results and a Binding cannot assign work, approve an outcome, advance a lifecycle or become workflow truth. Migration `000033_t2_binding_reuse` adds only consumer-owned JSONB columns to existing tables.
