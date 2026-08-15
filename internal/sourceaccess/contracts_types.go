@@ -133,6 +133,14 @@ type Binding struct {
 	Limits         ResourceLimits `json:"limits"`
 }
 
+// BindingReference is the only connected-source identity copied into consumer
+// domains. It deliberately excludes connection details, queries, credentials,
+// mappings and lifecycle authority.
+type BindingReference struct {
+	BindingID      string `json:"binding_id"`
+	BindingVersion int64  `json:"binding_version"`
+}
+
 type ResourceLimits struct {
 	PageRows      int           `json:"page_rows"`
 	ResponseBytes int64         `json:"response_bytes"`

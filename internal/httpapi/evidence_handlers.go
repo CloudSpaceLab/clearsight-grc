@@ -152,6 +152,9 @@ func (a *API) getEvidenceRequest(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
 		return
 	}
+	if actor, authenticated := identity.FromContext(r.Context()); authenticated && value.CreatedBy != actor.PrincipalID && evidence.RequestAssignedTo(value, actor.PrincipalID) {
+		value = evidence.RespondentRequest(value)
+	}
 	httpx.WriteJSON(w, http.StatusOK, value)
 }
 

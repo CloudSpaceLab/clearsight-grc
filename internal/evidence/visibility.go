@@ -21,7 +21,11 @@ func (s *Service) ListVisibleRequests(ctx context.Context, tenant, principal str
 	}
 	limit = bounded(limit)
 	if repo, ok := s.repo.(visibleRequestRepository); ok {
-		return repo.ListVisibleRequests(ctx, tenant, principal, limit)
+		values, err := repo.ListVisibleRequests(ctx, tenant, principal, limit)
+		if err != nil {
+			return nil, err
+		}
+		return respondentRequests(values), nil
 	}
 	store, err := recipientPersistence(s.repo)
 	if err != nil {
@@ -44,7 +48,7 @@ func (s *Service) ListVisibleRequests(ctx context.Context, tenant, principal str
 			break
 		}
 	}
-	return visible, nil
+	return respondentRequests(visible), nil
 }
 
 // ListManageableRequests is the authenticated management boundary. A request
@@ -56,7 +60,11 @@ func (s *Service) ListManageableRequests(ctx context.Context, tenant, principal 
 	}
 	limit = bounded(limit)
 	if repo, ok := s.repo.(manageableRequestRepository); ok {
-		return repo.ListManageableRequests(ctx, tenant, principal, limit)
+		values, err := repo.ListManageableRequests(ctx, tenant, principal, limit)
+		if err != nil {
+			return nil, err
+		}
+		return manageableRequestViews(values, principal), nil
 	}
 	values, err := s.repo.ListRequests(ctx, tenant, 200)
 	if err != nil {
@@ -79,5 +87,5 @@ func (s *Service) ListManageableRequests(ctx context.Context, tenant, principal 
 			break
 		}
 	}
-	return manageable, nil
+	return manageableRequestViews(manageable, principal), nil
 }

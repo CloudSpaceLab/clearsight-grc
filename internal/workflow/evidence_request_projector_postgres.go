@@ -6,8 +6,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
 type EvidenceRequestProjector struct{ Repo *PostgresRepository }
@@ -24,6 +28,8 @@ type evidenceRequestProjection struct {
 	RequestStatus        string
 	Deadline             time.Time
 	EstimatedMinutes     int
+	FieldsJSON           []byte
+	SourceBindingsJSON   []byte
 	PrincipalActive      bool
 	SubjectVisible       bool
 }
@@ -44,7 +50,7 @@ func (p *EvidenceRequestProjector) Maintain(ctx context.Context, now time.Time, 
 		WITH candidate_requests AS (
 			SELECT cr.id,cr.id::text AS request_id,t.slug,cr.title,cr.purpose,cr.subject_type,cr.subject_id,
 			       COALESCE(cr.recipient_principal_id::text,'') AS recipient_principal_id,
-			       cr.recipient_state,cr.status,cr.deadline,cr.estimated_minutes,cr.updated_at,
+			       cr.recipient_state,cr.status,cr.deadline,cr.estimated_minutes,cr.fields,cr.source_bindings,cr.updated_at,
 			       COALESCE(p.status='ACTIVE' AND p.valid_from<=$2 AND (p.valid_until IS NULL OR $2<p.valid_until),false) AS principal_active,
 			       CASE
 			         WHEN cr.subject_type<>'MATTER' THEN true
@@ -87,7 +93,7 @@ func (p *EvidenceRequestProjector) Maintain(ctx context.Context, now time.Time, 
 		)
 		SELECT c.request_id,c.slug,c.title,c.purpose,c.subject_type,c.subject_id,
 		       c.recipient_principal_id,c.recipient_state,c.status,c.deadline,c.estimated_minutes,
-		       c.principal_active,c.subject_visible
+		       c.fields,c.source_bindings,c.principal_active,c.subject_visible
 		FROM candidate_requests c
 		LEFT JOIN workflow_instances wi
 		  ON wi.tenant_id=(SELECT id FROM tenants WHERE slug=c.slug)
@@ -145,7 +151,7 @@ func (p *EvidenceRequestProjector) Maintain(ctx context.Context, now time.Time, 
 		if err := rows.Scan(
 			&value.ID, &value.TenantID, &value.Title, &value.Purpose, &value.SubjectType, &value.SubjectID,
 			&value.RecipientPrincipalID, &value.RecipientState, &value.RequestStatus, &value.Deadline, &value.EstimatedMinutes,
-			&value.PrincipalActive, &value.SubjectVisible,
+			&value.FieldsJSON, &value.SourceBindingsJSON, &value.PrincipalActive, &value.SubjectVisible,
 		); err != nil {
 			return 0, err
 		}
@@ -165,6 +171,14 @@ func (p *EvidenceRequestProjector) Maintain(ctx context.Context, now time.Time, 
 }
 
 func (p *EvidenceRequestProjector) reconcileEvidenceRequest(ctx context.Context, request evidenceRequestProjection, now time.Time) error {
+	sourceBindings, err := projectedBindingReferences(request.FieldsJSON, request.SourceBindingsJSON)
+	if err != nil {
+		return fmt.Errorf("project evidence request bindings: %w", err)
+	}
+	sourceBindingsJSON, err := json.Marshal(sourceBindings)
+	if err != nil {
+		return err
+	}
 	status := StatusCancelled
 	principalID := ""
 	if request.RecipientState == "ASSIGNED" && request.PrincipalActive && request.SubjectVisible && now.Before(request.Deadline) {
@@ -213,16 +227,16 @@ func (p *EvidenceRequestProjector) reconcileEvidenceRequest(ctx context.Context,
 	}
 	var taskID string
 	if err := tx.QueryRow(ctx, `
-		INSERT INTO workflow_tasks(tenant_id,workflow_id,step_key,responsibility,principal_id,title,status,due_at,context,claimed_at,completed_at,created_at,updated_at)
-		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,'evidence-response','RESPONDENT',NULLIF($3,'')::uuid,$4,$5,$6,$7::jsonb,
-		       CASE WHEN $5='IN_PROGRESS' THEN $8::timestamptz ELSE NULL END,
-		       CASE WHEN $5='COMPLETED' THEN $8::timestamptz ELSE NULL END,$8::timestamptz,$8::timestamptz)
+		INSERT INTO workflow_tasks(tenant_id,workflow_id,step_key,responsibility,principal_id,title,status,due_at,context,source_bindings,claimed_at,completed_at,created_at,updated_at)
+		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,'evidence-response','RESPONDENT',NULLIF($3,'')::uuid,$4,$5,$6,$7::jsonb,$8::jsonb,
+		       CASE WHEN $5='IN_PROGRESS' THEN $9::timestamptz ELSE NULL END,
+		       CASE WHEN $5='COMPLETED' THEN $9::timestamptz ELSE NULL END,$9::timestamptz,$9::timestamptz)
 		ON CONFLICT(workflow_id,step_key) DO UPDATE SET
-			principal_id=EXCLUDED.principal_id,title=EXCLUDED.title,status=EXCLUDED.status,due_at=EXCLUDED.due_at,context=EXCLUDED.context,
+			principal_id=EXCLUDED.principal_id,title=EXCLUDED.title,status=EXCLUDED.status,due_at=EXCLUDED.due_at,context=EXCLUDED.context,source_bindings=EXCLUDED.source_bindings,
 			claimed_at=CASE WHEN EXCLUDED.status='IN_PROGRESS' AND workflow_tasks.claimed_at IS NULL THEN EXCLUDED.updated_at ELSE workflow_tasks.claimed_at END,
 			completed_at=CASE WHEN EXCLUDED.status='COMPLETED' THEN EXCLUDED.updated_at ELSE NULL END,
 			version=workflow_tasks.version+1,updated_at=EXCLUDED.updated_at
-		RETURNING id::text`, request.TenantID, workflowID, principalID, request.Title, string(status), request.Deadline, string(contextJSON), now).Scan(&taskID); err != nil {
+		RETURNING id::text`, request.TenantID, workflowID, principalID, request.Title, string(status), request.Deadline, string(contextJSON), string(sourceBindingsJSON), now).Scan(&taskID); err != nil {
 		return fmt.Errorf("project evidence request task: %w", err)
 	}
 	metadata, _ := json.Marshal(map[string]string{"request_status": request.RequestStatus, "recipient_state": request.RecipientState})
@@ -233,4 +247,61 @@ func (p *EvidenceRequestProjector) reconcileEvidenceRequest(ctx context.Context,
 		return fmt.Errorf("record evidence request projection event: %w", err)
 	}
 	return tx.Commit(ctx)
+}
+
+func projectedBindingReferences(fieldsJSON, requestBindingsJSON []byte) ([]sourceaccess.BindingReference, error) {
+	var fields []struct {
+		Bindings []struct {
+			BindingID      string `json:"binding_id"`
+			BindingVersion int64  `json:"binding_version"`
+		} `json:"bindings"`
+	}
+	if len(fieldsJSON) != 0 {
+		if err := json.Unmarshal(fieldsJSON, &fields); err != nil {
+			return nil, err
+		}
+	}
+	var requestBindings []struct {
+		BindingID      string `json:"binding_id"`
+		BindingVersion int64  `json:"binding_version"`
+	}
+	if len(requestBindingsJSON) != 0 {
+		if err := json.Unmarshal(requestBindingsJSON, &requestBindings); err != nil {
+			return nil, err
+		}
+	}
+	seen := map[string]struct{}{}
+	values := make([]sourceaccess.BindingReference, 0)
+	add := func(bindingID string, bindingVersion int64) error {
+		bindingID = strings.TrimSpace(bindingID)
+		if bindingID == "" || bindingVersion < 1 {
+			return fmt.Errorf("binding reference requires binding_id and positive binding_version")
+		}
+		key := bindingID + ":" + strconv.FormatInt(bindingVersion, 10)
+		if _, exists := seen[key]; exists {
+			return nil
+		}
+		seen[key] = struct{}{}
+		values = append(values, sourceaccess.BindingReference{BindingID: bindingID, BindingVersion: bindingVersion})
+		return nil
+	}
+	for _, field := range fields {
+		for _, reference := range field.Bindings {
+			if err := add(reference.BindingID, reference.BindingVersion); err != nil {
+				return nil, err
+			}
+		}
+	}
+	for _, reference := range requestBindings {
+		if err := add(reference.BindingID, reference.BindingVersion); err != nil {
+			return nil, err
+		}
+	}
+	sort.Slice(values, func(i, j int) bool {
+		if values[i].BindingID != values[j].BindingID {
+			return values[i].BindingID < values[j].BindingID
+		}
+		return values[i].BindingVersion < values[j].BindingVersion
+	})
+	return values, nil
 }

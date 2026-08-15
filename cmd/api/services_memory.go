@@ -56,6 +56,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	adapters[sourceaccess.AdapterTabularArtifact] = documentService.SourceAccessAdapter()
 	adapters[sourceaccess.AdapterWebhookEvent] = sourceevent.NewAdapter(runtimeRepo, checkpoints)
 	sourceCatalog := sourceaccess.NewCatalogService(catalogRepo, sourceaccess.EnvironmentSecretResolver{}, adapters)
+	evidenceService.ConfigureSourceBindings(sourceCatalog)
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepo)
 	coverageService := documentcoverage.NewService(documentcoverage.NewMemoryRepository(), documentService, continuityService)

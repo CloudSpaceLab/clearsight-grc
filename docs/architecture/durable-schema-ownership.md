@@ -115,3 +115,11 @@ The former broad manually maintained `api/openapi.yaml` duplicated the executabl
 Any migration that changes the live table set must update the machine-checked register in the same change. CI reconstructs the live table set from ordered `*.up.sql` migrations, applies `CREATE TABLE` / `DROP TABLE` changes in migration order, and requires an exact one-to-one match with the rows between the ownership markers above.
 
 Do not add a generic runtime metadata catalogue for this. The migration chain plus this checked architecture register is the smaller ownership mechanism.
+
+## T2 consumer-column ownership
+
+Migration `000033_t2_binding_reuse` changes no table classification and creates no table. It extends existing owners only:
+
+- `capture_requests.fields` and `capture_requests.source_bindings` are evidence-capture authoritative state for exact Binding references, pre-human resolutions and canonical receipts;
+- `capture_submissions.answer_provenance` is evidence-capture authoritative state distinguishing source-prefilled, respondent-entered and respondent-corrected values plus non-destructive validation results;
+- `workflow_tasks.source_bindings` is workflow projection context containing deduplicated exact Binding references only. It carries no source values, assignment authority or lifecycle truth.
