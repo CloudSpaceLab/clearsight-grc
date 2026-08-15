@@ -124,6 +124,46 @@ func (r *PostgresRepository) RecordInbox(ctx context.Context, tenant, consumer, 
 	}
 	return tag.RowsAffected() == 1, nil
 }
+func (r *PostgresRepository) RecordInboxWithOutbox(ctx context.Context, receipts []InboxReceipt, event OutboxEvent, at time.Time) (bool, error) {
+	if len(receipts) == 0 {
+		return false, errors.New("at least one inbox receipt is required")
+	}
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback(ctx)
+	first := receipts[0]
+	if first.TenantID != event.TenantID {
+		return false, errors.New("inbox receipt does not match outbox tenant")
+	}
+	tag, err := tx.Exec(ctx, `INSERT INTO inbox_receipts(tenant_id,consumer,event_id,processed_at) VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2,$3,$4) ON CONFLICT DO NOTHING`, first.TenantID, first.Consumer, first.EventID, at)
+	if err != nil {
+		return false, err
+	}
+	if tag.RowsAffected() == 0 {
+		return false, nil
+	}
+	for _, receipt := range receipts[1:] {
+		if receipt.TenantID != event.TenantID {
+			return false, errors.New("inbox receipt does not match outbox tenant")
+		}
+		tag, err := tx.Exec(ctx, `INSERT INTO inbox_receipts(tenant_id,consumer,event_id,processed_at) VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2,$3,$4) ON CONFLICT DO NOTHING`, receipt.TenantID, receipt.Consumer, receipt.EventID, at)
+		if err != nil {
+			return false, err
+		}
+		if tag.RowsAffected() == 0 {
+			return false, ErrInboxReceiptConflict
+		}
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO outbox_events(id,tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at) VALUES($1,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4::uuid,$5,$6,$7,$7,$7)`, event.ID, event.TenantID, event.AggregateType, event.AggregateID, event.EventType, event.Payload, event.OccurredAt); err != nil {
+		return false, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return false, err
+	}
+	return true, nil
+}
 func (r *PostgresRepository) TimerQueueHealth(ctx context.Context) (QueueHealth, error) {
 	var health QueueHealth
 	err := r.pool.QueryRow(ctx, `SELECT count(*) FILTER (WHERE state IN ('READY','CLAIMED')),count(*) FILTER (WHERE state='FAILED'),COALESCE(max(attempts) FILTER (WHERE state IN ('READY','CLAIMED','FAILED')),0),min(due_at) FILTER (WHERE state IN ('READY','CLAIMED')) FROM workflow_timers`).Scan(&health.Pending, &health.Terminal, &health.HighestAttempts, &health.OldestPending)

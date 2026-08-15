@@ -49,8 +49,8 @@ type CheckpointRepository interface {
 	AdvanceBindingCheckpoint(context.Context, BindingCheckpoint, CheckpointPosition, time.Time) (BindingCheckpoint, error)
 }
 
-// InboxReceiptReader is deliberately structural: internal/runtime repositories
-// satisfy it without sourceaccess depending on runtime. Runtime owns leases,
+// InboxReceiptReader is deliberately structural: runtime repositories satisfy
+// it without sourceaccess importing the runtime package. Runtime owns leases,
 // retries and backoff. The checkpoint stores only durable source position.
 type InboxReceiptReader interface {
 	InboxProcessed(context.Context, string, string, string) (bool, error)

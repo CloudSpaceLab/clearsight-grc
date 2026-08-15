@@ -24,6 +24,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/scimapi"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceevent"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 	"github.com/alexedwards/scs/pgxstore"
@@ -46,13 +47,16 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	evidenceService.Configure(cfg.CaptureSessionTTL, cfg.MaxArtifactBytes)
 	documentService := documentimport.NewService(documentimport.NewPostgresRepository(pool), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
+	catalogRepo := sourceaccess.NewPostgresCatalogRepository(pool)
+	runtimeRepo := runtime.NewPostgresRepository(pool)
+	checkpoints := sourceaccess.NewCheckpointService(sourceaccess.NewPostgresCheckpointRepository(pool), runtimeRepo)
 	adapters := sourceaccess.DefaultCatalogAdapters()
 	adapters[sourceaccess.AdapterTabularArtifact] = documentService.SourceAccessAdapter()
-	sourceCatalog := sourceaccess.NewCatalogService(sourceaccess.NewPostgresCatalogRepository(pool), sourceaccess.EnvironmentSecretResolver{}, adapters)
+	adapters[sourceaccess.AdapterWebhookEvent] = sourceevent.NewAdapter(runtimeRepo, checkpoints)
+	sourceCatalog := sourceaccess.NewCatalogService(catalogRepo, sourceaccess.EnvironmentSecretResolver{}, adapters)
 	continuityRepo := continuity.NewReliablePostgresRepository(pool)
 	continuityService := continuity.NewService(continuityRepo)
 	coverageService := documentcoverage.NewService(documentcoverage.NewPostgresRepository(pool), documentService, continuityService)
-	runtimeRepo := runtime.NewPostgresRepository(pool)
 	verticals := bankverticals.NewService(continuityService, evidenceService)
 	workflowService := workflow.NewService(workflow.NewPostgresRepository(pool))
 	todayService := today.NewDynamicService(func(loadCtx context.Context, actor identity.Actor) ([]today.AttentionItem, error) {

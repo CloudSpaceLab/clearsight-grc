@@ -545,6 +545,13 @@ func validateCatalogReceipt(receipt OperationReceipt, connection Connection, vie
 		if receipt.BindingID != binding.ID || receipt.BindingVersion != binding.Version || (receipt.Completeness != CompletenessComplete && receipt.Completeness != CompletenessPartial) {
 			return ErrExecution
 		}
+	case OperationChanges:
+		if receipt.BindingID != binding.ID || receipt.BindingVersion != binding.Version || receipt.Completeness != CompletenessComplete || receipt.Position == nil {
+			return ErrExecution
+		}
+		if err := validateCheckpointPosition(*receipt.Position); err != nil {
+			return ErrExecution
+		}
 	default:
 		return ErrExecution
 	}
@@ -591,6 +598,17 @@ func (s *CatalogService) validateDraftAdapter(input CreateConnectionDraftInput) 
 		if string(definition) != "{}" {
 			return fmt.Errorf("%w: tabular artifact connection definitions are not supported", ErrCatalogInvalid)
 		}
+	case AdapterWebhookEvent:
+		if input.SecretRef != "" {
+			return fmt.Errorf("%w: webhook event connections use verified service identity rather than connector credentials", ErrCatalogInvalid)
+		}
+		definition, err := normalizeJSONObject(defaultJSONObject(input.Definition), HardMaxDefinitionBytes, "connection definition")
+		if err != nil {
+			return err
+		}
+		if string(definition) != "{}" {
+			return fmt.Errorf("%w: webhook event connection definitions are not supported", ErrCatalogInvalid)
+		}
 	}
 	return nil
 }
@@ -611,6 +629,10 @@ func (s *CatalogService) adapterFor(kind AdapterKind, version string) (Adapter, 
 	case AdapterTabularArtifact:
 		if version != TabularArtifactAdapterVersion {
 			return nil, fmt.Errorf("%w: unsupported tabular artifact adapter version", ErrCatalogInvalid)
+		}
+	case AdapterWebhookEvent:
+		if version != WebhookEventAdapterVersion {
+			return nil, fmt.Errorf("%w: unsupported webhook event adapter version", ErrCatalogInvalid)
 		}
 	}
 	return s.adapters[kind], nil
@@ -645,6 +667,13 @@ func normalizeDraftViewDefinition(connection ConnectionRevision, viewID string, 
 	}
 	if connection.AdapterKind == AdapterTabularArtifact {
 		definition, err := NormalizeTabularArtifactViewDefinition(raw)
+		if err != nil {
+			return nil, errors.Join(ErrCatalogInvalid, err)
+		}
+		return definition, nil
+	}
+	if connection.AdapterKind == AdapterWebhookEvent {
+		definition, err := NormalizeWebhookEventViewDefinition(raw)
 		if err != nil {
 			return nil, errors.Join(ErrCatalogInvalid, err)
 		}
