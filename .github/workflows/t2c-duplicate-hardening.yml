@@ -1,0 +1,104 @@
+name: T2c duplicate replay hardening
+
+on:
+  push:
+    branches:
+      - codex/issue-61-sourceaccess-t2c-webhook-events
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/issue-61-sourceaccess-t2c-webhook-events
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+      - name: Make duplicate provider IDs pure acknowledgements
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('internal/sourceevent/adapter.go')
+          text = path.read_text()
+          old = '''\tif duplicate {
+          \t\t_ = s.reconcileDuplicate(ctx, checkpoint, definition.PositionKind, position, now)
+          \t\treturn sourceaccess.ChangeCaptureResult{Accepted: true, Duplicate: true, Receipt: receipt}, nil
+          \t}
+          '''
+          new = '''\tif duplicate {
+          \t\treturn sourceaccess.ChangeCaptureResult{Accepted: true, Duplicate: true, Receipt: receipt}, nil
+          \t}
+          '''
+          if old not in text:
+              raise SystemExit('duplicate acknowledgement block changed')
+          text = text.replace(old, new, 1)
+          old = '''\tif !created {
+          \t\tif current, getErr := s.adapter.checkpoints.Get(ctx, s.connection.TenantID, binding.ID, bindingVersion); getErr == nil {
+          \t\t\t_ = s.reconcileDuplicate(ctx, current, definition.PositionKind, position, now)
+          \t\t}
+          \t\treturn sourceaccess.ChangeCaptureResult{Accepted: true, Duplicate: true, Receipt: receipt}, nil
+          \t}
+          '''
+          new = '''\tif !created {
+          \t\treturn sourceaccess.ChangeCaptureResult{Accepted: true, Duplicate: true, Receipt: receipt}, nil
+          \t}
+          '''
+          if old not in text:
+              raise SystemExit('racing duplicate acknowledgement block changed')
+          path.write_text(text.replace(old, new, 1))
+
+          path = Path('internal/sourceevent/adapter_test.go')
+          text = path.read_text()
+          addition = r'''
+
+          func TestDuplicateProviderEventCannotMoveWatermarkOrRepublish(t *testing.T) {
+          	ctx := context.Background()
+          	runtimeRepo := runtime.NewMemoryRepository()
+          	checkpointRepo := &checkpointRepo{}
+          	s := mustSession(t, NewAdapter(runtimeRepo, sourceaccess.NewCheckpointService(checkpointRepo, runtimeRepo)))
+          	view, binding := eventContracts(t, s, sourceaccess.CheckpointWatermark)
+          	first := sourceaccess.ChangeEvent{EventID: "evt-fixed", Position: &sourceaccess.CheckpointPosition{Kind: sourceaccess.CheckpointWatermark, Value: "10"}, Payload: json.RawMessage(`{"account_id":"A1","risk_score":1}`)}
+          	if _, err := s.CaptureChange(ctx, view, binding, first); err != nil {
+          		t.Fatal(err)
+          	}
+          	replay := sourceaccess.ChangeEvent{EventID: "evt-fixed", Position: &sourceaccess.CheckpointPosition{Kind: sourceaccess.CheckpointWatermark, Value: "99"}, Payload: json.RawMessage(`{"account_id":"ALTERED","risk_score":999}`)}
+          	result, err := s.CaptureChange(ctx, view, binding, replay)
+          	if err != nil || !result.Accepted || !result.Duplicate {
+          		t.Fatalf("replay=%#v err=%v", result, err)
+          	}
+          	if checkpointRepo.value.Position.Value != "10" || checkpointRepo.value.Generation != 1 {
+          		t.Fatalf("duplicate provider ID moved checkpoint: %#v", checkpointRepo.value)
+          	}
+          	claimed, err := runtimeRepo.ClaimOutbox(ctx, "audit", time.Now().UTC(), time.Minute, 10)
+          	if err != nil {
+          		t.Fatal(err)
+          	}
+          	if len(claimed) != 1 {
+          		t.Fatalf("duplicate provider ID published %d outbox events; want 1", len(claimed))
+          	}
+          }
+          '''
+          if 'TestDuplicateProviderEventCannotMoveWatermarkOrRepublish' in text:
+              raise SystemExit('duplicate replay test already exists')
+          path.write_text(text + addition)
+          PY
+          gofmt -w internal/sourceevent
+          go test -race ./internal/sourceevent ./internal/sourceaccess ./internal/runtime
+          go test -tags postgres ./internal/sourceevent ./internal/sourceaccess ./internal/runtime
+          go vet ./...
+          git diff --check
+          rm .github/workflows/t2c-duplicate-hardening.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(sourceevent): make duplicate IDs immutable"
+          git push origin HEAD:codex/issue-61-sourceaccess-t2c-webhook-events
