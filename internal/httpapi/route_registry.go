@@ -134,6 +134,7 @@ func (a *API) routes() []routeSpec {
 		withPermission(read("/api/v1/config/source-bindings/{binding_id}", a.getSourceBinding), identity.PermissionConfigRead),
 		withPermission(operation("/api/v1/config/source-bindings/{binding_id}/preview", a.previewSourceBinding, nil), identity.PermissionConfigRead),
 		withPermission(read("/api/v1/config/source-bindings/{binding_id}/where-used", a.sourceCatalogWhereUsed(sourceaccess.UsageBinding, "binding_id")), identity.PermissionConfigRead),
+		materialService("/api/v1/source-bindings/{id}/events", "source.binding.event.ingest", a.ingestSourceBindingEvent, commandPolicy{ObjectType: "SOURCE_BINDING", Responsibility: authority.ResponsibilityPerformer, Materiality: 2, ActorField: noActorField}),
 
 		read("/api/v1/evidence/sources", a.listEvidenceSources),
 		write(http.MethodPost, "/api/v1/evidence/sources", a.createEvidenceSource, bindJSONIdentity(true)),

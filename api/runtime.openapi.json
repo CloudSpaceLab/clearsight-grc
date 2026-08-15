@@ -106,6 +106,7 @@
     "/api/v1/config/source-bindings/{binding_id}": { "get": { "operationId": "getSourceBinding", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
     "/api/v1/config/source-bindings/{binding_id}/preview": { "post": { "operationId": "previewSourceBinding", "x-clearsight-route-class": "AUTHENTICATED_OPERATION", "x-clearsight-permission": "CONFIG_READ" } },
     "/api/v1/config/source-bindings/{binding_id}/where-used": { "get": { "operationId": "sourceBindingWhereUsed", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/source-bindings/{id}/events": { "post": { "operationId": "ingestSourceBindingEvent", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
 
     "/api/v1/evidence/sources": {
       "get": { "operationId": "listEvidenceSources", "x-clearsight-route-class": "AUTHENTICATED_READ" },

@@ -44,9 +44,13 @@ const (
 	AdapterPostgres        AdapterKind = "POSTGRES"
 	AdapterRESTJSON        AdapterKind = "REST_JSON"
 	AdapterTabularArtifact AdapterKind = "TABULAR_ARTIFACT"
+	AdapterWebhookEvent    AdapterKind = "WEBHOOK_EVENT"
 )
 
-const TabularArtifactAdapterVersion = "tabular-artifact-v1"
+const (
+	TabularArtifactAdapterVersion = "tabular-artifact-v1"
+	WebhookEventAdapterVersion    = "webhook-event-v1"
+)
 
 type Capability string
 
@@ -258,6 +262,18 @@ type LookupResult struct {
 	Receipt OperationReceipt `json:"receipt"`
 }
 
+type ChangeEvent struct {
+	EventID  string              `json:"event_id"`
+	Position *CheckpointPosition `json:"position,omitempty"`
+	Payload  json.RawMessage     `json:"payload"`
+}
+
+type ChangeCaptureResult struct {
+	Accepted  bool             `json:"accepted"`
+	Duplicate bool             `json:"duplicate"`
+	Receipt   OperationReceipt `json:"receipt"`
+}
+
 type AggregateResult struct {
 	Fields       []NativeField    `json:"fields"`
 	TotalCount   int64            `json:"total_count"`
@@ -287,4 +303,8 @@ type PageReader interface {
 
 type LookupReader interface {
 	Lookup(context.Context, View, Binding, LookupRequest) (LookupResult, error)
+}
+
+type ChangeReceiver interface {
+	CaptureChange(context.Context, View, Binding, ChangeEvent) (ChangeCaptureResult, error)
 }

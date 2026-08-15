@@ -19,7 +19,9 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceevent"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
@@ -47,9 +49,13 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	}
 	documentService := documentimport.NewService(documentimport.NewMemoryRepository(), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
+	catalogRepo := sourceaccess.NewMemoryCatalogRepository(sourceScopes)
+	runtimeRepo := runtime.NewMemoryRepository()
+	checkpoints := sourceaccess.NewCheckpointService(sourceaccess.NewMemoryCheckpointRepository(catalogRepo), runtimeRepo)
 	adapters := sourceaccess.DefaultCatalogAdapters()
 	adapters[sourceaccess.AdapterTabularArtifact] = documentService.SourceAccessAdapter()
-	sourceCatalog := sourceaccess.NewCatalogService(sourceaccess.NewMemoryCatalogRepository(sourceScopes), sourceaccess.EnvironmentSecretResolver{}, adapters)
+	adapters[sourceaccess.AdapterWebhookEvent] = sourceevent.NewAdapter(runtimeRepo, checkpoints)
+	sourceCatalog := sourceaccess.NewCatalogService(catalogRepo, sourceaccess.EnvironmentSecretResolver{}, adapters)
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepo)
 	coverageService := documentcoverage.NewService(documentcoverage.NewMemoryRepository(), documentService, continuityService)
@@ -104,6 +110,6 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()),
 		Evidence: evidenceService, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
-		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo), Close: func() {},
+		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo), Close: func() {},
 	}, nil
 }

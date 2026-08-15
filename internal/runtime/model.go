@@ -32,6 +32,12 @@ type Timer struct {
 	FailedAt   *time.Time      `json:"failed_at,omitempty"`
 }
 
+type InboxReceipt struct {
+	TenantID string `json:"tenant_id"`
+	Consumer string `json:"consumer"`
+	EventID  string `json:"event_id"`
+}
+
 type OutboxEvent struct {
 	ID             string          `json:"id"`
 	TenantID       string          `json:"tenant_id"`

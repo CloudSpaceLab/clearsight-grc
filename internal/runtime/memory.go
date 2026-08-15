@@ -170,6 +170,37 @@ func (r *MemoryRepository) RecordInbox(_ context.Context, tenant, consumer, even
 	r.inbox[k] = struct{}{}
 	return true, nil
 }
+func (r *MemoryRepository) RecordInboxWithOutbox(_ context.Context, receipts []InboxReceipt, event OutboxEvent, _ time.Time) (bool, error) {
+	if len(receipts) == 0 {
+		return false, errors.New("at least one inbox receipt is required")
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	first := receipts[0].TenantID + ":" + receipts[0].Consumer + ":" + receipts[0].EventID
+	if _, exists := r.inbox[first]; exists {
+		return false, nil
+	}
+	keys := make([]string, len(receipts))
+	for index, receipt := range receipts {
+		if receipt.TenantID != event.TenantID || receipt.TenantID == "" || receipt.Consumer == "" || receipt.EventID == "" {
+			return false, errors.New("inbox receipt does not match outbox tenant")
+		}
+		keys[index] = receipt.TenantID + ":" + receipt.Consumer + ":" + receipt.EventID
+		if index > 0 {
+			if _, exists := r.inbox[keys[index]]; exists {
+				return false, errors.New("secondary inbox receipt already exists")
+			}
+		}
+	}
+	if _, exists := r.outbox[event.ID]; exists {
+		return false, errors.New("outbox event already exists")
+	}
+	for _, key := range keys {
+		r.inbox[key] = struct{}{}
+	}
+	r.outbox[event.ID] = event
+	return true, nil
+}
 func (r *MemoryRepository) TimerQueueHealth(context.Context) (QueueHealth, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

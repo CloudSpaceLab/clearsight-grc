@@ -165,6 +165,21 @@ func (b Binding) NormalizedLimits() (ResourceLimits, error) {
 	return b.Limits.Normalized()
 }
 
+func (e ChangeEvent) ValidateInput() error {
+	if err := validateOpaqueID(e.EventID, "provider event id"); err != nil {
+		return err
+	}
+	if e.Position != nil {
+		if err := validateCheckpointPosition(*e.Position); err != nil {
+			return err
+		}
+	}
+	if len(e.Payload) == 0 || len(e.Payload) > HardMaxResponseBytes || !json.Valid(e.Payload) {
+		return fmt.Errorf("%w: bounded JSON event payload is required", ErrDefinitionInvalid)
+	}
+	return nil
+}
+
 func (s Scalar) ValidateInput() error {
 	if s.Kind == ScalarNull || !validScalarKind(s.Kind) || len(s.Text) == 0 || len(s.Text) > hardMaxLookupScalarBytes || strings.IndexByte(s.Text, 0) >= 0 || containsControl(s.Text) {
 		return fmt.Errorf("%w: invalid lookup or cursor value", ErrDefinitionInvalid)
