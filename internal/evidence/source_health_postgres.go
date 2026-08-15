@@ -17,6 +17,9 @@ func (r *PostgresRepository) RecordScopedSourceObservation(ctx context.Context, 
 	if err != nil {
 		return Source{}, err
 	}
+	if err := validateSourceObservationTime(observation, evaluatedAt); err != nil {
+		return Source{}, err
+	}
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return Source{}, err
