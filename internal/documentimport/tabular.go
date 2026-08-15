@@ -671,8 +671,8 @@ func scanTabularWorksheet(ctx context.Context, file *zip.File, shared []string, 
 	}
 	defer stream.Close()
 	decoder := xml.NewDecoder(stream)
-	rowFallback := 0
 	rowNumber := 0
+	lastRowNumber := 0
 	inRow := false
 	rowValues := map[int]string{}
 	maxColumn := -1
@@ -696,15 +696,21 @@ func scanTabularWorksheet(ctx context.Context, file *zip.File, shared []string, 
 				if budget.rows > state.policy.MaxRows {
 					return limitError("row count exceeds %d", state.policy.MaxRows)
 				}
-				rowFallback++
-				rowNumber = rowFallback
+				rowNumber = lastRowNumber + 1
 				for _, attr := range value.Attr {
-					if attr.Name.Local == "r" {
-						if parsed, parseErr := strconv.Atoi(attr.Value); parseErr == nil && parsed > 0 {
-							rowNumber = parsed
-						}
+					if attr.Name.Local != "r" {
+						continue
 					}
+					parsed, parseErr := strconv.Atoi(attr.Value)
+					if parseErr != nil || parsed < 1 {
+						return fmt.Errorf("XLSX worksheet row number is invalid")
+					}
+					rowNumber = parsed
 				}
+				if rowNumber <= lastRowNumber {
+					return fmt.Errorf("XLSX worksheet row numbers must be strictly increasing")
+				}
+				lastRowNumber = rowNumber
 				inRow = true
 				rowValues = map[int]string{}
 				maxColumn = -1

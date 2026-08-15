@@ -80,3 +80,23 @@ func TestTabularMetadataBudgetFailsCompactly(t *testing.T) {
 		t.Fatalf("compact failure receipt exceeded the persistence budget: bytes=%d err=%v", len(encoded), marshalErr)
 	}
 }
+
+func TestTabularXLSXRejectsNonMonotonicRowPositions(t *testing.T) {
+	var buffer bytes.Buffer
+	archive := zip.NewWriter(&buffer)
+	entry, err := archive.Create("xl/worksheets/sheet1.xml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = entry.Write([]byte(`<?xml version="1.0"?><worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>id</t></is></c></row><row r="2"><c r="A2"><v>1</v></c></row><row r="2"><c r="A2"><v>2</v></c></row></sheetData></worksheet>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := archive.Close(); err != nil {
+		t.Fatal(err)
+	}
+	metadata, err := InspectTabularArtifact(context.Background(), "duplicate-rows.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer.Bytes(), DefaultExtractionPolicy())
+	if err == nil || metadata.FatalError == "" || !strings.Contains(metadata.FatalError, "strictly increasing") {
+		t.Fatalf("non-monotonic XLSX rows remained resumable: metadata=%#v err=%v", metadata, err)
+	}
+}
