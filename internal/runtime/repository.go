@@ -2,8 +2,11 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	"time"
 )
+
+var ErrInboxReceiptConflict = errors.New("inbox receipt conflict")
 
 type Repository interface {
 	ScheduleTimer(context.Context, Timer) (Timer, error)
