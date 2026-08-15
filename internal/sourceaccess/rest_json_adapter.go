@@ -89,7 +89,7 @@ func (a RESTJSONAdapter) Open(ctx context.Context, connection Connection, resolv
 			return nil, ErrCredentials
 		}
 		secret, err = resolver.Resolve(ctx, connection.SecretRef)
-		if err != nil || secret == "" || len(secret) > HardMaxDefinitionBytes || containsControl(secret) {
+		if err != nil || secret == "" || secret != strings.TrimSpace(secret) || len(secret) > HardMaxDefinitionBytes || containsControl(secret) {
 			secret = ""
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return nil, err

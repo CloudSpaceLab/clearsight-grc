@@ -310,7 +310,7 @@ func (s *RESTJSONSession) getJSON(ctx context.Context, path string, query url.Va
 		return restJSONResponse{}, ErrExecution
 	}
 	if response.StatusCode == http.StatusNoContent {
-		return restJSONResponse{root: []any{}, etag: etag}, nil
+		return restJSONResponse{root: nil, etag: etag}, nil
 	}
 	if !restContentTypeJSON(response) {
 		return restJSONResponse{}, ErrExecution
