@@ -4,11 +4,9 @@ package sourceaccess
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -34,9 +32,9 @@ func (r *PostgresCheckpointRepository) EnsureBindingCheckpoint(ctx context.Conte
 	}
 	_, err = r.pool.Exec(ctx, `
 		INSERT INTO source_binding_checkpoints(
-			tenant_id,source_id,binding_id,binding_version,next_attempt_at,created_at,updated_at
+			tenant_id,source_id,binding_id,binding_version,generation,created_at,updated_at
 		) VALUES (
-			(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,$3::uuid,$4,$5,$5,$5
+			(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,$3::uuid,$4,0,$5,$5
 		)
 		ON CONFLICT (tenant_id,binding_id,binding_version) DO NOTHING`, tenantID, sourceID, bindingID, bindingVersion, now)
 	if err != nil {
@@ -51,117 +49,41 @@ func (r *PostgresCheckpointRepository) BindingCheckpoint(ctx context.Context, te
 	}
 	return scanBindingCheckpoint(r.pool.QueryRow(ctx, `
 		SELECT cp.tenant_id::text,cp.source_id::text,cp.binding_id::text,cp.binding_version,
-		       cp.position_kind,cp.position_value,cp.attempts,cp.locked_by,cp.lease_until,
-		       cp.next_attempt_at,cp.last_error_code,cp.failed_at,cp.created_at,cp.updated_at
+		       cp.position_kind,cp.position_value,cp.generation,cp.created_at,cp.updated_at
 		  FROM source_binding_checkpoints cp
 		  JOIN tenants t ON t.id=cp.tenant_id
 		 WHERE (t.id::text=$1 OR t.slug=$1)
 		   AND cp.binding_id=$2::uuid AND cp.binding_version=$3`, tenantID, bindingID, bindingVersion))
 }
 
-func (r *PostgresCheckpointRepository) ClaimBindingCheckpoints(ctx context.Context, worker string, now time.Time, lease time.Duration, limit int) ([]BindingCheckpoint, error) {
-	if r == nil || r.pool == nil {
-		return nil, ErrCatalogStorage
-	}
-	rows, err := r.pool.Query(ctx, `
-		WITH due AS (
-			SELECT cp.tenant_id,cp.binding_id,cp.binding_version
-			  FROM source_binding_checkpoints cp
-			  JOIN source_bindings sb
-			    ON sb.tenant_id=cp.tenant_id AND sb.source_id=cp.source_id
-			   AND sb.binding_id=cp.binding_id AND sb.version=cp.binding_version
-			 WHERE cp.failed_at IS NULL
-			   AND cp.next_attempt_at <= $1
-			   AND (cp.lease_until IS NULL OR cp.lease_until < $1)
-			   AND sb.status='ACTIVE' AND sb.is_current
-			   AND (sb.operations ? 'PAGE' OR sb.operations ? 'CHANGES')
-			 ORDER BY cp.next_attempt_at,cp.binding_id,cp.binding_version
-			 LIMIT $2
-			 FOR UPDATE OF cp SKIP LOCKED
-		), claimed AS (
-			UPDATE source_binding_checkpoints cp
-			   SET attempts=attempts+1,locked_by=$3,lease_until=$1+$4::interval,updated_at=$1
-			  FROM due
-			 WHERE cp.tenant_id=due.tenant_id AND cp.binding_id=due.binding_id AND cp.binding_version=due.binding_version
-			 RETURNING cp.*
-		)
-		SELECT tenant_id::text,source_id::text,binding_id::text,binding_version,
-		       position_kind,position_value,attempts,locked_by,lease_until,
-		       next_attempt_at,last_error_code,failed_at,created_at,updated_at
-		  FROM claimed
-		 ORDER BY next_attempt_at,binding_id,binding_version`, now, catalogListLimit(limit), worker, lease.String())
-	if err != nil {
-		return nil, catalogReadError(err)
-	}
-	defer rows.Close()
-	values := make([]BindingCheckpoint, 0)
-	for rows.Next() {
-		value, scanErr := scanBindingCheckpoint(rows)
-		if scanErr != nil {
-			return nil, scanErr
-		}
-		values = append(values, value)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, catalogReadError(err)
-	}
-	return values, nil
-}
-
-func (r *PostgresCheckpointRepository) AdvanceBindingCheckpoint(ctx context.Context, claimed BindingCheckpoint, position CheckpointPosition, at, next time.Time) (BindingCheckpoint, error) {
+func (r *PostgresCheckpointRepository) AdvanceBindingCheckpoint(ctx context.Context, expected BindingCheckpoint, position CheckpointPosition, at time.Time) (BindingCheckpoint, error) {
 	if r == nil || r.pool == nil {
 		return BindingCheckpoint{}, ErrCatalogStorage
-	}
-	if claimed.LeaseUntil == nil {
-		return BindingCheckpoint{}, ErrCheckpointClaimLost
 	}
 	if err := validateCheckpointPosition(position); err != nil {
 		return BindingCheckpoint{}, err
 	}
 	value, err := scanBindingCheckpoint(r.pool.QueryRow(ctx, `
 		UPDATE source_binding_checkpoints
-		   SET position_kind=$6,position_value=$7,attempts=0,locked_by='',lease_until=NULL,
-		       next_attempt_at=$8,last_error_code='',failed_at=NULL,updated_at=$9
+		   SET position_kind=$5,position_value=$6,generation=generation+1,updated_at=$7
 		 WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 		   AND binding_id=$2::uuid AND binding_version=$3
-		   AND locked_by=$4 AND locked_by<>'' AND lease_until=$5 AND lease_until >= $9
+		   AND generation=$4
+		   AND position_kind=$8 AND position_value=$9
 		 RETURNING tenant_id::text,source_id::text,binding_id::text,binding_version,
-		           position_kind,position_value,attempts,locked_by,lease_until,
-		           next_attempt_at,last_error_code,failed_at,created_at,updated_at`,
-		claimed.TenantID, claimed.BindingID, claimed.BindingVersion, claimed.LockedBy, *claimed.LeaseUntil,
-		position.Kind, position.Value, next, at))
+		           position_kind,position_value,generation,created_at,updated_at`,
+		expected.TenantID, expected.BindingID, expected.BindingVersion, expected.Generation,
+		position.Kind, position.Value, at, expected.Position.Kind, expected.Position.Value))
 	if errors.Is(err, ErrCatalogNotFound) {
-		return BindingCheckpoint{}, ErrCheckpointClaimLost
-	}
-	return value, err
-}
-
-func (r *PostgresCheckpointRepository) FailBindingCheckpoint(ctx context.Context, claimed BindingCheckpoint, maxAttempts int, errorCode string, at, next time.Time) (bool, error) {
-	if r == nil || r.pool == nil {
-		return false, ErrCatalogStorage
-	}
-	if claimed.LeaseUntil == nil {
-		return false, ErrCheckpointClaimLost
-	}
-	var terminal bool
-	err := r.pool.QueryRow(ctx, `
-		UPDATE source_binding_checkpoints
-		   SET locked_by='',lease_until=NULL,last_error_code=$6,
-		       next_attempt_at=CASE WHEN attempts >= $7 THEN next_attempt_at ELSE $8 END,
-		       failed_at=CASE WHEN attempts >= $7 THEN $9 ELSE NULL END,
-		       updated_at=$9
-		 WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
-		   AND binding_id=$2::uuid AND binding_version=$3
-		   AND locked_by=$4 AND locked_by<>'' AND lease_until=$5 AND lease_until >= $9
-		 RETURNING failed_at IS NOT NULL`, claimed.TenantID, claimed.BindingID, claimed.BindingVersion,
-		claimed.LockedBy, *claimed.LeaseUntil, errorCode, maxAttempts, next, at).Scan(&terminal)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return false, ErrCheckpointClaimLost
+		return BindingCheckpoint{}, ErrCheckpointConflict
 	}
 	if err != nil {
-		return false, catalogWriteError(err)
+		return BindingCheckpoint{}, err
 	}
-	return terminal, nil
+	if value.SourceID != expected.SourceID {
+		return BindingCheckpoint{}, ErrCheckpointConflict
+	}
+	return value, nil
 }
 
 type checkpointScanner interface {
@@ -171,7 +93,6 @@ type checkpointScanner interface {
 func scanBindingCheckpoint(row checkpointScanner) (BindingCheckpoint, error) {
 	var value BindingCheckpoint
 	var positionKind string
-	var leaseUntil, failedAt sql.NullTime
 	if err := row.Scan(
 		&value.TenantID,
 		&value.SourceID,
@@ -179,25 +100,12 @@ func scanBindingCheckpoint(row checkpointScanner) (BindingCheckpoint, error) {
 		&value.BindingVersion,
 		&positionKind,
 		&value.Position.Value,
-		&value.Attempts,
-		&value.LockedBy,
-		&leaseUntil,
-		&value.NextAttemptAt,
-		&value.LastErrorCode,
-		&failedAt,
+		&value.Generation,
 		&value.CreatedAt,
 		&value.UpdatedAt,
 	); err != nil {
 		return BindingCheckpoint{}, catalogReadError(err)
 	}
 	value.Position.Kind = CheckpointPositionKind(positionKind)
-	if leaseUntil.Valid {
-		lease := leaseUntil.Time
-		value.LeaseUntil = &lease
-	}
-	if failedAt.Valid {
-		failed := failedAt.Time
-		value.FailedAt = &failed
-	}
 	return value, nil
 }
