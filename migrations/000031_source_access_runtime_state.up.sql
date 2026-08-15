@@ -9,6 +9,35 @@ ALTER TABLE source_observations
     ADD COLUMN binding_id uuid,
     ADD COLUMN binding_version bigint;
 
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+          FROM source_observations so
+          JOIN evidence_sources es ON es.id=so.source_id
+         WHERE es.tenant_id<>so.tenant_id
+    ) THEN
+        RAISE EXCEPTION 'legacy source observations contain cross-tenant source provenance; repair before applying source-access runtime state';
+    END IF;
+    IF EXISTS (
+        SELECT 1
+          FROM source_observations so
+          JOIN principals p ON p.id=so.recorded_by
+         WHERE so.recorded_by IS NOT NULL
+           AND p.tenant_id<>so.tenant_id
+    ) THEN
+        RAISE EXCEPTION 'legacy source observations contain cross-tenant recorder provenance; repair before applying source-access runtime state';
+    END IF;
+    IF EXISTS (
+        SELECT 1
+          FROM source_observations so
+         WHERE so.observed_at > clock_timestamp() + interval '5 minutes'
+    ) THEN
+        RAISE EXCEPTION 'legacy source observations exceed the permitted clock skew; repair before applying source-access runtime state';
+    END IF;
+END
+$$;
+
 ALTER TABLE source_observations
     ADD CONSTRAINT source_observations_scope_kind_ck
         CHECK (scope_kind IN ('SOURCE','CONNECTION','VIEW','BINDING')),
