@@ -41,9 +41,12 @@ var (
 type AdapterKind string
 
 const (
-	AdapterPostgres AdapterKind = "POSTGRES"
-	AdapterRESTJSON AdapterKind = "REST_JSON"
+	AdapterPostgres        AdapterKind = "POSTGRES"
+	AdapterRESTJSON        AdapterKind = "REST_JSON"
+	AdapterTabularArtifact AdapterKind = "TABULAR_ARTIFACT"
 )
+
+const TabularArtifactAdapterVersion = "tabular-artifact-v1"
 
 type Capability string
 
@@ -88,6 +91,7 @@ type SecretResolver interface {
 // business-level Evidence Source. Definition is adapter-owned JSON; credentials
 // remain behind SecretRef.
 type Connection struct {
+	TenantID       string          `json:"tenant_id,omitempty"`
 	ID             string          `json:"id"`
 	SourceID       string          `json:"source_id"`
 	Version        string          `json:"version"`
@@ -224,6 +228,9 @@ type OperationReceipt struct {
 	Completeness          Completeness        `json:"completeness"`
 	Position              *CheckpointPosition `json:"position,omitempty"`
 	RetryIdentity         string              `json:"retry_identity,omitempty"`
+	ArtifactID            string              `json:"artifact_id,omitempty"`
+	ArtifactSHA256        string              `json:"artifact_sha256,omitempty"`
+	ParserVersion         string              `json:"parser_version,omitempty"`
 }
 
 type SchemaResult struct {

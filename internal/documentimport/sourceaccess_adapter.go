@@ -1,25 +1,18 @@
 package documentimport
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
-
-type tabularSourceViewDefinition struct {
-	DocumentID string `json:"document_id"`
-	Resource   string `json:"resource,omitempty"`
-}
 
 type tabularArtifactAdapter struct{ service *Service }
 
@@ -183,7 +176,7 @@ func (s *tabularArtifactSession) ReadPage(ctx context.Context, view sourceaccess
 		position = &sourceaccess.CheckpointPosition{Kind: sourceaccess.CheckpointCursor, Value: cursor.Text}
 	}
 	return sourceaccess.RecordPage{
-		Records: records,
+		Records:    records,
 		NextCursor: next,
 		Receipt: s.receipt(document, resource, view, binding, sourceaccess.OperationPage, int64(len(records)), byteCount,
 			completeness, fingerprint, position, tabularRetryIdentity(document, view, binding, sourceaccess.OperationPage, request.After, nil)),
@@ -278,45 +271,45 @@ func (s *tabularArtifactSession) Lookup(ctx context.Context, view sourceaccess.V
 	}, nil
 }
 
-func (s *tabularArtifactSession) validateBound(ctx context.Context, view sourceaccess.View, binding sourceaccess.Binding, operation sourceaccess.Operation) (Document, TabularResource, tabularSourceViewDefinition, sourceaccess.ResourceLimits, error) {
+func (s *tabularArtifactSession) validateBound(ctx context.Context, view sourceaccess.View, binding sourceaccess.Binding, operation sourceaccess.Operation) (Document, TabularResource, sourceaccess.TabularArtifactViewDefinition, sourceaccess.ResourceLimits, error) {
 	document, resource, definition, err := s.resolve(ctx, view)
 	if err != nil {
-		return Document{}, TabularResource{}, tabularSourceViewDefinition{}, sourceaccess.ResourceLimits{}, err
+		return Document{}, TabularResource{}, sourceaccess.TabularArtifactViewDefinition{}, sourceaccess.ResourceLimits{}, err
 	}
 	if err := binding.Validate(view); err != nil {
-		return Document{}, TabularResource{}, tabularSourceViewDefinition{}, sourceaccess.ResourceLimits{}, err
+		return Document{}, TabularResource{}, sourceaccess.TabularArtifactViewDefinition{}, sourceaccess.ResourceLimits{}, err
 	}
 	if !binding.Allows(operation) {
-		return Document{}, TabularResource{}, tabularSourceViewDefinition{}, sourceaccess.ResourceLimits{}, sourceaccess.ErrCapabilityUnavailable
+		return Document{}, TabularResource{}, sourceaccess.TabularArtifactViewDefinition{}, sourceaccess.ResourceLimits{}, sourceaccess.ErrCapabilityUnavailable
 	}
 	limits, err := binding.NormalizedLimits()
 	if err != nil {
-		return Document{}, TabularResource{}, tabularSourceViewDefinition{}, sourceaccess.ResourceLimits{}, err
+		return Document{}, TabularResource{}, sourceaccess.TabularArtifactViewDefinition{}, sourceaccess.ResourceLimits{}, err
 	}
 	return document, resource, definition, limits, nil
 }
 
-func (s *tabularArtifactSession) resolve(ctx context.Context, view sourceaccess.View) (Document, TabularResource, tabularSourceViewDefinition, error) {
+func (s *tabularArtifactSession) resolve(ctx context.Context, view sourceaccess.View) (Document, TabularResource, sourceaccess.TabularArtifactViewDefinition, error) {
 	if s == nil || s.service == nil {
-		return Document{}, TabularResource{}, tabularSourceViewDefinition{}, sourceaccess.ErrConnection
+		return Document{}, TabularResource{}, sourceaccess.TabularArtifactViewDefinition{}, sourceaccess.ErrConnection
 	}
 	if err := view.Validate(s.connection); err != nil {
-		return Document{}, TabularResource{}, tabularSourceViewDefinition{}, err
+		return Document{}, TabularResource{}, sourceaccess.TabularArtifactViewDefinition{}, err
 	}
-	definition, err := decodeTabularSourceView(view.Definition)
+	definition, err := sourceaccess.DecodeTabularArtifactViewDefinition(view.Definition)
 	if err != nil {
-		return Document{}, TabularResource{}, tabularSourceViewDefinition{}, err
+		return Document{}, TabularResource{}, sourceaccess.TabularArtifactViewDefinition{}, err
 	}
 	document, err := s.service.Get(ctx, s.connection.TenantID, definition.DocumentID)
 	if err != nil {
-		return Document{}, TabularResource{}, tabularSourceViewDefinition{}, sourceaccess.ErrExecution
+		return Document{}, TabularResource{}, sourceaccess.TabularArtifactViewDefinition{}, sourceaccess.ErrExecution
 	}
 	if document.Tabular == nil || document.Tabular.ParserVersion != TabularParserVersion || document.Tabular.FatalError != "" {
-		return Document{}, TabularResource{}, tabularSourceViewDefinition{}, sourceaccess.ErrExecution
+		return Document{}, TabularResource{}, sourceaccess.TabularArtifactViewDefinition{}, sourceaccess.ErrExecution
 	}
 	if definition.Resource == "" {
 		if len(document.Tabular.Resources) != 1 {
-			return Document{}, TabularResource{}, tabularSourceViewDefinition{}, sourceaccess.ErrDefinitionInvalid
+			return Document{}, TabularResource{}, sourceaccess.TabularArtifactViewDefinition{}, sourceaccess.ErrDefinitionInvalid
 		}
 		definition.Resource = document.Tabular.Resources[0].Name
 	}
@@ -328,31 +321,12 @@ func (s *tabularArtifactSession) resolve(ctx context.Context, view sourceaccess.
 		}
 	}
 	if resource == nil || len(resource.Fields) == 0 || resource.SchemaFingerprint == "" {
-		return Document{}, TabularResource{}, tabularSourceViewDefinition{}, sourceaccess.ErrExecution
+		return Document{}, TabularResource{}, sourceaccess.TabularArtifactViewDefinition{}, sourceaccess.ErrExecution
 	}
 	if view.SchemaFingerprint != "" && view.SchemaFingerprint != resource.SchemaFingerprint {
-		return Document{}, TabularResource{}, tabularSourceViewDefinition{}, sourceaccess.ErrSchemaDrift
+		return Document{}, TabularResource{}, sourceaccess.TabularArtifactViewDefinition{}, sourceaccess.ErrSchemaDrift
 	}
 	return document, *resource, definition, nil
-}
-
-func decodeTabularSourceView(raw json.RawMessage) (tabularSourceViewDefinition, error) {
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.DisallowUnknownFields()
-	var definition tabularSourceViewDefinition
-	if err := decoder.Decode(&definition); err != nil {
-		return tabularSourceViewDefinition{}, sourceaccess.ErrDefinitionInvalid
-	}
-	var trailing any
-	if err := decoder.Decode(&trailing); err != io.EOF {
-		return tabularSourceViewDefinition{}, sourceaccess.ErrDefinitionInvalid
-	}
-	definition.DocumentID = strings.TrimSpace(definition.DocumentID)
-	definition.Resource = strings.TrimSpace(definition.Resource)
-	if definition.DocumentID == "" || len(definition.DocumentID) > sourceaccess.HardMaxIdentifierBytes || len(definition.Resource) > sourceaccess.HardMaxIdentifierBytes {
-		return tabularSourceViewDefinition{}, sourceaccess.ErrDefinitionInvalid
-	}
-	return definition, nil
 }
 
 func (s *tabularArtifactSession) readArtifact(ctx context.Context, document Document) ([]byte, error) {

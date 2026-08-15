@@ -10,6 +10,11 @@ import (
 )
 
 func (c Connection) Validate() error {
+	if c.TenantID != "" {
+		if err := validateOpaqueID(c.TenantID, "tenant id"); err != nil {
+			return err
+		}
+	}
 	if err := validateOpaqueID(c.ID, "connection id"); err != nil {
 		return err
 	}

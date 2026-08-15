@@ -45,9 +45,11 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 			sourceScopes = append(sourceScopes, sourceaccess.SourceScope{TenantID: source.TenantID, SourceID: source.ID})
 		}
 	}
-	sourceCatalog := sourceaccess.NewCatalogService(sourceaccess.NewMemoryCatalogRepository(sourceScopes), sourceaccess.EnvironmentSecretResolver{}, sourceaccess.DefaultCatalogAdapters())
 	documentService := documentimport.NewService(documentimport.NewMemoryRepository(), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
+	adapters := sourceaccess.DefaultCatalogAdapters()
+	adapters[sourceaccess.AdapterTabularArtifact] = documentService.SourceAccessAdapter()
+	sourceCatalog := sourceaccess.NewCatalogService(sourceaccess.NewMemoryCatalogRepository(sourceScopes), sourceaccess.EnvironmentSecretResolver{}, adapters)
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepo)
 	coverageService := documentcoverage.NewService(documentcoverage.NewMemoryRepository(), documentService, continuityService)

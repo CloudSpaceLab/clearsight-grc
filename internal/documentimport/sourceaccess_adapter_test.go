@@ -38,7 +38,7 @@ func TestTabularArtifactSourceAccessReusesImportedCSV(t *testing.T) {
 	view.StableKeys = []string{"id"}
 	binding := sourceaccess.Binding{
 		ID: "binding-a", ViewID: view.ID, Version: "1", Purpose: "account-identity",
-		Operations: []sourceaccess.Operation{sourceaccess.OperationPage, sourceaccess.OperationLookup},
+		Operations:     []sourceaccess.Operation{sourceaccess.OperationPage, sourceaccess.OperationLookup},
 		SelectedFields: []string{"id", "name"}, KeyFields: []string{"id"},
 		Limits: sourceaccess.ResourceLimits{PageRows: 10, ResponseBytes: 64 << 10, LookupValues: 10, Timeout: time.Second},
 	}
