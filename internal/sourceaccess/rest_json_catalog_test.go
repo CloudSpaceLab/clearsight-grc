@@ -54,7 +54,7 @@ func TestCatalogServiceReusesInspectedRESTBindingForLookup(t *testing.T) {
 	actor := CatalogActor{TenantID: tenantID, PrincipalID: actorID}
 
 	connectionDefinition, _ := json.Marshal(RESTJSONConnectionDefinition{
-		BaseURL: server.URL,
+		BaseURL:        server.URL,
 		Authentication: RESTJSONAuthentication{Kind: RESTJSONAuthBearer},
 	})
 	connection, err := service.CreateConnectionDraft(context.Background(), actor, sourceID, CreateConnectionDraftInput{
@@ -69,7 +69,7 @@ func TestCatalogServiceReusesInspectedRESTBindingForLookup(t *testing.T) {
 	viewDefinition, _ := json.Marshal(RESTJSONViewDefinition{
 		Path: "/accounts", RecordsPointer: "/items", FixedQuery: map[string]string{"active": "true"},
 		Pagination: RESTJSONPagination{Mode: RESTJSONPaginationNone},
-		Lookup: &RESTJSONLookup{QueryParam: "id"},
+		Lookup:     &RESTJSONLookup{QueryParam: "id"},
 	})
 	view, err := service.CreateViewDraft(context.Background(), actor, connection.ConnectionID, CreateViewDraftInput{
 		ConnectionVersion: connection.Version, Code: "ACTIVE_ACCOUNTS", Name: "Active accounts", Definition: viewDefinition,

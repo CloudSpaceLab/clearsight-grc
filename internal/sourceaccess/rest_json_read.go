@@ -101,6 +101,9 @@ func (s *RESTJSONSession) ReadPage(ctx context.Context, view View, binding Bindi
 		}
 	case RESTJSONPaginationCursor:
 		if request.After != nil {
+			if request.After.Kind != ScalarString {
+				return RecordPage{}, fmt.Errorf("%w: REST cursor checkpoint must be an opaque string", ErrDefinitionInvalid)
+			}
 			query.Set(definition.Pagination.CursorQueryParam, request.After.Text)
 		}
 	case RESTJSONPaginationETag:
@@ -574,7 +577,7 @@ func restNextPosition(definition RESTJSONViewDefinition, response restJSONRespon
 			return nil, nil, CompletenessComplete, nil
 		}
 		next, err := restScalar(value)
-		if err != nil || next.Kind == ScalarNull {
+		if err != nil || next.Kind != ScalarString {
 			return nil, nil, "", ErrExecution
 		}
 		if err := next.ValidateInput(); err != nil {
