@@ -30,7 +30,7 @@ func TestGovernedTabularImportIsReusableThroughSourceCatalog(t *testing.T) {
 	actor := sourceaccess.CatalogActor{TenantID: "tenant-a", PrincipalID: "actor-a"}
 	connection, err := catalog.CreateConnectionDraft(ctx, actor, "source-a", sourceaccess.CreateConnectionDraftInput{
 		Code: "ACCOUNT_FILE", Name: "Account file", AdapterKind: sourceaccess.AdapterTabularArtifact,
-		AdapterVersion: sourceaccess.TabularArtifactAdapterVersion,
+		AdapterVersion:       sourceaccess.TabularArtifactAdapterVersion,
 		DeclaredCapabilities: []sourceaccess.Capability{sourceaccess.CapabilityInspect, sourceaccess.CapabilityPage, sourceaccess.CapabilityLookup},
 	})
 	if err != nil {
@@ -52,7 +52,7 @@ func TestGovernedTabularImportIsReusableThroughSourceCatalog(t *testing.T) {
 	}
 	binding, err := catalog.CreateBindingDraft(ctx, actor, inspected.View.ViewID, sourceaccess.CreateBindingDraftInput{
 		ViewVersion: inspected.View.Version, Code: "ACCOUNT_ACCESS", Name: "Account access", Purpose: "account-review",
-		Operations: []sourceaccess.Operation{sourceaccess.OperationPage, sourceaccess.OperationLookup},
+		Operations:     []sourceaccess.Operation{sourceaccess.OperationPage, sourceaccess.OperationLookup},
 		SelectedFields: []string{"id", "name", "status"}, KeyFields: []string{"id"},
 		Limits: sourceaccess.ResourceLimits{PageRows: 10, ResponseBytes: 64 << 10, LookupValues: 10, Timeout: 2 * time.Second},
 	})

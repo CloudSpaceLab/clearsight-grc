@@ -29,7 +29,9 @@ func TestPostgresDocumentImportPersistsTabularParserReceipt(t *testing.T) {
 	}
 	defer pool.Close()
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tabularIntegrationTenantID)
-	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tabularIntegrationTenantID) })
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tabularIntegrationTenantID)
+	})
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'tabular-import-integration','Tabular import integration')`, tabularIntegrationTenantID); err != nil {
 		t.Fatal(err)
 	}
