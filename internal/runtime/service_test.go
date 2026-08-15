@@ -61,23 +61,29 @@ func TestExpiredTimerLeaseCanBeReclaimedAndStaleWorkerCannotComplete(t *testing.
 func TestOutboxClaimOwnershipIsEnforced(t *testing.T) {
 	ctx := context.Background()
 	repo := NewMemoryRepository()
-	now := time.Now().UTC()
-	timer := Timer{ID: "timer-2", TenantID: "t1", WorkflowID: "wf1", Type: "REMINDER", DueAt: now, State: TimerClaimed, DedupeKey: "wf1:r2", LockedBy: "timer-worker"}
-	repo.timers[timer.ID] = timer
-	event := OutboxEvent{ID: "event-2", TenantID: "t1", AggregateType: "WORKFLOW", AggregateID: "wf1", EventType: "Timer", Payload: json.RawMessage(`{}`), OccurredAt: now}
-	if err := repo.CompleteTimer(ctx, timer, event, now); err != nil {
+	now := time.Date(2026, 8, 5, 8, 0, 0, 0, time.UTC)
+	timer := Timer{ID: "timer-2", TenantID: "t1", WorkflowID: "wf1", Type: "REMINDER", DueAt: now, State: TimerReady, DedupeKey: "wf1:r2", Payload: json.RawMessage(`{}`)}
+	if _, err := repo.ScheduleTimer(ctx, timer); err != nil {
 		t.Fatal(err)
 	}
-	claimed, err := repo.ClaimOutbox(ctx, "publisher-a", now, time.Second, 1)
+	timers, err := repo.ClaimDueTimers(ctx, "timer-worker", now, time.Minute, 1)
+	if err != nil || len(timers) != 1 {
+		t.Fatalf("timer claim: %v %#v", err, timers)
+	}
+	event := OutboxEvent{ID: "event-2", TenantID: "t1", AggregateType: "WORKFLOW", AggregateID: "wf1", EventType: "Timer", Payload: json.RawMessage(`{}`), OccurredAt: now}
+	if err := repo.CompleteTimer(ctx, timers[0], event, now.Add(10*time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	claimed, err := repo.ClaimOutbox(ctx, "publisher-a", now.Add(20*time.Second), time.Second, 1)
 	if err != nil || len(claimed) != 1 {
 		t.Fatalf("claim: %v %#v", err, claimed)
 	}
 	stale := claimed[0]
 	stale.LockedBy = "publisher-b"
-	if err := repo.MarkPublished(ctx, stale, now); err == nil {
+	if err := repo.MarkPublished(ctx, stale, now.Add(20*time.Second)); err == nil {
 		t.Fatal("expected stale outbox claim to fail")
 	}
-	if err := repo.MarkPublished(ctx, claimed[0], now); err != nil {
+	if err := repo.MarkPublished(ctx, claimed[0], now.Add(20*time.Second)); err != nil {
 		t.Fatal(err)
 	}
 }
