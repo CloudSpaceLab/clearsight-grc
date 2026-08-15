@@ -208,6 +208,14 @@ func aggregateSourceHealthTx(ctx context.Context, tx pgx.Tx, source Source, now 
 			 WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 			   AND source_id=$2::uuid
 			 ORDER BY scope_kind,connection_id,connection_version,view_id,view_version,binding_id,binding_version,observed_at DESC,id DESC
+		), rollup AS (
+			SELECT COALESCE(max(CASE
+			           WHEN unavailable THEN 5
+			           WHEN NOT success THEN 3
+			           WHEN observed_at + make_interval(mins=>$4) <= $3 THEN 4
+			           ELSE 1
+			       END),0) AS health_rank
+			  FROM latest
 		), history AS (
 			SELECT max(observed_at) AS last_observed_at,
 			       max(observed_at) FILTER (WHERE success) AS last_success_at
@@ -215,14 +223,8 @@ func aggregateSourceHealthTx(ctx context.Context, tx pgx.Tx, source Source, now 
 			 WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 			   AND source_id=$2::uuid
 		)
-		SELECT COALESCE(max(CASE
-		           WHEN unavailable THEN 5
-		           WHEN NOT success THEN 3
-		           WHEN observed_at + make_interval(mins=>$4) <= $3 THEN 4
-		           ELSE 1
-		       END),0),history.last_observed_at,history.last_success_at
-		  FROM latest CROSS JOIN history
-		 GROUP BY history.last_observed_at,history.last_success_at`, source.TenantID, source.ID, now, source.ExpectedFreshnessMinutes).Scan(&rank, &observed, &success)
+		SELECT rollup.health_rank,history.last_observed_at,history.last_success_at
+		  FROM rollup CROSS JOIN history`, source.TenantID, source.ID, now, source.ExpectedFreshnessMinutes).Scan(&rank, &observed, &success)
 	if err != nil {
 		return HealthUnknown, nil, nil, err
 	}
