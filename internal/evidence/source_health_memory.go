@@ -11,6 +11,9 @@ func (r *MemoryRepository) RecordScopedSourceObservation(_ context.Context, obse
 	if err != nil {
 		return Source{}, err
 	}
+	if err := validateSourceObservationTime(observation, evaluatedAt); err != nil {
+		return Source{}, err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	source, ok := r.sources[observation.SourceID]
