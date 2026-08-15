@@ -1,0 +1,110 @@
+name: T2a REST JSON audit closeout
+
+on:
+  push:
+    branches:
+      - codex/issue-61-sourceaccess-t2a-rest-json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: t2a-rest-json-audit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/issue-61-sourceaccess-t2a-rest-json
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+      - name: Enforce opaque cursor and final T2a gates
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('internal/sourceaccess/rest_json_read.go')
+          text = path.read_text()
+          old = '''\tcase RESTJSONPaginationCursor:
+          \t\tif request.After != nil {
+          \t\t\tquery.Set(definition.Pagination.CursorQueryParam, request.After.Text)
+          \t\t}
+          '''
+          new = '''\tcase RESTJSONPaginationCursor:
+          \t\tif request.After != nil {
+          \t\t\tif request.After.Kind != ScalarString {
+          \t\t\t\treturn RecordPage{}, fmt.Errorf("%w: REST cursor checkpoint must be an opaque string", ErrDefinitionInvalid)
+          \t\t\t}
+          \t\t\tquery.Set(definition.Pagination.CursorQueryParam, request.After.Text)
+          \t\t}
+          '''
+          if old not in text:
+              raise SystemExit('REST cursor request block changed')
+          text = text.replace(old, new, 1)
+          old = '''\t\tnext, err := restScalar(value)
+          \t\tif err != nil || next.Kind == ScalarNull {
+          \t\t\treturn nil, nil, "", ErrExecution
+          \t\t}
+          '''
+          new = '''\t\tnext, err := restScalar(value)
+          \t\tif err != nil || next.Kind != ScalarString {
+          \t\t\treturn nil, nil, "", ErrExecution
+          \t\t}
+          '''
+          if old not in text:
+              raise SystemExit('REST next cursor block changed')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+          cat > internal/sourceaccess/rest_json_cursor_test.go <<'EOF'
+          package sourceaccess
+
+          import (
+            "encoding/json"
+            "errors"
+            "testing"
+          )
+
+          func TestRESTJSONCursorPositionIsOpaqueString(t *testing.T) {
+            definition := RESTJSONViewDefinition{
+              Pagination: RESTJSONPagination{Mode: RESTJSONPaginationCursor, NextCursorPointer: "/next"},
+            }
+            response := restJSONResponse{root: map[string]any{"next": json.Number("42")}}
+            if _, _, _, err := restNextPosition(definition, response, nil); !errors.Is(err, ErrExecution) {
+              t.Fatalf("numeric cursor escaped the string-only checkpoint contract: %v", err)
+            }
+            response.root = map[string]any{"next": "cursor-42"}
+            next, position, completeness, err := restNextPosition(definition, response, nil)
+            if err != nil || next == nil || next.Kind != ScalarString || position == nil || position.Kind != CheckpointCursor || position.Value != "cursor-42" || completeness != CompletenessPartial {
+              t.Fatalf("opaque cursor was not retained exactly: next=%#v position=%#v completeness=%q err=%v", next, position, completeness, err)
+            }
+          }
+          EOF
+
+          gofmt -w $(find cmd internal -name '*.go' -type f)
+          go test ./internal/sourceaccess ./internal/assurance ./internal/httpapi ./internal/runtime
+          go test -tags postgres ./internal/sourceaccess ./internal/assurance ./internal/httpapi ./internal/runtime
+          bash scripts/verify-sourceaccess-tranche.sh t2a
+
+          test ! -e migrations/000032_source_access_rest_json.up.sql
+          grep -q 'func (s \*CatalogService) LookupBinding' internal/sourceaccess/catalog_service.go
+          grep -q 'TestCatalogServiceReusesInspectedRESTBindingForLookup' internal/sourceaccess/rest_json_catalog_test.go
+          grep -q 'REST cursor checkpoint must be an opaque string' internal/sourceaccess/rest_json_read.go
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add internal
+          if git diff --cached --quiet; then
+            echo "No T2a audit changes to publish."
+            exit 0
+          fi
+          git commit -m "fix(sourceaccess): keep REST cursors opaque"
+          git push origin HEAD:codex/issue-61-sourceaccess-t2a-rest-json
