@@ -60,12 +60,21 @@ func TestCheckpointReplayUsesExistingRuntimeInboxReceipt(t *testing.T) {
 		t.Fatalf("durable inbox receipt inserted=%v err=%v", inserted, err)
 	}
 	// Simulate a crash after durable processing but before checkpoint advancement.
-	replayed, err := service.Claim(ctx, "worker-b", now.Add(2*time.Minute), time.Minute, 10)
+	// The same worker identity is deliberately reused to prove the lease generation,
+	// not just the worker name, fences the abandoned execution.
+	replayed, err := service.Claim(ctx, "worker-a", now.Add(2*time.Minute), time.Minute, 10)
 	if err != nil || len(replayed) != 1 {
 		t.Fatalf("expired checkpoint was not replayed: claims=%#v err=%v", replayed, err)
 	}
 	if replayed[0].Position != first[0].Position || replayed[0].Attempts != 2 {
 		t.Fatalf("replay skipped source position: first=%#v replay=%#v", first[0], replayed[0])
+	}
+	if first[0].LeaseUntil == nil || replayed[0].LeaseUntil == nil || first[0].LeaseUntil.Equal(*replayed[0].LeaseUntil) {
+		t.Fatalf("checkpoint lease generation did not change: first=%#v replay=%#v", first[0], replayed[0])
+	}
+	staleAt := now.Add(2*time.Minute + 5*time.Second)
+	if _, err := repository.AdvanceBindingCheckpoint(ctx, first[0], sourceaccess.CheckpointPosition{Kind: sourceaccess.CheckpointCursor, Value: "stale-cursor"}, staleAt, now.Add(3*time.Minute)); !errors.Is(err, sourceaccess.ErrCheckpointClaimLost) {
+		t.Fatalf("stale same-worker claim advanced the newer lease: %v", err)
 	}
 	inserted, err = runtimeRepository.RecordInbox(ctx, checkpointTenantID, "source-pull", "event-100", now.Add(2*time.Minute))
 	if err != nil || inserted {
@@ -79,9 +88,6 @@ func TestCheckpointReplayUsesExistingRuntimeInboxReceipt(t *testing.T) {
 	}
 	if advanced.Position != position || advanced.Attempts != 0 {
 		t.Fatalf("checkpoint did not advance after durable proof: %#v", advanced)
-	}
-	if _, err := repository.AdvanceBindingCheckpoint(ctx, first[0], sourceaccess.CheckpointPosition{Kind: sourceaccess.CheckpointCursor, Value: "cursor-stale"}, now.Add(20*time.Second), now.Add(time.Minute)); !errors.Is(err, sourceaccess.ErrCheckpointClaimLost) {
-		t.Fatalf("expired worker retained checkpoint authority: %v", err)
 	}
 }
 
