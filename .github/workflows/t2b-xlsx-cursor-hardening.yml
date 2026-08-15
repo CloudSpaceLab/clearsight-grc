@@ -1,0 +1,111 @@
+name: T2b XLSX cursor hardening
+
+on:
+  push:
+    branches:
+      - codex/issue-61-sourceaccess-t2b-tabular-artifacts
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/issue-61-sourceaccess-t2b-tabular-artifacts
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+      - name: Reject non-monotonic worksheet rows
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('internal/documentimport/tabular.go')
+          text = path.read_text()
+          old = '''\trowFallback := 0
+          \trowNumber := 0
+          \tinRow := false
+          '''
+          new = '''\trowNumber := 0
+          \tlastRowNumber := 0
+          \tinRow := false
+          '''
+          if old not in text:
+              raise SystemExit('worksheet row state changed')
+          text = text.replace(old, new, 1)
+          old = '''\t\t\t\trowFallback++
+          \t\t\t\trowNumber = rowFallback
+          \t\t\t\tfor _, attr := range value.Attr {
+          \t\t\t\t\tif attr.Name.Local == "r" {
+          \t\t\t\t\t\tif parsed, parseErr := strconv.Atoi(attr.Value); parseErr == nil && parsed > 0 {
+          \t\t\t\t\t\t\trowNumber = parsed
+          \t\t\t\t\t\t}
+          \t\t\t\t\t}
+          \t\t\t\t}
+          \t\t\t\tinRow = true
+          '''
+          new = '''\t\t\t\trowNumber = lastRowNumber + 1
+          \t\t\t\tfor _, attr := range value.Attr {
+          \t\t\t\t\tif attr.Name.Local != "r" {
+          \t\t\t\t\t\tcontinue
+          \t\t\t\t\t}
+          \t\t\t\t\tparsed, parseErr := strconv.Atoi(attr.Value)
+          \t\t\t\t\tif parseErr != nil || parsed < 1 {
+          \t\t\t\t\t\treturn fmt.Errorf("XLSX worksheet row number is invalid")
+          \t\t\t\t\t}
+          \t\t\t\t\trowNumber = parsed
+          \t\t\t\t}
+          \t\t\t\tif rowNumber <= lastRowNumber {
+          \t\t\t\t\treturn fmt.Errorf("XLSX worksheet row numbers must be strictly increasing")
+          \t\t\t\t}
+          \t\t\t\tlastRowNumber = rowNumber
+          \t\t\t\tinRow = true
+          '''
+          if old not in text:
+              raise SystemExit('worksheet row numbering block changed')
+          path.write_text(text.replace(old, new, 1))
+
+          path = Path('internal/documentimport/tabular_test.go')
+          text = path.read_text()
+          addition = '''
+          func TestTabularXLSXRejectsNonMonotonicRowPositions(t *testing.T) {
+          \tvar buffer bytes.Buffer
+          \tarchive := zip.NewWriter(&buffer)
+          \tentry, err := archive.Create("xl/worksheets/sheet1.xml")
+          \tif err != nil {
+          \t\tt.Fatal(err)
+          \t}
+          \t_, err = entry.Write([]byte(`<?xml version="1.0"?><worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>id</t></is></c></row><row r="2"><c r="A2"><v>1</v></c></row><row r="2"><c r="A2"><v>2</v></c></row></sheetData></worksheet>`))
+          \tif err != nil {
+          \t\tt.Fatal(err)
+          \t}
+          \tif err := archive.Close(); err != nil {
+          \t\tt.Fatal(err)
+          \t}
+          \tmetadata, err := InspectTabularArtifact(context.Background(), "duplicate-rows.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer.Bytes(), DefaultExtractionPolicy())
+          \tif err == nil || metadata.FatalError == "" || !strings.Contains(metadata.FatalError, "strictly increasing") {
+          \t\tt.Fatalf("non-monotonic XLSX rows remained resumable: metadata=%#v err=%v", metadata, err)
+          \t}
+          }
+          '''
+          if 'TestTabularXLSXRejectsNonMonotonicRowPositions' not in text:
+              text += addition
+          path.write_text(text)
+          PY
+          gofmt -w internal/documentimport/tabular.go internal/documentimport/tabular_test.go
+          go test -race ./internal/documentimport ./internal/sourceaccess
+          go test -tags postgres ./internal/documentimport ./internal/sourceaccess
+          go vet ./internal/documentimport ./internal/sourceaccess
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add internal/documentimport/tabular.go internal/documentimport/tabular_test.go
+          git commit -m "fix(documentimport): fence XLSX row cursors"
+          git push origin HEAD:codex/issue-61-sourceaccess-t2b-tabular-artifacts
