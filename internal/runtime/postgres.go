@@ -148,8 +148,12 @@ func (r *PostgresRepository) RecordInboxWithOutbox(ctx context.Context, receipts
 		if receipt.TenantID != event.TenantID {
 			return false, errors.New("inbox receipt does not match outbox tenant")
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO inbox_receipts(tenant_id,consumer,event_id,processed_at) VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2,$3,$4)`, receipt.TenantID, receipt.Consumer, receipt.EventID, at); err != nil {
+		tag, err := tx.Exec(ctx, `INSERT INTO inbox_receipts(tenant_id,consumer,event_id,processed_at) VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2,$3,$4) ON CONFLICT DO NOTHING`, receipt.TenantID, receipt.Consumer, receipt.EventID, at)
+		if err != nil {
 			return false, err
+		}
+		if tag.RowsAffected() == 0 {
+			return false, ErrInboxReceiptConflict
 		}
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO outbox_events(id,tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at) VALUES($1,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4::uuid,$5,$6,$7,$7,$7)`, event.ID, event.TenantID, event.AggregateType, event.AggregateID, event.EventType, event.Payload, event.OccurredAt); err != nil {

@@ -32,7 +32,7 @@ func (a *API) ingestSourceBindingEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	var input sourceEventRequest
 	if err := httpx.DecodeJSON(w, r, &input); err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "Send one source event with event_id, optional position and payload fields only.")
 		return
 	}
 	result, err := service.CaptureBindingChange(r.Context(), actor.TenantID, r.PathValue("id"), 0, sourceaccess.ChangeEvent{EventID: input.EventID, Position: input.Position, Payload: input.Payload})

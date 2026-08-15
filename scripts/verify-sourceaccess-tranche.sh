@@ -3,7 +3,9 @@ set -euo pipefail
 
 tranche="${1:-auto}"
 if [[ "$tranche" == "auto" ]]; then
-  if [[ -f internal/documentimport/sourceaccess_adapter.go && -f migrations/000032_document_import_tabular_metadata.up.sql ]]; then
+  if [[ -f internal/sourceevent/adapter.go && -f internal/sourceevent/projector.go ]]; then
+    tranche="t2c"
+  elif [[ -f internal/documentimport/sourceaccess_adapter.go && -f migrations/000032_document_import_tabular_metadata.up.sql ]]; then
     tranche="t2b"
   elif [[ -f internal/sourceaccess/rest_json_adapter.go && -f internal/sourceaccess/rest_json_read.go ]]; then
     tranche="t2a"
@@ -17,8 +19,8 @@ if [[ "$tranche" == "auto" ]]; then
     tranche="t0"
   fi
 fi
-if [[ "$tranche" != "t0" && "$tranche" != "t1a" && "$tranche" != "t1b" && "$tranche" != "t1c" && "$tranche" != "t2a" && "$tranche" != "t2b" ]]; then
-  echo "usage: $0 [auto|t0|t1a|t1b|t1c|t2a|t2b]" >&2
+if [[ "$tranche" != "t0" && "$tranche" != "t1a" && "$tranche" != "t1b" && "$tranche" != "t1c" && "$tranche" != "t2a" && "$tranche" != "t2b" && "$tranche" != "t2c" ]]; then
+  echo "usage: $0 [auto|t0|t1a|t1b|t1c|t2a|t2b|t2c]" >&2
   exit 2
 fi
 
@@ -228,7 +230,7 @@ PY
       go test ./internal/sourceaccess ./internal/evidence ./internal/httpapi ./internal/runtime
       go test -tags postgres ./internal/sourceaccess ./internal/evidence ./internal/httpapi ./internal/runtime
       summary="Complete T1 durable reusable sources passed: catalog, governed operations, replay-safe checkpoints, scoped health aggregation, schema ownership and rollback/reapply controls."
-	  if [[ "$tranche" == "t2a" || "$tranche" == "t2b" ]]; then
+	  if [[ "$tranche" == "t2a" || "$tranche" == "t2b" || "$tranche" == "t2c" ]]; then
 	    required_t2a=(
 	      internal/sourceaccess/rest_json_adapter.go
 	      internal/sourceaccess/rest_json_definition.go
@@ -254,7 +256,7 @@ PY
 	    go test ./internal/sourceaccess
 	    go test -tags postgres ./internal/sourceaccess ./internal/assurance
 	    summary="T2a REST/JSON source access passed: fixed HTTPS origin, strict templates, bounded inspect/page/lookup, cursor/ETag positions, secret isolation and schema-drift blocking."
-	    if [[ "$tranche" == "t2b" ]]; then
+	    if [[ "$tranche" == "t2b" || "$tranche" == "t2c" ]]; then
 	      required_t2b=(
 	        internal/documentimport/tabular.go
 	        internal/documentimport/sourceaccess_adapter.go
@@ -281,6 +283,38 @@ PY
 	      go test ./internal/documentimport ./internal/sourceaccess ./cmd/api
 	      go test -tags postgres ./internal/documentimport ./internal/sourceaccess ./internal/assurance ./cmd/api
 	      summary="T2b governed tabular capture passed: CSV/JSON/NDJSON/XLSX originals, bounded parser receipts, row diagnostics/schema fingerprints and reusable artifact-backed inspect/page/lookup without a source-row table."
+	    fi
+	    if [[ "$tranche" == "t2c" ]]; then
+	      required_t2c=(
+	        internal/sourceevent/adapter.go
+	        internal/sourceevent/adapter_test.go
+	        internal/sourceevent/projector.go
+	        internal/sourceevent/projector_test.go
+	        internal/sourceaccess/webhook_event_definition.go
+	        internal/sourceaccess/catalog_changes.go
+	        internal/httpapi/source_event_handlers.go
+	        internal/httpapi/source_event_handlers_test.go
+	        internal/runtime/inbox_outbox_postgres_integration_test.go
+	      )
+	      for file in "${required_t2c[@]}"; do
+	        test -s "$file" || { echo "missing T2c contract: $file" >&2; exit 1; }
+	      done
+	      grep -q 'AdapterWebhookEvent' internal/sourceaccess/contracts_types.go || { echo "webhook event adapter kind is missing" >&2; exit 1; }
+	      grep -q 'RecordInboxWithOutbox' internal/runtime/repository.go || { echo "atomic inbound receipt/outbox primitive is missing" >&2; exit 1; }
+	      grep -q 'actor.Kind != "SERVICE"' internal/httpapi/source_event_handlers.go || { echo "source event ingress is not service-identity-only" >&2; exit 1; }
+	      grep -q '/api/v1/source-bindings/{id}/events' api/runtime.openapi.json || { echo "source event route is missing from runtime contract" >&2; exit 1; }
+	      grep -q 'NewCheckpointProjector' cmd/worker/services_postgres.go || { echo "source event checkpoint recovery is not wired into outbox delivery" >&2; exit 1; }
+	      if grep -R -nE --include='*.go' --exclude='*_test.go' 'internal/(runtime|sourceevent)' internal/sourceaccess; then
+	        echo "sourceaccess production code depends on runtime/sourceevent" >&2
+	        exit 1
+	      fi
+	      if compgen -G 'migrations/000033*' >/dev/null; then
+	        echo "T2c webhook/event capture must not introduce an adapter/event table" >&2
+	        exit 1
+	      fi
+	      go test ./internal/sourceevent ./internal/sourceaccess ./internal/runtime ./internal/httpapi ./cmd/api ./cmd/worker
+	      go test -tags postgres ./internal/sourceevent ./internal/sourceaccess ./internal/runtime ./internal/httpapi ./cmd/api ./cmd/worker
+	      summary="T2c webhook/event capture passed: service-only bounded CHANGES ingress, atomic provider-event dedupe and outbox durability, strict event/watermark positions, and retrying inbox-backed Binding checkpoint convergence without a webhook table or second event bus."
 	    fi
 	  fi
     fi

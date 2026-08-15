@@ -194,11 +194,19 @@ A View references one exact document-import ID and, for multi-sheet XLSX, one ex
 
 XLSX parsing consumes stored cell values only; formulas and macros are not executed. JSON/NDJSON nested arrays and objects may be represented in native schema metadata but are not coerced into scalar Source Access values. A parser-version mismatch or changed artifact digest is non-executable until the artifact is governed again under the current parser.
 
+## Webhook/event adapter — T2c
+
+`WEBHOOK_EVENT` is a push-only `CHANGES` capability. Event delivery uses the existing verified service-principal and material-command boundary; tenant scope is taken only from verified identity and is not accepted from the request body. A governed View declares a fixed scalar JSON schema and either `EVENT_ID` or canonical unsigned `WATERMARK` position semantics.
+
+Acceptance commits a stable provider-event inbox receipt, the exact checkpoint-transition proof and an existing runtime outbox event atomically. The outbox carries only Binding-selected canonical fields plus compact source/version/position provenance, not an independent copy of the raw webhook body. A retrying `SourceBindingChanged` projector runs in the existing outbox worker before publication is acknowledged, so a checkpoint write failure after acceptance is recovered without asking the provider to recreate the command.
+
+`EVENT_ID` is idempotency identity rather than an ordering primitive and an old replay cannot regress a newer checkpoint. `WATERMARK` positions must be canonical monotonically increasing unsigned integers; stale positions fail before acceptance and concurrent same-position events resolve as a checkpoint conflict. No webhook registry, webhook payload table, connector-specific scheduler, queue or event bus is added.
+
 ## Current limitations
 
-- PostgreSQL, REST/JSON and governed tabular artifacts are executable adapters; webhook/event capture remains T2 work.
+- PostgreSQL, REST/JSON, governed tabular artifacts and webhook/event capture are executable adapters.
 - PostgreSQL page and lookup operations support one stable key.
 - Catalog configuration has APIs but no dedicated user interface yet.
 - Lifecycle transition and maker-checker services are not implemented.
-- Webhook/event and non-PostgreSQL database adapters are not implemented.
+- Non-PostgreSQL database and broker-specific streaming adapters are not implemented.
 - Forms, evidence contracts and workflows do not yet retain Binding references.

@@ -18,6 +18,8 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reconciliation"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceevent"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
 
@@ -37,6 +39,8 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 		return workerSet{}, err
 	}
 	runtimeRepository := workflowruntime.NewPostgresRepository(pool)
+	sourceCheckpoints := sourceaccess.NewCheckpointService(sourceaccess.NewPostgresCheckpointRepository(pool), runtimeRepository)
+	sourceEventCheckpoint := sourceevent.NewCheckpointProjector(runtimeRepository, sourceCheckpoints)
 	lifecycle := governance.NewPostgresRepository(pool)
 	governanceService := governance.NewService(lifecycle)
 	continuityRepository := continuity.NewCurrentPostgresRepository(pool)
@@ -59,7 +63,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	documentService := documentimport.NewService(documentimport.NewPostgresRepository(pool), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
 	coverageService := documentcoverage.NewService(documentcoverage.NewPostgresRepository(pool), documentService, continuityService)
-	publisher := workflowruntime.NewCompositePublisher(sourceHealth, actionWork, lifecycleWork, escalationWork, documentService, coverageService, workflowruntime.LogPublisher{Logger: logger})
+	publisher := workflowruntime.NewCompositePublisher(sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork, documentService, coverageService, workflowruntime.LogPublisher{Logger: logger})
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
 	configureWorkerRuntime(service, cfg, logger)
 	// Matter events update immediately through the outbox publisher. This slower

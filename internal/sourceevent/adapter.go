@@ -156,9 +156,7 @@ func (s *session) CaptureChange(ctx context.Context, view sourceaccess.View, bin
 	}
 	receipt := sourceaccess.OperationReceipt{SourceID: s.connection.SourceID, ConnectionID: s.connection.ID, ConnectionVersion: s.connection.Version, AdapterKind: s.connection.AdapterKind, AdapterVersion: s.connection.AdapterVersion, ViewID: view.ID, ViewVersion: view.Version, BindingID: binding.ID, BindingVersion: binding.Version, DefinitionFingerprint: definitionFingerprint, SchemaFingerprint: schemaFingerprint, Operation: sourceaccess.OperationChanges, ObservedAt: now, Count: 1, Bytes: int64(len(event.Payload)), Completeness: sourceaccess.CompletenessComplete, Position: &position, RetryIdentity: webhookRetryIdentity(view, binding, event.EventID, position.Value, event.Payload)}
 	if duplicate {
-		if err := s.reconcileDuplicate(ctx, checkpoint, definition.PositionKind, position, now); err != nil {
-			return sourceaccess.ChangeCaptureResult{}, err
-		}
+		_ = s.reconcileDuplicate(ctx, checkpoint, definition.PositionKind, position, now)
 		return sourceaccess.ChangeCaptureResult{Accepted: true, Duplicate: true, Receipt: receipt}, nil
 	}
 	transitionID, err := sourceaccess.CheckpointInboxEventID(checkpoint, checkpointConsumer, position)
@@ -175,21 +173,18 @@ func (s *session) CaptureChange(ctx context.Context, view sourceaccess.View, bin
 	}
 	created, err := s.adapter.store.RecordInboxWithOutbox(ctx, []runtime.InboxReceipt{{TenantID: s.connection.TenantID, Consumer: providerConsumer, EventID: providerID}, {TenantID: s.connection.TenantID, Consumer: checkpointConsumer, EventID: transitionID}}, runtime.OutboxEvent{ID: outboxID, TenantID: s.connection.TenantID, AggregateType: "SOURCE_BINDING", AggregateID: binding.ID, EventType: "SourceBindingChanged", Payload: outbound, OccurredAt: now}, now)
 	if err != nil {
+		if errors.Is(err, runtime.ErrInboxReceiptConflict) {
+			return sourceaccess.ChangeCaptureResult{}, sourceaccess.ErrCheckpointConflict
+		}
 		return sourceaccess.ChangeCaptureResult{}, err
 	}
 	if !created {
-		checkpoint, getErr := s.adapter.checkpoints.Get(ctx, s.connection.TenantID, binding.ID, bindingVersion)
-		if getErr != nil {
-			return sourceaccess.ChangeCaptureResult{}, getErr
-		}
-		if err := s.reconcileDuplicate(ctx, checkpoint, definition.PositionKind, position, now); err != nil {
-			return sourceaccess.ChangeCaptureResult{}, err
+		if current, getErr := s.adapter.checkpoints.Get(ctx, s.connection.TenantID, binding.ID, bindingVersion); getErr == nil {
+			_ = s.reconcileDuplicate(ctx, current, definition.PositionKind, position, now)
 		}
 		return sourceaccess.ChangeCaptureResult{Accepted: true, Duplicate: true, Receipt: receipt}, nil
 	}
-	if err := s.advanceAccepted(ctx, checkpoint, definition.PositionKind, position, now); err != nil {
-		return sourceaccess.ChangeCaptureResult{}, err
-	}
+	_ = s.advanceAccepted(ctx, checkpoint, definition.PositionKind, position, now)
 	return sourceaccess.ChangeCaptureResult{Accepted: true, Receipt: receipt}, nil
 }
 
@@ -380,7 +375,7 @@ func scalarFromJSON(value any, field sourceaccess.NativeField) (sourceaccess.Sca
 	switch field.NativeType {
 	case "json:string":
 		typed, ok := value.(string)
-		if !ok || len(typed) > 64<<10 {
+		if !ok || len(typed) > 64<<10 || strings.IndexByte(typed, 0) >= 0 {
 			return sourceaccess.Scalar{}, sourceaccess.ErrSchemaDrift
 		}
 		return sourceaccess.Scalar{Kind: sourceaccess.ScalarString, Text: typed}, nil

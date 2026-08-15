@@ -3,6 +3,7 @@ package sourceevent
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -70,7 +71,7 @@ func (p *CheckpointProjector) Publish(ctx context.Context, event runtime.OutboxE
 			return err
 		}
 		_, err = p.adapter.checkpoints.AdvanceAfterInbox(ctx, checkpoint, checkpointConsumer, payload.Position, now)
-		if err == sourceaccess.ErrCheckpointConflict {
+		if errors.Is(err, sourceaccess.ErrCheckpointConflict) {
 			return nil
 		}
 		return err
