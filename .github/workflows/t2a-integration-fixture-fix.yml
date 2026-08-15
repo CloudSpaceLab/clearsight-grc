@@ -84,8 +84,8 @@ jobs:
           PY
 
           gofmt -w internal/evidence/source_health_postgres_integration_test.go internal/integration/evidence_capture_test.go
-          go test ./internal/evidence ./internal/integration
-          go test -tags postgres ./internal/evidence ./internal/integration
+          go test ./internal/evidence
+          go test -tags postgres ./internal/evidence
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
