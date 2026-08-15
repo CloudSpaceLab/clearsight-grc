@@ -151,12 +151,7 @@ CREATE TABLE source_binding_checkpoints (
     binding_version bigint NOT NULL CHECK (binding_version > 0),
     position_kind text NOT NULL DEFAULT '' CHECK (position_kind IN ('','CURSOR','ETAG','WATERMARK','EVENT_ID')),
     position_value text NOT NULL DEFAULT '' CHECK (octet_length(position_value) <= 16384 AND NOT (position_value ~ '[[:cntrl:]]')),
-    attempts integer NOT NULL DEFAULT 0 CHECK (attempts >= 0),
-    locked_by text NOT NULL DEFAULT '' CHECK (locked_by=btrim(locked_by) AND octet_length(locked_by) <= 128 AND NOT (locked_by ~ '[[:cntrl:]]')),
-    lease_until timestamptz,
-    next_attempt_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    last_error_code text NOT NULL DEFAULT '' CHECK (last_error_code=btrim(last_error_code) AND octet_length(last_error_code) <= 128 AND NOT (last_error_code ~ '[[:cntrl:]]')),
-    failed_at timestamptz,
+    generation bigint NOT NULL DEFAULT 0 CHECK (generation >= 0),
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     updated_at timestamptz NOT NULL DEFAULT clock_timestamp() CHECK (updated_at >= created_at),
     PRIMARY KEY (tenant_id,binding_id,binding_version),
@@ -165,16 +160,8 @@ CREATE TABLE source_binding_checkpoints (
     CHECK (
         (position_kind='' AND position_value='')
         OR (position_kind<>'' AND position_value<>'' AND position_value=btrim(position_value))
-    ),
-    CHECK (
-        (locked_by='' AND lease_until IS NULL)
-        OR (locked_by<>'' AND lease_until IS NOT NULL)
-    ),
-    CHECK (failed_at IS NULL OR (locked_by='' AND lease_until IS NULL))
+    )
 );
-CREATE INDEX source_binding_checkpoints_due_idx
-    ON source_binding_checkpoints(next_attempt_at,binding_id,binding_version)
-    WHERE failed_at IS NULL;
 CREATE INDEX source_binding_checkpoints_source_idx
     ON source_binding_checkpoints(tenant_id,source_id,binding_id,binding_version);
 
@@ -190,6 +177,13 @@ BEGIN
     END IF;
     IF TG_OP='UPDATE' AND NEW.updated_at < OLD.updated_at THEN
         RAISE EXCEPTION 'source binding checkpoint updated_at cannot move backwards' USING ERRCODE='23514';
+    END IF;
+    IF TG_OP='UPDATE' AND NEW.generation<>OLD.generation+1 THEN
+        RAISE EXCEPTION 'source binding checkpoint generation must advance exactly once' USING ERRCODE='23514';
+    END IF;
+    IF TG_OP='UPDATE' AND ROW(NEW.position_kind,NEW.position_value)
+        IS NOT DISTINCT FROM ROW(OLD.position_kind,OLD.position_value) THEN
+        RAISE EXCEPTION 'source binding checkpoint update must advance position' USING ERRCODE='23514';
     END IF;
     IF TG_OP='INSERT' THEN
         SELECT sb.is_current,sb.status,sb.operations
