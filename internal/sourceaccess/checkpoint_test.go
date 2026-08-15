@@ -20,120 +20,69 @@ func TestCheckpointAdvancesOnlyAfterMatchingDurableProcessingReceipt(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	if checkpoint.Position.Kind != "" || checkpoint.Attempts != 0 {
+	if checkpoint.Position.Kind != "" || checkpoint.Generation != 0 {
 		t.Fatalf("unexpected initial checkpoint: %#v", checkpoint)
 	}
-	claims, err := service.Claim(ctx, "worker-a", now, time.Minute, 10)
-	if err != nil || len(claims) != 1 {
-		t.Fatalf("claims=%#v err=%v", claims, err)
-	}
-	claim := claims[0]
 	position := CheckpointPosition{Kind: CheckpointCursor, Value: "cursor-100"}
-	expectedEventID, err := CheckpointInboxEventID(claim, "source-consumer", position)
+	expectedEventID, err := CheckpointInboxEventID(checkpoint, "source-consumer", position)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.AdvanceAfterInbox(ctx, claim, "source-consumer", position, now.Add(10*time.Second), now.Add(time.Minute)); !errors.Is(err, ErrCheckpointProcessingProof) {
+	if _, err := service.AdvanceAfterInbox(ctx, checkpoint, "source-consumer", position, now.Add(10*time.Second)); !errors.Is(err, ErrCheckpointProcessingProof) {
 		t.Fatalf("checkpoint advanced without durable processing proof: %v", err)
 	}
 
-	wrongEventID, err := CheckpointInboxEventID(claim, "source-consumer", CheckpointPosition{Kind: CheckpointCursor, Value: "cursor-999"})
+	wrongEventID, err := CheckpointInboxEventID(checkpoint, "source-consumer", CheckpointPosition{Kind: CheckpointCursor, Value: "cursor-999"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	proof.processedEventID = wrongEventID
-	if _, err := service.AdvanceAfterInbox(ctx, claim, "source-consumer", position, now.Add(10*time.Second), now.Add(time.Minute)); !errors.Is(err, ErrCheckpointProcessingProof) {
+	if _, err := service.AdvanceAfterInbox(ctx, checkpoint, "source-consumer", position, now.Add(10*time.Second)); !errors.Is(err, ErrCheckpointProcessingProof) {
 		t.Fatalf("unrelated durable receipt authorized checkpoint advancement: %v", err)
 	}
 
 	proof.processedEventID = expectedEventID
-	advanced, err := service.AdvanceAfterInbox(ctx, claim, "source-consumer", position, now.Add(10*time.Second), now.Add(time.Minute))
+	advanced, err := service.AdvanceAfterInbox(ctx, checkpoint, "source-consumer", position, now.Add(10*time.Second))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if advanced.Position != position || advanced.Attempts != 0 || advanced.LockedBy != "" || advanced.LeaseUntil != nil {
+	if advanced.Position != position || advanced.Generation != 1 {
 		t.Fatalf("checkpoint did not advance cleanly: %#v", advanced)
 	}
-	if _, err := repository.AdvanceBindingCheckpoint(ctx, claim, CheckpointPosition{Kind: CheckpointCursor, Value: "cursor-101"}, now.Add(20*time.Second), now.Add(time.Minute)); !errors.Is(err, ErrCheckpointClaimLost) {
-		t.Fatalf("stale worker retained checkpoint authority: %v", err)
+	if _, err := repository.AdvanceBindingCheckpoint(ctx, checkpoint, CheckpointPosition{Kind: CheckpointCursor, Value: "cursor-101"}, now.Add(20*time.Second)); !errors.Is(err, ErrCheckpointConflict) {
+		t.Fatalf("stale checkpoint snapshot retained write authority: %v", err)
 	}
 }
 
-func TestCheckpointLeaseExpiryReplaysSamePositionAndFailureBacksOff(t *testing.T) {
-	ctx := context.Background()
-	catalog, binding := memoryCheckpointCatalog(t)
-	repository := NewMemoryCheckpointRepository(catalog)
-	service := NewCheckpointService(repository, &checkpointInboxProof{})
-	now := time.Date(2026, 8, 15, 6, 0, 0, 0, time.UTC)
-	if _, err := service.Ensure(ctx, binding.TenantID, binding.SourceID, binding.BindingID, binding.Version, now); err != nil {
-		t.Fatal(err)
-	}
-
-	first, err := service.Claim(ctx, "worker-a", now, time.Minute, 10)
-	if err != nil || len(first) != 1 {
-		t.Fatalf("first claim=%#v err=%v", first, err)
-	}
-	if first[0].Position.Kind != "" {
-		t.Fatalf("unexpected starting position: %#v", first[0].Position)
-	}
-	replayed, err := service.Claim(ctx, "worker-b", now.Add(2*time.Minute), time.Minute, 10)
-	if err != nil || len(replayed) != 1 {
-		t.Fatalf("expired lease was not replayed: claims=%#v err=%v", replayed, err)
-	}
-	if replayed[0].Position != first[0].Position || replayed[0].Attempts != 2 {
-		t.Fatalf("replay skipped or reset state: first=%#v replay=%#v", first[0], replayed[0])
-	}
-
-	terminal, err := service.Fail(ctx, replayed[0], 3, "SOURCE_UNAVAILABLE", now.Add(2*time.Minute+10*time.Second), now.Add(5*time.Minute))
-	if err != nil || terminal {
-		t.Fatalf("nonterminal failure: terminal=%v err=%v", terminal, err)
-	}
-	if claims, err := service.Claim(ctx, "worker-c", now.Add(4*time.Minute), time.Minute, 10); err != nil || len(claims) != 0 {
-		t.Fatalf("backoff was ignored: claims=%#v err=%v", claims, err)
-	}
-	claims, err := service.Claim(ctx, "worker-c", now.Add(6*time.Minute), time.Minute, 10)
-	if err != nil || len(claims) != 1 || claims[0].Attempts != 3 {
-		t.Fatalf("retry after backoff failed: claims=%#v err=%v", claims, err)
-	}
-	terminal, err = service.Fail(ctx, claims[0], 3, "SOURCE_UNAVAILABLE", now.Add(6*time.Minute+10*time.Second), now.Add(9*time.Minute))
-	if err != nil || !terminal {
-		t.Fatalf("checkpoint did not enter terminal failure: terminal=%v err=%v", terminal, err)
-	}
-	persisted, err := repository.BindingCheckpoint(ctx, binding.TenantID, binding.BindingID, binding.Version)
-	if err != nil || persisted.FailedAt == nil || persisted.LastErrorCode != "SOURCE_UNAVAILABLE" {
-		t.Fatalf("terminal failure not retained: checkpoint=%#v err=%v", persisted, err)
-	}
-}
-
-func TestCheckpointLeaseGenerationFencesStaleClaimFromSameWorker(t *testing.T) {
+func TestCheckpointEventIdentityIsStableForReplayAndChangesAfterAdvance(t *testing.T) {
 	ctx := context.Background()
 	catalog, binding := memoryCheckpointCatalog(t)
 	repository := NewMemoryCheckpointRepository(catalog)
 	now := time.Date(2026, 8, 15, 6, 0, 0, 0, time.UTC)
-	if _, err := repository.EnsureBindingCheckpoint(ctx, binding.TenantID, binding.SourceID, binding.BindingID, binding.Version, now); err != nil {
+	checkpoint, err := repository.EnsureBindingCheckpoint(ctx, binding.TenantID, binding.SourceID, binding.BindingID, binding.Version, now)
+	if err != nil {
 		t.Fatal(err)
 	}
-	first, err := repository.ClaimBindingCheckpoints(ctx, "worker-a", now, time.Minute, 1)
-	if err != nil || len(first) != 1 {
-		t.Fatalf("first claim=%#v err=%v", first, err)
+	position := CheckpointPosition{Kind: CheckpointWatermark, Value: "2026-08-15T06:00:00Z"}
+	first, err := CheckpointInboxEventID(checkpoint, "source-consumer", position)
+	if err != nil {
+		t.Fatal(err)
 	}
-	second, err := repository.ClaimBindingCheckpoints(ctx, "worker-a", now.Add(2*time.Minute), time.Minute, 1)
-	if err != nil || len(second) != 1 {
-		t.Fatalf("same worker did not reclaim expired lease: claims=%#v err=%v", second, err)
+	second, err := CheckpointInboxEventID(checkpoint, "source-consumer", position)
+	if err != nil || second != first {
+		t.Fatalf("same source batch changed replay identity: first=%q second=%q err=%v", first, second, err)
 	}
-	if first[0].LeaseUntil == nil || second[0].LeaseUntil == nil || first[0].LeaseUntil.Equal(*second[0].LeaseUntil) {
-		t.Fatalf("lease generation did not change: first=%#v second=%#v", first[0], second[0])
+	advanced, err := repository.AdvanceBindingCheckpoint(ctx, checkpoint, position, now.Add(time.Second))
+	if err != nil {
+		t.Fatal(err)
 	}
-	at := now.Add(2*time.Minute + 10*time.Second)
-	if _, err := repository.AdvanceBindingCheckpoint(ctx, first[0], CheckpointPosition{Kind: CheckpointCursor, Value: "stale"}, at, now.Add(4*time.Minute)); !errors.Is(err, ErrCheckpointClaimLost) {
-		t.Fatalf("stale same-worker claim advanced the newer lease: %v", err)
+	nextPosition := CheckpointPosition{Kind: CheckpointWatermark, Value: "2026-08-15T06:05:00Z"}
+	next, err := CheckpointInboxEventID(advanced, "source-consumer", nextPosition)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if _, err := repository.FailBindingCheckpoint(ctx, first[0], 3, "STALE_FAILURE", at, now.Add(4*time.Minute)); !errors.Is(err, ErrCheckpointClaimLost) {
-		t.Fatalf("stale same-worker claim failed the newer lease: %v", err)
-	}
-	advanced, err := repository.AdvanceBindingCheckpoint(ctx, second[0], CheckpointPosition{Kind: CheckpointCursor, Value: "current"}, at, now.Add(4*time.Minute))
-	if err != nil || advanced.Position.Value != "current" {
-		t.Fatalf("current lease could not advance: checkpoint=%#v err=%v", advanced, err)
+	if next == first {
+		t.Fatal("different checkpoint generation reused an earlier event identity")
 	}
 }
 
