@@ -25,17 +25,78 @@ jobs:
         with:
           go-version: 1.26.5
           cache: true
-      - name: Normalize and verify Go sources
+      - name: Restore current handler, normalize and verify Go sources
         run: |
           set -euo pipefail
+          git fetch origin main
+          git show origin/main:internal/httpapi/evidence_handlers.go > internal/httpapi/evidence_handlers.go
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("internal/httpapi/evidence_handlers.go")
+          text = path.read_text()
+          old = '''func (a *API) recordEvidenceSourceObservation(w http.ResponseWriter, r *http.Request) {
+          \tservice, ok := a.evidenceService(w)
+          \tif !ok {
+          \t\treturn
+          \t}
+          \tvar input evidence.SourceObservation
+          \tif err := httpx.DecodeJSON(w, r, &input); err != nil {
+          \t\thttpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+          \t\treturn
+          \t}
+          \tinput.SourceID = r.PathValue("id")
+          \tvalue, err := service.RecordSourceObservation(r.Context(), input)
+          \tswitch {
+          \tcase errors.Is(err, evidence.ErrNotFound):
+          \t\thttpx.WriteError(w, http.StatusNotFound, "not_found", "Source not found.")
+          \tcase err != nil:
+          \t\thttpx.WriteError(w, http.StatusUnprocessableEntity, "observation_invalid", err.Error())
+          \tdefault:
+          \t\thttpx.WriteJSON(w, http.StatusOK, value)
+          \t}
+          }
+          '''
+          new = '''func (a *API) recordEvidenceSourceObservation(w http.ResponseWriter, r *http.Request) {
+          \tservice, ok := a.evidenceService(w)
+          \tif !ok {
+          \t\treturn
+          \t}
+          \tactor, identityErr := identity.Require(r.Context())
+          \tif identityErr != nil {
+          \t\thttpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
+          \t\treturn
+          \t}
+          \tvar input evidence.SourceObservation
+          \tif err := httpx.DecodeJSON(w, r, &input); err != nil {
+          \t\thttpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+          \t\treturn
+          \t}
+          \tinput.TenantID = actor.TenantID
+          \tinput.SourceID = r.PathValue("id")
+          \tinput.RecordedBy = actor.PrincipalID
+          \tvalue, err := service.RecordSourceObservation(r.Context(), input)
+          \tswitch {
+          \tcase errors.Is(err, evidence.ErrNotFound):
+          \t\thttpx.WriteError(w, http.StatusNotFound, "not_found", "Source not found.")
+          \tcase err != nil:
+          \t\thttpx.WriteError(w, http.StatusUnprocessableEntity, "observation_invalid", "Source observation is invalid.")
+          \tdefault:
+          \t\thttpx.WriteJSON(w, http.StatusOK, value)
+          \t}
+          }
+          '''
+          if old not in text:
+              raise SystemExit("current evidence observation handler changed")
+          path.write_text(text.replace(old, new, 1))
+          PY
           gofmt -w $(find cmd internal -name '*.go' -type f)
           go test ./internal/sourceaccess ./internal/evidence ./internal/httpapi ./internal/runtime
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git diff --quiet -- cmd internal; then
-            echo "No formatting changes required."
+            echo "No source changes required."
             exit 0
           fi
           git add cmd internal
-          git commit -m "style: normalize T1 source formatting"
+          git commit -m "fix(httpapi): preserve current evidence handler structure"
           git push origin HEAD:codex/issue-61-sourceaccess-t1c
