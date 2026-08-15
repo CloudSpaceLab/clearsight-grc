@@ -55,7 +55,10 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		observed := now.Add(-2 * time.Hour)
+		// Record a genuinely current observation, then advance the evaluation clock
+		// beyond its freshness window. A historical observation that is already
+		// older than the window is correctly STALE immediately.
+		observed := now
 		updated, err := service.RecordSourceObservation(ctx, evidence.SourceObservation{TenantID: "evidence-bank", SourceID: source.ID, ObservedAt: observed, Success: true, LatencyMS: 75})
 		if err != nil {
 			t.Fatal(err)
@@ -63,7 +66,7 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 		if updated.Health != evidence.HealthCurrent {
 			t.Fatalf("expected current source, got %#v", updated)
 		}
-		changed, err := service.Maintain(ctx, now, 10)
+		changed, err := service.Maintain(ctx, now.Add(2*time.Hour), 10)
 		if err != nil || changed != 1 {
 			t.Fatalf("maintain count=%d err=%v", changed, err)
 		}
