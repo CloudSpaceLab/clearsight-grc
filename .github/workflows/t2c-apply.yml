@@ -1,0 +1,38 @@
+name: T2c webhook apply
+
+on:
+  push:
+    branches:
+      - codex/issue-61-sourceaccess-t2c-webhook-events
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/issue-61-sourceaccess-t2c-webhook-events
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+      - name: Apply and validate T2c
+        run: |
+          set -euo pipefail
+          python3 scripts/apply-t2c-webhook.py
+          gofmt -w internal/sourceaccess internal/sourceevent internal/runtime internal/httpapi cmd/api
+          go test -race ./internal/sourceaccess ./internal/sourceevent ./internal/runtime ./internal/httpapi ./cmd/api
+          go test -tags postgres ./internal/sourceaccess ./internal/sourceevent ./internal/runtime ./internal/httpapi ./cmd/api
+          go vet ./...
+          git diff --check
+          rm scripts/apply-t2c-webhook.py .github/workflows/t2c-apply.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add internal/sourceaccess internal/sourceevent internal/runtime internal/httpapi cmd/api api/runtime.openapi.json scripts/apply-t2c-webhook.py .github/workflows/t2c-apply.yml
+          git commit -m "feat(sourceaccess): add T2c webhook event capture"
+          git push origin HEAD:codex/issue-61-sourceaccess-t2c-webhook-events
