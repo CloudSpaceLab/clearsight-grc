@@ -80,23 +80,28 @@ func (r *MemoryRepository) FailTimer(_ context.Context, t Timer, maxAttempts int
 	if terminal {
 		v.State = TimerFailed
 		v.FailedAt = timePtr(at)
+		v.NextAttemptAt = nil
 	} else {
 		v.State = TimerReady
 		v.DueAt = next
+		v.FailedAt = nil
+		v.NextAttemptAt = timePtr(next)
 	}
 	r.timers[t.ID] = v
 	return terminal, nil
 }
-func (r *MemoryRepository) CancelPendingTaskTimers(_ context.Context, tenant, taskID, timerType string) (int, error) {
+func (r *MemoryRepository) CancelPendingTaskTimers(_ context.Context, tenant, workflowID, taskID string) (int, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	cancelled := 0
-	for id, timer := range r.timers {
-		if timer.TenantID != tenant || timer.TaskID != taskID || timer.Type != timerType || timer.State != TimerReady {
+	for timerID, timer := range r.timers {
+		if timer.TenantID != tenant || timer.WorkflowID != workflowID || timer.TaskID != taskID || (timer.State != TimerReady && timer.State != TimerClaimed) {
 			continue
 		}
 		timer.State = TimerCancelled
-		r.timers[id] = timer
+		timer.LeaseUntil = nil
+		timer.LockedBy = ""
+		r.timers[timerID] = timer
 		cancelled++
 	}
 	return cancelled, nil
@@ -109,16 +114,17 @@ func (r *MemoryRepository) ClaimOutbox(_ context.Context, worker string, now tim
 		if len(out) >= limit {
 			break
 		}
-		if value.DeadLetteredAt != nil || (value.NextAttemptAt != nil && value.NextAttemptAt.After(now)) {
-			continue
+		available := value.NextAttemptAt
+		if available == nil {
+			available = timePtr(value.OccurredAt)
 		}
-		if value.LockedBy != "" && value.LeaseUntil != nil && !value.LeaseUntil.Before(now) {
+		if value.PublishedAt != nil || value.DeadLetteredAt != nil || available.After(now) || (value.LeaseUntil != nil && !value.LeaseUntil.Before(now)) {
 			continue
 		}
 		until := now.Add(lease)
-		value.Attempts++
 		value.LockedBy = worker
 		value.LeaseUntil = &until
+		value.Attempts++
 		r.outbox[id] = value
 		out = append(out, value)
 	}
@@ -131,7 +137,12 @@ func (r *MemoryRepository) MarkPublished(_ context.Context, e OutboxEvent, at ti
 	if !ok || value.LockedBy != e.LockedBy || !sameLeaseGeneration(value.LeaseUntil, e.LeaseUntil) || value.LeaseUntil.Before(at) {
 		return errors.New("outbox claim lost")
 	}
-	delete(r.outbox, e.ID)
+	value.PublishedAt = timePtr(at)
+	value.NextAttemptAt = nil
+	value.LeaseUntil = nil
+	value.LockedBy = ""
+	value.LastError = ""
+	r.outbox[e.ID] = value
 	return nil
 }
 func (r *MemoryRepository) MarkFailed(_ context.Context, e OutboxEvent, maxAttempts int, message string, at, next time.Time) (bool, error) {
@@ -143,8 +154,8 @@ func (r *MemoryRepository) MarkFailed(_ context.Context, e OutboxEvent, maxAttem
 	}
 	terminal := maxAttempts > 0 && value.Attempts >= maxAttempts
 	value.LastError = message
-	value.LockedBy = ""
 	value.LeaseUntil = nil
+	value.LockedBy = ""
 	if terminal {
 		value.DeadLetteredAt = timePtr(at)
 		value.NextAttemptAt = nil
@@ -188,7 +199,7 @@ func (r *MemoryRepository) RecordInboxWithOutbox(_ context.Context, receipts []I
 		keys[index] = receipt.TenantID + ":" + receipt.Consumer + ":" + receipt.EventID
 		if index > 0 {
 			if _, exists := r.inbox[keys[index]]; exists {
-				return false, errors.New("secondary inbox receipt already exists")
+				return false, ErrInboxReceiptConflict
 			}
 		}
 	}
@@ -248,3 +259,5 @@ func (r *MemoryRepository) OutboxQueueHealth(context.Context) (QueueHealth, erro
 func sameLeaseGeneration(current, claimed *time.Time) bool {
 	return current != nil && claimed != nil && current.Equal(*claimed)
 }
+
+func timePtr(value time.Time) *time.Time { return &value }
