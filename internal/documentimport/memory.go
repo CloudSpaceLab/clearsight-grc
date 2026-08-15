@@ -114,5 +114,14 @@ func cloneDocument(value Document) Document {
 		obligation.Uncertainty = append([]string(nil), obligation.Uncertainty...)
 		value.Proposals[index].Obligation = &obligation
 	}
+	if value.Tabular != nil {
+		metadata := *value.Tabular
+		metadata.RowErrors = append([]TabularRowError(nil), value.Tabular.RowErrors...)
+		metadata.Resources = append([]TabularResource(nil), value.Tabular.Resources...)
+		for index := range metadata.Resources {
+			metadata.Resources[index].Fields = append([]TabularField(nil), value.Tabular.Resources[index].Fields...)
+		}
+		value.Tabular = &metadata
+	}
 	return value
 }
