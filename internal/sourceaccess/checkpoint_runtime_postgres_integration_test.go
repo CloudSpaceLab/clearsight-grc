@@ -54,8 +54,13 @@ func TestCheckpointReplayUsesExistingRuntimeInboxReceipt(t *testing.T) {
 	if err != nil || len(first) != 1 {
 		t.Fatalf("first claim=%#v err=%v", first, err)
 	}
+	position := sourceaccess.CheckpointPosition{Kind: sourceaccess.CheckpointCursor, Value: "cursor-100"}
+	eventID, err := sourceaccess.CheckpointInboxEventID(first[0], "source-pull", position)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	inserted, err := runtimeRepository.RecordInbox(ctx, checkpointTenantID, "source-pull", "event-100", now.Add(10*time.Second))
+	inserted, err := runtimeRepository.RecordInbox(ctx, checkpointTenantID, "source-pull", eventID, now.Add(10*time.Second))
 	if err != nil || !inserted {
 		t.Fatalf("durable inbox receipt inserted=%v err=%v", inserted, err)
 	}
@@ -72,17 +77,23 @@ func TestCheckpointReplayUsesExistingRuntimeInboxReceipt(t *testing.T) {
 	if first[0].LeaseUntil == nil || replayed[0].LeaseUntil == nil || first[0].LeaseUntil.Equal(*replayed[0].LeaseUntil) {
 		t.Fatalf("checkpoint lease generation did not change: first=%#v replay=%#v", first[0], replayed[0])
 	}
+	replayedEventID, err := sourceaccess.CheckpointInboxEventID(replayed[0], "source-pull", position)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if replayedEventID != eventID {
+		t.Fatalf("same source batch changed idempotency identity: first=%q replay=%q", eventID, replayedEventID)
+	}
 	staleAt := now.Add(2*time.Minute + 5*time.Second)
 	if _, err := repository.AdvanceBindingCheckpoint(ctx, first[0], sourceaccess.CheckpointPosition{Kind: sourceaccess.CheckpointCursor, Value: "stale-cursor"}, staleAt, now.Add(3*time.Minute)); !errors.Is(err, sourceaccess.ErrCheckpointClaimLost) {
 		t.Fatalf("stale same-worker claim advanced the newer lease: %v", err)
 	}
-	inserted, err = runtimeRepository.RecordInbox(ctx, checkpointTenantID, "source-pull", "event-100", now.Add(2*time.Minute))
+	inserted, err = runtimeRepository.RecordInbox(ctx, checkpointTenantID, "source-pull", eventID, now.Add(2*time.Minute))
 	if err != nil || inserted {
 		t.Fatalf("duplicate domain processing was not suppressed: inserted=%v err=%v", inserted, err)
 	}
 
-	position := sourceaccess.CheckpointPosition{Kind: sourceaccess.CheckpointCursor, Value: "cursor-100"}
-	advanced, err := service.AdvanceAfterInbox(ctx, replayed[0], "source-pull", "event-100", position, now.Add(2*time.Minute+10*time.Second), now.Add(3*time.Minute))
+	advanced, err := service.AdvanceAfterInbox(ctx, replayed[0], "source-pull", position, now.Add(2*time.Minute+10*time.Second), now.Add(3*time.Minute))
 	if err != nil {
 		t.Fatal(err)
 	}
