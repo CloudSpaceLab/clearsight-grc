@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func TestCheckpointAdvancesOnlyAfterDurableProcessingReceipt(t *testing.T) {
+func TestCheckpointAdvancesOnlyAfterMatchingDurableProcessingReceipt(t *testing.T) {
 	ctx := context.Background()
 	catalog, binding := memoryCheckpointCatalog(t)
 	repository := NewMemoryCheckpointRepository(catalog)
@@ -29,12 +29,25 @@ func TestCheckpointAdvancesOnlyAfterDurableProcessingReceipt(t *testing.T) {
 	}
 	claim := claims[0]
 	position := CheckpointPosition{Kind: CheckpointCursor, Value: "cursor-100"}
-	if _, err := service.AdvanceAfterInbox(ctx, claim, "source-consumer", "event-100", position, now.Add(10*time.Second), now.Add(time.Minute)); !errors.Is(err, ErrCheckpointProcessingProof) {
+	expectedEventID, err := CheckpointInboxEventID(claim, "source-consumer", position)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.AdvanceAfterInbox(ctx, claim, "source-consumer", position, now.Add(10*time.Second), now.Add(time.Minute)); !errors.Is(err, ErrCheckpointProcessingProof) {
 		t.Fatalf("checkpoint advanced without durable processing proof: %v", err)
 	}
 
-	proof.processed = true
-	advanced, err := service.AdvanceAfterInbox(ctx, claim, "source-consumer", "event-100", position, now.Add(10*time.Second), now.Add(time.Minute))
+	wrongEventID, err := CheckpointInboxEventID(claim, "source-consumer", CheckpointPosition{Kind: CheckpointCursor, Value: "cursor-999"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	proof.processedEventID = wrongEventID
+	if _, err := service.AdvanceAfterInbox(ctx, claim, "source-consumer", position, now.Add(10*time.Second), now.Add(time.Minute)); !errors.Is(err, ErrCheckpointProcessingProof) {
+		t.Fatalf("unrelated durable receipt authorized checkpoint advancement: %v", err)
+	}
+
+	proof.processedEventID = expectedEventID
+	advanced, err := service.AdvanceAfterInbox(ctx, claim, "source-consumer", position, now.Add(10*time.Second), now.Add(time.Minute))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +63,7 @@ func TestCheckpointLeaseExpiryReplaysSamePositionAndFailureBacksOff(t *testing.T
 	ctx := context.Background()
 	catalog, binding := memoryCheckpointCatalog(t)
 	repository := NewMemoryCheckpointRepository(catalog)
-	service := NewCheckpointService(repository, &checkpointInboxProof{processed: true})
+	service := NewCheckpointService(repository, &checkpointInboxProof{})
 	now := time.Date(2026, 8, 15, 6, 0, 0, 0, time.UTC)
 	if _, err := service.Ensure(ctx, binding.TenantID, binding.SourceID, binding.BindingID, binding.Version, now); err != nil {
 		t.Fatal(err)
@@ -178,8 +191,8 @@ func memoryCheckpointCatalog(t *testing.T) (*MemoryCatalogRepository, BindingRev
 	return catalog, binding
 }
 
-type checkpointInboxProof struct{ processed bool }
+type checkpointInboxProof struct{ processedEventID string }
 
-func (p *checkpointInboxProof) InboxProcessed(context.Context, string, string, string) (bool, error) {
-	return p.processed, nil
+func (p *checkpointInboxProof) InboxProcessed(_ context.Context, _, _, eventID string) (bool, error) {
+	return eventID != "" && eventID == p.processedEventID, nil
 }
