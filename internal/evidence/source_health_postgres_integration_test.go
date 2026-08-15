@@ -13,13 +13,13 @@ import (
 )
 
 const (
-	scopedHealthTenantID       = "7e111111-1111-7111-8111-111111111111"
-	scopedHealthActorID        = "7e222222-2222-7222-8222-222222222222"
-	scopedHealthSourceID       = "7e333333-3333-7333-8333-333333333333"
-	scopedHealthConnectionID   = "7e444444-4444-7444-8444-444444444444"
-	scopedHealthConnection2ID  = "7e455555-5555-7555-8555-555555555555"
-	scopedHealthViewID         = "7e555555-5555-7555-8555-555555555555"
-	scopedHealthBindingID      = "7e666666-6666-7666-8666-666666666666"
+	scopedHealthTenantID        = "7e111111-1111-7111-8111-111111111111"
+	scopedHealthActorID         = "7e222222-2222-7222-8222-222222222222"
+	scopedHealthSourceID        = "7e333333-3333-7333-8333-333333333333"
+	scopedHealthConnectionID    = "7e444444-4444-7444-8444-444444444444"
+	scopedHealthConnection2ID   = "7e455555-5555-7555-8555-555555555555"
+	scopedHealthViewID          = "7e555555-5555-7555-8555-555555555555"
+	scopedHealthBindingID       = "7e666666-6666-7666-8666-666666666666"
 	scopedHealthForeignTenantID = "7e911111-1111-7111-8111-111111111111"
 	scopedHealthForeignActorID  = "7e922222-2222-7222-8222-222222222222"
 	scopedHealthForeignSourceID = "7e933333-3333-7333-8333-333333333333"

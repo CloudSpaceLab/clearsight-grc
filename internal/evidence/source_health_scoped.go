@@ -10,12 +10,12 @@ import (
 type SourceObservationScope string
 
 const (
-	ObservationScopeSource      SourceObservationScope = "SOURCE"
-	ObservationScopeConnection  SourceObservationScope = "CONNECTION"
-	ObservationScopeView        SourceObservationScope = "VIEW"
-	ObservationScopeBinding     SourceObservationScope = "BINDING"
-	HardMaxSourceHealthScopes                          = 500
-	MaxSourceObservationFutureSkew                     = 5 * time.Minute
+	ObservationScopeSource         SourceObservationScope = "SOURCE"
+	ObservationScopeConnection     SourceObservationScope = "CONNECTION"
+	ObservationScopeView           SourceObservationScope = "VIEW"
+	ObservationScopeBinding        SourceObservationScope = "BINDING"
+	HardMaxSourceHealthScopes                             = 500
+	MaxSourceObservationFutureSkew                        = 5 * time.Minute
 )
 
 type SourceScopeHealth struct {

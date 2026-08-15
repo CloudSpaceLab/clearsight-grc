@@ -91,34 +91,25 @@ func (a *API) listEvidenceRequests(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	filter := evidence.RequestFilter{TenantID: r.URL.Query().Get("tenant_id"), Status: evidence.RequestStatus(r.URL.Query().Get("status"))}
-	filter.Limit, _ = strconv.Atoi(r.URL.Query().Get("limit"))
-	values, err := service.ListRequests(r.Context(), filter)
-	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "requests_failed", "Requests could not be loaded.")
-		return
-	}
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values})
-}
-
-func (a *API) getEvidenceRequest(w http.ResponseWriter, r *http.Request) {
-	service, ok := a.evidenceService(w)
-	if !ok {
-		return
-	}
 	tenant, ok := requiredQuery(w, r, "tenant_id")
 	if !ok {
 		return
 	}
-	value, err := service.GetRequest(r.Context(), tenant, r.PathValue("id"))
-	switch {
-	case errors.Is(err, evidence.ErrNotFound):
-		httpx.WriteError(w, http.StatusNotFound, "not_found", "Request not found.")
-	case err != nil:
-		httpx.WriteError(w, http.StatusInternalServerError, "request_failed", "Request could not be loaded.")
-	default:
-		httpx.WriteJSON(w, http.StatusOK, value)
+	actor, authenticated := identity.FromContext(r.Context())
+	if !authenticated || actor.TenantID != tenant {
+		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence requests not found.")
+		return
 	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	values, err := service.ListManageableRequests(r.Context(), tenant, actor.PrincipalID, limit, func(value evidence.Request) bool {
+		return a.canReadEvidenceRequest(r.Context(), value)
+	})
+	if err != nil {
+		httpx.WriteError(w, http.StatusInternalServerError, "requests_failed", "Evidence requests could not be loaded.")
+		return
+	}
+	values = a.filterEvidenceRequests(r.Context(), values)
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values})
 }
 
 func (a *API) createEvidenceRequest(w http.ResponseWriter, r *http.Request) {
@@ -139,42 +130,29 @@ func (a *API) createEvidenceRequest(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusCreated, value)
 }
 
-func (a *API) declareEvidenceWrongRecipient(w http.ResponseWriter, r *http.Request) {
+func (a *API) getEvidenceRequest(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.evidenceService(w)
 	if !ok {
 		return
 	}
-	var input struct {
-		TenantID        string `json:"tenant_id"`
-		ActorID         string `json:"actor_id"`
-		Reason          string `json:"reason"`
-		ExpectedVersion int64  `json:"expected_version"`
-	}
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
-		return
-	}
-	value, err := service.DeclareWrongRecipient(r.Context(), input.TenantID, r.PathValue("id"), input.ActorID, input.Reason, input.ExpectedVersion)
-	writeEvidenceRequestMutation(w, value, err)
-}
-
-func (a *API) reassignEvidenceRecipient(w http.ResponseWriter, r *http.Request) {
-	service, ok := a.evidenceService(w)
+	tenant, ok := requiredQuery(w, r, "tenant_id")
 	if !ok {
 		return
 	}
-	var input struct {
-		TenantID        string `json:"tenant_id"`
-		ActorID         string `json:"actor_id"`
-		Recipient       string `json:"recipient_principal_id"`
-		ExpectedVersion int64  `json:"expected_version"`
-	}
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+	value, err := service.GetRequest(r.Context(), tenant, r.PathValue("id"))
+	if errors.Is(err, evidence.ErrNotFound) {
+		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
 		return
 	}
-	value, err := service.ReassignRecipient(r.Context(), input.TenantID, r.PathValue("id"), input.ActorID, input.Recipient, input.ExpectedVersion)
-	writeEvidenceRequestMutation(w, value, err)
+	if err != nil {
+		httpx.WriteError(w, http.StatusInternalServerError, "request_failed", "Evidence request could not be loaded.")
+		return
+	}
+	if !a.canReadEvidenceRequest(r.Context(), value) {
+		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, value)
 }
 
 func (a *API) submitEvidenceRequest(w http.ResponseWriter, r *http.Request) {
@@ -182,13 +160,17 @@ func (a *API) submitEvidenceRequest(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var input evidence.SubmissionInput
+	var input evidence.Submission
 	if err := httpx.DecodeJSON(w, r, &input); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	value, err := service.Submit(r.Context(), input)
-	writeEvidenceRequestMutation(w, value, err)
+	input.RequestID = r.PathValue("id")
+	if input.Channel == "" {
+		input.Channel = "INTERNAL"
+	}
+	receipt, err := service.Submit(r.Context(), input)
+	writeEvidenceSubmissionResult(w, receipt, err)
 }
 
 func (a *API) issueEvidenceInvitation(w http.ResponseWriter, r *http.Request) {
@@ -202,12 +184,17 @@ func (a *API) issueEvidenceInvitation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	input.RequestID = r.PathValue("id")
-	value, err := service.IssueInvitation(r.Context(), input)
-	if err != nil {
-		writeEvidenceError(w, err)
-		return
+	issued, err := service.IssueInvitation(r.Context(), input)
+	switch {
+	case errors.Is(err, evidence.ErrNotFound):
+		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
+	case errors.Is(err, evidence.ErrRequestClosed):
+		httpx.WriteError(w, http.StatusConflict, "request_closed", "The request is no longer open.")
+	case err != nil:
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "invitation_invalid", err.Error())
+	default:
+		httpx.WriteJSON(w, http.StatusCreated, issued)
 	}
-	httpx.WriteJSON(w, http.StatusCreated, value)
 }
 
 func (a *API) redeemEvidenceInvitation(w http.ResponseWriter, r *http.Request) {
@@ -215,37 +202,20 @@ func (a *API) redeemEvidenceInvitation(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var input struct{ Token string `json:"token"` }
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
-		return
-	}
-	value, err := service.RedeemInvitation(r.Context(), input.Token)
-	if err != nil {
-		writeEvidenceError(w, err)
-		return
-	}
-	httpx.WriteJSON(w, http.StatusOK, value)
-}
-
-func (a *API) revokeEvidenceInvitation(w http.ResponseWriter, r *http.Request) {
-	service, ok := a.evidenceService(w)
-	if !ok {
-		return
-	}
 	var input struct {
-		TenantID string `json:"tenant_id"`
-		ActorID  string `json:"actor_id"`
+		Token    string `json:"token"`
+		Audience string `json:"audience"`
 	}
 	if err := httpx.DecodeJSON(w, r, &input); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	if err := service.RevokeInvitation(r.Context(), input.TenantID, r.PathValue("id"), input.ActorID); err != nil {
-		writeEvidenceError(w, err)
+	session, err := service.RedeemInvitation(r.Context(), input.Token, input.Audience)
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "invitation_unavailable", "This invitation is unavailable. Request a new invitation from the sender.")
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	httpx.WriteJSON(w, http.StatusOK, session)
 }
 
 func (a *API) getEvidenceSession(w http.ResponseWriter, r *http.Request) {
@@ -253,13 +223,16 @@ func (a *API) getEvidenceSession(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	token := bearerToken(r)
-	value, err := service.GetCaptureSession(r.Context(), token)
-	if err != nil {
-		writeEvidenceError(w, err)
+	token, ok := bearerToken(w, r)
+	if !ok {
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, value)
+	session, request, err := service.SessionRequest(r.Context(), token)
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "session_unavailable", "This capture session is unavailable.")
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"session": session, "request": request})
 }
 
 func (a *API) submitEvidenceSession(w http.ResponseWriter, r *http.Request) {
@@ -267,38 +240,20 @@ func (a *API) submitEvidenceSession(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	token := bearerToken(r)
-	var input evidence.CaptureSubmissionInput
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
-		return
-	}
-	value, err := service.SubmitCaptureSession(r.Context(), token, input)
-	if err != nil {
-		writeEvidenceError(w, err)
-		return
-	}
-	httpx.WriteJSON(w, http.StatusCreated, value)
-}
-
-func (a *API) revokeEvidenceSession(w http.ResponseWriter, r *http.Request) {
-	service, ok := a.evidenceService(w)
+	token, ok := bearerToken(w, r)
 	if !ok {
 		return
 	}
 	var input struct {
-		TenantID string `json:"tenant_id"`
-		ActorID  string `json:"actor_id"`
+		Answers         map[string]string `json:"answers"`
+		ExpectedVersion int64             `json:"expected_version"`
 	}
 	if err := httpx.DecodeJSON(w, r, &input); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	if err := service.RevokeCaptureSession(r.Context(), input.TenantID, r.PathValue("id"), input.ActorID); err != nil {
-		writeEvidenceError(w, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
+	receipt, err := service.SubmitSession(r.Context(), token, input.Answers, input.ExpectedVersion)
+	writeEvidenceSubmissionResult(w, receipt, err)
 }
 
 func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
@@ -306,98 +261,111 @@ func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := r.ParseMultipartForm(a.deps.MaxArtifactBytes); err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "multipart_invalid", "Upload could not be read.")
+	maximum := a.deps.MaxArtifactBytes
+	if maximum <= 0 {
+		maximum = 20 << 20
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, maximum+(1<<20))
+	if err := r.ParseMultipartForm(1 << 20); err != nil {
+		httpx.WriteError(w, http.StatusRequestEntityTooLarge, "artifact_invalid", "The upload could not be read or exceeds the allowed size.")
 		return
 	}
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "file_missing", "file is required")
+		httpx.WriteError(w, http.StatusBadRequest, "file_required", "A file is required.")
 		return
 	}
 	defer file.Close()
-	input := evidence.UploadArtifactInput{
-		TenantID: strings.TrimSpace(r.FormValue("tenant_id")),
-		ActorID:  strings.TrimSpace(r.FormValue("actor_id")),
-		FileName: header.Filename,
-		MediaType: header.Header.Get("Content-Type"),
-		Reader:   file,
-	}
-	value, err := service.UploadArtifact(r.Context(), input)
-	if err != nil {
-		writeEvidenceError(w, err)
-		return
-	}
-	httpx.WriteJSON(w, http.StatusCreated, value)
-}
 
-func (a *API) uploadEvidenceArtifactCapabilities(r *http.Request) (string, error) {
-	if a.deps.Evidence == nil {
-		return "", fmt.Errorf("evidence services are unavailable")
+	tenant := strings.TrimSpace(r.FormValue("tenant_id"))
+	requestID := strings.TrimSpace(r.FormValue("request_id"))
+	createdBy := strings.TrimSpace(r.FormValue("created_by"))
+	sessionToken := ""
+	if actor, authenticated := identity.FromContext(r.Context()); authenticated {
+		if tenant != "" && tenant != actor.TenantID {
+			httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
+			return
+		}
+		tenant = actor.TenantID
+		createdBy = actor.PrincipalID
+	} else {
+		token := optionalBearerToken(r)
+		if token == "" {
+			httpx.WriteError(w, http.StatusUnauthorized, "session_required", "A capture session is required.")
+			return
+		}
+		session, request, sessionErr := service.SessionRequest(r.Context(), token)
+		if sessionErr != nil {
+			httpx.WriteError(w, http.StatusUnauthorized, "session_unavailable", "This capture session is unavailable.")
+			return
+		}
+		tenant, requestID, createdBy, sessionToken = session.TenantID, request.ID, "", token
 	}
-	return a.deps.Evidence.SessionTenant(r.Context(), bearerToken(r))
-}
-
-func (a *API) issueCapture(w http.ResponseWriter, r *http.Request) {
-	service, ok := a.evidenceService(w)
-	if !ok {
+	if tenant == "" || requestID == "" {
+		httpx.WriteError(w, http.StatusBadRequest, "artifact_scope_required", "tenant_id and request_id are required.")
 		return
 	}
-	var input evidence.IssueCaptureInput
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
-		return
-	}
-	value, err := service.IssueCapture(r.Context(), input)
-	if err != nil {
-		writeEvidenceError(w, err)
-		return
-	}
-	httpx.WriteJSON(w, http.StatusCreated, value)
-}
-
-func writeEvidenceRequestMutation(w http.ResponseWriter, value evidence.Request, err error) {
+	mediaType := multipartMediaType(header)
+	artifact, err := service.StoreArtifact(r.Context(), evidence.ArtifactInput{TenantID: tenant, RequestID: requestID, SubmissionID: strings.TrimSpace(r.FormValue("submission_id")), FileName: header.Filename, MediaType: mediaType, CreatedBy: createdBy, SessionToken: sessionToken}, file)
 	switch {
-	case errors.Is(err, evidence.ErrNotFound):
-		httpx.WriteError(w, http.StatusNotFound, "not_found", "Request not found.")
-	case errors.Is(err, evidence.ErrConflict):
-		httpx.WriteError(w, http.StatusConflict, "version_conflict", "This request changed since you opened it. Reload and retry.")
+	case errors.Is(err, evidence.ErrNotFound), errors.Is(err, evidence.ErrRecipientMismatch):
+		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
+	case errors.Is(err, evidence.ErrSessionInvalid):
+		httpx.WriteError(w, http.StatusUnauthorized, "session_unavailable", "This capture session is unavailable.")
+	case errors.Is(err, evidence.ErrRequestClosed):
+		httpx.WriteError(w, http.StatusConflict, "request_closed", "The request is no longer open for uploads.")
+	case errors.Is(err, evidence.ErrArtifactTooLarge):
+		httpx.WriteError(w, http.StatusRequestEntityTooLarge, "artifact_too_large", fmt.Sprintf("The file exceeds the %d-byte limit.", maximum))
+	case errors.Is(err, evidence.ErrMediaType):
+		httpx.WriteError(w, http.StatusUnsupportedMediaType, "media_type_not_allowed", "This file type is not allowed.")
 	case err != nil:
-		httpx.WriteError(w, http.StatusUnprocessableEntity, "request_invalid", err.Error())
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "artifact_failed", "The artifact could not be stored.")
 	default:
-		httpx.WriteJSON(w, http.StatusOK, value)
+		httpx.WriteJSON(w, http.StatusCreated, artifact)
 	}
 }
 
-func writeEvidenceError(w http.ResponseWriter, err error) {
+func writeEvidenceSubmissionResult(w http.ResponseWriter, receipt evidence.SubmissionReceipt, err error) {
 	switch {
 	case errors.Is(err, evidence.ErrNotFound):
-		httpx.WriteError(w, http.StatusNotFound, "not_found", "The requested evidence resource was not found.")
-	case errors.Is(err, evidence.ErrConflict):
-		httpx.WriteError(w, http.StatusConflict, "version_conflict", "This evidence resource changed since it was loaded. Reload and retry.")
-	case errors.Is(err, evidence.ErrForbidden):
-		httpx.WriteError(w, http.StatusForbidden, "forbidden", "This action is not permitted for the current actor.")
-	case errors.Is(err, evidence.ErrGone):
-		httpx.WriteError(w, http.StatusGone, "gone", "This capture link is no longer active.")
-	case errors.Is(err, evidence.ErrTooLarge):
-		httpx.WriteError(w, http.StatusRequestEntityTooLarge, "artifact_too_large", "This file is larger than the allowed upload limit.")
+		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
+	case errors.Is(err, evidence.ErrVersionConflict):
+		httpx.WriteError(w, http.StatusConflict, "version_conflict", "The request changed. Reload before submitting.")
+	case errors.Is(err, evidence.ErrRequestClosed):
+		httpx.WriteError(w, http.StatusConflict, "request_closed", "The request is no longer open.")
+	case errors.Is(err, evidence.ErrSessionInvalid):
+		httpx.WriteError(w, http.StatusUnauthorized, "session_unavailable", "This capture session is unavailable.")
 	case err != nil:
-		httpx.WriteError(w, http.StatusUnprocessableEntity, "evidence_invalid", err.Error())
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "submission_invalid", err.Error())
+	default:
+		httpx.WriteJSON(w, http.StatusOK, receipt)
 	}
 }
 
-func bearerToken(r *http.Request) string {
+func bearerToken(w http.ResponseWriter, r *http.Request) (string, bool) {
+	token := optionalBearerToken(r)
+	if token == "" {
+		httpx.WriteError(w, http.StatusUnauthorized, "session_required", "A capture session is required.")
+		return "", false
+	}
+	return token, true
+}
+
+func optionalBearerToken(r *http.Request) string {
 	value := strings.TrimSpace(r.Header.Get("Authorization"))
-	if value == "" {
+	if len(value) < 8 || !strings.EqualFold(value[:7], "Bearer ") {
 		return ""
 	}
-	parts := strings.SplitN(value, " ", 2)
-	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-		return ""
-	}
-	return strings.TrimSpace(parts[1])
+	return strings.TrimSpace(value[7:])
 }
 
-func multipartFile(r *http.Request, name string) (multipart.File, *multipart.FileHeader, error) {
-	return r.FormFile(name)
+func multipartMediaType(header *multipart.FileHeader) string {
+	value := strings.TrimSpace(header.Header.Get("Content-Type"))
+	if value == "" {
+		return "application/octet-stream"
+	}
+	if semicolon := strings.Index(value, ";"); semicolon >= 0 {
+		value = value[:semicolon]
+	}
+	return strings.ToLower(strings.TrimSpace(value))
 }
