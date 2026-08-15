@@ -110,7 +110,7 @@ func (r *MemoryCheckpointRepository) AdvanceBindingCheckpoint(_ context.Context,
 	if !ok {
 		return BindingCheckpoint{}, ErrCatalogNotFound
 	}
-	if value.LockedBy == "" || value.LockedBy != claimed.LockedBy || claimed.LockedBy == "" || value.LeaseUntil == nil || value.LeaseUntil.Before(at) {
+	if value.LockedBy == "" || value.LockedBy != claimed.LockedBy || claimed.LockedBy == "" || value.LeaseUntil == nil || claimed.LeaseUntil == nil || !value.LeaseUntil.Equal(*claimed.LeaseUntil) || value.LeaseUntil.Before(at) {
 		return BindingCheckpoint{}, ErrCheckpointClaimLost
 	}
 	value.Position = position
@@ -133,7 +133,7 @@ func (r *MemoryCheckpointRepository) FailBindingCheckpoint(_ context.Context, cl
 	if !ok {
 		return false, ErrCatalogNotFound
 	}
-	if value.LockedBy == "" || value.LockedBy != claimed.LockedBy || claimed.LockedBy == "" || value.LeaseUntil == nil || value.LeaseUntil.Before(at) {
+	if value.LockedBy == "" || value.LockedBy != claimed.LockedBy || claimed.LockedBy == "" || value.LeaseUntil == nil || claimed.LeaseUntil == nil || !value.LeaseUntil.Equal(*claimed.LeaseUntil) || value.LeaseUntil.Before(at) {
 		return false, ErrCheckpointClaimLost
 	}
 	terminal := value.Attempts >= maxAttempts
