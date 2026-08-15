@@ -22,9 +22,10 @@ const (
 	checkpointConnectionID = "7d444444-4444-7444-8444-444444444444"
 	checkpointViewID       = "7d555555-5555-7555-8555-555555555555"
 	checkpointBindingID    = "7d666666-6666-7666-8666-666666666666"
+	checkpointOutboxID     = "7daaaaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa"
 )
 
-func TestCheckpointReplayUsesExistingRuntimeInboxReceipt(t *testing.T) {
+func TestCheckpointReplayUsesExistingRuntimeLeaseRetryAndInbox(t *testing.T) {
 	databaseURL := os.Getenv("TEST_DATABASE_URL")
 	if databaseURL == "" {
 		t.Skip("TEST_DATABASE_URL is not configured")
@@ -39,66 +40,86 @@ func TestCheckpointReplayUsesExistingRuntimeInboxReceipt(t *testing.T) {
 	t.Cleanup(func() { cleanupCheckpointFixture(context.Background(), pool) })
 	seedCheckpointFixture(t, ctx, pool)
 
-	repository := sourceaccess.NewPostgresCheckpointRepository(pool)
+	checkpointRepository := sourceaccess.NewPostgresCheckpointRepository(pool)
 	runtimeRepository := runtime.NewPostgresRepository(pool)
-	service := sourceaccess.NewCheckpointService(repository, runtimeRepository)
-	now := time.Date(2026, 8, 15, 6, 0, 0, 0, time.UTC)
-	checkpoint, err := service.Ensure(ctx, checkpointTenantID, checkpointSourceID, checkpointBindingID, 1, now)
+	service := sourceaccess.NewCheckpointService(checkpointRepository, runtimeRepository)
+	checkpointAt := time.Date(2026, 8, 15, 6, 0, 0, 0, time.UTC)
+	checkpoint, err := service.Ensure(ctx, checkpointTenantID, checkpointSourceID, checkpointBindingID, 1, checkpointAt)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if checkpoint.Position.Kind != "" {
+	if checkpoint.Position.Kind != "" || checkpoint.Generation != 0 {
 		t.Fatalf("unexpected starting checkpoint: %#v", checkpoint)
 	}
-	first, err := service.Claim(ctx, "worker-a", now, time.Minute, 10)
-	if err != nil || len(first) != 1 {
-		t.Fatalf("first claim=%#v err=%v", first, err)
+
+	// Use an isolated early runtime clock so only this fixture is due even when
+	// other integration packages have retained newer outbox history.
+	runtimeAt := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO outbox_events(
+			id,tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at
+		) VALUES (
+			$1::uuid,$2::uuid,'SOURCE_BINDING',$3::uuid,'SourceBindingPollRequested',
+			jsonb_build_object('binding_id',$3::text,'binding_version',1),$4,$4,$4
+		)`, checkpointOutboxID, checkpointTenantID, checkpointBindingID, runtimeAt); err != nil {
+		t.Fatal(err)
+	}
+
+	first, err := runtimeRepository.ClaimOutbox(ctx, "source-worker", runtimeAt, time.Minute, 1)
+	if err != nil || len(first) != 1 || first[0].ID != checkpointOutboxID || first[0].Attempts != 1 {
+		t.Fatalf("first runtime claim=%#v err=%v", first, err)
+	}
+	terminal, err := runtimeRepository.MarkFailed(ctx, first[0], 3, "SOURCE_UNAVAILABLE", runtimeAt.Add(10*time.Second), runtimeAt.Add(2*time.Minute))
+	if err != nil || terminal {
+		t.Fatalf("first runtime failure terminal=%v err=%v", terminal, err)
+	}
+	if claims, err := runtimeRepository.ClaimOutbox(ctx, "source-worker", runtimeAt.Add(time.Minute), time.Minute, 1); err != nil || len(claims) != 0 {
+		t.Fatalf("runtime backoff was ignored: claims=%#v err=%v", claims, err)
+	}
+
+	second, err := runtimeRepository.ClaimOutbox(ctx, "source-worker", runtimeAt.Add(3*time.Minute), time.Minute, 1)
+	if err != nil || len(second) != 1 || second[0].ID != checkpointOutboxID || second[0].Attempts != 2 {
+		t.Fatalf("second runtime claim=%#v err=%v", second, err)
 	}
 	position := sourceaccess.CheckpointPosition{Kind: sourceaccess.CheckpointCursor, Value: "cursor-100"}
-	eventID, err := sourceaccess.CheckpointInboxEventID(first[0], "source-pull", position)
+	eventID, err := sourceaccess.CheckpointInboxEventID(checkpoint, "source-pull", position)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	inserted, err := runtimeRepository.RecordInbox(ctx, checkpointTenantID, "source-pull", eventID, now.Add(10*time.Second))
+	inserted, err := runtimeRepository.RecordInbox(ctx, checkpointTenantID, "source-pull", eventID, runtimeAt.Add(3*time.Minute+10*time.Second))
 	if err != nil || !inserted {
-		t.Fatalf("durable inbox receipt inserted=%v err=%v", inserted, err)
-	}
-	// Simulate a crash after durable processing but before checkpoint advancement.
-	// The same worker identity is deliberately reused to prove the lease generation,
-	// not just the worker name, fences the abandoned execution.
-	replayed, err := service.Claim(ctx, "worker-a", now.Add(2*time.Minute), time.Minute, 10)
-	if err != nil || len(replayed) != 1 {
-		t.Fatalf("expired checkpoint was not replayed: claims=%#v err=%v", replayed, err)
-	}
-	if replayed[0].Position != first[0].Position || replayed[0].Attempts != 2 {
-		t.Fatalf("replay skipped source position: first=%#v replay=%#v", first[0], replayed[0])
-	}
-	if first[0].LeaseUntil == nil || replayed[0].LeaseUntil == nil || first[0].LeaseUntil.Equal(*replayed[0].LeaseUntil) {
-		t.Fatalf("checkpoint lease generation did not change: first=%#v replay=%#v", first[0], replayed[0])
-	}
-	replayedEventID, err := sourceaccess.CheckpointInboxEventID(replayed[0], "source-pull", position)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if replayedEventID != eventID {
-		t.Fatalf("same source batch changed idempotency identity: first=%q replay=%q", eventID, replayedEventID)
-	}
-	staleAt := now.Add(2*time.Minute + 5*time.Second)
-	if _, err := repository.AdvanceBindingCheckpoint(ctx, first[0], sourceaccess.CheckpointPosition{Kind: sourceaccess.CheckpointCursor, Value: "stale-cursor"}, staleAt, now.Add(3*time.Minute)); !errors.Is(err, sourceaccess.ErrCheckpointClaimLost) {
-		t.Fatalf("stale same-worker claim advanced the newer lease: %v", err)
-	}
-	inserted, err = runtimeRepository.RecordInbox(ctx, checkpointTenantID, "source-pull", eventID, now.Add(2*time.Minute))
-	if err != nil || inserted {
-		t.Fatalf("duplicate domain processing was not suppressed: inserted=%v err=%v", inserted, err)
+		t.Fatalf("durable processing receipt inserted=%v err=%v", inserted, err)
 	}
 
-	advanced, err := service.AdvanceAfterInbox(ctx, replayed[0], "source-pull", position, now.Add(2*time.Minute+10*time.Second), now.Add(3*time.Minute))
+	// Crash after durable processing but before outbox completion/checkpoint advance.
+	// Runtime—not the checkpoint table—owns lease expiry and retry.
+	third, err := runtimeRepository.ClaimOutbox(ctx, "source-worker", runtimeAt.Add(5*time.Minute), time.Minute, 1)
+	if err != nil || len(third) != 1 || third[0].ID != checkpointOutboxID || third[0].Attempts != 3 {
+		t.Fatalf("runtime did not replay expired source work: claims=%#v err=%v", third, err)
+	}
+	if second[0].LeaseUntil == nil || third[0].LeaseUntil == nil || second[0].LeaseUntil.Equal(*third[0].LeaseUntil) {
+		t.Fatalf("runtime lease generation did not change: second=%#v third=%#v", second[0], third[0])
+	}
+	if err := runtimeRepository.MarkPublished(ctx, second[0], runtimeAt.Add(5*time.Minute+5*time.Second)); err == nil {
+		t.Fatal("stale same-worker runtime claim published the newer lease")
+	}
+
+	inserted, err = runtimeRepository.RecordInbox(ctx, checkpointTenantID, "source-pull", eventID, runtimeAt.Add(5*time.Minute+5*time.Second))
+	if err != nil || inserted {
+		t.Fatalf("runtime inbox did not suppress duplicate domain processing: inserted=%v err=%v", inserted, err)
+	}
+	advanced, err := service.AdvanceAfterInbox(ctx, checkpoint, "source-pull", position, checkpointAt.Add(10*time.Second))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if advanced.Position != position || advanced.Attempts != 0 {
-		t.Fatalf("checkpoint did not advance after durable proof: %#v", advanced)
+	if advanced.Position != position || advanced.Generation != 1 {
+		t.Fatalf("checkpoint did not advance after durable replay proof: %#v", advanced)
+	}
+	if err := runtimeRepository.MarkPublished(ctx, third[0], runtimeAt.Add(5*time.Minute+10*time.Second)); err != nil {
+		t.Fatalf("current runtime lease could not publish: %v", err)
+	}
+	if _, err := checkpointRepository.AdvanceBindingCheckpoint(ctx, checkpoint, sourceaccess.CheckpointPosition{Kind: sourceaccess.CheckpointCursor, Value: "cursor-101"}, checkpointAt.Add(20*time.Second)); !errors.Is(err, sourceaccess.ErrCheckpointConflict) {
+		t.Fatalf("stale checkpoint generation remained writable: %v", err)
 	}
 }
 
@@ -154,6 +175,7 @@ func seedCheckpointFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool
 func cleanupCheckpointFixture(ctx context.Context, pool *pgxpool.Pool) {
 	for _, statement := range []string{
 		`DELETE FROM inbox_receipts WHERE tenant_id=$1::uuid`,
+		`DELETE FROM outbox_events WHERE tenant_id=$1::uuid`,
 		`DELETE FROM source_binding_checkpoints WHERE tenant_id=$1::uuid`,
 		`DELETE FROM source_observations WHERE tenant_id=$1::uuid`,
 		`DELETE FROM source_bindings WHERE tenant_id=$1::uuid`,
