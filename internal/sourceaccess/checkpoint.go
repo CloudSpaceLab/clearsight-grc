@@ -2,6 +2,8 @@ package sourceaccess
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -105,16 +107,51 @@ func (s *CheckpointService) Claim(ctx context.Context, worker string, now time.T
 	return s.repo.ClaimBindingCheckpoints(ctx, worker, now.UTC(), lease, limit)
 }
 
-func (s *CheckpointService) AdvanceAfterInbox(ctx context.Context, checkpoint BindingCheckpoint, consumer, eventID string, position CheckpointPosition, at, next time.Time) (BindingCheckpoint, error) {
+// CheckpointInboxEventID derives the durable idempotency receipt identity from
+// the exact Binding plus old->new checkpoint transition. Replays of the same
+// batch therefore reuse one inbox receipt, while an unrelated successful event
+// cannot authorize a different cursor or watermark advancement.
+func CheckpointInboxEventID(checkpoint BindingCheckpoint, consumer string, position CheckpointPosition) (string, error) {
+	consumer = strings.TrimSpace(consumer)
+	if !validCheckpointToken(checkpoint.TenantID, HardMaxIdentifierBytes) ||
+		!validCheckpointToken(checkpoint.SourceID, HardMaxIdentifierBytes) ||
+		!validCheckpointToken(checkpoint.BindingID, HardMaxIdentifierBytes) ||
+		checkpoint.BindingVersion < 1 ||
+		!validCheckpointToken(consumer, HardMaxCheckpointWorkerBytes) {
+		return "", ErrCatalogInvalid
+	}
+	if checkpoint.Position.Kind != "" || checkpoint.Position.Value != "" {
+		if err := validateCheckpointPosition(checkpoint.Position); err != nil {
+			return "", err
+		}
+	}
+	if err := validateCheckpointPosition(position); err != nil {
+		return "", err
+	}
+	hash := sha256.New()
+	_, _ = fmt.Fprintf(hash, "%s\x1f%s\x1f%s\x1f%d\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s",
+		checkpoint.TenantID,
+		checkpoint.SourceID,
+		checkpoint.BindingID,
+		checkpoint.BindingVersion,
+		consumer,
+		checkpoint.Position.Kind,
+		checkpoint.Position.Value,
+		position.Kind,
+		position.Value,
+	)
+	return "source-binding:" + hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func (s *CheckpointService) AdvanceAfterInbox(ctx context.Context, checkpoint BindingCheckpoint, consumer string, position CheckpointPosition, at, next time.Time) (BindingCheckpoint, error) {
 	if s == nil || s.repo == nil || s.inbox == nil {
 		return BindingCheckpoint{}, ErrCheckpointProcessingProof
 	}
-	consumer = strings.TrimSpace(consumer)
-	eventID = strings.TrimSpace(eventID)
-	if !validCheckpointToken(consumer, HardMaxCheckpointWorkerBytes) || !validCheckpointToken(eventID, HardMaxCheckpointPositionBytes) {
-		return BindingCheckpoint{}, ErrCatalogInvalid
+	eventID, err := CheckpointInboxEventID(checkpoint, consumer, position)
+	if err != nil {
+		return BindingCheckpoint{}, err
 	}
-	processed, err := s.inbox.InboxProcessed(ctx, checkpoint.TenantID, consumer, eventID)
+	processed, err := s.inbox.InboxProcessed(ctx, checkpoint.TenantID, strings.TrimSpace(consumer), eventID)
 	if err != nil {
 		return BindingCheckpoint{}, err
 	}
@@ -126,6 +163,9 @@ func (s *CheckpointService) AdvanceAfterInbox(ctx context.Context, checkpoint Bi
 	}
 	if next.IsZero() {
 		next = at
+	}
+	if next.Before(at) {
+		return BindingCheckpoint{}, ErrCatalogInvalid
 	}
 	return s.repo.AdvanceBindingCheckpoint(ctx, checkpoint, position, at.UTC(), next.UTC())
 }
