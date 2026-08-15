@@ -60,15 +60,22 @@ type CreateSourceInput struct {
 }
 
 type SourceObservation struct {
-	ID          string    `json:"id"`
-	TenantID    string    `json:"tenant_id"`
-	SourceID    string    `json:"source_id"`
-	ObservedAt  time.Time `json:"observed_at"`
-	Success     bool      `json:"success"`
-	Unavailable bool      `json:"unavailable"`
-	LatencyMS   int       `json:"latency_ms,omitempty"`
-	Detail      string    `json:"detail,omitempty"`
-	RecordedBy  string    `json:"recorded_by,omitempty"`
+	ID                string                 `json:"id"`
+	TenantID          string                 `json:"tenant_id"`
+	SourceID          string                 `json:"source_id"`
+	Scope             SourceObservationScope `json:"scope,omitempty"`
+	ConnectionID      string                 `json:"connection_id,omitempty"`
+	ConnectionVersion int64                  `json:"connection_version,omitempty"`
+	ViewID            string                 `json:"view_id,omitempty"`
+	ViewVersion       int64                  `json:"view_version,omitempty"`
+	BindingID         string                 `json:"binding_id,omitempty"`
+	BindingVersion    int64                  `json:"binding_version,omitempty"`
+	ObservedAt        time.Time              `json:"observed_at"`
+	Success           bool                   `json:"success"`
+	Unavailable       bool                   `json:"unavailable"`
+	LatencyMS         int                    `json:"latency_ms,omitempty"`
+	Detail            string                 `json:"detail,omitempty"`
+	RecordedBy        string                 `json:"recorded_by,omitempty"`
 }
 
 type RequestStatus string

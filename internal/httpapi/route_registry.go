@@ -120,6 +120,7 @@ func (a *API) routes() []routeSpec {
 		withPermission(read("/api/v1/operations/background-jobs", a.backgroundJobs), identity.PermissionPlatformJobsRead),
 
 		withPermission(read("/api/v1/config/sources/{source_id}/connections", a.listSourceConnections), identity.PermissionConfigRead),
+		withPermission(read("/api/v1/config/sources/{source_id}/health", a.sourceScopeHealth), identity.PermissionConfigRead),
 		withPermission(write(http.MethodPost, "/api/v1/config/sources/{source_id}/connections", a.createSourceConnectionDraft, nil), identity.PermissionConfigWrite),
 		withPermission(read("/api/v1/config/source-connections/{connection_id}", a.getSourceConnection), identity.PermissionConfigRead),
 		withPermission(read("/api/v1/config/source-connections/{connection_id}/views", a.listSourceViews), identity.PermissionConfigRead),

@@ -1,0 +1,137 @@
+name: T1 shared runtime closeout
+
+on:
+  push:
+    branches:
+      - codex/issue-61-sourceaccess-t1c
+
+permissions:
+  contents: write
+
+concurrency:
+  group: t1-runtime-closeout-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  closeout:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.4-alpine
+        env:
+          POSTGRES_DB: clearsight
+          POSTGRES_USER: clearsight
+          POSTGRES_PASSWORD: clearsight
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U clearsight -d clearsight"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/issue-61-sourceaccess-t1c
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Close architecture documentation and acceptance gates
+        env:
+          PGPASSWORD: clearsight
+          TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('docs/architecture/connected-source-access.md')
+          text = path.read_text()
+          old = '''Checkpoint workers use the same claim/lease/backoff semantics as ClearSight runtime work. Advancement requires an existing durable runtime inbox receipt for the corresponding consumer/event. If processing commits and the process dies before checkpoint advancement, the lease expires, the same source position is replayed, the inbox receipt suppresses duplicate domain processing, and the checkpoint can then advance without skipping records.
+
+Raw source errors are not persisted in checkpoint state. Only bounded error codes are retained.'''
+          new = '''Checkpoint rows contain no scheduling state. Pull and event work is ordinary ClearSight runtime work: `internal/runtime` owns attempts, leases, retry/backoff and terminal failure. A checkpoint stores only the exact Binding revision, source position and an optimistic generation.
+
+Advancement requires the exact durable runtime inbox receipt derived from the Binding, checkpoint generation, old position, new position and consumer. If domain processing commits and the process dies before checkpoint advancement, runtime replays the work after its lease expires, the inbox receipt suppresses duplicate domain processing, and the checkpoint advances with compare-and-swap semantics. An unrelated inbox receipt cannot authorize a different cursor or watermark transition.'''
+          if old not in text:
+              raise SystemExit('connected-source checkpoint description changed')
+          path.write_text(text.replace(old, new, 1))
+
+          path = Path('docs/architecture/durable-schema-ownership.md')
+          lines = path.read_text().splitlines()
+          replacement = "| `source_binding_checkpoints` | active infrastructure ledger | source access / runtime execution | runtime-leased source workers after durable consumer processing | source-access workers and operational diagnostics | one optimistic source-position generation per exact stateful Binding revision; no scheduling state | retain while the Binding is statefully consumed; never business truth | `internal/sourceaccess/checkpoint_postgres.go`; `internal/runtime`; runtime inbox receipt integration; migration `000031_source_access_runtime_state` |"
+          found = False
+          for i, line in enumerate(lines):
+              if line.startswith('| `source_binding_checkpoints` |'):
+                  lines[i] = replacement
+                  found = True
+                  break
+          if not found:
+              raise SystemExit('source_binding_checkpoints ownership row missing')
+          path.write_text('\n'.join(lines) + '\n')
+
+          path = Path('scripts/verify-sourceaccess-tranche.sh')
+          text = path.read_text()
+          needle = '''      grep -q 'InboxProcessed' internal/sourceaccess/checkpoint.go || {
+                echo "T1c checkpoint advancement is not tied to the runtime inbox receipt" >&2
+                exit 1
+              }
+          '''
+          if needle not in text:
+              # tolerate indentation from go-free shell formatting while requiring the semantic gate.
+              marker = "      grep -q 'InboxProcessed' internal/sourceaccess/checkpoint.go || {"
+              pos = text.find(marker)
+              if pos < 0:
+                  raise SystemExit('T1c inbox acceptance gate missing')
+              end = text.find('      }\n', pos)
+              if end < 0:
+                  raise SystemExit('T1c inbox acceptance gate malformed')
+              end += len('      }\n')
+              insert_at = end
+          else:
+              insert_at = text.index(needle) + len(needle)
+          addition = '''      if grep -qE '\b(attempts|locked_by|lease_until|next_attempt_at|last_error_code|failed_at)\b' internal/sourceaccess/checkpoint.go internal/sourceaccess/checkpoint_memory.go internal/sourceaccess/checkpoint_postgres.go; then
+                echo "T1c checkpoint layer duplicated runtime scheduling state" >&2
+                exit 1
+              fi
+              if grep -qE '\b(attempts|locked_by|lease_until|next_attempt_at|last_error_code|failed_at)\b' migrations/000031_source_access_runtime_state.up.sql; then
+                echo "T1c checkpoint migration duplicated runtime scheduling state" >&2
+                exit 1
+              fi
+              grep -q 'CheckpointInboxEventID' internal/sourceaccess/checkpoint.go || {
+                echo "T1c checkpoint inbox identity is not bound to the exact source-position transition" >&2
+                exit 1
+              }
+              grep -q 'lease_until=\$4' internal/runtime/postgres.go || {
+                echo "runtime PostgreSQL claims are not fenced by exact lease generation" >&2
+                exit 1
+              }
+          '''
+          if 'T1c checkpoint layer duplicated runtime scheduling state' not in text:
+              text = text[:insert_at] + addition + text[insert_at:]
+          path.write_text(text)
+          PY
+
+          gofmt -w $(find cmd internal -name '*.go' -type f)
+          go test ./internal/sourceaccess ./internal/evidence ./internal/httpapi ./internal/runtime
+          go test -tags postgres ./internal/sourceaccess ./internal/evidence ./internal/httpapi ./internal/runtime
+          for migration in migrations/*.up.sql; do
+            psql -X "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f "$migration" >/dev/null
+          done
+          bash scripts/verify-sourceaccess-tranche.sh t1c
+          go test -p 1 -tags "postgres postgresintegration" ./internal/sourceaccess ./internal/evidence ./internal/httpapi ./internal/runtime
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cmd internal docs scripts
+          if git diff --cached --quiet; then
+            echo 'No closeout changes to publish.'
+            exit 0
+          fi
+          git commit -m "refactor(sourceaccess): reuse shared runtime scheduling"
+          git push origin HEAD:codex/issue-61-sourceaccess-t1c

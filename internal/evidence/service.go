@@ -67,14 +67,25 @@ func (s *Service) RecordSourceObservation(ctx context.Context, observation Sourc
 	if strings.TrimSpace(observation.TenantID) == "" || strings.TrimSpace(observation.SourceID) == "" {
 		return Source{}, fmt.Errorf("tenant and source are required")
 	}
+	var err error
+	observation, err = normalizeSourceObservationScope(observation)
+	if err != nil {
+		return Source{}, err
+	}
+	evaluatedAt := s.now().UTC()
 	if observation.ObservedAt.IsZero() {
-		observation.ObservedAt = s.now().UTC()
+		observation.ObservedAt = evaluatedAt
+	} else {
+		observation.ObservedAt = observation.ObservedAt.UTC()
 	}
 	valueID, err := id.NewUUIDv7()
 	if err != nil {
 		return Source{}, err
 	}
 	observation.ID = valueID
+	if scoped, ok := s.repo.(ScopedSourceHealthRepository); ok {
+		return scoped.RecordScopedSourceObservation(ctx, observation, evaluatedAt)
+	}
 	health := HealthDegraded
 	if observation.Unavailable {
 		health = HealthUnavailable
@@ -82,6 +93,17 @@ func (s *Service) RecordSourceObservation(ctx context.Context, observation Sourc
 		health = HealthCurrent
 	}
 	return s.repo.RecordSourceObservation(ctx, observation, health)
+}
+
+func (s *Service) ListSourceScopeHealth(ctx context.Context, tenant, sourceID string, limit int) ([]SourceScopeHealth, error) {
+	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(sourceID) == "" {
+		return nil, fmt.Errorf("tenant and source are required")
+	}
+	scoped, ok := s.repo.(ScopedSourceHealthRepository)
+	if !ok {
+		return nil, fmt.Errorf("scoped source health is unavailable")
+	}
+	return scoped.ListSourceScopeHealth(ctx, tenant, sourceID, s.now().UTC(), healthLimit(limit))
 }
 
 func (s *Service) Maintain(ctx context.Context, now time.Time, limit int) (int, error) {
@@ -92,6 +114,10 @@ func (s *Service) Maintain(ctx context.Context, now time.Time, limit int) (int, 
 	expired, err := s.repo.ExpireRequests(ctx, now, limit)
 	if err != nil {
 		return expired, err
+	}
+	if scoped, ok := s.repo.(ScopedSourceHealthRepository); ok {
+		stale, scopedErr := scoped.EvaluateScopedSourceHealth(ctx, now, limit)
+		return expired + stale, scopedErr
 	}
 	stale, err := s.repo.EvaluateSourceHealth(ctx, now, limit)
 	return expired + stale, err

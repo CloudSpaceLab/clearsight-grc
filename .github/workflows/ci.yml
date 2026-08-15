@@ -57,16 +57,14 @@ jobs:
         env:
           TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
         run: bash scripts/verify-sourceaccess-tranche.sh auto
-      - name: Verify latest migration rollback and reapply
+      - name: Verify source-access runtime rollback and reapply
         env:
           PGPASSWORD: clearsight
         run: |
-          latest_up="$(find migrations -maxdepth 1 -name '*.up.sql' -type f | sort | tail -n 1)"
-          test -n "$latest_up"
-          latest_down="${latest_up%.up.sql}.down.sql"
-          test -f "$latest_down"
-          echo "Rollback/reapply: $latest_up"
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$latest_down"
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000031_source_access_runtime_state.down.sql
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.source_binding_checkpoints') IS NULL THEN 'ok' ELSE 'checkpoint table survived rollback' END" | grep -qx ok
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='source_observations' AND column_name='scope_kind'" | grep -qx 0
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000030_source_access_catalog.down.sql
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 <<'SQL'
           INSERT INTO tenants(id,slug,name)
           VALUES('6f300000-0000-7000-8000-000000000001','source-catalog-migration','Source catalog migration');
@@ -80,9 +78,12 @@ jobs:
               ' https://legacy.example.invalid/source ',15,'UNKNOWN','ACTIVE',1
           );
           SQL
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$latest_up"
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000030_source_access_catalog.up.sql
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='evidence_sources' AND column_name='endpoint'" | grep -qx 0
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM source_connections WHERE source_id='6f300000-0000-7000-8000-000000000002' AND code='PRIMARY_REFERENCE' AND adapter_kind='REFERENCE' AND adapter_version='reference-v1' AND status='ACTIVE' AND is_current AND version=1 AND definition->>'endpoint'='https://legacy.example.invalid/source'" | grep -qx 1
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000031_source_access_runtime_state.up.sql
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.source_binding_checkpoints') IS NOT NULL THEN 'ok' ELSE 'missing checkpoint table after reapply' END" | grep -qx ok
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='source_observations' AND column_name IN ('scope_kind','connection_id','connection_version','view_id','view_version','binding_id','binding_version')" | grep -qx 7
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -c "DELETE FROM source_connections WHERE source_id='6f300000-0000-7000-8000-000000000002'; DELETE FROM evidence_sources WHERE id='6f300000-0000-7000-8000-000000000002'; DELETE FROM tenants WHERE id='6f300000-0000-7000-8000-000000000001';"
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.audit_events') IS NULL AND to_regclass('public.readiness_snapshots') IS NULL THEN 'ok' ELSE 'unexpected compatibility table' END" | grep -qx ok
       - name: Verify deployment migration ledger
