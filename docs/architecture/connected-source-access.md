@@ -188,7 +188,7 @@ REST pagination exposes opaque cursor or ETag source positions through the exist
 
 ## Tabular artifact adapter — T2b
 
-`TABULAR_ARTIFACT` reuses the governed document-import lifecycle for CSV, JSON, NDJSON and XLSX rather than introducing a second file-ingestion stack. The original object remains the only row store. `document_imports.tabular_metadata` retains only bounded parser provenance: format/parser version, row totals and rejections, bounded row diagnostics, resource schemas and schema fingerprints.
+`TABULAR_ARTIFACT` reuses the governed document-import lifecycle for CSV, JSON, NDJSON and XLSX rather than introducing a second file-ingestion stack. The original object remains the only row store. `document_imports.tabular_metadata` retains only bounded parser provenance: format/parser version, row totals and rejections, bounded row diagnostics, resource schemas and schema fingerprints. The parser and PostgreSQL share a 2 MiB metadata ceiling; artifacts whose derived schema would exceed it remain preserved for governed review but are not executable as tabular Source Access until reduced or re-governed.
 
 A View references one exact document-import ID and, for multi-sheet XLSX, one exact resource. `INSPECT`, `PAGE` and `LOOKUP` reopen the preserved artifact, verify its recorded size and SHA-256 digest, and reparse it under the same hard resource limits. Page checkpoints are physical row positions over that immutable artifact. Any retained row rejection keeps the operation `PARTIAL`; it is never silently promoted to complete source truth.
 

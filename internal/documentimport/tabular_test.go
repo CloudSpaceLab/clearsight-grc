@@ -5,6 +5,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -64,3 +67,18 @@ func TestJSONAndNDJSONProduceReviewSections(t *testing.T) {
 }
 
 var _ = json.Valid
+
+func TestTabularMetadataBudgetFailsCompactly(t *testing.T) {
+	fields := make([]TabularField, 0, 10000)
+	for index := 0; index < 10000; index++ {
+		fields = append(fields, TabularField{Name: fmt.Sprintf("field_%05d_%s", index, strings.Repeat("x", 240)), NativeType: "tabular:string"})
+	}
+	metadata, err := boundTabularMetadata(TabularMetadata{Format: TabularXLSX, ParserVersion: TabularParserVersion, Resources: []TabularResource{{Name: "Sheet 1", Fields: fields}}})
+	if !errors.Is(err, ErrResourceLimit) || metadata.FatalError == "" || len(metadata.Resources) != 0 {
+		t.Fatalf("oversized tabular metadata was not compactly bounded: metadata=%#v err=%v", metadata, err)
+	}
+	encoded, marshalErr := json.Marshal(metadata)
+	if marshalErr != nil || len(encoded) > HardMaxTabularMetadataBytes {
+		t.Fatalf("compact failure receipt exceeded the persistence budget: bytes=%d err=%v", len(encoded), marshalErr)
+	}
+}

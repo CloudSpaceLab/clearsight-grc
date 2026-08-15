@@ -19,7 +19,10 @@ import (
 	"unicode"
 )
 
-const TabularParserVersion = "TABULAR_V1"
+const (
+	TabularParserVersion        = "TABULAR_V1"
+	HardMaxTabularMetadataBytes = 2 << 20
+)
 
 type TabularFormat string
 
@@ -158,10 +161,39 @@ func scanTabularArtifact(ctx context.Context, format TabularFormat, data []byte,
 		err = fmt.Errorf("unsupported tabular format %q", format)
 	}
 	metadata := state.metadata()
-	if err != nil && !errors.Is(err, errTabularStop) {
+	if !errors.Is(err, errTabularStop) {
+		bounded, metadataErr := boundTabularMetadata(metadata)
+		metadata = bounded
+		if metadataErr != nil && err == nil {
+			err = metadataErr
+		}
+	}
+	if err != nil && !errors.Is(err, errTabularStop) && metadata.FatalError == "" {
 		metadata.FatalError = truncateUTF8(err.Error(), 1024)
 	}
 	return metadata, err
+}
+
+func boundTabularMetadata(metadata TabularMetadata) (TabularMetadata, error) {
+	encoded, err := json.Marshal(metadata)
+	if err != nil {
+		compact := TabularMetadata{Format: metadata.Format, ParserVersion: metadata.ParserVersion, RowsTotal: metadata.RowsTotal, RowsRejected: metadata.RowsRejected, FatalError: "tabular parser metadata could not be encoded"}
+		return compact, fmt.Errorf("tabular parser metadata could not be encoded: %w", err)
+	}
+	if len(encoded) <= HardMaxTabularMetadataBytes {
+		return metadata, nil
+	}
+	message := fmt.Sprintf("tabular parser metadata exceeds %d bytes", HardMaxTabularMetadataBytes)
+	compact := TabularMetadata{
+		Format: metadata.Format, ParserVersion: metadata.ParserVersion,
+		RowsTotal: metadata.RowsTotal, RowsRejected: metadata.RowsRejected,
+		RowErrors: append([]TabularRowError(nil), metadata.RowErrors...), FatalError: message,
+	}
+	compactEncoded, compactErr := json.Marshal(compact)
+	if compactErr != nil || len(compactEncoded) > HardMaxTabularMetadataBytes {
+		compact.RowErrors = nil
+	}
+	return compact, limitError("%s", message)
 }
 
 func newTabularResource(state *tabularScanState, name string, headers []string) (*tabularResourceBuilder, error) {
