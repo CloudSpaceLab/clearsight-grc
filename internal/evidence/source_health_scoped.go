@@ -10,11 +10,12 @@ import (
 type SourceObservationScope string
 
 const (
-	ObservationScopeSource     SourceObservationScope = "SOURCE"
-	ObservationScopeConnection SourceObservationScope = "CONNECTION"
-	ObservationScopeView       SourceObservationScope = "VIEW"
-	ObservationScopeBinding    SourceObservationScope = "BINDING"
-	HardMaxSourceHealthScopes                         = 500
+	ObservationScopeSource      SourceObservationScope = "SOURCE"
+	ObservationScopeConnection  SourceObservationScope = "CONNECTION"
+	ObservationScopeView        SourceObservationScope = "VIEW"
+	ObservationScopeBinding     SourceObservationScope = "BINDING"
+	HardMaxSourceHealthScopes                          = 500
+	MaxSourceObservationFutureSkew                     = 5 * time.Minute
 )
 
 type SourceScopeHealth struct {
@@ -74,6 +75,16 @@ func normalizeSourceObservationScope(value SourceObservation) (SourceObservation
 		return SourceObservation{}, fmt.Errorf("latency_ms cannot be negative")
 	}
 	return value, nil
+}
+
+func validateSourceObservationTime(value SourceObservation, evaluatedAt time.Time) error {
+	if evaluatedAt.IsZero() || value.ObservedAt.IsZero() {
+		return fmt.Errorf("source observation time is required")
+	}
+	if value.ObservedAt.After(evaluatedAt.Add(MaxSourceObservationFutureSkew)) {
+		return fmt.Errorf("source observation time exceeds the permitted clock skew")
+	}
+	return nil
 }
 
 func scopeObservationKey(value SourceObservation) string {
