@@ -39,14 +39,16 @@ func (r *MemoryRepository) EvaluateScopedSourceHealth(_ context.Context, now tim
 	}
 	sort.Strings(ids)
 	changed := 0
+	processed := 0
 	for _, sourceID := range ids {
-		if changed >= limit {
+		if processed >= limit {
 			break
 		}
 		source := r.sources[sourceID]
 		if source.Status != SourceActive {
 			continue
 		}
+		processed++
 		health, lastObserved, lastSuccess := r.aggregateSourceHealthLocked(source, now)
 		if health == source.Health {
 			continue
