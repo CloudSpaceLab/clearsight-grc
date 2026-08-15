@@ -45,12 +45,15 @@ func (r *PostgresRepository) ClaimDueTimers(ctx context.Context, worker string, 
 	return out, rows.Err()
 }
 func (r *PostgresRepository) CompleteTimer(ctx context.Context, t Timer, e OutboxEvent, now time.Time) error {
+	if t.LeaseUntil == nil {
+		return errors.New("timer claim lost")
+	}
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx)
-	tag, err := tx.Exec(ctx, `UPDATE workflow_timers SET state='FIRED',fired_at=$2,failed_at=NULL,last_error=NULL,lease_until=NULL,locked_by=NULL WHERE id=$1::uuid AND state='CLAIMED' AND locked_by=$3`, t.ID, now, t.LockedBy)
+	tag, err := tx.Exec(ctx, `UPDATE workflow_timers SET state='FIRED',fired_at=$2,failed_at=NULL,last_error=NULL,lease_until=NULL,locked_by=NULL WHERE id=$1::uuid AND state='CLAIMED' AND locked_by=$3 AND lease_until=$4 AND lease_until >= $2`, t.ID, now, t.LockedBy, *t.LeaseUntil)
 	if err != nil {
 		return err
 	}
@@ -64,8 +67,11 @@ func (r *PostgresRepository) CompleteTimer(ctx context.Context, t Timer, e Outbo
 	return tx.Commit(ctx)
 }
 func (r *PostgresRepository) FailTimer(ctx context.Context, t Timer, maxAttempts int, message string, at, next time.Time) (bool, error) {
+	if t.LeaseUntil == nil {
+		return false, errors.New("timer claim lost")
+	}
 	var terminal bool
-	err := r.pool.QueryRow(ctx, `UPDATE workflow_timers SET state=CASE WHEN attempts>=$2 THEN 'FAILED' ELSE 'READY' END,due_at=CASE WHEN attempts>=$2 THEN due_at ELSE $4::timestamptz END,failed_at=CASE WHEN attempts>=$2 THEN $5::timestamptz ELSE NULL::timestamptz END,last_error=$3,lease_until=NULL,locked_by=NULL WHERE id=$1::uuid AND state='CLAIMED' AND locked_by=$6 RETURNING state='FAILED'`, t.ID, maxAttempts, message, next, at, t.LockedBy).Scan(&terminal)
+	err := r.pool.QueryRow(ctx, `UPDATE workflow_timers SET state=CASE WHEN attempts>=$2 THEN 'FAILED' ELSE 'READY' END,due_at=CASE WHEN attempts>=$2 THEN due_at ELSE $4::timestamptz END,failed_at=CASE WHEN attempts>=$2 THEN $5::timestamptz ELSE NULL::timestamptz END,last_error=$3,lease_until=NULL,locked_by=NULL WHERE id=$1::uuid AND state='CLAIMED' AND locked_by=$6 AND lease_until=$7 AND lease_until >= $5 RETURNING state='FAILED'`, t.ID, maxAttempts, message, next, at, t.LockedBy, *t.LeaseUntil).Scan(&terminal)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, errors.New("timer claim lost")
 	}
@@ -88,7 +94,10 @@ func (r *PostgresRepository) ClaimOutbox(ctx context.Context, worker string, now
 	return out, rows.Err()
 }
 func (r *PostgresRepository) MarkPublished(ctx context.Context, e OutboxEvent, at time.Time) error {
-	tag, err := r.pool.Exec(ctx, `UPDATE outbox_events SET published_at=$2,next_attempt_at=NULL,locked_by=NULL,lease_until=NULL,last_error=NULL WHERE id=$1::uuid AND published_at IS NULL AND dead_lettered_at IS NULL AND locked_by=$3`, e.ID, at, e.LockedBy)
+	if e.LeaseUntil == nil {
+		return errors.New("outbox claim lost")
+	}
+	tag, err := r.pool.Exec(ctx, `UPDATE outbox_events SET published_at=$2,next_attempt_at=NULL,locked_by=NULL,lease_until=NULL,last_error=NULL WHERE id=$1::uuid AND published_at IS NULL AND dead_lettered_at IS NULL AND locked_by=$3 AND lease_until=$4 AND lease_until >= $2`, e.ID, at, e.LockedBy, *e.LeaseUntil)
 	if err != nil {
 		return err
 	}
@@ -98,8 +107,11 @@ func (r *PostgresRepository) MarkPublished(ctx context.Context, e OutboxEvent, a
 	return nil
 }
 func (r *PostgresRepository) MarkFailed(ctx context.Context, e OutboxEvent, maxAttempts int, message string, at, next time.Time) (bool, error) {
+	if e.LeaseUntil == nil {
+		return false, errors.New("outbox claim lost")
+	}
 	var terminal bool
-	err := r.pool.QueryRow(ctx, `UPDATE outbox_events SET next_attempt_at=CASE WHEN attempts>=$2 THEN NULL::timestamptz ELSE $4::timestamptz END,dead_lettered_at=CASE WHEN attempts>=$2 THEN $5::timestamptz ELSE NULL::timestamptz END,last_error=$3,locked_by=NULL,lease_until=NULL WHERE id=$1::uuid AND published_at IS NULL AND dead_lettered_at IS NULL AND locked_by=$6 RETURNING dead_lettered_at IS NOT NULL`, e.ID, maxAttempts, message, next, at, e.LockedBy).Scan(&terminal)
+	err := r.pool.QueryRow(ctx, `UPDATE outbox_events SET next_attempt_at=CASE WHEN attempts>=$2 THEN NULL::timestamptz ELSE $4::timestamptz END,dead_lettered_at=CASE WHEN attempts>=$2 THEN $5::timestamptz ELSE NULL::timestamptz END,last_error=$3,locked_by=NULL,lease_until=NULL WHERE id=$1::uuid AND published_at IS NULL AND dead_lettered_at IS NULL AND locked_by=$6 AND lease_until=$7 AND lease_until >= $5 RETURNING dead_lettered_at IS NOT NULL`, e.ID, maxAttempts, message, next, at, e.LockedBy, *e.LeaseUntil).Scan(&terminal)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, errors.New("outbox claim lost")
 	}
