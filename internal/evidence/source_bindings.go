@@ -437,10 +437,12 @@ func (s *Service) deriveAnswerProvenance(ctx context.Context, request Request, a
 	result := make(map[string]AnswerProvenance, len(answers))
 	for _, field := range request.Fields {
 		answer, exists := answers[field.ID]
-		if !exists || strings.TrimSpace(answer) == "" {
+		if !exists {
 			continue
 		}
+		answer = strings.TrimSpace(answer)
 		provenance := AnswerProvenance{Origin: AnswerRespondentEntered}
+		sourceDerived := false
 		for _, reference := range field.Bindings {
 			if reference.Mode != BindingUsePrefill {
 				continue
@@ -458,25 +460,31 @@ func (s *Service) deriveAnswerProvenance(ctx context.Context, request Request, a
 			valueCopy := sourceValue
 			provenance.SourceValue = &valueCopy
 			provenance.SourceReceipt = cloneOperationReceipt(resolution.Receipt)
-			if strings.TrimSpace(answer) == strings.TrimSpace(sourceValue.Text) {
+			provenance.Origin = AnswerRespondentCorrected
+			if answer != "" && answer == strings.TrimSpace(sourceValue.Text) {
 				provenance.Origin = AnswerSourcePrefilled
-			} else {
-				provenance.Origin = AnswerRespondentCorrected
 			}
+			sourceDerived = true
 			break
+		}
+		if answer == "" {
+			if sourceDerived {
+				result[field.ID] = provenance
+			}
+			continue
 		}
 		for _, reference := range field.Bindings {
 			if reference.Mode != BindingUseValidate {
 				continue
 			}
-			provenance.Validations = append(provenance.Validations, s.validateSourceAnswer(ctx, request.TenantID, reference, answer))
+			provenance.Validations = append(provenance.Validations, s.validateSourceAnswer(ctx, request.TenantID, field, reference, answer))
 		}
 		result[field.ID] = provenance
 	}
 	return result
 }
 
-func (s *Service) validateSourceAnswer(ctx context.Context, tenantID string, reference FieldBindingReference, answer string) SourceResolution {
+func (s *Service) validateSourceAnswer(ctx context.Context, tenantID string, field Field, reference FieldBindingReference, answer string) SourceResolution {
 	fallback := SourceResolution{
 		Mode:           BindingUseValidate,
 		BindingID:      strings.TrimSpace(reference.BindingID),
@@ -510,8 +518,8 @@ func (s *Service) validateSourceAnswer(ctx context.Context, tenantID string, ref
 		resolution.FailureCode = "VALUE_FIELD_INVALID"
 		return resolution
 	}
-	answer = strings.TrimSpace(answer)
-	result, err := s.bindings.LookupBinding(ctx, tenantID, reference.BindingID, reference.BindingVersion, sourceaccess.LookupRequest{Values: []sourceaccess.Scalar{sourceaccess.StringValue(answer)}})
+	lookupValue := answerLookupScalar(field, answer)
+	result, err := s.bindings.LookupBinding(ctx, tenantID, reference.BindingID, reference.BindingVersion, sourceaccess.LookupRequest{Values: []sourceaccess.Scalar{lookupValue}})
 	if err != nil {
 		return sourceFailureResolution(resolution, err)
 	}
@@ -537,11 +545,23 @@ func (s *Service) validateSourceAnswer(ctx context.Context, tenantID string, ref
 		return resolution
 	}
 	resolution.Value = &value
-	if strings.TrimSpace(value.Text) != answer {
+	if value.Kind != lookupValue.Kind || strings.TrimSpace(value.Text) != lookupValue.Text {
 		resolution.State = SourceResolutionNotFound
 		resolution.FailureCode = "VALUE_MISMATCH"
 	}
 	return resolution
+}
+
+func answerLookupScalar(field Field, answer string) sourceaccess.Scalar {
+	answer = strings.TrimSpace(answer)
+	switch normalizedFieldTypeName(field.Type) {
+	case "number":
+		return sourceaccess.Scalar{Kind: sourceaccess.ScalarNumber, Text: answer}
+	case "date":
+		return sourceaccess.Scalar{Kind: sourceaccess.ScalarTime, Text: answer}
+	default:
+		return sourceaccess.StringValue(answer)
+	}
 }
 
 func matchingResolution(values []SourceResolution, reference FieldBindingReference) (SourceResolution, bool) {
@@ -606,6 +626,21 @@ func cloneOperationReceipt(input *sourceaccess.OperationReceipt) *sourceaccess.O
 	return &copyValue
 }
 
+func respondentOperationReceipt(input *sourceaccess.OperationReceipt) *sourceaccess.OperationReceipt {
+	if input == nil {
+		return nil
+	}
+	return &sourceaccess.OperationReceipt{
+		SourceID:       input.SourceID,
+		BindingID:      input.BindingID,
+		BindingVersion: input.BindingVersion,
+		Operation:      input.Operation,
+		ObservedAt:     input.ObservedAt,
+		Count:          input.Count,
+		Completeness:   input.Completeness,
+	}
+}
+
 func cloneAnswerProvenance(input map[string]AnswerProvenance) map[string]AnswerProvenance {
 	out := make(map[string]AnswerProvenance, len(input))
 	for key, value := range input {
@@ -635,6 +670,7 @@ func RespondentRequest(request Request) Request {
 				continue
 			}
 			visible := cloneSourceResolution(resolution)
+			visible.Receipt = respondentOperationReceipt(resolution.Receipt)
 			visible.Records = nil
 			visible.FailureCode = ""
 			if visible.Mode != BindingUsePrefill {
