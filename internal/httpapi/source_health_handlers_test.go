@@ -54,3 +54,32 @@ func TestSourceObservationIgnoresClientTenantAndRecorder(t *testing.T) {
 		t.Fatalf("client tenant affected another tenant: %#v", foreign)
 	}
 }
+
+func TestSourceObservationFailureDoesNotExposeValidationOrRepositoryDetail(t *testing.T) {
+	now := time.Date(2026, 8, 15, 6, 0, 0, 0, time.UTC)
+	repo := evidence.NewMemoryRepository([]evidence.Source{{
+		ID: "source-1", TenantID: "bank-a", Code: "CORE", Name: "Core", Type: evidence.SourceSystem,
+		AuthorityClass: "SYSTEM_OF_RECORD", ExpectedFreshnessMinutes: 30, Health: evidence.HealthUnknown,
+		Status: evidence.SourceActive, Version: 1, CreatedAt: now.Add(-time.Hour), UpdatedAt: now.Add(-time.Hour),
+	}}, nil)
+	service := evidence.NewService(repo, evidence.NewMemoryObjectStore())
+	api := &API{deps: Dependencies{Evidence: service}}
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/sources/source-1/observations", strings.NewReader(`{
+		"scope":"BINDING","binding_id":"binding-only","binding_version":1,"success":true
+	}`))
+	request.SetPathValue("id", "source-1")
+	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{TenantID: "bank-a", PrincipalID: "actor-a", ExpiresAt: now.Add(time.Hour)}))
+	response := httptest.NewRecorder()
+
+	api.recordEvidenceSourceObservation(response, request)
+	if response.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+	body := response.Body.String()
+	if !strings.Contains(body, "Source observation is invalid.") {
+		t.Fatalf("generic error missing: %s", body)
+	}
+	if strings.Contains(body, "requires exact Connection") || strings.Contains(body, "binding-scoped") {
+		t.Fatalf("validation detail leaked: %s", body)
+	}
+}
