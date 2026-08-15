@@ -2,7 +2,6 @@ package runtime
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 )
@@ -79,7 +78,7 @@ func TestMemoryOutboxLeaseGenerationFencesStaleSameWorker(t *testing.T) {
 	if err := repository.MarkPublished(ctx, second[0], at); err != nil {
 		t.Fatalf("current outbox lease could not publish: %v", err)
 	}
-	if err := repository.MarkPublished(ctx, second[0], at); !errors.Is(err, errors.New("outbox claim lost")) && err == nil {
+	if err := repository.MarkPublished(ctx, second[0], at); err == nil {
 		t.Fatal("published event remained claimable")
 	}
 }
