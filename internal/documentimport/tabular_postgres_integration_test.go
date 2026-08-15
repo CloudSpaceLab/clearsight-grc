@@ -43,7 +43,10 @@ func TestPostgresDocumentImportPersistsTabularParserReceipt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	processed, err := service.Process(ctx, tabularIntegrationTenantID, document.ID)
+	if err := service.Process(ctx, tabularIntegrationTenantID, document.ID); err != nil {
+		t.Fatal(err)
+	}
+	processed, err := service.Get(ctx, tabularIntegrationTenantID, document.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
