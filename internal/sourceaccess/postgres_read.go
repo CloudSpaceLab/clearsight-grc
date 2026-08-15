@@ -71,6 +71,9 @@ func (s *PostgresSession) ReadPage(ctx context.Context, view View, binding Bindi
 	if err != nil {
 		return RecordPage{}, err
 	}
+	if err := validateExpectedSchema(view, schemaFingerprint); err != nil {
+		return RecordPage{}, err
+	}
 	fieldKinds, err := selectedFieldKinds(fields, binding.SelectedFields)
 	if err != nil {
 		return RecordPage{}, err
@@ -185,6 +188,9 @@ func (s *PostgresSession) Lookup(ctx context.Context, view View, binding Binding
 	defer s.rollback(tx)
 	fields, schemaFingerprint, err := s.inspectSchemaTx(operationCtx, tx, definition)
 	if err != nil {
+		return LookupResult{}, err
+	}
+	if err := validateExpectedSchema(view, schemaFingerprint); err != nil {
 		return LookupResult{}, err
 	}
 	fieldKinds, err := selectedFieldKinds(fields, binding.SelectedFields)

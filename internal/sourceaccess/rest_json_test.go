@@ -181,8 +181,8 @@ func TestRESTJSONAdapterRejectsSchemaDrift(t *testing.T) {
 func TestRESTJSONAdapterRejectsUnsafeTemplatesRedirectsAndOversize(t *testing.T) {
 	connection := restTestConnection(t, "https://bank.example/api", RESTJSONAuthentication{Kind: RESTJSONAuthHeader, HeaderName: "X-API-Key"}, "secret://key")
 	for name, definition := range map[string]RESTJSONViewDefinition{
-		"query in path": {Path: "/accounts?admin=true", Pagination: RESTJSONPagination{Mode: RESTJSONPaginationNone}},
-		"traversal":     {Path: "/accounts/../admin", Pagination: RESTJSONPagination{Mode: RESTJSONPaginationNone}},
+		"query in path":    {Path: "/accounts?admin=true", Pagination: RESTJSONPagination{Mode: RESTJSONPaginationNone}},
+		"traversal":        {Path: "/accounts/../admin", Pagination: RESTJSONPagination{Mode: RESTJSONPaginationNone}},
 		"cursor collision": {Path: "/accounts", FixedQuery: map[string]string{"cursor": "fixed"}, Pagination: RESTJSONPagination{Mode: RESTJSONPaginationCursor, CursorQueryParam: "cursor", NextCursorPointer: "/next"}},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -234,8 +234,8 @@ func TestRESTJSONAdapterRejectsUnsafeTemplatesRedirectsAndOversize(t *testing.T)
 
 func TestRESTJSONConnectionRequiresHTTPSAndSafeAuthHeader(t *testing.T) {
 	for name, definition := range map[string]RESTJSONConnectionDefinition{
-		"http": {BaseURL: "http://bank.example", Authentication: RESTJSONAuthentication{Kind: RESTJSONAuthNone}},
-		"credentials": {BaseURL: "https://user:pass@bank.example", Authentication: RESTJSONAuthentication{Kind: RESTJSONAuthNone}},
+		"http":            {BaseURL: "http://bank.example", Authentication: RESTJSONAuthentication{Kind: RESTJSONAuthNone}},
+		"credentials":     {BaseURL: "https://user:pass@bank.example", Authentication: RESTJSONAuthentication{Kind: RESTJSONAuthNone}},
 		"reserved header": {BaseURL: "https://bank.example", Authentication: RESTJSONAuthentication{Kind: RESTJSONAuthHeader, HeaderName: "Host"}},
 	} {
 		t.Run(name, func(t *testing.T) {

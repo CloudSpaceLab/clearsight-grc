@@ -160,12 +160,14 @@ func (value ViewRevision) Contract(connection ConnectionRevision) (View, error) 
 		return View{}, err
 	}
 	contract := View{
-		ID:           value.ViewID,
-		ConnectionID: value.ConnectionID,
-		Version:      strconv.FormatInt(value.Version, 10),
-		OutputKind:   value.OutputKind,
-		Definition:   cloneRawMessage(value.Definition),
-		StableKeys:   append([]string(nil), value.StableKeys...),
+		ID:                value.ViewID,
+		ConnectionID:      value.ConnectionID,
+		Version:           strconv.FormatInt(value.Version, 10),
+		OutputKind:        value.OutputKind,
+		Definition:        cloneRawMessage(value.Definition),
+		StableKeys:        append([]string(nil), value.StableKeys...),
+		NativeSchema:      append([]NativeField(nil), value.NativeSchema...),
+		SchemaFingerprint: value.SchemaFingerprint,
 	}
 	connectionContract, err := connection.Contract()
 	if err != nil {
@@ -193,12 +195,14 @@ func (value BindingRevision) Contract(view ViewRevision) (Binding, error) {
 		Limits:         value.Limits,
 	}
 	viewContract := View{
-		ID:           view.ViewID,
-		ConnectionID: view.ConnectionID,
-		Version:      strconv.FormatInt(view.Version, 10),
-		OutputKind:   view.OutputKind,
-		Definition:   cloneRawMessage(view.Definition),
-		StableKeys:   append([]string(nil), view.StableKeys...),
+		ID:                view.ViewID,
+		ConnectionID:      view.ConnectionID,
+		Version:           strconv.FormatInt(view.Version, 10),
+		OutputKind:        view.OutputKind,
+		Definition:        cloneRawMessage(view.Definition),
+		StableKeys:        append([]string(nil), view.StableKeys...),
+		NativeSchema:      append([]NativeField(nil), view.NativeSchema...),
+		SchemaFingerprint: view.SchemaFingerprint,
 	}
 	if err := contract.Validate(viewContract); err != nil {
 		return Binding{}, errors.Join(ErrCatalogInvalid, err)

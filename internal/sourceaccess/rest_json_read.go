@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,7 +13,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type restJSONResponse struct {
@@ -137,16 +135,9 @@ func (s *RESTJSONSession) ReadPage(ctx context.Context, view View, binding Bindi
 	if err != nil {
 		return RecordPage{}, err
 	}
-	schemaFingerprint := view.SchemaFingerprint
-	if len(fullRecords) > 0 {
-		_, observedFingerprint, err := inferRESTSchema(fullRecords)
-		if err != nil {
-			return RecordPage{}, err
-		}
-		if err := validateExpectedSchema(view, observedFingerprint); err != nil {
-			return RecordPage{}, err
-		}
-		schemaFingerprint = observedFingerprint
+	schemaFingerprint, err := restObservedSchemaFingerprint(view, fullRecords)
+	if err != nil {
+		return RecordPage{}, err
 	}
 	records, err := projectRESTRecords(fullRecords, binding.SelectedFields)
 	if err != nil {
@@ -221,16 +212,9 @@ func (s *RESTJSONSession) Lookup(ctx context.Context, view View, binding Binding
 	if err != nil {
 		return LookupResult{}, err
 	}
-	schemaFingerprint := view.SchemaFingerprint
-	if len(fullRecords) > 0 {
-		_, observedFingerprint, err := inferRESTSchema(fullRecords)
-		if err != nil {
-			return LookupResult{}, err
-		}
-		if err := validateExpectedSchema(view, observedFingerprint); err != nil {
-			return LookupResult{}, err
-		}
-		schemaFingerprint = observedFingerprint
+	schemaFingerprint, err := restObservedSchemaFingerprint(view, fullRecords)
+	if err != nil {
+		return LookupResult{}, err
 	}
 	records, err := projectRESTRecords(fullRecords, binding.SelectedFields)
 	if err != nil {
@@ -623,13 +607,6 @@ func cloneRESTQuery(input map[string]string) url.Values {
 	return values
 }
 
-func validateExpectedSchema(view View, observed string) error {
-	if view.SchemaFingerprint != "" && observed != "" && view.SchemaFingerprint != observed {
-		return ErrSchemaDrift
-	}
-	return nil
-}
-
 func restRetryIdentity(view View, binding Binding, operation Operation, after *Scalar, lookup []Scalar) string {
 	hash := sha256.New()
 	_, _ = fmt.Fprintf(hash, "%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s", view.ConnectionID, view.ID, view.Version, binding.ID, binding.Version, operation)
@@ -668,12 +645,47 @@ func (s *RESTJSONSession) receipt(view View, binding Binding, operation Operatio
 	return receipt
 }
 
+func restObservedSchemaFingerprint(view View, records []map[string]any) (string, error) {
+	if len(records) == 0 {
+		return view.SchemaFingerprint, nil
+	}
+	if len(view.NativeSchema) == 0 || view.SchemaFingerprint == "" {
+		_, fingerprint, err := inferRESTSchema(records)
+		return fingerprint, err
+	}
+	if err := validateRESTRecordsAgainstSchema(view.NativeSchema, records); err != nil {
+		return "", err
+	}
+	return view.SchemaFingerprint, nil
+}
+
+func validateRESTRecordsAgainstSchema(schema []NativeField, records []map[string]any) error {
+	expected := make(map[string]NativeField, len(schema))
+	for _, field := range schema {
+		expected[field.Name] = field
+	}
+	for _, record := range records {
+		for name, value := range record {
+			field, exists := expected[name]
+			if !exists {
+				return ErrSchemaDrift
+			}
+			if value == nil || field.NativeType == "json:mixed" {
+				continue
+			}
+			if restNativeType(value) != field.NativeType {
+				return ErrSchemaDrift
+			}
+		}
+		for _, field := range schema {
+			if _, exists := record[field.Name]; !exists && !field.Nullable {
+				return ErrSchemaDrift
+			}
+		}
+	}
+	return nil
+}
+
 var _ SchemaReader = (*RESTJSONSession)(nil)
 var _ PageReader = (*RESTJSONSession)(nil)
 var _ LookupReader = (*RESTJSONSession)(nil)
-
-func restIsContextError(err error) bool {
-	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
-}
-
-var _ = time.UTC

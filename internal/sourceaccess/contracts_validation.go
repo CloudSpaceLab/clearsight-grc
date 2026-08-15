@@ -63,6 +63,32 @@ func (v View) Validate(connection Connection) error {
 	if err := validateFields(v.StableKeys, HardMaxStableKeyFields); err != nil {
 		return err
 	}
+	if len(v.NativeSchema) > HardMaxSchemaFields {
+		return ErrLimitExceeded
+	}
+	if (len(v.NativeSchema) == 0) != (v.SchemaFingerprint == "") {
+		return fmt.Errorf("%w: native schema and schema fingerprint must be supplied together", ErrDefinitionInvalid)
+	}
+	if v.SchemaFingerprint != "" && !isLowerHex(v.SchemaFingerprint, 64) {
+		return fmt.Errorf("%w: schema fingerprint must be a lowercase SHA-256 value", ErrDefinitionInvalid)
+	}
+	if len(v.NativeSchema) > 0 {
+		seen := make(map[string]struct{}, len(v.NativeSchema))
+		for _, field := range v.NativeSchema {
+			if !ValidFieldName(field.Name) || strings.TrimSpace(field.NativeType) == "" || field.NativeType != strings.TrimSpace(field.NativeType) || len(field.NativeType) > HardMaxIdentifierBytes || containsControl(field.NativeType) {
+				return fmt.Errorf("%w: source schema contains an invalid field", ErrDefinitionInvalid)
+			}
+			if _, exists := seen[field.Name]; exists {
+				return fmt.Errorf("%w: source schema contains duplicate fields", ErrDefinitionInvalid)
+			}
+			seen[field.Name] = struct{}{}
+		}
+		for _, key := range v.StableKeys {
+			if _, exists := seen[key]; !exists {
+				return fmt.Errorf("%w: stable keys must exist in the inspected native schema", ErrDefinitionInvalid)
+			}
+		}
+	}
 	return nil
 }
 

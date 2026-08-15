@@ -27,10 +27,10 @@ const (
 )
 
 type RESTJSONPagination struct {
-	Mode                  RESTJSONPaginationMode `json:"mode"`
-	CursorQueryParam      string                 `json:"cursor_query_param,omitempty"`
-	NextCursorPointer     string                 `json:"next_cursor_pointer,omitempty"`
-	PageSizeQueryParam    string                 `json:"page_size_query_param,omitempty"`
+	Mode               RESTJSONPaginationMode `json:"mode"`
+	CursorQueryParam   string                 `json:"cursor_query_param,omitempty"`
+	NextCursorPointer  string                 `json:"next_cursor_pointer,omitempty"`
+	PageSizeQueryParam string                 `json:"page_size_query_param,omitempty"`
 }
 
 type RESTJSONLookup struct {
@@ -39,11 +39,11 @@ type RESTJSONLookup struct {
 }
 
 type RESTJSONViewDefinition struct {
-	Path           string            `json:"path"`
-	RecordsPointer string            `json:"records_pointer,omitempty"`
-	FixedQuery     map[string]string `json:"fixed_query,omitempty"`
+	Path           string             `json:"path"`
+	RecordsPointer string             `json:"records_pointer,omitempty"`
+	FixedQuery     map[string]string  `json:"fixed_query,omitempty"`
 	Pagination     RESTJSONPagination `json:"pagination"`
-	Lookup         *RESTJSONLookup   `json:"lookup,omitempty"`
+	Lookup         *RESTJSONLookup    `json:"lookup,omitempty"`
 }
 
 func normalizeRESTJSONConnectionDefinition(raw json.RawMessage, secretRef string) (json.RawMessage, error) {

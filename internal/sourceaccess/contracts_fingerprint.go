@@ -47,6 +47,10 @@ func canonicalView(view View) (View, error) {
 	}
 	view.Definition = definition
 	view.StableKeys = append([]string{}, view.StableKeys...)
+	// Definition fingerprints describe executable configuration only. The
+	// independently observed native schema is carried by SchemaFingerprint.
+	view.NativeSchema = nil
+	view.SchemaFingerprint = ""
 	return view, nil
 }
 
