@@ -13,13 +13,16 @@ import (
 )
 
 const (
-	scopedHealthTenantID      = "7e111111-1111-7111-8111-111111111111"
-	scopedHealthActorID       = "7e222222-2222-7222-8222-222222222222"
-	scopedHealthSourceID      = "7e333333-3333-7333-8333-333333333333"
-	scopedHealthConnectionID  = "7e444444-4444-7444-8444-444444444444"
-	scopedHealthConnection2ID = "7e455555-5555-7555-8555-555555555555"
-	scopedHealthViewID        = "7e555555-5555-7555-8555-555555555555"
-	scopedHealthBindingID     = "7e666666-6666-7666-8666-666666666666"
+	scopedHealthTenantID       = "7e111111-1111-7111-8111-111111111111"
+	scopedHealthActorID        = "7e222222-2222-7222-8222-222222222222"
+	scopedHealthSourceID       = "7e333333-3333-7333-8333-333333333333"
+	scopedHealthConnectionID   = "7e444444-4444-7444-8444-444444444444"
+	scopedHealthConnection2ID  = "7e455555-5555-7555-8555-555555555555"
+	scopedHealthViewID         = "7e555555-5555-7555-8555-555555555555"
+	scopedHealthBindingID      = "7e666666-6666-7666-8666-666666666666"
+	scopedHealthForeignTenantID = "7e911111-1111-7111-8111-111111111111"
+	scopedHealthForeignActorID  = "7e922222-2222-7222-8222-222222222222"
+	scopedHealthForeignSourceID = "7e933333-3333-7333-8333-333333333333"
 )
 
 func TestPostgresScopedSourceHealthAggregatesExactResourceState(t *testing.T) {
@@ -123,6 +126,39 @@ func TestPostgresScopedSourceHealthAggregatesExactResourceState(t *testing.T) {
 	if err == nil {
 		t.Fatal("database accepted a Binding health observation with mismatched Connection lineage")
 	}
+
+	// A raw SOURCE observation must not pair one tenant with another tenant's Source.
+	_, err = pool.Exec(ctx, `
+		INSERT INTO source_observations(
+			id,tenant_id,source_id,observed_at,success,unavailable,recorded_by,scope_kind
+		) VALUES (
+			'7e788888-8888-7888-8888-888888888888'::uuid,$1::uuid,$2::uuid,$3,true,false,$4::uuid,'SOURCE'
+		)`, scopedHealthTenantID, scopedHealthForeignSourceID, now.Add(time.Minute), scopedHealthActorID)
+	if err == nil {
+		t.Fatal("database accepted a Source observation under the wrong tenant")
+	}
+
+	// recorded_by is provenance, not decoration; it must be a principal in the same tenant.
+	_, err = pool.Exec(ctx, `
+		INSERT INTO source_observations(
+			id,tenant_id,source_id,observed_at,success,unavailable,recorded_by,scope_kind
+		) VALUES (
+			'7e799999-9999-7999-8999-999999999999'::uuid,$1::uuid,$2::uuid,$3,true,false,$4::uuid,'SOURCE'
+		)`, scopedHealthTenantID, scopedHealthSourceID, now.Add(time.Minute), scopedHealthForeignActorID)
+	if err == nil {
+		t.Fatal("database accepted a source observation recorded by another tenant's principal")
+	}
+
+	// Database writes bypassing the service get the same bounded clock-skew rule.
+	_, err = pool.Exec(ctx, `
+		INSERT INTO source_observations(
+			id,tenant_id,source_id,observed_at,success,unavailable,recorded_by,scope_kind
+		) VALUES (
+			'7e7aaaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa'::uuid,$1::uuid,$2::uuid,clock_timestamp()+interval '6 minutes',true,false,$3::uuid,'SOURCE'
+		)`, scopedHealthTenantID, scopedHealthSourceID, scopedHealthActorID)
+	if err == nil {
+		t.Fatal("database accepted a far-future source observation")
+	}
 }
 
 func seedScopedHealthFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool, now time.Time) {
@@ -177,20 +213,35 @@ func seedScopedHealthFixture(t *testing.T, ctx context.Context, pool *pgxpool.Po
 		)`, scopedHealthBindingID, scopedHealthTenantID, scopedHealthSourceID, scopedHealthViewID, now.Add(-time.Hour), scopedHealthActorID); err != nil {
 		t.Fatal(err)
 	}
+
+	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'source-health-foreign','Source health foreign')`, scopedHealthForeignTenantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES($1::uuid,$2::uuid,'PERSON','source-health-foreign-actor','Source health foreign actor')`, scopedHealthForeignActorID, scopedHealthForeignTenantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO evidence_sources(id,tenant_id,code,name,source_type,authority_class,owner_principal_id,expected_freshness_minutes,health,status,version,created_at,updated_at)
+		VALUES($1::uuid,$2::uuid,'FOREIGN-SOURCE','Foreign source','SYSTEM','SYSTEM_OF_RECORD',$3::uuid,30,'UNKNOWN','ACTIVE',1,$4,$4)`,
+		scopedHealthForeignSourceID, scopedHealthForeignTenantID, scopedHealthForeignActorID, now.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func cleanupScopedHealthFixture(ctx context.Context, pool *pgxpool.Pool) {
-	for _, statement := range []string{
-		`DELETE FROM outbox_events WHERE tenant_id=$1::uuid`,
-		`DELETE FROM source_binding_checkpoints WHERE tenant_id=$1::uuid`,
-		`DELETE FROM source_observations WHERE tenant_id=$1::uuid`,
-		`DELETE FROM source_bindings WHERE tenant_id=$1::uuid`,
-		`DELETE FROM source_views WHERE tenant_id=$1::uuid`,
-		`DELETE FROM source_connections WHERE tenant_id=$1::uuid`,
-		`DELETE FROM evidence_sources WHERE tenant_id=$1::uuid`,
-		`DELETE FROM principals WHERE tenant_id=$1::uuid`,
-		`DELETE FROM tenants WHERE id=$1::uuid`,
-	} {
-		_, _ = pool.Exec(ctx, statement, scopedHealthTenantID)
+	for _, tenantID := range []string{scopedHealthTenantID, scopedHealthForeignTenantID} {
+		for _, statement := range []string{
+			`DELETE FROM outbox_events WHERE tenant_id=$1::uuid`,
+			`DELETE FROM source_binding_checkpoints WHERE tenant_id=$1::uuid`,
+			`DELETE FROM source_observations WHERE tenant_id=$1::uuid`,
+			`DELETE FROM source_bindings WHERE tenant_id=$1::uuid`,
+			`DELETE FROM source_views WHERE tenant_id=$1::uuid`,
+			`DELETE FROM source_connections WHERE tenant_id=$1::uuid`,
+			`DELETE FROM evidence_sources WHERE tenant_id=$1::uuid`,
+			`DELETE FROM principals WHERE tenant_id=$1::uuid`,
+			`DELETE FROM tenants WHERE id=$1::uuid`,
+		} {
+			_, _ = pool.Exec(ctx, statement, tenantID)
+		}
 	}
 }
