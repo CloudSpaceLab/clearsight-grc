@@ -3,7 +3,9 @@ set -euo pipefail
 
 tranche="${1:-auto}"
 if [[ "$tranche" == "auto" ]]; then
-  if [[ -f internal/sourceaccess/rest_json_adapter.go && -f internal/sourceaccess/rest_json_read.go ]]; then
+  if [[ -f internal/documentimport/sourceaccess_adapter.go && -f migrations/000032_document_import_tabular_metadata.up.sql ]]; then
+    tranche="t2b"
+  elif [[ -f internal/sourceaccess/rest_json_adapter.go && -f internal/sourceaccess/rest_json_read.go ]]; then
     tranche="t2a"
   elif [[ -f migrations/000031_source_access_runtime_state.up.sql && -f internal/sourceaccess/checkpoint.go && -f internal/evidence/source_health_scoped.go ]]; then
     tranche="t1c"
@@ -15,8 +17,8 @@ if [[ "$tranche" == "auto" ]]; then
     tranche="t0"
   fi
 fi
-if [[ "$tranche" != "t0" && "$tranche" != "t1a" && "$tranche" != "t1b" && "$tranche" != "t1c" && "$tranche" != "t2a" ]]; then
-  echo "usage: $0 [auto|t0|t1a|t1b|t1c|t2a]" >&2
+if [[ "$tranche" != "t0" && "$tranche" != "t1a" && "$tranche" != "t1b" && "$tranche" != "t1c" && "$tranche" != "t2a" && "$tranche" != "t2b" ]]; then
+  echo "usage: $0 [auto|t0|t1a|t1b|t1c|t2a|t2b]" >&2
   exit 2
 fi
 
@@ -226,7 +228,7 @@ PY
       go test ./internal/sourceaccess ./internal/evidence ./internal/httpapi ./internal/runtime
       go test -tags postgres ./internal/sourceaccess ./internal/evidence ./internal/httpapi ./internal/runtime
       summary="Complete T1 durable reusable sources passed: catalog, governed operations, replay-safe checkpoints, scoped health aggregation, schema ownership and rollback/reapply controls."
-	  if [[ "$tranche" == "t2a" ]]; then
+	  if [[ "$tranche" == "t2a" || "$tranche" == "t2b" ]]; then
 	    required_t2a=(
 	      internal/sourceaccess/rest_json_adapter.go
 	      internal/sourceaccess/rest_json_definition.go
@@ -245,13 +247,41 @@ PY
 	      echo "T2a REST/JSON adapter introduced a write method" >&2
 	      exit 1
 	    fi
-	    if compgen -G 'migrations/000032*' >/dev/null; then
+	    if [[ "$tranche" == "t2a" ]] && compgen -G 'migrations/000032*' >/dev/null; then
 	      echo "T2a REST/JSON adapter must not introduce durable tables or migration 32" >&2
 	      exit 1
 	    fi
 	    go test ./internal/sourceaccess
 	    go test -tags postgres ./internal/sourceaccess ./internal/assurance
 	    summary="T2a REST/JSON source access passed: fixed HTTPS origin, strict templates, bounded inspect/page/lookup, cursor/ETag positions, secret isolation and schema-drift blocking."
+	    if [[ "$tranche" == "t2b" ]]; then
+	      required_t2b=(
+	        internal/documentimport/tabular.go
+	        internal/documentimport/sourceaccess_adapter.go
+	        internal/documentimport/sourceaccess_catalog_test.go
+	        internal/documentimport/tabular_postgres_integration_test.go
+	        internal/sourceaccess/tabular_artifact_definition.go
+	        migrations/000032_document_import_tabular_metadata.up.sql
+	        migrations/000032_document_import_tabular_metadata.down.sql
+	      )
+	      for file in "${required_t2b[@]}"; do
+	        test -s "$file" || { echo "missing T2b contract: $file" >&2; exit 1; }
+	      done
+	      grep -q 'AdapterTabularArtifact' internal/sourceaccess/contracts_types.go || { echo "tabular artifact adapter kind is missing" >&2; exit 1; }
+	      grep -q 'tabular_metadata' migrations/000032_document_import_tabular_metadata.up.sql || { echo "tabular parser metadata is not durable" >&2; exit 1; }
+	      if grep -qiE 'CREATE[[:space:]]+TABLE' migrations/000032_document_import_tabular_metadata.up.sql; then
+	        echo "T2b introduced a source-row or adapter-specific table" >&2
+	        exit 1
+	      fi
+	      grep -q 'SourceAccessAdapter' cmd/api/services_memory.go || { echo "memory runtime does not register the tabular adapter" >&2; exit 1; }
+	      grep -q 'SourceAccessAdapter' cmd/api/services_postgres.go || { echo "PostgreSQL runtime does not register the tabular adapter" >&2; exit 1; }
+	      if [[ -n "${TEST_DATABASE_URL:-}" ]]; then
+	        psql -X "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='document_imports' AND column_name='tabular_metadata'" | grep -qx 1
+	      fi
+	      go test ./internal/documentimport ./internal/sourceaccess ./cmd/api
+	      go test -tags postgres ./internal/documentimport ./internal/sourceaccess ./internal/assurance ./cmd/api
+	      summary="T2b governed tabular capture passed: CSV/JSON/NDJSON/XLSX originals, bounded parser receipts, row diagnostics/schema fingerprints and reusable artifact-backed inspect/page/lookup without a source-row table."
+	    fi
 	  fi
     fi
   fi

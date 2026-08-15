@@ -207,6 +207,16 @@ func (s *Service) processStored(ctx context.Context, value Document) (Document, 
 	value.ProposalsTotal = 0
 	value.ProposalsOmitted = 0
 	value.Limitations = append(baseLimitations(), extraction.Limitations...)
+	value.Tabular = nil
+	if _, supported := DetectTabularFormat(value.FileName, value.MediaType); supported {
+		metadata, metadataErr := InspectTabularArtifact(ctx, value.FileName, value.MediaType, data, s.extractionPolicy)
+		value.Tabular = &metadata
+		if metadataErr != nil {
+			value.Limitations = append(value.Limitations, "Structured tabular parsing failed; the original artifact remains available for governed review.")
+		} else if metadata.RowsRejected > 0 {
+			value.Limitations = append(value.Limitations, fmt.Sprintf("Structured tabular parsing rejected %d of %d rows; bounded row diagnostics are retained with the import receipt.", metadata.RowsRejected, metadata.RowsTotal))
+		}
+	}
 	value.AnalysisStatus = AnalysisUnavailable
 	value.AnalysisMethod = "DETERMINISTIC_RULES_V2"
 

@@ -144,6 +144,7 @@ func (value ConnectionRevision) Contract() (Connection, error) {
 		definition = nil
 	}
 	return Connection{
+		TenantID:       value.TenantID,
 		ID:             value.ConnectionID,
 		SourceID:       value.SourceID,
 		Version:        strconv.FormatInt(value.Version, 10),

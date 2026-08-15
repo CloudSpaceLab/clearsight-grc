@@ -186,11 +186,19 @@ Successful reads return the same bounded `Record`, schema and operation-receipt 
 
 REST pagination exposes opaque cursor or ETag source positions through the existing checkpoint representation. Scheduling/retry remains owned by `internal/runtime`; the adapter does not add a pull scheduler or cache.
 
+## Tabular artifact adapter — T2b
+
+`TABULAR_ARTIFACT` reuses the governed document-import lifecycle for CSV, JSON, NDJSON and XLSX rather than introducing a second file-ingestion stack. The original object remains the only row store. `document_imports.tabular_metadata` retains only bounded parser provenance: format/parser version, row totals and rejections, bounded row diagnostics, resource schemas and schema fingerprints. The parser and PostgreSQL share a 2 MiB metadata ceiling; artifacts whose derived schema would exceed it remain preserved for governed review but are not executable as tabular Source Access until reduced or re-governed.
+
+A View references one exact document-import ID and, for multi-sheet XLSX, one exact resource. `INSPECT`, `PAGE` and `LOOKUP` reopen the preserved artifact, verify its recorded size and SHA-256 digest, and reparse it under the same hard resource limits. Page checkpoints are physical row positions over that immutable artifact. Any retained row rejection keeps the operation `PARTIAL`; it is never silently promoted to complete source truth.
+
+XLSX parsing consumes stored cell values only; formulas and macros are not executed. JSON/NDJSON nested arrays and objects may be represented in native schema metadata but are not coerced into scalar Source Access values. A parser-version mismatch or changed artifact digest is non-executable until the artifact is governed again under the current parser.
+
 ## Current limitations
 
-- PostgreSQL and REST/JSON are executable adapters; tabular-file and webhook/event adapters remain T2 work.
+- PostgreSQL, REST/JSON and governed tabular artifacts are executable adapters; webhook/event capture remains T2 work.
 - PostgreSQL page and lookup operations support one stable key.
 - Catalog configuration has APIs but no dedicated user interface yet.
 - Lifecycle transition and maker-checker services are not implemented.
-- REST, file, event and non-PostgreSQL database adapters are not implemented.
+- Webhook/event and non-PostgreSQL database adapters are not implemented.
 - Forms, evidence contracts and workflows do not yet retain Binding references.
