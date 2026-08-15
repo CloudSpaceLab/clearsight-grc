@@ -46,8 +46,14 @@ func TestPostgresScopedSourceHealthAggregatesExactResourceState(t *testing.T) {
 	service.now = func() time.Time { return now }
 
 	// A Source with no observations must still be a valid maintenance candidate.
-	if changed, err := service.Maintain(ctx, now, 20); err != nil || changed != 0 {
-		t.Fatalf("empty health rollup changed=%d err=%v", changed, err)
+	// Maintenance is intentionally global and this integration stage shares one
+	// database across packages, so unrelated stale Sources may also be repaired.
+	if _, err := service.Maintain(ctx, now, 20); err != nil {
+		t.Fatal(err)
+	}
+	seeded, err := service.ListSources(ctx, scopedHealthTenantID, 20)
+	if err != nil || len(seeded) != 1 || seeded[0].ID != scopedHealthSourceID || seeded[0].Health != HealthUnknown {
+		t.Fatalf("empty fixture source changed during global maintenance: values=%#v err=%v", seeded, err)
 	}
 
 	connectionObservation := SourceObservation{

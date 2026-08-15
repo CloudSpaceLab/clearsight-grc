@@ -35,11 +35,15 @@ var (
 	ErrCapabilityUnavailable = errors.New("source capability is unavailable")
 	ErrLimitExceeded         = errors.New("source access limit exceeded")
 	ErrUnsupportedValue      = errors.New("source value is unsupported")
+	ErrSchemaDrift           = errors.New("source schema drift detected")
 )
 
 type AdapterKind string
 
-const AdapterPostgres AdapterKind = "POSTGRES"
+const (
+	AdapterPostgres AdapterKind = "POSTGRES"
+	AdapterRESTJSON AdapterKind = "REST_JSON"
+)
 
 type Capability string
 
@@ -97,12 +101,14 @@ type Connection struct {
 // an adapter-owned definition and stable key fields; it does not materialize
 // the source population in ClearSight.
 type View struct {
-	ID           string          `json:"id"`
-	ConnectionID string          `json:"connection_id"`
-	Version      string          `json:"version"`
-	OutputKind   OutputKind      `json:"output_kind"`
-	Definition   json.RawMessage `json:"definition"`
-	StableKeys   []string        `json:"stable_keys"`
+	ID                string          `json:"id"`
+	ConnectionID      string          `json:"connection_id"`
+	Version           string          `json:"version"`
+	OutputKind        OutputKind      `json:"output_kind"`
+	Definition        json.RawMessage `json:"definition"`
+	StableKeys        []string        `json:"stable_keys"`
+	NativeSchema      []NativeField   `json:"native_schema,omitempty"`
+	SchemaFingerprint string          `json:"schema_fingerprint,omitempty"`
 }
 
 // Binding is a reusable, purpose-bound read contract. Consumer domains retain
@@ -200,22 +206,24 @@ type NativeField struct {
 }
 
 type OperationReceipt struct {
-	SourceID              string       `json:"source_id"`
-	ConnectionID          string       `json:"connection_id"`
-	ConnectionVersion     string       `json:"connection_version"`
-	AdapterKind           AdapterKind  `json:"adapter_kind"`
-	AdapterVersion        string       `json:"adapter_version"`
-	ViewID                string       `json:"view_id"`
-	ViewVersion           string       `json:"view_version"`
-	BindingID             string       `json:"binding_id,omitempty"`
-	BindingVersion        string       `json:"binding_version,omitempty"`
-	DefinitionFingerprint string       `json:"definition_fingerprint"`
-	SchemaFingerprint     string       `json:"schema_fingerprint,omitempty"`
-	Operation             Operation    `json:"operation"`
-	ObservedAt            time.Time    `json:"observed_at"`
-	Count                 int64        `json:"count"`
-	Bytes                 int64        `json:"bytes"`
-	Completeness          Completeness `json:"completeness"`
+	SourceID              string              `json:"source_id"`
+	ConnectionID          string              `json:"connection_id"`
+	ConnectionVersion     string              `json:"connection_version"`
+	AdapterKind           AdapterKind         `json:"adapter_kind"`
+	AdapterVersion        string              `json:"adapter_version"`
+	ViewID                string              `json:"view_id"`
+	ViewVersion           string              `json:"view_version"`
+	BindingID             string              `json:"binding_id,omitempty"`
+	BindingVersion        string              `json:"binding_version,omitempty"`
+	DefinitionFingerprint string              `json:"definition_fingerprint"`
+	SchemaFingerprint     string              `json:"schema_fingerprint,omitempty"`
+	Operation             Operation           `json:"operation"`
+	ObservedAt            time.Time           `json:"observed_at"`
+	Count                 int64               `json:"count"`
+	Bytes                 int64               `json:"bytes"`
+	Completeness          Completeness        `json:"completeness"`
+	Position              *CheckpointPosition `json:"position,omitempty"`
+	RetryIdentity         string              `json:"retry_identity,omitempty"`
 }
 
 type SchemaResult struct {

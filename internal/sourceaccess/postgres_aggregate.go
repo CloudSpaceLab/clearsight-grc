@@ -47,6 +47,9 @@ func (s *PostgresSession) EvaluatePredicate(ctx context.Context, view View, bind
 	if err != nil {
 		return AggregateResult{}, err
 	}
+	if err := validateExpectedSchema(view, schemaFingerprint); err != nil {
+		return AggregateResult{}, err
+	}
 	selectedFields, err := selectedNativeFields(fields, binding.SelectedFields)
 	if err != nil {
 		return AggregateResult{}, err

@@ -178,9 +178,17 @@ The existing `source_observations` history now accepts exact `SOURCE`, `CONNECTI
 
 Freshness maintenance re-evaluates successful observations using the Source freshness window. Observations that arrive out of order remain historical evidence but cannot replace a newer observation for the same scope. Health remains part of the existing Evidence Source / Source Observation model; no connector-health authority is introduced.
 
+## REST/JSON adapter — T2a
+
+`REST_JSON` is the second executable adapter and intentionally remains narrower than a generic HTTP client. A Connection owns one fixed HTTPS base origin and an optional bearer or safe-header secret reference. A View owns fixed GET paths, fixed query values, a JSON records pointer, optional bounded cursor/ETag pagination and an optional repeated-query lookup contract. Runtime callers can supply only bounded page cursors or lookup scalar values through an activated Binding; they cannot supply URLs, paths, headers or arbitrary request templates.
+
+Successful reads return the same bounded `Record`, schema and operation-receipt contracts as PostgreSQL. Response bodies are size-bounded after decompression, redirects are rejected, authentication material is never copied into receipts, and the inspected native schema is checked on later reads. JSON optional fields may be absent, but new fields or incompatible scalar types are treated as schema drift instead of silently changing the Binding contract.
+
+REST pagination exposes opaque cursor or ETag source positions through the existing checkpoint representation. Scheduling/retry remains owned by `internal/runtime`; the adapter does not add a pull scheduler or cache.
+
 ## Current limitations
 
-- PostgreSQL is the only executable adapter.
+- PostgreSQL and REST/JSON are executable adapters; tabular-file and webhook/event adapters remain T2 work.
 - PostgreSQL page and lookup operations support one stable key.
 - Catalog configuration has APIs but no dedicated user interface yet.
 - Lifecycle transition and maker-checker services are not implemented.

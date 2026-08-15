@@ -115,7 +115,10 @@ func NewCatalogService(repo CatalogRepository, secrets SecretResolver, adapters 
 }
 
 func DefaultCatalogAdapters() map[AdapterKind]Adapter {
-	return map[AdapterKind]Adapter{AdapterPostgres: NewPostgresAdapter(DefaultPostgresOptions())}
+	return map[AdapterKind]Adapter{
+		AdapterPostgres: NewPostgresAdapter(DefaultPostgresOptions()),
+		AdapterRESTJSON: NewRESTJSONAdapter(DefaultRESTJSONOptions()),
+	}
 }
 
 // EnvironmentSecretResolver keeps credential values out of catalog records.
@@ -403,10 +406,77 @@ func (s *CatalogService) PreviewBinding(ctx context.Context, tenantID, bindingID
 	if err := validateCatalogReceipt(page.Receipt, connection, view, binding, OperationPage, int64(len(page.Records))); err != nil {
 		return RecordPage{}, err
 	}
+	if err := validateExpectedSchema(view, page.Receipt.SchemaFingerprint); err != nil {
+		return RecordPage{}, err
+	}
 	if len(page.Records) > request.Limit || page.Receipt.Bytes > limits.ResponseBytes {
 		return RecordPage{}, ErrLimitExceeded
 	}
 	return page, nil
+}
+
+// LookupBinding resolves an exact governed Binding through its registered adapter.
+// It is an internal reusable operation for forms/evidence/workflow consumers; no
+// connector configuration or query material is copied into those domains.
+func (s *CatalogService) LookupBinding(ctx context.Context, tenantID, bindingID string, version int64, request LookupRequest) (LookupResult, error) {
+	bindingRevision, err := s.binding(ctx, tenantID, bindingID, version)
+	if err != nil {
+		return LookupResult{}, err
+	}
+	if !revisionExecutable(bindingRevision.Status) {
+		return LookupResult{}, ErrCatalogInvalid
+	}
+	viewRevision, err := s.repoOrError().ViewRevision(ctx, tenantID, bindingRevision.ViewID, bindingRevision.ViewVersion)
+	if err != nil {
+		return LookupResult{}, err
+	}
+	connectionRevision, err := s.repoOrError().ConnectionRevision(ctx, tenantID, viewRevision.ConnectionID, viewRevision.ConnectionVersion)
+	if err != nil {
+		return LookupResult{}, err
+	}
+	connection, view, adapter, err := s.executionContracts(connectionRevision, viewRevision)
+	if err != nil {
+		return LookupResult{}, err
+	}
+	binding, err := bindingRevision.Contract(viewRevision)
+	if err != nil {
+		return LookupResult{}, err
+	}
+	if !binding.Allows(OperationLookup) {
+		return LookupResult{}, ErrCapabilityUnavailable
+	}
+	limits, err := binding.NormalizedLimits()
+	if err != nil {
+		return LookupResult{}, err
+	}
+	operationCtx, cancel := context.WithTimeout(ctx, limits.Timeout)
+	defer cancel()
+	session, err := adapter.Open(operationCtx, connection, s.secrets)
+	if err != nil {
+		return LookupResult{}, err
+	}
+	defer session.Close()
+	if !session.Capabilities().Has(CapabilityLookup) {
+		return LookupResult{}, ErrCapabilityUnavailable
+	}
+	reader, ok := session.(LookupReader)
+	if !ok {
+		return LookupResult{}, ErrCapabilityUnavailable
+	}
+	result, err := reader.Lookup(operationCtx, view, binding, request)
+	if err != nil {
+		return LookupResult{}, err
+	}
+	if err := validateCatalogReceipt(result.Receipt, connection, view, binding, OperationLookup, int64(len(result.Records))); err != nil {
+		return LookupResult{}, err
+	}
+	if err := validateExpectedSchema(view, result.Receipt.SchemaFingerprint); err != nil {
+		return LookupResult{}, err
+	}
+	if len(result.Records) > limits.LookupValues || result.Receipt.Bytes > limits.ResponseBytes {
+		return LookupResult{}, ErrLimitExceeded
+	}
+	return result, nil
 }
 
 func (s *CatalogService) WhereUsed(ctx context.Context, tenantID string, kind CatalogUsageKind, resourceID string, limit int) (CatalogUsageReport, error) {
@@ -471,6 +541,10 @@ func validateCatalogReceipt(receipt OperationReceipt, connection Connection, vie
 			(receipt.Completeness != CompletenessComplete && receipt.Completeness != CompletenessPartial) {
 			return ErrExecution
 		}
+	case OperationLookup:
+		if receipt.BindingID != binding.ID || receipt.BindingVersion != binding.Version || receipt.Completeness != CompletenessComplete {
+			return ErrExecution
+		}
 	default:
 		return ErrExecution
 	}
@@ -484,7 +558,8 @@ func (s *CatalogService) validateDraftAdapter(input CreateConnectionDraftInput) 
 	if _, err := s.adapterFor(input.AdapterKind, input.AdapterVersion); err != nil {
 		return err
 	}
-	if input.AdapterKind == AdapterPostgres {
+	switch input.AdapterKind {
+	case AdapterPostgres:
 		secretRef := strings.TrimSpace(input.SecretRef)
 		if secretRef == "" || secretRef != input.SecretRef || len(secretRef) > HardMaxIdentifierBytes || containsControl(secretRef) {
 			return fmt.Errorf("%w: PostgreSQL connections require a bounded opaque secret reference", ErrCatalogInvalid)
@@ -496,6 +571,10 @@ func (s *CatalogService) validateDraftAdapter(input CreateConnectionDraftInput) 
 		if string(definition) != "{}" {
 			return fmt.Errorf("%w: PostgreSQL connection definitions are not supported", ErrCatalogInvalid)
 		}
+	case AdapterRESTJSON:
+		if _, err := normalizeRESTJSONConnectionDefinition(defaultJSONObject(input.Definition), strings.TrimSpace(input.SecretRef)); err != nil {
+			return errors.Join(ErrCatalogInvalid, err)
+		}
 	}
 	return nil
 }
@@ -504,8 +583,15 @@ func (s *CatalogService) adapterFor(kind AdapterKind, version string) (Adapter, 
 	if s == nil || s.adapters == nil || s.adapters[kind] == nil {
 		return nil, fmt.Errorf("%w: source adapter is not registered", ErrCatalogInvalid)
 	}
-	if kind == AdapterPostgres && version != PostgresAdapterVersion {
-		return nil, fmt.Errorf("%w: unsupported PostgreSQL adapter version", ErrCatalogInvalid)
+	switch kind {
+	case AdapterPostgres:
+		if version != PostgresAdapterVersion {
+			return nil, fmt.Errorf("%w: unsupported PostgreSQL adapter version", ErrCatalogInvalid)
+		}
+	case AdapterRESTJSON:
+		if version != RESTJSONAdapterVersion {
+			return nil, fmt.Errorf("%w: unsupported REST/JSON adapter version", ErrCatalogInvalid)
+		}
 	}
 	return s.adapters[kind], nil
 }
@@ -529,6 +615,13 @@ func normalizeDraftViewDefinition(connection ConnectionRevision, viewID string, 
 			return nil, errors.Join(ErrCatalogInvalid, err)
 		}
 		return encoded, nil
+	}
+	if connection.AdapterKind == AdapterRESTJSON {
+		definition, err := normalizeRESTJSONViewDefinition(raw)
+		if err != nil {
+			return nil, errors.Join(ErrCatalogInvalid, err)
+		}
+		return definition, nil
 	}
 	return normalizeJSONObject(raw, HardMaxDefinitionBytes, "view definition")
 }

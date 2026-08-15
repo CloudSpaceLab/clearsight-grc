@@ -3,7 +3,9 @@ set -euo pipefail
 
 tranche="${1:-auto}"
 if [[ "$tranche" == "auto" ]]; then
-  if [[ -f migrations/000031_source_access_runtime_state.up.sql && -f internal/sourceaccess/checkpoint.go && -f internal/evidence/source_health_scoped.go ]]; then
+  if [[ -f internal/sourceaccess/rest_json_adapter.go && -f internal/sourceaccess/rest_json_read.go ]]; then
+    tranche="t2a"
+  elif [[ -f migrations/000031_source_access_runtime_state.up.sql && -f internal/sourceaccess/checkpoint.go && -f internal/evidence/source_health_scoped.go ]]; then
     tranche="t1c"
   elif [[ -f internal/sourceaccess/catalog_service.go && -f internal/httpapi/source_catalog_handlers.go ]]; then
     tranche="t1b"
@@ -13,8 +15,8 @@ if [[ "$tranche" == "auto" ]]; then
     tranche="t0"
   fi
 fi
-if [[ "$tranche" != "t0" && "$tranche" != "t1a" && "$tranche" != "t1b" && "$tranche" != "t1c" ]]; then
-  echo "usage: $0 [auto|t0|t1a|t1b|t1c]" >&2
+if [[ "$tranche" != "t0" && "$tranche" != "t1a" && "$tranche" != "t1b" && "$tranche" != "t1c" && "$tranche" != "t2a" ]]; then
+  echo "usage: $0 [auto|t0|t1a|t1b|t1c|t2a]" >&2
   exit 2
 fi
 
@@ -224,6 +226,33 @@ PY
       go test ./internal/sourceaccess ./internal/evidence ./internal/httpapi ./internal/runtime
       go test -tags postgres ./internal/sourceaccess ./internal/evidence ./internal/httpapi ./internal/runtime
       summary="Complete T1 durable reusable sources passed: catalog, governed operations, replay-safe checkpoints, scoped health aggregation, schema ownership and rollback/reapply controls."
+	  if [[ "$tranche" == "t2a" ]]; then
+	    required_t2a=(
+	      internal/sourceaccess/rest_json_adapter.go
+	      internal/sourceaccess/rest_json_definition.go
+	      internal/sourceaccess/rest_json_read.go
+	      internal/sourceaccess/rest_json_test.go
+	      internal/sourceaccess/schema_guard.go
+	    )
+	    for file in "${required_t2a[@]}"; do
+	      test -s "$file" || { echo "missing T2a contract: $file" >&2; exit 1; }
+	    done
+	    grep -q 'AdapterRESTJSON' internal/sourceaccess/contracts_types.go || { echo "REST/JSON adapter kind is not in the shared contract" >&2; exit 1; }
+	    grep -q 'AdapterRESTJSON: NewRESTJSONAdapter' internal/sourceaccess/catalog_service.go || { echo "REST/JSON adapter is not registered in the catalog" >&2; exit 1; }
+	    grep -q 'parsed.Scheme != "https"' internal/sourceaccess/rest_json_definition.go || { echo "REST/JSON adapter does not enforce HTTPS origins" >&2; exit 1; }
+	    grep -q 'http.ErrUseLastResponse' internal/sourceaccess/rest_json_adapter.go || { echo "REST/JSON redirects are not explicitly disabled" >&2; exit 1; }
+	    if grep -R -nE --include='rest_json*.go' '(POST|PUT|PATCH|DELETE).*http.Method' internal/sourceaccess; then
+	      echo "T2a REST/JSON adapter introduced a write method" >&2
+	      exit 1
+	    fi
+	    if compgen -G 'migrations/000032*' >/dev/null; then
+	      echo "T2a REST/JSON adapter must not introduce durable tables or migration 32" >&2
+	      exit 1
+	    fi
+	    go test ./internal/sourceaccess
+	    go test -tags postgres ./internal/sourceaccess ./internal/assurance
+	    summary="T2a REST/JSON source access passed: fixed HTTPS origin, strict templates, bounded inspect/page/lookup, cursor/ETag positions, secret isolation and schema-drift blocking."
+	  fi
     fi
   fi
 fi
