@@ -62,6 +62,20 @@ Important first-run and empty states require a designed experience. Premium illu
 - Copy changes require the same review as workflow changes because wording can alter authority, risk interpretation and user action.
 - A visible enabled control MUST perform a real action. Disabled controls explain why they are unavailable.
 
+### Customer-facing copy gate
+
+- This gate applies to every customer-visible string from React components, server and API responses, onboarding, demo fixtures, empty states, errors, notifications, tooltips, labels, accessibility text and illustration descriptions.
+- Every customer-facing sentence MUST identify a business object or task; state a condition, source, owner, deadline or freshness; explain why the current bank role must act; state the next action and result; or explain a limitation, consequence or recovery step. If it does none of these, remove or rewrite it.
+- Copy MUST address the bank user at the point of work. It MUST NOT compare ClearSight with another product category, defend a product or design decision, narrate internal architecture, or teach implementation terminology that is unnecessary for the task.
+- Product-review commentary is prohibited, including references to a “generic dashboard,” an “exact record,” canonical or bounded views, projections, authoritative servers, internal resolution behavior, implementation guarantees, and equivalent rewordings. This is a semantic rule; passing a fixed phrase scan is not sufficient.
+- Headings name the task, record, state or decision. Buttons use a direct verb and name the immediate result. Supporting text adds status, context, consequence or recovery information instead of repeating the heading.
+- Familiar role and governance acronyms retain their established casing, including CRO, CCO, CISO and GRC.
+- Guides orient users to work in concise business language. They MUST remain optional, dismissible, accessible and non-blocking, including when progress cannot be saved.
+- Simpler wording MUST NOT weaken authority, evidence, legal-scope, uncertainty or compliance limitations.
+- A copy change MUST review the complete affected workflow and every relevant source, not only the edited phrase. Phrase-by-phrase substitution is insufficient when equivalent commentary remains elsewhere.
+- When a new class of product narration can be detected reliably, extend `web/src/copyQuality.test.ts` with a semantic pattern that avoids broad false positives. The pattern list is a regression aid, not the complete writing standard.
+- Before completion, run the copy-quality regression and affected workflow tests, render every materially affected workspace at relevant viewport sizes, and confirm that guides, notices and errors do not block primary actions.
+
 ## UI design proof
 
 Significant screen, workflow or component changes require a compact decision brief, required state fixtures and rendered evidence. Redesigns preserve a before-state baseline. Responsive work defines replacement behavior rather than merely shrinking desktop composition. Inspect the render, fix the highest-impact failure and re-check it before claiming visual completion. New tokens, variants, density modes, motion patterns or illustration styles update `DESIGN.md` and the relevant state fixtures in the same change.
