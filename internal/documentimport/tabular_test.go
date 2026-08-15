@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"encoding/json"
 	"testing"
 )
 
@@ -61,3 +62,5 @@ func TestJSONAndNDJSONProduceReviewSections(t *testing.T) {
 		t.Fatalf("NDJSON review extraction failed: %#v", ndResult)
 	}
 }
+
+var _ = json.Valid
