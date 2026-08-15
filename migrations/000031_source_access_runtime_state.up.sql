@@ -51,6 +51,25 @@ DECLARE
     expected_view_id uuid;
     expected_view_version bigint;
 BEGIN
+    IF NEW.observed_at > clock_timestamp() + interval '5 minutes' THEN
+        RAISE EXCEPTION 'source observation time exceeds the permitted clock skew' USING ERRCODE='23514';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1
+          FROM evidence_sources es
+         WHERE es.id=NEW.source_id
+           AND es.tenant_id=NEW.tenant_id
+    ) THEN
+        RAISE EXCEPTION 'source observation source does not belong to the supplied tenant' USING ERRCODE='23514';
+    END IF;
+    IF NEW.recorded_by IS NOT NULL AND NOT EXISTS (
+        SELECT 1
+          FROM principals p
+         WHERE p.id=NEW.recorded_by
+           AND p.tenant_id=NEW.tenant_id
+    ) THEN
+        RAISE EXCEPTION 'source observation recorder does not belong to the supplied tenant' USING ERRCODE='23514';
+    END IF;
     IF NEW.scope_kind IN ('VIEW','BINDING') THEN
         SELECT sv.connection_id,sv.connection_version
           INTO expected_connection_id,expected_connection_version
