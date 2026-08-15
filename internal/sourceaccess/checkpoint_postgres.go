@@ -112,20 +112,23 @@ func (r *PostgresCheckpointRepository) AdvanceBindingCheckpoint(ctx context.Cont
 	if r == nil || r.pool == nil {
 		return BindingCheckpoint{}, ErrCatalogStorage
 	}
+	if claimed.LeaseUntil == nil {
+		return BindingCheckpoint{}, ErrCheckpointClaimLost
+	}
 	if err := validateCheckpointPosition(position); err != nil {
 		return BindingCheckpoint{}, err
 	}
 	value, err := scanBindingCheckpoint(r.pool.QueryRow(ctx, `
 		UPDATE source_binding_checkpoints
-		   SET position_kind=$5,position_value=$6,attempts=0,locked_by='',lease_until=NULL,
-		       next_attempt_at=$7,last_error_code='',failed_at=NULL,updated_at=$8
+		   SET position_kind=$6,position_value=$7,attempts=0,locked_by='',lease_until=NULL,
+		       next_attempt_at=$8,last_error_code='',failed_at=NULL,updated_at=$9
 		 WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 		   AND binding_id=$2::uuid AND binding_version=$3
-		   AND locked_by=$4 AND locked_by<>'' AND lease_until >= $8
+		   AND locked_by=$4 AND locked_by<>'' AND lease_until=$5 AND lease_until >= $9
 		 RETURNING tenant_id::text,source_id::text,binding_id::text,binding_version,
 		           position_kind,position_value,attempts,locked_by,lease_until,
 		           next_attempt_at,last_error_code,failed_at,created_at,updated_at`,
-		claimed.TenantID, claimed.BindingID, claimed.BindingVersion, claimed.LockedBy,
+		claimed.TenantID, claimed.BindingID, claimed.BindingVersion, claimed.LockedBy, *claimed.LeaseUntil,
 		position.Kind, position.Value, next, at))
 	if errors.Is(err, ErrCatalogNotFound) {
 		return BindingCheckpoint{}, ErrCheckpointClaimLost
@@ -137,18 +140,21 @@ func (r *PostgresCheckpointRepository) FailBindingCheckpoint(ctx context.Context
 	if r == nil || r.pool == nil {
 		return false, ErrCatalogStorage
 	}
+	if claimed.LeaseUntil == nil {
+		return false, ErrCheckpointClaimLost
+	}
 	var terminal bool
 	err := r.pool.QueryRow(ctx, `
 		UPDATE source_binding_checkpoints
-		   SET locked_by='',lease_until=NULL,last_error_code=$5,
-		       next_attempt_at=CASE WHEN attempts >= $6 THEN next_attempt_at ELSE $7 END,
-		       failed_at=CASE WHEN attempts >= $6 THEN $8 ELSE NULL END,
-		       updated_at=$8
+		   SET locked_by='',lease_until=NULL,last_error_code=$6,
+		       next_attempt_at=CASE WHEN attempts >= $7 THEN next_attempt_at ELSE $8 END,
+		       failed_at=CASE WHEN attempts >= $7 THEN $9 ELSE NULL END,
+		       updated_at=$9
 		 WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 		   AND binding_id=$2::uuid AND binding_version=$3
-		   AND locked_by=$4 AND locked_by<>'' AND lease_until >= $8
+		   AND locked_by=$4 AND locked_by<>'' AND lease_until=$5 AND lease_until >= $9
 		 RETURNING failed_at IS NOT NULL`, claimed.TenantID, claimed.BindingID, claimed.BindingVersion,
-		claimed.LockedBy, errorCode, maxAttempts, next, at).Scan(&terminal)
+		claimed.LockedBy, *claimed.LeaseUntil, errorCode, maxAttempts, next, at).Scan(&terminal)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, ErrCheckpointClaimLost
 	}
