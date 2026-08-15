@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	HardMaxCheckpointPositionBytes = 16 << 10
+	HardMaxCheckpointPositionBytes  = 16 << 10
 	HardMaxCheckpointErrorCodeBytes = 128
 	HardMaxCheckpointWorkerBytes    = 128
 )

@@ -3,7 +3,9 @@ set -euo pipefail
 
 tranche="${1:-auto}"
 if [[ "$tranche" == "auto" ]]; then
-  if [[ -f internal/sourceaccess/catalog_service.go && -f internal/httpapi/source_catalog_handlers.go ]]; then
+  if [[ -f migrations/000031_source_access_runtime_state.up.sql && -f internal/sourceaccess/checkpoint.go && -f internal/evidence/source_health_scoped.go ]]; then
+    tranche="t1c"
+  elif [[ -f internal/sourceaccess/catalog_service.go && -f internal/httpapi/source_catalog_handlers.go ]]; then
     tranche="t1b"
   elif [[ -f migrations/000030_source_access_catalog.up.sql ]]; then
     tranche="t1a"
@@ -11,8 +13,8 @@ if [[ "$tranche" == "auto" ]]; then
     tranche="t0"
   fi
 fi
-if [[ "$tranche" != "t0" && "$tranche" != "t1a" && "$tranche" != "t1b" ]]; then
-  echo "usage: $0 [auto|t0|t1a|t1b]" >&2
+if [[ "$tranche" != "t0" && "$tranche" != "t1a" && "$tranche" != "t1b" && "$tranche" != "t1c" ]]; then
+  echo "usage: $0 [auto|t0|t1a|t1b|t1c]" >&2
   exit 2
 fi
 
@@ -184,7 +186,45 @@ PY
 
     go test ./internal/sourceaccess ./internal/httpapi ./cmd/api
     go test -tags postgres ./internal/sourceaccess ./internal/httpapi ./cmd/api
-    summary="T0 and T1a plus T1b governed draft operations, bounded inspect/preview, revision-history reads, route permissions and runtime contract passed."
+    if [[ "$tranche" == "t1b" ]]; then
+      summary="T0 and T1a plus T1b governed draft operations, bounded inspect/preview, revision-history reads, route permissions and runtime contract passed."
+    else
+      required_t1c=(
+        internal/sourceaccess/checkpoint.go
+        internal/sourceaccess/checkpoint_memory.go
+        internal/sourceaccess/checkpoint_postgres.go
+        internal/sourceaccess/checkpoint_runtime_postgres_integration_test.go
+        internal/evidence/source_health_scoped.go
+        internal/evidence/source_health_memory.go
+        internal/evidence/source_health_postgres.go
+        internal/httpapi/source_health_handlers.go
+        migrations/000031_source_access_runtime_state.up.sql
+        migrations/000031_source_access_runtime_state.down.sql
+      )
+      for file in "${required_t1c[@]}"; do
+        test -s "$file" || { echo "missing T1c contract: $file" >&2; exit 1; }
+      done
+      grep -q 'InboxProcessed' internal/sourceaccess/checkpoint.go || {
+        echo "T1c checkpoint advancement is not tied to the runtime inbox receipt" >&2
+        exit 1
+      }
+      grep -q 'source_binding_checkpoints' docs/architecture/durable-schema-ownership.md || {
+        echo "source_binding_checkpoints is missing from durable schema ownership" >&2
+        exit 1
+      }
+      grep -q '/api/v1/config/sources/{source_id}/health' api/runtime.openapi.json || {
+        echo "scoped source health is missing from the runtime contract" >&2
+        exit 1
+      }
+      if [[ -n "${TEST_DATABASE_URL:-}" ]]; then
+        psql -X "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.source_binding_checkpoints') IS NOT NULL THEN 'ok' ELSE 'missing source_binding_checkpoints' END" | grep -qx ok
+        psql -X "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='source_observations' AND column_name IN ('scope_kind','connection_id','connection_version','view_id','view_version','binding_id','binding_version')" | grep -qx 7
+        psql -X "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname IN ('source_observation_scope_guard_trigger','source_binding_checkpoint_guard_trigger')" | grep -qx 2
+      fi
+      go test ./internal/sourceaccess ./internal/evidence ./internal/httpapi ./internal/runtime
+      go test -tags postgres ./internal/sourceaccess ./internal/evidence ./internal/httpapi ./internal/runtime
+      summary="Complete T1 durable reusable sources passed: catalog, governed operations, replay-safe checkpoints, scoped health aggregation, schema ownership and rollback/reapply controls."
+    fi
   fi
 fi
 

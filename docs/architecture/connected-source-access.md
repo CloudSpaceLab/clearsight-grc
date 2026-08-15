@@ -27,7 +27,7 @@ Each revision records tenant and Source scope, code, name, lifecycle state, curr
 
 Only one revision of a resource may be current. Current codes are unique within their parent scope. A current View must reference the current Connection revision. A current Binding must reference the current View revision. A parent revision cannot be retired while a current child still references it.
 
-The current repository supports revision creation, exact-version reads, current-version reads and bounded current-child lists. Lifecycle transitions, maker-checker administration and user-facing configuration are not part of this change.
+The repository supports revision creation, exact-version reads, current-version reads and bounded revision-history lists. Permissioned `CONFIG_READ` / `CONFIG_WRITE` routes expose server-owned draft creation, immutable schema inspection, bounded preview and where-used discovery. Lifecycle activation and maker-checker transitions remain a later governance tranche rather than implicit catalog mutation.
 
 ## Evidence Source endpoint migration
 
@@ -164,13 +164,25 @@ Each successful operation returns a receipt containing:
 
 Receipts exclude queries, secret references, credentials and source values. They are returned to the caller and are not persisted globally by the source-access package.
 
+## Stateful Binding checkpoints
+
+Bindings that support `PAGE` or `CHANGES` may own one infrastructure checkpoint for an exact Binding revision. The checkpoint records only a bounded cursor, ETag, watermark or event ID plus runtime lease/retry state; it is not business truth and it does not copy source rows.
+
+Checkpoint workers use the same claim/lease/backoff semantics as ClearSight runtime work. Advancement requires an existing durable runtime inbox receipt for the corresponding consumer/event. If processing commits and the process dies before checkpoint advancement, the lease expires, the same source position is replayed, the inbox receipt suppresses duplicate domain processing, and the checkpoint can then advance without skipping records.
+
+Raw source errors are not persisted in checkpoint state. Only bounded error codes are retained.
+
+## Scoped source health
+
+The existing `source_observations` history now accepts exact `SOURCE`, `CONNECTION`, `VIEW` and `BINDING` scopes. Child-scoped observations retain exact parent revisions. The current health of each exact scope is derived from its latest observation, and Evidence Source health is the worst current scoped state (`UNAVAILABLE` → `STALE` → `DEGRADED` → `UNKNOWN` → `CURRENT`). An unrelated healthy path therefore cannot hide a failed Binding.
+
+Freshness maintenance re-evaluates successful observations using the Source freshness window. Observations that arrive out of order remain historical evidence but cannot replace a newer observation for the same scope. Health remains part of the existing Evidence Source / Source Observation model; no connector-health authority is introduced.
+
 ## Current limitations
 
 - PostgreSQL is the only executable adapter.
 - PostgreSQL page and lookup operations support one stable key.
-- Catalog administration has no API or user interface.
+- Catalog configuration has APIs but no dedicated user interface yet.
 - Lifecycle transition and maker-checker services are not implemented.
-- Connection-, View- and Binding-level health is not reconciled into Source health.
-- Cursor, ETag and watermark checkpoints are not stored.
 - REST, file, event and non-PostgreSQL database adapters are not implemented.
 - Forms, evidence contracts and workflows do not yet retain Binding references.

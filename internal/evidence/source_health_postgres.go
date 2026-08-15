@@ -149,9 +149,10 @@ func (r *PostgresRepository) ListSourceScopeHealth(ctx context.Context, tenantID
 	}
 	rows, err := r.pool.Query(ctx, `
 		WITH ranked AS (
-			SELECT so.scope_kind,COALESCE(so.connection_id::text,''),COALESCE(so.connection_version,0),
-			       COALESCE(so.view_id::text,''),COALESCE(so.view_version,0),
-			       COALESCE(so.binding_id::text,''),COALESCE(so.binding_version,0),
+			SELECT so.scope_kind,
+			       COALESCE(so.connection_id::text,'') AS connection_id,COALESCE(so.connection_version,0) AS connection_version,
+			       COALESCE(so.view_id::text,'') AS view_id,COALESCE(so.view_version,0) AS view_version,
+			       COALESCE(so.binding_id::text,'') AS binding_id,COALESCE(so.binding_version,0) AS binding_version,
 			       so.observed_at,so.success,so.unavailable,so.latency_ms,
 			       max(so.observed_at) FILTER (WHERE so.success) OVER (
 			           PARTITION BY so.scope_kind,so.connection_id,so.connection_version,so.view_id,so.view_version,so.binding_id,so.binding_version
@@ -164,11 +165,11 @@ func (r *PostgresRepository) ListSourceScopeHealth(ctx context.Context, tenantID
 			  JOIN tenants t ON t.id=so.tenant_id
 			 WHERE (t.id::text=$1 OR t.slug=$1) AND so.source_id=$2::uuid
 		)
-		SELECT scope_kind,coalesce,coalesce_1,coalesce_2,coalesce_3,coalesce_4,coalesce_5,
+		SELECT scope_kind,connection_id,connection_version,view_id,view_version,binding_id,binding_version,
 		       observed_at,success,unavailable,latency_ms,last_success_at
 		  FROM ranked
 		 WHERE row_number=1
-		 ORDER BY scope_kind,coalesce,coalesce_2,coalesce_4,observed_at DESC
+		 ORDER BY scope_kind,connection_id,view_id,binding_id,observed_at DESC
 		 LIMIT $3`, tenantID, sourceID, healthLimit(limit))
 	if err != nil {
 		return nil, err

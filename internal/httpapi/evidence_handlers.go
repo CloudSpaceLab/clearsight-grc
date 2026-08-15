@@ -62,12 +62,19 @@ func (a *API) recordEvidenceSourceObservation(w http.ResponseWriter, r *http.Req
 	if !ok {
 		return
 	}
+	actor, identityErr := identity.Require(r.Context())
+	if identityErr != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
+		return
+	}
 	var input evidence.SourceObservation
 	if err := httpx.DecodeJSON(w, r, &input); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
+	input.TenantID = actor.TenantID
 	input.SourceID = r.PathValue("id")
+	input.RecordedBy = actor.PrincipalID
 	value, err := service.RecordSourceObservation(r.Context(), input)
 	switch {
 	case errors.Is(err, evidence.ErrNotFound):
