@@ -66,8 +66,6 @@ func TestJSONAndNDJSONProduceReviewSections(t *testing.T) {
 	}
 }
 
-var _ = json.Valid
-
 func TestTabularMetadataBudgetFailsCompactly(t *testing.T) {
 	fields := make([]TabularField, 0, 10000)
 	for index := 0; index < 10000; index++ {
