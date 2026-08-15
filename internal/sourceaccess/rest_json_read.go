@@ -596,7 +596,7 @@ func restNextPosition(definition RESTJSONViewDefinition, response restJSONRespon
 			return nil, nil, CompletenessComplete, nil
 		}
 		next := Scalar{Kind: ScalarString, Text: response.etag}
-		return &next, &CheckpointPosition{Kind: CheckpointETag, Value: response.etag}, CompletenessPartial, nil
+		return &next, &CheckpointPosition{Kind: CheckpointETag, Value: response.etag}, CompletenessComplete, nil
 	default:
 		return nil, nil, "", ErrDefinitionInvalid
 	}

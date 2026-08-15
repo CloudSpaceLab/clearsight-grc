@@ -260,8 +260,17 @@ func hasDotPathSegment(value string) bool {
 
 func validRESTHeaderName(value string) bool {
 	value = strings.TrimSpace(value)
+	if value == "" || len(value) > 128 || containsControl(value) {
+		return false
+	}
+	for _, character := range value {
+		if (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z') || (character >= '0' && character <= '9') || strings.ContainsRune("!#$%&'*+-.^_`|~", character) {
+			continue
+		}
+		return false
+	}
 	canonical := textproto.CanonicalMIMEHeaderKey(value)
-	if value == "" || canonical == "" || len(value) > 128 || containsControl(value) {
+	if canonical == "" {
 		return false
 	}
 	switch canonical {
