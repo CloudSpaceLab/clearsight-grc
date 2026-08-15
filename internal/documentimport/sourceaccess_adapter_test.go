@@ -77,7 +77,7 @@ func TestTabularArtifactSourceAccessPreservesPartialRowTruthAndTenantScope(t *te
 		t.Fatal(err)
 	}
 	view.NativeSchema, view.SchemaFingerprint, view.StableKeys = inspected.Fields, inspected.Receipt.SchemaFingerprint, []string{"id"}
-	binding := sourceaccess.Binding{ID: "binding-a", ViewID: view.ID, Version: "1", Purpose: "user-lookup", Operations: []sourceaccess.Operation{sourceaccess.OperationPage}, SelectedFields: []string{"id", "name"}, KeyFields: []string{"id"}, Limits: sourceaccess.DefaultResourceLimits()}
+	binding := sourceaccess.Binding{ID: "binding-a", ViewID: view.ID, Version: "1", Purpose: "user-page", Operations: []sourceaccess.Operation{sourceaccess.OperationPage}, SelectedFields: []string{"id", "name"}, KeyFields: []string{"id"}, Limits: sourceaccess.DefaultResourceLimits()}
 	page, err := session.(sourceaccess.PageReader).ReadPage(ctx, view, binding, sourceaccess.PageRequest{Limit: 10})
 	if err != nil || len(page.Records) != 2 || page.Receipt.Completeness != sourceaccess.CompletenessPartial {
 		t.Fatalf("row rejection was not retained as partial truth: %#v err=%v", page, err)
@@ -97,7 +97,8 @@ func TestTabularArtifactSourceAccessPreservesPartialRowTruthAndTenantScope(t *te
 func TestTabularArtifactSourceAccessRejectsChangedArtifactAndParserVersion(t *testing.T) {
 	ctx := context.Background()
 	store := evidence.NewMemoryObjectStore()
-	service := NewService(NewMemoryRepository(), store)
+	repository := NewMemoryRepository()
+	service := NewService(repository, store)
 	document, err := service.Import(ctx, ImportInput{TenantID: "tenant-a", FileName: "accounts.csv", MediaType: "text/csv", CreatedBy: "actor-a"}, strings.NewReader("id,name\n1,Ada\n"))
 	if err != nil {
 		t.Fatal(err)
@@ -122,39 +123,25 @@ func TestTabularArtifactSourceAccessRejectsChangedArtifactAndParserVersion(t *te
 	}
 
 	store2 := evidence.NewMemoryObjectStore()
-	service2 := NewService(NewMemoryRepository(), store2)
+	repository2 := NewMemoryRepository()
+	service2 := NewService(repository2, store2)
 	document2, err := service2.Import(ctx, ImportInput{TenantID: "tenant-a", FileName: "accounts.csv", MediaType: "text/csv", CreatedBy: "actor-a"}, strings.NewReader("id,name\n1,Ada\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	current, err := service2.repo.Get(ctx, "tenant-a", document2.ID)
+	repository2.mu.Lock()
+	stale := repository2.items[document2.ID]
+	metadata := *stale.Tabular
+	metadata.ParserVersion = "TABULAR_OLD"
+	stale.Tabular = &metadata
+	repository2.items[document2.ID] = stale
+	repository2.mu.Unlock()
+	session2, err := service2.SourceAccessAdapter().Open(ctx, connection, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	current.Tabular.ParserVersion = "TABULAR_OLD"
-	if _, err := service2.repo.SaveProcessing(ctx, current, current.Version); err == nil {
-		// Memory repositories normally reject re-processing terminal imports; mutate the
-		// stored test value through a fresh repository instead below when needed.
+	staleView := sourceaccess.View{ID: "view-b", ConnectionID: connection.ID, Version: "1", OutputKind: sourceaccess.OutputRecords, Definition: []byte(`{"document_id":"` + document2.ID + `"}`)}
+	if _, err := session2.(sourceaccess.SchemaReader).Inspect(ctx, staleView); !errors.Is(err, sourceaccess.ErrExecution) {
+		t.Fatalf("old parser version remained executable: %v", err)
 	}
-	adapter := &tabularArtifactSession{service: service2, connection: connection}
-	current.Tabular.ParserVersion = "TABULAR_OLD"
-	if _, _, _, err := adapter.resolveDocumentForTest(ctx, view, current); err == nil {
-		t.Fatal("old parser version remained executable")
-	}
-}
-
-// resolveDocumentForTest isolates the parser-version invariant without exposing
-// repository internals as a production API.
-func (s *tabularArtifactSession) resolveDocumentForTest(ctx context.Context, view sourceaccess.View, document Document) (Document, TabularResource, tabularSourceViewDefinition, error) {
-	if err := ctx.Err(); err != nil {
-		return Document{}, TabularResource{}, tabularSourceViewDefinition{}, err
-	}
-	definition, err := decodeTabularSourceView(view.Definition)
-	if err != nil {
-		return Document{}, TabularResource{}, tabularSourceViewDefinition{}, err
-	}
-	if document.Tabular == nil || document.Tabular.ParserVersion != TabularParserVersion {
-		return Document{}, TabularResource{}, tabularSourceViewDefinition{}, sourceaccess.ErrExecution
-	}
-	return document, document.Tabular.Resources[0], definition, nil
 }
