@@ -118,6 +118,9 @@ func TestTabularArtifactSourceAccessRejectsChangedArtifactAndParserVersion(t *te
 	if _, err := store.Put(ctx, document.StorageKey, strings.NewReader("id,name\n1,Mallory\n"), 1<<20); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := session.(sourceaccess.SchemaReader).Inspect(ctx, view); !errors.Is(err, sourceaccess.ErrExecution) {
+		t.Fatalf("changed artifact remained inspectable: %v", err)
+	}
 	if _, err := session.(sourceaccess.PageReader).ReadPage(ctx, view, binding, sourceaccess.PageRequest{}); !errors.Is(err, sourceaccess.ErrExecution) {
 		t.Fatalf("changed artifact was accepted: %v", err)
 	}

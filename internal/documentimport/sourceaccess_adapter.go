@@ -65,6 +65,11 @@ func (s *tabularArtifactSession) Inspect(ctx context.Context, view sourceaccess.
 	if err != nil {
 		return sourceaccess.SchemaResult{}, err
 	}
+	// Schema provenance is valid only for the exact preserved artifact. Read
+	// and verify size/digest before trusting the stored parser receipt.
+	if _, err := s.readArtifact(ctx, document); err != nil {
+		return sourceaccess.SchemaResult{}, err
+	}
 	fields := make([]sourceaccess.NativeField, 0, len(resource.Fields))
 	for _, field := range resource.Fields {
 		fields = append(fields, sourceaccess.NativeField{Name: field.Name, NativeType: field.NativeType, Nullable: field.Nullable})
