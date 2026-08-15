@@ -117,6 +117,12 @@ func ExtractWithPolicy(ctx context.Context, fileName, mediaType string, data []b
 	case ".csv":
 		method = "CSV_STREAM_V2"
 		err = csvSections(ctx, data, collector, &extractionBudget{})
+	case ".json":
+		method = "JSON_TABULAR_V1"
+		err = tabularSections(ctx, TabularJSON, data, collector)
+	case ".ndjson", ".jsonl":
+		method = "NDJSON_TABULAR_V1"
+		err = tabularSections(ctx, TabularNDJSON, data, collector)
 	case ".docx":
 		method = "DOCX_XML_STREAM_V2"
 		err = docxSections(ctx, data, collector, policy)
@@ -126,7 +132,14 @@ func ExtractWithPolicy(ctx context.Context, fileName, mediaType string, data []b
 	case ".pdf":
 		return extractPDF(ctx, data, collector, policy)
 	default:
-		if strings.HasPrefix(strings.ToLower(mediaType), "text/") {
+		media := strings.ToLower(strings.TrimSpace(strings.Split(mediaType, ";")[0]))
+		if media == "application/json" {
+			method = "JSON_TABULAR_V1"
+			err = tabularSections(ctx, TabularJSON, data, collector)
+		} else if media == "application/x-ndjson" || media == "application/ndjson" || media == "application/jsonlines" {
+			method = "NDJSON_TABULAR_V1"
+			err = tabularSections(ctx, TabularNDJSON, data, collector)
+		} else if strings.HasPrefix(strings.ToLower(mediaType), "text/") {
 			method = "PLAIN_TEXT_V2"
 			err = textSections(ctx, data, collector)
 		} else {

@@ -104,6 +104,7 @@ type Document struct {
 	ProposalsTotal   int              `json:"proposals_total"`
 	ProposalsOmitted int              `json:"proposals_omitted"`
 	ContentTruncated bool             `json:"content_truncated"`
+	Tabular          *TabularMetadata `json:"tabular,omitempty"`
 	ProcessedAt      *time.Time       `json:"processed_at,omitempty"`
 	CreatedBy        string           `json:"created_by"`
 	CreatedAt        time.Time        `json:"created_at"`

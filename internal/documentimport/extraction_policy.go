@@ -23,6 +23,7 @@ type ExtractionPolicy struct {
 	MaxExtractedTextBytes int64
 	MaxSections           int
 	MaxProposals          int
+	MaxRowErrors          int
 	MaxPDFPages           int
 	PDFExtractionTimeout  time.Duration
 }
@@ -43,6 +44,7 @@ func DefaultExtractionPolicy() ExtractionPolicy {
 		MaxExtractedTextBytes: 8 << 20,
 		MaxSections:           5000,
 		MaxProposals:          500,
+		MaxRowErrors:          50,
 		MaxPDFPages:           500,
 		PDFExtractionTimeout:  30 * time.Second,
 	}
@@ -91,6 +93,9 @@ func (p ExtractionPolicy) normalized() ExtractionPolicy {
 	}
 	if p.MaxProposals <= 0 {
 		p.MaxProposals = defaults.MaxProposals
+	}
+	if p.MaxRowErrors <= 0 {
+		p.MaxRowErrors = defaults.MaxRowErrors
 	}
 	if p.MaxPDFPages <= 0 {
 		p.MaxPDFPages = defaults.MaxPDFPages
