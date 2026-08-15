@@ -1,0 +1,120 @@
+name: T2a REST JSON final hardening
+
+on:
+  push:
+    branches:
+      - codex/issue-61-sourceaccess-t2a-rest-json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: t2a-rest-json-final-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  hardening:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/issue-61-sourceaccess-t2a-rest-json
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+      - name: Close credential and empty-response edges
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('internal/sourceaccess/rest_json_adapter.go')
+          text = path.read_text()
+          old = '''\t\tsecret, err = resolver.Resolve(ctx, connection.SecretRef)
+          \t\tif err != nil || secret == "" || len(secret) > HardMaxDefinitionBytes || containsControl(secret) {
+          '''
+          new = '''\t\tsecret, err = resolver.Resolve(ctx, connection.SecretRef)
+          \t\tif err != nil || secret == "" || secret != strings.TrimSpace(secret) || len(secret) > HardMaxDefinitionBytes || containsControl(secret) {
+          '''
+          if old not in text:
+              raise SystemExit('REST credential validation block changed')
+          path.write_text(text.replace(old, new, 1))
+
+          path = Path('internal/sourceaccess/rest_json_read.go')
+          text = path.read_text()
+          old = '''\tif response.StatusCode == http.StatusNoContent {
+          \t\treturn restJSONResponse{root: []any{}, etag: etag}, nil
+          \t}
+          '''
+          new = '''\tif response.StatusCode == http.StatusNoContent {
+          \t\treturn restJSONResponse{root: nil, etag: etag}, nil
+          \t}
+          '''
+          if old not in text:
+              raise SystemExit('REST 204 block changed')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+          cat > internal/sourceaccess/rest_json_hardening_test.go <<'EOF'
+          package sourceaccess
+
+          import (
+            "context"
+            "errors"
+            "net/http"
+            "net/http/httptest"
+            "testing"
+          )
+
+          func TestRESTJSONAdapterRejectsWhitespaceCredentialMaterial(t *testing.T) {
+            connection := restTestConnection(t, "https://bank.example", RESTJSONAuthentication{Kind: RESTJSONAuthBearer}, "secret://rest")
+            if _, err := NewRESTJSONAdapter(DefaultRESTJSONOptions()).Open(context.Background(), connection, staticRESTSecretResolver(" token-with-space ")); !errors.Is(err, ErrCredentials) {
+              t.Fatalf("credential material with surrounding whitespace was accepted: %v", err)
+            }
+          }
+
+          func TestRESTJSONNoContentIsAnEmptyCompleteRead(t *testing.T) {
+            server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+              w.WriteHeader(http.StatusNoContent)
+            }))
+            defer server.Close()
+            connection := restTestConnection(t, server.URL, RESTJSONAuthentication{Kind: RESTJSONAuthNone}, "")
+            sessionValue, err := NewRESTJSONAdapter(RESTJSONOptions{Client: server.Client()}).Open(context.Background(), connection, nil)
+            if err != nil {
+              t.Fatal(err)
+            }
+            defer sessionValue.Close()
+            view := restTestView(t, connection, RESTJSONViewDefinition{
+              Path: "/empty", RecordsPointer: "/items", Pagination: RESTJSONPagination{Mode: RESTJSONPaginationNone},
+            })
+            binding := Binding{
+              ID: "binding-empty", ViewID: view.ID, Version: "1", Purpose: "empty-read",
+              Operations: []Operation{OperationPage}, SelectedFields: []string{"id"}, KeyFields: []string{"id"}, Limits: DefaultResourceLimits(),
+            }
+            page, err := sessionValue.(PageReader).ReadPage(context.Background(), view, binding, PageRequest{Limit: 5})
+            if err != nil {
+              t.Fatal(err)
+            }
+            if len(page.Records) != 0 || page.NextCursor != nil || page.Receipt.Completeness != CompletenessComplete {
+              t.Fatalf("204 response was not represented as an empty complete read: %#v", page)
+            }
+          }
+          EOF
+
+          gofmt -w $(find cmd internal -name '*.go' -type f)
+          go test ./internal/sourceaccess ./internal/assurance ./internal/httpapi ./internal/runtime
+          go test -tags postgres ./internal/sourceaccess ./internal/assurance ./internal/httpapi ./internal/runtime
+          bash scripts/verify-sourceaccess-tranche.sh t2a
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add internal
+          if git diff --cached --quiet; then
+            echo "No final hardening changes to publish."
+            exit 0
+          fi
+          git commit -m "fix(sourceaccess): harden REST credentials and empty reads"
+          git push origin HEAD:codex/issue-61-sourceaccess-t2a-rest-json
