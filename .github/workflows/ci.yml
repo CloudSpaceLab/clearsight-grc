@@ -57,6 +57,8 @@ jobs:
         env:
           TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
         run: bash scripts/verify-sourceaccess-tranche.sh auto
+      - name: AI gateway T3 transport acceptance
+        run: bash scripts/verify-t3-gateway.sh
       - name: Verify source-access runtime rollback and reapply
         env:
           PGPASSWORD: clearsight

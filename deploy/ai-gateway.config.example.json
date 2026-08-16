@@ -1,0 +1,36 @@
+{
+  "environment": "production",
+  "listen_addr": ":8090",
+  "request_timeout_ms": 120000,
+  "shutdown_timeout_ms": 10000,
+  "max_request_bytes": 2097152,
+  "max_provider_body_bytes": 8388608,
+  "max_sse_event_bytes": 262144,
+  "metrics_bearer_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "circuit_breaker": {"failure_threshold": 3, "open_duration_ms": 30000},
+  "workloads": [
+    {
+      "id": "replace-workload",
+      "tenant_id": "replace-tenant",
+      "key_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "allowed_models": ["governed-chat"],
+      "requests_per_minute": 60,
+      "tokens_per_minute": 100000,
+      "cost_microusd_per_minute": 1000000,
+      "max_concurrent": 8
+    }
+  ],
+  "providers": [
+    {"id": "openai-primary", "kind": "OPENAI", "base_url": "https://api.openai.com", "secret_env": "OPENAI_API_KEY", "timeout_ms": 90000},
+    {"id": "anthropic-fallback", "kind": "ANTHROPIC", "base_url": "https://api.anthropic.com", "secret_env": "ANTHROPIC_API_KEY", "api_version": "2023-06-01", "timeout_ms": 90000}
+  ],
+  "models": [
+    {
+      "alias": "governed-chat",
+      "routes": [
+        {"id": "openai-route", "provider_id": "openai-primary", "model": "replace-openai-pilot-model", "weight": 3, "input_microusd_per_million_tokens": 0, "output_microusd_per_million_tokens": 0},
+        {"id": "anthropic-route", "provider_id": "anthropic-fallback", "model": "replace-anthropic-pilot-model", "weight": 1, "input_microusd_per_million_tokens": 0, "output_microusd_per_million_tokens": 0}
+      ]
+    }
+  ]
+}

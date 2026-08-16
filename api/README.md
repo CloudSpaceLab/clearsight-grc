@@ -8,6 +8,10 @@ ClearSight deliberately has one executable route/access inventory.
 
 A route is not executable merely because it appears in a design document or a domain-specific schema file. Authorization truth comes from the route registry and the command/access guards used by the registered handler.
 
+## Isolated AI gateway contract
+
+`cmd/ai-gateway` is a separate process and does not register routes in the main API. Its executable route/access inventory is `internal/aigateway/routes.go`; `ai-gateway.openapi.json` is mechanically checked against that inventory. The contract is limited to workload-authenticated OpenAI-compatible model transport, separate metrics authentication and public liveness/readiness. It does not grant ClearSight application permissions or override `runtime.openapi.json`.
+
 ## Domain descriptive specifications
 
 - `bank-journeys.openapi.yaml` describes the bank-reference journey payload surface.

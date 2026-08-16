@@ -209,7 +209,7 @@ Acceptance commits a stable provider-event inbox receipt, the exact checkpoint-t
 - Catalog configuration has APIs but no dedicated user interface yet.
 - Lifecycle transition and maker-checker services are not implemented.
 - Non-PostgreSQL database and broker-specific streaming adapters are not implemented.
-- Forms, evidence contracts and workflows do not yet retain Binding references.
+- Forms, evidence requests and Evidence Request workflow tasks retain exact Binding references and bounded source provenance; broader consumers remain pilot-driven.
 
 ## Product reuse (T2d/T2e)
 

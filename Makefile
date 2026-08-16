@@ -1,5 +1,5 @@
 SHELL := /bin/sh
-.PHONY: check test test-postgres test-integration vet format run-api run-api-postgres run-worker run-worker-postgres web-install run-web compose-up compose-down
+.PHONY: check test test-postgres test-integration vet format run-api run-api-postgres run-worker run-worker-postgres run-ai-gateway web-install run-web compose-up compose-down
 check: format test vet
 format:
 	@test -z "$$(gofmt -l $$(find cmd internal -name '*.go' -type f))" || (gofmt -w $$(find cmd internal -name '*.go' -type f); exit 1)
@@ -19,6 +19,8 @@ run-worker:
 	go run ./cmd/worker
 run-worker-postgres:
 	go run -tags postgres ./cmd/worker
+run-ai-gateway:
+	go run ./cmd/ai-gateway
 web-install:
 	cd web && npm install --no-audit --no-fund
 run-web:
