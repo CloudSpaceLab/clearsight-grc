@@ -19,29 +19,23 @@ jobs:
         with:
           go-version: 1.26.5
           cache: true
-      - name: Restore and publish exact T4 tree
+      - name: Inspect staged T4 payloads
         run: |
           set -euo pipefail
+
           cat .t4-patch/part-* | base64 -d > /tmp/t4.patch.xz
           echo '6368f76efbda8ce9d6eecc17b939b3b390a8785e45fa47102e9a991a8e54ff1f  /tmp/t4.patch.xz' | sha256sum -c -
           xz -t /tmp/t4.patch.xz
-          xz -dc /tmp/t4.patch.xz > /tmp/t4.patch
 
-          git fetch origin main
-          test "$(git rev-parse origin/main)" = 'd95eabaf2ddc43affe45310aa22fc9dd2c40719e'
-          git checkout -B agent/t4-governed-enforcement origin/main
-          git apply --index /tmp/t4.patch
-
-          gofmt -w $(find cmd internal -name '*.go' -type f)
-          git add cmd internal
-          git diff --cached --check
-          go test ./internal/aigateway ./internal/aigovernance ./internal/autonomy ./internal/httpapi ./cmd/ai-gateway ./cmd/api
-
-          test ! -e .t4-patch
-          test ! -e .t4-payload
-          test ! -e .github/workflows/agent-t4-publish.yml
-
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'feat(aigateway): add T4 governed source-aware enforcement'
-          git push origin HEAD:agent/t4-governed-enforcement
+          cat .t4-payload/part-* | base64 -d > /tmp/t4.payload.gz
+          sha256sum /tmp/t4.payload.gz
+          gzip -t /tmp/t4.payload.gz
+          gzip -dc /tmp/t4.payload.gz > /tmp/t4.payload
+          file /tmp/t4.payload
+          wc -c /tmp/t4.payload
+          if tar -tf /tmp/t4.payload > /tmp/t4.payload.list 2>/dev/null; then
+            cat /tmp/t4.payload.list
+          else
+            sed -n '1,120p' /tmp/t4.payload
+          fi
+          exit 1
