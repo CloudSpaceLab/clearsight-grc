@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Restore exact staged patch to an isolated recovery branch
+      - name: Restore exact staged product and test tree
         run: |
           set -euo pipefail
 
@@ -28,6 +28,10 @@ jobs:
           test "$(git rev-parse origin/main)" = 'd95eabaf2ddc43affe45310aa22fc9dd2c40719e'
           git checkout -B agent/t4-recovery origin/main
           git apply --index /tmp/t4.patch
+
+          # Workflow files require a separate workflow-scoped publication path.
+          # Recover product code and tests first; CI wiring is restored after validation.
+          git restore --source=origin/main --staged --worktree .github/workflows/ci.yml
           git diff --cached --check
 
           git config user.name 'github-actions[bot]'
