@@ -1,4 +1,4 @@
-name: Publish T4 governed enforcement
+name: Recover T4 staged implementation
 
 on:
   push:
@@ -8,34 +8,29 @@ permissions:
   contents: write
 
 jobs:
-  publish:
+  recover:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v5
-        with:
-          go-version: 1.26.5
-          cache: true
-      - name: Inspect staged T4 payloads
+      - name: Restore exact staged patch to an isolated recovery branch
         run: |
           set -euo pipefail
 
           cat .t4-patch/part-* | base64 -d > /tmp/t4.patch.xz
           echo '6368f76efbda8ce9d6eecc17b939b3b390a8785e45fa47102e9a991a8e54ff1f  /tmp/t4.patch.xz' | sha256sum -c -
           xz -t /tmp/t4.patch.xz
+          xz -dc /tmp/t4.patch.xz > /tmp/t4.patch
 
-          { cat .t4-payload/part-*; printf '='; } | base64 -d > /tmp/t4.payload.gz
-          sha256sum /tmp/t4.payload.gz
-          gzip -t /tmp/t4.payload.gz
-          gzip -dc /tmp/t4.payload.gz > /tmp/t4.payload
-          file /tmp/t4.payload
-          wc -c /tmp/t4.payload
-          if tar -tf /tmp/t4.payload > /tmp/t4.payload.list 2>/dev/null; then
-            cat /tmp/t4.payload.list
-          else
-            sed -n '1,120p' /tmp/t4.payload
-          fi
-          exit 1
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = 'd95eabaf2ddc43affe45310aa22fc9dd2c40719e'
+          git checkout -B agent/t4-recovery origin/main
+          git apply --index /tmp/t4.patch
+          git diff --cached --check
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'wip(aigateway): recover staged T4 implementation'
+          git push origin HEAD:refs/heads/agent/t4-recovery
