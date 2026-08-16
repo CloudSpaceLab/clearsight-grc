@@ -9,7 +9,7 @@ ClearSight helps bank compliance, risk, security, privacy, resilience, audit, le
 
 The repository contains a working application foundation for ongoing Programs and specific issues or changes:
 
-- Go API, durable worker and isolated stateless AI gateway processes;
+- Go API, durable worker and isolated governed AI gateway processes;
 - React/Vite **Today, Programs, Work, Imports, Explore and Configure** surfaces;
 - PostgreSQL 18 schema and pgx-backed repositories;
 - verified actor context with tenant/query-scope conflict rejection;
@@ -35,6 +35,7 @@ The repository contains a working application foundation for ongoing Programs an
 - rendered-state and axe accessibility tests enforced in CI;
 - mechanically verified main API and isolated AI gateway route/access contracts, Docker Compose, CI and PostgreSQL integration tests;
 - OpenAI-compatible Chat/Responses text-and-function transport with OpenAI/Anthropic adapters, truthful SSE, workload authentication, budgets, routing/fallback, circuit state and content-free telemetry.
+- maker-checker AI workload and Automation Policy revisions, exact shadow-before-enforcement activation, source-aware policy facts and deterministic `ALLOW`/`DENY`/`MODIFY`/`ROUTE`/`REQUIRE_APPROVAL`/`SHADOW` decisions.
 
 The default build uses in-memory repositories for local development. The `postgres` build tag activates PostgreSQL repositories. The local artifact-store adapter is for development and testing only; production object storage, malware scanning and OCR are not implemented. Searchable PDFs are extracted automatically by the durable worker through bounded Poppler utilities.
 
@@ -181,7 +182,7 @@ The application begins as a modular monolith with separate API and worker proces
 ```text
 cmd/api                       API composition
 cmd/worker                    durable worker
-cmd/ai-gateway                isolated stateless model transport
+cmd/ai-gateway                isolated governed model transport
 cmd/seed-bank-reference       explicit non-production reference installer
 internal/authority            routing, simulation and integrity
 internal/governance           maker-checker policies and delegations
@@ -191,7 +192,8 @@ internal/documentimport       imports, extraction, proposals and review
 internal/continuity           Programs, Matters, access, status and history
 internal/bankverticals        connected bank journey projections and installer
 internal/autonomy             Signals, drift and readiness
-internal/aigateway             canonical model transport, adapters, routing and budgets
+internal/aigateway             canonical transport and deterministic decision kernel
+internal/aigovernance          workload lifecycle and governed source-fact resolution
 internal/workflow             derived actor-facing Task projection and reads
 internal/onboarding           guided-adoption state
 internal/httpapi              actor-bound HTTP contracts
@@ -220,17 +222,18 @@ make compose-up
 go run -tags postgres ./cmd/api
 ```
 
-For the isolated stateless AI gateway, copy and replace the fail-closed example values, export the referenced provider secrets, then start the separate process:
+For the governed AI gateway, apply migrations, register and activate an AI workload and an exact shadow-tested Automation Policy through the main API, then start the separate PostgreSQL-backed process:
 
 ```bash
 cp deploy/ai-gateway.config.example.json ./var/ai-gateway.json
 export CLEARSIGHT_AI_GATEWAY_CONFIG_FILE=./var/ai-gateway.json
+export DATABASE_URL=postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
 export OPENAI_API_KEY=...
 export ANTHROPIC_API_KEY=...
-make run-ai-gateway
+make run-ai-gateway-postgres
 ```
 
-Generate workload and metrics digests with `printf %s 'a-random-secret' | sha256sum`; never place the plaintext credentials in the JSON file.
+The workload credential is returned once when the workload revision is created and only its SHA-256 digest is stored. Generate the metrics bearer digest with `printf %s 'a-random-secret' | sha256sum`; never place plaintext credentials in the JSON file.
 
 The web client runs at `http://localhost:5173`; the API defaults to `http://localhost:8080`.
 
@@ -250,7 +253,7 @@ The repository does not yet claim production completion for:
 - bank-approved legal configuration and a complete Nigerian regulatory library;
 - representative production-scale journey and import benchmarks with retained query plans;
 - dependency propagation across shared controls and services;
-- governed AI workload/policy lifecycle, source-aware enforcement, durable decision receipts and execution grants beyond the stateless T3 gateway transport.
+- durable AI gateway decision receipts, response controls and approved single-use execution grants beyond the governed T4 enforcement kernel.
 
 ## Start here
 
@@ -263,7 +266,9 @@ The repository does not yet claim production completion for:
 7. [`docs/architecture/program-and-matter-foundation.md`](docs/architecture/program-and-matter-foundation.md)
 8. [`docs/architecture/source-evidence-and-secure-capture.md`](docs/architecture/source-evidence-and-secure-capture.md)
 9. [`docs/architecture/application-architecture.md`](docs/architecture/application-architecture.md)
-10. [`docs/implementation-plan.md`](docs/implementation-plan.md)
-11. [`AGENTS.md`](AGENTS.md)
+10. [`docs/architecture/ai-gateway-transport.md`](docs/architecture/ai-gateway-transport.md)
+11. [`docs/acceptance/t4-governed-ai-enforcement.md`](docs/acceptance/t4-governed-ai-enforcement.md)
+12. [`docs/implementation-plan.md`](docs/implementation-plan.md)
+13. [`AGENTS.md`](AGENTS.md)
 
 **ClearSight succeeds when governance work is current, understandable, correctly routed, minimally demanding and reconstructable.**

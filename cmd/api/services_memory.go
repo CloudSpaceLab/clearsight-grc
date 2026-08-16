@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
@@ -34,7 +35,8 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		version = "no-demo-policy"
 		rules = nil
 	}
-	auto := autonomy.NewService(autonomy.NewMemoryRepository())
+	autonomyRepo := autonomy.NewMemoryRepository()
+	auto := autonomy.NewService(autonomyRepo)
 	if cfg.DemoMode {
 		autonomy.SeedDemo(ctx, auto)
 	}
@@ -57,6 +59,8 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	adapters[sourceaccess.AdapterWebhookEvent] = sourceevent.NewAdapter(runtimeRepo, checkpoints)
 	sourceCatalog := sourceaccess.NewCatalogService(catalogRepo, sourceaccess.EnvironmentSecretResolver{}, adapters)
 	evidenceService.ConfigureSourceBindings(sourceCatalog)
+	aiGovernanceRepo := aigovernance.NewMemoryRepository(autonomyRepo)
+	aiGovernanceService := aigovernance.NewService(aiGovernanceRepo, autonomyRepo, sourceCatalog)
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepo)
 	coverageService := documentcoverage.NewService(documentcoverage.NewMemoryRepository(), documentService, continuityService)
@@ -111,6 +115,6 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()),
 		Evidence: evidenceService, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
-		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo), Close: func() {},
+		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo), Close: func() {},
 	}, nil
 }

@@ -15,6 +15,7 @@ import "./journeys.css";
 import "./document-import.css";
 import "./interventions.css";
 import "./automation-policies.css";
+import "./ai-governance.css";
 import "./product-finish.css";
 import "./ui-preferences.css";
 import "./visual-review-fixes.css";

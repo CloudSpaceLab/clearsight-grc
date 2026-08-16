@@ -1,5 +1,5 @@
 import { requestJSON, requestVoid } from "./http";
-import type { AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, PolicySummary, ProgramAggregate, Readiness, WorkflowTask } from "./types";
+import type { AIGovernancePolicy, AIGovernanceWorkload, AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, PolicySummary, ProgramAggregate, Readiness, WorkflowTask } from "./types";
 import type { MatterSummary, ProgramSummary, SummaryPage, SummaryQuery } from "./summaryTypes";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 import type { BankJourneysResponse } from "./verticalTypes";
@@ -139,6 +139,14 @@ export function loadReadiness(): Promise<Readiness> {
 
 export async function loadAutomationPolicies(): Promise<AutomationPolicy[]> {
   return (await request<{ items: AutomationPolicy[] }>("/api/v1/compliance/automation-policies")).items;
+}
+
+export async function loadAIGovernancePolicies(): Promise<AIGovernancePolicy[]> {
+  return (await request<{ items: AIGovernancePolicy[] }>("/api/v1/ai-governance/policies?limit=20")).items;
+}
+
+export async function loadAIGovernanceWorkloads(): Promise<AIGovernanceWorkload[]> {
+  return (await request<{ items: AIGovernanceWorkload[] }>("/api/v1/ai-governance/workloads?limit=20")).items;
 }
 
 export async function loadIntegrity(): Promise<IntegrityFinding[]> {

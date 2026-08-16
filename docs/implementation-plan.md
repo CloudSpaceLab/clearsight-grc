@@ -25,14 +25,14 @@ This file is the authoritative implementation ledger. Code, migrations and execu
 | Protected Matter read parity + Program review explanation delta | PR #55 |
 | Enterprise identity/access EIA-0…5 | PR #59 |
 | Reusable connected-source T0…T2 | issue #61 through PR #70 |
-| Stateless AI gateway transport T3 | issue #61; `cmd/ai-gateway` and `internal/aigateway` |
+| AI gateway transport T3 + governed enforcement T4 | issue #61; `cmd/ai-gateway`, `internal/aigateway`, `internal/aigovernance` and existing Automation Policy/Source Binding owners |
 
 
-## 2. AI governance gateway — T3 transport implemented
+## 2. AI governance gateway — T3 transport and T4 governed enforcement implemented
 
-The repository now has an isolated stateless gateway process with OpenAI-compatible Chat Completions and Responses ingress, truthful SSE translation, OpenAI and Anthropic pilot adapters, SHA-256 workload authentication, model aliases, weighted routing, pre-output fallback, route circuit breaking, request/token/cost/concurrency budgets and content-free logs/metrics.
+The repository has an isolated gateway process with OpenAI-compatible Chat Completions and Responses ingress, truthful SSE translation, OpenAI and Anthropic pilot adapters, model aliases, weighted routing, pre-output fallback, route circuit breaking, request/token/cost/concurrency budgets and content-free logs/metrics.
 
-T3 deliberately owns no durable table and makes no governance decision. T4 remains the current next scope: governed AI workload registration, Automation Policy lifecycle, deterministic decisions/obligations, reusable Source Binding resolution and maker-checker-controlled shadow/enforcement activation. T5 remains durable receipts, response controls and approval/execution grants. See [`architecture/ai-gateway-transport.md`](architecture/ai-gateway-transport.md).
+T4 now adds governed `ai_workloads`, exact Automation Policy revisions, deterministic `ALLOW`/`DENY`/`MODIFY`/`ROUTE`/`REQUIRE_APPROVAL`/`SHADOW` decisions, reusable Source Binding resolution, explicit stale/unavailable/unknown handling and maker-checker-controlled exact-shadow-before-enforcement activation. Production authentication comes from active database snapshots; static workloads remain development/test compatibility. T5 is now the next scope: durable receipts, response controls and approval/execution grants. See [`architecture/ai-gateway-transport.md`](architecture/ai-gateway-transport.md) and [`acceptance/t4-governed-ai-enforcement.md`](acceptance/t4-governed-ai-enforcement.md).
 
 ## 3. Enterprise identity/access — implemented on PR #59
 

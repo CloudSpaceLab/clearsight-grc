@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"strings"
 	"time"
 )
 
@@ -19,7 +20,8 @@ type StreamSink interface {
 
 type Gateway struct {
 	config    RuntimeConfig
-	auth      *authenticator
+	state     WorkloadProvider
+	facts     FactResolver
 	router    *router
 	budgets   *budgetManager
 	telemetry *telemetry
@@ -28,6 +30,17 @@ type Gateway struct {
 }
 
 func NewGateway(config RuntimeConfig, logger *slog.Logger) (*Gateway, error) {
+	mode := config.GovernanceMode
+	if mode == "" {
+		mode = GovernanceStatic
+	}
+	if mode != GovernanceStatic {
+		return nil, ErrPolicyUnavailable
+	}
+	return NewGatewayWithGovernance(config, newAuthenticator(config.Workloads), defaultFactResolver{}, logger)
+}
+
+func NewGatewayWithGovernance(config RuntimeConfig, state WorkloadProvider, facts FactResolver, logger *slog.Logger) (*Gateway, error) {
 	providers := make(map[string]*providerRuntime, len(config.Providers))
 	for _, providerConfig := range config.Providers {
 		var provider Provider
@@ -41,12 +54,22 @@ func NewGateway(config RuntimeConfig, logger *slog.Logger) (*Gateway, error) {
 		}
 		providers[providerConfig.ID] = &providerRuntime{provider: provider, config: providerConfig}
 	}
-	return newGatewayWithProviders(config, providers, logger)
+	return newGatewayWithProvidersAndGovernance(config, providers, state, facts, logger)
 }
 
 func newGatewayWithProviders(config RuntimeConfig, providers map[string]*providerRuntime, logger *slog.Logger) (*Gateway, error) {
+	return newGatewayWithProvidersAndGovernance(config, providers, newAuthenticator(config.Workloads), defaultFactResolver{}, logger)
+}
+
+func newGatewayWithProvidersAndGovernance(config RuntimeConfig, providers map[string]*providerRuntime, state WorkloadProvider, facts FactResolver, logger *slog.Logger) (*Gateway, error) {
 	if logger == nil {
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+	if state == nil {
+		return nil, ErrPolicyUnavailable
+	}
+	if facts == nil {
+		facts = defaultFactResolver{}
 	}
 	router, err := newRouter(config, providers)
 	if err != nil {
@@ -54,25 +77,78 @@ func newGatewayWithProviders(config RuntimeConfig, providers map[string]*provide
 	}
 	now := time.Now
 	return &Gateway{
-		config: config, auth: newAuthenticator(config.Workloads), router: router,
+		config: config, state: state, facts: facts, router: router,
 		budgets: newBudgetManager(), telemetry: newTelemetry(now()), logger: logger, now: now,
 	}, nil
 }
 
-func (g *Gateway) Authenticate(header string) (*Workload, error) {
-	return g.auth.authenticate(header)
+func (g *Gateway) Authenticate(ctx context.Context, header string) (*Workload, error) {
+	if g.state == nil {
+		return nil, ErrPolicyUnavailable
+	}
+	return g.state.Authenticate(ctx, header)
 }
 
-func (g *Gateway) Ready() bool { return g.router.ready(g.now()) }
+func (g *Gateway) Ready() bool {
+	return g.state != nil && g.state.Ready() && g.router.ready(g.now())
+}
 
 func (g *Gateway) Metrics(writer io.Writer) error { return g.telemetry.writePrometheus(writer) }
 
+// Govern resolves the exact workload policy and configured source facts before
+// any provider or budget operation. It returns a decision even when enforcement
+// denies the request so callers can expose stable reason/obligation metadata.
+func (g *Gateway) Govern(ctx context.Context, workload Workload, request Request) (GovernedRequest, error) {
+	started := g.now()
+	if err := ValidateRequest(request); err != nil {
+		return GovernedRequest{}, err
+	}
+	policy := workload.Policy
+	if policy.ID == "" {
+		policy = staticPolicy(workload)
+	}
+	facts, err := g.facts.ResolveFacts(ctx, workload, request, policy.Definition.Bindings)
+	if err != nil {
+		gatewayErr := classifyContextError(ctx, err)
+		if !errors.Is(gatewayErr, ErrCanceled) && !errors.Is(gatewayErr, ErrTimeout) {
+			gatewayErr = withCause(ErrSourceFacts, err)
+		}
+		g.recordGovernanceFailure(workload, request, Decision{PolicyID: policy.ID, PolicyCode: policy.Code, PolicyVersion: policy.Version, RolloutMode: policy.RolloutMode}, gatewayErr, started)
+		return GovernedRequest{}, gatewayErr
+	}
+	decision, err := EvaluatePolicy(policy, workload, request, facts)
+	if err != nil {
+		gatewayErr := withCause(ErrPolicyUnavailable, err)
+		g.recordGovernanceFailure(workload, request, decision, gatewayErr, started)
+		return GovernedRequest{Request: request, Decision: decision}, gatewayErr
+	}
+	mutated, err := ApplyDecision(request, decision)
+	governed := GovernedRequest{Request: request, Decision: decision}
+	if err != nil {
+		gatewayErr := asGatewayError(err)
+		g.recordGovernanceFailure(workload, request, decision, gatewayErr, started)
+		return governed, gatewayErr
+	}
+	governed.Request = mutated
+	return governed, nil
+}
+
 func (g *Gateway) Complete(ctx context.Context, workload Workload, request Request) (Response, string, error) {
+	governed, err := g.Govern(ctx, workload, request)
+	if err != nil {
+		return Response{}, "", err
+	}
+	return g.CompleteGoverned(ctx, workload, governed)
+}
+
+func (g *Gateway) CompleteGoverned(ctx context.Context, workload Workload, governed GovernedRequest) (Response, string, error) {
+	request := governed.Request
+	decision := governed.Decision
 	started := g.now()
 	if err := ValidateRequest(request); err != nil {
 		return Response{}, "", err
 	}
-	candidates, highestPrice, err := g.router.candidates(workload, request.ModelAlias)
+	candidates, highestPrice, err := g.router.candidatesFor(workload, request.ModelAlias, request.RouteID)
 	if err != nil {
 		g.recordFailure(request, "none", asGatewayError(err), started, 0)
 		return Response{}, "", err
@@ -106,7 +182,7 @@ func (g *Gateway) Complete(ctx context.Context, workload Workload, request Reque
 					g.logger.Error("ai gateway cost reconciliation failed", "request_id", request.ID, "workload_id", workload.ID, "model_alias", request.ModelAlias, "route_id", route.ID, "error_code", "cost_overflow")
 				}
 				g.telemetry.record(g.modelMetricAlias(request.ModelAlias), route.ProviderID, "success", false, response.Usage, cost, g.now().Sub(started), 0)
-				g.logRequest("completed", workload, request, route, response.Usage, cost, started, 0, nil)
+				g.logRequest("completed", workload, request, route, response.Usage, cost, started, 0, decision, nil)
 				return response, route.ID, nil
 			}
 		}
@@ -120,7 +196,7 @@ func (g *Gateway) Complete(ctx context.Context, workload Workload, request Reque
 		if !gatewayErr.Retriable {
 			cost, _ := reservation.finish(Usage{}, highestPrice, false)
 			g.telemetry.record(g.modelMetricAlias(request.ModelAlias), route.ProviderID, gatewayErr.Code, false, Usage{}, cost, g.now().Sub(started), 0)
-			g.logRequest("failed", workload, request, route, Usage{}, cost, started, 0, gatewayErr)
+			g.logRequest("failed", workload, request, route, Usage{}, cost, started, 0, decision, gatewayErr)
 			return Response{}, route.ID, gatewayErr
 		}
 	}
@@ -135,16 +211,26 @@ func (g *Gateway) Complete(ctx context.Context, workload Workload, request Reque
 	}
 	cost, _ := reservation.finish(Usage{}, price, usageKnown)
 	g.telemetry.record(g.modelMetricAlias(request.ModelAlias), "none", lastError.Code, false, Usage{}, cost, g.now().Sub(started), 0)
-	g.logger.Warn("ai gateway request failed", "request_id", request.ID, "workload_id", workload.ID, "tenant_id", workload.TenantID, "model_alias", request.ModelAlias, "stream", false, "error_code", lastError.Code, "duration_ms", g.now().Sub(started).Milliseconds())
+	g.logRequestWithoutRoute("failed", workload, request, Usage{}, cost, started, 0, decision, lastError)
 	return Response{}, "", lastError
 }
 
 func (g *Gateway) Stream(ctx context.Context, workload Workload, request Request, sink StreamSink) error {
+	governed, err := g.Govern(ctx, workload, request)
+	if err != nil {
+		return err
+	}
+	return g.StreamGoverned(ctx, workload, governed, sink)
+}
+
+func (g *Gateway) StreamGoverned(ctx context.Context, workload Workload, governed GovernedRequest, sink StreamSink) error {
+	request := governed.Request
+	decision := governed.Decision
 	started := g.now()
 	if err := ValidateRequest(request); err != nil {
 		return err
 	}
-	candidates, highestPrice, err := g.router.candidates(workload, request.ModelAlias)
+	candidates, highestPrice, err := g.router.candidatesFor(workload, request.ModelAlias, request.RouteID)
 	if err != nil {
 		g.recordFailure(request, "none", asGatewayError(err), started, 0)
 		return err
@@ -177,7 +263,7 @@ func (g *Gateway) Stream(ctx context.Context, workload Workload, request Request
 			}
 			cost, _ := reservation.finish(Usage{}, highestPrice, false)
 			g.telemetry.record(g.modelMetricAlias(request.ModelAlias), route.ProviderID, gatewayErr.Code, true, Usage{}, cost, g.now().Sub(started), 0)
-			g.logRequest("failed", workload, request, route, Usage{}, cost, started, 0, gatewayErr)
+			g.logRequest("failed", workload, request, route, Usage{}, cost, started, 0, decision, gatewayErr)
 			return gatewayErr
 		}
 		first, firstErr := stream.Recv()
@@ -195,7 +281,7 @@ func (g *Gateway) Stream(ctx context.Context, workload Workload, request Request
 			}
 			cost, _ := reservation.finish(Usage{}, highestPrice, false)
 			g.telemetry.record(g.modelMetricAlias(request.ModelAlias), route.ProviderID, gatewayErr.Code, true, Usage{}, cost, g.now().Sub(started), 0)
-			g.logRequest("failed", workload, request, route, Usage{}, cost, started, 0, gatewayErr)
+			g.logRequest("failed", workload, request, route, Usage{}, cost, started, 0, decision, gatewayErr)
 			return gatewayErr
 		}
 		validator := newCanonicalStreamValidator(route.provider.config.RequireUsage)
@@ -210,7 +296,7 @@ func (g *Gateway) Stream(ctx context.Context, workload Workload, request Request
 			route.breaker.neutral()
 			cost, _ := reservation.finish(Usage{}, highestPrice, false)
 			g.telemetry.record(g.modelMetricAlias(request.ModelAlias), route.ProviderID, gatewayErr.Code, true, Usage{}, cost, g.now().Sub(started), 0)
-			g.logRequest("failed", workload, request, route, Usage{}, cost, started, 0, gatewayErr)
+			g.logRequest("failed", workload, request, route, Usage{}, cost, started, 0, decision, gatewayErr)
 			return gatewayErr
 		}
 		if err := sink.Start(route.ID); err != nil {
@@ -230,7 +316,7 @@ func (g *Gateway) Stream(ctx context.Context, workload Workload, request Request
 				g.logger.Error("ai gateway stream cost reconciliation failed", "request_id", request.ID, "workload_id", workload.ID, "model_alias", request.ModelAlias, "route_id", route.ID, "error_code", "cost_overflow")
 			}
 			g.telemetry.record(g.modelMetricAlias(request.ModelAlias), route.ProviderID, "success", true, usage, cost, g.now().Sub(started), ttft)
-			g.logRequest("completed", workload, request, route, usage, cost, started, ttft, nil)
+			g.logRequest("completed", workload, request, route, usage, cost, started, ttft, decision, nil)
 			return nil
 		}
 		gatewayErr := classifyContextError(requestCtx, streamErr)
@@ -247,7 +333,7 @@ func (g *Gateway) Stream(ctx context.Context, workload Workload, request Request
 		}
 		cost, _ := reservation.finish(usage, highestPrice, usageKnown)
 		g.telemetry.record(g.modelMetricAlias(request.ModelAlias), route.ProviderID, gatewayErr.Code, true, usage, cost, g.now().Sub(started), ttft)
-		g.logRequest("failed", workload, request, route, usage, cost, started, ttft, gatewayErr)
+		g.logRequest("failed", workload, request, route, usage, cost, started, ttft, decision, gatewayErr)
 		_ = sink.Fail(gatewayErr)
 		return gatewayErr
 	}
@@ -262,6 +348,7 @@ func (g *Gateway) Stream(ctx context.Context, workload Workload, request Request
 	}
 	cost, _ := reservation.finish(Usage{}, price, usageKnown)
 	g.telemetry.record(g.modelMetricAlias(request.ModelAlias), "none", lastError.Code, true, Usage{}, cost, g.now().Sub(started), 0)
+	g.logRequestWithoutRoute("failed", workload, request, Usage{}, cost, started, 0, decision, lastError)
 	return lastError
 }
 
@@ -323,21 +410,48 @@ func (g *Gateway) recordFailure(request Request, provider string, gatewayErr *Er
 	g.telemetry.record(g.modelMetricAlias(request.ModelAlias), provider, gatewayErr.Code, request.Stream, Usage{}, 0, g.now().Sub(started), ttft)
 }
 
-func (g *Gateway) logRequest(state string, workload Workload, request Request, route *routeRuntime, usage Usage, cost int64, started time.Time, ttft time.Duration, gatewayErr *Error) {
+func (g *Gateway) recordGovernanceFailure(workload Workload, request Request, decision Decision, gatewayErr *Error, started time.Time) {
+	g.telemetry.record(g.modelMetricAlias(request.ModelAlias), "none", gatewayErr.Code, request.Stream, Usage{}, 0, g.now().Sub(started), 0)
+	g.logRequestWithoutRoute("denied", workload, request, Usage{}, 0, started, 0, decision, gatewayErr)
+}
+
+func (g *Gateway) logRequest(state string, workload Workload, request Request, route *routeRuntime, usage Usage, cost int64, started time.Time, ttft time.Duration, decision Decision, gatewayErr *Error) {
+	attributes := g.requestLogAttributes(workload, request, usage, cost, started, ttft, decision, gatewayErr)
+	attributes = append(attributes, "route_id", route.ID, "provider_id", route.ProviderID)
+	g.writeRequestLog(state, attributes)
+}
+
+func (g *Gateway) logRequestWithoutRoute(state string, workload Workload, request Request, usage Usage, cost int64, started time.Time, ttft time.Duration, decision Decision, gatewayErr *Error) {
+	attributes := g.requestLogAttributes(workload, request, usage, cost, started, ttft, decision, gatewayErr)
+	attributes = append(attributes, "route_id", "none", "provider_id", "none")
+	g.writeRequestLog(state, attributes)
+}
+
+func (g *Gateway) requestLogAttributes(workload Workload, request Request, usage Usage, cost int64, started time.Time, ttft time.Duration, decision Decision, gatewayErr *Error) []any {
 	attributes := []any{
 		"request_id", request.ID, "workload_id", workload.ID, "tenant_id", workload.TenantID,
-		"model_alias", request.ModelAlias, "route_id", route.ID, "provider_id", route.ProviderID,
-		"stream", request.Stream, "duration_ms", g.now().Sub(started).Milliseconds(), "ttft_ms", ttft.Milliseconds(),
+		"model_alias", request.ModelAlias, "stream", request.Stream, "duration_ms", g.now().Sub(started).Milliseconds(), "ttft_ms", ttft.Milliseconds(),
 		"input_tokens", usage.InputTokens, "cached_input_tokens", usage.CachedInputTokens, "output_tokens", usage.OutputTokens,
 		"cost_microusd", cost,
+	}
+	if decision.PolicyID != "" {
+		attributes = append(attributes,
+			"policy_code", decision.PolicyCode, "policy_version", decision.PolicyVersion,
+			"rollout_mode", decision.RolloutMode, "decision_action", decision.Action,
+			"proposed_action", decision.ProposedAction, "reason_codes", strings.Join(decision.ReasonCodes, ","),
+		)
 	}
 	if gatewayErr != nil {
 		attributes = append(attributes, "error_code", gatewayErr.Code)
 	}
+	return attributes
+}
+
+func (g *Gateway) writeRequestLog(state string, attributes []any) {
 	if state == "completed" {
 		g.logger.Info("ai gateway request completed", attributes...)
 	} else {
-		g.logger.Warn("ai gateway request failed", attributes...)
+		g.logger.Warn("ai gateway request not completed", attributes...)
 	}
 }
 

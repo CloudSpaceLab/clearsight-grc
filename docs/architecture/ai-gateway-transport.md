@@ -2,9 +2,9 @@
 
 ## Status
 
-T3 adds a separate, stateless `cmd/ai-gateway` process and the provider-neutral `internal/aigateway` transport package. It is an isolated model-traffic edge, not another ClearSight API module and not yet the governed enforcement layer.
+T3 established the separate `cmd/ai-gateway` process and provider-neutral `internal/aigateway` transport. T4 adds deterministic governed enforcement before that transport while preserving the raw-model-traffic isolation boundary.
 
-The gateway accepts authenticated workload traffic, translates a bounded common text/function contract to pilot providers, returns OpenAI-compatible Chat Completions or Responses payloads, and emits content-free operational telemetry. It has no durable tables and stores no prompts, completions, tool arguments or policy decisions.
+Production workload authentication now comes from active, maker-checker-approved `ai_workloads` revisions bound to an exact active `automation_policies` revision. The gateway resolves configured Source Bindings, evaluates stable actions/reasons/obligations, and only then enters the unchanged T3 routing, budget and provider path. T4 stores no prompts, completions, tool arguments, source rows or gateway decision receipts.
 
 ## Process boundary
 
@@ -14,7 +14,9 @@ workload bearer credential
         ▼
 cmd/ai-gateway
   ├─ strict Chat/Responses ingress
-  ├─ static T3 workload and alias bootstrap
+  ├─ governed workload + exact Automation Policy snapshot
+  ├─ Source Binding fact resolution
+  ├─ deterministic decision / reason / obligation kernel
   ├─ request/token/cost/concurrency budget reservation
   ├─ weighted route selection and circuit state
   ├─ OpenAI adapter
@@ -26,7 +28,7 @@ cmd/ai-gateway
 provider HTTPS API
 ```
 
-The main Go API remains the authority for Programs, issues and changes, evidence, workflow and configuration. T4 will replace the static workload bootstrap with governed workload/policy state and will resolve reusable Source Bindings. T3 deliberately does not import `internal/sourceaccess`, create approval state or make governance decisions.
+The main Go API remains the configuration authority. `internal/aigovernance` reuses the existing Automation Policy owner, Source Binding catalog, verified identity and `governance_decisions`; it owns only AI workload registration and runtime snapshot loading. `internal/aigateway` remains a deterministic provider-neutral kernel and transport package and does not depend on product workflows or durable repositories.
 
 ## Executable routes
 
@@ -55,7 +57,7 @@ The canonical request contains only:
 - output-token, temperature, top-p and stop limits;
 - streaming and usage flags.
 
-T3 rejects image, audio, file, computer-use, hosted tool, background, stored-response, response-format, participant-name, arbitrary user tag and retained metadata options instead of silently discarding or provider-locking them.
+T3 rejects image, audio, file, computer-use, hosted tool, background, stored-response, response-format and participant-name options instead of silently discarding or provider-locking them. T4 accepts a bounded string metadata map as caller assertions. Assertions are available for restrictive/routing rules and Source Binding lookup keys, but cannot directly authorize an `ALLOW` rule.
 
 The canonical completed response contains text, refusal, function calls, finish reason and usage. The canonical stream contains only text/refusal/tool deltas, one finish event, usage and a terminal done event. Unknown provider finish reasons are surfaced as protocol failures; they are never rewritten as a successful stop. Provider safety refusals remain distinct from truncated or content-filtered output.
 
@@ -82,11 +84,41 @@ Circuit state is process-local operational state. T3 makes no cross-instance cla
 
 ## Authentication and budgets
 
-T3 workload credentials and the optional metrics credential are represented only by SHA-256 digests in configuration. Incoming digests are compared in constant time. Provider credentials are referenced by environment-variable name and resolved only into process memory.
+In production, AI workload credentials are represented only by SHA-256 digests in the governed `ai_workloads` revision. Incoming digests are compared in constant time against an immutable in-memory snapshot refreshed from PostgreSQL. Static configured workload digests remain development/test compatibility only. The optional metrics credential remains configuration-owned. Provider credentials are referenced by environment-variable name and resolved only into process memory.
 
 Each workload has an allowed-alias set and per-minute limits for requests, conservatively reserved tokens and micro-US-dollar cost, plus a concurrent-request ceiling. Reservations use the highest configured candidate price so fallback cannot bypass the cost guard. Actual provider usage reconciles the reservation when trustworthy usage is returned. Concurrency is released against the original reservation even when a stream crosses a minute boundary.
 
 These limits are transport controls, not T4 governed policy or approval decisions.
+
+
+## Governed decisions and rollout
+
+Policies are immutable `automation_policies` revisions with canonical SHA-256 checksums. Their deterministic definitions contain bounded Binding requirements, rules, conditions, actions, obligations and request mutations. Supported actions are:
+
+- `ALLOW` — continue unchanged;
+- `DENY` — stop before provider selection;
+- `MODIFY` — apply only bounded model/output/tool mutations and revalidate;
+- `ROUTE` — select an existing route inside the governed alias;
+- `REQUIRE_APPROVAL` — stop until T5 supplies an exact approved execution grant;
+- `SHADOW` — record the proposed result in content-free telemetry/headers while continuing unchanged.
+
+Activation is maker-checker governed. An `ENFORCE` revision can activate only after the exact same canonical checksum was previously activated in `SHADOW`. Suspending the policy is the runtime kill switch: new snapshots no longer expose workloads bound to it.
+
+## Source Binding resolution
+
+Each policy references exact `{binding_id, binding_version}` values. T4 supports:
+
+- `METADATA` from verified workload registration;
+- `LIVE_LOOKUP` through the active tenant-scoped Source Binding;
+- `ADAPTER_CACHE` through an explicit cache provider or a Binding whose adapter is the bank-approved local index;
+- `EXTERNAL_CONTROL` through an explicit provider or REST/other Binding representing the bank control;
+- `ASYNC` as explicit `PENDING`, never fabricated current truth.
+
+Facts retain `CURRENT`, `STALE`, `PARTIAL`, `UNAVAILABLE`, `UNKNOWN` and `PENDING`. Required-fact handling produces stable reason codes and obligations before normal rules. Stale/partial values cannot match as current values. T4 does not persist source rows, fact values or a mandatory cache format.
+
+## Governed configuration API
+
+The main API exposes `CONFIG_READ`/`CONFIG_WRITE` routes under `/api/v1/ai-governance` for policy and workload revision creation, review, approval, activation, suspension and retirement. Tenant, maker and transition actor are bound to verified identity. Workload creation returns the raw credential once with `Cache-Control: no-store`; later reads expose no digest or token.
 
 ## Provider adapters
 
@@ -120,23 +152,21 @@ Set exactly one of:
 - `CLEARSIGHT_AI_GATEWAY_CONFIG_FILE`;
 - `CLEARSIGHT_AI_GATEWAY_CONFIG_JSON`.
 
-`deploy/ai-gateway.config.example.json` is fail-closed: its all-zero credential digests cannot authenticate a known example key. Generate real digests outside the JSON, populate provider secret environment variables and replace placeholder provider model IDs before use.
+`deploy/ai-gateway.config.example.json` uses `DATABASE` governance and contains no workload credentials. Create/approve/activate policies and workloads through the main API, retain the one-time workload token securely, populate provider secret environment variables and replace placeholder provider model IDs before use.
 
 Production provider URLs must be fixed HTTPS origins without credentials, query strings, fragments or path prefixes. Development/test may use loopback HTTP only. Redirects are never followed.
 
 `Dockerfile.ai-gateway` builds a non-root distroless image. The process exposes port 8090 by convention and supports graceful termination without waiting for a provider beyond the configured request deadline.
 
-## Deliberate T3 exclusions
+## Remaining T5 boundary
 
-T3 does not implement:
+T4 deliberately does not implement:
 
-- governed AI workload registration or maker-checker activation;
-- Automation Policy extension or deterministic governance decisions;
-- source-aware classification or Source Binding resolution;
-- prompt mutation/redaction obligations;
-- durable decision receipts;
-- approval/execution grants;
-- provider configuration UI or durable provider route state;
+- durable gateway decision receipts or sampled allow aggregates;
+- governed response inspection/redaction receipts;
+- approval/execution grants for `REQUIRE_APPROVAL`;
+- binding a grant to an existing Matter Decision and exact action hash;
+- provider configuration UI or durable provider-route state;
 - raw-content audit logging.
 
-Those are T4/T5 responsibilities and must reuse existing governance, evidence, source, workflow and authority models rather than adding parallel stacks.
+Those are T5 responsibilities and must reuse existing Matter, Decision, evidence, authority and workflow models rather than adding parallel approval or audit stacks.

@@ -152,6 +152,27 @@
     "/api/v1/compliance/automation-policies": { "get": { "operationId": "automationPolicies", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
     "/api/v1/compliance/signals": { "post": { "operationId": "ingestSignal", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
 
+    "/api/v1/ai-governance/policies": {
+      "get": { "operationId": "listAIGovernancePolicies", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" },
+      "post": { "operationId": "createAIGovernancePolicy", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" }
+    },
+    "/api/v1/ai-governance/policies/{id}": { "get": { "operationId": "getAIGovernancePolicy", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/ai-governance/policies/{id}/submit": { "post": { "operationId": "submitAIGovernancePolicy", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/ai-governance/policies/{id}/approve": { "post": { "operationId": "approveAIGovernancePolicy", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/ai-governance/policies/{id}/activate": { "post": { "operationId": "activateAIGovernancePolicy", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/ai-governance/policies/{id}/suspend": { "post": { "operationId": "suspendAIGovernancePolicy", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/ai-governance/policies/{id}/retire": { "post": { "operationId": "retireAIGovernancePolicy", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/ai-governance/workloads": {
+      "get": { "operationId": "listAIGovernanceWorkloads", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" },
+      "post": { "operationId": "createAIGovernanceWorkload", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" }
+    },
+    "/api/v1/ai-governance/workloads/{id}": { "get": { "operationId": "getAIGovernanceWorkload", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/ai-governance/workloads/{id}/submit": { "post": { "operationId": "submitAIGovernanceWorkload", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/ai-governance/workloads/{id}/approve": { "post": { "operationId": "approveAIGovernanceWorkload", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/ai-governance/workloads/{id}/activate": { "post": { "operationId": "activateAIGovernanceWorkload", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/ai-governance/workloads/{id}/suspend": { "post": { "operationId": "suspendAIGovernanceWorkload", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/ai-governance/workloads/{id}/retire": { "post": { "operationId": "retireAIGovernanceWorkload", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE" } },
+
     "/api/v1/access/overview": { "get": { "operationId": "identityAccessOverview", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "IDENTITY_READ" } },
     "/api/v1/access/scim-sources": { "post": { "operationId": "createSCIMSource", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "IDENTITY_CONFIGURE" } },
     "/api/v1/access/scim-sources/{id}/rotate-token": { "post": { "operationId": "rotateSCIMSourceToken", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "IDENTITY_CONFIGURE" } },

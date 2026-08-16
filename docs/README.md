@@ -15,7 +15,7 @@ The documentation is layered so product semantics, safety, architecture, experie
 9. [`architecture/durable-schema-ownership.md`](architecture/durable-schema-ownership.md) — live durable-table ownership, maturity and retention contract.
 10. [`architecture/source-evidence-and-secure-capture.md`](architecture/source-evidence-and-secure-capture.md) — source health, persisted requests, bounded capture capabilities and artifact integrity.
 11. [`architecture/connected-source-access.md`](architecture/connected-source-access.md) — reusable Connection/View/Binding contracts, adapter capabilities, bounded source reads and assurance compatibility.
-12. [`architecture/ai-gateway-transport.md`](architecture/ai-gateway-transport.md) — isolated OpenAI-compatible transport, provider adapters, routing, budgets, streaming truth and confidentiality boundary.
+12. [`architecture/ai-gateway-transport.md`](architecture/ai-gateway-transport.md) — isolated OpenAI-compatible transport plus governed workload/policy lifecycle, source-aware decisions, shadow/enforcement rollout and confidentiality boundary.
 13. [`product/nigerian-bank-reference-journeys.md`](product/nigerian-bank-reference-journeys.md) — connected, actionable Nigerian-bank reference journeys.
 14. [`product/respond-and-capture.md`](product/respond-and-capture.md) — request-scoped internal/external capture.
 15. [`product/illustration-and-guided-experience.md`](product/illustration-and-guided-experience.md) — illustrations, empty states and role-specific onboarding.
@@ -32,7 +32,8 @@ The documentation is layered so product semantics, safety, architecture, experie
 26. [`engineering/enterprise-productization-implementation-plan.md`](engineering/enterprise-productization-implementation-plan.md) — detailed enterprise work/reference phases; current execution order is controlled by `implementation-plan.md`.
 27. [`engineering/enterprise-identity-access.md`](engineering/enterprise-identity-access.md) — focused OSS-first identity, department-aware capabilities and multi-level escalation implementation boundary; supersedes greenfield LDAP/SAML implementation guidance.
 28. [`engineering/demo-role-login.md`](engineering/demo-role-login.md) — non-production stakeholder role catalogue, supplied demo credentials, signed demo session and production isolation boundary.
-29. [`quality/release-gates-and-traceability.md`](quality/release-gates-and-traceability.md), [`quality/rendered-ui-evidence.md`](quality/rendered-ui-evidence.md) and domain acceptance tests.
+29. [`acceptance/t4-governed-ai-enforcement.md`](acceptance/t4-governed-ai-enforcement.md) — executable T4 policy, workload, source-resolution, migration and anti-bloat acceptance.
+30. [`quality/release-gates-and-traceability.md`](quality/release-gates-and-traceability.md), [`quality/rendered-ui-evidence.md`](quality/rendered-ui-evidence.md) and domain acceptance tests.
 
 ## Canonical precedence
 
@@ -69,7 +70,7 @@ Architecture never overrides the simpler user-facing Program, issue/change, requ
 - Source Registry, source observations and freshness maintenance;
 - durable versioned Source Connection/View/Binding catalog with bounded PostgreSQL schema, page, lookup and aggregate capabilities;
 - assurance consumption of shared source sessions without a second connector registry, copied source population or gateway-specific bundle format;
-- isolated stateless AI gateway transport with strict Chat/Responses ingress, OpenAI and Anthropic adapters, truthful SSE, workload budgets, fallback/circuit controls and content-free telemetry;
+- isolated AI gateway transport with strict Chat/Responses ingress, OpenAI and Anthropic adapters, truthful SSE, governed workload/Automation Policy snapshots, source-aware decisions, shadow/enforcement rollout, budgets, fallback/circuit controls and content-free telemetry;
 - durable source-health reconciliation from evidence outbox events into exact source drift and dependent Program triggers, with inbox dedupe;
 - persisted evidence requests, submissions, invitations and sessions;
 - linked-request visibility derived from the subject Matter before PostgreSQL limits;

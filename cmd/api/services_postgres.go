@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
@@ -42,7 +43,8 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		pool.Close()
 		return serviceSet{}, err
 	}
-	auto := autonomy.NewService(autonomy.NewPostgresRepository(pool))
+	autonomyRepo := autonomy.NewPostgresRepository(pool)
+	auto := autonomy.NewService(autonomyRepo)
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), store)
 	evidenceService.Configure(cfg.CaptureSessionTTL, cfg.MaxArtifactBytes)
 	documentService := documentimport.NewService(documentimport.NewPostgresRepository(pool), store)
@@ -55,6 +57,8 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	adapters[sourceaccess.AdapterWebhookEvent] = sourceevent.NewAdapter(runtimeRepo, checkpoints)
 	sourceCatalog := sourceaccess.NewCatalogService(catalogRepo, sourceaccess.EnvironmentSecretResolver{}, adapters)
 	evidenceService.ConfigureSourceBindings(sourceCatalog)
+	aiGovernanceRepo := aigovernance.NewPostgresRepository(pool)
+	aiGovernanceService := aigovernance.NewService(aiGovernanceRepo, autonomyRepo, sourceCatalog)
 	continuityRepo := continuity.NewReliablePostgresRepository(pool)
 	continuityService := continuity.NewService(continuityRepo)
 	coverageService := documentcoverage.NewService(documentcoverage.NewPostgresRepository(pool), documentService, continuityService)
@@ -100,7 +104,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		Mode: "postgres", Authority: authority.NewEffectivePostgresService(pool), Governance: governance.NewService(governance.NewPostgresRepository(pool)),
 		Evidence: evidenceService, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
-		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo),
+		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo),
 		Access: access.NewPostgresResolver(pool), AccessAdmin: access.NewPostgresAdministrator(pool), SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
 	}, nil
 }
