@@ -1,0 +1,46 @@
+name: Publish T4 governed enforcement
+
+on:
+  push:
+    branches: [agent/t4-publish-staging]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+      - name: Restore and publish exact T4 tree
+        run: |
+          set -euo pipefail
+          cat .t4-patch/part-* | base64 -d > /tmp/t4.patch.xz
+          echo '54cad0f106a6d726aa3618a8d80cf6dc99a05e7d6043cdd4b842b06ec58c9567  /tmp/t4.patch.xz' | sha256sum -c -
+          xz -dc /tmp/t4.patch.xz > /tmp/t4.patch
+
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = 'd95eabaf2ddc43affe45310aa22fc9dd2c40719e'
+          git checkout -B agent/t4-governed-enforcement origin/main
+          git apply --index /tmp/t4.patch
+
+          gofmt -w $(find cmd internal -name '*.go' -type f)
+          git add cmd internal
+          git diff --cached --check
+          go test ./internal/aigateway ./internal/aigovernance ./internal/autonomy ./internal/httpapi ./cmd/ai-gateway ./cmd/api
+
+          test ! -e .t4-patch
+          test ! -e .t4-payload
+          test ! -e .github/workflows/agent-t4-publish.yml
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(aigateway): add T4 governed source-aware enforcement'
+          git push origin HEAD:agent/t4-governed-enforcement
