@@ -9,7 +9,7 @@ ClearSight helps bank compliance, risk, security, privacy, resilience, audit, le
 
 The repository contains a working application foundation for ongoing Programs and specific issues or changes:
 
-- Go API and durable worker processes;
+- Go API, durable worker and isolated stateless AI gateway processes;
 - React/Vite **Today, Programs, Work, Imports, Explore and Configure** surfaces;
 - PostgreSQL 18 schema and pgx-backed repositories;
 - verified actor context with tenant/query-scope conflict rejection;
@@ -33,7 +33,8 @@ The repository contains a working application foundation for ongoing Programs an
 - role-specific onboarding, premium illustrations and semantic vector icons;
 - compliance Signals, drift assessment and readiness;
 - rendered-state and axe accessibility tests enforced in CI;
-- mechanically verified runtime API/access contract, Docker Compose, CI and PostgreSQL integration tests.
+- mechanically verified main API and isolated AI gateway route/access contracts, Docker Compose, CI and PostgreSQL integration tests;
+- OpenAI-compatible Chat/Responses text-and-function transport with OpenAI/Anthropic adapters, truthful SSE, workload authentication, budgets, routing/fallback, circuit state and content-free telemetry.
 
 The default build uses in-memory repositories for local development. The `postgres` build tag activates PostgreSQL repositories. The local artifact-store adapter is for development and testing only; production object storage, malware scanning and OCR are not implemented. Searchable PDFs are extracted automatically by the durable worker through bounded Poppler utilities.
 
@@ -180,6 +181,7 @@ The application begins as a modular monolith with separate API and worker proces
 ```text
 cmd/api                       API composition
 cmd/worker                    durable worker
+cmd/ai-gateway                isolated stateless model transport
 cmd/seed-bank-reference       explicit non-production reference installer
 internal/authority            routing, simulation and integrity
 internal/governance           maker-checker policies and delegations
@@ -189,11 +191,13 @@ internal/documentimport       imports, extraction, proposals and review
 internal/continuity           Programs, Matters, access, status and history
 internal/bankverticals        connected bank journey projections and installer
 internal/autonomy             Signals, drift and readiness
+internal/aigateway             canonical model transport, adapters, routing and budgets
 internal/workflow             derived actor-facing Task projection and reads
 internal/onboarding           guided-adoption state
 internal/httpapi              actor-bound HTTP contracts
 web                           React application
 api/runtime.openapi.json      mechanically verified executable route/access contract
+api/ai-gateway.openapi.json   mechanically verified isolated gateway contract
 api/bank-journeys.openapi.yaml focused journey schema and examples
 api/document-imports.openapi.yaml focused import and review contract
 api/README.md                 API contract ownership rules
@@ -216,6 +220,18 @@ make compose-up
 go run -tags postgres ./cmd/api
 ```
 
+For the isolated stateless AI gateway, copy and replace the fail-closed example values, export the referenced provider secrets, then start the separate process:
+
+```bash
+cp deploy/ai-gateway.config.example.json ./var/ai-gateway.json
+export CLEARSIGHT_AI_GATEWAY_CONFIG_FILE=./var/ai-gateway.json
+export OPENAI_API_KEY=...
+export ANTHROPIC_API_KEY=...
+make run-ai-gateway
+```
+
+Generate workload and metrics digests with `printf %s 'a-random-secret' | sha256sum`; never place the plaintext credentials in the JSON file.
+
 The web client runs at `http://localhost:5173`; the API defaults to `http://localhost:8080`.
 
 ## Current boundaries
@@ -233,7 +249,8 @@ The repository does not yet claim production completion for:
 - direct NDPC/CBN ingestion or external authority-channel transmission;
 - bank-approved legal configuration and a complete Nigerian regulatory library;
 - representative production-scale journey and import benchmarks with retained query plans;
-- dependency propagation across shared controls and services.
+- dependency propagation across shared controls and services;
+- governed AI workload/policy lifecycle, source-aware enforcement, durable decision receipts and execution grants beyond the stateless T3 gateway transport.
 
 ## Start here
 
