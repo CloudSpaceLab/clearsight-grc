@@ -27,7 +27,7 @@ jobs:
           echo '6368f76efbda8ce9d6eecc17b939b3b390a8785e45fa47102e9a991a8e54ff1f  /tmp/t4.patch.xz' | sha256sum -c -
           xz -t /tmp/t4.patch.xz
 
-          cat .t4-payload/part-* | base64 -d > /tmp/t4.payload.gz
+          { cat .t4-payload/part-*; printf '='; } | base64 -d > /tmp/t4.payload.gz
           sha256sum /tmp/t4.payload.gz
           gzip -t /tmp/t4.payload.gz
           gzip -dc /tmp/t4.payload.gz > /tmp/t4.payload
