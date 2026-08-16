@@ -1,4 +1,4 @@
-name: Snapshot T4 recovery tree
+name: Recover partial T4 source payload
 
 on:
   push:
@@ -8,18 +8,29 @@ permissions:
   contents: read
 
 jobs:
-  snapshot:
+  recover-payload:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: agent/t4-recovery
-          fetch-depth: 1
-      - name: Package exact recovery tree
-        run: tar --exclude=.git -C "$GITHUB_WORKSPACE" -czf /tmp/clearsight-t4-recovery.tgz .
+      - name: Decode every intact byte from the truncated source payload
+        run: |
+          set -euo pipefail
+          { cat .t4-payload/part-*; printf '='; } | base64 -d > /tmp/t4-source-partial.gz
+          set +e
+          gzip -dc /tmp/t4-source-partial.gz > /tmp/t4-source-partial.tar
+          status=$?
+          set -e
+          test "$status" -ne 0
+          test -s /tmp/t4-source-partial.tar
+          sha256sum /tmp/t4-source-partial.gz /tmp/t4-source-partial.tar > /tmp/SHA256SUMS
+          tar -tvf /tmp/t4-source-partial.tar > /tmp/TAR-LISTING 2>&1 || true
       - uses: actions/upload-artifact@v4
         with:
-          name: clearsight-t4-recovery-${{ github.sha }}
-          path: /tmp/clearsight-t4-recovery.tgz
+          name: clearsight-t4-partial-payload-${{ github.sha }}
+          path: |
+            /tmp/t4-source-partial.gz
+            /tmp/t4-source-partial.tar
+            /tmp/SHA256SUMS
+            /tmp/TAR-LISTING
           if-no-files-found: error
           retention-days: 1
