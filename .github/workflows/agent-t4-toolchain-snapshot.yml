@@ -1,0 +1,34 @@
+name: Agent T4 toolchain snapshot
+
+on:
+  push:
+    branches: [agent/t4-toolchain-snapshot]
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+      - run: go mod download
+      - name: Package Go toolchain and module cache
+        run: |
+          set -euo pipefail
+          tar -C /opt/hostedtoolcache/go/1.26.5/x64 -czf /tmp/go1.26.5-linux-amd64.tgz .
+          tar -C "$HOME/go/pkg/mod" -czf /tmp/clearsight-go-mod-cache.tgz .
+          sha256sum /tmp/go1.26.5-linux-amd64.tgz /tmp/clearsight-go-mod-cache.tgz > /tmp/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clearsight-t4-go-toolchain-${{ github.sha }}
+          path: |
+            /tmp/go1.26.5-linux-amd64.tgz
+            /tmp/clearsight-go-mod-cache.tgz
+            /tmp/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 1
