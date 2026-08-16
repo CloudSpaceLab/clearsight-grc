@@ -1,4 +1,4 @@
-name: Recover partial T4 source payload
+name: Snapshot T4 web toolchain
 
 on:
   push:
@@ -8,29 +8,32 @@ permissions:
   contents: read
 
 jobs:
-  recover-payload:
+  snapshot:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Decode every intact byte from the truncated source payload
+        with:
+          ref: agent/t4-recovery
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install exact web dependencies
+        working-directory: web
+        run: npm ci --no-audit --no-fund
+      - name: Package Node and web dependencies
         run: |
           set -euo pipefail
-          { cat .t4-payload/part-*; printf '='; } | base64 -d > /tmp/t4-source-partial.gz
-          set +e
-          gzip -dc /tmp/t4-source-partial.gz > /tmp/t4-source-partial.tar
-          status=$?
-          set -e
-          test "$status" -ne 0
-          test -s /tmp/t4-source-partial.tar
-          sha256sum /tmp/t4-source-partial.gz /tmp/t4-source-partial.tar > /tmp/SHA256SUMS
-          tar -tvf /tmp/t4-source-partial.tar > /tmp/TAR-LISTING 2>&1 || true
+          tar -C /opt/hostedtoolcache/node/24.18.0/x64 -czf /tmp/node24.18.0-linux-x64.tgz .
+          tar -C web -czf /tmp/clearsight-web-node-modules.tgz node_modules
+          sha256sum /tmp/node24.18.0-linux-x64.tgz /tmp/clearsight-web-node-modules.tgz > /tmp/SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
-          name: clearsight-t4-partial-payload-${{ github.sha }}
+          name: clearsight-t4-web-toolchain-${{ github.sha }}
           path: |
-            /tmp/t4-source-partial.gz
-            /tmp/t4-source-partial.tar
+            /tmp/node24.18.0-linux-x64.tgz
+            /tmp/clearsight-web-node-modules.tgz
             /tmp/SHA256SUMS
-            /tmp/TAR-LISTING
           if-no-files-found: error
           retention-days: 1
