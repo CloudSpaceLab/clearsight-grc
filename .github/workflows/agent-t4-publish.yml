@@ -23,6 +23,8 @@ jobs:
         run: |
           set -euo pipefail
           cat .t4-patch/part-* | base64 -d > /tmp/t4.patch.xz
+          sha256sum /tmp/t4.patch.xz
+          xz -t /tmp/t4.patch.xz
           echo '54cad0f106a6d726aa3618a8d80cf6dc99a05e7d6043cdd4b842b06ec58c9567  /tmp/t4.patch.xz' | sha256sum -c -
           xz -dc /tmp/t4.patch.xz > /tmp/t4.patch
 
