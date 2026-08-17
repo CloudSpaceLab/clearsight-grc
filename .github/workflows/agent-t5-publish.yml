@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Reconstruct and publish five tested batches
+      - name: Reconstruct and publish four tested code batches
         run: |
           set -euo pipefail
 
@@ -26,16 +26,16 @@ jobs:
           tar -xJf /tmp/t5.tar.xz -C /tmp/t5
 
           git fetch origin main
-          test "$(git rev-parse origin/main)" = '64a5d968c6ecdfcadc90c4d2e85fad113418cbc4'
+          test "$(git rev-parse origin/main)" = '38d218097b253c490d7a14c700f52263c077e20c'
           git checkout -B agent/issue61-t5-closeout origin/main
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-          for n in 01 02 03 04 05; do
+          for n in 01 02 03 04; do
             git apply --index "/tmp/t5/patches/$n.patch"
             git diff --cached --check
             git commit -F "/tmp/t5/patches/$n.message"
           done
 
-          test "$(git rev-list --count origin/main..HEAD)" = '5'
+          test "$(git rev-list --count origin/main..HEAD)" = '4'
           git push origin HEAD:refs/heads/agent/issue61-t5-closeout
