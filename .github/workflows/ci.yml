@@ -59,6 +59,10 @@ jobs:
         run: bash scripts/verify-sourceaccess-tranche.sh auto
       - name: AI gateway T3 transport acceptance
         run: bash scripts/verify-t3-gateway.sh
+      - name: AI governance T4/T5 acceptance
+        env:
+          TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
+        run: bash scripts/verify-ai-governance-tranches.sh auto
       - name: Verify source-access runtime rollback and reapply
         env:
           PGPASSWORD: clearsight
@@ -88,6 +92,19 @@ jobs:
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='source_observations' AND column_name IN ('scope_kind','connection_id','connection_version','view_id','view_version','binding_id','binding_version')" | grep -qx 7
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -c "DELETE FROM source_connections WHERE source_id='6f300000-0000-7000-8000-000000000002'; DELETE FROM evidence_sources WHERE id='6f300000-0000-7000-8000-000000000002'; DELETE FROM tenants WHERE id='6f300000-0000-7000-8000-000000000001';"
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.audit_events') IS NULL AND to_regclass('public.readiness_snapshots') IS NULL THEN 'ok' ELSE 'unexpected compatibility table' END" | grep -qx ok
+      - name: Verify AI governance rollback and reapply
+        env:
+          PGPASSWORD: clearsight
+        run: |
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000036_ai_governance_receipts_grants.down.sql
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.ai_gateway_decision_receipts') IS NULL AND to_regclass('public.ai_execution_grants') IS NULL THEN 'ok' ELSE 'T5 tables survived rollback' END" | grep -qx ok
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000035_ai_governance_enforcement.down.sql
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.ai_workloads') IS NULL THEN 'ok' ELSE 'ai_workloads survived rollback' END" | grep -qx ok
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='automation_policies' AND column_name IN ('ai_definition','rollout_mode','record_version')" | grep -qx 0
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000035_ai_governance_enforcement.up.sql
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000036_ai_governance_receipts_grants.up.sql
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.ai_workloads') IS NOT NULL AND to_regclass('public.ai_gateway_decision_receipts') IS NOT NULL AND to_regclass('public.ai_execution_grants') IS NOT NULL THEN 'ok' ELSE 'AI governance tables missing after reapply' END" | grep -qx ok
+
       - name: Verify deployment migration ledger
         env:
           PGPASSWORD: clearsight

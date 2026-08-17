@@ -82,6 +82,8 @@ type Request struct {
 	ID                 string
 	Protocol           Protocol
 	ModelAlias         string
+	RouteID            string
+	Metadata           map[string]string
 	Messages           []Message
 	Tools              []ToolDefinition
 	ToolChoice         ToolChoice
@@ -132,6 +134,10 @@ type Route struct {
 type Workload struct {
 	ID                    string
 	TenantID              string
+	Purpose               string
+	Environment           string
+	VerifiedMetadata      map[string]string
+	Policy                PolicySnapshot
 	AllowedModels         map[string]struct{}
 	RequestsPerMinute     int64
 	TokensPerMinute       int64
@@ -178,6 +184,12 @@ func ValidateRequest(request Request) error {
 	}
 	if !validIdentifier(request.ModelAlias) {
 		return invalid("model", "The model alias is invalid.")
+	}
+	if request.RouteID != "" && !validIdentifier(request.RouteID) {
+		return invalid("route", "The governed route identifier is invalid.")
+	}
+	if err := validateRequestMetadata(request.Metadata); err != nil {
+		return err
 	}
 	if len(request.Messages) == 0 || len(request.Messages) > MaxMessages {
 		return invalid("messages", "The request must contain between 1 and 256 messages.")

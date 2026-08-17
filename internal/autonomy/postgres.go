@@ -118,8 +118,12 @@ func (r *PostgresRepository) ListAutomationPolicies(ctx context.Context, tenant 
 	rows, err := r.pool.Query(ctx, `
 		SELECT DISTINCT ON (ap.code)
 		       ap.id::text,t.slug,ap.code,ap.name,ap.action_class,ap.eligibility,ap.blast_radius_limit,
-		       ap.verification_contract,ap.status,
-		       COALESCE(ap.effective_from,'epoch'::timestamptz),COALESCE(ap.effective_until,'epoch'::timestamptz),ap.version
+		       ap.verification_contract,ap.status,COALESCE(ap.rollout_mode,''),COALESCE(ap.checksum,''),
+		       COALESCE(ap.maker_id::text,''),COALESCE(ap.checker_id::text,''),
+		       COALESCE(ap.effective_from,'epoch'::timestamptz),COALESCE(ap.effective_until,'epoch'::timestamptz),
+		       COALESCE(ap.submitted_at,'epoch'::timestamptz),COALESCE(ap.approved_at,'epoch'::timestamptz),
+		       COALESCE(ap.activated_at,'epoch'::timestamptz),COALESCE(ap.suspended_at,'epoch'::timestamptz),
+		       COALESCE(ap.retired_at,'epoch'::timestamptz),ap.created_at,ap.updated_at,ap.version,ap.record_version
 		FROM automation_policies ap
 		JOIN tenants t ON t.id=ap.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1)
@@ -133,8 +137,13 @@ func (r *PostgresRepository) ListAutomationPolicies(ctx context.Context, tenant 
 	for rows.Next() {
 		var value AutomationPolicy
 		var eligibility, blastRadius, verification []byte
-		var effectiveFrom, effectiveUntil time.Time
-		if err := rows.Scan(&value.ID, &value.TenantID, &value.Code, &value.Name, &value.ActionClass, &eligibility, &blastRadius, &verification, &value.Status, &effectiveFrom, &effectiveUntil, &value.Version); err != nil {
+		var effectiveFrom, effectiveUntil, submittedAt, approvedAt, activatedAt, suspendedAt, retiredAt time.Time
+		if err := rows.Scan(
+			&value.ID, &value.TenantID, &value.Code, &value.Name, &value.ActionClass,
+			&eligibility, &blastRadius, &verification, &value.Status, &value.RolloutMode, &value.Checksum,
+			&value.MakerID, &value.CheckerID, &effectiveFrom, &effectiveUntil, &submittedAt, &approvedAt,
+			&activatedAt, &suspendedAt, &retiredAt, &value.CreatedAt, &value.UpdatedAt, &value.Version, &value.RecordVersion,
+		); err != nil {
 			return nil, err
 		}
 		value.Eligibility = append(json.RawMessage(nil), eligibility...)
@@ -142,6 +151,11 @@ func (r *PostgresRepository) ListAutomationPolicies(ctx context.Context, tenant 
 		value.VerificationContract = append(json.RawMessage(nil), verification...)
 		value.EffectiveFrom = automationTime(effectiveFrom)
 		value.EffectiveUntil = automationTime(effectiveUntil)
+		value.SubmittedAt = automationTime(submittedAt)
+		value.ApprovedAt = automationTime(approvedAt)
+		value.ActivatedAt = automationTime(activatedAt)
+		value.SuspendedAt = automationTime(suspendedAt)
+		value.RetiredAt = automationTime(retiredAt)
 		values = append(values, value)
 	}
 	return values, rows.Err()

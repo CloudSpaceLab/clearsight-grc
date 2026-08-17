@@ -25,11 +25,16 @@ func main() {
 		logger.Error("ai gateway configuration failed", "error_code", "configuration_invalid", "error", err)
 		os.Exit(1)
 	}
-	gateway, err := aigateway.NewGateway(config, logger)
+	bootstrapCtx, bootstrapCancel := context.WithCancel(context.Background())
+	gateway, closeGateway, err := buildGateway(bootstrapCtx, config, logger)
 	if err != nil {
 		logger.Error("ai gateway initialization failed", "error_code", "initialization_failed", "error", err)
 		os.Exit(1)
 	}
+	defer func() {
+		bootstrapCancel()
+		closeGateway()
+	}()
 	server := &http.Server{
 		Addr:              config.ListenAddr,
 		Handler:           aigateway.NewHTTPHandler(gateway, logger),

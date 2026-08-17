@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
@@ -26,6 +27,7 @@ import (
 const (
 	matterWorkProjectionClass   = "matter-work-projection"
 	evidenceWorkProjectionClass = "evidence-request-work-projection"
+	aiGovernanceRetentionClass  = "ai-governance-retention"
 )
 
 func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (workerSet, error) {
@@ -47,6 +49,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	continuityService := continuity.NewService(continuityRepository)
 	authorityService := authority.NewEffectivePostgresService(pool)
 	autonomyService := autonomy.NewService(autonomy.NewPostgresRepository(pool))
+	aiGovernanceRetention := &aigovernance.RetentionMaintainer{Repo: aigovernance.NewPostgresRepository(pool)}
 	sourceHealth := &reconciliation.SourceHealthConsumer{
 		Inbox: runtimeRepository, Dependencies: continuityRepository,
 		Signals: autonomyService, Programs: continuityService,
@@ -78,6 +81,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	// reassignment/wrong-recipient/principal-status changes one rebuildable Today
 	// projection without adding another event or worker stack.
 	service.ConfigureClass(evidenceWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 5 * time.Second, Batch: 100})
+	service.ConfigureClass(aiGovernanceRetentionClass, workflowruntime.WorkClassOptions{Poll: time.Hour, Batch: 500})
 
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), store)
 	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
@@ -85,5 +89,6 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.AddMaintainerClass(matterWorkProjectionClass, lifecycleWork)
 	service.AddMaintainerClass(workflow.MatterEscalationWorkClass, escalationWork)
 	service.AddMaintainerClass(evidenceWorkProjectionClass, evidenceWork)
+	service.AddMaintainerClass(aiGovernanceRetentionClass, aiGovernanceRetention)
 	return workerSet{Runtime: service, Close: pool.Close}, nil
 }

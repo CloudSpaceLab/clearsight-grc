@@ -223,8 +223,8 @@ func TestHTTPAuthenticationAndStrictDecoding(t *testing.T) {
 	}
 
 	metadata := httptest.NewRecorder()
-	handler.ServeHTTP(metadata, authorizedRequest(http.MethodPost, "/v1/responses", `{"model":"governed-chat","input":"hello","max_output_tokens":64,"metadata":{"case":"discarded"}}`))
-	if metadata.Code != http.StatusBadRequest || !strings.Contains(metadata.Body.String(), `"param":"metadata"`) {
+	handler.ServeHTTP(metadata, authorizedRequest(http.MethodPost, "/v1/responses", `{"model":"governed-chat","input":"hello","max_output_tokens":64,"metadata":{"case":"verified-reference"}}`))
+	if metadata.Code != http.StatusOK {
 		t.Fatalf("metadata status=%d body=%s", metadata.Code, metadata.Body.String())
 	}
 }
@@ -359,5 +359,29 @@ func TestRecoveryDoesNotAppendJSONAfterResponseCommit(t *testing.T) {
 	}
 	if strings.Contains(logs.String(), "sensitive panic payload") {
 		t.Fatalf("panic payload leaked to logs: %s", logs.String())
+	}
+}
+
+func TestDecisionHeadersExposeStableCodesWithoutContent(t *testing.T) {
+	writer := httptest.NewRecorder()
+	setDecisionHeaders(writer, Decision{
+		Action: DecisionRequireApproval, ProposedAction: DecisionDeny,
+		PolicyID: "policy-a", PolicyCode: "AI_CONTROL", PolicyVersion: 7,
+		ReasonCodes: []string{"SOURCE_FACT_STALE", "POLICY_SHADOW_MODE"},
+		Obligations: []Obligation{{Code: "REFRESH_SOURCE_FACT"}, {Code: "VERIFY_SOURCE_FACT"}},
+	})
+	if got := writer.Header().Get("X-ClearSight-Decision"); got != "REQUIRE_APPROVAL" {
+		t.Fatalf("decision header = %q", got)
+	}
+	if got := writer.Header().Get("X-ClearSight-Policy"); got != "AI_CONTROL:7" {
+		t.Fatalf("policy header = %q", got)
+	}
+	if got := writer.Header().Get("X-ClearSight-Obligations"); got != "REFRESH_SOURCE_FACT,VERIFY_SOURCE_FACT" {
+		t.Fatalf("obligation header = %q", got)
+	}
+	for _, value := range writer.Header().Values("X-ClearSight-Obligations") {
+		if strings.Contains(value, "secret") || strings.Contains(value, "prompt") {
+			t.Fatalf("decision headers leaked content: %q", value)
+		}
 	}
 }
