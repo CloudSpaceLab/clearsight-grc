@@ -507,7 +507,7 @@ func uniqueSorted(v []string) []string {
 }
 func cloneMap(in map[string]string) map[string]string {
 	if in == nil {
-		return nil
+		return map[string]string{}
 	}
 	o := make(map[string]string, len(in))
 	for k, v := range in {

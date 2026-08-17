@@ -33,7 +33,7 @@ func TestPostgresGovernanceLifecycleReceiptAndGrant(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pool.Close()
+	t.Cleanup(pool.Close)
 
 	cleanupAIGovernanceFixture(t, pool)
 	t.Cleanup(func() { cleanupAIGovernanceFixture(t, pool) })
