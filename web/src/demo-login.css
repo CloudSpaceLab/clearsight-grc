@@ -44,6 +44,8 @@
 .demo-account-menu > span { padding: 7px 9px 5px; color: var(--muted, #667085); font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
 .demo-account-menu button { min-height: 42px; padding: 9px 10px; border: 0; border-radius: 9px; background: transparent; color: var(--text, #111827); text-align: left; font: inherit; font-size: .79rem; cursor: pointer; }
 .demo-account-menu button:hover { background: var(--surface-2, #f7f8fa); }
+.context-role > .demo-account-menu-wrap { position: relative; right: auto; bottom: auto; z-index: 10; }
+.context-role > .demo-account-menu-wrap .demo-account-menu { position: absolute; top: calc(100% + 7px); right: 0; }
 
 @media (max-width: 760px) {
   .demo-login-layout { grid-template-columns: 1fr; }
@@ -56,6 +58,10 @@
   .demo-account-card { grid-template-columns: 1fr; }
   .demo-account-role { text-align: left; }
   .demo-account-menu-wrap { right: 12px; bottom: 76px; }
+  .demo-account-menu-trigger { width: 72px; padding: 9px 8px; }
+  .demo-account-menu-trigger span, .demo-account-menu-trigger strong { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .demo-account-menu-trigger::after { content: "Account"; color: var(--text, #111827); font-size: .72rem; font-weight: 700; }
+  .context-role > mark { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -121,6 +121,16 @@ func DefaultCatalogAdapters() map[AdapterKind]Adapter {
 	}
 }
 
+func (s *CatalogService) RegisterSourceScope(ctx context.Context, scope SourceScope) error {
+	registrar, ok := s.repoOrError().(interface {
+		RegisterSourceScope(context.Context, SourceScope) error
+	})
+	if !ok {
+		return nil
+	}
+	return registrar.RegisterSourceScope(ctx, scope)
+}
+
 // EnvironmentSecretResolver keeps credential values out of catalog records.
 // A SecretRef must be env://NAME; only NAME is persisted, while its value is
 // resolved inside the adapter process boundary.

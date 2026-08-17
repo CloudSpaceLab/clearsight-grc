@@ -99,6 +99,16 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/programs/{id}/evidence-assessments", "program.evidence.assess", a.recordProgramEvidenceAssessment, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: "assessed_by"}),
 		materialService("/api/v1/programs/{id}/triggers", "program.trigger.ingest", a.applyProgramTrigger, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityPerformer, Materiality: 2}),
 
+		read("/api/v1/form-templates", a.listFormTemplates),
+		write(http.MethodPost, "/api/v1/form-templates", a.createFormTemplate, nil),
+		write(http.MethodPost, "/api/v1/form-templates/{id}/transition", a.transitionFormTemplate, nil),
+		write(http.MethodPost, "/api/v1/form-templates/{id}/collections", a.startFormCollection, nil),
+		read("/api/v1/programs/{id}/monitoring-checks", a.listMonitoringChecks),
+		write(http.MethodPost, "/api/v1/programs/{id}/monitoring-checks", a.createMonitoringCheck, nil),
+		write(http.MethodPost, "/api/v1/monitoring-checks/{id}/transition", a.transitionMonitoringCheck, nil),
+		write(http.MethodPost, "/api/v1/monitoring-checks/{id}/evaluate-source", a.evaluateMonitoringSource, nil),
+		read("/api/v1/monitoring-checks/{id}/results", a.listMonitoringResults),
+
 		read("/api/v1/matter-summaries", a.listMatterSummaries),
 		read("/api/v1/matters", a.listMatters),
 		material("/api/v1/matters", "matter.create", a.createMatter, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),

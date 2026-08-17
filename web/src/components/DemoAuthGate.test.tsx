@@ -26,8 +26,8 @@ const demoAccounts = [{
 
 beforeEach(() => {
   vi.mocked(loadContext).mockResolvedValue({
-    tenant: { id: "bank-demo", name: "Demo Bank" },
-    legal_entity: { id: "bank-ng", name: "Demo Bank Nigeria" },
+    tenant: { id: "bank-demo", name: "Clear Bank" },
+    legal_entity: { id: "bank-ng", name: "Clear Bank Nigeria" },
     actor: { id: "role-cro", name: "Chief Risk Officer" },
     mode: "postgres",
     demo_mode: true,
@@ -65,8 +65,8 @@ it("loads protected context after session discovery confirms authentication", as
 
 it("uses the demo catalogue label when runtime context exposes a principal id", async () => {
   vi.mocked(loadContext).mockResolvedValue({
-    tenant: { id: "bank-demo", name: "Demo Bank" },
-    legal_entity: { id: "bank-ng", name: "Demo Bank Nigeria" },
+    tenant: { id: "bank-demo", name: "Clear Bank" },
+    legal_entity: { id: "bank-ng", name: "Clear Bank Nigeria" },
     actor: { id: "role-admin", name: "00000000-0000-4000-8000-000000000104", role_codes: ["SYSTEM_ADMIN"] },
     mode: "postgres",
     demo_mode: true,
@@ -87,6 +87,24 @@ it("switches directly to another demo account after securely logging out", async
   await waitFor(() => expect(logoutDemo).toHaveBeenCalledTimes(1));
   await waitFor(() => expect(loginDemo).toHaveBeenCalledWith("system-admin@demo.clearsight.local", "demo"));
   expect(vi.mocked(logoutDemo).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(loginDemo).mock.invocationCallOrder[0]!);
+});
+
+it("shows the replacement account when demo roles share a broad role", async () => {
+  const overlappingAccounts = [{
+    label: "Chief Risk Officer", username: "cro@demo.clearsight.local", password: "demo", role_codes: ["CRO", "EXECUTIVE"],
+  }, {
+    label: "Chief Compliance Officer", username: "cco@demo.clearsight.local", password: "demo", role_codes: ["CCO", "EXECUTIVE", "COMPLIANCE_OFFICER"],
+  }];
+  vi.mocked(loadDemoAccounts).mockResolvedValue(overlappingAccounts);
+  vi.mocked(loadContext)
+    .mockResolvedValueOnce({ tenant: { id: "bank-demo", name: "Clear Bank" }, legal_entity: { id: "bank-ng", name: "Clear Bank Nigeria" }, actor: { id: "role-cro", name: "Chief Risk Officer", role_codes: ["CRO", "EXECUTIVE"] }, mode: "memory", demo_mode: true } as RuntimeContext & { demo_mode: boolean })
+    .mockResolvedValueOnce({ tenant: { id: "bank-demo", name: "Clear Bank" }, legal_entity: { id: "bank-ng", name: "Clear Bank Nigeria" }, actor: { id: "role-cco", name: "Chief Compliance Officer", role_codes: ["CCO", "EXECUTIVE", "COMPLIANCE_OFFICER"] }, mode: "memory", demo_mode: true } as RuntimeContext & { demo_mode: boolean });
+
+  render(<DemoAuthGate><div>Workspace</div></DemoAuthGate>);
+  fireEvent.click(await screen.findByRole("button", { name: "Viewing as Chief Risk Officer" }));
+  fireEvent.click(screen.getByRole("button", { name: "Switch to Chief Compliance Officer" }));
+
+  expect(await screen.findByRole("button", { name: "Viewing as Chief Compliance Officer" })).toBeTruthy();
 });
 
 it("returns to the account chooser when the replacement account cannot sign in", async () => {

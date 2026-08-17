@@ -35,8 +35,8 @@ type RuntimeWithCapabilities = RuntimeContext & {
 
 function runtime(demoMode: boolean): RuntimeWithCapabilities {
   return {
-    tenant: { id: "bank-demo", name: "Demo Bank" },
-    legal_entity: { id: "bank-ng", name: "Demo Bank Nigeria" },
+    tenant: { id: "bank-demo", name: "Clear Bank" },
+    legal_entity: { id: "bank-ng", name: "Clear Bank Nigeria" },
     actor: { id: "role-cro", name: "Chief Risk Officer", role_codes: ["CRO", "EXECUTIVE"] },
     mode: "memory",
     demo_mode: demoMode,

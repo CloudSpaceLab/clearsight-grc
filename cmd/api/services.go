@@ -13,6 +13,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
@@ -28,6 +29,7 @@ type serviceSet struct {
 	Authority       authority.Service
 	Governance      *governance.Service
 	Evidence        *evidence.Service
+	Monitoring      *monitoring.Service
 	SourceCatalog   *sourceaccess.CatalogService
 	DocumentImports *documentimport.Service
 	Coverage        *documentcoverage.Service

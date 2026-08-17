@@ -28,6 +28,16 @@ func NewMemoryCatalogRepository(sources []SourceScope) *MemoryCatalogRepository 
 	return repository
 }
 
+func (r *MemoryCatalogRepository) RegisterSourceScope(_ context.Context, scope SourceScope) error {
+	if scope.TenantID == "" || scope.SourceID == "" {
+		return ErrCatalogInvalid
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.sources[catalogScopeKey(scope.TenantID, scope.SourceID)] = struct{}{}
+	return nil
+}
+
 func (r *MemoryCatalogRepository) CreateConnectionRevision(_ context.Context, value ConnectionRevision) (ConnectionRevision, error) {
 	value, err := normalizeConnectionRevision(value)
 	if err != nil {

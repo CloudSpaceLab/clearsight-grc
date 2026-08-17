@@ -60,15 +60,15 @@ func (r *PostgresRepository) CreateRequestWithRecipient(ctx context.Context, val
 		INSERT INTO capture_requests(
 			id,tenant_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
 			recipient_type,recipient_principal_id,recipient_audience_hash,recipient_hint,recipient_state,recipient_revision,recipient_issue_reason,
-			estimated_minutes,deadline,known_facts,fields,source_bindings,status,created_by,version,created_at,updated_at
+			estimated_minutes,deadline,known_facts,fields,source_bindings,form_template_id,form_template_version,collection_period_start,collection_period_end,status,created_by,version,created_at,updated_at
 		) VALUES(
 			$1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4,$5,$6,$7,$8,$9,
-			$10,NULLIF($11,'')::uuid,$12,$13,$14,$15,'',$16,$17,$18::jsonb,$19::jsonb,$20::jsonb,$21,NULLIF($22,'')::uuid,$23,$24,$24
+			$10,NULLIF($11,'')::uuid,$12,$13,$14,$15,'',$16,$17,$18::jsonb,$19::jsonb,$20::jsonb,NULLIF($21,'')::uuid,NULLIF($22,0),$23,$24,$25,NULLIF($26,'')::uuid,$27,$28,$28
 		)
-		RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,known_facts,fields,source_bindings,status,COALESCE(created_by::text,''),version,created_at,updated_at`,
+		RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,known_facts,fields,source_bindings,COALESCE(form_template_id::text,''),COALESCE(form_template_version,0),collection_period_start,collection_period_end,status,COALESCE(created_by::text,''),version,created_at,updated_at`,
 		value.ID, value.TenantID, value.SubjectType, value.SubjectID, value.Title, value.Purpose, value.WhyYou, value.Sensitivity, value.AudienceType,
 		value.Recipient.Type, value.Recipient.PrincipalID, nullableAudienceHash(value.Recipient), value.Recipient.AudienceHint, state, revision,
-		value.EstimatedMinutes, value.Deadline, string(facts), string(fields), string(sourceBindings), value.Status, value.CreatedBy, value.Version, value.CreatedAt)
+		value.EstimatedMinutes, value.Deadline, string(facts), string(fields), string(sourceBindings), value.FormTemplateID, value.FormTemplateVersion, value.CollectionPeriodStart, value.CollectionPeriodEnd, value.Status, value.CreatedBy, value.Version, value.CreatedAt)
 	created, err := scanRequest(row)
 	if err != nil {
 		return Request{}, fmt.Errorf("create evidence request with recipient: %w", err)
@@ -105,7 +105,7 @@ func (r *PostgresRepository) GetRequestRecipient(ctx context.Context, tenant, re
 func (r *PostgresRepository) ListRecipientRequests(ctx context.Context, tenant, principalID string, limit int) ([]Request, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,
-		       er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at,
+		       er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,COALESCE(er.form_template_id::text,''),COALESCE(er.form_template_version,0),er.collection_period_start,er.collection_period_end,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at,
 		       er.recipient_type,COALESCE(er.recipient_principal_id::text,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
 		       er.recipient_state,er.recipient_revision,er.recipient_issue_reason
 		FROM capture_requests er

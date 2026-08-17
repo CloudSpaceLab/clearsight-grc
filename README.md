@@ -23,6 +23,7 @@ The repository contains a working application foundation for ongoing Programs an
 - deterministic TXT, Markdown, CSV, DOCX and XLSX extraction with source-location anchors;
 - source-anchored analysis proposals that require explicit human acceptance or rejection;
 - ongoing Programs with requirements, applicability decisions, controls and evidence checks;
+- non-modal Program setup for channel and obligation monitoring, reusable scored forms, public HTTPS status checks and immutable risk results;
 - typed Matters for changes, gaps, findings, requests, exceptions and incidents;
 - decisions, actions, response packages and independently checked outcomes;
 - reason-bearing Program status and point-in-time reconstruction;
@@ -41,6 +42,7 @@ The default build uses in-memory repositories for local development. The `postgr
 ## Product model
 
 - **Programs** maintain continuing obligations, controls, evidence, reviews, filings, exceptions and assurance.
+- **Monitoring Checks** collect structured responses or read an exact connected-source version, then calculate risk and coverage from approved deterministic rules.
 - **Matters** are the precise internal records for a specific change, gap, finding, request, exception or incident. General screens call them **issues and changes**.
 - **Imports** preserve original source material, extracted sections and source-anchored proposals for governed human review.
 - **Explore journeys** connect the records into understandable, end-to-end operating paths and launch the exact next Program, issue or evidence request when stakeholder demo mode is enabled.
@@ -59,6 +61,8 @@ Authority Source or Standard
 ```
 
 Task completion, a submission, a stored artifact, an extracted statement, an accepted analysis proposal and external execution are not verified outcomes.
+
+Monitoring results are observations, not approved compliance conclusions. Form collections are created on demand; ClearSight does not automatically create a weekly request. A submitted form response is scored automatically against the exact active form and Monitoring Check versions. Connected status checks are run on demand and preserve the exact source receipt used for the result.
 
 ## Governed document imports
 

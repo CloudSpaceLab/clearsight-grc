@@ -172,6 +172,18 @@ func (r *MemoryRepository) Submit(_ context.Context, submission Submission) (Sub
 	return SubmissionReceipt{SubmissionID: submission.ID, RequestID: request.ID, Status: request.Status, SubmittedAt: submission.SubmittedAt, Version: request.Version}, nil
 }
 
+func (r *MemoryRepository) GetSubmission(_ context.Context, tenant, id string) (Submission, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	value, ok := r.submissions[id]
+	if !ok || value.TenantID != tenant {
+		return Submission{}, ErrNotFound
+	}
+	value.Answers = cloneMap(value.Answers)
+	value.AnswerProvenance = cloneAnswerProvenance(value.AnswerProvenance)
+	return value, nil
+}
+
 func (r *MemoryRepository) ExpireRequests(_ context.Context, now time.Time, limit int) (int, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -303,6 +315,8 @@ func cloneRequest(value Request) Request {
 	value.KnownFacts = cloneMap(value.KnownFacts)
 	value.Fields = cloneFields(value.Fields)
 	value.SourceBindings = cloneRequestBindings(value.SourceBindings)
+	value.CollectionPeriodStart = cloneTimePointer(value.CollectionPeriodStart)
+	value.CollectionPeriodEnd = cloneTimePointer(value.CollectionPeriodEnd)
 	return value
 }
 

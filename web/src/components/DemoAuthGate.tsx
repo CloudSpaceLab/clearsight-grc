@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { loadContext, loadDemoAccounts, loadSessionStatus, loginDemo, logoutDemo, type DemoAccount, type RuntimeContext } from "../api";
 import { apiErrorKind } from "../http";
 import type { RuntimePresentation } from "../runtimePresentation";
@@ -15,6 +16,7 @@ export function DemoAuthGate({ children, presentation = "demo" }: { children: Re
   const [loginError, setLoginError] = useState("");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [currentAccountLabel, setCurrentAccountLabel] = useState("Demo account");
+  const [accountHost, setAccountHost] = useState<Element | null>(null);
 
   async function rememberContext(context: DemoRuntime) {
     const isDemo = context.demo_mode === true;
@@ -23,7 +25,10 @@ export function DemoAuthGate({ children, presentation = "demo" }: { children: Re
       const available = await loadDemoAccounts().catch(() => []);
       setAccounts(available);
       const actorRoles = new Set(context.actor.role_codes ?? []);
-      const matched = available.find((account) => account.role_codes.some((role) => actorRoles.has(role)));
+      const matched = available
+        .map((account) => ({ account, score: account.role_codes.filter((role) => actorRoles.has(role)).length }))
+        .filter((candidate) => candidate.score > 0)
+        .sort((left, right) => right.score - left.score || right.account.role_codes.length - left.account.role_codes.length)[0]?.account;
       setCurrentAccountLabel(matched?.label ?? context.actor.name ?? "Demo account");
       return;
     }
@@ -89,6 +94,10 @@ export function DemoAuthGate({ children, presentation = "demo" }: { children: Re
   }
 
   useEffect(() => { void enter(); }, []);
+  useEffect(() => {
+    if (state !== "ready") { setAccountHost(null); return; }
+    setAccountHost(document.querySelector(".context-role"));
+  }, [state]);
 
   async function switchRole(account: DemoAccount) {
     setSwitchError("");
@@ -110,15 +119,16 @@ export function DemoAuthGate({ children, presentation = "demo" }: { children: Re
   if (state === "login") return <DemoLoginPage accounts={accounts} onAuthenticated={enter} initialError={loginError}/>;
 
   const canSwitchRole = demoMode && presentation === "demo" && import.meta.env.VITE_STATIC_DEMO !== "true";
+  const accountControl = canSwitchRole && <div className="demo-account-menu-wrap">
+    <button className="demo-account-menu-trigger" type="button" aria-label={`Viewing as ${currentAccountLabel}`} aria-expanded={accountMenuOpen} aria-controls="demo-account-menu" onClick={() => setAccountMenuOpen((open) => !open)}><span>Viewing as</span> <strong>{currentAccountLabel}</strong></button>
+    {accountMenuOpen && <div className="demo-account-menu" id="demo-account-menu" aria-label="Switch demo account">
+      <span>Choose another account</span>
+      {accounts.filter((account) => account.label !== currentAccountLabel).map((account) => <button key={account.username} type="button" onClick={() => void switchRole(account)}>Switch to {account.label}</button>)}
+    </div>}
+    {switchError && <span role="alert">{switchError}</span>}
+  </div>;
   return <>
     {children}
-    {canSwitchRole && <div className="demo-account-menu-wrap">
-      <button className="demo-account-menu-trigger" type="button" aria-expanded={accountMenuOpen} aria-controls="demo-account-menu" onClick={() => setAccountMenuOpen((open) => !open)}>Viewing as <strong>{currentAccountLabel}</strong></button>
-      {accountMenuOpen && <div className="demo-account-menu" id="demo-account-menu" aria-label="Switch demo account">
-        <span>Choose another account</span>
-        {accounts.filter((account) => account.label !== currentAccountLabel).map((account) => <button key={account.username} type="button" onClick={() => void switchRole(account)}>Switch to {account.label}</button>)}
-      </div>}
-      {switchError && <span role="alert">{switchError}</span>}
-    </div>}
+    {accountControl && (accountHost ? createPortal(accountControl, accountHost) : accountControl)}
   </>;
 }

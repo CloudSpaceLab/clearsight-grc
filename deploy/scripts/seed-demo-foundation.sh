@@ -6,16 +6,26 @@ set -Eeuo pipefail
 psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 >/dev/null <<'SQL'
 BEGIN;
 INSERT INTO tenants(id, slug, name)
-VALUES ('00000000-0000-4000-8000-000000000001', 'clearsight-demo', 'ClearSight Demonstration Bank')
+VALUES ('00000000-0000-4000-8000-000000000001', 'clearsight-demo', 'Clear Bank')
 ON CONFLICT (id) DO NOTHING;
+
+UPDATE tenants
+SET name = 'Clear Bank'
+WHERE id = '00000000-0000-4000-8000-000000000001'
+  AND name IN ('ClearSight Demonstration Bank', 'Demo Bank', 'Clear Bank');
 
 INSERT INTO legal_entities(id, tenant_id, code, name, jurisdiction)
 VALUES (
   '00000000-0000-4000-8000-000000000002',
   '00000000-0000-4000-8000-000000000001',
-  'BANK-NG', 'Demonstration Bank Nigeria', 'Nigeria'
+  'BANK-NG', 'Clear Bank Nigeria', 'Nigeria'
 )
 ON CONFLICT (id) DO NOTHING;
+
+UPDATE legal_entities
+SET name = 'Clear Bank Nigeria'
+WHERE id = '00000000-0000-4000-8000-000000000002'
+  AND name IN ('Demonstration Bank Nigeria', 'Demo Bank Nigeria', 'Clear Bank Nigeria');
 
 INSERT INTO principals(id, tenant_id, kind, external_ref, display_name)
 VALUES

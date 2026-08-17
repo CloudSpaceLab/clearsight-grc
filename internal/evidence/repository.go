@@ -37,3 +37,7 @@ type Repository interface {
 	CreateArtifact(context.Context, Artifact) (Artifact, error)
 	GetArtifact(context.Context, string, string, string) (Artifact, error)
 }
+
+type SubmissionReader interface {
+	GetSubmission(context.Context, string, string) (Submission, error)
+}

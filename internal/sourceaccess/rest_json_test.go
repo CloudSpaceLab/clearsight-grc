@@ -287,3 +287,13 @@ func TestRESTJSONRetryIdentityDoesNotExposeLookupValues(t *testing.T) {
 	}
 	_ = fmt.Sprint(identity)
 }
+
+func TestRESTJSONTreatsSingleObjectResponseAsOneRecord(t *testing.T) {
+	records, err := extractRESTRecords(map[string]any{"sdk_present": true, "checked_at": "2026-08-17T12:00:00Z"}, "", 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(records) != 1 || records[0]["sdk_present"] != true {
+		t.Fatalf("records = %#v", records)
+	}
+}

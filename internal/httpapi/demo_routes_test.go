@@ -115,7 +115,7 @@ func TestDurableDemoContextUsesFriendlyWorkspaceNames(t *testing.T) {
 	contextRequest := httptest.NewRequest(http.MethodGet, "/api/v1/context", nil)
 	contextRequest.AddCookie(login.Result().Cookies()[0])
 	handler.ServeHTTP(response, contextRequest)
-	for _, expected := range []string{"ClearSight Demonstration Bank", "Demonstration Bank Nigeria", "Chief Risk Officer"} {
+	for _, expected := range []string{"Clear Bank", "Clear Bank Nigeria", "Chief Risk Officer"} {
 		if !strings.Contains(response.Body.String(), expected) {
 			t.Fatalf("durable demo context missing %q: %s", expected, response.Body.String())
 		}

@@ -363,6 +363,12 @@ func extractRESTRecords(root any, pointer string, maximum int) ([]map[string]any
 	if err != nil || !found {
 		return nil, ErrExecution
 	}
+	if record, ok := target.(map[string]any); ok {
+		if maximum < 1 {
+			return nil, ErrLimitExceeded
+		}
+		return []map[string]any{record}, nil
+	}
 	values, ok := target.([]any)
 	if !ok {
 		return nil, fmt.Errorf("%w: REST records pointer must resolve to an array", ErrExecution)

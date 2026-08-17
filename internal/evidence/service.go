@@ -168,7 +168,7 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if !deadline.After(now) {
 		return Request{}, fmt.Errorf("deadline must be in the future")
 	}
-	request := Request{ID: valueID, TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: fields, SourceBindings: sourceBindings, Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
+	request := Request{ID: valueID, TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: fields, SourceBindings: sourceBindings, FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion, CollectionPeriodStart: cloneTimePointer(input.CollectionPeriodStart), CollectionPeriodEnd: cloneTimePointer(input.CollectionPeriodEnd), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
 	return store.CreateRequestWithRecipient(ctx, request)
 }
 
@@ -205,6 +205,17 @@ func (s *Service) GetRequest(ctx context.Context, tenant, requestID string) (Req
 		return Request{}, err
 	}
 	return effectiveRequest(value, s.now().UTC()), nil
+}
+
+func (s *Service) GetSubmission(ctx context.Context, tenant, submissionID string) (Submission, error) {
+	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(submissionID) == "" {
+		return Submission{}, fmt.Errorf("tenant and submission are required")
+	}
+	reader, ok := s.repo.(SubmissionReader)
+	if !ok {
+		return Submission{}, fmt.Errorf("submission reads are unavailable")
+	}
+	return reader.GetSubmission(ctx, tenant, submissionID)
 }
 
 func (s *Service) Submit(ctx context.Context, submission Submission) (SubmissionReceipt, error) {
@@ -447,6 +458,15 @@ func validateRequestInput(input CreateRequestInput) error {
 	if input.EstimatedMinutes < 1 || input.EstimatedMinutes > 60 || input.Deadline.IsZero() {
 		return fmt.Errorf("estimated_minutes must be 1-60 and deadline is required")
 	}
+	if (strings.TrimSpace(input.FormTemplateID) == "") != (input.FormTemplateVersion == 0) || input.FormTemplateVersion < 0 {
+		return fmt.Errorf("form template id and version must be provided together")
+	}
+	if (input.CollectionPeriodStart == nil) != (input.CollectionPeriodEnd == nil) {
+		return fmt.Errorf("collection period start and end must be provided together")
+	}
+	if input.CollectionPeriodStart != nil && input.CollectionPeriodStart.After(*input.CollectionPeriodEnd) {
+		return fmt.Errorf("collection period start must not be after the end")
+	}
 	if len(input.Fields) == 0 || len(input.Fields) > 50 {
 		return fmt.Errorf("request must contain 1-50 fields")
 	}
@@ -461,6 +481,14 @@ func validateRequestInput(input CreateRequestInput) error {
 		seen[field.ID] = struct{}{}
 	}
 	return nil
+}
+
+func cloneTimePointer(value *time.Time) *time.Time {
+	if value == nil {
+		return nil
+	}
+	copy := value.UTC()
+	return &copy
 }
 
 func requestOpenAt(request Request, at time.Time) bool {
