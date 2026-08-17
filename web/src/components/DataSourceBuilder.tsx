@@ -12,6 +12,7 @@ export function DataSourceBuilder({ onSaved, onCancel }: Props) {
   const [code, setCode] = useState("");
   const [field, setField] = useState("");
   const [expected, setExpected] = useState("");
+  const [claim, setClaim] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -25,21 +26,21 @@ export function DataSourceBuilder({ onSaved, onCancel }: Props) {
         endpoint: String(data.get("endpoint") ?? "").trim(), freshnessMinutes: Number(data.get("freshness") ?? 60),
       });
       if (!value.view.native_schema.length) throw new Error("The endpoint returned no fields.");
-      setPrepared(value); setField(value.view.native_schema[0]?.name ?? "");
+      setPrepared(value); setField(value.view.native_schema[0]?.name ?? ""); setClaim(`${sourceName.trim()} meets the expected status.`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The endpoint could not be tested.");
     } finally { setBusy(false); }
   }
 
   async function save() {
-    if (!prepared || !field || !expected.trim()) {
-      setError("Choose a field and enter the value that should be present.");
+    if (!prepared || !field || !expected.trim() || !claim.trim()) {
+      setError("Enter the monitoring statement, field and expected value.");
       return;
     }
     setBusy(true); setError("");
     try {
       const binding = await createRESTBinding(prepared, field);
-      onSaved(binding, { code: `${code.trim().toUpperCase().replace(/\s+/g, "-")}-CHECK`, name: sourceName.trim(), claim: `${sourceName.trim()} is present and operating.`, field, expected: expected.trim() });
+      onSaved(binding, { code: `${code.trim().toUpperCase().replace(/\s+/g, "-")}-CHECK`, name: sourceName.trim(), claim: claim.trim(), field, expected: expected.trim() });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The source could not be saved.");
     } finally { setBusy(false); }
@@ -56,6 +57,7 @@ export function DataSourceBuilder({ onSaved, onCancel }: Props) {
     </form> : <div className="source-field-step">
       <p className="inline-success" role="status">Endpoint reached. {prepared.view.native_schema.length} field{prepared.view.native_schema.length === 1 ? "" : "s"} found.</p>
       <div className="monitoring-form-grid">
+        <label className="full"><span>Monitoring statement</span><input aria-label="Monitoring statement" value={claim} onChange={(event) => setClaim(event.target.value)} required/></label>
         <label><span>Status field</span><select aria-label="Status field" value={field} onChange={(event) => setField(event.target.value)}>{prepared.view.native_schema.map((item) => <option value={item.name} key={item.name}>{item.name}</option>)}</select></label>
         <label><span>Expected value</span><input aria-label="Expected value" value={expected} onChange={(event) => setExpected(event.target.value)} required placeholder="true"/></label>
       </div>

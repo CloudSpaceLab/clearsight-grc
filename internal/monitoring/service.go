@@ -177,6 +177,20 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 	if form.Status != LifecycleActive || !form.IsCurrent {
 		return evidence.Request{}, ErrInactive
 	}
+	checks, err := s.repo.ListCheckRevisions(ctx, actor.TenantID, input.ProgramID, 500)
+	if err != nil {
+		return evidence.Request{}, err
+	}
+	linked := false
+	for _, check := range checks {
+		if check.Status == LifecycleActive && check.IsCurrent && check.InputKind == InputForm && check.FormTemplateID == form.ID && check.FormTemplateVersion == form.Version {
+			linked = true
+			break
+		}
+	}
+	if !linked {
+		return evidence.Request{}, ErrInactive
+	}
 	fields := make([]evidence.Field, len(form.Fields))
 	for index, field := range form.Fields {
 		fields[index] = evidence.Field{ID: field.ID, Label: field.Label, Type: field.Type, Required: field.Required, Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...)}

@@ -66,5 +66,11 @@ export type MonitoringResult = {
   monitoring_check_id: string;
   monitoring_check_version: number;
   evaluated_at: string;
-  evaluation: { score?: number; band: RiskBand; coverage: number };
+  evaluation: {
+    score?: number;
+    band: RiskBand;
+    coverage: number;
+    critical_failures?: Array<{ rule_id?: string; field_id: string; outcome: "PASS" | "FAIL" | "INDETERMINATE"; points: number; critical?: boolean; reason: string }>;
+    rule_results?: Array<{ rule_id?: string; field_id: string; outcome: "PASS" | "FAIL" | "INDETERMINATE"; points: number; critical?: boolean; reason: string }>;
+  };
 };

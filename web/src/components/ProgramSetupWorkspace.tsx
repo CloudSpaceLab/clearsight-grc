@@ -4,9 +4,9 @@ import { addProgramRequirement, createProgram } from "../continuityCommands";
 import type { ProgramAggregate } from "../types";
 import { MonitoringSetup } from "./MonitoringSetup";
 
-type Props = { actorPrincipalID: string; onCreated: (aggregate: ProgramAggregate) => void; onClose: () => void };
+type Props = { actorPrincipalID: string; canConfigureSources: boolean; onCreated: (aggregate: ProgramAggregate) => void; onClose: () => void };
 
-export function ProgramSetupWorkspace({ actorPrincipalID, onCreated, onClose }: Props) {
+export function ProgramSetupWorkspace({ actorPrincipalID, canConfigureSources, onCreated, onClose }: Props) {
   const [aggregate, setAggregate] = useState<ProgramAggregate | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -71,7 +71,7 @@ export function ProgramSetupWorkspace({ actorPrincipalID, onCreated, onClose }: 
           <button className="secondary-button" type="submit" disabled={saving}>{saving ? "Adding…" : "Add requirement"}</button>
         </form>
       </section>
-      <MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID}/>
+      <MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources}/>
     </div>}
   </section>;
 }

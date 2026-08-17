@@ -28,8 +28,8 @@ export function TodayView({ organizationName, items, connection, generatedAt, re
   </>;
 }
 
-export function ProgramsView({ organizationName, actorPrincipalID, targetID, openFirst }: { organizationName: string; actorPrincipalID?: string; targetID?: string; openFirst?: boolean }) {
-  return <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Programs</h1><p>Ongoing obligations, safeguards, evidence checks and open issues.</p></div></header><ProgramsWorkspace targetID={targetID} openFirst={openFirst} actorPrincipalID={actorPrincipalID}/></>;
+export function ProgramsView({ organizationName, actorPrincipalID, canConfigureSources, targetID, openFirst }: { organizationName: string; actorPrincipalID?: string; canConfigureSources?: boolean; targetID?: string; openFirst?: boolean }) {
+  return <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Programs</h1><p>Ongoing obligations, safeguards, evidence checks and open issues.</p></div></header><ProgramsWorkspace targetID={targetID} openFirst={openFirst} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources}/></>;
 }
 
 export function ExploreView({ organizationName }: { organizationName: string }) {

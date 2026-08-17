@@ -27,6 +27,8 @@
 .monitoring-choice-grid { margin-top: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .monitoring-choice-grid button { min-height: 116px; padding: 18px; text-align: left; display: grid; align-content: center; gap: 7px; cursor: pointer; color: var(--text); border: 1px solid var(--border); border-radius: 13px; background: var(--surface); transition: border-color .18s ease, background .18s ease; }
 .monitoring-choice-grid button:hover, .monitoring-choice-grid button:focus-visible { border-color: var(--cyan); background: rgba(91,198,214,.08); outline: none; }
+.monitoring-choice-grid button:disabled { cursor: not-allowed; opacity: .58; }
+.monitoring-choice-grid button:disabled:hover { border-color: var(--border); background: var(--surface); }
 .monitoring-choice-grid button span { color: var(--muted); font-size: 12px; line-height: 1.5; }
 .monitoring-builder, .source-next-step { margin-top: 16px; padding: 18px; border: 1px solid rgba(158,146,244,.32); border-radius: 14px; background: rgba(19,34,52,.6); }
 .monitoring-builder-heading { margin-bottom: 18px; }
@@ -50,6 +52,13 @@
 .monitoring-result strong { color: var(--text); font-size: 18px; }
 .monitoring-result span, .monitoring-result time { color: var(--muted); font-size: 11px; }
 .monitoring-result time { grid-column: 1 / -1; }
+.monitoring-result-detail { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 10px; }
+.monitoring-result-detail summary { color: var(--cyan); cursor: pointer; font-size: 12px; font-weight: 650; }
+.monitoring-result-detail p { margin-top: 8px; }
+.monitoring-result-detail ul { margin: 9px 0 0; padding-left: 20px; display: grid; gap: 7px; }
+.monitoring-result-detail li { color: var(--muted); font-size: 12px; }
+.monitoring-result-detail li strong, .monitoring-result-detail li span { display: block; }
+.monitoring-result-detail li strong { color: var(--text); }
 .risk-band { justify-self: start; padding: 3px 7px; border-radius: 999px; border: 1px solid var(--border); }
 .risk-band-critical, .risk-band-high { color: #ffd8de !important; border-color: rgba(241,122,141,.35); background: rgba(241,122,141,.1); }
 .risk-band-moderate { color: #ffe5b2 !important; border-color: rgba(231,182,92,.35); background: rgba(231,182,92,.1); }

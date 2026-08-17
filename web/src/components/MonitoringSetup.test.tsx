@@ -60,7 +60,7 @@ describe("monitoring setup", () => {
   });
 
   it("keeps Program monitoring in the page and offers the two supported input choices", async () => {
-    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1"/>);
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources/>);
     expect(await screen.findByRole("heading", { name: "Monitoring" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Add monitoring check" }));
     expect(screen.getByRole("button", { name: "Collection form" })).toBeTruthy();
@@ -68,28 +68,47 @@ describe("monitoring setup", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("does not collect a form until its exact Program check is active", async () => {
+    vi.mocked(loadFormTemplates).mockResolvedValue([{
+      id: "form-1", tenant_id: "bank-1", code: "RESET", name: "Password reset review", purpose: "Confirm safeguards", fields: [],
+      status: "ACTIVE", is_current: true, version: 2, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    }]);
+
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources/>);
+
+    expect(await screen.findByRole("button", { name: "Create monitoring check" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Collect responses" })).toBeNull();
+  });
+
   it("shows the latest risk and coverage for each monitoring check", async () => {
+    vi.mocked(loadFormTemplates).mockResolvedValue([{
+      id: "form-1", tenant_id: "bank-1", code: "RESET", name: "Password reset review", purpose: "Confirm safeguards",
+      fields: [{ id: "identity", label: "Was identity verified?", type: "single_select", required: true, options: ["Yes", "No"] }],
+      status: "ACTIVE", is_current: true, version: 1, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    }]);
     vi.mocked(loadMonitoringChecks).mockResolvedValue([{
-      id: "check-1", tenant_id: "bank-1", program_id: "program-1", code: "FACE-SDK", name: "Live face verification", claim: "Live verification is available", input_kind: "SOURCE",
-      binding_id: "binding-1", binding_version: 1, thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1,
+      id: "check-1", tenant_id: "bank-1", program_id: "program-1", code: "RESET", name: "Password reset review", claim: "Safeguards operated", input_kind: "FORM",
+      form_template_id: "form-1", form_template_version: 1, thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1,
       failure_action: "RECOMMEND_MATTER", status: "ACTIVE", is_current: true, version: 2, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
     }]);
     vi.mocked(loadMonitoringResults).mockResolvedValue([{
       id: "result-1", monitoring_check_id: "check-1", monitoring_check_version: 2, evaluated_at: "2026-08-17T12:00:00Z",
-      evaluation: { score: 100, band: "CRITICAL", coverage: 1 },
+      evaluation: { score: 100, band: "CRITICAL", coverage: 1, rule_results: [{ field_id: "identity", outcome: "FAIL", points: 100, critical: true, reason: "Answer evaluated against the active form rule." }] },
     }]);
 
-    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1"/>);
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources/>);
 
     expect(await screen.findByText("100% risk")).toBeTruthy();
     expect(screen.getByText("100% coverage")).toBeTruthy();
     expect(screen.getByText("Critical")).toBeTruthy();
+    fireEvent.click(screen.getByText("Review result"));
+    expect(screen.getByText("Was identity verified?")).toBeTruthy();
   });
 
   it("creates a channel Program from business fields without technical identifiers", async () => {
     vi.mocked(createProgram).mockResolvedValue(program);
     const onCreated = vi.fn();
-    render(<ProgramSetupWorkspace actorPrincipalID="owner-1" onCreated={onCreated} onClose={vi.fn()}/>);
+    render(<ProgramSetupWorkspace actorPrincipalID="owner-1" canConfigureSources onCreated={onCreated} onClose={vi.fn()}/>);
     fireEvent.change(screen.getByLabelText("Program name"), { target: { value: "Mobile banking" } });
     fireEvent.change(screen.getByLabelText("Code"), { target: { value: "MOBILE" } });
     fireEvent.change(screen.getByLabelText("Owning function"), { target: { value: "Digital Banking" } });
@@ -114,9 +133,17 @@ describe("monitoring setup", () => {
     fireEvent.change(screen.getByLabelText("Status endpoint"), { target: { value: "https://status.example/sdk" } });
     fireEvent.click(screen.getByRole("button", { name: "Test endpoint" }));
     expect(await screen.findByLabelText("Status field")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Monitoring statement"), { target: { value: "The live face verification SDK is enabled on mobile banking." } });
     fireEvent.change(screen.getByLabelText("Expected value"), { target: { value: "true" } });
     fireEvent.click(screen.getByRole("button", { name: "Use this source" }));
     await waitFor(() => expect(createRESTBinding).toHaveBeenCalledWith(prepared, "sdk_present"));
-    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ binding_id: "binding-1" }), expect.objectContaining({ field: "sdk_present", expected: "true" }));
+    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ binding_id: "binding-1" }), expect.objectContaining({ field: "sdk_present", expected: "true", claim: "The live face verification SDK is enabled on mobile banking." }));
+  });
+
+  it("does not start source configuration without configuration access", async () => {
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources={false}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Add monitoring check" }));
+    expect(screen.getByRole("button", { name: "Connected data" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByText("A GRC administrator can connect a new source.")).toBeTruthy();
   });
 });

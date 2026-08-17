@@ -88,6 +88,14 @@ func TestServiceStartsCollectionFromExactActiveForm(t *testing.T) {
 	if _, err := repo.CreateFormRevision(context.Background(), form); err != nil {
 		t.Fatal(err)
 	}
+	check := MonitoringCheck{
+		ID: "check-1", TenantID: "bank-a", ProgramID: "program-1", Code: "PASSWORD-RESET-CHECK", Name: "Password reset review", Claim: "Password reset safeguards operated.",
+		InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version, Thresholds: DefaultThresholds(), FreshnessMinutes: 10080, MinimumCoverage: 1, FailureAction: FailureReview,
+		Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 1},
+	}
+	if _, err := repo.CreateCheckRevision(context.Background(), check); err != nil {
+		t.Fatal(err)
+	}
 	periodStart := now.AddDate(0, 0, -7)
 	periodEnd := now
 
@@ -103,6 +111,22 @@ func TestServiceStartsCollectionFromExactActiveForm(t *testing.T) {
 	}
 	if requests.input.KnownFacts["reviewer"] != "reviewer" {
 		t.Fatalf("reviewer fact missing: %#v", requests.input.KnownFacts)
+	}
+}
+
+func TestServiceRejectsCollectionWithoutActiveProgramCheck(t *testing.T) {
+	repo := NewMemoryRepository()
+	service := NewService(repo, &recordingRequestCreator{})
+	now := time.Date(2026, 8, 17, 11, 0, 0, 0, time.UTC)
+	activeAt := now.Add(-time.Hour)
+	form := FormTemplate{ID: "form-1", TenantID: "bank-a", Code: "FORM", Name: "Form", Purpose: "Purpose", Fields: []TemplateField{{ID: "answer", Label: "Answer", Type: "single_select", Required: true, Options: []string{"Yes", "No"}, Scoring: &FormField{ID: "answer", Required: true, Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}}}}, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 1}}
+	if _, err := repo.CreateFormRevision(context.Background(), form); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := service.StartCollection(context.Background(), Actor{TenantID: "bank-a", PrincipalID: "owner"}, StartCollectionInput{FormTemplateID: form.ID, FormTemplateVersion: form.Version, ProgramID: "program-1", RespondentPrincipalID: "respondent", ReviewerPrincipalID: "reviewer", PeriodStart: now.Add(-time.Hour), PeriodEnd: now, Deadline: now.Add(time.Hour)})
+	if !errors.Is(err, ErrInactive) {
+		t.Fatalf("collection without active check error = %v, want inactive", err)
 	}
 }
 

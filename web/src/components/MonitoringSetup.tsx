@@ -7,7 +7,7 @@ import { FormBuilder } from "./FormBuilder";
 import { DataSourceBuilder } from "./DataSourceBuilder";
 import type { SourceBinding } from "../sourceConfigApi";
 
-type Props = { aggregate: ProgramAggregate; actorPrincipalID: string };
+type Props = { aggregate: ProgramAggregate; actorPrincipalID: string; canConfigureSources: boolean };
 type SetupMode = "closed" | "choose" | "form" | "source";
 
 function latestByID<T extends { id: string; version: number }>(values: T[]) {
@@ -35,7 +35,7 @@ function bandLabel(result: MonitoringResult) {
   return result.evaluation.band.toLowerCase().replaceAll("_", " ").replace(/^./, (value) => value.toUpperCase());
 }
 
-export function MonitoringSetup({ aggregate, actorPrincipalID }: Props) {
+export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSources }: Props) {
   const [forms, setForms] = useState<FormTemplate[]>([]);
   const [checks, setChecks] = useState<MonitoringCheck[]>([]);
   const [latestResults, setLatestResults] = useState<Record<string, MonitoringResult>>({});
@@ -63,7 +63,9 @@ export function MonitoringSetup({ aggregate, actorPrincipalID }: Props) {
 
   useEffect(() => { void reload(); }, [aggregate.program.id]);
 
-  const linkedFormIDs = useMemo(() => new Set(checks.map((check) => check.form_template_id).filter(Boolean)), [checks]);
+  const linkedFormVersions = useMemo(() => new Set(checks.filter((check) => check.input_kind === "FORM").map((check) => `${check.form_template_id}:${check.form_template_version}`)), [checks]);
+  const activeFormVersions = useMemo(() => new Set(checks.filter((check) => check.input_kind === "FORM" && check.status === "ACTIVE" && check.is_current).map((check) => `${check.form_template_id}:${check.form_template_version}`)), [checks]);
+  const formFields = useMemo(() => new Map(forms.flatMap((form) => form.fields.map((field) => [`${form.id}:${field.id}`, field.label] as const))), [forms]);
 
   async function changeForm(form: FormTemplate, to: LifecycleStatus) {
     setBusy(form.id); setError("");
@@ -144,14 +146,14 @@ export function MonitoringSetup({ aggregate, actorPrincipalID }: Props) {
   const deadline = new Date(today.getTime() + 2 * 86400000).toISOString().slice(0, 16);
 
   return <section className="monitoring-setup" aria-labelledby={`monitoring-${aggregate.program.id}`}>
-    <div className="monitoring-section-heading"><div><h3 id={`monitoring-${aggregate.program.id}`}>Monitoring</h3><p>Collect responses or evaluate connected data against defined risk rules.</p></div><button className="secondary-button" type="button" onClick={() => setMode(mode === "closed" ? "choose" : "closed")}>{mode === "closed" ? "Add monitoring check" : "Close setup"}</button></div>
+    <div className="monitoring-section-heading"><div><h3 id={`monitoring-${aggregate.program.id}`}>Monitoring</h3><p>Collect responses or check connected data and calculate risk.</p></div><button className="secondary-button" type="button" onClick={() => setMode(mode === "closed" ? "choose" : "closed")}>{mode === "closed" ? "Add monitoring check" : "Close setup"}</button></div>
     {state === "loading" && <p aria-live="polite">Loading monitoring checks…</p>}
     {state === "unavailable" && <div className="inline-error"><p>Monitoring checks could not be loaded.</p><button className="secondary-button" type="button" onClick={() => void reload()}>Try again</button></div>}
     {error && <p className="inline-form-error" role="alert">{error}</p>}
     {notice && <p className="inline-success" role="status">{notice}</p>}
     {mode === "choose" && <div className="monitoring-choice-grid">
       <button type="button" aria-label="Collection form" onClick={() => setMode("form")}><strong>Collection form</strong><span>Ask assigned staff for structured responses and score the answers.</span></button>
-      <button type="button" aria-label="Connected data" onClick={() => setMode("source")}><strong>Connected data</strong><span>Evaluate an approved data source or endpoint against defined rules.</span></button>
+      <button type="button" aria-label="Connected data" disabled={!canConfigureSources} onClick={() => setMode("source")}><strong>Connected data</strong><span>{canConfigureSources ? "Check a status endpoint and calculate risk from the returned value." : "A GRC administrator can connect a new source."}</span></button>
     </div>}
     {mode === "form" && <FormBuilder onCancel={() => setMode("choose")} onSaved={(form) => { setForms((current) => latestByID([...current, form])); setMode("closed"); setNotice("Form draft saved."); }}/>} 
     {mode === "source" && <DataSourceBuilder onCancel={() => setMode("choose")} onSaved={(binding, config) => void addSourceCheck(binding, config)}/>} 
@@ -163,8 +165,8 @@ export function MonitoringSetup({ aggregate, actorPrincipalID }: Props) {
           {form.status === "DRAFT" && <button className="secondary-button" disabled={busy === form.id} onClick={() => void changeForm(form, "PENDING_APPROVAL")}>Send for approval</button>}
           {form.status === "PENDING_APPROVAL" && form.submitted_by !== actorPrincipalID && <button className="primary-button" disabled={busy === form.id} onClick={() => void changeForm(form, "ACTIVE")}>Approve form</button>}
           {form.status === "PENDING_APPROVAL" && form.submitted_by === actorPrincipalID && <span className="action-note">Another approver must approve this form.</span>}
-          {form.status === "ACTIVE" && !linkedFormIDs.has(form.id) && <button className="secondary-button" disabled={busy === form.id} onClick={() => void addCheck(form)}>Create monitoring check</button>}
-          {form.status === "ACTIVE" && <button className="primary-button" disabled={busy === form.id} onClick={() => setCollecting(form)}>Collect responses</button>}
+          {form.status === "ACTIVE" && !linkedFormVersions.has(`${form.id}:${form.version}`) && <button className="secondary-button" disabled={busy === form.id} onClick={() => void addCheck(form)}>Create monitoring check</button>}
+          {form.status === "ACTIVE" && activeFormVersions.has(`${form.id}:${form.version}`) && <button className="primary-button" disabled={busy === form.id} onClick={() => setCollecting(form)}>Collect responses</button>}
         </div>
         {collecting?.id === form.id && <form className="collection-schedule" onSubmit={collect}>
           <label><span>Period starts</span><input name="period_start" type="date" defaultValue={periodStart} required/></label>
@@ -190,6 +192,14 @@ export function MonitoringSetup({ aggregate, actorPrincipalID }: Props) {
           {check.status === "PENDING_APPROVAL" && check.submitted_by === actorPrincipalID && <span className="action-note">Another approver must approve this check.</span>}
           {check.status === "ACTIVE" && check.input_kind === "SOURCE" && <button className="primary-button" disabled={busy === check.id} onClick={() => void runSourceCheck(check)}>{busy === check.id ? "Checking…" : "Check source now"}</button>}
         </div>
+        {result && <details className="monitoring-result-detail">
+          <summary>Review result</summary>
+          {result.evaluation.band === "NOT_ASSESSED" ? <p>The available response or source data was not sufficient to calculate risk.</p> : (() => {
+            const exceptions = (result.evaluation.rule_results ?? []).filter((rule) => rule.outcome !== "PASS");
+            if (!exceptions.length) return <p>All configured checks passed.</p>;
+            return <ul>{exceptions.map((rule) => <li key={`${rule.rule_id ?? "form"}-${rule.field_id}`}><strong>{check.form_template_id ? formFields.get(`${check.form_template_id}:${rule.field_id}`) ?? rule.field_id : rule.field_id}</strong><span>{rule.reason}</span></li>)}</ul>;
+          })()}
+        </details>}
       </article>;})}
     </div>}
   </section>;
