@@ -62,6 +62,40 @@ func (r *MemoryRepository) ListFormRevisions(_ context.Context, tenant string, l
 	return boundedForms(values, limit), nil
 }
 
+func (r *MemoryRepository) TransitionForm(_ context.Context, input LifecycleTransition) (FormTemplate, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	key := revisionKey(input.TenantID, input.ID, input.ExpectedVersion)
+	current, ok := r.forms[key]
+	if !ok {
+		return FormTemplate{}, ErrNotFound
+	}
+	nextLifecycle, err := transitionLifecycle(current.Lifecycle, input)
+	if err != nil {
+		return FormTemplate{}, err
+	}
+	next := cloneValue(current)
+	next.Lifecycle = nextLifecycle
+	nextKey := revisionKey(input.TenantID, input.ID, next.Version)
+	if _, exists := r.forms[nextKey]; exists {
+		return FormTemplate{}, ErrConflict
+	}
+	if next.IsCurrent || current.IsCurrent {
+		for storedKey, stored := range r.forms {
+			if stored.TenantID == input.TenantID && stored.ID == input.ID && stored.IsCurrent {
+				stored.IsCurrent = false
+				stored.Status = LifecycleRetired
+				until := input.At.UTC()
+				stored.EffectiveUntil = &until
+				stored.UpdatedAt = until
+				r.forms[storedKey] = stored
+			}
+		}
+	}
+	r.forms[nextKey] = cloneValue(next)
+	return cloneValue(next), nil
+}
+
 func (r *MemoryRepository) CreateCheckRevision(_ context.Context, value MonitoringCheck) (MonitoringCheck, error) {
 	if value.TenantID == "" || value.ID == "" || value.ProgramID == "" || value.Version < 1 {
 		return MonitoringCheck{}, ErrInvalid
@@ -103,6 +137,91 @@ func (r *MemoryRepository) ListCheckRevisions(_ context.Context, tenant, program
 		return values[i].Code < values[j].Code
 	})
 	return boundedChecks(values, limit), nil
+}
+
+func (r *MemoryRepository) TransitionCheck(_ context.Context, input LifecycleTransition) (MonitoringCheck, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	key := revisionKey(input.TenantID, input.ID, input.ExpectedVersion)
+	current, ok := r.checks[key]
+	if !ok {
+		return MonitoringCheck{}, ErrNotFound
+	}
+	nextLifecycle, err := transitionLifecycle(current.Lifecycle, input)
+	if err != nil {
+		return MonitoringCheck{}, err
+	}
+	next := cloneValue(current)
+	next.Lifecycle = nextLifecycle
+	nextKey := revisionKey(input.TenantID, input.ID, next.Version)
+	if _, exists := r.checks[nextKey]; exists {
+		return MonitoringCheck{}, ErrConflict
+	}
+	if next.IsCurrent || current.IsCurrent {
+		for storedKey, stored := range r.checks {
+			if stored.TenantID == input.TenantID && stored.ID == input.ID && stored.IsCurrent {
+				stored.IsCurrent = false
+				stored.Status = LifecycleRetired
+				until := input.At.UTC()
+				stored.EffectiveUntil = &until
+				stored.UpdatedAt = until
+				r.checks[storedKey] = stored
+			}
+		}
+	}
+	r.checks[nextKey] = cloneValue(next)
+	return cloneValue(next), nil
+}
+
+func transitionLifecycle(current Lifecycle, input LifecycleTransition) (Lifecycle, error) {
+	if input.TenantID == "" || input.ID == "" || input.ActorID == "" || input.ExpectedVersion < 1 || input.At.IsZero() {
+		return Lifecycle{}, ErrInvalid
+	}
+	allowed := false
+	switch current.Status {
+	case LifecycleDraft:
+		allowed = input.To == LifecyclePendingApproval
+	case LifecyclePendingApproval:
+		allowed = input.To == LifecycleActive || input.To == LifecycleRejected
+	case LifecycleActive:
+		allowed = input.To == LifecyclePaused || input.To == LifecycleRetired
+	case LifecyclePaused:
+		allowed = input.To == LifecycleActive || input.To == LifecycleRetired
+	}
+	if !allowed {
+		return Lifecycle{}, ErrInvalid
+	}
+	now := input.At.UTC()
+	next := current
+	next.Status = input.To
+	next.Version++
+	next.UpdatedAt = now
+	next.IsCurrent = input.To == LifecycleActive || input.To == LifecyclePaused
+	switch input.To {
+	case LifecyclePendingApproval:
+		next.SubmittedBy = input.ActorID
+		next.EffectiveFrom = nil
+		next.EffectiveUntil = nil
+	case LifecycleActive:
+		next.ApprovedBy = input.ActorID
+		if next.EffectiveFrom == nil {
+			next.EffectiveFrom = &now
+		}
+		next.EffectiveUntil = nil
+	case LifecycleRejected:
+		next.RejectedBy = input.ActorID
+		next.EffectiveFrom = nil
+		next.EffectiveUntil = nil
+	case LifecyclePaused:
+		next.EffectiveUntil = nil
+	case LifecycleRetired:
+		next.IsCurrent = false
+		if next.EffectiveFrom == nil {
+			next.EffectiveFrom = &now
+		}
+		next.EffectiveUntil = &now
+	}
+	return next, nil
 }
 
 func (r *MemoryRepository) AppendResult(_ context.Context, value MonitoringResult) (MonitoringResult, error) {

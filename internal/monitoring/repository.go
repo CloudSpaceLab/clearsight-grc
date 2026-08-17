@@ -3,6 +3,7 @@ package monitoring
 import (
 	"context"
 	"errors"
+	"time"
 )
 
 var (
@@ -11,13 +12,24 @@ var (
 	ErrInvalid  = errors.New("monitoring record is invalid")
 )
 
+type LifecycleTransition struct {
+	TenantID        string
+	ID              string
+	ExpectedVersion int64
+	To              LifecycleStatus
+	ActorID         string
+	At              time.Time
+}
+
 type Repository interface {
 	CreateFormRevision(context.Context, FormTemplate) (FormTemplate, error)
 	FormRevision(context.Context, string, string, int64) (FormTemplate, error)
 	ListFormRevisions(context.Context, string, int) ([]FormTemplate, error)
+	TransitionForm(context.Context, LifecycleTransition) (FormTemplate, error)
 	CreateCheckRevision(context.Context, MonitoringCheck) (MonitoringCheck, error)
 	CheckRevision(context.Context, string, string, int64) (MonitoringCheck, error)
 	ListCheckRevisions(context.Context, string, string, int) ([]MonitoringCheck, error)
+	TransitionCheck(context.Context, LifecycleTransition) (MonitoringCheck, error)
 	AppendResult(context.Context, MonitoringResult) (MonitoringResult, error)
 	ListResults(context.Context, string, string, int) ([]MonitoringResult, error)
 }
