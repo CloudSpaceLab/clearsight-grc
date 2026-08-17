@@ -44,7 +44,8 @@ No live table is currently classified as reserved, deprecated/migration-only, or
 | `user_onboarding_state` | active authoritative state | onboarding | onboarding service | onboarding and guide reads | per principal/guide version | retain current guidance state by guide version | onboarding PostgreSQL tests |
 | `compliance_signals` | active authoritative state | autonomy | autonomy service / signal ingestion | drift assessment and diagnostics | immutable observation/effective timestamps; deduplicated | retain governed observation history | `internal/autonomy/postgres.go`; recovery tests |
 | `drift_assessments` | active authoritative state | autonomy | autonomy assessment service | Readiness and autonomy reads | active/resolved/superseded | retain assessment history | `internal/autonomy/postgres.go`; service tests |
-| `automation_policies` | active authoritative state | autonomy configuration | governed configuration/installers | autonomy policy reads and Configure UI | versioned status/effective interval | retain policy lineage; never execution evidence | autonomy repository; rendered tests |
+| `automation_policies` | active authoritative state | autonomy configuration | governed configuration lifecycle | autonomy policy reads, AI gateway runtime snapshots and Configure UI | immutable domain revisions with draft → review → approved → active/shadow-or-enforce → suspended/retired lifecycle | retain policy lineage; never execution evidence | `internal/autonomy/policy_postgres.go`; `internal/aigovernance/service.go`; migration `000035_ai_governance_enforcement` |
+| `ai_workloads` | active authoritative state | AI governance workload registration | governed AI workload lifecycle | AI gateway authentication/runtime snapshot and Configure reads | immutable workload revisions with maker-checker approval, effective interval and one active revision per stable workload identity | retain registration, ownership and credential-digest lineage; raw credentials are never persisted | `internal/aigovernance/postgres.go`; `internal/aigovernance/runtime.go`; migration `000035_ai_governance_enforcement` |
 | `governance_decisions` | active authoritative state | governance | governance transition service | governance history/decision reads | append-only decision record | retain governed decision history | `internal/governance/postgres.go`; integration |
 | `segregation_rules` | active authoritative state | authority / governance | governed authority configuration/installers | effective authority resolver | active status and scope | retain superseded rules | `internal/authority/postgres.go`; authority integration |
 | `workflow_timers` | active infrastructure ledger | runtime scheduler | runtime timer scheduler | timer claimer/firer and queue health | scheduled → claimed/fired with lease | retain per worker operational policy | `internal/runtime/background_jobs_postgres.go` |
@@ -126,3 +127,21 @@ Migration `000033_t2_binding_reuse` changes no table classification and creates 
 - `capture_requests.fields` and `capture_requests.source_bindings` are evidence-capture authoritative state for exact Binding references, pre-human resolutions and canonical receipts;
 - `capture_submissions.answer_provenance` is evidence-capture authoritative state distinguishing source-prefilled, respondent-entered and respondent-corrected values plus non-destructive validation results;
 - `workflow_tasks.source_bindings` is workflow projection context containing deduplicated exact Binding references only. It carries no source values, assignment authority or lifecycle truth.
+
+
+## T4 governed AI enforcement extension
+
+Migration `000035_ai_governance_enforcement` adds one authoritative table and extends two existing governance owners:
+
+- `ai_workloads` stores versioned workload/agent registration, ownership, approved models/resources, SHA-256 credential digests, budgets, exact Automation Policy revision and maker-checker lifecycle. It stores no prompt, response, provider payload or execution receipt;
+- `automation_policies` remains the single governed policy authority. T4 adds immutable AI-gateway definition checksums, `SHADOW`/`ENFORCE` rollout mode, maker/checker attribution and activation/suspension/retirement timestamps rather than creating a gateway-policy table;
+Lifecycle truth stays on the versioned `automation_policies` and `ai_workloads` records with maker/checker attribution and explicit transition timestamps. T4 does not repurpose `governance_decisions` as a gateway-specific history table.
+
+T4 creates no source-fact cache, decision-receipt, execution-grant, connector, queue, scheduler, RBAC or alternate policy table. Adapter-owned caches and external controls remain optional runtime providers.
+
+## T5 receipts, response controls and approval extension
+
+Migration `000035_ai_governance_receipts_grants` adds exactly two bounded AI-governance records:
+
+
+Material `REQUIRE_APPROVAL` receipts reconcile through one stable autonomy Signal/Drift episode key per workload/policy/reason set. Repeated model requests therefore update/dedupe against one governed episode instead of manufacturing one Signal, Matter or Today item per request. Routine successful ALLOW traffic creates no Signal/Drift/Matter/Today work. Exact approval work remains on the existing Matter/Workflow/Today path rather than a gateway-specific task system.
