@@ -9,7 +9,7 @@ import (
 
 func SeedDemo(ctx context.Context, service *Service) error {
 	now := time.Now().UTC()
-	privacy, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank-demo", Code: "NDPA", Name: "Data protection", Type: "PRIVACY", OwningFunction: "Privacy Office", OwnerPrincipalID: "user-demo", AuthorityPrincipalID: "user-demo", Jurisdiction: "Nigeria", Scope: json.RawMessage(`{"legal_entity":"Demonstration Bank Nigeria"}`), EffectiveFrom: now.AddDate(0, -6, 0), ActorID: "user-demo"})
+	privacy, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank-demo", Code: "NDPA", Name: "Data protection", Type: "PRIVACY", OwningFunction: "Privacy Office", OwnerPrincipalID: "user-demo", AuthorityPrincipalID: "user-demo", Jurisdiction: "Nigeria", Scope: json.RawMessage(`{"legal_entity":"Clear Bank Nigeria"}`), EffectiveFrom: now.AddDate(0, -6, 0), ActorID: "user-demo"})
 	if err != nil && err != ErrDuplicate {
 		return fmt.Errorf("create privacy demo: %w", err)
 	}
@@ -19,7 +19,7 @@ func SeedDemo(ctx context.Context, service *Service) error {
 			return err
 		}
 		requirement := privacy.Requirements[0]
-		privacy, err = service.DetermineApplicability(ctx, DetermineApplicabilityInput{TenantID: "bank-demo", ProgramID: privacy.Program.ID, ExpectedVersion: privacy.Program.Version, RequirementID: requirement.ID, Status: ApplicabilityApplicable, Scope: json.RawMessage(`{"legal_entity":"Demonstration Bank Nigeria"}`), Rationale: "The bank processes customer, employee and vendor personal data.", ApprovedBy: "user-demo", EffectiveFrom: now.AddDate(0, -6, 0)})
+		privacy, err = service.DetermineApplicability(ctx, DetermineApplicabilityInput{TenantID: "bank-demo", ProgramID: privacy.Program.ID, ExpectedVersion: privacy.Program.Version, RequirementID: requirement.ID, Status: ApplicabilityApplicable, Scope: json.RawMessage(`{"legal_entity":"Clear Bank Nigeria"}`), Rationale: "The bank processes customer, employee and vendor personal data.", ApprovedBy: "user-demo", EffectiveFrom: now.AddDate(0, -6, 0)})
 		if err != nil {
 			return err
 		}
@@ -27,7 +27,7 @@ func SeedDemo(ctx context.Context, service *Service) error {
 		if err != nil {
 			return err
 		}
-		privacy, err = service.AddControlImplementation(ctx, AddControlImplementationInput{TenantID: "bank-demo", ProgramID: privacy.Program.ID, ExpectedVersion: privacy.Program.Version, ObjectiveID: privacy.ControlObjectives[0].ID, Name: "Quarterly processing-owner review", Description: "Processing owners review changed activities and confirm unresolved facts each quarter.", ImplementationType: "OWNER_REVIEW", OwnerPrincipalID: "user-demo", Scope: json.RawMessage(`{"legal_entity":"Demonstration Bank Nigeria"}`), Status: ImplementationImplemented, EffectiveFrom: now.AddDate(0, -3, 0), ActorID: "user-demo"})
+		privacy, err = service.AddControlImplementation(ctx, AddControlImplementationInput{TenantID: "bank-demo", ProgramID: privacy.Program.ID, ExpectedVersion: privacy.Program.Version, ObjectiveID: privacy.ControlObjectives[0].ID, Name: "Quarterly processing-owner review", Description: "Processing owners review changed activities and confirm unresolved facts each quarter.", ImplementationType: "OWNER_REVIEW", OwnerPrincipalID: "user-demo", Scope: json.RawMessage(`{"legal_entity":"Clear Bank Nigeria"}`), Status: ImplementationImplemented, EffectiveFrom: now.AddDate(0, -3, 0), ActorID: "user-demo"})
 		if err != nil {
 			return err
 		}
@@ -48,13 +48,13 @@ func SeedDemo(ctx context.Context, service *Service) error {
 		if err != nil {
 			return err
 		}
-		_, err = service.CreateMatter(ctx, CreateMatterInput{TenantID: "bank-demo", Type: MatterControlGap, Priority: 3, Title: "Complete missing retention details", Summary: "Fourteen processing records do not have an approved retention period.", Scope: json.RawMessage(`{"legal_entity":"Demonstration Bank Nigeria","population":14}`), KnownFacts: json.RawMessage(`{"missing_retention_records":14}`), MissingFacts: json.RawMessage(`["approved retention period","record owner confirmation"]`), Contradictions: json.RawMessage(`[]`), OwnerPrincipalID: "user-demo", DueAt: timePointer(now.Add(10 * 24 * time.Hour)), ProgramID: privacy.Program.ID, RequirementID: requirement.ID, ActorID: "user-demo"})
+		_, err = service.CreateMatter(ctx, CreateMatterInput{TenantID: "bank-demo", Type: MatterControlGap, Priority: 3, Title: "Complete missing retention details", Summary: "Fourteen processing records do not have an approved retention period.", Scope: json.RawMessage(`{"legal_entity":"Clear Bank Nigeria","population":14}`), KnownFacts: json.RawMessage(`{"missing_retention_records":14}`), MissingFacts: json.RawMessage(`["approved retention period","record owner confirmation"]`), Contradictions: json.RawMessage(`[]`), OwnerPrincipalID: "user-demo", DueAt: timePointer(now.Add(10 * 24 * time.Hour)), ProgramID: privacy.Program.ID, RequirementID: requirement.ID, ActorID: "user-demo"})
 		if err != nil {
 			return err
 		}
 	}
 
-	cyber, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank-demo", Code: "CBN-CYBER", Name: "Cybersecurity controls", Type: "CYBERSECURITY", OwningFunction: "Information Security", OwnerPrincipalID: "user-demo", AuthorityPrincipalID: "user-demo", Jurisdiction: "Nigeria", Scope: json.RawMessage(`{"legal_entity":"Demonstration Bank Nigeria"}`), EffectiveFrom: now.AddDate(-1, 0, 0), ActorID: "user-demo"})
+	cyber, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank-demo", Code: "CBN-CYBER", Name: "Cybersecurity controls", Type: "CYBERSECURITY", OwningFunction: "Information Security", OwnerPrincipalID: "user-demo", AuthorityPrincipalID: "user-demo", Jurisdiction: "Nigeria", Scope: json.RawMessage(`{"legal_entity":"Clear Bank Nigeria"}`), EffectiveFrom: now.AddDate(-1, 0, 0), ActorID: "user-demo"})
 	if err != nil && err != ErrDuplicate {
 		return err
 	}

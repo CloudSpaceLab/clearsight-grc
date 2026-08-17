@@ -17,8 +17,8 @@ func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
 	roleCodes := identity.NormalizeRoleCodes(actor.RoleCodes)
 	tenantName, legalEntityName, actorName := actor.TenantID, actor.LegalEntityID, actor.PrincipalID
 	if a.deps.DemoMode && actor.TenantID == identity.DurableDemoTenantID {
-		tenantName = "ClearSight Demonstration Bank"
-		legalEntityName = "Demonstration Bank Nigeria"
+		tenantName = "Clear Bank"
+		legalEntityName = "Clear Bank Nigeria"
 		actorName = demoActorName(actor.PrincipalID)
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{

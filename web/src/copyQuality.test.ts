@@ -20,6 +20,9 @@ const productCommentary = [
   /atomically activat/i,
   /program truth/i,
   /\bis inferred\b/i,
+  /ClearSight Demonstration Bank/i,
+  /Demonstration Bank Nigeria/i,
+  /\bDemo Bank(?: Nigeria)?\b/i,
 ] as const;
 
 describe("customer-facing product language", () => {

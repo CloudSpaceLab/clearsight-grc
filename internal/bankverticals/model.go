@@ -64,7 +64,7 @@ func DemoSeedConfig() SeedConfig {
 	return SeedConfig{
 		TenantID:             "bank-demo",
 		LegalEntityID:        "",
-		BankName:             "Demonstration Bank Nigeria",
+		BankName:             "Clear Bank Nigeria",
 		ActorID:              "user-demo",
 		OwnerPrincipalID:     "owner-demo",
 		ReviewerPrincipalID:  "reviewer-demo",
