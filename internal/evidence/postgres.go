@@ -281,6 +281,30 @@ func (r *PostgresRepository) Submit(ctx context.Context, submission Submission) 
 	return SubmissionReceipt{SubmissionID: submission.ID, RequestID: submission.RequestID, Status: RequestSubmitted, SubmittedAt: submission.SubmittedAt, Version: version}, nil
 }
 
+func (r *PostgresRepository) GetSubmission(ctx context.Context, tenant, id string) (Submission, error) {
+	var value Submission
+	var answers, provenance []byte
+	err := r.pool.QueryRow(ctx, `
+		SELECT s.id::text,s.tenant_id::text,s.request_id::text,COALESCE(s.session_id::text,''),COALESCE(s.submitted_by::text,''),s.channel,s.answers,s.answer_provenance,s.submitted_at
+		FROM capture_submissions s JOIN tenants t ON t.id=s.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND s.id=$2::uuid`, tenant, id).Scan(
+		&value.ID, &value.TenantID, &value.RequestID, &value.SessionID, &value.SubmittedBy, &value.Channel, &answers, &provenance, &value.SubmittedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Submission{}, ErrNotFound
+	}
+	if err != nil {
+		return Submission{}, err
+	}
+	if err := json.Unmarshal(answers, &value.Answers); err != nil {
+		return Submission{}, err
+	}
+	if err := json.Unmarshal(provenance, &value.AnswerProvenance); err != nil {
+		return Submission{}, err
+	}
+	return value, nil
+}
+
 func (r *PostgresRepository) CreateInvitation(ctx context.Context, value Invitation) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {

@@ -16,14 +16,15 @@ import (
 func TestMonitoringRoutesAreRegisteredOnce(t *testing.T) {
 	routes := (&API{}).routes()
 	want := map[string]bool{
-		"GET /api/v1/form-templates":                     false,
-		"POST /api/v1/form-templates":                    false,
-		"POST /api/v1/form-templates/{id}/transition":    false,
-		"POST /api/v1/form-templates/{id}/collections":   false,
-		"GET /api/v1/programs/{id}/monitoring-checks":    false,
-		"POST /api/v1/programs/{id}/monitoring-checks":   false,
-		"POST /api/v1/monitoring-checks/{id}/transition": false,
-		"GET /api/v1/monitoring-checks/{id}/results":     false,
+		"GET /api/v1/form-templates":                          false,
+		"POST /api/v1/form-templates":                         false,
+		"POST /api/v1/form-templates/{id}/transition":         false,
+		"POST /api/v1/form-templates/{id}/collections":        false,
+		"GET /api/v1/programs/{id}/monitoring-checks":         false,
+		"POST /api/v1/programs/{id}/monitoring-checks":        false,
+		"POST /api/v1/monitoring-checks/{id}/transition":      false,
+		"POST /api/v1/monitoring-checks/{id}/evaluate-source": false,
+		"GET /api/v1/monitoring-checks/{id}/results":          false,
 	}
 	for _, route := range routes {
 		key := route.Method + " " + route.Path

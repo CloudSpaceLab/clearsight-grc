@@ -208,6 +208,30 @@ func (a *API) listMonitoringResults(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values})
 }
 
+func (a *API) evaluateMonitoringSource(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.monitoringService(w)
+	if !ok {
+		return
+	}
+	actor, err := monitoringActor(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
+		return
+	}
+	var input monitoring.EvaluateSourceInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.CheckID = r.PathValue("id")
+	value, err := service.EvaluateSource(r.Context(), actor, input)
+	if err != nil {
+		writeMonitoringError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusCreated, value)
+}
+
 func writeMonitoringError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, monitoring.ErrNotFound):

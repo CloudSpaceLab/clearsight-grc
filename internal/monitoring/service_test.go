@@ -13,6 +13,25 @@ type recordingRequestCreator struct {
 	input evidence.CreateRequestInput
 }
 
+type recordingEvidenceReader struct {
+	request    evidence.Request
+	submission evidence.Submission
+}
+
+func (r recordingEvidenceReader) GetRequest(_ context.Context, tenant, id string) (evidence.Request, error) {
+	if r.request.TenantID != tenant || r.request.ID != id {
+		return evidence.Request{}, evidence.ErrNotFound
+	}
+	return r.request, nil
+}
+
+func (r recordingEvidenceReader) GetSubmission(_ context.Context, tenant, id string) (evidence.Submission, error) {
+	if r.submission.TenantID != tenant || r.submission.ID != id {
+		return evidence.Submission{}, evidence.ErrNotFound
+	}
+	return r.submission, nil
+}
+
 func (r *recordingRequestCreator) CreateRequest(_ context.Context, input evidence.CreateRequestInput) (evidence.Request, error) {
 	r.input = input
 	return evidence.Request{
@@ -177,5 +196,35 @@ func TestServiceRejectsInvalidFormScoring(t *testing.T) {
 	})
 	if !errors.Is(err, ErrInvalid) {
 		t.Fatalf("invalid score error = %v", err)
+	}
+}
+
+func TestServiceEvaluatesSubmissionAgainstExactActiveRevisions(t *testing.T) {
+	repo := NewMemoryRepository()
+	now := time.Date(2026, 8, 17, 14, 0, 0, 0, time.UTC)
+	activeAt := now.Add(-time.Hour)
+	form := FormTemplate{ID: "form-1", TenantID: "bank-a", Code: "RESET", Name: "Password reset review", Purpose: "Review safeguards.", Fields: []TemplateField{{ID: "secure", Label: "Secure", Type: "single_select", Required: true, Options: []string{"Yes", "No"}, Scoring: &FormField{ID: "secure", Required: true, Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}, CriticalAnswers: []string{"No"}}}}, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 3}}
+	check := MonitoringCheck{ID: "check-1", TenantID: "bank-a", ProgramID: "program-1", Code: "RESET-CHECK", Name: "Password reset safeguards", Claim: "Safeguards operated.", InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version, Thresholds: DefaultThresholds(), FreshnessMinutes: 10080, MinimumCoverage: 1, FailureAction: FailureReview, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 2}}
+	if _, err := repo.CreateFormRevision(context.Background(), form); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.CreateCheckRevision(context.Background(), check); err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(repo, &recordingRequestCreator{})
+	service.now = func() time.Time { return now }
+	service.newID = func() (string, error) { return "result-1", nil }
+	service.ConfigureEvidenceReader(recordingEvidenceReader{
+		request:    evidence.Request{ID: "request-1", TenantID: "bank-a", SubjectType: "PROGRAM", SubjectID: "program-1", FormTemplateID: form.ID, FormTemplateVersion: form.Version},
+		submission: evidence.Submission{ID: "submission-1", TenantID: "bank-a", RequestID: "request-1", Channel: "INTERNAL", Answers: map[string]string{"secure": "No"}, SubmittedBy: "operator", SubmittedAt: now},
+	})
+
+	results, err := service.EvaluateSubmission(context.Background(), "bank-a", "submission-1")
+	if err != nil || len(results) != 1 || results[0].Evaluation.Score == nil || *results[0].Evaluation.Score != 100 || results[0].Evaluation.Band != RiskCritical {
+		t.Fatalf("results = %#v, err = %v", results, err)
+	}
+	stored, err := repo.ListResults(context.Background(), "bank-a", check.ID, 10)
+	if err != nil || len(stored) != 1 || stored[0].InputReferenceID != "submission-1" || len(stored[0].SubmissionProvenance) == 0 {
+		t.Fatalf("stored = %#v, err = %v", stored, err)
 	}
 }

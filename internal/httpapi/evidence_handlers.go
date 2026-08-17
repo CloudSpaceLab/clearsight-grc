@@ -11,6 +11,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
 func (a *API) evidenceService(w http.ResponseWriter) (*evidence.Service, bool) {
@@ -53,6 +54,12 @@ func (a *API) createEvidenceSource(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "source_invalid", err.Error())
 		return
+	}
+	if a.deps.SourceCatalog != nil {
+		if err := a.deps.SourceCatalog.RegisterSourceScope(r.Context(), sourceaccess.SourceScope{TenantID: value.TenantID, SourceID: value.ID}); err != nil {
+			httpx.WriteError(w, http.StatusInternalServerError, "source_registration_failed", "The source was created but could not be prepared for connection setup.")
+			return
+		}
 	}
 	httpx.WriteJSON(w, http.StatusCreated, value)
 }
@@ -173,6 +180,16 @@ func (a *API) submitEvidenceRequest(w http.ResponseWriter, r *http.Request) {
 		input.Channel = "INTERNAL"
 	}
 	receipt, err := service.Submit(r.Context(), input)
+	if err == nil && a.deps.Monitoring != nil {
+		results, evaluateErr := a.deps.Monitoring.EvaluateSubmission(r.Context(), input.TenantID, receipt.SubmissionID)
+		if evaluateErr != nil {
+			if a.deps.Logger != nil {
+				a.deps.Logger.Warn("monitoring evaluation after evidence submission failed", "tenant_id", input.TenantID, "submission_id", receipt.SubmissionID, "error", evaluateErr)
+			}
+		} else if len(results) > 0 {
+			w.Header().Set("X-ClearSight-Monitoring-Results", strconv.Itoa(len(results)))
+		}
+	}
 	writeEvidenceSubmissionResult(w, receipt, err)
 }
 

@@ -59,6 +59,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	sourceCatalog := sourceaccess.NewCatalogService(catalogRepo, sourceaccess.EnvironmentSecretResolver{}, adapters)
 	evidenceService.ConfigureSourceBindings(sourceCatalog)
 	monitoringService := monitoring.NewService(monitoring.NewMemoryRepository(), evidenceService)
+	monitoringService.ConfigureSourceReader(sourceCatalog)
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepo)
 	coverageService := documentcoverage.NewService(documentcoverage.NewMemoryRepository(), documentService, continuityService)

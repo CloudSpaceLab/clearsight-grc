@@ -2,6 +2,7 @@ package monitoring
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
 var (
@@ -67,19 +69,48 @@ type CreateCheckInput struct {
 	FailureAction           FailureAction `json:"failure_action"`
 }
 
+type EvaluateSourceInput struct {
+	CheckID      string `json:"check_id"`
+	CheckVersion int64  `json:"check_version"`
+}
+
 type requestCreator interface {
 	CreateRequest(context.Context, evidence.CreateRequestInput) (evidence.Request, error)
+}
+
+type evidenceReader interface {
+	GetRequest(context.Context, string, string) (evidence.Request, error)
+	GetSubmission(context.Context, string, string) (evidence.Submission, error)
+}
+
+type sourceReader interface {
+	Binding(context.Context, string, string, int64) (sourceaccess.BindingRevision, error)
+	PreviewBinding(context.Context, string, string, int64, sourceaccess.PageRequest) (sourceaccess.RecordPage, error)
 }
 
 type Service struct {
 	repo     Repository
 	requests requestCreator
+	evidence evidenceReader
+	sources  sourceReader
 	now      func() time.Time
 	newID    func() (string, error)
 }
 
 func NewService(repo Repository, requests requestCreator) *Service {
-	return &Service{repo: repo, requests: requests, now: time.Now, newID: id.NewUUIDv7}
+	service := &Service{repo: repo, requests: requests, now: time.Now, newID: id.NewUUIDv7}
+	if reader, ok := requests.(evidenceReader); ok {
+		service.evidence = reader
+	}
+	return service
+}
+
+func (s *Service) ConfigureEvidenceReader(reader evidenceReader) {
+	s.evidence = reader
+}
+
+func (s *Service) ConfigureSourceReader(reader sourceReader) {
+	s.sources = reader
 }
 
 func (s *Service) CreateForm(ctx context.Context, actor Actor, input CreateFormInput) (FormTemplate, error) {
@@ -250,6 +281,132 @@ func (s *Service) ListResults(ctx context.Context, actor Actor, checkID string, 
 		return nil, errors.Join(ErrInvalid, fmt.Errorf("monitoring check is required"))
 	}
 	return s.repo.ListResults(ctx, actor.TenantID, checkID, limit)
+}
+
+func (s *Service) EvaluateSource(ctx context.Context, actor Actor, input EvaluateSourceInput) (MonitoringResult, error) {
+	if err := validateActor(actor); err != nil {
+		return MonitoringResult{}, err
+	}
+	if strings.TrimSpace(input.CheckID) == "" || input.CheckVersion < 1 {
+		return MonitoringResult{}, errors.Join(ErrInvalid, fmt.Errorf("monitoring check and version are required"))
+	}
+	if s.sources == nil {
+		return MonitoringResult{}, fmt.Errorf("connected-source reads are unavailable")
+	}
+	check, err := s.repo.CheckRevision(ctx, actor.TenantID, input.CheckID, input.CheckVersion)
+	if err != nil {
+		return MonitoringResult{}, err
+	}
+	if check.Status != LifecycleActive || !check.IsCurrent || check.InputKind != InputSource {
+		return MonitoringResult{}, ErrInactive
+	}
+	binding, err := s.sources.Binding(ctx, actor.TenantID, check.BindingID, check.BindingVersion)
+	if err != nil {
+		return MonitoringResult{}, err
+	}
+	if binding.BindingID != check.BindingID || binding.Version != check.BindingVersion || binding.TenantID != actor.TenantID {
+		return MonitoringResult{}, errors.Join(ErrInvalid, fmt.Errorf("connected-source revision does not match the monitoring check"))
+	}
+	page, err := s.sources.PreviewBinding(ctx, actor.TenantID, check.BindingID, check.BindingVersion, sourceaccess.PageRequest{Limit: 2})
+	if err != nil {
+		return MonitoringResult{}, err
+	}
+	now := s.now().UTC()
+	state := evidence.SourceResolutionCurrent
+	if page.NextCursor != nil || page.Receipt.Completeness != sourceaccess.CompletenessComplete {
+		state = evidence.SourceResolutionPartial
+	} else if check.FreshnessMinutes > 0 && (page.Receipt.ObservedAt.IsZero() || now.Sub(page.Receipt.ObservedAt) > time.Duration(check.FreshnessMinutes)*time.Minute) {
+		state = evidence.SourceResolutionStale
+	}
+	resolution := evidence.SourceResolution{BindingID: binding.BindingID, BindingVersion: binding.Version, BindingName: binding.Name, SourceID: binding.SourceID, State: state, Records: page.Records, Receipt: &page.Receipt}
+	evaluation, err := EvaluateSource(check.SourceRules, resolution, check.Thresholds, now)
+	if err != nil {
+		return MonitoringResult{}, err
+	}
+	receipt, err := json.Marshal(page.Receipt)
+	if err != nil {
+		return MonitoringResult{}, err
+	}
+	resultID, err := s.newID()
+	if err != nil {
+		return MonitoringResult{}, err
+	}
+	inputReference := check.BindingID + ":" + page.Receipt.ObservedAt.UTC().Format(time.RFC3339Nano)
+	return s.repo.AppendResult(ctx, MonitoringResult{
+		ID: resultID, TenantID: actor.TenantID, ProgramID: check.ProgramID, MonitoringCheckID: check.ID, MonitoringCheckVersion: check.Version,
+		InputKind: InputSource, InputReferenceID: inputReference, InputReferenceVersion: check.BindingVersion,
+		Evaluation: evaluation, SourceReceipt: receipt, EvaluatedAt: now, EvaluatorVersion: "monitoring-risk-v1", CreatedAt: now,
+	})
+}
+
+func (s *Service) EvaluateSubmission(ctx context.Context, tenantID, submissionID string) ([]MonitoringResult, error) {
+	if strings.TrimSpace(tenantID) == "" || strings.TrimSpace(submissionID) == "" {
+		return nil, errors.Join(ErrInvalid, fmt.Errorf("tenant and submission are required"))
+	}
+	if s.evidence == nil {
+		return nil, fmt.Errorf("evidence submission reads are unavailable")
+	}
+	submission, err := s.evidence.GetSubmission(ctx, tenantID, submissionID)
+	if err != nil {
+		return nil, err
+	}
+	request, err := s.evidence.GetRequest(ctx, tenantID, submission.RequestID)
+	if err != nil {
+		return nil, err
+	}
+	if request.SubjectType != "PROGRAM" || request.SubjectID == "" || request.FormTemplateID == "" || request.FormTemplateVersion < 1 {
+		return nil, errors.Join(ErrInvalid, fmt.Errorf("submission is not linked to a Program form"))
+	}
+	checks, err := s.repo.ListCheckRevisions(ctx, tenantID, request.SubjectID, 500)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]MonitoringResult, 0)
+	for _, check := range checks {
+		if check.Status != LifecycleActive || !check.IsCurrent || check.InputKind != InputForm || check.FormTemplateID != request.FormTemplateID || check.FormTemplateVersion != request.FormTemplateVersion {
+			continue
+		}
+		result, evaluateErr := s.evaluateFormSubmission(ctx, check, request, submission)
+		if evaluateErr != nil {
+			return results, evaluateErr
+		}
+		results = append(results, result)
+	}
+	return results, nil
+}
+
+func (s *Service) evaluateFormSubmission(ctx context.Context, check MonitoringCheck, request evidence.Request, submission evidence.Submission) (MonitoringResult, error) {
+	form, err := s.repo.FormRevision(ctx, check.TenantID, check.FormTemplateID, check.FormTemplateVersion)
+	if err != nil {
+		return MonitoringResult{}, err
+	}
+	fields := make([]FormField, 0, len(form.Fields))
+	for _, field := range form.Fields {
+		if field.Scoring != nil {
+			fields = append(fields, *field.Scoring)
+		}
+	}
+	evaluation, err := EvaluateForm(fields, submission.Answers, check.Thresholds)
+	if err != nil {
+		return MonitoringResult{}, err
+	}
+	provenance, err := json.Marshal(map[string]any{
+		"request_id": request.ID, "channel": submission.Channel, "submitted_by": submission.SubmittedBy,
+		"submitted_at": submission.SubmittedAt.UTC(), "answer_provenance": submission.AnswerProvenance,
+	})
+	if err != nil {
+		return MonitoringResult{}, err
+	}
+	resultID, err := s.newID()
+	if err != nil {
+		return MonitoringResult{}, err
+	}
+	now := s.now().UTC()
+	return s.repo.AppendResult(ctx, MonitoringResult{
+		ID: resultID, TenantID: check.TenantID, ProgramID: check.ProgramID, MonitoringCheckID: check.ID, MonitoringCheckVersion: check.Version,
+		InputKind: InputForm, InputReferenceID: submission.ID, InputReferenceVersion: 1, Evaluation: evaluation,
+		SubmissionProvenance: provenance, EvaluatedAt: now, EvaluatorVersion: "monitoring-risk-v1", CreatedAt: now,
+	})
 }
 
 func (s *Service) TransitionCheck(ctx context.Context, actor Actor, input TransitionInput) (MonitoringCheck, error) {

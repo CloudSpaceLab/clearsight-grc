@@ -207,6 +207,17 @@ func (s *Service) GetRequest(ctx context.Context, tenant, requestID string) (Req
 	return effectiveRequest(value, s.now().UTC()), nil
 }
 
+func (s *Service) GetSubmission(ctx context.Context, tenant, submissionID string) (Submission, error) {
+	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(submissionID) == "" {
+		return Submission{}, fmt.Errorf("tenant and submission are required")
+	}
+	reader, ok := s.repo.(SubmissionReader)
+	if !ok {
+		return Submission{}, fmt.Errorf("submission reads are unavailable")
+	}
+	return reader.GetSubmission(ctx, tenant, submissionID)
+}
+
 func (s *Service) Submit(ctx context.Context, submission Submission) (SubmissionReceipt, error) {
 	request, err := s.GetRequest(ctx, submission.TenantID, submission.RequestID)
 	if err != nil {
