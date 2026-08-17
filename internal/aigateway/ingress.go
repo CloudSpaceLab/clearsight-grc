@@ -53,12 +53,13 @@ type chatIngressRequest struct {
 	StreamOptions       *struct {
 		IncludeUsage bool `json:"include_usage"`
 	} `json:"stream_options,omitempty"`
-	N                 *int            `json:"n,omitempty"`
-	ParallelToolCalls *bool           `json:"parallel_tool_calls,omitempty"`
-	User              string          `json:"user,omitempty"`
-	ResponseFormat    json.RawMessage `json:"response_format,omitempty"`
-	Logprobs          *bool           `json:"logprobs,omitempty"`
-	Seed              *int64          `json:"seed,omitempty"`
+	N                 *int              `json:"n,omitempty"`
+	ParallelToolCalls *bool             `json:"parallel_tool_calls,omitempty"`
+	User              string            `json:"user,omitempty"`
+	Metadata          map[string]string `json:"metadata,omitempty"`
+	ResponseFormat    json.RawMessage   `json:"response_format,omitempty"`
+	Logprobs          *bool             `json:"logprobs,omitempty"`
+	Seed              *int64            `json:"seed,omitempty"`
 }
 
 type chatIngressMessage struct {
@@ -106,7 +107,7 @@ func decodeChatRequest(reader io.Reader, maxBytes int64, requestID string) (Requ
 	if err != nil {
 		return Request{}, err
 	}
-	request := Request{ID: requestID, Protocol: ProtocolChat, ModelAlias: strings.TrimSpace(input.Model), MaxOutputTokens: maxOutput, Temperature: input.Temperature, TopP: input.TopP, Stream: input.Stream}
+	request := Request{ID: requestID, Protocol: ProtocolChat, ModelAlias: strings.TrimSpace(input.Model), Metadata: cloneStringMap(input.Metadata), MaxOutputTokens: maxOutput, Temperature: input.Temperature, TopP: input.TopP, Stream: input.Stream}
 	if input.StreamOptions != nil {
 		request.IncludeStreamUsage = input.StreamOptions.IncludeUsage
 	}
@@ -178,14 +179,11 @@ func decodeResponsesRequest(reader io.Reader, maxBytes int64, requestID string) 
 	if input.ParallelToolCalls != nil && !*input.ParallelToolCalls || input.Store != nil && *input.Store || input.Background != nil && *input.Background || len(input.Include) > 0 || input.Truncation != "" && input.Truncation != "disabled" || input.Text != nil && string(input.Text) != "null" {
 		return Request{}, invalid("", "The request includes a stateful, background, multimodal or provider-specific option that is not supported in this stateless tranche.")
 	}
-	if len(input.Metadata) > 0 {
-		return Request{}, invalid("metadata", "Responses metadata is not retained by this stateless gateway tranche.")
-	}
 	maxOutput := int64(1024)
 	if input.MaxOutputTokens != nil {
 		maxOutput = *input.MaxOutputTokens
 	}
-	request := Request{ID: requestID, Protocol: ProtocolResponses, ModelAlias: strings.TrimSpace(input.Model), MaxOutputTokens: maxOutput, Temperature: input.Temperature, TopP: input.TopP, Stream: input.Stream, IncludeStreamUsage: true}
+	request := Request{ID: requestID, Protocol: ProtocolResponses, ModelAlias: strings.TrimSpace(input.Model), Metadata: cloneStringMap(input.Metadata), MaxOutputTokens: maxOutput, Temperature: input.Temperature, TopP: input.TopP, Stream: input.Stream, IncludeStreamUsage: true}
 	if input.Instructions != "" {
 		request.Messages = append(request.Messages, Message{Role: RoleDeveloper, Text: input.Instructions})
 	}
