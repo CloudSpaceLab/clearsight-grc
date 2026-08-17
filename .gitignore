@@ -26,4 +26,5 @@ Thumbs.db
 # Runtime
 /tmp/
 /var/
+.worktrees/
 *.log
