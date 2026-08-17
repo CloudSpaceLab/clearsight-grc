@@ -1,41 +1,13 @@
 name: Publish T5 closeout
 
 on:
-  push:
-    branches: [agent/t5-publish-staging]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  publish:
-    if: github.actor != 'github-actions[bot]'
+  idle:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Reconstruct and publish four tested code batches
-        run: |
-          set -euo pipefail
-
-          cat .t5-payload/c-* | base64 -d > /tmp/t5.tar.xz
-          echo '534e61a510f4a58f25791382cdba5d0bdf90cd2c3c8aae5c9ba3b2d69498b2c6  /tmp/t5.tar.xz' | sha256sum -c -
-          xz -t /tmp/t5.tar.xz
-          mkdir -p /tmp/t5
-          tar -xJf /tmp/t5.tar.xz -C /tmp/t5
-
-          git fetch origin main
-          test "$(git rev-parse origin/main)" = '38d218097b253c490d7a14c700f52263c077e20c'
-          git checkout -B agent/issue61-t5-closeout origin/main
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-
-          for n in 01 02 03 04; do
-            git apply --index "/tmp/t5/patches/$n.patch"
-            git diff --cached --check
-            git commit -F "/tmp/t5/patches/$n.message"
-          done
-
-          test "$(git rev-list --count origin/main..HEAD)" = '4'
-          git push origin HEAD:refs/heads/agent/issue61-t5-closeout
+      - run: echo 'publisher paused while staging the documentation batch'
