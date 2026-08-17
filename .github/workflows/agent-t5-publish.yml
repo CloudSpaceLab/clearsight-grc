@@ -1,71 +1,13 @@
-name: Repair T5 PostgreSQL acceptance
+name: T5 repair staging
 
 on:
-  push:
-    branches: [agent/t5-publish-staging]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  repair:
-    if: github.actor != 'github-actions[bot]'
+  idle:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v5
-        with:
-          go-version: 1.26.5
-          cache: true
-      - name: Repair nil metadata normalization and integration cleanup order
-        run: |
-          set -euo pipefail
-          git fetch origin agent/issue61-t5-closeout
-          test "$(git rev-parse origin/agent/issue61-t5-closeout)" = '2be7d7b885f0f80585c62905d27f68ec4cf4786e'
-          git checkout -B agent/issue61-t5-closeout origin/agent/issue61-t5-closeout
-          python3 - <<'PY'
-          from pathlib import Path
-
-          service = Path('internal/aigovernance/service.go')
-          text = service.read_text()
-          old = '''func cloneMap(in map[string]string) map[string]string {
-          	if in == nil {
-          		return nil
-          	}
-          '''
-          new = '''func cloneMap(in map[string]string) map[string]string {
-          	if in == nil {
-          		return map[string]string{}
-          	}
-          '''
-          if old not in text:
-              raise SystemExit('cloneMap target not found')
-          service.write_text(text.replace(old, new, 1))
-
-          test = Path('internal/aigovernance/postgres_integration_test.go')
-          text = test.read_text()
-          old = '''	defer pool.Close()
-
-	cleanupAIGovernanceFixture(t, pool)
-	.t.Cleanup''' if False else '''	defer pool.Close()
-
-	cleanupAIGovernanceFixture(t, pool)
-	t.Cleanup'''
-          new = '''	t.Cleanup(pool.Close)
-
-	cleanupAIGovernanceFixture(t, pool)
-	t.Cleanup'''
-          if old not in text:
-              raise SystemExit('pool cleanup target not found')
-          test.write_text(text.replace(old, new, 1))
-          PY
-          gofmt -w internal/aigovernance/service.go internal/aigovernance/postgres_integration_test.go
-          go test -race ./internal/aigovernance
-          git diff --check
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add internal/aigovernance/service.go internal/aigovernance/postgres_integration_test.go
-          git commit -m 'fix(aigovernance): normalize workload metadata persistence'
-          git push origin HEAD:refs/heads/agent/issue61-t5-closeout
+      - run: echo 'repair staged'
