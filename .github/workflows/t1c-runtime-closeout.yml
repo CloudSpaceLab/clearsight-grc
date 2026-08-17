@@ -54,10 +54,10 @@ jobs:
           text = path.read_text()
           old = '''Checkpoint workers use the same claim/lease/backoff semantics as ClearSight runtime work. Advancement requires an existing durable runtime inbox receipt for the corresponding consumer/event. If processing commits and the process dies before checkpoint advancement, the lease expires, the same source position is replayed, the inbox receipt suppresses duplicate domain processing, and the checkpoint can then advance without skipping records.
 
-Raw source errors are not persisted in checkpoint state. Only bounded error codes are retained.'''
+          Raw source errors are not persisted in checkpoint state. Only bounded error codes are retained.'''
           new = '''Checkpoint rows contain no scheduling state. Pull and event work is ordinary ClearSight runtime work: `internal/runtime` owns attempts, leases, retry/backoff and terminal failure. A checkpoint stores only the exact Binding revision, source position and an optimistic generation.
 
-Advancement requires the exact durable runtime inbox receipt derived from the Binding, checkpoint generation, old position, new position and consumer. If domain processing commits and the process dies before checkpoint advancement, runtime replays the work after its lease expires, the inbox receipt suppresses duplicate domain processing, and the checkpoint advances with compare-and-swap semantics. An unrelated inbox receipt cannot authorize a different cursor or watermark transition.'''
+          Advancement requires the exact durable runtime inbox receipt derived from the Binding, checkpoint generation, old position, new position and consumer. If domain processing commits and the process dies before checkpoint advancement, runtime replays the work after its lease expires, the inbox receipt suppresses duplicate domain processing, and the checkpoint advances with compare-and-swap semantics. An unrelated inbox receipt cannot authorize a different cursor or watermark transition.'''
           if old not in text:
               raise SystemExit('connected-source checkpoint description changed')
           path.write_text(text.replace(old, new, 1))
