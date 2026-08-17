@@ -35,6 +35,6 @@ Configure exposes a compact AI governance view of active workloads, policy rollo
 
 - `internal/aigovernance` tests cover maker/checker, shadow-before-enforce, global credential uniqueness, receipt idempotency/episode dedupe, retention, exact-action grants and replay/argument tampering.
 - `internal/aigateway` tests cover deterministic fact precedence, mutation, response deny/redaction and streaming restrictions.
-- `internal/aigovernance/postgres_integration_test.go` proves policy/workload lifecycle, compact receipt idempotency and single-use grants against the real PostgreSQL schema.
+- `internal/aigovernance/postgres_integration_test.go` proves policy/workload lifecycle, compact receipt idempotency and single-use grants against the real PostgreSQL schema; absent optional verified metadata is normalized to an empty object before persistence so the durable object-shape contract remains intact.
 - web rendered/accessibility tests cover compact and unavailable states.
 - CI applies and rollback/reapplies migrations `000035_ai_governance_enforcement` and `000036_ai_governance_receipts_grants`, then runs serialized PostgreSQL integration, race-enabled unit tests, vet, web typecheck/tests/build.
