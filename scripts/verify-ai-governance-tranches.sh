@@ -20,7 +20,7 @@ for file in "${required[@]}"; do
   test -s "$file" || { echo "missing AI governance contract: $file" >&2; exit 1; }
 done
 
-if grep -R -nE --include='*.sql' '(prompt|response_body|source_payload|provider_secret|authorization_header)' migrations/00003{4,5}_*.up.sql; then
+if grep -R -nE --include='*.sql' '(prompt|response_body|source_payload|provider_secret|authorization_header)' migrations/00003{5,6}_*.up.sql; then
   echo "T4/T5 durable schema contains prohibited raw-content or credential field names" >&2
   exit 1
 fi
