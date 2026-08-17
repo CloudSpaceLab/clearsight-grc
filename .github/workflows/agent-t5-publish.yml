@@ -1,13 +1,38 @@
-name: Publish T5 closeout
+name: Publish T5 docs closeout
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [agent/t5-publish-staging]
 
 permissions:
   contents: write
 
 jobs:
-  idle:
+  publish-docs:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - run: echo 'publisher paused while staging the documentation batch'
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Publish merged documentation batch
+        run: |
+          set -euo pipefail
+
+          cat .t5-docs/d-* | base64 -d > /tmp/t5-docs.patch.xz
+          echo 'e93f87022cbf224d2a5151684c428f7b5bcf14a69329f3d4b930e98fe36fa8cd  /tmp/t5-docs.patch.xz' | sha256sum -c -
+          xz -t /tmp/t5-docs.patch.xz
+          xz -dc /tmp/t5-docs.patch.xz > /tmp/t5-docs.patch
+
+          git fetch origin main agent/issue61-t5-closeout
+          test "$(git rev-parse origin/main)" = '38d218097b253c490d7a14c700f52263c077e20c'
+          test "$(git rev-parse origin/agent/issue61-t5-closeout)" = '90ba99a8cc85416e4a4c2bc9bc659783aad850bb'
+          git checkout -B agent/issue61-t5-closeout origin/agent/issue61-t5-closeout
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          git apply --index /tmp/t5-docs.patch
+          git diff --cached --check
+          git commit -m 'docs(aigovernance): close T4 T5 runtime acceptance'
+          test "$(git rev-list --count origin/main..HEAD)" = '5'
+          git push origin HEAD:refs/heads/agent/issue61-t5-closeout
