@@ -303,6 +303,8 @@ func cloneRequest(value Request) Request {
 	value.KnownFacts = cloneMap(value.KnownFacts)
 	value.Fields = cloneFields(value.Fields)
 	value.SourceBindings = cloneRequestBindings(value.SourceBindings)
+	value.CollectionPeriodStart = cloneTimePointer(value.CollectionPeriodStart)
+	value.CollectionPeriodEnd = cloneTimePointer(value.CollectionPeriodEnd)
 	return value
 }
 
