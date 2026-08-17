@@ -5,6 +5,7 @@ import type { MatterSummary } from "../summaryTypes";
 import type { MatterAggregate } from "../types";
 import { EmptyState } from "./EmptyState";
 import { MatterWorkCommandPanel } from "./MatterWorkCommandPanel";
+import { MatterSetupWorkspace } from "./MatterSetupWorkspace";
 
 type LoadState = "loading" | "live" | "unavailable";
 type Props = { targetID?: string; openFirst?: boolean };
@@ -91,6 +92,8 @@ export function MattersWorkspace({ targetID, openFirst = false }: Props) {
   const [details, setDetails] = useState<Record<string, MatterAggregate>>({});
   const [detailState, setDetailState] = useState<Record<string, LoadState>>({});
   const [loadingMore, setLoadingMore] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [creationNotice, setCreationNotice] = useState("");
   const requestID = useRef(0);
   const handledTarget = useRef("");
   const mounted = useRef(true);
@@ -162,6 +165,18 @@ export function MattersWorkspace({ targetID, openFirst = false }: Props) {
     setItems((current) => current.map((item) => item.matter.id === value.matter.id ? summaryFromAggregate(value) : item));
   }
 
+  function applyCreatedMatter(value: MatterAggregate) {
+    setSearchDraft("");
+    setSearch("");
+    setStatus("OPEN");
+    setDetails((current) => ({ ...current, [value.matter.id]: value }));
+    setDetailState((current) => ({ ...current, [value.matter.id]: "live" }));
+    setItems((current) => [summaryFromAggregate(value), ...current.filter((item) => item.matter.id !== value.matter.id)]);
+    setOpenID(value.matter.id);
+    setSetupOpen(false);
+    setCreationNotice("Issue or change created.");
+  }
+
   async function toggleDetail(id: string) {
     if (openID === id) {
       setOpenID(null);
@@ -202,9 +217,11 @@ export function MattersWorkspace({ targetID, openFirst = false }: Props) {
 
   return <div id="matters-workspace">
     <section className="workspace-brief">
-        <div><span className="eyebrow">Issues and changes</span><h2>{items.length ? `${items.length} loaded item${items.length === 1 ? "" : "s"}` : "No open items in this view"}</h2><p>Open an item to review its current handoff, facts, actions and outcome checks.</p></div>
-      <div className="workspace-brief-facts" aria-label="Loaded work summary"><span><strong>{summary.decisions}</strong> decisions</span><span><strong>{summary.overdue}</strong> overdue</span><span><strong>{summary.checking}</strong> outcome checks</span></div>
+      <div><span className="eyebrow">Issues and changes</span><h2>{items.length ? `${items.length} loaded item${items.length === 1 ? "" : "s"}` : "No open items in this view"}</h2><p>Open an item to review its current handoff, facts, actions and outcome checks.</p></div>
+      <div className="workspace-brief-side"><div className="workspace-brief-facts" aria-label="Loaded work summary"><span><strong>{summary.decisions}</strong> decisions</span><span><strong>{summary.overdue}</strong> overdue</span><span><strong>{summary.checking}</strong> outcome checks</span></div>{!setupOpen && <button className="primary-button" type="button" onClick={() => { setCreationNotice(""); setSetupOpen(true); }}>New issue or change</button>}</div>
     </section>
+    {setupOpen && <MatterSetupWorkspace onCreated={applyCreatedMatter} onClose={() => setSetupOpen(false)}/>}
+    {creationNotice && <p className="inline-success" role="status">{creationNotice}</p>}
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
       <label><span>Search issues and changes</span><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Reference, title, summary or type"/></label>
       <label><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="OPEN">Open</option><option value="DECISION_REQUIRED">Decision needed</option><option value="ACTION_IN_PROGRESS">Work in progress</option><option value="VERIFICATION">Confirming outcome</option><option value="CLOSED">Closed</option><option value="">All statuses</option></select></label>
@@ -213,7 +230,7 @@ export function MattersWorkspace({ targetID, openFirst = false }: Props) {
     </form>
     {targetLoading && <div className="workspace-loading compact" aria-live="polite" aria-busy="true">Loading requested issue or change…</div>}
     {targetUnavailable && <EmptyState label="Requested issue or change" title="The requested record could not be loaded" description="It may be outside your current access scope or no longer available."/>}
-      {!items.length && !targetLoading && !targetUnavailable ? <EmptyState label="Issues and changes" title={search || status !== "OPEN" ? "No items match these filters" : "No open issues or changes"} description={search || status !== "OPEN" ? "Change the search or status filter to see other work." : "There are no open changes, gaps, findings, exceptions or responses in your current access scope."} action={search || status !== "OPEN" ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="matter-list">{items.map((summaryItem) => {
+      {!setupOpen && !items.length && !targetLoading && !targetUnavailable ? <EmptyState label="Issues and changes" title={search || status !== "OPEN" ? "No items match these filters" : "No open issues or changes"} description={search || status !== "OPEN" ? "Change the search or status filter to see other work." : "There are no open changes, gaps, findings, exceptions or responses in your current access scope."} action={search || status !== "OPEN" ? "Clear filters" : "Create issue or change"} onAction={search || status !== "OPEN" ? clearFilters : () => { setCreationNotice(""); setSetupOpen(true); }}/> : items.length ? <section className="matter-list">{items.map((summaryItem) => {
       const matter = summaryItem.matter;
       const isOpen = openID === matter.id;
       const detail = details[matter.id];

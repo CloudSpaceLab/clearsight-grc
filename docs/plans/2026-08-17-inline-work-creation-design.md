@@ -1,6 +1,6 @@
 # Inline issue and change creation
 
-**Status:** Approved product direction  
+**Status:** Implemented
 **Date:** 2026-08-17
 
 ## Decision
@@ -104,4 +104,3 @@ The command middleware rebinds tenant and actor from verified identity and perfo
 - Existing exact-target and workspace tests remain green.
 - Strict TypeScript, copy-quality, axe/rendered-state tests and production build pass.
 - Rendered review covers desktop and mobile in light and dark presentation where supported.
-

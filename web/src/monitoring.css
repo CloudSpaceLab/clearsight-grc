@@ -1,5 +1,5 @@
 .workspace-brief-side { display: grid; justify-items: end; gap: 14px; }
-.program-setup-workspace { margin: 18px 0 24px; padding: clamp(18px, 3vw, 30px); border: 1px solid color-mix(in srgb, var(--cyan) 35%, var(--border)); border-radius: 20px; background: var(--surface); }
+.program-setup-workspace, .matter-setup-workspace { margin: 18px 0 24px; padding: clamp(18px, 3vw, 30px); border: 1px solid color-mix(in srgb, var(--cyan) 35%, var(--border)); border-radius: 20px; background: var(--surface); }
 .setup-heading, .monitoring-section-heading, .monitoring-builder-heading, .setup-section-title { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
 .setup-heading h2 { margin-top: 6px; font-size: 28px; }
 .setup-heading p, .monitoring-section-heading p, .monitoring-builder-heading p, .setup-section-title p { margin: 6px 0 0; font-size: 13px; }
@@ -15,6 +15,7 @@
 .monitoring-form-grid textarea, .requirement-form textarea { resize: vertical; }
 .monitoring-form-grid input:focus, .monitoring-form-grid select:focus, .monitoring-form-grid textarea:focus, .requirement-form input:focus, .requirement-form textarea:focus, .question-label input:focus, .question-scoring input:focus, .collection-schedule input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(91,198,214,.12); }
 .monitoring-form-actions { margin-top: 20px; display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
+.field-note { margin: -5px 0 0; color: var(--muted); font-size: 12px; }
 .setup-sections { display: grid; gap: 18px; }
 .setup-section, .monitoring-setup { padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
 .setup-section-title > span { color: var(--cyan); font-size: 12px; }
@@ -86,6 +87,7 @@
   .question-editor { grid-template-columns: 1fr; }
   .monitoring-form-actions { justify-content: stretch; }
   .monitoring-form-actions button, .record-actions button { min-height: 44px; }
+  .matter-setup-workspace .setup-heading > .text-button { width: auto; min-height: 44px; justify-self: end; }
 }
 @media (prefers-reduced-motion: reduce) {
   .monitoring-choice-grid button { transition: none; }

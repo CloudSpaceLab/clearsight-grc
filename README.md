@@ -24,7 +24,7 @@ The repository contains a working application foundation for ongoing Programs an
 - source-anchored analysis proposals that require explicit human acceptance or rejection;
 - ongoing Programs with requirements, applicability decisions, controls and evidence checks;
 - non-modal Program setup for channel and obligation monitoring, reusable scored forms, public HTTPS status checks and immutable risk results;
-- typed Matters for changes, gaps, findings, requests, exceptions and incidents;
+- typed Matters for changes, gaps, findings, requests, exceptions and incidents, with non-modal creation and optional Program linking;
 - decisions, actions, response packages and independently checked outcomes;
 - reason-bearing Program status and point-in-time reconstruction;
 - actor-scoped Today work derived from current journey state;

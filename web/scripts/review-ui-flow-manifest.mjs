@@ -46,6 +46,8 @@ const expectedNames = [
   "37-program-review-changed-light-1440x900",
   "38-program-review-acknowledged-light-1440x900",
   "39-program-review-changed-light-mobile-390x844",
+  "37-new-work-light-1440x900",
+  "38-new-work-dark-mobile-390x844",
 ];
 const requiredStates = [
   "baseline",
@@ -71,6 +73,7 @@ const requiredStates = [
   "program-review-changed",
   "program-review-acknowledged",
   "program-review-mobile-changed",
+  "matter-create-open",
 ];
 
 const failures = [];

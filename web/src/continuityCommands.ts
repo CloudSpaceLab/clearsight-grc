@@ -56,6 +56,18 @@ type AddRequirementInput = {
   sourceAnchor?: string;
 };
 
+export type CreateMatterInput = {
+  type: string;
+  priority: number;
+  title: string;
+  summary: string;
+  affectedArea: string;
+  knownInformation?: string;
+  missingInformation?: string[];
+  dueAt?: string;
+  programID?: string;
+};
+
 async function command<T>(path: string, body: Record<string, unknown>): Promise<T> {
   const context = await loadContext();
   const params = new URLSearchParams({ tenant_id: context.tenant.id });
@@ -99,6 +111,23 @@ export async function createProgram(input: CreateProgramInput): Promise<ProgramA
     effective_from: new Date().toISOString(),
   });
   return normalizeProgramAggregate(value);
+}
+
+export async function createMatter(input: CreateMatterInput): Promise<MatterAggregate> {
+  const context = await loadContext();
+  return command<MatterAggregate>("/api/v1/matters", {
+    type: input.type,
+    priority: input.priority,
+    title: input.title,
+    summary: input.summary,
+    scope: { access: "INTERNAL", area: input.affectedArea },
+    known_facts: input.knownInformation ? { notes: input.knownInformation } : {},
+    missing_facts: input.missingInformation ?? [],
+    contradictions: [],
+    owner_principal_id: context.actor.id,
+    due_at: input.dueAt,
+    program_id: input.programID,
+  });
 }
 
 export async function addProgramRequirement(programID: string, expectedVersion: number, input: AddRequirementInput): Promise<ProgramAggregate> {

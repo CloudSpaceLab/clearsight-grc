@@ -27,12 +27,15 @@ This file is the authoritative implementation ledger. Code, migrations and execu
 | Reusable connected-source T0…T2 | issue #61 through PR #70 |
 | Stateless AI gateway transport T3 | issue #61; `cmd/ai-gateway` and `internal/aigateway` |
 | Program monitoring setup | Program and requirement creation, reusable forms, connected public status endpoints, maker-checker form/check activation, on-demand collection and immutable results |
+| Issue and change creation | Inline authority-checked Matter creation, business work types, actor ownership, optional Program linking and immediate in-workspace handoff |
 
 ## 2. Mobile-channel monitoring — implemented application slice
 
 An authorized user can create a channel Program and requirements without API or JSON work. Reusable collection forms support weighted Yes/No scoring and critical answers. Active forms create dated Evidence Requests on demand; a submitted response is evaluated automatically against the exact active form and Monitoring Check versions. A GRC administrator can connect a public HTTPS JSON status endpoint, select an observed field and expected value, and create a connected-data Monitoring Check. Active source checks run on demand and store the source receipt with score, band and coverage.
 
 Form and Monitoring Check activation requires a different approver from the submitter. A result is an observation and does not create an approved Evidence Assessment or compliance conclusion. Recurring form-request generation, credential entry in the browser, automatic Matter creation and a general-purpose integration catalogue remain outside this slice.
+
+The Work workspace also supports inline creation of user-reported risk issues, control gaps, regulatory changes, findings, requests, exceptions and incidents. New items begin as Draft work, default to internal access and the signed-in accountable owner, and can be linked to a scoped Program at creation. System-derived types remain reserved for their originating checks and observations.
 
 ## 3. AI governance gateway — T3 transport implemented
 

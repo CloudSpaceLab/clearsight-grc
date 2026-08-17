@@ -1,15 +1,21 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { MatterAggregate, ProgramAggregate } from "../types";
 import { MattersWorkspace } from "./MattersWorkspace";
 import { ProgramsWorkspace } from "./ProgramsWorkspace";
 import { loadMatter, loadMatterSummaries, loadProgram, loadProgramSummaries } from "../api";
+import { createMatter } from "../continuityCommands";
 
 vi.mock("../api", () => ({
   loadMatter: vi.fn(),
   loadMatterSummaries: vi.fn(),
   loadProgram: vi.fn(),
   loadProgramSummaries: vi.fn(),
+}));
+
+vi.mock("../continuityCommands", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../continuityCommands")>()),
+  createMatter: vi.fn(),
 }));
 
 beforeAll(() => {
@@ -78,5 +84,24 @@ describe("exact workspace targets", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("creates and opens an issue or change from the empty workspace", async () => {
+    const created = { ...matterDetail, matter: { ...matterDetail.matter, id: "matter-created", title: "Mobile banking control gap", type: "CONTROL_GAP", status: "DRAFT" } };
+    vi.mocked(loadMatterSummaries).mockResolvedValue({ items: [], generated_at: "2026-08-17T10:00:00Z" });
+    vi.mocked(loadProgramSummaries).mockResolvedValue({ items: [], generated_at: "2026-08-17T10:00:00Z" });
+    vi.mocked(createMatter).mockResolvedValue(created);
+
+    render(<MattersWorkspace/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Create issue or change" }));
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Mobile banking control gap" } });
+    fireEvent.change(screen.getByLabelText("What happened or changed?"), { target: { value: "Face verification did not return a successful result." } });
+    fireEvent.change(screen.getByLabelText("Affected area"), { target: { value: "Mobile banking" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create issue or change" }));
+
+    await waitFor(() => expect(createMatter).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("Issue or change created.")).toBeTruthy();
+    expect(screen.getByText("Mobile banking control gap")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Current handoff" })).toBeTruthy();
   });
 });

@@ -84,6 +84,7 @@ Guide selection is server-authoritative. Signed identities and development ident
 | Outcome check | Expected outcome and latest result are separate from action completion | Implemented |
 | Closure | Ready state or complete blocker list is shown | Implemented |
 | Direct target | Target issue expands and scrolls into view | Implemented |
+| Create issue or change | Inline business form creates an authority-checked Draft, optionally links a Program and opens the new item without a modal | Implemented |
 | Operational mutation forms | Complete decision/action/response/verification write interfaces | Future productization work |
 
 ## Sources and evidence
