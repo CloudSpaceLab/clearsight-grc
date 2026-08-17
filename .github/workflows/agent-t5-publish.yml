@@ -1,13 +1,56 @@
-name: T5 repair staging
+name: Publish T5 PostgreSQL repair
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [agent/t5-publish-staging]
 
 permissions:
   contents: write
 
 jobs:
-  idle:
+  repair:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.4-alpine
+        env:
+          POSTGRES_DB: clearsight
+          POSTGRES_USER: clearsight
+          POSTGRES_PASSWORD: clearsight
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U clearsight -d clearsight"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
     steps:
-      - run: echo 'repair staged'
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+      - name: Apply and verify PostgreSQL repair
+        env:
+          PGPASSWORD: clearsight
+          TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
+        run: |
+          set -euo pipefail
+          cp .t5-fix/postgres.patch /tmp/postgres.patch
+          git fetch origin agent/issue61-t5-closeout
+          test "$(git rev-parse origin/agent/issue61-t5-closeout)" = '2be7d7b885f0f80585c62905d27f68ec4cf4786e'
+          git checkout -B agent/issue61-t5-closeout origin/agent/issue61-t5-closeout
+          git apply --index /tmp/postgres.patch
+          git diff --cached --check
+          for migration in migrations/*.up.sql; do
+            PGPASSWORD=clearsight psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$migration" >/dev/null
+          done
+          go test -race ./internal/aigovernance
+          go test -tags 'postgres postgresintegration' ./internal/aigovernance
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(aigovernance): normalize workload metadata persistence'
+          git push origin HEAD:refs/heads/agent/issue61-t5-closeout
