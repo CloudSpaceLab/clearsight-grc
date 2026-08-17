@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { MatterAggregate, ProgramAggregate } from "../types";
 import { MattersWorkspace } from "./MattersWorkspace";
@@ -56,5 +56,27 @@ describe("exact workspace targets", () => {
     expect(await screen.findByText("Matter outside first page")).toBeTruthy();
     expect(await screen.findByRole("heading", { name: "Current handoff" })).toBeTruthy();
     expect(loadMatter).toHaveBeenCalledWith(matterDetail.matter.id);
+  });
+
+  it("clears delayed target scrolling when the Matter workspace unmounts", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.mocked(loadMatterSummaries).mockResolvedValue({ items: [], generated_at: "2026-08-06T10:00:00Z" });
+      vi.mocked(loadMatter).mockResolvedValue(matterDetail);
+
+      const view = render(<MattersWorkspace targetID={matterDetail.matter.id}/>);
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(screen.getByText("Matter outside first page")).toBeTruthy();
+      expect(vi.getTimerCount()).toBeGreaterThan(0);
+      view.unmount();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

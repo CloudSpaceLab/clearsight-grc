@@ -72,6 +72,17 @@ export function ProgramsWorkspace({ targetID, openFirst = false, actorPrincipalI
   const [setupOpen, setSetupOpen] = useState(false);
   const requestID = useRef(0);
   const handledTarget = useRef("");
+  const mounted = useRef(true);
+  const targetScrollTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      requestID.current += 1;
+      if (targetScrollTimer.current !== null) window.clearTimeout(targetScrollTimer.current);
+    };
+  }, []);
 
   const load = useCallback(async (reset: boolean, cursor = "") => {
     const currentRequest = ++requestID.current;
@@ -114,10 +125,12 @@ export function ProgramsWorkspace({ targetID, openFirst = false, actorPrincipalI
     setDetailState((current) => ({ ...current, [id]: "loading" }));
     try {
       const value = await loadProgram(id);
+      if (!mounted.current) return null;
       setDetails((current) => ({ ...current, [id]: value }));
       setDetailState((current) => ({ ...current, [id]: "live" }));
       return value;
     } catch {
+      if (!mounted.current) return null;
       setDetailState((current) => ({ ...current, [id]: "unavailable" }));
       return null;
     }
@@ -156,11 +169,16 @@ export function ProgramsWorkspace({ targetID, openFirst = false, actorPrincipalI
     void (async () => {
       const inPage = items.some((item) => item.program.id === id);
       const detail = details[id] ?? await fetchDetail(id);
+      if (!mounted.current) return;
       if (detail && !inPage) {
         setItems((current) => current.some((item) => item.program.id === id) ? current : [summaryFromAggregate(detail), ...current]);
       }
       if (detail || inPage) setOpenID(id);
-      window.setTimeout(() => document.getElementById(`program-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+      if (targetScrollTimer.current !== null) window.clearTimeout(targetScrollTimer.current);
+      targetScrollTimer.current = window.setTimeout(() => {
+        targetScrollTimer.current = null;
+        document.getElementById(`program-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 80);
     })();
   }, [state, items, targetID, openFirst]);
 
