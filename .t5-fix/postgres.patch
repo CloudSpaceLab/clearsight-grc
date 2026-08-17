@@ -1,0 +1,26 @@
+diff --git a/internal/aigovernance/postgres_integration_test.go b/internal/aigovernance/postgres_integration_test.go
+index 33c71ee..1897a76 100644
+--- a/internal/aigovernance/postgres_integration_test.go
++++ b/internal/aigovernance/postgres_integration_test.go
+@@ -33,7 +33,7 @@ func TestPostgresGovernanceLifecycleReceiptAndGrant(t *testing.T) {
+ 	if err != nil {
+ 		t.Fatal(err)
+ 	}
+-	defer pool.Close()
++	t.Cleanup(pool.Close)
+ 
+ 	cleanupAIGovernanceFixture(t, pool)
+ 	t.Cleanup(func() { cleanupAIGovernanceFixture(t, pool) })
+diff --git a/internal/aigovernance/service.go b/internal/aigovernance/service.go
+index 4ff0c8f..23ee5e0 100644
+--- a/internal/aigovernance/service.go
++++ b/internal/aigovernance/service.go
+@@ -507,7 +507,7 @@ func uniqueSorted(v []string) []string {
+ }
+ func cloneMap(in map[string]string) map[string]string {
+ 	if in == nil {
+-		return nil
++		return map[string]string{}
+ 	}
+ 	o := make(map[string]string, len(in))
+ 	for k, v := range in {
