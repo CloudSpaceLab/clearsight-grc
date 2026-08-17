@@ -33,6 +33,10 @@ class DeploymentConfigTest(unittest.TestCase):
         self.assertIn(r"^[0-9]{6}_[a-z0-9_]+\.up\.sql$", script)
         self.assertNotIn(".down.sql", script)
 
+    def test_source_catalog_migration_normalizes_legacy_timestamps(self) -> None:
+        migration = self.read("migrations/000030_source_access_catalog.up.sql")
+        self.assertIn("GREATEST(updated_at,created_at)", migration)
+
     def test_forced_command_accepts_only_sha_deployments(self) -> None:
         script = self.read("deploy/scripts/ci-entrypoint.sh")
         for value in ("^deploy ([0-9a-f]{40})$", 'root=/opt/clearsight-grc', '"$root/incoming"',

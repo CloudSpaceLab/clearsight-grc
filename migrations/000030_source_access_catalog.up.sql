@@ -371,7 +371,8 @@ INSERT INTO source_connections(
 )
 SELECT tenant_id,id,'PRIMARY_REFERENCE','Primary reference','REFERENCE','reference-v1','',
        jsonb_build_object('endpoint',btrim(endpoint)),'[]'::jsonb,'[]'::jsonb,
-       owner_principal_id,'ACTIVE',true,created_at,1,owner_principal_id,created_at,updated_at
+       owner_principal_id,'ACTIVE',true,created_at,1,owner_principal_id,created_at,
+       GREATEST(updated_at,created_at)
   FROM evidence_sources
  WHERE btrim(endpoint)<>'';
 
