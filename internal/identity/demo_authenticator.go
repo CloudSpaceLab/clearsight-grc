@@ -57,7 +57,7 @@ func NewDemoAuthenticator(tenantID, defaultPrincipalID, legalEntityID string) (*
 		return nil, fmt.Errorf("generate demo session key: %w", err)
 	}
 	accounts := []DemoAccount{
-		{Label: "Chief Risk Officer", Username: "cro@demo.clearsight.local", Password: "demo", TenantID: "019ffa86-b181-709d-8bb0-df200a66a4aa", PrincipalID: "019ffa89-89d8-764b-aa7c-7503e048b814", RoleCodes: []string{"CRO", "EXECUTIVE"}},
+		{Label: "Chief Risk Officer", Username: "cro@demo.clearsight.local", Password: "demo", TenantID: "01a01012-a485-751b-9522-4de42ba20e61", PrincipalID: "01a01014-a7b1-79d3-808c-7ddd60f67c42", RoleCodes: []string{"CRO", "EXECUTIVE"}},
 		{Label: "Chief Compliance Officer", Username: "cco@demo.clearsight.local", Password: "demo", TenantID: "", PrincipalID: "role-cco", RoleCodes: []string{"CCO", "EXECUTIVE", "COMPLIANCE_OFFICER"}},
 		{Label: "Chief Information Security Officer", Username: "ciso@demo.clearsight.local", Password: "demo", TenantID: "", PrincipalID: "role-ciso", RoleCodes: []string{"CISO", "EXECUTIVE"}},
 		{Label: "GRC Administrator", Username: "grc-admin@demo.clearsight.local", Password: "demo", TenantID: "", PrincipalID: "role-grc-admin", RoleCodes: []string{"GRC_ADMIN"}},
@@ -65,7 +65,7 @@ func NewDemoAuthenticator(tenantID, defaultPrincipalID, legalEntityID string) (*
 		{Label: "Internal Auditor", Username: "auditor@demo.clearsight.local", Password: "demo", TenantID: "", PrincipalID: "role-auditor", RoleCodes: []string{"AUDITOR", "REVIEWER"}},
 		{Label: "Program Owner", Username: "owner@demo.clearsight.local", Password: "demo", TenantID: "", PrincipalID: "role-program-owner", RoleCodes: []string{"PROGRAM_OWNER"}},
 		{Label: "Evidence Respondent", Username: "evidence@demo.clearsight.local", Password: "demo", TenantID: "", PrincipalID: "role-evidence-respondent", RoleCodes: []string{"EVIDENCE_RESPONDENT"}},
-		{Label: "Chief Risk Officer 0y3", Username: "crooye@demo.clearsight.local", Password: "demo", TenantID: "019ff863-ac4e-7559-9075-13a6cfbb21f6", PrincipalID: "019ff86f-086c-78f1-bbdc-ecb4ae11eaea", RoleCodes: []string{"CRO", "EXECUTIVE"}},
+		{Label: "Chief Risk Officer 0y3", Username: "crooye@demo.clearsight.local", Password: "demo", TenantID: "01a01012-a489-7ff4-9a6b-dda0e1f27a28", PrincipalID: "01a01014-a7b8-7ae1-8a6d-1737ef06226d", RoleCodes: []string{"CRO", "EXECUTIVE"}},
 	}
 	byUsername := make(map[string]DemoAccount, len(accounts))
 	for i := range accounts {
