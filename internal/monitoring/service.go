@@ -105,6 +105,13 @@ func (s *Service) CreateForm(ctx context.Context, actor Actor, input CreateFormI
 	})
 }
 
+func (s *Service) ListForms(ctx context.Context, actor Actor, limit int) ([]FormTemplate, error) {
+	if err := validateActor(actor); err != nil {
+		return nil, err
+	}
+	return s.repo.ListFormRevisions(ctx, actor.TenantID, limit)
+}
+
 func (s *Service) TransitionForm(ctx context.Context, actor Actor, input TransitionInput) (FormTemplate, error) {
 	if err := validateActor(actor); err != nil {
 		return FormTemplate{}, err
@@ -223,6 +230,26 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 		OwnerPrincipalID: strings.TrimSpace(input.OwnerPrincipalID), ReviewerPrincipalID: strings.TrimSpace(input.ReviewerPrincipalID), FailureAction: input.FailureAction,
 		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now},
 	})
+}
+
+func (s *Service) ListChecks(ctx context.Context, actor Actor, programID string, limit int) ([]MonitoringCheck, error) {
+	if err := validateActor(actor); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(programID) == "" {
+		return nil, errors.Join(ErrInvalid, fmt.Errorf("program is required"))
+	}
+	return s.repo.ListCheckRevisions(ctx, actor.TenantID, programID, limit)
+}
+
+func (s *Service) ListResults(ctx context.Context, actor Actor, checkID string, limit int) ([]MonitoringResult, error) {
+	if err := validateActor(actor); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(checkID) == "" {
+		return nil, errors.Join(ErrInvalid, fmt.Errorf("monitoring check is required"))
+	}
+	return s.repo.ListResults(ctx, actor.TenantID, checkID, limit)
 }
 
 func (s *Service) TransitionCheck(ctx context.Context, actor Actor, input TransitionInput) (MonitoringCheck, error) {

@@ -63,6 +63,19 @@
     "/api/v1/programs/{id}/evidence-assessments": { "post": { "operationId": "recordProgramEvidenceAssessment", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/programs/{id}/triggers": { "post": { "operationId": "applyProgramTrigger", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
 
+    "/api/v1/form-templates": {
+      "get": { "operationId": "listFormTemplates", "x-clearsight-route-class": "AUTHENTICATED_READ" },
+      "post": { "operationId": "createFormTemplate", "x-clearsight-route-class": "AUTHENTICATED_WRITE" }
+    },
+    "/api/v1/form-templates/{id}/transition": { "post": { "operationId": "transitionFormTemplate", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
+    "/api/v1/form-templates/{id}/collections": { "post": { "operationId": "startFormCollection", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
+    "/api/v1/programs/{id}/monitoring-checks": {
+      "get": { "operationId": "listMonitoringChecks", "x-clearsight-route-class": "AUTHENTICATED_READ" },
+      "post": { "operationId": "createMonitoringCheck", "x-clearsight-route-class": "AUTHENTICATED_WRITE" }
+    },
+    "/api/v1/monitoring-checks/{id}/transition": { "post": { "operationId": "transitionMonitoringCheck", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
+    "/api/v1/monitoring-checks/{id}/results": { "get": { "operationId": "listMonitoringResults", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+
     "/api/v1/matter-summaries": { "get": { "operationId": "listMatterSummaries", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/matters": {
       "get": { "operationId": "listMatters", "x-clearsight-route-class": "AUTHENTICATED_READ" },
