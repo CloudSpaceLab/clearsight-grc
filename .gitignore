@@ -6,6 +6,8 @@
 # Go
 /bin/
 /coverage/
+/coverage
+coverage.out
 *.coverprofile
 
 # Web
@@ -16,10 +18,13 @@ web/.vite/
 # IDE and OS
 .idea/
 .vscode/
+__pycache__/
+*.py[cod]
 .DS_Store
 Thumbs.db
 
 # Runtime
 /tmp/
 /var/
+.worktrees/
 *.log

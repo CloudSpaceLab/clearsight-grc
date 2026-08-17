@@ -35,8 +35,8 @@ type RuntimeWithCapabilities = RuntimeContext & {
 
 function runtime(demoMode: boolean): RuntimeWithCapabilities {
   return {
-    tenant: { id: "bank-demo", name: "Demo Bank" },
-    legal_entity: { id: "bank-ng", name: "Demo Bank Nigeria" },
+    tenant: { id: "bank-demo", name: "Clear Bank" },
+    legal_entity: { id: "bank-ng", name: "Clear Bank Nigeria" },
     actor: { id: "role-cro", name: "Chief Risk Officer", role_codes: ["CRO", "EXECUTIVE"] },
     mode: "memory",
     demo_mode: demoMode,
@@ -67,6 +67,16 @@ describe("runtime navigation", () => {
     expect((await screen.findAllByRole("button", { name: /Explore/ })).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: /Imports/ }).length).toBeGreaterThan(0);
     await waitFor(() => expect(document.documentElement.dataset.clearsightDemo).toBe("on"));
+  });
+
+  it("uses live API data without demo-only presentation when requested", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(true));
+    render(<App presentation="live-preview" />);
+
+    await screen.findByText("Live preview · Non-production");
+    await waitFor(() => expect(document.documentElement.dataset.clearsightDemo).toBe("off"));
+    expect(screen.queryByText("Stakeholder demo")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Explore/ })).toBeNull();
   });
 
   it("opens the exact Program encoded by a Today intervention", async () => {

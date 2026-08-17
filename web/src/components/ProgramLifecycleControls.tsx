@@ -16,6 +16,15 @@ function humanize(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 }
 
+export function programTransitionActionLabel(status: string) {
+  switch (status) {
+    case "ACTIVE": return "Request activation";
+    case "PAUSED": return "Request pause";
+    case "RETIRED": return "Request retirement";
+    default: return `Request ${humanize(status).toLowerCase()}`;
+  }
+}
+
 // UI affordance only. The command service remains authoritative and rechecks
 // lifecycle legality, actor authority, optimistic version and activation gates.
 export function programTransitionTargets(status: string): string[] {
@@ -43,12 +52,18 @@ export function ProgramLifecycleControls({ aggregate, onUpdated }: Props) {
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [error, setError] = useState("");
   const selectedTarget = choices.includes(target) ? target : choices[0] ?? "";
+  const normalizedRationale = rationale.trim();
+  const canSubmit = Boolean(selectedTarget && normalizedRationale) && submitState !== "saving";
 
   useEffect(() => {
     setTarget(programTransitionTargets(program.status)[0] ?? "");
-    setSubmitState("idle");
+    setRationale("");
     setError("");
-  }, [program.status]);
+  }, [program.id, program.status]);
+
+  useEffect(() => {
+    setSubmitState("idle");
+  }, [program.id]);
 
   useEffect(() => {
     let active = true;
@@ -67,11 +82,11 @@ export function ProgramLifecycleControls({ aggregate, onUpdated }: Props) {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (submitState === "saving" || !selectedTarget) return;
+    if (!canSubmit) return;
     setSubmitState("saving");
     setError("");
     try {
-      const updated = await transitionProgram(program.id, program.version, selectedTarget, rationale.trim());
+      const updated = await transitionProgram(program.id, program.version, selectedTarget, normalizedRationale);
       onUpdated(updated);
       setRationale("");
       setSubmitState("saved");
@@ -84,15 +99,15 @@ export function ProgramLifecycleControls({ aggregate, onUpdated }: Props) {
   if (access !== "allowed" || !choices.length) return null;
 
   return <section className="handoff-summary program-operation" aria-label="Program status action">
-    <span className="eyebrow">Authorized Program action</span>
+    <span className="eyebrow">Program status</span>
     <h3>Change operating status</h3>
-    <p>The server rechecks authority, current version, lifecycle validity and activation prerequisites when this is submitted.</p>
+    <p>Choose a permitted status and record the reason for the change.</p>
     <form className="governed-command-form" onSubmit={submit}>
       <label><span>Requested status</span><select value={selectedTarget} onChange={(event) => setTarget(event.target.value)}>{choices.map((value) => <option value={value} key={value}>{humanize(value)}</option>)}</select></label>
       <label><span>Rationale</span><textarea rows={3} value={rationale} onChange={(event) => setRationale(event.target.value)} placeholder="Why should the Program status change now?" required/></label>
       {error && <p className="inline-error" role="alert">{error}</p>}
-      {submitState === "saved" && <div className="inline-notice" role="status">Program status recorded from the authoritative server response.</div>}
-      <button className="primary-button" type="submit" disabled={submitState === "saving" || !selectedTarget}>{submitState === "saving" ? "Recording…" : `Request ${humanize(selectedTarget)}`}</button>
+      {submitState === "saved" && <div className="inline-notice" role="status">Program status updated.</div>}
+      <button className="primary-button" type="submit" disabled={!canSubmit}>{submitState === "saving" ? "Recording…" : programTransitionActionLabel(selectedTarget)}</button>
     </form>
   </section>;
 }

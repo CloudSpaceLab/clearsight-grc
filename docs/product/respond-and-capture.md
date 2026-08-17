@@ -424,3 +424,9 @@ Do not:
 ## 20. Definition of success
 
 Respond and Capture succeeds when the best-placed internal or external person can safely provide the exact missing information in minutes, without receiving unnecessary access or context, while ClearSight preserves identity assurance, purpose, provenance, review, escalation, and evidence sufficiency.
+
+## Connected-source provenance
+
+A response field may display a value or option set resolved from an activated Source Binding. The UI names the governed Binding and observation time, and changes the label to **Corrected by you** as soon as the respondent changes a prefilled value. Review preserves the same distinction. Request-level and field-level `EVIDENCE` results remain in the authoritative evidence path and are not exposed through respondent capture sessions.
+
+Submission persistence records one of `SOURCE_PREFILLED`, `RESPONDENT_ENTERED` or `RESPONDENT_CORRECTED` per answered field. `VALIDATE` results are attached separately and never replace the human answer.

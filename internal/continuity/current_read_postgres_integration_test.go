@@ -107,6 +107,7 @@ func TestCurrentPostgresReadsMatchReplayAndStayFixedQuery(t *testing.T) {
 	if got := counter.Count(); got != 1 {
 		t.Fatalf("current Program detail used %d SQL calls after %d events; want exactly 1", got, len(events))
 	}
+	canonicalizeProgramAggregateTenant(&replayedProgram, tenantID)
 	if !sameJSON(currentProgram.Program, replayedProgram.Program) || !sameJSON(currentProgram.Requirements, replayedProgram.Requirements) || !sameJSON(currentProgram.CurrentState, replayedProgram.CurrentState) {
 		t.Fatalf("normalized Program current state diverged from reconstruction\ncurrent=%#v\nreconstructed=%#v", currentProgram, replayedProgram)
 	}
@@ -138,6 +139,7 @@ func TestCurrentPostgresReadsMatchReplayAndStayFixedQuery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	canonicalizeMatterAggregateTenant(&replayedMatter, tenantID)
 	counter.Reset()
 	currentMatter, err := current.GetMatter(ctx, "bounded-current-test", matter.Matter.ID)
 	if err != nil {
@@ -148,6 +150,23 @@ func TestCurrentPostgresReadsMatchReplayAndStayFixedQuery(t *testing.T) {
 	}
 	if !sameJSON(currentMatter.Matter, replayedMatter.Matter) || !sameJSON(currentMatter.Actions, replayedMatter.Actions) {
 		t.Fatalf("normalized Matter current state diverged from replay\ncurrent=%#v\nreplayed=%#v", currentMatter, replayedMatter)
+	}
+}
+
+func canonicalizeProgramAggregateTenant(value *ProgramAggregate, tenantID string) {
+	value.Program.TenantID = tenantID
+	for index := range value.Requirements {
+		value.Requirements[index].TenantID = tenantID
+	}
+	if value.CurrentState != nil {
+		value.CurrentState.TenantID = tenantID
+	}
+}
+
+func canonicalizeMatterAggregateTenant(value *MatterAggregate, tenantID string) {
+	value.Matter.TenantID = tenantID
+	for index := range value.Actions {
+		value.Actions[index].TenantID = tenantID
 	}
 }
 

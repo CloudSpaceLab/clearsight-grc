@@ -25,10 +25,10 @@ func TestEvidenceRecipientLifecycleIsAuditableAtomicAndRevokesSupersededCapabili
 	defer pool.Close()
 
 	const (
-		tenantID   = "94444444-4444-7444-8444-444444444441"
-		creatorID  = "94444444-4444-7444-8444-444444444442"
-		recipientA = "94444444-4444-7444-8444-444444444443"
-		recipientB = "94444444-4444-7444-8444-444444444444"
+		tenantID   = "96666666-6666-7666-8666-666666666661"
+		creatorID  = "96666666-6666-7666-8666-666666666662"
+		recipientA = "96666666-6666-7666-8666-666666666663"
+		recipientB = "96666666-6666-7666-8666-666666666664"
 	)
 	now := time.Date(2026, 8, 9, 10, 0, 0, 0, time.UTC)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)

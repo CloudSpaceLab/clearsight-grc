@@ -73,6 +73,9 @@ func TestEvidenceRecipientTruthIsTenantBoundPreLimitAndAudienceBound(t *testing.
 	if len(visible) != 1 || visible[0].ID != assigned.ID {
 		t.Fatalf("recipient filtering happened after LIMIT or leaked another recipient: %#v", visible)
 	}
+	if visible[0].TenantID != tenantID {
+		t.Fatalf("evidence request tenant identity = %q, want canonical UUID %q", visible[0].TenantID, tenantID)
+	}
 
 	// Recipient principal integrity is tenant-scoped. A principal UUID from a
 	// different tenant cannot be installed into an otherwise valid request row.

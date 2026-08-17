@@ -28,6 +28,7 @@ func NewMemoryRepository(sources []Source, requests []Request) *MemoryRepository
 	for _, request := range requests {
 		request.KnownFacts = cloneMap(request.KnownFacts)
 		request.Fields = cloneFields(request.Fields)
+		request.SourceBindings = cloneRequestBindings(request.SourceBindings)
 		repo.requests[request.ID] = request
 	}
 	return repo
@@ -117,6 +118,7 @@ func (r *MemoryRepository) CreateRequest(_ context.Context, value Request) (Requ
 	}
 	value.KnownFacts = cloneMap(value.KnownFacts)
 	value.Fields = cloneFields(value.Fields)
+	value.SourceBindings = cloneRequestBindings(value.SourceBindings)
 	r.requests[value.ID] = value
 	return cloneRequest(value), nil
 }
@@ -165,8 +167,21 @@ func (r *MemoryRepository) Submit(_ context.Context, submission Submission) (Sub
 	request.UpdatedAt = submission.SubmittedAt
 	r.requests[request.ID] = request
 	submission.Answers = cloneMap(submission.Answers)
+	submission.AnswerProvenance = cloneAnswerProvenance(submission.AnswerProvenance)
 	r.submissions[submission.ID] = submission
 	return SubmissionReceipt{SubmissionID: submission.ID, RequestID: request.ID, Status: request.Status, SubmittedAt: submission.SubmittedAt, Version: request.Version}, nil
+}
+
+func (r *MemoryRepository) GetSubmission(_ context.Context, tenant, id string) (Submission, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	value, ok := r.submissions[id]
+	if !ok || value.TenantID != tenant {
+		return Submission{}, ErrNotFound
+	}
+	value.Answers = cloneMap(value.Answers)
+	value.AnswerProvenance = cloneAnswerProvenance(value.AnswerProvenance)
+	return value, nil
 }
 
 func (r *MemoryRepository) ExpireRequests(_ context.Context, now time.Time, limit int) (int, error) {
@@ -299,6 +314,9 @@ func (r *MemoryRepository) CreateArtifact(_ context.Context, artifact Artifact) 
 func cloneRequest(value Request) Request {
 	value.KnownFacts = cloneMap(value.KnownFacts)
 	value.Fields = cloneFields(value.Fields)
+	value.SourceBindings = cloneRequestBindings(value.SourceBindings)
+	value.CollectionPeriodStart = cloneTimePointer(value.CollectionPeriodStart)
+	value.CollectionPeriodEnd = cloneTimePointer(value.CollectionPeriodEnd)
 	return value
 }
 

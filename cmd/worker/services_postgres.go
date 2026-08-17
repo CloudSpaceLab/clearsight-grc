@@ -7,9 +7,11 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/documentcoverage"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
@@ -17,12 +19,15 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reconciliation"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceevent"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
 
 const (
 	matterWorkProjectionClass   = "matter-work-projection"
 	evidenceWorkProjectionClass = "evidence-request-work-projection"
+	aiGovernanceRetentionClass  = "ai-governance-retention"
 )
 
 func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (workerSet, error) {
@@ -36,12 +41,15 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 		return workerSet{}, err
 	}
 	runtimeRepository := workflowruntime.NewPostgresRepository(pool)
+	sourceCheckpoints := sourceaccess.NewCheckpointService(sourceaccess.NewPostgresCheckpointRepository(pool), runtimeRepository)
+	sourceEventCheckpoint := sourceevent.NewCheckpointProjector(runtimeRepository, sourceCheckpoints)
 	lifecycle := governance.NewPostgresRepository(pool)
 	governanceService := governance.NewService(lifecycle)
 	continuityRepository := continuity.NewCurrentPostgresRepository(pool)
 	continuityService := continuity.NewService(continuityRepository)
 	authorityService := authority.NewEffectivePostgresService(pool)
 	autonomyService := autonomy.NewService(autonomy.NewPostgresRepository(pool))
+	aiGovernanceRetention := &aigovernance.RetentionMaintainer{Repo: aigovernance.NewPostgresRepository(pool)}
 	sourceHealth := &reconciliation.SourceHealthConsumer{
 		Inbox: runtimeRepository, Dependencies: continuityRepository,
 		Signals: autonomyService, Programs: continuityService,
@@ -57,7 +65,8 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	evidenceWork := &workflow.EvidenceRequestProjector{Repo: workflowRepository}
 	documentService := documentimport.NewService(documentimport.NewPostgresRepository(pool), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
-	publisher := workflowruntime.NewCompositePublisher(sourceHealth, actionWork, lifecycleWork, escalationWork, documentService, workflowruntime.LogPublisher{Logger: logger})
+	coverageService := documentcoverage.NewService(documentcoverage.NewPostgresRepository(pool), documentService, continuityService)
+	publisher := workflowruntime.NewCompositePublisher(sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork, documentService, coverageService, workflowruntime.LogPublisher{Logger: logger})
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
 	configureWorkerRuntime(service, cfg, logger)
 	// Matter events update immediately through the outbox publisher. This slower
@@ -72,6 +81,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	// reassignment/wrong-recipient/principal-status changes one rebuildable Today
 	// projection without adding another event or worker stack.
 	service.ConfigureClass(evidenceWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 5 * time.Second, Batch: 100})
+	service.ConfigureClass(aiGovernanceRetentionClass, workflowruntime.WorkClassOptions{Poll: time.Hour, Batch: 500})
 
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), store)
 	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
@@ -79,5 +89,6 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.AddMaintainerClass(matterWorkProjectionClass, lifecycleWork)
 	service.AddMaintainerClass(workflow.MatterEscalationWorkClass, escalationWork)
 	service.AddMaintainerClass(evidenceWorkProjectionClass, evidenceWork)
+	service.AddMaintainerClass(aiGovernanceRetentionClass, aiGovernanceRetention)
 	return workerSet{Runtime: service, Close: pool.Close}, nil
 }

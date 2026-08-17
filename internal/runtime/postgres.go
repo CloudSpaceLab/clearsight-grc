@@ -45,12 +45,15 @@ func (r *PostgresRepository) ClaimDueTimers(ctx context.Context, worker string, 
 	return out, rows.Err()
 }
 func (r *PostgresRepository) CompleteTimer(ctx context.Context, t Timer, e OutboxEvent, now time.Time) error {
+	if t.LeaseUntil == nil {
+		return errors.New("timer claim lost")
+	}
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx)
-	tag, err := tx.Exec(ctx, `UPDATE workflow_timers SET state='FIRED',fired_at=$2,failed_at=NULL,last_error=NULL,lease_until=NULL,locked_by=NULL WHERE id=$1::uuid AND state='CLAIMED' AND locked_by=$3`, t.ID, now, t.LockedBy)
+	tag, err := tx.Exec(ctx, `UPDATE workflow_timers SET state='FIRED',fired_at=$2,failed_at=NULL,last_error=NULL,lease_until=NULL,locked_by=NULL WHERE id=$1::uuid AND state='CLAIMED' AND locked_by=$3 AND lease_until=$4 AND lease_until >= $2`, t.ID, now, t.LockedBy, *t.LeaseUntil)
 	if err != nil {
 		return err
 	}
@@ -64,8 +67,11 @@ func (r *PostgresRepository) CompleteTimer(ctx context.Context, t Timer, e Outbo
 	return tx.Commit(ctx)
 }
 func (r *PostgresRepository) FailTimer(ctx context.Context, t Timer, maxAttempts int, message string, at, next time.Time) (bool, error) {
+	if t.LeaseUntil == nil {
+		return false, errors.New("timer claim lost")
+	}
 	var terminal bool
-	err := r.pool.QueryRow(ctx, `UPDATE workflow_timers SET state=CASE WHEN attempts>=$2 THEN 'FAILED' ELSE 'READY' END,due_at=CASE WHEN attempts>=$2 THEN due_at ELSE $4::timestamptz END,failed_at=CASE WHEN attempts>=$2 THEN $5::timestamptz ELSE NULL::timestamptz END,last_error=$3,lease_until=NULL,locked_by=NULL WHERE id=$1::uuid AND state='CLAIMED' AND locked_by=$6 RETURNING state='FAILED'`, t.ID, maxAttempts, message, next, at, t.LockedBy).Scan(&terminal)
+	err := r.pool.QueryRow(ctx, `UPDATE workflow_timers SET state=CASE WHEN attempts>=$2 THEN 'FAILED' ELSE 'READY' END,due_at=CASE WHEN attempts>=$2 THEN due_at ELSE $4::timestamptz END,failed_at=CASE WHEN attempts>=$2 THEN $5::timestamptz ELSE NULL::timestamptz END,last_error=$3,lease_until=NULL,locked_by=NULL WHERE id=$1::uuid AND state='CLAIMED' AND locked_by=$6 AND lease_until=$7 AND lease_until >= $5 RETURNING state='FAILED'`, t.ID, maxAttempts, message, next, at, t.LockedBy, *t.LeaseUntil).Scan(&terminal)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, errors.New("timer claim lost")
 	}
@@ -88,7 +94,10 @@ func (r *PostgresRepository) ClaimOutbox(ctx context.Context, worker string, now
 	return out, rows.Err()
 }
 func (r *PostgresRepository) MarkPublished(ctx context.Context, e OutboxEvent, at time.Time) error {
-	tag, err := r.pool.Exec(ctx, `UPDATE outbox_events SET published_at=$2,next_attempt_at=NULL,locked_by=NULL,lease_until=NULL,last_error=NULL WHERE id=$1::uuid AND published_at IS NULL AND dead_lettered_at IS NULL AND locked_by=$3`, e.ID, at, e.LockedBy)
+	if e.LeaseUntil == nil {
+		return errors.New("outbox claim lost")
+	}
+	tag, err := r.pool.Exec(ctx, `UPDATE outbox_events SET published_at=$2,next_attempt_at=NULL,locked_by=NULL,lease_until=NULL,last_error=NULL WHERE id=$1::uuid AND published_at IS NULL AND dead_lettered_at IS NULL AND locked_by=$3 AND lease_until=$4 AND lease_until >= $2`, e.ID, at, e.LockedBy, *e.LeaseUntil)
 	if err != nil {
 		return err
 	}
@@ -98,8 +107,11 @@ func (r *PostgresRepository) MarkPublished(ctx context.Context, e OutboxEvent, a
 	return nil
 }
 func (r *PostgresRepository) MarkFailed(ctx context.Context, e OutboxEvent, maxAttempts int, message string, at, next time.Time) (bool, error) {
+	if e.LeaseUntil == nil {
+		return false, errors.New("outbox claim lost")
+	}
 	var terminal bool
-	err := r.pool.QueryRow(ctx, `UPDATE outbox_events SET next_attempt_at=CASE WHEN attempts>=$2 THEN NULL::timestamptz ELSE $4::timestamptz END,dead_lettered_at=CASE WHEN attempts>=$2 THEN $5::timestamptz ELSE NULL::timestamptz END,last_error=$3,locked_by=NULL,lease_until=NULL WHERE id=$1::uuid AND published_at IS NULL AND dead_lettered_at IS NULL AND locked_by=$6 RETURNING dead_lettered_at IS NOT NULL`, e.ID, maxAttempts, message, next, at, e.LockedBy).Scan(&terminal)
+	err := r.pool.QueryRow(ctx, `UPDATE outbox_events SET next_attempt_at=CASE WHEN attempts>=$2 THEN NULL::timestamptz ELSE $4::timestamptz END,dead_lettered_at=CASE WHEN attempts>=$2 THEN $5::timestamptz ELSE NULL::timestamptz END,last_error=$3,locked_by=NULL,lease_until=NULL WHERE id=$1::uuid AND published_at IS NULL AND dead_lettered_at IS NULL AND locked_by=$6 AND lease_until=$7 AND lease_until >= $5 RETURNING dead_lettered_at IS NOT NULL`, e.ID, maxAttempts, message, next, at, e.LockedBy, *e.LeaseUntil).Scan(&terminal)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, errors.New("outbox claim lost")
 	}
@@ -111,6 +123,46 @@ func (r *PostgresRepository) RecordInbox(ctx context.Context, tenant, consumer, 
 		return false, err
 	}
 	return tag.RowsAffected() == 1, nil
+}
+func (r *PostgresRepository) RecordInboxWithOutbox(ctx context.Context, receipts []InboxReceipt, event OutboxEvent, at time.Time) (bool, error) {
+	if len(receipts) == 0 {
+		return false, errors.New("at least one inbox receipt is required")
+	}
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback(ctx)
+	first := receipts[0]
+	if first.TenantID != event.TenantID {
+		return false, errors.New("inbox receipt does not match outbox tenant")
+	}
+	tag, err := tx.Exec(ctx, `INSERT INTO inbox_receipts(tenant_id,consumer,event_id,processed_at) VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2,$3,$4) ON CONFLICT DO NOTHING`, first.TenantID, first.Consumer, first.EventID, at)
+	if err != nil {
+		return false, err
+	}
+	if tag.RowsAffected() == 0 {
+		return false, nil
+	}
+	for _, receipt := range receipts[1:] {
+		if receipt.TenantID != event.TenantID {
+			return false, errors.New("inbox receipt does not match outbox tenant")
+		}
+		tag, err := tx.Exec(ctx, `INSERT INTO inbox_receipts(tenant_id,consumer,event_id,processed_at) VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2,$3,$4) ON CONFLICT DO NOTHING`, receipt.TenantID, receipt.Consumer, receipt.EventID, at)
+		if err != nil {
+			return false, err
+		}
+		if tag.RowsAffected() == 0 {
+			return false, ErrInboxReceiptConflict
+		}
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO outbox_events(id,tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at) VALUES($1,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4::uuid,$5,$6,$7,$7,$7)`, event.ID, event.TenantID, event.AggregateType, event.AggregateID, event.EventType, event.Payload, event.OccurredAt); err != nil {
+		return false, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 func (r *PostgresRepository) TimerQueueHealth(ctx context.Context) (QueueHealth, error) {
 	var health QueueHealth

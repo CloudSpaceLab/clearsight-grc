@@ -32,8 +32,9 @@ func TestRouteRegistryHasExplicitAccessClasses(t *testing.T) {
 		}
 	}
 	expected := map[string]bool{
-		http.MethodGet + " /health/live":  true,
-		http.MethodGet + " /health/ready": true,
+		http.MethodGet + " /health/live":           true,
+		http.MethodGet + " /health/ready":          true,
+		http.MethodGet + " /api/v1/session/status": true,
 	}
 	if len(public) != len(expected) {
 		t.Fatalf("unexpected public route set: %#v", public)
@@ -58,6 +59,12 @@ func TestAdministrativePermissionsLiveInRouteRegistry(t *testing.T) {
 	addExpected(http.MethodPost, "/api/v1/operations/projections/reconcile", identity.PermissionPlatformOperationsWrite)
 	addExpected(http.MethodGet, "/api/v1/operations/background-jobs", identity.PermissionPlatformJobsRead)
 	addExpected(http.MethodGet, "/api/v1/compliance/automation-policies", identity.PermissionConfigRead)
+	addExpected(http.MethodGet, "/api/v1/ai-governance/policies", identity.PermissionConfigRead)
+	addExpected(http.MethodPost, "/api/v1/ai-governance/policies", identity.PermissionConfigWrite)
+	addExpected(http.MethodPost, "/api/v1/ai-governance/policies/{id}/activate", identity.PermissionConfigWrite)
+	addExpected(http.MethodGet, "/api/v1/ai-governance/workloads", identity.PermissionConfigRead)
+	addExpected(http.MethodPost, "/api/v1/ai-governance/workloads", identity.PermissionConfigWrite)
+	addExpected(http.MethodPost, "/api/v1/ai-governance/workloads/{id}/activate", identity.PermissionConfigWrite)
 	addExpected(http.MethodGet, "/api/v1/access/overview", identity.PermissionIdentityRead)
 	addExpected(http.MethodPost, "/api/v1/access/scim-sources", identity.PermissionIdentityConfigure)
 	addExpected(http.MethodPost, "/api/v1/access/scim-sources/{id}/rotate-token", identity.PermissionIdentityConfigure)

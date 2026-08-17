@@ -20,7 +20,7 @@ function messageFor(error: unknown) {
   if (kind === "forbidden" || kind === "unauthorized") return "Your current authority no longer permits this action. The work item has not been changed.";
   if (kind === "conflict") return "This record changed since it was loaded. Reload the issue before acting on it.";
   if (kind === "not_found") return "This work item is no longer available.";
-  return error instanceof Error && error.message ? error.message : "The governed action could not be recorded.";
+  return error instanceof Error && error.message ? error.message : "The action could not be recorded.";
 }
 
 function allowedTargets(task: WorkflowTask) {
@@ -89,7 +89,7 @@ export function MatterWorkCommand({ aggregate, task, onUpdated, onCompleted }: P
   if (!supported) return null;
 
   return <section className="handoff-summary" aria-labelledby={`work-command-${task.id}`}>
-    <span className="eyebrow">Your governed action</span>
+    <span className="eyebrow">Assigned action</span>
     <h3 id={`work-command-${task.id}`}>{task.context?.primary_action || task.title}</h3>
     <p>{task.context?.why_now || "This action is assigned to you by the current workflow and authority policy."}</p>
     <form className="governed-command-form" onSubmit={submit}>
@@ -98,7 +98,7 @@ export function MatterWorkCommand({ aggregate, task, onUpdated, onCompleted }: P
       {command === "matter.outcome.record" && <label><span>Outcome check</span><select value={result} onChange={(event) => setResult(event.target.value as typeof result)}><option value="PASS">Outcome confirmed</option><option value="FAIL">Outcome not achieved</option><option value="INCONCLUSIVE">More evidence needed</option></select></label>}
       <label><span>Rationale{rationaleRequired ? "" : " (optional)"}</span><textarea value={rationale} onChange={(event) => setRationale(event.target.value)} placeholder={rationaleRequired ? "Record the concise basis for this action" : "Add context only if it helps the next reviewer"} required={rationaleRequired} rows={3}/></label>
       {error && <p className="inline-error" role="alert">{error}</p>}
-      {state === "saved" ? <div className="inline-notice" role="status">Recorded. The issue detail now reflects the authoritative server result; routed work will converge on the next projection cycle.</div> : <button className="primary-button" type="submit" disabled={state === "saving" || (!target && command !== "matter.outcome.record")}>{state === "saving" ? "Recording…" : task.context?.primary_action || "Record action"}</button>}
+      {state === "saved" ? <div className="inline-notice" role="status">Action recorded. The issue and assigned work have been updated.</div> : <button className="primary-button" type="submit" disabled={state === "saving" || (!target && command !== "matter.outcome.record")}>{state === "saving" ? "Recording…" : task.context?.primary_action || "Record action"}</button>}
     </form>
   </section>;
 }
@@ -106,6 +106,7 @@ export function MatterWorkCommand({ aggregate, task, onUpdated, onCompleted }: P
 export function MatterWorkCommandPanel({ aggregate, onUpdated }: Props) {
   const [tasks, setTasks] = useState<WorkflowTask[]>([]);
   const [unavailable, setUnavailable] = useState(false);
+  const [completionNotice, setCompletionNotice] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -120,9 +121,10 @@ export function MatterWorkCommandPanel({ aggregate, onUpdated }: Props) {
   }, [aggregate.matter.id]);
 
   if (unavailable) return <div className="inline-notice">Assigned actions could not be loaded. The issue remains read-only until current workflow routing is available.</div>;
+  if (completionNotice) return <div className="inline-notice" role="status">{completionNotice}</div>;
   if (!tasks.length) return null;
 
-  return <div className="governed-command-stack" aria-label="Assigned governed actions">
-    {tasks.map((task) => <MatterWorkCommand key={task.id} aggregate={aggregate} task={task} onUpdated={onUpdated} onCompleted={(taskID) => setTasks((current) => current.filter((item) => item.id !== taskID))}/>) }
+  return <div className="governed-command-stack" aria-label="Assigned actions">
+    {tasks.map((task) => <MatterWorkCommand key={task.id} aggregate={aggregate} task={task} onUpdated={onUpdated} onCompleted={(taskID) => { setTasks((current) => current.filter((item) => item.id !== taskID)); setCompletionNotice("Action recorded. The issue and assigned work have been updated."); }}/>) }
   </div>;
 }

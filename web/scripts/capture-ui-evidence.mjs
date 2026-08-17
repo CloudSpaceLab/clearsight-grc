@@ -29,6 +29,8 @@ const captures = [
   { name: "21-configure-partial-dark-1440x900", route: "#configure", title: "Routing and approvals", fixture: "configure-partial", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Routing policies are unavailable" },
   { name: "22-no-config-access-light-1440x900", route: "#configure", title: "Today", fixture: "no-config-access", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Reviews, approvals and evidence requests assigned to you.", assertNoConfigureNav: true },
   { name: "27-evidence-long-content-mobile-390x844", route: "#work/evidence", title: "Work", fixture: "long-content", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Confirm the accountable owner for the processor register" },
+  { name: "37-new-work-light-1440x900", route: "#work/matters", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openMatterSetup: true },
+  { name: "38-new-work-dark-mobile-390x844", route: "#work/matters", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openMatterSetup: true },
 ];
 
 try {
@@ -55,8 +57,16 @@ async function capturePage(capture) {
   const { context, page } = await openPage(capture);
   try {
     if (capture.expectText) await page.getByText(capture.expectText, { exact: false }).first().waitFor({ state: "visible" });
+    if (capture.openMatterSetup) {
+      await page.getByRole("button", { name: "New issue or change" }).click();
+      const heading = page.getByRole("heading", { name: "New issue or change" });
+      await heading.waitFor({ state: "visible" });
+      await heading.scrollIntoViewIfNeeded();
+      const workType = page.locator('select[name="type"]');
+      if (!await workType.evaluate((element) => element === document.activeElement)) throw new Error(`${capture.name} did not focus the first creation field`);
+    }
     await saveScreenshot(page, capture.name);
-    await record(page, capture, capture.fixture ? `fixture:${capture.fixture}` : "baseline");
+    await record(page, capture, capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline");
     await assertNoHorizontalOverflow(page, capture.name);
     if (capture.assertFirstActionVisible) await assertFirstActionVisible(page, capture.viewport.height, capture.name, capture.touch === true);
     if (capture.assertNoConfigureNav && await page.getByRole("button", { name: /Configure/ }).count()) throw new Error(`${capture.name} exposes Configure without config-read capability`);
@@ -335,9 +345,14 @@ async function captureImportSelection() {
   const capture = { name: "32-import-dropzone-selected-light-1440x900", route: "#imports", title: "Imports", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
-    const purpose = page.getByRole("textbox", { name: "What should reviewers look for?" });
+    const form = page.locator(".document-import-form");
+    if (!(await form.isVisible())) {
+      await page.getByRole("button", { name: "Import document", exact: true }).click();
+      await form.waitFor({ state: "visible" });
+    }
+    const purpose = form.getByRole("textbox", { name: "What should reviewers look for?" });
     if ((await purpose.inputValue()) !== "") throw new Error("Document import still starts with a persisted template purpose");
-    await page.locator(".document-import-form .file-dropzone-input").setInputFiles({ name: "outsourcing-policy.pdf", mimeType: "application/pdf", buffer: Buffer.from("sample-policy") });
+    await form.locator(".file-dropzone-input").setInputFiles({ name: "outsourcing-policy.pdf", mimeType: "application/pdf", buffer: Buffer.from("sample-policy") });
     await page.getByText(/outsourcing-policy\.pdf/).waitFor();
     await assertNoHorizontalOverflow(page, capture.name);
     await saveScreenshot(page, capture.name);

@@ -80,9 +80,9 @@ export function BankJourneysWorkspace() {
     <section className="journey-hero">
       <div>
         <span className="eyebrow">Bank compliance journeys</span>
-        <h2>Move each requirement from source to confirmed outcome</h2>
-        <p>Start with the recorded next action. Open the exact Program, issue or evidence request without needing to know internal system codes.</p>
-        {sample && <div className="sample-notice" role="note"><strong>Reference data</strong><span>These Nigerian-bank records demonstrate product behaviour. The bank must review current legal and regulatory requirements before operational use.</span></div>}
+        <h2>Sample compliance workflows</h2>
+        <p>Review each workflow's status, owner, due date and next action.</p>
+        {sample && <div className="sample-notice" role="note"><strong>Sample data</strong><span>These Nigerian banking examples are for demonstration only. Confirm current laws and regulatory requirements before use.</span></div>}
       </div>
       <PremiumIllustration variant="routing"/>
     </section>

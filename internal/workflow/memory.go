@@ -5,6 +5,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
 type MemoryRepository struct {
@@ -71,6 +73,7 @@ func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, e
 
 func cloneTask(task Task) Task {
 	task.Context = clone(task.Context)
+	task.SourceBindings = append([]sourceaccess.BindingReference(nil), task.SourceBindings...)
 	task.MatterScope = append([]byte(nil), task.MatterScope...)
 	return task
 }

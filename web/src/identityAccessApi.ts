@@ -111,8 +111,18 @@ function request<T>(path: string, init?: RequestInit): Promise<T> {
   return requestJSON<T>(apiBase, path, init);
 }
 
-export function loadIdentityAccessOverview(): Promise<IdentityAccessOverview> {
-  return request<IdentityAccessOverview>("/api/v1/access/overview?limit=50");
+export async function loadIdentityAccessOverview(): Promise<IdentityAccessOverview> {
+  const overview = await request<IdentityAccessOverview>("/api/v1/access/overview?limit=50");
+  return {
+    ...overview,
+    sources: overview.sources ?? [],
+    people: overview.people ?? [],
+    groups: overview.groups ?? [],
+    roles: overview.roles ?? [],
+    legal_entities: overview.legal_entities ?? [],
+    bindings: overview.bindings ?? [],
+    escalation_policies: overview.escalation_policies ?? [],
+  };
 }
 
 export function createIdentitySource(input: { code: string; identity_issuer?: string; subject_attribute: "externalId" | "userName" }): Promise<{ source: IdentitySource; token: string }> {

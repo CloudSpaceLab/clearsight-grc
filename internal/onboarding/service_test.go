@@ -3,6 +3,7 @@ package onboarding
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -57,5 +58,38 @@ func TestGuideResolutionUsesRolePriorityAndFallback(t *testing.T) {
 	guide, err = service.ResolveRoles(nil)
 	if err != nil || guide.Code != "general-first-run" {
 		t.Fatalf("expected general fallback, guide=%#v err=%v", guide, err)
+	}
+}
+
+func TestDemoGuidesAvoidScriptedTourCopy(t *testing.T) {
+	blocked := []string{
+		"open one material record",
+		"open your ongoing responsibility",
+		"resolve the smallest evidence gap",
+		"use the reason, not only the colour",
+		"see the bank from a real role",
+		"generic dashboard",
+		"exact record",
+		"authoritative server",
+		"bounded daily digest",
+		"current canonical",
+		"second directory console",
+		"governed candidate set",
+		"without needing to know",
+		"product behaviour",
+		"program truth",
+		"is inferred",
+	}
+	for _, guide := range DemoGuides() {
+		visible := guide.Title + " " + guide.Description
+		for _, step := range guide.Steps {
+			visible += " " + step.Title + " " + step.Description + " " + step.Action
+		}
+		visible = strings.ToLower(visible)
+		for _, phrase := range blocked {
+			if strings.Contains(visible, phrase) {
+				t.Fatalf("guide %q contains scripted copy %q", guide.Code, phrase)
+			}
+		}
 	}
 }

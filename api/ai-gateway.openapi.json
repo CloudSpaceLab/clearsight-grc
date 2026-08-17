@@ -1,0 +1,334 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ClearSight AI Gateway Transport",
+    "version": "t3",
+    "description": "Executable transport contract for the isolated, stateless ClearSight AI gateway. T3 supports text and function tools only; it does not persist prompts, responses or policy decisions."
+  },
+  "paths": {
+    "/health/live": {
+      "get": {
+        "operationId": "aiGatewayLive",
+        "x-clearsight-route-access": "PUBLIC_HEALTH",
+        "responses": {
+          "200": {
+            "description": "Process is live"
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "aiGatewayReady",
+        "x-clearsight-route-access": "PUBLIC_HEALTH",
+        "responses": {
+          "200": {
+            "description": "At least one route is available for every configured alias"
+          },
+          "503": {
+            "description": "A configured alias has no available route"
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "aiGatewayMetrics",
+        "x-clearsight-route-access": "METRICS_AUTHENTICATED",
+        "security": [
+          {
+            "metricsBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Content-free transport metrics"
+          },
+          "401": {
+            "description": "Invalid metrics credential"
+          },
+          "404": {
+            "description": "Metrics are disabled"
+          }
+        }
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "operationId": "aiGatewayModels",
+        "x-clearsight-route-access": "WORKLOAD_AUTHENTICATED",
+        "security": [
+          {
+            "workloadBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Model aliases available to the authenticated workload"
+          },
+          "401": {
+            "description": "Invalid workload credential"
+          }
+        }
+      }
+    },
+    "/v1/chat/completions": {
+      "post": {
+        "operationId": "aiGatewayChatCompletions",
+        "x-clearsight-route-access": "WORKLOAD_AUTHENTICATED",
+        "security": [
+          {
+            "workloadBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OpenAI-compatible completion or SSE stream"
+          },
+          "400": {
+            "description": "Unsupported or invalid request"
+          },
+          "401": {
+            "description": "Invalid workload credential"
+          },
+          "404": {
+            "description": "Alias unavailable to workload"
+          },
+          "429": {
+            "description": "Workload budget or concurrency exhausted"
+          },
+          "502": {
+            "description": "Provider protocol or request failure"
+          },
+          "503": {
+            "description": "No route completed"
+          },
+          "504": {
+            "description": "Gateway deadline exceeded"
+          }
+        }
+      }
+    },
+    "/v1/responses": {
+      "post": {
+        "operationId": "aiGatewayResponses",
+        "x-clearsight-route-access": "WORKLOAD_AUTHENTICATED",
+        "security": [
+          {
+            "workloadBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OpenAI Responses-compatible result or typed SSE lifecycle"
+          },
+          "400": {
+            "description": "Unsupported or invalid request"
+          },
+          "401": {
+            "description": "Invalid workload credential"
+          },
+          "404": {
+            "description": "Alias unavailable to workload"
+          },
+          "429": {
+            "description": "Workload budget or concurrency exhausted"
+          },
+          "502": {
+            "description": "Provider protocol or request failure"
+          },
+          "503": {
+            "description": "No route completed"
+          },
+          "504": {
+            "description": "Gateway deadline exceeded"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "workloadBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Workload credential whose SHA-256 digest is configured server-side."
+      },
+      "metricsBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Independent metrics credential."
+      }
+    },
+    "schemas": {
+      "ChatRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model",
+          "messages"
+        ],
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "messages": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 256,
+            "items": {
+              "type": "object"
+            }
+          },
+          "tools": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "object"
+            }
+          },
+          "tool_choice": {},
+          "max_tokens": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 131072
+          },
+          "max_completion_tokens": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 131072
+          },
+          "temperature": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "top_p": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1
+          },
+          "stop": {},
+          "stream": {
+            "type": "boolean"
+          },
+          "stream_options": {
+            "type": "object"
+          },
+          "n": {
+            "type": "integer",
+            "const": 1
+          },
+          "parallel_tool_calls": {
+            "type": "boolean",
+            "const": true
+          },
+          "user": {
+            "type": "string",
+            "maxLength": 0
+          },
+          "response_format": {
+            "type": "null"
+          },
+          "logprobs": {
+            "type": "boolean",
+            "const": false
+          }
+        }
+      },
+      "ResponsesRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model",
+          "input"
+        ],
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "input": {},
+          "instructions": {
+            "type": "string"
+          },
+          "tools": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "object"
+            }
+          },
+          "tool_choice": {},
+          "max_output_tokens": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 131072
+          },
+          "temperature": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "top_p": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1
+          },
+          "stream": {
+            "type": "boolean"
+          },
+          "parallel_tool_calls": {
+            "type": "boolean",
+            "const": true
+          },
+          "store": {
+            "type": "boolean",
+            "const": false
+          },
+          "background": {
+            "type": "boolean",
+            "const": false
+          },
+          "metadata": {
+            "type": "object",
+            "maxProperties": 0
+          },
+          "include": {
+            "type": "array",
+            "maxItems": 0
+          },
+          "truncation": {
+            "type": "string",
+            "enum": [
+              "",
+              "disabled"
+            ]
+          },
+          "text": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  }
+}

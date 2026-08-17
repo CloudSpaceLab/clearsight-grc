@@ -98,40 +98,24 @@ func TestDemoAuthenticatorRoleCatalogueAndSignedSession(t *testing.T) {
 	}
 }
 
-func TestDemoAuthenticatorUsesAccountTenantWithConfiguredFallback(t *testing.T) {
-	authenticator, err := NewDemoAuthenticator("tenant-from-env", "default-principal", "bank-ng")
+func TestDemoAuthenticatorUsesDurablePrincipalIDsForPostgresDemo(t *testing.T) {
+	authenticator, err := NewDemoAuthenticator(DurableDemoTenantID, DurableDemoPrincipalCRO, DurableDemoLegalEntityID)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("new durable demo authenticator: %v", err)
 	}
-	authenticator.accounts = []DemoAccount{
-		{Label: "Fallback", Username: "fallback@example.test", Password: "demo", PrincipalID: "fallback-principal"},
-		{Label: "Assigned", Username: "assigned@example.test", Password: "demo", TenantID: "tenant-from-account", PrincipalID: "assigned-principal"},
+	want := map[string]string{
+		"cro@demo.clearsight.local":          DurableDemoPrincipalCRO,
+		"cco@demo.clearsight.local":          DurableDemoPrincipalCCO,
+		"ciso@demo.clearsight.local":         DurableDemoPrincipalCISO,
+		"grc-admin@demo.clearsight.local":    DurableDemoPrincipalGRCAdmin,
+		"system-admin@demo.clearsight.local": DurableDemoPrincipalSystemAdmin,
+		"auditor@demo.clearsight.local":      DurableDemoPrincipalAuditor,
+		"owner@demo.clearsight.local":        DurableDemoPrincipalProgramOwner,
+		"evidence@demo.clearsight.local":     DurableDemoPrincipalEvidenceRespondent,
 	}
-	authenticator.byUsername = map[string]DemoAccount{
-		"fallback@example.test": authenticator.accounts[0],
-		"assigned@example.test": authenticator.accounts[1],
-	}
-
-	for _, scenario := range []struct {
-		username   string
-		wantTenant string
-	}{
-		{username: "fallback@example.test", wantTenant: "tenant-from-env"},
-		{username: "assigned@example.test", wantTenant: "tenant-from-account"},
-	} {
-		recorder := httptest.NewRecorder()
-		account, err := authenticator.Login(recorder, scenario.username, "demo")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if account.TenantID != scenario.wantTenant {
-			t.Fatalf("login tenant for %s = %q, want %q", scenario.username, account.TenantID, scenario.wantTenant)
-		}
-		request := httptest.NewRequest(http.MethodGet, "/api/v1/context", nil)
-		request.AddCookie(recorder.Result().Cookies()[0])
-		actor, present, err := authenticator.Authenticate(request)
-		if err != nil || !present || actor.TenantID != scenario.wantTenant {
-			t.Fatalf("actor for %s = %#v, present=%v, err=%v", scenario.username, actor, present, err)
+	for _, account := range authenticator.Accounts() {
+		if account.PrincipalID != want[account.Username] {
+			t.Fatalf("principal for %s = %q, want %q", account.Username, account.PrincipalID, want[account.Username])
 		}
 	}
 }

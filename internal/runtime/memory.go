@@ -55,7 +55,7 @@ func (r *MemoryRepository) CompleteTimer(_ context.Context, t Timer, e OutboxEve
 	if !ok {
 		return errors.New("timer not found")
 	}
-	if v.State != TimerClaimed || v.LockedBy != t.LockedBy {
+	if v.State != TimerClaimed || v.LockedBy != t.LockedBy || !sameLeaseGeneration(v.LeaseUntil, t.LeaseUntil) || v.LeaseUntil.Before(now) {
 		return errors.New("timer claim lost")
 	}
 	v.State = TimerFired
@@ -70,7 +70,7 @@ func (r *MemoryRepository) FailTimer(_ context.Context, t Timer, maxAttempts int
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	v, ok := r.timers[t.ID]
-	if !ok || v.State != TimerClaimed || v.LockedBy != t.LockedBy {
+	if !ok || v.State != TimerClaimed || v.LockedBy != t.LockedBy || !sameLeaseGeneration(v.LeaseUntil, t.LeaseUntil) || v.LeaseUntil.Before(at) {
 		return false, errors.New("timer claim lost")
 	}
 	terminal := maxAttempts > 0 && v.Attempts >= maxAttempts
@@ -128,7 +128,7 @@ func (r *MemoryRepository) MarkPublished(_ context.Context, e OutboxEvent, at ti
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	value, ok := r.outbox[e.ID]
-	if !ok || value.LockedBy != e.LockedBy {
+	if !ok || value.LockedBy != e.LockedBy || !sameLeaseGeneration(value.LeaseUntil, e.LeaseUntil) || value.LeaseUntil.Before(at) {
 		return errors.New("outbox claim lost")
 	}
 	delete(r.outbox, e.ID)
@@ -138,7 +138,7 @@ func (r *MemoryRepository) MarkFailed(_ context.Context, e OutboxEvent, maxAttem
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	value, ok := r.outbox[e.ID]
-	if !ok || value.LockedBy != e.LockedBy {
+	if !ok || value.LockedBy != e.LockedBy || !sameLeaseGeneration(value.LeaseUntil, e.LeaseUntil) || value.LeaseUntil.Before(at) {
 		return false, errors.New("outbox claim lost")
 	}
 	terminal := maxAttempts > 0 && value.Attempts >= maxAttempts
@@ -168,6 +168,37 @@ func (r *MemoryRepository) RecordInbox(_ context.Context, tenant, consumer, even
 		return false, nil
 	}
 	r.inbox[k] = struct{}{}
+	return true, nil
+}
+func (r *MemoryRepository) RecordInboxWithOutbox(_ context.Context, receipts []InboxReceipt, event OutboxEvent, _ time.Time) (bool, error) {
+	if len(receipts) == 0 {
+		return false, errors.New("at least one inbox receipt is required")
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	first := receipts[0].TenantID + ":" + receipts[0].Consumer + ":" + receipts[0].EventID
+	if _, exists := r.inbox[first]; exists {
+		return false, nil
+	}
+	keys := make([]string, len(receipts))
+	for index, receipt := range receipts {
+		if receipt.TenantID != event.TenantID || receipt.TenantID == "" || receipt.Consumer == "" || receipt.EventID == "" {
+			return false, errors.New("inbox receipt does not match outbox tenant")
+		}
+		keys[index] = receipt.TenantID + ":" + receipt.Consumer + ":" + receipt.EventID
+		if index > 0 {
+			if _, exists := r.inbox[keys[index]]; exists {
+				return false, ErrInboxReceiptConflict
+			}
+		}
+	}
+	if _, exists := r.outbox[event.ID]; exists {
+		return false, errors.New("outbox event already exists")
+	}
+	for _, key := range keys {
+		r.inbox[key] = struct{}{}
+	}
+	r.outbox[event.ID] = event
 	return true, nil
 }
 func (r *MemoryRepository) TimerQueueHealth(context.Context) (QueueHealth, error) {
@@ -212,4 +243,8 @@ func (r *MemoryRepository) OutboxQueueHealth(context.Context) (QueueHealth, erro
 		}
 	}
 	return health, nil
+}
+
+func sameLeaseGeneration(current, claimed *time.Time) bool {
+	return current != nil && claimed != nil && current.Equal(*claimed)
 }

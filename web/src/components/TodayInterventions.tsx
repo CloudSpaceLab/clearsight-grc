@@ -78,7 +78,7 @@ function VerificationContext({ item }: { item: AttentionItem }) {
 
 function StatusChecks({ readiness, state }: { readiness: Readiness | null; state: ReadinessState }) {
   if (state === "loading") return <div className="continuous-checks quiet" aria-live="polite">Status checks are loading…</div>;
-  if (state === "unavailable" || !readiness) return <div className="continuous-checks quiet"><strong>Status checks unavailable</strong><span>No readiness status is shown until the latest checks can be loaded.</span></div>;
+  if (state === "unavailable" || !readiness) return <div className="continuous-checks quiet"><strong>Status checks unavailable</strong><span>The latest status checks could not be loaded. Try again before reviewing readiness.</span></div>;
   const dimensions = readiness.dimensions;
   const active = dimensions.aging + dimensions.at_risk + dimensions.unknown + dimensions.blocked_routing + dimensions.pending_human;
   const status = readiness.status.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());

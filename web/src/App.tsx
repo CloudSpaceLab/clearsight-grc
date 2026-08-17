@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  loadAIGovernancePolicies,
+  loadAIGovernanceWorkloads,
   loadAutomationPolicies,
   loadCaptureRequest,
   loadContext,
@@ -26,7 +28,8 @@ import type { CaptureLoadState } from "./components/CapturePanel";
 import { apiErrorKind } from "./http";
 import { parseRoute, routeHash } from "./appRouting";
 import type { View, WorkspaceTarget, WorkTab } from "./appRouting";
-import type { AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, GuideStep, IntegrityFinding, PolicySummary, Readiness, WorkflowTask } from "./types";
+import type { RuntimePresentation } from "./runtimePresentation";
+import type { AIGovernancePolicy, AIGovernanceWorkload, AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, GuideStep, IntegrityFinding, PolicySummary, Readiness, WorkflowTask } from "./types";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 
 type LoadState = "idle" | "loading" | "live" | "unavailable";
@@ -50,7 +53,7 @@ const fallbackItems: AttentionItem[] = [{
   id: "fallback-change", type: "REGULATORY_CHANGE", title: "Review proposed digital-channel requirements", why_now: "Seven provisions may affect mobile banking and two payment vendors.", scope: "Digital Channels · Reference data", state: "Applicability review", evidence: "Official source recorded", owner: "Regulatory Compliance", due_at: new Date(Date.now() + 3 * 86400000).toISOString(), primary_action: "Review the proposed requirements", intervention_class: "REVIEW", material_conclusion: "Seven source-linked provisions may change digital-channel obligations.", recommendation: { proposed_action: "Review the proposed requirements", rationale: "The source change may affect mobile banking and two payment vendors." },
 }];
 
-function App() {
+function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) {
   const initialRoute = parseRoute(window.location.hash);
   const [runtime, setRuntime] = useState<ProductRuntime | null>(null);
   const [activeView, setActiveView] = useState<View>(initialRoute.view);
@@ -76,6 +79,10 @@ function App() {
   const [configureState, setConfigureState] = useState<LoadState>("idle");
   const [automationPolicies, setAutomationPolicies] = useState<AutomationPolicy[]>([]);
   const [automationPolicyState, setAutomationPolicyState] = useState<SectionLoadState>("loading");
+  const [aiGovernancePolicies, setAIGovernancePolicies] = useState<AIGovernancePolicy[]>([]);
+  const [aiGovernancePolicyState, setAIGovernancePolicyState] = useState<SectionLoadState>("loading");
+  const [aiGovernanceWorkloads, setAIGovernanceWorkloads] = useState<AIGovernanceWorkload[]>([]);
+  const [aiGovernanceWorkloadState, setAIGovernanceWorkloadState] = useState<SectionLoadState>("loading");
   const [projectionHealth, setProjectionHealth] = useState<ProjectionHealth | null>(null);
   const [projectionState, setProjectionState] = useState<SectionLoadState>("loading");
   const [sources, setSources] = useState<EvidenceSource[]>([]);
@@ -87,7 +94,8 @@ function App() {
   const routingLoadID = useRef(0);
   const evidenceTargetAttempts = useRef(new Set<string>());
 
-  const demoMode = runtime?.demo_mode === true;
+  const serverDemoMode = runtime?.demo_mode === true;
+  const demoMode = serverDemoMode && presentation === "demo";
   const importsEnabled = runtime != null && runtime.capabilities?.document_import !== false;
   const configureEnabled = runtime != null && runtime.capabilities?.config_read !== false;
 
@@ -95,7 +103,8 @@ function App() {
     void Promise.allSettled([loadContext(), loadToday(), loadReadiness()]).then(([contextResult, todayResult, readinessResult]) => {
       const currentRuntime = contextResult.status === "fulfilled" ? contextResult.value as ProductRuntime : null;
       setRuntime(currentRuntime);
-      const allowFallback = currentRuntime?.demo_mode === true || (currentRuntime == null && sampleMode);
+      const allowFallback = (currentRuntime?.demo_mode === true && presentation === "demo") ||
+        (currentRuntime == null && sampleMode && presentation === "demo");
       if (todayResult.status === "fulfilled") {
         const nextItems = Array.isArray(todayResult.value?.items) ? todayResult.value.items : [];
         setItems(nextItems);
@@ -118,7 +127,7 @@ function App() {
         setReadinessState("unavailable");
       }
     });
-  }, []);
+  }, [presentation]);
 
   useEffect(() => {
     const syncRoute = () => {
@@ -171,14 +180,16 @@ function App() {
 
   async function loadConfigureWorkspace() {
     setConfigureState("loading");
-    setPolicyState("loading"); setIntegrityState("loading"); setTaskState("loading"); setProjectionState("loading"); setAutomationPolicyState("loading");
-    const [policiesResult, integrityResult, tasksResult, projectionResult, automationResult] = await Promise.allSettled([loadPolicies(), loadIntegrity(), loadWorkflowTasks(), loadProjectionHealth(), loadAutomationPolicies()]);
+    setPolicyState("loading"); setIntegrityState("loading"); setTaskState("loading"); setProjectionState("loading"); setAutomationPolicyState("loading"); setAIGovernancePolicyState("loading"); setAIGovernanceWorkloadState("loading");
+    const [policiesResult, integrityResult, tasksResult, projectionResult, automationResult, aiPolicyResult, aiWorkloadResult] = await Promise.allSettled([loadPolicies(), loadIntegrity(), loadWorkflowTasks(), loadProjectionHealth(), loadAutomationPolicies(), loadAIGovernancePolicies(), loadAIGovernanceWorkloads()]);
     if (policiesResult.status === "fulfilled") { setPolicies(policiesResult.value); setPolicyState("live"); } else { setPolicies([]); setPolicyState("unavailable"); }
     if (integrityResult.status === "fulfilled") { setIntegrity(integrityResult.value); setIntegrityState("live"); } else { setIntegrity([]); setIntegrityState("unavailable"); }
     if (tasksResult.status === "fulfilled") { setTasks(tasksResult.value); setTaskState("live"); } else { setTasks([]); setTaskState("unavailable"); }
     if (projectionResult.status === "fulfilled") { setProjectionHealth(projectionResult.value[0] ?? null); setProjectionState("live"); } else { setProjectionHealth(null); setProjectionState("unavailable"); }
     if (automationResult.status === "fulfilled") { setAutomationPolicies(automationResult.value); setAutomationPolicyState("live"); } else { setAutomationPolicies([]); setAutomationPolicyState("unavailable"); }
-    setConfigureState([policiesResult, integrityResult, tasksResult, projectionResult].some((result) => result.status === "fulfilled") ? "live" : "unavailable");
+    if (aiPolicyResult.status === "fulfilled") { setAIGovernancePolicies(aiPolicyResult.value); setAIGovernancePolicyState("live"); } else { setAIGovernancePolicies([]); setAIGovernancePolicyState("unavailable"); }
+    if (aiWorkloadResult.status === "fulfilled") { setAIGovernanceWorkloads(aiWorkloadResult.value); setAIGovernanceWorkloadState("live"); } else { setAIGovernanceWorkloads([]); setAIGovernanceWorkloadState("unavailable"); }
+    setConfigureState([policiesResult, integrityResult, tasksResult, projectionResult, automationResult, aiPolicyResult, aiWorkloadResult].some((result) => result.status === "fulfilled") ? "live" : "unavailable");
   }
 
   async function checkProgramStatusRecords(): Promise<ReconcileResult> {
@@ -289,14 +300,25 @@ function App() {
       {activeView === "imports" && importsEnabled && <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Imports</h1><p>Upload source documents and review extracted proposals before accepting them.</p></div></header><DocumentImportWorkspace/></>}
       {activeView === "explore" && demoMode && <ExploreView organizationName={organizationName}/>}
       {activeView === "configure" && configureEnabled && <ConfigureView policies={policies} policyState={policyState} findings={integrity} integrityState={integrityState} tasks={tasks} taskState={taskState} projectionHealth={projectionHealth} projectionState={projectionState} automationPolicies={automationPolicies} automationPolicyState={automationPolicyState} state={configureState} onRetry={() => void loadConfigureWorkspace()} onReconcile={checkProgramStatusRecords}/>}
+      <div className="context-bar" aria-label="Active workspace context"><div><strong>{organizationName}</strong><span>{legalEntityName}</span></div><div className="context-role"><DisplayPreferencesMenu/><span>{roleName}</span>{demoMode ? <mark>Stakeholder demo</mark> : serverDemoMode && presentation === "live-preview" ? <mark>Live preview · Non-production</mark> : null}</div></div>
+      <RoleAwareOnboarding runtime={runtime} onStep={executeGuideStep}/>
+      {activeView === "today" && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>}
+      {activeView === "programs" && <ProgramsView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} openFirst={target.openFirstProgram}/>}
+      {activeView === "work" && <WorkView organizationName={organizationName} tab={workTab} onTab={(tab) => navigate("work", {}, tab)} sources={sources} requests={evidenceRequests} evidenceSourceState={evidenceSourceState === "idle" ? "loading" : evidenceSourceState} evidenceRequestState={evidenceRequestState === "idle" ? "loading" : evidenceRequestState} onEvidenceRetry={() => void loadEvidenceWorkspace(target.evidenceID)} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)}/>}
+      {activeView === "imports" && importsEnabled && <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Imports</h1><p>Compare regulatory documents with current Programs, controls and evidence.</p></div></header><DocumentImportWorkspace/></>}
+      {activeView === "explore" && demoMode && <ExploreView organizationName={organizationName}/>}
+      {activeView === "configure" && configureEnabled && <ConfigureView policies={policies} policyState={policyState} findings={integrity} integrityState={integrityState} tasks={tasks} taskState={taskState} projectionHealth={projectionHealth} projectionState={projectionState} automationPolicies={automationPolicies} automationPolicyState={automationPolicyState} aiGovernancePolicies={aiGovernancePolicies} aiGovernancePolicyState={aiGovernancePolicyState} aiGovernanceWorkloads={aiGovernanceWorkloads} aiGovernanceWorkloadState={aiGovernanceWorkloadState} state={configureState} onRetry={() => void loadConfigureWorkspace()} onReconcile={checkProgramStatusRecords}/>}
     </main>
     <nav className="mobile-nav" aria-label="Mobile navigation">{navigation.map(({ label, view }) => <button key={view} type="button" aria-current={activeView === view ? "page" : undefined} onClick={() => navigate(view)}><NavigationIcon view={view}/><span>{label}</span></button>)}</nav>
     {activePanel !== "none" && <FocusedSheet label={activePanel === "routing" ? "Authority for selected work" : "Evidence request"} onClose={closePanel}>{activePanel === "routing" ? <RoutingPanel resolution={resolution} item={routingItem} legalEntityName={legalEntityName} state={routingState}/> : <CapturePanel request={capture} state={captureState} onReload={() => void reloadCapture()}/>}</FocusedSheet>}
-    <RoleAwareOnboarding runtime={runtime} onStep={executeGuideStep}/>
   </div>;
 }
 
-function humanRole(value?: string) { return value?.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()) ?? ""; }
+function humanRole(value?: string) {
+  if (!value) return "";
+  if (/^[A-Z0-9]+$/.test(value)) return value;
+  return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
 function initials(value: string) { const parts = value.trim().split(/\s+/).filter(Boolean); const first = parts.at(0)?.at(0) ?? value.at(0) ?? ""; const last = parts.length > 1 ? parts.at(-1)?.at(0) ?? "" : value.at(1) ?? ""; return `${first}${last}`.toUpperCase(); }
 
 export default App;

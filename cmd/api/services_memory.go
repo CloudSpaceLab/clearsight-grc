@@ -7,17 +7,23 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/documentcoverage"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceevent"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
@@ -30,17 +36,37 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		version = "no-demo-policy"
 		rules = nil
 	}
-	auto := autonomy.NewService(autonomy.NewMemoryRepository())
+	autonomyRepo := autonomy.NewMemoryRepository()
+	auto := autonomy.NewService(autonomyRepo)
 	if cfg.DemoMode {
 		autonomy.SeedDemo(ctx, auto)
 	}
 	store := evidence.NewMemoryObjectStore()
 	evidenceService := evidence.NewService(evidence.NewMemoryRepository(nil, nil), store)
 	evidenceService.Configure(cfg.CaptureSessionTTL, cfg.MaxArtifactBytes)
+	sourceScopes := []sourceaccess.SourceScope{}
+	if cfg.DemoMode {
+		for _, source := range evidence.DemoSources() {
+			sourceScopes = append(sourceScopes, sourceaccess.SourceScope{TenantID: source.TenantID, SourceID: source.ID})
+		}
+	}
 	documentService := documentimport.NewService(documentimport.NewMemoryRepository(), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
+	catalogRepo := sourceaccess.NewMemoryCatalogRepository(sourceScopes)
+	runtimeRepo := runtime.NewMemoryRepository()
+	checkpoints := sourceaccess.NewCheckpointService(sourceaccess.NewMemoryCheckpointRepository(catalogRepo), runtimeRepo)
+	adapters := sourceaccess.DefaultCatalogAdapters()
+	adapters[sourceaccess.AdapterTabularArtifact] = documentService.SourceAccessAdapter()
+	adapters[sourceaccess.AdapterWebhookEvent] = sourceevent.NewAdapter(runtimeRepo, checkpoints)
+	sourceCatalog := sourceaccess.NewCatalogService(catalogRepo, sourceaccess.EnvironmentSecretResolver{}, adapters)
+	evidenceService.ConfigureSourceBindings(sourceCatalog)
+	monitoringService := monitoring.NewService(monitoring.NewMemoryRepository(), evidenceService)
+	monitoringService.ConfigureSourceReader(sourceCatalog)
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepo)
+	aiGovernanceRepo := aigovernance.NewMemoryRepository()
+	aiGovernanceService := aigovernance.NewService(aiGovernanceRepo, auto, sourceCatalog, continuityService)
+	coverageService := documentcoverage.NewService(documentcoverage.NewMemoryRepository(), documentService, continuityService)
 	verticals := bankverticals.NewService(continuityService, evidenceService)
 	if cfg.DemoMode {
 		if _, err := verticals.InstallSample(ctx, bankverticals.DemoSeedConfig()); err != nil {
@@ -90,8 +116,8 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 
 	return serviceSet{
 		Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()),
-		Evidence: evidenceService, DocumentImports: documentService, Continuity: continuityService, Today: todayService,
+		Evidence: evidenceService, Monitoring: monitoringService, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
-		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo), Close: func() {},
+		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo), Close: func() {},
 	}, nil
 }

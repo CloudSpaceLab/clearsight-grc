@@ -32,6 +32,8 @@ jobs:
           go-version: 1.26.5
           cache: true
       - run: go mod download
+      - name: Install PDF and PostgreSQL tools
+        run: sudo apt-get update -qq && sudo apt-get install -y poppler-utils postgresql-client
       - name: Format
         run: |
           files="$(gofmt -l $(find cmd internal -name '*.go' -type f))"
@@ -44,8 +46,6 @@ jobs:
         run: go test -race -coverprofile=coverage.out ./...
       - name: PostgreSQL composition
         run: go test -tags postgres ./...
-      - name: Install PostgreSQL client
-        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
       - name: Apply migrations
         env:
           PGPASSWORD: clearsight
@@ -53,18 +53,85 @@ jobs:
           for migration in migrations/*.up.sql; do
             psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$migration"
           done
-      - name: Verify latest migration rollback and reapply
+      - name: Source-access tranche acceptance
+        env:
+          TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
+        run: bash scripts/verify-sourceaccess-tranche.sh auto
+      - name: AI gateway T3 transport acceptance
+        run: bash scripts/verify-t3-gateway.sh
+      - name: AI governance T4/T5 acceptance
+        env:
+          TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
+        run: bash scripts/verify-ai-governance-tranches.sh auto
+      - name: Verify source-access runtime rollback and reapply
         env:
           PGPASSWORD: clearsight
         run: |
-          latest_up="$(find migrations -maxdepth 1 -name '*.up.sql' -type f | sort | tail -n 1)"
-          test -n "$latest_up"
-          latest_down="${latest_up%.up.sql}.down.sql"
-          test -f "$latest_down"
-          echo "Rollback/reapply: $latest_up"
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$latest_down"
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f "$latest_up"
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000031_source_access_runtime_state.down.sql
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.source_binding_checkpoints') IS NULL THEN 'ok' ELSE 'checkpoint table survived rollback' END" | grep -qx ok
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='source_observations' AND column_name='scope_kind'" | grep -qx 0
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000030_source_access_catalog.down.sql
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO tenants(id,slug,name)
+          VALUES('6f300000-0000-7000-8000-000000000001','source-catalog-migration','Source catalog migration');
+          INSERT INTO evidence_sources(
+              id,tenant_id,code,name,source_type,authority_class,endpoint,
+              expected_freshness_minutes,health,status,version
+          ) VALUES (
+              '6f300000-0000-7000-8000-000000000002',
+              '6f300000-0000-7000-8000-000000000001',
+              'LEGACY-ENDPOINT','Legacy endpoint','SYSTEM','SYSTEM_OF_RECORD',
+              ' https://legacy.example.invalid/source ',15,'UNKNOWN','ACTIVE',1
+          );
+          SQL
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000030_source_access_catalog.up.sql
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='evidence_sources' AND column_name='endpoint'" | grep -qx 0
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM source_connections WHERE source_id='6f300000-0000-7000-8000-000000000002' AND code='PRIMARY_REFERENCE' AND adapter_kind='REFERENCE' AND adapter_version='reference-v1' AND status='ACTIVE' AND is_current AND version=1 AND definition->>'endpoint'='https://legacy.example.invalid/source'" | grep -qx 1
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000031_source_access_runtime_state.up.sql
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.source_binding_checkpoints') IS NOT NULL THEN 'ok' ELSE 'missing checkpoint table after reapply' END" | grep -qx ok
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='source_observations' AND column_name IN ('scope_kind','connection_id','connection_version','view_id','view_version','binding_id','binding_version')" | grep -qx 7
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -c "DELETE FROM source_connections WHERE source_id='6f300000-0000-7000-8000-000000000002'; DELETE FROM evidence_sources WHERE id='6f300000-0000-7000-8000-000000000002'; DELETE FROM tenants WHERE id='6f300000-0000-7000-8000-000000000001';"
           psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.audit_events') IS NULL AND to_regclass('public.readiness_snapshots') IS NULL THEN 'ok' ELSE 'unexpected compatibility table' END" | grep -qx ok
+      - name: Verify AI governance rollback and reapply
+        env:
+          PGPASSWORD: clearsight
+        run: |
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000036_ai_governance_receipts_grants.down.sql
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.ai_gateway_decision_receipts') IS NULL AND to_regclass('public.ai_execution_grants') IS NULL THEN 'ok' ELSE 'T5 tables survived rollback' END" | grep -qx ok
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000035_ai_governance_enforcement.down.sql
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.ai_workloads') IS NULL THEN 'ok' ELSE 'ai_workloads survived rollback' END" | grep -qx ok
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='automation_policies' AND column_name IN ('ai_definition','rollout_mode','record_version')" | grep -qx 0
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000035_ai_governance_enforcement.up.sql
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000036_ai_governance_receipts_grants.up.sql
+          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.ai_workloads') IS NOT NULL AND to_regclass('public.ai_gateway_decision_receipts') IS NOT NULL AND to_regclass('public.ai_execution_grants') IS NOT NULL THEN 'ok' ELSE 'AI governance tables missing after reapply' END" | grep -qx ok
+
+      - name: Verify deployment migration ledger
+        env:
+          PGPASSWORD: clearsight
+          DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight_deploy_test?sslmode=disable
+        run: |
+          createdb -h localhost -U clearsight clearsight_deploy_test
+          bash deploy/scripts/migrate.sh migrations
+          bash deploy/scripts/migrate.sh migrations
+          bash deploy/scripts/seed-demo-foundation.sh
+          bash deploy/scripts/seed-demo-foundation.sh
+          psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM routing_policies WHERE tenant_id='00000000-0000-4000-8000-000000000001' AND code='CLEARSIGHT-DEMO-AUTHORITY'" | grep -qx 1
+          psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM routing_policy_versions WHERE policy_id='00000000-0000-4000-8000-000000000201' AND version=1" | grep -qx 1
+          psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM effective_authority_routes WHERE source_policy_id='00000000-0000-4000-8000-000000000201'" | grep -qx 11
+          psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT selector_ref FROM effective_authority_routes WHERE source_rule_id='demo-program-authorizer' AND object_type='PROGRAM' AND decision_type='program.transition' AND responsibility='AUTHORIZER'" | grep -qx 00000000-0000-4000-8000-000000000101
+          migration_copy="$(mktemp -d)"
+          cp migrations/*.up.sql "$migration_copy/"
+          printf '\n-- checksum mismatch proof\n' >> "$migration_copy/000001_foundation.up.sql"
+          if bash deploy/scripts/migrate.sh "$migration_copy" 2>migration-error.log; then
+            echo "changed migration unexpectedly succeeded"
+            exit 1
+          fi
+          grep -q "checksum mismatch: 000001_foundation.up.sql" migration-error.log
+      - name: Remove deployment migration test database
+        if: always()
+        env:
+          PGPASSWORD: clearsight
+        run: dropdb -h localhost -U clearsight --if-exists clearsight_deploy_test
       - name: PostgreSQL integration tests
         env:
           TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable

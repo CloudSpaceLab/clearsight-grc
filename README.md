@@ -9,7 +9,7 @@ ClearSight helps bank compliance, risk, security, privacy, resilience, audit, le
 
 The repository contains a working application foundation for ongoing Programs and specific issues or changes:
 
-- Go API and durable worker processes;
+- Go API, durable worker and isolated stateless AI gateway processes;
 - React/Vite **Today, Programs, Work, Imports, Explore and Configure** surfaces;
 - PostgreSQL 18 schema and pgx-backed repositories;
 - verified actor context with tenant/query-scope conflict rejection;
@@ -23,7 +23,8 @@ The repository contains a working application foundation for ongoing Programs an
 - deterministic TXT, Markdown, CSV, DOCX and XLSX extraction with source-location anchors;
 - source-anchored analysis proposals that require explicit human acceptance or rejection;
 - ongoing Programs with requirements, applicability decisions, controls and evidence checks;
-- typed Matters for changes, gaps, findings, requests, exceptions and incidents;
+- non-modal Program setup for channel and obligation monitoring, reusable scored forms, public HTTPS status checks and immutable risk results;
+- typed Matters for changes, gaps, findings, requests, exceptions and incidents, with non-modal creation and optional Program linking;
 - decisions, actions, response packages and independently checked outcomes;
 - reason-bearing Program status and point-in-time reconstruction;
 - actor-scoped Today work derived from current journey state;
@@ -33,13 +34,15 @@ The repository contains a working application foundation for ongoing Programs an
 - role-specific onboarding, premium illustrations and semantic vector icons;
 - compliance Signals, drift assessment and readiness;
 - rendered-state and axe accessibility tests enforced in CI;
-- mechanically verified runtime API/access contract, Docker Compose, CI and PostgreSQL integration tests.
+- mechanically verified main API and isolated AI gateway route/access contracts, Docker Compose, CI and PostgreSQL integration tests;
+- OpenAI-compatible Chat/Responses text-and-function transport with OpenAI/Anthropic adapters, truthful SSE, workload authentication, budgets, routing/fallback, circuit state and content-free telemetry.
 
-The default build uses in-memory repositories for local development. The `postgres` build tag activates PostgreSQL repositories. The local artifact-store adapter is for development and testing only; production object storage, malware scanning, PDF extraction and OCR are not implemented.
+The default build uses in-memory repositories for local development. The `postgres` build tag activates PostgreSQL repositories. The local artifact-store adapter is for development and testing only; production object storage, malware scanning and OCR are not implemented. Searchable PDFs are extracted automatically by the durable worker through bounded Poppler utilities.
 
 ## Product model
 
 - **Programs** maintain continuing obligations, controls, evidence, reviews, filings, exceptions and assurance.
+- **Monitoring Checks** collect structured responses or read an exact connected-source version, then calculate risk and coverage from approved deterministic rules.
 - **Matters** are the precise internal records for a specific change, gap, finding, request, exception or incident. General screens call them **issues and changes**.
 - **Imports** preserve original source material, extracted sections and source-anchored proposals for governed human review.
 - **Explore journeys** connect the records into understandable, end-to-end operating paths and launch the exact next Program, issue or evidence request when stakeholder demo mode is enabled.
@@ -59,6 +62,8 @@ Authority Source or Standard
 
 Task completion, a submission, a stored artifact, an extracted statement, an accepted analysis proposal and external execution are not verified outcomes.
 
+Monitoring results are observations, not approved compliance conclusions. Form collections are created on demand; ClearSight does not automatically create a weekly request. A submitted form response is scored automatically against the exact active form and Monitoring Check versions. Connected status checks are run on demand and preserve the exact source receipt used for the result.
+
 ## Governed document imports
 
 The Imports workspace accepts real files and keeps source handling separate from material governance decisions.
@@ -74,7 +79,7 @@ Every import records the original file metadata, content digest, artifact state,
 
 A reviewer may accept or reject a proposal using optimistic concurrency. Acceptance records that the statement should proceed to governed follow-up; it does **not** automatically create or approve a Requirement, Program, Matter, control, legal interpretation or compliance conclusion.
 
-PDF originals are stored and hashed, but this build reports PDF extraction as unsupported until an approved PDF/OCR adapter is implemented.
+PDF originals are stored and hashed. Searchable PDFs are extracted automatically into page-numbered sections through a bounded Poppler adapter, and candidate proposals retain exact page anchors. Image-only PDFs are reported explicitly as requiring OCR and never produce fabricated text.
 
 ## Demo and operational modes
 
@@ -180,6 +185,7 @@ The application begins as a modular monolith with separate API and worker proces
 ```text
 cmd/api                       API composition
 cmd/worker                    durable worker
+cmd/ai-gateway                isolated stateless model transport
 cmd/seed-bank-reference       explicit non-production reference installer
 internal/authority            routing, simulation and integrity
 internal/governance           maker-checker policies and delegations
@@ -189,11 +195,13 @@ internal/documentimport       imports, extraction, proposals and review
 internal/continuity           Programs, Matters, access, status and history
 internal/bankverticals        connected bank journey projections and installer
 internal/autonomy             Signals, drift and readiness
+internal/aigateway             canonical model transport, adapters, routing and budgets
 internal/workflow             derived actor-facing Task projection and reads
 internal/onboarding           guided-adoption state
 internal/httpapi              actor-bound HTTP contracts
 web                           React application
 api/runtime.openapi.json      mechanically verified executable route/access contract
+api/ai-gateway.openapi.json   mechanically verified isolated gateway contract
 api/bank-journeys.openapi.yaml focused journey schema and examples
 api/document-imports.openapi.yaml focused import and review contract
 api/README.md                 API contract ownership rules
@@ -223,6 +231,18 @@ make compose-up
 go run -tags postgres ./cmd/api
 ```
 
+For the isolated stateless AI gateway, copy and replace the fail-closed example values, export the referenced provider secrets, then start the separate process:
+
+```bash
+cp deploy/ai-gateway.config.example.json ./var/ai-gateway.json
+export CLEARSIGHT_AI_GATEWAY_CONFIG_FILE=./var/ai-gateway.json
+export OPENAI_API_KEY=...
+export ANTHROPIC_API_KEY=...
+make run-ai-gateway
+```
+
+Generate workload and metrics digests with `printf %s 'a-random-secret' | sha256sum`; never place the plaintext credentials in the JSON file.
+
 The web client runs at `http://localhost:5173`; the API defaults to `http://localhost:8080`.
 
 ## Current boundaries
@@ -234,13 +254,14 @@ The repository does not yet claim production completion for:
 - authorization on every governance/evidence mutation;
 - bulk Program setup and controlled configuration changes;
 - production object storage, malware scanning, retention and legal hold;
-- PDF extraction, OCR, password-protected documents and extraction-provider isolation;
+- OCR, password-protected document support and stronger extraction-provider isolation;
 - resumable multipart uploads, saved mappings and repeat-import reconciliation;
 - authorized conversion of accepted proposals into versioned governed records;
 - direct NDPC/CBN ingestion or external authority-channel transmission;
 - bank-approved legal configuration and a complete Nigerian regulatory library;
 - representative production-scale journey and import benchmarks with retained query plans;
-- dependency propagation across shared controls and services.
+- dependency propagation across shared controls and services;
+- governed AI workload/policy lifecycle, source-aware enforcement, durable decision receipts and execution grants beyond the stateless T3 gateway transport.
 
 ## Start here
 
@@ -248,11 +269,12 @@ The repository does not yet claim production completion for:
 2. [`docs/product/use-case-catalogue.md`](docs/product/use-case-catalogue.md)
 3. [`docs/product/continuous-compliance-operating-model.md`](docs/product/continuous-compliance-operating-model.md)
 4. [`docs/engineering/governed-document-imports.md`](docs/engineering/governed-document-imports.md)
-5. [`docs/product/nigerian-bank-reference-journeys.md`](docs/product/nigerian-bank-reference-journeys.md)
-6. [`docs/architecture/program-and-matter-foundation.md`](docs/architecture/program-and-matter-foundation.md)
-7. [`docs/architecture/source-evidence-and-secure-capture.md`](docs/architecture/source-evidence-and-secure-capture.md)
-8. [`docs/architecture/application-architecture.md`](docs/architecture/application-architecture.md)
-9. [`docs/implementation-plan.md`](docs/implementation-plan.md)
-10. [`AGENTS.md`](AGENTS.md)
+5. [`docs/engineering/demo-deployment.md`](docs/engineering/demo-deployment.md)
+6. [`docs/product/nigerian-bank-reference-journeys.md`](docs/product/nigerian-bank-reference-journeys.md)
+7. [`docs/architecture/program-and-matter-foundation.md`](docs/architecture/program-and-matter-foundation.md)
+8. [`docs/architecture/source-evidence-and-secure-capture.md`](docs/architecture/source-evidence-and-secure-capture.md)
+9. [`docs/architecture/application-architecture.md`](docs/architecture/application-architecture.md)
+10. [`docs/implementation-plan.md`](docs/implementation-plan.md)
+11. [`AGENTS.md`](AGENTS.md)
 
 **ClearSight succeeds when governance work is current, understandable, correctly routed, minimally demanding and reconstructable.**

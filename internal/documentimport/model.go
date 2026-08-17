@@ -53,6 +53,19 @@ type Section struct {
 	RowEnd   int    `json:"row_end,omitempty"`
 }
 
+type Obligation struct {
+	Fingerprint string   `json:"fingerprint"`
+	Eligible    bool     `json:"eligible"`
+	Modality    string   `json:"modality,omitempty"`
+	Actor       string   `json:"actor,omitempty"`
+	Action      string   `json:"action,omitempty"`
+	Object      string   `json:"object,omitempty"`
+	Citations   []string `json:"citations"`
+	Dates       []string `json:"dates"`
+	Topics      []string `json:"topics"`
+	Uncertainty []string `json:"uncertainty"`
+}
+
 type Proposal struct {
 	ID         string         `json:"id"`
 	Kind       string         `json:"kind"`
@@ -64,6 +77,7 @@ type Proposal struct {
 	ReviewedBy string         `json:"reviewed_by,omitempty"`
 	ReviewedAt *time.Time     `json:"reviewed_at,omitempty"`
 	ReviewNote string         `json:"review_note,omitempty"`
+	Obligation *Obligation    `json:"obligation,omitempty"`
 }
 
 type Document struct {
@@ -90,6 +104,7 @@ type Document struct {
 	ProposalsTotal   int              `json:"proposals_total"`
 	ProposalsOmitted int              `json:"proposals_omitted"`
 	ContentTruncated bool             `json:"content_truncated"`
+	Tabular          *TabularMetadata `json:"tabular,omitempty"`
 	ProcessedAt      *time.Time       `json:"processed_at,omitempty"`
 	CreatedBy        string           `json:"created_by"`
 	CreatedAt        time.Time        `json:"created_at"`

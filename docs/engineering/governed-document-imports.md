@@ -26,9 +26,11 @@ Current deterministic extraction supports:
 - DOCX paragraphs and tables;
 - XLSX worksheets and rows.
 
-PDF originals are stored and hashed, but the current build deliberately reports extraction as unsupported. PDF text extraction and OCR require an approved adapter with page anchors, resource limits and failure evidence.
+PDF originals are stored and hashed. Searchable PDFs are extracted by the durable worker through Poppler into one section per non-empty page. Page numbers flow into proposal anchors. Extraction is bounded to 500 pages, 30 seconds and the configured text-output budget; timeouts, malformed files, encrypted files and resource overruns retain explicit failure evidence.
 
-Image-only documents are not OCRed.
+The Imports workspace keeps existing review records primary and reveals intake on request. It states the supported formats and 20 MiB limit before upload, rejects a larger browser-selected file immediately while retaining server enforcement, and renders the terminal PDF result as `Original stored` / `Text review unavailable` rather than as a failed upload.
+
+Image-only documents are not OCRed. They remain stored and are reported as `Text review unavailable` with an explicit OCR-required limitation rather than producing invented text or proposals.
 
 ## Analysis contract
 
@@ -143,7 +145,7 @@ Required tests cover:
 This slice does not claim:
 
 - production malware and active-content scanning;
-- PDF text extraction or OCR;
+- OCR and password-protected PDF support;
 - password-protected document handling;
 - resumable multipart upload;
 - saved mapping and reconciliation workflows for repeated high-volume imports;

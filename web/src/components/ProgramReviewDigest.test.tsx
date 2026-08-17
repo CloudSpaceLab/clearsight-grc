@@ -68,10 +68,10 @@ describe("Program review digest", () => {
     expect(screen.queryByRole("button", { name: "Mark current state reviewed" })).toBeNull();
   });
 
-  it("states when older canonical change events are outside the bounded daily digest", async () => {
+  it("states when the change summary does not include older history", async () => {
     vi.mocked(loadProgramReviewDigest).mockResolvedValue({ ...changed, history_truncated: true });
     render(<ProgramReviewDigest aggregate={aggregate}/>);
-    expect(await screen.findByText(/Older Program change events are outside this bounded daily digest/)).toBeTruthy();
+    expect(await screen.findByText(/This summary does not include older Program changes/)).toBeTruthy();
   });
 
   it("fails visibly when the Program moves before acknowledgement", async () => {
@@ -83,10 +83,10 @@ describe("Program review digest", () => {
     expect(alert.textContent).toContain("changed while you were reviewing");
   });
 
-  it("degrades to current Program truth when actor review history is unavailable", async () => {
+  it("keeps the current status visible when review history is unavailable", async () => {
     vi.mocked(loadProgramReviewDigest).mockRejectedValue(new ApiError(503, "unavailable"));
     render(<ProgramReviewDigest aggregate={aggregate}/>);
-    expect(await screen.findByText(/Review history is unavailable/)).toBeTruthy();
+    expect(await screen.findByText(/Review history could not be loaded/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Mark current state reviewed" })).toBeNull();
   });
 });

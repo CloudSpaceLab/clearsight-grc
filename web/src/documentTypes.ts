@@ -50,3 +50,109 @@ export type DocumentImport = DocumentDetailBase & {
   processed_at?: string;
   created_by: string;
 };
+
+export type CoverageViewStatus = "PENDING" | "COMPARING" | "READY" | "PARTIAL" | "FAILED" | "STALE";
+export type CoverageClassification = "VERIFIED_COVERAGE" | "MAPPED_NO_CURRENT_EVIDENCE" | "MAPPED_CONTROL_GAP" | "PARTIAL_MATCH" | "GAP" | "NEEDS_REVIEW" | "NOT_APPLICABLE";
+export type CoverageDecision = "ACCEPT_MATCH" | "REJECT_MATCH" | "NOT_APPLICABLE";
+export type CoverageSuggestionType = "LINK_REQUIREMENT" | "ADD_REQUIREMENT" | "CREATE_MATTER" | "CREATE_PROGRAM";
+export type CoverageSuggestionStatus = "PROPOSED" | "DISMISSED" | "APPLIED" | "FAILED";
+
+export type CoverageCountMetric = { numerator: number; denominator: number };
+export type CoverageMetrics = {
+  estimated_verified: CoverageCountMetric;
+  verified: CoverageCountMetric;
+  requirement_mapped: CoverageCountMetric;
+  control_implemented: CoverageCountMetric;
+  evidence_supported: CoverageCountMetric;
+};
+
+export type CoverageScoreComponent = { name: string; weight: number; score: number; reason: string };
+export type CoverageRequirementTruth = {
+  requirement_id: string;
+  applicable: boolean;
+  applicability: string;
+  control_implemented: boolean;
+  evidence_supported: boolean;
+  complete: boolean;
+  control_ids: string[];
+  evidence_contract_ids: string[];
+  reasons: string[];
+};
+export type CoverageMatch = {
+  id: string;
+  program_id: string;
+  program_code: string;
+  program_name: string;
+  program_version: number;
+  requirement_id: string;
+  requirement_code: string;
+  requirement_title: string;
+  requirement_version: number;
+  score: number;
+  band: "STRONG" | "POSSIBLE" | "WEAK";
+  components: CoverageScoreComponent[];
+  rationale: string;
+  conflicts: string[];
+  coverage: CoverageRequirementTruth;
+};
+export type CoverageReview = { decision: CoverageDecision; match_id?: string; reason?: string; reviewer_id: string; reviewed_at: string };
+export type CoverageCandidate = {
+  id: string;
+  fingerprint: string;
+  eligible: boolean;
+  statement: string;
+  anchor: DocumentAnchor;
+  modality?: string;
+  actor?: string;
+  action?: string;
+  object?: string;
+  citations: string[];
+  dates: string[];
+  topics: string[];
+  uncertainty: string[];
+  jurisdiction?: string;
+  regulator?: string;
+  program_type?: string;
+  classification: CoverageClassification;
+  matches: CoverageMatch[];
+  review?: CoverageReview;
+};
+export type CoverageSuggestion = {
+  id: string;
+  candidate_id: string;
+  type: CoverageSuggestionType;
+  status: CoverageSuggestionStatus;
+  title: string;
+  rationale: string;
+  program_id?: string;
+  requirement_id?: string;
+  applied_type?: string;
+  applied_id?: string;
+  failure_message?: string;
+};
+export type CoverageMatter = { candidate_id: string; matter_id: string; reference: string; type: string; status: string; title: string; summary: string; score: number };
+export type DocumentCoverage = {
+  id?: string;
+  tenant_id: string;
+  legal_entity_id?: string;
+  document_id: string;
+  document_sha256: string;
+  status: CoverageViewStatus;
+  analyzer_version?: string;
+  matcher_version?: string;
+  scoring_policy_version?: string;
+  program_snapshot_hash?: string;
+  candidates: CoverageCandidate[];
+  suggestions: CoverageSuggestion[];
+  matters: CoverageMatter[];
+  metrics: CoverageMetrics;
+  limitations: string[];
+  failure_message?: string;
+  assessed_at?: string;
+  updated_at?: string;
+  version: number;
+  next_cursor?: string;
+};
+
+export type CoverageReviewInput = { candidate_id: string; decision: CoverageDecision; match_id?: string; reason?: string };
+export type CoverageApplyResult = { assessment: DocumentCoverage; object_type?: string; object_id?: string };

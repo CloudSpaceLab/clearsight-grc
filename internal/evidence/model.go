@@ -3,6 +3,8 @@ package evidence
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
 type SourceType string
@@ -36,7 +38,7 @@ type Source struct {
 	Type                     SourceType   `json:"type"`
 	AuthorityClass           string       `json:"authority_class"`
 	OwnerPrincipalID         string       `json:"owner_principal_id,omitempty"`
-	Endpoint                 string       `json:"endpoint,omitempty"`
+	Endpoint                 string       `json:"-"`
 	ExpectedFreshnessMinutes int          `json:"expected_freshness_minutes"`
 	LastObservedAt           *time.Time   `json:"last_observed_at,omitempty"`
 	LastSuccessAt            *time.Time   `json:"last_success_at,omitempty"`
@@ -60,15 +62,22 @@ type CreateSourceInput struct {
 }
 
 type SourceObservation struct {
-	ID          string    `json:"id"`
-	TenantID    string    `json:"tenant_id"`
-	SourceID    string    `json:"source_id"`
-	ObservedAt  time.Time `json:"observed_at"`
-	Success     bool      `json:"success"`
-	Unavailable bool      `json:"unavailable"`
-	LatencyMS   int       `json:"latency_ms,omitempty"`
-	Detail      string    `json:"detail,omitempty"`
-	RecordedBy  string    `json:"recorded_by,omitempty"`
+	ID                string                 `json:"id"`
+	TenantID          string                 `json:"tenant_id"`
+	SourceID          string                 `json:"source_id"`
+	Scope             SourceObservationScope `json:"scope,omitempty"`
+	ConnectionID      string                 `json:"connection_id,omitempty"`
+	ConnectionVersion int64                  `json:"connection_version,omitempty"`
+	ViewID            string                 `json:"view_id,omitempty"`
+	ViewVersion       int64                  `json:"view_version,omitempty"`
+	BindingID         string                 `json:"binding_id,omitempty"`
+	BindingVersion    int64                  `json:"binding_version,omitempty"`
+	ObservedAt        time.Time              `json:"observed_at"`
+	Success           bool                   `json:"success"`
+	Unavailable       bool                   `json:"unavailable"`
+	LatencyMS         int                    `json:"latency_ms,omitempty"`
+	Detail            string                 `json:"detail,omitempty"`
+	RecordedBy        string                 `json:"recorded_by,omitempty"`
 }
 
 type RequestStatus string
@@ -91,14 +100,86 @@ const (
 	RecipientStateLegacyUnassigned     RecipientState = "LEGACY_UNASSIGNED"
 )
 
+type BindingUseMode string
+type LookupValueSource string
+type SourceResolutionState string
+type AnswerOrigin string
+
+const (
+	BindingUsePrefill  BindingUseMode = "PREFILL"
+	BindingUseOptions  BindingUseMode = "OPTIONS"
+	BindingUseValidate BindingUseMode = "VALIDATE"
+	BindingUseEvidence BindingUseMode = "EVIDENCE"
+
+	LookupValueSubjectID LookupValueSource = "SUBJECT_ID"
+	LookupValueKnownFact LookupValueSource = "KNOWN_FACT"
+
+	SourceResolutionCurrent     SourceResolutionState = "CURRENT"
+	SourceResolutionPartial     SourceResolutionState = "PARTIAL"
+	SourceResolutionStale       SourceResolutionState = "STALE"
+	SourceResolutionNotFound    SourceResolutionState = "NOT_FOUND"
+	SourceResolutionAmbiguous   SourceResolutionState = "AMBIGUOUS"
+	SourceResolutionSchemaDrift SourceResolutionState = "SCHEMA_DRIFT"
+	SourceResolutionUnavailable SourceResolutionState = "UNAVAILABLE"
+	SourceResolutionInvalid     SourceResolutionState = "INVALID"
+
+	AnswerSourcePrefilled     AnswerOrigin = "SOURCE_PREFILLED"
+	AnswerRespondentEntered   AnswerOrigin = "RESPONDENT_ENTERED"
+	AnswerRespondentCorrected AnswerOrigin = "RESPONDENT_CORRECTED"
+)
+
+type LookupValueReference struct {
+	Source LookupValueSource `json:"source"`
+	Key    string            `json:"key,omitempty"`
+}
+
+type FieldBindingReference struct {
+	BindingID      string                `json:"binding_id"`
+	BindingVersion int64                 `json:"binding_version"`
+	Mode           BindingUseMode        `json:"mode"`
+	ValueField     string                `json:"value_field,omitempty"`
+	LookupValue    *LookupValueReference `json:"lookup_value,omitempty"`
+}
+
+type SourceResolution struct {
+	Mode           BindingUseMode                 `json:"mode"`
+	BindingID      string                         `json:"binding_id"`
+	BindingVersion int64                          `json:"binding_version"`
+	BindingName    string                         `json:"binding_name"`
+	SourceID       string                         `json:"source_id"`
+	State          SourceResolutionState          `json:"state"`
+	Value          *sourceaccess.Scalar           `json:"value,omitempty"`
+	Records        []sourceaccess.Record          `json:"records,omitempty"`
+	Receipt        *sourceaccess.OperationReceipt `json:"receipt,omitempty"`
+	FailureCode    string                         `json:"failure_code,omitempty"`
+}
+
+type RequestBindingReference struct {
+	BindingID      string               `json:"binding_id"`
+	BindingVersion int64                `json:"binding_version"`
+	LookupValue    LookupValueReference `json:"lookup_value"`
+	Resolution     *SourceResolution    `json:"resolution,omitempty"`
+}
+
+type AnswerProvenance struct {
+	Origin         AnswerOrigin                   `json:"origin"`
+	BindingID      string                         `json:"binding_id,omitempty"`
+	BindingVersion int64                          `json:"binding_version,omitempty"`
+	SourceValue    *sourceaccess.Scalar           `json:"source_value,omitempty"`
+	SourceReceipt  *sourceaccess.OperationReceipt `json:"source_receipt,omitempty"`
+	Validations    []SourceResolution             `json:"validations,omitempty"`
+}
+
 type Field struct {
-	ID              string   `json:"id"`
-	Label           string   `json:"label"`
-	Type            string   `json:"type"`
-	Required        bool     `json:"required"`
-	Description     string   `json:"description,omitempty"`
-	Options         []string `json:"options,omitempty"`
-	AcceptedFormats []string `json:"accepted_formats,omitempty"`
+	ID                string                  `json:"id"`
+	Label             string                  `json:"label"`
+	Type              string                  `json:"type"`
+	Required          bool                    `json:"required"`
+	Description       string                  `json:"description,omitempty"`
+	Options           []string                `json:"options,omitempty"`
+	AcceptedFormats   []string                `json:"accepted_formats,omitempty"`
+	Bindings          []FieldBindingReference `json:"bindings,omitempty"`
+	SourceResolutions []SourceResolution      `json:"source_resolutions,omitempty"`
 }
 
 type Recipient struct {
@@ -118,42 +199,52 @@ type RecipientInput struct {
 }
 
 type Request struct {
-	ID               string            `json:"id"`
-	TenantID         string            `json:"tenant_id"`
-	SubjectType      string            `json:"subject_type"`
-	SubjectID        string            `json:"subject_id"`
-	Title            string            `json:"title"`
-	Purpose          string            `json:"purpose"`
-	WhyYou           string            `json:"why_you"`
-	Sensitivity      string            `json:"sensitivity"`
-	AudienceType     string            `json:"audience_type"`
-	Recipient        Recipient         `json:"recipient"`
-	EstimatedMinutes int               `json:"estimated_minutes"`
-	Deadline         time.Time         `json:"deadline"`
-	KnownFacts       map[string]string `json:"known_facts"`
-	Fields           []Field           `json:"fields"`
-	Status           RequestStatus     `json:"status"`
-	CreatedBy        string            `json:"created_by,omitempty"`
-	Version          int64             `json:"version"`
-	CreatedAt        time.Time         `json:"created_at"`
-	UpdatedAt        time.Time         `json:"updated_at"`
+	ID                    string                    `json:"id"`
+	TenantID              string                    `json:"tenant_id"`
+	SubjectType           string                    `json:"subject_type"`
+	SubjectID             string                    `json:"subject_id"`
+	Title                 string                    `json:"title"`
+	Purpose               string                    `json:"purpose"`
+	WhyYou                string                    `json:"why_you"`
+	Sensitivity           string                    `json:"sensitivity"`
+	AudienceType          string                    `json:"audience_type"`
+	Recipient             Recipient                 `json:"recipient"`
+	EstimatedMinutes      int                       `json:"estimated_minutes"`
+	Deadline              time.Time                 `json:"deadline"`
+	KnownFacts            map[string]string         `json:"known_facts"`
+	Fields                []Field                   `json:"fields"`
+	SourceBindings        []RequestBindingReference `json:"source_bindings,omitempty"`
+	FormTemplateID        string                    `json:"form_template_id,omitempty"`
+	FormTemplateVersion   int64                     `json:"form_template_version,omitempty"`
+	CollectionPeriodStart *time.Time                `json:"collection_period_start,omitempty"`
+	CollectionPeriodEnd   *time.Time                `json:"collection_period_end,omitempty"`
+	Status                RequestStatus             `json:"status"`
+	CreatedBy             string                    `json:"created_by,omitempty"`
+	Version               int64                     `json:"version"`
+	CreatedAt             time.Time                 `json:"created_at"`
+	UpdatedAt             time.Time                 `json:"updated_at"`
 }
 
 type CreateRequestInput struct {
-	TenantID         string            `json:"tenant_id"`
-	SubjectType      string            `json:"subject_type"`
-	SubjectID        string            `json:"subject_id"`
-	Title            string            `json:"title"`
-	Purpose          string            `json:"purpose"`
-	WhyYou           string            `json:"why_you"`
-	Sensitivity      string            `json:"sensitivity"`
-	AudienceType     string            `json:"audience_type"`
-	Recipient        RecipientInput    `json:"recipient"`
-	EstimatedMinutes int               `json:"estimated_minutes"`
-	Deadline         time.Time         `json:"deadline"`
-	KnownFacts       map[string]string `json:"known_facts"`
-	Fields           []Field           `json:"fields"`
-	CreatedBy        string            `json:"created_by,omitempty"`
+	TenantID              string                    `json:"tenant_id"`
+	SubjectType           string                    `json:"subject_type"`
+	SubjectID             string                    `json:"subject_id"`
+	Title                 string                    `json:"title"`
+	Purpose               string                    `json:"purpose"`
+	WhyYou                string                    `json:"why_you"`
+	Sensitivity           string                    `json:"sensitivity"`
+	AudienceType          string                    `json:"audience_type"`
+	Recipient             RecipientInput            `json:"recipient"`
+	EstimatedMinutes      int                       `json:"estimated_minutes"`
+	Deadline              time.Time                 `json:"deadline"`
+	KnownFacts            map[string]string         `json:"known_facts"`
+	Fields                []Field                   `json:"fields"`
+	SourceBindings        []RequestBindingReference `json:"source_bindings,omitempty"`
+	FormTemplateID        string                    `json:"form_template_id,omitempty"`
+	FormTemplateVersion   int64                     `json:"form_template_version,omitempty"`
+	CollectionPeriodStart *time.Time                `json:"collection_period_start,omitempty"`
+	CollectionPeriodEnd   *time.Time                `json:"collection_period_end,omitempty"`
+	CreatedBy             string                    `json:"created_by,omitempty"`
 }
 
 type DeclareWrongRecipientInput struct {
@@ -174,15 +265,16 @@ type ReassignRecipientInput struct {
 }
 
 type Submission struct {
-	ID              string            `json:"id"`
-	TenantID        string            `json:"tenant_id"`
-	RequestID       string            `json:"request_id"`
-	SessionID       string            `json:"session_id,omitempty"`
-	SubmittedBy     string            `json:"submitted_by,omitempty"`
-	Channel         string            `json:"channel"`
-	Answers         map[string]string `json:"answers"`
-	ExpectedVersion int64             `json:"expected_version"`
-	SubmittedAt     time.Time         `json:"submitted_at"`
+	ID               string                      `json:"id"`
+	TenantID         string                      `json:"tenant_id"`
+	RequestID        string                      `json:"request_id"`
+	SessionID        string                      `json:"session_id,omitempty"`
+	SubmittedBy      string                      `json:"submitted_by,omitempty"`
+	Channel          string                      `json:"channel"`
+	Answers          map[string]string           `json:"answers"`
+	AnswerProvenance map[string]AnswerProvenance `json:"answer_provenance,omitempty"`
+	ExpectedVersion  int64                       `json:"expected_version"`
+	SubmittedAt      time.Time                   `json:"submitted_at"`
 }
 
 type SubmissionReceipt struct {

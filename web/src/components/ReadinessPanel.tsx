@@ -2,7 +2,7 @@ import type { Readiness } from "../types";
 import { PremiumIllustration } from "./PremiumIllustration";
 
 export function ReadinessPanel({ readiness, state = "live" }: { readiness: Readiness | null; state?: "loading" | "live" | "unavailable" }) {
-  if (state === "unavailable") return <section className="readiness-card loading-card"><div><span className="eyebrow">Readiness</span><h2>Readiness data is unavailable</h2><p>No current readiness totals are shown while the service is unavailable.</p></div></section>;
+  if (state === "unavailable") return <section className="readiness-card loading-card"><div><span className="eyebrow">Readiness</span><h2>Readiness data is unavailable</h2><p>The latest assessment could not be loaded. Try again before relying on readiness totals.</p></div></section>;
   if (!readiness) return <section className="readiness-card loading-card"><span>Loading readiness data…</span></section>;
   const dimensions: Array<[string, number | string]> = [
     ["Current", readiness.baseline_known ? readiness.dimensions.current : "—"],
@@ -14,11 +14,11 @@ export function ReadinessPanel({ readiness, state = "live" }: { readiness: Readi
   ];
   const summary = readiness.baseline_known
     ? "Requirement, evidence, source-health and routing checks are included in the current assessment."
-    : "Active exceptions are shown below. A complete governed population has not been connected, so no current count is displayed.";
+    : "Current coverage has not been established. Review the active exceptions and unknown items below.";
   const statusLabel = readiness.status.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
   const noActionCopy = readiness.baseline_known && readiness.status === "CURRENT"
-    ? "No action is currently generated from the connected assessment."
-    : "No recommended action was generated. Review the status, unknown population and active exceptions before concluding that no action is needed.";
+    ? "No follow-up is required by the latest assessment."
+    : "Review the unknown items and active exceptions before deciding whether follow-up is required.";
   return <section className="readiness-card" id="readiness-panel">
     <div className="readiness-copy">
       <span className="eyebrow">Readiness</span>

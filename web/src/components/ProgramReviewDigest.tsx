@@ -60,8 +60,8 @@ export function ProgramReviewDigest({ aggregate }: Props) {
     }
   }
 
-  if (loadState === "loading") return <div className="inline-notice" aria-live="polite">Loading your review baseline…</div>;
-  if (loadState === "unavailable" || !digest) return <div className="inline-notice">Review history is unavailable. Current Program status and reasons remain authoritative below.</div>;
+  if (loadState === "loading") return <div className="inline-notice" aria-live="polite">Loading review history…</div>;
+  if (loadState === "unavailable" || !digest) return <div className="inline-notice">Review history could not be loaded. The latest Program status and reasons are still shown below.</div>;
 
   const noBaseline = digest.state === "NO_BASELINE";
   const changed = digest.state === "CHANGED";
@@ -75,19 +75,19 @@ export function ProgramReviewDigest({ aggregate }: Props) {
       : "No changes since your review";
 
   return <section className="handoff-summary program-review-digest" aria-labelledby={`program-review-${program.id}`}>
-    <span className="eyebrow">{changed ? "Since your last review" : "Review baseline"}</span>
+    <span className="eyebrow">{changed ? "Since your last review" : "Review history"}</span>
     <h3 id={`program-review-${program.id}`}>{heading}</h3>
     {noBaseline
-      ? <p>Review the current exceptions once. Marking this state reviewed stores only the canonical Program and status versions for your account, so future visits can show what actually changed.</p>
-      : acceptedLabel && <p>Last reviewed {acceptedLabel}. {changed ? "Only changes against that accepted baseline are highlighted here." : "The accepted Program and status versions still match the current record."}</p>}
+      ? <p>Review the current exceptions, then mark this status reviewed. Future visits will highlight changes made after this review.</p>
+      : acceptedLabel && <p>Last reviewed {acceptedLabel}. {changed ? "Changes made after that review are highlighted here." : "The Program has not changed since that review."}</p>}
 
     {changed && digest.changes.length > 0 && <div className="status-reasons">
       <h4>What changed</h4>
       <ul>{digest.changes.map((change, index) => <li key={`${change.kind}-${change.object_type ?? ""}-${change.object_id ?? ""}-${index}`}>{change.summary}</li>)}</ul>
-      {digest.changes_omitted > 0 && <p>{digest.changes_omitted} additional change{digest.changes_omitted === 1 ? " is" : "s are"} outside this compact digest.</p>}
+      {digest.changes_omitted > 0 && <p>{digest.changes_omitted} additional change{digest.changes_omitted === 1 ? " is" : "s are"} available in Program history.</p>}
     </div>}
 
-    {changed && digest.history_truncated && <p className="inline-notice">Older Program change events are outside this bounded daily digest. Full Program history remains authoritative.</p>}
+    {changed && digest.history_truncated && <p className="inline-notice">This summary does not include older Program changes. Open Program history to review them.</p>}
 
     {(noBaseline || changed) && digest.current_exceptions.length > 0 && <div className="status-reasons">
       <h4>{noBaseline ? "Current exceptions" : "Exceptions still current"}</h4>
@@ -95,7 +95,7 @@ export function ProgramReviewDigest({ aggregate }: Props) {
       {digest.current_exceptions_total > digest.current_exceptions.length && <p>{digest.current_exceptions_total - digest.current_exceptions.length} additional current exception{digest.current_exceptions_total - digest.current_exceptions.length === 1 ? " is" : "s are"} available in the full status reasons.</p>}
     </div>}
 
-    {changed && digest.resolved_exceptions_total > 0 && <p className="inline-notice">{digest.resolved_exceptions_total} previously recorded exception{digest.resolved_exceptions_total === 1 ? " is" : "s are"} no longer present in the current canonical status.</p>}
+    {changed && digest.resolved_exceptions_total > 0 && <p className="inline-notice">{digest.resolved_exceptions_total} previously recorded exception{digest.resolved_exceptions_total === 1 ? " has" : "s have"} been resolved.</p>}
     {error && <p className="inline-error" role="alert">{error}</p>}
     {digest.review_required && <button className="primary-button" type="button" onClick={() => void markReviewed()} disabled={saveState === "saving" || projectionVersion < 1}>{saveState === "saving" ? "Recording review…" : "Mark current state reviewed"}</button>}
   </section>;

@@ -9,6 +9,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
 type routeClass string
@@ -60,6 +61,7 @@ func (a *API) routes() []routeSpec {
 	routes := []routeSpec{
 		public(http.MethodGet, "/health/live", a.live),
 		public(http.MethodGet, "/health/ready", a.ready),
+		public(http.MethodGet, "/api/v1/session/status", a.sessionStatus),
 		read("/api/v1/context", a.actorContext),
 		read("/api/v1/today", a.actorToday),
 
@@ -80,6 +82,25 @@ func (a *API) routes() []routeSpec {
 		withPermission(write(http.MethodPost, "/api/v1/governance/delegations/{id}/approve", a.governanceDelegationAction("approve"), bindJSONIdentity(false, "actor_id")), identity.PermissionConfigWrite),
 		withPermission(write(http.MethodPost, "/api/v1/governance/delegations/{id}/revoke", a.governanceDelegationAction("revoke"), bindJSONIdentity(false, "actor_id")), identity.PermissionConfigWrite),
 
+		withPermission(read("/api/v1/ai-governance/policies", a.listAIGovernancePolicies), identity.PermissionConfigRead),
+		withPermission(write(http.MethodPost, "/api/v1/ai-governance/policies", a.createAIGovernancePolicy, bindJSONIdentity(false, "maker_id")), identity.PermissionConfigWrite),
+		withPermission(read("/api/v1/ai-governance/policies/{id}", a.getAIGovernancePolicy), identity.PermissionConfigRead),
+		withPermission(write(http.MethodPost, "/api/v1/ai-governance/policies/{id}/submit", a.aiGovernancePolicyAction("submit"), nil), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/ai-governance/policies/{id}/approve", a.aiGovernancePolicyAction("approve"), nil), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/ai-governance/policies/{id}/activate", a.aiGovernancePolicyAction("activate"), nil), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/ai-governance/policies/{id}/suspend", a.aiGovernancePolicyAction("suspend"), nil), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/ai-governance/policies/{id}/retire", a.aiGovernancePolicyAction("retire"), nil), identity.PermissionConfigWrite),
+		withPermission(read("/api/v1/ai-governance/workloads", a.listAIGovernanceWorkloads), identity.PermissionConfigRead),
+		withPermission(write(http.MethodPost, "/api/v1/ai-governance/workloads", a.createAIGovernanceWorkload, bindJSONIdentity(false, "maker_id")), identity.PermissionConfigWrite),
+		withPermission(read("/api/v1/ai-governance/workloads/{id}", a.getAIGovernanceWorkload), identity.PermissionConfigRead),
+		withPermission(write(http.MethodPost, "/api/v1/ai-governance/workloads/{id}/submit", a.aiGovernanceWorkloadAction("submit"), nil), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/ai-governance/workloads/{id}/approve", a.aiGovernanceWorkloadAction("approve"), nil), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/ai-governance/workloads/{id}/activate", a.aiGovernanceWorkloadAction("activate"), nil), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/ai-governance/workloads/{id}/suspend", a.aiGovernanceWorkloadAction("suspend"), nil), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/ai-governance/workloads/{id}/retire", a.aiGovernanceWorkloadAction("retire"), nil), identity.PermissionConfigWrite),
+		materialService("/api/v1/ai-governance/receipts", "ai.governance.receipt.ingest", a.ingestAIGovernanceReceipt, commandPolicy{ObjectType: "AI_WORKLOAD", Responsibility: authority.ResponsibilityPerformer, Materiality: 1, ActorField: noActorField}),
+		material("/api/v1/ai-governance/execution-grants", "ai.governance.grant.create", a.createAIGovernanceGrant, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 5, ActorField: "actor_id"}),
+
 		read("/api/v1/program-summaries", a.listProgramSummaries),
 		read("/api/v1/programs", a.listPrograms),
 		material("/api/v1/programs", "program.create", a.createProgram, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2, BindLegalEntity: true}),
@@ -96,6 +117,16 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/programs/{id}/evidence-contracts", "program.evidence.define", a.addProgramEvidenceContract, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
 		material("/api/v1/programs/{id}/evidence-assessments", "program.evidence.assess", a.recordProgramEvidenceAssessment, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: "assessed_by"}),
 		materialService("/api/v1/programs/{id}/triggers", "program.trigger.ingest", a.applyProgramTrigger, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityPerformer, Materiality: 2}),
+
+		read("/api/v1/form-templates", a.listFormTemplates),
+		write(http.MethodPost, "/api/v1/form-templates", a.createFormTemplate, nil),
+		write(http.MethodPost, "/api/v1/form-templates/{id}/transition", a.transitionFormTemplate, nil),
+		write(http.MethodPost, "/api/v1/form-templates/{id}/collections", a.startFormCollection, nil),
+		read("/api/v1/programs/{id}/monitoring-checks", a.listMonitoringChecks),
+		write(http.MethodPost, "/api/v1/programs/{id}/monitoring-checks", a.createMonitoringCheck, nil),
+		write(http.MethodPost, "/api/v1/monitoring-checks/{id}/transition", a.transitionMonitoringCheck, nil),
+		write(http.MethodPost, "/api/v1/monitoring-checks/{id}/evaluate-source", a.evaluateMonitoringSource, nil),
+		read("/api/v1/monitoring-checks/{id}/results", a.listMonitoringResults),
 
 		read("/api/v1/matter-summaries", a.listMatterSummaries),
 		read("/api/v1/matters", a.listMatters),
@@ -116,6 +147,23 @@ func (a *API) routes() []routeSpec {
 		withPermission(materialService("/api/v1/operations/projections/reconcile", "projection.reconcile", a.reconcileProgramState, commandPolicy{ObjectType: "PROJECTION", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: noActorField}), identity.PermissionPlatformOperationsWrite),
 		withPermission(material("/api/v1/operations/projections/rebuild", "projection.rebuild", a.rebuildProgramState, commandPolicy{ObjectType: "PROJECTION", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: noActorField}), identity.PermissionPlatformOperationsWrite),
 		withPermission(read("/api/v1/operations/background-jobs", a.backgroundJobs), identity.PermissionPlatformJobsRead),
+
+		withPermission(read("/api/v1/config/sources/{source_id}/connections", a.listSourceConnections), identity.PermissionConfigRead),
+		withPermission(read("/api/v1/config/sources/{source_id}/health", a.sourceScopeHealth), identity.PermissionConfigRead),
+		withPermission(write(http.MethodPost, "/api/v1/config/sources/{source_id}/connections", a.createSourceConnectionDraft, nil), identity.PermissionConfigWrite),
+		withPermission(read("/api/v1/config/source-connections/{connection_id}", a.getSourceConnection), identity.PermissionConfigRead),
+		withPermission(read("/api/v1/config/source-connections/{connection_id}/views", a.listSourceViews), identity.PermissionConfigRead),
+		withPermission(write(http.MethodPost, "/api/v1/config/source-connections/{connection_id}/views", a.createSourceViewDraft, nil), identity.PermissionConfigWrite),
+		withPermission(read("/api/v1/config/source-connections/{connection_id}/where-used", a.sourceCatalogWhereUsed(sourceaccess.UsageConnection, "connection_id")), identity.PermissionConfigRead),
+		withPermission(read("/api/v1/config/source-views/{view_id}", a.getSourceView), identity.PermissionConfigRead),
+		withPermission(write(http.MethodPost, "/api/v1/config/source-views/{view_id}/inspect", a.inspectSourceView, nil), identity.PermissionConfigWrite),
+		withPermission(read("/api/v1/config/source-views/{view_id}/bindings", a.listSourceBindings), identity.PermissionConfigRead),
+		withPermission(write(http.MethodPost, "/api/v1/config/source-views/{view_id}/bindings", a.createSourceBindingDraft, nil), identity.PermissionConfigWrite),
+		withPermission(read("/api/v1/config/source-views/{view_id}/where-used", a.sourceCatalogWhereUsed(sourceaccess.UsageView, "view_id")), identity.PermissionConfigRead),
+		withPermission(read("/api/v1/config/source-bindings/{binding_id}", a.getSourceBinding), identity.PermissionConfigRead),
+		withPermission(operation("/api/v1/config/source-bindings/{binding_id}/preview", a.previewSourceBinding, nil), identity.PermissionConfigRead),
+		withPermission(read("/api/v1/config/source-bindings/{binding_id}/where-used", a.sourceCatalogWhereUsed(sourceaccess.UsageBinding, "binding_id")), identity.PermissionConfigRead),
+		materialService("/api/v1/source-bindings/{id}/events", "source.binding.event.ingest", a.ingestSourceBindingEvent, commandPolicy{ObjectType: "SOURCE_BINDING", Responsibility: authority.ResponsibilityPerformer, Materiality: 2, ActorField: noActorField}),
 
 		read("/api/v1/evidence/sources", a.listEvidenceSources),
 		write(http.MethodPost, "/api/v1/evidence/sources", a.createEvidenceSource, bindJSONIdentity(true)),
@@ -138,6 +186,10 @@ func (a *API) routes() []routeSpec {
 		write(http.MethodPost, "/api/v1/document-imports", a.createDocumentImport, nil),
 		read("/api/v1/document-imports/{id}", a.getDocumentImport),
 		write(http.MethodPost, "/api/v1/document-imports/{id}/proposals/{proposal_id}/review", a.reviewDocumentProposal, nil),
+		read("/api/v1/document-imports/{id}/coverage", a.getDocumentCoverage),
+		write(http.MethodPost, "/api/v1/document-imports/{id}/coverage/review", a.reviewDocumentCoverage, nil),
+		write(http.MethodPost, "/api/v1/document-imports/{id}/coverage/recompare", a.recompareDocumentCoverage, nil),
+		write(http.MethodPost, "/api/v1/document-imports/{id}/coverage/suggestions/{suggestion_id}/apply", a.applyDocumentCoverageSuggestion, nil),
 
 		read("/api/v1/workflow/tasks", a.listWorkflowTasks),
 

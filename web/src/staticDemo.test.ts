@@ -53,6 +53,36 @@ describe("static stakeholder demo transport", () => {
     expect(reviewed.proposals[0]?.status).toBe("ACCEPTED");
   });
 
+  it("demonstrates source-backed Program coverage and governed gap actions", async () => {
+    const { staticDemoRequest } = await demo();
+    const coverage = await staticDemoRequest<{ version: number; metrics: { verified: { denominator: number }; requirement_mapped: { numerator: number } }; candidates: Array<{ anchor: { page?: number }; matches: unknown[] }>; suggestions: Array<{ id: string; status: string }> }>("/api/v1/document-imports/document-gaid/coverage?limit=25");
+    expect(coverage.metrics.verified.denominator).toBe(2);
+    expect(coverage.metrics.requirement_mapped.numerator).toBe(1);
+    expect(coverage.candidates[0]?.anchor.page).toBe(3);
+    expect(coverage.candidates[0]?.matches).toHaveLength(1);
+
+    const applied = await staticDemoRequest<{ assessment: { version: number; suggestions: Array<{ status: string }> }; object_type: string }>("/api/v1/document-imports/document-gaid/coverage/suggestions/suggestion-review/apply", { method: "POST", body: JSON.stringify({ expected_version: coverage.version }) });
+    expect(applied.object_type).toBe("REQUIREMENT");
+    expect(applied.assessment.version).toBe(coverage.version + 1);
+    expect(applied.assessment.suggestions[0]?.status).toBe("APPLIED");
+  });
+
+  it("executes a governed Program transition and rejects stale replays", async () => {
+    const { StaticDemoHTTPError, staticDemoRequest } = await demo();
+    const current = await staticDemoRequest<{ program: { status: string; version: number } }>("/api/v1/programs/program-ndpa");
+    const updated = await staticDemoRequest<{ program: { status: string; version: number } }>("/api/v1/programs/program-ndpa/transition", {
+      method: "POST",
+      body: JSON.stringify({ expected_version: current.program.version, to: "PAUSED", rationale: "Pause while ownership is corrected." }),
+    });
+
+    expect(updated.program.status).toBe("PAUSED");
+    expect(updated.program.version).toBe(current.program.version + 1);
+    await expect(staticDemoRequest("/api/v1/programs/program-ndpa/transition", {
+      method: "POST",
+      body: JSON.stringify({ expected_version: current.program.version, to: "RETIRED", rationale: "Stale replay." }),
+    })).rejects.toMatchObject({ status: 409, code: "version_conflict" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
+  });
+
   it("can deterministically exercise permission and conflict fixtures", async () => {
     window.history.replaceState(null, "", "/?fixture=authority-forbidden");
     const { StaticDemoHTTPError, staticDemoRequest } = await demo();

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { MatterAggregate, ProgramAggregate, WorkflowTask } from "../types";
 import { MatterWorkCommand } from "./MatterWorkCommandPanel";
 import { ProgramLifecycleControls } from "./ProgramLifecycleControls";
@@ -40,8 +41,9 @@ const program: ProgramAggregate = {
 };
 
 export function OperatingMutationsEvidencePage() {
+  const [currentProgram, setCurrentProgram] = useState<ProgramAggregate>(program);
   return <main className="operating-evidence-page">
-    <header className="topbar"><div><span className="eyebrow">Deterministic UI evidence</span><h1>Operating actions</h1><p>Existing governed commands surfaced at the point of work, with server authority and lifecycle checks retained.</p></div></header>
+    <header className="topbar"><div><span className="eyebrow">Review workspace</span><h1>Operating actions</h1><p>Review assigned issue actions and permitted Program status changes.</p></div></header>
     <div className="operating-evidence-grid">
       <section className="progressive-detail" aria-labelledby="matter-evidence-title">
         <span className="eyebrow">Work · assigned action</span>
@@ -50,10 +52,10 @@ export function OperatingMutationsEvidencePage() {
         <MatterWorkCommand aggregate={matter} task={actionTask} onUpdated={() => undefined} onCompleted={() => undefined}/>
       </section>
       <section className="progressive-detail" aria-labelledby="program-evidence-title">
-        <span className="eyebrow">Programs · authorized status</span>
+        <span className="eyebrow">Program status</span>
         <h2 id="program-evidence-title">{program.program.name}</h2>
-        <p>Only lifecycle-valid status requests are shown; the server revalidates authority, version and activation prerequisites.</p>
-        <ProgramLifecycleControls aggregate={program} onUpdated={() => undefined}/>
+        <p>Available status changes depend on the current Program status and your approval authority.</p>
+        <ProgramLifecycleControls aggregate={currentProgram} onUpdated={setCurrentProgram}/>
       </section>
     </div>
   </main>;

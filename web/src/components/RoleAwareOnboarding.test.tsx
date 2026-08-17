@@ -38,20 +38,41 @@ describe("RoleAwareOnboarding", () => {
     vi.mocked(saveGuideState).mockResolvedValue({ ...initial, version: 4 });
     render(<RoleAwareOnboarding runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
 
-    fireEvent.click(await screen.findByRole("button", { name: /Restart Executive risk or compliance leader introduction/ }));
-    expect(await screen.findByRole("dialog")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: /Restart Executive risk or compliance leader guide/ }));
+    expect(await screen.findByRole("complementary", { name: "Getting started" })).toBeTruthy();
     expect(saveGuideState).toHaveBeenCalledWith(guide.code, { current_step: 0, completed: false, dismissed: false, version: 3 });
   });
 
-  it("does not trap the user when guide state cannot be saved", async () => {
+  it("shows first-run guidance without creating a modal or moving focus", async () => {
     vi.mocked(loadRoleGuide).mockResolvedValue(guide);
     vi.mocked(loadGuideState).mockResolvedValue(initial);
-    vi.mocked(saveGuideState).mockRejectedValue(new Error("onboarding unavailable"));
+    const workspaceAction = document.createElement("button");
+    workspaceAction.textContent = "Review priority item";
+    document.body.append(workspaceAction);
+    workspaceAction.focus();
+
     render(<RoleAwareOnboarding runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Skip for now" }));
+    const panel = await screen.findByRole("complementary", { name: "Getting started" });
+    expect(panel.getAttribute("aria-modal")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.activeElement).toBe(workspaceAction);
+    workspaceAction.remove();
+  });
 
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(await screen.findByText(/Guide progress could not be saved/)).toBeTruthy();
+  it("closes the guide even when concurrent state changes exhaust the save retry", async () => {
+    vi.mocked(loadRoleGuide).mockResolvedValue(guide);
+    vi.mocked(loadGuideState)
+      .mockResolvedValueOnce(initial)
+      .mockResolvedValue({ ...initial, version: 2 });
+    vi.mocked(saveGuideState).mockRejectedValue(new Error("Onboarding state changed"));
+
+    render(<RoleAwareOnboarding runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Dismiss" }));
+
+    await waitFor(() => expect(saveGuideState).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole("complementary", { name: "Getting started" })).toBeNull();
+    expect(screen.getByRole("button", { name: /Restart Executive risk or compliance leader guide/ })).toBeTruthy();
   });
 });

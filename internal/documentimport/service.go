@@ -207,6 +207,16 @@ func (s *Service) processStored(ctx context.Context, value Document) (Document, 
 	value.ProposalsTotal = 0
 	value.ProposalsOmitted = 0
 	value.Limitations = append(baseLimitations(), extraction.Limitations...)
+	value.Tabular = nil
+	if _, supported := DetectTabularFormat(value.FileName, value.MediaType); supported {
+		metadata, metadataErr := InspectTabularArtifact(ctx, value.FileName, value.MediaType, data, s.extractionPolicy)
+		value.Tabular = &metadata
+		if metadataErr != nil {
+			value.Limitations = append(value.Limitations, "Structured tabular parsing failed; the original artifact remains available for governed review.")
+		} else if metadata.RowsRejected > 0 {
+			value.Limitations = append(value.Limitations, fmt.Sprintf("Structured tabular parsing rejected %d of %d rows; bounded row diagnostics are retained with the import receipt.", metadata.RowsRejected, metadata.RowsTotal))
+		}
+	}
 	value.AnalysisStatus = AnalysisUnavailable
 	value.AnalysisMethod = "DETERMINISTIC_RULES_V2"
 
@@ -216,7 +226,7 @@ func (s *Service) processStored(ctx context.Context, value Document) (Document, 
 		value.ProposalsTotal = analysis.Total
 		value.ProposalsOmitted = analysis.Omitted
 		if analysis.Omitted > 0 {
-			value.Limitations = append(value.Limitations, fmt.Sprintf("The review projection retains %d of %d candidate proposals; %d additional candidates were omitted by the configured proposal budget.", len(analysis.Proposals), analysis.Total, analysis.Omitted))
+			value.Limitations = append(value.Limitations, fmt.Sprintf("%d of %d extracted proposals are available for review. %d additional proposals were omitted because this document exceeded the review limit.", len(analysis.Proposals), analysis.Total, analysis.Omitted))
 		}
 		if len(analysis.Proposals) == 0 {
 			value.AnalysisStatus = AnalysisNoProposals
@@ -227,7 +237,7 @@ func (s *Service) processStored(ctx context.Context, value Document) (Document, 
 		value.Limitations = append(value.Limitations, "Analysis is blocked until the artifact is marked available by an approved scanning pipeline.")
 	}
 	if extraction.ContentTruncated || extraction.SectionsOmitted > 0 {
-		value.Limitations = append(value.Limitations, fmt.Sprintf("The source reconstruction is bounded: %d source sections are represented and %d were omitted; content_truncated=%t.", len(extraction.Sections), extraction.SectionsOmitted, extraction.ContentTruncated))
+		value.Limitations = append(value.Limitations, fmt.Sprintf("%d source sections were extracted and %d were omitted because this document exceeded the extraction limit.", len(extraction.Sections), extraction.SectionsOmitted))
 	}
 	now := s.now().UTC()
 	value.ProcessedAt = &now

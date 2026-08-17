@@ -45,14 +45,14 @@ export function ProjectionHealthCard({ health, state = "live", onReconcile }: { 
   }
 
   if (state === "loading") return <article className="config-card wide projection-health-card"><div className="workspace-loading compact" aria-live="polite" aria-busy="true">Loading Program status update health…</div></article>;
-  if (state === "unavailable") return <article className="config-card wide projection-health-card"><EmptyState kind="unavailable" label="Program status updates" title="Status update health is unavailable" description="Other configuration remains visible. No projection-health conclusion is inferred."/></article>;
+  if (state === "unavailable") return <article className="config-card wide projection-health-card"><EmptyState kind="unavailable" label="Program status updates" title="Status update health is unavailable" description="Try again before relying on calculated Program status."/></article>;
 
   return <article className="config-card wide projection-health-card">
     <div className="section-header">
       <div><h2>Program status updates</h2><p>Checks whether calculated Program status has caught up with recorded changes.</p></div>
       <mark className={stateClass(health?.state ?? "NOT_CONFIGURED")}>{stateLabel(health?.state ?? "NOT_CONFIGURED")}</mark>
     </div>
-    {!health ? <p>No Program status projection is configured for this scope.</p> : <div className="projection-health-grid">
+    {!health ? <p>Calculated Program status updates are not configured for this scope.</p> : <div className="projection-health-grid">
       <div><span>Waiting</span><strong>{health.pending}</strong><small>Status updates not yet completed</small></div>
       <div><span>Failed</span><strong>{health.failed}</strong><small>Updates requiring operator review</small></div>
       <div><span>Oldest waiting update</span><strong>{health.oldest_pending ? `${Math.max(0, Math.round(health.lag_seconds / 60))} min` : "—"}</strong><small>{health.oldest_pending ? formatTime(health.oldest_pending) : "No updates waiting"}</small></div>

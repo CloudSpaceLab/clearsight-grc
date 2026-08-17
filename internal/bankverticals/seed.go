@@ -364,7 +364,7 @@ func normalizeSeedConfig(config SeedConfig) SeedConfig {
 		config.Now = config.Now.UTC()
 	}
 	if strings.TrimSpace(config.BankName) == "" {
-		config.BankName = "Demonstration Bank Nigeria"
+		config.BankName = "Clear Bank Nigeria"
 	}
 	if config.OwnerPrincipalID == "" {
 		config.OwnerPrincipalID = config.ActorID

@@ -36,6 +36,29 @@ func TestRequestSubmissionAndVersioning(t *testing.T) {
 	}
 }
 
+func TestCreateRequestRetainsExactFormTemplateAndCollectionPeriod(t *testing.T) {
+	now := time.Date(2026, 8, 17, 10, 0, 0, 0, time.UTC)
+	periodStart := now.AddDate(0, 0, -7)
+	periodEnd := now
+	repository := NewMemoryRepository(nil, nil)
+	service := NewService(repository, NewMemoryObjectStore())
+	service.now = func() time.Time { return now }
+
+	request, err := service.CreateRequest(context.Background(), CreateRequestInput{
+		TenantID: "bank", SubjectType: "PROGRAM", SubjectID: "program-1", Title: "Password reset review",
+		Purpose: "Collect the current password reset control review.", WhyYou: "You own the password reset process.",
+		Sensitivity: "INTERNAL", AudienceType: "INTERNAL", Recipient: RecipientInput{Type: RecipientInternalPrincipal, PrincipalID: testCaptureRecipient},
+		EstimatedMinutes: 5, Deadline: now.Add(24 * time.Hour), Fields: []Field{{ID: "identity", Label: "Identity verification completed", Type: "single_select", Required: true, Options: []string{"Yes", "No"}}},
+		FormTemplateID: "form-1", FormTemplateVersion: 3, CollectionPeriodStart: &periodStart, CollectionPeriodEnd: &periodEnd,
+	})
+	if err != nil {
+		t.Fatalf("create request: %v", err)
+	}
+	if request.FormTemplateID != "form-1" || request.FormTemplateVersion != 3 || request.CollectionPeriodStart == nil || !request.CollectionPeriodStart.Equal(periodStart) || request.CollectionPeriodEnd == nil || !request.CollectionPeriodEnd.Equal(periodEnd) {
+		t.Fatalf("request form reference = %#v", request)
+	}
+}
+
 func TestCreateRequestRejectsPastDeadline(t *testing.T) {
 	service := NewService(NewMemoryRepository(nil, nil), NewMemoryObjectStore())
 	now := time.Date(2026, 8, 5, 10, 0, 0, 0, time.UTC)

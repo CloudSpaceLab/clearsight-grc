@@ -1,8 +1,9 @@
 import { requestJSON, requestVoid } from "./http";
-import type { AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, OnboardingGuide, OnboardingState, PolicySummary, ProgramAggregate, Readiness, WorkflowTask } from "./types";
+import type { AIGovernancePolicy, AIGovernanceWorkload, AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, PolicySummary, ProgramAggregate, Readiness, WorkflowTask } from "./types";
 import type { MatterSummary, ProgramSummary, SummaryPage, SummaryQuery } from "./summaryTypes";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 import type { BankJourneysResponse } from "./verticalTypes";
+import { normalizeProgramAggregate } from "./programAggregate";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -35,6 +36,11 @@ export type DemoAccount = {
   role_codes: string[];
 };
 
+export type SessionStatus = {
+  authenticated: boolean;
+  demo_login_available: boolean;
+};
+
 export type TodaySnapshot = { items: AttentionItem[]; generated_at?: string };
 export type TodaySnapshotPayload = { items?: AttentionItem[] | null; generated_at?: string };
 export type AuthorityResolveInput = {
@@ -57,6 +63,10 @@ export function loadContext(): Promise<RuntimeContext> {
     throw error;
   });
   return runtimeContext;
+}
+
+export function loadSessionStatus(): Promise<SessionStatus> {
+  return request<SessionStatus>("/api/v1/session/status");
 }
 
 export async function loadDemoAccounts(): Promise<DemoAccount[]> {
@@ -137,6 +147,14 @@ export async function loadAutomationPolicies(): Promise<AutomationPolicy[]> {
   return (await request<{ items: AutomationPolicy[] }>("/api/v1/compliance/automation-policies")).items;
 }
 
+export async function loadAIGovernancePolicies(): Promise<AIGovernancePolicy[]> {
+  return (await request<{ items: AIGovernancePolicy[] }>("/api/v1/ai-governance/policies?limit=20")).items;
+}
+
+export async function loadAIGovernanceWorkloads(): Promise<AIGovernanceWorkload[]> {
+  return (await request<{ items: AIGovernanceWorkload[] }>("/api/v1/ai-governance/workloads?limit=20")).items;
+}
+
 export async function loadIntegrity(): Promise<IntegrityFinding[]> {
   return (await scopedRequest<{ findings: IntegrityFinding[] }>("/api/v1/authority/integrity")).findings;
 }
@@ -147,23 +165,6 @@ export async function loadPolicies(): Promise<PolicySummary[]> {
 
 export async function loadWorkflowTasks(): Promise<WorkflowTask[]> {
   return (await scopedRequest<{ items: WorkflowTask[] }>("/api/v1/workflow/tasks", { limit: 20 })).items;
-}
-
-export function loadOnboardingGuide(): Promise<OnboardingGuide> {
-  return request<OnboardingGuide>("/api/v1/onboarding/guide?code=control-assurance-first-run");
-}
-
-export async function loadOnboardingState(): Promise<OnboardingState> {
-  const context = await loadContext();
-  return scopedRequest<OnboardingState>("/api/v1/onboarding/state", { principal_id: context.actor.id, guide_code: "control-assurance-first-run" });
-}
-
-export async function saveOnboardingState(value: Pick<OnboardingState, "current_step" | "completed" | "dismissed" | "version">): Promise<OnboardingState> {
-  const context = await loadContext();
-  return scopedRequest<OnboardingState>("/api/v1/onboarding/state", { principal_id: context.actor.id, guide_code: "control-assurance-first-run" }, {
-    method: "PUT",
-    body: JSON.stringify({ current_step: value.current_step, completed: value.completed, dismissed: value.dismissed, expected_version: value.version }),
-  });
 }
 
 export async function loadEvidenceSources(): Promise<EvidenceSource[]> {
@@ -196,7 +197,7 @@ export function loadMatterSummaries(query: SummaryQuery = {}): Promise<SummaryPa
 }
 
 export function loadProgram(id: string): Promise<ProgramAggregate> {
-  return scopedRequest<ProgramAggregate>(`/api/v1/programs/${encodeURIComponent(id)}`);
+  return scopedRequest<Parameters<typeof normalizeProgramAggregate>[0]>(`/api/v1/programs/${encodeURIComponent(id)}`).then(normalizeProgramAggregate);
 }
 
 export function loadMatter(id: string): Promise<MatterAggregate> {
@@ -204,7 +205,7 @@ export function loadMatter(id: string): Promise<MatterAggregate> {
 }
 
 export async function loadPrograms(): Promise<ProgramAggregate[]> {
-  return (await scopedRequest<{ items: ProgramAggregate[] }>("/api/v1/programs", { limit: 50 })).items;
+  return (await scopedRequest<{ items: Parameters<typeof normalizeProgramAggregate>[0][] }>("/api/v1/programs", { limit: 50 })).items.map(normalizeProgramAggregate);
 }
 
 export async function loadMatters(status = "OPEN"): Promise<MatterAggregate[]> {

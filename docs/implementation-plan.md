@@ -1,7 +1,7 @@
 # ClearSight implementation ledger
 
-**Status date:** 2026-08-11  
-**Current execution issue:** #27  
+**Status date:** 2026-08-17
+**Current execution issue:** Mobile-channel monitoring setup and deterministic risk results
 **Umbrella pilot/GA catalogue:** #13
 
 This file is the authoritative implementation ledger. Code, migrations and executable tests remain final capability truth. Completed detail belongs in focused architecture documents, PRs and tests rather than parallel planning frameworks.
@@ -24,8 +24,26 @@ This file is the authoritative implementation ledger. Code, migrations and execu
 | Actor Program review baseline + review-by-exception | PR #53 |
 | Protected Matter read parity + Program review explanation delta | PR #55 |
 | Enterprise identity/access EIA-0…5 | PR #59 |
+| Reusable connected-source T0…T2 | issue #61 through PR #70 |
+| Stateless AI gateway transport T3 | issue #61; `cmd/ai-gateway` and `internal/aigateway` |
+| Program monitoring setup | Program and requirement creation, reusable forms, connected public status endpoints, maker-checker form/check activation, on-demand collection and immutable results |
+| Issue and change creation | Inline authority-checked Matter creation, business work types, actor ownership, optional Program linking and immediate in-workspace handoff |
 
-## 2. Enterprise identity/access — implemented on PR #59
+## 2. Mobile-channel monitoring — implemented application slice
+
+An authorized user can create a channel Program and requirements without API or JSON work. Reusable collection forms support weighted Yes/No scoring and critical answers. Active forms create dated Evidence Requests on demand; a submitted response is evaluated automatically against the exact active form and Monitoring Check versions. A GRC administrator can connect a public HTTPS JSON status endpoint, select an observed field and expected value, and create a connected-data Monitoring Check. Active source checks run on demand and store the source receipt with score, band and coverage.
+
+Form and Monitoring Check activation requires a different approver from the submitter. A result is an observation and does not create an approved Evidence Assessment or compliance conclusion. Recurring form-request generation, credential entry in the browser, automatic Matter creation and a general-purpose integration catalogue remain outside this slice.
+
+The Work workspace also supports inline creation of user-reported risk issues, control gaps, regulatory changes, findings, requests, exceptions and incidents. New items begin as Draft work, default to internal access and the signed-in accountable owner, and can be linked to a scoped Program at creation. System-derived types remain reserved for their originating checks and observations.
+
+## 3. AI governance gateway — T3 transport implemented
+
+The repository now has an isolated stateless gateway process with OpenAI-compatible Chat Completions and Responses ingress, truthful SSE translation, OpenAI and Anthropic pilot adapters, SHA-256 workload authentication, model aliases, weighted routing, pre-output fallback, route circuit breaking, request/token/cost/concurrency budgets and content-free logs/metrics.
+
+T3 deliberately owns no durable table and makes no governance decision. T4 remains the current next scope: governed AI workload registration, Automation Policy lifecycle, deterministic decisions/obligations, reusable Source Binding resolution and maker-checker-controlled shadow/enforcement activation. T5 remains durable receipts, response controls and approval/execution grants. See [`architecture/ai-gateway-transport.md`](architecture/ai-gateway-transport.md).
+
+## 4. Enterprise identity/access — implemented on PR #59
 
 The completed architecture is intentionally smaller than the earlier greenfield P2/P3 proposal:
 
@@ -168,7 +186,7 @@ The fixture contract is documented in [`engineering/demo-role-login.md`](enginee
 
 The exact final PR head must pass the normal release gates below before merge; do not rely on an older green head after documentation or demo-login changes.
 
-## 3. Productization still required outside the identity tranche
+## 5. Productization still required outside the identity tranche
 
 ### Capture / Imports
 
@@ -200,7 +218,7 @@ Do not reopen generic IAM/directory scope merely because adjacent enterprise adm
 
 Add `NO_ROUTE`, `AUTHORITY_INSUFFICIENT`, `MATERIALITY_INCREASE`, `RECIPIENT_UNAVAILABLE`, or `CONFLICT` runtime adapters only when the corresponding canonical domain event/timestamp exists. Do not fabricate generic trigger polling.
 
-## 4. Canonical invariants
+## 6. Canonical invariants
 
 - Program = ongoing obligation/compliance continuity.
 - Matter = bounded change, exception, finding, decision, action, response or verification case.
@@ -240,7 +258,7 @@ Add `NO_ROUTE`, `AUTHORITY_INSUFFICIENT`, `MATERIALITY_INCREASE`, `RECIPIENT_UNA
 
 Do not add parallel authorization, task, workflow, event, worker, receipt, review, preference, document, directory or dashboard stacks that duplicate existing foundations.
 
-## 5. Current executable flow truth
+## 7. Current executable flow truth
 
 ```text
 enterprise sign-in
@@ -302,7 +320,7 @@ canonical due date + pinned escalation lineage
 
 Presentation/projection/session/provisioning/escalation/admin/demo state never substitutes for canonical domain or material authority truth.
 
-## 6. Release gates
+## 8. Release gates
 
 A tranche is not complete until relevant gates pass on its **exact final head**:
 

@@ -6,9 +6,11 @@ import type { ProgramAggregate, ProgramState } from "../types";
 import { EmptyState } from "./EmptyState";
 import { ProgramLifecycleControls } from "./ProgramLifecycleControls";
 import { ProgramReviewDigest } from "./ProgramReviewDigest";
+import { ProgramSetupWorkspace } from "./ProgramSetupWorkspace";
+import { MonitoringSetup } from "./MonitoringSetup";
 
 type LoadState = "loading" | "live" | "unavailable";
-type Props = { targetID?: string; openFirst?: boolean };
+type Props = { targetID?: string; openFirst?: boolean; actorPrincipalID?: string; canConfigureSources?: boolean };
 
 function ProgramIcon() {
   return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v4h4M9 11h6M9 15h6M9 19h4"/></svg>;
@@ -56,7 +58,7 @@ function summaryFromAggregate(detail: ProgramAggregate): ProgramSummary {
   };
 }
 
-export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
+export function ProgramsWorkspace({ targetID, openFirst = false, actorPrincipalID = "", canConfigureSources = false }: Props) {
   const [items, setItems] = useState<ProgramSummary[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [nextCursor, setNextCursor] = useState("");
@@ -67,8 +69,20 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
   const [details, setDetails] = useState<Record<string, ProgramAggregate>>({});
   const [detailState, setDetailState] = useState<Record<string, LoadState>>({});
   const [loadingMore, setLoadingMore] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
   const requestID = useRef(0);
   const handledTarget = useRef("");
+  const mounted = useRef(true);
+  const targetScrollTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      requestID.current += 1;
+      if (targetScrollTimer.current !== null) window.clearTimeout(targetScrollTimer.current);
+    };
+  }, []);
 
   const load = useCallback(async (reset: boolean, cursor = "") => {
     const currentRequest = ++requestID.current;
@@ -111,10 +125,12 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
     setDetailState((current) => ({ ...current, [id]: "loading" }));
     try {
       const value = await loadProgram(id);
+      if (!mounted.current) return null;
       setDetails((current) => ({ ...current, [id]: value }));
       setDetailState((current) => ({ ...current, [id]: "live" }));
       return value;
     } catch {
+      if (!mounted.current) return null;
       setDetailState((current) => ({ ...current, [id]: "unavailable" }));
       return null;
     }
@@ -123,6 +139,16 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
   function applyDetailUpdate(value: ProgramAggregate) {
     setDetails((current) => ({ ...current, [value.program.id]: value }));
     setItems((current) => current.map((item) => item.program.id === value.program.id ? summaryFromAggregate(value) : item));
+  }
+
+  function applyCreatedProgram(value: ProgramAggregate) {
+    setDetails((current) => ({ ...current, [value.program.id]: value }));
+    setDetailState((current) => ({ ...current, [value.program.id]: "live" }));
+    setItems((current) => {
+      const next = summaryFromAggregate(value);
+      return current.some((item) => item.program.id === value.program.id) ? current.map((item) => item.program.id === value.program.id ? next : item) : [next, ...current];
+    });
+    setOpenID(value.program.id);
   }
 
   async function toggleDetail(id: string) {
@@ -143,11 +169,16 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
     void (async () => {
       const inPage = items.some((item) => item.program.id === id);
       const detail = details[id] ?? await fetchDetail(id);
+      if (!mounted.current) return;
       if (detail && !inPage) {
         setItems((current) => current.some((item) => item.program.id === id) ? current : [summaryFromAggregate(detail), ...current]);
       }
       if (detail || inPage) setOpenID(id);
-      window.setTimeout(() => document.getElementById(`program-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+      if (targetScrollTimer.current !== null) window.clearTimeout(targetScrollTimer.current);
+      targetScrollTimer.current = window.setTimeout(() => {
+        targetScrollTimer.current = null;
+        document.getElementById(`program-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 80);
     })();
   }, [state, items, targetID, openFirst]);
 
@@ -165,9 +196,10 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
 
   return <div id="programs-workspace">
     <section className="workspace-brief">
-      <div><span className="eyebrow">Ongoing compliance</span><h2>{briefTitle}</h2><p>Open a Program for changes since your last review, current status reasons, evidence expectations or an authority-checked operating status change.</p></div>
-      <div className="workspace-brief-facts" aria-label="Loaded Program status"><span><strong>{summary.attention}</strong> follow-up</span><span><strong>{summary.current}</strong> current</span><span><strong>{summary.setup}</strong> setup or reassessing</span></div>
+        <div><span className="eyebrow">Ongoing compliance</span><h2>{briefTitle}</h2><p>Open a Program to review status, recent changes, requirements, evidence and available actions.</p></div>
+      <div className="workspace-brief-side"><div className="workspace-brief-facts" aria-label="Loaded Program status"><span><strong>{summary.attention}</strong> follow-up</span><span><strong>{summary.current}</strong> current</span><span><strong>{summary.setup}</strong> setup or reassessing</span></div><button className="primary-button" type="button" onClick={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</button></div>
     </section>
+    {setupOpen && <ProgramSetupWorkspace actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} onCreated={applyCreatedProgram} onClose={() => setSetupOpen(false)}/>}
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
       <label><span>Search programs</span><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Name, code, function or jurisdiction"/></label>
       <label><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">All statuses</option><option value="ACTIVE">Active</option><option value="PAUSED">Paused</option><option value="DRAFT">Setup in progress</option><option value="RETIRED">Ended</option></select></label>
@@ -176,7 +208,7 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
     </form>
     {targetLoading && <div className="workspace-loading compact" aria-live="polite" aria-busy="true">Loading requested Program…</div>}
     {targetUnavailable && <EmptyState label="Requested Program" title="The requested Program could not be loaded" description="It may be outside your current access scope or no longer available."/>}
-    {!items.length && !targetLoading && !targetUnavailable ? <EmptyState label="Programs" title={search || status ? "No programs match these filters" : "No programs in this scope"} description={search || status ? "Change the search or status filter to see other programs." : "There are no ongoing compliance or control programs in the connected bank scope."} action={search || status ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="program-list">
+      {!items.length && !targetLoading && !targetUnavailable ? <EmptyState label="Programs" title={search || status ? "No programs match these filters" : "No programs in this scope"} description={search || status ? "Change the search or status filter to see other programs." : "There are no ongoing compliance or control Programs in your current access scope."} action={search || status ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="program-list">
       {items.map((summaryItem) => {
         const program = summaryItem.program;
         const isOpen = openID === program.id;
@@ -202,6 +234,7 @@ export function ProgramsWorkspace({ targetID, openFirst = false }: Props) {
               {summaryItem.projection_stale && <div className="inline-notice" role="status">The Program changed after the latest assessment. The last known reasons remain available below while status is recalculated.</div>}
               <ProgramReviewDigest aggregate={detail}/>
               <ProgramLifecycleControls aggregate={detail} onUpdated={applyDetailUpdate}/>
+              <MonitoringSetup aggregate={detail} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources}/>
               <section className="status-reasons"><h3>Why this status</h3>{detail.current_state?.reasons?.length ? <ul>{detail.current_state.reasons.map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul> : <p>No status reasons are recorded for the latest assessment.</p>}{summaryItem.reasons_omitted > 0 && <p>{summaryItem.reasons_omitted} additional status reason{summaryItem.reasons_omitted === 1 ? " is" : "s are"} available in the full Program record.</p>}</section>
               <details className="progressive-section"><summary><span>Requirements</span><strong>{detail.requirements.length}</strong></summary><div>{detail.requirements.length ? detail.requirements.map((requirement) => <div className="detail-row" key={requirement.id}><div><strong>{requirement.title}</strong><small>{requirement.statement}</small>{requirement.source_anchor && <small>Source: {requirement.source_anchor}</small>}</div><span>{requirementStatusLabel(requirement.status)}</span></div>) : <p>No approved requirements have been added.</p>}</div></details>
               <details className="progressive-section"><summary><span>Evidence expectations</span><strong>{detail.evidence_contracts.length}</strong></summary><div>{detail.evidence_contracts.length ? detail.evidence_contracts.map((contract) => <div className="detail-row" key={contract.id}><div><strong>{contract.name}</strong><small>{contract.claim}</small></div><span>Required coverage: {Math.round(contract.minimum_coverage * 100)}%</span></div>) : <p>No evidence checks have been defined.</p>}</div></details>

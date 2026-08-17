@@ -40,7 +40,7 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
   useEffect(() => {
     revokeAllPreviews(previewURLs.current);
     previewURLs.current = {};
-    setAnswers({});
+    setAnswers(request ? initialSourceAnswers(request) : {});
     setAttachments({});
     setUploadingField(null);
     setReviewing(false);
@@ -156,7 +156,7 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
 
   if (reviewing) return <div className="panel-content response-review">
     <span className="eyebrow">Review</span><h2>Check your response</h2><p>{request.title}</p>
-    <dl className="capture-review-list">{fields.map((field) => <div key={field.id}><dt>{field.label}</dt><dd>{reviewValue(field, answers[field.id], attachments[field.id])}</dd></div>)}</dl>
+    <dl className="capture-review-list">{fields.map((field) => <div key={field.id}><dt>{field.label}</dt><dd>{reviewValue(field, answers[field.id], attachments[field.id])}{reviewSourceLabel(field, answers[field.id]) && <small className="source-origin-review">{reviewSourceLabel(field, answers[field.id])}</small>}</dd></div>)}</dl>
     <details className="capture-context"><summary>Request details</summary><p>{request.purpose}</p><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl><p>Due {new Date(request.deadline).toLocaleString()} · {humanize(request.sensitivity)}</p></details>
     {error && <p className="error-text" role="alert">{error}</p>}
     <div className="wizard-actions"><button className="secondary-button" type="button" onClick={() => setReviewing(false)} disabled={submitting}>Edit</button>{errorKind === "conflict" && onReload && <button className="secondary-button" type="button" onClick={onReload} disabled={submitting}>Reload request</button>}<button className="primary-button" type="button" onClick={() => void submit()} disabled={submitting}>{submitting ? "Submitting…" : external ? "Submit verification" : "Submit response"}</button></div>
@@ -167,7 +167,7 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
     <div className="why-you"><strong>Why this was sent to you</strong><span>{request.why_you}</span></div>
     {Object.keys(request.known_facts).length > 0 && <><h3>Already filled in</h3><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl></>}
     {unsupported.length > 0 && <div className="inline-error" role="alert"><strong>This request includes a field this version cannot safely collect.</strong><p>{unsupported.map((field) => field.label).join(", ")}. Ask the sender to update the request.</p></div>}
-    <div className="capture-form">{fields.map((field) => <FieldControl key={field.id} field={field} value={answers[field.id] ?? ""} attachment={attachments[field.id]} uploading={uploadingField === field.id} external={external} onChange={(value) => updateAnswer(field.id, value)} onUpload={(file, previewURL) => void upload(field, file, previewURL)}/>)}</div>
+    <div className="capture-form">{fields.map((field) => <div className="capture-field-shell" key={field.id}><FieldControl field={field} value={answers[field.id] ?? ""} attachment={attachments[field.id]} uploading={uploadingField === field.id} external={external} onChange={(value) => updateAnswer(field.id, value)} onUpload={(file, previewURL) => void upload(field, file, previewURL)}/><FieldSourceNotice field={field} value={answers[field.id] ?? ""}/></div>)}</div>
     {error && <p className="error-text" role="alert">{error}</p>}
     <div className="wizard-actions"><button className="primary-button" type="button" onClick={() => setReviewing(true)} disabled={requiredMissing || unsupported.length > 0 || Boolean(uploadingField)}>{uploadingField ? "Uploading…" : "Review and submit"}</button></div>
   </div>;
@@ -265,4 +265,42 @@ function errorMessage(kind: ApiErrorKind, cause: unknown) {
 
 function humanize(value: string) {
   return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
+
+function initialSourceAnswers(request: CaptureRequest): Record<string, string> {
+  const answers: Record<string, string> = {};
+  for (const field of request.fields) {
+    const prefill = sourceBinding(field, "PREFILL");
+    const scalar = prefill?.resolution.state === "CURRENT" ? prefill.resolution.value : undefined;
+    if (scalar?.kind !== "NULL" && scalar?.text) answers[field.id] = scalar.text;
+  }
+  return answers;
+}
+
+function sourceBinding(field: CaptureField, mode: string) {
+  const reference = field.bindings?.find((candidate) => candidate.mode === mode);
+  if (!reference) return null;
+  const resolution = field.source_resolutions?.find((candidate) => candidate.mode === mode && candidate.binding_id === reference.binding_id && candidate.binding_version === reference.binding_version);
+  return resolution ? { reference, resolution } : null;
+}
+
+function FieldSourceNotice({ field, value }: { field: CaptureField; value: string }) {
+  const prefill = sourceBinding(field, "PREFILL");
+  const sourceValue = prefill?.resolution.state === "CURRENT" ? prefill.resolution.value?.text?.trim() ?? "" : "";
+  if (prefill && sourceValue) {
+    const corrected = value.trim() !== "" && value.trim() !== sourceValue;
+    return <p className={corrected ? "source-origin corrected" : "source-origin"}><span aria-hidden="true">{corrected ? "↺" : "↳"}</span>{corrected ? `Corrected by you · source value was ${sourceValue}` : `Prefilled from ${prefill.resolution.binding_name}`}{prefill.resolution.receipt?.observed_at ? ` · observed ${new Date(prefill.resolution.receipt.observed_at).toLocaleString()}` : ""}</p>;
+  }
+  const options = sourceBinding(field, "OPTIONS");
+  if (options?.resolution.state === "CURRENT") {
+    return <p className="source-origin"><span aria-hidden="true">↳</span>{`Choices from ${options.resolution.binding_name}`}{options.resolution.receipt?.observed_at ? ` · observed ${new Date(options.resolution.receipt.observed_at).toLocaleString()}` : ""}</p>;
+  }
+  return null;
+}
+
+function reviewSourceLabel(field: CaptureField, value?: string): string | null {
+  const prefill = sourceBinding(field, "PREFILL");
+  const sourceValue = prefill?.resolution.state === "CURRENT" ? prefill.resolution.value?.text?.trim() ?? "" : "";
+  if (!prefill || !sourceValue) return null;
+  return (value ?? "").trim() === sourceValue ? `Source-prefilled · ${prefill.resolution.binding_name}` : `Respondent correction · source value: ${sourceValue}`;
 }

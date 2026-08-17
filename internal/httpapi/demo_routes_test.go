@@ -46,6 +46,12 @@ func TestDemoLoginCreatesRoleSessionAndLogoutClearsIt(t *testing.T) {
 		t.Fatalf("demo catalogue missing role credentials: %d %s", accounts.Code, accounts.Body.String())
 	}
 
+	signedOutStatus := httptest.NewRecorder()
+	handler.ServeHTTP(signedOutStatus, httptest.NewRequest(http.MethodGet, "/api/v1/session/status", nil))
+	if signedOutStatus.Code != http.StatusOK || signedOutStatus.Body.String() != "{\"authenticated\":false,\"demo_login_available\":true}\n" {
+		t.Fatalf("signed-out session status = %d %s", signedOutStatus.Code, signedOutStatus.Body.String())
+	}
+
 	bad := httptest.NewRecorder()
 	badRequest := httptest.NewRequest(http.MethodPost, "/api/v1/demo/login", strings.NewReader(`{"username":"cro@demo.clearsight.local","password":"wrong"}`))
 	badRequest.Header.Set("Content-Type", "application/json")
@@ -74,11 +80,44 @@ func TestDemoLoginCreatesRoleSessionAndLogoutClearsIt(t *testing.T) {
 		t.Fatalf("demo session did not reach role-aware context: %d %s", contextResponse.Code, contextResponse.Body.String())
 	}
 
+	signedInStatus := httptest.NewRecorder()
+	signedInStatusRequest := httptest.NewRequest(http.MethodGet, "/api/v1/session/status", nil)
+	signedInStatusRequest.AddCookie(cookies[0])
+	handler.ServeHTTP(signedInStatus, signedInStatusRequest)
+	if signedInStatus.Code != http.StatusOK || signedInStatus.Body.String() != "{\"authenticated\":true,\"demo_login_available\":true}\n" {
+		t.Fatalf("signed-in session status = %d %s", signedInStatus.Code, signedInStatus.Body.String())
+	}
+
 	logout := httptest.NewRecorder()
 	logoutRequest := httptest.NewRequest(http.MethodPost, "/api/v1/demo/logout", nil)
 	logoutRequest.AddCookie(cookies[0])
 	handler.ServeHTTP(logout, logoutRequest)
 	if logout.Code != http.StatusNoContent || len(logout.Result().Cookies()) != 1 || logout.Result().Cookies()[0].MaxAge >= 0 {
 		t.Fatalf("demo logout did not expire session: %d %#v", logout.Code, logout.Result().Cookies())
+	}
+}
+
+func TestDurableDemoContextUsesFriendlyWorkspaceNames(t *testing.T) {
+	authenticator, err := identity.NewDemoAuthenticator(identity.DurableDemoTenantID, identity.DurableDemoPrincipalCRO, identity.DurableDemoLegalEntityID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: authenticator, DemoMode: true, Mode: "postgres"})
+	login := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/demo/login", strings.NewReader(`{"username":"cro@demo.clearsight.local","password":"demo"}`))
+	request.Header.Set("Content-Type", "application/json")
+	handler.ServeHTTP(login, request)
+	if login.Code != http.StatusOK {
+		t.Fatalf("demo login returned %d: %s", login.Code, login.Body.String())
+	}
+
+	response := httptest.NewRecorder()
+	contextRequest := httptest.NewRequest(http.MethodGet, "/api/v1/context", nil)
+	contextRequest.AddCookie(login.Result().Cookies()[0])
+	handler.ServeHTTP(response, contextRequest)
+	for _, expected := range []string{"Clear Bank", "Clear Bank Nigeria", "Chief Risk Officer"} {
+		if !strings.Contains(response.Body.String(), expected) {
+			t.Fatalf("durable demo context missing %q: %s", expected, response.Body.String())
+		}
 	}
 }

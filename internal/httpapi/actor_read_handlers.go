@@ -15,13 +15,19 @@ func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	roleCodes := identity.NormalizeRoleCodes(actor.RoleCodes)
+	tenantName, legalEntityName, actorName := actor.TenantID, actor.LegalEntityID, actor.PrincipalID
+	if a.deps.DemoMode && actor.TenantID == identity.DurableDemoTenantID {
+		tenantName = "Clear Bank"
+		legalEntityName = "Clear Bank Nigeria"
+		actorName = demoActorName(actor.PrincipalID)
+	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		// Directory-backed display names are enterprise work. Until they are available,
 		// show the verified identifiers rather than ambiguous placeholder organization names.
-		"tenant":       map[string]string{"id": actor.TenantID, "name": actor.TenantID},
-		"legal_entity": map[string]string{"id": actor.LegalEntityID, "name": actor.LegalEntityID},
+		"tenant":       map[string]string{"id": actor.TenantID, "name": tenantName},
+		"legal_entity": map[string]string{"id": actor.LegalEntityID, "name": legalEntityName},
 		"actor": map[string]any{
-			"id": actor.PrincipalID, "name": actor.PrincipalID, "kind": actor.Kind, "role_codes": roleCodes,
+			"id": actor.PrincipalID, "name": actorName, "kind": actor.Kind, "role_codes": roleCodes,
 			"department_grants": actor.DepartmentGrants,
 			"assurance_level":   actor.AssuranceLevel, "authentication": actor.AuthenticationMethod, "session_id": actor.SessionID,
 		},
@@ -38,6 +44,19 @@ func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
 			"platform_operations_write": identity.HasPermission(actor, identity.PermissionPlatformOperationsWrite),
 		},
 	})
+}
+
+func demoActorName(principalID string) string {
+	names := map[string]string{
+		identity.DurableDemoPrincipalCRO: "Chief Risk Officer", identity.DurableDemoPrincipalCCO: "Chief Compliance Officer",
+		identity.DurableDemoPrincipalCISO: "Chief Information Security Officer", identity.DurableDemoPrincipalGRCAdmin: "GRC Administrator",
+		identity.DurableDemoPrincipalSystemAdmin: "System Administrator", identity.DurableDemoPrincipalAuditor: "Internal Auditor",
+		identity.DurableDemoPrincipalProgramOwner: "Program Owner", identity.DurableDemoPrincipalEvidenceRespondent: "Evidence Respondent",
+	}
+	if value := names[principalID]; value != "" {
+		return value
+	}
+	return principalID
 }
 
 func (a *API) actorToday(w http.ResponseWriter, r *http.Request) {

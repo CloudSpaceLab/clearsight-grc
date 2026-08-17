@@ -31,7 +31,28 @@ func (r *PostgresRepository) LatestRequestForSubject(ctx context.Context, tenant
 }
 
 func (r *PostgresRepository) SourcesByCodes(ctx context.Context, tenant string, codes []string) ([]Source, error) {
-	rows, err := r.pool.Query(ctx, `SELECT es.id::text,t.slug,COALESCE(es.legal_entity_id::text,''),es.code,es.name,es.source_type,es.authority_class,COALESCE(es.owner_principal_id::text,''),es.endpoint,es.expected_freshness_minutes,es.last_observed_at,es.last_success_at,es.health,es.status,es.version,es.created_at,es.updated_at FROM evidence_sources es JOIN tenants t ON t.id=es.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND es.code=ANY($2::text[]) ORDER BY es.code`, tenant, codes)
+	rows, err := r.pool.Query(ctx, `
+		SELECT es.id::text,
+		       t.id::text,
+		       COALESCE(es.legal_entity_id::text,''),
+		       es.code,
+		       es.name,
+		       es.source_type,
+		       es.authority_class,
+		       COALESCE(es.owner_principal_id::text,''),
+		       es.expected_freshness_minutes,
+		       es.last_observed_at,
+		       es.last_success_at,
+		       es.health,
+		       es.status,
+		       es.version,
+		       es.created_at,
+		       es.updated_at
+		FROM evidence_sources es
+		JOIN tenants t ON t.id=es.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND es.code=ANY($2::text[])
+		ORDER BY es.code`, tenant, codes)
 	if err != nil {
 		return nil, err
 	}

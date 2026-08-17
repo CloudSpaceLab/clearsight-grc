@@ -117,7 +117,7 @@ func (r *PostgresRepository) ReviewProposal(ctx context.Context, input ReviewInp
 		)
 		SELECT c.id::text,t.slug,COALESCE(c.legal_entity_id::text,''),c.file_name,c.media_type,c.purpose,c.source_type,
 		       c.size_bytes,c.sha256,c.storage_key,c.artifact_status,c.extraction_status,c.extraction_method,c.analysis_status,c.analysis_method,
-		       c.limitations,c.sections,c.proposals,c.sections_total,c.sections_omitted,c.proposals_total,c.proposals_omitted,
+		       c.limitations,c.sections,c.proposals,c.tabular_metadata,c.sections_total,c.sections_omitted,c.proposals_total,c.proposals_omitted,
 		       c.content_truncated,c.processed_at,c.created_by::text,c.created_at,c.updated_at,c.version
 		FROM changed c JOIN tenants t ON t.id=c.tenant_id`,
 		input.TenantID, input.DocumentID, input.ExpectedVersion, input.ProposalID, input.Status, input.ReviewerID, now, input.Note)
@@ -150,20 +150,21 @@ func (r *PostgresRepository) SaveProcessing(ctx context.Context, value Document,
 	limitations, _ := json.Marshal(value.Limitations)
 	sections, _ := json.Marshal(value.Sections)
 	proposals, _ := json.Marshal(value.Proposals)
+	tabular := marshalTabularMetadata(value.Tabular)
 	row := r.pool.QueryRow(ctx, `
 		UPDATE document_imports SET
 			extraction_status=$4,extraction_method=$5,analysis_status=$6,analysis_method=$7,
-			limitations=$8::jsonb,sections=$9::jsonb,proposals=$10::jsonb,
-			sections_total=$11,sections_omitted=$12,proposals_total=$13,proposals_omitted=$14,
-			content_truncated=$15,processed_at=$16,updated_at=$17,version=version+1
+			limitations=$8::jsonb,sections=$9::jsonb,proposals=$10::jsonb,tabular_metadata=$11::jsonb,
+			sections_total=$12,sections_omitted=$13,proposals_total=$14,proposals_omitted=$15,
+			content_truncated=$16,processed_at=$17,updated_at=$18,version=version+1
 		WHERE id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND version=$3
 		  AND (extraction_status='PENDING' OR analysis_status='PENDING')
 		RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),COALESCE(legal_entity_id::text,''),file_name,media_type,purpose,source_type,
 		          size_bytes,sha256,storage_key,artifact_status,extraction_status,extraction_method,analysis_status,analysis_method,
-		          limitations,sections,proposals,sections_total,sections_omitted,proposals_total,proposals_omitted,
+		          limitations,sections,proposals,tabular_metadata,sections_total,sections_omitted,proposals_total,proposals_omitted,
 		          content_truncated,processed_at,created_by::text,created_at,updated_at,version`,
 		value.TenantID, value.ID, expected, value.ExtractionStatus, value.ExtractionMethod, value.AnalysisStatus, value.AnalysisMethod,
-		limitations, sections, proposals, value.SectionsTotal, value.SectionsOmitted, value.ProposalsTotal, value.ProposalsOmitted,
+		limitations, sections, proposals, tabular, value.SectionsTotal, value.SectionsOmitted, value.ProposalsTotal, value.ProposalsOmitted,
 		value.ContentTruncated, value.ProcessedAt, value.UpdatedAt)
 	updated, err := scanDocument(row)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -186,10 +187,11 @@ func insertDocument(ctx context.Context, queryer documentQueryer, value Document
 	limitations, _ := json.Marshal(value.Limitations)
 	sections, _ := json.Marshal(value.Sections)
 	proposals, _ := json.Marshal(value.Proposals)
+	tabular := marshalTabularMetadata(value.Tabular)
 	row := queryer.QueryRow(ctx, `
 		INSERT INTO document_imports(
 			id,tenant_id,legal_entity_id,file_name,media_type,purpose,source_type,size_bytes,sha256,storage_key,
-			artifact_status,extraction_status,extraction_method,analysis_status,analysis_method,limitations,sections,proposals,
+			artifact_status,extraction_status,extraction_method,analysis_status,analysis_method,limitations,sections,proposals,tabular_metadata,
 			sections_total,sections_omitted,proposals_total,proposals_omitted,content_truncated,processed_at,
 			created_by,created_at,updated_at,version)
 		SELECT $2::uuid,t.id,
@@ -201,11 +203,11 @@ func insertDocument(ctx context.Context, queryer documentQueryer, value Document
 		FROM tenants t WHERE t.id::text=$1 OR t.slug=$1
 		RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),COALESCE(legal_entity_id::text,''),file_name,media_type,purpose,source_type,
 		          size_bytes,sha256,storage_key,artifact_status,extraction_status,extraction_method,analysis_status,analysis_method,
-		          limitations,sections,proposals,sections_total,sections_omitted,proposals_total,proposals_omitted,
+		          limitations,sections,proposals,tabular_metadata,sections_total,sections_omitted,proposals_total,proposals_omitted,
 		          content_truncated,processed_at,created_by::text,created_at,updated_at,version`,
 		value.TenantID, value.ID, value.LegalEntityID, value.FileName, value.MediaType, value.Purpose, value.SourceType,
 		value.SizeBytes, value.SHA256, value.StorageKey, value.ArtifactStatus, value.ExtractionStatus, value.ExtractionMethod,
-		value.AnalysisStatus, value.AnalysisMethod, limitations, sections, proposals,
+		value.AnalysisStatus, value.AnalysisMethod, limitations, sections, proposals, tabular,
 		value.SectionsTotal, value.SectionsOmitted, value.ProposalsTotal, value.ProposalsOmitted, value.ContentTruncated, value.ProcessedAt,
 		value.CreatedBy, value.CreatedAt, value.UpdatedAt)
 	created, err := scanDocument(row)
@@ -218,7 +220,7 @@ func insertDocument(ctx context.Context, queryer documentQueryer, value Document
 const documentSelect = `
 	SELECT di.id::text,t.slug,COALESCE(di.legal_entity_id::text,''),di.file_name,di.media_type,di.purpose,di.source_type,
 	       di.size_bytes,di.sha256,di.storage_key,di.artifact_status,di.extraction_status,di.extraction_method,
-	       di.analysis_status,di.analysis_method,di.limitations,di.sections,di.proposals,
+	       di.analysis_status,di.analysis_method,di.limitations,di.sections,di.proposals,di.tabular_metadata,
 	       di.sections_total,di.sections_omitted,di.proposals_total,di.proposals_omitted,di.content_truncated,di.processed_at,
 	       di.created_by::text,di.created_at,di.updated_at,di.version
 	FROM document_imports di JOIN tenants t ON t.id=di.tenant_id`
@@ -227,11 +229,11 @@ type rowScanner interface{ Scan(...any) error }
 
 func scanDocument(row rowScanner) (Document, error) {
 	var value Document
-	var limitations, sections, proposals []byte
+	var limitations, sections, proposals, tabular []byte
 	err := row.Scan(
 		&value.ID, &value.TenantID, &value.LegalEntityID, &value.FileName, &value.MediaType, &value.Purpose, &value.SourceType,
 		&value.SizeBytes, &value.SHA256, &value.StorageKey, &value.ArtifactStatus, &value.ExtractionStatus, &value.ExtractionMethod,
-		&value.AnalysisStatus, &value.AnalysisMethod, &limitations, &sections, &proposals,
+		&value.AnalysisStatus, &value.AnalysisMethod, &limitations, &sections, &proposals, &tabular,
 		&value.SectionsTotal, &value.SectionsOmitted, &value.ProposalsTotal, &value.ProposalsOmitted, &value.ContentTruncated, &value.ProcessedAt,
 		&value.CreatedBy, &value.CreatedAt, &value.UpdatedAt, &value.Version,
 	)
@@ -247,7 +249,27 @@ func scanDocument(row rowScanner) (Document, error) {
 	if err := json.Unmarshal(proposals, &value.Proposals); err != nil {
 		return Document{}, err
 	}
+	if len(tabular) > 0 && string(tabular) != "{}" {
+		var metadata TabularMetadata
+		if err := json.Unmarshal(tabular, &metadata); err != nil {
+			return Document{}, err
+		}
+		if metadata.ParserVersion != "" {
+			value.Tabular = &metadata
+		}
+	}
 	return value, nil
+}
+
+func marshalTabularMetadata(value *TabularMetadata) []byte {
+	if value == nil {
+		return []byte("{}")
+	}
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		return []byte("{}")
+	}
+	return encoded
 }
 
 func scanSummary(row rowScanner) (DocumentSummary, error) {

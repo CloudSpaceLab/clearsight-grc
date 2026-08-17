@@ -30,6 +30,7 @@ describe("RoutingPanel", () => {
     expect(screen.getByText(/Any Of/)).toBeTruthy();
     expect(screen.getByText("routing-v7")).toBeTruthy();
     expect(screen.getByText(resolution.explanation)).toBeTruthy();
+    expect(screen.getByText("Approval details")).toBeTruthy();
     expect(screen.queryByText("Critical · Executive approval")).toBeNull();
     expect(screen.queryByText("Control Assurance")).toBeNull();
   });

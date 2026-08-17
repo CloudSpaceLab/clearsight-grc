@@ -2,8 +2,11 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	"time"
 )
+
+var ErrInboxReceiptConflict = errors.New("inbox receipt conflict")
 
 type Repository interface {
 	ScheduleTimer(context.Context, Timer) (Timer, error)
@@ -16,6 +19,7 @@ type Repository interface {
 	MarkFailed(context.Context, OutboxEvent, int, string, time.Time, time.Time) (bool, error)
 	InboxProcessed(context.Context, string, string, string) (bool, error)
 	RecordInbox(context.Context, string, string, string, time.Time) (bool, error)
+	RecordInboxWithOutbox(context.Context, []InboxReceipt, OutboxEvent, time.Time) (bool, error)
 }
 
 type DelegationLifecycle interface {

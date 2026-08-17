@@ -253,12 +253,10 @@ body {
   background: var(--violet-soft);
 }
 
-.guide-backdrop,
 .panel-backdrop {
   background: var(--backdrop);
 }
 
-.guide-card,
 .side-panel {
   color: var(--text);
   border-color: var(--border-strong);
@@ -266,11 +264,6 @@ body {
   box-shadow: var(--shadow-raised);
 }
 
-.guide-art {
-  background: var(--surface-2);
-}
-
-.guide-progress li,
 .display-preferences-popover {
   background: var(--surface);
   border-color: var(--border);

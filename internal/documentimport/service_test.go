@@ -77,9 +77,9 @@ func TestDOCXExtractionReadsParagraphs(t *testing.T) {
 	}
 }
 
-func TestPDFIsStoredWithoutPretendingItWasAnalyzed(t *testing.T) {
+func TestImageOnlyPDFIsStoredWithoutPretendingItWasAnalyzed(t *testing.T) {
 	service := NewService(NewMemoryRepository(), evidence.NewMemoryObjectStore())
-	value, err := service.Import(context.Background(), ImportInput{TenantID: "bank-demo", FileName: "notice.pdf", MediaType: "application/pdf", CreatedBy: "reviewer-1"}, bytes.NewReader([]byte("%PDF-1.7 placeholder")))
+	value, err := service.Import(context.Background(), ImportInput{TenantID: "bank-demo", FileName: "notice.pdf", MediaType: "application/pdf", CreatedBy: "reviewer-1"}, bytes.NewReader(testPDF(t)))
 	if err != nil {
 		t.Fatal(err)
 	}
