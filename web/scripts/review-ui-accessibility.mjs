@@ -52,7 +52,11 @@ try {
           id: violation.id,
           impact: violation.impact,
           help: violation.help,
-          nodes: violation.nodes.map((node) => node.target),
+          nodes: violation.nodes.map((node) => ({
+            target: node.target,
+            html: node.html,
+            failureSummary: node.failureSummary,
+          })),
         }));
       });
       const layout = await page.evaluate(() => ({
