@@ -1,6 +1,7 @@
 import { loadContext, resolveAuthority } from "./api";
 import { requestJSON } from "./http";
 import type { MatterAggregate, ProgramAggregate, WorkflowTask } from "./types";
+import { normalizeProgramAggregate } from "./programAggregate";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -39,6 +40,22 @@ type ResponsePackageInput = {
   manifest?: JSONObject;
 };
 
+type CreateProgramInput = {
+  code: string;
+  name: string;
+  type: string;
+  owningFunction: string;
+  jurisdiction?: string;
+  scopeDescription?: string;
+};
+
+type AddRequirementInput = {
+  code: string;
+  title: string;
+  statement: string;
+  sourceAnchor?: string;
+};
+
 async function command<T>(path: string, body: Record<string, unknown>): Promise<T> {
   const context = await loadContext();
   const params = new URLSearchParams({ tenant_id: context.tenant.id });
@@ -67,12 +84,47 @@ export async function loadActorMatterWork(limit = 100): Promise<WorkflowTask[]> 
   return (await requestJSON<{ items: WorkflowTask[] }>(apiBase, `/api/v1/workflow/tasks?${params.toString()}`)).items;
 }
 
-export function transitionProgram(programID: string, expectedVersion: number, to: string, rationale: string): Promise<ProgramAggregate> {
-  return command<ProgramAggregate>(`/api/v1/programs/${encodeURIComponent(programID)}/transition`, {
+export async function createProgram(input: CreateProgramInput): Promise<ProgramAggregate> {
+  const context = await loadContext();
+  const value = await command<Parameters<typeof normalizeProgramAggregate>[0]>("/api/v1/programs", {
+    legal_entity_id: context.legal_entity.id,
+    code: input.code,
+    name: input.name,
+    type: input.type,
+    owning_function: input.owningFunction,
+    owner_principal_id: context.actor.id,
+    authority_principal_id: context.actor.id,
+    jurisdiction: input.jurisdiction,
+    scope: { description: input.scopeDescription ?? "" },
+    effective_from: new Date().toISOString(),
+  });
+  return normalizeProgramAggregate(value);
+}
+
+export async function addProgramRequirement(programID: string, expectedVersion: number, input: AddRequirementInput): Promise<ProgramAggregate> {
+  const value = await command<Parameters<typeof normalizeProgramAggregate>[0]>(`/api/v1/programs/${encodeURIComponent(programID)}/requirements`, {
+    expected_version: expectedVersion,
+    code: input.code,
+    title: input.title,
+    statement: input.statement,
+    source_anchor: input.sourceAnchor,
+    modality: "MUST",
+    actor: "The bank",
+    action: "maintain the stated safeguard",
+    object: "the monitored channel",
+    status: "APPROVED",
+    effective_from: new Date().toISOString(),
+  });
+  return normalizeProgramAggregate(value);
+}
+
+export async function transitionProgram(programID: string, expectedVersion: number, to: string, rationale: string): Promise<ProgramAggregate> {
+  const value = await command<Parameters<typeof normalizeProgramAggregate>[0]>(`/api/v1/programs/${encodeURIComponent(programID)}/transition`, {
     expected_version: expectedVersion,
     to,
     rationale,
   });
+  return normalizeProgramAggregate(value);
 }
 
 export function transitionMatter(matterID: string, expectedVersion: number, to: string, rationale: string): Promise<MatterAggregate> {

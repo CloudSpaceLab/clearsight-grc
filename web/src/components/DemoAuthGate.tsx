@@ -23,7 +23,10 @@ export function DemoAuthGate({ children, presentation = "demo" }: { children: Re
       const available = await loadDemoAccounts().catch(() => []);
       setAccounts(available);
       const actorRoles = new Set(context.actor.role_codes ?? []);
-      const matched = available.find((account) => account.role_codes.some((role) => actorRoles.has(role)));
+      const matched = available
+        .map((account) => ({ account, score: account.role_codes.filter((role) => actorRoles.has(role)).length }))
+        .filter((candidate) => candidate.score > 0)
+        .sort((left, right) => right.score - left.score || right.account.role_codes.length - left.account.role_codes.length)[0]?.account;
       setCurrentAccountLabel(matched?.label ?? context.actor.name ?? "Demo account");
       return;
     }

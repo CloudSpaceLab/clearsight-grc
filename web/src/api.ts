@@ -3,6 +3,7 @@ import type { AttentionItem, AutomationPolicy, AuthorityResolution, CaptureReque
 import type { MatterSummary, ProgramSummary, SummaryPage, SummaryQuery } from "./summaryTypes";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 import type { BankJourneysResponse } from "./verticalTypes";
+import { normalizeProgramAggregate } from "./programAggregate";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -183,7 +184,7 @@ export function loadMatterSummaries(query: SummaryQuery = {}): Promise<SummaryPa
 }
 
 export function loadProgram(id: string): Promise<ProgramAggregate> {
-  return scopedRequest<ProgramAggregate>(`/api/v1/programs/${encodeURIComponent(id)}`);
+  return scopedRequest<Parameters<typeof normalizeProgramAggregate>[0]>(`/api/v1/programs/${encodeURIComponent(id)}`).then(normalizeProgramAggregate);
 }
 
 export function loadMatter(id: string): Promise<MatterAggregate> {
@@ -191,7 +192,7 @@ export function loadMatter(id: string): Promise<MatterAggregate> {
 }
 
 export async function loadPrograms(): Promise<ProgramAggregate[]> {
-  return (await scopedRequest<{ items: ProgramAggregate[] }>("/api/v1/programs", { limit: 50 })).items;
+  return (await scopedRequest<{ items: Parameters<typeof normalizeProgramAggregate>[0][] }>("/api/v1/programs", { limit: 50 })).items.map(normalizeProgramAggregate);
 }
 
 export async function loadMatters(status = "OPEN"): Promise<MatterAggregate[]> {
