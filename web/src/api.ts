@@ -103,8 +103,12 @@ export function loadBankJourneys(): Promise<BankJourneysResponse> {
   return request<BankJourneysResponse>("/api/v1/bank-journeys");
 }
 
-export function loadToday(): Promise<TodaySnapshot> {
-  return request<TodaySnapshot>("/api/v1/today");
+export async function loadToday(): Promise<TodaySnapshot> {
+  const snapshot = await request<TodaySnapshot>("/api/v1/today");
+  // An actor with no assigned work is an empty collection, not a failed
+  // workspace. Normalize older/mixed-version API responses that encode it as
+  // null so the authenticated workspace can render its recovery state.
+  return { ...snapshot, items: Array.isArray(snapshot.items) ? snapshot.items : [] };
 }
 
 export async function resolveAuthority(input: AuthorityResolveInput): Promise<AuthorityResolution> {

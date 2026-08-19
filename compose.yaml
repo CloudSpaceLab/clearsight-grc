@@ -12,12 +12,28 @@ services:
       timeout: 3s
       retries: 20
     volumes:
-      - clearsight-postgres:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d:ro
+      - clearsight-postgres:/var/lib/postgresql
+      # - ./migrations:/docker-entrypoint-initdb.d:ro
+
+  migrate:
+    image: migrate/migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/migrations
+    command:
+      [
+        "-path=/migrations",
+        "-database=postgres://clearsight:clearsight@postgres:5432/clearsight?sslmode=disable",
+         "up"
+      ]
+
   api:
     build:
       context: .
       dockerfile: Dockerfile.api
+    env_file: .env
     environment:
       CLEARSIGHT_ENV: development
       CLEARSIGHT_HTTP_ADDR: :8080
@@ -26,35 +42,46 @@ services:
       CLEARSIGHT_MAX_ARTIFACT_BYTES: 20971520
       CLEARSIGHT_CAPTURE_SESSION_TTL: 20m
       DATABASE_URL: postgres://clearsight:clearsight@postgres:5432/clearsight?sslmode=disable
-    ports: ["8080:8080"]
+    ports: ["8081:8080"]
     volumes:
       - clearsight-artifacts:/var/lib/clearsight/artifacts
     depends_on:
-      postgres:
-        condition: service_healthy
+      # postgres:
+      #   condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
   worker:
     build:
       context: .
       dockerfile: Dockerfile.worker
+    env_file: .env
     environment:
       CLEARSIGHT_ENV: development
       CLEARSIGHT_WORKER_ID: worker-compose
       CLEARSIGHT_WORKER_POLL: 1s
+      CLEARSIGHT_ARTIFACT_ROOT: /var/lib/clearsight/artifacts
       DATABASE_URL: postgres://clearsight:clearsight@postgres:5432/clearsight?sslmode=disable
+    volumes:
+      - clearsight-artifacts:/var/lib/clearsight/artifacts
     depends_on:
-      postgres:
-        condition: service_healthy
+      # postgres:
+      #   condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
   web:
     image: node:24.18.0-alpine
     working_dir: /app
     command: sh -c "npm ci --no-audit --no-fund && npm run dev -- --host 0.0.0.0"
     environment:
-      VITE_API_BASE_URL: http://localhost:8080
+      VITE_API_BASE_URL: http://localhost:8081
     ports: ["5173:5173"]
     volumes:
       - ./web:/app
       - clearsight-node-modules:/app/node_modules
     depends_on: [api]
+
 volumes:
   clearsight-postgres:
   clearsight-artifacts:

@@ -70,6 +70,30 @@ func TestTodayEndpoint(t *testing.T) {
 	}
 }
 
+func TestTodayEndpointEncodesNoAssignedWorkAsAnEmptyCollection(t *testing.T) {
+	version, rules := authority.DemoPolicySet()
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), AllowedOrigin: "http://localhost:5173", Mode: "test-memory",
+		Identity: identity.NewDevelopmentAuthenticator("bank-demo", "role-cro", "bank-ng"), Authority: authority.NewResolver(version, rules),
+		Today: today.NewDynamicService(func(context.Context, identity.Actor) ([]today.AttentionItem, error) { return nil, nil }),
+	})
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/today", nil)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String())
+	}
+	var body struct {
+		Items json.RawMessage `json:"items"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if string(body.Items) != "[]" {
+		t.Fatalf("expected an empty JSON collection, got %s", body.Items)
+	}
+}
+
 func TestAuthorityResolutionEndpoint(t *testing.T) {
 	payload := []byte(`{"tenant_id":"bank-demo","legal_entity_id":"bank-ng","object_type":"MATTER","object_id":"matter-1","responsibility":"AUTHORIZER","materiality":5}`)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/authority/resolve", bytes.NewReader(payload))
