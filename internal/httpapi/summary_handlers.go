@@ -29,16 +29,6 @@ func (a *API) listProgramSummaries(w http.ResponseWriter, r *http.Request) {
 		writeSummaryError(w, err, "Programs could not be loaded.")
 		return
 	}
-	// Internal projection timestamps can move solely because of a restricted
-	// Matter. Use the Program's actor-visible update time on the HTTP surface so
-	// summary timing cannot reveal hidden issue activity.
-	for index := range page.Items {
-		if page.Items[index].StateGeneratedAt == nil {
-			continue
-		}
-		updatedAt := page.Items[index].Program.UpdatedAt
-		page.Items[index].StateGeneratedAt = &updatedAt
-	}
 	httpx.WriteJSON(w, http.StatusOK, page)
 }
 
