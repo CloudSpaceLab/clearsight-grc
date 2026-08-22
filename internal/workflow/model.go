@@ -39,13 +39,14 @@ type Task struct {
 	// Projection metadata is intentionally internal-only. It lets actor-facing
 	// reads enforce canonical source-domain visibility without leaking access
 	// policy or duplicating source-domain state into the Task API contract.
-	WorkflowKind           string          `json:"-"`
-	MatterID               string          `json:"-"`
-	MatterPriority         int             `json:"-"`
-	MatterScope            json.RawMessage `json:"-"`
-	EvidenceRequestID      string          `json:"-"`
-	EvidenceRecipientID    string          `json:"-"`
-	EvidenceSubjectVisible bool            `json:"-"`
+	WorkflowKind            string          `json:"-"`
+	MatterID                string          `json:"-"`
+	MatterPriority          int             `json:"-"`
+	MatterScope             json.RawMessage `json:"-"`
+	EvidenceRequestID       string          `json:"-"`
+	EvidenceRecipientID     string          `json:"-"`
+	EvidenceSubjectVisible  bool            `json:"-"`
+	DocumentProposalVisible bool            `json:"-"`
 }
 
 type ListFilter struct {
