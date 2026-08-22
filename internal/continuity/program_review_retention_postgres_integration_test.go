@@ -69,16 +69,22 @@ func TestAcceptedProgramReviewPreventsBaselineSnapshotDeletion(t *testing.T) {
 	if program.CurrentState == nil {
 		t.Fatal("expected current Program state")
 	}
+	digest, err := service.ProgramReviewDigest(ctx, "review-retention", program.Program.ID, principalID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, err := service.AcceptProgramReview(ctx, AcceptProgramReviewInput{
 		TenantID:                  "review-retention",
 		ProgramID:                 program.Program.ID,
 		PrincipalID:               principalID,
 		ExpectedProgramVersion:    program.Program.Version,
-		ExpectedProjectionVersion: program.CurrentState.ProjectionVersion,
+		ExpectedProjectionVersion: digest.CurrentProjectionVersion,
 	}); err != nil {
 		t.Fatal(err)
 	}
 
+	// The checkpoint stores the canonical projection version internally even
+	// though the client round-trips the actor-safe semantic version.
 	_, err = pool.Exec(ctx, `DELETE FROM program_state_snapshots WHERE tenant_id=$1::uuid AND program_id=$2::uuid AND projection_version=$3`, tenantID, program.Program.ID, program.CurrentState.ProjectionVersion)
 	var pgErr *pgconn.PgError
 	if !errors.As(err, &pgErr) || pgErr.Code != "23503" {
