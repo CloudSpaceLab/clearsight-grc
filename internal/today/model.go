@@ -75,6 +75,7 @@ type AttentionItem struct {
 	PrimaryAction      string                  `json:"primary_action"`
 	ActionTargetType   string                  `json:"action_target_type,omitempty"`
 	ActionTargetID     string                  `json:"action_target_id,omitempty"`
+	ActionTargetSubID  string                  `json:"action_target_sub_id,omitempty"`
 	InterventionClass  InterventionClass       `json:"intervention_class,omitempty"`
 	MaterialConclusion string                  `json:"material_conclusion,omitempty"`
 	ChangeSummary      string                  `json:"change_summary,omitempty"`
