@@ -57,6 +57,7 @@ export function DocumentProposalHandoff({ documentID, documentVersion, legalEnti
       : null;
   }
 
+  const expectedHandoffVersion = handoff.version;
   const route = handoff.route;
   const canAct = Boolean(route?.is_current_actor) && !locked;
   const stage = handoffLabel(handoff.status);
@@ -99,7 +100,7 @@ export function DocumentProposalHandoff({ documentID, documentVersion, legalEnti
   </section>;
 
   async function actReview(action: HandoffReviewInput["action"]) {
-    const base: HandoffReviewInput = { action, expected_document_version: currentDocumentVersion, expected_handoff_version: handoff.version, note: note.trim() || undefined };
+    const base: HandoffReviewInput = { action, expected_document_version: currentDocumentVersion, expected_handoff_version: expectedHandoffVersion, note: note.trim() || undefined };
     const input = action === "SUBMIT_FOR_AUTHORIZATION" && selectedProgram ? {
       ...base,
       title: title.trim(),
@@ -115,7 +116,7 @@ export function DocumentProposalHandoff({ documentID, documentVersion, legalEnti
     await run(() => authorizeDocumentProposalHandoff(documentID, currentProposal.id, {
       action,
       expected_document_version: currentDocumentVersion,
-      expected_handoff_version: handoff.version,
+      expected_handoff_version: expectedHandoffVersion,
       note: note.trim() || undefined,
     }));
   }
