@@ -16,6 +16,8 @@ var (
 type ExtractionStatus string
 type AnalysisStatus string
 type ProposalStatus string
+type HandoffStatus string
+type ConversionTarget string
 
 const (
 	ExtractionPending     ExtractionStatus = "PENDING"
@@ -31,6 +33,16 @@ const (
 	ProposalPending  ProposalStatus = "PENDING_REVIEW"
 	ProposalAccepted ProposalStatus = "ACCEPTED"
 	ProposalRejected ProposalStatus = "REJECTED"
+
+	HandoffAwaitingReview        HandoffStatus = "AWAITING_REVIEW"
+	HandoffAwaitingAuthorization HandoffStatus = "AWAITING_AUTHORIZATION"
+	HandoffReturned              HandoffStatus = "RETURNED"
+	HandoffRejected              HandoffStatus = "REJECTED"
+	HandoffApproved              HandoffStatus = "APPROVED"
+	HandoffConversionFailed      HandoffStatus = "CONVERSION_FAILED"
+
+	ConversionRequirement      ConversionTarget = "REQUIREMENT"
+	ConversionControlObjective ConversionTarget = "CONTROL_OBJECTIVE"
 )
 
 type Anchor struct {
@@ -66,18 +78,50 @@ type Obligation struct {
 	Uncertainty []string `json:"uncertainty"`
 }
 
+type HandoffRoute struct {
+	Status             string `json:"status"`
+	Responsibility     string `json:"responsibility,omitempty"`
+	PrincipalID        string `json:"principal_id,omitempty"`
+	PrincipalName      string `json:"principal_name,omitempty"`
+	RuleID             string `json:"rule_id,omitempty"`
+	PolicyVersion      int64  `json:"policy_version,omitempty"`
+	Explanation        string `json:"explanation,omitempty"`
+	IsCurrentActor     bool   `json:"is_current_actor,omitempty"`
+}
+
+type ProposalHandoff struct {
+	ID                    string           `json:"id"`
+	Status                HandoffStatus    `json:"status"`
+	IntakePrincipalID     string           `json:"intake_principal_id"`
+	ReviewerPrincipalID   string           `json:"reviewer_principal_id,omitempty"`
+	AuthorizerPrincipalID string           `json:"authorizer_principal_id,omitempty"`
+	TargetType            ConversionTarget `json:"target_type,omitempty"`
+	TargetProgramID       string           `json:"target_program_id,omitempty"`
+	TargetProgramVersion  int64            `json:"target_program_version,omitempty"`
+	DraftTitle            string           `json:"draft_title"`
+	DraftStatement        string           `json:"draft_statement"`
+	ReviewNote            string           `json:"review_note,omitempty"`
+	AuthorizationNote     string           `json:"authorization_note,omitempty"`
+	ResultObjectType      string           `json:"result_object_type,omitempty"`
+	ResultObjectID        string           `json:"result_object_id,omitempty"`
+	UpdatedAt             time.Time        `json:"updated_at"`
+	Version               int64            `json:"version"`
+	Route                 *HandoffRoute    `json:"route,omitempty"`
+}
+
 type Proposal struct {
-	ID         string         `json:"id"`
-	Kind       string         `json:"kind"`
-	Title      string         `json:"title"`
-	Statement  string         `json:"statement"`
-	Confidence float64        `json:"confidence"`
-	Anchor     Anchor         `json:"anchor"`
-	Status     ProposalStatus `json:"status"`
-	ReviewedBy string         `json:"reviewed_by,omitempty"`
-	ReviewedAt *time.Time     `json:"reviewed_at,omitempty"`
-	ReviewNote string         `json:"review_note,omitempty"`
-	Obligation *Obligation    `json:"obligation,omitempty"`
+	ID         string           `json:"id"`
+	Kind       string           `json:"kind"`
+	Title      string           `json:"title"`
+	Statement  string           `json:"statement"`
+	Confidence float64          `json:"confidence"`
+	Anchor     Anchor           `json:"anchor"`
+	Status     ProposalStatus   `json:"status"`
+	ReviewedBy string           `json:"reviewed_by,omitempty"`
+	ReviewedAt *time.Time       `json:"reviewed_at,omitempty"`
+	ReviewNote string           `json:"review_note,omitempty"`
+	Obligation *Obligation      `json:"obligation,omitempty"`
+	Handoff    *ProposalHandoff `json:"handoff,omitempty"`
 }
 
 type Document struct {
