@@ -63,11 +63,19 @@ func (r *MemoryRepository) ReviewProposal(_ context.Context, input ReviewInput, 
 		return Document{}, ErrNotFound
 	}
 	if value.Version != input.ExpectedVersion {
+		for _, proposal := range value.Proposals {
+			if proposal.ID == input.ProposalID && proposal.Status == input.Status && proposal.ReviewedBy == input.ReviewerID {
+				return cloneDocument(value), nil
+			}
+		}
 		return Document{}, ErrVersionConflict
 	}
 	for index := range value.Proposals {
 		if value.Proposals[index].ID != input.ProposalID {
 			continue
+		}
+		if value.Proposals[index].Status == input.Status && value.Proposals[index].ReviewedBy == input.ReviewerID {
+			return cloneDocument(value), nil
 		}
 		if value.Proposals[index].Status != ProposalPending {
 			return Document{}, ErrInvalidReview
