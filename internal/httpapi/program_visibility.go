@@ -12,9 +12,9 @@ import (
 )
 
 func (a *API) programForActor(ctx context.Context, value continuity.ProgramAggregate, at *time.Time) (continuity.ProgramAggregate, error) {
-	actor, err := identity.Require(ctx)
-	if err != nil {
-		return continuity.ProgramAggregate{}, err
+	actor, ok := identity.FromContext(ctx)
+	if !ok {
+		return continuity.ProgramAggregate{}, errors.New("verified identity is required")
 	}
 	if value.Program.TenantID != actor.TenantID {
 		return continuity.ProgramAggregate{}, continuity.ErrNotFound
@@ -26,9 +26,9 @@ func (a *API) programForActor(ctx context.Context, value continuity.ProgramAggre
 }
 
 func (a *API) programsForActor(ctx context.Context, values []continuity.ProgramAggregate, at *time.Time) ([]continuity.ProgramAggregate, error) {
-	actor, err := identity.Require(ctx)
-	if err != nil {
-		return nil, err
+	actor, ok := identity.FromContext(ctx)
+	if !ok {
+		return nil, errors.New("verified identity is required")
 	}
 	if len(values) == 0 {
 		return []continuity.ProgramAggregate{}, nil
@@ -51,7 +51,7 @@ func (a *API) writeProgramResult(w http.ResponseWriter, r *http.Request, value c
 	}
 	value, err = a.programForActor(r.Context(), value, at)
 	if err != nil {
-		if errors.Is(err, identity.ErrIdentityRequired) {
+		if _, ok := identity.FromContext(r.Context()); !ok {
 			httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
 			return
 		}
