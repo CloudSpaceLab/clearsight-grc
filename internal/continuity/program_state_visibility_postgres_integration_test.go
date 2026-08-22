@@ -26,16 +26,16 @@ func TestPostgresProgramSummaryHidesRestrictedMatterState(t *testing.T) {
 	defer pool.Close()
 
 	const (
-		tenantID   = "96666666-6666-7666-8666-666666666661"
-		programID  = "96666666-6666-7666-8666-666666666662"
-		matterID   = "96666666-6666-7666-8666-666666666663"
-		linkID     = "96666666-6666-7666-8666-666666666664"
-		snapshotID = "96666666-6666-7666-8666-666666666665"
-		principalA = "96666666-6666-7666-8666-666666666666"
-		principalB = "96666666-6666-7666-8666-666666666667"
+		tenantID   = "f1666666-6666-4666-8666-666666666661"
+		programID  = "f1666666-6666-4666-8666-666666666662"
+		matterID   = "f1666666-6666-4666-8666-666666666663"
+		linkID     = "f1666666-6666-4666-8666-666666666664"
+		snapshotID = "f1666666-6666-4666-8666-666666666665"
+		principalA = "f1666666-6666-4666-8666-666666666666"
+		principalB = "f1666666-6666-4666-8666-666666666667"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
-	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
+	cleanupProgramStateVisibilityTenant(ctx, pool, tenantID)
+	t.Cleanup(func() { cleanupProgramStateVisibilityTenant(context.Background(), pool, tenantID) })
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'program-state-visibility','Program State Visibility')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestPostgresProgramSummaryHidesRestrictedMatterState(t *testing.T) {
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at,version)
 		VALUES($1::uuid,$2::uuid,'PSV-MAT','AUTHORITY_REQUEST','ASSESSMENT',4,'Restricted issue','Restricted issue',
-		'{"access":"RESTRICTED","allowed_principal_ids":["96666666-6666-7666-8666-666666666667"]}'::jsonb,'{}','[]','[]',$3,$3,1)`, matterID, tenantID, now); err != nil {
+		'{"access":"RESTRICTED","allowed_principal_ids":["f1666666-6666-4666-8666-666666666667"]}'::jsonb,'{}','[]','[]',$3,$3,1)`, matterID, tenantID, now); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
@@ -124,17 +124,17 @@ func TestPostgresVisibleOpenMatterCountsRespectHistoricalAccess(t *testing.T) {
 	defer pool.Close()
 
 	const (
-		tenantID   = "97777777-7777-7777-8777-777777777771"
-		programID  = "97777777-7777-7777-8777-777777777772"
-		matterID   = "97777777-7777-7777-8777-777777777773"
-		linkID     = "97777777-7777-7777-8777-777777777774"
-		createdEvt = "97777777-7777-7777-8777-777777777775"
-		changedEvt = "97777777-7777-7777-8777-777777777776"
-		principalA = "97777777-7777-7777-8777-777777777777"
-		principalB = "97777777-7777-7777-8777-777777777778"
+		tenantID   = "f1777777-7777-4777-8777-777777777771"
+		programID  = "f1777777-7777-4777-8777-777777777772"
+		matterID   = "f1777777-7777-4777-8777-777777777773"
+		linkID     = "f1777777-7777-4777-8777-777777777774"
+		createdEvt = "f1777777-7777-4777-8777-777777777775"
+		changedEvt = "f1777777-7777-4777-8777-777777777776"
+		principalA = "f1777777-7777-4777-8777-777777777777"
+		principalB = "f1777777-7777-4777-8777-777777777778"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
-	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
+	cleanupProgramStateVisibilityTenant(ctx, pool, tenantID)
+	t.Cleanup(func() { cleanupProgramStateVisibilityTenant(context.Background(), pool, tenantID) })
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'program-state-history','Program State History')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +149,7 @@ func TestPostgresVisibleOpenMatterCountsRespectHistoricalAccess(t *testing.T) {
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at,version)
 		VALUES($1::uuid,$2::uuid,'PSH-MAT','AUTHORITY_REQUEST','ASSESSMENT',4,'Historical issue','Historical issue',
-		'{"access":"RESTRICTED","allowed_principal_ids":["97777777-7777-7777-8777-777777777778"]}'::jsonb,'{}','[]','[]',$3,$4,2)`, matterID, tenantID, t1, t2); err != nil {
+		'{"access":"RESTRICTED","allowed_principal_ids":["f1777777-7777-4777-8777-777777777778"]}'::jsonb,'{}','[]','[]',$3,$4,2)`, matterID, tenantID, t1, t2); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `INSERT INTO matter_links(id,tenant_id,matter_id,program_id,relationship,created_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,'AFFECTS',$5)`, linkID, tenantID, matterID, programID, t1); err != nil {
@@ -158,7 +158,7 @@ func TestPostgresVisibleOpenMatterCountsRespectHistoricalAccess(t *testing.T) {
 
 	createdMatter := Matter{ID: matterID, TenantID: tenantID, Status: MatterAssessment, Scope: json.RawMessage(`{"access":"INTERNAL"}`), CreatedAt: t1, UpdatedAt: t1, Version: 1}
 	changedMatter := createdMatter
-	changedMatter.Scope = json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["97777777-7777-7777-8777-777777777778"]}`)
+	changedMatter.Scope = json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["f1777777-7777-4777-8777-777777777778"]}`)
 	changedMatter.UpdatedAt = t2
 	changedMatter.Version = 2
 	createdPayload, _ := json.Marshal(createdMatter)
@@ -193,5 +193,22 @@ func TestPostgresVisibleOpenMatterCountsRespectHistoricalAccess(t *testing.T) {
 	}
 	if allowedCounts[programID] != 1 {
 		t.Fatalf("allowed historical Matter count=%d, want 1", allowedCounts[programID])
+	}
+}
+
+func cleanupProgramStateVisibilityTenant(ctx context.Context, pool *pgxpool.Pool, tenantID string) {
+	for _, query := range []string{
+		`DELETE FROM program_review_checkpoints WHERE tenant_id=$1::uuid`,
+		`DELETE FROM program_state_work_items WHERE tenant_id=$1::uuid`,
+		`DELETE FROM program_state_snapshots WHERE tenant_id=$1::uuid`,
+		`DELETE FROM outbox_events WHERE tenant_id=$1::uuid`,
+		`DELETE FROM continuity_events WHERE tenant_id=$1::uuid`,
+		`DELETE FROM matter_links WHERE tenant_id=$1::uuid`,
+		`DELETE FROM matters WHERE tenant_id=$1::uuid`,
+		`DELETE FROM programs WHERE tenant_id=$1::uuid`,
+		`DELETE FROM principals WHERE tenant_id=$1::uuid`,
+		`DELETE FROM tenants WHERE id=$1::uuid`,
+	} {
+		_, _ = pool.Exec(ctx, query, tenantID)
 	}
 }
