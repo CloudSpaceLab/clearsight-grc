@@ -24,8 +24,9 @@ func (r *MemoryRepository) ListProgramSummaries(ctx context.Context, tenant stri
 	for _, aggregate := range r.programs[tenant] {
 		aggregate = cloneProgramAggregate(aggregate)
 		if enforceVisibility && aggregate.CurrentState != nil {
-			visible := r.visibleOpenMatterCountForProgramLocked(tenant, aggregate.Program.ID, actor.PrincipalID)
+			visible := r.visibleProgramMatterVisibilityForProgramLocked(tenant, aggregate.Program.ID, actor.PrincipalID)
 			state := programStateForVisibleMatters(*aggregate.CurrentState, visible)
+			state.GeneratedAt = actorVisibleProgramStateTime(aggregate.Program.UpdatedAt, visible.LatestAt)
 			aggregate.CurrentState = &state
 		}
 		value := summarizeProgram(aggregate)
@@ -73,20 +74,15 @@ func (r *MemoryRepository) ListProgramSummaries(ctx context.Context, tenant stri
 	return page, nil
 }
 
-func (r *MemoryRepository) visibleOpenMatterCountForProgramLocked(tenant, programID, principalID string) int {
-	count := 0
+func (r *MemoryRepository) visibleProgramMatterVisibilityForProgramLocked(tenant, programID, principalID string) programMatterVisibility {
+	targets := map[string]struct{}{programID: {}}
+	visibility := map[string]programMatterVisibility{}
+	revisions := map[string][]string{}
 	for _, aggregate := range r.matters[tenant] {
-		if aggregate.Matter.Status == MatterClosed || aggregate.Matter.Status == MatterCancelled || !MatterVisibleTo(aggregate.Matter, principalID) {
-			continue
-		}
-		for _, link := range aggregate.Links {
-			if link.ProgramID == programID {
-				count++
-				break
-			}
-		}
+		collectVisibleMatterPrograms(aggregate, aggregate.Matter.UpdatedAt, principalID, targets, visibility, revisions)
 	}
-	return count
+	finalizeProgramMatterVisibility(visibility, revisions)
+	return visibility[programID]
 }
 
 func (r *MemoryRepository) ListMatterSummaries(ctx context.Context, tenant string, query SummaryQuery) (MatterSummaryPage, error) {
