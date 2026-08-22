@@ -38,19 +38,32 @@ func (a *API) reviewDocumentProposalHandoff(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	documentID, proposalID := r.PathValue("id"), r.PathValue("proposal_id")
+	document, loadErr := service.GetVisible(r.Context(), actor.TenantID, actor.LegalEntityID, documentID)
+	if loadErr != nil {
+		writeDocumentHandoffError(w, loadErr)
+		return
+	}
+	proposal := documentProposal(document, proposalID)
+	if proposal == nil {
+		writeDocumentHandoffError(w, documentimport.ErrNotFound)
+		return
+	}
+	if document.Version != input.ExpectedDocumentVersion || proposal.Handoff == nil || proposal.Handoff.Version != input.ExpectedHandoffVersion {
+		httpx.WriteError(w, http.StatusConflict, "version_conflict", "This proposal changed. Reload it before continuing.")
+		return
+	}
+	if routeErr := a.requireDocumentHandoffRoute(r, actor, document, *proposal.Handoff); routeErr != nil {
+		writeDocumentHandoffError(w, routeErr)
+		return
+	}
 	if input.Action == documentimport.HandoffReviewSubmit {
 		if a.deps.Continuity == nil {
 			httpx.WriteError(w, http.StatusServiceUnavailable, "continuity_unavailable", "Program continuity is unavailable.")
 			return
 		}
-		document, loadErr := service.Get(r.Context(), actor.TenantID, documentID)
-		if loadErr != nil {
-			writeDocumentHandoffError(w, loadErr)
-			return
-		}
-		program, loadErr := a.deps.Continuity.GetProgram(r.Context(), actor.TenantID, strings.TrimSpace(input.TargetProgramID))
-		if loadErr != nil {
-			writeDocumentHandoffError(w, loadErr)
+		program, programErr := a.deps.Continuity.GetProgram(r.Context(), actor.TenantID, strings.TrimSpace(input.TargetProgramID))
+		if programErr != nil {
+			writeDocumentHandoffError(w, programErr)
 			return
 		}
 		if program.Program.Status == continuity.ProgramRetired {
@@ -100,20 +113,29 @@ func (a *API) authorizeDocumentProposalHandoff(w http.ResponseWriter, r *http.Re
 		return
 	}
 	documentID, proposalID := r.PathValue("id"), r.PathValue("proposal_id")
+	document, loadErr := service.GetVisible(r.Context(), actor.TenantID, actor.LegalEntityID, documentID)
+	if loadErr != nil {
+		writeDocumentHandoffError(w, loadErr)
+		return
+	}
+	proposal := documentProposal(document, proposalID)
+	if proposal == nil {
+		writeDocumentHandoffError(w, documentimport.ErrNotFound)
+		return
+	}
+	if document.Version != input.ExpectedDocumentVersion || proposal.Handoff == nil || proposal.Handoff.Version != input.ExpectedHandoffVersion {
+		httpx.WriteError(w, http.StatusConflict, "version_conflict", "This proposal changed. Reload it before continuing.")
+		return
+	}
+	if routeErr := a.requireDocumentHandoffRoute(r, actor, document, *proposal.Handoff); routeErr != nil {
+		writeDocumentHandoffError(w, routeErr)
+		return
+	}
+
 	resultType, resultID := "", ""
 	if input.Action == documentimport.HandoffAuthorizeApprove {
 		if a.deps.Continuity == nil {
 			httpx.WriteError(w, http.StatusServiceUnavailable, "continuity_unavailable", "Program continuity is unavailable.")
-			return
-		}
-		document, loadErr := service.Get(r.Context(), actor.TenantID, documentID)
-		if loadErr != nil {
-			writeDocumentHandoffError(w, loadErr)
-			return
-		}
-		proposal := documentProposal(document, proposalID)
-		if document.Version != input.ExpectedDocumentVersion || proposal == nil || proposal.Handoff == nil || proposal.Handoff.Version != input.ExpectedHandoffVersion {
-			httpx.WriteError(w, http.StatusConflict, "version_conflict", "This proposal changed. Reload it before authorizing conversion.")
 			return
 		}
 		if err := validateDocumentHandoffApproval(proposal, actor.PrincipalID, input.Note); err != nil {
@@ -239,6 +261,10 @@ func writeDocumentHandoffError(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "The document proposal or target Program was not found.")
 	case errors.Is(err, documentimport.ErrVersionConflict), errors.Is(err, continuity.ErrVersionConflict):
 		httpx.WriteError(w, http.StatusConflict, "version_conflict", "This proposal changed. Reload it before continuing.")
+	case errors.Is(err, errDocumentHandoffRoutingUnresolved):
+		httpx.WriteError(w, http.StatusConflict, "routing_unresolved", "This handoff does not have one independent directly assigned actor. Resolve routing before continuing.")
+	case errors.Is(err, errDocumentHandoffNotAssigned):
+		httpx.WriteError(w, http.StatusForbidden, "handoff_not_assigned", "This handoff is assigned to another authorized person.")
 	case errors.Is(err, documentimport.ErrHandoffSegregation):
 		httpx.WriteError(w, http.StatusForbidden, "independent_reviewer_required", "A different authorized person must perform this step.")
 	case errors.Is(err, documentimport.ErrInvalidHandoff):
