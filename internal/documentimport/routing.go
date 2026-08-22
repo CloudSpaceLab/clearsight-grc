@@ -18,6 +18,7 @@ func (r HandoffAuthorityResolver) Resolve(ctx context.Context, document Document
 	}
 	var responsibility authority.Responsibility
 	var decisionType string
+	materiality := 3
 	excluded := []string{handoff.IntakePrincipalID}
 	switch handoff.Status {
 	case HandoffAwaitingReview:
@@ -26,6 +27,7 @@ func (r HandoffAuthorityResolver) Resolve(ctx context.Context, document Document
 	case HandoffAwaitingAuthorization:
 		responsibility = authority.ResponsibilityAuthorizer
 		decisionType = "document.proposal.authorize"
+		materiality = 4
 		excluded = append(excluded, handoff.ReviewerPrincipalID)
 	default:
 		return nil, nil
@@ -43,7 +45,7 @@ func (r HandoffAuthorityResolver) Resolve(ctx context.Context, document Document
 	resolution, err := r.Authority.Resolve(ctx, authority.ResolveInput{
 		TenantID: document.TenantID, LegalEntityID: document.LegalEntityID,
 		ObjectType: "DOCUMENT_IMPORT", ObjectID: document.ID,
-		Responsibility: responsibility, DecisionType: decisionType, Materiality: 3, At: at,
+		Responsibility: responsibility, DecisionType: decisionType, Materiality: materiality, At: at,
 	})
 	switch {
 	case err == nil:
