@@ -138,8 +138,7 @@ export function DocumentImportWorkspace() {
     setError(null);
     try {
       const updated = await reviewDocumentProposal(selected.id, proposal.id, status, selected.version);
-      setSelected(updated);
-      setDocuments((current) => current.map((item) => item.id === updated.id ? updateSummary(item, updated) : item));
+      applyDocumentUpdate(updated);
     } catch (cause) {
       const conflict = apiErrorKind(cause) === "conflict";
       setError(conflict ? "This import changed while you were reviewing it. The latest version has been loaded." : cause instanceof Error ? cause.message : "The review could not be recorded.");
@@ -147,6 +146,11 @@ export function DocumentImportWorkspace() {
     } finally {
       setReviewingProposalID(null);
     }
+  }
+
+  function applyDocumentUpdate(updated: DocumentImport) {
+    setSelected(updated);
+    setDocuments((current) => current.map((item) => item.id === updated.id ? updateSummary(item, updated) : item));
   }
 
   async function reviewCoverage(candidate: CoverageCandidate, decision: CoverageDecision, reason = "") {
@@ -255,18 +259,19 @@ export function DocumentImportWorkspace() {
           ? <EmptyState label="Document imports" title="No documents imported" description="Import a TXT, Markdown, CSV, DOCX, XLSX or PDF document. Searchable PDFs are extracted automatically; scanned PDFs remain stored and report when OCR is required."/>
           : <div className="document-import-layout">
               <div className="document-import-list" aria-label="Imported documents">{documents.map((document) => <button key={document.id} type="button" disabled={Boolean(reviewingProposalID)} className={selected?.id === document.id ? "document-import-row active" : "document-import-row"} onClick={() => void choose(document.id)}><strong>{document.file_name}</strong><span>{summaryLabel(document)}</span><small>{new Date(document.created_at).toLocaleString()}</small></button>)}</div>
-              {selected && <DocumentInspector document={selected} coverage={coverage} coverageActionID={coverageActionID} coverageNotice={coverageNotice} reviewingProposalID={reviewingProposalID} onReview={review} onCoverageReview={reviewCoverage} onApplySuggestion={applySuggestion} onRecompare={recompare} onLoadMore={loadMoreCoverage}/>}
+              {selected && <DocumentInspector document={selected} coverage={coverage} coverageActionID={coverageActionID} coverageNotice={coverageNotice} reviewingProposalID={reviewingProposalID} onReview={review} onDocumentUpdated={applyDocumentUpdate} onCoverageReview={reviewCoverage} onApplySuggestion={applySuggestion} onRecompare={recompare} onLoadMore={loadMoreCoverage}/>}
             </div>}
   </section>;
 }
 
-function DocumentInspector({ document, coverage, coverageActionID, coverageNotice, reviewingProposalID, onReview, onCoverageReview, onApplySuggestion, onRecompare, onLoadMore }: {
+function DocumentInspector({ document, coverage, coverageActionID, coverageNotice, reviewingProposalID, onReview, onDocumentUpdated, onCoverageReview, onApplySuggestion, onRecompare, onLoadMore }: {
   document: DocumentImport;
   coverage: DocumentCoverage | null;
   coverageActionID: string | null;
   coverageNotice: string | null;
   reviewingProposalID: string | null;
   onReview: (proposal: DocumentProposal, status: ProposalStatus) => void;
+  onDocumentUpdated: (document: DocumentImport) => void;
   onCoverageReview: (candidate: CoverageCandidate, decision: CoverageDecision, reason?: string) => void;
   onApplySuggestion: (suggestion: CoverageSuggestion) => void;
   onRecompare: () => void;
@@ -275,6 +280,7 @@ function DocumentInspector({ document, coverage, coverageActionID, coverageNotic
   const pending = document.proposals.filter((proposal) => proposal.status === "PENDING_REVIEW");
   const reviewed = document.proposals.filter((proposal) => proposal.status !== "PENDING_REVIEW");
   const handoffsPending = document.proposals.filter((proposal) => proposal.handoff?.status === "AWAITING_REVIEW" || proposal.handoff?.status === "AWAITING_AUTHORIZATION").length;
+  const handoffReceiptVisible = reviewed.some((proposal) => proposal.handoff && proposal.handoff.status !== "AWAITING_REVIEW" && proposal.handoff.status !== "AWAITING_AUTHORIZATION");
   const processing = isProcessing(document);
   const sectionsTotal = document.sections_total ?? document.sections.length;
   const sectionsOmitted = document.sections_omitted ?? 0;
@@ -292,9 +298,9 @@ function DocumentInspector({ document, coverage, coverageActionID, coverageNotic
     {!processing && coverage && <CoverageAssessment coverage={coverage} actionID={coverageActionID} notice={coverageNotice} onReview={onCoverageReview} onApply={onApplySuggestion} onRecompare={onRecompare} onLoadMore={onLoadMore}/>}
     {document.limitations.length > 0 && <section className="document-limitations"><h3>Important limitations</h3>{document.limitations.map((item) => <p key={item}>{item}</p>)}</section>}
     {!processing && <>
-      {!coverage && <section><div className="section-header"><div><h3>Review required</h3><p>Accepting a proposal starts independent governed review. It does not create or activate a Requirement or Control.</p></div></div>{pending.length ? <div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview}/>)}</div> : <div className="calm-empty compact"><span>✓</span><div><strong>Nothing waiting for intake review</strong><p>{document.analysis_status === "UNAVAILABLE" ? "No review proposal is available from this source." : "Accepted proposals continue through their governed handoff below."}</p></div></div>}</section>}
-      {coverage && pending.length > 0 && <details className="import-secondary"><summary><span>Extraction proposals</span><strong>{pending.length} unreviewed</strong></summary><div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview}/>)}</div></details>}
-      {reviewed.length > 0 && <details className="import-secondary" open={handoffsPending > 0}><summary><span>Proposal outcomes & handoffs</span><strong>{reviewed.length}</strong></summary><div className="proposal-list">{reviewed.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={false} locked={Boolean(reviewingProposalID)} onReview={onReview}/>)}</div></details>}
+      {!coverage && <section><div className="section-header"><div><h3>Review required</h3><p>Accepting a proposal starts independent governed review. It does not create or activate a Requirement or Control.</p></div></div>{pending.length ? <div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview} onDocumentUpdated={onDocumentUpdated}/>)}</div> : <div className="calm-empty compact"><span>✓</span><div><strong>Nothing waiting for intake review</strong><p>{document.analysis_status === "UNAVAILABLE" ? "No review proposal is available from this source." : "Accepted proposals continue through their governed handoff below."}</p></div></div>}</section>}
+      {coverage && pending.length > 0 && <details className="import-secondary"><summary><span>Extraction proposals</span><strong>{pending.length} unreviewed</strong></summary><div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview} onDocumentUpdated={onDocumentUpdated}/>)}</div></details>}
+      {reviewed.length > 0 && <details className="import-secondary" open={handoffsPending > 0 || handoffReceiptVisible}><summary><span>Proposal outcomes & handoffs</span><strong>{reviewed.length}</strong></summary><div className="proposal-list">{reviewed.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={false} locked={Boolean(reviewingProposalID)} onReview={onReview} onDocumentUpdated={onDocumentUpdated}/>)}</div></details>}
     </>}
     <details className="import-secondary"><summary><span>Original source details</span><strong>{document.sections.length} extracted</strong></summary><div><dl className="document-metadata"><div><dt>Original hash</dt><dd><code>{document.sha256}</code></dd></div><div><dt>File status</dt><dd>{human(document.artifact_status)}</dd></div><div><dt>Text extraction</dt><dd>{human(document.extraction_method)}</dd></div><div><dt>Completeness</dt><dd>{contentTruncated || sectionsOmitted ? `${document.sections.length} of ${sectionsTotal} sections extracted` : `All ${sectionsTotal} sections extracted`}</dd></div><div><dt>Version</dt><dd>{document.version}</dd></div></dl>{document.sections.length > 0 && <div className="document-sections">{document.sections.map((section) => <details key={section.id}><summary>{section.title}</summary><pre>{section.text}</pre></details>)}</div>}</div></details>
   </article>;
@@ -386,9 +392,9 @@ function CoverageChain({ match }: { match: NonNullable<CoverageCandidate["matche
   return <div className="coverage-chain" aria-label="Coverage chain"><span className="active">Requirement</span><span className={match.coverage.control_implemented ? "active" : ""}>Control</span><span className={match.coverage.evidence_supported ? "active" : ""}>Evidence</span></div>;
 }
 
-function ProposalCard({ document, proposal, busy, locked, onReview }: { document: DocumentImport; proposal: DocumentProposal; busy: boolean; locked: boolean; onReview: (proposal: DocumentProposal, status: ProposalStatus) => void }) {
+function ProposalCard({ document, proposal, busy, locked, onReview, onDocumentUpdated }: { document: DocumentImport; proposal: DocumentProposal; busy: boolean; locked: boolean; onReview: (proposal: DocumentProposal, status: ProposalStatus) => void; onDocumentUpdated: (document: DocumentImport) => void }) {
   const state = proposal.handoff?.status ? human(proposal.handoff.status) : human(proposal.status);
-  return <article id={`document-proposal-${proposal.id}`} className="proposal-card" aria-busy={busy || undefined}><div className="proposal-title"><div><span>{human(proposal.kind)}</span><h4>{proposal.title}</h4></div><mark>{state}</mark></div><p>{proposal.statement}</p><blockquote>{proposal.anchor.quote}</blockquote><small>Source: {proposal.anchor.sheet ? `${proposal.anchor.sheet}, row ${proposal.anchor.row_start}` : proposal.anchor.page ? `page ${proposal.anchor.page}` : proposal.anchor.section_id}</small>{proposal.status === "PENDING_REVIEW" && <div className="proposal-actions"><button className="secondary-button" type="button" disabled={locked} onClick={() => onReview(proposal, "REJECTED")}>{busy ? "Recording…" : "Reject"}</button><button className="primary-button" type="button" disabled={locked} onClick={() => onReview(proposal, "ACCEPTED")}>{busy ? "Recording…" : "Accept for governed review"}</button></div>}{proposal.status === "ACCEPTED" && <DocumentProposalHandoff documentID={document.id} documentVersion={document.version} legalEntityID={document.legal_entity_id} proposal={proposal} locked={locked}/>}</article>;
+  return <article id={`document-proposal-${proposal.id}`} className="proposal-card" aria-busy={busy || undefined}><div className="proposal-title"><div><span>{human(proposal.kind)}</span><h4>{proposal.title}</h4></div><mark>{state}</mark></div><p>{proposal.statement}</p><blockquote>{proposal.anchor.quote}</blockquote><small>Source: {proposal.anchor.sheet ? `${proposal.anchor.sheet}, row ${proposal.anchor.row_start}` : proposal.anchor.page ? `page ${proposal.anchor.page}` : proposal.anchor.section_id}</small>{proposal.status === "PENDING_REVIEW" && <div className="proposal-actions"><button className="secondary-button" type="button" disabled={locked} onClick={() => onReview(proposal, "REJECTED")}>{busy ? "Recording…" : "Reject"}</button><button className="primary-button" type="button" disabled={locked} onClick={() => onReview(proposal, "ACCEPTED")}>{busy ? "Recording…" : "Accept for governed review"}</button></div>}{proposal.status === "ACCEPTED" && <DocumentProposalHandoff documentID={document.id} documentVersion={document.version} legalEntityID={document.legal_entity_id} proposal={proposal} locked={locked} onDocumentUpdated={onDocumentUpdated}/>}</article>;
 }
 
 function focusedImportTarget(): ImportFocus {
