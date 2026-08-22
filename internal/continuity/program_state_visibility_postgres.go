@@ -9,10 +9,10 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (r *PostgresRepository) VisibleOpenMatterCounts(ctx context.Context, tenant string, programIDs []string, principalID string, at *time.Time) (map[string]int, error) {
-	counts := make(map[string]int, len(programIDs))
+func (r *PostgresRepository) VisibleProgramMatterVisibility(ctx context.Context, tenant string, programIDs []string, principalID string, at *time.Time) (map[string]programMatterVisibility, error) {
+	visibility := make(map[string]programMatterVisibility, len(programIDs))
 	if len(programIDs) == 0 {
-		return counts, nil
+		return visibility, nil
 	}
 
 	var (
@@ -24,7 +24,11 @@ func (r *PostgresRepository) VisibleOpenMatterCounts(ctx context.Context, tenant
 			WITH target_programs AS (
 				SELECT unnest($2::uuid[]) AS program_id
 			)
-			SELECT ml.program_id::text, count(DISTINCT m.id)
+			SELECT
+				ml.program_id::text,
+				count(DISTINCT m.id)::int,
+				COALESCE(string_agg(DISTINCT m.id::text || ':' || m.version::text, E'\n' ORDER BY m.id::text || ':' || m.version::text),''),
+				max(m.updated_at)
 			FROM matter_links ml
 			JOIN target_programs target ON target.program_id=ml.program_id
 			JOIN matters m ON m.tenant_id=ml.tenant_id AND m.id=ml.matter_id
@@ -71,11 +75,26 @@ func (r *PostgresRepository) VisibleOpenMatterCounts(ctx context.Context, tenant
 				  AND ce.event_type IN ('MATTER_CREATED','MATTER_STATE_CHANGED')
 				  AND ce.occurred_at<=$4
 				ORDER BY ce.aggregate_id,ce.aggregate_version DESC
+			), historical_activity AS (
+				SELECT
+					ce.aggregate_id AS matter_id,
+					max(ce.aggregate_version) AS matter_version,
+					max(ce.occurred_at) AS latest_activity_at
+				FROM continuity_events ce
+				WHERE ce.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+				  AND ce.aggregate_type='MATTER'
+				  AND ce.occurred_at<=$4
+				GROUP BY ce.aggregate_id
 			)
-			SELECT ml.program_id::text, count(DISTINCT ml.matter_id)
+			SELECT
+				ml.program_id::text,
+				count(DISTINCT ml.matter_id)::int,
+				COALESCE(string_agg(DISTINCT ml.matter_id::text || ':' || activity.matter_version::text, E'\n' ORDER BY ml.matter_id::text || ':' || activity.matter_version::text),''),
+				max(activity.latest_activity_at)
 			FROM matter_links ml
 			JOIN target_programs target ON target.program_id=ml.program_id
 			JOIN historical_matter historical ON historical.matter_id=ml.matter_id
+			JOIN historical_activity activity ON activity.matter_id=ml.matter_id
 			WHERE ml.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 			  AND ml.created_at<=$4
 			  AND COALESCE(historical.matter->>'status','') NOT IN ('CLOSED','CANCELLED')
@@ -112,17 +131,25 @@ func (r *PostgresRepository) VisibleOpenMatterCounts(ctx context.Context, tenant
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var programID string
-		var count int
-		if err := rows.Scan(&programID, &count); err != nil {
+		var (
+			programID        string
+			count            int
+			revisionMaterial string
+			latestAt         time.Time
+		)
+		if err := rows.Scan(&programID, &count, &revisionMaterial, &latestAt); err != nil {
 			return nil, err
 		}
-		counts[programID] = count
+		visibility[programID] = programMatterVisibility{
+			OpenCount: count,
+			Revision:  visibleMatterRevisionMaterial(revisionMaterial),
+			LatestAt:  latestAt.UTC(),
+		}
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return counts, nil
+	return visibility, nil
 }
 
 var _ programMatterVisibilityRepository = (*PostgresRepository)(nil)
