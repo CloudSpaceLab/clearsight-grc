@@ -24,7 +24,7 @@ func TestProgramStateForVisibleMattersRemovesHiddenMatterContribution(t *testing
 	}
 	canonical.Dimensions.Exception = StateAtRisk
 
-	hidden := programStateForVisibleMatters(canonical, 0)
+	hidden := programStateForVisibleMatters(canonical, programMatterVisibility{})
 	if hidden.OpenMatterCount != 0 || hidden.Dimensions.Exception != StateCurrent {
 		t.Fatalf("hidden Matter contribution survived: %#v", hidden)
 	}
@@ -44,7 +44,7 @@ func TestProgramStateForVisibleMattersRemovesHiddenMatterContribution(t *testing
 		t.Fatalf("actor semantic version is invalid: %d", hidden.ProjectionVersion)
 	}
 
-	visible := programStateForVisibleMatters(canonical, 1)
+	visible := programStateForVisibleMatters(canonical, programMatterVisibility{OpenCount: 1, Revision: "matter-1:1"})
 	if visible.OpenMatterCount != 1 || visible.Dimensions.Exception != StateAtRisk || visible.Overall != StateAtRisk {
 		t.Fatalf("visible Matter contribution was lost: %#v", visible)
 	}
@@ -56,7 +56,7 @@ func TestProgramStateForVisibleMattersRemovesHiddenMatterContribution(t *testing
 	}
 }
 
-func TestVisibleProgramStateVersionIgnoresCanonicalProjectionChurn(t *testing.T) {
+func TestVisibleProgramStateVersionTracksVisibleMatterRevisionButIgnoresCanonicalProjectionChurn(t *testing.T) {
 	first := ProgramStateSnapshot{
 		ID:                "snapshot-a",
 		TenantID:          "bank",
@@ -78,14 +78,20 @@ func TestVisibleProgramStateVersionIgnoresCanonicalProjectionChurn(t *testing.T)
 	second.GeneratedAt = first.GeneratedAt.Add(time.Hour)
 	second.ProjectionVersion = 99
 
-	firstVisible := programStateForVisibleMatters(first, 0)
-	secondVisible := programStateForVisibleMatters(second, 0)
+	visibility := programMatterVisibility{OpenCount: 1, Revision: "matter-1:1"}
+	firstVisible := programStateForVisibleMatters(first, visibility)
+	secondVisible := programStateForVisibleMatters(second, visibility)
 	if firstVisible.ProjectionVersion != secondVisible.ProjectionVersion {
 		t.Fatalf("canonical hidden projection churn changed actor version: %d != %d", firstVisible.ProjectionVersion, secondVisible.ProjectionVersion)
 	}
+
+	changedMatter := programStateForVisibleMatters(second, programMatterVisibility{OpenCount: 1, Revision: "matter-1:2"})
+	if changedMatter.ProjectionVersion == secondVisible.ProjectionVersion {
+		t.Fatal("visible open Matter revision did not invalidate actor review version")
+	}
 }
 
-func TestMemoryProgramForPrincipalCountsOnlyReadableOpenMatters(t *testing.T) {
+func TestMemoryProgramForPrincipalTracksOnlyReadableOpenMatterRevisions(t *testing.T) {
 	ctx := context.Background()
 	repo := NewMemoryRepository()
 	service := NewService(repo)
@@ -97,13 +103,15 @@ func TestMemoryProgramForPrincipalCountsOnlyReadableOpenMatters(t *testing.T) {
 	aggregate := ProgramAggregate{Program: program, CurrentState: &state}
 	repo.programs["bank"] = map[string]ProgramAggregate{program.ID: aggregate}
 
+	visibleAt := now.Add(time.Minute)
+	hiddenAt := now.Add(2 * time.Minute)
 	repo.matters["bank"] = map[string]MatterAggregate{
 		"visible": {
-			Matter: Matter{ID: "visible", TenantID: "bank", Status: MatterAssessment, Scope: json.RawMessage(`{"access":"INTERNAL"}`)},
+			Matter: Matter{ID: "visible", TenantID: "bank", Status: MatterAssessment, Scope: json.RawMessage(`{"access":"INTERNAL"}`), Version: 1, UpdatedAt: visibleAt},
 			Links:  []MatterLink{{MatterID: "visible", ProgramID: program.ID}},
 		},
 		"hidden": {
-			Matter: Matter{ID: "hidden", TenantID: "bank", Status: MatterAssessment, Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["person-b"]}`)},
+			Matter: Matter{ID: "hidden", TenantID: "bank", Status: MatterAssessment, Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["person-b"]}`), Version: 1, UpdatedAt: hiddenAt},
 			Links:  []MatterLink{{MatterID: "hidden", ProgramID: program.ID}},
 		},
 	}
@@ -112,15 +120,35 @@ func TestMemoryProgramForPrincipalCountsOnlyReadableOpenMatters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if forA.CurrentState == nil || forA.CurrentState.OpenMatterCount != 1 {
-		t.Fatalf("person-a saw wrong Matter count: %#v", forA.CurrentState)
+	if forA.CurrentState == nil || forA.CurrentState.OpenMatterCount != 1 || !forA.CurrentState.GeneratedAt.Equal(visibleAt) {
+		t.Fatalf("person-a saw wrong visible Matter projection: %#v", forA.CurrentState)
 	}
 	forB, err := service.ProgramForPrincipal(ctx, aggregate, "person-b", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if forB.CurrentState == nil || forB.CurrentState.OpenMatterCount != 2 {
-		t.Fatalf("allowed principal lost restricted Matter contribution: %#v", forB.CurrentState)
+	if forB.CurrentState == nil || forB.CurrentState.OpenMatterCount != 2 || !forB.CurrentState.GeneratedAt.Equal(hiddenAt) {
+		t.Fatalf("allowed principal lost restricted Matter projection: %#v", forB.CurrentState)
+	}
+	versionA, versionB := forA.CurrentState.ProjectionVersion, forB.CurrentState.ProjectionVersion
+
+	hidden := repo.matters["bank"]["hidden"]
+	hidden.Matter.Version = 2
+	hidden.Matter.UpdatedAt = hiddenAt.Add(time.Minute)
+	repo.matters["bank"]["hidden"] = hidden
+	forAAfter, err := service.ProgramForPrincipal(ctx, aggregate, "person-a", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	forBAfter, err := service.ProgramForPrincipal(ctx, aggregate, "person-b", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if forAAfter.CurrentState.ProjectionVersion != versionA || !forAAfter.CurrentState.GeneratedAt.Equal(visibleAt) {
+		t.Fatalf("hidden Matter revision/timing leaked to person-a: before=%#v after=%#v", forA.CurrentState, forAAfter.CurrentState)
+	}
+	if forBAfter.CurrentState.ProjectionVersion == versionB || !forBAfter.CurrentState.GeneratedAt.Equal(hidden.Matter.UpdatedAt) {
+		t.Fatalf("visible restricted Matter revision did not reach allowed principal: before=%#v after=%#v", forB.CurrentState, forBAfter.CurrentState)
 	}
 }
 
