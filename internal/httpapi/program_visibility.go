@@ -35,7 +35,7 @@ func (a *API) programsForActor(ctx context.Context, values []continuity.ProgramA
 	}
 	for _, value := range values {
 		if value.Program.TenantID != actor.TenantID {
-			return nil, continuity.ErrNotFound
+			return []continuity.ProgramAggregate{}, nil
 		}
 	}
 	if a.deps.Continuity == nil {
