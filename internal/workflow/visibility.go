@@ -27,6 +27,9 @@ func ActorWorkVisibleTo(task Task, principalID string) bool {
 			task.EvidenceRecipientID == principalID &&
 			task.EvidenceSubjectVisible
 	}
+	if task.WorkflowKind == "DOCUMENT_IMPORT" {
+		return task.DocumentProposalVisible
+	}
 	return false
 }
 
