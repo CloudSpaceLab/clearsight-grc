@@ -6,11 +6,13 @@ import (
 )
 
 var (
-	ErrNotFound        = errors.New("document import not found")
-	ErrVersionConflict = errors.New("document import version conflict")
-	ErrInvalidReview   = errors.New("invalid proposal review")
-	ErrTooLarge        = errors.New("document exceeds the configured size limit")
-	ErrResourceLimit   = errors.New("document exceeds an extraction resource limit")
+	ErrNotFound          = errors.New("document import not found")
+	ErrVersionConflict   = errors.New("document import version conflict")
+	ErrInvalidReview     = errors.New("invalid proposal review")
+	ErrInvalidHandoff    = errors.New("invalid proposal handoff transition")
+	ErrHandoffSegregation = errors.New("proposal handoff requires an independent principal")
+	ErrTooLarge          = errors.New("document exceeds the configured size limit")
+	ErrResourceLimit     = errors.New("document exceeds an extraction resource limit")
 )
 
 type ExtractionStatus string
@@ -79,14 +81,14 @@ type Obligation struct {
 }
 
 type HandoffRoute struct {
-	Status             string `json:"status"`
-	Responsibility     string `json:"responsibility,omitempty"`
-	PrincipalID        string `json:"principal_id,omitempty"`
-	PrincipalName      string `json:"principal_name,omitempty"`
-	RuleID             string `json:"rule_id,omitempty"`
-	PolicyVersion      int64  `json:"policy_version,omitempty"`
-	Explanation        string `json:"explanation,omitempty"`
-	IsCurrentActor     bool   `json:"is_current_actor,omitempty"`
+	Status         string `json:"status"`
+	Responsibility string `json:"responsibility,omitempty"`
+	PrincipalID    string `json:"principal_id,omitempty"`
+	PrincipalName  string `json:"principal_name,omitempty"`
+	RuleID         string `json:"rule_id,omitempty"`
+	PolicyVersion  int64  `json:"policy_version,omitempty"`
+	Explanation    string `json:"explanation,omitempty"`
+	IsCurrentActor bool   `json:"is_current_actor,omitempty"`
 }
 
 type ProposalHandoff struct {
