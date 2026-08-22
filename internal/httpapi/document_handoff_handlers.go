@@ -53,6 +53,10 @@ func (a *API) reviewDocumentProposalHandoff(w http.ResponseWriter, r *http.Reque
 			writeDocumentHandoffError(w, loadErr)
 			return
 		}
+		if program.Program.Status == continuity.ProgramRetired {
+			httpx.WriteError(w, http.StatusUnprocessableEntity, "program_retired", "The target Program is retired. Choose a current Program before submitting this proposal for authorization.")
+			return
+		}
 		if program.Program.Version != input.TargetProgramVersion {
 			httpx.WriteError(w, http.StatusConflict, "program_version_conflict", "The target Program changed. Reload it before submitting this proposal for authorization.")
 			return
@@ -108,12 +112,12 @@ func (a *API) authorizeDocumentProposalHandoff(w http.ResponseWriter, r *http.Re
 			return
 		}
 		proposal := documentProposal(document, proposalID)
-		if proposal == nil || proposal.Handoff == nil || proposal.Handoff.Status != documentimport.HandoffAwaitingAuthorization {
-			writeDocumentHandoffError(w, documentimport.ErrInvalidHandoff)
+		if document.Version != input.ExpectedDocumentVersion || proposal == nil || proposal.Handoff == nil || proposal.Handoff.Version != input.ExpectedHandoffVersion {
+			httpx.WriteError(w, http.StatusConflict, "version_conflict", "This proposal changed. Reload it before authorizing conversion.")
 			return
 		}
-		if document.Version != input.ExpectedDocumentVersion || proposal.Handoff.Version != input.ExpectedHandoffVersion {
-			httpx.WriteError(w, http.StatusConflict, "version_conflict", "This proposal changed. Reload it before authorizing conversion.")
+		if err := validateDocumentHandoffApproval(proposal, actor.PrincipalID, input.Note); err != nil {
+			writeDocumentHandoffError(w, err)
 			return
 		}
 		objectID := documentimport.ConversionObjectID(proposal.Handoff.ID, proposal.Handoff.TargetType)
@@ -163,6 +167,24 @@ func (a *API) authorizeDocumentProposalHandoff(w http.ResponseWriter, r *http.Re
 	httpx.WriteJSON(w, http.StatusOK, a.withDocumentHandoffRoutes(r, actor, value))
 }
 
+func validateDocumentHandoffApproval(proposal *documentimport.Proposal, actorID, note string) error {
+	actorID = strings.TrimSpace(actorID)
+	if proposal == nil || proposal.Status != documentimport.ProposalAccepted || proposal.Handoff == nil || proposal.Handoff.Status != documentimport.HandoffAwaitingAuthorization || actorID == "" || strings.TrimSpace(note) == "" {
+		return documentimport.ErrInvalidHandoff
+	}
+	handoff := proposal.Handoff
+	if handoff.IntakePrincipalID == actorID || handoff.ReviewerPrincipalID == actorID {
+		return documentimport.ErrHandoffSegregation
+	}
+	if strings.TrimSpace(handoff.DraftTitle) == "" || strings.TrimSpace(handoff.DraftStatement) == "" || strings.TrimSpace(handoff.TargetProgramID) == "" || handoff.TargetProgramVersion < 1 {
+		return documentimport.ErrInvalidHandoff
+	}
+	if handoff.TargetType != documentimport.ConversionRequirement && handoff.TargetType != documentimport.ConversionControlObjective {
+		return documentimport.ErrInvalidHandoff
+	}
+	return nil
+}
+
 func documentProposal(document documentimport.Document, proposalID string) *documentimport.Proposal {
 	proposalID = strings.TrimSpace(proposalID)
 	for index := range document.Proposals {
@@ -202,6 +224,8 @@ func writeDocumentConversionError(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusNotFound, "program_not_found", "The target Program no longer exists.")
 	case errors.Is(err, continuity.ErrDuplicate):
 		httpx.WriteError(w, http.StatusConflict, "conversion_identity_conflict", "The deterministic conversion identity is already bound to different canonical content.")
+	case errors.Is(err, continuity.ErrInvalidState):
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "program_not_mutable", "The target Program cannot accept new governance objects in its current state.")
 	case errors.Is(err, documentimport.ErrInvalidHandoff):
 		writeDocumentHandoffError(w, err)
 	default:
