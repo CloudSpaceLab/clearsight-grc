@@ -38,7 +38,7 @@ describe("TodayInterventions", () => {
       action_target_id: "document 1",
       action_target_sub_id: "proposal 1",
       authority: { responsibility: "REVIEWER", decision_type: "document.proposal.review", materiality: 3 },
-    } as AttentionItem & { action_target_sub_id: string };
+    } as unknown as AttentionItem & { action_target_sub_id: string };
     window.history.replaceState(null, "", "#today");
 
     render(<TodayInterventions items={[documentItem]} connection="live" readiness={readiness} readinessState="live" onOpenItem={onOpen} onInspectAuthority={vi.fn()}/>);
