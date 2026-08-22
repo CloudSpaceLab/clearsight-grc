@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"strings"
+	"time"
 )
 
 const (
@@ -19,38 +20,38 @@ const (
 	HandoffReviewReject HandoffReviewAction = "REJECT"
 	HandoffReviewSubmit HandoffReviewAction = "SUBMIT_FOR_AUTHORIZATION"
 
-	HandoffAuthorizeReturn HandoffAuthorizationAction = "RETURN"
-	HandoffAuthorizeReject HandoffAuthorizationAction = "REJECT"
+	HandoffAuthorizeReturn  HandoffAuthorizationAction = "RETURN"
+	HandoffAuthorizeReject  HandoffAuthorizationAction = "REJECT"
 	HandoffAuthorizeApprove HandoffAuthorizationAction = "APPROVE"
 )
 
 type HandoffReviewInput struct {
-	TenantID             string                     `json:"tenant_id,omitempty"`
-	DocumentID           string                     `json:"document_id,omitempty"`
-	ProposalID           string                     `json:"proposal_id,omitempty"`
-	ActorID              string                     `json:"actor_id,omitempty"`
-	Action               HandoffReviewAction        `json:"action"`
-	ExpectedDocumentVersion int64                    `json:"expected_document_version"`
-	ExpectedHandoffVersion  int64                    `json:"expected_handoff_version"`
-	Title                string                     `json:"title,omitempty"`
-	Statement            string                     `json:"statement,omitempty"`
-	TargetType           ConversionTarget           `json:"target_type,omitempty"`
-	TargetProgramID      string                     `json:"target_program_id,omitempty"`
-	TargetProgramVersion int64                      `json:"target_program_version,omitempty"`
-	Note                 string                     `json:"note,omitempty"`
+	TenantID                string              `json:"tenant_id,omitempty"`
+	DocumentID              string              `json:"document_id,omitempty"`
+	ProposalID              string              `json:"proposal_id,omitempty"`
+	ActorID                 string              `json:"actor_id,omitempty"`
+	Action                  HandoffReviewAction `json:"action"`
+	ExpectedDocumentVersion int64               `json:"expected_document_version"`
+	ExpectedHandoffVersion  int64               `json:"expected_handoff_version"`
+	Title                   string              `json:"title,omitempty"`
+	Statement               string              `json:"statement,omitempty"`
+	TargetType              ConversionTarget    `json:"target_type,omitempty"`
+	TargetProgramID         string              `json:"target_program_id,omitempty"`
+	TargetProgramVersion    int64               `json:"target_program_version,omitempty"`
+	Note                    string              `json:"note,omitempty"`
 }
 
 type HandoffAuthorizationInput struct {
-	TenantID               string                     `json:"tenant_id,omitempty"`
-	DocumentID             string                     `json:"document_id,omitempty"`
-	ProposalID             string                     `json:"proposal_id,omitempty"`
-	ActorID                string                     `json:"actor_id,omitempty"`
-	Action                 HandoffAuthorizationAction `json:"action"`
-	ExpectedDocumentVersion int64                     `json:"expected_document_version"`
-	ExpectedHandoffVersion  int64                     `json:"expected_handoff_version"`
-	Note                   string                     `json:"note,omitempty"`
-	ResultObjectType       string                     `json:"result_object_type,omitempty"`
-	ResultObjectID         string                     `json:"result_object_id,omitempty"`
+	TenantID                string                     `json:"tenant_id,omitempty"`
+	DocumentID              string                     `json:"document_id,omitempty"`
+	ProposalID              string                     `json:"proposal_id,omitempty"`
+	ActorID                 string                     `json:"actor_id,omitempty"`
+	Action                  HandoffAuthorizationAction `json:"action"`
+	ExpectedDocumentVersion int64                      `json:"expected_document_version"`
+	ExpectedHandoffVersion  int64                      `json:"expected_handoff_version"`
+	Note                    string                     `json:"note,omitempty"`
+	ResultObjectType        string                     `json:"result_object_type,omitempty"`
+	ResultObjectID          string                     `json:"result_object_id,omitempty"`
 }
 
 func proposalHandoffID(documentID, proposalID string) string {
@@ -62,9 +63,14 @@ func proposalHandoffID(documentID, proposalID string) string {
 	return encoded[0:8] + "-" + encoded[8:12] + "-" + encoded[12:16] + "-" + encoded[16:20] + "-" + encoded[20:32]
 }
 
-func handoffForAcceptedProposal(input ReviewInput, title, statement string, nowTime interface{ UTC() }) *ProposalHandoff {
-	// This helper intentionally accepts only the UTC capability so callers cannot
-	// accidentally derive authority or lifecycle state from a wall-clock wrapper.
-	_ = nowTime
-	return nil
+func newAcceptedProposalHandoff(input ReviewInput, title, statement string, now time.Time) *ProposalHandoff {
+	return &ProposalHandoff{
+		ID:                proposalHandoffID(input.DocumentID, input.ProposalID),
+		Status:            HandoffAwaitingReview,
+		IntakePrincipalID: strings.TrimSpace(input.ReviewerID),
+		DraftTitle:        strings.TrimSpace(title),
+		DraftStatement:    strings.TrimSpace(statement),
+		UpdatedAt:         now.UTC(),
+		Version:           1,
+	}
 }
