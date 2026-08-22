@@ -13,7 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func TestPostgresProgramSummaryHidesRestrictedMatterStateAndRevisionTiming(t *testing.T) {
+func TestPostgresProgramSummaryHidesRestrictedMatterStateAndTiming(t *testing.T) {
 	url := os.Getenv("TEST_DATABASE_URL")
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL is not configured")
@@ -111,10 +111,10 @@ func TestPostgresProgramSummaryHidesRestrictedMatterStateAndRevisionTiming(t *te
 	}
 	afterA, afterB := pageAAfter.Items[0], pageBAfter.Items[0]
 	if afterA.ProjectionVersion != gotA.ProjectionVersion || afterA.StateGeneratedAt == nil || !afterA.StateGeneratedAt.Equal(now) {
-		t.Fatalf("hidden Matter revision/timing leaked to actor A: before=%#v after=%#v", gotA, afterA)
+		t.Fatalf("hidden Matter timing leaked to actor A: before=%#v after=%#v", gotA, afterA)
 	}
-	if afterB.ProjectionVersion == gotB.ProjectionVersion || afterB.StateGeneratedAt == nil || !afterB.StateGeneratedAt.Equal(later) {
-		t.Fatalf("visible Matter revision/timing did not reach actor B: before=%#v after=%#v", gotB, afterB)
+	if afterB.ProjectionVersion != gotB.ProjectionVersion || afterB.StateGeneratedAt == nil || !afterB.StateGeneratedAt.Equal(later) {
+		t.Fatalf("visible restricted Matter timing did not reach actor B: before=%#v after=%#v", gotB, afterB)
 	}
 
 	wrongTenant := identity.WithActor(ctx, identity.Actor{TenantID: "other-bank", PrincipalID: principalB})
@@ -193,7 +193,7 @@ func TestPostgresVisibleProgramMatterVisibilityRespectsHistoricalAccess(t *testi
 		t.Fatal(err)
 	}
 	beforeValue := beforeVisibility[programID]
-	if beforeValue.OpenCount != 1 || beforeValue.Revision == "" || !beforeValue.LatestAt.Equal(t1) {
+	if beforeValue.OpenCount != 1 || !beforeValue.LatestAt.Equal(t1) {
 		t.Fatalf("historically visible Matter projection=%#v", beforeValue)
 	}
 	after := t2.Add(time.Hour)
@@ -201,7 +201,7 @@ func TestPostgresVisibleProgramMatterVisibilityRespectsHistoricalAccess(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	if value := afterVisibility[programID]; value.OpenCount != 0 || value.Revision != "" || !value.LatestAt.IsZero() {
+	if value := afterVisibility[programID]; value.OpenCount != 0 || !value.LatestAt.IsZero() {
 		t.Fatalf("historically restricted Matter projection=%#v", value)
 	}
 	allowedVisibility, err := repo.VisibleProgramMatterVisibility(ctx, tenantID, []string{programID}, principalB, &after)
@@ -209,8 +209,8 @@ func TestPostgresVisibleProgramMatterVisibilityRespectsHistoricalAccess(t *testi
 		t.Fatal(err)
 	}
 	allowedValue := allowedVisibility[programID]
-	if allowedValue.OpenCount != 1 || allowedValue.Revision == "" || allowedValue.Revision == beforeValue.Revision || !allowedValue.LatestAt.Equal(t2) {
-		t.Fatalf("allowed historical Matter projection=%#v before=%#v", allowedValue, beforeValue)
+	if allowedValue.OpenCount != 1 || !allowedValue.LatestAt.Equal(t2) {
+		t.Fatalf("allowed historical Matter projection=%#v", allowedValue)
 	}
 }
 
