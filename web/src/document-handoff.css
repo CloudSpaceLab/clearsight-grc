@@ -1,0 +1,23 @@
+.proposal-handoff { display: grid; gap: 12px; margin-top: 14px; padding: 14px; border: 1px solid rgba(91,198,214,.2); border-radius: 12px; background: rgba(7,17,29,.42); }
+.proposal-handoff-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.proposal-handoff-head > div { display: grid; gap: 3px; }
+.proposal-handoff-head span { color: var(--cyan); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+.proposal-handoff-head strong { font-size: 12px; }
+.proposal-handoff-head small { max-width: 280px; text-align: right; color: var(--muted); font-size: 10px; line-height: 1.4; }
+.proposal-handoff-form, .proposal-handoff-decision { display: grid; gap: 11px; }
+.proposal-handoff-form label, .proposal-handoff-decision label { display: grid; gap: 5px; color: var(--muted); font-size: 10px; }
+.proposal-handoff-form input, .proposal-handoff-form textarea, .proposal-handoff-form select, .proposal-handoff-decision textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--text); font: inherit; resize: vertical; }
+.proposal-handoff-grid { display: grid; grid-template-columns: minmax(0,.7fr) minmax(0,1.3fr); gap: 10px; }
+.proposal-handoff-actions { flex-wrap: wrap; }
+.proposal-handoff-decision dl { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin: 0; }
+.proposal-handoff-decision dl > div { min-width: 0; padding: 9px 10px; border: 1px solid var(--border); border-radius: 9px; background: rgba(5,14,24,.28); }
+.proposal-handoff-decision dt { color: var(--muted); font-size: 8px; text-transform: uppercase; letter-spacing: .07em; }
+.proposal-handoff-decision dd { margin: 4px 0 0; overflow-wrap: anywhere; font-size: 10px; }
+.proposal-handoff-decision > p, .proposal-handoff-receipt p, .proposal-handoff-unavailable p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.proposal-handoff-receipt { display: grid; gap: 4px; padding: 10px 11px; border-left: 2px solid var(--cyan); background: rgba(91,198,214,.04); }
+.proposal-handoff-receipt code { overflow-wrap: anywhere; color: var(--text); }
+.proposal-handoff-unavailable { border-color: rgba(233,183,90,.3); }
+.proposal-handoff-error { margin: 0; }
+.handoff-rejected, .handoff-returned, .handoff-conversion-failed { border-color: rgba(233,183,90,.28); }
+.handoff-approved { border-color: rgba(91,198,214,.35); }
+@media (max-width: 720px) { .proposal-handoff-grid, .proposal-handoff-decision dl { grid-template-columns: 1fr; } .proposal-handoff-head { display: grid; } .proposal-handoff-head small { text-align: left; } }
