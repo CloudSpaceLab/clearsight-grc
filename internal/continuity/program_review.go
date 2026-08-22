@@ -84,10 +84,15 @@ func (s *Service) ProgramReviewDigest(ctx context.Context, tenant, programID, pr
 	if err != nil {
 		return ProgramReviewDigest{}, err
 	}
-	current, err := currentReviewState(aggregate)
+	canonicalCurrent, err := currentReviewState(aggregate)
 	if err != nil {
 		return ProgramReviewDigest{}, err
 	}
+	currentValue, err := s.programStateForPrincipal(ctx, tenant, programID, principalID, *canonicalCurrent, nil)
+	if err != nil {
+		return ProgramReviewDigest{}, err
+	}
+	current := &currentValue
 	checkpoint, err := repo.LatestProgramReview(ctx, tenant, programID, principalID)
 	if err != nil {
 		return ProgramReviewDigest{}, err
@@ -96,7 +101,6 @@ func (s *Service) ProgramReviewDigest(ctx context.Context, tenant, programID, pr
 		ProgramID:                programID,
 		State:                    "NO_BASELINE",
 		ReviewRequired:           true,
-		Checkpoint:               checkpoint,
 		CurrentProgramVersion:    aggregate.Program.Version,
 		CurrentProjectionVersion: current.ProjectionVersion,
 		CurrentOverall:           current.Overall,
@@ -118,6 +122,15 @@ func (s *Service) ProgramReviewDigest(ctx context.Context, tenant, programID, pr
 	if baseline == nil || baseline.ProgramVersion != checkpoint.ProgramVersion {
 		return ProgramReviewDigest{}, fmt.Errorf("%w: accepted Program review baseline is unavailable", ErrInvalidState)
 	}
+	baselineAt := baseline.GeneratedAt
+	baselineValue, err := s.programStateForPrincipal(ctx, tenant, programID, principalID, *baseline, &baselineAt)
+	if err != nil {
+		return ProgramReviewDigest{}, err
+	}
+	baseline = &baselineValue
+	visibleCheckpoint := *checkpoint
+	visibleCheckpoint.ProjectionVersion = baseline.ProjectionVersion
+	digest.Checkpoint = &visibleCheckpoint
 	digest.BaselineOverall = baseline.Overall
 	digest.OpenMatterDelta = current.OpenMatterCount - baseline.OpenMatterCount
 	newReasons, resolvedReasons := diffStateReasons(baseline.Reasons, current.Reasons)
@@ -138,7 +151,7 @@ func (s *Service) ProgramReviewDigest(ctx context.Context, tenant, programID, pr
 		changes = changes[:programReviewItemLimit]
 	}
 	digest.Changes = changes
-	digest.ReviewRequired = checkpoint.ProgramVersion != aggregate.Program.Version || checkpoint.ProjectionVersion != current.ProjectionVersion || len(changes) > 0
+	digest.ReviewRequired = checkpoint.ProgramVersion != aggregate.Program.Version || baseline.ProjectionVersion != current.ProjectionVersion || len(changes) > 0
 	if digest.ReviewRequired {
 		digest.State = "CHANGED"
 	} else {
@@ -162,11 +175,15 @@ func (s *Service) AcceptProgramReview(ctx context.Context, input AcceptProgramRe
 	if err != nil {
 		return ProgramReviewDigest{}, err
 	}
-	current, err := currentReviewState(aggregate)
+	canonicalCurrent, err := currentReviewState(aggregate)
 	if err != nil {
 		return ProgramReviewDigest{}, err
 	}
-	if aggregate.Program.Version != input.ExpectedProgramVersion || current.ProjectionVersion != input.ExpectedProjectionVersion {
+	visibleCurrent, err := s.programStateForPrincipal(ctx, input.TenantID, input.ProgramID, input.PrincipalID, *canonicalCurrent, nil)
+	if err != nil {
+		return ProgramReviewDigest{}, err
+	}
+	if aggregate.Program.Version != input.ExpectedProgramVersion || visibleCurrent.ProjectionVersion != input.ExpectedProjectionVersion {
 		return ProgramReviewDigest{}, ErrVersionConflict
 	}
 	checkpointID, err := id.NewUUIDv7()
@@ -179,7 +196,7 @@ func (s *Service) AcceptProgramReview(ctx context.Context, input AcceptProgramRe
 		ProgramID:         input.ProgramID,
 		PrincipalID:       input.PrincipalID,
 		ProgramVersion:    input.ExpectedProgramVersion,
-		ProjectionVersion: input.ExpectedProjectionVersion,
+		ProjectionVersion: canonicalCurrent.ProjectionVersion,
 		AcceptedAt:        s.now().UTC(),
 	})
 	if err != nil {
