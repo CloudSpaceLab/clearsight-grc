@@ -122,6 +122,7 @@ const coverage: DocumentCoverage = {
 
 describe("DocumentImportWorkspace focused route", () => {
   beforeEach(() => {
+    Object.defineProperty(Element.prototype, "scrollIntoView", { value: vi.fn(), configurable: true });
     window.history.replaceState(null, "", `#imports/${targetID}/${proposalID}`);
     vi.mocked(loadDocumentImports).mockResolvedValue([
       summary("11111111-1111-4111-8111-111111111111", "other-notice.md"),
