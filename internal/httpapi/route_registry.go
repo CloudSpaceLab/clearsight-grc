@@ -186,6 +186,8 @@ func (a *API) routes() []routeSpec {
 		write(http.MethodPost, "/api/v1/document-imports", a.createDocumentImport, nil),
 		read("/api/v1/document-imports/{id}", a.getDocumentImport),
 		write(http.MethodPost, "/api/v1/document-imports/{id}/proposals/{proposal_id}/review", a.reviewDocumentProposal, nil),
+		material("/api/v1/document-imports/{id}/proposals/{proposal_id}/handoff/review", "document.proposal.review", a.reviewDocumentProposalHandoff, commandPolicy{ObjectType: "DOCUMENT_IMPORT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
+		material("/api/v1/document-imports/{id}/proposals/{proposal_id}/handoff/authorize", "document.proposal.authorize", a.authorizeDocumentProposalHandoff, commandPolicy{ObjectType: "DOCUMENT_IMPORT", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4}),
 		read("/api/v1/document-imports/{id}/coverage", a.getDocumentCoverage),
 		write(http.MethodPost, "/api/v1/document-imports/{id}/coverage/review", a.reviewDocumentCoverage, nil),
 		write(http.MethodPost, "/api/v1/document-imports/{id}/coverage/recompare", a.recompareDocumentCoverage, nil),

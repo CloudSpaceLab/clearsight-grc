@@ -13,6 +13,7 @@ import "./evidence.css";
 import "./continuity.css";
 import "./journeys.css";
 import "./document-import.css";
+import "./document-handoff.css";
 import "./interventions.css";
 import "./automation-policies.css";
 import "./ai-governance.css";

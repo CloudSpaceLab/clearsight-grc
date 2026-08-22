@@ -25,9 +25,10 @@ import (
 )
 
 const (
-	matterWorkProjectionClass   = "matter-work-projection"
-	evidenceWorkProjectionClass = "evidence-request-work-projection"
-	aiGovernanceRetentionClass  = "ai-governance-retention"
+	matterWorkProjectionClass           = "matter-work-projection"
+	evidenceWorkProjectionClass         = "evidence-request-work-projection"
+	documentProposalWorkProjectionClass = "document-proposal-work-projection"
+	aiGovernanceRetentionClass          = "ai-governance-retention"
 )
 
 func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (workerSet, error) {
@@ -65,8 +66,14 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	evidenceWork := &workflow.EvidenceRequestProjector{Repo: workflowRepository}
 	documentService := documentimport.NewService(documentimport.NewPostgresRepository(pool), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
+	documentProposalWork := &workflow.DocumentProposalProjector{
+		Repo: workflowRepository, Documents: documentService, Authority: authorityService,
+	}
 	coverageService := documentcoverage.NewService(documentcoverage.NewPostgresRepository(pool), documentService, continuityService)
-	publisher := workflowruntime.NewCompositePublisher(sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork, documentService, coverageService, workflowruntime.LogPublisher{Logger: logger})
+	publisher := workflowruntime.NewCompositePublisher(
+		sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork,
+		documentService, documentProposalWork, coverageService, workflowruntime.LogPublisher{Logger: logger},
+	)
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
 	configureWorkerRuntime(service, cfg, logger)
 	// Matter events update immediately through the outbox publisher. This slower
@@ -81,6 +88,10 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	// reassignment/wrong-recipient/principal-status changes one rebuildable Today
 	// projection without adding another event or worker stack.
 	service.ConfigureClass(evidenceWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 5 * time.Second, Batch: 100})
+	// Document proposal work is event-driven for normal transitions and gets a
+	// slower bounded authority-convergence pass so routing changes can reassign an
+	// active review without requiring a document mutation.
+	service.ConfigureClass(documentProposalWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 30 * time.Second, Batch: 100})
 	service.ConfigureClass(aiGovernanceRetentionClass, workflowruntime.WorkClassOptions{Poll: time.Hour, Batch: 500})
 
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), store)
@@ -89,6 +100,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.AddMaintainerClass(matterWorkProjectionClass, lifecycleWork)
 	service.AddMaintainerClass(workflow.MatterEscalationWorkClass, escalationWork)
 	service.AddMaintainerClass(evidenceWorkProjectionClass, evidenceWork)
+	service.AddMaintainerClass(documentProposalWorkProjectionClass, documentProposalWork)
 	service.AddMaintainerClass(aiGovernanceRetentionClass, aiGovernanceRetention)
 	return workerSet{Runtime: service, Close: pool.Close}, nil
 }

@@ -200,10 +200,10 @@ describe("DocumentImportWorkspace", () => {
   it("records an explicit proposal review", async () => {
     render(<DocumentImportWorkspace/>);
     fireEvent.click(await screen.findByText("Extraction proposals"));
-    fireEvent.click(await screen.findByRole("button", { name: "Accept proposal" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Accept for governed review" }));
     await waitFor(() => expect(reviewDocumentProposal).toHaveBeenCalledWith(documentRecord.id, documentRecord.proposals[0]!.id, "ACCEPTED", documentRecord.version));
     expect(await screen.findByText("Accepted")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Accept proposal" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Accept for governed review" })).toBeNull();
   });
 
   it("serializes proposal review while a write is in flight", async () => {
@@ -211,7 +211,7 @@ describe("DocumentImportWorkspace", () => {
     vi.mocked(reviewDocumentProposal).mockImplementation(() => new Promise((resolve) => { resolveReview = resolve; }));
     render(<DocumentImportWorkspace/>);
     fireEvent.click(await screen.findByText("Extraction proposals"));
-    const accept = await screen.findByRole("button", { name: "Accept proposal" });
+    const accept = await screen.findByRole("button", { name: "Accept for governed review" });
     const reject = screen.getByRole("button", { name: "Reject" });
     fireEvent.click(accept);
     expect((accept as HTMLButtonElement).disabled).toBe(true);
@@ -226,7 +226,7 @@ describe("DocumentImportWorkspace", () => {
     vi.mocked(reviewDocumentProposal).mockRejectedValue(new ApiError(409, "changed", "version_conflict"));
     render(<DocumentImportWorkspace/>);
     fireEvent.click(await screen.findByText("Extraction proposals"));
-    fireEvent.click(await screen.findByRole("button", { name: "Accept proposal" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Accept for governed review" }));
     expect((await screen.findByRole("alert")).textContent).toMatch(/changed while you were reviewing/i);
     await waitFor(() => expect(loadDocumentImport).toHaveBeenCalledTimes(2));
   });
@@ -238,7 +238,7 @@ describe("DocumentImportWorkspace", () => {
     expect(await screen.findByText("Original stored successfully.")).toBeTruthy();
     expect(screen.getByText("Stored · processing")).toBeTruthy();
     expect(screen.queryByText("Review complete")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Accept proposal" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Accept for governed review" })).toBeNull();
   });
 
   it("keeps list records body-free", () => {

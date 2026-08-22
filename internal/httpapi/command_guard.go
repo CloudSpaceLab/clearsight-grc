@@ -51,6 +51,12 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 			writeContinuityError(w, err)
 			return
 		}
+		// Lifecycle resolution may bind canonical legal-entity/object scope from
+		// current server state. Re-check that derived scope against the actor so a
+		// route cannot authorize a fixed-entity actor against another entity.
+		if !bindPayloadIdentity(w, payload, actor, policy.BindLegalEntity) {
+			return
+		}
 		if field := commandActorField(policy); field != "" {
 			payload[field] = actor.PrincipalID
 		}

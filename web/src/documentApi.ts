@@ -1,4 +1,4 @@
-import type { CoverageApplyResult, CoverageReviewInput, DocumentCoverage, DocumentImport, DocumentImportSummary, ProposalStatus } from "./documentTypes";
+import type { CoverageApplyResult, CoverageReviewInput, DocumentCoverage, DocumentImport, DocumentImportSummary, HandoffAuthorizationInput, HandoffReviewInput, ProposalStatus } from "./documentTypes";
 import { requestJSON } from "./http";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -24,6 +24,20 @@ export async function reviewDocumentProposal(documentID: string, proposalID: str
   return normalizeDetail(await requestJSON<DocumentImport>(apiBase, `/api/v1/document-imports/${encodeURIComponent(documentID)}/proposals/${encodeURIComponent(proposalID)}/review`, {
     method: "POST",
     body: JSON.stringify({ status, note, expected_version: expectedVersion }),
+  }));
+}
+
+export async function reviewDocumentProposalHandoff(documentID: string, proposalID: string, input: HandoffReviewInput): Promise<DocumentImport> {
+  return normalizeDetail(await requestJSON<DocumentImport>(apiBase, `/api/v1/document-imports/${encodeURIComponent(documentID)}/proposals/${encodeURIComponent(proposalID)}/handoff/review`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  }));
+}
+
+export async function authorizeDocumentProposalHandoff(documentID: string, proposalID: string, input: HandoffAuthorizationInput): Promise<DocumentImport> {
+  return normalizeDetail(await requestJSON<DocumentImport>(apiBase, `/api/v1/document-imports/${encodeURIComponent(documentID)}/proposals/${encodeURIComponent(proposalID)}/handoff/authorize`, {
+    method: "POST",
+    body: JSON.stringify(input),
   }));
 }
 

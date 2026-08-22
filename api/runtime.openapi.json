@@ -165,6 +165,8 @@
     },
     "/api/v1/document-imports/{id}": { "get": { "operationId": "getDocumentImport", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/document-imports/{id}/proposals/{proposal_id}/review": { "post": { "operationId": "reviewDocumentProposal", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
+    "/api/v1/document-imports/{id}/proposals/{proposal_id}/handoff/review": { "post": { "operationId": "reviewDocumentProposalHandoff", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/document-imports/{id}/proposals/{proposal_id}/handoff/authorize": { "post": { "operationId": "authorizeDocumentProposalHandoff", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/document-imports/{id}/coverage": { "get": { "operationId": "getDocumentCoverage", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/document-imports/{id}/coverage/review": { "post": { "operationId": "reviewDocumentCoverage", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/document-imports/{id}/coverage/recompare": { "post": { "operationId": "recompareDocumentCoverage", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
