@@ -29,6 +29,9 @@ func (s *Service) EnsureRequirement(ctx context.Context, objectID string, input 
 		}
 		return ProgramAggregate{}, ErrDuplicate
 	}
+	if aggregate.Program.Status == ProgramRetired {
+		return ProgramAggregate{}, ErrInvalidState
+	}
 	if aggregate.Program.Version != input.ExpectedVersion {
 		return ProgramAggregate{}, ErrVersionConflict
 	}
@@ -108,6 +111,9 @@ func (s *Service) EnsureControlObjective(ctx context.Context, objectID string, i
 			return aggregate, nil
 		}
 		return ProgramAggregate{}, ErrDuplicate
+	}
+	if aggregate.Program.Status == ProgramRetired {
+		return ProgramAggregate{}, ErrInvalidState
 	}
 	if aggregate.Program.Version != input.ExpectedVersion {
 		return ProgramAggregate{}, ErrVersionConflict
