@@ -1,9 +1,40 @@
 export type ProposalStatus = "PENDING_REVIEW" | "ACCEPTED" | "REJECTED";
+export type HandoffStatus = "AWAITING_REVIEW" | "AWAITING_AUTHORIZATION" | "RETURNED" | "REJECTED" | "APPROVED" | "CONVERSION_FAILED";
+export type ConversionTarget = "REQUIREMENT" | "CONTROL_OBJECTIVE";
+export type HandoffRoute = {
+  responsibility: string;
+  status: string;
+  principal_id?: string;
+  principal_name?: string;
+  is_current_actor?: boolean;
+  rule_id?: string;
+  policy_version?: string;
+  explanation?: string;
+};
+export type ProposalHandoff = {
+  id: string;
+  status: HandoffStatus;
+  intake_principal_id: string;
+  reviewer_principal_id?: string;
+  authorizer_principal_id?: string;
+  draft_title: string;
+  draft_statement: string;
+  target_type?: ConversionTarget;
+  target_program_id?: string;
+  target_program_version?: number;
+  review_note?: string;
+  authorization_note?: string;
+  result_object_type?: string;
+  result_object_id?: string;
+  route?: HandoffRoute;
+  updated_at: string;
+  version: number;
+};
 export type ExtractionStatus = "PENDING" | "EXTRACTED" | "UNSUPPORTED" | "FAILED";
 export type AnalysisStatus = "PENDING" | "REVIEW_REQUIRED" | "NO_PROPOSALS" | "UNAVAILABLE";
 export type DocumentAnchor = { section_id: string; quote: string; page?: number; sheet?: string; row_start?: number; row_end?: number };
 export type DocumentSection = { id: string; sequence: number; title: string; text: string; page?: number; sheet?: string; row_start?: number; row_end?: number };
-export type DocumentProposal = { id: string; kind: string; title: string; statement: string; confidence: number; anchor: DocumentAnchor; status: ProposalStatus; reviewed_by?: string; reviewed_at?: string; review_note?: string };
+export type DocumentProposal = { id: string; kind: string; title: string; statement: string; confidence: number; anchor: DocumentAnchor; status: ProposalStatus; reviewed_by?: string; reviewed_at?: string; review_note?: string; handoff?: ProposalHandoff };
 
 export type DocumentImportSummary = {
   id: string;
@@ -49,6 +80,26 @@ export type DocumentImport = DocumentDetailBase & {
   content_truncated?: boolean;
   processed_at?: string;
   created_by: string;
+};
+
+export type HandoffReviewAction = "RETURN" | "REJECT" | "SUBMIT_FOR_AUTHORIZATION";
+export type HandoffAuthorizationAction = "RETURN" | "REJECT" | "APPROVE";
+export type HandoffReviewInput = {
+  action: HandoffReviewAction;
+  expected_document_version: number;
+  expected_handoff_version: number;
+  title?: string;
+  statement?: string;
+  target_type?: ConversionTarget;
+  target_program_id?: string;
+  target_program_version?: number;
+  note?: string;
+};
+export type HandoffAuthorizationInput = {
+  action: HandoffAuthorizationAction;
+  expected_document_version: number;
+  expected_handoff_version: number;
+  note?: string;
 };
 
 export type CoverageViewStatus = "PENDING" | "COMPARING" | "READY" | "PARTIAL" | "FAILED" | "STALE";
