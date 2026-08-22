@@ -13,7 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func TestPostgresProgramSummaryHidesRestrictedMatterState(t *testing.T) {
+func TestPostgresProgramSummaryHidesRestrictedMatterStateAndRevisionTiming(t *testing.T) {
 	url := os.Getenv("TEST_DATABASE_URL")
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL is not configured")
@@ -70,35 +70,51 @@ func TestPostgresProgramSummaryHidesRestrictedMatterState(t *testing.T) {
 
 	repo := NewPostgresRepository(pool)
 	actorA := identity.WithActor(ctx, identity.Actor{TenantID: tenantID, PrincipalID: principalA})
+	actorB := identity.WithActor(ctx, identity.Actor{TenantID: tenantID, PrincipalID: principalB})
+
 	pageA, err := repo.ListProgramSummaries(actorA, tenantID, SummaryQuery{Limit: 10})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(pageA.Items) != 1 {
-		t.Fatalf("actor A Program summary count=%d", len(pageA.Items))
-	}
-	gotA := pageA.Items[0]
-	if gotA.OpenMatterCount != 0 || gotA.OverallState != StateCurrent || hasReasonCode(gotA.Reasons, "OPEN_MATTERS") {
-		t.Fatalf("restricted Matter leaked into actor A Program summary: %#v", gotA)
-	}
-	if gotA.ProjectionVersion < 1 || gotA.ProjectionVersion == 1 {
-		t.Fatalf("actor A did not receive a semantic projection version: %d", gotA.ProjectionVersion)
-	}
-
-	actorB := identity.WithActor(ctx, identity.Actor{TenantID: tenantID, PrincipalID: principalB})
 	pageB, err := repo.ListProgramSummaries(actorB, tenantID, SummaryQuery{Limit: 10})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(pageB.Items) != 1 {
-		t.Fatalf("actor B Program summary count=%d", len(pageB.Items))
+	if len(pageA.Items) != 1 || len(pageB.Items) != 1 {
+		t.Fatalf("unexpected Program summary counts: actorA=%d actorB=%d", len(pageA.Items), len(pageB.Items))
 	}
-	gotB := pageB.Items[0]
+	gotA, gotB := pageA.Items[0], pageB.Items[0]
+	if gotA.OpenMatterCount != 0 || gotA.OverallState != StateCurrent || hasReasonCode(gotA.Reasons, "OPEN_MATTERS") {
+		t.Fatalf("restricted Matter leaked into actor A Program summary: %#v", gotA)
+	}
 	if gotB.OpenMatterCount != 1 || gotB.OverallState != StateAtRisk || !hasReasonCode(gotB.Reasons, "OPEN_MATTERS") {
 		t.Fatalf("authorized principal lost restricted Matter state: %#v", gotB)
 	}
-	if gotA.ProjectionVersion == gotB.ProjectionVersion {
-		t.Fatal("different visible Program states share one semantic projection version")
+	if gotA.ProjectionVersion < 1 || gotB.ProjectionVersion < 1 || gotA.ProjectionVersion == gotB.ProjectionVersion {
+		t.Fatalf("actor-safe projection versions are invalid: A=%d B=%d", gotA.ProjectionVersion, gotB.ProjectionVersion)
+	}
+	if gotA.StateGeneratedAt == nil || !gotA.StateGeneratedAt.Equal(now) || gotB.StateGeneratedAt == nil || !gotB.StateGeneratedAt.Equal(now) {
+		t.Fatalf("unexpected initial actor-visible timestamps: A=%v B=%v", gotA.StateGeneratedAt, gotB.StateGeneratedAt)
+	}
+
+	later := now.Add(time.Minute)
+	if _, err := pool.Exec(ctx, `UPDATE matters SET version=2,updated_at=$2 WHERE id=$1::uuid`, matterID, later); err != nil {
+		t.Fatal(err)
+	}
+	pageAAfter, err := repo.ListProgramSummaries(actorA, tenantID, SummaryQuery{Limit: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pageBAfter, err := repo.ListProgramSummaries(actorB, tenantID, SummaryQuery{Limit: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterA, afterB := pageAAfter.Items[0], pageBAfter.Items[0]
+	if afterA.ProjectionVersion != gotA.ProjectionVersion || afterA.StateGeneratedAt == nil || !afterA.StateGeneratedAt.Equal(now) {
+		t.Fatalf("hidden Matter revision/timing leaked to actor A: before=%#v after=%#v", gotA, afterA)
+	}
+	if afterB.ProjectionVersion == gotB.ProjectionVersion || afterB.StateGeneratedAt == nil || !afterB.StateGeneratedAt.Equal(later) {
+		t.Fatalf("visible Matter revision/timing did not reach actor B: before=%#v after=%#v", gotB, afterB)
 	}
 
 	wrongTenant := identity.WithActor(ctx, identity.Actor{TenantID: "other-bank", PrincipalID: principalB})
@@ -111,7 +127,7 @@ func TestPostgresProgramSummaryHidesRestrictedMatterState(t *testing.T) {
 	}
 }
 
-func TestPostgresVisibleOpenMatterCountsRespectHistoricalAccess(t *testing.T) {
+func TestPostgresVisibleProgramMatterVisibilityRespectsHistoricalAccess(t *testing.T) {
 	url := os.Getenv("TEST_DATABASE_URL")
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL is not configured")
@@ -172,27 +188,29 @@ func TestPostgresVisibleOpenMatterCountsRespectHistoricalAccess(t *testing.T) {
 
 	repo := NewPostgresRepository(pool)
 	before := t1.Add(time.Hour)
-	beforeCounts, err := repo.VisibleOpenMatterCounts(ctx, tenantID, []string{programID}, principalA, &before)
+	beforeVisibility, err := repo.VisibleProgramMatterVisibility(ctx, tenantID, []string{programID}, principalA, &before)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if beforeCounts[programID] != 1 {
-		t.Fatalf("historically visible Matter count=%d, want 1", beforeCounts[programID])
+	beforeValue := beforeVisibility[programID]
+	if beforeValue.OpenCount != 1 || beforeValue.Revision == "" || !beforeValue.LatestAt.Equal(t1) {
+		t.Fatalf("historically visible Matter projection=%#v", beforeValue)
 	}
 	after := t2.Add(time.Hour)
-	afterCounts, err := repo.VisibleOpenMatterCounts(ctx, tenantID, []string{programID}, principalA, &after)
+	afterVisibility, err := repo.VisibleProgramMatterVisibility(ctx, tenantID, []string{programID}, principalA, &after)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if afterCounts[programID] != 0 {
-		t.Fatalf("historically restricted Matter count=%d, want 0", afterCounts[programID])
+	if value := afterVisibility[programID]; value.OpenCount != 0 || value.Revision != "" || !value.LatestAt.IsZero() {
+		t.Fatalf("historically restricted Matter projection=%#v", value)
 	}
-	allowedCounts, err := repo.VisibleOpenMatterCounts(ctx, tenantID, []string{programID}, principalB, &after)
+	allowedVisibility, err := repo.VisibleProgramMatterVisibility(ctx, tenantID, []string{programID}, principalB, &after)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if allowedCounts[programID] != 1 {
-		t.Fatalf("allowed historical Matter count=%d, want 1", allowedCounts[programID])
+	allowedValue := allowedVisibility[programID]
+	if allowedValue.OpenCount != 1 || allowedValue.Revision == "" || allowedValue.Revision == beforeValue.Revision || !allowedValue.LatestAt.Equal(t2) {
+		t.Fatalf("allowed historical Matter projection=%#v before=%#v", allowedValue, beforeValue)
 	}
 }
 
