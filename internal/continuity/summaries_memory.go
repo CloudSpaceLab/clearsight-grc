@@ -9,16 +9,26 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
-func (r *MemoryRepository) ListProgramSummaries(_ context.Context, tenant string, query SummaryQuery) (ProgramSummaryPage, error) {
+func (r *MemoryRepository) ListProgramSummaries(ctx context.Context, tenant string, query SummaryQuery) (ProgramSummaryPage, error) {
 	cursor, err := decodeProgramSummaryCursor(query.Cursor)
 	if err != nil {
 		return ProgramSummaryPage{}, err
 	}
 	search := strings.ToLower(query.Search)
+	actor, enforceVisibility := identity.FromContext(ctx)
+	if enforceVisibility && actor.TenantID != tenant {
+		return ProgramSummaryPage{GeneratedAt: time.Now().UTC()}, nil
+	}
 	r.mu.RLock()
 	values := make([]ProgramSummary, 0, len(r.programs[tenant]))
 	for _, aggregate := range r.programs[tenant] {
-		value := summarizeProgram(cloneProgramAggregate(aggregate))
+		aggregate = cloneProgramAggregate(aggregate)
+		if enforceVisibility && aggregate.CurrentState != nil {
+			visible := r.visibleOpenMatterCountForProgramLocked(tenant, aggregate.Program.ID, actor.PrincipalID)
+			state := programStateForVisibleMatters(*aggregate.CurrentState, visible)
+			aggregate.CurrentState = &state
+		}
+		value := summarizeProgram(aggregate)
 		if query.Status != "" && string(value.Program.Status) != query.Status {
 			continue
 		}
@@ -61,6 +71,22 @@ func (r *MemoryRepository) ListProgramSummaries(_ context.Context, tenant string
 	}
 	page.Items = values
 	return page, nil
+}
+
+func (r *MemoryRepository) visibleOpenMatterCountForProgramLocked(tenant, programID, principalID string) int {
+	count := 0
+	for _, aggregate := range r.matters[tenant] {
+		if aggregate.Matter.Status == MatterClosed || aggregate.Matter.Status == MatterCancelled || !MatterVisibleTo(aggregate.Matter, principalID) {
+			continue
+		}
+		for _, link := range aggregate.Links {
+			if link.ProgramID == programID {
+				count++
+				break
+			}
+		}
+	}
+	return count
 }
 
 func (r *MemoryRepository) ListMatterSummaries(ctx context.Context, tenant string, query SummaryQuery) (MatterSummaryPage, error) {
