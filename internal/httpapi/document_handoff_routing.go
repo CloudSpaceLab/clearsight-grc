@@ -11,7 +11,7 @@ import (
 
 var (
 	errDocumentHandoffRoutingUnresolved = errors.New("document proposal handoff routing is unresolved")
-	errDocumentHandoffNotAssigned      = errors.New("document proposal handoff is assigned to another actor")
+	errDocumentHandoffNotAssigned       = errors.New("document proposal handoff is assigned to another actor")
 )
 
 func (a *API) withDocumentHandoffRoutes(r *http.Request, actor identity.Actor, document documentimport.Document) documentimport.Document {
