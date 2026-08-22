@@ -24,11 +24,7 @@ func (r *PostgresRepository) VisibleProgramMatterVisibility(ctx context.Context,
 			WITH target_programs AS (
 				SELECT unnest($2::uuid[]) AS program_id
 			)
-			SELECT
-				ml.program_id::text,
-				count(DISTINCT m.id)::int,
-				COALESCE(string_agg(DISTINCT m.id::text || ':' || m.version::text, E'\n' ORDER BY m.id::text || ':' || m.version::text),''),
-				max(m.updated_at)
+			SELECT ml.program_id::text, count(DISTINCT m.id)::int, max(m.updated_at)
 			FROM matter_links ml
 			JOIN target_programs target ON target.program_id=ml.program_id
 			JOIN matters m ON m.tenant_id=ml.tenant_id AND m.id=ml.matter_id
@@ -76,21 +72,14 @@ func (r *PostgresRepository) VisibleProgramMatterVisibility(ctx context.Context,
 				  AND ce.occurred_at<=$4
 				ORDER BY ce.aggregate_id,ce.aggregate_version DESC
 			), historical_activity AS (
-				SELECT
-					ce.aggregate_id AS matter_id,
-					max(ce.aggregate_version) AS matter_version,
-					max(ce.occurred_at) AS latest_activity_at
+				SELECT ce.aggregate_id AS matter_id, max(ce.occurred_at) AS latest_activity_at
 				FROM continuity_events ce
 				WHERE ce.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 				  AND ce.aggregate_type='MATTER'
 				  AND ce.occurred_at<=$4
 				GROUP BY ce.aggregate_id
 			)
-			SELECT
-				ml.program_id::text,
-				count(DISTINCT ml.matter_id)::int,
-				COALESCE(string_agg(DISTINCT ml.matter_id::text || ':' || activity.matter_version::text, E'\n' ORDER BY ml.matter_id::text || ':' || activity.matter_version::text),''),
-				max(activity.latest_activity_at)
+			SELECT ml.program_id::text, count(DISTINCT ml.matter_id)::int, max(activity.latest_activity_at)
 			FROM matter_links ml
 			JOIN target_programs target ON target.program_id=ml.program_id
 			JOIN historical_matter historical ON historical.matter_id=ml.matter_id
@@ -131,20 +120,13 @@ func (r *PostgresRepository) VisibleProgramMatterVisibility(ctx context.Context,
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var (
-			programID        string
-			count            int
-			revisionMaterial string
-			latestAt         time.Time
-		)
-		if err := rows.Scan(&programID, &count, &revisionMaterial, &latestAt); err != nil {
+		var programID string
+		var value programMatterVisibility
+		if err := rows.Scan(&programID, &value.OpenCount, &value.LatestAt); err != nil {
 			return nil, err
 		}
-		visibility[programID] = programMatterVisibility{
-			OpenCount: count,
-			Revision:  visibleMatterRevisionMaterial(revisionMaterial),
-			LatestAt:  latestAt.UTC(),
-		}
+		value.LatestAt = value.LatestAt.UTC()
+		visibility[programID] = value
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
