@@ -28,7 +28,7 @@ func (a *API) reviewDocumentProposalHandoff(w http.ResponseWriter, r *http.Reque
 		ExpectedHandoffVersion  int64                              `json:"expected_handoff_version"`
 		Title                   string                             `json:"title,omitempty"`
 		Statement               string                             `json:"statement,omitempty"`
-		TargetType              documentimport.ConversionTarget   `json:"target_type,omitempty"`
+		TargetType              documentimport.ConversionTarget    `json:"target_type,omitempty"`
 		TargetProgramID         string                             `json:"target_program_id,omitempty"`
 		TargetProgramVersion    int64                              `json:"target_program_version,omitempty"`
 		Note                    string                             `json:"note,omitempty"`
