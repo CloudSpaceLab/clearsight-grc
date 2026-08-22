@@ -72,6 +72,7 @@ func (s *Service) ProgramsForPrincipal(ctx context.Context, values []ProgramAggr
 	result := make([]ProgramAggregate, len(values))
 	for index, value := range values {
 		result[index] = value
+		result[index].Triggers = programTriggersForPrincipal(value.Triggers, principalID)
 		if value.CurrentState == nil {
 			continue
 		}
@@ -179,6 +180,56 @@ func visibleMatterRevisionMaterial(material string) string {
 	}
 	sum := sha256.Sum256([]byte(material))
 	return fmt.Sprintf("%x", sum[:16])
+}
+
+func programTriggersForPrincipal(values []Trigger, principalID string) []Trigger {
+	if len(values) == 0 {
+		return []Trigger{}
+	}
+	result := make([]Trigger, len(values))
+	for index, value := range values {
+		result[index] = programTriggerForPrincipal(value, principalID)
+	}
+	return result
+}
+
+func programTriggerForPrincipal(value Trigger, principalID string) Trigger {
+	_, _, _, createsMatter := matterForTrigger(value)
+	if !createsMatter || MatterVisibleTo(Matter{TenantID: value.TenantID, Scope: value.Payload}, principalID) {
+		value.Payload = append(json.RawMessage(nil), value.Payload...)
+		return value
+	}
+
+	// A material Program trigger is still a Program-level fact, but its payload
+	// is also used as the generated Matter's scope. Preserve only the event's
+	// type/time/source for an actor outside that Matter scope; subject, dedupe and
+	// actor identifiers can encode the restricted record or sensitive keys.
+	value.Payload = json.RawMessage(`{}`)
+	value.DedupeKey = ""
+	value.SubjectType = ""
+	value.SubjectID = ""
+	value.ActorID = ""
+	return value
+}
+
+func programReviewEventsForPrincipal(events []Event, principalID string) ([]Event, error) {
+	result := append([]Event(nil), events...)
+	for index := range result {
+		if result[index].Type != EventProgramTriggerRecorded {
+			continue
+		}
+		var trigger Trigger
+		if err := json.Unmarshal(result[index].Payload, &trigger); err != nil {
+			return nil, fmt.Errorf("decode Program trigger for actor projection: %w", err)
+		}
+		trigger = programTriggerForPrincipal(trigger, principalID)
+		payload, err := json.Marshal(trigger)
+		if err != nil {
+			return nil, fmt.Errorf("encode Program trigger for actor projection: %w", err)
+		}
+		result[index].Payload = payload
+	}
+	return result, nil
 }
 
 func (r *MemoryRepository) VisibleProgramMatterVisibility(_ context.Context, tenant string, programIDs []string, principalID string, at *time.Time) (map[string]programMatterVisibility, error) {
