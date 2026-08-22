@@ -53,6 +53,7 @@ func (r *PostgresRepository) ListDocumentProposalActorWork(ctx context.Context, 
 		if scanErr != nil {
 			return nil, scanErr
 		}
+		task.DocumentProposalVisible = true
 		values = append(values, task)
 	}
 	if err := rows.Err(); err != nil {
