@@ -32,6 +32,8 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 			p.jurisdiction,p.scope,p.effective_from,p.effective_until,p.created_at,p.updated_at,p.version,
 			COALESCE(ps.overall_state,'UNKNOWN'),COALESCE(ps.dimensions,'{}'::jsonb),COALESCE(ps.reasons,'[]'::jsonb),
 			CASE WHEN $9 THEN COALESCE(visible.open_matter_count,0) ELSE COALESCE(ps.open_matter_count,0) END,
+			CASE WHEN $9 THEN COALESCE(visible.revision_material,'') ELSE '' END,
+			CASE WHEN $9 THEN visible.latest_visible_at ELSE NULL END,
 			ps.generated_at,COALESCE(ps.program_version,0),COALESCE(ps.projection_version,0),
 			(SELECT count(*) FROM program_requirements pr WHERE pr.tenant_id=p.tenant_id AND pr.program_id=p.id),
 			(SELECT count(*) FROM control_implementations ci WHERE ci.tenant_id=p.tenant_id AND ci.program_id=p.id),
@@ -46,7 +48,10 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 			LIMIT 1
 		) ps ON TRUE
 		LEFT JOIN LATERAL (
-			SELECT count(DISTINCT m.id)::int AS open_matter_count
+			SELECT
+				count(DISTINCT m.id)::int AS open_matter_count,
+				COALESCE(string_agg(DISTINCT m.id::text || ':' || m.version::text, E'\n' ORDER BY m.id::text || ':' || m.version::text),'') AS revision_material,
+				max(m.updated_at) AS latest_visible_at
 			FROM matter_links ml
 			JOIN matters m ON m.tenant_id=ml.tenant_id AND m.id=ml.matter_id
 			WHERE $9
@@ -102,13 +107,14 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 		var value ProgramSummary
 		var dimensionsRaw, reasonsRaw json.RawMessage
 		var dimensions ComplianceDimensions
-		var generatedAt *time.Time
+		var revisionMaterial string
+		var latestVisibleAt, generatedAt *time.Time
 		if err := rows.Scan(
 			&value.Program.ID, &value.Program.TenantID, &value.Program.LegalEntityID, &value.Program.Code, &value.Program.Name,
 			&value.Program.Type, &value.Program.Status, &value.Program.OwningFunction, &value.Program.OwnerPrincipalID,
 			&value.Program.AuthorityPrincipalID, &value.Program.Jurisdiction, &value.Program.Scope, &value.Program.EffectiveFrom,
 			&value.Program.EffectiveUntil, &value.Program.CreatedAt, &value.Program.UpdatedAt, &value.Program.Version,
-			&value.OverallState, &dimensionsRaw, &reasonsRaw, &value.OpenMatterCount, &generatedAt,
+			&value.OverallState, &dimensionsRaw, &reasonsRaw, &value.OpenMatterCount, &revisionMaterial, &latestVisibleAt, &generatedAt,
 			&value.AssessedProgramVersion, &value.ProjectionVersion,
 			&value.RequirementCount, &value.SafeguardCount, &value.EvidenceCheckCount,
 		); err != nil {
@@ -121,6 +127,13 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 			if err := json.Unmarshal(dimensionsRaw, &dimensions); err != nil {
 				return ProgramSummaryPage{}, err
 			}
+			visibility := programMatterVisibility{
+				OpenCount: value.OpenMatterCount,
+				Revision:  visibleMatterRevisionMaterial(revisionMaterial),
+			}
+			if latestVisibleAt != nil {
+				visibility.LatestAt = latestVisibleAt.UTC()
+			}
 			state := programStateForVisibleMatters(ProgramStateSnapshot{
 				TenantID:          value.Program.TenantID,
 				ProgramID:         value.Program.ID,
@@ -130,11 +143,15 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 				OpenMatterCount:   value.OpenMatterCount,
 				ProgramVersion:    value.AssessedProgramVersion,
 				ProjectionVersion: value.ProjectionVersion,
-			}, value.OpenMatterCount)
+			}, visibility)
 			value.OverallState = state.Overall
 			value.Reasons = state.Reasons
 			value.OpenMatterCount = state.OpenMatterCount
 			value.ProjectionVersion = state.ProjectionVersion
+			visibleGeneratedAt := actorVisibleProgramStateTime(value.Program.UpdatedAt, visibility.LatestAt)
+			value.StateGeneratedAt = &visibleGeneratedAt
+		} else {
+			value.StateGeneratedAt = generatedAt
 		}
 		value.ReasonsTotal = len(value.Reasons)
 		if len(value.Reasons) > 6 {
@@ -143,7 +160,6 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 		value.ReasonsOmitted = max(0, value.ReasonsTotal-len(value.Reasons))
 		value.ProgramVersion = value.Program.Version
 		value.ProjectionStale = value.AssessedProgramVersion < value.Program.Version
-		value.StateGeneratedAt = generatedAt
 		switch value.Program.Status {
 		case ProgramDraft:
 			value.StateLabel = "Setup in progress"
