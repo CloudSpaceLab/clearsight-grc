@@ -5,6 +5,8 @@ package continuity
 import (
 	"context"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 func (r *PostgresRepository) VisibleOpenMatterCounts(ctx context.Context, tenant string, programIDs []string, principalID string, at *time.Time) (map[string]int, error) {
@@ -14,7 +16,7 @@ func (r *PostgresRepository) VisibleOpenMatterCounts(ctx context.Context, tenant
 	}
 
 	var (
-		rows rowIterator
+		rows pgx.Rows
 		err  error
 	)
 	if at == nil {
@@ -121,13 +123,6 @@ func (r *PostgresRepository) VisibleOpenMatterCounts(ctx context.Context, tenant
 		return nil, err
 	}
 	return counts, nil
-}
-
-type rowIterator interface {
-	Next() bool
-	Scan(...any) error
-	Err() error
-	Close()
 }
 
 var _ programMatterVisibilityRepository = (*PostgresRepository)(nil)
