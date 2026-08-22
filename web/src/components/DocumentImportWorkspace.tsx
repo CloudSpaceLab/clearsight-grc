@@ -10,6 +10,8 @@ import { FileDropzone } from "./FileDropzone";
 const documentAccept = ".txt,.md,.csv,.docx,.xlsx,.pdf,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const maximumDocumentBytes = 20 * 1024 * 1024;
 
+type ImportFocus = { documentID?: string; proposalID?: string };
+
 export function DocumentImportWorkspace() {
   const [documents, setDocuments] = useState<DocumentImportSummary[]>([]);
   const [selected, setSelected] = useState<DocumentImport | null>(null);
@@ -24,6 +26,7 @@ export function DocumentImportWorkspace() {
   const [purpose, setPurpose] = useState("");
   const [sourceType, setSourceType] = useState("DOCUMENT");
   const [intakeOpen, setIntakeOpen] = useState(false);
+  const [focus, setFocus] = useState<ImportFocus>(focusedImportTarget);
 
   async function refresh(selectID?: string) {
     setState("loading");
@@ -47,7 +50,22 @@ export function DocumentImportWorkspace() {
     }
   }
 
-  useEffect(() => { void refresh(); }, []);
+  useEffect(() => {
+    const syncFocus = () => setFocus(focusedImportTarget());
+    window.addEventListener("hashchange", syncFocus);
+    return () => window.removeEventListener("hashchange", syncFocus);
+  }, []);
+
+  useEffect(() => { void refresh(focus.documentID); }, [focus.documentID]);
+
+  useEffect(() => {
+    if (!selected || !focus.proposalID) return;
+    const element = window.document.getElementById(`document-proposal-${focus.proposalID}`);
+    if (!element) return;
+    const disclosure = element.closest("details");
+    if (disclosure instanceof HTMLDetailsElement) disclosure.open = true;
+    window.requestAnimationFrame(() => element.scrollIntoView({ block: "start" }));
+  }, [selected?.id, selected?.version, focus.proposalID]);
 
   useEffect(() => {
     if (!selected || (!isProcessing(selected) && coverage?.status !== "PENDING" && coverage?.status !== "COMPARING")) return;
@@ -370,7 +388,22 @@ function CoverageChain({ match }: { match: NonNullable<CoverageCandidate["matche
 
 function ProposalCard({ document, proposal, busy, locked, onReview }: { document: DocumentImport; proposal: DocumentProposal; busy: boolean; locked: boolean; onReview: (proposal: DocumentProposal, status: ProposalStatus) => void }) {
   const state = proposal.handoff?.status ? human(proposal.handoff.status) : human(proposal.status);
-  return <article className="proposal-card" aria-busy={busy || undefined}><div className="proposal-title"><div><span>{human(proposal.kind)}</span><h4>{proposal.title}</h4></div><mark>{state}</mark></div><p>{proposal.statement}</p><blockquote>{proposal.anchor.quote}</blockquote><small>Source: {proposal.anchor.sheet ? `${proposal.anchor.sheet}, row ${proposal.anchor.row_start}` : proposal.anchor.page ? `page ${proposal.anchor.page}` : proposal.anchor.section_id}</small>{proposal.status === "PENDING_REVIEW" && <div className="proposal-actions"><button className="secondary-button" type="button" disabled={locked} onClick={() => onReview(proposal, "REJECTED")}>{busy ? "Recording…" : "Reject"}</button><button className="primary-button" type="button" disabled={locked} onClick={() => onReview(proposal, "ACCEPTED")}>{busy ? "Recording…" : "Accept for governed review"}</button></div>}{proposal.status === "ACCEPTED" && <DocumentProposalHandoff documentID={document.id} documentVersion={document.version} legalEntityID={document.legal_entity_id} proposal={proposal} locked={locked}/>}</article>;
+  return <article id={`document-proposal-${proposal.id}`} className="proposal-card" aria-busy={busy || undefined}><div className="proposal-title"><div><span>{human(proposal.kind)}</span><h4>{proposal.title}</h4></div><mark>{state}</mark></div><p>{proposal.statement}</p><blockquote>{proposal.anchor.quote}</blockquote><small>Source: {proposal.anchor.sheet ? `${proposal.anchor.sheet}, row ${proposal.anchor.row_start}` : proposal.anchor.page ? `page ${proposal.anchor.page}` : proposal.anchor.section_id}</small>{proposal.status === "PENDING_REVIEW" && <div className="proposal-actions"><button className="secondary-button" type="button" disabled={locked} onClick={() => onReview(proposal, "REJECTED")}>{busy ? "Recording…" : "Reject"}</button><button className="primary-button" type="button" disabled={locked} onClick={() => onReview(proposal, "ACCEPTED")}>{busy ? "Recording…" : "Accept for governed review"}</button></div>}{proposal.status === "ACCEPTED" && <DocumentProposalHandoff documentID={document.id} documentVersion={document.version} legalEntityID={document.legal_entity_id} proposal={proposal} locked={locked}/>}</article>;
+}
+
+function focusedImportTarget(): ImportFocus {
+  const parts = window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
+  if (parts[0] !== "imports") return {};
+  return { documentID: decodeRoutePart(parts[1]), proposalID: decodeRoutePart(parts[2]) };
+}
+
+function decodeRoutePart(value?: string) {
+  if (!value) return undefined;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return undefined;
+  }
 }
 
 function isProcessing(document: Pick<DocumentImport, "extraction_status" | "analysis_status">) {
