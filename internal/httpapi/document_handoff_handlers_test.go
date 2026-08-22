@@ -11,14 +11,14 @@ func TestValidateDocumentHandoffApprovalFailsBeforeConversion(t *testing.T) {
 	base := documentimport.Proposal{
 		Status: documentimport.ProposalAccepted,
 		Handoff: &documentimport.ProposalHandoff{
-			Status:                documentimport.HandoffAwaitingAuthorization,
-			IntakePrincipalID:     "intake-a",
-			ReviewerPrincipalID:   "reviewer-b",
-			TargetType:            documentimport.ConversionRequirement,
-			TargetProgramID:       "program-1",
-			TargetProgramVersion:  3,
-			DraftTitle:            "Quarterly access review",
-			DraftStatement:        "The bank shall review privileged access quarterly.",
+			Status:               documentimport.HandoffAwaitingAuthorization,
+			IntakePrincipalID:    "intake-a",
+			ReviewerPrincipalID:  "reviewer-b",
+			TargetType:           documentimport.ConversionRequirement,
+			TargetProgramID:      "program-1",
+			TargetProgramVersion: 3,
+			DraftTitle:           "Quarterly access review",
+			DraftStatement:       "The bank shall review privileged access quarterly.",
 		},
 	}
 
