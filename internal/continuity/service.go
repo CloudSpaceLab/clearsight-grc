@@ -200,7 +200,7 @@ type TransitionResponseInput struct {
 	ResponseID      string         `json:"response_id"`
 	ExpectedVersion int64          `json:"expected_version"`
 	To              ResponseStatus `json:"to"`
-	ActorID         string         `json:"actor_id,omitempty"`
+	ActorID          string         `json:"actor_id,omitempty"`
 	Rationale       string         `json:"rationale"`
 }
 
@@ -409,6 +409,9 @@ func (s *Service) AddControlImplementation(ctx context.Context, input AddControl
 	if !containsObjective(aggregate.ControlObjectives, input.ObjectiveID) {
 		return ProgramAggregate{}, fmt.Errorf("objective_id does not belong to this program")
 	}
+	if !validImplementationType(input.ImplementationType) {
+		return ProgramAggregate{}, fmt.Errorf("unsupported implementation_type")
+	}
 	if input.Status == "" {
 		input.Status = ImplementationPlanned
 	}
@@ -427,7 +430,7 @@ func (s *Service) AddControlImplementation(ctx context.Context, input AddControl
 		return ProgramAggregate{}, err
 	}
 	now := s.now().UTC()
-	value := ControlImplementation{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, ObjectiveID: input.ObjectiveID, Name: strings.TrimSpace(input.Name), Description: strings.TrimSpace(input.Description), ImplementationType: strings.TrimSpace(input.ImplementationType), OwnerPrincipalID: input.OwnerPrincipalID, Scope: scope, Status: input.Status, EffectiveFrom: input.EffectiveFrom.UTC(), CreatedAt: now, UpdatedAt: now, Version: 1}
+	value := ControlImplementation{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, ObjectiveID: input.ObjectiveID, Name: strings.TrimSpace(input.Name), Description: strings.TrimSpace(input.Description), ImplementationType: strings.ToUpper(strings.TrimSpace(input.ImplementationType)), OwnerPrincipalID: input.OwnerPrincipalID, Scope: scope, Status: input.Status, EffectiveFrom: input.EffectiveFrom.UTC(), CreatedAt: now, UpdatedAt: now, Version: 1}
 	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventControlImplementationAdded, value, input.ActorID); err != nil {
 		return ProgramAggregate{}, err
 	}
@@ -719,6 +722,9 @@ func (s *Service) CreateMatter(ctx context.Context, input CreateMatterInput) (Ma
 	scope, err := normalizedJSON(input.Scope, `{}`)
 	if err != nil {
 		return MatterAggregate{}, err
+	}
+	if _, valid := ParseMatterAccessPolicy(scope); !valid {
+		return MatterAggregate{}, fmt.Errorf("scope contains invalid Matter access metadata")
 	}
 	known, err := normalizedJSON(input.KnownFacts, `{}`)
 	if err != nil {
@@ -1383,6 +1389,15 @@ func validObjectiveStatus(value ControlObjectiveStatus) bool {
 func validImplementationStatus(value ControlImplementationStatus) bool {
 	switch value {
 	case ImplementationPlanned, ImplementationInProgress, ImplementationImplemented, ImplementationInactive, ImplementationRetired:
+		return true
+	default:
+		return false
+	}
+}
+
+func validImplementationType(value string) bool {
+	switch strings.ToUpper(strings.TrimSpace(value)) {
+	case "PREVENTIVE", "DETECTIVE", "CORRECTIVE", "DIRECTIVE", "COMPENSATING", "MANUAL", "AUTOMATED", "HYBRID", "REVIEW":
 		return true
 	default:
 		return false
