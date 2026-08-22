@@ -55,10 +55,9 @@ func (p *DocumentProposalProjector) Publish(ctx context.Context, event workflowr
 	return p.ReconcileDocument(ctx, event.TenantID, event.AggregateID, p.currentTime())
 }
 
-// Maintain cycles through currently active handoffs so authority/policy changes
-// converge without creating a second assignment store or requiring a new
-// document event. The cursor prevents a large active set from pinning the same
-// first page on every pass.
+// Maintain cycles through active handoffs so current authority/policy changes
+// converge without another assignment store or a synthetic document mutation.
+// Reconciliation is write-free when the desired projection is unchanged.
 func (p *DocumentProposalProjector) Maintain(ctx context.Context, now time.Time, limit int) (int, error) {
 	if p == nil || p.Repo == nil || p.Documents == nil || p.Authority == nil {
 		return 0, nil
@@ -162,13 +161,13 @@ func (p *DocumentProposalProjector) reconcileHandoff(ctx context.Context, docume
 		return nil
 	}
 	base := map[string]string{
-		"type":              "DOCUMENT_PROPOSAL",
+		"type":               "DOCUMENT_PROPOSAL",
 		"document_import_id": document.ID,
-		"proposal_id":       proposal.ID,
-		"handoff_id":        handoff.ID,
-		"handoff_status":    string(handoff.Status),
-		"handoff_version":   strconv.FormatInt(handoff.Version, 10),
-		"document_version":  strconv.FormatInt(document.Version, 10),
+		"proposal_id":        proposal.ID,
+		"handoff_id":         handoff.ID,
+		"handoff_status":     string(handoff.Status),
+		"handoff_version":    strconv.FormatInt(handoff.Version, 10),
+		"document_version":   strconv.FormatInt(document.Version, 10),
 		"action_target_type": "DOCUMENT_IMPORT",
 		"action_target_id":   document.ID,
 		"scope":              strings.TrimSpace(proposal.Title),
@@ -178,14 +177,14 @@ func (p *DocumentProposalProjector) reconcileHandoff(ctx context.Context, docume
 	tasks := make([]projectedDocumentProposalTask, 0, 2)
 	switch handoff.Status {
 	case documentimport.HandoffAwaitingReview:
-		active, err := p.resolveActiveTask(ctx, document, proposal, authority.ResponsibilityReviewer, "document.proposal.review", "Review imported proposal", documentProposalReviewStep, handoff.IntakePrincipalID, "", at, base)
+		active, err := p.resolveActiveTask(ctx, document, proposal, "Review imported proposal", documentProposalReviewStep, at, base)
 		if err != nil {
 			return err
 		}
 		tasks = append(tasks, active)
 	case documentimport.HandoffAwaitingAuthorization:
 		tasks = append(tasks, completedHandoffTask(documentProposalReviewStep, string(authority.ResponsibilityReviewer), handoff.ReviewerPrincipalID, "Review imported proposal", base))
-		active, err := p.resolveActiveTask(ctx, document, proposal, authority.ResponsibilityAuthorizer, "document.proposal.authorize", "Authorize proposal conversion", documentProposalAuthStep, handoff.IntakePrincipalID, handoff.ReviewerPrincipalID, at, base)
+		active, err := p.resolveActiveTask(ctx, document, proposal, "Authorize proposal conversion", documentProposalAuthStep, at, base)
 		if err != nil {
 			return err
 		}
@@ -206,90 +205,39 @@ func (p *DocumentProposalProjector) reconcileHandoff(ctx context.Context, docume
 	return p.syncHandoffWorkflow(ctx, document, proposal, tasks, at)
 }
 
-func (p *DocumentProposalProjector) resolveActiveTask(
-	ctx context.Context,
-	document documentimport.Document,
-	proposal documentimport.Proposal,
-	responsibility authority.Responsibility,
-	decisionType, primaryAction, stepKey, excludeA, excludeB string,
-	at time.Time,
-	base map[string]string,
-) (projectedDocumentProposalTask, error) {
+func (p *DocumentProposalProjector) resolveActiveTask(ctx context.Context, document documentimport.Document, proposal documentimport.Proposal, primaryAction, stepKey string, at time.Time, base map[string]string) (projectedDocumentProposalTask, error) {
 	contextValues := cloneStringMap(base)
 	contextValues["primary_action"] = primaryAction
-	contextValues["decision_type"] = decisionType
-	contextValues["why_now"] = "An accepted document proposal requires governed " + strings.ToLower(string(responsibility)) + "."
-	status := StatusBlocked
-	principalID := ""
-	if strings.TrimSpace(document.LegalEntityID) == "" {
-		contextValues["routing_status"] = "NO_LEGAL_ENTITY"
-		return projectedDocumentProposalTask{StepKey: stepKey, Responsibility: string(responsibility), Title: primaryAction + ": " + proposal.Title, Status: status, Context: contextValues}, nil
-	}
-	resolution, err := p.Authority.Resolve(ctx, authority.ResolveInput{
-		TenantID: document.TenantID, LegalEntityID: document.LegalEntityID,
-		ObjectType: "DOCUMENT_IMPORT", ObjectID: document.ID,
-		Responsibility: responsibility, DecisionType: decisionType, Materiality: 3, At: at,
-	})
-	switch {
-	case err == nil:
-		contextValues["authority_rule_id"] = resolution.RuleID
-		contextValues["authority_policy_version"] = resolution.PolicyVersion
-		contextValues["authority_strategy"] = resolution.Strategy
-		contextValues["authority_explanation"] = resolution.Explanation
-		principals := independentAuthorityPrincipals(resolution, excludeA, excludeB)
-		contextValues["authority_candidate_count"] = strconv.Itoa(len(principals))
-		switch len(principals) {
-		case 0:
-			contextValues["routing_status"] = "NO_INDEPENDENT_CANDIDATE"
-		case 1:
-			principalID, status = principals[0].ID, StatusReady
-			contextValues["routing_status"] = "DIRECT"
-			contextValues["assigned_principal_name"] = principals[0].DisplayName
-		default:
-			contextValues["routing_status"] = "CANDIDATE_SET"
-		}
-	case errors.Is(err, authority.ErrNoRoute):
-		contextValues["routing_status"] = "NO_ROUTE"
-	case errors.Is(err, authority.ErrAmbiguousRoute):
-		contextValues["routing_status"] = "AMBIGUOUS_ROUTE"
-	default:
+	route, err := (documentimport.HandoffAuthorityResolver{Authority: p.Authority}).Resolve(ctx, document, *proposal.Handoff, "", at)
+	if err != nil {
 		return projectedDocumentProposalTask{}, fmt.Errorf("resolve document proposal authority: %w", err)
 	}
-	return projectedDocumentProposalTask{
-		StepKey: stepKey, Responsibility: string(responsibility), PrincipalID: principalID,
-		Title: primaryAction + ": " + proposal.Title, Status: status, Context: contextValues,
-	}, nil
-}
-
-func independentAuthorityPrincipals(resolution authority.Resolution, excluded ...string) []authority.Principal {
-	excludedIDs := map[string]struct{}{}
-	for _, value := range excluded {
-		if value = strings.TrimSpace(value); value != "" {
-			excludedIDs[value] = struct{}{}
+	responsibility := ""
+	status := StatusBlocked
+	principalID := ""
+	if route != nil {
+		responsibility = route.Responsibility
+		contextValues["routing_status"] = route.Status
+		contextValues["authority_rule_id"] = route.RuleID
+		contextValues["authority_policy_version"] = route.PolicyVersion
+		contextValues["authority_explanation"] = route.Explanation
+		if route.PrincipalName != "" {
+			contextValues["assigned_principal_name"] = route.PrincipalName
+		}
+		if route.Status == "DIRECT" && route.PrincipalID != "" {
+			principalID, status = route.PrincipalID, StatusReady
 		}
 	}
-	values := append([]authority.Principal(nil), resolution.CandidatePrincipals...)
-	if len(values) == 0 && strings.TrimSpace(resolution.Principal.ID) != "" {
-		values = append(values, resolution.Principal)
+	if responsibility == "" {
+		switch proposal.Handoff.Status {
+		case documentimport.HandoffAwaitingReview:
+			responsibility = string(authority.ResponsibilityReviewer)
+		case documentimport.HandoffAwaitingAuthorization:
+			responsibility = string(authority.ResponsibilityAuthorizer)
+		}
 	}
-	seen := map[string]struct{}{}
-	result := make([]authority.Principal, 0, len(values))
-	for _, value := range values {
-		id := strings.TrimSpace(value.ID)
-		if id == "" || value.Kind != "PERSON" {
-			continue
-		}
-		if _, blocked := excludedIDs[id]; blocked {
-			continue
-		}
-		if _, duplicate := seen[id]; duplicate {
-			continue
-		}
-		seen[id] = struct{}{}
-		result = append(result, value)
-	}
-	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
-	return result
+	contextValues["why_now"] = "An accepted document proposal requires governed " + strings.ToLower(responsibility) + "."
+	return projectedDocumentProposalTask{StepKey: stepKey, Responsibility: responsibility, PrincipalID: principalID, Title: primaryAction + ": " + proposal.Title, Status: status, Context: contextValues}, nil
 }
 
 func completedHandoffTask(stepKey, responsibility, principalID, title string, base map[string]string) projectedDocumentProposalTask {
@@ -309,6 +257,7 @@ func (p *DocumentProposalProjector) syncHandoffWorkflow(ctx context.Context, doc
 		return err
 	}
 	defer tx.Rollback(ctx)
+
 	workflowState := StatusCompleted
 	for _, task := range tasks {
 		if task.Status == StatusReady || task.Status == StatusBlocked || task.Status == StatusInProgress || task.Status == StatusEscalated {
@@ -318,11 +267,21 @@ func (p *DocumentProposalProjector) syncHandoffWorkflow(ctx context.Context, doc
 	}
 	var workflowID string
 	if err := tx.QueryRow(ctx, `
-		INSERT INTO workflow_instances(tenant_id,kind,subject_type,subject_id,state,policy_version,context_version,created_at,updated_at)
-		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2,$3,$4::uuid,$5,'document-proposal-handoff-v1',1,$6,$6)
-		ON CONFLICT(tenant_id,kind,subject_type,subject_id)
-		DO UPDATE SET state=EXCLUDED.state,updated_at=EXCLUDED.updated_at,version=workflow_instances.version+1
-		RETURNING id::text`, document.TenantID, DocumentProposalWorkflowKind, documentProposalSubjectType, handoff.ID, string(workflowState), at).Scan(&workflowID); err != nil {
+		WITH changed AS (
+			INSERT INTO workflow_instances(tenant_id,kind,subject_type,subject_id,state,policy_version,context_version,created_at,updated_at)
+			VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2,$3,$4::uuid,$5,'document-proposal-handoff-v1',1,$6,$6)
+			ON CONFLICT(tenant_id,kind,subject_type,subject_id) DO UPDATE SET
+				state=EXCLUDED.state,updated_at=EXCLUDED.updated_at,version=workflow_instances.version+1
+			WHERE workflow_instances.state IS DISTINCT FROM EXCLUDED.state
+			RETURNING id::text
+		)
+		SELECT id FROM changed
+		UNION ALL
+		SELECT wi.id::text FROM workflow_instances wi
+		JOIN tenants t ON t.id=wi.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND wi.kind=$2 AND wi.subject_type=$3 AND wi.subject_id=$4::uuid
+		  AND NOT EXISTS (SELECT 1 FROM changed)
+		LIMIT 1`, document.TenantID, DocumentProposalWorkflowKind, documentProposalSubjectType, handoff.ID, string(workflowState), at).Scan(&workflowID); err != nil {
 		return fmt.Errorf("project document proposal workflow: %w", err)
 	}
 
@@ -334,25 +293,44 @@ func (p *DocumentProposalProjector) syncHandoffWorkflow(ctx context.Context, doc
 			return err
 		}
 		var taskID string
+		var changed bool
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO workflow_tasks(tenant_id,workflow_id,step_key,responsibility,principal_id,title,status,context,source_bindings,completed_at,created_at,updated_at)
-			VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,$3,$4,NULLIF($5,'')::uuid,$6,$7,$8::jsonb,'[]'::jsonb,
-			       CASE WHEN $7='COMPLETED' THEN $9::timestamptz ELSE NULL END,$9::timestamptz,$9::timestamptz)
-			ON CONFLICT(workflow_id,step_key) DO UPDATE SET
-				responsibility=EXCLUDED.responsibility,principal_id=EXCLUDED.principal_id,title=EXCLUDED.title,status=EXCLUDED.status,
-				context=EXCLUDED.context,completed_at=CASE WHEN EXCLUDED.status='COMPLETED' THEN COALESCE(workflow_tasks.completed_at,EXCLUDED.updated_at) ELSE NULL END,
-				version=workflow_tasks.version+1,updated_at=EXCLUDED.updated_at
-			RETURNING id::text`, document.TenantID, workflowID, task.StepKey, task.Responsibility, task.PrincipalID, task.Title, string(task.Status), string(contextJSON), at).Scan(&taskID); err != nil {
+			WITH changed AS (
+				INSERT INTO workflow_tasks(tenant_id,workflow_id,step_key,responsibility,principal_id,title,status,context,source_bindings,completed_at,created_at,updated_at)
+				VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,$3,$4,NULLIF($5,'')::uuid,$6,$7,$8::jsonb,'[]'::jsonb,
+				       CASE WHEN $7='COMPLETED' THEN $9::timestamptz ELSE NULL END,$9::timestamptz,$9::timestamptz)
+				ON CONFLICT(workflow_id,step_key) DO UPDATE SET
+					responsibility=EXCLUDED.responsibility,principal_id=EXCLUDED.principal_id,title=EXCLUDED.title,status=EXCLUDED.status,
+					context=EXCLUDED.context,
+					completed_at=CASE WHEN EXCLUDED.status='COMPLETED' THEN COALESCE(workflow_tasks.completed_at,EXCLUDED.updated_at) ELSE NULL END,
+					version=workflow_tasks.version+1,updated_at=EXCLUDED.updated_at
+				WHERE workflow_tasks.responsibility IS DISTINCT FROM EXCLUDED.responsibility
+				   OR workflow_tasks.principal_id IS DISTINCT FROM EXCLUDED.principal_id
+				   OR workflow_tasks.title IS DISTINCT FROM EXCLUDED.title
+				   OR workflow_tasks.status IS DISTINCT FROM EXCLUDED.status
+				   OR workflow_tasks.context IS DISTINCT FROM EXCLUDED.context
+				   OR (EXCLUDED.status='COMPLETED' AND workflow_tasks.completed_at IS NULL)
+				   OR (EXCLUDED.status<>'COMPLETED' AND workflow_tasks.completed_at IS NOT NULL)
+				RETURNING id::text
+			)
+			SELECT id,true FROM changed
+			UNION ALL
+			SELECT wt.id::text,false FROM workflow_tasks wt
+			WHERE wt.workflow_id=$2::uuid AND wt.step_key=$3 AND NOT EXISTS (SELECT 1 FROM changed)
+			LIMIT 1`, document.TenantID, workflowID, task.StepKey, task.Responsibility, task.PrincipalID, task.Title, string(task.Status), string(contextJSON), at).Scan(&taskID, &changed); err != nil {
 			return fmt.Errorf("project document proposal task: %w", err)
+		}
+		if !changed {
+			continue
 		}
 		metadata, _ := json.Marshal(map[string]string{"handoff_status": string(handoff.Status), "step_key": task.StepKey})
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO workflow_events(tenant_id,workflow_id,task_id,event_type,safe_metadata,occurred_at)
-			VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,$3::uuid,'TASK_PROJECTED',$4::jsonb,$5)`,
-			document.TenantID, workflowID, taskID, string(metadata), at); err != nil {
+			VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,$3::uuid,'TASK_PROJECTED',$4::jsonb,$5)`, document.TenantID, workflowID, taskID, string(metadata), at); err != nil {
 			return fmt.Errorf("record document proposal projection event: %w", err)
 		}
 	}
+
 	if _, err := tx.Exec(ctx, `
 		UPDATE workflow_tasks
 		SET status='CANCELLED',principal_id=NULL,completed_at=NULL,version=version+1,updated_at=$3
