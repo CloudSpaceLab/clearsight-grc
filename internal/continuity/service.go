@@ -1136,7 +1136,7 @@ func (s *Service) refreshLinkedPrograms(ctx context.Context, tenant, matterID, t
 		return
 	}
 	for _, programID := range programIDs {
-		_ = s.requestProgramRefresh(ctx, tenant, programID, triggerType, matterID, input.ActorID)
+		_ = s.requestProgramRefresh(ctx, tenant, programID, triggerType, matterID, "system")
 	}
 }
 
