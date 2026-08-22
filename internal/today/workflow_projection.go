@@ -49,6 +49,7 @@ func projectWorkflowTasks(tasks []workflow.Task, include func(workflow.Task) boo
 			PrimaryAction:      primaryAction,
 			ActionTargetType:   targetType,
 			ActionTargetID:     targetID,
+			ActionTargetSubID:  workflowTargetSubID(task, targetType),
 			InterventionClass:  workflowIntervention(task, targetType),
 			MaterialConclusion: context["material_conclusion"],
 			ChangeSummary:      context["change_summary"],
@@ -92,6 +93,13 @@ func workflowTarget(task workflow.Task) (string, string) {
 		return "PROGRAM", value
 	}
 	return "", ""
+}
+
+func workflowTargetSubID(task workflow.Task, targetType string) string {
+	if targetType != "DOCUMENT_IMPORT" {
+		return ""
+	}
+	return strings.TrimSpace(task.Context["proposal_id"])
 }
 
 func workflowAuthorityContext(task workflow.Task, targetType, targetID string) *AuthorityContext {
