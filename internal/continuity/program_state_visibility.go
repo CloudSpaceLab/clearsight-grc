@@ -6,12 +6,20 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
 
+type programMatterVisibility struct {
+	OpenCount int
+	Revision  string
+	LatestAt  time.Time
+}
+
 type programMatterVisibilityRepository interface {
-	VisibleOpenMatterCounts(context.Context, string, []string, string, *time.Time) (map[string]int, error)
+	VisibleProgramMatterVisibility(context.Context, string, []string, string, *time.Time) (map[string]programMatterVisibility, error)
 }
 
 // ProgramForPrincipal returns an actor-facing Program projection without
@@ -30,7 +38,7 @@ func (s *Service) ProgramForPrincipal(ctx context.Context, value ProgramAggregat
 }
 
 // ProgramsForPrincipal applies the same actor-safe Program projection in one
-// bounded repository call so list reads do not degrade into N+1 Matter counts.
+// bounded repository call so list reads do not degrade into N+1 Matter reads.
 func (s *Service) ProgramsForPrincipal(ctx context.Context, values []ProgramAggregate, principalID string, at *time.Time) ([]ProgramAggregate, error) {
 	principalID = strings.TrimSpace(principalID)
 	if principalID == "" {
@@ -52,13 +60,13 @@ func (s *Service) ProgramsForPrincipal(ctx context.Context, values []ProgramAggr
 		ids = append(ids, value.Program.ID)
 	}
 
-	counts := make(map[string]int, len(ids))
-	if repo, ok := s.repo.(programMatterVisibilityRepository); ok {
-		var err error
-		counts, err = repo.VisibleOpenMatterCounts(ctx, tenant, ids, principalID, at)
-		if err != nil {
-			return nil, err
-		}
+	repo, ok := s.repo.(programMatterVisibilityRepository)
+	if !ok {
+		return nil, fmt.Errorf("Program Matter visibility is unavailable")
+	}
+	visibility, err := repo.VisibleProgramMatterVisibility(ctx, tenant, ids, principalID, at)
+	if err != nil {
+		return nil, err
 	}
 
 	result := make([]ProgramAggregate, len(values))
@@ -67,11 +75,9 @@ func (s *Service) ProgramsForPrincipal(ctx context.Context, values []ProgramAggr
 		if value.CurrentState == nil {
 			continue
 		}
-		state := programStateForVisibleMatters(*value.CurrentState, counts[value.Program.ID])
-		// Canonical projection time can advance solely because of a Matter the
-		// actor cannot see. Program updated_at is canonical actor-visible state,
-		// so use it as the stable presentation timestamp instead.
-		state.GeneratedAt = value.Program.UpdatedAt.UTC()
+		visible := visibility[value.Program.ID]
+		state := programStateForVisibleMatters(*value.CurrentState, visible)
+		state.GeneratedAt = actorVisibleProgramStateTime(value.Program.UpdatedAt, visible.LatestAt)
 		result[index].CurrentState = &state
 		result[index] = decorateProgram(result[index])
 	}
@@ -79,20 +85,20 @@ func (s *Service) ProgramsForPrincipal(ctx context.Context, values []ProgramAggr
 }
 
 func (s *Service) programStateForPrincipal(ctx context.Context, tenant, programID, principalID string, state ProgramStateSnapshot, at *time.Time) (ProgramStateSnapshot, error) {
-	count := 0
-	if repo, ok := s.repo.(programMatterVisibilityRepository); ok {
-		counts, err := repo.VisibleOpenMatterCounts(ctx, tenant, []string{programID}, principalID, at)
-		if err != nil {
-			return ProgramStateSnapshot{}, err
-		}
-		count = counts[programID]
+	repo, ok := s.repo.(programMatterVisibilityRepository)
+	if !ok {
+		return ProgramStateSnapshot{}, fmt.Errorf("Program Matter visibility is unavailable")
 	}
-	return programStateForVisibleMatters(state, count), nil
+	visibility, err := repo.VisibleProgramMatterVisibility(ctx, tenant, []string{programID}, principalID, at)
+	if err != nil {
+		return ProgramStateSnapshot{}, err
+	}
+	return programStateForVisibleMatters(state, visibility[programID]), nil
 }
 
-func programStateForVisibleMatters(state ProgramStateSnapshot, visibleOpenMatters int) ProgramStateSnapshot {
-	if visibleOpenMatters < 0 {
-		visibleOpenMatters = 0
+func programStateForVisibleMatters(state ProgramStateSnapshot, visibility programMatterVisibility) ProgramStateSnapshot {
+	if visibility.OpenCount < 0 {
+		visibility.OpenCount = 0
 	}
 
 	reasons := make([]StateReason, 0, len(state.Reasons)+1)
@@ -102,11 +108,11 @@ func programStateForVisibleMatters(state ProgramStateSnapshot, visibleOpenMatter
 		}
 		reasons = append(reasons, reason)
 	}
-	state.OpenMatterCount = visibleOpenMatters
+	state.OpenMatterCount = visibility.OpenCount
 	state.Dimensions.Exception = StateCurrent
-	if visibleOpenMatters > 0 {
+	if visibility.OpenCount > 0 {
 		state.Dimensions.Exception = StateAtRisk
-		reasons = append(reasons, StateReason{Code: "OPEN_MATTERS", Summary: fmt.Sprintf("%d open issue(s) or change(s) affect this program.", visibleOpenMatters)})
+		reasons = append(reasons, StateReason{Code: "OPEN_MATTERS", Summary: fmt.Sprintf("%d open issue(s) or change(s) affect this program.", visibility.OpenCount)})
 	}
 	sortStateReasons(reasons)
 	state.Reasons = reasons
@@ -114,27 +120,32 @@ func programStateForVisibleMatters(state ProgramStateSnapshot, visibleOpenMatter
 
 	// Snapshot identity and trigger metadata are internal projection provenance
 	// and can change because of a Matter this actor cannot see. The actor-facing
-	// version is instead a stable fingerprint of visible semantic state.
+	// version is a stable fingerprint of visible Program semantics plus the
+	// identities/versions of visible linked open Matters. The latter makes an
+	// open-to-open visible Matter transition invalidate review state without
+	// allowing hidden Matter churn to do the same.
 	state.ID = ""
 	state.TriggerType = ""
 	state.TriggerID = ""
-	state.ProjectionVersion = visibleProgramStateVersion(state)
+	state.ProjectionVersion = visibleProgramStateVersion(state, visibility.Revision)
 	return state
 }
 
-func visibleProgramStateVersion(state ProgramStateSnapshot) int64 {
+func visibleProgramStateVersion(state ProgramStateSnapshot, matterRevision string) int64 {
 	payload, _ := json.Marshal(struct {
 		ProgramVersion  int64                `json:"program_version"`
 		Overall         ProgramState         `json:"overall"`
 		Dimensions      ComplianceDimensions `json:"dimensions"`
 		Reasons         []StateReason        `json:"reasons"`
 		OpenMatterCount int                  `json:"open_matter_count"`
+		MatterRevision  string               `json:"matter_revision"`
 	}{
 		ProgramVersion:  state.ProgramVersion,
 		Overall:         state.Overall,
 		Dimensions:      state.Dimensions,
 		Reasons:         state.Reasons,
 		OpenMatterCount: state.OpenMatterCount,
+		MatterRevision:  matterRevision,
 	})
 	sum := sha256.Sum256(payload)
 	// Keep this within JavaScript Number.MAX_SAFE_INTEGER so the browser can
@@ -146,39 +157,72 @@ func visibleProgramStateVersion(state ProgramStateSnapshot) int64 {
 	return version
 }
 
-func (r *MemoryRepository) VisibleOpenMatterCounts(_ context.Context, tenant string, programIDs []string, principalID string, at *time.Time) (map[string]int, error) {
+func actorVisibleProgramStateTime(programUpdatedAt, latestVisibleMatterAt time.Time) time.Time {
+	value := programUpdatedAt.UTC()
+	if latestVisibleMatterAt.After(value) {
+		value = latestVisibleMatterAt.UTC()
+	}
+	return value
+}
+
+func visibleMatterRevision(tokens []string) string {
+	if len(tokens) == 0 {
+		return ""
+	}
+	sort.Strings(tokens)
+	return visibleMatterRevisionMaterial(strings.Join(tokens, "\n"))
+}
+
+func visibleMatterRevisionMaterial(material string) string {
+	if material == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(material))
+	return fmt.Sprintf("%x", sum[:16])
+}
+
+func (r *MemoryRepository) VisibleProgramMatterVisibility(_ context.Context, tenant string, programIDs []string, principalID string, at *time.Time) (map[string]programMatterVisibility, error) {
 	targets := make(map[string]struct{}, len(programIDs))
 	for _, programID := range programIDs {
 		targets[programID] = struct{}{}
 	}
-	counts := make(map[string]int, len(programIDs))
+	visibility := make(map[string]programMatterVisibility, len(programIDs))
+	revisions := make(map[string][]string, len(programIDs))
 
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if at == nil {
 		for _, aggregate := range r.matters[tenant] {
-			countVisibleMatterPrograms(aggregate, principalID, targets, counts)
+			collectVisibleMatterPrograms(aggregate, aggregate.Matter.UpdatedAt, principalID, targets, visibility, revisions)
 		}
-		return counts, nil
+		finalizeProgramMatterVisibility(visibility, revisions)
+		return visibility, nil
 	}
 
 	for _, events := range r.matterEvents[tenant] {
-		historical, err := reconstructMatter(filterEvents(events, at))
+		filtered := filterEvents(events, at)
+		historical, err := reconstructMatter(filtered)
 		if err == ErrNotFound {
 			continue
 		}
 		if err != nil {
 			return nil, err
 		}
-		countVisibleMatterPrograms(historical, principalID, targets, counts)
+		activityAt := historical.Matter.UpdatedAt
+		if len(filtered) > 0 {
+			activityAt = filtered[len(filtered)-1].OccurredAt
+		}
+		collectVisibleMatterPrograms(historical, activityAt, principalID, targets, visibility, revisions)
 	}
-	return counts, nil
+	finalizeProgramMatterVisibility(visibility, revisions)
+	return visibility, nil
 }
 
-func countVisibleMatterPrograms(aggregate MatterAggregate, principalID string, targets map[string]struct{}, counts map[string]int) {
+func collectVisibleMatterPrograms(aggregate MatterAggregate, activityAt time.Time, principalID string, targets map[string]struct{}, visibility map[string]programMatterVisibility, revisions map[string][]string) {
 	if aggregate.Matter.Status == MatterClosed || aggregate.Matter.Status == MatterCancelled || !MatterVisibleTo(aggregate.Matter, principalID) {
 		return
 	}
+	token := aggregate.Matter.ID + ":" + strconv.FormatInt(aggregate.Matter.Version, 10)
 	seen := make(map[string]struct{})
 	for _, link := range aggregate.Links {
 		if _, wanted := targets[link.ProgramID]; !wanted {
@@ -188,7 +232,21 @@ func countVisibleMatterPrograms(aggregate MatterAggregate, principalID string, t
 			continue
 		}
 		seen[link.ProgramID] = struct{}{}
-		counts[link.ProgramID]++
+		value := visibility[link.ProgramID]
+		value.OpenCount++
+		if activityAt.After(value.LatestAt) {
+			value.LatestAt = activityAt.UTC()
+		}
+		visibility[link.ProgramID] = value
+		revisions[link.ProgramID] = append(revisions[link.ProgramID], token)
+	}
+}
+
+func finalizeProgramMatterVisibility(visibility map[string]programMatterVisibility, revisions map[string][]string) {
+	for programID, tokens := range revisions {
+		value := visibility[programID]
+		value.Revision = visibleMatterRevision(tokens)
+		visibility[programID] = value
 	}
 }
 
