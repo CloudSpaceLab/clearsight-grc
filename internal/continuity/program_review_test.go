@@ -36,7 +36,7 @@ func TestProgramReviewCheckpointIsActorScopedAndDerivedFromCanonicalVersions(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	if before.State != "NO_BASELINE" || !before.ReviewRequired || before.Checkpoint != nil {
+	if before.State != "NO_BASELINE" || !before.ReviewRequired || before.Checkpoint != nil || before.CurrentProjectionVersion < 1 {
 		t.Fatalf("unexpected first-review digest: %#v", before)
 	}
 
@@ -45,7 +45,7 @@ func TestProgramReviewCheckpointIsActorScopedAndDerivedFromCanonicalVersions(t *
 		ProgramID:                 program.Program.ID,
 		PrincipalID:               "reviewer-a",
 		ExpectedProgramVersion:    program.Program.Version,
-		ExpectedProjectionVersion: program.CurrentState.ProjectionVersion,
+		ExpectedProjectionVersion: before.CurrentProjectionVersion,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -53,8 +53,8 @@ func TestProgramReviewCheckpointIsActorScopedAndDerivedFromCanonicalVersions(t *
 	if accepted.State != "CURRENT" || accepted.ReviewRequired || accepted.Checkpoint == nil {
 		t.Fatalf("expected accepted current baseline, got %#v", accepted)
 	}
-	if accepted.Checkpoint.ProgramVersion != program.Program.Version || accepted.Checkpoint.ProjectionVersion != program.CurrentState.ProjectionVersion {
-		t.Fatalf("checkpoint did not retain canonical versions: %#v", accepted.Checkpoint)
+	if accepted.Checkpoint.ProgramVersion != program.Program.Version || accepted.Checkpoint.ProjectionVersion != accepted.CurrentProjectionVersion {
+		t.Fatalf("checkpoint did not expose actor-safe versions: %#v", accepted.Checkpoint)
 	}
 
 	otherActor, err := service.ProgramReviewDigest(ctx, "bank", program.Program.ID, "reviewer-b")
@@ -81,14 +81,14 @@ func TestProgramReviewCheckpointIsActorScopedAndDerivedFromCanonicalVersions(t *
 		t.Fatal(err)
 	}
 	if updated.CurrentState == nil || updated.CurrentState.ProjectionVersion <= program.CurrentState.ProjectionVersion {
-		t.Fatalf("expected a newer current projection, got %#v", updated.CurrentState)
+		t.Fatalf("expected a newer canonical projection, got %#v", updated.CurrentState)
 	}
 
 	changed, err := service.ProgramReviewDigest(ctx, "bank", program.Program.ID, "reviewer-a")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if changed.State != "CHANGED" || !changed.ReviewRequired || changed.ChangesTotal == 0 {
+	if changed.State != "CHANGED" || !changed.ReviewRequired || changed.ChangesTotal == 0 || changed.CurrentProjectionVersion == accepted.CurrentProjectionVersion {
 		t.Fatalf("expected changed digest, got %#v", changed)
 	}
 	foundRequirement := false
@@ -109,7 +109,7 @@ func TestProgramReviewCheckpointIsActorScopedAndDerivedFromCanonicalVersions(t *
 		ProgramID:                 program.Program.ID,
 		PrincipalID:               "reviewer-a",
 		ExpectedProgramVersion:    program.Program.Version,
-		ExpectedProjectionVersion: program.CurrentState.ProjectionVersion,
+		ExpectedProjectionVersion: accepted.CurrentProjectionVersion,
 	})
 	if !errors.Is(err, ErrVersionConflict) {
 		t.Fatalf("stale screen must not become the review baseline, got %v", err)
@@ -120,7 +120,7 @@ func TestProgramReviewCheckpointIsActorScopedAndDerivedFromCanonicalVersions(t *
 		ProgramID:                 updated.Program.ID,
 		PrincipalID:               "reviewer-a",
 		ExpectedProgramVersion:    updated.Program.Version,
-		ExpectedProjectionVersion: updated.CurrentState.ProjectionVersion,
+		ExpectedProjectionVersion: changed.CurrentProjectionVersion,
 	})
 	if err != nil {
 		t.Fatal(err)
