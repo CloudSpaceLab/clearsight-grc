@@ -1,11 +1,17 @@
 package httpapi
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+)
+
+var (
+	errDocumentHandoffRoutingUnresolved = errors.New("document proposal handoff routing is unresolved")
+	errDocumentHandoffNotAssigned      = errors.New("document proposal handoff is assigned to another actor")
 )
 
 func (a *API) withDocumentHandoffRoutes(r *http.Request, actor identity.Actor, document documentimport.Document) documentimport.Document {
@@ -30,4 +36,22 @@ func (a *API) withDocumentHandoffRoutes(r *http.Request, actor identity.Actor, d
 		handoff.Route = route
 	}
 	return document
+}
+
+func (a *API) requireDocumentHandoffRoute(r *http.Request, actor identity.Actor, document documentimport.Document, handoff documentimport.ProposalHandoff) error {
+	if a.deps.Authority == nil {
+		return nil
+	}
+	resolver := documentimport.HandoffAuthorityResolver{Authority: a.deps.Authority}
+	route, err := resolver.Resolve(r.Context(), document, handoff, actor.PrincipalID, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+	if route == nil || route.Status != "DIRECT" {
+		return errDocumentHandoffRoutingUnresolved
+	}
+	if !route.IsCurrentActor {
+		return errDocumentHandoffNotAssigned
+	}
+	return nil
 }
