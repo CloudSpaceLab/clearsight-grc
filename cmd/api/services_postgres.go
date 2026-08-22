@@ -83,7 +83,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		}
 
 		assigned, listErr := workflowService.List(loadCtx, workflow.ListFilter{
-			TenantID: actor.TenantID, PrincipalID: actor.PrincipalID,
+			TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID,
 			ActiveOnly: true, VisibleActorWorkOnly: true, Limit: todayItemLimit,
 		})
 		if listErr != nil {
