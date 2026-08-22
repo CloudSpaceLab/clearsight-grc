@@ -91,7 +91,22 @@ func (r *PostgresRepository) Get(ctx context.Context, tenant, id string) (Docume
 }
 
 func (r *PostgresRepository) ReviewProposal(ctx context.Context, input ReviewInput, now time.Time) (Document, error) {
-	row := r.pool.QueryRow(ctx, `
+	handoff := newAcceptedProposalHandoff(input, "", "", now)
+	handoffJSON := []byte("{}")
+	if input.Status == ProposalAccepted {
+		encoded, err := json.Marshal(handoff)
+		if err != nil {
+			return Document{}, fmt.Errorf("encode proposal handoff: %w", err)
+		}
+		handoffJSON = encoded
+	}
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return Document{}, err
+	}
+	defer tx.Rollback(ctx)
+	row := tx.QueryRow(ctx, `
 		WITH target AS (
 			SELECT di.id,(p.ordinality-1)::int AS proposal_index,p.value AS proposal
 			FROM document_imports di
@@ -109,7 +124,12 @@ func (r *PostgresRepository) ReviewProposal(ctx context.Context, input ReviewInp
 					'reviewed_by',$6::text,
 					'reviewed_at',$7::timestamptz,
 					'review_note',$8::text
-				),
+				) || CASE WHEN $5::text='ACCEPTED' THEN jsonb_build_object(
+					'handoff', ($9::jsonb || jsonb_build_object(
+						'draft_title', target.proposal->>'title',
+						'draft_statement', target.proposal->>'statement'
+					))
+				) ELSE '{}'::jsonb END,
 				false
 			),updated_at=$7::timestamptz,version=di.version+1
 			FROM target WHERE di.id=target.id
@@ -120,24 +140,52 @@ func (r *PostgresRepository) ReviewProposal(ctx context.Context, input ReviewInp
 		       c.limitations,c.sections,c.proposals,c.tabular_metadata,c.sections_total,c.sections_omitted,c.proposals_total,c.proposals_omitted,
 		       c.content_truncated,c.processed_at,c.created_by::text,c.created_at,c.updated_at,c.version
 		FROM changed c JOIN tenants t ON t.id=c.tenant_id`,
-		input.TenantID, input.DocumentID, input.ExpectedVersion, input.ProposalID, input.Status, input.ReviewerID, now, input.Note)
-	updated, err := scanDocument(row)
-	if err == nil {
+		input.TenantID, input.DocumentID, input.ExpectedVersion, input.ProposalID, input.Status, input.ReviewerID, now, input.Note, handoffJSON)
+	updated, scanErr := scanDocument(row)
+	if scanErr == nil {
+		if input.Status == ProposalAccepted {
+			payload, err := json.Marshal(map[string]string{
+				"document_id": input.DocumentID,
+				"proposal_id": input.ProposalID,
+				"handoff_id":  handoff.ID,
+			})
+			if err != nil {
+				return Document{}, fmt.Errorf("encode proposal handoff event: %w", err)
+			}
+			_, err = tx.Exec(ctx, `
+				INSERT INTO outbox_events(id,tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at)
+				VALUES(uuidv7(),(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),'DOCUMENT_IMPORT',$2::uuid,$3,$4::jsonb,$5,$5,$5)`,
+				input.TenantID, input.DocumentID, EventDocumentProposalAccepted, payload, now)
+			if err != nil {
+				return Document{}, fmt.Errorf("queue document proposal handoff: %w", err)
+			}
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return Document{}, err
+		}
 		return updated, nil
 	}
-	if !errors.Is(err, pgx.ErrNoRows) {
-		return Document{}, fmt.Errorf("review document proposal: %w", err)
+	if !errors.Is(scanErr, pgx.ErrNoRows) {
+		return Document{}, fmt.Errorf("review document proposal: %w", scanErr)
 	}
 	current, getErr := r.Get(ctx, input.TenantID, input.DocumentID)
 	if getErr != nil {
 		return Document{}, getErr
 	}
 	if current.Version != input.ExpectedVersion {
+		for _, proposal := range current.Proposals {
+			if proposal.ID == input.ProposalID && proposal.Status == input.Status && proposal.ReviewedBy == input.ReviewerID {
+				return current, nil
+			}
+		}
 		return Document{}, ErrVersionConflict
 	}
 	for _, proposal := range current.Proposals {
 		if proposal.ID != input.ProposalID {
 			continue
+		}
+		if proposal.Status == input.Status && proposal.ReviewedBy == input.ReviewerID {
+			return current, nil
 		}
 		if proposal.Status != ProposalPending {
 			return Document{}, ErrInvalidReview
