@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,7 +23,7 @@ func (a *API) reviewDocumentProposalHandoff(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	var input struct {
-		Action                 documentimport.HandoffReviewAction `json:"action"`
+		Action                  documentimport.HandoffReviewAction `json:"action"`
 		ExpectedDocumentVersion int64                              `json:"expected_document_version"`
 		ExpectedHandoffVersion  int64                              `json:"expected_handoff_version"`
 		Title                   string                             `json:"title,omitempty"`
@@ -221,6 +220,6 @@ func writeDocumentHandoffError(w http.ResponseWriter, err error) {
 	case errors.Is(err, documentimport.ErrInvalidHandoff):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "handoff_invalid", "This proposal is not in a valid state for that action.")
 	default:
-		httpx.WriteError(w, http.StatusInternalServerError, "handoff_failed", fmt.Sprintf("The governed proposal handoff could not be updated: %v", err))
+		httpx.WriteError(w, http.StatusInternalServerError, "handoff_failed", "The governed proposal handoff could not be updated.")
 	}
 }
