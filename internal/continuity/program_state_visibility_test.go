@@ -24,7 +24,7 @@ func TestProgramStateForVisibleMattersRemovesHiddenMatterContribution(t *testing
 	}
 	canonical.Dimensions.Exception = StateAtRisk
 
-	hidden := programStateForVisibleMatters(canonical, programMatterVisibility{})
+	hidden := programStateForVisibleMatters(canonical, 0)
 	if hidden.OpenMatterCount != 0 || hidden.Dimensions.Exception != StateCurrent {
 		t.Fatalf("hidden Matter contribution survived: %#v", hidden)
 	}
@@ -44,7 +44,7 @@ func TestProgramStateForVisibleMattersRemovesHiddenMatterContribution(t *testing
 		t.Fatalf("actor semantic version is invalid: %d", hidden.ProjectionVersion)
 	}
 
-	visible := programStateForVisibleMatters(canonical, programMatterVisibility{OpenCount: 1, Revision: "matter-1:1"})
+	visible := programStateForVisibleMatters(canonical, 1)
 	if visible.OpenMatterCount != 1 || visible.Dimensions.Exception != StateAtRisk || visible.Overall != StateAtRisk {
 		t.Fatalf("visible Matter contribution was lost: %#v", visible)
 	}
@@ -56,7 +56,7 @@ func TestProgramStateForVisibleMattersRemovesHiddenMatterContribution(t *testing
 	}
 }
 
-func TestVisibleProgramStateVersionTracksVisibleMatterRevisionButIgnoresCanonicalProjectionChurn(t *testing.T) {
+func TestVisibleProgramStateVersionIgnoresCanonicalProjectionChurn(t *testing.T) {
 	first := ProgramStateSnapshot{
 		ID:                "snapshot-a",
 		TenantID:          "bank",
@@ -78,20 +78,14 @@ func TestVisibleProgramStateVersionTracksVisibleMatterRevisionButIgnoresCanonica
 	second.GeneratedAt = first.GeneratedAt.Add(time.Hour)
 	second.ProjectionVersion = 99
 
-	visibility := programMatterVisibility{OpenCount: 1, Revision: "matter-1:1"}
-	firstVisible := programStateForVisibleMatters(first, visibility)
-	secondVisible := programStateForVisibleMatters(second, visibility)
+	firstVisible := programStateForVisibleMatters(first, 0)
+	secondVisible := programStateForVisibleMatters(second, 0)
 	if firstVisible.ProjectionVersion != secondVisible.ProjectionVersion {
 		t.Fatalf("canonical hidden projection churn changed actor version: %d != %d", firstVisible.ProjectionVersion, secondVisible.ProjectionVersion)
 	}
-
-	changedMatter := programStateForVisibleMatters(second, programMatterVisibility{OpenCount: 1, Revision: "matter-1:2"})
-	if changedMatter.ProjectionVersion == secondVisible.ProjectionVersion {
-		t.Fatal("visible open Matter revision did not invalidate actor review version")
-	}
 }
 
-func TestMemoryProgramForPrincipalTracksOnlyReadableOpenMatterRevisions(t *testing.T) {
+func TestMemoryProgramForPrincipalTracksOnlyReadableMatterTiming(t *testing.T) {
 	ctx := context.Background()
 	repo := NewMemoryRepository()
 	service := NewService(repo)
@@ -121,7 +115,7 @@ func TestMemoryProgramForPrincipalTracksOnlyReadableOpenMatterRevisions(t *testi
 		t.Fatal(err)
 	}
 	if forA.CurrentState == nil || forA.CurrentState.OpenMatterCount != 1 || !forA.CurrentState.GeneratedAt.Equal(visibleAt) {
-		t.Fatalf("person-a saw wrong visible Matter projection: %#v", forA.CurrentState)
+		t.Fatalf("person-a saw wrong Matter projection: %#v", forA.CurrentState)
 	}
 	forB, err := service.ProgramForPrincipal(ctx, aggregate, "person-b", nil)
 	if err != nil {
@@ -145,10 +139,10 @@ func TestMemoryProgramForPrincipalTracksOnlyReadableOpenMatterRevisions(t *testi
 		t.Fatal(err)
 	}
 	if forAAfter.CurrentState.ProjectionVersion != versionA || !forAAfter.CurrentState.GeneratedAt.Equal(visibleAt) {
-		t.Fatalf("hidden Matter revision/timing leaked to person-a: before=%#v after=%#v", forA.CurrentState, forAAfter.CurrentState)
+		t.Fatalf("hidden Matter timing leaked to person-a: before=%#v after=%#v", forA.CurrentState, forAAfter.CurrentState)
 	}
-	if forBAfter.CurrentState.ProjectionVersion == versionB || !forBAfter.CurrentState.GeneratedAt.Equal(hidden.Matter.UpdatedAt) {
-		t.Fatalf("visible restricted Matter revision did not reach allowed principal: before=%#v after=%#v", forB.CurrentState, forBAfter.CurrentState)
+	if forBAfter.CurrentState.ProjectionVersion != versionB || !forBAfter.CurrentState.GeneratedAt.Equal(hidden.Matter.UpdatedAt) {
+		t.Fatalf("allowed principal did not receive visible restricted Matter timing: before=%#v after=%#v", forB.CurrentState, forBAfter.CurrentState)
 	}
 }
 
