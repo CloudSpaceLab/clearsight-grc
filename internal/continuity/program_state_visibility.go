@@ -68,6 +68,10 @@ func (s *Service) ProgramsForPrincipal(ctx context.Context, values []ProgramAggr
 			continue
 		}
 		state := programStateForVisibleMatters(*value.CurrentState, counts[value.Program.ID])
+		// Canonical projection time can advance solely because of a Matter the
+		// actor cannot see. Program updated_at is canonical actor-visible state,
+		// so use it as the stable presentation timestamp instead.
+		state.GeneratedAt = value.Program.UpdatedAt.UTC()
 		result[index].CurrentState = &state
 		result[index] = decorateProgram(result[index])
 	}
