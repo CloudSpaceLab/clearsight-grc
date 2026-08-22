@@ -34,6 +34,11 @@ func (a *API) listPrograms(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusInternalServerError, "programs_failed", "Programs could not be loaded.")
 		return
 	}
+	values, err = a.programsForActor(r.Context(), values, nil)
+	if err != nil {
+		writeContinuityError(w, err)
+		return
+	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values, "generated_at": time.Now().UTC()})
 }
 
@@ -48,7 +53,7 @@ func (a *API) createProgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	value, err := service.CreateProgram(r.Context(), input)
-	writeContinuityResult(w, value, err, http.StatusCreated)
+	a.writeProgramResult(w, r, value, err, http.StatusCreated, nil)
 }
 
 func (a *API) getProgram(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +66,7 @@ func (a *API) getProgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	value, err := service.GetProgram(r.Context(), tenant, r.PathValue("id"))
-	writeContinuityResult(w, value, err, http.StatusOK)
+	a.writeProgramResult(w, r, value, err, http.StatusOK, nil)
 }
 
 func (a *API) getProgramHistory(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +83,7 @@ func (a *API) getProgramHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	value, err := service.ProgramAt(r.Context(), tenant, r.PathValue("id"), at)
-	writeContinuityResult(w, value, err, http.StatusOK)
+	a.writeProgramResult(w, r, value, err, http.StatusOK, &at)
 }
 
 func (a *API) transitionProgram(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +98,7 @@ func (a *API) transitionProgram(w http.ResponseWriter, r *http.Request) {
 	}
 	input.ID = r.PathValue("id")
 	value, err := service.TransitionProgram(r.Context(), input)
-	writeContinuityResult(w, value, err, http.StatusOK)
+	a.writeProgramResult(w, r, value, err, http.StatusOK, nil)
 }
 
 func (a *API) addProgramRequirement(w http.ResponseWriter, r *http.Request) {
@@ -108,7 +113,7 @@ func (a *API) addProgramRequirement(w http.ResponseWriter, r *http.Request) {
 	}
 	input.ProgramID = r.PathValue("id")
 	value, err := service.AddRequirement(r.Context(), input)
-	writeContinuityResult(w, value, err, http.StatusCreated)
+	a.writeProgramResult(w, r, value, err, http.StatusCreated, nil)
 }
 
 func (a *API) determineProgramApplicability(w http.ResponseWriter, r *http.Request) {
@@ -123,7 +128,7 @@ func (a *API) determineProgramApplicability(w http.ResponseWriter, r *http.Reque
 	}
 	input.ProgramID = r.PathValue("id")
 	value, err := service.DetermineApplicability(r.Context(), input)
-	writeContinuityResult(w, value, err, http.StatusCreated)
+	a.writeProgramResult(w, r, value, err, http.StatusCreated, nil)
 }
 
 func (a *API) addProgramControlObjective(w http.ResponseWriter, r *http.Request) {
@@ -138,7 +143,7 @@ func (a *API) addProgramControlObjective(w http.ResponseWriter, r *http.Request)
 	}
 	input.ProgramID = r.PathValue("id")
 	value, err := service.AddControlObjective(r.Context(), input)
-	writeContinuityResult(w, value, err, http.StatusCreated)
+	a.writeProgramResult(w, r, value, err, http.StatusCreated, nil)
 }
 
 func (a *API) addProgramControlImplementation(w http.ResponseWriter, r *http.Request) {
@@ -153,7 +158,7 @@ func (a *API) addProgramControlImplementation(w http.ResponseWriter, r *http.Req
 	}
 	input.ProgramID = r.PathValue("id")
 	value, err := service.AddControlImplementation(r.Context(), input)
-	writeContinuityResult(w, value, err, http.StatusCreated)
+	a.writeProgramResult(w, r, value, err, http.StatusCreated, nil)
 }
 
 func (a *API) linkProgramRequirementControl(w http.ResponseWriter, r *http.Request) {
@@ -168,7 +173,7 @@ func (a *API) linkProgramRequirementControl(w http.ResponseWriter, r *http.Reque
 	}
 	input.ProgramID = r.PathValue("id")
 	value, err := service.LinkRequirementControl(r.Context(), input)
-	writeContinuityResult(w, value, err, http.StatusCreated)
+	a.writeProgramResult(w, r, value, err, http.StatusCreated, nil)
 }
 
 func (a *API) addProgramEvidenceContract(w http.ResponseWriter, r *http.Request) {
@@ -183,7 +188,7 @@ func (a *API) addProgramEvidenceContract(w http.ResponseWriter, r *http.Request)
 	}
 	input.ProgramID = r.PathValue("id")
 	value, err := service.AddEvidenceContract(r.Context(), input)
-	writeContinuityResult(w, value, err, http.StatusCreated)
+	a.writeProgramResult(w, r, value, err, http.StatusCreated, nil)
 }
 
 func (a *API) recordProgramEvidenceAssessment(w http.ResponseWriter, r *http.Request) {
@@ -198,7 +203,7 @@ func (a *API) recordProgramEvidenceAssessment(w http.ResponseWriter, r *http.Req
 	}
 	input.ProgramID = r.PathValue("id")
 	value, err := service.RecordEvidenceAssessment(r.Context(), input)
-	writeContinuityResult(w, value, err, http.StatusCreated)
+	a.writeProgramResult(w, r, value, err, http.StatusCreated, nil)
 }
 
 func (a *API) applyProgramTrigger(w http.ResponseWriter, r *http.Request) {
@@ -216,6 +221,14 @@ func (a *API) applyProgramTrigger(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeContinuityError(w, err)
 		return
+	}
+	program, err = a.programForActor(r.Context(), program, nil)
+	if err != nil {
+		writeContinuityError(w, err)
+		return
+	}
+	if matter != nil && !canReadMatter(r.Context(), *matter) {
+		matter = nil
 	}
 	httpx.WriteJSON(w, http.StatusAccepted, map[string]any{"program": program, "matter": matter, "inserted": inserted})
 }
