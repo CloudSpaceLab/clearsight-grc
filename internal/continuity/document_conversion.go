@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 )
 
 // EnsureRequirement materializes one deterministic canonical requirement.
@@ -144,7 +143,3 @@ func sameEnsuredControlObjective(current ControlObjective, input AddControlObjec
 		current.Outcome == strings.TrimSpace(input.Outcome) &&
 		current.Status == status
 }
-
-// Compile-time guard against accidentally introducing wall-clock values outside
-// the service clock in future edits of this replay path.
-var _ = time.Time{}
