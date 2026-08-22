@@ -25,7 +25,7 @@ func (r *MemoryRepository) ListProgramSummaries(ctx context.Context, tenant stri
 		aggregate = cloneProgramAggregate(aggregate)
 		if enforceVisibility && aggregate.CurrentState != nil {
 			visible := r.visibleProgramMatterVisibilityForProgramLocked(tenant, aggregate.Program.ID, actor.PrincipalID)
-			state := programStateForVisibleMatters(*aggregate.CurrentState, visible)
+			state := programStateForVisibleMatters(*aggregate.CurrentState, visible.OpenCount)
 			state.GeneratedAt = actorVisibleProgramStateTime(aggregate.Program.UpdatedAt, visible.LatestAt)
 			aggregate.CurrentState = &state
 		}
@@ -77,11 +77,9 @@ func (r *MemoryRepository) ListProgramSummaries(ctx context.Context, tenant stri
 func (r *MemoryRepository) visibleProgramMatterVisibilityForProgramLocked(tenant, programID, principalID string) programMatterVisibility {
 	targets := map[string]struct{}{programID: {}}
 	visibility := map[string]programMatterVisibility{}
-	revisions := map[string][]string{}
 	for _, aggregate := range r.matters[tenant] {
-		collectVisibleMatterPrograms(aggregate, aggregate.Matter.UpdatedAt, principalID, targets, visibility, revisions)
+		collectVisibleMatterPrograms(aggregate, aggregate.Matter.UpdatedAt, principalID, targets, visibility)
 	}
-	finalizeProgramMatterVisibility(visibility, revisions)
 	return visibility[programID]
 }
 
