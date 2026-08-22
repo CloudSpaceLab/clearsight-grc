@@ -133,7 +133,9 @@ func visibleProgramStateVersion(state ProgramStateSnapshot) int64 {
 		OpenMatterCount: state.OpenMatterCount,
 	})
 	sum := sha256.Sum256(payload)
-	version := int64(binary.BigEndian.Uint64(sum[:8]) & 0x7fffffffffffffff)
+	// Keep this within JavaScript Number.MAX_SAFE_INTEGER so the browser can
+	// round-trip optimistic review versions without precision loss.
+	version := int64(binary.BigEndian.Uint64(sum[:8]) & 0x001fffffffffffff)
 	if version == 0 {
 		return 1
 	}
