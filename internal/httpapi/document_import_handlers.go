@@ -30,7 +30,7 @@ func (a *API) listDocumentImports(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	values, err := service.List(r.Context(), actor.TenantID, limit)
+	values, err := service.ListVisible(r.Context(), actor.TenantID, actor.LegalEntityID, limit)
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "document_imports_failed", "Imported documents could not be loaded.")
 		return
@@ -96,7 +96,7 @@ func (a *API) getDocumentImport(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
 		return
 	}
-	value, err := service.Get(r.Context(), actor.TenantID, r.PathValue("id"))
+	value, err := service.GetVisible(r.Context(), actor.TenantID, actor.LegalEntityID, r.PathValue("id"))
 	if errors.Is(err, documentimport.ErrNotFound) {
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "Imported document not found.")
 		return
@@ -127,8 +127,17 @@ func (a *API) reviewDocumentProposal(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
+	documentID := r.PathValue("id")
+	if _, err := service.GetVisible(r.Context(), actor.TenantID, actor.LegalEntityID, documentID); err != nil {
+		if errors.Is(err, documentimport.ErrNotFound) {
+			httpx.WriteError(w, http.StatusNotFound, "not_found", "Document proposal not found.")
+			return
+		}
+		httpx.WriteError(w, http.StatusInternalServerError, "review_failed", "The review could not be recorded.")
+		return
+	}
 	value, err := service.ReviewProposal(r.Context(), documentimport.ReviewInput{
-		TenantID: actor.TenantID, DocumentID: r.PathValue("id"), ProposalID: r.PathValue("proposal_id"), ReviewerID: actor.PrincipalID,
+		TenantID: actor.TenantID, DocumentID: documentID, ProposalID: r.PathValue("proposal_id"), ReviewerID: actor.PrincipalID,
 		Status: input.Status, Note: input.Note, ExpectedVersion: input.ExpectedVersion,
 	})
 	switch {
