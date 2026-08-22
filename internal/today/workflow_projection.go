@@ -75,12 +75,15 @@ func workflowTarget(task workflow.Task) (string, string) {
 	targetID := strings.TrimSpace(context["action_target_id"])
 	if targetID != "" {
 		switch targetType {
-		case "PROGRAM", "MATTER", "EVIDENCE_REQUEST":
+		case "PROGRAM", "MATTER", "EVIDENCE_REQUEST", "DOCUMENT_IMPORT":
 			return targetType, targetID
 		}
 	}
 	if value := strings.TrimSpace(context["evidence_request_id"]); value != "" {
 		return "EVIDENCE_REQUEST", value
+	}
+	if value := strings.TrimSpace(context["document_import_id"]); value != "" {
+		return "DOCUMENT_IMPORT", value
 	}
 	if value := strings.TrimSpace(context["matter_id"]); value != "" {
 		return "MATTER", value
@@ -99,6 +102,7 @@ func workflowAuthorityContext(task workflow.Task, targetType, targetID string) *
 	if responsibility == "" {
 		return nil
 	}
+	decisionType := strings.TrimSpace(task.Context["decision_type"])
 	materiality := task.MatterPriority
 	if materiality <= 0 {
 		if raw := strings.TrimSpace(task.Context["materiality"]); raw != "" {
@@ -107,9 +111,27 @@ func workflowAuthorityContext(task workflow.Task, targetType, targetID string) *
 			}
 		}
 	}
+	if targetType == "DOCUMENT_IMPORT" {
+		switch task.StepKey {
+		case "document-proposal-review":
+			if decisionType == "" {
+				decisionType = "document.proposal.review"
+			}
+			if materiality <= 0 {
+				materiality = 3
+			}
+		case "document-proposal-authorization":
+			if decisionType == "" {
+				decisionType = "document.proposal.authorize"
+			}
+			if materiality <= 0 {
+				materiality = 4
+			}
+		}
+	}
 	return &AuthorityContext{
 		Responsibility: responsibility,
-		DecisionType:   strings.TrimSpace(task.Context["decision_type"]),
+		DecisionType:   decisionType,
 		Materiality:    materiality,
 	}
 }
