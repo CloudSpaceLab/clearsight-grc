@@ -105,7 +105,7 @@ func (a *API) getDocumentImport(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusInternalServerError, "document_import_failed", "The imported document could not be loaded.")
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, value)
+	httpx.WriteJSON(w, http.StatusOK, a.withDocumentHandoffRoutes(r, actor, value))
 }
 
 func (a *API) reviewDocumentProposal(w http.ResponseWriter, r *http.Request) {
@@ -141,6 +141,6 @@ func (a *API) reviewDocumentProposal(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		httpx.WriteError(w, http.StatusInternalServerError, "review_failed", "The review could not be recorded.")
 	default:
-		httpx.WriteJSON(w, http.StatusOK, value)
+		httpx.WriteJSON(w, http.StatusOK, a.withDocumentHandoffRoutes(r, actor, value))
 	}
 }
