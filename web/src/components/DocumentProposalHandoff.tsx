@@ -11,9 +11,10 @@ type Props = {
   legalEntityID?: string;
   proposal: DocumentProposal;
   locked: boolean;
+  onDocumentUpdated?: (document: DocumentImport) => void;
 };
 
-export function DocumentProposalHandoff({ documentID, documentVersion, legalEntityID, proposal, locked }: Props) {
+export function DocumentProposalHandoff({ documentID, documentVersion, legalEntityID, proposal, locked, onDocumentUpdated }: Props) {
   const [currentProposal, setCurrentProposal] = useState(proposal);
   const [currentDocumentVersion, setCurrentDocumentVersion] = useState(documentVersion);
   const [programs, setPrograms] = useState<ProgramAggregate[]>([]);
@@ -142,6 +143,7 @@ export function DocumentProposalHandoff({ documentID, documentVersion, legalEnti
     const updated = document.proposals.find((item) => item.id === currentProposal.id);
     if (updated) setCurrentProposal(updated);
     setCurrentDocumentVersion(document.version);
+    onDocumentUpdated?.(document);
   }
 }
 
