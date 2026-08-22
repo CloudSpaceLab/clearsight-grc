@@ -143,6 +143,10 @@ func (s *Service) ProgramReviewDigest(ctx context.Context, tenant, programID, pr
 	if err != nil {
 		return ProgramReviewDigest{}, err
 	}
+	events, err = programReviewEventsForPrincipal(events, principalID)
+	if err != nil {
+		return ProgramReviewDigest{}, err
+	}
 	digest.HistoryTruncated = truncated
 	changes := deriveProgramReviewChanges(aggregate, *baseline, *current, events, newReasons)
 	digest.ChangesTotal = len(changes)
