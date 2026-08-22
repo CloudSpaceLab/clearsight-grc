@@ -50,6 +50,7 @@ type Task struct {
 
 type ListFilter struct {
 	TenantID              string
+	LegalEntityID         string
 	PrincipalID           string
 	Status                Status
 	WorkflowKind          string
