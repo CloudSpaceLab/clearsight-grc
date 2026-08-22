@@ -2,6 +2,9 @@ package continuity
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -104,7 +107,37 @@ func programStateForVisibleMatters(state ProgramStateSnapshot, visibleOpenMatter
 	sortStateReasons(reasons)
 	state.Reasons = reasons
 	state.Overall = chooseOverallState(state.Dimensions)
+
+	// Snapshot identity and trigger metadata are internal projection provenance
+	// and can change because of a Matter this actor cannot see. The actor-facing
+	// version is instead a stable fingerprint of visible semantic state.
+	state.ID = ""
+	state.TriggerType = ""
+	state.TriggerID = ""
+	state.ProjectionVersion = visibleProgramStateVersion(state)
 	return state
+}
+
+func visibleProgramStateVersion(state ProgramStateSnapshot) int64 {
+	payload, _ := json.Marshal(struct {
+		ProgramVersion  int64                `json:"program_version"`
+		Overall         ProgramState         `json:"overall"`
+		Dimensions      ComplianceDimensions `json:"dimensions"`
+		Reasons         []StateReason        `json:"reasons"`
+		OpenMatterCount int                  `json:"open_matter_count"`
+	}{
+		ProgramVersion:  state.ProgramVersion,
+		Overall:         state.Overall,
+		Dimensions:      state.Dimensions,
+		Reasons:         state.Reasons,
+		OpenMatterCount: state.OpenMatterCount,
+	})
+	sum := sha256.Sum256(payload)
+	version := int64(binary.BigEndian.Uint64(sum[:8]) & 0x7fffffffffffffff)
+	if version == 0 {
+		return 1
+	}
+	return version
 }
 
 func (r *MemoryRepository) VisibleOpenMatterCounts(_ context.Context, tenant string, programIDs []string, principalID string, at *time.Time) (map[string]int, error) {
