@@ -20,6 +20,7 @@ const noActorField = "-"
 
 type commandPolicy struct {
 	ObjectType      string
+	ObjectIDField   string
 	Responsibility  authority.Responsibility
 	Materiality     int
 	AllowService    bool
@@ -72,7 +73,7 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 			return
 		}
 
-		objectID := commandObjectID(r, payload)
+		objectID := commandObjectIDForPolicy(policy, r, payload)
 		materiality := policy.Materiality
 		if value, ok := numberValue(payload["materiality"]); ok {
 			materiality = max(materiality, value)
