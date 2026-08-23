@@ -24,12 +24,12 @@ func (a *API) monitoringService(w http.ResponseWriter) (*monitoring.Service, boo
 	return a.deps.Monitoring, true
 }
 
-func monitoringActor(r *http.Request) (monitoring.Actor, error) {
+func monitoringActor(r *http.Request) (monitoring.Actor, identity.Actor, error) {
 	actor, err := identity.Require(r.Context())
 	if err != nil {
-		return monitoring.Actor{}, err
+		return monitoring.Actor{}, identity.Actor{}, err
 	}
-	return monitoring.Actor{TenantID: actor.TenantID, PrincipalID: actor.PrincipalID}, nil
+	return monitoring.Actor{TenantID: actor.TenantID, PrincipalID: actor.PrincipalID}, actor, nil
 }
 
 func (a *API) listFormTemplates(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +37,7 @@ func (a *API) listFormTemplates(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, _, err := monitoringActor(r)
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
 		return
@@ -56,7 +56,7 @@ func (a *API) createFormTemplate(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, _, err := monitoringActor(r)
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
 		return
@@ -79,7 +79,7 @@ func (a *API) transitionFormTemplate(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, _, err := monitoringActor(r)
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
 		return
@@ -103,7 +103,7 @@ func (a *API) startFormCollection(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, signedActor, err := monitoringActor(r)
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
 		return
@@ -111,6 +111,10 @@ func (a *API) startFormCollection(w http.ResponseWriter, r *http.Request) {
 	var input monitoring.StartCollectionInput
 	if err := httpx.DecodeJSON(w, r, &input); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	if err := a.requireMonitoringProgramScope(r.Context(), signedActor, input.ProgramID); err != nil {
+		writeMonitoringError(w, err)
 		return
 	}
 	input.FormTemplateID = r.PathValue("id")
@@ -127,13 +131,18 @@ func (a *API) listMonitoringChecks(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, signedActor, err := monitoringActor(r)
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
 		return
 	}
+	programID := r.PathValue("id")
+	if err := a.requireMonitoringProgramScope(r.Context(), signedActor, programID); err != nil {
+		writeMonitoringError(w, err)
+		return
+	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	values, err := service.ListChecks(r.Context(), actor, r.PathValue("id"), limit)
+	values, err := service.ListChecks(r.Context(), actor, programID, limit)
 	if err != nil {
 		writeMonitoringError(w, err)
 		return
@@ -146,7 +155,7 @@ func (a *API) createMonitoringCheck(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, signedActor, err := monitoringActor(r)
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
 		return
@@ -157,6 +166,10 @@ func (a *API) createMonitoringCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	input.ProgramID = r.PathValue("id")
+	if err := a.requireMonitoringProgramScope(r.Context(), signedActor, input.ProgramID); err != nil {
+		writeMonitoringError(w, err)
+		return
+	}
 	value, err := service.CreateCheck(r.Context(), actor, input)
 	if err != nil {
 		writeMonitoringError(w, err)
@@ -170,7 +183,7 @@ func (a *API) transitionMonitoringCheck(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, signedActor, err := monitoringActor(r)
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
 		return
@@ -181,6 +194,15 @@ func (a *API) transitionMonitoringCheck(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	input.ID = r.PathValue("id")
+	check, err := service.CheckRevisionForScope(r.Context(), actor.TenantID, input.ID, input.ExpectedVersion)
+	if err != nil {
+		writeMonitoringError(w, err)
+		return
+	}
+	if err := a.requireMonitoringProgramScope(r.Context(), signedActor, check.ProgramID); err != nil {
+		writeMonitoringError(w, err)
+		return
+	}
 	value, err := service.TransitionCheck(r.Context(), actor, input)
 	if err != nil {
 		writeMonitoringError(w, err)
@@ -194,7 +216,7 @@ func (a *API) listMonitoringResults(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, signedActor, err := monitoringActor(r)
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
 		return
@@ -205,6 +227,19 @@ func (a *API) listMonitoringResults(w http.ResponseWriter, r *http.Request) {
 		writeMonitoringError(w, err)
 		return
 	}
+	if len(values) > 0 {
+		programID := values[0].ProgramID
+		for _, value := range values[1:] {
+			if value.ProgramID != programID {
+				httpx.WriteError(w, http.StatusInternalServerError, "monitoring_failed", "The monitoring results could not be safely resolved.")
+				return
+			}
+		}
+		if err := a.requireMonitoringProgramScope(r.Context(), signedActor, programID); err != nil {
+			writeMonitoringError(w, err)
+			return
+		}
+	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values})
 }
 
@@ -213,7 +248,7 @@ func (a *API) evaluateMonitoringSource(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, signedActor, err := monitoringActor(r)
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
 		return
@@ -224,6 +259,15 @@ func (a *API) evaluateMonitoringSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	input.CheckID = r.PathValue("id")
+	check, err := service.CheckRevisionForScope(r.Context(), actor.TenantID, input.CheckID, input.CheckVersion)
+	if err != nil {
+		writeMonitoringError(w, err)
+		return
+	}
+	if err := a.requireMonitoringProgramScope(r.Context(), signedActor, check.ProgramID); err != nil {
+		writeMonitoringError(w, err)
+		return
+	}
 	value, err := service.EvaluateSource(r.Context(), actor, input)
 	if err != nil {
 		writeMonitoringError(w, err)
