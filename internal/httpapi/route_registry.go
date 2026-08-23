@@ -208,7 +208,7 @@ func (a *API) routes() []routeSpec {
 		withPermission(read("/api/v1/access/overview", a.identityAccessOverview), identity.PermissionIdentityRead),
 		withPermission(write(http.MethodPost, "/api/v1/access/scim-sources", a.createSCIMSource, nil), identity.PermissionIdentityConfigure),
 		withPermission(write(http.MethodPost, "/api/v1/access/scim-sources/{id}/rotate-token", a.rotateSCIMSourceToken, nil), identity.PermissionIdentityConfigure),
-		withPermission(write(http.MethodPost, "/api/v1/access/scim-sources/{id}/revoke", a.revokeSCIMSourceToken, nil), identity.PermissionIdentityConfigure),
+		withPermission(write(http.MethodPost, "/api/v1/access/scim-sources/{id}/revoke", a.revokeSCIMSource, nil), identity.PermissionIdentityConfigure),
 		withPermission(write(http.MethodPost, "/api/v1/access/group-role-bindings", a.createDirectoryGroupRoleBinding, nil), identity.PermissionIdentityConfigure),
 		withPermission(write(http.MethodPost, "/api/v1/access/group-role-bindings/{id}/retire", a.retireDirectoryGroupRoleBinding, nil), identity.PermissionIdentityConfigure),
 		withPermission(write(http.MethodPost, "/api/v1/access/escalation-guard-revisions", a.proposeEscalationGuardRevision, nil), identity.PermissionIdentityConfigure),
