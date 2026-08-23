@@ -57,7 +57,7 @@ type committedCommandReceipt struct {
 }
 
 func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, policy commandPolicy, payload map[string]any, handler http.HandlerFunc) {
-	objectID := commandObjectID(r, payload)
+	objectID := commandObjectIDForPolicy(policy, r, payload)
 	if a.deps.Continuity == nil || objectID == "" || objectID == "*" || (policy.ObjectType != "PROGRAM" && policy.ObjectType != "MATTER") {
 		handler(w, r)
 		return
@@ -98,6 +98,16 @@ func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, pol
 		Version:          version,
 		ResponseDegraded: true,
 	})
+}
+
+func commandObjectIDForPolicy(policy commandPolicy, r *http.Request, payload map[string]any) string {
+	if field := strings.TrimSpace(policy.ObjectIDField); field != "" {
+		if value := stringValue(payload[field]); value != "" {
+			return value
+		}
+		return "*"
+	}
+	return commandObjectID(r, payload)
 }
 
 func commandObjectID(r *http.Request, payload map[string]any) string {
