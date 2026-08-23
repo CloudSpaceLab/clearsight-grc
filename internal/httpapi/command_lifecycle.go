@@ -18,6 +18,9 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 	if strings.HasPrefix(name, "document.proposal.") {
 		return a.documentProposalCommandPolicy(ctx, r, tenant, name, payload, policy)
 	}
+	if strings.HasPrefix(name, "monitoring.") {
+		return a.monitoringCommandPolicy(ctx, r, tenant, name, payload, policy)
+	}
 
 	matterID, err := lifecycleMatterID(r, payload)
 	if err != nil {
