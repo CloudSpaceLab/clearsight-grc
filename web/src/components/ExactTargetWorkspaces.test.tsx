@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { MatterAggregate, ProgramAggregate } from "../types";
 import { MattersWorkspace } from "./MattersWorkspace";
 import { ProgramsWorkspace } from "./ProgramsWorkspace";
-import { loadMatter, loadMatterSummaries, loadProgram, loadProgramSummaries } from "../api";
+import { loadEvidenceSources, loadMatter, loadMatterSummaries, loadProgram, loadProgramSummaries } from "../api";
 import { createMatter } from "../continuityCommands";
 import { loadMatterOperations } from "../matterOperationsApi";
 import { loadProgramOperations } from "../programOperationsApi";
@@ -14,6 +14,7 @@ vi.mock("../api", () => ({
   loadMatterSummaries: vi.fn(),
   loadProgram: vi.fn(),
   loadProgramSummaries: vi.fn(),
+  loadEvidenceSources: vi.fn(),
 }));
 
 vi.mock("../continuityCommands", async (importOriginal) => ({
@@ -51,6 +52,7 @@ const matterDetail: MatterAggregate = {
 describe("exact workspace targets", () => {
   it("renders a directly fetched Program even when it is outside the first summary page", async () => {
     vi.mocked(loadProgramSummaries).mockResolvedValue({ items: [], generated_at: "2026-08-06T10:00:00Z" });
+    vi.mocked(loadEvidenceSources).mockResolvedValue([]);
     vi.mocked(loadProgram).mockResolvedValue(programDetail);
 	vi.mocked(loadProgramOperations).mockResolvedValue({ program_id: programDetail.program.id, program_version: 2, authority_available: true, operations: [], generated_at: "2026-08-06T10:00:00Z" });
 	vi.mocked(loadProgramReviewDigest).mockResolvedValue({ program_id: programDetail.program.id, state: "CURRENT", review_required: false, current_program_version: 2, current_projection_version: 4, current_overall: "EVIDENCE_INSUFFICIENT", open_matter_count: 1, changes: [], changes_total: 0, changes_omitted: 0, history_truncated: false, current_exceptions: [], current_exceptions_total: 0, new_exceptions: [], new_exceptions_total: 0, resolved_exceptions: [], resolved_exceptions_total: 0 });

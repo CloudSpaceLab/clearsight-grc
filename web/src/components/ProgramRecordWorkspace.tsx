@@ -11,8 +11,11 @@ import { ProgramReviewDigest } from "./ProgramReviewDigest";
 import { ProgramDetailsPanel } from "./ProgramDetailsPanel";
 import { ProgramRequirementsPanel } from "./ProgramRequirementsPanel";
 import { ProgramSafeguardsPanel } from "./ProgramSafeguardsPanel";
+import { ProgramEvidencePanel } from "./ProgramEvidencePanel";
+import { ProgramIssuesPanel } from "./ProgramIssuesPanel";
+import { ProgramStatusPanel } from "./ProgramStatusPanel";
 
-type Props = { programID: string; onBack: () => void };
+type Props = { programID: string; onBack: () => void; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenMatter?: (matterID: string) => void };
 type State = "loading" | "live" | "unavailable";
 
 function statusLabel(value: string) {
@@ -25,7 +28,7 @@ function statusLabel(value: string) {
   }
 }
 
-export function ProgramRecordWorkspace({ programID, onBack }: Props) {
+export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "", canConfigureSources = false, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; } }: Props) {
   const [state, setState] = useState<State>("loading");
   const [aggregate, setAggregate] = useState<ProgramAggregate | null>(null);
   const [operations, setOperations] = useState<ProgramOperations | null>(null);
@@ -81,10 +84,12 @@ export function ProgramRecordWorkspace({ programID, onBack }: Props) {
       <ProgramCurrentPosition aggregate={aggregate} operations={operations} digest={digest}/>
       <section className="program-record-grid">
         <article className="program-record-panel" id="program-review-panel"><ProgramReviewDigest aggregate={aggregate} initialDigest={digest} onDigestUpdated={setDigest}/></article>
+		<ProgramStatusPanel aggregate={aggregate} operations={operations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reload()}/>
 		<ProgramDetailsPanel aggregate={aggregate} operations={operations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reload()}/>
 		<ProgramRequirementsPanel aggregate={aggregate} operations={operations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reload()}/>
 		<ProgramSafeguardsPanel aggregate={aggregate} operations={operations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reload()}/>
-        <article className="program-record-panel" id="program-evidence-panel"><span className="eyebrow">Evidence checks</span><h2>Evidence and results</h2><p>{aggregate.evidence_contracts.length} evidence check{aggregate.evidence_contracts.length === 1 ? " is" : "s are"} defined.</p></article>
+		<ProgramEvidencePanel aggregate={aggregate} operations={operations.operations} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reload()}/>
+		<ProgramIssuesPanel aggregate={aggregate} onOpenMatter={onOpenMatter}/>
       </section>
     </>}
   </section>;

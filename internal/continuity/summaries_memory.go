@@ -82,6 +82,18 @@ func (r *MemoryRepository) ListMatterSummaries(ctx context.Context, tenant strin
 		if query.Status != "" && query.Status != "OPEN" && string(aggregate.Matter.Status) != query.Status {
 			continue
 		}
+		if query.ProgramID != "" {
+			linked := false
+			for _, link := range aggregate.Links {
+				if link.ProgramID == query.ProgramID {
+					linked = true
+					break
+				}
+			}
+			if !linked {
+				continue
+			}
+		}
 		value := summarizeMatter(cloneMatterAggregate(aggregate))
 		if search != "" && !strings.Contains(strings.ToLower(value.Matter.Reference+" "+value.Matter.Title+" "+value.Matter.Summary+" "+value.TypeLabel), search) {
 			continue

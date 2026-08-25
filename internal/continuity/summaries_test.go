@@ -57,3 +57,36 @@ func TestMatterSummaryPaginationAndInvalidCursor(t *testing.T) {
 		t.Fatal("expected invalid cursor error")
 	}
 }
+
+func TestMatterSummariesCanBeBoundedToAnExactProgram(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(NewMemoryRepository())
+	if err := SeedDemo(ctx, service); err != nil {
+		t.Fatalf("seed demo: %v", err)
+	}
+	programs, err := service.ListProgramSummaries(ctx, "bank-demo", SummaryQuery{Limit: 10})
+	if err != nil || len(programs.Items) < 2 {
+		t.Fatalf("list programs: %#v %v", programs, err)
+	}
+	for _, program := range programs.Items {
+		page, err := service.ListMatterSummaries(ctx, "bank-demo", SummaryQuery{Limit: 10, Status: "OPEN", ProgramID: program.Program.ID})
+		if err != nil {
+			t.Fatalf("list linked matters: %v", err)
+		}
+		for _, item := range page.Items {
+			aggregate, getErr := service.GetMatter(ctx, "bank-demo", item.Matter.ID)
+			if getErr != nil {
+				t.Fatal(getErr)
+			}
+			linked := false
+			for _, link := range aggregate.Links {
+				if link.ProgramID == program.Program.ID {
+					linked = true
+				}
+			}
+			if !linked {
+				t.Fatalf("matter %s is not linked to Program %s", item.Matter.ID, program.Program.ID)
+			}
+		}
+	}
+}

@@ -96,7 +96,7 @@ async function scopedRequest<T>(path: string, values: Record<string, string | nu
 }
 
 function summaryValues(query: SummaryQuery) {
-  return { q: query.q, status: query.status, cursor: query.cursor, limit: query.limit ?? 20 };
+  return { q: query.q, status: query.status, program_id: query.programID, cursor: query.cursor, limit: query.limit ?? 20 };
 }
 
 export function loadBankJourneys(): Promise<BankJourneysResponse> {

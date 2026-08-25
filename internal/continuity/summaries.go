@@ -13,10 +13,11 @@ import (
 // Cursor values are opaque to clients and encode the last item from the
 // previous page.
 type SummaryQuery struct {
-	Search string
-	Status string
-	Cursor string
-	Limit  int
+	Search    string
+	Status    string
+	ProgramID string
+	Cursor    string
+	Limit     int
 }
 
 type ProgramSummary struct {
@@ -74,6 +75,7 @@ func (s *Service) ListProgramSummaries(ctx context.Context, tenant string, query
 	}
 	query.Search = strings.TrimSpace(query.Search)
 	query.Status = strings.ToUpper(strings.TrimSpace(query.Status))
+	query.ProgramID = strings.TrimSpace(query.ProgramID)
 	query.Limit = boundedLimit(query.Limit)
 	if summaries, ok := s.repo.(SummaryRepository); ok {
 		return summaries.ListProgramSummaries(ctx, tenant, query)
@@ -105,6 +107,18 @@ func (s *Service) ListMatterSummaries(ctx context.Context, tenant string, query 
 	}
 	items := make([]MatterSummary, 0, len(values))
 	for _, value := range values {
+		if query.ProgramID != "" {
+			linked := false
+			for _, link := range value.Links {
+				if link.ProgramID == query.ProgramID {
+					linked = true
+					break
+				}
+			}
+			if !linked {
+				continue
+			}
+		}
 		items = append(items, summarizeMatter(value))
 	}
 	return MatterSummaryPage{Items: items, GeneratedAt: s.now().UTC()}, nil

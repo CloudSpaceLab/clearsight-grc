@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { loadProgram, loadProgramSummaries } from "../api";
+import { loadEvidenceSources, loadMatterSummaries, loadProgram, loadProgramSummaries } from "../api";
 import {
+  addProgramEvidenceContract,
   addProgramRequirement,
 	addProgramControlImplementation,
 	addProgramControlObjective,
@@ -9,15 +10,19 @@ import {
   determineProgramApplicability,
   loadProgramOperations,
 	linkProgramRequirementControl,
+  recordProgramEvidenceAssessment,
   supersedeProgramRequirement,
+  transitionProgram,
   updateProgramDetails,
 } from "../programOperationsApi";
 import { loadProgramReviewDigest } from "../programReviewApi";
-import type { ProgramAggregate } from "../types";
+import type { MatterAggregate, ProgramAggregate } from "../types";
+import { createMatter } from "../continuityCommands";
 import { ProgramRecordWorkspace } from "./ProgramRecordWorkspace";
 import { ProgramsWorkspace } from "./ProgramsWorkspace";
 
-vi.mock("../api", () => ({ loadProgram: vi.fn(), loadProgramSummaries: vi.fn() }));
+vi.mock("../api", () => ({ loadProgram: vi.fn(), loadProgramSummaries: vi.fn(), loadMatterSummaries: vi.fn(), loadEvidenceSources: vi.fn() }));
+vi.mock("../continuityCommands", async (importOriginal) => ({ ...(await importOriginal<typeof import("../continuityCommands")>()), createMatter: vi.fn() }));
 vi.mock("../programOperationsApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../programOperationsApi")>()),
   loadProgramOperations: vi.fn(),
@@ -29,11 +34,15 @@ vi.mock("../programOperationsApi", async (importOriginal) => ({
 	addProgramControlObjective: vi.fn(),
 	addProgramControlImplementation: vi.fn(),
 	linkProgramRequirementControl: vi.fn(),
+  addProgramEvidenceContract: vi.fn(),
+  recordProgramEvidenceAssessment: vi.fn(),
+  transitionProgram: vi.fn(),
 }));
 vi.mock("../programReviewApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../programReviewApi")>()),
   loadProgramReviewDigest: vi.fn(),
 }));
+vi.mock("./MonitoringSetup", () => ({ MonitoringSetup: () => <section aria-label="Program monitoring"><h3>Monitoring</h3><button type="button">Add monitoring check</button></section> }));
 
 const aggregate: ProgramAggregate = {
   state_label: "Evidence incomplete",
@@ -75,6 +84,8 @@ describe("Program record workspace", () => {
     vi.mocked(loadProgramOperations).mockResolvedValue(operations);
     vi.mocked(loadProgramReviewDigest).mockResolvedValue(digest);
     vi.mocked(loadProgramSummaries).mockResolvedValue({ items: [], generated_at: "2026-08-25T10:00:00Z" });
+	vi.mocked(loadEvidenceSources).mockResolvedValue([]);
+	vi.mocked(loadMatterSummaries).mockResolvedValue({ items: [], generated_at: "2026-08-25T10:00:00Z" });
 	vi.mocked(updateProgramDetails).mockResolvedValue(aggregate);
 	vi.mocked(assignProgram).mockResolvedValue(aggregate);
 	vi.mocked(addProgramRequirement).mockResolvedValue(aggregate);
@@ -83,6 +94,9 @@ describe("Program record workspace", () => {
 	vi.mocked(addProgramControlObjective).mockResolvedValue(aggregate);
 	vi.mocked(addProgramControlImplementation).mockResolvedValue(aggregate);
 	vi.mocked(linkProgramRequirementControl).mockResolvedValue(aggregate);
+	vi.mocked(addProgramEvidenceContract).mockResolvedValue(aggregate);
+	vi.mocked(recordProgramEvidenceAssessment).mockResolvedValue(aggregate);
+	vi.mocked(transitionProgram).mockResolvedValue(aggregate);
   });
 
   it("shows owner, calculated-state freshness, reasons and one dominant action", async () => {
@@ -219,5 +233,84 @@ describe("Program record workspace", () => {
 	fireEvent.click(within(panel).getByRole("button", { name: "Link requirement to safeguard" }));
 	fireEvent.click(screen.getByRole("button", { name: "Save coverage link" }));
 	await waitFor(() => expect(linkProgramRequirementControl).toHaveBeenCalledWith("program-1", 4, "requirement-1", "implementation-1"));
+  });
+
+  it("defines evidence expectations, records reviewer results and keeps monitoring separate", async () => {
+	const value: ProgramAggregate = {
+	  ...aggregate,
+	  requirements: [{ id: "requirement-1", code: "CAR-01", title: "File the annual return", statement: "The bank must file its annual compliance return.", status: "APPROVED" }],
+	  control_implementations: [{ id: "implementation-1", name: "Annual return checklist", description: "Owners confirm each section.", implementation_type: "CHECKLIST", status: "IMPLEMENTED" }],
+	  evidence_contracts: [{ id: "contract-1", requirement_id: "requirement-1", code: "CAR-EVIDENCE", name: "Annual return filing evidence", claim: "The complete annual return was filed by the deadline.", acceptable_source_ids: ["source-1"], status: "ACTIVE", freshness_minutes: 43200, minimum_coverage: .95, independence_required: true, contradiction_policy: "REVIEW", failure_action: "MATTER" }],
+	  evidence_assessments: [],
+	};
+	vi.mocked(loadProgram).mockResolvedValue(value);
+	vi.mocked(loadEvidenceSources).mockResolvedValue([{ id: "source-1", tenant_id: "bank", code: "RETURN", name: "Annual return register", type: "REGISTER", authority_class: "AUTHORITATIVE", expected_freshness_minutes: 1440, health: "HEALTHY", status: "ACTIVE", version: 1 }]);
+	vi.mocked(addProgramEvidenceContract).mockResolvedValue(value);
+	vi.mocked(recordProgramEvidenceAssessment).mockResolvedValue(value);
+	vi.mocked(loadProgramOperations).mockResolvedValue({ ...operations, operations: [
+	  { command: "program.evidence.define", label: "Define an evidence check", responsibility: "ACCOUNTABLE_OWNER", can_act: true, reason: "You hold the current owner responsibility." },
+	  { command: "program.evidence.assess", label: "Record evidence check results", responsibility: "REVIEWER", can_act: true, assigned_to: { id: "reviewer-1", display_name: "Compliance assurance reviewer", kind: "PERSON", role: "Reviewer" }, reason: "You hold the current reviewer responsibility." },
+	] });
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+	await screen.findByRole("heading", { name: "Evidence checks and results" });
+	const panel = document.getElementById("program-evidence-panel")!;
+	expect(within(panel).getByRole("heading", { name: "Monitoring" })).toBeTruthy();
+
+	fireEvent.click(within(panel).getByRole("button", { name: "Define evidence check" }));
+	fireEvent.change(screen.getByLabelText("Evidence code"), { target: { value: "CAR-COMPLETE" } });
+	fireEvent.change(screen.getByLabelText("Evidence check name"), { target: { value: "Complete annual return evidence" } });
+	fireEvent.change(screen.getByLabelText("What must the evidence prove?"), { target: { value: "Every required return section was filed." } });
+	fireEvent.click(screen.getByLabelText("Annual return register"));
+	fireEvent.change(screen.getByLabelText("Maximum evidence age (days)"), { target: { value: "30" } });
+	fireEvent.change(screen.getByLabelText("Required population coverage (%)"), { target: { value: "95" } });
+	fireEvent.click(screen.getByLabelText("Independent review required"));
+	fireEvent.click(screen.getByRole("button", { name: "Save evidence check" }));
+	await waitFor(() => expect(addProgramEvidenceContract).toHaveBeenCalledWith("program-1", 4, expect.objectContaining({ code: "CAR-COMPLETE", acceptableSourceIDs: ["source-1"], freshnessMinutes: 43200, minimumCoverage: .95, independenceRequired: true })));
+
+	fireEvent.click(within(panel).getByRole("button", { name: "Record evidence result" }));
+	fireEvent.change(screen.getByLabelText("Conclusion"), { target: { value: "PARTIALLY_SUPPORTED" } });
+	fireEvent.change(screen.getByLabelText("Population coverage (%)"), { target: { value: "89" } });
+	fireEvent.change(screen.getByLabelText("Assessment basis"), { target: { value: "89 of 100 filing sections have current evidence." } });
+	fireEvent.change(screen.getByLabelText("Evidence references"), { target: { value: "Return register export\nFiling receipt" } });
+	fireEvent.click(screen.getByRole("button", { name: "Save evidence result" }));
+	await waitFor(() => expect(recordProgramEvidenceAssessment).toHaveBeenCalledWith("program-1", 4, expect.objectContaining({ contractID: "contract-1", conclusion: "PARTIALLY_SUPPORTED", coverage: .89, basis: { summary: "89 of 100 filing sections have current evidence.", evidence_references: ["Return register export", "Filing receipt"] } })));
+  });
+
+  it("shows only exactly linked issues and opens newly created work", async () => {
+	const linked = {
+	  matter: { id: "matter-1", tenant_id: "bank", reference: "MAT-001", type: "CONTROL_GAP", status: "OPEN", priority: 4, title: "Annual return evidence is incomplete", summary: "Two sections need approved evidence.", scope: {}, known_facts: {}, missing_facts: [], contradictions: [], created_at: "2026-08-20T10:00:00Z", updated_at: "2026-08-25T10:00:00Z", version: 2 },
+	  type_label: "Control gap", status_label: "Open", next_action: "Assign the evidence owners", program_count: 1, open_action_count: 1, outcome_check_count: 0,
+	};
+	const created: MatterAggregate = { type_label: "Control gap", status_label: "Draft", next_action: "Start initial review", matter: { ...linked.matter, id: "matter-new", reference: "MAT-NEW", title: "New Program issue", status: "DRAFT", version: 1 }, links: [{ id: "link-new", program_id: "program-1", relationship: "AFFECTS" }], decisions: [], actions: [], verification_contracts: [], verification_results: [], response_packages: [], closure: { ready: false, reasons: [] } };
+	vi.mocked(loadMatterSummaries).mockResolvedValue({ items: [linked], generated_at: "2026-08-25T10:00:00Z" });
+	vi.mocked(loadProgramSummaries).mockResolvedValue({ items: [{ program: aggregate.program, state_label: aggregate.state_label, overall_state: "EVIDENCE_INSUFFICIENT", reasons: [], reasons_total: 0, reasons_omitted: 0, open_matter_count: 1, requirement_count: 0, safeguard_count: 0, evidence_check_count: 0, program_version: 4, assessed_program_version: 3, projection_version: 8, projection_stale: true }], generated_at: "2026-08-25T10:00:00Z" });
+	vi.mocked(createMatter).mockResolvedValue(created);
+	const onOpenMatter = vi.fn();
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()} onOpenMatter={onOpenMatter}/>);
+	await screen.findByRole("heading", { name: "Linked issues and changes" });
+	const issues = document.getElementById("program-issues-panel")!;
+	expect(loadMatterSummaries).toHaveBeenCalledWith({ status: "OPEN", programID: "program-1", limit: 20 });
+	fireEvent.click(await within(issues).findByRole("button", { name: "Open MAT-001" }));
+	expect(onOpenMatter).toHaveBeenCalledWith("matter-1");
+
+	fireEvent.click(within(issues).getByRole("button", { name: "Record new issue" }));
+	await screen.findByRole("option", { name: "Nigeria data protection (NDPA)" });
+	expect((screen.getByLabelText("Program (optional)") as HTMLSelectElement).value).toBe("program-1");
+	fireEvent.change(screen.getByLabelText("Title"), { target: { value: "New Program issue" } });
+	fireEvent.change(screen.getByLabelText("What happened or changed?"), { target: { value: "A current evidence gap needs an owner." } });
+	fireEvent.change(screen.getByLabelText("Affected area"), { target: { value: "Annual return" } });
+	fireEvent.click(screen.getByRole("button", { name: "Create issue or change" }));
+	await waitFor(() => expect(createMatter).toHaveBeenCalledWith(expect.objectContaining({ programID: "program-1", title: "New Program issue" })));
+	expect(onOpenMatter).toHaveBeenCalledWith("matter-new");
+  });
+
+  it("lets the current authorizer change Program operating status with a reason", async () => {
+	const updated = { ...aggregate, program: { ...aggregate.program, status: "ACTIVE", version: 5 } };
+	vi.mocked(transitionProgram).mockResolvedValue(updated);
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+	await screen.findByRole("heading", { name: "Operating status" });
+	fireEvent.change(screen.getByLabelText("Reason for status change"), { target: { value: "The approved requirements, safeguards and evidence checks are in place." } });
+	fireEvent.click(screen.getByRole("button", { name: "Activate Program" }));
+	await waitFor(() => expect(transitionProgram).toHaveBeenCalledWith("program-1", 4, "ACTIVE", "The approved requirements, safeguards and evidence checks are in place."));
   });
 });

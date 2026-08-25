@@ -39,6 +39,7 @@ export type SummaryPage<T> = {
 export type SummaryQuery = {
   q?: string;
   status?: string;
+  programID?: string;
   cursor?: string;
   limit?: number;
 };

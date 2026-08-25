@@ -5,7 +5,7 @@ import { createMatter } from "../continuityCommands";
 import type { ProgramSummary } from "../summaryTypes";
 import type { MatterAggregate } from "../types";
 
-type Props = { onCreated: (aggregate: MatterAggregate) => void; onClose: () => void };
+type Props = { onCreated: (aggregate: MatterAggregate) => void; onClose: () => void; initialProgramID?: string };
 type ProgramState = "loading" | "live" | "unavailable";
 
 const WORK_TYPES = [
@@ -33,11 +33,12 @@ function nonEmptyLines(value: FormDataEntryValue | null) {
   return String(value ?? "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
 }
 
-export function MatterSetupWorkspace({ onCreated, onClose }: Props) {
+export function MatterSetupWorkspace({ onCreated, onClose, initialProgramID = "" }: Props) {
   const [programs, setPrograms] = useState<ProgramSummary[]>([]);
   const [programState, setProgramState] = useState<ProgramState>("loading");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [programID, setProgramID] = useState(initialProgramID);
   const firstField = useRef<HTMLSelectElement>(null);
 
   useEffect(() => {
@@ -92,7 +93,7 @@ export function MatterSetupWorkspace({ onCreated, onClose }: Props) {
         <label className="full"><span>What happened or changed?</span><textarea name="summary" required rows={3} placeholder="Describe the issue, change or request that needs attention."/></label>
         <label><span>Affected area</span><input name="affected_area" required placeholder="Mobile banking"/></label>
         <label><span>Due date</span><input name="due_date" type="date"/></label>
-        <label className="full"><span>Program (optional)</span><select name="program_id" disabled={programState === "loading"}><option value="">No Program link</option>{programs.map((item) => <option value={item.program.id} key={item.program.id}>{item.program.name} ({item.program.code})</option>)}</select></label>
+        <label className="full"><span>Program (optional)</span><select name="program_id" disabled={programState === "loading"} value={programID} onChange={(event) => setProgramID(event.target.value)}><option value="">No Program link</option>{initialProgramID && !programs.some((item) => item.program.id === initialProgramID) && <option value={initialProgramID}>Current Program</option>}{programs.map((item) => <option value={item.program.id} key={item.program.id}>{item.program.name} ({item.program.code})</option>)}</select></label>
         {programState === "loading" && <p className="field-note full" role="status">Loading Programs…</p>}
         {programState === "unavailable" && <p className="field-note full">Programs could not be loaded. You can create this item and link it later.</p>}
         <label className="full"><span>What is already known?</span><textarea name="known_information" rows={3} placeholder="Add confirmed information that will help the owner start work."/></label>
