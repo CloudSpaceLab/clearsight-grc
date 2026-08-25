@@ -9,6 +9,7 @@ import { MatterDetailsPanel } from "./MatterDetailsPanel";
 import { MatterInformationPanel } from "./MatterInformationPanel";
 import { MatterActionsPanel } from "./MatterActionsPanel";
 import { MatterOutcomePanel } from "./MatterOutcomePanel";
+import { MatterDecisionResponsePanel } from "./MatterDecisionResponsePanel";
 
 type Props = {
   matterID: string;
@@ -90,6 +91,7 @@ export function MatterRecordWorkspace({ matterID, onBack }: Props) {
         <MatterDetailsPanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
         <MatterInformationPanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
         <MatterActionsPanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
+        <MatterDecisionResponsePanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
         <MatterOutcomePanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
       </section>
     </>}

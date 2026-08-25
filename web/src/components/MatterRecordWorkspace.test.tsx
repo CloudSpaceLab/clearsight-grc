@@ -1,15 +1,16 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { loadMatter } from "../api";
+import { loadMatter, loadPrograms } from "../api";
 import { ApiError } from "../http";
-import { assignMatter, assignMatterAction, changeMatterContext, defineMatterOutcomeCheck, loadMatterOperations, updateMatterAction, updateMatterDetails } from "../matterOperationsApi";
+import { addMatterLink, assignMatter, assignMatterAction, changeMatterContext, defineMatterOutcomeCheck, loadMatterOperations, updateMatterAction, updateMatterDetails } from "../matterOperationsApi";
 import type { MatterOperations } from "../matterOperationsApi";
-import { addMatterAction, recordVerificationResult, transitionMatter, transitionMatterAction } from "../continuityCommands";
-import type { MatterAggregate } from "../types";
+import { addMatterAction, addResponsePackage, recordMatterDecision, recordVerificationResult, transitionMatter, transitionMatterAction, transitionResponsePackage } from "../continuityCommands";
+import type { MatterAggregate, ProgramAggregate } from "../types";
 import { MatterRecordWorkspace } from "./MatterRecordWorkspace";
 
-vi.mock("../api", () => ({ loadMatter: vi.fn() }));
+vi.mock("../api", () => ({ loadMatter: vi.fn(), loadPrograms: vi.fn() }));
 vi.mock("../matterOperationsApi", () => ({
+  addMatterLink: vi.fn(),
   assignMatter: vi.fn(),
   assignMatterAction: vi.fn(),
   changeMatterContext: vi.fn(),
@@ -19,7 +20,7 @@ vi.mock("../matterOperationsApi", () => ({
   updateMatterDetails: vi.fn(),
 }));
 
-vi.mock("../continuityCommands", () => ({ addMatterAction: vi.fn(), recordVerificationResult: vi.fn(), transitionMatter: vi.fn(), transitionMatterAction: vi.fn() }));
+vi.mock("../continuityCommands", () => ({ addMatterAction: vi.fn(), addResponsePackage: vi.fn(), recordMatterDecision: vi.fn(), recordVerificationResult: vi.fn(), transitionMatter: vi.fn(), transitionMatterAction: vi.fn(), transitionResponsePackage: vi.fn() }));
 
 const detail: MatterAggregate = {
   type_label: "Regulatory change",
@@ -126,11 +127,30 @@ const closureOperations: MatterOperations = {
   }],
 };
 
+const decisionOperations: MatterOperations = {
+  ...operations,
+  operations: [...operations.operations, {
+    command: "matter.decision.record", label: "Propose decision", responsibility: "PROPOSER", can_act: true,
+    assigned_to: { id: "risk-1", display_name: "Risk Manager", kind: "PERSON", role: "RISK_MANAGER" },
+    reason: "You can prepare the decision proposal.", allowed_targets: ["PROPOSED"],
+  }],
+};
+
+const responseOperations: MatterOperations = {
+  ...operations,
+  operations: [...operations.operations, {
+    command: "matter.response.add", label: "Prepare response", responsibility: "PROPOSER", can_act: true,
+    assigned_to: { id: "response-1", display_name: "Regulatory Affairs Lead", kind: "PERSON", role: "REGULATORY_AFFAIRS" },
+    reason: "You can prepare the response package.",
+  }],
+};
+
 describe("Matter record workspace", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(loadMatter).mockResolvedValue(detail);
     vi.mocked(loadMatterOperations).mockResolvedValue(operations);
+    vi.mocked(loadPrograms).mockResolvedValue([]);
   });
 
   it("shows the exact record, current owner, deadline and blocker without inventing a CRO command", async () => {
@@ -227,6 +247,25 @@ describe("Matter record workspace", () => {
     await waitFor(() => expect(assignMatter).toHaveBeenCalledWith("matter-1", 8, "owner-2", "Assign the current Privacy Operations owner."));
   });
 
+  it("links an issue to a named Program without asking for a database identifier", async () => {
+    const linkOperations = { ...ownerOperations, operations: [...ownerOperations.operations, {
+      command: "matter.link", label: "Link this issue", responsibility: "ACCOUNTABLE_OWNER", can_act: true,
+      assigned_to: ownerOperations.operations[0]!.assigned_to, reason: "You can link this issue to a Program.",
+    }] };
+    const program = { program: { id: "program-1", code: "PRIVACY-NG", name: "Nigeria Data Protection Program" } } as ProgramAggregate;
+    vi.mocked(loadMatterOperations).mockResolvedValue(linkOperations);
+    vi.mocked(loadPrograms).mockResolvedValue([program]);
+    vi.mocked(addMatterLink).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 8 }, links: [{ id: "link-1", program_id: "program-1", relationship: "AFFECTS" }] });
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Link to Program" }));
+    fireEvent.change(await screen.findByLabelText("Program"), { target: { value: "program-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Program link" }));
+
+    await waitFor(() => expect(addMatterLink).toHaveBeenCalledWith("matter-1", 7, { programID: "program-1", relationship: "AFFECTS" }));
+    expect(await screen.findByText("Nigeria Data Protection Program")).toBeTruthy();
+  });
+
   it("keeps permission-limited information visible without edit controls", async () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
@@ -314,12 +353,12 @@ describe("Matter record workspace", () => {
     fireEvent.change(screen.getByLabelText("Expected outcome"), { target: { value: "All ten return sections have an owner, source and approved review status." } });
     fireEvent.change(screen.getByLabelText("Linked action"), { target: { value: "action-1" } });
     fireEvent.change(screen.getByLabelText("Observation period (minutes)"), { target: { value: "1440" } });
-    fireEvent.change(screen.getByLabelText("If the outcome is not achieved"), { target: { value: "Reopen the evidence action." } });
+    fireEvent.change(screen.getByLabelText("If the outcome is not achieved"), { target: { value: "REOPEN" } });
     fireEvent.click(screen.getByRole("button", { name: "Save outcome check" }));
 
     await waitFor(() => expect(defineMatterOutcomeCheck).toHaveBeenCalledWith("matter-1", 7, {
       actionID: "action-1", expectedOutcome: "All ten return sections have an owner, source and approved review status.",
-      observationPeriodMinutes: 1440, failureResponse: "Reopen the evidence action.",
+      observationPeriodMinutes: 1440, failureResponse: "REOPEN",
     }));
     expect(await screen.findByText("Outcome check defined.")).toBeTruthy();
   });
@@ -352,5 +391,58 @@ describe("Matter record workspace", () => {
     fireEvent.change(screen.getByLabelText("Reason for status change"), { target: { value: "The independent outcome check passed." } });
     fireEvent.click(screen.getByRole("button", { name: "Confirm issue status" }));
     await waitFor(() => expect(transitionMatter).toHaveBeenCalledWith("matter-1", 8, "CLOSED", "The independent outcome check passed."));
+  });
+
+  it("records a decision proposal and keeps its append-only history visible", async () => {
+    const decisionDetail = { ...detail, matter: { ...detail.matter, status: "DECISION_REQUIRED" } };
+    vi.mocked(loadMatter).mockResolvedValue(decisionDetail);
+    vi.mocked(loadMatterOperations).mockResolvedValue(decisionOperations);
+    vi.mocked(recordMatterDecision).mockResolvedValue({
+      ...decisionDetail, matter: { ...decisionDetail.matter, version: 8 },
+      decisions: [{ id: "decision-1", type: "TREATMENT", status: "PROPOSED", selected_option: "Remediate", rationale: "Remediation removes the filing gap." }],
+    });
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Propose decision" }));
+    fireEvent.change(screen.getByLabelText("Decision type"), { target: { value: "TREATMENT" } });
+    fireEvent.change(screen.getByLabelText("Options considered"), { target: { value: "Remediate\nAccept temporarily" } });
+    fireEvent.change(screen.getByLabelText("Recommended option"), { target: { value: "Remediate" } });
+    fireEvent.change(screen.getByLabelText("Decision rationale"), { target: { value: "Remediation removes the filing gap." } });
+    fireEvent.click(screen.getByRole("button", { name: "Record decision" }));
+
+    await waitFor(() => expect(recordMatterDecision).toHaveBeenCalledWith("matter-1", 7, {
+      type: "TREATMENT", status: "PROPOSED", options: ["Remediate", "Accept temporarily"],
+      selectedOption: "Remediate", rationale: "Remediation removes the filing gap.",
+    }));
+    expect(await screen.findByText("Decision recorded.")).toBeTruthy();
+    expect(screen.getByText("Remediation removes the filing gap.")).toBeTruthy();
+  });
+
+  it("creates and advances a regulator response without hiding the routed reviewer", async () => {
+    const requestDetail = { ...detail, matter: { ...detail.matter, type: "AUTHORITY_REQUEST", status: "RESPONSE_PREPARATION" } };
+    const drafted = { ...requestDetail, matter: { ...requestDetail.matter, version: 8 }, response_packages: [{ id: "package-1", purpose: "Answer the annual return evidence request", audience: "NDPC", status: "DRAFT" }] };
+    const reviewOperation: MatterOperations = { ...responseOperations, matter_version: 8, operations: [...responseOperations.operations.filter((item) => item.command !== "matter.response.add"), {
+      command: "matter.response.transition", subresource_id: "package-1", label: "Review response", responsibility: "REVIEWER", can_act: true,
+      assigned_to: { id: "reviewer-1", display_name: "Compliance Reviewer", kind: "PERSON", role: "COMPLIANCE_REVIEWER" },
+      reason: "You can review this response.", allowed_targets: ["IN_REVIEW"],
+    }] };
+    vi.mocked(loadMatter).mockResolvedValue(requestDetail);
+    vi.mocked(loadMatterOperations).mockResolvedValueOnce(responseOperations).mockResolvedValue(reviewOperation);
+    vi.mocked(addResponsePackage).mockResolvedValue(drafted);
+    vi.mocked(transitionResponsePackage).mockResolvedValue({ ...drafted, matter: { ...drafted.matter, version: 9 }, response_packages: [{ ...drafted.response_packages[0]!, status: "IN_REVIEW" }] });
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Prepare response" }));
+    fireEvent.change(screen.getByLabelText("Response purpose"), { target: { value: "Answer the annual return evidence request" } });
+    fireEvent.change(screen.getByLabelText("Audience"), { target: { value: "NDPC" } });
+    fireEvent.change(screen.getByLabelText("Included records"), { target: { value: "annual-return-pack\nownership-register" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create response package" }));
+    await waitFor(() => expect(addResponsePackage).toHaveBeenCalledWith("matter-1", 7, { purpose: "Answer the annual return evidence request", audience: "NDPC", manifest: { references: ["annual-return-pack", "ownership-register"] } }));
+
+    expect(await screen.findByText("Compliance Reviewer", { exact: false })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Update response status for Answer the annual return evidence request" }));
+    fireEvent.change(screen.getByLabelText("Reason for response status change"), { target: { value: "The evidence package is complete for compliance review." } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm response status" }));
+    await waitFor(() => expect(transitionResponsePackage).toHaveBeenCalledWith("matter-1", "package-1", 8, "IN_REVIEW", "The evidence package is complete for compliance review."));
   });
 });

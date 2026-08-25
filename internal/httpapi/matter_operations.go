@@ -68,6 +68,12 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 	} {
 		add(spec)
 	}
+	if aggregate.Matter.Status == continuity.MatterDecisionRequired && len(aggregate.Decisions) == 0 {
+		add(recordOperationSpec{Command: "matter.decision.record", Label: "Propose decision", Responsibility: authority.ResponsibilityProposer, Materiality: max(2, aggregate.Matter.Priority), AllowedTargets: []string{string(continuity.DecisionProposed)}})
+	}
+	if aggregate.Matter.Type == continuity.MatterAuthorityRequest || aggregate.Matter.Status == continuity.MatterResponsePreparation {
+		add(recordOperationSpec{Command: "matter.response.add", Label: "Prepare response", Responsibility: authority.ResponsibilityProposer, Materiality: max(2, aggregate.Matter.Priority)})
+	}
 
 	for _, action := range aggregate.Actions {
 		if action.Status == continuity.ActionImplemented || action.Status == continuity.ActionCancelled {
@@ -85,7 +91,7 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 		}
 	}
 
-	requirements, _ := continuity.CompileMatterWork(aggregate, now)
+	requirements, ambiguities := continuity.CompileMatterWork(aggregate, now)
 	for _, requirement := range requirements {
 		add(recordOperationSpec{
 			Command: requirement.CommandName, SubresourceID: requirement.SubresourceID,
@@ -93,6 +99,39 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 			Materiality: requirement.Materiality, RequiredPrincipalID: requirement.RequiredPrincipalID,
 			AllowedTargets: append([]string(nil), requirement.AllowedTargets...),
 		})
+	}
+	responsibilities := []authority.Responsibility{
+		authority.ResponsibilityProposer,
+		authority.ResponsibilityReviewer,
+		authority.ResponsibilityChallenger,
+		authority.ResponsibilityAuthorizer,
+		authority.ResponsibilitySignatory,
+		authority.ResponsibilityTransmitter,
+		authority.ResponsibilityAcknowledger,
+	}
+	for _, ambiguity := range ambiguities {
+		byResponsibility := map[authority.Responsibility][]string{}
+		materiality := map[authority.Responsibility]int{}
+		for _, target := range ambiguity.AllowedTargets {
+			policy, err := continuity.WorkAmbiguityTargetPolicy(ambiguity, target)
+			if err != nil {
+				continue
+			}
+			responsibility := authority.Responsibility(policy.Responsibility)
+			byResponsibility[responsibility] = append(byResponsibility[responsibility], target)
+			materiality[responsibility] = max(materiality[responsibility], policy.Materiality, aggregate.Matter.Priority)
+		}
+		for _, responsibility := range responsibilities {
+			targets := byResponsibility[responsibility]
+			if len(targets) == 0 {
+				continue
+			}
+			add(recordOperationSpec{
+				Command: ambiguity.CommandName, SubresourceID: ambiguity.SubresourceID,
+				Label: ambiguity.Title, Responsibility: responsibility,
+				Materiality: materiality[responsibility], AllowedTargets: targets,
+			})
+		}
 	}
 	return response
 }

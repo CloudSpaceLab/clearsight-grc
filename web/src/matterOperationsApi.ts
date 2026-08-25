@@ -70,6 +70,13 @@ type MatterOutcomeCheckInput = {
   measurementSourceID?: string;
 };
 
+type MatterLinkInput = {
+  programID: string;
+  requirementID?: string;
+  controlID?: string;
+  relationship: string;
+};
+
 async function tenantPath(path: string) {
   const context = await loadContext();
   return { context, path: `${path}?${new URLSearchParams({ tenant_id: context.tenant.id }).toString()}` };
@@ -141,5 +148,15 @@ export function defineMatterOutcomeCheck(matterID: string, expectedVersion: numb
     threshold: input.threshold ?? {},
     observation_period_minutes: input.observationPeriodMinutes,
     failure_response: input.failureResponse,
+  });
+}
+
+export function addMatterLink(matterID: string, expectedVersion: number, input: MatterLinkInput): Promise<MatterAggregate> {
+  return continuityCommand<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/links`, {
+    expected_version: expectedVersion,
+    program_id: input.programID,
+    requirement_id: input.requirementID,
+    control_id: input.controlID,
+    relationship: input.relationship,
   });
 }

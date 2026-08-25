@@ -44,6 +44,16 @@ function statusLabel(value: string) {
   }
 }
 
+function failureLabel(value: string) {
+  switch (value) {
+    case "REOPEN": return "Reopen this issue for corrective work";
+    case "CREATE_MATTER": return "Create a follow-up issue";
+    case "ESCALATE": return "Escalate to the current escalation owner";
+    case "BLOCK_CLOSE": return "Keep this issue open";
+    default: return value;
+  }
+}
+
 export function MatterOutcomePanel({ aggregate, operations, onUpdated, onReload }: Props) {
   const defineOperation = operationFor(operations, "matter.outcome.define");
   const transitionOperation = operationFor(operations, "matter.transition");
@@ -156,7 +166,7 @@ export function MatterOutcomePanel({ aggregate, operations, onUpdated, onReload 
           <div><dt>Observation period</dt><dd>{contract.observation_period_minutes} minutes</dd></div>
         </dl>
         {recorded?.rationale && <p className="matter-outcome-rationale"><strong>Recorded basis:</strong> {recorded.rationale}</p>}
-        {contract.failure_response && <p className="matter-outcome-rationale"><strong>If not achieved:</strong> {contract.failure_response}</p>}
+        {contract.failure_response && <p className="matter-outcome-rationale"><strong>If not achieved:</strong> {failureLabel(contract.failure_response)}</p>}
         {!active && recordOperation?.can_act && <button className="secondary-button" type="button" aria-label={`Record result for ${contract.expected_outcome}`} onClick={() => beginResult(contract)}>Record outcome result</button>}
         {!recordOperation?.can_act && recordOperation?.reason && <p className="matter-operation-reason">{recordOperation.reason}</p>}
       </section>;
@@ -172,7 +182,7 @@ export function MatterOutcomePanel({ aggregate, operations, onUpdated, onReload 
         <label className="wide"><span>Expected outcome</span><textarea rows={3} value={expectedOutcome} onChange={(event) => setExpectedOutcome(event.target.value)} required/></label>
         <label><span>Linked action</span><select value={actionID} onChange={(event) => setActionID(event.target.value)}><option value="">Issue-level outcome</option>{aggregate.actions.map((action) => <option key={action.id} value={action.id}>{action.title}</option>)}</select></label>
         <label><span>Observation period (minutes)</span><input type="number" min="0" value={observationMinutes} onChange={(event) => setObservationMinutes(event.target.value)} required/></label>
-        <label className="wide"><span>If the outcome is not achieved</span><textarea rows={2} value={failureResponse} onChange={(event) => setFailureResponse(event.target.value)} required/></label>
+        <label className="wide"><span>If the outcome is not achieved</span><select value={failureResponse} onChange={(event) => setFailureResponse(event.target.value)} required><option value="">Select the required handling</option><option value="REOPEN">Reopen this issue for corrective work</option><option value="CREATE_MATTER">Create a follow-up issue</option><option value="ESCALATE">Escalate to the current escalation owner</option><option value="BLOCK_CLOSE">Keep this issue open</option></select></label>
       </>}
       {active.kind === "result" && <>
         <p className="matter-form-context wide">Checking: {activeContract?.expected_outcome}</p>

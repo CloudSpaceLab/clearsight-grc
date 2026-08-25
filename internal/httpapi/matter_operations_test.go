@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
@@ -228,6 +229,45 @@ func TestMatterOperationsKeepStoredOwnerVisibleWhenAuthorityIsUnavailable(t *tes
 		}
 	}
 	t.Fatal("detail operation was not returned")
+}
+
+func TestMatterOperationsExposeDecisionAndResponseLifecycleByResponsibility(t *testing.T) {
+	now := time.Now().UTC()
+	aggregate := continuity.MatterAggregate{
+		Matter: continuity.Matter{
+			ID: "matter-1", TenantID: "bank", Type: continuity.MatterAuthorityRequest,
+			Status: continuity.MatterDecisionRequired, Priority: 4, OwnerPrincipalID: "owner-1",
+			CreatedAt: now, UpdatedAt: now, Version: 5,
+		},
+		Decisions:        []continuity.Decision{{ID: "decision-1", Type: "POSITION", Status: continuity.DecisionProposed, CreatedAt: now, UpdatedAt: now}},
+		ResponsePackages: []continuity.ResponsePackage{{ID: "response-1", Purpose: "Respond to the regulator", Audience: "NDPC", Status: continuity.ResponseDraft, CreatedAt: now, UpdatedAt: now}},
+	}
+	api := &API{deps: Dependencies{Authority: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner:      {Principal: authority.Principal{ID: "owner-1", DisplayName: "Program Owner"}},
+		authority.ResponsibilityProposer:   {Principal: authority.Principal{ID: "proposer-1", DisplayName: "Response Lead"}},
+		authority.ResponsibilityReviewer:   {Principal: authority.Principal{ID: "reviewer-1", DisplayName: "Compliance Reviewer"}},
+		authority.ResponsibilityAuthorizer: {Principal: authority.Principal{ID: "authorizer-1", DisplayName: "CCO"}},
+		authority.ResponsibilityChallenger: {Principal: authority.Principal{ID: "challenger-1", DisplayName: "Independent Risk"}},
+	}}}}
+	actor := identity.Actor{TenantID: "bank", PrincipalID: "reviewer-1", LegalEntityID: "bank-ng", Kind: "PERSON"}
+	payload := api.buildMatterOperations(t.Context(), actor, aggregate, now)
+
+	var decision, response *RecordOperation
+	for index := range payload.Operations {
+		operation := &payload.Operations[index]
+		if operation.Command == "matter.decision.record" && operation.SubresourceID == "decision-1" && operation.CanAct {
+			decision = operation
+		}
+		if operation.Command == "matter.response.transition" && operation.SubresourceID == "response-1" && operation.CanAct {
+			response = operation
+		}
+	}
+	if decision == nil || !reflect.DeepEqual(decision.AllowedTargets, []string{"IN_REVIEW", "RETURNED"}) {
+		t.Fatalf("reviewer decision operation = %#v", decision)
+	}
+	if response == nil || !reflect.DeepEqual(response.AllowedTargets, []string{"IN_REVIEW"}) {
+		t.Fatalf("reviewer response operation = %#v", response)
+	}
 }
 
 type principalResolverStub struct {
