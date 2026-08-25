@@ -396,6 +396,12 @@ func applyMatterEventToAggregate(aggregate *MatterAggregate, event Event) error 
 			return err
 		}
 		aggregate.Matter = value.Matter
+	case EventMatterOwnerChanged:
+		var value matterOwnerChangedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Matter = value.Matter
 	case EventDecisionAdded:
 		var value Decision
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
@@ -415,6 +421,18 @@ func applyMatterEventToAggregate(aggregate *MatterAggregate, event Event) error 
 			return err
 		}
 		aggregate.Actions = upsertAction(aggregate.Actions, value)
+	case EventActionUpdated:
+		var value actionUpdatedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Actions = upsertAction(aggregate.Actions, value.Action)
+	case EventActionAssigned:
+		var value actionAssignedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Actions = upsertAction(aggregate.Actions, value.Action)
 	case EventVerificationContractAdded:
 		var value VerificationContract
 		if err := json.Unmarshal(event.Payload, &value); err != nil {

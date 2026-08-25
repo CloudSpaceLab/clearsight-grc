@@ -47,6 +47,37 @@ type ChangeMatterContextInput struct {
 	ActorID            string                  `json:"actor_id,omitempty"`
 }
 
+type AssignMatterInput struct {
+	TenantID         string `json:"tenant_id"`
+	MatterID         string `json:"matter_id"`
+	ExpectedVersion  int64  `json:"expected_version"`
+	OwnerPrincipalID string `json:"owner_principal_id"`
+	ActorID          string `json:"actor_id,omitempty"`
+	Rationale        string `json:"rationale"`
+}
+
+type UpdateActionInput struct {
+	TenantID        string     `json:"tenant_id"`
+	MatterID        string     `json:"matter_id"`
+	ActionID        string     `json:"action_id"`
+	ExpectedVersion int64      `json:"expected_version"`
+	Title           string     `json:"title"`
+	Description     string     `json:"description"`
+	DueAt           *time.Time `json:"due_at,omitempty"`
+	ActorID         string     `json:"actor_id,omitempty"`
+	Rationale       string     `json:"rationale"`
+}
+
+type AssignActionInput struct {
+	TenantID         string `json:"tenant_id"`
+	MatterID         string `json:"matter_id"`
+	ActionID         string `json:"action_id"`
+	ExpectedVersion  int64  `json:"expected_version"`
+	OwnerPrincipalID string `json:"owner_principal_id"`
+	ActorID          string `json:"actor_id,omitempty"`
+	Rationale        string `json:"rationale"`
+}
+
 type matterDetailsUpdatedEvent struct {
 	Matter    Matter `json:"matter"`
 	Previous  Matter `json:"previous"`
@@ -62,6 +93,26 @@ type matterContextChangedEvent struct {
 	Value              json.RawMessage         `json:"value,omitempty"`
 	Rationale          string                  `json:"rationale"`
 	EvidenceReferences []string                `json:"evidence_references"`
+}
+
+type matterOwnerChangedEvent struct {
+	Matter           Matter `json:"matter"`
+	PreviousOwnerID  string `json:"previous_owner_principal_id,omitempty"`
+	OwnerPrincipalID string `json:"owner_principal_id"`
+	Rationale        string `json:"rationale"`
+}
+
+type actionUpdatedEvent struct {
+	Action    Action `json:"action"`
+	Previous  Action `json:"previous"`
+	Rationale string `json:"rationale"`
+}
+
+type actionAssignedEvent struct {
+	Action           Action `json:"action"`
+	PreviousOwnerID  string `json:"previous_owner_principal_id,omitempty"`
+	OwnerPrincipalID string `json:"owner_principal_id"`
+	Rationale        string `json:"rationale"`
 }
 
 func (s *Service) UpdateMatterDetails(ctx context.Context, input UpdateMatterDetailsInput) (MatterAggregate, error) {
@@ -250,6 +301,104 @@ func (s *Service) ChangeMatterContext(ctx context.Context, input ChangeMatterCon
 	return s.GetMatter(ctx, input.TenantID, input.MatterID)
 }
 
+func (s *Service) AssignMatter(ctx context.Context, input AssignMatterInput) (MatterAggregate, error) {
+	aggregate, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
+	if err != nil {
+		return MatterAggregate{}, err
+	}
+	ownerID := strings.TrimSpace(input.OwnerPrincipalID)
+	if strings.TrimSpace(input.ActorID) == "" || strings.TrimSpace(input.Rationale) == "" || ownerID == "" {
+		return MatterAggregate{}, fmt.Errorf("owner_principal_id, actor_id and rationale are required")
+	}
+	if aggregate.Matter.OwnerPrincipalID == ownerID {
+		return MatterAggregate{}, fmt.Errorf("matter is already assigned to that owner")
+	}
+	matter := aggregate.Matter
+	matter.OwnerPrincipalID = ownerID
+	matter.UpdatedAt = s.now().UTC()
+	value := matterOwnerChangedEvent{
+		Matter:           matter,
+		PreviousOwnerID:  aggregate.Matter.OwnerPrincipalID,
+		OwnerPrincipalID: ownerID,
+		Rationale:        strings.TrimSpace(input.Rationale),
+	}
+	if err := s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterOwnerChanged, value, input.ActorID); err != nil {
+		return MatterAggregate{}, err
+	}
+	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+}
+
+func (s *Service) UpdateAction(ctx context.Context, input UpdateActionInput) (MatterAggregate, error) {
+	aggregate, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
+	if err != nil {
+		return MatterAggregate{}, err
+	}
+	if strings.TrimSpace(input.ActorID) == "" || strings.TrimSpace(input.Rationale) == "" {
+		return MatterAggregate{}, fmt.Errorf("actor_id and rationale are required")
+	}
+	title := strings.TrimSpace(input.Title)
+	description := strings.TrimSpace(input.Description)
+	if title == "" || description == "" {
+		return MatterAggregate{}, fmt.Errorf("title and description are required")
+	}
+	previous, err := findAction(aggregate.Actions, input.ActionID)
+	if err != nil {
+		return MatterAggregate{}, err
+	}
+	if previous.Status == ActionImplemented || previous.Status == ActionCancelled {
+		return MatterAggregate{}, ErrInvalidState
+	}
+	if previous.Title == title && previous.Description == description && sameOptionalTime(previous.DueAt, input.DueAt) {
+		return MatterAggregate{}, fmt.Errorf("action details are unchanged")
+	}
+	action := previous
+	action.Title = title
+	action.Description = description
+	action.DueAt = input.DueAt
+	action.UpdatedAt = s.now().UTC()
+	action.Version++
+	value := actionUpdatedEvent{Action: action, Previous: previous, Rationale: strings.TrimSpace(input.Rationale)}
+	if err := s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionUpdated, value, input.ActorID); err != nil {
+		return MatterAggregate{}, err
+	}
+	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+}
+
+func (s *Service) AssignAction(ctx context.Context, input AssignActionInput) (MatterAggregate, error) {
+	aggregate, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
+	if err != nil {
+		return MatterAggregate{}, err
+	}
+	ownerID := strings.TrimSpace(input.OwnerPrincipalID)
+	if strings.TrimSpace(input.ActorID) == "" || strings.TrimSpace(input.Rationale) == "" || ownerID == "" {
+		return MatterAggregate{}, fmt.Errorf("owner_principal_id, actor_id and rationale are required")
+	}
+	previous, err := findAction(aggregate.Actions, input.ActionID)
+	if err != nil {
+		return MatterAggregate{}, err
+	}
+	if previous.Status == ActionImplemented || previous.Status == ActionCancelled {
+		return MatterAggregate{}, ErrInvalidState
+	}
+	if previous.OwnerPrincipalID == ownerID {
+		return MatterAggregate{}, fmt.Errorf("action is already assigned to that owner")
+	}
+	action := previous
+	action.OwnerPrincipalID = ownerID
+	action.UpdatedAt = s.now().UTC()
+	action.Version++
+	value := actionAssignedEvent{
+		Action:           action,
+		PreviousOwnerID:  previous.OwnerPrincipalID,
+		OwnerPrincipalID: ownerID,
+		Rationale:        strings.TrimSpace(input.Rationale),
+	}
+	if err := s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionAssigned, value, input.ActorID); err != nil {
+		return MatterAggregate{}, err
+	}
+	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+}
+
 func normalizedJSONObject(value json.RawMessage, fallback string) (json.RawMessage, error) {
 	value, err := normalizedJSON(value, fallback)
 	if err != nil {
@@ -342,4 +491,17 @@ func sameOptionalTime(left, right *time.Time) bool {
 		return left == nil && right == nil
 	}
 	return left.Equal(*right)
+}
+
+func findAction(actions []Action, actionID string) (Action, error) {
+	actionID = strings.TrimSpace(actionID)
+	if actionID == "" {
+		return Action{}, fmt.Errorf("action_id is required")
+	}
+	for _, action := range actions {
+		if action.ID == actionID {
+			return action, nil
+		}
+	}
+	return Action{}, ErrNotFound
 }

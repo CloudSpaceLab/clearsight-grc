@@ -238,3 +238,143 @@ func withMatterContext(base ChangeMatterContextInput, kind MatterContextChangeKi
 	base.Value = value
 	return base
 }
+
+func TestAssignMatterAndUpdateAction(t *testing.T) {
+	service, matter := editableMatterFixture(t)
+	action := matter.Actions[0]
+
+	assigned, err := service.AssignMatter(t.Context(), AssignMatterInput{
+		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
+		OwnerPrincipalID: "owner-2", ActorID: "owner-1", Rationale: "Move accountability to privacy operations.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	updated, err := service.UpdateAction(t.Context(), UpdateActionInput{
+		TenantID: "bank", MatterID: matter.Matter.ID, ActionID: action.ID,
+		ExpectedVersion: assigned.Matter.Version, Title: action.Title,
+		Description: "Assign every annual-return section and attach its source.",
+		DueAt:       action.DueAt, ActorID: "owner-2", Rationale: "Clarify the required evidence.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assignedAction, err := service.AssignAction(t.Context(), AssignActionInput{
+		TenantID: "bank", MatterID: matter.Matter.ID, ActionID: action.ID,
+		ExpectedVersion: updated.Matter.Version, OwnerPrincipalID: "performer-2",
+		ActorID: "owner-2", Rationale: "Assign the active privacy operations owner.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if assignedAction.Matter.OwnerPrincipalID != "owner-2" || assignedAction.Actions[0].OwnerPrincipalID != "performer-2" {
+		t.Fatalf("assignments not updated: %#v", assignedAction)
+	}
+	if assignedAction.Actions[0].Description != "Assign every annual-return section and attach its source." {
+		t.Fatalf("action description not updated: %#v", assignedAction.Actions[0])
+	}
+	if assignedAction.Actions[0].Version != action.Version+2 {
+		t.Fatalf("action version should increment once per action command: %#v", assignedAction.Actions[0])
+	}
+}
+
+func editableMatterFixture(t *testing.T) (*Service, MatterAggregate) {
+	t.Helper()
+	service := NewService(NewMemoryRepository())
+	matter, err := service.CreateMatter(t.Context(), CreateMatterInput{
+		TenantID: "bank", Type: MatterRegulatoryChange, Priority: 4,
+		Title: "Annual return", Summary: "Update the filing process.",
+		Scope: json.RawMessage(`{}`), KnownFacts: json.RawMessage(`{}`),
+		MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`),
+		OwnerPrincipalID: "owner-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	matter, err = service.AddAction(t.Context(), AddActionInput{
+		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
+		Title: "Update annual-return evidence checklist", Description: "Map each return section to current evidence.",
+		OwnerPrincipalID: "performer-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return service, matter
+}
+
+func TestActionEditsPreserveHistoryAndRejectTerminalActions(t *testing.T) {
+	repo := NewMemoryRepository()
+	service := NewService(repo)
+	matter, err := service.CreateMatter(t.Context(), CreateMatterInput{
+		TenantID: "bank", Type: MatterRegulatoryChange, Priority: 4,
+		Title: "Annual return", Summary: "Update the filing process.",
+		Scope: json.RawMessage(`{}`), KnownFacts: json.RawMessage(`{}`),
+		MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`),
+		OwnerPrincipalID: "owner-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	matter, err = service.AddAction(t.Context(), AddActionInput{
+		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
+		Title: "Update checklist", Description: "Map every section.", OwnerPrincipalID: "performer-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	action := matter.Actions[0]
+	matter, err = service.UpdateAction(t.Context(), UpdateActionInput{
+		TenantID: "bank", MatterID: matter.Matter.ID, ActionID: action.ID, ExpectedVersion: matter.Matter.Version,
+		Title: action.Title, Description: "Map every section to its current source.", DueAt: action.DueAt,
+		ActorID: "owner-1", Rationale: "Make the evidence requirement explicit.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	matter, err = service.AssignAction(t.Context(), AssignActionInput{
+		TenantID: "bank", MatterID: matter.Matter.ID, ActionID: action.ID, ExpectedVersion: matter.Matter.Version,
+		OwnerPrincipalID: "performer-2", ActorID: "owner-1", Rationale: "Assign the current process owner.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	events, err := repo.MatterEvents(t.Context(), "bank", matter.Matter.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var update actionUpdatedEvent
+	if err := json.Unmarshal(events[2].Payload, &update); err != nil {
+		t.Fatal(err)
+	}
+	var assignment actionAssignedEvent
+	if err := json.Unmarshal(events[3].Payload, &assignment); err != nil {
+		t.Fatal(err)
+	}
+	if update.Previous.Description != "Map every section." || update.Rationale == "" || assignment.PreviousOwnerID != "performer-1" || assignment.OwnerPrincipalID != "performer-2" {
+		t.Fatalf("action audit metadata missing: update=%#v assignment=%#v", update, assignment)
+	}
+
+	for _, state := range []ActionStatus{ActionInProgress, ActionImplemented} {
+		matter, err = service.TransitionAction(t.Context(), TransitionActionInput{
+			TenantID: "bank", MatterID: matter.Matter.ID, ActionID: action.ID,
+			ExpectedVersion: matter.Matter.Version, To: state, ActorID: "performer-2", Rationale: "Complete assigned work.",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	terminal := matter.Actions[0]
+	if _, err := service.UpdateAction(t.Context(), UpdateActionInput{
+		TenantID: "bank", MatterID: matter.Matter.ID, ActionID: action.ID, ExpectedVersion: matter.Matter.Version,
+		Title: terminal.Title, Description: "Rewrite completed work.", DueAt: terminal.DueAt,
+		ActorID: "owner-1", Rationale: "Attempt to rewrite completion.",
+	}); !errors.Is(err, ErrInvalidState) {
+		t.Fatalf("expected terminal action update to fail closed, got %v", err)
+	}
+	if _, err := service.AssignAction(t.Context(), AssignActionInput{
+		TenantID: "bank", MatterID: matter.Matter.ID, ActionID: action.ID, ExpectedVersion: matter.Matter.Version,
+		OwnerPrincipalID: "performer-3", ActorID: "owner-1", Rationale: "Attempt to reassign completed work.",
+	}); !errors.Is(err, ErrInvalidState) {
+		t.Fatalf("expected terminal action assignment to fail closed, got %v", err)
+	}
+}

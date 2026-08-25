@@ -23,9 +23,12 @@ const (
 	EventMatterStateChanged          = "MATTER_STATE_CHANGED"
 	EventMatterDetailsUpdated        = "MATTER_DETAILS_UPDATED"
 	EventMatterContextChanged        = "MATTER_CONTEXT_CHANGED"
+	EventMatterOwnerChanged          = "MATTER_OWNER_CHANGED"
 	EventDecisionAdded               = "DECISION_ADDED"
 	EventActionAdded                 = "ACTION_ADDED"
 	EventActionStateChanged          = "ACTION_STATE_CHANGED"
+	EventActionUpdated               = "ACTION_UPDATED"
+	EventActionAssigned              = "ACTION_ASSIGNED"
 	EventVerificationContractAdded   = "VERIFICATION_CONTRACT_ADDED"
 	EventVerificationResultRecorded  = "VERIFICATION_RESULT_RECORDED"
 	EventResponsePackageAdded        = "RESPONSE_PACKAGE_ADDED"
@@ -161,6 +164,12 @@ func reconstructMatter(events []Event) (MatterAggregate, error) {
 				return MatterAggregate{}, err
 			}
 			aggregate.Matter = value.Matter
+		case EventMatterOwnerChanged:
+			var value matterOwnerChangedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterAggregate{}, err
+			}
+			aggregate.Matter = value.Matter
 		case EventDecisionAdded:
 			var value Decision
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
@@ -174,6 +183,18 @@ func reconstructMatter(events []Event) (MatterAggregate, error) {
 				return MatterAggregate{}, err
 			}
 			aggregate.Actions = upsertAction(aggregate.Actions, value)
+		case EventActionUpdated:
+			var value actionUpdatedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterAggregate{}, err
+			}
+			aggregate.Actions = upsertAction(aggregate.Actions, value.Action)
+		case EventActionAssigned:
+			var value actionAssignedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterAggregate{}, err
+			}
+			aggregate.Actions = upsertAction(aggregate.Actions, value.Action)
 		case EventVerificationContractAdded:
 			var value VerificationContract
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
