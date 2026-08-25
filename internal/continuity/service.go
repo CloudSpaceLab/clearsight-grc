@@ -1328,7 +1328,7 @@ func validEvidenceConclusion(value EvidenceConclusion) bool {
 
 func validMatterType(value MatterType) bool {
 	switch value {
-	case MatterRegulatoryChange, MatterSupervisoryFinding, MatterAuthorityRequest, MatterRiskSituation, MatterControlGap, MatterAuditFinding, MatterException, MatterIncident, MatterOperationalLoss, MatterDataBreach, MatterVendorDeficiency, MatterCustomerConcern, MatterOverdueObligation, MatterFailedVerification, MatterEvidenceContradiction, MatterKRIBreach:
+	case MatterRegulatoryChange, MatterSupervisoryFinding, MatterAuthorityRequest, MatterRiskSituation, MatterControlGap, MatterAuditFinding, MatterException, MatterIncident, MatterOperationalLoss, MatterDataBreach, MatterVendorReview, MatterVendorDeficiency, MatterCustomerConcern, MatterOverdueObligation, MatterFailedVerification, MatterEvidenceContradiction, MatterKRIBreach:
 		return true
 	default:
 		return false

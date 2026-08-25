@@ -112,6 +112,7 @@ const (
 	MatterIncident              MatterType = "INCIDENT"
 	MatterOperationalLoss       MatterType = "OPERATIONAL_LOSS"
 	MatterDataBreach            MatterType = "DATA_BREACH"
+	MatterVendorReview          MatterType = "VENDOR_REVIEW"
 	MatterVendorDeficiency      MatterType = "VENDOR_DEFICIENCY"
 	MatterCustomerConcern       MatterType = "CUSTOMER_CONCERN"
 	MatterOverdueObligation     MatterType = "OVERDUE_OBLIGATION"

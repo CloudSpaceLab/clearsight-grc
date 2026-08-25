@@ -108,7 +108,7 @@ func assessClosureAt(aggregate MatterAggregate, now time.Time) ClosureAssessment
 	requiresVerification := map[MatterType]bool{
 		MatterSupervisoryFinding: true, MatterRiskSituation: true, MatterControlGap: true,
 		MatterAuditFinding: true, MatterIncident: true, MatterOperationalLoss: true,
-		MatterDataBreach: true, MatterVendorDeficiency: true, MatterCustomerConcern: true,
+		MatterDataBreach: true, MatterVendorReview: true, MatterVendorDeficiency: true, MatterCustomerConcern: true,
 		MatterOverdueObligation: true, MatterFailedVerification: true,
 		MatterEvidenceContradiction: true, MatterKRIBreach: true,
 	}

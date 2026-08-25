@@ -441,6 +441,8 @@ func matterTypeLabel(value MatterType) string {
 		return "Operational loss"
 	case MatterDataBreach:
 		return "Data breach"
+	case MatterVendorReview:
+		return "Vendor review"
 	case MatterVendorDeficiency:
 		return "Vendor issue"
 	case MatterCustomerConcern:
