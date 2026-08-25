@@ -59,7 +59,7 @@ Required fields:
 Statuses are:
 
 1. `SETUP_PENDING` — the start command committed and durable setup is pending;
-2. `READY_TO_SEND` — the Matter and Evidence Request exist and the owner must confirm recipient and deadline;
+2. `READY_TO_SEND` — the review Matter exists and the owner must confirm recipient and deadline; an idempotently created Evidence Request may already be linked after an interrupted send attempt;
 3. `COLLECTING` — an invitation has been issued and the request accepts a response;
 4. `SUBMITTED` — the vendor response exists but has not been accepted as sufficient;
 5. `UNDER_REVIEW` — an authorized bank reviewer is evaluating the response;
@@ -112,8 +112,7 @@ The start preview displays:
 - known vendor and relationship facts that will be included;
 - current source-prefill coverage and any degraded bindings;
 - estimated completion time;
-- proposed deadline;
-- the recipient field, initially blank unless an eligible current vendor contact exists;
+- the bank review target date;
 - default Classic, Wizard or Automatic presentation mode.
 
 The owner confirms the action. The request body cannot provide tenant, legal entity, actor, reviewer or approver identity.
@@ -131,14 +130,9 @@ These writes share one transaction. The command returns a committed receipt and 
 
 ### 4.3 Idempotent setup worker
 
-The worker uses the stable assessment origin to create or reuse:
+The worker uses the stable assessment origin to create or reuse one `VENDOR_REVIEW` Matter through the existing Matter service. Matter creation uses its existing stable trigger/dedupe key.
 
-- one `VENDOR_REVIEW` Matter through the existing Matter service;
-- one external Evidence Request through the existing evidence service.
-
-Evidence Requests gain a generic immutable origin reference consisting of origin type, origin ID and origin version. A tenant-scoped uniqueness constraint prevents repeated setup from creating duplicate requests. Matter creation uses its existing stable trigger/dedupe key.
-
-When both records exist, the worker links their exact IDs to the assessment and moves it to `READY_TO_SEND`. Partial failure remains visible as provisioning in progress and retries safely. Operators can inspect and retry the maintenance job without manually editing assessment state.
+When the Matter exists, the worker links its exact ID to the assessment and moves it to `READY_TO_SEND`. Partial failure remains visible as provisioning in progress and retries safely. Operators can inspect and retry the maintenance job without manually editing assessment state. The job never contains a raw vendor contact address.
 
 ## 5. Invitation and vendor access
 
@@ -152,6 +146,8 @@ From `READY_TO_SEND`, the owner confirms:
 - purpose-bound message preview.
 
 The canonical Evidence Request recipient stores an audience hash and safe hint, not the raw address. Existing manager-access checks determine who may issue or replace the invitation.
+
+The verified `thirdparty.assessment.send_request` command creates or reuses the external Evidence Request and then issues the invitation. Evidence Requests gain a generic immutable origin reference consisting of origin type, origin ID and origin version; tenant-scoped uniqueness prevents an interrupted or repeated send from creating duplicate requests. The assessment links the exact request before invitation issuance. If request creation or linking committed but invitation issuance did not, the command returns a truthful partial outcome and a retry issues the invitation against the same request. Raw recipient data passes directly into the protected Evidence Request recipient boundary and is never written to third-party events, jobs or outbox payloads.
 
 ### 5.2 Secure link
 
