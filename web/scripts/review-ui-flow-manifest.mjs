@@ -78,6 +78,19 @@ const requiredStates = [
 
 const failures = [];
 const checks = [];
+const requiredMatterCommands = [
+  "matter.create", "matter.details.update", "matter.context.change", "matter.assign", "matter.transition",
+  "matter.link", "matter.decision.record", "matter.action.add", "matter.action.update", "matter.action.assign",
+  "matter.action.transition", "matter.response.add", "matter.response.transition", "matter.outcome.define", "matter.outcome.record",
+];
+try {
+  const coverageSource = await readFile(path.resolve("src/operationalCoverage.ts"), "utf8");
+  const missingCommands = requiredMatterCommands.filter((command) => !coverageSource.includes(`"${command}"`));
+  if (missingCommands.length) failures.push(`Matter UI command coverage is missing: ${missingCommands.join(", ")}`);
+  checks.push({ name: "Matter material-command UI coverage", status: missingCommands.length ? "FAIL" : "PASS", detail: `${requiredMatterCommands.length - missingCommands.length}/${requiredMatterCommands.length} commands mapped` });
+} catch (error) {
+  failures.push(`Matter UI command coverage could not be read: ${error instanceof Error ? error.message : String(error)}`);
+}
 const safeReadJSON = async (name) => {
   try {
     return JSON.parse(await readFile(path.join(outputDir, name), "utf8"));
