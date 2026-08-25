@@ -4,7 +4,7 @@ import { acceptProgramReview, loadProgramReviewDigest } from "../programReviewAp
 import type { ProgramReviewDigest as ReviewDigest } from "../programReviewApi";
 import type { ProgramAggregate } from "../types";
 
-type Props = { aggregate: ProgramAggregate };
+type Props = { aggregate: ProgramAggregate; initialDigest?: ReviewDigest; onDigestUpdated?: (value: ReviewDigest) => void };
 type LoadState = "loading" | "live" | "unavailable";
 type SaveState = "idle" | "saving" | "error";
 
@@ -23,7 +23,7 @@ function acceptError(error: unknown) {
   return error instanceof Error && error.message ? error.message : "The review acknowledgement could not be recorded.";
 }
 
-export function ProgramReviewDigest({ aggregate }: Props) {
+export function ProgramReviewDigest({ aggregate, initialDigest, onDigestUpdated }: Props) {
   const program = aggregate.program;
   const projectionVersion = aggregate.current_state?.projection_version ?? 0;
   const [digest, setDigest] = useState<ReviewDigest | null>(null);
@@ -33,6 +33,13 @@ export function ProgramReviewDigest({ aggregate }: Props) {
 
   useEffect(() => {
     let active = true;
+	if (initialDigest) {
+	  setDigest(initialDigest);
+	  setLoadState("live");
+	  setSaveState("idle");
+	  setError("");
+	  return () => { active = false; };
+	}
     setLoadState("loading");
     setSaveState("idle");
     setError("");
@@ -44,7 +51,7 @@ export function ProgramReviewDigest({ aggregate }: Props) {
       if (active) setLoadState("unavailable");
     });
     return () => { active = false; };
-  }, [program.id, program.version, projectionVersion]);
+	}, [program.id, program.version, projectionVersion, initialDigest]);
 
   async function markReviewed() {
     if (!digest || saveState === "saving") return;
@@ -53,6 +60,7 @@ export function ProgramReviewDigest({ aggregate }: Props) {
     try {
       const value = await acceptProgramReview(program.id, digest.current_program_version, digest.current_projection_version);
       setDigest(value);
+	  onDigestUpdated?.(value);
       setSaveState("idle");
     } catch (value) {
       setError(acceptError(value));

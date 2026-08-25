@@ -8,6 +8,7 @@ import { ProgramLifecycleControls } from "./ProgramLifecycleControls";
 import { ProgramReviewDigest } from "./ProgramReviewDigest";
 import { ProgramSetupWorkspace } from "./ProgramSetupWorkspace";
 import { MonitoringSetup } from "./MonitoringSetup";
+import { ProgramRecordWorkspace } from "./ProgramRecordWorkspace";
 
 type LoadState = "loading" | "live" | "unavailable";
 type Props = { targetID?: string; openFirst?: boolean; actorPrincipalID?: string; canConfigureSources?: boolean };
@@ -58,7 +59,12 @@ function summaryFromAggregate(detail: ProgramAggregate): ProgramSummary {
   };
 }
 
-export function ProgramsWorkspace({ targetID, openFirst = false, actorPrincipalID = "", canConfigureSources = false }: Props) {
+export function ProgramsWorkspace(props: Props) {
+  if (props.targetID) return <ProgramRecordWorkspace programID={props.targetID} onBack={() => { window.location.hash = "#programs"; }}/>;
+  return <ProgramListWorkspace {...props}/>;
+}
+
+function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = "", canConfigureSources = false }: Props) {
   const [items, setItems] = useState<ProgramSummary[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [nextCursor, setNextCursor] = useState("");

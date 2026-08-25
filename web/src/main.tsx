@@ -21,6 +21,7 @@ import "./visual-review-fixes.css";
 import "./capture-inputs.css";
 import "./operating-mutations.css";
 import "./matter-record.css";
+import "./program-record.css";
 import "./demo-login.css";
 import "./defect-review-fixes.css";
 import "./monitoring.css";
