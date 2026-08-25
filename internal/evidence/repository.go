@@ -41,3 +41,13 @@ type Repository interface {
 type SubmissionReader interface {
 	GetSubmission(context.Context, string, string) (Submission, error)
 }
+
+type DraftStore interface {
+	GetDraft(context.Context, string, string, string) (ResponseDraft, error)
+	SaveDraft(context.Context, SaveDraftRecord) (ResponseDraft, error)
+	DeleteDraft(context.Context, string, string, string) error
+}
+
+type OriginRequestStore interface {
+	GetRequestByOrigin(context.Context, string, RequestOrigin) (Request, error)
+}

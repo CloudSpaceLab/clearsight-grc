@@ -28,15 +28,23 @@ type queryRower interface {
 }
 
 func insertFormRevision(ctx context.Context, db queryRower, value FormTemplate) (FormTemplate, error) {
+	presentation, err := json.Marshal(value.Presentation)
+	if err != nil {
+		return FormTemplate{}, errors.Join(ErrInvalid, err)
+	}
+	sections, err := json.Marshal(value.Sections)
+	if err != nil {
+		return FormTemplate{}, errors.Join(ErrInvalid, err)
+	}
 	fields, err := json.Marshal(value.Fields)
 	if err != nil {
 		return FormTemplate{}, errors.Join(ErrInvalid, err)
 	}
 	created, err := scanForm(db.QueryRow(ctx, `
-		INSERT INTO monitoring_form_templates(id,tenant_id,code,name,purpose,fields,status,is_current,effective_from,effective_until,version,created_by,submitted_by,approved_by,rejected_by,created_at,updated_at)
-		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4,$5,$6::jsonb,$7,$8,$9,$10,$11,NULLIF($12,'')::uuid,NULLIF($13,'')::uuid,NULLIF($14,'')::uuid,NULLIF($15,'')::uuid,$16,$17)
-		RETURNING id::text,tenant_id::text,code,name,purpose,fields,status,is_current,effective_from,effective_until,version,COALESCE(created_by::text,''),COALESCE(submitted_by::text,''),COALESCE(approved_by::text,''),COALESCE(rejected_by::text,''),created_at,updated_at`,
-		value.ID, value.TenantID, value.Code, value.Name, value.Purpose, fields, value.Status, value.IsCurrent, value.EffectiveFrom, value.EffectiveUntil, value.Version, value.CreatedBy, value.SubmittedBy, value.ApprovedBy, value.RejectedBy, value.CreatedAt, value.UpdatedAt))
+		INSERT INTO monitoring_form_templates(id,tenant_id,code,name,purpose,presentation,sections,fields,status,is_current,effective_from,effective_until,version,created_by,submitted_by,approved_by,rejected_by,created_at,updated_at)
+		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4,$5,$6::jsonb,$7::jsonb,$8::jsonb,$9,$10,$11,$12,$13,NULLIF($14,'')::uuid,NULLIF($15,'')::uuid,NULLIF($16,'')::uuid,NULLIF($17,'')::uuid,$18,$19)
+		RETURNING id::text,tenant_id::text,code,name,purpose,presentation,sections,fields,status,is_current,effective_from,effective_until,version,COALESCE(created_by::text,''),COALESCE(submitted_by::text,''),COALESCE(approved_by::text,''),COALESCE(rejected_by::text,''),created_at,updated_at`,
+		value.ID, value.TenantID, value.Code, value.Name, value.Purpose, presentation, sections, fields, value.Status, value.IsCurrent, value.EffectiveFrom, value.EffectiveUntil, value.Version, value.CreatedBy, value.SubmittedBy, value.ApprovedBy, value.RejectedBy, value.CreatedAt, value.UpdatedAt))
 	return created, mapPostgresError(err)
 }
 
@@ -46,9 +54,7 @@ func (r *PostgresRepository) TransitionForm(ctx context.Context, input Lifecycle
 		return FormTemplate{}, mapPostgresError(err)
 	}
 	defer tx.Rollback(ctx)
-	current, err := scanForm(tx.QueryRow(ctx, `
-		SELECT f.id::text,f.tenant_id::text,f.code,f.name,f.purpose,f.fields,f.status,f.is_current,f.effective_from,f.effective_until,f.version,
-		       COALESCE(f.created_by::text,''),COALESCE(f.submitted_by::text,''),COALESCE(f.approved_by::text,''),COALESCE(f.rejected_by::text,''),f.created_at,f.updated_at
+	current, err := scanForm(tx.QueryRow(ctx, `SELECT `+formProjection+`
 		FROM monitoring_form_templates f JOIN tenants t ON t.id=f.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND f.id=$2::uuid AND f.version=$3 FOR UPDATE`, input.TenantID, input.ID, input.ExpectedVersion))
 	if err != nil {
@@ -77,18 +83,14 @@ func (r *PostgresRepository) TransitionForm(ctx context.Context, input Lifecycle
 }
 
 func (r *PostgresRepository) FormRevision(ctx context.Context, tenant, id string, version int64) (FormTemplate, error) {
-	value, err := scanForm(r.pool.QueryRow(ctx, `
-		SELECT f.id::text,f.tenant_id::text,f.code,f.name,f.purpose,f.fields,f.status,f.is_current,f.effective_from,f.effective_until,f.version,
-		       COALESCE(f.created_by::text,''),COALESCE(f.submitted_by::text,''),COALESCE(f.approved_by::text,''),COALESCE(f.rejected_by::text,''),f.created_at,f.updated_at
+	value, err := scanForm(r.pool.QueryRow(ctx, `SELECT `+formProjection+`
 		FROM monitoring_form_templates f JOIN tenants t ON t.id=f.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND f.id=$2::uuid AND f.version=$3`, tenant, id, version))
 	return value, mapPostgresError(err)
 }
 
 func (r *PostgresRepository) ListFormRevisions(ctx context.Context, tenant string, limit int) ([]FormTemplate, error) {
-	rows, err := r.pool.Query(ctx, `
-		SELECT f.id::text,f.tenant_id::text,f.code,f.name,f.purpose,f.fields,f.status,f.is_current,f.effective_from,f.effective_until,f.version,
-		       COALESCE(f.created_by::text,''),COALESCE(f.submitted_by::text,''),COALESCE(f.approved_by::text,''),COALESCE(f.rejected_by::text,''),f.created_at,f.updated_at
+	rows, err := r.pool.Query(ctx, `SELECT `+formProjection+`
 		FROM monitoring_form_templates f JOIN tenants t ON t.id=f.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1) ORDER BY f.code,f.version DESC,f.id LIMIT $2`, tenant, boundedLimit(limit))
 	if err != nil {
@@ -213,14 +215,22 @@ func (r *PostgresRepository) ListResults(ctx context.Context, tenant, checkID st
 
 const checkSelect = `SELECT c.id::text,c.tenant_id::text,c.program_id::text,COALESCE(c.requirement_id::text,''),COALESCE(c.control_implementation_id::text,''),COALESCE(c.evidence_contract_id::text,''),c.code,c.name,c.claim,c.input_kind,COALESCE(c.form_template_id::text,''),COALESCE(c.form_template_version,0),COALESCE(c.binding_id::text,''),COALESCE(c.binding_version,0),c.source_rules,c.thresholds,c.freshness_minutes,c.minimum_coverage,COALESCE(c.owner_principal_id::text,''),COALESCE(c.reviewer_principal_id::text,''),c.failure_action,c.status,c.is_current,c.effective_from,c.effective_until,c.version,COALESCE(c.created_by::text,''),COALESCE(c.submitted_by::text,''),COALESCE(c.approved_by::text,''),COALESCE(c.rejected_by::text,''),c.created_at,c.updated_at FROM monitoring_checks c JOIN tenants t ON t.id=c.tenant_id`
 const resultSelect = `SELECT r.id::text,r.tenant_id::text,r.program_id::text,r.monitoring_check_id::text,r.monitoring_check_version,r.input_kind,r.input_reference_id,r.input_reference_version,r.evaluation,r.source_receipt,r.submission_provenance,r.evaluated_at,r.evaluator_version,r.created_at FROM monitoring_results r JOIN tenants t ON t.id=r.tenant_id`
+const formProjection = `f.id::text,f.tenant_id::text,f.code,f.name,f.purpose,f.presentation,f.sections,f.fields,f.status,f.is_current,f.effective_from,f.effective_until,f.version,
+	COALESCE(f.created_by::text,''),COALESCE(f.submitted_by::text,''),COALESCE(f.approved_by::text,''),COALESCE(f.rejected_by::text,''),f.created_at,f.updated_at`
 
 type scanner interface{ Scan(...any) error }
 
 func scanForm(row scanner) (FormTemplate, error) {
 	var value FormTemplate
-	var fields []byte
-	err := row.Scan(&value.ID, &value.TenantID, &value.Code, &value.Name, &value.Purpose, &fields, &value.Status, &value.IsCurrent, &value.EffectiveFrom, &value.EffectiveUntil, &value.Version, &value.CreatedBy, &value.SubmittedBy, &value.ApprovedBy, &value.RejectedBy, &value.CreatedAt, &value.UpdatedAt)
+	var presentation, sections, fields []byte
+	err := row.Scan(&value.ID, &value.TenantID, &value.Code, &value.Name, &value.Purpose, &presentation, &sections, &fields, &value.Status, &value.IsCurrent, &value.EffectiveFrom, &value.EffectiveUntil, &value.Version, &value.CreatedBy, &value.SubmittedBy, &value.ApprovedBy, &value.RejectedBy, &value.CreatedAt, &value.UpdatedAt)
 	if err != nil {
+		return FormTemplate{}, err
+	}
+	if err := json.Unmarshal(presentation, &value.Presentation); err != nil {
+		return FormTemplate{}, err
+	}
+	if err := json.Unmarshal(sections, &value.Sections); err != nil {
 		return FormTemplate{}, err
 	}
 	if err := json.Unmarshal(fields, &value.Fields); err != nil {

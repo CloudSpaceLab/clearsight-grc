@@ -226,6 +226,7 @@ type Request struct {
 	FormTemplateVersion   int64                     `json:"form_template_version,omitempty"`
 	CollectionPeriodStart *time.Time                `json:"collection_period_start,omitempty"`
 	CollectionPeriodEnd   *time.Time                `json:"collection_period_end,omitempty"`
+	Origin                RequestOrigin             `json:"origin,omitempty"`
 	Status                RequestStatus             `json:"status"`
 	CreatedBy             string                    `json:"created_by,omitempty"`
 	Version               int64                     `json:"version"`
@@ -254,6 +255,7 @@ type CreateRequestInput struct {
 	FormTemplateVersion   int64                     `json:"form_template_version,omitempty"`
 	CollectionPeriodStart *time.Time                `json:"collection_period_start,omitempty"`
 	CollectionPeriodEnd   *time.Time                `json:"collection_period_end,omitempty"`
+	Origin                RequestOrigin             `json:"origin,omitempty"`
 	CreatedBy             string                    `json:"created_by,omitempty"`
 }
 

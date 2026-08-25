@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
 
 func TestMemoryRepositoryStoresExactFormVersionsWithinTenant(t *testing.T) {
@@ -12,7 +14,9 @@ func TestMemoryRepositoryStoresExactFormVersionsWithinTenant(t *testing.T) {
 	now := time.Date(2026, 8, 17, 10, 0, 0, 0, time.UTC)
 	form := FormTemplate{
 		ID: "form-1", TenantID: "bank-a", Code: "PASSWORD-RESET", Name: "Password reset review",
-		Purpose: "Collect the weekly password reset control review.", Fields: []TemplateField{{ID: "identity", Label: "Identity verification completed", Type: "single_select", Required: true, Options: []string{"Yes", "No"}}},
+		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
+		Sections:     []formcontract.Section{{ID: "identity", Title: "Identity checks"}},
+		Purpose:      "Collect the weekly password reset control review.", Fields: []TemplateField{{ID: "identity", Label: "Identity verification completed", Type: "single_select", Required: true, Options: []string{"Yes", "No"}}},
 		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: "maker", CreatedAt: now, UpdatedAt: now},
 	}
 	created, err := repo.CreateFormRevision(context.Background(), form)
@@ -25,7 +29,7 @@ func TestMemoryRepositoryStoresExactFormVersionsWithinTenant(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get form: %v", err)
 	}
-	if stored.Name != "Password reset review" || stored.Fields[0].Options[1] != "No" {
+	if stored.Name != "Password reset review" || stored.Presentation.DefaultMode != formcontract.PresentationWizard || !stored.Presentation.AllowModeSwitch || len(stored.Sections) != 1 || stored.Sections[0].Title != "Identity checks" || stored.Fields[0].Options[1] != "No" {
 		t.Fatalf("stored form mutated: %#v", stored)
 	}
 	if _, err := repo.FormRevision(context.Background(), "bank-b", "form-1", 1); !errors.Is(err, ErrNotFound) {

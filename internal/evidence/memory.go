@@ -5,8 +5,11 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"sort"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
 
 type MemoryRepository struct {
@@ -17,16 +20,18 @@ type MemoryRepository struct {
 	submissions  map[string]Submission
 	invitations  map[string]Invitation
 	sessions     map[string]Session
+	drafts       map[string]ResponseDraft
 	artifacts    map[string]Artifact
 }
 
 func NewMemoryRepository(sources []Source, requests []Request) *MemoryRepository {
-	repo := &MemoryRepository{sources: map[string]Source{}, observations: map[string]SourceObservation{}, requests: map[string]Request{}, submissions: map[string]Submission{}, invitations: map[string]Invitation{}, sessions: map[string]Session{}, artifacts: map[string]Artifact{}}
+	repo := &MemoryRepository{sources: map[string]Source{}, observations: map[string]SourceObservation{}, requests: map[string]Request{}, submissions: map[string]Submission{}, invitations: map[string]Invitation{}, sessions: map[string]Session{}, drafts: map[string]ResponseDraft{}, artifacts: map[string]Artifact{}}
 	for _, source := range sources {
 		repo.sources[source.ID] = source
 	}
 	for _, request := range requests {
 		request.KnownFacts = cloneMap(request.KnownFacts)
+		request.Sections = cloneSections(request.Sections)
 		request.Fields = cloneFields(request.Fields)
 		request.SourceBindings = cloneRequestBindings(request.SourceBindings)
 		repo.requests[request.ID] = request
@@ -116,11 +121,35 @@ func (r *MemoryRepository) CreateRequest(_ context.Context, value Request) (Requ
 	if !value.Deadline.After(value.CreatedAt) {
 		return Request{}, ErrRequestClosed
 	}
+	value.Origin = value.Origin.normalized()
+	if err := value.Origin.validate(); err != nil {
+		return Request{}, err
+	}
+	if !value.Origin.empty() {
+		for _, existing := range r.requests {
+			if existing.TenantID == value.TenantID && existing.Origin == value.Origin {
+				return Request{}, ErrVersionConflict
+			}
+		}
+	}
 	value.KnownFacts = cloneMap(value.KnownFacts)
+	value.Sections = cloneSections(value.Sections)
 	value.Fields = cloneFields(value.Fields)
 	value.SourceBindings = cloneRequestBindings(value.SourceBindings)
 	r.requests[value.ID] = value
 	return cloneRequest(value), nil
+}
+
+func (r *MemoryRepository) GetRequestByOrigin(_ context.Context, tenant string, origin RequestOrigin) (Request, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	origin = origin.normalized()
+	for _, value := range r.requests {
+		if !origin.empty() && value.TenantID == tenant && value.Origin == origin {
+			return cloneRequest(value), nil
+		}
+	}
+	return Request{}, ErrNotFound
 }
 
 func (r *MemoryRepository) ListRequests(_ context.Context, tenant string, limit int) ([]Request, error) {
@@ -169,7 +198,72 @@ func (r *MemoryRepository) Submit(_ context.Context, submission Submission) (Sub
 	submission.Answers = cloneAnswerValues(submission.Answers)
 	submission.AnswerProvenance = cloneAnswerProvenance(submission.AnswerProvenance)
 	r.submissions[submission.ID] = submission
+	if submission.SessionID != "" {
+		delete(r.drafts, draftKey(submission.TenantID, submission.RequestID, submission.SessionID))
+	}
 	return SubmissionReceipt{SubmissionID: submission.ID, RequestID: request.ID, Status: request.Status, SubmittedAt: submission.SubmittedAt, Version: request.Version}, nil
+}
+
+func (r *MemoryRepository) GetDraft(_ context.Context, tenant, requestID, sessionID string) (ResponseDraft, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	value, ok := r.drafts[draftKey(tenant, requestID, sessionID)]
+	if !ok {
+		return ResponseDraft{}, ErrNotFound
+	}
+	return cloneResponseDraft(value), nil
+}
+
+func (r *MemoryRepository) SaveDraft(_ context.Context, record SaveDraftRecord) (ResponseDraft, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if record.TenantID == "" || record.RequestID == "" || record.SessionID == "" || record.ID == "" || record.ExpectedVersion < 0 {
+		return ResponseDraft{}, ErrNotFound
+	}
+	request, ok := r.requests[record.RequestID]
+	if !ok || request.TenantID != record.TenantID {
+		return ResponseDraft{}, ErrNotFound
+	}
+	sessionFound := false
+	for _, session := range r.sessions {
+		if session.ID == record.SessionID && session.TenantID == record.TenantID && session.RequestID == record.RequestID {
+			sessionFound = true
+			break
+		}
+	}
+	if !sessionFound {
+		return ResponseDraft{}, ErrNotFound
+	}
+	key := draftKey(record.TenantID, record.RequestID, record.SessionID)
+	current, exists := r.drafts[key]
+	if !exists {
+		if record.ExpectedVersion != 0 {
+			return ResponseDraft{}, ErrVersionConflict
+		}
+		value := ResponseDraft{
+			ID: record.ID, TenantID: record.TenantID, RequestID: record.RequestID, SessionID: record.SessionID,
+			Answers: cloneAnswerValues(record.Answers), PresentationMode: record.PresentationMode,
+			Version: 1, CreatedAt: record.UpdatedAt.UTC(), UpdatedAt: record.UpdatedAt.UTC(),
+		}
+		r.drafts[key] = value
+		return cloneResponseDraft(value), nil
+	}
+	if current.Version != record.ExpectedVersion {
+		return ResponseDraft{}, ErrVersionConflict
+	}
+	current.Answers = cloneAnswerValues(record.Answers)
+	current.PresentationMode = record.PresentationMode
+	current.Version++
+	current.UpdatedAt = record.UpdatedAt.UTC()
+	r.drafts[key] = current
+	return cloneResponseDraft(current), nil
+}
+
+func (r *MemoryRepository) DeleteDraft(_ context.Context, tenant, requestID, sessionID string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.drafts, draftKey(tenant, requestID, sessionID))
+	return nil
 }
 
 func (r *MemoryRepository) GetSubmission(_ context.Context, tenant, id string) (Submission, error) {
@@ -313,6 +407,7 @@ func (r *MemoryRepository) CreateArtifact(_ context.Context, artifact Artifact) 
 
 func cloneRequest(value Request) Request {
 	value.KnownFacts = cloneMap(value.KnownFacts)
+	value.Sections = cloneSections(value.Sections)
 	value.Fields = cloneFields(value.Fields)
 	value.SourceBindings = cloneRequestBindings(value.SourceBindings)
 	value.CollectionPeriodStart = cloneTimePointer(value.CollectionPeriodStart)
@@ -320,7 +415,31 @@ func cloneRequest(value Request) Request {
 	return value
 }
 
+func cloneSections(input []formcontract.Section) []formcontract.Section {
+	out := append([]formcontract.Section(nil), input...)
+	for index := range out {
+		if input[index].Condition != nil {
+			condition := *input[index].Condition
+			condition.Values = append([]string(nil), input[index].Condition.Values...)
+			out[index].Condition = &condition
+		}
+	}
+	return out
+}
+
+func cloneResponseDraft(value ResponseDraft) ResponseDraft {
+	value.Answers = cloneAnswerValues(value.Answers)
+	return value
+}
+
+func draftKey(tenant, requestID, sessionID string) string {
+	return strings.Join([]string{tenant, requestID, sessionID}, "\x00")
+}
+
 func pointerTime(value time.Time) *time.Time {
 	copy := value
 	return &copy
 }
+
+var _ DraftStore = (*MemoryRepository)(nil)
+var _ OriginRequestStore = (*MemoryRepository)(nil)
