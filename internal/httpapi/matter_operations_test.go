@@ -99,6 +99,7 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 		canAct  bool
 		reason  string
 	}{}
+	actionAddCandidates := []authority.Principal{}
 	for _, operation := range payload.Operations {
 		key := operation.Command + ":" + operation.SubresourceID
 		name := ""
@@ -111,6 +112,9 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 			canAct  bool
 			reason  string
 		}{operation.Command, name, operation.CanAct, operation.Reason}
+		if operation.Command == "matter.action.add" {
+			actionAddCandidates = operation.Candidates
+		}
 	}
 	owner := operations["matter.details.update:"]
 	action := operations["matter.action.transition:"+activeActionID]
@@ -123,6 +127,9 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 	}
 	if outcome.name != "Internal Auditor" || outcome.canAct {
 		t.Fatalf("outcome reviewer is unexplained: %#v", outcome)
+	}
+	if len(actionAddCandidates) != 1 || actionAddCandidates[0].DisplayName != "Program Owner" {
+		t.Fatalf("Action creation did not return eligible performers: %#v", actionAddCandidates)
 	}
 }
 

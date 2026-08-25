@@ -7,6 +7,7 @@ import { EmptyState } from "./EmptyState";
 import { MatterCurrentHandoff } from "./MatterCurrentHandoff";
 import { MatterDetailsPanel } from "./MatterDetailsPanel";
 import { MatterInformationPanel } from "./MatterInformationPanel";
+import { MatterActionsPanel } from "./MatterActionsPanel";
 
 type Props = {
   matterID: string;
@@ -91,14 +92,8 @@ export function MatterRecordWorkspace({ matterID, onBack }: Props) {
       <section className="matter-record-grid">
         <MatterDetailsPanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
         <MatterInformationPanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
-        <article className="matter-record-panel">
-          <div className="matter-record-section-heading"><div><span className="eyebrow">Assigned work</span><h2>Actions and outcome checks</h2></div><span>{aggregate.actions.length} actions</span></div>
-          {aggregate.actions.length ? aggregate.actions.map((action) => {
-            const actionOperation = operations.operations.find((operation) => operation.command === "matter.action.transition" && operation.subresource_id === action.id);
-            return <div className="matter-record-row" id={`matter-operation-matter.action.transition-${action.id}`} key={action.id}><div><strong>{action.title}</strong><p>{action.description}</p><small>Assigned to {actionOperation?.assigned_to?.display_name ?? "Owner not resolved"}</small></div><span>{humanize(action.status)}</span></div>;
-          }) : <p>No actions have been recorded for this issue.</p>}
-          {aggregate.verification_contracts.length === 0 && <div className="matter-record-attention"><strong>No outcome check has been defined</strong><p>Define the result that must be independently confirmed before this issue can close.</p></div>}
-        </article>
+        <MatterActionsPanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
+        {aggregate.verification_contracts.length === 0 && <article className="matter-record-panel"><div className="matter-record-section-heading"><div><span className="eyebrow">Outcome checks</span><h2>Results still to confirm</h2></div></div><div className="matter-record-attention"><strong>No outcome check has been defined</strong><p>Define the result that must be independently confirmed before this issue can close.</p></div></article>}
       </section>
     </>}
   </section>;

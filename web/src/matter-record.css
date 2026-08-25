@@ -90,6 +90,17 @@
 .matter-form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .matter-form-actions button { min-height: 44px; }
 .matter-form-error { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px; border: 1px solid color-mix(in srgb, var(--coral) 50%, var(--border)); border-radius: 10px; color: var(--coral); }
+.matter-form-context { margin: 0; font-size: .75rem; }
+.matter-action-list { display: grid; gap: 12px; }
+.matter-action-card { padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+.matter-action-heading { display: flex; justify-content: space-between; gap: 16px; }
+.matter-action-heading h3 { margin: 0; font-size: .95rem; }
+.matter-action-heading p { margin: 5px 0 0; font-size: .8rem; }
+.matter-action-heading > span { flex: none; color: var(--muted); font-size: .72rem; }
+.matter-action-meta { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; color: var(--muted); font-size: .75rem; }
+.matter-action-meta strong { color: var(--text); }
+.matter-action-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.matter-action-controls button { min-height: 40px; }
 
 @media (max-width: 900px) {
   .matter-record-header,
@@ -118,4 +129,7 @@
   .matter-form-actions button { width: 100%; }
   .matter-form-error { display: grid; }
   .matter-information-list li { display: grid; }
+  .matter-action-heading { display: grid; }
+  .matter-action-controls { display: grid; }
+  .matter-action-controls button { width: 100%; min-height: 44px; }
 }

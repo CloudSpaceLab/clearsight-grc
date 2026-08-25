@@ -2,18 +2,23 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadMatter } from "../api";
 import { ApiError } from "../http";
-import { assignMatter, changeMatterContext, loadMatterOperations, updateMatterDetails } from "../matterOperationsApi";
+import { assignMatter, assignMatterAction, changeMatterContext, loadMatterOperations, updateMatterAction, updateMatterDetails } from "../matterOperationsApi";
 import type { MatterOperations } from "../matterOperationsApi";
+import { addMatterAction, transitionMatterAction } from "../continuityCommands";
 import type { MatterAggregate } from "../types";
 import { MatterRecordWorkspace } from "./MatterRecordWorkspace";
 
 vi.mock("../api", () => ({ loadMatter: vi.fn() }));
 vi.mock("../matterOperationsApi", () => ({
   assignMatter: vi.fn(),
+  assignMatterAction: vi.fn(),
   changeMatterContext: vi.fn(),
   loadMatterOperations: vi.fn(),
+  updateMatterAction: vi.fn(),
   updateMatterDetails: vi.fn(),
 }));
+
+vi.mock("../continuityCommands", () => ({ addMatterAction: vi.fn(), transitionMatterAction: vi.fn() }));
 
 const detail: MatterAggregate = {
   type_label: "Regulatory change",
@@ -62,6 +67,28 @@ const ownerOperations: MatterOperations = {
   ],
 };
 
+const actionOwnerOperations: MatterOperations = {
+  ...ownerOperations,
+  operations: [
+    ...ownerOperations.operations,
+    {
+      command: "matter.action.add", label: "Add an action", responsibility: "ACCOUNTABLE_OWNER", can_act: true,
+      assigned_to: ownerOperations.operations[0]!.assigned_to,
+      candidates: ownerOperations.operations[2]!.candidates,
+      reason: "You can add assigned work for this issue.",
+    },
+    { command: "matter.action.update", subresource_id: "action-1", label: "Edit action", responsibility: "ACCOUNTABLE_OWNER", can_act: true, assigned_to: ownerOperations.operations[0]!.assigned_to, reason: "You can update this action." },
+    { command: "matter.action.assign", subresource_id: "action-1", label: "Change action owner", responsibility: "ACCOUNTABLE_OWNER", can_act: true, assigned_to: ownerOperations.operations[0]!.assigned_to, candidates: ownerOperations.operations[2]!.candidates, reason: "You can assign an eligible performer." },
+  ],
+};
+
+const performerOperations: MatterOperations = {
+  ...operations,
+  operations: operations.operations.map((operation) => operation.command === "matter.action.transition"
+    ? { ...operation, can_act: true, allowed_targets: ["IMPLEMENTED", "BLOCKED"] }
+    : operation),
+};
+
 describe("Matter record workspace", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -74,11 +101,11 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={onBack}/>);
 
     expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
-    expect(screen.getByText("Assigned to Program Owner")).toBeTruthy();
+    expect(screen.getByLabelText("Current responsibility and timing").textContent).toContain("Assigned to Program Owner");
     expect(screen.getByText("Due 26 Aug 2026")).toBeTruthy();
     expect(screen.getByText("2 missing information items")).toBeTruthy();
     expect(screen.getByText("final DPCO evidence checklist")).toBeTruthy();
-    expect(screen.getAllByText("This action is assigned to the Program Owner.")).toHaveLength(2);
+    expect(screen.getAllByText("This action is assigned to the Program Owner.").length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Update action" })).toBeNull();
     expect(screen.getAllByTestId("dominant-next-action")).toHaveLength(1);
 
@@ -167,7 +194,7 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
     expect(await screen.findByText("licensed DPCO")).toBeTruthy();
-    expect(screen.getAllByText("Assigned to Program Owner").length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("Current responsibility and timing").textContent).toContain("Assigned to Program Owner");
     expect(screen.queryByRole("button", { name: "Edit Filing Channel" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Change issue owner" })).toBeNull();
   });
@@ -186,5 +213,58 @@ describe("Matter record workspace", () => {
     expect((screen.getByLabelText("Summary") as HTMLTextAreaElement).value).toBe("Keep this carefully entered summary.");
     fireEvent.click(screen.getByRole("button", { name: "Reload current issue" }));
     await waitFor(() => expect(loadMatter).toHaveBeenCalledTimes(2));
+  });
+
+  it("shows each Action owner and deadline and lets the accountable owner add assigned work", async () => {
+    vi.mocked(loadMatterOperations).mockResolvedValue(actionOwnerOperations);
+    vi.mocked(addMatterAction).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 8 }, actions: [...detail.actions, { id: "action-2", title: "Confirm section owners", description: "Record the two remaining owners.", owner_principal_id: "owner-2", status: "PLANNED", due_at: "2026-09-02T00:00:00.000Z" }] });
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    expect(await screen.findByText("Program Owner", { selector: ".matter-action-meta strong" })).toBeTruthy();
+    expect(screen.getByText("Action due 26 Aug 2026")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Add action" }));
+    fireEvent.change(screen.getByLabelText("Action title"), { target: { value: "Confirm section owners" } });
+    fireEvent.change(screen.getByLabelText("Action description"), { target: { value: "Record the two remaining owners." } });
+    fireEvent.change(screen.getByLabelText("Action owner"), { target: { value: "owner-2" } });
+    fireEvent.change(screen.getByLabelText("Action due date"), { target: { value: "2026-09-02" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create assigned action" }));
+
+    await waitFor(() => expect(addMatterAction).toHaveBeenCalledWith("matter-1", 7, {
+      title: "Confirm section owners", description: "Record the two remaining owners.", ownerPrincipalID: "owner-2", dueAt: "2026-09-02T00:00:00.000Z",
+    }));
+    expect(await screen.findByText("Action added.")).toBeTruthy();
+  });
+
+  it("lets the accountable owner edit and reassign an Action", async () => {
+    vi.mocked(loadMatterOperations).mockResolvedValue(actionOwnerOperations);
+    vi.mocked(updateMatterAction).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 8 }, actions: [{ ...detail.actions[0]!, description: "Map every section to its approved source." }] });
+    vi.mocked(assignMatterAction).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 9 }, actions: [{ ...detail.actions[0]!, owner_principal_id: "owner-2" }] });
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit Update the annual return evidence checklist" }));
+    fireEvent.change(screen.getByLabelText("Action description"), { target: { value: "Map every section to its approved source." } });
+    fireEvent.change(screen.getByLabelText("Reason for changing this action"), { target: { value: "Clarify the evidence required for completion." } });
+    fireEvent.click(screen.getByRole("button", { name: "Save action" }));
+    await waitFor(() => expect(updateMatterAction).toHaveBeenCalledWith("matter-1", "action-1", 7, expect.objectContaining({ description: "Map every section to its approved source." })));
+
+    fireEvent.click(screen.getByRole("button", { name: "Change owner for Update the annual return evidence checklist" }));
+    fireEvent.change(screen.getByLabelText("New action owner"), { target: { value: "owner-2" } });
+    fireEvent.change(screen.getByLabelText("Reason for action reassignment"), { target: { value: "Assign the process owner who maintains the evidence." } });
+    fireEvent.click(screen.getByRole("button", { name: "Assign action owner" }));
+    await waitFor(() => expect(assignMatterAction).toHaveBeenCalledWith("matter-1", "action-1", 8, "owner-2", "Assign the process owner who maintains the evidence."));
+  });
+
+  it("lets only the current performer update Action status and keeps the outcome pending after implementation", async () => {
+    vi.mocked(loadMatterOperations).mockResolvedValue(performerOperations);
+    vi.mocked(transitionMatterAction).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 8 }, actions: [{ ...detail.actions[0]!, status: "IMPLEMENTED", implemented_at: "2026-08-25T12:00:00Z" }] });
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Update status for Update the annual return evidence checklist" }));
+    fireEvent.change(screen.getByLabelText("Next action status"), { target: { value: "IMPLEMENTED" } });
+    fireEvent.click(screen.getByRole("button", { name: "Update action status" }));
+
+    await waitFor(() => expect(transitionMatterAction).toHaveBeenCalledWith("matter-1", "action-1", 7, "IMPLEMENTED", ""));
+    expect(await screen.findByText("Work completed; outcome not confirmed")).toBeTruthy();
+    expect(screen.getByText("No outcome check has been defined")).toBeTruthy();
   });
 });

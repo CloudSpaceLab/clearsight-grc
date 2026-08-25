@@ -56,7 +56,7 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 		{Command: "matter.details.update", Label: "Edit issue details", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID},
 		{Command: "matter.context.change", Label: "Update facts and missing information", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID},
 		{Command: "matter.assign", Label: "Change issue owner", Responsibility: authority.ResponsibilityOwner, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, IncludeCandidates: true},
-		{Command: "matter.action.add", Label: "Add an action", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID},
+		{Command: "matter.action.add", Label: "Add an action", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, IncludeCandidates: true},
 	} {
 		add(spec)
 	}
