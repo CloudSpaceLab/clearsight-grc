@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 func TestDecisionLifecycleResponsibilityMatrix(t *testing.T) {
@@ -163,4 +165,78 @@ func lifecycleRequest(matterID string) *http.Request {
 		r.SetPathValue("id", matterID)
 	}
 	return r
+}
+
+func TestMatterAssignmentLifecycleValidatesDistinctOwnerAndPerformerCandidates(t *testing.T) {
+	ctx := identity.WithActor(t.Context(), identity.Actor{
+		TenantID: "bank", PrincipalID: "current-owner", LegalEntityID: "bank-ng", Kind: "PERSON", ExpiresAt: time.Now().UTC().Add(time.Hour),
+	})
+	service := continuity.NewService(continuity.NewMemoryRepository())
+	matter, err := service.CreateMatter(ctx, continuity.CreateMatterInput{
+		TenantID: "bank", Type: continuity.MatterAuthorityRequest, Priority: 5,
+		Title: "Restricted authority request", Summary: "Protected response work.",
+		Scope:            json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["current-owner","owner-2","performer-2"]}`),
+		OwnerPrincipalID: "current-owner", ActorID: "current-owner",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	matter, err = service.AddAction(ctx, continuity.AddActionInput{
+		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
+		Title: "Prepare response", Description: "Assemble the requested records.", OwnerPrincipalID: "current-owner", ActorID: "current-owner",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	actionID := matter.Actions[0].ID
+	resolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner: {
+			Principal: authority.Principal{ID: "owner-2", DisplayName: "Privacy owner"},
+		},
+		authority.ResponsibilityPerformer: {
+			Principal:           authority.Principal{ID: "performer-1", DisplayName: "Current performer"},
+			CandidatePrincipals: []authority.Principal{{ID: "performer-2", DisplayName: "Privacy operations analyst"}},
+		},
+	}}
+	api := &API{deps: Dependencies{Continuity: service, Authority: resolver}}
+	base := commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3}
+
+	if _, err := api.lifecycleCommandPolicy(ctx, lifecycleRequest(matter.Matter.ID), "bank", "matter.assign", map[string]any{"owner_principal_id": "owner-2"}, base); err != nil {
+		t.Fatalf("eligible accountable owner was rejected: %v", err)
+	}
+	actionRequest := lifecycleRequest(matter.Matter.ID)
+	actionRequest.SetPathValue("action_id", actionID)
+	if _, err := api.lifecycleCommandPolicy(ctx, actionRequest, "bank", "matter.action.assign", map[string]any{"owner_principal_id": "performer-2"}, base); err != nil {
+		t.Fatalf("eligible performer was rejected: %v", err)
+	}
+	if _, err := api.lifecycleCommandPolicy(ctx, actionRequest, "bank", "matter.action.assign", map[string]any{"owner_principal_id": "owner-2"}, base); !errors.Is(err, continuity.ErrInvalidState) {
+		t.Fatalf("accountable owner was accepted as an Action performer without a performer route: %v", err)
+	}
+	if _, err := api.lifecycleCommandPolicy(ctx, lifecycleRequest(matter.Matter.ID), "bank", "matter.assign", map[string]any{"owner_principal_id": "outside-scope"}, base); !errors.Is(err, continuity.ErrInvalidState) {
+		t.Fatalf("restricted invisible owner was accepted: %v", err)
+	}
+}
+
+type assignmentAuthorityStub struct {
+	resolutions map[authority.Responsibility]authority.Resolution
+	err         error
+}
+
+func (s *assignmentAuthorityStub) Resolve(_ context.Context, input authority.ResolveInput) (authority.Resolution, error) {
+	if s.err != nil {
+		return authority.Resolution{}, s.err
+	}
+	return s.resolutions[input.Responsibility], nil
+}
+
+func (s *assignmentAuthorityStub) Simulate(context.Context, authority.ResolveInput) (authority.Simulation, error) {
+	return authority.Simulation{}, nil
+}
+
+func (s *assignmentAuthorityStub) Integrity(context.Context, string) ([]authority.IntegrityFinding, error) {
+	return nil, nil
+}
+
+func (s *assignmentAuthorityStub) Policies(context.Context, string) ([]authority.PolicySummary, error) {
+	return nil, nil
 }

@@ -9,8 +9,10 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
@@ -152,5 +154,95 @@ func TestOpenMatterFilterExcludesClosedRecords(t *testing.T) {
 	values, err := service.ListMatters(ctx, "bank", "OPEN", 20)
 	if err != nil || len(values) != 1 || values[0].Matter.ID != matter.Matter.ID {
 		t.Fatalf("unexpected open list %#v err=%v", values, err)
+	}
+}
+
+func TestMatterEditHandlersBindVerifiedActorAndKeepAssignmentSubject(t *testing.T) {
+	repo := continuity.NewMemoryRepository()
+	service := continuity.NewService(repo)
+	matter, err := service.CreateMatter(t.Context(), continuity.CreateMatterInput{
+		TenantID: "bank", Type: continuity.MatterRegulatoryChange, Priority: 4,
+		Title: "Annual return", Summary: "Update the filing process.",
+		Scope: json.RawMessage(`{}`), KnownFacts: json.RawMessage(`{"filing_channel":"email"}`),
+		MissingFacts: json.RawMessage(`["final checklist"]`), Contradictions: json.RawMessage(`[]`),
+		OwnerPrincipalID: "owner-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	matter, err = service.AddAction(t.Context(), continuity.AddActionInput{
+		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
+		Title: "Update checklist", Description: "Map every section.", OwnerPrincipalID: "performer-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	actionID := matter.Actions[0].ID
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "owner-1", "bank-ng"),
+		Continuity: service, Authority: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+			authority.ResponsibilityOwner:     {Principal: authority.Principal{ID: "owner-2", DisplayName: "Privacy owner"}},
+			authority.ResponsibilityPerformer: {Principal: authority.Principal{ID: "performer-2", DisplayName: "Privacy operations analyst"}},
+		}},
+	})
+
+	post := func(path, body string, target *continuity.MatterAggregate) {
+		t.Helper()
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, path, strings.NewReader(body)))
+		if response.Code != http.StatusOK {
+			t.Fatalf("POST %s returned %d: %s", path, response.Code, response.Body.String())
+		}
+		if err := json.NewDecoder(response.Body).Decode(target); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	post("/api/v1/matters/"+matter.Matter.ID+"/details", fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"title":"Annual return filing","summary":"Update the filing process.","priority":4,"scope":{},"actor_id":"forged","rationale":"Use the approved title."}`, matter.Matter.Version), &matter)
+	post("/api/v1/matters/"+matter.Matter.ID+"/context-changes", fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"kind":"RESOLVE_MISSING","key":"final_checklist","label":"final checklist","value":"Checklist v3","evidence_references":["artifact-v3"],"actor_id":"forged","rationale":"Record the approved checklist."}`, matter.Matter.Version), &matter)
+	post("/api/v1/matters/"+matter.Matter.ID+"/assignment", fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"owner_principal_id":"owner-2","actor_id":"forged","rationale":"Assign the current privacy owner."}`, matter.Matter.Version), &matter)
+	post("/api/v1/matters/"+matter.Matter.ID+"/actions/"+actionID, fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"title":"Update checklist","description":"Map every section to its current source.","actor_id":"forged","rationale":"Clarify the required evidence."}`, matter.Matter.Version), &matter)
+	post("/api/v1/matters/"+matter.Matter.ID+"/actions/"+actionID+"/assignment", fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"owner_principal_id":"performer-2","actor_id":"forged","rationale":"Assign the current process owner."}`, matter.Matter.Version), &matter)
+
+	if matter.Matter.OwnerPrincipalID != "owner-2" || matter.Actions[0].OwnerPrincipalID != "performer-2" || matter.Matter.KnownFacts == nil {
+		t.Fatalf("edit journey did not persist requested subjects: %#v", matter)
+	}
+	events, err := repo.MatterEvents(t.Context(), "bank", matter.Matter.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, event := range events[2:] {
+		if event.ActorID != "owner-1" {
+			t.Fatalf("event %s trusted a body actor: %#v", event.Type, event)
+		}
+	}
+}
+
+func TestMatterAssignmentAuthorityFailureReturnsServiceUnavailableWithoutMutation(t *testing.T) {
+	repo := continuity.NewMemoryRepository()
+	service := continuity.NewService(repo)
+	matter, err := service.CreateMatter(t.Context(), continuity.CreateMatterInput{
+		TenantID: "bank", Type: continuity.MatterRegulatoryChange, Priority: 4,
+		Title: "Annual return", Summary: "Update the filing process.", Scope: json.RawMessage(`{}`),
+		OwnerPrincipalID: "owner-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "owner-1", "bank-ng"), Continuity: service,
+	})
+	body := fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"owner_principal_id":"owner-2","rationale":"Assign the current owner."}`, matter.Matter.Version)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/matters/"+matter.Matter.ID+"/assignment", strings.NewReader(body)))
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("authority failure returned %d: %s", response.Code, response.Body.String())
+	}
+	current, err := service.GetMatter(t.Context(), "bank", matter.Matter.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if current.Matter.Version != matter.Matter.Version || current.Matter.OwnerPrincipalID != "owner-1" {
+		t.Fatalf("assignment mutated after authority failure: %#v", current.Matter)
 	}
 }

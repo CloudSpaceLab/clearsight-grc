@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 // lifecycleCommandPolicy resolves authority from the route-bound object and its
@@ -75,6 +77,49 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		}
 		return policy, nil
 
+	case "matter.assign":
+		if aggregate == nil {
+			return policy, nil
+		}
+		candidateID := stringValue(payload["owner_principal_id"])
+		if err := a.validateMatterAssignmentCandidate(ctx, tenant, name, *aggregate, candidateID, authority.ResponsibilityOwner, max(policy.Materiality, matterPriority)); err != nil {
+			return policy, err
+		}
+		policy.Materiality = max(policy.Materiality, matterPriority)
+		return policy, nil
+
+	case "matter.action.update":
+		if aggregate == nil {
+			return policy, nil
+		}
+		actionID, err := lifecycleSubresourceID(r, payload, "action_id")
+		if err != nil {
+			return policy, err
+		}
+		if !matterHasAction(*aggregate, actionID) {
+			return policy, continuity.ErrNotFound
+		}
+		policy.Materiality = max(policy.Materiality, matterPriority)
+		return policy, nil
+
+	case "matter.action.assign":
+		if aggregate == nil {
+			return policy, nil
+		}
+		actionID, err := lifecycleSubresourceID(r, payload, "action_id")
+		if err != nil {
+			return policy, err
+		}
+		if !matterHasAction(*aggregate, actionID) {
+			return policy, continuity.ErrNotFound
+		}
+		candidateID := stringValue(payload["owner_principal_id"])
+		if err := a.validateMatterAssignmentCandidate(ctx, tenant, name, *aggregate, candidateID, authority.ResponsibilityPerformer, max(policy.Materiality, matterPriority)); err != nil {
+			return policy, err
+		}
+		policy.Materiality = max(policy.Materiality, matterPriority)
+		return policy, nil
+
 	case "matter.action.transition":
 		if _, err := lifecycleSubresourceID(r, payload, "action_id"); err != nil {
 			return policy, err
@@ -124,6 +169,48 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		}
 		return policy, nil
 	}
+}
+
+func (a *API) validateMatterAssignmentCandidate(ctx context.Context, tenant, commandName string, aggregate continuity.MatterAggregate, candidateID string, responsibility authority.Responsibility, materiality int) error {
+	candidateID = strings.TrimSpace(candidateID)
+	if candidateID == "" {
+		return fmt.Errorf("%w: owner_principal_id is required", continuity.ErrInvalidState)
+	}
+	if !continuity.MatterVisibleTo(aggregate.Matter, candidateID) {
+		return fmt.Errorf("%w: assigned person is not permitted to view this issue", continuity.ErrInvalidState)
+	}
+	if a.deps.Authority == nil {
+		return fmt.Errorf("%w: assignment route is unavailable", commandauth.ErrGuardUnavailable)
+	}
+	actor, err := identity.Require(ctx)
+	if err != nil {
+		return fmt.Errorf("%w: verified identity is required for assignment", commandauth.ErrIdentityRequired)
+	}
+	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
+		TenantID:       tenant,
+		LegalEntityID:  actor.LegalEntityID,
+		ObjectType:     "MATTER",
+		ObjectID:       aggregate.Matter.ID,
+		Responsibility: responsibility,
+		DecisionType:   commandName,
+		Materiality:    materiality,
+	})
+	if err != nil {
+		return fmt.Errorf("%w: assignment route could not be checked", commandauth.ErrGuardUnavailable)
+	}
+	if !resolution.AllowsPrincipal(candidateID) {
+		return fmt.Errorf("%w: selected person is not eligible for this responsibility", continuity.ErrInvalidState)
+	}
+	return nil
+}
+
+func matterHasAction(aggregate continuity.MatterAggregate, actionID string) bool {
+	for _, action := range aggregate.Actions {
+		if action.ID == actionID {
+			return true
+		}
+	}
+	return false
 }
 
 func existingMatterCommand(name string) bool {

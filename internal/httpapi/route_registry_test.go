@@ -151,3 +151,27 @@ func TestCORSAllowsBearerCapabilityHeader(t *testing.T) {
 		t.Fatalf("bearer capability header missing from CORS allowlist: %q", allowed)
 	}
 }
+
+func TestMatterEditRoutesAreMaterialCommands(t *testing.T) {
+	expected := map[string]string{
+		"/api/v1/matters/{id}/details":                        "matter.details.update",
+		"/api/v1/matters/{id}/context-changes":                "matter.context.change",
+		"/api/v1/matters/{id}/assignment":                     "matter.assign",
+		"/api/v1/matters/{id}/actions/{action_id}":            "matter.action.update",
+		"/api/v1/matters/{id}/actions/{action_id}/assignment": "matter.action.assign",
+	}
+	seen := map[string]bool{}
+	for _, route := range (&API{}).routes() {
+		name, wanted := expected[route.Path]
+		if !wanted || route.Method != http.MethodPost {
+			continue
+		}
+		seen[route.Path] = true
+		if route.Class != routeMaterialCommand || route.Command == nil || route.Command.Name != name {
+			t.Fatalf("%s is not the governed command %s: %#v", route.Path, name, route)
+		}
+	}
+	if len(seen) != len(expected) {
+		t.Fatalf("missing Matter edit routes: got %#v want %#v", seen, expected)
+	}
+}

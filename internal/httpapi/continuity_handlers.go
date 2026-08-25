@@ -319,6 +319,51 @@ func (a *API) transitionMatter(w http.ResponseWriter, r *http.Request) {
 	writeContinuityResult(w, value, err, http.StatusOK)
 }
 
+func (a *API) updateMatterDetails(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.UpdateMatterDetailsInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.MatterID = r.PathValue("id")
+	value, err := service.UpdateMatterDetails(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
+}
+
+func (a *API) changeMatterContext(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.ChangeMatterContextInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.MatterID = r.PathValue("id")
+	value, err := service.ChangeMatterContext(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
+}
+
+func (a *API) assignMatter(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.AssignMatterInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.MatterID = r.PathValue("id")
+	value, err := service.AssignMatter(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
+}
+
 func (a *API) addMatterDecision(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.continuityService(w)
 	if !ok {
@@ -362,6 +407,38 @@ func (a *API) transitionMatterAction(w http.ResponseWriter, r *http.Request) {
 	input.MatterID = r.PathValue("id")
 	input.ActionID = r.PathValue("action_id")
 	value, err := service.TransitionAction(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
+}
+
+func (a *API) updateMatterAction(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.UpdateActionInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.MatterID = r.PathValue("id")
+	input.ActionID = r.PathValue("action_id")
+	value, err := service.UpdateAction(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
+}
+
+func (a *API) assignMatterAction(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.AssignActionInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.MatterID = r.PathValue("id")
+	input.ActionID = r.PathValue("action_id")
+	value, err := service.AssignAction(r.Context(), input)
 	writeContinuityResult(w, value, err, http.StatusOK)
 }
 
