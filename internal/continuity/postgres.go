@@ -393,6 +393,16 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		}
 		_, err := tx.Exec(ctx, `UPDATE programs SET status=$3,effective_until=$4,updated_at=$5 WHERE id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)`, v.TenantID, v.ID, v.Status, v.EffectiveUntil, v.UpdatedAt)
 		return err
+	case EventProgramDetailsUpdated, EventProgramOwnerChanged:
+		v, ok, err := programProjectionProgram(event)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return ErrInvalidState
+		}
+		_, err = tx.Exec(ctx, `UPDATE programs SET name=$3,owning_function=$4,owner_principal_id=NULLIF($5,'')::uuid,jurisdiction=$6,scope=$7,effective_from=$8,effective_until=$9,updated_at=$10 WHERE id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)`, v.TenantID, v.ID, v.Name, v.OwningFunction, v.OwnerPrincipalID, v.Jurisdiction, rawJSON(v.Scope, `{}`), v.EffectiveFrom, v.EffectiveUntil, v.UpdatedAt)
+		return err
 	case EventRequirementAdded:
 		var v Requirement
 		if err := json.Unmarshal(event.Payload, &v); err != nil {
@@ -467,6 +477,25 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		return nil
 	default:
 		return ErrInvalidState
+	}
+}
+
+func programProjectionProgram(event Event) (Program, bool, error) {
+	switch event.Type {
+	case EventProgramDetailsUpdated:
+		var changed programDetailsUpdatedEvent
+		if err := json.Unmarshal(event.Payload, &changed); err != nil {
+			return Program{}, true, err
+		}
+		return changed.Program, true, nil
+	case EventProgramOwnerChanged:
+		var changed programOwnerChangedEvent
+		if err := json.Unmarshal(event.Payload, &changed); err != nil {
+			return Program{}, true, err
+		}
+		return changed.Program, true, nil
+	default:
+		return Program{}, false, nil
 	}
 }
 

@@ -8,6 +8,8 @@ import (
 const (
 	EventProgramCreated             = "PROGRAM_CREATED"
 	EventProgramStatusChanged       = "PROGRAM_STATUS_CHANGED"
+	EventProgramDetailsUpdated      = "PROGRAM_DETAILS_UPDATED"
+	EventProgramOwnerChanged        = "PROGRAM_OWNER_CHANGED"
 	EventRequirementAdded           = "REQUIREMENT_ADDED"
 	EventApplicabilityDetermined    = "APPLICABILITY_DETERMINED"
 	EventControlObjectiveAdded      = "CONTROL_OBJECTIVE_ADDED"
@@ -64,6 +66,18 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 				value.EffectiveUntil = &until
 			}
 			aggregate.Program = value
+		case EventProgramDetailsUpdated:
+			var value programDetailsUpdatedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.Program = value.Program
+		case EventProgramOwnerChanged:
+			var value programOwnerChangedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.Program = value.Program
 		case EventRequirementAdded:
 			var value Requirement
 			if err := json.Unmarshal(event.Payload, &value); err != nil {

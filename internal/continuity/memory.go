@@ -310,6 +310,18 @@ func applyProgramEventToAggregate(aggregate *ProgramAggregate, event Event) erro
 			return err
 		}
 		aggregate.Program = value
+	case EventProgramDetailsUpdated:
+		var value programDetailsUpdatedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Program = value.Program
+	case EventProgramOwnerChanged:
+		var value programOwnerChangedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Program = value.Program
 	case EventRequirementAdded:
 		var value Requirement
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
