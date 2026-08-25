@@ -5,10 +5,11 @@ import type { MatterSummary } from "../summaryTypes";
 import type { MatterAggregate } from "../types";
 import { EmptyState } from "./EmptyState";
 import { MatterWorkCommandPanel } from "./MatterWorkCommandPanel";
+import { MatterRecordWorkspace } from "./MatterRecordWorkspace";
 import { MatterSetupWorkspace } from "./MatterSetupWorkspace";
 
 type LoadState = "loading" | "live" | "unavailable";
-type Props = { targetID?: string; openFirst?: boolean };
+type Props = { targetID?: string; openFirst?: boolean; onBack?: () => void };
 
 function MatterIcon({ type }: { type: string }) {
   const common = { width: 21, height: 21, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
@@ -81,7 +82,12 @@ function summaryFromAggregate(detail: MatterAggregate): MatterSummary {
   };
 }
 
-export function MattersWorkspace({ targetID, openFirst = false }: Props) {
+export function MattersWorkspace({ targetID, openFirst = false, onBack }: Props) {
+  if (targetID) return <MatterRecordWorkspace matterID={targetID} onBack={onBack ?? (() => { window.location.hash = "#work"; })}/>;
+  return <MatterListWorkspace openFirst={openFirst}/>;
+}
+
+function MatterListWorkspace({ openFirst = false }: Pick<Props, "openFirst">) {
   const [items, setItems] = useState<MatterSummary[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [nextCursor, setNextCursor] = useState("");
@@ -188,7 +194,7 @@ export function MattersWorkspace({ targetID, openFirst = false }: Props) {
 
   useEffect(() => {
     if (state !== "live") return;
-    const id = targetID ?? (openFirst ? items[0]?.matter.id : undefined);
+    const id = openFirst ? items[0]?.matter.id : undefined;
     if (!id || handledTarget.current === id) return;
     handledTarget.current = id;
 
@@ -206,14 +212,10 @@ export function MattersWorkspace({ targetID, openFirst = false }: Props) {
         document.getElementById(`matter-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 80);
     })();
-  }, [state, items, targetID, openFirst]);
+  }, [state, items, openFirst]);
 
   if (state === "loading") return <section id="matters-workspace" className="workspace-loading" aria-live="polite" aria-busy="true">Loading issues and changes…</section>;
   if (state === "unavailable") return <div id="matters-workspace"><EmptyState label="Issues and changes" title="Issues and changes could not be loaded" description="The service is unavailable. No current work totals are shown." action="Try again" onAction={() => void load(true)}/></div>;
-
-  const targetInList = !targetID || items.some((item) => item.matter.id === targetID);
-  const targetLoading = Boolean(targetID && !targetInList && detailState[targetID] === "loading");
-  const targetUnavailable = Boolean(targetID && !targetInList && detailState[targetID] === "unavailable");
 
   return <div id="matters-workspace">
     <section className="workspace-brief">
@@ -228,9 +230,7 @@ export function MattersWorkspace({ targetID, openFirst = false }: Props) {
       <button className="secondary-button" type="submit">Search</button>
       {(search || status !== "OPEN") && <button className="text-button" type="button" onClick={clearFilters}>Clear filters</button>}
     </form>
-    {targetLoading && <div className="workspace-loading compact" aria-live="polite" aria-busy="true">Loading requested issue or change…</div>}
-    {targetUnavailable && <EmptyState label="Requested issue or change" title="The requested record could not be loaded" description="It may be outside your current access scope or no longer available."/>}
-      {!setupOpen && !items.length && !targetLoading && !targetUnavailable ? <EmptyState label="Issues and changes" title={search || status !== "OPEN" ? "No items match these filters" : "No open issues or changes"} description={search || status !== "OPEN" ? "Change the search or status filter to see other work." : "There are no open changes, gaps, findings, exceptions or responses in your current access scope."} action={search || status !== "OPEN" ? "Clear filters" : "Create issue or change"} onAction={search || status !== "OPEN" ? clearFilters : () => { setCreationNotice(""); setSetupOpen(true); }}/> : items.length ? <section className="matter-list">{items.map((summaryItem) => {
+      {!setupOpen && !items.length ? <EmptyState label="Issues and changes" title={search || status !== "OPEN" ? "No items match these filters" : "No open issues or changes"} description={search || status !== "OPEN" ? "Change the search or status filter to see other work." : "There are no open changes, gaps, findings, exceptions or responses in your current access scope."} action={search || status !== "OPEN" ? "Clear filters" : "Create issue or change"} onAction={search || status !== "OPEN" ? clearFilters : () => { setCreationNotice(""); setSetupOpen(true); }}/> : items.length ? <section className="matter-list">{items.map((summaryItem) => {
       const matter = summaryItem.matter;
       const isOpen = openID === matter.id;
       const detail = details[matter.id];
@@ -243,7 +243,7 @@ export function MattersWorkspace({ targetID, openFirst = false }: Props) {
       const responses = detail?.response_packages ?? [];
       const verificationContracts = detail?.verification_contracts ?? [];
       const closure = detail?.closure ?? { ready: false, reasons: [] };
-      return <article className={targetID === matter.id ? "matter-card targeted" : "matter-card"} id={`matter-${matter.id}`} key={matter.id}>
+      return <article className="matter-card" id={`matter-${matter.id}`} key={matter.id}>
         <button type="button" className="matter-card-main" aria-expanded={isOpen} aria-controls={`matter-detail-${matter.id}`} onClick={() => void toggleDetail(matter.id)}>
           <span className="matter-icon"><MatterIcon type={matter.type}/></span>
           <span className="matter-primary"><span className="matter-kicker">{summaryItem.type_label} · {matter.reference}</span><strong>{matter.title}</strong><small>{matter.summary}</small></span>

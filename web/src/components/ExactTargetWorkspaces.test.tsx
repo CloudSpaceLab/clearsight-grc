@@ -5,6 +5,7 @@ import { MattersWorkspace } from "./MattersWorkspace";
 import { ProgramsWorkspace } from "./ProgramsWorkspace";
 import { loadMatter, loadMatterSummaries, loadProgram, loadProgramSummaries } from "../api";
 import { createMatter } from "../continuityCommands";
+import { loadMatterOperations } from "../matterOperationsApi";
 
 vi.mock("../api", () => ({
   loadMatter: vi.fn(),
@@ -17,6 +18,8 @@ vi.mock("../continuityCommands", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../continuityCommands")>()),
   createMatter: vi.fn(),
 }));
+
+vi.mock("../matterOperationsApi", () => ({ loadMatterOperations: vi.fn() }));
 
 beforeAll(() => {
   Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
@@ -56,6 +59,7 @@ describe("exact workspace targets", () => {
   it("renders a directly fetched Matter even when it is outside the first summary page", async () => {
     vi.mocked(loadMatterSummaries).mockResolvedValue({ items: [], generated_at: "2026-08-06T10:00:00Z" });
     vi.mocked(loadMatter).mockResolvedValue(matterDetail);
+    vi.mocked(loadMatterOperations).mockResolvedValue({ matter_id: matterDetail.matter.id, matter_version: 2, authority_available: true, operations: [], generated_at: "2026-08-06T10:00:00Z" });
 
     render(<MattersWorkspace targetID={matterDetail.matter.id}/>);
 
@@ -64,11 +68,12 @@ describe("exact workspace targets", () => {
     expect(loadMatter).toHaveBeenCalledWith(matterDetail.matter.id);
   });
 
-  it("clears delayed target scrolling when the Matter workspace unmounts", async () => {
+  it("does not leave delayed target scrolling after the dedicated Matter workspace unmounts", async () => {
     vi.useFakeTimers();
     try {
       vi.mocked(loadMatterSummaries).mockResolvedValue({ items: [], generated_at: "2026-08-06T10:00:00Z" });
       vi.mocked(loadMatter).mockResolvedValue(matterDetail);
+      vi.mocked(loadMatterOperations).mockResolvedValue({ matter_id: matterDetail.matter.id, matter_version: 2, authority_available: true, operations: [], generated_at: "2026-08-06T10:00:00Z" });
 
       const view = render(<MattersWorkspace targetID={matterDetail.matter.id}/>);
       await act(async () => {
@@ -78,7 +83,6 @@ describe("exact workspace targets", () => {
       });
 
       expect(screen.getByText("Matter outside first page")).toBeTruthy();
-      expect(vi.getTimerCount()).toBeGreaterThan(0);
       view.unmount();
       expect(vi.getTimerCount()).toBe(0);
     } finally {
