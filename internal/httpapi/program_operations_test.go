@@ -41,6 +41,7 @@ func TestProgramOperationsExplainCurrentResponsibilitiesAcrossRoles(t *testing.T
 		},
 		authority.ResponsibilityAuthorizer: {Principal: authority.Principal{ID: "cro", DisplayName: "Chief Risk Officer"}},
 		authority.ResponsibilityReviewer:   {Principal: authority.Principal{ID: "auditor", DisplayName: "Internal Audit reviewer"}},
+		authority.ResponsibilityPerformer:  {Principal: authority.Principal{ID: "control-owner", DisplayName: "Privacy control owner"}},
 	}}
 
 	load := func(principal string) programOperationsResponse {
@@ -82,6 +83,7 @@ func TestProgramOperationsExplainCurrentResponsibilitiesAcrossRoles(t *testing.T
 	supersession := find(owner, "program.requirement.supersede", requirementID)
 	transition := find(authorizer, "program.transition", "")
 	assessment := find(reviewer, "program.evidence.assess", "")
+	safeguard := find(owner, "program.safeguard.define", "")
 	if !details.CanAct || details.AssignedTo == nil || details.AssignedTo.DisplayName != "Data Protection Officer" {
 		t.Fatalf("owner responsibility is unexplained: %#v", details)
 	}
@@ -96,6 +98,9 @@ func TestProgramOperationsExplainCurrentResponsibilitiesAcrossRoles(t *testing.T
 	}
 	if !assessment.CanAct || assessment.AssignedTo == nil || assessment.AssignedTo.DisplayName != "Internal Audit reviewer" {
 		t.Fatalf("reviewer operation is unexplained: %#v", assessment)
+	}
+	if !safeguard.CanAct || len(safeguard.Candidates) != 1 || safeguard.Candidates[0].DisplayName != "Privacy control owner" {
+		t.Fatalf("safeguard owner candidates are unexplained: %#v", safeguard)
 	}
 	if find(authorizer, "program.details.update", "").CanAct || find(owner, "program.applicability.decide", "").CanAct {
 		t.Fatal("operations were granted outside the current responsibility route")

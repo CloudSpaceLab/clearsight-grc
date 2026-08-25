@@ -36,6 +36,13 @@
 .program-operation-form .wide { grid-column: 1 / -1; }
 .program-operation-form input, .program-operation-form select, .program-operation-form textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); color: var(--text); }
 .program-operation-form textarea { resize: vertical; line-height: 1.45; }
+.program-safeguard-list { display: grid; gap: 12px; margin-top: 16px; }
+.program-safeguard-card { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 16px; padding: 15px; border: 1px solid var(--border); border-radius: 13px; background: rgba(7, 17, 29, .35); }
+.program-safeguard-card span, .program-safeguard-card li > span { color: var(--muted); font-size: .75rem; }
+.program-safeguard-card h3 { margin-top: 5px; font-size: 1rem; }
+.program-safeguard-card p { margin: 6px 0 0; font-size: .8rem; }
+.program-safeguard-card ul { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.program-safeguard-card li { display: grid; gap: 3px; padding: 11px 12px; border-left: 2px solid var(--cyan); background: var(--surface-2); }
 .program-operation-form input:focus, .program-operation-form select:focus, .program-operation-form textarea:focus { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .program-form-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .program-form-actions button { min-height: 44px; }

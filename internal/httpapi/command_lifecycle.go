@@ -63,7 +63,16 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 			return policy, nil
 		}
 		candidateID := stringValue(payload["owner_principal_id"])
-		if err := a.validateProgramAssignmentCandidate(ctx, tenant, name, *programAggregate, candidateID, policy.Materiality); err != nil {
+		if err := a.validateProgramAssignmentCandidate(ctx, tenant, name, *programAggregate, candidateID, authority.ResponsibilityOwner, policy.Materiality); err != nil {
+			return policy, err
+		}
+		return policy, nil
+
+	case "program.safeguard.define":
+		if programAggregate == nil || stringValue(payload["owner_principal_id"]) == "" {
+			return policy, nil
+		}
+		if err := a.validateProgramAssignmentCandidate(ctx, tenant, name, *programAggregate, stringValue(payload["owner_principal_id"]), authority.ResponsibilityPerformer, policy.Materiality); err != nil {
 			return policy, err
 		}
 		return policy, nil
@@ -218,7 +227,7 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 	}
 }
 
-func (a *API) validateProgramAssignmentCandidate(ctx context.Context, tenant, commandName string, aggregate continuity.ProgramAggregate, candidateID string, materiality int) error {
+func (a *API) validateProgramAssignmentCandidate(ctx context.Context, tenant, commandName string, aggregate continuity.ProgramAggregate, candidateID string, candidateResponsibility authority.Responsibility, materiality int) error {
 	candidateID = strings.TrimSpace(candidateID)
 	if candidateID == "" {
 		return fmt.Errorf("%w: owner_principal_id is required", continuity.ErrInvalidState)
@@ -230,17 +239,27 @@ func (a *API) validateProgramAssignmentCandidate(ctx context.Context, tenant, co
 	if err != nil {
 		return fmt.Errorf("%w: verified identity is required for assignment", commandauth.ErrIdentityRequired)
 	}
-	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
+	ownerResolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
 		TenantID: tenant, LegalEntityID: actor.LegalEntityID, ObjectType: "PROGRAM", ObjectID: aggregate.Program.ID,
 		Responsibility: authority.ResponsibilityOwner, DecisionType: commandName, Materiality: materiality,
 	})
 	if err != nil {
 		return fmt.Errorf("%w: assignment route could not be checked", commandauth.ErrGuardUnavailable)
 	}
-	if !resolution.AllowsPrincipal(actor.PrincipalID) {
+	if !ownerResolution.AllowsPrincipal(actor.PrincipalID) {
 		return fmt.Errorf("%w: signed-in person does not hold the current Program owner route", continuity.ErrInvalidState)
 	}
-	if !resolution.AllowsPrincipal(candidateID) {
+	candidateResolution := ownerResolution
+	if candidateResponsibility != authority.ResponsibilityOwner {
+		candidateResolution, err = a.deps.Authority.Resolve(ctx, authority.ResolveInput{
+			TenantID: tenant, LegalEntityID: actor.LegalEntityID, ObjectType: "PROGRAM", ObjectID: aggregate.Program.ID,
+			Responsibility: candidateResponsibility, DecisionType: commandName, Materiality: materiality,
+		})
+		if err != nil {
+			return fmt.Errorf("%w: assignment candidate route could not be checked", commandauth.ErrGuardUnavailable)
+		}
+	}
+	if !candidateResolution.AllowsPrincipal(candidateID) {
 		return fmt.Errorf("%w: selected person is not eligible for Program ownership", continuity.ErrInvalidState)
 	}
 	return nil

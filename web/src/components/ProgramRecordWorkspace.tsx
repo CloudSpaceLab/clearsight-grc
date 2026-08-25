@@ -10,6 +10,7 @@ import { ProgramCurrentPosition } from "./ProgramCurrentPosition";
 import { ProgramReviewDigest } from "./ProgramReviewDigest";
 import { ProgramDetailsPanel } from "./ProgramDetailsPanel";
 import { ProgramRequirementsPanel } from "./ProgramRequirementsPanel";
+import { ProgramSafeguardsPanel } from "./ProgramSafeguardsPanel";
 
 type Props = { programID: string; onBack: () => void };
 type State = "loading" | "live" | "unavailable";
@@ -82,7 +83,7 @@ export function ProgramRecordWorkspace({ programID, onBack }: Props) {
         <article className="program-record-panel" id="program-review-panel"><ProgramReviewDigest aggregate={aggregate} initialDigest={digest} onDigestUpdated={setDigest}/></article>
 		<ProgramDetailsPanel aggregate={aggregate} operations={operations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reload()}/>
 		<ProgramRequirementsPanel aggregate={aggregate} operations={operations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reload()}/>
-        <article className="program-record-panel" id="program-safeguards-panel"><span className="eyebrow">Safeguards</span><h2>Control coverage</h2><p>{aggregate.control_implementations.length} safeguard implementation{aggregate.control_implementations.length === 1 ? " is" : "s are"} recorded.</p></article>
+		<ProgramSafeguardsPanel aggregate={aggregate} operations={operations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reload()}/>
         <article className="program-record-panel" id="program-evidence-panel"><span className="eyebrow">Evidence checks</span><h2>Evidence and results</h2><p>{aggregate.evidence_contracts.length} evidence check{aggregate.evidence_contracts.length === 1 ? " is" : "s are"} defined.</p></article>
       </section>
     </>}

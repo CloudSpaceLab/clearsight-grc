@@ -3,9 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadProgram, loadProgramSummaries } from "../api";
 import {
   addProgramRequirement,
+	addProgramControlImplementation,
+	addProgramControlObjective,
   assignProgram,
   determineProgramApplicability,
   loadProgramOperations,
+	linkProgramRequirementControl,
   supersedeProgramRequirement,
   updateProgramDetails,
 } from "../programOperationsApi";
@@ -23,6 +26,9 @@ vi.mock("../programOperationsApi", async (importOriginal) => ({
   addProgramRequirement: vi.fn(),
   supersedeProgramRequirement: vi.fn(),
   determineProgramApplicability: vi.fn(),
+	addProgramControlObjective: vi.fn(),
+	addProgramControlImplementation: vi.fn(),
+	linkProgramRequirementControl: vi.fn(),
 }));
 vi.mock("../programReviewApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../programReviewApi")>()),
@@ -74,6 +80,9 @@ describe("Program record workspace", () => {
 	vi.mocked(addProgramRequirement).mockResolvedValue(aggregate);
 	vi.mocked(supersedeProgramRequirement).mockResolvedValue(aggregate);
 	vi.mocked(determineProgramApplicability).mockResolvedValue(aggregate);
+	vi.mocked(addProgramControlObjective).mockResolvedValue(aggregate);
+	vi.mocked(addProgramControlImplementation).mockResolvedValue(aggregate);
+	vi.mocked(linkProgramRequirementControl).mockResolvedValue(aggregate);
   });
 
   it("shows owner, calculated-state freshness, reasons and one dominant action", async () => {
@@ -170,5 +179,45 @@ describe("Program record workspace", () => {
 	expect((await screen.findAllByText("Data Protection Officer")).length).toBeGreaterThan(0);
 	expect(screen.getByText("Assigned to Data Protection Officer.")).toBeTruthy();
 	expect(within(document.getElementById("program-details-panel")!).queryByRole("button", { name: "Edit Program details" })).toBeNull();
+  });
+
+  it("defines safeguard objectives, assigns eligible owners and links requirement coverage", async () => {
+	const value: ProgramAggregate = {
+	  ...aggregate,
+	  requirements: [{ id: "requirement-1", code: "CAR-01", title: "File the annual return", statement: "The bank must file its annual compliance return.", status: "APPROVED", source_anchor: "GAID 2025, section 7" }],
+	  control_objectives: [{ id: "objective-1", code: "CAR-COMPLETE", name: "Complete return", outcome: "Every required section is filed.", status: "ACTIVE" }],
+	  control_implementations: [{ id: "implementation-1", objective_id: "objective-1", name: "Annual return checklist", description: "Owners confirm each section.", implementation_type: "CHECKLIST", owner_principal_id: "control-owner", status: "IMPLEMENTED" }],
+	};
+	vi.mocked(loadProgram).mockResolvedValue(value);
+	vi.mocked(addProgramControlObjective).mockResolvedValue(value);
+	vi.mocked(addProgramControlImplementation).mockResolvedValue(value);
+	vi.mocked(linkProgramRequirementControl).mockResolvedValue(value);
+	vi.mocked(loadProgramOperations).mockResolvedValue({ ...operations, operations: [{
+	  command: "program.safeguard.define", label: "Define safeguards", responsibility: "ACCOUNTABLE_OWNER", can_act: true,
+	  assigned_to: { id: "owner-1", display_name: "Data Protection Officer", kind: "PERSON", role: "DPO" },
+	  candidates: [{ id: "control-owner", display_name: "Privacy control owner", kind: "PERSON", role: "Control owner" }],
+	  reason: "You hold the current Program owner responsibility.",
+	}] });
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+	await screen.findByRole("heading", { name: "Safeguards and coverage" });
+	const panel = document.getElementById("program-safeguards-panel")!;
+
+	fireEvent.click(within(panel).getByRole("button", { name: "Add control objective" }));
+	fireEvent.change(screen.getByLabelText("Objective code"), { target: { value: "CAR-ACCURATE" } });
+	fireEvent.change(screen.getByLabelText("Objective name"), { target: { value: "Accurate annual return" } });
+	fireEvent.change(screen.getByLabelText("Intended outcome"), { target: { value: "Every filed section agrees with current bank records." } });
+	fireEvent.click(screen.getByRole("button", { name: "Save control objective" }));
+	await waitFor(() => expect(addProgramControlObjective).toHaveBeenCalledWith("program-1", 4, expect.objectContaining({ code: "CAR-ACCURATE", status: "ACTIVE" })));
+
+	fireEvent.click(within(panel).getByRole("button", { name: "Add safeguard" }));
+	fireEvent.change(screen.getByLabelText("Safeguard owner"), { target: { value: "control-owner" } });
+	fireEvent.change(screen.getByLabelText("Safeguard name"), { target: { value: "Return accuracy review" } });
+	fireEvent.change(screen.getByLabelText("How the safeguard works"), { target: { value: "The control owner reconciles every section before filing." } });
+	fireEvent.click(screen.getByRole("button", { name: "Save safeguard" }));
+	await waitFor(() => expect(addProgramControlImplementation).toHaveBeenCalledWith("program-1", 4, expect.objectContaining({ ownerPrincipalID: "control-owner", name: "Return accuracy review" })));
+
+	fireEvent.click(within(panel).getByRole("button", { name: "Link requirement to safeguard" }));
+	fireEvent.click(screen.getByRole("button", { name: "Save coverage link" }));
+	await waitFor(() => expect(linkProgramRequirementControl).toHaveBeenCalledWith("program-1", 4, "requirement-1", "implementation-1"));
   });
 });

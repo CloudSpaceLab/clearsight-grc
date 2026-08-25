@@ -236,6 +236,44 @@ func TestProgramAssignmentAuthorityFailsClosedWithoutMutation(t *testing.T) {
 	}
 }
 
+func TestProgramSafeguardOwnerMustBeAnEligiblePerformer(t *testing.T) {
+	service := continuity.NewService(continuity.NewMemoryRepository())
+	program, err := service.CreateProgram(t.Context(), continuity.CreateProgramInput{
+		TenantID: "bank", LegalEntityID: "bank-ng", Code: "NDPA", Name: "Data protection", Type: "PRIVACY",
+		OwningFunction: "Data Protection Office", OwnerPrincipalID: "owner-1", EffectiveFrom: time.Now().UTC(), ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.AddControlObjective(t.Context(), continuity.AddControlObjectiveInput{
+		TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version,
+		Code: "CAR-COMPLETE", Name: "Complete return", Outcome: "Every required section is filed.", Status: continuity.ObjectiveActive, ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "owner-1", "bank-ng"),
+		Continuity: service, Authority: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+			authority.ResponsibilityOwner:     {Principal: authority.Principal{ID: "owner-1", DisplayName: "Program owner"}},
+			authority.ResponsibilityPerformer: {Principal: authority.Principal{ID: "performer-1", DisplayName: "Control owner"}},
+		}},
+	})
+	body := func(owner string) string {
+		return fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"objective_id":"%s","name":"Annual return checklist","description":"Owners confirm each section.","implementation_type":"CHECKLIST","owner_principal_id":"%s","scope":{},"status":"IMPLEMENTED","effective_from":"2026-09-01T00:00:00Z"}`, program.Program.Version, program.ControlObjectives[0].ID, owner)
+	}
+	denied := httptest.NewRecorder()
+	handler.ServeHTTP(denied, httptest.NewRequest(http.MethodPost, "/api/v1/programs/"+program.Program.ID+"/control-implementations", strings.NewReader(body("unlisted-person"))))
+	if denied.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("ineligible safeguard owner returned %d: %s", denied.Code, denied.Body.String())
+	}
+	allowed := httptest.NewRecorder()
+	handler.ServeHTTP(allowed, httptest.NewRequest(http.MethodPost, "/api/v1/programs/"+program.Program.ID+"/control-implementations", strings.NewReader(body("performer-1"))))
+	if allowed.Code != http.StatusCreated {
+		t.Fatalf("eligible safeguard owner returned %d: %s", allowed.Code, allowed.Body.String())
+	}
+}
+
 func TestOpenMatterFilterExcludesClosedRecords(t *testing.T) {
 	service := continuity.NewService(continuity.NewMemoryRepository())
 	ctx := context.Background()

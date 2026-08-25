@@ -54,7 +54,7 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		{Command: "program.details.update", Label: "Edit Program details", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
 		{Command: "program.assign", Label: "Change Program owner", Responsibility: authority.ResponsibilityOwner, Materiality: 3, AssignedPrincipalID: ownerID, IncludeCandidates: true},
 		{Command: "program.requirement.add", Label: "Add a requirement", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
-		{Command: "program.safeguard.define", Label: "Define safeguards", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
+		{Command: "program.safeguard.define", Label: "Define safeguards", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: 2, AssignedPrincipalID: ownerID, IncludeCandidates: true},
 		{Command: "program.evidence.define", Label: "Define an evidence check", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
 		{Command: "program.applicability.decide", Label: "Decide whether requirements apply", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3},
 		{Command: "program.evidence.assess", Label: "Record evidence check results", Responsibility: authority.ResponsibilityReviewer, Materiality: 3},
@@ -83,14 +83,15 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 }
 
 type programOperationSpec struct {
-	Command             string
-	SubresourceID       string
-	Label               string
-	Responsibility      authority.Responsibility
-	Materiality         int
-	AssignedPrincipalID string
-	IncludeCandidates   bool
-	AllowedTargets      []string
+	Command                 string
+	SubresourceID           string
+	Label                   string
+	Responsibility          authority.Responsibility
+	CandidateResponsibility authority.Responsibility
+	Materiality             int
+	AssignedPrincipalID     string
+	IncludeCandidates       bool
+	AllowedTargets          []string
 }
 
 func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor, program continuity.Program, spec programOperationSpec) (RecordOperation, bool) {
@@ -123,7 +124,18 @@ func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor,
 		operation.AssignedTo = a.assignedPrincipal(ctx, actor, resolution, "")
 	}
 	if spec.IncludeCandidates {
-		operation.Candidates = visibleProgramCandidates(resolution)
+		candidateResolution := resolution
+		if spec.CandidateResponsibility != "" && spec.CandidateResponsibility != spec.Responsibility {
+			candidateResolution, err = a.deps.Authority.Resolve(ctx, authority.ResolveInput{
+				TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: "PROGRAM", ObjectID: program.ID,
+				Responsibility: spec.CandidateResponsibility, DecisionType: spec.Command, Materiality: spec.Materiality,
+			})
+			if err != nil {
+				operation.Reason = "Eligible assignment candidates could not be checked. No assignment change is available."
+				return operation, !errors.Is(err, authority.ErrNoRoute)
+			}
+		}
+		operation.Candidates = visibleProgramCandidates(candidateResolution)
 	}
 	operation.CanAct = resolution.AllowsPrincipal(actor.PrincipalID)
 	if operation.CanAct {
