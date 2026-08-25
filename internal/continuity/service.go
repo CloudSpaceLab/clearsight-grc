@@ -1308,6 +1308,17 @@ func allowedProgramTransition(from, to ProgramStatus) bool {
 	return allowed[from][to]
 }
 
+func AllowedProgramTargets(from ProgramStatus) []ProgramStatus {
+	candidates := []ProgramStatus{ProgramDraft, ProgramActive, ProgramPaused, ProgramRetired}
+	values := make([]ProgramStatus, 0, len(candidates))
+	for _, candidate := range candidates {
+		if allowedProgramTransition(from, candidate) {
+			values = append(values, candidate)
+		}
+	}
+	return values
+}
+
 func validApplicability(value ApplicabilityStatus) bool {
 	switch value {
 	case ApplicabilityPotential, ApplicabilityApplicable, ApplicabilityPartial, ApplicabilityNotApplicable, ApplicabilityLater, ApplicabilitySuperseded:

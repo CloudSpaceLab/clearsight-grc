@@ -25,3 +25,11 @@ type matterOperationsResponse struct {
 	Operations         []RecordOperation `json:"operations"`
 	GeneratedAt        time.Time         `json:"generated_at"`
 }
+
+type programOperationsResponse struct {
+	ProgramID          string            `json:"program_id"`
+	ProgramVersion     int64             `json:"program_version"`
+	AuthorityAvailable bool              `json:"authority_available"`
+	Operations         []RecordOperation `json:"operations"`
+	GeneratedAt        time.Time         `json:"generated_at"`
+}
