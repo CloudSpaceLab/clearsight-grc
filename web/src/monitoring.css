@@ -64,6 +64,10 @@
 .risk-band-critical, .risk-band-high { color: #ffd8de !important; border-color: rgba(241,122,141,.35); background: rgba(241,122,141,.1); }
 .risk-band-moderate { color: #ffe5b2 !important; border-color: rgba(231,182,92,.35); background: rgba(231,182,92,.1); }
 .risk-band-low { color: #bdf5d8 !important; border-color: rgba(91,201,150,.3); background: rgba(91,201,150,.1); }
+:root[data-theme="light"] .risk-band-critical,
+:root[data-theme="light"] .risk-band-high { color: #8d2437 !important; border-color: #d9a8b1; background: #f8e7ea; }
+:root[data-theme="light"] .risk-band-moderate { color: #6c4700 !important; border-color: #d5bd8b; background: #f8efd9; }
+:root[data-theme="light"] .risk-band-low { color: #0d603e !important; border-color: #9bc9b4; background: #e4f3ec; }
 .collection-schedule { grid-column: 1 / -1; padding-top: 14px; border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: 12px; align-items: end; }
 .collection-schedule p { grid-column: 1 / -1; }
 .monitoring-empty { margin: 0; padding: 12px 0 2px; }

@@ -2,6 +2,7 @@ type OperationalCoverageEntry = {
   surface: string;
   states: readonly string[];
   testedBy: readonly string[];
+  access?: "USER" | "AUTOMATION_ONLY";
 };
 
 export const matterOperationalCoverage = {
@@ -20,4 +21,26 @@ export const matterOperationalCoverage = {
   "matter.response.transition": { surface: "MatterDecisionResponsePanel", states: ["draft", "review", "approval", "transmission", "acknowledgement"], testedBy: ["MatterRecordWorkspace.test.tsx", "OperatingMutations.test.tsx"] },
   "matter.outcome.define": { surface: "MatterOutcomePanel", states: ["empty", "defined"], testedBy: ["MatterRecordWorkspace.test.tsx"] },
   "matter.outcome.record": { surface: "MatterOutcomePanel", states: ["ready", "pass", "fail", "inconclusive"], testedBy: ["MatterRecordWorkspace.test.tsx"] },
+} as const satisfies Record<string, OperationalCoverageEntry>;
+
+export const programOperationalCoverage = {
+  "program.create": { surface: "ProgramSetupWorkspace", states: ["list", "empty", "create"], testedBy: ["ProgramsWorkspace.test.tsx"] },
+  "program.details.update": { surface: "ProgramDetailsPanel", states: ["current", "edit", "conflict", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
+  "program.assign": { surface: "ProgramDetailsPanel", states: ["assigned", "eligible_candidate_selection", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
+  "program.transition": { surface: "ProgramStatusPanel", states: ["draft", "active", "paused", "ended", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx", "OperatingMutations.test.tsx"] },
+  "program.requirement.add": { surface: "ProgramRequirementsPanel", states: ["empty", "source_anchored", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
+  "program.requirement.supersede": { surface: "ProgramRequirementsPanel", states: ["current", "replacement", "preserved_history"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
+  "program.applicability.decide": { surface: "ProgramRequirementsPanel", states: ["undecided", "applicable", "partly", "not_applicable"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
+  "program.control-objective.add": { surface: "ProgramSafeguardsPanel", states: ["empty", "defined"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
+  "program.safeguard.add": { surface: "ProgramSafeguardsPanel", states: ["objective_only", "eligible_owner", "implemented"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
+  "program.coverage.link": { surface: "ProgramSafeguardsPanel", states: ["uncovered", "linked", "duplicate_prevented"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
+  "program.evidence.define": { surface: "ProgramEvidencePanel", states: ["empty", "source_selected", "thresholds_defined"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
+  "program.evidence.assess": { surface: "ProgramEvidencePanel", states: ["not_assessed", "supported", "partly_supported", "expired"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
+  "program.review.accept": { surface: "ProgramReviewDigest", states: ["changed", "acknowledged", "conflict"], testedBy: ["ProgramReviewDigest.test.tsx"] },
+  "program.trigger.apply": { surface: "Deterministic Program monitoring", states: ["observed", "deduplicated", "refresh_queued"], testedBy: ["internal/continuity/service_test.go"], access: "AUTOMATION_ONLY" },
+  "monitoring.form.create": { surface: "MonitoringSetup", states: ["choose_input", "draft_form"], testedBy: ["MonitoringSetup.test.tsx"] },
+  "monitoring.check.create": { surface: "MonitoringSetup", states: ["form_check", "connected_data_check"], testedBy: ["MonitoringSetup.test.tsx"] },
+  "monitoring.check.transition": { surface: "MonitoringSetup", states: ["draft", "awaiting_approval", "active"], testedBy: ["MonitoringSetup.test.tsx"] },
+  "monitoring.collection.start": { surface: "MonitoringSetup", states: ["schedule", "assigned_request"], testedBy: ["MonitoringSetup.test.tsx"] },
+  "monitoring.source.evaluate": { surface: "MonitoringSetup", states: ["ready", "evaluated", "not_assessed", "exception"], testedBy: ["MonitoringSetup.test.tsx"] },
 } as const satisfies Record<string, OperationalCoverageEntry>;

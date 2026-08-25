@@ -83,6 +83,22 @@ describe("static stakeholder demo transport", () => {
     })).rejects.toMatchObject({ status: 409, code: "version_conflict" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
   });
 
+  it("exposes Program responsibilities and executes evidence and monitoring workflows", async () => {
+    const { staticDemoRequest } = await demo();
+    const operations = await staticDemoRequest<{ operations: Array<{ command: string; assigned_to?: { display_name: string } }> }>("/api/v1/programs/program-ndpa/operations?tenant_id=bank-demo");
+    expect(operations.operations.find((value) => value.command === "program.details.update")?.assigned_to?.display_name).toBe("Data Protection Officer");
+    expect(operations.operations.find((value) => value.command === "program.evidence.assess")?.assigned_to?.display_name).toBe("Data Protection Compliance Officer");
+
+    const current = await staticDemoRequest<{ program: { version: number }; evidence_contracts: unknown[] }>("/api/v1/programs/program-ndpa");
+    const defined = await staticDemoRequest<{ program: { version: number }; evidence_contracts: unknown[] }>("/api/v1/programs/program-ndpa/evidence-contracts", { method: "POST", body: JSON.stringify({ expected_version: current.program.version, requirement_id: "req-2", code: "RETURN-RECEIPT", name: "Filing receipt", claim: "The annual return was accepted.", acceptable_source_ids: ["source-ndpc"], population_scope: {}, freshness_minutes: 43200, minimum_coverage: 1, independence_required: true, contradiction_policy: "REVIEW", failure_action: "MATTER", status: "ACTIVE" }) });
+    expect(defined.evidence_contracts).toHaveLength(current.evidence_contracts.length + 1);
+    expect(defined.program.version).toBe(current.program.version + 1);
+
+    const checks = await staticDemoRequest<{ items: Array<{ id: string }> }>("/api/v1/programs/program-ndpa/monitoring-checks?tenant_id=bank-demo");
+    const results = await staticDemoRequest<{ items: Array<{ evaluation: { coverage: number } }> }>(`/api/v1/monitoring-checks/${checks.items[0]!.id}/results?tenant_id=bank-demo`);
+    expect(results.items[0]?.evaluation.coverage).toBe(.8);
+  });
+
   it("can deterministically exercise permission and conflict fixtures", async () => {
     window.history.replaceState(null, "", "/?fixture=authority-forbidden");
     const { StaticDemoHTTPError, staticDemoRequest } = await demo();
