@@ -114,6 +114,7 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/matters", "matter.create", a.createMatter, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
 		read("/api/v1/matters/{id}", a.getMatter),
 		read("/api/v1/matters/{id}/history", a.getMatterHistory),
+		read("/api/v1/matters/{id}/operations", a.getMatterOperations),
 		material("/api/v1/matters/{id}/details", "matter.details.update", a.updateMatterDetails, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
 		material("/api/v1/matters/{id}/context-changes", "matter.context.change", a.changeMatterContext, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
 		material("/api/v1/matters/{id}/assignment", "matter.assign", a.assignMatter, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),

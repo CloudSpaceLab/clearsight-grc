@@ -121,9 +121,14 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		return policy, nil
 
 	case "matter.action.transition":
-		if _, err := lifecycleSubresourceID(r, payload, "action_id"); err != nil {
+		actionID, err := lifecycleSubresourceID(r, payload, "action_id")
+		if err != nil {
 			return policy, err
 		}
+		if aggregate != nil && !matterHasAction(*aggregate, actionID) {
+			return policy, continuity.ErrNotFound
+		}
+		policy.Responsibility = authority.ResponsibilityPerformer
 		policy.Materiality = max(policy.Materiality, matterPriority)
 		return policy, nil
 

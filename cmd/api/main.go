@@ -45,7 +45,7 @@ func main() {
 	handler := httpapi.New(httpapi.Dependencies{
 		Logger: logger, AllowedOrigin: cfg.AllowedOrigin, Mode: services.Mode, DemoMode: cfg.DemoMode,
 		IdentityMode: cfg.IdentityMode, OIDCIssuer: cfg.OIDCIssuer,
-		Identity: authenticator, Federation: federationService, SCIM: services.SCIM, AccessAdmin: services.AccessAdmin,
+		Identity: authenticator, Federation: federationService, SCIM: services.SCIM, Access: services.Access, AccessAdmin: services.AccessAdmin,
 		CommandGuard: guard, Authority: services.Authority, Governance: services.Governance,
 		Evidence: services.Evidence, Monitoring: services.Monitoring, SourceCatalog: services.SourceCatalog, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
 		Continuity: services.Continuity, Today: services.Today, Workflow: services.Workflow, Onboarding: services.Onboarding,

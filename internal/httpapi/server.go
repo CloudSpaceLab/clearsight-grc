@@ -36,6 +36,7 @@ type Dependencies struct {
 	Identity         identity.Authenticator
 	Federation       *federation.Service
 	SCIM             http.Handler
+	Access           access.Resolver
 	AccessAdmin      access.Administrator
 	CommandGuard     *commandauth.Guard
 	Authority        authority.Service

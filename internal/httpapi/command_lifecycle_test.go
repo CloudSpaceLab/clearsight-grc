@@ -217,6 +217,35 @@ func TestMatterAssignmentLifecycleValidatesDistinctOwnerAndPerformerCandidates(t
 	}
 }
 
+func TestActionTransitionUsesPerformerResponsibility(t *testing.T) {
+	ctx := identity.WithActor(t.Context(), identity.Actor{TenantID: "bank", PrincipalID: "performer", LegalEntityID: "bank-ng", Kind: "PERSON", ExpiresAt: time.Now().UTC().Add(time.Hour)})
+	service := continuity.NewService(continuity.NewMemoryRepository())
+	matter, err := service.CreateMatter(ctx, continuity.CreateMatterInput{
+		TenantID: "bank", Type: continuity.MatterRegulatoryChange, Priority: 4,
+		Title: "Annual return", Summary: "Update the filing process.", OwnerPrincipalID: "owner", ActorID: "owner",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	matter, err = service.AddAction(ctx, continuity.AddActionInput{
+		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
+		Title: "Update checklist", Description: "Map every section.", OwnerPrincipalID: "performer", ActorID: "owner",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := lifecycleRequest(matter.Matter.ID)
+	request.SetPathValue("action_id", matter.Actions[0].ID)
+	api := &API{deps: Dependencies{Continuity: service}}
+	policy, err := api.lifecycleCommandPolicy(ctx, request, "bank", "matter.action.transition", map[string]any{"to": "IN_PROGRESS"}, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if policy.Responsibility != authority.ResponsibilityPerformer || policy.Materiality != 4 {
+		t.Fatalf("Action transition did not preserve performer responsibility: %#v", policy)
+	}
+}
+
 type assignmentAuthorityStub struct {
 	resolutions map[authority.Responsibility]authority.Resolution
 	err         error
