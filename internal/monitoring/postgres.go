@@ -112,7 +112,9 @@ func (r *PostgresRepository) CreateCheckRevision(ctx context.Context, value Moni
 
 func insertCheckRevision(ctx context.Context, db queryRower, value MonitoringCheck) (MonitoringCheck, error) {
 	sourceRules := value.SourceRules
-    if sourceRules == nil {sourceRules = []SourceRule{}}
+	if sourceRules == nil {
+		sourceRules = []SourceRule{}
+	}
 
 	rules, err := json.Marshal(sourceRules)
 	if err != nil {
