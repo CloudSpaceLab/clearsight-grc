@@ -22,7 +22,8 @@ The repository contains a working application foundation for ongoing Programs an
 - governed document imports with immutable original metadata, SHA-256 lineage and actor-bound review;
 - deterministic TXT, Markdown, CSV, DOCX and XLSX extraction with source-location anchors;
 - source-anchored analysis proposals that require explicit human acceptance or rejection;
-- ongoing Programs with requirements, applicability decisions, controls and evidence checks;
+- dedicated, actor-scoped Program records where authorized users can maintain scope, ownership, versioned requirements, applicability, safeguards, evidence expectations, reviewer results and operating status;
+- exact linked-issue handling from each Program, including bounded issue reads, new issue creation and direct record navigation;
 - non-modal Program setup for channel and obligation monitoring, reusable scored forms, public HTTPS status checks and immutable risk results;
 - typed Matters for changes, gaps, findings, requests, exceptions and incidents, with non-modal creation and optional Program linking;
 - decisions, actions, response packages and independently checked outcomes;
@@ -106,6 +107,8 @@ Production refuses to start with demo mode enabled.
 ## Program status
 
 Program status is calculated from approved requirements, applicability, control coverage, implementation, evidence, open issues, source health and deadlines. It is not a manually selected red/amber/green value.
+
+The Program record shows the calculated state separately from the authorized operating lifecycle. Current responsibility routes determine who may edit details, replace a requirement, decide applicability, assign a safeguard performer, define evidence, assess results, confirm review or change operating status. Existing records and named responsible people remain visible when the signed-in user cannot act.
 
 Primary screens use plain labels such as **Up to date**, **Evidence incomplete**, **Gap found**, **Change in progress**, **Overdue**, **Under review** and **Setup in progress**. Stable internal codes remain available in APIs, history and specialist detail.
 

@@ -1,7 +1,7 @@
 # ClearSight implementation ledger
 
-**Status date:** 2026-08-17
-**Current execution issue:** Mobile-channel monitoring setup and deterministic risk results
+**Status date:** 2026-08-26
+**Current execution issue:** Program and issue/change operational completeness
 **Umbrella pilot/GA catalogue:** #13
 
 This file is the authoritative implementation ledger. Code, migrations and executable tests remain final capability truth. Completed detail belongs in focused architecture documents, PRs and tests rather than parallel planning frameworks.
@@ -28,6 +28,8 @@ This file is the authoritative implementation ledger. Code, migrations and execu
 | Stateless AI gateway transport T3 | issue #61; `cmd/ai-gateway` and `internal/aigateway` |
 | Program monitoring setup | Program and requirement creation, reusable forms, connected public status endpoints, maker-checker form/check activation, on-demand collection and immutable results |
 | Issue and change creation | Inline authority-checked Matter creation, business work types, actor ownership, optional Program linking and immediate in-workspace handoff |
+| Complete Program operating record | Versioned details and ownership, requirement supersession, applicability, safeguards and eligible performers, evidence expectations/results, lifecycle, monitoring and exact linked issues |
+| Complete issue/change operating record | Facts and gaps, eligible assignment, decisions, actions, responses, outcome checks and closure through actor-scoped UI commands |
 
 ## 2. Mobile-channel monitoring — implemented application slice
 
@@ -36,6 +38,14 @@ An authorized user can create a channel Program and requirements without API or 
 Form and Monitoring Check activation requires a different approver from the submitter. A result is an observation and does not create an approved Evidence Assessment or compliance conclusion. Recurring form-request generation, credential entry in the browser, automatic Matter creation and a general-purpose integration catalogue remain outside this slice.
 
 The Work workspace also supports inline creation of user-reported risk issues, control gaps, regulatory changes, findings, requests, exceptions and incidents. New items begin as Draft work, default to internal access and the signed-in accountable owner, and can be linked to a scoped Program at creation. System-derived types remain reserved for their originating checks and observations.
+
+## 2A. Program and issue/change operating completeness — implemented
+
+An exact Program now opens a dedicated actor-scoped record. Authorized users maintain Program scope and owner, add source-anchored requirements, replace current requirements without overwriting history, decide applicability, define safeguards and select eligible performers, link coverage, define evidence checks from named current sources, record reviewer results and change operating status with a rationale. Monitoring observations remain separate from approved evidence assessments. Open issues are read through an exact Program filter; users can open an existing issue or create linked work with the Program already selected.
+
+The operations response explains the current owner, authorizer, reviewer and eligible assignment candidates. If authority routing is unavailable, stored values remain readable and mutations fail closed. A command-to-UI coverage gate accounts for all Program and Matter material commands; the deterministic Program-trigger command is explicitly automation-only rather than presented as a user control.
+
+No supported individual Program or Matter operating command requires JSON, direct API use or database access. Bulk migration, enterprise configuration builders and production integrations remain separate productization work.
 
 ## 3. AI governance gateway — T3 transport implemented
 

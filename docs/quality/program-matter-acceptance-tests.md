@@ -11,6 +11,18 @@
 - A linked open Matter changes the Program to “Needs attention.”
 - A historical read excludes later requirements, triggers and Matters.
 
+## Program operating record
+
+- The exact Program route loads the aggregate, calculated-state freshness, review digest and actor-scoped operations together.
+- Authorized owners can edit scope and dates, choose an eligible successor, add source-anchored requirements and supersede a current requirement without overwriting its prior version.
+- Applicability decisions are available only to the current authorizer and retain scope, rationale and effective date.
+- Safeguard setup separates the control objective, implementation and eligible performer, then links only Program-owned requirements and implementations.
+- Evidence checks select named current sources and record freshness, population coverage, independence, contradiction and failure rules.
+- Evidence assessment remains distinct from monitoring results and records conclusion, coverage, basis, references, assessor time and validity.
+- Operating lifecycle status remains distinct from calculated compliance state and requires a current authorizer, valid target, optimistic version and rationale.
+- Linked issue reads use an exact Program filter before pagination; creating linked work preselects the Program and opens the created issue record.
+- Every Program material command maps to a tested user surface or an explicitly automation-only contract.
+
 ## Matter lifecycle
 
 - Unsupported state transitions fail.
@@ -34,3 +46,4 @@
 - “Matter” is not required knowledge on general business screens; the specific type or “Issues and changes” is shown.
 - Closure blockers explain what is missing in ordinary language.
 - Counts state their scope and do not fabricate unavailable populations.
+- Permission-limited Program views name the current responsible person and do not expose an enabled control that cannot execute.

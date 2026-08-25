@@ -64,12 +64,14 @@ Use an 8px spacing rhythm, 11–18px controls, 12–18px cards and 20–26px her
 
 - **Intervention Summary:** actor-scoped read projection for one human review, decision, authorization, evidence exception, escalation or outcome check. It is not new authoritative state.
 - **Today:** intervention queue first; quiet status-check context follows the work rather than preceding it with a KPI wall.
-- **Programs:** ongoing responsibilities, current status and reasons. Show the status reason before the complete requirement/evidence catalogue.
+- **Programs:** ongoing responsibilities, current status and reasons. The portfolio remains a bounded searchable list; an exact Program opens a dedicated operating record. Show calculated-state freshness, reasons, named owner and one dominant actor action before details, requirements, safeguards, evidence, monitoring and linked issues.
 - **Issues and changes:** bounded items needing review, decision, action, response or outcome confirmation. Show the current handoff before history.
 - **Work:** review queues and focused evidence. Complete source inventories are secondary context.
 - **Configure:** policy, routing, integrity and ownership.
 - **Side panel:** bounded inspection or one focused action without losing list context.
 - **Dedicated page:** complex or protected work requiring several sections, parallel work or a durable saved state.
+
+The dedicated Program record keeps calculated state distinct from operating lifecycle status. Focused forms use only current Program-owned objects and authority-returned candidates. On narrow screens, the two-column record becomes a single reading order, action groups become full-width controls and fixed navigation must not cover the active form or result.
 
 Do not default every concept to a dashboard card. Choose lists, rows, details, tables, timelines or focused forms according to the operator's task.
 

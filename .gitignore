@@ -14,6 +14,7 @@ coverage.out
 web/node_modules/
 web/dist/
 web/.vite/
+web/ui-evidence/
 
 # IDE and OS
 .idea/
