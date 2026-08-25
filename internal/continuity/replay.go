@@ -11,6 +11,7 @@ const (
 	EventProgramDetailsUpdated      = "PROGRAM_DETAILS_UPDATED"
 	EventProgramOwnerChanged        = "PROGRAM_OWNER_CHANGED"
 	EventRequirementAdded           = "REQUIREMENT_ADDED"
+	EventRequirementSuperseded      = "REQUIREMENT_SUPERSEDED"
 	EventApplicabilityDetermined    = "APPLICABILITY_DETERMINED"
 	EventControlObjectiveAdded      = "CONTROL_OBJECTIVE_ADDED"
 	EventControlImplementationAdded = "CONTROL_IMPLEMENTATION_ADDED"
@@ -84,6 +85,13 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 				return ProgramAggregate{}, err
 			}
 			aggregate.Requirements = upsertRequirement(aggregate.Requirements, value)
+		case EventRequirementSuperseded:
+			var value requirementSupersededEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.Requirements = upsertRequirement(aggregate.Requirements, value.Prior)
+			aggregate.Requirements = upsertRequirement(aggregate.Requirements, value.Replacement)
 		case EventApplicabilityDetermined:
 			var value Applicability
 			if err := json.Unmarshal(event.Payload, &value); err != nil {

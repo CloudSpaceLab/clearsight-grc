@@ -328,6 +328,13 @@ func applyProgramEventToAggregate(aggregate *ProgramAggregate, event Event) erro
 			return err
 		}
 		aggregate.Requirements = append(aggregate.Requirements, value)
+	case EventRequirementSuperseded:
+		var value requirementSupersededEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Requirements = upsertRequirement(aggregate.Requirements, value.Prior)
+		aggregate.Requirements = upsertRequirement(aggregate.Requirements, value.Replacement)
 	case EventApplicabilityDetermined:
 		var value Applicability
 		if err := json.Unmarshal(event.Payload, &value); err != nil {

@@ -410,6 +410,20 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		}
 		_, err := tx.Exec(ctx, `INSERT INTO program_requirements(id,tenant_id,program_id,source_id,code,title,statement,source_anchor,modality,actor,action,object_name,status,effective_from,effective_until,created_at,version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`, v.ID, v.TenantID, v.ProgramID, v.SourceID, v.Code, v.Title, v.Statement, v.SourceAnchor, v.Modality, v.Actor, v.Action, v.Object, v.Status, v.EffectiveFrom, v.EffectiveUntil, v.CreatedAt, v.Version)
 		return err
+	case EventRequirementSuperseded:
+		var v requirementSupersededEvent
+		if err := json.Unmarshal(event.Payload, &v); err != nil {
+			return err
+		}
+		result, err := tx.Exec(ctx, `UPDATE program_requirements SET status=$4,effective_until=$5,version=$6 WHERE id=$3::uuid AND program_id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND status=$7 AND effective_until IS NULL`, v.Prior.TenantID, v.Prior.ProgramID, v.Prior.ID, v.Prior.Status, v.Prior.EffectiveUntil, v.Prior.Version, RequirementApproved)
+		if err != nil {
+			return err
+		}
+		if result.RowsAffected() != 1 {
+			return ErrVersionConflict
+		}
+		_, err = tx.Exec(ctx, `INSERT INTO program_requirements(id,tenant_id,program_id,source_id,code,title,statement,source_anchor,modality,actor,action,object_name,status,effective_from,effective_until,created_at,version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`, v.Replacement.ID, v.Replacement.TenantID, v.Replacement.ProgramID, v.Replacement.SourceID, v.Replacement.Code, v.Replacement.Title, v.Replacement.Statement, v.Replacement.SourceAnchor, v.Replacement.Modality, v.Replacement.Actor, v.Replacement.Action, v.Replacement.Object, v.Replacement.Status, v.Replacement.EffectiveFrom, v.Replacement.EffectiveUntil, v.Replacement.CreatedAt, v.Replacement.Version)
+		return err
 	case EventApplicabilityDetermined:
 		var v Applicability
 		if err := json.Unmarshal(event.Payload, &v); err != nil {
