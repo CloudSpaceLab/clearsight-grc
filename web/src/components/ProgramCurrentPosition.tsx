@@ -48,7 +48,8 @@ export function ProgramCurrentPosition({ aggregate, operations, digest }: Props)
 
   function goToAction() {
     if (!action) return;
-    document.getElementById(actionTarget(action.command))?.scrollIntoView({ behavior: "smooth", block: "start" });
+	const target = document.getElementById(actionTarget(action.command));
+	if (target && typeof target.scrollIntoView === "function") target.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   return <section className="program-current-position" aria-labelledby="program-current-position-heading">

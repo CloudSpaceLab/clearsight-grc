@@ -8,6 +8,8 @@ import type { ProgramAggregate } from "../types";
 import { EmptyState } from "./EmptyState";
 import { ProgramCurrentPosition } from "./ProgramCurrentPosition";
 import { ProgramReviewDigest } from "./ProgramReviewDigest";
+import { ProgramDetailsPanel } from "./ProgramDetailsPanel";
+import { ProgramRequirementsPanel } from "./ProgramRequirementsPanel";
 
 type Props = { programID: string; onBack: () => void };
 type State = "loading" | "live" | "unavailable";
@@ -55,6 +57,16 @@ export function ProgramRecordWorkspace({ programID, onBack }: Props) {
     return () => { loadID.current += 1; };
   }, [reload]);
 
+  async function applyUpdated(value: ProgramAggregate) {
+	setAggregate(value);
+	try {
+	  const [nextOperations, nextDigest] = await Promise.all([loadProgramOperations(programID), loadProgramReviewDigest(programID)]);
+	  setOperations(nextOperations); setDigest(nextDigest);
+	} catch {
+	  setOperations((current) => current ? { ...current, program_version: value.program.version, authority_available: false, operations: current.operations.map((operation) => ({ ...operation, can_act: false, reason: "Responsibilities could not be refreshed after this change." })) } : null);
+	}
+  }
+
   return <section className="program-record-workspace" aria-label="Program record">
     <button aria-label="Back to Programs" className="text-button program-record-back" type="button" onClick={onBack}>← Back to Programs</button>
     {state === "loading" && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Program record and responsibilities…</div>}
@@ -68,8 +80,8 @@ export function ProgramRecordWorkspace({ programID, onBack }: Props) {
       <ProgramCurrentPosition aggregate={aggregate} operations={operations} digest={digest}/>
       <section className="program-record-grid">
         <article className="program-record-panel" id="program-review-panel"><ProgramReviewDigest aggregate={aggregate} initialDigest={digest} onDigestUpdated={setDigest}/></article>
-        <article className="program-record-panel" id="program-details-panel"><span className="eyebrow">Program details</span><h2>Scope and ownership</h2><p>Current Program identity, scope, effective dates and responsibility are shown here. Editing controls follow the signed-in owner route.</p></article>
-        <article className="program-record-panel" id="program-requirements-panel"><span className="eyebrow">Requirements</span><h2>Obligations and applicability</h2><p>{aggregate.requirements.length} requirement{aggregate.requirements.length === 1 ? " is" : "s are"} recorded for this Program.</p></article>
+		<ProgramDetailsPanel aggregate={aggregate} operations={operations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reload()}/>
+		<ProgramRequirementsPanel aggregate={aggregate} operations={operations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reload()}/>
         <article className="program-record-panel" id="program-safeguards-panel"><span className="eyebrow">Safeguards</span><h2>Control coverage</h2><p>{aggregate.control_implementations.length} safeguard implementation{aggregate.control_implementations.length === 1 ? " is" : "s are"} recorded.</p></article>
         <article className="program-record-panel" id="program-evidence-panel"><span className="eyebrow">Evidence checks</span><h2>Evidence and results</h2><p>{aggregate.evidence_contracts.length} evidence check{aggregate.evidence_contracts.length === 1 ? " is" : "s are"} defined.</p></article>
       </section>

@@ -23,5 +23,33 @@
 .program-record-panel { min-width: 0; padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
 .program-record-panel h2 { margin: 5px 0 8px; font-size: 1.05rem; }
 .program-record-panel > p { margin: 0; }
+.program-panel-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; margin-bottom: 12px; }
+.program-panel-heading h2 { margin: 5px 0 0; }
+.program-panel-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.program-panel-actions button { min-height: 44px; }
+.program-record-facts { margin: 0; }
+.program-record-facts > div { display: grid; grid-template-columns: minmax(140px, .6fr) minmax(0, 1fr); gap: 16px; padding: 10px 0; border-top: 1px solid var(--border); }
+.program-record-facts dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.program-operation-reason { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); font-size: .78rem; }
+.program-operation-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.program-operation-form label { display: grid; gap: 6px; min-width: 0; color: var(--muted); font-size: .78rem; }
+.program-operation-form .wide { grid-column: 1 / -1; }
+.program-operation-form input, .program-operation-form select, .program-operation-form textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); color: var(--text); }
+.program-operation-form textarea { resize: vertical; line-height: 1.45; }
+.program-operation-form input:focus, .program-operation-form select:focus, .program-operation-form textarea:focus { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.program-form-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.program-form-actions button { min-height: 44px; }
+.program-form-error { display: flex; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid color-mix(in srgb, var(--coral) 50%, var(--border)); border-radius: 10px; color: var(--coral); }
+.program-requirement-list { display: grid; gap: 12px; }
+.program-requirement-card { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+.program-requirement-card h3 { margin: 4px 0; font-size: .95rem; }
+.program-requirement-card p { margin: 0; font-size: .8rem; }
+.program-requirement-card span, .program-requirement-card small { color: var(--muted); font-size: .74rem; }
+.program-requirement-card dl { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 0; }
+.program-requirement-card dl div { display: grid; gap: 2px; }
+.program-requirement-card dd { margin: 0; font-size: .78rem; }
+.program-requirement-card > button { justify-self: start; min-height: 40px; }
+.program-empty-state { padding: 14px; border: 1px dashed var(--border); border-radius: 12px; }
+.program-empty-state p { margin: 6px 0 0; }
 @media (max-width: 900px) { .program-record-header, .program-current-position, .program-record-grid { grid-template-columns: 1fr; } .program-dominant-next { justify-items: start; } .program-dominant-next small { text-align: left; } }
-@media (max-width: 560px) { .program-record-header, .program-current-position, .program-record-panel { padding: 16px; } .program-position-facts { display: grid; } .program-dominant-next, .program-dominant-next .primary-button { width: 100%; } }
+@media (max-width: 560px) { .program-record-header, .program-current-position, .program-record-panel { padding: 16px; } .program-position-facts { display: grid; } .program-dominant-next, .program-dominant-next .primary-button { width: 100%; } .program-panel-heading { display: grid; } .program-panel-actions { display: grid; justify-content: stretch; } .program-panel-actions button { width: 100%; } .program-record-facts > div, .program-operation-form { grid-template-columns: 1fr; } .program-record-facts dd { text-align: left; } .program-operation-form .wide { grid-column: 1; } .program-form-actions { display: grid; } .program-form-actions button { width: 100%; } .program-form-error { display: grid; } }
