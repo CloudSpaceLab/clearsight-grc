@@ -17,6 +17,7 @@ type AssessmentRepository interface {
 	CreateAssessment(context.Context, CreateAssessmentRecord) (Assessment, error)
 	GetAssessment(context.Context, Scope, string) (Assessment, error)
 	GetCurrentAssessment(context.Context, Scope, string, AssessmentReviewKind) (Assessment, error)
+	ListAssessments(context.Context, AssessmentListFilter) (AssessmentPage, error)
 	TransitionAssessment(context.Context, AssessmentTransitionRecord) (Assessment, error)
 	ApplyAssessmentReaction(context.Context, AssessmentReactionRecord) (Assessment, error)
 	RecordRequestIssued(context.Context, RecordRequestIssuedRecord) (AssessmentRequestLink, Assessment, error)

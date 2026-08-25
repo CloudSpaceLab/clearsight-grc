@@ -84,6 +84,47 @@ func (r *MemoryAssessmentRepository) GetCurrentAssessment(_ context.Context, sco
 	return current, nil
 }
 
+func (r *MemoryAssessmentRepository) ListAssessments(_ context.Context, filter AssessmentListFilter) (AssessmentPage, error) {
+	r.assessmentMu.RLock()
+	defer r.assessmentMu.RUnlock()
+	limit := filter.Limit
+	if limit < 1 || limit > 100 {
+		limit = 50
+	}
+	var cursorTime time.Time
+	var cursorID string
+	if filter.Cursor != "" {
+		var err error
+		cursorTime, cursorID, err = decodeCursor(filter.Cursor)
+		if err != nil {
+			return AssessmentPage{}, ErrInvalid
+		}
+	}
+	items := make([]Assessment, 0, len(r.assessments))
+	for _, assessment := range r.assessments {
+		if assessment.TenantID != filter.TenantID || assessment.LegalEntityID != filter.LegalEntityID || (filter.Status != "" && assessment.Status != filter.Status) {
+			continue
+		}
+		if filter.Cursor != "" && (assessment.UpdatedAt.After(cursorTime) || (assessment.UpdatedAt.Equal(cursorTime) && assessment.ID >= cursorID)) {
+			continue
+		}
+		items = append(items, assessment)
+	}
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].UpdatedAt.Equal(items[j].UpdatedAt) {
+			return items[i].ID > items[j].ID
+		}
+		return items[i].UpdatedAt.After(items[j].UpdatedAt)
+	})
+	page := AssessmentPage{Items: items}
+	if len(items) > limit {
+		page.Items = items[:limit]
+		last := page.Items[len(page.Items)-1]
+		page.NextCursor = encodeCursor(last.UpdatedAt, last.ID)
+	}
+	return page, nil
+}
+
 func (r *MemoryAssessmentRepository) TransitionAssessment(_ context.Context, record AssessmentTransitionRecord) (Assessment, error) {
 	r.assessmentMu.Lock()
 	defer r.assessmentMu.Unlock()

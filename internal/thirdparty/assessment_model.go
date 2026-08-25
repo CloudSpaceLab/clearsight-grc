@@ -79,6 +79,28 @@ type AssessmentRequestLink struct {
 	CreatedAt      time.Time                `json:"created_at"`
 }
 
+type AssessmentListFilter struct {
+	Scope
+	Status AssessmentStatus `json:"status,omitempty"`
+	Limit  int              `json:"limit,omitempty"`
+	Cursor string           `json:"cursor,omitempty"`
+}
+
+type AssessmentPage struct {
+	Items      []Assessment `json:"items"`
+	NextCursor string       `json:"next_cursor,omitempty"`
+}
+
+type AssessmentEvent struct {
+	ID                string                 `json:"id"`
+	TenantID          string                 `json:"tenant_id"`
+	AssessmentID      string                 `json:"assessment_id"`
+	AssessmentVersion int64                  `json:"assessment_version"`
+	Type              string                 `json:"type"`
+	Payload           map[string]interface{} `json:"payload"`
+	OccurredAt        time.Time              `json:"occurred_at"`
+}
+
 type StartAssessmentInput struct {
 	RelationshipVersion int64     `json:"relationship_version"`
 	FormTemplateID      string    `json:"form_template_id"`
