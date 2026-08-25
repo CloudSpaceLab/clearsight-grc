@@ -96,6 +96,36 @@ func (a *API) transitionProgram(w http.ResponseWriter, r *http.Request) {
 	writeContinuityResult(w, value, err, http.StatusOK)
 }
 
+func (a *API) updateProgramDetails(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.UpdateProgramDetailsInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.ProgramID = r.PathValue("id")
+	value, err := service.UpdateProgramDetails(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
+}
+
+func (a *API) assignProgram(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.AssignProgramInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.ProgramID = r.PathValue("id")
+	value, err := service.AssignProgram(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
+}
+
 func (a *API) addProgramRequirement(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.continuityService(w)
 	if !ok {
@@ -109,6 +139,22 @@ func (a *API) addProgramRequirement(w http.ResponseWriter, r *http.Request) {
 	input.ProgramID = r.PathValue("id")
 	value, err := service.AddRequirement(r.Context(), input)
 	writeContinuityResult(w, value, err, http.StatusCreated)
+}
+
+func (a *API) supersedeProgramRequirement(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.SupersedeRequirementInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.ProgramID = r.PathValue("id")
+	input.RequirementID = r.PathValue("requirement_id")
+	value, err := service.SupersedeRequirement(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
 }
 
 func (a *API) determineProgramApplicability(w http.ResponseWriter, r *http.Request) {

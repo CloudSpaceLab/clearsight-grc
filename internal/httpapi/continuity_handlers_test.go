@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
@@ -140,6 +141,98 @@ func TestProgramHistoryRequiresTimestamp(t *testing.T) {
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/programs/id/history?tenant_id=bank", nil))
 	if response.Code != http.StatusBadRequest || !bytes.Contains(response.Body.Bytes(), []byte("at is required")) {
 		t.Fatalf("expected timestamp validation, got %d: %s", response.Code, response.Body.String())
+	}
+}
+
+func TestProgramEditRoutesBindVerifiedActorAndPreserveAssignmentSubject(t *testing.T) {
+	repo := continuity.NewMemoryRepository()
+	service := continuity.NewService(repo)
+	effectiveFrom := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	program, err := service.CreateProgram(t.Context(), continuity.CreateProgramInput{
+		TenantID: "bank", LegalEntityID: "bank-ng", Code: "NDPA", Name: "Data protection", Type: "PRIVACY",
+		OwningFunction: "Data Protection Office", OwnerPrincipalID: "owner-1",
+		EffectiveFrom: effectiveFrom, ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.AddRequirement(t.Context(), continuity.AddRequirementInput{
+		TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version,
+		Code: "CAR-01", Title: "File the annual return", Statement: "The bank must file its annual compliance return.",
+		SourceAnchor: "GAID 2025, section 7", EffectiveFrom: effectiveFrom, ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	requirementID := program.Requirements[0].ID
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "owner-1", "bank-ng"),
+		Continuity: service, Authority: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+			authority.ResponsibilityOwner: {
+				Principal:           authority.Principal{ID: "owner-1", DisplayName: "Current Program owner"},
+				CandidatePrincipals: []authority.Principal{{ID: "owner-2", DisplayName: "Incoming Program owner"}},
+			},
+		}},
+	})
+
+	post := func(path, body string) {
+		t.Helper()
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, path, strings.NewReader(body)))
+		if response.Code != http.StatusOK {
+			t.Fatalf("POST %s returned %d: %s", path, response.Code, response.Body.String())
+		}
+		if err := json.NewDecoder(response.Body).Decode(&program); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	post("/api/v1/programs/"+program.Program.ID+"/details", fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"name":"Nigeria data protection","owning_function":"Data Protection Office","jurisdiction":"Nigeria","scope":{"business_lines":["Retail"]},"effective_from":"2026-01-01T00:00:00Z","actor_id":"forged","rationale":"Confirm the approved operating scope."}`, program.Program.Version))
+	post("/api/v1/programs/"+program.Program.ID+"/assignment", fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"owner_principal_id":"owner-2","actor_id":"forged","rationale":"Assign the current DPO position."}`, program.Program.Version))
+	post("/api/v1/programs/"+program.Program.ID+"/requirements/"+requirementID+"/supersede", fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"code":"CAR-01","title":"File the annual return","statement":"The bank must file its annual compliance return through a licensed DPCO.","source_anchor":"GAID 2025, section 7.2","effective_from":"2026-09-01T00:00:00Z","actor_id":"forged","rationale":"The regulator changed the filing channel."}`, program.Program.Version))
+
+	if program.Program.OwnerPrincipalID != "owner-2" || len(program.Requirements) != 2 || program.Requirements[0].Status != continuity.RequirementSuperseded {
+		t.Fatalf("Program edit journey did not persist requested subjects: %#v", program)
+	}
+	events, err := repo.ProgramEvents(t.Context(), "bank", program.Program.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, event := range events {
+		switch event.Type {
+		case continuity.EventProgramDetailsUpdated, continuity.EventProgramOwnerChanged, continuity.EventRequirementSuperseded:
+			if event.ActorID != "owner-1" {
+				t.Fatalf("event %s trusted a body actor: %#v", event.Type, event)
+			}
+		}
+	}
+}
+
+func TestProgramAssignmentAuthorityFailsClosedWithoutMutation(t *testing.T) {
+	repo := continuity.NewMemoryRepository()
+	service := continuity.NewService(repo)
+	program, err := service.CreateProgram(t.Context(), continuity.CreateProgramInput{
+		TenantID: "bank", LegalEntityID: "bank-ng", Code: "AML", Name: "Financial crime", Type: "AML",
+		OwningFunction: "Compliance", OwnerPrincipalID: "owner-1", EffectiveFrom: time.Now().UTC(), ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "owner-1", "bank-ng"), Continuity: service,
+	})
+	body := fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"owner_principal_id":"owner-2","rationale":"Assign the current owner."}`, program.Program.Version)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/programs/"+program.Program.ID+"/assignment", strings.NewReader(body)))
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("authority failure returned %d: %s", response.Code, response.Body.String())
+	}
+	current, err := service.GetProgram(t.Context(), "bank", program.Program.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if current.Program.Version != program.Program.Version || current.Program.OwnerPrincipalID != "owner-1" {
+		t.Fatalf("assignment mutated after authority failure: %#v", current.Program)
 	}
 }
 

@@ -16,9 +16,21 @@ import (
 // current lifecycle state. Route identifiers are canonical: redundant body IDs
 // may match them, but may never redirect authority evaluation to another object.
 func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenant, name string, payload map[string]any, policy commandPolicy) (commandPolicy, error) {
-	matterID, err := lifecycleMatterID(r, payload)
-	if err != nil {
-		return policy, err
+	matterID := ""
+	if existingMatterCommand(name) {
+		var err error
+		matterID, err = lifecycleMatterID(r, payload)
+		if err != nil {
+			return policy, err
+		}
+	}
+	programID := ""
+	if existingProgramCommand(name) {
+		var err error
+		programID, err = lifecycleProgramID(r, payload)
+		if err != nil {
+			return policy, err
+		}
 	}
 
 	var aggregate *continuity.MatterAggregate
@@ -34,8 +46,38 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		aggregate = &current
 		matterPriority = current.Matter.Priority
 	}
+	var programAggregate *continuity.ProgramAggregate
+	if existingProgramCommand(name) && programID != "" {
+		if a.deps.Continuity != nil {
+			current, loadErr := a.deps.Continuity.GetProgram(ctx, tenant, programID)
+			if loadErr != nil {
+				return policy, loadErr
+			}
+			programAggregate = &current
+		}
+	}
 
 	switch name {
+	case "program.assign":
+		if programAggregate == nil {
+			return policy, nil
+		}
+		candidateID := stringValue(payload["owner_principal_id"])
+		if err := a.validateProgramAssignmentCandidate(ctx, tenant, name, *programAggregate, candidateID, policy.Materiality); err != nil {
+			return policy, err
+		}
+		return policy, nil
+
+	case "program.requirement.supersede":
+		requirementID, err := lifecycleSubresourceID(r, payload, "requirement_id")
+		if err != nil {
+			return policy, err
+		}
+		if programAggregate != nil && !programHasRequirement(*programAggregate, requirementID) {
+			return policy, continuity.ErrNotFound
+		}
+		return policy, nil
+
 	case "matter.transition":
 		if aggregate == nil {
 			return policy, nil
@@ -176,6 +218,34 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 	}
 }
 
+func (a *API) validateProgramAssignmentCandidate(ctx context.Context, tenant, commandName string, aggregate continuity.ProgramAggregate, candidateID string, materiality int) error {
+	candidateID = strings.TrimSpace(candidateID)
+	if candidateID == "" {
+		return fmt.Errorf("%w: owner_principal_id is required", continuity.ErrInvalidState)
+	}
+	if a.deps.Authority == nil {
+		return fmt.Errorf("%w: assignment route is unavailable", commandauth.ErrGuardUnavailable)
+	}
+	actor, err := identity.Require(ctx)
+	if err != nil {
+		return fmt.Errorf("%w: verified identity is required for assignment", commandauth.ErrIdentityRequired)
+	}
+	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
+		TenantID: tenant, LegalEntityID: actor.LegalEntityID, ObjectType: "PROGRAM", ObjectID: aggregate.Program.ID,
+		Responsibility: authority.ResponsibilityOwner, DecisionType: commandName, Materiality: materiality,
+	})
+	if err != nil {
+		return fmt.Errorf("%w: assignment route could not be checked", commandauth.ErrGuardUnavailable)
+	}
+	if !resolution.AllowsPrincipal(actor.PrincipalID) {
+		return fmt.Errorf("%w: signed-in person does not hold the current Program owner route", continuity.ErrInvalidState)
+	}
+	if !resolution.AllowsPrincipal(candidateID) {
+		return fmt.Errorf("%w: selected person is not eligible for Program ownership", continuity.ErrInvalidState)
+	}
+	return nil
+}
+
 func (a *API) validateMatterAssignmentCandidate(ctx context.Context, tenant, commandName string, aggregate continuity.MatterAggregate, candidateID string, responsibility authority.Responsibility, materiality int) error {
 	candidateID = strings.TrimSpace(candidateID)
 	if candidateID == "" {
@@ -218,8 +288,21 @@ func matterHasAction(aggregate continuity.MatterAggregate, actionID string) bool
 	return false
 }
 
+func programHasRequirement(aggregate continuity.ProgramAggregate, requirementID string) bool {
+	for _, requirement := range aggregate.Requirements {
+		if requirement.ID == requirementID {
+			return true
+		}
+	}
+	return false
+}
+
 func existingMatterCommand(name string) bool {
 	return strings.HasPrefix(name, "matter.") && name != "matter.create"
+}
+
+func existingProgramCommand(name string) bool {
+	return strings.HasPrefix(name, "program.") && name != "program.create"
 }
 
 func lifecycleMatterID(r *http.Request, payload map[string]any) (string, error) {
@@ -228,6 +311,14 @@ func lifecycleMatterID(r *http.Request, payload map[string]any) (string, error) 
 		pathID = strings.TrimSpace(r.PathValue("id"))
 	}
 	return boundLifecycleID(pathID, stringValue(payload["matter_id"]), "matter_id")
+}
+
+func lifecycleProgramID(r *http.Request, payload map[string]any) (string, error) {
+	pathID := ""
+	if r != nil {
+		pathID = strings.TrimSpace(r.PathValue("id"))
+	}
+	return boundLifecycleID(pathID, stringValue(payload["program_id"]), "program_id")
 }
 
 func lifecycleSubresourceID(r *http.Request, payload map[string]any, field string) (string, error) {
