@@ -70,13 +70,13 @@ func NewDemoAuthenticator(tenantID, defaultPrincipalID, legalEntityID string) (*
 	}
 	accounts := []DemoAccount{
 		{Label: "Chief Risk Officer", Username: "cro@demo.clearsight.local", Password: "demo", PrincipalID: defaultPrincipalID, RoleCodes: []string{"CRO", "EXECUTIVE"}},
-		{Label: "Chief Compliance Officer", Username: "cco@demo.clearsight.local", Password: "demo", PrincipalID: "role-cco", RoleCodes: []string{"CCO", "EXECUTIVE", "COMPLIANCE_OFFICER"}},
-		{Label: "Chief Information Security Officer", Username: "ciso@demo.clearsight.local", Password: "demo", PrincipalID: "role-ciso", RoleCodes: []string{"CISO", "EXECUTIVE"}},
-		{Label: "GRC Administrator", Username: "grc-admin@demo.clearsight.local", Password: "demo", PrincipalID: "role-grc-admin", RoleCodes: []string{"GRC_ADMIN"}},
-		{Label: "System Administrator", Username: "system-admin@demo.clearsight.local", Password: "demo", PrincipalID: "role-system-admin", RoleCodes: []string{"SYSTEM_ADMIN"}},
-		{Label: "Internal Auditor", Username: "auditor@demo.clearsight.local", Password: "demo", PrincipalID: "role-auditor", RoleCodes: []string{"AUDITOR", "REVIEWER"}},
-		{Label: "Program Owner", Username: "owner@demo.clearsight.local", Password: "demo", PrincipalID: "role-program-owner", RoleCodes: []string{"PROGRAM_OWNER"}},
-		{Label: "Evidence Respondent", Username: "evidence@demo.clearsight.local", Password: "demo", PrincipalID: "role-evidence-respondent", RoleCodes: []string{"EVIDENCE_RESPONDENT"}},
+		{Label: "Chief Compliance Officer", Username: "cco@demo.clearsight.local", Password: "demo", PrincipalID: "557a7917-ad49-57f5-bab4-2e2e9218b501", RoleCodes: []string{"CCO", "EXECUTIVE", "COMPLIANCE_OFFICER"}},
+		{Label: "Chief Information Security Officer", Username: "ciso@demo.clearsight.local", Password: "demo", PrincipalID: "44e7e4a7-a268-55cd-b322-91d3f71d2a61", RoleCodes: []string{"CISO", "EXECUTIVE"}},
+		{Label: "GRC Administrator", Username: "grc-admin@demo.clearsight.local", Password: "demo", PrincipalID: "1ddc7274-f20f-520c-b2c4-f64600588253", RoleCodes: []string{"GRC_ADMIN"}},
+		{Label: "System Administrator", Username: "system-admin@demo.clearsight.local", Password: "demo", PrincipalID: "306f911f-ac1b-5eed-8746-148dda0e89d9", RoleCodes: []string{"SYSTEM_ADMIN"}},
+		{Label: "Internal Auditor", Username: "auditor@demo.clearsight.local", Password: "demo", PrincipalID: "60729a90-7ce8-5732-9313-8a42e25474c9", RoleCodes: []string{"AUDITOR", "REVIEWER"}},
+		{Label: "Program Owner", Username: "owner@demo.clearsight.local", Password: "demo", PrincipalID: "487d4a40-cf19-5734-b198-8eaca366cf6d", RoleCodes: []string{"PROGRAM_OWNER"}},
+		{Label: "Evidence Respondent", Username: "evidence@demo.clearsight.local", Password: "demo", PrincipalID: "1837ad1d-8068-53fb-b376-1ad11e17128a", RoleCodes: []string{"EVIDENCE_RESPONDENT"}},
 	}
 	if tenantID == DurableDemoTenantID {
 		accounts[0].PrincipalID = DurableDemoPrincipalCRO
@@ -87,6 +87,16 @@ func NewDemoAuthenticator(tenantID, defaultPrincipalID, legalEntityID string) (*
 		accounts[5].PrincipalID = DurableDemoPrincipalAuditor
 		accounts[6].PrincipalID = DurableDemoPrincipalProgramOwner
 		accounts[7].PrincipalID = DurableDemoPrincipalEvidenceRespondent
+	}
+	for index := range accounts {
+		if strings.TrimSpace(accounts[index].PrincipalID) == "" {
+			accounts[index].PrincipalID = defaultPrincipalID
+		}
+		fmt.Printf(
+			"demo account: username=%s principalID=%s\n",
+			accounts[index].Username,
+			accounts[index].PrincipalID,
+		)
 	}
 	byUsername := make(map[string]DemoAccount, len(accounts))
 	for i := range accounts {
