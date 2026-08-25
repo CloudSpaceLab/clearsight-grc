@@ -333,6 +333,12 @@ Supporting details include recipient hint, deadline, response status, template v
 
 The form builder is upgraded from its current Yes/No-only editor to a shared section-and-field builder. Authors select a field type, configure only relevant constraints, preview Classic and Wizard modes and submit the exact version through the existing maker-checker lifecycle.
 
+### 10.1 Enterprise copy gate
+
+Every internal and external string must read like finished bank operating software. Headings name the record, task or decision; buttons use a direct verb and state the result; supporting text adds status, consequence or recovery information. Copy must not mention demos, prototypes, AI, internal architecture, implementation guarantees or product-review commentary. It must not use slogans, vague reassurance, urgency theatre, repetitive explanations or long instructional prose where a label and one sentence are sufficient.
+
+The complete affected workflow is reviewed as one content system: Vendors workspace, due-diligence setup, form builder, invitation delivery, external collection, autosave, validation, receipt, internal review, empty/error/conflict states, notifications and API errors. Sample fixtures are explicitly labelled as sample data and remain operationally plausible. Copy-quality tests must cover reliable semantic patterns, while rendered review confirms that necessary text remains concise and usable at mobile widths.
+
 ## 11. Failure and recovery states
 
 - **No active template:** start fails closed and tells an administrator to activate a due-diligence form.
