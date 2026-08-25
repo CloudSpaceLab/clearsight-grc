@@ -33,11 +33,11 @@ func (p *MatterActionProjector) Publish(ctx context.Context, event workflowrunti
 	if p == nil || p.Repo == nil || event.AggregateType != "MATTER" {
 		return nil
 	}
-	if event.EventType != "ACTION_ADDED" && event.EventType != "ACTION_STATE_CHANGED" {
+	if event.EventType != continuity.EventActionAdded && event.EventType != continuity.EventActionStateChanged && event.EventType != continuity.EventActionUpdated && event.EventType != continuity.EventActionAssigned {
 		return nil
 	}
-	var action matterActionPayload
-	if err := json.Unmarshal(event.Payload, &action); err != nil {
+	action, err := decodeMatterActionProjection(event)
+	if err != nil {
 		return fmt.Errorf("decode Matter Action projection event: %w", err)
 	}
 	if strings.TrimSpace(action.ID) == "" || strings.TrimSpace(action.MatterID) == "" {
@@ -96,7 +96,7 @@ func (p *MatterActionProjector) Publish(ctx context.Context, event workflowrunti
 		"action_target_type": "MATTER",
 		"action_target_id":   action.MatterID,
 		"primary_action":     "Update action",
-		"why_now":            "This accountable issue action requires your attention.",
+		"why_now":            "You are the current performer for this issue action.",
 	})
 	if err != nil {
 		return fmt.Errorf("encode Matter Action workflow context: %w", err)
@@ -105,7 +105,7 @@ func (p *MatterActionProjector) Publish(ctx context.Context, event workflowrunti
 	var taskID string
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO workflow_tasks(tenant_id,workflow_id,step_key,responsibility,principal_id,title,status,due_at,context,claimed_at,completed_at,created_at,updated_at)
-		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,'matter-action','ACCOUNTABLE_OWNER',NULLIF($3,'')::uuid,$4,$5,$6,$7::jsonb,
+		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,'matter-action','PERFORMER',NULLIF($3,'')::uuid,$4,$5,$6,$7::jsonb,
 		       CASE WHEN $5='IN_PROGRESS' THEN $8::timestamptz ELSE NULL END,
 		       CASE WHEN $5='COMPLETED' THEN $8::timestamptz ELSE NULL END,$8::timestamptz,$8::timestamptz)
 		ON CONFLICT(workflow_id,step_key) DO UPDATE SET
@@ -135,6 +135,27 @@ func (p *MatterActionProjector) Publish(ctx context.Context, event workflowrunti
 		return fmt.Errorf("commit Matter Action projection: %w", err)
 	}
 	return nil
+}
+
+func decodeMatterActionProjection(event workflowruntime.OutboxEvent) (matterActionPayload, error) {
+	var action matterActionPayload
+	switch event.EventType {
+	case continuity.EventActionAdded, continuity.EventActionStateChanged:
+		if err := json.Unmarshal(event.Payload, &action); err != nil {
+			return matterActionPayload{}, err
+		}
+	case continuity.EventActionUpdated, continuity.EventActionAssigned:
+		var envelope struct {
+			Action matterActionPayload `json:"action"`
+		}
+		if err := json.Unmarshal(event.Payload, &envelope); err != nil {
+			return matterActionPayload{}, err
+		}
+		action = envelope.Action
+	default:
+		return matterActionPayload{}, fmt.Errorf("unsupported Matter Action event %q", event.EventType)
+	}
+	return action, nil
 }
 
 func projectedActionStatus(status string) (Status, error) {
