@@ -53,7 +53,7 @@ describe("monitoring setup", () => {
     await waitFor(() => expect(createFormTemplate).toHaveBeenCalledWith(expect.objectContaining({
       code: "PASSWORD-RESET-REVIEW",
       fields: expect.arrayContaining([expect.objectContaining({
-        type: "single_select", options: ["Yes", "No"], scoring: expect.objectContaining({ answer_scores: { Yes: 0, No: 100 }, critical_answers: ["No"] }),
+        type: "yes_no", options: ["Yes", "No"], scoring: expect.objectContaining({ answer_scores: { Yes: 0, No: 100 }, critical_answers: ["No"] }),
       })]),
     })));
     expect(onSaved).toHaveBeenCalled();

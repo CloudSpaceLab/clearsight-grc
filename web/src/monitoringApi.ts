@@ -1,7 +1,7 @@
 import { loadContext } from "./api";
 import { requestJSON } from "./http";
 import type { EvidenceRequest } from "./types";
-import type { FormTemplate, FormTemplateField, LifecycleStatus, MonitoringCheck, MonitoringResult } from "./monitoringTypes";
+import type { CreateFormTemplateInput, FormTemplate, LifecycleStatus, MonitoringCheck, MonitoringResult } from "./monitoringTypes";
 import type { SourceBinding } from "./sourceConfigApi";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -16,7 +16,7 @@ export async function loadFormTemplates(): Promise<FormTemplate[]> {
   return (await scoped<{ items: FormTemplate[] }>("/api/v1/form-templates?limit=100")).items;
 }
 
-export function createFormTemplate(input: { code: string; name: string; purpose: string; fields: FormTemplateField[] }): Promise<FormTemplate> {
+export function createFormTemplate(input: CreateFormTemplateInput): Promise<FormTemplate> {
   return scoped<FormTemplate>("/api/v1/form-templates", { method: "POST", body: JSON.stringify(input) });
 }
 

@@ -1,5 +1,13 @@
+import type { CaptureFieldConstraints, CapturePresentation, CaptureSection, CaptureVisibilityCondition } from "./types";
+
 export type LifecycleStatus = "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "REJECTED" | "PAUSED" | "RETIRED";
 export type RiskBand = "LOW" | "MODERATE" | "HIGH" | "CRITICAL" | "NOT_ASSESSED";
+
+export type FormFieldType =
+  | "short_text" | "long_text" | "email" | "telephone" | "url"
+  | "integer" | "decimal" | "percentage" | "currency" | "date"
+  | "yes_no" | "single_select" | "multi_select" | "checkbox" | "attestation"
+  | "file" | "photo" | "signature" | "vendor_document";
 
 export type FormScoring = {
   id?: string;
@@ -11,13 +19,26 @@ export type FormScoring = {
 
 export type FormTemplateField = {
   id: string;
+  section_id?: string;
   label: string;
-  type: "text" | "short_text" | "long_text" | "date" | "number" | "single_select" | "photo" | "file" | "signature";
+  type: FormFieldType | "text" | "number";
   required: boolean;
   description?: string;
   options?: string[];
   accepted_formats?: string[];
+  attestation?: string;
+  constraints?: CaptureFieldConstraints;
+  condition?: CaptureVisibilityCondition;
   scoring?: FormScoring;
+};
+
+export type CreateFormTemplateInput = {
+  code: string;
+  name: string;
+  purpose: string;
+  presentation: CapturePresentation;
+  sections: CaptureSection[];
+  fields: FormTemplateField[];
 };
 
 export type Lifecycle = {
@@ -40,6 +61,8 @@ export type FormTemplate = Lifecycle & {
   code: string;
   name: string;
   purpose: string;
+  presentation?: CapturePresentation;
+  sections?: CaptureSection[];
   fields: FormTemplateField[];
 };
 
