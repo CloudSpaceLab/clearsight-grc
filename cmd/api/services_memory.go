@@ -23,6 +23,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceevent"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
@@ -60,6 +61,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	evidenceService.ConfigureSourceBindings(sourceCatalog)
 	monitoringService := monitoring.NewService(monitoring.NewMemoryRepository(), evidenceService)
 	monitoringService.ConfigureSourceReader(sourceCatalog)
+	thirdPartyService := thirdparty.NewService(thirdparty.NewMemoryRepository())
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepo)
 	coverageService := documentcoverage.NewService(documentcoverage.NewMemoryRepository(), documentService, continuityService)
@@ -112,7 +114,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 
 	return serviceSet{
 		Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()),
-		Evidence: evidenceService, Monitoring: monitoringService, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
+		Evidence: evidenceService, Monitoring: monitoringService, ThirdParty: thirdPartyService, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
 		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo), Close: func() {},
 	}, nil

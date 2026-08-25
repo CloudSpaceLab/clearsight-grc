@@ -1,7 +1,7 @@
 # ClearSight implementation ledger
 
-**Status date:** 2026-08-17
-**Current execution issue:** Mobile-channel monitoring setup and deterministic risk results
+**Status date:** 2026-08-25
+**Current execution:** Program and Matter operational completeness, Work/Matter first
 **Umbrella pilot/GA catalogue:** #13
 
 This file is the authoritative implementation ledger. Code, migrations and executable tests remain final capability truth. Completed detail belongs in focused architecture documents, PRs and tests rather than parallel planning frameworks.
@@ -20,7 +20,7 @@ This file is the authoritative implementation ledger. Code, migrations and execu
 | Governed lifecycle sequencing | PR #46 |
 | Canonical Evidence Request recipient truth | PR #49 |
 | Evidence Request recipient lifecycle + Today projection | PR #50 |
-| Governed Program/Work mutation UX | PR #51 |
+| Initial governed Program/Work mutation UX | PR #51 |
 | Actor Program review baseline + review-by-exception | PR #53 |
 | Protected Matter read parity + Program review explanation delta | PR #55 |
 | Enterprise identity/access EIA-0…5 | PR #59 |
@@ -28,6 +28,12 @@ This file is the authoritative implementation ledger. Code, migrations and execu
 | Stateless AI gateway transport T3 | issue #61; `cmd/ai-gateway` and `internal/aigateway` |
 | Program monitoring setup | Program and requirement creation, reusable forms, connected public status endpoints, maker-checker form/check activation, on-demand collection and immutable results |
 | Issue and change creation | Inline authority-checked Matter creation, business work types, actor ownership, optional Program linking and immediate in-workspace handoff |
+
+## Current execution — complete Program and Matter operations
+
+The approved [`Program and Work operational-completeness design`](superpowers/specs/2026-08-25-program-work-operational-completeness-design.md) closes the remaining API-only operating gaps without creating parallel workflow, assignment, authority or review state. Delivery follows the detailed [`Matter plan`](superpowers/plans/2026-08-25-matter-operational-completeness.md) first, then the [`Program plan`](superpowers/plans/2026-08-25-program-operational-completeness.md). PR #51 remains a completed initial mutation tranche; it did not make every supported command reachable or every record maintainable.
+
+Domain expansion must build on these operation/participant reads and dedicated record workspaces. It must not reimplement generic Matter facts, assignment, Actions, Decisions, evidence assessment, outcome checks, Program requirements or linked-issue UI inside a vertical-specific module.
 
 ## 2. Mobile-channel monitoring — implemented application slice
 
@@ -41,7 +47,7 @@ The Work workspace also supports inline creation of user-reported risk issues, c
 
 The repository now has an isolated stateless gateway process with OpenAI-compatible Chat Completions and Responses ingress, truthful SSE translation, OpenAI and Anthropic pilot adapters, SHA-256 workload authentication, model aliases, weighted routing, pre-output fallback, route circuit breaking, request/token/cost/concurrency budgets and content-free logs/metrics.
 
-T3 deliberately owns no durable table and makes no governance decision. T4 remains the current next scope: governed AI workload registration, Automation Policy lifecycle, deterministic decisions/obligations, reusable Source Binding resolution and maker-checker-controlled shadow/enforcement activation. T5 remains durable receipts, response controls and approval/execution grants. See [`architecture/ai-gateway-transport.md`](architecture/ai-gateway-transport.md).
+T3 deliberately owns no durable table and makes no governance decision. T4 remains the next AI-specific scope: governed AI workload registration, Automation Policy lifecycle, deterministic decisions/obligations, reusable Source Binding resolution and maker-checker-controlled shadow/enforcement activation. T5 remains durable receipts, response controls and approval/execution grants. These do not supersede the repository-wide current execution above. See [`architecture/ai-gateway-transport.md`](architecture/ai-gateway-transport.md).
 
 ## 4. Enterprise identity/access — implemented on PR #59
 
@@ -187,6 +193,25 @@ The fixture contract is documented in [`engineering/demo-role-login.md`](enginee
 The exact final PR head must pass the normal release gates below before merge; do not rely on an older green head after documentation or demo-login changes.
 
 ## 5. Productization still required outside the identity tranche
+
+### Third-party risk management — #80 (foundation implemented; lifecycle incomplete)
+
+The first dependency-complete foundation now owns tenant-scoped vendor organizations and legal-entity-scoped service relationships. It provides exact source-identity reuse, deliberate non-merging of name-only matches, verified initial owner binding, bounded search/detail APIs, optimistic updates, transactional relationship event/outbox writes and a first-class **Vendors** sidebar workspace with create/edit, deep-link, loading, empty, unavailable and conflict states. Migration `000035_third_party_foundation` and `internal/thirdparty` are the executable boundary.
+
+The vendor use cases remain Expansion maturity because ClearSight does not yet own contracts, structured assessments, typed certificate/document validity, privacy approval gates, activation/continuation decisions, reassessment or verified exit. The Vendors workspace explicitly avoids presenting a proposed relationship as assessed, approved, active or compliant.
+
+The implementation must reuse, rather than fork:
+
+- Programs for continuing third-party assurance requirements and evidence expectations;
+- Matters, Decisions, Actions and outcome checks for onboarding/review episodes and vendor deficiencies;
+- Evidence Requests, submissions and artifacts for vendor collection;
+- Evidence Sources plus Source Connection/View/Binding for procurement and vendor-system access;
+- Monitoring Checks and the connected-assurance execution path tracked by #57 for expiry, missing-evidence and source-led conditions;
+- the existing worker, timer, outbox/inbox, authority, delegation and route registries;
+- document import/reconciliation for spreadsheet migration;
+- the generic notification centre and governed report/export capability when those catalogue items are delivered.
+
+A vendor risk register is therefore a bounded projection over those canonical records, not another independently editable register. Vendor-supplied comments remain communications; uploaded evidence remains distinct from sufficiency; completed remediation remains distinct from independently verified outcome.
 
 ### Capture / Imports
 

@@ -60,6 +60,19 @@ describe("runtime navigation", () => {
     expect(screen.queryByRole("button", { name: /Explore/ })).toBeNull();
   });
 
+  it("provides Vendors as a first-class navigation destination", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    render(<App />);
+
+    const vendorButtons = await screen.findAllByRole("button", { name: "Vendors" });
+    expect(vendorButtons.length).toBeGreaterThan(0);
+    const vendorButton = vendorButtons[0];
+    if (!vendorButton) throw new Error("Vendors navigation is missing");
+    fireEvent.click(vendorButton);
+    expect(vendorButton.getAttribute("aria-current")).toBe("page");
+    expect(window.location.hash).toBe("#vendors");
+  });
+
   it("exposes the stakeholder reference experience when demo mode is on", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(true));
     render(<App />);

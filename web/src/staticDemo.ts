@@ -1,4 +1,5 @@
 import type { CoverageDecision, DocumentCoverage, DocumentImport, ProposalStatus } from "./documentTypes";
+import type { VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "./vendorTypes";
 
 export const staticDemoEnabled = import.meta.env.VITE_STATIC_DEMO === "true";
 
@@ -14,6 +15,7 @@ const future = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
 const programID = "program-ndpa";
 const matterID = "matter-gaid-change";
 const evidenceID = "evidence-annual-return";
+const vendorRelationshipID = "vendor-relationship-payments";
 
 const program = {
   id: programID, tenant_id: "bank-demo", legal_entity_id: "bank-ng", code: "NDPA", name: "Nigeria Data Protection Programme", type: "PRIVACY", status: "ACTIVE", owning_function: "Data Protection Office", owner_principal_id: "role-dpo", authority_principal_id: "role-cro", jurisdiction: "Nigeria", scope: { legal_entity: "Bank Nigeria", business_lines: ["Retail", "Corporate", "Digital"] }, effective_from: "2025-01-01T00:00:00Z", created_at: "2026-07-01T09:00:00Z", updated_at: now, version: 12,
@@ -86,6 +88,20 @@ const evidenceRequest = {
   id: evidenceID, tenant_id: "bank-demo", subject_type: "MATTER", subject_id: matterID, title: "Confirm the remaining annual-return evidence owners", purpose: "Complete the evidence ownership record before the DPCO review.", why_you: "You own the affected privacy operations records.", sensitivity: "INTERNAL", audience_type: "INTERNAL", estimated_minutes: 2, deadline: future, known_facts: { filing_year: "2027", completed_sections: "8 of 10", internal_approval_date: "1 March 2027" }, fields: [{ id: "processor_register_owner", label: "Processor register owner", type: "text", required: true, description: "Name the accountable role or position." }, { id: "dpco_review_date", label: "DPCO review date", type: "text", required: true, description: "Enter the approved review date." }], status: "READY", version: 1, created_at: now, updated_at: now,
 };
 
+let vendorRelationships: VendorRelationshipAggregate[] = [{
+  vendor: {
+    id: "vendor-acme-processing", tenant_id: "bank-demo", legal_name: "Acme Processing Limited", trading_name: "Acme Processing",
+    registration_ref: "RC-10001", jurisdiction: "Nigeria", source_id: "procurement", external_ref: "vendor-10001", status: "ACTIVE",
+    created_at: "2026-07-10T09:00:00Z", updated_at: now, version: 1,
+  },
+  relationship: {
+    id: vendorRelationshipID, tenant_id: "bank-demo", legal_entity_id: "bank-ng", vendor_id: "vendor-acme-processing",
+    service_name: "Card transaction processing", business_owner_principal_id: "role-payments-owner", criticality: "IMPORTANT", privacy_role: "PROCESSOR",
+    status: "PROPOSED", effective_from: "2026-09-01T00:00:00Z", renewal_at: "2027-09-01T00:00:00Z",
+    source_id: "procurement", external_ref: "vendor-10001", created_at: "2026-07-10T09:00:00Z", updated_at: now, version: 1,
+  },
+}];
+
 const todayItems = [
   { id: "today-change", type: "REGULATORY_CHANGE", title: matter.title, why_now: "The source change is approved and two evidence sections still need owners before the internal review.", scope: "Nigeria Data Protection · Regulatory change", state: "Work in progress", evidence: "8 of 10 sections complete", owner: "Data Protection Office", due_at: future, primary_action: "Complete the evidence ownership update", action_target_type: "MATTER", action_target_id: matterID },
   { id: "today-evidence", type: "EVIDENCE_REQUEST", title: evidenceRequest.title, why_now: evidenceRequest.why_you, scope: "Annual privacy return · Evidence", state: "Response required", evidence: "Known facts prefilled", owner: "Privacy Operations", due_at: future, primary_action: "Provide the two missing details", action_target_type: "EVIDENCE_REQUEST", action_target_id: evidenceID },
@@ -154,6 +170,37 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/today") return clone({ items: fixture === "today-empty" ? [] : todayItems, generated_at: now }) as T;
   if (pathname === "/api/v1/compliance/readiness") return clone({ tenant_id: "bank-demo", status: "AT_RISK", baseline_known: false, generated_at: now, dimensions: { current: 0, aging: 1, at_risk: 1, unknown: 1, blocked_routing: 0, pending_human: 1 }, active_drifts: [{ id: "drift-1", subject_type: "PROGRAM", subject_id: programID, dimension: "EVIDENCE", severity: 4, summary: "Two annual-return evidence sections are incomplete.", required_action: "Assign owners and complete DPCO review.", detected_at: now }], recommended_actions: ["Complete the two missing evidence ownership records.", "Confirm the final DPCO review date."] }) as T;
   if (pathname === "/api/v1/program-summaries") return clone({ items: matches(url, programSummary.program.name, programSummary.program.code) ? [programSummary] : [], generated_at: now }) as T;
+  if (pathname === "/api/v1/vendors" && method === "GET") {
+    const query = (url.searchParams.get("search") ?? "").trim().toLowerCase();
+    const items = query ? vendorRelationships.filter((item) => `${item.vendor.legal_name} ${item.vendor.trading_name} ${item.relationship.service_name}`.toLowerCase().includes(query)) : vendorRelationships;
+    return clone({ items, next_cursor: "" }) as T;
+  }
+  if (pathname === "/api/v1/vendors" && method === "POST") {
+    const input = parseBody(init) as Record<string, string>;
+    const created: VendorRelationshipAggregate = {
+      vendor: { id: "vendor-static-new", tenant_id: "bank-demo", legal_name: input.legal_name ?? "Unnamed vendor", trading_name: input.trading_name ?? "", registration_ref: input.registration_ref ?? "", jurisdiction: input.jurisdiction ?? "", source_id: input.source_id ?? "", external_ref: input.external_ref ?? "", status: "ACTIVE", created_at: now, updated_at: now, version: 1 },
+      relationship: { id: "vendor-relationship-static-new", tenant_id: "bank-demo", legal_entity_id: "bank-ng", vendor_id: "vendor-static-new", service_name: input.service_name ?? "Service not recorded", business_owner_principal_id: "role-cro", criticality: (input.criticality ?? "STANDARD") as VendorCriticality, privacy_role: (input.privacy_role ?? "NONE") as VendorPrivacyRole, status: "PROPOSED", effective_from: input.effective_from, renewal_at: input.renewal_at, source_id: input.source_id ?? "", external_ref: input.external_ref ?? "", created_at: now, updated_at: now, version: 1 },
+    };
+    vendorRelationships = [created, ...vendorRelationships];
+    return clone(created) as T;
+  }
+  if (pathname.startsWith("/api/v1/vendors/") && method === "GET") {
+    const id = decodeURIComponent(pathname.slice("/api/v1/vendors/".length));
+    const found = vendorRelationships.find((item) => item.relationship.id === id);
+    if (!found) throw new StaticDemoHTTPError(404, "vendor_not_found", "The vendor relationship is not available in this legal entity.");
+    return clone(found) as T;
+  }
+  if (pathname.startsWith("/api/v1/vendors/") && method === "POST") {
+    const id = decodeURIComponent(pathname.slice("/api/v1/vendors/".length));
+    const index = vendorRelationships.findIndex((item) => item.relationship.id === id);
+    if (index < 0) throw new StaticDemoHTTPError(404, "vendor_not_found", "The vendor relationship is not available in this legal entity.");
+    const input = parseBody(init) as Record<string, string | number>;
+    const current = vendorRelationships[index]!;
+    if (input.expected_version !== current.relationship.version) throw new StaticDemoHTTPError(409, "vendor_version_conflict", "The vendor relationship changed while it was being edited.");
+    const updated: VendorRelationshipAggregate = { vendor: { ...current.vendor, legal_name: String(input.legal_name ?? current.vendor.legal_name), trading_name: String(input.trading_name ?? ""), registration_ref: String(input.registration_ref ?? ""), jurisdiction: String(input.jurisdiction ?? ""), updated_at: now, version: current.vendor.version + 1 }, relationship: { ...current.relationship, service_name: String(input.service_name ?? current.relationship.service_name), criticality: String(input.criticality ?? current.relationship.criticality) as VendorCriticality, privacy_role: String(input.privacy_role ?? current.relationship.privacy_role) as VendorPrivacyRole, effective_from: input.effective_from ? String(input.effective_from) : undefined, renewal_at: input.renewal_at ? String(input.renewal_at) : undefined, updated_at: now, version: current.relationship.version + 1 } };
+    vendorRelationships = vendorRelationships.map((item, itemIndex) => itemIndex === index ? updated : item);
+    return clone(updated) as T;
+  }
   if (pathname === `/api/v1/programs/${programID}`) return clone(programDetail) as T;
   if (pathname === `/api/v1/programs/${programID}/transition` && method === "POST") {
     const input = parseBody(init) as { expected_version?: number; to?: string; rationale?: string };

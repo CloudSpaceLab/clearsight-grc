@@ -136,6 +136,23 @@ ClearSight implication:
 - link the same vendor and evidence to multiple bank services without duplicate upload;
 - verify remediation rather than accepting a commitment comment.
 
+### Implementation cross-check — 2026-08-25
+
+The repository now includes the first third-party foundation, but not the complete lifecycle. `internal/thirdparty` and migration `000035_third_party_foundation` own vendor organizations, legal-entity service relationships, exact source-identity reuse, scoped reads and optimistic maintenance. The product exposes this through a dedicated Vendors sidebar workspace. Existing reusable capability still owns request-scoped vendor evidence capture, Program requirements and evidence expectations, `VENDOR_DEFICIENCY` Matters, governed Decisions and Actions, independent outcome checks, connected Source bindings and on-demand Monitoring Checks.
+
+Implementation must not add a second source registry, questionnaire/form engine, artifact store, workflow/task system, authority model, findings register, scheduler, notification framework, report engine or spreadsheet parser. The missing domain boundary is narrower:
+
+- canonical vendor identity plus bank-to-vendor service relationship and contract context;
+- structured assessment facts and conclusions linked to existing form/evidence records;
+- typed document/certificate metadata referencing existing artifacts;
+- one bounded onboarding or reassessment Matter per review episode, with deficiencies remaining linked `VENDOR_DEFICIENCY` Matters;
+- versioned third-party policy that determines required decision types while current authority routing determines the actors;
+- a fail-closed activation/continuation command over current decisions, conditions, blocking deficiencies and evidence validity;
+- relationship change, reassessment, restriction and verified exit operations;
+- bounded vendor-register and work projections over canonical state.
+
+Issue #80 owns this third-party domain boundary. Recurring source evaluation and certificate conditions belong to the shared connected-assurance path tracked by issue #57. Spreadsheet migration belongs to the shared import/reconciliation path. General Program/Matter record maintenance belongs to the approved 2026-08-25 operational-completeness plans. The third-party implementation should consume those capabilities and add only vendor-specific state and invariants.
+
 ## 2.7 Branch KRIs are very large recurring questionnaires
 
 The branch-KRI pattern asks many monthly questions covering cash operations, physical security, equipment, fire safety, power, environmental conditions, customer data, incidents and workplace safety.

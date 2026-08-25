@@ -1,0 +1,223 @@
+import { useEffect, useMemo, useState } from "react";
+import { apiErrorKind } from "../http";
+import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
+import type { CreateVendorRelationshipInput, VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "../vendorTypes";
+
+type Props = {
+  organizationName: string;
+  legalEntityName: string;
+  targetID?: string;
+  onTarget?: (id?: string) => void;
+};
+
+type FormValues = {
+  legalName: string;
+  tradingName: string;
+  registrationRef: string;
+  jurisdiction: string;
+  serviceName: string;
+  criticality: VendorCriticality;
+  privacyRole: VendorPrivacyRole;
+  sourceID: string;
+  externalRef: string;
+  effectiveFrom: string;
+  renewalAt: string;
+};
+
+const emptyForm: FormValues = {
+  legalName: "", tradingName: "", registrationRef: "", jurisdiction: "", serviceName: "",
+  criticality: "STANDARD", privacyRole: "NONE", sourceID: "", externalRef: "", effectiveFrom: "", renewalAt: "",
+};
+
+export function VendorsWorkspace({ organizationName, legalEntityName, targetID, onTarget }: Props) {
+  const [records, setRecords] = useState<VendorRelationshipAggregate[]>([]);
+  const [selected, setSelected] = useState<VendorRelationshipAggregate | null>(null);
+  const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
+  const [mode, setMode] = useState<"browse" | "create" | "edit">("browse");
+  const [query, setQuery] = useState("");
+  const [form, setForm] = useState<FormValues>(emptyForm);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [notice, setNotice] = useState("");
+  const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { void refresh(targetID); }, [targetID]);
+
+  async function refresh(requestedID?: string) {
+    setState("loading");
+    try {
+      const page = await loadVendorRelationships({ limit: 50 });
+      let next = page.items ?? [];
+      let exact = requestedID ? next.find((item) => item.relationship.id === requestedID) : undefined;
+      if (requestedID && !exact) {
+        exact = await loadVendorRelationship(requestedID);
+        next = [exact, ...next];
+      }
+      setRecords(next);
+      setSelected(exact ?? null);
+      setState("live");
+    } catch {
+      setRecords([]);
+      setSelected(null);
+      setState("unavailable");
+    }
+  }
+
+  const visibleRecords = useMemo(() => {
+    const normalized = query.trim().toLocaleLowerCase();
+    if (!normalized) return records;
+    return records.filter(({ vendor, relationship }) => `${vendor.legal_name} ${vendor.trading_name ?? ""} ${relationship.service_name}`.toLocaleLowerCase().includes(normalized));
+  }, [query, records]);
+
+  function choose(record: VendorRelationshipAggregate) {
+    setSelected(record); setMode("browse"); setNotice(""); setFormError(""); onTarget?.(record.relationship.id);
+  }
+
+  function startCreate() {
+    setMode("create"); setForm(emptyForm); setSelected(null); setFieldErrors({}); setFormError(""); setNotice(""); onTarget?.();
+  }
+
+  function startEdit() {
+    if (!selected) return;
+    const { vendor, relationship } = selected;
+    setForm({
+      legalName: vendor.legal_name, tradingName: vendor.trading_name ?? "", registrationRef: vendor.registration_ref ?? "", jurisdiction: vendor.jurisdiction ?? "",
+      serviceName: relationship.service_name, criticality: relationship.criticality, privacyRole: relationship.privacy_role,
+      sourceID: vendor.source_id ?? "", externalRef: vendor.external_ref ?? "", effectiveFrom: dateInput(relationship.effective_from), renewalAt: dateInput(relationship.renewal_at),
+    });
+    setMode("edit"); setFieldErrors({}); setFormError(""); setNotice("");
+  }
+
+  function cancelForm() {
+    setMode("browse"); setFieldErrors({}); setFormError("");
+  }
+
+  function setValue<K extends keyof FormValues>(key: K, value: FormValues[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => ({ ...current, [key]: "" }));
+  }
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    const errors: Record<string, string> = {};
+    if (mode === "create" && !form.legalName.trim()) errors.legalName = "Enter the vendor's legal name.";
+    if (!form.serviceName.trim()) errors.serviceName = "Enter the service supplied to this legal entity.";
+    if ((form.sourceID.trim() && !form.externalRef.trim()) || (!form.sourceID.trim() && form.externalRef.trim())) errors.sourceID = "Enter both source system and source reference, or leave both blank.";
+    if (form.effectiveFrom && form.renewalAt && form.renewalAt < form.effectiveFrom) errors.renewalAt = "Renewal date cannot be before the effective date.";
+    setFieldErrors(errors);
+    if (Object.values(errors).some(Boolean)) return;
+
+    const relationshipInput = {
+      service_name: form.serviceName.trim(), criticality: form.criticality, privacy_role: form.privacyRole,
+      effective_from: apiDate(form.effectiveFrom), renewal_at: apiDate(form.renewalAt),
+    };
+    setSaving(true); setFormError(""); setNotice("");
+    try {
+      let saved: VendorRelationshipAggregate;
+      if (mode === "edit" && selected) {
+        saved = await updateVendorRelationship(selected.relationship.id, { ...relationshipInput, expected_version: selected.relationship.version });
+        setNotice("Vendor relationship updated.");
+      } else {
+        const input: CreateVendorRelationshipInput = {
+          ...relationshipInput, legal_name: form.legalName.trim(), trading_name: optional(form.tradingName),
+          registration_ref: optional(form.registrationRef), jurisdiction: optional(form.jurisdiction),
+          source_id: optional(form.sourceID), external_ref: optional(form.externalRef),
+        };
+        saved = await createVendorRelationship(input);
+        setNotice("Vendor relationship added.");
+      }
+      setRecords((current) => [saved, ...current.filter((item) => item.relationship.id !== saved.relationship.id)]);
+      setSelected(saved); setMode("browse"); onTarget?.(saved.relationship.id);
+    } catch (error) {
+      const kind = apiErrorKind(error);
+      if (kind === "conflict") setFormError("This record changed. Your entries are still here; reload the record before saving again.");
+      else if (kind === "validation") setFormError("Check the required vendor and service fields. Your entries are still here.");
+      else if (kind === "forbidden" || kind === "unauthorized") setFormError("Your current role cannot make this vendor change. Your entries are still here.");
+      else setFormError("The vendor change could not be saved. Your entries are still here; try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const workspaceClass = `vendors-workspace${mode !== "browse" ? " is-form" : selected ? " has-selection" : ""}`;
+  return <div className={workspaceClass}>
+    <header className="topbar vendors-topbar">
+      <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Vendors</h1><p>Manage the organizations and services supplied to {legalEntityName}. Assessment, approval and findings stay in their governed workflows.</p></div>
+      {mode !== "create" && <button type="button" className="primary-button" onClick={startCreate}>Add vendor</button>}
+    </header>
+
+    {notice && <p className="vendor-notice" role="status">{notice}</p>}
+    {state === "loading" && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships for {legalEntityName}…</div>}
+    {state === "unavailable" && <section className="vendor-state" role="alert"><h2>Vendor records are unavailable</h2><p>The vendor register for {legalEntityName} could not be loaded. Try again before adding or changing a record.</p><button className="secondary-button" type="button" onClick={() => void refresh(targetID)}>Try again</button></section>}
+    {state === "live" && <div className="vendor-layout">
+      <section className="vendor-register" aria-label={`Vendor relationships for ${legalEntityName}`}>
+        <div className="vendor-register-header"><div><h2>Vendor register</h2><p>{records.length} {records.length === 1 ? "relationship" : "relationships"} in the current legal entity</p></div></div>
+        <label className="vendor-search"><span>Search vendors and services</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search legal name or service"/></label>
+        {visibleRecords.length > 0 ? <div className="vendor-list">{visibleRecords.map((record) => <button type="button" key={record.relationship.id} aria-label={record.vendor.legal_name} aria-current={selected?.relationship.id === record.relationship.id ? "true" : undefined} className={selected?.relationship.id === record.relationship.id ? "vendor-row selected" : "vendor-row"} onClick={() => choose(record)}>
+          <span className="vendor-row-icon" aria-hidden="true">V</span><span className="vendor-row-main"><strong>{record.vendor.legal_name}</strong><span>Service: {record.relationship.service_name}</span></span><span className={`vendor-criticality criticality-${record.relationship.criticality.toLowerCase()}`}>{humanize(record.relationship.criticality)}</span>
+        </button>)}</div> : records.length === 0 ? <div className="vendor-empty"><h3>No vendor relationships found for {legalEntityName}.</h3><p>Add the first vendor and the service it supplies. Use <strong>Add vendor</strong> above; the signed-in actor becomes the initial accountable owner.</p></div> : <div className="vendor-empty"><h3>No vendors match this search.</h3><p>The current register contains {records.length} relationships. Clear the search to review them.</p><button type="button" className="secondary-button" onClick={() => setQuery("")}>Clear search</button></div>}
+      </section>
+
+      <section className="vendor-focus" aria-label="Selected vendor relationship">
+        {(mode === "create" || mode === "edit") ? <VendorForm mode={mode} form={form} errors={fieldErrors} formError={formError} saving={saving} onChange={setValue} onCancel={cancelForm} onSubmit={submit}/> : selected ? <VendorDetail record={selected} onBack={() => { setSelected(null); onTarget?.(); }} onEdit={startEdit}/> : records.length > 0 ? <div className="vendor-selection"><h2>Select a vendor</h2><p>Choose a relationship to review its service, accountable owner, source and current record version.</p></div> : null}
+      </section>
+    </div>}
+  </div>;
+}
+
+function VendorDetail({ record, onBack, onEdit }: { record: VendorRelationshipAggregate; onBack: () => void; onEdit: () => void }) {
+  const { vendor, relationship } = record;
+  return <article className="vendor-detail">
+    <button type="button" className="text-button vendor-mobile-back" onClick={onBack}>← Back to vendor register</button>
+    <div className="vendor-detail-heading"><div><span className="eyebrow">{humanize(relationship.status)} relationship</span><h2>{vendor.legal_name}</h2><p>{vendor.trading_name ? `Trading as ${vendor.trading_name}` : "No trading name recorded"}</p></div><button type="button" className="secondary-button" onClick={onEdit}>Edit vendor relationship</button></div>
+    <div className="vendor-service-callout"><span>Service supplied</span><strong>{relationship.service_name}</strong><small>{humanize(relationship.criticality)} criticality · {privacyLabel(relationship.privacy_role)}</small></div>
+    <dl className="vendor-facts">
+      <Fact label="Accountable owner" value={relationship.business_owner_principal_id}/><Fact label="Jurisdiction" value={vendor.jurisdiction || "Not recorded"}/>
+      <Fact label="Registration reference" value={vendor.registration_ref || "Not recorded"}/><Fact label="Effective date" value={formatDate(relationship.effective_from)}/>
+      <Fact label="Renewal date" value={formatDate(relationship.renewal_at)}/><Fact label="Source" value={vendor.source_id && vendor.external_ref ? `${vendor.source_id} · ${vendor.external_ref}` : "Entered directly"}/>
+      <Fact label="Record updated" value={formatDateTime(relationship.updated_at)}/><Fact label="Current record" value={`Version ${relationship.version}`}/>
+    </dl>
+    <div className="vendor-boundary-note"><strong>What this record confirms</strong><p>This record identifies the vendor, supplied service and accountable owner. It does not by itself confirm assessment, approval, activation or compliance.</p></div>
+  </article>;
+}
+
+function Fact({ label, value }: { label: string; value: string }) { return <div><dt>{label}</dt><dd>{value}</dd></div>; }
+
+function VendorForm({ mode, form, errors, formError, saving, onChange, onCancel, onSubmit }: { mode: "create" | "edit"; form: FormValues; errors: Record<string, string>; formError: string; saving: boolean; onChange: <K extends keyof FormValues>(key: K, value: FormValues[K]) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
+  return <form className="vendor-form" onSubmit={onSubmit} noValidate>
+    <div><span className="eyebrow">{mode === "create" ? "New relationship" : "Current relationship"}</span><h2>{mode === "create" ? "Add a vendor and service" : "Edit vendor relationship"}</h2><p>{mode === "create" ? "Record the organization and the service it supplies. Your verified identity will be recorded as the initial accountable owner." : "Update the supplied service, criticality, privacy role or dates using the current relationship version."}</p></div>
+    {formError && <div className="vendor-form-error" role="alert">{formError}</div>}
+    <div className="vendor-form-grid">
+      {mode === "create" ? <>
+        <Field label="Legal name" required error={errors.legalName}><input id="vendor-legal-name" value={form.legalName} onChange={(event) => onChange("legalName", event.target.value)} aria-invalid={Boolean(errors.legalName)}/></Field>
+        <Field label="Trading name"><input id="vendor-trading-name" value={form.tradingName} onChange={(event) => onChange("tradingName", event.target.value)}/></Field>
+        <Field label="Registration reference"><input id="vendor-registration" value={form.registrationRef} onChange={(event) => onChange("registrationRef", event.target.value)}/></Field>
+        <Field label="Jurisdiction"><input id="vendor-jurisdiction" value={form.jurisdiction} onChange={(event) => onChange("jurisdiction", event.target.value)} placeholder="For example, Nigeria"/></Field>
+      </> : <div className="vendor-identity-note">
+        <span>Vendor legal details</span><strong>{form.legalName}</strong>
+        <small>{[form.registrationRef, form.jurisdiction].filter(Boolean).join(" · ") || "No registration or jurisdiction recorded"}</small>
+        <p>These details are shared across the bank and cannot be changed from this service relationship.</p>
+      </div>}
+      <Field label="Service supplied" required error={errors.serviceName} wide><input id="vendor-service" value={form.serviceName} onChange={(event) => onChange("serviceName", event.target.value)} aria-invalid={Boolean(errors.serviceName)}/></Field>
+      <Field label="Criticality" required><select id="vendor-criticality" value={form.criticality} onChange={(event) => onChange("criticality", event.target.value as VendorCriticality)}><option value="STANDARD">Standard</option><option value="IMPORTANT">Important</option><option value="CRITICAL">Critical</option></select></Field>
+      <Field label="Privacy role" required><select id="vendor-privacy-role" value={form.privacyRole} onChange={(event) => onChange("privacyRole", event.target.value as VendorPrivacyRole)}><option value="NONE">No processing role</option><option value="PROCESSOR">Processor</option><option value="JOINT_CONTROLLER">Joint controller</option></select></Field>
+      {mode === "create" && <><Field label="Source system" error={errors.sourceID}><input id="vendor-source" value={form.sourceID} onChange={(event) => onChange("sourceID", event.target.value)} placeholder="For example, procurement"/></Field><Field label="Source reference"><input id="vendor-external-ref" value={form.externalRef} onChange={(event) => onChange("externalRef", event.target.value)}/></Field></>}
+      <Field label="Effective date"><input id="vendor-effective" type="date" value={form.effectiveFrom} onChange={(event) => onChange("effectiveFrom", event.target.value)}/></Field>
+      <Field label="Renewal date" error={errors.renewalAt}><input id="vendor-renewal" type="date" value={form.renewalAt} onChange={(event) => onChange("renewalAt", event.target.value)} aria-invalid={Boolean(errors.renewalAt)}/></Field>
+    </div>
+    <div className="vendor-form-actions"><button type="button" className="secondary-button" onClick={onCancel} disabled={saving}>Cancel</button><button type="submit" className="primary-button" disabled={saving}>{saving ? "Saving…" : mode === "create" ? "Add vendor relationship" : "Save vendor relationship"}</button></div>
+  </form>;
+}
+
+function Field({ label, required, error, wide, children }: { label: string; required?: boolean; error?: string; wide?: boolean; children: React.ReactElement<{ id?: string }> }) {
+  const id = children.props.id;
+  return <label className={wide ? "vendor-field wide" : "vendor-field"} htmlFor={id}><span className={required ? "required" : undefined}>{label}</span>{children}{error && <small role="alert">{error}</small>}</label>;
+}
+
+function optional(value: string) { return value.trim() || undefined; }
+function apiDate(value: string) { return value ? `${value}T00:00:00Z` : undefined; }
+function dateInput(value?: string) { return value?.slice(0, 10) ?? ""; }
+function humanize(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); }
+function privacyLabel(value: VendorPrivacyRole) { return value === "NONE" ? "No processing role" : humanize(value); }
+function formatDate(value?: string) { if (!value) return "Not recorded"; const parsed = Date.parse(value); return Number.isFinite(parsed) ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(parsed)) : "Not recorded"; }
+function formatDateTime(value: string) { const parsed = Date.parse(value); return Number.isFinite(parsed) ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(parsed)) : "Update time unavailable"; }

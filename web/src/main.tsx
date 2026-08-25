@@ -23,6 +23,7 @@ import "./operating-mutations.css";
 import "./demo-login.css";
 import "./defect-review-fixes.css";
 import "./monitoring.css";
+import "./vendors.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Application root is missing");

@@ -22,6 +22,7 @@ import { DocumentImportWorkspace } from "./components/DocumentImportWorkspace";
 import { FocusedSheet } from "./components/FocusedSheet";
 import { NavigationIcon } from "./components/NavigationIcon";
 import { RoleAwareOnboarding } from "./components/RoleAwareOnboarding";
+import { VendorsWorkspace } from "./components/VendorsWorkspace";
 import type { CaptureLoadState } from "./components/CapturePanel";
 import { apiErrorKind } from "./http";
 import { parseRoute, routeHash } from "./appRouting";
@@ -206,7 +207,7 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
   const actorName = runtime?.actor.name || runtime?.actor.id || "User unavailable";
   const roleName = humanRole(runtime?.actor.role_codes?.[0]) || "Role not provided";
   const navigation: Array<{ label: string; view: View }> = [
-    { label: "Today", view: "today" }, { label: "Programs", view: "programs" }, { label: "Work", view: "work" },
+    { label: "Today", view: "today" }, { label: "Programs", view: "programs" }, { label: "Vendors", view: "vendors" }, { label: "Work", view: "work" },
     ...(importsEnabled ? [{ label: "Imports", view: "imports" as View }] : []),
     ...(demoMode ? [{ label: "Explore", view: "explore" as View }] : []),
     ...(configureEnabled ? [{ label: "Configure", view: "configure" as View }] : []),
@@ -288,6 +289,7 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
       <RoleAwareOnboarding runtime={runtime} onStep={executeGuideStep}/>
       {activeView === "today" && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>} 
       {activeView === "programs" && <ProgramsView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} openFirst={target.openFirstProgram}/>}
+      {activeView === "vendors" && <VendorsWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.vendorRelationshipID} onTarget={(id) => navigate("vendors", id ? { vendorRelationshipID: id } : {})}/>}
       {activeView === "work" && <WorkView organizationName={organizationName} tab={workTab} onTab={(tab) => navigate("work", {}, tab)} sources={sources} requests={evidenceRequests} evidenceSourceState={evidenceSourceState === "idle" ? "loading" : evidenceSourceState} evidenceRequestState={evidenceRequestState === "idle" ? "loading" : evidenceRequestState} onEvidenceRetry={() => void loadEvidenceWorkspace(target.evidenceID)} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)}/>} 
       {activeView === "imports" && importsEnabled && <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Imports</h1><p>Compare regulatory documents with current Programs, controls and evidence.</p></div></header><DocumentImportWorkspace/></>}
       {activeView === "explore" && demoMode && <ExploreView organizationName={organizationName}/>} 

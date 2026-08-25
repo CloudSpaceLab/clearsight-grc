@@ -63,6 +63,15 @@
     "/api/v1/programs/{id}/evidence-assessments": { "post": { "operationId": "recordProgramEvidenceAssessment", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/programs/{id}/triggers": { "post": { "operationId": "applyProgramTrigger", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
 
+    "/api/v1/vendors": {
+      "get": { "operationId": "listVendorRelationships", "x-clearsight-route-class": "AUTHENTICATED_READ" },
+      "post": { "operationId": "createVendorRelationship", "x-clearsight-route-class": "MATERIAL_COMMAND" }
+    },
+    "/api/v1/vendors/{id}": {
+      "get": { "operationId": "getVendorRelationship", "x-clearsight-route-class": "AUTHENTICATED_READ" },
+      "post": { "operationId": "updateVendorRelationship", "x-clearsight-route-class": "MATERIAL_COMMAND" }
+    },
+
     "/api/v1/form-templates": {
       "get": { "operationId": "listFormTemplates", "x-clearsight-route-class": "AUTHENTICATED_READ" },
       "post": { "operationId": "createFormTemplate", "x-clearsight-route-class": "AUTHENTICATED_WRITE" }

@@ -227,5 +227,6 @@ func DemoPolicySet() (string, []Rule) {
 		{ID: "route-control-assurance", TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "*", Responsibility: ResponsibilityReviewer, Principal: Principal{ID: "team-control-assurance", DisplayName: "Control Assurance", Kind: "TEAM", Role: "Second-line reviewer"}, ResolutionStrategy: "CANDIDATE_SET", Priority: 80},
 		{ID: "route-cro-material", TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "*", Responsibility: ResponsibilityAuthorizer, MinMateriality: 4, Principal: Principal{ID: "role-cro", DisplayName: "Chief Risk Officer", Kind: "ROLE", Role: "CRO"}, Priority: 70},
 		{ID: "route-risk-owner", TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "MATTER", ObjectID: "*", Responsibility: ResponsibilityOwner, Principal: Principal{ID: "queue-risk-owners", DisplayName: "Scoped Risk Owners", Kind: "QUEUE", Role: "Accountable owner queue"}, ResolutionStrategy: "CANDIDATE_SET", Priority: 50},
+		{ID: "route-vendor-owner", TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "VENDOR_RELATIONSHIP", ObjectID: "*", Responsibility: ResponsibilityOwner, Principal: Principal{ID: "role-cro", DisplayName: "Chief Risk Officer", Kind: "ROLE", Role: "CRO"}, Priority: 50},
 	}
 }

@@ -99,6 +99,11 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/programs/{id}/evidence-assessments", "program.evidence.assess", a.recordProgramEvidenceAssessment, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: "assessed_by"}),
 		materialService("/api/v1/programs/{id}/triggers", "program.trigger.ingest", a.applyProgramTrigger, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityPerformer, Materiality: 2}),
 
+		read("/api/v1/vendors", a.listVendorRelationships),
+		material("/api/v1/vendors", "thirdparty.relationship.create", a.createVendorRelationship, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3, BindLegalEntity: true}),
+		read("/api/v1/vendors/{id}", a.getVendorRelationship),
+		material("/api/v1/vendors/{id}", "thirdparty.relationship.update", a.updateVendorRelationship, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
+
 		read("/api/v1/form-templates", a.listFormTemplates),
 		write(http.MethodPost, "/api/v1/form-templates", a.createFormTemplate, nil),
 		write(http.MethodPost, "/api/v1/form-templates/{id}/transition", a.transitionFormTemplate, nil),

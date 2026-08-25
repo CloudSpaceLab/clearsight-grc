@@ -26,6 +26,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/scimapi"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceevent"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 	"github.com/alexedwards/scs/pgxstore"
@@ -58,6 +59,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	evidenceService.ConfigureSourceBindings(sourceCatalog)
 	monitoringService := monitoring.NewService(monitoring.NewPostgresRepository(pool), evidenceService)
 	monitoringService.ConfigureSourceReader(sourceCatalog)
+	thirdPartyService := thirdparty.NewService(thirdparty.NewPostgresRepository(pool))
 	continuityRepo := continuity.NewReliablePostgresRepository(pool)
 	continuityService := continuity.NewService(continuityRepo)
 	coverageService := documentcoverage.NewService(documentcoverage.NewPostgresRepository(pool), documentService, continuityService)
@@ -101,7 +103,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	logger.Info("postgres repositories enabled", "max_connections", cfg.DatabaseMaxConns, "artifact_root", cfg.ArtifactRoot, "demo_mode", cfg.DemoMode)
 	return serviceSet{
 		Mode: "postgres", Authority: authority.NewEffectivePostgresService(pool), Governance: governance.NewService(governance.NewPostgresRepository(pool)),
-		Evidence: evidenceService, Monitoring: monitoringService, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
+		Evidence: evidenceService, Monitoring: monitoringService, ThirdParty: thirdPartyService, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
 		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo),
 		Access: access.NewPostgresResolver(pool), AccessAdmin: access.NewPostgresAdministrator(pool), SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
