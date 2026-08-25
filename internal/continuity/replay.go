@@ -21,6 +21,8 @@ const (
 	EventMatterCreated               = "MATTER_CREATED"
 	EventMatterLinked                = "MATTER_LINKED"
 	EventMatterStateChanged          = "MATTER_STATE_CHANGED"
+	EventMatterDetailsUpdated        = "MATTER_DETAILS_UPDATED"
+	EventMatterContextChanged        = "MATTER_CONTEXT_CHANGED"
 	EventDecisionAdded               = "DECISION_ADDED"
 	EventActionAdded                 = "ACTION_ADDED"
 	EventActionStateChanged          = "ACTION_STATE_CHANGED"
@@ -147,6 +149,18 @@ func reconstructMatter(events []Event) (MatterAggregate, error) {
 				return MatterAggregate{}, err
 			}
 			aggregate.Matter = value
+		case EventMatterDetailsUpdated:
+			var value matterDetailsUpdatedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterAggregate{}, err
+			}
+			aggregate.Matter = value.Matter
+		case EventMatterContextChanged:
+			var value matterContextChangedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterAggregate{}, err
+			}
+			aggregate.Matter = value.Matter
 		case EventDecisionAdded:
 			var value Decision
 			if err := json.Unmarshal(event.Payload, &value); err != nil {

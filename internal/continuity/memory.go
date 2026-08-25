@@ -384,6 +384,18 @@ func applyMatterEventToAggregate(aggregate *MatterAggregate, event Event) error 
 			return err
 		}
 		aggregate.Matter = value
+	case EventMatterDetailsUpdated:
+		var value matterDetailsUpdatedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Matter = value.Matter
+	case EventMatterContextChanged:
+		var value matterContextChangedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Matter = value.Matter
 	case EventDecisionAdded:
 		var value Decision
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
