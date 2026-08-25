@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
 
 func TestWrongRecipientRemovesWorkUntilRequesterReassigns(t *testing.T) {
@@ -42,7 +44,7 @@ func TestWrongRecipientRemovesWorkUntilRequesterReassigns(t *testing.T) {
 	}
 	_, err = service.Submit(ctx, Submission{
 		TenantID: "bank", RequestID: request.ID, SubmittedBy: "actor-a", Channel: "INTERNAL",
-		Answers: map[string]string{"owner": "Operations"}, ExpectedVersion: wrong.Version,
+		Answers: formcontract.TextAnswers(map[string]string{"owner": "Operations"}), ExpectedVersion: wrong.Version,
 	})
 	if !errors.Is(err, ErrRecipientMismatch) {
 		t.Fatalf("wrong recipient retained submission authority: %v", err)

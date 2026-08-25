@@ -8,65 +8,32 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
-func EvaluateForm(fields []FormField, answers map[string]string, thresholds Thresholds) (Evaluation, error) {
+func EvaluateForm(fields []FormField, answers map[string]formcontract.AnswerValue, thresholds Thresholds) (Evaluation, error) {
 	if err := validateThresholds(thresholds); err != nil {
 		return Evaluation{}, err
 	}
-	var weightedPoints, totalWeight, requiredScored, answeredRequired int
-	result := Evaluation{Band: RiskNotAssessed, RuleResults: make([]RuleResult, 0, len(fields))}
-	for _, field := range fields {
-		if len(field.AnswerScores) == 0 {
-			continue
-		}
-		if strings.TrimSpace(field.ID) == "" || field.Weight < 1 || field.Weight > 100 {
-			return Evaluation{}, fmt.Errorf("scored field id and weight from 1 to 100 are required")
-		}
-		if field.Required {
-			requiredScored++
-		}
-		answer := strings.TrimSpace(answers[field.ID])
-		if answer == "" {
-			result.RuleResults = append(result.RuleResults, RuleResult{FieldID: field.ID, Outcome: RuleIndeterminate, Reason: "Required answer is missing."})
-			continue
-		}
-		points, ok := field.AnswerScores[answer]
-		if !ok {
-			return Evaluation{}, fmt.Errorf("field %s answer is not an allowed scored choice", field.ID)
-		}
-		if points < 0 || points > 100 {
-			return Evaluation{}, fmt.Errorf("field %s answer score must be from 0 to 100", field.ID)
-		}
-		if field.Required {
-			answeredRequired++
-		}
-		critical := contains(field.CriticalAnswers, answer)
-		rule := RuleResult{FieldID: field.ID, Outcome: RulePassed, Points: points, Critical: critical, Reason: "Answer evaluated against the active form rule."}
-		if points > 0 || critical {
-			rule.Outcome = RuleFailed
+	scored, err := formcontract.ScoreAnswers(fields, answers)
+	if err != nil {
+		return Evaluation{}, err
+	}
+	result := Evaluation{Score: scored.Score, Band: RiskNotAssessed, Coverage: scored.Coverage, RuleResults: make([]RuleResult, 0, len(scored.RuleResults))}
+	for _, scoredRule := range scored.RuleResults {
+		rule := RuleResult{FieldID: scoredRule.FieldID, Outcome: RuleOutcome(scoredRule.Outcome), Points: scoredRule.Points, Critical: scoredRule.Critical, Reason: "Answer evaluated against the active form rule."}
+		if scoredRule.Outcome == formcontract.ScoreIndeterminate {
+			rule.Reason = "Required answer is missing."
 		}
 		result.RuleResults = append(result.RuleResults, rule)
-		if critical {
+		if rule.Critical {
 			result.CriticalFailures = append(result.CriticalFailures, rule)
 		}
-		weightedPoints += points * field.Weight
-		totalWeight += field.Weight
 	}
-	if totalWeight == 0 {
-		return Evaluation{}, fmt.Errorf("at least one scored form field is required")
+	if result.Score != nil {
+		result.Band = bandFor(*result.Score, thresholds)
 	}
-	result.Coverage = 1
-	if requiredScored > 0 {
-		result.Coverage = float64(answeredRequired) / float64(requiredScored)
-	}
-	if result.Coverage < 1 {
-		return result, nil
-	}
-	score := roundScore(float64(weightedPoints) / float64(totalWeight))
-	result.Score = &score
-	result.Band = bandFor(score, thresholds)
 	if len(result.CriticalFailures) > 0 {
 		result.Band = RiskCritical
 	}

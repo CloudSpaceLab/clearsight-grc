@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
@@ -14,7 +15,7 @@ func TestEvaluateFormUsesConfiguredWeightsAndThresholds(t *testing.T) {
 		{ID: "session_revocation", Required: true, Weight: 3, AnswerScores: map[string]int{"Yes": 0, "No": 100}},
 	}
 
-	result, err := EvaluateForm(fields, map[string]string{"identity_check": "Yes", "session_revocation": "No"}, DefaultThresholds())
+	result, err := EvaluateForm(fields, formcontract.TextAnswers(map[string]string{"identity_check": "Yes", "session_revocation": "No"}), DefaultThresholds())
 	if err != nil {
 		t.Fatalf("evaluate form: %v", err)
 	}
@@ -32,7 +33,7 @@ func TestEvaluateFormCriticalAnswerOverridesWeightedBand(t *testing.T) {
 		{ID: "logging", Required: true, Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}},
 	}
 
-	result, err := EvaluateForm(fields, map[string]string{"reset_channel": "No", "logging": "Yes"}, DefaultThresholds())
+	result, err := EvaluateForm(fields, formcontract.TextAnswers(map[string]string{"reset_channel": "No", "logging": "Yes"}), DefaultThresholds())
 	if err != nil {
 		t.Fatalf("evaluate form: %v", err)
 	}
@@ -50,7 +51,7 @@ func TestEvaluateFormMissingRequiredAnswerIsNotAssessed(t *testing.T) {
 		{ID: "logging", Required: true, Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}},
 	}
 
-	result, err := EvaluateForm(fields, map[string]string{"identity_check": "Yes"}, DefaultThresholds())
+	result, err := EvaluateForm(fields, formcontract.TextAnswers(map[string]string{"identity_check": "Yes"}), DefaultThresholds())
 	if err != nil {
 		t.Fatalf("evaluate form: %v", err)
 	}
@@ -62,7 +63,7 @@ func TestEvaluateFormMissingRequiredAnswerIsNotAssessed(t *testing.T) {
 func TestEvaluateFormRejectsAnswerOutsideConfiguredChoices(t *testing.T) {
 	_, err := EvaluateForm(
 		[]FormField{{ID: "identity_check", Required: true, Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}}},
-		map[string]string{"identity_check": "Probably"},
+		formcontract.TextAnswers(map[string]string{"identity_check": "Probably"}),
 		DefaultThresholds(),
 	)
 	if err == nil {

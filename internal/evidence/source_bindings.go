@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
@@ -122,7 +123,7 @@ func (s *Service) prepareRequestBindings(ctx context.Context, input CreateReques
 				}
 				if reference.Mode == BindingUsePrefill && resolution.State == SourceResolutionCurrent {
 					value, found := resolvedScalar(resolution)
-					if !found || s.validateAnswers(ctx, Request{TenantID: input.TenantID, Fields: []Field{*field}}, map[string]string{field.ID: value.Text}) != nil {
+					if !found || s.validateAnswers(ctx, Request{TenantID: input.TenantID, Fields: []Field{*field}}, map[string]formcontract.AnswerValue{field.ID: formcontract.TextAnswer(value.Text)}) != nil {
 						resolution.State = SourceResolutionInvalid
 						resolution.FailureCode = "PREFILL_VALUE_INVALID"
 						resolution.Value = nil
@@ -433,14 +434,14 @@ func resolvedScalar(resolution SourceResolution) (sourceaccess.Scalar, bool) {
 	return value, value.Kind != sourceaccess.ScalarNull && strings.TrimSpace(value.Text) != ""
 }
 
-func (s *Service) deriveAnswerProvenance(ctx context.Context, request Request, answers map[string]string) map[string]AnswerProvenance {
+func (s *Service) deriveAnswerProvenance(ctx context.Context, request Request, answers map[string]formcontract.AnswerValue) map[string]AnswerProvenance {
 	result := make(map[string]AnswerProvenance, len(answers))
 	for _, field := range request.Fields {
 		answer, exists := answers[field.ID]
 		if !exists {
 			continue
 		}
-		answer = strings.TrimSpace(answer)
+		answerText, _ := answer.ScalarText()
 		provenance := AnswerProvenance{Origin: AnswerRespondentEntered}
 		sourceDerived := false
 		for _, reference := range field.Bindings {
@@ -461,14 +462,14 @@ func (s *Service) deriveAnswerProvenance(ctx context.Context, request Request, a
 			provenance.SourceValue = &valueCopy
 			provenance.SourceReceipt = cloneOperationReceipt(resolution.Receipt)
 			provenance.Origin = AnswerRespondentCorrected
-			if answer != "" && answer == strings.TrimSpace(sourceValue.Text) {
+			if answerText != "" && answerText == strings.TrimSpace(sourceValue.Text) {
 				provenance.Origin = AnswerSourcePrefilled
 			}
 			sourceDerived = true
 			break
 		}
-		if answer == "" {
-			if sourceDerived {
+		if answerText == "" {
+			if sourceDerived || answer.Answered() {
 				result[field.ID] = provenance
 			}
 			continue
@@ -477,7 +478,7 @@ func (s *Service) deriveAnswerProvenance(ctx context.Context, request Request, a
 			if reference.Mode != BindingUseValidate {
 				continue
 			}
-			provenance.Validations = append(provenance.Validations, s.validateSourceAnswer(ctx, request.TenantID, field, reference, answer))
+			provenance.Validations = append(provenance.Validations, s.validateSourceAnswer(ctx, request.TenantID, field, reference, answerText))
 		}
 		result[field.ID] = provenance
 	}

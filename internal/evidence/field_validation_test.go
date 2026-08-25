@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
 
 const testCaptureRecipient = "capture-recipient"
@@ -58,6 +60,66 @@ func TestCaptureTypedAnswersRejectMalformedAndUnrequestedValues(t *testing.T) {
 				t.Fatalf("expected %q error, got %v", tc.want, err)
 			}
 		})
+	}
+}
+
+func TestValidateAnswersRejectsHiddenAnswerAndIgnoresHiddenRequirement(t *testing.T) {
+	service, _, _ := testCaptureService()
+	request := Request{TenantID: "bank", Sections: []formcontract.Section{{ID: "vendor", Title: "Vendor"}}, Fields: []Field{
+		{ID: "handles_data", SectionID: "vendor", Label: "Handles customer data", Type: "yes_no", Required: true},
+		{ID: "data_location", SectionID: "vendor", Label: "Data location", Type: "short_text", Required: true, Condition: &formcontract.VisibilityCondition{FieldID: "handles_data", Operator: formcontract.ConditionEquals, Values: []string{"Yes"}}},
+	}}
+	if err := service.validateAnswers(context.Background(), request, map[string]formcontract.AnswerValue{"handles_data": formcontract.TextAnswer("No")}); err != nil {
+		t.Fatalf("hidden required field should not be required: %v", err)
+	}
+	err := service.validateAnswers(context.Background(), request, map[string]formcontract.AnswerValue{
+		"handles_data":  formcontract.TextAnswer("No"),
+		"data_location": formcontract.TextAnswer("Lagos"),
+	})
+	if err == nil || !strings.Contains(err.Error(), "not requested for the current answers") {
+		t.Fatalf("unexpected hidden answer error %v", err)
+	}
+}
+
+func TestValidateAnswersEnforcesSmartTypesAndConstraints(t *testing.T) {
+	service, _, _ := testCaptureService()
+	minimum, maximum := 1.0, 100.0
+	minSelections, maxSelections := 1, 2
+	request := Request{TenantID: "bank", Fields: []Field{
+		{ID: "email", Label: "Security contact email", Type: "email", Required: true},
+		{ID: "website", Label: "Website", Type: "url", Required: true},
+		{ID: "employees", Label: "Employees", Type: "integer", Required: true, Constraints: formcontract.Constraints{Minimum: &minimum, Maximum: &maximum}},
+		{ID: "regions", Label: "Service regions", Type: "multi_select", Options: []string{"Nigeria", "Ghana", "Kenya"}, Constraints: formcontract.Constraints{MinSelections: &minSelections, MaxSelections: &maxSelections}},
+		{ID: "confirm", Label: "Confirmation", Type: "attestation", Required: true, Attestation: "I confirm this response is complete."},
+	}}
+	tests := []struct {
+		name    string
+		answers map[string]formcontract.AnswerValue
+		want    string
+	}{
+		{name: "email", answers: typedBaseAnswers("not-an-email", "https://vendor.example", "10", []string{"Nigeria"}, "Yes"), want: "valid email"},
+		{name: "url", answers: typedBaseAnswers("security@vendor.example", "vendor.example", "10", []string{"Nigeria"}, "Yes"), want: "valid URL"},
+		{name: "integer", answers: typedBaseAnswers("security@vendor.example", "https://vendor.example", "10.5", []string{"Nigeria"}, "Yes"), want: "whole number"},
+		{name: "bounds", answers: typedBaseAnswers("security@vendor.example", "https://vendor.example", "101", []string{"Nigeria"}, "Yes"), want: "at most"},
+		{name: "selection count", answers: typedBaseAnswers("security@vendor.example", "https://vendor.example", "10", []string{"Nigeria", "Ghana", "Kenya"}, "Yes"), want: "at most 2"},
+		{name: "attestation", answers: typedBaseAnswers("security@vendor.example", "https://vendor.example", "10", []string{"Nigeria"}, "No"), want: "must be confirmed"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if err := service.validateAnswers(context.Background(), request, test.answers); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("expected %q, got %v", test.want, err)
+			}
+		})
+	}
+}
+
+func typedBaseAnswers(email, website, employees string, regions []string, attestation string) map[string]formcontract.AnswerValue {
+	return map[string]formcontract.AnswerValue{
+		"email":     formcontract.TextAnswer(email),
+		"website":   formcontract.TextAnswer(website),
+		"employees": formcontract.TextAnswer(employees),
+		"regions":   {Values: regions},
+		"confirm":   formcontract.TextAnswer(attestation),
 	}
 }
 
@@ -187,6 +249,6 @@ func testRequestInput(now time.Time, fields []Field) CreateRequestInput {
 func testSubmission(request Request, answers map[string]string) Submission {
 	return Submission{
 		TenantID: request.TenantID, RequestID: request.ID, SubmittedBy: testCaptureRecipient,
-		Channel: "INTERNAL", ExpectedVersion: request.Version, Answers: answers,
+		Channel: "INTERNAL", ExpectedVersion: request.Version, Answers: formcontract.TextAnswers(answers),
 	}
 }

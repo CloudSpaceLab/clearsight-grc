@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
@@ -21,7 +22,7 @@ func TestAnswerProvenanceRecordsExplicitlyClearedPrefill(t *testing.T) {
 		}},
 	}}}
 	service := NewService(NewMemoryRepository(nil, nil), NewMemoryObjectStore())
-	provenance := service.deriveAnswerProvenance(context.Background(), request, map[string]string{"branch": ""})
+	provenance := service.deriveAnswerProvenance(context.Background(), request, formcontract.TextAnswers(map[string]string{"branch": ""}))
 	cleared, ok := provenance["branch"]
 	if !ok || cleared.Origin != AnswerRespondentCorrected || cleared.SourceValue == nil || cleared.SourceValue.Text != "Enugu Main" || cleared.SourceReceipt == nil {
 		t.Fatalf("cleared prefill provenance = %#v", cleared)
@@ -59,7 +60,7 @@ func TestSourceValidationUsesFieldScalarKind(t *testing.T) {
 		{ID: "amount", Type: "number", Bindings: []FieldBindingReference{{BindingID: "amount", BindingVersion: 3, Mode: BindingUseValidate, ValueField: "amount"}}},
 		{ID: "effective_on", Type: "date", Bindings: []FieldBindingReference{{BindingID: "date", BindingVersion: 3, Mode: BindingUseValidate, ValueField: "effective_on"}}},
 	}}
-	provenance := service.deriveAnswerProvenance(context.Background(), request, map[string]string{"amount": "42.50", "effective_on": "2026-08-15"})
+	provenance := service.deriveAnswerProvenance(context.Background(), request, formcontract.TextAnswers(map[string]string{"amount": "42.50", "effective_on": "2026-08-15"}))
 	if seen["amount"] != sourceaccess.ScalarNumber || seen["date"] != sourceaccess.ScalarTime {
 		t.Fatalf("validation scalar kinds = %#v", seen)
 	}

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
 
 func TestInternalRecipientOwnsQueueAndAuthenticatedSubmission(t *testing.T) {
@@ -42,12 +44,12 @@ func TestInternalRecipientOwnsQueueAndAuthenticatedSubmission(t *testing.T) {
 		t.Fatalf("readable request leaked into another actor queue: %#v err=%v", other, err)
 	}
 
-	_, err = service.Submit(ctx, Submission{TenantID: "bank", RequestID: request.ID, SubmittedBy: "actor-b", Channel: "MAGIC_LINK", Answers: map[string]string{"owner": "Operations"}, ExpectedVersion: 1})
+	_, err = service.Submit(ctx, Submission{TenantID: "bank", RequestID: request.ID, SubmittedBy: "actor-b", Channel: "MAGIC_LINK", Answers: formcontract.TextAnswers(map[string]string{"owner": "Operations"}), ExpectedVersion: 1})
 	if !errors.Is(err, ErrRecipientMismatch) {
 		t.Fatalf("authenticated non-recipient bypassed assignment with channel spoof: %v", err)
 	}
 
-	receipt, err := service.Submit(ctx, Submission{TenantID: "bank", RequestID: request.ID, SubmittedBy: "actor-a", Channel: "INTERNAL", Answers: map[string]string{"owner": "Operations"}, ExpectedVersion: 1})
+	receipt, err := service.Submit(ctx, Submission{TenantID: "bank", RequestID: request.ID, SubmittedBy: "actor-a", Channel: "INTERNAL", Answers: formcontract.TextAnswers(map[string]string{"owner": "Operations"}), ExpectedVersion: 1})
 	if err != nil {
 		t.Fatal(err)
 	}

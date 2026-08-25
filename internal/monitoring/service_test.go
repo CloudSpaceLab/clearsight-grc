@@ -244,7 +244,7 @@ func TestServiceEvaluatesSubmissionAgainstExactActiveRevisions(t *testing.T) {
 	service.newID = func() (string, error) { return "result-1", nil }
 	service.ConfigureEvidenceReader(recordingEvidenceReader{
 		request:    evidence.Request{ID: "request-1", TenantID: "bank-a", SubjectType: "PROGRAM", SubjectID: "program-1", FormTemplateID: form.ID, FormTemplateVersion: form.Version},
-		submission: evidence.Submission{ID: "submission-1", TenantID: "bank-a", RequestID: "request-1", Channel: "INTERNAL", Answers: map[string]string{"secure": "No"}, SubmittedBy: "operator", SubmittedAt: now},
+		submission: evidence.Submission{ID: "submission-1", TenantID: "bank-a", RequestID: "request-1", Channel: "INTERNAL", Answers: formcontract.TextAnswers(map[string]string{"secure": "No"}), SubmittedBy: "operator", SubmittedAt: now},
 	})
 
 	results, err := service.EvaluateSubmission(context.Background(), "bank-a", "submission-1")

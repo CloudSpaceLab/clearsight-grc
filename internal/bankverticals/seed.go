@@ -9,6 +9,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
 
 type requirementSpec struct {
@@ -270,7 +271,7 @@ func (s *Service) seedAuthorityRequest(ctx context.Context, config SeedConfig, p
 	if err != nil {
 		return matter, err
 	}
-	if _, err = s.evidence.Submit(ctx, evidence.Submission{TenantID: config.TenantID, RequestID: request.ID, SubmittedBy: config.OwnerPrincipalID, Channel: "INTERNAL", Answers: map[string]string{"containment_record": "Incident containment record PRI-2026-008", "communication_decision": "No direct customer notice was approved after the documented impact assessment."}, ExpectedVersion: request.Version}); err != nil {
+	if _, err = s.evidence.Submit(ctx, evidence.Submission{TenantID: config.TenantID, RequestID: request.ID, SubmittedBy: config.OwnerPrincipalID, Channel: "INTERNAL", Answers: formcontract.TextAnswers(map[string]string{"containment_record": "Incident containment record PRI-2026-008", "communication_decision": "No direct customer notice was approved after the documented impact assessment."}), ExpectedVersion: request.Version}); err != nil {
 		return matter, err
 	}
 	matter, err = s.continuity.AddResponsePackage(ctx, continuity.AddResponsePackageInput{TenantID: config.TenantID, MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, Purpose: "Respond to NDPC request NDPC/ENF/2026/0142", Audience: "Nigeria Data Protection Commission", Manifest: mustJSON([]map[string]any{{"classification": "RESTRICTED", "evidence_request_id": request.ID}, {"document": "incident assessment"}, {"document": "containment record"}, {"document": "notification decision"}, {"document": "customer communication decision"}}), ActorID: config.ActorID})

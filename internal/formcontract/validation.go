@@ -68,6 +68,9 @@ func Normalize(input Contract) (Contract, error) {
 			return Contract{}, err
 		}
 	}
+	if err := validateVisibility(&input); err != nil {
+		return Contract{}, err
+	}
 	return input, nil
 }
 

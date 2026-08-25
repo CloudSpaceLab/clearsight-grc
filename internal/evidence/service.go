@@ -13,6 +13,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 )
 
@@ -254,7 +255,7 @@ func (s *Service) Submit(ctx context.Context, submission Submission) (Submission
 		return SubmissionReceipt{}, err
 	}
 	submission.ID = valueID
-	submission.Answers = cloneMap(submission.Answers)
+	submission.Answers = cloneAnswerValues(submission.Answers)
 	submission.AnswerProvenance = s.deriveAnswerProvenance(ctx, request, submission.Answers)
 	submission.SubmittedAt = now
 	return s.repo.Submit(ctx, submission)
@@ -363,7 +364,7 @@ func (s *Service) SessionRequest(ctx context.Context, sessionToken string) (Sess
 	return session, RespondentRequest(request), nil
 }
 
-func (s *Service) SubmitSession(ctx context.Context, sessionToken string, answers map[string]string, expectedVersion int64) (SubmissionReceipt, error) {
+func (s *Service) SubmitSession(ctx context.Context, sessionToken string, answers map[string]formcontract.AnswerValue, expectedVersion int64) (SubmissionReceipt, error) {
 	session, request, err := s.SessionRequest(ctx, sessionToken)
 	if err != nil {
 		return SubmissionReceipt{}, err
@@ -560,6 +561,25 @@ func cloneMap(input map[string]string) map[string]string {
 	out := make(map[string]string, len(input))
 	for key, value := range input {
 		out[key] = value
+	}
+	return out
+}
+
+func cloneAnswerValues(input map[string]formcontract.AnswerValue) map[string]formcontract.AnswerValue {
+	out := make(map[string]formcontract.AnswerValue, len(input))
+	for key, value := range input {
+		copy := value
+		if value.Text != nil {
+			text := *value.Text
+			copy.Text = &text
+		}
+		copy.Values = append([]string(nil), value.Values...)
+		copy.ArtifactIDs = append([]string(nil), value.ArtifactIDs...)
+		if value.Document != nil {
+			document := *value.Document
+			copy.Document = &document
+		}
+		out[key] = copy
 	}
 	return out
 }

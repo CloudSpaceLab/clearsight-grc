@@ -275,16 +275,16 @@ type ReassignRecipientInput struct {
 }
 
 type Submission struct {
-	ID               string                      `json:"id"`
-	TenantID         string                      `json:"tenant_id"`
-	RequestID        string                      `json:"request_id"`
-	SessionID        string                      `json:"session_id,omitempty"`
-	SubmittedBy      string                      `json:"submitted_by,omitempty"`
-	Channel          string                      `json:"channel"`
-	Answers          map[string]string           `json:"answers"`
-	AnswerProvenance map[string]AnswerProvenance `json:"answer_provenance,omitempty"`
-	ExpectedVersion  int64                       `json:"expected_version"`
-	SubmittedAt      time.Time                   `json:"submitted_at"`
+	ID               string                              `json:"id"`
+	TenantID         string                              `json:"tenant_id"`
+	RequestID        string                              `json:"request_id"`
+	SessionID        string                              `json:"session_id,omitempty"`
+	SubmittedBy      string                              `json:"submitted_by,omitempty"`
+	Channel          string                              `json:"channel"`
+	Answers          map[string]formcontract.AnswerValue `json:"answers"`
+	AnswerProvenance map[string]AnswerProvenance         `json:"answer_provenance,omitempty"`
+	ExpectedVersion  int64                               `json:"expected_version"`
+	SubmittedAt      time.Time                           `json:"submitted_at"`
 }
 
 type SubmissionReceipt struct {

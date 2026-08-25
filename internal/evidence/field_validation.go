@@ -4,9 +4,13 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"net/mail"
+	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
@@ -61,61 +65,255 @@ func applyContractField(target *Field, source formcontract.Field) {
 	target.Scoring = source.Scoring
 }
 
-func (s *Service) validateAnswers(ctx context.Context, request Request, answers map[string]string) error {
-	fields := make(map[string]Field, len(request.Fields))
+var telephonePattern = regexp.MustCompile(`^[+0-9][0-9 ()-]{6,29}$`)
+
+func (s *Service) validateAnswers(ctx context.Context, request Request, answers map[string]formcontract.AnswerValue) error {
+	contract, err := formContract(request.Presentation, request.Sections, request.Fields)
+	if err != nil {
+		return err
+	}
+	visible, err := formcontract.VisibleFields(contract, answers)
+	if err != nil {
+		return err
+	}
+	visibleByID := make(map[string]formcontract.Field, len(visible))
+	requestByID := make(map[string]Field, len(request.Fields))
+	for _, field := range visible {
+		visibleByID[field.ID] = field
+	}
 	for _, field := range request.Fields {
-		fields[field.ID] = field
+		requestByID[field.ID] = field
 	}
 	for fieldID := range answers {
-		if _, ok := fields[fieldID]; !ok {
+		if _, requested := requestByID[fieldID]; !requested {
 			return fmt.Errorf("response contains an unrequested field")
+		}
+		if _, shown := visibleByID[fieldID]; !shown {
+			return fmt.Errorf("%s was not requested for the current answers", requestByID[fieldID].Label)
 		}
 	}
 
-	for _, field := range request.Fields {
-		value := strings.TrimSpace(answers[field.ID])
-		if field.Required && value == "" {
+	for _, field := range visible {
+		answer, exists := answers[field.ID]
+		if field.Required && (!exists || !answer.Answered()) {
 			return fmt.Errorf("%s is required", field.Label)
 		}
-		if value == "" {
+		if !exists || !answer.Answered() {
 			continue
 		}
-		fieldType := strings.ToLower(strings.TrimSpace(field.Type))
-		switch fieldType {
-		case "text", "short_text":
-			if len(value) > maxShortAnswerBytes {
-				return fmt.Errorf("%s is too long", field.Label)
-			}
-		case "long_text":
-			if len(value) > maxLongAnswerBytes {
-				return fmt.Errorf("%s is too long", field.Label)
-			}
-		case "single_select":
-			if !containsOption(field.Options, value) {
-				return fmt.Errorf("%s contains an invalid selection", field.Label)
-			}
-		case "date":
-			if _, err := time.Parse("2006-01-02", value); err != nil {
-				return fmt.Errorf("%s must be a valid date", field.Label)
-			}
-		case "number", "decimal", "integer", "percentage", "currency":
-			number, err := strconv.ParseFloat(value, 64)
-			if err != nil || math.IsNaN(number) || math.IsInf(number, 0) {
-				return fmt.Errorf("%s must be a valid number", field.Label)
-			}
-		case "photo", "file", "signature":
-			artifact, err := s.repo.GetArtifact(ctx, request.TenantID, request.ID, value)
-			if err != nil {
-				return fmt.Errorf("%s must reference a file uploaded for this request", field.Label)
-			}
-			if err := validateArtifactForField(field, artifact); err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("%s uses an unsupported response type", field.Label)
+		if err := s.validateTypedAnswer(ctx, request, requestByID[field.ID], field, answer); err != nil {
+			return err
 		}
 	}
 	return nil
+}
+
+func (s *Service) validateTypedAnswer(ctx context.Context, request Request, requestField Field, field formcontract.Field, answer formcontract.AnswerValue) error {
+	fieldType := field.Type
+	switch fieldType {
+	case formcontract.TypeShortText, formcontract.TypeLongText, formcontract.TypeEmail, formcontract.TypeTelephone, formcontract.TypeURL:
+		value, err := requiredScalar(field, answer)
+		if err != nil {
+			return err
+		}
+		minimum, maximum := 0, maxShortAnswerBytes
+		if fieldType == formcontract.TypeLongText {
+			maximum = maxLongAnswerBytes
+		}
+		if field.Constraints.MinLength != nil {
+			minimum = *field.Constraints.MinLength
+		}
+		if field.Constraints.MaxLength != nil {
+			maximum = *field.Constraints.MaxLength
+		}
+		length := utf8.RuneCountInString(value)
+		if length < minimum || length > maximum {
+			return fmt.Errorf("%s must contain %d-%d characters", field.Label, minimum, maximum)
+		}
+		switch fieldType {
+		case formcontract.TypeEmail:
+			address, parseErr := mail.ParseAddress(value)
+			if parseErr != nil || address.Address != value || !strings.Contains(value, "@") {
+				return fmt.Errorf("%s must be a valid email address", field.Label)
+			}
+		case formcontract.TypeTelephone:
+			if !telephonePattern.MatchString(value) {
+				return fmt.Errorf("%s must be a valid telephone number", field.Label)
+			}
+		case formcontract.TypeURL:
+			parsed, parseErr := url.ParseRequestURI(value)
+			if parseErr != nil || parsed.Host == "" || (parsed.Scheme != "https" && parsed.Scheme != "http") {
+				return fmt.Errorf("%s must be a valid URL beginning with https:// or http://", field.Label)
+			}
+		}
+	case formcontract.TypeInteger, formcontract.TypeDecimal, formcontract.TypePercentage, formcontract.TypeCurrency:
+		value, err := requiredScalar(field, answer)
+		if err != nil {
+			return err
+		}
+		number, parseErr := strconv.ParseFloat(value, 64)
+		if parseErr != nil || math.IsNaN(number) || math.IsInf(number, 0) {
+			return fmt.Errorf("%s must be a valid number", field.Label)
+		}
+		if fieldType == formcontract.TypeInteger && number != math.Trunc(number) {
+			return fmt.Errorf("%s must be a whole number", field.Label)
+		}
+		if field.Constraints.Minimum != nil && number < *field.Constraints.Minimum {
+			return fmt.Errorf("%s must be at least %v", field.Label, *field.Constraints.Minimum)
+		}
+		if field.Constraints.Maximum != nil && number > *field.Constraints.Maximum {
+			return fmt.Errorf("%s must be at most %v", field.Label, *field.Constraints.Maximum)
+		}
+		if field.Constraints.DecimalPrecision != nil && decimalPlaces(value) > *field.Constraints.DecimalPrecision {
+			return fmt.Errorf("%s permits at most %d decimal places", field.Label, *field.Constraints.DecimalPrecision)
+		}
+		if field.Constraints.Step != nil && field.Constraints.Minimum != nil {
+			steps := (number - *field.Constraints.Minimum) / *field.Constraints.Step
+			if math.Abs(steps-math.Round(steps)) > 1e-9 {
+				return fmt.Errorf("%s must use increments of %v", field.Label, *field.Constraints.Step)
+			}
+		}
+	case formcontract.TypeDate:
+		value, err := requiredScalar(field, answer)
+		if err != nil {
+			return err
+		}
+		date, parseErr := time.Parse("2006-01-02", value)
+		if parseErr != nil {
+			return fmt.Errorf("%s must be a valid date", field.Label)
+		}
+		if field.Constraints.MinDate != "" {
+			minimum, _ := time.Parse("2006-01-02", field.Constraints.MinDate)
+			if date.Before(minimum) {
+				return fmt.Errorf("%s must be on or after %s", field.Label, field.Constraints.MinDate)
+			}
+		}
+		if field.Constraints.MaxDate != "" {
+			maximum, _ := time.Parse("2006-01-02", field.Constraints.MaxDate)
+			if date.After(maximum) {
+				return fmt.Errorf("%s must be on or before %s", field.Label, field.Constraints.MaxDate)
+			}
+		}
+	case formcontract.TypeYesNo, formcontract.TypeSingleSelect:
+		value, err := requiredScalar(field, answer)
+		if err != nil {
+			return err
+		}
+		if !containsOption(field.Options, value) {
+			return fmt.Errorf("%s contains an invalid selection", field.Label)
+		}
+	case formcontract.TypeMultiSelect:
+		if answer.Text != nil || answer.Document != nil || len(answer.ArtifactIDs) != 0 {
+			return fmt.Errorf("%s must contain selected values", field.Label)
+		}
+		minimum, maximum := 0, len(field.Options)
+		if field.Constraints.MinSelections != nil {
+			minimum = *field.Constraints.MinSelections
+		}
+		if field.Constraints.MaxSelections != nil {
+			maximum = *field.Constraints.MaxSelections
+		}
+		if len(answer.Values) < minimum {
+			return fmt.Errorf("%s requires at least %d selections", field.Label, minimum)
+		}
+		if len(answer.Values) > maximum {
+			return fmt.Errorf("%s permits at most %d selections", field.Label, maximum)
+		}
+		seen := map[string]struct{}{}
+		for _, value := range answer.Values {
+			value = strings.TrimSpace(value)
+			if !containsOption(field.Options, value) {
+				return fmt.Errorf("%s contains an invalid selection", field.Label)
+			}
+			if _, duplicate := seen[value]; duplicate {
+				return fmt.Errorf("%s contains a duplicate selection", field.Label)
+			}
+			seen[value] = struct{}{}
+		}
+	case formcontract.TypeCheckbox, formcontract.TypeAttestation:
+		value, err := requiredScalar(field, answer)
+		if err != nil {
+			return err
+		}
+		if !strings.EqualFold(value, "yes") && !strings.EqualFold(value, "true") {
+			return fmt.Errorf("%s must be confirmed", field.Label)
+		}
+	case formcontract.TypeFile, formcontract.TypePhoto, formcontract.TypeSignature, formcontract.TypeVendorDocument:
+		artifactIDs, err := answerArtifactIDs(field, answer)
+		if err != nil {
+			return err
+		}
+		maximum := 10
+		if fieldType == formcontract.TypePhoto || fieldType == formcontract.TypeSignature || fieldType == formcontract.TypeVendorDocument {
+			maximum = 1
+		}
+		if field.Constraints.MaxFiles != nil {
+			maximum = *field.Constraints.MaxFiles
+		}
+		if len(artifactIDs) > maximum {
+			return fmt.Errorf("%s permits at most %d files", field.Label, maximum)
+		}
+		for _, artifactID := range artifactIDs {
+			artifact, loadErr := s.repo.GetArtifact(ctx, request.TenantID, request.ID, artifactID)
+			if loadErr != nil {
+				return fmt.Errorf("%s must reference a file uploaded for this request", field.Label)
+			}
+			if err := validateArtifactForField(requestField, artifact); err != nil {
+				return err
+			}
+			if field.Constraints.MaxFileBytes != nil && artifact.SizeBytes > *field.Constraints.MaxFileBytes {
+				return fmt.Errorf("%s contains a file larger than permitted", field.Label)
+			}
+		}
+	default:
+		return fmt.Errorf("%s uses an unsupported response type", field.Label)
+	}
+	return nil
+}
+
+func requiredScalar(field formcontract.Field, answer formcontract.AnswerValue) (string, error) {
+	value, exists := answer.ScalarText()
+	if !exists || len(answer.Values) != 0 || len(answer.ArtifactIDs) != 0 || answer.Document != nil {
+		return "", fmt.Errorf("%s must contain one value", field.Label)
+	}
+	return value, nil
+}
+
+func answerArtifactIDs(field formcontract.Field, answer formcontract.AnswerValue) ([]string, error) {
+	if field.Type == formcontract.TypeVendorDocument {
+		if answer.Document == nil || strings.TrimSpace(answer.Document.ArtifactID) == "" || strings.TrimSpace(answer.Document.DocumentType) == "" || answer.Text != nil || len(answer.Values) != 0 || len(answer.ArtifactIDs) != 0 {
+			return nil, fmt.Errorf("%s requires one uploaded document and its type", field.Label)
+		}
+		for _, value := range []string{answer.Document.IssuedOn, answer.Document.ExpiresOn} {
+			if value != "" {
+				if _, err := time.Parse("2006-01-02", value); err != nil {
+					return nil, fmt.Errorf("%s contains an invalid document date", field.Label)
+				}
+			}
+		}
+		return []string{strings.TrimSpace(answer.Document.ArtifactID)}, nil
+	}
+	if answer.Document != nil || len(answer.Values) != 0 {
+		return nil, fmt.Errorf("%s must contain uploaded file references", field.Label)
+	}
+	if len(answer.ArtifactIDs) > 0 {
+		return answer.ArtifactIDs, nil
+	}
+	if legacy, exists := answer.ScalarText(); exists && legacy != "" {
+		return []string{legacy}, nil
+	}
+	return nil, fmt.Errorf("%s must contain an uploaded file", field.Label)
+}
+
+func decimalPlaces(value string) int {
+	value = strings.TrimSpace(value)
+	if exponent := strings.IndexAny(value, "eE"); exponent >= 0 {
+		value = value[:exponent]
+	}
+	if decimal := strings.IndexByte(value, '.'); decimal >= 0 {
+		return len(strings.TrimRight(value[decimal+1:], "0"))
+	}
+	return 0
 }
 
 func validateArtifactForField(field Field, artifact Artifact) error {

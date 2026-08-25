@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -94,7 +95,7 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 		if _, err := service.GetRequest(ctx, "other-bank", request.ID); !errors.Is(err, evidence.ErrNotFound) {
 			t.Fatalf("expected tenant-scoped not found, got %v", err)
 		}
-		receipt, err := service.Submit(ctx, evidence.Submission{TenantID: "evidence-bank", RequestID: request.ID, SubmittedBy: evidenceRecipientID, Channel: "INTERNAL", ExpectedVersion: request.Version, Answers: map[string]string{"state": "Operating"}})
+		receipt, err := service.Submit(ctx, evidence.Submission{TenantID: "evidence-bank", RequestID: request.ID, SubmittedBy: evidenceRecipientID, Channel: "INTERNAL", ExpectedVersion: request.Version, Answers: formcontract.TextAnswers(map[string]string{"state": "Operating"})})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
@@ -146,9 +147,9 @@ func TestAnswerProvenanceSeparatesSourceRespondentCorrectionAndValidation(t *tes
 		{ID: "employee", Type: "text", Bindings: []FieldBindingReference{{BindingID: "validate", BindingVersion: 3, Mode: BindingUseValidate, ValueField: "employee_id"}}},
 		{ID: "note", Type: "text"},
 	}}
-	provenance := service.deriveAnswerProvenance(context.Background(), request, map[string]string{
+	provenance := service.deriveAnswerProvenance(context.Background(), request, formcontract.TextAnswers(map[string]string{
 		"same": "Enugu Main", "changed": "Nsukka", "employee": "E-17", "note": "Observed locally",
-	})
+	}))
 	if provenance["same"].Origin != AnswerSourcePrefilled {
 		t.Fatalf("same value origin = %s", provenance["same"].Origin)
 	}

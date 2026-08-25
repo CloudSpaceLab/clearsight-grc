@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
@@ -265,8 +266,8 @@ func (a *API) submitEvidenceSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input struct {
-		Answers         map[string]string `json:"answers"`
-		ExpectedVersion int64             `json:"expected_version"`
+		Answers         map[string]formcontract.AnswerValue `json:"answers"`
+		ExpectedVersion int64                               `json:"expected_version"`
 	}
 	if err := httpx.DecodeJSON(w, r, &input); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())

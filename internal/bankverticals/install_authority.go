@@ -7,6 +7,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
 
 func (s *Service) ensureAuthorityRequest(ctx context.Context, config SeedConfig, program continuity.ProgramAggregate, sourceID string) error {
@@ -45,7 +46,7 @@ func (s *Service) ensureAuthorityRequest(ctx context.Context, config SeedConfig,
 			RequestID:       request.ID,
 			SubmittedBy:     config.OwnerPrincipalID,
 			Channel:         "INTERNAL",
-			Answers:         map[string]string{"containment_record": "Incident containment record PRI-2026-008", "communication_decision": "No direct customer notice was approved after the documented impact assessment."},
+			Answers:         formcontract.TextAnswers(map[string]string{"containment_record": "Incident containment record PRI-2026-008", "communication_decision": "No direct customer notice was approved after the documented impact assessment."}),
 			ExpectedVersion: request.Version,
 		})
 		if err != nil {

@@ -166,7 +166,7 @@ func (r *MemoryRepository) Submit(_ context.Context, submission Submission) (Sub
 	request.Version++
 	request.UpdatedAt = submission.SubmittedAt
 	r.requests[request.ID] = request
-	submission.Answers = cloneMap(submission.Answers)
+	submission.Answers = cloneAnswerValues(submission.Answers)
 	submission.AnswerProvenance = cloneAnswerProvenance(submission.AnswerProvenance)
 	r.submissions[submission.ID] = submission
 	return SubmissionReceipt{SubmissionID: submission.ID, RequestID: request.ID, Status: request.Status, SubmittedAt: submission.SubmittedAt, Version: request.Version}, nil
@@ -179,7 +179,7 @@ func (r *MemoryRepository) GetSubmission(_ context.Context, tenant, id string) (
 	if !ok || value.TenantID != tenant {
 		return Submission{}, ErrNotFound
 	}
-	value.Answers = cloneMap(value.Answers)
+	value.Answers = cloneAnswerValues(value.Answers)
 	value.AnswerProvenance = cloneAnswerProvenance(value.AnswerProvenance)
 	return value, nil
 }
