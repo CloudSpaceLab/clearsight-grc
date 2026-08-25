@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
@@ -79,12 +80,13 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 	var payload struct {
 		AuthorityAvailable bool `json:"authority_available"`
 		Operations         []struct {
-			Command       string                `json:"command"`
-			SubresourceID string                `json:"subresource_id"`
-			CanAct        bool                  `json:"can_act"`
-			AssignedTo    *authority.Principal  `json:"assigned_to"`
-			Candidates    []authority.Principal `json:"candidates"`
-			Reason        string                `json:"reason"`
+			Command        string                `json:"command"`
+			SubresourceID  string                `json:"subresource_id"`
+			CanAct         bool                  `json:"can_act"`
+			AssignedTo     *authority.Principal  `json:"assigned_to"`
+			Candidates     []authority.Principal `json:"candidates"`
+			Reason         string                `json:"reason"`
+			AllowedTargets []string              `json:"allowed_targets"`
 		} `json:"operations"`
 	}
 	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
@@ -100,6 +102,7 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 		reason  string
 	}{}
 	actionAddCandidates := []authority.Principal{}
+	matterTargets := []string{}
 	for _, operation := range payload.Operations {
 		key := operation.Command + ":" + operation.SubresourceID
 		name := ""
@@ -115,10 +118,14 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 		if operation.Command == "matter.action.add" {
 			actionAddCandidates = operation.Candidates
 		}
+		if operation.Command == "matter.transition" {
+			matterTargets = operation.AllowedTargets
+		}
 	}
 	owner := operations["matter.details.update:"]
 	action := operations["matter.action.transition:"+activeActionID]
 	outcome := operations["matter.outcome.record:"+contractID]
+	outcomeDefinition := operations["matter.outcome.define:"]
 	if owner.name != "Program Owner" || owner.canAct {
 		t.Fatalf("owner operation is unexplained: %#v", owner)
 	}
@@ -127,6 +134,12 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 	}
 	if outcome.name != "Internal Auditor" || outcome.canAct {
 		t.Fatalf("outcome reviewer is unexplained: %#v", outcome)
+	}
+	if outcomeDefinition.name != "Internal Auditor" || outcomeDefinition.canAct {
+		t.Fatalf("outcome definition reviewer is unexplained: %#v", outcomeDefinition)
+	}
+	if !reflect.DeepEqual(matterTargets, []string{"TRIAGE", "CANCELLED"}) {
+		t.Fatalf("Matter lifecycle targets = %#v", matterTargets)
 	}
 	if len(actionAddCandidates) != 1 || actionAddCandidates[0].DisplayName != "Program Owner" {
 		t.Fatalf("Action creation did not return eligible performers: %#v", actionAddCandidates)

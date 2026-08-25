@@ -21,6 +21,27 @@ func allowedMatterTransition(from, to MatterStatus) bool {
 	return allowed[from][to]
 }
 
+// AllowedMatterTargets returns executable lifecycle targets in stable UI order.
+func AllowedMatterTargets(from MatterStatus) []MatterStatus {
+	ordered := []MatterStatus{
+		MatterInitialReview,
+		MatterAssessment,
+		MatterDecisionRequired,
+		MatterActionsInProgress,
+		MatterResponsePreparation,
+		MatterVerification,
+		MatterClosed,
+		MatterCancelled,
+	}
+	result := make([]MatterStatus, 0, len(ordered))
+	for _, target := range ordered {
+		if allowedMatterTransition(from, target) {
+			result = append(result, target)
+		}
+	}
+	return result
+}
+
 func assessClosure(aggregate MatterAggregate) ClosureAssessment {
 	return assessClosureAt(aggregate, time.Now().UTC())
 }

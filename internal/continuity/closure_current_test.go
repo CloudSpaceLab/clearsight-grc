@@ -3,10 +3,20 @@ package continuity
 import (
 	"context"
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestAllowedMatterTargetsReturnCanonicalLifecycleOrder(t *testing.T) {
+	if got := AllowedMatterTargets(MatterDraft); !reflect.DeepEqual(got, []MatterStatus{MatterInitialReview, MatterCancelled}) {
+		t.Fatalf("draft targets = %#v", got)
+	}
+	if got := AllowedMatterTargets(MatterVerification); !reflect.DeepEqual(got, []MatterStatus{MatterDecisionRequired, MatterActionsInProgress, MatterResponsePreparation, MatterClosed, MatterCancelled}) {
+		t.Fatalf("verification targets = %#v", got)
+	}
+}
 
 func TestClosureUsesCurrentDecisionWithinDecisionType(t *testing.T) {
 	now := time.Date(2026, 8, 7, 15, 0, 0, 0, time.UTC)

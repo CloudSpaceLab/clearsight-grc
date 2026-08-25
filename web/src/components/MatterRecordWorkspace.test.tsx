@@ -2,9 +2,9 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadMatter } from "../api";
 import { ApiError } from "../http";
-import { assignMatter, assignMatterAction, changeMatterContext, loadMatterOperations, updateMatterAction, updateMatterDetails } from "../matterOperationsApi";
+import { assignMatter, assignMatterAction, changeMatterContext, defineMatterOutcomeCheck, loadMatterOperations, updateMatterAction, updateMatterDetails } from "../matterOperationsApi";
 import type { MatterOperations } from "../matterOperationsApi";
-import { addMatterAction, transitionMatterAction } from "../continuityCommands";
+import { addMatterAction, recordVerificationResult, transitionMatter, transitionMatterAction } from "../continuityCommands";
 import type { MatterAggregate } from "../types";
 import { MatterRecordWorkspace } from "./MatterRecordWorkspace";
 
@@ -13,12 +13,13 @@ vi.mock("../matterOperationsApi", () => ({
   assignMatter: vi.fn(),
   assignMatterAction: vi.fn(),
   changeMatterContext: vi.fn(),
+  defineMatterOutcomeCheck: vi.fn(),
   loadMatterOperations: vi.fn(),
   updateMatterAction: vi.fn(),
   updateMatterDetails: vi.fn(),
 }));
 
-vi.mock("../continuityCommands", () => ({ addMatterAction: vi.fn(), transitionMatterAction: vi.fn() }));
+vi.mock("../continuityCommands", () => ({ addMatterAction: vi.fn(), recordVerificationResult: vi.fn(), transitionMatter: vi.fn(), transitionMatterAction: vi.fn() }));
 
 const detail: MatterAggregate = {
   type_label: "Regulatory change",
@@ -87,6 +88,42 @@ const performerOperations: MatterOperations = {
   operations: operations.operations.map((operation) => operation.command === "matter.action.transition"
     ? { ...operation, can_act: true, allowed_targets: ["IMPLEMENTED", "BLOCKED"] }
     : operation),
+};
+
+const outcomeDefinitionOperations: MatterOperations = {
+  ...operations,
+  operations: [...operations.operations, {
+    command: "matter.outcome.define", label: "Define an outcome check", responsibility: "REVIEWER", can_act: true,
+    assigned_to: { id: "auditor-1", display_name: "Internal Auditor", kind: "PERSON", role: "INTERNAL_AUDITOR" },
+    candidates: [{ id: "auditor-1", display_name: "Internal Auditor", kind: "PERSON", role: "INTERNAL_AUDITOR" }],
+    reason: "You can define the independent result to confirm.",
+  }],
+};
+
+const outcomeDetail: MatterAggregate = {
+  ...detail,
+  matter: { ...detail.matter, status: "VERIFICATION" },
+  actions: [{ ...detail.actions[0]!, status: "IMPLEMENTED", implemented_at: "2026-08-24T10:00:00Z" }],
+  verification_contracts: [{ id: "contract-1", action_id: "action-1", expected_outcome: "All ten return sections have an owner, source and approved review status.", observation_period_minutes: 0, failure_response: "Reopen the evidence action.", status: "ACTIVE", version: 1 }],
+};
+
+const outcomeRecordOperations: MatterOperations = {
+  ...operations,
+  operations: [...operations.operations, {
+    command: "matter.outcome.record", subresource_id: "contract-1", label: "Record outcome check", responsibility: "REVIEWER", can_act: true,
+    assigned_to: { id: "auditor-1", display_name: "Internal Auditor", kind: "PERSON", role: "INTERNAL_AUDITOR" },
+    reason: "The observation period is complete and the result is assigned to you.",
+  }],
+};
+
+const closureOperations: MatterOperations = {
+  ...outcomeRecordOperations,
+  matter_version: 8,
+  operations: [...outcomeRecordOperations.operations.filter((operation) => operation.command !== "matter.outcome.record"), {
+    command: "matter.transition", label: "Change issue status", responsibility: "ACCOUNTABLE_OWNER", can_act: true,
+    assigned_to: { id: "owner-1", display_name: "Program Owner", kind: "PERSON", role: "PROGRAM_OWNER" },
+    reason: "You can close this issue after its outcome is confirmed.", allowed_targets: ["CLOSED", "CANCELLED"],
+  }],
 };
 
 describe("Matter record workspace", () => {
@@ -266,5 +303,54 @@ describe("Matter record workspace", () => {
     await waitFor(() => expect(transitionMatterAction).toHaveBeenCalledWith("matter-1", "action-1", 7, "IMPLEMENTED", ""));
     expect(await screen.findByText("Work completed; outcome not confirmed")).toBeTruthy();
     expect(screen.getByText("No outcome check has been defined")).toBeTruthy();
+  });
+
+  it("lets the routed reviewer define an outcome check linked to an Action", async () => {
+    vi.mocked(loadMatterOperations).mockResolvedValue(outcomeDefinitionOperations);
+    vi.mocked(defineMatterOutcomeCheck).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 8 }, verification_contracts: [{ id: "contract-1", action_id: "action-1", expected_outcome: "All ten return sections have an owner, source and approved review status.", observation_period_minutes: 1440, failure_response: "Reopen the evidence action.", status: "ACTIVE" }] });
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Define outcome check" }));
+    fireEvent.change(screen.getByLabelText("Expected outcome"), { target: { value: "All ten return sections have an owner, source and approved review status." } });
+    fireEvent.change(screen.getByLabelText("Linked action"), { target: { value: "action-1" } });
+    fireEvent.change(screen.getByLabelText("Observation period (minutes)"), { target: { value: "1440" } });
+    fireEvent.change(screen.getByLabelText("If the outcome is not achieved"), { target: { value: "Reopen the evidence action." } });
+    fireEvent.click(screen.getByRole("button", { name: "Save outcome check" }));
+
+    await waitFor(() => expect(defineMatterOutcomeCheck).toHaveBeenCalledWith("matter-1", 7, {
+      actionID: "action-1", expectedOutcome: "All ten return sections have an owner, source and approved review status.",
+      observationPeriodMinutes: 1440, failureResponse: "Reopen the evidence action.",
+    }));
+    expect(await screen.findByText("Outcome check defined.")).toBeTruthy();
+  });
+
+  it("captures an independent outcome result and enables closure only after a valid pass", async () => {
+    vi.mocked(loadMatter).mockResolvedValue(outcomeDetail);
+    vi.mocked(loadMatterOperations).mockResolvedValueOnce(outcomeRecordOperations).mockResolvedValue(closureOperations);
+    vi.mocked(recordVerificationResult).mockResolvedValue({
+      ...outcomeDetail,
+      matter: { ...outcomeDetail.matter, version: 8 },
+      verification_results: [{ id: "result-1", contract_id: "contract-1", result: "PASS", rationale: "All ten sections were independently checked.", observed_at: "2026-08-25T12:00:00Z" }],
+      closure: { ready: true, reasons: [] },
+    });
+    vi.mocked(transitionMatter).mockResolvedValue({ ...outcomeDetail, matter: { ...outcomeDetail.matter, status: "CLOSED", version: 9 }, closure: { ready: true, reasons: [] } });
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Record result for All ten return sections have an owner, source and approved review status." }));
+    fireEvent.change(screen.getByLabelText("Check result"), { target: { value: "PASS" } });
+    fireEvent.change(screen.getByLabelText("Observations"), { target: { value: "10 sections checked; 10 complete" } });
+    fireEvent.change(screen.getByLabelText("Evidence references (optional)"), { target: { value: "audit-workpaper-2026\napproved-return-pack" } });
+    fireEvent.change(screen.getByLabelText("Result rationale"), { target: { value: "All ten sections were independently checked." } });
+    fireEvent.click(screen.getByRole("button", { name: "Record outcome result" }));
+
+    await waitFor(() => expect(recordVerificationResult).toHaveBeenCalledWith("matter-1", 7, expect.objectContaining({
+      contractID: "contract-1", result: "PASS", observations: { note: "10 sections checked; 10 complete" },
+      evidenceReferences: ["audit-workpaper-2026", "approved-return-pack"], rationale: "All ten sections were independently checked.",
+    })));
+    expect(await screen.findByText("Ready to close")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Close issue" }));
+    fireEvent.change(screen.getByLabelText("Reason for status change"), { target: { value: "The independent outcome check passed." } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm issue status" }));
+    await waitFor(() => expect(transitionMatter).toHaveBeenCalledWith("matter-1", 8, "CLOSED", "The independent outcome check passed."));
   });
 });

@@ -101,6 +101,19 @@
 .matter-action-meta strong { color: var(--text); }
 .matter-action-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .matter-action-controls button { min-height: 40px; }
+.matter-outcome-list { display: grid; gap: 12px; }
+.matter-outcome-card { padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+.matter-outcome-card > button { min-height: 40px; margin-top: 12px; }
+.matter-outcome-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0 0; }
+.matter-outcome-meta > div { display: grid; gap: 3px; }
+.matter-outcome-meta dt { color: var(--muted); font-size: .72rem; }
+.matter-outcome-meta dd { margin: 0; font-size: .78rem; overflow-wrap: anywhere; }
+.matter-outcome-rationale { margin: 10px 0 0; font-size: .78rem; }
+.matter-closure-state { margin-top: 14px; padding: 14px; border: 1px solid color-mix(in srgb, var(--amber) 35%, var(--border)); border-radius: 12px; background: color-mix(in srgb, var(--amber) 5%, var(--surface)); }
+.matter-closure-state.ready { border-color: color-mix(in srgb, var(--green) 42%, var(--border)); background: color-mix(in srgb, var(--green) 6%, var(--surface)); }
+.matter-closure-state p { margin: 6px 0 0; }
+.matter-closure-state ul { margin: 8px 0 0; padding-left: 20px; color: var(--muted); line-height: 1.55; }
+.matter-status-button { min-height: 44px; margin-top: 14px; }
 
 @media (max-width: 900px) {
   .matter-record-header,
@@ -132,4 +145,7 @@
   .matter-action-heading { display: grid; }
   .matter-action-controls { display: grid; }
   .matter-action-controls button { width: 100%; min-height: 44px; }
+  .matter-outcome-meta { grid-template-columns: 1fr; }
+  .matter-outcome-card > button,
+  .matter-status-button { width: 100%; min-height: 44px; }
 }

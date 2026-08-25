@@ -8,6 +8,7 @@ import { MatterCurrentHandoff } from "./MatterCurrentHandoff";
 import { MatterDetailsPanel } from "./MatterDetailsPanel";
 import { MatterInformationPanel } from "./MatterInformationPanel";
 import { MatterActionsPanel } from "./MatterActionsPanel";
+import { MatterOutcomePanel } from "./MatterOutcomePanel";
 
 type Props = {
   matterID: string;
@@ -22,10 +23,6 @@ function priorityLabel(value: number) {
   if (value === 3) return "Medium";
   if (value === 2) return "Normal";
   return "Low";
-}
-
-function humanize(value: string) {
-  return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 }
 
 export function MatterRecordWorkspace({ matterID, onBack }: Props) {
@@ -93,7 +90,7 @@ export function MatterRecordWorkspace({ matterID, onBack }: Props) {
         <MatterDetailsPanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
         <MatterInformationPanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
         <MatterActionsPanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
-        {aggregate.verification_contracts.length === 0 && <article className="matter-record-panel"><div className="matter-record-section-heading"><div><span className="eyebrow">Outcome checks</span><h2>Results still to confirm</h2></div></div><div className="matter-record-attention"><strong>No outcome check has been defined</strong><p>Define the result that must be independently confirmed before this issue can close.</p></div></article>}
+        <MatterOutcomePanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
       </section>
     </>}
   </section>;
