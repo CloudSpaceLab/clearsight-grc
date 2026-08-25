@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
@@ -24,10 +25,12 @@ type Actor struct {
 }
 
 type CreateFormInput struct {
-	Code    string          `json:"code"`
-	Name    string          `json:"name"`
-	Purpose string          `json:"purpose"`
-	Fields  []TemplateField `json:"fields"`
+	Code         string                    `json:"code"`
+	Name         string                    `json:"name"`
+	Purpose      string                    `json:"purpose"`
+	Presentation formcontract.Presentation `json:"presentation"`
+	Sections     []formcontract.Section    `json:"sections"`
+	Fields       []TemplateField           `json:"fields"`
 }
 
 type TransitionInput struct {
@@ -117,9 +120,13 @@ func (s *Service) CreateForm(ctx context.Context, actor Actor, input CreateFormI
 	if err := validateActor(actor); err != nil {
 		return FormTemplate{}, err
 	}
-	fields, err := normalizeTemplateFields(input.Fields)
+	contract, err := formcontract.Normalize(formcontract.Contract{
+		Presentation: input.Presentation,
+		Sections:     input.Sections,
+		Fields:       input.Fields,
+	})
 	if err != nil {
-		return FormTemplate{}, err
+		return FormTemplate{}, errors.Join(ErrInvalid, err)
 	}
 	if err := validateTextFields(input.Code, input.Name, input.Purpose); err != nil {
 		return FormTemplate{}, err
@@ -131,7 +138,7 @@ func (s *Service) CreateForm(ctx context.Context, actor Actor, input CreateFormI
 	now := s.now().UTC()
 	return s.repo.CreateFormRevision(ctx, FormTemplate{
 		ID: valueID, TenantID: actor.TenantID, Code: strings.TrimSpace(input.Code), Name: strings.TrimSpace(input.Name),
-		Purpose: strings.TrimSpace(input.Purpose), Fields: fields,
+		Purpose: strings.TrimSpace(input.Purpose), Presentation: contract.Presentation, Sections: contract.Sections, Fields: contract.Fields,
 		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now},
 	})
 }
@@ -193,7 +200,7 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 	}
 	fields := make([]evidence.Field, len(form.Fields))
 	for index, field := range form.Fields {
-		fields[index] = evidence.Field{ID: field.ID, Label: field.Label, Type: field.Type, Required: field.Required, Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...)}
+		fields[index] = evidence.Field{ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: string(field.Type), Required: field.Required, Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...), Attestation: field.Attestation, Constraints: field.Constraints, Condition: field.Condition, Scoring: field.Scoring}
 	}
 	periodStart := input.PeriodStart.UTC()
 	periodEnd := input.PeriodEnd.UTC()
@@ -203,8 +210,8 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 		Sensitivity: "INTERNAL", AudienceType: "INTERNAL",
 		Recipient:        evidence.RecipientInput{Type: evidence.RecipientInternalPrincipal, PrincipalID: input.RespondentPrincipalID},
 		EstimatedMinutes: estimateMinutes(len(fields)), Deadline: input.Deadline.UTC(),
-		KnownFacts: map[string]string{"reviewer": input.ReviewerPrincipalID, "reporting_period_start": periodStart.Format(time.RFC3339), "reporting_period_end": periodEnd.Format(time.RFC3339)},
-		Fields:     fields, FormTemplateID: form.ID, FormTemplateVersion: form.Version,
+		KnownFacts:   map[string]string{"reviewer": input.ReviewerPrincipalID, "reporting_period_start": periodStart.Format(time.RFC3339), "reporting_period_end": periodEnd.Format(time.RFC3339)},
+		Presentation: form.Presentation, Sections: form.Sections, Fields: fields, FormTemplateID: form.ID, FormTemplateVersion: form.Version,
 		CollectionPeriodStart: &periodStart, CollectionPeriodEnd: &periodEnd, CreatedBy: actor.PrincipalID,
 	})
 }
@@ -461,54 +468,11 @@ func validateTextFields(code, name, purpose string) error {
 }
 
 func normalizeTemplateFields(fields []TemplateField) ([]TemplateField, error) {
-	if len(fields) < 1 || len(fields) > 50 {
-		return nil, errors.Join(ErrInvalid, fmt.Errorf("a form requires 1-50 fields"))
+	contract, err := formcontract.Normalize(formcontract.Contract{Fields: fields})
+	if err != nil {
+		return nil, errors.Join(ErrInvalid, err)
 	}
-	seen := map[string]struct{}{}
-	normalized := make([]TemplateField, len(fields))
-	for index, field := range fields {
-		field.ID = strings.TrimSpace(field.ID)
-		field.Label = strings.TrimSpace(field.Label)
-		field.Type = strings.ToLower(strings.TrimSpace(field.Type))
-		if field.ID == "" || field.Label == "" {
-			return nil, errors.Join(ErrInvalid, fmt.Errorf("every field requires an id and label"))
-		}
-		if _, duplicate := seen[field.ID]; duplicate {
-			return nil, errors.Join(ErrInvalid, fmt.Errorf("field ids must be unique"))
-		}
-		seen[field.ID] = struct{}{}
-		switch field.Type {
-		case "text", "short_text", "long_text", "date", "number", "photo", "file", "signature":
-			if len(field.Options) != 0 {
-				return nil, errors.Join(ErrInvalid, fmt.Errorf("%s cannot define choices", field.Label))
-			}
-		case "single_select":
-			if len(field.Options) < 2 || len(field.Options) > 50 {
-				return nil, errors.Join(ErrInvalid, fmt.Errorf("%s requires 2-50 choices", field.Label))
-			}
-		default:
-			return nil, errors.Join(ErrInvalid, fmt.Errorf("%s uses an unsupported response type", field.Label))
-		}
-		if field.Scoring != nil {
-			field.Scoring.ID = field.ID
-			field.Scoring.Required = field.Required
-			if field.Type != "single_select" || field.Scoring.Weight < 1 || field.Scoring.Weight > 100 || len(field.Scoring.AnswerScores) == 0 {
-				return nil, errors.Join(ErrInvalid, fmt.Errorf("%s has invalid risk scoring", field.Label))
-			}
-			for answer, points := range field.Scoring.AnswerScores {
-				if !contains(field.Options, answer) || points < 0 || points > 100 {
-					return nil, errors.Join(ErrInvalid, fmt.Errorf("%s has an invalid answer score", field.Label))
-				}
-			}
-			for _, answer := range field.Scoring.CriticalAnswers {
-				if !contains(field.Options, answer) {
-					return nil, errors.Join(ErrInvalid, fmt.Errorf("%s has an invalid critical answer", field.Label))
-				}
-			}
-		}
-		normalized[index] = field
-	}
-	return normalized, nil
+	return contract.Fields, nil
 }
 
 func validateSourceRule(rule SourceRule) error {

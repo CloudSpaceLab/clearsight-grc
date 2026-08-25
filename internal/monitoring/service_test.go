@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
 
 type recordingRequestCreator struct {
@@ -38,7 +39,7 @@ func (r *recordingRequestCreator) CreateRequest(_ context.Context, input evidenc
 		ID: "request-1", TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID,
 		Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity,
 		AudienceType: input.AudienceType, EstimatedMinutes: input.EstimatedMinutes, Deadline: input.Deadline,
-		Fields: input.Fields, FormTemplateID: input.FormTemplateID, FormTemplateVersion: input.FormTemplateVersion,
+		Presentation: input.Presentation, Sections: input.Sections, Fields: input.Fields, FormTemplateID: input.FormTemplateID, FormTemplateVersion: input.FormTemplateVersion,
 		CollectionPeriodStart: input.CollectionPeriodStart, CollectionPeriodEnd: input.CollectionPeriodEnd, Version: 1,
 	}, nil
 }
@@ -58,6 +59,9 @@ func TestServiceEnforcesMakerCheckerFormActivation(t *testing.T) {
 	})
 	if err != nil || form.Status != LifecycleDraft || form.Version != 1 {
 		t.Fatalf("created form = %#v, err = %v", form, err)
+	}
+	if form.Presentation.DefaultMode != formcontract.PresentationAutomatic || len(form.Sections) != 1 || form.Fields[0].SectionID != formcontract.DefaultSectionID {
+		t.Fatalf("form contract was not normalized: %#v", form)
 	}
 	pending, err := service.TransitionForm(context.Background(), maker, TransitionInput{ID: form.ID, ExpectedVersion: form.Version, To: LifecyclePendingApproval})
 	if err != nil || pending.Status != LifecyclePendingApproval || pending.SubmittedBy != maker.PrincipalID {

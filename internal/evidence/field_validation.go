@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
 
 const (
@@ -16,52 +18,47 @@ const (
 )
 
 func validateFieldContracts(fields []Field) error {
-	for _, field := range fields {
-		fieldType := strings.ToLower(strings.TrimSpace(field.Type))
-		switch fieldType {
-		case "text", "short_text", "long_text", "date", "number", "photo", "file", "signature":
-			if len(field.Options) != 0 {
-				return fmt.Errorf("%s must not define selection options", field.Label)
-			}
-		case "single_select":
-			if len(field.Options) < 2 || len(field.Options) > 50 {
-				return fmt.Errorf("%s must define 2-50 choices", field.Label)
-			}
-			seen := map[string]struct{}{}
-			for _, option := range field.Options {
-				option = strings.TrimSpace(option)
-				if option == "" {
-					return fmt.Errorf("%s contains an empty choice", field.Label)
-				}
-				if _, exists := seen[option]; exists {
-					return fmt.Errorf("%s contains duplicate choices", field.Label)
-				}
-				seen[option] = struct{}{}
-			}
-		default:
-			return fmt.Errorf("%s uses unsupported field type %q", field.Label, field.Type)
-		}
+	_, err := normalizeFieldContracts(formcontract.Presentation{}, nil, fields)
+	return err
+}
 
-		if len(field.ID) > 80 || len(field.Label) > 200 || len(field.Description) > 1000 {
-			return fmt.Errorf("%s exceeds field metadata limits", field.Label)
-		}
-		if len(field.AcceptedFormats) > 0 && fieldType != "photo" && fieldType != "file" && fieldType != "signature" {
-			return fmt.Errorf("%s cannot define accepted file formats", field.Label)
-		}
-		for _, format := range field.AcceptedFormats {
-			mediaType := normalizeMediaType(format)
-			if !allowedMediaType(mediaType) {
-				return fmt.Errorf("%s contains unsupported file format %q", field.Label, format)
-			}
-			if fieldType == "photo" && mediaType != "image/jpeg" && mediaType != "image/png" {
-				return fmt.Errorf("%s accepts a non-image photo format", field.Label)
-			}
-			if fieldType == "signature" && mediaType != "image/png" {
-				return fmt.Errorf("%s signatures must use image/png", field.Label)
-			}
+func normalizeFieldContracts(presentation formcontract.Presentation, sections []formcontract.Section, fields []Field) ([]Field, error) {
+	contract, err := formContract(presentation, sections, fields)
+	if err != nil {
+		return nil, err
+	}
+	normalized := append([]Field(nil), fields...)
+	for index := range normalized {
+		applyContractField(&normalized[index], contract.Fields[index])
+	}
+	return normalized, nil
+}
+
+func formContract(presentation formcontract.Presentation, sections []formcontract.Section, fields []Field) (formcontract.Contract, error) {
+	contractFields := make([]formcontract.Field, len(fields))
+	for index, field := range fields {
+		contractFields[index] = formcontract.Field{
+			ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: formcontract.Type(field.Type), Required: field.Required,
+			Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...),
+			Attestation: field.Attestation, Constraints: field.Constraints, Condition: field.Condition, Scoring: field.Scoring,
 		}
 	}
-	return nil
+	return formcontract.Normalize(formcontract.Contract{Presentation: presentation, Sections: sections, Fields: contractFields})
+}
+
+func applyContractField(target *Field, source formcontract.Field) {
+	target.ID = source.ID
+	target.SectionID = source.SectionID
+	target.Label = source.Label
+	target.Type = string(source.Type)
+	target.Required = source.Required
+	target.Description = source.Description
+	target.Options = append([]string(nil), source.Options...)
+	target.AcceptedFormats = append([]string(nil), source.AcceptedFormats...)
+	target.Attestation = source.Attestation
+	target.Constraints = source.Constraints
+	target.Condition = source.Condition
+	target.Scoring = source.Scoring
 }
 
 func (s *Service) validateAnswers(ctx context.Context, request Request, answers map[string]string) error {
@@ -101,7 +98,7 @@ func (s *Service) validateAnswers(ctx context.Context, request Request, answers 
 			if _, err := time.Parse("2006-01-02", value); err != nil {
 				return fmt.Errorf("%s must be a valid date", field.Label)
 			}
-		case "number":
+		case "number", "decimal", "integer", "percentage", "currency":
 			number, err := strconv.ParseFloat(value, 64)
 			if err != nil || math.IsNaN(number) || math.IsInf(number, 0) {
 				return fmt.Errorf("%s must be a valid number", field.Label)

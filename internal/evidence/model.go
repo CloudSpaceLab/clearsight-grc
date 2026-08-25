@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
@@ -171,15 +172,20 @@ type AnswerProvenance struct {
 }
 
 type Field struct {
-	ID                string                  `json:"id"`
-	Label             string                  `json:"label"`
-	Type              string                  `json:"type"`
-	Required          bool                    `json:"required"`
-	Description       string                  `json:"description,omitempty"`
-	Options           []string                `json:"options,omitempty"`
-	AcceptedFormats   []string                `json:"accepted_formats,omitempty"`
-	Bindings          []FieldBindingReference `json:"bindings,omitempty"`
-	SourceResolutions []SourceResolution      `json:"source_resolutions,omitempty"`
+	ID                string                            `json:"id"`
+	SectionID         string                            `json:"section_id"`
+	Label             string                            `json:"label"`
+	Type              string                            `json:"type"`
+	Required          bool                              `json:"required"`
+	Description       string                            `json:"description,omitempty"`
+	Options           []string                          `json:"options,omitempty"`
+	AcceptedFormats   []string                          `json:"accepted_formats,omitempty"`
+	Attestation       string                            `json:"attestation,omitempty"`
+	Constraints       formcontract.Constraints          `json:"constraints,omitempty"`
+	Condition         *formcontract.VisibilityCondition `json:"condition,omitempty"`
+	Scoring           *formcontract.Scoring             `json:"scoring,omitempty"`
+	Bindings          []FieldBindingReference           `json:"bindings,omitempty"`
+	SourceResolutions []SourceResolution                `json:"source_resolutions,omitempty"`
 }
 
 type Recipient struct {
@@ -212,6 +218,8 @@ type Request struct {
 	EstimatedMinutes      int                       `json:"estimated_minutes"`
 	Deadline              time.Time                 `json:"deadline"`
 	KnownFacts            map[string]string         `json:"known_facts"`
+	Presentation          formcontract.Presentation `json:"presentation"`
+	Sections              []formcontract.Section    `json:"sections"`
 	Fields                []Field                   `json:"fields"`
 	SourceBindings        []RequestBindingReference `json:"source_bindings,omitempty"`
 	FormTemplateID        string                    `json:"form_template_id,omitempty"`
@@ -238,6 +246,8 @@ type CreateRequestInput struct {
 	EstimatedMinutes      int                       `json:"estimated_minutes"`
 	Deadline              time.Time                 `json:"deadline"`
 	KnownFacts            map[string]string         `json:"known_facts"`
+	Presentation          formcontract.Presentation `json:"presentation"`
+	Sections              []formcontract.Section    `json:"sections"`
 	Fields                []Field                   `json:"fields"`
 	SourceBindings        []RequestBindingReference `json:"source_bindings,omitempty"`
 	FormTemplateID        string                    `json:"form_template_id,omitempty"`

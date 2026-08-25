@@ -3,6 +3,8 @@ package monitoring
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
 
 type RiskBand string
@@ -25,13 +27,7 @@ func DefaultThresholds() Thresholds {
 	return Thresholds{ModerateFrom: 25, HighFrom: 50, CriticalFrom: 75}
 }
 
-type FormField struct {
-	ID              string         `json:"id"`
-	Required        bool           `json:"required"`
-	Weight          int            `json:"weight,omitempty"`
-	AnswerScores    map[string]int `json:"answer_scores,omitempty"`
-	CriticalAnswers []string       `json:"critical_answers,omitempty"`
-}
+type FormField = formcontract.Scoring
 
 type SourceOperator string
 
@@ -105,24 +101,17 @@ type Lifecycle struct {
 	UpdatedAt      time.Time       `json:"updated_at"`
 }
 
-type TemplateField struct {
-	ID              string     `json:"id"`
-	Label           string     `json:"label"`
-	Type            string     `json:"type"`
-	Required        bool       `json:"required"`
-	Description     string     `json:"description,omitempty"`
-	Options         []string   `json:"options,omitempty"`
-	AcceptedFormats []string   `json:"accepted_formats,omitempty"`
-	Scoring         *FormField `json:"scoring,omitempty"`
-}
+type TemplateField = formcontract.Field
 
 type FormTemplate struct {
-	ID       string          `json:"id"`
-	TenantID string          `json:"tenant_id"`
-	Code     string          `json:"code"`
-	Name     string          `json:"name"`
-	Purpose  string          `json:"purpose"`
-	Fields   []TemplateField `json:"fields"`
+	ID           string                    `json:"id"`
+	TenantID     string                    `json:"tenant_id"`
+	Code         string                    `json:"code"`
+	Name         string                    `json:"name"`
+	Purpose      string                    `json:"purpose"`
+	Presentation formcontract.Presentation `json:"presentation"`
+	Sections     []formcontract.Section    `json:"sections"`
+	Fields       []TemplateField           `json:"fields"`
 	Lifecycle
 }
 
