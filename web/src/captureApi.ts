@@ -1,6 +1,6 @@
 import { loadContext } from "./api";
 import { requestJSON } from "./http";
-import type { CaptureRequest, EvidenceRecipient } from "./types";
+import type { CaptureAnswerInputs, CaptureAnswers, CaptureRequest, EvidenceRecipient } from "./types";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -41,6 +41,13 @@ export type CaptureReceipt = {
   submitted_at: string;
   version?: number;
 };
+
+export function normalizeCaptureAnswers(answers: CaptureAnswerInputs): CaptureAnswers {
+  return Object.fromEntries(Object.entries(answers).map(([fieldID, value]) => [
+    fieldID,
+    typeof value === "string" ? { text: value } : value,
+  ]));
+}
 
 function request<T>(path: string, init?: RequestInit): Promise<T> {
   return requestJSON<T>(apiBase, path, init);
@@ -89,11 +96,19 @@ export function loadCaptureSession(sessionToken: string): Promise<CaptureSession
   });
 }
 
-export function submitCaptureSession(sessionToken: string, version: number, answers: Record<string, string>): Promise<CaptureReceipt> {
+export async function submitInternalCaptureRequest(requestID: string, version: number, answers: CaptureAnswerInputs): Promise<CaptureReceipt> {
+  const context = await loadContext();
+  return request<CaptureReceipt>(`/api/v1/evidence/requests/${encodeURIComponent(requestID)}/submissions?tenant_id=${encodeURIComponent(context.tenant.id)}`, {
+    method: "POST",
+    body: JSON.stringify({ tenant_id: context.tenant.id, expected_version: version, answers: normalizeCaptureAnswers(answers) }),
+  });
+}
+
+export function submitCaptureSession(sessionToken: string, version: number, answers: CaptureAnswerInputs): Promise<CaptureReceipt> {
   return request<CaptureReceipt>("/api/v1/evidence/session/submissions", {
     method: "POST",
     headers: { Authorization: `Bearer ${sessionToken}` },
-    body: JSON.stringify({ expected_version: version, answers }),
+    body: JSON.stringify({ expected_version: version, answers: normalizeCaptureAnswers(answers) }),
   });
 }
 

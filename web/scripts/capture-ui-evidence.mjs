@@ -195,7 +195,7 @@ async function captureEvidenceReviewAndReceipt() {
     await saveScreenshot(page, capture.name);
     await record(page, capture, "response-entry");
     await fillCapture(page);
-    const reviewButton = page.getByRole("button", { name: "Review and submit" });
+    const reviewButton = page.getByRole("button", { name: "Review response" });
     if (!(await reviewButton.isEnabled())) throw new Error("Capture review remains disabled after every required field is completed");
     await reviewButton.click();
     await page.getByRole("heading", { name: "Check your response" }).waitFor();
@@ -231,7 +231,7 @@ async function captureCaptureTerminal() {
   try {
     await openEvidenceCapture(page);
     await page.getByRole("heading", { name: "This request has expired" }).waitFor();
-    if (await page.getByRole("button", { name: "Review and submit" }).count()) throw new Error("Expired request still exposed response submission");
+    if (await page.getByRole("button", { name: "Review response" }).count()) throw new Error("Expired request still exposed response submission");
     await saveScreenshot(page, capture.name);
     await record(page, capture, "terminal-expired");
   } finally {
@@ -246,7 +246,7 @@ async function captureCaptureConflict() {
     await openEvidenceCapture(page);
     await page.getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
     await fillCapture(page);
-    await page.getByRole("button", { name: "Review and submit" }).click();
+    await page.getByRole("button", { name: "Review response" }).click();
     await page.getByRole("button", { name: "Submit response" }).click();
     await page.getByText("This request changed while you were working. Reload it before submitting. Your current entries remain on this screen.").waitFor();
     await page.getByRole("button", { name: "Reload request" }).waitFor();
@@ -319,19 +319,19 @@ async function captureFieldVisit() {
     await page.getByRole("button", { name: "Type" }).click();
     await page.getByRole("textbox", { name: "Your name" }).fill("Amina Bello");
     await page.getByRole("button", { name: "Use signature" }).click();
-    if (!(await page.getByRole("button", { name: "Review and submit" }).isEnabled())) throw new Error("Field visit is not ready after two confirmations, one photo and one signature");
+    if (!(await page.getByRole("button", { name: "Review response" }).isEnabled())) throw new Error("Field visit is not ready after two confirmations, one photo and one signature");
     await photoPreview.scrollIntoViewIfNeeded();
     await assertNoHorizontalOverflow(page, capture.name);
     await saveScreenshot(page, capture.name);
     await record(page, capture, "external-field-visit-entry");
-    await page.getByRole("button", { name: "Review and submit" }).click();
+    await page.getByRole("button", { name: "Review response" }).click();
     await page.getByRole("heading", { name: "Check your response" }).waitFor();
     await page.getByText("Photo attached · atm-site.png").waitFor();
     await page.getByText("Signed", { exact: true }).waitFor();
     const reviewCapture = { ...capture, name: "30-field-visit-review-light-390x844" };
     await saveScreenshot(page, reviewCapture.name);
     await record(page, reviewCapture, "external-field-visit-review");
-    await page.getByRole("button", { name: "Submit verification" }).click();
+    await page.getByRole("button", { name: "Submit response" }).click();
     await page.getByRole("heading", { name: "Submitted" }).waitFor();
     const receiptCapture = { ...capture, name: "31-field-visit-receipt-light-390x844" };
     await saveScreenshot(page, receiptCapture.name);

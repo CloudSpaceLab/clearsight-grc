@@ -94,7 +94,7 @@ async function auditEvidenceCaptureSubmission() {
     await page.getByRole("button", { name: "Respond to evidence request" }).click();
     await page.getByRole("textbox", { name: /Processor register owner/ }).fill("Privacy Operations");
     await page.getByLabel(/DPCO review date/).fill("2027-03-01");
-    await page.getByRole("button", { name: "Review and submit" }).click();
+    await page.getByRole("button", { name: "Review response" }).click();
     const submit = page.getByRole("button", { name: "Submit response" });
     await installDelayedFetch(page, "/submissions", 250);
     await submit.click();

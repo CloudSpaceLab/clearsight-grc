@@ -42,7 +42,7 @@ describe("CapturePanel connected-source provenance", () => {
 
     fireEvent.change(input, { target: { value: "Nsukka Branch" } });
     expect(screen.getByText(/Corrected by you · source value was Enugu Main/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review response" }));
     expect(screen.getByText(/Respondent correction · source value: Enugu Main/)).toBeTruthy();
   });
 });

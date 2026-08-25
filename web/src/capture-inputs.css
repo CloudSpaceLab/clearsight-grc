@@ -104,3 +104,32 @@
   color: var(--text-secondary, #52606d);
   font-size: 0.75rem;
 }
+
+.capture-section { display: grid; gap: 16px; min-width: 0; scroll-margin-top: 20px; }
+.capture-section + .capture-section { padding-top: 20px; border-top: 1px solid var(--border); }
+.capture-section > h3 { margin: 0; color: var(--text); font-size: 16px; }
+.capture-section-index { display: grid; gap: 7px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-1); }
+.capture-section-index > span { color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.capture-section-index ol { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; padding-left: 18px; }
+.capture-section-index a,.capture-error-summary a { color: var(--text); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.capture-mode-switch { display: flex; flex-wrap: wrap; gap: 8px; }
+.capture-mode-switch button[aria-pressed="true"] { border-color: var(--accent); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent); }
+.capture-progress { display: grid; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 650; }
+.capture-progress progress { width: 100%; height: 6px; border: 0; border-radius: 99px; overflow: hidden; accent-color: var(--accent); }
+.capture-error-summary { padding: 12px 14px; border: 1px solid var(--coral); border-radius: 12px; background: color-mix(in srgb,var(--coral) 8%,var(--surface-1)); }
+.capture-error-summary strong { color: var(--text); }
+.capture-error-summary ul { margin: 8px 0 0; padding-left: 20px; }
+.field-error { margin: 0; color: var(--coral); font-size: 12px; line-height: 1.45; }
+.capture-check-field { gap: 10px; }
+.capture-check-option { display: flex; align-items: flex-start; gap: 10px; color: var(--text); font-size: 13px; line-height: 1.45; }
+.capture-check-option input { width: 22px; min-width: 22px; height: 22px; min-height: 22px; margin: 0; padding: 0; accent-color: var(--accent); }
+.vendor-document-field { padding: 14px; border: 1px solid var(--border); border-radius: 13px; }
+.vendor-document-metadata { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.vendor-document-metadata .capture-field:first-child { grid-column: 1/-1; }
+
+@media (max-width: 600px) {
+  .capture-section-index ol { display: grid; }
+  .capture-mode-switch { display: grid; grid-template-columns: 1fr; }
+  .vendor-document-metadata { grid-template-columns: 1fr; }
+  .vendor-document-metadata .capture-field:first-child { grid-column: auto; }
+}

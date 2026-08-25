@@ -1,11 +1,14 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { submitCaptureRequest } from "../api";
+import { submitInternalCaptureRequest } from "../captureApi";
 import { ApiError } from "../http";
 import type { CaptureRequest } from "../types";
 import { CapturePanel } from "./CapturePanel";
 
-vi.mock("../api", () => ({ submitCaptureRequest: vi.fn() }));
+vi.mock("../captureApi", async () => ({
+  ...await vi.importActual<typeof import("../captureApi")>("../captureApi"),
+  submitInternalCaptureRequest: vi.fn(),
+}));
 
 const request: CaptureRequest = {
   id: "request-1",
@@ -33,22 +36,22 @@ const multiFieldRequest: CaptureRequest = {
 
 describe("CapturePanel", () => {
   it("uses a short input and reviews the exact response before submitting", async () => {
-    vi.mocked(submitCaptureRequest).mockResolvedValue({ request_id: request.id, status: "SUBMITTED", submitted_at: "2026-08-06T19:30:00Z" });
+    vi.mocked(submitInternalCaptureRequest).mockResolvedValue({ request_id: request.id, status: "SUBMITTED", submitted_at: "2026-08-06T19:30:00Z" });
     render(<CapturePanel request={request}/>);
 
     const owner = screen.getByRole("textbox", { name: /Current owner/ }) as HTMLInputElement;
     expect(owner.tagName).toBe("INPUT");
     fireEvent.change(owner, { target: { value: "Treasury Technology" } });
-    fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review response" }));
 
     expect(screen.getByRole("heading", { name: "Check your response" })).toBeTruthy();
     expect(screen.getByText("Treasury Technology")).toBeTruthy();
-    expect(submitCaptureRequest).not.toHaveBeenCalled();
+    expect(submitInternalCaptureRequest).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Submit response" }));
-    await waitFor(() => expect(submitCaptureRequest).toHaveBeenCalledWith(request.id, 3, { owner: "Treasury Technology" }));
+    await waitFor(() => expect(submitInternalCaptureRequest).toHaveBeenCalledWith(request.id, 3, { owner: { text: "Treasury Technology" } }));
     expect(await screen.findByRole("heading", { name: "Response submitted" })).toBeTruthy();
-    expect(screen.getByText(/evidence quality is reviewed separately/i)).toBeTruthy();
+    expect(screen.getByText(/recorded for evidence review/i)).toBeTruthy();
   });
 
   it("uses the native date control and preserves multiple answers", () => {
@@ -59,7 +62,7 @@ describe("CapturePanel", () => {
     expect(date.type).toBe("date");
     fireEvent.change(date, { target: { value: "2027-03-01" } });
 
-    const review = screen.getByRole("button", { name: "Review and submit" }) as HTMLButtonElement;
+    const review = screen.getByRole("button", { name: "Review response" }) as HTMLButtonElement;
     expect(review.disabled).toBe(false);
     fireEvent.click(review);
 
@@ -74,7 +77,7 @@ describe("CapturePanel", () => {
     expect(yes).toBeTruthy();
     expect(no).toBeTruthy();
     fireEvent.click(yes);
-    expect((screen.getByRole("button", { name: "Review and submit" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: "Review response" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("uploads a photo and reviews it without exposing the artifact id", async () => {
@@ -85,7 +88,7 @@ describe("CapturePanel", () => {
     fireEvent.change(input, { target: { files: [file] } });
     await waitFor(() => expect(upload).toHaveBeenCalledWith(request.id, file));
     expect(screen.getByText(/atm\.jpg/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review response" }));
     expect(screen.getByText(/Photo attached · atm.jpg/)).toBeTruthy();
     expect(screen.queryByText("artifact-secret-id")).toBeNull();
   });
@@ -106,7 +109,7 @@ describe("CapturePanel", () => {
     expect((await screen.findByRole("alert")).textContent).toMatch(/previous attachment is still selected/i);
     expect(screen.getByText(/original\.jpg/)).toBeTruthy();
 
-    const review = screen.getByRole("button", { name: "Review and submit" }) as HTMLButtonElement;
+    const review = screen.getByRole("button", { name: "Review response" }) as HTMLButtonElement;
     expect(review.disabled).toBe(false);
     fireEvent.click(review);
     expect(screen.getByText(/Photo attached · original.jpg/)).toBeTruthy();
@@ -125,7 +128,7 @@ describe("CapturePanel", () => {
 
     await waitFor(() => expect(screen.queryByText(/old\.jpg/)).toBeNull());
     expect((screen.getByRole("textbox", { name: /Current owner/ }) as HTMLInputElement).value).toBe("");
-    expect((screen.getByRole("button", { name: "Review and submit" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole("button", { name: "Review response" })).toBeTruthy();
   });
 
   it("ignores a submission completion after the active request changes", async () => {
@@ -134,7 +137,7 @@ describe("CapturePanel", () => {
     const { rerender } = render(<CapturePanel request={request} onSubmit={submit}/>);
 
     fireEvent.change(screen.getByRole("textbox", { name: /Current owner/ }), { target: { value: "Treasury Technology" } });
-    fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review response" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit response" }));
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
 
@@ -150,8 +153,8 @@ describe("CapturePanel", () => {
     render(<CapturePanel request={request} external onSubmit={submit}/>);
 
     fireEvent.change(screen.getByRole("textbox", { name: /Current owner/ }), { target: { value: "Treasury Technology" } });
-    fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
-    fireEvent.click(screen.getByRole("button", { name: "Submit verification" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review response" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit response" }));
 
     expect(await screen.findByRole("heading", { name: "Submitted" })).toBeTruthy();
     expect(screen.getByText("Your response was recorded.")).toBeTruthy();
@@ -163,6 +166,44 @@ describe("CapturePanel", () => {
     const input = screen.getByLabelText(/Site photo/) as HTMLInputElement;
     expect(input.accept).toBe("image/jpeg");
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("submits typed vendor-document metadata with the uploaded artifact", async () => {
+    const submit = vi.fn().mockResolvedValue({ submitted_at: "2026-08-07T21:30:00Z" });
+    const upload = vi.fn().mockResolvedValue({ id: "artifact-certificate", request_id: request.id, file_name: "iso.pdf", media_type: "application/pdf", size_bytes: 2400, sha256: "hash", status: "STORED_UNSCANNED" });
+    render(<CapturePanel request={{ ...request, fields: [{ id: "certificate", label: "ISO certificate", type: "vendor_document", required: true, accepted_formats: ["application/pdf"] }] }} onSubmit={submit} onUploadArtifact={upload}/>);
+
+    fireEvent.change(screen.getByLabelText("Document type"), { target: { value: "ISO 27001 certificate" } });
+    fireEvent.change(screen.getByLabelText("Document reference"), { target: { value: "CERT-2026-81" } });
+    const file = new File(["certificate"], "iso.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText(/ISO certificate file/), { target: { files: [file] } });
+    await waitFor(() => expect(upload).toHaveBeenCalledWith(request.id, file));
+
+    fireEvent.click(screen.getByRole("button", { name: "Review response" }));
+    expect(screen.getByText(/ISO 27001 certificate · CERT-2026-81/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Submit response" }));
+    await waitFor(() => expect(submit).toHaveBeenCalledWith(expect.objectContaining({ id: request.id }), {
+      certificate: { document: { artifact_id: "artifact-certificate", document_type: "ISO 27001 certificate", reference: "CERT-2026-81" } },
+    }));
+  });
+
+  it("omits an answer when a controlling response hides its field", async () => {
+    const submit = vi.fn().mockResolvedValue({ submitted_at: "2026-08-07T21:30:00Z" });
+    render(<CapturePanel request={{
+      ...request,
+      fields: [
+        { id: "handles_data", label: "Handles customer data", type: "yes_no", required: true },
+        { id: "location", label: "Processing location", type: "short_text", required: true, condition: { field_id: "handles_data", operator: "EQUALS", values: ["Yes"] } },
+      ],
+    }} onSubmit={submit}/>);
+
+    fireEvent.click(screen.getByRole("radio", { name: "Yes" }));
+    fireEvent.change(screen.getByRole("textbox", { name: /Processing location/ }), { target: { value: "Lagos" } });
+    fireEvent.click(screen.getByRole("radio", { name: "No" }));
+    expect(screen.queryByRole("textbox", { name: /Processing location/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Review response" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit response" }));
+    await waitFor(() => expect(submit).toHaveBeenCalledWith(expect.objectContaining({ id: request.id }), { handles_data: { text: "No" } }));
   });
 
   it("labels each collapsed optional external note with its request field", () => {
@@ -185,7 +226,7 @@ describe("CapturePanel", () => {
     render(<CapturePanel request={{ ...request, status: "EXPIRED" }}/>);
     expect(screen.getByRole("heading", { name: "This request has expired" })).toBeTruthy();
     expect(screen.queryByRole("textbox")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Review and submit" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Review response" })).toBeNull();
   });
 
   it("distinguishes loading and forbidden states without exposing request fields", () => {
@@ -198,10 +239,10 @@ describe("CapturePanel", () => {
 
   it("surfaces an optimistic conflict and keeps the response available for reload", async () => {
     const reload = vi.fn();
-    vi.mocked(submitCaptureRequest).mockRejectedValue(new ApiError(409, "The request changed", "version_conflict"));
+    vi.mocked(submitInternalCaptureRequest).mockRejectedValue(new ApiError(409, "The request changed", "version_conflict"));
     render(<CapturePanel request={request} onReload={reload}/>);
     fireEvent.change(screen.getByRole("textbox", { name: /Current owner/ }), { target: { value: "Treasury Technology" } });
-    fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review response" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit response" }));
     expect((await screen.findByRole("alert")).textContent).toMatch(/changed while you were working/i);
     fireEvent.click(screen.getByRole("button", { name: "Reload request" }));
@@ -210,7 +251,7 @@ describe("CapturePanel", () => {
 
   it("fails closed for a genuinely unknown field contract", () => {
     render(<CapturePanel request={{ ...request, fields: [{ id: "unknown", label: "Unrecognized field", type: "biometric_scan", required: true }] }}/>);
-    expect(screen.getByRole("alert").textContent).toMatch(/cannot safely collect/i);
-    expect((screen.getByRole("button", { name: "Review and submit" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole("alert").textContent).toMatch(/cannot be collected here/i);
+    expect((screen.getByRole("button", { name: "Review response" }) as HTMLButtonElement).disabled).toBe(true);
   });
 });

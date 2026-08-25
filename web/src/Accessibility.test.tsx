@@ -82,8 +82,25 @@ describe("semantic accessibility gates", () => {
   it("passes axe for the final capture assertion review", async () => {
     const { container } = render(<CapturePanel request={request}/>);
     fireEvent.change(screen.getByRole("textbox", { name: /Current accountable owner/ }), { target: { value: "Ada Okafor" } });
-    fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review response" }));
     expect(screen.getByRole("heading", { name: "Check your response" })).toBeTruthy();
+    await expectNoSemanticViolations(container);
+  });
+
+  it("passes axe for Wizard progress, typed fields, and the linked error summary", async () => {
+    const typedRequest: CaptureRequest = {
+      ...request,
+      presentation: { default_mode: "WIZARD", allow_mode_switch: true },
+      sections: [{ id: "contact", title: "Contact" }, { id: "authority", title: "Authority" }],
+      fields: [
+        { id: "email", section_id: "contact", label: "Security contact email", type: "email", required: true },
+        { id: "regions", section_id: "contact", label: "Processing regions", type: "multi_select", required: true, options: ["Nigeria", "Ghana"], constraints: { min_selections: 1 } },
+        { id: "attestation", section_id: "authority", label: "Authorized response", type: "attestation", required: true, attestation: "I confirm that I am authorized to submit this response." },
+      ],
+    };
+    const { container } = render(<CapturePanel request={typedRequest} external/>);
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(screen.getByRole("alert").textContent).toMatch(/Security contact email is required/);
     await expectNoSemanticViolations(container);
   });
 
