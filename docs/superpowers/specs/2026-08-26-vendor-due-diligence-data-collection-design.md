@@ -47,7 +47,7 @@ Required fields:
 - stable episode key;
 - status;
 - exact form-template ID and version;
-- linked Evidence Request ID when provisioned;
+- current Evidence Request ID when provisioned, plus versioned request-link history;
 - linked vendor-review Matter ID when provisioned;
 - collection deadline;
 - started-by verified principal and start time;
@@ -74,7 +74,11 @@ The assessment stores its onboarding-review Matter ID and uses a narrow link rec
 
 The generic Matter domain gains a `VENDOR_REVIEW` type for the bounded onboarding review. `VENDOR_DEFICIENCY` continues to represent each material finding. A response or assessment cannot edit Matter status indirectly.
 
-### 3.3 Validated vendor documents
+### 3.3 Assessment-to-request links
+
+An assessment keeps ordered links to its Evidence Requests. Link purpose is `INITIAL` or `CLARIFICATION`; sequence starts at one and is unique within the assessment. The assessment identifies the current request, while prior submitted, expired, cancelled or replaced requests remain reconstructable. Each request uses the immutable origin `{THIRD_PARTY_ASSESSMENT, assessment ID, sequence}` so retries reuse the exact request and a clarification creates a new request deliberately.
+
+### 3.4 Validated vendor documents
 
 Uploads remain capture artifacts. A `third_party_document` record is created only when an authorized reviewer classifies and validates an uploaded artifact.
 
@@ -94,7 +98,7 @@ It records:
 
 Upload, successful malware scanning, reviewer acceptance and current validity remain separate states.
 
-### 3.4 Events and outbox
+### 3.5 Events and outbox
 
 The existing `third_party_events` table will support assessment aggregate events in addition to relationship events. Material assessment commands append a versioned event and safe outbox fact in the same transaction as the authoritative change and required maintenance work.
 
@@ -157,7 +161,7 @@ The token never appears in logs, analytics, referer-bearing links, previews or s
 
 ### 5.3 Delivery and fallback
 
-If shared notification delivery is configured, a safe outbox fact requests email delivery. ClearSight records delivery status separately from invitation creation.
+If a shared protected invitation-delivery adapter is configured, the verified send command passes the raw recipient and one-time link directly to that adapter after invitation creation. The adapter returns a delivery receipt that contains provider reference, status and time but not the raw address or token. Delivery is intentionally separate from the safe third-party outbox because a redacted outbox event does not contain enough information to send an email.
 
 When delivery is not configured or fails, the workspace states **Secure link created; email not sent** and provides a controlled copy-link action to an authorized request manager. It never claims that the vendor was contacted merely because a token exists.
 
@@ -302,7 +306,7 @@ The internal review workspace shows:
 An authorized reviewer may:
 
 - accept or reject a document and record validation metadata;
-- request clarification through a new bounded Evidence Request revision or replacement;
+- request clarification through the next ordered Evidence Request link with a new immutable origin sequence;
 - create a canonical `VENDOR_DEFICIENCY` Matter from a material gap;
 - record a conclusion with rationale and uncertainty;
 - complete the assessment when required review conditions are satisfied.
