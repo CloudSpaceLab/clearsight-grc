@@ -1,1 +1,5 @@
+BEGIN;
+
 DROP INDEX IF EXISTS continuity_response_package_history_idx;
+
+COMMIT;

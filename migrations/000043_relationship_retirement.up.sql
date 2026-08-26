@@ -1,3 +1,5 @@
+BEGIN;
+
 ALTER TABLE requirement_control_links
     ADD COLUMN retired_at timestamptz,
     ADD COLUMN retired_by uuid,
@@ -57,3 +59,5 @@ CREATE INDEX matter_links_program_idx
 CREATE INDEX matter_links_matter_current_idx
     ON matter_links(tenant_id,matter_id,created_at,id)
     WHERE retired_at IS NULL;
+
+COMMIT;

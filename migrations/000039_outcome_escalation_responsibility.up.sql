@@ -1,3 +1,5 @@
+BEGIN;
+
 ALTER TABLE matter_actions
     ADD COLUMN required_responsibility text NOT NULL DEFAULT 'PERFORMER'
     CHECK (required_responsibility IN (
@@ -19,3 +21,5 @@ WHERE vc.tenant_id = vr.tenant_id
 ALTER TABLE verification_results
     ADD CONSTRAINT verification_results_reviewer_authority_tenant_fk
     FOREIGN KEY (reviewer_authority_principal_id,tenant_id) REFERENCES principals(id,tenant_id);
+
+COMMIT;

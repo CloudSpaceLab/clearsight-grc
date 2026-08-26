@@ -1,3 +1,5 @@
+BEGIN;
+
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM matter_links WHERE retired_at IS NOT NULL) OR
@@ -39,3 +41,5 @@ ALTER TABLE requirement_control_links
     UNIQUE (tenant_id,program_id,requirement_id,implementation_id);
 CREATE INDEX requirement_control_links_program_idx
     ON requirement_control_links(tenant_id,program_id,requirement_id);
+
+COMMIT;
