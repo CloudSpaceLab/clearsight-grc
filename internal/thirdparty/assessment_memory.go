@@ -13,16 +13,17 @@ import (
 
 type MemoryAssessmentRepository struct {
 	*MemoryRepository
-	assessmentMu        sync.RWMutex
-	assessments         map[string]Assessment
-	episodes            map[string]string
-	requestLinks        map[string][]AssessmentRequestLink
-	reactions           map[string]assessmentReactionReceipt
-	setupJobs           map[string]AssessmentSetupJob
-	matterLinks         map[string][]AssessmentMatterLink
-	assessmentEvents    []memoryAssessmentAudit
-	assessmentOutbox    []memoryAssessmentAudit
-	assessmentDocuments map[string]map[string]AssessmentDocument
+	relationshipLinkRepo *MemoryRelationshipLinkRepository
+	assessmentMu         sync.RWMutex
+	assessments          map[string]Assessment
+	episodes             map[string]string
+	requestLinks         map[string][]AssessmentRequestLink
+	reactions            map[string]assessmentReactionReceipt
+	setupJobs            map[string]AssessmentSetupJob
+	matterLinks          map[string][]AssessmentMatterLink
+	assessmentEvents     []memoryAssessmentAudit
+	assessmentOutbox     []memoryAssessmentAudit
+	assessmentDocuments  map[string]map[string]AssessmentDocument
 }
 
 type assessmentReactionReceipt struct {
@@ -41,14 +42,15 @@ type memoryAssessmentAudit struct {
 
 func NewMemoryAssessmentRepository() *MemoryAssessmentRepository {
 	return &MemoryAssessmentRepository{
-		MemoryRepository:    NewMemoryRepository(),
-		assessments:         map[string]Assessment{},
-		episodes:            map[string]string{},
-		requestLinks:        map[string][]AssessmentRequestLink{},
-		reactions:           map[string]assessmentReactionReceipt{},
-		setupJobs:           map[string]AssessmentSetupJob{},
-		matterLinks:         map[string][]AssessmentMatterLink{},
-		assessmentDocuments: map[string]map[string]AssessmentDocument{},
+		MemoryRepository:     NewMemoryRepository(),
+		relationshipLinkRepo: NewMemoryRelationshipLinkRepository(),
+		assessments:          map[string]Assessment{},
+		episodes:             map[string]string{},
+		requestLinks:         map[string][]AssessmentRequestLink{},
+		reactions:            map[string]assessmentReactionReceipt{},
+		setupJobs:            map[string]AssessmentSetupJob{},
+		matterLinks:          map[string][]AssessmentMatterLink{},
+		assessmentDocuments:  map[string]map[string]AssessmentDocument{},
 	}
 }
 
@@ -226,6 +228,11 @@ func (r *MemoryAssessmentRepository) ApplyAssessmentReaction(_ context.Context, 
 		if current.Status != AssessmentSetupPending || !validAssessmentIdentifiers(record.CausationID, record.JobID, record.MatterID) {
 			return Assessment{}, ErrInvalidAssessmentTransition
 		}
+		canonical, err := r.ensureMemoryAssessmentMatterRelationshipLink(current, record.MatterID, AssessmentMatterReview, current.StartedByPrincipalID, record.At)
+		if err != nil {
+			return Assessment{}, err
+		}
+		r.matterLinks[current.ID] = append(r.matterLinks[current.ID], AssessmentMatterLink{Scope: record.Scope, AssessmentID: current.ID, MatterID: record.MatterID, RelationshipLinkID: canonical.ID, Kind: AssessmentMatterReview, CreatedAt: record.At.UTC()})
 		current.Status = AssessmentReadyToSend
 		current.ReviewMatterID = record.MatterID
 	case AssessmentReactionSubmitted:
@@ -470,14 +477,15 @@ func (r *MemoryAssessmentRepository) ListAssessmentMatterLinks(_ context.Context
 	if !ok || assessment.TenantID != scope.TenantID || assessment.LegalEntityID != scope.LegalEntityID {
 		return nil, ErrNotFound
 	}
-	values := []AssessmentMatterLink{}
-	if assessment.ReviewMatterID != "" {
-		values = append(values, AssessmentMatterLink{
-			Scope: scope, AssessmentID: assessment.ID, MatterID: assessment.ReviewMatterID,
-			Kind: AssessmentMatterReview, CreatedAt: assessment.UpdatedAt,
-		})
+	values := append([]AssessmentMatterLink(nil), r.matterLinks[assessment.ID]...)
+	r.relationshipLinkRepo.mu.RLock()
+	defer r.relationshipLinkRepo.mu.RUnlock()
+	for _, link := range values {
+		canonical, exists := r.relationshipLinkRepo.links[link.RelationshipLinkID]
+		if !exists || canonical.TenantID != scope.TenantID || canonical.LegalEntityID != scope.LegalEntityID || canonical.RelationshipID != assessment.RelationshipID || canonical.TargetType != LinkTargetMatter || canonical.TargetID != link.MatterID {
+			return nil, ErrNotFound
+		}
 	}
-	values = append(values, r.matterLinks[assessment.ID]...)
 	if len(values) > limit {
 		values = values[:limit]
 	}

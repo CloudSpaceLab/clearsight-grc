@@ -88,15 +88,25 @@ func TestPostgresAssessmentProvisionerCompletionIsAtomic(t *testing.T) {
 	if err != nil || len(jobs) != 1 || jobs[0].State != AssessmentJobCompleted {
 		t.Fatalf("completed jobs = (%#v, %v)", jobs, err)
 	}
-	var links, reactions int
-	if err := pool.QueryRow(ctx, `SELECT count(*) FROM third_party_assessment_matter_links WHERE assessment_id=$1::uuid AND matter_id=$2::uuid`, assessment.ID, matter.Matter.ID).Scan(&links); err != nil {
+	var links, canonicalLinks, reactions int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM third_party_assessment_matter_links assessment_link
+		JOIN third_party_relationship_matter_links relationship_link
+		  ON relationship_link.id=assessment_link.relationship_link_id
+		 AND relationship_link.tenant_id=assessment_link.tenant_id
+		 AND relationship_link.legal_entity_id=assessment_link.legal_entity_id
+		 AND relationship_link.relationship_id=$3::uuid
+		 AND relationship_link.matter_id=assessment_link.matter_id
+		WHERE assessment_link.assessment_id=$1::uuid AND assessment_link.matter_id=$2::uuid`, assessment.ID, matter.Matter.ID, assessment.RelationshipID).Scan(&links); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM third_party_relationship_matter_links WHERE relationship_id=$1::uuid AND matter_id=$2::uuid AND state='ACTIVE'`, assessment.RelationshipID, matter.Matter.ID).Scan(&canonicalLinks); err != nil {
 		t.Fatal(err)
 	}
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM third_party_assessment_reactions WHERE assessment_id=$1::uuid AND reaction_kind='SETUP_COMPLETED'`, assessment.ID).Scan(&reactions); err != nil {
 		t.Fatal(err)
 	}
-	if links != 1 || reactions != 1 {
-		t.Fatalf("links=%d reactions=%d", links, reactions)
+	if links != 1 || canonicalLinks != 1 || reactions != 1 {
+		t.Fatalf("assessment_links=%d canonical_links=%d reactions=%d", links, canonicalLinks, reactions)
 	}
 	assertAssessmentTypedCount(t, pool, "third_party_events", "THIRD_PARTY_ASSESSMENT", 2)
 	assertAssessmentTypedCount(t, pool, "outbox_events", "THIRD_PARTY_ASSESSMENT", 2)

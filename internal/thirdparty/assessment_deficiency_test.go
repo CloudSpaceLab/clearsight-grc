@@ -34,8 +34,32 @@ func TestCreateAssessmentDeficiencyCreatesCanonicalRestrictedMatterAndSafeLink(t
 		t.Fatalf("deficiency access = %#v", policy)
 	}
 	links, err := repo.ListAssessmentMatterLinks(context.Background(), scopeFromVerified(), assessment.ID, assessmentReviewMaxMatters+1)
-	if err != nil || len(links) != 2 || links[1].Kind != AssessmentMatterDeficiency || links[1].MatterID != outcome.Matter.Matter.ID {
+	if err != nil || len(links) == 0 {
 		t.Fatalf("matter links = (%#v, %v)", links, err)
+	}
+	var deficiencyLink AssessmentMatterLink
+	for _, link := range links {
+		if link.Kind == AssessmentMatterDeficiency {
+			deficiencyLink = link
+		}
+	}
+	if deficiencyLink.MatterID != outcome.Matter.Matter.ID || deficiencyLink.RelationshipLinkID == "" {
+		t.Fatalf("deficiency link = %#v", deficiencyLink)
+	}
+	canonical, err := repo.ListRelationshipLinks(context.Background(), scopeFromVerified(), RelationshipLinkListInput{RelationshipID: assessment.RelationshipID, TargetType: LinkTargetMatter, Limit: 10})
+	if err != nil || len(canonical.Items) == 0 {
+		t.Fatalf("canonical relationship links = (%#v, %v)", canonical, err)
+	}
+	for _, link := range links {
+		found := false
+		for _, relationshipLink := range canonical.Items {
+			if relationshipLink.ID == link.RelationshipLinkID && relationshipLink.TargetID == link.MatterID && relationshipLink.RelationshipID == assessment.RelationshipID {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("assessment link does not reference its canonical vendor relationship link: %#v", link)
+		}
 	}
 	replayed, err := service.CreateDeficiency(assessmentContext(), assessmentActor(), assessment.ID, input)
 	if err != nil || replayed.Matter.Matter.ID != outcome.Matter.Matter.ID || replayed.Assessment.Version != outcome.Assessment.Version {
@@ -49,6 +73,78 @@ func TestCreateAssessmentDeficiencyCreatesCanonicalRestrictedMatterAndSafeLink(t
 		if strings.Contains(strings.ToLower(string(stored)), protected) {
 			t.Fatalf("protected field persisted: %s", stored)
 		}
+	}
+}
+
+type ambiguousDeficiencyRepository struct {
+	AssessmentRepository
+	failBeforeCommit bool
+}
+
+func (r *ambiguousDeficiencyRepository) LinkAssessmentDeficiency(ctx context.Context, record LinkAssessmentDeficiencyRecord) (AssessmentMatterLink, Assessment, error) {
+	if r.failBeforeCommit {
+		return AssessmentMatterLink{}, Assessment{}, errors.New("link unavailable")
+	}
+	_, _, err := r.AssessmentRepository.LinkAssessmentDeficiency(ctx, record)
+	if err != nil {
+		return AssessmentMatterLink{}, Assessment{}, err
+	}
+	return AssessmentMatterLink{}, Assessment{}, errors.New("commit result unavailable")
+}
+
+type recordingCompensatingMatters struct {
+	service *continuity.Service
+	created continuity.MatterAggregate
+}
+
+func (m *recordingCompensatingMatters) MatterByTriggerKey(ctx context.Context, tenant, triggerKey string) (continuity.MatterAggregate, error) {
+	return m.service.MatterByTriggerKey(ctx, tenant, triggerKey)
+}
+
+func (m *recordingCompensatingMatters) CreateMatter(ctx context.Context, input continuity.CreateMatterInput) (continuity.MatterAggregate, error) {
+	value, err := m.service.CreateMatter(ctx, input)
+	if err == nil {
+		m.created = value
+	}
+	return value, err
+}
+
+func (m *recordingCompensatingMatters) TransitionMatter(ctx context.Context, input continuity.TransitionInput) (continuity.MatterAggregate, error) {
+	return m.service.TransitionMatter(ctx, input)
+}
+
+func TestCreateAssessmentDeficiencyReconcilesCommittedLinkAfterAmbiguousFailure(t *testing.T) {
+	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	assessment := assessmentUnderReviewFixture(t, assessmentService, repo, relationship)
+	matters := continuity.NewService(continuity.NewMemoryRepository())
+	service := NewAssessmentDeficiencyService(assessmentService, &ambiguousDeficiencyRepository{AssessmentRepository: repo}, matters)
+	input := CreateAssessmentDeficiencyInput{ExpectedVersion: assessment.Version, TriggerKey: "access-review", Title: "Resolve the access review gap", Summary: "The submitted access review does not cover the assessed service."}
+
+	outcome, err := service.CreateDeficiency(assessmentContext(), assessmentActor(), assessment.ID, input)
+	if err != nil {
+		t.Fatalf("ambiguous committed link returned an error: %v", err)
+	}
+	if outcome.Assessment.Version != assessment.Version+1 || outcome.Matter.Matter.ID == "" {
+		t.Fatalf("reconciled outcome = %#v", outcome)
+	}
+}
+
+func TestCreateAssessmentDeficiencyCancelsNewMatterWhenLinkDidNotCommit(t *testing.T) {
+	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	assessment := assessmentUnderReviewFixture(t, assessmentService, repo, relationship)
+	matters := &recordingCompensatingMatters{service: continuity.NewService(continuity.NewMemoryRepository())}
+	service := NewAssessmentDeficiencyService(assessmentService, &ambiguousDeficiencyRepository{AssessmentRepository: repo, failBeforeCommit: true}, matters)
+	input := CreateAssessmentDeficiencyInput{ExpectedVersion: assessment.Version, TriggerKey: "access-review", Title: "Resolve the access review gap", Summary: "The submitted access review does not cover the assessed service."}
+
+	if _, err := service.CreateDeficiency(assessmentContext(), assessmentActor(), assessment.ID, input); err == nil {
+		t.Fatal("link failure returned success")
+	}
+	stored, err := matters.service.GetMatter(context.Background(), assessment.TenantID, matters.created.Matter.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Matter.Status != continuity.MatterCancelled || !strings.Contains(stored.Matter.ClosureReason, "not linked") {
+		t.Fatalf("compensated matter = %#v", stored.Matter)
 	}
 }
 

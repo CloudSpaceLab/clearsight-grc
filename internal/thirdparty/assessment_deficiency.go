@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -35,6 +36,10 @@ type AssessmentDeficiencyOutcome struct {
 type assessmentDeficiencyMatters interface {
 	MatterByTriggerKey(context.Context, string, string) (continuity.MatterAggregate, error)
 	CreateMatter(context.Context, continuity.CreateMatterInput) (continuity.MatterAggregate, error)
+}
+
+type assessmentDeficiencyMatterCompensator interface {
+	TransitionMatter(context.Context, continuity.TransitionInput) (continuity.MatterAggregate, error)
 }
 
 type AssessmentDeficiencyService struct {
@@ -81,11 +86,13 @@ func (s *AssessmentDeficiencyService) CreateDeficiency(ctx context.Context, _ Ac
 	}
 	triggerKey := assessmentDeficiencyTriggerKey(scope, assessment.ID, input.TriggerKey)
 	matter, err := s.matters.MatterByTriggerKey(ctx, scope.TenantID, triggerKey)
+	created := false
 	if assessment.Version != input.ExpectedVersion && errors.Is(err, continuity.ErrNotFound) {
 		return AssessmentDeficiencyOutcome{}, ErrVersionConflict
 	}
 	if errors.Is(err, continuity.ErrNotFound) {
 		matter, err = s.matters.CreateMatter(ctx, deficiencyMatterInput(verified, assessment, input, triggerKey))
+		created = err == nil
 		if err != nil {
 			matter, err = s.matters.MatterByTriggerKey(ctx, scope.TenantID, triggerKey)
 		}
@@ -98,9 +105,37 @@ func (s *AssessmentDeficiencyService) CreateDeficiency(ctx context.Context, _ Ac
 	}
 	_, updated, err := s.repo.LinkAssessmentDeficiency(ctx, LinkAssessmentDeficiencyRecord{Scope: scope, AssessmentID: assessment.ID, ExpectedVersion: input.ExpectedVersion, ActorPrincipalID: verified.PrincipalID, MatterID: matter.Matter.ID, MatterTriggerKey: triggerKey, LinkedAt: s.assessments.now().UTC()})
 	if err != nil {
+		if reconciled, ok := s.reconcileDeficiencyLink(ctx, scope, assessment, matter); ok {
+			return reconciled, nil
+		}
+		if created {
+			if compensator, ok := s.matters.(assessmentDeficiencyMatterCompensator); ok {
+				_, compensationErr := compensator.TransitionMatter(ctx, continuity.TransitionInput{TenantID: scope.TenantID, ID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, To: continuity.MatterCancelled, Rationale: "The assessment finding was not linked. Retry the request.", ActorID: verified.PrincipalID})
+				if compensationErr != nil {
+					return AssessmentDeficiencyOutcome{}, errors.Join(err, fmt.Errorf("cancel unlinked assessment finding: %w", compensationErr))
+				}
+			}
+		}
 		return AssessmentDeficiencyOutcome{}, err
 	}
 	return AssessmentDeficiencyOutcome{Assessment: updated, Matter: matter}, nil
+}
+
+func (s *AssessmentDeficiencyService) reconcileDeficiencyLink(ctx context.Context, scope Scope, assessment Assessment, matter continuity.MatterAggregate) (AssessmentDeficiencyOutcome, bool) {
+	links, err := s.repo.ListAssessmentMatterLinks(ctx, scope, assessment.ID, assessmentReviewMaxMatters+1)
+	if err != nil {
+		return AssessmentDeficiencyOutcome{}, false
+	}
+	for _, link := range links {
+		if link.Kind != AssessmentMatterDeficiency || link.MatterID != matter.Matter.ID || link.RelationshipLinkID == "" {
+			continue
+		}
+		current, readErr := s.repo.GetAssessment(ctx, scope, assessment.ID)
+		if readErr == nil && current.Version == assessment.Version+1 && current.Status == AssessmentUnderReview {
+			return AssessmentDeficiencyOutcome{Assessment: current, Matter: matter}, true
+		}
+	}
+	return AssessmentDeficiencyOutcome{}, false
 }
 
 func assessmentDeficiencyTriggerKey(scope Scope, assessmentID, clientKey string) string {

@@ -28,10 +28,10 @@ func (r *PostgresRepository) LinkAssessmentDeficiency(ctx context.Context, recor
 		return AssessmentMatterLink{}, Assessment{}, err
 	}
 	var existing AssessmentMatterLink
-	err = tx.QueryRow(ctx, `SELECT t.slug,l.legal_entity_id::text,l.assessment_id::text,l.matter_id::text,l.link_kind,l.created_at
+	err = tx.QueryRow(ctx, `SELECT t.slug,l.legal_entity_id::text,l.assessment_id::text,l.matter_id::text,l.relationship_link_id::text,l.link_kind,l.created_at
 		FROM third_party_assessment_matter_links l JOIN tenants t ON t.id=l.tenant_id
 		WHERE l.tenant_id=$1::uuid AND l.legal_entity_id::text=$2 AND l.assessment_id=$3::uuid AND l.matter_id=$4::uuid
-		FOR UPDATE OF l`, tenantID, record.LegalEntityID, record.AssessmentID, record.MatterID).Scan(&existing.TenantID, &existing.LegalEntityID, &existing.AssessmentID, &existing.MatterID, &existing.Kind, &existing.CreatedAt)
+		FOR UPDATE OF l`, tenantID, record.LegalEntityID, record.AssessmentID, record.MatterID).Scan(&existing.TenantID, &existing.LegalEntityID, &existing.AssessmentID, &existing.MatterID, &existing.RelationshipLinkID, &existing.Kind, &existing.CreatedAt)
 	if err == nil {
 		if existing.Kind != AssessmentMatterDeficiency {
 			return AssessmentMatterLink{}, Assessment{}, ErrInvalid
@@ -68,8 +68,12 @@ func (r *PostgresRepository) LinkAssessmentDeficiency(ctx context.Context, recor
 	if err != nil {
 		return AssessmentMatterLink{}, Assessment{}, fmt.Errorf("verify canonical deficiency Matter: %w", err)
 	}
-	link := AssessmentMatterLink{Scope: record.Scope, AssessmentID: current.ID, MatterID: record.MatterID, Kind: AssessmentMatterDeficiency, CreatedAt: record.LinkedAt.UTC()}
-	if _, err = tx.Exec(ctx, `INSERT INTO third_party_assessment_matter_links(tenant_id,legal_entity_id,assessment_id,matter_id,link_kind,created_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,'DEFICIENCY',$5)`, tenantID, record.LegalEntityID, current.ID, record.MatterID, link.CreatedAt); err != nil {
+	canonical, err := ensureAssessmentMatterRelationshipLink(ctx, tx, tenantID, current, record.MatterID, AssessmentMatterDeficiency, record.ActorPrincipalID, record.LinkedAt)
+	if err != nil {
+		return AssessmentMatterLink{}, Assessment{}, err
+	}
+	link := AssessmentMatterLink{Scope: record.Scope, AssessmentID: current.ID, MatterID: record.MatterID, RelationshipLinkID: canonical.ID, Kind: AssessmentMatterDeficiency, CreatedAt: record.LinkedAt.UTC()}
+	if _, err = tx.Exec(ctx, `INSERT INTO third_party_assessment_matter_links(tenant_id,legal_entity_id,assessment_id,matter_id,relationship_link_id,link_kind,created_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,'DEFICIENCY',$6)`, tenantID, record.LegalEntityID, current.ID, record.MatterID, link.RelationshipLinkID, link.CreatedAt); err != nil {
 		return AssessmentMatterLink{}, Assessment{}, fmt.Errorf("link assessment deficiency: %w", err)
 	}
 	current.Version++

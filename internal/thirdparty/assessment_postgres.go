@@ -292,10 +292,14 @@ func (r *PostgresRepository) ApplyAssessmentReaction(ctx context.Context, record
 		if err != nil {
 			return Assessment{}, fmt.Errorf("lock assessment setup job: %w", err)
 		}
+		canonical, linkErr := ensureAssessmentMatterRelationshipLink(ctx, tx, tenantID, current, record.MatterID, AssessmentMatterReview, current.StartedByPrincipalID, record.At)
+		if linkErr != nil {
+			return Assessment{}, linkErr
+		}
 		_, err = tx.Exec(ctx, `
-			INSERT INTO third_party_assessment_matter_links(tenant_id,legal_entity_id,assessment_id,matter_id,link_kind,created_at)
-			VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,'REVIEW',$5)
-			ON CONFLICT (tenant_id,assessment_id,matter_id) DO NOTHING`, tenantID, record.LegalEntityID, current.ID, record.MatterID, record.At)
+			INSERT INTO third_party_assessment_matter_links(tenant_id,legal_entity_id,assessment_id,matter_id,relationship_link_id,link_kind,created_at)
+			VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,'REVIEW',$6)
+			ON CONFLICT (tenant_id,assessment_id,matter_id) DO NOTHING`, tenantID, record.LegalEntityID, current.ID, record.MatterID, canonical.ID, record.At)
 		if err != nil {
 			return Assessment{}, fmt.Errorf("link assessment review matter: %w", err)
 		}
@@ -670,8 +674,16 @@ func (r *PostgresRepository) ListAssessmentMatterLinks(ctx context.Context, scop
 		return nil, ErrInvalid
 	}
 	rows, err := r.pool.Query(ctx, `
-		SELECT t.slug,l.legal_entity_id::text,l.assessment_id::text,l.matter_id::text,l.link_kind,l.created_at
+		SELECT t.slug,l.legal_entity_id::text,l.assessment_id::text,l.matter_id::text,l.relationship_link_id::text,l.link_kind,l.created_at
 		FROM third_party_assessment_matter_links l
+		JOIN third_party_assessments a
+		  ON a.id=l.assessment_id AND a.tenant_id=l.tenant_id AND a.legal_entity_id=l.legal_entity_id
+		JOIN third_party_relationship_matter_links relationship_link
+		  ON relationship_link.id=l.relationship_link_id
+		 AND relationship_link.tenant_id=l.tenant_id
+		 AND relationship_link.legal_entity_id=l.legal_entity_id
+		 AND relationship_link.relationship_id=a.relationship_id
+		 AND relationship_link.matter_id=l.matter_id
 		JOIN tenants t ON t.id=l.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND l.legal_entity_id::text=$2 AND l.assessment_id::text=$3
 		ORDER BY l.created_at,l.matter_id
@@ -683,7 +695,7 @@ func (r *PostgresRepository) ListAssessmentMatterLinks(ctx context.Context, scop
 	values := make([]AssessmentMatterLink, 0)
 	for rows.Next() {
 		var value AssessmentMatterLink
-		if err := rows.Scan(&value.TenantID, &value.LegalEntityID, &value.AssessmentID, &value.MatterID, &value.Kind, &value.CreatedAt); err != nil {
+		if err := rows.Scan(&value.TenantID, &value.LegalEntityID, &value.AssessmentID, &value.MatterID, &value.RelationshipLinkID, &value.Kind, &value.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan assessment matter link: %w", err)
 		}
 		values = append(values, value)

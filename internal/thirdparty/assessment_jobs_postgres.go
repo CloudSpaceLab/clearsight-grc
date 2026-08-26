@@ -116,10 +116,14 @@ func (r *PostgresRepository) CompleteAssessmentSetupJob(ctx context.Context, job
 	if err != nil {
 		return Assessment{}, fmt.Errorf("verify assessment review matter: %w", err)
 	}
+	canonical, err := ensureAssessmentMatterRelationshipLink(ctx, tx, tenantID, current, matterID, AssessmentMatterReview, current.StartedByPrincipalID, at)
+	if err != nil {
+		return Assessment{}, err
+	}
 	_, err = tx.Exec(ctx, `
-		INSERT INTO third_party_assessment_matter_links(tenant_id,legal_entity_id,assessment_id,matter_id,link_kind,created_at)
-		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,'REVIEW',$5)
-		ON CONFLICT (tenant_id,assessment_id,matter_id) DO NOTHING`, tenantID, job.LegalEntityID, current.ID, matterID, at)
+		INSERT INTO third_party_assessment_matter_links(tenant_id,legal_entity_id,assessment_id,matter_id,relationship_link_id,link_kind,created_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,'REVIEW',$6)
+		ON CONFLICT (tenant_id,assessment_id,matter_id) DO NOTHING`, tenantID, job.LegalEntityID, current.ID, matterID, canonical.ID, at)
 	if err != nil {
 		return Assessment{}, fmt.Errorf("link assessment review matter: %w", err)
 	}

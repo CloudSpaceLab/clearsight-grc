@@ -113,6 +113,11 @@ func (r *MemoryAssessmentRepository) CompleteAssessmentSetupJob(_ context.Contex
 	if receipt, exists := r.reactions[key]; exists {
 		return receipt.assessment, nil
 	}
+	canonical, err := r.ensureMemoryAssessmentMatterRelationshipLink(current, matterID, AssessmentMatterReview, current.StartedByPrincipalID, at)
+	if err != nil {
+		return Assessment{}, err
+	}
+	r.matterLinks[current.ID] = append(r.matterLinks[current.ID], AssessmentMatterLink{Scope: reaction.Scope, AssessmentID: current.ID, MatterID: matterID, RelationshipLinkID: canonical.ID, Kind: AssessmentMatterReview, CreatedAt: at})
 	current.Status = AssessmentReadyToSend
 	current.ReviewMatterID = matterID
 	current.UpdatedAt = at

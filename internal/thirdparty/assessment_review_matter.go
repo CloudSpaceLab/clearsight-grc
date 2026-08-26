@@ -17,12 +17,24 @@ const (
 	AssessmentMatterDeficiency AssessmentMatterLinkKind = "DEFICIENCY"
 )
 
+func assessmentMatterRelationshipPurpose(kind AssessmentMatterLinkKind) (string, string) {
+	switch kind {
+	case AssessmentMatterReview:
+		return "ASSESSMENT_REVIEW", "Due diligence review"
+	case AssessmentMatterDeficiency:
+		return "ASSESSMENT_DEFICIENCY", "Due diligence finding"
+	default:
+		return "ASSESSMENT_MATTER", "Due diligence"
+	}
+}
+
 type AssessmentMatterLink struct {
 	Scope
-	AssessmentID string
-	MatterID     string
-	Kind         AssessmentMatterLinkKind
-	CreatedAt    time.Time
+	AssessmentID       string
+	MatterID           string
+	RelationshipLinkID string
+	Kind               AssessmentMatterLinkKind
+	CreatedAt          time.Time
 }
 
 type AssessmentMatterLinkReader interface {
