@@ -32,6 +32,30 @@ beforeEach(() => {
 });
 
 describe("Program evidence authority gating", () => {
+  it("offers only backend-supported conclusions and executable failure handling", async () => {
+    render(<ProgramEvidencePanel aggregate={aggregate} operations={operations} actorPrincipalID="actor-1" canConfigureSources canOperate onUpdated={vi.fn()} onReload={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Record evidence result" }));
+    const conclusion = screen.getByLabelText("Conclusion") as HTMLSelectElement;
+    expect(Array.from(conclusion.options).map((option) => [option.value, option.text])).toEqual([
+      ["SUPPORTED", "Supported"],
+      ["PARTIALLY_SUPPORTED", "Partly supported"],
+      ["UNSUPPORTED", "Unsupported"],
+      ["CONTRADICTED", "Contradicted"],
+      ["INDETERMINATE", "Indeterminate"],
+      ["EXPIRED", "Expired"],
+    ]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Define evidence check" }));
+    expect(screen.getByText("Create a linked issue when a result does not support the claim.")).toBeTruthy();
+    const contradiction = screen.getByLabelText("Contradiction handling") as HTMLSelectElement;
+    expect(Array.from(contradiction.options).map((option) => [option.value, option.text])).toEqual([
+      ["HOLD", "Hold the check"], ["REVIEW", "Require review"], ["FAIL", "Fail the check"],
+    ]);
+    expect(screen.queryByRole("option", { name: "Escalate" })).toBeNull();
+  });
+
   it("loads source choices for the Program's exact legal entity", async () => {
     render(<ProgramEvidencePanel aggregate={aggregate} operations={operations} actorPrincipalID="actor-1" canConfigureSources canOperate onUpdated={vi.fn()} onReload={vi.fn()}/>);
     expect(await screen.findByText("No evidence result recorded")).toBeTruthy();

@@ -557,7 +557,7 @@ func (s *Service) AddEvidenceContract(ctx context.Context, input AddEvidenceCont
 		failureAction = "MATTER"
 	}
 	if !validEvidenceFailureAction(failureAction) {
-		return ProgramAggregate{}, fmt.Errorf("failure_action must be FLAG, REQUEST, MATTER or BLOCK")
+		return ProgramAggregate{}, fmt.Errorf("failed evidence results must create a linked issue")
 	}
 	if err = s.validateEvidenceSources(ctx, input.TenantID, aggregate.Program.LegalEntityID, input.AcceptableSourceIDs); err != nil {
 		return ProgramAggregate{}, err
@@ -622,6 +622,15 @@ func (s *Service) RecordEvidenceAssessment(ctx context.Context, input RecordEvid
 		return ProgramAggregate{}, err
 	}
 	value := EvidenceAssessment{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, ContractID: input.ContractID, Conclusion: input.Conclusion, Coverage: input.Coverage, Basis: basis, ValidUntil: input.ValidUntil, AssessedBy: input.AssessedBy, AssessedAt: input.AssessedAt.UTC(), CreatedAt: s.now().UTC()}
+	if evidenceAssessmentNeedsFailureAction(value, contract) {
+		if contract.FailureAction != "MATTER" {
+			return ProgramAggregate{}, fmt.Errorf("this evidence check uses an unsupported failure action; define a replacement check that creates a governed issue")
+		}
+		if repo, ok := s.repo.(EvidenceAssessmentFailureRepository); ok {
+			return s.recordEvidenceAssessmentWithFailure(ctx, aggregate, contract, value, repo)
+		}
+		return ProgramAggregate{}, fmt.Errorf("atomic evidence failure handling is unavailable")
+	}
 	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventEvidenceAssessmentRecorded, value, input.AssessedBy); err != nil {
 		return ProgramAggregate{}, err
 	}
@@ -1533,7 +1542,7 @@ func validContradictionPolicy(value string) bool {
 }
 
 func validEvidenceFailureAction(value string) bool {
-	return value == "FLAG" || value == "REQUEST" || value == "MATTER" || value == "BLOCK"
+	return value == "MATTER"
 }
 
 func evidenceContractByID(values []EvidenceContract, id string) (EvidenceContract, bool) {
