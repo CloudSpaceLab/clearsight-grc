@@ -194,11 +194,15 @@ The exact final PR head must pass the normal release gates below before merge; d
 
 ## 5. Productization still required outside the identity tranche
 
-### Third-party risk management — #80 (foundation implemented; lifecycle incomplete)
+### Third-party risk management — #80 (collection and core review implemented; lifecycle incomplete)
 
-The first dependency-complete foundation now owns tenant-scoped vendor organizations and legal-entity-scoped service relationships. It provides exact source-identity reuse, deliberate non-merging of name-only matches, verified initial owner binding, bounded search/detail APIs, optimistic updates, transactional relationship event/outbox writes and a first-class **Vendors** sidebar workspace with create/edit, deep-link, loading, empty, unavailable and conflict states. Migration `000035_third_party_foundation` and `internal/thirdparty` are the executable boundary.
+The executable boundary now includes tenant-scoped vendor organizations, legal-entity-scoped service relationships and an onboarding assessment episode. An authorized owner can start due diligence against an exact active form revision; the existing worker creates or reuses one canonical `VENDOR_REVIEW` Matter; and the owner can issue an origin-keyed Evidence Request through the protected invitation boundary. The external form supports typed fields, conditional sections, Classic and Wizard presentation, source-aware prefills, uploads, autosaved drafts and request-scoped magic-link sessions. The first-class **Vendors** workspace shows the relationship and its current assessment with one state-specific action.
 
-The vendor use cases remain Expansion maturity because ClearSight does not yet own contracts, structured assessments, typed certificate/document validity, privacy approval gates, activation/continuation decisions, reassessment or verified exit. The Vendors workspace explicitly avoids presenting a proposed relationship as assessed, approved, active or compliant.
+Assessment setup and submission reactions use the existing runtime with stable dedupe identities. Terminal setup can requeue the same job without duplicating the assessment or review Matter. Recipient addresses remain inside the Evidence boundary, invitation replacement revokes prior invitations and redeemed sessions, and safe assessment events/outbox facts exclude answers, recipient addresses and tokens. A response submission proves receipt only; it does not approve the vendor relationship or complete the review.
+
+The internal review read is limited to the assessment starter, current relationship owner or current authorized reviewer and composes the exact submitted answers, provenance, coverage, artifact scan state, evidence classification, provisional form result and visible linked deficiency Matters. Verified reviewer commands start review, record typed document decisions, request targeted clarification, create or reuse distinct canonical deficiency Matters and record the conclusion. Completion fails closed when required answers, artifacts, document decisions or the current response state are unresolved. The completed assessment remains distinct from relationship approval or activation.
+
+The vendor use cases remain Expansion maturity because contract and obligation metadata, policy-selected privacy and risk decisions, fail-closed activation/continuation, reassessment, governed restriction and verified exit are not executable yet. The Vendors workspace does not present a proposed relationship as approved, active or compliant.
 
 The implementation must reuse, rather than fork:
 

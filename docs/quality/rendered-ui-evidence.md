@@ -27,11 +27,11 @@ The capture suite prefers production components and realistic deterministic fixt
 
 ## UI foundation and capture matrix
 
-The current suite exercises **32 deterministic rendered states/interactions** across:
+The current suite exercises **49 deterministic rendered states/interactions** across:
 
 - Today in light and dark themes;
 - comfortable and compact desktop density;
-- Program, Matter, Evidence, Imports and Configure workspaces;
+- Program, Vendor, Matter, Evidence, Imports and Configure workspaces;
 - tablet, 390px mobile and 320px reflow;
 - exact record-scoped authority resolution, including candidate-set semantics;
 - evidence response entry → exact response review → submission receipt;
@@ -48,6 +48,9 @@ The current suite exercises **32 deterministic rendered states/interactions** ac
 - external field-agent ATM verification on a 390px phone: known address displayed read-only, two tap confirmations, one required photo, optional note, signature, review and receipt;
 - photo evidence preview before review;
 - document-import dropzone selection with filename/size visible and a blank user-authored purpose before the explicit import action.
+- vendor due-diligence start, ready-to-send, submitted review and mobile review states;
+- vendor form-source degradation with an explicit reload action;
+- vendor invitation delivery failure with recovery status and no retained raw recipient field.
 
 Mechanical checks fail CI for conditions such as unexpected horizontal overflow, browser runtime errors, loss of the first Today action from the unobstructed first viewport, focus escaping a focused-work sheet, authority-detail leakage in a forbidden state, terminal requests exposing submission actions, degraded views hiding still-available context, external capture asking for a known address again, or a required field-agent happy path depending on free-text explanation.
 

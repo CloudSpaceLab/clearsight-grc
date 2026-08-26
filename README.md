@@ -254,7 +254,7 @@ The repository does not yet claim production completion for:
 - bank-approved legal configuration and a complete Nigerian regulatory library;
 - representative production-scale journey and import benchmarks with retained query plans;
 - dependency propagation across shared controls and services;
-- completion of the third-party lifecycle in #80 beyond the implemented vendor-organization/service-relationship foundation and dedicated Vendors workspace: contracts, assessments, typed document validity, onboarding/continuation decisions, fail-closed activation, reassessment and verified exit remain open;
+- completion of the third-party lifecycle in #80 beyond the implemented vendor register, secure due-diligence collection and scoped internal review path: contract and obligation metadata, effective policy, onboarding/continuation decisions, fail-closed activation, reassessment, governed restriction and verified exit remain open;
 - governed AI workload/policy lifecycle, source-aware enforcement, durable decision receipts and execution grants beyond the stateless T3 gateway transport.
 
 ## Start here

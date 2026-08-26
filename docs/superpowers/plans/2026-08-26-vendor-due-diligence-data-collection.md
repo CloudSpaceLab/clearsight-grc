@@ -58,7 +58,7 @@
 - Modify: `internal/monitoring/service.go`
 - Modify: `internal/evidence/model.go`
 
-- [ ] **Step 1: Write failing contract tests**
+- [x] **Step 1: Write failing contract tests**
 
 Add table-driven tests in package `formcontract` for every explicit type, type-relevant constraint, section reference, field/section cardinality and compatibility alias:
 
@@ -77,13 +77,13 @@ func TestNormalizeKeepsLegacyTypesReadable(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run the tests and confirm RED**
+- [x] **Step 2: Run the tests and confirm RED**
 
 Run: `go test ./internal/formcontract -run 'TestNormalize' -count=1`
 
 Expected: compilation fails because the package and contract do not exist.
 
-- [ ] **Step 3: Implement the bounded contract**
+- [x] **Step 3: Implement the bounded contract**
 
 Define the exact shared types:
 
@@ -98,11 +98,11 @@ type VisibilityCondition struct { FieldID string `json:"field_id"`; Operator Con
 
 Allow only the field types and limits from the approved design. Normalize `text` to `short_text`, `number` to `decimal`, `yes_no` to a two-choice selection, IDs/labels/options to trimmed values and presentation to `AUTOMATIC` when omitted. Reject more than 20 sections, 200 fields, 50 choices, invalid date/numeric bounds and constraints unrelated to the selected type.
 
-- [ ] **Step 4: Use one validator in Monitoring and Evidence**
+- [x] **Step 4: Use one validator in Monitoring and Evidence**
 
 Have `monitoring.Service.CreateFormTemplate` call `formcontract.Normalize`. Store the normalized exact fields/presentation. Define `monitoring.TemplateField` as an alias of `formcontract.Field`; embed `formcontract.Field` in `evidence.Field` beside request-only bindings/resolutions. This keeps one validation/type contract without creating a Monitoring↔Evidence import cycle.
 
-- [ ] **Step 5: Run package tests and commit**
+- [x] **Step 5: Run package tests and commit**
 
 Run:
 
@@ -129,7 +129,7 @@ Commit: `feat(forms): add typed shared form contract`
 - Modify: `internal/monitoring/scoring.go`
 - Modify: `internal/monitoring/scoring_test.go`
 
-- [ ] **Step 1: Write failing visibility and validation tests**
+- [x] **Step 1: Write failing visibility and validation tests**
 
 Cover cycles, dependency on later fields, depth over five, hidden required fields, hidden submitted values, email/telephone/URL formats, integer/decimal/percentage/currency bounds, multi-select cardinality, attestation and file limits:
 
@@ -145,17 +145,17 @@ func TestValidateAnswersRejectsHiddenAnswer(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run and confirm RED**
+- [x] **Step 2: Run and confirm RED**
 
 Run: `go test ./internal/monitoring ./internal/evidence -run 'Test.*(Visibility|Hidden|Typed|Constraint)' -count=1`
 
 Expected: failures for missing visibility evaluator and new type validation.
 
-- [ ] **Step 3: Implement deterministic visibility**
+- [x] **Step 3: Implement deterministic visibility**
 
 Implement `formcontract.VisibleFields(contract formcontract.Contract, answers map[string]formcontract.AnswerValue) ([]formcontract.Field, error)`. Evaluate conditions in declared order after validating an acyclic earlier-field graph. `ANSWERED`, `EQUALS`, `NOT_EQUALS`, `IN` and `NOT_IN` are the only operators. Hidden answers are rejected at draft and submit boundaries.
 
-- [ ] **Step 4: Implement typed answer values and shared scoring input**
+- [x] **Step 4: Implement typed answer values and shared scoring input**
 
 Represent single values, arrays and artifact references without comma-delimited encoding:
 
@@ -165,7 +165,7 @@ type AnswerValue struct { Text *string `json:"text,omitempty"`; Values []string 
 
 Define `AnswerValue` in `internal/formcontract`. Update evidence validation and provenance to use `map[string]formcontract.AnswerValue`. Move/adapt the existing pure scoring evaluator into `internal/formcontract` and keep compatibility aliases in Monitoring; Monitoring and later assessment review call the same evaluator.
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Step 5: Run tests and commit**
 
 Run: `go test ./internal/formcontract ./internal/monitoring ./internal/evidence -count=1`
 
@@ -189,7 +189,7 @@ Commit: `feat(forms): enforce conditional typed responses`
 - Modify: `internal/evidence/recipient_postgres.go`
 - Modify: `docs/architecture/durable-schema-ownership.md`
 
-- [ ] **Step 1: Write failing PostgreSQL tests**
+- [x] **Step 1: Write failing PostgreSQL tests**
 
 Prove exact origin reuse, one draft per active session, optimistic conflict, tenant/request/session foreign-key integrity, expiry/revocation denial and deletion/inaccessibility after submission.
 
@@ -204,19 +204,19 @@ func TestSaveDraftRequiresCurrentSessionAndVersion(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run and confirm RED or SKIP**
+- [x] **Step 2: Run and confirm RED or SKIP**
 
 Run: `go test -tags "postgres postgresintegration" ./internal/evidence -run 'Test.*(Draft|Origin)' -count=1`
 
 Expected with `TEST_DATABASE_URL`: FAIL before migration/repository implementation. Without it: explicit SKIP.
 
-- [ ] **Step 3: Add migration 000036**
+- [x] **Step 3: Add migration 000036**
 
 Add `presentation jsonb NOT NULL DEFAULT '{"default_mode":"AUTOMATIC","allow_mode_switch":false}'` to `monitoring_form_templates`; replace the existing 50-field JSON check with the approved 1–200 bound; add immutable `presentation`, `origin_type`, `origin_id`, `origin_version` to `capture_requests`; create a partial unique `(tenant_id,origin_type,origin_id,origin_version)` index when origin is present.
 
 Create `capture_response_drafts` with `(id,tenant_id,request_id,session_id,answers,presentation_mode,version,created_at,updated_at)`, composite tenant/request/session foreign keys, one active row per session and bounded JSON object checks. The down migration reverses only 000036 changes in dependency order.
 
-- [ ] **Step 4: Implement origin lookup and draft repository**
+- [x] **Step 4: Implement origin lookup and draft repository**
 
 Add:
 
@@ -227,7 +227,7 @@ type OriginRequestStore interface { GetRequestByOrigin(context.Context, string, 
 
 All reads include tenant, request and session scope before returning a row. Save uses `WHERE version=$expected` and returns `ErrVersionConflict` on a stale revision.
 
-- [ ] **Step 5: Classify schema and run tests**
+- [x] **Step 5: Classify schema and run tests**
 
 Add `capture_response_drafts` as protected authoritative in-progress response state; update existing form/request ownership rows with presentation and origin semantics.
 
@@ -254,25 +254,25 @@ Commit: `feat(evidence): persist request origins and response drafts`
 - Modify: `internal/httpapi/route_registry.go`
 - Modify: `api/runtime.openapi.json`
 
-- [ ] **Step 1: Write failing service and HTTP tests**
+- [x] **Step 1: Write failing service and HTTP tests**
 
 Test `GET /api/v1/evidence/session/draft` and `PUT /api/v1/evidence/session/draft` with bearer-session authentication only. Cover invalid fields, hidden answers, expired/revoked sessions, request version change, conflict and absence without enumeration.
 
-- [ ] **Step 2: Run and confirm RED**
+- [x] **Step 2: Run and confirm RED**
 
 Run: `go test ./internal/evidence ./internal/httpapi -run 'Test.*Draft' -count=1`
 
 Expected: route/service methods are missing.
 
-- [ ] **Step 3: Implement the service boundary**
+- [x] **Step 3: Implement the service boundary**
 
 `SaveDraft` loads the current session and request, verifies the request remains open, validates visible typed answers without requiring every required field, normalizes the permitted presentation mode and writes by expected draft version. `LoadDraft` returns an empty version-zero draft when no row exists.
 
-- [ ] **Step 4: Implement handlers and OpenAPI parity**
+- [x] **Step 4: Implement handlers and OpenAPI parity**
 
 The handler derives tenant, request and session exclusively from the bearer capability. It never accepts them from JSON/query values. Map conflicts to 409, closed access to non-enumerating 401, invalid answers to 422 and repository failure to 503 with concise recovery copy.
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Step 5: Run tests and commit**
 
 Run: `go test ./internal/evidence ./internal/httpapi -count=1`
 
@@ -296,7 +296,7 @@ Commit: `feat(evidence): add secure response autosave`
 - Modify: `web/src/captureApi.test.ts`
 - Modify: `web/src/capture-inputs.css`
 
-- [ ] **Step 1: Write failing renderer tests**
+- [x] **Step 1: Write failing renderer tests**
 
 Cover native input selection, relevant limits, conditional visibility, Classic section index, Wizard progress/back/continue, review, mode switching, 500ms idle autosave, resume and conflict retention.
 
@@ -318,25 +318,25 @@ it("uses semantic controls rather than text inputs", () => {
 });
 ```
 
-- [ ] **Step 2: Run and confirm RED**
+- [x] **Step 2: Run and confirm RED**
 
 Run: `npm test -- --run src/components/capture/CaptureForm.test.tsx src/components/capture/useCaptureDraft.test.tsx`
 
 Expected: missing components/hooks.
 
-- [ ] **Step 3: Implement field controls and visibility**
+- [x] **Step 3: Implement field controls and visibility**
 
 Map each contract type to a native or established component. Never use a generic text input for email, telephone, URL, numeric, date, choice, attestation or upload fields. Apply `min`, `max`, `step`, `minLength`, `maxLength`, `accept`, `multiple`, `inputMode` and accessible descriptions from the contract.
 
-- [ ] **Step 4: Implement Classic, Wizard and Automatic modes**
+- [x] **Step 4: Implement Classic, Wizard and Automatic modes**
 
 Classic renders all visible sections with an index. Wizard renders one section, progress and Back/Continue, saving before navigation. Automatic follows the documented threshold. A permitted mode switch changes rendering only and retains the same answers/draft version.
 
-- [ ] **Step 5: Implement autosave and recovery**
+- [x] **Step 5: Implement autosave and recovery**
 
 `useCaptureDraft` loads the server draft, merges current source-prefilled answers only when no draft answer exists, debounces saves for 500ms, flushes before section changes and preserves local values on 409/503. Status text is exactly `Saving`, `Saved`, `Could not save` or `Access ended` with the appropriate recovery control.
 
-- [ ] **Step 6: Run frontend gates and commit**
+- [x] **Step 6: Run frontend gates and commit**
 
 Run:
 
@@ -362,25 +362,25 @@ Commit: `feat(web): add typed classic and wizard capture`
 - Modify: `web/src/monitoringApi.test.ts`
 - Modify: `web/src/monitoring.css`
 
-- [ ] **Step 1: Write failing authoring tests**
+- [x] **Step 1: Write failing authoring tests**
 
 Prove section add/reorder, field-type selection, relevant constraint editor, conditional dependency limited to earlier fields, Classic/Wizard preview and an exact normalized payload. Prove the old Yes/No shortcut still creates a valid `yes_no` field rather than remaining the only builder capability.
 
-- [ ] **Step 2: Run and confirm RED**
+- [x] **Step 2: Run and confirm RED**
 
 Run: `npm test -- --run src/components/FormBuilder.test.tsx src/monitoringApi.test.ts`
 
 Expected: current builder cannot author sections/types/presentation.
 
-- [ ] **Step 3: Implement the section-and-field builder**
+- [x] **Step 3: Implement the section-and-field builder**
 
 Keep one dominant **Save draft** action. Use a field-type select and show only relevant settings. Use direct copy such as `Response type`, `Required response`, `Show this question when`, `Accepted files` and `Response limits`; do not expose JSON, internal enum explanations or product narration.
 
-- [ ] **Step 4: Add preview without a parallel renderer**
+- [x] **Step 4: Add preview without a parallel renderer**
 
 Render preview through the same `CaptureForm` component in a non-submitting preview mode. Authors switch Classic/Wizard preview without changing the stored template default.
 
-- [ ] **Step 5: Run frontend gates and commit**
+- [x] **Step 5: Run frontend gates and commit**
 
 Run: `npm test && npm run typecheck && npm run build`
 
@@ -402,7 +402,7 @@ Commit: `feat(web): add enterprise form authoring`
 - Modify: `internal/continuity/labels.go`
 - Modify: related continuity tests
 
-- [ ] **Step 1: Write failing assessment tests**
+- [x] **Step 1: Write failing assessment tests**
 
 Cover verified actor/scope, one current onboarding episode, exact template version, state transitions, no client-supplied reviewer, completion conclusions and relationship/version checks.
 
@@ -418,21 +418,21 @@ func TestStartAssessmentReusesCurrentEpisode(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run and confirm RED**
+- [x] **Step 2: Run and confirm RED**
 
 Run: `go test ./internal/thirdparty -run 'Test.*Assessment' -count=1`
 
 Expected: assessment types/services missing.
 
-- [ ] **Step 3: Implement model and state machine**
+- [x] **Step 3: Implement model and state machine**
 
 Define statuses and conclusions exactly as the specification. `StartAssessment` accepts only relationship/template versions and review target date; tenant/legal entity/actor come from `Actor`. Add `MatterVendorReview MatterType = "VENDOR_REVIEW"` while retaining `VENDOR_DEFICIENCY` for findings.
 
-- [ ] **Step 4: Implement deterministic memory behavior**
+- [x] **Step 4: Implement deterministic memory behavior**
 
 Use a mutex, stable episode index and optimistic versions. Relationship reads remain legal-entity scoped. No assessment command may update the relationship status or vendor organization identity.
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Step 5: Run tests and commit**
 
 Run: `go test ./internal/thirdparty ./internal/continuity -count=1`
 
@@ -451,17 +451,17 @@ Commit: `feat(thirdparty): define due diligence assessments`
 - Create: `internal/thirdparty/assessment_postgres_integration_test.go`
 - Modify: `docs/architecture/durable-schema-ownership.md`
 
-- [ ] **Step 1: Write failing integration tests**
+- [x] **Step 1: Write failing integration tests**
 
 Prove one transaction contains the assessment, `third_party_events`, outbox and setup job; concurrent starts dedupe; stale relationship/version and cross-entity access write nothing; keyset lists filter before limit; point-in-time event versions reconstruct status.
 
-- [ ] **Step 2: Run and confirm RED or SKIP**
+- [x] **Step 2: Run and confirm RED or SKIP**
 
 Run: `go test -tags "postgres postgresintegration" ./internal/thirdparty -run 'TestPostgres.*Assessment' -count=1`
 
 Expected with database: FAIL before migration. Without database: explicit SKIP.
 
-- [ ] **Step 3: Add migration 000037**
+- [x] **Step 3: Add migration 000037**
 
 Create:
 
@@ -473,11 +473,11 @@ Create:
 
 Extend `third_party_events.aggregate_type` check for `THIRD_PARTY_ASSESSMENT`. Do not store recipient addresses, answers, artifact contents or reviewer notes in job/outbox payloads.
 
-- [ ] **Step 4: Implement transactional repository methods**
+- [x] **Step 4: Implement transactional repository methods**
 
 `StartAssessment` locks the scoped relationship/version and exact active template version, inserts/reuses the episode, event, outbox and one READY setup job, then commits. Return the committed assessment. List/get/update queries always include tenant and legal entity before status/cursor/limit.
 
-- [ ] **Step 5: Update schema ownership and run tests**
+- [x] **Step 5: Update schema ownership and run tests**
 
 Run:
 
@@ -501,25 +501,25 @@ Commit: `feat(thirdparty): persist assessment episodes`
 - Modify: `cmd/worker/services_memory.go`
 - Modify: `cmd/worker/services_postgres.go`
 
-- [ ] **Step 1: Write failing retry/dedupe tests**
+- [x] **Step 1: Write failing retry/dedupe tests**
 
 Use recording fakes for the canonical Matter service. Prove a crash after Matter creation reuses the same `TriggerKey`, links one Matter and completes one job; a Matter-service failure releases/retries the job; terminal failure remains visible without changing assessment status to ready.
 
-- [ ] **Step 2: Run and confirm RED**
+- [x] **Step 2: Run and confirm RED**
 
 Run: `go test ./internal/thirdparty -run 'TestAssessmentProvisioner' -count=1`
 
 Expected: provisioner missing.
 
-- [ ] **Step 3: Implement a bounded maintainer**
+- [x] **Step 3: Implement a bounded maintainer**
 
 `AssessmentProvisioner.Maintain(ctx, now, limit)` claims leased jobs, calls `continuity.Service.CreateMatter` with `Type: VENDOR_REVIEW` and `TriggerKey: "thirdparty-assessment:"+assessment.ID`, links the returned Matter and changes `SETUP_PENDING` to `READY_TO_SEND` in one third-party transaction. It never creates Evidence Requests and never receives recipient data.
 
-- [ ] **Step 4: Register on the existing worker runtime**
+- [x] **Step 4: Register on the existing worker runtime**
 
 Add one named work class, `third-party-assessment-setup`, to existing worker composition for memory and PostgreSQL. Reuse runtime polling, batch, health and shutdown; do not add a process or scheduler.
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Step 5: Run tests and commit**
 
 Run: `go test ./cmd/worker ./internal/thirdparty ./internal/continuity -count=1`
 
@@ -545,7 +545,7 @@ Commit: `feat(worker): provision vendor review matters`
 - Modify: API composition files and `api/runtime.openapi.json`
 - Modify: `internal/platform/config/config.go`, `config_test.go` and `.env.example`
 
-- [ ] **Step 1: Write failing send tests**
+- [x] **Step 1: Write failing send tests**
 
 Cover current owner authority, raw address absence from assessment/event/outbox/job, exact request origin, known facts/prefill, invitation expiry cap, interrupted request/link/invitation recovery, recipient replacement revocation, optional protected delivery and truthful partial outcome.
 
@@ -562,13 +562,13 @@ func TestSendAssessmentRequestDoesNotPersistRawRecipientOutsideEvidence(t *testi
 }
 ```
 
-- [ ] **Step 2: Run and confirm RED**
+- [x] **Step 2: Run and confirm RED**
 
 Run: `go test ./internal/thirdparty ./internal/httpapi -run 'Test.*SendAssessment' -count=1`
 
 Expected: command/routes missing.
 
-- [ ] **Step 3: Implement the orchestration command**
+- [x] **Step 3: Implement the orchestration command**
 
 The command requires `READY_TO_SEND`, verified actor, current assessment version and Matter link. It calls `evidence.CreateRequest` with subject `VENDOR_RELATIONSHIP`, exact template/version, immutable origin `{THIRD_PARTY_ASSESSMENT, assessmentID, 1}`, request facts and bindings. Replays use `GetRequestByOrigin`. Link the request ID before calling existing `IssueInvitation`.
 
@@ -582,7 +582,7 @@ If request/link committed but invitation failed, return `REQUEST_READY_INVITATIO
 
 Add a shared `evidence.InvitationDelivery` interface invoked synchronously after invitation creation with the raw address and one-time link. Its receipt stores provider reference/status/time only. Add an optional `CAPTURE_PUBLIC_BASE_URL`; require absolute HTTPS outside local development and construct the link with `url.Values{"capture_invite": []string{issued.Token}}` rather than the request Host header. Default composition has no delivery adapter and returns `LINK_CREATED_EMAIL_NOT_SENT` with the authorized copyable URL; delivery failure returns the same safe link plus recovery. Do not put the address or token in an outbox event or logs.
 
-- [ ] **Step 4: Register verified material routes**
+- [x] **Step 4: Register verified material routes**
 
 Add:
 
@@ -594,7 +594,7 @@ material("/api/v1/vendor-assessments/{id}/send-request", "thirdparty.assessment.
 
 Handlers use route IDs and verified identity only. API errors use concise operational copy and never echo addresses or tokens.
 
-- [ ] **Step 5: Run API/security tests and commit**
+- [x] **Step 5: Run API/security tests and commit**
 
 Run:
 
@@ -621,25 +621,25 @@ Commit: `feat(thirdparty): send secure due diligence requests`
 - Modify: `internal/httpapi/third_party_assessment_handlers_test.go`
 - Modify: `internal/httpapi/route_registry.go`
 
-- [ ] **Step 1: Write failing submission/review tests**
+- [x] **Step 1: Write failing submission/review tests**
 
 Prove a capture-submitted event advances one linked assessment once; external actors cannot read review data; reviewer identity is verified; document validation references an artifact for the exact request; deficiency creation returns one canonical Matter; clarification creates the next request sequence without replacing history; completion requires current review state, no unresolved clarification and an allowed conclusion.
 
-- [ ] **Step 2: Run and confirm RED**
+- [x] **Step 2: Run and confirm RED**
 
 Run: `go test ./internal/thirdparty ./internal/httpapi -run 'Test.*(Submission|Review|Document|Deficiency|Conclusion)' -count=1`
 
 Expected: handlers/consumer missing.
 
-- [ ] **Step 3: Add a submission outbox consumer**
+- [x] **Step 3: Add a submission outbox consumer**
 
 Extend evidence final submission to emit a safe `EvidenceRequestSubmitted` outbox event in its transaction. `AssessmentConsumer.Publish` uses inbox dedupe, resolves request origin and advances the assessment from `COLLECTING` to `SUBMITTED`. No answers enter the event.
 
-- [ ] **Step 4: Implement reviewer commands**
+- [x] **Step 4: Implement reviewer commands**
 
 Add material commands for start review, validate/reject a document, request clarification, create deficiency and complete assessment. Clarification creates a new origin-keyed Evidence Request at `sequence=current+1` and retains every prior request link. Use existing `continuity.Service.CreateMatter` with `VENDOR_DEFICIENCY`, assessment/relationship IDs in bounded scope and stable trigger key. Persist only the link in third-party state. Use the shared form evaluator for provisional score; keep score distinct from reviewer conclusion.
 
-- [ ] **Step 5: Register review routes**
+- [x] **Step 5: Register review routes**
 
 ```text
 GET  /api/v1/vendor-assessments/{id}
@@ -652,7 +652,7 @@ POST /api/v1/vendor-assessments/{id}/complete
 
 The scoped GET composes the assessment, ordered request links, exact current submission summary, answer provenance, artifacts, validated documents and Matter links for the internal review UI. It uses bounded exact-ID reads from the existing evidence service and never exposes invitation/session secrets. Route policies use reviewer/owner responsibilities as defined by current authority. Body-supplied reviewer/assessor IDs are ignored.
 
-- [ ] **Step 6: Run tests and commit**
+- [x] **Step 6: Run tests and commit**
 
 Run: `go test ./internal/thirdparty ./internal/evidence ./internal/continuity ./internal/httpapi ./cmd/worker -count=1`
 
@@ -675,7 +675,7 @@ Commit: `feat(thirdparty): review vendor due diligence`
 - Modify: `web/src/vendors.css`
 - Modify: `web/src/staticDemo.ts`
 
-- [ ] **Step 1: Write failing workflow tests**
+- [x] **Step 1: Write failing workflow tests**
 
 Cover every state and dominant action, start preview, provisioning, send preview, partial invitation recovery, collecting status, submitted review, provenance, document validation, deficiency handoff and conclusion. Assert there is exactly one enabled primary action for the current state.
 
@@ -689,25 +689,25 @@ it("offers one next action for a ready assessment", async () => {
 });
 ```
 
-- [ ] **Step 2: Run and confirm RED**
+- [x] **Step 2: Run and confirm RED**
 
 Run: `npm test -- --run src/components/VendorDueDiligence.test.tsx src/components/VendorsWorkspace.test.tsx`
 
 Expected: component/API missing.
 
-- [ ] **Step 3: Implement typed API and state component**
+- [x] **Step 3: Implement typed API and state component**
 
 Keep due diligence within the selected relationship detail. Use state-driven actions: `Start due diligence`, `View setup status`, `Send due diligence request`, `Review request status`, `Review vendor response`, `Record assessment conclusion`, `View completed assessment`. No second vendor dashboard.
 
-- [ ] **Step 4: Implement enterprise-ready content**
+- [x] **Step 4: Implement enterprise-ready content**
 
 Every heading names the task/record; every button names the result; supporting text states status, consequence or recovery once. Remove demo/prototype/AI narration, slogans, vague reassurance, redundant paragraphs and internal implementation terms. External copy never exposes `Matter`, projection, outbox, binding IDs, risk score or review notes.
 
-- [ ] **Step 5: Add deterministic fixtures and responsive layout**
+- [x] **Step 5: Add deterministic fixtures and responsive layout**
 
 Add explicitly sample-labelled fixtures for ready, collecting, submitted, partial delivery, source degradation and completed states. Desktop retains register/detail context; mobile uses the existing focused record/back behavior. Forms and review content reflow at 390px and 320px with no horizontal overflow.
 
-- [ ] **Step 6: Run frontend gates and commit**
+- [x] **Step 6: Run frontend gates and commit**
 
 Run:
 
@@ -734,11 +734,11 @@ Commit: `feat(web): add vendor due diligence workflow`
 - Modify: `api/runtime.openapi.json`
 - Modify: issue #80 body/checklist.
 
-- [ ] **Step 1: Audit the complete customer-visible workflow**
+- [x] **Step 1: Audit the complete customer-visible workflow**
 
 Review Vendors, start/send, builder, invitation entry, Classic/Wizard response, autosave, validation, receipt, review, document validation, deficiency, empty/error/conflict/delivery states and API errors. For each string verify it names an object/task, states status/context/consequence/recovery or identifies the next result. Rewrite bloated or narrational copy as a complete flow, not phrase-by-phrase substitution.
 
-- [ ] **Step 2: Run backend verification**
+- [x] **Step 2: Run backend verification**
 
 ```powershell
 go test ./... -count=1
@@ -749,7 +749,7 @@ go vet ./...
 
 Expected: PASS. If `TEST_DATABASE_URL` is absent, record the exact skipped database proof and do not claim it ran.
 
-- [ ] **Step 3: Run frontend and copy verification**
+- [x] **Step 3: Run frontend and copy verification**
 
 ```powershell
 Set-Location web
@@ -760,7 +760,7 @@ npm run build
 
 Expected: PASS with all customer-visible strings included in copy-quality coverage.
 
-- [ ] **Step 4: Render and inspect required states**
+- [x] **Step 4: Render and inspect required states**
 
 Run the deterministic static app and `npm run review:ui`. Capture/inspect desktop 1440×900, tablet 1024×768, mobile 390×844, 320×800 and 200% zoom proxy for:
 
@@ -774,11 +774,11 @@ Run the deterministic static app and `npm run review:ui`. Capture/inspect deskto
 
 Fix the highest-impact defect and rerun the affected capture before completion. Confirm no console application errors, overlap, inaccessible control, duplicate primary action or horizontal overflow.
 
-- [ ] **Step 5: Synchronize truth and issue progress**
+- [x] **Step 5: Synchronize truth and issue progress**
 
 Document only executable scope: due-diligence collection and review are implemented; activation, continuation, reassessment and exit remain open. Keep `UC-TPRM-01` at Expansion until fail-closed activation acceptance is executable. Update issue #80 without checking incomplete tranche boxes.
 
-- [ ] **Step 6: Final diff and commit**
+- [x] **Step 6: Final diff and commit**
 
 ```powershell
 git diff --check

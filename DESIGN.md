@@ -65,6 +65,7 @@ Use an 8px spacing rhythm, 11–18px controls, 12–18px cards and 20–26px her
 - **Intervention Summary:** actor-scoped read projection for one human review, decision, authorization, evidence exception, escalation or outcome check. It is not new authoritative state.
 - **Today:** intervention queue first; quiet status-check context follows the work rather than preceding it with a KPI wall.
 - **Programs:** ongoing responsibilities, current status and reasons. Show the status reason before the complete requirement/evidence catalogue.
+- **Vendors:** one legal-entity-scoped register and selected service relationship. Keep due-diligence setup, secure collection status and reviewer evidence in that relationship context; open canonical issues and changes for remediation instead of creating a second vendor dashboard or findings system.
 - **Issues and changes:** bounded items needing review, decision, action, response or outcome confirmation. Show the current handoff before history.
 - **Work:** review queues and focused evidence. Complete source inventories are secondary context.
 - **Configure:** policy, routing, integrity and ownership.
@@ -127,6 +128,14 @@ Use one shared dropzone interaction with three presentation levels:
 Do not use a dropzone for settings or forms where the file is incidental to a different control. Do not enable multiple files unless the request contract explicitly permits multiple artifacts and defines how each is reviewed.
 
 Image preview is appropriate for image evidence. For PDFs, Office files and other documents, show trustworthy metadata before upload; do not fabricate a document preview before extraction/rendering has actually succeeded.
+
+### Vendor due diligence
+
+The Vendors workspace uses one dominant action for the current assessment state: start setup, send the request, review collection status, begin bank review or record the conclusion. The selected vendor, service, accountable owner, exact form version and review deadline remain visible around that action.
+
+External collection uses the shared request-scoped invitation and capture experience. Known vendor and service facts are prefilled or shown as context; the active form decides between Classic and Wizard presentation and renders typed controls, limits, conditional fields, uploads and attestation. Submission means the response was received, not that the evidence was accepted or the relationship was approved.
+
+Internal review shows only the exact scoped response, answer provenance, coverage, artifact scan state, evidence classification, linked canonical findings and version-qualified provisional score. Reviewer conclusion, vendor-relationship activation and deficiency closure remain separate material outcomes. Completed assessments are read-only in the relationship workspace.
 
 External capture should minimize normal-path typing. A field-visit verification should ordinarily be completable through known context, tap choices, required photo evidence, an optional exception note and an attestation/signature. The interface target is under four minutes for a representative simple visit; that target is not considered proven until a timed usability run confirms it.
 

@@ -136,16 +136,14 @@ ClearSight implication:
 - link the same vendor and evidence to multiple bank services without duplicate upload;
 - verify remediation rather than accepting a commitment comment.
 
-### Implementation cross-check — 2026-08-25
+### Implementation cross-check — 2026-08-26
 
-The repository now includes the first third-party foundation, but not the complete lifecycle. `internal/thirdparty` and migration `000035_third_party_foundation` own vendor organizations, legal-entity service relationships, exact source-identity reuse, scoped reads and optimistic maintenance. The product exposes this through a dedicated Vendors sidebar workspace. Existing reusable capability still owns request-scoped vendor evidence capture, Program requirements and evidence expectations, `VENDOR_DEFICIENCY` Matters, governed Decisions and Actions, independent outcome checks, connected Source bindings and on-demand Monitoring Checks.
+The repository now includes the vendor register, due-diligence collection and internal review path, but not the complete lifecycle. `internal/thirdparty` and migrations `000035_third_party_foundation`, `000037_third_party_due_diligence`, `000038_third_party_assessment_setup_retry`, `000039_third_party_assessment_followups` and `000040_third_party_document_review` own vendor organizations, legal-entity service relationships, assessment episodes, exact form/request/Matter links, typed artifact-validation metadata, recoverable setup jobs and safe assessment events. The dedicated Vendors workspace composes the existing form, Evidence Request, protected invitation, external capture and worker boundaries, then presents a scope-authorized reviewer with answer provenance, evidence state, targeted clarification, canonical deficiency handoff and a distinct assessment conclusion. Existing shared capability continues to own Program requirements, `VENDOR_REVIEW` and `VENDOR_DEFICIENCY` Matters, Actions, Decisions, outcome checks, Sources and Monitoring Checks.
 
 Implementation must not add a second source registry, questionnaire/form engine, artifact store, workflow/task system, authority model, findings register, scheduler, notification framework, report engine or spreadsheet parser. The missing domain boundary is narrower:
 
 - canonical vendor identity plus bank-to-vendor service relationship and contract context;
-- structured assessment facts and conclusions linked to existing form/evidence records;
-- typed document/certificate metadata referencing existing artifacts;
-- one bounded onboarding or reassessment Matter per review episode, with deficiencies remaining linked `VENDOR_DEFICIENCY` Matters;
+- reassessment episodes;
 - versioned third-party policy that determines required decision types while current authority routing determines the actors;
 - a fail-closed activation/continuation command over current decisions, conditions, blocking deficiencies and evidence validity;
 - relationship change, reassessment, restriction and verified exit operations;
