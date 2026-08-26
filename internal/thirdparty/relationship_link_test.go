@@ -74,3 +74,22 @@ func TestRelationshipLinkServiceValidatesPurposeWithoutFixedEnum(t *testing.T) {
 		}
 	}
 }
+
+func TestRelationshipLinkListUsesBoundedCursor(t *testing.T) {
+	repo := NewMemoryRelationshipLinkRepository()
+	repo.AllowRelationship("tenant-a", "entity-a", "relationship-1")
+	service := NewRelationshipLinkService(repo)
+	actor := Actor{TenantID: "tenant-a", LegalEntityID: "entity-a", PrincipalID: "owner-1"}
+	base := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	for i, id := range []string{"link-1", "link-2", "link-3"} {
+		repo.links[id] = RelationshipLink{ID: id, TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, RelationshipID: "relationship-1", TargetType: LinkTargetProgram, TargetID: "program-1", State: RelationshipLinkActive, UpdatedAt: base.Add(time.Duration(i) * time.Minute)}
+	}
+	first, err := service.List(context.Background(), actor, RelationshipLinkListInput{RelationshipID: "relationship-1", Limit: 2})
+	if err != nil || len(first.Items) != 2 || first.NextCursor == "" {
+		t.Fatalf("unexpected first page: %#v, %v", first, err)
+	}
+	second, err := service.List(context.Background(), actor, RelationshipLinkListInput{RelationshipID: "relationship-1", Cursor: first.NextCursor, Limit: 2})
+	if err != nil || len(second.Items) != 1 || second.Items[0].ID != "link-1" || second.NextCursor != "" {
+		t.Fatalf("unexpected second page: %#v, %v", second, err)
+	}
+}

@@ -160,10 +160,21 @@ func (r *PostgresRepository) EndRelationshipLink(ctx context.Context, scope Scop
 }
 
 func (r *PostgresRepository) ListRelationshipLinks(ctx context.Context, scope Scope, input RelationshipLinkListInput) (RelationshipLinkPage, error) {
-	args := []any{scope.TenantID, scope.LegalEntityID, input.RelationshipID, string(input.TargetType), input.TargetID, input.IncludeEnded, input.Limit + 1}
+	args := []any{scope.TenantID, scope.LegalEntityID, input.RelationshipID, string(input.TargetType), input.TargetID, input.IncludeEnded}
+	cursorClause := ""
+	if input.Cursor != "" {
+		cursorTime, cursorID, err := decodeCursor(input.Cursor)
+		if err != nil {
+			return RelationshipLinkPage{}, ErrInvalid
+		}
+		args = append(args, cursorTime, cursorID)
+		cursorClause = " AND (updated_at,id) < ($7,$8::uuid)"
+	}
+	args = append(args, input.Limit+1)
+	limitArg := len(args)
 	rows, err := r.pool.Query(ctx, relationshipLinkUnion+` WHERE tenant_ref=$1 AND legal_entity_id::text=$2
 		AND ($3='' OR relationship_id::text=$3) AND ($4='' OR target_type=$4) AND ($5='' OR target_id::text=$5)
-		AND ($6 OR state='ACTIVE') ORDER BY updated_at DESC,id DESC LIMIT $7`, args...)
+		AND ($6 OR state='ACTIVE')`+cursorClause+` ORDER BY updated_at DESC,id DESC LIMIT $`+fmt.Sprint(limitArg), args...)
 	if err != nil {
 		return RelationshipLinkPage{}, fmt.Errorf("list vendor relationship links: %w", err)
 	}
@@ -182,6 +193,8 @@ func (r *PostgresRepository) ListRelationshipLinks(ctx context.Context, scope Sc
 	page := RelationshipLinkPage{Items: items}
 	if len(items) > input.Limit {
 		page.Items = items[:input.Limit]
+		last := page.Items[len(page.Items)-1]
+		page.NextCursor = encodeCursor(last.UpdatedAt, last.ID)
 	}
 	return page, nil
 }

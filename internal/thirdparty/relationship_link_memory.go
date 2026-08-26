@@ -84,9 +84,21 @@ func (r *MemoryRelationshipLinkRepository) EndRelationshipLink(_ context.Context
 func (r *MemoryRelationshipLinkRepository) ListRelationshipLinks(_ context.Context, scope Scope, input RelationshipLinkListInput) (RelationshipLinkPage, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+	var cursorTime time.Time
+	var cursorID string
+	if input.Cursor != "" {
+		var err error
+		cursorTime, cursorID, err = decodeCursor(input.Cursor)
+		if err != nil {
+			return RelationshipLinkPage{}, ErrInvalid
+		}
+	}
 	values := []RelationshipLink{}
 	for _, value := range r.links {
 		if value.TenantID != scope.TenantID || value.LegalEntityID != scope.LegalEntityID || (!input.IncludeEnded && value.State == RelationshipLinkEnded) || (input.RelationshipID != "" && value.RelationshipID != input.RelationshipID) || (input.TargetType != "" && value.TargetType != input.TargetType) || (input.TargetID != "" && value.TargetID != input.TargetID) {
+			continue
+		}
+		if input.Cursor != "" && (value.UpdatedAt.After(cursorTime) || (value.UpdatedAt.Equal(cursorTime) && value.ID >= cursorID)) {
 			continue
 		}
 		values = append(values, value)
@@ -97,10 +109,13 @@ func (r *MemoryRelationshipLinkRepository) ListRelationshipLinks(_ context.Conte
 		}
 		return values[i].UpdatedAt.After(values[j].UpdatedAt)
 	})
+	page := RelationshipLinkPage{Items: values}
 	if len(values) > input.Limit {
-		values = values[:input.Limit]
+		page.Items = values[:input.Limit]
+		last := page.Items[len(page.Items)-1]
+		page.NextCursor = encodeCursor(last.UpdatedAt, last.ID)
 	}
-	return RelationshipLinkPage{Items: values}, nil
+	return page, nil
 }
 
 var _ RelationshipLinkRepository = (*MemoryRelationshipLinkRepository)(nil)
