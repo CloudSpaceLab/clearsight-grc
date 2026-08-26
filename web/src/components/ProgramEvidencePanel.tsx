@@ -26,11 +26,11 @@ function lines(value: string) { return value.split(/\r?\n/).map((line) => line.t
 
 export function ProgramEvidencePanel({ aggregate, operations, responsibleParties = [], actorPrincipalID, canConfigureSources, canOperate = true, onUpdated, onReload, onOpenMatter }: Props) {
   const defineOperation = operations.find((value) => value.command === "program.evidence.define");
-  const assessOperation = operations.find((value) => value.command === "program.evidence.assess");
   const [sources, setSources] = useState<EvidenceSource[]>([]);
   const [sourcesState, setSourcesState] = useState<"loading" | "live" | "unavailable">("loading");
 	const activeSources = sources.filter((source) => source.status === "ACTIVE");
   const activeContracts = aggregate.evidence_contracts.filter((contract) => contract.status === "ACTIVE");
+  const assessableContracts = activeContracts.filter((contract) => operations.some((operation) => operation.command === "program.evidence.assess" && operation.subresource_id === contract.id && operation.can_act));
   const [mode, setMode] = useState<Mode>(null);
   const [resourceAction, setResourceAction] = useState<ResourceAction>(null);
   const [busy, setBusy] = useState(false);
@@ -44,7 +44,7 @@ export function ProgramEvidencePanel({ aggregate, operations, responsibleParties
   const [sourceIDs, setSourceIDs] = useState<string[]>([]); const [population, setPopulation] = useState("");
   const [freshnessDays, setFreshnessDays] = useState(30); const [coveragePercent, setCoveragePercent] = useState(100);
   const [independenceRequired, setIndependenceRequired] = useState(false); const [contradictionPolicy, setContradictionPolicy] = useState("REVIEW"); const [failureAction, setFailureAction] = useState("MATTER");
-  const [contractID, setContractID] = useState(activeContracts[0]?.id ?? "");
+  const [contractID, setContractID] = useState(assessableContracts[0]?.id ?? "");
   const [conclusion, setConclusion] = useState("SUPPORTED"); const [assessmentCoverage, setAssessmentCoverage] = useState(100);
   const [basis, setBasis] = useState(""); const [references, setReferences] = useState(""); const [validUntil, setValidUntil] = useState(futureDate(30));
   const [rationale, setRationale] = useState(""); const [transitionTarget, setTransitionTarget] = useState("");
@@ -66,9 +66,9 @@ export function ProgramEvidencePanel({ aggregate, operations, responsibleParties
     if (!canOperate) return;
     setMode("define"); setError(""); setTarget(targetOptions[0]?.value ?? ""); setCode(""); setName(""); setClaim(""); setSourceIDs([]); setPopulation(""); setFreshnessDays(30); setCoveragePercent(100); setIndependenceRequired(false); setContradictionPolicy("REVIEW"); setFailureAction("MATTER");
   }
-  function beginAssess() {
+  function beginAssess(targetContractID = assessableContracts[0]?.id ?? "") {
     if (!canOperate) return;
-    setMode("assess"); setError(""); setContractID(activeContracts[0]?.id ?? ""); setConclusion("SUPPORTED"); setAssessmentCoverage(100); setBasis(""); setReferences(""); setValidUntil(futureDate(30));
+    setMode("assess"); setError(""); setContractID(targetContractID); setConclusion("SUPPORTED"); setAssessmentCoverage(100); setBasis(""); setReferences(""); setValidUntil(futureDate(30));
   }
   function beginResourceAction(kind: "edit" | "transition", contractID: string) {
     if (!canOperate) return;
@@ -143,11 +143,12 @@ export function ProgramEvidencePanel({ aggregate, operations, responsibleParties
   return <article className="program-record-panel program-evidence-panel" id="program-evidence-panel">
     <div className="program-panel-heading"><div><span className="eyebrow">Evidence</span><h2>Evidence checks and results</h2></div><div className="program-panel-actions">
       {canOperate && defineOperation?.can_act && targetOptions.length > 0 && <button className="secondary-button" type="button" onClick={beginDefine}>Define evidence check</button>}
-      {canOperate && assessOperation?.can_act && activeContracts.length > 0 && <button className="secondary-button" type="button" onClick={beginAssess}>Record evidence result</button>}
+      {canOperate && assessableContracts.length > 0 && <button className="secondary-button" type="button" onClick={() => beginAssess()}>Record evidence result</button>}
     </div></div>
 
     {!canOperate && <p className="program-operation-reason">Evidence changes are disabled until current Program responsibilities are available. Existing evidence checks and results remain visible.</p>}
-    {canOperate && assessOperation?.can_act && aggregate.evidence_contracts.length > 0 && activeContracts.length === 0 && <p className="program-operation-reason">No evidence result can be recorded yet. A current reviewer must activate a Draft evidence check first.</p>}
+    {canOperate && aggregate.evidence_contracts.length > 0 && activeContracts.length === 0 && <p className="program-operation-reason">No evidence result can be recorded yet. A current reviewer must activate a Draft evidence check first.</p>}
+    {canOperate && activeContracts.length > 0 && assessableContracts.length === 0 && <p className="program-operation-reason">No Active evidence check is assigned to you for assessment. Each check shows its current reviewer below.</p>}
 
     {aggregate.evidence_contracts.length ? <div className="program-evidence-list">{aggregate.evidence_contracts.map((contract) => {
       const assessments = aggregate.evidence_assessments.filter((value) => value.contract_id === contract.id).sort((left, right) => right.assessed_at.localeCompare(left.assessed_at));
@@ -156,11 +157,13 @@ export function ProgramEvidencePanel({ aggregate, operations, responsibleParties
       const reviewerLabel = (assessmentID: string, reviewerID?: string, fallback = "Reviewer name unavailable") => responsibleParties.find((party) => party.scope === "EVIDENCE_ASSESSMENT" && party.subresource_id === assessmentID && party.responsibility === "REVIEWER")?.display_name ?? operations.flatMap((operation) => operation.candidates ?? []).find((candidate) => candidate.id === reviewerID)?.display_name ?? fallback;
       const reviseOperation = operationFor("program.evidence.revise", contract.id);
       const transitionOperation = operationFor("program.evidence.transition", contract.id);
+      const assessmentOperation = operationFor("program.evidence.assess", contract.id);
       return <section className="program-evidence-card" key={contract.id}>
         <div><span>{contract.code} · {statusLabel(contract.status)}</span><h3>{contract.name}</h3><p>{contract.claim}</p><small>Required coverage {Math.round(contract.minimum_coverage * 100)}% · maximum age {Math.round(contract.freshness_minutes / 1440)} days</small>{sourceNames.length > 0 && <small>Accepted sources: {sourceNames.join(", ")}</small>}<div className="program-panel-actions">
           {canOperate && reviseOperation?.can_act && <button className="text-button" type="button" onClick={() => beginResourceAction("edit", contract.id)}>Edit {contract.name}</button>}
           {canOperate && transitionOperation?.can_act && <button className="text-button" type="button" onClick={() => beginResourceAction("transition", contract.id)}>Review {contract.name} status</button>}
-        </div>{!transitionOperation?.can_act && transitionOperation?.reason && <small>{transitionOperation.reason}</small>}</div>
+          {canOperate && assessmentOperation?.can_act && <button className="text-button" type="button" onClick={() => beginAssess(contract.id)}>Record result for {contract.name}</button>}
+        </div>{!transitionOperation?.can_act && transitionOperation?.reason && <small>{transitionOperation.reason}</small>}{contract.status === "ACTIVE" && !assessmentOperation?.can_act && assessmentOperation?.reason && <small>{assessmentOperation.reason}</small>}</div>
         <div className={latest ? "program-assessment-result" : "program-assessment-result empty"}>{latest ? <><strong>{statusLabel(latest.conclusion)}</strong><span>{Math.round(latest.coverage * 100)}% coverage · {current ? `current until ${latest.valid_until!.slice(0, 10)}` : latest.valid_until ? `expired ${latest.valid_until.slice(0, 10)}` : "validity not recorded"}</span><small>Assessed {latest.assessed_at.slice(0, 10)} by {reviewerLabel(latest.id, latest.assessed_by)}</small></> : <><strong>No evidence result recorded</strong><span>A reviewer must assess the evidence before this check can support the Program outcome.</span></>}</div>
         {assessments.length > 0 && <details><summary>View evidence result history ({assessments.length})</summary><p>Showing {Math.min(assessments.length, 20)} of {assessments.length} stored results for Program version {aggregate.program.version}.</p><ol>{assessments.slice(0, 20).map((assessment) => <li key={assessment.id}><strong>{statusLabel(assessment.conclusion)}</strong><span>{Math.round(assessment.coverage * 100)}% coverage · assessed {assessment.assessed_at.slice(0, 10)} by {reviewerLabel(assessment.id, assessment.assessed_by, "Recorded reviewer unavailable")}</span><small>Sources: {sourceNames.length ? sourceNames.join(", ") : "No accepted source label is recorded"}</small>{typeof assessment.basis?.summary === "string" && assessment.basis.summary && <p>{assessment.basis.summary}</p>}</li>)}</ol>{assessments.length > 20 && <p>Older evidence results are not shown. The Program record contains {assessments.length - 20} additional results.</p>}</details>}
       </section>;
@@ -184,7 +187,7 @@ export function ProgramEvidencePanel({ aggregate, operations, responsibleParties
     </form>}
 
     {mode === "assess" && <form className="program-operation-form" onSubmit={(event) => void saveAssessment(event)}>
-      <label className="wide"><span>Evidence check</span><select required value={contractID} onChange={(event) => setContractID(event.target.value)}>{activeContracts.map((contract) => <option key={contract.id} value={contract.id}>{contract.code} · {contract.name}</option>)}</select></label>
+      <label className="wide"><span>Evidence check</span><select required value={contractID} onChange={(event) => setContractID(event.target.value)}>{assessableContracts.map((contract) => <option key={contract.id} value={contract.id}>{contract.code} · {contract.name}</option>)}</select></label>
       <label><span>Conclusion</span><select value={conclusion} onChange={(event) => setConclusion(event.target.value)}><option value="SUPPORTED">Supported</option><option value="PARTIALLY_SUPPORTED">Partly supported</option><option value="UNSUPPORTED">Unsupported</option><option value="CONTRADICTED">Contradicted</option><option value="INDETERMINATE">Indeterminate</option><option value="EXPIRED">Expired</option></select></label>
       <label><span>Population coverage (%)</span><input required min="0" max="100" step="0.1" type="number" value={assessmentCoverage} onChange={(event) => setAssessmentCoverage(Number(event.target.value))}/></label>
       <label className="wide"><span>Assessment basis</span><textarea required value={basis} onChange={(event) => setBasis(event.target.value)}/></label>

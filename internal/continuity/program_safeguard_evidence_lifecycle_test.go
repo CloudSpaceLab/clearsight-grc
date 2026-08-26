@@ -202,6 +202,39 @@ func TestProgramResourceCommandDoesNotReportFailureAfterCommit(t *testing.T) {
 	}
 }
 
+func TestEvidenceAssessmentDoesNotReportFailureAfterCommittedReadOutage(t *testing.T) {
+	base := NewMemoryRepository()
+	service := NewService(base)
+	ctx := WithTrustedSystemScope(t.Context())
+	now := time.Date(2026, 8, 26, 14, 0, 0, 0, time.UTC)
+	service.now = func() time.Time { return now }
+	program, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", LegalEntityID: "entity-1", Code: "EVIDENCE-READ", Name: "Evidence read recovery", Type: "ASSURANCE", OwningFunction: "Risk", OwnerPrincipalID: "program-owner", EffectiveFrom: now, ActorID: "program-owner"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.AddRequirement(ctx, AddRequirementInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, Code: "REQ", Title: "Retain evidence", Statement: "Evidence must be retained.", EffectiveFrom: now, ActorID: "program-owner"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, RequirementID: program.Requirements[0].ID, Code: "CHECK", Name: "Evidence check", Claim: "Evidence remains current.", FreshnessMinutes: 60, MinimumCoverage: 1, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractDraft, ActorID: "program-owner"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.TransitionEvidenceContract(ctx, TransitionEvidenceContractInput{TenantID: "bank", ProgramID: program.Program.ID, ContractID: program.EvidenceContracts[0].ID, ExpectedVersion: program.Program.Version, ExpectedContractVersion: program.EvidenceContracts[0].Version, To: EvidenceContractActive, Rationale: "Independent review approved the check.", ActorID: "reviewer-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrapper := &failReadAfterProgramApplyRepository{Repository: base}
+	service.repo = wrapper
+	result, err := service.RecordEvidenceAssessment(ctx, RecordEvidenceAssessmentInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ContractID: program.EvidenceContracts[0].ID, Conclusion: EvidenceSupported, Coverage: 1, Basis: json.RawMessage(`{"records":10}`), AssessedBy: "reviewer-1", AssessedAt: now})
+	if err != nil {
+		t.Fatalf("committed assessment returned a read failure: %v", err)
+	}
+	if result.Program.Version != program.Program.Version+1 || len(result.EvidenceAssessments) != 1 || result.EvidenceAssessments[0].ContractID != program.EvidenceContracts[0].ID {
+		t.Fatalf("fallback result = %#v", result)
+	}
+}
+
 func TestMaterialSafeguardRevisionRequiresPerformerReconfirmation(t *testing.T) {
 	service, ctx, program := programWithPlannedSafeguard(t)
 	safeguard := program.ControlImplementations[0]

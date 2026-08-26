@@ -670,7 +670,12 @@ func (s *Service) RecordEvidenceAssessment(ctx context.Context, input RecordEvid
 	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventEvidenceAssessmentRecorded, value, input.AssessedBy); err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventEvidenceAssessmentRecorded, value.ID)
+	// The assessment event is committed before projection refresh and the
+	// immediate aggregate read. Neither derived work nor a read outage may turn
+	// that successful material command into a reported failure.
+	_ = s.requestProgramRefresh(ctx, input.TenantID, input.ProgramID, EventEvidenceAssessmentRecorded, value.ID, "system")
+	aggregate.EvidenceAssessments = append(aggregate.EvidenceAssessments, value)
+	return s.programResourceResult(ctx, input.TenantID, input.ProgramID, aggregate, value.CreatedAt), nil
 }
 
 func (s *Service) RefreshProgram(ctx context.Context, tenant, programID, triggerType, triggerID string) (ProgramAggregate, error) {

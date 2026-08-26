@@ -315,7 +315,7 @@ export function transitionProgramEvidenceContract(programID: string, contractID:
 }
 
 export function recordProgramEvidenceAssessment(programID: string, expectedVersion: number, input: ProgramEvidenceAssessmentInput): Promise<ProgramAggregate> {
-  return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/evidence-assessments`, {
+  return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/evidence-contracts/${encodeURIComponent(input.contractID)}/assessments`, {
     expected_version: expectedVersion,
     contract_id: input.contractID,
     conclusion: input.conclusion,

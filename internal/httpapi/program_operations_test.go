@@ -219,6 +219,23 @@ func TestProgramOperationsExplainCurrentResponsibilitiesAcrossRoles(t *testing.T
 		t.Fatal(err)
 	}
 	requirementID := program.Requirements[0].ID
+	program, err = service.AddEvidenceContract(continuity.WithTrustedSystemScope(t.Context()), continuity.AddEvidenceContractInput{
+		TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, RequirementID: requirementID,
+		Code: "RETURN-EVIDENCE", Name: "Annual return evidence", Claim: "The annual return has current evidence.",
+		FreshnessMinutes: 1440, MinimumCoverage: 1, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: continuity.EvidenceContractDraft, ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.TransitionEvidenceContract(continuity.WithTrustedSystemScope(t.Context()), continuity.TransitionEvidenceContractInput{
+		TenantID: "bank", ProgramID: program.Program.ID, ContractID: program.EvidenceContracts[0].ID,
+		ExpectedVersion: program.Program.Version, ExpectedContractVersion: program.EvidenceContracts[0].Version,
+		To: continuity.EvidenceContractActive, Rationale: "Independent review approved the evidence check.", ActorID: "auditor",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	contractID := program.EvidenceContracts[0].ID
 	resolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
 		authority.ResponsibilityOwner: {
 			Principal:           authority.Principal{ID: "owner-1", DisplayName: "Data Protection Officer"},
@@ -267,7 +284,7 @@ func TestProgramOperationsExplainCurrentResponsibilitiesAcrossRoles(t *testing.T
 	assignment := find(owner, "program.assign", "")
 	supersession := find(owner, "program.requirement.supersede", requirementID)
 	transition := find(authorizer, "program.transition", "")
-	assessment := find(reviewer, "program.evidence.assess", "")
+	assessment := find(reviewer, "program.evidence.assess", contractID)
 	safeguard := find(owner, "program.safeguard.define", "")
 	if !details.CanAct || details.AssignedTo == nil || details.AssignedTo.DisplayName != "Data Protection Officer" {
 		t.Fatalf("owner responsibility is unexplained: %#v", details)

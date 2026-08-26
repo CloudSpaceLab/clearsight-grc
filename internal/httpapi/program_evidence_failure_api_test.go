@@ -58,7 +58,7 @@ func TestProgramEvidenceFailureAPIRecordsResultAndReturnsLinkedIssueInWorkList(t
 	if err != nil {
 		t.Fatal(err)
 	}
-	post("/api/v1/programs/"+program.Program.ID+"/evidence-assessments", `{"tenant_id":"bank","expected_version":4,"contract_id":"`+program.EvidenceContracts[0].ID+`","conclusion":"UNSUPPORTED","coverage":0.5,"basis":{"missing":1},"assessed_by":"forged-reviewer","assessed_at":"2026-08-26T10:00:00Z"}`, &program)
+	post("/api/v1/programs/"+program.Program.ID+"/evidence-contracts/"+program.EvidenceContracts[0].ID+"/assessments", `{"tenant_id":"bank","expected_version":4,"contract_id":"`+program.EvidenceContracts[0].ID+`","conclusion":"UNSUPPORTED","coverage":0.5,"basis":{"missing":1},"assessed_by":"forged-reviewer","assessed_at":"2026-08-26T10:00:00Z"}`, &program)
 	if len(program.EvidenceAssessments) != 1 || program.EvidenceAssessments[0].AssessedBy != "reviewer-owner" {
 		t.Fatalf("API assessment identity/result = %#v", program.EvidenceAssessments)
 	}

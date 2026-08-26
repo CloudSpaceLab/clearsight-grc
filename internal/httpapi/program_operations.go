@@ -90,7 +90,6 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		{Command: "program.monitoring.form.define", Label: "Create a collection form", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
 		{Command: "program.monitoring.define", Label: "Add a monitoring check", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
 		{Command: "program.applicability.decide", Label: "Decide whether requirements apply", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3, AssignedPrincipalID: approvalAuthorityID},
-		{Command: "program.evidence.assess", Label: "Record evidence check results", Responsibility: authority.ResponsibilityReviewer, Materiality: 3},
 		{Command: "program.review.accept", Label: "Confirm the Program review", Responsibility: authority.ResponsibilityReviewer, Materiality: 3},
 	} {
 		add(spec)
@@ -235,15 +234,35 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 			Materiality: 2, AssignedPrincipalID: ownerID,
 		})
 		if transitionTargets := evidenceContractTransitionTargets(contract.Status); len(transitionTargets) > 0 {
+			if contract.Status == continuity.EvidenceContractDraft && (strings.TrimSpace(contract.ConfiguredBy) == "" || contract.ConfiguredBy == actor.PrincipalID) {
+				transitionTargets = withoutTarget(transitionTargets, string(continuity.EvidenceContractActive))
+			}
 			add(programOperationSpec{
 				Command: "program.evidence.transition", SubresourceID: contract.ID,
-				Label: "Review " + contract.Name + " status", Responsibility: authority.ResponsibilityReviewer,
+				Label: "Review " + contract.Name + " status", ObjectType: "EVIDENCE_CONTRACT", ObjectID: contract.ID, Responsibility: authority.ResponsibilityReviewer,
 				Materiality: 3, AllowedTargets: transitionTargets,
+			})
+		}
+		if contract.Status == continuity.EvidenceContractActive {
+			add(programOperationSpec{
+				Command: "program.evidence.assess", SubresourceID: contract.ID,
+				Label: "Record a result for " + contract.Name, ObjectType: "EVIDENCE_CONTRACT", ObjectID: contract.ID,
+				Responsibility: authority.ResponsibilityReviewer, Materiality: 3,
 			})
 		}
 	}
 	response.Operations, response.AuthorityAvailable = a.resolveProgramOperations(ctx, actor, aggregate.Program, specs, response.AuthorityAvailable, now)
 	return response
+}
+
+func withoutTarget(targets []string, excluded string) []string {
+	filtered := make([]string, 0, len(targets))
+	for _, target := range targets {
+		if target != excluded {
+			filtered = append(filtered, target)
+		}
+	}
+	return filtered
 }
 
 func (a *API) storedProgramResponsibleParty(ctx context.Context, actor identity.Actor, principalID string, responsibility authority.Responsibility) *RecordResponsibleParty {

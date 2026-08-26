@@ -108,8 +108,8 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/programs/{id}/control-links/{link_id}/retirement", "program.safeguard.unlink", a.retireProgramRequirementControlLink, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
 		material("/api/v1/programs/{id}/evidence-contracts", "program.evidence.define", a.addProgramEvidenceContract, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
 		material("/api/v1/programs/{id}/evidence-contracts/{contract_id}/revision", "program.evidence.revise", a.reviseProgramEvidenceContract, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
-		material("/api/v1/programs/{id}/evidence-contracts/{contract_id}/transition", "program.evidence.transition", a.transitionProgramEvidenceContract, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
-		material("/api/v1/programs/{id}/evidence-assessments", "program.evidence.assess", a.recordProgramEvidenceAssessment, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: "assessed_by"}),
+		material("/api/v1/programs/{id}/evidence-contracts/{contract_id}/transition", "program.evidence.transition", a.transitionProgramEvidenceContract, commandPolicy{ObjectType: "EVIDENCE_CONTRACT", ObjectIDPath: "contract_id", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
+		material("/api/v1/programs/{id}/evidence-contracts/{contract_id}/assessments", "program.evidence.assess", a.recordProgramEvidenceAssessment, commandPolicy{ObjectType: "EVIDENCE_CONTRACT", ObjectIDPath: "contract_id", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: "assessed_by"}),
 		materialService("/api/v1/programs/{id}/triggers", "program.trigger.ingest", a.applyProgramTrigger, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityPerformer, Materiality: 2}),
 
 		read("/api/v1/programs/{id}/form-templates", a.listFormTemplates),

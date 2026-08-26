@@ -72,7 +72,7 @@
     "/api/v1/programs/{id}/evidence-contracts": { "post": { "operationId": "addProgramEvidenceContract", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/programs/{id}/evidence-contracts/{contract_id}/revision": { "post": { "operationId": "reviseProgramEvidenceContract", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/programs/{id}/evidence-contracts/{contract_id}/transition": { "post": { "operationId": "transitionProgramEvidenceContract", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
-    "/api/v1/programs/{id}/evidence-assessments": { "post": { "operationId": "recordProgramEvidenceAssessment", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/programs/{id}/evidence-contracts/{contract_id}/assessments": { "post": { "operationId": "recordProgramEvidenceAssessment", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/programs/{id}/triggers": { "post": { "operationId": "applyProgramTrigger", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
 
     "/api/v1/programs/{id}/form-templates": {

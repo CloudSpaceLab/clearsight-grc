@@ -497,6 +497,12 @@ func (a *API) recordProgramEvidenceAssessment(w http.ResponseWriter, r *http.Req
 		return
 	}
 	input.ProgramID = r.PathValue("id")
+	contractID, err := boundLifecycleID(r.PathValue("contract_id"), input.ContractID, "contract_id")
+	if err != nil {
+		writeContinuityError(w, err)
+		return
+	}
+	input.ContractID = contractID
 	value, err := service.RecordEvidenceAssessment(r.Context(), input)
 	writeContinuityResult(w, value, err, http.StatusCreated)
 }

@@ -409,6 +409,23 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		payload["implementation_id"] = implementation.ID
 		return policy, nil
 
+	case "program.evidence.transition", "program.evidence.assess":
+		contractID, err := lifecycleSubresourceID(r, payload, "contract_id")
+		if err != nil {
+			return policy, err
+		}
+		if programAggregate == nil || !programHasEvidenceContract(*programAggregate, contractID) {
+			return policy, continuity.ErrNotFound
+		}
+		payload["contract_id"] = contractID
+		if r != nil {
+			r.SetPathValue("contract_id", contractID)
+		}
+		policy.ObjectType = "EVIDENCE_CONTRACT"
+		policy.ObjectIDPath = "contract_id"
+		policy.Responsibility = authority.ResponsibilityReviewer
+		return policy, nil
+
 	case "program.requirement.supersede":
 		requirementID, err := lifecycleSubresourceID(r, payload, "requirement_id")
 		if err != nil {
@@ -902,6 +919,15 @@ func matterActionByID(aggregate continuity.MatterAggregate, actionID string) *co
 func programHasRequirement(aggregate continuity.ProgramAggregate, requirementID string) bool {
 	for _, requirement := range aggregate.Requirements {
 		if requirement.ID == requirementID {
+			return true
+		}
+	}
+	return false
+}
+
+func programHasEvidenceContract(aggregate continuity.ProgramAggregate, contractID string) bool {
+	for _, contract := range aggregate.EvidenceContracts {
+		if contract.ID == contractID {
 			return true
 		}
 	}

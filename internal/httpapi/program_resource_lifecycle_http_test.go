@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -22,6 +23,39 @@ type lifecycleAuthorityCapture struct {
 }
 
 type scopedSafeguardAssignmentAuthority struct{}
+
+type scopedEvidenceContractAuthority struct{}
+
+func (scopedEvidenceContractAuthority) Resolve(_ context.Context, input authority.ResolveInput) (authority.Resolution, error) {
+	principalID := "program-owner"
+	if input.Responsibility == authority.ResponsibilityReviewer {
+		principalID = "program-reviewer"
+		if input.ObjectType == "EVIDENCE_CONTRACT" {
+			principalID = "reviewer-" + input.ObjectID
+		}
+	}
+	return authority.Resolution{
+		Principal:        authority.Principal{ID: principalID, DisplayName: principalID},
+		EffectiveOrigins: []authority.EffectiveOrigin{{PrincipalID: principalID, OriginPrincipalID: principalID}},
+	}, nil
+}
+func (s scopedEvidenceContractAuthority) ResolveMany(ctx context.Context, inputs []authority.ResolveInput) ([]authority.ResolveOutcome, error) {
+	result := make([]authority.ResolveOutcome, len(inputs))
+	for index, input := range inputs {
+		resolution, err := s.Resolve(ctx, input)
+		result[index] = authority.ResolveOutcome{Resolution: resolution, Err: err}
+	}
+	return result, nil
+}
+func (scopedEvidenceContractAuthority) Simulate(context.Context, authority.ResolveInput) (authority.Simulation, error) {
+	return authority.Simulation{}, nil
+}
+func (scopedEvidenceContractAuthority) Integrity(context.Context, string) ([]authority.IntegrityFinding, error) {
+	return nil, nil
+}
+func (scopedEvidenceContractAuthority) Policies(context.Context, string) ([]authority.PolicySummary, error) {
+	return nil, nil
+}
 
 func (scopedSafeguardAssignmentAuthority) Resolve(_ context.Context, input authority.ResolveInput) (authority.Resolution, error) {
 	principalID := "program-owner"
@@ -137,12 +171,20 @@ func TestProgramResourceLifecycleCommandsAuthorizeExactObjectAndResponsibility(t
 			actorID:    "safeguard-owner", wantObjectType: "CONTROL_IMPLEMENTATION", wantObjectID: safeguardID, wantRole: authority.ResponsibilityPerformer,
 		},
 		{
-			name: "transition evidence check is a reviewer command", command: "program.evidence.transition",
-			policy:     commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityReviewer, Materiality: 3},
+			name: "transition evidence check is a reviewer command on the exact contract", command: "program.evidence.transition",
+			policy:     commandPolicy{ObjectType: "EVIDENCE_CONTRACT", ObjectIDPath: "contract_id", Responsibility: authority.ResponsibilityReviewer, Materiality: 3},
 			path:       "/api/v1/programs/" + program.Program.ID + "/evidence-contracts/" + evidenceID + "/transition",
 			pathValues: map[string]string{"id": program.Program.ID, "contract_id": evidenceID},
 			body:       `{"expected_version":3,"expected_contract_version":1,"to":"ACTIVE"}`,
-			actorID:    "evidence-reviewer", wantObjectType: "PROGRAM", wantObjectID: program.Program.ID, wantRole: authority.ResponsibilityReviewer,
+			actorID:    "evidence-reviewer", wantObjectType: "EVIDENCE_CONTRACT", wantObjectID: evidenceID, wantRole: authority.ResponsibilityReviewer,
+		},
+		{
+			name: "assess evidence check is a reviewer command on the exact contract", command: "program.evidence.assess",
+			policy:     commandPolicy{ObjectType: "EVIDENCE_CONTRACT", ObjectIDPath: "contract_id", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: "assessed_by"},
+			path:       "/api/v1/programs/" + program.Program.ID + "/evidence-contracts/" + evidenceID + "/assessments",
+			pathValues: map[string]string{"id": program.Program.ID, "contract_id": evidenceID},
+			body:       `{"expected_version":3,"contract_id":"` + evidenceID + `","conclusion":"SUPPORTED"}`,
+			actorID:    "evidence-reviewer", wantObjectType: "EVIDENCE_CONTRACT", wantObjectID: evidenceID, wantRole: authority.ResponsibilityReviewer,
 		},
 	}
 
@@ -185,6 +227,101 @@ func TestProgramResourceLifecycleCommandsAuthorizeExactObjectAndResponsibility(t
 				t.Fatalf("authority call for %s was not captured: %#v", test.command, resolver.inputs)
 			}
 		})
+	}
+}
+
+func TestEvidenceContractCommandsRejectBodyPathMismatchBeforeAuthority(t *testing.T) {
+	service, program := programWithLifecycleResources(t)
+	api := &API{deps: Dependencies{Continuity: service, Authority: scopedEvidenceContractAuthority{}}}
+	contractID := program.EvidenceContracts[0].ID
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/programs/"+program.Program.ID+"/evidence-contracts/"+contractID+"/assessments", nil)
+	request.SetPathValue("id", program.Program.ID)
+	request.SetPathValue("contract_id", contractID)
+	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-" + contractID}))
+	_, err := api.lifecycleCommandPolicy(request.Context(), request, "bank", "program.evidence.assess", map[string]any{"contract_id": "another-contract"}, commandPolicy{ObjectType: "EVIDENCE_CONTRACT", ObjectIDPath: "contract_id", Responsibility: authority.ResponsibilityReviewer, Materiality: 3})
+	if !errors.Is(err, continuity.ErrInvalidState) {
+		t.Fatalf("body/path mismatch error = %v", err)
+	}
+}
+
+func TestEvidenceContractAuthorityDoesNotCrossContracts(t *testing.T) {
+	service, program := programWithLifecycleResources(t)
+	contractA := program.EvidenceContracts[0]
+	contractB := contractA
+	contractB.ID = "contract-b"
+	contractB.Code = "CHECK-B"
+	contractB.Name = "Evidence check B"
+	contractB.ConfiguredBy = "maker-b"
+	contractA.Status = continuity.EvidenceContractActive
+	contractB.Status = continuity.EvidenceContractActive
+	program.EvidenceContracts[0] = contractA
+	program.EvidenceContracts = append(program.EvidenceContracts, contractB)
+	resolver := scopedEvidenceContractAuthority{}
+	guard, err := commandauth.New(resolver, commandauth.ModeEnforce, slog.Default())
+	if err != nil {
+		t.Fatal(err)
+	}
+	api := &API{deps: Dependencies{Continuity: service, Authority: resolver, CommandGuard: guard}}
+	actor := identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-" + contractA.ID, Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour)}
+	operations := api.buildProgramOperations(identity.WithActor(t.Context(), actor), actor, program, time.Now().UTC()).Operations
+	for _, contract := range []continuity.EvidenceContract{contractA, contractB} {
+		for _, command := range []string{"program.evidence.transition", "program.evidence.assess"} {
+			var found *RecordOperation
+			for index := range operations {
+				if operations[index].Command == command && operations[index].SubresourceID == contract.ID {
+					found = &operations[index]
+					break
+				}
+			}
+			if command == "program.evidence.assess" && contract.Status != continuity.EvidenceContractActive {
+				continue
+			}
+			if found == nil {
+				t.Fatalf("operation %s/%s missing", command, contract.ID)
+			}
+			wantCanAct := contract.ID == contractA.ID
+			if found.CanAct != wantCanAct {
+				t.Fatalf("operation %s/%s can_act = %v, want %v: %#v", command, contract.ID, found.CanAct, wantCanAct, *found)
+			}
+		}
+	}
+}
+
+func TestEvidenceAssessmentGuardRejectsReviewerForDifferentContract(t *testing.T) {
+	service, program := programWithLifecycleResources(t)
+	contractA := program.EvidenceContracts[0]
+	program, err := service.AddEvidenceContract(continuity.WithTrustedSystemScope(t.Context()), continuity.AddEvidenceContractInput{
+		TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version,
+		ControlImplementationID: program.ControlImplementations[0].ID, Code: "CHECK-B", Name: "Evidence check B", Claim: "Evidence B remains current.", FreshnessMinutes: 60,
+		MinimumCoverage: 1, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: continuity.EvidenceContractDraft, ActorID: "maker-b",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	contractB := program.EvidenceContracts[1]
+	resolver := scopedEvidenceContractAuthority{}
+	guard, err := commandauth.New(resolver, commandauth.ModeEnforce, slog.Default())
+	if err != nil {
+		t.Fatal(err)
+	}
+	api := &API{deps: Dependencies{Continuity: service, Authority: resolver, CommandGuard: guard}}
+	handler := api.command("program.evidence.assess", commandPolicy{ObjectType: "EVIDENCE_CONTRACT", ObjectIDPath: "contract_id", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: "assessed_by"}, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	call := func(contract continuity.EvidenceContract) *httptest.ResponseRecorder {
+		request := httptest.NewRequest(http.MethodPost, "/api/v1/programs/"+program.Program.ID+"/evidence-contracts/"+contract.ID+"/assessments", strings.NewReader(`{"contract_id":"`+contract.ID+`"}`))
+		request.SetPathValue("id", program.Program.ID)
+		request.SetPathValue("contract_id", contract.ID)
+		request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-" + contractA.ID, Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour)}))
+		response := httptest.NewRecorder()
+		handler(response, request)
+		return response
+	}
+	if response := call(contractA); response.Code != http.StatusNoContent {
+		t.Fatalf("contract A reviewer was denied: %d %s", response.Code, response.Body.String())
+	}
+	if response := call(contractB); response.Code != http.StatusForbidden {
+		t.Fatalf("contract A reviewer acted on B: %d %s", response.Code, response.Body.String())
 	}
 }
 
@@ -310,11 +447,22 @@ func TestEvidenceCheckMakerCannotActivateOwnConfiguration(t *testing.T) {
 		t.Fatal(err)
 	}
 	api := &API{deps: Dependencies{Continuity: service, Authority: resolver, CommandGuard: guard}}
+	actor := identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "program-owner", Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour)}
+	operations := api.buildProgramOperations(identity.WithActor(t.Context(), actor), actor, program, time.Now().UTC()).Operations
+	for _, operation := range operations {
+		if operation.Command == "program.evidence.transition" && operation.SubresourceID == contract.ID {
+			for _, target := range operation.AllowedTargets {
+				if target == string(continuity.EvidenceContractActive) {
+					t.Fatalf("maker was offered activation: %#v", operation)
+				}
+			}
+		}
+	}
 	handler := api.command("program.evidence.transition", commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}, api.transitionProgramEvidenceContract)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/programs/"+program.Program.ID+"/evidence-contracts/"+contract.ID+"/transition", strings.NewReader(fmt.Sprintf(`{"expected_version":%d,"expected_contract_version":%d,"to":"ACTIVE","rationale":"Approve the evidence rules."}`, program.Program.Version, contract.Version)))
 	request.SetPathValue("id", program.Program.ID)
 	request.SetPathValue("contract_id", contract.ID)
-	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "program-owner", Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour)}))
+	request = request.WithContext(identity.WithActor(request.Context(), actor))
 	response := httptest.NewRecorder()
 	handler(response, request)
 	if response.Code != http.StatusConflict || !strings.Contains(response.Body.String(), "maker_checker_required") {

@@ -25,7 +25,7 @@ const aggregate: ProgramAggregate = {
 };
 const operations = [
   { command: "program.evidence.define", label: "Define evidence", responsibility: "OWNER", can_act: true, reason: "You can define evidence." },
-  { command: "program.evidence.assess", label: "Assess evidence", responsibility: "REVIEWER", can_act: true, reason: "You can assess evidence." },
+  { command: "program.evidence.assess", subresource_id: "contract-1", label: "Assess Filing evidence", responsibility: "REVIEWER", can_act: true, reason: "You can assess this evidence check." },
 ];
 
 beforeEach(() => {
@@ -56,6 +56,29 @@ describe("Program evidence authority gating", () => {
       ["HOLD", "Hold the check"], ["REVIEW", "Require review"], ["FAIL", "Fail the check"],
     ]);
     expect(screen.queryByRole("option", { name: "Escalate" })).toBeNull();
+  });
+
+  it("offers and submits only evidence checks assigned through the exact contract route", async () => {
+    const value = {
+      ...aggregate,
+      evidence_contracts: [
+        aggregate.evidence_contracts[0]!,
+        { ...aggregate.evidence_contracts[0]!, id: "contract-2", code: "EVIDENCE-2", name: "Account evidence" },
+      ],
+    };
+    vi.mocked(recordProgramEvidenceAssessment).mockResolvedValue(value);
+    render(<ProgramEvidencePanel aggregate={value} operations={[
+      ...operations,
+      { command: "program.evidence.assess", subresource_id: "contract-2", label: "Assess Account evidence", responsibility: "REVIEWER", can_act: false, reason: "Assigned to the account evidence reviewer." },
+    ]} actorPrincipalID="reviewer-1" canConfigureSources canOperate onUpdated={vi.fn()} onReload={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Record evidence result" }));
+    const check = screen.getByLabelText("Evidence check") as HTMLSelectElement;
+    expect(Array.from(check.options).map((option) => option.value)).toEqual(["contract-1"]);
+    fireEvent.change(screen.getByLabelText("Assessment basis"), { target: { value: "The filing register supports the claim." } });
+    fireEvent.click(screen.getByRole("button", { name: "Save evidence result" }));
+    expect(recordProgramEvidenceAssessment).toHaveBeenCalledWith("program-1", 4, expect.objectContaining({ contractID: "contract-1" }));
+    expect(screen.getByText("Assigned to the account evidence reviewer.")).toBeTruthy();
   });
 
   it("loads source choices for the Program's exact legal entity", async () => {

@@ -164,7 +164,7 @@ describe("Program operation API", () => {
         contractID: "contract-1", conclusion: "SUPPORTED", coverage: 1, basis: { receipt: "artifact-1" },
         assessedAt: "2026-09-02T10:00:00Z",
       }),
-      path: "/api/v1/programs/program-1/evidence-assessments?tenant_id=tenant-1",
+      path: "/api/v1/programs/program-1/evidence-contracts/contract-1/assessments?tenant_id=tenant-1",
       body: { tenant_id: "tenant-1", expected_version: 13, contract_id: "contract-1", conclusion: "SUPPORTED", coverage: 1, basis: { receipt: "artifact-1" }, assessed_at: "2026-09-02T10:00:00Z" },
     },
     {
