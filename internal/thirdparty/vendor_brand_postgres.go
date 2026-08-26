@@ -173,16 +173,24 @@ func appendVendorIdentityEvent(ctx context.Context, tx pgx.Tx, tenantID string, 
 	_, err := tx.Exec(ctx, `
 		INSERT INTO third_party_events(tenant_id,aggregate_type,aggregate_id,aggregate_version,actor_principal_id,event_type,payload,occurred_at)
 		VALUES($1::uuid,'VENDOR',$2::uuid,$3,$4::uuid,$5,
-			jsonb_build_object('website_domain',$6::text,'status',$7::text),$8)`,
-		tenantID, vendor.ID, vendor.Version, actorID, eventType, vendor.WebsiteDomain, vendor.Status, vendor.UpdatedAt)
+			jsonb_build_object(
+				'legal_name',$6::text,'trading_name',$7::text,'registration_ref',$8::text,
+				'jurisdiction',$9::text,'website_domain',$10::text,'status',$11::text
+			),$12)`,
+		tenantID, vendor.ID, vendor.Version, actorID, eventType, vendor.LegalName, vendor.TradingName,
+		vendor.RegistrationRef, vendor.Jurisdiction, vendor.WebsiteDomain, vendor.Status, vendor.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("append vendor identity event: %w", err)
 	}
 	_, err = tx.Exec(ctx, `
 		INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at)
 		VALUES($1::uuid,'VENDOR',$2::uuid,$3,
-			jsonb_build_object('version',$4::bigint,'website_domain',$5::text,'status',$6::text),$7,$7)`,
-		tenantID, vendor.ID, eventType, vendor.Version, vendor.WebsiteDomain, vendor.Status, vendor.UpdatedAt)
+			jsonb_build_object(
+				'version',$4::bigint,'legal_name',$5::text,'trading_name',$6::text,'registration_ref',$7::text,
+				'jurisdiction',$8::text,'website_domain',$9::text,'status',$10::text
+			),$11,$11)`,
+		tenantID, vendor.ID, eventType, vendor.Version, vendor.LegalName, vendor.TradingName,
+		vendor.RegistrationRef, vendor.Jurisdiction, vendor.WebsiteDomain, vendor.Status, vendor.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("append vendor identity outbox event: %w", err)
 	}

@@ -1,14 +1,22 @@
 BEGIN;
 
+CREATE FUNCTION third_party_website_domain_valid(value text) RETURNS boolean
+LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE AS $$
+    SELECT value=btrim(value)
+       AND value=lower(value)
+       AND char_length(value) BETWEEN 1 AND 253
+       AND value ~ '^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$'
+       AND NOT EXISTS (
+           SELECT 1
+           FROM unnest(string_to_array(value,'.')) AS segment(label)
+           WHERE NOT (char_length(label) BETWEEN 1 AND 63)
+       )
+$$;
+
 ALTER TABLE third_parties
     ADD COLUMN website_domain text,
     ADD CONSTRAINT third_parties_website_domain_check CHECK (
-        website_domain IS NULL OR (
-            website_domain=btrim(website_domain)
-            AND website_domain=lower(website_domain)
-            AND char_length(website_domain) BETWEEN 1 AND 253
-            AND website_domain ~ '^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$'
-        )
+        website_domain IS NULL OR third_party_website_domain_valid(website_domain)
     );
 
 CREATE TABLE third_party_vendor_brand_assets (
@@ -18,9 +26,7 @@ CREATE TABLE third_party_vendor_brand_assets (
     source_kind text NOT NULL CHECK (source_kind IN ('DISCOVERED','APPROVED_OVERRIDE')),
     state text NOT NULL CHECK (state IN ('CURRENT','SUPERSEDED')),
     source_domain text NOT NULL DEFAULT '' CHECK (
-        source_domain=btrim(source_domain)
-        AND char_length(source_domain) <= 253
-        AND (source_domain='' OR source_domain ~ '^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$')
+        source_domain='' OR third_party_website_domain_valid(source_domain)
     ),
     artifact_key text NOT NULL CHECK (artifact_key=btrim(artifact_key) AND char_length(artifact_key) BETWEEN 1 AND 1024),
     source_digest text NOT NULL CHECK (source_digest ~ '^[0-9a-f]{64}$'),
@@ -54,9 +60,7 @@ CREATE TABLE third_party_vendor_brand_jobs (
     vendor_version bigint NOT NULL CHECK (vendor_version > 0),
     job_type text NOT NULL CHECK (job_type='DISCOVER_ICON'),
     website_domain text NOT NULL DEFAULT '' CHECK (
-        website_domain=btrim(website_domain)
-        AND char_length(website_domain) <= 253
-        AND (website_domain='' OR website_domain ~ '^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$')
+        website_domain='' OR third_party_website_domain_valid(website_domain)
     ),
     state text NOT NULL CHECK (state IN ('READY','LEASED','COMPLETED','FAILED','CANCELLED')),
     attempts integer NOT NULL DEFAULT 0 CHECK (attempts BETWEEN 0 AND 20),

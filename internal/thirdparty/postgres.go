@@ -74,9 +74,11 @@ func (r *PostgresRepository) CreateRelationship(ctx context.Context, record Crea
 	if err := appendRelationshipEvent(ctx, tx, tenantID, record.Relationship, record.Relationship.BusinessOwnerPrincipalID, "VendorRelationshipCreated"); err != nil {
 		return Aggregate{}, err
 	}
-	if createdVendor && record.BrandJob != nil {
-		if err := storeVendorBrandJob(ctx, tx, tenantID, *record.BrandJob); err != nil {
-			return Aggregate{}, err
+	if createdVendor {
+		if record.BrandJob != nil {
+			if err := storeVendorBrandJob(ctx, tx, tenantID, *record.BrandJob); err != nil {
+				return Aggregate{}, err
+			}
 		}
 		if err := appendVendorIdentityEvent(ctx, tx, tenantID, storedVendor, record.ActorID, VendorIdentityCreatedEvent); err != nil {
 			return Aggregate{}, err

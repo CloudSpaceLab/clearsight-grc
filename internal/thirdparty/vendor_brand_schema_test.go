@@ -15,6 +15,8 @@ func TestVendorBrandMigrationAddsScopedDurableStateWithoutParallelFoundations(t 
 	}
 	schema := string(content)
 	for _, required := range []string{
+		"CREATE FUNCTION third_party_website_domain_valid(value text)",
+		"char_length(label) BETWEEN 1 AND 63",
 		"ALTER TABLE third_parties",
 		"ADD COLUMN website_domain",
 		"CREATE TABLE third_party_vendor_brand_assets",
@@ -39,6 +41,9 @@ func TestVendorBrandMigrationAddsScopedDurableStateWithoutParallelFoundations(t 
 			t.Fatalf("vendor brand migration missing %q", required)
 		}
 	}
+	if got := strings.Count(schema, "third_party_website_domain_valid("); got != 4 {
+		t.Fatalf("hostname validator definition/use count = %d, want one definition and three checks", got)
+	}
 	for _, prohibited := range []string{"CREATE TABLE third_party_vendors", "CREATE TABLE outbox_events", "CREATE TABLE third_party_events", "remote_content", "image_bytes"} {
 		if strings.Contains(schema, prohibited) {
 			t.Fatalf("vendor brand migration duplicates or stores unsafe state with %q", prohibited)
@@ -58,6 +63,7 @@ func TestVendorBrandRollbackOnlyRemovesMigrationOwnedState(t *testing.T) {
 		"DROP TABLE third_party_vendor_brand_jobs",
 		"DROP TABLE third_party_vendor_brand_assets",
 		"DROP COLUMN website_domain",
+		"DROP FUNCTION third_party_website_domain_valid(text)",
 	} {
 		if !strings.Contains(schema, required) {
 			t.Fatalf("vendor brand rollback missing %q", required)
@@ -70,5 +76,25 @@ func TestVendorBrandRollbackOnlyRemovesMigrationOwnedState(t *testing.T) {
 	}
 	if strings.Contains(schema, "ALTER TABLE third_party_events") || strings.Contains(schema, "CREATE OR REPLACE FUNCTION third_party_event_aggregate_guard") {
 		t.Fatal("vendor brand rollback must preserve compatible event vocabulary and aggregate validation for retained vendor identity history")
+	}
+}
+
+func TestVendorIdentityPostgresEventsCarryReconstructableSafeState(t *testing.T) {
+	t.Parallel()
+
+	content, err := os.ReadFile("vendor_brand_postgres.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(content)
+	for _, required := range []string{"'legal_name'", "'trading_name'", "'registration_ref'", "'jurisdiction'", "'website_domain'", "'status'"} {
+		if got := strings.Count(source, required); got != 2 {
+			t.Fatalf("vendor identity event/outbox payload field %s count = %d, want one in each payload", required, got)
+		}
+	}
+	for _, prohibited := range []string{"'source_id'", "'external_ref'"} {
+		if strings.Contains(source, prohibited) {
+			t.Fatalf("vendor identity event/outbox payload includes unnecessary field %s", prohibited)
+		}
 	}
 }

@@ -226,6 +226,31 @@ func TestCreateRelationshipWithWebsiteSchedulesBrandDiscoveryAtomically(t *testi
 	}
 }
 
+func TestCreateRelationshipWithoutWebsiteRecordsReconstructableVendorIdentity(t *testing.T) {
+	repo := NewMemoryRepository()
+	service := NewService(repo)
+	service.now = func() time.Time { return time.Date(2026, 8, 26, 8, 45, 0, 0, time.UTC) }
+
+	created, err := service.CreateRelationship(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "owner"}, validCreateInput())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(repo.vendorIdentityEvents) != 1 || len(repo.vendorIdentityOutbox) != 1 {
+		t.Fatalf("identity audit event/outbox counts = %d/%d", len(repo.vendorIdentityEvents), len(repo.vendorIdentityOutbox))
+	}
+	for name, event := range map[string]VendorIdentityEvent{"event": repo.vendorIdentityEvents[0], "outbox": repo.vendorIdentityOutbox[0]} {
+		if event.EventType != VendorIdentityCreatedEvent || event.VendorVersion != 1 || event.ActorPrincipalID != "owner" {
+			t.Fatalf("%s identity envelope = %#v", name, event)
+		}
+		if event.LegalName != created.Vendor.LegalName || event.TradingName != created.Vendor.TradingName || event.RegistrationRef != created.Vendor.RegistrationRef || event.Jurisdiction != created.Vendor.Jurisdiction || event.WebsiteDomain != "" || event.Status != created.Vendor.Status {
+			t.Fatalf("%s identity snapshot cannot reconstruct vendor: %#v", name, event)
+		}
+	}
+	if _, err := repo.GetVendorBrandJob(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity"}, created.Vendor.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("vendor without a website scheduled discovery: %v", err)
+	}
+}
+
 func TestRelationshipCreationCannotSilentlyChangeReusedVendorWebsite(t *testing.T) {
 	repo := NewMemoryRepository()
 	service := NewService(repo)
@@ -264,10 +289,10 @@ func TestUpdateVendorIdentityUsesVerifiedAuthorityAndExpectedVersion(t *testing.
 
 	updated, err := service.UpdateVendorIdentity(ctx, Actor{TenantID: "other", LegalEntityID: "other", PrincipalID: "body-actor"}, created.Vendor.ID, UpdateVendorIdentityInput{
 		ExpectedVersion: created.Vendor.Version,
-		LegalName:       created.Vendor.LegalName,
-		TradingName:     created.Vendor.TradingName,
-		RegistrationRef: created.Vendor.RegistrationRef,
-		Jurisdiction:    created.Vendor.Jurisdiction,
+		LegalName:       "Acme Payments Limited",
+		TradingName:     "Acme Payments",
+		RegistrationRef: "RC-20002",
+		Jurisdiction:    "Ghana",
 		WebsiteDomain:   "BÜCHER.Example",
 	})
 	if err != nil {
@@ -281,6 +306,14 @@ func TestUpdateVendorIdentityUsesVerifiedAuthorityAndExpectedVersion(t *testing.
 	}
 	if got := repo.vendorIdentityEvents[len(repo.vendorIdentityEvents)-1].ActorPrincipalID; got != "verified-owner" {
 		t.Fatalf("event actor = %q", got)
+	}
+	updatedEvent := repo.vendorIdentityEvents[len(repo.vendorIdentityEvents)-1]
+	if updatedEvent.VendorVersion != updated.Version || updatedEvent.LegalName != updated.LegalName || updatedEvent.TradingName != updated.TradingName || updatedEvent.RegistrationRef != updated.RegistrationRef || updatedEvent.Jurisdiction != updated.Jurisdiction || updatedEvent.WebsiteDomain != updated.WebsiteDomain || updatedEvent.Status != updated.Status {
+		t.Fatalf("updated identity event cannot reconstruct vendor: event=%#v vendor=%#v", updatedEvent, updated)
+	}
+	updatedOutbox := repo.vendorIdentityOutbox[len(repo.vendorIdentityOutbox)-1]
+	if updatedOutbox != updatedEvent {
+		t.Fatalf("identity outbox snapshot differs from event: event=%#v outbox=%#v", updatedEvent, updatedOutbox)
 	}
 	job, err := repo.GetVendorBrandJob(ctx, Scope{TenantID: "bank", LegalEntityID: "entity"}, created.Vendor.ID)
 	if err != nil {

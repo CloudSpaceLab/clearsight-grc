@@ -57,8 +57,8 @@ func (r *MemoryRepository) CreateRelationship(_ context.Context, record CreateRe
 		if record.BrandJob != nil {
 			job := *record.BrandJob
 			r.vendorBrandJobs[vendorBrandJobKey(job.TenantID, job.VendorID)] = job
-			r.appendVendorIdentityAudit(record.Vendor, record.ActorID, VendorIdentityCreatedEvent)
 		}
+		r.appendVendorIdentityAudit(record.Vendor, record.ActorID, VendorIdentityCreatedEvent)
 	}
 	r.relationships[record.Relationship.ID] = record.Relationship
 	return Aggregate{Vendor: record.Vendor, Relationship: record.Relationship}, nil
