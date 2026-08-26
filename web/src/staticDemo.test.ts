@@ -134,4 +134,22 @@ describe("static stakeholder demo transport", () => {
     const completed = await staticDemoRequest<{ status: string; version: number; conclusion: string; conclusion_rationale: string }>(`/api/v1/vendor-assessments/${current.assessment.id}/complete`, { method: "POST", body: JSON.stringify({ expected_version: 5, conclusion: "SATISFACTORY_WITH_CONDITIONS", rationale: "Proceed after the access-control action is complete." }) });
     expect(completed).toMatchObject({ status: "COMPLETED", version: 6, conclusion: "SATISFACTORY_WITH_CONDITIONS", conclusion_rationale: "Proceed after the access-control action is complete." });
   });
+
+  it("provides deterministic vendor recovery, collection and completion fixtures", async () => {
+    const { StaticDemoHTTPError, staticDemoRequest } = await demo();
+    for (const [fixture, status] of [["vendor-ready", "READY_TO_SEND"], ["vendor-collecting", "COLLECTING"], ["vendor-completed", "COMPLETED"]] as const) {
+      window.history.replaceState(null, "", `/?fixture=${fixture}`);
+      const current = await staticDemoRequest<{ assessment: { status: string } }>("/api/v1/vendors/vendor-relationship-payments/assessments/current");
+      expect(current.assessment.status).toBe(status);
+    }
+
+    window.history.replaceState(null, "", "/?fixture=vendor-source-degraded");
+    await expect(staticDemoRequest("/api/v1/form-templates?limit=100")).rejects.toMatchObject({ status: 503, code: "vendor_forms_unavailable" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
+
+    window.history.replaceState(null, "", "/?fixture=vendor-partial-delivery");
+    const ready = await staticDemoRequest<{ assessment: { id: string; version: number } }>("/api/v1/vendors/vendor-relationship-payments/assessments/current");
+    const partial = await staticDemoRequest<{ state: string; capture_url?: string; delivery: { status: string } }>(`/api/v1/vendor-assessments/${ready.assessment.id}/send-request`, { method: "POST", body: JSON.stringify({ expected_version: ready.assessment.version, audience: "security@acme.example", deadline: "2099-09-20T23:59:59Z", invitation_ttl_minutes: 1440 }) });
+    expect(partial).toMatchObject({ state: "LINK_CREATED_EMAIL_NOT_SENT", delivery: { status: "FAILED" } });
+    expect(partial.capture_url).toContain("capture_invite=");
+  });
 });

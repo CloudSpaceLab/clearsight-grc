@@ -160,6 +160,21 @@ function submittedVendorAssessment(): VendorAssessment {
   };
 }
 
+function fixtureVendorAssessment(fixture: string): VendorAssessment | null {
+  const submitted = submittedVendorAssessment();
+  switch (fixture) {
+    case "vendor-ready":
+    case "vendor-partial-delivery":
+      return { ...submitted, status: "READY_TO_SEND", current_request_id: undefined, submission_id: undefined, submitted_at: undefined, version: 2, updated_at: "2026-08-20T09:05:00Z" };
+    case "vendor-collecting":
+      return { ...submitted, status: "COLLECTING", submission_id: undefined, submitted_at: undefined, version: 3, updated_at: "2026-08-21T10:00:00Z" };
+    case "vendor-submitted": return submitted;
+    case "vendor-completed":
+      return { ...submitted, status: "COMPLETED", reviewer_principal_id: "role-cro", review_started_at: "2026-08-25T15:00:00Z", completed_at: "2026-08-26T11:00:00Z", conclusion: "SATISFACTORY_WITH_CONDITIONS", conclusion_rationale: "Proceed after the access-control action is complete.", conclusion_uncertainty: "The next resilience exercise remains due.", version: 6, updated_at: "2026-08-26T11:00:00Z" };
+    default: return null;
+  }
+}
+
 function submittedVendorReview(assessment: VendorAssessment): VendorAssessmentReviewView {
   return {
     assessment,
@@ -247,7 +262,10 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/today") return clone({ items: fixture === "today-empty" ? [] : todayItems, generated_at: now }) as T;
   if (pathname === "/api/v1/compliance/readiness") return clone({ tenant_id: "bank-demo", status: "AT_RISK", baseline_known: false, generated_at: now, dimensions: { current: 0, aging: 1, at_risk: 1, unknown: 1, blocked_routing: 0, pending_human: 1 }, active_drifts: [{ id: "drift-1", subject_type: "PROGRAM", subject_id: programID, dimension: "EVIDENCE", severity: 4, summary: "Two annual-return evidence sections are incomplete.", required_action: "Assign owners and complete DPCO review.", detected_at: now }], recommended_actions: ["Complete the two missing evidence ownership records.", "Confirm the final DPCO review date."] }) as T;
   if (pathname === "/api/v1/program-summaries") return clone({ items: matches(url, programSummary.program.name, programSummary.program.code) ? [programSummary] : [], generated_at: now }) as T;
-  if (pathname === "/api/v1/form-templates" && method === "GET") return clone({ items: [vendorDueDiligenceForm], next_cursor: "" }) as T;
+  if (pathname === "/api/v1/form-templates" && method === "GET") {
+    if (fixture === "vendor-source-degraded") throw new StaticDemoHTTPError(503, "vendor_forms_unavailable", "Approved due-diligence forms could not be loaded.");
+    return clone({ items: [vendorDueDiligenceForm], next_cursor: "" }) as T;
+  }
   if (pathname === "/api/v1/vendors" && method === "GET") {
     const query = (url.searchParams.get("search") ?? "").trim().toLowerCase();
     const items = query ? vendorRelationships.filter((item) => `${item.vendor.legal_name} ${item.vendor.trading_name} ${item.relationship.service_name}`.toLowerCase().includes(query)) : vendorRelationships;
@@ -263,7 +281,8 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     return clone(created) as T;
   }
   if (pathname === `/api/v1/vendors/${vendorRelationshipID}/assessments/current` && method === "GET") {
-    if (fixture === "vendor-submitted" && vendorAssessment?.status !== "SUBMITTED") vendorAssessment = submittedVendorAssessment();
+    const fixtureAssessment = fixtureVendorAssessment(fixture);
+    if (fixtureAssessment && vendorAssessment?.status !== fixtureAssessment.status) vendorAssessment = fixtureAssessment;
     if (!vendorAssessment) throw new StaticDemoHTTPError(404, "vendor_assessment_not_found", "No due-diligence assessment has been started for this vendor relationship.");
     return clone({ assessment: vendorAssessment, setup: { assessment_id: vendorAssessment.id, state: "COMPLETED", attempts: 1, updated_at: vendorAssessment.updated_at } }) as T;
   }
@@ -296,12 +315,14 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     if (input.expected_version !== vendorAssessment.version) throw new StaticDemoHTTPError(409, "vendor_assessment_changed", "The due-diligence assessment changed before the request was sent.");
     if (!input.audience?.includes("@") || !input.deadline || !input.invitation_ttl_minutes) throw new StaticDemoHTTPError(422, "vendor_assessment_invalid", "Enter a valid vendor contact, response deadline and secure-link lifetime.");
     vendorAssessment = { ...vendorAssessment, status: "COLLECTING", current_request_id: "vendor-request-payments-2026", version: vendorAssessment.version + 1, updated_at: now };
-    return clone({
+    const outcome = {
       assessment: vendorAssessment,
       request: { id: vendorAssessment.current_request_id, status: "READY", deadline: input.deadline, updated_at: now },
-      state: "DELIVERED",
-      delivery: { status: "DELIVERED", recipient_hint: maskEmail(input.audience), delivered_at: now },
-    }) as T;
+      state: fixture === "vendor-partial-delivery" ? "LINK_CREATED_EMAIL_NOT_SENT" : "DELIVERED",
+      delivery: fixture === "vendor-partial-delivery" ? { status: "FAILED", recipient_hint: maskEmail(input.audience), failure_code: "DELIVERY_UNAVAILABLE" } : { status: "DELIVERED", recipient_hint: maskEmail(input.audience), delivered_at: now },
+      ...(fixture === "vendor-partial-delivery" ? { capture_url: "https://capture.example.test/?capture_invite=sample-recovery-token", recovery: "Copy the secure link or retry delivery." } : {}),
+    };
+    return clone(outcome) as T;
   }
   if (vendorAssessment && pathname === `/api/v1/vendor-assessments/${vendorAssessment.id}` && method === "GET") {
     if (!vendorAssessment.submission_id) throw new StaticDemoHTTPError(409, "vendor_assessment_action_unavailable", "A submitted vendor response is required before review.");
