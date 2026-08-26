@@ -45,11 +45,18 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
   const [mode, setMode] = useState<"browse" | "create" | "edit">("browse");
   const [query, setQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const [nextCursor, setNextCursor] = useState("");
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
   const [form, setForm] = useState<FormValues>(emptyForm);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [existingVendorSource, setExistingVendorSource] = useState<VendorRelationshipAggregate>();
+  const [vendorCandidates, setVendorCandidates] = useState<VendorRelationshipAggregate[]>([]);
+  const [candidateState, setCandidateState] = useState<"idle" | "loading" | "ready" | "failed">("idle");
   const [forms, setForms] = useState<FormTemplate[]>([]);
   const [formState, setFormState] = useState<LoadState>("loading");
   const [assessment, setAssessment] = useState<VendorAssessment | null>(null);
@@ -61,8 +68,13 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   const [requestOutcomeKind, setRequestOutcomeKind] = useState<"initial" | "replacement">("initial");
   const assessmentLoadID = useRef(0);
   const formLoadID = useRef(0);
+  const registerLoadID = useRef(0);
 
-  useEffect(() => { void refresh(targetID); }, [targetID]);
+  useEffect(() => {
+    setQuery("");
+    setSubmittedQuery("");
+    void refresh(targetID, "");
+  }, [targetID]);
 
   useEffect(() => {
     void refreshForms();
@@ -246,17 +258,22 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     return value;
   }
 
-  async function refresh(requestedID?: string) {
+  async function refresh(requestedID?: string, search = submittedQuery) {
+    const loadID = ++registerLoadID.current;
     setState("loading");
+    setLoadMoreError(false);
     try {
-      const page = await loadVendorRelationships({ limit: 50 });
+      const page = await loadVendorRelationships({ ...(search ? { search } : {}), limit: 50 });
+      if (loadID !== registerLoadID.current) return;
       let next = page.items ?? [];
       let exact = requestedID ? next.find((item) => item.relationship.id === requestedID) : undefined;
       if (requestedID && !exact) {
         exact = await loadVendorRelationship(requestedID);
+        if (loadID !== registerLoadID.current) return;
         next = [exact, ...next];
       }
       setRecords(next);
+      setNextCursor(page.next_cursor ?? "");
       setSelected(exact ?? null);
       setState("live");
     } catch {
@@ -266,18 +283,36 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     }
   }
 
-  const visibleRecords = useMemo(() => {
-    const normalized = query.trim().toLocaleLowerCase();
-    if (!normalized) return records;
-    return records.filter(({ vendor, relationship }) => `${vendor.legal_name} ${vendor.trading_name ?? ""} ${relationship.service_name}`.toLocaleLowerCase().includes(normalized));
-  }, [query, records]);
+  async function loadMoreRelationships() {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    setLoadMoreError(false);
+    try {
+      const page = await loadVendorRelationships({ ...(submittedQuery ? { search: submittedQuery } : {}), cursor: nextCursor, limit: 50 });
+      setRecords((current) => page.items.reduce((items, item) => items.some((existing) => existing.relationship.id === item.relationship.id) ? items : [...items, item], current));
+      setNextCursor(page.next_cursor ?? "");
+    } catch {
+      setLoadMoreError(true);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  function searchRelationships(event: React.FormEvent) {
+    event.preventDefault();
+    const search = query.trim();
+    setSubmittedQuery(search);
+    setSelected(null);
+    onTarget?.();
+    void refresh(undefined, search);
+  }
 
   function choose(record: VendorRelationshipAggregate) {
     setSelected(record); setMode("browse"); setNotice(""); setFormError(""); onTarget?.(record.relationship.id);
   }
 
   function startCreate() {
-    setMode("create"); setForm(emptyForm); setSelected(null); setFieldErrors({}); setFormError(""); setNotice(""); onTarget?.();
+    setMode("create"); setForm(emptyForm); setSelected(null); setExistingVendorSource(undefined); setVendorCandidates([]); setCandidateState("idle"); setFieldErrors({}); setFormError(""); setNotice(""); onTarget?.();
   }
 
   function startEdit() {
@@ -292,12 +327,34 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   }
 
   function cancelForm() {
-    setMode("browse"); setFieldErrors({}); setFormError("");
+    setMode("browse"); setExistingVendorSource(undefined); setVendorCandidates([]); setCandidateState("idle"); setFieldErrors({}); setFormError("");
   }
 
   function setValue<K extends keyof FormValues>(key: K, value: FormValues[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+    if (key === "legalName" && existingVendorSource) setExistingVendorSource(undefined);
     setFieldErrors((current) => ({ ...current, [key]: "" }));
+  }
+
+  async function findExistingVendor() {
+    const search = form.legalName.trim();
+    if (search.length < 2) return;
+    setCandidateState("loading");
+    try {
+      const page = await loadVendorRelationships({ search, limit: 10 });
+      setVendorCandidates(page.items);
+      setCandidateState("ready");
+    } catch {
+      setVendorCandidates([]);
+      setCandidateState("failed");
+    }
+  }
+
+  function useExistingVendor(candidate: VendorRelationshipAggregate) {
+    setExistingVendorSource(candidate);
+    setForm((current) => ({ ...current, legalName: candidate.vendor.legal_name, tradingName: candidate.vendor.trading_name ?? "", registrationRef: candidate.vendor.registration_ref ?? "", jurisdiction: candidate.vendor.jurisdiction ?? "", sourceID: "", externalRef: "" }));
+    setCandidateState("idle");
+    setVendorCandidates([]);
   }
 
   async function submit(event: React.FormEvent) {
@@ -322,7 +379,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
         setNotice("Vendor relationship updated.");
       } else {
         const input: CreateVendorRelationshipInput = {
-          ...relationshipInput, legal_name: form.legalName.trim(), trading_name: optional(form.tradingName),
+          ...relationshipInput, existing_relationship_id: existingVendorSource?.relationship.id, legal_name: form.legalName.trim(), trading_name: optional(form.tradingName),
           registration_ref: optional(form.registrationRef), jurisdiction: optional(form.jurisdiction),
           source_id: optional(form.sourceID), external_ref: optional(form.externalRef),
         };
@@ -354,15 +411,17 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     {state === "unavailable" && <section className="vendor-state" role="alert"><h2>Vendor records are unavailable</h2><p>The vendor register for {legalEntityName} could not be loaded. Try again before adding or changing a record.</p><button className="secondary-button" type="button" onClick={() => void refresh(targetID)}>Try again</button></section>}
     {state === "live" && <div className="vendor-layout">
       <section className="vendor-register" aria-label={`Vendor relationships for ${legalEntityName}`}>
-        <div className="vendor-register-header"><div><h2>Vendor register</h2><p>{records.length} {records.length === 1 ? "relationship" : "relationships"} in the current legal entity</p></div></div>
-        <label className="vendor-search"><span>Search vendors and services</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search legal name or service"/></label>
-        {visibleRecords.length > 0 ? <div className="vendor-list">{visibleRecords.map((record) => <button type="button" key={record.relationship.id} aria-label={`${record.vendor.legal_name}, ${record.relationship.service_name}`} aria-current={selected?.relationship.id === record.relationship.id ? "true" : undefined} className={selected?.relationship.id === record.relationship.id ? "vendor-row selected" : "vendor-row"} onClick={() => choose(record)}>
+        <div className="vendor-register-header"><div><h2>Vendor register</h2><p>{submittedQuery ? `Showing ${records.length} matching ${records.length === 1 ? "relationship" : "relationships"}` : `Showing ${records.length} ${records.length === 1 ? "relationship" : "relationships"} in this legal entity`}</p>{nextCursor && <small>More relationships are available.</small>}</div></div>
+        <form className="vendor-search" onSubmit={searchRelationships}><label><span>Search vendors and services</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name, service or reference"/></label><button type="submit" className="secondary-button">Search vendors</button></form>
+        {records.length > 0 ? <div className="vendor-list">{records.map((record) => <button type="button" key={record.relationship.id} aria-label={`${record.vendor.legal_name}, ${record.relationship.service_name}`} aria-current={selected?.relationship.id === record.relationship.id ? "true" : undefined} className={selected?.relationship.id === record.relationship.id ? "vendor-row selected" : "vendor-row"} onClick={() => choose(record)}>
           <span className="vendor-row-icon" aria-hidden="true">V</span><span className="vendor-row-main"><strong>{record.vendor.legal_name}</strong><span>Service: {record.relationship.service_name}</span></span><span className={`vendor-criticality criticality-${record.relationship.criticality.toLowerCase()}`}>{humanize(record.relationship.criticality)}</span>
-        </button>)}</div> : records.length === 0 ? <div className="vendor-empty"><h3>No vendor relationships found for {legalEntityName}.</h3><p>Add the first vendor and the service it supplies. Use <strong>Add vendor</strong> above; the signed-in actor becomes the initial accountable owner.</p></div> : <div className="vendor-empty"><h3>No vendors match this search.</h3><p>The current register contains {records.length} relationships. Clear the search to review them.</p><button type="button" className="secondary-button" onClick={() => setQuery("")}>Clear search</button></div>}
+        </button>)}</div> : submittedQuery ? <div className="vendor-empty"><h3>No vendor relationships match this search.</h3><p>No legal name, service, registration or source reference matched “{submittedQuery}” in {legalEntityName}.</p><button type="button" className="secondary-button" onClick={() => { setQuery(""); setSubmittedQuery(""); void refresh(undefined, ""); }}>Clear search</button></div> : <div className="vendor-empty"><h3>No vendor relationships found for {legalEntityName}.</h3><p>Add the first vendor and the service it supplies. Use <strong>Add vendor</strong> above; the signed-in actor becomes the initial accountable owner.</p></div>}
+        {nextCursor && <button type="button" className="secondary-button" disabled={loadingMore} onClick={() => void loadMoreRelationships()}>{loadingMore ? "Loading…" : "Load more vendors"}</button>}
+        {loadMoreError && <p role="alert" className="inline-error">More vendor relationships could not be loaded. The current results remain available.</p>}
       </section>
 
       <section className="vendor-focus" aria-label="Selected vendor relationship">
-        {(mode === "create" || mode === "edit") ? <VendorForm mode={mode} form={form} errors={fieldErrors} formError={formError} saving={saving} onChange={setValue} onCancel={cancelForm} onSubmit={submit}/> : selected ? <VendorDetail
+        {(mode === "create" || mode === "edit") ? <VendorForm mode={mode} form={form} errors={fieldErrors} formError={formError} saving={saving} existingVendor={existingVendorSource} candidates={vendorCandidates} candidateState={candidateState} onFindExisting={findExistingVendor} onUseExisting={useExistingVendor} onUseDifferent={() => { setExistingVendorSource(undefined); setForm((current) => ({ ...current, legalName: "", tradingName: "", registrationRef: "", jurisdiction: "" })); }} onChange={setValue} onCancel={cancelForm} onSubmit={submit}/> : selected ? <VendorDetail
           record={selected}
           assessment={assessment}
           assessmentSetup={assessmentSetup}
@@ -505,16 +564,42 @@ function recommendedReviewDate() {
   return value.toISOString().slice(0, 10);
 }
 
-function VendorForm({ mode, form, errors, formError, saving, onChange, onCancel, onSubmit }: { mode: "create" | "edit"; form: FormValues; errors: Record<string, string>; formError: string; saving: boolean; onChange: <K extends keyof FormValues>(key: K, value: FormValues[K]) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
+function VendorForm({ mode, form, errors, formError, saving, existingVendor, candidates, candidateState, onFindExisting, onUseExisting, onUseDifferent, onChange, onCancel, onSubmit }: {
+  mode: "create" | "edit";
+  form: FormValues;
+  errors: Record<string, string>;
+  formError: string;
+  saving: boolean;
+  existingVendor?: VendorRelationshipAggregate;
+  candidates: VendorRelationshipAggregate[];
+  candidateState: "idle" | "loading" | "ready" | "failed";
+  onFindExisting: () => Promise<void>;
+  onUseExisting: (candidate: VendorRelationshipAggregate) => void;
+  onUseDifferent: () => void;
+  onChange: <K extends keyof FormValues>(key: K, value: FormValues[K]) => void;
+  onCancel: () => void;
+  onSubmit: (event: React.FormEvent) => void;
+}) {
   return <form className="vendor-form" onSubmit={onSubmit} noValidate>
     <div><span className="eyebrow">{mode === "create" ? "New relationship" : "Current relationship"}</span><h2>{mode === "create" ? "Add a vendor and service" : "Edit vendor relationship"}</h2><p>{mode === "create" ? "Record the organization and the service it supplies. Your verified identity will be recorded as the initial accountable owner." : "Update the supplied service, criticality, privacy role or dates using the current relationship version."}</p></div>
     {formError && <div className="vendor-form-error" role="alert">{formError}</div>}
     <div className="vendor-form-grid">
       {mode === "create" ? <>
-        <Field label="Legal name" required error={errors.legalName}><input id="vendor-legal-name" value={form.legalName} onChange={(event) => onChange("legalName", event.target.value)} aria-invalid={Boolean(errors.legalName)}/></Field>
-        <Field label="Trading name"><input id="vendor-trading-name" value={form.tradingName} onChange={(event) => onChange("tradingName", event.target.value)}/></Field>
+        {existingVendor ? <div className="vendor-identity-note">
+          <span>Existing vendor selected</span><strong>{existingVendor.vendor.legal_name}</strong>
+          <small>{[existingVendor.vendor.registration_ref, existingVendor.vendor.jurisdiction].filter(Boolean).join(" · ") || "No registration or jurisdiction recorded"}</small>
+          <p>A separate service relationship will be created without duplicating the vendor identity.</p>
+          <button type="button" className="text-button" onClick={onUseDifferent}>Use a different vendor</button>
+        </div> : <div className="vendor-existing-search">
+          <Field label="Legal name" required error={errors.legalName}><input id="vendor-legal-name" value={form.legalName} onChange={(event) => onChange("legalName", event.target.value)} aria-invalid={Boolean(errors.legalName)}/></Field>
+          <button type="button" className="secondary-button" disabled={candidateState === "loading" || form.legalName.trim().length < 2} onClick={() => void onFindExisting()}>{candidateState === "loading" ? "Searching…" : "Find existing vendor"}</button>
+          {candidateState === "failed" && <p role="alert">Existing vendors could not be searched. You can retry or continue only if this is a new vendor.</p>}
+          {candidateState === "ready" && candidates.length === 0 && <p>No existing vendor matched this name. Continue with the new vendor details.</p>}
+          {candidateState === "ready" && candidates.length > 0 && <section className="vendor-match-list" aria-label="Possible vendor matches"><h3>Possible vendor matches</h3><p>Select an existing vendor, or continue only when this is a different organization.</p>{candidates.map((candidate) => <button type="button" className="vendor-match" key={candidate.relationship.id} aria-label={`Use ${candidate.vendor.legal_name} for a new service relationship`} onClick={() => onUseExisting(candidate)}><strong>{candidate.vendor.legal_name}</strong><span>{candidate.relationship.service_name}</span><small>{candidate.vendor.registration_ref || candidate.vendor.external_ref || "No reference recorded"}</small></button>)}</section>}
+        </div>}
+        {!existingVendor && <><Field label="Trading name"><input id="vendor-trading-name" value={form.tradingName} onChange={(event) => onChange("tradingName", event.target.value)}/></Field>
         <Field label="Registration reference"><input id="vendor-registration" value={form.registrationRef} onChange={(event) => onChange("registrationRef", event.target.value)}/></Field>
-        <Field label="Jurisdiction"><input id="vendor-jurisdiction" value={form.jurisdiction} onChange={(event) => onChange("jurisdiction", event.target.value)} placeholder="For example, Nigeria"/></Field>
+        <Field label="Jurisdiction"><input id="vendor-jurisdiction" value={form.jurisdiction} onChange={(event) => onChange("jurisdiction", event.target.value)} placeholder="For example, Nigeria"/></Field></>}
       </> : <div className="vendor-identity-note">
         <span>Vendor legal details</span><strong>{form.legalName}</strong>
         <small>{[form.registrationRef, form.jurisdiction].filter(Boolean).join(" · ") || "No registration or jurisdiction recorded"}</small>
@@ -523,7 +608,7 @@ function VendorForm({ mode, form, errors, formError, saving, onChange, onCancel,
       <Field label="Service supplied" required error={errors.serviceName} wide><input id="vendor-service" value={form.serviceName} onChange={(event) => onChange("serviceName", event.target.value)} aria-invalid={Boolean(errors.serviceName)}/></Field>
       <Field label="Criticality" required><select id="vendor-criticality" value={form.criticality} onChange={(event) => onChange("criticality", event.target.value as VendorCriticality)}><option value="STANDARD">Standard</option><option value="IMPORTANT">Important</option><option value="CRITICAL">Critical</option></select></Field>
       <Field label="Privacy role" required><select id="vendor-privacy-role" value={form.privacyRole} onChange={(event) => onChange("privacyRole", event.target.value as VendorPrivacyRole)}><option value="NONE">No processing role</option><option value="PROCESSOR">Processor</option><option value="JOINT_CONTROLLER">Joint controller</option></select></Field>
-      {mode === "create" && <><Field label="Source system" error={errors.sourceID}><input id="vendor-source" value={form.sourceID} onChange={(event) => onChange("sourceID", event.target.value)} placeholder="For example, procurement"/></Field><Field label="Source reference"><input id="vendor-external-ref" value={form.externalRef} onChange={(event) => onChange("externalRef", event.target.value)}/></Field></>}
+      {mode === "create" && !existingVendor && <><Field label="Source system" error={errors.sourceID}><input id="vendor-source" value={form.sourceID} onChange={(event) => onChange("sourceID", event.target.value)} placeholder="For example, procurement"/></Field><Field label="Source reference"><input id="vendor-external-ref" value={form.externalRef} onChange={(event) => onChange("externalRef", event.target.value)}/></Field></>}
       <Field label="Effective date"><input id="vendor-effective" type="date" value={form.effectiveFrom} onChange={(event) => onChange("effectiveFrom", event.target.value)}/></Field>
       <Field label="Renewal date" error={errors.renewalAt}><input id="vendor-renewal" type="date" value={form.renewalAt} onChange={(event) => onChange("renewalAt", event.target.value)} aria-invalid={Boolean(errors.renewalAt)}/></Field>
     </div>

@@ -105,6 +105,46 @@ describe("VendorsWorkspace", () => {
     expect(await screen.findByRole("button", { name: "Acme Processing Limited, Card transaction processing" })).toBeTruthy();
   });
 
+  it("uses bounded server search and loads the next relationship page", async () => {
+    const second = { ...record, vendor: { ...record.vendor, id: "vendor-2", legal_name: "Beacon Hosting Limited" }, relationship: { ...record.relationship, id: "relationship-2", vendor_id: "vendor-2", service_name: "Cloud hosting" } };
+    vi.mocked(loadVendorRelationships)
+      .mockResolvedValueOnce({ items: [record], next_cursor: "cursor-1" })
+      .mockResolvedValueOnce({ items: [second] })
+      .mockResolvedValueOnce({ items: [second] });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria"/>);
+
+    expect(await screen.findByText("More relationships are available.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Load more vendors" }));
+    await waitFor(() => expect(loadVendorRelationships).toHaveBeenCalledWith({ cursor: "cursor-1", limit: 50 }));
+    expect(await screen.findByRole("button", { name: "Beacon Hosting Limited, Cloud hosting" })).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Search vendors and services"), { target: { value: "Beacon RC-20002" } });
+    fireEvent.click(screen.getByRole("button", { name: "Search vendors" }));
+    await waitFor(() => expect(loadVendorRelationships).toHaveBeenCalledWith({ search: "Beacon RC-20002", limit: 50 }));
+    expect(screen.getByText("Showing 1 matching relationship")).toBeTruthy();
+  });
+
+  it("creates another service relationship using an explicitly selected existing vendor", async () => {
+    vi.mocked(loadVendorRelationships)
+      .mockResolvedValueOnce({ items: [record] })
+      .mockResolvedValueOnce({ items: [record] });
+    vi.mocked(createVendorRelationship).mockResolvedValue({ ...record, relationship: { ...record.relationship, id: "relationship-2", service_name: "Settlement support" } });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria"/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Add vendor" }));
+    fireEvent.change(screen.getByLabelText("Legal name"), { target: { value: "Acme Processing" } });
+    fireEvent.click(screen.getByRole("button", { name: "Find existing vendor" }));
+    expect(await screen.findByText("Possible vendor matches")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Use Acme Processing Limited for a new service relationship" }));
+    fireEvent.change(screen.getByLabelText("Service supplied"), { target: { value: "Settlement support" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add vendor relationship" }));
+
+    await waitFor(() => expect(createVendorRelationship).toHaveBeenCalledWith(expect.objectContaining({
+      existing_relationship_id: "relationship-1", legal_name: "Acme Processing Limited", service_name: "Settlement support",
+    })));
+    expect(await screen.findByText("Vendor relationship added.")).toBeTruthy();
+  });
+
   it("treats a scoped missing assessment as not started and selects only the current active vendor form", async () => {
     vi.mocked(loadFormTemplates).mockResolvedValue([
       { ...activeVendorForm, id: "draft-form", status: "DRAFT", version: 4 },

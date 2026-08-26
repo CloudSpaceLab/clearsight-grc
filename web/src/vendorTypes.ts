@@ -41,6 +41,7 @@ export type VendorRelationshipAggregate = { vendor: Vendor; relationship: Vendor
 export type VendorRelationshipPage = { items: VendorRelationshipAggregate[]; next_cursor?: string };
 
 export type CreateVendorRelationshipInput = {
+  existing_relationship_id?: string;
   legal_name: string;
   trading_name?: string;
   registration_ref?: string;
