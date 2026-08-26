@@ -96,7 +96,7 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 			return policy, nil
 		}
 		target := continuity.MatterStatus(strings.ToUpper(stringValue(payload["to"])))
-		if target == continuity.MatterDecisionRequired || target == continuity.MatterClosed || target == continuity.MatterCancelled || aggregate.Matter.Status == continuity.MatterClosed {
+		if governedMatterTransition(aggregate.Matter.Status, target) {
 			policy.Responsibility = authority.ResponsibilityAuthorizer
 			policy.Materiality = max(4, matterPriority)
 		} else {
@@ -126,8 +126,10 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		if aggregate != nil {
 			policy.Materiality = max(policy.Materiality, matterPriority)
 			ownerID := stringValue(payload["owner_principal_id"])
-			if ownerID != "" && !continuity.MatterVisibleTo(aggregate.Matter, ownerID) {
-				return policy, fmt.Errorf("%w: action owner is not permitted to view this issue", continuity.ErrInvalidState)
+			if ownerID != "" {
+				if err := a.validateMatterAssignmentCandidate(ctx, tenant, name, *aggregate, ownerID, authority.ResponsibilityPerformer, policy.Materiality); err != nil {
+					return policy, err
+				}
 			}
 		}
 		return policy, nil
@@ -229,6 +231,10 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		}
 		return policy, nil
 	}
+}
+
+func governedMatterTransition(from, target continuity.MatterStatus) bool {
+	return target == continuity.MatterDecisionRequired || target == continuity.MatterClosed || target == continuity.MatterCancelled || from == continuity.MatterClosed
 }
 
 func (a *API) validateProgramAssignmentCandidate(ctx context.Context, tenant, commandName string, aggregate continuity.ProgramAggregate, candidateID string, candidateResponsibility authority.Responsibility, materiality int) error {

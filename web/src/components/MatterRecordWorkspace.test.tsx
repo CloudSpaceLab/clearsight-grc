@@ -122,8 +122,8 @@ const closureOperations: MatterOperations = {
   ...outcomeRecordOperations,
   matter_version: 8,
   operations: [...outcomeRecordOperations.operations.filter((operation) => operation.command !== "matter.outcome.record"), {
-    command: "matter.transition", label: "Change issue status", responsibility: "ACCOUNTABLE_OWNER", can_act: true,
-    assigned_to: { id: "owner-1", display_name: "Program Owner", kind: "PERSON", role: "PROGRAM_OWNER" },
+    command: "matter.transition", label: "Authorize issue status", responsibility: "AUTHORIZER", can_act: true,
+    assigned_to: { id: "authorizer-1", display_name: "CCO", kind: "PERSON", role: "CCO" },
     reason: "You can close this issue after its outcome is confirmed.", allowed_targets: ["CLOSED", "CANCELLED"],
   }],
 };
@@ -499,6 +499,64 @@ describe("Matter record workspace", () => {
     fireEvent.change(screen.getByLabelText("Reason for status change"), { target: { value: "The independent outcome check passed." } });
     fireEvent.click(screen.getByRole("button", { name: "Confirm issue status" }));
     await waitFor(() => expect(transitionMatter).toHaveBeenCalledWith("matter-1", 8, "CLOSED", "The independent outcome check passed."));
+  });
+
+  it("shows only governed lifecycle targets to the current authorizer", async () => {
+    const assessment = { ...detail, matter: { ...detail.matter, status: "ASSESSMENT" } };
+    vi.mocked(loadMatter).mockResolvedValue(assessment);
+    vi.mocked(loadMatterOperations).mockResolvedValue({
+      ...operations,
+      operations: [
+        {
+          command: "matter.transition", label: "Change issue status", responsibility: "ACCOUNTABLE_OWNER", can_act: false,
+          assigned_to: { id: "owner-1", display_name: "Program Owner", kind: "PERSON", role: "PROGRAM_OWNER" },
+          reason: "Assigned to Program Owner for the current issue state.", allowed_targets: ["ACTION_IN_PROGRESS", "RESPONSE_PREPARATION", "VERIFICATION"],
+        },
+        {
+          command: "matter.transition", label: "Authorize issue status", responsibility: "AUTHORIZER", can_act: true,
+          assigned_to: { id: "authorizer-1", display_name: "CCO", kind: "PERSON", role: "CCO" },
+          reason: "You hold the current responsibility for this issue and can complete this action.", allowed_targets: ["DECISION_REQUIRED", "CANCELLED"],
+        },
+      ],
+    });
+    vi.mocked(transitionMatter).mockResolvedValue({ ...assessment, matter: { ...assessment.matter, status: "DECISION_REQUIRED", version: 8 } });
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    await screen.findByRole("heading", { name: "Independent results" });
+    fireEvent.click(screen.getAllByRole("button", { name: "Change issue status" }).at(-1)!);
+    const target = screen.getByLabelText("Next issue status") as HTMLSelectElement;
+    expect([...target.options].map((option) => option.value)).toEqual(["DECISION_REQUIRED", "CANCELLED"]);
+    fireEvent.change(target, { target: { value: "DECISION_REQUIRED" } });
+    fireEvent.change(screen.getByLabelText("Reason for status change"), { target: { value: "Management authorization is required." } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm issue status" }));
+
+    await waitFor(() => expect(transitionMatter).toHaveBeenCalledWith("matter-1", 7, "DECISION_REQUIRED", "Management authorization is required."));
+  });
+
+  it("shows only ordinary lifecycle targets to the accountable owner", async () => {
+    const assessment = { ...detail, matter: { ...detail.matter, status: "ASSESSMENT" } };
+    vi.mocked(loadMatter).mockResolvedValue(assessment);
+    vi.mocked(loadMatterOperations).mockResolvedValue({
+      ...operations,
+      operations: [
+        {
+          command: "matter.transition", label: "Change issue status", responsibility: "ACCOUNTABLE_OWNER", can_act: true,
+          assigned_to: { id: "owner-1", display_name: "Program Owner", kind: "PERSON", role: "PROGRAM_OWNER" },
+          reason: "You hold the current responsibility for this issue and can complete this action.", allowed_targets: ["ACTION_IN_PROGRESS", "RESPONSE_PREPARATION", "VERIFICATION"],
+        },
+        {
+          command: "matter.transition", label: "Authorize issue status", responsibility: "AUTHORIZER", can_act: false,
+          assigned_to: { id: "authorizer-1", display_name: "CCO", kind: "PERSON", role: "CCO" },
+          reason: "Assigned to CCO for the current issue state.", allowed_targets: ["DECISION_REQUIRED", "CANCELLED"],
+        },
+      ],
+    });
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    await screen.findByRole("heading", { name: "Independent results" });
+    fireEvent.click(screen.getAllByRole("button", { name: "Change issue status" }).at(-1)!);
+    const target = screen.getByLabelText("Next issue status") as HTMLSelectElement;
+    expect([...target.options].map((option) => option.value)).toEqual(["ACTION_IN_PROGRESS", "RESPONSE_PREPARATION", "VERIFICATION"]);
   });
 
   it("records a decision proposal and keeps its append-only history visible", async () => {

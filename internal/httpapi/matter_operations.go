@@ -53,20 +53,30 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 	}
 	ownerID := aggregate.Matter.OwnerPrincipalID
 	matterTargets := continuity.AllowedMatterTargets(aggregate.Matter.Status)
-	allowedMatterTargets := make([]string, len(matterTargets))
-	for index := range matterTargets {
-		allowedMatterTargets[index] = string(matterTargets[index])
-	}
 	for _, spec := range []recordOperationSpec{
 		{Command: "matter.details.update", Label: "Edit issue details", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID},
 		{Command: "matter.context.change", Label: "Update facts and missing information", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID},
 		{Command: "matter.assign", Label: "Change issue owner", Responsibility: authority.ResponsibilityOwner, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, IncludeCandidates: true},
 		{Command: "matter.action.add", Label: "Add an action", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, IncludeCandidates: true},
-		{Command: "matter.transition", Label: "Change issue status", Responsibility: authority.ResponsibilityOwner, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, AllowedTargets: allowedMatterTargets},
 		{Command: "matter.link", Label: "Link this issue", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID},
 		{Command: "matter.outcome.define", Label: "Define an outcome check", Responsibility: authority.ResponsibilityReviewer, Materiality: max(3, aggregate.Matter.Priority), IncludeCandidates: true},
 	} {
 		add(spec)
+	}
+	ordinaryMatterTargets := make([]string, 0, len(matterTargets))
+	governedMatterTargets := make([]string, 0, len(matterTargets))
+	for _, target := range matterTargets {
+		if governedMatterTransition(aggregate.Matter.Status, target) {
+			governedMatterTargets = append(governedMatterTargets, string(target))
+		} else {
+			ordinaryMatterTargets = append(ordinaryMatterTargets, string(target))
+		}
+	}
+	if len(ordinaryMatterTargets) > 0 {
+		add(recordOperationSpec{Command: "matter.transition", Label: "Change issue status", Responsibility: authority.ResponsibilityOwner, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, AllowedTargets: ordinaryMatterTargets})
+	}
+	if len(governedMatterTargets) > 0 {
+		add(recordOperationSpec{Command: "matter.transition", Label: "Authorize issue status", Responsibility: authority.ResponsibilityAuthorizer, Materiality: max(4, aggregate.Matter.Priority), AllowedTargets: governedMatterTargets})
 	}
 	if aggregate.Matter.Status == continuity.MatterDecisionRequired && len(aggregate.Decisions) == 0 {
 		add(recordOperationSpec{Command: "matter.decision.record", Label: "Propose decision", Responsibility: authority.ResponsibilityProposer, Materiality: max(2, aggregate.Matter.Priority), AllowedTargets: []string{string(continuity.DecisionProposed)}})

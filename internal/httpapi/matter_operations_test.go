@@ -83,6 +83,7 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 		Operations         []struct {
 			Command        string                `json:"command"`
 			SubresourceID  string                `json:"subresource_id"`
+			Responsibility string                `json:"responsibility"`
 			CanAct         bool                  `json:"can_act"`
 			AssignedTo     *authority.Principal  `json:"assigned_to"`
 			Candidates     []authority.Principal `json:"candidates"`
@@ -103,7 +104,7 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 		reason  string
 	}{}
 	actionAddCandidates := []authority.Principal{}
-	matterTargets := []string{}
+	matterTargets := map[string][]string{}
 	for _, operation := range payload.Operations {
 		key := operation.Command + ":" + operation.SubresourceID
 		name := ""
@@ -120,7 +121,7 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 			actionAddCandidates = operation.Candidates
 		}
 		if operation.Command == "matter.transition" {
-			matterTargets = operation.AllowedTargets
+			matterTargets[operation.Responsibility] = operation.AllowedTargets
 		}
 	}
 	owner := operations["matter.details.update:"]
@@ -139,7 +140,10 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 	if outcomeDefinition.name != "Internal Auditor" || outcomeDefinition.canAct {
 		t.Fatalf("outcome definition reviewer is unexplained: %#v", outcomeDefinition)
 	}
-	if !reflect.DeepEqual(matterTargets, []string{"TRIAGE", "CANCELLED"}) {
+	if !reflect.DeepEqual(matterTargets, map[string][]string{
+		string(authority.ResponsibilityOwner):      {"TRIAGE"},
+		string(authority.ResponsibilityAuthorizer): {"CANCELLED"},
+	}) {
 		t.Fatalf("Matter lifecycle targets = %#v", matterTargets)
 	}
 	if len(actionAddCandidates) != 1 || actionAddCandidates[0].DisplayName != "Program Owner" {
@@ -268,6 +272,36 @@ func TestMatterOperationsExposeDecisionAndResponseLifecycleByResponsibility(t *t
 	if response == nil || !reflect.DeepEqual(response.AllowedTargets, []string{"IN_REVIEW"}) {
 		t.Fatalf("reviewer response operation = %#v", response)
 	}
+}
+
+func TestMatterOperationsRouteGovernedAndOrdinaryTransitionsToDistinctActors(t *testing.T) {
+	now := time.Now().UTC()
+	aggregate := continuity.MatterAggregate{Matter: continuity.Matter{
+		ID: "matter-1", TenantID: "bank", LegalEntityID: "bank-ng", Type: continuity.MatterRegulatoryChange,
+		Status: continuity.MatterAssessment, Priority: 4, OwnerPrincipalID: "owner-1", CreatedAt: now, UpdatedAt: now, Version: 5,
+	}}
+	api := &API{deps: Dependencies{Authority: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner:      {Principal: authority.Principal{ID: "owner-1", DisplayName: "Program Owner"}},
+		authority.ResponsibilityAuthorizer: {Principal: authority.Principal{ID: "authorizer-1", DisplayName: "CCO"}},
+	}}}}
+
+	assertTransitions := func(t *testing.T, principalID string, wantResponsibility authority.Responsibility, wantTargets []string) {
+		t.Helper()
+		actor := identity.Actor{TenantID: "bank", PrincipalID: principalID, LegalEntityID: "bank-ng", Kind: "PERSON"}
+		payload := api.buildMatterOperations(continuity.WithTrustedSystemScope(t.Context()), actor, aggregate, now)
+		for _, operation := range payload.Operations {
+			if operation.Command == "matter.transition" && operation.CanAct {
+				if operation.Responsibility != string(wantResponsibility) || !reflect.DeepEqual(operation.AllowedTargets, wantTargets) {
+					t.Fatalf("%s transition operation = %#v", principalID, operation)
+				}
+				return
+			}
+		}
+		t.Fatalf("%s did not receive an actionable lifecycle operation: %#v", principalID, payload.Operations)
+	}
+
+	assertTransitions(t, "owner-1", authority.ResponsibilityOwner, []string{"ACTION_IN_PROGRESS", "RESPONSE_PREPARATION", "VERIFICATION"})
+	assertTransitions(t, "authorizer-1", authority.ResponsibilityAuthorizer, []string{"DECISION_REQUIRED", "CANCELLED"})
 }
 
 type principalResolverStub struct {

@@ -136,7 +136,9 @@ func TestLifecyclePolicyRejectsRestrictedMatterActionOwnerWithoutVisibility(t *t
 	if err != nil {
 		t.Fatal(err)
 	}
-	api := &API{deps: Dependencies{Continuity: service}}
+	api := &API{deps: Dependencies{Continuity: service, Authority: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityPerformer: {Principal: authority.Principal{ID: "allowed-owner", DisplayName: "Allowed owner"}},
+	}}}}
 	base := commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2}
 	if _, err := api.lifecycleCommandPolicy(ctx, lifecycleRequest(matter.Matter.ID), "bank", "matter.action.add", map[string]any{"owner_principal_id": "blocked-owner"}, base); !errors.Is(err, continuity.ErrInvalidState) {
 		t.Fatalf("expected restricted owner rejection, got %v", err)
@@ -147,6 +149,35 @@ func TestLifecyclePolicyRejectsRestrictedMatterActionOwnerWithoutVisibility(t *t
 	}
 	if policy.Materiality != 5 {
 		t.Fatalf("expected Matter priority materiality floor, got %#v", policy)
+	}
+}
+
+func TestLifecyclePolicyRejectsVisibleActionOwnerOutsideCurrentPerformerRoute(t *testing.T) {
+	ctx := identity.WithActor(t.Context(), identity.Actor{TenantID: "bank", PrincipalID: "current-owner", LegalEntityID: "entity-a", Kind: "PERSON", ExpiresAt: time.Now().UTC().Add(time.Hour)})
+	service := continuity.NewService(continuity.NewMemoryRepository())
+	matter, err := service.CreateMatter(ctx, continuity.CreateMatterInput{
+		TenantID: "bank", LegalEntityID: "entity-a", Type: continuity.MatterRegulatoryChange, Priority: 4,
+		Title: "Annual return", Summary: "Update the filing process.", OwnerPrincipalID: "current-owner", ActorID: "current-owner",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	api := &API{deps: Dependencies{
+		Continuity: service,
+		Authority: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+			authority.ResponsibilityPerformer: {
+				Principal:           authority.Principal{ID: "performer-1", DisplayName: "Operations lead"},
+				CandidatePrincipals: []authority.Principal{{ID: "performer-2", DisplayName: "Operations analyst"}},
+			},
+		}},
+	}}
+	base := commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2}
+
+	if _, err := api.lifecycleCommandPolicy(ctx, lifecycleRequest(matter.Matter.ID), "bank", "matter.action.add", map[string]any{"owner_principal_id": "current-owner"}, base); !errors.Is(err, continuity.ErrInvalidState) {
+		t.Fatalf("visible accountable owner was accepted without a current performer route: %v", err)
+	}
+	if _, err := api.lifecycleCommandPolicy(ctx, lifecycleRequest(matter.Matter.ID), "bank", "matter.action.add", map[string]any{"owner_principal_id": "performer-2"}, base); err != nil {
+		t.Fatalf("current eligible performer was rejected: %v", err)
 	}
 }
 

@@ -16,7 +16,8 @@ type Props = {
 type Active = { kind: "define" } | { kind: "result"; contractID: string } | { kind: "status" } | null;
 
 function operationFor(operations: MatterOperation[], command: string, subresourceID?: string) {
-  return operations.find((operation) => operation.command === command && (subresourceID === undefined || operation.subresource_id === subresourceID));
+  const matching = operations.filter((operation) => operation.command === command && (subresourceID === undefined || operation.subresource_id === subresourceID));
+  return matching.find((operation) => operation.can_act) ?? matching[0];
 }
 
 function lines(value: string) {
