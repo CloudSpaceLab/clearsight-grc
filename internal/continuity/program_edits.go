@@ -123,10 +123,7 @@ func (s *Service) UpdateProgramDetails(ctx context.Context, input UpdateProgramD
 	}
 	program.UpdatedAt = s.now().UTC()
 	event := programDetailsUpdatedEvent{Program: program, Previous: previous, Rationale: strings.TrimSpace(input.Rationale)}
-	if err := s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventProgramDetailsUpdated, event, input.ActorID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventProgramDetailsUpdated, input.ProgramID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventProgramDetailsUpdated, event, input.ActorID, input.ProgramID)
 }
 
 func (s *Service) AssignProgram(ctx context.Context, input AssignProgramInput) (ProgramAggregate, error) {
@@ -148,10 +145,7 @@ func (s *Service) AssignProgram(ctx context.Context, input AssignProgramInput) (
 	program.OwnerPrincipalID = ownerID
 	program.UpdatedAt = s.now().UTC()
 	event := programOwnerChangedEvent{Program: program, PreviousOwnerID: aggregate.Program.OwnerPrincipalID, OwnerPrincipalID: ownerID, Rationale: strings.TrimSpace(input.Rationale)}
-	if err := s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventProgramOwnerChanged, event, input.ActorID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventProgramOwnerChanged, input.ProgramID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventProgramOwnerChanged, event, input.ActorID, input.ProgramID)
 }
 
 func (s *Service) AssignProgramApprovalAuthority(ctx context.Context, input AssignProgramApprovalAuthorityInput) (ProgramAggregate, error) {
@@ -173,10 +167,7 @@ func (s *Service) AssignProgramApprovalAuthority(ctx context.Context, input Assi
 	program.AuthorityPrincipalID = authorityID
 	program.UpdatedAt = s.now().UTC()
 	event := programApprovalAuthorityChangedEvent{Program: program, PreviousAuthorityPrincipalID: aggregate.Program.AuthorityPrincipalID, AuthorityPrincipalID: authorityID, Rationale: strings.TrimSpace(input.Rationale)}
-	if err := s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventProgramApprovalAuthorityChanged, event, input.ActorID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventProgramApprovalAuthorityChanged, input.ProgramID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventProgramApprovalAuthorityChanged, event, input.ActorID, input.ProgramID)
 }
 
 func (s *Service) SupersedeRequirement(ctx context.Context, input SupersedeRequirementInput) (ProgramAggregate, error) {
@@ -240,8 +231,5 @@ func (s *Service) SupersedeRequirement(ctx context.Context, input SupersedeRequi
 		CreatedAt: now, Version: 1,
 	}
 	event := requirementSupersededEvent{Prior: prior, Replacement: replacement, Rationale: strings.TrimSpace(input.Rationale)}
-	if err := s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventRequirementSuperseded, event, input.ActorID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventRequirementSuperseded, replacement.ID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventRequirementSuperseded, event, input.ActorID, replacement.ID)
 }

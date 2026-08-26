@@ -337,7 +337,11 @@ func (s *Service) CreateProgram(ctx context.Context, input CreateProgramInput) (
 	if _, err = s.repo.CreateProgram(ctx, program, event); err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, program.ID, "PROGRAM_CREATED", program.ID)
+	_ = s.requestProgramRefresh(ctx, input.TenantID, program.ID, EventProgramCreated, program.ID, "system")
+	if current, readErr := s.repo.GetProgram(ctx, input.TenantID, program.ID); readErr == nil {
+		return current, nil
+	}
+	return decorateProgram(ProgramAggregate{Program: program}), nil
 }
 
 func (s *Service) TransitionProgram(ctx context.Context, input ProgramTransitionInput) (ProgramAggregate, error) {
@@ -388,14 +392,12 @@ func (s *Service) TransitionProgram(ctx context.Context, input ProgramTransition
 	if aggregate.Program.Status == ProgramPaused && input.To == ProgramActive {
 		program.EffectiveUntil = nil
 	}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ID, input.ExpectedVersion, EventProgramStatusChanged, program, input.ActorID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ID, EventProgramStatusChanged, input.ID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ID, input.ExpectedVersion, EventProgramStatusChanged, program, input.ActorID, input.ID)
 }
 
 func (s *Service) AddRequirement(ctx context.Context, input AddRequirementInput) (ProgramAggregate, error) {
-	if _, err := s.programForMutation(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion); err != nil {
+	aggregate, err := s.programForMutation(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion)
+	if err != nil {
 		return ProgramAggregate{}, err
 	}
 	if strings.TrimSpace(input.Code) == "" || strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Statement) == "" {
@@ -423,10 +425,7 @@ func (s *Service) AddRequirement(ctx context.Context, input AddRequirementInput)
 	}
 	now := s.now().UTC()
 	value := Requirement{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, SourceID: input.SourceID, Code: strings.ToUpper(strings.TrimSpace(input.Code)), Title: strings.TrimSpace(input.Title), Statement: strings.TrimSpace(input.Statement), SourceAnchor: strings.TrimSpace(input.SourceAnchor), Modality: modality, Actor: strings.TrimSpace(input.Actor), Action: strings.TrimSpace(input.Action), Object: strings.TrimSpace(input.Object), Status: input.Status, EffectiveFrom: input.EffectiveFrom.UTC(), CreatedAt: now, Version: 1}
-	if err := s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventRequirementAdded, value, input.ActorID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventRequirementAdded, value.ID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventRequirementAdded, value, input.ActorID, value.ID)
 }
 
 func (s *Service) DetermineApplicability(ctx context.Context, input DetermineApplicabilityInput) (ProgramAggregate, error) {
@@ -455,14 +454,12 @@ func (s *Service) DetermineApplicability(ctx context.Context, input DetermineApp
 		input.EffectiveFrom = s.now().UTC()
 	}
 	value := Applicability{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, RequirementID: input.RequirementID, Status: input.Status, Scope: scope, Rationale: strings.TrimSpace(input.Rationale), ApprovedBy: input.ApprovedBy, EffectiveFrom: input.EffectiveFrom.UTC(), CreatedAt: s.now().UTC(), Version: 1}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventApplicabilityDetermined, value, input.ApprovedBy); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventApplicabilityDetermined, value.ID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventApplicabilityDetermined, value, input.ApprovedBy, value.ID)
 }
 
 func (s *Service) AddControlObjective(ctx context.Context, input AddControlObjectiveInput) (ProgramAggregate, error) {
-	if _, err := s.programForMutation(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion); err != nil {
+	aggregate, err := s.programForMutation(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion)
+	if err != nil {
 		return ProgramAggregate{}, err
 	}
 	if strings.TrimSpace(input.Code) == "" || strings.TrimSpace(input.Name) == "" || strings.TrimSpace(input.Outcome) == "" {
@@ -479,10 +476,7 @@ func (s *Service) AddControlObjective(ctx context.Context, input AddControlObjec
 		return ProgramAggregate{}, err
 	}
 	value := ControlObjective{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, Code: strings.ToUpper(strings.TrimSpace(input.Code)), Name: strings.TrimSpace(input.Name), Outcome: strings.TrimSpace(input.Outcome), Status: input.Status, CreatedAt: s.now().UTC(), Version: 1}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventControlObjectiveAdded, value, input.ActorID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventControlObjectiveAdded, value.ID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventControlObjectiveAdded, value, input.ActorID, value.ID)
 }
 
 func (s *Service) AddControlImplementation(ctx context.Context, input AddControlImplementationInput) (ProgramAggregate, error) {
@@ -515,10 +509,7 @@ func (s *Service) AddControlImplementation(ctx context.Context, input AddControl
 	}
 	now := s.now().UTC()
 	value := ControlImplementation{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, ObjectiveID: input.ObjectiveID, Name: strings.TrimSpace(input.Name), Description: strings.TrimSpace(input.Description), ImplementationType: strings.TrimSpace(input.ImplementationType), OwnerPrincipalID: input.OwnerPrincipalID, Scope: scope, Status: input.Status, EffectiveFrom: input.EffectiveFrom.UTC(), CreatedAt: now, UpdatedAt: now, Version: 1}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventControlImplementationAdded, value, input.ActorID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventControlImplementationAdded, value.ID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventControlImplementationAdded, value, input.ActorID, value.ID)
 }
 
 func (s *Service) LinkRequirementControl(ctx context.Context, input LinkRequirementControlInput) (ProgramAggregate, error) {
@@ -537,10 +528,7 @@ func (s *Service) LinkRequirementControl(ctx context.Context, input LinkRequirem
 		return ProgramAggregate{}, err
 	}
 	value := RequirementControlLink{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, RequirementID: input.RequirementID, ImplementationID: input.ImplementationID, CreatedAt: s.now().UTC()}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventRequirementControlLinked, value, input.ActorID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventRequirementControlLinked, value.ID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventRequirementControlLinked, value, input.ActorID, value.ID)
 }
 
 func (s *Service) AddEvidenceContract(ctx context.Context, input AddEvidenceContractInput) (ProgramAggregate, error) {
@@ -602,10 +590,7 @@ func (s *Service) AddEvidenceContract(ctx context.Context, input AddEvidenceCont
 	}
 	now := s.now().UTC()
 	value := EvidenceContract{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, RequirementID: input.RequirementID, ControlImplementationID: input.ControlImplementationID, Code: strings.ToUpper(strings.TrimSpace(input.Code)), Name: strings.TrimSpace(input.Name), Claim: strings.TrimSpace(input.Claim), AcceptableSourceIDs: append([]string(nil), input.AcceptableSourceIDs...), PopulationScope: population, FreshnessMinutes: input.FreshnessMinutes, MinimumCoverage: input.MinimumCoverage, IndependenceRequired: input.IndependenceRequired, ContradictionPolicy: contradictionPolicy, FailureAction: failureAction, ConfiguredBy: strings.TrimSpace(input.ActorID), Status: input.Status, CreatedAt: now, UpdatedAt: now, Version: 1}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventEvidenceContractAdded, value, input.ActorID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventEvidenceContractAdded, value.ID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventEvidenceContractAdded, value, input.ActorID, value.ID)
 }
 
 func (s *Service) RecordEvidenceAssessment(ctx context.Context, input RecordEvidenceAssessmentInput) (ProgramAggregate, error) {
@@ -1246,6 +1231,27 @@ func (s *Service) applyProgramValue(ctx context.Context, tenant, programID strin
 	}
 	_, err = s.repo.ApplyProgramEvent(ctx, tenant, programID, expected, event)
 	return err
+}
+
+func (s *Service) applyProgramValueAndResult(ctx context.Context, fallback ProgramAggregate, tenant, programID string, expected int64, eventType string, value any, actorID, triggerID string) (ProgramAggregate, error) {
+	event, err := newEvent(tenant, "PROGRAM", programID, expected+1, eventType, value, actorFor(actorID), actorID, s.now().UTC())
+	if err != nil {
+		return ProgramAggregate{}, err
+	}
+	committed := fallback
+	if err = applyProgramEventToAggregate(&committed, event); err != nil {
+		return ProgramAggregate{}, err
+	}
+	committed.Program.Version = event.AggregateVersion
+	committed.Program.UpdatedAt = event.OccurredAt
+	if _, err = s.repo.ApplyProgramEvent(ctx, tenant, programID, expected, event); err != nil {
+		return ProgramAggregate{}, err
+	}
+	_ = s.requestProgramRefresh(ctx, tenant, programID, eventType, triggerID, "system")
+	if current, readErr := s.repo.GetProgram(ctx, tenant, programID); readErr == nil {
+		return current, nil
+	}
+	return decorateProgram(committed), nil
 }
 
 func (s *Service) applyMatterValue(ctx context.Context, tenant, matterID string, expected int64, eventType string, value any, actorID string) error {
