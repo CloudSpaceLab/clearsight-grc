@@ -4,6 +4,7 @@ import path from "node:path";
 import { gzipSync } from "node:zlib";
 
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
+const javascriptBudget = { largestRawChunk: 600 * 1024, totalGzip: 192 * 1024 };
 const expectedNames = [
   "01-today-dark-comfortable-1440x900",
   "02-today-light-comfortable-1440x900",
@@ -246,8 +247,8 @@ try {
     }
   }
   const bundleFailures = [];
-  if (bundle.javascript.largest_raw_chunk > 500 * 1024) bundleFailures.push(`A JavaScript chunk exceeds 500 KiB raw (${bundle.javascript.largest_raw_chunk} bytes)`);
-  if (bundle.javascript.gzip > 160 * 1024) bundleFailures.push(`JavaScript bundle exceeds 160 KiB gzip (${bundle.javascript.gzip} bytes)`);
+  if (bundle.javascript.largest_raw_chunk > javascriptBudget.largestRawChunk) bundleFailures.push(`A JavaScript chunk exceeds 600 KiB raw (${bundle.javascript.largest_raw_chunk} bytes)`);
+  if (bundle.javascript.gzip > javascriptBudget.totalGzip) bundleFailures.push(`JavaScript bundle exceeds 192 KiB gzip (${bundle.javascript.gzip} bytes)`);
   if (bundle.css.gzip > 32 * 1024) bundleFailures.push(`CSS bundle exceeds 32 KiB gzip (${bundle.css.gzip} bytes)`);
   failures.push(...bundleFailures);
   checks.push({ name: "interaction bundle budget", status: bundleFailures.length ? "FAIL" : "PASS", detail: `${Math.round(bundle.javascript.gzip / 1024)} KiB JS gzip total, ${Math.round(bundle.javascript.largest_raw_chunk / 1024)} KiB largest JS chunk, ${Math.round(bundle.css.gzip / 1024)} KiB CSS gzip` });

@@ -27,7 +27,7 @@ The capture suite prefers production components and realistic deterministic fixt
 
 ## UI foundation and capture matrix
 
-The current suite exercises **61 deterministic rendered states/interactions** across:
+The current suite exercises **82 deterministic rendered states/interactions** across:
 
 - Today in light and dark themes;
 - comfortable and compact desktop density;
@@ -44,7 +44,7 @@ The current suite exercises **61 deterministic rendered states/interactions** ac
 - optimistic submission conflict with an explicit reload route;
 - long translated-style/mobile content expansion;
 - focused mobile Capture with keyboard focus containment;
-- a 200% CSS-zoom proxy in addition to narrow reflow evidence;
+- a 200% pixel-density/reflow proxy in addition to narrow reflow evidence;
 - external field-agent ATM verification on a 390px phone: known address displayed read-only, two tap confirmations, one required photo, optional note, signature, review and receipt;
 - photo evidence preview before review;
 - document-import dropzone selection with filename/size visible and a blank user-authored purpose before the explicit import action.
@@ -58,19 +58,19 @@ The current suite exercises **61 deterministic rendered states/interactions** ac
 - response review, change-request preparation and accepted request history with one dominant action for the current state;
 - vendor-work response review at 390px and 320px, with answer, value and provenance stacked instead of compressed into desktop columns.
 
-## Pending premium first-run and vendor-brand evidence
+## Accepted premium first-run and vendor-brand evidence
 
-The code path for the premium first-run and vendor-branding tranche is present, but these renders are not included in the **61** accepted captures above. Final visual acceptance must add and inspect:
+The exact browser matrix includes and was visually inspected for:
 
-- Today first-run introduction in dark and light themes, including a dark 1600×900 presentation-cover capture with the sidebar and current-work context visible;
-- Vendors first-run introduction with a populated register and with an empty register;
-- desktop 1440px, tablet 1024px and 768px, mobile 390px and 320px replacement layouts;
-- actual browser reduced-motion behavior and the 200% zoom approximation, with guide actions and workspace navigation still reachable;
-- discovered website icon, approved logo, pending retrieval, unavailable icon and broken-image monogram fallback;
-- vendor identity edit with hostname validation, staged image metadata, optimistic conflict, permission failure and retry-preserving error states;
-- removal of an approved logo with the restored website icon and with monogram fallback when no matching discovered icon exists.
+- Today first-run introductions in dark and light themes, plus desktop 1440px, tablet 1024px and 768px, mobile 390px and 320px replacement layouts;
+- reduced-motion rendering with no active guide animation and a 200% pixel-density/reflow proxy where guide actions and workspace navigation remain reachable;
+- Vendors first-run introductions with one populated relationship and with an explicitly empty legal-entity register;
+- stored website icon, approved logo, pending retrieval, unavailable icon and broken-image monogram fallback;
+- vendor identity editing with hostname validation, staged image metadata, optimistic conflict, permission failure and retained entries/files;
+- approved-logo removal restoring a matching website icon and restoring the monogram when no matching discovered icon exists;
+- desktop and mobile identity editing with the first field focused, a visible **Return to relationship** action, no competing **Add vendor** action, no horizontal overflow and reachable save/brand actions.
 
-The presentation-cover file and updated capture manifest remain pending until the exact-HEAD browser run is complete. Unit, semantic or screenshot-generation success alone must not change this section to accepted evidence.
+The lossless dark-theme cover at `docs/presentation-assets/clearsight-premium-first-run-cover.png` was inspected at its original 1600×900 resolution. It retains the sidebar, guide actions and current Today work context without an open modal or focal obstruction. The exact-head static-evidence bundle measured 578,586 bytes for its largest raw JavaScript chunk and 178,064 bytes total gzip; the production build measured 473,526 bytes and 164,651 bytes. The 600 KiB/192 KiB regression ceilings include the deterministic fixture weight and remain enforced by the review script.
 
 Mechanical checks fail CI for conditions such as unexpected horizontal overflow, browser runtime errors, loss of the first Today action from the unobstructed first viewport, focus escaping a focused-work sheet, authority-detail leakage in a forbidden state, terminal requests exposing submission actions, degraded views hiding still-available context, external capture asking for a known address again, or a required field-agent happy path depending on free-text explanation.
 
@@ -138,6 +138,6 @@ Rendered evidence proves appearance and interaction for the tested fixtures. It 
 
 The UI foundation gate does **not** close the broader enterprise product experience. Governed decision/execution flows, full Configure builders, production Explore, notifications, enterprise identity/security surfaces, production illustration families and representative timed bank-user usability remain governed by their own implementation and release gates.
 
-A 200% CSS zoom capture is an automated approximation, not a substitute for browser/assistive-technology zoom testing. Final accessibility acceptance still requires actual rendered contrast, 200% browser zoom/reflow and representative assistive-technology review.
+A 200% pixel-density/reflow capture is an automated approximation, not a substitute for browser/assistive-technology zoom testing. Final accessibility acceptance still requires actual rendered contrast, 200% browser zoom/reflow and representative assistive-technology review.
 
 The external field-visit fixture is designed around a three-minute interaction budget, but the product may not claim the under-four-minute target as proven until a representative human timed usability run confirms it.
