@@ -4,8 +4,45 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 )
+
+func TestAddActionRequiresAssignedOwner(t *testing.T) {
+	service := NewService(NewMemoryRepository())
+	matter, err := service.CreateMatter(WithTrustedSystemScope(t.Context()), CreateMatterInput{
+		TenantID:      "bank",
+		LegalEntityID: "entity-a",
+		Type:          MatterControlGap,
+		Priority:      3,
+		Title:         "Account review gap",
+		Summary:       "Resolve accounts without current ownership evidence.",
+		Scope:         json.RawMessage(`{}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = service.AddAction(WithTrustedSystemScope(t.Context()), AddActionInput{
+		TenantID:         "bank",
+		MatterID:         matter.Matter.ID,
+		ExpectedVersion:  matter.Matter.Version,
+		Title:            "Confirm account owners",
+		Description:      "Obtain current ownership confirmation for every unresolved account.",
+		OwnerPrincipalID: "   ",
+	})
+	if err == nil || !strings.Contains(err.Error(), "owner_principal_id") {
+		t.Fatalf("expected assigned-owner validation error, got %v", err)
+	}
+
+	current, err := service.GetMatter(WithTrustedSystemScope(t.Context()), "bank", matter.Matter.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(current.Actions) != 0 {
+		t.Fatalf("invalid action was persisted: %#v", current.Actions)
+	}
+}
 
 func TestUpdateMatterDetailsAndResolveMissingFact(t *testing.T) {
 	service := NewService(NewMemoryRepository())

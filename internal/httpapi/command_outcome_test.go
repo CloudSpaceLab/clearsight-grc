@@ -32,7 +32,7 @@ func TestMaterialHandlerReturnsReceiptWhenWriteCommittedBeforeResponseFailure(t 
 	api.executeMaterialHandler(response, request, policy, payload, func(w http.ResponseWriter, _ *http.Request) {
 		if _, err := service.AddAction(continuity.WithTrustedSystemScope(t.Context()), continuity.AddActionInput{
 			TenantID: "bank-demo", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
-			Title: "Committed action", Description: "The authoritative write succeeds first.",
+			Title: "Committed action", Description: "The authoritative write succeeds first.", OwnerPrincipalID: "assigned-performer",
 		}); err != nil {
 			t.Fatal(err)
 		}

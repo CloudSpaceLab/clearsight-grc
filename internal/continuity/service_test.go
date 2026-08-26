@@ -104,7 +104,7 @@ func TestMatterCannotCloseUntilActionOutcomeIsVerified(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	matter, err = service.AddAction(ctx, AddActionInput{TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, Title: "Obtain current account-owner confirmation", Description: "Confirm current business need for the four unresolved accounts."})
+	matter, err = service.AddAction(ctx, AddActionInput{TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, Title: "Obtain current account-owner confirmation", Description: "Confirm current business need for the four unresolved accounts.", OwnerPrincipalID: "control-owner"})
 	if err != nil {
 		t.Fatal(err)
 	}

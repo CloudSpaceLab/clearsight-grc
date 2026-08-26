@@ -967,15 +967,16 @@ func (s *Service) AddAction(ctx context.Context, input AddActionInput) (MatterAg
 	if err != nil {
 		return MatterAggregate{}, err
 	}
-	if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Description) == "" {
-		return MatterAggregate{}, fmt.Errorf("title and description are required")
+	ownerID := strings.TrimSpace(input.OwnerPrincipalID)
+	if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Description) == "" || ownerID == "" {
+		return MatterAggregate{}, fmt.Errorf("title, description and owner_principal_id are required")
 	}
 	valueID, err := id.NewUUIDv7()
 	if err != nil {
 		return MatterAggregate{}, err
 	}
 	now := s.now().UTC()
-	value := Action{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, Title: strings.TrimSpace(input.Title), Description: strings.TrimSpace(input.Description), OwnerPrincipalID: input.OwnerPrincipalID, Status: ActionPlanned, DueAt: input.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1}
+	value := Action{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, Title: strings.TrimSpace(input.Title), Description: strings.TrimSpace(input.Description), OwnerPrincipalID: ownerID, Status: ActionPlanned, DueAt: input.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1}
 	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionAdded, value, input.ActorID); err != nil {
 		return MatterAggregate{}, err
 	}

@@ -46,9 +46,13 @@ func TestCurrentPostgresReadsMatchReplayAndStayFixedQuery(t *testing.T) {
 	defer pool.Close()
 
 	const tenantID = "97777777-7777-7777-8777-777777777771"
+	const actionOwnerID = "97777777-7777-7777-8777-777777777773"
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'bounded-current-test','Bounded Current Test')`, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($1::uuid,$2::uuid,'PERSON','Bounded action owner')`, actionOwnerID, tenantID); err != nil {
 		t.Fatal(err)
 	}
 
@@ -125,7 +129,7 @@ func TestCurrentPostgresReadsMatchReplayAndStayFixedQuery(t *testing.T) {
 	for index := 0; index < 32; index++ {
 		matter, err = service.AddAction(ctx, AddActionInput{
 			TenantID: "bounded-current-test", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
-			Title: "Action " + twoDigits(index), Description: "Accountable remediation work.",
+			Title: "Action " + twoDigits(index), Description: "Accountable remediation work.", OwnerPrincipalID: actionOwnerID,
 		})
 		if err != nil {
 			t.Fatalf("add action %d: %v", index, err)
