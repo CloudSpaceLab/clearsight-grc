@@ -242,6 +242,39 @@ describe("Matter record workspace", () => {
     expect(screen.getByText("Annual Return Lead")).toBeTruthy();
     expect(screen.queryByText(/terminal-owner-id|terminal-action-owner-id/)).toBeNull();
     expect(screen.queryByRole("button", { name: /Edit issue details|Change issue owner|Edit Update the annual return evidence checklist|Change owner for Update the annual return evidence checklist|Update status for Update the annual return evidence checklist/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Change issue status" })).toBeNull();
+  });
+
+  it("lets only the current authorizer reopen a closed issue for assessment", async () => {
+    const closed = {
+      ...detail,
+      status_label: "Closed",
+      next_action: "No further action is required",
+      matter: { ...detail.matter, status: "CLOSED", version: 12 },
+      actions: [{ ...detail.actions[0]!, status: "IMPLEMENTED" }],
+      closure: { ready: true, reasons: [] },
+    };
+    vi.mocked(loadMatter).mockResolvedValue(closed);
+    vi.mocked(loadMatterOperations).mockResolvedValue({
+      matter_id: "matter-1", matter_version: 12, authority_available: true, generated_at: "2026-08-25T09:00:00Z",
+      operations: [{
+        command: "matter.transition", label: "Authorize issue status", responsibility: "AUTHORIZER", can_act: true,
+        assigned_to: { id: "authorizer-1", display_name: "Chief Compliance Officer", kind: "PERSON", role: "CCO" },
+        reason: "You hold the current responsibility for this issue and can complete this action.", allowed_targets: ["ASSESSMENT"],
+      }],
+      responsible_parties: [{ scope: "RECORD", responsibility: "ACCOUNTABLE_OWNER", display_name: "Privacy Program Owner", kind: "PERSON" }],
+    });
+    vi.mocked(transitionMatter).mockResolvedValue({ ...closed, status_label: "Under assessment", matter: { ...closed.matter, status: "ASSESSMENT", version: 13 } });
+
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    expect(await screen.findByText("Chief Compliance Officer")).toBeTruthy();
+    expect(screen.queryByText("authorizer-1")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Change issue status" }));
+    fireEvent.change(screen.getByLabelText("Reason for status change"), { target: { value: "New evidence requires the issue to be assessed again." } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm issue status" }));
+
+    await waitFor(() => expect(transitionMatter).toHaveBeenCalledWith("matter-1", 12, "ASSESSMENT", "New evidence requires the issue to be assessed again."));
   });
 
   it("disables issue mutations until responsibility data matches the displayed version", async () => {

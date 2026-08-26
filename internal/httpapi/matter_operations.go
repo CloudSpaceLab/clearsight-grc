@@ -43,14 +43,24 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 		AuthorityAvailable: a.deps.Authority != nil, Operations: []RecordOperation{}, GeneratedAt: now.UTC(),
 		ResponsibleParties: a.matterResponsibleParties(ctx, actor, aggregate),
 	}
-	if aggregate.Matter.Status == continuity.MatterClosed || aggregate.Matter.Status == continuity.MatterCancelled {
-		return response
-	}
-
 	add := func(spec recordOperationSpec) {
 		operation, available := a.resolveRecordOperation(ctx, actor, aggregate.Matter, spec)
 		response.AuthorityAvailable = response.AuthorityAvailable && available
 		response.Operations = append(response.Operations, operation)
+	}
+	if aggregate.Matter.Status == continuity.MatterCancelled {
+		return response
+	}
+	if aggregate.Matter.Status == continuity.MatterClosed {
+		targets := continuity.AllowedMatterTargets(aggregate.Matter.Status)
+		allowed := make([]string, len(targets))
+		for index := range targets {
+			allowed[index] = string(targets[index])
+		}
+		if len(allowed) > 0 {
+			add(recordOperationSpec{Command: "matter.transition", Label: "Reopen issue", Responsibility: authority.ResponsibilityAuthorizer, Materiality: max(4, aggregate.Matter.Priority), AllowedTargets: allowed})
+		}
+		return response
 	}
 	ownerID := aggregate.Matter.OwnerPrincipalID
 	matterTargets := continuity.AllowedMatterTargets(aggregate.Matter.Status)

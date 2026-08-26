@@ -236,12 +236,12 @@ func TestMatterOperationsKeepStoredOwnerVisibleWhenAuthorityIsUnavailable(t *tes
 	t.Fatal("detail operation was not returned")
 }
 
-func TestMatterOperationsKeepTerminalResponsibilitiesReadableWithoutCommandsOrPrincipalIDs(t *testing.T) {
+func TestMatterOperationsKeepCancelledResponsibilitiesReadableWithoutCommandsOrPrincipalIDs(t *testing.T) {
 	now := time.Now().UTC()
 	aggregate := continuity.MatterAggregate{
 		Matter: continuity.Matter{
 			ID: "matter-closed", TenantID: "bank", LegalEntityID: "bank-ng",
-			Type: continuity.MatterRegulatoryChange, Status: continuity.MatterClosed,
+			Type: continuity.MatterRegulatoryChange, Status: continuity.MatterCancelled,
 			Title: "Completed annual return", OwnerPrincipalID: "stored-owner", Version: 12,
 			CreatedAt: now, UpdatedAt: now,
 		},
@@ -293,6 +293,49 @@ func TestMatterOperationsKeepTerminalResponsibilitiesReadableWithoutCommandsOrPr
 		if strings.Contains(string(encoded), principalID) {
 			t.Fatalf("terminal responsibility response exposed principal ID %q: %s", principalID, encoded)
 		}
+	}
+}
+
+func TestMatterOperationsExposeOnlyGovernedReopenForClosedMatter(t *testing.T) {
+	now := time.Now().UTC()
+	aggregate := continuity.MatterAggregate{Matter: continuity.Matter{
+		ID: "matter-closed", TenantID: "bank", LegalEntityID: "bank-ng",
+		Type: continuity.MatterRegulatoryChange, Status: continuity.MatterClosed,
+		Title: "Completed annual return", OwnerPrincipalID: "stored-owner", Priority: 4, Version: 12,
+		CreatedAt: now, UpdatedAt: now,
+	}}
+	api := &API{deps: Dependencies{Authority: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityAuthorizer: {Principal: authority.Principal{ID: "authorizer-1", DisplayName: "Chief Compliance Officer", Kind: "PERSON"}},
+	}}}}
+
+	for _, test := range []struct {
+		name      string
+		actorID   string
+		canReopen bool
+	}{
+		{name: "current authorizer", actorID: "authorizer-1", canReopen: true},
+		{name: "different actor", actorID: "auditor-1", canReopen: false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			actor := identity.Actor{TenantID: "bank", PrincipalID: test.actorID, LegalEntityID: "bank-ng", Kind: "PERSON"}
+			payload := api.buildMatterOperations(continuity.WithTrustedSystemScope(t.Context()), actor, aggregate, now)
+			if len(payload.Operations) != 1 {
+				t.Fatalf("closed issue operations = %#v, want only the governed reopen command", payload.Operations)
+			}
+			operation := payload.Operations[0]
+			if operation.Command != "matter.transition" || operation.Responsibility != string(authority.ResponsibilityAuthorizer) {
+				t.Fatalf("closed issue operation = %#v", operation)
+			}
+			if !reflect.DeepEqual(operation.AllowedTargets, []string{string(continuity.MatterAssessment)}) {
+				t.Fatalf("closed issue targets = %#v, want ASSESSMENT only", operation.AllowedTargets)
+			}
+			if operation.CanAct != test.canReopen {
+				t.Fatalf("closed issue can_act = %v, want %v for %s", operation.CanAct, test.canReopen, test.actorID)
+			}
+			if operation.AssignedTo == nil || operation.AssignedTo.DisplayName != "Chief Compliance Officer" {
+				t.Fatalf("closed issue responsibility label = %#v", operation.AssignedTo)
+			}
+		})
 	}
 }
 
