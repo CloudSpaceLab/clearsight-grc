@@ -4,10 +4,31 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
 )
+
+type failReadAfterProgramApplyRepository struct {
+	Repository
+	applied bool
+}
+
+func (r *failReadAfterProgramApplyRepository) GetProgram(ctx context.Context, tenant, id string) (ProgramAggregate, error) {
+	if r.applied {
+		return ProgramAggregate{}, fmt.Errorf("projection read unavailable")
+	}
+	return r.Repository.GetProgram(ctx, tenant, id)
+}
+
+func (r *failReadAfterProgramApplyRepository) ApplyProgramEvent(ctx context.Context, tenant, id string, expected int64, event Event) (int64, error) {
+	version, err := r.Repository.ApplyProgramEvent(ctx, tenant, id, expected, event)
+	if err == nil {
+		r.applied = true
+	}
+	return version, err
+}
 
 func TestSafeguardLifecycleRequiresVersionedCorrectionAssignmentAndTransitions(t *testing.T) {
 	repo := NewMemoryRepository()
@@ -28,6 +49,13 @@ func TestSafeguardLifecycleRequiresVersionedCorrectionAssignmentAndTransitions(t
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if _, err = service.AddControlImplementation(ctx, AddControlImplementationInput{
+		TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version,
+		ObjectiveID: program.ControlObjectives[0].ID, Name: "Access review", Description: "Review privileged access monthly.", ImplementationType: "REVIEW",
+		OwnerPrincipalID: "control-owner", Scope: json.RawMessage(`{"population":"privileged accounts"}`), Status: ImplementationImplemented, EffectiveFrom: now, ActorID: "program-owner",
+	}); err == nil {
+		t.Fatal("new safeguards must not jump directly to implemented")
 	}
 
 	program, err = service.AddControlImplementation(ctx, AddControlImplementationInput{
@@ -141,6 +169,39 @@ func TestSafeguardLifecycleRejectsStaleSubresourceVersionWithoutPartialMutation(
 	}
 }
 
+func TestProgramResourceCommandDoesNotReportFailureAfterCommit(t *testing.T) {
+	base := NewMemoryRepository()
+	service := NewService(base)
+	ctx := WithTrustedSystemScope(t.Context())
+	now := time.Now().UTC()
+	program, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", LegalEntityID: "entity-1", Code: "SAFE-READ", Name: "Safeguard read recovery", Type: "ASSURANCE", OwningFunction: "Risk", OwnerPrincipalID: "program-owner", EffectiveFrom: now, ActorID: "program-owner"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.AddControlObjective(ctx, AddControlObjectiveInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, Code: "OBJ", Name: "Objective", Outcome: "The outcome remains controlled.", Status: ObjectiveActive, ActorID: "program-owner"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.AddControlImplementation(ctx, AddControlImplementationInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ObjectiveID: program.ControlObjectives[0].ID, Name: "Safeguard", Description: "Operate the safeguard.", ImplementationType: "REVIEW", OwnerPrincipalID: "safeguard-owner", Status: ImplementationPlanned, EffectiveFrom: now, ActorID: "program-owner"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrapper := &failReadAfterProgramApplyRepository{Repository: base}
+	service.repo = wrapper
+	implementation := program.ControlImplementations[0]
+	result, err := service.TransitionControlImplementation(ctx, TransitionControlImplementationInput{
+		TenantID: "bank", ProgramID: program.Program.ID, ImplementationID: implementation.ID,
+		ExpectedVersion: program.Program.Version, ExpectedImplementationVersion: implementation.Version,
+		To: ImplementationInProgress, Rationale: "The owner started the safeguard work.", ActorID: "safeguard-owner",
+	})
+	if err != nil {
+		t.Fatalf("committed command returned a read failure: %v", err)
+	}
+	if result.Program.Version != program.Program.Version+1 || result.ControlImplementations[0].Status != ImplementationInProgress || result.ControlImplementations[0].Version != implementation.Version+1 {
+		t.Fatalf("fallback result = %#v", result)
+	}
+}
+
 func TestMaterialSafeguardRevisionRequiresPerformerReconfirmation(t *testing.T) {
 	service, ctx, program := programWithPlannedSafeguard(t)
 	safeguard := program.ControlImplementations[0]
@@ -188,6 +249,13 @@ func TestEvidenceContractLifecycleIsVersionedAndReconstructable(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if _, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{
+		TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, RequirementID: program.Requirements[0].ID,
+		Code: "ACTIVE", Name: "Active evidence", Claim: "Evidence remains current.", FreshnessMinutes: 60, MinimumCoverage: 1,
+		ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractActive, ActorID: "program-owner",
+	}); err == nil {
+		t.Fatal("new evidence checks must not bypass reviewer activation")
 	}
 	program, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{
 		TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, RequirementID: program.Requirements[0].ID,
@@ -288,7 +356,15 @@ func TestActiveEvidenceContractRevisionRequiresReviewerReactivation(t *testing.T
 		TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version,
 		RequirementID: program.Requirements[0].ID,
 		Code:          "CHECK", Name: "Evidence check", Claim: "Evidence remains current.", FreshnessMinutes: 60, MinimumCoverage: 1,
-		ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractActive, ActorID: "program-owner",
+		ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractDraft, ActorID: "program-owner",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.TransitionEvidenceContract(ctx, TransitionEvidenceContractInput{
+		TenantID: "bank", ProgramID: program.Program.ID, ContractID: program.EvidenceContracts[0].ID,
+		ExpectedVersion: program.Program.Version, ExpectedContractVersion: program.EvidenceContracts[0].Version,
+		To: EvidenceContractActive, Rationale: "Independent review approved the initial evidence rules.", ActorID: "evidence-reviewer",
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -120,7 +120,8 @@ func (s *Service) ReviseControlImplementation(ctx context.Context, input ReviseC
 	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, aggregate.Program.Version, EventControlImplementationRevised, payload, input.ActorID); err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.GetProgram(ctx, input.TenantID, input.ProgramID)
+	aggregate.ControlImplementations = upsertImplementation(aggregate.ControlImplementations, next)
+	return s.programResourceResult(ctx, input.TenantID, input.ProgramID, aggregate, next.UpdatedAt), nil
 }
 
 func (s *Service) AssignControlImplementation(ctx context.Context, input AssignControlImplementationInput) (ProgramAggregate, error) {
@@ -142,7 +143,8 @@ func (s *Service) AssignControlImplementation(ctx context.Context, input AssignC
 	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, aggregate.Program.Version, EventControlImplementationOwnerChanged, payload, input.ActorID); err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.GetProgram(ctx, input.TenantID, input.ProgramID)
+	aggregate.ControlImplementations = upsertImplementation(aggregate.ControlImplementations, next)
+	return s.programResourceResult(ctx, input.TenantID, input.ProgramID, aggregate, next.UpdatedAt), nil
 }
 
 func (s *Service) TransitionControlImplementation(ctx context.Context, input TransitionControlImplementationInput) (ProgramAggregate, error) {
@@ -165,7 +167,8 @@ func (s *Service) TransitionControlImplementation(ctx context.Context, input Tra
 	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, aggregate.Program.Version, EventControlImplementationStatusChanged, payload, input.ActorID); err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.GetProgram(ctx, input.TenantID, input.ProgramID)
+	aggregate.ControlImplementations = upsertImplementation(aggregate.ControlImplementations, next)
+	return s.programResourceResult(ctx, input.TenantID, input.ProgramID, aggregate, next.UpdatedAt), nil
 }
 
 func (s *Service) ReviseEvidenceContract(ctx context.Context, input ReviseEvidenceContractInput) (ProgramAggregate, error) {
@@ -219,7 +222,8 @@ func (s *Service) ReviseEvidenceContract(ctx context.Context, input ReviseEviden
 	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, aggregate.Program.Version, EventEvidenceContractRevised, payload, input.ActorID); err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.GetProgram(ctx, input.TenantID, input.ProgramID)
+	aggregate.EvidenceContracts = upsertEvidenceContract(aggregate.EvidenceContracts, next)
+	return s.programResourceResult(ctx, input.TenantID, input.ProgramID, aggregate, next.UpdatedAt), nil
 }
 
 func (s *Service) TransitionEvidenceContract(ctx context.Context, input TransitionEvidenceContractInput) (ProgramAggregate, error) {
@@ -238,7 +242,17 @@ func (s *Service) TransitionEvidenceContract(ctx context.Context, input Transiti
 	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, aggregate.Program.Version, EventEvidenceContractStatusChanged, payload, input.ActorID); err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.GetProgram(ctx, input.TenantID, input.ProgramID)
+	aggregate.EvidenceContracts = upsertEvidenceContract(aggregate.EvidenceContracts, next)
+	return s.programResourceResult(ctx, input.TenantID, input.ProgramID, aggregate, next.UpdatedAt), nil
+}
+
+func (s *Service) programResourceResult(ctx context.Context, tenantID, programID string, fallback ProgramAggregate, updatedAt time.Time) ProgramAggregate {
+	if current, err := s.GetProgram(ctx, tenantID, programID); err == nil {
+		return current
+	}
+	fallback.Program.Version++
+	fallback.Program.UpdatedAt = updatedAt.UTC()
+	return decorateProgram(fallback)
 }
 
 func (s *Service) controlImplementationForMutation(ctx context.Context, tenantID, programID, implementationID string, expectedProgramVersion, expectedImplementationVersion int64) (ProgramAggregate, ControlImplementation, error) {

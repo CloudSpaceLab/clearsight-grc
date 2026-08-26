@@ -28,7 +28,11 @@ func SeedDemo(ctx context.Context, service *Service) error {
 		if err != nil {
 			return err
 		}
-		privacy, err = service.AddControlImplementation(ctx, AddControlImplementationInput{TenantID: "bank-demo", ProgramID: privacy.Program.ID, ExpectedVersion: privacy.Program.Version, ObjectiveID: privacy.ControlObjectives[0].ID, Name: "Quarterly processing-owner review", Description: "Processing owners review changed activities and confirm unresolved facts each quarter.", ImplementationType: "OWNER_REVIEW", OwnerPrincipalID: "user-demo", Scope: json.RawMessage(`{"legal_entity":"Clear Bank Nigeria"}`), Status: ImplementationImplemented, EffectiveFrom: now.AddDate(0, -3, 0), ActorID: "user-demo"})
+		privacy, err = service.AddControlImplementation(ctx, AddControlImplementationInput{TenantID: "bank-demo", ProgramID: privacy.Program.ID, ExpectedVersion: privacy.Program.Version, ObjectiveID: privacy.ControlObjectives[0].ID, Name: "Quarterly processing-owner review", Description: "Processing owners review changed activities and confirm unresolved facts each quarter.", ImplementationType: "OWNER_REVIEW", OwnerPrincipalID: "user-demo", Scope: json.RawMessage(`{"legal_entity":"Clear Bank Nigeria"}`), Status: ImplementationPlanned, EffectiveFrom: now.AddDate(0, -3, 0), ActorID: "user-demo"})
+		if err != nil {
+			return err
+		}
+		privacy, err = confirmDemoSafeguard(ctx, service, privacy)
 		if err != nil {
 			return err
 		}
@@ -36,7 +40,11 @@ func SeedDemo(ctx context.Context, service *Service) error {
 		if err != nil {
 			return err
 		}
-		privacy, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{TenantID: "bank-demo", ProgramID: privacy.Program.ID, ExpectedVersion: privacy.Program.Version, ControlImplementationID: privacy.ControlImplementations[0].ID, Code: "ROPA-COVERAGE", Name: "Processing record coverage", Claim: "Every active processing activity has a current owner-approved record.", PopulationScope: json.RawMessage(`{"population":"active_processing_activities"}`), FreshnessMinutes: 43200, MinimumCoverage: 0.95, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractActive, ActorID: "user-demo"})
+		privacy, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{TenantID: "bank-demo", ProgramID: privacy.Program.ID, ExpectedVersion: privacy.Program.Version, ControlImplementationID: privacy.ControlImplementations[0].ID, Code: "ROPA-COVERAGE", Name: "Processing record coverage", Claim: "Every active processing activity has a current owner-approved record.", PopulationScope: json.RawMessage(`{"population":"active_processing_activities"}`), FreshnessMinutes: 43200, MinimumCoverage: 0.95, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractDraft, ActorID: "user-demo"})
+		if err != nil {
+			return err
+		}
+		privacy, err = activateDemoEvidence(ctx, service, privacy)
 		if err != nil {
 			return err
 		}
@@ -72,7 +80,11 @@ func SeedDemo(ctx context.Context, service *Service) error {
 		if err != nil {
 			return err
 		}
-		cyber, err = service.AddControlImplementation(ctx, AddControlImplementationInput{TenantID: "bank-demo", ProgramID: cyber.Program.ID, ExpectedVersion: cyber.Program.Version, ObjectiveID: cyber.ControlObjectives[0].ID, Name: "Monthly privileged-access review", Description: "IAM population is reconciled with HR and account-owner approvals each month.", ImplementationType: "ACCESS_REVIEW", OwnerPrincipalID: "user-demo", Scope: json.RawMessage(`{"systems":"privileged-access population"}`), Status: ImplementationImplemented, EffectiveFrom: now.AddDate(0, -6, 0), ActorID: "user-demo"})
+		cyber, err = service.AddControlImplementation(ctx, AddControlImplementationInput{TenantID: "bank-demo", ProgramID: cyber.Program.ID, ExpectedVersion: cyber.Program.Version, ObjectiveID: cyber.ControlObjectives[0].ID, Name: "Monthly privileged-access review", Description: "IAM population is reconciled with HR and account-owner approvals each month.", ImplementationType: "ACCESS_REVIEW", OwnerPrincipalID: "user-demo", Scope: json.RawMessage(`{"systems":"privileged-access population"}`), Status: ImplementationPlanned, EffectiveFrom: now.AddDate(0, -6, 0), ActorID: "user-demo"})
+		if err != nil {
+			return err
+		}
+		cyber, err = confirmDemoSafeguard(ctx, service, cyber)
 		if err != nil {
 			return err
 		}
@@ -80,7 +92,11 @@ func SeedDemo(ctx context.Context, service *Service) error {
 		if err != nil {
 			return err
 		}
-		cyber, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{TenantID: "bank-demo", ProgramID: cyber.Program.ID, ExpectedVersion: cyber.Program.Version, ControlImplementationID: cyber.ControlImplementations[0].ID, Code: "ACCESS-COVERAGE", Name: "Privileged-access review coverage", Claim: "Every privileged account is resolved for the current review period.", PopulationScope: json.RawMessage(`{"population":"privileged_accounts"}`), FreshnessMinutes: 44640, MinimumCoverage: 0.99, ContradictionPolicy: "FAIL", FailureAction: "MATTER", Status: EvidenceContractActive, ActorID: "user-demo"})
+		cyber, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{TenantID: "bank-demo", ProgramID: cyber.Program.ID, ExpectedVersion: cyber.Program.Version, ControlImplementationID: cyber.ControlImplementations[0].ID, Code: "ACCESS-COVERAGE", Name: "Privileged-access review coverage", Claim: "Every privileged account is resolved for the current review period.", PopulationScope: json.RawMessage(`{"population":"privileged_accounts"}`), FreshnessMinutes: 44640, MinimumCoverage: 0.99, ContradictionPolicy: "FAIL", FailureAction: "MATTER", Status: EvidenceContractDraft, ActorID: "user-demo"})
+		if err != nil {
+			return err
+		}
+		cyber, err = activateDemoEvidence(ctx, service, cyber)
 		if err != nil {
 			return err
 		}
@@ -98,3 +114,28 @@ func SeedDemo(ctx context.Context, service *Service) error {
 }
 
 func timePointer(value time.Time) *time.Time { return &value }
+
+func confirmDemoSafeguard(ctx context.Context, service *Service, program ProgramAggregate) (ProgramAggregate, error) {
+	implementation := program.ControlImplementations[0]
+	var err error
+	for _, target := range []ControlImplementationStatus{ImplementationInProgress, ImplementationImplemented} {
+		program, err = service.TransitionControlImplementation(ctx, TransitionControlImplementationInput{
+			TenantID: program.Program.TenantID, ProgramID: program.Program.ID, ImplementationID: implementation.ID,
+			ExpectedVersion: program.Program.Version, ExpectedImplementationVersion: program.ControlImplementations[0].Version,
+			To: target, Rationale: "The sample safeguard owner confirmed the operating state.", ActorID: "user-demo",
+		})
+		if err != nil {
+			return ProgramAggregate{}, err
+		}
+	}
+	return program, nil
+}
+
+func activateDemoEvidence(ctx context.Context, service *Service, program ProgramAggregate) (ProgramAggregate, error) {
+	contract := program.EvidenceContracts[0]
+	return service.TransitionEvidenceContract(ctx, TransitionEvidenceContractInput{
+		TenantID: program.Program.TenantID, ProgramID: program.Program.ID, ContractID: contract.ID,
+		ExpectedVersion: program.Program.Version, ExpectedContractVersion: contract.Version,
+		To: EvidenceContractActive, Rationale: "The sample reviewer approved the evidence rules.", ActorID: "user-demo",
+	})
+}

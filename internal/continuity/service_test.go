@@ -37,16 +37,26 @@ func TestProgramStateMovesFromUnknownToCurrentAndTriggerCreatesOneMatter(t *test
 		t.Fatal(err)
 	}
 	objective := program.ControlObjectives[0]
-	program, err = service.AddControlImplementation(ctx, AddControlImplementationInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ObjectiveID: objective.ID, Name: "Quarterly owner review", Description: "Processing owners review changed records each quarter.", ImplementationType: "REVIEW", Status: ImplementationImplemented, EffectiveFrom: now, Scope: json.RawMessage(`{"entity":"Bank NG"}`)})
+	program, err = service.AddControlImplementation(ctx, AddControlImplementationInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ObjectiveID: objective.ID, Name: "Quarterly owner review", Description: "Processing owners review changed records each quarter.", ImplementationType: "REVIEW", Status: ImplementationPlanned, EffectiveFrom: now, Scope: json.RawMessage(`{"entity":"Bank NG"}`)})
 	if err != nil {
 		t.Fatal(err)
 	}
 	implementation := program.ControlImplementations[0]
+	for _, target := range []ControlImplementationStatus{ImplementationInProgress, ImplementationImplemented} {
+		program, err = service.TransitionControlImplementation(ctx, TransitionControlImplementationInput{TenantID: "bank", ProgramID: program.Program.ID, ImplementationID: implementation.ID, ExpectedVersion: program.Program.Version, ExpectedImplementationVersion: program.ControlImplementations[0].Version, To: target, Rationale: "The safeguard owner confirmed the operating state.", ActorID: "owner"})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 	program, err = service.LinkRequirementControl(ctx, LinkRequirementControlInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, RequirementID: requirement.ID, ImplementationID: implementation.ID})
 	if err != nil {
 		t.Fatal(err)
 	}
-	program, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ControlImplementationID: implementation.ID, Code: "ROPA-COVERAGE", Name: "Processing record coverage", Claim: "Every active processing activity has a current owner-approved record.", PopulationScope: json.RawMessage(`{"population":"active_processing_activities"}`), FreshnessMinutes: 43200, MinimumCoverage: 0.95, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractActive})
+	program, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ControlImplementationID: implementation.ID, Code: "ROPA-COVERAGE", Name: "Processing record coverage", Claim: "Every active processing activity has a current owner-approved record.", PopulationScope: json.RawMessage(`{"population":"active_processing_activities"}`), FreshnessMinutes: 43200, MinimumCoverage: 0.95, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractDraft})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.TransitionEvidenceContract(ctx, TransitionEvidenceContractInput{TenantID: "bank", ProgramID: program.Program.ID, ContractID: program.EvidenceContracts[0].ID, ExpectedVersion: program.Program.Version, ExpectedContractVersion: program.EvidenceContracts[0].Version, To: EvidenceContractActive, Rationale: "Independent review approved the evidence rules.", ActorID: "dpo"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -39,7 +39,7 @@ func TestEvidenceContractsRejectSourcesOutsideAggregateEntity(t *testing.T) {
 		t.Fatal(err)
 	}
 	version := program.Program.Version
-	_, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: version, RequirementID: program.Requirements[0].ID, Code: "CHECK", Name: "Check", Claim: "The outcome remains supported.", AcceptableSourceIDs: []string{"foreign-source"}, FreshnessMinutes: 60, MinimumCoverage: 1, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractActive})
+	_, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: version, RequirementID: program.Requirements[0].ID, Code: "CHECK", Name: "Check", Claim: "The outcome remains supported.", AcceptableSourceIDs: []string{"foreign-source"}, FreshnessMinutes: 60, MinimumCoverage: 1, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractDraft})
 	if !errors.Is(err, ErrEvidenceSourceInvalid) {
 		t.Fatalf("program forged source returned %v", err)
 	}
@@ -75,7 +75,7 @@ func TestEvidenceContractsAllowManualNoSourceWithoutSourceService(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	program, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, RequirementID: program.Requirements[0].ID, Code: "MANUAL", Name: "Manual check", Claim: "A reviewer confirms the retained evidence.", FreshnessMinutes: 60, MinimumCoverage: 1, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractActive})
+	program, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, RequirementID: program.Requirements[0].ID, Code: "MANUAL", Name: "Manual check", Claim: "A reviewer confirms the retained evidence.", FreshnessMinutes: 60, MinimumCoverage: 1, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractDraft})
 	if err != nil || len(program.EvidenceContracts) != 1 {
 		t.Fatalf("manual Program contract failed: %v %#v", err, program)
 	}

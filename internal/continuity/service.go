@@ -499,8 +499,8 @@ func (s *Service) AddControlImplementation(ctx context.Context, input AddControl
 	if input.Status == "" {
 		input.Status = ImplementationPlanned
 	}
-	if !validImplementationStatus(input.Status) {
-		return ProgramAggregate{}, fmt.Errorf("unsupported control implementation status")
+	if input.Status != ImplementationPlanned {
+		return ProgramAggregate{}, fmt.Errorf("new safeguards must start as planned")
 	}
 	if input.EffectiveFrom.IsZero() {
 		input.EffectiveFrom = s.now().UTC()
@@ -570,10 +570,10 @@ func (s *Service) AddEvidenceContract(ctx context.Context, input AddEvidenceCont
 		return ProgramAggregate{}, fmt.Errorf("minimum_coverage must be between 0 and 1")
 	}
 	if input.Status == "" {
-		input.Status = EvidenceContractActive
+		input.Status = EvidenceContractDraft
 	}
-	if !validEvidenceContractStatus(input.Status) {
-		return ProgramAggregate{}, fmt.Errorf("unsupported evidence check status")
+	if input.Status != EvidenceContractDraft {
+		return ProgramAggregate{}, fmt.Errorf("new evidence checks must start as drafts")
 	}
 	contradictionPolicy := strings.ToUpper(strings.TrimSpace(input.ContradictionPolicy))
 	if contradictionPolicy == "" {

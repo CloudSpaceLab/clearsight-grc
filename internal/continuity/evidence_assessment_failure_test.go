@@ -78,7 +78,15 @@ func TestNonSupportingEvidenceAssessmentCreatesOneLinkedEntityScopedMatter(t *te
 		TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version,
 		RequirementID: program.Requirements[0].ID, Code: "RETURN", Name: "Annual return filing",
 		Claim: "The annual return was filed before the deadline.", FreshnessMinutes: 1440, MinimumCoverage: 1,
-		ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractActive,
+		ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractDraft,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.TransitionEvidenceContract(ctx, TransitionEvidenceContractInput{
+		TenantID: "bank", ProgramID: program.Program.ID, ContractID: program.EvidenceContracts[0].ID,
+		ExpectedVersion: program.Program.Version, ExpectedContractVersion: program.EvidenceContracts[0].Version,
+		To: EvidenceContractActive, Rationale: "Independent review approved the evidence rules.", ActorID: "reviewer-1",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -178,7 +186,7 @@ func TestEvidenceFailureConfigurationIsNarrowedToExecutableMatterAction(t *testi
 		TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version,
 		RequirementID: program.Requirements[0].ID, Code: "CHECK", Name: "Retention evidence",
 		Claim: "Required evidence is retained.", FreshnessMinutes: 60, MinimumCoverage: 1,
-		ContradictionPolicy: "REVIEW", FailureAction: "FLAG", Status: EvidenceContractActive,
+		ContradictionPolicy: "REVIEW", FailureAction: "FLAG", Status: EvidenceContractDraft,
 	})
 	if err == nil || !strings.Contains(err.Error(), "linked issue") {
 		t.Fatalf("unsupported failure action error = %v", err)
