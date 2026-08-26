@@ -238,4 +238,24 @@ describe("RoleAwareOnboarding", () => {
     expect(screen.getByRole("button", { name: /Resume Executive risk or compliance leader guide/ })).toBeTruthy();
     expect(screen.getByRole("alert").textContent).toBe("Guide dismissal could not be saved. The guide is closed for this session; resume it to try again.");
   });
+
+  it("scrolls a Today guide target without smooth motion when reduced motion is requested", async () => {
+    vi.mocked(loadRoleGuide).mockResolvedValue(guide);
+    vi.mocked(loadGuideState).mockResolvedValue(initial);
+    vi.mocked(saveGuideState).mockImplementation(async (_code, value) => ({ ...initial, ...value, version: value.version + 1 }));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+    const target = document.createElement("section");
+    target.id = "today-brief";
+    const scroll = vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(() => undefined);
+    document.body.append(target);
+    render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Start guide" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Today" }));
+
+    await waitFor(() => expect(scroll).toHaveBeenCalledWith({ behavior: "auto", block: "center" }));
+    target.remove();
+    scroll.mockRestore();
+    vi.unstubAllGlobals();
+  });
 });

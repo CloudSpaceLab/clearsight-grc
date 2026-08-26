@@ -181,7 +181,8 @@ function highlight(target?: string) {
     const element = document.getElementById(target) ?? document.querySelector<HTMLElement>(`.${escaped}`);
     if (!element) return;
     element.classList.add("guide-highlight");
-    element.scrollIntoView({ behavior: "smooth", block: "center" });
+    const reducedMotion = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    element.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "center" });
     if (!element.hasAttribute("tabindex")) element.setAttribute("tabindex", "-1");
     element.focus({ preventScroll: true });
     window.setTimeout(() => element.classList.remove("guide-highlight"), 3200);
