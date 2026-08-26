@@ -6,11 +6,12 @@ import {
   linkProgramRequirementControl,
 } from "../programOperationsApi";
 import type { ProgramOperation } from "../programOperationsApi";
-import type { ProgramAggregate } from "../types";
+import type { ProgramAggregate, RecordResponsibleParty } from "../types";
 
 type Props = {
   aggregate: ProgramAggregate;
   operations: ProgramOperation[];
+  responsibleParties?: RecordResponsibleParty[];
   onUpdated: (value: ProgramAggregate) => void;
   onReload: () => void;
 };
@@ -22,7 +23,7 @@ function statusLabel(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 }
 
-export function ProgramSafeguardsPanel({ aggregate, operations, onUpdated, onReload }: Props) {
+export function ProgramSafeguardsPanel({ aggregate, operations, responsibleParties = [], onUpdated, onReload }: Props) {
   const operation = operations.find((value) => value.command === "program.safeguard.define");
   const [mode, setMode] = useState<Mode>(null);
   const [busy, setBusy] = useState(false);
@@ -115,7 +116,7 @@ export function ProgramSafeguardsPanel({ aggregate, operations, onUpdated, onRel
           <div><span>{objective.code} · {statusLabel(objective.status)}</span><h3>{objective.name}</h3><p>{objective.outcome}</p></div>
           {implementations.length ? <ul>{implementations.map((implementation) => {
             const requirementCount = aggregate.requirement_control_links.filter((link) => link.implementation_id === implementation.id).length;
-            const owner = operation?.candidates?.find((candidate) => candidate.id === implementation.owner_principal_id)?.display_name ?? (implementation.owner_principal_id ? "Recorded safeguard owner unavailable" : "Safeguard owner not assigned");
+            const owner = responsibleParties.find((party) => party.scope === "SAFEGUARD" && party.subresource_id === implementation.id && party.responsibility === "PERFORMER")?.display_name ?? operation?.candidates?.find((candidate) => candidate.id === implementation.owner_principal_id)?.display_name ?? (implementation.owner_principal_id ? "Recorded safeguard owner unavailable" : "Safeguard owner not assigned");
             return <li key={implementation.id}><strong>{implementation.name}</strong><span>{owner} · {statusLabel(implementation.status)} · {requirementCount} linked requirement{requirementCount === 1 ? "" : "s"}</span><p>{implementation.description}</p></li>;
           })}</ul> : <p>No safeguards implement this objective yet.</p>}
         </section>;

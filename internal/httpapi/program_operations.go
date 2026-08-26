@@ -61,6 +61,16 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 	if authorizer := a.storedProgramResponsibleParty(ctx, actor, aggregate.Program.AuthorityPrincipalID, authority.ResponsibilityAuthorizer); authorizer != nil {
 		response.ResponsibleParties = append(response.ResponsibleParties, *authorizer)
 	}
+	for _, safeguard := range aggregate.ControlImplementations {
+		if owner := a.storedProgramSubresourceParty(ctx, actor, safeguard.OwnerPrincipalID, "SAFEGUARD", safeguard.ID, authority.ResponsibilityPerformer); owner != nil {
+			response.ResponsibleParties = append(response.ResponsibleParties, *owner)
+		}
+	}
+	for _, assessment := range aggregate.EvidenceAssessments {
+		if reviewer := a.storedProgramSubresourceParty(ctx, actor, assessment.AssessedBy, "EVIDENCE_ASSESSMENT", assessment.ID, authority.ResponsibilityReviewer); reviewer != nil {
+			response.ResponsibleParties = append(response.ResponsibleParties, *reviewer)
+		}
+	}
 	if aggregate.Program.Status == continuity.ProgramRetired {
 		return response
 	}
@@ -142,11 +152,15 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 }
 
 func (a *API) storedProgramResponsibleParty(ctx context.Context, actor identity.Actor, principalID string, responsibility authority.Responsibility) *RecordResponsibleParty {
+	return a.storedProgramSubresourceParty(ctx, actor, principalID, "RECORD", "", responsibility)
+}
+
+func (a *API) storedProgramSubresourceParty(ctx context.Context, actor identity.Actor, principalID, scope, subresourceID string, responsibility authority.Responsibility) *RecordResponsibleParty {
 	principal := a.assignedPrincipal(ctx, actor, authority.Resolution{}, principalID)
 	if principal == nil || strings.TrimSpace(principal.DisplayName) == "" {
 		return nil
 	}
-	return &RecordResponsibleParty{Scope: "RECORD", Responsibility: string(responsibility), DisplayName: principal.DisplayName, Kind: principal.Kind}
+	return &RecordResponsibleParty{Scope: scope, SubresourceID: subresourceID, Responsibility: string(responsibility), DisplayName: principal.DisplayName, Kind: principal.Kind}
 }
 
 type programOperationSpec struct {

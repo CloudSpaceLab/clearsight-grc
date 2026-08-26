@@ -315,10 +315,13 @@ func TestProgramOperationsKeepRetiredOwnerReadableWithoutCommandsOrPrincipalID(t
 		ID: "program-retired", TenantID: "bank", LegalEntityID: "bank-ng", Code: "OLD-PRIVACY",
 		Name: "Retired privacy controls", Status: continuity.ProgramRetired,
 		OwnerPrincipalID: "stored-retired-owner", AuthorityPrincipalID: "stored-retired-authorizer", CreatedAt: now, UpdatedAt: now, Version: 9,
-	}}
+	}, ControlImplementations: []continuity.ControlImplementation{{ID: "safeguard-1", OwnerPrincipalID: "stored-safeguard-owner"}},
+		EvidenceAssessments: []continuity.EvidenceAssessment{{ID: "assessment-1", AssessedBy: "stored-assessor"}}}
 	api := &API{deps: Dependencies{Access: principalResolverStub{values: map[string]access.Resolution{
 		"stored-retired-owner":      {TenantID: "bank", PrincipalID: "stored-retired-owner", LegalEntityID: "bank-ng", DisplayName: "Former Data Protection Officer", Kind: "PERSON"},
 		"stored-retired-authorizer": {TenantID: "bank", PrincipalID: "stored-retired-authorizer", LegalEntityID: "bank-ng", DisplayName: "Chief Risk Officer", Kind: "PERSON"},
+		"stored-safeguard-owner":    {TenantID: "bank", PrincipalID: "stored-safeguard-owner", LegalEntityID: "bank-ng", DisplayName: "Privacy Control Owner", Kind: "PERSON"},
+		"stored-assessor":           {TenantID: "bank", PrincipalID: "stored-assessor", LegalEntityID: "bank-ng", DisplayName: "Internal Audit Reviewer", Kind: "PERSON"},
 	}}}}
 	actor := identity.Actor{TenantID: "bank", PrincipalID: "auditor", LegalEntityID: "bank-ng", Kind: "PERSON"}
 
@@ -346,13 +349,15 @@ func TestProgramOperationsKeepRetiredOwnerReadableWithoutCommandsOrPrincipalID(t
 		got[party.Scope+":"+party.Responsibility] = party.DisplayName
 	}
 	want := map[string]string{
-		"RECORD:ACCOUNTABLE_OWNER": "Former Data Protection Officer",
-		"RECORD:AUTHORIZER":        "Chief Risk Officer",
+		"RECORD:ACCOUNTABLE_OWNER":     "Former Data Protection Officer",
+		"RECORD:AUTHORIZER":            "Chief Risk Officer",
+		"SAFEGUARD:PERFORMER":          "Privacy Control Owner",
+		"EVIDENCE_ASSESSMENT:REVIEWER": "Internal Audit Reviewer",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("retired Program responsibilities = %#v, want %#v", got, want)
 	}
-	for _, principalID := range []string{"stored-retired-owner", "stored-retired-authorizer"} {
+	for _, principalID := range []string{"stored-retired-owner", "stored-retired-authorizer", "stored-safeguard-owner", "stored-assessor"} {
 		if strings.Contains(string(encoded), principalID) {
 			t.Fatalf("retired Program response exposed principal ID %q: %s", principalID, encoded)
 		}

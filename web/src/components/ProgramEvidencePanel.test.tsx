@@ -76,6 +76,26 @@ describe("Program evidence authority gating", () => {
     expect(screen.queryByText(/reviewer-hidden/)).toBeNull();
   });
 
+  it("keeps retired source provenance and stored reviewer labels out of active source choices", async () => {
+    vi.mocked(loadEvidenceSources).mockResolvedValue([
+      { id: "source-active", tenant_id: "bank", code: "LIVE", name: "Current filing register", type: "REGISTER", authority_class: "AUTHORITATIVE", expected_freshness_minutes: 1440, health: "HEALTHY", status: "ACTIVE", version: 2 },
+      { id: "source-retired", tenant_id: "bank", code: "OLD", name: "Retired filing register", type: "REGISTER", authority_class: "AUTHORITATIVE", expected_freshness_minutes: 1440, health: "RETIRED", status: "RETIRED", version: 4 },
+    ]);
+    const value = {
+      ...aggregate,
+      evidence_contracts: [{ ...aggregate.evidence_contracts[0]!, acceptable_source_ids: ["source-retired"] }],
+      evidence_assessments: [{ id: "assessment-1", contract_id: "contract-1", conclusion: "SUPPORTED", coverage: 1, assessed_by: "reviewer-private", assessed_at: "2026-08-25T00:00:00Z" }],
+    };
+    render(<ProgramEvidencePanel aggregate={value} operations={operations} responsibleParties={[{ scope: "EVIDENCE_ASSESSMENT", subresource_id: "assessment-1", responsibility: "REVIEWER", display_name: "Ada Okafor", kind: "PERSON" }]} actorPrincipalID="actor-1" canConfigureSources canOperate onUpdated={vi.fn()} onReload={vi.fn()}/>);
+
+    expect(await screen.findByText(/Accepted sources: Retired filing register/)).toBeTruthy();
+    expect(screen.getByText(/Assessed 2026-08-25 by Ada Okafor/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Define evidence check" }));
+    expect(screen.getByRole("checkbox", { name: "Current filing register" })).toBeTruthy();
+    expect(screen.queryByRole("checkbox", { name: "Retired filing register" })).toBeNull();
+    expect(screen.queryByText("reviewer-private")).toBeNull();
+  });
+
   it.each([
     ["Define evidence check", "Save evidence check"],
     ["Record evidence result", "Save evidence result"],
