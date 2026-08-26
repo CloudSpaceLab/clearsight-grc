@@ -112,7 +112,7 @@ export function MatterOutcomePanel({ aggregate, operations, onUpdated, onReload 
   useEffect(() => {
     let current = true;
     setSourcesState("loading");
-    void loadEvidenceSources()
+    void loadEvidenceSources(aggregate.matter.legal_entity_id)
       .then((values) => {
         if (!current) return;
         setSources(values.filter((value) => value.status === "ACTIVE" && (!value.legal_entity_id || value.legal_entity_id === aggregate.matter.legal_entity_id)));
@@ -120,7 +120,7 @@ export function MatterOutcomePanel({ aggregate, operations, onUpdated, onReload 
       })
       .catch(() => { if (current) setSourcesState("unavailable"); });
     return () => { current = false; };
-  }, [aggregate.matter.id]);
+  }, [aggregate.matter.id, aggregate.matter.legal_entity_id]);
 
   function beginDefine() {
     setExpectedOutcome("");

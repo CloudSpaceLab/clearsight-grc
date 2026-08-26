@@ -537,6 +537,9 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		if err := json.Unmarshal(event.Payload, &v); err != nil {
 			return err
 		}
+		if err := validateProgramEvidenceSourcesTx(ctx, tx, v.TenantID, v.ProgramID, v.AcceptableSourceIDs); err != nil {
+			return err
+		}
 		sources, _ := json.Marshal(v.AcceptableSourceIDs)
 		_, err := tx.Exec(ctx, `INSERT INTO evidence_contracts(id,tenant_id,program_id,requirement_id,control_implementation_id,code,name,claim,acceptable_source_ids,population_scope,freshness_minutes,minimum_coverage,independence_required,contradiction_policy,failure_action,status,created_at,updated_at,version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,NULLIF($5,'')::uuid,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$17,$18)`, v.ID, v.TenantID, v.ProgramID, v.RequirementID, v.ControlImplementationID, v.Code, v.Name, v.Claim, sources, rawJSON(v.PopulationScope, `{}`), v.FreshnessMinutes, v.MinimumCoverage, v.IndependenceRequired, v.ContradictionPolicy, v.FailureAction, v.Status, v.CreatedAt, v.Version)
 		if err != nil {
@@ -647,6 +650,9 @@ func applyMatterProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		if err := json.Unmarshal(event.Payload, &v); err != nil {
 			return err
 		}
+		if err := validateMatterEvidenceSourcesTx(ctx, tx, v.TenantID, v.MatterID, []string{v.MeasurementSourceID}); err != nil {
+			return err
+		}
 		_, err := tx.Exec(ctx, `INSERT INTO verification_contracts(id,tenant_id,matter_id,action_id,expected_outcome,baseline,scope,measurement_source_id,threshold,observation_period_minutes,authority_principal_id,failure_response,status,created_at,updated_at,version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,$5,$6,$7,NULLIF($8,'')::uuid,$9,$10,NULLIF($11,'')::uuid,$12,$13,$14,$14,$15)`, v.ID, v.TenantID, v.MatterID, v.ActionID, v.ExpectedOutcome, rawJSON(v.Baseline, `{}`), rawJSON(v.Scope, `{}`), v.MeasurementSourceID, rawJSON(v.Threshold, `{}`), v.ObservationPeriodMinutes, v.AuthorityPrincipalID, v.FailureResponse, v.Status, v.CreatedAt, v.Version)
 		return err
 	case EventVerificationResultRecorded:
@@ -673,6 +679,65 @@ func applyMatterProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 	default:
 		return ErrInvalidState
 	}
+}
+
+func validateProgramEvidenceSourcesTx(ctx context.Context, tx pgx.Tx, tenant, programID string, sourceIDs []string) error {
+	return validateContractSourcesTx(ctx, tx, programEvidenceSourceValidationSQL, tenant, programID, sourceIDs)
+}
+
+func validateMatterEvidenceSourcesTx(ctx context.Context, tx pgx.Tx, tenant, matterID string, sourceIDs []string) error {
+	return validateContractSourcesTx(ctx, tx, matterEvidenceSourceValidationSQL, tenant, matterID, sourceIDs)
+}
+
+const programEvidenceSourceValidationSQL = `SELECT es.id::text FROM evidence_sources es
+	JOIN programs p ON p.tenant_id=es.tenant_id AND p.legal_entity_id=es.legal_entity_id
+	JOIN tenants t ON t.id=p.tenant_id
+	WHERE (t.id::text=$1 OR t.slug=$1) AND p.id=$2::uuid AND es.status='ACTIVE' AND es.id=ANY($3::uuid[])
+	FOR SHARE OF es`
+
+const matterEvidenceSourceValidationSQL = `SELECT es.id::text FROM evidence_sources es
+	JOIN matters m ON m.tenant_id=es.tenant_id AND m.legal_entity_id=es.legal_entity_id
+	JOIN tenants t ON t.id=m.tenant_id
+	WHERE (t.id::text=$1 OR t.slug=$1) AND m.id=$2::uuid AND es.status='ACTIVE' AND es.id=ANY($3::uuid[])
+	FOR SHARE OF es`
+
+func validateContractSourcesTx(ctx context.Context, tx pgx.Tx, query, tenant, aggregateID string, sourceIDs []string) error {
+	unique := make([]string, 0, len(sourceIDs))
+	seen := map[string]struct{}{}
+	for _, sourceID := range sourceIDs {
+		sourceID = strings.TrimSpace(sourceID)
+		if sourceID == "" {
+			continue
+		}
+		if _, ok := seen[sourceID]; ok {
+			continue
+		}
+		seen[sourceID] = struct{}{}
+		unique = append(unique, sourceID)
+	}
+	if len(unique) == 0 {
+		return nil
+	}
+	rows, err := tx.Query(ctx, query, tenant, aggregateID, unique)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	count := 0
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return err
+		}
+		count++
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if count != len(unique) {
+		return ErrEvidenceSourceInvalid
+	}
+	return nil
 }
 
 func matterProjectionMatter(event Event) (Matter, bool, error) {

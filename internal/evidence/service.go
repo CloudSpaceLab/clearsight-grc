@@ -23,6 +23,11 @@ type Service struct {
 	sessionTTL       time.Duration
 	maxArtifactBytes int64
 	bindings         BindingReader
+	legalEntities    LegalEntityResolver
+}
+
+type LegalEntityResolver interface {
+	ResolveLegalEntity(context.Context, string, string) (string, error)
 }
 
 func NewService(repo Repository, store ObjectStore) *Service {
@@ -38,12 +43,23 @@ func (s *Service) Configure(sessionTTL time.Duration, maxArtifactBytes int64) {
 	}
 }
 
+func (s *Service) ConfigureLegalEntityResolver(resolver LegalEntityResolver) {
+	s.legalEntities = resolver
+}
+
 func (s *Service) CreateSource(ctx context.Context, input CreateSourceInput) (Source, error) {
 	if strings.TrimSpace(input.TenantID) == "" || strings.TrimSpace(input.Code) == "" || strings.TrimSpace(input.Name) == "" || !validSourceType(input.Type) || strings.TrimSpace(input.AuthorityClass) == "" {
 		return Source{}, fmt.Errorf("tenant, code, name, source type and authority class are required")
 	}
 	if input.ExpectedFreshnessMinutes < 1 || input.ExpectedFreshnessMinutes > 525600 {
 		return Source{}, fmt.Errorf("expected_freshness_minutes must be between 1 and 525600")
+	}
+	if strings.TrimSpace(input.LegalEntityID) != "" && s.legalEntities != nil {
+		resolved, err := s.legalEntities.ResolveLegalEntity(ctx, input.TenantID, input.LegalEntityID)
+		if err != nil {
+			return Source{}, fmt.Errorf("legal entity: %w", err)
+		}
+		input.LegalEntityID = resolved
 	}
 	input.Endpoint = strings.TrimSpace(input.Endpoint)
 	if len(input.Endpoint) > 32<<10 || strings.IndexFunc(input.Endpoint, unicode.IsControl) >= 0 {
@@ -618,7 +634,7 @@ func cloneFields(input []Field) []Field {
 func DemoSources() []Source {
 	now := time.Now().UTC()
 	last := now.Add(-18 * time.Minute)
-	return []Source{{ID: "019fd111-1111-7111-8111-111111111111", TenantID: "bank-demo", Code: "CBN_CIRCULARS", Name: "CBN circulars", Type: SourceRegulatory, AuthorityClass: "OFFICIAL", ExpectedFreshnessMinutes: 60, LastObservedAt: &last, LastSuccessAt: &last, Health: HealthCurrent, Status: SourceActive, Version: 1, CreatedAt: now, UpdatedAt: now}, {ID: "019fd222-2222-7222-8222-222222222222", TenantID: "bank-demo", Code: "IAM_DIRECTORY", Name: "Identity directory", Type: SourceSystem, AuthorityClass: "SYSTEM_OF_RECORD", ExpectedFreshnessMinutes: 15, LastObservedAt: &last, LastSuccessAt: &last, Health: HealthStale, Status: SourceActive, Version: 1, CreatedAt: now, UpdatedAt: now}}
+	return []Source{{ID: "019fd111-1111-7111-8111-111111111111", TenantID: "bank-demo", LegalEntityID: "bank-ng", Code: "CBN_CIRCULARS", Name: "CBN circulars", Type: SourceRegulatory, AuthorityClass: "OFFICIAL", ExpectedFreshnessMinutes: 60, LastObservedAt: &last, LastSuccessAt: &last, Health: HealthCurrent, Status: SourceActive, Version: 1, CreatedAt: now, UpdatedAt: now}, {ID: "019fd222-2222-7222-8222-222222222222", TenantID: "bank-demo", LegalEntityID: "bank-ng", Code: "IAM_DIRECTORY", Name: "Identity directory", Type: SourceSystem, AuthorityClass: "SYSTEM_OF_RECORD", ExpectedFreshnessMinutes: 15, LastObservedAt: &last, LastSuccessAt: &last, Health: HealthStale, Status: SourceActive, Version: 1, CreatedAt: now, UpdatedAt: now}}
 }
 
 func DemoRequests() []Request {

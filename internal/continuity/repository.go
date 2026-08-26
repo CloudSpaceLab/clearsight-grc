@@ -7,14 +7,20 @@ import (
 )
 
 var (
-	ErrNotFound             = errors.New("program or matter not found")
-	ErrVersionConflict      = errors.New("program or matter version conflict")
-	ErrInvalidState         = errors.New("invalid lifecycle transition")
-	ErrClosureBlocked       = errors.New("matter closure requirements are not met")
-	ErrDuplicate            = errors.New("duplicate program or triggered matter")
-	ErrTriggerDuplicate     = errors.New("program trigger already processed")
-	ErrLegalEntityAmbiguous = errors.New("legal entity identifier is ambiguous")
+	ErrNotFound                  = errors.New("program or matter not found")
+	ErrVersionConflict           = errors.New("program or matter version conflict")
+	ErrInvalidState              = errors.New("invalid lifecycle transition")
+	ErrClosureBlocked            = errors.New("matter closure requirements are not met")
+	ErrDuplicate                 = errors.New("duplicate program or triggered matter")
+	ErrTriggerDuplicate          = errors.New("program trigger already processed")
+	ErrLegalEntityAmbiguous      = errors.New("legal entity identifier is ambiguous")
+	ErrEvidenceSourceInvalid     = errors.New("evidence source is not active in this legal entity")
+	ErrEvidenceSourceUnavailable = errors.New("evidence source validation is unavailable")
 )
+
+type EvidenceSourceValidator interface {
+	ValidateActiveSourcesForEntity(context.Context, string, string, []string) error
+}
 
 // LegalEntityResolver turns an active tenant-bound legal-entity ID or code
 // into the canonical immutable ID used by aggregates and creation events.

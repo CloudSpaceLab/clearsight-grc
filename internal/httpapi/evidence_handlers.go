@@ -27,17 +27,31 @@ func (a *API) listEvidenceSources(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	tenant, ok := requiredQuery(w, r, "tenant_id")
-	if !ok {
+	actor, identityErr := identity.Require(r.Context())
+	if identityErr != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
+		return
+	}
+	tenant := actor.TenantID
+	legalEntityID := actor.LegalEntityID
+	if legalEntityID == "*" {
+		legalEntityID = strings.TrimSpace(r.URL.Query().Get("legal_entity_id"))
+	}
+	if legalEntityID == "" || legalEntityID == "*" {
+		httpx.WriteError(w, http.StatusBadRequest, "source_scope_required", "Select one legal entity before loading evidence sources.")
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	values, err := service.ListSources(r.Context(), tenant, limit)
+	page, err := service.ListSourcesForEntity(r.Context(), evidence.SourceListQuery{TenantID: tenant, LegalEntityID: legalEntityID, Limit: limit, Cursor: r.URL.Query().Get("cursor")})
+	if errors.Is(err, evidence.ErrSourceScopeRequired) || errors.Is(err, evidence.ErrSourceScopeAmbiguous) {
+		httpx.WriteError(w, http.StatusNotFound, "source_scope_not_found", "Evidence sources are unavailable for the selected legal entity.")
+		return
+	}
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "sources_failed", "Sources could not be loaded.")
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values})
+	httpx.WriteJSON(w, http.StatusOK, page)
 }
 
 func (a *API) createEvidenceSource(w http.ResponseWriter, r *http.Request) {

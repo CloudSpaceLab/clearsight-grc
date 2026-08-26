@@ -62,6 +62,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	monitoringService.ConfigureSourceReader(sourceCatalog)
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepo)
+	continuityService.ConfigureEvidenceSourceValidator(evidenceService)
 	coverageService := documentcoverage.NewService(documentcoverage.NewMemoryRepository(), documentService, continuityService)
 	verticals := bankverticals.NewService(continuityService, evidenceService)
 	if cfg.DemoMode {

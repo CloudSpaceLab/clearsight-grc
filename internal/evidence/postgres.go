@@ -18,6 +18,12 @@ import (
 
 type PostgresRepository struct{ pool *pgxpool.Pool }
 
+const listSourcesForEntitySQL = `SELECT es.id::text,t.id::text,COALESCE(es.legal_entity_id::text,''),es.code,es.name,es.source_type,es.authority_class,COALESCE(es.owner_principal_id::text,''),es.expected_freshness_minutes,es.last_observed_at,es.last_success_at,es.health,es.status,es.version,es.created_at,es.updated_at
+	FROM evidence_sources es JOIN tenants t ON t.id=es.tenant_id
+	WHERE (t.id::text=$1 OR t.slug=$1) AND es.legal_entity_id=$2::uuid
+	  AND ($3='' OR (es.name,es.id) > ($3,$4::uuid))
+	ORDER BY es.name,es.id LIMIT $5`
+
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
@@ -69,6 +75,84 @@ func (r *PostgresRepository) ListSources(ctx context.Context, tenant string, lim
 		values = append(values, value)
 	}
 	return values, rows.Err()
+}
+
+func (r *PostgresRepository) ListSourcesForEntity(ctx context.Context, query SourceListQuery) ([]Source, error) {
+	entityID, err := r.resolveCurrentLegalEntityID(ctx, query.TenantID, query.LegalEntityID)
+	if err != nil {
+		return nil, err
+	}
+	cursor, err := decodeSourceCursor(query.Cursor)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := r.pool.Query(ctx, listSourcesForEntitySQL, query.TenantID, entityID, cursor.Name, nullableUUID(cursor.ID), query.Limit)
+	if err != nil {
+		return nil, fmt.Errorf("list entity evidence sources: %w", err)
+	}
+	defer rows.Close()
+	values := make([]Source, 0)
+	for rows.Next() {
+		value, scanErr := scanSource(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		values = append(values, value)
+	}
+	return values, rows.Err()
+}
+
+func (r *PostgresRepository) ValidateActiveSourcesForEntity(ctx context.Context, tenant, legalEntity string, sourceIDs []string) error {
+	entityID, err := r.resolveCurrentLegalEntityID(ctx, tenant, legalEntity)
+	if err != nil {
+		return err
+	}
+	var count int
+	err = r.pool.QueryRow(ctx, `SELECT count(DISTINCT es.id) FROM evidence_sources es JOIN tenants t ON t.id=es.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND es.legal_entity_id=$2::uuid AND es.status='ACTIVE' AND es.id=ANY($3::uuid[])`, tenant, entityID, sourceIDs).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count != len(sourceIDs) {
+		return ErrSourceScopeMismatch
+	}
+	return nil
+}
+
+func (r *PostgresRepository) resolveCurrentLegalEntityID(ctx context.Context, tenant, identifier string) (string, error) {
+	rows, err := r.pool.Query(ctx, `SELECT le.id::text FROM legal_entities le JOIN tenants t ON t.id=le.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2)
+		  AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)
+		ORDER BY le.valid_from DESC,le.id LIMIT 2`, tenant, identifier)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+	ids := make([]string, 0, 2)
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return "", err
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return "", err
+	}
+	if len(ids) == 0 {
+		return "", ErrSourceScopeRequired
+	}
+	if len(ids) > 1 {
+		return "", ErrSourceScopeAmbiguous
+	}
+	return ids[0], nil
+}
+
+func nullableUUID(value string) any {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return value
 }
 
 func (r *PostgresRepository) RecordSourceObservation(ctx context.Context, observation SourceObservation, health SourceHealth) (Source, error) {

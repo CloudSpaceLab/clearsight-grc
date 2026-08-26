@@ -36,6 +36,10 @@ type Service struct {
 }
 
 func NewService(continuityService *continuity.Service, evidenceService *evidence.Service) *Service {
+	if continuityService != nil && evidenceService != nil {
+		continuityService.ConfigureEvidenceSourceValidator(evidenceService)
+		evidenceService.ConfigureLegalEntityResolver(continuityService)
+	}
 	return &Service{continuity: continuityService, evidence: evidenceService}
 }
 

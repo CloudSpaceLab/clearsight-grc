@@ -52,3 +52,13 @@ func TestMiddlewareAcceptsVerifiedOrImplicitScope(t *testing.T) {
 		}
 	}
 }
+
+func TestMiddlewareAllowsWildcardLegalEntityActorToBindOneExactEntity(t *testing.T) {
+	authenticator := NewDevelopmentAuthenticator("bank-a", "admin-a", "*")
+	handler := Middleware(authenticator, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }))
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/evidence/sources?tenant_id=bank-a&legal_entity_id=entity-a", nil))
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("exact entity binding returned %d: %s", response.Code, response.Body.String())
+	}
+}

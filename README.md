@@ -118,6 +118,8 @@ Runtime reads are bound to the verified actor. A client-supplied tenant, princip
 
 Program and issue/change identity includes one durable legal entity. Entity filtering occurs before bounded list limits and exact reads, material commands recheck the same verified scope, and Program links cannot cross entities. Creation resolves a verified legal-entity ID or active tenant-bound code to one canonical ID before the row, continuity event and outbox record are written.
 
+Evidence-source choices follow the same boundary: lists are filtered to one exact current legal entity before pagination, and Program evidence checks or Matter outcome checks accept only active sources from that entity. Manual checks remain available when no registered source is selected.
+
 Restricted Matter access is fail-closed:
 
 - malformed or unsupported access metadata is not readable;

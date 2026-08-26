@@ -44,10 +44,10 @@ export function ProgramEvidencePanel({ aggregate, operations, actorPrincipalID, 
 
   useEffect(() => {
     let active = true; setSourcesState("loading");
-    void loadEvidenceSources().then((values) => { if (active) { setSources(values.filter((value) => value.status === "ACTIVE")); setSourcesState("live"); } })
+    void loadEvidenceSources(aggregate.program.legal_entity_id).then((values) => { if (active) { setSources(values.filter((value) => value.status === "ACTIVE")); setSourcesState("live"); } })
       .catch(() => { if (active) setSourcesState("unavailable"); });
     return () => { active = false; };
-  }, [aggregate.program.id]);
+  }, [aggregate.program.id, aggregate.program.legal_entity_id]);
 
   useEffect(() => {
     if (!canOperate) setMode(null);

@@ -3,6 +3,8 @@ package httpapi
 import (
 	"bytes"
 	"encoding/json"
+	"io"
+	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -18,7 +20,7 @@ import (
 const demoEvidenceRequestID = "019fd333-3333-7333-8333-333333333333"
 
 func TestEvidenceSourcesEndpoint(t *testing.T) {
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/evidence/sources?tenant_id=bank-demo", nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/evidence/sources?tenant_id=bank-demo&legal_entity_id=bank-ng", nil)
 	response := httptest.NewRecorder()
 	testHandler().ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
@@ -32,6 +34,47 @@ func TestEvidenceSourcesEndpoint(t *testing.T) {
 	}
 	if len(body.Items) != 2 {
 		t.Fatalf("expected two sources, got %d", len(body.Items))
+	}
+}
+
+func TestEvidenceSourcesEndpointFiltersExactVerifiedEntityBeforeLimit(t *testing.T) {
+	now := time.Now().UTC()
+	service := evidence.NewService(evidence.NewMemoryRepository([]evidence.Source{
+		{ID: "foreign", TenantID: "bank", LegalEntityID: "entity-b", Name: "A foreign", Status: evidence.SourceActive, CreatedAt: now},
+		{ID: "exact", TenantID: "bank", LegalEntityID: "entity-a", Name: "B exact", Status: evidence.SourceActive, CreatedAt: now},
+	}, nil), evidence.NewMemoryObjectStore())
+	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "person-a", "entity-a"), Evidence: service})
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/evidence/sources?tenant_id=bank&limit=1", nil)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String())
+	}
+	var body struct {
+		Items []evidence.Source `json:"items"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if len(body.Items) != 1 || body.Items[0].ID != "exact" {
+		t.Fatalf("unexpected exact-entity sources: %#v", body.Items)
+	}
+}
+
+func TestEvidenceSourcesWildcardIdentityRequiresExplicitExactEntity(t *testing.T) {
+	service := evidence.NewService(evidence.NewMemoryRepository([]evidence.Source{{ID: "exact", TenantID: "bank", LegalEntityID: "entity-a", Name: "Exact", Status: evidence.SourceActive}}, nil), evidence.NewMemoryObjectStore())
+	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "admin", "*"), Evidence: service})
+
+	missing := httptest.NewRecorder()
+	handler.ServeHTTP(missing, httptest.NewRequest(http.MethodGet, "/api/v1/evidence/sources?tenant_id=bank", nil))
+	if missing.Code != http.StatusBadRequest {
+		t.Fatalf("wildcard without entity returned %d: %s", missing.Code, missing.Body.String())
+	}
+
+	exact := httptest.NewRecorder()
+	handler.ServeHTTP(exact, httptest.NewRequest(http.MethodGet, "/api/v1/evidence/sources?tenant_id=bank&legal_entity_id=entity-a", nil))
+	if exact.Code != http.StatusOK {
+		t.Fatalf("wildcard with exact entity returned %d: %s", exact.Code, exact.Body.String())
 	}
 }
 

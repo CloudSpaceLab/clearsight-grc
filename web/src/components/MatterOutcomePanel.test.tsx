@@ -25,6 +25,7 @@ it("captures the complete outcome contract in business fields with an eligible r
 
   fireEvent.click(screen.getByRole("button", { name: "Define outcome check" }));
   await screen.findByRole("option", { name: "Core banking balance report" });
+  expect(loadEvidenceSources).toHaveBeenCalledWith("entity-1");
   expect(screen.queryByRole("option", { name: "Other entity report" })).toBeNull();
   expect(screen.getByLabelText("Expected outcome")).toBeTruthy();
   expect(screen.getByLabelText("Scope covered")).toBeTruthy();

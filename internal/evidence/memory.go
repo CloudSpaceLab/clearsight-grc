@@ -72,6 +72,47 @@ func (r *MemoryRepository) ListSources(_ context.Context, tenant string, limit i
 	return values, nil
 }
 
+func (r *MemoryRepository) ListSourcesForEntity(_ context.Context, query SourceListQuery) ([]Source, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	cursor, err := decodeSourceCursor(query.Cursor)
+	if err != nil {
+		return nil, err
+	}
+	values := make([]Source, 0)
+	for _, value := range r.sources {
+		if value.TenantID != query.TenantID || value.LegalEntityID != query.LegalEntityID {
+			continue
+		}
+		if cursor.Name != "" && (value.Name < cursor.Name || (value.Name == cursor.Name && value.ID <= cursor.ID)) {
+			continue
+		}
+		values = append(values, value)
+	}
+	sort.Slice(values, func(i, j int) bool {
+		if values[i].Name == values[j].Name {
+			return values[i].ID < values[j].ID
+		}
+		return values[i].Name < values[j].Name
+	})
+	if len(values) > query.Limit {
+		values = values[:query.Limit]
+	}
+	return values, nil
+}
+
+func (r *MemoryRepository) ValidateActiveSourcesForEntity(_ context.Context, tenant, legalEntity string, sourceIDs []string) error {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, id := range sourceIDs {
+		value, ok := r.sources[id]
+		if !ok || value.TenantID != tenant || value.LegalEntityID != legalEntity || value.Status != SourceActive {
+			return ErrSourceScopeMismatch
+		}
+	}
+	return nil
+}
+
 func (r *MemoryRepository) RecordSourceObservation(_ context.Context, observation SourceObservation, health SourceHealth) (Source, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

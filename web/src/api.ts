@@ -163,8 +163,8 @@ export async function loadWorkflowTasks(): Promise<WorkflowTask[]> {
   return (await scopedRequest<{ items: WorkflowTask[] }>("/api/v1/workflow/tasks", { limit: 20 })).items;
 }
 
-export async function loadEvidenceSources(): Promise<EvidenceSource[]> {
-  return (await scopedRequest<{ items: EvidenceSource[] }>("/api/v1/evidence/sources", { limit: 50 })).items;
+export async function loadEvidenceSources(legalEntityID?: string): Promise<EvidenceSource[]> {
+  return (await scopedRequest<{ items: EvidenceSource[] }>("/api/v1/evidence/sources", { legal_entity_id: legalEntityID, limit: 50 })).items;
 }
 
 export async function loadEvidenceRequests(): Promise<EvidenceRequest[]> {

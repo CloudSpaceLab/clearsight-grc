@@ -15,7 +15,7 @@ vi.mock("./MonitoringSetup", () => ({ MonitoringSetup: () => <section><h3>Monito
 
 const aggregate: ProgramAggregate = {
   state_label: "Evidence incomplete",
-  program: { id: "program-1", tenant_id: "bank", code: "PRIVACY", name: "Privacy", type: "REGULATORY", status: "ACTIVE", owning_function: "Compliance", scope: {}, effective_from: "2026-01-01T00:00:00Z", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z", version: 4 },
+  program: { id: "program-1", tenant_id: "bank", legal_entity_id: "entity-1", code: "PRIVACY", name: "Privacy", type: "REGULATORY", status: "ACTIVE", owning_function: "Compliance", scope: {}, effective_from: "2026-01-01T00:00:00Z", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z", version: 4 },
   requirements: [{ id: "requirement-1", code: "REQ-1", title: "File return", statement: "File the return.", status: "APPROVED" }],
   applicability: [], control_objectives: [], control_implementations: [], requirement_control_links: [],
   evidence_contracts: [{ id: "contract-1", requirement_id: "requirement-1", code: "EVIDENCE", name: "Filing evidence", claim: "The return was filed.", acceptable_source_ids: [], status: "ACTIVE", freshness_minutes: 1440, minimum_coverage: 1, independence_required: false, contradiction_policy: "REVIEW", failure_action: "MATTER" }],
@@ -32,6 +32,12 @@ beforeEach(() => {
 });
 
 describe("Program evidence authority gating", () => {
+  it("loads source choices for the Program's exact legal entity", async () => {
+    render(<ProgramEvidencePanel aggregate={aggregate} operations={operations} actorPrincipalID="actor-1" canConfigureSources canOperate onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    expect(await screen.findByText("No evidence result recorded")).toBeTruthy();
+    expect(loadEvidenceSources).toHaveBeenCalledWith("entity-1");
+  });
+
   it("shows a bounded labelled evidence result history without exposing reviewer identifiers", async () => {
     vi.mocked(loadEvidenceSources).mockResolvedValue([{ id: "source-1", tenant_id: "bank", code: "REG", name: "Regulatory filing register", type: "REGISTER", authority_class: "AUTHORITATIVE", expected_freshness_minutes: 1440, health: "HEALTHY", status: "ACTIVE", version: 1 }]);
     const assessments = Array.from({ length: 22 }, (_, index) => ({ id: `assessment-${index}`, contract_id: "contract-1", conclusion: index ? "SUPPORTED" : "NOT_SUPPORTED", coverage: .9, basis: { summary: `Result basis ${index}` }, assessed_by: index ? "reviewer-hidden" : "reviewer-1", assessed_at: new Date(Date.UTC(2026, 7, 25 - index)).toISOString() }));

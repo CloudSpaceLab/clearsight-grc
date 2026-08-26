@@ -43,7 +43,15 @@ func requestedScopeMatches(r *http.Request, actor Actor) bool {
 	queries := r.URL.Query()
 	return optionalScopeValueMatches(queries.Get("tenant_id"), actor.TenantID) &&
 		optionalScopeValueMatches(queries.Get("principal_id"), actor.PrincipalID) &&
-		optionalScopeValueMatches(queries.Get("legal_entity_id"), actor.LegalEntityID)
+		optionalLegalEntityScopeMatches(queries.Get("legal_entity_id"), actor.LegalEntityID)
+}
+
+func optionalLegalEntityScopeMatches(requested, verified string) bool {
+	requested, verified = strings.TrimSpace(requested), strings.TrimSpace(verified)
+	if verified == "*" {
+		return requested == "" || (requested != "*" && requested != "")
+	}
+	return requested == "" || requested == verified
 }
 
 func optionalScopeValueMatches(requested, verified string) bool {

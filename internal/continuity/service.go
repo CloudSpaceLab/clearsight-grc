@@ -14,12 +14,43 @@ import (
 )
 
 type Service struct {
-	repo Repository
-	now  func() time.Time
+	repo            Repository
+	now             func() time.Time
+	sourceValidator EvidenceSourceValidator
 }
 
 func NewService(repo Repository) *Service {
 	return &Service{repo: repo, now: time.Now}
+}
+
+func (s *Service) ConfigureEvidenceSourceValidator(validator EvidenceSourceValidator) {
+	s.sourceValidator = validator
+}
+
+func (s *Service) validateEvidenceSources(ctx context.Context, tenant, legalEntity string, sourceIDs []string) error {
+	ids := make([]string, 0, len(sourceIDs))
+	seen := map[string]struct{}{}
+	for _, sourceID := range sourceIDs {
+		sourceID = strings.TrimSpace(sourceID)
+		if sourceID == "" {
+			continue
+		}
+		if _, ok := seen[sourceID]; ok {
+			continue
+		}
+		seen[sourceID] = struct{}{}
+		ids = append(ids, sourceID)
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	if s.sourceValidator == nil {
+		return ErrEvidenceSourceUnavailable
+	}
+	if err := s.sourceValidator.ValidateActiveSourcesForEntity(ctx, tenant, legalEntity, ids); err != nil {
+		return errors.Join(ErrEvidenceSourceInvalid, err)
+	}
+	return nil
 }
 
 func (s *Service) resolveLegalEntity(ctx context.Context, tenant, identifier string) (string, error) {
@@ -28,6 +59,10 @@ func (s *Service) resolveLegalEntity(ctx context.Context, tenant, identifier str
 		return "", ErrNotFound
 	}
 	return resolver.ResolveLegalEntity(ctx, strings.TrimSpace(tenant), strings.TrimSpace(identifier))
+}
+
+func (s *Service) ResolveLegalEntity(ctx context.Context, tenant, identifier string) (string, error) {
+	return s.resolveLegalEntity(ctx, tenant, identifier)
 }
 
 type AddRequirementInput struct {
@@ -523,6 +558,9 @@ func (s *Service) AddEvidenceContract(ctx context.Context, input AddEvidenceCont
 	}
 	if !validEvidenceFailureAction(failureAction) {
 		return ProgramAggregate{}, fmt.Errorf("failure_action must be FLAG, REQUEST, MATTER or BLOCK")
+	}
+	if err = s.validateEvidenceSources(ctx, input.TenantID, aggregate.Program.LegalEntityID, input.AcceptableSourceIDs); err != nil {
+		return ProgramAggregate{}, err
 	}
 	population, err := normalizedJSON(input.PopulationScope, `{}`)
 	if err != nil {
@@ -1033,6 +1071,9 @@ func (s *Service) AddVerificationContract(ctx context.Context, input AddVerifica
 	}
 	if input.ObservationPeriodMinutes < 0 || input.ObservationPeriodMinutes > 525600 {
 		return MatterAggregate{}, fmt.Errorf("observation_period_minutes is outside the supported range")
+	}
+	if err = s.validateEvidenceSources(ctx, input.TenantID, aggregate.Matter.LegalEntityID, []string{input.MeasurementSourceID}); err != nil {
+		return MatterAggregate{}, err
 	}
 	baseline, err := normalizedJSON(input.Baseline, `{}`)
 	if err != nil {
