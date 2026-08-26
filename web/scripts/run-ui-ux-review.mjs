@@ -9,6 +9,7 @@ const scripts = [
   "scripts/capture-lifecycle-ui-evidence.mjs",
   "scripts/capture-operating-mutations-evidence.mjs",
   "scripts/capture-program-review-evidence.mjs",
+  "scripts/capture-premium-first-run-evidence.mjs",
   "scripts/review-ui-defects.mjs",
   "scripts/review-ui-accessibility.mjs",
 ];

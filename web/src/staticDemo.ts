@@ -106,7 +106,9 @@ let vendorRelationships: VendorRelationshipAggregate[] = [{
   },
   brand: { state: "PENDING", version: 0, event_version: 0 },
 }];
-let vendorBrand = { state: "PENDING" as "PENDING" | "UNAVAILABLE" | "APPROVED_LOGO" | "WEBSITE_ICON", version: 0, event_version: 0, updated_at: now };
+type StaticVendorBrand = NonNullable<VendorRelationshipAggregate["brand"]>;
+let vendorBrand: StaticVendorBrand = { state: "PENDING", version: 0, event_version: 0, updated_at: now };
+let vendorBrandFixture = "";
 
 const vendorDueDiligenceForm: FormTemplate = {
   id: "form-vendor-due-diligence",
@@ -320,6 +322,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   const pathname = url.pathname;
   const method = (init?.method ?? "GET").toUpperCase();
   const fixture = activeFixture();
+  syncVendorBrandFixture(fixture);
   syncVendorWorkFixture(fixture);
 
   if (fixture === "today-loading" && pathname === "/api/v1/today") await delay(1800);
@@ -370,10 +373,15 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     const expectedVersion = Number(headers.get("If-Match")?.replaceAll('"', ""));
     if (!Number.isFinite(expectedVersion) || expectedVersion !== vendorBrand.version) throw new StaticDemoHTTPError(409, "vendor_brand_changed", "The vendor logo changed before this action was recorded.");
     if (method === "PUT") {
+      if (fixture === "vendor-identity-brand-errors") throw new StaticDemoHTTPError(403, "permission_denied", "Your current role cannot change the approved vendor logo.");
       if (!(init?.body instanceof Blob) || init.body.size > 512 * 1024 || !["image/png", "image/jpeg", "image/webp", "image/x-icon", "image/vnd.microsoft.icon"].includes(headers.get("Content-Type") ?? "")) throw new StaticDemoHTTPError(422, "vendor_brand_invalid", "Select a PNG, JPEG, WebP or ICO file of 512 KiB or less.");
-      vendorBrand = { state: "APPROVED_LOGO", version: vendorBrand.version + 1, event_version: vendorBrand.event_version + 1, updated_at: now };
+      vendorBrand = { state: "APPROVED_LOGO", source: "APPROVED_UPLOAD", asset_token: fixture.startsWith("vendor-brand-") ? `approved-${vendorBrand.version + 1}` : undefined, version: vendorBrand.version + 1, event_version: vendorBrand.event_version + 1, updated_at: now };
     } else if (method === "DELETE") {
-      vendorBrand = { state: current.vendor.website_domain ? "PENDING" : "UNAVAILABLE", version: vendorBrand.version + 1, event_version: vendorBrand.event_version + 1, updated_at: now };
+      vendorBrand = fixture === "vendor-brand-approved"
+        ? { state: "WEBSITE_ICON", source: "VENDOR_WEBSITE", asset_token: "website-2", version: vendorBrand.version + 1, event_version: vendorBrand.event_version + 1, updated_at: now }
+        : fixture === "vendor-brand-approved-no-discovered"
+          ? { state: "UNAVAILABLE", version: vendorBrand.version + 1, event_version: vendorBrand.event_version + 1, updated_at: now }
+          : { state: current.vendor.website_domain ? "PENDING" : "UNAVAILABLE", version: vendorBrand.version + 1, event_version: vendorBrand.event_version + 1, updated_at: now };
     } else throw new StaticDemoHTTPError(501, "fixture_not_implemented", `Static stakeholder demo does not implement ${method} ${pathname}`);
     vendorRelationships = vendorRelationships.map((item) => item.vendor.id === vendorID ? { ...item, brand: clone(vendorBrand) } : item);
     return clone({ vendor: current.vendor, brand: vendorBrand }) as T;
@@ -385,6 +393,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     if (!current) throw new StaticDemoHTTPError(404, "vendor_identity_not_found", "The vendor identity is not available in this tenant.");
     if (method === "GET") return clone({ vendor: current.vendor, brand: vendorBrand }) as T;
     if (method !== "PUT") throw new StaticDemoHTTPError(501, "fixture_not_implemented", `Static stakeholder demo does not implement ${method} ${pathname}`);
+    if (fixture === "vendor-identity-brand-errors") throw new StaticDemoHTTPError(409, "vendor_identity_changed", "The vendor details changed before this action was recorded.");
     const input = parseBody(init) as Record<string, string | number | undefined>;
     if (input.expected_version !== current.vendor.version) throw new StaticDemoHTTPError(409, "vendor_identity_changed", "The vendor details changed before this action was recorded.");
     if (!String(input.legal_name ?? "").trim()) throw new StaticDemoHTTPError(422, "vendor_identity_invalid", "Enter the vendor's legal name.");
@@ -447,7 +456,8 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   }
   if (pathname === "/api/v1/vendors" && method === "GET") {
     const query = (url.searchParams.get("search") ?? "").trim().toLowerCase();
-    const items = query ? vendorRelationships.filter((item) => `${item.vendor.legal_name} ${item.vendor.trading_name} ${item.relationship.service_name}`.toLowerCase().includes(query)) : vendorRelationships;
+    const available = fixture === "vendor-guide-empty" ? [] : vendorRelationships;
+    const items = query ? available.filter((item) => `${item.vendor.legal_name} ${item.vendor.trading_name} ${item.relationship.service_name}`.toLowerCase().includes(query)) : available;
     return clone({ items, next_cursor: "" }) as T;
   }
   if (pathname === "/api/v1/vendors" && method === "POST") {
@@ -630,6 +640,21 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
 }
 
 function activeFixture() { return typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("fixture") ?? ""; }
+function syncVendorBrandFixture(fixture: string) {
+  if (vendorBrandFixture === fixture) return;
+  vendorBrandFixture = fixture;
+  const presentations: Record<string, StaticVendorBrand> = {
+    "vendor-brand-website": { state: "WEBSITE_ICON", source: "VENDOR_WEBSITE", asset_token: "website-1", version: 1, event_version: 1, updated_at: now },
+    "vendor-brand-approved": { state: "APPROVED_LOGO", source: "APPROVED_UPLOAD", asset_token: "approved-1", version: 1, event_version: 1, updated_at: now },
+    "vendor-brand-approved-no-discovered": { state: "APPROVED_LOGO", source: "APPROVED_UPLOAD", asset_token: "approved-1", version: 1, event_version: 1, updated_at: now },
+    "vendor-brand-pending": { state: "PENDING", version: 0, event_version: 0, updated_at: now },
+    "vendor-brand-unavailable": { state: "UNAVAILABLE", version: 1, event_version: 1, updated_at: now },
+    "vendor-brand-broken": { state: "WEBSITE_ICON", source: "VENDOR_WEBSITE", asset_token: "broken-1", version: 1, event_version: 1, updated_at: now },
+    "vendor-identity-brand-errors": { state: "PENDING", version: 0, event_version: 0, updated_at: now },
+  };
+  vendorBrand = clone(presentations[fixture] ?? { state: "PENDING", version: 0, event_version: 0, updated_at: now });
+  vendorRelationships = vendorRelationships.map((item) => item.vendor.id === "vendor-acme-processing" ? { ...item, brand: clone(vendorBrand) } : item);
+}
 function delay(ms: number) { return new Promise((resolve) => window.setTimeout(resolve, ms)); }
 function matches(url: URL, ...values: string[]) { const query = (url.searchParams.get("q") ?? "").trim().toLowerCase(); const status = url.searchParams.get("status") ?? ""; if (status && ![program.status, matter.status, "OPEN"].includes(status)) return false; return !query || values.some((value) => value.toLowerCase().includes(query)); }
 function parseBody(init?: RequestInit) { if (typeof init?.body !== "string") return {}; try { return JSON.parse(init.body) as unknown; } catch { return {}; } }
