@@ -5,8 +5,11 @@ const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export function loadVendorRelationshipLinks(query: VendorRelationshipLinkQuery): Promise<VendorRelationshipLinkPage> {
   const params = new URLSearchParams();
-  params.set("target_type", query.target_type);
-  params.set("target_id", query.target_id);
+  if (typeof query.relationship_id === "string") params.set("relationship_id", query.relationship_id);
+  else {
+    params.set("target_type", query.target_type);
+    params.set("target_id", query.target_id);
+  }
   if (query.cursor) params.set("cursor", query.cursor);
   params.set("limit", String(query.limit ?? 50));
   return requestJSON<VendorRelationshipLinkPage>(apiBase, `/api/v1/vendor-links?${params.toString()}`);

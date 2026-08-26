@@ -25,12 +25,7 @@ export type VendorRelationshipLinkPage = {
   next_cursor?: string;
 };
 
-export type VendorRelationshipLinkQuery = {
-  target_type: VendorLinkTargetType;
-  target_id: string;
-  cursor?: string;
-  limit?: number;
-};
+export type VendorRelationshipLinkQuery = ({ target_type: VendorLinkTargetType; target_id: string; relationship_id?: never } | { relationship_id: string; target_type?: never; target_id?: never }) & { cursor?: string; limit?: number };
 
 export type LinkVendorRelationshipInput = {
   target_type: VendorLinkTargetType;

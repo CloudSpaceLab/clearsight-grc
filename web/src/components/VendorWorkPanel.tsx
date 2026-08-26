@@ -53,7 +53,7 @@ export function VendorWorkPanel(props: Props) {
   activeTarget.current = targetKey;
   const headingID = useId();
   const targetName = relationshipID ? "vendor relationship" : targetType === "PROGRAM" ? "Program" : "issue or change";
-  const canCreate = Boolean(targetType && targetID);
+  const canCreate = Boolean(relationshipID || (targetType && targetID));
 
   useEffect(() => {
     resetDraft();
@@ -68,7 +68,7 @@ export function VendorWorkPanel(props: Props) {
     setLoadMoreError(false);
     const [workResult, linksResult, formsResult] = await Promise.allSettled([
       relationshipID ? loadVendorWork({ relationship_id: relationshipID, limit: 20 }) : loadVendorWork({ target_type: targetType, target_id: targetID, limit: 20 }),
-      relationshipID ? Promise.resolve({ items: [] as VendorRelationshipLink[] }) : loadVendorRelationshipLinks({ target_type: targetType!, target_id: targetID!, limit: 50 }),
+      relationshipID ? loadVendorRelationshipLinks({ relationship_id: relationshipID, limit: 50 }) : loadVendorRelationshipLinks({ target_type: targetType!, target_id: targetID!, limit: 50 }),
       loadFormTemplates(),
     ]);
     if (sequence !== loadSequence.current) return;
@@ -81,7 +81,8 @@ export function VendorWorkPanel(props: Props) {
     if (relationshipID) {
       const value = await loadVendorRelationship(relationshipID).catch(() => null);
       if (sequence !== loadSequence.current) return;
-      setRelationships(value ? [{ link: { id: "", relationship_id: relationshipID, target_type: "PROGRAM", target_id: "", purpose_code: "", purpose_label: "", state: "ACTIVE", version: 1 }, relationship: value }] : []);
+      const links = linksResult.status === "fulfilled" ? linksResult.value.items.filter((item) => item.state === "ACTIVE") : [];
+      setRelationships(value ? links.map((link) => ({ link, relationship: value })) : []);
     } else if (linksResult.status === "fulfilled") {
       const active = linksResult.value.items.filter((item) => item.state === "ACTIVE");
       const hydrated = await Promise.all(active.map(async (link) => ({ link, relationship: await loadVendorRelationship(link.relationship_id).catch(() => null) })));
@@ -174,7 +175,7 @@ export function VendorWorkPanel(props: Props) {
   return <section className="vendor-work-panel" aria-labelledby={headingID}>
     <div className="section-heading-row"><div><h2 id={headingID}>Vendor requests</h2><p>Information, documents or confirmations requested from vendors for this {targetName}.</p></div>{canCreate && !creating && <button type="button" className="primary-button" disabled={!setupAvailable || relationships.length === 0 || forms.length === 0} onClick={() => { setCreating(true); setError(""); setNotice(""); }}>Request vendor work</button>}</div>
     {canCreate && !setupAvailable && <p className="inline-notice">Linked vendors or approved forms are unavailable. Existing request history remains available.</p>}
-    {canCreate && setupAvailable && relationships.length === 0 && <p className="inline-notice">Link a vendor relationship to this {targetName} before requesting vendor work.</p>}
+    {canCreate && setupAvailable && relationships.length === 0 && <p className="inline-notice">{relationshipID ? "Link this vendor relationship to a Program or issue before requesting vendor work." : `Link a vendor relationship to this ${targetName} before requesting vendor work.`}</p>}
     {canCreate && setupAvailable && forms.length === 0 && <p className="inline-notice">No current approved collection form is available. Activate a form before preparing this request.</p>}
     {notice && <p className="inline-success" role="status">{notice}</p>}
     {current.length === 0 && history.length === 0 && <p>No vendor requests have been recorded for this {targetName}.</p>}
@@ -184,7 +185,7 @@ export function VendorWorkPanel(props: Props) {
     {loadMoreError && <p role="alert" className="inline-error">More vendor requests could not be loaded. The current list remains available.</p>}
     {creating && <form className="vendor-work-form" onSubmit={(event) => void prepareAndSend(event)}>
       <div><h3>Request vendor work</h3><p>Confirm the vendor, collection form and delivery details for this {targetName}.</p></div>
-      <label>Vendor relationship<select value={selectedLinkID} required onChange={(event) => setSelectedLinkID(event.target.value)}><option value="">Choose a linked vendor</option>{relationships.map(({ link, relationship }) => <option key={link.id} value={link.id} disabled={!relationship}>{relationship ? `${relationship.vendor.legal_name} — ${relationship.relationship.service_name}` : "Vendor details unavailable"}</option>)}</select></label>
+      <label>{relationshipID ? "Related Program or issue" : "Vendor relationship"}<select value={selectedLinkID} required onChange={(event) => setSelectedLinkID(event.target.value)}><option value="">{relationshipID ? "Choose related work" : "Choose a linked vendor"}</option>{relationships.map(({ link, relationship }) => <option key={link.id} value={link.id} disabled={!relationship}>{relationship ? relationshipID ? `${link.target_type === "PROGRAM" ? "Program" : "Issue or change"} · ${link.purpose_label}` : `${relationship.vendor.legal_name} — ${relationship.relationship.service_name}` : "Vendor details unavailable"}</option>)}</select></label>
       <label>Request purpose<input value={purpose} required maxLength={500} onChange={(event) => setPurpose(event.target.value)} placeholder="Confirm annual service controls"/></label>
       <label>Instructions for the vendor<textarea value={instructions} required maxLength={2000} rows={4} onChange={(event) => setInstructions(event.target.value)} placeholder="State what must be completed or provided."/></label>
       <div className="vendor-work-form-grid"><label>Collection form<select value={formKey} required onChange={(event) => setFormKey(event.target.value)}><option value="">Choose an approved form</option>{forms.map((item) => <option key={`${item.id}:${item.version}`} value={`${item.id}:${item.version}`}>{item.name} · version {item.version}</option>)}</select></label><label>Form layout<select value={presentation} onChange={(event) => setPresentation(event.target.value as CapturePresentationMode)}><option value="AUTOMATIC">Automatic</option><option value="CLASSIC">Classic</option><option value="WIZARD">Wizard</option></select></label></div>

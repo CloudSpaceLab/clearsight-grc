@@ -104,6 +104,25 @@ describe("VendorWorkPanel", () => {
     expect(await screen.findByText("Waiting for vendor")).toBeTruthy();
   });
 
+  it("starts linked Program or issue work from the selected vendor relationship", async () => {
+    vi.mocked(prepareVendorWork).mockResolvedValue(work);
+    vi.mocked(sendVendorWork).mockResolvedValue({ work: { ...work, state: "AWAITING_VENDOR", delivery_state: "DELIVERED", version: 3 }, state: "DELIVERED" });
+    render(<VendorWorkPanel relationshipID="relationship-1"/>);
+
+    await screen.findByText("No vendor requests have been recorded for this vendor relationship.");
+    expect(loadVendorRelationshipLinks).toHaveBeenCalledWith({ relationship_id: "relationship-1", limit: 50 });
+    fireEvent.click(screen.getByRole("button", { name: "Request vendor work" }));
+    expect(screen.getByRole("option", { name: "Program · Service support" })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Related Program or issue"), { target: { value: "link-1" } });
+    fireEvent.change(screen.getByLabelText("Request purpose"), { target: { value: work.purpose } });
+    fireEvent.change(screen.getByLabelText("Instructions for the vendor"), { target: { value: work.instructions } });
+    fireEvent.change(screen.getByLabelText("Collection form"), { target: { value: "form-1:4" } });
+    fireEvent.change(screen.getByLabelText("Vendor contact"), { target: { value: "assurance@vendor.example" } });
+    fireEvent.change(screen.getByLabelText("Due date"), { target: { value: "2026-09-30" } });
+    fireEvent.click(screen.getByRole("button", { name: "Prepare and send request" }));
+    await waitFor(() => expect(prepareVendorWork).toHaveBeenCalledWith("relationship-1", expect.objectContaining({ relationship_link_id: "link-1" })));
+  });
+
   it("keeps entered values when preparation fails", async () => {
     vi.mocked(prepareVendorWork).mockRejectedValue(new Error("unavailable"));
     render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
