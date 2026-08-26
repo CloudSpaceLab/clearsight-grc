@@ -165,14 +165,14 @@
   }
   .today-mobile-actions .secondary-button { width: 100%; text-align: left; }
 
-  /* Six demo destinations must still fit a 320px evidence viewport without clipping. */
+  /* All seven operating destinations must remain reachable at the 320px breakpoint. */
   .mobile-nav {
-    grid-auto-columns: minmax(40px, 1fr);
+    grid-auto-columns: minmax(36px, 1fr);
     overflow-x: hidden;
     gap: 3px;
     padding-inline: 6px;
   }
-  .mobile-nav button { min-width: 38px; padding-inline: 2px; }
+  .mobile-nav button { min-width: 34px; padding-inline: 1px; }
   .mobile-nav span {
     max-width: 46px;
     overflow: hidden;
