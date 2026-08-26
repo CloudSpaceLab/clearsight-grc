@@ -337,6 +337,15 @@ func (r *PostgresRepository) CurrentVendorBrandVersion(ctx context.Context, scop
 	return version, err
 }
 
+func (r *PostgresRepository) CanonicalVendorBrandTenantID(ctx context.Context, scope Scope, vendorID string) (string, error) {
+	var tenantID string
+	err := r.pool.QueryRow(ctx, `SELECT t.id::text FROM tenants t WHERE (t.id::text=$1 OR t.slug=$1) AND EXISTS(SELECT 1 FROM third_party_relationships rel WHERE rel.tenant_id=t.id AND rel.vendor_id::text=$3 AND rel.legal_entity_id::text=$2)`, scope.TenantID, scope.LegalEntityID, vendorID).Scan(&tenantID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrNotFound
+	}
+	return tenantID, err
+}
+
 func (r *PostgresRepository) VendorBrandCommandReceipt(ctx context.Context, scope Scope, vendorID, idempotencyKey string) (VendorBrandReceipt, error) {
 	var receipt VendorBrandReceipt
 	receipt.TenantID, receipt.VendorID, receipt.IdempotencyKey = scope.TenantID, vendorID, idempotencyKey
@@ -584,7 +593,7 @@ func (r *PostgresRepository) ClaimExpiredVendorBrandReservations(ctx context.Con
 	if limit > 100 {
 		limit = 100
 	}
-	rows, err := r.pool.Query(ctx, `WITH candidates AS (SELECT tenant_id,vendor_id,idempotency_key FROM third_party_vendor_brand_upload_reservations WHERE (state='RESERVED' AND updated_at<=$1) OR (state='CLEANING' AND lease_expires_at<=$2) ORDER BY updated_at,tenant_id,vendor_id LIMIT $3 FOR UPDATE SKIP LOCKED), claimed AS (UPDATE third_party_vendor_brand_upload_reservations q SET state='CLEANING',lease_token=uuidv7(),lease_expires_at=$2+($4 * interval '1 second'),updated_at=$2 FROM candidates c WHERE q.tenant_id=c.tenant_id AND q.vendor_id=c.vendor_id AND q.idempotency_key=c.idempotency_key RETURNING q.*) SELECT t.slug,c.vendor_id::text,c.idempotency_key,c.artifact_key,c.source_digest,c.state,c.expected_brand_version,c.created_at,c.updated_at,c.lease_token::text,c.lease_expires_at FROM claimed c JOIN tenants t ON t.id=c.tenant_id`, cutoff, now, limit, lease.Seconds())
+	rows, err := r.pool.Query(ctx, `WITH candidates AS (SELECT tenant_id,vendor_id,idempotency_key FROM third_party_vendor_brand_upload_reservations WHERE (state='RESERVED' AND updated_at<=$1) OR (state='CLEANING' AND lease_expires_at<=$2) ORDER BY updated_at,tenant_id,vendor_id LIMIT $3 FOR UPDATE SKIP LOCKED), claimed AS (UPDATE third_party_vendor_brand_upload_reservations q SET state='CLEANING',lease_token=uuidv7(),lease_expires_at=$2+($4 * interval '1 second'),updated_at=$2 FROM candidates c WHERE q.tenant_id=c.tenant_id AND q.vendor_id=c.vendor_id AND q.idempotency_key=c.idempotency_key RETURNING q.*) SELECT c.tenant_id::text,c.vendor_id::text,c.idempotency_key,c.artifact_key,c.source_digest,c.state,c.expected_brand_version,c.created_at,c.updated_at,c.lease_token::text,c.lease_expires_at FROM claimed c`, cutoff, now, limit, lease.Seconds())
 	if err != nil {
 		return nil, err
 	}

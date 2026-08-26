@@ -149,6 +149,39 @@ func TestVendorBrandUploadRejectsCrossCommandReceiptBeforeReservingArtifact(t *t
 	}
 }
 
+type canonicalTenantBrandRepository struct {
+	*MemoryRepository
+	canonicalTenantID string
+}
+
+func (r *canonicalTenantBrandRepository) CanonicalVendorBrandTenantID(context.Context, Scope, string) (string, error) {
+	return r.canonicalTenantID, nil
+}
+
+func TestVendorBrandUploadDerivesAssetIdentityFromCanonicalTenantID(t *testing.T) {
+	base := NewMemoryRepository()
+	created, err := NewService(base).CreateRelationship(context.Background(), Actor{TenantID: "bank-slug", LegalEntityID: "entity", PrincipalID: "owner"}, validCreateInput())
+	if err != nil {
+		t.Fatal(err)
+	}
+	const tenantUUID = "33333333-3333-7333-8333-333333333331"
+	repo := &canonicalTenantBrandRepository{MemoryRepository: base, canonicalTenantID: tenantUUID}
+	service := NewVendorBrandService(repo, evidence.NewMemoryObjectStore(), &vendorIdentityGuardStub{})
+	ctx := vendorIdentityContext("bank-slug", "entity", "owner", time.Now().UTC())
+	if _, err := service.PutApprovedBrand(ctx, created.Vendor.ID, 0, "canonical-upload", "image/png", bytes.NewReader(testBrandPNG(t, color.Black))); err != nil {
+		t.Fatal(err)
+	}
+	wantAssetID := vendorBrandReservationAssetID(tenantUUID, created.Vendor.ID, "canonical-upload")
+	asset, ok := base.vendorBrandAssets[wantAssetID]
+	if !ok {
+		t.Fatalf("asset identity was not derived from canonical tenant %q", tenantUUID)
+	}
+	wantKey := vendorBrandApprovedObjectKey(tenantUUID, created.Vendor.ID, wantAssetID, asset.SourceDigest)
+	if asset.ArtifactKey != wantKey {
+		t.Fatalf("artifact key = %q, want canonical key %q", asset.ArtifactKey, wantKey)
+	}
+}
+
 func TestVendorBrandRejectsSVGAndDomainMismatchedDiscovery(t *testing.T) {
 	repo := NewMemoryRepository()
 	store := evidence.NewMemoryObjectStore()

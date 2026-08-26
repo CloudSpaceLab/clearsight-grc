@@ -108,12 +108,16 @@ func (s *VendorBrandService) PutApprovedBrand(ctx context.Context, vendorID stri
 	if err != nil {
 		return VendorIdentityView{}, err
 	}
-	assetID := vendorBrandReservationAssetID(actor.TenantID, vendorID, idempotencyKey)
+	canonicalTenantID, err := s.repo.CanonicalVendorBrandTenantID(ctx, scopeFrom(actor), vendorID)
+	if err != nil {
+		return VendorIdentityView{}, err
+	}
+	assetID := vendorBrandReservationAssetID(canonicalTenantID, vendorID, idempotencyKey)
 	digest := sha256.Sum256(canonical.PNG)
 	digestText := hex.EncodeToString(digest[:])
-	key := vendorBrandApprovedObjectKey(actor.TenantID, vendorID, assetID, digestText)
+	key := vendorBrandApprovedObjectKey(canonicalTenantID, vendorID, assetID, digestText)
 	at := s.now().UTC()
-	asset := VendorBrandAsset{ID: assetID, TenantID: actor.TenantID, VendorID: vendorID, SourceKind: VendorBrandAssetApprovedOverride, State: VendorBrandAssetCurrent, ArtifactKey: key, SourceDigest: digestText, MediaType: "image/png", PixelWidth: canonical.PixelWidth, PixelHeight: canonical.PixelHeight, ByteSize: int64(len(canonical.PNG)), RetrievedAt: &at, ApprovedByPrincipalID: actor.PrincipalID, CreatedAt: at, UpdatedAt: at, Version: 1}
+	asset := VendorBrandAsset{ID: assetID, TenantID: canonicalTenantID, VendorID: vendorID, SourceKind: VendorBrandAssetApprovedOverride, State: VendorBrandAssetCurrent, ArtifactKey: key, SourceDigest: digestText, MediaType: "image/png", PixelWidth: canonical.PixelWidth, PixelHeight: canonical.PixelHeight, ByteSize: int64(len(canonical.PNG)), RetrievedAt: &at, ApprovedByPrincipalID: actor.PrincipalID, CreatedAt: at, UpdatedAt: at, Version: 1}
 	asset.AssetToken = brandAssetToken(asset)
 	record := VendorBrandMutationRecord{Scope: scopeFrom(actor), VendorID: vendorID, ExpectedVersion: expectedVersion, IdempotencyKey: idempotencyKey, Asset: asset, ActorID: actor.PrincipalID, OccurredAt: at}
 	if err = s.repo.ReserveApprovedVendorBrand(ctx, record); err != nil {

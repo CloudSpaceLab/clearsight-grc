@@ -82,6 +82,7 @@ type VendorBrandMutationRecord struct {
 
 type VendorBrandMutationRepository interface {
 	VendorBrandRepository
+	CanonicalVendorBrandTenantID(context.Context, Scope, string) (string, error)
 	ReserveApprovedVendorBrand(context.Context, VendorBrandMutationRecord) error
 	PutApprovedVendorBrand(context.Context, VendorBrandMutationRecord) (VendorBrandAsset, int64, error)
 	RemoveApprovedVendorBrand(context.Context, VendorBrandMutationRecord) (VendorBrandAsset, int64, error)

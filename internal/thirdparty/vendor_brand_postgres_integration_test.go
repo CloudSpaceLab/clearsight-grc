@@ -50,6 +50,13 @@ func TestPostgresVendorBrandIdempotencyKeyCannotChangeCommand(t *testing.T) {
 	if _, err := brands.PutApprovedBrand(verified, created.Vendor.ID, 0, "same-command-key", "image/png", bytes.NewReader(testBrandPNG(t, color.Black))); err != nil {
 		t.Fatal(err)
 	}
+	var storedAssetID string
+	if err := pool.QueryRow(ctx, `SELECT id::text FROM third_party_vendor_brand_assets WHERE tenant_id=$1::uuid AND vendor_id=$2::uuid AND source_kind='APPROVED_OVERRIDE'`, thirdPartyTenantID, created.Vendor.ID).Scan(&storedAssetID); err != nil {
+		t.Fatal(err)
+	}
+	if want := vendorBrandReservationAssetID(thirdPartyTenantID, created.Vendor.ID, "same-command-key"); storedAssetID != want {
+		t.Fatalf("approved asset id = %s, want canonical tenant-derived %s", storedAssetID, want)
+	}
 	if _, err := brands.RemoveApprovedBrand(verified, created.Vendor.ID, 1, "same-command-key"); !errors.Is(err, ErrVersionConflict) {
 		t.Fatalf("cross-command idempotency replay = %v", err)
 	}

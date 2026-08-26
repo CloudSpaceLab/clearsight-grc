@@ -8,6 +8,15 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 )
 
+func (r *MemoryRepository) CanonicalVendorBrandTenantID(_ context.Context, scope Scope, vendorID string) (string, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if !r.vendorVisibleInScope(scope, vendorID) {
+		return "", ErrNotFound
+	}
+	return scope.TenantID, nil
+}
+
 func (r *MemoryRepository) ReserveApprovedVendorBrand(_ context.Context, record VendorBrandMutationRecord) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
