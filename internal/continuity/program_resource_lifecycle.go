@@ -111,6 +111,9 @@ func (s *Service) ReviseControlImplementation(ctx context.Context, input ReviseC
 	next.ImplementationType = strings.TrimSpace(input.ImplementationType)
 	next.Scope = scope
 	next.EffectiveFrom = input.EffectiveFrom.UTC()
+	if current.Status == ImplementationImplemented {
+		next.Status = ImplementationInProgress
+	}
 	next.UpdatedAt = s.now().UTC()
 	next.Version++
 	payload := controlImplementationLifecycleEvent{Prior: current, Current: next, Rationale: strings.TrimSpace(input.Rationale)}
@@ -207,6 +210,9 @@ func (s *Service) ReviseEvidenceContract(ctx context.Context, input ReviseEviden
 	next.IndependenceRequired = input.IndependenceRequired
 	next.ContradictionPolicy = contradictionPolicy
 	next.FailureAction = failureAction
+	if current.Status == EvidenceContractActive {
+		next.Status = EvidenceContractDraft
+	}
 	next.UpdatedAt = s.now().UTC()
 	next.Version++
 	payload := evidenceContractLifecycleEvent{Prior: current, Current: next, Rationale: strings.TrimSpace(input.Rationale)}
