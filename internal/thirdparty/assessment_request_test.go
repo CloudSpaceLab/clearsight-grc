@@ -151,6 +151,31 @@ func TestSendAssessmentRequestPreparesExactOriginBeforeInvitation(t *testing.T) 
 	}
 }
 
+func TestSendAssessmentRequestRejectsRelationshipThatLeftOnboarding(t *testing.T) {
+	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	assessment := mustReadyAssessment(t, assessmentService, mustStartAssessment(t, assessmentService, relationship))
+	repo.mu.Lock()
+	stored := repo.relationships[relationship.Relationship.ID]
+	stored.Status = RelationshipTerminated
+	repo.relationships[relationship.Relationship.ID] = stored
+	repo.mu.Unlock()
+	evidenceStub := &assessmentEvidenceStub{repo: repo, assessmentID: assessment.ID}
+	service, err := NewAssessmentRequestService(assessmentService, repo, evidenceStub, assessmentFormReaderStub{form: activeAssessmentForm()}, nil, "https://capture.example.test/respond", "production")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = service.SendRequest(assessmentContext(), assessmentActor(), assessment.ID, SendAssessmentRequestInput{
+		ExpectedVersion: assessment.Version, Audience: "security@vendor.example", Deadline: time.Date(2026, 9, 8, 10, 0, 0, 0, time.UTC), InvitationTTLMinutes: 60,
+	})
+	if !errors.Is(err, ErrInvalidAssessmentTransition) {
+		t.Fatalf("terminated relationship send error = %v", err)
+	}
+	if len(evidenceStub.created) != 0 || len(evidenceStub.issued) != 0 {
+		t.Fatalf("terminated relationship created external access: created=%d issued=%d", len(evidenceStub.created), len(evidenceStub.issued))
+	}
+}
+
 func TestSendAssessmentRequestReturnsRecoverablePreparedStateWithoutRecipientLeak(t *testing.T) {
 	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	assessment := mustReadyAssessment(t, assessmentService, mustStartAssessment(t, assessmentService, relationship))

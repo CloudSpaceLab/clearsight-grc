@@ -6,21 +6,34 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 )
 
 type MemoryAssessmentRepository struct {
 	*MemoryRepository
-	assessmentMu sync.RWMutex
-	assessments  map[string]Assessment
-	episodes     map[string]string
-	requestLinks map[string][]AssessmentRequestLink
-	reactions    map[string]assessmentReactionReceipt
-	setupJobs    map[string]AssessmentSetupJob
+	assessmentMu     sync.RWMutex
+	assessments      map[string]Assessment
+	episodes         map[string]string
+	requestLinks     map[string][]AssessmentRequestLink
+	reactions        map[string]assessmentReactionReceipt
+	setupJobs        map[string]AssessmentSetupJob
+	assessmentEvents []memoryAssessmentAudit
+	assessmentOutbox []memoryAssessmentAudit
 }
 
 type assessmentReactionReceipt struct {
 	record     AssessmentReactionRecord
 	assessment Assessment
+}
+
+type memoryAssessmentAudit struct {
+	ActorPrincipalID  string            `json:"actor_principal_id,omitempty"`
+	AssessmentID      string            `json:"assessment_id"`
+	AssessmentVersion int64             `json:"assessment_version"`
+	Type              string            `json:"type"`
+	Payload           map[string]string `json:"payload"`
+	OccurredAt        time.Time         `json:"occurred_at"`
 }
 
 func NewMemoryAssessmentRepository() *MemoryAssessmentRepository {
@@ -320,6 +333,101 @@ func (r *MemoryAssessmentRepository) RecordRequestIssued(_ context.Context, reco
 	return AssessmentRequestLink{}, Assessment{}, ErrInvalidAssessmentTransition
 }
 
+func (r *MemoryAssessmentRepository) GetCurrentAssessmentRequestLink(_ context.Context, scope Scope, assessmentID string) (AssessmentRequestLink, error) {
+	r.assessmentMu.RLock()
+	defer r.assessmentMu.RUnlock()
+	assessment, ok := r.assessments[assessmentID]
+	if !ok || assessment.TenantID != scope.TenantID || assessment.LegalEntityID != scope.LegalEntityID {
+		return AssessmentRequestLink{}, ErrNotFound
+	}
+	for _, link := range r.requestLinks[assessmentID] {
+		if link.RequestID == assessment.CurrentRequestID {
+			return link, nil
+		}
+	}
+	return AssessmentRequestLink{}, ErrNotFound
+}
+
+func (r *MemoryAssessmentRepository) PrepareRequestReissue(_ context.Context, record PrepareRequestReissueRecord) (AssessmentRequestLink, Assessment, error) {
+	if !validAssessmentIdentifiers(record.ActorPrincipalID, record.RequestID) || (record.ExpectedInvitationID != "" && !validAssessmentIdentifier(record.ExpectedInvitationID)) {
+		return AssessmentRequestLink{}, Assessment{}, ErrInvalid
+	}
+	r.assessmentMu.Lock()
+	defer r.assessmentMu.Unlock()
+	current, ok := r.assessments[record.AssessmentID]
+	if !ok || current.TenantID != record.TenantID || current.LegalEntityID != record.LegalEntityID {
+		return AssessmentRequestLink{}, Assessment{}, ErrNotFound
+	}
+	if current.Version != record.ExpectedVersion {
+		return AssessmentRequestLink{}, Assessment{}, ErrVersionConflict
+	}
+	if current.Status != AssessmentCollecting || current.CurrentRequestID != record.RequestID {
+		return AssessmentRequestLink{}, Assessment{}, ErrInvalidAssessmentTransition
+	}
+	for index, link := range r.requestLinks[current.ID] {
+		if link.RequestID != current.CurrentRequestID {
+			continue
+		}
+		if link.InvitationID != record.ExpectedInvitationID {
+			return AssessmentRequestLink{}, Assessment{}, ErrVersionConflict
+		}
+		link.InvitationID = ""
+		r.requestLinks[current.ID][index] = link
+		current.Version++
+		current.UpdatedAt = record.PreparedAt.UTC()
+		r.assessments[current.ID] = current
+		r.appendMemoryAssessmentAudit(current, record.ActorPrincipalID, "AssessmentRequestReissuePrepared")
+		return link, current, nil
+	}
+	return AssessmentRequestLink{}, Assessment{}, ErrInvalidAssessmentTransition
+}
+
+func (r *MemoryAssessmentRepository) FinalizeRequestReissue(_ context.Context, record FinalizeRequestReissueRecord) (AssessmentRequestLink, Assessment, error) {
+	if !validAssessmentIdentifiers(record.ActorPrincipalID, record.RequestID, record.InvitationID) {
+		return AssessmentRequestLink{}, Assessment{}, ErrInvalid
+	}
+	r.assessmentMu.Lock()
+	defer r.assessmentMu.Unlock()
+	current, ok := r.assessments[record.AssessmentID]
+	if !ok || current.TenantID != record.TenantID || current.LegalEntityID != record.LegalEntityID {
+		return AssessmentRequestLink{}, Assessment{}, ErrNotFound
+	}
+	if current.Version != record.ExpectedVersion {
+		return AssessmentRequestLink{}, Assessment{}, ErrVersionConflict
+	}
+	if current.Status != AssessmentCollecting || current.CurrentRequestID != record.RequestID {
+		return AssessmentRequestLink{}, Assessment{}, ErrInvalidAssessmentTransition
+	}
+	for index, link := range r.requestLinks[current.ID] {
+		if link.RequestID != current.CurrentRequestID {
+			continue
+		}
+		if link.InvitationID != "" {
+			return AssessmentRequestLink{}, Assessment{}, ErrVersionConflict
+		}
+		link.InvitationID = record.InvitationID
+		r.requestLinks[current.ID][index] = link
+		current.Version++
+		current.UpdatedAt = record.ReissuedAt.UTC()
+		r.assessments[current.ID] = current
+		r.appendMemoryAssessmentAudit(current, record.ActorPrincipalID, "AssessmentRequestReissued")
+		return link, current, nil
+	}
+	return AssessmentRequestLink{}, Assessment{}, ErrInvalidAssessmentTransition
+}
+
+func (r *MemoryAssessmentRepository) appendMemoryAssessmentAudit(assessment Assessment, actorID, eventType string) {
+	payload := map[string]string{
+		"status": string(assessment.Status), "relationship_id": assessment.RelationshipID,
+		"request_id": assessment.CurrentRequestID, "matter_id": assessment.ReviewMatterID,
+	}
+	event := memoryAssessmentAudit{ActorPrincipalID: actorID, AssessmentID: assessment.ID, AssessmentVersion: assessment.Version, Type: eventType, Payload: payload, OccurredAt: assessment.UpdatedAt}
+	outbox := event
+	outbox.ActorPrincipalID = ""
+	r.assessmentEvents = append(r.assessmentEvents, event)
+	r.assessmentOutbox = append(r.assessmentOutbox, outbox)
+}
+
 func (r *MemoryAssessmentRepository) ListAssessmentRequestLinks(_ context.Context, scope Scope, assessmentID string) ([]AssessmentRequestLink, error) {
 	r.assessmentMu.RLock()
 	defer r.assessmentMu.RUnlock()
@@ -330,6 +438,30 @@ func (r *MemoryAssessmentRepository) ListAssessmentRequestLinks(_ context.Contex
 	links := append([]AssessmentRequestLink(nil), r.requestLinks[assessmentID]...)
 	sort.Slice(links, func(i, j int) bool { return links[i].Sequence < links[j].Sequence })
 	return links, nil
+}
+
+func (r *MemoryAssessmentRepository) ResolveAssessmentRequest(_ context.Context, tenantID string, origin evidence.RequestOrigin, requestID string) (AssessmentSubmissionTarget, error) {
+	tenantID, requestID = strings.TrimSpace(tenantID), strings.TrimSpace(requestID)
+	origin.Type, origin.ID = strings.ToUpper(strings.TrimSpace(origin.Type)), strings.TrimSpace(origin.ID)
+	if tenantID == "" || requestID == "" || origin.Type != AssessmentRequestOrigin || !validAssessmentIdentifier(origin.ID) || origin.Version < 1 {
+		return AssessmentSubmissionTarget{}, ErrNotFound
+	}
+	r.assessmentMu.RLock()
+	defer r.assessmentMu.RUnlock()
+	assessment, ok := r.assessments[origin.ID]
+	if !ok || assessment.TenantID != tenantID || assessment.Status != AssessmentCollecting || assessment.CurrentRequestID != requestID {
+		return AssessmentSubmissionTarget{}, ErrNotFound
+	}
+	for _, link := range r.requestLinks[assessment.ID] {
+		if link.TenantID == tenantID && link.LegalEntityID == assessment.LegalEntityID && link.AssessmentID == assessment.ID &&
+			link.RequestID == requestID && link.OriginType == origin.Type && link.OriginID == origin.ID && int64(link.OriginSequence) == origin.Version {
+			return AssessmentSubmissionTarget{
+				Scope:        Scope{TenantID: assessment.TenantID, LegalEntityID: assessment.LegalEntityID},
+				AssessmentID: assessment.ID, AssessmentVersion: assessment.Version, RequestID: requestID,
+			}, nil
+		}
+	}
+	return AssessmentSubmissionTarget{}, ErrNotFound
 }
 
 func assessmentEpisodeIndex(tenantID, legalEntityID, stableKey string) string {

@@ -73,6 +73,9 @@ func (s *AssessmentService) StartAssessment(ctx context.Context, _ Actor, relati
 	if relationship.Relationship.Version != input.RelationshipVersion {
 		return Assessment{}, ErrVersionConflict
 	}
+	if relationship.Relationship.Status != RelationshipProposed && relationship.Relationship.Status != RelationshipUnderReview {
+		return Assessment{}, ErrInvalidAssessmentTransition
+	}
 	assessmentID, err := s.newID()
 	if err != nil {
 		return Assessment{}, err

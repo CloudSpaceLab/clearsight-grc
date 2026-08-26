@@ -29,6 +29,8 @@ func TestAssessmentMigrationOwnsScopedAtomicWorkflowState(t *testing.T) {
 		"third_party_assessment_jobs_claim_idx",
 		"'THIRD_PARTY_ASSESSMENT'",
 		"'AssessmentRequestPrepared'",
+		"'AssessmentRequestReissued'",
+		"'AssessmentRequestReissuePrepared'",
 	} {
 		if !strings.Contains(schema, required) {
 			t.Fatalf("assessment migration missing %q", required)

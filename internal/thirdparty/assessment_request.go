@@ -109,6 +109,9 @@ func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, ass
 	if err != nil {
 		return SendRequestOutcome{}, err
 	}
+	if relationship.Relationship.Status != RelationshipProposed && relationship.Relationship.Status != RelationshipUnderReview {
+		return SendRequestOutcome{}, ErrInvalidAssessmentTransition
+	}
 
 	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 1}
 	request, err := s.evidence.GetRequestByOrigin(ctx, scope.TenantID, origin)

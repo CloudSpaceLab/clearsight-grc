@@ -104,6 +104,24 @@ func TestStartAssessmentRequiresCurrentScopedRelationshipAndVersionForNewEpisode
 	}
 }
 
+func TestStartAssessmentRejectsRelationshipsOutsideOnboarding(t *testing.T) {
+	for _, status := range []RelationshipStatus{RelationshipActive, RelationshipRestricted, RelationshipSuspended, RelationshipExiting, RelationshipTerminated} {
+		t.Run(string(status), func(t *testing.T) {
+			service, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+			repo.mu.Lock()
+			stored := repo.relationships[relationship.Relationship.ID]
+			stored.Status = status
+			repo.relationships[relationship.Relationship.ID] = stored
+			repo.mu.Unlock()
+
+			_, err := service.StartAssessment(assessmentContext(), assessmentActor(), relationship.Relationship.ID, validStartAssessmentInput(relationship.Relationship.Version))
+			if !errors.Is(err, ErrInvalidAssessmentTransition) {
+				t.Fatalf("status %s allowed onboarding assessment: %v", status, err)
+			}
+		})
+	}
+}
+
 func TestSetupCompletionReactionIsIdempotentAndCarriesExactReferences(t *testing.T) {
 	service, _, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	assessment := mustStartAssessment(t, service, relationship)

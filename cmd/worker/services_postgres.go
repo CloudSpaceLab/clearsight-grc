@@ -64,7 +64,11 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	documentService := documentimport.NewService(documentimport.NewPostgresRepository(pool), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
 	coverageService := documentcoverage.NewService(documentcoverage.NewPostgresRepository(pool), documentService, continuityService)
-	publisher := workflowruntime.NewCompositePublisher(sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork, documentService, coverageService, workflowruntime.LogPublisher{Logger: logger})
+	evidenceRepository := evidence.NewPostgresRepository(pool)
+	evidenceService := evidence.NewService(evidenceRepository, store)
+	assessmentRepository := thirdparty.NewPostgresRepository(pool)
+	assessmentSubmission := newAssessmentSubmissionConsumer(runtimeRepository, evidenceService, assessmentRepository)
+	publisher := workflowruntime.NewCompositePublisher(sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork, documentService, coverageService, assessmentSubmission, workflowruntime.LogPublisher{Logger: logger})
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
 	configureWorkerRuntime(service, cfg, logger)
 	// Matter events update immediately through the outbox publisher. This slower
@@ -80,8 +84,6 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	// projection without adding another event or worker stack.
 	service.ConfigureClass(evidenceWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 5 * time.Second, Batch: 100})
 
-	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), store)
-	assessmentRepository := thirdparty.NewPostgresRepository(pool)
 	assessmentProvisioner := thirdparty.NewAssessmentProvisioner(assessmentRepository, continuityService, cfg.WorkerID)
 	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
 	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})

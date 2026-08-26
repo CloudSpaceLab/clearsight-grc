@@ -3,6 +3,7 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
@@ -20,6 +21,13 @@ type startVendorAssessmentRequest struct {
 
 type sendVendorAssessmentRequest struct {
 	thirdparty.SendAssessmentRequestInput
+	TenantID      string `json:"tenant_id,omitempty"`
+	LegalEntityID string `json:"legal_entity_id,omitempty"`
+	ActorID       string `json:"actor_id,omitempty"`
+}
+
+type reissueVendorAssessmentRequest struct {
+	thirdparty.ReissueAssessmentRequestInput
 	TenantID      string `json:"tenant_id,omitempty"`
 	LegalEntityID string `json:"legal_entity_id,omitempty"`
 	ActorID       string `json:"actor_id,omitempty"`
@@ -57,6 +65,12 @@ func (a *API) startVendorAssessment(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeThirdPartyAssessmentError(w, err)
 		return
+	}
+	if a.deps.ThirdPartyAssessmentSetup != nil && assessment.Status == thirdparty.AssessmentSetupPending {
+		_, _ = a.deps.ThirdPartyAssessmentSetup.Maintain(r.Context(), time.Now().UTC(), 1)
+		if current, loadErr := service.GetAssessment(r.Context(), actor, assessment.ID); loadErr == nil {
+			assessment = current
+		}
 	}
 	httpx.WriteJSON(w, http.StatusAccepted, assessment)
 }
@@ -103,6 +117,29 @@ func (a *API) sendVendorAssessmentRequest(w http.ResponseWriter, r *http.Request
 		return
 	}
 	outcome, err := a.deps.ThirdPartyAssessmentRequests.SendRequest(r.Context(), actor, r.PathValue("id"), request.SendAssessmentRequestInput)
+	if err != nil {
+		writeThirdPartyAssessmentError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, outcome)
+}
+
+func (a *API) reissueVendorAssessmentRequest(w http.ResponseWriter, r *http.Request) {
+	if a.deps.ThirdPartyAssessmentRequests == nil {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "vendor_request_unavailable", "The replacement vendor invitation is temporarily unavailable. No invitation was issued.")
+		return
+	}
+	actor, err := thirdPartyActor(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to replace this vendor invitation.")
+		return
+	}
+	var request reissueVendorAssessmentRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "Check the recipient and invitation period, then try again.")
+		return
+	}
+	outcome, err := a.deps.ThirdPartyAssessmentRequests.ReissueRequest(r.Context(), actor, r.PathValue("id"), request.ReissueAssessmentRequestInput)
 	if err != nil {
 		writeThirdPartyAssessmentError(w, err)
 		return

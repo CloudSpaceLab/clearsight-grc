@@ -30,3 +30,10 @@ func configureWorkerRuntime(service *workflowruntime.Service, cfg config.Config,
 		service.ConfigureClass(name, options)
 	}
 }
+
+func newAssessmentSubmissionConsumer(inbox thirdparty.AssessmentSubmissionInbox, requests thirdparty.AssessmentSubmissionRequestReader, assessments thirdparty.AssessmentRepository) *thirdparty.AssessmentConsumer {
+	return &thirdparty.AssessmentConsumer{
+		Inbox: inbox, Requests: requests, Resolver: assessments,
+		Reactions: thirdparty.NewAssessmentService(assessments, nil),
+	}
+}

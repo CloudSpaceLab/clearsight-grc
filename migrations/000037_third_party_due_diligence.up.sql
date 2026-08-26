@@ -193,7 +193,7 @@ ALTER TABLE third_party_events
     ALTER COLUMN actor_principal_id DROP NOT NULL,
     ADD CONSTRAINT third_party_events_aggregate_type_check CHECK (aggregate_type IN ('VENDOR_RELATIONSHIP','THIRD_PARTY_ASSESSMENT')),
     ADD CONSTRAINT third_party_events_event_type_check CHECK (event_type IN (
-        'VendorRelationshipCreated','VendorRelationshipUpdated','AssessmentStarted','AssessmentSetupCompleted','AssessmentRequestPrepared','AssessmentRequestIssued',
+        'VendorRelationshipCreated','VendorRelationshipUpdated','AssessmentStarted','AssessmentSetupCompleted','AssessmentRequestPrepared','AssessmentRequestIssued','AssessmentRequestReissuePrepared','AssessmentRequestReissued',
         'AssessmentSubmitted','AssessmentReviewStarted','AssessmentCompleted','AssessmentCancelled'
     )),
     ADD CONSTRAINT third_party_events_typed_version_key UNIQUE (tenant_id,aggregate_type,aggregate_id,aggregate_version);

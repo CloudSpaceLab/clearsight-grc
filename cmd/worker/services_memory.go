@@ -17,15 +17,18 @@ import (
 func buildWorker(_ context.Context, cfg config.Config, logger *slog.Logger) (workerSet, error) {
 	repository := workflowruntime.NewMemoryRepository()
 	lifecycle := governance.NewMemoryRepository()
-	service := workflowruntime.NewService(repository, lifecycle, workflowruntime.LogPublisher{Logger: logger}, cfg.WorkerID)
-	configureWorkerRuntime(service, cfg, logger)
-
-	evidenceService := evidence.NewService(evidence.NewMemoryRepository(evidence.DemoSources(), evidence.DemoRequests()), evidence.NewMemoryObjectStore())
-	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
 	continuityRepository := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepository)
-	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
+	evidenceRepository := evidence.NewMemoryRepository(evidence.DemoSources(), evidence.DemoRequests())
+	evidenceService := evidence.NewService(evidenceRepository, evidence.NewMemoryObjectStore())
 	assessmentRepository := thirdparty.NewMemoryAssessmentRepository()
+	assessmentSubmission := newAssessmentSubmissionConsumer(repository, evidenceService, assessmentRepository)
+	publisher := workflowruntime.NewCompositePublisher(assessmentSubmission, workflowruntime.LogPublisher{Logger: logger})
+	service := workflowruntime.NewService(repository, lifecycle, publisher, cfg.WorkerID)
+	configureWorkerRuntime(service, cfg, logger)
+
+	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
+	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
 	assessmentProvisioner := thirdparty.NewAssessmentProvisioner(assessmentRepository, continuityService, cfg.WorkerID)
 	service.AddMaintainerClass(thirdparty.AssessmentSetupWorkClass, assessmentProvisioner)
 	return workerSet{Runtime: service, Close: func() {}}, nil

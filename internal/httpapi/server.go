@@ -1,9 +1,11 @@
 package httpapi
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
@@ -46,17 +48,20 @@ type Dependencies struct {
 	ThirdParty                   *thirdparty.Service
 	ThirdPartyAssessments        *thirdparty.AssessmentService
 	ThirdPartyAssessmentRequests *thirdparty.AssessmentRequestService
-	SourceCatalog                *sourceaccess.CatalogService
-	DocumentImports              *documentimport.Service
-	Coverage                     *documentcoverage.Service
-	Continuity                   *continuity.Service
-	Today                        *today.Service
-	Workflow                     *workflow.Service
-	Onboarding                   *onboarding.Service
-	Autonomy                     *autonomy.Service
-	BankVerticals                *bankverticals.Service
-	BackgroundJobs               *operations.Service
-	MaxArtifactBytes             int64
+	ThirdPartyAssessmentSetup    interface {
+		Maintain(context.Context, time.Time, int) (int, error)
+	}
+	SourceCatalog    *sourceaccess.CatalogService
+	DocumentImports  *documentimport.Service
+	Coverage         *documentcoverage.Service
+	Continuity       *continuity.Service
+	Today            *today.Service
+	Workflow         *workflow.Service
+	Onboarding       *onboarding.Service
+	Autonomy         *autonomy.Service
+	BankVerticals    *bankverticals.Service
+	BackgroundJobs   *operations.Service
+	MaxArtifactBytes int64
 }
 
 type API struct{ deps Dependencies }

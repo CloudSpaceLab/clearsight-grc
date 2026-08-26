@@ -178,6 +178,16 @@ func TestAssessmentProvisionerCreatesCanonicalVendorReviewMatter(t *testing.T) {
 	if scope["assessment_id"] != assessment.ID || scope["relationship_id"] != assessment.RelationshipID {
 		t.Fatalf("matter scope = %#v", scope)
 	}
+	if scope["access"] != continuity.MatterAccessRestricted {
+		t.Fatalf("vendor review matter access = %#v", scope)
+	}
+	allowed, ok := scope["allowed_principal_ids"].([]any)
+	if !ok || len(allowed) != 1 || allowed[0] != "owner-1" {
+		t.Fatalf("vendor review matter allow list = %#v", scope)
+	}
+	if continuity.MatterVisibleTo(continuity.Matter{TenantID: assessment.TenantID, Scope: input.Scope}, "other-legal-entity-actor") {
+		t.Fatal("vendor review matter was visible outside its explicit participants")
+	}
 }
 
 type recordingAssessmentMatterService struct {

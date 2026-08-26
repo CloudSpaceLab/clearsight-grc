@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 )
 
 var (
@@ -22,7 +24,11 @@ type AssessmentRepository interface {
 	ApplyAssessmentReaction(context.Context, AssessmentReactionRecord) (Assessment, error)
 	PrepareAssessmentRequest(context.Context, PrepareAssessmentRequestRecord) (AssessmentRequestLink, Assessment, error)
 	RecordRequestIssued(context.Context, RecordRequestIssuedRecord) (AssessmentRequestLink, Assessment, error)
+	GetCurrentAssessmentRequestLink(context.Context, Scope, string) (AssessmentRequestLink, error)
+	PrepareRequestReissue(context.Context, PrepareRequestReissueRecord) (AssessmentRequestLink, Assessment, error)
+	FinalizeRequestReissue(context.Context, FinalizeRequestReissueRecord) (AssessmentRequestLink, Assessment, error)
 	ListAssessmentRequestLinks(context.Context, Scope, string) ([]AssessmentRequestLink, error)
+	ResolveAssessmentRequest(context.Context, string, evidence.RequestOrigin, string) (AssessmentSubmissionTarget, error)
 }
 
 type AssessmentReactionKind string
@@ -94,4 +100,24 @@ type PrepareAssessmentRequestRecord struct {
 	OriginID         string
 	OriginSequence   int
 	PreparedAt       time.Time
+}
+
+type PrepareRequestReissueRecord struct {
+	Scope
+	AssessmentID         string
+	ExpectedVersion      int64
+	ActorPrincipalID     string
+	RequestID            string
+	ExpectedInvitationID string
+	PreparedAt           time.Time
+}
+
+type FinalizeRequestReissueRecord struct {
+	Scope
+	AssessmentID     string
+	ExpectedVersion  int64
+	ActorPrincipalID string
+	RequestID        string
+	InvitationID     string
+	ReissuedAt       time.Time
 }

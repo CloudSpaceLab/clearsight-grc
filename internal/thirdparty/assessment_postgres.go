@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -510,6 +511,130 @@ func (r *PostgresRepository) RecordRequestIssued(ctx context.Context, record Rec
 	return AssessmentRequestLink{}, Assessment{}, ErrInvalidAssessmentTransition
 }
 
+func (r *PostgresRepository) GetCurrentAssessmentRequestLink(ctx context.Context, scope Scope, assessmentID string) (AssessmentRequestLink, error) {
+	value, err := scanAssessmentRequestLink(r.pool.QueryRow(ctx, assessmentRequestLinkSelect+`
+		WHERE (t.id::text=$1 OR t.slug=$1) AND l.legal_entity_id::text=$2 AND l.assessment_id::text=$3 AND l.is_current`,
+		scope.TenantID, scope.LegalEntityID, assessmentID))
+	return value, mapAssessmentReadError(err, "get current assessment request")
+}
+
+func (r *PostgresRepository) PrepareRequestReissue(ctx context.Context, record PrepareRequestReissueRecord) (AssessmentRequestLink, Assessment, error) {
+	if !validAssessmentIdentifiers(record.ActorPrincipalID, record.RequestID) || (record.ExpectedInvitationID != "" && !validAssessmentIdentifier(record.ExpectedInvitationID)) {
+		return AssessmentRequestLink{}, Assessment{}, ErrInvalid
+	}
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("begin assessment request reissue preparation: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	tenantID, err := resolveTenant(ctx, tx, record.TenantID)
+	if err != nil {
+		return AssessmentRequestLink{}, Assessment{}, err
+	}
+	current, err := lockAssessment(ctx, tx, tenantID, record.LegalEntityID, record.AssessmentID)
+	if err != nil {
+		return AssessmentRequestLink{}, Assessment{}, err
+	}
+	if current.Version != record.ExpectedVersion {
+		return AssessmentRequestLink{}, Assessment{}, ErrVersionConflict
+	}
+	if current.Status != AssessmentCollecting || current.CurrentRequestID != record.RequestID {
+		return AssessmentRequestLink{}, Assessment{}, ErrInvalidAssessmentTransition
+	}
+	link, err := scanAssessmentRequestLink(tx.QueryRow(ctx, assessmentRequestLinkSelect+`
+		WHERE l.tenant_id=$1::uuid AND l.legal_entity_id::text=$2 AND l.assessment_id=$3::uuid AND l.is_current FOR UPDATE OF l`,
+		tenantID, record.LegalEntityID, record.AssessmentID))
+	if err != nil {
+		return AssessmentRequestLink{}, Assessment{}, mapAssessmentReadError(err, "lock current assessment request")
+	}
+	if link.RequestID != record.RequestID || link.InvitationID != record.ExpectedInvitationID {
+		return AssessmentRequestLink{}, Assessment{}, ErrVersionConflict
+	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE third_party_assessment_request_links SET invitation_id=NULL
+		WHERE tenant_id=$1::uuid AND assessment_id=$2::uuid AND sequence=$3`,
+		tenantID, current.ID, link.Sequence); err != nil {
+		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("prepare assessment replacement invitation: %w", err)
+	}
+	link.InvitationID = ""
+	current.Version++
+	current.UpdatedAt = record.PreparedAt.UTC()
+	if err := updateAssessment(ctx, tx, tenantID, current); err != nil {
+		return AssessmentRequestLink{}, Assessment{}, err
+	}
+	if err := appendAssessmentEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, "AssessmentRequestReissuePrepared"); err != nil {
+		return AssessmentRequestLink{}, Assessment{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("commit assessment request reissue preparation: %w", err)
+	}
+	return link, current, nil
+}
+
+func (r *PostgresRepository) FinalizeRequestReissue(ctx context.Context, record FinalizeRequestReissueRecord) (AssessmentRequestLink, Assessment, error) {
+	if !validAssessmentIdentifiers(record.ActorPrincipalID, record.RequestID, record.InvitationID) {
+		return AssessmentRequestLink{}, Assessment{}, ErrInvalid
+	}
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("begin assessment request reissue finalization: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	tenantID, err := resolveTenant(ctx, tx, record.TenantID)
+	if err != nil {
+		return AssessmentRequestLink{}, Assessment{}, err
+	}
+	current, err := lockAssessment(ctx, tx, tenantID, record.LegalEntityID, record.AssessmentID)
+	if err != nil {
+		return AssessmentRequestLink{}, Assessment{}, err
+	}
+	if current.Version != record.ExpectedVersion {
+		return AssessmentRequestLink{}, Assessment{}, ErrVersionConflict
+	}
+	if current.Status != AssessmentCollecting || current.CurrentRequestID != record.RequestID {
+		return AssessmentRequestLink{}, Assessment{}, ErrInvalidAssessmentTransition
+	}
+	link, err := scanAssessmentRequestLink(tx.QueryRow(ctx, assessmentRequestLinkSelect+`
+		WHERE l.tenant_id=$1::uuid AND l.legal_entity_id::text=$2 AND l.assessment_id=$3::uuid AND l.is_current FOR UPDATE OF l`,
+		tenantID, record.LegalEntityID, record.AssessmentID))
+	if err != nil {
+		return AssessmentRequestLink{}, Assessment{}, mapAssessmentReadError(err, "lock prepared assessment request reissue")
+	}
+	if link.RequestID != record.RequestID || link.InvitationID != "" {
+		return AssessmentRequestLink{}, Assessment{}, ErrVersionConflict
+	}
+	var proof bool
+	err = tx.QueryRow(ctx, `
+		SELECT true FROM capture_invitations i
+		WHERE i.tenant_id=$1::uuid AND i.request_id=$2::uuid AND i.id::text=$3 AND i.revoked_at IS NULL`,
+		tenantID, record.RequestID, record.InvitationID).Scan(&proof)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return AssessmentRequestLink{}, Assessment{}, ErrNotFound
+	}
+	if err != nil {
+		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("verify replacement invitation: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE third_party_assessment_request_links SET invitation_id=$4::uuid
+		WHERE tenant_id=$1::uuid AND assessment_id=$2::uuid AND sequence=$3`,
+		tenantID, current.ID, link.Sequence, record.InvitationID); err != nil {
+		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("finalize assessment replacement invitation: %w", err)
+	}
+	link.InvitationID = record.InvitationID
+	current.Version++
+	current.UpdatedAt = record.ReissuedAt.UTC()
+	if err := updateAssessment(ctx, tx, tenantID, current); err != nil {
+		return AssessmentRequestLink{}, Assessment{}, err
+	}
+	if err := appendAssessmentEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, "AssessmentRequestReissued"); err != nil {
+		return AssessmentRequestLink{}, Assessment{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("commit assessment request reissue finalization: %w", err)
+	}
+	return link, current, nil
+}
+
 func (r *PostgresRepository) ListAssessmentRequestLinks(ctx context.Context, scope Scope, assessmentID string) ([]AssessmentRequestLink, error) {
 	rows, err := r.pool.Query(ctx, assessmentRequestLinkSelect+`
 		WHERE (t.id::text=$1 OR t.slug=$1) AND l.legal_entity_id::text=$2 AND l.assessment_id::text=$3
@@ -527,6 +652,39 @@ func (r *PostgresRepository) ListAssessmentRequestLinks(ctx context.Context, sco
 		links = append(links, value)
 	}
 	return links, rows.Err()
+}
+
+func (r *PostgresRepository) ResolveAssessmentRequest(ctx context.Context, tenantID string, origin evidence.RequestOrigin, requestID string) (AssessmentSubmissionTarget, error) {
+	tenantID, requestID = strings.TrimSpace(tenantID), strings.TrimSpace(requestID)
+	origin.Type, origin.ID = strings.ToUpper(strings.TrimSpace(origin.Type)), strings.TrimSpace(origin.ID)
+	if tenantID == "" || requestID == "" || origin.Type != AssessmentRequestOrigin || !validAssessmentIdentifier(origin.ID) || origin.Version < 1 {
+		return AssessmentSubmissionTarget{}, ErrNotFound
+	}
+	var target AssessmentSubmissionTarget
+	err := r.pool.QueryRow(ctx, `
+		SELECT t.slug,a.legal_entity_id::text,a.id::text,a.version,l.request_id::text
+		FROM third_party_assessments a
+		JOIN tenants t ON t.id=a.tenant_id
+		JOIN third_party_assessment_request_links l
+		  ON l.tenant_id=a.tenant_id AND l.legal_entity_id=a.legal_entity_id AND l.assessment_id=a.id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND a.id::text=$2
+		  AND a.status='COLLECTING'
+		  AND a.current_request_id=l.request_id
+		  AND l.is_current
+		  AND l.request_id::text=$3
+		  AND l.origin_type=$4
+		  AND l.origin_id::text=$2
+		  AND l.origin_sequence=$5`, tenantID, origin.ID, requestID, origin.Type, origin.Version).Scan(
+		&target.TenantID, &target.LegalEntityID, &target.AssessmentID, &target.AssessmentVersion, &target.RequestID,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return AssessmentSubmissionTarget{}, ErrNotFound
+	}
+	if err != nil {
+		return AssessmentSubmissionTarget{}, fmt.Errorf("resolve assessment request: %w", err)
+	}
+	return target, nil
 }
 
 const assessmentProjection = `a.id::text,t.slug,a.legal_entity_id::text,a.relationship_id::text,a.review_kind,a.stable_episode_key,a.status,

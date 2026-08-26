@@ -106,6 +106,7 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/vendors/{id}/assessments", "thirdparty.assessment.start", a.startVendorAssessment, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
 		read("/api/v1/vendors/{id}/assessments/current", a.getCurrentVendorAssessment),
 		material("/api/v1/vendor-assessments/{id}/send-request", "thirdparty.assessment.send_request", a.sendVendorAssessmentRequest, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
+		material("/api/v1/vendor-assessments/{id}/reissue-request", "thirdparty.assessment.reissue_request", a.reissueVendorAssessmentRequest, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
 
 		read("/api/v1/form-templates", a.listFormTemplates),
 		write(http.MethodPost, "/api/v1/form-templates", a.createFormTemplate, nil),

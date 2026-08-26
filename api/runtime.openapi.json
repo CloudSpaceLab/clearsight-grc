@@ -74,6 +74,7 @@
     "/api/v1/vendors/{id}/assessments": { "post": { "operationId": "startVendorAssessment", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/vendors/{id}/assessments/current": { "get": { "operationId": "getCurrentVendorAssessment", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/vendor-assessments/{id}/send-request": { "post": { "operationId": "sendVendorAssessmentRequest", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/vendor-assessments/{id}/reissue-request": { "post": { "operationId": "reissueVendorAssessmentRequest", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
 
     "/api/v1/form-templates": {
       "get": { "operationId": "listFormTemplates", "x-clearsight-route-class": "AUTHENTICATED_READ" },

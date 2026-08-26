@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
@@ -34,11 +35,13 @@ type assessmentHTTPFixture struct {
 	handler    http.Handler
 	repository *thirdparty.MemoryAssessmentRepository
 	service    *thirdparty.AssessmentService
+	evidence   *evidence.Service
+	forms      *monitoring.MemoryRepository
 	vendor     thirdparty.Aggregate
 	assessment thirdparty.Assessment
 }
 
-func newAssessmentHTTPFixture(t *testing.T, ready bool) assessmentHTTPFixture {
+func newAssessmentHTTPFixture(t *testing.T, ready bool, inlineSetup ...bool) assessmentHTTPFixture {
 	t.Helper()
 	repo := thirdparty.NewMemoryAssessmentRepository()
 	vendorService := thirdparty.NewService(repo)
@@ -66,12 +69,16 @@ func newAssessmentHTTPFixture(t *testing.T, ready bool) assessmentHTTPFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
+	var setup *thirdparty.AssessmentProvisioner
+	if len(inlineSetup) > 0 && inlineSetup[0] {
+		setup = thirdparty.NewAssessmentProvisioner(repo, continuity.NewService(continuity.NewMemoryRepository()), "memory-api-test")
+	}
 	handler := New(Dependencies{
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory",
 		Identity:   identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a"),
-		ThirdParty: vendorService, ThirdPartyAssessments: assessmentService, ThirdPartyAssessmentRequests: requestService,
+		ThirdParty: vendorService, ThirdPartyAssessments: assessmentService, ThirdPartyAssessmentRequests: requestService, ThirdPartyAssessmentSetup: setup,
 	})
-	fixture := assessmentHTTPFixture{handler: handler, repository: repo, service: assessmentService, vendor: vendor}
+	fixture := assessmentHTTPFixture{handler: handler, repository: repo, service: assessmentService, evidence: evidenceService, forms: formRepo, vendor: vendor}
 	if ready {
 		ctx := identity.WithActor(context.Background(), identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "verified-owner", Kind: "PERSON", IssuedAt: time.Now().UTC().Add(-time.Minute), ExpiresAt: time.Now().UTC().Add(time.Hour)})
 		assessment, startErr := assessmentService.StartAssessment(ctx, thirdparty.Actor{}, vendor.Relationship.ID, thirdparty.StartAssessmentInput{
@@ -90,6 +97,27 @@ func newAssessmentHTTPFixture(t *testing.T, ready bool) assessmentHTTPFixture {
 		fixture.assessment = assessment
 	}
 	return fixture
+}
+
+func TestMemoryAPIProvisionerCompletesAssessmentSetupWithoutASeparateRepository(t *testing.T) {
+	fixture := newAssessmentHTTPFixture(t, false, true)
+	body := []byte(`{"relationship_version":1,"form_template_id":"form-1","form_template_version":3,"review_due_at":"2030-09-09T10:00:00Z"}`)
+	response := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendors/"+fixture.vendor.Relationship.ID+"/assessments", bytes.NewReader(body)))
+	if response.Code != http.StatusAccepted {
+		t.Fatalf("expected 202, got %d: %s", response.Code, response.Body.String())
+	}
+	var assessment thirdparty.Assessment
+	if err := json.NewDecoder(response.Body).Decode(&assessment); err != nil {
+		t.Fatal(err)
+	}
+	if assessment.Status != thirdparty.AssessmentReadyToSend || assessment.ReviewMatterID == "" {
+		t.Fatalf("inline memory setup did not return the operable assessment: %#v", assessment)
+	}
+	status, err := fixture.service.GetAssessmentSetupStatus(context.Background(), thirdparty.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "verified-owner"}, assessment.ID)
+	if err != nil || status.State != thirdparty.AssessmentJobCompleted {
+		t.Fatalf("inline memory setup job = %#v, %v", status, err)
+	}
 }
 
 func TestStartAndGetCurrentVendorAssessmentUseVerifiedRouteScope(t *testing.T) {
@@ -159,6 +187,110 @@ func TestSendVendorAssessmentErrorDoesNotEchoRecipientOrToken(t *testing.T) {
 	if strings.Contains(response.Body.String(), "secret-recipient") || strings.Contains(response.Body.String(), "secret-token") {
 		t.Fatalf("protected value echoed in error: %s", response.Body.String())
 	}
+}
+
+func TestReissueVendorAssessmentRequestRecoversAfterReloadUsingVerifiedActor(t *testing.T) {
+	fixture := newAssessmentHTTPFixture(t, true)
+	initial := sendHTTPVendorAssessmentRequest(t, fixture)
+	body := []byte(`{"expected_version":` + jsonInt(initial.Assessment.Version) + `,"audience":"security@vendor.example","invitation_ttl_minutes":60,"actor_id":"forged-owner"}`)
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+initial.Assessment.ID+"/reissue-request", bytes.NewReader(body))
+	request.Host = "attacker.example"
+	response := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String())
+	}
+	var outcome thirdparty.SendRequestOutcome
+	if err := json.NewDecoder(response.Body).Decode(&outcome); err != nil {
+		t.Fatal(err)
+	}
+	if outcome.Assessment.Status != thirdparty.AssessmentCollecting || outcome.Assessment.Version != initial.Assessment.Version+2 || outcome.Request.ID != initial.Request.ID {
+		t.Fatalf("reissue changed the collection lifecycle or request: %#v", outcome)
+	}
+	if outcome.State != thirdparty.SendRequestLinkCreatedEmailNotSent || !strings.HasPrefix(outcome.CaptureURL, "https://capture.example.test/respond?capture_invite=") || strings.Contains(outcome.CaptureURL, "attacker.example") {
+		t.Fatalf("reissue did not return the immediate configured fallback link: %#v", outcome)
+	}
+	if outcome.Invitation == nil || outcome.Invitation.Token != "" {
+		t.Fatalf("reissue response exposed the raw token outside the fallback URL: %#v", outcome.Invitation)
+	}
+}
+
+func TestReissueVendorAssessmentRequestRejectsStaleScopeAndWrongState(t *testing.T) {
+	fixture := newAssessmentHTTPFixture(t, true)
+	initial := sendHTTPVendorAssessmentRequest(t, fixture)
+	for _, test := range []struct {
+		name       string
+		assessment thirdparty.Assessment
+		body       string
+		want       int
+	}{
+		{name: "stale version", assessment: initial.Assessment, body: `{"expected_version":` + jsonInt(initial.Assessment.Version-1) + `,"audience":"security@vendor.example","invitation_ttl_minutes":60}`, want: http.StatusConflict},
+		{name: "wrong tenant", assessment: initial.Assessment, body: `{"expected_version":` + jsonInt(initial.Assessment.Version) + `,"audience":"security@vendor.example","invitation_ttl_minutes":60,"tenant_id":"other-bank"}`, want: http.StatusForbidden},
+		{name: "wrong legal entity", assessment: initial.Assessment, body: `{"expected_version":` + jsonInt(initial.Assessment.Version) + `,"audience":"security@vendor.example","invitation_ttl_minutes":60,"legal_entity_id":"other-entity"}`, want: http.StatusForbidden},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			response := httptest.NewRecorder()
+			fixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+test.assessment.ID+"/reissue-request", strings.NewReader(test.body)))
+			if response.Code != test.want {
+				t.Fatalf("expected %d, got %d: %s", test.want, response.Code, response.Body.String())
+			}
+		})
+	}
+
+	readyFixture := newAssessmentHTTPFixture(t, true)
+	body := `{"expected_version":` + jsonInt(readyFixture.assessment.Version) + `,"audience":"security@vendor.example","invitation_ttl_minutes":60}`
+	response := httptest.NewRecorder()
+	readyFixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+readyFixture.assessment.ID+"/reissue-request", strings.NewReader(body)))
+	if response.Code != http.StatusConflict {
+		t.Fatalf("wrong-state reissue expected 409, got %d: %s", response.Code, response.Body.String())
+	}
+}
+
+func TestReissueVendorAssessmentRequestRejectsNonOwner(t *testing.T) {
+	fixture := newAssessmentHTTPFixture(t, true)
+	initial := sendHTTPVendorAssessmentRequest(t, fixture)
+	deniedService := thirdparty.NewAssessmentService(fixture.repository, &deniedAssessmentGuard{})
+	requestService, err := thirdparty.NewAssessmentRequestService(deniedService, fixture.repository, fixture.evidence, fixture.forms, nil, "https://capture.example.test/respond", "production")
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory",
+		Identity:   identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a"),
+		ThirdParty: fixture.serviceRepositoryService(), ThirdPartyAssessments: deniedService, ThirdPartyAssessmentRequests: requestService,
+	})
+	body := `{"expected_version":` + jsonInt(initial.Assessment.Version) + `,"audience":"security@vendor.example","invitation_ttl_minutes":60}`
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+initial.Assessment.ID+"/reissue-request", strings.NewReader(body)))
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("non-owner reissue expected 403, got %d: %s", response.Code, response.Body.String())
+	}
+}
+
+type deniedAssessmentGuard struct{}
+
+func (*deniedAssessmentGuard) Authorize(context.Context, commandauth.Request) (commandauth.Decision, error) {
+	return commandauth.Decision{}, commandauth.ErrNotAuthorized
+}
+
+func (fixture assessmentHTTPFixture) serviceRepositoryService() *thirdparty.Service {
+	return thirdparty.NewService(fixture.repository)
+}
+
+func sendHTTPVendorAssessmentRequest(t *testing.T, fixture assessmentHTTPFixture) thirdparty.SendRequestOutcome {
+	t.Helper()
+	deadline := time.Now().UTC().Add(7 * 24 * time.Hour).Format(time.RFC3339)
+	body := []byte(`{"expected_version":` + jsonInt(fixture.assessment.Version) + `,"audience":"security@vendor.example","deadline":"` + deadline + `","invitation_ttl_minutes":60}`)
+	response := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+fixture.assessment.ID+"/send-request", bytes.NewReader(body)))
+	if response.Code != http.StatusOK {
+		t.Fatalf("initial request expected 200, got %d: %s", response.Code, response.Body.String())
+	}
+	var outcome thirdparty.SendRequestOutcome
+	if err := json.NewDecoder(response.Body).Decode(&outcome); err != nil {
+		t.Fatal(err)
+	}
+	return outcome
 }
 
 func jsonInt(value int64) string {

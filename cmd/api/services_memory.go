@@ -66,6 +66,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	thirdPartyService := thirdparty.NewService(thirdPartyRepo)
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepo)
+	assessmentSetup := thirdparty.NewAssessmentProvisioner(thirdPartyRepo, continuityService, "memory-api")
 	coverageService := documentcoverage.NewService(documentcoverage.NewMemoryRepository(), documentService, continuityService)
 	verticals := bankverticals.NewService(continuityService, evidenceService)
 	if cfg.DemoMode {
@@ -116,7 +117,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 
 	return serviceSet{
 		Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()),
-		Evidence: evidenceService, Monitoring: monitoringService, ThirdParty: thirdPartyService, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
+		Evidence: evidenceService, Monitoring: monitoringService, ThirdParty: thirdPartyService, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
 		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo), Close: func() {},
 	}, nil

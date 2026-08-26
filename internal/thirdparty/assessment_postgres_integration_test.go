@@ -6,10 +6,13 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -19,6 +22,176 @@ const (
 	assessmentTwoID      = "33333333-3333-7333-8333-333333333343"
 	assessmentThreeID    = "33333333-3333-7333-8333-333333333344"
 )
+
+func TestPostgresAssessmentRequestResolverRequiresExactCurrentCollectingLink(t *testing.T) {
+	pool := assessmentPostgresPool(t)
+	ctx := context.Background()
+	relationship := seedAssessmentRelationship(t, pool, "Managed identity verification")
+	now := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
+	repository := NewPostgresRepository(pool)
+	assessment, err := repository.CreateAssessment(ctx, postgresAssessmentRecord(assessmentOneID, relationship, now))
+	if err != nil {
+		t.Fatal(err)
+	}
+	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 1}
+	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
+	request, err := evidenceService.CreateRequest(ctx, evidence.CreateRequestInput{
+		TenantID: "third-party-bank", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: relationship.Relationship.ID,
+		Title: "Vendor due diligence", Purpose: "Collect the vendor response.", WhyYou: "Provide the information required for the bank's review.",
+		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR",
+		Recipient:        evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: "review@vendor.example"},
+		EstimatedMinutes: 10, Deadline: now.Add(24 * time.Hour), Origin: origin,
+		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard},
+		Sections:     []formcontract.Section{{ID: "company", Title: "Company details"}},
+		Fields:       []evidence.Field{{ID: "confirmed", SectionID: "company", Label: "Confirm the supplied details", Type: string(formcontract.TypeYesNo), Required: true}},
+		CreatedBy:    thirdPartyPrincipal,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		UPDATE third_party_assessments SET status='COLLECTING',current_request_id=$3::uuid,version=4,updated_at=$4
+		WHERE tenant_id=$1::uuid AND id=$2::uuid;
+		INSERT INTO third_party_assessment_request_links(
+			tenant_id,legal_entity_id,assessment_id,request_id,purpose,sequence,origin_type,origin_id,origin_sequence,is_current,created_at
+		) VALUES($1::uuid,$5::uuid,$2::uuid,$3::uuid,'INITIAL',1,$6,$2::uuid,1,true,$4)`,
+		thirdPartyTenantID, assessment.ID, request.ID, now, thirdPartyEntityA, AssessmentRequestOrigin); err != nil {
+		t.Fatal(err)
+	}
+
+	target, err := repository.ResolveAssessmentRequest(ctx, "third-party-bank", origin, request.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if target.TenantID != "third-party-bank" || target.LegalEntityID != thirdPartyEntityA || target.AssessmentID != assessment.ID || target.AssessmentVersion != 4 || target.RequestID != request.ID {
+		t.Fatalf("target = %#v", target)
+	}
+	for _, mismatch := range []struct {
+		tenant    string
+		origin    evidence.RequestOrigin
+		requestID string
+	}{
+		{tenant: "missing-bank", origin: origin, requestID: request.ID},
+		{tenant: "third-party-bank", origin: evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 2}, requestID: request.ID},
+		{tenant: "third-party-bank", origin: origin, requestID: assessmentTwoID},
+	} {
+		if _, err := repository.ResolveAssessmentRequest(ctx, mismatch.tenant, mismatch.origin, mismatch.requestID); !errors.Is(err, ErrNotFound) {
+			t.Fatalf("mismatch %#v returned %v", mismatch, err)
+		}
+	}
+	if _, err := pool.Exec(ctx, `UPDATE third_party_assessment_request_links SET is_current=false WHERE tenant_id=$1::uuid AND assessment_id=$2::uuid`, thirdPartyTenantID, assessment.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.ResolveAssessmentRequest(ctx, "third-party-bank", origin, request.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("non-current link returned %v", err)
+	}
+}
+
+func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndRevokesPriorSession(t *testing.T) {
+	pool := assessmentPostgresPool(t)
+	ctx := context.Background()
+	relationship := seedAssessmentRelationship(t, pool, "Managed secure document exchange")
+	now := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
+	repository := NewPostgresRepository(pool)
+	assessment, err := repository.CreateAssessment(ctx, postgresAssessmentRecord(assessmentOneID, relationship, now))
+	if err != nil {
+		t.Fatal(err)
+	}
+	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 1}
+	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
+	audience := "review@vendor.example"
+	request, err := evidenceService.CreateRequest(ctx, evidence.CreateRequestInput{
+		TenantID: "third-party-bank", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: relationship.Relationship.ID,
+		Title: "Vendor due diligence", Purpose: "Collect the vendor response.", WhyYou: "Provide the information required for the bank's review.",
+		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR",
+		Recipient:        evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: audience},
+		EstimatedMinutes: 10, Deadline: now.Add(24 * time.Hour), Origin: origin,
+		Presentation:   evidenceAssessmentPresentation(),
+		Sections:       []formcontract.Section{{ID: "company", Title: "Company details"}},
+		Fields:         []evidence.Field{{ID: "confirmed", SectionID: "company", Label: "Confirm the supplied details", Type: string(formcontract.TypeYesNo), Required: true}},
+		FormTemplateID: assessmentTemplateID, FormTemplateVersion: 3, CreatedBy: thirdPartyPrincipal,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	initial, err := evidenceService.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "third-party-bank", RequestID: request.ID, Audience: audience, Purpose: "Complete the request.", TTLMinutes: 60, CreatedBy: thirdPartyPrincipal})
+	if err != nil {
+		t.Fatal(err)
+	}
+	priorSession, err := evidenceService.RedeemInvitation(ctx, initial.Token, audience)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		UPDATE third_party_assessments SET status='COLLECTING',current_request_id=$3::uuid,version=4,updated_at=$4
+		WHERE tenant_id=$1::uuid AND id=$2::uuid;
+		INSERT INTO third_party_assessment_request_links(
+			tenant_id,legal_entity_id,assessment_id,request_id,purpose,sequence,origin_type,origin_id,origin_sequence,invitation_id,is_current,created_at
+		) VALUES($1::uuid,$5::uuid,$2::uuid,$3::uuid,'INITIAL',1,$6,$2::uuid,1,$7::uuid,true,$4)`,
+		thirdPartyTenantID, assessment.ID, request.ID, now, thirdPartyEntityA, AssessmentRequestOrigin, initial.InvitationID); err != nil {
+		t.Fatal(err)
+	}
+	preparedLink, preparedAssessment, err := repository.PrepareRequestReissue(ctx, PrepareRequestReissueRecord{
+		Scope: Scope{TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA}, AssessmentID: assessment.ID, ExpectedVersion: 4,
+		ActorPrincipalID: thirdPartyPrincipal, RequestID: request.ID, ExpectedInvitationID: initial.InvitationID, PreparedAt: now.Add(time.Minute),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preparedAssessment.Status != AssessmentCollecting || preparedAssessment.Version != 5 || preparedLink.InvitationID != "" {
+		t.Fatalf("replacement preparation changed lifecycle or retained invitation: assessment=%#v link=%#v", preparedAssessment, preparedLink)
+	}
+	replacement, err := evidenceService.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "third-party-bank", RequestID: request.ID, Audience: audience, Purpose: "Complete the request.", TTLMinutes: 60, CreatedBy: thirdPartyPrincipal})
+	if err != nil {
+		t.Fatal(err)
+	}
+	link, updated, err := repository.FinalizeRequestReissue(ctx, FinalizeRequestReissueRecord{
+		Scope: Scope{TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA}, AssessmentID: assessment.ID, ExpectedVersion: preparedAssessment.Version,
+		ActorPrincipalID: thirdPartyPrincipal, RequestID: request.ID,
+		InvitationID: replacement.InvitationID, ReissuedAt: now.Add(time.Minute),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Status != AssessmentCollecting || updated.Version != 6 || link.InvitationID != replacement.InvitationID {
+		t.Fatalf("replacement changed lifecycle or failed to update link: assessment=%#v link=%#v", updated, link)
+	}
+	if _, _, err := evidenceService.SessionRequest(ctx, priorSession.SessionToken); !errors.Is(err, evidence.ErrSessionInvalid) {
+		t.Fatalf("prior session remained usable: %v", err)
+	}
+	if _, err := evidenceService.RedeemInvitation(ctx, replacement.Token, audience); err != nil {
+		t.Fatalf("replacement invitation was not redeemable: %v", err)
+	}
+	var actorID, eventPayload, outboxPayload string
+	if err := pool.QueryRow(ctx, `SELECT actor_principal_id::text,payload::text FROM third_party_events WHERE aggregate_type='THIRD_PARTY_ASSESSMENT' AND aggregate_id=$1::uuid AND event_type='AssessmentRequestReissued'`, assessment.ID).Scan(&actorID, &eventPayload); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT payload::text FROM outbox_events WHERE aggregate_type='THIRD_PARTY_ASSESSMENT' AND aggregate_id=$1::uuid AND event_type='AssessmentRequestReissued'`, assessment.ID).Scan(&outboxPayload); err != nil {
+		t.Fatal(err)
+	}
+	if actorID != thirdPartyPrincipal {
+		t.Fatalf("audit actor = %q", actorID)
+	}
+	var preparedActorID, preparedEventPayload, preparedOutboxPayload string
+	if err := pool.QueryRow(ctx, `SELECT actor_principal_id::text,payload::text FROM third_party_events WHERE aggregate_type='THIRD_PARTY_ASSESSMENT' AND aggregate_id=$1::uuid AND event_type='AssessmentRequestReissuePrepared'`, assessment.ID).Scan(&preparedActorID, &preparedEventPayload); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT payload::text FROM outbox_events WHERE aggregate_type='THIRD_PARTY_ASSESSMENT' AND aggregate_id=$1::uuid AND event_type='AssessmentRequestReissuePrepared'`, assessment.ID).Scan(&preparedOutboxPayload); err != nil {
+		t.Fatal(err)
+	}
+	if preparedActorID != thirdPartyPrincipal {
+		t.Fatalf("prepared audit actor = %q", preparedActorID)
+	}
+	for _, protected := range []string{audience, initial.Token, replacement.Token} {
+		if strings.Contains(eventPayload, protected) || strings.Contains(outboxPayload, protected) || strings.Contains(preparedEventPayload, protected) || strings.Contains(preparedOutboxPayload, protected) {
+			t.Fatalf("protected value leaked into audit persistence: prepared_event=%s prepared_outbox=%s event=%s outbox=%s", preparedEventPayload, preparedOutboxPayload, eventPayload, outboxPayload)
+		}
+	}
+}
+
+func evidenceAssessmentPresentation() formcontract.Presentation {
+	return formcontract.Presentation{DefaultMode: formcontract.PresentationWizard}
+}
 
 func TestPostgresAssessmentStartCommitsOneEpisodeEventOutboxAndJob(t *testing.T) {
 	pool := assessmentPostgresPool(t)

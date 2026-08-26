@@ -127,7 +127,9 @@ func assessmentMatterInput(assessment Assessment, aggregate Aggregate, triggerKe
 	scope, _ := json.Marshal(map[string]any{
 		"assessment_id": assessment.ID, "relationship_id": assessment.RelationshipID,
 		"vendor_id": aggregate.Vendor.ID, "legal_entity_id": assessment.LegalEntityID,
-		"review_kind": assessment.ReviewKind,
+		"review_kind":           assessment.ReviewKind,
+		"access":                continuity.MatterAccessRestricted,
+		"allowed_principal_ids": uniqueAssessmentPrincipals(aggregate.Relationship.BusinessOwnerPrincipalID, assessment.StartedByPrincipalID),
 	})
 	known, _ := json.Marshal(map[string]any{
 		"vendor_legal_name": vendorName, "service_name": serviceName,
@@ -145,6 +147,23 @@ func assessmentMatterInput(assessment Assessment, aggregate Aggregate, triggerKe
 		KnownFacts: known, MissingFacts: missing, Contradictions: json.RawMessage(`[]`),
 		OwnerPrincipalID: aggregate.Relationship.BusinessOwnerPrincipalID, RequiredAuthority: "REVIEWER", DueAt: &dueAt,
 	}
+}
+
+func uniqueAssessmentPrincipals(values ...string) []string {
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	return result
 }
 
 func boundedAssessmentMatterTitle(value string) string {
