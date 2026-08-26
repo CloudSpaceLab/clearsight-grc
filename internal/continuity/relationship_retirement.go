@@ -48,6 +48,9 @@ func (s *Service) RetireRequirementControlLink(ctx context.Context, input Retire
 	aggregate.Program.Version++
 	aggregate.Program.UpdatedAt = retiredAt
 	_ = s.requestProgramRefresh(ctx, input.TenantID, input.ProgramID, EventRequirementControlLinkRetired, link.ID, actorID)
+	if refreshed, readErr := s.repo.GetProgram(ctx, input.TenantID, input.ProgramID); readErr == nil {
+		return refreshed, nil
+	}
 	return decorateProgram(aggregate), nil
 }
 

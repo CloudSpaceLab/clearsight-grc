@@ -30,7 +30,7 @@ const programDetail = {
   applicability: [{ id: "app-1", requirement_id: "req-1", status: "APPLICABLE", rationale: "The bank processes customer and employee personal data in Nigeria." }],
   control_objectives: [{ id: "obj-1", code: "PRIV-GOV", name: "Accountable privacy governance", outcome: "Responsibilities and decisions remain current and evidenced.", status: "ACTIVE" }],
   control_implementations: [{ id: "control-1", name: "Annual privacy compliance review", description: "DPO-led review with accountable evidence owners and executive sign-off.", implementation_type: "PROCESS", status: "IMPLEMENTED" }],
-  requirement_control_links: [{ requirement_id: "req-1", implementation_id: "control-1" }],
+  requirement_control_links: [{ id: "coverage-link-1", requirement_id: "req-1", implementation_id: "control-1" }],
   evidence_contracts: [
     { id: "contract-return", code: "GAID-RETURN", name: "Annual return evidence package", claim: "Every required return section has an owner, authoritative source, review status and approval date.", status: "ACTIVE", freshness_minutes: 525600, minimum_coverage: 1 },
     { id: "contract-training", code: "PRIV-TRAIN", name: "Privacy role training", claim: "Assigned privacy responsibilities have current training evidence.", status: "ACTIVE", freshness_minutes: 525600, minimum_coverage: .95 },
@@ -209,7 +209,10 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     const input = requireProgramVersion(init); const detail = programDetail as any; detail.control_implementations.push({ id: `control-${detail.control_implementations.length + 1}`, ...input, objective_id: input.objective_id, implementation_type: input.implementation_type, owner_principal_id: input.owner_principal_id, effective_from: input.effective_from }); finishProgramMutation(); return clone(detail) as T;
   }
   if (pathname === `/api/v1/programs/${programID}/control-links` && method === "POST") {
-    const input = requireProgramVersion(init); const detail = programDetail as any; detail.requirement_control_links.push({ requirement_id: input.requirement_id, implementation_id: input.implementation_id }); finishProgramMutation(); return clone(detail) as T;
+    const input = requireProgramVersion(init); const detail = programDetail as any; detail.requirement_control_links.push({ id: `coverage-link-${detail.requirement_control_links.length + 1}`, requirement_id: input.requirement_id, implementation_id: input.implementation_id }); finishProgramMutation(); return clone(detail) as T;
+  }
+  if (/\/api\/v1\/programs\/[^/]+\/control-links\/[^/]+\/retirement$/.test(pathname) && method === "POST") {
+    requireProgramVersion(init); const detail = programDetail as any; const linkID = decodeURIComponent(pathname.split("/").at(-2) ?? ""); detail.requirement_control_links = detail.requirement_control_links.filter((value: any) => value.id !== linkID); finishProgramMutation(); return clone(detail) as T;
   }
   if (pathname === `/api/v1/programs/${programID}/evidence-contracts` && method === "POST") {
     const input = requireProgramVersion(init); const detail = programDetail as any; detail.evidence_contracts.push({ id: `contract-${detail.evidence_contracts.length + 1}`, ...input, requirement_id: input.requirement_id, control_implementation_id: input.control_implementation_id, acceptable_source_ids: input.acceptable_source_ids, freshness_minutes: input.freshness_minutes, minimum_coverage: input.minimum_coverage, independence_required: input.independence_required, contradiction_policy: input.contradiction_policy, failure_action: input.failure_action }); finishProgramMutation(); return clone(detail) as T;
@@ -245,6 +248,9 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     return clone({ type_label: "Control gap", status_label: "Draft", next_action: "Start initial review", matter: createdMatter, links: input.program_id ? [{ id: "link-created", program_id: input.program_id, relationship: "AFFECTS" }] : [], decisions: [], actions: [], verification_contracts: [], verification_results: [], response_packages: [], closure: { ready: false, reasons: [] } }) as T;
   }
   if (pathname === `/api/v1/matters/${matterID}`) return clone(matterDetail) as T;
+  if (/\/api\/v1\/matters\/[^/]+\/links\/[^/]+\/retirement$/.test(pathname) && method === "POST") {
+    const input = parseBody(init) as { expected_version?: number }; if (input.expected_version !== matter.version) throw new StaticDemoHTTPError(409, "version_conflict", "The issue changed before the Program link was removed."); const linkID = decodeURIComponent(pathname.split("/").at(-2) ?? ""); (matterDetail as any).links = matterDetail.links.filter((value) => value.id !== linkID); matter.version += 1; matter.updated_at = now; return clone(matterDetail) as T;
+  }
   if (pathname === "/api/v1/evidence/sources") return clone({ items: [{ id: "source-ndpc", tenant_id: "bank-demo", legal_entity_id: "bank-ng", code: "NDPC-PUBLICATIONS", name: "NDPC official publications", type: "REGULATORY", authority_class: "AUTHORITATIVE", expected_freshness_minutes: 1440, last_observed_at: now, last_success_at: now, health: "CURRENT", status: "ACTIVE", version: 3 }, { id: "source-iam", tenant_id: "bank-demo", legal_entity_id: "bank-ng", code: "IAM-ENTITLEMENTS", name: "Identity and access records", type: "SYSTEM", authority_class: "SYSTEM_OF_RECORD", expected_freshness_minutes: 60, last_observed_at: now, last_success_at: "2026-08-06T14:30:00Z", health: "DEGRADED", status: "ACTIVE", version: 8 }] }) as T;
   if (pathname === "/api/v1/form-templates" && method === "GET") return clone({ items: demoForms }) as T;
   if (pathname === "/api/v1/form-templates" && method === "POST") {

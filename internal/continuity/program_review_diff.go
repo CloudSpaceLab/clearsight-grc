@@ -100,7 +100,7 @@ func programEventChange(aggregate ProgramAggregate, event Event) (ProgramReviewC
 		if json.Unmarshal(event.Payload, &value) == nil {
 			return ProgramReviewChange{Kind: "SAFEGUARD", Summary: "Safeguard changed: " + value.Current.Name + ".", ObjectType: "CONTROL_IMPLEMENTATION", ObjectID: value.Current.ID}, true
 		}
-	case EventRequirementControlLinked:
+	case EventRequirementControlLinked, EventRequirementControlLinkRetired:
 		var value RequirementControlLink
 		if json.Unmarshal(event.Payload, &value) == nil {
 			return ProgramReviewChange{Kind: "MAPPING", Summary: "A requirement-to-safeguard mapping changed.", ObjectType: "REQUIREMENT", ObjectID: value.RequirementID}, true

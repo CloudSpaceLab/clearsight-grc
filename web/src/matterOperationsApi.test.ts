@@ -6,6 +6,7 @@ import {
   changeMatterContext,
   defineMatterOutcomeCheck,
   loadMatterOperations,
+  retireMatterLink,
   retireMatterOutcomeCheck,
   supersedeMatterOutcomeCheck,
   updateMatterAction,
@@ -94,6 +95,12 @@ describe("Matter operation API", () => {
       run: () => assignMatterAction("matter-1", "action-1", 11, "performer-2", "Assign the evidence owner."),
       path: "/api/v1/matters/matter-1/actions/action-1/assignment?tenant_id=tenant-1",
       body: { tenant_id: "tenant-1", expected_version: 11, owner_principal_id: "performer-2", rationale: "Assign the evidence owner." },
+    },
+    {
+      name: "Program link retirement",
+      run: () => retireMatterLink("matter-1", "link / 1", 12, "This issue does not affect that Program."),
+      path: "/api/v1/matters/matter-1/links/link%20%2F%201/retirement?tenant_id=tenant-1",
+      body: { tenant_id: "tenant-1", expected_version: 12, rationale: "This issue does not affect that Program." },
     },
     {
       name: "outcome check definition",

@@ -13,6 +13,7 @@ import {
   linkProgramRequirementControl,
   loadProgramOperations,
   recordProgramEvidenceAssessment,
+  retireProgramRequirementControlLink,
   reviseProgramControlImplementation,
   reviseProgramEvidenceContract,
   supersedeProgramRequirement,
@@ -118,6 +119,12 @@ describe("Program operation API", () => {
       run: () => linkProgramRequirementControl("program-1", 11, "requirement-1", "implementation-1"),
       path: "/api/v1/programs/program-1/control-links?tenant_id=tenant-1",
       body: { tenant_id: "tenant-1", expected_version: 11, requirement_id: "requirement-1", implementation_id: "implementation-1" },
+    },
+    {
+      name: "control link retirement",
+      run: () => retireProgramRequirementControlLink("program-1", "link / 1", 12, "The requirement is now covered by a replacement safeguard."),
+      path: "/api/v1/programs/program-1/control-links/link%20%2F%201/retirement?tenant_id=tenant-1",
+      body: { tenant_id: "tenant-1", expected_version: 12, rationale: "The requirement is now covered by a replacement safeguard." },
     },
     {
       name: "safeguard revision",

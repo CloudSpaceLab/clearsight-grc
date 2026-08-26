@@ -1,9 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import {
   addProgramControlImplementation,
   assignProgramControlImplementation,
   reviseProgramControlImplementation,
+  retireProgramRequirementControlLink,
   transitionProgramControlImplementation,
 } from "../programOperationsApi";
 import type { ProgramAggregate } from "../types";
@@ -16,6 +17,7 @@ vi.mock("../programOperationsApi", () => ({
   reviseProgramControlImplementation: vi.fn(),
   assignProgramControlImplementation: vi.fn(),
   transitionProgramControlImplementation: vi.fn(),
+  retireProgramRequirementControlLink: vi.fn(),
 }));
 
 beforeEach(() => vi.clearAllMocks());
@@ -32,6 +34,31 @@ it("shows the stored safeguard owner label without exposing its principal ID", (
 
   expect(screen.getByText(/Ada Okafor · Implemented/)).toBeTruthy();
   expect(screen.queryByText(/owner-private/)).toBeNull();
+});
+
+it("removes a current requirement coverage link through its exact governed operation", async () => {
+  const aggregate = {
+    program: { id: "program-1", version: 8 },
+    requirements: [{ id: "requirement-1", code: "CAR-01", title: "File the annual return", status: "APPROVED" }],
+    control_objectives: [{ id: "objective-1", code: "OBJ-1", name: "Reliable filing", outcome: "Returns are filed on time.", status: "ACTIVE" }],
+    control_implementations: [{ id: "safeguard-1", objective_id: "objective-1", name: "Annual return checklist", description: "Confirm every filing section.", status: "IMPLEMENTED" }],
+    requirement_control_links: [{ id: "link-1", requirement_id: "requirement-1", implementation_id: "safeguard-1" }],
+  } as unknown as ProgramAggregate;
+  const updated = { ...aggregate, program: { ...aggregate.program, version: 9 }, requirement_control_links: [] };
+  vi.mocked(retireProgramRequirementControlLink).mockResolvedValue(updated);
+  const onUpdated = vi.fn();
+  render(<ProgramSafeguardsPanel aggregate={aggregate} operations={[{
+    command: "program.safeguard.unlink", subresource_id: "link-1", label: "Remove coverage link",
+    responsibility: "OWNER", can_act: true, reason: "You own this Program.",
+  }]} onUpdated={onUpdated} onReload={vi.fn()}/>);
+
+  expect(screen.getByText("File the annual return → Annual return checklist")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Remove File the annual return coverage link" }));
+  fireEvent.change(screen.getByLabelText("Reason for removing this coverage link"), { target: { value: "The replacement safeguard now provides this coverage." } });
+  fireEvent.click(screen.getByRole("button", { name: "Remove coverage link" }));
+
+  expect(retireProgramRequirementControlLink).toHaveBeenCalledWith("program-1", "link-1", 8, "The replacement safeguard now provides this coverage.");
+  await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(updated));
 });
 
 it("creates safeguards as planned work and exposes governed maintenance actions", async () => {

@@ -701,7 +701,7 @@ func (a *API) resolveMonitoringAssignee(ctx context.Context, tenant string, prog
 
 func programOwnerBoundCommand(name string) bool {
 	switch name {
-	case "program.details.update", "program.assign", "program.requirement.add", "program.requirement.supersede", "program.safeguard.define", "program.safeguard.update", "program.safeguard.assign", "program.evidence.define", "program.evidence.revise", "program.monitoring.form.define", "program.monitoring.collect":
+	case "program.details.update", "program.assign", "program.requirement.add", "program.requirement.supersede", "program.safeguard.define", "program.safeguard.update", "program.safeguard.assign", "program.safeguard.unlink", "program.evidence.define", "program.evidence.revise", "program.monitoring.form.define", "program.monitoring.collect":
 		return true
 	default:
 		return false
@@ -719,7 +719,7 @@ func programHasImplementation(aggregate continuity.ProgramAggregate, implementat
 
 func matterOwnerBoundCommand(name string) bool {
 	switch name {
-	case "matter.details.update", "matter.context.change", "matter.assign", "matter.link", "matter.action.add", "matter.action.update", "matter.action.assign":
+	case "matter.details.update", "matter.context.change", "matter.assign", "matter.link", "matter.unlink", "matter.action.add", "matter.action.update", "matter.action.assign":
 		return true
 	default:
 		return false

@@ -29,6 +29,13 @@ func TestRetireRequirementControlLinkPreservesHistoryAndRemovesCurrentCoverage(t
 	if len(retired.RequirementControlLinks) != 0 {
 		t.Fatalf("retired coverage link remained current: %#v", retired.RequirementControlLinks)
 	}
+	current, err := service.GetProgram(ctx, "bank", program.Program.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if retired.Program.Version != current.Program.Version {
+		t.Fatalf("retirement response version %d is stale; current version is %d", retired.Program.Version, current.Program.Version)
+	}
 	coverage := CurrentRequirementCoverage(retired, checkpoint.Add(time.Minute))[link.RequirementID]
 	if len(coverage.ControlIDs) != 0 || coverage.ControlImplemented {
 		t.Fatalf("retired safeguard still contributes to current coverage: %#v", coverage)

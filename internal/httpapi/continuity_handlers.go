@@ -423,6 +423,22 @@ func (a *API) linkProgramRequirementControl(w http.ResponseWriter, r *http.Reque
 	writeContinuityResult(w, value, err, http.StatusCreated)
 }
 
+func (a *API) retireProgramRequirementControlLink(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.RetireRequirementControlLinkInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.ProgramID = r.PathValue("id")
+	input.LinkID = r.PathValue("link_id")
+	value, err := service.RetireRequirementControlLink(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
+}
+
 func (a *API) addProgramEvidenceContract(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.continuityService(w)
 	if !ok {
@@ -590,6 +606,22 @@ func (a *API) addMatterLink(w http.ResponseWriter, r *http.Request) {
 	input.MatterID = r.PathValue("id")
 	value, err := service.AddMatterLink(r.Context(), input)
 	writeContinuityResult(w, value, err, http.StatusCreated)
+}
+
+func (a *API) retireMatterLink(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.RetireMatterLinkInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.MatterID = r.PathValue("id")
+	input.LinkID = r.PathValue("link_id")
+	value, err := service.RetireMatterLink(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
 }
 
 func (a *API) transitionMatter(w http.ResponseWriter, r *http.Request) {

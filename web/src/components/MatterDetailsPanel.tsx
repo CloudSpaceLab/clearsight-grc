@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { loadPrograms } from "../api";
 import { apiErrorKind } from "../http";
-import { addMatterLink, assignMatter, updateMatterDetails } from "../matterOperationsApi";
+import { addMatterLink, assignMatter, retireMatterLink, updateMatterDetails } from "../matterOperationsApi";
 import type { MatterOperation } from "../matterOperationsApi";
 import type { MatterAggregate, ProgramAggregate, RecordResponsibleParty } from "../types";
 import { selectedDateEndOfLocalDay, storedDeadlineLocalDate } from "../dueDate";
@@ -26,6 +26,8 @@ export function MatterDetailsPanel({ aggregate, operations, responsibleParties =
   const [editing, setEditing] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [linking, setLinking] = useState(false);
+  const [retiringLinkID, setRetiringLinkID] = useState("");
+  const [retirementReason, setRetirementReason] = useState("");
   const [title, setTitle] = useState(aggregate.matter.title);
   const [summary, setSummary] = useState(aggregate.matter.summary);
   const [priority, setPriority] = useState(String(aggregate.matter.priority));
@@ -102,6 +104,16 @@ export function MatterDetailsPanel({ aggregate, operations, responsibleParties =
     } catch (value) { handleError(value); } finally { setSaving(false); }
   }
 
+  async function removeLink(event: FormEvent) {
+    event.preventDefault();
+    setSaving(true); setError(""); setConflict(false); setNotice("");
+    try {
+      const updated = await retireMatterLink(aggregate.matter.id, retiringLinkID, aggregate.matter.version, retirementReason.trim());
+      await onUpdated(updated);
+      setRetiringLinkID(""); setRetirementReason(""); setNotice("Program link removed. The former link remains in issue history.");
+    } catch (value) { handleError(value); } finally { setSaving(false); }
+  }
+
   const owner = assignmentOperation?.assigned_to ?? detailsOperation?.assigned_to;
   const storedOwner = responsibleParties.find((party) => party.scope === "RECORD" && party.responsibility === "ACCOUNTABLE_OWNER")?.display_name;
   return <article className="matter-record-panel matter-details-panel" id="matter-operation-matter.details.update">
@@ -118,7 +130,7 @@ export function MatterDetailsPanel({ aggregate, operations, responsibleParties =
       <div><dt>Accountable owner</dt><dd>{owner?.display_name ?? storedOwner ?? (aggregate.matter.owner_principal_id ? "Recorded issue owner unavailable" : "Issue owner not assigned")}</dd></div>
       <div><dt>Due date</dt><dd>{date || "Not recorded"}</dd></div>
     </dl>
-    <section className="matter-program-links" aria-labelledby="matter-program-links-title"><strong id="matter-program-links-title">Linked Programs</strong>{aggregate.links.length ? <ul>{aggregate.links.map((link) => { const program = programs.find((value) => value.program.id === link.program_id); return <li key={link.id}><span>{program?.program.name ?? "Linked Program name unavailable"}</span><small>{link.relationship.replaceAll("_", " ").toLowerCase()}</small></li>; })}</ul> : <p>This issue is not linked to a Program.</p>}</section>
+    <section className="matter-program-links" aria-labelledby="matter-program-links-title"><strong id="matter-program-links-title">Linked Programs</strong>{aggregate.links.length ? <ul>{aggregate.links.map((link) => { const program = programs.find((value) => value.program.id === link.program_id); const unlink = operations.find((operation) => operation.command === "matter.unlink" && operation.subresource_id === link.id); return <li key={link.id}><span>{program?.program.name ?? "Linked Program name unavailable"}</span><small>{link.relationship.replaceAll("_", " ").toLowerCase()}</small>{unlink?.can_act && <button className="text-button" type="button" onClick={() => { setRetiringLinkID(link.id); setRetirementReason(""); setEditing(false); setAssigning(false); setLinking(false); setNotice(""); setError(""); }}>Remove Program link</button>}</li>; })}</ul> : <p>This issue is not linked to a Program.</p>}</section>
     {editing && <form className="matter-operation-form" onSubmit={saveDetails}>
       <label><span>Title</span><input value={title} onChange={(event) => setTitle(event.target.value)} required/></label>
       <label className="wide"><span>Summary</span><textarea value={summary} onChange={(event) => setSummary(event.target.value)} rows={3} required/></label>
@@ -141,6 +153,12 @@ export function MatterDetailsPanel({ aggregate, operations, responsibleParties =
       {!programsLoading && programs.length === 0 && !error && <div className="matter-record-attention wide"><strong>No visible Programs are available</strong><p>Create the Program first or ask its owner to grant access, then retry this link.</p></div>}
       {error && <div className="matter-form-error wide" role="alert"><span>{error}</span>{conflict && <button className="secondary-button" type="button" onClick={onReload}>Reload current issue</button>}</div>}
       <div className="matter-form-actions wide"><button className="primary-button" type="submit" disabled={saving || programsLoading || !programID}>{saving ? "Saving…" : "Save Program link"}</button><button className="text-button" type="button" onClick={() => setLinking(false)}>Cancel</button></div>
+    </form>}
+    {retiringLinkID && <form className="matter-operation-form" onSubmit={removeLink}>
+      <div className="matter-record-attention wide"><strong>Remove this Program link?</strong><p>The issue and Program remain available. The former relationship stays in history for audit and reconstruction.</p></div>
+      <label className="wide"><span>Reason for removing this Program link</span><textarea value={retirementReason} onChange={(event) => setRetirementReason(event.target.value)} rows={2} required/></label>
+      {error && <div className="matter-form-error wide" role="alert"><span>{error}</span>{conflict && <button className="secondary-button" type="button" onClick={onReload}>Reload current issue</button>}</div>}
+      <div className="matter-form-actions wide"><button className="primary-button" type="submit" disabled={saving || !retirementReason.trim()}>{saving ? "Removing…" : "Remove link"}</button><button className="text-button" type="button" onClick={() => { setRetiringLinkID(""); setRetirementReason(""); }}>Cancel</button></div>
     </form>}
     {notice && <p className="inline-success" role="status">{notice}</p>}
     {!detailsOperation?.can_act && detailsOperation?.reason && <p className="matter-operation-reason">{detailsOperation.reason}</p>}

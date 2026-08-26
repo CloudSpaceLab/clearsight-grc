@@ -85,6 +85,19 @@ describe("static stakeholder demo transport", () => {
     })).rejects.toMatchObject({ status: 409, code: "version_conflict" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
   });
 
+  it("removes current Program and issue relationships while preserving version checks", async () => {
+    const { staticDemoRequest } = await demo();
+    const program = await staticDemoRequest<{ program: { version: number }; requirement_control_links: Array<{ id: string }> }>("/api/v1/programs/program-ndpa");
+    const updatedProgram = await staticDemoRequest<{ program: { version: number }; requirement_control_links: Array<{ id: string }> }>("/api/v1/programs/program-ndpa/control-links/coverage-link-1/retirement", { method: "POST", body: JSON.stringify({ expected_version: program.program.version, rationale: "The coverage mapping is incorrect." }) });
+    const matter = await staticDemoRequest<{ matter: { version: number }; links: Array<{ id: string }> }>("/api/v1/matters/matter-gaid-change");
+    const updatedMatter = await staticDemoRequest<{ matter: { version: number }; links: Array<{ id: string }> }>("/api/v1/matters/matter-gaid-change/links/link-1/retirement", { method: "POST", body: JSON.stringify({ expected_version: matter.matter.version, rationale: "The issue no longer affects this Program." }) });
+
+    expect(updatedProgram.requirement_control_links).toHaveLength(0);
+    expect(updatedProgram.program.version).toBe(program.program.version + 1);
+    expect(updatedMatter.links).toHaveLength(0);
+    expect(updatedMatter.matter.version).toBe(matter.matter.version + 1);
+  });
+
   it("makes the Today evidence shortcut eligible only for the verified static CRO", async () => {
     const { staticDemoRequest } = await demo();
     const context = await staticDemoRequest<{ actor: { id: string } }>("/api/v1/context");

@@ -262,6 +262,13 @@ export function linkProgramRequirementControl(programID: string, expectedVersion
   });
 }
 
+export function retireProgramRequirementControlLink(programID: string, linkID: string, expectedVersion: number, rationale: string): Promise<ProgramAggregate> {
+  return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/control-links/${encodeURIComponent(linkID)}/retirement`, {
+    expected_version: expectedVersion,
+    rationale,
+  });
+}
+
 export function addProgramEvidenceContract(programID: string, expectedVersion: number, input: ProgramEvidenceContractInput): Promise<ProgramAggregate> {
   return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/evidence-contracts`, {
     expected_version: expectedVersion,

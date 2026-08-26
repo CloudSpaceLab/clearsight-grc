@@ -88,6 +88,12 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 	} {
 		add(spec)
 	}
+	for _, link := range aggregate.Links {
+		add(recordOperationSpec{
+			Command: "matter.unlink", SubresourceID: link.ID, Label: "Remove linked Program",
+			Responsibility: authority.ResponsibilityOwner, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID,
+		})
+	}
 	ordinaryMatterTargets := make([]string, 0, len(matterTargets))
 	governedMatterTargets := make([]string, 0, len(matterTargets))
 	for _, target := range matterTargets {

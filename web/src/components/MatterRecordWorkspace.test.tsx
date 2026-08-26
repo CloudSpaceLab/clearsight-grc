@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadEvidenceSources, loadMatter, loadPrograms } from "../api";
 import { ApiError } from "../http";
-import { addMatterLink, assignMatter, assignMatterAction, changeMatterContext, defineMatterOutcomeCheck, loadMatterOperations, updateMatterAction, updateMatterDetails } from "../matterOperationsApi";
+import { addMatterLink, assignMatter, assignMatterAction, changeMatterContext, defineMatterOutcomeCheck, loadMatterOperations, retireMatterLink, updateMatterAction, updateMatterDetails } from "../matterOperationsApi";
 import type { MatterOperations } from "../matterOperationsApi";
 import { addMatterAction, addResponsePackage, recordMatterDecision, recordVerificationResult, transitionMatter, transitionMatterAction, transitionResponsePackage } from "../continuityCommands";
 import type { MatterAggregate, ProgramAggregate } from "../types";
@@ -17,6 +17,7 @@ vi.mock("../matterOperationsApi", () => ({
   changeMatterContext: vi.fn(),
   defineMatterOutcomeCheck: vi.fn(),
   loadMatterOperations: vi.fn(),
+  retireMatterLink: vi.fn(),
   updateMatterAction: vi.fn(),
   updateMatterDetails: vi.fn(),
 }));
@@ -427,6 +428,26 @@ describe("Matter record workspace", () => {
 
     await waitFor(() => expect(addMatterLink).toHaveBeenCalledWith("matter-1", 7, { programID: "program-1", relationship: "AFFECTS" }));
     expect(await screen.findByText("Nigeria Data Protection Program")).toBeTruthy();
+  });
+
+  it("removes an incorrect Program link after the owner records why", async () => {
+    const linked = { ...detail, links: [{ id: "link-1", program_id: "program-1", relationship: "AFFECTS" }] };
+    const linkOperations = { ...ownerOperations, operations: [...ownerOperations.operations, {
+      command: "matter.unlink", subresource_id: "link-1", label: "Remove linked Program", responsibility: "ACCOUNTABLE_OWNER", can_act: true,
+      assigned_to: ownerOperations.operations[0]!.assigned_to, reason: "You can remove this link.",
+    }] };
+    const program = { program: { id: "program-1", code: "PRIVACY-NG", name: "Nigeria Data Protection Program" } } as ProgramAggregate;
+    vi.mocked(loadMatter).mockResolvedValue(linked);
+    vi.mocked(loadMatterOperations).mockResolvedValue(linkOperations);
+    vi.mocked(loadPrograms).mockResolvedValue([program]);
+    vi.mocked(retireMatterLink).mockResolvedValue({ ...linked, matter: { ...linked.matter, version: 8 }, links: [] });
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Remove Program link" }));
+    fireEvent.change(screen.getByLabelText("Reason for removing this Program link"), { target: { value: "This issue does not affect that Program." } });
+    fireEvent.click(screen.getByRole("button", { name: "Remove link" }));
+
+    await waitFor(() => expect(retireMatterLink).toHaveBeenCalledWith("matter-1", "link-1", 7, "This issue does not affect that Program."));
   });
 
   it("keeps permission-limited information visible without edit controls", async () => {

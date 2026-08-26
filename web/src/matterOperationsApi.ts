@@ -190,3 +190,10 @@ export function addMatterLink(matterID: string, expectedVersion: number, input: 
     relationship: input.relationship,
   });
 }
+
+export function retireMatterLink(matterID: string, linkID: string, expectedVersion: number, rationale: string): Promise<MatterAggregate> {
+  return continuityCommand<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/links/${encodeURIComponent(linkID)}/retirement`, {
+    expected_version: expectedVersion,
+    rationale,
+  });
+}

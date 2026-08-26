@@ -5,6 +5,7 @@ import {
   addProgramControlObjective,
   assignProgramControlImplementation,
   linkProgramRequirementControl,
+  retireProgramRequirementControlLink,
   reviseProgramControlImplementation,
   transitionProgramControlImplementation,
 } from "../programOperationsApi";
@@ -31,6 +32,7 @@ export function ProgramSafeguardsPanel({ aggregate, operations, responsibleParti
   const operation = operations.find((value) => value.command === "program.safeguard.define");
   const [mode, setMode] = useState<Mode>(null);
   const [resourceAction, setResourceAction] = useState<ResourceAction>(null);
+  const [retiringLinkID, setRetiringLinkID] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [objectiveCode, setObjectiveCode] = useState("");
@@ -121,6 +123,18 @@ export function ProgramSafeguardsPanel({ aggregate, operations, responsibleParti
     } finally { setBusy(false); }
   }
 
+  async function retireLink(event: FormEvent) {
+    event.preventDefault();
+    if (!retiringLinkID) return;
+    setBusy(true); setError("");
+    try {
+      const value = await retireProgramRequirementControlLink(aggregate.program.id, retiringLinkID, aggregate.program.version, rationale);
+      onUpdated(value); setRetiringLinkID(null); setRationale("");
+    } catch (value) {
+      setError(value instanceof Error ? value.message : "The coverage link could not be removed.");
+    } finally { setBusy(false); }
+  }
+
   async function saveResourceAction(event: FormEvent) {
     event.preventDefault();
     if (!resourceAction) return;
@@ -163,12 +177,23 @@ export function ProgramSafeguardsPanel({ aggregate, operations, responsibleParti
         return <section className="program-safeguard-card" key={objective.id}>
           <div><span>{objective.code} · {statusLabel(objective.status)}</span><h3>{objective.name}</h3><p>{objective.outcome}</p></div>
           {implementations.length ? <ul>{implementations.map((implementation) => {
-            const requirementCount = aggregate.requirement_control_links.filter((link) => link.implementation_id === implementation.id).length;
+            const implementationLinks = aggregate.requirement_control_links.filter((link) => link.implementation_id === implementation.id);
+            const requirementCount = implementationLinks.length;
             const owner = responsibleParties.find((party) => party.scope === "SAFEGUARD" && party.subresource_id === implementation.id && party.responsibility === "PERFORMER")?.display_name ?? operation?.candidates?.find((candidate) => candidate.id === implementation.owner_principal_id)?.display_name ?? (implementation.owner_principal_id ? "Recorded safeguard owner unavailable" : "Safeguard owner not assigned");
             const updateOperation = operationFor("program.safeguard.update", implementation.id);
             const assignOperation = operationFor("program.safeguard.assign", implementation.id);
             const transitionOperation = operationFor("program.safeguard.transition", implementation.id);
-            return <li key={implementation.id}><strong>{implementation.name}</strong><span>{owner} · {statusLabel(implementation.status)} · {requirementCount} linked requirement{requirementCount === 1 ? "" : "s"}</span><p>{implementation.description}</p><div className="program-panel-actions">
+            return <li key={implementation.id}><strong>{implementation.name}</strong><span>{owner} · {statusLabel(implementation.status)} · {requirementCount} linked requirement{requirementCount === 1 ? "" : "s"}</span><p>{implementation.description}</p>
+              {implementationLinks.length > 0 && <ul>{implementationLinks.map((link) => {
+                const requirement = aggregate.requirements.find((value) => value.id === link.requirement_id);
+                const unlinkOperation = link.id ? operationFor("program.safeguard.unlink", link.id) : undefined;
+                const requirementLabel = requirement?.title ?? "Recorded requirement";
+                return <li key={link.id ?? `${link.requirement_id}:${link.implementation_id}`}>
+                  <span>{requirementLabel} → {implementation.name}</span>
+                  {unlinkOperation?.can_act && link.id && <button className="text-button" type="button" onClick={() => { setMode(null); setResourceAction(null); setRetiringLinkID(link.id!); setRationale(""); setError(""); }}>Remove {requirementLabel} coverage link</button>}
+                </li>;
+              })}</ul>}
+              <div className="program-panel-actions">
               {updateOperation?.can_act && <button className="text-button" type="button" onClick={() => beginResourceAction("edit", implementation.id)}>Edit {implementation.name}</button>}
               {assignOperation?.can_act && <button className="text-button" type="button" onClick={() => beginResourceAction("assign", implementation.id)}>Change {implementation.name} owner</button>}
               {transitionOperation?.can_act && <button className="text-button" type="button" onClick={() => beginResourceAction("transition", implementation.id)}>Change {implementation.name} status</button>}
@@ -227,6 +252,19 @@ export function ProgramSafeguardsPanel({ aggregate, operations, responsibleParti
       {error && <p className="program-form-error wide" role="alert">{error} <button className="text-button" type="button" onClick={onReload}>Reload Program</button></p>}
       <div className="program-form-actions wide"><button className="primary-button" disabled={busy || !requirementID || !implementationID || covered.has(`${requirementID}:${implementationID}`)} type="submit">{busy ? "Saving…" : "Save coverage link"}</button><button className="text-button" type="button" onClick={() => setMode(null)}>Cancel</button></div>
     </form>}
+
+    {retiringLinkID && (() => {
+      const link = aggregate.requirement_control_links.find((value) => value.id === retiringLinkID);
+      if (!link) return null;
+      const requirement = aggregate.requirements.find((value) => value.id === link.requirement_id);
+      const implementation = aggregate.control_implementations.find((value) => value.id === link.implementation_id);
+      return <form className="program-operation-form" onSubmit={(event) => void retireLink(event)}>
+        <div className="wide"><strong>Remove {requirement?.title ?? "requirement"} coverage link</strong><p>This stops {implementation?.name ?? "this safeguard"} from counting as current coverage. The former link remains available in Program history.</p></div>
+        <label className="wide"><span>Reason for removing this coverage link</span><textarea required value={rationale} onChange={(event) => setRationale(event.target.value)}/></label>
+        {error && <p className="program-form-error wide" role="alert">{error} <button className="text-button" type="button" onClick={onReload}>Reload Program</button></p>}
+        <div className="program-form-actions wide"><button className="primary-button" disabled={busy || !rationale.trim()} type="submit">{busy ? "Removing…" : "Remove coverage link"}</button><button className="text-button" type="button" onClick={() => { setRetiringLinkID(null); setRationale(""); }}>Cancel</button></div>
+      </form>;
+    })()}
 
     {!operation?.can_act && operation?.reason && <p className="program-operation-reason">{operation.reason}</p>}
   </article>;
