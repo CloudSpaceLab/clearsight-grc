@@ -26,9 +26,23 @@
 .vendor-work-decision { display: grid; gap: .75rem; padding: .75rem; border-left: 2px solid var(--violet); }
 .vendor-work-decision fieldset { display: grid; gap: .4rem; }
 .vendor-work-decision fieldset label { display: flex; align-items: center; gap: .5rem; }
+.vendor-work-response { display: grid; gap: 1rem; padding: 1rem; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface-2); }
+.vendor-work-response-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.vendor-work-response-heading h5, .vendor-work-response-group h6 { margin: 0; font-size: .95rem; }
+.vendor-work-response-heading p, .vendor-work-response-heading span { margin: .25rem 0 0; color: var(--muted); font-size: .82rem; }
+.vendor-work-response-group { display: grid; gap: .6rem; }
+.vendor-work-answer-list { display: grid; gap: .6rem; margin: 0; }
+.vendor-work-answer-list > div { display: grid; gap: .2rem; padding: .65rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.vendor-work-answer-list dd { margin: 0; }
+.vendor-work-answer-limitation, .vendor-work-validation { color: var(--amber); }
+.vendor-work-provenance { color: var(--muted); font-size: .82rem; }
+.vendor-work-documents { display: grid; gap: .6rem; }
+.vendor-work-document { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .65rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.vendor-work-document > div { display: grid; gap: .15rem; }
+.vendor-work-document span, .vendor-work-document small { color: var(--muted); }
 .vendor-work-cancel { justify-self: start; }
 .vendor-work-history { margin-top: 1rem; }
 .vendor-work-history > summary { display: flex; justify-content: space-between; cursor: pointer; }
 .vendor-work-history > div { display: grid; gap: .75rem; margin-top: .75rem; }
 .vendor-work-load-more { margin-top: 1rem; }
-@media (max-width: 720px) { .vendor-work-panel .section-heading-row, .vendor-work-card-heading { align-items: stretch; flex-direction: column; } .vendor-work-facts, .vendor-work-action, .vendor-work-buttons, .vendor-work-form-grid, .vendor-work-secure-link { grid-template-columns: 1fr; } .vendor-work-secure-link small { grid-column: 1; } }
+@media (max-width: 720px) { .vendor-work-panel .section-heading-row, .vendor-work-card-heading, .vendor-work-response-heading, .vendor-work-document { align-items: stretch; flex-direction: column; } .vendor-work-facts, .vendor-work-action, .vendor-work-buttons, .vendor-work-form-grid, .vendor-work-secure-link { grid-template-columns: 1fr; } .vendor-work-secure-link small { grid-column: 1; } }

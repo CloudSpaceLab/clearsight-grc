@@ -4,7 +4,7 @@ import { loadFormTemplates } from "../monitoringApi";
 import { loadVendorRelationship } from "../vendorApi";
 import { loadVendorRelationshipLinks } from "../vendorLinkApi";
 import {
-  acceptVendorWork, cancelVendorWork, loadVendorWork, prepareVendorWork, requestVendorWorkChanges,
+  acceptVendorWork, cancelVendorWork, loadVendorWork, loadVendorWorkResponse, prepareVendorWork, requestVendorWorkChanges,
   retryVendorWorkDelivery, sendVendorWork, startVendorWorkReview,
 } from "../vendorWorkApi";
 import type { VendorWorkRequest } from "../vendorWorkTypes";
@@ -14,8 +14,9 @@ vi.mock("../monitoringApi", () => ({ loadFormTemplates: vi.fn() }));
 vi.mock("../vendorApi", () => ({ loadVendorRelationship: vi.fn() }));
 vi.mock("../vendorLinkApi", () => ({ loadVendorRelationshipLinks: vi.fn() }));
 vi.mock("../vendorWorkApi", () => ({
-  acceptVendorWork: vi.fn(), cancelVendorWork: vi.fn(), loadVendorWork: vi.fn(), prepareVendorWork: vi.fn(),
+  acceptVendorWork: vi.fn(), cancelVendorWork: vi.fn(), loadVendorWork: vi.fn(), loadVendorWorkResponse: vi.fn(), prepareVendorWork: vi.fn(),
   requestVendorWorkChanges: vi.fn(), retryVendorWorkDelivery: vi.fn(), sendVendorWork: vi.fn(), startVendorWorkReview: vi.fn(),
+  vendorWorkDocumentURL: (relationshipID: string, workID: string, requestID: string, artifactID: string) => `/api/v1/vendors/${relationshipID}/work/${workID}/requests/${requestID}/documents/${artifactID}/open`,
 }));
 
 const relationship = {
@@ -43,12 +44,29 @@ const work: VendorWorkRequest = {
   created_at: "2026-08-26T10:00:00Z", updated_at: "2026-08-26T10:01:00Z",
 };
 
+const response = {
+  work: { ...work, state: "RESPONSE_RECEIVED" as const, version: 4 },
+  request: { request_id: "request-1", status: "SUBMITTED", deadline: work.due_at, form_template_id: "form-1", form_template_version: 4, presentation: { default_mode: "WIZARD" as const, allow_mode_switch: true } },
+  response: { submission_id: "submission-1", request_id: "request-1", submitted_at: "2026-09-20T12:00:00Z" },
+  answers: [
+    { field_id: "control_confirmed", label: "Are the controls operating?", type: "yes_no", required: true, visibility: "VISIBLE" as const, value: { text: "Yes" }, provenance: { origin: "SOURCE_PREFILLED", source_receipt: { source_id: "vendor-register", observed_at: "2026-09-18T09:00:00Z" } } },
+    { field_id: "missing_owner", label: "Control owner", type: "short_text", required: true, visibility: "VISIBLE" as const },
+    { field_id: "conditional_note", label: "Exception details", type: "long_text", required: true, visibility: "CONDITIONALLY_OMITTED" as const },
+    { field_id: "regions", label: "Service regions", type: "multi_select", required: false, visibility: "VISIBLE" as const, value: { values: ["Nigeria", "Ghana"] }, provenance: { origin: "RESPONDENT_ENTERED" } },
+  ],
+  documents: [
+    { field_id: "test_report", artifact_id: "artifact-available", file_name: "current-test-report.pdf", media_type: "application/pdf", size_bytes: 64000, artifact_status: "AVAILABLE", evidence_class: "VENDOR_SUPPLIED", document_type: "SECURITY_TEST" },
+    { field_id: "test_report", artifact_id: "artifact-quarantined", file_name: "quarantined-report.pdf", media_type: "application/pdf", size_bytes: 32000, artifact_status: "QUARANTINED", evidence_class: "VENDOR_SUPPLIED", document_type: "SECURITY_TEST" },
+  ],
+};
+
 describe("VendorWorkPanel", () => {
   beforeEach(() => {
     vi.mocked(loadVendorRelationshipLinks).mockReset().mockResolvedValue({ items: [link] });
     vi.mocked(loadVendorRelationship).mockReset().mockResolvedValue(relationship);
     vi.mocked(loadFormTemplates).mockReset().mockResolvedValue([form]);
     vi.mocked(loadVendorWork).mockReset().mockResolvedValue({ items: [] });
+    vi.mocked(loadVendorWorkResponse).mockReset().mockImplementation(async (_relationshipID, workID) => ({ ...response, work: { ...response.work, id: workID } }));
     vi.mocked(prepareVendorWork).mockReset();
     vi.mocked(sendVendorWork).mockReset();
     vi.mocked(startVendorWorkReview).mockReset();
@@ -116,8 +134,12 @@ describe("VendorWorkPanel", () => {
     const current = await screen.findByTestId("vendor-work-work-current");
     expect(within(current).getByText("Response received")).toBeTruthy();
     fireEvent.click(within(current).getByRole("button", { name: "Review response" }));
+    await waitFor(() => expect(loadVendorWorkResponse).toHaveBeenCalledWith("relationship-1", "work-current"));
+    expect(within(current).getByText("Vendor response")).toBeTruthy();
+    expect(startVendorWorkReview).not.toHaveBeenCalled();
+    fireEvent.click(within(current).getByRole("button", { name: "Begin review" }));
     await waitFor(() => expect(startVendorWorkReview).toHaveBeenCalledWith("relationship-1", "work-current", { expected_version: 4 }));
-    expect(onOpenRequest).toHaveBeenCalledWith("request-1");
+    expect(onOpenRequest).not.toHaveBeenCalled();
     expect(await within(current).findByText("Under review")).toBeTruthy();
     expect(screen.getByText("Request history")).toBeTruthy();
     expect(screen.getByText("Accepted")).toBeTruthy();
@@ -159,11 +181,56 @@ describe("VendorWorkPanel", () => {
     render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
     const card = await screen.findByTestId("vendor-work-work-1");
 
+    fireEvent.click(within(card).getByRole("button", { name: "Review response" }));
+    await within(card).findByText("Vendor response");
     fireEvent.click(within(card).getByRole("button", { name: "Accept response" }));
     expect((within(card).getByRole("button", { name: "Confirm acceptance" }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.change(within(card).getByLabelText("Acceptance basis"), { target: { value: "The submitted controls and document address this request." } });
     fireEvent.click(within(card).getByRole("button", { name: "Confirm acceptance" }));
     await waitFor(() => expect(acceptVendorWork).toHaveBeenCalledWith("relationship-1", "work-1", { expected_version: 5, rationale: "The submitted controls and document address this request." }));
+  });
+
+  it("distinguishes missing and conditional answers, formats typed values, and shows provenance", async () => {
+    vi.mocked(loadVendorWork).mockResolvedValue({ items: [{ ...work, state: "RESPONSE_RECEIVED", version: 4 }] });
+    render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
+    const card = await screen.findByTestId("vendor-work-work-1");
+    fireEvent.click(within(card).getByRole("button", { name: "Review response" }));
+
+    expect(await within(card).findByText("Vendor response: Yes")).toBeTruthy();
+    expect(within(card).getByText("Required response missing")).toBeTruthy();
+    expect(within(card).getByText("Not requested because its condition was not met")).toBeTruthy();
+    expect(within(card).getByText("Vendor response: Nigeria, Ghana")).toBeTruthy();
+    expect(within(card).getByText(/Prefilled from vendor-register/)).toBeTruthy();
+    expect(within(card).getByText("Entered by the vendor")).toBeTruthy();
+  });
+
+  it("opens only available documents through the server-provided safe URL", async () => {
+    vi.mocked(loadVendorWork).mockResolvedValue({ items: [{ ...work, state: "RESPONSE_RECEIVED", version: 4 }] });
+    const open = vi.spyOn(window, "open").mockImplementation(() => null);
+    render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
+    const card = await screen.findByTestId("vendor-work-work-1");
+    fireEvent.click(within(card).getByRole("button", { name: "Review response" }));
+    const available = await within(card).findByRole("article", { name: "current-test-report.pdf" });
+    const quarantined = within(card).getByRole("article", { name: "quarantined-report.pdf" });
+    fireEvent.click(within(available).getByRole("button", { name: "Open document" }));
+
+    expect(open).toHaveBeenCalledWith("/api/v1/vendors/relationship-1/work/work-1/requests/request-1/documents/artifact-available/open", "_blank", "noopener,noreferrer");
+    expect(within(quarantined).queryByRole("button", { name: "Open document" })).toBeNull();
+    expect(within(quarantined).getByText("This document is quarantined. Request a clean replacement before review.")).toBeTruthy();
+    expect(card.textContent).not.toContain("artifact-quarantined");
+  });
+
+  it("keeps review unstarted when the response projection is unavailable", async () => {
+    vi.mocked(loadVendorWork).mockResolvedValue({ items: [{ ...work, state: "RESPONSE_RECEIVED", version: 4 }] });
+    vi.mocked(loadVendorWorkResponse).mockRejectedValue(new Error("unavailable"));
+    render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
+    const card = await screen.findByTestId("vendor-work-work-1");
+    fireEvent.click(within(card).getByRole("button", { name: "Review response" }));
+
+    expect((await within(card).findByRole("alert")).textContent).toContain("The submitted response could not be loaded");
+    expect(within(card).getByRole("button", { name: "Try again" })).toBeTruthy();
+    expect(startVendorWorkReview).not.toHaveBeenCalled();
+    expect(within(card).queryByRole("button", { name: "Accept response" })).toBeNull();
   });
 
   it("loads additional request history with the bounded cursor", async () => {

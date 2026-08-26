@@ -1,5 +1,6 @@
-import type { CapturePresentationMode } from "./types";
+import type { CapturePresentation, CapturePresentationMode } from "./types";
 import type { VendorLinkTargetType } from "./vendorLinkTypes";
+import type { VendorAssessmentDocument, VendorAssessmentReviewAnswer } from "./vendorAssessmentTypes";
 
 export type VendorWorkState = "PREPARING" | "AWAITING_VENDOR" | "RESPONSE_RECEIVED" | "UNDER_REVIEW" | "CHANGES_REQUESTED" | "ACCEPTED" | "CANCELLED";
 export type VendorWorkDeliveryState = "NOT_SENT" | "LINK_CREATED_EMAIL_NOT_SENT" | "DELIVERED" | "RETRY_REQUIRED";
@@ -62,3 +63,18 @@ export type VendorWorkSendOutcome = {
   capture_url?: string;
 };
 export type RequestVendorWorkChangesInput = SendVendorWorkInput & { message: string; field_ids: string[]; due_at: string };
+
+export type VendorWorkResponseView = {
+  work: VendorWorkRequest;
+  request: {
+    request_id: string;
+    status: string;
+    deadline: string;
+    form_template_id: string;
+    form_template_version: number;
+    presentation: CapturePresentation;
+  };
+  response: { submission_id: string; request_id: string; submitted_at: string };
+  answers: VendorAssessmentReviewAnswer[];
+  documents: VendorAssessmentDocument[];
+};

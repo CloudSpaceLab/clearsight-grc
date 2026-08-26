@@ -3,11 +3,13 @@ import {
   acceptVendorWork,
   cancelVendorWork,
   loadVendorWork,
+  loadVendorWorkResponse,
   prepareVendorWork,
   requestVendorWorkChanges,
   retryVendorWorkDelivery,
   sendVendorWork,
   startVendorWorkReview,
+  vendorWorkDocumentURL,
 } from "./vendorWorkApi";
 
 const work = {
@@ -29,6 +31,16 @@ describe("vendor work API", () => {
 
     await expect(loadVendorWork({ target_type: "PROGRAM", target_id: "program/1", limit: 20 })).resolves.toEqual({ items: [work] });
     expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/vendor-work?target_type=PROGRAM&target_id=program%2F1&limit=20");
+  });
+
+  it("loads the exact relationship and work scoped submitted response", async () => {
+    const response = { work, request: { request_id: "capture-1", status: "SUBMITTED", deadline: work.due_at, form_template_id: "form-1", form_template_version: 4, presentation: { default_mode: "WIZARD", allow_mode_switch: true } }, response: { submission_id: "submission-1", request_id: "capture-1", submitted_at: "2026-09-20T12:00:00Z" }, answers: [], documents: [] };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(response), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadVendorWorkResponse("relationship/1", "work/1")).resolves.toEqual(response);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/vendors/relationship%2F1/work/work%2F1/response");
+    expect(vendorWorkDocumentURL("relationship/1", "work/1", "request/1", "artifact/1")).toBe("/api/v1/vendors/relationship%2F1/work/work%2F1/requests/request%2F1/documents/artifact%2F1/open");
   });
 
   it("prepares work without browser-supplied scope or actor identity", async () => {
