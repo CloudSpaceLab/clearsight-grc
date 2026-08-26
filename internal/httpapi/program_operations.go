@@ -179,6 +179,27 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 			})
 		}
 	}
+	for _, link := range aggregate.RequirementControlLinks {
+		requirementName := "requirement"
+		for _, requirement := range aggregate.Requirements {
+			if requirement.ID == link.RequirementID {
+				requirementName = requirement.Title
+				break
+			}
+		}
+		safeguardName := "safeguard"
+		for _, safeguard := range aggregate.ControlImplementations {
+			if safeguard.ID == link.ImplementationID {
+				safeguardName = safeguard.Name
+				break
+			}
+		}
+		add(programOperationSpec{
+			Command: "program.safeguard.unlink", SubresourceID: link.ID,
+			Label:          "Remove " + requirementName + " from " + safeguardName,
+			Responsibility: authority.ResponsibilityOwner, Materiality: 3, AssignedPrincipalID: ownerID,
+		})
+	}
 	for _, safeguard := range aggregate.ControlImplementations {
 		if safeguard.Status == continuity.ImplementationRetired {
 			continue
@@ -207,13 +228,11 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		if contract.Status == continuity.EvidenceContractRetired {
 			continue
 		}
-		if contract.Status == continuity.EvidenceContractDraft {
-			add(programOperationSpec{
-				Command: "program.evidence.revise", SubresourceID: contract.ID,
-				Label: "Edit " + contract.Name, Responsibility: authority.ResponsibilityOwner,
-				Materiality: 2, AssignedPrincipalID: ownerID,
-			})
-		}
+		add(programOperationSpec{
+			Command: "program.evidence.revise", SubresourceID: contract.ID,
+			Label: "Edit " + contract.Name, Responsibility: authority.ResponsibilityOwner,
+			Materiality: 2, AssignedPrincipalID: ownerID,
+		})
 		if transitionTargets := evidenceContractTransitionTargets(contract.Status); len(transitionTargets) > 0 {
 			add(programOperationSpec{
 				Command: "program.evidence.transition", SubresourceID: contract.ID,

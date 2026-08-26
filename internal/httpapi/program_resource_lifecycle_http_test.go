@@ -202,6 +202,33 @@ func TestProgramResourceLifecycleOperationsExposeCurrentAssignmentsAndTargets(t 
 	}
 }
 
+func TestActiveEvidenceContractStillExposesOwnerRevisionBeforeReviewerReactivation(t *testing.T) {
+	service, program := programWithLifecycleResources(t)
+	contract := program.EvidenceContracts[0]
+	var err error
+	program, err = service.TransitionEvidenceContract(continuity.WithTrustedSystemScope(t.Context()), continuity.TransitionEvidenceContractInput{
+		TenantID: "bank", ProgramID: program.Program.ID, ContractID: contract.ID,
+		ExpectedVersion: program.Program.Version, ExpectedContractVersion: contract.Version,
+		To: continuity.EvidenceContractActive, Rationale: "Independent review approved the evidence rules.", ActorID: "evidence-reviewer",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolver := &lifecycleAuthorityCapture{}
+	api := &API{deps: Dependencies{Authority: resolver}}
+	actor := identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "program-owner"}
+	operations := api.buildProgramOperations(identity.WithActor(t.Context(), actor), actor, program, time.Now().UTC()).Operations
+	for _, operation := range operations {
+		if operation.Command == "program.evidence.revise" && operation.SubresourceID == contract.ID {
+			if !operation.CanAct {
+				t.Fatalf("active evidence revision is not available to the owner: %#v", operation)
+			}
+			return
+		}
+	}
+	t.Fatal("active evidence revision operation was not returned")
+}
+
 func programWithLifecycleResources(t *testing.T) (*continuity.Service, continuity.ProgramAggregate) {
 	t.Helper()
 	service := continuity.NewService(continuity.NewMemoryRepository())
