@@ -10,7 +10,7 @@ import (
 )
 
 func TestOnboardingGuideUsesVerifiedActorRoles(t *testing.T) {
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding/guide?role=GRC_ADMIN", nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding/guide?role=GRC_ADMIN&surface=today", nil)
 	request.Header.Set("X-ClearSight-Demo-Roles", "PROGRAM_OWNER")
 	response := httptest.NewRecorder()
 	testHandler().ServeHTTP(response, request)
@@ -26,8 +26,18 @@ func TestOnboardingGuideUsesVerifiedActorRoles(t *testing.T) {
 	}
 }
 
-func TestOnboardingGuideRejectsGuideOutsideVerifiedRole(t *testing.T) {
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding/guide?code=configure-admin-first-run", nil)
+func TestOnboardingGuideRejectsClientRoleOverrideForVendorGuide(t *testing.T) {
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding/guide?role=BUSINESS_OWNER&surface=vendors", nil)
+	request.Header.Set("X-ClearSight-Demo-Roles", "PROGRAM_OWNER")
+	response := httptest.NewRecorder()
+	testHandler().ServeHTTP(response, request)
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d: %s", response.Code, response.Body.String())
+	}
+}
+
+func TestOnboardingGuideRejectsExplicitGuideOutsideVerifiedRoleAndSurface(t *testing.T) {
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding/guide?surface=today&code=vendor-operations-first-run", nil)
 	request.Header.Set("X-ClearSight-Demo-Roles", "AUDITOR")
 	response := httptest.NewRecorder()
 	testHandler().ServeHTTP(response, request)

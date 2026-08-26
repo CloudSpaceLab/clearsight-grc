@@ -46,18 +46,33 @@ func TestCompletedGuideMustReachFinalStep(t *testing.T) {
 	}
 }
 
-func TestGuideResolutionUsesRolePriorityAndFallback(t *testing.T) {
+func TestGuideResolutionUsesRolePriorityAndFallbackOnToday(t *testing.T) {
 	service := NewService(NewMemoryRepository())
-	guide, err := service.ResolveRoles([]string{"program owner", "cro"})
+	guide, err := service.ResolveRolesForSurface([]string{"program owner", "cro"}, SurfaceToday)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if guide.Code != "executive-first-run" {
 		t.Fatalf("expected executive priority, got %s", guide.Code)
 	}
-	guide, err = service.ResolveRoles(nil)
+	guide, err = service.ResolveRolesForSurface(nil, SurfaceToday)
 	if err != nil || guide.Code != "general-first-run" {
 		t.Fatalf("expected general fallback, guide=%#v err=%v", guide, err)
+	}
+}
+
+func TestGuideResolutionUsesVendorSurfaceForBusinessOwner(t *testing.T) {
+	service := NewService(NewMemoryRepository())
+	guide, err := service.ResolveRolesForSurface([]string{"BUSINESS_OWNER"}, SurfaceVendors)
+	if err != nil || guide.Code != "vendor-operations-first-run" || guide.Surface != SurfaceVendors {
+		t.Fatalf("vendor guide = %#v, %v", guide, err)
+	}
+}
+
+func TestGuideResolutionRejectsUnknownSurface(t *testing.T) {
+	service := NewService(NewMemoryRepository())
+	if _, err := service.ResolveRolesForSurface([]string{"BUSINESS_OWNER"}, "UNKNOWN"); err == nil {
+		t.Fatal("expected unknown surface to fail")
 	}
 }
 

@@ -35,8 +35,18 @@ func (s *Service) Guide(role, code string) (Guide, error) {
 }
 
 func (s *Service) ResolveRoles(roleCodes []string) (Guide, error) {
+	return s.ResolveRolesForSurface(roleCodes, SurfaceToday)
+}
+
+func (s *Service) ResolveRolesForSurface(roleCodes []string, surface Surface) (Guide, error) {
+	if !validSurface(surface) {
+		return Guide{}, fmt.Errorf("guide surface not found")
+	}
 	roles := normalizeRoles(roleCodes)
 	for _, guide := range s.guides {
+		if guide.Surface != surface {
+			continue
+		}
 		if len(guide.RoleCodes) == 0 {
 			continue
 		}
@@ -47,11 +57,15 @@ func (s *Service) ResolveRoles(roleCodes []string) (Guide, error) {
 		}
 	}
 	for _, guide := range s.guides {
-		if len(guide.RoleCodes) == 0 {
+		if guide.Surface == surface && len(guide.RoleCodes) == 0 {
 			return guide, nil
 		}
 	}
 	return Guide{}, fmt.Errorf("guide not found")
+}
+
+func validSurface(surface Surface) bool {
+	return surface == SurfaceToday || surface == SurfaceVendors
 }
 
 func (s *Service) State(ctx context.Context, tenant, principal, guideCode string) (State, error) {
@@ -121,7 +135,7 @@ func normalizeRole(value string) string {
 func DemoGuides() []Guide {
 	return []Guide{
 		{
-			Code: "configure-admin-first-run", Profile: "configure-admin", Role: "Configure administrator",
+			Code: "configure-admin-first-run", Surface: SurfaceToday, Profile: "configure-admin", Role: "Configure administrator",
 			RoleCodes: []string{"GRC_ADMIN", "PLATFORM_ADMIN", "CONFIGURE_ADMIN"}, Priority: 100, Version: 1,
 			Title: "Configuration checklist", Description: "Check identity, approval routing, sources and service health before granting wider access.", Illustration: "guided-orbit",
 			Steps: []Step{
@@ -132,7 +146,7 @@ func DemoGuides() []Guide {
 			},
 		},
 		{
-			Code: "authorizer-first-run", Profile: "authorizer", Role: "Authorizer or signatory",
+			Code: "authorizer-first-run", Surface: SurfaceToday, Profile: "authorizer", Role: "Authorizer or signatory",
 			RoleCodes: []string{"AUTHORIZER", "SIGNATORY"}, Priority: 90, Version: 1,
 			Title: "Decision review", Description: "Review assigned decisions, supporting evidence and required follow-up checks.", Illustration: "guided-orbit",
 			Steps: []Step{
@@ -143,7 +157,7 @@ func DemoGuides() []Guide {
 			},
 		},
 		{
-			Code: "executive-first-run", Profile: "executive", Role: "Executive risk or compliance leader",
+			Code: "executive-first-run", Surface: SurfaceToday, Profile: "executive", Role: "Executive risk or compliance leader",
 			RoleCodes: []string{"CRO", "CCO", "CISO", "DPO", "GENERAL_COUNSEL", "EXECUTIVE"}, Priority: 80, Version: 1,
 			Title: "Executive review", Description: "Review priority work, Program status and supporting evidence.", Illustration: "guided-orbit",
 			Steps: []Step{
@@ -154,7 +168,7 @@ func DemoGuides() []Guide {
 			},
 		},
 		{
-			Code: "reviewer-first-run", Profile: "reviewer", Role: "Reviewer or independent challenger",
+			Code: "reviewer-first-run", Surface: SurfaceToday, Profile: "reviewer", Role: "Reviewer or independent challenger",
 			RoleCodes: []string{"REVIEWER", "CHALLENGER", "CONTROL_ASSURANCE_LEAD"}, Priority: 70, Version: 1,
 			Title: "Review queue", Description: "Review assigned issues, evidence and independent outcome checks.", Illustration: "guided-orbit",
 			Steps: []Step{
@@ -165,7 +179,7 @@ func DemoGuides() []Guide {
 			},
 		},
 		{
-			Code: "program-owner-first-run", Profile: "program-owner", Role: "Program or control owner",
+			Code: "program-owner-first-run", Surface: SurfaceToday, Profile: "program-owner", Role: "Program or control owner",
 			RoleCodes: []string{"PROGRAM_OWNER", "CONTROL_OWNER", "RISK_OWNER"}, Priority: 60, Version: 1,
 			Title: "Program review", Description: "Check Program status, open work and supporting evidence.", Illustration: "guided-orbit",
 			Steps: []Step{
@@ -176,7 +190,7 @@ func DemoGuides() []Guide {
 			},
 		},
 		{
-			Code: "evidence-respondent-first-run", Profile: "evidence-respondent", Role: "Evidence respondent",
+			Code: "evidence-respondent-first-run", Surface: SurfaceToday, Profile: "evidence-respondent", Role: "Evidence respondent",
 			RoleCodes: []string{"EVIDENCE_RESPONDENT", "RECORDS_CUSTODIAN", "BUSINESS_OWNER"}, Priority: 50, Version: 1,
 			Title: "Evidence requests", Description: "Review assigned requests and provide the requested information.", Illustration: "guided-orbit",
 			Steps: []Step{
@@ -187,7 +201,7 @@ func DemoGuides() []Guide {
 			},
 		},
 		{
-			Code: "auditor-first-run", Profile: "auditor", Role: "Auditor or read-only reviewer",
+			Code: "auditor-first-run", Surface: SurfaceToday, Profile: "auditor", Role: "Auditor or read-only reviewer",
 			RoleCodes: []string{"AUDITOR", "INTERNAL_AUDIT", "LEGAL_REVIEWER", "READ_ONLY"}, Priority: 40, Version: 1,
 			Title: "Audit review", Description: "Review source evidence, decisions and outcome history without changing records.", Illustration: "guided-orbit",
 			Steps: []Step{
@@ -198,7 +212,18 @@ func DemoGuides() []Guide {
 			},
 		},
 		{
-			Code: "general-first-run", Profile: "general", Role: "ClearSight user", Priority: 0, Version: 1,
+			Code: "vendor-operations-first-run", Surface: SurfaceVendors, Profile: "vendor-operations", Role: "Vendor relationship owner",
+			RoleCodes: []string{"BUSINESS_OWNER"}, Priority: 100, Version: 1,
+			Title: "Manage vendor relationships", Description: "Record the service, collect missing information and route vendor work for review.", Illustration: "guided-orbit",
+			Steps: []Step{
+				{ID: "register", Title: "Review the vendor register", Description: "Check the supplied service, owner and current relationship state.", Action: "Review vendors", View: "vendors", Target: "vendor-register"},
+				{ID: "due-diligence", Title: "Collect due diligence", Description: "Use known bank records first, then request only missing information.", Action: "Review due diligence", View: "vendors", Target: "vendor-due-diligence"},
+				{ID: "work", Title: "Request vendor action", Description: "Send a focused form, document, signature or upload request when the vendor must act.", Action: "Review vendor work", View: "vendors", Target: "vendor-work"},
+				{ID: "finish", Title: "Confirm the outcome", Description: "Completion and upload remain separate from review and outcome confirmation.", Action: "Done", View: "vendors", Target: "vendors-workspace"},
+			},
+		},
+		{
+			Code: "general-first-run", Surface: SurfaceToday, Profile: "general", Role: "ClearSight user", Priority: 0, Version: 1,
 			Title: "Workspace guide", Description: "Review assigned work, Programs, issues and evidence.", Illustration: "guided-orbit",
 			Steps: []Step{
 				{ID: "today", Title: "Review assigned work", Description: "Today lists work assigned to you and explains why it needs attention.", Action: "Open Today", View: "today", Target: "today-brief"},
