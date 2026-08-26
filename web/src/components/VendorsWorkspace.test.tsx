@@ -116,7 +116,7 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-due-diligence" }} onGuideIntentCompleted={completed}/>);
 
     const legalName = await screen.findByLabelText("Legal name");
-    expect(document.activeElement).toBe(legalName);
+    await waitFor(() => expect(document.activeElement).toBe(legalName));
     expect(completed).toHaveBeenCalledOnce();
   });
 
@@ -165,15 +165,45 @@ describe("VendorsWorkspace", () => {
     expect(completed).toHaveBeenCalledWith(1);
   });
 
-  it("uses the vendor workspace fallback only when a completed review has no enabled next action", async () => {
+  it("focuses Add vendor when a completed review has no enabled due-diligence or vendor-work action", async () => {
     vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: assessment("COMPLETED") });
     vi.mocked(loadVendorAssessment).mockResolvedValue(review("COMPLETED"));
     const completed = vi.fn();
-    const { container } = render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-next-action" }} onGuideIntentCompleted={completed}/>);
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-next-action" }} onGuideIntentCompleted={completed}/>);
 
-    const workspace = container.querySelector<HTMLElement>(".vendors-workspace");
-    await waitFor(() => expect(document.activeElement).toBe(workspace));
+    const addVendor = screen.getByRole("button", { name: "Add vendor" });
+    expect(addVendor.id).toBe("vendor-add-action");
+    await waitFor(() => expect(document.activeElement).toBe(addVendor));
     expect(completed).toHaveBeenCalledWith(1);
+  });
+
+  it("fails the next-action intent when the remaining Add vendor action cannot receive focus", async () => {
+    vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: assessment("COMPLETED") });
+    vi.mocked(loadVendorAssessment).mockResolvedValue(review("COMPLETED"));
+    const originalFocus = HTMLElement.prototype.focus;
+    const focus = vi.spyOn(HTMLElement.prototype, "focus").mockImplementation(function (this: HTMLElement, options?: FocusOptions) {
+      if (this.id !== "vendor-add-action") originalFocus.call(this, options);
+    });
+    const completed = vi.fn();
+    const failed = vi.fn();
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-next-action" }} onGuideIntentCompleted={completed} onGuideIntentFailed={failed}/>);
+
+    await waitFor(() => expect(failed).toHaveBeenCalledWith(1));
+    expect(completed).not.toHaveBeenCalled();
+    focus.mockRestore();
+  });
+
+  it("uses immediate scrolling when reduced motion is requested", async () => {
+    vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: assessment("COMPLETED") });
+    vi.mocked(loadVendorAssessment).mockResolvedValue(review("COMPLETED"));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+    const scroll = vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(() => undefined);
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-next-action" }} onGuideIntentCompleted={vi.fn()}/>);
+
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Add vendor" })));
+    expect(scroll).toHaveBeenCalledWith({ behavior: "auto", block: "center" });
+    scroll.mockRestore();
+    vi.unstubAllGlobals();
   });
 
   it("keeps the newer register result when an older load fails", async () => {

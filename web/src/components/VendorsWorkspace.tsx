@@ -43,15 +43,23 @@ const emptyForm: FormValues = {
 };
 
 function focusGuideTarget(target: HTMLElement | null) {
-  if (!target) return false;
-  target.scrollIntoView?.({ behavior: "smooth", block: "center" });
+  if (!isGuideTargetAvailable(target)) return false;
+  const reducedMotion = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  target.scrollIntoView?.({ behavior: reducedMotion ? "auto" : "smooth", block: "center" });
   if (!target.hasAttribute("tabindex") && !(target instanceof HTMLButtonElement) && !(target instanceof HTMLInputElement)) target.setAttribute("tabindex", "-1");
   target.focus({ preventScroll: true });
   return document.activeElement === target;
 }
 
+function isGuideTargetAvailable(target: HTMLElement | null): target is HTMLElement {
+  if (!target || target.hidden || target.closest("[hidden], [aria-hidden='true']")) return false;
+  if (target instanceof HTMLButtonElement && target.disabled) return false;
+  const style = window.getComputedStyle?.(target);
+  return style?.display !== "none" && style?.visibility !== "hidden";
+}
+
 function firstVisiblePrimaryAction(selector: string) {
-  return [...document.querySelectorAll<HTMLElement>(`${selector} button.primary-button:not(:disabled)`)].find((element) => !element.hidden && !element.closest("[hidden], [aria-hidden='true']")) ?? null;
+  return [...document.querySelectorAll<HTMLElement>(`${selector} button.primary-button:not(:disabled)`)].find(isGuideTargetAvailable) ?? null;
 }
 
 export function VendorsWorkspace({ organizationName, legalEntityName, targetID, guideIntent, onGuideIntentCompleted, onGuideIntentFailed, onTarget, onOpenRequest, onOpenMatter }: Props) {
@@ -117,8 +125,9 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
         if (!vendorWork || vendorWork.getAttribute("aria-busy") === "true") return false;
         const vendorWorkAction = firstVisiblePrimaryAction(".vendor-work-panel");
         if (vendorWorkAction && focusGuideTarget(vendorWorkAction)) return acknowledgeGuideIntent(guideIntent.id);
-        if (focusGuideTarget(workspace)) return acknowledgeGuideIntent(guideIntent.id);
-        return false;
+        const addVendor = document.getElementById("vendor-add-action");
+        if (focusGuideTarget(addVendor)) return acknowledgeGuideIntent(guideIntent.id);
+        return failGuideIntent(guideIntent.id);
       };
       if (focusNextAction()) return;
       const observer = new MutationObserver(() => { if (focusNextAction()) observer.disconnect(); });
@@ -136,7 +145,12 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       onGuideIntentCompleted?.(id);
       return true;
     }
-  }, [guideIntent, state, mode, selected?.relationship.id, assessment, assessmentState, reviewState, formState, onGuideIntentCompleted]);
+    function failGuideIntent(id: number) {
+      acknowledgedGuideIntentID.current = id;
+      onGuideIntentFailed?.(id);
+      return true;
+    }
+  }, [guideIntent, state, mode, selected?.relationship.id, assessment, assessmentState, reviewState, formState, onGuideIntentCompleted, onGuideIntentFailed]);
 
   useEffect(() => {
     void refreshForms();
@@ -473,7 +487,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   return <div className={workspaceClass} tabIndex={-1}>
     <header className="topbar vendors-topbar">
       <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Vendors</h1><p>Manage vendors and the services they supply to {legalEntityName}. Review each relationship&apos;s owner, criticality and due-diligence status.</p></div>
-      {mode !== "create" && <button type="button" className={selected ? "secondary-button" : "primary-button"} onClick={startCreate}>Add vendor</button>}
+      {mode !== "create" && <button id="vendor-add-action" type="button" className={selected ? "secondary-button" : "primary-button"} onClick={startCreate} disabled={state !== "live"}>Add vendor</button>}
     </header>
 
     {notice && <p className="vendor-notice" role="status">{notice}</p>}

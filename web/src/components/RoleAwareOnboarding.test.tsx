@@ -62,13 +62,28 @@ describe("RoleAwareOnboarding", () => {
     expect(screen.getByRole("heading", { name: "Inspect a Program" })).toBeTruthy();
   });
 
-  it("allows a dismissed guide to be restarted from the launcher", async () => {
+  it("resumes a dismissed incomplete guide at its saved numbered step without persisting", async () => {
     vi.mocked(loadRoleGuide).mockResolvedValue(guide);
-    vi.mocked(loadGuideState).mockResolvedValue({ ...initial, dismissed: true, version: 3 });
-    vi.mocked(saveGuideState).mockResolvedValue({ ...initial, version: 4 });
+    vi.mocked(loadGuideState).mockResolvedValue({ ...initial, current_step: 1, dismissed: true, version: 3 });
     render(<RoleAwareOnboarding surface="TODAY" runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
 
-    fireEvent.click(await screen.findByRole("button", { name: /Restart Executive risk or compliance leader guide/ }));
+    const launcher = await screen.findByRole("button", { name: /Resume Executive risk or compliance leader guide/ });
+    expect(launcher.textContent).toContain("Resume guide");
+    fireEvent.click(launcher);
+    expect(await screen.findByRole("heading", { name: "Inspect a Program" })).toBeTruthy();
+    expect(screen.queryByRole("complementary", { name: /Today guide/i })).toBeNull();
+    expect(saveGuideState).not.toHaveBeenCalled();
+  });
+
+  it("restarts a completed guide at step zero and shows the cinematic introduction", async () => {
+    vi.mocked(loadRoleGuide).mockResolvedValue(guide);
+    vi.mocked(loadGuideState).mockResolvedValue({ ...initial, current_step: 2, completed: true, version: 3 });
+    vi.mocked(saveGuideState).mockResolvedValue({ ...initial, version: 4 });
+    render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={vi.fn()}/>);
+
+    const launcher = await screen.findByRole("button", { name: /Restart Executive risk or compliance leader guide/ });
+    expect(launcher.textContent).toContain("Restart guide");
+    fireEvent.click(launcher);
     expect(await screen.findByRole("complementary", { name: /Today guide/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Start guide" })).toBeTruthy();
     expect(screen.queryByRole("complementary", { name: "Getting started" })).toBeNull();
@@ -84,7 +99,7 @@ describe("RoleAwareOnboarding", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Skip for now" }));
 
     await waitFor(() => expect(saveGuideState).toHaveBeenCalledWith(guide.code, expect.objectContaining({ completed: false, dismissed: true })));
-    expect(screen.getByRole("button", { name: /Restart Executive risk or compliance leader guide/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Resume Executive risk or compliance leader guide/ })).toBeTruthy();
   });
 
   it("loads and renders the Vendors introduction for the Vendors surface", async () => {
@@ -157,6 +172,39 @@ describe("RoleAwareOnboarding", () => {
     await waitFor(() => expect(screen.getByText("Guide for Vendor relationship owner")).toBeTruthy());
   });
 
+  it("ignores a Today save that resolves after the Vendors guide loads", async () => {
+    const save = deferred<typeof initial>();
+    const vendorGuide = { ...guide, code: "vendor-operations-first-run", surface: "VENDORS" as const, role: "Vendor relationship owner", title: "Manage vendor relationships" };
+    vi.mocked(loadRoleGuide).mockImplementation(async (requestedSurface) => requestedSurface === "VENDORS" ? vendorGuide : guide);
+    vi.mocked(loadGuideState).mockImplementation(async (code) => ({ ...initial, guide_code: code }));
+    vi.mocked(saveGuideState).mockReturnValue(save.promise);
+    const view = render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={vi.fn()}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Start guide" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Today" }));
+    await waitFor(() => expect(saveGuideState).toHaveBeenCalled());
+
+    view.rerender(<RoleAwareOnboarding surface="VENDORS" runtime={{ ...runtime, actor: { ...runtime.actor, id: "owner-1" } }} onStep={vi.fn()}/>);
+    expect(await screen.findByText("Guide for Vendor relationship owner")).toBeTruthy();
+    save.resolve({ ...initial, current_step: 1, version: 1 });
+    await waitFor(() => expect(screen.getByText("Guide for Vendor relationship owner")).toBeTruthy());
+    expect(screen.queryByRole("heading", { name: "Inspect a Program" })).toBeNull();
+  });
+
+  it("reports a progress-save failure separately without repeating the workspace action", async () => {
+    vi.mocked(loadRoleGuide).mockResolvedValue(guide);
+    vi.mocked(loadGuideState).mockResolvedValue(initial);
+    vi.mocked(saveGuideState).mockRejectedValue(new Error("State store unavailable"));
+    const onStep = vi.fn().mockResolvedValue(undefined);
+    render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={onStep}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Start guide" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Today" }));
+
+    expect((await screen.findByRole("alert")).textContent).toBe("Guide progress could not be saved. Your workspace remains available; try again.");
+    expect(onStep).toHaveBeenCalledOnce();
+    expect(screen.getByRole("heading", { name: "Review Today" })).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Open Today" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("shows first-run guidance without creating a modal or moving focus", async () => {
     vi.mocked(loadRoleGuide).mockResolvedValue(guide);
     vi.mocked(loadGuideState).mockResolvedValue(initial);
@@ -187,6 +235,7 @@ describe("RoleAwareOnboarding", () => {
 
     await waitFor(() => expect(saveGuideState).toHaveBeenCalledTimes(2));
     expect(screen.queryByRole("complementary", { name: /Today guide/i })).toBeNull();
-    expect(screen.getByRole("button", { name: /Restart Executive risk or compliance leader guide/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Resume Executive risk or compliance leader guide/ })).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toBe("Guide dismissal could not be saved. The guide is closed for this session; resume it to try again.");
   });
 });
