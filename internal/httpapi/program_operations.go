@@ -213,6 +213,7 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 			Command: "program.safeguard.assign", SubresourceID: safeguard.ID,
 			Label: "Change the owner of " + safeguard.Name, Responsibility: authority.ResponsibilityOwner,
 			CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: 3,
+			CandidateObjectType: "CONTROL_IMPLEMENTATION", CandidateObjectID: safeguard.ID, CandidateDecisionType: "program.safeguard.transition",
 			AssignedPrincipalID: ownerID, IncludeCandidates: true,
 		})
 		if transitionTargets := safeguardTransitionTargets(safeguard.Status); len(transitionTargets) > 0 {
@@ -266,6 +267,9 @@ type programOperationSpec struct {
 	Label                   string
 	Responsibility          authority.Responsibility
 	CandidateResponsibility authority.Responsibility
+	CandidateObjectType     string
+	CandidateObjectID       string
+	CandidateDecisionType   string
 	Materiality             int
 	AssignedPrincipalID     string
 	IncludeCandidates       bool
@@ -299,7 +303,7 @@ func (a *API) resolveProgramOperations(ctx context.Context, actor identity.Actor
 	for index := range candidateIndexes {
 		candidateIndexes[index] = -1
 	}
-	inputFor := func(spec programOperationSpec, responsibility authority.Responsibility) authority.ResolveInput {
+	inputFor := func(spec programOperationSpec, responsibility authority.Responsibility, candidate bool) authority.ResolveInput {
 		decisionType := spec.DecisionType
 		if decisionType == "" {
 			decisionType = spec.Command
@@ -312,6 +316,17 @@ func (a *API) resolveProgramOperations(ctx context.Context, actor identity.Actor
 		if objectID == "" {
 			objectID = program.ID
 		}
+		if candidate {
+			if value := strings.TrimSpace(spec.CandidateObjectType); value != "" {
+				objectType = value
+			}
+			if value := strings.TrimSpace(spec.CandidateObjectID); value != "" {
+				objectID = value
+			}
+			if value := strings.TrimSpace(spec.CandidateDecisionType); value != "" {
+				decisionType = value
+			}
+		}
 		return authority.ResolveInput{
 			TenantID: actor.TenantID, LegalEntityID: program.LegalEntityID, ObjectType: objectType, ObjectID: objectID,
 			Responsibility: responsibility, DecisionType: decisionType, Materiality: spec.Materiality, At: at.UTC(),
@@ -319,10 +334,10 @@ func (a *API) resolveProgramOperations(ctx context.Context, actor identity.Actor
 	}
 	for index, spec := range specs {
 		primaryIndexes[index] = len(inputs)
-		inputs = append(inputs, inputFor(spec, spec.Responsibility))
+		inputs = append(inputs, inputFor(spec, spec.Responsibility, false))
 		if spec.IncludeCandidates && spec.CandidateResponsibility != "" && spec.CandidateResponsibility != spec.Responsibility {
 			candidateIndexes[index] = len(inputs)
-			inputs = append(inputs, inputFor(spec, spec.CandidateResponsibility))
+			inputs = append(inputs, inputFor(spec, spec.CandidateResponsibility, true))
 		}
 	}
 	outcomes, err := batch.ResolveMany(ctx, inputs)

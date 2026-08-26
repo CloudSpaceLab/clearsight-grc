@@ -292,6 +292,7 @@ type EvidenceContract struct {
 	IndependenceRequired    bool                   `json:"independence_required"`
 	ContradictionPolicy     string                 `json:"contradiction_policy"`
 	FailureAction           string                 `json:"failure_action"`
+	ConfiguredBy            string                 `json:"configured_by,omitempty"`
 	Status                  EvidenceContractStatus `json:"status"`
 	CreatedAt               time.Time              `json:"created_at"`
 	UpdatedAt               time.Time              `json:"updated_at"`

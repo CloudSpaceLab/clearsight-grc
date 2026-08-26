@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -18,6 +19,40 @@ import (
 
 type lifecycleAuthorityCapture struct {
 	inputs []authority.ResolveInput
+}
+
+type scopedSafeguardAssignmentAuthority struct{}
+
+func (scopedSafeguardAssignmentAuthority) Resolve(_ context.Context, input authority.ResolveInput) (authority.Resolution, error) {
+	principalID := "program-owner"
+	if input.Responsibility == authority.ResponsibilityPerformer {
+		principalID = "program-level-performer"
+		if input.ObjectType == "CONTROL_IMPLEMENTATION" {
+			principalID = "eligible-safeguard-owner"
+		}
+	}
+	return authority.Resolution{
+		Principal:           authority.Principal{ID: principalID, DisplayName: principalID},
+		CandidatePrincipals: []authority.Principal{{ID: principalID, DisplayName: principalID}},
+		EffectiveOrigins:    []authority.EffectiveOrigin{{PrincipalID: principalID, OriginPrincipalID: principalID}, {PrincipalID: "program-owner", OriginPrincipalID: "program-owner"}},
+	}, nil
+}
+func (s scopedSafeguardAssignmentAuthority) ResolveMany(ctx context.Context, inputs []authority.ResolveInput) ([]authority.ResolveOutcome, error) {
+	result := make([]authority.ResolveOutcome, len(inputs))
+	for index, input := range inputs {
+		resolution, err := s.Resolve(ctx, input)
+		result[index] = authority.ResolveOutcome{Resolution: resolution, Err: err}
+	}
+	return result, nil
+}
+func (scopedSafeguardAssignmentAuthority) Simulate(context.Context, authority.ResolveInput) (authority.Simulation, error) {
+	return authority.Simulation{}, nil
+}
+func (scopedSafeguardAssignmentAuthority) Integrity(context.Context, string) ([]authority.IntegrityFinding, error) {
+	return nil, nil
+}
+func (scopedSafeguardAssignmentAuthority) Policies(context.Context, string) ([]authority.PolicySummary, error) {
+	return nil, nil
 }
 
 func (s *lifecycleAuthorityCapture) Resolve(_ context.Context, input authority.ResolveInput) (authority.Resolution, error) {
@@ -227,6 +262,64 @@ func TestActiveEvidenceContractStillExposesOwnerRevisionBeforeReviewerReactivati
 		}
 	}
 	t.Fatal("active evidence revision operation was not returned")
+}
+
+func TestSafeguardAssignmentUsesExactImplementationPerformerRoute(t *testing.T) {
+	service, program := programWithLifecycleResources(t)
+	safeguardID := program.ControlImplementations[0].ID
+	resolver := scopedSafeguardAssignmentAuthority{}
+	api := &API{deps: Dependencies{Continuity: service, Authority: resolver}}
+	actor := identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "program-owner"}
+	ctx := identity.WithActor(t.Context(), actor)
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/programs/"+program.Program.ID+"/control-implementations/"+safeguardID+"/assignment", nil)
+	request.SetPathValue("id", program.Program.ID)
+	request.SetPathValue("implementation_id", safeguardID)
+	request = request.WithContext(ctx)
+
+	for _, test := range []struct {
+		candidate string
+		wantError bool
+	}{{candidate: "program-level-performer", wantError: true}, {candidate: "eligible-safeguard-owner"}} {
+		_, err := api.lifecycleCommandPolicy(request.Context(), request, "bank", "program.safeguard.assign", map[string]any{"owner_principal_id": test.candidate}, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 3})
+		if (err != nil) != test.wantError {
+			t.Fatalf("candidate %s error = %v", test.candidate, err)
+		}
+	}
+
+	operations := api.buildProgramOperations(ctx, actor, program, time.Now().UTC()).Operations
+	for _, operation := range operations {
+		if operation.Command == "program.safeguard.assign" && operation.SubresourceID == safeguardID {
+			if len(operation.Candidates) != 1 || operation.Candidates[0].ID != "eligible-safeguard-owner" {
+				t.Fatalf("assignment candidates = %#v", operation.Candidates)
+			}
+			return
+		}
+	}
+	t.Fatal("safeguard assignment operation was not returned")
+}
+
+func TestEvidenceCheckMakerCannotActivateOwnConfiguration(t *testing.T) {
+	service, program := programWithLifecycleResources(t)
+	contract := program.EvidenceContracts[0]
+	resolver := fixedProgramAuthority{resolution: authority.Resolution{
+		Principal:        authority.Principal{ID: "program-owner", DisplayName: "Program Owner"},
+		EffectiveOrigins: []authority.EffectiveOrigin{{PrincipalID: "program-owner", OriginPrincipalID: "program-owner"}},
+	}}
+	guard, err := commandauth.New(resolver, commandauth.ModeEnforce, slog.Default())
+	if err != nil {
+		t.Fatal(err)
+	}
+	api := &API{deps: Dependencies{Continuity: service, Authority: resolver, CommandGuard: guard}}
+	handler := api.command("program.evidence.transition", commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}, api.transitionProgramEvidenceContract)
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/programs/"+program.Program.ID+"/evidence-contracts/"+contract.ID+"/transition", strings.NewReader(fmt.Sprintf(`{"expected_version":%d,"expected_contract_version":%d,"to":"ACTIVE","rationale":"Approve the evidence rules."}`, program.Program.Version, contract.Version)))
+	request.SetPathValue("id", program.Program.ID)
+	request.SetPathValue("contract_id", contract.ID)
+	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "program-owner", Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour)}))
+	response := httptest.NewRecorder()
+	handler(response, request)
+	if response.Code != http.StatusConflict || !strings.Contains(response.Body.String(), "maker_checker_required") {
+		t.Fatalf("same-principal activation returned %d: %s", response.Code, response.Body.String())
+	}
 }
 
 func programWithLifecycleResources(t *testing.T) (*continuity.Service, continuity.ProgramAggregate) {

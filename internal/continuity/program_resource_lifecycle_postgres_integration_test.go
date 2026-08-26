@@ -77,7 +77,7 @@ func TestPostgresProgramResourceLifecycleCommitsProjectionEventAndOutboxTogether
 	if err != nil {
 		t.Fatal(err)
 	}
-	program, err = service.TransitionEvidenceContract(ctx, TransitionEvidenceContractInput{TenantID: "program-resource-lifecycle-test", ProgramID: program.Program.ID, ContractID: contract.ID, ExpectedVersion: program.Program.Version, ExpectedContractVersion: program.EvidenceContracts[0].Version, To: EvidenceContractActive, Rationale: "The evidence rules are ready for use.", ActorID: ownerID})
+	program, err = service.TransitionEvidenceContract(ctx, TransitionEvidenceContractInput{TenantID: "program-resource-lifecycle-test", ProgramID: program.Program.ID, ContractID: contract.ID, ExpectedVersion: program.Program.Version, ExpectedContractVersion: program.EvidenceContracts[0].Version, To: EvidenceContractActive, Rationale: "The evidence rules are ready for use.", ActorID: otherID})
 	if err != nil {
 		t.Fatal(err)
 	}

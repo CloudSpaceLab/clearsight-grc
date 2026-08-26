@@ -213,6 +213,7 @@ func (s *Service) ReviseEvidenceContract(ctx context.Context, input ReviseEviden
 	next.IndependenceRequired = input.IndependenceRequired
 	next.ContradictionPolicy = contradictionPolicy
 	next.FailureAction = failureAction
+	next.ConfiguredBy = strings.TrimSpace(input.ActorID)
 	if current.Status == EvidenceContractActive {
 		next.Status = EvidenceContractDraft
 	}
@@ -233,6 +234,12 @@ func (s *Service) TransitionEvidenceContract(ctx context.Context, input Transiti
 	}
 	if strings.TrimSpace(input.Rationale) == "" || !evidenceContractTransitionAllowed(current.Status, input.To) {
 		return ProgramAggregate{}, ErrInvalidState
+	}
+	if current.Status == EvidenceContractDraft && input.To == EvidenceContractActive {
+		actorID := strings.TrimSpace(input.ActorID)
+		if actorID == "" || strings.TrimSpace(current.ConfiguredBy) == "" || actorID == strings.TrimSpace(current.ConfiguredBy) {
+			return ProgramAggregate{}, ErrMakerChecker
+		}
 	}
 	next := current
 	next.Status = input.To

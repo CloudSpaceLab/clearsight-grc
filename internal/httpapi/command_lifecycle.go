@@ -351,11 +351,25 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		}
 		return policy, nil
 
-	case "program.safeguard.define", "program.safeguard.assign":
+	case "program.safeguard.define":
 		if programAggregate == nil || stringValue(payload["owner_principal_id"]) == "" {
 			return policy, nil
 		}
 		if err := a.validateProgramAssignmentCandidate(ctx, tenant, name, *programAggregate, stringValue(payload["owner_principal_id"]), authority.ResponsibilityPerformer, policy.Materiality); err != nil {
+			return policy, err
+		}
+		return policy, nil
+
+	case "program.safeguard.assign":
+		implementationID, err := lifecycleSubresourceID(r, payload, "implementation_id")
+		if err != nil {
+			return policy, err
+		}
+		if programAggregate == nil || !programHasImplementation(*programAggregate, implementationID) {
+			return policy, continuity.ErrNotFound
+		}
+		payload["implementation_id"] = implementationID
+		if err := a.validateProgramAssignmentCandidateForRoute(ctx, tenant, name, *programAggregate, stringValue(payload["owner_principal_id"]), authority.ResponsibilityPerformer, policy.Materiality, "CONTROL_IMPLEMENTATION", implementationID, "program.safeguard.transition"); err != nil {
 			return policy, err
 		}
 		return policy, nil
@@ -766,6 +780,10 @@ func governedMatterTransition(from, target continuity.MatterStatus) bool {
 }
 
 func (a *API) validateProgramAssignmentCandidate(ctx context.Context, tenant, commandName string, aggregate continuity.ProgramAggregate, candidateID string, candidateResponsibility authority.Responsibility, materiality int) error {
+	return a.validateProgramAssignmentCandidateForRoute(ctx, tenant, commandName, aggregate, candidateID, candidateResponsibility, materiality, "PROGRAM", aggregate.Program.ID, commandName)
+}
+
+func (a *API) validateProgramAssignmentCandidateForRoute(ctx context.Context, tenant, commandName string, aggregate continuity.ProgramAggregate, candidateID string, candidateResponsibility authority.Responsibility, materiality int, candidateObjectType, candidateObjectID, candidateDecisionType string) error {
 	candidateID = strings.TrimSpace(candidateID)
 	if candidateID == "" {
 		return fmt.Errorf("%w: owner_principal_id is required", continuity.ErrInvalidState)
@@ -795,8 +813,8 @@ func (a *API) validateProgramAssignmentCandidate(ctx context.Context, tenant, co
 	candidateResolution := ownerResolution
 	if candidateResponsibility != authority.ResponsibilityOwner {
 		candidateResolution, err = a.deps.Authority.Resolve(ctx, authority.ResolveInput{
-			TenantID: tenant, LegalEntityID: aggregate.Program.LegalEntityID, ObjectType: "PROGRAM", ObjectID: aggregate.Program.ID,
-			Responsibility: candidateResponsibility, DecisionType: commandName, Materiality: materiality,
+			TenantID: tenant, LegalEntityID: aggregate.Program.LegalEntityID, ObjectType: candidateObjectType, ObjectID: candidateObjectID,
+			Responsibility: candidateResponsibility, DecisionType: candidateDecisionType, Materiality: materiality,
 		})
 		if err != nil {
 			return fmt.Errorf("%w: assignment candidate route could not be checked", commandauth.ErrGuardUnavailable)

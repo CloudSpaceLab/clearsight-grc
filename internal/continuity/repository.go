@@ -9,6 +9,7 @@ import (
 var (
 	ErrNotFound                  = errors.New("program or matter not found")
 	ErrVersionConflict           = errors.New("program or matter version conflict")
+	ErrMakerChecker              = errors.New("a different authorized reviewer must approve this change")
 	ErrInvalidState              = errors.New("invalid lifecycle transition")
 	ErrClosureBlocked            = errors.New("matter closure requirements are not met")
 	ErrDuplicate                 = errors.New("duplicate program or triggered matter")

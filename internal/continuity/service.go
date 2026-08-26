@@ -601,7 +601,7 @@ func (s *Service) AddEvidenceContract(ctx context.Context, input AddEvidenceCont
 		return ProgramAggregate{}, err
 	}
 	now := s.now().UTC()
-	value := EvidenceContract{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, RequirementID: input.RequirementID, ControlImplementationID: input.ControlImplementationID, Code: strings.ToUpper(strings.TrimSpace(input.Code)), Name: strings.TrimSpace(input.Name), Claim: strings.TrimSpace(input.Claim), AcceptableSourceIDs: append([]string(nil), input.AcceptableSourceIDs...), PopulationScope: population, FreshnessMinutes: input.FreshnessMinutes, MinimumCoverage: input.MinimumCoverage, IndependenceRequired: input.IndependenceRequired, ContradictionPolicy: contradictionPolicy, FailureAction: failureAction, Status: input.Status, CreatedAt: now, UpdatedAt: now, Version: 1}
+	value := EvidenceContract{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, RequirementID: input.RequirementID, ControlImplementationID: input.ControlImplementationID, Code: strings.ToUpper(strings.TrimSpace(input.Code)), Name: strings.TrimSpace(input.Name), Claim: strings.TrimSpace(input.Claim), AcceptableSourceIDs: append([]string(nil), input.AcceptableSourceIDs...), PopulationScope: population, FreshnessMinutes: input.FreshnessMinutes, MinimumCoverage: input.MinimumCoverage, IndependenceRequired: input.IndependenceRequired, ContradictionPolicy: contradictionPolicy, FailureAction: failureAction, ConfiguredBy: strings.TrimSpace(input.ActorID), Status: input.Status, CreatedAt: now, UpdatedAt: now, Version: 1}
 	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventEvidenceContractAdded, value, input.ActorID); err != nil {
 		return ProgramAggregate{}, err
 	}

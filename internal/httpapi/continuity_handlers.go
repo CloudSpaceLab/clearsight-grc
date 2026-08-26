@@ -877,6 +877,8 @@ func writeContinuityError(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "The requested program or issue was not found in this bank scope.")
 	case errors.Is(err, continuity.ErrVersionConflict):
 		httpx.WriteError(w, http.StatusConflict, "version_conflict", "This record changed. Reload it before saving your update.")
+	case errors.Is(err, continuity.ErrMakerChecker):
+		httpx.WriteError(w, http.StatusConflict, "maker_checker_required", "A different current reviewer must activate this evidence check after its latest change.")
 	case errors.Is(err, continuity.ErrDuplicate), errors.Is(err, continuity.ErrTriggerDuplicate):
 		httpx.WriteError(w, http.StatusConflict, "duplicate", "An active record already exists for this code or trigger.")
 	case errors.Is(err, continuity.ErrInvalidState):

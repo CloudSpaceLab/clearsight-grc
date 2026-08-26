@@ -291,7 +291,7 @@ func TestEvidenceContractLifecycleIsVersionedAndReconstructable(t *testing.T) {
 	program, err = service.TransitionEvidenceContract(ctx, TransitionEvidenceContractInput{
 		TenantID: "bank", ProgramID: program.Program.ID, ContractID: revised.ID,
 		ExpectedVersion: program.Program.Version, ExpectedContractVersion: revised.Version,
-		To: EvidenceContractActive, Rationale: "The current evidence rules are ready for use.", ActorID: "program-owner",
+		To: EvidenceContractActive, Rationale: "The current evidence rules are ready for use.", ActorID: "evidence-reviewer",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -394,6 +394,38 @@ func TestActiveEvidenceContractRevisionRequiresReviewerReactivation(t *testing.T
 	}
 	if got := program.EvidenceContracts[0].Status; got != EvidenceContractActive {
 		t.Fatalf("reviewed evidence check status = %s, want %s", got, EvidenceContractActive)
+	}
+}
+
+func TestEvidenceContractActivationRequiresDifferentCurrentReviewer(t *testing.T) {
+	service := NewService(NewMemoryRepository())
+	ctx := WithTrustedSystemScope(t.Context())
+	now := time.Now().UTC()
+	program, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", LegalEntityID: "entity-1", Code: "MAKER-CHECKER", Name: "Evidence maker checker", Type: "ASSURANCE", OwningFunction: "Risk", OwnerPrincipalID: "program-owner", EffectiveFrom: now, ActorID: "program-owner"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.AddRequirement(ctx, AddRequirementInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, Code: "REQ", Title: "Keep evidence", Statement: "The bank keeps evidence.", Status: RequirementApproved, EffectiveFrom: now, ActorID: "program-owner"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, RequirementID: program.Requirements[0].ID, Code: "CHECK", Name: "Evidence check", Claim: "Evidence remains current.", FreshnessMinutes: 60, MinimumCoverage: 1, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractDraft, ActorID: "program-owner"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := program.EvidenceContracts[0]
+	for _, actorID := range []string{"", "program-owner"} {
+		_, err = service.TransitionEvidenceContract(ctx, TransitionEvidenceContractInput{TenantID: "bank", ProgramID: program.Program.ID, ContractID: contract.ID, ExpectedVersion: program.Program.Version, ExpectedContractVersion: contract.Version, To: EvidenceContractActive, Rationale: "Approve the evidence rules.", ActorID: actorID})
+		if !errors.Is(err, ErrMakerChecker) {
+			t.Fatalf("activation by %q returned %v", actorID, err)
+		}
+	}
+	program, err = service.TransitionEvidenceContract(ctx, TransitionEvidenceContractInput{TenantID: "bank", ProgramID: program.Program.ID, ContractID: contract.ID, ExpectedVersion: program.Program.Version, ExpectedContractVersion: contract.Version, To: EvidenceContractActive, Rationale: "Independent review approved the evidence rules.", ActorID: "evidence-reviewer"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if program.EvidenceContracts[0].ConfiguredBy != "program-owner" || program.EvidenceContracts[0].Status != EvidenceContractActive {
+		t.Fatalf("activated evidence contract = %#v", program.EvidenceContracts[0])
 	}
 }
 

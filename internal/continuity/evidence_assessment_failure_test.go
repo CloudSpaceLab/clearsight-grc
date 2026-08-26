@@ -78,7 +78,7 @@ func TestNonSupportingEvidenceAssessmentCreatesOneLinkedEntityScopedMatter(t *te
 		TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version,
 		RequirementID: program.Requirements[0].ID, Code: "RETURN", Name: "Annual return filing",
 		Claim: "The annual return was filed before the deadline.", FreshnessMinutes: 1440, MinimumCoverage: 1,
-		ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractDraft,
+		ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractDraft, ActorID: "program-owner",
 	})
 	if err != nil {
 		t.Fatal(err)

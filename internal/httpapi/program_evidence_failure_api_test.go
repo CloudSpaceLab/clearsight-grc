@@ -52,8 +52,13 @@ func TestProgramEvidenceFailureAPIRecordsResultAndReturnsLinkedIssueInWorkList(t
 	var program continuity.ProgramAggregate
 	post("/api/v1/programs", `{"tenant_id":"bank","legal_entity_id":"bank-ng","code":"EVIDENCE","name":"Evidence oversight","type":"COMPLIANCE","owning_function":"Compliance","owner_candidate_id":"reviewer-owner","approval_authority_candidate_id":"approver","scope":{},"effective_from":"2026-08-26T00:00:00Z"}`, &program)
 	post("/api/v1/programs/"+program.Program.ID+"/requirements", `{"tenant_id":"bank","expected_version":1,"code":"REQ","title":"Retain evidence","statement":"Evidence must be retained.","status":"APPROVED","effective_from":"2026-08-26T00:00:00Z"}`, &program)
-	post("/api/v1/programs/"+program.Program.ID+"/evidence-contracts", `{"tenant_id":"bank","expected_version":2,"requirement_id":"`+program.Requirements[0].ID+`","code":"CHECK","name":"Retention evidence","claim":"Required evidence is retained.","acceptable_source_ids":[],"population_scope":{},"freshness_minutes":60,"minimum_coverage":1,"contradiction_policy":"REVIEW","failure_action":"MATTER","status":"ACTIVE"}`, &program)
-	post("/api/v1/programs/"+program.Program.ID+"/evidence-assessments", `{"tenant_id":"bank","expected_version":3,"contract_id":"`+program.EvidenceContracts[0].ID+`","conclusion":"UNSUPPORTED","coverage":0.5,"basis":{"missing":1},"assessed_by":"forged-reviewer","assessed_at":"2026-08-26T10:00:00Z"}`, &program)
+	post("/api/v1/programs/"+program.Program.ID+"/evidence-contracts", `{"tenant_id":"bank","expected_version":2,"requirement_id":"`+program.Requirements[0].ID+`","code":"CHECK","name":"Retention evidence","claim":"Required evidence is retained.","acceptable_source_ids":[],"population_scope":{},"freshness_minutes":60,"minimum_coverage":1,"contradiction_policy":"REVIEW","failure_action":"MATTER","status":"DRAFT"}`, &program)
+	var err error
+	program, err = service.TransitionEvidenceContract(continuity.WithTrustedSystemScope(t.Context()), continuity.TransitionEvidenceContractInput{TenantID: "bank", ProgramID: program.Program.ID, ContractID: program.EvidenceContracts[0].ID, ExpectedVersion: program.Program.Version, ExpectedContractVersion: program.EvidenceContracts[0].Version, To: continuity.EvidenceContractActive, Rationale: "Independent review approved the evidence rules.", ActorID: "reviewer-2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	post("/api/v1/programs/"+program.Program.ID+"/evidence-assessments", `{"tenant_id":"bank","expected_version":4,"contract_id":"`+program.EvidenceContracts[0].ID+`","conclusion":"UNSUPPORTED","coverage":0.5,"basis":{"missing":1},"assessed_by":"forged-reviewer","assessed_at":"2026-08-26T10:00:00Z"}`, &program)
 	if len(program.EvidenceAssessments) != 1 || program.EvidenceAssessments[0].AssessedBy != "reviewer-owner" {
 		t.Fatalf("API assessment identity/result = %#v", program.EvidenceAssessments)
 	}

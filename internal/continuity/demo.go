@@ -136,6 +136,6 @@ func activateDemoEvidence(ctx context.Context, service *Service, program Program
 	return service.TransitionEvidenceContract(ctx, TransitionEvidenceContractInput{
 		TenantID: program.Program.TenantID, ProgramID: program.Program.ID, ContractID: contract.ID,
 		ExpectedVersion: program.Program.Version, ExpectedContractVersion: contract.Version,
-		To: EvidenceContractActive, Rationale: "The sample reviewer approved the evidence rules.", ActorID: "user-demo",
+		To: EvidenceContractActive, Rationale: "The sample reviewer approved the evidence rules.", ActorID: "role-cro",
 	})
 }

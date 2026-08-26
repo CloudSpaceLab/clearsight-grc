@@ -265,7 +265,7 @@ func TestProgramSafeguardOwnerMustBeAnEligiblePerformer(t *testing.T) {
 		}},
 	})
 	body := func(owner string) string {
-		return fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"objective_id":"%s","name":"Annual return checklist","description":"Owners confirm each section.","implementation_type":"CHECKLIST","owner_principal_id":"%s","scope":{},"status":"IMPLEMENTED","effective_from":"2026-09-01T00:00:00Z"}`, program.Program.Version, program.ControlObjectives[0].ID, owner)
+		return fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"objective_id":"%s","name":"Annual return checklist","description":"Owners confirm each section.","implementation_type":"CHECKLIST","owner_principal_id":"%s","scope":{},"status":"PLANNED","effective_from":"2026-09-01T00:00:00Z"}`, program.Program.Version, program.ControlObjectives[0].ID, owner)
 	}
 	denied := httptest.NewRecorder()
 	handler.ServeHTTP(denied, httptest.NewRequest(http.MethodPost, "/api/v1/programs/"+program.Program.ID+"/control-implementations", strings.NewReader(body("unlisted-person"))))
