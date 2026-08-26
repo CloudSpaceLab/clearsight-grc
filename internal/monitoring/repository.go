@@ -34,5 +34,6 @@ type Repository interface {
 	ListCheckRevisions(context.Context, string, string, int) ([]MonitoringCheck, error)
 	TransitionCheck(context.Context, LifecycleTransition) (MonitoringCheck, error)
 	AppendResult(context.Context, MonitoringResult) (MonitoringResult, error)
+	Result(context.Context, string, string) (MonitoringResult, error)
 	ListResults(context.Context, string, string, int) ([]MonitoringResult, error)
 }

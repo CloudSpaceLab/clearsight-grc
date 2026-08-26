@@ -87,6 +87,32 @@ func TestMemoryRepositoryStoresChecksAndAppendOnlyResults(t *testing.T) {
 	}
 }
 
+func TestMemoryRepositoryLoadsResultByExactTenantAndID(t *testing.T) {
+	repo := NewMemoryRepository()
+	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	result := MonitoringResult{
+		ID: "result-exact", TenantID: "bank-a", ProgramID: "program-a", MonitoringCheckID: "check-a", MonitoringCheckVersion: 2,
+		InputKind: InputSource, InputReferenceID: "receipt-a", InputReferenceVersion: 3,
+		Evaluation: Evaluation{Band: RiskHigh, Coverage: 1}, EvaluatedAt: now, EvaluatorVersion: "risk-v2", CreatedAt: now,
+	}
+	if _, err := repo.AppendResult(t.Context(), result); err != nil {
+		t.Fatal(err)
+	}
+	stored, err := repo.Result(t.Context(), "bank-a", result.ID)
+	if err != nil {
+		t.Fatalf("load exact result: %v", err)
+	}
+	if stored.ID != result.ID || stored.TenantID != result.TenantID || stored.MonitoringCheckID != result.MonitoringCheckID {
+		t.Fatalf("stored result = %#v, want exact immutable result", stored)
+	}
+	if _, err := repo.Result(t.Context(), "bank-b", result.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("cross-tenant result read error = %v, want not found", err)
+	}
+	if _, err := repo.Result(t.Context(), "bank-a", "missing-result"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing result read error = %v, want not found", err)
+	}
+}
+
 func TestMemoryRepositoryRecordsCheckRevisionAndTransitionEventsExactlyOnce(t *testing.T) {
 	repo := NewMemoryRepository()
 	now := time.Date(2026, 8, 26, 8, 0, 0, 0, time.UTC)

@@ -310,6 +310,15 @@ func (r *PostgresRepository) ListResults(ctx context.Context, tenant, checkID st
 	return values, rows.Err()
 }
 
+const resultByIDSQL = resultSelect + `
+	WHERE r.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+	  AND r.id=$2::uuid`
+
+func (r *PostgresRepository) Result(ctx context.Context, tenant, id string) (MonitoringResult, error) {
+	value, err := scanResult(r.pool.QueryRow(ctx, resultByIDSQL, tenant, id))
+	return value, mapPostgresError(err)
+}
+
 const checkSelect = `SELECT c.id::text,c.tenant_id::text,c.program_id::text,COALESCE(c.requirement_id::text,''),COALESCE(c.control_implementation_id::text,''),COALESCE(c.evidence_contract_id::text,''),c.code,c.name,c.claim,c.input_kind,COALESCE(c.form_template_id::text,''),COALESCE(c.form_template_version,0),COALESCE(c.binding_id::text,''),COALESCE(c.binding_version,0),c.source_rules,c.thresholds,c.freshness_minutes,c.minimum_coverage,COALESCE(c.owner_principal_id::text,''),COALESCE(c.reviewer_principal_id::text,''),c.failure_action,c.status,c.is_current,c.effective_from,c.effective_until,c.version,COALESCE(c.created_by::text,''),COALESCE(c.submitted_by::text,''),COALESCE(c.approved_by::text,''),COALESCE(c.rejected_by::text,''),c.created_at,c.updated_at FROM monitoring_checks c JOIN tenants t ON t.id=c.tenant_id`
 const resultSelect = `SELECT r.id::text,r.tenant_id::text,r.program_id::text,r.monitoring_check_id::text,r.monitoring_check_version,r.input_kind,r.input_reference_id,r.input_reference_version,r.evaluation,r.source_receipt,r.submission_provenance,r.evaluated_at,r.evaluator_version,r.created_at FROM monitoring_results r JOIN tenants t ON t.id=r.tenant_id`
 

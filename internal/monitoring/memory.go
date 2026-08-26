@@ -318,6 +318,16 @@ func filterMonitoringEvents(values []MonitoringEvent, tenant, aggregateType, agg
 	return result
 }
 
+func (r *MemoryRepository) Result(_ context.Context, tenant, id string) (MonitoringResult, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	value, ok := r.results[id]
+	if !ok || value.TenantID != tenant {
+		return MonitoringResult{}, ErrNotFound
+	}
+	return cloneValue(value), nil
+}
+
 func (r *MemoryRepository) ListResults(_ context.Context, tenant, checkID string, limit int) ([]MonitoringResult, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
