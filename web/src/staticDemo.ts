@@ -1,4 +1,6 @@
 import type { CoverageDecision, DocumentCoverage, DocumentImport, ProposalStatus } from "./documentTypes";
+import staticDemoFixturesURL from "./staticDemoFixtures.json?url";
+import staticDemoWorkflowRuntimeURL from "./staticDemoWorkflowRuntime.js?url";
 
 export const staticDemoEnabled = import.meta.env.VITE_STATIC_DEMO === "true";
 
@@ -11,52 +13,68 @@ export class StaticDemoHTTPError extends Error {
 
 const now = "2026-08-06T15:30:00Z";
 const future = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
-const programID = "program-ndpa";
-const matterID = "matter-gaid-change";
+let programID = "program-ndpa";
+let matterID = "matter-gaid-change";
 const evidenceID = "evidence-annual-return";
+type WorkflowRuntime = Record<string, any> & { accounts: Array<{ label: string; username: string; password: string; actor: Record<string, any> }> };
+let currentStaticActor: Record<string, any>;
+function workflowRuntime() {
+  const value = (globalThis as typeof globalThis & { ClearSightStaticWorkflowRuntime?: WorkflowRuntime }).ClearSightStaticWorkflowRuntime;
+  if (!value) throw new Error("The static workflow runtime is unavailable.");
+  return value;
+}
+let workflowRuntimeLoading: Promise<void> | undefined;
+function assetURLForBase(assetURL: string, baseURL: string) {
+  const targetBase = baseURL.endsWith("/") ? baseURL : `${baseURL}/`;
+  const buildBase = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+  const relative = assetURL.startsWith(buildBase) ? assetURL.slice(buildBase.length) : assetURL.replace(/^\/+/, "");
+  return `${targetBase}${relative}`;
+}
+export function loadStaticDemoWorkflowRuntime(baseURL: string = import.meta.env.BASE_URL) {
+  const scope = globalThis as typeof globalThis & { ClearSightStaticWorkflowRuntime?: WorkflowRuntime };
+  if (scope.ClearSightStaticWorkflowRuntime) return Promise.resolve();
+  if (workflowRuntimeLoading) return workflowRuntimeLoading;
+  workflowRuntimeLoading = new Promise<void>((resolve, reject) => {
+    const script = globalThis.document.createElement("script");
+    script.dataset.clearsightStaticRuntime = "true";
+    script.src = assetURLForBase(staticDemoWorkflowRuntimeURL, baseURL);
+    const fail = (message: string) => {
+      script.remove();
+      workflowRuntimeLoading = undefined;
+      reject(new Error(message));
+    };
+    script.onload = () => scope.ClearSightStaticWorkflowRuntime ? resolve() : fail("The static workflow runtime loaded but did not initialize.");
+    script.onerror = () => fail("The static workflow runtime could not be loaded.");
+    globalThis.document.head.append(script);
+  });
+  return workflowRuntimeLoading;
+}
 
 let program: Record<string, any>;
 let programSummary: Record<string, any>;
 let programDetail: Record<string, any>;
+let programBaseline: Record<string, any>;
 let programOperations: Record<string, any>;
 const monitoringCheck = { id: "monitor-return", tenant_id: "bank-demo", program_id: programID, code: "RETURN-READINESS", name: "Annual return readiness", claim: "Every return section has an owner and approved evidence.", input_kind: "SOURCE", binding_id: "binding-return", binding_version: 2, status: "ACTIVE", is_current: true, submitted_by: "role-dpo", freshness_minutes: 1440, minimum_coverage: 1, failure_action: "RECOMMEND_MATTER", version: 3, created_at: now, updated_at: now };
 const monitoringResult = { id: "monitor-result-1", monitoring_check_id: monitoringCheck.id, monitoring_check_version: 3, evaluated_at: now, evaluation: { score: 20, band: "MODERATE", coverage: .8, rule_results: [{ rule_id: "return-owner", field_id: "section_owner", outcome: "FAIL", reason: "Two sections do not have an approved owner." }] } };
 const demoForms: any[] = [];
 const demoChecks: any[] = [monitoringCheck];
+const monitoringResults = new Map<string, Record<string, any>>([[monitoringCheck.id, monitoringResult]]);
+const monitoringIssues = new Map<string, Record<string, any>>();
+const createdSources: Array<Record<string, any>> = [], sourceConnections: Array<Record<string, any>> = [], sourceViews: Array<Record<string, any>> = [], sourceBindings: Array<Record<string, any>> = [];
 
 let programReviewAcknowledged = false;
 function programReviewDigest() {
-  const checkpoint = {
-    id: "review-ndpa-1", tenant_id: "bank-demo", program_id: programID, principal_id: "role-cro",
-    program_version: programReviewAcknowledged ? 12 : 10, projection_version: programReviewAcknowledged ? 3 : 2,
-    accepted_at: programReviewAcknowledged ? now : "2026-08-04T09:00:00Z",
-  };
-  if (programReviewAcknowledged) return {
-    program_id: programID, state: "CURRENT", review_required: false, checkpoint,
-    current_program_version: 12, current_projection_version: 3, current_overall: "EVIDENCE_INSUFFICIENT", baseline_overall: "EVIDENCE_INSUFFICIENT",
-    open_matter_count: 2, open_matter_delta: 0, changes: [], changes_total: 0, changes_omitted: 0,
-    current_exceptions: programSummary.reasons, current_exceptions_total: 1, new_exceptions: [], new_exceptions_total: 0, resolved_exceptions: [], resolved_exceptions_total: 0,
-  };
-  return {
-    program_id: programID, state: "CHANGED", review_required: true, checkpoint,
-    current_program_version: 12, current_projection_version: 3, current_overall: "EVIDENCE_INSUFFICIENT", baseline_overall: "CURRENT",
-    open_matter_count: 2, open_matter_delta: 2,
-    changes: [
-      { kind: "STATE", summary: "Overall status changed from current to evidence insufficient." },
-      { kind: "EVIDENCE", summary: "Evidence for Annual return evidence package was assessed as partially supported.", object_type: "EVIDENCE_CONTRACT", object_id: "contract-return" },
-      { kind: "CHANGE", summary: "Observed change: requirement changed.", object_type: "REQUIREMENT", object_id: "req-2" },
-    ],
-    changes_total: 3, changes_omitted: 0,
-    current_exceptions: programSummary.reasons, current_exceptions_total: 1,
-    new_exceptions: programSummary.reasons, new_exceptions_total: 1,
-    resolved_exceptions: [], resolved_exceptions_total: 0,
-  };
+  return workflowRuntime().reviewDigest({ programID, program, summary: programSummary, acknowledged: programReviewAcknowledged, now });
 }
 
 let matter: Record<string, any>;
 let matterSummary: Record<string, any>;
 let matterDetail: Record<string, any>;
+let matterBaseline: Record<string, any>;
+let responseHistory: Record<string, Array<Record<string, any>>>;
 let evidenceRequest: Record<string, any>;
+let evidenceRequests: Array<Record<string, any>> = [];
 let todayItems: Array<Record<string, any>>;
 type StaticDemoFixtures = {
   program: Record<string, any>;
@@ -77,15 +95,18 @@ let document: DocumentImport;
 let documentCoverage: DocumentCoverage;
 
 export async function loadStaticDemoFixtures(fetcher: typeof fetch = globalThis.fetch, baseURL: string = import.meta.env.BASE_URL) {
-  const normalizedBaseURL = baseURL.endsWith("/") ? baseURL : `${baseURL}/`;
-  const response = await fetcher(`${normalizedBaseURL}static-demo-fixtures.json`);
+  const response = await fetcher(assetURLForBase(staticDemoFixturesURL, baseURL));
   if (!response.ok) throw new Error(`Static demo fixtures are unavailable (HTTP ${response.status}).`);
   const fixtures = await response.json() as StaticDemoFixtures;
+  programID = "program-ndpa"; matterID = "matter-gaid-change";
+  currentStaticActor = workflowRuntime().accounts[0]!.actor;
+  programReviewAcknowledged = false; demoForms.splice(0); demoChecks.splice(0, demoChecks.length, clone(monitoringCheck)); monitoringResults.clear(); monitoringResults.set(monitoringCheck.id, clone(monitoringResult)); monitoringIssues.clear(); createdSources.splice(0); sourceConnections.splice(0); sourceViews.splice(0); sourceBindings.splice(0);
   program = clone(fixtures.program);
   programSummary = clone(fixtures.programSummary);
   programSummary.program = program;
   programDetail = clone(fixtures.programDetail);
   programDetail.program = program;
+  programBaseline = clone(programDetail);
   programOperations = clone(fixtures.programOperations);
   matter = clone(fixtures.matter);
   matter.due_at = future;
@@ -93,9 +114,16 @@ export async function loadStaticDemoFixtures(fetcher: typeof fetch = globalThis.
   matterSummary.matter = matter;
   matterDetail = clone(fixtures.matterDetail);
   matterDetail.matter = matter;
-  for (const action of matterDetail.actions ?? []) action.due_at = future;
+  for (const action of matterDetail.actions ?? []) { action.due_at = future; action.version ??= 1; action.owner_principal_id ??= "role-privacy-control"; }
+  for (const contract of matterDetail.verification_contracts ?? []) { contract.version ??= 1; contract.authority_principal_id ??= "role-dpco"; }
+  for (const implementation of programDetail.control_implementations ?? []) implementation.version ??= 1;
+  for (const implementation of programDetail.control_implementations ?? []) implementation.owner_principal_id ??= "role-privacy-control";
+  for (const contract of programDetail.evidence_contracts ?? []) { contract.version ??= 1; contract.configured_by ??= "role-dpo"; }
+  responseHistory = {};
+  matterBaseline = clone(matterDetail);
   evidenceRequest = clone(fixtures.evidenceRequest);
   evidenceRequest.deadline = future;
+  evidenceRequests = [evidenceRequest];
   todayItems = clone(fixtures.todayItems);
   for (const item of todayItems) item.due_at = future;
   guide = clone(fixtures.guide);
@@ -104,7 +132,7 @@ export async function loadStaticDemoFixtures(fetcher: typeof fetch = globalThis.
 }
 let guide: Record<string, any>;
 export async function staticDemoRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  if (!staticDemoEnabled) throw new Error("Static demo transport is disabled");
+  if (!staticDemoEnabled) throw new Error("disabled");
   const url = new URL(path, "https://clearsight.demo");
   const pathname = url.pathname;
   const method = (init?.method ?? "GET").toUpperCase();
@@ -116,22 +144,26 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (fixture === "authority-forbidden" && pathname === "/api/v1/authority/resolve") throw new StaticDemoHTTPError(403, "permission_denied", "Authority inspection is restricted.");
   if (fixture === "capture-conflict" && pathname.includes(`/api/v1/evidence/requests/${evidenceID}/submissions`) && method === "POST") throw new StaticDemoHTTPError(409, "version_conflict", "The request changed while you were working.");
 
+  const auth = workflowRuntime().authRequest({ pathname, method, input: parseBody(init), ErrorType: StaticDemoHTTPError });
+  if (auth.handled) { if (auth.actor) currentStaticActor = auth.actor; return clone(auth.body) as T; }
   if (pathname === "/api/v1/context") {
     const productionUnavailable = fixture === "today-unavailable";
     const noConfig = fixture === "no-config-access";
-    return clone({ tenant: { id: "bank-demo", name: "Meridian Trust Bank" }, legal_entity: { id: "bank-ng", name: "Meridian Trust Bank Nigeria" }, actor: { id: "role-cro", name: "Chief Risk Officer", kind: "PERSON", role_codes: ["CRO", "EXECUTIVE"], assurance_level: "MFA", authentication: "STATIC_DEMO", session_id: "pages-demo" }, mode: "static-stakeholder-demo", demo_mode: !productionUnavailable, capabilities: { document_import: true, reference_journeys: !productionUnavailable, config_read: !noConfig, config_write: !noConfig, platform_operations_read: !noConfig, platform_operations_write: !noConfig } }) as T;
+    return clone({ tenant: { id: "bank-demo", name: "Meridian Trust Bank" }, legal_entity: { id: "bank-ng", name: "Meridian Trust Bank Nigeria" }, actor: { ...currentStaticActor, assurance_level: "MFA", authentication: "STATIC_DEMO", session_id: "pages-demo" }, mode: "static-stakeholder-demo", demo_mode: !productionUnavailable, capabilities: { document_import: true, reference_journeys: !productionUnavailable, config_read: !noConfig, config_write: !noConfig, platform_operations_read: !noConfig, platform_operations_write: !noConfig } }) as T;
   }
   if (pathname === "/api/v1/today") return clone({ items: fixture === "today-empty" ? [] : todayItems, generated_at: now }) as T;
   if (pathname === "/api/v1/compliance/readiness") return clone({ tenant_id: "bank-demo", status: "AT_RISK", baseline_known: false, generated_at: now, dimensions: { current: 0, aging: 1, at_risk: 1, unknown: 1, blocked_routing: 0, pending_human: 1 }, active_drifts: [{ id: "drift-1", subject_type: "PROGRAM", subject_id: programID, dimension: "EVIDENCE", severity: 4, summary: "Two annual-return evidence sections are incomplete.", required_action: "Assign owners and complete DPCO review.", detected_at: now }], recommended_actions: ["Complete the two missing evidence ownership records.", "Confirm the final DPCO review date."] }) as T;
   if (pathname === "/api/v1/programs" && method === "POST") {
     const input = parseBody(init) as Record<string, any>;
     const createdProgram = { ...program, id: "program-created", code: input.code, name: input.name, type: input.type, status: "DRAFT", owning_function: input.owning_function, owner_principal_id: input.owner_candidate_id, authority_principal_id: input.approval_authority_candidate_id, jurisdiction: input.jurisdiction, scope: input.scope ?? {}, effective_from: input.effective_from, version: 1 };
-    return clone({ state_label: "Setup in progress", program: createdProgram, requirements: [], applicability: [], control_objectives: [], control_implementations: [], requirement_control_links: [], evidence_contracts: [], evidence_assessments: [], triggers: [] }) as T;
+    programID = createdProgram.id; program = createdProgram; programDetail = { state_label: "Setup in progress", program, requirements: [], applicability: [], control_objectives: [], control_implementations: [], requirement_control_links: [], evidence_contracts: [], evidence_assessments: [], triggers: [] }; programBaseline = clone(programDetail); programSummary = { program, state_label: "Setup in progress", reasons: [], program_version: 1, projection_version: 0, projection_stale: false }; programOperations = { ...programOperations, program_id: programID, operations: (programOperations.operations ?? []).filter((item: any) => !item.subresource_id) }; programReviewAcknowledged = false;
+    return clone(programDetail) as T;
   }
   if (pathname === "/api/v1/programs/setup-candidates" && method === "GET") return clone({ owner_candidates: [{ id: "role-dpo", display_name: "Data Protection Officer", kind: "POSITION", role: "DPO" }], approval_authority_candidates: [{ id: "role-cro", display_name: "Chief Risk Officer", kind: "POSITION", role: "CRO" }, { id: "role-deputy-cro", display_name: "Deputy Chief Risk Officer", kind: "POSITION", role: "Deputy CRO" }], has_more: false, generated_at: now }) as T;
   if (pathname === "/api/v1/program-summaries") return clone({ items: matches(url, programSummary.program.name, programSummary.program.code) ? [programSummary] : [], generated_at: now }) as T;
   if (pathname === `/api/v1/programs/${programID}`) return clone(programDetail) as T;
-  if (pathname === `/api/v1/programs/${programID}/operations` && method === "GET") return clone({ ...programOperations, program_version: program.version }) as T;
+  if (pathname === `/api/v1/programs/${programID}/history` && method === "GET") return clone(programBaseline) as T;
+  if (pathname === `/api/v1/programs/${programID}/operations` && method === "GET") return clone(currentProgramOperations()) as T;
   if (pathname === `/api/v1/programs/${programID}/details` && method === "POST") {
     const input = requireProgramVersion(init);
     program.name = String(input.name ?? program.name); program.owning_function = String(input.owning_function ?? program.owning_function); program.jurisdiction = String(input.jurisdiction ?? program.jurisdiction); program.scope = input.scope ?? program.scope; program.effective_from = String(input.effective_from ?? program.effective_from); (program as any).effective_until = input.effective_until;
@@ -156,8 +188,10 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     const input = requireProgramVersion(init); const detail = programDetail as any; detail.control_objectives.push({ id: `obj-${detail.control_objectives.length + 1}`, ...input }); finishProgramMutation(); return clone(detail) as T;
   }
   if (pathname === `/api/v1/programs/${programID}/control-implementations` && method === "POST") {
-    const input = requireProgramVersion(init); const detail = programDetail as any; detail.control_implementations.push({ id: `control-${detail.control_implementations.length + 1}`, ...input, objective_id: input.objective_id, implementation_type: input.implementation_type, owner_principal_id: input.owner_principal_id, effective_from: input.effective_from }); finishProgramMutation(); return clone(detail) as T;
+    const input = requireProgramVersion(init); const detail = programDetail as any; detail.control_implementations.push({ id: `control-${detail.control_implementations.length + 1}`, ...input, objective_id: input.objective_id, implementation_type: input.implementation_type, owner_principal_id: input.owner_principal_id, effective_from: input.effective_from, version: 1 }); finishProgramMutation(); return clone(detail) as T;
   }
+  const programResource = workflowRuntime().programResourceRequest({ pathname, method, input: parseBody(init), program, detail: programDetail, summary: programSummary, actor: currentStaticActor, ErrorType: StaticDemoHTTPError, now });
+  if (programResource.handled) return clone(programResource.body) as T;
   if (pathname === `/api/v1/programs/${programID}/control-links` && method === "POST") {
     const input = requireProgramVersion(init); const detail = programDetail as any; detail.requirement_control_links.push({ id: `coverage-link-${detail.requirement_control_links.length + 1}`, requirement_id: input.requirement_id, implementation_id: input.implementation_id }); finishProgramMutation(); return clone(detail) as T;
   }
@@ -165,10 +199,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     requireProgramVersion(init); const detail = programDetail as any; const linkID = decodeURIComponent(pathname.split("/").at(-2) ?? ""); detail.requirement_control_links = detail.requirement_control_links.filter((value: any) => value.id !== linkID); finishProgramMutation(); return clone(detail) as T;
   }
   if (pathname === `/api/v1/programs/${programID}/evidence-contracts` && method === "POST") {
-    const input = requireProgramVersion(init); const detail = programDetail as any; detail.evidence_contracts.push({ id: `contract-${detail.evidence_contracts.length + 1}`, ...input, requirement_id: input.requirement_id, control_implementation_id: input.control_implementation_id, acceptable_source_ids: input.acceptable_source_ids, freshness_minutes: input.freshness_minutes, minimum_coverage: input.minimum_coverage, independence_required: input.independence_required, contradiction_policy: input.contradiction_policy, failure_action: input.failure_action }); finishProgramMutation(); return clone(detail) as T;
-  }
-  if (/\/api\/v1\/programs\/[^/]+\/evidence-contracts\/[^/]+\/assessments$/.test(pathname) && method === "POST") {
-    const input = requireProgramVersion(init); const detail = programDetail as any; const contractID = decodeURIComponent(pathname.split("/").at(-2) ?? ""); if (input.contract_id !== contractID) throw new StaticDemoHTTPError(400, "contract_mismatch", "The evidence check in the request does not match the selected check."); detail.evidence_assessments.push({ id: `assessment-${detail.evidence_assessments.length + 1}`, ...input, contract_id: contractID, assessed_at: input.assessed_at, valid_until: input.valid_until, assessed_by: "role-cro" }); finishProgramMutation(); return clone(detail) as T;
+    const input = requireProgramVersion(init); const detail = programDetail as any; detail.evidence_contracts.push({ id: `contract-${detail.evidence_contracts.length + 1}`, ...input, requirement_id: input.requirement_id, control_implementation_id: input.control_implementation_id, acceptable_source_ids: input.acceptable_source_ids, freshness_minutes: input.freshness_minutes, minimum_coverage: input.minimum_coverage, independence_required: input.independence_required, contradiction_policy: input.contradiction_policy, failure_action: input.failure_action, configured_by: currentStaticActor.id, version: 1 }); finishProgramMutation(); return clone(detail) as T;
   }
   if (pathname === `/api/v1/programs/${programID}/transition` && method === "POST") {
     const input = parseBody(init) as { expected_version?: number; to?: string; rationale?: string };
@@ -187,7 +218,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === `/api/v1/programs/${programID}/review-digest` && method === "GET") return clone(programReviewDigest()) as T;
   if (pathname === `/api/v1/programs/${programID}/reviews` && method === "POST") {
     const input = parseBody(init) as { expected_program_version?: number; expected_projection_version?: number };
-    if (input.expected_program_version !== 12 || input.expected_projection_version !== 3) throw new StaticDemoHTTPError(409, "version_conflict", "The Program changed while it was being reviewed.");
+    if (input.expected_program_version !== program.version || input.expected_projection_version !== 3) throw new StaticDemoHTTPError(409, "version_conflict", "The Program changed while it was being reviewed.");
     programReviewAcknowledged = true;
     return clone(programReviewDigest()) as T;
   }
@@ -195,37 +226,51 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/matters" && method === "POST") {
     const input = parseBody(init) as Record<string, any>;
     const createdMatter = { ...matter, id: "matter-created", reference: "MAT-DEMO-NEW", type: input.type ?? "CONTROL_GAP", status: "DRAFT", priority: input.priority ?? 3, title: input.title ?? "New issue", summary: input.summary ?? "New Program issue", scope: input.scope ?? {}, known_facts: input.known_facts ?? {}, missing_facts: input.missing_facts ?? [], contradictions: input.contradictions ?? [], version: 1 };
-    return clone({ type_label: "Control gap", status_label: "Draft", next_action: "Start initial review", matter: createdMatter, links: input.program_id ? [{ id: "link-created", program_id: input.program_id, relationship: "AFFECTS" }] : [], decisions: [], actions: [], verification_contracts: [], verification_results: [], response_packages: [], closure: { ready: false, reasons: [] } }) as T;
+    matterID = createdMatter.id; matter = createdMatter; matterDetail = { type_label: "Control gap", status_label: "Draft", next_action: "Start initial review", matter, links: input.program_id ? [{ id: "link-created", program_id: input.program_id, relationship: "AFFECTS" }] : [], decisions: [], actions: [], verification_contracts: [], verification_results: [], response_packages: [], closure: { ready: false, reasons: [] } }; matterBaseline = clone(matterDetail); matterSummary = { matter, type_label: "Control gap", status_label: "Draft", next_action: "Start initial review", program_count: matterDetail.links.length, open_action_count: 0, outcome_check_count: 0 }; responseHistory = {};
+    return clone(matterDetail) as T;
   }
-  if (pathname === `/api/v1/matters/${matterID}`) return clone(matterDetail) as T;
-  if (/\/api\/v1\/matters\/[^/]+\/links\/[^/]+\/retirement$/.test(pathname) && method === "POST") {
-    const input = parseBody(init) as { expected_version?: number }; if (input.expected_version !== matter.version) throw new StaticDemoHTTPError(409, "version_conflict", "The issue changed before the Program link was removed."); const linkID = decodeURIComponent(pathname.split("/").at(-2) ?? ""); matterDetail.links = matterDetail.links.filter((value: { id: string }) => value.id !== linkID); matter.version += 1; matter.updated_at = now; return clone(matterDetail) as T;
+  if (pathname === `/api/v1/matters/${matterID}/operations` && method === "GET") return clone(currentMatterOperations()) as T;
+  if (pathname === `/api/v1/matters/${matterID}/history` && method === "GET") return clone(matterBaseline) as T;
+  if (/\/api\/v1\/matters\/[^/]+\/responses\/[^/]+\/history$/.test(pathname) && method === "GET") {
+    const responseID = decodeURIComponent(pathname.split("/").at(-2) ?? ""); const response = matterDetail.response_packages.find((item: any) => item.id === responseID);
+    if (!response) throw new StaticDemoHTTPError(404, "response_not_found", "The selected response is no longer available.");
+    return clone({ items: responseHistory[responseID] ?? [{ status: response.status, occurred_at: now, actor_label: "Chief Risk Officer", matter_version: matter.version }], has_more: false, generated_at: now }) as T;
   }
-  if (pathname === "/api/v1/evidence/sources") return clone({ items: [{ id: "source-ndpc", tenant_id: "bank-demo", legal_entity_id: "bank-ng", code: "NDPC-PUBLICATIONS", name: "NDPC official publications", type: "REGULATORY", authority_class: "AUTHORITATIVE", expected_freshness_minutes: 1440, last_observed_at: now, last_success_at: now, health: "CURRENT", status: "ACTIVE", version: 3 }, { id: "source-iam", tenant_id: "bank-demo", legal_entity_id: "bank-ng", code: "IAM-ENTITLEMENTS", name: "Identity and access records", type: "SYSTEM", authority_class: "SYSTEM_OF_RECORD", expected_freshness_minutes: 60, last_observed_at: now, last_success_at: "2026-08-06T14:30:00Z", health: "DEGRADED", status: "ACTIVE", version: 8 }] }) as T;
-  if (pathname === "/api/v1/form-templates" && method === "GET") return clone({ items: demoForms }) as T;
-  if (pathname === "/api/v1/form-templates" && method === "POST") {
-    const input = parseBody(init) as Record<string, any>; const form = { id: `form-${demoForms.length + 1}`, tenant_id: "bank-demo", ...input, status: "DRAFT", version: 1, created_at: now, updated_at: now }; demoForms.push(form); return clone(form) as T;
+  if (pathname === `/api/v1/matters/${matterID}` && method === "GET") return clone(matterDetail) as T;
+  const matterMutation = workflowRuntime().matterMutationRequest({ pathname, method, input: parseBody(init), matterID, matter, detail: matterDetail, summary: matterSummary, history: responseHistory, actor: currentStaticActor, ErrorType: StaticDemoHTTPError, now });
+  if (matterMutation.handled) return clone(matterMutation.body) as T;
+  const connectedData = workflowRuntime().connectedDataRequest({ pathname, method, url, input: parseBody(init), state: { sources: createdSources, connections: sourceConnections, views: sourceViews, bindings: sourceBindings }, ErrorType: StaticDemoHTTPError, now });
+  if (connectedData.handled) return clone(connectedData.body) as T;
+  const monitoringResponse = workflowRuntime().monitoringRequest({ pathname, method, input: parseBody(init), programID, forms: demoForms, checks: demoChecks, results: monitoringResults, actor: currentStaticActor, evidenceRequest, evidenceRequests, monitoringResult, ErrorType: StaticDemoHTTPError, now });
+  if (monitoringResponse.handled) return clone(monitoringResponse.body) as T;
+  if (/\/api\/v1\/monitoring-results\/[^/]+\/linked-issue$/.test(pathname) && method === "POST") {
+    const id = decodeURIComponent(pathname.split("/").at(-2) ?? ""), result = [...monitoringResults.values()].find((item) => item.id === id);
+    if (!result) throw new StaticDemoHTTPError(404, "monitoring_result_not_found", "The selected monitoring result is no longer available.");
+    const existing = monitoringIssues.get(id); if (existing) return clone({ matter: existing, created: false }) as T;
+    const check = demoChecks.find((item) => item.id === result.monitoring_check_id)!; matterID = `matter-${check.id}`; matter = { ...matter, id: matterID, reference: `MAT-${check.code}`, title: `Resolve ${check.name} exceptions`, summary: `Review the failed ${check.name} result and record the required handling.`, status: "ASSESSMENT", type: "CONTROL_GAP", owner_principal_id: program.owner_principal_id, version: 1, known_facts: { monitoring_result_id: id }, missing_facts: [], contradictions: [] }; matterDetail = { type_label: "Control gap", status_label: "Assessment", next_action: "Review the failed monitoring rules", matter, links: [{ id: `link-${check.id}`, program_id: check.program_id, relationship: "AFFECTS" }], decisions: [], actions: [], verification_contracts: [], verification_results: [], response_packages: [], closure: { ready: false, reasons: ["No action has been recorded for the monitoring exception."] } }; matterSummary = { matter, type_label: "Control gap", status_label: "Assessment", next_action: matterDetail.next_action, program_count: 1, open_action_count: 0, outcome_check_count: 0 }; matterBaseline = clone(matterDetail); responseHistory = {}; monitoringIssues.set(id, matter); return clone({ matter, created: true }) as T;
   }
-  if (/\/api\/v1\/form-templates\/[^/]+\/transition$/.test(pathname) && method === "POST") {
-    const input = parseBody(init) as Record<string, any>; const id = pathname.split("/").at(-2); const prior = demoForms.find((value) => value.id === id); if (!prior || prior.version !== input.expected_version) throw new StaticDemoHTTPError(409, "version_conflict", "The form changed before its status was updated."); const updated = { ...prior, status: input.to, version: prior.version + 1, updated_at: now }; demoForms.splice(demoForms.indexOf(prior), 1, updated); return clone(updated) as T;
+  if (pathname === "/api/v1/evidence/requests") {
+    const items = evidenceRequests.map((request) => request.id === evidenceID && fixture === "capture-terminal" ? { ...request, status: "EXPIRED" } : request.id === evidenceID && fixture === "long-content" ? { ...request, title: "Confirm the accountable owner for the processor register covering the Nigeria annual-return process across retail, corporate, digital and delegated processing operations", purpose: "Confirm the smallest unresolved ownership fact while preserving the full legal-entity, filing-year, source and review context needed by the DPCO without requiring the respondent to reconstruct the wider compliance programme." } : request);
+    return clone({ items }) as T;
   }
-  if (/\/api\/v1\/form-templates\/[^/]+\/collections$/.test(pathname) && method === "POST") return clone({ ...evidenceRequest, id: "evidence-monitoring-collection", title: "Complete the Program monitoring collection", status: "OPEN", version: 1 }) as T;
-  if (pathname === `/api/v1/programs/${programID}/monitoring-checks` && method === "GET") return clone({ items: demoChecks }) as T;
-  if (pathname === `/api/v1/programs/${programID}/monitoring-checks` && method === "POST") {
-    const input = parseBody(init) as Record<string, any>; const check = { id: `monitor-${demoChecks.length + 1}`, tenant_id: "bank-demo", program_id: programID, ...input, status: "DRAFT", is_current: true, submitted_by: "role-cro", version: 1, created_at: now, updated_at: now }; demoChecks.push(check); return clone(check) as T;
-  }
-  if (/\/api\/v1\/monitoring-checks\/[^/]+\/transition$/.test(pathname) && method === "POST") {
-    const input = parseBody(init) as Record<string, any>; const id = pathname.split("/").at(-2); const prior = demoChecks.find((value) => value.id === id); if (!prior || prior.version !== input.expected_version) throw new StaticDemoHTTPError(409, "version_conflict", "The monitoring check changed before its status was updated."); const updated = { ...prior, status: input.to, version: prior.version + 1, updated_at: now }; demoChecks.splice(demoChecks.indexOf(prior), 1, updated); return clone(updated) as T;
-  }
-  if (/\/api\/v1\/monitoring-checks\/[^/]+\/results$/.test(pathname) && method === "GET") return clone({ items: pathname.includes(monitoringCheck.id) ? [monitoringResult] : [] }) as T;
-  if (/\/api\/v1\/monitoring-checks\/[^/]+\/evaluate-source$/.test(pathname) && method === "POST") return clone(monitoringResult) as T;
-  if (pathname === "/api/v1/evidence/requests") return clone({ items: [fixture === "capture-terminal" ? { ...evidenceRequest, status: "EXPIRED" } : fixture === "long-content" ? { ...evidenceRequest, title: "Confirm the accountable owner for the processor register covering the Nigeria annual-return process across retail, corporate, digital and delegated processing operations", purpose: "Confirm the smallest unresolved ownership fact while preserving the full legal-entity, filing-year, source and review context needed by the DPCO without requiring the respondent to reconstruct the wider compliance programme." } : evidenceRequest] }) as T;
-  if (pathname === `/api/v1/evidence/requests/${evidenceID}`) {
+  const evidenceRequestMatch = pathname.match(/^\/api\/v1\/evidence\/requests\/([^/]+)$/);
+  if (evidenceRequestMatch && method === "GET") {
+    const requestID = decodeURIComponent(evidenceRequestMatch[1]!);
+    const selectedRequest = evidenceRequests.find((request) => request.id === requestID);
+    if (!selectedRequest) throw new StaticDemoHTTPError(404, "request_not_found", "The request is no longer available.");
     const eligibilityPreload = url.searchParams.get("request_intent") === "eligibility_preload";
-    if (fixture === "capture-not-found" && !eligibilityPreload) throw new StaticDemoHTTPError(404, "request_not_found", "The request is no longer available.");
-    return clone(fixture === "capture-terminal" && !eligibilityPreload ? { ...evidenceRequest, status: "EXPIRED" } : evidenceRequest) as T;
+    if (requestID === evidenceID && fixture === "capture-not-found" && !eligibilityPreload) throw new StaticDemoHTTPError(404, "request_not_found", "The request is no longer available.");
+    return clone(requestID === evidenceID && fixture === "capture-terminal" && !eligibilityPreload ? { ...selectedRequest, status: "EXPIRED" } : selectedRequest) as T;
   }
-  if (pathname.includes(`/api/v1/evidence/requests/${evidenceID}/submissions`) && method === "POST") return clone({ request_id: evidenceID, status: "SUBMITTED", submitted_at: now }) as T;
+  const evidenceSubmissionMatch = pathname.match(/^\/api\/v1\/evidence\/requests\/([^/]+)\/submissions$/);
+  if (evidenceSubmissionMatch && method === "POST") {
+    const requestID = decodeURIComponent(evidenceSubmissionMatch[1]!);
+    const selectedRequest = evidenceRequests.find((request) => request.id === requestID);
+    if (!selectedRequest) throw new StaticDemoHTTPError(404, "request_not_found", "The request is no longer available.");
+    selectedRequest.status = "SUBMITTED";
+    selectedRequest.version = Number(selectedRequest.version ?? 0) + 1;
+    return clone({ request_id: requestID, status: "SUBMITTED", submitted_at: now }) as T;
+  }
   if (pathname === "/api/v1/authority/resolve") {
     const input = parseBody(init) as { responsibility?: string };
     const reviewer = input.responsibility === "REVIEWER";
@@ -297,6 +342,8 @@ function requireProgramVersion(init?: RequestInit) {
 function finishProgramMutation() {
   program.version += 1; program.updated_at = now; programSummary.program_version = program.version; programSummary.projection_stale = true;
 }
+function currentMatterOperations() { return workflowRuntime().matterOperations({ matter, detail: matterDetail, currentActor: currentStaticActor, now }); }
+function currentProgramOperations() { return workflowRuntime().programOperations({ program, detail: programDetail, base: programOperations, forms: demoForms.filter((item) => item.program_id === programID), checks: demoChecks.filter((item) => item.program_id === programID), currentActor: currentStaticActor, now }); }
 function delay(ms: number) { return new Promise((resolve) => window.setTimeout(resolve, ms)); }
 function matches(url: URL, ...values: string[]) { const query = (url.searchParams.get("q") ?? "").trim().toLowerCase(); const status = url.searchParams.get("status") ?? ""; if (status && ![program.status, matter.status, "OPEN"].includes(status)) return false; return !query || values.some((value) => value.toLowerCase().includes(query)); }
 function parseBody(init?: RequestInit) { if (typeof init?.body !== "string") return {}; try { return JSON.parse(init.body) as unknown; } catch { return {}; } }

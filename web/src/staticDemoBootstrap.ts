@@ -1,9 +1,16 @@
-import { StaticDemoHTTPError, loadStaticDemoFixtures, staticDemoEnabled, staticDemoRequest } from "./staticDemo";
+import { StaticDemoHTTPError, loadStaticDemoFixtures, loadStaticDemoWorkflowRuntime, staticDemoEnabled, staticDemoRequest } from "./staticDemo";
 import { staticExternalCaptureRequest } from "./staticExternalCapture";
 
 if (staticDemoEnabled) {
   const nativeFetch = globalThis.fetch.bind(globalThis);
-  await loadStaticDemoFixtures(nativeFetch);
+  try {
+    await loadStaticDemoWorkflowRuntime();
+    await loadStaticDemoFixtures(nativeFetch);
+  } catch (cause) {
+    const root = document.querySelector("#root"), notice = document.createElement("main");
+    notice.setAttribute("role", "alert"); notice.textContent = "The stakeholder demo could not load its workflow data. Refresh the page; if the problem continues, ask the ClearSight team to restore the demo assets."; root?.replaceChildren(notice);
+    throw cause;
+  }
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const raw = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
     const url = new URL(raw, window.location.origin);
