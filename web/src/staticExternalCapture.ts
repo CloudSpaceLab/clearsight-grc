@@ -1,5 +1,10 @@
 const fieldRequestID = "field-visit-atm-042";
 const sessionToken = "static-field-agent-session";
+let responseDraft = { answers: {} as Record<string, unknown>, presentation_mode: "AUTOMATIC", version: 0 };
+
+export function resetStaticExternalCaptureDraft() {
+  responseDraft = { answers: {}, presentation_mode: "AUTOMATIC", version: 0 };
+}
 
 const fieldAgentRequest = {
   id: fieldRequestID,
@@ -43,6 +48,13 @@ export async function staticExternalCaptureRequest(path: string, init?: RequestI
   const authorization = new Headers(init?.headers).get("Authorization");
   if (authorization !== `Bearer ${sessionToken}`) return undefined;
   if (url.pathname === "/api/v1/evidence/session" && method === "GET") return { session: { id: "field-session-1", request_id: fieldRequestID, audience_hint: "f***@example.com", expires_at: fieldAgentRequest.deadline }, request: fieldAgentRequest };
+  if (url.pathname === "/api/v1/evidence/session/draft" && method === "GET") return structuredClone(responseDraft);
+  if (url.pathname === "/api/v1/evidence/session/draft" && method === "PUT") {
+    const input = parseBody(init) as { answers?: Record<string, unknown>; presentation_mode?: string; expected_version?: number };
+    if (input.expected_version !== responseDraft.version) throw Object.assign(new Error("The saved response changed"), { staticStatus: 409, staticCode: "draft_conflict" });
+    responseDraft = { answers: input.answers ?? {}, presentation_mode: input.presentation_mode ?? "AUTOMATIC", version: responseDraft.version + 1 };
+    return structuredClone(responseDraft);
+  }
   if (url.pathname === "/api/v1/evidence/artifacts" && method === "POST") {
     const file = init?.body instanceof FormData ? init.body.get("file") : null;
     const name = file instanceof File ? file.name : "site-photo.jpg";

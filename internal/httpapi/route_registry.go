@@ -164,6 +164,8 @@ func (a *API) routes() []routeSpec {
 		capability(http.MethodPost, "/api/v1/evidence/invitations/redeem", a.redeemEvidenceInvitation),
 		write(http.MethodPost, "/api/v1/evidence/invitations/{id}/revoke", a.revokeEvidenceInvitation, nil),
 		capability(http.MethodGet, "/api/v1/evidence/session", a.getEvidenceSession),
+		capability(http.MethodGet, "/api/v1/evidence/session/draft", a.getEvidenceSessionDraft),
+		capability(http.MethodPut, "/api/v1/evidence/session/draft", a.saveEvidenceSessionDraft),
 		capability(http.MethodPost, "/api/v1/evidence/session/submissions", a.submitEvidenceSession),
 		write(http.MethodPost, "/api/v1/evidence/sessions/{id}/revoke", a.revokeEvidenceSession, nil),
 		hybridCapability(http.MethodPost, "/api/v1/evidence/artifacts", a.uploadEvidenceArtifact, a.bindArtifactIdentity()),

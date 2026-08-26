@@ -1,12 +1,14 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import { submitInternalCaptureRequest } from "../captureApi";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { loadCaptureDraft, saveCaptureDraft, submitInternalCaptureRequest } from "../captureApi";
 import { ApiError } from "../http";
 import type { CaptureRequest } from "../types";
 import { CapturePanel } from "./CapturePanel";
 
 vi.mock("../captureApi", async () => ({
   ...await vi.importActual<typeof import("../captureApi")>("../captureApi"),
+  loadCaptureDraft: vi.fn(),
+  saveCaptureDraft: vi.fn(),
   submitInternalCaptureRequest: vi.fn(),
 }));
 
@@ -35,6 +37,11 @@ const multiFieldRequest: CaptureRequest = {
 };
 
 describe("CapturePanel", () => {
+  beforeEach(() => {
+    vi.mocked(loadCaptureDraft).mockReset();
+    vi.mocked(saveCaptureDraft).mockReset();
+  });
+
   it("uses a short input and reviews the exact response before submitting", async () => {
     vi.mocked(submitInternalCaptureRequest).mockResolvedValue({ request_id: request.id, status: "SUBMITTED", submitted_at: "2026-08-06T19:30:00Z" });
     render(<CapturePanel request={request}/>);
@@ -253,5 +260,74 @@ describe("CapturePanel", () => {
     render(<CapturePanel request={{ ...request, fields: [{ id: "unknown", label: "Unrecognized field", type: "biometric_scan", required: true }] }}/>);
     expect(screen.getByRole("alert").textContent).toMatch(/cannot be collected here/i);
     expect((screen.getByRole("button", { name: "Review response" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("resumes and autosaves only an external bearer-session draft", async () => {
+    vi.mocked(loadCaptureDraft).mockResolvedValue({ answers: { owner: { text: "Saved owner" } }, presentation_mode: "CLASSIC", version: 4 });
+    vi.mocked(saveCaptureDraft).mockResolvedValue({ answers: { owner: { text: "Current owner" } }, presentation_mode: "CLASSIC", version: 5, updated_at: "2026-08-26T12:00:00Z" });
+    render(<CapturePanel request={request} external sessionToken="session-secret"/>);
+
+    const owner = await screen.findByDisplayValue("Saved owner");
+    fireEvent.change(owner, { target: { value: "Current owner" } });
+
+    await waitFor(() => expect(saveCaptureDraft).toHaveBeenCalledWith("session-secret", {
+      answers: { owner: { text: "Current owner" } }, presentation_mode: "CLASSIC", expected_version: 4,
+    }), { timeout: 1500 });
+    expect(await screen.findByText("Saved")).toBeTruthy();
+  });
+
+  it("keeps local entries when autosave fails and offers one retry", async () => {
+    vi.mocked(loadCaptureDraft).mockResolvedValue({ answers: {}, presentation_mode: "AUTOMATIC", version: 0 });
+    vi.mocked(saveCaptureDraft).mockRejectedValue(new ApiError(503, "Draft unavailable", "draft_unavailable"));
+    render(<CapturePanel request={request} external sessionToken="session-secret"/>);
+
+    const owner = await screen.findByRole("textbox", { name: /Current owner/ });
+    fireEvent.change(owner, { target: { value: "Treasury Technology" } });
+
+    expect(await screen.findByText("Could not save", {}, { timeout: 1500 })).toBeTruthy();
+    expect(screen.getByText(/entries remain on this screen/i)).toBeTruthy();
+    expect((owner as HTMLInputElement).value).toBe("Treasury Technology");
+    expect(screen.getByRole("button", { name: "Try saving again" })).toBeTruthy();
+  });
+
+  it("refreshes only the draft version before retrying a conflict", async () => {
+    vi.mocked(loadCaptureDraft)
+      .mockResolvedValueOnce({ answers: {}, presentation_mode: "AUTOMATIC", version: 2 })
+      .mockResolvedValueOnce({ answers: { owner: { text: "Other tab value" } }, presentation_mode: "AUTOMATIC", version: 7 });
+    vi.mocked(saveCaptureDraft)
+      .mockRejectedValueOnce(new ApiError(409, "Draft changed", "draft_conflict"))
+      .mockResolvedValueOnce({ answers: { owner: { text: "Treasury Technology" } }, presentation_mode: "AUTOMATIC", version: 8 });
+    render(<CapturePanel request={request} external sessionToken="session-secret"/>);
+
+    const owner = await screen.findByRole("textbox", { name: /Current owner/ }) as HTMLInputElement;
+    fireEvent.change(owner, { target: { value: "Treasury Technology" } });
+    expect(await screen.findByText("Could not save", {}, { timeout: 1500 })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Try saving again" }));
+    await waitFor(() => expect(saveCaptureDraft).toHaveBeenLastCalledWith("session-secret", {
+      answers: { owner: { text: "Treasury Technology" } }, presentation_mode: "AUTOMATIC", expected_version: 7,
+    }));
+    expect(owner.value).toBe("Treasury Technology");
+    expect(await screen.findByText("Saved")).toBeTruthy();
+  });
+
+  it("reports ended draft access without clearing the current response", async () => {
+    vi.mocked(loadCaptureDraft).mockRejectedValue(new ApiError(401, "Session unavailable", "session_unavailable"));
+    render(<CapturePanel request={request} external sessionToken="ended-session"/>);
+
+    expect(await screen.findByText("Access ended")).toBeTruthy();
+    const owner = screen.getByRole("textbox", { name: /Current owner/ }) as HTMLInputElement;
+    fireEvent.change(owner, { target: { value: "Treasury Technology" } });
+    expect(owner.value).toBe("Treasury Technology");
+    expect(saveCaptureDraft).not.toHaveBeenCalled();
+  });
+
+  it("does not use response draft APIs for an internal request", async () => {
+    render(<CapturePanel request={request}/>);
+    fireEvent.change(screen.getByRole("textbox", { name: /Current owner/ }), { target: { value: "Treasury Technology" } });
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(loadCaptureDraft).not.toHaveBeenCalled();
+    expect(saveCaptureDraft).not.toHaveBeenCalled();
+    expect(screen.queryByText("Saving")).toBeNull();
   });
 });

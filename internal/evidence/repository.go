@@ -12,6 +12,7 @@ var (
 	ErrRequestClosed     = errors.New("evidence request is not open")
 	ErrInvitationInvalid = errors.New("invitation is unavailable")
 	ErrSessionInvalid    = errors.New("capture session is unavailable")
+	ErrDraftInvalid      = errors.New("response draft is invalid")
 	ErrArtifactTooLarge  = errors.New("artifact exceeds the configured size limit")
 	ErrMediaType         = errors.New("artifact media type is not allowed")
 )

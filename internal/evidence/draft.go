@@ -3,6 +3,7 @@ package evidence
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -91,7 +92,7 @@ func (s *Service) GetRequestByOrigin(ctx context.Context, tenant string, origin 
 }
 
 func (s *Service) GetDraft(ctx context.Context, sessionToken string) (ResponseDraft, error) {
-	session, _, err := s.SessionRequest(ctx, sessionToken)
+	session, request, err := s.SessionRequest(ctx, sessionToken)
 	if err != nil {
 		return ResponseDraft{}, err
 	}
@@ -99,26 +100,40 @@ func (s *Service) GetDraft(ctx context.Context, sessionToken string) (ResponseDr
 	if !ok {
 		return ResponseDraft{}, fmt.Errorf("response drafts are unavailable")
 	}
-	return store.GetDraft(ctx, session.TenantID, session.RequestID, session.ID)
+	draft, err := store.GetDraft(ctx, session.TenantID, session.RequestID, session.ID)
+	if errors.Is(err, ErrNotFound) {
+		return ResponseDraft{
+			TenantID: session.TenantID, RequestID: session.RequestID, SessionID: session.ID,
+			Answers: map[string]formcontract.AnswerValue{}, PresentationMode: defaultDraftPresentation(request),
+		}, nil
+	}
+	return draft, err
 }
 
 func (s *Service) SaveDraft(ctx context.Context, sessionToken string, input SaveDraftInput) (ResponseDraft, error) {
+	session, request, err := s.SessionRequest(ctx, sessionToken)
+	if err != nil {
+		return ResponseDraft{}, err
+	}
 	if input.ExpectedVersion < 0 {
-		return ResponseDraft{}, fmt.Errorf("expected_version must not be negative")
+		return ResponseDraft{}, fmt.Errorf("%w: expected_version must not be negative", ErrDraftInvalid)
+	}
+	input.PresentationMode = formcontract.PresentationMode(strings.ToUpper(strings.TrimSpace(string(input.PresentationMode))))
+	if input.PresentationMode == "" {
+		input.PresentationMode = defaultDraftPresentation(request)
 	}
 	if input.PresentationMode != formcontract.PresentationClassic && input.PresentationMode != formcontract.PresentationWizard && input.PresentationMode != formcontract.PresentationAutomatic {
-		return ResponseDraft{}, fmt.Errorf("presentation_mode is invalid")
+		return ResponseDraft{}, fmt.Errorf("%w: presentation_mode is invalid", ErrDraftInvalid)
 	}
 	if input.Answers == nil {
 		input.Answers = map[string]formcontract.AnswerValue{}
 	}
 	encoded, err := json.Marshal(input.Answers)
 	if err != nil || len(encoded) > maxDraftAnswersBytes {
-		return ResponseDraft{}, fmt.Errorf("draft answers exceed the permitted size")
+		return ResponseDraft{}, fmt.Errorf("%w: draft answers exceed the permitted size", ErrDraftInvalid)
 	}
-	session, _, err := s.SessionRequest(ctx, sessionToken)
-	if err != nil {
-		return ResponseDraft{}, err
+	if err := s.validateDraftAnswers(ctx, request, input.Answers); err != nil {
+		return ResponseDraft{}, fmt.Errorf("%w: %v", ErrDraftInvalid, err)
 	}
 	store, ok := s.repo.(DraftStore)
 	if !ok {
@@ -133,6 +148,14 @@ func (s *Service) SaveDraft(ctx context.Context, sessionToken string, input Save
 		Answers: cloneAnswerValues(input.Answers), PresentationMode: input.PresentationMode,
 		ExpectedVersion: input.ExpectedVersion, UpdatedAt: s.now().UTC(),
 	})
+}
+
+func defaultDraftPresentation(request Request) formcontract.PresentationMode {
+	mode := formcontract.PresentationMode(strings.ToUpper(strings.TrimSpace(string(request.Presentation.DefaultMode))))
+	if mode == "" {
+		return formcontract.PresentationAutomatic
+	}
+	return mode
 }
 
 func (s *Service) DeleteDraft(ctx context.Context, sessionToken string) error {

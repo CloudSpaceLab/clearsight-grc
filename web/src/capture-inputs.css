@@ -126,10 +126,15 @@
 .vendor-document-field { padding: 14px; border: 1px solid var(--border); border-radius: 13px; }
 .vendor-document-metadata { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
 .vendor-document-metadata .capture-field:first-child { grid-column: 1/-1; }
+.capture-draft-status { display: flex; align-items: center; justify-content: flex-end; gap: 12px; min-height: 32px; color: var(--muted); font-size: 12px; }
+.capture-draft-status strong { color: var(--coral); }
+.capture-draft-status button { min-height: 32px; padding: 5px 10px; border: 1px solid var(--border-strong); border-radius: 9px; background: var(--surface-2); color: var(--text); font: inherit; font-weight: 700; cursor: pointer; }
+.capture-draft-status button:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 
 @media (max-width: 600px) {
   .capture-section-index ol { display: grid; }
   .capture-mode-switch { display: grid; grid-template-columns: 1fr; }
   .vendor-document-metadata { grid-template-columns: 1fr; }
   .vendor-document-metadata .capture-field:first-child { grid-column: auto; }
+  .capture-draft-status { align-items: flex-start; justify-content: space-between; }
 }

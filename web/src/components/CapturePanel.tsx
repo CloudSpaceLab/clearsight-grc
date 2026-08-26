@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { submitInternalCaptureRequest, uploadInternalCaptureArtifact, type CaptureArtifact, type CaptureReceipt } from "../captureApi";
+import { loadCaptureDraft, saveCaptureDraft, submitInternalCaptureRequest, uploadInternalCaptureArtifact, type CaptureArtifact, type CaptureReceipt } from "../captureApi";
 import { apiErrorKind, type ApiErrorKind } from "../http";
 import type { CaptureAnswerValue, CaptureAnswers, CaptureField, CapturePresentationMode, CaptureRequest } from "../types";
 import { CaptureForm } from "./capture/CaptureForm";
@@ -11,17 +11,19 @@ import { EmptyState } from "./EmptyState";
 
 export type CaptureLoadState = "loading" | "live" | "unavailable" | "forbidden" | "not-found";
 type SubmitResult = Pick<CaptureReceipt, "submitted_at"> & Partial<CaptureReceipt>;
+type DraftState = "idle" | "loading" | "saving" | "saved" | "failed" | "ended";
 
 type Props = {
   request: CaptureRequest | null;
   state?: CaptureLoadState;
   onReload?: () => void;
   external?: boolean;
+  sessionToken?: string;
   onSubmit?: (request: CaptureRequest, answers: CaptureAnswers) => Promise<SubmitResult>;
   onUploadArtifact?: (requestID: string, file: File) => Promise<CaptureArtifact>;
 };
 
-export function CapturePanel({ request, state = "live", onReload, external = false, onSubmit, onUploadArtifact }: Props) {
+export function CapturePanel({ request, state = "live", onReload, external = false, sessionToken, onSubmit, onUploadArtifact }: Props) {
   const [answers, setAnswers] = useState<CaptureAnswers>({});
   const [attachments, setAttachments] = useState<Record<string, CaptureAttachment>>({});
   const [uploadingField, setUploadingField] = useState<string | null>(null);
@@ -31,11 +33,24 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
   const [error, setError] = useState<string | null>(null);
   const [errorKind, setErrorKind] = useState<ApiErrorKind | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [draftState, setDraftState] = useState<DraftState>("idle");
+  const [draftReady, setDraftReady] = useState(false);
   const previewURLs = useRef<Record<string, string>>({});
   const mounted = useRef(true);
   const activeRequestKey = useRef("");
+  const answersRef = useRef<CaptureAnswers>({});
+  const modeRef = useRef<CapturePresentationMode>("AUTOMATIC");
+  const draftVersion = useRef(0);
+  const draftReadyRef = useRef(false);
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftSaveInFlight = useRef(false);
+  const lastSavedDraft = useRef("");
+  const locallyEditedFields = useRef(new Set<string>());
+  const locallyChangedMode = useRef(false);
   const requestKey = request ? `${request.id}:${request.version}` : "";
   activeRequestKey.current = requestKey;
+  answersRef.current = answers;
+  modeRef.current = mode;
   const contract = useMemo(() => request ? captureContract(request) : null, [request]);
 
   useEffect(() => {
@@ -50,12 +65,62 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
     setError(null);
     setErrorKind(null);
     setSubmitting(false);
+    setDraftState("idle");
+    setDraftReady(false);
+    draftReadyRef.current = false;
+    draftVersion.current = 0;
+    lastSavedDraft.current = "";
+    locallyEditedFields.current.clear();
+    locallyChangedMode.current = false;
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    draftTimer.current = null;
   }, [request?.id, request?.version]);
+
+  useEffect(() => {
+    if (!request || !contract || !external || !sessionToken) return;
+    const loadRequestKey = requestKey;
+    setDraftState("loading");
+    void loadCaptureDraft(sessionToken).then((draft) => {
+      if (!currentRequest(mounted.current, activeRequestKey.current, loadRequestKey)) return;
+      draftVersion.current = draft.version;
+      const restoredMode = locallyChangedMode.current ? modeRef.current : draft.presentation_mode;
+      setMode(restoredMode);
+      setAnswers((current) => {
+        const restored = { ...initialSourceAnswers(request), ...draft.answers };
+        for (const fieldID of locallyEditedFields.current) {
+          if (current[fieldID]) restored[fieldID] = current[fieldID];
+          else delete restored[fieldID];
+        }
+        const visible = keepVisibleAnswers(contract, restored);
+        lastSavedDraft.current = captureDraftSnapshot(visible, restoredMode);
+        return visible;
+      });
+      setDraftReady(true);
+      draftReadyRef.current = true;
+      setDraftState(draft.version > 0 ? "saved" : "idle");
+    }).catch((cause) => {
+      if (!currentRequest(mounted.current, activeRequestKey.current, loadRequestKey)) return;
+      setDraftReady(false);
+      draftReadyRef.current = false;
+      setDraftState(apiErrorKind(cause) === "unauthorized" ? "ended" : "failed");
+    });
+  }, [requestKey, external, sessionToken, contract]);
+
+  useEffect(() => {
+    if (!external || !sessionToken || !draftReady || receipt || submitting) return;
+    if (captureDraftSnapshot(answers, mode) === lastSavedDraft.current || draftSaveInFlight.current) return;
+    scheduleDraftSave(500);
+    return () => {
+      if (draftTimer.current) clearTimeout(draftTimer.current);
+      draftTimer.current = null;
+    };
+  }, [answers, mode, external, sessionToken, draftReady, receipt, submitting]);
 
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      if (draftTimer.current) clearTimeout(draftTimer.current);
       revokeAllPreviews(previewURLs.current);
       previewURLs.current = {};
     };
@@ -72,7 +137,62 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
 
   function updateAnswer(fieldID: string, value: CaptureAnswerValue) {
     if (!contract) return;
+    locallyEditedFields.current.add(fieldID);
     setAnswers((current) => keepVisibleAnswers(contract, { ...current, [fieldID]: value }));
+  }
+
+  function changeMode(nextMode: CapturePresentationMode) {
+    locallyChangedMode.current = true;
+    setMode(nextMode);
+  }
+
+  function scheduleDraftSave(delay: number) {
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    draftTimer.current = setTimeout(() => void performDraftSave(), delay);
+  }
+
+  async function performDraftSave() {
+    if (!sessionToken || !draftReadyRef.current || draftSaveInFlight.current) return;
+    const saveRequestKey = requestKey;
+    const saveAnswers = answersRef.current;
+    const saveMode = modeRef.current;
+    const snapshot = captureDraftSnapshot(saveAnswers, saveMode);
+    if (snapshot === lastSavedDraft.current) return;
+    draftSaveInFlight.current = true;
+    setDraftState("saving");
+    try {
+      const saved = await saveCaptureDraft(sessionToken, { answers: saveAnswers, presentation_mode: saveMode, expected_version: draftVersion.current });
+      if (!currentRequest(mounted.current, activeRequestKey.current, saveRequestKey)) return;
+      draftVersion.current = saved.version;
+      lastSavedDraft.current = snapshot;
+      setDraftState("saved");
+      if (captureDraftSnapshot(answersRef.current, modeRef.current) !== snapshot) scheduleDraftSave(500);
+    } catch (cause) {
+      if (!currentRequest(mounted.current, activeRequestKey.current, saveRequestKey)) return;
+      const kind = apiErrorKind(cause);
+      draftReadyRef.current = false;
+      setDraftReady(false);
+      setDraftState(kind === "unauthorized" || kind === "forbidden" ? "ended" : "failed");
+    } finally {
+      draftSaveInFlight.current = false;
+    }
+  }
+
+  async function retryDraftSave() {
+    if (!sessionToken || draftSaveInFlight.current) return;
+    setDraftState("loading");
+    try {
+      const current = await loadCaptureDraft(sessionToken);
+      draftVersion.current = current.version;
+      setDraftReady(true);
+      draftReadyRef.current = true;
+      lastSavedDraft.current = "";
+      scheduleDraftSave(0);
+    } catch (cause) {
+      draftReadyRef.current = false;
+      setDraftReady(false);
+      setDraftState(apiErrorKind(cause) === "unauthorized" ? "ended" : "failed");
+    }
   }
 
   async function upload(field: CaptureField, file: File, preferredPreviewURL?: string) {
@@ -129,6 +249,7 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
     setError(null);
     setErrorKind(null);
     setSubmitting(true);
+    if (draftTimer.current) clearTimeout(draftTimer.current);
     try {
       const result = onSubmit ? await onSubmit(request, submissionAnswers) : await submitInternalCaptureRequest(request.id, request.version, submissionAnswers);
       if (!currentRequest(mounted.current, activeRequestKey.current, submitRequestKey)) return;
@@ -151,9 +272,18 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
     <span className="eyebrow">{external ? "Response request" : "Evidence request"} · about {request.estimated_minutes} min</span><h2>{request.title}</h2><p>{request.purpose}</p>
     <div className="why-you"><strong>Why this was sent to you</strong><span>{request.why_you}</span></div>
     {Object.keys(request.known_facts).length > 0 && <><h3>Already filled in</h3><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl></>}
-    <CaptureForm contract={contract} answers={answers} attachments={attachments} mode={effectivePresentationMode(contract, answers, mode)} external={external} uploadingField={uploadingField} onAnswer={updateAnswer} onUpload={(field, file, previewURL) => void upload(field, file, previewURL)} onModeChange={setMode} onReview={() => { setError(null); setErrorKind(null); setReviewing(true); }}/>
+    {external && sessionToken && <DraftStatus state={draftState} onRetry={() => void retryDraftSave()}/>}
+    <CaptureForm contract={contract} answers={answers} attachments={attachments} mode={effectivePresentationMode(contract, answers, mode)} external={external} uploadingField={uploadingField} onAnswer={updateAnswer} onUpload={(field, file, previewURL) => void upload(field, file, previewURL)} onModeChange={changeMode} onReview={() => { setError(null); setErrorKind(null); setReviewing(true); }}/>
     {error && <p className="error-text" role="alert">{error}</p>}
   </div>;
+}
+
+function DraftStatus({ state, onRetry }: { state: DraftState; onRetry: () => void }) {
+  if (state === "idle" || state === "loading") return null;
+  if (state === "saving") return <div className="capture-draft-status" aria-live="polite"><span>Saving</span></div>;
+  if (state === "saved") return <div className="capture-draft-status" aria-live="polite"><span>Saved</span></div>;
+  if (state === "ended") return <div className="capture-draft-status capture-draft-status-error" aria-live="polite"><span><strong>Access ended</strong> Ask the sender for a new link.</span><button type="button" onClick={onRetry}>Check access</button></div>;
+  return <div className="capture-draft-status capture-draft-status-error" aria-live="polite"><span><strong>Could not save</strong> Your entries remain on this screen.</span><button type="button" onClick={onRetry}>Try saving again</button></div>;
 }
 
 function TerminalRequest({ request, status }: { request: CaptureRequest; status: string }) {
@@ -167,3 +297,4 @@ function revokeAllPreviews(values: Record<string, string>) { if (typeof URL.revo
 function isPastDeadline(request: CaptureRequest) { const deadline = Date.parse(request.deadline); return Number.isFinite(deadline) && deadline <= Date.now(); }
 function errorMessage(kind: ApiErrorKind, cause: unknown) { if (kind === "conflict") return "This request changed while you were working. Reload it before submitting. Your current entries remain on this screen."; if (kind === "forbidden" || kind === "unauthorized") return "Your access to this request has ended. Ask the sender to confirm your access or send a new link."; if (kind === "not_found") return "This request is no longer available."; if (kind === "unavailable") return "The response could not be submitted right now. Your entries remain on this screen."; return cause instanceof Error ? cause.message : "The response could not be submitted."; }
 function humanize(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); }
+function captureDraftSnapshot(answers: CaptureAnswers, mode: CapturePresentationMode) { return JSON.stringify({ answers, mode }); }

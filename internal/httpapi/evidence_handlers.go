@@ -256,6 +256,67 @@ func (a *API) getEvidenceSession(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"session": session, "request": request})
 }
 
+func (a *API) getEvidenceSessionDraft(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.evidenceService(w)
+	if !ok {
+		return
+	}
+	token, ok := bearerToken(w, r)
+	if !ok {
+		return
+	}
+	draft, err := service.GetDraft(r.Context(), token)
+	switch {
+	case errors.Is(err, evidence.ErrSessionInvalid):
+		httpx.WriteError(w, http.StatusUnauthorized, "session_unavailable", "This access has ended. Ask the sender for a new link.")
+	case err != nil:
+		httpx.WriteError(w, http.StatusServiceUnavailable, "draft_unavailable", "The saved response could not be loaded. Try again.")
+	default:
+		httpx.WriteJSON(w, http.StatusOK, evidenceDraftPayload(draft))
+	}
+}
+
+func (a *API) saveEvidenceSessionDraft(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.evidenceService(w)
+	if !ok {
+		return
+	}
+	token, ok := bearerToken(w, r)
+	if !ok {
+		return
+	}
+	var input evidence.SaveDraftInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "draft_invalid", "The saved response could not be read. Check the response and try again.")
+		return
+	}
+	draft, err := service.SaveDraft(r.Context(), token, input)
+	switch {
+	case errors.Is(err, evidence.ErrSessionInvalid):
+		httpx.WriteError(w, http.StatusUnauthorized, "session_unavailable", "This access has ended. Ask the sender for a new link.")
+	case errors.Is(err, evidence.ErrVersionConflict):
+		httpx.WriteError(w, http.StatusConflict, "draft_conflict", "The saved response changed. Check the latest saved response before trying again.")
+	case errors.Is(err, evidence.ErrDraftInvalid):
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "draft_invalid", "The saved response contains an invalid answer. Review the response and try again.")
+	case err != nil:
+		httpx.WriteError(w, http.StatusServiceUnavailable, "draft_unavailable", "The response could not be saved. Your entries remain on this screen; try again.")
+	default:
+		httpx.WriteJSON(w, http.StatusOK, evidenceDraftPayload(draft))
+	}
+}
+
+func evidenceDraftPayload(draft evidence.ResponseDraft) map[string]any {
+	payload := map[string]any{
+		"answers":           draft.Answers,
+		"presentation_mode": draft.PresentationMode,
+		"version":           draft.Version,
+	}
+	if !draft.UpdatedAt.IsZero() {
+		payload["updated_at"] = draft.UpdatedAt
+	}
+	return payload
+}
+
 func (a *API) submitEvidenceSession(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.evidenceService(w)
 	if !ok {

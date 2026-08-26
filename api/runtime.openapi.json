@@ -148,6 +148,10 @@
     "/api/v1/evidence/invitations/redeem": { "post": { "operationId": "redeemEvidenceInvitation", "security": [], "x-clearsight-route-class": "BOUNDED_CAPABILITY" } },
     "/api/v1/evidence/invitations/{id}/revoke": { "post": { "operationId": "revokeEvidenceInvitation", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/evidence/session": { "get": { "operationId": "getEvidenceSession", "security": [{ "captureSession": [] }], "x-clearsight-route-class": "BOUNDED_CAPABILITY" } },
+    "/api/v1/evidence/session/draft": {
+      "get": { "operationId": "getEvidenceSessionDraft", "security": [{ "captureSession": [] }], "x-clearsight-route-class": "BOUNDED_CAPABILITY" },
+      "put": { "operationId": "saveEvidenceSessionDraft", "security": [{ "captureSession": [] }], "x-clearsight-route-class": "BOUNDED_CAPABILITY" }
+    },
     "/api/v1/evidence/session/submissions": { "post": { "operationId": "submitEvidenceSession", "security": [{ "captureSession": [] }], "x-clearsight-route-class": "BOUNDED_CAPABILITY" } },
     "/api/v1/evidence/sessions/{id}/revoke": { "post": { "operationId": "revokeEvidenceSession", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/evidence/artifacts": { "post": { "operationId": "uploadEvidenceArtifact", "security": [{ "signedIdentityEnvelope": [], "signedIdentityTimestamp": [], "signedIdentitySignature": [] }, { "captureSession": [] }], "x-clearsight-route-class": "AUTHENTICATED_OR_CAPABILITY" } },

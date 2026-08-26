@@ -68,6 +68,14 @@ func applyContractField(target *Field, source formcontract.Field) {
 var telephonePattern = regexp.MustCompile(`^[+0-9][0-9 ()-]{6,29}$`)
 
 func (s *Service) validateAnswers(ctx context.Context, request Request, answers map[string]formcontract.AnswerValue) error {
+	return s.validateAnswerSet(ctx, request, answers, true)
+}
+
+func (s *Service) validateDraftAnswers(ctx context.Context, request Request, answers map[string]formcontract.AnswerValue) error {
+	return s.validateAnswerSet(ctx, request, answers, false)
+}
+
+func (s *Service) validateAnswerSet(ctx context.Context, request Request, answers map[string]formcontract.AnswerValue, requireComplete bool) error {
 	contract, err := formContract(request.Presentation, request.Sections, request.Fields)
 	if err != nil {
 		return err
@@ -95,7 +103,7 @@ func (s *Service) validateAnswers(ctx context.Context, request Request, answers 
 
 	for _, field := range visible {
 		answer, exists := answers[field.ID]
-		if field.Required && (!exists || !answer.Answered()) {
+		if requireComplete && field.Required && (!exists || !answer.Answered()) {
 			return fmt.Errorf("%s is required", field.Label)
 		}
 		if !exists || !answer.Answered() {

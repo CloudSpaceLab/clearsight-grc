@@ -42,6 +42,19 @@ export type CaptureReceipt = {
   version?: number;
 };
 
+export type CaptureDraft = {
+  answers: CaptureAnswers;
+  presentation_mode: "CLASSIC" | "WIZARD" | "AUTOMATIC";
+  version: number;
+  updated_at?: string;
+};
+
+export type SaveCaptureDraftInput = {
+  answers: CaptureAnswerInputs;
+  presentation_mode: CaptureDraft["presentation_mode"];
+  expected_version: number;
+};
+
 export function normalizeCaptureAnswers(answers: CaptureAnswerInputs): CaptureAnswers {
   return Object.fromEntries(Object.entries(answers).map(([fieldID, value]) => [
     fieldID,
@@ -93,6 +106,20 @@ export function redeemCaptureInvitation(token: string, audience: string): Promis
 export function loadCaptureSession(sessionToken: string): Promise<CaptureSessionPayload> {
   return request<CaptureSessionPayload>("/api/v1/evidence/session", {
     headers: { Authorization: `Bearer ${sessionToken}` },
+  });
+}
+
+export function loadCaptureDraft(sessionToken: string): Promise<CaptureDraft> {
+  return request<CaptureDraft>("/api/v1/evidence/session/draft", {
+    headers: { Authorization: `Bearer ${sessionToken}` },
+  });
+}
+
+export function saveCaptureDraft(sessionToken: string, input: SaveCaptureDraftInput): Promise<CaptureDraft> {
+  return request<CaptureDraft>("/api/v1/evidence/session/draft", {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${sessionToken}` },
+    body: JSON.stringify({ ...input, answers: normalizeCaptureAnswers(input.answers) }),
   });
 }
 

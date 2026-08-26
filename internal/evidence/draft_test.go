@@ -100,3 +100,81 @@ func TestMemoryDraftAccessEndsWithSession(t *testing.T) {
 		t.Fatalf("revoked draft read error = %v", err)
 	}
 }
+
+func TestSessionDraftLoadsEmptyAndAcceptsIncompleteValidAnswers(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
+	repo := NewMemoryRepository(nil, nil)
+	service := NewService(repo, nil)
+	service.now = func() time.Time { return now }
+	token := createDraftSession(t, ctx, service, now, []Field{
+		{ID: "contact", Label: "Security contact", Type: string(formcontract.TypeEmail), Required: true},
+		{ID: "notes", Label: "Review notes", Type: string(formcontract.TypeLongText)},
+	})
+
+	empty, err := service.GetDraft(ctx, token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if empty.Version != 0 || len(empty.Answers) != 0 || empty.PresentationMode != formcontract.PresentationAutomatic {
+		t.Fatalf("empty draft = %#v", empty)
+	}
+
+	value := "Work is in progress"
+	saved, err := service.SaveDraft(ctx, token, SaveDraftInput{
+		Answers: map[string]formcontract.AnswerValue{"notes": {Text: &value}}, PresentationMode: " wizard ", ExpectedVersion: 0,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if saved.Version != 1 || saved.PresentationMode != formcontract.PresentationWizard {
+		t.Fatalf("saved draft = %#v", saved)
+	}
+}
+
+func TestSessionDraftRejectsInvalidOrHiddenAnswers(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
+	repo := NewMemoryRepository(nil, nil)
+	service := NewService(repo, nil)
+	service.now = func() time.Time { return now }
+	token := createDraftSession(t, ctx, service, now, []Field{
+		{ID: "handles_data", Label: "Handles personal data", Type: string(formcontract.TypeYesNo), Options: []string{"Yes", "No"}},
+		{ID: "contact", Label: "Security contact", Type: string(formcontract.TypeEmail), Condition: &formcontract.VisibilityCondition{FieldID: "handles_data", Operator: formcontract.ConditionEquals, Values: []string{"Yes"}}},
+	})
+
+	no := "No"
+	invalidEmail := "not-an-email"
+	tests := []map[string]formcontract.AnswerValue{
+		{"unknown": formcontract.TextAnswer("value")},
+		{"handles_data": {Text: &no}, "contact": formcontract.TextAnswer("security@vendor.example")},
+		{"handles_data": formcontract.TextAnswer("Yes"), "contact": {Text: &invalidEmail}},
+	}
+	for _, answers := range tests {
+		if _, err := service.SaveDraft(ctx, token, SaveDraftInput{Answers: answers, PresentationMode: formcontract.PresentationClassic}); !errors.Is(err, ErrDraftInvalid) {
+			t.Fatalf("answers %#v error = %v", answers, err)
+		}
+	}
+}
+
+func createDraftSession(t *testing.T, ctx context.Context, service *Service, now time.Time, fields []Field) string {
+	t.Helper()
+	request, err := service.CreateRequest(ctx, CreateRequestInput{
+		TenantID: "bank-a", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: "relationship-draft",
+		Title: "Complete due diligence", Purpose: "Collect the requested vendor information.", WhyYou: "You are the invited vendor contact.",
+		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR", Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: "vendor@example.com"},
+		EstimatedMinutes: 5, Deadline: now.Add(time.Hour), Fields: fields, CreatedBy: "owner",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	issued, err := service.IssueInvitation(ctx, IssueInvitationInput{TenantID: "bank-a", RequestID: request.ID, Audience: "vendor@example.com", Purpose: "Complete due diligence", TTL: 30 * time.Minute, CreatedBy: "owner"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	redeemed, err := service.RedeemInvitation(ctx, issued.Token, "vendor@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return redeemed.SessionToken
+}

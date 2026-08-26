@@ -115,6 +115,122 @@ func TestEvidenceMagicLinkSessionAndSubmission(t *testing.T) {
 	}
 }
 
+func TestEvidenceSessionDraftUsesOnlyTheBearerSessionScope(t *testing.T) {
+	handler := testHandler()
+	session := openExternalEvidenceSession(t, handler)
+
+	get := httptest.NewRequest(http.MethodGet, "/api/v1/evidence/session/draft?tenant_id=another-bank&request_id=another-request", nil)
+	get.Header.Set("Authorization", "Bearer "+session.SessionToken)
+	getResponse := httptest.NewRecorder()
+	handler.ServeHTTP(getResponse, get)
+	if getResponse.Code != http.StatusOK {
+		t.Fatalf("empty draft expected 200, got %d: %s", getResponse.Code, getResponse.Body.String())
+	}
+	var empty map[string]any
+	if err := json.NewDecoder(getResponse.Body).Decode(&empty); err != nil {
+		t.Fatal(err)
+	}
+	if empty["version"] != float64(0) || empty["answers"] == nil || empty["presentation_mode"] != "AUTOMATIC" {
+		t.Fatalf("unexpected empty draft: %#v", empty)
+	}
+	for _, protected := range []string{"tenant_id", "request_id", "session_id", "id"} {
+		if _, exposed := empty[protected]; exposed {
+			t.Fatalf("draft response exposed %s: %#v", protected, empty)
+		}
+	}
+
+	put := httptest.NewRequest(http.MethodPut, "/api/v1/evidence/session/draft", strings.NewReader(`{"answers":{},"presentation_mode":"WIZARD","expected_version":0}`))
+	put.Header.Set("Authorization", "Bearer "+session.SessionToken)
+	putResponse := httptest.NewRecorder()
+	handler.ServeHTTP(putResponse, put)
+	if putResponse.Code != http.StatusOK {
+		t.Fatalf("draft save expected 200, got %d: %s", putResponse.Code, putResponse.Body.String())
+	}
+	var saved map[string]any
+	if err := json.NewDecoder(putResponse.Body).Decode(&saved); err != nil {
+		t.Fatal(err)
+	}
+	if saved["version"] != float64(1) || saved["presentation_mode"] != "WIZARD" {
+		t.Fatalf("unexpected saved draft: %#v", saved)
+	}
+
+	stale := httptest.NewRequest(http.MethodPut, "/api/v1/evidence/session/draft", strings.NewReader(`{"answers":{},"presentation_mode":"CLASSIC","expected_version":0}`))
+	stale.Header.Set("Authorization", "Bearer "+session.SessionToken)
+	staleResponse := httptest.NewRecorder()
+	handler.ServeHTTP(staleResponse, stale)
+	if staleResponse.Code != http.StatusConflict || !strings.Contains(staleResponse.Body.String(), "saved response changed") {
+		t.Fatalf("stale save expected recovery conflict, got %d: %s", staleResponse.Code, staleResponse.Body.String())
+	}
+
+	invalid := httptest.NewRequest(http.MethodPut, "/api/v1/evidence/session/draft", strings.NewReader(`{"answers":{"not_requested":{"text":"value"}},"presentation_mode":"CLASSIC","expected_version":1}`))
+	invalid.Header.Set("Authorization", "Bearer "+session.SessionToken)
+	invalidResponse := httptest.NewRecorder()
+	handler.ServeHTTP(invalidResponse, invalid)
+	if invalidResponse.Code != http.StatusUnprocessableEntity || !strings.Contains(invalidResponse.Body.String(), "saved response contains an invalid answer") {
+		t.Fatalf("invalid draft expected 422, got %d: %s", invalidResponse.Code, invalidResponse.Body.String())
+	}
+
+	bodyScoped := httptest.NewRequest(http.MethodPut, "/api/v1/evidence/session/draft", strings.NewReader(`{"tenant_id":"bank-demo","answers":{},"presentation_mode":"CLASSIC","expected_version":1}`))
+	bodyScoped.Header.Set("Authorization", "Bearer "+session.SessionToken)
+	bodyScopedResponse := httptest.NewRecorder()
+	handler.ServeHTTP(bodyScopedResponse, bodyScoped)
+	if bodyScopedResponse.Code != http.StatusBadRequest {
+		t.Fatalf("client scope should be rejected, got %d: %s", bodyScopedResponse.Code, bodyScopedResponse.Body.String())
+	}
+}
+
+func TestEvidenceSessionDraftDoesNotEnumerateEndedAccess(t *testing.T) {
+	handler := testHandler()
+	missing := httptest.NewRequest(http.MethodGet, "/api/v1/evidence/session/draft", nil)
+	missingResponse := httptest.NewRecorder()
+	handler.ServeHTTP(missingResponse, missing)
+	if missingResponse.Code != http.StatusUnauthorized {
+		t.Fatalf("missing session expected 401, got %d", missingResponse.Code)
+	}
+
+	session := openExternalEvidenceSession(t, handler)
+	revoke := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/sessions/"+session.SessionID+"/revoke", strings.NewReader(`{"tenant_id":"outside-scope"}`))
+	revokeResponse := httptest.NewRecorder()
+	handler.ServeHTTP(revokeResponse, revoke)
+	if revokeResponse.Code != http.StatusNoContent {
+		t.Fatalf("session revoke expected 204, got %d: %s", revokeResponse.Code, revokeResponse.Body.String())
+	}
+
+	ended := httptest.NewRequest(http.MethodGet, "/api/v1/evidence/session/draft", nil)
+	ended.Header.Set("Authorization", "Bearer "+session.SessionToken)
+	endedResponse := httptest.NewRecorder()
+	handler.ServeHTTP(endedResponse, ended)
+	if endedResponse.Code != http.StatusUnauthorized || !strings.Contains(endedResponse.Body.String(), "access has ended") {
+		t.Fatalf("revoked session expected non-enumerating 401, got %d: %s", endedResponse.Code, endedResponse.Body.String())
+	}
+}
+
+func openExternalEvidenceSession(t *testing.T, handler http.Handler) evidence.RedeemedSession {
+	t.Helper()
+	const audience = "manager@example.com"
+	issue := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/requests/"+demoExternalEvidenceRequestID+"/invitations", strings.NewReader(`{"tenant_id":"bank-demo","audience":"`+audience+`","purpose":"Complete the response","ttl_minutes":60}`))
+	issueResponse := httptest.NewRecorder()
+	handler.ServeHTTP(issueResponse, issue)
+	if issueResponse.Code != http.StatusCreated {
+		t.Fatalf("issue expected 201, got %d: %s", issueResponse.Code, issueResponse.Body.String())
+	}
+	var invitation evidence.IssuedInvitation
+	if err := json.NewDecoder(issueResponse.Body).Decode(&invitation); err != nil {
+		t.Fatal(err)
+	}
+	redeem := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/invitations/redeem", strings.NewReader(`{"token":"`+invitation.Token+`","audience":"`+audience+`"}`))
+	redeemResponse := httptest.NewRecorder()
+	handler.ServeHTTP(redeemResponse, redeem)
+	if redeemResponse.Code != http.StatusOK {
+		t.Fatalf("redeem expected 200, got %d: %s", redeemResponse.Code, redeemResponse.Body.String())
+	}
+	var session evidence.RedeemedSession
+	if err := json.NewDecoder(redeemResponse.Body).Decode(&session); err != nil {
+		t.Fatal(err)
+	}
+	return session
+}
+
 func TestEvidenceInvitationRequiresCurrentRequestManager(t *testing.T) {
 	const audience = "manager@example.com"
 	payload := `{"tenant_id":"bank-demo","audience":"` + audience + `","purpose":"Branch resilience response","ttl_minutes":60}`

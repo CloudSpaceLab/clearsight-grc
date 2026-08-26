@@ -4,7 +4,7 @@ import { loadCaptureSession, redeemCaptureInvitation } from "../captureApi";
 import type { CaptureRequest } from "../types";
 import { ExternalCaptureApp } from "./ExternalCaptureApp";
 
-vi.mock("../captureApi", () => ({ loadCaptureSession: vi.fn(), redeemCaptureInvitation: vi.fn(), submitCaptureSession: vi.fn(), uploadCaptureSessionArtifact: vi.fn() }));
+vi.mock("../captureApi", () => ({ loadCaptureDraft: vi.fn().mockResolvedValue({ answers: {}, presentation_mode: "AUTOMATIC", version: 0 }), saveCaptureDraft: vi.fn(), loadCaptureSession: vi.fn(), redeemCaptureInvitation: vi.fn(), submitCaptureSession: vi.fn(), uploadCaptureSessionArtifact: vi.fn() }));
 
 const request: CaptureRequest = {
   id: "field-request", title: "Verify ATM location after your visit", purpose: "Confirm that this ATM is present at the recorded address and provide one clear site photo.", why_you: "You were assigned to verify this location after a physical visit.", status: "READY", sensitivity: "INTERNAL", estimated_minutes: 3, deadline: "2027-08-09T12:00:00Z", known_facts: { expected_address: "12 Admiralty Way, Lekki Phase 1, Lagos" }, fields: [{ id: "present", label: "Is the ATM present?", type: "single_select", required: true, options: ["Yes", "No"] }], version: 1,
