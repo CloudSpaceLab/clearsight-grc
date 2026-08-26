@@ -174,6 +174,7 @@ type AddVerificationContractInput struct {
 	MeasurementSourceID      string          `json:"measurement_source_id,omitempty"`
 	Threshold                json.RawMessage `json:"threshold"`
 	ObservationPeriodMinutes int             `json:"observation_period_minutes"`
+	ReviewerCandidateID      string          `json:"reviewer_candidate_id,omitempty"`
 	AuthorityPrincipalID     string          `json:"authority_principal_id,omitempty"`
 	FailureResponse          string          `json:"failure_response"`
 	ActorID                  string          `json:"actor_id,omitempty"`

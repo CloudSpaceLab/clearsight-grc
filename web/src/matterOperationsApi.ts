@@ -69,6 +69,7 @@ type MatterOutcomeCheckInput = {
   scope?: Record<string, unknown>;
   threshold?: Record<string, unknown>;
   measurementSourceID?: string;
+  reviewerCandidateID: string;
 };
 
 type MatterLinkInput = {
@@ -148,6 +149,7 @@ export function defineMatterOutcomeCheck(matterID: string, expectedVersion: numb
     measurement_source_id: input.measurementSourceID,
     threshold: input.threshold ?? {},
     observation_period_minutes: input.observationPeriodMinutes,
+    reviewer_candidate_id: input.reviewerCandidateID,
     failure_response: input.failureResponse,
   });
 }

@@ -657,6 +657,10 @@ func (a *API) addMatterVerificationContract(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	input.MatterID = r.PathValue("id")
+	// The lifecycle command boundary has already checked this candidate against
+	// the current reviewer route. Never retain an authority ID supplied directly
+	// by the browser.
+	input.AuthorityPrincipalID = strings.TrimSpace(input.ReviewerCandidateID)
 	value, err := service.AddVerificationContract(r.Context(), input)
 	writeContinuityResult(w, value, err, http.StatusCreated)
 }

@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { loadMatter, loadPrograms } from "../api";
+import { loadEvidenceSources, loadMatter, loadPrograms } from "../api";
 import { ApiError } from "../http";
 import { addMatterLink, assignMatter, assignMatterAction, changeMatterContext, defineMatterOutcomeCheck, loadMatterOperations, updateMatterAction, updateMatterDetails } from "../matterOperationsApi";
 import type { MatterOperations } from "../matterOperationsApi";
@@ -9,7 +9,7 @@ import { addMatterAction, addResponsePackage, recordMatterDecision, recordVerifi
 import type { MatterAggregate, ProgramAggregate } from "../types";
 import { MatterRecordWorkspace } from "./MatterRecordWorkspace";
 
-vi.mock("../api", () => ({ loadMatter: vi.fn(), loadPrograms: vi.fn() }));
+vi.mock("../api", () => ({ loadEvidenceSources: vi.fn(), loadMatter: vi.fn(), loadPrograms: vi.fn() }));
 vi.mock("../matterOperationsApi", () => ({
   addMatterLink: vi.fn(),
   assignMatter: vi.fn(),
@@ -158,6 +158,7 @@ describe("Matter record workspace", () => {
     vi.mocked(loadMatter).mockResolvedValue(detail);
     vi.mocked(loadMatterOperations).mockResolvedValue(operations);
     vi.mocked(loadPrograms).mockResolvedValue([]);
+    vi.mocked(loadEvidenceSources).mockResolvedValue([{ id: "source-1", tenant_id: "bank-1", code: "RETURN", name: "Annual return evidence register", type: "REGISTER", authority_class: "AUTHORITATIVE", expected_freshness_minutes: 1440, health: "HEALTHY", status: "ACTIVE", version: 1 }]);
   });
 
   it("shows the exact record, current owner, deadline and blocker without inventing a CRO command", async () => {
@@ -517,15 +518,23 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
     fireEvent.click(await screen.findByRole("button", { name: "Define outcome check" }));
+    await screen.findByRole("option", { name: "Annual return evidence register" });
     fireEvent.change(screen.getByLabelText("Expected outcome"), { target: { value: "All ten return sections have an owner, source and approved review status." } });
     fireEvent.change(screen.getByLabelText("Linked action"), { target: { value: "action-1" } });
-    fireEvent.change(screen.getByLabelText("Observation period (minutes)"), { target: { value: "1440" } });
+    fireEvent.change(screen.getByLabelText("Scope covered"), { target: { value: "All ten annual return sections." } });
+    fireEvent.change(screen.getByLabelText("How the outcome will be measured"), { target: { value: "Review the annual return evidence register." } });
+    fireEvent.change(screen.getByLabelText("Current baseline"), { target: { value: "Eight sections have approved evidence." } });
+    fireEvent.change(screen.getByLabelText("Success threshold"), { target: { value: "Ten of ten sections have approved evidence." } });
+    fireEvent.change(screen.getByLabelText("Registered measurement source (optional)"), { target: { value: "source-1" } });
+    fireEvent.change(screen.getByLabelText("Observation period (days)"), { target: { value: "1" } });
     fireEvent.change(screen.getByLabelText("If the outcome is not achieved"), { target: { value: "REOPEN" } });
     fireEvent.click(screen.getByRole("button", { name: "Save outcome check" }));
 
     await waitFor(() => expect(defineMatterOutcomeCheck).toHaveBeenCalledWith("matter-1", 7, {
       actionID: "action-1", expectedOutcome: "All ten return sections have an owner, source and approved review status.",
-      observationPeriodMinutes: 1440, failureResponse: "REOPEN",
+      baseline: { description: "Eight sections have approved evidence." }, scope: { description: "All ten annual return sections.", measurement_method: "Review the annual return evidence register." },
+      threshold: { success_condition: "Ten of ten sections have approved evidence." }, measurementSourceID: "source-1",
+      observationPeriodMinutes: 1440, reviewerCandidateID: "auditor-1", failureResponse: "REOPEN",
     }));
     expect(await screen.findByText("Outcome check defined.")).toBeTruthy();
   });
