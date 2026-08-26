@@ -105,11 +105,12 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
       const assignOperation = operationFor(operations, "matter.action.assign", action.id);
       const statusOperation = operationFor(operations, "matter.action.transition", action.id);
       const terminal = ["IMPLEMENTED", "CANCELLED"].includes(action.status);
-      const storedOwner = responsibleParties.find((party) => party.scope === "ACTION" && party.subresource_id === action.id && party.responsibility === "PERFORMER")?.display_name;
+      const actionResponsibility = action.required_responsibility || "PERFORMER";
+      const storedOwner = responsibleParties.find((party) => party.scope === "ACTION" && party.subresource_id === action.id && party.responsibility === actionResponsibility)?.display_name;
       const ownerName = statusOperation?.assigned_to?.display_name ?? storedOwner ?? (action.owner_principal_id ? "Recorded action owner unavailable" : "Action owner not assigned");
       return <section className="matter-action-card" id={`matter-operation-matter.action.transition-${action.id}`} key={action.id} aria-labelledby={`matter-action-${action.id}`}>
         <div className="matter-action-heading"><div><h3 id={`matter-action-${action.id}`}>{action.title}</h3><p>{action.description}</p></div><span>{statusLabel(action.status)}</span></div>
-        <div className="matter-action-meta"><span>Action owner: <strong>{ownerName}</strong></span><span>{formatDate(action.due_at)}</span></div>
+        <div className="matter-action-meta"><span>{actionResponsibility === "ESCALATION_OWNER" ? "Escalation owner" : "Action owner"}: <strong>{ownerName}</strong></span><span>{formatDate(action.due_at)}</span></div>
         {!active && <div className="matter-action-controls">
           {editOperation?.can_act && !terminal && <button className="secondary-button" type="button" aria-label={`Edit ${action.title}`} onClick={() => startAction("edit", action)}>Edit action</button>}
           {assignOperation?.can_act && !terminal && <button className="secondary-button" type="button" aria-label={`Change owner for ${action.title}`} onClick={() => startAction("assign", action)}>Change owner</button>}

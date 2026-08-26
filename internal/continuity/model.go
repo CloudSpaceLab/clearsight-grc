@@ -421,18 +421,19 @@ type Decision struct {
 }
 
 type Action struct {
-	ID               string       `json:"id"`
-	TenantID         string       `json:"tenant_id"`
-	MatterID         string       `json:"matter_id"`
-	Title            string       `json:"title"`
-	Description      string       `json:"description"`
-	OwnerPrincipalID string       `json:"owner_principal_id,omitempty"`
-	Status           ActionStatus `json:"status"`
-	DueAt            *time.Time   `json:"due_at,omitempty"`
-	ImplementedAt    *time.Time   `json:"implemented_at,omitempty"`
-	CreatedAt        time.Time    `json:"created_at"`
-	UpdatedAt        time.Time    `json:"updated_at"`
-	Version          int64        `json:"version"`
+	ID                     string       `json:"id"`
+	TenantID               string       `json:"tenant_id"`
+	MatterID               string       `json:"matter_id"`
+	Title                  string       `json:"title"`
+	Description            string       `json:"description"`
+	OwnerPrincipalID       string       `json:"owner_principal_id,omitempty"`
+	RequiredResponsibility string       `json:"required_responsibility,omitempty"`
+	Status                 ActionStatus `json:"status"`
+	DueAt                  *time.Time   `json:"due_at,omitempty"`
+	ImplementedAt          *time.Time   `json:"implemented_at,omitempty"`
+	CreatedAt              time.Time    `json:"created_at"`
+	UpdatedAt              time.Time    `json:"updated_at"`
+	Version                int64        `json:"version"`
 }
 
 type VerificationContract struct {
@@ -455,17 +456,18 @@ type VerificationContract struct {
 }
 
 type VerificationResult struct {
-	ID                  string                   `json:"id"`
-	TenantID            string                   `json:"tenant_id"`
-	MatterID            string                   `json:"matter_id"`
-	ContractID          string                   `json:"contract_id"`
-	Result              VerificationResultStatus `json:"result"`
-	Observations        json.RawMessage          `json:"observations"`
-	EvidenceReferences  json.RawMessage          `json:"evidence_references"`
-	ReviewerPrincipalID string                   `json:"reviewer_principal_id,omitempty"`
-	Rationale           string                   `json:"rationale"`
-	ObservedAt          time.Time                `json:"observed_at"`
-	CreatedAt           time.Time                `json:"created_at"`
+	ID                           string                   `json:"id"`
+	TenantID                     string                   `json:"tenant_id"`
+	MatterID                     string                   `json:"matter_id"`
+	ContractID                   string                   `json:"contract_id"`
+	Result                       VerificationResultStatus `json:"result"`
+	Observations                 json.RawMessage          `json:"observations"`
+	EvidenceReferences           json.RawMessage          `json:"evidence_references"`
+	ReviewerPrincipalID          string                   `json:"reviewer_principal_id,omitempty"`
+	ReviewerAuthorityPrincipalID string                   `json:"reviewer_authority_principal_id,omitempty"`
+	Rationale                    string                   `json:"rationale"`
+	ObservedAt                   time.Time                `json:"observed_at"`
+	CreatedAt                    time.Time                `json:"created_at"`
 }
 
 type ResponsePackage struct {

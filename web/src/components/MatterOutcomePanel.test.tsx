@@ -79,6 +79,29 @@ it("shows every stored outcome contract term with safe source and reviewer label
   expect(screen.queryByText("reviewer-1")).toBeNull();
 });
 
+it("keeps retired measurement provenance and stored reviewer labels out of active choices", async () => {
+  vi.mocked(loadEvidenceSources).mockResolvedValue([
+    { id: "source-active", tenant_id: "bank", legal_entity_id: "entity-1", code: "LIVE", name: "Current availability report", type: "SYSTEM", authority_class: "AUTHORITATIVE", expected_freshness_minutes: 60, health: "HEALTHY", status: "ACTIVE", version: 2 },
+    { id: "source-retired", tenant_id: "bank", legal_entity_id: "entity-1", code: "OLD", name: "Retired availability report", type: "SYSTEM", authority_class: "AUTHORITATIVE", expected_freshness_minutes: 60, health: "RETIRED", status: "RETIRED", version: 4 },
+  ]);
+  const aggregate = { matter: { id: "matter-1", legal_entity_id: "entity-1", version: 9 }, actions: [], verification_contracts: [{ id: "contract-1", expected_outcome: "Posting remains available", measurement_source_id: "source-retired", authority_principal_id: "contract-reviewer-private", observation_period_minutes: 60, failure_response: "BLOCK_CLOSE", status: "ACTIVE" }], verification_results: [{ id: "result-1", contract_id: "contract-1", result: "PASS", reviewer_principal_id: "result-reviewer-private", observed_at: "2026-08-25T00:00:00Z" }], closure: { ready: false, reasons: [] } } as unknown as MatterAggregate;
+  const operations = [{ command: "matter.outcome.define", label: "Define", responsibility: "REVIEWER", can_act: true, reason: "", candidates: [{ id: "reviewer-next", display_name: "Current reviewer", kind: "PERSON", role: "Reviewer" }] }];
+  render(<MatterOutcomePanel aggregate={aggregate} operations={operations} responsibleParties={[
+    { scope: "OUTCOME_CHECK", subresource_id: "contract-1", responsibility: "REVIEWER", display_name: "Ada Okafor", kind: "PERSON" },
+    { scope: "OUTCOME_RESULT", subresource_id: "result-1", responsibility: "REVIEWER", display_name: "Bola Ahmed", kind: "PERSON" },
+  ]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+
+  expect(await screen.findByText("Retired availability report")).toBeTruthy();
+  expect(screen.getByText("Ada Okafor")).toBeTruthy();
+  fireEvent.click(screen.getByText("View outcome result history (1)"));
+  expect(screen.getByText(/Recorded 2026-08-25 by Bola Ahmed/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Define outcome check" }));
+  const choices = screen.getByLabelText("Registered measurement source (optional)") as HTMLSelectElement;
+  expect(Array.from(choices.options).map((option) => option.text)).toContain("Current availability report");
+  expect(Array.from(choices.options).map((option) => option.text)).not.toContain("Retired availability report");
+  expect(screen.queryByText(/contract-reviewer-private|result-reviewer-private/)).toBeNull();
+});
+
 it("renders bounded legacy scalar contract terms as human key and value labels", () => {
   const aggregate = { matter: { id: "matter-1", version: 3 }, actions: [], verification_contracts: [{ id: "contract-legacy", expected_outcome: "No privileged account lacks approval", baseline: { unresolved: 4 }, scope: { accounts: 4 }, threshold: { unresolved: 0 }, observation_period_minutes: 0, failure_response: "REOPEN", status: "ACTIVE" }], verification_results: [], closure: { ready: false, reasons: [] } } as unknown as MatterAggregate;
   render(<MatterOutcomePanel aggregate={aggregate} operations={[]} onUpdated={vi.fn()} onReload={vi.fn()}/>);

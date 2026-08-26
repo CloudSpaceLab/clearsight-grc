@@ -25,15 +25,16 @@ func TestPostgresOutcomeFailureBeforeVerificationCanBeRechecked(t *testing.T) {
 	defer pool.Close()
 
 	const (
-		tenantID = "86868686-8686-7686-8686-868686868681"
-		ownerID  = "86868686-8686-7686-8686-868686868682"
-		reviewer = "86868686-8686-7686-8686-868686868683"
+		tenantID        = "86868686-8686-7686-8686-868686868681"
+		ownerID         = "86868686-8686-7686-8686-868686868682"
+		reviewer        = "86868686-8686-7686-8686-868686868683"
+		escalationOwner = "86868686-8686-7686-8686-868686868684"
 	)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'outcome-recheck-test','Outcome Recheck Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
-	for _, principal := range []string{ownerID, reviewer} {
+	for _, principal := range []string{ownerID, reviewer, escalationOwner} {
 		if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES($1::uuid,$2::uuid,'PERSON',$1::text,'Outcome lifecycle actor')`, principal, tenantID); err != nil {
 			t.Fatal(err)
 		}
@@ -80,23 +81,30 @@ func TestPostgresOutcomeFailureBeforeVerificationCanBeRechecked(t *testing.T) {
 
 	failed, err := service.RecordVerificationResult(ctx, RecordVerificationResultInput{
 		TenantID: "outcome-recheck-test", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, ContractID: contractID,
-		Result: VerificationFailed, Observations: json.RawMessage(`{"unsupported":1}`), ReviewerPrincipalID: reviewer,
+		Result: VerificationFailed, Observations: json.RawMessage(`{"unsupported":1}`), ReviewerPrincipalID: reviewer, ReviewerAuthorityPrincipalID: reviewer, EscalationPrincipalID: escalationOwner,
 		Rationale: "One unsupported entry remains.", ObservedAt: now,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if failed.Matter.Status != MatterDecisionRequired || len(failed.VerificationResults) != 1 {
+	if failed.Matter.Status != MatterDecisionRequired || len(failed.VerificationResults) != 1 || len(failed.Actions) != 2 || failed.Actions[1].OwnerPrincipalID != escalationOwner || failed.Actions[1].RequiredResponsibility != "ESCALATION_OWNER" {
 		t.Fatalf("early failure did not execute escalation and preserve the result: %#v", failed)
 	}
 	if work, _ := CompileMatterWork(failed, now); len(work) != 1 || work[0].CommandName != "matter.outcome.record" {
 		t.Fatalf("failed outcome disappeared from reviewer work: %#v", work)
 	}
+	escalationActionID := failed.Actions[1].ID
+	for _, target := range []ActionStatus{ActionInProgress, ActionImplemented} {
+		failed, err = service.TransitionAction(ctx, TransitionActionInput{TenantID: "outcome-recheck-test", MatterID: matter.Matter.ID, ActionID: escalationActionID, ExpectedVersion: failed.Matter.Version, To: target, ActorID: escalationOwner, Rationale: "The escalation owner directed and completed the corrective follow-up."})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	service.now = func() time.Time { return now.Add(time.Second) }
 	passed, err := service.RecordVerificationResult(ctx, RecordVerificationResultInput{
 		TenantID: "outcome-recheck-test", MatterID: matter.Matter.ID, ExpectedVersion: failed.Matter.Version, ContractID: contractID,
-		Result: VerificationPassed, Observations: json.RawMessage(`{"unsupported":0}`), ReviewerPrincipalID: reviewer,
+		Result: VerificationPassed, Observations: json.RawMessage(`{"unsupported":0}`), ReviewerPrincipalID: reviewer, ReviewerAuthorityPrincipalID: reviewer,
 		Rationale: "The corrected access list now has no unsupported entries.", ObservedAt: now.Add(time.Second),
 	})
 	if err != nil {
@@ -118,5 +126,18 @@ func TestPostgresOutcomeFailureBeforeVerificationCanBeRechecked(t *testing.T) {
 	}
 	if resultRows != 2 || resultEvents != 2 || resultOutbox != 2 {
 		t.Fatalf("result row/event/outbox counts = %d/%d/%d, want 2/2/2", resultRows, resultEvents, resultOutbox)
+	}
+	var escalationRows, escalationEvents, escalationOutbox int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM matter_actions WHERE matter_id=$1::uuid AND required_responsibility='ESCALATION_OWNER'`, matter.Matter.ID).Scan(&escalationRows); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM continuity_events WHERE aggregate_id=$1::uuid AND event_type='ACTION_ADDED' AND payload->>'required_responsibility'='ESCALATION_OWNER'`, matter.Matter.ID).Scan(&escalationEvents); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM outbox_events WHERE aggregate_id=$1::uuid AND event_type='ACTION_ADDED' AND payload->>'required_responsibility'='ESCALATION_OWNER'`, matter.Matter.ID).Scan(&escalationOutbox); err != nil {
+		t.Fatal(err)
+	}
+	if escalationRows != 1 || escalationEvents != 1 || escalationOutbox != 1 {
+		t.Fatalf("escalation row/event/outbox counts = %d/%d/%d, want 1/1/1", escalationRows, escalationEvents, escalationOutbox)
 	}
 }

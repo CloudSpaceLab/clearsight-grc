@@ -16,7 +16,7 @@ func TestVerificationFailureResponsesRunBeforeVerificationWithoutDuplicateSideEf
 		wantMatterLen int
 	}{
 		{response: "REOPEN", wantStatus: MatterActionsInProgress, wantVersion: 5, wantMatterLen: 1},
-		{response: "ESCALATE", wantStatus: MatterDecisionRequired, wantVersion: 6, wantMatterLen: 1},
+		{response: "ESCALATE", wantStatus: MatterDecisionRequired, wantVersion: 7, wantMatterLen: 1},
 		{response: "CREATE_MATTER", wantStatus: MatterActionsInProgress, wantVersion: 5, wantMatterLen: 2},
 		{response: "BLOCK_CLOSE", wantStatus: MatterActionsInProgress, wantVersion: 5, wantMatterLen: 1},
 	} {
@@ -32,6 +32,15 @@ func TestVerificationFailureResponsesRunBeforeVerificationWithoutDuplicateSideEf
 			}
 			if len(matter.VerificationResults) != 1 || matter.VerificationResults[0].Result != VerificationFailed {
 				t.Fatalf("failure result history was not preserved: %#v", matter.VerificationResults)
+			}
+			if test.response == "ESCALATE" {
+				if len(matter.Actions) != 2 {
+					t.Fatalf("escalation must append one executable Action: %#v", matter.Actions)
+				}
+				escalation := matter.Actions[1]
+				if escalation.OwnerPrincipalID != "escalation-owner" || escalation.RequiredResponsibility != "ESCALATION_OWNER" || escalation.Status != ActionPlanned {
+					t.Fatalf("escalation Action was not bound to the resolved owner: %#v", escalation)
+				}
 			}
 
 			_, retryErr := service.RecordVerificationResult(WithTrustedSystemScope(context.Background()), input)
@@ -101,6 +110,7 @@ func verificationLifecycleFixture(failureResponse string) (*Service, *MemoryRepo
 	return service, repo, RecordVerificationResultInput{
 		TenantID: "bank", MatterID: "matter-1", ExpectedVersion: 4, ContractID: "contract-1", Result: VerificationFailed,
 		Observations: json.RawMessage(`{"unresolved":1}`), EvidenceReferences: json.RawMessage(`["evidence-1"]`),
-		ReviewerPrincipalID: "reviewer", Rationale: "One exception remains unresolved.", ObservedAt: now,
+		ReviewerPrincipalID: "reviewer", ReviewerAuthorityPrincipalID: "reviewer", EscalationPrincipalID: "escalation-owner",
+		Rationale: "One exception remains unresolved.", ObservedAt: now,
 	}
 }

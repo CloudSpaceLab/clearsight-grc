@@ -57,6 +57,21 @@ func (r *PostgresRepository) ApplyVerificationResultBundle(ctx context.Context, 
 		}
 		finalEvent = *bundle.TransitionEvent
 	}
+	if bundle.EscalationEvent != nil {
+		if bundle.EscalationAction == nil || bundle.EscalationEvent.AggregateVersion != finalEvent.AggregateVersion+1 {
+			return ErrVersionConflict
+		}
+		if err := applyMatterProjection(ctx, tx, *bundle.EscalationEvent); err != nil {
+			return err
+		}
+		if err := insertContinuityEvent(ctx, tx, *bundle.EscalationEvent); err != nil {
+			return err
+		}
+		if err := insertOutbox(ctx, tx, *bundle.EscalationEvent); err != nil {
+			return err
+		}
+		finalEvent = *bundle.EscalationEvent
+	}
 
 	tag, err := tx.Exec(ctx, `UPDATE matters SET version=$3,updated_at=$4 WHERE id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND version=$5`, bundle.TenantID, bundle.MatterID, finalEvent.AggregateVersion, finalEvent.OccurredAt, bundle.ExpectedVersion)
 	if err != nil {

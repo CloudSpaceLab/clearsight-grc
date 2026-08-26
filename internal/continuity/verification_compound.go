@@ -20,6 +20,8 @@ type VerificationResultBundle struct {
 	ExpectedVersion   int64
 	ResultEvent       Event
 	TransitionEvent   *Event
+	EscalationAction  *Action
+	EscalationEvent   *Event
 	FollowUpMatter    *Matter
 	FollowUpEvent     *Event
 	FollowUpLink      *MatterLink
@@ -57,7 +59,7 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 	if input.ObservedAt.IsZero() {
 		input.ObservedAt = now
 	}
-	if err := validateVerificationResult(aggregate, contract, input.ReviewerPrincipalID, input.ObservedAt, now); err != nil {
+	if err := validateVerificationResult(aggregate, contract, input.ReviewerPrincipalID, input.ReviewerAuthorityPrincipalID, input.ObservedAt, now); err != nil {
 		return MatterAggregate{}, err
 	}
 	valueID, err := id.NewUUIDv7()
@@ -68,7 +70,8 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 		ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID,
 		ContractID: input.ContractID, Result: input.Result, Observations: observations,
 		EvidenceReferences: evidenceReferences, ReviewerPrincipalID: strings.TrimSpace(input.ReviewerPrincipalID),
-		Rationale: strings.TrimSpace(input.Rationale), ObservedAt: input.ObservedAt.UTC(), CreatedAt: now,
+		ReviewerAuthorityPrincipalID: strings.TrimSpace(input.ReviewerAuthorityPrincipalID),
+		Rationale:                    strings.TrimSpace(input.Rationale), ObservedAt: input.ObservedAt.UTC(), CreatedAt: now,
 	}
 	resultEvent, err := newEvent(input.TenantID, "MATTER", input.MatterID, input.ExpectedVersion+1, EventVerificationResultRecorded, value, actorFor(input.ReviewerPrincipalID), input.ReviewerPrincipalID, now)
 	if err != nil {
@@ -100,15 +103,40 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 		} else {
 			matter.Status = MatterDecisionRequired
 		}
-		if matter.Status == aggregate.Matter.Status {
-			break
+		if matter.Status != aggregate.Matter.Status {
+			matter.UpdatedAt = now
+			transitionEvent, eventErr := newEvent(input.TenantID, "MATTER", input.MatterID, input.ExpectedVersion+2, EventMatterStateChanged, matter, actorFor(input.ReviewerPrincipalID), input.ReviewerPrincipalID, now)
+			if eventErr != nil {
+				return MatterAggregate{}, eventErr
+			}
+			bundle.TransitionEvent = &transitionEvent
 		}
-		matter.UpdatedAt = now
-		transitionEvent, eventErr := newEvent(input.TenantID, "MATTER", input.MatterID, input.ExpectedVersion+2, EventMatterStateChanged, matter, actorFor(input.ReviewerPrincipalID), input.ReviewerPrincipalID, now)
-		if eventErr != nil {
-			return MatterAggregate{}, eventErr
+		if contract.FailureResponse == "ESCALATE" {
+			escalationOwner := strings.TrimSpace(input.EscalationPrincipalID)
+			if escalationOwner == "" {
+				return MatterAggregate{}, fmt.Errorf("escalation owner is required for the configured failure response")
+			}
+			actionID, idErr := id.NewUUIDv7()
+			if idErr != nil {
+				return MatterAggregate{}, idErr
+			}
+			escalation := Action{
+				ID: actionID, TenantID: input.TenantID, MatterID: input.MatterID,
+				Title: "Direct corrective work for failed outcome", Description: "Review the failed outcome check, direct the required corrective work and assign the next action.",
+				OwnerPrincipalID: escalationOwner, RequiredResponsibility: "ESCALATION_OWNER", Status: ActionPlanned,
+				DueAt: aggregate.Matter.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1,
+			}
+			actionVersion := input.ExpectedVersion + 2
+			if bundle.TransitionEvent != nil {
+				actionVersion++
+			}
+			actionEvent, eventErr := newEvent(input.TenantID, "MATTER", input.MatterID, actionVersion, EventActionAdded, escalation, actorFor(input.ReviewerPrincipalID), input.ReviewerPrincipalID, now)
+			if eventErr != nil {
+				return MatterAggregate{}, eventErr
+			}
+			bundle.EscalationAction = &escalation
+			bundle.EscalationEvent = &actionEvent
 		}
-		bundle.TransitionEvent = &transitionEvent
 	case "CREATE_MATTER":
 		programIDs, lookupErr := s.repo.LinkedProgramIDs(ctx, input.TenantID, input.MatterID)
 		if lookupErr != nil {

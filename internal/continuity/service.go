@@ -216,16 +216,18 @@ type AddVerificationContractInput struct {
 }
 
 type RecordVerificationResultInput struct {
-	TenantID            string                   `json:"tenant_id"`
-	MatterID            string                   `json:"matter_id"`
-	ExpectedVersion     int64                    `json:"expected_version"`
-	ContractID          string                   `json:"contract_id"`
-	Result              VerificationResultStatus `json:"result"`
-	Observations        json.RawMessage          `json:"observations"`
-	EvidenceReferences  json.RawMessage          `json:"evidence_references"`
-	ReviewerPrincipalID string                   `json:"reviewer_principal_id,omitempty"`
-	Rationale           string                   `json:"rationale"`
-	ObservedAt          time.Time                `json:"observed_at"`
+	TenantID                     string                   `json:"tenant_id"`
+	MatterID                     string                   `json:"matter_id"`
+	ExpectedVersion              int64                    `json:"expected_version"`
+	ContractID                   string                   `json:"contract_id"`
+	Result                       VerificationResultStatus `json:"result"`
+	Observations                 json.RawMessage          `json:"observations"`
+	EvidenceReferences           json.RawMessage          `json:"evidence_references"`
+	ReviewerPrincipalID          string                   `json:"reviewer_principal_id,omitempty"`
+	ReviewerAuthorityPrincipalID string                   `json:"reviewer_authority_principal_id,omitempty"`
+	EscalationPrincipalID        string                   `json:"escalation_principal_id,omitempty"`
+	Rationale                    string                   `json:"rationale"`
+	ObservedAt                   time.Time                `json:"observed_at"`
 }
 
 type AddResponsePackageInput struct {
@@ -1023,7 +1025,7 @@ func (s *Service) AddAction(ctx context.Context, input AddActionInput) (MatterAg
 		return MatterAggregate{}, err
 	}
 	now := s.now().UTC()
-	value := Action{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, Title: strings.TrimSpace(input.Title), Description: strings.TrimSpace(input.Description), OwnerPrincipalID: ownerID, Status: ActionPlanned, DueAt: input.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1}
+	value := Action{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, Title: strings.TrimSpace(input.Title), Description: strings.TrimSpace(input.Description), OwnerPrincipalID: ownerID, RequiredResponsibility: "PERFORMER", Status: ActionPlanned, DueAt: input.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1}
 	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionAdded, value, input.ActorID); err != nil {
 		return MatterAggregate{}, err
 	}

@@ -5,11 +5,12 @@ import { apiErrorKind } from "../http";
 import { defineMatterOutcomeCheck } from "../matterOperationsApi";
 import type { MatterOperation } from "../matterOperationsApi";
 import { recordVerificationResult, transitionMatter } from "../continuityCommands";
-import type { EvidenceSource, MatterAggregate, VerificationContract } from "../types";
+import type { EvidenceSource, MatterAggregate, RecordResponsibleParty, VerificationContract } from "../types";
 
 type Props = {
   aggregate: MatterAggregate;
   operations: MatterOperation[];
+  responsibleParties?: RecordResponsibleParty[];
   onUpdated: (value: MatterAggregate) => void | Promise<void>;
   onReload: () => void;
 };
@@ -83,7 +84,7 @@ function observationPeriodLabel(minutes: number) {
   return `${minutes} minutes`;
 }
 
-export function MatterOutcomePanel({ aggregate, operations, onUpdated, onReload }: Props) {
+export function MatterOutcomePanel({ aggregate, operations, responsibleParties = [], onUpdated, onReload }: Props) {
   const defineOperation = operationFor(operations, "matter.outcome.define");
   const transitionOperation = operationFor(operations, "matter.transition");
   const [active, setActive] = useState<Active>(null);
@@ -99,6 +100,7 @@ export function MatterOutcomePanel({ aggregate, operations, onUpdated, onReload 
   const [failureResponse, setFailureResponse] = useState("");
   const [sources, setSources] = useState<EvidenceSource[]>([]);
   const [sourcesState, setSourcesState] = useState<"loading" | "live" | "unavailable">("loading");
+	const activeSources = sources.filter((source) => source.status === "ACTIVE");
   const [result, setResult] = useState<"PASS" | "FAIL" | "INCONCLUSIVE">("PASS");
   const [observations, setObservations] = useState("");
   const [evidenceReferences, setEvidenceReferences] = useState("");
@@ -115,7 +117,7 @@ export function MatterOutcomePanel({ aggregate, operations, onUpdated, onReload 
     void loadEvidenceSources(aggregate.matter.legal_entity_id)
       .then((values) => {
         if (!current) return;
-        setSources(values.filter((value) => value.status === "ACTIVE" && (!value.legal_entity_id || value.legal_entity_id === aggregate.matter.legal_entity_id)));
+        setSources(values.filter((value) => !value.legal_entity_id || value.legal_entity_id === aggregate.matter.legal_entity_id));
         setSourcesState("live");
       })
       .catch(() => { if (current) setSourcesState("unavailable"); });
@@ -222,8 +224,8 @@ export function MatterOutcomePanel({ aggregate, operations, onUpdated, onReload 
       const recordOperation = operationFor(operations, "matter.outcome.record", contract.id);
       const linkedAction = aggregate.actions.find((action) => action.id === contract.action_id);
       const sourceLabel = sources.find((source) => source.id === contract.measurement_source_id)?.name ?? (contract.measurement_source_id ? "Source name unavailable" : "Not recorded");
-      const assignedReviewer = operations.flatMap((operation) => operation.candidates ?? []).find((candidate) => candidate.id === contract.authority_principal_id)?.display_name;
-      const reviewerLabel = (reviewerID?: string) => operations.flatMap((operation) => operation.candidates ?? []).find((candidate) => candidate.id === reviewerID)?.display_name ?? recordOperation?.assigned_to?.display_name ?? "Recorded reviewer unavailable";
+      const assignedReviewer = responsibleParties.find((party) => party.scope === "OUTCOME_CHECK" && party.subresource_id === contract.id && party.responsibility === "REVIEWER")?.display_name ?? operations.flatMap((operation) => operation.candidates ?? []).find((candidate) => candidate.id === contract.authority_principal_id)?.display_name;
+      const reviewerLabel = (resultID: string, reviewerID?: string) => responsibleParties.find((party) => party.scope === "OUTCOME_RESULT" && party.subresource_id === resultID && party.responsibility === "REVIEWER")?.display_name ?? operations.flatMap((operation) => operation.candidates ?? []).find((candidate) => candidate.id === reviewerID)?.display_name ?? recordOperation?.assigned_to?.display_name ?? "Recorded reviewer unavailable";
       return <section className="matter-outcome-card" key={contract.id} aria-labelledby={`matter-outcome-${contract.id}`}>
         <div className="matter-action-heading"><div><h3 id={`matter-outcome-${contract.id}`}>{contract.expected_outcome}</h3>{linkedAction && <p>Checks the result of: {linkedAction.title}</p>}</div><span>{resultLabel(recorded?.result)}</span></div>
         <dl className="matter-outcome-meta">
@@ -236,7 +238,7 @@ export function MatterOutcomePanel({ aggregate, operations, onUpdated, onReload 
           <div><dt>Independent reviewer</dt><dd>{assignedReviewer ?? recordOperation?.assigned_to?.display_name ?? defineOperation?.assigned_to?.display_name ?? (contract.authority_principal_id ? "Recorded reviewer unavailable" : "Reviewer not assigned")}</dd></div>
         </dl>
         {recorded?.rationale && <p className="matter-outcome-rationale"><strong>Recorded basis:</strong> {recorded.rationale}</p>}
-        {results.length > 0 && <details><summary>View outcome result history ({results.length})</summary><p>Showing {Math.min(results.length, 20)} of {results.length} stored results for issue version {aggregate.matter.version}.</p><ol>{results.slice(0, 20).map((item) => <li key={item.id}><strong>{resultLabel(item.result)}</strong><span>Recorded {item.observed_at.slice(0, 10)} by {reviewerLabel(item.reviewer_principal_id)}</span>{item.rationale && <p>{item.rationale}</p>}</li>)}</ol>{results.length > 20 && <p>Older results are not shown. The issue record contains {results.length - 20} additional results.</p>}</details>}
+        {results.length > 0 && <details><summary>View outcome result history ({results.length})</summary><p>Showing {Math.min(results.length, 20)} of {results.length} stored results for issue version {aggregate.matter.version}.</p><ol>{results.slice(0, 20).map((item) => <li key={item.id}><strong>{resultLabel(item.result)}</strong><span>Recorded {item.observed_at.slice(0, 10)} by {reviewerLabel(item.id, item.reviewer_principal_id)}</span>{item.rationale && <p>{item.rationale}</p>}</li>)}</ol>{results.length > 20 && <p>Older results are not shown. The issue record contains {results.length - 20} additional results.</p>}</details>}
         {contract.failure_response && <p className="matter-outcome-rationale"><strong>If not achieved:</strong> {failureLabel(contract.failure_response)}</p>}
         {!active && recordOperation?.can_act && <button className="secondary-button" type="button" aria-label={`Record result for ${contract.expected_outcome}`} onClick={() => beginResult(contract)}>Record outcome result</button>}
         {!recordOperation?.can_act && recordOperation?.reason && <p className="matter-operation-reason">{recordOperation.reason}</p>}
@@ -256,7 +258,7 @@ export function MatterOutcomePanel({ aggregate, operations, onUpdated, onReload 
         <label className="wide"><span>How the outcome will be measured</span><textarea rows={2} value={measurementMethod} onChange={(event) => setMeasurementMethod(event.target.value)} required placeholder="Report, sample or manual review used to measure this result"/></label>
         <label className="wide"><span>Current baseline</span><textarea rows={2} value={currentBaseline} onChange={(event) => setCurrentBaseline(event.target.value)} required placeholder="Current measured state before the work is completed"/></label>
         <label className="wide"><span>Success threshold</span><textarea rows={2} value={successThreshold} onChange={(event) => setSuccessThreshold(event.target.value)} required placeholder="The measurable condition that confirms the outcome"/></label>
-        <label><span>Registered measurement source (optional)</span><select value={measurementSourceID} onChange={(event) => setMeasurementSourceID(event.target.value)} disabled={sourcesState !== "live"}><option value="">Manual review / no registered source</option>{sources.map((source) => <option key={source.id} value={source.id}>{source.name}</option>)}</select>{sourcesState === "loading" && <small>Loading registered evidence sources…</small>}{sourcesState === "unavailable" && <small>Registered evidence sources could not be loaded. You can still save the manual measurement method above.</small>}</label>
+        <label><span>Registered measurement source (optional)</span><select value={measurementSourceID} onChange={(event) => setMeasurementSourceID(event.target.value)} disabled={sourcesState !== "live"}><option value="">Manual review / no registered source</option>{activeSources.map((source) => <option key={source.id} value={source.id}>{source.name}</option>)}</select>{sourcesState === "loading" && <small>Loading registered evidence sources…</small>}{sourcesState === "unavailable" && <small>Registered evidence sources could not be loaded. You can still save the manual measurement method above.</small>}</label>
         <label><span>Observation period (days)</span><input type="number" min="0" max="365" step="0.25" value={observationDays} onChange={(event) => setObservationDays(event.target.value)} required/></label>
         <label><span>Independent reviewer</span><select value={reviewerCandidateID} onChange={(event) => setReviewerCandidateID(event.target.value)} required><option value="">Select the person responsible for the outcome result</option>{(defineOperation?.candidates ?? []).map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.display_name}{candidate.role ? ` · ${candidate.role}` : ""}</option>)}</select>{!(defineOperation?.candidates?.length) && <small>No current reviewer candidate is available. Ask a GRC administrator to restore the reviewer route.</small>}</label>
         <label className="wide"><span>If the outcome is not achieved</span><select value={failureResponse} onChange={(event) => setFailureResponse(event.target.value)} required><option value="">Select the required handling</option><option value="REOPEN">Reopen this issue for corrective work</option><option value="CREATE_MATTER">Create a follow-up issue</option><option value="ESCALATE">Escalate to the current escalation owner</option><option value="BLOCK_CLOSE">Keep this issue open</option></select></label>

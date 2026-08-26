@@ -337,11 +337,13 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		if err != nil {
 			return policy, err
 		}
-		if !matterHasAction(*aggregate, actionID) {
+		action := matterActionByID(*aggregate, actionID)
+		if action == nil {
 			return policy, continuity.ErrNotFound
 		}
 		candidateID := stringValue(payload["owner_principal_id"])
-		if err := a.validateMatterAssignmentCandidate(ctx, tenant, name, *aggregate, candidateID, authority.ResponsibilityPerformer, max(policy.Materiality, matterPriority)); err != nil {
+		responsibility := authority.Responsibility(continuity.ActionResponsibility(*action))
+		if err := a.validateMatterAssignmentCandidate(ctx, tenant, name, *aggregate, candidateID, responsibility, max(policy.Materiality, matterPriority)); err != nil {
 			return policy, err
 		}
 		policy.Materiality = max(policy.Materiality, matterPriority)
@@ -353,23 +355,16 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 			return policy, err
 		}
 		if aggregate != nil {
-			var ownerID string
-			found := false
-			for _, action := range aggregate.Actions {
-				if action.ID == actionID {
-					ownerID = strings.TrimSpace(action.OwnerPrincipalID)
-					found = true
-					break
-				}
-			}
-			if !found {
+			action := matterActionByID(*aggregate, actionID)
+			if action == nil {
 				return policy, continuity.ErrNotFound
 			}
-			if err := a.validateStoredResponsibilityActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, max(policy.Materiality, matterPriority), authority.ResponsibilityPerformer, ownerID); err != nil {
+			responsibility := authority.Responsibility(continuity.ActionResponsibility(*action))
+			if err := a.validateStoredResponsibilityActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, max(policy.Materiality, matterPriority), responsibility, action.OwnerPrincipalID); err != nil {
 				return policy, err
 			}
+			policy.Responsibility = responsibility
 		}
-		policy.Responsibility = authority.ResponsibilityPerformer
 		policy.Materiality = max(policy.Materiality, matterPriority)
 		return policy, nil
 
@@ -385,6 +380,46 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		// The stored outcome reviewer comes only from the current server-resolved
 		// route. Any authority field supplied by the browser is overwritten.
 		payload["authority_principal_id"] = candidateID
+		return policy, nil
+
+	case "matter.outcome.record":
+		if aggregate == nil {
+			return policy, nil
+		}
+		contractID := stringValue(payload["contract_id"])
+		var contract *continuity.VerificationContract
+		for index := range aggregate.VerificationContracts {
+			if aggregate.VerificationContracts[index].ID == contractID {
+				contract = &aggregate.VerificationContracts[index]
+				break
+			}
+		}
+		if contract == nil || contract.Status != continuity.VerificationActive {
+			return policy, continuity.ErrNotFound
+		}
+		policy.Materiality = max(policy.Materiality, matterPriority)
+		if err := a.validateStoredResponsibilityActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, policy.Materiality, authority.ResponsibilityReviewer, contract.AuthorityPrincipalID); err != nil {
+			return policy, err
+		}
+		payload["reviewer_authority_principal_id"] = contract.AuthorityPrincipalID
+		delete(payload, "escalation_principal_id")
+		if continuity.VerificationResultStatus(strings.ToUpper(stringValue(payload["result"]))) != continuity.VerificationFailed || contract.FailureResponse != "ESCALATE" {
+			return policy, nil
+		}
+		if a.deps.Authority == nil {
+			return policy, fmt.Errorf("%w: escalation route is unavailable", commandauth.ErrGuardUnavailable)
+		}
+		escalation, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
+			TenantID: tenant, LegalEntityID: aggregate.Matter.LegalEntityID, ObjectType: "MATTER", ObjectID: aggregate.Matter.ID,
+			Responsibility: authority.ResponsibilityEscalation, DecisionType: name, Materiality: policy.Materiality,
+		})
+		if err != nil || strings.TrimSpace(escalation.Principal.ID) == "" {
+			return policy, fmt.Errorf("%w: current escalation owner could not be resolved", commandauth.ErrGuardUnavailable)
+		}
+		if !continuity.MatterVisibleTo(aggregate.Matter, escalation.Principal.ID) {
+			return policy, fmt.Errorf("%w: current escalation owner cannot access this issue", commandauth.ErrGuardUnavailable)
+		}
+		payload["escalation_principal_id"] = escalation.Principal.ID
 		return policy, nil
 
 	case "matter.response.add":
@@ -632,12 +667,16 @@ func (a *API) validateMatterAssignmentCandidate(ctx context.Context, tenant, com
 }
 
 func matterHasAction(aggregate continuity.MatterAggregate, actionID string) bool {
-	for _, action := range aggregate.Actions {
-		if action.ID == actionID {
-			return true
+	return matterActionByID(aggregate, actionID) != nil
+}
+
+func matterActionByID(aggregate continuity.MatterAggregate, actionID string) *continuity.Action {
+	for index := range aggregate.Actions {
+		if aggregate.Actions[index].ID == actionID {
+			return &aggregate.Actions[index]
 		}
 	}
-	return false
+	return nil
 }
 
 func programHasRequirement(aggregate continuity.ProgramAggregate, requirementID string) bool {

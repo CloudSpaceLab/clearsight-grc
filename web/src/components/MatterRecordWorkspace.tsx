@@ -142,7 +142,7 @@ export function MatterRecordWorkspace({ matterID, onBack }: Props) {
         <MatterInformationPanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
         <MatterActionsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
         <MatterDecisionResponsePanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
-        <MatterOutcomePanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
+        <MatterOutcomePanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
       </section>
     </>}
   </section>;

@@ -33,6 +33,17 @@ func (r *MemoryRepository) ApplyVerificationResultBundle(_ context.Context, bund
 		next.Matter.UpdatedAt = bundle.TransitionEvent.OccurredAt
 		finalEvents = append(finalEvents, *bundle.TransitionEvent)
 	}
+	if bundle.EscalationEvent != nil {
+		if bundle.EscalationAction == nil || bundle.EscalationEvent.AggregateVersion != next.Matter.Version+1 {
+			return ErrVersionConflict
+		}
+		if err := applyMatterEventToAggregate(&next, *bundle.EscalationEvent); err != nil {
+			return err
+		}
+		next.Matter.Version = bundle.EscalationEvent.AggregateVersion
+		next.Matter.UpdatedAt = bundle.EscalationEvent.OccurredAt
+		finalEvents = append(finalEvents, *bundle.EscalationEvent)
+	}
 	next.Closure = assessClosure(next)
 
 	var followAggregate MatterAggregate

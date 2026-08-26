@@ -633,7 +633,7 @@ func applyMatterProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		if err := json.Unmarshal(event.Payload, &v); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `INSERT INTO matter_actions(id,tenant_id,matter_id,title,description,owner_principal_id,status,due_at,implemented_at,created_at,updated_at,version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,NULLIF($6,'')::uuid,$7,$8,$9,$10,$10,$11)`, v.ID, v.TenantID, v.MatterID, v.Title, v.Description, v.OwnerPrincipalID, v.Status, v.DueAt, v.ImplementedAt, v.CreatedAt, v.Version)
+		_, err := tx.Exec(ctx, `INSERT INTO matter_actions(id,tenant_id,matter_id,title,description,owner_principal_id,required_responsibility,status,due_at,implemented_at,created_at,updated_at,version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,NULLIF($6,'')::uuid,$7,$8,$9,$10,$11,$11,$12)`, v.ID, v.TenantID, v.MatterID, v.Title, v.Description, v.OwnerPrincipalID, ActionResponsibility(v), v.Status, v.DueAt, v.ImplementedAt, v.CreatedAt, v.Version)
 		return err
 	case EventActionStateChanged, EventActionUpdated, EventActionAssigned:
 		v, ok, err := matterProjectionAction(event)
@@ -643,7 +643,7 @@ func applyMatterProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		if !ok {
 			return ErrInvalidState
 		}
-		_, err = tx.Exec(ctx, `UPDATE matter_actions SET title=$4,description=$5,owner_principal_id=NULLIF($6,'')::uuid,status=$7,due_at=$8,implemented_at=$9,updated_at=$10,version=$11 WHERE id=$3::uuid AND matter_id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)`, v.TenantID, v.MatterID, v.ID, v.Title, v.Description, v.OwnerPrincipalID, v.Status, v.DueAt, v.ImplementedAt, v.UpdatedAt, v.Version)
+		_, err = tx.Exec(ctx, `UPDATE matter_actions SET title=$4,description=$5,owner_principal_id=NULLIF($6,'')::uuid,required_responsibility=$7,status=$8,due_at=$9,implemented_at=$10,updated_at=$11,version=$12 WHERE id=$3::uuid AND matter_id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)`, v.TenantID, v.MatterID, v.ID, v.Title, v.Description, v.OwnerPrincipalID, ActionResponsibility(v), v.Status, v.DueAt, v.ImplementedAt, v.UpdatedAt, v.Version)
 		return err
 	case EventVerificationContractAdded:
 		var v VerificationContract
@@ -660,7 +660,7 @@ func applyMatterProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		if err := json.Unmarshal(event.Payload, &v); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `INSERT INTO verification_results(id,tenant_id,matter_id,contract_id,result,observations,evidence_references,reviewer_principal_id,rationale,observed_at,created_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,$5,$6,$7,NULLIF($8,'')::uuid,$9,$10,$11)`, v.ID, v.TenantID, v.MatterID, v.ContractID, v.Result, rawJSON(v.Observations, `{}`), rawJSON(v.EvidenceReferences, `[]`), v.ReviewerPrincipalID, v.Rationale, v.ObservedAt, v.CreatedAt)
+		_, err := tx.Exec(ctx, `INSERT INTO verification_results(id,tenant_id,matter_id,contract_id,result,observations,evidence_references,reviewer_principal_id,reviewer_authority_principal_id,rationale,observed_at,created_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,$5,$6,$7,NULLIF($8,'')::uuid,NULLIF($9,'')::uuid,$10,$11,$12)`, v.ID, v.TenantID, v.MatterID, v.ContractID, v.Result, rawJSON(v.Observations, `{}`), rawJSON(v.EvidenceReferences, `[]`), v.ReviewerPrincipalID, v.ReviewerAuthorityPrincipalID, v.Rationale, v.ObservedAt, v.CreatedAt)
 		return err
 	case EventResponsePackageAdded:
 		var v ResponsePackage

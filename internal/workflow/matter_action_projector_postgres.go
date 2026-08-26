@@ -20,13 +20,14 @@ const matterActionProjectionConsumer = "workflow-matter-action-v1"
 type MatterActionProjector struct{ Repo *PostgresRepository }
 
 type matterActionPayload struct {
-	ID               string     `json:"id"`
-	TenantID         string     `json:"tenant_id"`
-	MatterID         string     `json:"matter_id"`
-	Title            string     `json:"title"`
-	OwnerPrincipalID string     `json:"owner_principal_id"`
-	Status           string     `json:"status"`
-	DueAt            *time.Time `json:"due_at"`
+	ID                     string     `json:"id"`
+	TenantID               string     `json:"tenant_id"`
+	MatterID               string     `json:"matter_id"`
+	Title                  string     `json:"title"`
+	OwnerPrincipalID       string     `json:"owner_principal_id"`
+	RequiredResponsibility string     `json:"required_responsibility"`
+	Status                 string     `json:"status"`
+	DueAt                  *time.Time `json:"due_at"`
 }
 
 func (p *MatterActionProjector) Publish(ctx context.Context, event workflowruntime.OutboxEvent) error {
@@ -55,6 +56,14 @@ func (p *MatterActionProjector) Publish(ctx context.Context, event workflowrunti
 	targetStatus := ""
 	if len(allowedTargets) == 1 {
 		targetStatus = allowedTargets[0]
+	}
+	responsibility := strings.ToUpper(strings.TrimSpace(action.RequiredResponsibility))
+	if responsibility == "" {
+		responsibility = "PERFORMER"
+	}
+	whyNow := "You are the current performer for this issue action."
+	if responsibility == "ESCALATION_OWNER" {
+		whyNow = "A failed outcome check requires you to direct the corrective work."
 	}
 
 	tx, err := p.Repo.pool.Begin(ctx)
@@ -96,7 +105,7 @@ func (p *MatterActionProjector) Publish(ctx context.Context, event workflowrunti
 		"action_target_type": "MATTER",
 		"action_target_id":   action.MatterID,
 		"primary_action":     "Update action",
-		"why_now":            "You are the current performer for this issue action.",
+		"why_now":            whyNow,
 	})
 	if err != nil {
 		return fmt.Errorf("encode Matter Action workflow context: %w", err)
@@ -105,9 +114,9 @@ func (p *MatterActionProjector) Publish(ctx context.Context, event workflowrunti
 	var taskID string
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO workflow_tasks(tenant_id,workflow_id,step_key,responsibility,principal_id,title,status,due_at,context,claimed_at,completed_at,created_at,updated_at)
-		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,'matter-action','PERFORMER',NULLIF($3,'')::uuid,$4,$5,$6,$7::jsonb,
-		       CASE WHEN $5='IN_PROGRESS' THEN $8::timestamptz ELSE NULL END,
-		       CASE WHEN $5='COMPLETED' THEN $8::timestamptz ELSE NULL END,$8::timestamptz,$8::timestamptz)
+		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,'matter-action',$3,NULLIF($4,'')::uuid,$5,$6,$7,$8::jsonb,
+		       CASE WHEN $6='IN_PROGRESS' THEN $9::timestamptz ELSE NULL END,
+		       CASE WHEN $6='COMPLETED' THEN $9::timestamptz ELSE NULL END,$9::timestamptz,$9::timestamptz)
 		ON CONFLICT(workflow_id,step_key) DO UPDATE SET
 			principal_id=EXCLUDED.principal_id,
 			title=EXCLUDED.title,
@@ -118,7 +127,7 @@ func (p *MatterActionProjector) Publish(ctx context.Context, event workflowrunti
 			completed_at=CASE WHEN EXCLUDED.status='COMPLETED' THEN EXCLUDED.updated_at ELSE NULL END,
 			version=workflow_tasks.version+1,
 			updated_at=EXCLUDED.updated_at
-		RETURNING id::text`, event.TenantID, workflowID, action.OwnerPrincipalID, action.Title, string(status), action.DueAt, string(contextJSON), event.OccurredAt).Scan(&taskID); err != nil {
+		RETURNING id::text`, event.TenantID, workflowID, responsibility, action.OwnerPrincipalID, action.Title, string(status), action.DueAt, string(contextJSON), event.OccurredAt).Scan(&taskID); err != nil {
 		return fmt.Errorf("project Matter Action task: %w", err)
 	}
 

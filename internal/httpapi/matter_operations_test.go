@@ -308,11 +308,15 @@ func TestMatterOperationsKeepCancelledResponsibilitiesReadableWithoutCommandsOrP
 			{ID: "action-implemented", MatterID: "matter-closed", Title: "File the return", OwnerPrincipalID: "stored-performer", Status: continuity.ActionImplemented},
 			{ID: "action-cancelled", MatterID: "matter-closed", Title: "Prepare a duplicate schedule", OwnerPrincipalID: "stored-cancelled-performer", Status: continuity.ActionCancelled},
 		},
+		VerificationContracts: []continuity.VerificationContract{{ID: "outcome-1", AuthorityPrincipalID: "stored-outcome-reviewer"}},
+		VerificationResults:   []continuity.VerificationResult{{ID: "result-1", ContractID: "outcome-1", ReviewerPrincipalID: "stored-result-reviewer"}},
 	}
 	api := &API{deps: Dependencies{Access: principalResolverStub{values: map[string]access.Resolution{
 		"stored-owner":               {TenantID: "bank", PrincipalID: "stored-owner", LegalEntityID: "bank-ng", DisplayName: "Privacy Program Owner", Kind: "PERSON"},
 		"stored-performer":           {TenantID: "bank", PrincipalID: "stored-performer", LegalEntityID: "bank-ng", DisplayName: "Annual Return Lead", Kind: "PERSON"},
 		"stored-cancelled-performer": {TenantID: "bank", PrincipalID: "stored-cancelled-performer", LegalEntityID: "bank-ng", DisplayName: "Compliance Operations Analyst", Kind: "PERSON"},
+		"stored-outcome-reviewer":    {TenantID: "bank", PrincipalID: "stored-outcome-reviewer", LegalEntityID: "bank-ng", DisplayName: "Outcome Check Reviewer", Kind: "PERSON"},
+		"stored-result-reviewer":     {TenantID: "bank", PrincipalID: "stored-result-reviewer", LegalEntityID: "bank-ng", DisplayName: "Internal Audit Assessor", Kind: "PERSON"},
 	}}}}
 	actor := identity.Actor{TenantID: "bank", PrincipalID: "auditor", LegalEntityID: "bank-ng", Kind: "PERSON"}
 
@@ -344,11 +348,13 @@ func TestMatterOperationsKeepCancelledResponsibilitiesReadableWithoutCommandsOrP
 		"RECORD::ACCOUNTABLE_OWNER":           "Privacy Program Owner",
 		"ACTION:action-implemented:PERFORMER": "Annual Return Lead",
 		"ACTION:action-cancelled:PERFORMER":   "Compliance Operations Analyst",
+		"OUTCOME_CHECK:outcome-1:REVIEWER":    "Outcome Check Reviewer",
+		"OUTCOME_RESULT:result-1:REVIEWER":    "Internal Audit Assessor",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("terminal responsibilities = %#v, want %#v", got, want)
 	}
-	for _, principalID := range []string{"stored-owner", "stored-performer", "stored-cancelled-performer"} {
+	for _, principalID := range []string{"stored-owner", "stored-performer", "stored-cancelled-performer", "stored-outcome-reviewer", "stored-result-reviewer"} {
 		if strings.Contains(string(encoded), principalID) {
 			t.Fatalf("terminal responsibility response exposed principal ID %q: %s", principalID, encoded)
 		}

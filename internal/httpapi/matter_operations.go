@@ -114,15 +114,16 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 		if action.Status == continuity.ActionImplemented || action.Status == continuity.ActionCancelled {
 			continue
 		}
+		actionResponsibility := authority.Responsibility(continuity.ActionResponsibility(action))
 		add(recordOperationSpec{Command: "matter.action.update", SubresourceID: action.ID, Label: "Edit action", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID})
-		add(recordOperationSpec{Command: "matter.action.assign", SubresourceID: action.ID, Label: "Change action owner", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, IncludeCandidates: true})
+		add(recordOperationSpec{Command: "matter.action.assign", SubresourceID: action.ID, Label: "Change action owner", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: actionResponsibility, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, IncludeCandidates: true})
 		targets := continuity.AllowedActionTargets(action.Status)
 		allowed := make([]string, len(targets))
 		for index := range targets {
 			allowed[index] = string(targets[index])
 		}
 		if len(allowed) > 0 {
-			add(recordOperationSpec{Command: "matter.action.transition", SubresourceID: action.ID, Label: "Update action status", Responsibility: authority.ResponsibilityPerformer, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: action.OwnerPrincipalID, AllowedTargets: allowed})
+			add(recordOperationSpec{Command: "matter.action.transition", SubresourceID: action.ID, Label: "Update action status", Responsibility: actionResponsibility, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: action.OwnerPrincipalID, AllowedTargets: allowed})
 		}
 	}
 
@@ -280,13 +281,24 @@ func (a *API) assignedPrincipal(ctx context.Context, actor identity.Actor, resol
 }
 
 func (a *API) matterResponsibleParties(ctx context.Context, actor identity.Actor, aggregate continuity.MatterAggregate) []RecordResponsibleParty {
-	parties := make([]RecordResponsibleParty, 0, len(aggregate.Actions)+1)
+	parties := make([]RecordResponsibleParty, 0, len(aggregate.Actions)+len(aggregate.VerificationContracts)+len(aggregate.VerificationResults)+1)
 	if owner := a.storedResponsibleParty(ctx, actor, aggregate.Matter.OwnerPrincipalID, "RECORD", "", authority.ResponsibilityOwner); owner != nil {
 		parties = append(parties, *owner)
 	}
 	for _, action := range aggregate.Actions {
-		if owner := a.storedResponsibleParty(ctx, actor, action.OwnerPrincipalID, "ACTION", action.ID, authority.ResponsibilityPerformer); owner != nil {
+		responsibility := authority.Responsibility(continuity.ActionResponsibility(action))
+		if owner := a.storedResponsibleParty(ctx, actor, action.OwnerPrincipalID, "ACTION", action.ID, responsibility); owner != nil {
 			parties = append(parties, *owner)
+		}
+	}
+	for _, contract := range aggregate.VerificationContracts {
+		if reviewer := a.storedResponsibleParty(ctx, actor, contract.AuthorityPrincipalID, "OUTCOME_CHECK", contract.ID, authority.ResponsibilityReviewer); reviewer != nil {
+			parties = append(parties, *reviewer)
+		}
+	}
+	for _, result := range aggregate.VerificationResults {
+		if reviewer := a.storedResponsibleParty(ctx, actor, result.ReviewerPrincipalID, "OUTCOME_RESULT", result.ID, authority.ResponsibilityReviewer); reviewer != nil {
+			parties = append(parties, *reviewer)
 		}
 	}
 	return parties
