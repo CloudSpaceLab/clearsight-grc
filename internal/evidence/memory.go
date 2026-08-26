@@ -388,6 +388,28 @@ func (r *MemoryRepository) SessionByTokenHash(_ context.Context, tokenHash []byt
 	return session, nil
 }
 
+func (r *MemoryRepository) RevokeRequestCapabilities(_ context.Context, tenant, requestID string, now time.Time) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	request, ok := r.requests[requestID]
+	if !ok || request.TenantID != tenant {
+		return ErrNotFound
+	}
+	for key, invitation := range r.invitations {
+		if invitation.TenantID == tenant && invitation.RequestID == requestID && invitation.RevokedAt == nil {
+			invitation.RevokedAt = pointerTime(now)
+			r.invitations[key] = invitation
+		}
+	}
+	for key, session := range r.sessions {
+		if session.TenantID == tenant && session.RequestID == requestID && session.RevokedAt == nil {
+			session.RevokedAt = pointerTime(now)
+			r.sessions[key] = session
+		}
+	}
+	return nil
+}
+
 func (r *MemoryRepository) RevokeInvitation(_ context.Context, tenant, id string, now time.Time) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

@@ -3,7 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { DemoAuthGate } from "./components/DemoAuthGate";
-import { ExternalCaptureApp } from "./components/ExternalCaptureApp";
+import { bootstrapExternalCapture, ExternalCaptureApp } from "./components/ExternalCaptureApp";
 import { LifecycleTodayEvidencePage } from "./components/LifecycleTodayEvidencePage";
 import { OperatingMutationsEvidencePage } from "./components/OperatingMutationsEvidencePage";
 import { DisplayPreferencesRoot } from "./components/DisplayPreferences";
@@ -27,14 +27,14 @@ import "./vendors.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Application root is missing");
+const externalCapture = bootstrapExternalCapture(window);
 const params = new URLSearchParams(window.location.search);
 const presentation = runtimePresentation(window.location.search);
-const invitationToken = params.get("capture_invite");
 const fixture = params.get("fixture");
 const lifecycleEvidence = import.meta.env.VITE_STATIC_DEMO === "true" && fixture === "today-lifecycle";
 const operatingEvidence = import.meta.env.VITE_STATIC_DEMO === "true" && fixture === "operating-mutations";
-const application = invitationToken
-  ? <ExternalCaptureApp invitationToken={invitationToken}/>
+const application = externalCapture.isExternalCapture
+  ? <ExternalCaptureApp invitationToken={externalCapture.invitationToken} resumedSessionID={externalCapture.resumedSessionID}/>
   : lifecycleEvidence
     ? <LifecycleTodayEvidencePage/>
     : operatingEvidence

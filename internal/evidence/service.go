@@ -379,6 +379,13 @@ func (s *Service) RevokeInvitation(ctx context.Context, tenant, id string) error
 	return s.repo.RevokeInvitation(ctx, tenant, id, s.now().UTC())
 }
 
+func (s *Service) RevokeRequestCapabilities(ctx context.Context, tenant, requestID string) error {
+	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(requestID) == "" {
+		return fmt.Errorf("tenant and request are required")
+	}
+	return s.repo.RevokeRequestCapabilities(ctx, tenant, requestID, s.now().UTC())
+}
+
 func (s *Service) RevokeSession(ctx context.Context, tenant, id string) error {
 	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(id) == "" {
 		return fmt.Errorf("tenant and session are required")

@@ -437,6 +437,42 @@ func (r *PostgresRepository) SessionByTokenHash(ctx context.Context, hash []byte
 	return value, err
 }
 
+func (r *PostgresRepository) RevokeRequestCapabilities(ctx context.Context, tenant, requestID string, now time.Time) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	var lockedRequestID string
+	err = tx.QueryRow(ctx, `
+		SELECT er.id::text
+		FROM capture_requests er
+		JOIN tenants t ON t.id=er.tenant_id
+		WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2)
+		FOR UPDATE`, requestID, tenant).Scan(&lockedRequestID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `
+		UPDATE capture_invitations
+		SET revoked_at=COALESCE(revoked_at,$3)
+		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+		  AND request_id=$2::uuid`, tenant, lockedRequestID, now); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `
+		UPDATE capture_sessions
+		SET revoked_at=COALESCE(revoked_at,$3)
+		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+		  AND request_id=$2::uuid`, tenant, lockedRequestID, now); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
 func (r *PostgresRepository) RevokeInvitation(ctx context.Context, tenant, id string, now time.Time) error {
 	tag, err := r.pool.Exec(ctx, `UPDATE capture_invitations SET revoked_at=COALESCE(revoked_at,$3) WHERE id=$1::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2)`, id, tenant, now)
 	if err != nil {

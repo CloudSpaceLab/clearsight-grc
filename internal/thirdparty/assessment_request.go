@@ -45,6 +45,7 @@ type assessmentRequestEvidence interface {
 	GetRequestByOrigin(context.Context, string, evidence.RequestOrigin) (evidence.Request, error)
 	ReassignRecipient(context.Context, evidence.ReassignRecipientInput) (evidence.Request, error)
 	IssueInvitation(context.Context, evidence.IssueInvitationInput) (evidence.IssuedInvitation, error)
+	RevokeRequestCapabilities(context.Context, string, string) error
 	RevokeInvitation(context.Context, string, string) error
 }
 

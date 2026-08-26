@@ -110,6 +110,10 @@ func (s *assessmentEvidenceStub) RevokeInvitation(_ context.Context, _ string, i
 	return s.revokeErr
 }
 
+func (s *assessmentEvidenceStub) RevokeRequestCapabilities(context.Context, string, string) error {
+	return s.revokeErr
+}
+
 type assessmentFormReaderStub struct{ form monitoring.FormTemplate }
 
 func (s assessmentFormReaderStub) FormRevision(context.Context, string, string, int64) (monitoring.FormTemplate, error) {

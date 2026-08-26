@@ -32,6 +32,7 @@ type Repository interface {
 	CreateInvitation(context.Context, Invitation) error
 	RedeemInvitation(context.Context, RedeemInput) (Session, error)
 	SessionByTokenHash(context.Context, []byte, time.Time) (Session, error)
+	RevokeRequestCapabilities(context.Context, string, string, time.Time) error
 	RevokeInvitation(context.Context, string, string, time.Time) error
 	RevokeSession(context.Context, string, string, time.Time) error
 

@@ -61,9 +61,6 @@ func (s *AssessmentRequestService) ReissueRequest(ctx context.Context, _ Actor, 
 	if !evidence.ExternalAudienceMatches(request, audience) {
 		return SendRequestOutcome{}, ErrInvalid
 	}
-	if s.captureBase == nil {
-		return SendRequestOutcome{Assessment: assessment, Request: request, State: SendRequestReadyInvitationNotIssued, Recovery: "Set the secure capture address, then issue a replacement invitation."}, nil
-	}
 	preparedLink, preparedAssessment, err := s.repo.PrepareRequestReissue(ctx, PrepareRequestReissueRecord{
 		Scope: scope, AssessmentID: assessment.ID, ExpectedVersion: assessment.Version, ActorPrincipalID: verified.PrincipalID,
 		RequestID: request.ID, ExpectedInvitationID: link.InvitationID, PreparedAt: s.assessments.now().UTC(),
@@ -73,6 +70,12 @@ func (s *AssessmentRequestService) ReissueRequest(ctx context.Context, _ Actor, 
 	}
 	if preparedLink.InvitationID != "" {
 		return SendRequestOutcome{}, ErrInvalid
+	}
+	if err := s.evidence.RevokeRequestCapabilities(ctx, scope.TenantID, request.ID); err != nil {
+		return SendRequestOutcome{}, err
+	}
+	if s.captureBase == nil {
+		return SendRequestOutcome{Assessment: preparedAssessment, Request: request, State: SendRequestReadyInvitationNotIssued, Recovery: "Set the secure capture address, then issue a replacement invitation."}, nil
 	}
 	issued, err := s.evidence.IssueInvitation(ctx, evidence.IssueInvitationInput{
 		TenantID: scope.TenantID, RequestID: request.ID, Audience: audience,

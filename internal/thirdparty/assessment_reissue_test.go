@@ -58,6 +58,24 @@ type blockingIssueEvidence struct {
 
 type wrongTenantRequestEvidence struct{ assessmentRequestEvidence }
 
+type failingReissueEvidence struct {
+	assessmentRequestEvidence
+	service            *evidence.Service
+	revoked            bool
+	revokedBeforeIssue bool
+	issueErr           error
+}
+
+func (e *failingReissueEvidence) RevokeRequestCapabilities(ctx context.Context, tenant, requestID string) error {
+	e.revoked = true
+	return e.service.RevokeRequestCapabilities(ctx, tenant, requestID)
+}
+
+func (e *failingReissueEvidence) IssueInvitation(context.Context, evidence.IssueInvitationInput) (evidence.IssuedInvitation, error) {
+	e.revokedBeforeIssue = e.revoked
+	return evidence.IssuedInvitation{}, e.issueErr
+}
+
 func (e wrongTenantRequestEvidence) GetRequestByOrigin(ctx context.Context, tenant string, origin evidence.RequestOrigin) (evidence.Request, error) {
 	request, err := e.assessmentRequestEvidence.GetRequestByOrigin(ctx, tenant, origin)
 	request.TenantID = "other-bank"
@@ -162,6 +180,97 @@ func TestReissueAssessmentRequestAfterReloadReplacesInvitationAndRedeemedSession
 	}
 	if !strings.Contains(string(audit), "AssessmentRequestReissuePrepared") || !strings.Contains(string(audit), "AssessmentRequestReissued") || strings.Contains(string(audit), fixture.audience) || strings.Contains(string(audit), replacementToken) {
 		t.Fatalf("in-memory audit/outbox was incomplete or unsafe: %s", audit)
+	}
+}
+
+func TestReissueAssessmentRequestIssuanceFailureLeavesPriorCapabilityRevokedAndRetryable(t *testing.T) {
+	fixture := newCollectingRequestFixture(t)
+	priorSession, err := fixture.evidenceService.RedeemInvitation(context.Background(), fixture.invitationToken, fixture.audience)
+	if err != nil {
+		t.Fatal(err)
+	}
+	failing := &failingReissueEvidence{
+		assessmentRequestEvidence: fixture.evidenceService,
+		service:                   fixture.evidenceService,
+		issueErr:                  errors.New("invitation issuer unavailable"),
+	}
+	requestService, err := NewAssessmentRequestService(
+		fixture.assessmentService, fixture.repository, failing, assessmentFormReaderStub{form: activeAssessmentForm()}, nil,
+		"https://capture.example.test/respond", "production",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	outcome, err := requestService.ReissueRequest(assessmentContext(), assessmentActor(), fixture.assessment.ID, ReissueAssessmentRequestInput{
+		ExpectedVersion: fixture.assessment.Version, Audience: fixture.audience, InvitationTTLMinutes: 60,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !failing.revokedBeforeIssue {
+		t.Fatal("replacement issuance started before prior request capabilities were revoked")
+	}
+	if outcome.State != SendRequestReadyInvitationNotIssued || outcome.Assessment.Version != fixture.assessment.Version+1 || outcome.Invitation != nil || outcome.CaptureURL != "" || outcome.Recovery == "" {
+		t.Fatalf("issuance failure did not return a truthful retry state: %#v", outcome)
+	}
+	if _, err := fixture.evidenceService.RedeemInvitation(context.Background(), fixture.invitationToken, fixture.audience); !errors.Is(err, evidence.ErrInvitationInvalid) {
+		t.Fatalf("prior invitation remained usable after replacement failure: %v", err)
+	}
+	if _, _, err := fixture.evidenceService.SessionRequest(context.Background(), priorSession.SessionToken); !errors.Is(err, evidence.ErrSessionInvalid) {
+		t.Fatalf("prior session remained usable after replacement failure: %v", err)
+	}
+}
+
+func TestRequestCapabilityRevocationEndsEveryInvitationAndSessionIdempotently(t *testing.T) {
+	fixture := newCollectingRequestFixture(t)
+	priorSession, err := fixture.evidenceService.RedeemInvitation(context.Background(), fixture.invitationToken, fixture.audience)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := fixture.evidenceService.RevokeRequestCapabilities(context.Background(), "bank", fixture.request.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := fixture.evidenceService.RevokeRequestCapabilities(context.Background(), "bank", fixture.request.ID); err != nil {
+		t.Fatalf("repeated revocation was not idempotent: %v", err)
+	}
+	if _, err := fixture.evidenceService.RedeemInvitation(context.Background(), fixture.invitationToken, fixture.audience); !errors.Is(err, evidence.ErrInvitationInvalid) {
+		t.Fatalf("request invitation remained usable: %v", err)
+	}
+	if _, _, err := fixture.evidenceService.SessionRequest(context.Background(), priorSession.SessionToken); !errors.Is(err, evidence.ErrSessionInvalid) {
+		t.Fatalf("request session remained usable: %v", err)
+	}
+}
+
+func TestReissueAssessmentRequestWithoutCaptureAddressRevokesPriorCapabilityBeforeRetryState(t *testing.T) {
+	fixture := newCollectingRequestFixture(t)
+	priorSession, err := fixture.evidenceService.RedeemInvitation(context.Background(), fixture.invitationToken, fixture.audience)
+	if err != nil {
+		t.Fatal(err)
+	}
+	requestService, err := NewAssessmentRequestService(
+		fixture.assessmentService, fixture.repository, fixture.evidenceService, assessmentFormReaderStub{form: activeAssessmentForm()}, nil,
+		"", "development",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	outcome, err := requestService.ReissueRequest(assessmentContext(), assessmentActor(), fixture.assessment.ID, ReissueAssessmentRequestInput{
+		ExpectedVersion: fixture.assessment.Version, Audience: fixture.audience, InvitationTTLMinutes: 60,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if outcome.State != SendRequestReadyInvitationNotIssued || outcome.Assessment.Version != fixture.assessment.Version+1 || outcome.Recovery == "" {
+		t.Fatalf("missing capture address did not leave a prepared retry state: %#v", outcome)
+	}
+	if _, err := fixture.evidenceService.RedeemInvitation(context.Background(), fixture.invitationToken, fixture.audience); !errors.Is(err, evidence.ErrInvitationInvalid) {
+		t.Fatalf("prior invitation remained usable without a configured capture address: %v", err)
+	}
+	if _, _, err := fixture.evidenceService.SessionRequest(context.Background(), priorSession.SessionToken); !errors.Is(err, evidence.ErrSessionInvalid) {
+		t.Fatalf("prior session remained usable without a configured capture address: %v", err)
 	}
 }
 
