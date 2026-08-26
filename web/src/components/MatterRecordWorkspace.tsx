@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { loadMatter } from "../api";
 import { loadMatterOperations } from "../matterOperationsApi";
 import type { MatterOperations } from "../matterOperationsApi";
@@ -16,7 +16,7 @@ type Props = {
   onBack: () => void;
 };
 
-type State = "loading" | "live" | "unavailable";
+type LoadState = "loading" | "live" | "unavailable";
 
 function priorityLabel(value: number) {
   if (value >= 5) return "Critical";
@@ -27,52 +27,96 @@ function priorityLabel(value: number) {
 }
 
 export function MatterRecordWorkspace({ matterID, onBack }: Props) {
-  const [state, setState] = useState<State>("loading");
+  const [aggregateState, setAggregateState] = useState<LoadState>("loading");
+  const [operationsState, setOperationsState] = useState<LoadState>("loading");
   const [aggregate, setAggregate] = useState<MatterAggregate | null>(null);
   const [operations, setOperations] = useState<MatterOperations | null>(null);
-  const loadID = useRef(0);
+  const loadIDs = useRef({ aggregate: 0, operations: 0 });
+  const activeTarget = useRef({ id: matterID, generation: 0 });
+  const startedTargetID = useRef<string | null>(null);
+  const mounted = useRef(false);
 
-  const reload = useCallback(async () => {
-    const current = ++loadID.current;
-    setState("loading");
-    try {
-      const [nextAggregate, nextOperations] = await Promise.all([loadMatter(matterID), loadMatterOperations(matterID)]);
-      if (current !== loadID.current) return;
-      setAggregate(nextAggregate);
-      setOperations(nextOperations);
-      setState("live");
-    } catch {
-      if (current !== loadID.current) return;
-      setAggregate(null);
-      setOperations(null);
-      setState("unavailable");
-    }
+  useLayoutEffect(() => {
+    if (activeTarget.current.id === matterID) return;
+    activeTarget.current = { id: matterID, generation: activeTarget.current.generation + 1 };
+    setAggregate(null);
+    setOperations(null);
+    setAggregateState("loading");
+    setOperationsState("loading");
   }, [matterID]);
 
   useEffect(() => {
-    void reload();
-    return () => { loadID.current += 1; };
-  }, [reload]);
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+
+  const renderTarget = activeTarget.current;
+
+  const loadAggregate = useCallback(async (target = activeTarget.current) => {
+    const current = ++loadIDs.current.aggregate;
+    setAggregateState("loading");
+    try {
+      const nextAggregate = await loadMatter(target.id);
+      if (!mounted.current || current !== loadIDs.current.aggregate || activeTarget.current !== target) return;
+      setAggregate(nextAggregate);
+      setAggregateState("live");
+    } catch {
+      if (!mounted.current || current !== loadIDs.current.aggregate || activeTarget.current !== target) return;
+      setAggregateState("unavailable");
+    }
+  }, []);
+
+  const loadOperations = useCallback(async (target = activeTarget.current) => {
+    const current = ++loadIDs.current.operations;
+    setOperations(null);
+    setOperationsState("loading");
+    try {
+      const nextOperations = await loadMatterOperations(target.id);
+      if (!mounted.current || current !== loadIDs.current.operations || activeTarget.current !== target) return;
+      setOperations(nextOperations);
+      setOperationsState("live");
+    } catch {
+      if (!mounted.current || current !== loadIDs.current.operations || activeTarget.current !== target) return;
+      setOperations(null);
+      setOperationsState("unavailable");
+    }
+  }, []);
+
+  const reloadRecord = useCallback(async () => {
+    await Promise.all([loadAggregate(), loadOperations()]);
+  }, [loadAggregate, loadOperations]);
+
+  useEffect(() => {
+    if (startedTargetID.current === matterID) return;
+    startedTargetID.current = matterID;
+    const target = activeTarget.current;
+    setAggregate(null);
+    setOperations(null);
+    setAggregateState("loading");
+    setOperationsState("loading");
+    void loadAggregate(target);
+    void loadOperations(target);
+  }, [matterID, loadAggregate, loadOperations]);
 
   async function applyUpdated(value: MatterAggregate) {
+    if (activeTarget.current !== renderTarget || value.matter.id !== renderTarget.id) return;
+    loadIDs.current.aggregate += 1;
     setAggregate(value);
-    try {
-      setOperations(await loadMatterOperations(matterID));
-    } catch {
-      setOperations((current) => current ? {
-        ...current,
-        matter_version: value.matter.version,
-        authority_available: false,
-        operations: current.operations.map((operation) => ({ ...operation, can_act: false, reason: "Responsibilities could not be refreshed after this change." })),
-      } : null);
-    }
+    setAggregateState("live");
+    await loadOperations();
   }
+
+  const operationVersionMatches = Boolean(aggregate && operations && operations.matter_version === aggregate.matter.version);
+  const operationsOutdated = operationsState === "live" && Boolean(aggregate && operations) && !operationVersionMatches;
+  const currentOperations = operationsState === "live" && operations?.authority_available && operationVersionMatches
+    ? operations.operations
+    : operations?.operations.map((operation) => ({ ...operation, can_act: false })) ?? [];
 
   return <section className="matter-record-workspace" aria-label="Issue or change record">
     <button aria-label="Back to issues and changes" className="text-button matter-record-back" type="button" onClick={onBack}>← Back to issues and changes</button>
-    {state === "loading" && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading issue record and responsibilities…</div>}
-    {state === "unavailable" && <EmptyState kind="unavailable" label="Issue or change" title="Issue responsibilities could not be loaded" description="The record is read-only until its current responsibilities can be checked. Try again before changing information or assigned work." action="Try again" onAction={() => void reload()}/>} 
-    {state === "live" && aggregate && operations && <>
+    {aggregateState === "loading" && !aggregate && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading issue record…</div>}
+    {aggregateState === "unavailable" && !aggregate && <EmptyState kind="unavailable" label="Issue or change" title="Issue record could not be loaded" description="The current issue information is unavailable. Retry the issue record before relying on its status or assigned work." action="Retry issue record" onAction={() => void loadAggregate()}/>}
+    {aggregate && <>
       <header className="matter-record-header">
         <div>
           <span className="matter-kicker">{aggregate.type_label} · {aggregate.matter.reference}</span>
@@ -85,14 +129,17 @@ export function MatterRecordWorkspace({ matterID, onBack }: Props) {
           <div><dt>Record version</dt><dd>{aggregate.matter.version}</dd></div>
         </dl>
       </header>
-      {!operations.authority_available && <div className="inline-notice" role="status"><strong>Responsibilities are temporarily unavailable.</strong> Values and stored owners remain visible, but changes are disabled until authority routing recovers.</div>}
-      <MatterCurrentHandoff aggregate={aggregate} operations={operations.operations}/>
+      {operationsState === "loading" && <div className="inline-notice" role="status"><strong>Checking current responsibilities.</strong> Issue values remain visible while the current responsibility route is loaded.</div>}
+      {operationsState === "unavailable" && <div className="inline-notice" role="status"><strong>Issue responsibilities could not be checked.</strong> Issue values remain visible, but changes are disabled until the current responsibility route is available. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry responsibilities</button></div>}
+      {operations && !operations.authority_available && <div className="inline-notice" role="status"><strong>Responsibilities are temporarily unavailable.</strong> Values and stored owners remain visible, but changes are disabled until authority routing recovers. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry responsibilities</button></div>}
+      {operationsOutdated && <div className="inline-notice" role="status"><strong>Issue responsibilities are out of date.</strong> Issue values remain visible, but changes are disabled until responsibilities match issue version {aggregate.matter.version}. <button className="text-button" type="button" onClick={() => void reloadRecord()}>Reload issue data</button></div>}
+      <MatterCurrentHandoff aggregate={aggregate} operations={currentOperations}/>
       <section className="matter-record-grid">
-        <MatterDetailsPanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
-        <MatterInformationPanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
-        <MatterActionsPanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
-        <MatterDecisionResponsePanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
-        <MatterOutcomePanel aggregate={aggregate} operations={operations.operations} onUpdated={applyUpdated} onReload={() => void reload()}/>
+        <MatterDetailsPanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
+        <MatterInformationPanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
+        <MatterActionsPanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
+        <MatterDecisionResponsePanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
+        <MatterOutcomePanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
       </section>
     </>}
   </section>;

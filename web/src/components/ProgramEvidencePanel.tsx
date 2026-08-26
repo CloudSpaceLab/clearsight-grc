@@ -11,6 +11,7 @@ type Props = {
   operations: ProgramOperation[];
   actorPrincipalID: string;
   canConfigureSources: boolean;
+  canOperate?: boolean;
   onUpdated: (value: ProgramAggregate) => void;
   onReload: () => void;
 };
@@ -20,7 +21,7 @@ function futureDate(days: number) { return new Date(Date.now() + days * 86400000
 function statusLabel(value: string) { return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); }
 function lines(value: string) { return value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean); }
 
-export function ProgramEvidencePanel({ aggregate, operations, actorPrincipalID, canConfigureSources, onUpdated, onReload }: Props) {
+export function ProgramEvidencePanel({ aggregate, operations, actorPrincipalID, canConfigureSources, canOperate = true, onUpdated, onReload }: Props) {
   const defineOperation = operations.find((value) => value.command === "program.evidence.define");
   const assessOperation = operations.find((value) => value.command === "program.evidence.assess");
   const [sources, setSources] = useState<EvidenceSource[]>([]);
@@ -48,16 +49,24 @@ export function ProgramEvidencePanel({ aggregate, operations, actorPrincipalID, 
     return () => { active = false; };
   }, [aggregate.program.id]);
 
+  useEffect(() => {
+    if (!canOperate) setMode(null);
+  }, [canOperate]);
+
   function beginDefine() {
+    if (!canOperate) return;
     setMode("define"); setError(""); setTarget(targetOptions[0]?.value ?? ""); setCode(""); setName(""); setClaim(""); setSourceIDs([]); setPopulation(""); setFreshnessDays(30); setCoveragePercent(100); setIndependenceRequired(false); setContradictionPolicy("REVIEW"); setFailureAction("MATTER");
   }
   function beginAssess() {
+    if (!canOperate) return;
     setMode("assess"); setError(""); setContractID(aggregate.evidence_contracts[0]?.id ?? ""); setConclusion("SUPPORTED"); setAssessmentCoverage(100); setBasis(""); setReferences(""); setValidUntil(futureDate(30));
   }
   function toggleSource(id: string) { setSourceIDs((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]); }
 
   async function saveDefinition(event: FormEvent) {
-    event.preventDefault(); setBusy(true); setError("");
+    event.preventDefault();
+    if (!canOperate) return;
+    setBusy(true); setError("");
     const [kind, targetID] = target.split(":", 2);
     try {
       const value = await addProgramEvidenceContract(aggregate.program.id, aggregate.program.version, {
@@ -74,7 +83,9 @@ export function ProgramEvidencePanel({ aggregate, operations, actorPrincipalID, 
   }
 
   async function saveAssessment(event: FormEvent) {
-    event.preventDefault(); setBusy(true); setError("");
+    event.preventDefault();
+    if (!canOperate) return;
+    setBusy(true); setError("");
     try {
       const value = await recordProgramEvidenceAssessment(aggregate.program.id, aggregate.program.version, {
         contractID, conclusion, coverage: assessmentCoverage / 100,
@@ -89,9 +100,11 @@ export function ProgramEvidencePanel({ aggregate, operations, actorPrincipalID, 
 
   return <article className="program-record-panel program-evidence-panel" id="program-evidence-panel">
     <div className="program-panel-heading"><div><span className="eyebrow">Evidence</span><h2>Evidence checks and results</h2></div><div className="program-panel-actions">
-      {defineOperation?.can_act && targetOptions.length > 0 && <button className="secondary-button" type="button" onClick={beginDefine}>Define evidence check</button>}
-      {assessOperation?.can_act && aggregate.evidence_contracts.length > 0 && <button className="secondary-button" type="button" onClick={beginAssess}>Record evidence result</button>}
+      {canOperate && defineOperation?.can_act && targetOptions.length > 0 && <button className="secondary-button" type="button" onClick={beginDefine}>Define evidence check</button>}
+      {canOperate && assessOperation?.can_act && aggregate.evidence_contracts.length > 0 && <button className="secondary-button" type="button" onClick={beginAssess}>Record evidence result</button>}
     </div></div>
+
+    {!canOperate && <p className="program-operation-reason">Evidence changes are disabled until current Program responsibilities are available. Existing evidence checks and results remain visible.</p>}
 
     {aggregate.evidence_contracts.length ? <div className="program-evidence-list">{aggregate.evidence_contracts.map((contract) => {
       const assessments = aggregate.evidence_assessments.filter((value) => value.contract_id === contract.id).sort((left, right) => right.assessed_at.localeCompare(left.assessed_at));
@@ -131,6 +144,6 @@ export function ProgramEvidencePanel({ aggregate, operations, actorPrincipalID, 
     </form>}
 
     {!defineOperation?.can_act && defineOperation?.reason && <p className="program-operation-reason">{defineOperation.reason}</p>}
-    <MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources}/>
+    <MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} canOperate={canOperate}/>
   </article>;
 }

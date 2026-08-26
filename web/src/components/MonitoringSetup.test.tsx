@@ -146,4 +146,57 @@ describe("monitoring setup", () => {
     expect(screen.getByRole("button", { name: "Connected data" }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByText("A GRC administrator can connect a new source.")).toBeTruthy();
   });
+
+  it("keeps monitoring records readable but hides every mutation while Program responsibilities are unavailable", async () => {
+    vi.mocked(loadFormTemplates).mockResolvedValue([{
+      id: "form-draft", tenant_id: "bank-1", code: "DRAFT", name: "Draft owner review", purpose: "Confirm ownership", fields: [], status: "DRAFT", is_current: true, version: 1, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    }, {
+      id: "form-pending", tenant_id: "bank-1", code: "PENDING", name: "Pending owner review", purpose: "Confirm ownership", fields: [], status: "PENDING_APPROVAL", submitted_by: "maker-1", is_current: true, version: 1, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    }, {
+      id: "form-active", tenant_id: "bank-1", code: "ACTIVE", name: "Active owner review", purpose: "Confirm ownership", fields: [], status: "ACTIVE", is_current: true, version: 1, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    }, {
+      id: "form-linked", tenant_id: "bank-1", code: "LINKED", name: "Linked active review", purpose: "Confirm ownership", fields: [], status: "ACTIVE", is_current: true, version: 1, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    }]);
+    vi.mocked(loadMonitoringChecks).mockResolvedValue([{
+      id: "check-source", tenant_id: "bank-1", program_id: "program-1", code: "SOURCE", name: "Live source check", claim: "The connected source remains healthy", input_kind: "SOURCE", binding_id: "binding-1", binding_version: 1,
+      thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1, failure_action: "RECOMMEND_MATTER", status: "ACTIVE", is_current: true, version: 2, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    }, {
+      id: "check-draft", tenant_id: "bank-1", program_id: "program-1", code: "CHECK-DRAFT", name: "Draft monitoring check", claim: "The draft check remains visible", input_kind: "FORM", form_template_id: "form-draft", form_template_version: 1,
+      thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1, failure_action: "RECOMMEND_MATTER", status: "DRAFT", is_current: true, version: 1, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    }, {
+      id: "check-pending", tenant_id: "bank-1", program_id: "program-1", code: "CHECK-PENDING", name: "Pending monitoring check", claim: "The pending check remains visible", input_kind: "FORM", form_template_id: "form-pending", form_template_version: 1,
+      thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1, failure_action: "RECOMMEND_MATTER", status: "PENDING_APPROVAL", submitted_by: "maker-1", is_current: true, version: 1, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    }, {
+      id: "check-form-active", tenant_id: "bank-1", program_id: "program-1", code: "CHECK-ACTIVE", name: "Active collection check", claim: "The collection remains visible", input_kind: "FORM", form_template_id: "form-linked", form_template_version: 1,
+      thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1, failure_action: "RECOMMEND_MATTER", status: "ACTIVE", is_current: true, version: 1, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    }]);
+
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources canOperate={false}/>);
+
+    expect(await screen.findByRole("heading", { name: "Draft owner review" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Active owner review" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Pending owner review" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Linked active review" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Live source check" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Draft monitoring check" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Pending monitoring check" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Active collection check" })).toBeTruthy();
+    expect(screen.getByText("Monitoring changes are disabled until current Program responsibilities are available. Existing checks and results remain available.")).toBeTruthy();
+    for (const name of ["Add monitoring check", "Send for approval", "Approve form", "Create monitoring check", "Collect responses", "Approve check", "Check source now"]) {
+      expect(screen.queryByRole("button", { name })).toBeNull();
+    }
+  });
+
+  it("keeps monitoring retry available when mutations are disabled", async () => {
+    vi.mocked(loadFormTemplates).mockRejectedValueOnce(new Error("forms unavailable")).mockResolvedValue([]);
+    vi.mocked(loadMonitoringChecks).mockRejectedValueOnce(new Error("checks unavailable")).mockResolvedValue([]);
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources canOperate={false}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
+    await waitFor(() => {
+      expect(loadFormTemplates).toHaveBeenCalledTimes(2);
+      expect(loadMonitoringChecks).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
+  });
 });

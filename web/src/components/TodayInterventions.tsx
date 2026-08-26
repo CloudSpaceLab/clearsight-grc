@@ -12,9 +12,10 @@ type Props = {
   readinessState: ReadinessState;
   onOpenItem: (item: AttentionItem) => void;
   onInspectAuthority?: (item: AttentionItem) => void;
+  onRetry?: () => void;
 };
 
-export function TodayInterventions({ items, connection, readiness, readinessState, onOpenItem, onInspectAuthority }: Props) {
+export function TodayInterventions({ items, connection, readiness, readinessState, onOpenItem, onInspectAuthority, onRetry = () => window.location.reload() }: Props) {
   const heading = items.length === 1 ? "1 item needs your action" : `${items.length} items need your action`;
   const title = connection === "loading" ? "Loading Today" : connection === "unavailable" ? "Today is unavailable" : heading;
 
@@ -26,7 +27,7 @@ export function TodayInterventions({ items, connection, readiness, readinessStat
       {connection === "loading"
         ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Today…</div>
         : connection === "unavailable"
-          ? <EmptyState kind="unavailable" label="Today" title="Today could not be loaded" description="Try again before relying on this list."/>
+          ? <EmptyState kind="unavailable" label="Today" title="Today could not be loaded" description="Retry the assigned-work list before relying on its current items." action="Try again" onAction={onRetry}/>
           : items.length
             ? <div className="intervention-list" id="attention-list">{items.map((item) => <InterventionRow key={item.id} item={item} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>)}</div>
             : <div id="attention-list"><EmptyState label="Today" title="Nothing needs your action right now" description="There are no open reviews, approvals or evidence requests assigned to you in this scope."/></div>}

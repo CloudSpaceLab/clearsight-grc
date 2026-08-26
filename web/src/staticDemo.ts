@@ -103,7 +103,7 @@ const matterDetail = {
 };
 
 const evidenceRequest = {
-  id: evidenceID, tenant_id: "bank-demo", subject_type: "MATTER", subject_id: matterID, title: "Confirm the remaining annual-return evidence owners", purpose: "Complete the evidence ownership record before the DPCO review.", why_you: "You own the affected privacy operations records.", sensitivity: "INTERNAL", audience_type: "INTERNAL", estimated_minutes: 2, deadline: future, known_facts: { filing_year: "2027", completed_sections: "8 of 10", internal_approval_date: "1 March 2027" }, fields: [{ id: "processor_register_owner", label: "Processor register owner", type: "text", required: true, description: "Name the accountable role or position." }, { id: "dpco_review_date", label: "DPCO review date", type: "text", required: true, description: "Enter the approved review date." }], status: "READY", version: 1, created_at: now, updated_at: now,
+  id: evidenceID, tenant_id: "bank-demo", subject_type: "MATTER", subject_id: matterID, title: "Confirm the remaining annual-return evidence owners", purpose: "Complete the evidence ownership record before the DPCO review.", why_you: "You own the affected privacy operations records.", sensitivity: "INTERNAL", audience_type: "INTERNAL", recipient: { type: "INTERNAL_PRINCIPAL", principal_id: "role-cro", state: "ASSIGNED" }, created_by: "role-dpo", estimated_minutes: 2, deadline: future, known_facts: { filing_year: "2027", completed_sections: "8 of 10", internal_approval_date: "1 March 2027" }, fields: [{ id: "processor_register_owner", label: "Processor register owner", type: "text", required: true, description: "Name the accountable role or position." }, { id: "dpco_review_date", label: "DPCO review date", type: "text", required: true, description: "Enter the approved review date." }], status: "READY", version: 1, created_at: now, updated_at: now,
 };
 
 const todayItems = [
@@ -163,7 +163,6 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (fixture === "today-unavailable" && pathname === "/api/v1/today") throw new StaticDemoHTTPError(503, "today_unavailable", "Today's work is unavailable.");
   if (fixture === "evidence-requests-unavailable" && pathname === "/api/v1/evidence/requests") throw new StaticDemoHTTPError(503, "evidence_unavailable", "Evidence requests are temporarily unavailable.");
   if (fixture === "authority-forbidden" && pathname === "/api/v1/authority/resolve") throw new StaticDemoHTTPError(403, "permission_denied", "Authority inspection is restricted.");
-  if (fixture === "capture-not-found" && pathname === `/api/v1/evidence/requests/${evidenceID}`) throw new StaticDemoHTTPError(404, "request_not_found", "The request is no longer available.");
   if (fixture === "capture-conflict" && pathname.includes(`/api/v1/evidence/requests/${evidenceID}/submissions`) && method === "POST") throw new StaticDemoHTTPError(409, "version_conflict", "The request changed while you were working.");
 
   if (pathname === "/api/v1/context") {
@@ -260,7 +259,11 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (/\/api\/v1\/monitoring-checks\/[^/]+\/results$/.test(pathname) && method === "GET") return clone({ items: pathname.includes(monitoringCheck.id) ? [monitoringResult] : [] }) as T;
   if (/\/api\/v1\/monitoring-checks\/[^/]+\/evaluate-source$/.test(pathname) && method === "POST") return clone(monitoringResult) as T;
   if (pathname === "/api/v1/evidence/requests") return clone({ items: [fixture === "capture-terminal" ? { ...evidenceRequest, status: "EXPIRED" } : fixture === "long-content" ? { ...evidenceRequest, title: "Confirm the accountable owner for the processor register covering the Nigeria annual-return process across retail, corporate, digital and delegated processing operations", purpose: "Confirm the smallest unresolved ownership fact while preserving the full legal-entity, filing-year, source and review context needed by the DPCO without requiring the respondent to reconstruct the wider compliance programme." } : evidenceRequest] }) as T;
-  if (pathname === `/api/v1/evidence/requests/${evidenceID}`) return clone(fixture === "capture-terminal" ? { ...evidenceRequest, status: "EXPIRED" } : evidenceRequest) as T;
+  if (pathname === `/api/v1/evidence/requests/${evidenceID}`) {
+    const eligibilityPreload = url.searchParams.get("request_intent") === "eligibility_preload";
+    if (fixture === "capture-not-found" && !eligibilityPreload) throw new StaticDemoHTTPError(404, "request_not_found", "The request is no longer available.");
+    return clone(fixture === "capture-terminal" && !eligibilityPreload ? { ...evidenceRequest, status: "EXPIRED" } : evidenceRequest) as T;
+  }
   if (pathname.includes(`/api/v1/evidence/requests/${evidenceID}/submissions`) && method === "POST") return clone({ request_id: evidenceID, status: "SUBMITTED", submitted_at: now }) as T;
   if (pathname === "/api/v1/authority/resolve") {
     const input = parseBody(init) as { responsibility?: string };

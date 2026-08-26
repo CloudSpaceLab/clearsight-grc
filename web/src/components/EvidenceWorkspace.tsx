@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import { loadContext } from "../api";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { declareWrongCaptureRecipient, reassignCaptureRecipient } from "../captureApi";
+import { canRespondToEvidenceRequest } from "../evidenceAuthorization";
 import type { EvidenceRequest, EvidenceSource } from "../types";
 import { EmptyState } from "./EmptyState";
 
 type LoadState = "loading" | "live" | "unavailable";
-type Props = { sources: EvidenceSource[]; requests: EvidenceRequest[]; sourceState: LoadState; requestState: LoadState; targetID?: string; openFirst?: boolean; onOpenRequest: (id: string) => void };
+type Props = { sources: EvidenceSource[]; requests: EvidenceRequest[]; sourceState: LoadState; requestState: LoadState; actorPrincipalID?: string; evidenceScopeToken: number; targetID?: string; openFirst?: boolean; onOpenRequest: (id: string) => void; onRequestUpdated: (request: EvidenceRequest, scopeToken: number) => boolean };
 type EditState = { reason: string; recipient: string; busy: boolean; error: string };
 
 function SourceIcon({ type }: { type: string }) {
@@ -34,13 +34,14 @@ function formatOperationalDateTime(value: string) {
 
 const emptyEdit = (): EditState => ({ reason: "", recipient: "", busy: false, error: "" });
 
-export function EvidenceWorkspace({ sources, requests, sourceState, requestState, targetID, openFirst = false, onOpenRequest }: Props) {
+export function EvidenceWorkspace({ sources, requests, sourceState, requestState, actorPrincipalID, evidenceScopeToken, targetID, openFirst = false, onOpenRequest, onRequestUpdated }: Props) {
   const [query, setQuery] = useState("");
   const [requestStatus, setRequestStatus] = useState("");
   const [openID, setOpenID] = useState<string | undefined>(targetID);
-  const [actorID, setActorID] = useState("");
   const [overrides, setOverrides] = useState<Record<string, EvidenceRequest>>({});
   const [edits, setEdits] = useState<Record<string, EditState>>({});
+  const currentScopeToken = useRef(evidenceScopeToken);
+  currentScopeToken.current = evidenceScopeToken;
   const currentRequests = useMemo(() => requests.map((request) => {
     const override = overrides[request.id];
     return override && override.version >= request.version ? override : request;
@@ -54,7 +55,11 @@ export function EvidenceWorkspace({ sources, requests, sourceState, requestState
   }), [currentRequests, query, requestStatus]);
   const targetMissing = Boolean(requestState === "live" && targetID && !currentRequests.some((request) => request.id === targetID));
 
-  useEffect(() => { void loadContext().then((context) => setActorID(context.actor.id)).catch(() => setActorID("")); }, []);
+  useEffect(() => {
+    setOverrides({});
+    setEdits({});
+    setOpenID(targetID);
+  }, [evidenceScopeToken]);
   useEffect(() => {
     const id = targetID ?? (openFirst ? currentRequests[0]?.id : undefined);
     if (!id) return;
@@ -73,9 +78,14 @@ export function EvidenceWorkspace({ sources, requests, sourceState, requestState
     updateEdit(request.id, { busy: true, error: "" });
     try {
       const updated = await declareWrongCaptureRecipient(request.id, request.version, reason) as EvidenceRequest;
+      if (currentScopeToken.current !== evidenceScopeToken) return;
+      if (!onRequestUpdated(updated, evidenceScopeToken)) {
+        return;
+      }
       setOverrides((current) => ({ ...current, [request.id]: updated }));
       updateEdit(request.id, { busy: false, reason: "" });
     } catch {
+      if (currentScopeToken.current !== evidenceScopeToken) return;
       updateEdit(request.id, { busy: false, error: "The request could not be returned. Reload it before trying again." });
     }
   }
@@ -94,9 +104,14 @@ export function EvidenceWorkspace({ sources, requests, sourceState, requestState
         internal ? { type: "INTERNAL_PRINCIPAL", principal_id: recipient } : { type: "EXTERNAL_AUDIENCE", audience: recipient },
         reason,
       ) as EvidenceRequest;
+      if (currentScopeToken.current !== evidenceScopeToken) return;
+      if (!onRequestUpdated(updated, evidenceScopeToken)) {
+        return;
+      }
       setOverrides((current) => ({ ...current, [request.id]: updated }));
       updateEdit(request.id, { busy: false, reason: "", recipient: "" });
     } catch {
+      if (currentScopeToken.current !== evidenceScopeToken) return;
       updateEdit(request.id, { busy: false, error: "The recipient could not be changed. Check the current request and recipient, then try again." });
     }
   }
@@ -117,10 +132,11 @@ export function EvidenceWorkspace({ sources, requests, sourceState, requestState
         const edit = edits[request.id] ?? emptyEdit();
         const recipientState = request.recipient?.state ?? (request.recipient ? "ASSIGNED" : undefined);
         const isOpen = ["READY", "IN_PROGRESS"].includes(request.status);
-        const isAssignedActor = isOpen && recipientState === "ASSIGNED" && request.recipient?.type === "INTERNAL_PRINCIPAL" && request.recipient.principal_id === actorID;
-        const canManage = isOpen && Boolean(actorID) && request.created_by === actorID && recipientState !== "LEGACY_UNASSIGNED";
-        const recipientLabel = request.recipient?.type === "INTERNAL_PRINCIPAL" ? request.recipient.principal_id : request.recipient?.audience_hint;
-        return <details className={targetID === request.id ? "request-row targeted" : "request-row"} id={`evidence-request-${request.id}`} key={request.id} open={openID === request.id} onToggle={(event) => { if (event.currentTarget.open) setOpenID(request.id); else if (openID === request.id) setOpenID(undefined); }}><summary><div><strong>{request.title}</strong><span>{label(request.audience_type)} · about {request.estimated_minutes} min</span></div><div><mark>{label(recipientState === "REASSIGNMENT_REQUIRED" ? recipientState : request.status)}</mark><span>Due {formatOperationalDateTime(request.deadline)}</span></div><span className="request-disclosure">View details</span></summary><div className="request-detail"><p>{request.purpose}</p><dl>{Object.entries(request.known_facts).map(([factLabel, value]) => <div key={factLabel}><dt>{label(factLabel)}</dt><dd>{value}</dd></div>)}</dl><p><strong>Why this person:</strong> {request.why_you}</p>{recipientLabel && <p><strong>Current recipient:</strong> {recipientLabel}</p>}{recipientState === "REASSIGNMENT_REQUIRED" && <div className="inline-notice" role="status"><strong>Recipient correction required.</strong> {request.recipient?.issue_reason || "The assigned person reported that this request belongs elsewhere."}</div>}<div className="request-actions">{isOpen && recipientState === "ASSIGNED" && <button className="primary-button" type="button" onClick={() => onOpenRequest(request.id)}>Open request</button>}<small>A response is recorded first. Evidence quality is assessed separately.</small></div>{isAssignedActor && <details className="recipient-lifecycle-action"><summary>This request isn&apos;t mine</summary><label className="capture-field"><span>Why should it be reassigned?</span><textarea value={edit.reason} maxLength={500} onChange={(event) => updateEdit(request.id, { reason: event.target.value, error: "" })}/></label>{edit.error && <p className="error-text" role="alert">{edit.error}</p>}<button className="secondary-button" type="button" disabled={!edit.reason.trim() || edit.busy} onClick={() => void declareWrong(request)}>{edit.busy ? "Returning…" : "Return to requester"}</button></details>}{canManage && <details className="recipient-lifecycle-action" open={recipientState === "REASSIGNMENT_REQUIRED"}><summary>{recipientState === "REASSIGNMENT_REQUIRED" ? "Reassign this request" : "Change recipient"}</summary><label className="capture-field"><span>{request.audience_type === "INTERNAL" ? "New person ID" : "New recipient address"}</span><input value={edit.recipient} onChange={(event) => updateEdit(request.id, { recipient: event.target.value, error: "" })} placeholder={request.audience_type === "INTERNAL" ? "Exact active principal ID" : "name@example.com"}/></label><label className="capture-field"><span>Reason for change</span><textarea value={edit.reason} maxLength={500} onChange={(event) => updateEdit(request.id, { reason: event.target.value, error: "" })}/></label>{request.audience_type !== "INTERNAL" && <p className="field-help">Changing the external recipient revokes existing invitation and session access.</p>}{edit.error && <p className="error-text" role="alert">{edit.error}</p>}<button className="secondary-button" type="button" disabled={!edit.recipient.trim() || !edit.reason.trim() || edit.busy} onClick={() => void reassign(request)}>{edit.busy ? "Reassigning…" : "Save recipient"}</button></details>}</div></details>;
+        const isAssignedActor = canRespondToEvidenceRequest(request, actorPrincipalID);
+        const canManage = isOpen && Boolean(actorPrincipalID) && request.created_by === actorPrincipalID && recipientState !== "LEGACY_UNASSIGNED";
+        const recipientLabel = request.audience_type === "EXTERNAL" ? "External recipient" : request.recipient?.type === "INTERNAL_PRINCIPAL" ? "Assigned person" : undefined;
+        const responseUnavailable = isOpen && recipientState === "ASSIGNED" && !isAssignedActor;
+        return <details className={targetID === request.id ? "request-row targeted" : "request-row"} id={`evidence-request-${request.id}`} key={request.id} open={openID === request.id} onToggle={(event) => { if (event.currentTarget.open) setOpenID(request.id); else if (openID === request.id) setOpenID(undefined); }}><summary><div><strong>{request.title}</strong><span>{label(request.audience_type)} · about {request.estimated_minutes} min</span></div><div><mark>{label(recipientState === "REASSIGNMENT_REQUIRED" ? recipientState : request.status)}</mark><span>Due {formatOperationalDateTime(request.deadline)}</span></div><span className="request-disclosure">View details</span></summary><div className="request-detail"><p>{request.purpose}</p><dl>{Object.entries(request.known_facts).map(([factLabel, value]) => <div key={factLabel}><dt>{label(factLabel)}</dt><dd>{value}</dd></div>)}</dl><p><strong>Why this person:</strong> {request.why_you}</p>{recipientLabel && <p><strong>Current recipient:</strong> {recipientLabel}</p>}{recipientState === "REASSIGNMENT_REQUIRED" && <div className="inline-notice" role="status"><strong>Recipient correction required.</strong> {request.recipient?.issue_reason || "The assigned person reported that this request belongs elsewhere."}</div>}<div className="request-actions">{isAssignedActor && <button className="primary-button" type="button" onClick={() => onOpenRequest(request.id)}>Open request</button>}{responseUnavailable && <div className="inline-notice">{request.audience_type === "EXTERNAL" ? <strong>The external recipient must respond through the active invitation.</strong> : <strong>Only the assigned person can respond to this request.</strong>} {canManage ? <span>You created this request. Change the recipient if the assignment is wrong.</span> : <span>Ask the request creator to change the recipient if the assignment is wrong.</span>}</div>}<small>A response is recorded first. Evidence quality is assessed separately.</small></div>{isAssignedActor && <details className="recipient-lifecycle-action"><summary>This request isn&apos;t mine</summary><label className="capture-field"><span>Why should it be reassigned?</span><textarea value={edit.reason} maxLength={500} onChange={(event) => updateEdit(request.id, { reason: event.target.value, error: "" })}/></label>{edit.error && <p className="error-text" role="alert">{edit.error}</p>}<button className="secondary-button" type="button" disabled={!edit.reason.trim() || edit.busy} onClick={() => void declareWrong(request)}>{edit.busy ? "Returning…" : "Return to requester"}</button></details>}{canManage && <details className="recipient-lifecycle-action" open={recipientState === "REASSIGNMENT_REQUIRED"}><summary>{recipientState === "REASSIGNMENT_REQUIRED" ? "Reassign this request" : "Change recipient"}</summary><label className="capture-field"><span>{request.audience_type === "INTERNAL" ? "New person ID" : "New recipient address"}</span><input value={edit.recipient} onChange={(event) => updateEdit(request.id, { recipient: event.target.value, error: "" })} placeholder={request.audience_type === "INTERNAL" ? "Exact active principal ID" : "name@example.com"}/></label><label className="capture-field"><span>Reason for change</span><textarea value={edit.reason} maxLength={500} onChange={(event) => updateEdit(request.id, { reason: event.target.value, error: "" })}/></label>{request.audience_type !== "INTERNAL" && <p className="field-help">Changing the external recipient revokes existing invitation and session access.</p>}{edit.error && <p className="error-text" role="alert">{edit.error}</p>}<button className="secondary-button" type="button" disabled={!edit.recipient.trim() || !edit.reason.trim() || edit.busy} onClick={() => void reassign(request)}>{edit.busy ? "Reassigning…" : "Save recipient"}</button></details>}</div></details>;
       })}</div> : <EmptyState kind={currentRequests.length ? "no-results" : "empty"} label="Requests" title={currentRequests.length ? "No requests match these filters" : "No evidence requests in this scope"} description={currentRequests.length ? "Change the search or status filter to see other requests." : "There are no evidence requests in the current scope."} action={query || requestStatus ? "Clear filters" : undefined} onAction={() => { setQuery(""); setRequestStatus(""); }}/>} 
     </section>
     <details className="source-inventory">

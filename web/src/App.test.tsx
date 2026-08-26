@@ -1,10 +1,19 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { StrictMode } from "react";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import type { RuntimeContext } from "./api";
-import { loadContext, loadReadiness, loadToday } from "./api";
+import { loadCaptureRequest, loadContext, loadEvidenceRequest, loadEvidenceRequests, loadReadiness, loadToday } from "./api";
+import type { EvidenceRequest } from "./types";
+import { declareWrongCaptureRecipient, reassignCaptureRecipient } from "./captureApi";
+import { ApiError } from "./http";
 
 vi.mock("./components/RoleAwareOnboarding", () => ({ RoleAwareOnboarding: () => null }));
+vi.mock("./captureApi", () => ({
+  declareWrongCaptureRecipient: vi.fn(),
+  reassignCaptureRecipient: vi.fn(),
+  uploadInternalCaptureArtifact: vi.fn(),
+}));
 vi.mock("./api", () => ({
   loadAutomationPolicies: vi.fn().mockResolvedValue([]),
   loadCaptureRequest: vi.fn(),
@@ -44,9 +53,75 @@ function runtime(demoMode: boolean): RuntimeWithCapabilities {
   };
 }
 
+function evidenceRequest(overrides: Partial<EvidenceRequest> = {}): EvidenceRequest {
+  return {
+    id: "request-assigned",
+    tenant_id: "bank-demo",
+    subject_type: "PROGRAM",
+    subject_id: "program-1",
+    title: "Confirm assigned evidence",
+    purpose: "Confirm the completed evidence review.",
+    why_you: "The assigned person owns this response.",
+    sensitivity: "INTERNAL",
+    audience_type: "INTERNAL",
+    recipient: { type: "INTERNAL_PRINCIPAL", principal_id: "role-cro", state: "ASSIGNED" },
+    created_by: "requester-1",
+    estimated_minutes: 3,
+    deadline: "2026-08-30T12:00:00Z",
+    known_facts: {},
+    fields: [],
+    status: "READY",
+    version: 1,
+    created_at: "2026-08-25T12:00:00Z",
+    updated_at: "2026-08-25T12:00:00Z",
+    ...overrides,
+  };
+}
+
+function evidenceAttention(requestID: string) {
+  return {
+    id: "today-evidence",
+    type: "EVIDENCE_REQUEST",
+    title: "Confirm assigned evidence",
+    why_now: "A response is due.",
+    scope: "Program evidence",
+    state: "Response required",
+    evidence: "Known facts included",
+    owner: "Assigned respondent",
+    due_at: "2026-08-30T12:00:00Z",
+    primary_action: "Respond to the request",
+    action_target_type: "EVIDENCE_REQUEST" as const,
+    action_target_id: requestID,
+  };
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((next, fail) => { resolve = next; reject = fail; });
+  return { promise, resolve, reject };
+}
+
+function secondScope() {
+  return {
+    ...runtime(false),
+    tenant: { id: "bank-second", name: "Second Bank" },
+    legal_entity: { id: "bank-second-ng", name: "Second Bank Nigeria" },
+  };
+}
+
+beforeAll(() => {
+  Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
+});
+
 beforeEach(() => {
   window.history.replaceState(null, "", "#today");
   vi.mocked(loadToday).mockResolvedValue({ items: [], generated_at: "2026-08-07T15:00:00Z" });
+  vi.mocked(loadEvidenceRequests).mockResolvedValue([]);
+  vi.mocked(loadEvidenceRequest).mockRejectedValue(new Error("No evidence request selected"));
+  vi.mocked(loadCaptureRequest).mockRejectedValue(new Error("Demo fallback must not be used"));
+  vi.mocked(declareWrongCaptureRecipient).mockRejectedValue(new Error("Recipient lifecycle command not configured"));
+  vi.mocked(reassignCaptureRecipient).mockRejectedValue(new Error("Recipient lifecycle command not configured"));
   vi.mocked(loadReadiness).mockRejectedValue(new Error("No readiness baseline"));
 });
 
@@ -87,5 +162,332 @@ describe("runtime navigation", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Open program" }));
     await screen.findByRole("heading", { name: "Programs" });
     expect(window.location.hash).toBe("#programs/program-123");
+  });
+
+  it("does not expose the Today response shortcut to a non-recipient in demo mode", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(true));
+    const denied = evidenceRequest({ recipient: { type: "INTERNAL_PRINCIPAL", principal_id: "another-person", state: "ASSIGNED" } });
+    const exact = deferred<EvidenceRequest>();
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention(denied.id)], generated_at: "2026-08-07T15:00:00Z" });
+    vi.mocked(loadEvidenceRequest).mockReturnValue(exact.promise);
+    render(<App />);
+
+    await screen.findByText("Stakeholder demo");
+    await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(denied.id, "eligibility_preload"));
+    await act(async () => { exact.resolve(denied); });
+    expect(screen.queryAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(0);
+  });
+
+  it("opens only an eligible request assigned to the verified actor from Today", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    const assigned = evidenceRequest();
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention(assigned.id)], generated_at: "2026-08-07T15:00:00Z" });
+    vi.mocked(loadEvidenceRequest).mockResolvedValue(assigned);
+    render(<App />);
+
+    const shortcuts = await screen.findAllByRole("button", { name: "Respond to evidence request" });
+    fireEvent.click(shortcuts[0]!);
+
+    expect(await screen.findByRole("heading", { name: "Confirm assigned evidence" })).toBeTruthy();
+    expect(loadCaptureRequest).not.toHaveBeenCalled();
+  });
+
+  it("revalidates the current request before opening capture", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    const assigned = evidenceRequest();
+    const returned = evidenceRequest({
+      recipient: { type: "INTERNAL_PRINCIPAL", principal_id: "role-cro", state: "REASSIGNMENT_REQUIRED", revision: 2 },
+      version: 2,
+    });
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention(assigned.id)], generated_at: "2026-08-07T15:00:00Z" });
+    vi.mocked(loadEvidenceRequest).mockResolvedValueOnce(assigned).mockResolvedValueOnce(returned);
+    render(<App />);
+
+    const shortcuts = await screen.findAllByRole("button", { name: "Respond to evidence request" });
+    fireEvent.click(shortcuts[0]!);
+
+    expect(await screen.findByRole("heading", { name: "You cannot open this request" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Confirm assigned evidence" })).toBeNull();
+  });
+
+  it("shows a terminal request discovered while revalidating an authorized Today shortcut", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    const assigned = evidenceRequest();
+    const expired = evidenceRequest({ status: "EXPIRED", version: 2 });
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention(assigned.id)], generated_at: "2026-08-07T15:00:00Z" });
+    vi.mocked(loadEvidenceRequest).mockResolvedValueOnce(assigned).mockResolvedValueOnce(expired);
+    render(<App />);
+
+    const shortcuts = await screen.findAllByRole("button", { name: "Respond to evidence request" });
+    fireEvent.click(shortcuts[0]!);
+
+    expect(await screen.findByRole("heading", { name: "This request has expired" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Review and submit" })).toBeNull();
+  });
+
+  it("keeps the static not-found shortcut through StrictMode preloads and revalidates on open", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(true));
+    const assigned = evidenceRequest();
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention(assigned.id)], generated_at: "2026-08-07T15:00:00Z" });
+    vi.mocked(loadEvidenceRequest).mockImplementation((_id, intent) => intent === "eligibility_preload"
+      ? Promise.resolve(assigned)
+      : Promise.reject(new ApiError(404, "The request is no longer available.", "request_not_found")));
+    const view = render(<StrictMode><App key="initial" /></StrictMode>);
+
+    await screen.findAllByRole("button", { name: "Respond to evidence request" });
+    view.rerender(<StrictMode><App key="strict-remount" /></StrictMode>);
+    const shortcuts = await screen.findAllByRole("button", { name: "Respond to evidence request" });
+    await waitFor(() => expect(vi.mocked(loadEvidenceRequest).mock.calls.filter((call) => call[1] === "eligibility_preload").length).toBeGreaterThanOrEqual(2));
+    expect(vi.mocked(loadEvidenceRequest).mock.calls.every((call) => call[1] === "eligibility_preload")).toBe(true);
+    fireEvent.click(shortcuts[0]!);
+
+    await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(assigned.id, "capture_revalidation"));
+    expect(await screen.findByRole("heading", { name: "This request is no longer available" })).toBeTruthy();
+  });
+
+  it("keeps the static terminal shortcut through StrictMode preloads and shows expiry on open", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(true));
+    const assigned = evidenceRequest();
+    const expired = evidenceRequest({ status: "EXPIRED", version: 2 });
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention(assigned.id)], generated_at: "2026-08-07T15:00:00Z" });
+    vi.mocked(loadEvidenceRequest).mockImplementation((_id, intent) => Promise.resolve(intent === "eligibility_preload" ? assigned : expired));
+    const view = render(<StrictMode><App key="initial" /></StrictMode>);
+
+    await screen.findAllByRole("button", { name: "Respond to evidence request" });
+    view.rerender(<StrictMode><App key="strict-remount" /></StrictMode>);
+    const shortcuts = await screen.findAllByRole("button", { name: "Respond to evidence request" });
+    await waitFor(() => expect(vi.mocked(loadEvidenceRequest).mock.calls.filter((call) => call[1] === "eligibility_preload").length).toBeGreaterThanOrEqual(2));
+    expect(vi.mocked(loadEvidenceRequest).mock.calls.every((call) => call[1] === "eligibility_preload")).toBe(true);
+    fireEvent.click(shortcuts[0]!);
+
+    await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(assigned.id, "capture_revalidation"));
+    expect(await screen.findByRole("heading", { name: "This request has expired" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Review and submit" })).toBeNull();
+  });
+
+  it("removes Today capture entry after the assigned actor returns the request", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    const assigned = evidenceRequest();
+    const returned = evidenceRequest({
+      recipient: { type: "INTERNAL_PRINCIPAL", principal_id: "role-cro", state: "REASSIGNMENT_REQUIRED", revision: 2 },
+      version: 2,
+    });
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention(assigned.id)], generated_at: "2026-08-07T15:00:00Z" });
+    vi.mocked(loadEvidenceRequest).mockResolvedValue(assigned);
+    vi.mocked(loadEvidenceRequests).mockResolvedValue([assigned]);
+    vi.mocked(declareWrongCaptureRecipient).mockResolvedValue(returned);
+    render(<App />);
+
+    await screen.findAllByRole("button", { name: "Respond to evidence request" });
+    fireEvent.click(screen.getAllByRole("button", { name: /Work/ })[0]!);
+    fireEvent.click(await screen.findByRole("button", { name: "Evidence review" }));
+    fireEvent.change(await screen.findByLabelText("Why should it be reassigned?"), { target: { value: "The account owner must respond." } });
+    fireEvent.click(screen.getByRole("button", { name: "Return to requester" }));
+    await waitFor(() => expect(declareWrongCaptureRecipient).toHaveBeenCalled());
+    fireEvent.click(screen.getAllByRole("button", { name: /Today/ })[0]!);
+
+    await waitFor(() => expect(screen.queryAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(0));
+  });
+
+  it("keeps a newer workspace version when an older Today preload finishes last", async () => {
+    window.history.replaceState(null, "", "#work/evidence/request-assigned");
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention("request-assigned")], generated_at: "2026-08-07T15:00:00Z" });
+    const list = deferred<EvidenceRequest[]>();
+    const exact = deferred<EvidenceRequest>();
+    const older = evidenceRequest({ version: 1 });
+    const newer = evidenceRequest({ version: 2, recipient: { type: "INTERNAL_PRINCIPAL", principal_id: "another-person", state: "ASSIGNED" } });
+    vi.mocked(loadEvidenceRequests).mockReturnValue(list.promise);
+    vi.mocked(loadEvidenceRequest).mockReturnValue(exact.promise);
+    render(<App />);
+
+    await waitFor(() => {
+      expect(loadEvidenceRequests).toHaveBeenCalled();
+      expect(loadEvidenceRequest).toHaveBeenCalledWith("request-assigned", "eligibility_preload");
+    });
+    await act(async () => { list.resolve([newer]); });
+    await act(async () => { exact.resolve(older); });
+
+    await screen.findByText("Confirm assigned evidence");
+    expect(screen.queryByRole("button", { name: "Open request" })).toBeNull();
+  });
+
+  it("keeps a newer Today version when an older workspace list finishes last", async () => {
+    window.history.replaceState(null, "", "#work/evidence/request-assigned");
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention("request-assigned")], generated_at: "2026-08-07T15:00:00Z" });
+    const list = deferred<EvidenceRequest[]>();
+    const exact = deferred<EvidenceRequest>();
+    const older = evidenceRequest({ version: 1 });
+    const newer = evidenceRequest({ version: 2, recipient: { type: "INTERNAL_PRINCIPAL", principal_id: "another-person", state: "ASSIGNED" } });
+    vi.mocked(loadEvidenceRequests).mockReturnValue(list.promise);
+    vi.mocked(loadEvidenceRequest).mockReturnValue(exact.promise);
+    render(<App />);
+
+    await waitFor(() => {
+      expect(loadEvidenceRequests).toHaveBeenCalled();
+      expect(loadEvidenceRequest).toHaveBeenCalledWith("request-assigned", "eligibility_preload");
+    });
+    await act(async () => { exact.resolve(newer); });
+    await act(async () => { list.resolve([older]); });
+
+    await screen.findByText("Confirm assigned evidence");
+    expect(screen.queryByRole("button", { name: "Open request" })).toBeNull();
+  });
+
+  it("keeps an exact Today entity when the workspace list fails after the exact preload", async () => {
+    window.history.replaceState(null, "", "#work/evidence");
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention("request-assigned")], generated_at: "2026-08-07T15:00:00Z" });
+    const list = deferred<EvidenceRequest[]>();
+    const exact = deferred<EvidenceRequest>();
+    vi.mocked(loadEvidenceRequests).mockReturnValue(list.promise);
+    vi.mocked(loadEvidenceRequest).mockReturnValue(exact.promise);
+    render(<App />);
+
+    await waitFor(() => {
+      expect(loadEvidenceRequests).toHaveBeenCalled();
+      expect(loadEvidenceRequest).toHaveBeenCalledWith("request-assigned", "eligibility_preload");
+    });
+    await act(async () => { exact.resolve(evidenceRequest()); });
+    await act(async () => { list.reject(new Error("Workspace list unavailable")); });
+    fireEvent.click(screen.getAllByRole("button", { name: /Today/ })[0]!);
+
+    expect(await screen.findAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(2);
+  });
+
+  it("keeps an exact Today entity when the workspace list fails before the exact preload", async () => {
+    window.history.replaceState(null, "", "#work/evidence");
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention("request-assigned")], generated_at: "2026-08-07T15:00:00Z" });
+    const list = deferred<EvidenceRequest[]>();
+    const exact = deferred<EvidenceRequest>();
+    vi.mocked(loadEvidenceRequests).mockReturnValue(list.promise);
+    vi.mocked(loadEvidenceRequest).mockReturnValue(exact.promise);
+    render(<App />);
+
+    await waitFor(() => {
+      expect(loadEvidenceRequests).toHaveBeenCalled();
+      expect(loadEvidenceRequest).toHaveBeenCalledWith("request-assigned", "eligibility_preload");
+    });
+    await act(async () => { list.reject(new Error("Workspace list unavailable")); });
+    await act(async () => { exact.resolve(evidenceRequest()); });
+    fireEvent.click(screen.getAllByRole("button", { name: /Today/ })[0]!);
+
+    expect(await screen.findAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(2);
+  });
+
+  it("does not render an exact Today entity omitted from a successful workspace list", async () => {
+    window.history.replaceState(null, "", "#work/evidence");
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention("request-assigned")], generated_at: "2026-08-07T15:00:00Z" });
+    const list = deferred<EvidenceRequest[]>();
+    const exact = deferred<EvidenceRequest>();
+    vi.mocked(loadEvidenceRequests).mockReturnValue(list.promise);
+    vi.mocked(loadEvidenceRequest).mockReturnValue(exact.promise);
+    render(<App />);
+
+    await waitFor(() => {
+      expect(loadEvidenceRequests).toHaveBeenCalled();
+      expect(loadEvidenceRequest).toHaveBeenCalledWith("request-assigned", "eligibility_preload");
+    });
+    await act(async () => { exact.resolve(evidenceRequest()); });
+    await act(async () => { list.resolve([]); });
+
+    expect(await screen.findByRole("heading", { name: "No evidence requests in this scope" })).toBeTruthy();
+    expect(screen.queryByText("Confirm assigned evidence")).toBeNull();
+    fireEvent.click(screen.getAllByRole("button", { name: /Today/ })[0]!);
+    expect(await screen.findAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(2);
+  });
+
+  it("ignores a targeted request that completes after verified scope changes", async () => {
+    window.history.replaceState(null, "", "#work/evidence/stale-target");
+    vi.mocked(loadContext).mockResolvedValueOnce(runtime(false)).mockResolvedValueOnce(secondScope());
+    vi.mocked(loadToday).mockResolvedValue({ items: [], generated_at: "2026-08-07T15:00:00Z" });
+    vi.mocked(loadEvidenceRequests).mockResolvedValue([]);
+    const targeted = deferred<EvidenceRequest>();
+    const currentTarget = deferred<EvidenceRequest>();
+    vi.mocked(loadEvidenceRequest).mockReturnValueOnce(targeted.promise).mockReturnValueOnce(currentTarget.promise);
+    const view = render(<App presentation="demo"/>);
+
+    await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith("stale-target"));
+    view.rerender(<App presentation="live-preview"/>);
+    await screen.findAllByText("Second Bank");
+    await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledTimes(2));
+    await act(async () => { targeted.resolve(evidenceRequest({ id: "stale-target", title: "Stale first-bank request" })); });
+
+    expect(screen.queryByText("Stale first-bank request")).toBeNull();
+    await act(async () => { currentTarget.resolve(evidenceRequest({ id: "stale-target", tenant_id: "bank-second", title: "Current second-bank request" })); });
+    expect(await screen.findByText("Current second-bank request")).toBeTruthy();
+  });
+
+  it("ignores declare-wrong completion from the prior verified scope", async () => {
+    window.history.replaceState(null, "", "#work/evidence");
+    const assigned = evidenceRequest();
+    const currentSecond = evidenceRequest({ tenant_id: "bank-second", version: 2 });
+    const staleReturned = evidenceRequest({
+      version: 3,
+      recipient: { type: "INTERNAL_PRINCIPAL", principal_id: "role-cro", state: "REASSIGNMENT_REQUIRED", revision: 3 },
+    });
+    vi.mocked(loadContext).mockResolvedValueOnce(runtime(false)).mockResolvedValueOnce(secondScope());
+    vi.mocked(loadToday)
+      .mockResolvedValueOnce({ items: [], generated_at: "2026-08-07T15:00:00Z" })
+      .mockResolvedValueOnce({ items: [evidenceAttention(currentSecond.id)], generated_at: "2026-08-07T15:01:00Z" });
+    vi.mocked(loadEvidenceRequests).mockResolvedValueOnce([assigned]).mockResolvedValueOnce([currentSecond]);
+    vi.mocked(loadEvidenceRequest).mockResolvedValue(currentSecond);
+    const command = deferred<EvidenceRequest>();
+    vi.mocked(declareWrongCaptureRecipient).mockReturnValue(command.promise);
+    const view = render(<App presentation="demo"/>);
+
+    fireEvent.change(await screen.findByLabelText("Why should it be reassigned?"), { target: { value: "The account owner must respond." } });
+    fireEvent.click(screen.getByRole("button", { name: "Return to requester" }));
+    await waitFor(() => expect(declareWrongCaptureRecipient).toHaveBeenCalled());
+    view.rerender(<App presentation="live-preview"/>);
+    await screen.findAllByText("Second Bank");
+    await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(currentSecond.id, "eligibility_preload"));
+    await act(async () => { command.resolve(staleReturned); });
+    fireEvent.click(screen.getAllByRole("button", { name: /Today/ })[0]!);
+
+    expect(await screen.findAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(2);
+  });
+
+  it("ignores reassignment completion from the prior verified scope", async () => {
+    window.history.replaceState(null, "", "#work/evidence");
+    const requesterView = evidenceRequest({
+      created_by: "role-cro",
+      recipient: { type: "INTERNAL_PRINCIPAL", principal_id: "another-person", state: "ASSIGNED" },
+    });
+    const currentSecond = evidenceRequest({
+      tenant_id: "bank-second",
+      version: 2,
+      created_by: "requester-2",
+      recipient: { type: "INTERNAL_PRINCIPAL", principal_id: "another-person", state: "ASSIGNED" },
+    });
+    const staleReassigned = evidenceRequest({
+      version: 3,
+      created_by: "role-cro",
+      recipient: { type: "INTERNAL_PRINCIPAL", principal_id: "role-cro", state: "ASSIGNED", revision: 3 },
+    });
+    vi.mocked(loadContext).mockResolvedValueOnce(runtime(false)).mockResolvedValueOnce(secondScope());
+    vi.mocked(loadToday)
+      .mockResolvedValueOnce({ items: [], generated_at: "2026-08-07T15:00:00Z" })
+      .mockResolvedValueOnce({ items: [evidenceAttention(currentSecond.id)], generated_at: "2026-08-07T15:01:00Z" });
+    vi.mocked(loadEvidenceRequests).mockResolvedValueOnce([requesterView]).mockResolvedValueOnce([currentSecond]);
+    vi.mocked(loadEvidenceRequest).mockResolvedValue(currentSecond);
+    const command = deferred<EvidenceRequest>();
+    vi.mocked(reassignCaptureRecipient).mockReturnValue(command.promise);
+    const view = render(<App presentation="demo"/>);
+
+    fireEvent.change(await screen.findByLabelText("New person ID"), { target: { value: "role-cro" } });
+    fireEvent.change(screen.getByLabelText("Reason for change"), { target: { value: "The current owner must respond." } });
+    fireEvent.click(screen.getByRole("button", { name: "Save recipient" }));
+    await waitFor(() => expect(reassignCaptureRecipient).toHaveBeenCalled());
+    view.rerender(<App presentation="live-preview"/>);
+    await screen.findAllByText("Second Bank");
+    await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(currentSecond.id, "eligibility_preload"));
+    await act(async () => { command.resolve(staleReassigned); });
+    fireEvent.click(screen.getAllByRole("button", { name: /Today/ })[0]!);
+
+    expect(screen.queryAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(0);
   });
 });

@@ -162,8 +162,10 @@ export async function loadEvidenceRequests(): Promise<EvidenceRequest[]> {
   return (await scopedRequest<{ items: EvidenceRequest[] }>("/api/v1/evidence/requests", { limit: 50 })).items;
 }
 
-export async function loadEvidenceRequest(id: string): Promise<EvidenceRequest> {
-  return scopedRequest<EvidenceRequest>(`/api/v1/evidence/requests/${encodeURIComponent(id)}`);
+export type EvidenceRequestLoadIntent = "eligibility_preload" | "capture_revalidation";
+
+export async function loadEvidenceRequest(id: string, intent?: EvidenceRequestLoadIntent): Promise<EvidenceRequest> {
+  return scopedRequest<EvidenceRequest>(`/api/v1/evidence/requests/${encodeURIComponent(id)}`, { request_intent: intent });
 }
 
 export async function loadProjectionHealth(): Promise<ProjectionHealth[]> {

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   loadAutomationPolicies,
-  loadCaptureRequest,
   loadContext,
   loadEvidenceRequest,
   loadEvidenceRequests,
@@ -24,6 +23,7 @@ import { NavigationIcon } from "./components/NavigationIcon";
 import { RoleAwareOnboarding } from "./components/RoleAwareOnboarding";
 import type { CaptureLoadState } from "./components/CapturePanel";
 import { apiErrorKind } from "./http";
+import { canRespondToEvidenceRequest, isEvidenceRequestAssignedToActor } from "./evidenceAuthorization";
 import { parseRoute, routeHash } from "./appRouting";
 import type { View, WorkspaceTarget, WorkTab } from "./appRouting";
 import type { RuntimePresentation } from "./runtimePresentation";
@@ -33,6 +33,7 @@ import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 type LoadState = "idle" | "loading" | "live" | "unavailable";
 type SectionLoadState = Exclude<LoadState, "idle">;
 type ConnectionState = "loading" | "live" | "sample" | "unavailable";
+type PrimaryEvidenceLoad = { targetID?: string; state: "idle" | "loading" | "live" | "unavailable" };
 type ProductRuntime = RuntimeContext & {
   demo_mode?: boolean;
   capabilities?: {
@@ -80,13 +81,21 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
   const [projectionHealth, setProjectionHealth] = useState<ProjectionHealth | null>(null);
   const [projectionState, setProjectionState] = useState<SectionLoadState>("loading");
   const [sources, setSources] = useState<EvidenceSource[]>([]);
-  const [evidenceRequests, setEvidenceRequests] = useState<EvidenceRequest[]>([]);
+  const [evidenceByID, setEvidenceByID] = useState<Record<string, EvidenceRequest>>({});
+  const [evidenceWorkspaceIDs, setEvidenceWorkspaceIDs] = useState<string[]>([]);
+  const [primaryEvidenceLoad, setPrimaryEvidenceLoad] = useState<PrimaryEvidenceLoad>({ state: "idle" });
   const [evidenceSourceState, setEvidenceSourceState] = useState<LoadState>("idle");
   const [evidenceRequestState, setEvidenceRequestState] = useState<LoadState>("idle");
   const [activePanel, setActivePanel] = useState<"none" | "routing" | "capture">("none");
   const captureLoadID = useRef(0);
   const routingLoadID = useRef(0);
   const evidenceTargetAttempts = useRef(new Set<string>());
+  const evidenceWorkspaceLoadID = useRef(0);
+  const primaryEvidenceLoadID = useRef(0);
+  const evidenceScopeEpoch = useRef(0);
+  const evidenceScopeKey = useRef<string | undefined>(undefined);
+  const evidenceRouteTargetID = useRef<string | undefined>(target.evidenceID);
+  evidenceRouteTargetID.current = target.evidenceID;
 
   const serverDemoMode = runtime?.demo_mode === true;
   const demoMode = serverDemoMode && presentation === "demo";
@@ -96,7 +105,7 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
   useEffect(() => {
     void Promise.allSettled([loadContext(), loadToday(), loadReadiness()]).then(([contextResult, todayResult, readinessResult]) => {
       const currentRuntime = contextResult.status === "fulfilled" ? contextResult.value as ProductRuntime : null;
-      setRuntime(currentRuntime);
+      applyVerifiedRuntime(currentRuntime);
       const allowFallback = (currentRuntime?.demo_mode === true && presentation === "demo") ||
         (currentRuntime == null && sampleMode && presentation === "demo");
       if (todayResult.status === "fulfilled") {
@@ -122,6 +131,28 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
     });
   }, [presentation]);
 
+  const primaryEvidenceTargetID = items.find((item) => item.action_target_type === "EVIDENCE_REQUEST" && item.action_target_id)?.action_target_id;
+  const currentEvidenceScopeKey = evidenceRuntimeScopeKey(runtime);
+
+  useEffect(() => {
+    const loadID = ++primaryEvidenceLoadID.current;
+    const scopeEpoch = evidenceScopeEpoch.current;
+    if (!runtime?.actor.id || !primaryEvidenceTargetID) {
+      setPrimaryEvidenceLoad({ state: "idle" });
+      return;
+    }
+    setPrimaryEvidenceLoad({ targetID: primaryEvidenceTargetID, state: "loading" });
+    void loadEvidenceRequest(primaryEvidenceTargetID, "eligibility_preload").then((request) => {
+      if (scopeEpoch !== evidenceScopeEpoch.current || loadID !== primaryEvidenceLoadID.current) return;
+      updateEvidenceEntity(request, scopeEpoch);
+      setPrimaryEvidenceLoad({ targetID: primaryEvidenceTargetID, state: "live" });
+    }).catch(() => {
+      if (scopeEpoch !== evidenceScopeEpoch.current || loadID !== primaryEvidenceLoadID.current) return;
+      setPrimaryEvidenceLoad({ targetID: primaryEvidenceTargetID, state: "unavailable" });
+    });
+    return () => { if (loadID === primaryEvidenceLoadID.current) primaryEvidenceLoadID.current++; };
+  }, [currentEvidenceScopeKey, primaryEvidenceTargetID]);
+
   useEffect(() => {
     const syncRoute = () => {
       const route = parseRoute(window.location.hash);
@@ -144,22 +175,26 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
   }, [runtime, demoMode, importsEnabled, configureEnabled, activeView]);
 
   async function loadEvidenceWorkspace(requestedID?: string) {
+    const loadID = ++evidenceWorkspaceLoadID.current;
+    const scopeEpoch = evidenceScopeEpoch.current;
     setEvidenceSourceState("loading");
     setEvidenceRequestState("loading");
     const [sourcesResult, requestsResult] = await Promise.allSettled([loadEvidenceSources(), loadEvidenceRequests()]);
+    if (scopeEpoch !== evidenceScopeEpoch.current || loadID !== evidenceWorkspaceLoadID.current) return [];
     if (sourcesResult.status === "fulfilled") { setSources(sourcesResult.value); setEvidenceSourceState("live"); } else { setSources([]); setEvidenceSourceState("unavailable"); }
     if (requestsResult.status === "fulfilled") {
       let requests = requestsResult.value;
       if (requestedID && !requests.some((request) => request.id === requestedID)) {
         evidenceTargetAttempts.current.add(requestedID);
         const requested = await loadEvidenceRequest(requestedID).catch(() => null);
+        if (scopeEpoch !== evidenceScopeEpoch.current || loadID !== evidenceWorkspaceLoadID.current) return [];
         if (requested) requests = [requested, ...requests];
       }
-      setEvidenceRequests(requests);
+      mergeEvidenceEntities(requests, scopeEpoch);
+      setEvidenceWorkspaceIDs(requests.map((request) => request.id));
       setEvidenceRequestState("live");
       return requests;
     }
-    setEvidenceRequests([]);
     setEvidenceRequestState("unavailable");
     return [];
   }
@@ -167,8 +202,60 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
   async function ensureEvidenceTarget(requestedID: string) {
     if (evidenceTargetAttempts.current.has(requestedID)) return;
     evidenceTargetAttempts.current.add(requestedID);
+    const scopeEpoch = evidenceScopeEpoch.current;
     const requested = await loadEvidenceRequest(requestedID).catch(() => null);
-    if (requested) setEvidenceRequests((current) => current.some((item) => item.id === requested.id) ? current : [requested, ...current]);
+    if (scopeEpoch !== evidenceScopeEpoch.current || evidenceRouteTargetID.current !== requestedID) return;
+    if (requested) {
+      updateEvidenceEntity(requested, scopeEpoch);
+      setEvidenceWorkspaceIDs((current) => current.includes(requestedID) ? current : [requestedID, ...current]);
+    }
+  }
+
+  function updateEvidenceEntity(updated: EvidenceRequest, scopeEpoch = evidenceScopeEpoch.current) {
+    if (scopeEpoch !== evidenceScopeEpoch.current) return false;
+    setEvidenceByID((current) => {
+      const existing = current[updated.id];
+      if (existing && existing.version > updated.version) return current;
+      return { ...current, [updated.id]: updated };
+    });
+    return true;
+  }
+
+  function mergeEvidenceEntities(requests: EvidenceRequest[], scopeEpoch: number) {
+    if (scopeEpoch !== evidenceScopeEpoch.current) return false;
+    setEvidenceByID((current) => {
+      let changed = false;
+      const next = { ...current };
+      for (const request of requests) {
+        const existing = next[request.id];
+        if (!existing || request.version >= existing.version) {
+          next[request.id] = request;
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+    return true;
+  }
+
+  function applyVerifiedRuntime(nextRuntime: ProductRuntime | null) {
+    const nextScopeKey = evidenceRuntimeScopeKey(nextRuntime);
+    if (evidenceScopeKey.current !== nextScopeKey) {
+      evidenceScopeEpoch.current++;
+      evidenceScopeKey.current = nextScopeKey;
+      evidenceWorkspaceLoadID.current++;
+      primaryEvidenceLoadID.current++;
+      captureLoadID.current++;
+      evidenceTargetAttempts.current.clear();
+      setEvidenceByID({});
+      setEvidenceWorkspaceIDs([]);
+      setPrimaryEvidenceLoad({ state: "idle" });
+      setSources([]);
+      setEvidenceSourceState("idle");
+      setEvidenceRequestState("idle");
+      setActivePanel("none");
+    }
+    setRuntime(nextRuntime);
   }
 
   async function loadConfigureWorkspace() {
@@ -192,15 +279,16 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
   }
 
   useEffect(() => {
-    if (activeView !== "work" || workTab !== "evidence") return;
+    if (!runtime || activeView !== "work" || workTab !== "evidence") return;
     if (evidenceRequestState === "idle" || evidenceSourceState === "idle") { void loadEvidenceWorkspace(target.evidenceID); return; }
-    if (evidenceRequestState === "live" && target.evidenceID && !evidenceRequests.some((request) => request.id === target.evidenceID)) void ensureEvidenceTarget(target.evidenceID);
-  }, [activeView, workTab, evidenceRequestState, evidenceSourceState, target.evidenceID, evidenceRequests]);
+    if (evidenceRequestState === "live" && target.evidenceID && !evidenceWorkspaceIDs.includes(target.evidenceID)) void ensureEvidenceTarget(target.evidenceID);
+  }, [runtime, activeView, workTab, evidenceRequestState, evidenceSourceState, target.evidenceID, evidenceWorkspaceIDs]);
 
   useEffect(() => {
     if (activeView === "configure" && configureEnabled && configureState === "idle") void loadConfigureWorkspace();
   }, [activeView, configureEnabled, configureState]);
 
+  const evidenceRequests = evidenceWorkspaceIDs.flatMap((id) => evidenceByID[id] ? [evidenceByID[id]] : []);
   const organizationName = runtime?.tenant.name || runtime?.tenant.id || "Organization unavailable";
   const legalEntityName = runtime?.legal_entity.name || runtime?.legal_entity.id || "Legal entity unavailable";
   const actorName = runtime?.actor.name || runtime?.actor.id || "User unavailable";
@@ -236,29 +324,33 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
     }
   }
 
-  async function openCapture(requestID?: string) {
-    if (!requestID && !demoMode) return;
+  async function openCapture(requestID: string) {
     const loadID = ++captureLoadID.current;
+    const scopeEpoch = evidenceScopeEpoch.current;
     setCaptureRequestID(requestID); setCapture(null); setCaptureState("loading"); setActivePanel("capture");
     try {
-      if (requestID) {
-        const existing = evidenceRequests.find((request) => request.id === requestID);
-        const loaded = existing ?? await loadEvidenceRequest(requestID);
-        if (loadID !== captureLoadID.current) return;
-        setCapture(loaded); setCaptureState("live"); return;
+      const loaded = await loadEvidenceRequest(requestID, "capture_revalidation");
+      if (scopeEpoch !== evidenceScopeEpoch.current || loadID !== captureLoadID.current) return;
+      updateEvidenceEntity(loaded, scopeEpoch);
+      if (!canRespondToEvidenceRequest(loaded, runtime?.actor.id)) {
+        if (isEvidenceRequestAssignedToActor(loaded, runtime?.actor.id)) {
+          setCapture(loaded); setCaptureState("live"); return;
+        }
+        setCapture(null); setCaptureState("forbidden"); return;
       }
-      const loaded = await loadCaptureRequest();
-      if (loadID !== captureLoadID.current) return;
-      setCaptureRequestID(loaded.id); setCapture(loaded); setCaptureState("live");
+      setCapture(loaded); setCaptureState("live");
     } catch (error) {
-      if (loadID !== captureLoadID.current) return;
+      if (scopeEpoch !== evidenceScopeEpoch.current || loadID !== captureLoadID.current) return;
       const kind = apiErrorKind(error);
       setCaptureState(kind === "forbidden" || kind === "unauthorized" ? "forbidden" : kind === "not_found" ? "not-found" : "unavailable");
     }
   }
 
-  async function reloadCapture() { if (captureRequestID) await openCapture(captureRequestID); else if (demoMode) await openCapture(); }
-  async function openPrimaryEvidence() { const item = items.find((candidate) => candidate.action_target_type === "EVIDENCE_REQUEST" && candidate.action_target_id); if (item?.action_target_id) await openCapture(item.action_target_id); else if (demoMode) await openCapture(); }
+  async function reloadCapture() { if (captureRequestID) await openCapture(captureRequestID); }
+  async function openPrimaryEvidence() {
+    if (!primaryEvidenceRequest) return;
+    await openCapture(primaryEvidenceRequest.id);
+  }
 
   function openAttention(item: AttentionItem) {
     if (item.action_target_type === "PROGRAM") navigate("programs", { programID: item.action_target_id });
@@ -279,7 +371,9 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
     if (step.view) navigate(step.view);
   }
 
-  const canOpenEvidence = demoMode || items.some((item) => item.action_target_type === "EVIDENCE_REQUEST" && item.action_target_id);
+  const primaryEvidenceEntity = primaryEvidenceLoad.state === "live" && primaryEvidenceLoad.targetID === primaryEvidenceTargetID && primaryEvidenceTargetID ? evidenceByID[primaryEvidenceTargetID] : undefined;
+  const primaryEvidenceRequest = primaryEvidenceEntity && canRespondToEvidenceRequest(primaryEvidenceEntity, runtime?.actor.id) ? primaryEvidenceEntity : undefined;
+  const canOpenEvidence = Boolean(primaryEvidenceRequest);
 
   return <div className="app-shell">
     <aside className="sidebar" aria-label="Primary navigation"><div className="brand-mark" aria-label="ClearSight">C</div><nav>{navigation.map(({ label, view }) => <button className={view === activeView ? "nav-item active" : "nav-item"} key={view} aria-current={view === activeView ? "page" : undefined} onClick={() => navigate(view)}><NavigationIcon view={view}/><b>{label}</b></button>)}</nav><div className="avatar" aria-label={`Signed in as ${actorName}`}>{initials(actorName)}</div></aside>
@@ -288,10 +382,10 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
       <RoleAwareOnboarding runtime={runtime} onStep={executeGuideStep}/>
       {activeView === "today" && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>} 
       {activeView === "programs" && <ProgramsView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} openFirst={target.openFirstProgram}/>}
-      {activeView === "work" && <WorkView organizationName={organizationName} tab={workTab} onTab={(tab) => navigate("work", {}, tab)} onBackMatter={() => navigate("work", {}, "matters")} sources={sources} requests={evidenceRequests} evidenceSourceState={evidenceSourceState === "idle" ? "loading" : evidenceSourceState} evidenceRequestState={evidenceRequestState === "idle" ? "loading" : evidenceRequestState} onEvidenceRetry={() => void loadEvidenceWorkspace(target.evidenceID)} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)}/>} 
+      {activeView === "work" && <WorkView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} evidenceScopeToken={evidenceScopeEpoch.current} tab={workTab} onTab={(tab) => navigate("work", {}, tab)} onBackMatter={() => navigate("work", {}, "matters")} sources={sources} requests={evidenceRequests} evidenceSourceState={evidenceSourceState === "idle" ? "loading" : evidenceSourceState} evidenceRequestState={evidenceRequestState === "idle" ? "loading" : evidenceRequestState} onEvidenceRetry={() => void loadEvidenceWorkspace(target.evidenceID)} onEvidenceRequestUpdated={updateEvidenceEntity} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)}/>}
       {activeView === "imports" && importsEnabled && <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Imports</h1><p>Compare regulatory documents with current Programs, controls and evidence.</p></div></header><DocumentImportWorkspace/></>}
       {activeView === "explore" && demoMode && <ExploreView organizationName={organizationName}/>} 
-      {activeView === "configure" && configureEnabled && <ConfigureView policies={policies} policyState={policyState} findings={integrity} integrityState={integrityState} tasks={tasks} taskState={taskState} projectionHealth={projectionHealth} projectionState={projectionState} automationPolicies={automationPolicies} automationPolicyState={automationPolicyState} state={configureState} onRetry={() => void loadConfigureWorkspace()} onReconcile={checkProgramStatusRecords}/>} 
+      {activeView === "configure" && configureEnabled && <ConfigureView policies={policies} policyState={policyState} findings={integrity} integrityState={integrityState} tasks={tasks} taskState={taskState} projectionHealth={projectionHealth} projectionState={projectionState} canReconcileProjection={runtime?.capabilities?.platform_operations_write === true} automationPolicies={automationPolicies} automationPolicyState={automationPolicyState} state={configureState} onRetry={() => void loadConfigureWorkspace()} onReconcile={checkProgramStatusRecords}/>}
     </main>
     <nav className="mobile-nav" aria-label="Mobile navigation">{navigation.map(({ label, view }) => <button key={view} type="button" aria-current={activeView === view ? "page" : undefined} onClick={() => navigate(view)}><NavigationIcon view={view}/><span>{label}</span></button>)}</nav>
     {activePanel !== "none" && <FocusedSheet label={activePanel === "routing" ? "Authority for selected work" : "Evidence request"} onClose={closePanel}>{activePanel === "routing" ? <RoutingPanel resolution={resolution} item={routingItem} legalEntityName={legalEntityName} state={routingState}/> : <CapturePanel request={capture} state={captureState} onReload={() => void reloadCapture()}/>}</FocusedSheet>}
@@ -302,6 +396,10 @@ function humanRole(value?: string) {
   if (!value) return "";
   if (/^[A-Z0-9]+$/.test(value)) return value;
   return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
+function evidenceRuntimeScopeKey(runtime: ProductRuntime | null) {
+  if (!runtime) return undefined;
+  return `${runtime.tenant.id}\u0000${runtime.legal_entity.id}\u0000${runtime.actor.id}`;
 }
 function initials(value: string) { const parts = value.trim().split(/\s+/).filter(Boolean); const first = parts.at(0)?.at(0) ?? value.at(0) ?? ""; const last = parts.length > 1 ? parts.at(-1)?.at(0) ?? "" : value.at(1) ?? ""; return `${first}${last}`.toUpperCase(); }
 

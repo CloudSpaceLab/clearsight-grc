@@ -27,12 +27,13 @@ function formatTime(value?: string) {
   return Number.isFinite(parsed) ? new Date(parsed).toLocaleString() : "Not recorded";
 }
 
-export function ProjectionHealthCard({ health, state = "live", onReconcile }: { health: ProjectionHealth | null; state?: LoadState; onReconcile: () => Promise<ReconcileResult> }) {
+export function ProjectionHealthCard({ health, state = "live", canReconcile, onReconcile }: { health: ProjectionHealth | null; state?: LoadState; canReconcile: boolean; onReconcile: () => Promise<ReconcileResult> }) {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<ReconcileResult | null>(null);
   const [error, setError] = useState("");
 
   async function checkRecords() {
+    if (!canReconcile) return;
     setRunning(true);
     setError("");
     try {
@@ -61,6 +62,6 @@ export function ProjectionHealthCard({ health, state = "live", onReconcile }: { 
     {health?.last_error && <p className="error-text">Latest error: {health.last_error}</p>}
     {result && <p className="success-text">Checked {result.checked} Programs. {result.queued} new status update{result.queued === 1 ? " was" : "s were"} queued{result.already_queued ? `; ${result.already_queued} already waiting` : ""}.</p>}
     {error && <p className="error-text" role="alert">{error}</p>}
-    <div className="card-actions"><button type="button" className="secondary-button" disabled={running} onClick={() => void checkRecords()}>{running ? "Checking…" : "Check status records"}</button></div>
+    <div className="card-actions"><button type="button" className="secondary-button" disabled={running || !canReconcile} onClick={() => void checkRecords()}>{running ? "Checking…" : "Check status records"}</button>{!canReconcile && <small>Platform Operations must check these records because your access is read-only.</small>}</div>
   </article>;
 }

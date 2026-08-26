@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { StrictMode } from "react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadEvidenceSources, loadMatterSummaries, loadProgram, loadProgramSummaries } from "../api";
 import {
@@ -15,7 +16,9 @@ import {
   transitionProgram,
   updateProgramDetails,
 } from "../programOperationsApi";
-import { loadProgramReviewDigest } from "../programReviewApi";
+import { acceptProgramReview, loadProgramReviewDigest } from "../programReviewApi";
+import type { ProgramReviewDigest as ReviewDigest } from "../programReviewApi";
+import { ApiError } from "../http";
 import type { MatterAggregate, ProgramAggregate } from "../types";
 import { createMatter } from "../continuityCommands";
 import { ProgramRecordWorkspace } from "./ProgramRecordWorkspace";
@@ -40,9 +43,10 @@ vi.mock("../programOperationsApi", async (importOriginal) => ({
 }));
 vi.mock("../programReviewApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../programReviewApi")>()),
+  acceptProgramReview: vi.fn(),
   loadProgramReviewDigest: vi.fn(),
 }));
-vi.mock("./MonitoringSetup", () => ({ MonitoringSetup: () => <section aria-label="Program monitoring"><h3>Monitoring</h3><button type="button">Add monitoring check</button></section> }));
+vi.mock("./MonitoringSetup", () => ({ MonitoringSetup: ({ canOperate = true }: { canOperate?: boolean }) => <section aria-label="Program monitoring"><h3>Monitoring</h3>{canOperate ? <button type="button">Add monitoring check</button> : <p>Monitoring changes are disabled until current Program responsibilities are available.</p>}</section> }));
 
 const aggregate: ProgramAggregate = {
   state_label: "Evidence incomplete",
@@ -77,12 +81,27 @@ const digest = {
   resolved_exceptions: [], resolved_exceptions_total: 0,
 };
 
+const changedDigest = {
+  ...digest,
+  state: "CHANGED" as const,
+  review_required: true,
+  changes: [{ kind: "PROGRAM", summary: "The Program scope changed after the last review." }],
+  changes_total: 1,
+};
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((next) => { resolve = next; });
+  return { promise, resolve };
+}
+
 describe("Program record workspace", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(loadProgram).mockResolvedValue(aggregate);
     vi.mocked(loadProgramOperations).mockResolvedValue(operations);
-    vi.mocked(loadProgramReviewDigest).mockResolvedValue(digest);
+	vi.mocked(loadProgramReviewDigest).mockResolvedValue(digest);
+	vi.mocked(acceptProgramReview).mockResolvedValue(digest);
     vi.mocked(loadProgramSummaries).mockResolvedValue({ items: [], generated_at: "2026-08-25T10:00:00Z" });
 	vi.mocked(loadEvidenceSources).mockResolvedValue([]);
 	vi.mocked(loadMatterSummaries).mockResolvedValue({ items: [], generated_at: "2026-08-25T10:00:00Z" });
@@ -114,6 +133,252 @@ describe("Program record workspace", () => {
       expect(loadProgramOperations).toHaveBeenCalledWith("program-1");
       expect(loadProgramReviewDigest).toHaveBeenCalledWith("program-1");
     });
+  });
+
+  it("keeps the Program visible and retries only responsibilities when responsibility loading fails", async () => {
+	vi.mocked(loadProgramReviewDigest).mockResolvedValue(changedDigest);
+	vi.mocked(loadProgramOperations)
+	  .mockRejectedValueOnce(new Error("routing unavailable"))
+	  .mockResolvedValue({
+		...operations,
+		operations: operations.operations.map((operation) => ({ ...operation, can_act: true })),
+	  });
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+
+	expect(await screen.findByRole("heading", { name: "Nigeria data protection" })).toBeTruthy();
+	expect(screen.getByText("Two applicable requirements do not have evidence checks.")).toBeTruthy();
+	expect(await screen.findByRole("heading", { name: "1 change since your last review" })).toBeTruthy();
+	expect(screen.queryByRole("button", { name: "Mark current state reviewed" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Approve Program activation" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Record new issue" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
+	expect(screen.getByText("New issues cannot be recorded until current Program responsibilities are available.")).toBeTruthy();
+	expect(screen.getByText("Monitoring changes are disabled until current Program responsibilities are available.")).toBeTruthy();
+
+	fireEvent.click(screen.getByRole("button", { name: "Retry responsibilities" }));
+	expect(await screen.findByRole("button", { name: "Approve Program activation" })).toBeTruthy();
+	expect(screen.getByRole("button", { name: "Record new issue" })).toBeTruthy();
+	expect(screen.getByRole("button", { name: "Add monitoring check" })).toBeTruthy();
+	expect(loadProgramOperations).toHaveBeenCalledTimes(2);
+	expect(loadProgram).toHaveBeenCalledTimes(1);
+	expect(loadProgramReviewDigest).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows review history without acknowledgement when the live review operation cannot act", async () => {
+	vi.mocked(loadProgramReviewDigest).mockResolvedValue(changedDigest);
+	vi.mocked(loadProgramOperations).mockResolvedValue({
+	  ...operations,
+	  operations: [...operations.operations, {
+		command: "program.review.accept", label: "Mark current state reviewed", responsibility: "REVIEWER", can_act: false,
+		reason: "This review is assigned to the current reviewer.",
+	  }],
+	});
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+
+	expect(await screen.findByRole("heading", { name: "1 change since your last review" })).toBeTruthy();
+	expect(screen.getByText("The Program scope changed after the last review.")).toBeTruthy();
+	expect(screen.queryByRole("button", { name: "Mark current state reviewed" })).toBeNull();
+  });
+
+  it.each([
+	["Program version", { current_program_version: 5 }],
+	["calculated-status version", { current_projection_version: 7 }],
+  ])("reloads review status when the %s does not match the displayed Program", async (_label, mismatch) => {
+	vi.mocked(loadProgramReviewDigest)
+	  .mockResolvedValueOnce({ ...changedDigest, ...mismatch })
+	  .mockResolvedValue(changedDigest);
+	vi.mocked(loadProgramOperations).mockResolvedValue({
+	  ...operations,
+	  operations: [...operations.operations, {
+		command: "program.review.accept", label: "Mark current state reviewed", responsibility: "REVIEWER", can_act: true,
+		reason: "You hold the current review responsibility.",
+	  }],
+	});
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+
+	expect(await screen.findByText("The Program scope changed after the last review.")).toBeTruthy();
+	expect(screen.queryByRole("button", { name: "Mark current state reviewed" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Approve Program activation" })).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "Reload review status" }));
+
+	const reviewPanel = document.getElementById("program-review-panel")!;
+	expect(await within(reviewPanel).findByRole("button", { name: "Mark current state reviewed" })).toBeTruthy();
+	expect(loadProgramReviewDigest).toHaveBeenCalledTimes(2);
+	expect(loadProgram).toHaveBeenCalledTimes(1);
+	expect(loadProgramOperations).toHaveBeenCalledTimes(1);
+  });
+
+  it("loads once and accepts the current Program command under StrictMode", async () => {
+	const pending = deferred<ProgramAggregate>();
+	vi.mocked(loadProgramOperations).mockResolvedValue({
+	  ...operations,
+	  operations: [{ ...operations.operations[0]!, can_act: true }],
+	});
+	vi.mocked(updateProgramDetails).mockReturnValue(pending.promise);
+	render(<StrictMode><ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/></StrictMode>);
+
+	const detailsPanel = (await screen.findByRole("heading", { name: "Scope and ownership" })).closest("article")!;
+	await waitFor(() => {
+	  expect(loadProgram).toHaveBeenCalledTimes(1);
+	  expect(loadProgramOperations).toHaveBeenCalledTimes(1);
+	  expect(loadProgramReviewDigest).toHaveBeenCalledTimes(1);
+	});
+	fireEvent.click(within(detailsPanel).getByRole("button", { name: "Edit Program details" }));
+	fireEvent.change(screen.getByLabelText("Reason for this change"), { target: { value: "Keep the current command valid." } });
+	fireEvent.click(screen.getByRole("button", { name: "Save Program details" }));
+	await act(async () => {
+	  pending.resolve({ ...aggregate, program: { ...aggregate.program, name: "Updated current Program", version: 5 } });
+	  await pending.promise;
+	});
+	expect(await screen.findByRole("heading", { name: "Updated current Program" })).toBeTruthy();
+  });
+
+  it("disables Program mutations until responsibility data matches the displayed version", async () => {
+	vi.mocked(loadProgramOperations)
+	  .mockResolvedValueOnce({ ...operations, program_version: 3 })
+	  .mockResolvedValue(operations);
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+
+	expect(await screen.findByRole("heading", { name: "Nigeria data protection" })).toBeTruthy();
+	expect(screen.queryByRole("button", { name: "Approve Program activation" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Record new issue" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "Reload Program data" }));
+
+	expect(await screen.findByRole("button", { name: "Approve Program activation" })).toBeTruthy();
+	expect(screen.getByRole("button", { name: "Record new issue" })).toBeTruthy();
+	expect(screen.getByRole("button", { name: "Add monitoring check" })).toBeTruthy();
+	expect(loadProgram).toHaveBeenCalledTimes(2);
+	expect(loadProgramOperations).toHaveBeenCalledTimes(2);
+	expect(loadProgramReviewDigest).toHaveBeenCalledTimes(2);
+  });
+
+  it("reloads the Program, responsibilities and review after a command conflict", async () => {
+	vi.mocked(loadProgramOperations).mockResolvedValue({
+	  ...operations,
+	  operations: [{ ...operations.operations[0]!, can_act: true }],
+	});
+	vi.mocked(updateProgramDetails).mockRejectedValue(new ApiError(409, "version conflict", "version_conflict"));
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+
+	const detailsPanel = (await screen.findByRole("heading", { name: "Scope and ownership" })).closest("article")!;
+	fireEvent.click(within(detailsPanel).getByRole("button", { name: "Edit Program details" }));
+	fireEvent.change(screen.getByLabelText("Reason for this change"), { target: { value: "Use the current approved scope." } });
+	fireEvent.click(screen.getByRole("button", { name: "Save Program details" }));
+	fireEvent.click(await screen.findByRole("button", { name: "Reload Program" }));
+
+	await waitFor(() => {
+	  expect(loadProgram).toHaveBeenCalledTimes(2);
+	  expect(loadProgramOperations).toHaveBeenCalledTimes(2);
+	  expect(loadProgramReviewDigest).toHaveBeenCalledTimes(2);
+	});
+  });
+
+  it("ignores a completed Program command after navigation targets another Program", async () => {
+	const pending = deferred<ProgramAggregate>();
+	const secondAggregate: ProgramAggregate = {
+	  ...aggregate,
+	  program: { ...aggregate.program, id: "program-2", code: "AML", name: "Anti-money laundering", version: 4 },
+	};
+	vi.mocked(loadProgram).mockImplementation((id) => Promise.resolve(id === "program-2" ? secondAggregate : aggregate));
+	vi.mocked(loadProgramOperations).mockImplementation((id) => Promise.resolve({
+	  ...operations,
+	  program_id: id,
+	  operations: [{ ...operations.operations[0]!, can_act: true }],
+	}));
+	vi.mocked(loadProgramReviewDigest).mockImplementation((id) => Promise.resolve({ ...digest, program_id: id }));
+	vi.mocked(updateProgramDetails).mockReturnValue(pending.promise);
+	const view = render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+
+	const detailsPanel = (await screen.findByRole("heading", { name: "Scope and ownership" })).closest("article")!;
+	fireEvent.click(within(detailsPanel).getByRole("button", { name: "Edit Program details" }));
+	fireEvent.change(screen.getByLabelText("Reason for this change"), { target: { value: "Update the first Program." } });
+	fireEvent.click(screen.getByRole("button", { name: "Save Program details" }));
+	view.rerender(<ProgramRecordWorkspace programID="program-2" onBack={vi.fn()}/>);
+	expect(await screen.findByRole("heading", { name: "Anti-money laundering" })).toBeTruthy();
+
+	pending.resolve({ ...aggregate, program: { ...aggregate.program, name: "Stale completed Program", version: 5 } });
+	await waitFor(() => expect(screen.queryByRole("heading", { name: "Stale completed Program" })).toBeNull());
+	expect(screen.getByRole("heading", { name: "Anti-money laundering" })).toBeTruthy();
+  });
+
+  it("ignores a completed review acknowledgement after navigation targets another Program", async () => {
+	const pending = deferred<ReviewDigest>();
+	const secondAggregate: ProgramAggregate = {
+	  ...aggregate,
+	  program: { ...aggregate.program, id: "program-2", code: "AML", name: "Anti-money laundering", version: 4 },
+	};
+	const reviewOperation = {
+	  command: "program.review.accept", label: "Mark current state reviewed", responsibility: "REVIEWER", can_act: true,
+	  reason: "You hold the current review responsibility.",
+	};
+	vi.mocked(loadProgram).mockImplementation((id) => Promise.resolve(id === "program-2" ? secondAggregate : aggregate));
+	vi.mocked(loadProgramOperations).mockImplementation((id) => Promise.resolve({
+	  ...operations, program_id: id, operations: [...operations.operations, reviewOperation],
+	}));
+	vi.mocked(loadProgramReviewDigest).mockImplementation((id) => Promise.resolve({
+	  ...changedDigest,
+	  program_id: id,
+	  changes: [{ kind: "PROGRAM", summary: id === "program-2" ? "The second Program review is still outstanding." : "The first Program review is still outstanding." }],
+	}));
+	vi.mocked(acceptProgramReview).mockReturnValue(pending.promise);
+	const view = render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+
+	await screen.findByText("The first Program review is still outstanding.");
+	const reviewPanel = document.getElementById("program-review-panel")!;
+	fireEvent.click(await within(reviewPanel).findByRole("button", { name: "Mark current state reviewed" }));
+	expect(acceptProgramReview).toHaveBeenCalledWith("program-1", 4, 8);
+	view.rerender(<ProgramRecordWorkspace programID="program-2" onBack={vi.fn()}/>);
+	expect(await screen.findByText("The second Program review is still outstanding.")).toBeTruthy();
+
+	await act(async () => {
+	  pending.resolve({ ...changedDigest, program_id: "program-1", changes: [{ kind: "PROGRAM", summary: "Late review result from the first Program." }] });
+	  await pending.promise;
+	});
+	await waitFor(() => expect(screen.queryByText("Late review result from the first Program.")).toBeNull());
+	expect(screen.getByText("The second Program review is still outstanding.")).toBeTruthy();
+  });
+
+  it("keeps linked-issue retry and navigation available when Program responsibilities fail", async () => {
+	const linked = {
+	  matter: { id: "matter-1", tenant_id: "bank", reference: "MAT-001", type: "CONTROL_GAP", status: "OPEN", priority: 4, title: "Annual return evidence is incomplete", summary: "Two sections need approved evidence.", scope: {}, known_facts: {}, missing_facts: [], contradictions: [], created_at: "2026-08-20T10:00:00Z", updated_at: "2026-08-25T10:00:00Z", version: 2 },
+	  type_label: "Control gap", status_label: "Open", next_action: "Assign the evidence owners", program_count: 1, open_action_count: 1, outcome_check_count: 0,
+	};
+	vi.mocked(loadProgramOperations).mockRejectedValue(new Error("routing unavailable"));
+	vi.mocked(loadMatterSummaries)
+	  .mockRejectedValueOnce(new Error("linked issues unavailable"))
+	  .mockResolvedValue({ items: [linked], generated_at: "2026-08-25T10:00:00Z" });
+	const onOpenMatter = vi.fn();
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()} onOpenMatter={onOpenMatter}/>);
+
+	const issues = await screen.findByRole("heading", { name: "Linked issues and changes" });
+	const panel = issues.closest("article")!;
+	fireEvent.click(await within(panel).findByRole("button", { name: "Try again" }));
+	fireEvent.click(await within(panel).findByRole("button", { name: "Open MAT-001" }));
+
+	expect(loadMatterSummaries).toHaveBeenCalledTimes(2);
+	expect(onOpenMatter).toHaveBeenCalledWith("matter-1");
+  });
+
+  it("keeps the Program visible and retries only review status when review loading fails", async () => {
+	vi.mocked(loadProgramReviewDigest)
+	  .mockRejectedValueOnce(new Error("review unavailable"))
+	  .mockResolvedValue(digest);
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+
+	expect(await screen.findByRole("heading", { name: "Nigeria data protection" })).toBeTruthy();
+	expect(screen.getByText("Two applicable requirements do not have evidence checks.")).toBeTruthy();
+	expect(screen.queryByRole("button", { name: "Approve Program activation" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Record new issue" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
+
+	fireEvent.click(screen.getByRole("button", { name: "Retry review status" }));
+	expect(await screen.findByRole("button", { name: "Approve Program activation" })).toBeTruthy();
+	expect(screen.getByRole("button", { name: "Record new issue" })).toBeTruthy();
+	expect(screen.getByRole("button", { name: "Add monitoring check" })).toBeTruthy();
+	expect(loadProgramReviewDigest).toHaveBeenCalledTimes(2);
+	expect(loadProgram).toHaveBeenCalledTimes(1);
+	expect(loadProgramOperations).toHaveBeenCalledTimes(1);
   });
 
   it("keeps portfolio search on the list route and uses the dedicated record on a target route", async () => {
@@ -260,7 +525,7 @@ describe("Program record workspace", () => {
 	fireEvent.change(screen.getByLabelText("Evidence code"), { target: { value: "CAR-COMPLETE" } });
 	fireEvent.change(screen.getByLabelText("Evidence check name"), { target: { value: "Complete annual return evidence" } });
 	fireEvent.change(screen.getByLabelText("What must the evidence prove?"), { target: { value: "Every required return section was filed." } });
-	fireEvent.click(screen.getByLabelText("Annual return register"));
+	fireEvent.click(await screen.findByLabelText("Annual return register"));
 	fireEvent.change(screen.getByLabelText("Maximum evidence age (days)"), { target: { value: "30" } });
 	fireEvent.change(screen.getByLabelText("Required population coverage (%)"), { target: { value: "95" } });
 	fireEvent.click(screen.getByLabelText("Independent review required"));

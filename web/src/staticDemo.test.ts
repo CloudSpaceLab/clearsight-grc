@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { canRespondToEvidenceRequest } from "./evidenceAuthorization";
+import type { EvidenceRequest } from "./types";
 
 async function demo() {
   vi.resetModules();
@@ -81,6 +83,45 @@ describe("static stakeholder demo transport", () => {
       method: "POST",
       body: JSON.stringify({ expected_version: current.program.version, to: "RETIRED", rationale: "Stale replay." }),
     })).rejects.toMatchObject({ status: 409, code: "version_conflict" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
+  });
+
+  it("makes the Today evidence shortcut eligible only for the verified static CRO", async () => {
+    const { staticDemoRequest } = await demo();
+    const context = await staticDemoRequest<{ actor: { id: string } }>("/api/v1/context");
+    const today = await staticDemoRequest<{ items: Array<{ action_target_type?: string; action_target_id?: string }> }>("/api/v1/today");
+    const targetID = today.items.find((item) => item.action_target_type === "EVIDENCE_REQUEST")?.action_target_id;
+
+    expect(targetID).toBe("evidence-annual-return");
+    const evidence = await staticDemoRequest<EvidenceRequest>(`/api/v1/evidence/requests/${targetID}`);
+    expect(evidence).toMatchObject({
+      status: "READY",
+      audience_type: "INTERNAL",
+      recipient: { type: "INTERNAL_PRINCIPAL", state: "ASSIGNED", principal_id: context.actor.id },
+    });
+    expect(canRespondToEvidenceRequest(evidence, context.actor.id)).toBe(true);
+    expect(canRespondToEvidenceRequest(evidence, "role-dpo")).toBe(false);
+  });
+
+  it("revalidates the static not-found fixture only after an eligible Today preload", async () => {
+    window.history.replaceState(null, "", "/?fixture=capture-not-found");
+    const { staticDemoRequest } = await demo();
+
+    const preloadPath = "/api/v1/evidence/requests/evidence-annual-return?request_intent=eligibility_preload";
+    expect(canRespondToEvidenceRequest(await staticDemoRequest<EvidenceRequest>(preloadPath), "role-cro")).toBe(true);
+    expect(canRespondToEvidenceRequest(await staticDemoRequest<EvidenceRequest>(preloadPath), "role-cro")).toBe(true);
+    await expect(staticDemoRequest("/api/v1/evidence/requests/evidence-annual-return")).rejects.toMatchObject({ status: 404, code: "request_not_found" });
+  });
+
+  it("revalidates the static terminal fixture only after an eligible Today preload", async () => {
+    window.history.replaceState(null, "", "/?fixture=capture-terminal");
+    const { staticDemoRequest } = await demo();
+
+    const preloadPath = "/api/v1/evidence/requests/evidence-annual-return?request_intent=eligibility_preload";
+    expect(canRespondToEvidenceRequest(await staticDemoRequest<EvidenceRequest>(preloadPath), "role-cro")).toBe(true);
+    expect(canRespondToEvidenceRequest(await staticDemoRequest<EvidenceRequest>(preloadPath), "role-cro")).toBe(true);
+    const current = await staticDemoRequest<EvidenceRequest>("/api/v1/evidence/requests/evidence-annual-return");
+    expect(current.status).toBe("EXPIRED");
+    expect(canRespondToEvidenceRequest(current, "role-cro")).toBe(false);
   });
 
   it("exposes Program responsibilities and executes evidence and monitoring workflows", async () => {

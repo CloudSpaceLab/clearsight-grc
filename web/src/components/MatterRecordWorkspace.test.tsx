@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { StrictMode } from "react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadMatter, loadPrograms } from "../api";
 import { ApiError } from "../http";
@@ -145,6 +146,12 @@ const responseOperations: MatterOperations = {
   }],
 };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((next) => { resolve = next; });
+  return { promise, resolve };
+}
+
 describe("Matter record workspace", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -170,14 +177,81 @@ describe("Matter record workspace", () => {
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
-  it("reports a recoverable load failure without showing stale controls", async () => {
-    vi.mocked(loadMatterOperations).mockRejectedValue(new Error("routing unavailable"));
+  it("keeps the issue visible and retries only responsibilities after responsibility loading fails", async () => {
+    vi.mocked(loadMatterOperations)
+      .mockRejectedValueOnce(new Error("routing unavailable"))
+      .mockResolvedValue(performerOperations);
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
-    expect(await screen.findByRole("heading", { name: "Issue responsibilities could not be loaded" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Update action" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-    await waitFor(() => expect(loadMatter).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
+    expect(screen.getByText("licensed DPCO")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Update status for Update the annual return evidence checklist" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry responsibilities" }));
+    expect(await screen.findByRole("button", { name: "Update status for Update the annual return evidence checklist" })).toBeTruthy();
+    expect(loadMatterOperations).toHaveBeenCalledTimes(2);
+    expect(loadMatter).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables issue mutations until responsibility data matches the displayed version", async () => {
+    vi.mocked(loadMatterOperations)
+      .mockResolvedValueOnce({ ...performerOperations, matter_version: 6 })
+      .mockResolvedValue(performerOperations);
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Update status for Update the annual return evidence checklist" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Reload issue data" }));
+
+    expect(await screen.findByRole("button", { name: "Update status for Update the annual return evidence checklist" })).toBeTruthy();
+    expect(loadMatter).toHaveBeenCalledTimes(2);
+    expect(loadMatterOperations).toHaveBeenCalledTimes(2);
+  });
+
+  it("ignores a completed issue command after navigation targets another issue", async () => {
+    const pending = deferred<MatterAggregate>();
+    const secondDetail: MatterAggregate = {
+      ...detail,
+      matter: { ...detail.matter, id: "matter-2", reference: "MAT-002", title: "Review the second issue", version: 7 },
+    };
+    vi.mocked(loadMatter).mockImplementation((id) => Promise.resolve(id === "matter-2" ? secondDetail : detail));
+    vi.mocked(loadMatterOperations).mockImplementation((id) => Promise.resolve({
+      ...ownerOperations,
+      matter_id: id,
+    }));
+    vi.mocked(updateMatterDetails).mockReturnValue(pending.promise);
+    const view = render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit issue details" }));
+    fireEvent.change(screen.getByLabelText("Reason for this change"), { target: { value: "Update the first issue." } });
+    fireEvent.click(screen.getByRole("button", { name: "Save issue details" }));
+    view.rerender(<MatterRecordWorkspace matterID="matter-2" onBack={vi.fn()}/>);
+    expect(await screen.findByRole("heading", { name: "Review the second issue" })).toBeTruthy();
+
+    pending.resolve({ ...detail, matter: { ...detail.matter, title: "Stale completed issue", version: 8 } });
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Stale completed issue" })).toBeNull());
+    expect(screen.getByRole("heading", { name: "Review the second issue" })).toBeTruthy();
+  });
+
+  it("loads once and accepts the current issue command under StrictMode", async () => {
+	const pending = deferred<MatterAggregate>();
+	vi.mocked(loadMatterOperations).mockResolvedValue(ownerOperations);
+	vi.mocked(updateMatterDetails).mockReturnValue(pending.promise);
+	render(<StrictMode><MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/></StrictMode>);
+
+	await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" });
+	await waitFor(() => {
+	  expect(loadMatter).toHaveBeenCalledTimes(1);
+	  expect(loadMatterOperations).toHaveBeenCalledTimes(1);
+	});
+	fireEvent.click(screen.getByRole("button", { name: "Edit issue details" }));
+	fireEvent.change(screen.getByLabelText("Reason for this change"), { target: { value: "Keep the current issue command valid." } });
+	fireEvent.click(screen.getByRole("button", { name: "Save issue details" }));
+	await act(async () => {
+	  pending.resolve({ ...detail, matter: { ...detail.matter, title: "Updated current issue", version: 8 } });
+	  await pending.promise;
+	});
+	expect(await screen.findByRole("heading", { name: "Updated current issue" })).toBeTruthy();
   });
 
   it("updates core issue details and keeps the server version current", async () => {
@@ -199,7 +273,9 @@ describe("Matter record workspace", () => {
   });
 
   it("corrects recorded information and resolves a missing item with supporting evidence", async () => {
-    vi.mocked(loadMatterOperations).mockResolvedValue(ownerOperations);
+    vi.mocked(loadMatterOperations)
+      .mockResolvedValueOnce(ownerOperations)
+      .mockResolvedValue({ ...ownerOperations, matter_version: 8 });
     vi.mocked(changeMatterContext)
       .mockResolvedValueOnce({ ...detail, matter: { ...detail.matter, known_facts: { ...detail.matter.known_facts, filing_channel: "licensed DPCO portal" }, version: 8 } })
       .mockResolvedValueOnce({ ...detail, matter: { ...detail.matter, missing_facts: [detail.matter.missing_facts[0]], version: 9 } });
@@ -216,7 +292,7 @@ describe("Matter record workspace", () => {
       evidenceReferences: ["DPCO guidance 2026", "portal instructions v2"], rationale: "Replace the superseded submission route.",
     }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Add information for final DPCO evidence checklist" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Add information for final DPCO evidence checklist" }));
     fireEvent.change(screen.getByLabelText("Information to record"), { target: { value: "Checklist v3 approved" } });
     fireEvent.change(screen.getByLabelText("Evidence references (optional)"), { target: { value: "artifact-checklist-v3" } });
     fireEvent.change(screen.getByLabelText("Reason this information resolves the gap"), { target: { value: "The DPCO approved version 3." } });
@@ -229,7 +305,9 @@ describe("Matter record workspace", () => {
   });
 
   it("adds a missing-information requirement and changes the accountable owner from eligible candidates", async () => {
-    vi.mocked(loadMatterOperations).mockResolvedValue(ownerOperations);
+    vi.mocked(loadMatterOperations)
+      .mockResolvedValueOnce(ownerOperations)
+      .mockResolvedValue({ ...ownerOperations, matter_version: 8 });
     vi.mocked(changeMatterContext).mockResolvedValue({ ...detail, matter: { ...detail.matter, missing_facts: [...detail.matter.missing_facts, "approved signatory"], version: 8 } });
     vi.mocked(assignMatter).mockResolvedValue({ ...detail, matter: { ...detail.matter, owner_principal_id: "owner-2", version: 9 } });
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
@@ -240,7 +318,7 @@ describe("Matter record workspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add missing item" }));
     await waitFor(() => expect(changeMatterContext).toHaveBeenCalledWith("matter-1", 7, expect.objectContaining({ kind: "ADD_MISSING", label: "approved signatory" })));
 
-    fireEvent.click(screen.getByRole("button", { name: "Change issue owner" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Change issue owner" }));
     fireEvent.change(screen.getByLabelText("New issue owner"), { target: { value: "owner-2" } });
     fireEvent.change(screen.getByLabelText("Reason for reassignment"), { target: { value: "Assign the current Privacy Operations owner." } });
     fireEvent.click(screen.getByRole("button", { name: "Assign issue owner" }));
@@ -288,7 +366,10 @@ describe("Matter record workspace", () => {
     expect(await screen.findByText("This issue changed since you opened it. Your entries have been kept.")).toBeTruthy();
     expect((screen.getByLabelText("Summary") as HTMLTextAreaElement).value).toBe("Keep this carefully entered summary.");
     fireEvent.click(screen.getByRole("button", { name: "Reload current issue" }));
-    await waitFor(() => expect(loadMatter).toHaveBeenCalledTimes(2));
+    await waitFor(() => {
+      expect(loadMatter).toHaveBeenCalledTimes(2);
+      expect(loadMatterOperations).toHaveBeenCalledTimes(2);
+    });
   });
 
   it("shows each Action owner and deadline and lets the accountable owner add assigned work", async () => {
@@ -312,7 +393,9 @@ describe("Matter record workspace", () => {
   });
 
   it("lets the accountable owner edit and reassign an Action", async () => {
-    vi.mocked(loadMatterOperations).mockResolvedValue(actionOwnerOperations);
+    vi.mocked(loadMatterOperations)
+      .mockResolvedValueOnce(actionOwnerOperations)
+      .mockResolvedValue({ ...actionOwnerOperations, matter_version: 8 });
     vi.mocked(updateMatterAction).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 8 }, actions: [{ ...detail.actions[0]!, description: "Map every section to its approved source." }] });
     vi.mocked(assignMatterAction).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 9 }, actions: [{ ...detail.actions[0]!, owner_principal_id: "owner-2" }] });
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
@@ -323,7 +406,7 @@ describe("Matter record workspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save action" }));
     await waitFor(() => expect(updateMatterAction).toHaveBeenCalledWith("matter-1", "action-1", 7, expect.objectContaining({ description: "Map every section to its approved source." })));
 
-    fireEvent.click(screen.getByRole("button", { name: "Change owner for Update the annual return evidence checklist" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Change owner for Update the annual return evidence checklist" }));
     fireEvent.change(screen.getByLabelText("New action owner"), { target: { value: "owner-2" } });
     fireEvent.change(screen.getByLabelText("Reason for action reassignment"), { target: { value: "Assign the process owner who maintains the evidence." } });
     fireEvent.click(screen.getByRole("button", { name: "Assign action owner" }));
