@@ -93,16 +93,17 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   const formLoadID = useRef(0);
   const registerLoadID = useRef(0);
   const acknowledgedGuideIntentID = useRef<number | undefined>(undefined);
+  const nextActionSearch = useRef<{ intentID: number; tried: Set<string> } | undefined>(undefined);
 
   useEffect(() => {
     setQuery("");
     setSubmittedQuery("");
-    void refresh(targetID, "");
+    if (!guideIntent) void refresh(targetID, "");
   }, [targetID]);
 
   useEffect(() => {
     if (guideIntent) void refresh(targetID, "", guideIntent);
-  }, [guideIntent]);
+  }, [guideIntent, targetID]);
 
   useEffect(() => {
     if (!guideIntent || state !== "live") return;
@@ -125,8 +126,23 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
         if (!vendorWork || vendorWork.getAttribute("aria-busy") === "true") return false;
         const vendorWorkAction = firstVisiblePrimaryAction(".vendor-work-panel");
         if (vendorWorkAction && focusGuideTarget(vendorWorkAction)) return acknowledgeGuideIntent(guideIntent.id);
-        const addVendor = document.getElementById("vendor-add-action");
-        if (focusGuideTarget(addVendor)) return acknowledgeGuideIntent(guideIntent.id);
+        const search = nextActionSearch.current?.intentID === guideIntent.id
+          ? nextActionSearch.current
+          : { intentID: guideIntent.id, tried: new Set<string>() };
+        nextActionSearch.current = search;
+        search.tried.add(selected.relationship.id);
+        const next = records.find((record) => !search.tried.has(record.relationship.id));
+        if (next) {
+          assessmentLoadID.current += 1;
+          setAssessment(null);
+          setAssessmentSetup(undefined);
+          setAssessmentState("loading");
+          setReview(undefined);
+          setReviewState("loading");
+          setSelected(next);
+          setMode("browse");
+          return true;
+        }
         return failGuideIntent(guideIntent.id);
       };
       if (focusNextAction()) return;
@@ -150,7 +166,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       onGuideIntentFailed?.(id);
       return true;
     }
-  }, [guideIntent, state, mode, selected?.relationship.id, assessment, assessmentState, reviewState, formState, onGuideIntentCompleted, onGuideIntentFailed]);
+  }, [guideIntent, state, mode, records, selected?.relationship.id, assessment, assessmentState, reviewState, formState, onGuideIntentCompleted, onGuideIntentFailed]);
 
   useEffect(() => {
     void refreshForms();

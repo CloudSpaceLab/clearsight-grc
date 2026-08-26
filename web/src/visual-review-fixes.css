@@ -181,8 +181,17 @@
     font-size: 8px;
   }
 
-  /* First-run guidance can open automatically; persistent restart chrome must not cover mobile field work. */
-  .guide-launcher { display: none; }
+  /* Keep resume/restart in document flow so it stays reachable without covering mobile field work. */
+  .guide-launcher {
+    position: static;
+    min-height: 44px;
+    display: flex;
+    width: fit-content;
+    height: auto;
+    margin: 10px 16px 0 auto;
+    padding: 8px 12px 8px 8px;
+  }
+  .guide-launcher strong { display: block; }
 }
 
 @media (max-width: 400px) {

@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+// @ts-ignore Vitest executes this CSS source regression in Node.
+import { readFileSync } from "node:fs";
 import { loadGuideState, loadRoleGuide, saveGuideState } from "../onboardingApi";
 import { RoleAwareOnboarding } from "./RoleAwareOnboarding";
 
@@ -19,6 +21,7 @@ const guide = {
 };
 const initial = { tenant_id: "bank-demo", principal_id: "role-cro", guide_code: guide.code, guide_version: 1, current_step: 0, completed: false, dismissed: false, version: 0 };
 const runtime = { tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } };
+const visualReviewCSS = readFileSync("src/visual-review-fixes.css", "utf8");
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -257,5 +260,15 @@ describe("RoleAwareOnboarding", () => {
     target.remove();
     scroll.mockRestore();
     vi.unstubAllGlobals();
+  });
+
+  it("keeps resume and restart launchers reachable without covering mobile work", () => {
+    const mobileStart = visualReviewCSS.indexOf("@media (max-width: 820px)");
+    const mobileEnd = visualReviewCSS.indexOf("@media (max-width: 400px)", mobileStart);
+    const mobileRules = visualReviewCSS.slice(mobileStart, mobileEnd);
+
+    expect(mobileRules).not.toMatch(/\.guide-launcher\s*\{[^}]*display:\s*none/);
+    expect(mobileRules).toMatch(/\.guide-launcher\s*\{[^}]*position:\s*static[^}]*min-height:\s*44px[^}]*display:\s*flex/);
+    expect(mobileRules).toMatch(/\.guide-launcher\s+strong\s*\{[^}]*display:\s*block/);
   });
 });
