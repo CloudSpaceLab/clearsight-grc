@@ -9,6 +9,7 @@ require (
 	github.com/elimity-com/scim v0.0.0-20260728105928-2641426a1539
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/scim2/filter-parser/v2 v2.3.1
+	golang.org/x/net v0.10.0
 	golang.org/x/oauth2 v0.36.0
 )
 

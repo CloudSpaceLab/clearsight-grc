@@ -11,18 +11,26 @@ import (
 )
 
 type MemoryRepository struct {
-	mu            sync.RWMutex
-	vendors       map[string]Vendor
-	relationships map[string]Relationship
+	mu                   sync.RWMutex
+	vendors              map[string]Vendor
+	relationships        map[string]Relationship
+	vendorBrandAssets    map[string]VendorBrandAsset
+	vendorBrandJobs      map[string]VendorBrandJob
+	vendorIdentityEvents []VendorIdentityEvent
+	vendorIdentityOutbox []VendorIdentityEvent
 }
 
 func NewMemoryRepository() *MemoryRepository {
-	return &MemoryRepository{vendors: map[string]Vendor{}, relationships: map[string]Relationship{}}
+	return &MemoryRepository{
+		vendors: map[string]Vendor{}, relationships: map[string]Relationship{},
+		vendorBrandAssets: map[string]VendorBrandAsset{}, vendorBrandJobs: map[string]VendorBrandJob{},
+	}
 }
 
 func (r *MemoryRepository) CreateRelationship(_ context.Context, record CreateRecord) (Aggregate, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	createdVendor := false
 	if record.ReuseVendor {
 		existing, ok := r.vendors[record.Vendor.ID]
 		if !ok || existing.TenantID != record.Vendor.TenantID {
@@ -31,16 +39,26 @@ func (r *MemoryRepository) CreateRelationship(_ context.Context, record CreateRe
 		record.Vendor = existing
 		record.Relationship.VendorID = existing.ID
 	} else if record.Vendor.SourceID != "" && record.Vendor.ExternalRef != "" {
+		found := false
 		for _, existing := range r.vendors {
 			if existing.TenantID == record.Vendor.TenantID && existing.SourceID == record.Vendor.SourceID && existing.ExternalRef == record.Vendor.ExternalRef {
 				record.Vendor = existing
 				record.Relationship.VendorID = existing.ID
+				found = true
 				break
 			}
 		}
+		createdVendor = !found
+	} else {
+		createdVendor = true
 	}
-	if !record.ReuseVendor {
+	if !record.ReuseVendor && createdVendor {
 		r.vendors[record.Vendor.ID] = record.Vendor
+		if record.BrandJob != nil {
+			job := *record.BrandJob
+			r.vendorBrandJobs[vendorBrandJobKey(job.TenantID, job.VendorID)] = job
+			r.appendVendorIdentityAudit(record.Vendor, record.ActorID, VendorIdentityCreatedEvent)
+		}
 	}
 	r.relationships[record.Relationship.ID] = record.Relationship
 	return Aggregate{Vendor: record.Vendor, Relationship: record.Relationship}, nil

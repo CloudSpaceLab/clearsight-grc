@@ -2,26 +2,41 @@ package thirdparty
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 )
 
 type Service struct {
-	repo  Repository
-	now   func() time.Time
-	newID func() (string, error)
+	repo          Repository
+	now           func() time.Time
+	newID         func() (string, error)
+	identityGuard AssessmentCommandGuard
 }
 
 func NewService(repo Repository) *Service {
 	return &Service{repo: repo, now: time.Now, newID: id.NewUUIDv7}
 }
 
+func (s *Service) ConfigureIdentityAuthority(guard AssessmentCommandGuard) {
+	if s != nil {
+		s.identityGuard = guard
+	}
+}
+
 func (s *Service) CreateRelationship(ctx context.Context, actor Actor, input CreateRelationshipInput) (Aggregate, error) {
 	input.ExistingRelationshipID = strings.TrimSpace(input.ExistingRelationshipID)
 	input.LegalName = strings.TrimSpace(input.LegalName)
 	input.ServiceName = strings.TrimSpace(input.ServiceName)
+	websiteDomain, err := normalizeOptionalWebsiteDomain(input.WebsiteDomain)
+	if err != nil {
+		return Aggregate{}, err
+	}
 	if strings.TrimSpace(actor.TenantID) == "" || strings.TrimSpace(actor.LegalEntityID) == "" || strings.TrimSpace(actor.PrincipalID) == "" || (input.ExistingRelationshipID == "" && input.LegalName == "") || input.ServiceName == "" || !validCriticality(input.Criticality) || !validPrivacyRole(input.PrivacyRole) {
 		return Aggregate{}, ErrInvalid
 	}
@@ -44,6 +59,7 @@ func (s *Service) CreateRelationship(ctx context.Context, actor Actor, input Cre
 			TradingName: strings.TrimSpace(input.TradingName), RegistrationRef: strings.TrimSpace(input.RegistrationRef),
 			Jurisdiction: strings.TrimSpace(input.Jurisdiction), SourceID: strings.TrimSpace(input.SourceID),
 			ExternalRef: strings.TrimSpace(input.ExternalRef), Status: VendorActive, CreatedAt: now, UpdatedAt: now, Version: 1,
+			WebsiteDomain: websiteDomain,
 		}
 	}
 	relationshipID, err := s.newID()
@@ -51,6 +67,18 @@ func (s *Service) CreateRelationship(ctx context.Context, actor Actor, input Cre
 		return Aggregate{}, err
 	}
 	now := s.now().UTC()
+	var brandJob *VendorBrandJob
+	if !reuseVendor && websiteDomain != "" {
+		jobID, err := s.newID()
+		if err != nil {
+			return Aggregate{}, err
+		}
+		brandJob = &VendorBrandJob{
+			ID: jobID, TenantID: vendor.TenantID, VendorID: vendor.ID, VendorVersion: vendor.Version,
+			JobType: VendorBrandDiscoveryJobType, WebsiteDomain: websiteDomain, State: VendorBrandJobReady,
+			AvailableAt: now, CreatedAt: now, UpdatedAt: now, Version: 1,
+		}
+	}
 	record := CreateRecord{
 		Vendor: vendor,
 		Relationship: Relationship{
@@ -59,9 +87,101 @@ func (s *Service) CreateRelationship(ctx context.Context, actor Actor, input Cre
 			Criticality: input.Criticality, PrivacyRole: input.PrivacyRole, Status: RelationshipProposed,
 			EffectiveFrom: input.EffectiveFrom, RenewalAt: input.RenewalAt, SourceID: strings.TrimSpace(input.SourceID),
 			ExternalRef: strings.TrimSpace(input.ExternalRef), CreatedAt: now, UpdatedAt: now, Version: 1,
-		}, ReuseVendor: reuseVendor,
+		}, ReuseVendor: reuseVendor, ActorID: strings.TrimSpace(actor.PrincipalID), BrandJob: brandJob,
 	}
 	return s.repo.CreateRelationship(ctx, record)
+}
+
+func (s *Service) UpdateVendorIdentity(ctx context.Context, _ Actor, vendorID string, input UpdateVendorIdentityInput) (Vendor, error) {
+	vendorID = strings.TrimSpace(vendorID)
+	input.LegalName = strings.TrimSpace(input.LegalName)
+	input.TradingName = strings.TrimSpace(input.TradingName)
+	input.RegistrationRef = strings.TrimSpace(input.RegistrationRef)
+	input.Jurisdiction = strings.TrimSpace(input.Jurisdiction)
+	websiteDomain, err := normalizeOptionalWebsiteDomain(input.WebsiteDomain)
+	if err != nil || vendorID == "" || input.ExpectedVersion < 1 || input.LegalName == "" {
+		return Vendor{}, ErrInvalid
+	}
+	actor, err := s.authorizeVendorIdentity(ctx, vendorID)
+	if err != nil {
+		return Vendor{}, err
+	}
+	current, err := s.repo.GetVendor(ctx, scopeFrom(actor), vendorID)
+	if err != nil {
+		return Vendor{}, err
+	}
+	if current.Version != input.ExpectedVersion {
+		return Vendor{}, ErrVersionConflict
+	}
+	if current.LegalName == input.LegalName && current.TradingName == input.TradingName && current.RegistrationRef == input.RegistrationRef && current.Jurisdiction == input.Jurisdiction && current.WebsiteDomain == websiteDomain {
+		return current, nil
+	}
+	now := s.now().UTC()
+	updated := current
+	updated.LegalName = input.LegalName
+	updated.TradingName = input.TradingName
+	updated.RegistrationRef = input.RegistrationRef
+	updated.Jurisdiction = input.Jurisdiction
+	updated.WebsiteDomain = websiteDomain
+	updated.UpdatedAt = now
+	var brandJob *VendorBrandJob
+	if current.WebsiteDomain != websiteDomain {
+		jobID, idErr := s.newID()
+		if idErr != nil {
+			return Vendor{}, idErr
+		}
+		state := VendorBrandJobReady
+		if websiteDomain == "" {
+			state = VendorBrandJobCancelled
+		}
+		brandJob = &VendorBrandJob{
+			ID: jobID, TenantID: current.TenantID, VendorID: current.ID, VendorVersion: current.Version + 1,
+			JobType: VendorBrandDiscoveryJobType, WebsiteDomain: websiteDomain, State: state,
+			AvailableAt: now, CreatedAt: now, UpdatedAt: now, Version: 1,
+		}
+	}
+	return s.repo.UpdateVendorIdentity(ctx, UpdateVendorIdentityRecord{
+		Scope: scopeFrom(actor), ID: current.ID, ExpectedVersion: input.ExpectedVersion,
+		Vendor: updated, ActorID: actor.PrincipalID, BrandJob: brandJob,
+	})
+}
+
+func (s *Service) authorizeVendorIdentity(ctx context.Context, vendorID string) (Actor, error) {
+	contextActor, err := identity.Require(ctx)
+	if err != nil {
+		return Actor{}, err
+	}
+	if err := contextActor.Valid(s.now().UTC()); err != nil || contextActor.LegalEntityID == "*" {
+		if err != nil {
+			return Actor{}, err
+		}
+		return Actor{}, identity.ErrInvalidIdentity
+	}
+	if s.identityGuard == nil {
+		return Actor{}, errors.Join(ErrVendorIdentityAuthorityUnavailable, commandauth.ErrGuardUnavailable)
+	}
+	decision, err := s.identityGuard.Authorize(ctx, commandauth.Request{
+		TenantID: contextActor.TenantID, LegalEntityID: contextActor.LegalEntityID,
+		ObjectType: VendorIdentityObjectType, ObjectID: vendorID,
+		Responsibility: authority.ResponsibilityOwner, DecisionType: VendorIdentityUpdateCommand, Materiality: 2,
+	})
+	if err != nil {
+		return Actor{}, err
+	}
+	if !decision.Allowed {
+		return Actor{}, commandauth.ErrNotAuthorized
+	}
+	if err := decision.Actor.Valid(s.now().UTC()); err != nil || !sameAssessmentIdentity(contextActor, decision.Actor) {
+		return Actor{}, ErrVendorIdentityMismatch
+	}
+	return Actor{TenantID: decision.Actor.TenantID, LegalEntityID: decision.Actor.LegalEntityID, PrincipalID: decision.Actor.PrincipalID}, nil
+}
+
+func normalizeOptionalWebsiteDomain(value string) (WebsiteDomain, error) {
+	if strings.TrimSpace(value) == "" {
+		return "", nil
+	}
+	return NormalizeWebsiteDomain(value)
 }
 
 func (s *Service) GetRelationship(ctx context.Context, actor Actor, relationshipID string) (Aggregate, error) {

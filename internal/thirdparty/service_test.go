@@ -5,6 +5,9 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 func TestCreateRelationshipRequiresVendorServiceAndLegalEntity(t *testing.T) {
@@ -186,6 +189,152 @@ func TestGetRelationshipDoesNotLeakAcrossEntityOrTenant(t *testing.T) {
 			t.Fatalf("expected not found for scope %#v, got %v", actor, err)
 		}
 	}
+}
+
+func TestCreateRelationshipWithWebsiteSchedulesBrandDiscoveryAtomically(t *testing.T) {
+	repo := NewMemoryRepository()
+	service := NewService(repo)
+	service.now = func() time.Time { return time.Date(2026, 8, 26, 8, 30, 0, 0, time.UTC) }
+	ids := []string{"vendor-1", "relationship-1", "brand-job-1"}
+	service.newID = func() (string, error) {
+		value := ids[0]
+		ids = ids[1:]
+		return value, nil
+	}
+	input := validCreateInput()
+	input.WebsiteDomain = "Vendor.Example"
+
+	created, err := service.CreateRelationship(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "owner"}, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.Vendor.WebsiteDomain != "vendor.example" {
+		t.Fatalf("website domain = %q", created.Vendor.WebsiteDomain)
+	}
+	job, err := repo.GetVendorBrandJob(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity"}, created.Vendor.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if job.State != VendorBrandJobReady || job.WebsiteDomain != created.Vendor.WebsiteDomain || job.VendorVersion != created.Vendor.Version {
+		t.Fatalf("brand job = %#v", job)
+	}
+	if len(repo.vendorIdentityEvents) != 1 || len(repo.vendorIdentityOutbox) != 1 {
+		t.Fatalf("identity audit event/outbox counts = %d/%d", len(repo.vendorIdentityEvents), len(repo.vendorIdentityOutbox))
+	}
+	if repo.vendorIdentityEvents[0].EventType != VendorIdentityCreatedEvent || repo.vendorIdentityEvents[0].ActorPrincipalID != "owner" {
+		t.Fatalf("identity event = %#v", repo.vendorIdentityEvents[0])
+	}
+}
+
+func TestRelationshipCreationCannotSilentlyChangeReusedVendorWebsite(t *testing.T) {
+	repo := NewMemoryRepository()
+	service := NewService(repo)
+	first := validCreateInput()
+	first.WebsiteDomain = "first.example"
+	created, err := service.CreateRelationship(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "owner"}, first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second := validCreateInput()
+	second.ServiceName = "Settlement support"
+	second.WebsiteDomain = "replacement.example"
+	reused, err := service.CreateRelationship(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "owner"}, second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reused.Vendor.ID != created.Vendor.ID || reused.Vendor.WebsiteDomain != "first.example" {
+		t.Fatalf("relationship creation changed shared vendor identity: %#v", reused.Vendor)
+	}
+	if len(repo.vendorIdentityEvents) != 1 || len(repo.vendorIdentityOutbox) != 1 {
+		t.Fatalf("reused vendor emitted identity audit: %d/%d", len(repo.vendorIdentityEvents), len(repo.vendorIdentityOutbox))
+	}
+}
+
+func TestUpdateVendorIdentityUsesVerifiedAuthorityAndExpectedVersion(t *testing.T) {
+	repo := NewMemoryRepository()
+	service := NewService(repo)
+	service.now = func() time.Time { return time.Date(2026, 8, 26, 9, 0, 0, 0, time.UTC) }
+	created, err := service.CreateRelationship(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "owner"}, validCreateInput())
+	if err != nil {
+		t.Fatal(err)
+	}
+	guard := &vendorIdentityGuardStub{}
+	service.ConfigureIdentityAuthority(guard)
+	ctx := vendorIdentityContext("bank", "entity", "verified-owner", service.now())
+
+	updated, err := service.UpdateVendorIdentity(ctx, Actor{TenantID: "other", LegalEntityID: "other", PrincipalID: "body-actor"}, created.Vendor.ID, UpdateVendorIdentityInput{
+		ExpectedVersion: created.Vendor.Version,
+		LegalName:       created.Vendor.LegalName,
+		TradingName:     created.Vendor.TradingName,
+		RegistrationRef: created.Vendor.RegistrationRef,
+		Jurisdiction:    created.Vendor.Jurisdiction,
+		WebsiteDomain:   "BÜCHER.Example",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Version != created.Vendor.Version+1 || updated.WebsiteDomain != "xn--bcher-kva.example" {
+		t.Fatalf("updated vendor = %#v", updated)
+	}
+	if len(guard.requests) != 1 || guard.requests[0].TenantID != "bank" || guard.requests[0].LegalEntityID != "entity" || guard.requests[0].ObjectID != created.Vendor.ID || guard.requests[0].DecisionType != VendorIdentityUpdateCommand {
+		t.Fatalf("authority request = %#v", guard.requests)
+	}
+	if got := repo.vendorIdentityEvents[len(repo.vendorIdentityEvents)-1].ActorPrincipalID; got != "verified-owner" {
+		t.Fatalf("event actor = %q", got)
+	}
+	job, err := repo.GetVendorBrandJob(ctx, Scope{TenantID: "bank", LegalEntityID: "entity"}, created.Vendor.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if job.State != VendorBrandJobReady || job.VendorVersion != updated.Version || job.WebsiteDomain != updated.WebsiteDomain {
+		t.Fatalf("updated job = %#v", job)
+	}
+	_, err = service.UpdateVendorIdentity(ctx, Actor{}, created.Vendor.ID, UpdateVendorIdentityInput{
+		ExpectedVersion: created.Vendor.Version,
+		LegalName:       updated.LegalName,
+		WebsiteDomain:   string(updated.WebsiteDomain),
+	})
+	if !errors.Is(err, ErrVersionConflict) {
+		t.Fatalf("stale identity update error = %v", err)
+	}
+}
+
+func TestUpdateVendorIdentityFailsClosedWithoutVerifiedAuthority(t *testing.T) {
+	repo := NewMemoryRepository()
+	service := NewService(repo)
+	created, err := service.CreateRelationship(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "owner"}, validCreateInput())
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := UpdateVendorIdentityInput{ExpectedVersion: created.Vendor.Version, LegalName: created.Vendor.LegalName, WebsiteDomain: "vendor.example"}
+	if _, err := service.UpdateVendorIdentity(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "body-actor"}, created.Vendor.ID, input); !errors.Is(err, identity.ErrMissingIdentity) {
+		t.Fatalf("missing verified identity error = %v", err)
+	}
+	ctx := vendorIdentityContext("bank", "entity", "owner", time.Now().UTC())
+	if _, err := service.UpdateVendorIdentity(ctx, Actor{}, created.Vendor.ID, input); !errors.Is(err, ErrVendorIdentityAuthorityUnavailable) {
+		t.Fatalf("missing authority error = %v", err)
+	}
+}
+
+type vendorIdentityGuardStub struct {
+	requests []commandauth.Request
+	err      error
+}
+
+func (g *vendorIdentityGuardStub) Authorize(ctx context.Context, request commandauth.Request) (commandauth.Decision, error) {
+	g.requests = append(g.requests, request)
+	if g.err != nil {
+		return commandauth.Decision{}, g.err
+	}
+	actor, err := identity.Require(ctx)
+	return commandauth.Decision{Allowed: err == nil, Enforced: true, Actor: actor}, err
+}
+
+func vendorIdentityContext(tenantID, legalEntityID, principalID string, now time.Time) context.Context {
+	return identity.WithActor(context.Background(), identity.Actor{
+		TenantID: tenantID, LegalEntityID: legalEntityID, PrincipalID: principalID,
+		Kind: "human", AuthenticationMethod: "test", IssuedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour),
+	})
 }
 
 func tickingClock() func() time.Time {
