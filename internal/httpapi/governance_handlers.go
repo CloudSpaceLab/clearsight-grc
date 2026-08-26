@@ -4,6 +4,8 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
@@ -83,6 +85,38 @@ func (a *API) listGovernanceDelegations(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values})
+}
+
+func (a *API) listGovernanceDelegationCandidates(w http.ResponseWriter, r *http.Request) {
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
+		return
+	}
+	limit := 50
+	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
+		limit, err = strconv.Atoi(raw)
+		if err != nil || limit < 1 || limit > 50 {
+			httpx.WriteError(w, http.StatusBadRequest, "invalid_limit", "Limit must be between 1 and 50.")
+			return
+		}
+	}
+	query := strings.TrimSpace(r.URL.Query().Get("q"))
+	if utf8.RuneCountInString(query) > 100 {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_search", "Search must be 100 characters or fewer.")
+		return
+	}
+	page, err := a.deps.Governance.SearchDelegationCandidates(r.Context(), actor.TenantID, actor.LegalEntityID, r.URL.Query().Get("responsibility"), query, limit)
+	switch {
+	case errors.Is(err, governance.ErrDelegationCandidateSearchInvalid):
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_candidate_scope", "Choose a supported responsibility and a search of 100 characters or fewer.")
+	case errors.Is(err, governance.ErrDelegationCandidatesUnavailable):
+		httpx.WriteError(w, http.StatusServiceUnavailable, "delegation_candidates_unavailable", "Eligible people could not be confirmed from current responsibility records.")
+	case err != nil:
+		httpx.WriteError(w, http.StatusInternalServerError, "delegation_candidates_failed", "Eligible people could not be loaded.")
+	default:
+		httpx.WriteJSON(w, http.StatusOK, page)
+	}
 }
 
 func governanceInventoryLimit(w http.ResponseWriter, r *http.Request) (int, bool) {

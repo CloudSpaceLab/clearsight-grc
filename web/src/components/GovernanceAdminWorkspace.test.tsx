@@ -132,6 +132,68 @@ it("creates a typed whole-entity delegation from labelled people and responsibil
   expect(screen.queryByText(/person-ada|person-tunde|\{.*kind.*\}/i)).toBeNull();
 });
 
+it("loads responsibility-scoped labelled people before creating a delegation", async () => {
+  const loadDelegationCandidates = vi.fn().mockResolvedValue({
+    items: [
+      { principal_id: "person-ada", display_name: "Ada Okafor", context_label: "Risk assurance lead", can_give: true, can_receive: true },
+      { principal_id: "person-tunde", display_name: "Tunde Bello", context_label: "Payment reviewer", can_give: false, can_receive: true },
+    ], has_more: false,
+  });
+  const createDelegation = vi.fn().mockResolvedValue(undefined);
+  render(<GovernanceAdminWorkspace
+    policies={[]} delegations={[]} eligiblePeople={[]} currentEntity={{ id: "entity-1", label: "ClearSight Bank Plc" }} policyRoles={[]}
+    actorId="actor-1" canConfigure loadState="ready" loadDelegationCandidates={loadDelegationCandidates}
+    createDelegation={createDelegation} createPolicyDraft={vi.fn()} policyAction={vi.fn()} delegationAction={vi.fn()}
+  />);
+
+  fireEvent.change(screen.getByRole("combobox", { name: "Responsibility" }), { target: { value: "REVIEWER" } });
+  await waitFor(() => expect(loadDelegationCandidates).toHaveBeenCalledWith("REVIEWER", ""));
+  expect((await screen.findAllByRole("option", { name: "Ada Okafor · Risk assurance lead" })).length).toBeGreaterThan(0);
+  expect(screen.getByRole("option", { name: "Tunde Bello · Payment reviewer" })).toBeTruthy();
+  fireEvent.change(screen.getByRole("combobox", { name: "Person giving authority" }), { target: { value: "person-ada" } });
+  fireEvent.change(screen.getByRole("combobox", { name: "Person receiving authority" }), { target: { value: "person-tunde" } });
+  expect(screen.queryByText(/person-ada|person-tunde/)).toBeNull();
+});
+
+it("creates a routing policy draft from business fields and labelled role choices", async () => {
+  const createPolicyDraft = vi.fn().mockResolvedValue(undefined);
+  render(<GovernanceAdminWorkspace
+    policies={[]} delegations={[]} eligiblePeople={[]} currentEntity={{ id: "entity-1", label: "ClearSight Bank Plc" }}
+    policyRoles={[{ code: "CONTROL_ASSURANCE", label: "Control Assurance" }]}
+    actorId="actor-1" canConfigure loadState="ready" createDelegation={vi.fn()} createPolicyDraft={createPolicyDraft}
+    policyAction={vi.fn()} delegationAction={vi.fn()}
+  />);
+
+  fireEvent.change(screen.getByRole("textbox", { name: "Policy name" }), { target: { value: "Payment review route" } });
+  fireEvent.change(screen.getByRole("textbox", { name: "Policy code" }), { target: { value: "PAYMENT_REVIEW" } });
+  fireEvent.change(screen.getByRole("combobox", { name: "Policy responsibility" }), { target: { value: "REVIEWER" } });
+  fireEvent.change(screen.getByRole("combobox", { name: "Responsible role" }), { target: { value: "CONTROL_ASSURANCE" } });
+  fireEvent.change(screen.getByRole("combobox", { name: "Applies to" }), { target: { value: "MATTER" } });
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Minimum materiality" }), { target: { value: "2" } });
+  fireEvent.change(screen.getByLabelText("Effective from"), { target: { value: "2026-09-01T00:00" } });
+  fireEvent.click(screen.getByRole("button", { name: "Create policy draft" }));
+
+  await waitFor(() => expect(createPolicyDraft).toHaveBeenCalledWith({
+    legalEntityId: "entity-1", code: "PAYMENT_REVIEW", name: "Payment review route", responsibility: "REVIEWER",
+    roleCode: "CONTROL_ASSURANCE", objectType: "MATTER", decisionType: "", minMateriality: 2, priority: 100,
+    effectiveFrom: new Date("2026-09-01T00:00").toISOString(),
+  }));
+  expect(screen.queryByText(/\{"rules"|CONTROL_ASSURANCE/)).toBeNull();
+});
+
+it("lets an independent checker return a pending policy with a reason", async () => {
+  const policyAction = vi.fn().mockResolvedValue(undefined);
+  render(<GovernanceAdminWorkspace
+    policies={[policy({ id: "pending", name: "Payment route", status: "PENDING_APPROVAL", maker: { id: "maker-2", label: "Other administrator" }, version: 8 })]}
+    delegations={[]} eligiblePeople={[]} actorId="actor-1" canConfigure loadState="ready"
+    createDelegation={vi.fn()} policyAction={policyAction} delegationAction={vi.fn()}
+  />);
+
+  fireEvent.change(screen.getByRole("textbox", { name: "Changes needed for Payment route" }), { target: { value: "Narrow the route to payment issues." } });
+  fireEvent.click(screen.getByRole("button", { name: "Return Payment route for changes" }));
+  await waitFor(() => expect(policyAction).toHaveBeenCalledWith({ policyId: "pending", action: "reject", expectedVersion: 8, rationale: "Narrow the route to payment issues." }));
+});
+
 it("preserves loaded inventory and disables every mutation when authority is degraded", () => {
   const policyAction = vi.fn();
   render(<GovernanceAdminWorkspace

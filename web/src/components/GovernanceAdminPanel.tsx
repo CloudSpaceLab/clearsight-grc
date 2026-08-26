@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { loadContext, type RuntimeContext } from "../api";
 import {
   createGovernanceDelegation,
+  createGovernancePolicyDraft as createGovernancePolicyDraftAPI,
   loadGovernanceInventory,
+  searchGovernanceDelegationCandidates,
   transitionGovernanceDelegation,
   transitionGovernancePolicy,
   type GovernanceDelegationRecord,
@@ -13,6 +15,7 @@ import { loadIdentityAccessOverview, type IdentityAccessOverview } from "../iden
 import {
   GovernanceAdminWorkspace,
   type CreateGovernanceDelegationInput,
+  type CreateGovernancePolicyDraftInput,
   type GovernanceDelegationActionInput,
   type GovernanceDelegationItem,
   type GovernanceLoadState,
@@ -86,6 +89,12 @@ export function GovernanceAdminPanel() {
     void load(false);
   }
 
+  async function createPolicyDraft(input: CreateGovernancePolicyDraftInput) {
+    const created = await createGovernancePolicyDraftAPI(input);
+    setInventory((current) => ({ ...current, policies: upsert(current.policies, created) }));
+    void load(false);
+  }
+
   async function policyAction(input: GovernancePolicyActionInput) {
     const updated = await transitionGovernancePolicy(input.policyId, input.action, input.expectedVersion, input.rationale);
     setInventory((current) => ({ ...current, policies: upsert(current.policies, updated) }));
@@ -102,12 +111,16 @@ export function GovernanceAdminPanel() {
     policies={policies}
     delegations={delegations}
     eligiblePeople={[]}
+    currentEntity={context ? entity : undefined}
+    policyRoles={(overview?.roles ?? []).map((role) => ({ code: role.code, label: role.name }))}
     actorId={context?.actor.id ?? ""}
     canConfigure={Boolean(context?.capabilities?.config_write)}
-    delegationCreationAvailable={false}
+    delegationCreationAvailable={Boolean(context)}
     loadState={loadState}
     degradedReason={reason}
     createDelegation={create}
+    loadDelegationCandidates={searchGovernanceDelegationCandidates}
+    createPolicyDraft={createPolicyDraft}
     policyAction={policyAction}
     delegationAction={delegationAction}
   />;

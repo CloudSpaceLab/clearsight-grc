@@ -1,10 +1,12 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 export type GovernanceLoadState = "loading" | "ready" | "degraded" | "unavailable";
 
 export type GovernanceParty = { id: string; label: string };
 export type GovernanceEntity = GovernanceParty;
-export type GovernancePerson = GovernanceParty & { legalEntity: GovernanceEntity; status?: string };
+export type GovernancePerson = GovernanceParty & { legalEntity: GovernanceEntity; status?: string; contextLabel?: string; canGive?: boolean; canReceive?: boolean };
+export type GovernanceRole = { code: string; label: string };
+export type GovernanceDelegationCandidatePage = { items: Array<{ principal_id: string; display_name: string; context_label?: string; can_give: boolean; can_receive: boolean }>; has_more: boolean };
 
 export type GovernancePolicyItem = {
   id: string;
@@ -50,39 +52,80 @@ export type CreateGovernanceDelegationInput = {
   reason: string;
 };
 
-export type GovernancePolicyActionInput = { policyId: string; action: "submit" | "approve" | "retire"; expectedVersion: number; rationale?: string };
+export type CreateGovernancePolicyDraftInput = { legalEntityId: string; code: string; name: string; responsibility: GovernanceResponsibility; roleCode: string; objectType: "*" | "PROGRAM" | "MATTER"; decisionType: string; minMateriality: number; priority: number; effectiveFrom?: string };
+export type GovernancePolicyActionInput = { policyId: string; action: "submit" | "approve" | "reject" | "retire"; expectedVersion: number; rationale?: string };
 export type GovernanceDelegationActionInput = { delegationId: string; action: "submit" | "approve" | "revoke"; expectedVersion: number; rationale?: string };
 
 export type GovernanceAdminWorkspaceProps = {
   policies: GovernancePolicyItem[];
   delegations: GovernanceDelegationItem[];
   eligiblePeople: GovernancePerson[];
+  currentEntity?: GovernanceEntity;
+  policyRoles?: GovernanceRole[];
   actorId: string;
   canConfigure: boolean;
   delegationCreationAvailable?: boolean;
   loadState: GovernanceLoadState;
   degradedReason?: string;
   createDelegation: (input: CreateGovernanceDelegationInput) => Promise<void>;
+  loadDelegationCandidates?: (responsibility: GovernanceResponsibility, query: string) => Promise<GovernanceDelegationCandidatePage>;
+  createPolicyDraft?: (input: CreateGovernancePolicyDraftInput) => Promise<void>;
   policyAction: (input: GovernancePolicyActionInput) => Promise<void>;
   delegationAction: (input: GovernanceDelegationActionInput) => Promise<void>;
 };
 
-export function GovernanceAdminWorkspace({ policies, delegations, eligiblePeople, actorId, canConfigure, delegationCreationAvailable = true, loadState, degradedReason, createDelegation, policyAction, delegationAction }: GovernanceAdminWorkspaceProps) {
+export function GovernanceAdminWorkspace({ policies, delegations, eligiblePeople, currentEntity, policyRoles = [], actorId, canConfigure, delegationCreationAvailable = true, loadState, degradedReason, createDelegation, loadDelegationCandidates, createPolicyDraft, policyAction, delegationAction }: GovernanceAdminWorkspaceProps) {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
-  const [legalEntityId, setLegalEntityId] = useState("");
+  const [legalEntityId, setLegalEntityId] = useState(currentEntity?.id ?? "");
   const [fromPrincipalId, setFromPrincipalId] = useState("");
   const [toPrincipalId, setToPrincipalId] = useState("");
   const [responsibility, setResponsibility] = useState<GovernanceResponsibility | "">("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [reason, setReason] = useState("");
-  const entityOptions = uniqueEntities(eligiblePeople.map((person) => person.legalEntity));
-  const peopleForEntity = eligiblePeople.filter((person) => person.legalEntity.id === legalEntityId);
+  const [candidatePeople, setCandidatePeople] = useState(eligiblePeople);
+  const [candidateState, setCandidateState] = useState<"idle" | "loading" | "ready" | "unavailable">("idle");
+  const [candidateQuery, setCandidateQuery] = useState("");
+  const candidateGeneration = useRef(0);
+  const [policyName, setPolicyName] = useState("");
+  const [policyCode, setPolicyCode] = useState("");
+  const [policyResponsibility, setPolicyResponsibility] = useState<GovernanceResponsibility | "">("");
+  const [policyRoleCode, setPolicyRoleCode] = useState("");
+  const [policyObjectType, setPolicyObjectType] = useState<"*" | "PROGRAM" | "MATTER">("*");
+  const [policyMinMateriality, setPolicyMinMateriality] = useState(0);
+  const [policyEffectiveFrom, setPolicyEffectiveFrom] = useState("");
+  const entityOptions = uniqueEntities([...(currentEntity ? [currentEntity] : []), ...candidatePeople.map((person) => person.legalEntity)]);
+  const peopleForEntity = candidatePeople.filter((person) => person.legalEntity.id === legalEntityId);
   const mutationsEnabled = canConfigure && loadState === "ready";
   const delegationDraftEnabled = mutationsEnabled && delegationCreationAvailable;
   const visiblePolicies = policies.slice(0, INVENTORY_LIMIT);
   const visibleDelegations = delegations.slice(0, INVENTORY_LIMIT);
+
+  useEffect(() => {
+    if (currentEntity?.id) setLegalEntityId(currentEntity.id);
+  }, [currentEntity?.id]);
+
+  async function refreshCandidates(nextResponsibility: GovernanceResponsibility, query: string) {
+    if (!loadDelegationCandidates || !currentEntity) return;
+    const generation = ++candidateGeneration.current;
+    setCandidateState("loading");
+    setFromPrincipalId("");
+    setToPrincipalId("");
+    try {
+      const page = await loadDelegationCandidates(nextResponsibility, query);
+      if (generation !== candidateGeneration.current) return;
+      setCandidatePeople(page.items.map((item) => ({
+        id: item.principal_id, label: item.display_name, contextLabel: item.context_label,
+        legalEntity: currentEntity, canGive: item.can_give, canReceive: item.can_receive,
+      })));
+      setCandidateState("ready");
+    } catch {
+      if (generation !== candidateGeneration.current) return;
+      setCandidatePeople([]);
+      setCandidateState("unavailable");
+    }
+  }
 
   async function runPolicyAction(input: GovernancePolicyActionInput) {
     setBusy(`policy:${input.policyId}`);
@@ -138,6 +181,36 @@ export function GovernanceAdminWorkspace({ policies, delegations, eligiblePeople
     }
   }
 
+  async function createPolicy(event: FormEvent) {
+    event.preventDefault();
+    if (!createPolicyDraft || !currentEntity || !policyName.trim() || !policyCode.trim() || !policyResponsibility || !policyRoleCode) return;
+    const effectiveFrom = policyEffectiveFrom ? new Date(policyEffectiveFrom) : undefined;
+    if (effectiveFrom && !Number.isFinite(effectiveFrom.valueOf())) {
+      setError("The policy effective date is invalid. Check the date and time.");
+      return;
+    }
+    setBusy("create-policy");
+    setError("");
+    try {
+      await createPolicyDraft({
+        legalEntityId: currentEntity.id, code: policyCode.trim(), name: policyName.trim(), responsibility: policyResponsibility,
+        roleCode: policyRoleCode, objectType: policyObjectType, decisionType: "",
+        minMateriality: policyMinMateriality, priority: 100, effectiveFrom: effectiveFrom?.toISOString(),
+      });
+      setPolicyName("");
+      setPolicyCode("");
+      setPolicyResponsibility("");
+      setPolicyRoleCode("");
+      setPolicyObjectType("*");
+      setPolicyMinMateriality(0);
+      setPolicyEffectiveFrom("");
+    } catch {
+      setError("The routing policy draft could not be created. Your entries remain on this screen; refresh the inventory and try again.");
+    } finally {
+      setBusy("");
+    }
+  }
+
   return <section aria-labelledby="governance-admin-title">
     <header>
       <span className="eyebrow">Configure · governance</span>
@@ -157,13 +230,35 @@ export function GovernanceAdminWorkspace({ policies, delegations, eligiblePeople
       {!delegationCreationAvailable && <p role="status">Delegation creation is unavailable until the bank directory can confirm who holds the selected responsibility in this legal entity. Existing delegation actions remain available.</p>}
       <form onSubmit={(event) => void create(event)}>
         <label>Legal entity<select required value={legalEntityId} disabled={!delegationDraftEnabled || busy !== ""} onChange={(event) => { setLegalEntityId(event.target.value); setFromPrincipalId(""); setToPrincipalId(""); }}><option value="">Choose legal entity</option>{entityOptions.map((entity) => <option key={entity.id} value={entity.id}>{entity.label}</option>)}</select></label>
-        <label>Person giving authority<select required value={fromPrincipalId} disabled={!delegationDraftEnabled || !legalEntityId || busy !== ""} onChange={(event) => setFromPrincipalId(event.target.value)}><option value="">Choose person</option>{peopleForEntity.map((person) => <option key={person.id} value={person.id}>{person.label}</option>)}</select></label>
-        <label>Person receiving authority<select required value={toPrincipalId} disabled={!delegationDraftEnabled || !legalEntityId || busy !== ""} onChange={(event) => setToPrincipalId(event.target.value)}><option value="">Choose person</option>{peopleForEntity.filter((person) => person.id !== fromPrincipalId).map((person) => <option key={person.id} value={person.id}>{person.label}</option>)}</select></label>
-        <label>Responsibility<select required value={responsibility} disabled={!delegationDraftEnabled || busy !== ""} onChange={(event) => setResponsibility(event.target.value as GovernanceResponsibility)}><option value="">Choose responsibility</option>{RESPONSIBILITIES.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select></label>
+        <label>Responsibility<select required value={responsibility} disabled={!delegationDraftEnabled || busy !== ""} onChange={(event) => { const next = event.target.value as GovernanceResponsibility; setResponsibility(next); setCandidateQuery(""); if (next) void refreshCandidates(next, ""); }}><option value="">Choose responsibility</option>{RESPONSIBILITIES.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select></label>
+        {loadDelegationCandidates && responsibility && <div>
+          <label>Find eligible people<input maxLength={100} value={candidateQuery} disabled={!delegationDraftEnabled || candidateState === "loading"} onChange={(event) => setCandidateQuery(event.target.value)}/></label>
+          <button type="button" className="secondary-button" disabled={!delegationDraftEnabled || candidateState === "loading"} onClick={() => void refreshCandidates(responsibility, candidateQuery)}>{candidateState === "loading" ? "Loading people…" : "Search people"}</button>
+        </div>}
+        <label>Person giving authority<select required value={fromPrincipalId} disabled={!delegationDraftEnabled || !legalEntityId || (!responsibility && Boolean(loadDelegationCandidates)) || candidateState === "loading" || busy !== ""} onChange={(event) => setFromPrincipalId(event.target.value)}><option value="">Choose person</option>{peopleForEntity.filter((person) => person.canGive !== false).map((person) => <option key={person.id} value={person.id}>{personOptionLabel(person)}</option>)}</select></label>
+        <label>Person receiving authority<select required value={toPrincipalId} disabled={!delegationDraftEnabled || !legalEntityId || (!responsibility && Boolean(loadDelegationCandidates)) || candidateState === "loading" || busy !== ""} onChange={(event) => setToPrincipalId(event.target.value)}><option value="">Choose person</option>{peopleForEntity.filter((person) => person.id !== fromPrincipalId && person.canReceive !== false).map((person) => <option key={person.id} value={person.id}>{personOptionLabel(person)}</option>)}</select></label>
+        {candidateState === "unavailable" && <p role="status">Eligible people could not be confirmed for this responsibility. Reload the governance workspace before creating a delegation.</p>}
+        {candidateState === "ready" && peopleForEntity.length === 0 && <p role="status">No eligible people were found for this responsibility in the current legal entity. Ask the access administrator to check current assignments.</p>}
         <label>Starts at<input required type="datetime-local" value={startsAt} disabled={!delegationDraftEnabled || busy !== ""} onChange={(event) => setStartsAt(event.target.value)}/></label>
         <label>Ends at<input required type="datetime-local" value={endsAt} disabled={!delegationDraftEnabled || busy !== ""} onChange={(event) => setEndsAt(event.target.value)}/></label>
         <label>Reason<textarea required value={reason} disabled={!delegationDraftEnabled || busy !== ""} onChange={(event) => setReason(event.target.value)}/></label>
         <button type="submit" disabled={!delegationDraftEnabled || busy !== "" || !legalEntityId || !fromPrincipalId || !toPrincipalId || !responsibility || !startsAt || !endsAt || !reason.trim()}>{busy === "create-delegation" ? "Creating draft…" : "Create delegation draft"}</button>
+      </form>
+    </section>
+
+    <section aria-labelledby="create-governance-policy">
+      <h3 id="create-governance-policy">Create routing policy draft</h3>
+      <p>Define one responsibility route for {currentEntity?.label ?? "the current legal entity"}. A different authorized person must review the draft before it can become active.</p>
+      {createPolicyDraft && policyRoles.length === 0 && <p role="status">Policy draft creation is unavailable until current role labels can be confirmed. Existing policy actions remain available.</p>}
+      <form onSubmit={(event) => void createPolicy(event)}>
+        <label>Policy name<input required value={policyName} disabled={!mutationsEnabled || !createPolicyDraft || policyRoles.length === 0 || busy !== ""} onChange={(event) => setPolicyName(event.target.value)}/></label>
+        <label>Policy code<input required value={policyCode} disabled={!mutationsEnabled || !createPolicyDraft || policyRoles.length === 0 || busy !== ""} onChange={(event) => setPolicyCode(event.target.value)}/></label>
+        <label>Policy responsibility<select required value={policyResponsibility} disabled={!mutationsEnabled || !createPolicyDraft || policyRoles.length === 0 || busy !== ""} onChange={(event) => setPolicyResponsibility(event.target.value as GovernanceResponsibility)}><option value="">Choose responsibility</option>{RESPONSIBILITIES.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select></label>
+        <label>Responsible role<select required value={policyRoleCode} disabled={!mutationsEnabled || !createPolicyDraft || policyRoles.length === 0 || busy !== ""} onChange={(event) => setPolicyRoleCode(event.target.value)}><option value="">Choose role</option>{policyRoles.map((role) => <option key={role.code} value={role.code}>{role.label}</option>)}</select></label>
+        <label>Applies to<select value={policyObjectType} disabled={!mutationsEnabled || !createPolicyDraft || policyRoles.length === 0 || busy !== ""} onChange={(event) => setPolicyObjectType(event.target.value as "*" | "PROGRAM" | "MATTER")}><option value="*">Programs and issues</option><option value="PROGRAM">Programs</option><option value="MATTER">Issues and changes</option></select></label>
+        <label>Minimum materiality<input type="number" min={0} max={5} value={policyMinMateriality} disabled={!mutationsEnabled || !createPolicyDraft || policyRoles.length === 0 || busy !== ""} onChange={(event) => setPolicyMinMateriality(Number(event.target.value))}/></label>
+        <label>Effective from<input type="datetime-local" value={policyEffectiveFrom} disabled={!mutationsEnabled || !createPolicyDraft || policyRoles.length === 0 || busy !== ""} onChange={(event) => setPolicyEffectiveFrom(event.target.value)}/></label>
+        <button type="submit" disabled={!mutationsEnabled || !createPolicyDraft || policyRoles.length === 0 || busy !== "" || !policyName.trim() || !policyCode.trim() || !policyResponsibility || !policyRoleCode}>{busy === "create-policy" ? "Creating draft…" : "Create policy draft"}</button>
       </form>
     </section>
 
@@ -230,10 +325,21 @@ function PolicyNextAction({ policy, actorId, canConfigure, mutationDisabled, bus
   }
   if (["PENDING_APPROVAL", "IN_REVIEW"].includes(policy.status)) {
     if (policy.maker.id === actorId) return <p>Another authorized person must approve {policy.name}. Your proposed policy remains inactive.</p>;
-    return <button type="button" disabled={busy || mutationDisabled} onClick={() => void onAction({ policyId: policy.id, action: "approve", expectedVersion: policy.version })}>{busy ? "Approving…" : `Approve ${policy.name}`}</button>;
+    return <PolicyReviewAction policy={policy} busy={busy} disabled={mutationDisabled} onAction={onAction}/>;
   }
   if (policy.status === "ACTIVE") return <ReasonedAction label={policy.name} verb="Retire" reasonLabel={`Reason to retire ${policy.name}`} busyLabel="Retiring…" busy={busy} disabled={mutationDisabled} onAction={(rationale) => onAction({ policyId: policy.id, action: "retire", expectedVersion: policy.version, rationale })}/>;
   return null;
+}
+
+function PolicyReviewAction({ policy, busy, disabled, onAction }: { policy: GovernancePolicyItem; busy: boolean; disabled: boolean; onAction: (input: GovernancePolicyActionInput) => Promise<void> }) {
+  const [rationale, setRationale] = useState("");
+  return <div>
+    <button type="button" disabled={busy || disabled} onClick={() => void onAction({ policyId: policy.id, action: "approve", expectedVersion: policy.version })}>{busy ? "Recording review…" : `Approve ${policy.name}`}</button>
+    <form onSubmit={(event) => { event.preventDefault(); if (rationale.trim()) void onAction({ policyId: policy.id, action: "reject", expectedVersion: policy.version, rationale: rationale.trim() }); }}>
+      <label>Changes needed for {policy.name}<input value={rationale} disabled={busy || disabled} onChange={(event) => setRationale(event.target.value)}/></label>
+      <button type="submit" className="secondary-button" disabled={busy || disabled || !rationale.trim()}>{busy ? "Recording review…" : `Return ${policy.name} for changes`}</button>
+    </form>
+  </div>;
 }
 
 function ReasonedAction({ label, verb, reasonLabel, busyLabel, busy, disabled, onAction }: { label: string; verb: string; reasonLabel: string; busyLabel: string; busy: boolean; disabled: boolean; onAction: (rationale: string) => Promise<void> }) {
@@ -255,6 +361,10 @@ function formatDate(value: string) {
 
 function humanize(value: string) {
   return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
+
+function personOptionLabel(person: GovernancePerson) {
+  return person.contextLabel ? `${person.label} · ${person.contextLabel}` : person.label;
 }
 
 const RESPONSIBILITIES: GovernanceResponsibility[] = ["PERFORMER", "ACCOUNTABLE_OWNER", "PROPOSER", "REVIEWER", "INDEPENDENT_CHALLENGER", "AUTHORIZER", "SIGNATORY", "TRANSMITTER", "ACKNOWLEDGEMENT_RECORDER", "ESCALATION_OWNER"];

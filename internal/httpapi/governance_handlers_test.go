@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
@@ -87,5 +88,51 @@ func TestGovernanceInventoryUsesVerifiedEntityWithoutClientScope(t *testing.T) {
 	}
 	if len(body.Items) != 1 || body.Items[0].LegalEntityID != "bank-ng" {
 		t.Fatalf("inventory escaped verified entity: %#v", body.Items)
+	}
+}
+
+func TestGovernanceDelegationCandidatesUseVerifiedEntityResponsibilityAndSafeLabels(t *testing.T) {
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "memory",
+		Identity: identity.NewDevelopmentAuthenticator("bank-demo", "maker", "bank-ng", "GRC_ADMIN"),
+		Governance: governance.NewService(governance.NewMemoryRepositoryWithDelegationCandidates([]governance.DelegationCandidateDirectoryEntry{
+			{PrincipalID: "ada", DisplayName: "Ada Okafor", ContextLabel: "Risk assurance lead", TenantID: "bank-demo", LegalEntityID: "bank-ng", Responsibilities: []string{"REVIEWER"}, CanReceive: true, Active: true},
+			{PrincipalID: "foreign", DisplayName: "Foreign Person", TenantID: "bank-demo", LegalEntityID: "bank-gh", Responsibilities: []string{"REVIEWER"}, CanReceive: true, Active: true},
+		})),
+	})
+
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/governance/delegation-candidates?responsibility=REVIEWER&q=assurance&limit=50", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("candidate read: %d %s", response.Code, response.Body.String())
+	}
+	raw := response.Body.String()
+	if !strings.Contains(raw, `"display_name":"Ada Okafor"`) || strings.Contains(raw, "Foreign Person") {
+		t.Fatalf("candidate read escaped verified scope: %s", raw)
+	}
+	for _, internal := range []string{"tenant_id", "legal_entity_id", "responsibilities", "active"} {
+		if strings.Contains(raw, internal) {
+			t.Fatalf("candidate read exposed %s: %s", internal, raw)
+		}
+	}
+}
+
+func TestGovernanceDelegationCandidatesRejectInvalidSearchAndFailClosedWhenUnavailable(t *testing.T) {
+	configured := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "memory",
+		Identity:   identity.NewDevelopmentAuthenticator("bank-demo", "maker", "bank-ng", "GRC_ADMIN"),
+		Governance: governance.NewService(governance.NewMemoryRepositoryWithDelegationCandidates(nil)),
+	})
+	response := httptest.NewRecorder()
+	configured.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/governance/delegation-candidates?responsibility=ADMIN", nil))
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("invalid responsibility: %d %s", response.Code, response.Body.String())
+	}
+
+	unavailable := governanceHandler()
+	response = httptest.NewRecorder()
+	unavailable.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/governance/delegation-candidates?responsibility=REVIEWER", nil))
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("unavailable candidate directory: %d %s", response.Code, response.Body.String())
 	}
 }

@@ -8,11 +8,20 @@ import (
 )
 
 type MemoryRepository struct {
-	mu          sync.Mutex
-	policies    map[string]RoutingPolicy
-	revisions   map[string][]RoutingPolicyRevision
-	delegations map[string]Delegation
-	conflicts   map[string][]ConflictFinding
+	mu                             sync.Mutex
+	policies                       map[string]RoutingPolicy
+	revisions                      map[string][]RoutingPolicyRevision
+	delegations                    map[string]Delegation
+	conflicts                      map[string][]ConflictFinding
+	delegationCandidates           []DelegationCandidateDirectoryEntry
+	delegationCandidatesConfigured bool
+}
+
+func NewMemoryRepositoryWithDelegationCandidates(entries []DelegationCandidateDirectoryEntry) *MemoryRepository {
+	repository := NewMemoryRepository()
+	repository.delegationCandidatesConfigured = true
+	repository.delegationCandidates = append([]DelegationCandidateDirectoryEntry(nil), entries...)
+	return repository
 }
 
 func NewMemoryRepository() *MemoryRepository {
