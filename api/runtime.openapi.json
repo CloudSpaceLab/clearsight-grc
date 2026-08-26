@@ -145,12 +145,16 @@
     "/api/v1/evidence/requests/{id}/wrong-recipient": { "post": { "operationId": "declareEvidenceWrongRecipient", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/evidence/requests/{id}/recipient": { "put": { "operationId": "reassignEvidenceRecipient", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/evidence/requests/{id}/submissions": { "post": { "operationId": "submitEvidenceRequest", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
-    "/api/v1/evidence/requests/{id}/invitations": { "post": { "operationId": "issueEvidenceInvitation", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
+    "/api/v1/evidence/requests/{id}/invitations": {
+      "get": { "operationId": "listEvidenceInvitationMetadata", "x-clearsight-route-class": "AUTHENTICATED_READ" },
+      "post": { "operationId": "issueEvidenceInvitation", "x-clearsight-route-class": "AUTHENTICATED_WRITE" }
+    },
+    "/api/v1/evidence/requests/{id}/invitations/{invitation_id}/replace": { "post": { "operationId": "replaceEvidenceInvitation", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
+    "/api/v1/evidence/requests/{id}/invitations/{invitation_id}/revoke": { "post": { "operationId": "revokeEvidenceInvitationAsRequester", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
+    "/api/v1/evidence/requests/{id}/sessions/{session_id}/revoke": { "post": { "operationId": "revokeEvidenceSessionAsRequester", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/evidence/invitations/redeem": { "post": { "operationId": "redeemEvidenceInvitation", "security": [], "x-clearsight-route-class": "BOUNDED_CAPABILITY" } },
-    "/api/v1/evidence/invitations/{id}/revoke": { "post": { "operationId": "revokeEvidenceInvitation", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/evidence/session": { "get": { "operationId": "getEvidenceSession", "security": [{ "captureSession": [] }], "x-clearsight-route-class": "BOUNDED_CAPABILITY" } },
     "/api/v1/evidence/session/submissions": { "post": { "operationId": "submitEvidenceSession", "security": [{ "captureSession": [] }], "x-clearsight-route-class": "BOUNDED_CAPABILITY" } },
-    "/api/v1/evidence/sessions/{id}/revoke": { "post": { "operationId": "revokeEvidenceSession", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/evidence/artifacts": { "post": { "operationId": "uploadEvidenceArtifact", "security": [{ "signedIdentityEnvelope": [], "signedIdentityTimestamp": [], "signedIdentitySignature": [] }, { "captureSession": [] }], "x-clearsight-route-class": "AUTHENTICATED_OR_CAPABILITY" } },
 
     "/api/v1/document-imports": {

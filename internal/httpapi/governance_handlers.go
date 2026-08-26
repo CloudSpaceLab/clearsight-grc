@@ -3,17 +3,24 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 )
 
 func (a *API) listGovernancePolicies(w http.ResponseWriter, r *http.Request) {
-	tenantID, ok := requiredQuery(w, r, "tenant_id")
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
+		return
+	}
+	limit, ok := governanceInventoryLimit(w, r)
 	if !ok {
 		return
 	}
-	values, err := a.deps.Governance.ListPolicies(r.Context(), tenantID)
+	values, err := a.deps.Governance.ListPoliciesForEntity(r.Context(), actor.TenantID, actor.LegalEntityID, limit)
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "governance_failed", "Routing policies could not be loaded.")
 		return
@@ -61,16 +68,34 @@ func (a *API) transitionGovernancePolicy(w http.ResponseWriter, r *http.Request)
 }
 
 func (a *API) listGovernanceDelegations(w http.ResponseWriter, r *http.Request) {
-	tenantID, ok := requiredQuery(w, r, "tenant_id")
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
+		return
+	}
+	limit, ok := governanceInventoryLimit(w, r)
 	if !ok {
 		return
 	}
-	values, err := a.deps.Governance.ListDelegations(r.Context(), tenantID)
+	values, err := a.deps.Governance.ListDelegationsForEntity(r.Context(), actor.TenantID, actor.LegalEntityID, limit)
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "governance_failed", "Delegations could not be loaded.")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values})
+}
+
+func governanceInventoryLimit(w http.ResponseWriter, r *http.Request) (int, bool) {
+	value := 50
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed < 1 || parsed > 200 {
+			httpx.WriteError(w, http.StatusBadRequest, "invalid_limit", "Limit must be between 1 and 200.")
+			return 0, false
+		}
+		value = parsed
+	}
+	return value, true
 }
 
 func (a *API) createGovernanceDelegation(w http.ResponseWriter, r *http.Request) {

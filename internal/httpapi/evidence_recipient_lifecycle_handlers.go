@@ -18,7 +18,6 @@ func (a *API) declareEvidenceWrongRecipient(w http.ResponseWriter, r *http.Reque
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	input.TenantID = r.URL.Query().Get("tenant_id")
 	input.RequestID = r.PathValue("id")
 	value, err := service.DeclareWrongRecipient(r.Context(), input)
 	writeEvidenceRecipientLifecycleResult(w, value, err)
@@ -34,7 +33,6 @@ func (a *API) reassignEvidenceRecipient(w http.ResponseWriter, r *http.Request) 
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	input.TenantID = r.URL.Query().Get("tenant_id")
 	input.RequestID = r.PathValue("id")
 	value, err := service.ReassignRecipient(r.Context(), input)
 	writeEvidenceRecipientLifecycleResult(w, value, err)
@@ -42,7 +40,7 @@ func (a *API) reassignEvidenceRecipient(w http.ResponseWriter, r *http.Request) 
 
 func writeEvidenceRecipientLifecycleResult(w http.ResponseWriter, value evidence.Request, err error) {
 	switch {
-	case errors.Is(err, evidence.ErrNotFound):
+	case errors.Is(err, evidence.ErrNotFound), errors.Is(err, evidence.ErrSubjectScopeMismatch), errors.Is(err, evidence.ErrSubjectAccessDenied):
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
 	case errors.Is(err, evidence.ErrVersionConflict):
 		httpx.WriteError(w, http.StatusConflict, "version_conflict", "This request changed. Reload before changing its recipient.")

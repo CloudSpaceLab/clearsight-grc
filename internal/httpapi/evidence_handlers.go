@@ -104,9 +104,9 @@ func (a *API) listEvidenceRequests(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	values, err := service.ListManageableRequests(r.Context(), actor.TenantID, actor.PrincipalID, limit, func(value evidence.Request) bool {
-		return a.canReadEvidenceRequest(r.Context(), value)
-	})
+	values, err := service.ListManageableRequestsForEntity(r.Context(), evidence.ActorRequestScope{
+		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ActorPrincipalID: actor.PrincipalID,
+	}, limit)
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "requests_failed", "Evidence requests could not be loaded.")
 		return
@@ -126,8 +126,12 @@ func (a *API) createEvidenceRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	value, err := service.CreateRequest(r.Context(), input)
+	if errors.Is(err, evidence.ErrSubjectUnsupported) || errors.Is(err, evidence.ErrSubjectScopeMismatch) || errors.Is(err, evidence.ErrSubjectAccessDenied) {
+		httpx.WriteError(w, http.StatusNotFound, "subject_not_found", "The selected record is not available for an evidence request.")
+		return
+	}
 	if err != nil {
-		httpx.WriteError(w, http.StatusUnprocessableEntity, "request_invalid", err.Error())
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "request_invalid", "The evidence request is not valid. Check the recipient, deadline and required information.")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusCreated, value)
@@ -138,12 +142,13 @@ func (a *API) getEvidenceRequest(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	tenant, ok := requiredQuery(w, r, "tenant_id")
-	if !ok {
+	actor, identityErr := identity.Require(r.Context())
+	if identityErr != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
 		return
 	}
-	value, err := service.GetRequest(r.Context(), tenant, r.PathValue("id"))
-	if errors.Is(err, evidence.ErrNotFound) {
+	value, err := service.GetRequestForEntity(r.Context(), actor.TenantID, actor.LegalEntityID, r.PathValue("id"))
+	if evidenceRequestUnavailable(err) {
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
 		return
 	}
@@ -155,7 +160,7 @@ func (a *API) getEvidenceRequest(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
 		return
 	}
-	if actor, authenticated := identity.FromContext(r.Context()); authenticated && value.CreatedBy != actor.PrincipalID && evidence.RequestAssignedTo(value, actor.PrincipalID) {
+	if value.CreatedBy != actor.PrincipalID && evidence.RequestAssignedTo(value, actor.PrincipalID) {
 		value = evidence.RespondentRequest(value)
 	}
 	httpx.WriteJSON(w, http.StatusOK, value)
@@ -202,12 +207,12 @@ func (a *API) issueEvidenceInvitation(w http.ResponseWriter, r *http.Request) {
 	input.RequestID = r.PathValue("id")
 	issued, err := service.IssueInvitation(r.Context(), input)
 	switch {
-	case errors.Is(err, evidence.ErrNotFound):
+	case errors.Is(err, evidence.ErrNotFound), errors.Is(err, evidence.ErrSubjectScopeMismatch), errors.Is(err, evidence.ErrSubjectAccessDenied), errors.Is(err, evidence.ErrRecipientMismatch), errors.Is(err, evidence.ErrRecipientManagerRequired):
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
 	case errors.Is(err, evidence.ErrRequestClosed):
 		httpx.WriteError(w, http.StatusConflict, "request_closed", "The request is no longer open.")
 	case err != nil:
-		httpx.WriteError(w, http.StatusUnprocessableEntity, "invitation_invalid", err.Error())
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "invitation_invalid", "The invitation could not be issued. Check the current recipient and expiry, then try again.")
 	default:
 		httpx.WriteJSON(w, http.StatusCreated, issued)
 	}
@@ -343,7 +348,7 @@ func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
 
 func writeEvidenceSubmissionResult(w http.ResponseWriter, receipt evidence.SubmissionReceipt, err error) {
 	switch {
-	case errors.Is(err, evidence.ErrNotFound):
+	case evidenceRequestUnavailable(err):
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
 	case errors.Is(err, evidence.ErrVersionConflict):
 		httpx.WriteError(w, http.StatusConflict, "version_conflict", "The request changed. Reload before submitting.")
@@ -352,10 +357,19 @@ func writeEvidenceSubmissionResult(w http.ResponseWriter, receipt evidence.Submi
 	case errors.Is(err, evidence.ErrSessionInvalid):
 		httpx.WriteError(w, http.StatusUnauthorized, "session_unavailable", "This capture session is unavailable.")
 	case err != nil:
-		httpx.WriteError(w, http.StatusUnprocessableEntity, "submission_invalid", err.Error())
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "submission_invalid", "The evidence response is incomplete or no longer matches the current request. Reload the request and check each required answer.")
 	default:
 		httpx.WriteJSON(w, http.StatusOK, receipt)
 	}
+}
+
+func evidenceRequestUnavailable(err error) bool {
+	return errors.Is(err, evidence.ErrNotFound) ||
+		errors.Is(err, evidence.ErrSubjectUnsupported) ||
+		errors.Is(err, evidence.ErrSubjectScopeMismatch) ||
+		errors.Is(err, evidence.ErrSubjectAccessDenied) ||
+		errors.Is(err, evidence.ErrRecipientMismatch) ||
+		errors.Is(err, evidence.ErrRecipientManagerRequired)
 }
 
 func bearerToken(w http.ResponseWriter, r *http.Request) (string, bool) {
