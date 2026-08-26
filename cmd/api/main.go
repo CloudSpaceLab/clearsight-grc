@@ -45,6 +45,7 @@ func main() {
 		os.Exit(1)
 	}
 	assessmentService := thirdparty.NewAssessmentService(services.ThirdPartyAssessmentRepo, guard)
+	assessmentService.ConfigureCancellationRevoker(services.Evidence)
 	assessmentMatterReader := thirdparty.NewCanonicalAssessmentReviewMatterReader(services.ThirdPartyAssessmentRepo, services.Continuity)
 	assessmentReviewService := thirdparty.NewAssessmentReviewService(assessmentService, services.ThirdPartyAssessmentRepo, services.Evidence, assessmentMatterReader)
 	assessmentReviewService.ConfigureAuthority(services.Authority)

@@ -79,6 +79,15 @@ func TestCreateAssessmentDeficiencyCreatesCanonicalRestrictedMatterAndSafeLink(t
 type ambiguousDeficiencyRepository struct {
 	AssessmentRepository
 	failBeforeCommit bool
+	afterCommit      func()
+}
+
+type ambiguousDeficiencyListUnavailableRepository struct {
+	*ambiguousDeficiencyRepository
+}
+
+func (r *ambiguousDeficiencyListUnavailableRepository) ListAssessmentMatterLinks(context.Context, Scope, string, int) ([]AssessmentMatterLink, error) {
+	return nil, errors.New("assessment Matter list unavailable")
 }
 
 func (r *ambiguousDeficiencyRepository) LinkAssessmentDeficiency(ctx context.Context, record LinkAssessmentDeficiencyRecord) (AssessmentMatterLink, Assessment, error) {
@@ -88,6 +97,9 @@ func (r *ambiguousDeficiencyRepository) LinkAssessmentDeficiency(ctx context.Con
 	_, _, err := r.AssessmentRepository.LinkAssessmentDeficiency(ctx, record)
 	if err != nil {
 		return AssessmentMatterLink{}, Assessment{}, err
+	}
+	if r.afterCommit != nil {
+		r.afterCommit()
 	}
 	return AssessmentMatterLink{}, Assessment{}, errors.New("commit result unavailable")
 }
@@ -126,6 +138,53 @@ func TestCreateAssessmentDeficiencyReconcilesCommittedLinkAfterAmbiguousFailure(
 	}
 	if outcome.Assessment.Version != assessment.Version+1 || outcome.Matter.Matter.ID == "" {
 		t.Fatalf("reconciled outcome = %#v", outcome)
+	}
+}
+
+func TestCreateAssessmentDeficiencyCanonicalLinkWinsAfterLaterAssessmentMutation(t *testing.T) {
+	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	assessment := assessmentUnderReviewFixture(t, assessmentService, repo, relationship)
+	matters := &recordingCompensatingMatters{service: continuity.NewService(continuity.NewMemoryRepository())}
+	ambiguous := &ambiguousDeficiencyRepository{AssessmentRepository: repo}
+	ambiguous.afterCommit = func() {
+		repo.assessmentMu.Lock()
+		current := repo.assessments[assessment.ID]
+		current.Version++
+		current.UpdatedAt = current.UpdatedAt.Add(time.Second)
+		repo.assessments[assessment.ID] = current
+		repo.assessmentMu.Unlock()
+	}
+	service := NewAssessmentDeficiencyService(assessmentService, ambiguous, matters)
+	input := CreateAssessmentDeficiencyInput{ExpectedVersion: assessment.Version, TriggerKey: "access-review", Title: "Resolve the access review gap", Summary: "The submitted access review does not cover the assessed service."}
+
+	outcome, err := service.CreateDeficiency(assessmentContext(), assessmentActor(), assessment.ID, input)
+	if err != nil {
+		t.Fatalf("canonical committed link returned an error after a later mutation: %v", err)
+	}
+	if outcome.Assessment.Version != assessment.Version+2 {
+		t.Fatalf("reconciled current assessment = %#v", outcome.Assessment)
+	}
+	stored, err := matters.service.GetMatter(context.Background(), assessment.TenantID, matters.created.Matter.ID)
+	if err != nil || stored.Matter.Status == continuity.MatterCancelled {
+		t.Fatalf("linked Matter was cancelled: (%#v, %v)", stored.Matter, err)
+	}
+}
+
+func TestCreateAssessmentDeficiencyReconcilesByExactCanonicalAssociation(t *testing.T) {
+	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	assessment := assessmentUnderReviewFixture(t, assessmentService, repo, relationship)
+	matters := &recordingCompensatingMatters{service: continuity.NewService(continuity.NewMemoryRepository())}
+	ambiguous := &ambiguousDeficiencyListUnavailableRepository{ambiguousDeficiencyRepository: &ambiguousDeficiencyRepository{AssessmentRepository: repo}}
+	service := NewAssessmentDeficiencyService(assessmentService, ambiguous, matters)
+	input := CreateAssessmentDeficiencyInput{ExpectedVersion: assessment.Version, TriggerKey: "access-review", Title: "Resolve the access review gap", Summary: "The submitted access review does not cover the assessed service."}
+
+	outcome, err := service.CreateDeficiency(assessmentContext(), assessmentActor(), assessment.ID, input)
+	if err != nil || outcome.Matter.Matter.ID == "" {
+		t.Fatalf("exact canonical reconciliation = (%#v, %v)", outcome, err)
+	}
+	stored, err := matters.service.GetMatter(context.Background(), assessment.TenantID, matters.created.Matter.ID)
+	if err != nil || stored.Matter.Status == continuity.MatterCancelled {
+		t.Fatalf("linked Matter was cancelled: (%#v, %v)", stored.Matter, err)
 	}
 }
 

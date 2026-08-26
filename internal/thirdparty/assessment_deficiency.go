@@ -81,7 +81,7 @@ func (s *AssessmentDeficiencyService) CreateDeficiency(ctx context.Context, _ Ac
 	if err != nil {
 		return AssessmentDeficiencyOutcome{}, err
 	}
-	if relationship.Relationship.Status != RelationshipProposed && relationship.Relationship.Status != RelationshipUnderReview {
+	if !assessmentKindAllowedForRelationship(assessment.ReviewKind, relationship.Relationship.Status) {
 		return AssessmentDeficiencyOutcome{}, ErrInvalidAssessmentTransition
 	}
 	triggerKey := assessmentDeficiencyTriggerKey(scope, assessment.ID, input.TriggerKey)
@@ -105,10 +105,11 @@ func (s *AssessmentDeficiencyService) CreateDeficiency(ctx context.Context, _ Ac
 	}
 	_, updated, err := s.repo.LinkAssessmentDeficiency(ctx, LinkAssessmentDeficiencyRecord{Scope: scope, AssessmentID: assessment.ID, ExpectedVersion: input.ExpectedVersion, ActorPrincipalID: verified.PrincipalID, MatterID: matter.Matter.ID, MatterTriggerKey: triggerKey, LinkedAt: s.assessments.now().UTC()})
 	if err != nil {
-		if reconciled, ok := s.reconcileDeficiencyLink(ctx, scope, assessment, matter); ok {
+		reconciled, linked, associationKnown := s.reconcileDeficiencyLink(ctx, scope, assessment, matter)
+		if linked && reconciled.Assessment.ID != "" {
 			return reconciled, nil
 		}
-		if created {
+		if created && associationKnown {
 			if compensator, ok := s.matters.(assessmentDeficiencyMatterCompensator); ok {
 				_, compensationErr := compensator.TransitionMatter(ctx, continuity.TransitionInput{TenantID: scope.TenantID, ID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, To: continuity.MatterCancelled, Rationale: "The assessment finding was not linked. Retry the request.", ActorID: verified.PrincipalID})
 				if compensationErr != nil {
@@ -121,21 +122,22 @@ func (s *AssessmentDeficiencyService) CreateDeficiency(ctx context.Context, _ Ac
 	return AssessmentDeficiencyOutcome{Assessment: updated, Matter: matter}, nil
 }
 
-func (s *AssessmentDeficiencyService) reconcileDeficiencyLink(ctx context.Context, scope Scope, assessment Assessment, matter continuity.MatterAggregate) (AssessmentDeficiencyOutcome, bool) {
-	links, err := s.repo.ListAssessmentMatterLinks(ctx, scope, assessment.ID, assessmentReviewMaxMatters+1)
+func (s *AssessmentDeficiencyService) reconcileDeficiencyLink(ctx context.Context, scope Scope, assessment Assessment, matter continuity.MatterAggregate) (AssessmentDeficiencyOutcome, bool, bool) {
+	link, err := s.repo.GetAssessmentMatterLink(ctx, scope, assessment.ID, matter.Matter.ID)
+	if errors.Is(err, ErrNotFound) {
+		return AssessmentDeficiencyOutcome{}, false, true
+	}
 	if err != nil {
-		return AssessmentDeficiencyOutcome{}, false
+		return AssessmentDeficiencyOutcome{}, false, false
 	}
-	for _, link := range links {
-		if link.Kind != AssessmentMatterDeficiency || link.MatterID != matter.Matter.ID || link.RelationshipLinkID == "" {
-			continue
-		}
-		current, readErr := s.repo.GetAssessment(ctx, scope, assessment.ID)
-		if readErr == nil && current.Version == assessment.Version+1 && current.Status == AssessmentUnderReview {
-			return AssessmentDeficiencyOutcome{Assessment: current, Matter: matter}, true
-		}
+	if link.Kind != AssessmentMatterDeficiency || link.MatterID != matter.Matter.ID || link.RelationshipLinkID == "" {
+		return AssessmentDeficiencyOutcome{}, false, false
 	}
-	return AssessmentDeficiencyOutcome{}, false
+	current, readErr := s.repo.GetAssessment(ctx, scope, assessment.ID)
+	if readErr == nil {
+		return AssessmentDeficiencyOutcome{Assessment: current, Matter: matter}, true, true
+	}
+	return AssessmentDeficiencyOutcome{}, true, false
 }
 
 func assessmentDeficiencyTriggerKey(scope Scope, assessmentID, clientKey string) string {

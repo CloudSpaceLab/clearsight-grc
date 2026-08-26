@@ -33,12 +33,23 @@ type AssessmentCommandGuard interface {
 	Authorize(context.Context, commandauth.Request) (commandauth.Decision, error)
 }
 
+type AssessmentCancellationRevoker interface {
+	RevokeRequestCapabilities(context.Context, string, string) error
+}
+
 type AssessmentService struct {
-	repo      AssessmentRepository
-	guard     AssessmentCommandGuard
-	readiness AssessmentCompletionReadiness
-	now       func() time.Time
-	newID     func() (string, error)
+	repo                AssessmentRepository
+	guard               AssessmentCommandGuard
+	readiness           AssessmentCompletionReadiness
+	cancellationRevoker AssessmentCancellationRevoker
+	now                 func() time.Time
+	newID               func() (string, error)
+}
+
+func (s *AssessmentService) ConfigureCancellationRevoker(revoker AssessmentCancellationRevoker) {
+	if s != nil {
+		s.cancellationRevoker = revoker
+	}
 }
 
 func NewAssessmentService(repo AssessmentRepository, guard AssessmentCommandGuard) *AssessmentService {
@@ -61,14 +72,18 @@ func (s *AssessmentService) StartAssessment(ctx context.Context, _ Actor, relati
 		return Assessment{}, err
 	}
 	scope := scopeFrom(actor)
-	current, err := s.repo.GetCurrentAssessment(ctx, scope, relationshipID, AssessmentReviewOnboarding)
-	if err == nil {
-		return current, nil
-	}
-	if !errors.Is(err, ErrNotFound) {
+	kind, sourceTrigger, err := normalizeAssessmentEpisode(input.ReviewKind, input.SourceTrigger)
+	if err != nil {
 		return Assessment{}, err
 	}
-
+	stableKey := assessmentEpisodeKey(scope, relationshipID, kind, sourceTrigger)
+	current, err := s.repo.GetCurrentAssessment(ctx, scope, relationshipID, kind)
+	if err == nil && current.StableEpisodeKey == stableKey {
+		return current, nil
+	}
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return Assessment{}, err
+	}
 	input.FormTemplateID = strings.TrimSpace(input.FormTemplateID)
 	now := s.now().UTC()
 	if input.RelationshipVersion < 1 || !validAssessmentIdentifier(input.FormTemplateID) || input.FormTemplateVersion < 1 || input.ReviewDueAt.IsZero() || !input.ReviewDueAt.After(now) {
@@ -81,7 +96,16 @@ func (s *AssessmentService) StartAssessment(ctx context.Context, _ Actor, relati
 	if relationship.Relationship.Version != input.RelationshipVersion {
 		return Assessment{}, ErrVersionConflict
 	}
-	if relationship.Relationship.Status != RelationshipProposed && relationship.Relationship.Status != RelationshipUnderReview {
+	for _, reviewKind := range []AssessmentReviewKind{AssessmentReviewOnboarding, AssessmentReviewPeriodic, AssessmentReviewTriggered} {
+		candidate, lookupErr := s.repo.GetCurrentAssessment(ctx, scope, relationshipID, reviewKind)
+		if lookupErr == nil && assessmentEpisodeActive(candidate.Status) {
+			return Assessment{}, ErrVersionConflict
+		}
+		if lookupErr != nil && !errors.Is(lookupErr, ErrNotFound) {
+			return Assessment{}, lookupErr
+		}
+	}
+	if !assessmentKindAllowedForRelationship(kind, relationship.Relationship.Status) {
 		return Assessment{}, ErrInvalidAssessmentTransition
 	}
 	assessmentID, err := s.newID()
@@ -90,8 +114,8 @@ func (s *AssessmentService) StartAssessment(ctx context.Context, _ Actor, relati
 	}
 	assessment := Assessment{
 		ID: assessmentID, TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID,
-		RelationshipID: relationshipID, ReviewKind: AssessmentReviewOnboarding,
-		StableEpisodeKey: assessmentEpisodeKey(scope, relationshipID, AssessmentReviewOnboarding),
+		RelationshipID: relationshipID, ReviewKind: kind, SourceTrigger: sourceTrigger,
+		StableEpisodeKey: stableKey,
 		Status:           AssessmentSetupPending, FormTemplateID: input.FormTemplateID, FormTemplateVersion: input.FormTemplateVersion,
 		ReviewDueAt: input.ReviewDueAt.UTC(), StartedByPrincipalID: actor.PrincipalID, StartedAt: now,
 		Version: 1, CreatedAt: now, UpdatedAt: now,
@@ -110,7 +134,25 @@ func (s *AssessmentService) GetCurrentAssessment(ctx context.Context, actor Acto
 	if !validActor(actor) || !validAssessmentIdentifier(relationshipID) {
 		return Assessment{}, ErrInvalid
 	}
-	return s.repo.GetCurrentAssessment(ctx, scopeFrom(actor), strings.TrimSpace(relationshipID), AssessmentReviewOnboarding)
+	var current Assessment
+	found := false
+	for _, kind := range []AssessmentReviewKind{AssessmentReviewOnboarding, AssessmentReviewPeriodic, AssessmentReviewTriggered} {
+		candidate, err := s.repo.GetCurrentAssessment(ctx, scopeFrom(actor), strings.TrimSpace(relationshipID), kind)
+		if errors.Is(err, ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return Assessment{}, err
+		}
+		if !found || (assessmentEpisodeActive(candidate.Status) && !assessmentEpisodeActive(current.Status)) ||
+			(assessmentEpisodeActive(candidate.Status) == assessmentEpisodeActive(current.Status) && (candidate.UpdatedAt.After(current.UpdatedAt) || (candidate.UpdatedAt.Equal(current.UpdatedAt) && candidate.ID > current.ID))) {
+			current, found = candidate, true
+		}
+	}
+	if !found {
+		return Assessment{}, ErrNotFound
+	}
+	return current, nil
 }
 
 func (s *AssessmentService) RecordAssessmentSetupCompleted(ctx context.Context, input AssessmentSetupCompletedInput) (Assessment, error) {
@@ -217,9 +259,18 @@ func (s *AssessmentService) CancelAssessment(ctx context.Context, _ Actor, asses
 	if input.Reason == "" || len(input.Reason) > assessmentMaxCancelReasonLength {
 		return Assessment{}, ErrInvalid
 	}
-	return s.transition(ctx, assessmentID, input.ExpectedVersion, []AssessmentStatus{AssessmentSetupPending, AssessmentReadyToSend, AssessmentCollecting, AssessmentSubmitted, AssessmentUnderReview}, AssessmentCancelled, AssessmentCancelCommand, authority.ResponsibilityOwner, func(record *AssessmentTransitionRecord) {
+	cancelled, err := s.transition(ctx, assessmentID, input.ExpectedVersion, []AssessmentStatus{AssessmentSetupPending, AssessmentReadyToSend, AssessmentCollecting, AssessmentSubmitted, AssessmentUnderReview}, AssessmentCancelled, AssessmentCancelCommand, authority.ResponsibilityOwner, func(record *AssessmentTransitionRecord) {
 		record.CancellationReason = input.Reason
 	})
+	if err != nil {
+		return Assessment{}, err
+	}
+	// The cancellation and its outbox event are already committed. Immediate
+	// revocation narrows the exposure window; a worker retries from the event.
+	if s.cancellationRevoker != nil && cancelled.CurrentRequestID != "" {
+		_ = s.cancellationRevoker.RevokeRequestCapabilities(ctx, cancelled.TenantID, cancelled.CurrentRequestID)
+	}
+	return cancelled, nil
 }
 
 func (s *AssessmentService) transition(ctx context.Context, assessmentID string, expectedVersion int64, from []AssessmentStatus, to AssessmentStatus, command string, responsibility authority.Responsibility, amend func(*AssessmentTransitionRecord)) (Assessment, error) {
@@ -282,10 +333,48 @@ func (s *AssessmentService) authorize(ctx context.Context, objectID, objectType,
 	return Actor{TenantID: decision.Actor.TenantID, LegalEntityID: decision.Actor.LegalEntityID, PrincipalID: decision.Actor.PrincipalID}, nil
 }
 
-func assessmentEpisodeKey(scope Scope, relationshipID string, kind AssessmentReviewKind) string {
-	value := strings.Join([]string{scope.TenantID, scope.LegalEntityID, relationshipID, string(kind), "INITIAL"}, "\x00")
+func assessmentEpisodeKey(scope Scope, relationshipID string, kind AssessmentReviewKind, sourceTrigger ...string) string {
+	trigger := "INITIAL"
+	if len(sourceTrigger) > 0 && strings.TrimSpace(sourceTrigger[0]) != "" {
+		trigger = strings.TrimSpace(sourceTrigger[0])
+	}
+	value := strings.Join([]string{scope.TenantID, scope.LegalEntityID, relationshipID, string(kind), trigger}, "\x00")
 	digest := sha256.Sum256([]byte(value))
 	return hex.EncodeToString(digest[:])
+}
+
+func normalizeAssessmentEpisode(kind AssessmentReviewKind, sourceTrigger string) (AssessmentReviewKind, string, error) {
+	if kind == "" {
+		kind = AssessmentReviewOnboarding
+	}
+	sourceTrigger = strings.TrimSpace(sourceTrigger)
+	switch kind {
+	case AssessmentReviewOnboarding:
+		if sourceTrigger == "" {
+			sourceTrigger = "INITIAL"
+		}
+		if sourceTrigger != "INITIAL" {
+			return "", "", ErrInvalid
+		}
+	case AssessmentReviewPeriodic, AssessmentReviewTriggered:
+		if !validAssessmentIdentifier(sourceTrigger) || sourceTrigger == "INITIAL" {
+			return "", "", ErrInvalid
+		}
+	default:
+		return "", "", ErrInvalid
+	}
+	return kind, sourceTrigger, nil
+}
+
+func assessmentEpisodeActive(status AssessmentStatus) bool {
+	return status != AssessmentCompleted && status != AssessmentCancelled
+}
+
+func assessmentKindAllowedForRelationship(kind AssessmentReviewKind, status RelationshipStatus) bool {
+	if kind == AssessmentReviewOnboarding {
+		return status == RelationshipProposed || status == RelationshipUnderReview
+	}
+	return status == RelationshipActive || status == RelationshipRestricted || status == RelationshipSuspended
 }
 
 func validAssessmentConclusion(value AssessmentConclusion) bool {

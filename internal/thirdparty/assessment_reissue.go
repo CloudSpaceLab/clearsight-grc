@@ -41,7 +41,7 @@ func (s *AssessmentRequestService) ReissueRequest(ctx context.Context, _ Actor, 
 	if err != nil {
 		return SendRequestOutcome{}, err
 	}
-	if relationship.Relationship.Status != RelationshipProposed && relationship.Relationship.Status != RelationshipUnderReview {
+	if !assessmentKindAllowedForRelationship(assessment.ReviewKind, relationship.Relationship.Status) {
 		return SendRequestOutcome{}, ErrInvalidAssessmentTransition
 	}
 	link, err := s.repo.GetCurrentAssessmentRequestLink(ctx, scope, assessment.ID)

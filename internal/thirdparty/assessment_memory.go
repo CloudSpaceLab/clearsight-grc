@@ -68,6 +68,11 @@ func (r *MemoryAssessmentRepository) CreateAssessment(ctx context.Context, recor
 	if assessmentID, ok := r.episodes[episodeIndex]; ok {
 		return r.assessments[assessmentID], nil
 	}
+	for _, existing := range r.assessments {
+		if existing.TenantID == record.TenantID && existing.LegalEntityID == record.LegalEntityID && existing.RelationshipID == record.RelationshipID && assessmentEpisodeActive(existing.Status) {
+			return Assessment{}, ErrVersionConflict
+		}
+	}
 	assessment := record.Assessment
 	assessment.TenantID = record.TenantID
 	assessment.LegalEntityID = record.LegalEntityID
@@ -103,7 +108,8 @@ func (r *MemoryAssessmentRepository) GetCurrentAssessment(_ context.Context, sco
 		if assessment.TenantID != scope.TenantID || assessment.LegalEntityID != scope.LegalEntityID || assessment.RelationshipID != relationshipID || assessment.ReviewKind != kind {
 			continue
 		}
-		if !found || assessment.UpdatedAt.After(current.UpdatedAt) || (assessment.UpdatedAt.Equal(current.UpdatedAt) && assessment.ID > current.ID) {
+		if !found || (assessmentEpisodeActive(assessment.Status) && !assessmentEpisodeActive(current.Status)) ||
+			(assessmentEpisodeActive(assessment.Status) == assessmentEpisodeActive(current.Status) && (assessment.UpdatedAt.After(current.UpdatedAt) || (assessment.UpdatedAt.Equal(current.UpdatedAt) && assessment.ID > current.ID))) {
 			current, found = assessment, true
 		}
 	}
@@ -203,6 +209,16 @@ func (r *MemoryAssessmentRepository) TransitionAssessment(_ context.Context, rec
 		current.CancellationReason = record.CancellationReason
 	}
 	r.assessments[current.ID] = current
+	eventType := ""
+	switch record.To {
+	case AssessmentUnderReview:
+		eventType = "AssessmentReviewStarted"
+	case AssessmentCompleted:
+		eventType = "AssessmentCompleted"
+	case AssessmentCancelled:
+		eventType = "AssessmentCancelled"
+	}
+	r.appendMemoryAssessmentAudit(current, record.ActorPrincipalID, eventType)
 	return current, nil
 }
 
@@ -490,6 +506,32 @@ func (r *MemoryAssessmentRepository) ListAssessmentMatterLinks(_ context.Context
 		values = values[:limit]
 	}
 	return values, nil
+}
+
+func (r *MemoryAssessmentRepository) GetAssessmentMatterLink(_ context.Context, scope Scope, assessmentID, matterID string) (AssessmentMatterLink, error) {
+	assessmentID, matterID = strings.TrimSpace(assessmentID), strings.TrimSpace(matterID)
+	if !validAssessmentScope(scope) || !validAssessmentIdentifiers(assessmentID, matterID) {
+		return AssessmentMatterLink{}, ErrInvalid
+	}
+	r.assessmentMu.RLock()
+	defer r.assessmentMu.RUnlock()
+	assessment, ok := r.assessments[assessmentID]
+	if !ok || assessment.TenantID != scope.TenantID || assessment.LegalEntityID != scope.LegalEntityID {
+		return AssessmentMatterLink{}, ErrNotFound
+	}
+	for _, link := range r.matterLinks[assessmentID] {
+		if link.MatterID != matterID {
+			continue
+		}
+		r.relationshipLinkRepo.mu.RLock()
+		canonical, exists := r.relationshipLinkRepo.links[link.RelationshipLinkID]
+		r.relationshipLinkRepo.mu.RUnlock()
+		if !exists || canonical.TenantID != scope.TenantID || canonical.LegalEntityID != scope.LegalEntityID || canonical.RelationshipID != assessment.RelationshipID || canonical.TargetType != LinkTargetMatter || canonical.TargetID != matterID {
+			return AssessmentMatterLink{}, ErrNotFound
+		}
+		return link, nil
+	}
+	return AssessmentMatterLink{}, ErrNotFound
 }
 
 func (r *MemoryAssessmentRepository) ReviewAssessmentDocument(_ context.Context, record AssessmentDocumentReviewRecord) (AssessmentDocument, Assessment, error) {

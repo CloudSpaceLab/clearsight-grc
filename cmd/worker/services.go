@@ -38,6 +38,10 @@ func newAssessmentSubmissionConsumer(inbox thirdparty.AssessmentSubmissionInbox,
 	}
 }
 
+func newAssessmentCancellationConsumer(revoker thirdparty.AssessmentCancellationRevoker) *thirdparty.AssessmentCancellationConsumer {
+	return thirdparty.NewAssessmentCancellationConsumer(revoker)
+}
+
 func newVendorWorkSubmissionConsumer(inbox thirdparty.AssessmentSubmissionInbox, requests thirdparty.AssessmentSubmissionRequestReader, work thirdparty.VendorWorkRepository) *thirdparty.VendorWorkConsumer {
 	return &thirdparty.VendorWorkConsumer{Inbox: inbox, Requests: requests, Resolver: work, Reactions: thirdparty.NewVendorWorkSubmissionRecorder(work)}
 }

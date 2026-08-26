@@ -30,6 +30,7 @@ type AssessmentRepository interface {
 	FinalizeRequestReissue(context.Context, FinalizeRequestReissueRecord) (AssessmentRequestLink, Assessment, error)
 	ListAssessmentRequestLinks(context.Context, Scope, string) ([]AssessmentRequestLink, error)
 	ListAssessmentMatterLinks(context.Context, Scope, string, int) ([]AssessmentMatterLink, error)
+	GetAssessmentMatterLink(context.Context, Scope, string, string) (AssessmentMatterLink, error)
 	LinkAssessmentDeficiency(context.Context, LinkAssessmentDeficiencyRecord) (AssessmentMatterLink, Assessment, error)
 	ReviewAssessmentDocument(context.Context, AssessmentDocumentReviewRecord) (AssessmentDocument, Assessment, error)
 	ListAssessmentDocuments(context.Context, Scope, string, int) ([]AssessmentDocument, error)

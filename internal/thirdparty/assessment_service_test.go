@@ -24,6 +24,17 @@ func (s assessmentCompletionReadinessStub) CheckAssessmentCompletion(context.Con
 	return s.err
 }
 
+type assessmentCancellationRevokerStub struct {
+	tenant    string
+	requestID string
+	err       error
+}
+
+func (s *assessmentCancellationRevokerStub) RevokeRequestCapabilities(_ context.Context, tenant, requestID string) error {
+	s.tenant, s.requestID = tenant, requestID
+	return s.err
+}
+
 func (g *assessmentGuardStub) Authorize(ctx context.Context, request commandauth.Request) (commandauth.Decision, error) {
 	g.requests = append(g.requests, request)
 	if g.err != nil {
@@ -125,6 +136,99 @@ func TestStartAssessmentRejectsRelationshipsOutsideOnboarding(t *testing.T) {
 				t.Fatalf("status %s allowed onboarding assessment: %v", status, err)
 			}
 		})
+	}
+}
+
+func TestStartAssessmentCreatesRepeatEpisodesFromExplicitTriggers(t *testing.T) {
+	service, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	repo.mu.Lock()
+	stored := repo.relationships[relationship.Relationship.ID]
+	stored.Status = RelationshipActive
+	repo.relationships[relationship.Relationship.ID] = stored
+	repo.mu.Unlock()
+
+	input := validStartAssessmentInput(relationship.Relationship.Version)
+	input.ReviewKind = AssessmentReviewPeriodic
+	input.SourceTrigger = "annual-review-2026"
+	first, err := service.StartAssessment(assessmentContext(), assessmentActor(), relationship.Relationship.ID, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replayed, err := service.StartAssessment(assessmentContext(), assessmentActor(), relationship.Relationship.ID, input)
+	if err != nil || replayed.ID != first.ID {
+		t.Fatalf("same trigger replay = (%#v, %v)", replayed, err)
+	}
+
+	concurrent := input
+	concurrent.SourceTrigger = "material-change-2026-08"
+	if _, err := service.StartAssessment(assessmentContext(), assessmentActor(), relationship.Relationship.ID, concurrent); !errors.Is(err, ErrVersionConflict) {
+		t.Fatalf("parallel live episode = %v", err)
+	}
+	cancelled, err := service.CancelAssessment(assessmentContext(), assessmentActor(), first.ID, CancelAssessmentInput{ExpectedVersion: first.Version, Reason: "The annual review was replaced by a material-change review."})
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := service.StartAssessment(assessmentContext(), assessmentActor(), relationship.Relationship.ID, concurrent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.ID == first.ID || second.ReviewKind != AssessmentReviewPeriodic || second.SourceTrigger != concurrent.SourceTrigger || cancelled.Status != AssessmentCancelled {
+		t.Fatalf("repeat episodes = first=%#v second=%#v", first, second)
+	}
+	currentAssessment, err := service.GetCurrentAssessment(context.Background(), assessmentActor(), relationship.Relationship.ID)
+	if err != nil || currentAssessment.ID != second.ID {
+		t.Fatalf("current assessment = (%#v, %v)", currentAssessment, err)
+	}
+	page, err := repo.ListAssessments(context.Background(), AssessmentListFilter{Scope: scopeFromVerified(), Limit: 10})
+	if err != nil || len(page.Items) != 2 {
+		t.Fatalf("assessment history = (%#v, %v)", page, err)
+	}
+}
+
+func TestStartAssessmentAllowsTriggeredReviewsForManagedRelationshipStates(t *testing.T) {
+	for _, status := range []RelationshipStatus{RelationshipActive, RelationshipRestricted, RelationshipSuspended} {
+		t.Run(string(status), func(t *testing.T) {
+			service, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+			repo.mu.Lock()
+			stored := repo.relationships[relationship.Relationship.ID]
+			stored.Status = status
+			repo.relationships[relationship.Relationship.ID] = stored
+			repo.mu.Unlock()
+			input := validStartAssessmentInput(relationship.Relationship.Version)
+			input.ReviewKind = AssessmentReviewTriggered
+			input.SourceTrigger = "security-incident-2026-08"
+			got, err := service.StartAssessment(assessmentContext(), assessmentActor(), relationship.Relationship.ID, input)
+			if err != nil || got.ReviewKind != AssessmentReviewTriggered || got.SourceTrigger != input.SourceTrigger {
+				t.Fatalf("triggered review = (%#v, %v)", got, err)
+			}
+		})
+	}
+}
+
+func TestCancelAssessmentCommitsBeforeBestEffortCapabilityRevocation(t *testing.T) {
+	service, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	assessment := mustStartAssessment(t, service, relationship)
+	repo.assessmentMu.Lock()
+	current := repo.assessments[assessment.ID]
+	current.CurrentRequestID = "request-live"
+	repo.assessments[assessment.ID] = current
+	repo.assessmentMu.Unlock()
+	revoker := &assessmentCancellationRevokerStub{err: errors.New("evidence service unavailable")}
+	service.ConfigureCancellationRevoker(revoker)
+
+	cancelled, err := service.CancelAssessment(assessmentContext(), assessmentActor(), assessment.ID, CancelAssessmentInput{ExpectedVersion: assessment.Version, Reason: "The vendor relationship is no longer being considered."})
+	if err != nil {
+		t.Fatalf("committed cancellation reported failure: %v", err)
+	}
+	if cancelled.Status != AssessmentCancelled || revoker.tenant != "bank" || revoker.requestID != "request-live" {
+		t.Fatalf("cancellation = %#v revocation=(%q,%q)", cancelled, revoker.tenant, revoker.requestID)
+	}
+	storedAssessment, err := repo.GetAssessment(context.Background(), scopeFromVerified(), assessment.ID)
+	if err != nil || storedAssessment.Status != AssessmentCancelled {
+		t.Fatalf("stored cancellation = (%#v, %v)", storedAssessment, err)
+	}
+	if len(repo.assessmentOutbox) == 0 || repo.assessmentOutbox[len(repo.assessmentOutbox)-1].Type != "AssessmentCancelled" || repo.assessmentOutbox[len(repo.assessmentOutbox)-1].Payload["request_id"] != "request-live" {
+		t.Fatalf("durable cancellation event = %#v", repo.assessmentOutbox)
 	}
 }
 

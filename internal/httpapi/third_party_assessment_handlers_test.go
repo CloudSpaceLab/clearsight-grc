@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -69,6 +71,7 @@ func newAssessmentHTTPFixture(t *testing.T, ready bool, inlineSetup ...bool) ass
 		t.Fatal(err)
 	}
 	evidenceService := evidence.NewService(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore())
+	assessmentService.ConfigureCancellationRevoker(evidenceService)
 	requestService, err := thirdparty.NewAssessmentRequestService(assessmentService, repo, evidenceService, formRepo, nil, "https://capture.example.test/respond", "production")
 	if err != nil {
 		t.Fatal(err)
@@ -180,6 +183,35 @@ func TestCancelVendorAssessmentUsesVerifiedOwnerAndCurrentVersion(t *testing.T) 
 	fixture.handler.ServeHTTP(stale, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+fixture.assessment.ID+"/cancel", bytes.NewReader(body)))
 	if stale.Code != http.StatusConflict {
 		t.Fatalf("stale cancel expected 409, got %d: %s", stale.Code, stale.Body.String())
+	}
+}
+
+func TestCancelVendorAssessmentRevokesInvitationAndRedeemedSession(t *testing.T) {
+	fixture := newAssessmentHTTPFixture(t, true)
+	issued := sendHTTPVendorAssessmentRequest(t, fixture)
+	if issued.Invitation == nil {
+		t.Fatal("assessment request did not issue an invitation")
+	}
+	captureURL, err := url.Parse(issued.CaptureURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := captureURL.Query().Get("capture_invite")
+	session, err := fixture.evidence.RedeemInvitation(context.Background(), token, "security@vendor.example")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := []byte(`{"expected_version":` + jsonInt(issued.Assessment.Version) + `,"reason":"The proposed service is no longer being procured."}`)
+	response := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+fixture.assessment.ID+"/cancel", bytes.NewReader(body)))
+	if response.Code != http.StatusOK {
+		t.Fatalf("cancel expected 200, got %d: %s", response.Code, response.Body.String())
+	}
+	if _, _, err := fixture.evidence.SessionRequest(context.Background(), session.SessionToken); !errors.Is(err, evidence.ErrSessionInvalid) {
+		t.Fatalf("cancelled assessment session remained usable: %v", err)
+	}
+	if _, err := fixture.evidence.RedeemInvitation(context.Background(), token, "security@vendor.example"); !errors.Is(err, evidence.ErrInvitationInvalid) {
+		t.Fatalf("cancelled assessment invitation remained usable: %v", err)
 	}
 }
 

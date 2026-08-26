@@ -156,6 +156,35 @@ func TestSendAssessmentRequestPreparesExactOriginBeforeInvitation(t *testing.T) 
 	}
 }
 
+func TestSendAssessmentRequestSupportsPeriodicReviewForActiveRelationship(t *testing.T) {
+	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	repo.mu.Lock()
+	stored := repo.relationships[relationship.Relationship.ID]
+	stored.Status = RelationshipActive
+	repo.relationships[relationship.Relationship.ID] = stored
+	repo.mu.Unlock()
+	input := validStartAssessmentInput(relationship.Relationship.Version)
+	input.ReviewKind = AssessmentReviewPeriodic
+	input.SourceTrigger = "annual-review-2026"
+	assessment, err := assessmentService.StartAssessment(assessmentContext(), assessmentActor(), relationship.Relationship.ID, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment = mustReadyAssessment(t, assessmentService, assessment)
+	evidenceStub := &assessmentEvidenceStub{repo: repo, assessmentID: assessment.ID}
+	service, err := NewAssessmentRequestService(assessmentService, repo, evidenceStub, assessmentFormReaderStub{form: activeAssessmentForm()}, nil, "https://capture.example.test/respond", "production")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	outcome, err := service.SendRequest(assessmentContext(), assessmentActor(), assessment.ID, SendAssessmentRequestInput{
+		ExpectedVersion: assessment.Version, Audience: "security@vendor.example", Deadline: time.Date(2026, 9, 8, 10, 0, 0, 0, time.UTC), InvitationTTLMinutes: 60,
+	})
+	if err != nil || outcome.Assessment.Status != AssessmentCollecting || outcome.Assessment.ReviewKind != AssessmentReviewPeriodic {
+		t.Fatalf("periodic request = (%#v, %v)", outcome, err)
+	}
+}
+
 func TestSendAssessmentRequestRejectsRelationshipThatLeftOnboarding(t *testing.T) {
 	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	assessment := mustReadyAssessment(t, assessmentService, mustStartAssessment(t, assessmentService, relationship))

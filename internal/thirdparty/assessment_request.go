@@ -110,7 +110,7 @@ func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, ass
 	if err != nil {
 		return SendRequestOutcome{}, err
 	}
-	if relationship.Relationship.Status != RelationshipProposed && relationship.Relationship.Status != RelationshipUnderReview {
+	if !assessmentKindAllowedForRelationship(assessment.ReviewKind, relationship.Relationship.Status) {
 		return SendRequestOutcome{}, ErrInvalidAssessmentTransition
 	}
 

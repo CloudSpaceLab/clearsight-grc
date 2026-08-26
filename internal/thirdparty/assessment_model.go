@@ -4,7 +4,11 @@ import "time"
 
 type AssessmentReviewKind string
 
-const AssessmentReviewOnboarding AssessmentReviewKind = "ONBOARDING"
+const (
+	AssessmentReviewOnboarding AssessmentReviewKind = "ONBOARDING"
+	AssessmentReviewPeriodic   AssessmentReviewKind = "PERIODIC"
+	AssessmentReviewTriggered  AssessmentReviewKind = "TRIGGERED"
+)
 
 type AssessmentStatus string
 
@@ -41,6 +45,7 @@ type Assessment struct {
 	LegalEntityID           string               `json:"legal_entity_id"`
 	RelationshipID          string               `json:"relationship_id"`
 	ReviewKind              AssessmentReviewKind `json:"review_kind"`
+	SourceTrigger           string               `json:"source_trigger"`
 	StableEpisodeKey        string               `json:"stable_episode_key"`
 	Status                  AssessmentStatus     `json:"status"`
 	FormTemplateID          string               `json:"form_template_id"`
@@ -102,10 +107,12 @@ type AssessmentEvent struct {
 }
 
 type StartAssessmentInput struct {
-	RelationshipVersion int64     `json:"relationship_version"`
-	FormTemplateID      string    `json:"form_template_id"`
-	FormTemplateVersion int64     `json:"form_template_version"`
-	ReviewDueAt         time.Time `json:"review_due_at"`
+	RelationshipVersion int64                `json:"relationship_version"`
+	ReviewKind          AssessmentReviewKind `json:"review_kind,omitempty"`
+	SourceTrigger       string               `json:"source_trigger,omitempty"`
+	FormTemplateID      string               `json:"form_template_id"`
+	FormTemplateVersion int64                `json:"form_template_version"`
+	ReviewDueAt         time.Time            `json:"review_due_at"`
 }
 
 type AssessmentSetupCompletedInput struct {

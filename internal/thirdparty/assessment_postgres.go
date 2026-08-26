@@ -46,6 +46,18 @@ func (r *PostgresRepository) CreateAssessment(ctx context.Context, record Create
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return Assessment{}, fmt.Errorf("load assessment replay: %w", err)
 	}
+	var activeExists bool
+	err = tx.QueryRow(ctx, `
+		SELECT true FROM third_party_assessments
+		WHERE tenant_id=$1::uuid AND legal_entity_id::text=$2 AND relationship_id=$3::uuid
+		  AND status NOT IN ('COMPLETED','CANCELLED')
+		LIMIT 1`, tenantID, record.LegalEntityID, record.RelationshipID).Scan(&activeExists)
+	if err == nil && activeExists {
+		return Assessment{}, ErrVersionConflict
+	}
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return Assessment{}, fmt.Errorf("check active assessment episode: %w", err)
+	}
 	if relationshipVersion != record.RelationshipVersion {
 		return Assessment{}, ErrVersionConflict
 	}
@@ -63,12 +75,12 @@ func (r *PostgresRepository) CreateAssessment(ctx context.Context, record Create
 	assessment := record.Assessment
 	_, err = tx.Exec(ctx, `
 		INSERT INTO third_party_assessments(
-			id,tenant_id,legal_entity_id,relationship_id,review_kind,stable_episode_key,status,
+			id,tenant_id,legal_entity_id,relationship_id,review_kind,source_trigger,stable_episode_key,status,
 			form_template_id,form_template_version,review_due_at,started_by_principal_id,started_at,version,created_at,updated_at
 		) VALUES(
-			$1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8::uuid,$9,$10,$11::uuid,$12,$13,$14,$15
+			$1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8,$9::uuid,$10,$11,$12::uuid,$13,$14,$15,$16
 		)`, assessment.ID, tenantID, record.LegalEntityID, record.RelationshipID, assessment.ReviewKind,
-		assessment.StableEpisodeKey, assessment.Status, assessment.FormTemplateID, assessment.FormTemplateVersion,
+		assessment.SourceTrigger, assessment.StableEpisodeKey, assessment.Status, assessment.FormTemplateID, assessment.FormTemplateVersion,
 		assessment.ReviewDueAt, assessment.StartedByPrincipalID, assessment.StartedAt, assessment.Version,
 		assessment.CreatedAt, assessment.UpdatedAt)
 	if err != nil {
@@ -102,7 +114,7 @@ func (r *PostgresRepository) GetAssessment(ctx context.Context, scope Scope, ass
 func (r *PostgresRepository) GetCurrentAssessment(ctx context.Context, scope Scope, relationshipID string, kind AssessmentReviewKind) (Assessment, error) {
 	value, err := scanAssessment(r.pool.QueryRow(ctx, assessmentSelect+`
 		WHERE (t.id::text=$1 OR t.slug=$1) AND a.legal_entity_id::text=$2 AND a.relationship_id::text=$3 AND a.review_kind=$4
-		ORDER BY a.updated_at DESC,a.id DESC LIMIT 1`, scope.TenantID, scope.LegalEntityID, relationshipID, kind))
+		ORDER BY (a.status NOT IN ('COMPLETED','CANCELLED')) DESC,a.updated_at DESC,a.id DESC LIMIT 1`, scope.TenantID, scope.LegalEntityID, relationshipID, kind))
 	return value, mapAssessmentReadError(err, "get current assessment")
 }
 
@@ -706,6 +718,37 @@ func (r *PostgresRepository) ListAssessmentMatterLinks(ctx context.Context, scop
 	return values, nil
 }
 
+func (r *PostgresRepository) GetAssessmentMatterLink(ctx context.Context, scope Scope, assessmentID, matterID string) (AssessmentMatterLink, error) {
+	assessmentID, matterID = strings.TrimSpace(assessmentID), strings.TrimSpace(matterID)
+	if !validAssessmentScope(scope) || !validAssessmentIdentifiers(assessmentID, matterID) {
+		return AssessmentMatterLink{}, ErrInvalid
+	}
+	var value AssessmentMatterLink
+	err := r.pool.QueryRow(ctx, `
+		SELECT t.slug,l.legal_entity_id::text,l.assessment_id::text,l.matter_id::text,l.relationship_link_id::text,l.link_kind,l.created_at
+		FROM third_party_assessment_matter_links l
+		JOIN third_party_assessments a
+		  ON a.id=l.assessment_id AND a.tenant_id=l.tenant_id AND a.legal_entity_id=l.legal_entity_id
+		JOIN third_party_relationship_matter_links relationship_link
+		  ON relationship_link.id=l.relationship_link_id
+		 AND relationship_link.tenant_id=l.tenant_id
+		 AND relationship_link.legal_entity_id=l.legal_entity_id
+		 AND relationship_link.relationship_id=a.relationship_id
+		 AND relationship_link.matter_id=l.matter_id
+		JOIN tenants t ON t.id=l.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND l.legal_entity_id::text=$2
+		  AND l.assessment_id::text=$3 AND l.matter_id::text=$4`, scope.TenantID, scope.LegalEntityID, assessmentID, matterID).Scan(
+		&value.TenantID, &value.LegalEntityID, &value.AssessmentID, &value.MatterID, &value.RelationshipLinkID, &value.Kind, &value.CreatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return AssessmentMatterLink{}, ErrNotFound
+	}
+	if err != nil {
+		return AssessmentMatterLink{}, fmt.Errorf("get assessment Matter link: %w", err)
+	}
+	return value, nil
+}
+
 func (r *PostgresRepository) ReviewAssessmentDocument(ctx context.Context, record AssessmentDocumentReviewRecord) (AssessmentDocument, Assessment, error) {
 	if !validAssessmentScope(record.Scope) || !validAssessmentIdentifiers(record.AssessmentID, record.ActorPrincipalID, record.Artifact.ID, record.Artifact.RequestID, record.Artifact.SubmissionID) || record.ExpectedVersion < 1 || !validAssessmentDocumentDecision(record.Decision) || !validAssessmentDocumentEvidenceClass(record.EvidenceClass) {
 		return AssessmentDocument{}, Assessment{}, ErrInvalid
@@ -868,7 +911,7 @@ func (r *PostgresRepository) ResolveAssessmentRequest(ctx context.Context, tenan
 	return target, nil
 }
 
-const assessmentProjection = `a.id::text,t.slug,a.legal_entity_id::text,a.relationship_id::text,a.review_kind,a.stable_episode_key,a.status,
+const assessmentProjection = `a.id::text,t.slug,a.legal_entity_id::text,a.relationship_id::text,a.review_kind,a.source_trigger,a.stable_episode_key,a.status,
 	a.form_template_id::text,a.form_template_version,COALESCE(a.current_request_id::text,''),COALESCE(a.submission_id::text,''),COALESCE(a.review_matter_id::text,''),
 	a.review_due_at,a.started_by_principal_id::text,a.started_at,a.submitted_at,a.review_started_at,a.completed_at,
 	COALESCE(a.reviewer_principal_id::text,''),COALESCE(a.conclusion,''),a.conclusion_uncertainty,a.conclusion_rationale,a.next_review_recommended_at,
@@ -883,7 +926,7 @@ const assessmentRequestLinkSelect = `SELECT l.tenant_id::text,l.legal_entity_id:
 func scanAssessment(row rowScanner) (Assessment, error) {
 	var value Assessment
 	err := row.Scan(
-		&value.ID, &value.TenantID, &value.LegalEntityID, &value.RelationshipID, &value.ReviewKind, &value.StableEpisodeKey, &value.Status,
+		&value.ID, &value.TenantID, &value.LegalEntityID, &value.RelationshipID, &value.ReviewKind, &value.SourceTrigger, &value.StableEpisodeKey, &value.Status,
 		&value.FormTemplateID, &value.FormTemplateVersion, &value.CurrentRequestID, &value.SubmissionID, &value.ReviewMatterID,
 		&value.ReviewDueAt, &value.StartedByPrincipalID, &value.StartedAt, &value.SubmittedAt, &value.ReviewStartedAt, &value.CompletedAt,
 		&value.ReviewerPrincipalID, &value.Conclusion, &value.ConclusionUncertainty, &value.ConclusionRationale, &value.NextReviewRecommendedAt,
