@@ -159,7 +159,7 @@ export function VendorWorkPanel(props: Props) {
         resetDraft();
       } catch {
         if (activeTarget.current !== requestedTarget) return;
-        setError("The request was prepared, but delivery could not be completed. Use Retry delivery on the request.");
+        setError("The request is saved, but setup could not be completed. Use Complete setup on the request.");
       }
     } catch (caught) {
       if (activeTarget.current !== requestedTarget) return;
@@ -212,6 +212,7 @@ function VendorWorkCard({ work, form, relationship, captureURL, onChanged }: { w
   const [responseView, setResponseView] = useState<VendorWorkResponseView>();
   const status = workStateLabel(work.state);
   const retry = work.delivery_state === "RETRY_REQUIRED" || work.delivery_state === "LINK_CREATED_EMAIL_NOT_SENT";
+  const setupIncomplete = retry && work.state === "PREPARING" && !work.current_request_id;
   const canCancel = work.state !== "ACCEPTED" && work.state !== "CANCELLED";
   const changeFields = responseView?.answers.map((answer) => ({ id: answer.field_id, label: answer.label })) ?? form?.fields.map((field) => ({ id: field.id, label: field.label })) ?? [];
 
@@ -277,9 +278,9 @@ function VendorWorkCard({ work, form, relationship, captureURL, onChanged }: { w
     <div className="vendor-work-card-heading"><div><span>{relationship ? `${relationship.vendor.legal_name} · ${relationship.relationship.service_name}` : "Vendor relationship"}</span><h4>{work.purpose}</h4></div><strong className={`vendor-work-state state-${work.state.toLowerCase().replaceAll("_", "-")}`}>{status}</strong></div>
     <p>{work.instructions}</p>
     <dl className="vendor-work-facts"><div><dt>Due</dt><dd>{formatDate(work.due_at)}</dd></div><div><dt>Collection</dt><dd>{form ? `${form.name} · version ${work.form_template_version}` : `Form version ${work.form_template_version}`}</dd></div><div><dt>Layout</dt><dd>{presentationLabel(work.presentation)}</dd></div></dl>
-    {work.recovery && <p className="inline-notice">{work.recovery}</p>}
+    {(setupIncomplete || work.recovery) && <p className="inline-notice">{setupIncomplete ? "The collection request was not created. Complete setup to create and send it." : work.recovery}</p>}
     {captureURL && <div className="vendor-work-secure-link"><label>Secure link<input readOnly value={captureURL} onFocus={(event) => event.currentTarget.select()}/></label><button type="button" className="secondary-button" onClick={() => void copySecureLink()}>Copy secure link</button>{copyNotice && <small role="status">{copyNotice}</small>}</div>}
-    {retry && <div className="vendor-work-action"><label>Vendor contact<input type="email" autoComplete="email" value={audience} onChange={(event) => setAudience(event.target.value)}/></label><button type="button" className="primary-button" disabled={busy || !validEmail(audience)} onClick={() => void run(() => retryVendorWorkDelivery(work.relationship_id, work.id, { expected_version: work.version, vendor_audience: audience.trim(), invitation_ttl_minutes: invitationTTLMinutes }))}>{busy ? "Retrying…" : "Retry delivery"}</button></div>}
+    {retry && <div className="vendor-work-action"><label>Vendor contact<input type="email" autoComplete="email" value={audience} onChange={(event) => setAudience(event.target.value)}/></label><button type="button" className="primary-button" disabled={busy || !validEmail(audience)} onClick={() => void run(() => retryVendorWorkDelivery(work.relationship_id, work.id, { expected_version: work.version, vendor_audience: audience.trim(), invitation_ttl_minutes: invitationTTLMinutes }))}>{busy ? setupIncomplete ? "Completing…" : "Retrying…" : setupIncomplete ? "Complete setup" : "Retry delivery"}</button></div>}
     {!retry && work.state === "PREPARING" && <div className="vendor-work-action"><label>Vendor contact<input type="email" autoComplete="email" value={audience} onChange={(event) => setAudience(event.target.value)}/></label><button type="button" className="primary-button" disabled={busy || !validEmail(audience)} onClick={() => void run(() => sendVendorWork(work.relationship_id, work.id, { expected_version: work.version, vendor_audience: audience.trim(), invitation_ttl_minutes: invitationTTLMinutes }))}>{busy ? "Sending…" : "Send request"}</button></div>}
     {(work.state === "RESPONSE_RECEIVED" || work.state === "UNDER_REVIEW") && responseState === "closed" && <button type="button" className="primary-button" disabled={!work.current_request_id} onClick={() => void openResponse()}>Review response</button>}
     {responseState === "loading" && <p aria-live="polite" aria-busy="true">Loading the submitted response…</p>}

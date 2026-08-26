@@ -192,6 +192,21 @@ describe("VendorWorkPanel", () => {
     await waitFor(() => expect(retryVendorWorkDelivery).toHaveBeenCalledWith("relationship-1", "work-1", { expected_version: 2, vendor_audience: "assurance@vendor.example", invitation_ttl_minutes: 10080 }));
   });
 
+  it("labels incomplete setup separately from delivery recovery", async () => {
+    const incomplete = { ...work, current_request_id: undefined, delivery_state: "RETRY_REQUIRED" as const, recovery: "Retry sending this vendor request." };
+    vi.mocked(loadVendorWork).mockResolvedValue({ items: [incomplete] });
+    vi.mocked(retryVendorWorkDelivery).mockResolvedValue({ work: { ...work, state: "AWAITING_VENDOR", delivery_state: "DELIVERED", version: 3 }, state: "DELIVERED" });
+    render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
+
+    const card = await screen.findByTestId("vendor-work-work-1");
+    expect(within(card).getByText("The collection request was not created. Complete setup to create and send it.")).toBeTruthy();
+    expect(within(card).queryByText("Retry sending this vendor request.")).toBeNull();
+    fireEvent.change(within(card).getByLabelText("Vendor contact"), { target: { value: "assurance@vendor.example" } });
+    fireEvent.click(within(card).getByRole("button", { name: "Complete setup" }));
+
+    await waitFor(() => expect(retryVendorWorkDelivery).toHaveBeenCalledWith("relationship-1", "work-1", { expected_version: 2, vendor_audience: "assurance@vendor.example", invitation_ttl_minutes: 10080 }));
+  });
+
   it("requires review reasons for changes, acceptance and cancellation", async () => {
     vi.mocked(loadVendorWork).mockResolvedValue({ items: [{ ...work, state: "UNDER_REVIEW", delivery_state: "DELIVERED", version: 5 }] });
     vi.mocked(acceptVendorWork).mockResolvedValue({ ...work, state: "ACCEPTED", delivery_state: "DELIVERED", version: 6 });
