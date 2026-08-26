@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
-import { loadCurrentVendorAssessment, reissueVendorAssessmentRequest, sendVendorAssessmentRequest, startVendorAssessment } from "../vendorAssessmentApi";
-import type { VendorAssessment } from "../vendorAssessmentTypes";
+import { completeVendorAssessment, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview } from "../vendorAssessmentApi";
+import type { VendorAssessment, VendorAssessmentReviewView } from "../vendorAssessmentTypes";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
 import { VendorsWorkspace } from "./VendorsWorkspace";
@@ -18,10 +18,13 @@ vi.mock("../vendorApi", () => ({
 
 vi.mock("../monitoringApi", () => ({ loadFormTemplates: vi.fn() }));
 vi.mock("../vendorAssessmentApi", () => ({
+  completeVendorAssessment: vi.fn(),
   loadCurrentVendorAssessment: vi.fn(),
+  loadVendorAssessment: vi.fn(),
   reissueVendorAssessmentRequest: vi.fn(),
   sendVendorAssessmentRequest: vi.fn(),
   startVendorAssessment: vi.fn(),
+  startVendorAssessmentReview: vi.fn(),
 }));
 
 const record: VendorRelationshipAggregate = {
@@ -42,6 +45,31 @@ function assessment(status: VendorAssessment["status"]): VendorAssessment {
     review_due_at: "2099-09-30T23:59:59Z", started_by_principal_id: "owner-1", started_at: "2026-08-26T10:00:00Z",
     review_matter_id: status === "SETUP_PENDING" ? undefined : "matter-1", current_request_id: status === "COLLECTING" ? "request-1" : undefined,
     version: 3, created_at: "2026-08-26T10:00:00Z", updated_at: "2026-08-28T12:00:00Z",
+  };
+}
+
+function review(status: VendorAssessment["status"]): VendorAssessmentReviewView {
+  return {
+    assessment: {
+      ...assessment(status),
+      submission_id: "submission-1",
+      submitted_at: "2026-08-28T11:00:00Z",
+      review_started_at: status === "SUBMITTED" ? undefined : "2026-08-28T12:00:00Z",
+      completed_at: status === "COMPLETED" ? "2026-08-29T12:00:00Z" : undefined,
+      conclusion: status === "COMPLETED" ? "SATISFACTORY_WITH_CONDITIONS" : undefined,
+      conclusion_rationale: status === "COMPLETED" ? "Proceed after the recorded access-control action is complete." : undefined,
+      conclusion_uncertainty: status === "COMPLETED" ? "The next resilience exercise remains due." : undefined,
+    },
+    requests: [{ request_id: "request-1", purpose: "INITIAL", sequence: 1, origin_sequence: 1, status: "SUBMITTED", deadline: "2026-08-27T23:59:59Z", form_template_id: "form-1", form_template_version: 3 }],
+    response: { submission_id: "submission-1", request_id: "request-1", submitted_at: "2026-08-28T11:00:00Z", answer_count: 2, artifact_count: 1 },
+    answers: [
+      { field_id: "security-testing", label: "Independent security testing", type: "YES_NO", required: true, visibility: "VISIBLE", value: { text: "Yes" }, provenance: { origin: "SOURCE_PREFILLED", binding_id: "binding-1", binding_version: 4, source_receipt: { source_id: "procurement", observed_at: "2026-08-27T09:30:00Z" } } },
+      { field_id: "hidden-follow-up", label: "Follow-up detail", type: "LONG_TEXT", required: true, visibility: "CONDITIONALLY_OMITTED" },
+    ],
+    coverage: { visible_fields: 1, answered_fields: 1, required_fields: 1, answered_required: 1, ratio: 1 },
+    documents: [{ field_id: "security-report", artifact_id: "artifact-1", file_name: "independent-security-test.pdf", media_type: "application/pdf", size_bytes: 64000, artifact_status: "AVAILABLE", evidence_class: "VENDOR_SUPPLIED", document_type: "SECURITY_TEST", expires_on: "2027-08-01" }],
+    provisional_score: { score: 86, coverage: 1, rule_results: [] },
+    matters: [{ matter_id: "matter-1", type: "VENDOR_DEFICIENCY", status: "OPEN", title: "Access-control evidence gap" }],
   };
 }
 
@@ -171,6 +199,51 @@ describe("VendorsWorkspace", () => {
     expect(await screen.findByText("Replacement link sent. Previous access to this request has ended.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review request status" }));
     expect(onOpenRequest).toHaveBeenCalledWith("request-1");
+  });
+
+  it("loads the submitted response and starts review with the current assessment version", async () => {
+    vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: assessment("SUBMITTED") });
+    vi.mocked(loadVendorAssessment).mockResolvedValue(review("SUBMITTED"));
+    vi.mocked(startVendorAssessmentReview).mockResolvedValue({ ...assessment("UNDER_REVIEW"), version: 4 });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+
+    expect(await screen.findByText(/Independent security testing/)).toBeTruthy();
+    expect(screen.getByText("1 of 1 required answers received")).toBeTruthy();
+    expect(screen.getByText("Provisional score: 86 of 100 · Form version 3")).toBeTruthy();
+    expect(screen.getByText("Prefilled from procurement · Observed 27 Aug 2026")).toBeTruthy();
+    expect(screen.getByText("Scan complete · Vendor supplied evidence")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Review vendor response" }));
+
+    await waitFor(() => expect(startVendorAssessmentReview).toHaveBeenCalledWith("assessment-1", { expected_version: 3 }));
+    expect(await screen.findByRole("button", { name: "Record assessment conclusion" })).toBeTruthy();
+  });
+
+  it("records the reviewer conclusion without changing the vendor relationship", async () => {
+    vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: assessment("UNDER_REVIEW") });
+    vi.mocked(loadVendorAssessment).mockResolvedValue(review("UNDER_REVIEW"));
+    vi.mocked(completeVendorAssessment).mockResolvedValue(review("COMPLETED").assessment);
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Record assessment conclusion" }));
+    fireEvent.change(screen.getByLabelText("Assessment basis"), { target: { value: "Proceed after the recorded access-control action is complete." } });
+    fireEvent.click(screen.getByRole("button", { name: "Record assessment conclusion" }));
+
+    await waitFor(() => expect(completeVendorAssessment).toHaveBeenCalledWith("assessment-1", expect.objectContaining({
+      expected_version: 3,
+      conclusion: "SATISFACTORY_WITH_CONDITIONS",
+      rationale: "Proceed after the recorded access-control action is complete.",
+    })));
+    expect(await screen.findByText("Assessment conclusion recorded. The vendor relationship status has not changed.")).toBeTruthy();
+  });
+
+  it("shows a completed assessment as a read-only review record", async () => {
+    vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: review("COMPLETED").assessment });
+    vi.mocked(loadVendorAssessment).mockResolvedValue(review("COMPLETED"));
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+
+    expect(await screen.findByText("Proceed after the recorded access-control action is complete.")).toBeTruthy();
+    expect(screen.getByText("The next resilience exercise remains due.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "View completed assessment" })).toBeNull();
   });
 
   it("states the exact empty population and next action", async () => {

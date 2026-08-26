@@ -178,8 +178,20 @@
 }
 
 .vdd-review-header > span { color: var(--muted); font-size: 12px; }
+.vdd-review-metrics { display: grid; justify-items: end; gap: 5px; color: var(--muted); font-size: 12px; }
 .vdd-review-group { display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid var(--border); }
 .vdd-review-group > p { margin: 0; }
+.vdd-review-state { padding: 16px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-2); color: var(--muted); }
+.vdd-answer-list,
+.vdd-conclusion { display: grid; gap: 1px; margin: 0; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: var(--border); }
+.vdd-answer-list > div,
+.vdd-conclusion > div { display: grid; gap: 6px; padding: 12px 14px; background: var(--surface); }
+.vdd-answer-list dt,
+.vdd-conclusion dt { color: var(--muted); font-size: 11px; }
+.vdd-answer-list dd,
+.vdd-conclusion dd { margin: 0; overflow-wrap: anywhere; line-height: 1.5; }
+.vdd-answer-list .vdd-provenance,
+.vdd-document .vdd-evidence-status { color: var(--muted); font-size: 11px; }
 .vdd-document { padding: 12px 0; border-top: 1px solid var(--border); }
 .vdd-document > div:first-child { display: grid; gap: 4px; min-width: 0; }
 .vdd-document span { color: var(--muted); font-size: 11px; }
@@ -218,6 +230,7 @@
   .vdd-review-header,
   .vdd-review-group-heading,
   .vdd-document { display: grid; }
+  .vdd-review-metrics { justify-items: start; }
   .vdd-status { justify-self: start; }
   .vdd-scope,
   .vdd-preview,

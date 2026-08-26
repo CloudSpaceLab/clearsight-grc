@@ -88,4 +88,50 @@ describe("static stakeholder demo transport", () => {
     const { StaticDemoHTTPError, staticDemoRequest } = await demo();
     await expect(staticDemoRequest("/api/v1/authority/resolve", { method: "POST", body: "{}" })).rejects.toMatchObject({ status: 403, code: "permission_denied" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
   });
+
+  it("supports the vendor due-diligence journey with the current approved typed form", async () => {
+    const { StaticDemoHTTPError, staticDemoRequest } = await demo();
+    const forms = await staticDemoRequest<{ items: Array<{ id: string; status: string; is_current: boolean; presentation: { default_mode: string; allow_mode_switch: boolean }; fields: Array<{ type: string }> }> }>("/api/v1/form-templates?limit=100&tenant_id=bank-demo");
+
+    expect(forms.items).toHaveLength(1);
+    expect(forms.items[0]).toMatchObject({ status: "ACTIVE", is_current: true, presentation: { default_mode: "WIZARD", allow_mode_switch: true } });
+    expect(forms.items[0]?.fields.map((field) => field.type)).toEqual(expect.arrayContaining(["email", "yes_no", "single_select", "vendor_document", "attestation"]));
+
+    await expect(staticDemoRequest("/api/v1/vendors/vendor-relationship-payments/assessments/current")).rejects.toMatchObject({ status: 404, code: "vendor_assessment_not_found" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
+
+    const started = await staticDemoRequest<{ id: string; status: string; version: number }>("/api/v1/vendors/vendor-relationship-payments/assessments", {
+      method: "POST",
+      body: JSON.stringify({ relationship_version: 1, form_template_id: forms.items[0]?.id, form_template_version: 3, review_due_at: "2099-09-30T23:59:59.000Z" }),
+    });
+    expect(started).toMatchObject({ status: "READY_TO_SEND", version: 2 });
+
+    const current = await staticDemoRequest<{ assessment: { id: string; status: string } }>("/api/v1/vendors/vendor-relationship-payments/assessments/current");
+    expect(current.assessment).toMatchObject({ id: started.id, status: "READY_TO_SEND" });
+
+    const sent = await staticDemoRequest<{ assessment: { status: string; current_request_id: string }; state: string; capture_url?: string; delivery: { status: string; recipient_hint: string } }>(`/api/v1/vendor-assessments/${started.id}/send-request`, {
+      method: "POST",
+      body: JSON.stringify({ expected_version: started.version, audience: "security@acme.example", deadline: "2099-09-20T23:59:59.000Z", invitation_ttl_minutes: 1440 }),
+    });
+    expect(sent).toMatchObject({ assessment: { status: "COLLECTING", current_request_id: "vendor-request-payments-2026" }, state: "DELIVERED", delivery: { status: "DELIVERED", recipient_hint: "s***@acme.example" } });
+    expect(sent.capture_url).toBeUndefined();
+  });
+
+  it("renders a submitted vendor response from bounded review fixture data", async () => {
+    window.history.replaceState(null, "", "/?fixture=vendor-submitted");
+    const { staticDemoRequest } = await demo();
+    const current = await staticDemoRequest<{ assessment: { id: string; status: string; submission_id: string } }>("/api/v1/vendors/vendor-relationship-payments/assessments/current");
+    const review = await staticDemoRequest<{ assessment: { status: string }; answers: Array<{ visibility: string }>; coverage: { answered_required: number; required_fields: number }; documents: Array<{ artifact_id: string }>; matters: unknown[] }>(`/api/v1/vendor-assessments/${current.assessment.id}`);
+
+    expect(current.assessment).toMatchObject({ status: "SUBMITTED", submission_id: "vendor-submission-payments-2026" });
+    expect(review.assessment.status).toBe("SUBMITTED");
+    expect(review.answers.some((answer) => answer.visibility === "VISIBLE")).toBe(true);
+    expect(review.coverage).toMatchObject({ answered_required: 4, required_fields: 4 });
+    expect(review.documents).toHaveLength(1);
+    expect(review.matters).toEqual([]);
+
+    const started = await staticDemoRequest<{ status: string; version: number }>(`/api/v1/vendor-assessments/${current.assessment.id}/review/start`, { method: "POST", body: JSON.stringify({ expected_version: 4 }) });
+    expect(started).toMatchObject({ status: "UNDER_REVIEW", version: 5 });
+    const completed = await staticDemoRequest<{ status: string; version: number; conclusion: string; conclusion_rationale: string }>(`/api/v1/vendor-assessments/${current.assessment.id}/complete`, { method: "POST", body: JSON.stringify({ expected_version: 5, conclusion: "SATISFACTORY_WITH_CONDITIONS", rationale: "Proceed after the access-control action is complete." }) });
+    expect(completed).toMatchObject({ status: "COMPLETED", version: 6, conclusion: "SATISFACTORY_WITH_CONDITIONS", conclusion_rationale: "Proceed after the access-control action is complete." });
+  });
 });

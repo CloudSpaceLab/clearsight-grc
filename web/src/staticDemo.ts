@@ -1,4 +1,6 @@
 import type { CoverageDecision, DocumentCoverage, DocumentImport, ProposalStatus } from "./documentTypes";
+import type { FormTemplate } from "./monitoringTypes";
+import type { VendorAssessment, VendorAssessmentReviewView } from "./vendorAssessmentTypes";
 import type { VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "./vendorTypes";
 
 export const staticDemoEnabled = import.meta.env.VITE_STATIC_DEMO === "true";
@@ -102,6 +104,81 @@ let vendorRelationships: VendorRelationshipAggregate[] = [{
   },
 }];
 
+const vendorDueDiligenceForm: FormTemplate = {
+  id: "form-vendor-due-diligence",
+  tenant_id: "bank-demo",
+  code: "VENDOR-DUE-DILIGENCE",
+  name: "Vendor security and privacy review",
+  purpose: "Collect the vendor information and supporting documents required for onboarding review.",
+  presentation: { default_mode: "WIZARD", allow_mode_switch: true },
+  sections: [
+    { id: "contact", title: "Company contact", help: "Confirm who can answer follow-up questions about this submission." },
+    { id: "service", title: "Service and data", help: "Describe the service and the bank information it uses." },
+    { id: "controls", title: "Security controls", help: "Confirm the controls in operation and provide current supporting documents." },
+    { id: "attestation", title: "Submission confirmation", help: "An authorized representative must confirm the response before submission." },
+  ],
+  fields: [
+    { id: "contact_email", section_id: "contact", label: "Security contact email", type: "email", required: true, constraints: { max_length: 254 } },
+    { id: "service_description", section_id: "service", label: "Service description", type: "long_text", required: true, constraints: { min_length: 20, max_length: 1200 } },
+    { id: "data_classes", section_id: "service", label: "Bank information used", type: "multi_select", required: true, options: ["Customer personal data", "Payment data", "Employee data", "Confidential business data", "No bank information"], constraints: { min_selections: 1, max_selections: 4 } },
+    { id: "subprocessors", section_id: "service", label: "Do subcontractors process bank information?", type: "yes_no", required: true },
+    { id: "subprocessor_details", section_id: "service", label: "Subcontractor details", type: "long_text", required: true, constraints: { min_length: 10, max_length: 1000 }, condition: { field_id: "subprocessors", operator: "EQUALS", values: ["yes"] } },
+    { id: "security_framework", section_id: "controls", label: "Primary security framework", type: "single_select", required: true, options: ["ISO 27001", "SOC 2", "PCI DSS", "NIST CSF", "Other", "None"] },
+    { id: "security_document", section_id: "controls", label: "Current independent assurance document", type: "vendor_document", required: true, accepted_formats: ["application/pdf"], constraints: { max_files: 1, max_file_bytes: 25_000_000 } },
+    { id: "authorized_attestation", section_id: "attestation", label: "Authorized representative confirmation", type: "attestation", required: true, attestation: "I confirm that this response is complete and accurate to the best of my knowledge." },
+  ],
+  status: "ACTIVE",
+  is_current: true,
+  version: 3,
+  created_at: "2026-08-01T09:00:00Z",
+  updated_at: now,
+};
+
+let vendorAssessment: VendorAssessment | null = null;
+
+function submittedVendorAssessment(): VendorAssessment {
+  return {
+    id: "vendor-assessment-payments-2026",
+    tenant_id: "bank-demo",
+    legal_entity_id: "bank-ng",
+    relationship_id: vendorRelationshipID,
+    review_kind: "ONBOARDING",
+    stable_episode_key: "vendor-relationship-payments:ONBOARDING:2026",
+    status: "SUBMITTED",
+    form_template_id: vendorDueDiligenceForm.id,
+    form_template_version: vendorDueDiligenceForm.version,
+    current_request_id: "vendor-request-payments-2026",
+    submission_id: "vendor-submission-payments-2026",
+    review_matter_id: "matter-vendor-review-payments",
+    review_due_at: "2026-09-25T23:59:59Z",
+    started_by_principal_id: "role-payments-owner",
+    started_at: "2026-08-20T09:00:00Z",
+    submitted_at: "2026-08-25T14:20:00Z",
+    version: 4,
+    created_at: "2026-08-20T09:00:00Z",
+    updated_at: "2026-08-25T14:20:00Z",
+  };
+}
+
+function submittedVendorReview(assessment: VendorAssessment): VendorAssessmentReviewView {
+  return {
+    assessment,
+    requests: [{ request_id: assessment.current_request_id!, purpose: "INITIAL", sequence: 1, origin_sequence: 1, status: "SUBMITTED", deadline: "2026-09-12T23:59:59Z", form_template_id: assessment.form_template_id, form_template_version: assessment.form_template_version }],
+    response: { submission_id: assessment.submission_id!, request_id: assessment.current_request_id!, submitted_at: assessment.submitted_at!, answer_count: 7, artifact_count: 1 },
+    answers: [
+      { field_id: "contact_email", label: "Security contact email", type: "EMAIL", required: true, visibility: "VISIBLE", value: { text: "security@acme.example" }, provenance: { source: "Vendor response" } },
+      { field_id: "data_classes", label: "Bank information used", type: "MULTI_SELECT", required: true, visibility: "VISIBLE", value: { values: ["Customer personal data", "Payment data"] }, provenance: { source: "Vendor response" } },
+      { field_id: "subprocessors", label: "Do subcontractors process bank information?", type: "YES_NO", required: true, visibility: "VISIBLE", value: { text: "Yes" }, provenance: { source: "Vendor response" } },
+      { field_id: "security_framework", label: "Primary security framework", type: "SINGLE_SELECT", required: true, visibility: "VISIBLE", value: { text: "ISO 27001" }, provenance: { source: "Vendor response" } },
+      { field_id: "subprocessor_details", label: "Subcontractor details", type: "LONG_TEXT", required: true, visibility: "VISIBLE", value: { text: "Payment-routing infrastructure is provided by a contracted hosting provider in the stated service scope." }, provenance: { source: "Vendor response" } },
+    ],
+    coverage: { visible_fields: 7, answered_fields: 7, required_fields: 4, answered_required: 4, ratio: 1 },
+    documents: [{ field_id: "security_document", artifact_id: "artifact-vendor-iso27001", file_name: "acme-iso-27001-certificate.pdf", media_type: "application/pdf", size_bytes: 684_220, artifact_status: "AVAILABLE", evidence_class: "VENDOR_SUPPLIED", document_type: "ISO_27001_CERTIFICATE", reference: "ISO-27001-ACME-2026", issued_by: "Accredited certification body", issued_on: "2026-03-01", expires_on: "2027-03-01" }],
+    provisional_score: { score: 82, coverage: 1, rule_results: [] },
+    matters: [],
+  };
+}
+
 const todayItems = [
   { id: "today-change", type: "REGULATORY_CHANGE", title: matter.title, why_now: "The source change is approved and two evidence sections still need owners before the internal review.", scope: "Nigeria Data Protection · Regulatory change", state: "Work in progress", evidence: "8 of 10 sections complete", owner: "Data Protection Office", due_at: future, primary_action: "Complete the evidence ownership update", action_target_type: "MATTER", action_target_id: matterID },
   { id: "today-evidence", type: "EVIDENCE_REQUEST", title: evidenceRequest.title, why_now: evidenceRequest.why_you, scope: "Annual privacy return · Evidence", state: "Response required", evidence: "Known facts prefilled", owner: "Privacy Operations", due_at: future, primary_action: "Provide the two missing details", action_target_type: "EVIDENCE_REQUEST", action_target_id: evidenceID },
@@ -170,6 +247,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/today") return clone({ items: fixture === "today-empty" ? [] : todayItems, generated_at: now }) as T;
   if (pathname === "/api/v1/compliance/readiness") return clone({ tenant_id: "bank-demo", status: "AT_RISK", baseline_known: false, generated_at: now, dimensions: { current: 0, aging: 1, at_risk: 1, unknown: 1, blocked_routing: 0, pending_human: 1 }, active_drifts: [{ id: "drift-1", subject_type: "PROGRAM", subject_id: programID, dimension: "EVIDENCE", severity: 4, summary: "Two annual-return evidence sections are incomplete.", required_action: "Assign owners and complete DPCO review.", detected_at: now }], recommended_actions: ["Complete the two missing evidence ownership records.", "Confirm the final DPCO review date."] }) as T;
   if (pathname === "/api/v1/program-summaries") return clone({ items: matches(url, programSummary.program.name, programSummary.program.code) ? [programSummary] : [], generated_at: now }) as T;
+  if (pathname === "/api/v1/form-templates" && method === "GET") return clone({ items: [vendorDueDiligenceForm], next_cursor: "" }) as T;
   if (pathname === "/api/v1/vendors" && method === "GET") {
     const query = (url.searchParams.get("search") ?? "").trim().toLowerCase();
     const items = query ? vendorRelationships.filter((item) => `${item.vendor.legal_name} ${item.vendor.trading_name} ${item.relationship.service_name}`.toLowerCase().includes(query)) : vendorRelationships;
@@ -183,6 +261,66 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     };
     vendorRelationships = [created, ...vendorRelationships];
     return clone(created) as T;
+  }
+  if (pathname === `/api/v1/vendors/${vendorRelationshipID}/assessments/current` && method === "GET") {
+    if (fixture === "vendor-submitted" && vendorAssessment?.status !== "SUBMITTED") vendorAssessment = submittedVendorAssessment();
+    if (!vendorAssessment) throw new StaticDemoHTTPError(404, "vendor_assessment_not_found", "No due-diligence assessment has been started for this vendor relationship.");
+    return clone({ assessment: vendorAssessment, setup: { assessment_id: vendorAssessment.id, state: "COMPLETED", attempts: 1, updated_at: vendorAssessment.updated_at } }) as T;
+  }
+  if (pathname === `/api/v1/vendors/${vendorRelationshipID}/assessments` && method === "POST") {
+    const input = parseBody(init) as { relationship_version?: number; form_template_id?: string; form_template_version?: number; review_due_at?: string };
+    if (input.relationship_version !== vendorRelationships[0]?.relationship.version) throw new StaticDemoHTTPError(409, "vendor_version_conflict", "The vendor relationship changed before due diligence was started.");
+    if (input.form_template_id !== vendorDueDiligenceForm.id || input.form_template_version !== vendorDueDiligenceForm.version) throw new StaticDemoHTTPError(409, "vendor_assessment_form_inactive", "Select the current approved due-diligence form.");
+    vendorAssessment = {
+      id: "vendor-assessment-payments-2026",
+      tenant_id: "bank-demo",
+      legal_entity_id: "bank-ng",
+      relationship_id: vendorRelationshipID,
+      review_kind: "ONBOARDING",
+      stable_episode_key: "vendor-relationship-payments:ONBOARDING:2026",
+      status: "READY_TO_SEND",
+      form_template_id: vendorDueDiligenceForm.id,
+      form_template_version: vendorDueDiligenceForm.version,
+      review_matter_id: "matter-vendor-review-payments",
+      review_due_at: input.review_due_at ?? future,
+      started_by_principal_id: "role-cro",
+      started_at: now,
+      version: 2,
+      created_at: now,
+      updated_at: now,
+    };
+    return clone(vendorAssessment) as T;
+  }
+  if (vendorAssessment && pathname === `/api/v1/vendor-assessments/${vendorAssessment.id}/send-request` && method === "POST") {
+    const input = parseBody(init) as { expected_version?: number; audience?: string; deadline?: string; invitation_ttl_minutes?: number };
+    if (input.expected_version !== vendorAssessment.version) throw new StaticDemoHTTPError(409, "vendor_assessment_changed", "The due-diligence assessment changed before the request was sent.");
+    if (!input.audience?.includes("@") || !input.deadline || !input.invitation_ttl_minutes) throw new StaticDemoHTTPError(422, "vendor_assessment_invalid", "Enter a valid vendor contact, response deadline and secure-link lifetime.");
+    vendorAssessment = { ...vendorAssessment, status: "COLLECTING", current_request_id: "vendor-request-payments-2026", version: vendorAssessment.version + 1, updated_at: now };
+    return clone({
+      assessment: vendorAssessment,
+      request: { id: vendorAssessment.current_request_id, status: "READY", deadline: input.deadline, updated_at: now },
+      state: "DELIVERED",
+      delivery: { status: "DELIVERED", recipient_hint: maskEmail(input.audience), delivered_at: now },
+    }) as T;
+  }
+  if (vendorAssessment && pathname === `/api/v1/vendor-assessments/${vendorAssessment.id}` && method === "GET") {
+    if (!vendorAssessment.submission_id) throw new StaticDemoHTTPError(409, "vendor_assessment_action_unavailable", "A submitted vendor response is required before review.");
+    return clone(submittedVendorReview(vendorAssessment)) as T;
+  }
+  if (vendorAssessment && pathname === `/api/v1/vendor-assessments/${vendorAssessment.id}/review/start` && method === "POST") {
+    const input = parseBody(init) as { expected_version?: number };
+    if (input.expected_version !== vendorAssessment.version) throw new StaticDemoHTTPError(409, "vendor_assessment_changed", "The assessment changed before the review was started.");
+    if (vendorAssessment.status !== "SUBMITTED") throw new StaticDemoHTTPError(409, "vendor_assessment_action_unavailable", "The vendor response is not ready to enter review.");
+    vendorAssessment = { ...vendorAssessment, status: "UNDER_REVIEW", reviewer_principal_id: "role-cro", review_started_at: now, version: vendorAssessment.version + 1, updated_at: now };
+    return clone(vendorAssessment) as T;
+  }
+  if (vendorAssessment && pathname === `/api/v1/vendor-assessments/${vendorAssessment.id}/complete` && method === "POST") {
+    const input = parseBody(init) as { expected_version?: number; conclusion?: VendorAssessment["conclusion"]; rationale?: string; uncertainty?: string; next_review_recommended_at?: string };
+    if (input.expected_version !== vendorAssessment.version) throw new StaticDemoHTTPError(409, "vendor_assessment_changed", "The assessment changed before the conclusion was recorded.");
+    if (vendorAssessment.status !== "UNDER_REVIEW") throw new StaticDemoHTTPError(409, "vendor_assessment_action_unavailable", "Start the vendor review before recording a conclusion.");
+    if (!input.conclusion || !input.rationale?.trim()) throw new StaticDemoHTTPError(422, "vendor_assessment_invalid", "Select a conclusion and record its assessment basis.");
+    vendorAssessment = { ...vendorAssessment, status: "COMPLETED", conclusion: input.conclusion, conclusion_rationale: input.rationale.trim(), conclusion_uncertainty: input.uncertainty?.trim(), next_review_recommended_at: input.next_review_recommended_at, completed_at: now, version: vendorAssessment.version + 1, updated_at: now };
+    return clone(vendorAssessment) as T;
   }
   if (pathname.startsWith("/api/v1/vendors/") && method === "GET") {
     const id = decodeURIComponent(pathname.slice("/api/v1/vendors/".length));
@@ -295,4 +433,5 @@ function activeFixture() { return typeof window === "undefined" ? "" : new URLSe
 function delay(ms: number) { return new Promise((resolve) => window.setTimeout(resolve, ms)); }
 function matches(url: URL, ...values: string[]) { const query = (url.searchParams.get("q") ?? "").trim().toLowerCase(); const status = url.searchParams.get("status") ?? ""; if (status && ![program.status, matter.status, "OPEN"].includes(status)) return false; return !query || values.some((value) => value.toLowerCase().includes(query)); }
 function parseBody(init?: RequestInit) { if (typeof init?.body !== "string") return {}; try { return JSON.parse(init.body) as unknown; } catch { return {}; } }
+function maskEmail(value: string) { const [local, domain] = value.split("@"); return `${local?.slice(0, 1) || "*"}***@${domain || "vendor"}`; }
 function clone<T>(value: T): T { return typeof structuredClone === "function" ? structuredClone(value) : JSON.parse(JSON.stringify(value)) as T; }

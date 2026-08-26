@@ -60,7 +60,6 @@ describe("VendorDueDiligence", () => {
     ["COLLECTING", "Review request status"],
     ["SUBMITTED", "Review vendor response"],
     ["UNDER_REVIEW", "Record assessment conclusion"],
-    ["COMPLETED", "View completed assessment"],
   ] as const)("offers one dominant action for %s", (status, label) => {
     render(<VendorDueDiligence
       relationship={relationship}
@@ -71,11 +70,16 @@ describe("VendorDueDiligence", () => {
       onOpenRequest={vi.fn()}
       onStartReview={vi.fn()}
       onComplete={vi.fn()}
-      onOpenCompleted={vi.fn()}
     />);
 
     expect((screen.getByRole("button", { name: label }) as HTMLButtonElement).disabled).toBe(false);
     expect(primaryActions()).toHaveLength(1);
+  });
+
+  it("keeps a completed assessment read-only", () => {
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("COMPLETED")} form={form}/>);
+    expect(screen.getByText("The assessment conclusion is recorded. The vendor relationship status remains separate.")).toBeTruthy();
+    expect(primaryActions()).toHaveLength(0);
   });
 
   it("retries failed setup without presenting the assessment as ready", () => {
@@ -192,17 +196,42 @@ describe("VendorDueDiligence", () => {
   it("keeps clarification and findings secondary to the review conclusion", () => {
     const review: VendorAssessmentReviewView = {
       assessment: assessment("UNDER_REVIEW"),
-      response: { request_id: "request-1", submitted_at: "2026-08-28T11:00:00Z", answer_count: 14, artifact_count: 2 },
-      documents: [{ artifact_id: "artifact-1", file_name: "independent-security-test.pdf", status: "SUBMITTED", evidence_class: "VENDOR_SUPPLIED" }],
-      findings: [{ matter_id: "finding-1", title: "Independent test renewal is due", state: "Action agreed" }],
+      requests: [],
+      response: { submission_id: "submission-1", request_id: "request-1", submitted_at: "2026-08-28T11:00:00Z", answer_count: 14, artifact_count: 2 },
+      answers: [],
+      coverage: { visible_fields: 14, answered_fields: 14, required_fields: 10, answered_required: 10, ratio: 1 },
+      documents: [{ field_id: "security-report", artifact_id: "artifact-1", file_name: "independent-security-test.pdf", media_type: "application/pdf", size_bytes: 64000, artifact_status: "AVAILABLE", evidence_class: "VENDOR_SUPPLIED", document_type: "SECURITY_TEST" }],
+      matters: [{ matter_id: "finding-1", type: "VENDOR_DEFICIENCY", title: "Independent test renewal is due", status: "ACTION_AGREED" }],
     };
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onRequestClarification={vi.fn()} onCreateDeficiency={vi.fn()} onReviewDocument={vi.fn()} onComplete={vi.fn()}/>);
 
     const reviewRegion = screen.getByRole("region", { name: "Vendor response review" });
-    expect(within(reviewRegion).getByText("14 answers and 2 documents submitted")).toBeTruthy();
+    expect(within(reviewRegion).getByText(/14 answers · 2 documents/)).toBeTruthy();
     expect(within(reviewRegion).getByText("independent-security-test.pdf")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Request clarification" }).classList.contains("secondary-button")).toBe(true);
     expect(screen.getByRole("button", { name: "Record assessment conclusion" }).classList.contains("primary-button")).toBe(true);
+    expect(primaryActions()).toHaveLength(1);
+  });
+
+  it("shows answer provenance and document security status without exposing internal identifiers", () => {
+    const review: VendorAssessmentReviewView = {
+      assessment: assessment("UNDER_REVIEW"),
+      requests: [],
+      response: { submission_id: "submission-1", request_id: "request-1", submitted_at: "2026-08-28T11:00:00Z", answer_count: 1, artifact_count: 1 },
+      answers: [{
+        field_id: "critical-service", label: "Service criticality", type: "SINGLE_SELECT", required: true, visibility: "VISIBLE", value: { text: "Important" },
+        provenance: { origin: "RESPONDENT_CORRECTED", binding_id: "binding-sensitive", binding_version: 7, source_receipt: { source_id: "procurement", observed_at: "2026-08-27T09:30:00Z" } },
+      }],
+      coverage: { visible_fields: 1, answered_fields: 1, required_fields: 1, answered_required: 1, ratio: 1 },
+      documents: [{ field_id: "security-report", artifact_id: "artifact-sensitive", file_name: "security-report.pdf", media_type: "application/pdf", size_bytes: 64000, artifact_status: "QUARANTINED", evidence_class: "VENDOR_SUPPLIED", document_type: "SECURITY_TEST" }],
+      matters: [],
+    };
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onComplete={vi.fn()}/>);
+
+    expect(screen.getByText("Updated by the vendor · Source value observed 27 Aug 2026")).toBeTruthy();
+    expect(screen.getByText("Quarantined by security scan · Vendor supplied evidence")).toBeTruthy();
+    expect(screen.queryByText("binding-sensitive")).toBeNull();
+    expect(screen.queryByText("artifact-sensitive")).toBeNull();
     expect(primaryActions()).toHaveLength(1);
   });
 

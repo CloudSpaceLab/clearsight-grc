@@ -113,33 +113,106 @@ export type CurrentVendorAssessment = {
 };
 
 export type VendorAssessmentResponseSummary = {
+  submission_id: string;
   request_id: string;
   submitted_at: string;
   answer_count: number;
   artifact_count: number;
-  provisional_score?: number;
-  provisional_band?: string;
+};
+
+export type VendorAssessmentReviewRequest = {
+  request_id: string;
+  purpose: string;
+  sequence: number;
+  origin_sequence: number;
+  status: string;
+  deadline: string;
+  form_template_id: string;
+  form_template_version: number;
+};
+
+export type VendorAssessmentAnswerValue = {
+  text?: string;
+  values?: string[];
+  artifact_ids?: string[];
+  document?: {
+    artifact_id: string;
+    document_type: string;
+    reference?: string;
+    issued_by?: string;
+    issued_on?: string;
+    expires_on?: string;
+  };
+};
+
+export type VendorAssessmentReviewAnswer = {
+  field_id: string;
+  label: string;
+  type: string;
+  required: boolean;
+  visibility: "VISIBLE" | "CONDITIONALLY_OMITTED";
+  value?: VendorAssessmentAnswerValue;
+  provenance?: {
+    origin?: "SOURCE_PREFILLED" | "RESPONDENT_ENTERED" | "RESPONDENT_CORRECTED" | string;
+    source?: string;
+    binding_id?: string;
+    binding_version?: number;
+    source_value?: { kind: string; text?: string };
+    source_receipt?: {
+      source_id: string;
+      observed_at: string;
+      [key: string]: unknown;
+    };
+    validations?: { state?: string; [key: string]: unknown }[];
+  };
+};
+
+export type VendorAssessmentReviewCoverage = {
+  visible_fields: number;
+  answered_fields: number;
+  required_fields: number;
+  answered_required: number;
+  ratio: number;
 };
 
 export type VendorAssessmentDocument = {
+  field_id: string;
   artifact_id: string;
   file_name: string;
-  status: "SUBMITTED" | "VALIDATED" | "REJECTED" | "EXPIRED" | string;
-  evidence_class?: "VENDOR_SUPPLIED" | "BANK_VALIDATED" | "OFFICIAL_SOURCE";
-  valid_until?: string;
+  media_type: string;
+  size_bytes: number;
+  artifact_status: string;
+  evidence_class: "VENDOR_SUPPLIED" | "BANK_VALIDATED" | "OFFICIAL_SOURCE" | string;
+  document_type: string;
+  reference?: string;
+  issued_by?: string;
+  issued_on?: string;
+  expires_on?: string;
 };
 
 export type VendorAssessmentFinding = {
   matter_id: string;
+  type: string;
   title: string;
-  state: string;
+  status: string;
+};
+
+export type VendorAssessmentProvisionalScore = {
+  score?: number;
+  coverage: number;
+  critical_failures?: { field_id: string; outcome: string; points: number; critical?: boolean }[];
+  rule_results: { field_id: string; outcome: string; points: number; critical?: boolean }[];
 };
 
 export type VendorAssessmentReviewView = {
   assessment: VendorAssessment;
+  requests: VendorAssessmentReviewRequest[];
   response?: VendorAssessmentResponseSummary;
+  answers: VendorAssessmentReviewAnswer[];
+  coverage: VendorAssessmentReviewCoverage;
   documents: VendorAssessmentDocument[];
-  findings: VendorAssessmentFinding[];
+  provisional_score?: VendorAssessmentProvisionalScore;
+  matters: VendorAssessmentFinding[];
 };
 
 export type StartVendorAssessmentReviewInput = { expected_version: number };

@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { apiErrorKind } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
-import { loadCurrentVendorAssessment, reissueVendorAssessmentRequest, sendVendorAssessmentRequest, startVendorAssessment } from "../vendorAssessmentApi";
-import type { CurrentVendorAssessment, StartVendorAssessmentInput, VendorAssessment, VendorAssessmentFormOption, VendorAssessmentSendOutcome } from "../vendorAssessmentTypes";
+import { completeVendorAssessment, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview } from "../vendorAssessmentApi";
+import type { CompleteVendorAssessmentInput, CurrentVendorAssessment, StartVendorAssessmentInput, VendorAssessment, VendorAssessmentFormOption, VendorAssessmentReviewView, VendorAssessmentSendOutcome } from "../vendorAssessmentTypes";
 import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
 import type { CreateVendorRelationshipInput, VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "../vendorTypes";
 import { VendorDueDiligence } from "./VendorDueDiligence";
@@ -53,6 +53,8 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   const [assessment, setAssessment] = useState<VendorAssessment | null>(null);
   const [assessmentSetup, setAssessmentSetup] = useState<CurrentVendorAssessment["setup"]>();
   const [assessmentState, setAssessmentState] = useState<LoadState>("loading");
+  const [review, setReview] = useState<VendorAssessmentReviewView>();
+  const [reviewState, setReviewState] = useState<LoadState>("loading");
   const [requestOutcome, setRequestOutcome] = useState<VendorAssessmentSendOutcome>();
   const [requestOutcomeKind, setRequestOutcomeKind] = useState<"initial" | "replacement">("initial");
   const assessmentLoadID = useRef(0);
@@ -86,6 +88,8 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       setAssessment(null);
       setAssessmentSetup(undefined);
       setAssessmentState("loading");
+      setReview(undefined);
+      setReviewState("loading");
       setRequestOutcome(undefined);
       setRequestOutcomeKind("initial");
       return;
@@ -100,22 +104,40 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     setAssessmentState("loading");
     setRequestOutcome(undefined);
     setRequestOutcomeKind("initial");
+    setReview(undefined);
+    setReviewState("loading");
     try {
       const current = await loadCurrentVendorAssessment(relationshipID);
       if (loadID !== assessmentLoadID.current) return;
       setAssessment(current.assessment);
       setAssessmentSetup(current.setup);
       setAssessmentState("live");
+      if (current.assessment && needsReviewView(current.assessment.status)) {
+        try {
+          const value = await loadVendorAssessment(current.assessment.id);
+          if (loadID !== assessmentLoadID.current) return;
+          setReview(value);
+          setReviewState("live");
+        } catch {
+          if (loadID !== assessmentLoadID.current) return;
+          setReview(undefined);
+          setReviewState("unavailable");
+        }
+      } else {
+        setReviewState("live");
+      }
     } catch (error) {
       if (loadID !== assessmentLoadID.current) return;
       if (apiErrorKind(error) === "not_found") {
         setAssessment(null);
         setAssessmentSetup(undefined);
         setAssessmentState("live");
+        setReviewState("live");
       } else {
         setAssessment(null);
         setAssessmentSetup(undefined);
         setAssessmentState("unavailable");
+        setReviewState("unavailable");
       }
     }
   }
@@ -145,6 +167,36 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     setRequestOutcome(outcome);
     setRequestOutcomeKind("replacement");
     return outcome;
+  }
+
+  async function refreshReview(assessmentID: string) {
+    const loadID = ++assessmentLoadID.current;
+    setReviewState("loading");
+    try {
+      const value = await loadVendorAssessment(assessmentID);
+      if (loadID !== assessmentLoadID.current) return;
+      setReview(value);
+      setAssessment(value.assessment);
+      setReviewState("live");
+    } catch {
+      if (loadID !== assessmentLoadID.current) return;
+      setReview(undefined);
+      setReviewState("unavailable");
+    }
+  }
+
+  async function beginAssessmentReview(assessmentID: string, expectedVersion: number) {
+    const value = await startVendorAssessmentReview(assessmentID, { expected_version: expectedVersion });
+    setAssessment(value);
+    setReview((current) => current ? { ...current, assessment: value } : current);
+    return value;
+  }
+
+  async function finishAssessmentReview(assessmentID: string, input: CompleteVendorAssessmentInput) {
+    const value = await completeVendorAssessment(assessmentID, input);
+    setAssessment(value);
+    setReview((current) => current ? { ...current, assessment: value } : current);
+    return value;
   }
 
   async function refresh(requestedID?: string) {
@@ -268,6 +320,8 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
           assessment={assessment}
           assessmentSetup={assessmentSetup}
           assessmentState={assessmentState}
+          review={review}
+          reviewState={reviewState}
           form={activeVendorForm}
           formState={formState}
           requestOutcome={requestOutcome}
@@ -279,6 +333,9 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
           onStartAssessment={startAssessment}
           onSendAssessmentRequest={sendAssessmentRequest}
           onReissueAssessmentRequest={reissueAssessmentRequest}
+          onRefreshReview={refreshReview}
+          onStartAssessmentReview={beginAssessmentReview}
+          onCompleteAssessmentReview={finishAssessmentReview}
           onOpenRequest={onOpenRequest}
         /> : records.length > 0 ? <div className="vendor-selection"><h2>Select a vendor</h2><p>Choose a relationship to review its service, accountable owner, source and current record version.</p></div> : null}
       </section>
@@ -286,11 +343,13 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   </div>;
 }
 
-function VendorDetail({ record, assessment, assessmentSetup, assessmentState, form, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onRefreshAssessment, onRefreshForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onOpenRequest }: {
+function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onRefreshAssessment, onRefreshForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRefreshReview, onStartAssessmentReview, onCompleteAssessmentReview, onOpenRequest }: {
   record: VendorRelationshipAggregate;
   assessment: VendorAssessment | null;
   assessmentSetup?: CurrentVendorAssessment["setup"];
   assessmentState: LoadState;
+  review?: VendorAssessmentReviewView;
+  reviewState: LoadState;
   form?: VendorAssessmentFormOption;
   formState: LoadState;
   requestOutcome?: VendorAssessmentSendOutcome;
@@ -302,6 +361,9 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, fo
   onStartAssessment: (input: StartVendorAssessmentInput) => Promise<VendorAssessment | void>;
   onSendAssessmentRequest: (input: Parameters<typeof sendVendorAssessmentRequest>[1]) => Promise<VendorAssessmentSendOutcome>;
   onReissueAssessmentRequest: (input: Parameters<typeof reissueVendorAssessmentRequest>[1]) => Promise<VendorAssessmentSendOutcome>;
+  onRefreshReview: (assessmentID: string) => Promise<void>;
+  onStartAssessmentReview: (assessmentID: string, expectedVersion: number) => Promise<VendorAssessment>;
+  onCompleteAssessmentReview: (assessmentID: string, input: CompleteVendorAssessmentInput) => Promise<VendorAssessment>;
   onOpenRequest?: (requestID: string) => void;
 }) {
   const { vendor, relationship } = record;
@@ -323,6 +385,8 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, fo
   {assessmentState === "live" && !assessment && formState === "unavailable" ? <section className="vdd-workspace" aria-label="Due diligence"><div className="vdd-state vdd-state-error" role="alert"><h2>Due-diligence forms are unavailable</h2><p>Approved collection forms could not be loaded for {relationship.service_name}. Try again before starting the assessment.</p><button type="button" className="secondary-button" onClick={() => void onRefreshForms()}>Reload forms</button></div></section> : <VendorDueDiligence
     relationship={record}
     assessment={assessment}
+    review={review}
+    reviewState={reviewState}
     form={form}
     requestOutcome={requestOutcome}
     requestOutcomeKind={requestOutcomeKind}
@@ -333,12 +397,19 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, fo
     onStart={onStartAssessment}
     onSend={onSendAssessmentRequest}
     onReissue={onReissueAssessmentRequest}
+    onRefreshReview={onRefreshReview}
+    onStartReview={onStartAssessmentReview}
+    onComplete={onCompleteAssessmentReview}
     onOpenRequest={onOpenRequest}
   />}
   </>;
 }
 
 function Fact({ label, value }: { label: string; value: string }) { return <div><dt>{label}</dt><dd>{value}</dd></div>; }
+
+function needsReviewView(status: VendorAssessment["status"]) {
+  return status === "SUBMITTED" || status === "UNDER_REVIEW" || status === "COMPLETED";
+}
 
 function selectActiveVendorForm(forms: FormTemplate[]): VendorAssessmentFormOption | undefined {
   const current = forms
