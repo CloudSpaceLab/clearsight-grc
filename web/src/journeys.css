@@ -239,7 +239,7 @@
   display: flex;
   justify-content: flex-end;
   background: rgba(2, 8, 14, 0.7);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--overlay-blur, 6px));
 }
 
 .journey-inspector {

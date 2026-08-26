@@ -131,8 +131,11 @@ async function assertFirstActionVisible(page, viewportHeight, name, touch) {
 }
 
 async function assertFocusInsideSheet(page, name) {
-  const inside = await page.evaluate(() => Boolean(document.activeElement?.closest(".side-panel")));
-  if (!inside) throw new Error(`${name} allowed keyboard focus to escape the focused-work sheet`);
+  try {
+    await page.waitForFunction(() => Boolean(document.activeElement?.closest(".side-panel")));
+  } catch {
+    throw new Error(`${name} allowed keyboard focus to escape the focused-work sheet`);
+  }
 }
 
 async function record(page, capture, state) {
@@ -354,6 +357,11 @@ async function captureImportSelection() {
     if ((await purpose.inputValue()) !== "") throw new Error("Document import still starts with a persisted template purpose");
     await form.locator(".file-dropzone-input").setInputFiles({ name: "outsourcing-policy.pdf", mimeType: "application/pdf", buffer: Buffer.from("sample-policy") });
     await page.getByText(/outsourcing-policy\.pdf/).waitFor();
+    const dropzoneBox = await form.locator(".file-dropzone").boundingBox();
+    const replaceBox = await form.getByRole("button", { name: "Replace file" }).boundingBox();
+    if (!dropzoneBox || !replaceBox || replaceBox.width < 80 || replaceBox.x + replaceBox.width > dropzoneBox.x + dropzoneBox.width + 1) {
+      throw new Error("Selected document replacement action is clipped or too narrow to read.");
+    }
     await assertNoHorizontalOverflow(page, capture.name);
     await saveScreenshot(page, capture.name);
     await record(page, capture, "document-selected-before-import");

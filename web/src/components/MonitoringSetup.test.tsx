@@ -252,6 +252,9 @@ describe("monitoring setup", () => {
 
     render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={allMonitoringOperations}/>);
     fireEvent.click(await screen.findByRole("button", { name: "Collect responses" }));
+    expect(screen.getByLabelText("Period starts").getAttribute("type")).toBe("date");
+    expect(screen.getByLabelText("Period ends").getAttribute("type")).toBe("date");
+    expect(screen.getByLabelText("Due").getAttribute("type")).toBe("datetime-local");
     fireEvent.submit(screen.getByRole("button", { name: "Create request" }).closest("form")!);
 
     await waitFor(() => expect(startFormCollection).toHaveBeenCalledWith(expect.objectContaining({ id: "form-1" }), expect.not.objectContaining({

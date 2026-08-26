@@ -1,12 +1,17 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { CloseIcon } from "./CloseIcon";
 
 type Props = {
   label: string;
   onClose: () => void;
   children: ReactNode;
+  panelClassName?: string;
+  backdropClassName?: string;
+  closeLabel?: string;
 };
 
-export function FocusedSheet({ label, onClose, children }: Props) {
+export function FocusedSheet({ label, onClose, children, panelClassName = "", backdropClassName = "", closeLabel = "Close" }: Props) {
   const panelRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -64,10 +69,10 @@ export function FocusedSheet({ label, onClose, children }: Props) {
     };
   }, [onClose]);
 
-  return <div className="panel-backdrop" onMouseDown={onClose}>
-    <aside ref={panelRef} className="side-panel" role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onMouseDown={(event) => event.stopPropagation()}>
-      <button className="panel-close" type="button" onClick={onClose} aria-label="Close">×</button>
+  return createPortal(<div className={`panel-backdrop ${backdropClassName}`.trim()} onMouseDown={onClose}>
+    <aside ref={panelRef} className={`side-panel ${panelClassName}`.trim()} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onMouseDown={(event) => event.stopPropagation()}>
+      <button className="panel-close icon-button" type="button" onClick={onClose} aria-label={closeLabel}><CloseIcon/></button>
       {children}
     </aside>
-  </div>;
+  </div>, document.body);
 }

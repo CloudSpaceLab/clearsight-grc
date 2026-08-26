@@ -114,6 +114,8 @@ it("creates a typed whole-entity delegation from labelled people and responsibil
   fireEvent.change(screen.getByRole("combobox", { name: "Person receiving authority" }), { target: { value: "person-tunde" } });
   expect(screen.queryByRole("option", { name: "Nneka Eze" })).toBeNull();
   fireEvent.change(screen.getByRole("combobox", { name: "Responsibility" }), { target: { value: "REVIEWER" } });
+  expect(screen.getByLabelText("Starts at").getAttribute("type")).toBe("datetime-local");
+  expect(screen.getByLabelText("Ends at").getAttribute("type")).toBe("datetime-local");
   fireEvent.change(screen.getByLabelText("Starts at"), { target: { value: "2026-09-01T09:00" } });
   fireEvent.change(screen.getByLabelText("Ends at"), { target: { value: "2026-09-08T17:00" } });
   fireEvent.change(screen.getByRole("textbox", { name: "Reason" }), { target: { value: "Annual leave cover for payment review" } });

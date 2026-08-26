@@ -40,7 +40,7 @@ export function FileDropzone({
   }
 
   return <div
-    className={`file-dropzone${compact ? " compact" : ""}${dragging ? " dragging" : ""}${fileName ? " has-file" : ""}`}
+    className={`file-dropzone${compact ? " compact" : ""}${dragging ? " dragging" : ""}${fileName ? " has-file" : ""}${previewUrl ? " has-preview" : ""}`}
     onDragEnter={(event) => {
       event.preventDefault();
       if (!inactive) setDragging(true);

@@ -50,6 +50,15 @@ Operational components consume semantic tokens rather than owning separate light
 --green;
 --coral;
 --focus-ring;
+--overlay-blur;
+--document-canvas;
+--document-surface;
+--document-surface-muted;
+--document-border;
+--document-text;
+--document-muted;
+--icon-size-small;
+--interactive-target;
 ```
 
 `web/src/ui-preferences.css` owns the current dark/light mappings and the illustration token mappings. Components must not duplicate semantic colors locally when a token already represents the meaning.
@@ -59,6 +68,10 @@ Theme preference supports **System**, **Light** and **Dark**. Density supports *
 Typography uses Inter, Segoe UI Variable, Segoe UI, then system sans-serif. Headings use tight tracking; operational copy uses normal sentence case. Uppercase is limited to compact metadata labels.
 
 Use an 8px spacing rhythm, 11–18px controls, 12–18px cards and 20–26px hero/guide radii. Shadows and blur remain subtle and never carry state.
+
+Focused dialogs and drawers use the theme backdrop plus `--overlay-blur` to reduce competing shell detail. The overlay must not conceal errors, authority explanations or material status inside the focused surface. Compact line icons use `--icon-size-small` inside controls that retain the `--interactive-target` hit area.
+
+Document reading and comparison surfaces use the document token family. Light mode presents imported material on a white paper-like surface with dark text; dark mode maps the same semantic roles to a quiet dark document surface. Navigation, status and review actions remain visually distinct from the document body.
 
 ## Structural patterns
 

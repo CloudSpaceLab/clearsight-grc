@@ -38,6 +38,7 @@ describe("Program evidence authority gating", () => {
     render(<ProgramEvidencePanel aggregate={aggregate} operations={operations} actorPrincipalID="actor-1" canConfigureSources canOperate onUpdated={vi.fn()} onReload={vi.fn()}/>);
 
     fireEvent.click(await screen.findByRole("button", { name: "Record evidence result" }));
+    expect(screen.getByLabelText("Result valid until").getAttribute("type")).toBe("date");
     const conclusion = screen.getByLabelText("Conclusion") as HTMLSelectElement;
     expect(Array.from(conclusion.options).map((option) => [option.value, option.text])).toEqual([
       ["SUPPORTED", "Supported"],

@@ -61,6 +61,7 @@ describe("MatterSetupWorkspace", () => {
     fireEvent.change(screen.getByLabelText("What happened or changed?"), { target: { value: "The mobile channel did not return a successful face-verification result." } });
     fireEvent.change(screen.getByLabelText("Affected area"), { target: { value: "Mobile banking" } });
     fireEvent.change(screen.getByLabelText("Priority"), { target: { value: "4" } });
+    expect(screen.getByLabelText("Due date").getAttribute("type")).toBe("date");
     fireEvent.change(screen.getByLabelText("Due date"), { target: { value: "2026-09-30" } });
     fireEvent.change(await screen.findByLabelText("Program (optional)"), { target: { value: "program-mobile" } });
     fireEvent.change(screen.getByLabelText("What is already known?"), { target: { value: "The public status check failed." } });

@@ -277,6 +277,8 @@ describe("Program record workspace", () => {
 	  expect(loadProgramReviewDigest).toHaveBeenCalledTimes(1);
 	});
 	fireEvent.click(within(detailsPanel).getByRole("button", { name: "Edit Program details" }));
+	expect(screen.getByLabelText("Effective from").getAttribute("type")).toBe("date");
+	expect(screen.getByLabelText("Effective until").getAttribute("type")).toBe("date");
 	fireEvent.change(screen.getByLabelText("Reason for this change"), { target: { value: "Keep the current command valid." } });
 	fireEvent.click(screen.getByRole("button", { name: "Save Program details" }));
 	await act(async () => {

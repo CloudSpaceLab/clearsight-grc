@@ -347,6 +347,7 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
     fireEvent.click(await screen.findByRole("button", { name: "Edit issue details" }));
+    expect(screen.getByLabelText("Due date").getAttribute("type")).toBe("date");
     fireEvent.change(screen.getByLabelText("Due date"), { target: { value: "2026-09-01" } });
     fireEvent.change(screen.getByLabelText("Reason for this change"), { target: { value: "Use the agreed internal completion date." } });
     fireEvent.click(screen.getByRole("button", { name: "Save issue details" }));
@@ -490,6 +491,7 @@ describe("Matter record workspace", () => {
     fireEvent.change(screen.getByLabelText("Action title"), { target: { value: "Confirm section owners" } });
     fireEvent.change(screen.getByLabelText("Action description"), { target: { value: "Record the two remaining owners." } });
     fireEvent.change(screen.getByLabelText("Action owner"), { target: { value: "owner-2" } });
+    expect(screen.getByLabelText("Action due date").getAttribute("type")).toBe("date");
     fireEvent.change(screen.getByLabelText("Action due date"), { target: { value: "2026-09-02" } });
     fireEvent.click(screen.getByRole("button", { name: "Create assigned action" }));
 
