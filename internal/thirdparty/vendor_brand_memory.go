@@ -68,37 +68,42 @@ func (r *MemoryRepository) PutApprovedVendorBrand(_ context.Context, record Vend
 	return record.Asset, version, nil
 }
 
-func (r *MemoryRepository) RemoveApprovedVendorBrand(_ context.Context, record VendorBrandMutationRecord) (int64, error) {
+func (r *MemoryRepository) RemoveApprovedVendorBrand(_ context.Context, record VendorBrandMutationRecord) (VendorBrandAsset, int64, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if !r.vendorVisibleInScope(record.Scope, record.VendorID) {
-		return 0, ErrNotFound
+		return VendorBrandAsset{}, 0, ErrNotFound
 	}
 	receiptKey := record.TenantID + "\x00" + record.VendorID + "\x00" + record.IdempotencyKey
 	if receipt, ok := r.vendorBrandReceipts[receiptKey]; ok {
 		if receipt.Command != VendorBrandRemoveCommand || receipt.ExpectedVersion != record.ExpectedVersion {
-			return 0, ErrVersionConflict
+			return VendorBrandAsset{}, 0, ErrVersionConflict
 		}
-		return receipt.ResultVersion, nil
+		return receipt.Asset, receipt.ResultVersion, nil
 	}
 	currentVersion := r.nextVendorBrandEventVersion(record.TenantID, record.VendorID) - 1
 	if currentVersion != record.ExpectedVersion {
-		return currentVersion, ErrBrandVersionConflict
+		return VendorBrandAsset{}, currentVersion, ErrBrandVersionConflict
 	}
+	var removed VendorBrandAsset
 	for key, a := range r.vendorBrandAssets {
 		if a.TenantID == record.TenantID && a.VendorID == record.VendorID && a.SourceKind == VendorBrandAssetApprovedOverride && a.State == VendorBrandAssetCurrent {
 			a.State = VendorBrandAssetSuperseded
 			a.UpdatedAt = record.OccurredAt
 			a.Version++
 			r.vendorBrandAssets[key] = a
+			removed = a
 		}
 	}
+	if removed.ID == "" {
+		return VendorBrandAsset{}, currentVersion, ErrVendorBrandOverrideNotFound
+	}
 	version := currentVersion + 1
-	event := VendorBrandEvent{TenantID: record.TenantID, VendorID: record.VendorID, EventType: VendorBrandRemovedEvent, OccurredAt: record.OccurredAt, EventVersion: version}
+	event := VendorBrandEvent{TenantID: record.TenantID, VendorID: record.VendorID, AssetID: removed.ID, AssetVersion: removed.Version, EventType: VendorBrandRemovedEvent, OccurredAt: record.OccurredAt, EventVersion: version}
 	r.vendorBrandEvents = append(r.vendorBrandEvents, event)
 	r.vendorBrandOutbox = append(r.vendorBrandOutbox, event)
-	r.vendorBrandReceipts[receiptKey] = VendorBrandReceipt{TenantID: record.TenantID, VendorID: record.VendorID, IdempotencyKey: record.IdempotencyKey, Command: VendorBrandRemoveCommand, ExpectedVersion: record.ExpectedVersion, ResultVersion: version}
-	return version, nil
+	r.vendorBrandReceipts[receiptKey] = VendorBrandReceipt{TenantID: record.TenantID, VendorID: record.VendorID, IdempotencyKey: record.IdempotencyKey, Command: VendorBrandRemoveCommand, ExpectedVersion: record.ExpectedVersion, ResultVersion: version, Asset: removed}
+	return removed, version, nil
 }
 
 func (r *MemoryRepository) CurrentVendorBrandVersion(_ context.Context, scope Scope, vendorID string) (int64, error) {
@@ -139,22 +144,22 @@ func (r *MemoryRepository) ClaimExpiredVendorBrandReservations(_ context.Context
 	}
 	return items, nil
 }
-func (r *MemoryRepository) VendorBrandArtifactReferenced(_ context.Context, item VendorBrandUploadReservation) (bool, error) {
+func (r *MemoryRepository) VendorBrandArtifactReference(_ context.Context, item VendorBrandUploadReservation) (VendorBrandArtifactReference, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	for _, a := range r.vendorBrandAssets {
 		if a.TenantID == item.TenantID && a.ArtifactKey == item.ArtifactKey {
-			return true, nil
+			return VendorBrandArtifactCommitted, nil
 		}
 	}
 	for _, other := range r.vendorBrandReservations {
 		if other.TenantID == item.TenantID && other.ArtifactKey == item.ArtifactKey && (other.VendorID != item.VendorID || other.IdempotencyKey != item.IdempotencyKey) {
-			return true, nil
+			return VendorBrandArtifactProtected, nil
 		}
 	}
-	return false, nil
+	return VendorBrandArtifactUnreferenced, nil
 }
-func (r *MemoryRepository) CompleteVendorBrandReservationCleanup(_ context.Context, item VendorBrandUploadReservation, referenced bool, at time.Time) error {
+func (r *MemoryRepository) CompleteVendorBrandReservationCleanup(_ context.Context, item VendorBrandUploadReservation, reference VendorBrandArtifactReference, at time.Time) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	key := item.TenantID + "\x00" + item.VendorID + "\x00" + item.IdempotencyKey
@@ -162,7 +167,7 @@ func (r *MemoryRepository) CompleteVendorBrandReservationCleanup(_ context.Conte
 	if !ok || current.State != "CLEANING" || current.LeaseToken != item.LeaseToken {
 		return ErrVersionConflict
 	}
-	if referenced {
+	if reference == VendorBrandArtifactCommitted {
 		current.State = "COMMITTED"
 		current.LeaseToken = ""
 		current.LeaseExpiresAt = nil
@@ -266,6 +271,56 @@ func (r *MemoryRepository) GetVendorBrandAsset(_ context.Context, scope Scope, v
 		}
 	}
 	return VendorBrandAsset{}, ErrNotFound
+}
+
+func (r *MemoryRepository) GetVendorBrandProjection(_ context.Context, scope Scope, vendorID string) (VendorBrandProjection, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if !r.vendorVisibleInScope(scope, vendorID) {
+		return VendorBrandProjection{}, ErrNotFound
+	}
+	return r.vendorBrandProjectionLocked(scope.TenantID, vendorID), nil
+}
+
+func (r *MemoryRepository) GetVendorBrandProjections(_ context.Context, scope Scope, vendorIDs []string) (map[string]VendorBrandProjection, error) {
+	if len(vendorIDs) > 100 {
+		return nil, ErrInvalid
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	values := make(map[string]VendorBrandProjection, len(vendorIDs))
+	for _, vendorID := range vendorIDs {
+		if r.vendorVisibleInScope(scope, vendorID) {
+			values[vendorID] = r.vendorBrandProjectionLocked(scope.TenantID, vendorID)
+		}
+	}
+	return values, nil
+}
+
+func (r *MemoryRepository) vendorBrandProjectionLocked(tenantID, vendorID string) VendorBrandProjection {
+	value := VendorBrandProjection{VendorID: vendorID}
+	vendor := r.vendors[vendorID]
+	for _, asset := range r.vendorBrandAssets {
+		if asset.TenantID != tenantID || asset.VendorID != vendorID || asset.State != VendorBrandAssetCurrent {
+			continue
+		}
+		candidate := asset
+		if asset.SourceKind == VendorBrandAssetApprovedOverride && (value.CurrentApproved == nil || asset.UpdatedAt.After(value.CurrentApproved.UpdatedAt)) {
+			value.CurrentApproved = &candidate
+		}
+		if asset.SourceKind == VendorBrandAssetDiscovered && asset.SourceDomain == vendor.WebsiteDomain && (value.CurrentDiscovered == nil || asset.UpdatedAt.After(value.CurrentDiscovered.UpdatedAt)) {
+			value.CurrentDiscovered = &candidate
+		}
+	}
+	if job, ok := r.vendorBrandJobs[vendorBrandJobKey(tenantID, vendorID)]; ok {
+		value.JobState = job.State
+	}
+	for _, event := range r.vendorBrandEvents {
+		if event.TenantID == tenantID && event.VendorID == vendorID && event.EventVersion > value.EventVersion {
+			value.EventVersion = event.EventVersion
+		}
+	}
+	return value
 }
 
 func (r *MemoryRepository) vendorVisibleInScope(scope Scope, vendorID string) bool {

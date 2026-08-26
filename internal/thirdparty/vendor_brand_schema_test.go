@@ -96,6 +96,12 @@ func TestVendorIdentityPostgresEventsCarryReconstructableSafeState(t *testing.T)
 		t.Fatal(err)
 	}
 	source := string(content)
+	start := strings.Index(source, "func appendVendorIdentityEvent")
+	end := strings.Index(source[start:], "func scanVendor")
+	if start < 0 || end < 0 {
+		t.Fatal("vendor identity event writer not found")
+	}
+	source = source[start : start+end]
 	for _, required := range []string{"'legal_name'", "'trading_name'", "'registration_ref'", "'jurisdiction'", "'website_domain'", "'status'"} {
 		if got := strings.Count(source, required); got != 2 {
 			t.Fatalf("vendor identity event/outbox payload field %s count = %d, want one in each payload", required, got)

@@ -68,11 +68,7 @@ func (a *API) updateVendorIdentity(w http.ResponseWriter, r *http.Request) {
 		writeVendorIdentityError(w, err)
 		return
 	}
-	view, err := brands.GetIdentity(r.Context(), actor, vendor.ID)
-	if err != nil {
-		writeVendorBrandError(w, err)
-		return
-	}
+	view := brands.IdentityForVendorBestEffort(r.Context(), actor, vendor)
 	httpx.WriteJSON(w, http.StatusOK, view)
 }
 
@@ -96,7 +92,11 @@ func (a *API) uploadVendorBrand(w http.ResponseWriter, r *http.Request) {
 	}
 	version, err := parseBrandIfMatch(r)
 	if err != nil {
-		httpx.WriteError(w, http.StatusPreconditionRequired, "brand_version_required", "Provide the current vendor brand version in If-Match.")
+		writeBrandIfMatchError(w, err)
+		return
+	}
+	if strings.TrimSpace(r.Header.Get("Idempotency-Key")) == "" {
+		httpx.WriteError(w, http.StatusBadRequest, "idempotency_key_required", "Provide an Idempotency-Key before uploading the approved vendor icon.")
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, thirdparty.VendorBrandMaximumUploadBytes+1)
@@ -115,7 +115,11 @@ func (a *API) removeVendorBrand(w http.ResponseWriter, r *http.Request) {
 	}
 	version, err := parseBrandIfMatch(r)
 	if err != nil {
-		httpx.WriteError(w, http.StatusPreconditionRequired, "brand_version_required", "Provide the current vendor brand version in If-Match.")
+		writeBrandIfMatchError(w, err)
+		return
+	}
+	if strings.TrimSpace(r.Header.Get("Idempotency-Key")) == "" {
+		httpx.WriteError(w, http.StatusBadRequest, "idempotency_key_required", "Provide an Idempotency-Key before removing the approved vendor icon.")
 		return
 	}
 	view, err := service.RemoveApprovedBrand(r.Context(), r.PathValue("vendor_id"), version, strings.TrimSpace(r.Header.Get("Idempotency-Key")))
@@ -162,15 +166,35 @@ func (a *API) openVendorBrand(w http.ResponseWriter, r *http.Request) {
 }
 
 func parseBrandIfMatch(r *http.Request) (int64, error) {
-	value := strings.Trim(strings.TrimSpace(r.Header.Get("If-Match")), `"`)
-	if value == "" {
-		return 0, errors.New("missing")
+	raw := strings.TrimSpace(r.Header.Get("If-Match"))
+	if raw == "" {
+		return 0, errBrandIfMatchMissing
+	}
+	if len(raw) < 3 || raw[0] != '"' || raw[len(raw)-1] != '"' {
+		return 0, errBrandIfMatchInvalid
+	}
+	value := raw[1 : len(raw)-1]
+	if value == "" || strings.Contains(value, `"`) {
+		return 0, errBrandIfMatchInvalid
 	}
 	version, err := strconv.ParseInt(value, 10, 64)
 	if err != nil || version < 0 {
-		return 0, errors.New("invalid")
+		return 0, errBrandIfMatchInvalid
 	}
 	return version, nil
+}
+
+var (
+	errBrandIfMatchMissing = errors.New("missing If-Match")
+	errBrandIfMatchInvalid = errors.New("invalid If-Match")
+)
+
+func writeBrandIfMatchError(w http.ResponseWriter, err error) {
+	if errors.Is(err, errBrandIfMatchMissing) {
+		httpx.WriteError(w, http.StatusPreconditionRequired, "brand_version_required", "Provide the current vendor brand version in If-Match.")
+		return
+	}
+	httpx.WriteError(w, http.StatusBadRequest, "brand_version_invalid", "Use a non-negative vendor brand version in If-Match.")
 }
 
 func writeVendorBrandError(w http.ResponseWriter, err error) {
@@ -179,6 +203,10 @@ func writeVendorBrandError(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusNotFound, "vendor_brand_not_found", "No vendor icon is available for this vendor in your current legal-entity scope.")
 	case errors.Is(err, thirdparty.ErrBrandVersionConflict), errors.Is(err, thirdparty.ErrVersionConflict):
 		httpx.WriteError(w, http.StatusConflict, "vendor_brand_version_conflict", "The vendor brand changed. Reload the vendor before trying again.")
+	case errors.Is(err, thirdparty.ErrVendorBrandOverrideNotFound):
+		httpx.WriteError(w, http.StatusNotFound, "approved_vendor_icon_not_found", "No approved vendor icon is available to remove.")
+	case errors.Is(err, thirdparty.ErrIdempotencyKeyRequired):
+		httpx.WriteError(w, http.StatusBadRequest, "idempotency_key_required", "Provide an Idempotency-Key before changing the approved vendor icon.")
 	case errors.Is(err, thirdparty.ErrVendorIdentityAuthorityUnavailable), errors.Is(err, commandauth.ErrGuardUnavailable):
 		httpx.WriteError(w, http.StatusServiceUnavailable, "authority_unavailable", "The authority route could not be checked. No change was made.")
 	case errors.Is(err, commandauth.ErrNotAuthorized), errors.Is(err, thirdparty.ErrVendorIdentityMismatch):

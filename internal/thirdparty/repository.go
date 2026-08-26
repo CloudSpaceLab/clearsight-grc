@@ -25,4 +25,6 @@ type VendorBrandRepository interface {
 	GetVendorBrandJob(context.Context, Scope, string) (VendorBrandJob, error)
 	ListVendorBrandAssets(context.Context, Scope, string) ([]VendorBrandAsset, error)
 	GetVendorBrandAsset(context.Context, Scope, string, string) (VendorBrandAsset, error)
+	GetVendorBrandProjection(context.Context, Scope, string) (VendorBrandProjection, error)
+	GetVendorBrandProjections(context.Context, Scope, []string) (map[string]VendorBrandProjection, error)
 }

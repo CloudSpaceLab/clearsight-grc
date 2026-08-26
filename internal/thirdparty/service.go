@@ -36,6 +36,17 @@ func (s *Service) ConfigureIdentityAuthority(guard AssessmentCommandGuard) {
 	}
 }
 
+func (s *Service) CurrentVendorIdentityVersion(ctx context.Context, actor Actor, vendorID string) (int64, error) {
+	if !validActor(actor) || strings.TrimSpace(vendorID) == "" {
+		return 0, ErrInvalid
+	}
+	vendor, err := s.repo.GetVendor(ctx, scopeFrom(actor), strings.TrimSpace(vendorID))
+	if err != nil {
+		return 0, err
+	}
+	return vendor.Version, nil
+}
+
 func (s *Service) CreateRelationship(ctx context.Context, actor Actor, input CreateRelationshipInput) (Aggregate, error) {
 	input.ExistingRelationshipID = strings.TrimSpace(input.ExistingRelationshipID)
 	input.LegalName = strings.TrimSpace(input.LegalName)
@@ -96,7 +107,11 @@ func (s *Service) CreateRelationship(ctx context.Context, actor Actor, input Cre
 			ExternalRef: strings.TrimSpace(input.ExternalRef), CreatedAt: now, UpdatedAt: now, Version: 1,
 		}, ReuseVendor: reuseVendor, ActorID: strings.TrimSpace(actor.PrincipalID), BrandJob: brandJob,
 	}
-	return s.repo.CreateRelationship(ctx, record)
+	created, err := s.repo.CreateRelationship(ctx, record)
+	if err != nil {
+		return Aggregate{}, err
+	}
+	return s.attachBrandBestEffort(ctx, actor, created), nil
 }
 
 func (s *Service) UpdateVendorIdentity(ctx context.Context, _ Actor, vendorID string, input UpdateVendorIdentityInput) (Vendor, error) {
@@ -216,11 +231,22 @@ func (s *Service) ListRelationships(ctx context.Context, actor Actor, input List
 	if err != nil {
 		return RelationshipPage{}, err
 	}
-	for index := range page.Items {
-		page.Items[index], err = s.attachBrand(ctx, actor, page.Items[index])
-		if err != nil {
-			return RelationshipPage{}, err
+	if s.brands == nil {
+		for index := range page.Items {
+			page.Items[index].Brand = VendorBrandPresentation{State: VendorBrandUnavailable}
 		}
+		return page, nil
+	}
+	vendors := make([]Vendor, 0, len(page.Items))
+	for _, item := range page.Items {
+		vendors = append(vendors, item.Vendor)
+	}
+	brands, err := s.brands.presentations(ctx, scopeFrom(actor), vendors)
+	if err != nil {
+		return RelationshipPage{}, err
+	}
+	for index := range page.Items {
+		page.Items[index].Brand = brands[page.Items[index].Vendor.ID]
 	}
 	return page, nil
 }
@@ -236,6 +262,19 @@ func (s *Service) attachBrand(ctx context.Context, actor Actor, value Aggregate)
 	}
 	value.Brand = brand
 	return value, nil
+}
+
+func (s *Service) attachBrandBestEffort(ctx context.Context, actor Actor, value Aggregate) Aggregate {
+	if s.brands == nil {
+		value.Brand = VendorBrandPresentation{State: VendorBrandUnavailable}
+		return value
+	}
+	fallback := VendorBrandPresentation{State: VendorBrandUnavailable}
+	if value.Vendor.WebsiteDomain != "" && s.brands.discoveryEnabled {
+		fallback.State = VendorBrandPending
+	}
+	value.Brand = s.brands.identityAfterCommand(ctx, actor, value.Vendor, fallback).Brand
+	return value
 }
 
 func (s *Service) UpdateRelationship(ctx context.Context, actor Actor, relationshipID string, input UpdateRelationshipInput) (Aggregate, error) {
@@ -258,10 +297,14 @@ func (s *Service) UpdateRelationship(ctx context.Context, actor Actor, relations
 	relationship.RenewalAt = input.RenewalAt
 	now := s.now().UTC()
 	relationship.UpdatedAt = now
-	return s.repo.UpdateRelationship(ctx, UpdateRecord{
+	updated, err := s.repo.UpdateRelationship(ctx, UpdateRecord{
 		Scope: scopeFrom(actor), ID: strings.TrimSpace(relationshipID), ExpectedVersion: input.ExpectedVersion,
 		Relationship: relationship, ActorID: strings.TrimSpace(actor.PrincipalID),
 	})
+	if err != nil {
+		return Aggregate{}, err
+	}
+	return s.attachBrandBestEffort(ctx, actor, updated), nil
 }
 
 func validActor(actor Actor) bool {

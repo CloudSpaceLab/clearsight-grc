@@ -120,6 +120,24 @@ func (a *API) currentMaterialVersion(r *http.Request, objectType, objectID, tena
 		}
 		value, err := a.deps.ThirdParty.GetRelationship(r.Context(), actor, objectID)
 		return value.Relationship.Version, err
+	case "VENDOR":
+		if a.deps.ThirdParty == nil {
+			return 0, errMaterialVersionUnavailable
+		}
+		actor, err := thirdPartyActor(r)
+		if err != nil {
+			return 0, err
+		}
+		return a.deps.ThirdParty.CurrentVendorIdentityVersion(r.Context(), actor, objectID)
+	case "VENDOR_BRAND":
+		if a.deps.VendorBrands == nil {
+			return 0, errMaterialVersionUnavailable
+		}
+		actor, err := thirdPartyActor(r)
+		if err != nil {
+			return 0, err
+		}
+		return a.deps.VendorBrands.CurrentVersion(r.Context(), actor, objectID)
 	case "THIRD_PARTY_ASSESSMENT":
 		if a.deps.ThirdPartyAssessments == nil {
 			return 0, errMaterialVersionUnavailable

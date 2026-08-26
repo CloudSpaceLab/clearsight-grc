@@ -69,6 +69,7 @@ type VendorBrandReceipt struct {
 	Command         string
 	ExpectedVersion int64
 	ResultVersion   int64
+	Asset           VendorBrandAsset
 }
 
 type VendorBrandWorkerRepository interface {

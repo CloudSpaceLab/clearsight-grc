@@ -4,6 +4,7 @@ package thirdparty
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -11,6 +12,76 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
+
+func (r *PostgresRepository) GetVendorBrandProjection(ctx context.Context, scope Scope, vendorID string) (VendorBrandProjection, error) {
+	values, err := r.GetVendorBrandProjections(ctx, scope, []string{vendorID})
+	if err != nil {
+		return VendorBrandProjection{}, err
+	}
+	value, ok := values[vendorID]
+	if !ok {
+		return VendorBrandProjection{}, ErrNotFound
+	}
+	return value, nil
+}
+
+func (r *PostgresRepository) GetVendorBrandProjections(ctx context.Context, scope Scope, vendorIDs []string) (map[string]VendorBrandProjection, error) {
+	if len(vendorIDs) > 100 {
+		return nil, ErrInvalid
+	}
+	values := make(map[string]VendorBrandProjection, len(vendorIDs))
+	if len(vendorIDs) == 0 {
+		return values, nil
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT p.id::text,
+			COALESCE((SELECT to_jsonb(a) FROM third_party_vendor_brand_assets a WHERE a.tenant_id=p.tenant_id AND a.vendor_id=p.id AND a.source_kind='APPROVED_OVERRIDE' AND a.state='CURRENT' ORDER BY a.updated_at DESC,a.id DESC LIMIT 1),'null'::jsonb),
+			COALESCE((SELECT to_jsonb(a) FROM third_party_vendor_brand_assets a WHERE a.tenant_id=p.tenant_id AND a.vendor_id=p.id AND a.source_kind='DISCOVERED' AND a.state='CURRENT' AND a.source_domain=COALESCE(p.website_domain,'') ORDER BY a.updated_at DESC,a.id DESC LIMIT 1),'null'::jsonb),
+			COALESCE((SELECT j.state FROM third_party_vendor_brand_jobs j WHERE j.tenant_id=p.tenant_id AND j.vendor_id=p.id),''),
+			COALESCE((SELECT max(e.aggregate_version) FROM third_party_events e WHERE e.tenant_id=p.tenant_id AND e.aggregate_type='VENDOR_BRAND' AND e.aggregate_id=p.id),0)
+		FROM third_parties p JOIN tenants t ON t.id=p.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND p.id=ANY($3::uuid[])
+		  AND EXISTS(SELECT 1 FROM third_party_relationships rel WHERE rel.tenant_id=p.tenant_id AND rel.vendor_id=p.id AND rel.legal_entity_id::text=$2)`, scope.TenantID, scope.LegalEntityID, vendorIDs)
+	if err != nil {
+		return nil, fmt.Errorf("get current vendor brand projections: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var value VendorBrandProjection
+		var approvedJSON, discoveredJSON []byte
+		if err := rows.Scan(&value.VendorID, &approvedJSON, &discoveredJSON, &value.JobState, &value.EventVersion); err != nil {
+			return nil, err
+		}
+		value.CurrentApproved, err = decodeVendorBrandAssetJSON(approvedJSON)
+		if err != nil {
+			return nil, err
+		}
+		value.CurrentDiscovered, err = decodeVendorBrandAssetJSON(discoveredJSON)
+		if err != nil {
+			return nil, err
+		}
+		values[value.VendorID] = value
+	}
+	return values, rows.Err()
+}
+
+func decodeVendorBrandAssetJSON(raw []byte) (*VendorBrandAsset, error) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil, nil
+	}
+	var value VendorBrandAsset
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return nil, err
+	}
+	var token struct {
+		AssetToken string `json:"asset_token"`
+	}
+	if err := json.Unmarshal(raw, &token); err != nil {
+		return nil, err
+	}
+	value.AssetToken = token.AssetToken
+	return &value, nil
+}
 
 const vendorProjection = `
 	p.id::text,t.slug,p.legal_name,p.trading_name,p.registration_ref,p.jurisdiction,p.source_id,p.external_ref,
@@ -98,9 +169,33 @@ func (r *PostgresRepository) UpdateVendorIdentity(ctx context.Context, record Up
 		return Vendor{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
-		return Vendor{}, fmt.Errorf("commit vendor identity update: %w", err)
+		commitErr := fmt.Errorf("commit vendor identity update: %w", err)
+		probeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
+		defer cancel()
+		confirmed, probeErr := r.vendorIdentityMutationRecorded(probeCtx, updated, record.ActorID)
+		if confirmed {
+			return updated, nil
+		}
+		if probeErr != nil {
+			return Vendor{}, errors.Join(commitErr, probeErr)
+		}
+		return Vendor{}, commitErr
 	}
 	return updated, nil
+}
+
+func (r *PostgresRepository) vendorIdentityMutationRecorded(ctx context.Context, vendor Vendor, actorID string) (bool, error) {
+	var confirmed bool
+	err := r.pool.QueryRow(ctx, `SELECT EXISTS(
+		SELECT 1 FROM third_parties p JOIN tenants t ON t.id=p.tenant_id
+		JOIN third_party_events e ON e.tenant_id=p.tenant_id AND e.aggregate_type='VENDOR' AND e.aggregate_id=p.id AND e.aggregate_version=p.version AND e.event_type=$11 AND e.actor_principal_id::text=$12
+		JOIN outbox_events o ON o.tenant_id=p.tenant_id AND o.aggregate_type='VENDOR' AND o.aggregate_id=p.id AND o.event_type=$11 AND o.payload->>'version'=$10::text
+		WHERE (t.id::text=$1 OR t.slug=$1) AND p.id::text=$2 AND p.legal_name=$3 AND COALESCE(p.trading_name,'')=$4 AND COALESCE(p.registration_ref,'')=$5
+		  AND COALESCE(p.jurisdiction,'')=$6 AND COALESCE(p.website_domain,'')=$7 AND p.status=$8 AND p.updated_at=$9 AND p.version=$10
+		  AND e.payload->>'legal_name'=$3 AND e.payload->>'trading_name'=$4 AND e.payload->>'registration_ref'=$5 AND e.payload->>'jurisdiction'=$6 AND e.payload->>'website_domain'=$7 AND e.payload->>'status'=$8
+		  AND o.payload->>'legal_name'=$3 AND o.payload->>'trading_name'=$4 AND o.payload->>'registration_ref'=$5 AND o.payload->>'jurisdiction'=$6 AND o.payload->>'website_domain'=$7 AND o.payload->>'status'=$8
+	)`, vendor.TenantID, vendor.ID, vendor.LegalName, vendor.TradingName, vendor.RegistrationRef, vendor.Jurisdiction, vendor.WebsiteDomain, vendor.Status, vendor.UpdatedAt, vendor.Version, VendorIdentityUpdatedEvent, actorID).Scan(&confirmed)
+	return confirmed, err
 }
 
 func (r *PostgresRepository) GetVendorBrandJob(ctx context.Context, scope Scope, vendorID string) (VendorBrandJob, error) {
@@ -342,47 +437,59 @@ func (r *PostgresRepository) PutApprovedVendorBrand(ctx context.Context, record 
 	return a, version, nil
 }
 
-func (r *PostgresRepository) RemoveApprovedVendorBrand(ctx context.Context, record VendorBrandMutationRecord) (int64, error) {
+func (r *PostgresRepository) RemoveApprovedVendorBrand(ctx context.Context, record VendorBrandMutationRecord) (VendorBrandAsset, int64, error) {
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
 	if err != nil {
-		return 0, err
+		return VendorBrandAsset{}, 0, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	tenantID, err := resolveTenant(ctx, tx, record.TenantID)
 	if err != nil {
-		return 0, err
+		return VendorBrandAsset{}, 0, err
 	}
 	var lockedVendor string
 	err = tx.QueryRow(ctx, `SELECT p.id::text FROM third_parties p WHERE p.tenant_id=$1::uuid AND p.id::text=$3 AND EXISTS(SELECT 1 FROM third_party_relationships rel WHERE rel.tenant_id=p.tenant_id AND rel.vendor_id=p.id AND rel.legal_entity_id::text=$2) FOR UPDATE`, tenantID, record.LegalEntityID, record.VendorID).Scan(&lockedVendor)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return 0, ErrNotFound
+		return VendorBrandAsset{}, 0, ErrNotFound
 	}
 	if err != nil {
-		return 0, err
+		return VendorBrandAsset{}, 0, err
 	}
 	var replay int64
 	if err = tx.QueryRow(ctx, `SELECT result_brand_version FROM third_party_vendor_brand_command_receipts WHERE tenant_id=$1::uuid AND vendor_id=$2::uuid AND idempotency_key=$3 AND command_type=$4 AND expected_brand_version=$5`, tenantID, record.VendorID, record.IdempotencyKey, VendorBrandRemoveCommand, record.ExpectedVersion).Scan(&replay); err == nil {
-		return replay, nil
+		return VendorBrandAsset{}, replay, nil
 	} else if !errors.Is(err, pgx.ErrNoRows) {
-		return 0, err
+		return VendorBrandAsset{}, 0, err
 	}
 	version, err := nextVendorBrandEventVersionPG(ctx, tx, tenantID, record.VendorID)
 	if err != nil {
-		return 0, err
+		return VendorBrandAsset{}, 0, err
 	}
 	if version-1 != record.ExpectedVersion {
-		return version - 1, ErrBrandVersionConflict
+		return VendorBrandAsset{}, version - 1, ErrBrandVersionConflict
 	}
-	_, err = tx.Exec(ctx, `UPDATE third_party_vendor_brand_assets SET state='SUPERSEDED',updated_at=$3,version=version+1 WHERE tenant_id=$1::uuid AND vendor_id=$2::uuid AND source_kind='APPROVED_OVERRIDE' AND state='CURRENT'`, tenantID, record.VendorID, record.OccurredAt)
+	removed, err := scanVendorBrandAsset(tx.QueryRow(ctx, `SELECT `+vendorBrandAssetProjection+` FROM third_party_vendor_brand_assets a JOIN tenants t ON t.id=a.tenant_id WHERE a.tenant_id=$1::uuid AND a.vendor_id=$2::uuid AND a.source_kind='APPROVED_OVERRIDE' AND a.state='CURRENT' ORDER BY a.updated_at DESC,a.id DESC LIMIT 1 FOR UPDATE OF a`, tenantID, record.VendorID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return VendorBrandAsset{}, version - 1, ErrVendorBrandOverrideNotFound
+	}
 	if err != nil {
-		return 0, err
+		return VendorBrandAsset{}, 0, err
 	}
+	command, err := tx.Exec(ctx, `UPDATE third_party_vendor_brand_assets SET state='SUPERSEDED',updated_at=$4,version=version+1 WHERE tenant_id=$1::uuid AND vendor_id=$2::uuid AND id=$3::uuid AND version=$5 AND state='CURRENT'`, tenantID, record.VendorID, removed.ID, record.OccurredAt, removed.Version)
+	if err != nil {
+		return VendorBrandAsset{}, 0, err
+	}
+	if command.RowsAffected() != 1 {
+		return VendorBrandAsset{}, 0, ErrVersionConflict
+	}
+	removed.State, removed.UpdatedAt, removed.Version = VendorBrandAssetSuperseded, record.OccurredAt, removed.Version+1
+	record.Asset = removed
 	if err = appendVendorBrandMutationEvent(ctx, tx, tenantID, record, VendorBrandRemovedEvent, version); err != nil {
-		return 0, err
+		return VendorBrandAsset{}, 0, err
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO third_party_vendor_brand_command_receipts(tenant_id,vendor_id,idempotency_key,command_type,expected_brand_version,result_brand_version,created_at) VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7)`, tenantID, record.VendorID, record.IdempotencyKey, VendorBrandRemoveCommand, record.ExpectedVersion, version, record.OccurredAt)
 	if err != nil {
-		return 0, err
+		return VendorBrandAsset{}, 0, err
 	}
 	if err = tx.Commit(ctx); err != nil {
 		commitErr := err
@@ -390,14 +497,14 @@ func (r *PostgresRepository) RemoveApprovedVendorBrand(ctx context.Context, reco
 		defer cancel()
 		confirmed, probeErr := r.vendorBrandMutationRecorded(probeCtx, record, VendorBrandRemovedEvent, version, false)
 		if confirmed {
-			return version, nil
+			return removed, version, nil
 		}
 		if probeErr != nil {
-			return 0, errors.Join(commitErr, probeErr)
+			return VendorBrandAsset{}, 0, errors.Join(commitErr, probeErr)
 		}
-		return 0, commitErr
+		return VendorBrandAsset{}, 0, commitErr
 	}
-	return version, nil
+	return removed, version, nil
 }
 
 func nextVendorBrandEventVersionPG(ctx context.Context, tx pgx.Tx, tenantID, vendorID string) (int64, error) {
@@ -406,17 +513,17 @@ func nextVendorBrandEventVersionPG(ctx context.Context, tx pgx.Tx, tenantID, ven
 	return version, err
 }
 func appendVendorBrandMutationEvent(ctx context.Context, tx pgx.Tx, tenantID string, record VendorBrandMutationRecord, event string, version int64) error {
-	_, err := tx.Exec(ctx, `INSERT INTO third_party_events(tenant_id,aggregate_type,aggregate_id,aggregate_version,actor_principal_id,event_type,payload,occurred_at) VALUES($1::uuid,'VENDOR_BRAND',$2::uuid,$3,$4::uuid,$5,jsonb_build_object('asset_id',$6::text,'brand_version',$3::bigint),$7)`, tenantID, record.VendorID, version, record.ActorID, event, record.Asset.ID, record.OccurredAt)
+	_, err := tx.Exec(ctx, `INSERT INTO third_party_events(tenant_id,aggregate_type,aggregate_id,aggregate_version,actor_principal_id,event_type,payload,occurred_at) VALUES($1::uuid,'VENDOR_BRAND',$2::uuid,$3,$4::uuid,$5,jsonb_build_object('asset_id',$6::text,'asset_version',$7::bigint,'brand_version',$3::bigint),$8)`, tenantID, record.VendorID, version, record.ActorID, event, record.Asset.ID, record.Asset.Version, record.OccurredAt)
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at) VALUES($1::uuid,'VENDOR_BRAND',$2::uuid,$3,jsonb_build_object('asset_id',$4::text,'brand_version',$5::bigint),$6,$6)`, tenantID, record.VendorID, event, record.Asset.ID, version, record.OccurredAt)
+	_, err = tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at) VALUES($1::uuid,'VENDOR_BRAND',$2::uuid,$3,jsonb_build_object('asset_id',$4::text,'asset_version',$5::bigint,'brand_version',$6::bigint),$7,$7)`, tenantID, record.VendorID, event, record.Asset.ID, record.Asset.Version, version, record.OccurredAt)
 	return err
 }
 
 func (r *PostgresRepository) vendorBrandMutationRecorded(ctx context.Context, record VendorBrandMutationRecord, event string, version int64, requiresAsset bool) (bool, error) {
 	var confirmed bool
-	err := r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM tenants t JOIN third_party_vendor_brand_command_receipts receipt ON receipt.tenant_id=t.id JOIN third_party_events e ON e.tenant_id=receipt.tenant_id AND e.aggregate_type='VENDOR_BRAND' AND e.aggregate_id=receipt.vendor_id AND e.aggregate_version=receipt.result_brand_version AND e.event_type=$5 JOIN outbox_events o ON o.tenant_id=receipt.tenant_id AND o.aggregate_type='VENDOR_BRAND' AND o.aggregate_id=receipt.vendor_id AND o.event_type=$5 AND o.payload->>'brand_version'=$6::text WHERE (t.id::text=$1 OR t.slug=$1) AND receipt.vendor_id::text=$2 AND receipt.idempotency_key=$3 AND receipt.expected_brand_version=$4 AND receipt.result_brand_version=$6 AND (NOT $7 OR (EXISTS(SELECT 1 FROM third_party_vendor_brand_assets a WHERE a.tenant_id=receipt.tenant_id AND a.vendor_id=receipt.vendor_id AND a.id::text=$8 AND a.artifact_key=$9 AND a.source_digest=$10 AND a.media_type='image/png') AND EXISTS(SELECT 1 FROM third_party_vendor_brand_upload_reservations q WHERE q.tenant_id=receipt.tenant_id AND q.vendor_id=receipt.vendor_id AND q.idempotency_key=receipt.idempotency_key AND q.state='COMMITTED' AND q.artifact_key=$9 AND q.source_digest=$10))))`, record.TenantID, record.VendorID, record.IdempotencyKey, record.ExpectedVersion, event, version, requiresAsset, record.Asset.ID, record.Asset.ArtifactKey, record.Asset.SourceDigest).Scan(&confirmed)
+	err := r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM tenants t JOIN third_party_vendor_brand_command_receipts receipt ON receipt.tenant_id=t.id JOIN third_party_events e ON e.tenant_id=receipt.tenant_id AND e.aggregate_type='VENDOR_BRAND' AND e.aggregate_id=receipt.vendor_id AND e.aggregate_version=receipt.result_brand_version AND e.event_type=$5 JOIN outbox_events o ON o.tenant_id=receipt.tenant_id AND o.aggregate_type='VENDOR_BRAND' AND o.aggregate_id=receipt.vendor_id AND o.event_type=$5 AND o.payload->>'brand_version'=$6::text WHERE (t.id::text=$1 OR t.slug=$1) AND receipt.vendor_id::text=$2 AND receipt.idempotency_key=$3 AND receipt.expected_brand_version=$4 AND receipt.result_brand_version=$6 AND e.payload->>'asset_id'=$8 AND e.payload->>'asset_version'=$11::text AND o.payload->>'asset_id'=$8 AND o.payload->>'asset_version'=$11::text AND (NOT $7 OR (EXISTS(SELECT 1 FROM third_party_vendor_brand_assets a WHERE a.tenant_id=receipt.tenant_id AND a.vendor_id=receipt.vendor_id AND a.id::text=$8 AND a.artifact_key=$9 AND a.source_digest=$10 AND a.media_type='image/png') AND EXISTS(SELECT 1 FROM third_party_vendor_brand_upload_reservations q WHERE q.tenant_id=receipt.tenant_id AND q.vendor_id=receipt.vendor_id AND q.idempotency_key=receipt.idempotency_key AND q.state='COMMITTED' AND q.artifact_key=$9 AND q.source_digest=$10))))`, record.TenantID, record.VendorID, record.IdempotencyKey, record.ExpectedVersion, event, version, requiresAsset, record.Asset.ID, record.Asset.ArtifactKey, record.Asset.SourceDigest, record.Asset.Version).Scan(&confirmed)
 	return confirmed, err
 }
 
@@ -442,15 +549,24 @@ func (r *PostgresRepository) ClaimExpiredVendorBrandReservations(ctx context.Con
 	}
 	return items, rows.Err()
 }
-func (r *PostgresRepository) VendorBrandArtifactReferenced(ctx context.Context, item VendorBrandUploadReservation) (bool, error) {
-	var found bool
-	err := r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM third_party_vendor_brand_assets a JOIN tenants t ON t.id=a.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND a.artifact_key=$2 UNION ALL SELECT 1 FROM third_party_vendor_brand_upload_reservations q JOIN tenants t ON t.id=q.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND q.artifact_key=$2 AND (q.vendor_id::text<>$3 OR q.idempotency_key<>$4))`, item.TenantID, item.ArtifactKey, item.VendorID, item.IdempotencyKey).Scan(&found)
-	return found, err
+func (r *PostgresRepository) VendorBrandArtifactReference(ctx context.Context, item VendorBrandUploadReservation) (VendorBrandArtifactReference, error) {
+	var committed, protected bool
+	err := r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM third_party_vendor_brand_assets a JOIN tenants t ON t.id=a.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND a.artifact_key=$2), EXISTS(SELECT 1 FROM third_party_vendor_brand_upload_reservations q JOIN tenants t ON t.id=q.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND q.artifact_key=$2 AND (q.vendor_id::text<>$3 OR q.idempotency_key<>$4) AND q.state IN ('RESERVED','CLEANING','COMMITTED'))`, item.TenantID, item.ArtifactKey, item.VendorID, item.IdempotencyKey).Scan(&committed, &protected)
+	if err != nil {
+		return "", err
+	}
+	if committed {
+		return VendorBrandArtifactCommitted, nil
+	}
+	if protected {
+		return VendorBrandArtifactProtected, nil
+	}
+	return VendorBrandArtifactUnreferenced, nil
 }
-func (r *PostgresRepository) CompleteVendorBrandReservationCleanup(ctx context.Context, item VendorBrandUploadReservation, referenced bool, at time.Time) error {
+func (r *PostgresRepository) CompleteVendorBrandReservationCleanup(ctx context.Context, item VendorBrandUploadReservation, reference VendorBrandArtifactReference, at time.Time) error {
 	var command pgconn.CommandTag
 	var err error
-	if referenced {
+	if reference == VendorBrandArtifactCommitted {
 		command, err = r.pool.Exec(ctx, `UPDATE third_party_vendor_brand_upload_reservations q SET state='COMMITTED',lease_token=NULL,lease_expires_at=NULL,updated_at=$5 FROM tenants t WHERE q.tenant_id=t.id AND (t.id::text=$1 OR t.slug=$1) AND q.vendor_id::text=$2 AND q.idempotency_key=$3 AND q.state='CLEANING' AND q.lease_token::text=$4`, item.TenantID, item.VendorID, item.IdempotencyKey, item.LeaseToken, at)
 	} else {
 		command, err = r.pool.Exec(ctx, `DELETE FROM third_party_vendor_brand_upload_reservations q USING tenants t WHERE q.tenant_id=t.id AND (t.id::text=$1 OR t.slug=$1) AND q.vendor_id::text=$2 AND q.idempotency_key=$3 AND q.state='CLEANING' AND q.lease_token::text=$4`, item.TenantID, item.VendorID, item.IdempotencyKey, item.LeaseToken)

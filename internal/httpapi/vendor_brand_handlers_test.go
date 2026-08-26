@@ -101,6 +101,38 @@ func TestVendorBrandCurrentURLRevalidatesAndNeverDisclosesStorageMetadata(t *tes
 	}
 }
 
+func TestVendorBrandCommandHeaderErrorsAreDistinct(t *testing.T) {
+	handler := vendorBrandTestHandler(t)
+	missing := httptest.NewRecorder()
+	handler.ServeHTTP(missing, httptest.NewRequest(http.MethodDelete, "/api/v1/vendor-identities/vendor/brand", nil))
+	if missing.Code != http.StatusPreconditionRequired || !bytes.Contains(missing.Body.Bytes(), []byte("brand_version_required")) {
+		t.Fatalf("missing If-Match = %d %s", missing.Code, missing.Body.String())
+	}
+	malformed := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodDelete, "/api/v1/vendor-identities/vendor/brand", nil)
+	request.Header.Set("If-Match", "bad")
+	handler.ServeHTTP(malformed, request)
+	if malformed.Code != http.StatusBadRequest || !bytes.Contains(malformed.Body.Bytes(), []byte("brand_version_invalid")) {
+		t.Fatalf("malformed If-Match = %d %s", malformed.Code, malformed.Body.String())
+	}
+	for _, value := range []string{`"1`, `1"`, `1`} {
+		response := httptest.NewRecorder()
+		request = httptest.NewRequest(http.MethodDelete, "/api/v1/vendor-identities/vendor/brand", nil)
+		request.Header.Set("If-Match", value)
+		handler.ServeHTTP(response, request)
+		if response.Code != http.StatusBadRequest || !bytes.Contains(response.Body.Bytes(), []byte("brand_version_invalid")) {
+			t.Fatalf("If-Match %q = %d %s", value, response.Code, response.Body.String())
+		}
+	}
+	missingKey := httptest.NewRecorder()
+	request = httptest.NewRequest(http.MethodDelete, "/api/v1/vendor-identities/vendor/brand", nil)
+	request.Header.Set("If-Match", `"0"`)
+	handler.ServeHTTP(missingKey, request)
+	if missingKey.Code != http.StatusBadRequest || !bytes.Contains(missingKey.Body.Bytes(), []byte("idempotency_key_required")) {
+		t.Fatalf("missing idempotency key = %d %s", missingKey.Code, missingKey.Body.String())
+	}
+}
+
 func httpBrandPNG(t *testing.T) []byte {
 	t.Helper()
 	img := image.NewRGBA(image.Rect(0, 0, 16, 16))

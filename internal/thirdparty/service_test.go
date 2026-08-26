@@ -3,6 +3,7 @@ package thirdparty
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -39,6 +40,24 @@ func TestCreateRelationshipBindsOwnerToVerifiedActor(t *testing.T) {
 	if got.Vendor.Version != 1 || got.Relationship.Version != 1 {
 		t.Fatalf("unexpected versions %#v", got)
 	}
+	if got.Brand.State != VendorBrandUnavailable {
+		t.Fatalf("create brand = %#v", got.Brand)
+	}
+}
+
+func TestCreateRelationshipReturnsPendingBrandWhenDiscoveryIsQueued(t *testing.T) {
+	repo := NewMemoryRepository()
+	service := NewService(repo)
+	service.ConfigureVendorBrands(NewVendorBrandService(repo, nil, nil))
+	input := validCreateInput()
+	input.WebsiteDomain = "vendor.example"
+	created, err := service.CreateRelationship(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "owner"}, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.Brand.State != VendorBrandPending {
+		t.Fatalf("brand = %#v", created.Brand)
+	}
 }
 
 func TestListRelationshipsNeverCrossesLegalEntity(t *testing.T) {
@@ -58,6 +77,43 @@ func TestListRelationshipsNeverCrossesLegalEntity(t *testing.T) {
 	}
 	if len(page.Items) != 1 || page.Items[0].Relationship.LegalEntityID != "entity-a" {
 		t.Fatalf("unexpected scoped page %#v", page)
+	}
+}
+
+type countingBrandProjectionRepository struct {
+	*MemoryRepository
+	single, bulk int
+}
+
+func (r *countingBrandProjectionRepository) GetVendorBrandProjection(ctx context.Context, scope Scope, vendorID string) (VendorBrandProjection, error) {
+	r.single++
+	return r.MemoryRepository.GetVendorBrandProjection(ctx, scope, vendorID)
+}
+func (r *countingBrandProjectionRepository) GetVendorBrandProjections(ctx context.Context, scope Scope, vendorIDs []string) (map[string]VendorBrandProjection, error) {
+	r.bulk++
+	return r.MemoryRepository.GetVendorBrandProjections(ctx, scope, vendorIDs)
+}
+
+func TestListRelationshipsLoadsBrandPresentationInOneBulkProjection(t *testing.T) {
+	repo := &countingBrandProjectionRepository{MemoryRepository: NewMemoryRepository()}
+	service := NewService(repo)
+	service.ConfigureVendorBrands(NewVendorBrandService(repo, nil, nil))
+	actor := Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "owner"}
+	for index := 0; index < 3; index++ {
+		input := validCreateInput()
+		input.SourceID = fmt.Sprintf("source-%d", index)
+		input.ExternalRef = fmt.Sprintf("vendor-%d", index)
+		if _, err := service.CreateRelationship(context.Background(), actor, input); err != nil {
+			t.Fatal(err)
+		}
+	}
+	repo.single, repo.bulk = 0, 0
+	page, err := service.ListRelationships(context.Background(), actor, ListInput{Limit: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 3 || repo.single != 0 || repo.bulk != 1 {
+		t.Fatalf("items=%d single=%d bulk=%d", len(page.Items), repo.single, repo.bulk)
 	}
 }
 
@@ -115,6 +171,9 @@ func TestUpdateRelationshipRequiresCurrentVersion(t *testing.T) {
 	}
 	if updated.Vendor.Version != created.Vendor.Version || updated.Vendor.LegalName != created.Vendor.LegalName {
 		t.Fatalf("relationship update changed shared vendor identity: %#v", updated.Vendor)
+	}
+	if updated.Brand.State != VendorBrandUnavailable {
+		t.Fatalf("update brand = %#v", updated.Brand)
 	}
 	_, err = service.UpdateRelationship(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "owner"}, created.Relationship.ID, UpdateRelationshipInput{
 		ExpectedVersion: 1, ServiceName: "Stale change", Criticality: CriticalityStandard, PrivacyRole: PrivacyNone,
@@ -350,12 +409,16 @@ func TestUpdateVendorIdentityFailsClosedWithoutVerifiedAuthority(t *testing.T) {
 }
 
 type vendorIdentityGuardStub struct {
-	requests []commandauth.Request
-	err      error
+	requests  []commandauth.Request
+	err       error
+	failAfter int
 }
 
 func (g *vendorIdentityGuardStub) Authorize(ctx context.Context, request commandauth.Request) (commandauth.Decision, error) {
 	g.requests = append(g.requests, request)
+	if g.failAfter > 0 && len(g.requests) >= g.failAfter {
+		return commandauth.Decision{}, commandauth.ErrNotAuthorized
+	}
 	if g.err != nil {
 		return commandauth.Decision{}, g.err
 	}

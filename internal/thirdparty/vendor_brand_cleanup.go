@@ -39,18 +39,18 @@ func (c *VendorBrandReservationCleaner) Maintain(ctx context.Context, now time.T
 	}
 	var failures []error
 	for _, item := range items {
-		referenced, checkErr := c.Repository.VendorBrandArtifactReferenced(ctx, item)
+		reference, checkErr := c.Repository.VendorBrandArtifactReference(ctx, item)
 		if checkErr != nil {
 			failures = append(failures, checkErr)
 			continue
 		}
-		if !referenced {
+		if reference == VendorBrandArtifactUnreferenced {
 			if deleteErr := c.Store.Delete(ctx, item.ArtifactKey); deleteErr != nil {
 				failures = append(failures, deleteErr)
 				continue
 			}
 		}
-		if completeErr := c.Repository.CompleteVendorBrandReservationCleanup(ctx, item, referenced, now.UTC()); completeErr != nil {
+		if completeErr := c.Repository.CompleteVendorBrandReservationCleanup(ctx, item, reference, now.UTC()); completeErr != nil {
 			failures = append(failures, completeErr)
 		}
 	}

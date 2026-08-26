@@ -112,7 +112,7 @@ func (a *API) rawCommand(name string, policy commandPolicy, handler http.Handler
 			return
 		}
 		if a.deps.CommandGuard == nil || a.deps.CommandGuard.Mode() == commandauth.ModeOff {
-			handler(w, r)
+			a.executeRawMaterialHandler(w, r, policy, actor.TenantID, handler)
 			return
 		}
 		objectID := strings.TrimSpace(r.PathValue("vendor_id"))
@@ -126,8 +126,16 @@ func (a *API) rawCommand(name string, policy commandPolicy, handler http.Handler
 		} else {
 			w.Header().Set("X-ClearSight-Command-Authorization", "audit")
 		}
-		handler(w, r)
+		a.executeRawMaterialHandler(w, r, policy, actor.TenantID, handler)
 	}
+}
+
+func (a *API) executeRawMaterialHandler(w http.ResponseWriter, r *http.Request, policy commandPolicy, tenantID string, handler http.HandlerFunc) {
+	payload := map[string]any{"tenant_id": tenantID}
+	if version, err := parseBrandIfMatch(r); err == nil {
+		payload["expected_version"] = version
+	}
+	a.executeMaterialHandler(w, r, policy, payload, handler)
 }
 
 func commandActorField(policy commandPolicy) string {

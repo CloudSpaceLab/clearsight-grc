@@ -15,22 +15,24 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 )
 
 type VendorBrandService struct {
-	repo  VendorBrandMutationRepository
-	store evidence.ObjectStore
-	guard AssessmentCommandGuard
-	now   func() time.Time
-	newID func() (string, error)
+	repo             VendorBrandMutationRepository
+	store            evidence.ObjectStore
+	guard            AssessmentCommandGuard
+	now              func() time.Time
 	discoveryEnabled bool
 }
 
 func NewVendorBrandService(repo VendorBrandMutationRepository, store evidence.ObjectStore, guard AssessmentCommandGuard) *VendorBrandService {
-	return &VendorBrandService{repo: repo, store: store, guard: guard, now: time.Now, newID: id.NewUUIDv7, discoveryEnabled:true}
+	return &VendorBrandService{repo: repo, store: store, guard: guard, now: time.Now, discoveryEnabled: true}
 }
-func (s *VendorBrandService) ConfigureDiscoveryEnabled(enabled bool){if s!=nil{s.discoveryEnabled=enabled}}
+func (s *VendorBrandService) ConfigureDiscoveryEnabled(enabled bool) {
+	if s != nil {
+		s.discoveryEnabled = enabled
+	}
+}
 
 func (s *VendorBrandService) GetIdentity(ctx context.Context, actor Actor, vendorID string) (VendorIdentityView, error) {
 	if s == nil || s.repo == nil || !validActor(actor) || strings.TrimSpace(vendorID) == "" {
@@ -47,8 +49,22 @@ func (s *VendorBrandService) GetIdentity(ctx context.Context, actor Actor, vendo
 	return VendorIdentityView{Vendor: vendor, Brand: brand}, nil
 }
 
+func (s *VendorBrandService) CurrentVersion(ctx context.Context, actor Actor, vendorID string) (int64, error) {
+	if s == nil || s.repo == nil || !validActor(actor) || strings.TrimSpace(vendorID) == "" {
+		return 0, ErrInvalid
+	}
+	projection, err := s.repo.GetVendorBrandProjection(ctx, scopeFrom(actor), strings.TrimSpace(vendorID))
+	if err != nil {
+		return 0, err
+	}
+	return projection.EventVersion, nil
+}
+
 func (s *VendorBrandService) PutApprovedBrand(ctx context.Context, vendorID string, expectedVersion int64, idempotencyKey, contentType string, reader io.Reader) (VendorIdentityView, error) {
-	if s == nil || s.repo == nil || s.store == nil || expectedVersion < 0 || strings.TrimSpace(vendorID) == "" || strings.TrimSpace(idempotencyKey) == "" || len(idempotencyKey) > 200 || reader == nil {
+	if strings.TrimSpace(idempotencyKey) == "" {
+		return VendorIdentityView{}, ErrIdempotencyKeyRequired
+	}
+	if s == nil || s.repo == nil || s.store == nil || expectedVersion < 0 || strings.TrimSpace(vendorID) == "" || len(idempotencyKey) > 200 || reader == nil {
 		return VendorIdentityView{}, ErrInvalid
 	}
 	actor, err := s.authorize(ctx, vendorID, VendorBrandApproveCommand)
@@ -81,16 +97,13 @@ func (s *VendorBrandService) PutApprovedBrand(ctx context.Context, vendorID stri
 	if err != nil {
 		return VendorIdentityView{}, err
 	}
-	assetID, err := s.newID()
-	if err != nil {
-		return VendorIdentityView{}, err
-	}
+	assetID := vendorBrandReservationAssetID(actor.TenantID, vendorID, idempotencyKey)
 	digest := sha256.Sum256(canonical.PNG)
 	digestText := hex.EncodeToString(digest[:])
-	key := vendorBrandApprovedObjectKey(actor.TenantID, vendorID, digestText)
+	key := vendorBrandApprovedObjectKey(actor.TenantID, vendorID, assetID, digestText)
 	at := s.now().UTC()
 	asset := VendorBrandAsset{ID: assetID, TenantID: actor.TenantID, VendorID: vendorID, SourceKind: VendorBrandAssetApprovedOverride, State: VendorBrandAssetCurrent, ArtifactKey: key, SourceDigest: digestText, MediaType: "image/png", PixelWidth: canonical.PixelWidth, PixelHeight: canonical.PixelHeight, ByteSize: int64(len(canonical.PNG)), RetrievedAt: &at, ApprovedByPrincipalID: actor.PrincipalID, CreatedAt: at, UpdatedAt: at, Version: 1}
-	asset.AssetToken=brandAssetToken(asset)
+	asset.AssetToken = brandAssetToken(asset)
 	record := VendorBrandMutationRecord{Scope: scopeFrom(actor), VendorID: vendorID, ExpectedVersion: expectedVersion, IdempotencyKey: idempotencyKey, Asset: asset, ActorID: actor.PrincipalID, OccurredAt: at}
 	if err = s.repo.ReserveApprovedVendorBrand(ctx, record); err != nil {
 		return VendorIdentityView{}, err
@@ -102,25 +115,58 @@ func (s *VendorBrandService) PutApprovedBrand(ctx context.Context, vendorID stri
 	if info.Key != key || info.SHA256 != digestText || info.SizeBytes != asset.ByteSize {
 		return VendorIdentityView{}, ErrInvalid
 	}
-	_, _, err = s.repo.PutApprovedVendorBrand(ctx, record)
+	finalActor, err := s.authorize(ctx, vendorID, VendorBrandApproveCommand)
 	if err != nil {
 		return VendorIdentityView{}, err
 	}
-	return s.GetIdentity(ctx, actor, vendor.ID)
+	if finalActor != actor {
+		return VendorIdentityView{}, ErrVendorIdentityMismatch
+	}
+	committed, version, err := s.repo.PutApprovedVendorBrand(ctx, record)
+	if err != nil {
+		return VendorIdentityView{}, err
+	}
+	fallback := presentBrand(committed, VendorBrandApprovedLogo, VendorBrandSourceApprovedUpload, version)
+	return s.identityAfterCommand(ctx, actor, vendor, fallback), nil
 }
 
 func (s *VendorBrandService) RemoveApprovedBrand(ctx context.Context, vendorID string, expectedVersion int64, idempotencyKey string) (VendorIdentityView, error) {
-	if s == nil || s.repo == nil || expectedVersion < 0 || strings.TrimSpace(vendorID) == "" || strings.TrimSpace(idempotencyKey) == "" || len(idempotencyKey) > 200 {
+	if strings.TrimSpace(idempotencyKey) == "" {
+		return VendorIdentityView{}, ErrIdempotencyKeyRequired
+	}
+	if s == nil || s.repo == nil || expectedVersion < 0 || strings.TrimSpace(vendorID) == "" || len(idempotencyKey) > 200 {
 		return VendorIdentityView{}, ErrInvalid
 	}
 	actor, err := s.authorize(ctx, vendorID, VendorBrandRemoveCommand)
 	if err != nil {
 		return VendorIdentityView{}, err
 	}
-	if _, err := s.repo.RemoveApprovedVendorBrand(ctx, VendorBrandMutationRecord{Scope: scopeFrom(actor), VendorID: vendorID, ExpectedVersion: expectedVersion, IdempotencyKey: idempotencyKey, ActorID: actor.PrincipalID, OccurredAt: s.now().UTC()}); err != nil {
+	vendor, err := s.repo.GetVendor(ctx, scopeFrom(actor), vendorID)
+	if err != nil {
 		return VendorIdentityView{}, err
 	}
-	return s.GetIdentity(ctx, actor, vendorID)
+	if _, version, err := s.repo.RemoveApprovedVendorBrand(ctx, VendorBrandMutationRecord{Scope: scopeFrom(actor), VendorID: vendorID, ExpectedVersion: expectedVersion, IdempotencyKey: idempotencyKey, ActorID: actor.PrincipalID, OccurredAt: s.now().UTC()}); err != nil {
+		return VendorIdentityView{}, err
+	} else {
+		fallback := VendorBrandPresentation{State: VendorBrandUnavailable, Version: version, EventVersion: version}
+		return s.identityAfterCommand(ctx, actor, vendor, fallback), nil
+	}
+}
+
+func (s *VendorBrandService) identityAfterCommand(ctx context.Context, actor Actor, vendor Vendor, fallback VendorBrandPresentation) VendorIdentityView {
+	brand, err := s.presentation(ctx, scopeFrom(actor), vendor)
+	if err != nil {
+		brand = fallback
+	}
+	return VendorIdentityView{Vendor: vendor, Brand: brand}
+}
+
+func (s *VendorBrandService) IdentityForVendorBestEffort(ctx context.Context, actor Actor, vendor Vendor) VendorIdentityView {
+	fallback := VendorBrandPresentation{State: VendorBrandUnavailable}
+	if vendor.WebsiteDomain != "" && s != nil && s.discoveryEnabled {
+		fallback.State = VendorBrandPending
+	}
+	return s.identityAfterCommand(ctx, actor, vendor, fallback)
 }
 
 func (s *VendorBrandService) OpenBrand(ctx context.Context, actor Actor, vendorID, token string) (VendorBrandAsset, io.ReadCloser, error) {
@@ -142,8 +188,8 @@ func (s *VendorBrandService) OpenBrand(ctx context.Context, actor Actor, vendorI
 	if selectedToken == "" {
 		return VendorBrandAsset{}, nil, ErrNotFound
 	}
-	asset,err:=s.repo.GetVendorBrandAsset(ctx,scopeFrom(actor),vendorID,selectedToken)
-	if err==nil {
+	asset, err := s.repo.GetVendorBrandAsset(ctx, scopeFrom(actor), vendorID, selectedToken)
+	if err == nil {
 		if validStoredBrandAsset(asset) {
 			reader, openErr := s.store.Open(ctx, asset.ArtifactKey)
 			if openErr != nil {
@@ -165,45 +211,49 @@ func (s *VendorBrandService) OpenBrand(ctx context.Context, actor Actor, vendorI
 			return asset, io.NopCloser(bytes.NewReader(body)), nil
 		}
 	}
-	if err!=nil&&!errors.Is(err,ErrNotFound){return VendorBrandAsset{},nil,err}
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return VendorBrandAsset{}, nil, err
+	}
 	return VendorBrandAsset{}, nil, ErrNotFound
 }
 
 func (s *VendorBrandService) presentation(ctx context.Context, scope Scope, vendor Vendor) (VendorBrandPresentation, error) {
-	assets, err := s.repo.ListVendorBrandAssets(ctx, scope, vendor.ID)
-	if err != nil && !errors.Is(err, ErrNotFound) {
-		return VendorBrandPresentation{}, err
-	}
-	var approved, discovered *VendorBrandAsset
-	version, err := s.repo.CurrentVendorBrandVersion(ctx, scope, vendor.ID)
+	projection, err := s.repo.GetVendorBrandProjection(ctx, scope, vendor.ID)
 	if err != nil {
 		return VendorBrandPresentation{}, err
 	}
-	for i := range assets {
-		a := assets[i]
-		if a.State != VendorBrandAssetCurrent || !validStoredBrandAsset(a) {
-			continue
-		}
-		if a.SourceKind == VendorBrandAssetApprovedOverride {
-			approved = &a
-		}
-		if a.SourceKind == VendorBrandAssetDiscovered && a.SourceDomain == vendor.WebsiteDomain {
-			discovered = &a
-		}
+	return s.presentationFromProjection(vendor, projection), nil
+}
+
+func (s *VendorBrandService) presentationFromProjection(vendor Vendor, projection VendorBrandProjection) VendorBrandPresentation {
+	version := projection.EventVersion
+	if projection.CurrentApproved != nil && validStoredBrandAsset(*projection.CurrentApproved) {
+		return presentBrand(*projection.CurrentApproved, VendorBrandApprovedLogo, VendorBrandSourceApprovedUpload, version)
 	}
-	if approved != nil {
-		return presentBrand(*approved, VendorBrandApprovedLogo, VendorBrandSourceApprovedUpload, version), nil
-	}
-	if discovered != nil {
-		return presentBrand(*discovered, VendorBrandWebsiteIcon, VendorBrandSourceVendorWebsite, version), nil
+	if projection.CurrentDiscovered != nil && projection.CurrentDiscovered.SourceDomain == vendor.WebsiteDomain && validStoredBrandAsset(*projection.CurrentDiscovered) {
+		return presentBrand(*projection.CurrentDiscovered, VendorBrandWebsiteIcon, VendorBrandSourceVendorWebsite, version)
 	}
 	state := VendorBrandUnavailable
-	if vendor.WebsiteDomain != "" && s.discoveryEnabled {
-		if job, jobErr := s.repo.GetVendorBrandJob(ctx, scope, vendor.ID); jobErr == nil && (job.State == VendorBrandJobReady || job.State == VendorBrandJobLeased) {
-			state = VendorBrandPending
-		}
+	if vendor.WebsiteDomain != "" && s.discoveryEnabled && (projection.JobState == VendorBrandJobReady || projection.JobState == VendorBrandJobLeased) {
+		state = VendorBrandPending
 	}
-	return VendorBrandPresentation{State: state, Version: version, EventVersion: version}, nil
+	return VendorBrandPresentation{State: state, Version: version, EventVersion: version}
+}
+
+func (s *VendorBrandService) presentations(ctx context.Context, scope Scope, vendors []Vendor) (map[string]VendorBrandPresentation, error) {
+	ids := make([]string, 0, len(vendors))
+	for _, vendor := range vendors {
+		ids = append(ids, vendor.ID)
+	}
+	projections, err := s.repo.GetVendorBrandProjections(ctx, scope, ids)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]VendorBrandPresentation, len(vendors))
+	for _, vendor := range vendors {
+		result[vendor.ID] = s.presentationFromProjection(vendor, projections[vendor.ID])
+	}
+	return result, nil
 }
 
 func presentBrand(asset VendorBrandAsset, state VendorBrandPresentationState, source VendorBrandPresentationSource, version int64) VendorBrandPresentation {
@@ -212,14 +262,25 @@ func presentBrand(asset VendorBrandAsset, state VendorBrandPresentationState, so
 }
 
 func brandAssetToken(asset VendorBrandAsset) string {
-	if asset.AssetToken!="" { return asset.AssetToken }
+	if asset.AssetToken != "" {
+		return asset.AssetToken
+	}
 	sum := sha256.Sum256([]byte(asset.TenantID + "\x00" + asset.VendorID + "\x00" + asset.ID + "\x00" + asset.SourceDigest))
 	return hex.EncodeToString(sum[:])
 }
 
 func BrandAssetToken(asset VendorBrandAsset) string { return brandAssetToken(asset) }
-func vendorBrandApprovedObjectKey(tenantID, vendorID, digest string) string {
-	return "vendor-brands/" + stringsDigest(tenantID)[:16] + "/" + stringsDigest(vendorID)[:16] + "/approved/" + digest + ".png"
+func vendorBrandApprovedObjectKey(tenantID, vendorID, assetID, digest string) string {
+	return "vendor-brands/" + stringsDigest(tenantID)[:16] + "/" + stringsDigest(vendorID)[:16] + "/approved/" + stringsDigest(assetID)[:16] + "/" + digest + ".png"
+}
+
+func vendorBrandReservationAssetID(tenantID, vendorID, idempotencyKey string) string {
+	sum := sha256.Sum256([]byte("vendor-brand-reservation\x00" + tenantID + "\x00" + vendorID + "\x00" + idempotencyKey))
+	bytes := sum[:16]
+	bytes[6] = (bytes[6] & 0x0f) | 0x50
+	bytes[8] = (bytes[8] & 0x3f) | 0x80
+	value := hex.EncodeToString(bytes)
+	return value[:8] + "-" + value[8:12] + "-" + value[12:16] + "-" + value[16:20] + "-" + value[20:]
 }
 func validStoredBrandAsset(a VendorBrandAsset) bool {
 	if a.MediaType != "image/png" || a.ByteSize < 1 || a.ByteSize > VendorBrandMaximumUploadBytes || a.PixelWidth < 1 || a.PixelWidth > vendorBrandOutputDimension || a.PixelHeight < 1 || a.PixelHeight > vendorBrandOutputDimension || strings.TrimSpace(a.ArtifactKey) != a.ArtifactKey || a.ArtifactKey == "" || len(a.SourceDigest) != 64 || strings.ToLower(a.SourceDigest) != a.SourceDigest {
@@ -230,7 +291,7 @@ func validStoredBrandAsset(a VendorBrandAsset) bool {
 	}
 	prefix := "vendor-brands/" + stringsDigest(a.TenantID)[:16] + "/" + stringsDigest(a.VendorID)[:16] + "/"
 	if a.SourceKind == VendorBrandAssetApprovedOverride {
-		return a.ArtifactKey == vendorBrandApprovedObjectKey(a.TenantID, a.VendorID, a.SourceDigest)
+		return a.ArtifactKey == vendorBrandApprovedObjectKey(a.TenantID, a.VendorID, a.ID, a.SourceDigest)
 	}
 	return a.SourceKind == VendorBrandAssetDiscovered && strings.HasPrefix(a.ArtifactKey, prefix+"v") && strings.HasSuffix(a.ArtifactKey, "/"+a.SourceDigest+".png")
 }

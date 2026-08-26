@@ -26,6 +26,8 @@ var (
 	ErrVendorIdentityMismatch             = errors.New("vendor identity command identity does not match verified context")
 	ErrBrandVersionConflict               = errors.New("vendor brand version conflict")
 	ErrVendorBrandAssetUnavailable        = errors.New("vendor brand asset unavailable")
+	ErrVendorBrandOverrideNotFound        = errors.New("approved vendor brand override not found")
+	ErrIdempotencyKeyRequired             = errors.New("idempotency key required")
 )
 
 const VendorBrandMaximumUploadBytes int64 = 512 << 10
@@ -55,6 +57,14 @@ type VendorBrandPresentation struct {
 	UpdatedAt    *time.Time                    `json:"updated_at,omitempty"`
 }
 
+type VendorBrandProjection struct {
+	VendorID          string
+	CurrentApproved   *VendorBrandAsset
+	CurrentDiscovered *VendorBrandAsset
+	JobState          VendorBrandJobState
+	EventVersion      int64
+}
+
 type VendorIdentityView struct {
 	Vendor Vendor                  `json:"vendor"`
 	Brand  VendorBrandPresentation `json:"brand"`
@@ -74,7 +84,7 @@ type VendorBrandMutationRepository interface {
 	VendorBrandRepository
 	ReserveApprovedVendorBrand(context.Context, VendorBrandMutationRecord) error
 	PutApprovedVendorBrand(context.Context, VendorBrandMutationRecord) (VendorBrandAsset, int64, error)
-	RemoveApprovedVendorBrand(context.Context, VendorBrandMutationRecord) (int64, error)
+	RemoveApprovedVendorBrand(context.Context, VendorBrandMutationRecord) (VendorBrandAsset, int64, error)
 	CurrentVendorBrandVersion(context.Context, Scope, string) (int64, error)
 }
 
@@ -88,9 +98,17 @@ type VendorBrandUploadReservation struct {
 
 type VendorBrandReservationRepository interface {
 	ClaimExpiredVendorBrandReservations(context.Context, time.Time, time.Time, time.Duration, int) ([]VendorBrandUploadReservation, error)
-	VendorBrandArtifactReferenced(context.Context, VendorBrandUploadReservation) (bool, error)
-	CompleteVendorBrandReservationCleanup(context.Context, VendorBrandUploadReservation, bool, time.Time) error
+	VendorBrandArtifactReference(context.Context, VendorBrandUploadReservation) (VendorBrandArtifactReference, error)
+	CompleteVendorBrandReservationCleanup(context.Context, VendorBrandUploadReservation, VendorBrandArtifactReference, time.Time) error
 }
+
+type VendorBrandArtifactReference string
+
+const (
+	VendorBrandArtifactUnreferenced VendorBrandArtifactReference = "UNREFERENCED"
+	VendorBrandArtifactCommitted    VendorBrandArtifactReference = "COMMITTED_ASSET"
+	VendorBrandArtifactProtected    VendorBrandArtifactReference = "OTHER_RESERVATION"
+)
 
 type VendorBrandObjectReader interface {
 	Open(context.Context, string) (io.ReadCloser, error)
