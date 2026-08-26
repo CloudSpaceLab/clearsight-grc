@@ -60,8 +60,8 @@ type committedCommandReceipt struct {
 }
 
 func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, policy commandPolicy, payload map[string]any, handler http.HandlerFunc) {
-	objectType, objectID := commandOutcomeObject(r, policy, payload)
-	if objectID == "" || objectID == "*" {
+	objectID := commandObjectID(r, payload, policy)
+	if a.deps.Continuity == nil || objectID == "" || objectID == "*" || (policy.ObjectType != "PROGRAM" && policy.ObjectType != "MATTER") {
 		handler(w, r)
 		return
 	}
@@ -103,65 +103,24 @@ func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, pol
 	})
 }
 
-func (a *API) currentMaterialVersion(r *http.Request, objectType, objectID, tenantID string) (int64, error) {
-	switch objectType {
-	case "PROGRAM", "MATTER":
-		if a.deps.Continuity == nil {
-			return 0, errMaterialVersionUnavailable
+func commandObjectID(r *http.Request, payload map[string]any, policy commandPolicy) string {
+	if field := strings.TrimSpace(policy.ObjectIDPath); field != "" {
+		if r != nil {
+			if value := strings.TrimSpace(r.PathValue(field)); value != "" {
+				return value
+			}
 		}
-		return a.deps.Continuity.CurrentVersion(r.Context(), tenantID, objectType, objectID)
-	case "VENDOR_RELATIONSHIP":
-		if a.deps.ThirdParty == nil {
-			return 0, errMaterialVersionUnavailable
+		if value := stringValue(payload[field]); value != "" {
+			return value
 		}
-		actor, err := thirdPartyActor(r)
-		if err != nil {
-			return 0, err
-		}
-		value, err := a.deps.ThirdParty.GetRelationship(r.Context(), actor, objectID)
-		return value.Relationship.Version, err
-	case "THIRD_PARTY_ASSESSMENT":
-		if a.deps.ThirdPartyAssessments == nil {
-			return 0, errMaterialVersionUnavailable
-		}
-		actor, err := thirdPartyActor(r)
-		if err != nil {
-			return 0, err
-		}
-		value, err := a.deps.ThirdPartyAssessments.GetAssessment(r.Context(), actor, objectID)
-		return value.Version, err
-	case "VENDOR_WORK_REQUEST":
-		if a.deps.ThirdPartyWork == nil {
-			return 0, errMaterialVersionUnavailable
-		}
-		actor, err := thirdPartyActor(r)
-		if err != nil {
-			return 0, err
-		}
-		value, err := a.deps.ThirdPartyWork.Get(r.Context(), actor, objectID)
-		return value.Version, err
-	default:
-		return 0, errMaterialVersionUnavailable
 	}
-}
-
-func commandOutcomeObject(r *http.Request, policy commandPolicy, payload map[string]any) (string, string) {
-	objectType := policy.ObjectType
-	objectID := commandObjectID(r, payload)
-	if strings.TrimSpace(policy.OutcomeObjectType) != "" {
-		objectType = strings.TrimSpace(policy.OutcomeObjectType)
-	}
-	if r != nil && strings.TrimSpace(policy.OutcomePathValue) != "" {
-		objectID = strings.TrimSpace(r.PathValue(policy.OutcomePathValue))
-	}
-	return objectType, objectID
-}
-
-func commandObjectID(r *http.Request, payload map[string]any) string {
 	if r != nil {
 		if value := strings.TrimSpace(r.PathValue("id")); value != "" {
 			return value
 		}
+	}
+	if value := stringValue(payload["monitoring_check_id"]); value != "" {
+		return value
 	}
 	if value := stringValue(payload["program_id"]); value != "" {
 		return value

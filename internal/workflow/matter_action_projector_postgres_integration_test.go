@@ -146,3 +146,81 @@ func TestMatterActionProjectorIsIdempotentAndKeepsTaskDerived(t *testing.T) {
 		t.Fatalf("projection cardinality receipts=%d workflows=%d tasks=%d", receipts, workflows, taskRows)
 	}
 }
+
+func TestMatterActionProjectorReassignsCurrentTask(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("TEST_DATABASE_URL is not configured")
+	}
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+
+	const (
+		tenantID = "97666666-6666-7766-8766-666666666661"
+		oldOwner = "97666666-6666-7766-8766-666666666662"
+		newOwner = "97666666-6666-7766-8766-666666666663"
+		matterID = "97666666-6666-7766-8766-666666666664"
+		actionID = "97666666-6666-7766-8766-666666666665"
+	)
+	occurred := time.Date(2026, 8, 25, 12, 0, 0, 0, time.UTC)
+	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
+	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'action-reassignment-test','Action Reassignment Test')`, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name) VALUES
+		($1::uuid,$3::uuid,'PERSON','Previous performer'),
+		($2::uuid,$3::uuid,'PERSON','Current performer')`, oldOwner, newOwner, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,owner_principal_id,created_at,updated_at)
+		VALUES($1::uuid,$2::uuid,'MAT-REASSIGN-1','CONTROL_GAP','ACTION_IN_PROGRESS',4,'Reassign action','Test current workflow ownership','{}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$3::uuid,$4,$4)`, matterID, tenantID, oldOwner, occurred); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO matter_actions(id,tenant_id,matter_id,title,description,owner_principal_id,status,created_at,updated_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,'Update checklist','Map every section',$4::uuid,'PLANNED',$5,$5)`, actionID, tenantID, matterID, oldOwner, occurred); err != nil {
+		t.Fatal(err)
+	}
+
+	projector := &MatterActionProjector{Repo: NewPostgresRepository(pool)}
+	addedPayload, _ := json.Marshal(matterActionPayload{ID: actionID, TenantID: "action-reassignment-test", MatterID: matterID, Title: "Update checklist", OwnerPrincipalID: oldOwner, Status: "PLANNED"})
+	if err := projector.Publish(ctx, workflowruntime.OutboxEvent{ID: "97001", TenantID: "action-reassignment-test", AggregateType: "MATTER", AggregateID: matterID, EventType: "ACTION_ADDED", Payload: addedPayload, OccurredAt: occurred}); err != nil {
+		t.Fatal(err)
+	}
+	reassignedPayload, _ := json.Marshal(map[string]any{
+		"action":                      map[string]any{"id": actionID, "tenant_id": "action-reassignment-test", "matter_id": matterID, "title": "Update checklist", "owner_principal_id": newOwner, "status": "PLANNED"},
+		"previous_owner_principal_id": oldOwner, "owner_principal_id": newOwner, "rationale": "Assign the current process owner.",
+	})
+	if err := projector.Publish(ctx, workflowruntime.OutboxEvent{ID: "97002", TenantID: "action-reassignment-test", AggregateType: "MATTER", AggregateID: matterID, EventType: "ACTION_ASSIGNED", Payload: reassignedPayload, OccurredAt: occurred.Add(time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+
+	var principalID string
+	var taskVersion int64
+	var taskCount int
+	if err := pool.QueryRow(ctx, `SELECT wt.principal_id::text,wt.version FROM workflow_tasks wt JOIN workflow_instances wi ON wi.id=wt.workflow_id WHERE wi.tenant_id=$1::uuid AND wi.kind='MATTER_ACTION' AND wi.subject_id=$2::uuid`, tenantID, actionID).Scan(&principalID, &taskVersion); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM workflow_tasks wt JOIN workflow_instances wi ON wi.id=wt.workflow_id WHERE wi.tenant_id=$1::uuid AND wi.kind='MATTER_ACTION' AND wi.subject_id=$2::uuid`, tenantID, actionID).Scan(&taskCount); err != nil {
+		t.Fatal(err)
+	}
+	if principalID != newOwner || taskVersion != 2 || taskCount != 1 {
+		t.Fatalf("reassignment did not converge: principal=%s version=%d tasks=%d", principalID, taskVersion, taskCount)
+	}
+	service := NewService(NewPostgresRepository(pool))
+	oldTasks, err := service.List(ctx, ListFilter{TenantID: "action-reassignment-test", PrincipalID: oldOwner, WorkflowKind: MatterActionWorkflowKind, ActiveOnly: true, VisibleMatterWorkOnly: true, Limit: 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	newTasks, err := service.List(ctx, ListFilter{TenantID: "action-reassignment-test", PrincipalID: newOwner, WorkflowKind: MatterActionWorkflowKind, ActiveOnly: true, VisibleMatterWorkOnly: true, Limit: 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(oldTasks) != 0 || len(newTasks) != 1 {
+		t.Fatalf("active work did not move to the new performer: old=%d new=%d", len(oldTasks), len(newTasks))
+	}
+}

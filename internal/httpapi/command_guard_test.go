@@ -7,11 +7,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
@@ -102,9 +104,13 @@ func TestCommandRejectsTenantMismatch(t *testing.T) {
 	}
 }
 
-type capturingCommandAuthority struct{ input authority.ResolveInput }
+type capturingCommandAuthority struct {
+	input authority.ResolveInput
+	calls int
+}
 
 func (s *capturingCommandAuthority) Resolve(_ context.Context, input authority.ResolveInput) (authority.Resolution, error) {
+	s.calls++
 	s.input = input
 	return authority.Resolution{Principal: authority.Principal{ID: "person-1"}, RuleID: "route-1", PolicyVersion: "v1"}, nil
 }
@@ -138,6 +144,25 @@ func TestCommandCannotLowerMinimumMateriality(t *testing.T) {
 	}
 }
 
+func TestCommandUsesPolicyDecisionTypeOverrideForApprovalAuthorityMaintenance(t *testing.T) {
+	service := &capturingCommandAuthority{}
+	guard, _ := commandauth.New(service, commandauth.ModeEnforce, slog.Default())
+	api := &API{deps: Dependencies{CommandGuard: guard}}
+	policy := commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, DecisionType: "program.transition"}
+	handler := api.command("program.approval-authority.assign", policy, func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/programs/program-1/approval-authority", strings.NewReader(`{"tenant_id":"bank-demo","candidate_id":"deputy-cro"}`))
+	req.SetPathValue("id", "program-1")
+	req = req.WithContext(identity.WithActor(req.Context(), identity.Actor{TenantID: "bank-demo", PrincipalID: "person-1", LegalEntityID: "bank-ng", Kind: "PERSON", ExpiresAt: time.Now().UTC().Add(time.Hour)}))
+	response := httptest.NewRecorder()
+	handler(response, req)
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("command returned %d: %s", response.Code, response.Body.String())
+	}
+	if service.input.DecisionType != "program.transition" {
+		t.Fatalf("guard resolved %q instead of the current transition-authorizer contract", service.input.DecisionType)
+	}
+}
+
 func TestCommandClientMayRaiseMateriality(t *testing.T) {
 	service := &capturingCommandAuthority{}
 	guard, _ := commandauth.New(service, commandauth.ModeEnforce, slog.Default())
@@ -155,5 +180,86 @@ func TestCommandClientMayRaiseMateriality(t *testing.T) {
 	}
 	if service.input.Materiality != 5 {
 		t.Fatalf("client failed to raise materiality: %#v", service.input)
+	}
+}
+
+type recordingCommandAuthority struct {
+	mu     sync.Mutex
+	inputs []authority.ResolveInput
+}
+
+func (s *recordingCommandAuthority) Resolve(_ context.Context, input authority.ResolveInput) (authority.Resolution, error) {
+	s.mu.Lock()
+	s.inputs = append(s.inputs, input)
+	s.mu.Unlock()
+	return authority.Resolution{Principal: authority.Principal{ID: "person-1"}, RuleID: "route-1", PolicyVersion: "v1"}, nil
+}
+
+func (s *recordingCommandAuthority) Simulate(context.Context, authority.ResolveInput) (authority.Simulation, error) {
+	return authority.Simulation{}, nil
+}
+
+func (s *recordingCommandAuthority) Integrity(context.Context, string) ([]authority.IntegrityFinding, error) {
+	return nil, nil
+}
+
+func (s *recordingCommandAuthority) Policies(context.Context, string) ([]authority.PolicySummary, error) {
+	return nil, nil
+}
+
+func (s *recordingCommandAuthority) snapshot() []authority.ResolveInput {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]authority.ResolveInput(nil), s.inputs...)
+}
+
+func TestCommandLifecyclePolicyDoesNotLeakAcrossRequests(t *testing.T) {
+	now := time.Now().UTC()
+	ctx := identity.WithActor(t.Context(), identity.Actor{
+		TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "person-1", Kind: "PERSON", ExpiresAt: now.Add(time.Hour),
+	})
+	continuityService := continuity.NewService(continuity.NewMemoryRepository())
+	matter, err := continuityService.CreateMatter(ctx, continuity.CreateMatterInput{
+		TenantID: "bank", LegalEntityID: "entity-a", Type: continuity.MatterException, Priority: 2,
+		Title: "Request-local authority", Summary: "Prove lifecycle authority cannot leak between requests.",
+		OwnerPrincipalID: "person-1", ActorID: "person-1", Scope: json.RawMessage(`{}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolver := &recordingCommandAuthority{}
+	guard, err := commandauth.New(resolver, commandauth.ModeEnforce, slog.Default())
+	if err != nil {
+		t.Fatal(err)
+	}
+	api := &API{deps: Dependencies{Continuity: continuityService, Authority: resolver, CommandGuard: guard}}
+	handler := api.command("matter.transition", commandPolicy{
+		ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2,
+	}, func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
+
+	invoke := func(target continuity.MatterStatus) {
+		t.Helper()
+		request := httptest.NewRequest(http.MethodPost, "/api/v1/matters/"+matter.Matter.ID+"/transition", strings.NewReader(`{"to":"`+string(target)+`"}`))
+		request.SetPathValue("id", matter.Matter.ID)
+		request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{
+			TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "person-1", Kind: "PERSON", ExpiresAt: now.Add(time.Hour),
+		}))
+		response := httptest.NewRecorder()
+		handler(response, request)
+		if response.Code != http.StatusNoContent {
+			t.Fatalf("transition to %s returned %d: %s", target, response.Code, response.Body.String())
+		}
+	}
+
+	// Cancellation requires an authorizer. The next request is an ordinary
+	// owner transition and must start again from the immutable route policy.
+	invoke(continuity.MatterCancelled)
+	invoke(continuity.MatterInitialReview)
+	inputs := resolver.snapshot()
+	if len(inputs) < 3 {
+		t.Fatalf("expected guard and lifecycle resolutions, got %#v", inputs)
+	}
+	if got := inputs[len(inputs)-1].Responsibility; got != authority.ResponsibilityOwner {
+		t.Fatalf("second request inherited %s responsibility from the first request", got)
 	}
 }

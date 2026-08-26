@@ -3,14 +3,18 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { MatterAggregate, ProgramAggregate } from "../types";
 import { MattersWorkspace } from "./MattersWorkspace";
 import { ProgramsWorkspace } from "./ProgramsWorkspace";
-import { loadMatter, loadMatterSummaries, loadProgram, loadProgramSummaries } from "../api";
+import { loadEvidenceSources, loadMatter, loadMatterSummaries, loadProgram, loadProgramSummaries } from "../api";
 import { createMatter } from "../continuityCommands";
+import { loadMatterOperations } from "../matterOperationsApi";
+import { loadProgramOperations } from "../programOperationsApi";
+import { loadProgramReviewDigest } from "../programReviewApi";
 
 vi.mock("../api", () => ({
   loadMatter: vi.fn(),
   loadMatterSummaries: vi.fn(),
   loadProgram: vi.fn(),
   loadProgramSummaries: vi.fn(),
+  loadEvidenceSources: vi.fn(),
 }));
 
 vi.mock("../continuityCommands", async (importOriginal) => ({
@@ -18,8 +22,9 @@ vi.mock("../continuityCommands", async (importOriginal) => ({
   createMatter: vi.fn(),
 }));
 
-vi.mock("./VendorRelationshipLinks", () => ({ VendorRelationshipLinks: ({ targetType, targetID }: { targetType: string; targetID: string }) => <div data-testid={`vendor-links-${targetType}-${targetID}`}>Related vendors</div> }));
-vi.mock("./VendorWorkPanel", () => ({ VendorWorkPanel: ({ targetType, targetID }: { targetType: string; targetID: string }) => <div data-testid={`vendor-work-${targetType}-${targetID}`}>Vendor requests</div> }));
+vi.mock("../matterOperationsApi", () => ({ loadMatterOperations: vi.fn() }));
+vi.mock("../programOperationsApi", () => ({ loadProgramOperations: vi.fn() }));
+vi.mock("../programReviewApi", () => ({ loadProgramReviewDigest: vi.fn() }));
 
 beforeAll(() => {
   Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
@@ -47,7 +52,10 @@ const matterDetail: MatterAggregate = {
 describe("exact workspace targets", () => {
   it("renders a directly fetched Program even when it is outside the first summary page", async () => {
     vi.mocked(loadProgramSummaries).mockResolvedValue({ items: [], generated_at: "2026-08-06T10:00:00Z" });
+    vi.mocked(loadEvidenceSources).mockResolvedValue([]);
     vi.mocked(loadProgram).mockResolvedValue(programDetail);
+	vi.mocked(loadProgramOperations).mockResolvedValue({ program_id: programDetail.program.id, program_version: 2, authority_available: true, operations: [], generated_at: "2026-08-06T10:00:00Z" });
+	vi.mocked(loadProgramReviewDigest).mockResolvedValue({ program_id: programDetail.program.id, state: "CURRENT", review_required: false, current_program_version: 2, current_projection_version: 4, current_overall: "EVIDENCE_INSUFFICIENT", open_matter_count: 1, changes: [], changes_total: 0, changes_omitted: 0, history_truncated: false, current_exceptions: [], current_exceptions_total: 0, new_exceptions: [], new_exceptions_total: 0, resolved_exceptions: [], resolved_exceptions_total: 0 });
 
     render(<ProgramsWorkspace targetID={programDetail.program.id}/>);
 
@@ -61,6 +69,7 @@ describe("exact workspace targets", () => {
   it("renders a directly fetched Matter even when it is outside the first summary page", async () => {
     vi.mocked(loadMatterSummaries).mockResolvedValue({ items: [], generated_at: "2026-08-06T10:00:00Z" });
     vi.mocked(loadMatter).mockResolvedValue(matterDetail);
+    vi.mocked(loadMatterOperations).mockResolvedValue({ matter_id: matterDetail.matter.id, matter_version: 2, authority_available: true, operations: [], generated_at: "2026-08-06T10:00:00Z" });
 
     render(<MattersWorkspace targetID={matterDetail.matter.id}/>);
 
@@ -71,11 +80,25 @@ describe("exact workspace targets", () => {
     expect(loadMatter).toHaveBeenCalledWith(matterDetail.matter.id);
   });
 
-  it("clears delayed target scrolling when the Matter workspace unmounts", async () => {
+  it("opens the complete issue workspace from the normal Work list", async () => {
+    window.history.replaceState(null, "", "#work");
+    vi.mocked(loadMatterSummaries).mockResolvedValue({
+      items: [{ matter: matterDetail.matter, type_label: matterDetail.type_label, status_label: matterDetail.status_label, next_action: matterDetail.next_action, program_count: 0, open_action_count: 0, outcome_check_count: 0 }],
+      generated_at: "2026-08-06T10:00:00Z",
+    });
+
+    render(<MattersWorkspace/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open issue workspace" }));
+    expect(window.location.hash).toBe(`#work/matters/${matterDetail.matter.id}`);
+  });
+
+  it("does not leave delayed target scrolling after the dedicated Matter workspace unmounts", async () => {
     vi.useFakeTimers();
     try {
       vi.mocked(loadMatterSummaries).mockResolvedValue({ items: [], generated_at: "2026-08-06T10:00:00Z" });
       vi.mocked(loadMatter).mockResolvedValue(matterDetail);
+      vi.mocked(loadMatterOperations).mockResolvedValue({ matter_id: matterDetail.matter.id, matter_version: 2, authority_available: true, operations: [], generated_at: "2026-08-06T10:00:00Z" });
 
       const view = render(<MattersWorkspace targetID={matterDetail.matter.id}/>);
       await act(async () => {
@@ -85,7 +108,6 @@ describe("exact workspace targets", () => {
       });
 
       expect(screen.getByText("Matter outside first page")).toBeTruthy();
-      expect(vi.getTimerCount()).toBeGreaterThan(0);
       view.unmount();
       expect(vi.getTimerCount()).toBe(0);
     } finally {

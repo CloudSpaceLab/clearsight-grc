@@ -6,28 +6,47 @@ import (
 )
 
 const (
-	EventProgramCreated             = "PROGRAM_CREATED"
-	EventProgramStatusChanged       = "PROGRAM_STATUS_CHANGED"
-	EventRequirementAdded           = "REQUIREMENT_ADDED"
-	EventApplicabilityDetermined    = "APPLICABILITY_DETERMINED"
-	EventControlObjectiveAdded      = "CONTROL_OBJECTIVE_ADDED"
-	EventControlImplementationAdded = "CONTROL_IMPLEMENTATION_ADDED"
-	EventRequirementControlLinked   = "REQUIREMENT_CONTROL_LINKED"
-	EventEvidenceContractAdded      = "EVIDENCE_CONTRACT_ADDED"
-	EventEvidenceAssessmentRecorded = "EVIDENCE_ASSESSMENT_RECORDED"
-	EventProgramStateUpdated        = "PROGRAM_STATE_UPDATED"
-	EventProgramTriggerRecorded     = "PROGRAM_TRIGGER_RECORDED"
+	EventProgramCreated                     = "PROGRAM_CREATED"
+	EventProgramStatusChanged               = "PROGRAM_STATUS_CHANGED"
+	EventProgramDetailsUpdated              = "PROGRAM_DETAILS_UPDATED"
+	EventProgramOwnerChanged                = "PROGRAM_OWNER_CHANGED"
+	EventProgramApprovalAuthorityChanged    = "PROGRAM_APPROVAL_AUTHORITY_CHANGED"
+	EventRequirementAdded                   = "REQUIREMENT_ADDED"
+	EventRequirementSuperseded              = "REQUIREMENT_SUPERSEDED"
+	EventApplicabilityDetermined            = "APPLICABILITY_DETERMINED"
+	EventControlObjectiveAdded              = "CONTROL_OBJECTIVE_ADDED"
+	EventControlImplementationAdded         = "CONTROL_IMPLEMENTATION_ADDED"
+	EventControlImplementationRevised       = "CONTROL_IMPLEMENTATION_REVISED"
+	EventControlImplementationOwnerChanged  = "CONTROL_IMPLEMENTATION_OWNER_CHANGED"
+	EventControlImplementationStatusChanged = "CONTROL_IMPLEMENTATION_STATUS_CHANGED"
+	EventRequirementControlLinked           = "REQUIREMENT_CONTROL_LINKED"
+	EventRequirementControlLinkRetired      = "REQUIREMENT_CONTROL_LINK_RETIRED"
+	EventEvidenceContractAdded              = "EVIDENCE_CONTRACT_ADDED"
+	EventEvidenceContractRevised            = "EVIDENCE_CONTRACT_REVISED"
+	EventEvidenceContractStatusChanged      = "EVIDENCE_CONTRACT_STATUS_CHANGED"
+	EventEvidenceAssessmentRecorded         = "EVIDENCE_ASSESSMENT_RECORDED"
+	EventProgramStateUpdated                = "PROGRAM_STATE_UPDATED"
+	EventProgramTriggerRecorded             = "PROGRAM_TRIGGER_RECORDED"
+	EventProgramReviewAccepted              = "PROGRAM_REVIEW_ACCEPTED"
 
-	EventMatterCreated               = "MATTER_CREATED"
-	EventMatterLinked                = "MATTER_LINKED"
-	EventMatterStateChanged          = "MATTER_STATE_CHANGED"
-	EventDecisionAdded               = "DECISION_ADDED"
-	EventActionAdded                 = "ACTION_ADDED"
-	EventActionStateChanged          = "ACTION_STATE_CHANGED"
-	EventVerificationContractAdded   = "VERIFICATION_CONTRACT_ADDED"
-	EventVerificationResultRecorded  = "VERIFICATION_RESULT_RECORDED"
-	EventResponsePackageAdded        = "RESPONSE_PACKAGE_ADDED"
-	EventResponsePackageStateChanged = "RESPONSE_PACKAGE_STATE_CHANGED"
+	EventMatterCreated                  = "MATTER_CREATED"
+	EventMatterLinked                   = "MATTER_LINKED"
+	EventMatterLinkRetired              = "MATTER_LINK_RETIRED"
+	EventMatterStateChanged             = "MATTER_STATE_CHANGED"
+	EventMatterDetailsUpdated           = "MATTER_DETAILS_UPDATED"
+	EventMatterContextChanged           = "MATTER_CONTEXT_CHANGED"
+	EventMatterOwnerChanged             = "MATTER_OWNER_CHANGED"
+	EventDecisionAdded                  = "DECISION_ADDED"
+	EventActionAdded                    = "ACTION_ADDED"
+	EventActionStateChanged             = "ACTION_STATE_CHANGED"
+	EventActionUpdated                  = "ACTION_UPDATED"
+	EventActionAssigned                 = "ACTION_ASSIGNED"
+	EventVerificationContractAdded      = "VERIFICATION_CONTRACT_ADDED"
+	EventVerificationContractSuperseded = "VERIFICATION_CONTRACT_SUPERSEDED"
+	EventVerificationContractRetired    = "VERIFICATION_CONTRACT_RETIRED"
+	EventVerificationResultRecorded     = "VERIFICATION_RESULT_RECORDED"
+	EventResponsePackageAdded           = "RESPONSE_PACKAGE_ADDED"
+	EventResponsePackageStateChanged    = "RESPONSE_PACKAGE_STATE_CHANGED"
 )
 
 type matterStateChange struct {
@@ -59,12 +78,37 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 				value.EffectiveUntil = &until
 			}
 			aggregate.Program = value
+		case EventProgramDetailsUpdated:
+			var value programDetailsUpdatedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.Program = value.Program
+		case EventProgramOwnerChanged:
+			var value programOwnerChangedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.Program = value.Program
+		case EventProgramApprovalAuthorityChanged:
+			var value programApprovalAuthorityChangedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.Program = value.Program
 		case EventRequirementAdded:
 			var value Requirement
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
 				return ProgramAggregate{}, err
 			}
 			aggregate.Requirements = upsertRequirement(aggregate.Requirements, value)
+		case EventRequirementSuperseded:
+			var value requirementSupersededEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.Requirements = upsertRequirement(aggregate.Requirements, value.Prior)
+			aggregate.Requirements = upsertRequirement(aggregate.Requirements, value.Replacement)
 		case EventApplicabilityDetermined:
 			var value Applicability
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
@@ -83,18 +127,36 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 				return ProgramAggregate{}, err
 			}
 			aggregate.ControlImplementations = upsertImplementation(aggregate.ControlImplementations, value)
+		case EventControlImplementationRevised, EventControlImplementationOwnerChanged, EventControlImplementationStatusChanged:
+			var value controlImplementationLifecycleEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.ControlImplementations = upsertImplementation(aggregate.ControlImplementations, value.Current)
 		case EventRequirementControlLinked:
 			var value RequirementControlLink
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
 				return ProgramAggregate{}, err
 			}
 			aggregate.RequirementControlLinks = append(aggregate.RequirementControlLinks, value)
+		case EventRequirementControlLinkRetired:
+			var value RequirementControlLink
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.RequirementControlLinks = removeRequirementControlLink(aggregate.RequirementControlLinks, value.ID)
 		case EventEvidenceContractAdded:
 			var value EvidenceContract
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
 				return ProgramAggregate{}, err
 			}
 			aggregate.EvidenceContracts = upsertEvidenceContract(aggregate.EvidenceContracts, value)
+		case EventEvidenceContractRevised, EventEvidenceContractStatusChanged:
+			var value evidenceContractLifecycleEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.EvidenceContracts = upsertEvidenceContract(aggregate.EvidenceContracts, value.Current)
 		case EventEvidenceAssessmentRecorded:
 			var value EvidenceAssessment
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
@@ -141,12 +203,36 @@ func reconstructMatter(events []Event) (MatterAggregate, error) {
 				return MatterAggregate{}, err
 			}
 			aggregate.Links = append(aggregate.Links, value)
+		case EventMatterLinkRetired:
+			var value MatterLink
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterAggregate{}, err
+			}
+			aggregate.Links = removeMatterLink(aggregate.Links, value.ID)
 		case EventMatterStateChanged:
 			var value Matter
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
 				return MatterAggregate{}, err
 			}
 			aggregate.Matter = value
+		case EventMatterDetailsUpdated:
+			var value matterDetailsUpdatedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterAggregate{}, err
+			}
+			aggregate.Matter = value.Matter
+		case EventMatterContextChanged:
+			var value matterContextChangedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterAggregate{}, err
+			}
+			aggregate.Matter = value.Matter
+		case EventMatterOwnerChanged:
+			var value matterOwnerChangedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterAggregate{}, err
+			}
+			aggregate.Matter = value.Matter
 		case EventDecisionAdded:
 			var value Decision
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
@@ -160,12 +246,37 @@ func reconstructMatter(events []Event) (MatterAggregate, error) {
 				return MatterAggregate{}, err
 			}
 			aggregate.Actions = upsertAction(aggregate.Actions, value)
+		case EventActionUpdated:
+			var value actionUpdatedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterAggregate{}, err
+			}
+			aggregate.Actions = upsertAction(aggregate.Actions, value.Action)
+		case EventActionAssigned:
+			var value actionAssignedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterAggregate{}, err
+			}
+			aggregate.Actions = upsertAction(aggregate.Actions, value.Action)
 		case EventVerificationContractAdded:
 			var value VerificationContract
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
 				return MatterAggregate{}, err
 			}
 			aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, value)
+		case EventVerificationContractSuperseded:
+			var value verificationContractSupersededEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterAggregate{}, err
+			}
+			aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, value.Prior)
+			aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, value.Replacement)
+		case EventVerificationContractRetired:
+			var value verificationContractRetiredEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterAggregate{}, err
+			}
+			aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, value.Contract)
 		case EventVerificationResultRecorded:
 			var value VerificationResult
 			if err := json.Unmarshal(event.Payload, &value); err != nil {

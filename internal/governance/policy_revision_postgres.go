@@ -20,15 +20,26 @@ func (r *PostgresRepository) CreatePolicyRevision(ctx context.Context, tenantID,
 		return RoutingPolicyRevision{}, err
 	}
 	defer tx.Rollback(ctx)
+	var revisionScopeLock string
+	if err := tx.QueryRow(ctx, `SELECT legal_entity_id::text FROM routing_policies WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND id::text=$2`, tenantID, policyID).Scan(&revisionScopeLock); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return RoutingPolicyRevision{}, ErrNotFound
+		}
+		return RoutingPolicyRevision{}, err
+	}
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended((SELECT id::text FROM tenants WHERE id::text=$1 OR slug=$1)||':'||$2,0))`, tenantID, revisionScopeLock); err != nil {
+		return RoutingPolicyRevision{}, err
+	}
 
 	var status PolicyState
 	var currentVersion int
 	var policyVersion int64
+	var legalEntityID string
 	err = tx.QueryRow(ctx, `
-		SELECT status,current_version,version
+		SELECT status,current_version,version,legal_entity_id::text
 		FROM routing_policies
 		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND id::text=$2
-		FOR UPDATE`, tenantID, policyID).Scan(&status, &currentVersion, &policyVersion)
+		FOR UPDATE`, tenantID, policyID).Scan(&status, &currentVersion, &policyVersion, &legalEntityID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return RoutingPolicyRevision{}, ErrNotFound
 	}
@@ -48,8 +59,8 @@ func (r *PostgresRepository) CreatePolicyRevision(ctx context.Context, tenantID,
 	}
 	nextVersion := latestVersion + 1
 	_, err = tx.Exec(ctx, `
-		INSERT INTO routing_policy_versions(policy_id,version,definition,checksum,created_by,created_at)
-		VALUES($1::uuid,$2,$3::jsonb,$4,$5::uuid,$6)`, policyID, nextVersion, definition, checksum, actor, at)
+		INSERT INTO routing_policy_versions(policy_id,legal_entity_id,version,definition,checksum,created_by,created_at)
+		VALUES($1::uuid,$2::uuid,$3,$4::jsonb,$5,$6::uuid,$7)`, policyID, legalEntityID, nextVersion, definition, checksum, actor, at)
 	if err != nil {
 		return RoutingPolicyRevision{}, err
 	}
@@ -64,7 +75,7 @@ func (r *PostgresRepository) CreatePolicyRevision(ctx context.Context, tenantID,
 		return RoutingPolicyRevision{}, err
 	}
 	return RoutingPolicyRevision{
-		PolicyID: policyID, TenantID: tenantID, Version: nextVersion, BaseVersion: currentVersion,
+		PolicyID: policyID, TenantID: tenantID, LegalEntityID: legalEntityID, Version: nextVersion, BaseVersion: currentVersion,
 		Definition: append([]byte(nil), definition...), Checksum: checksum, MakerID: actor, CreatedAt: at,
 	}, nil
 }
@@ -73,7 +84,7 @@ func (r *PostgresRepository) PendingPolicyRevision(ctx context.Context, tenantID
 	var revision RoutingPolicyRevision
 	var approvedAt, effectiveFrom, effectiveUntil *time.Time
 	err := r.pool.QueryRow(ctx, `
-		SELECT rp.id::text,t.slug,rpv.version,rp.current_version,rpv.definition,rpv.checksum,
+		SELECT rp.id::text,t.slug,rpv.legal_entity_id::text,rpv.version,rp.current_version,rpv.definition,rpv.checksum,
 		       COALESCE(rpv.created_by::text,''),rpv.created_at,COALESCE(rpv.approved_by::text,''),
 		       rpv.approved_at,rpv.effective_from,rpv.effective_until
 		FROM routing_policies rp
@@ -85,7 +96,7 @@ func (r *PostgresRepository) PendingPolicyRevision(ctx context.Context, tenantID
 		  AND rpv.approved_at IS NULL
 		ORDER BY rpv.version DESC
 		LIMIT 1`, tenantID, policyID).Scan(
-		&revision.PolicyID, &revision.TenantID, &revision.Version, &revision.BaseVersion,
+		&revision.PolicyID, &revision.TenantID, &revision.LegalEntityID, &revision.Version, &revision.BaseVersion,
 		&revision.Definition, &revision.Checksum, &revision.MakerID, &revision.CreatedAt,
 		&revision.ApprovedBy, &approvedAt, &effectiveFrom, &effectiveUntil,
 	)
@@ -107,15 +118,26 @@ func (r *PostgresRepository) ActivatePolicyRevision(ctx context.Context, tenantI
 		return RoutingPolicy{}, err
 	}
 	defer tx.Rollback(ctx)
+	var revisionScopeLock string
+	if err := tx.QueryRow(ctx, `SELECT legal_entity_id::text FROM routing_policies WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND id::text=$2`, tenantID, policyID).Scan(&revisionScopeLock); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return RoutingPolicy{}, ErrNotFound
+		}
+		return RoutingPolicy{}, err
+	}
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended((SELECT id::text FROM tenants WHERE id::text=$1 OR slug=$1)||':'||$2,0))`, tenantID, revisionScopeLock); err != nil {
+		return RoutingPolicy{}, err
+	}
 
 	var status PolicyState
 	var currentVersion int
 	var policyVersion int64
+	var legalEntityID string
 	err = tx.QueryRow(ctx, `
-		SELECT status,current_version,version
+		SELECT status,current_version,version,legal_entity_id::text
 		FROM routing_policies
 		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND id::text=$2
-		FOR UPDATE`, tenantID, policyID).Scan(&status, &currentVersion, &policyVersion)
+		FOR UPDATE`, tenantID, policyID).Scan(&status, &currentVersion, &policyVersion, &legalEntityID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return RoutingPolicy{}, ErrNotFound
 	}
@@ -131,12 +153,14 @@ func (r *PostgresRepository) ActivatePolicyRevision(ctx context.Context, tenantI
 
 	var latestVersion int
 	var maker string
+	var revisionEntityID string
+	var revisionDefinition []byte
 	err = tx.QueryRow(ctx, `
-		SELECT rpv.version,COALESCE(rpv.created_by::text,'')
+		SELECT rpv.version,COALESCE(rpv.created_by::text,''),rpv.legal_entity_id::text,rpv.definition
 		FROM routing_policy_versions rpv
 		WHERE rpv.policy_id=$1::uuid AND rpv.version>$2 AND rpv.approved_at IS NULL
 		ORDER BY rpv.version DESC
-		LIMIT 1`, policyID, currentVersion).Scan(&latestVersion, &maker)
+		LIMIT 1`, policyID, currentVersion).Scan(&latestVersion, &maker, &revisionEntityID, &revisionDefinition)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return RoutingPolicy{}, ErrNotFound
 	}
@@ -149,25 +173,46 @@ func (r *PostgresRepository) ActivatePolicyRevision(ctx context.Context, tenantI
 	if maker == "" || maker == actor {
 		return RoutingPolicy{}, ErrMakerChecker
 	}
+	if revisionEntityID != legalEntityID {
+		return RoutingPolicy{}, ErrConflict
+	}
+	authorityDefinition, err := authorityOnlyPolicyDefinition(revisionDefinition)
+	if err != nil {
+		return RoutingPolicy{}, err
+	}
+	findings, err := policyConflicts(ctx, tx, RoutingPolicy{ID: policyID, TenantID: tenantID, LegalEntityID: legalEntityID, Definition: authorityDefinition})
+	if err != nil {
+		return RoutingPolicy{}, err
+	}
+	if len(findings) > 0 {
+		return RoutingPolicy{}, fmt.Errorf("%w: %s", ErrConflict, findings[0].Summary)
+	}
+	findings, err = escalationReferenceConflicts(ctx, tx, tenantID, revisionDefinition)
+	if err != nil {
+		return RoutingPolicy{}, err
+	}
+	if len(findings) > 0 {
+		return RoutingPolicy{}, fmt.Errorf("%w: %s", ErrConflict, findings[0].Summary)
+	}
 
 	_, err = tx.Exec(ctx, `
 		UPDATE routing_policy_versions
 		SET effective_until=$3
-		WHERE policy_id=$1::uuid AND version=$2 AND (effective_until IS NULL OR $3<effective_until)`, policyID, currentVersion, at)
+		WHERE policy_id=$1::uuid AND legal_entity_id=$4::uuid AND version=$2 AND (effective_until IS NULL OR $3<effective_until)`, policyID, currentVersion, at, legalEntityID)
 	if err != nil {
 		return RoutingPolicy{}, err
 	}
 	_, err = tx.Exec(ctx, `
 		UPDATE routing_policy_versions
 		SET approved_by=$3::uuid,approved_at=$4,effective_from=$4,effective_until=NULL
-		WHERE policy_id=$1::uuid AND version=$2 AND approved_at IS NULL`, policyID, revisionVersion, actor, at)
+		WHERE policy_id=$1::uuid AND legal_entity_id=$5::uuid AND version=$2 AND approved_at IS NULL`, policyID, revisionVersion, actor, at, legalEntityID)
 	if err != nil {
 		return RoutingPolicy{}, err
 	}
 	_, err = tx.Exec(ctx, `
 		UPDATE routing_policies
 		SET current_version=$3,checker_id=$4::uuid,approved_at=$5,updated_at=$5,version=version+1
-		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND id::text=$2`, tenantID, policyID, revisionVersion, actor, at)
+		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND legal_entity_id=$6::uuid AND id::text=$2`, tenantID, policyID, revisionVersion, actor, at, legalEntityID)
 	if err != nil {
 		return RoutingPolicy{}, err
 	}
@@ -180,18 +225,22 @@ func (r *PostgresRepository) ActivatePolicyRevision(ctx context.Context, tenantI
 	_, err = tx.Exec(ctx, `
 		INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at)
 		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),'ROUTING_POLICY',$2::uuid,'RoutingPolicyRevisionActivated',
-		       jsonb_build_object('from_version',$3::int,'to_version',$4::int,'actor_id',$5::text,'rationale',$6::text),$7,$7)`,
-		tenantID, policyID, currentVersion, revisionVersion, actor, rationale, at)
+		       jsonb_build_object('from_version',$3::int,'to_version',$4::int,'actor_id',$5::text,'rationale',$6::text,'legal_entity_id',$8::text),$7,$7)`,
+		tenantID, policyID, currentVersion, revisionVersion, actor, rationale, at, legalEntityID)
 	if err != nil {
 		return RoutingPolicy{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return RoutingPolicy{}, err
 	}
-	return r.GetPolicy(ctx, tenantID, policyID)
+	return r.GetPolicyForEntity(ctx, tenantID, legalEntityID, policyID)
 }
 
 func (r *PostgresRepository) EscalationReferenceConflicts(ctx context.Context, tenantID string, definition []byte) ([]ConflictFinding, error) {
+	return escalationReferenceConflicts(ctx, r.pool, tenantID, definition)
+}
+
+func escalationReferenceConflicts(ctx context.Context, querier policyConflictQuerier, tenantID string, definition []byte) ([]ConflictFinding, error) {
 	sequences, err := ParseEscalationSequences(json.RawMessage(definition))
 	if err != nil {
 		return nil, err
@@ -226,7 +275,7 @@ func (r *PostgresRepository) EscalationReferenceConflicts(ctx context.Context, t
 	findings := make([]ConflictFinding, 0)
 	for _, role := range roles {
 		var count int
-		if err := r.pool.QueryRow(ctx, `
+		if err := querier.QueryRow(ctx, `
 			SELECT count(*)
 			FROM role_templates
 			WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
@@ -240,7 +289,7 @@ func (r *PostgresRepository) EscalationReferenceConflicts(ctx context.Context, t
 	}
 	for _, groupID := range groups {
 		var count int
-		if err := r.pool.QueryRow(ctx, `
+		if err := querier.QueryRow(ctx, `
 			SELECT count(*)
 			FROM directory_groups dg
 			JOIN scim_sources ss ON ss.tenant_id=dg.tenant_id AND ss.id=dg.source_id AND ss.status='ACTIVE'

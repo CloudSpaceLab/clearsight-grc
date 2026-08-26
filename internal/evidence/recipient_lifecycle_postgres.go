@@ -131,8 +131,8 @@ func (r *PostgresRepository) ReassignRecipient(ctx context.Context, input Reassi
 	next.State = RecipientStateAssigned
 	reason := strings.TrimSpace(input.Reason)
 
-	if _, err := tx.Exec(ctx, `
-		UPDATE capture_requests
+	command, err := tx.Exec(ctx, `
+		UPDATE capture_requests er
 		SET recipient_type=$3,
 		    recipient_principal_id=NULLIF($4,'')::uuid,
 		    recipient_audience_hash=$5,
@@ -142,9 +142,30 @@ func (r *PostgresRepository) ReassignRecipient(ctx context.Context, input Reassi
 		    recipient_issue_reason='',
 		    version=version+1,
 		    updated_at=$8
-		WHERE id=$1::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2)`,
-		input.RequestID, input.TenantID, next.Type, next.PrincipalID, nullableAudienceHash(next), next.AudienceHint, nextRevision, now); err != nil {
+		WHERE er.id=$1::uuid
+		  AND er.tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2)
+		  AND er.legal_entity_id=$9::uuid
+		  AND EXISTS (
+			SELECT 1 FROM principals requester
+			WHERE requester.tenant_id=er.tenant_id
+			  AND requester.id=$10::uuid
+			  AND `+internalRecipientEligibilityPredicate("requester", "er.tenant_id", "er.legal_entity_id", "er.subject_type", "er.subject_id")+`
+		  )
+		  AND (
+			$3<>'INTERNAL_PRINCIPAL'
+			OR EXISTS (
+				SELECT 1 FROM principals p
+				WHERE p.tenant_id=er.tenant_id
+				  AND p.id=NULLIF($4,'')::uuid
+				  AND `+internalRecipientEligibilityPredicate("p", "er.tenant_id", "er.legal_entity_id", "er.subject_type", "er.subject_id")+`
+			)
+		  )`,
+		input.RequestID, input.TenantID, next.Type, next.PrincipalID, nullableAudienceHash(next), next.AudienceHint, nextRevision, now, input.LegalEntityID, input.ActorPrincipalID)
+	if err != nil {
 		return fmt.Errorf("reassign evidence request recipient: %w", err)
+	}
+	if command.RowsAffected() != 1 {
+		return ErrRecipientInvalid
 	}
 
 	if _, err := tx.Exec(ctx, `

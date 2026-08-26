@@ -3,10 +3,20 @@ package continuity
 import (
 	"context"
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestAllowedMatterTargetsReturnCanonicalLifecycleOrder(t *testing.T) {
+	if got := AllowedMatterTargets(MatterDraft); !reflect.DeepEqual(got, []MatterStatus{MatterInitialReview, MatterCancelled}) {
+		t.Fatalf("draft targets = %#v", got)
+	}
+	if got := AllowedMatterTargets(MatterVerification); !reflect.DeepEqual(got, []MatterStatus{MatterDecisionRequired, MatterActionsInProgress, MatterResponsePreparation, MatterClosed, MatterCancelled}) {
+		t.Fatalf("verification targets = %#v", got)
+	}
+}
 
 func TestClosureUsesCurrentDecisionWithinDecisionType(t *testing.T) {
 	now := time.Date(2026, 8, 7, 15, 0, 0, 0, time.UTC)
@@ -151,7 +161,7 @@ func TestRecordVerificationResultRejectsInvalidPassBeforePersistence(t *testing.
 	service := NewService(repo)
 	service.now = func() time.Time { return now }
 
-	_, err := service.RecordVerificationResult(context.Background(), RecordVerificationResultInput{
+	_, err := service.RecordVerificationResult(WithTrustedSystemScope(context.Background()), RecordVerificationResultInput{
 		TenantID: "bank", MatterID: "matter-1", ExpectedVersion: 4, ContractID: "contract-1",
 		Result: VerificationPassed, ReviewerPrincipalID: "owner", Rationale: "Checked.", ObservedAt: now,
 	})
@@ -159,7 +169,7 @@ func TestRecordVerificationResultRejectsInvalidPassBeforePersistence(t *testing.
 		t.Fatalf("self-review should fail before persistence, got %v", err)
 	}
 
-	_, err = service.RecordVerificationResult(context.Background(), RecordVerificationResultInput{
+	_, err = service.RecordVerificationResult(WithTrustedSystemScope(context.Background()), RecordVerificationResultInput{
 		TenantID: "bank", MatterID: "matter-1", ExpectedVersion: 4, ContractID: "contract-1",
 		Result: VerificationPassed, ReviewerPrincipalID: "reviewer", Rationale: "Checked.", ObservedAt: now,
 	})

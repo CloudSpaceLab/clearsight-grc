@@ -46,8 +46,26 @@ func (r *MemoryRepository) ReassignRecipient(_ context.Context, input ReassignRe
 	if strings.TrimSpace(request.CreatedBy) == "" || request.CreatedBy != input.ActorPrincipalID {
 		return ErrRecipientManagerRequired
 	}
+	if strings.TrimSpace(input.LegalEntityID) != "" && request.LegalEntityID != input.LegalEntityID {
+		return ErrRecipientInvalid
+	}
 	if sameRecipient(request.Recipient, next) && recipientIsAssigned(request.Recipient) {
 		return ErrRecipientInvalid
+	}
+	subjectType := strings.ToUpper(strings.TrimSpace(request.SubjectType))
+	if subjectType == "PROGRAM" || subjectType == "MATTER" {
+		subjectKey := subjectType + ":" + strings.TrimSpace(request.SubjectID)
+		requester, exists := r.candidates[input.ActorPrincipalID]
+		if !exists || !memoryRecipientEligibleForScope(requester, request.TenantID, request.LegalEntityID, subjectKey) {
+			return ErrRecipientInvalid
+		}
+	}
+	if next.Type == RecipientInternalPrincipal && (subjectType == "PROGRAM" || subjectType == "MATTER") {
+		subjectKey := subjectType + ":" + strings.TrimSpace(request.SubjectID)
+		candidate, exists := r.candidates[next.PrincipalID]
+		if !exists || !memoryRecipientEligibleForScope(candidate, request.TenantID, request.LegalEntityID, subjectKey) {
+			return ErrRecipientInvalid
+		}
 	}
 	revision := request.Recipient.Revision + 1
 	if revision < 1 {

@@ -112,7 +112,30 @@
 .coverage-recommendation strong, .coverage-matter strong { display: block; margin-top: 3px; font-size: 11px; }
 .coverage-load-more { justify-self: center; }
 .coverage-disclaimer { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+
+/* Imported material is read on a paper-like surface in light mode and a quiet
+   document surface in dark mode. Shell navigation and status remain outside it. */
+.document-import-inspector {
+  --surface: var(--document-surface);
+  --surface-2: var(--document-surface-muted);
+  --surface-detail: var(--document-surface-muted);
+  --text: var(--document-text);
+  --text-strong: var(--document-text);
+  --muted: var(--document-muted);
+  --border: var(--document-border);
+  padding: 24px;
+  border: 1px solid var(--document-border);
+  border-radius: 16px;
+  background: var(--document-surface);
+  color: var(--document-text);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--document-canvas) 18%, transparent);
+}
+
+.document-import-inspector blockquote,
+.document-import-inspector pre {
+  font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+}
 @media (max-width: 900px) { .document-import-header, .document-import-header.intake-open, .document-import-layout { grid-template-columns: 1fr; } .document-import-list { position: static; } }
 @media (max-width: 1080px) { .coverage-scoreboard { grid-template-columns: repeat(2, 1fr); } .coverage-scoreboard > div { border-top: 1px solid var(--border); } .coverage-scoreboard > div:nth-child(odd) { border-left: 0; } .coverage-scoreboard > div:first-child, .coverage-scoreboard > div:nth-child(2) { border-top: 0; } }
-@media (max-width: 620px) { .document-import-header { padding-top: 12px; } .document-import-inspector > header, .proposal-title, .coverage-heading, .coverage-toolbar, .coverage-match-heading, .coverage-recommendation, .coverage-callout { flex-direction: column; } .document-state { justify-items: start; } .document-metadata, .coverage-scoreboard { grid-template-columns: 1fr; } .coverage-scoreboard > div { border-left: 0; border-top: 1px solid var(--border); } .coverage-scoreboard > div:first-child { border-top: 0; } .proposal-actions { flex-direction: column-reverse; } .proposal-actions button, .coverage-actions button, .coverage-recommendation button { width: 100%; } .coverage-filters { width: 100%; overflow-x: auto; } .coverage-not-applicable { align-items: stretch; flex-direction: column; } }
+@media (max-width: 620px) { .document-import-header { padding-top: 12px; } .document-import-inspector { padding: 18px; border-radius: 13px; } .document-import-inspector > header, .proposal-title, .coverage-heading, .coverage-toolbar, .coverage-match-heading, .coverage-recommendation, .coverage-callout { flex-direction: column; } .document-state { justify-items: start; } .document-metadata, .coverage-scoreboard { grid-template-columns: 1fr; } .coverage-scoreboard > div { border-left: 0; border-top: 1px solid var(--border); } .coverage-scoreboard > div:first-child { border-top: 0; } .proposal-actions { flex-direction: column-reverse; } .proposal-actions button, .coverage-actions button, .coverage-recommendation button { width: 100%; } .coverage-filters { width: 100%; overflow-x: auto; } .coverage-not-applicable { align-items: stretch; flex-direction: column; } }
 @media (prefers-reduced-motion: reduce) { .document-import-row, .proposal-card { scroll-behavior: auto; } }

@@ -4,7 +4,7 @@ import { acceptProgramReview, loadProgramReviewDigest } from "../programReviewAp
 import type { ProgramReviewDigest as ReviewDigest } from "../programReviewApi";
 import type { ProgramAggregate } from "../types";
 
-type Props = { aggregate: ProgramAggregate };
+type Props = { aggregate: ProgramAggregate; initialDigest?: ReviewDigest; canAcknowledge?: boolean; onDigestUpdated?: (value: ReviewDigest) => void };
 type LoadState = "loading" | "live" | "unavailable";
 type SaveState = "idle" | "saving" | "error";
 
@@ -23,7 +23,7 @@ function acceptError(error: unknown) {
   return error instanceof Error && error.message ? error.message : "The review acknowledgement could not be recorded.";
 }
 
-export function ProgramReviewDigest({ aggregate }: Props) {
+export function ProgramReviewDigest({ aggregate, initialDigest, canAcknowledge = false, onDigestUpdated }: Props) {
   const program = aggregate.program;
   const projectionVersion = aggregate.current_state?.projection_version ?? 0;
   const [digest, setDigest] = useState<ReviewDigest | null>(null);
@@ -33,6 +33,13 @@ export function ProgramReviewDigest({ aggregate }: Props) {
 
   useEffect(() => {
     let active = true;
+	if (initialDigest) {
+	  setDigest(initialDigest);
+	  setLoadState("live");
+	  setSaveState("idle");
+	  setError("");
+	  return () => { active = false; };
+	}
     setLoadState("loading");
     setSaveState("idle");
     setError("");
@@ -44,15 +51,16 @@ export function ProgramReviewDigest({ aggregate }: Props) {
       if (active) setLoadState("unavailable");
     });
     return () => { active = false; };
-  }, [program.id, program.version, projectionVersion]);
+	}, [program.id, program.version, projectionVersion, initialDigest]);
 
   async function markReviewed() {
-    if (!digest || saveState === "saving") return;
+    if (!digest || saveState === "saving" || digest.current_program_version !== program.version || digest.current_projection_version !== projectionVersion) return;
     setSaveState("saving");
     setError("");
     try {
       const value = await acceptProgramReview(program.id, digest.current_program_version, digest.current_projection_version);
       setDigest(value);
+	  onDigestUpdated?.(value);
       setSaveState("idle");
     } catch (value) {
       setError(acceptError(value));
@@ -65,6 +73,7 @@ export function ProgramReviewDigest({ aggregate }: Props) {
 
   const noBaseline = digest.state === "NO_BASELINE";
   const changed = digest.state === "CHANGED";
+  const canAcknowledgeCurrent = canAcknowledge && digest.current_program_version === program.version && digest.current_projection_version === projectionVersion;
   const acceptedLabel = reviewedAt(digest.checkpoint?.accepted_at);
   const heading = noBaseline
     ? "Start review-by-exception"
@@ -78,7 +87,9 @@ export function ProgramReviewDigest({ aggregate }: Props) {
     <span className="eyebrow">{changed ? "Since your last review" : "Review history"}</span>
     <h3 id={`program-review-${program.id}`}>{heading}</h3>
     {noBaseline
-      ? <p>Review the current exceptions, then mark this status reviewed. Future visits will highlight changes made after this review.</p>
+      ? canAcknowledgeCurrent
+        ? <p>Review the current exceptions, then mark this status reviewed. Future visits will highlight changes made after this review.</p>
+        : <p>The current reviewer must review the current exceptions and record the first review baseline. Future visits will highlight changes made after that review.</p>
       : acceptedLabel && <p>Last reviewed {acceptedLabel}. {changed ? "Changes made after that review are highlighted here." : "The Program has not changed since that review."}</p>}
 
     {changed && digest.changes.length > 0 && <div className="status-reasons">
@@ -97,6 +108,6 @@ export function ProgramReviewDigest({ aggregate }: Props) {
 
     {changed && digest.resolved_exceptions_total > 0 && <p className="inline-notice">{digest.resolved_exceptions_total} previously recorded exception{digest.resolved_exceptions_total === 1 ? " has" : "s have"} been resolved.</p>}
     {error && <p className="inline-error" role="alert">{error}</p>}
-    {digest.review_required && <button className="primary-button" type="button" onClick={() => void markReviewed()} disabled={saveState === "saving" || projectionVersion < 1}>{saveState === "saving" ? "Recording review…" : "Mark current state reviewed"}</button>}
+    {digest.review_required && canAcknowledgeCurrent && <button className="primary-button" type="button" onClick={() => void markReviewed()} disabled={saveState === "saving" || projectionVersion < 1}>{saveState === "saving" ? "Recording review…" : "Mark current state reviewed"}</button>}
   </section>;
 }

@@ -20,6 +20,8 @@ type VerificationResultBundle struct {
 	ExpectedVersion   int64
 	ResultEvent       Event
 	TransitionEvent   *Event
+	EscalationAction  *Action
+	EscalationEvent   *Event
 	FollowUpMatter    *Matter
 	FollowUpEvent     *Event
 	FollowUpLink      *MatterLink
@@ -57,7 +59,7 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 	if input.ObservedAt.IsZero() {
 		input.ObservedAt = now
 	}
-	if err := validateVerificationResult(aggregate, contract, input.ReviewerPrincipalID, input.ObservedAt, now); err != nil {
+	if err := validateVerificationResult(aggregate, contract, input.ReviewerPrincipalID, input.ReviewerAuthorityPrincipalID, input.ObservedAt, now); err != nil {
 		return MatterAggregate{}, err
 	}
 	valueID, err := id.NewUUIDv7()
@@ -68,7 +70,8 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 		ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID,
 		ContractID: input.ContractID, Result: input.Result, Observations: observations,
 		EvidenceReferences: evidenceReferences, ReviewerPrincipalID: strings.TrimSpace(input.ReviewerPrincipalID),
-		Rationale: strings.TrimSpace(input.Rationale), ObservedAt: input.ObservedAt.UTC(), CreatedAt: now,
+		ReviewerAuthorityPrincipalID: strings.TrimSpace(input.ReviewerAuthorityPrincipalID),
+		Rationale:                    strings.TrimSpace(input.Rationale), ObservedAt: input.ObservedAt.UTC(), CreatedAt: now,
 	}
 	resultEvent, err := newEvent(input.TenantID, "MATTER", input.MatterID, input.ExpectedVersion+1, EventVerificationResultRecorded, value, actorFor(input.ReviewerPrincipalID), input.ReviewerPrincipalID, now)
 	if err != nil {
@@ -76,12 +79,11 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 	}
 
 	// Passing, inconclusive, or BLOCK_CLOSE results are one-event commands and
-	// already use the repository's atomic event/outbox boundary.
-	if input.Result != VerificationFailed || aggregate.Matter.Status != MatterVerification || contract.FailureResponse == "BLOCK_CLOSE" {
-		if _, err = s.repo.ApplyMatterEvent(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, resultEvent); err != nil {
-			return MatterAggregate{}, err
-		}
-		return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	// already use the repository's atomic event/outbox boundary. Other failure
+	// responses are driven by the recorded result, not by the Matter's current
+	// presentation state, so a valid early check cannot lose its consequence.
+	if input.Result != VerificationFailed || contract.FailureResponse == "BLOCK_CLOSE" {
+		return s.applyMatterEventAndResult(ctx, aggregate, resultEvent)
 	}
 
 	bundleRepo, ok := s.repo.(VerificationResultBundleRepository)
@@ -98,12 +100,40 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 		} else {
 			matter.Status = MatterDecisionRequired
 		}
-		matter.UpdatedAt = now
-		transitionEvent, eventErr := newEvent(input.TenantID, "MATTER", input.MatterID, input.ExpectedVersion+2, EventMatterStateChanged, matter, actorFor(input.ReviewerPrincipalID), input.ReviewerPrincipalID, now)
-		if eventErr != nil {
-			return MatterAggregate{}, eventErr
+		if matter.Status != aggregate.Matter.Status {
+			matter.UpdatedAt = now
+			transitionEvent, eventErr := newEvent(input.TenantID, "MATTER", input.MatterID, input.ExpectedVersion+2, EventMatterStateChanged, matter, actorFor(input.ReviewerPrincipalID), input.ReviewerPrincipalID, now)
+			if eventErr != nil {
+				return MatterAggregate{}, eventErr
+			}
+			bundle.TransitionEvent = &transitionEvent
 		}
-		bundle.TransitionEvent = &transitionEvent
+		if contract.FailureResponse == "ESCALATE" {
+			escalationOwner := strings.TrimSpace(input.EscalationPrincipalID)
+			if escalationOwner == "" {
+				return MatterAggregate{}, fmt.Errorf("escalation owner is required for the configured failure response")
+			}
+			actionID, idErr := id.NewUUIDv7()
+			if idErr != nil {
+				return MatterAggregate{}, idErr
+			}
+			escalation := Action{
+				ID: actionID, TenantID: input.TenantID, MatterID: input.MatterID,
+				Title: "Direct corrective work for failed outcome", Description: "Review the failed outcome check, direct the required corrective work and assign the next action.",
+				OwnerPrincipalID: escalationOwner, RequiredResponsibility: "ESCALATION_OWNER", Status: ActionPlanned,
+				DueAt: aggregate.Matter.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1,
+			}
+			actionVersion := input.ExpectedVersion + 2
+			if bundle.TransitionEvent != nil {
+				actionVersion++
+			}
+			actionEvent, eventErr := newEvent(input.TenantID, "MATTER", input.MatterID, actionVersion, EventActionAdded, escalation, actorFor(input.ReviewerPrincipalID), input.ReviewerPrincipalID, now)
+			if eventErr != nil {
+				return MatterAggregate{}, eventErr
+			}
+			bundle.EscalationAction = &escalation
+			bundle.EscalationEvent = &actionEvent
+		}
 	case "CREATE_MATTER":
 		programIDs, lookupErr := s.repo.LinkedProgramIDs(ctx, input.TenantID, input.MatterID)
 		if lookupErr != nil {
@@ -119,7 +149,7 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 			return MatterAggregate{}, idErr
 		}
 		follow := Matter{
-			ID: followID, TenantID: input.TenantID, Reference: matterReference(followID),
+			ID: followID, TenantID: input.TenantID, LegalEntityID: aggregate.Matter.LegalEntityID, Reference: matterReference(followID),
 			Type: MatterFailedVerification, Status: MatterInitialReview, Priority: maxInt(aggregate.Matter.Priority, 3),
 			Title: "Resolve a failed outcome check", Summary: "The expected outcome was not observed and needs separate follow-up.",
 			Scope: aggregate.Matter.Scope, SourceType: "MATTER", SourceID: aggregate.Matter.ID,
@@ -152,8 +182,19 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 		return MatterAggregate{}, fmt.Errorf("unsupported verification failure response %q", contract.FailureResponse)
 	}
 
+	committedEvents := []Event{bundle.ResultEvent}
+	if bundle.TransitionEvent != nil {
+		committedEvents = append(committedEvents, *bundle.TransitionEvent)
+	}
+	if bundle.EscalationEvent != nil {
+		committedEvents = append(committedEvents, *bundle.EscalationEvent)
+	}
+	committed, err := matterResultFromEvents(aggregate, committedEvents...)
+	if err != nil {
+		return MatterAggregate{}, err
+	}
 	if err := bundleRepo.ApplyVerificationResultBundle(ctx, bundle); err != nil {
 		return MatterAggregate{}, err
 	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.currentMatterOrFallback(ctx, input.TenantID, input.MatterID, committed), nil
 }

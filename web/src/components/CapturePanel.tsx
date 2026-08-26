@@ -127,7 +127,7 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
     };
   }, []);
 
-  if (state === "loading") return <div className="panel-content"><span className="eyebrow">{external ? "Response request" : "Evidence request"}</span><h2>Loading request</h2><p aria-live="polite" aria-busy="true">Getting the latest request…</p></div>;
+  if (state === "loading") return <div className="panel-content"><span className="eyebrow">Evidence request</span><h2>Loading request</h2><p aria-live="polite" aria-busy="true">Getting the latest request…</p></div>;
   if (state === "forbidden") return <div className="panel-content"><EmptyState kind="forbidden" label="Request" title="You cannot open this request" description="Your current access does not allow you to view it."/></div>;
   if (state === "not-found") return <div className="panel-content"><EmptyState kind="not-found" label="Request" title="This request is no longer available" description="It may have been replaced, cancelled, or moved outside your access."/></div>;
   if (state === "unavailable") return <div className="panel-content"><EmptyState kind="unavailable" label="Request" title="The request could not be loaded" description="Try again. No response has been recorded." action={onReload ? "Try again" : undefined} onAction={onReload}/></div>;
@@ -287,16 +287,22 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
     }
   }
 
-  if (receipt) return <div className="panel-content response-receipt"><span className="eyebrow">Receipt</span><div className="receipt-mark" aria-hidden="true">✓</div><h2>{external ? "Submitted" : "Response submitted"}</h2><p>{receipt}</p><p>{external ? "Your response was recorded." : "The response was recorded for evidence review."}</p></div>;
-  if (reviewing) return <CaptureReview request={request} fields={visibleCaptureFields(contract, answers)} answers={answers} attachments={attachments} submitting={submitting} error={error} errorKind={errorKind} onEdit={() => setReviewing(false)} onReload={onReload} onSubmit={() => void submit()}/>;
+  if (receipt) return <div className="panel-content response-receipt"><span className="eyebrow">Receipt</span><div className="receipt-mark" aria-hidden="true">✓</div><h2>{external ? "Submitted" : "Response submitted"}</h2><p>{receipt}</p><p>{external ? "Your response was recorded." : "Recorded. Evidence quality is reviewed separately."}</p></div>;
+
+  const fields = request.fields;
+  const unsupported = fields.filter((field) => !supportedFieldType(field.type));
+  const requiredMissing = fields.some((field) => field.required && !(answers[field.id] ?? "").trim());
+
+  if (reviewing) return <div className="panel-content response-review">
+    <span className="eyebrow">Review</span><h2>Check your response</h2><p>{request.title}</p>
+    <dl className="capture-review-list">{fields.map((field) => <div key={field.id}><dt>{field.label}</dt><dd>{reviewValue(field, answers[field.id], attachments[field.id])}{reviewSourceLabel(field, answers[field.id]) && <small className="source-origin-review">{reviewSourceLabel(field, answers[field.id])}</small>}</dd></div>)}</dl>
+    <details className="capture-context"><summary>Request details</summary><p>{request.purpose}</p><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl><p>Due {new Date(request.deadline).toLocaleString()} · {humanize(request.sensitivity)}</p></details>
+    {error && <p className="error-text" role="alert">{error}</p>}
+    <div className="wizard-actions"><button className="secondary-button" type="button" onClick={() => setReviewing(false)} disabled={submitting}>Edit</button>{errorKind === "conflict" && onReload && <button className="secondary-button" type="button" onClick={onReload} disabled={submitting}>Reload request</button>}<button className="primary-button" type="button" onClick={() => void submit()} disabled={submitting}>{submitting ? "Submitting…" : external ? "Submit evidence" : "Submit response"}</button></div>
+  </div>;
 
   return <div className="panel-content">
-    <span className="eyebrow">{external ? "Response request" : "Evidence request"} · about {request.estimated_minutes} min</span><h2>{request.title}</h2><p>{request.purpose}</p>
-    {external && <div className="external-request-context" aria-label="Request details">
-      <strong>Due {formatCaptureDeadline(request.deadline)}</strong>
-      <span>Your answers and files are shared with the organization that sent this request.</span>
-      <span>For changes to the request or your access, contact the person who sent this link.</span>
-    </div>}
+    <span className="eyebrow">Evidence request · about {request.estimated_minutes} min</span><h2>{request.title}</h2><p>{request.purpose}</p>
     <div className="why-you"><strong>Why this was sent to you</strong><span>{request.why_you}</span></div>
     {Object.keys(request.known_facts).length > 0 && <><h3>Already filled in</h3><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl></>}
     {external && sessionToken && <DraftStatus state={draftState} onRetry={() => void retryDraftSave()}/>}

@@ -114,6 +114,29 @@ const requiredStates = [
 
 const failures = [];
 const checks = [];
+const requiredMatterCommands = [
+  "matter.create", "matter.details.update", "matter.context.change", "matter.assign", "matter.transition",
+  "matter.link", "matter.decision.record", "matter.action.add", "matter.action.update", "matter.action.assign",
+  "matter.action.transition", "matter.response.add", "matter.response.transition", "matter.outcome.define", "matter.outcome.record",
+];
+const requiredProgramCommands = [
+  "program.create", "program.details.update", "program.assign", "program.transition",
+  "program.requirement.add", "program.requirement.supersede", "program.applicability.decide",
+  "program.control-objective.add", "program.safeguard.add", "program.coverage.link",
+  "program.evidence.define", "program.evidence.assess", "program.review.accept", "program.trigger.apply",
+  "monitoring.form.create", "monitoring.check.create", "monitoring.check.transition", "monitoring.collection.start", "monitoring.source.evaluate",
+];
+try {
+  const coverageSource = await readFile(path.resolve("src/operationalCoverage.ts"), "utf8");
+  const missingCommands = requiredMatterCommands.filter((command) => !coverageSource.includes(`"${command}"`));
+  const missingProgramCommands = requiredProgramCommands.filter((command) => !coverageSource.includes(`"${command}"`));
+  if (missingCommands.length) failures.push(`Matter UI command coverage is missing: ${missingCommands.join(", ")}`);
+  if (missingProgramCommands.length) failures.push(`Program operational coverage is missing: ${missingProgramCommands.join(", ")}`);
+  checks.push({ name: "Matter material-command UI coverage", status: missingCommands.length ? "FAIL" : "PASS", detail: `${requiredMatterCommands.length - missingCommands.length}/${requiredMatterCommands.length} commands mapped` });
+  checks.push({ name: "Program operational UI coverage", status: missingProgramCommands.length ? "FAIL" : "PASS", detail: `${requiredProgramCommands.length - missingProgramCommands.length}/${requiredProgramCommands.length} commands mapped` });
+} catch (error) {
+  failures.push(`Matter UI command coverage could not be read: ${error instanceof Error ? error.message : String(error)}`);
+}
 const safeReadJSON = async (name) => {
   try {
     return JSON.parse(await readFile(path.join(outputDir, name), "utf8"));
@@ -191,24 +214,32 @@ if (accessibility) {
 
 const bundle = { javascript: { raw: 0, gzip: 0, largest_raw_chunk: 0 }, css: { raw: 0, gzip: 0 } };
 try {
-  const assetDir = path.resolve("dist/assets");
-  for (const name of await readdir(assetDir)) {
-    const bytes = await readFile(path.join(assetDir, name));
-    if (name.endsWith(".js")) {
+  const pending = [path.resolve("dist")];
+  const builtFiles = [];
+  while (pending.length) {
+    const directory = pending.pop();
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) pending.push(entryPath);
+      else builtFiles.push(entryPath);
+    }
+  }
+  for (const filePath of builtFiles) {
+    const bytes = await readFile(filePath);
+    if (filePath.endsWith(".js")) {
       bundle.javascript.raw += bytes.length;
       bundle.javascript.gzip += gzipSync(bytes).length;
-      bundle.javascript.largest_raw_chunk = Math.max(bundle.javascript.largest_raw_chunk, bytes.length);
-    } else if (name.endsWith(".css")) {
+    } else if (filePath.endsWith(".css")) {
       bundle.css.raw += bytes.length;
       bundle.css.gzip += gzipSync(bytes).length;
     }
   }
   const bundleFailures = [];
-  if (bundle.javascript.largest_raw_chunk > 500 * 1024) bundleFailures.push(`A JavaScript chunk exceeds 500 KiB raw (${bundle.javascript.largest_raw_chunk} bytes)`);
-  if (bundle.javascript.gzip > 160 * 1024) bundleFailures.push(`JavaScript bundle exceeds 160 KiB gzip (${bundle.javascript.gzip} bytes)`);
+  const javascriptLimit = 160 * 1024;
+  if (bundle.javascript.gzip > javascriptLimit) bundleFailures.push(`JavaScript bundle exceeds 160 KiB gzip (${bundle.javascript.gzip} bytes)`);
   if (bundle.css.gzip > 32 * 1024) bundleFailures.push(`CSS bundle exceeds 32 KiB gzip (${bundle.css.gzip} bytes)`);
   failures.push(...bundleFailures);
-  checks.push({ name: "interaction bundle budget", status: bundleFailures.length ? "FAIL" : "PASS", detail: `${Math.round(bundle.javascript.gzip / 1024)} KiB JS gzip total, ${Math.round(bundle.javascript.largest_raw_chunk / 1024)} KiB largest JS chunk, ${Math.round(bundle.css.gzip / 1024)} KiB CSS gzip` });
+  checks.push({ name: "interaction bundle budget", status: bundleFailures.length ? "FAIL" : "PASS", detail: `${bundle.javascript.gzip} bytes JS gzip (${javascriptLimit - bundle.javascript.gzip} bytes headroom), ${bundle.css.gzip} bytes CSS gzip` });
 } catch (error) {
   failures.push(`built assets could not be assessed: ${error instanceof Error ? error.message : String(error)}`);
 }

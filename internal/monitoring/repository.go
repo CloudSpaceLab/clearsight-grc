@@ -14,6 +14,8 @@ var (
 
 type LifecycleTransition struct {
 	TenantID        string
+	LegalEntityID   string
+	ProgramID       string
 	ID              string
 	ExpectedVersion int64
 	To              LifecycleStatus
@@ -23,13 +25,15 @@ type LifecycleTransition struct {
 
 type Repository interface {
 	CreateFormRevision(context.Context, FormTemplate) (FormTemplate, error)
-	FormRevision(context.Context, string, string, int64) (FormTemplate, error)
-	ListFormRevisions(context.Context, string, int) ([]FormTemplate, error)
+	FormRevision(context.Context, string, string, string, string, int64) (FormTemplate, error)
+	ListFormRevisions(context.Context, string, string, string, int) ([]FormTemplate, error)
 	TransitionForm(context.Context, LifecycleTransition) (FormTemplate, error)
 	CreateCheckRevision(context.Context, MonitoringCheck) (MonitoringCheck, error)
 	CheckRevision(context.Context, string, string, int64) (MonitoringCheck, error)
+	LatestCheckRevision(context.Context, string, string) (MonitoringCheck, error)
 	ListCheckRevisions(context.Context, string, string, int) ([]MonitoringCheck, error)
 	TransitionCheck(context.Context, LifecycleTransition) (MonitoringCheck, error)
 	AppendResult(context.Context, MonitoringResult) (MonitoringResult, error)
+	Result(context.Context, string, string) (MonitoringResult, error)
 	ListResults(context.Context, string, string, int) ([]MonitoringResult, error)
 }

@@ -10,7 +10,7 @@ import (
 )
 
 func TestInstallSampleRecoversPartialProgram(t *testing.T) {
-	ctx := context.Background()
+	ctx := continuity.WithTrustedSystemScope(context.Background())
 	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
 	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
 	evidenceService := evidence.NewServiceWithClock(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore(), func() time.Time { return now })
@@ -25,6 +25,7 @@ func TestInstallSampleRecoversPartialProgram(t *testing.T) {
 	}
 	program, err := continuityService.CreateProgram(ctx, continuity.CreateProgramInput{
 		TenantID:             config.TenantID,
+		LegalEntityID:        config.LegalEntityID,
 		Code:                 programCodeNDPA,
 		Name:                 "Nigeria data protection",
 		Type:                 "PRIVACY",
@@ -61,7 +62,7 @@ func TestInstallSampleRecoversPartialProgram(t *testing.T) {
 }
 
 func TestInstallSampleResumesPartiallyTransitionedMatter(t *testing.T) {
-	ctx := context.Background()
+	ctx := continuity.WithTrustedSystemScope(context.Background())
 	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
 	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
 	evidenceService := evidence.NewServiceWithClock(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore(), func() time.Time { return now })
@@ -119,5 +120,60 @@ func TestInstallSampleResumesPartiallyTransitionedMatter(t *testing.T) {
 	repaired, err = continuityService.MatterByTriggerKey(ctx, config.TenantID, triggerRegulatoryChange)
 	if err != nil || len(repaired.Actions) != before {
 		t.Fatalf("repeat installation duplicated work: before=%d after=%d err=%v", before, len(repaired.Actions), err)
+	}
+}
+
+func TestInstallSampleUsesEntityBoundedProgramLookup(t *testing.T) {
+	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
+	repo := continuity.NewMemoryRepository()
+	continuityService := continuity.NewServiceWithClock(repo, func() time.Time { return now })
+	evidenceService := evidence.NewServiceWithClock(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore(), func() time.Time { return now })
+	service := NewService(continuityService, evidenceService)
+	config := normalizeSeedConfig(DemoSeedConfig())
+	config.Now = now
+	other := continuity.WithTrustedSystemEntityScope(context.Background(), config.TenantID, "entity-other")
+	foreign, err := continuityService.CreateProgram(other, continuity.CreateProgramInput{TenantID: config.TenantID, Code: programCodeNDPA, Name: "Other entity", Type: "PRIVACY", OwningFunction: "Privacy", Scope: mustJSON(map[string]any{"sample": true}), EffectiveFrom: now})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := service.InstallSample(context.Background(), config); err != nil {
+		t.Fatal(err)
+	}
+	targetCtx := continuity.WithTrustedSystemEntityScope(context.Background(), config.TenantID, config.LegalEntityID)
+	target, err := continuityService.ProgramByCode(targetCtx, config.TenantID, programCodeNDPA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if target.Program.ID == foreign.Program.ID || target.Program.LegalEntityID != config.LegalEntityID {
+		t.Fatalf("installer selected foreign Program: %#v", target.Program)
+	}
+}
+
+func TestInstallSampleCanonicalizesConfiguredEntityCodeInMemory(t *testing.T) {
+	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
+	repo := continuity.NewMemoryRepository()
+	const targetID = "11111111-1111-4111-8111-111111111111"
+	repo.RegisterLegalEntity("bank-demo", targetID, "bank-ng")
+	repo.RegisterLegalEntity("bank-demo", "22222222-2222-4222-8222-222222222222", "other-ng")
+	continuityService := continuity.NewServiceWithClock(repo, func() time.Time { return now })
+	evidenceService := evidence.NewServiceWithClock(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore(), func() time.Time { return now })
+	service := NewService(continuityService, evidenceService)
+	config := normalizeSeedConfig(DemoSeedConfig())
+	config.Now = now
+	other := continuity.WithTrustedSystemEntityScope(context.Background(), config.TenantID, "other-ng")
+	foreign, err := continuityService.CreateProgram(other, continuity.CreateProgramInput{TenantID: config.TenantID, Code: programCodeNDPA, Name: "Other", Type: "PRIVACY", OwningFunction: "Privacy", Scope: mustJSON(map[string]any{"sample": true}), EffectiveFrom: now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.InstallSample(context.Background(), config); err != nil {
+		t.Fatal(err)
+	}
+	target, err := continuityService.ProgramByCode(continuity.WithTrustedSystemEntityScope(context.Background(), config.TenantID, config.LegalEntityID), config.TenantID, programCodeNDPA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if target.Program.ID == foreign.Program.ID || target.Program.LegalEntityID != targetID {
+		t.Fatalf("installer Program=%#v", target.Program)
 	}
 }

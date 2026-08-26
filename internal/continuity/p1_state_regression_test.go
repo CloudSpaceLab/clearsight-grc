@@ -30,14 +30,14 @@ func TestMemoryAssessmentPersistenceUsesContractFreshnessBoundary(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = repo.ApplyProgramEvent(context.Background(), "bank", "program-1", 1, Event{
+	_, err = repo.ApplyProgramEvent(WithTrustedSystemScope(context.Background()), "bank", "program-1", 1, Event{
 		AggregateVersion: 2, Type: EventEvidenceAssessmentRecorded, Payload: payload, OccurredAt: now,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	aggregate, err := repo.GetProgram(context.Background(), "bank", "program-1")
+	aggregate, err := repo.GetProgram(WithTrustedSystemScope(context.Background()), "bank", "program-1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestMemoryAssessmentPersistenceUsesContractFreshnessBoundary(t *testing.T) 
 	if len(aggregate.EvidenceAssessments) != 1 || aggregate.EvidenceAssessments[0].ValidUntil == nil || !aggregate.EvidenceAssessments[0].ValidUntil.Equal(want) {
 		t.Fatalf("memory aggregate validity = %#v, want %s", aggregate.EvidenceAssessments, want)
 	}
-	events, err := repo.ProgramEvents(context.Background(), "bank", "program-1", nil)
+	events, err := repo.ProgramEvents(WithTrustedSystemScope(context.Background()), "bank", "program-1", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

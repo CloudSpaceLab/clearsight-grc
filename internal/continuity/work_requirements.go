@@ -164,7 +164,8 @@ func CompileMatterWork(aggregate MatterAggregate, now time.Time) ([]WorkRequirem
 		if contract.Status != VerificationActive {
 			continue
 		}
-		if _, alreadyRecorded := latestResults[contract.ID]; alreadyRecorded {
+		latest, alreadyRecorded := latestResults[contract.ID]
+		if alreadyRecorded && latest.Result == VerificationPassed {
 			continue
 		}
 		readyAt, ok := verificationReadyAt(aggregate, contract)
@@ -172,6 +173,10 @@ func CompileMatterWork(aggregate MatterAggregate, now time.Time) ([]WorkRequirem
 			continue
 		}
 		due := readyAt
+		whyNow := "The observation period has completed and this outcome check has no recorded result."
+		if alreadyRecorded {
+			whyNow = "The latest outcome check did not pass. Record the result again after corrective work or additional evidence."
+		}
 		requirements = append(requirements, WorkRequirement{
 			Key:                 "verification:" + contract.ID + ":record",
 			CommandName:         "matter.outcome.record",
@@ -179,7 +184,7 @@ func CompileMatterWork(aggregate MatterAggregate, now time.Time) ([]WorkRequirem
 			Materiality:         maxInt(4, priority),
 			Title:               firstNonBlank(contract.ExpectedOutcome, "Record outcome check"),
 			PrimaryAction:       "Record outcome check",
-			WhyNow:              "The observation period has completed and this outcome check has no recorded result.",
+			WhyNow:              whyNow,
 			InterventionClass:   "VERIFICATION",
 			SubresourceType:     "VERIFICATION_CONTRACT",
 			SubresourceID:       contract.ID,

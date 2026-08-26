@@ -94,6 +94,13 @@ func ambiguityTargetPolicy(ambiguity WorkAmbiguity, target string) (LifecyclePol
 	}
 }
 
+// WorkAmbiguityTargetPolicy exposes the responsibility for one valid branch so
+// actor-scoped operation reads can show every legal choice without selecting a
+// substantive outcome on the user's behalf.
+func WorkAmbiguityTargetPolicy(ambiguity WorkAmbiguity, target string) (LifecyclePolicy, error) {
+	return ambiguityTargetPolicy(ambiguity, target)
+}
+
 func sequenceRequirementKey(ambiguity WorkAmbiguity, responsibility string) string {
 	prefix := strings.TrimSuffix(ambiguity.Key, ":branch")
 	return prefix + ":gate:" + strings.ToLower(responsibility)

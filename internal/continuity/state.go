@@ -494,7 +494,7 @@ func decorateProgram(aggregate ProgramAggregate) ProgramAggregate {
 	case ProgramRetired:
 		aggregate.StateLabel = "Ended"
 	default:
-		if aggregate.CurrentState == nil {
+		if aggregate.CurrentState == nil || aggregate.CurrentState.ProgramVersion != aggregate.Program.Version {
 			aggregate.StateLabel = programStateLabel(StateUnknown)
 		} else {
 			aggregate.StateLabel = programStateLabel(aggregate.CurrentState.Overall)

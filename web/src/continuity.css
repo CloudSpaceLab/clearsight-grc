@@ -19,6 +19,7 @@
 .program-card-main { grid-template-columns: auto minmax(230px,1.3fr) minmax(240px,1fr) minmax(145px,.55fr) auto; }
 .matter-card-main { grid-template-columns: auto minmax(260px,1.35fr) minmax(145px,.55fr) minmax(175px,.65fr) auto; }
 .program-card-main:hover,.matter-card-main:hover { background: rgba(91,198,214,.035); }
+.record-open-actions { display:flex; justify-content:flex-end; padding:0 20px 14px; }
 .program-icon,.matter-icon { width: 43px; height: 43px; display: grid; place-items: center; border-radius: 13px; }
 .program-icon { color: var(--cyan); background: rgba(91,198,214,.08); border: 1px solid rgba(91,198,214,.24); }
 .matter-icon { color: var(--amber); background: rgba(233,183,90,.08); border: 1px solid rgba(233,183,90,.24); }

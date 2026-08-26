@@ -259,7 +259,7 @@ func (r *MemoryRepository) CreateMatterWithLink(_ context.Context, bundle Matter
 	}
 	if matter.TriggerKey != "" {
 		for _, existing := range r.matters[matter.TenantID] {
-			if existing.Matter.TriggerKey == matter.TriggerKey && existing.Matter.Status != MatterClosed && existing.Matter.Status != MatterCancelled {
+			if existing.Matter.TriggerKey == matter.TriggerKey && matterLinkedToProgram(existing, bundle.Link.ProgramID) && existing.Matter.Status != MatterClosed && existing.Matter.Status != MatterCancelled {
 				return Matter{}, ErrDuplicate
 			}
 		}
@@ -286,9 +286,11 @@ func (r *MemoryRepository) ApplyTriggerBundle(ctx context.Context, bundle Trigge
 	if r.triggers[trigger.TenantID] == nil {
 		r.triggers[trigger.TenantID] = map[string]Trigger{}
 	}
-	if _, exists := r.triggers[trigger.TenantID][trigger.DedupeKey]; exists {
+	key := programTriggerDedupeKey(trigger.ProgramID, trigger.DedupeKey)
+	if _, exists := r.triggers[trigger.TenantID][key]; exists {
 		for _, aggregate := range r.matters[trigger.TenantID] {
-			if aggregate.Matter.TriggerKey == trigger.DedupeKey && aggregate.Matter.Status != MatterClosed && aggregate.Matter.Status != MatterCancelled {
+			if aggregate.Matter.TriggerKey == trigger.DedupeKey && aggregate.Matter.Status != MatterClosed && aggregate.Matter.Status != MatterCancelled &&
+				aggregate.Matter.LegalEntityID == program.Program.LegalEntityID && r.visibleLegalEntity(ctx, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID) && matterLinkedToProgram(aggregate, trigger.ProgramID) {
 				matter := aggregate.Matter
 				return TriggerBundleResult{Inserted: false, Matter: &matter}, nil
 			}
@@ -303,29 +305,43 @@ func (r *MemoryRepository) ApplyTriggerBundle(ctx context.Context, bundle Trigge
 	}
 	program.Program.Version = bundle.ProgramEvent.AggregateVersion
 	program.Program.UpdatedAt = bundle.ProgramEvent.OccurredAt
-	r.programs[trigger.TenantID][trigger.ProgramID] = program
-	r.programEvents[trigger.TenantID][trigger.ProgramID] = append(r.programEvents[trigger.TenantID][trigger.ProgramID], bundle.ProgramEvent)
-	r.triggers[trigger.TenantID][trigger.DedupeKey] = trigger
 	result := TriggerBundleResult{Inserted: true}
+	var stagedMatter *MatterAggregate
 	if bundle.Matter != nil && bundle.MatterEvent != nil && bundle.Link != nil && bundle.LinkEvent != nil {
 		matter := *bundle.Matter
-		if r.matters[matter.TenantID] == nil {
-			r.matters[matter.TenantID] = map[string]MatterAggregate{}
-			r.matterEvents[matter.TenantID] = map[string][]Event{}
-		}
 		aggregate := MatterAggregate{Matter: matter, Closure: ClosureAssessment{Ready: false}}
 		if err := applyMatterEventToAggregate(&aggregate, *bundle.LinkEvent); err != nil {
 			return TriggerBundleResult{}, err
 		}
 		aggregate.Matter.Version = bundle.LinkEvent.AggregateVersion
 		aggregate.Matter.UpdatedAt = bundle.LinkEvent.OccurredAt
-		r.matters[matter.TenantID][matter.ID] = aggregate
-		r.matterEvents[matter.TenantID][matter.ID] = []Event{*bundle.MatterEvent, *bundle.LinkEvent}
 		created := aggregate.Matter
 		result.Matter = &created
+		stagedMatter = &aggregate
+	}
+	r.programs[trigger.TenantID][trigger.ProgramID] = program
+	r.programEvents[trigger.TenantID][trigger.ProgramID] = append(r.programEvents[trigger.TenantID][trigger.ProgramID], bundle.ProgramEvent)
+	r.triggers[trigger.TenantID][key] = trigger
+	if stagedMatter != nil {
+		matter := stagedMatter.Matter
+		if r.matters[matter.TenantID] == nil {
+			r.matters[matter.TenantID] = map[string]MatterAggregate{}
+			r.matterEvents[matter.TenantID] = map[string][]Event{}
+		}
+		r.matters[matter.TenantID][matter.ID] = *stagedMatter
+		r.matterEvents[matter.TenantID][matter.ID] = []Event{*bundle.MatterEvent, *bundle.LinkEvent}
 	}
 	_, _ = r.QueueProgramState(ctx, trigger.TenantID, trigger.ProgramID, program.Program.Version, trigger.Type, trigger.ID, "system")
 	return result, nil
+}
+
+func matterLinkedToProgram(aggregate MatterAggregate, programID string) bool {
+	for _, link := range aggregate.Links {
+		if link.ProgramID == programID {
+			return true
+		}
+	}
+	return false
 }
 
 var _ ProgramStateRepository = (*MemoryRepository)(nil)

@@ -266,12 +266,15 @@ type ControlImplementation struct {
 }
 
 type RequirementControlLink struct {
-	ID               string    `json:"id"`
-	TenantID         string    `json:"tenant_id"`
-	ProgramID        string    `json:"program_id"`
-	RequirementID    string    `json:"requirement_id"`
-	ImplementationID string    `json:"implementation_id"`
-	CreatedAt        time.Time `json:"created_at"`
+	ID               string     `json:"id"`
+	TenantID         string     `json:"tenant_id"`
+	ProgramID        string     `json:"program_id"`
+	RequirementID    string     `json:"requirement_id"`
+	ImplementationID string     `json:"implementation_id"`
+	CreatedAt        time.Time  `json:"created_at"`
+	RetiredAt        *time.Time `json:"retired_at,omitempty"`
+	RetiredBy        string     `json:"retired_by,omitempty"`
+	RetirementReason string     `json:"retirement_reason,omitempty"`
 }
 
 type EvidenceContract struct {
@@ -290,6 +293,7 @@ type EvidenceContract struct {
 	IndependenceRequired    bool                   `json:"independence_required"`
 	ContradictionPolicy     string                 `json:"contradiction_policy"`
 	FailureAction           string                 `json:"failure_action"`
+	ConfiguredBy            string                 `json:"configured_by,omitempty"`
 	Status                  EvidenceContractStatus `json:"status"`
 	CreatedAt               time.Time              `json:"created_at"`
 	UpdatedAt               time.Time              `json:"updated_at"`
@@ -362,6 +366,7 @@ type ProgramAggregate struct {
 type Matter struct {
 	ID                string          `json:"id"`
 	TenantID          string          `json:"tenant_id"`
+	LegalEntityID     string          `json:"legal_entity_id,omitempty"`
 	Reference         string          `json:"reference"`
 	Type              MatterType      `json:"type"`
 	Status            MatterStatus    `json:"status"`
@@ -389,14 +394,17 @@ type Matter struct {
 }
 
 type MatterLink struct {
-	ID            string    `json:"id"`
-	TenantID      string    `json:"tenant_id"`
-	MatterID      string    `json:"matter_id"`
-	ProgramID     string    `json:"program_id,omitempty"`
-	RequirementID string    `json:"requirement_id,omitempty"`
-	ControlID     string    `json:"control_id,omitempty"`
-	Relationship  string    `json:"relationship"`
-	CreatedAt     time.Time `json:"created_at"`
+	ID               string     `json:"id"`
+	TenantID         string     `json:"tenant_id"`
+	MatterID         string     `json:"matter_id"`
+	ProgramID        string     `json:"program_id,omitempty"`
+	RequirementID    string     `json:"requirement_id,omitempty"`
+	ControlID        string     `json:"control_id,omitempty"`
+	Relationship     string     `json:"relationship"`
+	CreatedAt        time.Time  `json:"created_at"`
+	RetiredAt        *time.Time `json:"retired_at,omitempty"`
+	RetiredBy        string     `json:"retired_by,omitempty"`
+	RetirementReason string     `json:"retirement_reason,omitempty"`
 }
 
 type Decision struct {
@@ -421,24 +429,26 @@ type Decision struct {
 }
 
 type Action struct {
-	ID               string       `json:"id"`
-	TenantID         string       `json:"tenant_id"`
-	MatterID         string       `json:"matter_id"`
-	Title            string       `json:"title"`
-	Description      string       `json:"description"`
-	OwnerPrincipalID string       `json:"owner_principal_id,omitempty"`
-	Status           ActionStatus `json:"status"`
-	DueAt            *time.Time   `json:"due_at,omitempty"`
-	ImplementedAt    *time.Time   `json:"implemented_at,omitempty"`
-	CreatedAt        time.Time    `json:"created_at"`
-	UpdatedAt        time.Time    `json:"updated_at"`
-	Version          int64        `json:"version"`
+	ID                     string       `json:"id"`
+	TenantID               string       `json:"tenant_id"`
+	MatterID               string       `json:"matter_id"`
+	Title                  string       `json:"title"`
+	Description            string       `json:"description"`
+	OwnerPrincipalID       string       `json:"owner_principal_id,omitempty"`
+	RequiredResponsibility string       `json:"required_responsibility,omitempty"`
+	Status                 ActionStatus `json:"status"`
+	DueAt                  *time.Time   `json:"due_at,omitempty"`
+	ImplementedAt          *time.Time   `json:"implemented_at,omitempty"`
+	CreatedAt              time.Time    `json:"created_at"`
+	UpdatedAt              time.Time    `json:"updated_at"`
+	Version                int64        `json:"version"`
 }
 
 type VerificationContract struct {
 	ID                       string             `json:"id"`
 	TenantID                 string             `json:"tenant_id"`
 	MatterID                 string             `json:"matter_id"`
+	SupersedesContractID     string             `json:"supersedes_contract_id,omitempty"`
 	ActionID                 string             `json:"action_id,omitempty"`
 	ExpectedOutcome          string             `json:"expected_outcome"`
 	Baseline                 json.RawMessage    `json:"baseline"`
@@ -455,17 +465,18 @@ type VerificationContract struct {
 }
 
 type VerificationResult struct {
-	ID                  string                   `json:"id"`
-	TenantID            string                   `json:"tenant_id"`
-	MatterID            string                   `json:"matter_id"`
-	ContractID          string                   `json:"contract_id"`
-	Result              VerificationResultStatus `json:"result"`
-	Observations        json.RawMessage          `json:"observations"`
-	EvidenceReferences  json.RawMessage          `json:"evidence_references"`
-	ReviewerPrincipalID string                   `json:"reviewer_principal_id,omitempty"`
-	Rationale           string                   `json:"rationale"`
-	ObservedAt          time.Time                `json:"observed_at"`
-	CreatedAt           time.Time                `json:"created_at"`
+	ID                           string                   `json:"id"`
+	TenantID                     string                   `json:"tenant_id"`
+	MatterID                     string                   `json:"matter_id"`
+	ContractID                   string                   `json:"contract_id"`
+	Result                       VerificationResultStatus `json:"result"`
+	Observations                 json.RawMessage          `json:"observations"`
+	EvidenceReferences           json.RawMessage          `json:"evidence_references"`
+	ReviewerPrincipalID          string                   `json:"reviewer_principal_id,omitempty"`
+	ReviewerAuthorityPrincipalID string                   `json:"reviewer_authority_principal_id,omitempty"`
+	Rationale                    string                   `json:"rationale"`
+	ObservedAt                   time.Time                `json:"observed_at"`
+	CreatedAt                    time.Time                `json:"created_at"`
 }
 
 type ResponsePackage struct {
@@ -536,6 +547,19 @@ type Event struct {
 	OccurredAt       time.Time       `json:"occurred_at"`
 }
 
+type ResponseHistoryItem struct {
+	Status           ResponseStatus `json:"status"`
+	OccurredAt       time.Time      `json:"occurred_at"`
+	ActorLabel       string         `json:"actor_label"`
+	AggregateVersion int64          `json:"matter_version"`
+}
+
+type ResponseHistoryPage struct {
+	Items       []ResponseHistoryItem `json:"items"`
+	HasMore     bool                  `json:"has_more"`
+	GeneratedAt time.Time             `json:"generated_at"`
+}
+
 type CreateProgramInput struct {
 	TenantID             string          `json:"tenant_id"`
 	LegalEntityID        string          `json:"legal_entity_id,omitempty"`
@@ -563,6 +587,7 @@ type ProgramTransitionInput struct {
 
 type CreateMatterInput struct {
 	TenantID          string          `json:"tenant_id"`
+	LegalEntityID     string          `json:"legal_entity_id,omitempty"`
 	Type              MatterType      `json:"type"`
 	Priority          int             `json:"priority"`
 	Title             string          `json:"title"`

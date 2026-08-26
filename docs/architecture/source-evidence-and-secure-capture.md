@@ -127,6 +127,8 @@ Initial objectives:
 
 All population reads remain tenant-filtered and bounded. High-volume observation history uses tenant/source/time indexes. Composite foreign keys enforce tenant and parent consistency across the source catalog and capture records.
 
+Operator source lists are also bound to one exact, current legal entity before keyset pagination and limits are applied. A wildcard bank identity must select one exact legal entity; an absent or ambiguous selection fails closed. Program evidence checks and Matter outcome checks revalidate every selected source as active and entity-matched in the material PostgreSQL transaction. A source outage or invalid identifier cannot create a linked contract, while an explicitly manual check with no registered source remains available.
+
 External source reads use adapter-specific sessions rather than ClearSight's application database pool. The PostgreSQL source adapter uses a bounded separate pool, dedicated non-owner credentials, read-only repeatable-read transactions, native parameter types, response-byte limits and operation deadlines.
 
 ## Failure behavior

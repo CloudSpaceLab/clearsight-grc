@@ -1,6 +1,6 @@
 import { loadContext, resolveAuthority } from "./api";
 import { requestJSON } from "./http";
-import type { MatterAggregate, ProgramAggregate, WorkflowTask } from "./types";
+import type { AuthorityPrincipal, MatterAggregate, ProgramAggregate, WorkflowTask } from "./types";
 import { normalizeProgramAggregate } from "./programAggregate";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -47,6 +47,15 @@ type CreateProgramInput = {
   owningFunction: string;
   jurisdiction?: string;
   scopeDescription?: string;
+  ownerCandidateID: string;
+  approvalAuthorityCandidateID: string;
+};
+
+export type ProgramSetupCandidates = {
+  owner_candidates: AuthorityPrincipal[];
+  approval_authority_candidates: AuthorityPrincipal[];
+  has_more: boolean;
+  generated_at: string;
 };
 
 type AddRequirementInput = {
@@ -68,7 +77,7 @@ export type CreateMatterInput = {
   programID?: string;
 };
 
-async function command<T>(path: string, body: Record<string, unknown>): Promise<T> {
+export async function continuityCommand<T>(path: string, body: Record<string, unknown>): Promise<T> {
   const context = await loadContext();
   const params = new URLSearchParams({ tenant_id: context.tenant.id });
   return requestJSON<T>(apiBase, `${path}?${params.toString()}`, {
@@ -98,14 +107,14 @@ export async function loadActorMatterWork(limit = 100): Promise<WorkflowTask[]> 
 
 export async function createProgram(input: CreateProgramInput): Promise<ProgramAggregate> {
   const context = await loadContext();
-  const value = await command<Parameters<typeof normalizeProgramAggregate>[0]>("/api/v1/programs", {
+  const value = await continuityCommand<Parameters<typeof normalizeProgramAggregate>[0]>("/api/v1/programs", {
     legal_entity_id: context.legal_entity.id,
     code: input.code,
     name: input.name,
     type: input.type,
     owning_function: input.owningFunction,
-    owner_principal_id: context.actor.id,
-    authority_principal_id: context.actor.id,
+    owner_candidate_id: input.ownerCandidateID,
+    approval_authority_candidate_id: input.approvalAuthorityCandidateID,
     jurisdiction: input.jurisdiction,
     scope: { description: input.scopeDescription ?? "" },
     effective_from: new Date().toISOString(),
@@ -113,9 +122,15 @@ export async function createProgram(input: CreateProgramInput): Promise<ProgramA
   return normalizeProgramAggregate(value);
 }
 
+export async function loadProgramSetupCandidates(): Promise<ProgramSetupCandidates> {
+  const context = await loadContext();
+  const params = new URLSearchParams({ tenant_id: context.tenant.id, scope_legal_entity_id: context.legal_entity.id });
+  return requestJSON<ProgramSetupCandidates>(apiBase, `/api/v1/programs/setup-candidates?${params.toString()}`);
+}
+
 export async function createMatter(input: CreateMatterInput): Promise<MatterAggregate> {
   const context = await loadContext();
-  return command<MatterAggregate>("/api/v1/matters", {
+  return continuityCommand<MatterAggregate>("/api/v1/matters", {
     type: input.type,
     priority: input.priority,
     title: input.title,
@@ -131,7 +146,7 @@ export async function createMatter(input: CreateMatterInput): Promise<MatterAggr
 }
 
 export async function addProgramRequirement(programID: string, expectedVersion: number, input: AddRequirementInput): Promise<ProgramAggregate> {
-  const value = await command<Parameters<typeof normalizeProgramAggregate>[0]>(`/api/v1/programs/${encodeURIComponent(programID)}/requirements`, {
+  const value = await continuityCommand<Parameters<typeof normalizeProgramAggregate>[0]>(`/api/v1/programs/${encodeURIComponent(programID)}/requirements`, {
     expected_version: expectedVersion,
     code: input.code,
     title: input.title,
@@ -148,7 +163,7 @@ export async function addProgramRequirement(programID: string, expectedVersion: 
 }
 
 export async function transitionProgram(programID: string, expectedVersion: number, to: string, rationale: string): Promise<ProgramAggregate> {
-  const value = await command<Parameters<typeof normalizeProgramAggregate>[0]>(`/api/v1/programs/${encodeURIComponent(programID)}/transition`, {
+  const value = await continuityCommand<Parameters<typeof normalizeProgramAggregate>[0]>(`/api/v1/programs/${encodeURIComponent(programID)}/transition`, {
     expected_version: expectedVersion,
     to,
     rationale,
@@ -157,7 +172,7 @@ export async function transitionProgram(programID: string, expectedVersion: numb
 }
 
 export function transitionMatter(matterID: string, expectedVersion: number, to: string, rationale: string): Promise<MatterAggregate> {
-  return command<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/transition`, {
+  return continuityCommand<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/transition`, {
     expected_version: expectedVersion,
     to,
     rationale,
@@ -165,7 +180,7 @@ export function transitionMatter(matterID: string, expectedVersion: number, to: 
 }
 
 export function addMatterAction(matterID: string, expectedVersion: number, input: MatterActionInput): Promise<MatterAggregate> {
-  return command<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/actions`, {
+  return continuityCommand<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/actions`, {
     expected_version: expectedVersion,
     title: input.title,
     description: input.description,
@@ -175,7 +190,7 @@ export function addMatterAction(matterID: string, expectedVersion: number, input
 }
 
 export function transitionMatterAction(matterID: string, actionID: string, expectedVersion: number, to: string, rationale: string): Promise<MatterAggregate> {
-  return command<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/actions/${encodeURIComponent(actionID)}/transition`, {
+  return continuityCommand<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/actions/${encodeURIComponent(actionID)}/transition`, {
     expected_version: expectedVersion,
     to,
     rationale,
@@ -183,7 +198,7 @@ export function transitionMatterAction(matterID: string, actionID: string, expec
 }
 
 export function recordMatterDecision(matterID: string, expectedVersion: number, input: MatterDecisionInput): Promise<MatterAggregate> {
-  return command<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/decisions`, {
+  return continuityCommand<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/decisions`, {
     expected_version: expectedVersion,
     type: input.type,
     status: input.status,
@@ -196,7 +211,7 @@ export function recordMatterDecision(matterID: string, expectedVersion: number, 
 }
 
 export function recordVerificationResult(matterID: string, expectedVersion: number, input: VerificationResultInput): Promise<MatterAggregate> {
-  return command<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/verification-results`, {
+  return continuityCommand<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/verification-results`, {
     expected_version: expectedVersion,
     contract_id: input.contractID,
     result: input.result,
@@ -208,7 +223,7 @@ export function recordVerificationResult(matterID: string, expectedVersion: numb
 }
 
 export function addResponsePackage(matterID: string, expectedVersion: number, input: ResponsePackageInput): Promise<MatterAggregate> {
-  return command<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/responses`, {
+  return continuityCommand<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/responses`, {
     expected_version: expectedVersion,
     purpose: input.purpose,
     audience: input.audience,
@@ -217,7 +232,7 @@ export function addResponsePackage(matterID: string, expectedVersion: number, in
 }
 
 export function transitionResponsePackage(matterID: string, responseID: string, expectedVersion: number, to: string, rationale: string): Promise<MatterAggregate> {
-  return command<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/responses/${encodeURIComponent(responseID)}/transition`, {
+  return continuityCommand<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/responses/${encodeURIComponent(responseID)}/transition`, {
     expected_version: expectedVersion,
     to,
     rationale,

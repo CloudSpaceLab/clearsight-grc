@@ -50,6 +50,15 @@ Operational components consume semantic tokens rather than owning separate light
 --green;
 --coral;
 --focus-ring;
+--overlay-blur;
+--document-canvas;
+--document-surface;
+--document-surface-muted;
+--document-border;
+--document-text;
+--document-muted;
+--icon-size-small;
+--interactive-target;
 ```
 
 `web/src/ui-preferences.css` owns the current dark/light mappings and the illustration token mappings. Components must not duplicate semantic colors locally when a token already represents the meaning.
@@ -60,17 +69,22 @@ Typography uses Inter, Segoe UI Variable, Segoe UI, then system sans-serif. Head
 
 Use an 8px spacing rhythm, 11–18px controls, 12–18px cards and 20–26px hero/guide radii. Shadows and blur remain subtle and never carry state.
 
+Focused dialogs and drawers use the theme backdrop plus `--overlay-blur` to reduce competing shell detail. The overlay must not conceal errors, authority explanations or material status inside the focused surface. Compact line icons use `--icon-size-small` inside controls that retain the `--interactive-target` hit area.
+
+Document reading and comparison surfaces use the document token family. Light mode presents imported material on a white paper-like surface with dark text; dark mode maps the same semantic roles to a quiet dark document surface. Navigation, status and review actions remain visually distinct from the document body.
+
 ## Structural patterns
 
 - **Intervention Summary:** actor-scoped read projection for one human review, decision, authorization, evidence exception, escalation or outcome check. It is not new authoritative state.
 - **Today:** intervention queue first; quiet status-check context follows the work rather than preceding it with a KPI wall.
-- **Programs:** ongoing responsibilities, current status and reasons. Show the status reason before the complete requirement/evidence catalogue.
-- **Vendors:** one legal-entity-scoped register and selected service relationship. Keep due-diligence setup, secure collection status and reviewer evidence in that relationship context; open canonical issues and changes for remediation instead of creating a second vendor dashboard or findings system.
+- **Programs:** ongoing responsibilities, current status and reasons. The portfolio remains a bounded searchable list; an exact Program opens a dedicated operating record. Show calculated-state freshness, reasons, named owner and one dominant actor action before details, requirements, safeguards, evidence, monitoring and linked issues.
 - **Issues and changes:** bounded items needing review, decision, action, response or outcome confirmation. Show the current handoff before history.
 - **Work:** review queues and focused evidence. Complete source inventories are secondary context.
 - **Configure:** policy, routing, integrity and ownership.
 - **Side panel:** bounded inspection or one focused action without losing list context.
 - **Dedicated page:** complex or protected work requiring several sections, parallel work or a durable saved state.
+
+The dedicated Program record keeps calculated state distinct from operating lifecycle status. Focused forms use only current Program-owned objects and authority-returned candidates. On narrow screens, the two-column record becomes a single reading order, action groups become full-width controls and fixed navigation must not cover the active form or result.
 
 Do not default every concept to a dashboard card. Choose lists, rows, details, tables, timelines or focused forms according to the operator's task.
 

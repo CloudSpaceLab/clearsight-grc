@@ -82,6 +82,23 @@ func TestPostgresEffectiveAuthorityDelegationGrantAndSegregation(t *testing.T) {
 	if !resolution.AllowsPrincipal(ownerID) || !resolution.AllowsPrincipal(delegateID) {
 		t.Fatalf("active delegation did not expand the effective route: %#v", resolution)
 	}
+	if !resolution.AllowsPrincipalFor(delegateID, ownerID) || resolution.AllowsPrincipalFor(blockedID, ownerID) {
+		t.Fatalf("delegation origin was not preserved on the effective route: %#v", resolution.EffectiveOrigins)
+	}
+	batch := service.(BatchResolver)
+	outcomes, err := batch.ResolveMany(ctx, []ResolveInput{
+		input,
+		{TenantID: input.TenantID, LegalEntityID: input.LegalEntityID, ObjectType: input.ObjectType, ObjectID: input.ObjectID, Responsibility: input.Responsibility, DecisionType: "matter.outcome.record", Materiality: input.Materiality, At: input.At},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(outcomes) != 2 || outcomes[0].Err != nil || !outcomes[0].Resolution.AllowsPrincipalFor(delegateID, ownerID) {
+		t.Fatalf("batch resolution lost delegated authority lineage: %#v", outcomes)
+	}
+	if !errors.Is(outcomes[1].Err, ErrNoRoute) {
+		t.Fatalf("batch resolution crossed the exact decision route: %#v", outcomes[1])
+	}
 
 	if _, err := pool.Exec(ctx, `INSERT INTO authority_grants(tenant_id,legal_entity_id,principal_id,decision_type,limits,valid_from,policy_version) VALUES($1::uuid,$2::uuid,$3::uuid,'matter.action.add','{"max_materiality":4}'::jsonb,$4,'grant:v1')`, tenantID, entityID, ownerID, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
@@ -117,6 +134,9 @@ func TestPostgresEffectiveAuthorityDelegationGrantAndSegregation(t *testing.T) {
 	}
 	if resolution.AllowsPrincipal(delegateID) || !resolution.AllowsPrincipal(ownerID) {
 		t.Fatalf("segregation did not remove only the conflicted delegate: %#v", resolution)
+	}
+	if resolution.AllowsPrincipalFor(delegateID, ownerID) {
+		t.Fatalf("segregated delegate retained stored-authority lineage: %#v", resolution.EffectiveOrigins)
 	}
 
 	if _, err := pool.Exec(ctx, `UPDATE delegations SET status='EXPIRED' WHERE tenant_id=$1::uuid`, tenantID); err != nil {

@@ -72,17 +72,38 @@ func TestCompileMatterWorkWaitsForVerificationObservationPeriod(t *testing.T) {
 	}
 }
 
-func TestCompileMatterWorkDoesNotRepeatRecordedVerification(t *testing.T) {
+func TestCompileMatterWorkKeepsActiveOutcomeWorkAfterNonPassingResult(t *testing.T) {
 	now := time.Date(2026, 8, 7, 22, 30, 0, 0, time.UTC)
 	created := now.Add(-2 * time.Hour)
+	for _, result := range []VerificationResultStatus{VerificationFailed, VerificationInconclusive} {
+		t.Run(string(result), func(t *testing.T) {
+			aggregate := MatterAggregate{
+				Matter:                Matter{ID: "matter-1", TenantID: "bank", Status: MatterVerification, Priority: 3},
+				VerificationContracts: []VerificationContract{{ID: "verify-1", ExpectedOutcome: "Expected state", ObservationPeriodMinutes: 30, Status: VerificationActive, CreatedAt: created}},
+				VerificationResults:   []VerificationResult{{ID: "result-1", ContractID: "verify-1", Result: result, Observations: json.RawMessage(`{}`), ObservedAt: now.Add(-time.Minute), CreatedAt: now.Add(-time.Minute)}},
+			}
+
+			requirements, _ := CompileMatterWork(aggregate, now)
+			if len(requirements) != 1 || requirements[0].CommandName != "matter.outcome.record" {
+				t.Fatalf("a non-passing result must keep the active outcome check actionable: %#v", requirements)
+			}
+		})
+	}
+}
+
+func TestCompileMatterWorkStopsAfterLatestPassingResult(t *testing.T) {
+	now := time.Date(2026, 8, 7, 22, 30, 0, 0, time.UTC)
 	aggregate := MatterAggregate{
 		Matter:                Matter{ID: "matter-1", TenantID: "bank", Status: MatterVerification, Priority: 3},
-		VerificationContracts: []VerificationContract{{ID: "verify-1", ExpectedOutcome: "Expected state", ObservationPeriodMinutes: 30, Status: VerificationActive, CreatedAt: created}},
-		VerificationResults:   []VerificationResult{{ID: "result-1", ContractID: "verify-1", Result: VerificationInconclusive, Observations: json.RawMessage(`{}`), ObservedAt: now.Add(-time.Minute), CreatedAt: now.Add(-time.Minute)}},
+		VerificationContracts: []VerificationContract{{ID: "verify-1", ExpectedOutcome: "Expected state", Status: VerificationActive, CreatedAt: now.Add(-2 * time.Hour)}},
+		VerificationResults: []VerificationResult{
+			{ID: "result-1", ContractID: "verify-1", Result: VerificationFailed, ObservedAt: now.Add(-2 * time.Minute), CreatedAt: now.Add(-2 * time.Minute)},
+			{ID: "result-2", ContractID: "verify-1", Result: VerificationPassed, ObservedAt: now.Add(-time.Minute), CreatedAt: now.Add(-time.Minute)},
+		},
 	}
 
 	requirements, _ := CompileMatterWork(aggregate, now)
 	if len(requirements) != 0 {
-		t.Fatalf("a contract with a current result must not create duplicate review work: %#v", requirements)
+		t.Fatalf("the latest passing result must complete current outcome work: %#v", requirements)
 	}
 }

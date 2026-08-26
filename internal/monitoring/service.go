@@ -15,26 +15,31 @@ import (
 )
 
 var (
-	ErrMakerChecker = errors.New("submitter cannot approve the same monitoring revision")
-	ErrInactive     = errors.New("monitoring revision is not active")
+	ErrMakerChecker                = errors.New("submitter cannot approve the same monitoring revision")
+	ErrInactive                    = errors.New("monitoring revision is not active")
+	ErrLinkedIssueIneligible       = errors.New("this monitoring result is not the latest adverse result configured to create a linked issue")
+	ErrSourceValidationUnavailable = errors.New("connected-source validation is unavailable")
 )
 
 type Actor struct {
-	TenantID    string
-	PrincipalID string
+	TenantID      string
+	LegalEntityID string
+	PrincipalID   string
 }
 
 type CreateFormInput struct {
-	Code         string                    `json:"code"`
-	Name         string                    `json:"name"`
-	Purpose      string                    `json:"purpose"`
-	Presentation formcontract.Presentation `json:"presentation"`
-	Sections     []formcontract.Section    `json:"sections"`
-	Fields       []TemplateField           `json:"fields"`
+	ProgramID     string          `json:"program_id"`
+	LegalEntityID string          `json:"legal_entity_id"`
+	Code          string          `json:"code"`
+	Name          string          `json:"name"`
+	Purpose       string          `json:"purpose"`
+	Fields        []TemplateField `json:"fields"`
 }
 
 type TransitionInput struct {
 	ID              string          `json:"id"`
+	ProgramID       string          `json:"program_id,omitempty"`
+	LegalEntityID   string          `json:"legal_entity_id,omitempty"`
 	ExpectedVersion int64           `json:"expected_version"`
 	To              LifecycleStatus `json:"to"`
 }
@@ -43,6 +48,7 @@ type StartCollectionInput struct {
 	FormTemplateID        string    `json:"form_template_id"`
 	FormTemplateVersion   int64     `json:"form_template_version"`
 	ProgramID             string    `json:"program_id"`
+	LegalEntityID         string    `json:"legal_entity_id"`
 	RespondentPrincipalID string    `json:"respondent_principal_id"`
 	ReviewerPrincipalID   string    `json:"reviewer_principal_id"`
 	PeriodStart           time.Time `json:"period_start"`
@@ -91,13 +97,18 @@ type sourceReader interface {
 	PreviewBinding(context.Context, string, string, int64, sourceaccess.PageRequest) (sourceaccess.RecordPage, error)
 }
 
+type sourceScopeValidator interface {
+	ValidateActiveSourcesForEntity(context.Context, string, string, []string) error
+}
+
 type Service struct {
-	repo     Repository
-	requests requestCreator
-	evidence evidenceReader
-	sources  sourceReader
-	now      func() time.Time
-	newID    func() (string, error)
+	repo            Repository
+	requests        requestCreator
+	evidence        evidenceReader
+	sources         sourceReader
+	sourceValidator sourceScopeValidator
+	now             func() time.Time
+	newID           func() (string, error)
 }
 
 func NewService(repo Repository, requests requestCreator) *Service {
@@ -116,15 +127,18 @@ func (s *Service) ConfigureSourceReader(reader sourceReader) {
 	s.sources = reader
 }
 
+func (s *Service) ConfigureSourceValidator(validator sourceScopeValidator) {
+	s.sourceValidator = validator
+}
+
 func (s *Service) CreateForm(ctx context.Context, actor Actor, input CreateFormInput) (FormTemplate, error) {
 	if err := validateActor(actor); err != nil {
 		return FormTemplate{}, err
 	}
-	contract, err := formcontract.Normalize(formcontract.Contract{
-		Presentation: input.Presentation,
-		Sections:     input.Sections,
-		Fields:       input.Fields,
-	})
+	if err := validateProgramScope(actor, input.ProgramID, input.LegalEntityID); err != nil {
+		return FormTemplate{}, err
+	}
+	fields, err := normalizeTemplateFields(input.Fields)
 	if err != nil {
 		return FormTemplate{}, errors.Join(ErrInvalid, err)
 	}
@@ -137,31 +151,50 @@ func (s *Service) CreateForm(ctx context.Context, actor Actor, input CreateFormI
 	}
 	now := s.now().UTC()
 	return s.repo.CreateFormRevision(ctx, FormTemplate{
-		ID: valueID, TenantID: actor.TenantID, Code: strings.TrimSpace(input.Code), Name: strings.TrimSpace(input.Name),
-		Purpose: strings.TrimSpace(input.Purpose), Presentation: contract.Presentation, Sections: contract.Sections, Fields: contract.Fields,
+		ID: valueID, TenantID: actor.TenantID, LegalEntityID: strings.TrimSpace(input.LegalEntityID), ProgramID: strings.TrimSpace(input.ProgramID), Code: strings.TrimSpace(input.Code), Name: strings.TrimSpace(input.Name),
+		Purpose: strings.TrimSpace(input.Purpose), Fields: fields,
 		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now},
 	})
 }
 
-func (s *Service) ListForms(ctx context.Context, actor Actor, limit int) ([]FormTemplate, error) {
+func (s *Service) ListForms(ctx context.Context, actor Actor, programID string, limit int) ([]FormTemplate, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
-	return s.repo.ListFormRevisions(ctx, actor.TenantID, limit)
+	if err := validateProgramScope(actor, programID, actor.LegalEntityID); err != nil {
+		return nil, err
+	}
+	return s.repo.ListFormRevisions(ctx, actor.TenantID, actor.LegalEntityID, strings.TrimSpace(programID), limit)
+}
+
+func (s *Service) Form(ctx context.Context, actor Actor, programID, id string, version int64) (FormTemplate, error) {
+	if err := validateActor(actor); err != nil {
+		return FormTemplate{}, err
+	}
+	if err := validateProgramScope(actor, programID, actor.LegalEntityID); err != nil {
+		return FormTemplate{}, err
+	}
+	if strings.TrimSpace(id) == "" || version < 1 {
+		return FormTemplate{}, errors.Join(ErrInvalid, fmt.Errorf("form and version are required"))
+	}
+	return s.repo.FormRevision(ctx, actor.TenantID, actor.LegalEntityID, strings.TrimSpace(programID), strings.TrimSpace(id), version)
 }
 
 func (s *Service) TransitionForm(ctx context.Context, actor Actor, input TransitionInput) (FormTemplate, error) {
 	if err := validateActor(actor); err != nil {
 		return FormTemplate{}, err
 	}
-	current, err := s.repo.FormRevision(ctx, actor.TenantID, strings.TrimSpace(input.ID), input.ExpectedVersion)
+	current, err := s.repo.FormRevision(ctx, actor.TenantID, strings.TrimSpace(input.LegalEntityID), strings.TrimSpace(input.ProgramID), strings.TrimSpace(input.ID), input.ExpectedVersion)
 	if err != nil {
+		return FormTemplate{}, err
+	}
+	if err := validateStoredFormScope(actor, current, input.ProgramID, input.LegalEntityID); err != nil {
 		return FormTemplate{}, err
 	}
 	if input.To == LifecycleActive && current.Status == LifecyclePendingApproval && current.SubmittedBy == actor.PrincipalID {
 		return FormTemplate{}, ErrMakerChecker
 	}
-	return s.repo.TransitionForm(ctx, LifecycleTransition{TenantID: actor.TenantID, ID: current.ID, ExpectedVersion: input.ExpectedVersion, To: input.To, ActorID: actor.PrincipalID, At: s.now().UTC()})
+	return s.repo.TransitionForm(ctx, LifecycleTransition{TenantID: actor.TenantID, LegalEntityID: current.LegalEntityID, ProgramID: current.ProgramID, ID: current.ID, ExpectedVersion: input.ExpectedVersion, To: input.To, ActorID: actor.PrincipalID, At: s.now().UTC()})
 }
 
 func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartCollectionInput) (evidence.Request, error) {
@@ -177,8 +210,11 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 	if input.PeriodStart.IsZero() || input.PeriodEnd.IsZero() || input.PeriodStart.After(input.PeriodEnd) || input.Deadline.IsZero() {
 		return evidence.Request{}, errors.Join(ErrInvalid, fmt.Errorf("a valid reporting period and deadline are required"))
 	}
-	form, err := s.repo.FormRevision(ctx, actor.TenantID, input.FormTemplateID, input.FormTemplateVersion)
+	form, err := s.repo.FormRevision(ctx, actor.TenantID, input.LegalEntityID, input.ProgramID, input.FormTemplateID, input.FormTemplateVersion)
 	if err != nil {
+		return evidence.Request{}, err
+	}
+	if err := validateStoredFormScope(actor, form, input.ProgramID, input.LegalEntityID); err != nil {
 		return evidence.Request{}, err
 	}
 	if form.Status != LifecycleActive || !form.IsCurrent {
@@ -210,8 +246,8 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 		Sensitivity: "INTERNAL", AudienceType: "INTERNAL",
 		Recipient:        evidence.RecipientInput{Type: evidence.RecipientInternalPrincipal, PrincipalID: input.RespondentPrincipalID},
 		EstimatedMinutes: estimateMinutes(len(fields)), Deadline: input.Deadline.UTC(),
-		KnownFacts:   map[string]string{"reviewer": input.ReviewerPrincipalID, "reporting_period_start": periodStart.Format(time.RFC3339), "reporting_period_end": periodEnd.Format(time.RFC3339)},
-		Presentation: form.Presentation, Sections: form.Sections, Fields: fields, FormTemplateID: form.ID, FormTemplateVersion: form.Version,
+		KnownFacts: map[string]string{"reviewer": input.ReviewerPrincipalID, "legal_entity_id": input.LegalEntityID, "reporting_period_start": periodStart.Format(time.RFC3339), "reporting_period_end": periodEnd.Format(time.RFC3339)},
+		Fields:     fields, FormTemplateID: form.ID, FormTemplateVersion: form.Version,
 		CollectionPeriodStart: &periodStart, CollectionPeriodEnd: &periodEnd, CreatedBy: actor.PrincipalID,
 	})
 }
@@ -248,7 +284,10 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 		if input.FormTemplateID == "" || input.FormTemplateVersion < 1 || input.BindingID != "" || len(input.SourceRules) != 0 {
 			return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("form checks require exactly one form revision"))
 		}
-		form, err := s.repo.FormRevision(ctx, actor.TenantID, input.FormTemplateID, input.FormTemplateVersion)
+		if strings.TrimSpace(actor.LegalEntityID) == "" {
+			return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("verified legal-entity scope is required for a form check"))
+		}
+		form, err := s.repo.FormRevision(ctx, actor.TenantID, actor.LegalEntityID, input.ProgramID, input.FormTemplateID, input.FormTemplateVersion)
 		if err != nil {
 			return MonitoringCheck{}, err
 		}
@@ -263,6 +302,9 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 			if err := validateSourceRule(rule); err != nil {
 				return MonitoringCheck{}, errors.Join(ErrInvalid, err)
 			}
+		}
+		if _, err := s.validateSourceBinding(ctx, actor, input.BindingID, input.BindingVersion); err != nil {
+			return MonitoringCheck{}, err
 		}
 	default:
 		return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("input kind is invalid"))
@@ -294,6 +336,26 @@ func (s *Service) ListChecks(ctx context.Context, actor Actor, programID string,
 	return s.repo.ListCheckRevisions(ctx, actor.TenantID, programID, limit)
 }
 
+func (s *Service) Check(ctx context.Context, actor Actor, checkID string, version int64) (MonitoringCheck, error) {
+	if err := validateActor(actor); err != nil {
+		return MonitoringCheck{}, err
+	}
+	if strings.TrimSpace(checkID) == "" || version < 1 {
+		return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("monitoring check and version are required"))
+	}
+	return s.repo.CheckRevision(ctx, actor.TenantID, strings.TrimSpace(checkID), version)
+}
+
+func (s *Service) LatestCheck(ctx context.Context, actor Actor, checkID string) (MonitoringCheck, error) {
+	if err := validateActor(actor); err != nil {
+		return MonitoringCheck{}, err
+	}
+	if strings.TrimSpace(checkID) == "" {
+		return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("monitoring check is required"))
+	}
+	return s.repo.LatestCheckRevision(ctx, actor.TenantID, strings.TrimSpace(checkID))
+}
+
 func (s *Service) ListResults(ctx context.Context, actor Actor, checkID string, limit int) ([]MonitoringResult, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
@@ -304,15 +366,40 @@ func (s *Service) ListResults(ctx context.Context, actor Actor, checkID string, 
 	return s.repo.ListResults(ctx, actor.TenantID, checkID, limit)
 }
 
+func (s *Service) Result(ctx context.Context, actor Actor, resultID string) (MonitoringResult, error) {
+	if err := validateActor(actor); err != nil {
+		return MonitoringResult{}, err
+	}
+	if strings.TrimSpace(resultID) == "" {
+		return MonitoringResult{}, errors.Join(ErrInvalid, fmt.Errorf("monitoring result is required"))
+	}
+	return s.repo.Result(ctx, actor.TenantID, strings.TrimSpace(resultID))
+}
+
+func EligibleForLinkedIssue(check MonitoringCheck, result MonitoringResult) bool {
+	if check.Status != LifecycleActive || !check.IsCurrent || check.FailureAction != FailureRecommendMatter {
+		return false
+	}
+	if result.TenantID != check.TenantID || result.ProgramID != check.ProgramID || result.MonitoringCheckID != check.ID || result.MonitoringCheckVersion != check.Version {
+		return false
+	}
+	if result.Evaluation.Band == RiskHigh || result.Evaluation.Band == RiskCritical || result.Evaluation.Coverage < check.MinimumCoverage || len(result.Evaluation.CriticalFailures) > 0 {
+		return true
+	}
+	for _, rule := range result.Evaluation.RuleResults {
+		if rule.Critical && rule.Outcome != RulePassed {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Service) EvaluateSource(ctx context.Context, actor Actor, input EvaluateSourceInput) (MonitoringResult, error) {
 	if err := validateActor(actor); err != nil {
 		return MonitoringResult{}, err
 	}
 	if strings.TrimSpace(input.CheckID) == "" || input.CheckVersion < 1 {
 		return MonitoringResult{}, errors.Join(ErrInvalid, fmt.Errorf("monitoring check and version are required"))
-	}
-	if s.sources == nil {
-		return MonitoringResult{}, fmt.Errorf("connected-source reads are unavailable")
 	}
 	check, err := s.repo.CheckRevision(ctx, actor.TenantID, input.CheckID, input.CheckVersion)
 	if err != nil {
@@ -321,12 +408,9 @@ func (s *Service) EvaluateSource(ctx context.Context, actor Actor, input Evaluat
 	if check.Status != LifecycleActive || !check.IsCurrent || check.InputKind != InputSource {
 		return MonitoringResult{}, ErrInactive
 	}
-	binding, err := s.sources.Binding(ctx, actor.TenantID, check.BindingID, check.BindingVersion)
+	binding, err := s.validateSourceBinding(ctx, actor, check.BindingID, check.BindingVersion)
 	if err != nil {
 		return MonitoringResult{}, err
-	}
-	if binding.BindingID != check.BindingID || binding.Version != check.BindingVersion || binding.TenantID != actor.TenantID {
-		return MonitoringResult{}, errors.Join(ErrInvalid, fmt.Errorf("connected-source revision does not match the monitoring check"))
 	}
 	page, err := s.sources.PreviewBinding(ctx, actor.TenantID, check.BindingID, check.BindingVersion, sourceaccess.PageRequest{Limit: 2})
 	if err != nil {
@@ -397,7 +481,11 @@ func (s *Service) EvaluateSubmission(ctx context.Context, tenantID, submissionID
 }
 
 func (s *Service) evaluateFormSubmission(ctx context.Context, check MonitoringCheck, request evidence.Request, submission evidence.Submission) (MonitoringResult, error) {
-	form, err := s.repo.FormRevision(ctx, check.TenantID, check.FormTemplateID, check.FormTemplateVersion)
+	legalEntityID := strings.TrimSpace(request.KnownFacts["legal_entity_id"])
+	if legalEntityID == "" {
+		return MonitoringResult{}, errors.Join(ErrInvalid, fmt.Errorf("form submission legal-entity scope is missing"))
+	}
+	form, err := s.repo.FormRevision(ctx, check.TenantID, legalEntityID, check.ProgramID, check.FormTemplateID, check.FormTemplateVersion)
 	if err != nil {
 		return MonitoringResult{}, err
 	}
@@ -442,7 +530,10 @@ func (s *Service) TransitionCheck(ctx context.Context, actor Actor, input Transi
 		return MonitoringCheck{}, ErrMakerChecker
 	}
 	if input.To == LifecycleActive && current.InputKind == InputForm {
-		form, loadErr := s.repo.FormRevision(ctx, actor.TenantID, current.FormTemplateID, current.FormTemplateVersion)
+		if strings.TrimSpace(actor.LegalEntityID) == "" {
+			return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("verified legal-entity scope is required for a form check"))
+		}
+		form, loadErr := s.repo.FormRevision(ctx, actor.TenantID, actor.LegalEntityID, current.ProgramID, current.FormTemplateID, current.FormTemplateVersion)
 		if loadErr != nil {
 			return MonitoringCheck{}, loadErr
 		}
@@ -450,12 +541,85 @@ func (s *Service) TransitionCheck(ctx context.Context, actor Actor, input Transi
 			return MonitoringCheck{}, ErrInactive
 		}
 	}
+	if input.To == LifecycleActive && current.InputKind == InputSource {
+		if _, err := s.validateSourceBinding(ctx, actor, current.BindingID, current.BindingVersion); err != nil {
+			return MonitoringCheck{}, err
+		}
+	}
 	return s.repo.TransitionCheck(ctx, LifecycleTransition{TenantID: actor.TenantID, ID: current.ID, ExpectedVersion: input.ExpectedVersion, To: input.To, ActorID: actor.PrincipalID, At: s.now().UTC()})
+}
+
+func (s *Service) validateSourceBinding(ctx context.Context, actor Actor, bindingID string, bindingVersion int64) (sourceaccess.BindingRevision, error) {
+	tenantID := strings.TrimSpace(actor.TenantID)
+	legalEntityID := strings.TrimSpace(actor.LegalEntityID)
+	bindingID = strings.TrimSpace(bindingID)
+	if legalEntityID == "" || legalEntityID == "*" {
+		return sourceaccess.BindingRevision{}, errors.Join(ErrInvalid, fmt.Errorf("verified legal-entity scope is required for a connected-source check"))
+	}
+	if s.sources == nil {
+		return sourceaccess.BindingRevision{}, fmt.Errorf("%w: connected-source reads are unavailable", ErrSourceValidationUnavailable)
+	}
+	if s.sourceValidator == nil {
+		return sourceaccess.BindingRevision{}, fmt.Errorf("%w: connected-source legal-entity validation is unavailable", ErrSourceValidationUnavailable)
+	}
+	binding, err := s.sources.Binding(ctx, tenantID, bindingID, bindingVersion)
+	if err != nil {
+		if errors.Is(err, sourceaccess.ErrCatalogNotFound) || errors.Is(err, sourceaccess.ErrCatalogInvalid) {
+			return sourceaccess.BindingRevision{}, errors.Join(ErrInvalid, fmt.Errorf("connected-source revision is missing or invalid: %w", err))
+		}
+		return sourceaccess.BindingRevision{}, fmt.Errorf("%w: connected-source revision could not be resolved: %v", ErrSourceValidationUnavailable, err)
+	}
+	if binding.BindingID != bindingID || binding.Version != bindingVersion || binding.TenantID != tenantID || strings.TrimSpace(binding.SourceID) == "" {
+		return sourceaccess.BindingRevision{}, errors.Join(ErrInvalid, fmt.Errorf("connected-source revision does not match the monitoring check"))
+	}
+	now := s.now().UTC()
+	if binding.Status != sourceaccess.RevisionActive || !binding.IsCurrent || binding.EffectiveFrom == nil || now.Before(binding.EffectiveFrom.UTC()) || (binding.EffectiveUntil != nil && !now.Before(binding.EffectiveUntil.UTC())) {
+		return sourceaccess.BindingRevision{}, errors.Join(ErrInactive, fmt.Errorf("connected-source revision is not current and effective"))
+	}
+	allowsPage := false
+	for _, operation := range binding.Operations {
+		if operation == sourceaccess.OperationPage {
+			allowsPage = true
+			break
+		}
+	}
+	if !allowsPage {
+		return sourceaccess.BindingRevision{}, errors.Join(ErrInvalid, fmt.Errorf("connected-source revision does not allow page reads"))
+	}
+	if err := s.sourceValidator.ValidateActiveSourcesForEntity(ctx, tenantID, legalEntityID, []string{binding.SourceID}); err != nil {
+		if errors.Is(err, evidence.ErrSourceScopeMismatch) || errors.Is(err, evidence.ErrSourceScopeRequired) {
+			return sourceaccess.BindingRevision{}, errors.Join(ErrInvalid, fmt.Errorf("connected source is not active in the selected legal entity: %w", err))
+		}
+		return sourceaccess.BindingRevision{}, fmt.Errorf("%w: connected-source legal-entity validation failed: %v", ErrSourceValidationUnavailable, err)
+	}
+	return binding, nil
 }
 
 func validateActor(actor Actor) error {
 	if strings.TrimSpace(actor.TenantID) == "" || strings.TrimSpace(actor.PrincipalID) == "" {
 		return errors.Join(ErrInvalid, fmt.Errorf("verified tenant and principal are required"))
+	}
+	return nil
+}
+
+func validateProgramScope(actor Actor, programID, legalEntityID string) error {
+	programID = strings.TrimSpace(programID)
+	legalEntityID = strings.TrimSpace(legalEntityID)
+	if programID == "" || legalEntityID == "" || strings.TrimSpace(actor.LegalEntityID) == "" {
+		return errors.Join(ErrInvalid, fmt.Errorf("verified Program and legal-entity scope are required"))
+	}
+	if actor.LegalEntityID != legalEntityID {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func validateStoredFormScope(actor Actor, form FormTemplate, programID, legalEntityID string) error {
+	if err := validateProgramScope(actor, programID, legalEntityID); err != nil {
+		return err
+	}
+	if form.TenantID != actor.TenantID || form.ProgramID != strings.TrimSpace(programID) || form.LegalEntityID != strings.TrimSpace(legalEntityID) {
+		return ErrNotFound
 	}
 	return nil
 }

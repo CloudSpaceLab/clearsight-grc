@@ -1,10 +1,13 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
@@ -14,6 +17,40 @@ type createFormTemplateRequest struct {
 	monitoring.CreateFormInput
 	TenantID  string `json:"tenant_id,omitempty"`
 	CreatedBy string `json:"created_by,omitempty"`
+	ActorID   string `json:"actor_id,omitempty"`
+}
+
+type transitionFormTemplateRequest struct {
+	monitoring.TransitionInput
+	TenantID string `json:"tenant_id,omitempty"`
+	ActorID  string `json:"actor_id,omitempty"`
+}
+
+type startFormCollectionRequest struct {
+	monitoring.StartCollectionInput
+	TenantID string `json:"tenant_id,omitempty"`
+	ActorID  string `json:"actor_id,omitempty"`
+}
+
+type createMonitoringCheckRequest struct {
+	monitoring.CreateCheckInput
+	TenantID string `json:"tenant_id,omitempty"`
+}
+
+type transitionMonitoringCheckRequest struct {
+	monitoring.TransitionInput
+	TenantID string `json:"tenant_id,omitempty"`
+}
+
+type evaluateMonitoringSourceRequest struct {
+	monitoring.EvaluateSourceInput
+	TenantID string `json:"tenant_id,omitempty"`
+}
+
+type createMonitoringLinkedIssueRequest struct {
+	TenantID          string `json:"tenant_id,omitempty"`
+	ProgramID         string `json:"program_id,omitempty"`
+	MonitoringCheckID string `json:"monitoring_check_id,omitempty"`
 }
 
 func (a *API) monitoringService(w http.ResponseWriter) (*monitoring.Service, bool) {
@@ -29,7 +66,90 @@ func monitoringActor(r *http.Request) (monitoring.Actor, error) {
 	if err != nil {
 		return monitoring.Actor{}, err
 	}
-	return monitoring.Actor{TenantID: actor.TenantID, PrincipalID: actor.PrincipalID}, nil
+	return monitoring.Actor{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID}, nil
+}
+
+func (a *API) bindMonitoringProgram(r *http.Request, programID string) (monitoring.Actor, continuity.ProgramAggregate, error) {
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		return monitoring.Actor{}, continuity.ProgramAggregate{}, err
+	}
+	if a.deps.Continuity == nil {
+		return monitoring.Actor{}, continuity.ProgramAggregate{}, fmt.Errorf("continuity service is unavailable")
+	}
+	aggregate, err := a.deps.Continuity.GetProgram(r.Context(), actor.TenantID, programID)
+	if err != nil {
+		return monitoring.Actor{}, continuity.ProgramAggregate{}, err
+	}
+	exactActor, err := a.exactRecordActor(r.Context(), actor, actor.TenantID, aggregate.Program.TenantID, aggregate.Program.LegalEntityID)
+	if err != nil {
+		return monitoring.Actor{}, continuity.ProgramAggregate{}, continuity.ErrNotFound
+	}
+	*r = *r.WithContext(identity.WithActor(r.Context(), exactActor))
+	return monitoring.Actor{TenantID: exactActor.TenantID, LegalEntityID: exactActor.LegalEntityID, PrincipalID: exactActor.PrincipalID}, aggregate, nil
+}
+
+func (a *API) bindMonitoringCheck(r *http.Request, service *monitoring.Service, checkID string, version int64) (monitoring.Actor, monitoring.MonitoringCheck, continuity.ProgramAggregate, error) {
+	actor, err := monitoringActor(r)
+	if err != nil {
+		return monitoring.Actor{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
+	}
+	var check monitoring.MonitoringCheck
+	if version > 0 {
+		check, err = service.Check(r.Context(), actor, checkID, version)
+	} else {
+		check, err = service.LatestCheck(r.Context(), actor, checkID)
+	}
+	if err != nil {
+		return monitoring.Actor{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
+	}
+	exactActor, aggregate, err := a.bindMonitoringProgram(r, check.ProgramID)
+	if err != nil {
+		return monitoring.Actor{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
+	}
+	return exactActor, check, aggregate, nil
+}
+
+func (a *API) bindEligibleMonitoringResult(r *http.Request, service *monitoring.Service, resultID string) (monitoring.Actor, monitoring.MonitoringResult, monitoring.MonitoringCheck, continuity.ProgramAggregate, error) {
+	actor, err := monitoringActor(r)
+	if err != nil {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
+	}
+	result, err := service.Result(r.Context(), actor, resultID)
+	if err != nil {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
+	}
+	check, err := service.Check(r.Context(), actor, result.MonitoringCheckID, result.MonitoringCheckVersion)
+	if err != nil {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
+	}
+	latest, err := service.ListResults(r.Context(), actor, check.ID, 1)
+	if err != nil {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
+	}
+	if len(latest) != 1 || latest[0].ID != result.ID || !monitoring.EligibleForLinkedIssue(check, result) {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, monitoring.ErrLinkedIssueIneligible
+	}
+	exactActor, aggregate, err := a.bindMonitoringProgram(r, check.ProgramID)
+	if err != nil {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
+	}
+	if result.ProgramID != aggregate.Program.ID || check.ProgramID != aggregate.Program.ID || check.TenantID != aggregate.Program.TenantID {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, continuity.ErrNotFound
+	}
+	return exactActor, result, check, aggregate, nil
+}
+
+func writeMonitoringScopeError(w http.ResponseWriter, err error) {
+	if errors.Is(err, identity.ErrMissingIdentity) || errors.Is(err, identity.ErrInvalidIdentity) || errors.Is(err, identity.ErrExpiredIdentity) {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
+		return
+	}
+	if errors.Is(err, continuity.ErrNotFound) || errors.Is(err, monitoring.ErrNotFound) {
+		httpx.WriteError(w, http.StatusNotFound, "not_found", "The monitoring record was not found.")
+		return
+	}
+	httpx.WriteError(w, http.StatusServiceUnavailable, "monitoring_scope_unavailable", "The Program scope could not be checked. No monitoring data was returned.")
 }
 
 func (a *API) listFormTemplates(w http.ResponseWriter, r *http.Request) {
@@ -37,13 +157,13 @@ func (a *API) listFormTemplates(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, _, err := a.bindMonitoringProgram(r, r.PathValue("id"))
 	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
+		writeMonitoringScopeError(w, err)
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	values, err := service.ListForms(r.Context(), actor, limit)
+	values, err := service.ListForms(r.Context(), actor, r.PathValue("id"), limit)
 	if err != nil {
 		writeMonitoringError(w, err)
 		return
@@ -56,9 +176,9 @@ func (a *API) createFormTemplate(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, aggregate, err := a.bindMonitoringProgram(r, r.PathValue("id"))
 	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
+		writeMonitoringScopeError(w, err)
 		return
 	}
 	var request createFormTemplateRequest
@@ -66,6 +186,8 @@ func (a *API) createFormTemplate(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
+	request.ProgramID = aggregate.Program.ID
+	request.LegalEntityID = aggregate.Program.LegalEntityID
 	value, err := service.CreateForm(r.Context(), actor, request.CreateFormInput)
 	if err != nil {
 		writeMonitoringError(w, err)
@@ -79,17 +201,20 @@ func (a *API) transitionFormTemplate(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, aggregate, err := a.bindMonitoringProgram(r, r.PathValue("id"))
 	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
+		writeMonitoringScopeError(w, err)
 		return
 	}
-	var input monitoring.TransitionInput
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+	var request transitionFormTemplateRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	input.ID = r.PathValue("id")
+	input := request.TransitionInput
+	input.ID = r.PathValue("form_id")
+	input.ProgramID = aggregate.Program.ID
+	input.LegalEntityID = aggregate.Program.LegalEntityID
 	value, err := service.TransitionForm(r.Context(), actor, input)
 	if err != nil {
 		writeMonitoringError(w, err)
@@ -103,17 +228,20 @@ func (a *API) startFormCollection(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, aggregate, err := a.bindMonitoringProgram(r, r.PathValue("id"))
 	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
+		writeMonitoringScopeError(w, err)
 		return
 	}
-	var input monitoring.StartCollectionInput
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+	var request startFormCollectionRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	input.FormTemplateID = r.PathValue("id")
+	input := request.StartCollectionInput
+	input.FormTemplateID = r.PathValue("form_id")
+	input.ProgramID = aggregate.Program.ID
+	input.LegalEntityID = aggregate.Program.LegalEntityID
 	value, err := service.StartCollection(r.Context(), actor, input)
 	if err != nil {
 		writeMonitoringError(w, err)
@@ -127,9 +255,9 @@ func (a *API) listMonitoringChecks(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, _, err := a.bindMonitoringProgram(r, r.PathValue("id"))
 	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
+		writeMonitoringScopeError(w, err)
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -146,16 +274,17 @@ func (a *API) createMonitoringCheck(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, _, err := a.bindMonitoringProgram(r, r.PathValue("id"))
 	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
+		writeMonitoringScopeError(w, err)
 		return
 	}
-	var input monitoring.CreateCheckInput
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+	var request createMonitoringCheckRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
+	input := request.CreateCheckInput
 	input.ProgramID = r.PathValue("id")
 	value, err := service.CreateCheck(r.Context(), actor, input)
 	if err != nil {
@@ -170,17 +299,18 @@ func (a *API) transitionMonitoringCheck(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
-	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
-		return
-	}
-	var input monitoring.TransitionInput
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+	var request transitionMonitoringCheckRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
+	input := request.TransitionInput
 	input.ID = r.PathValue("id")
+	actor, _, _, err := a.bindMonitoringCheck(r, service, input.ID, input.ExpectedVersion)
+	if err != nil {
+		writeMonitoringScopeError(w, err)
+		return
+	}
 	value, err := service.TransitionCheck(r.Context(), actor, input)
 	if err != nil {
 		writeMonitoringError(w, err)
@@ -194,9 +324,9 @@ func (a *API) listMonitoringResults(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, _, _, err := a.bindMonitoringCheck(r, service, r.PathValue("id"), 0)
 	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
+		writeMonitoringScopeError(w, err)
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -213,17 +343,18 @@ func (a *API) evaluateMonitoringSource(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
-	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
-		return
-	}
-	var input monitoring.EvaluateSourceInput
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+	var request evaluateMonitoringSourceRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
+	input := request.EvaluateSourceInput
 	input.CheckID = r.PathValue("id")
+	actor, _, _, err := a.bindMonitoringCheck(r, service, input.CheckID, input.CheckVersion)
+	if err != nil {
+		writeMonitoringScopeError(w, err)
+		return
+	}
 	value, err := service.EvaluateSource(r.Context(), actor, input)
 	if err != nil {
 		writeMonitoringError(w, err)
@@ -232,12 +363,91 @@ func (a *API) evaluateMonitoringSource(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusCreated, value)
 }
 
+func (a *API) createMonitoringLinkedIssue(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.monitoringService(w)
+	if !ok {
+		return
+	}
+	continuityService, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var request createMonitoringLinkedIssueRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	actor, result, check, aggregate, err := a.bindEligibleMonitoringResult(r, service, r.PathValue("result_id"))
+	if err != nil {
+		writeMonitoringError(w, err)
+		return
+	}
+	failedRuleIDs := make([]string, 0)
+	for _, rule := range result.Evaluation.RuleResults {
+		if rule.Outcome != monitoring.RulePassed {
+			failureID := rule.RuleID
+			if failureID == "" {
+				failureID = rule.FieldID
+			}
+			if failureID != "" {
+				failedRuleIDs = append(failedRuleIDs, failureID)
+			}
+		}
+	}
+	payload, err := json.Marshal(map[string]any{
+		"monitoring_result_id": result.ID, "monitoring_check_id": check.ID, "monitoring_check_version": check.Version,
+		"monitoring_check_name": check.Name, "risk_band": result.Evaluation.Band, "score": result.Evaluation.Score,
+		"coverage": result.Evaluation.Coverage, "failed_rule_ids": failedRuleIDs, "evaluated_at": result.EvaluatedAt,
+	})
+	if err != nil {
+		writeMonitoringError(w, err)
+		return
+	}
+	triggerKey := "monitoring-result-adverse:" + result.ID
+	if existing, lookupErr := continuityService.MatterByTriggerKey(r.Context(), actor.TenantID, triggerKey); lookupErr == nil {
+		linked := false
+		for _, link := range existing.Links {
+			if link.ProgramID == aggregate.Program.ID {
+				linked = true
+				break
+			}
+		}
+		if !linked || existing.Matter.LegalEntityID != aggregate.Program.LegalEntityID {
+			writeContinuityError(w, continuity.ErrNotFound)
+			return
+		}
+		httpx.WriteJSON(w, http.StatusOK, map[string]any{"matter": existing.Matter, "created": false})
+		return
+	} else if !errors.Is(lookupErr, continuity.ErrNotFound) {
+		writeContinuityError(w, lookupErr)
+		return
+	}
+	_, matter, inserted, err := continuityService.ApplyTrigger(r.Context(), continuity.Trigger{
+		TenantID: actor.TenantID, ProgramID: aggregate.Program.ID, Type: "MONITORING_RESULT_ADVERSE",
+		SubjectType: "MONITORING_RESULT", SubjectID: result.ID, DedupeKey: triggerKey,
+		Payload: payload, ObservedAt: result.EvaluatedAt, Source: "monitoring-result-review", ActorID: actor.PrincipalID,
+	})
+	if err != nil {
+		writeContinuityError(w, err)
+		return
+	}
+	status := http.StatusOK
+	if inserted {
+		status = http.StatusCreated
+	}
+	httpx.WriteJSON(w, status, map[string]any{"matter": matter, "created": inserted})
+}
+
 func writeMonitoringError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, monitoring.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "The monitoring record was not found.")
 	case errors.Is(err, monitoring.ErrConflict), errors.Is(err, monitoring.ErrMakerChecker), errors.Is(err, monitoring.ErrInactive):
 		httpx.WriteError(w, http.StatusConflict, "monitoring_conflict", err.Error())
+	case errors.Is(err, monitoring.ErrLinkedIssueIneligible):
+		httpx.WriteError(w, http.StatusConflict, "monitoring_result_not_eligible", err.Error())
+	case errors.Is(err, monitoring.ErrSourceValidationUnavailable):
+		httpx.WriteError(w, http.StatusServiceUnavailable, "monitoring_source_unavailable", "The connected source could not be checked. No monitoring record was changed. Try again when the connected source is available.")
 	case errors.Is(err, monitoring.ErrInvalid):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "monitoring_invalid", err.Error())
 	default:

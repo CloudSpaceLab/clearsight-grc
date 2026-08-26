@@ -22,6 +22,10 @@ type internalRecipientDirectory interface {
 	InternalRecipientEligible(context.Context, string, string) (bool, error)
 }
 
+type internalRecipientLabelDirectory interface {
+	InternalRecipientDisplayName(context.Context, string, string) (string, error)
+}
+
 type recipientRequestLister interface {
 	ListRecipientRequests(context.Context, string, string, int) ([]Request, error)
 }
@@ -41,7 +45,15 @@ func buildRecipient(ctx context.Context, repo Repository, tenant, audienceType s
 				return Recipient{}, ErrRecipientInvalid
 			}
 		}
-		return Recipient{Type: RecipientInternalPrincipal, PrincipalID: strings.TrimSpace(input.PrincipalID), State: RecipientStateAssigned, Revision: 1}, nil
+		recipient := Recipient{Type: RecipientInternalPrincipal, PrincipalID: strings.TrimSpace(input.PrincipalID), State: RecipientStateAssigned, Revision: 1}
+		if directory, ok := repo.(internalRecipientLabelDirectory); ok {
+			displayName, err := directory.InternalRecipientDisplayName(ctx, tenant, recipient.PrincipalID)
+			if err != nil {
+				return Recipient{}, err
+			}
+			recipient.DisplayName = displayName
+		}
+		return recipient, nil
 	case "EXTERNAL", "CUSTOMER", "VENDOR", "AUTHORITY":
 		audience := normalizeAudience(input.Audience)
 		if input.Type != RecipientExternalAudience || strings.TrimSpace(input.PrincipalID) != "" || audience == "" {

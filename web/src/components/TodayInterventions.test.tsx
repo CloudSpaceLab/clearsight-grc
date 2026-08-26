@@ -80,6 +80,14 @@ describe("TodayInterventions", () => {
     expect(screen.queryByText("0 items need your action")).toBeNull();
   });
 
+  it("provides a working retry action when Today is unavailable", () => {
+    const onRetry = vi.fn();
+    render(<TodayInterventions items={[]} connection="unavailable" readiness={null} readinessState="unavailable" onOpenItem={vi.fn()} onRetry={onRetry}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
   it("does not turn an unknown baseline into a no-exception claim", () => {
     const unknownBaseline: Readiness = { ...readiness, baseline_known: false, dimensions: { current: 0, aging: 0, at_risk: 0, unknown: 0, blocked_routing: 0, pending_human: 0 } };
     render(<TodayInterventions items={[]} connection="live" readiness={unknownBaseline} readinessState="live" onOpenItem={vi.fn()}/>);

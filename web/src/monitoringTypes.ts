@@ -58,6 +58,8 @@ export type Lifecycle = {
 export type FormTemplate = Lifecycle & {
   id: string;
   tenant_id: string;
+  legal_entity_id?: string;
+  program_id?: string;
   code: string;
   name: string;
   purpose: string;
@@ -81,6 +83,8 @@ export type MonitoringCheck = Lifecycle & {
   thresholds: { moderate_from: number; high_from: number; critical_from: number };
   freshness_minutes: number;
   minimum_coverage: number;
+  owner_principal_id?: string;
+  reviewer_principal_id?: string;
   failure_action: "REVIEW" | "RECOMMEND_MATTER";
 };
 

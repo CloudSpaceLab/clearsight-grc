@@ -24,6 +24,15 @@
   --coral: #f17a8d;
   --success: var(--green);
   --focus-ring: #8be2ee;
+  --overlay-blur: 6px;
+  --document-canvas: #091421;
+  --document-surface: #101c2a;
+  --document-surface-muted: #152537;
+  --document-border: #334b62;
+  --document-text: #e5edf4;
+  --document-muted: #9aabbb;
+  --icon-size-small: 16px;
+  --interactive-target: 44px;
   --cyan-soft: rgba(91, 198, 214, .10);
   --violet-soft: rgba(158, 146, 244, .10);
   --amber-soft: rgba(233, 183, 90, .10);
@@ -70,6 +79,13 @@
   --coral: #b83e53;
   --success: var(--green);
   --focus-ring: #087f91;
+  --overlay-blur: 6px;
+  --document-canvas: #e7edf2;
+  --document-surface: #ffffff;
+  --document-surface-muted: #f6f8fa;
+  --document-border: #c8d2dc;
+  --document-text: #172331;
+  --document-muted: #5f7183;
   --cyan-soft: rgba(10, 112, 128, .09);
   --violet-soft: rgba(99, 86, 199, .09);
   --amber-soft: rgba(139, 91, 0, .09);
@@ -99,7 +115,23 @@ body,
 
 body {
   color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
   background: radial-gradient(circle at 78% -10%, color-mix(in srgb, var(--cyan) 10%, transparent), transparent 32%), var(--canvas);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--text-strong);
+  text-wrap: balance;
+}
+
+p,
+li,
+dd {
+  text-wrap: pretty;
 }
 
 .sidebar,
@@ -255,6 +287,7 @@ body {
 
 .panel-backdrop {
   background: var(--backdrop);
+  backdrop-filter: blur(var(--overlay-blur));
 }
 
 .side-panel {
@@ -262,6 +295,29 @@ body {
   border-color: var(--border-strong);
   background: var(--surface);
   box-shadow: var(--shadow-raised);
+}
+
+.icon-button {
+  width: var(--interactive-target);
+  min-width: var(--interactive-target);
+  height: var(--interactive-target);
+  min-height: var(--interactive-target);
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.compact-icon {
+  width: var(--icon-size-small);
+  height: var(--icon-size-small);
+  pointer-events: none;
+}
+
+.panel-close,
+.guide-close {
+  width: var(--interactive-target);
+  height: var(--interactive-target);
+  font-size: inherit;
 }
 
 .display-preferences-popover {

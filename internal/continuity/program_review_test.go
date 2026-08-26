@@ -10,7 +10,7 @@ import (
 )
 
 func TestProgramReviewCheckpointIsActorScopedAndDerivedFromCanonicalVersions(t *testing.T) {
-	ctx := context.Background()
+	ctx := WithTrustedSystemScope(context.Background())
 	repo := NewMemoryRepository()
 	service := NewService(repo)
 	now := time.Date(2026, 8, 9, 13, 0, 0, 0, time.UTC)
@@ -18,6 +18,7 @@ func TestProgramReviewCheckpointIsActorScopedAndDerivedFromCanonicalVersions(t *
 
 	program, err := service.CreateProgram(ctx, CreateProgramInput{
 		TenantID:       "bank",
+		LegalEntityID:  "entity-a",
 		Code:           "AML",
 		Name:           "AML Programme",
 		Type:           "REGULATORY",
@@ -55,6 +56,13 @@ func TestProgramReviewCheckpointIsActorScopedAndDerivedFromCanonicalVersions(t *
 	}
 	if accepted.Checkpoint.ProgramVersion != program.Program.Version || accepted.Checkpoint.ProjectionVersion != program.CurrentState.ProjectionVersion {
 		t.Fatalf("checkpoint did not retain canonical versions: %#v", accepted.Checkpoint)
+	}
+	reviewStore := programReviewData(repo)
+	reviewStore.mu.RLock()
+	reviewEvent, eventRecorded := reviewStore.events[accepted.Checkpoint.ID]
+	reviewStore.mu.RUnlock()
+	if !eventRecorded || reviewEvent.Type != EventProgramReviewAccepted || reviewEvent.ActorID != "reviewer-a" {
+		t.Fatalf("review checkpoint event was not recorded: %#v", reviewEvent)
 	}
 
 	otherActor, err := service.ProgramReviewDigest(ctx, "bank", program.Program.ID, "reviewer-b")
@@ -127,6 +135,77 @@ func TestProgramReviewCheckpointIsActorScopedAndDerivedFromCanonicalVersions(t *
 	}
 	if current.State != "CURRENT" || current.ReviewRequired || current.ChangesTotal != 0 {
 		t.Fatalf("accepting current versions should clear the derived change delta: %#v", current)
+	}
+}
+
+type failProgramReviewReadsAfterRecordRepository struct {
+	Repository
+	reviews  ProgramReviewRepository
+	recorded bool
+}
+
+func (r *failProgramReviewReadsAfterRecordRepository) LatestProgramReview(ctx context.Context, tenant, programID, principalID string) (*ProgramReviewCheckpoint, error) {
+	if r.recorded {
+		return nil, errors.New("derived review read unavailable")
+	}
+	return r.reviews.LatestProgramReview(ctx, tenant, programID, principalID)
+}
+
+func (r *failProgramReviewReadsAfterRecordRepository) RecordProgramReview(ctx context.Context, checkpoint ProgramReviewCheckpoint, event Event) (ProgramReviewCheckpoint, error) {
+	recorded, err := r.reviews.RecordProgramReview(ctx, checkpoint, event)
+	if err == nil {
+		r.recorded = true
+	}
+	return recorded, err
+}
+
+func (r *failProgramReviewReadsAfterRecordRepository) ProgramStateVersion(ctx context.Context, tenant, programID string, projectionVersion int64) (*ProgramStateSnapshot, error) {
+	return r.reviews.ProgramStateVersion(ctx, tenant, programID, projectionVersion)
+}
+
+func (r *failProgramReviewReadsAfterRecordRepository) ProgramEventsAfterVersion(ctx context.Context, tenant, programID string, afterVersion int64, limit int) ([]Event, bool, error) {
+	return r.reviews.ProgramEventsAfterVersion(ctx, tenant, programID, afterVersion, limit)
+}
+
+func TestAcceptProgramReviewDoesNotFailAfterCommitWhenDerivedReadsAreUnavailable(t *testing.T) {
+	ctx := WithTrustedSystemScope(context.Background())
+	memory := NewMemoryRepository()
+	repo := &failProgramReviewReadsAfterRecordRepository{Repository: memory, reviews: memory}
+	now := time.Date(2026, 8, 26, 16, 0, 0, 0, time.UTC)
+	setup := NewService(memory)
+	setup.now = func() time.Time { return now }
+
+	program, err := setup.CreateProgram(ctx, CreateProgramInput{
+		TenantID:       "bank",
+		LegalEntityID:  "entity-a",
+		Code:           "AML",
+		Name:           "AML Programme",
+		Type:           "REGULATORY",
+		OwningFunction: "Compliance",
+		Scope:          json.RawMessage(`{}`),
+		EffectiveFrom:  now,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(repo)
+	service.now = func() time.Time { return now }
+
+	accepted, err := service.AcceptProgramReview(ctx, AcceptProgramReviewInput{
+		TenantID:                  "bank",
+		ProgramID:                 program.Program.ID,
+		PrincipalID:               "reviewer-a",
+		ExpectedProgramVersion:    program.Program.Version,
+		ExpectedProjectionVersion: program.CurrentState.ProjectionVersion,
+	})
+	if err != nil {
+		t.Fatalf("a committed review must not be reported as failed: %v", err)
+	}
+	if accepted.State != "CURRENT" || accepted.ReviewRequired || accepted.Checkpoint == nil {
+		t.Fatalf("expected the committed current baseline, got %#v", accepted)
+	}
+	if _, err := service.ProgramReviewDigest(ctx, "bank", program.Program.ID, "reviewer-a"); err == nil {
+		t.Fatal("test repository must fail post-commit derived reads")
 	}
 }
 

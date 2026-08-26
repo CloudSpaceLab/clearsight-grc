@@ -43,10 +43,11 @@ func (a *API) listMatterSummaries(w http.ResponseWriter, r *http.Request) {
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	page, err := service.ListMatterSummaries(r.Context(), tenant, continuity.SummaryQuery{
-		Search: r.URL.Query().Get("q"),
-		Status: r.URL.Query().Get("status"),
-		Cursor: r.URL.Query().Get("cursor"),
-		Limit:  limit,
+		Search:    r.URL.Query().Get("q"),
+		Status:    r.URL.Query().Get("status"),
+		ProgramID: r.URL.Query().Get("program_id"),
+		Cursor:    r.URL.Query().Get("cursor"),
+		Limit:     limit,
 	})
 	if err != nil {
 		writeSummaryError(w, err, "Issues and changes could not be loaded.")

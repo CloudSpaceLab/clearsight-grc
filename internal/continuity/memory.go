@@ -19,6 +19,7 @@ type MemoryRepository struct {
 	programEvents map[string]map[string][]Event
 	matterEvents  map[string]map[string][]Event
 	triggers      map[string]map[string]Trigger
+	legalEntities map[string]map[string]string
 }
 
 func NewMemoryRepository() *MemoryRepository {
@@ -28,7 +29,96 @@ func NewMemoryRepository() *MemoryRepository {
 		programEvents: map[string]map[string][]Event{},
 		matterEvents:  map[string]map[string][]Event{},
 		triggers:      map[string]map[string]Trigger{},
+		legalEntities: map[string]map[string]string{},
 	}
+}
+
+// RegisterLegalEntity configures the memory repository's tenant-bound entity
+// registry. It is primarily useful for deterministic tests and local fixtures.
+func (r *MemoryRepository) RegisterLegalEntity(tenant, id, code string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.legalEntities[tenant] == nil {
+		r.legalEntities[tenant] = map[string]string{}
+	}
+	r.legalEntities[tenant][strings.TrimSpace(id)] = strings.TrimSpace(code)
+}
+
+func (r *MemoryRepository) ResolveLegalEntity(_ context.Context, tenant, identifier string) (string, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	identifier = strings.TrimSpace(identifier)
+	entities := r.legalEntities[tenant]
+	// Existing memory callers historically use opaque canonical IDs. Preserve
+	// that behavior until a tenant registry is configured.
+	if len(entities) == 0 {
+		if identifier == "" || identifier == "*" {
+			return "", ErrNotFound
+		}
+		return identifier, nil
+	}
+	if _, ok := entities[identifier]; ok {
+		return identifier, nil
+	}
+	match := ""
+	for id, code := range entities {
+		if code != identifier {
+			continue
+		}
+		if match != "" {
+			return "", ErrLegalEntityAmbiguous
+		}
+		match = id
+	}
+	if match == "" {
+		return "", ErrNotFound
+	}
+	return match, nil
+}
+
+// visibleLegalEntity resolves configured code aliases while the caller already
+// holds r.mu. Ambiguous or unknown aliases fail closed.
+func (r *MemoryRepository) visibleLegalEntity(ctx context.Context, tenant, recordEntity string) bool {
+	reference := ""
+	if scope, ok := ctx.Value(trustedSystemScopeKey{}).(trustedSystemScope); ok {
+		if scope.global {
+			return true
+		}
+		if scope.tenant != strings.TrimSpace(tenant) {
+			return false
+		}
+		reference = scope.legalEntity
+	} else {
+		actor, ok := identity.FromContext(ctx)
+		if !ok || strings.TrimSpace(actor.TenantID) != strings.TrimSpace(tenant) {
+			return false
+		}
+		reference = strings.TrimSpace(actor.LegalEntityID)
+		if reference == "*" {
+			return strings.TrimSpace(recordEntity) != ""
+		}
+	}
+	if reference == "" || strings.TrimSpace(recordEntity) == "" {
+		return false
+	}
+	entities := r.legalEntities[tenant]
+	if len(entities) == 0 {
+		return reference == recordEntity
+	}
+	if _, ok := entities[reference]; ok {
+		return reference == recordEntity
+	}
+	resolved := ""
+	for id, code := range entities {
+		if code != reference {
+			continue
+		}
+		if resolved != "" {
+			return false
+		}
+		resolved = id
+	}
+	return resolved != "" && resolved == recordEntity
 }
 
 func (r *MemoryRepository) CreateProgram(_ context.Context, program Program, event Event) (Program, error) {
@@ -39,7 +129,7 @@ func (r *MemoryRepository) CreateProgram(_ context.Context, program Program, eve
 		r.programEvents[program.TenantID] = map[string][]Event{}
 	}
 	for _, existing := range r.programs[program.TenantID] {
-		if existing.Program.Code == program.Code && existing.Program.Status != ProgramRetired {
+		if existing.Program.Code == program.Code && existing.Program.LegalEntityID == program.LegalEntityID && existing.Program.Status != ProgramRetired {
 			return Program{}, ErrDuplicate
 		}
 	}
@@ -48,11 +138,14 @@ func (r *MemoryRepository) CreateProgram(_ context.Context, program Program, eve
 	return program, nil
 }
 
-func (r *MemoryRepository) ListPrograms(_ context.Context, tenant string, limit int) ([]ProgramAggregate, error) {
+func (r *MemoryRepository) ListPrograms(ctx context.Context, tenant string, limit int) ([]ProgramAggregate, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	values := make([]ProgramAggregate, 0, len(r.programs[tenant]))
 	for _, aggregate := range r.programs[tenant] {
+		if !r.visibleLegalEntity(ctx, aggregate.Program.TenantID, aggregate.Program.LegalEntityID) {
+			continue
+		}
 		values = append(values, decorateProgram(cloneProgramAggregate(aggregate)))
 	}
 	sort.Slice(values, func(i, j int) bool {
@@ -67,21 +160,21 @@ func (r *MemoryRepository) ListPrograms(_ context.Context, tenant string, limit 
 	return values, nil
 }
 
-func (r *MemoryRepository) GetProgram(_ context.Context, tenant, id string) (ProgramAggregate, error) {
+func (r *MemoryRepository) GetProgram(ctx context.Context, tenant, id string) (ProgramAggregate, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	aggregate, ok := r.programs[tenant][id]
-	if !ok {
+	if !ok || !r.visibleLegalEntity(ctx, aggregate.Program.TenantID, aggregate.Program.LegalEntityID) {
 		return ProgramAggregate{}, ErrNotFound
 	}
 	return decorateProgram(cloneProgramAggregate(aggregate)), nil
 }
 
-func (r *MemoryRepository) ApplyProgramEvent(_ context.Context, tenant, id string, expected int64, event Event) (int64, error) {
+func (r *MemoryRepository) ApplyProgramEvent(ctx context.Context, tenant, id string, expected int64, event Event) (int64, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	aggregate, ok := r.programs[tenant][id]
-	if !ok {
+	if !ok || !r.visibleLegalEntity(ctx, aggregate.Program.TenantID, aggregate.Program.LegalEntityID) {
 		return 0, ErrNotFound
 	}
 	if aggregate.Program.Version != expected {
@@ -145,18 +238,24 @@ func (r *MemoryRepository) RecordProgramTrigger(_ context.Context, trigger Trigg
 	if r.triggers[trigger.TenantID] == nil {
 		r.triggers[trigger.TenantID] = map[string]Trigger{}
 	}
-	if _, ok := r.triggers[trigger.TenantID][trigger.DedupeKey]; ok {
+	key := programTriggerDedupeKey(trigger.ProgramID, trigger.DedupeKey)
+	if _, ok := r.triggers[trigger.TenantID][key]; ok {
 		return false, nil
 	}
-	r.triggers[trigger.TenantID][trigger.DedupeKey] = trigger
+	r.triggers[trigger.TenantID][key] = trigger
 	return true, nil
 }
 
-func (r *MemoryRepository) ProgramEvents(_ context.Context, tenant, id string, until *time.Time) ([]Event, error) {
+func programTriggerDedupeKey(programID, dedupeKey string) string {
+	return programID + "\x00" + dedupeKey
+}
+
+func (r *MemoryRepository) ProgramEvents(ctx context.Context, tenant, id string, until *time.Time) ([]Event, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	values, ok := r.programEvents[tenant][id]
-	if !ok {
+	aggregate, exists := r.programs[tenant][id]
+	if !ok || !exists || !r.visibleLegalEntity(ctx, aggregate.Program.TenantID, aggregate.Program.LegalEntityID) {
 		return nil, ErrNotFound
 	}
 	return filterEvents(values, until), nil
@@ -187,7 +286,7 @@ func (r *MemoryRepository) ListMatters(ctx context.Context, tenant, status strin
 	defer r.mu.RUnlock()
 	values := make([]MatterAggregate, 0, len(r.matters[tenant]))
 	for _, aggregate := range r.matters[tenant] {
-		if enforceVisibility && (aggregate.Matter.TenantID != actor.TenantID || !MatterVisibleTo(aggregate.Matter, actor.PrincipalID)) {
+		if !r.visibleLegalEntity(ctx, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID) || (enforceVisibility && (aggregate.Matter.TenantID != actor.TenantID || !MatterVisibleTo(aggregate.Matter, actor.PrincipalID))) {
 			continue
 		}
 		if status == "OPEN" && (aggregate.Matter.Status == MatterClosed || aggregate.Matter.Status == MatterCancelled) {
@@ -212,11 +311,11 @@ func (r *MemoryRepository) ListMatters(ctx context.Context, tenant, status strin
 	return values, nil
 }
 
-func (r *MemoryRepository) GetMatter(_ context.Context, tenant, id string) (MatterAggregate, error) {
+func (r *MemoryRepository) GetMatter(ctx context.Context, tenant, id string) (MatterAggregate, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	aggregate, ok := r.matters[tenant][id]
-	if !ok {
+	if !ok || !r.visibleLegalEntity(ctx, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID) {
 		return MatterAggregate{}, ErrNotFound
 	}
 	value := cloneMatterAggregate(aggregate)
@@ -224,11 +323,11 @@ func (r *MemoryRepository) GetMatter(_ context.Context, tenant, id string) (Matt
 	return decorateMatter(value), nil
 }
 
-func (r *MemoryRepository) ApplyMatterEvent(_ context.Context, tenant, id string, expected int64, event Event) (int64, error) {
+func (r *MemoryRepository) ApplyMatterEvent(ctx context.Context, tenant, id string, expected int64, event Event) (int64, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	aggregate, ok := r.matters[tenant][id]
-	if !ok {
+	if !ok || !r.visibleLegalEntity(ctx, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID) {
 		return 0, ErrNotFound
 	}
 	if aggregate.Matter.Version != expected || event.AggregateVersion != expected+1 {
@@ -256,14 +355,48 @@ func (r *MemoryRepository) MatterByTriggerKey(_ context.Context, tenant, trigger
 	return Matter{}, ErrNotFound
 }
 
-func (r *MemoryRepository) MatterEvents(_ context.Context, tenant, id string, until *time.Time) ([]Event, error) {
+func (r *MemoryRepository) MatterEvents(ctx context.Context, tenant, id string, until *time.Time) ([]Event, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	values, ok := r.matterEvents[tenant][id]
-	if !ok {
+	aggregate, exists := r.matters[tenant][id]
+	if !ok || !exists || !r.visibleLegalEntity(ctx, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID) {
 		return nil, ErrNotFound
 	}
 	return filterEvents(values, until), nil
+}
+
+func (r *MemoryRepository) ResponsePackageHistory(ctx context.Context, tenant, matterID, responseID string, limit int) ([]ResponseHistoryItem, bool, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	aggregate, ok := r.matters[tenant][matterID]
+	if !ok || !r.visibleLegalEntity(ctx, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID) {
+		return nil, false, ErrNotFound
+	}
+	values := make([]ResponseHistoryItem, 0, limit+1)
+	events := r.matterEvents[tenant][matterID]
+	for index := len(events) - 1; index >= 0 && len(values) <= limit; index-- {
+		event := events[index]
+		if event.Type != EventResponsePackageAdded && event.Type != EventResponsePackageStateChanged {
+			continue
+		}
+		var response ResponsePackage
+		if err := json.Unmarshal(event.Payload, &response); err != nil {
+			return nil, false, err
+		}
+		if response.ID != responseID {
+			continue
+		}
+		values = append(values, ResponseHistoryItem{Status: response.Status, OccurredAt: event.OccurredAt, ActorLabel: "Recorded person unavailable", AggregateVersion: event.AggregateVersion})
+	}
+	if len(values) == 0 {
+		return nil, false, ErrNotFound
+	}
+	hasMore := len(values) > limit
+	if hasMore {
+		values = values[:limit]
+	}
+	return values, hasMore, nil
 }
 
 func (r *MemoryRepository) OpenMatterCount(_ context.Context, tenant, programID string) (int, error) {
@@ -310,12 +443,37 @@ func applyProgramEventToAggregate(aggregate *ProgramAggregate, event Event) erro
 			return err
 		}
 		aggregate.Program = value
+	case EventProgramDetailsUpdated:
+		var value programDetailsUpdatedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Program = value.Program
+	case EventProgramOwnerChanged:
+		var value programOwnerChangedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Program = value.Program
+	case EventProgramApprovalAuthorityChanged:
+		var value programApprovalAuthorityChangedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Program = value.Program
 	case EventRequirementAdded:
 		var value Requirement
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
 			return err
 		}
 		aggregate.Requirements = append(aggregate.Requirements, value)
+	case EventRequirementSuperseded:
+		var value requirementSupersededEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Requirements = upsertRequirement(aggregate.Requirements, value.Prior)
+		aggregate.Requirements = upsertRequirement(aggregate.Requirements, value.Replacement)
 	case EventApplicabilityDetermined:
 		var value Applicability
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
@@ -334,18 +492,36 @@ func applyProgramEventToAggregate(aggregate *ProgramAggregate, event Event) erro
 			return err
 		}
 		aggregate.ControlImplementations = append(aggregate.ControlImplementations, value)
+	case EventControlImplementationRevised, EventControlImplementationOwnerChanged, EventControlImplementationStatusChanged:
+		var value controlImplementationLifecycleEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.ControlImplementations = upsertImplementation(aggregate.ControlImplementations, value.Current)
 	case EventRequirementControlLinked:
 		var value RequirementControlLink
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
 			return err
 		}
 		aggregate.RequirementControlLinks = append(aggregate.RequirementControlLinks, value)
+	case EventRequirementControlLinkRetired:
+		var value RequirementControlLink
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.RequirementControlLinks = removeRequirementControlLink(aggregate.RequirementControlLinks, value.ID)
 	case EventEvidenceContractAdded:
 		var value EvidenceContract
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
 			return err
 		}
 		aggregate.EvidenceContracts = append(aggregate.EvidenceContracts, value)
+	case EventEvidenceContractRevised, EventEvidenceContractStatusChanged:
+		var value evidenceContractLifecycleEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.EvidenceContracts = upsertEvidenceContract(aggregate.EvidenceContracts, value.Current)
 	case EventEvidenceAssessmentRecorded:
 		var value EvidenceAssessment
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
@@ -378,12 +554,36 @@ func applyMatterEventToAggregate(aggregate *MatterAggregate, event Event) error 
 			return err
 		}
 		aggregate.Links = append(aggregate.Links, value)
+	case EventMatterLinkRetired:
+		var value MatterLink
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Links = removeMatterLink(aggregate.Links, value.ID)
 	case EventMatterStateChanged:
 		var value Matter
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
 			return err
 		}
 		aggregate.Matter = value
+	case EventMatterDetailsUpdated:
+		var value matterDetailsUpdatedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Matter = value.Matter
+	case EventMatterContextChanged:
+		var value matterContextChangedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Matter = value.Matter
+	case EventMatterOwnerChanged:
+		var value matterOwnerChangedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Matter = value.Matter
 	case EventDecisionAdded:
 		var value Decision
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
@@ -403,12 +603,37 @@ func applyMatterEventToAggregate(aggregate *MatterAggregate, event Event) error 
 			return err
 		}
 		aggregate.Actions = upsertAction(aggregate.Actions, value)
+	case EventActionUpdated:
+		var value actionUpdatedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Actions = upsertAction(aggregate.Actions, value.Action)
+	case EventActionAssigned:
+		var value actionAssignedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Actions = upsertAction(aggregate.Actions, value.Action)
 	case EventVerificationContractAdded:
 		var value VerificationContract
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
 			return err
 		}
 		aggregate.VerificationContracts = append(aggregate.VerificationContracts, value)
+	case EventVerificationContractSuperseded:
+		var value verificationContractSupersededEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, value.Prior)
+		aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, value.Replacement)
+	case EventVerificationContractRetired:
+		var value verificationContractRetiredEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, value.Contract)
 	case EventVerificationResultRecorded:
 		var value VerificationResult
 		if err := json.Unmarshal(event.Payload, &value); err != nil {

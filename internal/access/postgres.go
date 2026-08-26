@@ -111,6 +111,93 @@ func (r *PostgresResolver) ResolvePrincipal(ctx context.Context, tenantID, princ
 	return r.withRoles(ctx, value)
 }
 
+func (r *PostgresResolver) ResolvePrincipals(ctx context.Context, tenantID, legalEntityID string, principalIDs []string) ([]PrincipalResolveOutcome, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	legalEntityID = strings.TrimSpace(legalEntityID)
+	if tenantID == "" || legalEntityID == "" {
+		return nil, ErrPrincipalUnavailable
+	}
+	if len(principalIDs) > MaxPrincipalBatchSize {
+		return nil, ErrPrincipalBatchTooLarge
+	}
+	outcomes := make([]PrincipalResolveOutcome, len(principalIDs))
+	if len(principalIDs) == 0 {
+		return outcomes, nil
+	}
+	normalized := make([]string, len(principalIDs))
+	for index, principalID := range principalIDs {
+		normalized[index] = strings.TrimSpace(principalID)
+		if normalized[index] == "" {
+			outcomes[index].Err = ErrPrincipalUnavailable
+		}
+	}
+
+	rows, err := r.pool.Query(ctx, `
+		SELECT p.id::text,t.slug,le.code,p.display_name,p.kind
+		FROM tenants t
+		JOIN legal_entities le ON le.tenant_id=t.id
+		JOIN principals p ON p.tenant_id=t.id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND (le.id::text=$2 OR le.code=$2)
+		  AND p.id=ANY($3::uuid[])
+		  AND p.status='ACTIVE'
+		  AND p.valid_from<=clock_timestamp()
+		  AND (p.valid_until IS NULL OR clock_timestamp()<p.valid_until)
+		  AND le.valid_from<=clock_timestamp()
+		  AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)
+		  AND (
+		      EXISTS (
+		          SELECT 1 FROM org_positions op
+		          WHERE op.tenant_id=t.id AND op.occupant_principal_id=p.id
+		            AND (op.legal_entity_id IS NULL OR op.legal_entity_id=le.id)
+		            AND op.valid_from<=clock_timestamp()
+		            AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
+		      )
+		      OR EXISTS (
+		          SELECT 1
+		          FROM scim_users su
+		          JOIN scim_sources ss ON ss.tenant_id=su.tenant_id AND ss.id=su.source_id AND ss.status='ACTIVE'
+		          JOIN directory_group_members dgm ON dgm.tenant_id=su.tenant_id AND dgm.scim_user_id=su.id
+		          JOIN directory_groups dg ON dg.tenant_id=dgm.tenant_id AND dg.id=dgm.group_id AND dg.source_id=su.source_id
+		          JOIN directory_group_role_bindings dgrb ON dgrb.tenant_id=dg.tenant_id AND dgrb.group_id=dg.id
+		          JOIN role_templates rt ON rt.tenant_id=dgrb.tenant_id AND rt.id=dgrb.role_template_id
+		          WHERE su.tenant_id=t.id AND su.principal_id=p.id AND su.active AND su.deleted_at IS NULL
+		            AND dg.deleted_at IS NULL AND dgrb.legal_entity_id=le.id
+		            AND dgrb.valid_from<=clock_timestamp()
+		            AND (dgrb.valid_until IS NULL OR clock_timestamp()<dgrb.valid_until)
+		            AND rt.valid_from<=clock_timestamp()
+		            AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
+		      )
+		  )`, tenantID, legalEntityID, normalized)
+	if err != nil {
+		return nil, fmt.Errorf("resolve principals: %w", err)
+	}
+	defer rows.Close()
+	resolved := make(map[string]Resolution, len(principalIDs))
+	for rows.Next() {
+		var value Resolution
+		if err := rows.Scan(&value.PrincipalID, &value.TenantID, &value.LegalEntityID, &value.DisplayName, &value.Kind); err != nil {
+			return nil, fmt.Errorf("scan resolved principal: %w", err)
+		}
+		resolved[value.PrincipalID] = value
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("resolve principals rows: %w", err)
+	}
+	for index, principalID := range normalized {
+		if outcomes[index].Err != nil {
+			continue
+		}
+		value, ok := resolved[principalID]
+		if !ok {
+			outcomes[index].Err = ErrPrincipalUnavailable
+			continue
+		}
+		outcomes[index].Resolution = value
+	}
+	return outcomes, nil
+}
+
 func (r *PostgresResolver) withRoles(ctx context.Context, value Resolution) (Resolution, error) {
 	rows, err := r.pool.Query(ctx, `
 		WITH current_entity AS (

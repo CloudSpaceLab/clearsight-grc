@@ -61,6 +61,7 @@ describe("MatterSetupWorkspace", () => {
     fireEvent.change(screen.getByLabelText("What happened or changed?"), { target: { value: "The mobile channel did not return a successful face-verification result." } });
     fireEvent.change(screen.getByLabelText("Affected area"), { target: { value: "Mobile banking" } });
     fireEvent.change(screen.getByLabelText("Priority"), { target: { value: "4" } });
+    expect(screen.getByLabelText("Due date").getAttribute("type")).toBe("date");
     fireEvent.change(screen.getByLabelText("Due date"), { target: { value: "2026-09-30" } });
     fireEvent.change(await screen.findByLabelText("Program (optional)"), { target: { value: "program-mobile" } });
     fireEvent.change(screen.getByLabelText("What is already known?"), { target: { value: "The public status check failed." } });
@@ -74,7 +75,7 @@ describe("MatterSetupWorkspace", () => {
       knownInformation: "The public status check failed.", missingInformation: ["Confirm the SDK version", "Confirm the last successful check"],
       programID: "program-mobile",
     }));
-    expect(vi.mocked(createMatter).mock.calls[0]![0].dueAt).toMatch(/^2026-09-30T\d{2}:59:59\.999Z$/);
+    expect(vi.mocked(createMatter).mock.calls[0]![0].dueAt).toBe(new Date(2026, 8, 30, 23, 59, 59, 999).toISOString());
     expect(onCreated).toHaveBeenCalledWith(createdMatter);
   });
 

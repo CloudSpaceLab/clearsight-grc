@@ -118,6 +118,16 @@ func TestProgramReviewPostgresKeepsActorTenantAndVersionTruth(t *testing.T) {
 	if checkpointCount != 1 {
 		t.Fatalf("expected one idempotent checkpoint, got %d", checkpointCount)
 	}
+	var reviewEventCount, reviewOutboxCount int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM continuity_events WHERE aggregate_type='PROGRAM_REVIEW' AND aggregate_id=$1::uuid AND event_type=$2`, accepted.Checkpoint.ID, EventProgramReviewAccepted).Scan(&reviewEventCount); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM outbox_events WHERE aggregate_type='PROGRAM_REVIEW' AND aggregate_id=$1::uuid AND event_type=$2`, accepted.Checkpoint.ID, EventProgramReviewAccepted).Scan(&reviewOutboxCount); err != nil {
+		t.Fatal(err)
+	}
+	if reviewEventCount != 1 || reviewOutboxCount != 1 {
+		t.Fatalf("review checkpoint event/outbox counts = %d/%d, want 1/1", reviewEventCount, reviewOutboxCount)
+	}
 
 	// Tenant binding is database-enforced even if a caller tried to pair a
 	// Program from one bank with an actor from another.

@@ -60,8 +60,5 @@ func (s *Service) RecordDecisionLifecycle(ctx context.Context, input AddDecision
 	if input.Status == DecisionApproved || input.Status == DecisionConditionallyApproved || input.Status == DecisionRejected || input.Status == DecisionExpired || input.Status == DecisionSuperseded {
 		value.DecidedAt = &now
 	}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventDecisionAdded, value, actorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventDecisionAdded, value, actorID)
 }

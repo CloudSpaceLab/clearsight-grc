@@ -66,9 +66,16 @@ Guide selection is server-authoritative. Signed identities and development ident
 | Status reasons | All current reasons are rendered | Implemented |
 | Requirements | Full statement and source anchor are shown; no silent slice/truncation | Implemented |
 | Evidence checks | Claim and minimum coverage are shown | Implemented |
-| Direct target | Target Program expands and scrolls into view | Implemented |
-| Detail failure | Inline retry without losing list context | Implemented |
-| Full Program setup/editor | Governed create/edit/approval experience | Future productization work |
+| Direct target | Exact Program opens a dedicated record while the portfolio route retains bounded search and filters | Implemented |
+| Detail failure | The Program aggregate, responsibility route and review position load independently; available values remain readable and each failed source has an explicit retry | Implemented |
+| Scope and ownership | Authorized owner edits function, jurisdiction, business scope and dates and selects only eligible successor candidates | Implemented |
+| Requirements and applicability | Add source-anchored requirements, preserve superseded history and record authorizer decisions with scope and rationale | Implemented |
+| Safeguards and coverage | Define objectives, assign eligible performers, record implementation and link requirement coverage | Implemented |
+| Evidence and assessment | Define accepted sources/freshness/coverage/independence and record reviewer conclusion, basis, references and validity | Implemented |
+| Monitoring | Structured collection and connected-data observations remain separate from approved evidence assessment | Implemented |
+| Linked issues | Exact Program-filtered open issues can be opened; new linked work preselects the Program and opens the created record | Implemented |
+| Operating lifecycle | Current authorizer selects only server-returned targets and records a rationale without changing calculated state | Implemented |
+| API-only regression gate | Every Program material command maps to a tested UI surface or the deterministic trigger is declared automation-only | Implemented |
 
 ## Issues and changes
 
@@ -83,9 +90,14 @@ Guide selection is server-authoritative. Signed identities and development ident
 | External response | Purpose, audience and transmission state are visible | Implemented |
 | Outcome check | Expected outcome and latest result are separate from action completion | Implemented |
 | Closure | Ready state or complete blocker list is shown | Implemented |
-| Direct target | Target issue expands and scrolls into view | Implemented |
+| Direct target | Target issue opens in a dedicated operational workspace | Implemented |
 | Create issue or change | Inline business form creates an authority-checked Draft, optionally links a Program and opens the new item without a modal | Implemented |
-| Operational mutation forms | Complete decision/action/response/verification write interfaces | Future productization work |
+| Details and facts | Authorized owner can correct scope, due date, recorded facts, missing information and contradictions with rationale and evidence references | Implemented |
+| Responsibility | Accountable owner, Action performer, reviewer and current response/decision responsibility remain visible by role and state | Implemented |
+| Assignment and links | Authorized owner selects eligible owners and named Programs without entering internal identifiers | Implemented |
+| Operational mutation forms | Decisions, Actions, response packages and outcome checks execute through authority-checked, versioned commands | Implemented |
+| Lifecycle completion | Server-provided valid targets are shown; closure is unavailable until stored closure checks pass | Implemented |
+| API-only regression gate | All 15 Matter material commands map to a tested customer-facing surface | Implemented |
 
 ## Sources and evidence
 
@@ -98,7 +110,8 @@ Guide selection is server-authoritative. Signed identities and development ident
 | Exact request | Target request expands and scrolls into view | Implemented |
 | Required fields | Submission remains disabled until required fields are present | Implemented |
 | Submission receipt | Submission is recorded without claiming evidence sufficiency | Implemented |
-| Wrong recipient/delegation | Redirect, delegate or report incorrect scope | Future productization work |
+| Wrong recipient/reassignment | The assigned internal person can return an incorrect request; the requester can select a replacement and old external capabilities are revoked | Implemented; role/team delegation remains future work |
+| Response authority | Only the exact verified internal recipient receives a response control; terminal assigned requests remain read-only and other viewers see the valid recovery path | Implemented |
 | Production scanning/storage | Malware scanning, encrypted object storage, retention and legal hold | Future production work |
 
 ## Vendors

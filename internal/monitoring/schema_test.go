@@ -30,24 +30,29 @@ func TestMonitoringMigrationOwnsVersionedFormsChecksAndResults(t *testing.T) {
 	}
 }
 
-func TestSharedFormCaptureMigrationPersistsPresentationSectionsAndExpandedFieldBound(t *testing.T) {
-	content, err := os.ReadFile("../../migrations/000036_shared_form_capture_contract.up.sql")
+func TestMonitoringEventMigrationOwnsImmutableJournalAndOutboxDedupe(t *testing.T) {
+	content, err := os.ReadFile("../../migrations/000040_monitoring_event_outbox.up.sql")
 	if err != nil {
-		t.Fatalf("read shared form capture migration: %v", err)
+		t.Fatalf("read monitoring event migration: %v", err)
 	}
 	schema := string(content)
 	for _, required := range []string{
-		"ADD COLUMN presentation jsonb",
-		"ADD COLUMN sections jsonb",
-		"jsonb_array_length(fields) BETWEEN 1 AND 200",
-		"ADD COLUMN origin_type text",
-		"CREATE TABLE capture_response_drafts",
-		"UNIQUE(tenant_id,request_id,session_id)",
-		"FOREIGN KEY (session_id,tenant_id,request_id)",
-		"octet_length(answers::text) <= 1048576",
+		"ADD COLUMN legal_entity_id uuid",
+		"ADD COLUMN program_id uuid",
+		"monitoring_form_templates_program_entity_fk",
+		"monitoring_checks_form_program_fk",
+		"CREATE TABLE monitoring_events",
+		"UNIQUE(tenant_id,aggregate_type,aggregate_id,aggregate_version)",
+		"CREATE UNIQUE INDEX monitoring_outbox_event_uq",
+		"MONITORING_FORM",
+		"MONITORING_CHECK",
+		"MONITORING_RESULT",
 	} {
 		if !strings.Contains(schema, required) {
-			t.Fatalf("shared form capture migration missing %q", required)
+			t.Fatalf("monitoring event migration missing %q", required)
 		}
+	}
+	if !strings.HasPrefix(strings.TrimSpace(schema), "BEGIN;") || !strings.HasSuffix(strings.TrimSpace(schema), "COMMIT;") {
+		t.Fatal("monitoring event migration must be transactional")
 	}
 }

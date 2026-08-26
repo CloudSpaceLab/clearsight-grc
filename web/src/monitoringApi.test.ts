@@ -1,33 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadContext } from "./api";
 import { requestJSON } from "./http";
-import { createFormTemplate } from "./monitoringApi";
+import { createMonitoringLinkedIssue } from "./monitoringApi";
 
 vi.mock("./api", () => ({ loadContext: vi.fn() }));
 vi.mock("./http", () => ({ requestJSON: vi.fn() }));
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  vi.mocked(loadContext).mockResolvedValue({ tenant: { id: "bank-1" } } as Awaited<ReturnType<typeof loadContext>>);
-});
-
 describe("monitoring API", () => {
-  it("sends presentation, sections and typed fields when a form draft is created", async () => {
-    vi.mocked(requestJSON).mockResolvedValue({ id: "form-1" });
-    const input = {
-      code: "VENDOR-DUE-DILIGENCE",
-      name: "Vendor due diligence",
-      purpose: "Collect information required for the vendor review.",
-      presentation: { default_mode: "AUTOMATIC" as const, allow_mode_switch: true },
-      sections: [{ id: "profile", title: "Vendor profile" }],
-      fields: [{ id: "contact", section_id: "profile", label: "Primary contact email", type: "email" as const, required: true }],
-    };
-
-    await createFormTemplate(input);
-
-    expect(requestJSON).toHaveBeenCalledWith("", "/api/v1/form-templates?tenant_id=bank-1", {
-      method: "POST",
-      body: JSON.stringify(input),
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(loadContext).mockResolvedValue({
+      tenant: { id: "tenant-1", name: "Clear Bank" }, legal_entity: { id: "entity-1", name: "Clear Bank Nigeria" },
+      actor: { id: "reviewer-1", name: "Control assurance reviewer" }, mode: "demo",
     });
+    vi.mocked(requestJSON).mockResolvedValue({ matter: { id: "matter-1", reference: "MAT-0001" }, created: true });
+  });
+
+  it("creates an issue from the exact result without sending an actor or Program identity", async () => {
+    await createMonitoringLinkedIssue("result / 1");
+
+    const [, path, init] = vi.mocked(requestJSON).mock.calls[0]!;
+    const body = JSON.parse(String(init?.body));
+    expect(path).toBe("/api/v1/monitoring-results/result%20%2F%201/linked-issue?tenant_id=tenant-1");
+    expect(init?.method).toBe("POST");
+    expect(body).toEqual({});
+    expect(body).not.toHaveProperty("actor_id");
+    expect(body).not.toHaveProperty("reviewer_principal_id");
+    expect(body).not.toHaveProperty("program_id");
   });
 });

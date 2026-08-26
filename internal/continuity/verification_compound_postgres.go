@@ -57,6 +57,21 @@ func (r *PostgresRepository) ApplyVerificationResultBundle(ctx context.Context, 
 		}
 		finalEvent = *bundle.TransitionEvent
 	}
+	if bundle.EscalationEvent != nil {
+		if bundle.EscalationAction == nil || bundle.EscalationEvent.AggregateVersion != finalEvent.AggregateVersion+1 {
+			return ErrVersionConflict
+		}
+		if err := applyMatterProjection(ctx, tx, *bundle.EscalationEvent); err != nil {
+			return err
+		}
+		if err := insertContinuityEvent(ctx, tx, *bundle.EscalationEvent); err != nil {
+			return err
+		}
+		if err := insertOutbox(ctx, tx, *bundle.EscalationEvent); err != nil {
+			return err
+		}
+		finalEvent = *bundle.EscalationEvent
+	}
 
 	tag, err := tx.Exec(ctx, `UPDATE matters SET version=$3,updated_at=$4 WHERE id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND version=$5`, bundle.TenantID, bundle.MatterID, finalEvent.AggregateVersion, finalEvent.OccurredAt, bundle.ExpectedVersion)
 	if err != nil {
@@ -66,7 +81,7 @@ func (r *PostgresRepository) ApplyVerificationResultBundle(ctx context.Context, 
 		return ErrVersionConflict
 	}
 
-	rows, err := tx.Query(ctx, `SELECT DISTINCT program_id::text FROM matter_links WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND matter_id=$2::uuid AND program_id IS NOT NULL`, bundle.TenantID, bundle.MatterID)
+	rows, err := tx.Query(ctx, `SELECT DISTINCT program_id::text FROM matter_links WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND matter_id=$2::uuid AND program_id IS NOT NULL AND retired_at IS NULL`, bundle.TenantID, bundle.MatterID)
 	if err != nil {
 		return err
 	}
@@ -95,9 +110,9 @@ func (r *PostgresRepository) ApplyVerificationResultBundle(ctx context.Context, 
 			return ErrInvalidState
 		}
 		matter := *bundle.FollowUpMatter
-		_, err = tx.Exec(ctx, `INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,source_type,source_id,trigger_type,trigger_id,trigger_key,known_facts,missing_facts,contradictions,owner_principal_id,required_authority,due_at,closed_at,closure_reason,reopen_count,created_at,updated_at,version)
-			VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,NULLIF($18,'')::uuid,$19,$20,$21,$22,$23,$24,$24,1)`,
-			matter.ID, matter.TenantID, matter.Reference, matter.Type, matter.Status, matter.Priority, matter.Title, matter.Summary, rawJSON(matter.Scope, `{}`), matter.SourceType, matter.SourceID, matter.TriggerType, matter.TriggerID, matter.TriggerKey, rawJSON(matter.KnownFacts, `{}`), rawJSON(matter.MissingFacts, `[]`), rawJSON(matter.Contradictions, `[]`), matter.OwnerPrincipalID, matter.RequiredAuthority, matter.DueAt, matter.ClosedAt, matter.ClosureReason, matter.ReopenCount, matter.CreatedAt)
+		_, err = tx.Exec(ctx, `INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,source_type,source_id,trigger_type,trigger_id,trigger_key,known_facts,missing_facts,contradictions,owner_principal_id,required_authority,due_at,closed_at,closure_reason,reopen_count,created_at,updated_at,version,legal_entity_id)
+			VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,NULLIF($18,'')::uuid,$19,$20,$21,$22,$23,$24,$24,1,$25::uuid)`,
+			matter.ID, matter.TenantID, matter.Reference, matter.Type, matter.Status, matter.Priority, matter.Title, matter.Summary, rawJSON(matter.Scope, `{}`), matter.SourceType, matter.SourceID, matter.TriggerType, matter.TriggerID, matter.TriggerKey, rawJSON(matter.KnownFacts, `{}`), rawJSON(matter.MissingFacts, `[]`), rawJSON(matter.Contradictions, `[]`), matter.OwnerPrincipalID, matter.RequiredAuthority, matter.DueAt, matter.ClosedAt, matter.ClosureReason, matter.ReopenCount, matter.CreatedAt, matter.LegalEntityID)
 		if err != nil {
 			if isUniqueViolation(err) {
 				return ErrDuplicate

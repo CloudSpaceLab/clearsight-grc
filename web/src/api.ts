@@ -1,5 +1,5 @@
 import { requestJSON, requestVoid } from "./http";
-import type { AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, PolicySummary, ProgramAggregate, Readiness, WorkflowTask } from "./types";
+import type { AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, PolicySummary, ProgramAggregate, Readiness, ResponseHistoryPage, WorkflowTask } from "./types";
 import type { MatterSummary, ProgramSummary, SummaryPage, SummaryQuery } from "./summaryTypes";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 import type { BankJourneysResponse } from "./verticalTypes";
@@ -27,6 +27,15 @@ export type RuntimeContext = {
     department_grants?: DepartmentGrant[];
   };
   mode: string;
+  capabilities?: {
+    config_read?: boolean;
+    config_write?: boolean;
+    identity_read?: boolean;
+    identity_configure?: boolean;
+    platform_operations_read?: boolean;
+    platform_operations_write?: boolean;
+    [key: string]: boolean | undefined;
+  };
 };
 
 export type DemoAccount = {
@@ -96,7 +105,7 @@ async function scopedRequest<T>(path: string, values: Record<string, string | nu
 }
 
 function summaryValues(query: SummaryQuery) {
-  return { q: query.q, status: query.status, cursor: query.cursor, limit: query.limit ?? 20 };
+  return { q: query.q, status: query.status, program_id: query.programID, cursor: query.cursor, limit: query.limit ?? 20 };
 }
 
 export function loadBankJourneys(): Promise<BankJourneysResponse> {
@@ -154,16 +163,18 @@ export async function loadWorkflowTasks(): Promise<WorkflowTask[]> {
   return (await scopedRequest<{ items: WorkflowTask[] }>("/api/v1/workflow/tasks", { limit: 20 })).items;
 }
 
-export async function loadEvidenceSources(): Promise<EvidenceSource[]> {
-  return (await scopedRequest<{ items: EvidenceSource[] }>("/api/v1/evidence/sources", { limit: 50 })).items;
+export async function loadEvidenceSources(legalEntityID?: string): Promise<EvidenceSource[]> {
+  return (await scopedRequest<{ items: EvidenceSource[] }>("/api/v1/evidence/sources", { legal_entity_id: legalEntityID, limit: 50 })).items;
 }
 
 export async function loadEvidenceRequests(): Promise<EvidenceRequest[]> {
   return (await scopedRequest<{ items: EvidenceRequest[] }>("/api/v1/evidence/requests", { limit: 50 })).items;
 }
 
-export async function loadEvidenceRequest(id: string): Promise<EvidenceRequest> {
-  return scopedRequest<EvidenceRequest>(`/api/v1/evidence/requests/${encodeURIComponent(id)}`);
+export type EvidenceRequestLoadIntent = "eligibility_preload" | "capture_revalidation";
+
+export async function loadEvidenceRequest(id: string, intent?: EvidenceRequestLoadIntent): Promise<EvidenceRequest> {
+  return scopedRequest<EvidenceRequest>(`/api/v1/evidence/requests/${encodeURIComponent(id)}`, { request_intent: intent });
 }
 
 export async function loadProjectionHealth(): Promise<ProjectionHealth[]> {
@@ -189,6 +200,18 @@ export function loadProgram(id: string): Promise<ProgramAggregate> {
 
 export function loadMatter(id: string): Promise<MatterAggregate> {
   return scopedRequest<NullableMatterAggregate>(`/api/v1/matters/${encodeURIComponent(id)}`).then(normalizeMatterAggregate);
+}
+
+export function loadProgramAt(id: string, at: string): Promise<ProgramAggregate> {
+  return scopedRequest<Parameters<typeof normalizeProgramAggregate>[0]>(`/api/v1/programs/${encodeURIComponent(id)}/history`, { at }).then(normalizeProgramAggregate);
+}
+
+export function loadMatterAt(id: string, at: string): Promise<MatterAggregate> {
+  return scopedRequest<NullableMatterAggregate>(`/api/v1/matters/${encodeURIComponent(id)}/history`, { at }).then(normalizeMatterAggregate);
+}
+
+export function loadResponsePackageHistory(matterID: string, responseID: string, limit = 20): Promise<ResponseHistoryPage> {
+  return scopedRequest<ResponseHistoryPage>(`/api/v1/matters/${encodeURIComponent(matterID)}/responses/${encodeURIComponent(responseID)}/history`, { limit });
 }
 
 export async function loadPrograms(): Promise<ProgramAggregate[]> {

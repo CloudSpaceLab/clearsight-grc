@@ -9,13 +9,13 @@ import (
 )
 
 func TestProgramStateMovesFromUnknownToCurrentAndTriggerCreatesOneMatter(t *testing.T) {
-	ctx := context.Background()
+	ctx := WithTrustedSystemScope(context.Background())
 	repo := NewMemoryRepository()
 	service := NewService(repo)
 	now := time.Date(2026, 8, 5, 10, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
 
-	program, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", Code: "NDPA", Name: "Data protection", Type: "PRIVACY", OwningFunction: "Privacy", OwnerPrincipalID: "owner", AuthorityPrincipalID: "dpo", Scope: json.RawMessage(`{"legal_entity":"Bank NG"}`), EffectiveFrom: now})
+	program, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", LegalEntityID: "entity-a", Code: "NDPA", Name: "Data protection", Type: "PRIVACY", OwningFunction: "Privacy", OwnerPrincipalID: "owner", AuthorityPrincipalID: "dpo", Scope: json.RawMessage(`{"legal_entity":"Bank NG"}`), EffectiveFrom: now})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,16 +37,26 @@ func TestProgramStateMovesFromUnknownToCurrentAndTriggerCreatesOneMatter(t *test
 		t.Fatal(err)
 	}
 	objective := program.ControlObjectives[0]
-	program, err = service.AddControlImplementation(ctx, AddControlImplementationInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ObjectiveID: objective.ID, Name: "Quarterly owner review", Description: "Processing owners review changed records each quarter.", ImplementationType: "REVIEW", Status: ImplementationImplemented, EffectiveFrom: now, Scope: json.RawMessage(`{"entity":"Bank NG"}`)})
+	program, err = service.AddControlImplementation(ctx, AddControlImplementationInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ObjectiveID: objective.ID, Name: "Quarterly owner review", Description: "Processing owners review changed records each quarter.", ImplementationType: "REVIEW", Status: ImplementationPlanned, EffectiveFrom: now, Scope: json.RawMessage(`{"entity":"Bank NG"}`)})
 	if err != nil {
 		t.Fatal(err)
 	}
 	implementation := program.ControlImplementations[0]
+	for _, target := range []ControlImplementationStatus{ImplementationInProgress, ImplementationImplemented} {
+		program, err = service.TransitionControlImplementation(ctx, TransitionControlImplementationInput{TenantID: "bank", ProgramID: program.Program.ID, ImplementationID: implementation.ID, ExpectedVersion: program.Program.Version, ExpectedImplementationVersion: program.ControlImplementations[0].Version, To: target, Rationale: "The safeguard owner confirmed the operating state.", ActorID: "owner"})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 	program, err = service.LinkRequirementControl(ctx, LinkRequirementControlInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, RequirementID: requirement.ID, ImplementationID: implementation.ID})
 	if err != nil {
 		t.Fatal(err)
 	}
-	program, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ControlImplementationID: implementation.ID, Code: "ROPA-COVERAGE", Name: "Processing record coverage", Claim: "Every active processing activity has a current owner-approved record.", PopulationScope: json.RawMessage(`{"population":"active_processing_activities"}`), FreshnessMinutes: 43200, MinimumCoverage: 0.95, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractActive})
+	program, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ControlImplementationID: implementation.ID, Code: "ROPA-COVERAGE", Name: "Processing record coverage", Claim: "Every active processing activity has a current owner-approved record.", PopulationScope: json.RawMessage(`{"population":"active_processing_activities"}`), FreshnessMinutes: 43200, MinimumCoverage: 0.95, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractDraft, ActorID: "owner"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.TransitionEvidenceContract(ctx, TransitionEvidenceContractInput{TenantID: "bank", ProgramID: program.Program.ID, ContractID: program.EvidenceContracts[0].ID, ExpectedVersion: program.Program.Version, ExpectedContractVersion: program.EvidenceContracts[0].Version, To: EvidenceContractActive, Rationale: "Independent review approved the evidence rules.", ActorID: "dpo"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,12 +99,12 @@ func TestProgramStateMovesFromUnknownToCurrentAndTriggerCreatesOneMatter(t *test
 }
 
 func TestMatterCannotCloseUntilActionOutcomeIsVerified(t *testing.T) {
-	ctx := context.Background()
+	ctx := WithTrustedSystemScope(context.Background())
 	service := NewService(NewMemoryRepository())
 	now := time.Date(2026, 8, 5, 10, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
 
-	matter, err := service.CreateMatter(ctx, CreateMatterInput{TenantID: "bank", Type: MatterControlGap, Priority: 4, Title: "Restore privileged-access review evidence", Summary: "Four accounts do not have current business-need evidence.", Scope: json.RawMessage(`{"application":"Treasury platform"}`), KnownFacts: json.RawMessage(`{"affected_accounts":4}`)})
+	matter, err := service.CreateMatter(ctx, CreateMatterInput{TenantID: "bank", LegalEntityID: "entity-a", Type: MatterControlGap, Priority: 4, Title: "Restore privileged-access review evidence", Summary: "Four accounts do not have current business-need evidence.", Scope: json.RawMessage(`{"application":"Treasury platform"}`), KnownFacts: json.RawMessage(`{"affected_accounts":4}`)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +114,7 @@ func TestMatterCannotCloseUntilActionOutcomeIsVerified(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	matter, err = service.AddAction(ctx, AddActionInput{TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, Title: "Obtain current account-owner confirmation", Description: "Confirm current business need for the four unresolved accounts."})
+	matter, err = service.AddAction(ctx, AddActionInput{TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, Title: "Obtain current account-owner confirmation", Description: "Confirm current business need for the four unresolved accounts.", OwnerPrincipalID: "control-owner"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,11 +157,11 @@ func TestMatterCannotCloseUntilActionOutcomeIsVerified(t *testing.T) {
 }
 
 func TestPointInTimeReplayDoesNotIncludeLaterChanges(t *testing.T) {
-	ctx := context.Background()
+	ctx := WithTrustedSystemScope(context.Background())
 	service := NewService(NewMemoryRepository())
 	now := time.Date(2026, 8, 5, 10, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
-	program, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", Code: "CYBER", Name: "Cybersecurity", Type: "CYBER", OwningFunction: "Information Security", OwnerPrincipalID: "owner", AuthorityPrincipalID: "authority", Scope: json.RawMessage(`{}`), EffectiveFrom: now})
+	program, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", LegalEntityID: "entity-a", Code: "CYBER", Name: "Cybersecurity", Type: "CYBER", OwningFunction: "Information Security", OwnerPrincipalID: "owner", AuthorityPrincipalID: "authority", Scope: json.RawMessage(`{}`), EffectiveFrom: now})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,20 +181,20 @@ func TestPointInTimeReplayDoesNotIncludeLaterChanges(t *testing.T) {
 }
 
 func TestMatterCanLinkToMoreThanOneProgramWithoutDuplicateLinks(t *testing.T) {
-	ctx := context.Background()
+	ctx := WithTrustedSystemScope(context.Background())
 	service := NewService(NewMemoryRepository())
 	now := time.Date(2026, 8, 5, 10, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
 
-	first, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", Code: "PRIVACY", Name: "Privacy", Type: "PRIVACY", OwningFunction: "Privacy", Scope: json.RawMessage(`{}`), EffectiveFrom: now})
+	first, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", LegalEntityID: "entity-a", Code: "PRIVACY", Name: "Privacy", Type: "PRIVACY", OwningFunction: "Privacy", Scope: json.RawMessage(`{}`), EffectiveFrom: now})
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", Code: "VENDOR", Name: "Vendor assurance", Type: "THIRD_PARTY", OwningFunction: "Procurement", Scope: json.RawMessage(`{}`), EffectiveFrom: now})
+	second, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", LegalEntityID: "entity-a", Code: "VENDOR", Name: "Vendor assurance", Type: "THIRD_PARTY", OwningFunction: "Procurement", Scope: json.RawMessage(`{}`), EffectiveFrom: now})
 	if err != nil {
 		t.Fatal(err)
 	}
-	matter, err := service.CreateMatter(ctx, CreateMatterInput{TenantID: "bank", Type: MatterVendorDeficiency, Priority: 3, Title: "Replace an expired vendor certificate", Summary: "The current certificate is no longer valid.", Scope: json.RawMessage(`{}`), ProgramID: first.Program.ID})
+	matter, err := service.CreateMatter(ctx, CreateMatterInput{TenantID: "bank", LegalEntityID: "entity-a", Type: MatterVendorDeficiency, Priority: 3, Title: "Replace an expired vendor certificate", Summary: "The current certificate is no longer valid.", Scope: json.RawMessage(`{}`), ProgramID: first.Program.ID})
 	if err != nil {
 		t.Fatal(err)
 	}

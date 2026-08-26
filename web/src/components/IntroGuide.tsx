@@ -1,4 +1,5 @@
 import type { GuideStep, OnboardingGuide, OnboardingState } from "../types";
+import { CloseIcon } from "./CloseIcon";
 
 type Props = {
   guide: OnboardingGuide;
@@ -29,7 +30,7 @@ export function IntroGuide({ guide, state, busy = false, onAdvance, onBack, onDi
   };
 
   return <aside className="guide-panel" data-guide-profile={guide.profile ?? "general"} aria-label="Getting started">
-    <button className="guide-close" type="button" onClick={() => void onDismiss()} aria-label="Dismiss guide" disabled={busy}>×</button>
+    <button className="guide-close icon-button" type="button" onClick={() => void onDismiss()} aria-label="Dismiss guide" disabled={busy}><CloseIcon/></button>
     <div className="guide-copy">
       <div className="guide-meta"><span className="eyebrow">Getting started</span><span>Step {index + 1} of {guide.steps.length}</span></div>
       <h2>{step.title}</h2>

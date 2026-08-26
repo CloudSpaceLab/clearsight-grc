@@ -14,12 +14,55 @@ import (
 )
 
 type Service struct {
-	repo Repository
-	now  func() time.Time
+	repo            Repository
+	now             func() time.Time
+	sourceValidator EvidenceSourceValidator
 }
 
 func NewService(repo Repository) *Service {
 	return &Service{repo: repo, now: time.Now}
+}
+
+func (s *Service) ConfigureEvidenceSourceValidator(validator EvidenceSourceValidator) {
+	s.sourceValidator = validator
+}
+
+func (s *Service) validateEvidenceSources(ctx context.Context, tenant, legalEntity string, sourceIDs []string) error {
+	ids := make([]string, 0, len(sourceIDs))
+	seen := map[string]struct{}{}
+	for _, sourceID := range sourceIDs {
+		sourceID = strings.TrimSpace(sourceID)
+		if sourceID == "" {
+			continue
+		}
+		if _, ok := seen[sourceID]; ok {
+			continue
+		}
+		seen[sourceID] = struct{}{}
+		ids = append(ids, sourceID)
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	if s.sourceValidator == nil {
+		return ErrEvidenceSourceUnavailable
+	}
+	if err := s.sourceValidator.ValidateActiveSourcesForEntity(ctx, tenant, legalEntity, ids); err != nil {
+		return errors.Join(ErrEvidenceSourceInvalid, err)
+	}
+	return nil
+}
+
+func (s *Service) resolveLegalEntity(ctx context.Context, tenant, identifier string) (string, error) {
+	resolver, ok := s.repo.(LegalEntityResolver)
+	if !ok {
+		return "", ErrNotFound
+	}
+	return resolver.ResolveLegalEntity(ctx, strings.TrimSpace(tenant), strings.TrimSpace(identifier))
+}
+
+func (s *Service) ResolveLegalEntity(ctx context.Context, tenant, identifier string) (string, error) {
+	return s.resolveLegalEntity(ctx, tenant, identifier)
 }
 
 type AddRequirementInput struct {
@@ -166,22 +209,53 @@ type AddVerificationContractInput struct {
 	MeasurementSourceID      string          `json:"measurement_source_id,omitempty"`
 	Threshold                json.RawMessage `json:"threshold"`
 	ObservationPeriodMinutes int             `json:"observation_period_minutes"`
+	ReviewerCandidateID      string          `json:"reviewer_candidate_id,omitempty"`
 	AuthorityPrincipalID     string          `json:"authority_principal_id,omitempty"`
 	FailureResponse          string          `json:"failure_response"`
 	ActorID                  string          `json:"actor_id,omitempty"`
 }
 
+type SupersedeVerificationContractInput struct {
+	TenantID                 string          `json:"tenant_id"`
+	MatterID                 string          `json:"matter_id"`
+	ContractID               string          `json:"contract_id"`
+	ExpectedVersion          int64           `json:"expected_version"`
+	ActionID                 string          `json:"action_id,omitempty"`
+	ExpectedOutcome          string          `json:"expected_outcome"`
+	Baseline                 json.RawMessage `json:"baseline"`
+	Scope                    json.RawMessage `json:"scope"`
+	MeasurementSourceID      string          `json:"measurement_source_id,omitempty"`
+	Threshold                json.RawMessage `json:"threshold"`
+	ObservationPeriodMinutes int             `json:"observation_period_minutes"`
+	ReviewerCandidateID      string          `json:"reviewer_candidate_id,omitempty"`
+	AuthorityPrincipalID     string          `json:"authority_principal_id,omitempty"`
+	FailureResponse          string          `json:"failure_response"`
+	Rationale                string          `json:"rationale"`
+	ActorID                  string          `json:"actor_id,omitempty"`
+}
+
+type RetireVerificationContractInput struct {
+	TenantID        string `json:"tenant_id"`
+	MatterID        string `json:"matter_id"`
+	ContractID      string `json:"contract_id"`
+	ExpectedVersion int64  `json:"expected_version"`
+	Rationale       string `json:"rationale"`
+	ActorID         string `json:"actor_id,omitempty"`
+}
+
 type RecordVerificationResultInput struct {
-	TenantID            string                   `json:"tenant_id"`
-	MatterID            string                   `json:"matter_id"`
-	ExpectedVersion     int64                    `json:"expected_version"`
-	ContractID          string                   `json:"contract_id"`
-	Result              VerificationResultStatus `json:"result"`
-	Observations        json.RawMessage          `json:"observations"`
-	EvidenceReferences  json.RawMessage          `json:"evidence_references"`
-	ReviewerPrincipalID string                   `json:"reviewer_principal_id,omitempty"`
-	Rationale           string                   `json:"rationale"`
-	ObservedAt          time.Time                `json:"observed_at"`
+	TenantID                     string                   `json:"tenant_id"`
+	MatterID                     string                   `json:"matter_id"`
+	ExpectedVersion              int64                    `json:"expected_version"`
+	ContractID                   string                   `json:"contract_id"`
+	Result                       VerificationResultStatus `json:"result"`
+	Observations                 json.RawMessage          `json:"observations"`
+	EvidenceReferences           json.RawMessage          `json:"evidence_references"`
+	ReviewerPrincipalID          string                   `json:"reviewer_principal_id,omitempty"`
+	ReviewerAuthorityPrincipalID string                   `json:"reviewer_authority_principal_id,omitempty"`
+	EscalationPrincipalID        string                   `json:"escalation_principal_id,omitempty"`
+	Rationale                    string                   `json:"rationale"`
+	ObservedAt                   time.Time                `json:"observed_at"`
 }
 
 type AddResponsePackageInput struct {
@@ -222,6 +296,19 @@ func (s *Service) CreateProgram(ctx context.Context, input CreateProgramInput) (
 	if strings.TrimSpace(input.TenantID) == "" || strings.TrimSpace(input.Code) == "" || strings.TrimSpace(input.Name) == "" || strings.TrimSpace(input.Type) == "" || strings.TrimSpace(input.OwningFunction) == "" {
 		return ProgramAggregate{}, fmt.Errorf("tenant_id, code, name, type and owning_function are required")
 	}
+	if strings.TrimSpace(input.OwnerPrincipalID) != "" && strings.TrimSpace(input.OwnerPrincipalID) == strings.TrimSpace(input.AuthorityPrincipalID) {
+		return ProgramAggregate{}, fmt.Errorf("the Program owner and approval authority must be different people")
+	}
+	legalEntityID, scopeOK := actorLegalEntity(ctx, input.TenantID, input.LegalEntityID)
+	if !scopeOK {
+		return ProgramAggregate{}, ErrNotFound
+	}
+	canonicalEntityID, err := s.resolveLegalEntity(ctx, input.TenantID, legalEntityID)
+	if err != nil {
+		return ProgramAggregate{}, err
+	}
+	input.LegalEntityID = canonicalEntityID
+	ctx = withCanonicalLegalEntity(ctx, input.TenantID, canonicalEntityID)
 	if input.EffectiveFrom.IsZero() {
 		input.EffectiveFrom = s.now().UTC()
 	}
@@ -250,7 +337,11 @@ func (s *Service) CreateProgram(ctx context.Context, input CreateProgramInput) (
 	if _, err = s.repo.CreateProgram(ctx, program, event); err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, program.ID, "PROGRAM_CREATED", program.ID)
+	_ = s.requestProgramRefresh(ctx, input.TenantID, program.ID, EventProgramCreated, program.ID, "system")
+	if current, readErr := s.repo.GetProgram(ctx, input.TenantID, program.ID); readErr == nil {
+		return current, nil
+	}
+	return decorateProgram(ProgramAggregate{Program: program}), nil
 }
 
 func (s *Service) TransitionProgram(ctx context.Context, input ProgramTransitionInput) (ProgramAggregate, error) {
@@ -301,14 +392,12 @@ func (s *Service) TransitionProgram(ctx context.Context, input ProgramTransition
 	if aggregate.Program.Status == ProgramPaused && input.To == ProgramActive {
 		program.EffectiveUntil = nil
 	}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ID, input.ExpectedVersion, EventProgramStatusChanged, program, input.ActorID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ID, EventProgramStatusChanged, input.ID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ID, input.ExpectedVersion, EventProgramStatusChanged, program, input.ActorID, input.ID)
 }
 
 func (s *Service) AddRequirement(ctx context.Context, input AddRequirementInput) (ProgramAggregate, error) {
-	if _, err := s.programForMutation(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion); err != nil {
+	aggregate, err := s.programForMutation(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion)
+	if err != nil {
 		return ProgramAggregate{}, err
 	}
 	if strings.TrimSpace(input.Code) == "" || strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Statement) == "" {
@@ -336,10 +425,7 @@ func (s *Service) AddRequirement(ctx context.Context, input AddRequirementInput)
 	}
 	now := s.now().UTC()
 	value := Requirement{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, SourceID: input.SourceID, Code: strings.ToUpper(strings.TrimSpace(input.Code)), Title: strings.TrimSpace(input.Title), Statement: strings.TrimSpace(input.Statement), SourceAnchor: strings.TrimSpace(input.SourceAnchor), Modality: modality, Actor: strings.TrimSpace(input.Actor), Action: strings.TrimSpace(input.Action), Object: strings.TrimSpace(input.Object), Status: input.Status, EffectiveFrom: input.EffectiveFrom.UTC(), CreatedAt: now, Version: 1}
-	if err := s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventRequirementAdded, value, input.ActorID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventRequirementAdded, value.ID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventRequirementAdded, value, input.ActorID, value.ID)
 }
 
 func (s *Service) DetermineApplicability(ctx context.Context, input DetermineApplicabilityInput) (ProgramAggregate, error) {
@@ -368,14 +454,12 @@ func (s *Service) DetermineApplicability(ctx context.Context, input DetermineApp
 		input.EffectiveFrom = s.now().UTC()
 	}
 	value := Applicability{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, RequirementID: input.RequirementID, Status: input.Status, Scope: scope, Rationale: strings.TrimSpace(input.Rationale), ApprovedBy: input.ApprovedBy, EffectiveFrom: input.EffectiveFrom.UTC(), CreatedAt: s.now().UTC(), Version: 1}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventApplicabilityDetermined, value, input.ApprovedBy); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventApplicabilityDetermined, value.ID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventApplicabilityDetermined, value, input.ApprovedBy, value.ID)
 }
 
 func (s *Service) AddControlObjective(ctx context.Context, input AddControlObjectiveInput) (ProgramAggregate, error) {
-	if _, err := s.programForMutation(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion); err != nil {
+	aggregate, err := s.programForMutation(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion)
+	if err != nil {
 		return ProgramAggregate{}, err
 	}
 	if strings.TrimSpace(input.Code) == "" || strings.TrimSpace(input.Name) == "" || strings.TrimSpace(input.Outcome) == "" {
@@ -392,10 +476,7 @@ func (s *Service) AddControlObjective(ctx context.Context, input AddControlObjec
 		return ProgramAggregate{}, err
 	}
 	value := ControlObjective{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, Code: strings.ToUpper(strings.TrimSpace(input.Code)), Name: strings.TrimSpace(input.Name), Outcome: strings.TrimSpace(input.Outcome), Status: input.Status, CreatedAt: s.now().UTC(), Version: 1}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventControlObjectiveAdded, value, input.ActorID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventControlObjectiveAdded, value.ID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventControlObjectiveAdded, value, input.ActorID, value.ID)
 }
 
 func (s *Service) AddControlImplementation(ctx context.Context, input AddControlImplementationInput) (ProgramAggregate, error) {
@@ -412,8 +493,8 @@ func (s *Service) AddControlImplementation(ctx context.Context, input AddControl
 	if input.Status == "" {
 		input.Status = ImplementationPlanned
 	}
-	if !validImplementationStatus(input.Status) {
-		return ProgramAggregate{}, fmt.Errorf("unsupported control implementation status")
+	if input.Status != ImplementationPlanned {
+		return ProgramAggregate{}, fmt.Errorf("new safeguards must start as planned")
 	}
 	if input.EffectiveFrom.IsZero() {
 		input.EffectiveFrom = s.now().UTC()
@@ -428,10 +509,7 @@ func (s *Service) AddControlImplementation(ctx context.Context, input AddControl
 	}
 	now := s.now().UTC()
 	value := ControlImplementation{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, ObjectiveID: input.ObjectiveID, Name: strings.TrimSpace(input.Name), Description: strings.TrimSpace(input.Description), ImplementationType: strings.TrimSpace(input.ImplementationType), OwnerPrincipalID: input.OwnerPrincipalID, Scope: scope, Status: input.Status, EffectiveFrom: input.EffectiveFrom.UTC(), CreatedAt: now, UpdatedAt: now, Version: 1}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventControlImplementationAdded, value, input.ActorID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventControlImplementationAdded, value.ID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventControlImplementationAdded, value, input.ActorID, value.ID)
 }
 
 func (s *Service) LinkRequirementControl(ctx context.Context, input LinkRequirementControlInput) (ProgramAggregate, error) {
@@ -450,10 +528,7 @@ func (s *Service) LinkRequirementControl(ctx context.Context, input LinkRequirem
 		return ProgramAggregate{}, err
 	}
 	value := RequirementControlLink{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, RequirementID: input.RequirementID, ImplementationID: input.ImplementationID, CreatedAt: s.now().UTC()}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventRequirementControlLinked, value, input.ActorID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventRequirementControlLinked, value.ID)
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventRequirementControlLinked, value, input.ActorID, value.ID)
 }
 
 func (s *Service) AddEvidenceContract(ctx context.Context, input AddEvidenceContractInput) (ProgramAggregate, error) {
@@ -483,10 +558,10 @@ func (s *Service) AddEvidenceContract(ctx context.Context, input AddEvidenceCont
 		return ProgramAggregate{}, fmt.Errorf("minimum_coverage must be between 0 and 1")
 	}
 	if input.Status == "" {
-		input.Status = EvidenceContractActive
+		input.Status = EvidenceContractDraft
 	}
-	if !validEvidenceContractStatus(input.Status) {
-		return ProgramAggregate{}, fmt.Errorf("unsupported evidence check status")
+	if input.Status != EvidenceContractDraft {
+		return ProgramAggregate{}, fmt.Errorf("new evidence checks must start as drafts")
 	}
 	contradictionPolicy := strings.ToUpper(strings.TrimSpace(input.ContradictionPolicy))
 	if contradictionPolicy == "" {
@@ -500,7 +575,10 @@ func (s *Service) AddEvidenceContract(ctx context.Context, input AddEvidenceCont
 		failureAction = "MATTER"
 	}
 	if !validEvidenceFailureAction(failureAction) {
-		return ProgramAggregate{}, fmt.Errorf("failure_action must be FLAG, REQUEST, MATTER or BLOCK")
+		return ProgramAggregate{}, fmt.Errorf("failed evidence results must create a linked issue")
+	}
+	if err = s.validateEvidenceSources(ctx, input.TenantID, aggregate.Program.LegalEntityID, input.AcceptableSourceIDs); err != nil {
+		return ProgramAggregate{}, err
 	}
 	population, err := normalizedJSON(input.PopulationScope, `{}`)
 	if err != nil {
@@ -511,11 +589,8 @@ func (s *Service) AddEvidenceContract(ctx context.Context, input AddEvidenceCont
 		return ProgramAggregate{}, err
 	}
 	now := s.now().UTC()
-	value := EvidenceContract{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, RequirementID: input.RequirementID, ControlImplementationID: input.ControlImplementationID, Code: strings.ToUpper(strings.TrimSpace(input.Code)), Name: strings.TrimSpace(input.Name), Claim: strings.TrimSpace(input.Claim), AcceptableSourceIDs: append([]string(nil), input.AcceptableSourceIDs...), PopulationScope: population, FreshnessMinutes: input.FreshnessMinutes, MinimumCoverage: input.MinimumCoverage, IndependenceRequired: input.IndependenceRequired, ContradictionPolicy: contradictionPolicy, FailureAction: failureAction, Status: input.Status, CreatedAt: now, UpdatedAt: now, Version: 1}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventEvidenceContractAdded, value, input.ActorID); err != nil {
-		return ProgramAggregate{}, err
-	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventEvidenceContractAdded, value.ID)
+	value := EvidenceContract{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, RequirementID: input.RequirementID, ControlImplementationID: input.ControlImplementationID, Code: strings.ToUpper(strings.TrimSpace(input.Code)), Name: strings.TrimSpace(input.Name), Claim: strings.TrimSpace(input.Claim), AcceptableSourceIDs: append([]string(nil), input.AcceptableSourceIDs...), PopulationScope: population, FreshnessMinutes: input.FreshnessMinutes, MinimumCoverage: input.MinimumCoverage, IndependenceRequired: input.IndependenceRequired, ContradictionPolicy: contradictionPolicy, FailureAction: failureAction, ConfiguredBy: strings.TrimSpace(input.ActorID), Status: input.Status, CreatedAt: now, UpdatedAt: now, Version: 1}
+	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventEvidenceContractAdded, value, input.ActorID, value.ID)
 }
 
 func (s *Service) RecordEvidenceAssessment(ctx context.Context, input RecordEvidenceAssessmentInput) (ProgramAggregate, error) {
@@ -562,10 +637,30 @@ func (s *Service) RecordEvidenceAssessment(ctx context.Context, input RecordEvid
 		return ProgramAggregate{}, err
 	}
 	value := EvidenceAssessment{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, ContractID: input.ContractID, Conclusion: input.Conclusion, Coverage: input.Coverage, Basis: basis, ValidUntil: input.ValidUntil, AssessedBy: input.AssessedBy, AssessedAt: input.AssessedAt.UTC(), CreatedAt: s.now().UTC()}
+	if evidenceAssessmentNeedsFailureAction(value, contract) {
+		switch contract.FailureAction {
+		case "FLAG", "BLOCK":
+			// Legacy checks used these values before failure handling was narrowed
+			// to linked issues. The result itself drives Program attention and
+			// blocking state and remains a valid material history event.
+		case "MATTER", "REQUEST":
+			if repo, ok := s.repo.(EvidenceAssessmentFailureRepository); ok {
+				return s.recordEvidenceAssessmentWithFailure(ctx, aggregate, contract, value, repo)
+			}
+			return ProgramAggregate{}, fmt.Errorf("atomic evidence failure handling is unavailable")
+		default:
+			return ProgramAggregate{}, fmt.Errorf("the evidence check failure action is not recognised")
+		}
+	}
 	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventEvidenceAssessmentRecorded, value, input.AssessedBy); err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventEvidenceAssessmentRecorded, value.ID)
+	// The assessment event is committed before projection refresh and the
+	// immediate aggregate read. Neither derived work nor a read outage may turn
+	// that successful material command into a reported failure.
+	_ = s.requestProgramRefresh(ctx, input.TenantID, input.ProgramID, EventEvidenceAssessmentRecorded, value.ID, "system")
+	aggregate.EvidenceAssessments = append(aggregate.EvidenceAssessments, value)
+	return s.programResourceResult(ctx, input.TenantID, input.ProgramID, aggregate, value.CreatedAt), nil
 }
 
 func (s *Service) RefreshProgram(ctx context.Context, tenant, programID, triggerType, triggerID string) (ProgramAggregate, error) {
@@ -635,19 +730,30 @@ func (s *Service) ensureTriggerMatter(ctx context.Context, trigger Trigger) (*Ma
 	if !create {
 		return nil, nil
 	}
-	existing, err := s.repo.MatterByTriggerKey(ctx, trigger.TenantID, trigger.DedupeKey)
+	existingAggregate, err := s.MatterByTriggerKey(ctx, trigger.TenantID, trigger.DedupeKey)
 	if err == nil {
-		return &existing, nil
+		if matterLinkedToProgram(existingAggregate, trigger.ProgramID) {
+			existing := existingAggregate.Matter
+			return &existing, nil
+		}
+		return nil, nil
 	}
 	if !errors.Is(err, ErrNotFound) {
 		return nil, err
 	}
 	matterAggregate, err := s.CreateMatter(ctx, CreateMatterInput{TenantID: trigger.TenantID, Type: matterType, Priority: triggerPriority(trigger.Type), Title: title, Summary: summary, Scope: trigger.Payload, TriggerType: trigger.Type, TriggerID: trigger.ID, TriggerKey: trigger.DedupeKey, KnownFacts: trigger.Payload, MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`), ProgramID: trigger.ProgramID, ActorID: trigger.ActorID})
 	if errors.Is(err, ErrDuplicate) {
-		existing, lookupErr := s.repo.MatterByTriggerKey(ctx, trigger.TenantID, trigger.DedupeKey)
+		existingAggregate, lookupErr := s.MatterByTriggerKey(ctx, trigger.TenantID, trigger.DedupeKey)
 		if lookupErr != nil {
+			if errors.Is(lookupErr, ErrNotFound) {
+				return nil, nil
+			}
 			return nil, lookupErr
 		}
+		if !matterLinkedToProgram(existingAggregate, trigger.ProgramID) {
+			return nil, nil
+		}
+		existing := existingAggregate.Matter
 		return &existing, nil
 	}
 	if err != nil {
@@ -698,11 +804,24 @@ func (s *Service) CreateMatter(ctx context.Context, input CreateMatterInput) (Ma
 	if strings.TrimSpace(input.TenantID) == "" || !validMatterType(input.Type) || strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Summary) == "" {
 		return MatterAggregate{}, fmt.Errorf("tenant_id, supported type, title and summary are required")
 	}
+	legalEntityID, scopeOK := actorLegalEntity(ctx, input.TenantID, input.LegalEntityID)
+	if !scopeOK {
+		return MatterAggregate{}, ErrNotFound
+	}
 	if input.Priority < 1 || input.Priority > 5 {
 		return MatterAggregate{}, fmt.Errorf("priority must be between 1 and 5")
 	}
 	if (strings.TrimSpace(input.RequirementID) != "" || strings.TrimSpace(input.ControlID) != "") && strings.TrimSpace(input.ProgramID) == "" {
 		return MatterAggregate{}, fmt.Errorf("program_id is required when linking a requirement or control")
+	}
+	canonicalEntityID := ""
+	var err error
+	if strings.TrimSpace(legalEntityID) != "" {
+		canonicalEntityID, err = s.resolveLegalEntity(ctx, input.TenantID, legalEntityID)
+		if err != nil {
+			return MatterAggregate{}, err
+		}
+		ctx = withCanonicalLegalEntity(ctx, input.TenantID, canonicalEntityID)
 	}
 	if strings.TrimSpace(input.ProgramID) != "" {
 		program, getErr := s.GetProgram(ctx, input.TenantID, input.ProgramID)
@@ -715,7 +834,21 @@ func (s *Service) CreateMatter(ctx context.Context, input CreateMatterInput) (Ma
 		if input.ControlID != "" && !containsImplementation(program.ControlImplementations, input.ControlID) {
 			return MatterAggregate{}, fmt.Errorf("control_id does not belong to this program")
 		}
+		if canonicalEntityID == "" {
+			canonicalEntityID, err = s.resolveLegalEntity(ctx, input.TenantID, program.Program.LegalEntityID)
+			if err != nil {
+				return MatterAggregate{}, err
+			}
+			ctx = withCanonicalLegalEntity(ctx, input.TenantID, canonicalEntityID)
+		}
+		if program.Program.LegalEntityID != canonicalEntityID {
+			return MatterAggregate{}, ErrNotFound
+		}
 	}
+	if canonicalEntityID == "" {
+		return MatterAggregate{}, ErrNotFound
+	}
+	input.LegalEntityID = canonicalEntityID
 	scope, err := normalizedJSON(input.Scope, `{}`)
 	if err != nil {
 		return MatterAggregate{}, err
@@ -741,7 +874,7 @@ func (s *Service) CreateMatter(ctx context.Context, input CreateMatterInput) (Ma
 	if input.TriggerType != "" {
 		status = MatterInitialReview
 	}
-	matter := Matter{ID: matterID, TenantID: input.TenantID, Reference: matterReference(matterID), Type: input.Type, Status: status, Priority: input.Priority, Title: strings.TrimSpace(input.Title), Summary: strings.TrimSpace(input.Summary), Scope: scope, SourceType: input.SourceType, SourceID: input.SourceID, TriggerType: input.TriggerType, TriggerID: input.TriggerID, TriggerKey: input.TriggerKey, KnownFacts: known, MissingFacts: missing, Contradictions: contradictions, OwnerPrincipalID: input.OwnerPrincipalID, RequiredAuthority: input.RequiredAuthority, DueAt: input.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1}
+	matter := Matter{ID: matterID, TenantID: input.TenantID, LegalEntityID: input.LegalEntityID, Reference: matterReference(matterID), Type: input.Type, Status: status, Priority: input.Priority, Title: strings.TrimSpace(input.Title), Summary: strings.TrimSpace(input.Summary), Scope: scope, SourceType: input.SourceType, SourceID: input.SourceID, TriggerType: input.TriggerType, TriggerID: input.TriggerID, TriggerKey: input.TriggerKey, KnownFacts: known, MissingFacts: missing, Contradictions: contradictions, OwnerPrincipalID: input.OwnerPrincipalID, RequiredAuthority: input.RequiredAuthority, DueAt: input.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1}
 	event, err := newEvent(input.TenantID, "MATTER", matter.ID, 1, EventMatterCreated, matter, actorFor(input.ActorID), input.ActorID, now)
 	if err != nil {
 		return MatterAggregate{}, err
@@ -761,7 +894,7 @@ func (s *Service) CreateMatter(ctx context.Context, input CreateMatterInput) (Ma
 		}
 		return linked, nil
 	}
-	return s.GetMatter(ctx, input.TenantID, matter.ID)
+	return s.currentMatterOrFallback(ctx, input.TenantID, matter.ID, decorateMatter(MatterAggregate{Matter: matter})), nil
 }
 
 func (s *Service) AddMatterLink(ctx context.Context, input AddMatterLinkInput) (MatterAggregate, error) {
@@ -775,6 +908,9 @@ func (s *Service) AddMatterLink(ctx context.Context, input AddMatterLinkInput) (
 	program, err := s.GetProgram(ctx, input.TenantID, input.ProgramID)
 	if err != nil {
 		return MatterAggregate{}, err
+	}
+	if strings.TrimSpace(aggregate.Matter.LegalEntityID) == "" || aggregate.Matter.LegalEntityID != program.Program.LegalEntityID {
+		return MatterAggregate{}, ErrNotFound
 	}
 	if input.RequirementID != "" && !containsRequirement(program.Requirements, input.RequirementID) {
 		return MatterAggregate{}, fmt.Errorf("requirement_id does not belong to this program")
@@ -796,11 +932,12 @@ func (s *Service) AddMatterLink(ctx context.Context, input AddMatterLinkInput) (
 		return MatterAggregate{}, err
 	}
 	link := MatterLink{ID: linkID, TenantID: input.TenantID, MatterID: input.MatterID, ProgramID: input.ProgramID, RequirementID: input.RequirementID, ControlID: input.ControlID, Relationship: relationship, CreatedAt: s.now().UTC()}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterLinked, link, input.ActorID); err != nil {
+	result, err := s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterLinked, link, input.ActorID)
+	if err != nil {
 		return MatterAggregate{}, err
 	}
 	_ = s.requestProgramRefresh(ctx, input.TenantID, input.ProgramID, EventMatterLinked, input.MatterID, input.ActorID)
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return result, nil
 }
 
 func (s *Service) TransitionMatter(ctx context.Context, input TransitionInput) (MatterAggregate, error) {
@@ -852,10 +989,7 @@ func (s *Service) TransitionMatter(ctx context.Context, input TransitionInput) (
 	if input.To == MatterCancelled {
 		matter.ClosureReason = strings.TrimSpace(input.Rationale)
 	}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.ID, input.ExpectedVersion, EventMatterStateChanged, matter, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	result, err := s.GetMatter(ctx, input.TenantID, input.ID)
+	result, err := s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.ID, input.ExpectedVersion, EventMatterStateChanged, matter, input.ActorID)
 	if err != nil {
 		return MatterAggregate{}, err
 	}
@@ -864,7 +998,7 @@ func (s *Service) TransitionMatter(ctx context.Context, input TransitionInput) (
 }
 
 func (s *Service) AddDecision(ctx context.Context, input AddDecisionInput) (MatterAggregate, error) {
-	_, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
+	aggregate, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
 	if err != nil {
 		return MatterAggregate{}, err
 	}
@@ -893,30 +1027,25 @@ func (s *Service) AddDecision(ctx context.Context, input AddDecisionInput) (Matt
 	if input.Status == DecisionApproved || input.Status == DecisionConditionallyApproved || input.Status == DecisionRejected {
 		value.DecidedAt = &now
 	}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventDecisionAdded, value, input.AuthorityPrincipalID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventDecisionAdded, value, input.AuthorityPrincipalID)
 }
 
 func (s *Service) AddAction(ctx context.Context, input AddActionInput) (MatterAggregate, error) {
-	_, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
+	aggregate, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
 	if err != nil {
 		return MatterAggregate{}, err
 	}
-	if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Description) == "" {
-		return MatterAggregate{}, fmt.Errorf("title and description are required")
+	ownerID := strings.TrimSpace(input.OwnerPrincipalID)
+	if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Description) == "" || ownerID == "" {
+		return MatterAggregate{}, fmt.Errorf("title, description and owner_principal_id are required")
 	}
 	valueID, err := id.NewUUIDv7()
 	if err != nil {
 		return MatterAggregate{}, err
 	}
 	now := s.now().UTC()
-	value := Action{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, Title: strings.TrimSpace(input.Title), Description: strings.TrimSpace(input.Description), OwnerPrincipalID: input.OwnerPrincipalID, Status: ActionPlanned, DueAt: input.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionAdded, value, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	value := Action{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, Title: strings.TrimSpace(input.Title), Description: strings.TrimSpace(input.Description), OwnerPrincipalID: ownerID, RequiredResponsibility: "PERFORMER", Status: ActionPlanned, DueAt: input.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1}
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionAdded, value, input.ActorID)
 }
 
 func (s *Service) TransitionAction(ctx context.Context, input TransitionActionInput) (MatterAggregate, error) {
@@ -947,10 +1076,7 @@ func (s *Service) TransitionAction(ctx context.Context, input TransitionActionIn
 		implemented := action.UpdatedAt
 		action.ImplementedAt = &implemented
 	}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionStateChanged, *action, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionStateChanged, *action, input.ActorID)
 }
 
 func (s *Service) AddVerificationContract(ctx context.Context, input AddVerificationContractInput) (MatterAggregate, error) {
@@ -970,6 +1096,9 @@ func (s *Service) AddVerificationContract(ctx context.Context, input AddVerifica
 	if input.ObservationPeriodMinutes < 0 || input.ObservationPeriodMinutes > 525600 {
 		return MatterAggregate{}, fmt.Errorf("observation_period_minutes is outside the supported range")
 	}
+	if err = s.validateEvidenceSources(ctx, input.TenantID, aggregate.Matter.LegalEntityID, []string{input.MeasurementSourceID}); err != nil {
+		return MatterAggregate{}, err
+	}
 	baseline, err := normalizedJSON(input.Baseline, `{}`)
 	if err != nil {
 		return MatterAggregate{}, err
@@ -988,10 +1117,7 @@ func (s *Service) AddVerificationContract(ctx context.Context, input AddVerifica
 	}
 	now := s.now().UTC()
 	value := VerificationContract{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, ActionID: input.ActionID, ExpectedOutcome: strings.TrimSpace(input.ExpectedOutcome), Baseline: baseline, Scope: scope, MeasurementSourceID: input.MeasurementSourceID, Threshold: threshold, ObservationPeriodMinutes: input.ObservationPeriodMinutes, AuthorityPrincipalID: input.AuthorityPrincipalID, FailureResponse: strings.ToUpper(strings.TrimSpace(input.FailureResponse)), Status: VerificationActive, CreatedAt: now, UpdatedAt: now, Version: 1}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventVerificationContractAdded, value, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventVerificationContractAdded, value, input.ActorID)
 }
 
 func (s *Service) RecordVerificationResult(ctx context.Context, input RecordVerificationResultInput) (MatterAggregate, error) {
@@ -999,7 +1125,7 @@ func (s *Service) RecordVerificationResult(ctx context.Context, input RecordVeri
 }
 
 func (s *Service) AddResponsePackage(ctx context.Context, input AddResponsePackageInput) (MatterAggregate, error) {
-	_, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
+	aggregate, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
 	if err != nil {
 		return MatterAggregate{}, err
 	}
@@ -1016,10 +1142,7 @@ func (s *Service) AddResponsePackage(ctx context.Context, input AddResponsePacka
 	}
 	now := s.now().UTC()
 	value := ResponsePackage{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, Purpose: strings.TrimSpace(input.Purpose), Audience: strings.TrimSpace(input.Audience), Status: ResponseDraft, Manifest: manifest, CreatedAt: now, UpdatedAt: now, Version: 1}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventResponsePackageAdded, value, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventResponsePackageAdded, value, input.ActorID)
 }
 
 func (s *Service) TransitionResponsePackage(ctx context.Context, input TransitionResponseInput) (MatterAggregate, error) {
@@ -1056,10 +1179,7 @@ func (s *Service) TransitionResponsePackage(ctx context.Context, input Transitio
 		value := response.UpdatedAt
 		response.AcknowledgedAt = &value
 	}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventResponsePackageStateChanged, *response, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventResponsePackageStateChanged, *response, input.ActorID)
 }
 
 func (s *Service) MatterAt(ctx context.Context, tenant, id string, at time.Time) (MatterAggregate, error) {
@@ -1070,6 +1190,20 @@ func (s *Service) MatterAt(ctx context.Context, tenant, id string, at time.Time)
 	return reconstructMatter(events)
 }
 
+func (s *Service) ResponsePackageHistory(ctx context.Context, tenant, matterID, responseID string, limit int) (ResponseHistoryPage, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 50 {
+		limit = 50
+	}
+	items, hasMore, err := s.repo.ResponsePackageHistory(ctx, tenant, matterID, responseID, limit)
+	if err != nil {
+		return ResponseHistoryPage{}, err
+	}
+	return ResponseHistoryPage{Items: items, HasMore: hasMore, GeneratedAt: s.now().UTC()}, nil
+}
+
 func (s *Service) applyProgramValue(ctx context.Context, tenant, programID string, expected int64, eventType string, value any, actorID string) error {
 	event, err := newEvent(tenant, "PROGRAM", programID, expected+1, eventType, value, actorFor(actorID), actorID, s.now().UTC())
 	if err != nil {
@@ -1077,6 +1211,27 @@ func (s *Service) applyProgramValue(ctx context.Context, tenant, programID strin
 	}
 	_, err = s.repo.ApplyProgramEvent(ctx, tenant, programID, expected, event)
 	return err
+}
+
+func (s *Service) applyProgramValueAndResult(ctx context.Context, fallback ProgramAggregate, tenant, programID string, expected int64, eventType string, value any, actorID, triggerID string) (ProgramAggregate, error) {
+	event, err := newEvent(tenant, "PROGRAM", programID, expected+1, eventType, value, actorFor(actorID), actorID, s.now().UTC())
+	if err != nil {
+		return ProgramAggregate{}, err
+	}
+	committed := fallback
+	if err = applyProgramEventToAggregate(&committed, event); err != nil {
+		return ProgramAggregate{}, err
+	}
+	committed.Program.Version = event.AggregateVersion
+	committed.Program.UpdatedAt = event.OccurredAt
+	if _, err = s.repo.ApplyProgramEvent(ctx, tenant, programID, expected, event); err != nil {
+		return ProgramAggregate{}, err
+	}
+	_ = s.requestProgramRefresh(ctx, tenant, programID, eventType, triggerID, "system")
+	if current, readErr := s.repo.GetProgram(ctx, tenant, programID); readErr == nil {
+		return current, nil
+	}
+	return decorateProgram(committed), nil
 }
 
 func (s *Service) applyMatterValue(ctx context.Context, tenant, matterID string, expected int64, eventType string, value any, actorID string) error {
@@ -1308,6 +1463,17 @@ func allowedProgramTransition(from, to ProgramStatus) bool {
 	return allowed[from][to]
 }
 
+func AllowedProgramTargets(from ProgramStatus) []ProgramStatus {
+	candidates := []ProgramStatus{ProgramDraft, ProgramActive, ProgramPaused, ProgramRetired}
+	values := make([]ProgramStatus, 0, len(candidates))
+	for _, candidate := range candidates {
+		if allowedProgramTransition(from, candidate) {
+			values = append(values, candidate)
+		}
+	}
+	return values
+}
+
 func validApplicability(value ApplicabilityStatus) bool {
 	switch value {
 	case ApplicabilityPotential, ApplicabilityApplicable, ApplicabilityPartial, ApplicabilityNotApplicable, ApplicabilityLater, ApplicabilitySuperseded:
@@ -1403,7 +1569,7 @@ func validContradictionPolicy(value string) bool {
 }
 
 func validEvidenceFailureAction(value string) bool {
-	return value == "FLAG" || value == "REQUEST" || value == "MATTER" || value == "BLOCK"
+	return value == "MATTER"
 }
 
 func evidenceContractByID(values []EvidenceContract, id string) (EvidenceContract, bool) {
@@ -1452,6 +1618,8 @@ func matterForTrigger(trigger Trigger) (MatterType, string, string, bool) {
 		return MatterEvidenceContradiction, "Resolve conflicting evidence", "Current evidence contains values that do not agree.", true
 	case "CONTROL_FAILED":
 		return MatterControlGap, "Resolve a failed control", "A control did not operate as expected.", true
+	case "MONITORING_RESULT_ADVERSE":
+		return MatterControlGap, "Review an adverse monitoring result", "The latest monitoring result requires control assurance review and follow-up.", true
 	case "VERIFICATION_FAILED":
 		return MatterFailedVerification, "Complete further remediation", "The latest outcome check did not pass.", true
 	case "DEADLINE_MISSED":
@@ -1463,7 +1631,7 @@ func matterForTrigger(trigger Trigger) (MatterType, string, string, bool) {
 
 func triggerPriority(triggerType string) int {
 	switch strings.ToUpper(triggerType) {
-	case "VERIFICATION_FAILED", "CONTROL_FAILED", "DEADLINE_MISSED":
+	case "VERIFICATION_FAILED", "CONTROL_FAILED", "MONITORING_RESULT_ADVERSE", "DEADLINE_MISSED":
 		return 4
 	case "EVIDENCE_CONTRADICTION", "SOURCE_DEGRADED":
 		return 3

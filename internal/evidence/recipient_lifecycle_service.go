@@ -17,6 +17,9 @@ func (s *Service) DeclareWrongRecipient(ctx context.Context, input DeclareWrongR
 	if err != nil {
 		return Request{}, err
 	}
+	if err := validateCurrentRequestScope(ctx, s.repo, request, input.LegalEntityID); err != nil {
+		return Request{}, err
+	}
 	if !requestOpenAt(request, s.now().UTC()) {
 		return Request{}, ErrRequestClosed
 	}
@@ -56,6 +59,9 @@ func (s *Service) ReassignRecipient(ctx context.Context, input ReassignRecipient
 	}
 	if strings.TrimSpace(request.CreatedBy) == "" || request.CreatedBy != input.ActorPrincipalID {
 		return Request{}, ErrRecipientManagerRequired
+	}
+	if err := validateCurrentRequestScope(ctx, s.repo, request, input.LegalEntityID); err != nil {
+		return Request{}, err
 	}
 	checker, ok := s.repo.(SubjectAccessChecker)
 	if !ok {

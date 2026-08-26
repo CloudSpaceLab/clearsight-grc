@@ -51,7 +51,7 @@ beforeEach(() => vi.clearAllMocks());
 describe("Program review digest", () => {
   it("shows only canonical changes and current exceptions from the actor baseline", async () => {
     vi.mocked(loadProgramReviewDigest).mockResolvedValue(changed);
-    render(<ProgramReviewDigest aggregate={aggregate}/>);
+    render(<ProgramReviewDigest aggregate={aggregate} canAcknowledge/>);
     expect(await screen.findByRole("heading", { name: "1 change since your last review" })).toBeTruthy();
     expect(screen.getByText("Evidence for Annual evidence was assessed as expired.")).toBeTruthy();
     expect(screen.getByText("Annual evidence is out of date.")).toBeTruthy();
@@ -61,7 +61,7 @@ describe("Program review digest", () => {
   it("accepts exactly the canonical Program and projection versions currently displayed", async () => {
     vi.mocked(loadProgramReviewDigest).mockResolvedValue(changed);
     vi.mocked(acceptProgramReview).mockResolvedValue(current);
-    render(<ProgramReviewDigest aggregate={aggregate}/>);
+    render(<ProgramReviewDigest aggregate={aggregate} canAcknowledge/>);
     fireEvent.click(await screen.findByRole("button", { name: "Mark current state reviewed" }));
     await waitFor(() => expect(acceptProgramReview).toHaveBeenCalledWith("program-1", 12, 3));
     expect(await screen.findByRole("heading", { name: "No changes since your review" })).toBeTruthy();
@@ -74,10 +74,36 @@ describe("Program review digest", () => {
     expect(await screen.findByText(/This summary does not include older Program changes/)).toBeTruthy();
   });
 
+  it("keeps a loaded review digest read-only without a live acknowledgement operation", async () => {
+    vi.mocked(loadProgramReviewDigest).mockResolvedValue(changed);
+    render(<ProgramReviewDigest aggregate={aggregate} canAcknowledge={false}/>);
+
+    expect(await screen.findByRole("heading", { name: "1 change since your last review" })).toBeTruthy();
+    expect(screen.getByText("Evidence for Annual evidence was assessed as expired.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Mark current state reviewed" })).toBeNull();
+  });
+
+  it("keeps mismatched review versions read-only even when acknowledgement was requested", async () => {
+    vi.mocked(loadProgramReviewDigest).mockResolvedValue({ ...changed, current_program_version: 13 });
+    render(<ProgramReviewDigest aggregate={aggregate} canAcknowledge/>);
+
+    expect(await screen.findByRole("heading", { name: "1 change since your last review" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Mark current state reviewed" })).toBeNull();
+  });
+
+  it("does not instruct an unassigned actor to acknowledge a review baseline", async () => {
+    vi.mocked(loadProgramReviewDigest).mockResolvedValue({ ...changed, state: "NO_BASELINE" });
+    render(<ProgramReviewDigest aggregate={aggregate} canAcknowledge={false}/>);
+
+    expect(await screen.findByText(/The current reviewer must review the current exceptions and record the first review baseline/)).toBeTruthy();
+    expect(screen.queryByText(/then mark this status reviewed/i)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Mark current state reviewed" })).toBeNull();
+  });
+
   it("fails visibly when the Program moves before acknowledgement", async () => {
     vi.mocked(loadProgramReviewDigest).mockResolvedValue(changed);
     vi.mocked(acceptProgramReview).mockRejectedValue(new ApiError(409, "version conflict", "version_conflict"));
-    render(<ProgramReviewDigest aggregate={aggregate}/>);
+    render(<ProgramReviewDigest aggregate={aggregate} canAcknowledge/>);
     fireEvent.click(await screen.findByRole("button", { name: "Mark current state reviewed" }));
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("changed while you were reviewing");

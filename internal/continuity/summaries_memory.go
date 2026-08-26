@@ -9,7 +9,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
-func (r *MemoryRepository) ListProgramSummaries(_ context.Context, tenant string, query SummaryQuery) (ProgramSummaryPage, error) {
+func (r *MemoryRepository) ListProgramSummaries(ctx context.Context, tenant string, query SummaryQuery) (ProgramSummaryPage, error) {
 	cursor, err := decodeProgramSummaryCursor(query.Cursor)
 	if err != nil {
 		return ProgramSummaryPage{}, err
@@ -18,6 +18,9 @@ func (r *MemoryRepository) ListProgramSummaries(_ context.Context, tenant string
 	r.mu.RLock()
 	values := make([]ProgramSummary, 0, len(r.programs[tenant]))
 	for _, aggregate := range r.programs[tenant] {
+		if !r.visibleLegalEntity(ctx, aggregate.Program.TenantID, aggregate.Program.LegalEntityID) {
+			continue
+		}
 		value := summarizeProgram(cloneProgramAggregate(aggregate))
 		if query.Status != "" && string(value.Program.Status) != query.Status {
 			continue
@@ -73,7 +76,7 @@ func (r *MemoryRepository) ListMatterSummaries(ctx context.Context, tenant strin
 	r.mu.RLock()
 	values := make([]MatterSummary, 0, len(r.matters[tenant]))
 	for _, aggregate := range r.matters[tenant] {
-		if enforceVisibility && (aggregate.Matter.TenantID != actor.TenantID || !MatterVisibleTo(aggregate.Matter, actor.PrincipalID)) {
+		if !r.visibleLegalEntity(ctx, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID) || (enforceVisibility && (aggregate.Matter.TenantID != actor.TenantID || !MatterVisibleTo(aggregate.Matter, actor.PrincipalID))) {
 			continue
 		}
 		if query.Status == "OPEN" && (aggregate.Matter.Status == MatterClosed || aggregate.Matter.Status == MatterCancelled) {
@@ -81,6 +84,18 @@ func (r *MemoryRepository) ListMatterSummaries(ctx context.Context, tenant strin
 		}
 		if query.Status != "" && query.Status != "OPEN" && string(aggregate.Matter.Status) != query.Status {
 			continue
+		}
+		if query.ProgramID != "" {
+			linked := false
+			for _, link := range aggregate.Links {
+				if link.ProgramID == query.ProgramID {
+					linked = true
+					break
+				}
+			}
+			if !linked {
+				continue
+			}
 		}
 		value := summarizeMatter(cloneMatterAggregate(aggregate))
 		if search != "" && !strings.Contains(strings.ToLower(value.Matter.Reference+" "+value.Matter.Title+" "+value.Matter.Summary+" "+value.TypeLabel), search) {

@@ -64,7 +64,7 @@ type AcceptProgramReviewInput struct {
 
 type ProgramReviewRepository interface {
 	LatestProgramReview(ctx context.Context, tenant, programID, principalID string) (*ProgramReviewCheckpoint, error)
-	RecordProgramReview(ctx context.Context, checkpoint ProgramReviewCheckpoint) (ProgramReviewCheckpoint, error)
+	RecordProgramReview(ctx context.Context, checkpoint ProgramReviewCheckpoint, event Event) (ProgramReviewCheckpoint, error)
 	ProgramStateVersion(ctx context.Context, tenant, programID string, projectionVersion int64) (*ProgramStateSnapshot, error)
 	ProgramEventsAfterVersion(ctx context.Context, tenant, programID string, afterVersion int64, limit int) ([]Event, bool, error)
 }
@@ -173,7 +173,7 @@ func (s *Service) AcceptProgramReview(ctx context.Context, input AcceptProgramRe
 	if err != nil {
 		return ProgramReviewDigest{}, err
 	}
-	_, err = repo.RecordProgramReview(ctx, ProgramReviewCheckpoint{
+	checkpoint := ProgramReviewCheckpoint{
 		ID:                checkpointID,
 		TenantID:          input.TenantID,
 		ProgramID:         input.ProgramID,
@@ -181,11 +181,35 @@ func (s *Service) AcceptProgramReview(ctx context.Context, input AcceptProgramRe
 		ProgramVersion:    input.ExpectedProgramVersion,
 		ProjectionVersion: input.ExpectedProjectionVersion,
 		AcceptedAt:        s.now().UTC(),
-	})
+	}
+	event, err := newEvent(input.TenantID, "PROGRAM_REVIEW", checkpoint.ID, 1, EventProgramReviewAccepted, checkpoint, actorFor(input.PrincipalID), input.PrincipalID, checkpoint.AcceptedAt)
 	if err != nil {
 		return ProgramReviewDigest{}, err
 	}
-	return s.ProgramReviewDigest(ctx, input.TenantID, input.ProgramID, input.PrincipalID)
+	recorded, err := repo.RecordProgramReview(ctx, checkpoint, event)
+	if err != nil {
+		return ProgramReviewDigest{}, err
+	}
+	return acceptedProgramReviewDigest(recorded, aggregate, *current), nil
+}
+
+func acceptedProgramReviewDigest(checkpoint ProgramReviewCheckpoint, aggregate ProgramAggregate, current ProgramStateSnapshot) ProgramReviewDigest {
+	return ProgramReviewDigest{
+		ProgramID:                aggregate.Program.ID,
+		State:                    "CURRENT",
+		ReviewRequired:           false,
+		Checkpoint:               &checkpoint,
+		CurrentProgramVersion:    aggregate.Program.Version,
+		CurrentProjectionVersion: current.ProjectionVersion,
+		CurrentOverall:           current.Overall,
+		BaselineOverall:          current.Overall,
+		OpenMatterCount:          current.OpenMatterCount,
+		Changes:                  []ProgramReviewChange{},
+		CurrentExceptions:        limitReasons(current.Reasons, programReviewItemLimit),
+		CurrentExceptionsTotal:   len(current.Reasons),
+		NewExceptions:            []StateReason{},
+		ResolvedExceptions:       []StateReason{},
+	}
 }
 
 func currentReviewState(aggregate ProgramAggregate) (*ProgramStateSnapshot, error) {

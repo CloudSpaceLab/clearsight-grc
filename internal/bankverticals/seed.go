@@ -132,13 +132,7 @@ func (s *Service) seedNDPAProgram(ctx context.Context, config SeedConfig, source
 		return continuity.ProgramAggregate{}, fmt.Errorf("create NDPA Program: %w", err)
 	}
 
-	specs := []requirementSpec{
-		{code: "PROCESSING-ACCOUNTABILITY", title: "Keep personal-data processing accountable", statement: "The bank must process personal data fairly, lawfully and accountably for defined purposes.", anchor: "NDP Act 2023, section 24", objectiveCode: "PROCESSING-RECORDS", objectiveName: "Current processing records", outcome: "Every active processing activity has a current purpose, lawful basis, owner, data set, recipient and retention record.", implementationName: "Quarterly processing-owner review", implementationType: "OWNER_REVIEW", implementationDetail: "Processing owners confirm new, changed and retired processing activities each quarter.", evidenceCode: "PROCESSING-COVERAGE", evidenceName: "Processing inventory coverage", claim: "Every active processing activity has a current owner-approved record.", sourceCodes: []string{"PRIVACY-PROCESSING-INVENTORY"}, population: map[string]any{"population": "active_processing_activities", "expected": 126}, freshnessMinutes: 43200, minimumCoverage: .95, coverage: .92, conclusion: continuity.EvidencePartiallySupported, basis: map[string]any{"current_records": 116, "expected_records": 126}},
-		{code: "DATA-SUBJECT-RIGHTS", title: "Respond to data rights requests", statement: "The bank must receive, assess and complete valid data-subject requests through a controlled process.", anchor: "NDP Act 2023, data-subject rights provisions", objectiveCode: "RIGHTS-TIMELINESS", objectiveName: "Timely rights handling", outcome: "Each request has identity checks, scope, response decision, completion date and supporting evidence.", implementationName: "Data rights case workflow", implementationType: "CASE_MANAGEMENT", implementationDetail: "The Privacy Office monitors open requests, ageing and approved extensions each business day.", evidenceCode: "RIGHTS-REGISTER", evidenceName: "Rights request completion", claim: "Every closed rights request has an approved response and completion evidence.", sourceCodes: []string{"DATA-RIGHTS-REGISTER"}, population: map[string]any{"population": "closed_rights_requests", "period": "rolling_90_days"}, freshnessMinutes: 1440, minimumCoverage: 1, coverage: 1, conclusion: continuity.EvidenceSupported, basis: map[string]any{"closed_requests": 38, "complete_records": 38}},
-		{code: "PRIVACY-INCIDENTS", title: "Assess personal-data incidents", statement: "The bank must identify, assess, contain and document personal-data incidents and make required notifications.", anchor: "NDP Act 2023, personal-data breach provisions", objectiveCode: "INCIDENT-ASSESSMENT", objectiveName: "Complete privacy incident assessment", outcome: "Every suspected personal-data incident has severity, affected data, containment, notification decision and closure evidence.", implementationName: "Privacy incident assessment", implementationType: "INCIDENT_RESPONSE", implementationDetail: "Cybersecurity and the Privacy Office jointly assess incidents with possible personal-data impact.", evidenceCode: "INCIDENT-COVERAGE", evidenceName: "Privacy incident record coverage", claim: "Every security incident tagged for privacy review has a completed privacy assessment.", sourceCodes: []string{"PRIVACY-INCIDENT-REGISTER"}, population: map[string]any{"population": "privacy_review_incidents", "period": "rolling_12_months"}, freshnessMinutes: 720, minimumCoverage: 1, coverage: 1, conclusion: continuity.EvidenceSupported, basis: map[string]any{"privacy_review_incidents": 12, "completed_assessments": 12}},
-		{code: "DPIA-HIGH-RISK", title: "Review high-risk processing before release", statement: "The bank must assess high-risk processing and record privacy safeguards before the change goes live.", anchor: "NDP Act 2023 and GAID 2025 DPIA requirements", objectiveCode: "DPIA-GATE", objectiveName: "Privacy review before release", outcome: "High-risk product and technology changes have an approved privacy impact assessment before production release.", implementationName: "High-risk change privacy gate", implementationType: "CHANGE_GATE", implementationDetail: "The change portfolio routes high-risk processing to the Privacy Office before release approval.", evidenceCode: "DPIA-COVERAGE", evidenceName: "High-risk change review coverage", claim: "Every high-risk change has an approved privacy impact assessment before production release.", sourceCodes: []string{"CHANGE-PORTFOLIO", "PRIVACY-PROCESSING-INVENTORY"}, population: map[string]any{"population": "high_risk_changes", "period": "current_quarter"}, freshnessMinutes: 1440, minimumCoverage: 1, coverage: .75, conclusion: continuity.EvidencePartiallySupported, basis: map[string]any{"high_risk_changes": 12, "approved_assessments": 9, "awaiting_evidence": 3}},
-		{code: "CAR-ANNUAL", title: "Prepare the annual compliance audit return", statement: "The bank must maintain the records and independent review needed for its annual Compliance Audit Return.", anchor: "GAID 2025, Articles 10.7 and 10.8; filing before 31 March", objectiveCode: "CAR-READINESS", objectiveName: "Annual audit return ready for filing", outcome: "The DPCO receives a complete, approved and traceable evidence pack before the filing deadline.", implementationName: "Annual CAR readiness review", implementationType: "ANNUAL_CERTIFICATION", implementationDetail: "The Privacy Office and licensed DPCO review the evidence pack, unresolved findings and management approval before filing.", evidenceCode: "CAR-EVIDENCE", evidenceName: "Annual return evidence pack", claim: "The annual audit return evidence pack is complete, reviewed and approved before filing.", sourceCodes: []string{"NDPA-GAID-2025", "PRIVACY-PROCESSING-INVENTORY", "DATA-RIGHTS-REGISTER", "PRIVACY-INCIDENT-REGISTER"}, population: map[string]any{"population": "car_evidence_sections", "filing_deadline": "31 March"}, freshnessMinutes: 43200, minimumCoverage: 1, coverage: .8, conclusion: continuity.EvidencePartiallySupported, basis: map[string]any{"complete_sections": 8, "required_sections": 10}},
-	}
+	specs := referenceRequirementSpecs()
 
 	for _, spec := range specs {
 		program, err = s.addRequirementBundle(ctx, config, program, sourceIDs, spec)
@@ -172,11 +166,21 @@ func (s *Service) addRequirementBundle(ctx context.Context, config SeedConfig, p
 		return program, fmt.Errorf("add safeguard objective %s: %w", spec.code, err)
 	}
 	objective := program.ControlObjectives[len(program.ControlObjectives)-1]
-	program, err = s.continuity.AddControlImplementation(ctx, continuity.AddControlImplementationInput{TenantID: config.TenantID, ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ObjectiveID: objective.ID, Name: spec.implementationName, Description: spec.implementationDetail, ImplementationType: spec.implementationType, OwnerPrincipalID: config.OwnerPrincipalID, Scope: mustJSON(map[string]any{"bank": config.BankName}), Status: continuity.ImplementationImplemented, EffectiveFrom: config.Now.AddDate(0, -3, 0), ActorID: config.ActorID})
+	program, err = s.continuity.AddControlImplementation(ctx, continuity.AddControlImplementationInput{TenantID: config.TenantID, ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ObjectiveID: objective.ID, Name: spec.implementationName, Description: spec.implementationDetail, ImplementationType: spec.implementationType, OwnerPrincipalID: config.OwnerPrincipalID, Scope: mustJSON(map[string]any{"bank": config.BankName}), Status: continuity.ImplementationPlanned, EffectiveFrom: config.Now.AddDate(0, -3, 0), ActorID: config.ActorID})
 	if err != nil {
 		return program, fmt.Errorf("add safeguard %s: %w", spec.code, err)
 	}
 	implementation := program.ControlImplementations[len(program.ControlImplementations)-1]
+	program, err = implementReferenceSafeguard(ctx, s.continuity, config, program, implementation.ID)
+	if err != nil {
+		return program, fmt.Errorf("implement safeguard %s: %w", spec.code, err)
+	}
+	for index := range program.ControlImplementations {
+		if program.ControlImplementations[index].ID == implementation.ID {
+			implementation = program.ControlImplementations[index]
+			break
+		}
+	}
 	program, err = s.continuity.LinkRequirementControl(ctx, continuity.LinkRequirementControlInput{TenantID: config.TenantID, ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, RequirementID: requirement.ID, ImplementationID: implementation.ID, ActorID: config.ActorID})
 	if err != nil {
 		return program, fmt.Errorf("link safeguard %s: %w", spec.code, err)
@@ -185,11 +189,21 @@ func (s *Service) addRequirementBundle(ctx context.Context, config SeedConfig, p
 	for _, code := range spec.sourceCodes {
 		acceptable = append(acceptable, sourceIDs[code])
 	}
-	program, err = s.continuity.AddEvidenceContract(ctx, continuity.AddEvidenceContractInput{TenantID: config.TenantID, ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ControlImplementationID: implementation.ID, Code: spec.evidenceCode, Name: spec.evidenceName, Claim: spec.claim, AcceptableSourceIDs: acceptable, PopulationScope: mustJSON(spec.population), FreshnessMinutes: spec.freshnessMinutes, MinimumCoverage: spec.minimumCoverage, IndependenceRequired: true, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: continuity.EvidenceContractActive, ActorID: config.ActorID})
+	program, err = s.continuity.AddEvidenceContract(ctx, continuity.AddEvidenceContractInput{TenantID: config.TenantID, ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ControlImplementationID: implementation.ID, Code: spec.evidenceCode, Name: spec.evidenceName, Claim: spec.claim, AcceptableSourceIDs: acceptable, PopulationScope: mustJSON(spec.population), FreshnessMinutes: spec.freshnessMinutes, MinimumCoverage: spec.minimumCoverage, IndependenceRequired: true, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: continuity.EvidenceContractDraft, ActorID: config.ActorID})
 	if err != nil {
 		return program, fmt.Errorf("add evidence check %s: %w", spec.code, err)
 	}
 	contract := program.EvidenceContracts[len(program.EvidenceContracts)-1]
+	program, err = activateReferenceEvidenceCheck(ctx, s.continuity, config, program, contract.ID)
+	if err != nil {
+		return program, fmt.Errorf("activate evidence check %s: %w", spec.code, err)
+	}
+	for index := range program.EvidenceContracts {
+		if program.EvidenceContracts[index].ID == contract.ID {
+			contract = program.EvidenceContracts[index]
+			break
+		}
+	}
 	validUntil := config.Now.Add(30 * 24 * time.Hour)
 	program, err = s.continuity.RecordEvidenceAssessment(ctx, continuity.RecordEvidenceAssessmentInput{TenantID: config.TenantID, ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ContractID: contract.ID, Conclusion: spec.conclusion, Coverage: spec.coverage, Basis: mustJSON(spec.basis), ValidUntil: &validUntil, AssessedBy: config.ReviewerPrincipalID, AssessedAt: config.Now.Add(-2 * time.Hour)})
 	if err != nil {
@@ -203,15 +217,15 @@ func (s *Service) seedNDPAEvidenceRequest(ctx context.Context, config SeedConfig
 		TenantID:         config.TenantID,
 		SubjectType:      "PROGRAM",
 		SubjectID:        programID,
-		Title:            "Provide privacy review records for three high-risk changes",
-		Purpose:          "Complete the current-quarter privacy impact assessment evidence check.",
-		WhyYou:           "You own the three changes that do not yet have an approved privacy review record.",
+		Title:            "Provide privacy review records for three planned high-risk changes",
+		Purpose:          "Prepare the privacy impact assessment evidence for the next release review.",
+		WhyYou:           "You own three planned changes that need an approved privacy review record before release.",
 		Sensitivity:      "CONFIDENTIAL",
 		AudienceType:     "INTERNAL",
 		Recipient:        evidence.RecipientInput{Type: evidence.RecipientInternalPrincipal, PrincipalID: config.OwnerPrincipalID},
 		EstimatedMinutes: 12,
 		Deadline:         config.Now.Add(5 * 24 * time.Hour),
-		KnownFacts:       map[string]string{"high_risk_changes": "12", "approved_assessments": "9", "outstanding_changes": "3"},
+		KnownFacts:       map[string]string{"released_high_risk_changes": "9", "approved_assessments": "9", "planned_high_risk_changes": "3"},
 		Fields: []evidence.Field{
 			{ID: "change_references", Label: "Change references", Type: "TEXT", Required: true, Description: "List the three change or release references."},
 			{ID: "privacy_review_records", Label: "Approved privacy review records", Type: "FILE", Required: true, Description: "Attach the approved assessment or the recorded approval decision.", AcceptedFormats: []string{"application/pdf", "text/csv", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}},

@@ -27,11 +27,13 @@ The capture suite prefers production components and realistic deterministic fixt
 
 ## UI foundation and capture matrix
 
-The current suite exercises **61 deterministic rendered states/interactions** across:
+The current suite exercises **43 deterministic rendered states/interactions** across:
 
 - Today in light and dark themes;
 - comfortable and compact desktop density;
-- Program, Vendor, Matter, Evidence, Imports and Configure workspaces;
+- Program, Matter, Evidence, Imports and Configure workspaces;
+- dedicated Program review in changed and acknowledged states on desktop and mobile, with calculated-state freshness, named responsibility and executable lifecycle action;
+- Program safeguards, evidence results and monitoring in light/dark semantic tokens, including automated contrast validation;
 - tablet, 390px mobile and 320px reflow;
 - exact record-scoped authority resolution, including candidate-set semantics;
 - evidence response entry → exact response review → submission receipt;

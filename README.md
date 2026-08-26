@@ -22,7 +22,8 @@ The repository contains a working application foundation for ongoing Programs an
 - governed document imports with immutable original metadata, SHA-256 lineage and actor-bound review;
 - deterministic TXT, Markdown, CSV, DOCX and XLSX extraction with source-location anchors;
 - source-anchored analysis proposals that require explicit human acceptance or rejection;
-- ongoing Programs with requirements, applicability decisions, controls and evidence checks;
+- dedicated, actor-scoped Program records where authorized users can maintain scope, ownership, versioned requirements, applicability, safeguards, evidence expectations, reviewer results and operating status;
+- exact linked-issue handling from each Program, including bounded issue reads, new issue creation and direct record navigation;
 - non-modal Program setup for channel and obligation monitoring, reusable scored forms, public HTTPS status checks and immutable risk results;
 - typed Matters for changes, gaps, findings, requests, exceptions and incidents, with non-modal creation and optional Program linking;
 - decisions, actions, response packages and independently checked outcomes;
@@ -107,11 +108,17 @@ Production refuses to start with demo mode enabled.
 
 Program status is calculated from approved requirements, applicability, control coverage, implementation, evidence, open issues, source health and deadlines. It is not a manually selected red/amber/green value.
 
+The Program record shows the calculated state separately from the authorized operating lifecycle. Current responsibility routes determine who may edit details, replace a requirement, decide applicability, assign a safeguard performer, define evidence, assess results, confirm review or change operating status. Existing records and named responsible people remain visible when the signed-in user cannot act.
+
 Primary screens use plain labels such as **Up to date**, **Evidence incomplete**, **Gap found**, **Change in progress**, **Overdue**, **Under review** and **Setup in progress**. Stable internal codes remain available in APIs, history and specialist detail.
 
 ## Protected records and tenant scope
 
 Runtime reads are bound to the verified actor. A client-supplied tenant, principal or legal-entity query that conflicts with verified identity is rejected without revealing whether the requested scope exists.
+
+Program and issue/change identity includes one durable legal entity. Entity filtering occurs before bounded list limits and exact reads, material commands recheck the same verified scope, and Program links cannot cross entities. Creation resolves a verified legal-entity ID or active tenant-bound code to one canonical ID before the row, continuity event and outbox record are written.
+
+Evidence-source choices follow the same boundary: lists are filtered to one exact current legal entity before pagination, and Program evidence checks or Matter outcome checks accept only active sources from that entity. Manual checks remain available when no registered source is selected.
 
 Restricted Matter access is fail-closed:
 
@@ -122,6 +129,8 @@ Restricted Matter access is fail-closed:
 - direct unauthorized reads return not found.
 
 Document-import tenant, legal-entity and reviewer identity are also derived from verified actor context. Cross-tenant detail and review attempts return not found.
+
+Evidence response controls are shown only to the exact current internal recipient. Request creators and other viewers can see the assignment state and valid recovery path, but cannot open a response form that the submission boundary would reject. Terminal assigned requests remain readable without exposing submission actions.
 
 This HTTP/repository boundary does not replace synchronized enterprise identity groups, database row-level security or authorization on every future mutation endpoint.
 

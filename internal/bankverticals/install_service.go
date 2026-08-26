@@ -17,6 +17,7 @@ func (s *Service) InstallSample(ctx context.Context, config SeedConfig) ([]Journ
 	if err := validateSeedConfig(config); err != nil {
 		return nil, err
 	}
+	ctx = continuity.WithTrustedSystemEntityScope(ctx, config.TenantID, config.LegalEntityID)
 
 	sourceIDs, err := s.seedSources(ctx, config)
 	if err != nil {

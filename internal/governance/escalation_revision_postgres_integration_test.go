@@ -27,6 +27,7 @@ func TestEscalationGuardRevisionKeepsApprovedPolicyLiveUntilCheckerActivation(t 
 
 	const (
 		tenantID       = "98999999-9999-7999-8999-999999999901"
+		entityID       = "98999999-9999-7999-8999-999999999912"
 		makerID        = "98999999-9999-7999-8999-999999999902"
 		checkerID      = "98999999-9999-7999-8999-999999999903"
 		auditorID      = "98999999-9999-7999-8999-999999999904"
@@ -45,6 +46,7 @@ func TestEscalationGuardRevisionKeepsApprovedPolicyLiveUntilCheckerActivation(t 
 	t.Cleanup(func() { cleanupGovernanceRevisionFixture(context.Background(), pool, tenantID) })
 
 	mustExecGovernanceRevision(t, ctx, pool, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,'EIA5 policy revision')`, tenantID, tenantSlug)
+	mustExecGovernanceRevision(t, ctx, pool, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1::uuid,$2::uuid,'EIA5-NG','EIA5 Nigeria','NG')`, entityID, tenantID)
 	mustExecGovernanceRevision(t, ctx, pool, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES
 		($1::uuid,$4::uuid,'PERSON','Guard maker','ACTIVE',$5),
 		($2::uuid,$4::uuid,'PERSON','Guard checker','ACTIVE',$5),
@@ -53,7 +55,7 @@ func TestEscalationGuardRevisionKeepsApprovedPolicyLiveUntilCheckerActivation(t 
 		($1::uuid,$4::uuid,'AUDITOR','Auditor',ARRAY['ESCALATION_OWNER'],$5),
 		($2::uuid,$4::uuid,'SUPERVISOR','Supervisor',ARRAY['ESCALATION_OWNER'],$5),
 		($3::uuid,$4::uuid,'COMPLIANCE_OFFICER','Compliance officer',ARRAY['ACCOUNTABLE_OWNER'],$5)`, auditorRoleID, supervisorRole, complianceRole, tenantID, now.Add(-time.Hour))
-	mustExecGovernanceRevision(t, ctx, pool, `INSERT INTO org_positions(id,tenant_id,code,title,occupant_principal_id,valid_from) VALUES($1::uuid,$2::uuid,'AUDITOR','Auditor',$3::uuid,$4)`, auditorPosID, tenantID, auditorID, now.Add(-time.Hour))
+	mustExecGovernanceRevision(t, ctx, pool, `INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,occupant_principal_id,valid_from) VALUES($1::uuid,$2::uuid,$3::uuid,'AUDITOR','Auditor',$4::uuid,$5)`, auditorPosID, tenantID, entityID, auditorID, now.Add(-time.Hour))
 	mustExecGovernanceRevision(t, ctx, pool, `INSERT INTO position_role_bindings(id,tenant_id,position_id,role_template_id,valid_from) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5)`, auditorBindID, tenantID, auditorPosID, auditorRoleID, now.Add(-time.Hour))
 	mustExecGovernanceRevision(t, ctx, pool, `INSERT INTO scim_sources(id,tenant_id,code,token_hash,status) VALUES($1::uuid,$2::uuid,'ENTRA',decode(repeat('ac',32),'hex'),'ACTIVE')`, sourceID, tenantID)
 	mustExecGovernanceRevision(t, ctx, pool, `INSERT INTO directory_groups(id,tenant_id,source_id,external_id,display_name) VALUES($1::uuid,$2::uuid,$3::uuid,'network-auditors','Network Auditors')`, groupID, tenantID, sourceID)
@@ -63,19 +65,19 @@ func TestEscalationGuardRevisionKeepsApprovedPolicyLiveUntilCheckerActivation(t 
 	currentTime := now
 	svc.now = func() time.Time { return currentTime }
 	definition := json.RawMessage(`{
-		"rules":[{"id":"auditor-route","responsibility":"ESCALATION_OWNER","selector":{"kind":"ROLE","ref":"AUDITOR"}}],
+		"rules":[{"id":"auditor-route","legal_entity_id":"` + entityID + `","responsibility":"ESCALATION_OWNER","selector":{"kind":"ROLE","ref":"AUDITOR"}}],
 		"escalations":[{"id":"compliance-overdue","trigger":"OVERDUE","steps":[{"after":"0s","responsibility":"ESCALATION_OWNER"}]}]
 	}`)
-	policy, err := svc.CreatePolicy(ctx, CreatePolicyInput{TenantID: tenantSlug, Code: "EIA5", Name: "EIA5", MakerID: makerID, Definition: definition})
+	policy, err := svc.CreatePolicy(ctx, CreatePolicyInput{TenantID: tenantSlug, LegalEntityID: entityID, Code: "EIA5", Name: "EIA5", MakerID: makerID, Definition: definition})
 	if err != nil {
 		t.Fatal(err)
 	}
-	policy, err = svc.SubmitPolicy(ctx, TransitionInput{TenantID: tenantSlug, ID: policy.ID, ActorID: makerID, ExpectedVersion: policy.Version})
+	policy, err = svc.SubmitPolicy(ctx, TransitionInput{TenantID: tenantSlug, LegalEntityID: entityID, ID: policy.ID, ActorID: makerID, ExpectedVersion: policy.Version})
 	if err != nil {
 		t.Fatal(err)
 	}
 	currentTime = now.Add(time.Minute)
-	policy, err = svc.ApprovePolicy(ctx, TransitionInput{TenantID: tenantSlug, ID: policy.ID, ActorID: checkerID, ExpectedVersion: policy.Version, Rationale: "Initial route reviewed"})
+	policy, err = svc.ApprovePolicy(ctx, TransitionInput{TenantID: tenantSlug, LegalEntityID: entityID, ID: policy.ID, ActorID: checkerID, ExpectedVersion: policy.Version, Rationale: "Initial route reviewed"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +87,7 @@ func TestEscalationGuardRevisionKeepsApprovedPolicyLiveUntilCheckerActivation(t 
 
 	currentTime = now.Add(2 * time.Minute)
 	revision, err := svc.ProposeEscalationGuardRevision(ctx, EscalationGuardRevisionInput{
-		TenantID: tenantSlug, PolicyID: policy.ID, SequenceID: "compliance-overdue", StepIndex: 0,
+		TenantID: tenantSlug, LegalEntityID: entityID, PolicyID: policy.ID, SequenceID: "compliance-overdue", StepIndex: 0,
 		SourceRoles: []string{"COMPLIANCE_OFFICER"}, TargetRoles: []string{"SUPERVISOR"}, TargetGroupIDs: []string{groupID},
 		ActorID: makerID, ExpectedPolicyVersion: policy.Version,
 	})
@@ -119,7 +121,7 @@ func TestEscalationGuardRevisionKeepsApprovedPolicyLiveUntilCheckerActivation(t 
 	}
 
 	if _, err := svc.ApprovePolicyRevision(ctx, ApprovePolicyRevisionInput{
-		TenantID: tenantSlug, PolicyID: policy.ID, RevisionVersion: revision.Version, ActorID: makerID,
+		TenantID: tenantSlug, LegalEntityID: entityID, PolicyID: policy.ID, RevisionVersion: revision.Version, ActorID: makerID,
 		ExpectedPolicyVersion: policyAfterProposal.Version, Rationale: "self approval",
 	}); !errors.Is(err, ErrMakerChecker) {
 		t.Fatalf("expected maker-checker rejection, got %v", err)
@@ -127,7 +129,7 @@ func TestEscalationGuardRevisionKeepsApprovedPolicyLiveUntilCheckerActivation(t 
 
 	currentTime = now.Add(3 * time.Minute)
 	approved, err := svc.ApprovePolicyRevision(ctx, ApprovePolicyRevisionInput{
-		TenantID: tenantSlug, PolicyID: policy.ID, RevisionVersion: revision.Version, ActorID: checkerID,
+		TenantID: tenantSlug, LegalEntityID: entityID, PolicyID: policy.ID, RevisionVersion: revision.Version, ActorID: checkerID,
 		ExpectedPolicyVersion: policyAfterProposal.Version, Rationale: "Approved role and group target boundary",
 	})
 	if err != nil {
@@ -158,7 +160,7 @@ func TestEscalationGuardRevisionKeepsApprovedPolicyLiveUntilCheckerActivation(t 
 	approvedPolicy, _ := repo.GetPolicy(ctx, tenantSlug, policy.ID)
 	currentTime = now.Add(4 * time.Minute)
 	badRevision, err := svc.ProposeEscalationGuardRevision(ctx, EscalationGuardRevisionInput{
-		TenantID: tenantSlug, PolicyID: policy.ID, SequenceID: "compliance-overdue", StepIndex: 0,
+		TenantID: tenantSlug, LegalEntityID: entityID, PolicyID: policy.ID, SequenceID: "compliance-overdue", StepIndex: 0,
 		SourceRoles: []string{"COMPLIANCE_OFFICER"}, TargetGroupIDs: []string{"98999999-9999-7999-8999-999999999999"},
 		ActorID: makerID, ExpectedPolicyVersion: approvedPolicy.Version,
 	})
@@ -167,7 +169,7 @@ func TestEscalationGuardRevisionKeepsApprovedPolicyLiveUntilCheckerActivation(t 
 	}
 	policyWithBadProposal, _ := repo.GetPolicy(ctx, tenantSlug, policy.ID)
 	_, err = svc.ApprovePolicyRevision(ctx, ApprovePolicyRevisionInput{
-		TenantID: tenantSlug, PolicyID: policy.ID, RevisionVersion: badRevision.Version, ActorID: checkerID,
+		TenantID: tenantSlug, LegalEntityID: entityID, PolicyID: policy.ID, RevisionVersion: badRevision.Version, ActorID: checkerID,
 		ExpectedPolicyVersion: policyWithBadProposal.Version, Rationale: "Should fail reference validation",
 	})
 	if !errors.Is(err, ErrConflict) {

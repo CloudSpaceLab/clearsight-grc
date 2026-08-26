@@ -63,3 +63,25 @@ func TestInvalidInputRejected(t *testing.T) {
 		t.Fatalf("expected invalid input, got %v", err)
 	}
 }
+
+func TestResolveManyKeepsExactObjectRoutesAndPerInputFailures(t *testing.T) {
+	resolver := NewResolver("v1", []Rule{
+		{ID: "check-a", TenantID: "bank", LegalEntityID: "entity-a", ObjectType: "MONITORING_CHECK", ObjectID: "check-a", Responsibility: ResponsibilityReviewer, Principal: Principal{ID: "reviewer-a", DisplayName: "Reviewer A"}, Priority: 100},
+		{ID: "check-b", TenantID: "bank", LegalEntityID: "entity-a", ObjectType: "MONITORING_CHECK", ObjectID: "check-b", Responsibility: ResponsibilityReviewer, Principal: Principal{ID: "reviewer-b", DisplayName: "Reviewer B"}, Priority: 100},
+	})
+	outcomes, err := resolver.ResolveMany(t.Context(), []ResolveInput{
+		{TenantID: "bank", LegalEntityID: "entity-a", ObjectType: "MONITORING_CHECK", ObjectID: "check-a", Responsibility: ResponsibilityReviewer, Materiality: 3},
+		{TenantID: "bank", LegalEntityID: "entity-a", ObjectType: "MONITORING_CHECK", ObjectID: "check-b", Responsibility: ResponsibilityReviewer, Materiality: 3},
+		{TenantID: "bank", LegalEntityID: "entity-a", ObjectType: "MONITORING_CHECK", ObjectID: "missing", Responsibility: ResponsibilityReviewer, Materiality: 3},
+		{},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(outcomes) != 4 || outcomes[0].Resolution.Principal.ID != "reviewer-a" || outcomes[1].Resolution.Principal.ID != "reviewer-b" {
+		t.Fatalf("batch routes lost exact object scope: %#v", outcomes)
+	}
+	if !errors.Is(outcomes[2].Err, ErrNoRoute) || !errors.Is(outcomes[3].Err, ErrInvalidInput) {
+		t.Fatalf("per-input failures were not preserved: %#v", outcomes)
+	}
+}

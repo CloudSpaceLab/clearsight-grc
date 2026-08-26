@@ -10,7 +10,7 @@ import (
 )
 
 func TestSampleJourneysConnectProgramEvidenceDecisionsResponsesAndOutcomeChecks(t *testing.T) {
-	ctx := context.Background()
+	ctx := continuity.WithTrustedSystemScope(context.Background())
 	now := time.Date(2026, 8, 5, 18, 0, 0, 0, time.UTC)
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewServiceWithClock(continuityRepo, func() time.Time { return now })
@@ -69,6 +69,45 @@ func TestSampleJourneysConnectProgramEvidenceDecisionsResponsesAndOutcomeChecks(
 	matters, err := continuityService.ListMatters(ctx, config.TenantID, "", 20)
 	if err != nil || len(matters) != 3 {
 		t.Fatalf("expected three journey issues after repeat seed, len=%d err=%v", len(matters), err)
+	}
+}
+
+func TestReferenceProgramEvidenceStartsSupportedWithoutOpeningDuplicateIssues(t *testing.T) {
+	ctx := continuity.WithTrustedSystemScope(context.Background())
+	now := time.Date(2026, 8, 5, 18, 0, 0, 0, time.UTC)
+	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
+	evidenceService := evidence.NewServiceWithClock(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore(), func() time.Time { return now })
+	service := NewService(continuityService, evidenceService)
+	config := normalizeSeedConfig(DemoSeedConfig())
+	config.Now = now
+
+	sourceIDs, err := service.seedSources(ctx, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err := service.seedNDPAProgram(ctx, config, sourceIDs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	contracts := make(map[string]continuity.EvidenceContract, len(program.EvidenceContracts))
+	for _, contract := range program.EvidenceContracts {
+		contracts[contract.ID] = contract
+	}
+	if len(program.EvidenceAssessments) != len(contracts) {
+		t.Fatalf("reference Program has %d evidence checks but %d current assessments", len(contracts), len(program.EvidenceAssessments))
+	}
+	for _, assessment := range program.EvidenceAssessments {
+		contract := contracts[assessment.ContractID]
+		if assessment.Conclusion != continuity.EvidenceSupported || assessment.Coverage < contract.MinimumCoverage {
+			t.Fatalf("reference assessment opened with an unsupported result: contract=%s conclusion=%s coverage=%v minimum=%v", contract.Code, assessment.Conclusion, assessment.Coverage, contract.MinimumCoverage)
+		}
+	}
+	matters, err := continuityService.ListMatters(ctx, config.TenantID, "", 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matters) != 0 {
+		t.Fatalf("reference Program evidence created %d duplicate issues before the curated journeys were installed", len(matters))
 	}
 }
 

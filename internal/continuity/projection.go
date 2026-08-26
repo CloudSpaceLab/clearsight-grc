@@ -94,6 +94,30 @@ type CompoundRepository interface {
 	CreateMatterWithLink(context.Context, MatterLinkBundle) (Matter, error)
 }
 
+// EvidenceAssessmentFailureBundle is one material command. The assessment,
+// its append-only event and outbox entry, and any linked failure Matter must
+// commit together. Repositories deduplicate the open Matter by TriggerKey
+// while still retaining every assessment result in Program history.
+type EvidenceAssessmentFailureBundle struct {
+	TenantID        string
+	ProgramID       string
+	ExpectedVersion int64
+	ProgramEvent    Event
+	Matter          Matter
+	MatterEvent     Event
+	Link            MatterLink
+	LinkEvent       Event
+}
+
+type EvidenceAssessmentFailureResult struct {
+	Matter        Matter
+	MatterCreated bool
+}
+
+type EvidenceAssessmentFailureRepository interface {
+	RecordEvidenceAssessmentWithFailure(context.Context, EvidenceAssessmentFailureBundle) (EvidenceAssessmentFailureResult, error)
+}
+
 type TriggerBundle struct {
 	Trigger      Trigger
 	ProgramEvent Event
@@ -173,6 +197,7 @@ func (m *ProjectionMaintainer) Maintain(ctx context.Context, now time.Time, limi
 	if m.Now != nil {
 		now = m.Now().UTC()
 	}
+	ctx = WithTrustedSystemScope(ctx)
 	jobs, err := m.Repo.ClaimProgramState(ctx, m.WorkerID, now, m.Lease, limit)
 	if err != nil {
 		return 0, err

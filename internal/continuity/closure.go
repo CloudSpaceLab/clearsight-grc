@@ -21,6 +21,27 @@ func allowedMatterTransition(from, to MatterStatus) bool {
 	return allowed[from][to]
 }
 
+// AllowedMatterTargets returns executable lifecycle targets in stable UI order.
+func AllowedMatterTargets(from MatterStatus) []MatterStatus {
+	ordered := []MatterStatus{
+		MatterInitialReview,
+		MatterAssessment,
+		MatterDecisionRequired,
+		MatterActionsInProgress,
+		MatterResponsePreparation,
+		MatterVerification,
+		MatterClosed,
+		MatterCancelled,
+	}
+	result := make([]MatterStatus, 0, len(ordered))
+	for _, target := range ordered {
+		if allowedMatterTransition(from, target) {
+			result = append(result, target)
+		}
+	}
+	return result
+}
+
 func assessClosure(aggregate MatterAggregate) ClosureAssessment {
 	return assessClosureAt(aggregate, time.Now().UTC())
 }
@@ -63,7 +84,7 @@ func assessClosureAt(aggregate MatterAggregate, now time.Time) ClosureAssessment
 			failedResults++
 			continue
 		}
-		if err := validateVerificationResult(aggregate, contract, result.ReviewerPrincipalID, result.ObservedAt, now); err != nil {
+		if err := validateVerificationResult(aggregate, contract, result.ReviewerPrincipalID, result.ReviewerAuthorityPrincipalID, result.ObservedAt, now); err != nil {
 			invalidResults++
 		}
 	}
@@ -283,7 +304,7 @@ func verificationResultAfter(left, right VerificationResult) bool {
 	return left.ID > right.ID
 }
 
-func validateVerificationResult(aggregate MatterAggregate, contract VerificationContract, reviewer string, observedAt, now time.Time) error {
+func validateVerificationResult(aggregate MatterAggregate, contract VerificationContract, reviewer, reviewerAuthority string, observedAt, now time.Time) error {
 	reviewer = strings.TrimSpace(reviewer)
 	if reviewer == "" {
 		return fmt.Errorf("reviewer_principal_id is required")
@@ -296,7 +317,11 @@ func validateVerificationResult(aggregate MatterAggregate, contract Verification
 	if observedAt.After(now) {
 		return fmt.Errorf("observed_at cannot be in the future")
 	}
-	if contract.AuthorityPrincipalID != "" && reviewer != contract.AuthorityPrincipalID {
+	reviewerAuthority = strings.TrimSpace(reviewerAuthority)
+	if reviewerAuthority == "" {
+		reviewerAuthority = reviewer
+	}
+	if contract.AuthorityPrincipalID != "" && reviewerAuthority != contract.AuthorityPrincipalID {
 		return fmt.Errorf("reviewer is not the authority assigned to this outcome check")
 	}
 

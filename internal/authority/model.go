@@ -55,13 +55,36 @@ type ResolveInput struct {
 	At             time.Time      `json:"at,omitempty"`
 }
 
+// ResolveOutcome keeps a batch result aligned with its ResolveInput. Route
+// failures belong to one input; infrastructure failures are returned by
+// ResolveMany itself.
+type ResolveOutcome struct {
+	Resolution Resolution
+	Err        error
+}
+
+// BatchResolver resolves an exact, bounded set of authority questions without
+// requiring one repository round trip per object.
+type BatchResolver interface {
+	ResolveMany(context.Context, []ResolveInput) ([]ResolveOutcome, error)
+}
+
 type Resolution struct {
-	Principal           Principal   `json:"principal"`
-	CandidatePrincipals []Principal `json:"candidate_principals,omitempty"`
-	Strategy            string      `json:"strategy,omitempty"`
-	RuleID              string      `json:"rule_id"`
-	PolicyVersion       string      `json:"policy_version"`
-	Explanation         string      `json:"explanation"`
+	Principal           Principal         `json:"principal"`
+	CandidatePrincipals []Principal       `json:"candidate_principals,omitempty"`
+	EffectiveOrigins    []EffectiveOrigin `json:"effective_origins,omitempty"`
+	Strategy            string            `json:"strategy,omitempty"`
+	RuleID              string            `json:"rule_id"`
+	PolicyVersion       string            `json:"policy_version"`
+	Explanation         string            `json:"explanation"`
+}
+
+// EffectiveOrigin preserves why an effective principal belongs to a route.
+// Direct candidates act for themselves; an active delegate carries the route
+// seed principal whose responsibility was delegated.
+type EffectiveOrigin struct {
+	PrincipalID       string `json:"principal_id"`
+	OriginPrincipalID string `json:"origin_principal_id"`
 }
 
 func (r Resolution) AllowsPrincipal(principalID string) bool {
@@ -73,6 +96,23 @@ func (r Resolution) AllowsPrincipal(principalID string) bool {
 	}
 	for _, candidate := range r.CandidatePrincipals {
 		if candidate.ID == principalID {
+			return true
+		}
+	}
+	return false
+}
+
+// AllowsPrincipalFor distinguishes a delegate of one stored authority from an
+// unrelated person who happens to be eligible elsewhere in the same route.
+func (r Resolution) AllowsPrincipalFor(principalID, originPrincipalID string) bool {
+	if principalID == "" || originPrincipalID == "" || !r.AllowsPrincipal(principalID) {
+		return false
+	}
+	if principalID == originPrincipalID {
+		return true
+	}
+	for _, origin := range r.EffectiveOrigins {
+		if origin.PrincipalID == principalID && origin.OriginPrincipalID == originPrincipalID {
 			return true
 		}
 	}

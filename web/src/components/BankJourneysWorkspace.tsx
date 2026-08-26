@@ -5,6 +5,7 @@ import type { BankJourney, JourneyActionTarget } from "../verticalTypes";
 import { EmptyState } from "./EmptyState";
 import { PremiumIllustration } from "./PremiumIllustration";
 import { WorkItemIcon } from "./WorkItemIcon";
+import { FocusedSheet } from "./FocusedSheet";
 
 type LoadState = "loading" | "live" | "unavailable";
 type InspectorState =
@@ -123,14 +124,11 @@ export function BankJourneysWorkspace() {
         </article>;
       })}
     </section>
-    {inspector.state !== "closed" && <div className="journey-inspector-backdrop" onMouseDown={() => setInspector({ state: "closed" })}>
-      <aside className="journey-inspector" role="dialog" aria-modal="true" aria-label={`Connected record for ${inspector.title}`} onMouseDown={(event) => event.stopPropagation()}>
-        <button className="panel-close" type="button" onClick={() => setInspector({ state: "closed" })} aria-label="Close connected record">×</button>
+    {inspector.state !== "closed" && <FocusedSheet label={`Connected record for ${inspector.title}`} closeLabel="Close connected record" onClose={() => setInspector({ state: "closed" })} backdropClassName="journey-inspector-backdrop" panelClassName="journey-inspector">
         {inspector.state === "loading" && <p aria-live="polite" aria-busy="true">Loading the connected record…</p>}
         {inspector.state === "unavailable" && <div className="inline-error"><h2>Record could not be opened</h2><p>Your access may have changed, or the record is temporarily unavailable.</p><button className="secondary-button" type="button" onClick={() => void openRecord(inspector.type, inspector.id, inspector.title)}>Try again</button></div>}
         {inspector.state === "live" && <InspectorContent inspector={inspector}/>} 
-      </aside>
-    </div>}
+    </FocusedSheet>}
   </>;
 }
 

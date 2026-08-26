@@ -27,8 +27,8 @@ try {
 
 async function auditDeepLinkedWorkspaces() {
   for (const test of [
-    { name: "program-deep-link", route: "#programs/program-ndpa", heading: "Programs", target: ".program-card.targeted .program-card-main" },
-    { name: "matter-deep-link", route: "#work/matters/matter-gaid-change", heading: "Work", target: ".matter-card.targeted .matter-card-main" },
+    { name: "program-deep-link", route: "#programs/program-ndpa", heading: "Programs", target: ".program-record-workspace" },
+    { name: "matter-deep-link", route: "#work/matters/matter-gaid-change", heading: "Work", target: ".matter-record-workspace" },
     { name: "evidence-deep-link", route: "#work/evidence", heading: "Work", target: ".evidence-workbench .section-header" },
   ]) {
     const { context, page, browserErrors } = await openPage({ viewport: { width: 1440, height: 900 }, route: test.route, heading: test.heading });
@@ -47,7 +47,7 @@ async function auditDeepLinkedWorkspaces() {
 
   const { context, page, browserErrors } = await openPage({ viewport: { width: 390, height: 844 }, route: "#programs/program-ndpa", heading: "Programs", touch: true });
   try {
-    const action = page.getByRole("button", { name: /Request (pause|activation|retirement)/ }).first();
+    const action = page.getByRole("button", { name: /(Pause|Activate|End) Program/ }).first();
     await action.waitFor({ state: "visible" });
     await action.scrollIntoViewIfNeeded();
     await assertNotCoveredBy(page, action, ".mobile-nav", "mobile Program action");

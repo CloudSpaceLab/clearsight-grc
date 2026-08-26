@@ -125,3 +125,90 @@ func TestExternalRecipientChangeRevokesExistingCapability(t *testing.T) {
 		t.Fatalf("superseded invitation survived recipient change: %v", err)
 	}
 }
+
+func TestInternalRecipientReassignmentRejectsPrincipalOutsideRequestEntity(t *testing.T) {
+	now := time.Date(2026, 8, 26, 14, 0, 0, 0, time.UTC)
+	request := Request{
+		ID: "request-entity-scope", TenantID: "bank", LegalEntityID: "entity-1", SubjectType: "PROGRAM", SubjectID: "program-1",
+		AudienceType: "INTERNAL", Status: RequestReady, CreatedBy: "requester", Deadline: now.Add(time.Hour), Version: 1,
+		Recipient: Recipient{Type: RecipientInternalPrincipal, PrincipalID: "current", State: RecipientStateAssigned, Revision: 1},
+	}
+	repo := NewMemoryRepositoryWithRecipientCandidates(nil, []Request{request}, []RecipientCandidate{
+		{PrincipalID: "requester", TenantID: "bank", LegalEntityIDs: []string{"entity-1"}, Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"PROGRAM:program-1": true}},
+		{PrincipalID: "current", DisplayName: "Current Owner", TenantID: "bank", LegalEntityIDs: []string{"entity-1"}, Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"PROGRAM:program-1": true}},
+		{PrincipalID: "other-entity", DisplayName: "Other Entity Owner", TenantID: "bank", LegalEntityIDs: []string{"entity-2"}, Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"PROGRAM:program-1": true}},
+	})
+	service := NewService(repo, nil)
+	service.now = func() time.Time { return now }
+
+	_, err := service.ReassignRecipient(context.Background(), ReassignRecipientInput{
+		TenantID: "bank", LegalEntityID: "entity-1", RequestID: request.ID, ActorPrincipalID: "requester",
+		Recipient: RecipientInput{Type: RecipientInternalPrincipal, PrincipalID: "other-entity"},
+		Reason:    "Move the evidence request.", ExpectedVersion: request.Version,
+	})
+	if !errors.Is(err, ErrRecipientInvalid) {
+		t.Fatalf("cross-entity principal reassignment error = %v, want invalid recipient", err)
+	}
+	loaded, loadErr := service.GetRequestForEntity(context.Background(), "bank", "entity-1", request.ID)
+	if loadErr != nil {
+		t.Fatal(loadErr)
+	}
+	if loaded.Recipient.PrincipalID != "current" || loaded.Version != request.Version {
+		t.Fatalf("rejected reassignment changed the request: %#v", loaded)
+	}
+}
+
+func TestMemoryRecipientReassignmentRejectsRequesterWithoutCurrentAuthorityBeforeMutation(t *testing.T) {
+	now := time.Date(2026, 8, 26, 14, 0, 0, 0, time.UTC)
+	request := Request{
+		ID: "request-authority", TenantID: "bank", LegalEntityID: "entity-1", SubjectType: "PROGRAM", SubjectID: "program-1",
+		AudienceType: "INTERNAL", Status: RequestReady, CreatedBy: "requester", Deadline: now.Add(time.Hour), Version: 4,
+		Recipient: Recipient{Type: RecipientInternalPrincipal, PrincipalID: "current", State: RecipientStateAssigned, Revision: 2},
+	}
+	repo := NewMemoryRepositoryWithRecipientCandidates(nil, []Request{request}, []RecipientCandidate{
+		{PrincipalID: "requester", TenantID: "bank", LegalEntityIDs: []string{"entity-2"}, Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"PROGRAM:program-1": true}},
+		{PrincipalID: "replacement", TenantID: "bank", LegalEntityIDs: []string{"entity-1"}, Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"PROGRAM:program-1": true}},
+	})
+	repo.invitations["invitation-1"] = Invitation{ID: "invitation-1", TenantID: "bank", RequestID: request.ID}
+	repo.sessions["session-1"] = Session{ID: "session-1", TenantID: "bank", RequestID: request.ID}
+
+	err := repo.ReassignRecipient(context.Background(), ReassignRecipientInput{
+		TenantID: "bank", LegalEntityID: "entity-1", RequestID: request.ID, ActorPrincipalID: "requester",
+		Reason: "Move to the current owner.", ExpectedVersion: request.Version,
+	}, Recipient{Type: RecipientInternalPrincipal, PrincipalID: "replacement", State: RecipientStateAssigned}, now)
+	if !errors.Is(err, ErrRecipientInvalid) {
+		t.Fatalf("requester without current entity authority reassignment error = %v", err)
+	}
+	loaded := repo.requests[request.ID]
+	if loaded.Version != request.Version || loaded.Recipient.PrincipalID != request.Recipient.PrincipalID || loaded.Recipient.Revision != request.Recipient.Revision {
+		t.Fatalf("rejected requester authority changed request: %#v", loaded)
+	}
+	if repo.invitations["invitation-1"].RevokedAt != nil || repo.sessions["session-1"].RevokedAt != nil {
+		t.Fatalf("rejected requester authority revoked capabilities: invitation=%#v session=%#v", repo.invitations["invitation-1"], repo.sessions["session-1"])
+	}
+}
+
+func TestMemoryRecipientReassignmentBindsVerifiedLegalEntityBeforeMutation(t *testing.T) {
+	now := time.Date(2026, 8, 26, 14, 0, 0, 0, time.UTC)
+	request := Request{
+		ID: "request-entity-binding", TenantID: "bank", LegalEntityID: "entity-1", SubjectType: "PROGRAM", SubjectID: "program-1",
+		AudienceType: "INTERNAL", Status: RequestReady, CreatedBy: "requester", Deadline: now.Add(time.Hour), Version: 3,
+		Recipient: Recipient{Type: RecipientInternalPrincipal, PrincipalID: "current", State: RecipientStateAssigned, Revision: 1},
+	}
+	repo := NewMemoryRepositoryWithRecipientCandidates(nil, []Request{request}, []RecipientCandidate{
+		{PrincipalID: "requester", TenantID: "bank", LegalEntityIDs: []string{"entity-1"}, Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"PROGRAM:program-1": true}},
+		{PrincipalID: "replacement", TenantID: "bank", LegalEntityIDs: []string{"entity-1"}, Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"PROGRAM:program-1": true}},
+	})
+
+	err := repo.ReassignRecipient(context.Background(), ReassignRecipientInput{
+		TenantID: "bank", LegalEntityID: "entity-2", RequestID: request.ID, ActorPrincipalID: "requester",
+		Reason: "Move to the current owner.", ExpectedVersion: request.Version,
+	}, Recipient{Type: RecipientInternalPrincipal, PrincipalID: "replacement", State: RecipientStateAssigned}, now)
+	if !errors.Is(err, ErrRecipientInvalid) {
+		t.Fatalf("mismatched verified entity reassignment error = %v", err)
+	}
+	loaded := repo.requests[request.ID]
+	if loaded.Version != request.Version || loaded.Recipient.PrincipalID != request.Recipient.PrincipalID {
+		t.Fatalf("mismatched verified entity changed request: %#v", loaded)
+	}
+}

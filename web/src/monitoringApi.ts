@@ -12,16 +12,16 @@ async function scoped<T>(path: string, init?: RequestInit): Promise<T> {
   return requestJSON<T>(apiBase, `${path}${separator}tenant_id=${encodeURIComponent(context.tenant.id)}`, init);
 }
 
-export async function loadFormTemplates(): Promise<FormTemplate[]> {
-  return (await scoped<{ items: FormTemplate[] }>("/api/v1/form-templates?limit=100")).items;
+export async function loadFormTemplates(programID: string): Promise<FormTemplate[]> {
+  return (await scoped<{ items: FormTemplate[] }>(`/api/v1/programs/${encodeURIComponent(programID)}/form-templates?limit=100`)).items;
 }
 
-export function createFormTemplate(input: CreateFormTemplateInput): Promise<FormTemplate> {
-  return scoped<FormTemplate>("/api/v1/form-templates", { method: "POST", body: JSON.stringify(input) });
+export function createFormTemplate(programID: string, input: { code: string; name: string; purpose: string; fields: FormTemplateField[] }): Promise<FormTemplate> {
+  return scoped<FormTemplate>(`/api/v1/programs/${encodeURIComponent(programID)}/form-templates`, { method: "POST", body: JSON.stringify(input) });
 }
 
-export function transitionFormTemplate(id: string, expectedVersion: number, to: LifecycleStatus): Promise<FormTemplate> {
-  return scoped<FormTemplate>(`/api/v1/form-templates/${encodeURIComponent(id)}/transition`, { method: "POST", body: JSON.stringify({ expected_version: expectedVersion, to }) });
+export function transitionFormTemplate(programID: string, id: string, expectedVersion: number, to: LifecycleStatus): Promise<FormTemplate> {
+  return scoped<FormTemplate>(`/api/v1/programs/${encodeURIComponent(programID)}/form-templates/${encodeURIComponent(id)}/transition`, { method: "POST", body: JSON.stringify({ expected_version: expectedVersion, to }) });
 }
 
 export async function loadMonitoringChecks(programID: string): Promise<MonitoringCheck[]> {
@@ -57,12 +57,11 @@ export function transitionMonitoringCheck(id: string, expectedVersion: number, t
   return scoped<MonitoringCheck>(`/api/v1/monitoring-checks/${encodeURIComponent(id)}/transition`, { method: "POST", body: JSON.stringify({ expected_version: expectedVersion, to }) });
 }
 
-export function startFormCollection(form: FormTemplate, input: { programID: string; respondentPrincipalID: string; reviewerPrincipalID: string; periodStart: string; periodEnd: string; deadline: string }): Promise<EvidenceRequest> {
-  return scoped<EvidenceRequest>(`/api/v1/form-templates/${encodeURIComponent(form.id)}/collections`, {
+export function startFormCollection(form: FormTemplate, input: { programID: string; periodStart: string; periodEnd: string; deadline: string }): Promise<EvidenceRequest> {
+  return scoped<EvidenceRequest>(`/api/v1/programs/${encodeURIComponent(input.programID)}/form-templates/${encodeURIComponent(form.id)}/collections`, {
     method: "POST",
     body: JSON.stringify({
-      form_template_version: form.version, program_id: input.programID,
-      respondent_principal_id: input.respondentPrincipalID, reviewer_principal_id: input.reviewerPrincipalID,
+      form_template_version: form.version,
       period_start: input.periodStart, period_end: input.periodEnd, deadline: input.deadline,
     }),
   });
@@ -74,4 +73,8 @@ export async function loadMonitoringResults(checkID: string): Promise<Monitoring
 
 export function evaluateMonitoringSource(check: MonitoringCheck): Promise<MonitoringResult> {
   return scoped<MonitoringResult>(`/api/v1/monitoring-checks/${encodeURIComponent(check.id)}/evaluate-source`, { method: "POST", body: JSON.stringify({ check_version: check.version }) });
+}
+
+export function createMonitoringLinkedIssue(resultID: string): Promise<{ matter: { id: string; reference: string }; created: boolean }> {
+  return scoped<{ matter: { id: string; reference: string }; created: boolean }>(`/api/v1/monitoring-results/${encodeURIComponent(resultID)}/linked-issue`, { method: "POST", body: JSON.stringify({}) });
 }

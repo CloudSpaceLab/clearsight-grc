@@ -16,19 +16,19 @@ func TestEscalationGuardRevisionPreservesActivePolicyUntilIndependentApproval(t 
 	svc.now = func() time.Time { return now }
 
 	definition := json.RawMessage(`{
-		"rules":[{"id":"auditor-route","responsibility":"ESCALATION_OWNER","selector":{"kind":"ROLE","ref":"AUDITOR"}}],
+		"rules":[{"id":"auditor-route","legal_entity_id":"` + testEntityA + `","responsibility":"ESCALATION_OWNER","selector":{"kind":"ROLE","ref":"AUDITOR"}}],
 		"metadata":{"owner":"risk-governance"},
 		"escalations":[{"id":"compliance-overdue","trigger":"OVERDUE","steps":[{"after":"0s","responsibility":"ESCALATION_OWNER"}]}]
 	}`)
-	policy, err := svc.CreatePolicy(ctx, CreatePolicyInput{TenantID: "bank", Code: "BANK", Name: "Bank", MakerID: "maker-0", Definition: definition})
+	policy, err := svc.CreatePolicy(ctx, CreatePolicyInput{TenantID: "bank", LegalEntityID: testEntityA, Code: "BANK", Name: "Bank", MakerID: "maker-0", Definition: definition})
 	if err != nil {
 		t.Fatal(err)
 	}
-	policy, err = svc.SubmitPolicy(ctx, TransitionInput{TenantID: "bank", ID: policy.ID, ActorID: "maker-0", ExpectedVersion: policy.Version})
+	policy, err = svc.SubmitPolicy(ctx, TransitionInput{TenantID: "bank", LegalEntityID: testEntityA, ID: policy.ID, ActorID: "maker-0", ExpectedVersion: policy.Version})
 	if err != nil {
 		t.Fatal(err)
 	}
-	policy, err = svc.ApprovePolicy(ctx, TransitionInput{TenantID: "bank", ID: policy.ID, ActorID: "checker-0", ExpectedVersion: policy.Version})
+	policy, err = svc.ApprovePolicy(ctx, TransitionInput{TenantID: "bank", LegalEntityID: testEntityA, ID: policy.ID, ActorID: "checker-0", ExpectedVersion: policy.Version})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func TestEscalationGuardRevisionPreservesActivePolicyUntilIndependentApproval(t 
 	activeCurrentVersion := policy.CurrentVersion
 
 	revision, err := svc.ProposeEscalationGuardRevision(ctx, EscalationGuardRevisionInput{
-		TenantID: "bank", PolicyID: policy.ID, SequenceID: "compliance-overdue", StepIndex: 0,
+		TenantID: "bank", LegalEntityID: testEntityA, PolicyID: policy.ID, SequenceID: "compliance-overdue", StepIndex: 0,
 		SourceRoles: []string{"Compliance Officer"}, TargetRoles: []string{"Supervisor"},
 		TargetGroupIDs: []string{"019fede5-67de-733a-95ae-97f4db546c1e"},
 		ActorID:        "guard-maker", ExpectedPolicyVersion: policy.Version,
@@ -80,14 +80,14 @@ func TestEscalationGuardRevisionPreservesActivePolicyUntilIndependentApproval(t 
 	}
 
 	if _, err := svc.ApprovePolicyRevision(ctx, ApprovePolicyRevisionInput{
-		TenantID: "bank", PolicyID: policy.ID, RevisionVersion: revision.Version,
+		TenantID: "bank", LegalEntityID: testEntityA, PolicyID: policy.ID, RevisionVersion: revision.Version,
 		ActorID: "guard-maker", ExpectedPolicyVersion: policy.Version, Rationale: "self approve",
 	}); !errors.Is(err, ErrMakerChecker) {
 		t.Fatalf("expected maker-checker rejection, got %v", err)
 	}
 
 	approved, err := svc.ApprovePolicyRevision(ctx, ApprovePolicyRevisionInput{
-		TenantID: "bank", PolicyID: policy.ID, RevisionVersion: revision.Version,
+		TenantID: "bank", LegalEntityID: testEntityA, PolicyID: policy.ID, RevisionVersion: revision.Version,
 		ActorID: "guard-checker", ExpectedPolicyVersion: policy.Version, Rationale: "Reviewed escalation population",
 	})
 	if err != nil {
@@ -113,30 +113,30 @@ func TestEscalationGuardRevisionCannotOverwriteAnotherMakersPendingRevision(t *t
 	svc.now = func() time.Time { return now }
 
 	definition := json.RawMessage(`{
-		"rules":[{"id":"r1","responsibility":"ESCALATION_OWNER","selector":{"kind":"ROLE","ref":"AUDITOR"}}],
+		"rules":[{"id":"r1","legal_entity_id":"` + testEntityA + `","responsibility":"ESCALATION_OWNER","selector":{"kind":"ROLE","ref":"AUDITOR"}}],
 		"escalations":[{"id":"overdue","trigger":"OVERDUE","steps":[{"after":"0s","responsibility":"ESCALATION_OWNER"}]}]
 	}`)
-	policy, err := svc.CreatePolicy(ctx, CreatePolicyInput{TenantID: "bank", Code: "BANK", Name: "Bank", MakerID: "maker-0", Definition: definition})
+	policy, err := svc.CreatePolicy(ctx, CreatePolicyInput{TenantID: "bank", LegalEntityID: testEntityA, Code: "BANK", Name: "Bank", MakerID: "maker-0", Definition: definition})
 	if err != nil {
 		t.Fatal(err)
 	}
-	policy, err = svc.SubmitPolicy(ctx, TransitionInput{TenantID: "bank", ID: policy.ID, ActorID: "maker-0", ExpectedVersion: policy.Version})
+	policy, err = svc.SubmitPolicy(ctx, TransitionInput{TenantID: "bank", LegalEntityID: testEntityA, ID: policy.ID, ActorID: "maker-0", ExpectedVersion: policy.Version})
 	if err != nil {
 		t.Fatal(err)
 	}
-	policy, err = svc.ApprovePolicy(ctx, TransitionInput{TenantID: "bank", ID: policy.ID, ActorID: "checker-0", ExpectedVersion: policy.Version})
+	policy, err = svc.ApprovePolicy(ctx, TransitionInput{TenantID: "bank", LegalEntityID: testEntityA, ID: policy.ID, ActorID: "checker-0", ExpectedVersion: policy.Version})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := svc.ProposeEscalationGuardRevision(ctx, EscalationGuardRevisionInput{
-		TenantID: "bank", PolicyID: policy.ID, SequenceID: "overdue", StepIndex: 0,
+		TenantID: "bank", LegalEntityID: testEntityA, PolicyID: policy.ID, SequenceID: "overdue", StepIndex: 0,
 		SourceRoles: []string{"COMPLIANCE_OFFICER"}, ActorID: "maker-a", ExpectedPolicyVersion: policy.Version,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	current, _ := repo.GetPolicy(ctx, "bank", policy.ID)
 	_, err = svc.ProposeEscalationGuardRevision(ctx, EscalationGuardRevisionInput{
-		TenantID: "bank", PolicyID: policy.ID, SequenceID: "overdue", StepIndex: 0,
+		TenantID: "bank", LegalEntityID: testEntityA, PolicyID: policy.ID, SequenceID: "overdue", StepIndex: 0,
 		TargetRoles: []string{"SUPERVISOR"}, ActorID: "maker-b", ExpectedPolicyVersion: current.Version,
 	})
 	if !errors.Is(err, ErrConflict) {

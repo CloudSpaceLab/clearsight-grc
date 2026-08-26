@@ -63,7 +63,7 @@ type SeedConfig struct {
 func DemoSeedConfig() SeedConfig {
 	return SeedConfig{
 		TenantID:             "bank-demo",
-		LegalEntityID:        "",
+		LegalEntityID:        "bank-ng",
 		BankName:             "Clear Bank Nigeria",
 		ActorID:              "user-demo",
 		OwnerPrincipalID:     "owner-demo",

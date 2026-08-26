@@ -118,7 +118,7 @@ export function DemoAuthGate({ children, presentation = "demo" }: { children: Re
   }
   if (state === "login") return <DemoLoginPage accounts={accounts} onAuthenticated={enter} initialError={loginError}/>;
 
-  const canSwitchRole = demoMode && presentation === "demo" && import.meta.env.VITE_STATIC_DEMO !== "true";
+  const canSwitchRole = demoMode && presentation === "demo";
   const accountControl = canSwitchRole && <div className="demo-account-menu-wrap">
     <button className="demo-account-menu-trigger" type="button" aria-label={`Viewing as ${currentAccountLabel}`} aria-expanded={accountMenuOpen} aria-controls="demo-account-menu" onClick={() => setAccountMenuOpen((open) => !open)}><span>Viewing as</span> <strong>{currentAccountLabel}</strong></button>
     {accountMenuOpen && <div className="demo-account-menu" id="demo-account-menu" aria-label="Switch demo account">
