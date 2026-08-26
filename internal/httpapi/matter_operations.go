@@ -123,15 +123,15 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 			continue
 		}
 		actionResponsibility := authority.Responsibility(continuity.ActionResponsibility(action))
-		add(recordOperationSpec{Command: "matter.action.update", SubresourceID: action.ID, Label: "Edit action", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID})
-		add(recordOperationSpec{Command: "matter.action.assign", SubresourceID: action.ID, Label: "Change action owner", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: actionResponsibility, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, IncludeCandidates: true})
+		add(recordOperationSpec{Command: "matter.action.update", SubresourceID: action.ID, ObjectType: "ACTION", ObjectID: action.ID, Label: "Edit action", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID})
+		add(recordOperationSpec{Command: "matter.action.assign", SubresourceID: action.ID, ObjectType: "ACTION", ObjectID: action.ID, Label: "Change action owner", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, IncludeCandidates: true})
 		targets := continuity.AllowedActionTargets(action.Status)
 		allowed := make([]string, len(targets))
 		for index := range targets {
 			allowed[index] = string(targets[index])
 		}
 		if len(allowed) > 0 {
-			add(recordOperationSpec{Command: "matter.action.transition", SubresourceID: action.ID, Label: "Update action status", Responsibility: actionResponsibility, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: action.OwnerPrincipalID, AllowedTargets: allowed})
+			add(recordOperationSpec{Command: "matter.action.transition", SubresourceID: action.ID, ObjectType: "ACTION", ObjectID: action.ID, Label: "Update action status", Responsibility: actionResponsibility, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: action.OwnerPrincipalID, AllowedTargets: allowed})
 		}
 	}
 	for _, contract := range aggregate.VerificationContracts {
@@ -139,12 +139,12 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 			continue
 		}
 		add(recordOperationSpec{
-			Command: "matter.outcome.supersede", SubresourceID: contract.ID, Label: "Replace outcome check",
+			Command: "matter.outcome.supersede", SubresourceID: contract.ID, ObjectType: "VERIFICATION_CONTRACT", ObjectID: contract.ID, Label: "Replace outcome check",
 			Responsibility: authority.ResponsibilityReviewer, CandidateResponsibility: authority.ResponsibilityReviewer,
 			Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: contract.AuthorityPrincipalID, IncludeCandidates: true,
 		})
 		add(recordOperationSpec{
-			Command: "matter.outcome.retire", SubresourceID: contract.ID, Label: "End outcome check",
+			Command: "matter.outcome.retire", SubresourceID: contract.ID, ObjectType: "VERIFICATION_CONTRACT", ObjectID: contract.ID, Label: "End outcome check",
 			Responsibility: authority.ResponsibilityReviewer, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: contract.AuthorityPrincipalID,
 		})
 	}
@@ -153,6 +153,7 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 	for _, requirement := range requirements {
 		add(recordOperationSpec{
 			Command: requirement.CommandName, SubresourceID: requirement.SubresourceID,
+			ObjectType: matterOperationObjectType(requirement.CommandName, requirement.SubresourceType), ObjectID: requirement.SubresourceID,
 			Label: requirement.PrimaryAction, Responsibility: authority.Responsibility(requirement.Responsibility),
 			Materiality: requirement.Materiality, RequiredPrincipalID: requirement.RequiredPrincipalID,
 			AllowedTargets: append([]string(nil), requirement.AllowedTargets...),
@@ -186,6 +187,7 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 			}
 			add(recordOperationSpec{
 				Command: ambiguity.CommandName, SubresourceID: ambiguity.SubresourceID,
+				ObjectType: matterOperationObjectType(ambiguity.CommandName, ambiguity.SubresourceType), ObjectID: ambiguity.SubresourceID,
 				Label: ambiguity.Title, Responsibility: responsibility,
 				Materiality: materiality[responsibility], AllowedTargets: targets,
 			})
@@ -198,6 +200,8 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 type recordOperationSpec struct {
 	Command                 string
 	SubresourceID           string
+	ObjectType              string
+	ObjectID                string
 	Label                   string
 	Responsibility          authority.Responsibility
 	CandidateResponsibility authority.Responsibility
@@ -235,8 +239,12 @@ func (a *API) resolveMatterOperations(ctx context.Context, actor identity.Actor,
 		candidateIndexes[index] = -1
 	}
 	inputFor := func(spec recordOperationSpec, responsibility authority.Responsibility) authority.ResolveInput {
+		objectType, objectID := strings.TrimSpace(spec.ObjectType), strings.TrimSpace(spec.ObjectID)
+		if objectType == "" || objectID == "" {
+			objectType, objectID = "MATTER", matter.ID
+		}
 		return authority.ResolveInput{
-			TenantID: actor.TenantID, LegalEntityID: matter.LegalEntityID, ObjectType: "MATTER", ObjectID: matter.ID,
+			TenantID: actor.TenantID, LegalEntityID: matter.LegalEntityID, ObjectType: objectType, ObjectID: objectID,
 			Responsibility: responsibility, DecisionType: spec.Command, Materiality: spec.Materiality, At: at.UTC(),
 		}
 	}
@@ -269,6 +277,31 @@ func (a *API) resolveMatterOperations(ctx context.Context, actor identity.Actor,
 		operations = append(operations, operation)
 	}
 	return operations, authorityAvailable
+}
+
+func matterOperationObjectType(command, subresourceType string) string {
+	switch command {
+	case "matter.action.update", "matter.action.assign", "matter.action.transition":
+		return "ACTION"
+	case "matter.outcome.supersede", "matter.outcome.retire", "matter.outcome.record":
+		return "VERIFICATION_CONTRACT"
+	case "matter.response.transition":
+		return "RESPONSE_PACKAGE"
+	case "matter.decision.record":
+		return "DECISION"
+	}
+	switch strings.ToUpper(strings.TrimSpace(subresourceType)) {
+	case "ACTION":
+		return "ACTION"
+	case "VERIFICATION_CONTRACT":
+		return "VERIFICATION_CONTRACT"
+	case "RESPONSE", "RESPONSE_PACKAGE":
+		return "RESPONSE_PACKAGE"
+	case "DECISION":
+		return "DECISION"
+	default:
+		return ""
+	}
 }
 
 func (a *API) resolveMatterOperation(ctx context.Context, actor identity.Actor, matter continuity.Matter, spec recordOperationSpec, resolved recordOperationResolution) (RecordOperation, bool) {

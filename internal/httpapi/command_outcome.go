@@ -101,8 +101,13 @@ func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, pol
 }
 
 func commandObjectID(r *http.Request, payload map[string]any, policy commandPolicy) string {
-	if r != nil && strings.TrimSpace(policy.ObjectIDPath) != "" {
-		if value := strings.TrimSpace(r.PathValue(policy.ObjectIDPath)); value != "" {
+	if field := strings.TrimSpace(policy.ObjectIDPath); field != "" {
+		if r != nil {
+			if value := strings.TrimSpace(r.PathValue(field)); value != "" {
+				return value
+			}
+		}
+		if value := stringValue(payload[field]); value != "" {
 			return value
 		}
 	}

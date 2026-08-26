@@ -117,7 +117,11 @@ func TestMatterOperationsResolveAuthorityInOneStableBatchForAnyActionAndOutcomeC
 				}
 				primary := resolver.inputs[cursor]
 				cursor++
-				if primary.TenantID != "bank" || primary.LegalEntityID != "entity-a" || primary.ObjectType != "MATTER" || primary.ObjectID != "matter-batch" ||
+				expectedObjectType, expectedObjectID := "MATTER", "matter-batch"
+				if exactType := matterOperationObjectType(operation.Command, ""); exactType != "" {
+					expectedObjectType, expectedObjectID = exactType, operation.SubresourceID
+				}
+				if primary.TenantID != "bank" || primary.LegalEntityID != "entity-a" || primary.ObjectType != expectedObjectType || primary.ObjectID != expectedObjectID ||
 					primary.DecisionType != operation.Command || string(primary.Responsibility) != operation.Responsibility || !primary.At.Equal(now) {
 					t.Fatalf("primary input for %s/%s = %#v", operation.Command, operation.SubresourceID, primary)
 				}
@@ -127,7 +131,11 @@ func TestMatterOperationsResolveAuthorityInOneStableBatchForAnyActionAndOutcomeC
 					}
 					candidate := resolver.inputs[cursor]
 					cursor++
-					if candidate.DecisionType != operation.Command || candidate.Responsibility != authority.ResponsibilityPerformer || candidate.ObjectID != "matter-batch" {
+					candidateObjectType, candidateObjectID := "MATTER", "matter-batch"
+					if operation.Command == "matter.action.assign" {
+						candidateObjectType, candidateObjectID = "ACTION", operation.SubresourceID
+					}
+					if candidate.DecisionType != operation.Command || candidate.Responsibility != authority.ResponsibilityPerformer || candidate.ObjectType != candidateObjectType || candidate.ObjectID != candidateObjectID {
 						t.Fatalf("candidate input for %s/%s = %#v", operation.Command, operation.SubresourceID, candidate)
 					}
 				}
