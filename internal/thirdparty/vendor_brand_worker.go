@@ -294,6 +294,15 @@ func validVendorBrandFailureCode(value string) bool {
 	return trimmed != "" && trimmed == value && len(value) <= 128
 }
 
+func validVendorBrandAssetCompletion(claim VendorBrandJob, asset VendorBrandAsset) bool {
+	key := strings.TrimSpace(asset.ArtifactKey)
+	if strings.TrimSpace(asset.ID) == "" || asset.TenantID != claim.TenantID || asset.VendorID != claim.VendorID || asset.SourceKind != VendorBrandAssetDiscovered || asset.State != VendorBrandAssetCurrent || asset.SourceDomain != claim.WebsiteDomain || key == "" || key != asset.ArtifactKey || len(key) > 1024 || asset.MediaType != "image/png" || asset.PixelWidth < 1 || asset.PixelWidth > vendorBrandOutputDimension || asset.PixelHeight < 1 || asset.PixelHeight > vendorBrandOutputDimension || asset.ByteSize < 1 || asset.ByteSize > vendorBrandImageLimit || asset.RetrievedAt == nil || asset.RetrievedAt.IsZero() || asset.NextRefreshAt == nil || !asset.NextRefreshAt.After(*asset.RetrievedAt) || asset.ApprovedByPrincipalID != "" || asset.CreatedAt.IsZero() || asset.UpdatedAt.Before(asset.CreatedAt) || asset.Version != 1 || len(asset.SourceDigest) != sha256.Size*2 {
+		return false
+	}
+	_, err := hex.DecodeString(asset.SourceDigest)
+	return err == nil
+}
+
 func validateDiscoveredVendorBrand(value DiscoveredVendorBrand) error {
 	if value.MediaType != "image/png" || value.PixelWidth < 1 || value.PixelHeight < 1 || value.PixelWidth > vendorBrandOutputDimension || value.PixelHeight > vendorBrandOutputDimension || len(value.PNG) < 8 || len(value.PNG) > vendorBrandImageLimit || vendorBrandMagicMedia(value.PNG) != "image/png" || len(value.SourceDigest) != sha256.Size*2 {
 		return ErrInvalidVendorBrandImage

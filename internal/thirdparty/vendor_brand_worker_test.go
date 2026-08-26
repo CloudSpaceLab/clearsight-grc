@@ -212,9 +212,38 @@ func TestVendorBrandRepositoryRejectsStaleClaimCompletion(t *testing.T) {
 	if err != nil || len(second) != 1 {
 		t.Fatalf("reclaim = (%#v, %v)", second, err)
 	}
-	asset := VendorBrandAsset{ID: "asset-1", TenantID: "bank", VendorID: vendor.ID, SourceKind: VendorBrandAssetDiscovered, State: VendorBrandAssetCurrent, SourceDomain: "vendor.example", ArtifactKey: "brands/key.png", SourceDigest: stringsDigest("source"), MediaType: "image/png", PixelWidth: 1, PixelHeight: 1, ByteSize: 1, RetrievedAt: &now, CreatedAt: now, UpdatedAt: now, Version: 1}
+	asset := validVendorBrandAssetForTest(now, vendor)
 	if _, err := repository.CompleteVendorBrandJob(context.Background(), claims[0], asset, now.Add(2*time.Minute)); !errors.Is(err, ErrVendorBrandJobLeaseLost) {
 		t.Fatalf("stale completion error = %v", err)
+	}
+}
+
+func TestVendorBrandRepositoryRejectsAssetOutsideClaimScope(t *testing.T) {
+	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repository, _, _, vendor := setupVendorBrandWorker(t, now, "vendor.example")
+	claims, err := repository.ClaimVendorBrandJobs(context.Background(), "worker-a", now, time.Minute, 5, 1)
+	if err != nil || len(claims) != 1 {
+		t.Fatalf("claim = (%#v, %v)", claims, err)
+	}
+	asset := validVendorBrandAssetForTest(now, vendor)
+	asset.TenantID = "other-bank"
+	if _, err := repository.CompleteVendorBrandJob(context.Background(), claims[0], asset, now); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("cross-scope asset completion error = %v", err)
+	}
+	assets, _ := repository.ListVendorBrandAssets(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity"}, vendor.ID)
+	if len(assets) != 0 {
+		t.Fatalf("cross-scope asset was stored: %#v", assets)
+	}
+}
+
+func validVendorBrandAssetForTest(now time.Time, vendor Vendor) VendorBrandAsset {
+	next := now.Add(time.Hour)
+	return VendorBrandAsset{
+		ID: "asset-1", TenantID: vendor.TenantID, VendorID: vendor.ID,
+		SourceKind: VendorBrandAssetDiscovered, State: VendorBrandAssetCurrent, SourceDomain: vendor.WebsiteDomain,
+		ArtifactKey: "vendor-brands/key.png", SourceDigest: stringsDigest("source"), MediaType: "image/png",
+		PixelWidth: 1, PixelHeight: 1, ByteSize: 1, RetrievedAt: &now, NextRefreshAt: &next,
+		CreatedAt: now, UpdatedAt: now, Version: 1,
 	}
 }
 

@@ -73,6 +73,9 @@ func (r *MemoryRepository) ClaimVendorBrandJobs(_ context.Context, workerID stri
 }
 
 func (r *MemoryRepository) CompleteVendorBrandJob(_ context.Context, claim VendorBrandJob, asset VendorBrandAsset, at time.Time) (VendorBrandAsset, error) {
+	if !validVendorBrandAssetCompletion(claim, asset) {
+		return VendorBrandAsset{}, ErrInvalid
+	}
 	at = at.UTC()
 	r.mu.Lock()
 	defer r.mu.Unlock()

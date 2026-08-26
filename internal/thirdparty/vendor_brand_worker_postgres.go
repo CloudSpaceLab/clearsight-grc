@@ -72,6 +72,9 @@ func (r *PostgresRepository) ClaimVendorBrandJobs(ctx context.Context, workerID 
 }
 
 func (r *PostgresRepository) CompleteVendorBrandJob(ctx context.Context, claim VendorBrandJob, asset VendorBrandAsset, at time.Time) (VendorBrandAsset, error) {
+	if !validVendorBrandAssetCompletion(claim, asset) {
+		return VendorBrandAsset{}, ErrInvalid
+	}
 	at = at.UTC()
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
