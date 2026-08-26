@@ -229,15 +229,17 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		if programAggregate == nil || monitoringForm == nil || monitoringForm.ProgramID != programAggregate.Program.ID || monitoringForm.LegalEntityID != programAggregate.Program.LegalEntityID {
 			return policy, continuity.ErrNotFound
 		}
+		policy.ObjectType = "FORM_TEMPLATE"
+		policy.ObjectIDPath = "form_id"
 		policy.Responsibility = authority.ResponsibilityReviewer
 		policy.Materiality = 3
-		assignedID := ""
 		if monitoringForm.Status == monitoring.LifecycleDraft {
 			policy.Responsibility = authority.ResponsibilityOwner
 			policy.Materiality = 2
-			assignedID = programAggregate.Program.OwnerPrincipalID
-		}
-		if err := a.requireMonitoringResponsibility(ctx, tenant, programAggregate.Program, "PROGRAM", programAggregate.Program.ID, policy.Responsibility, assignedID, name, policy.Materiality); err != nil {
+			if err := a.requireMonitoringResponsibility(ctx, tenant, programAggregate.Program, "FORM_TEMPLATE", monitoringForm.ID, policy.Responsibility, programAggregate.Program.OwnerPrincipalID, name, policy.Materiality); err != nil {
+				return policy, err
+			}
+		} else if err := a.validateCurrentResponsibilityRouteActor(ctx, tenant, programAggregate.Program.LegalEntityID, "FORM_TEMPLATE", monitoringForm.ID, name, policy.Materiality, policy.Responsibility); err != nil {
 			return policy, err
 		}
 		payload["program_id"] = programAggregate.Program.ID

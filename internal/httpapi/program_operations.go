@@ -114,7 +114,11 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 						assignedID = ownerID
 						materiality = 2
 					}
-					add(programOperationSpec{Command: "program.monitoring.form.transition", SubresourceID: form.ID, Label: "Change " + form.Name + " status", Responsibility: responsibility, Materiality: materiality, AssignedPrincipalID: assignedID, AllowedTargets: targets})
+					add(programOperationSpec{
+						Command: "program.monitoring.form.transition", SubresourceID: form.ID, Label: "Change " + form.Name + " status",
+						ObjectType: "FORM_TEMPLATE", ObjectID: form.ID, Responsibility: responsibility, Materiality: materiality,
+						AssignedPrincipalID: assignedID, AllowedTargets: targets,
+					})
 				}
 				if form.Status == monitoring.LifecycleActive && form.IsCurrent {
 					add(programOperationSpec{Command: "program.monitoring.collect", SubresourceID: form.ID, Label: "Collect " + form.Name + " responses", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID})
