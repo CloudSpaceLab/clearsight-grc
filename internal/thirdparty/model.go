@@ -83,22 +83,24 @@ type Aggregate struct {
 }
 
 type CreateRelationshipInput struct {
-	LegalName       string      `json:"legal_name"`
-	TradingName     string      `json:"trading_name,omitempty"`
-	RegistrationRef string      `json:"registration_ref,omitempty"`
-	Jurisdiction    string      `json:"jurisdiction,omitempty"`
-	SourceID        string      `json:"source_id,omitempty"`
-	ExternalRef     string      `json:"external_ref,omitempty"`
-	ServiceName     string      `json:"service_name"`
-	Criticality     Criticality `json:"criticality"`
-	PrivacyRole     PrivacyRole `json:"privacy_role"`
-	EffectiveFrom   *time.Time  `json:"effective_from,omitempty"`
-	RenewalAt       *time.Time  `json:"renewal_at,omitempty"`
+	ExistingRelationshipID string      `json:"existing_relationship_id,omitempty"`
+	LegalName              string      `json:"legal_name"`
+	TradingName            string      `json:"trading_name,omitempty"`
+	RegistrationRef        string      `json:"registration_ref,omitempty"`
+	Jurisdiction           string      `json:"jurisdiction,omitempty"`
+	SourceID               string      `json:"source_id,omitempty"`
+	ExternalRef            string      `json:"external_ref,omitempty"`
+	ServiceName            string      `json:"service_name"`
+	Criticality            Criticality `json:"criticality"`
+	PrivacyRole            PrivacyRole `json:"privacy_role"`
+	EffectiveFrom          *time.Time  `json:"effective_from,omitempty"`
+	RenewalAt              *time.Time  `json:"renewal_at,omitempty"`
 }
 
 type CreateRecord struct {
 	Vendor       Vendor
 	Relationship Relationship
+	ReuseVendor  bool
 }
 
 type Scope struct {

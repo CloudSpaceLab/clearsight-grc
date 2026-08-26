@@ -30,7 +30,9 @@ func (r *PostgresRepository) CreateRelationship(ctx context.Context, record Crea
 		return Aggregate{}, err
 	}
 	vendorID := record.Vendor.ID
-	if record.Vendor.SourceID != "" && record.Vendor.ExternalRef != "" {
+	if record.ReuseVendor {
+		err = tx.QueryRow(ctx, `SELECT id::text FROM third_parties WHERE tenant_id=$1::uuid AND id::text=$2`, tenantID, record.Vendor.ID).Scan(&vendorID)
+	} else if record.Vendor.SourceID != "" && record.Vendor.ExternalRef != "" {
 		err = tx.QueryRow(ctx, `
 			INSERT INTO third_parties(id,tenant_id,legal_name,trading_name,registration_ref,jurisdiction,source_id,external_ref,status,created_at,updated_at,version)
 			VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8,$9,$10,$10,1)
@@ -158,7 +160,7 @@ func (r *PostgresRepository) ListRelationships(ctx context.Context, filter ListF
 	args = append(args, filter.Limit+1)
 	query := relationshipSelect + `
 		WHERE (t.id::text=$1 OR t.slug=$1) AND r.legal_entity_id::text=$2
-		  AND ($3='' OR p.legal_name ILIKE '%'||$3||'%' OR p.trading_name ILIKE '%'||$3||'%' OR r.service_name ILIKE '%'||$3||'%')` + whereCursor + `
+		  AND ($3='' OR p.legal_name ILIKE '%'||$3||'%' OR p.trading_name ILIKE '%'||$3||'%' OR p.registration_ref ILIKE '%'||$3||'%' OR p.source_id ILIKE '%'||$3||'%' OR p.external_ref ILIKE '%'||$3||'%' OR r.service_name ILIKE '%'||$3||'%' OR r.external_ref ILIKE '%'||$3||'%')` + whereCursor + `
 		ORDER BY r.updated_at DESC,r.id DESC LIMIT $` + fmt.Sprint(len(args))
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {

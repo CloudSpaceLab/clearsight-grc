@@ -23,7 +23,14 @@ func NewMemoryRepository() *MemoryRepository {
 func (r *MemoryRepository) CreateRelationship(_ context.Context, record CreateRecord) (Aggregate, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if record.Vendor.SourceID != "" && record.Vendor.ExternalRef != "" {
+	if record.ReuseVendor {
+		existing, ok := r.vendors[record.Vendor.ID]
+		if !ok || existing.TenantID != record.Vendor.TenantID {
+			return Aggregate{}, ErrNotFound
+		}
+		record.Vendor = existing
+		record.Relationship.VendorID = existing.ID
+	} else if record.Vendor.SourceID != "" && record.Vendor.ExternalRef != "" {
 		for _, existing := range r.vendors {
 			if existing.TenantID == record.Vendor.TenantID && existing.SourceID == record.Vendor.SourceID && existing.ExternalRef == record.Vendor.ExternalRef {
 				record.Vendor = existing
@@ -32,7 +39,9 @@ func (r *MemoryRepository) CreateRelationship(_ context.Context, record CreateRe
 			}
 		}
 	}
-	r.vendors[record.Vendor.ID] = record.Vendor
+	if !record.ReuseVendor {
+		r.vendors[record.Vendor.ID] = record.Vendor
+	}
 	r.relationships[record.Relationship.ID] = record.Relationship
 	return Aggregate{Vendor: record.Vendor, Relationship: record.Relationship}, nil
 }
@@ -88,7 +97,7 @@ func (r *MemoryRepository) ListRelationships(_ context.Context, filter ListFilte
 		if !ok || vendor.TenantID != filter.TenantID {
 			continue
 		}
-		if query != "" && !strings.Contains(strings.ToLower(vendor.LegalName+" "+vendor.TradingName+" "+relationship.ServiceName), query) {
+		if query != "" && !strings.Contains(strings.ToLower(vendor.LegalName+" "+vendor.TradingName+" "+vendor.RegistrationRef+" "+vendor.SourceID+" "+vendor.ExternalRef+" "+relationship.ServiceName+" "+relationship.ExternalRef), query) {
 			continue
 		}
 		items = append(items, Aggregate{Vendor: vendor, Relationship: relationship})

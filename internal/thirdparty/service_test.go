@@ -134,7 +134,7 @@ func TestListRelationshipsSearchesVendorAndService(t *testing.T) {
 	if _, err := service.CreateRelationship(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "owner"}, second); err != nil {
 		t.Fatal(err)
 	}
-	for _, query := range []string{"beacon", "CLOUD HOST"} {
+	for _, query := range []string{"beacon", "CLOUD HOST", "vendor-20002"} {
 		page, err := service.ListRelationships(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "reader"}, ListInput{Search: query, Limit: 10})
 		if err != nil {
 			t.Fatal(err)
@@ -142,6 +142,36 @@ func TestListRelationshipsSearchesVendorAndService(t *testing.T) {
 		if len(page.Items) != 1 || page.Items[0].Vendor.LegalName != "Beacon Hosting Limited" {
 			t.Fatalf("unexpected search result for %q: %#v", query, page)
 		}
+	}
+}
+
+func TestCreateRelationshipCanReuseAnExistingVendorWithoutMergingRelationships(t *testing.T) {
+	repo := NewMemoryRepository()
+	service := NewService(repo)
+	service.now = tickingClock()
+	ids := []string{"vendor-1", "relationship-1", "relationship-2"}
+	service.newID = func() (string, error) { value := ids[0]; ids = ids[1:]; return value, nil }
+	actor := Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "owner"}
+	first, err := service.CreateRelationship(context.Background(), actor, validCreateInput())
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondInput := validCreateInput()
+	secondInput.ExistingRelationshipID = first.Relationship.ID
+	secondInput.LegalName, secondInput.TradingName, secondInput.RegistrationRef = "", "", ""
+	secondInput.ServiceName = "Settlement support"
+	second, err := service.CreateRelationship(context.Background(), actor, secondInput)
+	if err != nil {
+		t.Fatalf("reuse vendor: %v", err)
+	}
+	if second.Vendor.ID != first.Vendor.ID || second.Relationship.ID == first.Relationship.ID || second.Relationship.VendorID != first.Vendor.ID {
+		t.Fatalf("unexpected reused relationship: first=%#v second=%#v", first, second)
+	}
+	if len(repo.vendors) != 1 || len(repo.relationships) != 2 {
+		t.Fatalf("repository counts vendors=%d relationships=%d", len(repo.vendors), len(repo.relationships))
+	}
+	if _, err := service.CreateRelationship(context.Background(), Actor{TenantID: "bank", LegalEntityID: "other-entity", PrincipalID: "owner"}, CreateRelationshipInput{ExistingRelationshipID: first.Relationship.ID, ServiceName: "Other", Criticality: CriticalityStandard, PrivacyRole: PrivacyNone}); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("cross-entity reuse error = %v, want not found", err)
 	}
 }
 
