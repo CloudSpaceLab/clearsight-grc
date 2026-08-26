@@ -47,6 +47,11 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 		if (name == "program.create" || name == "matter.create") && actor.LegalEntityID != "" && actor.LegalEntityID != "*" {
 			payload["legal_entity_id"] = actor.LegalEntityID
 		}
+		if name == "matter.create" {
+			// A new issue starts with the verified command actor as its stored
+			// accountable owner. Client-supplied ownership cannot redirect it.
+			payload["owner_principal_id"] = actor.PrincipalID
+		}
 		if !bindPayloadIdentity(w, payload, actor, policy.BindLegalEntity) {
 			return
 		}

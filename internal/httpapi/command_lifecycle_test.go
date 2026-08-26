@@ -131,12 +131,14 @@ func TestLifecyclePolicyRejectsRestrictedMatterActionOwnerWithoutVisibility(t *t
 	matter, err := service.CreateMatter(ctx, continuity.CreateMatterInput{
 		TenantID: "bank", LegalEntityID: "entity-a", Type: continuity.MatterAuthorityRequest, Priority: 5,
 		Title: "Restricted authority request", Summary: "Protected response work.",
-		Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["allowed-owner"]}`),
+		Scope:            json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["allowed-owner"]}`),
+		OwnerPrincipalID: "allowed-owner", ActorID: "allowed-owner",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	api := &API{deps: Dependencies{Continuity: service, Authority: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner:     {Principal: authority.Principal{ID: "allowed-owner", DisplayName: "Allowed owner"}},
 		authority.ResponsibilityPerformer: {Principal: authority.Principal{ID: "allowed-owner", DisplayName: "Allowed owner"}},
 	}}}}
 	base := commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2}
@@ -165,6 +167,7 @@ func TestLifecyclePolicyRejectsVisibleActionOwnerOutsideCurrentPerformerRoute(t 
 	api := &API{deps: Dependencies{
 		Continuity: service,
 		Authority: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+			authority.ResponsibilityOwner: {Principal: authority.Principal{ID: "current-owner", DisplayName: "Current owner"}},
 			authority.ResponsibilityPerformer: {
 				Principal:           authority.Principal{ID: "performer-1", DisplayName: "Operations lead"},
 				CandidatePrincipals: []authority.Principal{{ID: "performer-2", DisplayName: "Operations analyst"}},
@@ -222,7 +225,8 @@ func TestMatterAssignmentLifecycleValidatesDistinctOwnerAndPerformerCandidates(t
 	actionID := matter.Actions[0].ID
 	resolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
 		authority.ResponsibilityOwner: {
-			Principal: authority.Principal{ID: "owner-2", DisplayName: "Privacy owner"},
+			Principal:           authority.Principal{ID: "current-owner", DisplayName: "Current owner"},
+			CandidatePrincipals: []authority.Principal{{ID: "owner-2", DisplayName: "Privacy owner"}},
 		},
 		authority.ResponsibilityPerformer: {
 			Principal:           authority.Principal{ID: "performer-1", DisplayName: "Current performer"},
@@ -267,7 +271,9 @@ func TestActionTransitionUsesPerformerResponsibility(t *testing.T) {
 	}
 	request := lifecycleRequest(matter.Matter.ID)
 	request.SetPathValue("action_id", matter.Actions[0].ID)
-	api := &API{deps: Dependencies{Continuity: service}}
+	api := &API{deps: Dependencies{Continuity: service, Authority: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityPerformer: {Principal: authority.Principal{ID: "performer", DisplayName: "Action performer"}},
+	}}}}
 	policy, err := api.lifecycleCommandPolicy(ctx, request, "bank", "matter.action.transition", map[string]any{"to": "IN_PROGRESS"}, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2})
 	if err != nil {
 		t.Fatal(err)

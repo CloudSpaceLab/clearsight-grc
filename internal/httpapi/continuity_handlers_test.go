@@ -193,8 +193,8 @@ func TestProgramEditRoutesBindVerifiedActorAndPreserveAssignmentSubject(t *testi
 	}
 
 	post("/api/v1/programs/"+program.Program.ID+"/details", fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"name":"Nigeria data protection","owning_function":"Data Protection Office","jurisdiction":"Nigeria","scope":{"business_lines":["Retail"]},"effective_from":"2026-01-01T00:00:00Z","actor_id":"forged","rationale":"Confirm the approved operating scope."}`, program.Program.Version))
-	post("/api/v1/programs/"+program.Program.ID+"/assignment", fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"owner_principal_id":"owner-2","actor_id":"forged","rationale":"Assign the current DPO position."}`, program.Program.Version))
 	post("/api/v1/programs/"+program.Program.ID+"/requirements/"+requirementID+"/supersede", fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"code":"CAR-01","title":"File the annual return","statement":"The bank must file its annual compliance return through a licensed DPCO.","source_anchor":"GAID 2025, section 7.2","effective_from":"2026-09-01T00:00:00Z","actor_id":"forged","rationale":"The regulator changed the filing channel."}`, program.Program.Version))
+	post("/api/v1/programs/"+program.Program.ID+"/assignment", fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"owner_principal_id":"owner-2","actor_id":"forged","rationale":"Assign the current DPO position."}`, program.Program.Version))
 
 	if program.Program.OwnerPrincipalID != "owner-2" || len(program.Requirements) != 2 || program.Requirements[0].Status != continuity.RequirementSuperseded {
 		t.Fatalf("Program edit journey did not persist requested subjects: %#v", program)
@@ -317,7 +317,7 @@ func TestMatterEditHandlersBindVerifiedActorAndKeepAssignmentSubject(t *testing.
 	handler := New(Dependencies{
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "owner-1", "bank-ng"),
 		Continuity: service, Authority: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
-			authority.ResponsibilityOwner:     {Principal: authority.Principal{ID: "owner-2", DisplayName: "Privacy owner"}},
+			authority.ResponsibilityOwner:     {Principal: authority.Principal{ID: "owner-1", DisplayName: "Current owner"}, CandidatePrincipals: []authority.Principal{{ID: "owner-2", DisplayName: "Privacy owner"}}},
 			authority.ResponsibilityPerformer: {Principal: authority.Principal{ID: "performer-2", DisplayName: "Privacy operations analyst"}},
 		}},
 	})
@@ -336,9 +336,9 @@ func TestMatterEditHandlersBindVerifiedActorAndKeepAssignmentSubject(t *testing.
 
 	post("/api/v1/matters/"+matter.Matter.ID+"/details", fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"title":"Annual return filing","summary":"Update the filing process.","priority":4,"scope":{},"actor_id":"forged","rationale":"Use the approved title."}`, matter.Matter.Version), &matter)
 	post("/api/v1/matters/"+matter.Matter.ID+"/context-changes", fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"kind":"RESOLVE_MISSING","key":"final_checklist","label":"final checklist","value":"Checklist v3","evidence_references":["artifact-v3"],"actor_id":"forged","rationale":"Record the approved checklist."}`, matter.Matter.Version), &matter)
-	post("/api/v1/matters/"+matter.Matter.ID+"/assignment", fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"owner_principal_id":"owner-2","actor_id":"forged","rationale":"Assign the current privacy owner."}`, matter.Matter.Version), &matter)
 	post("/api/v1/matters/"+matter.Matter.ID+"/actions/"+actionID, fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"title":"Update checklist","description":"Map every section to its current source.","actor_id":"forged","rationale":"Clarify the required evidence."}`, matter.Matter.Version), &matter)
 	post("/api/v1/matters/"+matter.Matter.ID+"/actions/"+actionID+"/assignment", fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"owner_principal_id":"performer-2","actor_id":"forged","rationale":"Assign the current process owner."}`, matter.Matter.Version), &matter)
+	post("/api/v1/matters/"+matter.Matter.ID+"/assignment", fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"owner_principal_id":"owner-2","actor_id":"forged","rationale":"Assign the current privacy owner."}`, matter.Matter.Version), &matter)
 
 	if matter.Matter.OwnerPrincipalID != "owner-2" || matter.Actions[0].OwnerPrincipalID != "performer-2" || matter.Matter.KnownFacts == nil {
 		t.Fatalf("edit journey did not persist requested subjects: %#v", matter)
@@ -412,7 +412,7 @@ func TestCreateCommandsOverwriteRequestLegalEntityFromVerifiedActor(t *testing.T
 	}
 
 	matterResponse := httptest.NewRecorder()
-	handler.ServeHTTP(matterResponse, httptest.NewRequest(http.MethodPost, "/api/v1/matters", strings.NewReader(`{"tenant_id":"bank","legal_entity_id":"entity-b","type":"CONTROL_GAP","priority":3,"title":"Entity A gap","summary":"A scoped issue","scope":{},"actor_id":"forged"}`)))
+	handler.ServeHTTP(matterResponse, httptest.NewRequest(http.MethodPost, "/api/v1/matters", strings.NewReader(`{"tenant_id":"bank","legal_entity_id":"entity-b","type":"CONTROL_GAP","priority":3,"title":"Entity A gap","summary":"A scoped issue","scope":{},"owner_principal_id":"forged-owner","actor_id":"forged"}`)))
 	if matterResponse.Code != http.StatusCreated {
 		t.Fatalf("Matter create returned %d: %s", matterResponse.Code, matterResponse.Body.String())
 	}
@@ -420,8 +420,8 @@ func TestCreateCommandsOverwriteRequestLegalEntityFromVerifiedActor(t *testing.T
 	if err := json.NewDecoder(matterResponse.Body).Decode(&matter); err != nil {
 		t.Fatal(err)
 	}
-	if matter.Matter.LegalEntityID != "entity-a" {
-		t.Fatalf("Matter entity = %q", matter.Matter.LegalEntityID)
+	if matter.Matter.LegalEntityID != "entity-a" || matter.Matter.OwnerPrincipalID != "owner-1" {
+		t.Fatalf("Matter verified scope/owner = %#v", matter.Matter)
 	}
 	matterEvents, err := repo.MatterEvents(continuity.WithTrustedSystemScope(context.Background()), "bank", matter.Matter.ID, nil)
 	if err != nil || len(matterEvents) == 0 || !strings.Contains(string(matterEvents[0].Payload), `"legal_entity_id":"entity-a"`) {

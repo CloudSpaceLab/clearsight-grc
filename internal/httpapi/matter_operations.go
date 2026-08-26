@@ -188,6 +188,7 @@ func (a *API) resolveRecordOperation(ctx context.Context, actor identity.Actor, 
 		Command: spec.Command, SubresourceID: spec.SubresourceID, Label: spec.Label,
 		Responsibility: string(spec.Responsibility), AllowedTargets: spec.AllowedTargets,
 	}
+	requiresStoredPrincipal := matterOperationRequiresStoredPrincipal(spec)
 	if strings.TrimSpace(spec.RequiredPrincipalID) != "" {
 		operation.AssignedTo = a.assignedPrincipal(ctx, actor, authority.Resolution{}, spec.RequiredPrincipalID)
 	}
@@ -207,7 +208,9 @@ func (a *API) resolveRecordOperation(ctx context.Context, actor identity.Actor, 
 		operation.Reason = "Responsibility could not be checked. No change is available until the authority route is restored."
 		return operation, false
 	}
-	operation.AssignedTo = a.assignedPrincipal(ctx, actor, resolution, spec.RequiredPrincipalID)
+	if strings.TrimSpace(spec.RequiredPrincipalID) != "" || !requiresStoredPrincipal {
+		operation.AssignedTo = a.assignedPrincipal(ctx, actor, resolution, spec.RequiredPrincipalID)
+	}
 	if spec.IncludeCandidates {
 		candidateResolution := resolution
 		if spec.CandidateResponsibility != "" && spec.CandidateResponsibility != spec.Responsibility {
@@ -224,17 +227,28 @@ func (a *API) resolveRecordOperation(ctx context.Context, actor identity.Actor, 
 	}
 	allowed := resolution.AllowsPrincipal(actor.PrincipalID)
 	if required := strings.TrimSpace(spec.RequiredPrincipalID); required != "" {
-		allowed = allowed && actor.PrincipalID == required
+		allowed = resolution.AllowsPrincipalFor(actor.PrincipalID, required)
+	} else if requiresStoredPrincipal && spec.Command != "matter.assign" {
+		allowed = false
 	}
 	operation.CanAct = allowed
 	if allowed {
 		operation.Reason = "You hold the current responsibility for this issue and can complete this action."
 	} else if operation.AssignedTo != nil {
 		operation.Reason = fmt.Sprintf("Assigned to %s for the current issue state.", operation.AssignedTo.DisplayName)
+	} else if requiresStoredPrincipal {
+		operation.Reason = "Assign an owner before this issue action can be completed."
 	} else {
 		operation.Reason = fmt.Sprintf("The current %s route does not include your signed-in role.", responsibilityLabel(spec.Responsibility))
 	}
 	return operation, true
+}
+
+func matterOperationRequiresStoredPrincipal(spec recordOperationSpec) bool {
+	if matterOwnerBoundCommand(spec.Command) {
+		return true
+	}
+	return (spec.Command == "matter.transition" && spec.Responsibility == authority.ResponsibilityOwner) || spec.Command == "matter.action.transition"
 }
 
 func (a *API) assignedPrincipal(ctx context.Context, actor identity.Actor, resolution authority.Resolution, requiredID string) *authority.Principal {

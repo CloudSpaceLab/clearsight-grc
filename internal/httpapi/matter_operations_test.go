@@ -178,6 +178,39 @@ func TestMatterOperationsBindWildcardViewerToRecordEntity(t *testing.T) {
 	}
 }
 
+func TestMatterOperationsMatchStoredOwnerAndDelegateLineage(t *testing.T) {
+	now := time.Now().UTC()
+	aggregate := continuity.MatterAggregate{Matter: continuity.Matter{
+		ID: "matter-1", TenantID: "bank", LegalEntityID: "entity-a", Type: continuity.MatterRegulatoryChange,
+		Status: continuity.MatterAssessment, Priority: 3, Title: "Annual return", OwnerPrincipalID: "owner-1",
+		CreatedAt: now, UpdatedAt: now, Version: 2,
+	}}
+	resolver := fixedProgramAuthority{resolution: authority.Resolution{
+		Principal:           authority.Principal{ID: "owner-1", DisplayName: "Program Owner"},
+		CandidatePrincipals: []authority.Principal{{ID: "owner-delegate", DisplayName: "Acting Program Owner"}, {ID: "other-owner", DisplayName: "Another owner candidate"}},
+		EffectiveOrigins:    []authority.EffectiveOrigin{{PrincipalID: "owner-delegate", OriginPrincipalID: "owner-1"}, {PrincipalID: "other-owner", OriginPrincipalID: "other-owner"}},
+	}}
+	api := &API{deps: Dependencies{Authority: resolver}}
+
+	findDetails := func(actorID string) RecordOperation {
+		t.Helper()
+		payload := api.buildMatterOperations(t.Context(), identity.Actor{TenantID: "bank", PrincipalID: actorID, LegalEntityID: "entity-a"}, aggregate, now)
+		for _, operation := range payload.Operations {
+			if operation.Command == "matter.details.update" {
+				return operation
+			}
+		}
+		t.Fatal("Matter details operation was not returned")
+		return RecordOperation{}
+	}
+	if delegated := findDetails("owner-delegate"); !delegated.CanAct || delegated.AssignedTo == nil || delegated.AssignedTo.ID != "owner-1" {
+		t.Fatalf("stored owner delegate operation = %#v", delegated)
+	}
+	if unrelated := findDetails("other-owner"); unrelated.CanAct {
+		t.Fatalf("unassigned owner candidate operation = %#v", unrelated)
+	}
+}
+
 func TestMatterOperationsHideRestrictedMatterFromUnlistedActor(t *testing.T) {
 	service := continuity.NewService(continuity.NewMemoryRepository())
 	matter, err := service.CreateMatter(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateMatterInput{
