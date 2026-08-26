@@ -115,7 +115,7 @@ export function ProgramSafeguardsPanel({ aggregate, operations, onUpdated, onRel
           <div><span>{objective.code} · {statusLabel(objective.status)}</span><h3>{objective.name}</h3><p>{objective.outcome}</p></div>
           {implementations.length ? <ul>{implementations.map((implementation) => {
             const requirementCount = aggregate.requirement_control_links.filter((link) => link.implementation_id === implementation.id).length;
-            const owner = operation?.candidates?.find((candidate) => candidate.id === implementation.owner_principal_id)?.display_name ?? implementation.owner_principal_id ?? "Owner not assigned";
+            const owner = operation?.candidates?.find((candidate) => candidate.id === implementation.owner_principal_id)?.display_name ?? (implementation.owner_principal_id ? "Recorded safeguard owner unavailable" : "Safeguard owner not assigned");
             return <li key={implementation.id}><strong>{implementation.name}</strong><span>{owner} · {statusLabel(implementation.status)} · {requirementCount} linked requirement{requirementCount === 1 ? "" : "s"}</span><p>{implementation.description}</p></li>;
           })}</ul> : <p>No safeguards implement this objective yet.</p>}
         </section>;

@@ -164,6 +164,27 @@ describe("Program record workspace", () => {
 	expect(loadProgramReviewDigest).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps degraded Program labels readable without exposing stored principal or source identifiers", async () => {
+	vi.mocked(loadProgram).mockResolvedValue({
+	  ...aggregate,
+	  program: { ...aggregate.program, owner_principal_id: "program-owner-internal" },
+	  control_objectives: [{ id: "objective-1", code: "COMPLETE", name: "Complete filing", outcome: "All sections are filed.", status: "ACTIVE" }],
+	  control_implementations: [{ id: "implementation-1", objective_id: "objective-1", name: "Filing checklist", description: "Review every section.", implementation_type: "CHECKLIST", owner_principal_id: "safeguard-owner-internal", status: "IMPLEMENTED" }],
+	  evidence_contracts: [{ id: "contract-1", code: "FILED", name: "Filing proof", claim: "The return was filed.", acceptable_source_ids: ["source-internal"], status: "ACTIVE", freshness_minutes: 1440, minimum_coverage: 1, independence_required: true, contradiction_policy: "REVIEW", failure_action: "MATTER" }],
+	  evidence_assessments: [{ id: "assessment-1", contract_id: "contract-1", conclusion: "SUPPORTED", coverage: 1, assessed_by: "reviewer-internal", assessed_at: "2026-08-25T10:00:00Z", valid_until: "2099-08-25T10:00:00Z" }],
+	});
+	vi.mocked(loadProgramOperations).mockRejectedValue(new Error("routing unavailable"));
+
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+
+	expect(await screen.findByRole("heading", { name: "Nigeria data protection" })).toBeTruthy();
+	expect(screen.queryByText(/program-owner-internal|safeguard-owner-internal|source-internal|reviewer-internal/)).toBeNull();
+	expect(screen.getAllByText("Recorded Program owner unavailable").length).toBeGreaterThan(0);
+	expect(screen.getByText(/Recorded safeguard owner unavailable/)).toBeTruthy();
+	expect(screen.getByText(/Accepted sources: Source name unavailable/)).toBeTruthy();
+	expect(screen.getByText(/Reviewer name unavailable/)).toBeTruthy();
+  });
+
   it("shows review history without acknowledgement when the live review operation cannot act", async () => {
 	vi.mocked(loadProgramReviewDigest).mockResolvedValue(changedDigest);
 	vi.mocked(loadProgramOperations).mockResolvedValue({

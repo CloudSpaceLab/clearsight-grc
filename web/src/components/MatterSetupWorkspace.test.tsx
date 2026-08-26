@@ -74,7 +74,7 @@ describe("MatterSetupWorkspace", () => {
       knownInformation: "The public status check failed.", missingInformation: ["Confirm the SDK version", "Confirm the last successful check"],
       programID: "program-mobile",
     }));
-    expect(vi.mocked(createMatter).mock.calls[0]![0].dueAt).toMatch(/^2026-09-30T\d{2}:59:59\.999Z$/);
+    expect(vi.mocked(createMatter).mock.calls[0]![0].dueAt).toBe(new Date(2026, 8, 30, 23, 59, 59, 999).toISOString());
     expect(onCreated).toHaveBeenCalledWith(createdMatter);
   });
 

@@ -4,6 +4,7 @@ import { loadProgramSummaries } from "../api";
 import { createMatter } from "../continuityCommands";
 import type { ProgramSummary } from "../summaryTypes";
 import type { MatterAggregate } from "../types";
+import { selectedDateEndOfLocalDay } from "../dueDate";
 
 type Props = { onCreated: (aggregate: MatterAggregate) => void; onClose: () => void; initialProgramID?: string };
 type ProgramState = "loading" | "live" | "unavailable";
@@ -22,12 +23,6 @@ const WORK_TYPES = [
   ["VENDOR_DEFICIENCY", "Vendor issue"],
   ["CUSTOMER_CONCERN", "Customer concern"],
 ] as const;
-
-function endOfLocalDay(value: string) {
-  if (!value) return undefined;
-  const date = new Date(`${value}T23:59:59.999`);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
-}
 
 function nonEmptyLines(value: FormDataEntryValue | null) {
   return String(value ?? "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
@@ -68,7 +63,7 @@ export function MatterSetupWorkspace({ onCreated, onClose, initialProgramID = ""
         affectedArea: String(data.get("affected_area") ?? "").trim(),
         knownInformation: String(data.get("known_information") ?? "").trim() || undefined,
         missingInformation: nonEmptyLines(data.get("missing_information")),
-        dueAt: endOfLocalDay(String(data.get("due_date") ?? "")),
+        dueAt: selectedDateEndOfLocalDay(String(data.get("due_date") ?? "")),
         programID: String(data.get("program_id") ?? "").trim() || undefined,
       });
       onCreated(created);

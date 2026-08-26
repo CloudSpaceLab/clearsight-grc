@@ -193,6 +193,31 @@ describe("Matter record workspace", () => {
     expect(loadMatter).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps degraded ownership readable without exposing stored principal identifiers", async () => {
+    vi.mocked(loadMatter).mockResolvedValue({
+      ...detail,
+      matter: { ...detail.matter, owner_principal_id: "matter-owner-internal" },
+      actions: [{ ...detail.actions[0]!, owner_principal_id: "action-owner-internal" }],
+      verification_contracts: [{
+        id: "contract-degraded",
+        expected_outcome: "The filing record is complete.",
+        observation_period_minutes: 0,
+        failure_response: "BLOCK_CLOSE",
+        authority_principal_id: "reviewer-internal",
+        status: "ACTIVE",
+      }],
+    });
+    vi.mocked(loadMatterOperations).mockRejectedValue(new Error("routing unavailable"));
+
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
+    expect(screen.queryByText(/matter-owner-internal|action-owner-internal|reviewer-internal/)).toBeNull();
+    expect(screen.getByText("Recorded issue owner unavailable")).toBeTruthy();
+    expect(screen.getByText("Recorded action owner unavailable")).toBeTruthy();
+    expect(screen.getByText("Recorded reviewer unavailable")).toBeTruthy();
+  });
+
   it("disables issue mutations until responsibility data matches the displayed version", async () => {
     vi.mocked(loadMatterOperations)
       .mockResolvedValueOnce({ ...performerOperations, matter_version: 6 })
@@ -266,7 +291,7 @@ describe("Matter record workspace", () => {
 
     await waitFor(() => expect(updateMatterDetails).toHaveBeenCalledWith("matter-1", 7, expect.objectContaining({
       title: detail.matter.title,
-      dueAt: "2026-09-01T00:00:00.000Z",
+      dueAt: new Date(2026, 8, 1, 23, 59, 59, 999).toISOString(),
       rationale: "Use the agreed internal completion date.",
     })));
     expect(await screen.findByText("Issue details updated.")).toBeTruthy();
@@ -387,7 +412,7 @@ describe("Matter record workspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create assigned action" }));
 
     await waitFor(() => expect(addMatterAction).toHaveBeenCalledWith("matter-1", 7, {
-      title: "Confirm section owners", description: "Record the two remaining owners.", ownerPrincipalID: "owner-2", dueAt: "2026-09-02T00:00:00.000Z",
+      title: "Confirm section owners", description: "Record the two remaining owners.", ownerPrincipalID: "owner-2", dueAt: new Date(2026, 8, 2, 23, 59, 59, 999).toISOString(),
     }));
     expect(await screen.findByText("Action added.")).toBeTruthy();
   });

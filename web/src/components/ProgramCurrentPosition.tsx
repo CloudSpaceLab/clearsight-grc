@@ -59,7 +59,7 @@ export function ProgramCurrentPosition({ aggregate, operations, digest }: Props)
       <h2 id="program-current-position-heading">{stale ? "Updating status" : aggregate.state_label}</h2>
       <p>{stale ? `Assessed version ${assessedVersion} · current version ${aggregate.program.version}` : `Calculated from Program version ${aggregate.program.version} and projection ${current?.projection_version ?? 0}.`}</p>
       <div className="program-position-facts">
-        <span><strong>Owner</strong> {owner?.display_name ?? aggregate.program.owner_principal_id ?? "Not assigned"}</span>
+        <span><strong>Owner</strong> {owner?.display_name ?? (aggregate.program.owner_principal_id ? "Recorded Program owner unavailable" : "Program owner not assigned")}</span>
         <span><strong>Open issues</strong> {current?.open_matter_count ?? 0}</span>
         <span><strong>Requirements</strong> {aggregate.requirements.filter((requirement) => requirement.status === "APPROVED").length}</span>
       </div>

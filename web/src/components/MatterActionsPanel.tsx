@@ -5,6 +5,7 @@ import { assignMatterAction, updateMatterAction } from "../matterOperationsApi";
 import type { MatterOperation } from "../matterOperationsApi";
 import { addMatterAction, transitionMatterAction } from "../continuityCommands";
 import type { MatterAction, MatterAggregate } from "../types";
+import { selectedDateEndOfLocalDay, storedDeadlineLocalDate } from "../dueDate";
 
 type Props = {
   aggregate: MatterAggregate;
@@ -19,17 +20,9 @@ function operationFor(operations: MatterOperation[], command: string, actionID?:
   return operations.find((operation) => operation.command === command && (actionID === undefined || operation.subresource_id === actionID));
 }
 
-function dateInput(value?: string) {
-  return value && Number.isFinite(Date.parse(value)) ? new Date(value).toISOString().slice(0, 10) : "";
-}
-
-function commandDate(value: string) {
-  return value ? new Date(`${value}T00:00:00.000Z`).toISOString() : undefined;
-}
-
 function formatDate(value?: string) {
   if (!value || !Number.isFinite(Date.parse(value))) return "No action deadline";
-  return `Action due ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(value))}`;
+  return `Action due ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value))}`;
 }
 
 function statusLabel(value: string) {
@@ -65,7 +58,7 @@ export function MatterActionsPanel({ aggregate, operations, onUpdated, onReload 
   }
 
   function startAction(kind: "edit" | "assign" | "status", action: MatterAction) {
-    setActive({ kind, actionID: action.id }); setTitle(action.title); setDescription(action.description); setDate(dateInput(action.due_at)); setRationale(""); setError(""); setNotice("");
+    setActive({ kind, actionID: action.id }); setTitle(action.title); setDescription(action.description); setDate(storedDeadlineLocalDate(action.due_at)); setRationale(""); setError(""); setNotice("");
     const operation = operationFor(operations, kind === "assign" ? "matter.action.assign" : kind === "status" ? "matter.action.transition" : "matter.action.update", action.id);
     setOwner(operation?.candidates?.[0]?.id ?? action.owner_principal_id ?? "");
     setTarget(operation?.allowed_targets?.[0] ?? "");
@@ -84,9 +77,9 @@ export function MatterActionsPanel({ aggregate, operations, onUpdated, onReload 
     try {
       let updated: MatterAggregate;
       if (active.kind === "add") {
-        updated = await addMatterAction(aggregate.matter.id, aggregate.matter.version, { title: title.trim(), description: description.trim(), ownerPrincipalID: owner || undefined, dueAt: commandDate(date) });
+        updated = await addMatterAction(aggregate.matter.id, aggregate.matter.version, { title: title.trim(), description: description.trim(), ownerPrincipalID: owner || undefined, dueAt: selectedDateEndOfLocalDay(date) });
       } else if (active.kind === "edit") {
-        updated = await updateMatterAction(aggregate.matter.id, active.actionID, aggregate.matter.version, { title: title.trim(), description: description.trim(), dueAt: commandDate(date), rationale: rationale.trim() });
+        updated = await updateMatterAction(aggregate.matter.id, active.actionID, aggregate.matter.version, { title: title.trim(), description: description.trim(), dueAt: selectedDateEndOfLocalDay(date), rationale: rationale.trim() });
       } else if (active.kind === "assign") {
         updated = await assignMatterAction(aggregate.matter.id, active.actionID, aggregate.matter.version, owner, rationale.trim());
       } else {
@@ -111,7 +104,7 @@ export function MatterActionsPanel({ aggregate, operations, onUpdated, onReload 
       const assignOperation = operationFor(operations, "matter.action.assign", action.id);
       const statusOperation = operationFor(operations, "matter.action.transition", action.id);
       const terminal = ["IMPLEMENTED", "CANCELLED"].includes(action.status);
-      const ownerName = statusOperation?.assigned_to?.display_name ?? action.owner_principal_id ?? "Owner not resolved";
+      const ownerName = statusOperation?.assigned_to?.display_name ?? (action.owner_principal_id ? "Recorded action owner unavailable" : "Action owner not assigned");
       return <section className="matter-action-card" id={`matter-operation-matter.action.transition-${action.id}`} key={action.id} aria-labelledby={`matter-action-${action.id}`}>
         <div className="matter-action-heading"><div><h3 id={`matter-action-${action.id}`}>{action.title}</h3><p>{action.description}</p></div><span>{statusLabel(action.status)}</span></div>
         <div className="matter-action-meta"><span>Action owner: <strong>{ownerName}</strong></span><span>{formatDate(action.due_at)}</span></div>

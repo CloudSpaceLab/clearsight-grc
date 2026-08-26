@@ -162,7 +162,7 @@ export function MatterOutcomePanel({ aggregate, operations, onUpdated, onReload 
       return <section className="matter-outcome-card" key={contract.id} aria-labelledby={`matter-outcome-${contract.id}`}>
         <div className="matter-action-heading"><div><h3 id={`matter-outcome-${contract.id}`}>{contract.expected_outcome}</h3>{linkedAction && <p>Checks the result of: {linkedAction.title}</p>}</div><span>{resultLabel(recorded?.result)}</span></div>
         <dl className="matter-outcome-meta">
-          <div><dt>Reviewer</dt><dd>{recordOperation?.assigned_to?.display_name ?? defineOperation?.assigned_to?.display_name ?? contract.authority_principal_id ?? "Reviewer not resolved"}</dd></div>
+          <div><dt>Reviewer</dt><dd>{recordOperation?.assigned_to?.display_name ?? defineOperation?.assigned_to?.display_name ?? (contract.authority_principal_id ? "Recorded reviewer unavailable" : "Reviewer not assigned")}</dd></div>
           <div><dt>Observation period</dt><dd>{contract.observation_period_minutes} minutes</dd></div>
         </dl>
         {recorded?.rationale && <p className="matter-outcome-rationale"><strong>Recorded basis:</strong> {recorded.rationale}</p>}

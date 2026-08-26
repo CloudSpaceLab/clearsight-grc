@@ -5,6 +5,7 @@ import { apiErrorKind } from "../http";
 import { addMatterLink, assignMatter, updateMatterDetails } from "../matterOperationsApi";
 import type { MatterOperation } from "../matterOperationsApi";
 import type { MatterAggregate, ProgramAggregate } from "../types";
+import { selectedDateEndOfLocalDay, storedDeadlineLocalDate } from "../dueDate";
 
 type Props = {
   aggregate: MatterAggregate;
@@ -12,14 +13,6 @@ type Props = {
   onUpdated: (value: MatterAggregate) => void | Promise<void>;
   onReload: () => void;
 };
-
-function dateInput(value?: string) {
-  return value && Number.isFinite(Date.parse(value)) ? new Date(value).toISOString().slice(0, 10) : "";
-}
-
-function dueAt(value: string) {
-  return value ? new Date(`${value}T00:00:00.000Z`).toISOString() : undefined;
-}
 
 function operationFor(operations: MatterOperation[], command: string) {
   return operations.find((operation) => operation.command === command);
@@ -35,7 +28,7 @@ export function MatterDetailsPanel({ aggregate, operations, onUpdated, onReload 
   const [title, setTitle] = useState(aggregate.matter.title);
   const [summary, setSummary] = useState(aggregate.matter.summary);
   const [priority, setPriority] = useState(String(aggregate.matter.priority));
-  const [date, setDate] = useState(dateInput(aggregate.matter.due_at));
+  const [date, setDate] = useState(storedDeadlineLocalDate(aggregate.matter.due_at));
   const [affectedArea, setAffectedArea] = useState(String(aggregate.matter.scope.affected_area ?? aggregate.matter.scope.area ?? ""));
   const [rationale, setRationale] = useState("");
   const [newOwner, setNewOwner] = useState(assignmentOperation?.candidates?.[0]?.id ?? "");
@@ -69,7 +62,7 @@ export function MatterDetailsPanel({ aggregate, operations, onUpdated, onReload 
     setSaving(true); setError(""); setConflict(false); setNotice("");
     try {
       const updated = await updateMatterDetails(aggregate.matter.id, aggregate.matter.version, {
-        title: title.trim(), summary: summary.trim(), priority: Number(priority), dueAt: dueAt(date),
+        title: title.trim(), summary: summary.trim(), priority: Number(priority), dueAt: selectedDateEndOfLocalDay(date),
         scope: { ...aggregate.matter.scope, affected_area: affectedArea.trim() }, rationale: rationale.trim(),
       });
       await onUpdated(updated);
@@ -120,7 +113,7 @@ export function MatterDetailsPanel({ aggregate, operations, onUpdated, onReload 
     </div>
     <dl className="matter-record-facts">
       <div><dt>Affected area</dt><dd>{affectedArea || "Not recorded"}</dd></div>
-      <div><dt>Accountable owner</dt><dd>{owner?.display_name ?? aggregate.matter.owner_principal_id ?? "Owner not resolved"}</dd></div>
+      <div><dt>Accountable owner</dt><dd>{owner?.display_name ?? (aggregate.matter.owner_principal_id ? "Recorded issue owner unavailable" : "Issue owner not assigned")}</dd></div>
       <div><dt>Due date</dt><dd>{date || "Not recorded"}</dd></div>
     </dl>
     <section className="matter-program-links" aria-labelledby="matter-program-links-title"><strong id="matter-program-links-title">Linked Programs</strong>{aggregate.links.length ? <ul>{aggregate.links.map((link) => { const program = programs.find((value) => value.program.id === link.program_id); return <li key={link.id}><span>{program?.program.name ?? "Linked Program name unavailable"}</span><small>{link.relationship.replaceAll("_", " ").toLowerCase()}</small></li>; })}</ul> : <p>This issue is not linked to a Program.</p>}</section>
