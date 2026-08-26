@@ -186,11 +186,30 @@ func (s *Service) AcceptProgramReview(ctx context.Context, input AcceptProgramRe
 	if err != nil {
 		return ProgramReviewDigest{}, err
 	}
-	_, err = repo.RecordProgramReview(ctx, checkpoint, event)
+	recorded, err := repo.RecordProgramReview(ctx, checkpoint, event)
 	if err != nil {
 		return ProgramReviewDigest{}, err
 	}
-	return s.ProgramReviewDigest(ctx, input.TenantID, input.ProgramID, input.PrincipalID)
+	return acceptedProgramReviewDigest(recorded, aggregate, *current), nil
+}
+
+func acceptedProgramReviewDigest(checkpoint ProgramReviewCheckpoint, aggregate ProgramAggregate, current ProgramStateSnapshot) ProgramReviewDigest {
+	return ProgramReviewDigest{
+		ProgramID:                aggregate.Program.ID,
+		State:                    "CURRENT",
+		ReviewRequired:           false,
+		Checkpoint:               &checkpoint,
+		CurrentProgramVersion:    aggregate.Program.Version,
+		CurrentProjectionVersion: current.ProjectionVersion,
+		CurrentOverall:           current.Overall,
+		BaselineOverall:          current.Overall,
+		OpenMatterCount:          current.OpenMatterCount,
+		Changes:                  []ProgramReviewChange{},
+		CurrentExceptions:        limitReasons(current.Reasons, programReviewItemLimit),
+		CurrentExceptionsTotal:   len(current.Reasons),
+		NewExceptions:            []StateReason{},
+		ResolvedExceptions:       []StateReason{},
+	}
 }
 
 func currentReviewState(aggregate ProgramAggregate) (*ProgramStateSnapshot, error) {
