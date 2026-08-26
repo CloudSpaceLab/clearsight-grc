@@ -295,6 +295,18 @@ func (s *assignmentAuthorityStub) Resolve(_ context.Context, input authority.Res
 	return s.resolutions[input.Responsibility], nil
 }
 
+func (s *assignmentAuthorityStub) ResolveMany(_ context.Context, inputs []authority.ResolveInput) ([]authority.ResolveOutcome, error) {
+	outcomes := make([]authority.ResolveOutcome, len(inputs))
+	for index, input := range inputs {
+		if s.err != nil {
+			outcomes[index].Err = s.err
+			continue
+		}
+		outcomes[index].Resolution = s.resolutions[input.Responsibility]
+	}
+	return outcomes, nil
+}
+
 func (s *assignmentAuthorityStub) Simulate(context.Context, authority.ResolveInput) (authority.Simulation, error) {
 	return authority.Simulation{}, nil
 }

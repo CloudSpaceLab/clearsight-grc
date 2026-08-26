@@ -55,6 +55,20 @@ type ResolveInput struct {
 	At             time.Time      `json:"at,omitempty"`
 }
 
+// ResolveOutcome keeps a batch result aligned with its ResolveInput. Route
+// failures belong to one input; infrastructure failures are returned by
+// ResolveMany itself.
+type ResolveOutcome struct {
+	Resolution Resolution
+	Err        error
+}
+
+// BatchResolver resolves an exact, bounded set of authority questions without
+// requiring one repository round trip per object.
+type BatchResolver interface {
+	ResolveMany(context.Context, []ResolveInput) ([]ResolveOutcome, error)
+}
+
 type Resolution struct {
 	Principal           Principal         `json:"principal"`
 	CandidatePrincipals []Principal       `json:"candidate_principals,omitempty"`

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -26,9 +27,53 @@ type capturingProgramAuthority struct {
 	legalEntities []string
 }
 
+type countingProgramBatchAuthority struct {
+	batchCalls  int
+	scalarCalls int
+	byObject    map[string]authority.Resolution
+}
+
+func (s *countingProgramBatchAuthority) Resolve(context.Context, authority.ResolveInput) (authority.Resolution, error) {
+	s.scalarCalls++
+	return authority.Resolution{}, errors.New("scalar authority resolution must not be used for Program operations")
+}
+
+func (s *countingProgramBatchAuthority) ResolveMany(_ context.Context, inputs []authority.ResolveInput) ([]authority.ResolveOutcome, error) {
+	s.batchCalls++
+	outcomes := make([]authority.ResolveOutcome, len(inputs))
+	for index, input := range inputs {
+		resolution, ok := s.byObject[input.ObjectID]
+		if !ok {
+			resolution = authority.Resolution{
+				Principal:           authority.Principal{ID: "owner-1", DisplayName: "Program owner"},
+				CandidatePrincipals: []authority.Principal{{ID: "owner-1", DisplayName: "Program owner"}},
+			}
+		}
+		outcomes[index].Resolution = resolution
+	}
+	return outcomes, nil
+}
+
+func (s *countingProgramBatchAuthority) Simulate(context.Context, authority.ResolveInput) (authority.Simulation, error) {
+	return authority.Simulation{}, nil
+}
+func (s *countingProgramBatchAuthority) Integrity(context.Context, string) ([]authority.IntegrityFinding, error) {
+	return nil, nil
+}
+func (s *countingProgramBatchAuthority) Policies(context.Context, string) ([]authority.PolicySummary, error) {
+	return nil, nil
+}
+
 func (s *capturingProgramAuthority) Resolve(ctx context.Context, input authority.ResolveInput) (authority.Resolution, error) {
 	s.legalEntities = append(s.legalEntities, input.LegalEntityID)
 	return s.assignmentAuthorityStub.Resolve(ctx, input)
+}
+
+func (s *capturingProgramAuthority) ResolveMany(ctx context.Context, inputs []authority.ResolveInput) ([]authority.ResolveOutcome, error) {
+	for _, input := range inputs {
+		s.legalEntities = append(s.legalEntities, input.LegalEntityID)
+	}
+	return s.assignmentAuthorityStub.ResolveMany(ctx, inputs)
 }
 
 func TestProgramSetupCandidatesAndCreationKeepOwnerAndApprovalAuthorityDistinct(t *testing.T) {
@@ -458,5 +503,65 @@ func TestProgramOperationsExposeMonitoringResponsibilitiesPerCheck(t *testing.T)
 	}
 	if find(reviewer, "program.monitoring.define", "").CanAct || find(owner, "program.monitoring.evaluate", active.ID).CanAct {
 		t.Fatal("monitoring operations were granted outside their current responsibility")
+	}
+}
+
+func TestProgramOperationsResolveAuthorityOnceForAnyCheckCountAndKeepReviewerLineageExact(t *testing.T) {
+	for _, checkCount := range []int{1, 40} {
+		t.Run(fmt.Sprintf("checks_%d", checkCount), func(t *testing.T) {
+			now := time.Now().UTC()
+			aggregate := continuity.ProgramAggregate{Program: continuity.Program{
+				ID: "program-batch", TenantID: "bank", LegalEntityID: "entity-a", Code: "NDPA", Name: "Data protection",
+				Status: continuity.ProgramActive, OwnerPrincipalID: "owner-1", AuthorityPrincipalID: "authorizer-1", Version: 7,
+				CreatedAt: now, UpdatedAt: now,
+			}}
+			repository := monitoring.NewMemoryRepository()
+			byObject := make(map[string]authority.Resolution, checkCount)
+			for index := 0; index < checkCount; index++ {
+				checkID := fmt.Sprintf("check-%02d", index)
+				reviewerID := fmt.Sprintf("reviewer-%02d", index)
+				_, err := repository.CreateCheckRevision(t.Context(), monitoring.MonitoringCheck{
+					ID: checkID, TenantID: "bank", ProgramID: aggregate.Program.ID, Code: strings.ToUpper(checkID), Name: "Current source check " + checkID,
+					InputKind: monitoring.InputSource, OwnerPrincipalID: "owner-1", ReviewerPrincipalID: reviewerID,
+					FailureAction: monitoring.FailureRecommendMatter,
+					Lifecycle:     monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 1, CreatedBy: "owner-1", CreatedAt: now, UpdatedAt: now},
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				resolution := authority.Resolution{
+					Principal:           authority.Principal{ID: reviewerID, DisplayName: "Reviewer " + reviewerID},
+					CandidatePrincipals: []authority.Principal{{ID: reviewerID, DisplayName: "Reviewer " + reviewerID}},
+					EffectiveOrigins:    []authority.EffectiveOrigin{{PrincipalID: reviewerID, OriginPrincipalID: reviewerID}},
+				}
+				if index == checkCount-1 {
+					resolution.CandidatePrincipals = append(resolution.CandidatePrincipals, authority.Principal{ID: "current-delegate", DisplayName: "Current delegate"})
+					resolution.EffectiveOrigins = append(resolution.EffectiveOrigins, authority.EffectiveOrigin{PrincipalID: "current-delegate", OriginPrincipalID: reviewerID})
+				}
+				byObject[checkID] = resolution
+			}
+
+			resolver := &countingProgramBatchAuthority{byObject: byObject}
+			api := &API{deps: Dependencies{Authority: resolver, Monitoring: monitoring.NewService(repository, nil)}}
+			payload := api.buildProgramOperations(t.Context(), identity.Actor{
+				TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "current-delegate",
+			}, aggregate, now)
+
+			if resolver.batchCalls != 1 || resolver.scalarCalls != 0 {
+				t.Fatalf("authority calls = batch %d scalar %d, want one batch and zero scalar for %d checks", resolver.batchCalls, resolver.scalarCalls, checkCount)
+			}
+			lastCheckID := fmt.Sprintf("check-%02d", checkCount-1)
+			for _, operation := range payload.Operations {
+				if operation.Command != "program.monitoring.issue.create" {
+					continue
+				}
+				if operation.SubresourceID == lastCheckID && !operation.CanAct {
+					t.Fatalf("delegate for %s could not act: %#v", lastCheckID, operation)
+				}
+				if operation.SubresourceID != lastCheckID && operation.CanAct {
+					t.Fatalf("delegate for %s was granted reviewer authority on %s: %#v", lastCheckID, operation.SubresourceID, operation)
+				}
+			}
+		})
 	}
 }

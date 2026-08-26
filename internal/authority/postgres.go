@@ -15,6 +15,8 @@ import (
 
 type postgresService struct{ pool *pgxpool.Pool }
 
+var _ BatchResolver = (*postgresService)(nil)
+
 func NewPostgresService(pool *pgxpool.Pool) Service { return &postgresService{pool: pool} }
 
 type routeGroup struct {
@@ -71,6 +73,266 @@ func (s *postgresService) Resolve(ctx context.Context, input ResolveInput) (Reso
 	}
 	return *simulation.Selected, nil
 }
+
+type batchResolveRequest struct {
+	RequestIndex int `json:"request_index"`
+	ResolveInput
+}
+
+func (s *postgresService) ResolveMany(ctx context.Context, inputs []ResolveInput) ([]ResolveOutcome, error) {
+	outcomes := make([]ResolveOutcome, len(inputs))
+	requests := make([]batchResolveRequest, 0, len(inputs))
+	for index, input := range inputs {
+		if err := validateInput(input); err != nil {
+			outcomes[index].Err = err
+			continue
+		}
+		if input.At.IsZero() {
+			input.At = time.Now().UTC()
+		}
+		requests = append(requests, batchResolveRequest{RequestIndex: index, ResolveInput: input})
+		outcomes[index].Err = ErrNoRoute
+	}
+	if len(requests) == 0 {
+		return outcomes, nil
+	}
+	encoded, err := json.Marshal(requests)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.pool.Query(ctx, batchResolveSQL, string(encoded))
+	if err != nil {
+		return nil, fmt.Errorf("batch resolve authority: %w", err)
+	}
+	defer rows.Close()
+	type selectedRoute struct {
+		input         ResolveInput
+		ruleID        string
+		policyVersion string
+		strategy      string
+		priority      int
+		ambiguous     bool
+		candidates    []effectiveCandidate
+	}
+	selected := make(map[int]*selectedRoute, len(requests))
+	for rows.Next() {
+		var index, priority int
+		var ruleID, policyVersion, strategy string
+		var ambiguous bool
+		var principalID, displayName, kind, role, originID *string
+		if err := rows.Scan(&index, &ruleID, &policyVersion, &strategy, &priority, &ambiguous, &principalID, &displayName, &kind, &role, &originID); err != nil {
+			return nil, err
+		}
+		route := selected[index]
+		if route == nil {
+			route = &selectedRoute{input: inputs[index], ruleID: ruleID, policyVersion: policyVersion, strategy: strategy, priority: priority, ambiguous: ambiguous}
+			selected[index] = route
+		}
+		if principalID != nil && originID != nil {
+			route.candidates = append(route.candidates, effectiveCandidate{Principal: Principal{ID: *principalID, DisplayName: dereference(displayName), Kind: dereference(kind), Role: dereference(role)}, OriginID: *originID})
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	for index, route := range selected {
+		if route.ambiguous {
+			outcomes[index].Err = fmt.Errorf("%w: top-ranked routes disagree", ErrAmbiguousRoute)
+			continue
+		}
+		principals := uniquePrincipals(route.candidates)
+		if len(principals) == 0 {
+			continue
+		}
+		strategy := route.strategy
+		if len(principals) > 1 {
+			strategy = "CANDIDATE_SET"
+		}
+		outcomes[index] = ResolveOutcome{Resolution: Resolution{
+			Principal: principals[0], CandidatePrincipals: principals, EffectiveOrigins: uniqueEffectiveOrigins(route.candidates),
+			Strategy: strategy, RuleID: route.ruleID, PolicyVersion: route.policyVersion,
+			Explanation: resolutionExplanation(principals[0], principals, strategy, route.input),
+		}}
+	}
+	return outcomes, nil
+}
+
+func dereference(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
+}
+
+const batchResolveSQL = `
+WITH RECURSIVE requests AS (
+	SELECT request_index,tenant_id,legal_entity_id,object_type,object_id,responsibility,
+	       COALESCE(decision_type,'') AS decision_type,materiality,at,
+	       t.id AS tenant_uuid
+	FROM jsonb_to_recordset($1::jsonb) AS x(
+		request_index integer,tenant_id text,legal_entity_id text,object_type text,object_id text,
+		responsibility text,decision_type text,materiality integer,at timestamptz
+	)
+	JOIN tenants t ON t.id::text=x.tenant_id OR t.slug=x.tenant_id
+), route_defs AS (
+	SELECT r.request_index,ear.source_rule_id AS rule_id,ear.policy_version,ear.priority,
+	       (CASE WHEN ear.legal_entity_ref <> '*' THEN 8 ELSE 0 END +
+	        CASE WHEN ear.object_type <> '*' THEN 4 ELSE 0 END +
+	        CASE WHEN ear.object_id <> '*' THEN 2 ELSE 0 END +
+	        CASE WHEN ear.decision_type <> '' THEN 1 ELSE 0 END) AS specificity,
+	       ear.selector_kind,ear.selector_ref,ear.resolution_strategy
+	FROM requests r
+	JOIN effective_authority_routes ear ON ear.tenant_id=r.tenant_uuid
+	WHERE (ear.legal_entity_ref='*' OR ear.legal_entity_ref=r.legal_entity_id OR EXISTS (
+		SELECT 1 FROM legal_entities le WHERE le.tenant_id=ear.tenant_id
+		AND (le.id::text=r.legal_entity_id OR le.code=r.legal_entity_id) AND ear.legal_entity_ref=le.id::text
+	))
+	  AND (ear.object_type='*' OR upper(ear.object_type)=upper(r.object_type))
+	  AND (ear.object_id='*' OR ear.object_id=r.object_id)
+	  AND ear.responsibility=r.responsibility
+	  AND (ear.decision_type='' OR upper(ear.decision_type)=upper(r.decision_type))
+	  AND ear.min_materiality <= r.materiality
+	  AND ear.valid_from <= r.at AND (ear.valid_until IS NULL OR r.at < ear.valid_until)
+	UNION ALL
+	SELECT r.request_index,'assignment:' || ra.id::text,ra.policy_version,ra.priority,
+	       (CASE WHEN ra.legal_entity_id IS NOT NULL THEN 8 ELSE 0 END + 4 +
+	        CASE WHEN ra.object_id IS NOT NULL THEN 2 ELSE 0 END +
+	        CASE WHEN COALESCE(ra.decision_type,'') <> '' THEN 1 ELSE 0 END),
+	       CASE WHEN ra.principal_id IS NOT NULL THEN 'PRINCIPAL_ID' WHEN ra.position_id IS NOT NULL THEN 'POSITION_ID' ELSE 'ROLE_ID' END,
+	       COALESCE(ra.principal_id::text,ra.position_id::text,ra.role_template_id::text),
+	       upper(COALESCE(NULLIF(ra.resolution_strategy,''),'DIRECT'))
+	FROM requests r
+	JOIN responsibility_assignments ra ON ra.tenant_id=r.tenant_uuid
+	WHERE (ra.legal_entity_id IS NULL OR EXISTS (
+		SELECT 1 FROM legal_entities le WHERE le.id=ra.legal_entity_id AND le.tenant_id=ra.tenant_id
+		AND (le.id::text=r.legal_entity_id OR le.code=r.legal_entity_id)
+	))
+	  AND upper(ra.object_type)=upper(r.object_type)
+	  AND (ra.object_id IS NULL OR ra.object_id::text=r.object_id)
+	  AND ra.responsibility=r.responsibility
+	  AND (COALESCE(ra.decision_type,'')='' OR upper(ra.decision_type)=upper(r.decision_type))
+	  AND ra.valid_from <= r.at AND (ra.valid_until IS NULL OR r.at < ra.valid_until)
+), resolved AS (
+	SELECT rd.*,p.id,p.display_name,p.kind,p.role
+	FROM route_defs rd
+	JOIN requests r USING (request_index)
+	JOIN LATERAL (
+		SELECT p.id::text AS id,p.display_name,p.kind,'' AS role
+		FROM principals p
+		WHERE rd.selector_kind IN ('PRINCIPAL','TEAM','QUEUE','COMMITTEE')
+		  AND p.tenant_id=r.tenant_uuid AND (p.id::text=rd.selector_ref OR p.external_ref=rd.selector_ref)
+		  AND p.status='ACTIVE' AND p.valid_from <= r.at AND (p.valid_until IS NULL OR r.at < p.valid_until)
+		  AND (rd.selector_kind='PRINCIPAL' OR p.kind=rd.selector_kind)
+		UNION ALL
+		SELECT p.id::text,p.display_name,p.kind,'' FROM principals p
+		WHERE rd.selector_kind='PRINCIPAL_ID' AND p.id::text=rd.selector_ref AND p.tenant_id=r.tenant_uuid
+		  AND p.status='ACTIVE' AND p.valid_from <= r.at AND (p.valid_until IS NULL OR r.at < p.valid_until)
+		UNION ALL
+		SELECT p.id::text,p.display_name,p.kind,COALESCE(op.title,'')
+		FROM org_positions op JOIN principals p ON p.id=op.occupant_principal_id
+		WHERE rd.selector_kind IN ('POSITION','POSITION_ID') AND op.tenant_id=r.tenant_uuid
+		  AND ((rd.selector_kind='POSITION' AND (op.code=rd.selector_ref OR op.id::text=rd.selector_ref)) OR
+		       (rd.selector_kind='POSITION_ID' AND op.id::text=rd.selector_ref))
+		  AND (op.legal_entity_id IS NULL OR EXISTS (SELECT 1 FROM legal_entities le WHERE le.id=op.legal_entity_id AND (le.id::text=r.legal_entity_id OR le.code=r.legal_entity_id)))
+		  AND op.valid_from <= r.at AND (op.valid_until IS NULL OR r.at < op.valid_until)
+		  AND p.status='ACTIVE' AND p.valid_from <= r.at AND (p.valid_until IS NULL OR r.at < p.valid_until)
+		UNION ALL
+		SELECT p.id::text,p.display_name,p.kind,rt.name
+		FROM role_templates rt
+		JOIN position_role_bindings prb ON prb.role_template_id=rt.id
+		JOIN org_positions op ON op.id=prb.position_id
+		JOIN principals p ON p.id=op.occupant_principal_id
+		WHERE rd.selector_kind IN ('ROLE','ROLE_ID') AND rt.tenant_id=r.tenant_uuid
+		  AND ((rd.selector_kind='ROLE' AND (rt.code=rd.selector_ref OR rt.id::text=rd.selector_ref)) OR
+		       (rd.selector_kind='ROLE_ID' AND rt.id::text=rd.selector_ref))
+		  AND (op.legal_entity_id IS NULL OR EXISTS (SELECT 1 FROM legal_entities le WHERE le.id=op.legal_entity_id AND (le.id::text=r.legal_entity_id OR le.code=r.legal_entity_id)))
+		  AND rt.valid_from <= r.at AND (rt.valid_until IS NULL OR r.at < rt.valid_until)
+		  AND prb.valid_from <= r.at AND (prb.valid_until IS NULL OR r.at < prb.valid_until)
+		  AND op.valid_from <= r.at AND (op.valid_until IS NULL OR r.at < op.valid_until)
+		  AND p.status='ACTIVE' AND p.valid_from <= r.at AND (p.valid_until IS NULL OR r.at < p.valid_until)
+	) p ON true
+), route_groups AS (
+	SELECT request_index,rule_id,policy_version,resolution_strategy,priority,specificity,
+	       array_agg(DISTINCT id ORDER BY id) AS candidate_ids
+	FROM resolved
+	GROUP BY request_index,rule_id,policy_version,resolution_strategy,priority,specificity
+), ranked_routes AS (
+	SELECT g.*,row_number() OVER (PARTITION BY request_index ORDER BY priority DESC,specificity DESC,rule_id) AS route_number
+	FROM route_groups g
+), selected AS (
+	SELECT g.*,
+	       EXISTS (SELECT 1 FROM route_groups other
+	               WHERE other.request_index=g.request_index AND other.priority=g.priority AND other.specificity=g.specificity
+	                 AND other.candidate_ids <> g.candidate_ids) AS ambiguous
+	FROM ranked_routes g WHERE g.route_number=1
+), seed AS (
+	SELECT s.request_index,s.rule_id,s.policy_version,s.resolution_strategy,s.priority,s.ambiguous,
+	       rc.id::uuid AS origin_id,rc.id::uuid AS principal_id,rc.role AS seed_role,ARRAY[rc.id::uuid] AS path,0 AS depth
+	FROM selected s JOIN resolved rc ON rc.request_index=s.request_index AND rc.rule_id=s.rule_id AND rc.policy_version=s.policy_version
+), chain(request_index,rule_id,policy_version,resolution_strategy,priority,ambiguous,origin_id,principal_id,seed_role,path,depth) AS (
+	SELECT request_index,rule_id,policy_version,resolution_strategy,priority,ambiguous,origin_id,principal_id,seed_role,path,depth FROM seed
+	UNION ALL
+	SELECT c.request_index,c.rule_id,c.policy_version,c.resolution_strategy,c.priority,c.ambiguous,
+	       c.origin_id,d.to_principal_id,c.seed_role,c.path || d.to_principal_id,c.depth+1
+	FROM chain c JOIN requests r USING (request_index)
+	JOIN delegations d ON d.tenant_id=r.tenant_uuid AND d.from_principal_id=c.principal_id
+	WHERE d.responsibility=r.responsibility AND d.status='ACTIVE'
+	  AND d.starts_at <= r.at AND r.at < d.ends_at AND c.depth < 8 AND NOT d.to_principal_id=ANY(c.path)
+	  AND (NOT (d.scope ? 'legal_entity_id') OR d.scope->>'legal_entity_id' IN ('*',r.legal_entity_id))
+	  AND (NOT (d.scope ? 'object_type') OR upper(d.scope->>'object_type') IN ('*',upper(r.object_type)))
+	  AND (NOT (d.scope ? 'object_id') OR d.scope->>'object_id' IN ('*',r.object_id))
+	  AND (NOT (d.scope ? 'decision_type') OR upper(d.scope->>'decision_type') IN ('*',upper(r.decision_type)))
+), applicable_grants AS (
+	SELECT r.request_index,ag.* FROM requests r JOIN authority_grants ag ON ag.tenant_id=r.tenant_uuid
+	WHERE (ag.legal_entity_id IS NULL OR EXISTS (
+		SELECT 1 FROM legal_entities le WHERE le.id=ag.legal_entity_id AND (le.id::text=r.legal_entity_id OR le.code=r.legal_entity_id)
+	))
+	  AND (ag.decision_type='*' OR upper(ag.decision_type)=upper(r.decision_type))
+	  AND ag.valid_from <= r.at AND (ag.valid_until IS NULL OR r.at < ag.valid_until)
+), granted AS (
+	SELECT request_index,id AS grant_id,principal_id FROM applicable_grants WHERE principal_id IS NOT NULL
+	UNION
+	SELECT g.request_index,g.id,op.occupant_principal_id FROM applicable_grants g
+	JOIN requests r USING (request_index) JOIN org_positions op ON op.id=g.position_id
+	WHERE g.position_id IS NOT NULL AND op.valid_from <= r.at AND (op.valid_until IS NULL OR r.at < op.valid_until)
+	UNION
+	SELECT g.request_index,g.id,op.occupant_principal_id FROM applicable_grants g
+	JOIN requests r USING (request_index)
+	JOIN position_role_bindings prb ON prb.role_template_id=g.role_template_id
+	JOIN org_positions op ON op.id=prb.position_id
+	WHERE g.role_template_id IS NOT NULL
+	  AND prb.valid_from <= r.at AND (prb.valid_until IS NULL OR r.at < prb.valid_until)
+	  AND op.valid_from <= r.at AND (op.valid_until IS NULL OR r.at < op.valid_until)
+), blocked AS (
+	SELECT DISTINCT r.request_index,op.occupant_principal_id AS principal_id
+	FROM requests r
+	JOIN segregation_rules sr ON sr.tenant_id=r.tenant_uuid AND sr.responsibility=r.responsibility AND sr.status='ACTIVE'
+	JOIN role_templates rt ON rt.tenant_id=r.tenant_uuid AND rt.code=sr.prohibited_role_code
+	JOIN position_role_bindings prb ON prb.role_template_id=rt.id
+	JOIN org_positions op ON op.id=prb.position_id
+	WHERE sr.valid_from <= r.at AND (sr.valid_until IS NULL OR r.at < sr.valid_until)
+	  AND rt.valid_from <= r.at AND (rt.valid_until IS NULL OR r.at < rt.valid_until)
+	  AND prb.valid_from <= r.at AND (prb.valid_until IS NULL OR r.at < prb.valid_until)
+	  AND op.valid_from <= r.at AND (op.valid_until IS NULL OR r.at < op.valid_until)
+), effective AS (
+	SELECT DISTINCT c.request_index,c.principal_id,c.origin_id,c.seed_role
+	FROM chain c JOIN requests r USING (request_index)
+	JOIN principals p ON p.id=c.principal_id
+	WHERE p.status='ACTIVE' AND p.valid_from <= r.at AND (p.valid_until IS NULL OR r.at < p.valid_until)
+	  AND (NOT EXISTS (SELECT 1 FROM applicable_grants ag WHERE ag.request_index=c.request_index)
+	       OR EXISTS (SELECT 1 FROM applicable_grants ag JOIN granted g ON g.request_index=ag.request_index AND g.grant_id=ag.id
+	                  WHERE ag.request_index=c.request_index
+	                    AND COALESCE(NULLIF(ag.limits->>'min_materiality','')::integer,0) <= r.materiality
+	                    AND COALESCE(NULLIF(ag.limits->>'max_materiality','')::integer,5) >= r.materiality
+	                    AND g.principal_id IN (c.principal_id,c.origin_id)))
+	  AND NOT EXISTS (SELECT 1 FROM blocked b WHERE b.request_index=c.request_index AND b.principal_id=c.principal_id)
+)
+SELECT s.request_index,s.rule_id,s.policy_version,s.resolution_strategy,s.priority,s.ambiguous,
+	   p.id::text,p.display_name,p.kind,CASE WHEN e.principal_id=e.origin_id THEN e.seed_role ELSE '' END AS role,e.origin_id::text
+FROM selected s
+LEFT JOIN effective e ON e.request_index=s.request_index
+LEFT JOIN principals p ON p.id=e.principal_id
+ORDER BY s.request_index,p.id::text,e.origin_id::text`
 
 func (s *postgresService) Simulate(ctx context.Context, input ResolveInput) (Simulation, error) {
 	if err := validateInput(input); err != nil {

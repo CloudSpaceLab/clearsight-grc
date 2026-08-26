@@ -27,6 +27,13 @@ type fixedProgramAuthority struct {
 func (s fixedProgramAuthority) Resolve(context.Context, authority.ResolveInput) (authority.Resolution, error) {
 	return s.resolution, nil
 }
+func (s fixedProgramAuthority) ResolveMany(_ context.Context, inputs []authority.ResolveInput) ([]authority.ResolveOutcome, error) {
+	outcomes := make([]authority.ResolveOutcome, len(inputs))
+	for index := range outcomes {
+		outcomes[index].Resolution = s.resolution
+	}
+	return outcomes, nil
+}
 func (s fixedProgramAuthority) Simulate(context.Context, authority.ResolveInput) (authority.Simulation, error) {
 	return authority.Simulation{}, nil
 }

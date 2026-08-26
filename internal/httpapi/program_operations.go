@@ -74,10 +74,9 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 	if aggregate.Program.Status == continuity.ProgramRetired {
 		return response
 	}
+	specs := make([]programOperationSpec, 0, 16)
 	add := func(spec programOperationSpec) {
-		operation, available := a.resolveProgramOperation(ctx, actor, aggregate.Program, spec)
-		response.AuthorityAvailable = response.AuthorityAvailable && available
-		response.Operations = append(response.Operations, operation)
+		specs = append(specs, spec)
 	}
 	ownerID := aggregate.Program.OwnerPrincipalID
 	approvalAuthorityID := aggregate.Program.AuthorityPrincipalID
@@ -179,6 +178,7 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 			})
 		}
 	}
+	response.Operations, response.AuthorityAvailable = a.resolveProgramOperations(ctx, actor, aggregate.Program, specs, response.AuthorityAvailable, now)
 	return response
 }
 
@@ -209,7 +209,83 @@ type programOperationSpec struct {
 	AllowedTargets          []string
 }
 
-func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor, program continuity.Program, spec programOperationSpec) (RecordOperation, bool) {
+type programOperationResolution struct {
+	primary   authority.ResolveOutcome
+	candidate *authority.ResolveOutcome
+}
+
+func (a *API) resolveProgramOperations(ctx context.Context, actor identity.Actor, program continuity.Program, specs []programOperationSpec, authorityAvailable bool, at time.Time) ([]RecordOperation, bool) {
+	operations := make([]RecordOperation, 0, len(specs))
+	if len(specs) == 0 {
+		return operations, authorityAvailable
+	}
+	batch, ok := a.deps.Authority.(authority.BatchResolver)
+	if !ok {
+		for _, spec := range specs {
+			operation, _ := a.resolveProgramOperation(ctx, actor, program, spec, programOperationResolution{
+				primary: authority.ResolveOutcome{Err: errors.New("batch authority resolution is unavailable")},
+			})
+			operations = append(operations, operation)
+		}
+		return operations, false
+	}
+
+	inputs := make([]authority.ResolveInput, 0, len(specs)*2)
+	primaryIndexes := make([]int, len(specs))
+	candidateIndexes := make([]int, len(specs))
+	for index := range candidateIndexes {
+		candidateIndexes[index] = -1
+	}
+	inputFor := func(spec programOperationSpec, responsibility authority.Responsibility) authority.ResolveInput {
+		decisionType := spec.DecisionType
+		if decisionType == "" {
+			decisionType = spec.Command
+		}
+		objectType := strings.TrimSpace(spec.ObjectType)
+		if objectType == "" {
+			objectType = "PROGRAM"
+		}
+		objectID := strings.TrimSpace(spec.ObjectID)
+		if objectID == "" {
+			objectID = program.ID
+		}
+		return authority.ResolveInput{
+			TenantID: actor.TenantID, LegalEntityID: program.LegalEntityID, ObjectType: objectType, ObjectID: objectID,
+			Responsibility: responsibility, DecisionType: decisionType, Materiality: spec.Materiality, At: at.UTC(),
+		}
+	}
+	for index, spec := range specs {
+		primaryIndexes[index] = len(inputs)
+		inputs = append(inputs, inputFor(spec, spec.Responsibility))
+		if spec.IncludeCandidates && spec.CandidateResponsibility != "" && spec.CandidateResponsibility != spec.Responsibility {
+			candidateIndexes[index] = len(inputs)
+			inputs = append(inputs, inputFor(spec, spec.CandidateResponsibility))
+		}
+	}
+	outcomes, err := batch.ResolveMany(ctx, inputs)
+	if err != nil || len(outcomes) != len(inputs) {
+		outcomes = make([]authority.ResolveOutcome, len(inputs))
+		failure := err
+		if failure == nil {
+			failure = errors.New("batch authority resolution returned incomplete results")
+		}
+		for index := range outcomes {
+			outcomes[index].Err = failure
+		}
+	}
+	for index, spec := range specs {
+		resolved := programOperationResolution{primary: outcomes[primaryIndexes[index]]}
+		if candidateIndexes[index] >= 0 {
+			resolved.candidate = &outcomes[candidateIndexes[index]]
+		}
+		operation, available := a.resolveProgramOperation(ctx, actor, program, spec, resolved)
+		authorityAvailable = authorityAvailable && available
+		operations = append(operations, operation)
+	}
+	return operations, authorityAvailable
+}
+
+func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor, program continuity.Program, spec programOperationSpec, resolved programOperationResolution) (RecordOperation, bool) {
 	operation := RecordOperation{
 		Command: spec.Command, SubresourceID: spec.SubresourceID, Label: spec.Label,
 		Responsibility: string(spec.Responsibility), AllowedTargets: spec.AllowedTargets,
@@ -222,22 +298,7 @@ func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor,
 		operation.Reason = "Responsibility could not be checked. No Program change is available until the authority route is restored."
 		return operation, false
 	}
-	decisionType := spec.DecisionType
-	if decisionType == "" {
-		decisionType = spec.Command
-	}
-	objectType := strings.TrimSpace(spec.ObjectType)
-	if objectType == "" {
-		objectType = "PROGRAM"
-	}
-	objectID := strings.TrimSpace(spec.ObjectID)
-	if objectID == "" {
-		objectID = program.ID
-	}
-	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
-		TenantID: actor.TenantID, LegalEntityID: program.LegalEntityID, ObjectType: objectType, ObjectID: objectID,
-		Responsibility: spec.Responsibility, DecisionType: decisionType, Materiality: spec.Materiality,
-	})
+	resolution, err := resolved.primary.Resolution, resolved.primary.Err
 	if err != nil {
 		if errors.Is(err, authority.ErrNoRoute) {
 			operation.Reason = fmt.Sprintf("No current %s route is available for this Program. Ask a GRC administrator to restore the route.", responsibilityLabel(spec.Responsibility))
@@ -253,11 +314,8 @@ func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor,
 	}
 	if spec.IncludeCandidates {
 		candidateResolution := resolution
-		if spec.CandidateResponsibility != "" && spec.CandidateResponsibility != spec.Responsibility {
-			candidateResolution, err = a.deps.Authority.Resolve(ctx, authority.ResolveInput{
-				TenantID: actor.TenantID, LegalEntityID: program.LegalEntityID, ObjectType: objectType, ObjectID: objectID,
-				Responsibility: spec.CandidateResponsibility, DecisionType: decisionType, Materiality: spec.Materiality,
-			})
+		if resolved.candidate != nil {
+			candidateResolution, err = resolved.candidate.Resolution, resolved.candidate.Err
 			if err != nil {
 				operation.Reason = "Eligible assignment candidates could not be checked. No assignment change is available."
 				return operation, !errors.Is(err, authority.ErrNoRoute)

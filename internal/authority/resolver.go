@@ -50,6 +50,14 @@ func (r *Resolver) Resolve(ctx context.Context, input ResolveInput) (Resolution,
 	return *simulation.Selected, nil
 }
 
+func (r *Resolver) ResolveMany(ctx context.Context, inputs []ResolveInput) ([]ResolveOutcome, error) {
+	outcomes := make([]ResolveOutcome, len(inputs))
+	for index, input := range inputs {
+		outcomes[index].Resolution, outcomes[index].Err = r.Resolve(ctx, input)
+	}
+	return outcomes, nil
+}
+
 func (r *Resolver) Simulate(_ context.Context, input ResolveInput) (Simulation, error) {
 	if err := validateInput(input); err != nil {
 		return Simulation{}, err
