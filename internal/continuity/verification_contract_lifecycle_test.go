@@ -1,12 +1,34 @@
 package continuity
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
 )
+
+type failReadAfterMatterApplyRepository struct {
+	Repository
+	applied bool
+}
+
+func (r *failReadAfterMatterApplyRepository) GetMatter(ctx context.Context, tenant, id string) (MatterAggregate, error) {
+	if r.applied {
+		return MatterAggregate{}, fmt.Errorf("projection read unavailable")
+	}
+	return r.Repository.GetMatter(ctx, tenant, id)
+}
+
+func (r *failReadAfterMatterApplyRepository) ApplyMatterEvent(ctx context.Context, tenant, id string, expected int64, event Event) (int64, error) {
+	version, err := r.Repository.ApplyMatterEvent(ctx, tenant, id, expected, event)
+	if err == nil {
+		r.applied = true
+	}
+	return version, err
+}
 
 func TestSupersedeVerificationContractPreservesHistoryAndMovesClosureToReplacement(t *testing.T) {
 	ctx := WithTrustedSystemScope(t.Context())
@@ -136,5 +158,47 @@ func TestRetireVerificationContractIsOptimisticAndLeavesHistory(t *testing.T) {
 	})
 	if !errors.Is(err, ErrVersionConflict) {
 		t.Fatalf("stale supersession error = %v, want version conflict", err)
+	}
+}
+
+func TestVerificationContractLifecycleDoesNotFailAfterCommittedReadOutage(t *testing.T) {
+	base := NewMemoryRepository()
+	service := NewService(base)
+	ctx := WithTrustedSystemScope(t.Context())
+	now := time.Date(2026, 8, 26, 20, 0, 0, 0, time.UTC)
+	service.now = func() time.Time { return now }
+	matter, err := service.CreateMatter(ctx, CreateMatterInput{
+		TenantID: "bank", LegalEntityID: "entity-a", Type: MatterControlGap, Priority: 4,
+		Title: "Outcome read recovery", Summary: "The committed outcome lifecycle must not be reported as failed.",
+		Scope: json.RawMessage(`{}`), KnownFacts: json.RawMessage(`{}`), MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	matter, err = service.AddVerificationContract(ctx, AddVerificationContractInput{
+		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
+		ExpectedOutcome: "All access exceptions are closed.", Baseline: json.RawMessage(`{}`), Scope: json.RawMessage(`{}`), Threshold: json.RawMessage(`{}`),
+		AuthorityPrincipalID: "reviewer", FailureResponse: "BLOCK_CLOSE", ActorID: "reviewer",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	failing := &failReadAfterMatterApplyRepository{Repository: base}
+	service.repo = failing
+	contract := matter.VerificationContracts[0]
+	result, err := service.RetireVerificationContract(ctx, RetireVerificationContractInput{
+		TenantID: "bank", MatterID: matter.Matter.ID, ContractID: contract.ID, ExpectedVersion: matter.Matter.Version,
+		ActorID: "reviewer", Rationale: "The check was attached to the wrong issue.",
+	})
+	if err != nil {
+		t.Fatalf("committed retirement returned a read failure: %v", err)
+	}
+	if result.Matter.Version != matter.Matter.Version+1 || result.VerificationContracts[0].Status != VerificationRetired {
+		t.Fatalf("fallback result did not describe committed retirement: %#v", result)
+	}
+	stored, err := base.GetMatter(ctx, "bank", matter.Matter.ID)
+	if err != nil || stored.VerificationContracts[0].Status != VerificationRetired {
+		t.Fatalf("retirement was not committed: %#v err=%v", stored, err)
 	}
 }

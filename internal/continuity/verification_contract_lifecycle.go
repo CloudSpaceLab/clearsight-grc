@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 )
@@ -49,7 +50,9 @@ func (s *Service) SupersedeVerificationContract(ctx context.Context, input Super
 	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventVerificationContractSuperseded, payload, input.ActorID); err != nil {
 		return MatterAggregate{}, err
 	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, prior)
+	aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, replacement)
+	return s.verificationContractResult(ctx, input.TenantID, input.MatterID, aggregate, now), nil
 }
 
 func (s *Service) RetireVerificationContract(ctx context.Context, input RetireVerificationContractInput) (MatterAggregate, error) {
@@ -74,7 +77,18 @@ func (s *Service) RetireVerificationContract(ctx context.Context, input RetireVe
 	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventVerificationContractRetired, payload, input.ActorID); err != nil {
 		return MatterAggregate{}, err
 	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, contract)
+	return s.verificationContractResult(ctx, input.TenantID, input.MatterID, aggregate, contract.UpdatedAt), nil
+}
+
+func (s *Service) verificationContractResult(ctx context.Context, tenantID, matterID string, fallback MatterAggregate, updatedAt time.Time) MatterAggregate {
+	if current, err := s.GetMatter(ctx, tenantID, matterID); err == nil {
+		return current
+	}
+	fallback.Matter.Version++
+	fallback.Matter.UpdatedAt = updatedAt.UTC()
+	fallback.Closure = assessClosure(fallback)
+	return decorateMatter(fallback)
 }
 
 func (s *Service) buildReplacementVerificationContract(ctx context.Context, aggregate MatterAggregate, supersedesID string, input SupersedeVerificationContractInput) (VerificationContract, error) {
