@@ -57,10 +57,9 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 	actor = exactActor
 	ctx = identity.WithActor(ctx, actor)
 	response.ResponsibleParties = a.matterResponsibleParties(ctx, actor, aggregate)
+	specs := make([]recordOperationSpec, 0, 16+len(aggregate.Actions)*3+len(aggregate.VerificationContracts)*3)
 	add := func(spec recordOperationSpec) {
-		operation, available := a.resolveRecordOperation(ctx, actor, aggregate.Matter, spec)
-		response.AuthorityAvailable = response.AuthorityAvailable && available
-		response.Operations = append(response.Operations, operation)
+		specs = append(specs, spec)
 	}
 	if aggregate.Matter.Status == continuity.MatterCancelled {
 		return response
@@ -74,6 +73,7 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 		if len(allowed) > 0 {
 			add(recordOperationSpec{Command: "matter.transition", Label: "Reopen issue", Responsibility: authority.ResponsibilityAuthorizer, Materiality: max(4, aggregate.Matter.Priority), AllowedTargets: allowed})
 		}
+		response.Operations, response.AuthorityAvailable = a.resolveMatterOperations(ctx, actor, aggregate.Matter, specs, response.AuthorityAvailable, now)
 		return response
 	}
 	ownerID := aggregate.Matter.OwnerPrincipalID
@@ -189,6 +189,7 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 			})
 		}
 	}
+	response.Operations, response.AuthorityAvailable = a.resolveMatterOperations(ctx, actor, aggregate.Matter, specs, response.AuthorityAvailable, now)
 	return response
 }
 
@@ -204,7 +205,71 @@ type recordOperationSpec struct {
 	AllowedTargets          []string
 }
 
-func (a *API) resolveRecordOperation(ctx context.Context, actor identity.Actor, matter continuity.Matter, spec recordOperationSpec) (RecordOperation, bool) {
+type recordOperationResolution struct {
+	primary   authority.ResolveOutcome
+	candidate *authority.ResolveOutcome
+}
+
+func (a *API) resolveMatterOperations(ctx context.Context, actor identity.Actor, matter continuity.Matter, specs []recordOperationSpec, authorityAvailable bool, at time.Time) ([]RecordOperation, bool) {
+	operations := make([]RecordOperation, 0, len(specs))
+	if len(specs) == 0 {
+		return operations, authorityAvailable
+	}
+	batch, ok := a.deps.Authority.(authority.BatchResolver)
+	if !ok {
+		for _, spec := range specs {
+			operation, _ := a.resolveMatterOperation(ctx, actor, matter, spec, recordOperationResolution{
+				primary: authority.ResolveOutcome{Err: errors.New("batch authority resolution is unavailable")},
+			})
+			operations = append(operations, operation)
+		}
+		return operations, false
+	}
+
+	inputs := make([]authority.ResolveInput, 0, len(specs)*2)
+	primaryIndexes := make([]int, len(specs))
+	candidateIndexes := make([]int, len(specs))
+	for index := range candidateIndexes {
+		candidateIndexes[index] = -1
+	}
+	inputFor := func(spec recordOperationSpec, responsibility authority.Responsibility) authority.ResolveInput {
+		return authority.ResolveInput{
+			TenantID: actor.TenantID, LegalEntityID: matter.LegalEntityID, ObjectType: "MATTER", ObjectID: matter.ID,
+			Responsibility: responsibility, DecisionType: spec.Command, Materiality: spec.Materiality, At: at.UTC(),
+		}
+	}
+	for index, spec := range specs {
+		primaryIndexes[index] = len(inputs)
+		inputs = append(inputs, inputFor(spec, spec.Responsibility))
+		if spec.IncludeCandidates && spec.CandidateResponsibility != "" && spec.CandidateResponsibility != spec.Responsibility {
+			candidateIndexes[index] = len(inputs)
+			inputs = append(inputs, inputFor(spec, spec.CandidateResponsibility))
+		}
+	}
+	outcomes, err := batch.ResolveMany(ctx, inputs)
+	if err != nil || len(outcomes) != len(inputs) {
+		outcomes = make([]authority.ResolveOutcome, len(inputs))
+		failure := err
+		if failure == nil {
+			failure = errors.New("batch authority resolution returned incomplete results")
+		}
+		for index := range outcomes {
+			outcomes[index].Err = failure
+		}
+	}
+	for index, spec := range specs {
+		resolved := recordOperationResolution{primary: outcomes[primaryIndexes[index]]}
+		if candidateIndexes[index] >= 0 {
+			resolved.candidate = &outcomes[candidateIndexes[index]]
+		}
+		operation, available := a.resolveMatterOperation(ctx, actor, matter, spec, resolved)
+		authorityAvailable = authorityAvailable && available
+		operations = append(operations, operation)
+	}
+	return operations, authorityAvailable
+}
+
+func (a *API) resolveMatterOperation(ctx context.Context, actor identity.Actor, matter continuity.Matter, spec recordOperationSpec, resolved recordOperationResolution) (RecordOperation, bool) {
 	operation := RecordOperation{
 		Command: spec.Command, SubresourceID: spec.SubresourceID, Label: spec.Label,
 		Responsibility: string(spec.Responsibility), AllowedTargets: spec.AllowedTargets,
@@ -217,10 +282,7 @@ func (a *API) resolveRecordOperation(ctx context.Context, actor identity.Actor, 
 		operation.Reason = "Responsibility could not be checked. No change is available until the authority route is restored."
 		return operation, false
 	}
-	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
-		TenantID: actor.TenantID, LegalEntityID: matter.LegalEntityID, ObjectType: "MATTER", ObjectID: matter.ID,
-		Responsibility: spec.Responsibility, DecisionType: spec.Command, Materiality: spec.Materiality,
-	})
+	resolution, err := resolved.primary.Resolution, resolved.primary.Err
 	if err != nil {
 		if errors.Is(err, authority.ErrNoRoute) {
 			operation.Reason = fmt.Sprintf("No current %s route is available for this issue. Ask a GRC administrator to restore the route.", responsibilityLabel(spec.Responsibility))
@@ -234,11 +296,8 @@ func (a *API) resolveRecordOperation(ctx context.Context, actor identity.Actor, 
 	}
 	if spec.IncludeCandidates {
 		candidateResolution := resolution
-		if spec.CandidateResponsibility != "" && spec.CandidateResponsibility != spec.Responsibility {
-			candidateResolution, err = a.deps.Authority.Resolve(ctx, authority.ResolveInput{
-				TenantID: actor.TenantID, LegalEntityID: matter.LegalEntityID, ObjectType: "MATTER", ObjectID: matter.ID,
-				Responsibility: spec.CandidateResponsibility, DecisionType: spec.Command, Materiality: spec.Materiality,
-			})
+		if resolved.candidate != nil {
+			candidateResolution, err = resolved.candidate.Resolution, resolved.candidate.Err
 			if err != nil {
 				operation.Reason = "Eligible assignment candidates could not be checked. No assignment change is available."
 				return operation, !errors.Is(err, authority.ErrNoRoute)
