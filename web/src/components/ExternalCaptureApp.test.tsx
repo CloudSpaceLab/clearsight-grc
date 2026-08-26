@@ -1,7 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadCaptureSession, redeemCaptureInvitation, submitCaptureSession } from "../captureApi";
-import { consumeCaptureInvitation, EXTERNAL_CAPTURE_SESSION_KEY } from "../captureInvitationBrowser";
+import {
+  clearCaptureSession,
+  consumeCaptureInvitation,
+  EXTERNAL_CAPTURE_LOCATOR_KEY,
+  readCaptureSession,
+  saveCaptureSession,
+} from "../captureInvitationBrowser";
 import { ApiError } from "../http";
 import type { CaptureRequest } from "../types";
 import { ExternalCaptureApp } from "./ExternalCaptureApp";
@@ -29,16 +35,43 @@ describe("ExternalCaptureApp", () => {
     expect(window.history.state).toEqual({ returnTo: "request" });
   });
 
-  it("resumes from one fixed tab-scoped key that contains no invitation token characters", async () => {
-    sessionStorage.setItem(EXTERNAL_CAPTURE_SESSION_KEY, "session-token");
+  it("stores the bearer under a per-session opaque key and resumes through its locator", async () => {
+    saveCaptureSession(sessionStorage, "session-token", () => "opaque-random-locator");
     vi.mocked(loadCaptureSession).mockResolvedValue({ session: { id: "session-1", request_id: request.id, audience_hint: "f***@example.com", expires_at: request.deadline }, request });
 
     render(<ExternalCaptureApp invitationToken=""/>);
 
     expect(await screen.findByRole("heading", { name: request.title })).toBeTruthy();
     expect(loadCaptureSession).toHaveBeenCalledWith("session-token");
-    expect(Object.keys(sessionStorage)).toEqual([EXTERNAL_CAPTURE_SESSION_KEY]);
-    expect(EXTERNAL_CAPTURE_SESSION_KEY).not.toContain("invite");
+    expect(sessionStorage.getItem(EXTERNAL_CAPTURE_LOCATOR_KEY)).toBe("opaque-random-locator");
+    expect(Object.keys(sessionStorage)).toContain("clearsight.capture.session.opaque-random-locator");
+    expect(Object.keys(sessionStorage).join(" ")).not.toContain("session-token");
+    expect(Object.keys(sessionStorage).join(" ")).not.toContain("invite");
+    expect(readCaptureSession(sessionStorage)).toBe("session-token");
+  });
+
+  it("removes both the session locator and bearer", () => {
+    saveCaptureSession(sessionStorage, "session-token", () => "opaque-random-locator");
+
+    clearCaptureSession(sessionStorage);
+
+    expect(readCaptureSession(sessionStorage)).toBeNull();
+    expect(Object.keys(sessionStorage)).toEqual([]);
+  });
+
+  it("generates a new locator when the browser session changes", () => {
+    saveCaptureSession(sessionStorage, "first-session-token");
+    const firstLocator = sessionStorage.getItem(EXTERNAL_CAPTURE_LOCATOR_KEY);
+
+    saveCaptureSession(sessionStorage, "second-session-token");
+    const secondLocator = sessionStorage.getItem(EXTERNAL_CAPTURE_LOCATOR_KEY);
+
+    expect(firstLocator).toBeTruthy();
+    expect(secondLocator).toBeTruthy();
+    expect(secondLocator).not.toBe(firstLocator);
+    expect(secondLocator).not.toContain("second-session-token");
+    expect(Object.keys(sessionStorage)).not.toContain(`clearsight.capture.session.${firstLocator}`);
+    expect(readCaptureSession(sessionStorage)).toBe("second-session-token");
   });
 
   it("redeems the invite with the addressed identity and opens only the linked request", async () => {
@@ -57,6 +90,19 @@ describe("ExternalCaptureApp", () => {
     expect(screen.queryByText(/do not need a ClearSight account/i)).toBeNull();
   });
 
+  it("retains a newly redeemed session when its request cannot be loaded", async () => {
+    vi.mocked(redeemCaptureInvitation).mockResolvedValue({ session_id: "session-1", session_token: "retry-token", request_id: request.id, audience_hint: "f***@example.com", expires_at: request.deadline });
+    vi.mocked(loadCaptureSession).mockRejectedValue(new Error("network unavailable"));
+    render(<ExternalCaptureApp invitationToken="invite-1"/>);
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Email or phone number" }), { target: { value: "field.agent@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Open request" }));
+
+    expect(await screen.findByRole("heading", { name: "Request could not be loaded" })).toBeTruthy();
+    expect(readCaptureSession(sessionStorage)).toBe("retry-token");
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+  });
+
   it("clears the stored external session after a successful submission", async () => {
     vi.mocked(redeemCaptureInvitation).mockResolvedValue({ session_id: "session-1", session_token: "session-token", request_id: request.id, audience_hint: "f***@example.com", expires_at: request.deadline });
     vi.mocked(loadCaptureSession).mockResolvedValue({ session: { id: "session-1", request_id: request.id, audience_hint: "f***@example.com", expires_at: request.deadline }, request });
@@ -71,14 +117,15 @@ describe("ExternalCaptureApp", () => {
 
     await waitFor(() => expect(submitCaptureSession).toHaveBeenCalledWith("session-token", request.version, { present: "Yes" }));
     expect(await screen.findByRole("heading", { name: "Submitted" })).toBeTruthy();
-    expect(sessionStorage.getItem(EXTERNAL_CAPTURE_SESSION_KEY)).toBeNull();
+    expect(readCaptureSession(sessionStorage)).toBeNull();
+    expect(screen.queryByRole("radio", { name: "Yes" })).toBeNull();
   });
 
   it.each([
     new ApiError(401, "Session unavailable", "session_unavailable"),
     new ApiError(409, "Request closed", "request_closed"),
   ])("clears the stored external session when submission reports revocation or expiry", async (failure) => {
-    sessionStorage.setItem(EXTERNAL_CAPTURE_SESSION_KEY, "ended-session");
+    saveCaptureSession(sessionStorage, "ended-session", () => "ended-locator");
     vi.mocked(loadCaptureSession).mockResolvedValue({ session: { id: "session-1", request_id: request.id, audience_hint: "f***@example.com", expires_at: request.deadline }, request });
     vi.mocked(submitCaptureSession).mockRejectedValue(failure);
     render(<ExternalCaptureApp invitationToken=""/>);
@@ -88,21 +135,43 @@ describe("ExternalCaptureApp", () => {
     fireEvent.click(screen.getByRole("button", { name: "Submit evidence" }));
 
     await waitFor(() => expect(submitCaptureSession).toHaveBeenCalled());
-    await waitFor(() => expect(sessionStorage.getItem(EXTERNAL_CAPTURE_SESSION_KEY)).toBeNull());
+    expect(await screen.findByRole("heading", { name: "This request is no longer available" })).toBeTruthy();
+    expect(readCaptureSession(sessionStorage)).toBeNull();
+    expect(screen.queryByRole("radio", { name: "Yes" })).toBeNull();
   });
 
   it("clears a revoked or otherwise unrecoverable saved session", async () => {
-    sessionStorage.setItem(EXTERNAL_CAPTURE_SESSION_KEY, "revoked-session");
+    saveCaptureSession(sessionStorage, "revoked-session", () => "revoked-locator");
     vi.mocked(loadCaptureSession).mockRejectedValue(new ApiError(401, "Session expired", "session_expired"));
 
     render(<ExternalCaptureApp invitationToken=""/>);
 
     await waitFor(() => expect(loadCaptureSession).toHaveBeenCalledWith("revoked-session"));
-    await waitFor(() => expect(sessionStorage.getItem(EXTERNAL_CAPTURE_SESSION_KEY)).toBeNull());
+    expect(await screen.findByRole("heading", { name: "This request is no longer available" })).toBeTruthy();
+    expect(readCaptureSession(sessionStorage)).toBeNull();
+  });
+
+  it("retains a saved session after a recoverable load failure and retries it", async () => {
+    saveCaptureSession(sessionStorage, "retry-session", () => "retry-locator");
+    vi.mocked(loadCaptureSession)
+      .mockRejectedValueOnce(new ApiError(503, "Unavailable", "unavailable"))
+      .mockResolvedValueOnce({ session: { id: "session-1", request_id: request.id, audience_hint: "f***@example.com", expires_at: request.deadline }, request });
+
+    render(<ExternalCaptureApp invitationToken=""/>);
+
+    expect(await screen.findByRole("heading", { name: "Request could not be loaded" })).toBeTruthy();
+    expect(screen.getByText("Check your connection, then try loading this request again.")).toBeTruthy();
+    expect(readCaptureSession(sessionStorage)).toBe("retry-session");
+
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+
+    expect(await screen.findByRole("heading", { name: request.title })).toBeTruthy();
+    expect(loadCaptureSession).toHaveBeenCalledTimes(2);
+    expect(readCaptureSession(sessionStorage)).toBe("retry-session");
   });
 
   it("clears a saved session when the loaded request is already expired", async () => {
-    sessionStorage.setItem(EXTERNAL_CAPTURE_SESSION_KEY, "expired-session");
+    saveCaptureSession(sessionStorage, "expired-session", () => "expired-locator");
     vi.mocked(loadCaptureSession).mockResolvedValue({
       session: { id: "session-1", request_id: request.id, audience_hint: "f***@example.com", expires_at: "2026-08-25T10:00:00Z" },
       request: { ...request, status: "EXPIRED", deadline: "2026-08-25T10:00:00Z" },
@@ -111,6 +180,13 @@ describe("ExternalCaptureApp", () => {
     render(<ExternalCaptureApp invitationToken=""/>);
 
     expect(await screen.findByRole("heading", { name: "This request has expired" })).toBeTruthy();
-    expect(sessionStorage.getItem(EXTERNAL_CAPTURE_SESSION_KEY)).toBeNull();
+    expect(readCaptureSession(sessionStorage)).toBeNull();
+    expect(screen.queryByRole("radio", { name: "Yes" })).toBeNull();
+  });
+
+  it("does not describe the browser submission as secure", () => {
+    render(<ExternalCaptureApp invitationToken="invite-1"/>);
+
+    expect(screen.queryByText(/secure/i)).toBeNull();
   });
 });
