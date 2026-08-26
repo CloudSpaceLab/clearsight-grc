@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
 type recordingRequestCreator struct {
@@ -16,6 +17,53 @@ type recordingRequestCreator struct {
 type recordingEvidenceReader struct {
 	request    evidence.Request
 	submission evidence.Submission
+}
+
+type recordingSourceReader struct {
+	binding      sourceaccess.BindingRevision
+	bindingErr   error
+	previewCalls int
+}
+
+func (r *recordingSourceReader) Binding(_ context.Context, _, _ string, _ int64) (sourceaccess.BindingRevision, error) {
+	return r.binding, r.bindingErr
+}
+
+func (r *recordingSourceReader) PreviewBinding(_ context.Context, _, _ string, _ int64, _ sourceaccess.PageRequest) (sourceaccess.RecordPage, error) {
+	r.previewCalls++
+	return sourceaccess.RecordPage{}, nil
+}
+
+type recordingSourceScopeValidator struct {
+	err           error
+	calls         int
+	tenant        string
+	legalEntityID string
+	sourceIDs     []string
+}
+
+func (v *recordingSourceScopeValidator) ValidateActiveSourcesForEntity(_ context.Context, tenant, legalEntityID string, sourceIDs []string) error {
+	v.calls++
+	v.tenant = tenant
+	v.legalEntityID = legalEntityID
+	v.sourceIDs = append([]string(nil), sourceIDs...)
+	return v.err
+}
+
+func activeSourceBinding(now time.Time) sourceaccess.BindingRevision {
+	effectiveFrom := now.Add(-time.Hour)
+	return sourceaccess.BindingRevision{
+		BindingID: "binding-1", TenantID: "bank-a", SourceID: "source-1", Operations: []sourceaccess.Operation{sourceaccess.OperationPage},
+		RevisionLifecycle: sourceaccess.RevisionLifecycle{Status: sourceaccess.RevisionActive, IsCurrent: true, EffectiveFrom: &effectiveFrom, Version: 3},
+	}
+}
+
+func sourceCheckInput() CreateCheckInput {
+	return CreateCheckInput{
+		ProgramID: "program-1", Code: "SOURCE", Name: "Source health", Claim: "The source remains healthy.", InputKind: InputSource,
+		BindingID: "binding-1", BindingVersion: 3, SourceRules: []SourceRule{{ID: "healthy", Field: "healthy", Operator: OperatorEquals, Expected: "true", RiskPoints: 100}},
+		FreshnessMinutes: 60, MinimumCoverage: 1,
+	}
 }
 
 func (r recordingEvidenceReader) GetRequest(_ context.Context, tenant, id string) (evidence.Request, error) {
@@ -229,17 +277,171 @@ func TestServiceRejectsFormMonitoringCheckOutsideExactProgram(t *testing.T) {
 	}
 }
 
+func TestServiceValidatesExactConnectedSourceScopeWhenCreatingCheck(t *testing.T) {
+	now := time.Date(2026, 8, 17, 13, 30, 0, 0, time.UTC)
+	actor := Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "owner"}
+
+	t.Run("accepts an active current effective page binding for an active source in the exact entity", func(t *testing.T) {
+		repo := NewMemoryRepository()
+		reader := &recordingSourceReader{binding: activeSourceBinding(now)}
+		validator := &recordingSourceScopeValidator{}
+		service := NewService(repo, nil)
+		service.now = func() time.Time { return now }
+		service.newID = func() (string, error) { return "check-1", nil }
+		service.ConfigureSourceReader(reader)
+		service.ConfigureSourceValidator(validator)
+
+		check, err := service.CreateCheck(t.Context(), actor, sourceCheckInput())
+		if err != nil {
+			t.Fatalf("create source check: %v", err)
+		}
+		if check.BindingID != "binding-1" || check.BindingVersion != 3 {
+			t.Fatalf("check binding = %s:%d", check.BindingID, check.BindingVersion)
+		}
+		if validator.calls != 1 || validator.tenant != "bank-a" || validator.legalEntityID != "entity-a" || len(validator.sourceIDs) != 1 || validator.sourceIDs[0] != "source-1" {
+			t.Fatalf("source validation = calls %d, tenant %q, entity %q, sources %#v", validator.calls, validator.tenant, validator.legalEntityID, validator.sourceIDs)
+		}
+	})
+
+	tests := []struct {
+		name         string
+		actor        Actor
+		configure    func(*Service, *recordingSourceReader, *recordingSourceScopeValidator)
+		mutate       func(*sourceaccess.BindingRevision)
+		validatorErr error
+		wantInactive bool
+	}{
+		{name: "verified legal entity missing", actor: Actor{TenantID: "bank-a", PrincipalID: "owner"}},
+		{name: "source reader unavailable", actor: actor, configure: func(service *Service, _ *recordingSourceReader, validator *recordingSourceScopeValidator) {
+			service.ConfigureSourceValidator(validator)
+		}},
+		{name: "source validator unavailable", actor: actor, configure: func(service *Service, reader *recordingSourceReader, _ *recordingSourceScopeValidator) {
+			service.ConfigureSourceReader(reader)
+		}},
+		{name: "binding id differs", actor: actor, mutate: func(binding *sourceaccess.BindingRevision) { binding.BindingID = "binding-other" }},
+		{name: "binding version differs", actor: actor, mutate: func(binding *sourceaccess.BindingRevision) { binding.Version = 4 }},
+		{name: "binding tenant differs", actor: actor, mutate: func(binding *sourceaccess.BindingRevision) { binding.TenantID = "bank-b" }},
+		{name: "binding source missing", actor: actor, mutate: func(binding *sourceaccess.BindingRevision) { binding.SourceID = "" }},
+		{name: "binding is draft", actor: actor, mutate: func(binding *sourceaccess.BindingRevision) { binding.Status = sourceaccess.RevisionDraft }, wantInactive: true},
+		{name: "binding is not current", actor: actor, mutate: func(binding *sourceaccess.BindingRevision) { binding.IsCurrent = false }, wantInactive: true},
+		{name: "binding effective start missing", actor: actor, mutate: func(binding *sourceaccess.BindingRevision) { binding.EffectiveFrom = nil }, wantInactive: true},
+		{name: "binding not yet effective", actor: actor, mutate: func(binding *sourceaccess.BindingRevision) {
+			value := now.Add(time.Minute)
+			binding.EffectiveFrom = &value
+		}, wantInactive: true},
+		{name: "binding effectiveness ended", actor: actor, mutate: func(binding *sourceaccess.BindingRevision) { value := now; binding.EffectiveUntil = &value }, wantInactive: true},
+		{name: "binding does not allow page", actor: actor, mutate: func(binding *sourceaccess.BindingRevision) {
+			binding.Operations = []sourceaccess.Operation{sourceaccess.OperationLookup}
+		}},
+		{name: "source is not active in entity", actor: actor, validatorErr: evidence.ErrSourceScopeMismatch},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := NewMemoryRepository()
+			binding := activeSourceBinding(now)
+			if tt.mutate != nil {
+				tt.mutate(&binding)
+			}
+			reader := &recordingSourceReader{binding: binding}
+			validator := &recordingSourceScopeValidator{err: tt.validatorErr}
+			service := NewService(repo, nil)
+			service.now = func() time.Time { return now }
+			service.newID = func() (string, error) { return "check-1", nil }
+			if tt.configure != nil {
+				tt.configure(service, reader, validator)
+			} else {
+				service.ConfigureSourceReader(reader)
+				service.ConfigureSourceValidator(validator)
+			}
+
+			_, err := service.CreateCheck(t.Context(), tt.actor, sourceCheckInput())
+			if err == nil {
+				t.Fatal("create source check succeeded, want fail-closed error")
+			}
+			if tt.wantInactive && !errors.Is(err, ErrInactive) {
+				t.Fatalf("create source check error = %v, want inactive", err)
+			}
+			checks, listErr := repo.ListCheckRevisions(t.Context(), "bank-a", "program-1", 10)
+			if listErr != nil {
+				t.Fatal(listErr)
+			}
+			if len(checks) != 0 {
+				t.Fatalf("invalid source check was persisted: %#v", checks)
+			}
+		})
+	}
+}
+
+func TestServiceRevalidatesConnectedSourceScopeAtActivation(t *testing.T) {
+	repo := NewMemoryRepository()
+	now := time.Date(2026, 8, 17, 14, 0, 0, 0, time.UTC)
+	pending := MonitoringCheck{
+		ID: "check-1", TenantID: "bank-a", ProgramID: "program-1", Code: "SOURCE", Name: "Source health", Claim: "The source remains healthy.",
+		InputKind: InputSource, BindingID: "binding-1", BindingVersion: 3, SourceRules: sourceCheckInput().SourceRules, Thresholds: DefaultThresholds(), FreshnessMinutes: 60, MinimumCoverage: 1, FailureAction: FailureReview,
+		Lifecycle: Lifecycle{Status: LifecyclePendingApproval, Version: 2, SubmittedBy: "maker"},
+	}
+	if _, err := repo.CreateCheckRevision(t.Context(), pending); err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(repo, nil)
+	service.now = func() time.Time { return now }
+	service.ConfigureSourceReader(&recordingSourceReader{binding: activeSourceBinding(now)})
+	service.ConfigureSourceValidator(&recordingSourceScopeValidator{err: evidence.ErrSourceScopeMismatch})
+
+	_, err := service.TransitionCheck(t.Context(), Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "reviewer"}, TransitionInput{ID: pending.ID, ExpectedVersion: pending.Version, To: LifecycleActive})
+	if err == nil {
+		t.Fatal("activation succeeded after source left the legal entity")
+	}
+	if _, loadErr := repo.CheckRevision(t.Context(), "bank-a", pending.ID, 3); !errors.Is(loadErr, ErrNotFound) {
+		t.Fatalf("activation revision error = %v, want not found", loadErr)
+	}
+}
+
+func TestServiceRevalidatesConnectedSourceScopeBeforeEvaluation(t *testing.T) {
+	repo := NewMemoryRepository()
+	now := time.Date(2026, 8, 17, 14, 0, 0, 0, time.UTC)
+	effectiveFrom := now.Add(-time.Hour)
+	active := MonitoringCheck{
+		ID: "check-1", TenantID: "bank-a", ProgramID: "program-1", Code: "SOURCE", Name: "Source health", Claim: "The source remains healthy.",
+		InputKind: InputSource, BindingID: "binding-1", BindingVersion: 3, SourceRules: sourceCheckInput().SourceRules, Thresholds: DefaultThresholds(), FreshnessMinutes: 60, MinimumCoverage: 1, FailureAction: FailureReview,
+		Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &effectiveFrom, Version: 3},
+	}
+	if _, err := repo.CreateCheckRevision(t.Context(), active); err != nil {
+		t.Fatal(err)
+	}
+	reader := &recordingSourceReader{binding: activeSourceBinding(now)}
+	service := NewService(repo, nil)
+	service.now = func() time.Time { return now }
+	service.ConfigureSourceReader(reader)
+	service.ConfigureSourceValidator(&recordingSourceScopeValidator{err: evidence.ErrSourceScopeMismatch})
+
+	_, err := service.EvaluateSource(t.Context(), Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "operator"}, EvaluateSourceInput{CheckID: active.ID, CheckVersion: active.Version})
+	if err == nil {
+		t.Fatal("evaluation succeeded after source left the legal entity")
+	}
+	if reader.previewCalls != 0 {
+		t.Fatalf("connected source was read %d times after scope validation failed", reader.previewCalls)
+	}
+	results, listErr := repo.ListResults(t.Context(), "bank-a", active.ID, 10)
+	if listErr != nil {
+		t.Fatal(listErr)
+	}
+	if len(results) != 0 {
+		t.Fatalf("invalid source evaluation was persisted: %#v", results)
+	}
+}
+
 func TestServiceLoadsExactAndLatestCheckForVerifiedTenant(t *testing.T) {
 	repo := NewMemoryRepository()
-	service := NewService(repo, nil)
-	created, err := service.CreateCheck(t.Context(), Actor{TenantID: "bank-a", PrincipalID: "owner"}, CreateCheckInput{
-		ProgramID: "program-a", Code: "SOURCE", Name: "Source health", Claim: "The source remains healthy.", InputKind: InputSource,
+	created, err := repo.CreateCheckRevision(t.Context(), MonitoringCheck{
+		ID: "check-1", TenantID: "bank-a", ProgramID: "program-a", Code: "SOURCE", Name: "Source health", Claim: "The source remains healthy.", InputKind: InputSource,
 		BindingID: "binding-1", BindingVersion: 1, SourceRules: []SourceRule{{ID: "healthy", Field: "healthy", Operator: OperatorEquals, Expected: "true", RiskPoints: 100}},
-		FreshnessMinutes: 60, MinimumCoverage: 1,
+		FreshnessMinutes: 60, MinimumCoverage: 1, Thresholds: DefaultThresholds(), FailureAction: FailureReview, Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+	service := NewService(repo, nil)
 	latest, err := service.LatestCheck(t.Context(), Actor{TenantID: "bank-a", PrincipalID: "viewer"}, created.ID)
 	if err != nil || latest.ProgramID != "program-a" || latest.Version != 1 {
 		t.Fatalf("latest check = %#v, err = %v", latest, err)

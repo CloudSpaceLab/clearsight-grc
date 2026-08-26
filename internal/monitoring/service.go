@@ -94,13 +94,18 @@ type sourceReader interface {
 	PreviewBinding(context.Context, string, string, int64, sourceaccess.PageRequest) (sourceaccess.RecordPage, error)
 }
 
+type sourceScopeValidator interface {
+	ValidateActiveSourcesForEntity(context.Context, string, string, []string) error
+}
+
 type Service struct {
-	repo     Repository
-	requests requestCreator
-	evidence evidenceReader
-	sources  sourceReader
-	now      func() time.Time
-	newID    func() (string, error)
+	repo            Repository
+	requests        requestCreator
+	evidence        evidenceReader
+	sources         sourceReader
+	sourceValidator sourceScopeValidator
+	now             func() time.Time
+	newID           func() (string, error)
 }
 
 func NewService(repo Repository, requests requestCreator) *Service {
@@ -117,6 +122,10 @@ func (s *Service) ConfigureEvidenceReader(reader evidenceReader) {
 
 func (s *Service) ConfigureSourceReader(reader sourceReader) {
 	s.sources = reader
+}
+
+func (s *Service) ConfigureSourceValidator(validator sourceScopeValidator) {
+	s.sourceValidator = validator
 }
 
 func (s *Service) CreateForm(ctx context.Context, actor Actor, input CreateFormInput) (FormTemplate, error) {
@@ -291,6 +300,9 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 				return MonitoringCheck{}, errors.Join(ErrInvalid, err)
 			}
 		}
+		if _, err := s.validateSourceBinding(ctx, actor, input.BindingID, input.BindingVersion); err != nil {
+			return MonitoringCheck{}, err
+		}
 	default:
 		return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("input kind is invalid"))
 	}
@@ -358,9 +370,6 @@ func (s *Service) EvaluateSource(ctx context.Context, actor Actor, input Evaluat
 	if strings.TrimSpace(input.CheckID) == "" || input.CheckVersion < 1 {
 		return MonitoringResult{}, errors.Join(ErrInvalid, fmt.Errorf("monitoring check and version are required"))
 	}
-	if s.sources == nil {
-		return MonitoringResult{}, fmt.Errorf("connected-source reads are unavailable")
-	}
 	check, err := s.repo.CheckRevision(ctx, actor.TenantID, input.CheckID, input.CheckVersion)
 	if err != nil {
 		return MonitoringResult{}, err
@@ -368,12 +377,9 @@ func (s *Service) EvaluateSource(ctx context.Context, actor Actor, input Evaluat
 	if check.Status != LifecycleActive || !check.IsCurrent || check.InputKind != InputSource {
 		return MonitoringResult{}, ErrInactive
 	}
-	binding, err := s.sources.Binding(ctx, actor.TenantID, check.BindingID, check.BindingVersion)
+	binding, err := s.validateSourceBinding(ctx, actor, check.BindingID, check.BindingVersion)
 	if err != nil {
 		return MonitoringResult{}, err
-	}
-	if binding.BindingID != check.BindingID || binding.Version != check.BindingVersion || binding.TenantID != actor.TenantID {
-		return MonitoringResult{}, errors.Join(ErrInvalid, fmt.Errorf("connected-source revision does not match the monitoring check"))
 	}
 	page, err := s.sources.PreviewBinding(ctx, actor.TenantID, check.BindingID, check.BindingVersion, sourceaccess.PageRequest{Limit: 2})
 	if err != nil {
@@ -504,7 +510,52 @@ func (s *Service) TransitionCheck(ctx context.Context, actor Actor, input Transi
 			return MonitoringCheck{}, ErrInactive
 		}
 	}
+	if input.To == LifecycleActive && current.InputKind == InputSource {
+		if _, err := s.validateSourceBinding(ctx, actor, current.BindingID, current.BindingVersion); err != nil {
+			return MonitoringCheck{}, err
+		}
+	}
 	return s.repo.TransitionCheck(ctx, LifecycleTransition{TenantID: actor.TenantID, ID: current.ID, ExpectedVersion: input.ExpectedVersion, To: input.To, ActorID: actor.PrincipalID, At: s.now().UTC()})
+}
+
+func (s *Service) validateSourceBinding(ctx context.Context, actor Actor, bindingID string, bindingVersion int64) (sourceaccess.BindingRevision, error) {
+	tenantID := strings.TrimSpace(actor.TenantID)
+	legalEntityID := strings.TrimSpace(actor.LegalEntityID)
+	bindingID = strings.TrimSpace(bindingID)
+	if legalEntityID == "" || legalEntityID == "*" {
+		return sourceaccess.BindingRevision{}, errors.Join(ErrInvalid, fmt.Errorf("verified legal-entity scope is required for a connected-source check"))
+	}
+	if s.sources == nil {
+		return sourceaccess.BindingRevision{}, fmt.Errorf("connected-source reads are unavailable")
+	}
+	if s.sourceValidator == nil {
+		return sourceaccess.BindingRevision{}, fmt.Errorf("connected-source legal-entity validation is unavailable")
+	}
+	binding, err := s.sources.Binding(ctx, tenantID, bindingID, bindingVersion)
+	if err != nil {
+		return sourceaccess.BindingRevision{}, err
+	}
+	if binding.BindingID != bindingID || binding.Version != bindingVersion || binding.TenantID != tenantID || strings.TrimSpace(binding.SourceID) == "" {
+		return sourceaccess.BindingRevision{}, errors.Join(ErrInvalid, fmt.Errorf("connected-source revision does not match the monitoring check"))
+	}
+	now := s.now().UTC()
+	if binding.Status != sourceaccess.RevisionActive || !binding.IsCurrent || binding.EffectiveFrom == nil || now.Before(binding.EffectiveFrom.UTC()) || (binding.EffectiveUntil != nil && !now.Before(binding.EffectiveUntil.UTC())) {
+		return sourceaccess.BindingRevision{}, errors.Join(ErrInactive, fmt.Errorf("connected-source revision is not current and effective"))
+	}
+	allowsPage := false
+	for _, operation := range binding.Operations {
+		if operation == sourceaccess.OperationPage {
+			allowsPage = true
+			break
+		}
+	}
+	if !allowsPage {
+		return sourceaccess.BindingRevision{}, errors.Join(ErrInvalid, fmt.Errorf("connected-source revision does not allow page reads"))
+	}
+	if err := s.sourceValidator.ValidateActiveSourcesForEntity(ctx, tenantID, legalEntityID, []string{binding.SourceID}); err != nil {
+		return sourceaccess.BindingRevision{}, errors.Join(ErrInvalid, fmt.Errorf("connected source is not active in the selected legal entity: %w", err))
+	}
+	return binding, nil
 }
 
 func validateActor(actor Actor) error {

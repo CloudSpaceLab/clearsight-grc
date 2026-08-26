@@ -60,6 +60,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	evidenceService.ConfigureSourceBindings(sourceCatalog)
 	monitoringService := monitoring.NewService(monitoring.NewMemoryRepository(), evidenceService)
 	monitoringService.ConfigureSourceReader(sourceCatalog)
+	monitoringService.ConfigureSourceValidator(evidenceService)
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepo)
 	continuityService.ConfigureEvidenceSourceValidator(evidenceService)
