@@ -71,6 +71,7 @@ const operations = {
   program_id: "program-1", program_version: 4, authority_available: true, generated_at: "2026-08-25T10:00:00Z",
   operations: [
     { command: "program.details.update", label: "Edit Program details", responsibility: "ACCOUNTABLE_OWNER", can_act: false, assigned_to: { id: "owner-1", display_name: "Data Protection Officer", kind: "PERSON", role: "DPO" }, reason: "Assigned to Data Protection Officer." },
+    { command: "program.approval-authority.assign", label: "Change approval authority", responsibility: "AUTHORIZER", can_act: true, assigned_to: { id: "cro", display_name: "Chief Risk Officer", kind: "PERSON", role: "CRO" }, reason: "You hold the current approval responsibility." },
     { command: "program.transition", label: "Approve Program activation", responsibility: "AUTHORIZER", can_act: true, assigned_to: { id: "cro", display_name: "Chief Risk Officer", kind: "PERSON", role: "CRO" }, reason: "You hold the current responsibility.", allowed_targets: ["ACTIVE", "RETIRED"] },
   ],
 };

@@ -18,6 +18,7 @@ const actionOrder = [
   "program.evidence.define",
   "program.details.update",
   "program.assign",
+  "program.approval-authority.assign",
 ];
 
 function dominantAction(operations: ProgramOperation[], digest: ProgramReviewDigest) {
