@@ -117,7 +117,7 @@ func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, ass
 	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 1}
 	request, err := s.evidence.GetRequestByOrigin(ctx, scope.TenantID, origin)
 	if errors.Is(err, evidence.ErrNotFound) {
-		request, err = s.evidence.CreateRequest(ctx, assessmentEvidenceRequestInput(verified, assessment, relationship, form, origin, audience, deadline))
+		request, err = s.evidence.CreateRequest(evidence.WithRequestOriginAuthority(ctx, AssessmentRequestOrigin), assessmentEvidenceRequestInput(verified, assessment, relationship, form, origin, audience, deadline))
 	}
 	if err != nil {
 		return SendRequestOutcome{}, err

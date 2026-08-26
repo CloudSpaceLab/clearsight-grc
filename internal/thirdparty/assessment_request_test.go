@@ -411,7 +411,7 @@ func TestSendAssessmentRequestRecipientChangeRevokesPriorInvitation(t *testing.T
 	form := activeAssessmentForm()
 	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 1}
 	deadline := time.Date(2026, 8, 27, 10, 0, 0, 0, time.UTC)
-	request, err := evidenceService.CreateRequest(context.Background(), assessmentEvidenceRequestInput(assessmentActor(), assessment, relationship, form, origin, "old@vendor.example", deadline))
+	request, err := evidenceService.CreateRequest(evidence.WithRequestOriginAuthority(context.Background(), AssessmentRequestOrigin), assessmentEvidenceRequestInput(assessmentActor(), assessment, relationship, form, origin, "old@vendor.example", deadline))
 	if err != nil {
 		t.Fatal(err)
 	}

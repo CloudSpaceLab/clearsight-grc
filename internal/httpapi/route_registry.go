@@ -172,7 +172,7 @@ func (a *API) routes() []routeSpec {
 		write(http.MethodPost, "/api/v1/evidence/sources", a.createEvidenceSource, bindJSONIdentity(true)),
 		write(http.MethodPost, "/api/v1/evidence/sources/{id}/observations", a.recordEvidenceSourceObservation, bindJSONIdentity(false, "recorded_by")),
 		read("/api/v1/evidence/requests", a.listVisibleEvidenceRequests),
-		write(http.MethodPost, "/api/v1/evidence/requests", a.createEvidenceRequest, bindJSONIdentity(false, "created_by")),
+		material("/api/v1/evidence/requests", "evidence.request.create", a.createEvidenceRequest, commandPolicy{ObjectType: "EVIDENCE_REQUEST", Responsibility: authority.ResponsibilityOwner, Materiality: 2, ActorField: "created_by"}),
 		read("/api/v1/evidence/requests/{id}", a.getEvidenceRequest),
 		write(http.MethodPost, "/api/v1/evidence/requests/{id}/wrong-recipient", a.declareEvidenceWrongRecipient, bindJSONIdentity(false, "actor_principal_id")),
 		write(http.MethodPut, "/api/v1/evidence/requests/{id}/recipient", a.reassignEvidenceRecipient, bindJSONIdentity(false, "actor_principal_id")),

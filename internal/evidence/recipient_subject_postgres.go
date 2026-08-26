@@ -20,10 +20,23 @@ func (r *PostgresRepository) CanReadSubject(ctx context.Context, tenant, princip
 	if err != nil || !eligible {
 		return false, err
 	}
+	if subjectType == "PROGRAM" {
+		var visible bool
+		err = r.pool.QueryRow(ctx, `SELECT EXISTS(
+			SELECT 1 FROM programs p JOIN tenants t ON t.id=p.tenant_id
+			WHERE (t.id::text=$1 OR t.slug=$1) AND p.id::text=$2
+		)`, tenant, subjectID).Scan(&visible)
+		return visible, err
+	}
+	if subjectType == "VENDOR_RELATIONSHIP" {
+		var visible bool
+		err = r.pool.QueryRow(ctx, `SELECT EXISTS(
+			SELECT 1 FROM third_party_relationships rel JOIN tenants t ON t.id=rel.tenant_id
+			WHERE (t.id::text=$1 OR t.slug=$1) AND rel.id::text=$2
+		)`, tenant, subjectID).Scan(&visible)
+		return visible, err
+	}
 	if subjectType != "MATTER" {
-		// Capture currently has no canonical cross-domain visibility rule beyond
-		// Matters. Preserve that existing contract rather than inventing one here;
-		// recipient identity is still tenant-bound and active-person validated.
 		return true, nil
 	}
 

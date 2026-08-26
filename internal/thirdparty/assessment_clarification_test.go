@@ -151,7 +151,7 @@ func TestConcurrentClarificationPreparationAllowsOneInvitationPath(t *testing.T)
 		t.Fatal(err)
 	}
 	deadline := assessment.ReviewDueAt.Add(-time.Hour)
-	_, err = evidenceService.CreateRequest(context.Background(), clarificationEvidenceRequestInput(assessmentActor(), assessment, relationship, form, fields, sections, evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 2}, "security@vendor.example", "Provide the current security contact.", deadline))
+	_, err = evidenceService.CreateRequest(evidence.WithRequestOriginAuthority(context.Background(), AssessmentRequestOrigin), clarificationEvidenceRequestInput(assessmentActor(), assessment, relationship, form, fields, sections, evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 2}, "security@vendor.example", "Provide the current security contact.", deadline))
 	if err != nil {
 		t.Fatal(err)
 	}

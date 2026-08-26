@@ -112,6 +112,9 @@ func commandObjectID(r *http.Request, payload map[string]any) string {
 	if value := stringValue(payload["matter_id"]); value != "" {
 		return value
 	}
+	if value := stringValue(payload["subject_id"]); value != "" {
+		return value
+	}
 	return "*"
 }
 

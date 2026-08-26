@@ -129,6 +129,9 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if err := validateRequestInput(input); err != nil {
 		return Request{}, err
 	}
+	if !requestOriginAllowed(ctx, input.Origin) {
+		return Request{}, fmt.Errorf("request origin is reserved for its owning workflow")
+	}
 	fields, err := normalizeFieldContracts(input.Presentation, input.Sections, input.Fields)
 	if err != nil {
 		return Request{}, err
@@ -141,6 +144,19 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	fields, err = normalizeFieldContracts(input.Presentation, input.Sections, fields)
 	if err != nil {
 		return Request{}, err
+	}
+	if strings.TrimSpace(input.CreatedBy) != "" {
+		access, ok := s.repo.(SubjectAccessChecker)
+		if !ok {
+			return Request{}, fmt.Errorf("requester subject access validation is unavailable")
+		}
+		allowed, accessErr := access.CanReadSubject(ctx, input.TenantID, input.CreatedBy, input.SubjectType, input.SubjectID)
+		if accessErr != nil {
+			return Request{}, accessErr
+		}
+		if !allowed {
+			return Request{}, ErrRecipientInvalid
+		}
 	}
 	recipient, err := buildRecipient(ctx, s.repo, input.TenantID, input.AudienceType, input.Recipient)
 	if err != nil {

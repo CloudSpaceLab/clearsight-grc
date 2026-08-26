@@ -34,6 +34,14 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 	}
 
 	switch name {
+	case "evidence.request.create":
+		subjectType := strings.ToUpper(stringValue(payload["subject_type"]))
+		subjectID := stringValue(payload["subject_id"])
+		if subjectType == "" || subjectID == "" {
+			return policy, fmt.Errorf("evidence request subject is required")
+		}
+		policy.ObjectType = subjectType
+		return policy, nil
 	case "matter.transition":
 		if aggregate == nil {
 			return policy, nil

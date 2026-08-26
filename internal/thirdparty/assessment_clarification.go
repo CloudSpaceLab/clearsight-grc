@@ -106,7 +106,7 @@ func (s *AssessmentRequestService) RequestClarification(ctx context.Context, _ A
 	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: int64(sequence)}
 	request, err := s.evidence.GetRequestByOrigin(ctx, scope.TenantID, origin)
 	if errors.Is(err, evidence.ErrNotFound) && !recoverPrepared {
-		request, err = s.evidence.CreateRequest(ctx, clarificationEvidenceRequestInput(verified, assessment, relationship, form, fields, sections, origin, audience, input.Message, deadline))
+		request, err = s.evidence.CreateRequest(evidence.WithRequestOriginAuthority(ctx, AssessmentRequestOrigin), clarificationEvidenceRequestInput(verified, assessment, relationship, form, fields, sections, origin, audience, input.Message, deadline))
 	}
 	if err != nil {
 		return AssessmentClarificationOutcome{}, err
