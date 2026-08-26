@@ -2,12 +2,15 @@ package httpapi
 
 import (
 	"bytes"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 )
+
+var errMaterialVersionUnavailable = errors.New("material aggregate version unavailable")
 
 type bufferedCommandResponse struct {
 	header http.Header
@@ -58,12 +61,12 @@ type committedCommandReceipt struct {
 
 func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, policy commandPolicy, payload map[string]any, handler http.HandlerFunc) {
 	objectID := commandObjectID(r, payload)
-	if a.deps.Continuity == nil || objectID == "" || objectID == "*" || (policy.ObjectType != "PROGRAM" && policy.ObjectType != "MATTER") {
+	if objectID == "" || objectID == "*" {
 		handler(w, r)
 		return
 	}
 
-	baseline, baselineErr := a.deps.Continuity.CurrentVersion(r.Context(), stringValue(payload["tenant_id"]), policy.ObjectType, objectID)
+	baseline, baselineErr := a.currentMaterialVersion(r, policy.ObjectType, objectID, stringValue(payload["tenant_id"]))
 	if baselineErr != nil {
 		handler(w, r)
 		return
@@ -83,7 +86,7 @@ func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, pol
 		return
 	}
 
-	version, err := a.deps.Continuity.CurrentVersion(r.Context(), stringValue(payload["tenant_id"]), policy.ObjectType, objectID)
+	version, err := a.currentMaterialVersion(r, policy.ObjectType, objectID, stringValue(payload["tenant_id"]))
 	if err != nil || version <= baseline {
 		buffered.flushTo(w)
 		return
@@ -98,6 +101,38 @@ func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, pol
 		Version:          version,
 		ResponseDegraded: true,
 	})
+}
+
+func (a *API) currentMaterialVersion(r *http.Request, objectType, objectID, tenantID string) (int64, error) {
+	switch objectType {
+	case "PROGRAM", "MATTER":
+		if a.deps.Continuity == nil {
+			return 0, errMaterialVersionUnavailable
+		}
+		return a.deps.Continuity.CurrentVersion(r.Context(), tenantID, objectType, objectID)
+	case "VENDOR_RELATIONSHIP":
+		if a.deps.ThirdParty == nil {
+			return 0, errMaterialVersionUnavailable
+		}
+		actor, err := thirdPartyActor(r)
+		if err != nil {
+			return 0, err
+		}
+		value, err := a.deps.ThirdParty.GetRelationship(r.Context(), actor, objectID)
+		return value.Relationship.Version, err
+	case "THIRD_PARTY_ASSESSMENT":
+		if a.deps.ThirdPartyAssessments == nil {
+			return 0, errMaterialVersionUnavailable
+		}
+		actor, err := thirdPartyActor(r)
+		if err != nil {
+			return 0, err
+		}
+		value, err := a.deps.ThirdPartyAssessments.GetAssessment(r.Context(), actor, objectID)
+		return value.Version, err
+	default:
+		return 0, errMaterialVersionUnavailable
+	}
 }
 
 func commandObjectID(r *http.Request, payload map[string]any) string {
