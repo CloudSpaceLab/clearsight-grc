@@ -98,7 +98,7 @@ func (h *HTTPHandler) metrics(writer http.ResponseWriter, request *http.Request)
 }
 
 func (h *HTTPHandler) models(writer http.ResponseWriter, request *http.Request) {
-	workload, err := authenticateRequest(request, h.gateway.auth)
+	workload, err := h.gateway.Authenticate(request.Context(), request.Header.Get("Authorization"))
 	if err != nil {
 		writer.Header().Set("WWW-Authenticate", `Bearer realm="clearsight-ai-gateway"`)
 		writeGatewayError(writer, err)
@@ -130,16 +130,22 @@ func (h *HTTPHandler) chatCompletions(writer http.ResponseWriter, httpRequest *h
 		writeGatewayError(writer, err)
 		return
 	}
-	if input.Stream {
+	governed, err := h.gateway.Govern(httpRequest.Context(), *workload, input)
+	setDecisionHeaders(writer, governed.Decision)
+	if err != nil {
+		writeGatewayError(writer, err)
+		return
+	}
+	if governed.Request.Stream {
 		setStreamingWriteDeadline(writer, h.config.RequestTimeout)
-		sink := newChatStreamSink(writer, input, requestID)
-		err := h.gateway.Stream(httpRequest.Context(), *workload, input, sink)
+		sink := newChatStreamSink(writer, governed.Request, requestID)
+		err := h.gateway.StreamGoverned(httpRequest.Context(), *workload, governed, sink)
 		if err != nil && !sink.started {
 			writeGatewayError(writer, err)
 		}
 		return
 	}
-	response, routeID, err := h.gateway.Complete(httpRequest.Context(), *workload, input)
+	response, routeID, err := h.gateway.CompleteGoverned(httpRequest.Context(), *workload, governed)
 	if err != nil {
 		writeGatewayError(writer, err)
 		return
@@ -162,16 +168,22 @@ func (h *HTTPHandler) responses(writer http.ResponseWriter, httpRequest *http.Re
 		writeGatewayError(writer, err)
 		return
 	}
-	if input.Stream {
+	governed, err := h.gateway.Govern(httpRequest.Context(), *workload, input)
+	setDecisionHeaders(writer, governed.Decision)
+	if err != nil {
+		writeGatewayError(writer, err)
+		return
+	}
+	if governed.Request.Stream {
 		setStreamingWriteDeadline(writer, h.config.RequestTimeout)
-		sink := newResponsesStreamSink(writer, input, requestID)
-		err := h.gateway.Stream(httpRequest.Context(), *workload, input, sink)
+		sink := newResponsesStreamSink(writer, governed.Request, requestID)
+		err := h.gateway.StreamGoverned(httpRequest.Context(), *workload, governed, sink)
 		if err != nil && !sink.started {
 			writeGatewayError(writer, err)
 		}
 		return
 	}
-	response, routeID, err := h.gateway.Complete(httpRequest.Context(), *workload, input)
+	response, routeID, err := h.gateway.CompleteGoverned(httpRequest.Context(), *workload, governed)
 	if err != nil {
 		writeGatewayError(writer, err)
 		return
@@ -191,13 +203,38 @@ func (h *HTTPHandler) prepare(writer http.ResponseWriter, request *http.Request)
 	}
 	writer.Header().Set("X-Request-ID", requestID)
 	writer.Header().Set("Cache-Control", "no-store")
-	workload, err := authenticateRequest(request, h.gateway.auth)
+	workload, err := h.gateway.Authenticate(request.Context(), request.Header.Get("Authorization"))
 	if err != nil {
 		writer.Header().Set("WWW-Authenticate", `Bearer realm="clearsight-ai-gateway"`)
 		writeGatewayError(writer, err)
 		return nil, "", false
 	}
 	return workload, requestID, true
+}
+
+func setDecisionHeaders(writer http.ResponseWriter, decision Decision) {
+	if decision.PolicyID == "" {
+		return
+	}
+	writer.Header().Set("X-ClearSight-Decision", string(decision.Action))
+	writer.Header().Set("X-ClearSight-Policy", formatPolicyVersion(PolicySnapshot{Code: decision.PolicyCode, Version: decision.PolicyVersion}))
+	if decision.ProposedAction != "" {
+		writer.Header().Set("X-ClearSight-Proposed-Action", string(decision.ProposedAction))
+	}
+	if len(decision.ReasonCodes) > 0 {
+		writer.Header().Set("X-ClearSight-Reasons", strings.Join(decision.ReasonCodes, ","))
+	}
+	if len(decision.Obligations) > 0 {
+		codes := make([]string, 0, len(decision.Obligations))
+		for _, obligation := range decision.Obligations {
+			if obligation.Code != "" {
+				codes = append(codes, obligation.Code)
+			}
+		}
+		if len(codes) > 0 {
+			writer.Header().Set("X-ClearSight-Obligations", strings.Join(uniqueSortedStrings(codes), ","))
+		}
+	}
 }
 
 func validRequestID(value string) bool {

@@ -63,11 +63,19 @@ func (r *MemoryRepository) ReviewProposal(_ context.Context, input ReviewInput, 
 		return Document{}, ErrNotFound
 	}
 	if value.Version != input.ExpectedVersion {
+		for _, proposal := range value.Proposals {
+			if proposal.ID == input.ProposalID && proposal.Status == input.Status && proposal.ReviewedBy == input.ReviewerID {
+				return cloneDocument(value), nil
+			}
+		}
 		return Document{}, ErrVersionConflict
 	}
 	for index := range value.Proposals {
 		if value.Proposals[index].ID != input.ProposalID {
 			continue
+		}
+		if value.Proposals[index].Status == input.Status && value.Proposals[index].ReviewedBy == input.ReviewerID {
+			return cloneDocument(value), nil
 		}
 		if value.Proposals[index].Status != ProposalPending {
 			return Document{}, ErrInvalidReview
@@ -76,6 +84,9 @@ func (r *MemoryRepository) ReviewProposal(_ context.Context, input ReviewInput, 
 		value.Proposals[index].ReviewedBy = input.ReviewerID
 		value.Proposals[index].ReviewedAt = &now
 		value.Proposals[index].ReviewNote = strings.TrimSpace(input.Note)
+		if input.Status == ProposalAccepted {
+			value.Proposals[index].Handoff = newAcceptedProposalHandoff(input, value.Proposals[index].Title, value.Proposals[index].Statement, now)
+		}
 		value.UpdatedAt = now
 		value.Version++
 		r.items[value.ID] = cloneDocument(value)
@@ -104,15 +115,22 @@ func cloneDocument(value Document) Document {
 	value.Sections = append([]Section(nil), value.Sections...)
 	value.Proposals = append([]Proposal(nil), value.Proposals...)
 	for index := range value.Proposals {
-		if value.Proposals[index].Obligation == nil {
-			continue
+		if value.Proposals[index].Obligation != nil {
+			obligation := *value.Proposals[index].Obligation
+			obligation.Citations = append([]string(nil), obligation.Citations...)
+			obligation.Dates = append([]string(nil), obligation.Dates...)
+			obligation.Topics = append([]string(nil), obligation.Topics...)
+			obligation.Uncertainty = append([]string(nil), obligation.Uncertainty...)
+			value.Proposals[index].Obligation = &obligation
 		}
-		obligation := *value.Proposals[index].Obligation
-		obligation.Citations = append([]string(nil), obligation.Citations...)
-		obligation.Dates = append([]string(nil), obligation.Dates...)
-		obligation.Topics = append([]string(nil), obligation.Topics...)
-		obligation.Uncertainty = append([]string(nil), obligation.Uncertainty...)
-		value.Proposals[index].Obligation = &obligation
+		if value.Proposals[index].Handoff != nil {
+			handoff := *value.Proposals[index].Handoff
+			if handoff.Route != nil {
+				route := *handoff.Route
+				handoff.Route = &route
+			}
+			value.Proposals[index].Handoff = &handoff
+		}
 	}
 	if value.Tabular != nil {
 		metadata := *value.Tabular

@@ -4,6 +4,7 @@ import type { AttentionItem, InterventionClass, Readiness } from "../types";
 
 type ConnectionState = "loading" | "live" | "sample" | "unavailable";
 type ReadinessState = "loading" | "live" | "unavailable";
+type FocusedAttentionItem = AttentionItem & { action_target_sub_id?: string };
 
 type Props = {
   items: AttentionItem[];
@@ -41,11 +42,12 @@ function InterventionRow({ item, onOpen, onInspectAuthority }: { item: Attention
   const nextAction = item.recommendation?.proposed_action || item.primary_action;
   const nextActionLabel = item.recommendation ? "Recommended action" : "Next action";
   const conclusion = item.material_conclusion || item.why_now;
-  const canOpen = Boolean(item.action_target_type && item.action_target_id);
-  const canInspectAuthority = Boolean(canOpen && item.authority && onInspectAuthority);
+  const targetType = item.action_target_type as string | undefined;
+  const canOpen = Boolean(targetType && item.action_target_id);
+  const canInspectAuthority = Boolean(canOpen && targetType !== "DOCUMENT_IMPORT" && item.authority && onInspectAuthority);
   return <article className="intervention-row">
     <div className="intervention-main">
-      <div className="intervention-kicker"><span className="intervention-kind"><WorkItemIcon type={item.type}/>{gateLabel(item.intervention_class, item.action_target_type)}</span><span>{item.state}</span><time>{due}</time></div>
+      <div className="intervention-kicker"><span className="intervention-kind"><WorkItemIcon type={item.type}/>{gateLabel(item.intervention_class, targetType)}</span><span>{item.state}</span><time>{due}</time></div>
       <h3>{item.title}</h3>
       <p className="intervention-conclusion">{conclusion}</p>
       {item.change_summary && item.change_summary !== conclusion && <p className="intervention-change"><strong>Changed:</strong> {item.change_summary}</p>}
@@ -56,10 +58,20 @@ function InterventionRow({ item, onOpen, onInspectAuthority }: { item: Attention
       <strong>{nextAction}</strong>
       {item.recommendation?.rationale && item.recommendation.rationale !== conclusion && <small>{item.recommendation.rationale}</small>}
       {item.verification && <VerificationContext item={item}/>} 
-      {canOpen ? <button className="primary-button" type="button" onClick={() => onOpen(item)}>{openLabel(item.action_target_type)}</button> : <small>No linked record is available.</small>}
+      {canOpen ? <button className="primary-button" type="button" onClick={() => openItem(item, onOpen)}>{openLabel(targetType)}</button> : <small>No linked record is available.</small>}
       {canInspectAuthority && <button className="text-button" type="button" onClick={() => onInspectAuthority?.(item)}>Check authority</button>}
     </div>
   </article>;
+}
+
+function openItem(item: AttentionItem, fallback: (item: AttentionItem) => void) {
+  const focused = item as FocusedAttentionItem;
+  if ((focused.action_target_type as string | undefined) === "DOCUMENT_IMPORT" && focused.action_target_id) {
+    const proposal = focused.action_target_sub_id ? `/${encodeURIComponent(focused.action_target_sub_id)}` : "";
+    window.location.hash = `imports/${encodeURIComponent(focused.action_target_id)}${proposal}`;
+    return;
+  }
+  fallback(item);
 }
 
 function VerificationContext({ item }: { item: AttentionItem }) {
@@ -102,14 +114,15 @@ function StatusChecks({ readiness, state }: { readiness: Readiness | null; state
   </details>;
 }
 
-function openLabel(target?: AttentionItem["action_target_type"]) {
+function openLabel(target?: string) {
   if (target === "PROGRAM") return "Open program";
   if (target === "MATTER") return "Open issue";
   if (target === "EVIDENCE_REQUEST") return "Open request";
+  if (target === "DOCUMENT_IMPORT") return "Open proposal";
   return "Open item";
 }
 
-function gateLabel(value?: InterventionClass, target?: AttentionItem["action_target_type"]) {
+function gateLabel(value?: InterventionClass, target?: string) {
   switch (value) {
     case "DECISION": return "Decision";
     case "AUTHORIZATION": return "Approval";

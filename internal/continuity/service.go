@@ -853,6 +853,9 @@ func (s *Service) CreateMatter(ctx context.Context, input CreateMatterInput) (Ma
 	if err != nil {
 		return MatterAggregate{}, err
 	}
+	if _, valid := ParseMatterAccessPolicy(scope); !valid {
+		return MatterAggregate{}, fmt.Errorf("scope contains invalid Matter access metadata")
+	}
 	known, err := normalizedJSON(input.KnownFacts, `{}`)
 	if err != nil {
 		return MatterAggregate{}, err

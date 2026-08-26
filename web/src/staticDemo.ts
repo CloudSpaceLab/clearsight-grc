@@ -694,6 +694,8 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/operations/projections") return clone({ items: [{ tenant_id: "bank-demo", projection: "program_state", display_name: "Program status", state: "CURRENT", pending: 0, failed: 0, lag_seconds: 3, last_completed: now, updated_at: now }] }) as T;
   if (pathname === "/api/v1/operations/projections/reconcile") return clone({ tenant_id: "bank-demo", checked: 1, queued: 0, already_queued: 0, current: 1 }) as T;
   if (pathname === "/api/v1/compliance/automation-policies") return clone({ items: [] }) as T;
+  if (pathname === "/api/v1/ai-governance/policies") return clone({ items: [] }) as T;
+  if (pathname === "/api/v1/ai-governance/workloads") return clone({ items: [] }) as T;
   if (pathname === "/api/v1/bank-journeys") return clone({ items: [], sample: true }) as T;
   if (pathname === "/api/v1/document-imports") return method === "POST" ? clone(document) as T : clone({ items: [document] }) as T;
   if (pathname === `/api/v1/document-imports/${document.id}/coverage` && method === "GET") return clone(documentCoverage) as T;

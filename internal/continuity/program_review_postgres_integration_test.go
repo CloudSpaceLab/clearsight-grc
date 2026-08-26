@@ -81,13 +81,17 @@ func TestProgramReviewPostgresKeepsActorTenantAndVersionTruth(t *testing.T) {
 	if program.CurrentState == nil || program.CurrentState.ProjectionVersion < 1 {
 		t.Fatalf("expected worker-projected current state before accepting review: %#v", program.CurrentState)
 	}
+	firstDigest, err := service.ProgramReviewDigest(ctx, "program-review-a", program.Program.ID, principalA)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	accepted, err := service.AcceptProgramReview(ctx, AcceptProgramReviewInput{
 		TenantID:                  "program-review-a",
 		ProgramID:                 program.Program.ID,
 		PrincipalID:               principalA,
 		ExpectedProgramVersion:    program.Program.Version,
-		ExpectedProjectionVersion: program.CurrentState.ProjectionVersion,
+		ExpectedProjectionVersion: firstDigest.CurrentProjectionVersion,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -96,20 +100,20 @@ func TestProgramReviewPostgresKeepsActorTenantAndVersionTruth(t *testing.T) {
 		t.Fatalf("unexpected accepted digest: %#v", accepted)
 	}
 
-	// Re-accepting the exact same canonical versions is idempotent rather than
-	// manufacturing duplicate acknowledgement history.
+	// Re-accepting the exact same actor-visible versions is idempotent rather
+	// than manufacturing duplicate acknowledgement history.
 	again, err := service.AcceptProgramReview(ctx, AcceptProgramReviewInput{
 		TenantID:                  "program-review-a",
 		ProgramID:                 program.Program.ID,
 		PrincipalID:               principalA,
 		ExpectedProgramVersion:    program.Program.Version,
-		ExpectedProjectionVersion: program.CurrentState.ProjectionVersion,
+		ExpectedProjectionVersion: accepted.CurrentProjectionVersion,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if again.Checkpoint == nil || again.Checkpoint.ID != accepted.Checkpoint.ID {
-		t.Fatalf("same canonical baseline created duplicate checkpoint: first=%#v second=%#v", accepted.Checkpoint, again.Checkpoint)
+		t.Fatalf("same actor-visible baseline created duplicate checkpoint: first=%#v second=%#v", accepted.Checkpoint, again.Checkpoint)
 	}
 	var checkpointCount int
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM program_review_checkpoints WHERE tenant_id=$1::uuid AND program_id=$2::uuid AND principal_id=$3::uuid`, tenantA, program.Program.ID, principalA).Scan(&checkpointCount); err != nil {
@@ -130,7 +134,8 @@ func TestProgramReviewPostgresKeepsActorTenantAndVersionTruth(t *testing.T) {
 	}
 
 	// Tenant binding is database-enforced even if a caller tried to pair a
-	// Program from one bank with an actor from another.
+	// Program from one bank with an actor from another. Stored checkpoints keep
+	// canonical projection versions for exact historical reconstruction.
 	_, err = pool.Exec(ctx, `
 		INSERT INTO program_review_checkpoints(tenant_id,program_id,principal_id,program_version,projection_version)
 		VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5)`, tenantB, program.Program.ID, principalB, program.Program.Version, program.CurrentState.ProjectionVersion)
@@ -173,7 +178,7 @@ func TestProgramReviewPostgresKeepsActorTenantAndVersionTruth(t *testing.T) {
 		ProgramID:                 program.Program.ID,
 		PrincipalID:               principalA,
 		ExpectedProgramVersion:    program.Program.Version,
-		ExpectedProjectionVersion: program.CurrentState.ProjectionVersion,
+		ExpectedProjectionVersion: accepted.CurrentProjectionVersion,
 	}); !errors.Is(err, ErrVersionConflict) {
 		t.Fatalf("stale expected versions should fail closed, got %v", err)
 	}

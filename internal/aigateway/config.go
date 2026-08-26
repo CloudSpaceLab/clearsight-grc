@@ -23,11 +23,16 @@ const (
 	defaultMaxRequestBytes      = 2 << 20
 	defaultMaxProviderBodyBytes = 8 << 20
 	defaultMaxSSEEventBytes     = 256 << 10
+	defaultGovernanceRefresh    = 5 * time.Second
 	maxConfigBytes              = 8 << 20
+
+	GovernanceStatic   = "STATIC"
+	GovernanceDatabase = "DATABASE"
 )
 
-// FileConfig is the stateless T3 bootstrap contract. Provider credentials are
-// always resolved from environment-variable references and never stored here.
+// FileConfig owns provider transport configuration. Workloads may be supplied
+// statically only in development/test; production resolves governed workload
+// and policy revisions from the ClearSight database.
 type FileConfig struct {
 	Environment          string               `json:"environment"`
 	ListenAddr           string               `json:"listen_addr"`
@@ -38,7 +43,9 @@ type FileConfig struct {
 	MaxSSEEventBytes     int64                `json:"max_sse_event_bytes"`
 	MetricsBearerSHA256  string               `json:"metrics_bearer_sha256"`
 	CircuitBreaker       CircuitBreakerConfig `json:"circuit_breaker"`
-	Workloads            []WorkloadConfig     `json:"workloads"`
+	GovernanceMode       string               `json:"governance_mode,omitempty"`
+	GovernanceRefreshMS  int64                `json:"governance_refresh_ms,omitempty"`
+	Workloads            []WorkloadConfig     `json:"workloads,omitempty"`
 	Providers            []ProviderConfig     `json:"providers"`
 	Models               []ModelConfig        `json:"models"`
 }
@@ -94,6 +101,8 @@ type RuntimeConfig struct {
 	MaxSSEEventBytes     int64
 	MetricsDigest        *[sha256.Size]byte
 	CircuitBreaker       CircuitBreakerConfig
+	GovernanceMode       string
+	GovernanceRefresh    time.Duration
 	Workloads            []ConfiguredWorkload
 	Providers            []ResolvedProviderConfig
 	Models               []ModelConfig
@@ -172,10 +181,28 @@ func (file FileConfig) resolve(lookupEnv func(string) (string, bool)) (RuntimeCo
 		MaxProviderBodyBytes: defaultInt64(file.MaxProviderBodyBytes, defaultMaxProviderBodyBytes),
 		MaxSSEEventBytes:     defaultInt64(file.MaxSSEEventBytes, defaultMaxSSEEventBytes),
 		CircuitBreaker:       file.CircuitBreaker,
+		GovernanceMode:       strings.ToUpper(strings.TrimSpace(file.GovernanceMode)),
+		GovernanceRefresh:    durationMS(file.GovernanceRefreshMS, defaultGovernanceRefresh),
 		Models:               append([]ModelConfig(nil), file.Models...),
 	}
 	if cfg.ListenAddr == "" {
 		cfg.ListenAddr = defaultGatewayAddr
+	}
+	if cfg.GovernanceMode == "" {
+		if environment == "production" {
+			cfg.GovernanceMode = GovernanceDatabase
+		} else {
+			cfg.GovernanceMode = GovernanceStatic
+		}
+	}
+	if cfg.GovernanceMode != GovernanceStatic && cfg.GovernanceMode != GovernanceDatabase {
+		return RuntimeConfig{}, fmt.Errorf("gateway governance_mode must be STATIC or DATABASE")
+	}
+	if cfg.GovernanceRefresh < time.Second || cfg.GovernanceRefresh > 5*time.Minute {
+		return RuntimeConfig{}, fmt.Errorf("gateway governance refresh is outside supported bounds")
+	}
+	if environment == "production" && cfg.GovernanceMode != GovernanceDatabase {
+		return RuntimeConfig{}, fmt.Errorf("production requires DATABASE governed workload state")
 	}
 	if cfg.RequestTimeout < time.Second || cfg.RequestTimeout > 10*time.Minute || cfg.ShutdownTimeout < time.Second || cfg.ShutdownTimeout > time.Minute {
 		return RuntimeConfig{}, fmt.Errorf("gateway request/shutdown timeouts are outside supported bounds")
@@ -199,42 +226,46 @@ func (file FileConfig) resolve(lookupEnv func(string) (string, bool)) (RuntimeCo
 		}
 		cfg.MetricsDigest = &digest
 	}
-	if len(file.Workloads) == 0 || len(file.Workloads) > 4096 {
-		return RuntimeConfig{}, fmt.Errorf("gateway requires 1-4096 configured workloads")
-	}
-	workloadIDs := make(map[string]struct{}, len(file.Workloads))
-	keyDigests := make(map[[sha256.Size]byte]string, len(file.Workloads))
-	for _, input := range file.Workloads {
-		if !validIdentifier(input.ID) || !validIdentifier(input.TenantID) {
-			return RuntimeConfig{}, fmt.Errorf("invalid workload or tenant identifier")
+	if cfg.GovernanceMode == GovernanceStatic {
+		if len(file.Workloads) == 0 || len(file.Workloads) > 4096 {
+			return RuntimeConfig{}, fmt.Errorf("STATIC governance requires 1-4096 configured workloads")
 		}
-		if _, exists := workloadIDs[input.ID]; exists {
-			return RuntimeConfig{}, fmt.Errorf("duplicate workload id %q", input.ID)
-		}
-		workloadIDs[input.ID] = struct{}{}
-		digest, err := parseDigest(input.KeySHA256)
-		if err != nil {
-			return RuntimeConfig{}, fmt.Errorf("workload %s key digest: %w", input.ID, err)
-		}
-		if prior, exists := keyDigests[digest]; exists {
-			return RuntimeConfig{}, fmt.Errorf("workloads %s and %s share one credential digest", prior, input.ID)
-		}
-		keyDigests[digest] = input.ID
-		if len(input.AllowedModels) == 0 || len(input.AllowedModels) > 256 || input.RequestsPerMinute < 1 || input.TokensPerMinute < 1 || input.CostMicroUSDPerMinute < 1 || input.MaxConcurrent < 1 {
-			return RuntimeConfig{}, fmt.Errorf("workload %s has invalid model or budget limits", input.ID)
-		}
-		allowed := make(map[string]struct{}, len(input.AllowedModels))
-		for _, alias := range input.AllowedModels {
-			if !validIdentifier(alias) {
-				return RuntimeConfig{}, fmt.Errorf("workload %s has invalid model alias", input.ID)
+		workloadIDs := make(map[string]struct{}, len(file.Workloads))
+		keyDigests := make(map[[sha256.Size]byte]string, len(file.Workloads))
+		for _, input := range file.Workloads {
+			if !validIdentifier(input.ID) || !validIdentifier(input.TenantID) {
+				return RuntimeConfig{}, fmt.Errorf("invalid workload or tenant identifier")
 			}
-			allowed[alias] = struct{}{}
+			if _, exists := workloadIDs[input.ID]; exists {
+				return RuntimeConfig{}, fmt.Errorf("duplicate workload id %q", input.ID)
+			}
+			workloadIDs[input.ID] = struct{}{}
+			digest, err := parseDigest(input.KeySHA256)
+			if err != nil {
+				return RuntimeConfig{}, fmt.Errorf("workload %s key digest: %w", input.ID, err)
+			}
+			if prior, exists := keyDigests[digest]; exists {
+				return RuntimeConfig{}, fmt.Errorf("workloads %s and %s share one credential digest", prior, input.ID)
+			}
+			keyDigests[digest] = input.ID
+			if len(input.AllowedModels) == 0 || len(input.AllowedModels) > 256 || input.RequestsPerMinute < 1 || input.TokensPerMinute < 1 || input.CostMicroUSDPerMinute < 1 || input.MaxConcurrent < 1 {
+				return RuntimeConfig{}, fmt.Errorf("workload %s has invalid model or budget limits", input.ID)
+			}
+			allowed := make(map[string]struct{}, len(input.AllowedModels))
+			for _, alias := range input.AllowedModels {
+				if !validIdentifier(alias) {
+					return RuntimeConfig{}, fmt.Errorf("workload %s has invalid model alias", input.ID)
+				}
+				allowed[alias] = struct{}{}
+			}
+			cfg.Workloads = append(cfg.Workloads, ConfiguredWorkload{Workload: Workload{
+				ID: input.ID, TenantID: input.TenantID, AllowedModels: allowed,
+				RequestsPerMinute: input.RequestsPerMinute, TokensPerMinute: input.TokensPerMinute,
+				CostMicroUSDPerMinute: input.CostMicroUSDPerMinute, MaxConcurrent: input.MaxConcurrent,
+			}, KeyDigest: digest})
 		}
-		cfg.Workloads = append(cfg.Workloads, ConfiguredWorkload{Workload: Workload{
-			ID: input.ID, TenantID: input.TenantID, AllowedModels: allowed,
-			RequestsPerMinute: input.RequestsPerMinute, TokensPerMinute: input.TokensPerMinute,
-			CostMicroUSDPerMinute: input.CostMicroUSDPerMinute, MaxConcurrent: input.MaxConcurrent,
-		}, KeyDigest: digest})
+	} else if len(file.Workloads) != 0 {
+		return RuntimeConfig{}, fmt.Errorf("DATABASE governance does not accept static workload credentials")
 	}
 	if len(file.Providers) < 1 || len(file.Providers) > 64 {
 		return RuntimeConfig{}, fmt.Errorf("gateway requires between 1 and 64 provider configurations")

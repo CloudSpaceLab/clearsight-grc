@@ -1,7 +1,7 @@
 # ClearSight implementation ledger
 
 **Status date:** 2026-08-26
-**Current execution:** Vendor workflow integration and shared collection controls; final verification pending
+**Current execution:** Release integration and deployment verification for operational, vendor, AI-governance and document-handoff workflows
 **Umbrella pilot/GA catalogue:** #13
 
 This file is the authoritative implementation ledger. Code, migrations and executable tests remain final capability truth. Completed detail belongs in focused architecture documents, PRs and tests rather than parallel planning frameworks.
@@ -25,7 +25,9 @@ This file is the authoritative implementation ledger. Code, migrations and execu
 | Protected Matter read parity + Program review explanation delta | PR #55 |
 | Enterprise identity/access EIA-0…5 | PR #59 |
 | Reusable connected-source T0…T2 | issue #61 through PR #70 |
-| Stateless AI gateway transport T3 | issue #61; `cmd/ai-gateway` and `internal/aigateway` |
+| Stateless AI gateway transport T3 | issue #61; PR #71 |
+| Governed AI workload/policy runtime T4 + durable receipts/response grants T5 | issue #61; PR #73 |
+| Governed document-proposal reviewer/authorizer handoff | issue #72; PR #75 |
 | Program monitoring setup | Program and requirement creation, reusable forms, connected public status endpoints, maker-checker form/check activation, on-demand collection and immutable results |
 | Issue and change creation | Inline authority-checked Matter creation, business work types, actor ownership, optional Program linking and immediate in-workspace handoff |
 | Complete Program operating record | Versioned details and ownership, requirement supersession, applicability, safeguards and eligible performers, evidence expectations/results, lifecycle, monitoring and exact linked issues |
@@ -37,7 +39,7 @@ The approved [`Program and Work operational-completeness design`](superpowers/sp
 
 Domain expansion must build on these operation/participant reads and dedicated record workspaces. It must not reimplement generic Matter facts, assignment, Actions, Decisions, evidence assessment, outcome checks, Program requirements or linked-issue UI inside a vertical-specific module.
 
-## Current execution — premium first-run and vendor identity presentation
+## Premium first-run and vendor identity presentation — implemented
 
 The approved [`premium first-run and vendor-branding design`](superpowers/specs/2026-08-26-premium-first-run-and-vendor-branding-design.md) adds surface-aware Today and Vendors guides, a shared optional cinematic panel and stored vendor icons without creating a separate vendor dashboard or treating an icon as identity evidence. Guides remain actor-, tenant-, surface- and version-scoped; they can be skipped, resumed and restarted, and a guidance failure leaves the workspace available.
 
@@ -45,7 +47,7 @@ Vendor identity and service relationship use distinct resources and versions. `/
 
 Website icon retrieval is durable, bounded and independent of vendor workflow availability. The worker uses no ambient proxy or credentials, validates DNS and connected destinations, revalidates redirects, bounds response size and converts accepted PNG, JPEG, WebP or ICO input to a canonical PNG. Discovery is disabled by default in production until outbound-network policy explicitly enables it. An approved upload overrides a discovered icon; removing the override restores the latest safe icon matching the current hostname. Upload reservation, command receipt, brand events and cleanup preserve replay and orphan recovery.
 
-Code and executable unit/tagged-build gates are being completed on the feature branch. This tranche remains **in verification** until the final exact-HEAD suite, rendered Today/Vendors matrix, reduced-motion and responsive inspection, and the 1600×900 presentation cover are recorded. PostgreSQL integration tests may compile and skip when `TEST_DATABASE_URL` is absent; that skip is not production database evidence.
+The integrated tranche passes the exact-head unit and tagged-build gates, the rendered Today/Vendors matrix, reduced-motion and responsive inspection. The 1600×900 presentation cover is retained under `docs/presentation-assets`. PostgreSQL integration tests still require `TEST_DATABASE_URL`; a compile-and-skip result is not production database evidence.
 
 ## 2. Mobile-channel monitoring — implemented application slice
 
@@ -65,11 +67,13 @@ No supported individual Program or Matter operating command requires JSON, direc
 
 The production-hardening follow-up binds Program and issue/change reads, history, links, trigger deduplication and material commands to the verified legal entity. Legacy entity scope is migrated only when deterministic; migration aborts before enabling scoped commands when a Program, issue or cross-entity link cannot be resolved safely. Exact records load their aggregate, responsibility route and review position independently, so available business records remain readable while stale or unavailable authority data disables only material mutations.
 
-## 3. AI governance gateway — T3 transport implemented
+## 3. AI governance gateway — T3–T5 runtime implemented
 
-The repository now has an isolated stateless gateway process with OpenAI-compatible Chat Completions and Responses ingress, truthful SSE translation, OpenAI and Anthropic pilot adapters, SHA-256 workload authentication, model aliases, weighted routing, pre-output fallback, route circuit breaking, request/token/cost/concurrency budgets and content-free logs/metrics.
+The repository has an isolated stateless gateway process with OpenAI-compatible Chat Completions and Responses ingress, truthful SSE translation, OpenAI and Anthropic pilot adapters, SHA-256 workload authentication, model aliases, weighted routing, pre-output fallback, route circuit breaking, request/token/cost/concurrency budgets and content-free logs/metrics.
 
-T3 deliberately owns no durable table and makes no governance decision. T4 remains the next AI-specific scope: governed AI workload registration, Automation Policy lifecycle, deterministic decisions/obligations, reusable Source Binding resolution and maker-checker-controlled shadow/enforcement activation. T5 remains durable receipts, response controls and approval/execution grants. These do not supersede the repository-wide current execution above. See [`architecture/ai-gateway-transport.md`](architecture/ai-gateway-transport.md).
+The runtime scope tracked by #61 is complete. T4/T5 add governed AI workload registration, Automation Policy lifecycle, deterministic decisions and obligations, reusable Source Binding resolution, maker-checker-controlled SHADOW/ENFORCE activation, durable decision receipts, response controls and approval/execution grants. The gateway still does not retain raw prompts, responses or source values merely to enrich presentation.
+
+The remaining AI-governance work is productization, not a second runtime stack. Issue #74 owns the bank-native workload/policy authoring, revision, maker-checker, SHADOW→ENFORCE promotion, bounded decision exploration/simulation, Matter handoff and safe credential-rotation UX. Reuse `internal/aigateway`, `internal/aigovernance`, Source Access, Matter and authority foundations; do not add a parallel inventory, task, approval, source registry or event console. See [`architecture/ai-gateway-transport.md`](architecture/ai-gateway-transport.md).
 
 ## 4. Enterprise identity/access — implemented on PR #59
 
@@ -252,7 +256,8 @@ A vendor risk register is therefore a bounded projection over those canonical re
 
 - responsibility and decision-authority matrices where existing backend configuration is not yet operable from the UI;
 - governed delegation/substitution/absence where the current product surface is insufficient;
-- security/session/notification/integration policy surfaces tied to real backend capability.
+- security/session/notification/integration policy surfaces tied to real backend capability;
+- issue #74 bank-native AI-governance workload/policy/decision authoring, maker-checker approval, SHADOW→ENFORCE promotion, bounded decision exploration and safe credential rotation over the existing T3–T5 runtime.
 
 Do not reopen generic IAM/directory scope merely because adjacent enterprise administration remains.
 
@@ -305,6 +310,9 @@ Add `NO_ROUTE`, `AUTHORITY_INSUFFICIENT`, `MATERIALITY_INCREASE`, `RECIPIENT_UNA
 - Program review checkpoint = actor acknowledgement, not Program state or approval.
 - Protected Matter visibility must fail closed before actor-facing search/pagination/limit.
 - Saved Work view ≠ assignment or authorization truth.
+- Source document ≠ extracted proposal ≠ accepted candidate ≠ canonical Requirement/Control draft ≠ reviewer conclusion ≠ authorizer approval ≠ active governance object.
+- Accepted document proposal ≠ active Requirement or Control.
+- Document-proposal Workflow task ≠ reviewer/authorizer authority; authority remains resolved from the canonical authority model at action time.
 - Schema/spec existence ≠ capability.
 
 Do not add parallel authorization, task, workflow, event, worker, receipt, review, preference, document, directory or dashboard stacks that duplicate existing foundations.
@@ -367,6 +375,18 @@ canonical due date + pinned escalation lineage
 → same Workflow task escalation overlay or unresolved receipt
 → next timer only
 → material action still requires current command authority
+
+document proposal governance
+source document
+→ extracted proposal
+→ intake acceptance + durable idempotent handoff/outbox
+→ current authority resolves reviewer
+→ exact Workflow task appears in reviewer Today
+→ reviewer can refine, return, reject or submit for authorization
+→ current authority resolves authorizer
+→ exact authorization task appears in authorizer Today
+→ authorizer approval invokes the canonical domain service
+→ Requirement / Control Objective materializes exactly once
 ```
 
 Presentation/projection/session/provisioning/escalation/admin/demo state never substitutes for canonical domain or material authority truth.

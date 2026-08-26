@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
@@ -36,7 +37,8 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		version = "no-demo-policy"
 		rules = nil
 	}
-	auto := autonomy.NewService(autonomy.NewMemoryRepository())
+	autonomyRepo := autonomy.NewMemoryRepository()
+	auto := autonomy.NewService(autonomyRepo)
 	if cfg.DemoMode {
 		autonomy.SeedDemo(ctx, auto)
 	}
@@ -72,6 +74,8 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	continuityService := continuity.NewService(continuityRepo)
 	continuityService.ConfigureEvidenceSourceValidator(evidenceService)
 	assessmentSetup := thirdparty.NewAssessmentProvisioner(thirdPartyRepo, continuityService, "memory-api")
+	aiGovernanceRepo := aigovernance.NewMemoryRepository()
+	aiGovernanceService := aigovernance.NewService(aiGovernanceRepo, auto, sourceCatalog, continuityService)
 	coverageService := documentcoverage.NewService(documentcoverage.NewMemoryRepository(), documentService, continuityService)
 	verticals := bankverticals.NewService(continuityService, evidenceService)
 	if cfg.DemoMode {
@@ -124,6 +128,6 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()),
 		Evidence: evidenceService, ObjectStore: store, Monitoring: monitoringService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRelationshipLinkRepo, ThirdPartyWorkRepo: thirdPartyWorkRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
-		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo), Close: func() {},
+		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo), Close: func() {},
 	}, nil
 }

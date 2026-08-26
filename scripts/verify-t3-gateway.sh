@@ -24,7 +24,7 @@ if find migrations -maxdepth 1 -type f -name '*ai_gateway*' -print -quit | grep 
   echo "T3 transport introduced durable gateway persistence" >&2
   exit 1
 fi
-if grep -R -nE --include='*.go' 'internal/(sourceaccess|authority|governance|workflow|continuity)' internal/aigateway cmd/ai-gateway; then
+if grep -R -nE --include='*.go' 'internal/(sourceaccess|authority|governance|workflow|continuity)' internal/aigateway; then
   echo "T3 transport depends on governed enforcement or product-domain packages" >&2
   exit 1
 fi

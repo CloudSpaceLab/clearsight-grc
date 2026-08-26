@@ -26,6 +26,29 @@ describe("TodayInterventions", () => {
     expect(onOpen).toHaveBeenCalledWith(item);
   });
 
+  it("opens assigned document work at the exact proposal without using the generic dispatcher", () => {
+    const onOpen = vi.fn();
+    const documentItem = {
+      ...item,
+      id: "document-review",
+      type: "DOCUMENT_PROPOSAL",
+      title: "Review imported proposal",
+      recommendation: undefined,
+      action_target_type: "DOCUMENT_IMPORT",
+      action_target_id: "document 1",
+      action_target_sub_id: "proposal 1",
+      authority: { responsibility: "REVIEWER", decision_type: "document.proposal.review", materiality: 3 },
+    } as unknown as AttentionItem & { action_target_sub_id: string };
+    window.history.replaceState(null, "", "#today");
+
+    render(<TodayInterventions items={[documentItem]} connection="live" readiness={readiness} readinessState="live" onOpenItem={onOpen} onInspectAuthority={vi.fn()}/>);
+    fireEvent.click(screen.getByRole("button", { name: "Open proposal" }));
+
+    expect(window.location.hash).toBe("#imports/document%201/proposal%201");
+    expect(onOpen).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Check authority" })).toBeNull();
+  });
+
   it("does not relabel an ordinary workflow action as prepared or recommended work", () => {
     render(<TodayInterventions items={[{ ...item, recommendation: undefined }]} connection="live" readiness={readiness} readinessState="live" onOpenItem={vi.fn()}/>);
     expect(screen.getByText("Next action")).toBeTruthy();

@@ -9,6 +9,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 )
@@ -17,6 +18,10 @@ import (
 // current lifecycle state. Route identifiers are canonical: redundant body IDs
 // may match them, but may never redirect authority evaluation to another object.
 func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenant, name string, payload map[string]any, policy commandPolicy) (commandPolicy, error) {
+	if strings.HasPrefix(name, "document.proposal.") {
+		return a.documentProposalCommandPolicy(ctx, r, tenant, name, payload, policy)
+	}
+
 	matterID := ""
 	if existingMatterCommand(name) {
 		var err error
@@ -977,6 +982,60 @@ func programHasEvidenceContract(aggregate continuity.ProgramAggregate, contractI
 		}
 	}
 	return false
+}
+
+func (a *API) documentProposalCommandPolicy(ctx context.Context, r *http.Request, tenant, name string, payload map[string]any, policy commandPolicy) (commandPolicy, error) {
+	if a.deps.DocumentImports == nil {
+		return policy, fmt.Errorf("document import service is unavailable")
+	}
+	documentID, err := boundLifecycleID(strings.TrimSpace(r.PathValue("id")), stringValue(payload["document_id"]), "document_id")
+	if err != nil {
+		return policy, err
+	}
+	proposalID, err := boundLifecycleID(strings.TrimSpace(r.PathValue("proposal_id")), stringValue(payload["proposal_id"]), "proposal_id")
+	if err != nil {
+		return policy, err
+	}
+	if documentID == "" || proposalID == "" {
+		return policy, fmt.Errorf("%w: document and proposal identifiers are required", continuity.ErrInvalidState)
+	}
+	document, err := a.deps.DocumentImports.Get(ctx, tenant, documentID)
+	if err != nil {
+		return policy, err
+	}
+	if strings.TrimSpace(document.LegalEntityID) == "" {
+		return policy, fmt.Errorf("%w: the imported document has no governed legal-entity scope", continuity.ErrInvalidState)
+	}
+	var proposal *documentimport.Proposal
+	for index := range document.Proposals {
+		if document.Proposals[index].ID == proposalID {
+			proposal = &document.Proposals[index]
+			break
+		}
+	}
+	if proposal == nil || proposal.Handoff == nil || proposal.Status != documentimport.ProposalAccepted {
+		return policy, fmt.Errorf("%w: accepted proposal handoff not found", continuity.ErrInvalidState)
+	}
+	switch name {
+	case "document.proposal.review":
+		if proposal.Handoff.Status != documentimport.HandoffAwaitingReview {
+			return policy, fmt.Errorf("%w: proposal is not awaiting review", continuity.ErrInvalidState)
+		}
+		policy.Responsibility = authority.ResponsibilityReviewer
+		policy.Materiality = max(policy.Materiality, 3)
+	case "document.proposal.authorize":
+		if proposal.Handoff.Status != documentimport.HandoffAwaitingAuthorization {
+			return policy, fmt.Errorf("%w: proposal is not awaiting authorization", continuity.ErrInvalidState)
+		}
+		policy.Responsibility = authority.ResponsibilityAuthorizer
+		policy.Materiality = max(policy.Materiality, 4)
+	default:
+		return policy, fmt.Errorf("%w: unsupported document proposal command", continuity.ErrInvalidState)
+	}
+	payload["document_id"] = documentID
+	payload["proposal_id"] = proposalID
+	payload["legal_entity_id"] = document.LegalEntityID
+	return policy, nil
 }
 
 func existingMatterCommand(name string) bool {

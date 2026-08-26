@@ -15,13 +15,24 @@ func (r *MemoryRepository) ListProgramSummaries(ctx context.Context, tenant stri
 		return ProgramSummaryPage{}, err
 	}
 	search := strings.ToLower(query.Search)
+	actor, enforceVisibility := identity.FromContext(ctx)
+	if enforceVisibility && actor.TenantID != tenant {
+		return ProgramSummaryPage{GeneratedAt: time.Now().UTC()}, nil
+	}
 	r.mu.RLock()
 	values := make([]ProgramSummary, 0, len(r.programs[tenant]))
 	for _, aggregate := range r.programs[tenant] {
 		if !r.visibleLegalEntity(ctx, aggregate.Program.TenantID, aggregate.Program.LegalEntityID) {
 			continue
 		}
-		value := summarizeProgram(cloneProgramAggregate(aggregate))
+		aggregate = cloneProgramAggregate(aggregate)
+		if enforceVisibility && aggregate.CurrentState != nil {
+			visible := r.visibleProgramMatterVisibilityForProgramLocked(tenant, aggregate.Program.ID, actor.PrincipalID)
+			state := programStateForVisibleMatters(*aggregate.CurrentState, visible.OpenCount)
+			state.GeneratedAt = actorVisibleProgramStateTime(aggregate.Program.UpdatedAt, visible.LatestAt)
+			aggregate.CurrentState = &state
+		}
+		value := summarizeProgram(aggregate)
 		if query.Status != "" && string(value.Program.Status) != query.Status {
 			continue
 		}
@@ -64,6 +75,15 @@ func (r *MemoryRepository) ListProgramSummaries(ctx context.Context, tenant stri
 	}
 	page.Items = values
 	return page, nil
+}
+
+func (r *MemoryRepository) visibleProgramMatterVisibilityForProgramLocked(tenant, programID, principalID string) programMatterVisibility {
+	targets := map[string]struct{}{programID: {}}
+	visibility := map[string]programMatterVisibility{}
+	for _, aggregate := range r.matters[tenant] {
+		collectVisibleMatterPrograms(aggregate, aggregate.Matter.UpdatedAt, principalID, targets, visibility)
+	}
+	return visibility[programID]
 }
 
 func (r *MemoryRepository) ListMatterSummaries(ctx context.Context, tenant string, query SummaryQuery) (MatterSummaryPage, error) {

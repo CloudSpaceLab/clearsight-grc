@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
@@ -65,6 +66,7 @@ type Dependencies struct {
 	Workflow         *workflow.Service
 	Onboarding       *onboarding.Service
 	Autonomy         *autonomy.Service
+	AIGovernance     *aigovernance.Service
 	BankVerticals    *bankverticals.Service
 	BackgroundJobs   *operations.Service
 	MaxArtifactBytes int64

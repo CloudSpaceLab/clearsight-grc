@@ -17,5 +17,9 @@ func (s *Service) List(ctx context.Context, filter ListFilter) ([]Task, error) {
 	if filter.Limit <= 0 || filter.Limit > 200 {
 		filter.Limit = 50
 	}
-	return s.repo.List(ctx, filter)
+	values, err := s.repo.List(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	return s.appendDocumentProposalActorWork(ctx, filter, values)
 }

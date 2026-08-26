@@ -45,11 +45,23 @@ func newRouter(config RuntimeConfig, providers map[string]*providerRuntime) (*ro
 }
 
 func (r *router) candidates(workload Workload, alias string) ([]*routeRuntime, TokenPrice, error) {
+	return r.candidatesFor(workload, alias, "")
+}
+
+func (r *router) candidatesFor(workload Workload, alias, routeID string) ([]*routeRuntime, TokenPrice, error) {
 	if _, allowed := workload.AllowedModels[alias]; !allowed {
 		return nil, TokenPrice{}, ErrModelNotFound
 	}
 	model := r.aliases[alias]
 	if model == nil || len(model.routes) == 0 || model.totalWeight == 0 {
+		return nil, TokenPrice{}, ErrModelNotFound
+	}
+	if routeID != "" {
+		for _, route := range model.routes {
+			if route.ID == routeID {
+				return []*routeRuntime{route}, route.Price, nil
+			}
+		}
 		return nil, TokenPrice{}, ErrModelNotFound
 	}
 	point := model.counter.Add(1) - 1

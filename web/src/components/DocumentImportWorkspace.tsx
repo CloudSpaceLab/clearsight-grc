@@ -3,11 +3,14 @@ import type { FormEvent } from "react";
 import { applyDocumentCoverageSuggestion, importDocument, loadDocumentCoverage, loadDocumentImport, loadDocumentImports, recompareDocumentCoverage, reviewDocumentCoverage, reviewDocumentProposal } from "../documentApi";
 import type { CoverageCandidate, CoverageDecision, CoverageSuggestion, DocumentCoverage, DocumentImport, DocumentImportSummary, DocumentProposal, ProposalStatus } from "../documentTypes";
 import { apiErrorKind } from "../http";
+import { DocumentProposalHandoff } from "./DocumentProposalHandoff";
 import { EmptyState } from "./EmptyState";
 import { FileDropzone } from "./FileDropzone";
 
 const documentAccept = ".txt,.md,.csv,.docx,.xlsx,.pdf,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const maximumDocumentBytes = 20 * 1024 * 1024;
+
+type ImportFocus = { documentID?: string; proposalID?: string };
 
 export function DocumentImportWorkspace() {
   const [documents, setDocuments] = useState<DocumentImportSummary[]>([]);
@@ -23,6 +26,7 @@ export function DocumentImportWorkspace() {
   const [purpose, setPurpose] = useState("");
   const [sourceType, setSourceType] = useState("DOCUMENT");
   const [intakeOpen, setIntakeOpen] = useState(false);
+  const [focus, setFocus] = useState<ImportFocus>(focusedImportTarget);
 
   async function refresh(selectID?: string) {
     setState("loading");
@@ -46,7 +50,22 @@ export function DocumentImportWorkspace() {
     }
   }
 
-  useEffect(() => { void refresh(); }, []);
+  useEffect(() => {
+    const syncFocus = () => setFocus(focusedImportTarget());
+    window.addEventListener("hashchange", syncFocus);
+    return () => window.removeEventListener("hashchange", syncFocus);
+  }, []);
+
+  useEffect(() => { void refresh(focus.documentID); }, [focus.documentID]);
+
+  useEffect(() => {
+    if (!selected || !focus.proposalID) return;
+    const element = window.document.getElementById(`document-proposal-${focus.proposalID}`);
+    if (!element) return;
+    const disclosure = element.closest("details");
+    if (disclosure instanceof HTMLDetailsElement) disclosure.open = true;
+    window.requestAnimationFrame(() => element.scrollIntoView({ block: "start" }));
+  }, [selected?.id, selected?.version, focus.proposalID]);
 
   useEffect(() => {
     if (!selected || (!isProcessing(selected) && coverage?.status !== "PENDING" && coverage?.status !== "COMPARING")) return;
@@ -119,8 +138,7 @@ export function DocumentImportWorkspace() {
     setError(null);
     try {
       const updated = await reviewDocumentProposal(selected.id, proposal.id, status, selected.version);
-      setSelected(updated);
-      setDocuments((current) => current.map((item) => item.id === updated.id ? updateSummary(item, updated) : item));
+      applyDocumentUpdate(updated);
     } catch (cause) {
       const conflict = apiErrorKind(cause) === "conflict";
       setError(conflict ? "This import changed while you were reviewing it. The latest version has been loaded." : cause instanceof Error ? cause.message : "The review could not be recorded.");
@@ -128,6 +146,11 @@ export function DocumentImportWorkspace() {
     } finally {
       setReviewingProposalID(null);
     }
+  }
+
+  function applyDocumentUpdate(updated: DocumentImport) {
+    setSelected(updated);
+    setDocuments((current) => current.map((item) => item.id === updated.id ? updateSummary(item, updated) : item));
   }
 
   async function reviewCoverage(candidate: CoverageCandidate, decision: CoverageDecision, reason = "") {
@@ -236,18 +259,19 @@ export function DocumentImportWorkspace() {
           ? <EmptyState label="Document imports" title="No documents imported" description="Import a TXT, Markdown, CSV, DOCX, XLSX or PDF document. Searchable PDFs are extracted automatically; scanned PDFs remain stored and report when OCR is required."/>
           : <div className="document-import-layout">
               <div className="document-import-list" aria-label="Imported documents">{documents.map((document) => <button key={document.id} type="button" disabled={Boolean(reviewingProposalID)} className={selected?.id === document.id ? "document-import-row active" : "document-import-row"} onClick={() => void choose(document.id)}><strong>{document.file_name}</strong><span>{summaryLabel(document)}</span><small>{new Date(document.created_at).toLocaleString()}</small></button>)}</div>
-              {selected && <DocumentInspector document={selected} coverage={coverage} coverageActionID={coverageActionID} coverageNotice={coverageNotice} reviewingProposalID={reviewingProposalID} onReview={review} onCoverageReview={reviewCoverage} onApplySuggestion={applySuggestion} onRecompare={recompare} onLoadMore={loadMoreCoverage}/>}
+              {selected && <DocumentInspector document={selected} coverage={coverage} coverageActionID={coverageActionID} coverageNotice={coverageNotice} reviewingProposalID={reviewingProposalID} onReview={review} onDocumentUpdated={applyDocumentUpdate} onCoverageReview={reviewCoverage} onApplySuggestion={applySuggestion} onRecompare={recompare} onLoadMore={loadMoreCoverage}/>}
             </div>}
   </section>;
 }
 
-function DocumentInspector({ document, coverage, coverageActionID, coverageNotice, reviewingProposalID, onReview, onCoverageReview, onApplySuggestion, onRecompare, onLoadMore }: {
+function DocumentInspector({ document, coverage, coverageActionID, coverageNotice, reviewingProposalID, onReview, onDocumentUpdated, onCoverageReview, onApplySuggestion, onRecompare, onLoadMore }: {
   document: DocumentImport;
   coverage: DocumentCoverage | null;
   coverageActionID: string | null;
   coverageNotice: string | null;
   reviewingProposalID: string | null;
   onReview: (proposal: DocumentProposal, status: ProposalStatus) => void;
+  onDocumentUpdated: (document: DocumentImport) => void;
   onCoverageReview: (candidate: CoverageCandidate, decision: CoverageDecision, reason?: string) => void;
   onApplySuggestion: (suggestion: CoverageSuggestion) => void;
   onRecompare: () => void;
@@ -255,6 +279,8 @@ function DocumentInspector({ document, coverage, coverageActionID, coverageNotic
 }) {
   const pending = document.proposals.filter((proposal) => proposal.status === "PENDING_REVIEW");
   const reviewed = document.proposals.filter((proposal) => proposal.status !== "PENDING_REVIEW");
+  const handoffsPending = document.proposals.filter((proposal) => proposal.handoff?.status === "AWAITING_REVIEW" || proposal.handoff?.status === "AWAITING_AUTHORIZATION").length;
+  const handoffReceiptVisible = reviewed.some((proposal) => proposal.handoff && proposal.handoff.status !== "AWAITING_REVIEW" && proposal.handoff.status !== "AWAITING_AUTHORIZATION");
   const processing = isProcessing(document);
   const sectionsTotal = document.sections_total ?? document.sections.length;
   const sectionsOmitted = document.sections_omitted ?? 0;
@@ -263,18 +289,18 @@ function DocumentInspector({ document, coverage, coverageActionID, coverageNotic
   const stateLabel = storedOnly ? "Original stored" : human(document.extraction_status);
   const coveragePending = coverage?.candidates.filter((candidate) => candidate.eligible && !candidate.review).length ?? 0;
   const coverageTotal = coverage?.metrics.verified.denominator ?? 0;
-  const terminalLabel = document.extraction_status === "FAILED" ? "Extraction failed" : storedOnly ? "Text review unavailable" : coverage ? `${coverageTotal} eligible obligation${coverageTotal === 1 ? "" : "s"}` : pending.length ? `${pending.length} to review` : "No review pending";
+  const terminalLabel = document.extraction_status === "FAILED" ? "Extraction failed" : storedOnly ? "Text review unavailable" : handoffsPending ? `${handoffsPending} governed approval${handoffsPending === 1 ? "" : "s"} pending` : coverage ? `${coverageTotal} eligible obligation${coverageTotal === 1 ? "" : "s"}` : pending.length ? `${pending.length} to review` : "No review pending";
 
   return <article className="document-import-inspector">
     <header><div><span className="eyebrow">{human(document.source_type)}</span><h2>{document.file_name}</h2><p>{document.purpose}</p></div><div className="document-state"><span>{stateLabel}</span><strong>{processing ? "Processing stored source" : terminalLabel}</strong></div></header>
-    <div className="import-review-summary" aria-label="Import review summary">{coverage ? <><span><strong>{coverage.metrics.verified.denominator}</strong> eligible obligations</span><span><strong>{coveragePending}</strong> loaded for review</span><span><strong>{document.sections.length}</strong> of {sectionsTotal} source sections retained</span></> : <><span><strong>{pending.length}</strong> to review</span><span><strong>{reviewed.length}</strong> reviewed</span><span><strong>{document.sections.length}</strong> of {sectionsTotal} source sections retained</span></>}</div>
+    <div className="import-review-summary" aria-label="Import review summary">{coverage ? <><span><strong>{coverage.metrics.verified.denominator}</strong> eligible obligations</span><span><strong>{coveragePending}</strong> loaded for review</span><span><strong>{handoffsPending}</strong> governed handoffs pending</span></> : <><span><strong>{pending.length}</strong> intake review</span><span><strong>{handoffsPending}</strong> governed handoffs pending</span><span><strong>{document.sections.length}</strong> of {sectionsTotal} source sections retained</span></>}</div>
     {processing && <section className="workspace-loading" aria-live="polite" aria-busy="true"><strong>Original stored successfully.</strong><p>Extraction and analysis are running in the background. This page will update when processing completes.</p></section>}
     {!processing && coverage && <CoverageAssessment coverage={coverage} actionID={coverageActionID} notice={coverageNotice} onReview={onCoverageReview} onApply={onApplySuggestion} onRecompare={onRecompare} onLoadMore={onLoadMore}/>}
     {document.limitations.length > 0 && <section className="document-limitations"><h3>Important limitations</h3>{document.limitations.map((item) => <p key={item}>{item}</p>)}</section>}
     {!processing && <>
-      {!coverage && <section><div className="section-header"><div><h3>Review required</h3><p>Accept or reject each extracted proposal. Requirements and controls still require approval before they become active.</p></div></div>{pending.length ? <div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview}/>)}</div> : <div className="calm-empty compact"><span>✓</span><div><strong>Nothing waiting for review</strong><p>{document.analysis_status === "UNAVAILABLE" ? "No review proposal is available from this source." : "Reviewed proposals remain available below."}</p></div></div>}</section>}
-      {coverage && pending.length > 0 && <details className="import-secondary"><summary><span>Extraction proposals</span><strong>{pending.length} unreviewed</strong></summary><div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview}/>)}</div></details>}
-      {reviewed.length > 0 && <details className="import-secondary"><summary><span>Reviewed proposals</span><strong>{reviewed.length}</strong></summary><div className="proposal-list">{reviewed.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} busy={false} locked={Boolean(reviewingProposalID)} onReview={onReview}/>)}</div></details>}
+      {!coverage && <section><div className="section-header"><div><h3>Review required</h3><p>Accepting a proposal starts independent governed review. It does not create or activate a Requirement or Control.</p></div></div>{pending.length ? <div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview} onDocumentUpdated={onDocumentUpdated}/>)}</div> : <div className="calm-empty compact"><span>✓</span><div><strong>Nothing waiting for intake review</strong><p>{document.analysis_status === "UNAVAILABLE" ? "No review proposal is available from this source." : "Accepted proposals continue through their governed handoff below."}</p></div></div>}</section>}
+      {coverage && pending.length > 0 && <details className="import-secondary"><summary><span>Extraction proposals</span><strong>{pending.length} unreviewed</strong></summary><div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview} onDocumentUpdated={onDocumentUpdated}/>)}</div></details>}
+      {reviewed.length > 0 && <details className="import-secondary" open={handoffsPending > 0 || handoffReceiptVisible}><summary><span>Proposal outcomes & handoffs</span><strong>{reviewed.length}</strong></summary><div className="proposal-list">{reviewed.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={false} locked={Boolean(reviewingProposalID)} onReview={onReview} onDocumentUpdated={onDocumentUpdated}/>)}</div></details>}
     </>}
     <details className="import-secondary"><summary><span>Original source details</span><strong>{document.sections.length} extracted</strong></summary><div><dl className="document-metadata"><div><dt>Original hash</dt><dd><code>{document.sha256}</code></dd></div><div><dt>File status</dt><dd>{human(document.artifact_status)}</dd></div><div><dt>Text extraction</dt><dd>{human(document.extraction_method)}</dd></div><div><dt>Completeness</dt><dd>{contentTruncated || sectionsOmitted ? `${document.sections.length} of ${sectionsTotal} sections extracted` : `All ${sectionsTotal} sections extracted`}</dd></div><div><dt>Version</dt><dd>{document.version}</dd></div></dl>{document.sections.length > 0 && <div className="document-sections">{document.sections.map((section) => <details key={section.id}><summary>{section.title}</summary><pre>{section.text}</pre></details>)}</div>}</div></details>
   </article>;
@@ -366,8 +392,24 @@ function CoverageChain({ match }: { match: NonNullable<CoverageCandidate["matche
   return <div className="coverage-chain" aria-label="Coverage chain"><span className="active">Requirement</span><span className={match.coverage.control_implemented ? "active" : ""}>Control</span><span className={match.coverage.evidence_supported ? "active" : ""}>Evidence</span></div>;
 }
 
-function ProposalCard({ proposal, busy, locked, onReview }: { proposal: DocumentProposal; busy: boolean; locked: boolean; onReview: (proposal: DocumentProposal, status: ProposalStatus) => void }) {
-  return <article className="proposal-card" aria-busy={busy || undefined}><div className="proposal-title"><div><span>{human(proposal.kind)}</span><h4>{proposal.title}</h4></div><mark>{human(proposal.status)}</mark></div><p>{proposal.statement}</p><blockquote>{proposal.anchor.quote}</blockquote><small>Source: {proposal.anchor.sheet ? `${proposal.anchor.sheet}, row ${proposal.anchor.row_start}` : proposal.anchor.page ? `page ${proposal.anchor.page}` : proposal.anchor.section_id}</small>{proposal.status === "PENDING_REVIEW" && <div className="proposal-actions"><button className="secondary-button" type="button" disabled={locked} onClick={() => onReview(proposal, "REJECTED")}>{busy ? "Recording…" : "Reject"}</button><button className="primary-button" type="button" disabled={locked} onClick={() => onReview(proposal, "ACCEPTED")}>{busy ? "Recording…" : "Accept proposal"}</button></div>}</article>;
+function ProposalCard({ document, proposal, busy, locked, onReview, onDocumentUpdated }: { document: DocumentImport; proposal: DocumentProposal; busy: boolean; locked: boolean; onReview: (proposal: DocumentProposal, status: ProposalStatus) => void; onDocumentUpdated: (document: DocumentImport) => void }) {
+  const state = proposal.handoff?.status ? human(proposal.handoff.status) : human(proposal.status);
+  return <article id={`document-proposal-${proposal.id}`} className="proposal-card" aria-busy={busy || undefined}><div className="proposal-title"><div><span>{human(proposal.kind)}</span><h4>{proposal.title}</h4></div><mark>{state}</mark></div><p>{proposal.statement}</p><blockquote>{proposal.anchor.quote}</blockquote><small>Source: {proposal.anchor.sheet ? `${proposal.anchor.sheet}, row ${proposal.anchor.row_start}` : proposal.anchor.page ? `page ${proposal.anchor.page}` : proposal.anchor.section_id}</small>{proposal.status === "PENDING_REVIEW" && <div className="proposal-actions"><button className="secondary-button" type="button" disabled={locked} onClick={() => onReview(proposal, "REJECTED")}>{busy ? "Recording…" : "Reject"}</button><button className="primary-button" type="button" disabled={locked} onClick={() => onReview(proposal, "ACCEPTED")}>{busy ? "Recording…" : "Accept for governed review"}</button></div>}{proposal.status === "ACCEPTED" && <DocumentProposalHandoff documentID={document.id} documentVersion={document.version} legalEntityID={document.legal_entity_id} proposal={proposal} locked={locked} onDocumentUpdated={onDocumentUpdated}/>}</article>;
+}
+
+function focusedImportTarget(): ImportFocus {
+  const parts = window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
+  if (parts[0] !== "imports") return {};
+  return { documentID: decodeRoutePart(parts[1]), proposalID: decodeRoutePart(parts[2]) };
+}
+
+function decodeRoutePart(value?: string) {
+  if (!value) return undefined;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return undefined;
+  }
 }
 
 function isProcessing(document: Pick<DocumentImport, "extraction_status" | "analysis_status">) {
@@ -379,7 +421,7 @@ function summaryLabel(document: DocumentImportSummary) {
   if (document.extraction_status === "FAILED") return "Extraction failed · original retained";
   if (document.extraction_status === "UNSUPPORTED") return "Stored · extraction unavailable";
   if (document.pending_proposal_count) return `${document.pending_proposal_count} proposal${document.pending_proposal_count === 1 ? "" : "s"} to review`;
-  return "No proposals waiting for review";
+  return "No intake proposals waiting";
 }
 
 function updateSummary(current: DocumentImportSummary, detail: DocumentImport): DocumentImportSummary {

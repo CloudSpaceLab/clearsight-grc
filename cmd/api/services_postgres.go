@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
@@ -44,7 +45,8 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		pool.Close()
 		return serviceSet{}, err
 	}
-	auto := autonomy.NewService(autonomy.NewPostgresRepository(pool))
+	autonomyRepo := autonomy.NewPostgresRepository(pool)
+	auto := autonomy.NewService(autonomyRepo)
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), store)
 	evidenceService.Configure(cfg.CaptureSessionTTL, cfg.MaxArtifactBytes)
 	documentService := documentimport.NewService(documentimport.NewPostgresRepository(pool), store)
@@ -68,6 +70,8 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	continuityService := continuity.NewService(continuityRepo)
 	continuityService.ConfigureEvidenceSourceValidator(evidenceService)
 	assessmentSetup := thirdparty.NewAssessmentProvisioner(thirdPartyRepo, continuityService, "postgres-api")
+	aiGovernanceRepo := aigovernance.NewPostgresRepository(pool)
+	aiGovernanceService := aigovernance.NewService(aiGovernanceRepo, auto, sourceCatalog, continuityService)
 	coverageService := documentcoverage.NewService(documentcoverage.NewPostgresRepository(pool), documentService, continuityService)
 	verticals := bankverticals.NewService(continuityService, evidenceService)
 	workflowService := workflow.NewService(workflow.NewPostgresRepository(pool))
@@ -87,7 +91,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		}
 
 		assigned, listErr := workflowService.List(loadCtx, workflow.ListFilter{
-			TenantID: actor.TenantID, PrincipalID: actor.PrincipalID,
+			TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID,
 			ActiveOnly: true, VisibleActorWorkOnly: true, Limit: todayItemLimit,
 		})
 		if listErr != nil {
@@ -111,7 +115,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		Mode: "postgres", Authority: authority.NewEffectivePostgresService(pool), Governance: governance.NewService(governance.NewPostgresRepository(pool)),
 		Evidence: evidenceService, ObjectStore: store, Monitoring: monitoringService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRepo, ThirdPartyWorkRepo: thirdPartyRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
-		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo),
+		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo),
 		Access: access.NewPostgresResolver(pool), AccessAdmin: access.NewPostgresAdministrator(pool), SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
 	}, nil
 }
