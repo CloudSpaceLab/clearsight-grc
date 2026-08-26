@@ -8,9 +8,11 @@ import { ProgramLifecycleControls } from "./ProgramLifecycleControls";
 import { ProgramReviewDigest } from "./ProgramReviewDigest";
 import { ProgramSetupWorkspace } from "./ProgramSetupWorkspace";
 import { MonitoringSetup } from "./MonitoringSetup";
+import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
+import { VendorWorkPanel } from "./VendorWorkPanel";
 
 type LoadState = "loading" | "live" | "unavailable";
-type Props = { targetID?: string; openFirst?: boolean; actorPrincipalID?: string; canConfigureSources?: boolean };
+type Props = { targetID?: string; openFirst?: boolean; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenRequest?: (requestID: string) => void };
 
 function ProgramIcon() {
   return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v4h4M9 11h6M9 15h6M9 19h4"/></svg>;
@@ -58,7 +60,7 @@ function summaryFromAggregate(detail: ProgramAggregate): ProgramSummary {
   };
 }
 
-export function ProgramsWorkspace({ targetID, openFirst = false, actorPrincipalID = "", canConfigureSources = false }: Props) {
+export function ProgramsWorkspace({ targetID, openFirst = false, actorPrincipalID = "", canConfigureSources = false, onOpenRequest }: Props) {
   const [items, setItems] = useState<ProgramSummary[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [nextCursor, setNextCursor] = useState("");
@@ -235,6 +237,8 @@ export function ProgramsWorkspace({ targetID, openFirst = false, actorPrincipalI
               <ProgramReviewDigest aggregate={detail}/>
               <ProgramLifecycleControls aggregate={detail} onUpdated={applyDetailUpdate}/>
               <MonitoringSetup aggregate={detail} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources}/>
+              <VendorRelationshipLinks targetType="PROGRAM" targetID={program.id}/>
+              <VendorWorkPanel targetType="PROGRAM" targetID={program.id} onOpenRequest={onOpenRequest}/>
               <section className="status-reasons"><h3>Why this status</h3>{detail.current_state?.reasons?.length ? <ul>{detail.current_state.reasons.map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul> : <p>No status reasons are recorded for the latest assessment.</p>}{summaryItem.reasons_omitted > 0 && <p>{summaryItem.reasons_omitted} additional status reason{summaryItem.reasons_omitted === 1 ? " is" : "s are"} available in the full Program record.</p>}</section>
               <details className="progressive-section"><summary><span>Requirements</span><strong>{detail.requirements.length}</strong></summary><div>{detail.requirements.length ? detail.requirements.map((requirement) => <div className="detail-row" key={requirement.id}><div><strong>{requirement.title}</strong><small>{requirement.statement}</small>{requirement.source_anchor && <small>Source: {requirement.source_anchor}</small>}</div><span>{requirementStatusLabel(requirement.status)}</span></div>) : <p>No approved requirements have been added.</p>}</div></details>
               <details className="progressive-section"><summary><span>Evidence expectations</span><strong>{detail.evidence_contracts.length}</strong></summary><div>{detail.evidence_contracts.length ? detail.evidence_contracts.map((contract) => <div className="detail-row" key={contract.id}><div><strong>{contract.name}</strong><small>{contract.claim}</small></div><span>Required coverage: {Math.round(contract.minimum_coverage * 100)}%</span></div>) : <p>No evidence checks have been defined.</p>}</div></details>

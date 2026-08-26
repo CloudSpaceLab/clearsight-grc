@@ -31,6 +31,7 @@ vi.mock("../vendorAssessmentApi", () => ({
   startVendorAssessmentReview: vi.fn(),
   vendorAssessmentDocumentURL: vi.fn(),
 }));
+vi.mock("./VendorWorkPanel", () => ({ VendorWorkPanel: ({ relationshipID }: { relationshipID: string }) => <div data-testid={`vendor-work-relationship-${relationshipID}`}>Vendor requests</div> }));
 
 const record: VendorRelationshipAggregate = {
   vendor: { id: "vendor-1", tenant_id: "bank", legal_name: "Acme Processing Limited", trading_name: "Acme", registration_ref: "RC-10001", jurisdiction: "Nigeria", source_id: "procurement", external_ref: "vendor-10001", status: "ACTIVE", created_at: "2026-08-25T12:00:00Z", updated_at: "2026-08-25T12:00:00Z", version: 1 },
@@ -95,6 +96,7 @@ describe("VendorsWorkspace", () => {
     expect(screen.getByText("owner-1")).toBeTruthy();
     expect(screen.getByText("Version 1")).toBeTruthy();
     expect(await screen.findByRole("heading", { name: "Due diligence" })).toBeTruthy();
+    expect(screen.getByTestId("vendor-work-relationship-relationship-1")).toBeTruthy();
   });
 
   it("names each relationship with its vendor and service", async () => {

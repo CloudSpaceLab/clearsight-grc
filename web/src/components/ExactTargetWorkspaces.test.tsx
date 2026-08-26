@@ -18,6 +18,9 @@ vi.mock("../continuityCommands", async (importOriginal) => ({
   createMatter: vi.fn(),
 }));
 
+vi.mock("./VendorRelationshipLinks", () => ({ VendorRelationshipLinks: ({ targetType, targetID }: { targetType: string; targetID: string }) => <div data-testid={`vendor-links-${targetType}-${targetID}`}>Related vendors</div> }));
+vi.mock("./VendorWorkPanel", () => ({ VendorWorkPanel: ({ targetType, targetID }: { targetType: string; targetID: string }) => <div data-testid={`vendor-work-${targetType}-${targetID}`}>Vendor requests</div> }));
+
 beforeAll(() => {
   Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
 });
@@ -50,6 +53,8 @@ describe("exact workspace targets", () => {
 
     expect(await screen.findByText("Program outside first page")).toBeTruthy();
     expect(await screen.findByRole("heading", { name: "Why this status" })).toBeTruthy();
+    expect(screen.getByTestId("vendor-links-PROGRAM-program-outside-page")).toBeTruthy();
+    expect(screen.getByTestId("vendor-work-PROGRAM-program-outside-page")).toBeTruthy();
     expect(loadProgram).toHaveBeenCalledWith(programDetail.program.id);
   });
 
@@ -61,6 +66,8 @@ describe("exact workspace targets", () => {
 
     expect(await screen.findByText("Matter outside first page")).toBeTruthy();
     expect(await screen.findByRole("heading", { name: "Current handoff" })).toBeTruthy();
+    expect(screen.getByTestId("vendor-links-MATTER-matter-outside-page")).toBeTruthy();
+    expect(screen.getByTestId("vendor-work-MATTER-matter-outside-page")).toBeTruthy();
     expect(loadMatter).toHaveBeenCalledWith(matterDetail.matter.id);
   });
 

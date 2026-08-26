@@ -28,8 +28,8 @@ export function TodayView({ organizationName, items, connection, generatedAt, re
   </>;
 }
 
-export function ProgramsView({ organizationName, actorPrincipalID, canConfigureSources, targetID, openFirst }: { organizationName: string; actorPrincipalID?: string; canConfigureSources?: boolean; targetID?: string; openFirst?: boolean }) {
-  return <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Programs</h1><p>Ongoing obligations, safeguards, evidence checks and open issues.</p></div></header><ProgramsWorkspace targetID={targetID} openFirst={openFirst} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources}/></>;
+export function ProgramsView({ organizationName, actorPrincipalID, canConfigureSources, targetID, openFirst, onOpenRequest }: { organizationName: string; actorPrincipalID?: string; canConfigureSources?: boolean; targetID?: string; openFirst?: boolean; onOpenRequest?: (requestID: string) => void }) {
+  return <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Programs</h1><p>Ongoing obligations, safeguards, evidence checks and open issues.</p></div></header><ProgramsWorkspace targetID={targetID} openFirst={openFirst} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} onOpenRequest={onOpenRequest}/></>;
 }
 
 export function ExploreView({ organizationName }: { organizationName: string }) {
@@ -40,7 +40,7 @@ export function WorkView({ organizationName, tab, onTab, sources, requests, evid
   return <>
     <header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Work</h1><p>Review decisions, exceptions and evidence that still need attention.</p></div></header>
     <nav className="workspace-tabs" aria-label="Work views"><button type="button" aria-current={tab === "matters" ? "page" : undefined} className={tab === "matters" ? "active" : ""} onClick={() => onTab("matters")}>Issues and changes</button><button type="button" aria-current={tab === "evidence" ? "page" : undefined} className={tab === "evidence" ? "active" : ""} onClick={() => onTab("evidence")}>Evidence review</button></nav>
-    {tab === "matters" ? <WorkspaceErrorBoundary label="Issues and changes"><MattersWorkspace targetID={matterTargetID} openFirst={openFirstMatter}/></WorkspaceErrorBoundary> : <EvidenceWorkspace sources={sources} requests={requests} sourceState={evidenceSourceState} requestState={evidenceRequestState} targetID={evidenceTargetID} openFirst={openFirstEvidence} onOpenRequest={onOpenEvidence}/>} 
+    {tab === "matters" ? <WorkspaceErrorBoundary label="Issues and changes"><MattersWorkspace targetID={matterTargetID} openFirst={openFirstMatter} onOpenRequest={onOpenEvidence}/></WorkspaceErrorBoundary> : <EvidenceWorkspace sources={sources} requests={requests} sourceState={evidenceSourceState} requestState={evidenceRequestState} targetID={evidenceTargetID} openFirst={openFirstEvidence} onOpenRequest={onOpenEvidence}/>}
     {tab === "evidence" && (evidenceSourceState === "unavailable" || evidenceRequestState === "unavailable") && <div className="workspace-recovery-actions"><button className="secondary-button" type="button" onClick={onEvidenceRetry}>Retry unavailable evidence data</button></div>}
   </>;
 }

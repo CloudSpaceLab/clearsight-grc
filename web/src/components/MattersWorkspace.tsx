@@ -6,9 +6,11 @@ import type { MatterAggregate } from "../types";
 import { EmptyState } from "./EmptyState";
 import { MatterWorkCommandPanel } from "./MatterWorkCommandPanel";
 import { MatterSetupWorkspace } from "./MatterSetupWorkspace";
+import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
+import { VendorWorkPanel } from "./VendorWorkPanel";
 
 type LoadState = "loading" | "live" | "unavailable";
-type Props = { targetID?: string; openFirst?: boolean };
+type Props = { targetID?: string; openFirst?: boolean; onOpenRequest?: (requestID: string) => void };
 
 function MatterIcon({ type }: { type: string }) {
   const common = { width: 21, height: 21, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
@@ -81,7 +83,7 @@ function summaryFromAggregate(detail: MatterAggregate): MatterSummary {
   };
 }
 
-export function MattersWorkspace({ targetID, openFirst = false }: Props) {
+export function MattersWorkspace({ targetID, openFirst = false, onOpenRequest }: Props) {
   const [items, setItems] = useState<MatterSummary[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [nextCursor, setNextCursor] = useState("");
@@ -257,6 +259,8 @@ export function MattersWorkspace({ targetID, openFirst = false }: Props) {
           {detail && <>
             <section className="handoff-summary"><h3>Current handoff</h3><strong>{summaryItem.next_action}</strong><p>{matter.summary}</p><div className="handoff-flags">{missingFacts.length > 0 && <span>{missingFacts.length} missing fact{missingFacts.length === 1 ? "" : "s"}</span>}{contradictions.length > 0 && <span>{contradictions.length} contradiction{contradictions.length === 1 ? "" : "s"}</span>}{verificationContracts.length > 0 && <span>{verificationContracts.length} outcome check{verificationContracts.length === 1 ? "" : "s"}</span>}</div></section>
             <MatterWorkCommandPanel aggregate={detail} onUpdated={applyDetailUpdate}/>
+            <VendorRelationshipLinks targetType="MATTER" targetID={matter.id}/>
+            <VendorWorkPanel targetType="MATTER" targetID={matter.id} onOpenRequest={onOpenRequest}/>
             <details className="progressive-section"><summary><span>Evidence and facts</span><strong>{Object.keys(knownFacts).length + missingFacts.length + contradictions.length}</strong></summary><div>{Object.keys(knownFacts).length ? <dl>{Object.entries(knownFacts).map(([key, value]) => <div key={key}><dt>{humanizeKey(key)}</dt><dd><pre>{formatFact(value)}</pre></dd></div>)}</dl> : <p>No facts have been recorded.</p>}{missingFacts.length ? <div className="closure-note"><strong>Information still needed</strong><ul>{missingFacts.map((fact, index) => <li key={`${index}-${formatFact(fact)}`}>{formatFact(fact)}</li>)}</ul></div> : null}{contradictions.length ? <div className="closure-note warning"><strong>Contradictions to resolve</strong><ul>{contradictions.map((fact, index) => <li key={`${index}-${formatFact(fact)}`}>{formatFact(fact)}</li>)}</ul></div> : null}</div></details>
             <details className="progressive-section"><summary><span>Decision and response history</span><strong>{decisions.length + responses.length}</strong></summary><div><section><h3>Decisions</h3>{decisions.length ? decisions.map((decision) => <div className="detail-row" key={decision.id}><div><strong>{humanizeKey(decision.type)}</strong><small>{decision.rationale}</small></div><span>{humanizeKey(decision.status)}{decision.selected_option ? ` · ${humanizeKey(decision.selected_option)}` : ""}</span></div>) : <p>No decisions have been recorded.</p>}</section><section><h3>External responses</h3>{responses.length ? responses.map((response) => <div className="detail-row" key={response.id}><div><strong>{response.purpose}</strong><small>{response.audience}</small></div><span>{humanizeKey(response.status)}</span></div>) : <p>No response package has been recorded.</p>}</section></div></details>
             <details className="progressive-section"><summary><span>Actions and outcome checks</span><strong>{actions.length + verificationContracts.length}</strong></summary><div><section><h3>Actions</h3>{actions.length ? actions.map((action) => <div className="detail-row" key={action.id}><div><strong>{action.title}</strong><small>{action.description}</small></div><span>{actionStatusLabel(action.status)}</span></div>) : <p>No actions have been recorded.</p>}</section><section><h3>Outcome checks</h3>{verificationContracts.length ? verificationContracts.map((contract) => { const result = latestResult(detail, contract.id); return <div className="detail-row" key={contract.id}><div><strong>{contract.expected_outcome}</strong>{result?.rationale && <small>{result.rationale}</small>}</div><span>{resultLabel(result?.result)}</span></div>; }) : <p>No outcome check has been defined.</p>}{closure.ready ? <div className="closure-note ready"><strong>Ready to close</strong><p>All recorded closure requirements are satisfied.</p></div> : closure.reasons.length > 0 && <div className="closure-note"><strong>Before this can close</strong><ul>{closure.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}</section></div></details>

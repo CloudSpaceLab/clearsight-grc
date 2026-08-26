@@ -469,7 +469,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
     onOpenRequest={onOpenRequest}
     onOpenMatter={onOpenMatter}
   />}
-  <VendorWorkPanel relationshipID={relationship.id}/>
+  <VendorWorkPanel relationshipID={relationship.id} onOpenRequest={onOpenRequest}/>
   </>;
 }
 
