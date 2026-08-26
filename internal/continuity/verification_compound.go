@@ -76,8 +76,10 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 	}
 
 	// Passing, inconclusive, or BLOCK_CLOSE results are one-event commands and
-	// already use the repository's atomic event/outbox boundary.
-	if input.Result != VerificationFailed || aggregate.Matter.Status != MatterVerification || contract.FailureResponse == "BLOCK_CLOSE" {
+	// already use the repository's atomic event/outbox boundary. Other failure
+	// responses are driven by the recorded result, not by the Matter's current
+	// presentation state, so a valid early check cannot lose its consequence.
+	if input.Result != VerificationFailed || contract.FailureResponse == "BLOCK_CLOSE" {
 		if _, err = s.repo.ApplyMatterEvent(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, resultEvent); err != nil {
 			return MatterAggregate{}, err
 		}
@@ -97,6 +99,9 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 			matter.Status = MatterActionsInProgress
 		} else {
 			matter.Status = MatterDecisionRequired
+		}
+		if matter.Status == aggregate.Matter.Status {
+			break
 		}
 		matter.UpdatedAt = now
 		transitionEvent, eventErr := newEvent(input.TenantID, "MATTER", input.MatterID, input.ExpectedVersion+2, EventMatterStateChanged, matter, actorFor(input.ReviewerPrincipalID), input.ReviewerPrincipalID, now)

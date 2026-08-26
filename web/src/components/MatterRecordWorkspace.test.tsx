@@ -569,6 +569,42 @@ describe("Matter record workspace", () => {
     await waitFor(() => expect(transitionMatter).toHaveBeenCalledWith("matter-1", 8, "CLOSED", "The independent outcome check passed."));
   });
 
+  it("keeps a failed active outcome check operable and shows its result history", async () => {
+    const failedOutcome: MatterAggregate = {
+      ...outcomeDetail,
+      matter: { ...outcomeDetail.matter, status: "ACTION_IN_PROGRESS", version: 8 },
+      verification_results: [{
+        id: "result-failed", contract_id: "contract-1", result: "FAIL",
+        rationale: "One return section still has no approved evidence.", observed_at: "2026-08-25T12:00:00Z",
+      }],
+      closure: { ready: false, reasons: ["1 outcome check(s) did not pass."] },
+    };
+    vi.mocked(loadMatter).mockResolvedValue(failedOutcome);
+    vi.mocked(loadMatterOperations).mockResolvedValue({ ...outcomeRecordOperations, matter_version: 8 });
+    vi.mocked(recordVerificationResult).mockResolvedValue({
+      ...failedOutcome,
+      matter: { ...failedOutcome.matter, version: 9 },
+      verification_results: [
+        ...failedOutcome.verification_results,
+        { id: "result-passed", contract_id: "contract-1", result: "PASS", rationale: "All sections now have approved evidence.", observed_at: "2026-08-26T12:00:00Z" },
+      ],
+      closure: { ready: true, reasons: [] },
+    });
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    expect((await screen.findAllByText("One return section still has no approved evidence.")).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Record result for All ten return sections have an owner, source and approved review status." })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Record result for All ten return sections have an owner, source and approved review status." }));
+    fireEvent.change(screen.getByLabelText("Observations"), { target: { value: "Ten sections checked; all ten are complete." } });
+    fireEvent.change(screen.getByLabelText("Result rationale"), { target: { value: "All sections now have approved evidence." } });
+    fireEvent.click(screen.getByRole("button", { name: "Record outcome result" }));
+
+    await waitFor(() => expect(recordVerificationResult).toHaveBeenCalledWith("matter-1", 8, expect.objectContaining({
+      contractID: "contract-1", result: "PASS", rationale: "All sections now have approved evidence.",
+    })));
+    expect(await screen.findByText("Ready to close")).toBeTruthy();
+  });
+
   it("shows only governed lifecycle targets to the current authorizer", async () => {
     const assessment = { ...detail, matter: { ...detail.matter, status: "ASSESSMENT" } };
     vi.mocked(loadMatter).mockResolvedValue(assessment);
