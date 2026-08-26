@@ -185,7 +185,7 @@ func TestProgramReviewAcceptanceIsAGovernedReviewerCommand(t *testing.T) {
 		if route.Class != routeMaterialCommand || route.Command == nil {
 			t.Fatalf("Program review acceptance is not a material command: %#v", route)
 		}
-		if route.Command.Name != "program.review.accept" || route.Command.Policy.ObjectType != "PROGRAM" || route.Command.Policy.Responsibility != authority.ResponsibilityReviewer || route.Command.Policy.Materiality != 3 {
+		if route.Command.Name != "program.review.accept" || route.Command.Policy.ObjectType != "PROGRAM" || route.Command.Policy.Responsibility != authority.ResponsibilityReviewer || route.Command.Policy.Materiality != 3 || route.Command.Policy.ActorField != noActorField {
 			t.Fatalf("Program review acceptance has the wrong authority contract: %#v", route.Command)
 		}
 		return
