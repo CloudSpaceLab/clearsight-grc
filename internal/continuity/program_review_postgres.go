@@ -31,7 +31,7 @@ func (r *PostgresRepository) LatestProgramReview(ctx context.Context, tenant, pr
 	return &value, nil
 }
 
-func (r *PostgresRepository) RecordProgramReview(ctx context.Context, checkpoint ProgramReviewCheckpoint) (ProgramReviewCheckpoint, error) {
+func (r *PostgresRepository) RecordProgramReview(ctx context.Context, checkpoint ProgramReviewCheckpoint, event Event) (ProgramReviewCheckpoint, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return ProgramReviewCheckpoint{}, err
@@ -75,6 +75,12 @@ func (r *PostgresRepository) RecordProgramReview(ctx context.Context, checkpoint
 		checkpoint.ID, checkpoint.TenantID, checkpoint.ProgramID, checkpoint.PrincipalID, checkpoint.ProgramVersion, checkpoint.ProjectionVersion, checkpoint.AcceptedAt)
 	inserted, scanErr := scanProgramReviewCheckpoint(row)
 	if scanErr == nil {
+		if err := insertContinuityEvent(ctx, tx, event); err != nil {
+			return ProgramReviewCheckpoint{}, err
+		}
+		if err := insertOutbox(ctx, tx, event); err != nil {
+			return ProgramReviewCheckpoint{}, err
+		}
 		if err := tx.Commit(ctx); err != nil {
 			return ProgramReviewCheckpoint{}, err
 		}

@@ -21,6 +21,7 @@ const (
 	EventEvidenceAssessmentRecorded      = "EVIDENCE_ASSESSMENT_RECORDED"
 	EventProgramStateUpdated             = "PROGRAM_STATE_UPDATED"
 	EventProgramTriggerRecorded          = "PROGRAM_TRIGGER_RECORDED"
+	EventProgramReviewAccepted           = "PROGRAM_REVIEW_ACCEPTED"
 
 	EventMatterCreated               = "MATTER_CREATED"
 	EventMatterLinked                = "MATTER_LINKED"

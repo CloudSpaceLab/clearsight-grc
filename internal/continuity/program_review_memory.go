@@ -8,12 +8,13 @@ import (
 type memoryProgramReviewData struct {
 	mu          sync.RWMutex
 	checkpoints map[string]map[string]map[string][]ProgramReviewCheckpoint
+	events      map[string]Event
 }
 
 var memoryProgramReviewStores sync.Map
 
 func programReviewData(repo *MemoryRepository) *memoryProgramReviewData {
-	value, _ := memoryProgramReviewStores.LoadOrStore(repo, &memoryProgramReviewData{checkpoints: map[string]map[string]map[string][]ProgramReviewCheckpoint{}})
+	value, _ := memoryProgramReviewStores.LoadOrStore(repo, &memoryProgramReviewData{checkpoints: map[string]map[string]map[string][]ProgramReviewCheckpoint{}, events: map[string]Event{}})
 	return value.(*memoryProgramReviewData)
 }
 
@@ -29,7 +30,7 @@ func (r *MemoryRepository) LatestProgramReview(_ context.Context, tenant, progra
 	return &value, nil
 }
 
-func (r *MemoryRepository) RecordProgramReview(_ context.Context, checkpoint ProgramReviewCheckpoint) (ProgramReviewCheckpoint, error) {
+func (r *MemoryRepository) RecordProgramReview(_ context.Context, checkpoint ProgramReviewCheckpoint, event Event) (ProgramReviewCheckpoint, error) {
 	r.mu.RLock()
 	aggregate, exists := r.programs[checkpoint.TenantID][checkpoint.ProgramID]
 	r.mu.RUnlock()
@@ -65,6 +66,7 @@ func (r *MemoryRepository) RecordProgramReview(_ context.Context, checkpoint Pro
 		}
 	}
 	reviews.checkpoints[checkpoint.TenantID][checkpoint.ProgramID][checkpoint.PrincipalID] = append(values, checkpoint)
+	reviews.events[checkpoint.ID] = event
 	return checkpoint, nil
 }
 

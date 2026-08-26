@@ -57,6 +57,13 @@ func TestProgramReviewCheckpointIsActorScopedAndDerivedFromCanonicalVersions(t *
 	if accepted.Checkpoint.ProgramVersion != program.Program.Version || accepted.Checkpoint.ProjectionVersion != program.CurrentState.ProjectionVersion {
 		t.Fatalf("checkpoint did not retain canonical versions: %#v", accepted.Checkpoint)
 	}
+	reviewStore := programReviewData(repo)
+	reviewStore.mu.RLock()
+	reviewEvent, eventRecorded := reviewStore.events[accepted.Checkpoint.ID]
+	reviewStore.mu.RUnlock()
+	if !eventRecorded || reviewEvent.Type != EventProgramReviewAccepted || reviewEvent.ActorID != "reviewer-a" {
+		t.Fatalf("review checkpoint event was not recorded: %#v", reviewEvent)
+	}
 
 	otherActor, err := service.ProgramReviewDigest(ctx, "bank", program.Program.ID, "reviewer-b")
 	if err != nil {
