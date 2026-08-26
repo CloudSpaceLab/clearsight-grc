@@ -2,10 +2,34 @@ package thirdparty
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 )
+
+type relationshipTargetReaderStub struct {
+	programs map[string]continuity.ProgramAggregate
+	matters  map[string]continuity.MatterAggregate
+}
+
+func (s relationshipTargetReaderStub) GetProgram(_ context.Context, _, id string) (continuity.ProgramAggregate, error) {
+	value, ok := s.programs[id]
+	if !ok {
+		return continuity.ProgramAggregate{}, errors.New("not found")
+	}
+	return value, nil
+}
+
+func (s relationshipTargetReaderStub) GetMatter(_ context.Context, _, id string) (continuity.MatterAggregate, error) {
+	value, ok := s.matters[id]
+	if !ok {
+		return continuity.MatterAggregate{}, errors.New("not found")
+	}
+	return value, nil
+}
 
 func TestRelationshipLinkServiceSupportsBankDefinedPurposeAndHistory(t *testing.T) {
 	repo := NewMemoryRelationshipLinkRepository()
@@ -91,5 +115,45 @@ func TestRelationshipLinkListUsesBoundedCursor(t *testing.T) {
 	second, err := service.List(context.Background(), actor, RelationshipLinkListInput{RelationshipID: "relationship-1", Cursor: first.NextCursor, Limit: 2})
 	if err != nil || len(second.Items) != 1 || second.Items[0].ID != "link-1" || second.NextCursor != "" {
 		t.Fatalf("unexpected second page: %#v, %v", second, err)
+	}
+}
+
+func TestRelationshipLinksHideRestrictedMatterTargetsFromOtherActors(t *testing.T) {
+	repo := NewMemoryRelationshipLinkRepository()
+	repo.AllowRelationship("tenant-a", "entity-a", "relationship-1")
+	repo.AllowTarget("tenant-a", "entity-a", LinkTargetMatter, "matter-restricted")
+	service := NewRelationshipLinkService(repo)
+	service.ConfigureTargetReader(relationshipTargetReaderStub{matters: map[string]continuity.MatterAggregate{
+		"matter-restricted": {Matter: continuity.Matter{ID: "matter-restricted", TenantID: "tenant-a", Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["allowed-owner"]}`)}},
+	}})
+	service.newID = func() (string, error) { return "link-restricted", nil }
+	allowed := Actor{TenantID: "tenant-a", LegalEntityID: "entity-a", PrincipalID: "allowed-owner"}
+	denied := Actor{TenantID: "tenant-a", LegalEntityID: "entity-a", PrincipalID: "other-owner"}
+	created, err := service.Link(context.Background(), allowed, "relationship-1", LinkRelationshipInput{TargetType: LinkTargetMatter, TargetID: "matter-restricted", PurposeCode: "DELIVERY_PARTY", PurposeLabel: "Delivery party"})
+	if err != nil {
+		t.Fatalf("link restricted matter as allowed actor: %v", err)
+	}
+	if page, err := service.List(context.Background(), denied, RelationshipLinkListInput{RelationshipID: "relationship-1", Limit: 20}); err != nil || len(page.Items) != 0 {
+		t.Fatalf("restricted link leaked to denied actor: %#v, %v", page, err)
+	}
+	if _, err := service.End(context.Background(), denied, created.ID, EndRelationshipLinkInput{ExpectedVersion: created.Version, Reason: "No longer required."}); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("denied actor end error = %v, want not found", err)
+	}
+	if _, err := service.Link(context.Background(), denied, "relationship-1", LinkRelationshipInput{TargetType: LinkTargetMatter, TargetID: "matter-restricted", PurposeCode: "SUPPORT", PurposeLabel: "Support"}); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("denied actor link error = %v, want not found", err)
+	}
+}
+
+func TestRelationshipLinksRejectProgramsOutsideActorLegalEntity(t *testing.T) {
+	repo := NewMemoryRelationshipLinkRepository()
+	repo.AllowRelationship("tenant-a", "entity-a", "relationship-1")
+	repo.AllowTarget("tenant-a", "entity-a", LinkTargetProgram, "program-other")
+	service := NewRelationshipLinkService(repo)
+	service.ConfigureTargetReader(relationshipTargetReaderStub{programs: map[string]continuity.ProgramAggregate{
+		"program-other": {Program: continuity.Program{ID: "program-other", TenantID: "tenant-a", LegalEntityID: "entity-b"}},
+	}})
+	actor := Actor{TenantID: "tenant-a", LegalEntityID: "entity-a", PrincipalID: "owner-1"}
+	if _, err := service.Link(context.Background(), actor, "relationship-1", LinkRelationshipInput{TargetType: LinkTargetProgram, TargetID: "program-other", PurposeCode: "SUPPORT", PurposeLabel: "Support"}); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("cross-entity program link error = %v, want not found", err)
 	}
 }

@@ -70,6 +70,7 @@ func main() {
 	vendorWorkService.ConfigureAuthority(guard)
 	vendorWorkService.ConfigureReadAuthority(services.Authority)
 	services.ThirdPartyRelationshipLinks.ConfigureActiveWorkGuard(services.ThirdPartyWorkRepo)
+	services.ThirdPartyRelationshipLinks.ConfigureTargetReader(services.Continuity)
 	handler := httpapi.New(httpapi.Dependencies{
 		Logger: logger, AllowedOrigin: cfg.AllowedOrigin, Mode: services.Mode, DemoMode: cfg.DemoMode,
 		IdentityMode: cfg.IdentityMode, OIDCIssuer: cfg.OIDCIssuer,

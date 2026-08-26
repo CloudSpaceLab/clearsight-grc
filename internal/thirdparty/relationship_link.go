@@ -79,12 +79,19 @@ type RelationshipLinkRepository interface {
 }
 
 type RelationshipLinkService struct {
-	repo RelationshipLinkRepository
-	work interface {
+	repo    RelationshipLinkRepository
+	targets *RelationshipTargetAccess
+	work    interface {
 		HasActiveVendorWork(context.Context, Scope, string) (bool, error)
 	}
 	now   func() time.Time
 	newID func() (string, error)
+}
+
+func (s *RelationshipLinkService) ConfigureTargetReader(reader RelationshipTargetReader) {
+	if s != nil {
+		s.targets = NewRelationshipTargetAccess(reader)
+	}
 }
 
 func (s *RelationshipLinkService) ConfigureActiveWorkGuard(work interface {
@@ -125,6 +132,9 @@ func (s *RelationshipLinkService) Link(ctx context.Context, actor Actor, relatio
 	if !available {
 		return RelationshipLink{}, ErrNotFound
 	}
+	if s.targets != nil && !s.targets.CanRead(ctx, actor, input.TargetType, input.TargetID) {
+		return RelationshipLink{}, ErrNotFound
+	}
 	linkID, err := s.newID()
 	if err != nil {
 		return RelationshipLink{}, err
@@ -143,6 +153,13 @@ func (s *RelationshipLinkService) End(ctx context.Context, actor Actor, linkID s
 		return RelationshipLink{}, ErrInvalid
 	}
 	scope := scopeFrom(actor)
+	current, err := s.repo.GetRelationshipLink(ctx, scope, linkID)
+	if err != nil {
+		return RelationshipLink{}, err
+	}
+	if s.targets != nil && !s.targets.CanRead(ctx, actor, current.TargetType, current.TargetID) {
+		return RelationshipLink{}, ErrNotFound
+	}
 	if s.work != nil {
 		active, err := s.work.HasActiveVendorWork(ctx, scope, linkID)
 		if err != nil {
@@ -166,7 +183,18 @@ func (s *RelationshipLinkService) List(ctx context.Context, actor Actor, input R
 	if input.Limit == 0 {
 		input.Limit = 50
 	}
-	return s.repo.ListRelationshipLinks(ctx, scopeFrom(actor), input)
+	page, err := s.repo.ListRelationshipLinks(ctx, scopeFrom(actor), input)
+	if err != nil || s.targets == nil {
+		return page, err
+	}
+	visible := make([]RelationshipLink, 0, len(page.Items))
+	for _, link := range page.Items {
+		if s.targets.CanRead(ctx, actor, link.TargetType, link.TargetID) {
+			visible = append(visible, link)
+		}
+	}
+	page.Items = visible
+	return page, nil
 }
 
 func relationshipLinkConflict(err error) error {
