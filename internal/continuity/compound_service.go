@@ -3,6 +3,7 @@ package continuity
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
@@ -43,6 +44,12 @@ func (s *Service) applyTriggerBundle(ctx context.Context, trigger Trigger, aggre
 		}
 		now := s.now().UTC()
 		matter := Matter{ID: matterID, TenantID: trigger.TenantID, LegalEntityID: aggregate.Program.LegalEntityID, Reference: matterReference(matterID), Type: matterType, Status: MatterInitialReview, Priority: triggerPriority(trigger.Type), Title: title, Summary: summary, Scope: append(json.RawMessage(nil), trigger.Payload...), TriggerType: trigger.Type, TriggerID: trigger.ID, TriggerKey: trigger.DedupeKey, KnownFacts: append(json.RawMessage(nil), trigger.Payload...), MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`), CreatedAt: now, UpdatedAt: now, Version: 1}
+		if strings.EqualFold(trigger.Type, "MONITORING_RESULT_ADVERSE") {
+			matter.SourceType = "MONITORING_CHECK"
+			matter.SourceID = trigger.SubjectID
+			matter.OwnerPrincipalID = aggregate.Program.OwnerPrincipalID
+			matter.RequiredAuthority = "CONTROL_ASSURANCE"
+		}
 		matterEvent, err := newEvent(trigger.TenantID, "MATTER", matter.ID, 1, EventMatterCreated, matter, actorFor(trigger.ActorID), trigger.ActorID, now)
 		if err != nil {
 			return ProgramAggregate{}, nil, false, err

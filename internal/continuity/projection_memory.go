@@ -305,26 +305,31 @@ func (r *MemoryRepository) ApplyTriggerBundle(ctx context.Context, bundle Trigge
 	}
 	program.Program.Version = bundle.ProgramEvent.AggregateVersion
 	program.Program.UpdatedAt = bundle.ProgramEvent.OccurredAt
-	r.programs[trigger.TenantID][trigger.ProgramID] = program
-	r.programEvents[trigger.TenantID][trigger.ProgramID] = append(r.programEvents[trigger.TenantID][trigger.ProgramID], bundle.ProgramEvent)
-	r.triggers[trigger.TenantID][key] = trigger
 	result := TriggerBundleResult{Inserted: true}
+	var stagedMatter *MatterAggregate
 	if bundle.Matter != nil && bundle.MatterEvent != nil && bundle.Link != nil && bundle.LinkEvent != nil {
 		matter := *bundle.Matter
-		if r.matters[matter.TenantID] == nil {
-			r.matters[matter.TenantID] = map[string]MatterAggregate{}
-			r.matterEvents[matter.TenantID] = map[string][]Event{}
-		}
 		aggregate := MatterAggregate{Matter: matter, Closure: ClosureAssessment{Ready: false}}
 		if err := applyMatterEventToAggregate(&aggregate, *bundle.LinkEvent); err != nil {
 			return TriggerBundleResult{}, err
 		}
 		aggregate.Matter.Version = bundle.LinkEvent.AggregateVersion
 		aggregate.Matter.UpdatedAt = bundle.LinkEvent.OccurredAt
-		r.matters[matter.TenantID][matter.ID] = aggregate
-		r.matterEvents[matter.TenantID][matter.ID] = []Event{*bundle.MatterEvent, *bundle.LinkEvent}
 		created := aggregate.Matter
 		result.Matter = &created
+		stagedMatter = &aggregate
+	}
+	r.programs[trigger.TenantID][trigger.ProgramID] = program
+	r.programEvents[trigger.TenantID][trigger.ProgramID] = append(r.programEvents[trigger.TenantID][trigger.ProgramID], bundle.ProgramEvent)
+	r.triggers[trigger.TenantID][key] = trigger
+	if stagedMatter != nil {
+		matter := stagedMatter.Matter
+		if r.matters[matter.TenantID] == nil {
+			r.matters[matter.TenantID] = map[string]MatterAggregate{}
+			r.matterEvents[matter.TenantID] = map[string][]Event{}
+		}
+		r.matters[matter.TenantID][matter.ID] = *stagedMatter
+		r.matterEvents[matter.TenantID][matter.ID] = []Event{*bundle.MatterEvent, *bundle.LinkEvent}
 	}
 	_, _ = r.QueueProgramState(ctx, trigger.TenantID, trigger.ProgramID, program.Program.Version, trigger.Type, trigger.ID, "system")
 	return result, nil

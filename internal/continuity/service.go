@@ -1599,6 +1599,8 @@ func matterForTrigger(trigger Trigger) (MatterType, string, string, bool) {
 		return MatterEvidenceContradiction, "Resolve conflicting evidence", "Current evidence contains values that do not agree.", true
 	case "CONTROL_FAILED":
 		return MatterControlGap, "Resolve a failed control", "A control did not operate as expected.", true
+	case "MONITORING_RESULT_ADVERSE":
+		return MatterControlGap, "Review an adverse monitoring result", "The latest monitoring result requires control assurance review and follow-up.", true
 	case "VERIFICATION_FAILED":
 		return MatterFailedVerification, "Complete further remediation", "The latest outcome check did not pass.", true
 	case "DEADLINE_MISSED":
@@ -1610,7 +1612,7 @@ func matterForTrigger(trigger Trigger) (MatterType, string, string, bool) {
 
 func triggerPriority(triggerType string) int {
 	switch strings.ToUpper(triggerType) {
-	case "VERIFICATION_FAILED", "CONTROL_FAILED", "DEADLINE_MISSED":
+	case "VERIFICATION_FAILED", "CONTROL_FAILED", "MONITORING_RESULT_ADVERSE", "DEADLINE_MISSED":
 		return 4
 	case "EVIDENCE_CONTRADICTION", "SOURCE_DEGRADED":
 		return 3
