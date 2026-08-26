@@ -76,6 +76,19 @@ describe("exact workspace targets", () => {
     expect(loadMatter).toHaveBeenCalledWith(matterDetail.matter.id);
   });
 
+  it("opens the complete issue workspace from the normal Work list", async () => {
+    window.history.replaceState(null, "", "#work");
+    vi.mocked(loadMatterSummaries).mockResolvedValue({
+      items: [{ matter: matterDetail.matter, type_label: matterDetail.type_label, status_label: matterDetail.status_label, next_action: matterDetail.next_action, program_count: 0, open_action_count: 0, outcome_check_count: 0 }],
+      generated_at: "2026-08-06T10:00:00Z",
+    });
+
+    render(<MattersWorkspace/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open issue workspace" }));
+    expect(window.location.hash).toBe(`#work/matters/${matterDetail.matter.id}`);
+  });
+
   it("does not leave delayed target scrolling after the dedicated Matter workspace unmounts", async () => {
     vi.useFakeTimers();
     try {

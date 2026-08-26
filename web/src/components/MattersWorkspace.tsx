@@ -251,6 +251,7 @@ function MatterListWorkspace({ openFirst = false }: Pick<Props, "openFirst">) {
           <span className={`matter-status status-${matter.status.toLowerCase().replaceAll("_", "-")}`}><strong>{summaryItem.status_label}</strong><small>{summaryItem.next_action}</small></span>
           <span className="expand-indicator" aria-hidden="true">{isOpen ? "−" : "+"}</span>
         </button>
+        <div className="record-open-actions"><button className="secondary-button" type="button" onClick={() => { window.location.hash = `#work/matters/${encodeURIComponent(matter.id)}`; }}>Open issue workspace</button></div>
         {isOpen && <div className="matter-detail progressive-detail" id={`matter-detail-${matter.id}`}>
           {currentDetailState === "loading" && <p aria-live="polite">Loading issue details…</p>}
           {currentDetailState === "unavailable" && <div className="inline-error"><p>Issue details could not be loaded.</p><button className="secondary-button" onClick={() => void fetchDetail(matter.id)}>Try again</button></div>}

@@ -6,7 +6,6 @@ import type { ProgramAggregate, ProgramState } from "../types";
 import { EmptyState } from "./EmptyState";
 import { ProgramReviewDigest } from "./ProgramReviewDigest";
 import { ProgramSetupWorkspace } from "./ProgramSetupWorkspace";
-import { MonitoringSetup } from "./MonitoringSetup";
 import { ProgramRecordWorkspace } from "./ProgramRecordWorkspace";
 
 type LoadState = "loading" | "live" | "unavailable";
@@ -227,13 +226,13 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
             <span className={`program-state ${stateClass(displayState)}`}><strong>{displayLabel}</strong><small>{displayReason}</small></span>
             <span className="expand-indicator" aria-hidden="true">{isOpen ? "−" : "+"}</span>
           </button>
+          <div className="record-open-actions"><button className="secondary-button" type="button" onClick={() => { window.location.hash = `#programs/${encodeURIComponent(program.id)}`; }}>Open Program</button></div>
           {isOpen && <div className="program-detail progressive-detail" id={`program-detail-${program.id}`}>
             {currentDetailState === "loading" && <p aria-live="polite">Loading program details…</p>}
             {currentDetailState === "unavailable" && <div className="inline-error"><p>Program details could not be loaded.</p><button className="secondary-button" onClick={() => void fetchDetail(program.id)}>Try again</button></div>}
             {detail && <>
               {summaryItem.projection_stale && <div className="inline-notice" role="status">The Program changed after the latest assessment. The last known reasons remain available below while status is recalculated.</div>}
               <ProgramReviewDigest aggregate={detail}/>
-              <MonitoringSetup aggregate={detail} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} operations={[]}/>
               <section className="status-reasons"><h3>Why this status</h3>{detail.current_state?.reasons?.length ? <ul>{detail.current_state.reasons.map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul> : <p>No status reasons are recorded for the latest assessment.</p>}{summaryItem.reasons_omitted > 0 && <p>{summaryItem.reasons_omitted} additional status reason{summaryItem.reasons_omitted === 1 ? " is" : "s are"} available in the full Program record.</p>}</section>
               <details className="progressive-section"><summary><span>Requirements</span><strong>{detail.requirements.length}</strong></summary><div>{detail.requirements.length ? detail.requirements.map((requirement) => <div className="detail-row" key={requirement.id}><div><strong>{requirement.title}</strong><small>{requirement.statement}</small>{requirement.source_anchor && <small>Source: {requirement.source_anchor}</small>}</div><span>{requirementStatusLabel(requirement.status)}</span></div>) : <p>No approved requirements have been added.</p>}</div></details>
               <details className="progressive-section"><summary><span>Evidence expectations</span><strong>{detail.evidence_contracts.length}</strong></summary><div>{detail.evidence_contracts.length ? detail.evidence_contracts.map((contract) => <div className="detail-row" key={contract.id}><div><strong>{contract.name}</strong><small>{contract.claim}</small></div><span>Required coverage: {Math.round(contract.minimum_coverage * 100)}%</span></div>) : <p>No evidence checks have been defined.</p>}</div></details>
