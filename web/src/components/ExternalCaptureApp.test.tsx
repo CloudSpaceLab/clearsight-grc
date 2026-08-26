@@ -115,7 +115,7 @@ describe("ExternalCaptureApp", () => {
     fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
     fireEvent.click(await screen.findByRole("button", { name: "Submit evidence" }));
 
-    await waitFor(() => expect(submitCaptureSession).toHaveBeenCalledWith("session-token", request.version, { present: "Yes" }));
+    await waitFor(() => expect(submitCaptureSession).toHaveBeenCalledWith("session-token", request.version, { present: { text: "Yes" } }));
     expect(await screen.findByRole("heading", { name: "Submitted" })).toBeTruthy();
     expect(readCaptureSession(sessionStorage)).toBeNull();
     expect(screen.queryByRole("radio", { name: "Yes" })).toBeNull();

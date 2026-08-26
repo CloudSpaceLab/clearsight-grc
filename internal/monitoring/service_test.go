@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
@@ -530,7 +531,7 @@ func TestServiceEvaluatesSubmissionAgainstExactActiveRevisions(t *testing.T) {
 	service.newID = func() (string, error) { return "result-1", nil }
 	service.ConfigureEvidenceReader(recordingEvidenceReader{
 		request:    evidence.Request{ID: "request-1", TenantID: "bank-a", SubjectType: "PROGRAM", SubjectID: "program-1", FormTemplateID: form.ID, FormTemplateVersion: form.Version, KnownFacts: map[string]string{"legal_entity_id": "entity-a"}},
-		submission: evidence.Submission{ID: "submission-1", TenantID: "bank-a", RequestID: "request-1", Channel: "INTERNAL", Answers: map[string]string{"secure": "No"}, SubmittedBy: "operator", SubmittedAt: now},
+		submission: evidence.Submission{ID: "submission-1", TenantID: "bank-a", RequestID: "request-1", Channel: "INTERNAL", Answers: map[string]formcontract.AnswerValue{"secure": formcontract.TextAnswer("No")}, SubmittedBy: "operator", SubmittedAt: now},
 	})
 
 	results, err := service.EvaluateSubmission(context.Background(), "bank-a", "submission-1")

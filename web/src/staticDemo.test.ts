@@ -424,7 +424,7 @@ describe("static stakeholder demo transport", () => {
 
   it("supports the vendor due-diligence journey with the current approved typed form", async () => {
     const { StaticDemoHTTPError, staticDemoRequest } = await demo();
-    const forms = await staticDemoRequest<{ items: Array<{ id: string; status: string; is_current: boolean; presentation: { default_mode: string; allow_mode_switch: boolean }; fields: Array<{ type: string }> }> }>("/api/v1/form-templates?limit=100&tenant_id=bank-demo");
+    const forms = await staticDemoRequest<{ items: Array<{ id: string; status: string; is_current: boolean; presentation: { default_mode: string; allow_mode_switch: boolean }; fields: Array<{ type: string }> }> }>("/api/v1/programs/program-ndpa/form-templates?limit=100&tenant_id=bank-demo");
 
     expect(forms.items).toHaveLength(1);
     expect(forms.items[0]).toMatchObject({ status: "ACTIVE", is_current: true, presentation: { default_mode: "WIZARD", allow_mode_switch: true } });
@@ -477,7 +477,7 @@ describe("static stakeholder demo transport", () => {
     }
 
     window.history.replaceState(null, "", "/?fixture=vendor-source-degraded");
-    await expect(staticDemoRequest("/api/v1/form-templates?limit=100")).rejects.toMatchObject({ status: 503, code: "vendor_forms_unavailable" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
+    await expect(staticDemoRequest("/api/v1/programs/program-ndpa/form-templates?limit=100")).rejects.toMatchObject({ status: 503, code: "vendor_forms_unavailable" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
 
     window.history.replaceState(null, "", "/?fixture=vendor-partial-delivery");
     const ready = await staticDemoRequest<{ assessment: { id: string; version: number } }>("/api/v1/vendors/vendor-relationship-payments/assessments/current");

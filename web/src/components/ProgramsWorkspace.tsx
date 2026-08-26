@@ -58,7 +58,7 @@ function summaryFromAggregate(detail: ProgramAggregate): ProgramSummary {
 }
 
 export function ProgramsWorkspace(props: Props) {
-  if (props.targetID) return <ProgramRecordWorkspace programID={props.targetID} actorPrincipalID={props.actorPrincipalID} canConfigureSources={props.canConfigureSources} onBack={() => { window.location.hash = "#programs"; }}/>;
+  if (props.targetID) return <ProgramRecordWorkspace programID={props.targetID} actorPrincipalID={props.actorPrincipalID} canConfigureSources={props.canConfigureSources} onOpenRequest={props.onOpenRequest} onBack={() => { window.location.hash = "#programs"; }}/>;
   return <ProgramListWorkspace {...props}/>;
 }
 

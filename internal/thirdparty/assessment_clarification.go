@@ -76,7 +76,7 @@ func (s *AssessmentRequestService) RequestClarification(ctx context.Context, _ A
 	if !assessmentKindAllowedForRelationship(assessment.ReviewKind, relationship.Relationship.Status) {
 		return AssessmentClarificationOutcome{}, ErrInvalidAssessmentTransition
 	}
-	form, err := s.forms.FormRevision(ctx, scope.TenantID, assessment.FormTemplateID, assessment.FormTemplateVersion)
+	form, err := s.forms.AssessmentFormRevision(ctx, scope.TenantID, scope.LegalEntityID, assessment.FormTemplateID, assessment.FormTemplateVersion)
 	if err != nil {
 		return AssessmentClarificationOutcome{}, err
 	}

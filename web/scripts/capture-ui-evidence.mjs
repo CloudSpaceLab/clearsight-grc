@@ -324,12 +324,12 @@ async function captureFieldVisit() {
     await page.getByRole("button", { name: "Type" }).click();
     await page.getByRole("textbox", { name: "Your name" }).fill("Amina Bello");
     await page.getByRole("button", { name: "Use signature" }).click();
-    if (!(await page.getByRole("button", { name: "Review response" }).isEnabled())) throw new Error("Field visit is not ready after two confirmations, one photo and one signature");
+    if (!(await page.getByRole("button", { name: "Review and submit" }).isEnabled())) throw new Error("Field visit is not ready after two confirmations, one photo and one signature");
     await photoPreview.scrollIntoViewIfNeeded();
     await assertNoHorizontalOverflow(page, capture.name);
     await saveScreenshot(page, capture.name);
     await record(page, capture, "external-field-visit-entry");
-    await page.getByRole("button", { name: "Review response" }).click();
+    await page.getByRole("button", { name: "Review and submit" }).click();
     await page.getByRole("heading", { name: "Check your response" }).waitFor();
     await page.getByText("Photo attached · atm-site.png").waitFor();
     await page.getByText("Signed", { exact: true }).waitFor();

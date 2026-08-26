@@ -149,22 +149,11 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if err != nil {
 		return Request{}, err
 	}
-	if strings.TrimSpace(input.CreatedBy) != "" {
-		access, ok := s.repo.(SubjectAccessChecker)
-		if !ok {
-			return Request{}, ErrSubjectAccessDenied
-		}
-		allowed, accessErr := access.CanReadSubject(ctx, input.TenantID, input.CreatedBy, input.SubjectType, input.SubjectID)
-		if accessErr != nil {
-			return Request{}, accessErr
-		}
-		if !allowed {
-			return Request{}, ErrSubjectAccessDenied
-		}
-	} else if _, exact := s.repo.(SubjectScopeResolver); exact {
-		return Request{}, ErrSubjectAccessDenied
+	if !requestOriginAllowed(ctx, input.Origin) {
+		return Request{}, fmt.Errorf("request origin is reserved for its owning workflow")
 	}
-	if err := validateFieldContracts(input.Fields); err != nil {
+	fields, err := normalizeFieldContracts(input.Presentation, input.Sections, input.Fields)
+	if err != nil {
 		return Request{}, err
 	}
 	input.Fields = fields
@@ -186,7 +175,7 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 			return Request{}, accessErr
 		}
 		if !allowed {
-			return Request{}, ErrRecipientInvalid
+			return Request{}, ErrSubjectAccessDenied
 		}
 	}
 	recipient, err := buildRecipient(ctx, s.repo, input.TenantID, input.AudienceType, input.Recipient)
@@ -219,7 +208,8 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if !deadline.After(now) {
 		return Request{}, fmt.Errorf("deadline must be in the future")
 	}
-	request := Request{ID: valueID, TenantID: input.TenantID, LegalEntityID: scope.LegalEntityID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: fields, SourceBindings: sourceBindings, FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion, CollectionPeriodStart: cloneTimePointer(input.CollectionPeriodStart), CollectionPeriodEnd: cloneTimePointer(input.CollectionPeriodEnd), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
+	contract, _ := formContract(input.Presentation, input.Sections, fields)
+	request := Request{ID: valueID, TenantID: input.TenantID, LegalEntityID: scope.LegalEntityID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Presentation: contract.Presentation, Sections: contract.Sections, Fields: fields, SourceBindings: sourceBindings, FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion, CollectionPeriodStart: cloneTimePointer(input.CollectionPeriodStart), CollectionPeriodEnd: cloneTimePointer(input.CollectionPeriodEnd), Origin: input.Origin.normalized(), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
 	return store.CreateRequestWithRecipient(ctx, request)
 }
 

@@ -14,7 +14,9 @@ func TestMemoryRepositoryStoresExactFormVersionsWithinTenant(t *testing.T) {
 	now := time.Date(2026, 8, 17, 10, 0, 0, 0, time.UTC)
 	form := FormTemplate{
 		ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "PASSWORD-RESET", Name: "Password reset review",
-		Purpose: "Collect the weekly password reset control review.", Fields: []TemplateField{{ID: "identity", Label: "Identity verification completed", Type: "single_select", Required: true, Options: []string{"Yes", "No"}}},
+		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
+		Sections:     []formcontract.Section{{ID: "identity", Title: "Identity checks"}},
+		Purpose:      "Collect the weekly password reset control review.", Fields: []TemplateField{{ID: "identity", Label: "Identity verification completed", Type: "single_select", Required: true, Options: []string{"Yes", "No"}}},
 		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: "maker", CreatedAt: now, UpdatedAt: now},
 	}
 	created, err := repo.CreateFormRevision(context.Background(), form)

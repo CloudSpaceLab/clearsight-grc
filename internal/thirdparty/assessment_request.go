@@ -50,7 +50,7 @@ type assessmentRequestEvidence interface {
 }
 
 type assessmentFormReader interface {
-	FormRevision(context.Context, string, string, int64) (monitoring.FormTemplate, error)
+	AssessmentFormRevision(context.Context, string, string, string, int64) (monitoring.FormTemplate, error)
 }
 
 type AssessmentRequestService struct {
@@ -99,7 +99,7 @@ func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, ass
 		return SendRequestOutcome{}, ErrInvalid
 	}
 
-	form, err := s.forms.FormRevision(ctx, scope.TenantID, assessment.FormTemplateID, assessment.FormTemplateVersion)
+	form, err := s.forms.AssessmentFormRevision(ctx, scope.TenantID, scope.LegalEntityID, assessment.FormTemplateID, assessment.FormTemplateVersion)
 	if err != nil {
 		return SendRequestOutcome{}, err
 	}

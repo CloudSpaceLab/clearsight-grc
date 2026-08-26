@@ -30,7 +30,7 @@ func NewMemoryRepository(sources []Source, requests []Request) *MemoryRepository
 }
 
 func NewMemoryRepositoryWithRecipientCandidates(sources []Source, requests []Request, candidates []RecipientCandidate) *MemoryRepository {
-	repo := &MemoryRepository{sources: map[string]Source{}, observations: map[string]SourceObservation{}, requests: map[string]Request{}, submissions: map[string]Submission{}, invitations: map[string]Invitation{}, sessions: map[string]Session{}, artifacts: map[string]Artifact{}, candidates: map[string]RecipientCandidate{}}
+	repo := &MemoryRepository{sources: map[string]Source{}, observations: map[string]SourceObservation{}, requests: map[string]Request{}, submissions: map[string]Submission{}, invitations: map[string]Invitation{}, sessions: map[string]Session{}, drafts: map[string]ResponseDraft{}, artifacts: map[string]Artifact{}, candidates: map[string]RecipientCandidate{}}
 	for _, source := range sources {
 		repo.sources[source.ID] = source
 	}
@@ -109,8 +109,8 @@ func (r *MemoryRepository) ListSourcesForEntity(_ context.Context, query SourceL
 func (r *MemoryRepository) ValidateActiveSourcesForEntity(_ context.Context, tenant, legalEntity string, sourceIDs []string) error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	for _, id := range sourceIDs {
-		value, ok := r.sources[id]
+	for _, sourceID := range sourceIDs {
+		value, ok := r.sources[sourceID]
 		if !ok || value.TenantID != tenant || value.LegalEntityID != legalEntity || value.Status != SourceActive {
 			return ErrSourceScopeMismatch
 		}
@@ -617,8 +617,6 @@ func (r *MemoryRepository) ReplaceInvitation(_ context.Context, input ReplaceInv
 	return nil
 }
 
-var _ invitationAdministrationStore = (*MemoryRepository)(nil)
-
 func (r *MemoryRepository) CreateArtifact(_ context.Context, artifact Artifact) (Artifact, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -679,3 +677,7 @@ func cloneBoolMap(value map[string]bool) map[string]bool {
 	}
 	return cloned
 }
+
+var _ DraftStore = (*MemoryRepository)(nil)
+var _ OriginRequestStore = (*MemoryRepository)(nil)
+var _ invitationAdministrationStore = (*MemoryRepository)(nil)

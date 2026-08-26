@@ -6,6 +6,14 @@ import type { CaptureAnswers, CaptureFieldConstraints, CaptureFormContract, Capt
 import { CaptureForm } from "./capture/CaptureForm";
 
 type Props = { programID: string; onSaved: (form: FormTemplate) => void; onCancel: () => void };
+type SectionDraft = CaptureSection;
+type FieldDraft = Omit<FormTemplateField, "type"> & {
+  type: FormFieldType;
+  scored: boolean;
+  weight: number;
+  riskWhenNo: number;
+  criticalNo: boolean;
+};
 
 const fieldTypes: Array<{ value: FormFieldType; label: string }> = [
   { value: "short_text", label: "Short answer" },
@@ -46,6 +54,23 @@ const passwordResetQuestions = [
   "Were repeated failed reset attempts blocked or rate-limited?",
   "Were reset events logged and reviewed for unusual activity?",
 ];
+
+function blankField(index: number, sectionID: string, type: FormFieldType = "short_text"): FieldDraft {
+  return {
+    id: `question_${index}`,
+    section_id: sectionID,
+    label: "",
+    type,
+    required: true,
+    options: type === "yes_no" ? ["Yes", "No"] : selectionType(type) ? ["Option 1", "Option 2"] : undefined,
+    accepted_formats: initialFormats(type),
+    constraints: initialConstraints(type),
+    scored: false,
+    weight: 1,
+    riskWhenNo: 100,
+    criticalNo: false,
+  };
+}
 
 export function FormBuilder({ programID, onSaved, onCancel }: Props) {
   const [code, setCode] = useState("");
@@ -157,7 +182,14 @@ export function FormBuilder({ programID, onSaved, onCancel }: Props) {
     }
     setSaving(true);
     try {
-      const saved = await createFormTemplate(programID, { code: code.trim().toUpperCase().replace(/\s+/g, "-"), name: name.trim(), purpose: purpose.trim(), fields });
+      const saved = await createFormTemplate(programID, {
+        code: normalizedCode(code),
+        name: name.trim(),
+        purpose: purpose.trim(),
+        presentation: { default_mode: presentation, allow_mode_switch: allowModeSwitch },
+        sections: sections.map(cleanSection),
+        fields: fields.map(cleanField),
+      });
       onSaved(saved);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The form draft could not be saved. Check the questions and try again.");

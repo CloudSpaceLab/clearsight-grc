@@ -11,7 +11,7 @@ import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
 
 type LoadState = "loading" | "live" | "unavailable";
-type Props = { targetID?: string; openFirst?: boolean; onBack?: () => void };
+type Props = { targetID?: string; openFirst?: boolean; onBack?: () => void; onOpenRequest?: (requestID: string) => void };
 
 function MatterIcon({ type }: { type: string }) {
   const common = { width: 21, height: 21, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
@@ -84,12 +84,12 @@ function summaryFromAggregate(detail: MatterAggregate): MatterSummary {
   };
 }
 
-export function MattersWorkspace({ targetID, openFirst = false, onBack }: Props) {
-  if (targetID) return <MatterRecordWorkspace matterID={targetID} onBack={onBack ?? (() => { window.location.hash = "#work"; })}/>;
-  return <MatterListWorkspace openFirst={openFirst}/>;
+export function MattersWorkspace({ targetID, openFirst = false, onBack, onOpenRequest }: Props) {
+  if (targetID) return <MatterRecordWorkspace matterID={targetID} onOpenRequest={onOpenRequest} onBack={onBack ?? (() => { window.location.hash = "#work"; })}/>;
+  return <MatterListWorkspace openFirst={openFirst} onOpenRequest={onOpenRequest}/>;
 }
 
-function MatterListWorkspace({ openFirst = false }: Pick<Props, "openFirst">) {
+function MatterListWorkspace({ openFirst = false, onOpenRequest }: Pick<Props, "openFirst" | "onOpenRequest">) {
   const [items, setItems] = useState<MatterSummary[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [nextCursor, setNextCursor] = useState("");

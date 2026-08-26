@@ -30,22 +30,32 @@ import (
 )
 
 type Dependencies struct {
-	Logger           *slog.Logger
-	AllowedOrigin    string
-	Mode             string
-	DemoMode         bool
-	IdentityMode     string
-	OIDCIssuer       string
-	Identity         identity.Authenticator
-	Federation       *federation.Service
-	SCIM             http.Handler
-	Access           access.Resolver
-	AccessAdmin      access.Administrator
-	CommandGuard     *commandauth.Guard
-	Authority        authority.Service
-	Governance       *governance.Service
-	Evidence         *evidence.Service
-	Monitoring       *monitoring.Service
+	Logger                           *slog.Logger
+	AllowedOrigin                    string
+	Mode                             string
+	DemoMode                         bool
+	IdentityMode                     string
+	OIDCIssuer                       string
+	Identity                         identity.Authenticator
+	Federation                       *federation.Service
+	SCIM                             http.Handler
+	Access                           access.Resolver
+	AccessAdmin                      access.Administrator
+	CommandGuard                     *commandauth.Guard
+	Authority                        authority.Service
+	Governance                       *governance.Service
+	Evidence                         *evidence.Service
+	Monitoring                       *monitoring.Service
+	ThirdParty                       *thirdparty.Service
+	ThirdPartyRelationshipLinks      *thirdparty.RelationshipLinkService
+	ThirdPartyWork                   *thirdparty.VendorWorkService
+	ThirdPartyAssessments            *thirdparty.AssessmentService
+	ThirdPartyAssessmentReviews      *thirdparty.AssessmentReviewService
+	ThirdPartyAssessmentRequests     *thirdparty.AssessmentRequestService
+	ThirdPartyAssessmentDeficiencies *thirdparty.AssessmentDeficiencyService
+	ThirdPartyAssessmentSetup        interface {
+		Maintain(context.Context, time.Time, int) (int, error)
+	}
 	SourceCatalog    *sourceaccess.CatalogService
 	DocumentImports  *documentimport.Service
 	Coverage         *documentcoverage.Service

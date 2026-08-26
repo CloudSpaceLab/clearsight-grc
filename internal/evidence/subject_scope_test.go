@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
 
 type scopedTestRepository struct {
@@ -130,7 +132,7 @@ func TestCreateRequestRequiresExactCreatorSubjectAccessAndCanonicalEntity(t *tes
 		}
 		_, err = service.Submit(ctx, Submission{
 			TenantID: "bank", LegalEntityID: "entity-2", RequestID: created.ID, SubmittedBy: "recipient", Channel: "INTERNAL",
-			Answers: map[string]string{"answer": "Current evidence"}, ExpectedVersion: created.Version,
+			Answers: map[string]formcontract.AnswerValue{"answer": formcontract.TextAnswer("Current evidence")}, ExpectedVersion: created.Version,
 		})
 		if !errors.Is(err, ErrSubjectScopeMismatch) {
 			t.Fatalf("cross-entity internal submission was accepted: %v", err)

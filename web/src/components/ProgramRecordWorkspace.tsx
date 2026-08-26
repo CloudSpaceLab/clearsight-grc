@@ -15,8 +15,10 @@ import { ProgramEvidencePanel } from "./ProgramEvidencePanel";
 import { ProgramIssuesPanel } from "./ProgramIssuesPanel";
 import { ProgramStatusPanel } from "./ProgramStatusPanel";
 import { RecordSnapshotControl } from "./RecordSnapshotControl";
+import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
+import { VendorWorkPanel } from "./VendorWorkPanel";
 
-type Props = { programID: string; onBack: () => void; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenMatter?: (matterID: string) => void };
+type Props = { programID: string; onBack: () => void; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenMatter?: (matterID: string) => void; onOpenRequest?: (requestID: string) => void };
 type LoadState = "loading" | "live" | "unavailable";
 
 function statusLabel(value: string) {
@@ -29,7 +31,7 @@ function statusLabel(value: string) {
   }
 }
 
-export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "", canConfigureSources = false, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; } }: Props) {
+export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "", canConfigureSources = false, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; }, onOpenRequest }: Props) {
   const [aggregateState, setAggregateState] = useState<LoadState>("loading");
   const [operationsState, setOperationsState] = useState<LoadState>("loading");
   const [reviewState, setReviewState] = useState<LoadState>("loading");
@@ -193,6 +195,8 @@ export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "
 		<ProgramSafeguardsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
 		<ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()} onOpenMatter={onOpenMatter}/>
 		<ProgramIssuesPanel aggregate={aggregate} canCreateIssue={mutationsReady} onOpenMatter={onOpenMatter}/>
+		<section className="program-record-panel program-wide-panel" data-testid={`vendor-links-PROGRAM-${aggregate.program.id}`}><VendorRelationshipLinks targetType="PROGRAM" targetID={aggregate.program.id}/></section>
+		<section className="program-record-panel program-wide-panel" data-testid={`vendor-work-PROGRAM-${aggregate.program.id}`}><VendorWorkPanel targetType="PROGRAM" targetID={aggregate.program.id} onOpenRequest={onOpenRequest}/></section>
       </section>
     </>}
   </section>;

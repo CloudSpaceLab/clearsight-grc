@@ -22,7 +22,7 @@ func NewMemoryRepository() *MemoryRepository {
 }
 
 func (r *MemoryRepository) CreateFormRevision(_ context.Context, value FormTemplate) (FormTemplate, error) {
-	if value.TenantID == "" || value.LegalEntityID == "" || value.ProgramID == "" || value.ID == "" || value.Version < 1 {
+	if value.TenantID == "" || value.ID == "" || value.Version < 1 || (value.LegalEntityID == "") != (value.ProgramID == "") {
 		return FormTemplate{}, ErrInvalid
 	}
 	event, err := newMonitoringEvent(value.TenantID, AggregateMonitoringForm, value.ID, value.Version, EventMonitoringFormCreated, value, value.CreatedBy, value.CreatedAt)
@@ -46,6 +46,16 @@ func (r *MemoryRepository) FormRevision(_ context.Context, tenant, legalEntityID
 	defer r.mu.RUnlock()
 	value, ok := r.forms[revisionKey(tenant, id, version)]
 	if !ok || value.LegalEntityID != legalEntityID || value.ProgramID != programID {
+		return FormTemplate{}, ErrNotFound
+	}
+	return cloneValue(value), nil
+}
+
+func (r *MemoryRepository) AssessmentFormRevision(_ context.Context, tenant, legalEntityID, id string, version int64) (FormTemplate, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	value, ok := r.forms[revisionKey(tenant, id, version)]
+	if !ok || (value.LegalEntityID != "" && value.LegalEntityID != legalEntityID) {
 		return FormTemplate{}, ErrNotFound
 	}
 	return cloneValue(value), nil

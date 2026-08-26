@@ -11,6 +11,9 @@ import { ApiError } from "./http";
 const { listEvidenceRecipientCandidates } = vi.hoisted(() => ({ listEvidenceRecipientCandidates: vi.fn() }));
 
 vi.mock("./components/RoleAwareOnboarding", () => ({ RoleAwareOnboarding: () => null }));
+vi.mock("./components/VendorsWorkspace", () => ({
+  VendorsWorkspace: ({ onOpenRequest }: { onOpenRequest?: (requestID: string) => void }) => <section aria-label="Vendor relationships"><button type="button" onClick={() => onOpenRequest?.("request-vendor-1")}>Review vendor request</button></section>,
+}));
 vi.mock("./captureApi", () => ({
   declareWrongCaptureRecipient: vi.fn(),
   reassignCaptureRecipient: vi.fn(),
