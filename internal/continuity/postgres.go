@@ -85,35 +85,10 @@ func (r *PostgresRepository) CreateProgram(ctx context.Context, program Program,
 }
 
 func (r *PostgresRepository) ListPrograms(ctx context.Context, tenant string, limit int) ([]ProgramAggregate, error) {
-	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
-	rows, err := r.pool.Query(ctx, `SELECT p.id::text FROM programs p JOIN tenants t ON t.id=p.tenant_id
-		WHERE (t.id::text=$1 OR t.slug=$1)
-		  AND (NOT $2 OR ((t.id::text=$3 OR t.slug=$3) AND p.legal_entity_id IS NOT NULL AND ($4='*' OR p.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=p.tenant_id AND (le.id::text=$4 OR le.code=$4) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
-		ORDER BY CASE p.status WHEN 'ACTIVE' THEN 0 WHEN 'PAUSED' THEN 1 WHEN 'DRAFT' THEN 2 ELSE 3 END,p.updated_at DESC,p.id LIMIT $5`, tenant, enforce, actorTenant, actorEntity, limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	ids := []string{}
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		ids = append(ids, id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	values := make([]ProgramAggregate, 0, len(ids))
-	for _, id := range ids {
-		value, err := r.GetProgram(ctx, tenant, id)
-		if err != nil {
-			return nil, err
-		}
-		values = append(values, value)
-	}
-	return values, nil
+	// Ordinary portfolio lists read the authoritative relational projection in
+	// one bounded query. Event replay remains reserved for exact Get*/history
+	// reads where reconstruction semantics are required.
+	return r.listCurrentPrograms(ctx, tenant, limit)
 }
 
 func (r *PostgresRepository) GetProgram(ctx context.Context, tenant, id string) (ProgramAggregate, error) {
@@ -242,36 +217,9 @@ func (r *PostgresRepository) CreateMatter(ctx context.Context, matter Matter, ev
 }
 
 func (r *PostgresRepository) ListMatters(ctx context.Context, tenant, status string, limit int) ([]MatterAggregate, error) {
-	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
-	rows, err := r.pool.Query(ctx, `SELECT m.id::text FROM matters m JOIN tenants t ON t.id=m.tenant_id
-		WHERE (t.id::text=$1 OR t.slug=$1)
-		  AND ($2='' OR ($2='OPEN' AND m.status NOT IN ('CLOSED','CANCELLED')) OR m.status=$2)
-		  AND (NOT $3 OR ((t.id::text=$4 OR t.slug=$4) AND m.legal_entity_id IS NOT NULL AND ($5='*' OR m.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=m.tenant_id AND (le.id::text=$5 OR le.code=$5) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
-		ORDER BY m.priority DESC,m.due_at NULLS LAST,m.updated_at DESC,m.id LIMIT $6`, tenant, status, enforce, actorTenant, actorEntity, limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	ids := []string{}
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		ids = append(ids, id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	values := make([]MatterAggregate, 0, len(ids))
-	for _, id := range ids {
-		value, err := r.GetMatter(ctx, tenant, id)
-		if err != nil {
-			return nil, err
-		}
-		values = append(values, value)
-	}
-	return values, nil
+	// Keep raw and production repositories aligned on current list visibility;
+	// direct service callers must receive the same pre-limit restricted filter.
+	return r.listCurrentMatters(ctx, tenant, status, limit)
 }
 
 func (r *PostgresRepository) GetMatter(ctx context.Context, tenant, id string) (MatterAggregate, error) {
