@@ -31,7 +31,7 @@ vi.mock("../vendorAssessmentApi", () => ({
   startVendorAssessmentReview: vi.fn(),
   vendorAssessmentDocumentURL: vi.fn(),
 }));
-vi.mock("./VendorWorkPanel", () => ({ VendorWorkPanel: ({ relationshipID }: { relationshipID: string }) => <div data-testid={`vendor-work-relationship-${relationshipID}`}>Vendor requests</div> }));
+vi.mock("./VendorWorkPanel", () => ({ VendorWorkPanel: ({ relationshipID }: { relationshipID: string }) => <section className="vendor-work-panel" tabIndex={-1} data-testid={`vendor-work-relationship-${relationshipID}`}>Vendor requests</section> }));
 
 const record: VendorRelationshipAggregate = {
   vendor: { id: "vendor-1", tenant_id: "bank", legal_name: "Acme Processing Limited", trading_name: "Acme", registration_ref: "RC-10001", jurisdiction: "Nigeria", source_id: "procurement", external_ref: "vendor-10001", status: "ACTIVE", created_at: "2026-08-25T12:00:00Z", updated_at: "2026-08-25T12:00:00Z", version: 1 },
@@ -88,6 +88,28 @@ beforeEach(() => {
 });
 
 describe("VendorsWorkspace", () => {
+  it("opens due diligence for the first loaded vendor when guided", async () => {
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent="open-vendor-due-diligence"/>);
+
+    const heading = await screen.findByRole("heading", { name: "Due diligence" });
+    expect(document.activeElement).toBe(heading);
+    expect(screen.getAllByText("Card transaction processing").length).toBeGreaterThan(0);
+  });
+
+  it("opens vendor requests for the first loaded vendor when guided", async () => {
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent="open-vendor-work"/>);
+
+    const panel = await screen.findByTestId("vendor-work-relationship-relationship-1");
+    expect(document.activeElement).toBe(panel);
+  });
+
+  it("opens the Add vendor form when guided and the register is empty", async () => {
+    vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [] });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent="open-vendor-due-diligence"/>);
+
+    expect(await screen.findByLabelText("Legal name")).toBeTruthy();
+  });
+
   it("shows the scoped vendor register and record details", async () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria"/>);
     expect(await screen.findByRole("heading", { name: "Vendors" })).toBeTruthy();

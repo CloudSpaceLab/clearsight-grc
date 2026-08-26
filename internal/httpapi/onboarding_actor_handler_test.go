@@ -35,7 +35,7 @@ func TestOnboardingGuideRejectsClientRoleOverrideForVendorGuide(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding/guide?role=BUSINESS_OWNER&surface=vendors&code=vendor-operations-first-run", nil)
 	actor := onboardingTestActor("PROGRAM_OWNER")
 	response := httptest.NewRecorder()
-	onboardingGuideHandler(actor, true).ServeHTTP(response, request)
+	onboardingGuideHandler(actor, true, true, true).ServeHTTP(response, request)
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", response.Code, response.Body.String())
 	}
@@ -44,7 +44,7 @@ func TestOnboardingGuideRejectsClientRoleOverrideForVendorGuide(t *testing.T) {
 func TestOnboardingGuideRejectsExplicitGuideOutsideVerifiedRoleAndSurface(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding/guide?surface=today&code=vendor-operations-first-run", nil)
 	response := httptest.NewRecorder()
-	onboardingGuideHandler(onboardingTestActor("BUSINESS_OWNER"), true).ServeHTTP(response, request)
+	onboardingGuideHandler(onboardingTestActor("BUSINESS_OWNER"), true, true, true).ServeHTTP(response, request)
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", response.Code, response.Body.String())
 	}
@@ -54,13 +54,19 @@ func TestOnboardingVendorGuideRequiresServerCapabilityAndVerifiedRole(t *testing
 	actor := onboardingTestActor("BUSINESS_OWNER")
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding/guide?surface=vendors&code=vendor-operations-first-run", nil)
 	response := httptest.NewRecorder()
-	onboardingGuideHandler(actor, false).ServeHTTP(response, request)
+	onboardingGuideHandler(actor, false, false, false).ServeHTTP(response, request)
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("expected missing capability to return 404, got %d: %s", response.Code, response.Body.String())
 	}
 
 	response = httptest.NewRecorder()
-	onboardingGuideHandler(actor, true).ServeHTTP(response, request)
+	onboardingGuideHandler(actor, true, false, false).ServeHTTP(response, request)
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("expected partial vendor module to return 404, got %d: %s", response.Code, response.Body.String())
+	}
+
+	response = httptest.NewRecorder()
+	onboardingGuideHandler(actor, true, true, true).ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
 		t.Fatalf("expected verified capability to return 200, got %d: %s", response.Code, response.Body.String())
 	}
@@ -82,14 +88,20 @@ func onboardingTestActor(role string) identity.Actor {
 	}
 }
 
-func onboardingGuideHandler(actor identity.Actor, vendorModuleInstalled bool) http.Handler {
+func onboardingGuideHandler(actor identity.Actor, relationshipInstalled, assessmentsInstalled, workInstalled bool) http.Handler {
 	deps := Dependencies{
 		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Identity:   staticIdentityAuthenticator{actor: actor},
 		Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
 	}
-	if vendorModuleInstalled {
+	if relationshipInstalled {
 		deps.ThirdParty = thirdparty.NewService(thirdparty.NewMemoryRepository())
+	}
+	if assessmentsInstalled {
+		deps.ThirdPartyAssessments = &thirdparty.AssessmentService{}
+	}
+	if workInstalled {
+		deps.ThirdPartyWork = &thirdparty.VendorWorkService{}
 	}
 	return New(deps)
 }

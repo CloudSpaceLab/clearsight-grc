@@ -5,9 +5,9 @@ import type { RuntimeContext } from "./api";
 import { loadContext, loadEvidenceRequest, loadReadiness, loadToday } from "./api";
 import type { EvidenceRequest } from "./types";
 
-vi.mock("./components/RoleAwareOnboarding", () => ({ RoleAwareOnboarding: () => null }));
+vi.mock("./components/RoleAwareOnboarding", () => ({ RoleAwareOnboarding: ({ onStep }: { onStep: (step: { intent?: string; view?: string }) => void }) => <button type="button" onClick={() => onStep({ intent: "open-vendor-due-diligence", view: "vendors" })}>Review due diligence</button> }));
 vi.mock("./components/VendorsWorkspace", () => ({
-  VendorsWorkspace: ({ onOpenRequest }: { onOpenRequest?: (requestID: string) => void }) => <button type="button" onClick={() => onOpenRequest?.("request-vendor-1")}>Review vendor request</button>,
+  VendorsWorkspace: ({ onOpenRequest, guideIntent }: { onOpenRequest?: (requestID: string) => void; guideIntent?: string }) => <><output data-testid="vendor-guide-intent">{guideIntent}</output><button type="button" onClick={() => onOpenRequest?.("request-vendor-1")}>Review vendor request</button></>,
 }));
 vi.mock("./api", () => ({
   loadAutomationPolicies: vi.fn().mockResolvedValue([]),
@@ -74,6 +74,15 @@ describe("runtime navigation", () => {
     if (!vendorButton) throw new Error("Vendors navigation is missing");
     fireEvent.click(vendorButton);
     expect(vendorButton.getAttribute("aria-current")).toBe("page");
+    expect(window.location.hash).toBe("#vendors");
+  });
+
+  it("passes the due-diligence guide intent to the Vendors workspace", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Review due diligence" }));
+    expect((await screen.findByTestId("vendor-guide-intent")).textContent).toBe("open-vendor-due-diligence");
     expect(window.location.hash).toBe("#vendors");
   });
 

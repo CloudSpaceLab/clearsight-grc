@@ -33,7 +33,7 @@ func (a *API) actorOnboardingGuide(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) onboardingCapabilities() []string {
-	if a.deps.ThirdParty == nil {
+	if a.deps.ThirdParty == nil || a.deps.ThirdPartyAssessments == nil || a.deps.ThirdPartyWork == nil {
 		return nil
 	}
 	return []string{onboarding.CapabilityVendorWorkspace}

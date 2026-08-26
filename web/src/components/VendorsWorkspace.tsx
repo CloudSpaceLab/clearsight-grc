@@ -13,6 +13,8 @@ type Props = {
   organizationName: string;
   legalEntityName: string;
   targetID?: string;
+  guideIntent?: "open-vendor-due-diligence" | "open-vendor-work";
+  onGuideIntentHandled?: () => void;
   onTarget?: (id?: string) => void;
   onOpenRequest?: (requestID: string) => void;
   onOpenMatter?: (matterID: string) => void;
@@ -39,7 +41,7 @@ const emptyForm: FormValues = {
   criticality: "STANDARD", privacyRole: "NONE", sourceID: "", externalRef: "", effectiveFrom: "", renewalAt: "",
 };
 
-export function VendorsWorkspace({ organizationName, legalEntityName, targetID, onTarget, onOpenRequest, onOpenMatter }: Props) {
+export function VendorsWorkspace({ organizationName, legalEntityName, targetID, guideIntent, onGuideIntentHandled, onTarget, onOpenRequest, onOpenMatter }: Props) {
   const [records, setRecords] = useState<VendorRelationshipAggregate[]>([]);
   const [selected, setSelected] = useState<VendorRelationshipAggregate | null>(null);
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
@@ -75,6 +77,22 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     setSubmittedQuery("");
     void refresh(targetID, "");
   }, [targetID]);
+
+  useEffect(() => {
+    if (guideIntent) void refresh(targetID, "", guideIntent);
+  }, [guideIntent]);
+
+  useEffect(() => {
+    if (!guideIntent || state !== "live") return;
+    if (!selected) {
+      if (mode === "create") onGuideIntentHandled?.();
+      return;
+    }
+    const target = guideIntent === "open-vendor-due-diligence" ? document.getElementById("vdd-title") : document.querySelector<HTMLElement>(".vendor-work-panel");
+    if (!target) return;
+    target.focus({ preventScroll: true });
+    onGuideIntentHandled?.();
+  }, [guideIntent, state, mode, selected?.relationship.id, assessmentState, onGuideIntentHandled]);
 
   useEffect(() => {
     void refreshForms();
@@ -260,7 +278,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     return value;
   }
 
-  async function refresh(requestedID?: string, search = submittedQuery) {
+  async function refresh(requestedID?: string, search = submittedQuery, intent?: Props["guideIntent"]) {
     const loadID = ++registerLoadID.current;
     setState("loading");
     setLoadMoreError(false);
@@ -276,7 +294,10 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       }
       setRecords(next);
       setNextCursor(page.next_cursor ?? "");
-      setSelected(exact ?? null);
+      const nextSelected = exact ?? (intent ? next[0] : undefined);
+      setSelected(nextSelected ?? null);
+      if (nextSelected) setMode("browse");
+      if (intent && next.length === 0) setMode("create");
       setState("live");
     } catch {
       setRecords([]);

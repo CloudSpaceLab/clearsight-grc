@@ -442,7 +442,7 @@ export function VendorDueDiligence({
 
   return <section className="vdd-workspace" aria-labelledby="vdd-title">
     <header className="vdd-header">
-      <div><span className="eyebrow">{relationship.relationship.service_name}</span><h2 id="vdd-title">Due diligence</h2><p>{statusCopy.description}</p></div>
+      <div><span className="eyebrow">{relationship.relationship.service_name}</span><h2 id="vdd-title" tabIndex={-1}>Due diligence</h2><p>{statusCopy.description}</p></div>
       <span className={`vdd-status vdd-status-${statusCopy.tone}`}>{statusCopy.label}</span>
     </header>
 

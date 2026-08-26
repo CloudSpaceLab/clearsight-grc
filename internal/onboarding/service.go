@@ -224,8 +224,8 @@ func DemoGuides() []Guide {
 			Title: "Manage vendor relationships", Description: "Record the service, collect missing information and route vendor work for review.", Illustration: "guided-orbit",
 			Steps: []Step{
 				{ID: "register", Title: "Review the vendor register", Description: "Check the supplied service, owner and current relationship state.", Action: "Review vendors", View: "vendors", Target: "vendor-register"},
-				{ID: "due-diligence", Title: "Collect due diligence", Description: "Use known bank records first, then request only missing information.", Action: "Open Vendors", View: "vendors", Target: "vendors-workspace"},
-				{ID: "work", Title: "Request vendor action", Description: "Send a focused form, document, signature or upload request when the vendor must act.", Action: "Open Vendors", View: "vendors", Target: "vendors-workspace"},
+				{ID: "due-diligence", Title: "Collect due diligence", Description: "Use known bank records first, then request only missing information.", Action: "Review due diligence", View: "vendors", Target: "vdd-title", Intent: "open-vendor-due-diligence"},
+				{ID: "work", Title: "Request vendor action", Description: "Send a focused form, document, signature or upload request when the vendor must act.", Action: "Review vendor requests", View: "vendors", Target: "vendor-work-panel", Intent: "open-vendor-work"},
 				{ID: "finish", Title: "Confirm the outcome", Description: "Completion and upload remain separate from review and outcome confirmation.", Action: "Done", View: "vendors", Target: "vendors-workspace"},
 			},
 		},

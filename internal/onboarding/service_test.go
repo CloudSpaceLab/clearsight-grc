@@ -88,14 +88,21 @@ func TestVendorGuideUsesStableWorkspaceTargets(t *testing.T) {
 	}
 	want := map[string]string{
 		"register":      "vendor-register",
-		"due-diligence": "vendors-workspace",
-		"work":          "vendors-workspace",
+		"due-diligence": "vdd-title",
+		"work":          "vendor-work-panel",
 		"finish":        "vendors-workspace",
 	}
 	for step, target := range want {
 		if targets[step] != target {
 			t.Fatalf("%s target = %q, want %q", step, targets[step], target)
 		}
+	}
+	intents := map[string]string{}
+	for _, step := range guide.Steps {
+		intents[step.ID] = step.Intent
+	}
+	if intents["due-diligence"] != "open-vendor-due-diligence" || intents["work"] != "open-vendor-work" {
+		t.Fatalf("vendor guide intents = %#v", intents)
 	}
 }
 
