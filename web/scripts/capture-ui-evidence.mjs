@@ -45,6 +45,7 @@ try {
   await captureZoomProxy();
   await captureFieldVisit();
   await captureImportSelection();
+  await captureVendorWorkflows();
 } catch (error) {
   failure = error instanceof Error ? error.message : String(error);
   throw error;
@@ -357,6 +358,51 @@ async function captureImportSelection() {
     await assertNoHorizontalOverflow(page, capture.name);
     await saveScreenshot(page, capture.name);
     await record(page, capture, "document-selected-before-import");
+  } finally {
+    await context.close();
+  }
+}
+
+async function captureVendorWorkflows() {
+  const scenarios = [
+    { name: "40-vendor-start-light-1440x900", fixture: undefined, state: "vendor-due-diligence-start", viewport: { width: 1440, height: 900 }, action: "Start due diligence" },
+    { name: "41-vendor-ready-dark-1440x900", fixture: "vendor-ready", state: "vendor-request-ready", viewport: { width: 1440, height: 900 }, action: "Send due diligence request", theme: "dark" },
+    { name: "42-vendor-review-light-1440x900", fixture: "vendor-submitted", state: "vendor-response-review", viewport: { width: 1440, height: 900 }, action: "Review vendor response", startReview: true },
+    { name: "43-vendor-review-light-390x844", fixture: "vendor-submitted", state: "vendor-response-review-mobile", viewport: { width: 390, height: 844 }, action: "Review vendor response", startReview: true, touch: true },
+    { name: "44-vendor-source-degraded-light-1440x900", fixture: "vendor-source-degraded", state: "vendor-form-source-unavailable", viewport: { width: 1440, height: 900 }, expectText: "Due-diligence forms are unavailable" },
+  ];
+  for (const scenario of scenarios) {
+    const capture = { ...scenario, route: "#vendors", title: "Vendors", theme: scenario.theme ?? "light", density: "comfortable" };
+    const { context, page } = await openPage(capture);
+    try {
+      await page.getByRole("button", { name: /Acme Processing Limited/ }).click();
+      await page.getByRole("heading", { name: scenario.expectText ?? "Due diligence" }).waitFor({ state: "visible" });
+      if (scenario.action) await page.getByRole("button", { name: scenario.action }).waitFor({ state: "visible" });
+      if (scenario.startReview) {
+        await page.getByRole("button", { name: "Review vendor response" }).click();
+        await page.getByRole("button", { name: "Record assessment conclusion" }).waitFor({ state: "visible" });
+      }
+      await assertNoHorizontalOverflow(page, capture.name);
+      await saveScreenshot(page, capture.name);
+      await record(page, capture, scenario.state);
+    } finally {
+      await context.close();
+    }
+  }
+
+  const partial = { name: "45-vendor-delivery-partial-light-1440x900", fixture: "vendor-partial-delivery", state: "vendor-delivery-partial", route: "#vendors", title: "Vendors", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const { context, page } = await openPage(partial);
+  try {
+    await page.getByRole("button", { name: /Acme Processing Limited/ }).click();
+    await page.getByRole("button", { name: "Send due diligence request" }).click();
+    await page.getByLabel("Vendor contact email").fill("security@acme.example");
+    await page.getByLabel("Response due date").fill("2026-09-10");
+    await page.getByRole("button", { name: "Send due diligence request" }).last().click();
+    await page.getByText("Email delivery did not complete", { exact: true }).waitFor({ state: "visible" });
+    if (await page.getByLabel("Vendor contact email").count()) throw new Error("Vendor contact email remained visible after the send attempt");
+    await assertNoHorizontalOverflow(page, partial.name);
+    await saveScreenshot(page, partial.name);
+    await record(page, partial, partial.state);
   } finally {
     await context.close();
   }

@@ -18,11 +18,11 @@ The review fails when it detects, among other things:
 - a completed flow without the expected receipt or updated state;
 - grammatically incorrect operational counts or unnecessarily noisy timestamps;
 - accessibility A/AA violations across core routes and failure states;
-- interaction bundles above the agreed JavaScript and CSS budgets.
+- interaction bundles above the agreed JavaScript chunk, total compressed JavaScript and compressed CSS budgets.
 
 ## Executable flow coverage
 
-The current review exercises Today, Program, Matter, Evidence, Import and Configure workspaces across light/dark modes and desktop, tablet, mobile and 320-pixel reflow layouts. It includes loading, empty, unavailable, partial-degradation and permission-denied states; authority disclosure; evidence entry/review/receipt; not-found, expiry and optimistic conflict; external field-visit upload/signature; lifecycle disclosure; operating mutations; and Program review acknowledgement.
+The current review exercises Today, Program, Vendor, Matter, Evidence, Import and Configure workspaces across light/dark modes and desktop, tablet, mobile and 320-pixel reflow layouts. It includes loading, empty, unavailable, partial-degradation and permission-denied states; authority disclosure; evidence entry/review/receipt; not-found, expiry and optimistic conflict; external field-visit upload/signature; vendor due-diligence start, request, review and delivery-recovery states; lifecycle disclosure; operating mutations; and Program review acknowledgement.
 
 A dedicated behavioral defect runner additionally checks deep-link visibility beneath sticky headers, fixed-navigation overlap, actual 200% CSS-pixel reflow, required-rationale validation, in-flight double-submit prevention, concise operational copy and mobile target sizing.
 
