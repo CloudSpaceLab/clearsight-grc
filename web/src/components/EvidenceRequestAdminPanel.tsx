@@ -31,9 +31,12 @@ export type EvidenceRequestAdminPanelProps = {
   recipients: EvidenceAdminRecipient[];
   invitations: EvidenceInvitationAdminItem[];
   activeSessions?: EvidenceExternalSessionAdminItem[];
+  activeSessionsHasMore?: boolean;
   canManage: boolean;
   loadState: EvidenceRequestAdminLoadState;
   degradedReason?: string;
+  sessionLoadState?: EvidenceRequestAdminLoadState;
+  sessionDegradedReason?: string;
   issueInvitation: (input: EvidenceInvitationCommand) => Promise<IssuedEvidenceInvitation>;
   replaceInvitation: (invitationID: string, input: EvidenceInvitationCommand) => Promise<IssuedEvidenceInvitation>;
   revokeInvitation: (invitationID: string) => Promise<void>;
@@ -45,9 +48,12 @@ export function EvidenceRequestAdminPanel({
   recipients,
   invitations,
   activeSessions,
+  activeSessionsHasMore = false,
   canManage,
   loadState,
   degradedReason,
+  sessionLoadState = loadState,
+  sessionDegradedReason,
   issueInvitation,
   replaceInvitation,
   revokeInvitation,
@@ -62,6 +68,7 @@ export function EvidenceRequestAdminPanel({
   const [issued, setIssued] = useState<IssuedEvidenceInvitation | null>(null);
   const [copyNotice, setCopyNotice] = useState("");
   const mutationsEnabled = canManage && loadState === "ready";
+  const sessionMutationsEnabled = canManage && sessionLoadState === "ready";
   const visibleInvitations = invitations.slice(0, INVENTORY_LIMIT);
   const visibleSessions = activeSessions?.slice(0, INVENTORY_LIMIT) ?? [];
 
@@ -204,12 +211,16 @@ export function EvidenceRequestAdminPanel({
 
     {activeSessions && <section aria-labelledby="evidence-session-inventory">
       <h3 id="evidence-session-inventory">Active external sessions</h3>
-      {activeSessions.length > INVENTORY_LIMIT && <p>Showing the first {INVENTORY_LIMIT} active external sessions. More records are available.</p>}
-      {loadState === "ready" && activeSessions.length === 0 && <p>No active external sessions were returned for this evidence request.</p>}
+      {activeSessionsHasMore && <p>Showing the first {INVENTORY_LIMIT} active external sessions. More records are available.</p>}
+      {sessionLoadState === "loading" && <p role="status">Loading active external sessions. Session changes remain unavailable until requester authority is confirmed.</p>}
+      {sessionLoadState === "degraded" && <p role="alert">{sessionDegradedReason || "Current requester authority for external sessions could not be confirmed."} Previously loaded session records remain available, but session changes are disabled.</p>}
+      {sessionLoadState === "unavailable" && activeSessions.length > 0 && <p role="alert">{sessionDegradedReason || "The latest active external sessions could not be loaded."} Previously loaded session records remain available, but session changes are disabled.</p>}
+      {sessionLoadState === "unavailable" && activeSessions.length === 0 && <p role="alert">Active external sessions could not be loaded. Refresh the evidence request to try again; session changes are unavailable.</p>}
+      {sessionLoadState === "ready" && activeSessions.length === 0 && <p>No active external sessions were returned for this evidence request.</p>}
       {visibleSessions.map((item) => <article key={item.id}>
         <h4>{item.audienceHint}</h4>
         <p>Started {formatDateTime(item.startedAt)} · expires {formatDateTime(item.expiresAt)}</p>
-        <button className="secondary-button" type="button" disabled={!mutationsEnabled || busy !== ""} onClick={() => void revokeExternalSession(item)}>{busy === `session:${item.id}` ? "Ending session…" : `End session for ${item.audienceHint}`}</button>
+        <button className="secondary-button" type="button" disabled={!sessionMutationsEnabled || busy !== ""} onClick={() => void revokeExternalSession(item)}>{busy === `session:${item.id}` ? "Ending session…" : `End session for ${item.audienceHint}`}</button>
       </article>)}
     </section>}
   </section>;

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   issueEvidenceInvitation,
+  listEvidenceActiveSessions,
   listEvidenceInvitationMetadata,
   listEvidenceRecipientCandidates,
   replaceEvidenceInvitation,
@@ -39,6 +40,18 @@ describe("evidence requester administration API", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ items: null })));
 
     await expect(listEvidenceInvitationMetadata("request-1")).resolves.toEqual([]);
+  });
+
+  it("loads a bounded sanitized active-session page from the exact request route", async () => {
+    const fetch = vi.fn().mockResolvedValue(jsonResponse({ items: [{ id: "session-1", audience_hint: "a***@supplier.example", expires_at: "2026-09-01T12:00:00Z", created_at: "2026-08-26T12:00:00Z" }], has_more: true }));
+    vi.stubGlobal("fetch", fetch);
+
+    await expect(listEvidenceActiveSessions("request/2026")).resolves.toEqual({
+      items: [{ id: "session-1", audience_hint: "a***@supplier.example", expires_at: "2026-09-01T12:00:00Z", created_at: "2026-08-26T12:00:00Z" }],
+      has_more: true,
+    });
+    expect(fetch).toHaveBeenCalledWith("/api/v1/evidence/requests/request%2F2026/sessions?limit=50", expect.objectContaining({ credentials: "include", method: "GET" }));
+    expect(fetch.mock.calls[0]?.[0]).not.toContain("token");
   });
 
   it("loads labelled internal recipient candidates from the exact request route", async () => {

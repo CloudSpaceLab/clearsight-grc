@@ -118,7 +118,7 @@ it("preserves bounded loaded records and disables every change when requester ad
     activeSessions: [{ id: "session-1", audienceHint: "session@supplier.example", expiresAt: "2099-08-28T12:00:00Z", startedAt: "2026-08-26T12:00:00Z" }],
   });
 
-  expect(screen.getByRole("alert").textContent).toMatch(/Current requester authority could not be confirmed.*loaded invitation records remain available.*changes are disabled/i);
+  expect(screen.getByText(/Current requester authority could not be confirmed.*loaded invitation records remain available.*changes are disabled/i)).toBeTruthy();
   expect(screen.getByText("Showing the first 50 invitations. More records are available.")).toBeTruthy();
   expect(screen.getByText("recipient-49@supplier.example")).toBeTruthy();
   expect(screen.queryByText("recipient-50@supplier.example")).toBeNull();
@@ -129,7 +129,8 @@ it("preserves bounded loaded records and disables every change when requester ad
 it("does not claim an empty population when the current administration read is unavailable", () => {
   renderPanel({ invitations: [], activeSessions: [], loadState: "unavailable" });
 
-  expect(screen.getByRole("alert").textContent).toMatch(/invitation history could not be loaded.*invitation changes are unavailable/i);
+  expect(screen.getByText(/invitation history could not be loaded.*invitation changes are unavailable/i)).toBeTruthy();
+  expect(screen.getByText(/active external sessions could not be loaded.*session changes are unavailable/i)).toBeTruthy();
   expect(screen.queryByText(/No invitations have been issued/)).toBeNull();
   expect(screen.queryByText(/No active external sessions/)).toBeNull();
   expect((screen.getByRole("button", { name: "Create invitation" }) as HTMLButtonElement).disabled).toBe(true);

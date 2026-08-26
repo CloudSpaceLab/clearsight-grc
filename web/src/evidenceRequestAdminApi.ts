@@ -30,6 +30,15 @@ export type IssuedEvidenceInvitation = {
 export type EvidenceRecipientCandidate = { principal_id: string; display_name: string; context_label?: string };
 export type EvidenceRecipientCandidatePage = { items: EvidenceRecipientCandidate[]; has_more: boolean };
 
+export type EvidenceActiveSessionMetadata = {
+  id: string;
+  audience_hint: string;
+  expires_at: string;
+  created_at: string;
+};
+
+export type EvidenceActiveSessionPage = { items: EvidenceActiveSessionMetadata[]; has_more: boolean };
+
 type InvitationMetadataResponse = { items?: EvidenceInvitationMetadata[] | null };
 
 export async function listEvidenceInvitationMetadata(requestID: string): Promise<EvidenceInvitationMetadata[]> {
@@ -41,6 +50,15 @@ export async function listEvidenceRecipientCandidates(requestID: string, query =
   const params = new URLSearchParams({ limit: "50" });
   if (query.trim()) params.set("q", query.trim());
   const response = await requestJSON<{ items?: EvidenceRecipientCandidate[] | null; has_more?: boolean }>(apiBase, `/api/v1/evidence/requests/${encodeURIComponent(requestID)}/recipient-candidates?${params.toString()}`, { method: "GET" });
+  return { items: Array.isArray(response.items) ? response.items : [], has_more: response.has_more === true };
+}
+
+export async function listEvidenceActiveSessions(requestID: string): Promise<EvidenceActiveSessionPage> {
+  const response = await requestJSON<{ items?: EvidenceActiveSessionMetadata[] | null; has_more?: boolean }>(
+    apiBase,
+    `/api/v1/evidence/requests/${encodeURIComponent(requestID)}/sessions?limit=50`,
+    { method: "GET" },
+  );
   return { items: Array.isArray(response.items) ? response.items : [], has_more: response.has_more === true };
 }
 
