@@ -36,9 +36,21 @@
 ## Integrity
 
 - Cross-tenant Program, requirement, control, Matter, decision, action and outcome-check links fail at the database boundary.
+- Same-tenant, cross-legal-entity Program and Matter lists, exact reads, history and commands return no record for the wrong entity.
+- Program and Matter creation overwrite client entity fields with the verified canonical legal-entity ID before writing the row, creation event and outbox record.
+- Program/Matter links cannot cross legal entities, including by direct SQL insertion or later parent-entity mutation.
+- The same trigger key may create independent work for different Programs, while replay within one Program remains idempotent.
+- Restricted Matter mutation requires both current command authority and explicit record visibility.
 - Invalid acceptable source IDs fail transactionally.
 - Aggregate version conflicts do not partially update projections, events or outbox records.
 - Each material event produces one append-only event and one outbox record.
+
+## Degraded and concurrent reads
+
+- A loaded Program or issue remains readable when responsibility routing or Program review status is unavailable.
+- Material controls remain disabled until responsibility, review and displayed aggregate versions match; linked-record navigation and read retries remain available.
+- A late load, command or review response for a previous route cannot replace the newly selected record.
+- Evidence checks, monitoring changes and linked-issue creation close or fail closed when Program mutation readiness is lost.
 
 ## Content
 

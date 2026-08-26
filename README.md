@@ -116,6 +116,8 @@ Primary screens use plain labels such as **Up to date**, **Evidence incomplete**
 
 Runtime reads are bound to the verified actor. A client-supplied tenant, principal or legal-entity query that conflicts with verified identity is rejected without revealing whether the requested scope exists.
 
+Program and issue/change identity includes one durable legal entity. Entity filtering occurs before bounded list limits and exact reads, material commands recheck the same verified scope, and Program links cannot cross entities. Creation resolves a verified legal-entity ID or active tenant-bound code to one canonical ID before the row, continuity event and outbox record are written.
+
 Restricted Matter access is fail-closed:
 
 - malformed or unsupported access metadata is not readable;
@@ -125,6 +127,8 @@ Restricted Matter access is fail-closed:
 - direct unauthorized reads return not found.
 
 Document-import tenant, legal-entity and reviewer identity are also derived from verified actor context. Cross-tenant detail and review attempts return not found.
+
+Evidence response controls are shown only to the exact current internal recipient. Request creators and other viewers can see the assignment state and valid recovery path, but cannot open a response form that the submission boundary would reject. Terminal assigned requests remain readable without exposing submission actions.
 
 This HTTP/repository boundary does not replace synchronized enterprise identity groups, database row-level security or authorization on every future mutation endpoint.
 

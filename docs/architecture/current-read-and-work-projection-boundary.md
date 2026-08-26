@@ -125,11 +125,11 @@ The projected responsibility/materiality matches the executable `matter.outcome.
 
 If the contract names a required reviewer, the projector assigns that principal only when the principal is still eligible under **current** authority and can read the Matter. The Task may expose the real expected outcome/method/check time through Today progressive disclosure, but it does not claim the outcome is verified before a Verification Result exists.
 
-### Evidence Requests are intentionally not inferred
+### Evidence Request work uses canonical recipient truth
 
-Current Evidence Request records do not yet have a canonical recipient/routing contract sufficient to derive actor work. `why_you`, `created_by`, invitation copy or other descriptive fields are not assignment truth.
+Evidence Request actor work is projected from the current canonical recipient record, never from `why_you`, `created_by`, invitation copy or subject visibility. Internal work requires the exact current person recipient; external requests remain invitation/session capability work rather than staff response work.
 
-Ordinary Evidence Request projection remains out of this compiler until #27.2b defines a governed recipient/delegation/conflict/expiry contract.
+Wrong-recipient declaration, requester reassignment, expiry and revocation re-read the current recipient revision and converge the Evidence Request workflow projection. The client applies the same exact-recipient predicate before showing a response action, while submission remains the authoritative enforcement boundary.
 
 ## 6. Current authority, visibility and convergence
 
@@ -166,6 +166,8 @@ Production actor work admits only the supported Matter-backed projection kinds:
 
 - `MATTER_ACTION`;
 - `MATTER_LIFECYCLE`.
+
+Evidence Request work is admitted separately through its canonical recipient projector and retains its own recipient lifecycle rather than being inferred by the Matter compiler.
 
 The PostgreSQL read filters terminal/unsupported/inaccessible work **before LIMIT**, orders active work deadline-first, joins canonical Matter metadata, and is followed by a Go `MatterWorkVisibleTo` recheck as defense in depth.
 

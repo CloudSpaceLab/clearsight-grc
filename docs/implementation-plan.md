@@ -47,6 +47,8 @@ The operations response explains the current owner, authorizer, reviewer and eli
 
 No supported individual Program or Matter operating command requires JSON, direct API use or database access. Bulk migration, enterprise configuration builders and production integrations remain separate productization work.
 
+The production-hardening follow-up binds Program and issue/change reads, history, links, trigger deduplication and material commands to the verified legal entity. Legacy entity scope is migrated only when deterministic; migration aborts before enabling scoped commands when a Program, issue or cross-entity link cannot be resolved safely. Exact records load their aggregate, responsibility route and review position independently, so available business records remain readable while stale or unavailable authority data disables only material mutations.
+
 ## 3. AI governance gateway — T3 transport implemented
 
 The repository now has an isolated stateless gateway process with OpenAI-compatible Chat Completions and Responses ingress, truthful SSE translation, OpenAI and Anthropic pilot adapters, SHA-256 workload authentication, model aliases, weighted routing, pre-output fallback, route circuit breaking, request/token/cost/concurrency budgets and content-free logs/metrics.

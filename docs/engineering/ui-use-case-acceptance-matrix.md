@@ -67,7 +67,7 @@ Guide selection is server-authoritative. Signed identities and development ident
 | Requirements | Full statement and source anchor are shown; no silent slice/truncation | Implemented |
 | Evidence checks | Claim and minimum coverage are shown | Implemented |
 | Direct target | Exact Program opens a dedicated record while the portfolio route retains bounded search and filters | Implemented |
-| Detail failure | Program values become read-only with an explicit retry when responsibility or record loading fails | Implemented |
+| Detail failure | The Program aggregate, responsibility route and review position load independently; available values remain readable and each failed source has an explicit retry | Implemented |
 | Scope and ownership | Authorized owner edits function, jurisdiction, business scope and dates and selects only eligible successor candidates | Implemented |
 | Requirements and applicability | Add source-anchored requirements, preserve superseded history and record authorizer decisions with scope and rationale | Implemented |
 | Safeguards and coverage | Define objectives, assign eligible performers, record implementation and link requirement coverage | Implemented |
@@ -110,7 +110,8 @@ Guide selection is server-authoritative. Signed identities and development ident
 | Exact request | Target request expands and scrolls into view | Implemented |
 | Required fields | Submission remains disabled until required fields are present | Implemented |
 | Submission receipt | Submission is recorded without claiming evidence sufficiency | Implemented |
-| Wrong recipient/delegation | Redirect, delegate or report incorrect scope | Future productization work |
+| Wrong recipient/reassignment | The assigned internal person can return an incorrect request; the requester can select a replacement and old external capabilities are revoked | Implemented; role/team delegation remains future work |
+| Response authority | Only the exact verified internal recipient receives a response control; terminal assigned requests remain read-only and other viewers see the valid recovery path | Implemented |
 | Production scanning/storage | Malware scanning, encrypted object storage, retention and legal hold | Future production work |
 
 ## Imports
