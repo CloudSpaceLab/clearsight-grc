@@ -50,7 +50,7 @@ func decodeDelegationScope(value json.RawMessage, legalEntityID string) (Delegat
 	if scope.ObjectID != "" && scope.ObjectType == "" {
 		return DelegationScope{}, nil, fmt.Errorf("object_type is required when object_id is set")
 	}
-	if scope.ObjectType != "" && scope.ObjectType != "PROGRAM" && scope.ObjectType != "MATTER" {
+	if scope.ObjectType != "" && scope.ObjectType != "PROGRAM" && scope.ObjectType != "MATTER" && scope.ObjectType != "VENDOR_RELATIONSHIP" {
 		return DelegationScope{}, nil, fmt.Errorf("unsupported object_type %s", scope.ObjectType)
 	}
 	if scope.ObjectID == "*" {

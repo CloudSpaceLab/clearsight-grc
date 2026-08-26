@@ -105,7 +105,7 @@ func newCollectingRequestFixture(t *testing.T) collectingRequestFixture {
 	t.Helper()
 	assessmentService, repository, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	assessment := mustReadyAssessment(t, assessmentService, mustStartAssessment(t, assessmentService, relationship))
-	evidenceService := evidence.NewService(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore())
+	evidenceService := newAssessmentEvidenceService()
 	requestService, err := NewAssessmentRequestService(
 		assessmentService, repository, evidenceService, assessmentFormReaderStub{form: activeAssessmentForm()}, nil,
 		"https://capture.example.test/respond", "production",
@@ -399,7 +399,7 @@ func TestReissueAssessmentRequestSerializesBeforeInvitationIssuance(t *testing.T
 func TestReissueAssessmentRequestRequiresCollectingCurrentRequestAndAudience(t *testing.T) {
 	assessmentService, repository, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	ready := mustReadyAssessment(t, assessmentService, mustStartAssessment(t, assessmentService, relationship))
-	evidenceService := evidence.NewService(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore())
+	evidenceService := newAssessmentEvidenceService()
 	requestService, err := NewAssessmentRequestService(assessmentService, repository, evidenceService, assessmentFormReaderStub{form: activeAssessmentForm()}, nil, "https://capture.example.test/respond", "production")
 	if err != nil {
 		t.Fatal(err)

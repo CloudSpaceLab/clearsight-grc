@@ -143,7 +143,7 @@ func TestConcurrentClarificationPreparationAllowsOneInvitationPath(t *testing.T)
 	barrier := &clarificationPrepareBarrier{AssessmentRepository: repo, entered: make(chan struct{}, 2), release: make(chan struct{})}
 	assessmentService := NewAssessmentService(barrier, fixedAssessmentGuard{})
 	assessmentService.now = baseService.now
-	evidenceService := evidence.NewService(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore())
+	evidenceService := newAssessmentEvidenceService()
 	form := activeAssessmentForm()
 	requested := map[string]struct{}{"contact_email": {}}
 	fields, sections, err := clarificationForm(form, requested)

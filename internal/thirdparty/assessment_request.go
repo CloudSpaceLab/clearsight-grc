@@ -127,7 +127,7 @@ func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, ass
 	}
 	if !evidence.ExternalAudienceMatches(request, audience) {
 		request, err = s.evidence.ReassignRecipient(ctx, evidence.ReassignRecipientInput{
-			TenantID: scope.TenantID, RequestID: request.ID, ActorPrincipalID: verified.PrincipalID,
+			TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, RequestID: request.ID, ActorPrincipalID: verified.PrincipalID,
 			Recipient: evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: audience},
 			Reason:    "Vendor request recipient corrected before collection.", ExpectedVersion: request.Version,
 		})
@@ -151,7 +151,7 @@ func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, ass
 		return preparedOutcome(preparedAssessment, request, "Set the secure capture address, then issue the invitation."), nil
 	}
 	issued, err := s.evidence.IssueInvitation(ctx, evidence.IssueInvitationInput{
-		TenantID: scope.TenantID, RequestID: request.ID, Audience: audience,
+		TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, RequestID: request.ID, Audience: audience,
 		Purpose: "Complete the vendor due-diligence request.", TTLMinutes: input.InvitationTTLMinutes, CreatedBy: verified.PrincipalID,
 	})
 	if err != nil {
@@ -206,7 +206,7 @@ func assessmentEvidenceRequestInput(actor Actor, assessment Assessment, aggregat
 		"privacy_role":           string(aggregate.Relationship.PrivacyRole),
 	}
 	return evidence.CreateRequestInput{
-		TenantID: actor.TenantID, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: assessment.RelationshipID,
+		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: assessment.RelationshipID,
 		Title: form.Name, Purpose: form.Purpose, WhyYou: "Provide the information required for the bank's review of this service.",
 		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR",
 		Recipient:        evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: audience},

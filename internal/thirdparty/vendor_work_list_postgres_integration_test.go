@@ -10,6 +10,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/jackc/pgx/v5"
 )
 
 func TestPostgresVendorWorkListAppliesCurrentVisibilityBeforePagination(t *testing.T) {
@@ -47,7 +48,7 @@ func TestPostgresVendorWorkListAppliesCurrentVisibilityBeforePagination(t *testi
 		INSERT INTO third_party_relationship_program_links(id,tenant_id,legal_entity_id,relationship_id,program_id,purpose_code,purpose_label,state,created_by_principal_id,version,created_at,updated_at) VALUES
 		($5::uuid,$2::uuid,$3::uuid,$6::uuid,$1::uuid,'VENDOR_ACTION','Vendor action','ACTIVE',$7::uuid,1,$4,$4),
 		($8::uuid,$2::uuid,$3::uuid,$9::uuid,$1::uuid,'VENDOR_ACTION','Vendor action','ACTIVE',$7::uuid,1,$4,$4)`,
-		programID, thirdPartyTenantID, thirdPartyEntityA, now.Add(-30*time.Minute), visibleLinkID, visibleRelationship.Relationship.ID, thirdPartyPrincipal, hiddenLinkID, hiddenRelationship.Relationship.ID); err != nil {
+		pgx.QueryExecModeSimpleProtocol, programID, thirdPartyTenantID, thirdPartyEntityA, now.Add(-30*time.Minute), visibleLinkID, visibleRelationship.Relationship.ID, thirdPartyPrincipal, hiddenLinkID, hiddenRelationship.Relationship.ID); err != nil {
 		t.Fatal(err)
 	}
 	repository := NewPostgresRepository(pool)
@@ -70,11 +71,11 @@ func TestPostgresVendorWorkListAppliesCurrentVisibilityBeforePagination(t *testi
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO responsibility_assignments(tenant_id,legal_entity_id,principal_id,responsibility,object_type,object_id,priority,valid_from,policy_version,decision_type)
 		VALUES($1::uuid,$2::uuid,$3::uuid,'REVIEWER','VENDOR_RELATIONSHIP',$4::uuid,100,$5,'vendor-work-list:v1','thirdparty.work.review');
-		INSERT INTO delegations(tenant_id,from_principal_id,to_principal_id,responsibility,scope,starts_at,ends_at,status,created_by,approved_by,approved_at,version)
-		VALUES($1::uuid,$3::uuid,$6::uuid,'REVIEWER',jsonb_build_object('legal_entity_id',$2::text,'object_type','VENDOR_RELATIONSHIP','object_id',$4::text,'decision_type','thirdparty.work.review'),$5,$7,'ACTIVE',$3::uuid,$8::uuid,$5,1);
+		INSERT INTO delegations(tenant_id,legal_entity_id,from_principal_id,to_principal_id,responsibility,scope,starts_at,ends_at,status,created_by,approved_by,approved_at,version)
+		VALUES($1::uuid,$2::uuid,$3::uuid,$6::uuid,'REVIEWER',jsonb_build_object('legal_entity_id',$2::text,'object_type','VENDOR_RELATIONSHIP','object_id',$4::text,'decision_type','thirdparty.work.review'),$5,$7,'ACTIVE',$3::uuid,$8::uuid,$5,1);
 		INSERT INTO authority_grants(tenant_id,legal_entity_id,principal_id,decision_type,limits,valid_from,policy_version)
 		VALUES($1::uuid,$2::uuid,$3::uuid,'thirdparty.work.review','{"max_materiality":3}'::jsonb,$5,'vendor-work-list:grant')`,
-		thirdPartyTenantID, thirdPartyEntityA, routeOwnerID, visibleRelationship.Relationship.ID, now.Add(-time.Minute), actorID, now.Add(time.Hour), thirdPartyPrincipal); err != nil {
+		pgx.QueryExecModeSimpleProtocol, thirdPartyTenantID, thirdPartyEntityA, routeOwnerID, visibleRelationship.Relationship.ID, now.Add(-time.Minute), actorID, now.Add(time.Hour), thirdPartyPrincipal); err != nil {
 		t.Fatal(err)
 	}
 
@@ -93,7 +94,7 @@ func TestPostgresVendorWorkListAppliesCurrentVisibilityBeforePagination(t *testi
 	}
 	if _, err := pool.Exec(ctx, `UPDATE delegations SET status='ACTIVE' WHERE tenant_id=$1::uuid AND from_principal_id=$2::uuid;
 		INSERT INTO responsibility_assignments(tenant_id,legal_entity_id,principal_id,responsibility,object_type,object_id,priority,valid_from,policy_version,decision_type)
-		VALUES($1::uuid,$3::uuid,$4::uuid,'REVIEWER','VENDOR_RELATIONSHIP',$5::uuid,100,$6,'vendor-work-list:v2','thirdparty.work.review')`, thirdPartyTenantID, routeOwnerID, thirdPartyEntityA, conflictOwnerID, visibleRelationship.Relationship.ID, now.Add(-time.Minute)); err != nil {
+		VALUES($1::uuid,$3::uuid,$4::uuid,'REVIEWER','VENDOR_RELATIONSHIP',$5::uuid,100,$6,'vendor-work-list:v2','thirdparty.work.review')`, pgx.QueryExecModeSimpleProtocol, thirdPartyTenantID, routeOwnerID, thirdPartyEntityA, conflictOwnerID, visibleRelationship.Relationship.ID, now.Add(-time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	page, err = repository.ListVendorWork(vendorWorkListActorContext(now, actorID), Scope{TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA}, input)
@@ -105,7 +106,7 @@ func TestPostgresVendorWorkListAppliesCurrentVisibilityBeforePagination(t *testi
 		INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,occupant_principal_id,valid_from) VALUES($4::uuid,$1::uuid,$5::uuid,'VENDOR-WORK-CONFLICT','Vendor work conflict',$6::uuid,$3);
 		INSERT INTO position_role_bindings(id,tenant_id,position_id,role_template_id,priority,valid_from) VALUES($7::uuid,$1::uuid,$4::uuid,$2::uuid,100,$3);
 		INSERT INTO segregation_rules(tenant_id,code,responsibility,prohibited_role_code,status,valid_from) VALUES($1::uuid,'NO-VENDOR-WORK-CONFLICT','REVIEWER','VENDOR_WORK_CONFLICT','ACTIVE',$3)`,
-		thirdPartyTenantID, roleID, now.Add(-time.Minute), positionID, thirdPartyEntityA, actorID, bindingID); err != nil {
+		pgx.QueryExecModeSimpleProtocol, thirdPartyTenantID, roleID, now.Add(-time.Minute), positionID, thirdPartyEntityA, actorID, bindingID); err != nil {
 		t.Fatal(err)
 	}
 	page, err = repository.ListVendorWork(vendorWorkListActorContext(now, actorID), Scope{TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA}, input)

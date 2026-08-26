@@ -56,6 +56,7 @@ func TestPostgresAssessmentProvisionerCompletionIsAtomic(t *testing.T) {
 	relationship := seedAssessmentRelationship(t, pool, "Card processing")
 	repository := NewPostgresRepository(pool)
 	record := postgresAssessmentRecord(assessmentOneID, relationship, now)
+	ctx = continuity.WithTrustedSystemEntityScope(ctx, record.TenantID, record.LegalEntityID)
 	assessment, err := repository.CreateAssessment(ctx, record)
 	if err != nil {
 		t.Fatal(err)
@@ -63,7 +64,7 @@ func TestPostgresAssessmentProvisionerCompletionIsAtomic(t *testing.T) {
 	triggerKey := "thirdparty-assessment:" + assessment.ID
 	dueAt := assessment.ReviewDueAt
 	matter, err := continuity.NewService(continuity.NewPostgresRepository(pool)).CreateMatter(ctx, continuity.CreateMatterInput{
-		TenantID: record.TenantID, Type: continuity.MatterVendorReview, Priority: 5,
+		TenantID: record.TenantID, LegalEntityID: record.LegalEntityID, Type: continuity.MatterVendorReview, Priority: 5,
 		Title: "Review vendor due diligence", Summary: "Review the response and supporting evidence.",
 		Scope:       json.RawMessage(`{"assessment_id":"` + assessment.ID + `"}`),
 		TriggerType: "VENDOR_DUE_DILIGENCE_STARTED", TriggerID: assessment.ID, TriggerKey: triggerKey,

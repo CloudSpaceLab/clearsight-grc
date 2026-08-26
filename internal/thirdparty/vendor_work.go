@@ -453,7 +453,7 @@ func (s *VendorWorkService) ensureCaptureRequest(ctx context.Context, actor Acto
 			}
 		}
 		request, err = s.evidence.CreateRequest(evidence.WithRequestOriginAuthority(ctx, VendorWorkOrigin), evidence.CreateRequestInput{
-			TenantID: work.TenantID, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: work.RelationshipID,
+			TenantID: work.TenantID, LegalEntityID: work.LegalEntityID, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: work.RelationshipID,
 			Title: form.Name, Purpose: work.Purpose, WhyYou: instructions, Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR",
 			Recipient: evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: audience}, EstimatedMinutes: estimateAssessmentMinutes(len(fields)), Deadline: dueAt,
 			KnownFacts: knownFacts, Presentation: presentation, Sections: form.Sections, Fields: fields,
@@ -524,7 +524,7 @@ func (s *VendorWorkService) sendCurrent(ctx context.Context, actor Actor, work V
 		}
 		reserved = stored
 	}
-	issued, err := s.evidence.IssueInvitation(ctx, evidence.IssueInvitationInput{InvitationID: invitationID, TenantID: work.TenantID, RequestID: request.ID, Audience: audience, Purpose: "Complete the vendor request.", TTLMinutes: ttlMinutes, CreatedBy: actor.PrincipalID})
+	issued, err := s.evidence.IssueInvitation(ctx, evidence.IssueInvitationInput{InvitationID: invitationID, TenantID: work.TenantID, LegalEntityID: work.LegalEntityID, RequestID: request.ID, Audience: audience, Purpose: "Complete the vendor request.", TTLMinutes: ttlMinutes, CreatedBy: actor.PrincipalID})
 	if err != nil {
 		return VendorWorkSendOutcome{Work: reserved, State: VendorWorkDeliveryRetryRequired, Recovery: reserved.Recovery}, nil
 	}

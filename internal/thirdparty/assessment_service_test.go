@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
@@ -21,6 +22,22 @@ type assessmentGuardStub struct {
 }
 
 type assessmentCompletionReadinessStub struct{ err error }
+
+type assessmentEvidenceRepository struct {
+	*evidence.MemoryRepository
+}
+
+func (r *assessmentEvidenceRepository) ResolveSubjectScope(_ context.Context, tenant, subjectType, subjectID string) (evidence.SubjectScope, error) {
+	if tenant != "bank" || subjectType != "VENDOR_RELATIONSHIP" || strings.TrimSpace(subjectID) == "" {
+		return evidence.SubjectScope{}, evidence.ErrSubjectUnsupported
+	}
+	return evidence.SubjectScope{TenantID: tenant, LegalEntityID: "entity", SubjectType: subjectType, SubjectID: subjectID}, nil
+}
+
+func newAssessmentEvidenceService() *evidence.Service {
+	repository := &assessmentEvidenceRepository{MemoryRepository: evidence.NewMemoryRepository(nil, nil)}
+	return evidence.NewService(repository, evidence.NewMemoryObjectStore())
+}
 
 func (s assessmentCompletionReadinessStub) CheckAssessmentCompletion(context.Context, Actor, string) error {
 	return s.err

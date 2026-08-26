@@ -127,7 +127,7 @@ func (s *AssessmentRequestService) RequestClarification(ctx context.Context, _ A
 	if s.captureBase == nil {
 		return clarificationPreparedOutcome(preparedAssessment, "Set the secure capture address, then issue the clarification invitation."), nil
 	}
-	issued, err := s.evidence.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: scope.TenantID, RequestID: request.ID, Audience: audience, Purpose: "Complete the requested vendor clarification.", TTLMinutes: input.InvitationTTLMinutes, CreatedBy: verified.PrincipalID})
+	issued, err := s.evidence.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, RequestID: request.ID, Audience: audience, Purpose: "Complete the requested vendor clarification.", TTLMinutes: input.InvitationTTLMinutes, CreatedBy: verified.PrincipalID})
 	if err != nil {
 		return clarificationPreparedOutcome(preparedAssessment, "Retry invitation creation for this clarification request."), nil
 	}

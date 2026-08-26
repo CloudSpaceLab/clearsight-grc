@@ -54,14 +54,14 @@ func TestPostgresEffectiveAuthorityDelegationGrantAndSegregation(t *testing.T) {
 	}
 
 	definition, _ := json.Marshal(map[string]any{"rules": []map[string]any{{
-		"id": "owner-route", "legal_entity_id": "BANK-NG", "object_type": "MATTER", "object_id": "*",
+		"id": "owner-route", "legal_entity_id": entityID, "object_type": "MATTER", "object_id": "*",
 		"responsibility": "ACCOUNTABLE_OWNER", "decision_type": "matter.action.add", "min_materiality": 0, "priority": 100,
 		"selector": map[string]any{"kind": "PRINCIPAL", "ref": ownerID},
 	}}})
-	if _, err := pool.Exec(ctx, `INSERT INTO routing_policies(id,tenant_id,code,name,status,current_version,approved_at,version) VALUES($1::uuid,$2::uuid,'OWNER','Owner route','DRAFT',1,$3,1)`, policyID, tenantID, now); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO routing_policies(id,tenant_id,legal_entity_id,code,name,status,current_version,approved_at,version) VALUES($1::uuid,$2::uuid,$3::uuid,'OWNER','Owner route','DRAFT',1,$4,1)`, policyID, tenantID, entityID, now); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO routing_policy_versions(id,policy_id,version,definition,checksum,effective_from,approved_at) VALUES($1::uuid,$2::uuid,1,$3::jsonb,'test',$4,$4)`, versionID, policyID, string(definition), now.Add(-time.Minute)); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO routing_policy_versions(id,policy_id,legal_entity_id,version,definition,checksum,effective_from,approved_at) VALUES($1::uuid,$2::uuid,$3::uuid,1,$4::jsonb,'test',$5,$5)`, versionID, policyID, entityID, string(definition), now.Add(-time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `UPDATE routing_policies SET status='ACTIVE' WHERE id=$1::uuid`, policyID); err != nil {
@@ -69,7 +69,7 @@ func TestPostgresEffectiveAuthorityDelegationGrantAndSegregation(t *testing.T) {
 	}
 	assertAuthorityCount(t, ctx, pool, `SELECT count(*) FROM effective_authority_routes WHERE tenant_id=$1::uuid AND source_rule_id='owner-route'`, 1, tenantID)
 
-	if _, err := pool.Exec(ctx, `INSERT INTO delegations(tenant_id,from_principal_id,to_principal_id,responsibility,scope,starts_at,ends_at,status,created_by,approved_by,approved_at,version) VALUES($1::uuid,$2::uuid,$3::uuid,'ACCOUNTABLE_OWNER',$4::jsonb,$5,$6,'ACTIVE',$2::uuid,$7::uuid,$5,1)`, tenantID, ownerID, delegateID, `{"legal_entity_id":"BANK-NG","object_type":"MATTER"}`, now.Add(-time.Minute), now.Add(time.Hour), blockedID); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO delegations(tenant_id,legal_entity_id,from_principal_id,to_principal_id,responsibility,scope,starts_at,ends_at,status,created_by,approved_by,approved_at,version) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,'ACCOUNTABLE_OWNER',$5::jsonb,$6,$7,'ACTIVE',$3::uuid,$8::uuid,$6,1)`, tenantID, entityID, ownerID, delegateID, `{"legal_entity_id":"`+entityID+`","object_type":"MATTER"}`, now.Add(-time.Minute), now.Add(time.Hour), blockedID); err != nil {
 		t.Fatal(err)
 	}
 

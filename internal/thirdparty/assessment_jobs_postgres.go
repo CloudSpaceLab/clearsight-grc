@@ -146,7 +146,7 @@ func (r *PostgresRepository) CompleteAssessmentSetupJob(ctx context.Context, job
 		INSERT INTO third_party_assessment_reactions(
 			tenant_id,legal_entity_id,assessment_id,reaction_kind,causation_id,job_id,event_id,matter_id,request_id,submission_id,
 			resulting_version,result_snapshot,applied_at
-		) VALUES($1::uuid,$2::uuid,$3::uuid,'SETUP_COMPLETED',$4,$4::uuid,NULL,$5::uuid,NULL,NULL,$6,$7::jsonb,$8)`,
+		) VALUES($1::uuid,$2::uuid,$3::uuid,'SETUP_COMPLETED',$4::uuid::text,$4::uuid,NULL,$5::uuid,NULL,NULL,$6,$7::jsonb,$8)`,
 		tenantID, job.LegalEntityID, current.ID, job.ID, matterID, current.Version, string(snapshot), at)
 	if err != nil {
 		return Assessment{}, fmt.Errorf("store assessment setup receipt: %w", err)

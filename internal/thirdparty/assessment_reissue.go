@@ -78,7 +78,7 @@ func (s *AssessmentRequestService) ReissueRequest(ctx context.Context, _ Actor, 
 		return SendRequestOutcome{Assessment: preparedAssessment, Request: request, State: SendRequestReadyInvitationNotIssued, Recovery: "Set the secure capture address, then issue a replacement invitation."}, nil
 	}
 	issued, err := s.evidence.IssueInvitation(ctx, evidence.IssueInvitationInput{
-		TenantID: scope.TenantID, RequestID: request.ID, Audience: audience,
+		TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, RequestID: request.ID, Audience: audience,
 		Purpose: "Complete the vendor due-diligence request.", TTLMinutes: input.InvitationTTLMinutes, CreatedBy: verified.PrincipalID,
 	})
 	if err != nil {

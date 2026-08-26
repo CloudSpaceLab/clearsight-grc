@@ -278,7 +278,10 @@ WITH RECURSIVE requests AS (
 	JOIN delegations d ON d.tenant_id=r.tenant_uuid AND d.from_principal_id=c.principal_id
 	WHERE d.responsibility=r.responsibility AND d.status='ACTIVE'
 	  AND d.starts_at <= r.at AND r.at < d.ends_at AND c.depth < 8 AND NOT d.to_principal_id=ANY(c.path)
-	  AND (NOT (d.scope ? 'legal_entity_id') OR d.scope->>'legal_entity_id' IN ('*',r.legal_entity_id))
+	  AND EXISTS (
+		SELECT 1 FROM legal_entities le WHERE le.id=d.legal_entity_id AND le.tenant_id=d.tenant_id
+		AND (le.id::text=r.legal_entity_id OR le.code=r.legal_entity_id)
+	  )
 	  AND (NOT (d.scope ? 'object_type') OR upper(d.scope->>'object_type') IN ('*',upper(r.object_type)))
 	  AND (NOT (d.scope ? 'object_id') OR d.scope->>'object_id' IN ('*',r.object_id))
 	  AND (NOT (d.scope ? 'decision_type') OR upper(d.scope->>'decision_type') IN ('*',upper(r.decision_type)))
@@ -587,7 +590,10 @@ func (s *postgresService) expandDelegations(ctx context.Context, input ResolveIn
 			  AND d.starts_at <= $2 AND $2 < d.ends_at
 			  AND c.depth < 8
 			  AND NOT d.to_principal_id=ANY(c.path)
-			  AND (NOT (d.scope ? 'legal_entity_id') OR d.scope->>'legal_entity_id' IN ('*',$5))
+			  AND d.legal_entity_id IN (
+				SELECT le.id FROM legal_entities le
+				WHERE le.tenant_id=d.tenant_id AND (le.id::text=$5 OR le.code=$5)
+			  )
 			  AND (NOT (d.scope ? 'object_type') OR upper(d.scope->>'object_type') IN ('*',upper($6)))
 			  AND (NOT (d.scope ? 'object_id') OR d.scope->>'object_id' IN ('*',$7))
 			  AND (NOT (d.scope ? 'decision_type') OR upper(d.scope->>'decision_type') IN ('*',upper($8)))

@@ -13,6 +13,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -34,9 +35,10 @@ func TestPostgresAssessmentRequestResolverRequiresExactCurrentCollectingLink(t *
 		t.Fatal(err)
 	}
 	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 1}
+	ctx = evidence.WithRequestOriginAuthority(ctx, origin.Type)
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
 	request, err := evidenceService.CreateRequest(ctx, evidence.CreateRequestInput{
-		TenantID: "third-party-bank", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: relationship.Relationship.ID,
+		TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: relationship.Relationship.ID,
 		Title: "Vendor due diligence", Purpose: "Collect the vendor response.", WhyYou: "Provide the information required for the bank's review.",
 		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR",
 		Recipient:        evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: "review@vendor.example"},
@@ -55,7 +57,7 @@ func TestPostgresAssessmentRequestResolverRequiresExactCurrentCollectingLink(t *
 		INSERT INTO third_party_assessment_request_links(
 			tenant_id,legal_entity_id,assessment_id,request_id,purpose,sequence,origin_type,origin_id,origin_sequence,is_current,created_at
 		) VALUES($1::uuid,$5::uuid,$2::uuid,$3::uuid,'INITIAL',1,$6,$2::uuid,1,true,$4)`,
-		thirdPartyTenantID, assessment.ID, request.ID, now, thirdPartyEntityA, AssessmentRequestOrigin); err != nil {
+		pgx.QueryExecModeSimpleProtocol, thirdPartyTenantID, assessment.ID, request.ID, now, thirdPartyEntityA, AssessmentRequestOrigin); err != nil {
 		t.Fatal(err)
 	}
 
@@ -98,10 +100,11 @@ func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndRevokesPriorSession(
 		t.Fatal(err)
 	}
 	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 1}
+	ctx = evidence.WithRequestOriginAuthority(ctx, origin.Type)
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
 	audience := "review@vendor.example"
 	request, err := evidenceService.CreateRequest(ctx, evidence.CreateRequestInput{
-		TenantID: "third-party-bank", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: relationship.Relationship.ID,
+		TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: relationship.Relationship.ID,
 		Title: "Vendor due diligence", Purpose: "Collect the vendor response.", WhyYou: "Provide the information required for the bank's review.",
 		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR",
 		Recipient:        evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: audience},
@@ -114,7 +117,7 @@ func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndRevokesPriorSession(
 	if err != nil {
 		t.Fatal(err)
 	}
-	initial, err := evidenceService.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "third-party-bank", RequestID: request.ID, Audience: audience, Purpose: "Complete the request.", TTLMinutes: 60, CreatedBy: thirdPartyPrincipal})
+	initial, err := evidenceService.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA, RequestID: request.ID, Audience: audience, Purpose: "Complete the request.", TTLMinutes: 60, CreatedBy: thirdPartyPrincipal})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +131,7 @@ func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndRevokesPriorSession(
 		INSERT INTO third_party_assessment_request_links(
 			tenant_id,legal_entity_id,assessment_id,request_id,purpose,sequence,origin_type,origin_id,origin_sequence,invitation_id,is_current,created_at
 		) VALUES($1::uuid,$5::uuid,$2::uuid,$3::uuid,'INITIAL',1,$6,$2::uuid,1,$7::uuid,true,$4)`,
-		thirdPartyTenantID, assessment.ID, request.ID, now, thirdPartyEntityA, AssessmentRequestOrigin, initial.InvitationID); err != nil {
+		pgx.QueryExecModeSimpleProtocol, thirdPartyTenantID, assessment.ID, request.ID, now, thirdPartyEntityA, AssessmentRequestOrigin, initial.InvitationID); err != nil {
 		t.Fatal(err)
 	}
 	preparedLink, preparedAssessment, err := repository.PrepareRequestReissue(ctx, PrepareRequestReissueRecord{
@@ -141,7 +144,7 @@ func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndRevokesPriorSession(
 	if preparedAssessment.Status != AssessmentCollecting || preparedAssessment.Version != 5 || preparedLink.InvitationID != "" {
 		t.Fatalf("replacement preparation changed lifecycle or retained invitation: assessment=%#v link=%#v", preparedAssessment, preparedLink)
 	}
-	replacement, err := evidenceService.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "third-party-bank", RequestID: request.ID, Audience: audience, Purpose: "Complete the request.", TTLMinutes: 60, CreatedBy: thirdPartyPrincipal})
+	replacement, err := evidenceService.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA, RequestID: request.ID, Audience: audience, Purpose: "Complete the request.", TTLMinutes: 60, CreatedBy: thirdPartyPrincipal})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,11 +202,12 @@ func TestPostgresAssessmentDocumentReviewCommitsDocumentAssessmentEventAndOutbox
 	if err != nil {
 		t.Fatal(err)
 	}
+	ctx = evidence.WithRequestOriginAuthority(ctx, AssessmentRequestOrigin)
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
 	request, err := evidenceService.CreateRequest(ctx, evidence.CreateRequestInput{
-		TenantID: "third-party-bank", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: relationship.Relationship.ID,
+		TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: relationship.Relationship.ID,
 		Title: "Vendor due diligence", Purpose: "Collect the current assurance report.", WhyYou: "Provide the report required for the bank's review.",
-		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR",
+		Sensitivity: "CONFIDENTIAL", AudienceType: "INTERNAL",
 		Recipient:        evidence.RecipientInput{Type: evidence.RecipientInternalPrincipal, PrincipalID: thirdPartyPrincipal},
 		EstimatedMinutes: 5, Deadline: now.Add(24 * time.Hour),
 		Origin:       evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 1},
@@ -228,7 +232,7 @@ func TestPostgresAssessmentDocumentReviewCommitsDocumentAssessmentEventAndOutbox
 		ArtifactID: artifact.ID, DocumentType: "SOC_2_TYPE_II", Reference: "SOC2-2026", IssuedBy: "Independent auditor", IssuedOn: "2026-06-01", ExpiresOn: "2027-05-31",
 	}
 	receipt, err := evidenceService.Submit(ctx, evidence.Submission{
-		TenantID: "third-party-bank", RequestID: request.ID, SubmittedBy: thirdPartyPrincipal, Channel: "INTERNAL", ExpectedVersion: request.Version,
+		TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA, RequestID: request.ID, SubmittedBy: thirdPartyPrincipal, Channel: "INTERNAL", ExpectedVersion: request.Version,
 		Answers: map[string]formcontract.AnswerValue{"assurance_report": {Document: &documentAnswer}},
 	})
 	if err != nil {
@@ -241,7 +245,7 @@ func TestPostgresAssessmentDocumentReviewCommitsDocumentAssessmentEventAndOutbox
 		INSERT INTO third_party_assessment_request_links(
 			tenant_id,legal_entity_id,assessment_id,request_id,purpose,sequence,origin_type,origin_id,origin_sequence,is_current,created_at
 		) VALUES($1::uuid,$8::uuid,$7::uuid,$2::uuid,'INITIAL',1,$9,$7::uuid,1,true,$5)`,
-		thirdPartyTenantID, request.ID, receipt.SubmissionID, artifact.ID, now, thirdPartyPrincipal, assessment.ID, thirdPartyEntityA, AssessmentRequestOrigin); err != nil {
+		pgx.QueryExecModeSimpleProtocol, thirdPartyTenantID, request.ID, receipt.SubmissionID, artifact.ID, now, thirdPartyPrincipal, assessment.ID, thirdPartyEntityA, AssessmentRequestOrigin); err != nil {
 		t.Fatal(err)
 	}
 	artifact.Status = evidence.ArtifactAvailable
@@ -404,7 +408,7 @@ func assessmentPostgresPool(t *testing.T) *pgxpool.Pool {
 			'[{"id":"company","title":"Company details"}]'::jsonb,
 			'[{"id":"confirmed","section_id":"company","label":"Confirm the supplied details","type":"yes_no","required":true}]'::jsonb,
 			'ACTIVE',true,'2026-08-26T09:00:00Z',3,$4::uuid)`,
-		thirdPartyTenantID, thirdPartyEntityA, thirdPartyEntityB, thirdPartyPrincipal, assessmentTemplateID); err != nil {
+		pgx.QueryExecModeSimpleProtocol, thirdPartyTenantID, thirdPartyEntityA, thirdPartyEntityB, thirdPartyPrincipal, assessmentTemplateID); err != nil {
 		t.Fatal(err)
 	}
 	return pool
@@ -428,7 +432,7 @@ func postgresAssessmentRecord(id string, relationship Aggregate, now time.Time) 
 		Scope: scope, RelationshipID: relationship.Relationship.ID, RelationshipVersion: relationship.Relationship.Version,
 		Assessment: Assessment{
 			ID: id, TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, RelationshipID: relationship.Relationship.ID,
-			ReviewKind: AssessmentReviewOnboarding, StableEpisodeKey: assessmentEpisodeKey(scope, relationship.Relationship.ID, AssessmentReviewOnboarding),
+			ReviewKind: AssessmentReviewOnboarding, SourceTrigger: "INITIAL", StableEpisodeKey: assessmentEpisodeKey(scope, relationship.Relationship.ID, AssessmentReviewOnboarding),
 			Status: AssessmentSetupPending, FormTemplateID: assessmentTemplateID, FormTemplateVersion: 3,
 			ReviewDueAt: now.Add(14 * 24 * time.Hour), StartedByPrincipalID: thirdPartyPrincipal, StartedAt: now,
 			Version: 1, CreatedAt: now, UpdatedAt: now,

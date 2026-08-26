@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -36,7 +37,7 @@ func TestPostgresVendorBrandIdempotencyKeyCannotChangeCommand(t *testing.T) {
 		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'third-party-bank','Third Party Bank');
 		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($2::uuid,$1::uuid,'ENTITY-A','Entity A','Nigeria');
 		INSERT INTO principals(id,tenant_id,kind,display_name,status) VALUES($3::uuid,$1::uuid,'PERSON','Vendor Owner','ACTIVE')`,
-		thirdPartyTenantID, thirdPartyEntityA, thirdPartyPrincipal); err != nil {
+		pgx.QueryExecModeSimpleProtocol, thirdPartyTenantID, thirdPartyEntityA, thirdPartyPrincipal); err != nil {
 		t.Fatal(err)
 	}
 	repository := NewPostgresRepository(pool)
@@ -98,8 +99,8 @@ func TestVendorBrandCompletionAndIdentityUpdateUseConsistentLockOrder(t *testing
 		INSERT INTO third_parties(id,tenant_id,legal_name,trading_name,registration_ref,jurisdiction,source_id,external_ref,website_domain,status,created_at,updated_at,version)
 		VALUES($2::uuid,$1::uuid,'Lock Order Vendor','Lock Order Vendor','LOCK-1','Nigeria','test','lock-order','vendor.example','ACTIVE',$3,$3,1);
 		INSERT INTO third_party_vendor_brand_jobs(id,tenant_id,vendor_id,vendor_version,job_type,website_domain,state,attempts,available_at,lease_token,lease_expires_at,last_failure_code,created_at,updated_at,version)
-		VALUES($4::uuid,$1::uuid,$2::uuid,1,'DISCOVER_ICON','vendor.example','LEASED',1,$3,$5::uuid,$3 + interval '5 minutes','',$3,$3,2)`,
-		tenantID, vendorID, now, jobID, leaseToken); err != nil {
+		VALUES($4::uuid,$1::uuid,$2::uuid,1,'DISCOVER_ICON','vendor.example','LEASED',1,$3,$5::uuid,$3::timestamptz + interval '5 minutes','',$3,$3,2)`,
+		pgx.QueryExecModeSimpleProtocol, tenantID, vendorID, now, jobID, leaseToken); err != nil {
 		t.Fatal(err)
 	}
 
@@ -212,7 +213,7 @@ func TestVendorBrandMigrationBackfillsIdentityOnceBeforeTheFirstUpdate(t *testin
 		INSERT INTO third_party_relationships(
 			tenant_id,legal_entity_id,vendor_id,service_name,business_owner_principal_id,criticality,privacy_role,status,created_at,updated_at,version
 		) VALUES($1::uuid,$2::uuid,$4::uuid,'Card processing',$3::uuid,'IMPORTANT','PROCESSOR','ACTIVE',$5,$5,1)`,
-		thirdPartyTenantID, thirdPartyEntityA, thirdPartyPrincipal, vendorBrandBaselineVendorID, baselineAt); err != nil {
+		pgx.QueryExecModeSimpleProtocol, thirdPartyTenantID, thirdPartyEntityA, thirdPartyPrincipal, vendorBrandBaselineVendorID, baselineAt); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, up); err != nil {

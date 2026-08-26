@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -37,7 +38,7 @@ func TestPostgresRelationshipTransactionReuseAndScope(t *testing.T) {
 		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES
 			($2::uuid,$1::uuid,'ENTITY-A','Entity A','Nigeria'),($3::uuid,$1::uuid,'ENTITY-B','Entity B','Nigeria');
 		INSERT INTO principals(id,tenant_id,kind,display_name,status) VALUES($4::uuid,$1::uuid,'PERSON','Vendor Owner','ACTIVE')`,
-		thirdPartyTenantID, thirdPartyEntityA, thirdPartyEntityB, thirdPartyPrincipal); err != nil {
+		pgx.QueryExecModeSimpleProtocol, thirdPartyTenantID, thirdPartyEntityA, thirdPartyEntityB, thirdPartyPrincipal); err != nil {
 		t.Fatal(err)
 	}
 
@@ -56,7 +57,10 @@ func TestPostgresRelationshipTransactionReuseAndScope(t *testing.T) {
 	}
 	assertPostgresCount(t, pool, "third_parties", 1)
 	assertPostgresCount(t, pool, "third_party_relationships", 2)
-	assertPostgresCount(t, pool, "third_party_events", 2)
+	var relationshipEvents int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM third_party_events WHERE aggregate_type='VENDOR_RELATIONSHIP'`).Scan(&relationshipEvents); err != nil || relationshipEvents != 2 {
+		t.Fatalf("relationship event count=%d err=%v", relationshipEvents, err)
+	}
 	var outboxCount int
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND aggregate_type='VENDOR_RELATIONSHIP'`, thirdPartyTenantID).Scan(&outboxCount); err != nil || outboxCount != 2 {
 		t.Fatalf("outbox count=%d err=%v", outboxCount, err)

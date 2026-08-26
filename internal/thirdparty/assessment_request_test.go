@@ -416,7 +416,7 @@ func TestAssessmentRequestEstimateStaysWithinEvidenceLimit(t *testing.T) {
 func TestSendAssessmentRequestCapsInvitationAtRequestDeadline(t *testing.T) {
 	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	assessment := mustReadyAssessment(t, assessmentService, mustStartAssessment(t, assessmentService, relationship))
-	evidenceService := evidence.NewService(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore())
+	evidenceService := newAssessmentEvidenceService()
 	service, err := NewAssessmentRequestService(assessmentService, repo, evidenceService, assessmentFormReaderStub{form: activeAssessmentForm()}, nil, "https://capture.example.test/respond", "production")
 	if err != nil {
 		t.Fatal(err)
@@ -436,7 +436,7 @@ func TestSendAssessmentRequestCapsInvitationAtRequestDeadline(t *testing.T) {
 func TestSendAssessmentRequestRecipientChangeRevokesPriorInvitation(t *testing.T) {
 	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	assessment := mustReadyAssessment(t, assessmentService, mustStartAssessment(t, assessmentService, relationship))
-	evidenceService := evidence.NewService(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore())
+	evidenceService := newAssessmentEvidenceService()
 	form := activeAssessmentForm()
 	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 1}
 	deadline := time.Date(2026, 8, 27, 10, 0, 0, 0, time.UTC)
@@ -445,7 +445,7 @@ func TestSendAssessmentRequestRecipientChangeRevokesPriorInvitation(t *testing.T
 		t.Fatal(err)
 	}
 	oldInvitation, err := evidenceService.IssueInvitation(context.Background(), evidence.IssueInvitationInput{
-		TenantID: "bank", RequestID: request.ID, Audience: "old@vendor.example", Purpose: "Complete the vendor due-diligence request.", TTLMinutes: 60, CreatedBy: "verified-owner",
+		TenantID: "bank", LegalEntityID: "entity", RequestID: request.ID, Audience: "old@vendor.example", Purpose: "Complete the vendor due-diligence request.", TTLMinutes: 60, CreatedBy: "verified-owner",
 	})
 	if err != nil {
 		t.Fatal(err)

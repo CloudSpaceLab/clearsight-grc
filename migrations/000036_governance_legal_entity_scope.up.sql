@@ -14,7 +14,7 @@ BEGIN
         SELECT 1 FROM jsonb_object_keys(COALESCE(d.scope,'{}'::jsonb)) key
         WHERE key NOT IN ('legal_entity_id','object_type','object_id','decision_type','min_materiality','max_materiality')
     ) OR (NULLIF(d.scope->>'object_id','') IS NOT NULL AND NULLIF(d.scope->>'object_type','') IS NULL)
-      OR upper(COALESCE(d.scope->>'object_type','')) NOT IN ('','PROGRAM','MATTER')
+      OR upper(COALESCE(d.scope->>'object_type','')) NOT IN ('','PROGRAM','MATTER','VENDOR_RELATIONSHIP')
       OR d.scope->>'object_id'='*'
       OR (d.scope ? 'min_materiality' AND (jsonb_typeof(d.scope->'min_materiality')<>'number' OR d.scope->>'min_materiality' !~ '^[0-5]$'))
       OR (d.scope ? 'max_materiality' AND (jsonb_typeof(d.scope->'max_materiality')<>'number' OR d.scope->>'max_materiality' !~ '^[0-5]$'))
@@ -184,7 +184,7 @@ BEGIN
         IF COALESCE(NEW.scope->>'legal_entity_id','')<>NEW.legal_entity_id::text
            OR (NEW.scope-ARRAY['legal_entity_id','object_type','object_id','decision_type','min_materiality','max_materiality']::text[])<>'{}'::jsonb
            OR (NULLIF(NEW.scope->>'object_id','') IS NOT NULL AND NULLIF(NEW.scope->>'object_type','') IS NULL)
-           OR upper(COALESCE(NEW.scope->>'object_type','')) NOT IN ('','PROGRAM','MATTER')
+           OR upper(COALESCE(NEW.scope->>'object_type','')) NOT IN ('','PROGRAM','MATTER','VENDOR_RELATIONSHIP')
            OR NEW.scope->>'object_id'='*'
         THEN
             RAISE EXCEPTION 'delegation scope is not canonical or contains unsupported fields';

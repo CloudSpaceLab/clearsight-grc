@@ -23,6 +23,17 @@ type vendorWorkFixture struct {
 	now        time.Time
 }
 
+type vendorWorkEvidenceRepository struct {
+	*evidence.MemoryRepository
+}
+
+func (r *vendorWorkEvidenceRepository) ResolveSubjectScope(_ context.Context, tenant, subjectType, subjectID string) (evidence.SubjectScope, error) {
+	if tenant != "bank" || subjectType != "VENDOR_RELATIONSHIP" || subjectID == "" {
+		return evidence.SubjectScope{}, evidence.ErrSubjectUnsupported
+	}
+	return evidence.SubjectScope{TenantID: tenant, LegalEntityID: "entity-a", SubjectType: subjectType, SubjectID: subjectID}, nil
+}
+
 func newVendorWorkFixture(t *testing.T) vendorWorkFixture {
 	t.Helper()
 	now := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
@@ -50,7 +61,8 @@ func newVendorWorkFixture(t *testing.T) vendorWorkFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	evidenceService := evidence.NewServiceWithClock(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore(), func() time.Time { return now })
+	evidenceRepository := &vendorWorkEvidenceRepository{MemoryRepository: evidence.NewMemoryRepository(nil, nil)}
+	evidenceService := evidence.NewServiceWithClock(evidenceRepository, evidence.NewMemoryObjectStore(), func() time.Time { return now })
 	repository := NewMemoryVendorWorkRepository()
 	service, err := NewVendorWorkService(repository, links, evidenceService, forms, nil, "https://capture.example.test/respond", "production")
 	if err != nil {

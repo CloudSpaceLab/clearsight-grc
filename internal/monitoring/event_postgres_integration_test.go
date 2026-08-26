@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -37,7 +38,7 @@ func TestPostgresMonitoringResultRowEventAndOutboxAreAtomicAndIdempotent(t *test
 		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'monitoring-events-test','Monitoring Events Test');
 		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($2::uuid,$1::uuid,'NG','Nigeria','Nigeria');
 		INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,jurisdiction,scope,effective_from)
-		VALUES($3::uuid,$1::uuid,$2::uuid,'MON-EVENT','Monitoring events','COMPLIANCE','ACTIVE','Compliance','NG','{}'::jsonb,$4)`, tenantID, entityID, programID, now); err != nil {
+		VALUES($3::uuid,$1::uuid,$2::uuid,'MON-EVENT','Monitoring events','COMPLIANCE','ACTIVE','Compliance','NG','{}'::jsonb,$4)`, pgx.QueryExecModeSimpleProtocol, tenantID, entityID, programID, now); err != nil {
 		t.Fatal(err)
 	}
 	repo := NewPostgresRepository(pool)
@@ -98,7 +99,7 @@ func TestPostgresMonitoringRollsBackAuthoritativeRowWhenOutboxInsertFails(t *tes
 		INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,jurisdiction,scope,effective_from)
 		VALUES($3::uuid,$1::uuid,$2::uuid,'MON-ROLLBACK','Monitoring rollback','COMPLIANCE','ACTIVE','Compliance','NG','{}'::jsonb,$4);
 		CREATE FUNCTION monitoring_outbox_failure_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.aggregate_type='MONITORING_CHECK' THEN RAISE EXCEPTION 'forced monitoring outbox failure'; END IF; RETURN NEW; END $$;
-		CREATE TRIGGER monitoring_outbox_failure_test BEFORE INSERT ON outbox_events FOR EACH ROW EXECUTE FUNCTION monitoring_outbox_failure_test()`, tenantID, entityID, programID, now); err != nil {
+		CREATE TRIGGER monitoring_outbox_failure_test BEFORE INSERT ON outbox_events FOR EACH ROW EXECUTE FUNCTION monitoring_outbox_failure_test()`, pgx.QueryExecModeSimpleProtocol, tenantID, entityID, programID, now); err != nil {
 		t.Fatal(err)
 	}
 	repo := NewPostgresRepository(pool)

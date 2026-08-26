@@ -792,7 +792,7 @@ func (r *PostgresRepository) ReviewAssessmentDocument(ctx context.Context, recor
 		WHERE ar.tenant_id=$1::uuid AND ar.request_id=$2::uuid AND ar.submission_id=$3::uuid AND ar.id=$4::uuid
 		  AND req.subject_type='VENDOR_RELATIONSHIP' AND req.subject_id=$5
 		  AND req.origin_type=$6 AND req.origin_id=$7 AND req.form_template_id=$8::uuid AND req.form_template_version=$9
-		  AND answer->'document'->>'artifact_id'=$4
+		  AND answer->'document'->>'artifact_id'=$4::uuid::text
 		FOR SHARE OF ar,req,s`, tenantID, current.CurrentRequestID, current.SubmissionID, record.Artifact.ID, current.RelationshipID,
 		AssessmentRequestOrigin, current.ID, current.FormTemplateID, current.FormTemplateVersion).Scan(&artifactStatus, &submittedType, &reference, &issuedBy, &issuedOn, &expiresOn)
 	if errors.Is(err, pgx.ErrNoRows) {
