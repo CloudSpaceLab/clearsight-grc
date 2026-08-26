@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { loadCaptureDraft, saveCaptureDraft, submitInternalCaptureRequest, uploadInternalCaptureArtifact, type CaptureArtifact, type CaptureReceipt } from "../captureApi";
 import { apiErrorKind, type ApiErrorKind } from "../http";
 import type { CaptureAnswerValue, CaptureAnswers, CaptureField, CapturePresentationMode, CaptureRequest } from "../types";
@@ -54,7 +54,7 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
   modeRef.current = mode;
   const contract = useMemo(() => request ? captureContract(request) : null, [request]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     revokeAllPreviews(previewURLs.current);
     previewURLs.current = {};
     setAnswers(request ? initialSourceAnswers(request) : {});
