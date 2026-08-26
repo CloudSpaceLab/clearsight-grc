@@ -409,9 +409,6 @@ func parseVendorBrandIconCandidates(reader io.Reader, baseURL string) ([]vendorB
 	candidates := make([]vendorBrandIconCandidate, 0)
 	var visit func(*html.Node)
 	visit = func(node *html.Node) {
-		if len(candidates) >= vendorBrandMaximumCandidates {
-			return
-		}
 		if node.Type == html.ElementNode && node.Data == "link" {
 			attributes := make(map[string]string, len(node.Attr))
 			for _, attribute := range node.Attr {
@@ -430,7 +427,20 @@ func parseVendorBrandIconCandidates(reader io.Reader, baseURL string) ([]vendorB
 				if parseErr == nil {
 					resolved, validationErr := validatedVendorBrandURL(base.ResolveReference(reference))
 					if validationErr == nil {
-						candidates = append(candidates, vendorBrandIconCandidate{URL: resolved, Score: vendorBrandIconScore(attributes["sizes"], relations)})
+						candidate := vendorBrandIconCandidate{URL: resolved, Score: vendorBrandIconScore(attributes["sizes"], relations)}
+						if len(candidates) < vendorBrandMaximumCandidates {
+							candidates = append(candidates, candidate)
+						} else {
+							worst := 0
+							for index := 1; index < len(candidates); index++ {
+								if betterVendorBrandCandidate(candidates[worst], candidates[index]) {
+									worst = index
+								}
+							}
+							if betterVendorBrandCandidate(candidate, candidates[worst]) {
+								candidates[worst] = candidate
+							}
+						}
 					}
 				}
 			}
@@ -441,12 +451,16 @@ func parseVendorBrandIconCandidates(reader io.Reader, baseURL string) ([]vendorB
 	}
 	visit(document)
 	sort.SliceStable(candidates, func(i, j int) bool {
-		if candidates[i].Score == candidates[j].Score {
-			return candidates[i].URL.String() < candidates[j].URL.String()
-		}
-		return candidates[i].Score > candidates[j].Score
+		return betterVendorBrandCandidate(candidates[i], candidates[j])
 	})
 	return candidates, nil
+}
+
+func betterVendorBrandCandidate(left, right vendorBrandIconCandidate) bool {
+	if left.Score == right.Score {
+		return left.URL.String() < right.URL.String()
+	}
+	return left.Score > right.Score
 }
 
 func vendorBrandIconScore(sizes string, relations []string) int {

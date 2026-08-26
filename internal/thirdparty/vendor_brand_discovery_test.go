@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/netip"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -470,5 +471,21 @@ func TestVendorBrandDiscoveryCandidateOrderingIsDeterministic(t *testing.T) {
 	}
 	if len(candidates) != 2 || candidates[0].URL.String() != "https://vendor.example/a.png" {
 		t.Fatalf("candidate order = %#v", candidates)
+	}
+}
+
+func TestVendorBrandCandidateBoundStillSelectsLargestLateDeclaration(t *testing.T) {
+	t.Parallel()
+	var markup strings.Builder
+	for index := 0; index < vendorBrandMaximumCandidates; index++ {
+		markup.WriteString(`<link rel="icon" sizes="16x16" href="/small-` + strconv.Itoa(index) + `.png">`)
+	}
+	markup.WriteString(`<link rel="icon" sizes="512x512" href="/largest.png">`)
+	candidates, err := parseVendorBrandIconCandidates(strings.NewReader(markup.String()), "https://vendor.example/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(candidates) != vendorBrandMaximumCandidates || candidates[0].URL.Path != "/largest.png" {
+		t.Fatalf("bounded candidates did not retain largest late declaration: %#v", candidates)
 	}
 }
