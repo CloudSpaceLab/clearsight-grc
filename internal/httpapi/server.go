@@ -47,6 +47,7 @@ type Dependencies struct {
 	Monitoring                   *monitoring.Service
 	ThirdParty                   *thirdparty.Service
 	ThirdPartyAssessments        *thirdparty.AssessmentService
+	ThirdPartyAssessmentReviews  *thirdparty.AssessmentReviewService
 	ThirdPartyAssessmentRequests *thirdparty.AssessmentRequestService
 	ThirdPartyAssessmentSetup    interface {
 		Maintain(context.Context, time.Time, int) (int, error)

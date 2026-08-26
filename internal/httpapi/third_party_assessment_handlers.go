@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
@@ -28,6 +29,20 @@ type sendVendorAssessmentRequest struct {
 
 type reissueVendorAssessmentRequest struct {
 	thirdparty.ReissueAssessmentRequestInput
+	TenantID      string `json:"tenant_id,omitempty"`
+	LegalEntityID string `json:"legal_entity_id,omitempty"`
+	ActorID       string `json:"actor_id,omitempty"`
+}
+
+type startVendorAssessmentReviewRequest struct {
+	ExpectedVersion int64  `json:"expected_version"`
+	TenantID        string `json:"tenant_id,omitempty"`
+	LegalEntityID   string `json:"legal_entity_id,omitempty"`
+	ActorID         string `json:"actor_id,omitempty"`
+}
+
+type completeVendorAssessmentRequest struct {
+	thirdparty.CompleteAssessmentInput
 	TenantID      string `json:"tenant_id,omitempty"`
 	LegalEntityID string `json:"legal_entity_id,omitempty"`
 	ActorID       string `json:"actor_id,omitempty"`
@@ -147,13 +162,77 @@ func (a *API) reissueVendorAssessmentRequest(w http.ResponseWriter, r *http.Requ
 	httpx.WriteJSON(w, http.StatusOK, outcome)
 }
 
+func (a *API) getVendorAssessmentReview(w http.ResponseWriter, r *http.Request) {
+	if a.deps.ThirdPartyAssessmentReviews == nil {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "vendor_assessment_review_unavailable", "The vendor response cannot be loaded right now; try loading the assessment again.")
+		return
+	}
+	actor, err := thirdPartyActor(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to review this vendor response.")
+		return
+	}
+	view, err := a.deps.ThirdPartyAssessmentReviews.GetReview(r.Context(), actor, r.PathValue("id"))
+	if err != nil {
+		writeThirdPartyAssessmentError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, view)
+}
+
+func (a *API) startVendorAssessmentReview(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.assessmentService(w)
+	if !ok {
+		return
+	}
+	actor, err := thirdPartyActor(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to start this vendor review.")
+		return
+	}
+	var request startVendorAssessmentReviewRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "The review request is incomplete. Reload the assessment, then start the vendor review again.")
+		return
+	}
+	assessment, err := service.StartAssessmentReview(r.Context(), actor, r.PathValue("id"), request.ExpectedVersion)
+	if err != nil {
+		writeThirdPartyAssessmentError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, assessment)
+}
+
+func (a *API) completeVendorAssessment(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.assessmentService(w)
+	if !ok {
+		return
+	}
+	actor, err := thirdPartyActor(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to complete this vendor assessment.")
+		return
+	}
+	var request completeVendorAssessmentRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "Check the conclusion, rationale and next review date, then try again.")
+		return
+	}
+	assessment, err := service.CompleteAssessment(r.Context(), actor, r.PathValue("id"), request.CompleteAssessmentInput)
+	if err != nil {
+		writeThirdPartyAssessmentError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, assessment)
+}
+
 func writeThirdPartyAssessmentError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, identity.ErrMissingIdentity):
 		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to continue.")
 	case errors.Is(err, commandauth.ErrNotAuthorized), errors.Is(err, thirdparty.ErrAssessmentIdentityMismatch), errors.Is(err, thirdparty.ErrAssessmentAuthorityUnavailable):
 		httpx.WriteError(w, http.StatusForbidden, "vendor_assessment_not_authorized", "Your current role cannot complete this due-diligence action.")
-	case errors.Is(err, thirdparty.ErrNotFound), errors.Is(err, monitoring.ErrNotFound):
+	case errors.Is(err, thirdparty.ErrNotFound), errors.Is(err, monitoring.ErrNotFound), errors.Is(err, evidence.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "vendor_assessment_not_found", "This due-diligence record was not found in your current legal-entity scope.")
 	case errors.Is(err, thirdparty.ErrVersionConflict):
 		httpx.WriteError(w, http.StatusConflict, "vendor_assessment_changed", "This due-diligence record changed. Reload it before continuing.")

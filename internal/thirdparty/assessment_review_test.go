@@ -202,6 +202,17 @@ func TestAssessmentReviewReadFailsClosedOnMatterProjectionScopeMismatch(t *testi
 	}
 }
 
+func TestAssessmentReviewReadRequiresCurrentSubmissionForReviewStates(t *testing.T) {
+	service, actor, assessment, _ := assessmentReviewFixture(t)
+	repository := service.links.(*MemoryAssessmentRepository)
+	current := repository.assessments[assessment.ID]
+	current.SubmissionID = ""
+	repository.assessments[assessment.ID] = current
+	if _, err := service.GetReview(context.Background(), actor, assessment.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("expected incomplete review state to fail closed, got %v", err)
+	}
+}
+
 func assessmentReviewFixture(t *testing.T) (*AssessmentReviewService, Actor, Assessment, *assessmentReviewEvidenceStub) {
 	t.Helper()
 	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)

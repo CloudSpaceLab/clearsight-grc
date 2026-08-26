@@ -39,11 +39,12 @@ type AssessmentReviewRequest struct {
 }
 
 type AssessmentReviewResponse struct {
-	SubmissionID  string    `json:"submission_id"`
-	RequestID     string    `json:"request_id"`
-	SubmittedAt   time.Time `json:"submitted_at"`
-	AnswerCount   int       `json:"answer_count"`
-	ArtifactCount int       `json:"artifact_count"`
+	SubmissionID     string    `json:"submission_id"`
+	RequestID        string    `json:"request_id"`
+	SubmittedAt      time.Time `json:"submitted_at"`
+	AnswerCount      int       `json:"answer_count"`
+	ArtifactCount    int       `json:"artifact_count"`
+	ProvisionalScore *float64  `json:"provisional_score,omitempty"`
 }
 
 type AssessmentReviewCoverage struct {
@@ -71,12 +72,13 @@ type AssessmentReviewDocument struct {
 	MediaType      string                  `json:"media_type"`
 	SizeBytes      int64                   `json:"size_bytes"`
 	ArtifactStatus evidence.ArtifactStatus `json:"artifact_status"`
+	Status         string                  `json:"status"`
 	EvidenceClass  AssessmentEvidenceClass `json:"evidence_class"`
 	DocumentType   string                  `json:"document_type"`
 	Reference      string                  `json:"reference,omitempty"`
 	IssuedBy       string                  `json:"issued_by,omitempty"`
 	IssuedOn       string                  `json:"issued_on,omitempty"`
-	ExpiresOn      string                  `json:"expires_on,omitempty"`
+	ExpiresOn      string                  `json:"valid_until,omitempty"`
 }
 
 type AssessmentReviewMatter struct {
@@ -85,7 +87,7 @@ type AssessmentReviewMatter struct {
 	AssessmentID  string `json:"-"`
 	MatterID      string `json:"matter_id"`
 	Type          string `json:"type"`
-	Status        string `json:"status"`
+	Status        string `json:"state"`
 	Title         string `json:"title"`
 }
 
@@ -96,8 +98,8 @@ type AssessmentReviewView struct {
 	Answers          []AssessmentReviewAnswer   `json:"answers"`
 	Coverage         AssessmentReviewCoverage   `json:"coverage"`
 	Documents        []AssessmentReviewDocument `json:"documents"`
-	ProvisionalScore *formcontract.ScoreResult  `json:"provisional_score,omitempty"`
-	Matters          []AssessmentReviewMatter   `json:"matters"`
+	ProvisionalScore *formcontract.ScoreResult  `json:"score_details,omitempty"`
+	Matters          []AssessmentReviewMatter   `json:"findings"`
 }
 
 type AssessmentReviewLinkReader interface {
@@ -167,6 +169,12 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 		lastSequence = link.Sequence
 	}
 	if assessment.CurrentRequestID == "" && assessment.SubmissionID != "" {
+		return AssessmentReviewView{}, ErrNotFound
+	}
+	if (assessment.Status == AssessmentSubmitted || assessment.Status == AssessmentUnderReview || assessment.Status == AssessmentCompleted) && (assessment.CurrentRequestID == "" || assessment.SubmissionID == "") {
+		return AssessmentReviewView{}, ErrNotFound
+	}
+	if (assessment.Status == AssessmentSetupPending || assessment.Status == AssessmentReadyToSend || assessment.Status == AssessmentCollecting) && assessment.SubmissionID != "" {
 		return AssessmentReviewView{}, ErrNotFound
 	}
 	currentRequest, hasCurrent := requests[assessment.CurrentRequestID]
@@ -302,10 +310,10 @@ func (s *AssessmentReviewService) addSubmission(ctx context.Context, view *Asses
 					if !exists {
 						return ErrInvalid
 					}
-					if !validAssessmentReviewCode(strings.TrimSpace(document.DocumentType), 100) || !validOptionalAssessmentReviewText(document.Reference, 200) || !validOptionalAssessmentReviewText(document.IssuedBy, 200) || len(document.IssuedOn) > 10 || len(document.ExpiresOn) > 10 {
+					if !validAssessmentReviewText(document.DocumentType, 100) || !validOptionalAssessmentReviewText(document.Reference, 200) || !validOptionalAssessmentReviewText(document.IssuedBy, 200) || len(document.IssuedOn) > 10 || len(document.ExpiresOn) > 10 {
 						return ErrInvalid
 					}
-					view.Documents = append(view.Documents, AssessmentReviewDocument{FieldID: field.ID, ArtifactID: artifact.ID, FileName: artifact.FileName, MediaType: artifact.MediaType, SizeBytes: artifact.SizeBytes, ArtifactStatus: artifact.Status, EvidenceClass: AssessmentEvidenceVendorSupplied, DocumentType: document.DocumentType, Reference: document.Reference, IssuedBy: document.IssuedBy, IssuedOn: document.IssuedOn, ExpiresOn: document.ExpiresOn})
+					view.Documents = append(view.Documents, AssessmentReviewDocument{FieldID: field.ID, ArtifactID: artifact.ID, FileName: artifact.FileName, MediaType: artifact.MediaType, SizeBytes: artifact.SizeBytes, ArtifactStatus: artifact.Status, Status: "SUBMITTED", EvidenceClass: AssessmentEvidenceVendorSupplied, DocumentType: document.DocumentType, Reference: document.Reference, IssuedBy: document.IssuedBy, IssuedOn: document.IssuedOn, ExpiresOn: document.ExpiresOn})
 				}
 			}
 		}
@@ -323,6 +331,7 @@ func (s *AssessmentReviewService) addSubmission(ctx context.Context, view *Asses
 			return scoreErr
 		}
 		view.ProvisionalScore = &score
+		view.Response.ProvisionalScore = score.Score
 	}
 	return nil
 }
