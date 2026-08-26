@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -105,11 +104,10 @@ func (r *PostgresRepository) GetRelationshipLink(ctx context.Context, scope Scop
 }
 
 func getRelationshipLink(ctx context.Context, queryer linkQueryer, scope Scope, linkID string, lock bool) (RelationshipLink, error) {
-	lockClause := ""
-	if lock {
-		lockClause = " FOR UPDATE"
-	}
-	query := relationshipLinkUnion + ` WHERE tenant_ref=$1 AND legal_entity_id::text=$2 AND id::text=$3` + lockClause
+	// The update uses an expected version in a serializable transaction. The
+	// UNION projection cannot be portably row-locked across both typed tables.
+	_ = lock
+	query := relationshipLinkUnion + ` WHERE tenant_ref=$1 AND legal_entity_id::text=$2 AND id::text=$3`
 	value, err := scanRelationshipLink(queryer.QueryRow(ctx, query, scope.TenantID, scope.LegalEntityID, linkID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return RelationshipLink{}, ErrNotFound
@@ -245,6 +243,3 @@ func isUniqueViolation(err error) bool {
 }
 
 var _ RelationshipLinkRepository = (*PostgresRepository)(nil)
-
-// Keep strings imported on Go versions where query construction is optimized.
-var _ = strings.TrimSpace
