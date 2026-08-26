@@ -52,7 +52,7 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 		}
 		policy, err = a.lifecycleCommandPolicy(r.Context(), r, actor.TenantID, name, payload, policy)
 		if err != nil {
-			if errors.Is(err, commandauth.ErrIdentityRequired) || errors.Is(err, commandauth.ErrTenantMismatch) || errors.Is(err, commandauth.ErrLegalEntityMismatch) || errors.Is(err, commandauth.ErrGuardUnavailable) {
+			if errors.Is(err, commandauth.ErrIdentityRequired) || errors.Is(err, commandauth.ErrTenantMismatch) || errors.Is(err, commandauth.ErrLegalEntityMismatch) || errors.Is(err, commandauth.ErrNotAuthorized) || errors.Is(err, commandauth.ErrGuardUnavailable) {
 				writeCommandAuthorizationError(w, err)
 				return
 			}

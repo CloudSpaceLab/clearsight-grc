@@ -195,11 +195,43 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		if err != nil {
 			return policy, err
 		}
-		if aggregate != nil && !matterHasAction(*aggregate, actionID) {
-			return policy, continuity.ErrNotFound
+		if aggregate != nil {
+			var ownerID string
+			found := false
+			for _, action := range aggregate.Actions {
+				if action.ID == actionID {
+					ownerID = strings.TrimSpace(action.OwnerPrincipalID)
+					found = true
+					break
+				}
+			}
+			if !found {
+				return policy, continuity.ErrNotFound
+			}
+			actor, err := identity.Require(ctx)
+			if err != nil {
+				return policy, fmt.Errorf("%w: verified identity is required for Action work", commandauth.ErrIdentityRequired)
+			}
+			if actor.PrincipalID != ownerID {
+				return policy, fmt.Errorf("%w: signed-in person is not assigned to this Action", commandauth.ErrNotAuthorized)
+			}
 		}
 		policy.Responsibility = authority.ResponsibilityPerformer
 		policy.Materiality = max(policy.Materiality, matterPriority)
+		return policy, nil
+
+	case "matter.outcome.define":
+		if aggregate == nil {
+			return policy, nil
+		}
+		candidateID := stringValue(payload["reviewer_candidate_id"])
+		policy.Materiality = max(policy.Materiality, matterPriority)
+		if err := a.validateMatterAssignmentCandidate(ctx, tenant, name, *aggregate, candidateID, authority.ResponsibilityReviewer, policy.Materiality); err != nil {
+			return policy, err
+		}
+		// The stored outcome reviewer comes only from the current server-resolved
+		// route. Any authority field supplied by the browser is overwritten.
+		payload["authority_principal_id"] = candidateID
 		return policy, nil
 
 	case "matter.response.add":
