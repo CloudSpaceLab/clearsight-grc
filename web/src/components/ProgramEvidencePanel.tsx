@@ -30,6 +30,7 @@ export function ProgramEvidencePanel({ aggregate, operations, responsibleParties
   const [sources, setSources] = useState<EvidenceSource[]>([]);
   const [sourcesState, setSourcesState] = useState<"loading" | "live" | "unavailable">("loading");
 	const activeSources = sources.filter((source) => source.status === "ACTIVE");
+  const activeContracts = aggregate.evidence_contracts.filter((contract) => contract.status === "ACTIVE");
   const [mode, setMode] = useState<Mode>(null);
   const [resourceAction, setResourceAction] = useState<ResourceAction>(null);
   const [busy, setBusy] = useState(false);
@@ -43,7 +44,7 @@ export function ProgramEvidencePanel({ aggregate, operations, responsibleParties
   const [sourceIDs, setSourceIDs] = useState<string[]>([]); const [population, setPopulation] = useState("");
   const [freshnessDays, setFreshnessDays] = useState(30); const [coveragePercent, setCoveragePercent] = useState(100);
   const [independenceRequired, setIndependenceRequired] = useState(false); const [contradictionPolicy, setContradictionPolicy] = useState("REVIEW"); const [failureAction, setFailureAction] = useState("MATTER");
-  const [contractID, setContractID] = useState(aggregate.evidence_contracts[0]?.id ?? "");
+  const [contractID, setContractID] = useState(activeContracts[0]?.id ?? "");
   const [conclusion, setConclusion] = useState("SUPPORTED"); const [assessmentCoverage, setAssessmentCoverage] = useState(100);
   const [basis, setBasis] = useState(""); const [references, setReferences] = useState(""); const [validUntil, setValidUntil] = useState(futureDate(30));
   const [rationale, setRationale] = useState(""); const [transitionTarget, setTransitionTarget] = useState("");
@@ -67,7 +68,7 @@ export function ProgramEvidencePanel({ aggregate, operations, responsibleParties
   }
   function beginAssess() {
     if (!canOperate) return;
-    setMode("assess"); setError(""); setContractID(aggregate.evidence_contracts[0]?.id ?? ""); setConclusion("SUPPORTED"); setAssessmentCoverage(100); setBasis(""); setReferences(""); setValidUntil(futureDate(30));
+    setMode("assess"); setError(""); setContractID(activeContracts[0]?.id ?? ""); setConclusion("SUPPORTED"); setAssessmentCoverage(100); setBasis(""); setReferences(""); setValidUntil(futureDate(30));
   }
   function beginResourceAction(kind: "edit" | "transition", contractID: string) {
     if (!canOperate) return;
@@ -142,10 +143,11 @@ export function ProgramEvidencePanel({ aggregate, operations, responsibleParties
   return <article className="program-record-panel program-evidence-panel" id="program-evidence-panel">
     <div className="program-panel-heading"><div><span className="eyebrow">Evidence</span><h2>Evidence checks and results</h2></div><div className="program-panel-actions">
       {canOperate && defineOperation?.can_act && targetOptions.length > 0 && <button className="secondary-button" type="button" onClick={beginDefine}>Define evidence check</button>}
-      {canOperate && assessOperation?.can_act && aggregate.evidence_contracts.length > 0 && <button className="secondary-button" type="button" onClick={beginAssess}>Record evidence result</button>}
+      {canOperate && assessOperation?.can_act && activeContracts.length > 0 && <button className="secondary-button" type="button" onClick={beginAssess}>Record evidence result</button>}
     </div></div>
 
     {!canOperate && <p className="program-operation-reason">Evidence changes are disabled until current Program responsibilities are available. Existing evidence checks and results remain visible.</p>}
+    {canOperate && assessOperation?.can_act && aggregate.evidence_contracts.length > 0 && activeContracts.length === 0 && <p className="program-operation-reason">No evidence result can be recorded yet. A current reviewer must activate a Draft evidence check first.</p>}
 
     {aggregate.evidence_contracts.length ? <div className="program-evidence-list">{aggregate.evidence_contracts.map((contract) => {
       const assessments = aggregate.evidence_assessments.filter((value) => value.contract_id === contract.id).sort((left, right) => right.assessed_at.localeCompare(left.assessed_at));
@@ -182,7 +184,7 @@ export function ProgramEvidencePanel({ aggregate, operations, responsibleParties
     </form>}
 
     {mode === "assess" && <form className="program-operation-form" onSubmit={(event) => void saveAssessment(event)}>
-      <label className="wide"><span>Evidence check</span><select required value={contractID} onChange={(event) => setContractID(event.target.value)}>{aggregate.evidence_contracts.map((contract) => <option key={contract.id} value={contract.id}>{contract.code} · {contract.name}</option>)}</select></label>
+      <label className="wide"><span>Evidence check</span><select required value={contractID} onChange={(event) => setContractID(event.target.value)}>{activeContracts.map((contract) => <option key={contract.id} value={contract.id}>{contract.code} · {contract.name}</option>)}</select></label>
       <label><span>Conclusion</span><select value={conclusion} onChange={(event) => setConclusion(event.target.value)}><option value="SUPPORTED">Supported</option><option value="PARTIALLY_SUPPORTED">Partly supported</option><option value="UNSUPPORTED">Unsupported</option><option value="CONTRADICTED">Contradicted</option><option value="INDETERMINATE">Indeterminate</option><option value="EXPIRED">Expired</option></select></label>
       <label><span>Population coverage (%)</span><input required min="0" max="100" step="0.1" type="number" value={assessmentCoverage} onChange={(event) => setAssessmentCoverage(Number(event.target.value))}/></label>
       <label className="wide"><span>Assessment basis</span><textarea required value={basis} onChange={(event) => setBasis(event.target.value)}/></label>

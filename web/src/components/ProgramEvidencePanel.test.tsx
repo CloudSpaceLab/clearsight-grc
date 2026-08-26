@@ -85,6 +85,8 @@ describe("Program evidence authority gating", () => {
 
     expect(screen.getByRole("button", { name: "Edit Filing evidence" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Review Filing evidence status" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Record evidence result" })).toBeNull();
+    expect(screen.getByText(/reviewer must activate a Draft evidence check first/)).toBeTruthy();
   });
 
   it("explains that editing an active check requires reviewer reactivation", async () => {
