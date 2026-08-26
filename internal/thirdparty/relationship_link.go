@@ -7,8 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 )
+
+var ErrRelationshipLinkIdentityMismatch = errors.New("vendor link authority identity does not match the request identity")
 
 type LinkTargetType string
 
@@ -80,6 +85,7 @@ type RelationshipLinkRepository interface {
 
 type RelationshipLinkService struct {
 	repo        RelationshipLinkRepository
+	guard       AssessmentCommandGuard
 	targets     *RelationshipTargetAccess
 	coordinator *RelationshipLinkCoordinator
 	work        interface {
@@ -87,6 +93,12 @@ type RelationshipLinkService struct {
 	}
 	now   func() time.Time
 	newID func() (string, error)
+}
+
+func (s *RelationshipLinkService) ConfigureAuthority(guard AssessmentCommandGuard) {
+	if s != nil {
+		s.guard = guard
+	}
 }
 
 func (s *RelationshipLinkService) ConfigureCoordinator(coordinator *RelationshipLinkCoordinator) {
@@ -125,6 +137,9 @@ func (s *RelationshipLinkService) Link(ctx context.Context, actor Actor, relatio
 		return RelationshipLink{}, ErrInvalid
 	}
 	scope := scopeFrom(actor)
+	if err := s.authorize(ctx, actor, "VENDOR_RELATIONSHIP", relationshipID, "thirdparty.relationship.link"); err != nil {
+		return RelationshipLink{}, err
+	}
 	exists, err := s.repo.RelationshipExists(ctx, scope, relationshipID)
 	if err != nil {
 		return RelationshipLink{}, err
@@ -141,6 +156,9 @@ func (s *RelationshipLinkService) Link(ctx context.Context, actor Actor, relatio
 	}
 	if s.targets != nil && !s.targets.CanRead(ctx, actor, input.TargetType, input.TargetID) {
 		return RelationshipLink{}, ErrNotFound
+	}
+	if err := s.authorize(ctx, actor, string(input.TargetType), input.TargetID, "thirdparty.relationship.link"); err != nil {
+		return RelationshipLink{}, err
 	}
 	linkID, err := s.newID()
 	if err != nil {
@@ -169,6 +187,12 @@ func (s *RelationshipLinkService) End(ctx context.Context, actor Actor, linkID s
 	if s.targets != nil && !s.targets.CanRead(ctx, actor, current.TargetType, current.TargetID) {
 		return RelationshipLink{}, ErrNotFound
 	}
+	if err := s.authorize(ctx, actor, "VENDOR_RELATIONSHIP", current.RelationshipID, "thirdparty.relationship.unlink"); err != nil {
+		return RelationshipLink{}, err
+	}
+	if err := s.authorize(ctx, actor, string(current.TargetType), current.TargetID, "thirdparty.relationship.unlink"); err != nil {
+		return RelationshipLink{}, err
+	}
 	if s.work != nil {
 		active, err := s.work.HasActiveVendorWork(ctx, scope, linkID)
 		if err != nil {
@@ -179,6 +203,39 @@ func (s *RelationshipLinkService) End(ctx context.Context, actor Actor, linkID s
 		}
 	}
 	return s.repo.EndRelationshipLink(ctx, scope, linkID, input.ExpectedVersion, strings.TrimSpace(actor.PrincipalID), input.Reason, s.now().UTC())
+}
+
+func (s *RelationshipLinkService) authorize(ctx context.Context, actor Actor, objectType, objectID, command string) error {
+	if s.guard == nil {
+		return nil
+	}
+	if guard, ok := s.guard.(*commandauth.Guard); ok && guard.Mode() == commandauth.ModeOff {
+		return nil
+	}
+	verified, err := identity.Require(ctx)
+	if err != nil {
+		return err
+	}
+	if err := verified.Valid(s.now().UTC()); err != nil || verified.LegalEntityID == "*" {
+		if err != nil {
+			return err
+		}
+		return identity.ErrInvalidIdentity
+	}
+	if verified.TenantID != actor.TenantID || verified.LegalEntityID != actor.LegalEntityID || verified.PrincipalID != actor.PrincipalID {
+		return ErrRelationshipLinkIdentityMismatch
+	}
+	decision, err := s.guard.Authorize(ctx, commandauth.Request{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: objectType, ObjectID: objectID, Responsibility: authority.ResponsibilityOwner, DecisionType: command, Materiality: 2})
+	if err != nil {
+		return err
+	}
+	if !decision.Allowed {
+		return commandauth.ErrNotAuthorized
+	}
+	if err := decision.Actor.Valid(s.now().UTC()); err != nil || decision.Actor.TenantID != actor.TenantID || decision.Actor.LegalEntityID != actor.LegalEntityID || decision.Actor.PrincipalID != actor.PrincipalID {
+		return ErrRelationshipLinkIdentityMismatch
+	}
+	return nil
 }
 
 func (s *RelationshipLinkService) List(ctx context.Context, actor Actor, input RelationshipLinkListInput) (RelationshipLinkPage, error) {

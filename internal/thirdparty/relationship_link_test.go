@@ -7,7 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 type relationshipTargetReaderStub struct {
@@ -155,6 +158,40 @@ func TestRelationshipLinksRejectProgramsOutsideActorLegalEntity(t *testing.T) {
 	actor := Actor{TenantID: "tenant-a", LegalEntityID: "entity-a", PrincipalID: "owner-1"}
 	if _, err := service.Link(context.Background(), actor, "relationship-1", LinkRelationshipInput{TargetType: LinkTargetProgram, TargetID: "program-other", PurposeCode: "SUPPORT", PurposeLabel: "Support"}); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("cross-entity program link error = %v, want not found", err)
+	}
+}
+
+type recordingRelationshipLinkGuard struct{ requests []commandauth.Request }
+
+func (g *recordingRelationshipLinkGuard) Authorize(ctx context.Context, request commandauth.Request) (commandauth.Decision, error) {
+	g.requests = append(g.requests, request)
+	actor, _ := identity.FromContext(ctx)
+	return commandauth.Decision{Allowed: true, Actor: actor}, nil
+}
+
+func TestRelationshipLinkRequiresRelationshipAndTargetOwnerAuthority(t *testing.T) {
+	repo := NewMemoryRelationshipLinkRepository()
+	repo.AllowRelationship("tenant-a", "entity-a", "relationship-1")
+	repo.AllowTarget("tenant-a", "entity-a", LinkTargetProgram, "program-1")
+	service := NewRelationshipLinkService(repo)
+	guard := &recordingRelationshipLinkGuard{}
+	service.ConfigureAuthority(guard)
+	service.newID = func() (string, error) { return "link-1", nil }
+	actor := Actor{TenantID: "tenant-a", LegalEntityID: "entity-a", PrincipalID: "owner-1"}
+	ctx := identity.WithActor(context.Background(), identity.Actor{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID, Kind: "PERSON", IssuedAt: time.Now().Add(-time.Minute), ExpiresAt: time.Now().Add(time.Hour)})
+
+	created, err := service.Link(ctx, actor, "relationship-1", LinkRelationshipInput{TargetType: LinkTargetProgram, TargetID: "program-1", PurposeCode: "SUPPORT", PurposeLabel: "Support"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(guard.requests) != 2 || guard.requests[0].ObjectType != "VENDOR_RELATIONSHIP" || guard.requests[0].ObjectID != "relationship-1" || guard.requests[1].ObjectType != "PROGRAM" || guard.requests[1].ObjectID != "program-1" || guard.requests[1].Responsibility != authority.ResponsibilityOwner {
+		t.Fatalf("authority requests = %#v", guard.requests)
+	}
+	if _, err := service.End(ctx, actor, created.ID, EndRelationshipLinkInput{ExpectedVersion: created.Version, Reason: "No longer required."}); err != nil {
+		t.Fatal(err)
+	}
+	if len(guard.requests) != 4 || guard.requests[2].ObjectType != "VENDOR_RELATIONSHIP" || guard.requests[3].ObjectType != "PROGRAM" || guard.requests[3].ObjectID != "program-1" || guard.requests[3].DecisionType != "thirdparty.relationship.unlink" {
+		t.Fatalf("end authority requests = %#v", guard.requests)
 	}
 }
 

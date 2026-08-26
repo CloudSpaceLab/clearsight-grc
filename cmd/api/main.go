@@ -74,6 +74,7 @@ func main() {
 	linkCoordinator := &thirdparty.RelationshipLinkCoordinator{}
 	vendorWorkService.ConfigureCoordinator(linkCoordinator)
 	services.ThirdPartyRelationshipLinks.ConfigureCoordinator(linkCoordinator)
+	services.ThirdPartyRelationshipLinks.ConfigureAuthority(guard)
 	services.ThirdPartyRelationshipLinks.ConfigureActiveWorkGuard(services.ThirdPartyWorkRepo)
 	services.ThirdPartyRelationshipLinks.ConfigureTargetReader(services.Continuity)
 	handler := httpapi.New(httpapi.Dependencies{

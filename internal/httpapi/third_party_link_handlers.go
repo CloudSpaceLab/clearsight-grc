@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
@@ -103,6 +104,8 @@ func (a *API) listVendorRelationshipLinks(w http.ResponseWriter, r *http.Request
 
 func writeThirdPartyLinkError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, commandauth.ErrNotAuthorized), errors.Is(err, thirdparty.ErrRelationshipLinkIdentityMismatch):
+		httpx.WriteError(w, http.StatusForbidden, "vendor_link_not_allowed", "Your current authority does not allow this vendor link change.")
 	case errors.Is(err, thirdparty.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "vendor_link_not_found", "The vendor or related record was not found in your current scope.")
 	case errors.Is(err, thirdparty.ErrVersionConflict):
