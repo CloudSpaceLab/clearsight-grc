@@ -4,12 +4,13 @@ import { apiErrorKind } from "../http";
 import { assignMatterAction, updateMatterAction } from "../matterOperationsApi";
 import type { MatterOperation } from "../matterOperationsApi";
 import { addMatterAction, transitionMatterAction } from "../continuityCommands";
-import type { MatterAction, MatterAggregate } from "../types";
+import type { MatterAction, MatterAggregate, RecordResponsibleParty } from "../types";
 import { selectedDateEndOfLocalDay, storedDeadlineLocalDate } from "../dueDate";
 
 type Props = {
   aggregate: MatterAggregate;
   operations: MatterOperation[];
+  responsibleParties?: RecordResponsibleParty[];
   onUpdated: (value: MatterAggregate) => void | Promise<void>;
   onReload: () => void;
 };
@@ -36,7 +37,7 @@ function statusLabel(value: string) {
   }
 }
 
-export function MatterActionsPanel({ aggregate, operations, onUpdated, onReload }: Props) {
+export function MatterActionsPanel({ aggregate, operations, responsibleParties = [], onUpdated, onReload }: Props) {
   const addOperation = operationFor(operations, "matter.action.add");
   const [active, setActive] = useState<Active>(null);
   const [title, setTitle] = useState("");
@@ -104,7 +105,8 @@ export function MatterActionsPanel({ aggregate, operations, onUpdated, onReload 
       const assignOperation = operationFor(operations, "matter.action.assign", action.id);
       const statusOperation = operationFor(operations, "matter.action.transition", action.id);
       const terminal = ["IMPLEMENTED", "CANCELLED"].includes(action.status);
-      const ownerName = statusOperation?.assigned_to?.display_name ?? (action.owner_principal_id ? "Recorded action owner unavailable" : "Action owner not assigned");
+      const storedOwner = responsibleParties.find((party) => party.scope === "ACTION" && party.subresource_id === action.id && party.responsibility === "PERFORMER")?.display_name;
+      const ownerName = statusOperation?.assigned_to?.display_name ?? storedOwner ?? (action.owner_principal_id ? "Recorded action owner unavailable" : "Action owner not assigned");
       return <section className="matter-action-card" id={`matter-operation-matter.action.transition-${action.id}`} key={action.id} aria-labelledby={`matter-action-${action.id}`}>
         <div className="matter-action-heading"><div><h3 id={`matter-action-${action.id}`}>{action.title}</h3><p>{action.description}</p></div><span>{statusLabel(action.status)}</span></div>
         <div className="matter-action-meta"><span>Action owner: <strong>{ownerName}</strong></span><span>{formatDate(action.due_at)}</span></div>

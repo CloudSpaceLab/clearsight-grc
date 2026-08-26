@@ -41,6 +41,7 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 	response := matterOperationsResponse{
 		MatterID: aggregate.Matter.ID, MatterVersion: aggregate.Matter.Version,
 		AuthorityAvailable: a.deps.Authority != nil, Operations: []RecordOperation{}, GeneratedAt: now.UTC(),
+		ResponsibleParties: a.matterResponsibleParties(ctx, actor, aggregate),
 	}
 	if aggregate.Matter.Status == continuity.MatterClosed || aggregate.Matter.Status == continuity.MatterCancelled {
 		return response
@@ -237,7 +238,31 @@ func (a *API) assignedPrincipal(ctx context.Context, actor identity.Actor, resol
 			return &authority.Principal{ID: resolved.PrincipalID, DisplayName: resolved.DisplayName, Kind: resolved.Kind}
 		}
 	}
-	return &authority.Principal{ID: requiredID, DisplayName: requiredID, Kind: "PRINCIPAL"}
+	return nil
+}
+
+func (a *API) matterResponsibleParties(ctx context.Context, actor identity.Actor, aggregate continuity.MatterAggregate) []RecordResponsibleParty {
+	parties := make([]RecordResponsibleParty, 0, len(aggregate.Actions)+1)
+	if owner := a.storedResponsibleParty(ctx, actor, aggregate.Matter.OwnerPrincipalID, "RECORD", "", authority.ResponsibilityOwner); owner != nil {
+		parties = append(parties, *owner)
+	}
+	for _, action := range aggregate.Actions {
+		if owner := a.storedResponsibleParty(ctx, actor, action.OwnerPrincipalID, "ACTION", action.ID, authority.ResponsibilityPerformer); owner != nil {
+			parties = append(parties, *owner)
+		}
+	}
+	return parties
+}
+
+func (a *API) storedResponsibleParty(ctx context.Context, actor identity.Actor, principalID, scope, subresourceID string, responsibility authority.Responsibility) *RecordResponsibleParty {
+	principal := a.assignedPrincipal(ctx, actor, authority.Resolution{}, principalID)
+	if principal == nil || strings.TrimSpace(principal.DisplayName) == "" {
+		return nil
+	}
+	return &RecordResponsibleParty{
+		Scope: scope, SubresourceID: subresourceID, Responsibility: string(responsibility),
+		DisplayName: principal.DisplayName, Kind: principal.Kind,
+	}
 }
 
 func visibleCandidates(resolution authority.Resolution, matter continuity.Matter) []authority.Principal {

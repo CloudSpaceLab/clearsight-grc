@@ -196,13 +196,18 @@ describe("Program record workspace", () => {
 	vi.mocked(loadProgramOperations).mockResolvedValue({
 	  program_id: "program-1", program_version: 4, authority_available: true, generated_at: "2026-08-25T10:00:00Z",
 	  operations: [],
-	  responsible_parties: [{ scope: "RECORD", responsibility: "ACCOUNTABLE_OWNER", display_name: "Former Data Protection Officer", kind: "PERSON" }],
+	  responsible_parties: [
+		{ scope: "RECORD", responsibility: "ACCOUNTABLE_OWNER", display_name: "Former Data Protection Officer", kind: "PERSON" },
+		{ scope: "RECORD", responsibility: "AUTHORIZER", display_name: "Chief Risk Officer", kind: "PERSON" },
+	  ],
 	} as unknown as Awaited<ReturnType<typeof loadProgramOperations>>);
 
 	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
 
 	expect(await screen.findByRole("heading", { name: "Nigeria data protection" })).toBeTruthy();
 	expect(screen.getAllByText("Former Data Protection Officer").length).toBeGreaterThan(0);
+	expect(screen.getByText("Chief Risk Officer")).toBeTruthy();
+	expect(screen.queryByText("Recorded approval authority unavailable")).toBeNull();
 	expect(screen.queryByText("retired-owner-id")).toBeNull();
 	expect(screen.queryByRole("button", { name: /Edit Program details|Change Program owner|Approve Program activation|Change Program status/ })).toBeNull();
 	expect(screen.queryByRole("button", { name: "Record new issue" })).toBeNull();

@@ -112,6 +112,7 @@ export function MatterRecordWorkspace({ matterID, onBack }: Props) {
   const currentOperations = operationsState === "live" && operations?.authority_available && operationVersionMatches
     ? operations.operations
     : operations?.operations.map((operation) => ({ ...operation, can_act: false })) ?? [];
+  const responsibleParties = operationsState === "live" && operationVersionMatches ? operations?.responsible_parties ?? [] : [];
 
   return <section className="matter-record-workspace" aria-label="Issue or change record">
     <button aria-label="Back to issues and changes" className="text-button matter-record-back" type="button" onClick={onBack}>← Back to issues and changes</button>
@@ -135,11 +136,11 @@ export function MatterRecordWorkspace({ matterID, onBack }: Props) {
       {operationsState === "unavailable" && <div className="inline-notice" role="status"><strong>Issue responsibilities could not be checked.</strong> Issue values remain visible, but changes are disabled until the current responsibility route is available. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry responsibilities</button></div>}
       {operations && !operations.authority_available && <div className="inline-notice" role="status"><strong>Responsibilities are temporarily unavailable.</strong> Values and stored owners remain visible, but changes are disabled until authority routing recovers. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry responsibilities</button></div>}
       {operationsOutdated && <div className="inline-notice" role="status"><strong>Issue responsibilities are out of date.</strong> Issue values remain visible, but changes are disabled until responsibilities match issue version {aggregate.matter.version}. <button className="text-button" type="button" onClick={() => void reloadRecord()}>Reload issue data</button></div>}
-      <MatterCurrentHandoff aggregate={aggregate} operations={currentOperations}/>
+      <MatterCurrentHandoff aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties}/>
       <section className="matter-record-grid">
-        <MatterDetailsPanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
+        <MatterDetailsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
         <MatterInformationPanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
-        <MatterActionsPanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
+        <MatterActionsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
         <MatterDecisionResponsePanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
         <MatterOutcomePanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
       </section>

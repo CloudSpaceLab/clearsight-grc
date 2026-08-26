@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -233,6 +234,66 @@ func TestMatterOperationsKeepStoredOwnerVisibleWhenAuthorityIsUnavailable(t *tes
 		}
 	}
 	t.Fatal("detail operation was not returned")
+}
+
+func TestMatterOperationsKeepTerminalResponsibilitiesReadableWithoutCommandsOrPrincipalIDs(t *testing.T) {
+	now := time.Now().UTC()
+	aggregate := continuity.MatterAggregate{
+		Matter: continuity.Matter{
+			ID: "matter-closed", TenantID: "bank", LegalEntityID: "bank-ng",
+			Type: continuity.MatterRegulatoryChange, Status: continuity.MatterClosed,
+			Title: "Completed annual return", OwnerPrincipalID: "stored-owner", Version: 12,
+			CreatedAt: now, UpdatedAt: now,
+		},
+		Actions: []continuity.Action{
+			{ID: "action-implemented", MatterID: "matter-closed", Title: "File the return", OwnerPrincipalID: "stored-performer", Status: continuity.ActionImplemented},
+			{ID: "action-cancelled", MatterID: "matter-closed", Title: "Prepare a duplicate schedule", OwnerPrincipalID: "stored-cancelled-performer", Status: continuity.ActionCancelled},
+		},
+	}
+	api := &API{deps: Dependencies{Access: principalResolverStub{values: map[string]access.Resolution{
+		"stored-owner":               {TenantID: "bank", PrincipalID: "stored-owner", LegalEntityID: "bank-ng", DisplayName: "Privacy Program Owner", Kind: "PERSON"},
+		"stored-performer":           {TenantID: "bank", PrincipalID: "stored-performer", LegalEntityID: "bank-ng", DisplayName: "Annual Return Lead", Kind: "PERSON"},
+		"stored-cancelled-performer": {TenantID: "bank", PrincipalID: "stored-cancelled-performer", LegalEntityID: "bank-ng", DisplayName: "Compliance Operations Analyst", Kind: "PERSON"},
+	}}}}
+	actor := identity.Actor{TenantID: "bank", PrincipalID: "auditor", LegalEntityID: "bank-ng", Kind: "PERSON"}
+
+	payload := api.buildMatterOperations(continuity.WithTrustedSystemScope(t.Context()), actor, aggregate, now)
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var response struct {
+		Operations         []RecordOperation `json:"operations"`
+		ResponsibleParties []struct {
+			Scope          string `json:"scope"`
+			SubresourceID  string `json:"subresource_id"`
+			Responsibility string `json:"responsibility"`
+			DisplayName    string `json:"display_name"`
+		} `json:"responsible_parties"`
+	}
+	if err := json.Unmarshal(encoded, &response); err != nil {
+		t.Fatal(err)
+	}
+	if len(response.Operations) != 0 {
+		t.Fatalf("terminal issue exposed commands: %#v", response.Operations)
+	}
+	got := map[string]string{}
+	for _, party := range response.ResponsibleParties {
+		got[party.Scope+":"+party.SubresourceID+":"+party.Responsibility] = party.DisplayName
+	}
+	want := map[string]string{
+		"RECORD::ACCOUNTABLE_OWNER":           "Privacy Program Owner",
+		"ACTION:action-implemented:PERFORMER": "Annual Return Lead",
+		"ACTION:action-cancelled:PERFORMER":   "Compliance Operations Analyst",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("terminal responsibilities = %#v, want %#v", got, want)
+	}
+	for _, principalID := range []string{"stored-owner", "stored-performer", "stored-cancelled-performer"} {
+		if strings.Contains(string(encoded), principalID) {
+			t.Fatalf("terminal responsibility response exposed principal ID %q: %s", principalID, encoded)
+		}
+	}
 }
 
 func TestMatterOperationsExposeDecisionAndResponseLifecycleByResponsibility(t *testing.T) {

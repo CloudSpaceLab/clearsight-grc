@@ -1,7 +1,7 @@
 import { loadContext } from "./api";
 import { continuityCommand } from "./continuityCommands";
 import { requestJSON } from "./http";
-import type { AuthorityPrincipal, MatterAggregate } from "./types";
+import type { AuthorityPrincipal, MatterAggregate, RecordResponsibleParty } from "./types";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -22,6 +22,7 @@ export type MatterOperations = {
   matter_version: number;
   authority_available: boolean;
   operations: MatterOperation[];
+  responsible_parties?: RecordResponsibleParty[];
   generated_at: string;
 };
 

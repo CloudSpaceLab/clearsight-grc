@@ -1,9 +1,11 @@
 import type { MatterOperation } from "../matterOperationsApi";
 import type { MatterAggregate } from "../types";
+import type { RecordResponsibleParty } from "../types";
 
 type Props = {
   aggregate: MatterAggregate;
   operations: MatterOperation[];
+  responsibleParties?: RecordResponsibleParty[];
 };
 
 function formatDate(value?: string) {
@@ -19,9 +21,12 @@ function selectCurrentOperation(aggregate: MatterAggregate, operations: MatterOp
     ?? operations[0];
 }
 
-export function MatterCurrentHandoff({ aggregate, operations }: Props) {
+export function MatterCurrentHandoff({ aggregate, operations, responsibleParties = [] }: Props) {
   const operation = selectCurrentOperation(aggregate, operations);
-  const owner = operation?.assigned_to?.display_name ?? "Owner not resolved";
+  const currentAction = aggregate.actions.find((candidate) => aggregate.next_action.toLowerCase().includes(candidate.title.toLowerCase()));
+  const storedActionOwner = responsibleParties.find((party) => party.scope === "ACTION" && party.subresource_id === currentAction?.id)?.display_name;
+  const storedRecordOwner = responsibleParties.find((party) => party.scope === "RECORD" && party.responsibility === "ACCOUNTABLE_OWNER")?.display_name;
+  const owner = operation?.assigned_to?.display_name ?? storedActionOwner ?? storedRecordOwner ?? "Owner not resolved";
   const missing = aggregate.matter.missing_facts.length;
   const contradictions = aggregate.matter.contradictions.length;
 

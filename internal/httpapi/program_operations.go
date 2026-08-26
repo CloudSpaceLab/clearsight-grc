@@ -44,6 +44,9 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 	if owner := a.storedProgramResponsibleParty(ctx, actor, aggregate.Program.OwnerPrincipalID, authority.ResponsibilityOwner); owner != nil {
 		response.ResponsibleParties = append(response.ResponsibleParties, *owner)
 	}
+	if authorizer := a.storedProgramResponsibleParty(ctx, actor, aggregate.Program.AuthorityPrincipalID, authority.ResponsibilityAuthorizer); authorizer != nil {
+		response.ResponsibleParties = append(response.ResponsibleParties, *authorizer)
+	}
 	if aggregate.Program.Status == continuity.ProgramRetired {
 		return response
 	}

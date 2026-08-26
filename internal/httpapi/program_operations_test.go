@@ -213,10 +213,11 @@ func TestProgramOperationsKeepRetiredOwnerReadableWithoutCommandsOrPrincipalID(t
 	aggregate := continuity.ProgramAggregate{Program: continuity.Program{
 		ID: "program-retired", TenantID: "bank", LegalEntityID: "bank-ng", Code: "OLD-PRIVACY",
 		Name: "Retired privacy controls", Status: continuity.ProgramRetired,
-		OwnerPrincipalID: "stored-retired-owner", CreatedAt: now, UpdatedAt: now, Version: 9,
+		OwnerPrincipalID: "stored-retired-owner", AuthorityPrincipalID: "stored-retired-authorizer", CreatedAt: now, UpdatedAt: now, Version: 9,
 	}}
 	api := &API{deps: Dependencies{Access: principalResolverStub{values: map[string]access.Resolution{
-		"stored-retired-owner": {TenantID: "bank", PrincipalID: "stored-retired-owner", LegalEntityID: "bank-ng", DisplayName: "Former Data Protection Officer", Kind: "PERSON"},
+		"stored-retired-owner":      {TenantID: "bank", PrincipalID: "stored-retired-owner", LegalEntityID: "bank-ng", DisplayName: "Former Data Protection Officer", Kind: "PERSON"},
+		"stored-retired-authorizer": {TenantID: "bank", PrincipalID: "stored-retired-authorizer", LegalEntityID: "bank-ng", DisplayName: "Chief Risk Officer", Kind: "PERSON"},
 	}}}}
 	actor := identity.Actor{TenantID: "bank", PrincipalID: "auditor", LegalEntityID: "bank-ng", Kind: "PERSON"}
 
@@ -239,11 +240,21 @@ func TestProgramOperationsKeepRetiredOwnerReadableWithoutCommandsOrPrincipalID(t
 	if len(response.Operations) != 0 {
 		t.Fatalf("retired Program exposed commands: %#v", response.Operations)
 	}
-	if len(response.ResponsibleParties) != 1 || response.ResponsibleParties[0].Scope != "RECORD" || response.ResponsibleParties[0].Responsibility != "ACCOUNTABLE_OWNER" || response.ResponsibleParties[0].DisplayName != "Former Data Protection Officer" {
-		t.Fatalf("retired Program responsibility = %#v", response.ResponsibleParties)
+	got := map[string]string{}
+	for _, party := range response.ResponsibleParties {
+		got[party.Scope+":"+party.Responsibility] = party.DisplayName
 	}
-	if strings.Contains(string(encoded), "stored-retired-owner") {
-		t.Fatalf("retired Program response exposed a principal ID: %s", encoded)
+	want := map[string]string{
+		"RECORD:ACCOUNTABLE_OWNER": "Former Data Protection Officer",
+		"RECORD:AUTHORIZER":        "Chief Risk Officer",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("retired Program responsibilities = %#v, want %#v", got, want)
+	}
+	for _, principalID := range []string{"stored-retired-owner", "stored-retired-authorizer"} {
+		if strings.Contains(string(encoded), principalID) {
+			t.Fatalf("retired Program response exposed principal ID %q: %s", principalID, encoded)
+		}
 	}
 }
 

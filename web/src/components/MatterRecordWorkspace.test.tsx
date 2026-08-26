@@ -218,6 +218,32 @@ describe("Matter record workspace", () => {
     expect(screen.getByText("Recorded reviewer unavailable")).toBeTruthy();
   });
 
+  it("keeps closed issue and completed action owners readable without restoring commands", async () => {
+    vi.mocked(loadMatter).mockResolvedValue({
+      ...detail,
+      status_label: "Closed",
+      next_action: "No further action is required",
+      matter: { ...detail.matter, status: "CLOSED", owner_principal_id: "terminal-owner-id" },
+      actions: [{ ...detail.actions[0]!, status: "IMPLEMENTED", owner_principal_id: "terminal-action-owner-id" }],
+    });
+    vi.mocked(loadMatterOperations).mockResolvedValue({
+      matter_id: "matter-1", matter_version: 7, authority_available: false, generated_at: "2026-08-25T09:00:00Z",
+      operations: [],
+      responsible_parties: [
+        { scope: "RECORD", responsibility: "ACCOUNTABLE_OWNER", display_name: "Privacy Program Owner", kind: "PERSON" },
+        { scope: "ACTION", subresource_id: "action-1", responsibility: "PERFORMER", display_name: "Annual Return Lead", kind: "PERSON" },
+      ],
+    } as unknown as MatterOperations);
+
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
+    expect(screen.getAllByText("Privacy Program Owner").length).toBeGreaterThan(0);
+    expect(screen.getByText("Annual Return Lead")).toBeTruthy();
+    expect(screen.queryByText(/terminal-owner-id|terminal-action-owner-id/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /Edit issue details|Change issue owner|Edit Update the annual return evidence checklist|Change owner for Update the annual return evidence checklist|Update status for Update the annual return evidence checklist/ })).toBeNull();
+  });
+
   it("disables issue mutations until responsibility data matches the displayed version", async () => {
     vi.mocked(loadMatterOperations)
       .mockResolvedValueOnce({ ...performerOperations, matter_version: 6 })

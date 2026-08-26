@@ -4,12 +4,13 @@ import { loadPrograms } from "../api";
 import { apiErrorKind } from "../http";
 import { addMatterLink, assignMatter, updateMatterDetails } from "../matterOperationsApi";
 import type { MatterOperation } from "../matterOperationsApi";
-import type { MatterAggregate, ProgramAggregate } from "../types";
+import type { MatterAggregate, ProgramAggregate, RecordResponsibleParty } from "../types";
 import { selectedDateEndOfLocalDay, storedDeadlineLocalDate } from "../dueDate";
 
 type Props = {
   aggregate: MatterAggregate;
   operations: MatterOperation[];
+  responsibleParties?: RecordResponsibleParty[];
   onUpdated: (value: MatterAggregate) => void | Promise<void>;
   onReload: () => void;
 };
@@ -18,7 +19,7 @@ function operationFor(operations: MatterOperation[], command: string) {
   return operations.find((operation) => operation.command === command);
 }
 
-export function MatterDetailsPanel({ aggregate, operations, onUpdated, onReload }: Props) {
+export function MatterDetailsPanel({ aggregate, operations, responsibleParties = [], onUpdated, onReload }: Props) {
   const detailsOperation = operationFor(operations, "matter.details.update");
   const assignmentOperation = operationFor(operations, "matter.assign");
   const linkOperation = operationFor(operations, "matter.link");
@@ -102,6 +103,7 @@ export function MatterDetailsPanel({ aggregate, operations, onUpdated, onReload 
   }
 
   const owner = assignmentOperation?.assigned_to ?? detailsOperation?.assigned_to;
+  const storedOwner = responsibleParties.find((party) => party.scope === "RECORD" && party.responsibility === "ACCOUNTABLE_OWNER")?.display_name;
   return <article className="matter-record-panel matter-details-panel" id="matter-operation-matter.details.update">
     <div className="matter-record-section-heading">
       <div><span className="eyebrow">Issue details</span><h2>Scope, timing and owner</h2></div>
@@ -113,7 +115,7 @@ export function MatterDetailsPanel({ aggregate, operations, onUpdated, onReload 
     </div>
     <dl className="matter-record-facts">
       <div><dt>Affected area</dt><dd>{affectedArea || "Not recorded"}</dd></div>
-      <div><dt>Accountable owner</dt><dd>{owner?.display_name ?? (aggregate.matter.owner_principal_id ? "Recorded issue owner unavailable" : "Issue owner not assigned")}</dd></div>
+      <div><dt>Accountable owner</dt><dd>{owner?.display_name ?? storedOwner ?? (aggregate.matter.owner_principal_id ? "Recorded issue owner unavailable" : "Issue owner not assigned")}</dd></div>
       <div><dt>Due date</dt><dd>{date || "Not recorded"}</dd></div>
     </dl>
     <section className="matter-program-links" aria-labelledby="matter-program-links-title"><strong id="matter-program-links-title">Linked Programs</strong>{aggregate.links.length ? <ul>{aggregate.links.map((link) => { const program = programs.find((value) => value.program.id === link.program_id); return <li key={link.id}><span>{program?.program.name ?? "Linked Program name unavailable"}</span><small>{link.relationship.replaceAll("_", " ").toLowerCase()}</small></li>; })}</ul> : <p>This issue is not linked to a Program.</p>}</section>
