@@ -383,7 +383,7 @@ func TestVendorWorkResponseReturnsBoundDocumentBeforeScanCompletes(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	artifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: fixture.actor.TenantID, RequestID: prepared.CurrentRequestID, SessionToken: session.SessionToken, FileName: "agreement.pdf", MediaType: "application/pdf"}, strings.NewReader("signed agreement"))
+	artifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: fixture.actor.TenantID, RequestID: prepared.CurrentRequestID, SessionToken: session.SessionToken, FileName: "agreement.pdf", MediaType: "application/pdf"}, strings.NewReader("%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -433,7 +433,7 @@ func TestAcceptVendorWorkBlocksUnavailableCurrentResponseDocument(t *testing.T) 
 			if err != nil {
 				t.Fatal(err)
 			}
-			artifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: fixture.actor.TenantID, RequestID: prepared.CurrentRequestID, SessionToken: session.SessionToken, FileName: "agreement.pdf", MediaType: "application/pdf"}, strings.NewReader("signed agreement"))
+			artifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: fixture.actor.TenantID, RequestID: prepared.CurrentRequestID, SessionToken: session.SessionToken, FileName: "agreement.pdf", MediaType: "application/pdf"}, strings.NewReader("%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"))
 			if err != nil {
 				t.Fatal(err)
 			}

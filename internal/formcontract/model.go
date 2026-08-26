@@ -59,19 +59,21 @@ type Section struct {
 }
 
 type Constraints struct {
-	MinLength        *int     `json:"min_length,omitempty"`
-	MaxLength        *int     `json:"max_length,omitempty"`
-	Minimum          *float64 `json:"minimum,omitempty"`
-	Maximum          *float64 `json:"maximum,omitempty"`
-	Step             *float64 `json:"step,omitempty"`
-	DecimalPrecision *int     `json:"decimal_precision,omitempty"`
-	Currency         string   `json:"currency,omitempty"`
-	MinDate          string   `json:"min_date,omitempty"`
-	MaxDate          string   `json:"max_date,omitempty"`
-	MinSelections    *int     `json:"min_selections,omitempty"`
-	MaxSelections    *int     `json:"max_selections,omitempty"`
-	MaxFiles         *int     `json:"max_files,omitempty"`
-	MaxFileBytes     *int64   `json:"max_file_bytes,omitempty"`
+	MinLength         *int     `json:"min_length,omitempty"`
+	MaxLength         *int     `json:"max_length,omitempty"`
+	Minimum           *float64 `json:"minimum,omitempty"`
+	Maximum           *float64 `json:"maximum,omitempty"`
+	Step              *float64 `json:"step,omitempty"`
+	DecimalPrecision  *int     `json:"decimal_precision,omitempty"`
+	Currency          string   `json:"currency,omitempty"`
+	MinDate           string   `json:"min_date,omitempty"`
+	MaxDate           string   `json:"max_date,omitempty"`
+	MinSelections     *int     `json:"min_selections,omitempty"`
+	MaxSelections     *int     `json:"max_selections,omitempty"`
+	MinFiles          *int     `json:"min_files,omitempty"`
+	MaxFiles          *int     `json:"max_files,omitempty"`
+	MaxFileBytes      *int64   `json:"max_file_bytes,omitempty"`
+	MaxTotalFileBytes *int64   `json:"max_total_file_bytes,omitempty"`
 }
 
 type Type string

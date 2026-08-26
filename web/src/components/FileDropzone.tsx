@@ -13,7 +13,9 @@ type Props = {
   fileName?: string;
   fileSize?: number;
   previewUrl?: string;
+  multiple?: boolean;
   onSelect: (file: File) => void;
+  onSelectMany?: (files: File[]) => void;
 };
 
 export function FileDropzone({
@@ -29,14 +31,19 @@ export function FileDropzone({
   fileName,
   fileSize,
   previewUrl,
+  multiple = false,
   onSelect,
+  onSelectMany,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const inactive = disabled || busy;
 
-  function select(file?: File) {
-    if (!inactive && file) onSelect(file);
+  function select(files?: FileList | File[]) {
+    if (inactive || !files?.length) return;
+    const selected = Array.from(files);
+    if (multiple && onSelectMany) onSelectMany(selected);
+    else onSelect(selected[0]!);
   }
 
   return <div
@@ -56,7 +63,7 @@ export function FileDropzone({
     onDrop={(event) => {
       event.preventDefault();
       setDragging(false);
-      select(event.dataTransfer.files?.[0]);
+      select(event.dataTransfer.files);
     }}
   >
     <input
@@ -66,10 +73,11 @@ export function FileDropzone({
       aria-label={label}
       accept={accept}
       capture={capture}
+      multiple={multiple}
       disabled={inactive}
       tabIndex={-1}
       onChange={(event) => {
-        select(event.target.files?.[0]);
+        select(event.target.files ?? undefined);
         event.currentTarget.value = "";
       }}
     />

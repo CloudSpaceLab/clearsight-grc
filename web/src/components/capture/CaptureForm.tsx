@@ -7,18 +7,19 @@ import { CaptureFieldSourceNotice } from "./sourceProvenance";
 type Props = {
   contract: CaptureFormContract;
   answers: CaptureAnswers;
-  attachments: Record<string, CaptureAttachment>;
+  attachments: Record<string, CaptureAttachment[]>;
   mode: CapturePresentationMode;
   external: boolean;
   uploadingField: string | null;
   onAnswer: (fieldID: string, value: CaptureAnswerValue) => void;
-  onUpload: (field: CaptureField, file: File, previewURL?: string) => void;
+  onUpload: (field: CaptureField, files: File[], previewURL?: string) => void;
+  onRemoveAttachment: (field: CaptureField, attachmentID: string) => void;
   onModeChange: (mode: "CLASSIC" | "WIZARD") => void;
   onBeforeSectionNavigation?: () => Promise<boolean> | boolean;
   onReview: () => void;
 };
 
-export function CaptureForm({ contract, answers, attachments, mode, external, uploadingField, onAnswer, onUpload, onModeChange, onBeforeSectionNavigation, onReview }: Props) {
+export function CaptureForm({ contract, answers, attachments, mode, external, uploadingField, onAnswer, onUpload, onRemoveAttachment, onModeChange, onBeforeSectionNavigation, onReview }: Props) {
   const sections = visibleCaptureSections(contract, answers);
   const effectiveMode = effectivePresentationMode(contract, answers, mode);
   const [sectionIndex, setSectionIndex] = useState(0);
@@ -61,12 +62,13 @@ export function CaptureForm({ contract, answers, attachments, mode, external, up
     return fields.map((field) => <div className="capture-field-shell" id={`capture-field-${field.id}`} key={field.id}><CaptureFieldControl
       field={field}
       value={answers[field.id]}
-      attachment={attachments[field.id]}
+	  attachments={attachments[field.id]}
       uploading={uploadingField === field.id}
       external={external}
       error={errors[field.id]}
       onChange={(value) => update(field.id, value)}
-      onUpload={(file, previewURL) => onUpload(field, file, previewURL)}
+	  onUpload={(files, previewURL) => onUpload(field, files, previewURL)}
+	  onRemove={(attachmentID) => onRemoveAttachment(field, attachmentID)}
     /><CaptureFieldSourceNotice field={field} value={answerText(answers[field.id])}/></div>);
   }
 

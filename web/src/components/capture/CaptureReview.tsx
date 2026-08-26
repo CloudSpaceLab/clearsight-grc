@@ -4,7 +4,7 @@ import type { CaptureAttachment } from "./CaptureFieldControl";
 import { answerText, normalizeFieldType } from "./contract";
 import { reviewSourceLabel } from "./sourceProvenance";
 
-type Props = { request: CaptureRequest; fields: CaptureField[]; answers: CaptureAnswers; attachments: Record<string, CaptureAttachment>; submitting: boolean; error: string | null; errorKind: ApiErrorKind | null; onEdit: () => void; onReload?: () => void; onSubmit: () => void };
+type Props = { request: CaptureRequest; fields: CaptureField[]; answers: CaptureAnswers; attachments: Record<string, CaptureAttachment[]>; submitting: boolean; error: string | null; errorKind: ApiErrorKind | null; onEdit: () => void; onReload?: () => void; onSubmit: () => void };
 
 export function CaptureReview({ request, fields, answers, attachments, submitting, error, errorKind, onEdit, onReload, onSubmit }: Props) {
   return <div className="panel-content response-review">
@@ -16,12 +16,12 @@ export function CaptureReview({ request, fields, answers, attachments, submittin
   </div>;
 }
 
-function reviewValue(field: CaptureField, answer?: CaptureAnswerValue, attachment?: CaptureAttachment) {
+function reviewValue(field: CaptureField, answer?: CaptureAnswerValue, attachments: CaptureAttachment[] = []) {
   const type = normalizeFieldType(field.type);
   if (!answer) return "Not provided";
   if (type === "signature") return answer.artifact_ids?.length ? "Signed" : "Not provided";
-  if (type === "photo") return answer.artifact_ids?.length ? attachment ? `Photo attached · ${attachment.file_name}` : "Photo attached" : "Not provided";
-  if (type === "file") return answer.artifact_ids?.length ? attachment ? `File attached · ${attachment.file_name}` : "File attached" : "Not provided";
+	if (type === "photo") return answer.artifact_ids?.length ? attachments[0] ? `Photo attached · ${attachments[0].file_name}` : "Photo attached" : "Not provided";
+	if (type === "file") return answer.artifact_ids?.length ? attachments.length ? `${attachments.length} file${attachments.length === 1 ? "" : "s"} attached · ${attachments.map((attachment) => attachment.file_name).join(", ")}` : `${answer.artifact_ids.length} file${answer.artifact_ids.length === 1 ? "" : "s"} attached` : "Not provided";
   if (type === "vendor_document") return answer.document ? [answer.document.document_type, answer.document.reference, answer.document.expires_on ? `expires ${formatDate(answer.document.expires_on)}` : ""].filter(Boolean).join(" · ") : "Not provided";
   if (type === "multi_select") return answer.values?.length ? answer.values.join(", ") : "Not provided";
   if (type === "checkbox" || type === "attestation") return answer.text === "true" ? "Confirmed" : "Not confirmed";

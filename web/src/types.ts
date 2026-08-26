@@ -30,8 +30,10 @@ export type CaptureFieldConstraints = {
   max_date?: string;
   min_selections?: number;
   max_selections?: number;
+	min_files?: number;
   max_files?: number;
   max_file_bytes?: number;
+	max_total_file_bytes?: number;
 };
 export type CaptureDocumentAnswer = { artifact_id: string; document_type: string; reference?: string; issued_by?: string; issued_on?: string; expires_on?: string };
 export type CaptureAnswerValue = { text?: string; values?: string[]; artifact_ids?: string[]; document?: CaptureDocumentAnswer };

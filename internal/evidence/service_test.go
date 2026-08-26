@@ -6,6 +6,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
 
 func TestRequestSubmissionAndVersioning(t *testing.T) {
@@ -168,6 +170,36 @@ func TestArtifactManifestAndSizeLimit(t *testing.T) {
 	}
 	if _, err := service.StoreArtifact(context.Background(), ArtifactInput{TenantID: "bank", RequestID: request.ID, FileName: "large.txt", MediaType: "text/plain", CreatedBy: testCaptureRecipient}, bytes.NewBufferString("too-large")); !errors.Is(err, ErrArtifactTooLarge) {
 		t.Fatalf("expected size rejection, got %v", err)
+	}
+}
+
+func TestStoreArtifactEnforcesSelectedFieldRulesAndCanonicalContentType(t *testing.T) {
+	service := NewService(NewMemoryRepository(nil, nil), NewMemoryObjectStore())
+	now := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
+	service.now = func() time.Time { return now }
+	maximum := int64(128)
+	request, err := service.CreateRequest(context.Background(), CreateRequestInput{
+		TenantID: "bank", SubjectType: "VENDOR", SubjectID: "vendor-1", Title: "Provide assurance documents",
+		Purpose: "Complete the vendor review.", WhyYou: "You own the vendor relationship.", Sensitivity: "CONFIDENTIAL", AudienceType: "INTERNAL",
+		Recipient: RecipientInput{Type: RecipientInternalPrincipal, PrincipalID: testCaptureRecipient}, EstimatedMinutes: 3,
+		Deadline: now.Add(time.Hour), Fields: []Field{{ID: "report", Label: "Assurance report", Type: "file", AcceptedFormats: []string{"application/pdf"}, Constraints: formcontract.Constraints{MaxFileBytes: &maximum}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pdf := "%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"
+	artifact, err := service.StoreArtifact(context.Background(), ArtifactInput{TenantID: "bank", RequestID: request.ID, FieldID: "report", FileName: "report.pdf", MediaType: "application/octet-stream", CreatedBy: testCaptureRecipient}, bytes.NewBufferString(pdf))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if artifact.MediaType != "application/pdf" {
+		t.Fatalf("media type = %q", artifact.MediaType)
+	}
+	if _, err := service.StoreArtifact(context.Background(), ArtifactInput{TenantID: "bank", RequestID: request.ID, FieldID: "report", FileName: "notes.txt", MediaType: "text/plain", CreatedBy: testCaptureRecipient}, bytes.NewBufferString("review notes")); !errors.Is(err, ErrFieldInvalid) {
+		t.Fatalf("expected field format rejection, got %v", err)
+	}
+	if _, err := service.StoreArtifact(context.Background(), ArtifactInput{TenantID: "bank", RequestID: request.ID, FieldID: "missing", FileName: "report.pdf", MediaType: "application/pdf", CreatedBy: testCaptureRecipient}, bytes.NewBufferString(pdf)); !errors.Is(err, ErrFieldInvalid) {
+		t.Fatalf("expected missing field rejection, got %v", err)
 	}
 }
 

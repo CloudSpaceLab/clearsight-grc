@@ -127,6 +127,10 @@ Use one shared dropzone interaction with three presentation levels:
 
 Do not use a dropzone for settings or forms where the file is incidental to a different control. Do not enable multiple files unless the request contract explicitly permits multiple artifacts and defines how each is reviewed.
 
+When multiple files are permitted, show each accepted filename and size in a removable list, preserve files that uploaded successfully if a later file fails, and enforce minimum count, maximum count, per-file size and combined size. Client checks provide immediate guidance; the service repeats the authoritative checks against the selected field and submitted artifact IDs.
+
+Artifact admission derives the media type from bounded file contents rather than trusting the browser. Filenames and extensions must agree with the detected type. PDF and Open XML documents receive bounded structural checks, including rejection of active PDF actions, Office macros and embedded payloads. This admission check is not a malware scan: accepted artifacts remain labelled `STORED_UNSCANNED` until the separate security workflow changes that state.
+
 Image preview is appropriate for image evidence. For PDFs, Office files and other documents, show trustworthy metadata before upload; do not fabricate a document preview before extraction/rendering has actually succeeded.
 
 ### Vendor due diligence

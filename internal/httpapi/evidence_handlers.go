@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"errors"
-	"fmt"
 	"mime/multipart"
 	"net/http"
 	"strconv"
@@ -388,7 +387,7 @@ func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	mediaType := multipartMediaType(header)
-	artifact, err := service.StoreArtifact(r.Context(), evidence.ArtifactInput{TenantID: tenant, RequestID: requestID, SubmissionID: strings.TrimSpace(r.FormValue("submission_id")), FileName: header.Filename, MediaType: mediaType, CreatedBy: createdBy, SessionToken: sessionToken}, file)
+	artifact, err := service.StoreArtifact(r.Context(), evidence.ArtifactInput{TenantID: tenant, RequestID: requestID, FieldID: strings.TrimSpace(r.FormValue("field_id")), SubmissionID: strings.TrimSpace(r.FormValue("submission_id")), FileName: header.Filename, MediaType: mediaType, CreatedBy: createdBy, SessionToken: sessionToken}, file)
 	switch {
 	case errors.Is(err, evidence.ErrNotFound), errors.Is(err, evidence.ErrRecipientMismatch):
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
@@ -397,7 +396,13 @@ func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, evidence.ErrRequestClosed):
 		httpx.WriteError(w, http.StatusConflict, "request_closed", "The request is no longer open for uploads.")
 	case errors.Is(err, evidence.ErrArtifactTooLarge):
-		httpx.WriteError(w, http.StatusRequestEntityTooLarge, "artifact_too_large", fmt.Sprintf("The file exceeds the %d-byte limit.", maximum))
+		httpx.WriteError(w, http.StatusRequestEntityTooLarge, "artifact_too_large", "The file exceeds the limit for this request or question.")
+	case errors.Is(err, evidence.ErrFileName):
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "filename_invalid", "Rename the file with a supported extension and without path or control characters.")
+	case errors.Is(err, evidence.ErrContentInvalid):
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "file_content_invalid", "The file contents do not match a supported PDF, DOCX, XLSX, image or text file, or include active embedded content.")
+	case errors.Is(err, evidence.ErrFieldInvalid):
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "field_file_invalid", "The file does not meet this question's format or size rules.")
 	case errors.Is(err, evidence.ErrMediaType):
 		httpx.WriteError(w, http.StatusUnsupportedMediaType, "media_type_not_allowed", "This file type is not allowed.")
 	case err != nil:

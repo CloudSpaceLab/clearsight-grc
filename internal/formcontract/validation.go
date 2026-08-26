@@ -233,17 +233,26 @@ func validateConstraints(field *Field) error {
 			return invalid("%s has invalid selection limits", field.Label)
 		}
 	}
-	if (c.MaxFiles != nil || c.MaxFileBytes != nil) && !fileType {
+	if (c.MinFiles != nil || c.MaxFiles != nil || c.MaxFileBytes != nil || c.MaxTotalFileBytes != nil) && !fileType {
 		return invalid("%s cannot define file limits", field.Label)
 	}
 	if fileType {
-		if c.MaxFiles != nil && (*c.MaxFiles < 1 || *c.MaxFiles > 10) {
+		if !validIntRange(c.MinFiles, c.MaxFiles, 0, 10) || (c.MaxFiles != nil && *c.MaxFiles < 1) {
 			return invalid("%s has an invalid file count", field.Label)
 		}
 		if c.MaxFileBytes != nil && (*c.MaxFileBytes < 1 || *c.MaxFileBytes > 100<<20) {
 			return invalid("%s has an invalid file size", field.Label)
 		}
-		if (field.Type == TypePhoto || field.Type == TypeSignature) && c.MaxFiles != nil && *c.MaxFiles != 1 {
+		if c.MaxTotalFileBytes != nil && (*c.MaxTotalFileBytes < 1 || *c.MaxTotalFileBytes > 500<<20) {
+			return invalid("%s has an invalid total file size", field.Label)
+		}
+		if c.MaxFileBytes != nil && c.MaxTotalFileBytes != nil && *c.MaxTotalFileBytes < *c.MaxFileBytes {
+			return invalid("%s total file size must not be smaller than its per-file limit", field.Label)
+		}
+		if (field.Type == TypePhoto || field.Type == TypeSignature || field.Type == TypeVendorDocument) && c.MaxFiles != nil && *c.MaxFiles != 1 {
+			return invalid("%s accepts one file", field.Label)
+		}
+		if (field.Type == TypePhoto || field.Type == TypeSignature || field.Type == TypeVendorDocument) && c.MinFiles != nil && *c.MinFiles > 1 {
 			return invalid("%s accepts one file", field.Label)
 		}
 	}

@@ -386,6 +386,7 @@ type Artifact struct {
 type ArtifactInput struct {
 	TenantID     string
 	RequestID    string
+	FieldID      string
 	SubmissionID string
 	FileName     string
 	MediaType    string

@@ -251,16 +251,24 @@ func (s *Service) validateTypedAnswer(ctx context.Context, request Request, requ
 		if err != nil {
 			return err
 		}
-		maximum := 10
-		if fieldType == formcontract.TypePhoto || fieldType == formcontract.TypeSignature || fieldType == formcontract.TypeVendorDocument {
-			maximum = 1
-		}
+		maximum := 1
 		if field.Constraints.MaxFiles != nil {
 			maximum = *field.Constraints.MaxFiles
+		}
+		minimum := 0
+		if field.Required {
+			minimum = 1
+		}
+		if field.Constraints.MinFiles != nil {
+			minimum = *field.Constraints.MinFiles
+		}
+		if len(artifactIDs) < minimum {
+			return fmt.Errorf("%s requires at least %d files", field.Label, minimum)
 		}
 		if len(artifactIDs) > maximum {
 			return fmt.Errorf("%s permits at most %d files", field.Label, maximum)
 		}
+		var totalBytes int64
 		for _, artifactID := range artifactIDs {
 			artifact, loadErr := s.repo.GetArtifact(ctx, request.TenantID, request.ID, artifactID)
 			if loadErr != nil {
@@ -272,6 +280,10 @@ func (s *Service) validateTypedAnswer(ctx context.Context, request Request, requ
 			if field.Constraints.MaxFileBytes != nil && artifact.SizeBytes > *field.Constraints.MaxFileBytes {
 				return fmt.Errorf("%s contains a file larger than permitted", field.Label)
 			}
+			totalBytes += artifact.SizeBytes
+		}
+		if field.Constraints.MaxTotalFileBytes != nil && totalBytes > *field.Constraints.MaxTotalFileBytes {
+			return fmt.Errorf("%s files exceed the combined size limit", field.Label)
 		}
 	default:
 		return fmt.Errorf("%s uses an unsupported response type", field.Label)
@@ -395,7 +407,8 @@ func containsOption(values []string, expected string) bool {
 
 func containsMediaType(values []string, expected string) bool {
 	for _, value := range values {
-		if normalizeMediaType(value) == expected {
+		allowed := mediaTypeForExtension(value)
+		if allowed == expected || (strings.HasSuffix(allowed, "/*") && strings.HasPrefix(expected, strings.TrimSuffix(allowed, "*"))) {
 			return true
 		}
 	}
