@@ -121,7 +121,11 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 					})
 				}
 				if form.Status == monitoring.LifecycleActive && form.IsCurrent {
-					add(programOperationSpec{Command: "program.monitoring.collect", SubresourceID: form.ID, Label: "Collect " + form.Name + " responses", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID})
+					add(programOperationSpec{
+						Command: "program.monitoring.collect", SubresourceID: form.ID, Label: "Collect " + form.Name + " responses",
+						ObjectType: "FORM_TEMPLATE", ObjectID: form.ID, Responsibility: authority.ResponsibilityOwner,
+						Materiality: 2, AssignedPrincipalID: ownerID,
+					})
 				}
 			}
 		}

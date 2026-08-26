@@ -115,7 +115,7 @@ func (a *API) routes() []routeSpec {
 		read("/api/v1/programs/{id}/form-templates", a.listFormTemplates),
 		material("/api/v1/programs/{id}/form-templates", "program.monitoring.form.define", a.createFormTemplate, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2, ActorField: noActorField}),
 		material("/api/v1/programs/{id}/form-templates/{form_id}/transition", "program.monitoring.form.transition", a.transitionFormTemplate, commandPolicy{ObjectType: "FORM_TEMPLATE", ObjectIDPath: "form_id", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: noActorField}),
-		material("/api/v1/programs/{id}/form-templates/{form_id}/collections", "program.monitoring.collect", a.startFormCollection, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2, ActorField: noActorField}),
+		material("/api/v1/programs/{id}/form-templates/{form_id}/collections", "program.monitoring.collect", a.startFormCollection, commandPolicy{ObjectType: "FORM_TEMPLATE", ObjectIDPath: "form_id", Responsibility: authority.ResponsibilityOwner, Materiality: 2, ActorField: noActorField}),
 		read("/api/v1/programs/{id}/monitoring-checks", a.listMonitoringChecks),
 		material("/api/v1/programs/{id}/monitoring-checks", "program.monitoring.define", a.createMonitoringCheck, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2, ActorField: noActorField}),
 		material("/api/v1/monitoring-checks/{id}/transition", "program.monitoring.transition", a.transitionMonitoringCheck, commandPolicy{ObjectType: "MONITORING_CHECK", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: noActorField}),

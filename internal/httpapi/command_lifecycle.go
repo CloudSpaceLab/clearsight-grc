@@ -250,14 +250,18 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		if programAggregate == nil || monitoringForm == nil || monitoringForm.ProgramID != programAggregate.Program.ID || monitoringForm.LegalEntityID != programAggregate.Program.LegalEntityID {
 			return policy, continuity.ErrNotFound
 		}
-		if err := a.requireMonitoringResponsibility(ctx, tenant, programAggregate.Program, "PROGRAM", programAggregate.Program.ID, authority.ResponsibilityOwner, programAggregate.Program.OwnerPrincipalID, name, policy.Materiality); err != nil {
+		policy.ObjectType = "FORM_TEMPLATE"
+		policy.ObjectIDPath = "form_id"
+		policy.Responsibility = authority.ResponsibilityOwner
+		policy.Materiality = 2
+		if err := a.requireMonitoringResponsibility(ctx, tenant, programAggregate.Program, "FORM_TEMPLATE", monitoringForm.ID, policy.Responsibility, programAggregate.Program.OwnerPrincipalID, name, policy.Materiality); err != nil {
 			return policy, err
 		}
-		respondentID, err := a.resolveMonitoringAssignee(ctx, tenant, programAggregate.Program, authority.ResponsibilityPerformer, name, 2)
+		respondentID, err := a.resolveMonitoringAssignee(ctx, tenant, programAggregate.Program, "FORM_TEMPLATE", monitoringForm.ID, authority.ResponsibilityPerformer, name, 2)
 		if err != nil {
 			return policy, err
 		}
-		reviewerID, err := a.resolveMonitoringAssignee(ctx, tenant, programAggregate.Program, authority.ResponsibilityReviewer, name, 3)
+		reviewerID, err := a.resolveMonitoringAssignee(ctx, tenant, programAggregate.Program, "FORM_TEMPLATE", monitoringForm.ID, authority.ResponsibilityReviewer, name, 3)
 		if err != nil {
 			return policy, err
 		}
@@ -732,12 +736,12 @@ func (a *API) requireMonitoringResponsibility(ctx context.Context, tenant string
 	return nil
 }
 
-func (a *API) resolveMonitoringAssignee(ctx context.Context, tenant string, program continuity.Program, responsibility authority.Responsibility, decisionType string, materiality int) (string, error) {
+func (a *API) resolveMonitoringAssignee(ctx context.Context, tenant string, program continuity.Program, objectType, objectID string, responsibility authority.Responsibility, decisionType string, materiality int) (string, error) {
 	if a.deps.Authority == nil {
 		return "", fmt.Errorf("%w: monitoring responsibility could not be resolved", commandauth.ErrGuardUnavailable)
 	}
 	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
-		TenantID: tenant, LegalEntityID: program.LegalEntityID, ObjectType: "PROGRAM", ObjectID: program.ID,
+		TenantID: tenant, LegalEntityID: program.LegalEntityID, ObjectType: objectType, ObjectID: objectID,
 		Responsibility: responsibility, DecisionType: decisionType, Materiality: materiality,
 	})
 	if err != nil || strings.TrimSpace(resolution.Principal.ID) == "" {
@@ -748,7 +752,7 @@ func (a *API) resolveMonitoringAssignee(ctx context.Context, tenant string, prog
 
 func programOwnerBoundCommand(name string) bool {
 	switch name {
-	case "program.details.update", "program.assign", "program.requirement.add", "program.requirement.supersede", "program.safeguard.define", "program.safeguard.update", "program.safeguard.assign", "program.safeguard.unlink", "program.evidence.define", "program.evidence.revise", "program.monitoring.form.define", "program.monitoring.collect":
+	case "program.details.update", "program.assign", "program.requirement.add", "program.requirement.supersede", "program.safeguard.define", "program.safeguard.update", "program.safeguard.assign", "program.safeguard.unlink", "program.evidence.define", "program.evidence.revise", "program.monitoring.form.define":
 		return true
 	default:
 		return false
