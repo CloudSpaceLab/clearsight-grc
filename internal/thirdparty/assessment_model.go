@@ -75,7 +75,7 @@ type AssessmentRequestLink struct {
 	OriginType     string                   `json:"origin_type"`
 	OriginID       string                   `json:"origin_id"`
 	OriginSequence int                      `json:"origin_sequence"`
-	InvitationID   string                   `json:"invitation_id"`
+	InvitationID   string                   `json:"invitation_id,omitempty"`
 	CreatedAt      time.Time                `json:"created_at"`
 }
 

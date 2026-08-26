@@ -141,6 +141,15 @@ func TestRecordRequestIssuedAtomicallyLinksOriginAndStartsCollection(t *testing.
 	service, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	assessment := mustReadyAssessment(t, service, mustStartAssessment(t, service, relationship))
 	input := issuedRequestInput(assessment, "request-1", "invitation-1", AssessmentRequestInitial, 1)
+	if _, err := service.RecordRequestIssued(assessmentContext(), assessmentActor(), assessment.ID, input); !errors.Is(err, ErrInvalidAssessmentTransition) {
+		t.Fatalf("finalization without preparation was accepted: %v", err)
+	}
+	current, err := repo.GetAssessment(context.Background(), scopeFromVerified(), assessment.ID)
+	if err != nil || current.Status != AssessmentReadyToSend || current.CurrentRequestID != "" {
+		t.Fatalf("unprepared finalization changed assessment: %#v err=%v", current, err)
+	}
+	assessment = mustPrepareAssessmentRequest(t, service, assessment, "request-1", AssessmentRequestInitial, 1)
+	input = issuedRequestInput(assessment, "request-1", "invitation-1", AssessmentRequestInitial, 1)
 
 	issued, err := service.RecordRequestIssued(assessmentContext(), assessmentActor(), assessment.ID, input)
 	if err != nil {
@@ -181,6 +190,7 @@ func TestSubmissionReactionIsIdempotentAndRequiresCurrentRequest(t *testing.T) {
 func TestClarificationReturnsAssessmentToCollectionAndBlocksCompletion(t *testing.T) {
 	service, _, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	assessment := advanceAssessmentToReview(t, service, relationship)
+	assessment = mustPrepareAssessmentRequest(t, service, assessment, "request-2", AssessmentRequestClarification, 2)
 	issued, err := service.RecordRequestIssued(assessmentContext(), assessmentActor(), assessment.ID, issuedRequestInput(assessment, "request-2", "invitation-2", AssessmentRequestClarification, 2))
 	if err != nil {
 		t.Fatal(err)
@@ -345,11 +355,25 @@ func issuedRequestInput(assessment Assessment, requestID, invitationID string, p
 func mustCollectingAssessment(t *testing.T, service *AssessmentService, relationship Aggregate) Assessment {
 	t.Helper()
 	assessment := mustReadyAssessment(t, service, mustStartAssessment(t, service, relationship))
+	assessment = mustPrepareAssessmentRequest(t, service, assessment, "request-1", AssessmentRequestInitial, 1)
 	issued, err := service.RecordRequestIssued(assessmentContext(), assessmentActor(), assessment.ID, issuedRequestInput(assessment, "request-1", "invitation-1", AssessmentRequestInitial, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
 	return issued.Assessment
+}
+
+func mustPrepareAssessmentRequest(t *testing.T, service *AssessmentService, assessment Assessment, requestID string, purpose AssessmentRequestPurpose, sequence int) Assessment {
+	t.Helper()
+	_, prepared, err := service.repo.PrepareAssessmentRequest(context.Background(), PrepareAssessmentRequestRecord{
+		Scope: scopeFromVerified(), AssessmentID: assessment.ID, ExpectedVersion: assessment.Version, ActorPrincipalID: "verified-owner",
+		RequestID: requestID, Purpose: purpose, OriginType: AssessmentRequestOrigin, OriginID: assessment.ID, OriginSequence: sequence,
+		PreparedAt: time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return prepared
 }
 
 func advanceAssessmentToReview(t *testing.T, service *AssessmentService, relationship Aggregate) Assessment {

@@ -20,6 +20,7 @@ import (
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceevent"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
 
@@ -80,8 +81,11 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.ConfigureClass(evidenceWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 5 * time.Second, Batch: 100})
 
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), store)
+	assessmentRepository := thirdparty.NewPostgresRepository(pool)
+	assessmentProvisioner := thirdparty.NewAssessmentProvisioner(assessmentRepository, continuityService, cfg.WorkerID)
 	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
 	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
+	service.AddMaintainerClass(thirdparty.AssessmentSetupWorkClass, assessmentProvisioner)
 	service.AddMaintainerClass(matterWorkProjectionClass, lifecycleWork)
 	service.AddMaintainerClass(workflow.MatterEscalationWorkClass, escalationWork)
 	service.AddMaintainerClass(evidenceWorkProjectionClass, evidenceWork)

@@ -318,6 +318,18 @@ func (r *MemoryRepository) CreateInvitation(_ context.Context, value Invitation)
 	if _, exists := r.invitations[key]; exists {
 		return ErrVersionConflict
 	}
+	for existingKey, invitation := range r.invitations {
+		if invitation.TenantID == value.TenantID && invitation.RequestID == value.RequestID && invitation.RevokedAt == nil {
+			invitation.RevokedAt = pointerTime(value.CreatedAt)
+			r.invitations[existingKey] = invitation
+		}
+	}
+	for sessionKey, session := range r.sessions {
+		if session.TenantID == value.TenantID && session.RequestID == value.RequestID && session.RevokedAt == nil {
+			session.RevokedAt = pointerTime(value.CreatedAt)
+			r.sessions[sessionKey] = session
+		}
+	}
 	r.invitations[key] = value
 	return nil
 }

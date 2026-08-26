@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -25,6 +26,7 @@ type Config struct {
 	ArtifactRoot                         string
 	MaxArtifactBytes                     int64
 	CaptureSessionTTL                    time.Duration
+	CapturePublicBaseURL                 string
 	IdentityMode                         string
 	IdentityHMACSecret                   string
 	IdentityMaxSkew                      time.Duration
@@ -70,6 +72,7 @@ func Load() (Config, error) {
 		ArtifactRoot:                         env("CLEARSIGHT_ARTIFACT_ROOT", "./var/artifacts"),
 		MaxArtifactBytes:                     20 << 20,
 		CaptureSessionTTL:                    20 * time.Minute,
+		CapturePublicBaseURL:                 env("CLEARSIGHT_CAPTURE_PUBLIC_BASE_URL", ""),
 		IdentityMode:                         strings.ToLower(env("CLEARSIGHT_IDENTITY_MODE", defaultIdentityMode)),
 		IdentityHMACSecret:                   env("CLEARSIGHT_IDENTITY_HMAC_SECRET", ""),
 		IdentityMaxSkew:                      2 * time.Minute,
@@ -128,6 +131,9 @@ func Load() (Config, error) {
 	}
 	if cfg.WorkerPoll <= 0 || cfg.CaptureSessionTTL < time.Minute || cfg.CaptureSessionTTL > time.Hour {
 		return Config{}, fmt.Errorf("worker poll must be positive and capture session ttl must be 1-60 minutes")
+	}
+	if err := validateCapturePublicBaseURL(cfg.CapturePublicBaseURL, environment); err != nil {
+		return Config{}, err
 	}
 	if cfg.IdentityMaxSkew <= 0 || cfg.IdentityMaxSkew > 10*time.Minute {
 		return Config{}, fmt.Errorf("identity maximum clock skew must be between 1 second and 10 minutes")
@@ -189,6 +195,22 @@ func Load() (Config, error) {
 		cfg.LogLevel = slog.LevelDebug
 	}
 	return cfg, nil
+}
+
+func validateCapturePublicBaseURL(value, environment string) error {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+	parsed, err := url.Parse(value)
+	if err != nil || !parsed.IsAbs() || parsed.User != nil || parsed.Hostname() == "" || parsed.Fragment != "" {
+		return fmt.Errorf("CLEARSIGHT_CAPTURE_PUBLIC_BASE_URL must be an absolute secure URL")
+	}
+	local := strings.EqualFold(parsed.Hostname(), "localhost") || parsed.Hostname() == "127.0.0.1" || parsed.Hostname() == "::1"
+	if parsed.Scheme != "https" && !(strings.EqualFold(environment, "development") && parsed.Scheme == "http" && local) {
+		return fmt.Errorf("CLEARSIGHT_CAPTURE_PUBLIC_BASE_URL must use HTTPS outside local development")
+	}
+	return nil
 }
 
 func env(name, fallback string) string {

@@ -33,7 +33,5 @@ ALTER TABLE matters ADD CONSTRAINT matters_matter_type_check CHECK (matter_type 
 ));
 ALTER TABLE third_party_relationships DROP CONSTRAINT IF EXISTS third_party_relationships_scoped_id_key;
 ALTER TABLE capture_artifacts DROP CONSTRAINT IF EXISTS capture_artifacts_id_tenant_request_key;
-ALTER TABLE capture_submissions DROP CONSTRAINT IF EXISTS capture_submissions_id_tenant_request_key;
-ALTER TABLE capture_invitations DROP CONSTRAINT IF EXISTS capture_invitations_id_tenant_request_key;
 
 COMMIT;

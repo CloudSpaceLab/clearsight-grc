@@ -4,10 +4,6 @@ ALTER TABLE third_party_relationships
     ADD CONSTRAINT third_party_relationships_scoped_id_key UNIQUE (id,tenant_id,legal_entity_id);
 ALTER TABLE capture_artifacts
     ADD CONSTRAINT capture_artifacts_id_tenant_request_key UNIQUE (id,tenant_id,request_id);
-ALTER TABLE capture_submissions
-    ADD CONSTRAINT capture_submissions_id_tenant_request_key UNIQUE (id,tenant_id,request_id);
-ALTER TABLE capture_invitations
-    ADD CONSTRAINT capture_invitations_id_tenant_request_key UNIQUE (id,tenant_id,request_id);
 
 ALTER TABLE matters DROP CONSTRAINT matters_matter_type_check;
 ALTER TABLE matters ADD CONSTRAINT matters_matter_type_check CHECK (matter_type IN (
@@ -92,7 +88,7 @@ CREATE TABLE third_party_assessment_request_links (
     origin_type text NOT NULL CHECK (origin_type='THIRD_PARTY_ASSESSMENT'),
     origin_id uuid NOT NULL,
     origin_sequence bigint NOT NULL CHECK (origin_sequence > 0),
-    invitation_id uuid NOT NULL,
+    invitation_id uuid,
     is_current boolean NOT NULL DEFAULT true,
     created_at timestamptz NOT NULL,
     PRIMARY KEY (tenant_id,assessment_id,sequence),
@@ -197,7 +193,7 @@ ALTER TABLE third_party_events
     ALTER COLUMN actor_principal_id DROP NOT NULL,
     ADD CONSTRAINT third_party_events_aggregate_type_check CHECK (aggregate_type IN ('VENDOR_RELATIONSHIP','THIRD_PARTY_ASSESSMENT')),
     ADD CONSTRAINT third_party_events_event_type_check CHECK (event_type IN (
-        'VendorRelationshipCreated','VendorRelationshipUpdated','AssessmentStarted','AssessmentSetupCompleted','AssessmentRequestIssued',
+        'VendorRelationshipCreated','VendorRelationshipUpdated','AssessmentStarted','AssessmentSetupCompleted','AssessmentRequestPrepared','AssessmentRequestIssued',
         'AssessmentSubmitted','AssessmentReviewStarted','AssessmentCompleted','AssessmentCancelled'
     )),
     ADD CONSTRAINT third_party_events_typed_version_key UNIQUE (tenant_id,aggregate_type,aggregate_id,aggregate_version);

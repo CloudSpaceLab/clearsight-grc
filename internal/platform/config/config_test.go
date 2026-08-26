@@ -81,3 +81,27 @@ func TestProductionRejectsInsecureOIDCCookies(t *testing.T) {
 		t.Fatalf("expected insecure OIDC cookie rejection, got %v", err)
 	}
 }
+
+func TestLoadAcceptsSecureCapturePublicBaseURL(t *testing.T) {
+	t.Setenv("CLEARSIGHT_CAPTURE_PUBLIC_BASE_URL", "https://capture.example.test/respond")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.CapturePublicBaseURL != "https://capture.example.test/respond" {
+		t.Fatalf("unexpected capture base URL %q", cfg.CapturePublicBaseURL)
+	}
+}
+
+func TestLoadRejectsInsecureCapturePublicBaseURLOutsideLocalDevelopment(t *testing.T) {
+	t.Setenv("CLEARSIGHT_ENV", "production")
+	t.Setenv("CLEARSIGHT_IDENTITY_MODE", "signed")
+	t.Setenv("CLEARSIGHT_IDENTITY_HMAC_SECRET", strings.Repeat("s", 32))
+	t.Setenv("CLEARSIGHT_COMMAND_AUTHORIZATION", "enforce")
+	t.Setenv("CLEARSIGHT_DEMO_MODE", "false")
+	t.Setenv("CLEARSIGHT_CAPTURE_PUBLIC_BASE_URL", "http://capture.example.test/respond")
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "CLEARSIGHT_CAPTURE_PUBLIC_BASE_URL") {
+		t.Fatalf("expected insecure capture URL rejection, got %v", err)
+	}
+}

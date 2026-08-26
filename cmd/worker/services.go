@@ -6,6 +6,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
 
 type workerSet struct {
@@ -24,6 +25,7 @@ func configureWorkerRuntime(service *workflowruntime.Service, cfg config.Config,
 		workflowruntime.WorkClassDelegationLifecycle,
 		workflowruntime.WorkClassWorkflowTimers,
 		workflowruntime.WorkClassOutboxDelivery,
+		thirdparty.AssessmentSetupWorkClass,
 	} {
 		service.ConfigureClass(name, options)
 	}

@@ -12,10 +12,12 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/federation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/httpapi"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
 
 func main() {
@@ -42,12 +44,21 @@ func main() {
 		logger.Error("command authorization initialization failed", "error", err)
 		os.Exit(1)
 	}
+	assessmentService := thirdparty.NewAssessmentService(services.ThirdPartyAssessmentRepo, guard)
+	assessmentRequestService, err := thirdparty.NewAssessmentRequestService(
+		assessmentService, services.ThirdPartyAssessmentRepo, services.Evidence, services.MonitoringRepo,
+		evidence.NewInvitationDeliveryService(nil), cfg.CapturePublicBaseURL, cfg.Environment,
+	)
+	if err != nil {
+		logger.Error("vendor due-diligence initialization failed", "error", err)
+		os.Exit(1)
+	}
 	handler := httpapi.New(httpapi.Dependencies{
 		Logger: logger, AllowedOrigin: cfg.AllowedOrigin, Mode: services.Mode, DemoMode: cfg.DemoMode,
 		IdentityMode: cfg.IdentityMode, OIDCIssuer: cfg.OIDCIssuer,
 		Identity: authenticator, Federation: federationService, SCIM: services.SCIM, AccessAdmin: services.AccessAdmin,
 		CommandGuard: guard, Authority: services.Authority, Governance: services.Governance,
-		Evidence: services.Evidence, Monitoring: services.Monitoring, ThirdParty: services.ThirdParty, SourceCatalog: services.SourceCatalog, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
+		Evidence: services.Evidence, Monitoring: services.Monitoring, ThirdParty: services.ThirdParty, ThirdPartyAssessments: assessmentService, ThirdPartyAssessmentRequests: assessmentRequestService, SourceCatalog: services.SourceCatalog, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
 		Continuity: services.Continuity, Today: services.Today, Workflow: services.Workflow, Onboarding: services.Onboarding,
 		Autonomy: services.Autonomy, BankVerticals: services.BankVerticals, BackgroundJobs: services.BackgroundJobs,
 		MaxArtifactBytes: cfg.MaxArtifactBytes,

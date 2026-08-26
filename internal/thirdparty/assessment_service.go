@@ -140,7 +140,7 @@ func (s *AssessmentService) RecordRequestIssued(ctx context.Context, _ Actor, as
 		return RecordRequestIssuedOutcome{}, err
 	}
 	link, assessment, err := s.repo.RecordRequestIssued(ctx, RecordRequestIssuedRecord{
-		Scope: scopeFrom(actor), AssessmentID: assessmentID, ExpectedVersion: input.ExpectedVersion,
+		Scope: scopeFrom(actor), AssessmentID: assessmentID, ExpectedVersion: input.ExpectedVersion, ActorPrincipalID: actor.PrincipalID,
 		RequestID: input.RequestID, Purpose: input.Purpose, OriginType: input.OriginType, OriginID: input.OriginID,
 		OriginSequence: input.OriginSequence, InvitationID: input.InvitationID, IssuedAt: s.now().UTC(),
 	})

@@ -11,6 +11,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
 
 func buildWorker(_ context.Context, cfg config.Config, logger *slog.Logger) (workerSet, error) {
@@ -24,5 +25,8 @@ func buildWorker(_ context.Context, cfg config.Config, logger *slog.Logger) (wor
 	continuityRepository := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepository)
 	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
+	assessmentRepository := thirdparty.NewMemoryAssessmentRepository()
+	assessmentProvisioner := thirdparty.NewAssessmentProvisioner(assessmentRepository, continuityService, cfg.WorkerID)
+	service.AddMaintainerClass(thirdparty.AssessmentSetupWorkClass, assessmentProvisioner)
 	return workerSet{Runtime: service, Close: func() {}}, nil
 }

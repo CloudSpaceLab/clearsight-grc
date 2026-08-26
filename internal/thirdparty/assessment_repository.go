@@ -20,6 +20,7 @@ type AssessmentRepository interface {
 	ListAssessments(context.Context, AssessmentListFilter) (AssessmentPage, error)
 	TransitionAssessment(context.Context, AssessmentTransitionRecord) (Assessment, error)
 	ApplyAssessmentReaction(context.Context, AssessmentReactionRecord) (Assessment, error)
+	PrepareAssessmentRequest(context.Context, PrepareAssessmentRequestRecord) (AssessmentRequestLink, Assessment, error)
 	RecordRequestIssued(context.Context, RecordRequestIssuedRecord) (AssessmentRequestLink, Assessment, error)
 	ListAssessmentRequestLinks(context.Context, Scope, string) ([]AssessmentRequestLink, error)
 }
@@ -70,13 +71,27 @@ type AssessmentReactionRecord struct {
 
 type RecordRequestIssuedRecord struct {
 	Scope
-	AssessmentID    string
-	ExpectedVersion int64
-	RequestID       string
-	Purpose         AssessmentRequestPurpose
-	OriginType      string
-	OriginID        string
-	OriginSequence  int
-	InvitationID    string
-	IssuedAt        time.Time
+	AssessmentID     string
+	ExpectedVersion  int64
+	ActorPrincipalID string
+	RequestID        string
+	Purpose          AssessmentRequestPurpose
+	OriginType       string
+	OriginID         string
+	OriginSequence   int
+	InvitationID     string
+	IssuedAt         time.Time
+}
+
+type PrepareAssessmentRequestRecord struct {
+	Scope
+	AssessmentID     string
+	ExpectedVersion  int64
+	ActorPrincipalID string
+	RequestID        string
+	Purpose          AssessmentRequestPurpose
+	OriginType       string
+	OriginID         string
+	OriginSequence   int
+	PreparedAt       time.Time
 }

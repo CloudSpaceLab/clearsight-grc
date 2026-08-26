@@ -28,33 +28,35 @@ import (
 )
 
 type Dependencies struct {
-	Logger           *slog.Logger
-	AllowedOrigin    string
-	Mode             string
-	DemoMode         bool
-	IdentityMode     string
-	OIDCIssuer       string
-	Identity         identity.Authenticator
-	Federation       *federation.Service
-	SCIM             http.Handler
-	AccessAdmin      access.Administrator
-	CommandGuard     *commandauth.Guard
-	Authority        authority.Service
-	Governance       *governance.Service
-	Evidence         *evidence.Service
-	Monitoring       *monitoring.Service
-	ThirdParty       *thirdparty.Service
-	SourceCatalog    *sourceaccess.CatalogService
-	DocumentImports  *documentimport.Service
-	Coverage         *documentcoverage.Service
-	Continuity       *continuity.Service
-	Today            *today.Service
-	Workflow         *workflow.Service
-	Onboarding       *onboarding.Service
-	Autonomy         *autonomy.Service
-	BankVerticals    *bankverticals.Service
-	BackgroundJobs   *operations.Service
-	MaxArtifactBytes int64
+	Logger                       *slog.Logger
+	AllowedOrigin                string
+	Mode                         string
+	DemoMode                     bool
+	IdentityMode                 string
+	OIDCIssuer                   string
+	Identity                     identity.Authenticator
+	Federation                   *federation.Service
+	SCIM                         http.Handler
+	AccessAdmin                  access.Administrator
+	CommandGuard                 *commandauth.Guard
+	Authority                    authority.Service
+	Governance                   *governance.Service
+	Evidence                     *evidence.Service
+	Monitoring                   *monitoring.Service
+	ThirdParty                   *thirdparty.Service
+	ThirdPartyAssessments        *thirdparty.AssessmentService
+	ThirdPartyAssessmentRequests *thirdparty.AssessmentRequestService
+	SourceCatalog                *sourceaccess.CatalogService
+	DocumentImports              *documentimport.Service
+	Coverage                     *documentcoverage.Service
+	Continuity                   *continuity.Service
+	Today                        *today.Service
+	Workflow                     *workflow.Service
+	Onboarding                   *onboarding.Service
+	Autonomy                     *autonomy.Service
+	BankVerticals                *bankverticals.Service
+	BackgroundJobs               *operations.Service
+	MaxArtifactBytes             int64
 }
 
 type API struct{ deps Dependencies }

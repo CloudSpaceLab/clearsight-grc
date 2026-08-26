@@ -15,6 +15,7 @@ type MemoryAssessmentRepository struct {
 	episodes     map[string]string
 	requestLinks map[string][]AssessmentRequestLink
 	reactions    map[string]assessmentReactionReceipt
+	setupJobs    map[string]AssessmentSetupJob
 }
 
 type assessmentReactionReceipt struct {
@@ -29,6 +30,7 @@ func NewMemoryAssessmentRepository() *MemoryAssessmentRepository {
 		episodes:         map[string]string{},
 		requestLinks:     map[string][]AssessmentRequestLink{},
 		reactions:        map[string]assessmentReactionReceipt{},
+		setupJobs:        map[string]AssessmentSetupJob{},
 	}
 }
 
@@ -52,6 +54,13 @@ func (r *MemoryAssessmentRepository) CreateAssessment(ctx context.Context, recor
 	assessment.RelationshipID = record.RelationshipID
 	r.assessments[assessment.ID] = assessment
 	r.episodes[episodeIndex] = assessment.ID
+	job, err := newMemoryAssessmentSetupJob(assessment)
+	if err != nil {
+		delete(r.assessments, assessment.ID)
+		delete(r.episodes, episodeIndex)
+		return Assessment{}, err
+	}
+	r.setupJobs[job.ID] = job
 	return assessment, nil
 }
 
@@ -219,7 +228,10 @@ func (r *MemoryAssessmentRepository) ApplyAssessmentReaction(_ context.Context, 
 	return current, nil
 }
 
-func (r *MemoryAssessmentRepository) RecordRequestIssued(_ context.Context, record RecordRequestIssuedRecord) (AssessmentRequestLink, Assessment, error) {
+func (r *MemoryAssessmentRepository) PrepareAssessmentRequest(_ context.Context, record PrepareAssessmentRequestRecord) (AssessmentRequestLink, Assessment, error) {
+	if !validAssessmentIdentifier(record.ActorPrincipalID) {
+		return AssessmentRequestLink{}, Assessment{}, ErrInvalid
+	}
 	r.assessmentMu.Lock()
 	defer r.assessmentMu.Unlock()
 	current, ok := r.assessments[record.AssessmentID]
@@ -229,7 +241,7 @@ func (r *MemoryAssessmentRepository) RecordRequestIssued(_ context.Context, reco
 	links := r.requestLinks[current.ID]
 	for _, link := range links {
 		if link.OriginType == record.OriginType && link.OriginID == record.OriginID && link.OriginSequence == record.OriginSequence {
-			if link.RequestID == record.RequestID && link.Purpose == record.Purpose && link.InvitationID == record.InvitationID {
+			if link.RequestID == record.RequestID && link.Purpose == record.Purpose {
 				return link, current, nil
 			}
 			return AssessmentRequestLink{}, Assessment{}, ErrInvalid
@@ -241,11 +253,8 @@ func (r *MemoryAssessmentRepository) RecordRequestIssued(_ context.Context, reco
 	if current.Version != record.ExpectedVersion {
 		return AssessmentRequestLink{}, Assessment{}, ErrVersionConflict
 	}
-	if !validAssessmentRequestPurpose(record.Purpose) {
-		return AssessmentRequestLink{}, Assessment{}, ErrInvalid
-	}
 	sequence := len(links) + 1
-	if record.OriginType != AssessmentRequestOrigin || record.OriginID != current.ID || record.OriginSequence != sequence {
+	if record.OriginType != AssessmentRequestOrigin || record.OriginID != current.ID || record.OriginSequence != sequence || !validAssessmentRequestPurpose(record.Purpose) {
 		return AssessmentRequestLink{}, Assessment{}, ErrInvalid
 	}
 	if sequence == 1 {
@@ -259,16 +268,56 @@ func (r *MemoryAssessmentRepository) RecordRequestIssued(_ context.Context, reco
 		TenantID: current.TenantID, LegalEntityID: current.LegalEntityID, AssessmentID: current.ID,
 		RequestID: record.RequestID, Purpose: record.Purpose, Sequence: sequence,
 		OriginType: record.OriginType, OriginID: record.OriginID, OriginSequence: record.OriginSequence,
-		InvitationID: record.InvitationID, CreatedAt: record.IssuedAt.UTC(),
+		CreatedAt: record.PreparedAt.UTC(),
 	}
 	r.requestLinks[current.ID] = append(links, link)
 	current.CurrentRequestID = record.RequestID
-	current.SubmissionID = ""
-	current.Status = AssessmentCollecting
-	current.UpdatedAt = record.IssuedAt.UTC()
+	current.UpdatedAt = record.PreparedAt.UTC()
 	current.Version++
 	r.assessments[current.ID] = current
 	return link, current, nil
+}
+
+func (r *MemoryAssessmentRepository) RecordRequestIssued(_ context.Context, record RecordRequestIssuedRecord) (AssessmentRequestLink, Assessment, error) {
+	if !validAssessmentIdentifier(record.ActorPrincipalID) {
+		return AssessmentRequestLink{}, Assessment{}, ErrInvalid
+	}
+	r.assessmentMu.Lock()
+	defer r.assessmentMu.Unlock()
+	current, ok := r.assessments[record.AssessmentID]
+	if !ok || current.TenantID != record.TenantID || current.LegalEntityID != record.LegalEntityID {
+		return AssessmentRequestLink{}, Assessment{}, ErrNotFound
+	}
+	links := r.requestLinks[current.ID]
+	for index, link := range links {
+		if link.OriginType == record.OriginType && link.OriginID == record.OriginID && link.OriginSequence == record.OriginSequence {
+			if link.RequestID == record.RequestID && link.Purpose == record.Purpose && link.InvitationID == record.InvitationID {
+				return link, current, nil
+			}
+			if link.RequestID == record.RequestID && link.Purpose == record.Purpose && link.InvitationID == "" {
+				if current.Version != record.ExpectedVersion {
+					return AssessmentRequestLink{}, Assessment{}, ErrVersionConflict
+				}
+				if (link.Sequence == 1 && current.Status != AssessmentReadyToSend) || (link.Sequence > 1 && current.Status != AssessmentUnderReview) {
+					return AssessmentRequestLink{}, Assessment{}, ErrInvalidAssessmentTransition
+				}
+				link.InvitationID = record.InvitationID
+				r.requestLinks[current.ID][index] = link
+				current.CurrentRequestID = record.RequestID
+				current.SubmissionID = ""
+				current.Status = AssessmentCollecting
+				current.UpdatedAt = record.IssuedAt.UTC()
+				current.Version++
+				r.assessments[current.ID] = current
+				return link, current, nil
+			}
+			return AssessmentRequestLink{}, Assessment{}, ErrInvalid
+		}
+		if link.RequestID == record.RequestID {
+			return AssessmentRequestLink{}, Assessment{}, ErrInvalid
+		}
+	}
+	return AssessmentRequestLink{}, Assessment{}, ErrInvalidAssessmentTransition
 }
 
 func (r *MemoryAssessmentRepository) ListAssessmentRequestLinks(_ context.Context, scope Scope, assessmentID string) ([]AssessmentRequestLink, error) {

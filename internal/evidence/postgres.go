@@ -358,6 +358,12 @@ func (r *PostgresRepository) CreateInvitation(ctx context.Context, value Invitat
 	if !requestOpenAt(request, value.CreatedAt) || !value.ExpiresAt.After(value.CreatedAt) || value.ExpiresAt.After(request.Deadline) {
 		return ErrRequestClosed
 	}
+	if _, err := tx.Exec(ctx, `UPDATE capture_invitations SET revoked_at=COALESCE(revoked_at,$3) WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND request_id=$2::uuid AND revoked_at IS NULL`, value.TenantID, value.RequestID, value.CreatedAt); err != nil {
+		return fmt.Errorf("revoke prior request invitations: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `UPDATE capture_sessions SET revoked_at=COALESCE(revoked_at,$3) WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND request_id=$2::uuid AND revoked_at IS NULL`, value.TenantID, value.RequestID, value.CreatedAt); err != nil {
+		return fmt.Errorf("revoke prior request sessions: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `INSERT INTO capture_invitations(id,tenant_id,request_id,token_hash,audience_hash,audience_hint,purpose,expires_at,max_redemptions,created_by,created_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,$9,NULLIF($10,'')::uuid,$11)`, value.ID, value.TenantID, value.RequestID, value.TokenHash, value.AudienceHash, value.AudienceHint, value.Purpose, value.ExpiresAt, value.MaxRedemptions, value.CreatedBy, value.CreatedAt); err != nil {
 		return err
 	}

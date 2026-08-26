@@ -57,9 +57,11 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	adapters[sourceaccess.AdapterWebhookEvent] = sourceevent.NewAdapter(runtimeRepo, checkpoints)
 	sourceCatalog := sourceaccess.NewCatalogService(catalogRepo, sourceaccess.EnvironmentSecretResolver{}, adapters)
 	evidenceService.ConfigureSourceBindings(sourceCatalog)
-	monitoringService := monitoring.NewService(monitoring.NewPostgresRepository(pool), evidenceService)
+	monitoringRepo := monitoring.NewPostgresRepository(pool)
+	monitoringService := monitoring.NewService(monitoringRepo, evidenceService)
 	monitoringService.ConfigureSourceReader(sourceCatalog)
-	thirdPartyService := thirdparty.NewService(thirdparty.NewPostgresRepository(pool))
+	thirdPartyRepo := thirdparty.NewPostgresRepository(pool)
+	thirdPartyService := thirdparty.NewService(thirdPartyRepo)
 	continuityRepo := continuity.NewReliablePostgresRepository(pool)
 	continuityService := continuity.NewService(continuityRepo)
 	coverageService := documentcoverage.NewService(documentcoverage.NewPostgresRepository(pool), documentService, continuityService)
@@ -103,7 +105,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	logger.Info("postgres repositories enabled", "max_connections", cfg.DatabaseMaxConns, "artifact_root", cfg.ArtifactRoot, "demo_mode", cfg.DemoMode)
 	return serviceSet{
 		Mode: "postgres", Authority: authority.NewEffectivePostgresService(pool), Governance: governance.NewService(governance.NewPostgresRepository(pool)),
-		Evidence: evidenceService, Monitoring: monitoringService, ThirdParty: thirdPartyService, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
+		Evidence: evidenceService, Monitoring: monitoringService, ThirdParty: thirdPartyService, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
 		Autonomy: auto, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo),
 		Access: access.NewPostgresResolver(pool), AccessAdmin: access.NewPostgresAdministrator(pool), SessionStore: sessionStore, SCIM: scimService, Close: closeServices,

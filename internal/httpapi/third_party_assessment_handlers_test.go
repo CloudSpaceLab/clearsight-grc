@@ -1,0 +1,167 @@
+package httpapi
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
+)
+
+type httpAssessmentGuard struct{}
+
+func (httpAssessmentGuard) Authorize(ctx context.Context, _ commandauth.Request) (commandauth.Decision, error) {
+	actor, err := identity.Require(ctx)
+	if err != nil {
+		return commandauth.Decision{}, err
+	}
+	return commandauth.Decision{Allowed: true, Enforced: true, Actor: actor}, nil
+}
+
+type assessmentHTTPFixture struct {
+	handler    http.Handler
+	repository *thirdparty.MemoryAssessmentRepository
+	service    *thirdparty.AssessmentService
+	vendor     thirdparty.Aggregate
+	assessment thirdparty.Assessment
+}
+
+func newAssessmentHTTPFixture(t *testing.T, ready bool) assessmentHTTPFixture {
+	t.Helper()
+	repo := thirdparty.NewMemoryAssessmentRepository()
+	vendorService := thirdparty.NewService(repo)
+	vendor, err := vendorService.CreateRelationship(context.Background(), thirdparty.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "verified-owner"}, thirdparty.CreateRelationshipInput{
+		LegalName: "Acme Processing Limited", TradingName: "Acme Processing", RegistrationRef: "RC-10001", Jurisdiction: "Nigeria",
+		ServiceName: "Card transaction processing", Criticality: thirdparty.CriticalityImportant, PrivacyRole: thirdparty.PrivacyProcessor,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessmentService := thirdparty.NewAssessmentService(repo, httpAssessmentGuard{})
+	formRepo := monitoring.NewMemoryRepository()
+	form, err := formRepo.CreateFormRevision(context.Background(), monitoring.FormTemplate{
+		ID: "form-1", TenantID: "bank", Name: "Vendor due diligence", Purpose: "Provide the information required for this vendor review.",
+		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
+		Sections:     []formcontract.Section{{ID: "organisation", Title: "Organisation"}},
+		Fields:       []monitoring.TemplateField{{ID: "contact_email", SectionID: "organisation", Label: "Contact email", Type: formcontract.TypeEmail, Required: true}},
+		Lifecycle:    monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 3, CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	evidenceService := evidence.NewService(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore())
+	requestService, err := thirdparty.NewAssessmentRequestService(assessmentService, repo, evidenceService, formRepo, nil, "https://capture.example.test/respond", "production")
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory",
+		Identity:   identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a"),
+		ThirdParty: vendorService, ThirdPartyAssessments: assessmentService, ThirdPartyAssessmentRequests: requestService,
+	})
+	fixture := assessmentHTTPFixture{handler: handler, repository: repo, service: assessmentService, vendor: vendor}
+	if ready {
+		ctx := identity.WithActor(context.Background(), identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "verified-owner", Kind: "PERSON", IssuedAt: time.Now().UTC().Add(-time.Minute), ExpiresAt: time.Now().UTC().Add(time.Hour)})
+		assessment, startErr := assessmentService.StartAssessment(ctx, thirdparty.Actor{}, vendor.Relationship.ID, thirdparty.StartAssessmentInput{
+			RelationshipVersion: vendor.Relationship.Version, FormTemplateID: form.ID, FormTemplateVersion: form.Version, ReviewDueAt: time.Now().UTC().Add(14 * 24 * time.Hour),
+		})
+		if startErr != nil {
+			t.Fatal(startErr)
+		}
+		assessment, startErr = assessmentService.RecordAssessmentSetupCompleted(context.Background(), thirdparty.AssessmentSetupCompletedInput{
+			Scope: thirdparty.Scope{TenantID: "bank", LegalEntityID: "entity-a"}, AssessmentID: assessment.ID,
+			ExpectedVersion: assessment.Version, CausationID: "setup-event", SetupJobID: "setup-job", ReviewMatterID: "review-matter",
+		})
+		if startErr != nil {
+			t.Fatal(startErr)
+		}
+		fixture.assessment = assessment
+	}
+	return fixture
+}
+
+func TestStartAndGetCurrentVendorAssessmentUseVerifiedRouteScope(t *testing.T) {
+	fixture := newAssessmentHTTPFixture(t, false)
+	body := []byte(`{"relationship_version":1,"form_template_id":"form-1","form_template_version":3,"review_due_at":"2030-09-09T10:00:00Z","tenant_id":"forged","legal_entity_id":"forged","actor_id":"forged"}`)
+	response := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendors/"+fixture.vendor.Relationship.ID+"/assessments", bytes.NewReader(body)))
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("expected forged scope rejection, got %d: %s", response.Code, response.Body.String())
+	}
+
+	body = []byte(`{"relationship_version":1,"form_template_id":"form-1","form_template_version":3,"review_due_at":"2030-09-09T10:00:00Z","actor_id":"forged-owner"}`)
+	response = httptest.NewRecorder()
+	fixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendors/"+fixture.vendor.Relationship.ID+"/assessments", bytes.NewReader(body)))
+	if response.Code != http.StatusAccepted {
+		t.Fatalf("expected 202, got %d: %s", response.Code, response.Body.String())
+	}
+	var started thirdparty.Assessment
+	if err := json.NewDecoder(response.Body).Decode(&started); err != nil {
+		t.Fatal(err)
+	}
+	response = httptest.NewRecorder()
+	fixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/vendors/"+fixture.vendor.Relationship.ID+"/assessments/current", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String())
+	}
+	var current vendorAssessmentCurrentResponse
+	if err := json.NewDecoder(response.Body).Decode(&current); err != nil {
+		t.Fatal(err)
+	}
+	if current.Assessment.ID != started.ID || current.Assessment.TenantID != "bank" || current.Assessment.LegalEntityID != "entity-a" || current.Assessment.StartedByPrincipalID != "verified-owner" {
+		t.Fatalf("assessment did not use verified identity: %#v", current)
+	}
+	if current.Setup == nil || current.Setup.State != thirdparty.AssessmentJobReady {
+		t.Fatalf("setup recovery state was not included: %#v", current.Setup)
+	}
+}
+
+func TestSendVendorAssessmentRequestBuildsLinkFromConfiguredBaseNotHost(t *testing.T) {
+	fixture := newAssessmentHTTPFixture(t, true)
+	deadline := time.Now().UTC().Add(7 * 24 * time.Hour).Format(time.RFC3339)
+	body := []byte(`{"expected_version":` + jsonInt(fixture.assessment.Version) + `,"audience":"security@vendor.example","deadline":"` + deadline + `","invitation_ttl_minutes":60}`)
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+fixture.assessment.ID+"/send-request", bytes.NewReader(body))
+	request.Host = "attacker.example"
+	response := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String())
+	}
+	var outcome thirdparty.SendRequestOutcome
+	if err := json.NewDecoder(response.Body).Decode(&outcome); err != nil {
+		t.Fatal(err)
+	}
+	if outcome.State != thirdparty.SendRequestLinkCreatedEmailNotSent || !strings.HasPrefix(outcome.CaptureURL, "https://capture.example.test/respond?capture_invite=") || strings.Contains(outcome.CaptureURL, "attacker.example") {
+		t.Fatalf("unexpected send response: %#v", outcome)
+	}
+}
+
+func TestSendVendorAssessmentErrorDoesNotEchoRecipientOrToken(t *testing.T) {
+	fixture := newAssessmentHTTPFixture(t, true)
+	body := []byte(`{"expected_version":` + jsonInt(fixture.assessment.Version) + `,"audience":"secret-recipient@vendor.example","deadline":"2020-01-01T00:00:00Z","invitation_ttl_minutes":60,"token":"secret-token"}`)
+	response := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+fixture.assessment.ID+"/send-request", bytes.NewReader(body)))
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", response.Code, response.Body.String())
+	}
+	if strings.Contains(response.Body.String(), "secret-recipient") || strings.Contains(response.Body.String(), "secret-token") {
+		t.Fatalf("protected value echoed in error: %s", response.Body.String())
+	}
+}
+
+func jsonInt(value int64) string {
+	data, _ := json.Marshal(value)
+	return string(data)
+}

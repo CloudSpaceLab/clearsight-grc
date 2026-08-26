@@ -353,7 +353,98 @@ func (r *PostgresRepository) ApplyAssessmentReaction(ctx context.Context, record
 	return current, nil
 }
 
+func (r *PostgresRepository) PrepareAssessmentRequest(ctx context.Context, record PrepareAssessmentRequestRecord) (AssessmentRequestLink, Assessment, error) {
+	if !validAssessmentIdentifier(record.ActorPrincipalID) {
+		return AssessmentRequestLink{}, Assessment{}, ErrInvalid
+	}
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("begin assessment request preparation: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	tenantID, err := resolveTenant(ctx, tx, record.TenantID)
+	if err != nil {
+		return AssessmentRequestLink{}, Assessment{}, err
+	}
+	current, err := lockAssessment(ctx, tx, tenantID, record.LegalEntityID, record.AssessmentID)
+	if err != nil {
+		return AssessmentRequestLink{}, Assessment{}, err
+	}
+	existing, err := scanAssessmentRequestLink(tx.QueryRow(ctx, assessmentRequestLinkSelect+`
+		WHERE l.tenant_id=$1::uuid AND l.assessment_id=$2::uuid AND l.origin_type=$3 AND l.origin_id::text=$4 AND l.origin_sequence=$5`,
+		tenantID, record.AssessmentID, record.OriginType, record.OriginID, record.OriginSequence))
+	if err == nil {
+		if existing.RequestID != record.RequestID || existing.Purpose != record.Purpose {
+			return AssessmentRequestLink{}, Assessment{}, ErrInvalid
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("commit assessment request preparation replay: %w", err)
+		}
+		return existing, current, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("load assessment request preparation replay: %w", err)
+	}
+	if current.Version != record.ExpectedVersion {
+		return AssessmentRequestLink{}, Assessment{}, ErrVersionConflict
+	}
+	var sequence int
+	if err := tx.QueryRow(ctx, `SELECT count(*)+1 FROM third_party_assessment_request_links WHERE tenant_id=$1::uuid AND assessment_id=$2::uuid`, tenantID, current.ID).Scan(&sequence); err != nil {
+		return AssessmentRequestLink{}, Assessment{}, err
+	}
+	if record.OriginType != AssessmentRequestOrigin || record.OriginID != current.ID || record.OriginSequence != sequence || !validAssessmentRequestPurpose(record.Purpose) {
+		return AssessmentRequestLink{}, Assessment{}, ErrInvalid
+	}
+	if (sequence == 1 && (record.Purpose != AssessmentRequestInitial || current.Status != AssessmentReadyToSend || current.CurrentRequestID != "")) ||
+		(sequence > 1 && (record.Purpose != AssessmentRequestClarification || current.Status != AssessmentUnderReview || current.CurrentRequestID == "")) {
+		return AssessmentRequestLink{}, Assessment{}, ErrInvalidAssessmentTransition
+	}
+	var proof bool
+	err = tx.QueryRow(ctx, `
+		SELECT true FROM capture_requests r
+		WHERE r.tenant_id=$1::uuid AND r.id::text=$2 AND r.origin_type=$3 AND r.origin_id=$4 AND r.origin_version=$5`,
+		tenantID, record.RequestID, record.OriginType, record.OriginID, record.OriginSequence).Scan(&proof)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return AssessmentRequestLink{}, Assessment{}, ErrNotFound
+	}
+	if err != nil {
+		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("verify prepared assessment request: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `UPDATE third_party_assessment_request_links SET is_current=false WHERE tenant_id=$1::uuid AND assessment_id=$2::uuid AND is_current`, tenantID, current.ID); err != nil {
+		return AssessmentRequestLink{}, Assessment{}, err
+	}
+	link := AssessmentRequestLink{
+		TenantID: current.TenantID, LegalEntityID: current.LegalEntityID, AssessmentID: current.ID,
+		RequestID: record.RequestID, Purpose: record.Purpose, Sequence: sequence, OriginType: record.OriginType,
+		OriginID: record.OriginID, OriginSequence: record.OriginSequence, CreatedAt: record.PreparedAt.UTC(),
+	}
+	_, err = tx.Exec(ctx, `
+		INSERT INTO third_party_assessment_request_links(
+			tenant_id,legal_entity_id,assessment_id,request_id,purpose,sequence,origin_type,origin_id,origin_sequence,invitation_id,is_current,created_at
+		) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8::uuid,$9,NULL,true,$10)`, tenantID, record.LegalEntityID,
+		current.ID, record.RequestID, record.Purpose, sequence, record.OriginType, record.OriginID, record.OriginSequence, record.PreparedAt)
+	if err != nil {
+		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("prepare assessment request link: %w", err)
+	}
+	current.CurrentRequestID = record.RequestID
+	current.Version++
+	current.UpdatedAt = record.PreparedAt.UTC()
+	if err := updateAssessment(ctx, tx, tenantID, current); err != nil {
+		return AssessmentRequestLink{}, Assessment{}, err
+	}
+	if err := appendAssessmentEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, "AssessmentRequestPrepared"); err != nil {
+		return AssessmentRequestLink{}, Assessment{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("commit assessment request preparation: %w", err)
+	}
+	return link, current, nil
+}
+
 func (r *PostgresRepository) RecordRequestIssued(ctx context.Context, record RecordRequestIssuedRecord) (AssessmentRequestLink, Assessment, error) {
+	if !validAssessmentIdentifier(record.ActorPrincipalID) {
+		return AssessmentRequestLink{}, Assessment{}, ErrInvalid
+	}
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("begin assessment request issue: %w", err)
@@ -371,71 +462,52 @@ func (r *PostgresRepository) RecordRequestIssued(ctx context.Context, record Rec
 		WHERE l.tenant_id=$1::uuid AND l.assessment_id=$2::uuid AND l.origin_type=$3 AND l.origin_id::text=$4 AND l.origin_sequence=$5`,
 		tenantID, record.AssessmentID, record.OriginType, record.OriginID, record.OriginSequence))
 	if err == nil {
-		if existing.RequestID != record.RequestID || existing.Purpose != record.Purpose || existing.InvitationID != record.InvitationID {
+		if existing.RequestID != record.RequestID || existing.Purpose != record.Purpose || (existing.InvitationID != "" && existing.InvitationID != record.InvitationID) {
 			return AssessmentRequestLink{}, Assessment{}, ErrInvalid
+		}
+		if existing.InvitationID == record.InvitationID {
+			return existing, current, nil
+		}
+		if current.Version != record.ExpectedVersion {
+			return AssessmentRequestLink{}, Assessment{}, ErrVersionConflict
+		}
+		if (existing.Sequence == 1 && current.Status != AssessmentReadyToSend) || (existing.Sequence > 1 && current.Status != AssessmentUnderReview) {
+			return AssessmentRequestLink{}, Assessment{}, ErrInvalidAssessmentTransition
+		}
+		var proof bool
+		err = tx.QueryRow(ctx, `
+			SELECT true FROM capture_invitations i
+			WHERE i.tenant_id=$1::uuid AND i.request_id=$2::uuid AND i.id::text=$3`, tenantID, record.RequestID, record.InvitationID).Scan(&proof)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return AssessmentRequestLink{}, Assessment{}, ErrNotFound
+		}
+		if err != nil {
+			return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("verify prepared request invitation: %w", err)
+		}
+		if _, err := tx.Exec(ctx, `UPDATE third_party_assessment_request_links SET invitation_id=$4::uuid WHERE tenant_id=$1::uuid AND assessment_id=$2::uuid AND sequence=$3`, tenantID, current.ID, existing.Sequence, record.InvitationID); err != nil {
+			return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("finalize assessment request link: %w", err)
+		}
+		existing.InvitationID = record.InvitationID
+		current.CurrentRequestID = record.RequestID
+		current.SubmissionID = ""
+		current.Status = AssessmentCollecting
+		current.Version++
+		current.UpdatedAt = record.IssuedAt.UTC()
+		if err := updateAssessment(ctx, tx, tenantID, current); err != nil {
+			return AssessmentRequestLink{}, Assessment{}, err
+		}
+		if err := appendAssessmentEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, "AssessmentRequestIssued"); err != nil {
+			return AssessmentRequestLink{}, Assessment{}, err
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("commit assessment request finalization: %w", err)
 		}
 		return existing, current, nil
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("load assessment request replay: %w", err)
 	}
-	if current.Version != record.ExpectedVersion {
-		return AssessmentRequestLink{}, Assessment{}, ErrVersionConflict
-	}
-	var sequence int
-	if err := tx.QueryRow(ctx, `SELECT count(*)+1 FROM third_party_assessment_request_links WHERE tenant_id=$1::uuid AND assessment_id=$2::uuid`, tenantID, current.ID).Scan(&sequence); err != nil {
-		return AssessmentRequestLink{}, Assessment{}, err
-	}
-	if record.OriginType != AssessmentRequestOrigin || record.OriginID != current.ID || record.OriginSequence != sequence {
-		return AssessmentRequestLink{}, Assessment{}, ErrInvalid
-	}
-	if (sequence == 1 && (record.Purpose != AssessmentRequestInitial || current.Status != AssessmentReadyToSend || current.CurrentRequestID != "")) ||
-		(sequence > 1 && (record.Purpose != AssessmentRequestClarification || current.Status != AssessmentUnderReview || current.CurrentRequestID == "")) {
-		return AssessmentRequestLink{}, Assessment{}, ErrInvalidAssessmentTransition
-	}
-	var proof bool
-	err = tx.QueryRow(ctx, `
-		SELECT true FROM capture_requests r
-		JOIN capture_invitations i ON i.tenant_id=r.tenant_id AND i.request_id=r.id
-		WHERE r.tenant_id=$1::uuid AND r.id::text=$2 AND r.origin_type=$3 AND r.origin_id=$4 AND r.origin_version=$5
-		  AND i.id::text=$6`, tenantID, record.RequestID, record.OriginType, record.OriginID, record.OriginSequence, record.InvitationID).Scan(&proof)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return AssessmentRequestLink{}, Assessment{}, ErrNotFound
-	}
-	if err != nil {
-		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("verify issued assessment request: %w", err)
-	}
-	if _, err := tx.Exec(ctx, `UPDATE third_party_assessment_request_links SET is_current=false WHERE tenant_id=$1::uuid AND assessment_id=$2::uuid AND is_current`, tenantID, current.ID); err != nil {
-		return AssessmentRequestLink{}, Assessment{}, err
-	}
-	link := AssessmentRequestLink{
-		TenantID: current.TenantID, LegalEntityID: current.LegalEntityID, AssessmentID: current.ID,
-		RequestID: record.RequestID, Purpose: record.Purpose, Sequence: sequence, OriginType: record.OriginType,
-		OriginID: record.OriginID, OriginSequence: record.OriginSequence, InvitationID: record.InvitationID, CreatedAt: record.IssuedAt.UTC(),
-	}
-	_, err = tx.Exec(ctx, `
-		INSERT INTO third_party_assessment_request_links(
-			tenant_id,legal_entity_id,assessment_id,request_id,purpose,sequence,origin_type,origin_id,origin_sequence,invitation_id,is_current,created_at
-		) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8::uuid,$9,$10::uuid,true,$11)`, tenantID, record.LegalEntityID,
-		current.ID, record.RequestID, record.Purpose, sequence, record.OriginType, record.OriginID, record.OriginSequence, record.InvitationID, record.IssuedAt)
-	if err != nil {
-		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("link assessment request: %w", err)
-	}
-	current.CurrentRequestID = record.RequestID
-	current.SubmissionID = ""
-	current.Status = AssessmentCollecting
-	current.Version++
-	current.UpdatedAt = record.IssuedAt.UTC()
-	if err := updateAssessment(ctx, tx, tenantID, current); err != nil {
-		return AssessmentRequestLink{}, Assessment{}, err
-	}
-	if err := appendAssessmentEvent(ctx, tx, tenantID, current, "", "AssessmentRequestIssued"); err != nil {
-		return AssessmentRequestLink{}, Assessment{}, err
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("commit assessment request issue: %w", err)
-	}
-	return link, current, nil
+	return AssessmentRequestLink{}, Assessment{}, ErrInvalidAssessmentTransition
 }
 
 func (r *PostgresRepository) ListAssessmentRequestLinks(ctx context.Context, scope Scope, assessmentID string) ([]AssessmentRequestLink, error) {
@@ -466,7 +538,7 @@ const assessmentProjection = `a.id::text,t.slug,a.legal_entity_id::text,a.relati
 const assessmentSelect = `SELECT ` + assessmentProjection + ` FROM third_party_assessments a JOIN tenants t ON t.id=a.tenant_id `
 
 const assessmentRequestLinkSelect = `SELECT l.tenant_id::text,l.legal_entity_id::text,l.assessment_id::text,l.request_id::text,l.purpose,l.sequence,
-	l.origin_type,l.origin_id::text,l.origin_sequence,l.invitation_id::text,l.created_at
+	l.origin_type,l.origin_id::text,l.origin_sequence,COALESCE(l.invitation_id::text,''),l.created_at
 	FROM third_party_assessment_request_links l JOIN tenants t ON t.id=l.tenant_id `
 
 func scanAssessment(row rowScanner) (Assessment, error) {
