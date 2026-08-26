@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,6 +19,16 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
+
+type capturingProgramAuthority struct {
+	*assignmentAuthorityStub
+	legalEntities []string
+}
+
+func (s *capturingProgramAuthority) Resolve(ctx context.Context, input authority.ResolveInput) (authority.Resolution, error) {
+	s.legalEntities = append(s.legalEntities, input.LegalEntityID)
+	return s.assignmentAuthorityStub.Resolve(ctx, input)
+}
 
 func TestProgramSetupCandidatesAndCreationKeepOwnerAndApprovalAuthorityDistinct(t *testing.T) {
 	service := continuity.NewService(continuity.NewMemoryRepository())
@@ -56,6 +67,33 @@ func TestProgramSetupCandidatesAndCreationKeepOwnerAndApprovalAuthorityDistinct(
 	}
 	if aggregate.Program.OwnerPrincipalID == aggregate.Program.AuthorityPrincipalID {
 		t.Fatal("Program owner and approval authority were collapsed")
+	}
+}
+
+func TestProgramSetupCandidatesRequireAnExactEntityForWildcardActors(t *testing.T) {
+	resolver := &capturingProgramAuthority{assignmentAuthorityStub: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner:      {Principal: authority.Principal{ID: "owner-1", DisplayName: "Program owner"}},
+		authority.ResponsibilityAuthorizer: {Principal: authority.Principal{ID: "cro-1", DisplayName: "Approval authority"}},
+	}}}
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "owner-1", "*"),
+		Continuity: continuity.NewService(continuity.NewMemoryRepository()), Authority: resolver,
+	})
+
+	missing := httptest.NewRecorder()
+	handler.ServeHTTP(missing, httptest.NewRequest(http.MethodGet, "/api/v1/programs/setup-candidates?tenant_id=bank", nil))
+	if missing.Code != http.StatusForbidden {
+		t.Fatalf("wildcard candidate scope without an exact entity returned %d: %s", missing.Code, missing.Body.String())
+	}
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/programs/setup-candidates?tenant_id=bank&scope_legal_entity_id=bank-ng", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("exact entity candidate scope returned %d: %s", response.Code, response.Body.String())
+	}
+	for _, entity := range resolver.legalEntities {
+		if entity != "bank-ng" {
+			t.Fatalf("authority resolved outside the selected entity: %#v", resolver.legalEntities)
+		}
 	}
 }
 

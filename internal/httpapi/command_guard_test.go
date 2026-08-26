@@ -142,6 +142,25 @@ func TestCommandCannotLowerMinimumMateriality(t *testing.T) {
 	}
 }
 
+func TestCommandUsesPolicyDecisionTypeOverrideForApprovalAuthorityMaintenance(t *testing.T) {
+	service := &capturingCommandAuthority{}
+	guard, _ := commandauth.New(service, commandauth.ModeEnforce, slog.Default())
+	api := &API{deps: Dependencies{CommandGuard: guard}}
+	policy := commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, DecisionType: "program.transition"}
+	handler := api.command("program.approval-authority.assign", policy, func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/programs/program-1/approval-authority", strings.NewReader(`{"tenant_id":"bank-demo","candidate_id":"deputy-cro"}`))
+	req.SetPathValue("id", "program-1")
+	req = req.WithContext(identity.WithActor(req.Context(), identity.Actor{TenantID: "bank-demo", PrincipalID: "person-1", LegalEntityID: "bank-ng", Kind: "PERSON", ExpiresAt: time.Now().UTC().Add(time.Hour)}))
+	response := httptest.NewRecorder()
+	handler(response, req)
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("command returned %d: %s", response.Code, response.Body.String())
+	}
+	if service.input.DecisionType != "program.transition" {
+		t.Fatalf("guard resolved %q instead of the current transition-authorizer contract", service.input.DecisionType)
+	}
+}
+
 func TestCommandClientMayRaiseMateriality(t *testing.T) {
 	service := &capturingCommandAuthority{}
 	guard, _ := commandauth.New(service, commandauth.ModeEnforce, slog.Default())

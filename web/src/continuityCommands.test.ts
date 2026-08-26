@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadContext } from "./api";
-import { createMatter, createProgram } from "./continuityCommands";
+import { createMatter, createProgram, loadProgramSetupCandidates } from "./continuityCommands";
 import { requestJSON } from "./http";
 
 vi.mock("./api", () => ({ loadContext: vi.fn(), resolveAuthority: vi.fn() }));
@@ -50,5 +50,10 @@ describe("continuity commands", () => {
 	expect(body).not.toHaveProperty("owner_principal_id");
 	expect(body).not.toHaveProperty("authority_principal_id");
 	expect(body).not.toHaveProperty("actor_id");
+  });
+
+  it("loads Program responsibility candidates for the exact legal entity", async () => {
+	await loadProgramSetupCandidates();
+	expect(vi.mocked(requestJSON).mock.calls[0]?.[1]).toBe("/api/v1/programs/setup-candidates?tenant_id=tenant-1&scope_legal_entity_id=entity-1");
   });
 });

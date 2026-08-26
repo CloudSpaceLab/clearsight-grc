@@ -56,9 +56,9 @@ func (a *API) createProgram(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	owner, approval, err := a.resolveProgramSetupSelections(r.Context(), request.OwnerCandidateID, request.ApprovalAuthorityCandidateID)
+	owner, approval, err := a.resolveProgramSetupSelections(r.Context(), request.LegalEntityID, request.OwnerCandidateID, request.ApprovalAuthorityCandidateID)
 	if err != nil {
-		if errors.Is(err, commandauth.ErrIdentityRequired) || errors.Is(err, commandauth.ErrGuardUnavailable) {
+		if errors.Is(err, commandauth.ErrIdentityRequired) || errors.Is(err, commandauth.ErrGuardUnavailable) || errors.Is(err, commandauth.ErrLegalEntityMismatch) {
 			writeCommandAuthorizationError(w, err)
 			return
 		}
@@ -85,6 +85,11 @@ func (a *API) listProgramSetupCandidates(w http.ResponseWriter, r *http.Request)
 	actor, err := identity.Require(r.Context())
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to choose Program responsibilities.")
+		return
+	}
+	actor, err = exactProgramCandidateActor(actor, r.URL.Query().Get("scope_legal_entity_id"))
+	if err != nil {
+		writeCommandAuthorizationError(w, err)
 		return
 	}
 	ownerResolution, approvalResolution, err := a.resolveProgramSetupRoutes(r.Context(), actor)
@@ -126,10 +131,14 @@ func (a *API) resolveProgramSetupRoutes(ctx context.Context, actor identity.Acto
 	return owner, approval, nil
 }
 
-func (a *API) resolveProgramSetupSelections(ctx context.Context, ownerCandidateID, approvalCandidateID string) (authority.Principal, authority.Principal, error) {
+func (a *API) resolveProgramSetupSelections(ctx context.Context, legalEntityID, ownerCandidateID, approvalCandidateID string) (authority.Principal, authority.Principal, error) {
 	actor, err := identity.Require(ctx)
 	if err != nil {
 		return authority.Principal{}, authority.Principal{}, fmt.Errorf("%w: verified identity is required", commandauth.ErrIdentityRequired)
+	}
+	actor, err = exactProgramCandidateActor(actor, legalEntityID)
+	if err != nil {
+		return authority.Principal{}, authority.Principal{}, err
 	}
 	ownerResolution, approvalResolution, err := a.resolveProgramSetupRoutes(ctx, actor)
 	if err != nil {
@@ -147,6 +156,23 @@ func (a *API) resolveProgramSetupSelections(ctx context.Context, ownerCandidateI
 		return authority.Principal{}, authority.Principal{}, fmt.Errorf("%w: Program owner and approval authority must be different people", continuity.ErrInvalidState)
 	}
 	return owner, approval, nil
+}
+
+func exactProgramCandidateActor(actor identity.Actor, requestedEntity string) (identity.Actor, error) {
+	requestedEntity = strings.TrimSpace(requestedEntity)
+	currentEntity := strings.TrimSpace(actor.LegalEntityID)
+	if currentEntity == "*" {
+		if requestedEntity == "" || requestedEntity == "*" {
+			return identity.Actor{}, commandauth.ErrLegalEntityMismatch
+		}
+		actor.LegalEntityID = requestedEntity
+		return actor, nil
+	}
+	if currentEntity == "" || (requestedEntity != "" && requestedEntity != currentEntity) {
+		return identity.Actor{}, commandauth.ErrLegalEntityMismatch
+	}
+	actor.LegalEntityID = currentEntity
+	return actor, nil
 }
 
 func selectedPrincipal(resolution authority.Resolution, candidateID string) (authority.Principal, bool) {

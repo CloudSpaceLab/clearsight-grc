@@ -124,7 +124,7 @@ export async function createProgram(input: CreateProgramInput): Promise<ProgramA
 
 export async function loadProgramSetupCandidates(): Promise<ProgramSetupCandidates> {
   const context = await loadContext();
-  const params = new URLSearchParams({ tenant_id: context.tenant.id });
+  const params = new URLSearchParams({ tenant_id: context.tenant.id, scope_legal_entity_id: context.legal_entity.id });
   return requestJSON<ProgramSetupCandidates>(apiBase, `/api/v1/programs/setup-candidates?${params.toString()}`);
 }
 
