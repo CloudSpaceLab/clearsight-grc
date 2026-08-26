@@ -18,17 +18,5 @@ func (s *AssessmentService) GetAssessmentSetupStatus(ctx context.Context, actor 
 	if err != nil {
 		return AssessmentSetupStatus{}, err
 	}
-	status := AssessmentSetupStatus{
-		AssessmentID: job.AssessmentID, State: job.State, Attempts: job.Attempts,
-		LeaseUntil: cloneAssessmentTime(job.LeaseExpiresAt), FailureCode: job.LastFailureCode, UpdatedAt: job.UpdatedAt,
-	}
-	switch job.State {
-	case AssessmentJobReady:
-		value := job.AvailableAt
-		status.NextAttemptAt = &value
-	case AssessmentJobFailed:
-		value := job.UpdatedAt
-		status.TerminalAt = &value
-	}
-	return status, nil
+	return assessmentSetupStatus(job), nil
 }

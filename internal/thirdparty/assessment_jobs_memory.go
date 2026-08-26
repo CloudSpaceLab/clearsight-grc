@@ -156,6 +156,65 @@ func (r *MemoryAssessmentRepository) FailAssessmentSetupJob(_ context.Context, j
 	return current, nil
 }
 
+func (r *MemoryAssessmentRepository) RequeueAssessmentSetup(_ context.Context, record RequeueAssessmentSetupRecord) (AssessmentSetupJob, Assessment, error) {
+	if !validAssessmentIdentifiers(record.AssessmentID, record.ActorPrincipalID) || record.ExpectedVersion < 1 || record.QueuedAt.IsZero() {
+		return AssessmentSetupJob{}, Assessment{}, ErrInvalid
+	}
+	record.QueuedAt = record.QueuedAt.UTC()
+	r.assessmentMu.Lock()
+	defer r.assessmentMu.Unlock()
+	current, ok := r.assessments[record.AssessmentID]
+	if !ok || current.TenantID != record.TenantID || current.LegalEntityID != record.LegalEntityID {
+		return AssessmentSetupJob{}, Assessment{}, ErrNotFound
+	}
+	var job AssessmentSetupJob
+	for _, candidate := range r.setupJobs {
+		if candidate.TenantID == record.TenantID && candidate.LegalEntityID == record.LegalEntityID && candidate.AssessmentID == record.AssessmentID && candidate.JobType == AssessmentSetupJobType {
+			job = candidate
+			break
+		}
+	}
+	if job.ID == "" {
+		return AssessmentSetupJob{}, Assessment{}, ErrNotFound
+	}
+	if current.Version != record.ExpectedVersion {
+		if current.Version == record.ExpectedVersion+1 && assessmentSetupRetryRecorded(r.assessmentEvents, current.ID, current.Version) {
+			return job, current, nil
+		}
+		return AssessmentSetupJob{}, Assessment{}, ErrVersionConflict
+	}
+	if current.Status != AssessmentSetupPending || job.State != AssessmentJobFailed || job.LeaseToken != "" || job.LeaseExpiresAt != nil || !validAssessmentFailureCode(job.LastFailureCode) {
+		return AssessmentSetupJob{}, Assessment{}, ErrInvalidAssessmentTransition
+	}
+	previousFailureCode := job.LastFailureCode
+	job.State = AssessmentJobReady
+	job.Attempts = 0
+	job.AvailableAt = record.QueuedAt
+	job.LeaseToken = ""
+	job.LeaseExpiresAt = nil
+	job.LastFailureCode = ""
+	job.UpdatedAt = record.QueuedAt
+	current.Version++
+	current.UpdatedAt = record.QueuedAt
+	r.setupJobs[job.ID] = job
+	r.assessments[current.ID] = current
+	r.appendMemoryAssessmentAudit(current, record.ActorPrincipalID, "AssessmentSetupRetryQueued")
+	payload := r.assessmentEvents[len(r.assessmentEvents)-1].Payload
+	payload["setup_job_id"] = job.ID
+	payload["previous_failure_code"] = previousFailureCode
+	return job, current, nil
+}
+
+func assessmentSetupRetryRecorded(events []memoryAssessmentAudit, assessmentID string, version int64) bool {
+	for index := len(events) - 1; index >= 0; index-- {
+		event := events[index]
+		if event.AssessmentID == assessmentID && event.AssessmentVersion == version {
+			return event.Type == "AssessmentSetupRetryQueued"
+		}
+	}
+	return false
+}
+
 func (r *MemoryAssessmentRepository) ListAssessmentSetupJobs(_ context.Context, scope Scope, assessmentID string) ([]AssessmentSetupJob, error) {
 	r.assessmentMu.RLock()
 	defer r.assessmentMu.RUnlock()

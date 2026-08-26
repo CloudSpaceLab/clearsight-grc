@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
@@ -55,6 +56,11 @@ func newReviewHTTPFixture(t *testing.T) reviewHTTPFixture {
 		t.Fatal(err)
 	}
 	reviews := thirdparty.NewAssessmentReviewService(base.service, base.repository, base.evidence, nil)
+	reviews.ConfigureAuthority(authority.NewResolver("review-test", []authority.Rule{{
+		ID: "assessment-reviewer", TenantID: "bank", LegalEntityID: "entity-a", ObjectType: "THIRD_PARTY_ASSESSMENT", ObjectID: submitted.ID,
+		Responsibility: authority.ResponsibilityReviewer, DecisionType: thirdparty.AssessmentReviewCommand, MinMateriality: 3,
+		Principal: authority.Principal{ID: "verified-reviewer", Kind: "PERSON"}, Priority: 1,
+	}}))
 	handler := New(Dependencies{
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory",
 		Identity:   identity.NewDevelopmentAuthenticator("bank", "verified-reviewer", "entity-a"),
@@ -78,8 +84,8 @@ func TestGetVendorAssessmentReviewUsesVerifiedScopeAndOmitsProtectedCaptureField
 	if view.Assessment.ID != fixture.assessment.ID || view.Response == nil || view.Response.RequestID != fixture.assessment.CurrentRequestID || len(view.Requests) != 1 {
 		t.Fatalf("unexpected exact review view %#v", view)
 	}
-	if !strings.Contains(string(raw), `"findings":[]`) || strings.Contains(string(raw), `"matters"`) {
-		t.Fatalf("review response did not use the vendor-workspace findings contract: %s", raw)
+	if !strings.Contains(string(raw), `"matters":[]`) || strings.Contains(string(raw), `"findings"`) {
+		t.Fatalf("review response did not use the rich reviewer matter contract: %s", raw)
 	}
 	for _, protected := range []string{"security@vendor.example", "capture_invite", "invitation_id", "session_id", "storage_key", "submitted_by"} {
 		if strings.Contains(string(raw), protected) {
@@ -96,6 +102,26 @@ func TestGetVendorAssessmentReviewUsesVerifiedScopeAndOmitsProtectedCaptureField
 	wrongScope.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/vendor-assessments/"+fixture.assessment.ID, nil))
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("cross-entity review read expected 404, got %d: %s", response.Code, response.Body.String())
+	}
+}
+
+func TestGetVendorAssessmentReviewRejectsUnrelatedSameScopePrincipal(t *testing.T) {
+	fixture := newReviewHTTPFixture(t)
+	reviews := thirdparty.NewAssessmentReviewService(fixture.base.service, fixture.base.repository, fixture.base.evidence, nil)
+	reviews.ConfigureAuthority(authority.NewResolver("review-test", []authority.Rule{{
+		ID: "assessment-reviewer", TenantID: "bank", LegalEntityID: "entity-a", ObjectType: "THIRD_PARTY_ASSESSMENT", ObjectID: fixture.assessment.ID,
+		Responsibility: authority.ResponsibilityReviewer, DecisionType: thirdparty.AssessmentReviewCommand, MinMateriality: 3,
+		Principal: authority.Principal{ID: "verified-reviewer", Kind: "PERSON"}, Priority: 1,
+	}}))
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "unrelated-principal", "entity-a"),
+		ThirdPartyAssessments:       fixture.base.service,
+		ThirdPartyAssessmentReviews: reviews,
+	})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/vendor-assessments/"+fixture.assessment.ID, nil))
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("unrelated same-scope principal expected 404, got %d: %s", response.Code, response.Body.String())
 	}
 }
 

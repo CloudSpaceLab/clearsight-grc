@@ -45,7 +45,9 @@ func main() {
 		os.Exit(1)
 	}
 	assessmentService := thirdparty.NewAssessmentService(services.ThirdPartyAssessmentRepo, guard)
-	assessmentReviewService := thirdparty.NewAssessmentReviewService(assessmentService, services.ThirdPartyAssessmentRepo, services.Evidence, nil)
+	assessmentMatterReader := thirdparty.NewCanonicalAssessmentReviewMatterReader(services.ThirdPartyAssessmentRepo, services.Continuity)
+	assessmentReviewService := thirdparty.NewAssessmentReviewService(assessmentService, services.ThirdPartyAssessmentRepo, services.Evidence, assessmentMatterReader)
+	assessmentReviewService.ConfigureAuthority(services.Authority)
 	assessmentRequestService, err := thirdparty.NewAssessmentRequestService(
 		assessmentService, services.ThirdPartyAssessmentRepo, services.Evidence, services.MonitoringRepo,
 		evidence.NewInvitationDeliveryService(nil), cfg.CapturePublicBaseURL, cfg.Environment,

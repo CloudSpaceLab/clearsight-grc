@@ -34,6 +34,13 @@ type reissueVendorAssessmentRequest struct {
 	ActorID       string `json:"actor_id,omitempty"`
 }
 
+type retryVendorAssessmentSetupRequest struct {
+	thirdparty.RetryAssessmentSetupInput
+	TenantID      string `json:"tenant_id,omitempty"`
+	LegalEntityID string `json:"legal_entity_id,omitempty"`
+	ActorID       string `json:"actor_id,omitempty"`
+}
+
 type startVendorAssessmentReviewRequest struct {
 	ExpectedVersion int64  `json:"expected_version"`
 	TenantID        string `json:"tenant_id,omitempty"`
@@ -160,6 +167,29 @@ func (a *API) reissueVendorAssessmentRequest(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, outcome)
+}
+
+func (a *API) retryVendorAssessmentSetup(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.assessmentService(w)
+	if !ok {
+		return
+	}
+	actor, err := thirdPartyActor(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to retry due-diligence setup.")
+		return
+	}
+	var request retryVendorAssessmentSetupRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "Reload the assessment and retry setup with its current version.")
+		return
+	}
+	outcome, err := service.RetryAssessmentSetup(r.Context(), actor, r.PathValue("id"), request.RetryAssessmentSetupInput)
+	if err != nil {
+		writeThirdPartyAssessmentError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusAccepted, outcome)
 }
 
 func (a *API) getVendorAssessmentReview(w http.ResponseWriter, r *http.Request) {

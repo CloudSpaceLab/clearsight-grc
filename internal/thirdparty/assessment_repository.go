@@ -22,12 +22,14 @@ type AssessmentRepository interface {
 	ListAssessments(context.Context, AssessmentListFilter) (AssessmentPage, error)
 	TransitionAssessment(context.Context, AssessmentTransitionRecord) (Assessment, error)
 	ApplyAssessmentReaction(context.Context, AssessmentReactionRecord) (Assessment, error)
+	RequeueAssessmentSetup(context.Context, RequeueAssessmentSetupRecord) (AssessmentSetupJob, Assessment, error)
 	PrepareAssessmentRequest(context.Context, PrepareAssessmentRequestRecord) (AssessmentRequestLink, Assessment, error)
 	RecordRequestIssued(context.Context, RecordRequestIssuedRecord) (AssessmentRequestLink, Assessment, error)
 	GetCurrentAssessmentRequestLink(context.Context, Scope, string) (AssessmentRequestLink, error)
 	PrepareRequestReissue(context.Context, PrepareRequestReissueRecord) (AssessmentRequestLink, Assessment, error)
 	FinalizeRequestReissue(context.Context, FinalizeRequestReissueRecord) (AssessmentRequestLink, Assessment, error)
 	ListAssessmentRequestLinks(context.Context, Scope, string) ([]AssessmentRequestLink, error)
+	ListAssessmentMatterLinks(context.Context, Scope, string, int) ([]AssessmentMatterLink, error)
 	ResolveAssessmentRequest(context.Context, string, evidence.RequestOrigin, string) (AssessmentSubmissionTarget, error)
 }
 
@@ -73,6 +75,14 @@ type AssessmentReactionRecord struct {
 	RequestID       string
 	SubmissionID    string
 	At              time.Time
+}
+
+type RequeueAssessmentSetupRecord struct {
+	Scope
+	AssessmentID     string
+	ExpectedVersion  int64
+	ActorPrincipalID string
+	QueuedAt         time.Time
 }
 
 type RecordRequestIssuedRecord struct {

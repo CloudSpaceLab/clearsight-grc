@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
@@ -78,7 +79,7 @@ type AssessmentReviewDocument struct {
 	Reference      string                  `json:"reference,omitempty"`
 	IssuedBy       string                  `json:"issued_by,omitempty"`
 	IssuedOn       string                  `json:"issued_on,omitempty"`
-	ExpiresOn      string                  `json:"valid_until,omitempty"`
+	ExpiresOn      string                  `json:"expires_on,omitempty"`
 }
 
 type AssessmentReviewMatter struct {
@@ -87,7 +88,7 @@ type AssessmentReviewMatter struct {
 	AssessmentID  string `json:"-"`
 	MatterID      string `json:"matter_id"`
 	Type          string `json:"type"`
-	Status        string `json:"state"`
+	Status        string `json:"status"`
 	Title         string `json:"title"`
 }
 
@@ -98,8 +99,8 @@ type AssessmentReviewView struct {
 	Answers          []AssessmentReviewAnswer   `json:"answers"`
 	Coverage         AssessmentReviewCoverage   `json:"coverage"`
 	Documents        []AssessmentReviewDocument `json:"documents"`
-	ProvisionalScore *formcontract.ScoreResult  `json:"score_details,omitempty"`
-	Matters          []AssessmentReviewMatter   `json:"findings"`
+	ProvisionalScore *formcontract.ScoreResult  `json:"provisional_score,omitempty"`
+	Matters          []AssessmentReviewMatter   `json:"matters"`
 }
 
 type AssessmentReviewLinkReader interface {
@@ -113,7 +114,15 @@ type AssessmentReviewEvidenceReader interface {
 }
 
 type AssessmentReviewMatterReader interface {
-	ListAssessmentReviewMatters(context.Context, Scope, string, int) ([]AssessmentReviewMatter, error)
+	ListAssessmentReviewMatters(context.Context, Actor, Scope, string, int) ([]AssessmentReviewMatter, error)
+}
+
+type AssessmentReviewAuthority interface {
+	Resolve(context.Context, authority.ResolveInput) (authority.Resolution, error)
+}
+
+type AssessmentReviewRelationshipReader interface {
+	GetRelationship(context.Context, Scope, string) (Aggregate, error)
 }
 
 type AssessmentReviewService struct {
@@ -121,10 +130,17 @@ type AssessmentReviewService struct {
 	links       AssessmentReviewLinkReader
 	evidence    AssessmentReviewEvidenceReader
 	matters     AssessmentReviewMatterReader
+	authority   AssessmentReviewAuthority
 }
 
 func NewAssessmentReviewService(assessments *AssessmentService, links AssessmentReviewLinkReader, evidenceReader AssessmentReviewEvidenceReader, matters AssessmentReviewMatterReader) *AssessmentReviewService {
 	return &AssessmentReviewService{assessments: assessments, links: links, evidence: evidenceReader, matters: matters}
+}
+
+func (s *AssessmentReviewService) ConfigureAuthority(resolver AssessmentReviewAuthority) {
+	if s != nil {
+		s.authority = resolver
+	}
 }
 
 func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, assessmentID string) (AssessmentReviewView, error) {
@@ -136,6 +152,9 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 		return AssessmentReviewView{}, err
 	}
 	scope := Scope{TenantID: assessment.TenantID, LegalEntityID: assessment.LegalEntityID}
+	if err := s.authorizeRead(ctx, actor, scope, assessment); err != nil {
+		return AssessmentReviewView{}, err
+	}
 	links, err := s.links.ListAssessmentRequestLinks(ctx, scope, assessment.ID)
 	if err != nil {
 		return AssessmentReviewView{}, err
@@ -194,7 +213,7 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 		}
 	}
 	if s.matters != nil {
-		values, readErr := s.matters.ListAssessmentReviewMatters(ctx, scope, assessment.ID, assessmentReviewMaxMatters+1)
+		values, readErr := s.matters.ListAssessmentReviewMatters(ctx, actor, scope, assessment.ID, assessmentReviewMaxMatters+1)
 		if readErr != nil {
 			return AssessmentReviewView{}, readErr
 		}
@@ -214,6 +233,32 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 		view.Matters = append(view.Matters, values...)
 	}
 	return view, nil
+}
+
+func (s *AssessmentReviewService) authorizeRead(ctx context.Context, actor Actor, scope Scope, assessment Assessment) error {
+	relationships, ok := s.links.(AssessmentReviewRelationshipReader)
+	if !ok {
+		return ErrNotFound
+	}
+	aggregate, err := relationships.GetRelationship(ctx, scope, assessment.RelationshipID)
+	if err != nil {
+		return ErrNotFound
+	}
+	principalID := strings.TrimSpace(actor.PrincipalID)
+	if principalID != "" && (principalID == strings.TrimSpace(assessment.StartedByPrincipalID) || principalID == strings.TrimSpace(aggregate.Relationship.BusinessOwnerPrincipalID)) {
+		return nil
+	}
+	if s.authority == nil {
+		return ErrNotFound
+	}
+	resolution, err := s.authority.Resolve(ctx, authority.ResolveInput{
+		TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, ObjectType: assessmentObjectType, ObjectID: assessment.ID,
+		Responsibility: authority.ResponsibilityReviewer, DecisionType: AssessmentReviewCommand, Materiality: 3,
+	})
+	if err != nil || !resolution.AllowsPrincipal(principalID) {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (s *AssessmentReviewService) addSubmission(ctx context.Context, view *AssessmentReviewView, request evidence.Request, submission evidence.Submission) error {

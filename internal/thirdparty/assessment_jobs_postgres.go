@@ -185,6 +185,107 @@ func (r *PostgresRepository) FailAssessmentSetupJob(ctx context.Context, job Ass
 	return value, nil
 }
 
+func (r *PostgresRepository) RequeueAssessmentSetup(ctx context.Context, record RequeueAssessmentSetupRecord) (AssessmentSetupJob, Assessment, error) {
+	if !validAssessmentIdentifiers(record.AssessmentID, record.ActorPrincipalID) || record.ExpectedVersion < 1 || record.QueuedAt.IsZero() {
+		return AssessmentSetupJob{}, Assessment{}, ErrInvalid
+	}
+	record.QueuedAt = record.QueuedAt.UTC()
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return AssessmentSetupJob{}, Assessment{}, fmt.Errorf("begin assessment setup retry: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	tenantID, err := resolveTenant(ctx, tx, record.TenantID)
+	if err != nil {
+		return AssessmentSetupJob{}, Assessment{}, err
+	}
+	job, err := scanAssessmentSetupJob(tx.QueryRow(ctx, `
+		SELECT `+assessmentSetupJobProjection+`
+		FROM third_party_assessment_jobs j
+		WHERE j.tenant_id=$1::uuid AND j.legal_entity_id::text=$2 AND j.assessment_id::text=$3 AND j.job_type='SETUP_REVIEW'
+		FOR UPDATE`, tenantID, record.LegalEntityID, record.AssessmentID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return AssessmentSetupJob{}, Assessment{}, ErrNotFound
+	}
+	if err != nil {
+		return AssessmentSetupJob{}, Assessment{}, fmt.Errorf("lock assessment setup retry job: %w", err)
+	}
+	current, err := lockAssessment(ctx, tx, tenantID, record.LegalEntityID, record.AssessmentID)
+	if err != nil {
+		return AssessmentSetupJob{}, Assessment{}, err
+	}
+	if current.Version != record.ExpectedVersion {
+		if current.Version == record.ExpectedVersion+1 {
+			var replay bool
+			err = tx.QueryRow(ctx, `
+				SELECT true FROM third_party_events
+				WHERE tenant_id=$1::uuid AND aggregate_type='THIRD_PARTY_ASSESSMENT' AND aggregate_id=$2::uuid
+				  AND aggregate_version=$3 AND event_type='AssessmentSetupRetryQueued'`, tenantID, current.ID, current.Version).Scan(&replay)
+			if err == nil && replay {
+				return job, current, nil
+			}
+			if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+				return AssessmentSetupJob{}, Assessment{}, fmt.Errorf("verify assessment setup retry replay: %w", err)
+			}
+		}
+		return AssessmentSetupJob{}, Assessment{}, ErrVersionConflict
+	}
+	if current.Status != AssessmentSetupPending || job.State != AssessmentJobFailed || job.LeaseToken != "" || job.LeaseExpiresAt != nil || !validAssessmentFailureCode(job.LastFailureCode) {
+		return AssessmentSetupJob{}, Assessment{}, ErrInvalidAssessmentTransition
+	}
+	previousFailureCode := job.LastFailureCode
+	job.State = AssessmentJobReady
+	job.Attempts = 0
+	job.AvailableAt = record.QueuedAt
+	job.LeaseToken = ""
+	job.LeaseExpiresAt = nil
+	job.LastFailureCode = ""
+	job.UpdatedAt = record.QueuedAt
+	commandTag, err := tx.Exec(ctx, `
+		UPDATE third_party_assessment_jobs
+		SET state='READY',attempts=0,available_at=$5,lease_token=NULL,lease_expires_at=NULL,last_failure_code='',updated_at=$5
+		WHERE id=$1::uuid AND tenant_id=$2::uuid AND legal_entity_id::text=$3 AND assessment_id::text=$4 AND state='FAILED'`,
+		job.ID, tenantID, record.LegalEntityID, record.AssessmentID, record.QueuedAt)
+	if err != nil {
+		return AssessmentSetupJob{}, Assessment{}, fmt.Errorf("requeue assessment setup job: %w", err)
+	}
+	if commandTag.RowsAffected() != 1 {
+		return AssessmentSetupJob{}, Assessment{}, ErrVersionConflict
+	}
+	current.Version++
+	current.UpdatedAt = record.QueuedAt
+	if err := updateAssessment(ctx, tx, tenantID, current); err != nil {
+		return AssessmentSetupJob{}, Assessment{}, err
+	}
+	if err := appendAssessmentSetupRetryEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, job.ID, previousFailureCode); err != nil {
+		return AssessmentSetupJob{}, Assessment{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return AssessmentSetupJob{}, Assessment{}, fmt.Errorf("commit assessment setup retry: %w", err)
+	}
+	return job, current, nil
+}
+
+func appendAssessmentSetupRetryEvent(ctx context.Context, tx pgx.Tx, tenantID string, assessment Assessment, actorID, jobID, failureCode string) error {
+	_, err := tx.Exec(ctx, `
+		INSERT INTO third_party_events(tenant_id,aggregate_type,aggregate_id,aggregate_version,actor_principal_id,event_type,payload,occurred_at)
+		VALUES($1::uuid,'THIRD_PARTY_ASSESSMENT',$2::uuid,$3,$4::uuid,'AssessmentSetupRetryQueued',
+			jsonb_build_object('status',$5::text,'relationship_id',$6::text,'matter_id',$7::text,'setup_job_id',$8::text,'previous_failure_code',$9::text),$10)`,
+		tenantID, assessment.ID, assessment.Version, actorID, assessment.Status, assessment.RelationshipID, assessment.ReviewMatterID, jobID, failureCode, assessment.UpdatedAt)
+	if err != nil {
+		return fmt.Errorf("append assessment setup retry event: %w", err)
+	}
+	_, err = tx.Exec(ctx, `
+		INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at)
+		VALUES($1::uuid,'THIRD_PARTY_ASSESSMENT',$2::uuid,'AssessmentSetupRetryQueued',
+			jsonb_build_object('version',$3::bigint,'status',$4::text,'relationship_id',$5::text,'matter_id',$6::text,'setup_job_id',$7::text,'previous_failure_code',$8::text),$9,$9)`,
+		tenantID, assessment.ID, assessment.Version, assessment.Status, assessment.RelationshipID, assessment.ReviewMatterID, jobID, failureCode, assessment.UpdatedAt)
+	if err != nil {
+		return fmt.Errorf("append assessment setup retry outbox event: %w", err)
+	}
+	return nil
+}
+
 func (r *PostgresRepository) ListAssessmentSetupJobs(ctx context.Context, scope Scope, assessmentID string) ([]AssessmentSetupJob, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT `+assessmentSetupJobProjection+`

@@ -440,6 +440,27 @@ func (r *MemoryAssessmentRepository) ListAssessmentRequestLinks(_ context.Contex
 	return links, nil
 }
 
+func (r *MemoryAssessmentRepository) ListAssessmentMatterLinks(_ context.Context, scope Scope, assessmentID string, limit int) ([]AssessmentMatterLink, error) {
+	assessmentID = strings.TrimSpace(assessmentID)
+	if !validAssessmentScope(scope) || !validAssessmentIdentifier(assessmentID) || limit < 1 || limit > assessmentReviewMaxMatters+1 {
+		return nil, ErrInvalid
+	}
+	r.assessmentMu.RLock()
+	defer r.assessmentMu.RUnlock()
+	assessment, ok := r.assessments[assessmentID]
+	if !ok || assessment.TenantID != scope.TenantID || assessment.LegalEntityID != scope.LegalEntityID {
+		return nil, ErrNotFound
+	}
+	values := []AssessmentMatterLink{}
+	if assessment.ReviewMatterID != "" {
+		values = append(values, AssessmentMatterLink{
+			Scope: scope, AssessmentID: assessment.ID, MatterID: assessment.ReviewMatterID,
+			Kind: AssessmentMatterReview, CreatedAt: assessment.UpdatedAt,
+		})
+	}
+	return values, nil
+}
+
 func (r *MemoryAssessmentRepository) ResolveAssessmentRequest(_ context.Context, tenantID string, origin evidence.RequestOrigin, requestID string) (AssessmentSubmissionTarget, error) {
 	tenantID, requestID = strings.TrimSpace(tenantID), strings.TrimSpace(requestID)
 	origin.Type, origin.ID = strings.ToUpper(strings.TrimSpace(origin.Type)), strings.TrimSpace(origin.ID)

@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
@@ -156,6 +157,90 @@ func TestStartAndGetCurrentVendorAssessmentUseVerifiedRouteScope(t *testing.T) {
 	}
 }
 
+func TestRetryVendorAssessmentSetupRequeuesSameTerminalJobAndIsReplaySafe(t *testing.T) {
+	fixture := newAssessmentHTTPFixture(t, false)
+	assessment, terminal := terminalHTTPAssessmentSetup(t, fixture)
+	body := `{"expected_version":` + jsonInt(assessment.Version) + `,"actor_id":"forged-owner"}`
+
+	response := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+assessment.ID+"/setup/retry", strings.NewReader(body)))
+	if response.Code != http.StatusAccepted {
+		t.Fatalf("retry setup expected 202, got %d: %s", response.Code, response.Body.String())
+	}
+	var outcome thirdparty.AssessmentSetupRetryOutcome
+	if err := json.NewDecoder(response.Body).Decode(&outcome); err != nil {
+		t.Fatal(err)
+	}
+	if outcome.Assessment.ID != assessment.ID || outcome.Assessment.Version != assessment.Version+1 || outcome.Assessment.Status != thirdparty.AssessmentSetupPending || outcome.Setup.State != thirdparty.AssessmentJobReady || outcome.Setup.Attempts != 0 {
+		t.Fatalf("retry setup outcome = %#v", outcome)
+	}
+	jobs, err := fixture.repository.ListAssessmentSetupJobs(context.Background(), thirdparty.Scope{TenantID: assessment.TenantID, LegalEntityID: assessment.LegalEntityID}, assessment.ID)
+	if err != nil || len(jobs) != 1 || jobs[0].ID != terminal.ID {
+		t.Fatalf("retry setup jobs = (%#v, %v)", jobs, err)
+	}
+
+	replay := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(replay, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+assessment.ID+"/setup/retry", strings.NewReader(body)))
+	if replay.Code != http.StatusAccepted {
+		t.Fatalf("retry setup replay expected 202, got %d: %s", replay.Code, replay.Body.String())
+	}
+	var replayed thirdparty.AssessmentSetupRetryOutcome
+	if err := json.NewDecoder(replay.Body).Decode(&replayed); err != nil {
+		t.Fatal(err)
+	}
+	if replayed.Assessment.Version != outcome.Assessment.Version || replayed.Setup.State != outcome.Setup.State {
+		t.Fatalf("retry setup replay = %#v", replayed)
+	}
+}
+
+func TestRetryVendorAssessmentSetupRejectsStaleScopeUnknownFieldAndNonOwner(t *testing.T) {
+	fixture := newAssessmentHTTPFixture(t, false)
+	assessment, _ := terminalHTTPAssessmentSetup(t, fixture)
+	tests := []struct {
+		name string
+		body string
+		want int
+	}{
+		{name: "stale version", body: `{"expected_version":99}`, want: http.StatusConflict},
+		{name: "forged tenant", body: `{"expected_version":` + jsonInt(assessment.Version) + `,"tenant_id":"other-bank"}`, want: http.StatusForbidden},
+		{name: "forged legal entity", body: `{"expected_version":` + jsonInt(assessment.Version) + `,"legal_entity_id":"other-entity"}`, want: http.StatusForbidden},
+		{name: "unknown field", body: `{"expected_version":` + jsonInt(assessment.Version) + `,"retry_job":true}`, want: http.StatusBadRequest},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			response := httptest.NewRecorder()
+			fixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+assessment.ID+"/setup/retry", strings.NewReader(testCase.body)))
+			if response.Code != testCase.want {
+				t.Fatalf("expected %d, got %d: %s", testCase.want, response.Code, response.Body.String())
+			}
+		})
+	}
+
+	deniedService := thirdparty.NewAssessmentService(fixture.repository, &deniedAssessmentGuard{})
+	deniedHandler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a"),
+		ThirdParty: fixture.serviceRepositoryService(), ThirdPartyAssessments: deniedService,
+	})
+	response := httptest.NewRecorder()
+	deniedHandler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+assessment.ID+"/setup/retry", strings.NewReader(`{"expected_version":`+jsonInt(assessment.Version)+`}`)))
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("non-owner setup retry expected 403, got %d: %s", response.Code, response.Body.String())
+	}
+}
+
+func TestRetryVendorAssessmentSetupRouteRequiresOwnerMaterialAuthority(t *testing.T) {
+	routes := (&API{}).routes()
+	for _, route := range routes {
+		if route.Method == http.MethodPost && route.Path == "/api/v1/vendor-assessments/{id}/setup/retry" {
+			if route.Class != routeMaterialCommand || route.Command == nil || route.Command.Name != thirdparty.AssessmentSetupRetryCommand || route.Command.Policy.ObjectType != "THIRD_PARTY_ASSESSMENT" || route.Command.Policy.Responsibility != authority.ResponsibilityOwner {
+				t.Fatalf("setup retry route = %#v", route)
+			}
+			return
+		}
+	}
+	t.Fatal("setup retry route is missing")
+}
+
 func TestSendVendorAssessmentRequestBuildsLinkFromConfiguredBaseNotHost(t *testing.T) {
 	fixture := newAssessmentHTTPFixture(t, true)
 	deadline := time.Now().UTC().Add(7 * 24 * time.Hour).Format(time.RFC3339)
@@ -275,6 +360,31 @@ func (*deniedAssessmentGuard) Authorize(context.Context, commandauth.Request) (c
 
 func (fixture assessmentHTTPFixture) serviceRepositoryService() *thirdparty.Service {
 	return thirdparty.NewService(fixture.repository)
+}
+
+func terminalHTTPAssessmentSetup(t *testing.T, fixture assessmentHTTPFixture) (thirdparty.Assessment, thirdparty.AssessmentSetupJob) {
+	t.Helper()
+	now := time.Now().UTC()
+	ctx := identity.WithActor(context.Background(), identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "verified-owner", Kind: "PERSON", IssuedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour)})
+	form, err := fixture.forms.FormRevision(context.Background(), "bank", "form-1", 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment, err := fixture.service.StartAssessment(ctx, thirdparty.Actor{}, fixture.vendor.Relationship.ID, thirdparty.StartAssessmentInput{
+		RelationshipVersion: fixture.vendor.Relationship.Version, FormTemplateID: form.ID, FormTemplateVersion: form.Version, ReviewDueAt: now.Add(14 * 24 * time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	claimed, err := fixture.repository.ClaimAssessmentSetupJobs(context.Background(), "worker-terminal", assessment.CreatedAt, time.Minute, 1, 1)
+	if err != nil || len(claimed) != 1 {
+		t.Fatalf("claim terminal setup = (%#v, %v)", claimed, err)
+	}
+	terminal, err := fixture.repository.FailAssessmentSetupJob(context.Background(), claimed[0], 1, thirdparty.AssessmentSetupFailureMatter, assessment.CreatedAt.Add(time.Second), assessment.CreatedAt.Add(time.Minute))
+	if err != nil || terminal.State != thirdparty.AssessmentJobFailed {
+		t.Fatalf("terminal setup = (%#v, %v)", terminal, err)
+	}
+	return assessment, terminal
 }
 
 func sendHTTPVendorAssessmentRequest(t *testing.T, fixture assessmentHTTPFixture) thirdparty.SendRequestOutcome {

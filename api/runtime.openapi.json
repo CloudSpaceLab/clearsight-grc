@@ -75,7 +75,8 @@
     "/api/v1/vendors/{id}/assessments/current": { "get": { "operationId": "getCurrentVendorAssessment", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/vendor-assessments/{id}/send-request": { "post": { "operationId": "sendVendorAssessmentRequest", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/vendor-assessments/{id}/reissue-request": { "post": { "operationId": "reissueVendorAssessmentRequest", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
-    "/api/v1/vendor-assessments/{id}": { "get": { "operationId": "getVendorAssessmentReview", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+	"/api/v1/vendor-assessments/{id}/setup/retry": { "post": { "operationId": "retryVendorAssessmentSetup", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+	"/api/v1/vendor-assessments/{id}": { "get": { "operationId": "getVendorAssessmentReview", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/vendor-assessments/{id}/review/start": { "post": { "operationId": "startVendorAssessmentReview", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/vendor-assessments/{id}/complete": { "post": { "operationId": "completeVendorAssessment", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
 

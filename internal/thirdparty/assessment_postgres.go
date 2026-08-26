@@ -654,6 +654,36 @@ func (r *PostgresRepository) ListAssessmentRequestLinks(ctx context.Context, sco
 	return links, rows.Err()
 }
 
+func (r *PostgresRepository) ListAssessmentMatterLinks(ctx context.Context, scope Scope, assessmentID string, limit int) ([]AssessmentMatterLink, error) {
+	assessmentID = strings.TrimSpace(assessmentID)
+	if !validAssessmentScope(scope) || !validAssessmentIdentifier(assessmentID) || limit < 1 || limit > assessmentReviewMaxMatters+1 {
+		return nil, ErrInvalid
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT t.slug,l.legal_entity_id::text,l.assessment_id::text,l.matter_id::text,l.link_kind,l.created_at
+		FROM third_party_assessment_matter_links l
+		JOIN tenants t ON t.id=l.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND l.legal_entity_id::text=$2 AND l.assessment_id::text=$3
+		ORDER BY l.created_at,l.matter_id
+		LIMIT $4`, scope.TenantID, scope.LegalEntityID, assessmentID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list assessment matters: %w", err)
+	}
+	defer rows.Close()
+	values := make([]AssessmentMatterLink, 0)
+	for rows.Next() {
+		var value AssessmentMatterLink
+		if err := rows.Scan(&value.TenantID, &value.LegalEntityID, &value.AssessmentID, &value.MatterID, &value.Kind, &value.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan assessment matter link: %w", err)
+		}
+		values = append(values, value)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list assessment matters: %w", err)
+	}
+	return values, nil
+}
+
 func (r *PostgresRepository) ResolveAssessmentRequest(ctx context.Context, tenantID string, origin evidence.RequestOrigin, requestID string) (AssessmentSubmissionTarget, error) {
 	tenantID, requestID = strings.TrimSpace(tenantID), strings.TrimSpace(requestID)
 	origin.Type, origin.ID = strings.ToUpper(strings.TrimSpace(origin.Type)), strings.TrimSpace(origin.ID)

@@ -21,6 +21,7 @@ const (
 	AssessmentSetupFailureMatter            = "MATTER_CREATE_FAILED"
 	AssessmentSetupFailureCompletion        = "ASSESSMENT_SETUP_FAILED"
 	AssessmentSetupFailureAttemptsExhausted = "ATTEMPTS_EXHAUSTED"
+	AssessmentSetupRetryCommand             = "thirdparty.assessment.setup.retry"
 )
 
 var ErrAssessmentJobLeaseLost = errors.New("third-party assessment job lease is no longer current")
@@ -53,6 +54,15 @@ type AssessmentSetupStatus struct {
 	TerminalAt    *time.Time         `json:"terminal_at,omitempty"`
 	FailureCode   string             `json:"failure_code,omitempty"`
 	UpdatedAt     time.Time          `json:"updated_at"`
+}
+
+type RetryAssessmentSetupInput struct {
+	ExpectedVersion int64 `json:"expected_version"`
+}
+
+type AssessmentSetupRetryOutcome struct {
+	Assessment Assessment            `json:"assessment"`
+	Setup      AssessmentSetupStatus `json:"setup"`
 }
 
 type AssessmentSetupRepository interface {

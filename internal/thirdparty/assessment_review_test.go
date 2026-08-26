@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
@@ -47,7 +48,7 @@ type assessmentReviewMatterStub struct {
 	values []AssessmentReviewMatter
 }
 
-func (s assessmentReviewMatterStub) ListAssessmentReviewMatters(_ context.Context, _ Scope, _ string, _ int) ([]AssessmentReviewMatter, error) {
+func (s assessmentReviewMatterStub) ListAssessmentReviewMatters(_ context.Context, _ Actor, _ Scope, _ string, _ int) ([]AssessmentReviewMatter, error) {
 	return append([]AssessmentReviewMatter(nil), s.values...), nil
 }
 
@@ -175,6 +176,16 @@ func TestAssessmentReviewReadOmitsProtectedDeliveryAndStorageFields(t *testing.T
 		t.Fatal(err)
 	}
 	serialized := string(raw)
+	for _, required := range []string{`"provisional_score":`, `"matters":[`, `"artifact_status":"AVAILABLE"`, `"expires_on":"2027-05-31"`, `"status":"OPEN"`} {
+		if !strings.Contains(serialized, required) {
+			t.Fatalf("review view omitted canonical reviewer field %s: %s", required, serialized)
+		}
+	}
+	for _, stale := range []string{`"score_details"`, `"findings"`, `"valid_until"`} {
+		if strings.Contains(serialized, stale) {
+			t.Fatalf("review view retained stale reviewer field %s: %s", stale, serialized)
+		}
+	}
 	for _, protected := range []string{"vendor@example.test", "session-secret", "invitation-secret", "tenant/request/storage-key", "reviewer private note", "submitted_by", "storage_key", "invitation_id", "session_id"} {
 		if strings.Contains(serialized, protected) {
 			t.Fatalf("review view exposed protected value %q: %s", protected, serialized)
@@ -185,6 +196,7 @@ func TestAssessmentReviewReadOmitsProtectedDeliveryAndStorageFields(t *testing.T
 func TestAssessmentReviewReadReturnsEmptyMattersWhenReaderIsUnavailable(t *testing.T) {
 	service, actor, assessment, reader := assessmentReviewFixture(t)
 	service = NewAssessmentReviewService(service.assessments, service.links, reader, nil)
+	configureAssessmentReviewTestAuthority(service, assessment.ID, actor.PrincipalID)
 	view, err := service.GetReview(context.Background(), actor, assessment.ID)
 	if err != nil {
 		t.Fatal(err)
@@ -199,6 +211,45 @@ func TestAssessmentReviewReadFailsClosedOnMatterProjectionScopeMismatch(t *testi
 	service.matters = assessmentReviewMatterStub{values: []AssessmentReviewMatter{{TenantID: "bank-b", LegalEntityID: actor.LegalEntityID, AssessmentID: assessment.ID, MatterID: "matter-2", Type: "VENDOR_DEFICIENCY", Status: "OPEN", Title: "Unscoped matter"}}}
 	if _, err := service.GetReview(context.Background(), actor, assessment.ID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected mismatched matter scope to fail closed, got %v", err)
+	}
+}
+
+func TestAssessmentReviewReadUsesCurrentReviewerRouteAndRejectsRevokedReviewer(t *testing.T) {
+	service, _, assessment, _ := assessmentReviewFixture(t)
+	service.ConfigureAuthority(authority.NewResolver("delegated-review-test", []authority.Rule{{
+		ID: "assessment-reviewer", TenantID: "bank-a", LegalEntityID: "entity-a", ObjectType: assessmentObjectType, ObjectID: assessment.ID,
+		Responsibility: authority.ResponsibilityReviewer, DecisionType: AssessmentReviewCommand, MinMateriality: 3,
+		CandidatePrincipals: []authority.Principal{{ID: "reviewer-a", Kind: "PERSON"}, {ID: "delegated-reviewer", Kind: "PERSON"}}, ResolutionStrategy: "CANDIDATE_SET", Priority: 1,
+	}}))
+	delegated := Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "delegated-reviewer"}
+	if _, err := service.GetReview(context.Background(), delegated, assessment.ID); err != nil {
+		t.Fatalf("current delegated reviewer should be allowed: %v", err)
+	}
+
+	service.ConfigureAuthority(authority.NewResolver("reviewer-revoked-test", []authority.Rule{{
+		ID: "assessment-reviewer", TenantID: "bank-a", LegalEntityID: "entity-a", ObjectType: assessmentObjectType, ObjectID: assessment.ID,
+		Responsibility: authority.ResponsibilityReviewer, DecisionType: AssessmentReviewCommand, MinMateriality: 3,
+		Principal: authority.Principal{ID: "delegated-reviewer", Kind: "PERSON"}, Priority: 1,
+	}}))
+	revoked := Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "reviewer-a"}
+	if _, err := service.GetReview(context.Background(), revoked, assessment.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("reviewer removed from the current route must be denied, got %v", err)
+	}
+	if _, err := service.GetReview(context.Background(), delegated, assessment.ID); err != nil {
+		t.Fatalf("current replacement reviewer should remain allowed: %v", err)
+	}
+}
+
+func TestAssessmentReviewReadAllowsStarterAndCurrentRelationshipOwner(t *testing.T) {
+	service, _, assessment, _ := assessmentReviewFixture(t)
+	service.authority = nil
+	for _, principalID := range []string{"starter-a", "owner-a"} {
+		t.Run(principalID, func(t *testing.T) {
+			actor := Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: principalID}
+			if _, err := service.GetReview(context.Background(), actor, assessment.ID); err != nil {
+				t.Fatalf("assessment starter or current relationship owner should be allowed: %v", err)
+			}
+		})
 	}
 }
 
@@ -221,11 +272,16 @@ func assessmentReviewFixture(t *testing.T) (*AssessmentReviewService, Actor, Ass
 		ID: "assessment-1", TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, RelationshipID: "relationship-1",
 		ReviewKind: AssessmentReviewOnboarding, StableEpisodeKey: "episode-1", Status: AssessmentCompleted,
 		FormTemplateID: "form-1", FormTemplateVersion: 3, CurrentRequestID: "request-1", SubmissionID: "submission-1",
-		ReviewMatterID: "matter-review", ReviewDueAt: now.Add(48 * time.Hour), StartedByPrincipalID: "owner-a", StartedAt: now.Add(-24 * time.Hour),
+		ReviewMatterID: "matter-review", ReviewDueAt: now.Add(48 * time.Hour), StartedByPrincipalID: "starter-a", StartedAt: now.Add(-24 * time.Hour),
 		Conclusion: AssessmentUnsatisfactory, ConclusionRationale: "Material gaps require remediation.", ReviewerPrincipalID: actor.PrincipalID,
 		Version: 6, CreatedAt: now.Add(-24 * time.Hour), UpdatedAt: now,
 	}
 	assessmentRepo := NewMemoryAssessmentRepository()
+	assessmentRepo.vendors["vendor-1"] = Vendor{ID: "vendor-1", TenantID: actor.TenantID, LegalName: "Vendor Limited", Status: VendorActive, Version: 1}
+	assessmentRepo.relationships[assessment.RelationshipID] = Relationship{
+		ID: assessment.RelationshipID, TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, VendorID: "vendor-1",
+		ServiceName: "Payment processing", BusinessOwnerPrincipalID: "owner-a", Status: RelationshipUnderReview, Version: 1,
+	}
 	assessmentRepo.assessments[assessment.ID] = assessment
 	assessmentRepo.requestLinks[assessment.ID] = []AssessmentRequestLink{{
 		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, AssessmentID: assessment.ID, RequestID: "request-1",
@@ -277,7 +333,17 @@ func assessmentReviewFixture(t *testing.T) (*AssessmentReviewService, Actor, Ass
 	reader.submissions["submission-1"].AnswerProvenance["access_control"] = evidence.AnswerProvenance{Origin: evidence.AnswerRespondentCorrected, SourceValue: &sourceValue}
 	assessmentService := NewAssessmentService(assessmentRepo, nil)
 	matters := assessmentReviewMatterStub{values: []AssessmentReviewMatter{{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, AssessmentID: assessment.ID, MatterID: "matter-1", Type: "VENDOR_DEFICIENCY", Status: "OPEN", Title: "Access-control evidence gap"}}}
-	return NewAssessmentReviewService(assessmentService, assessmentRepo, reader, matters), actor, assessment, reader
+	service := NewAssessmentReviewService(assessmentService, assessmentRepo, reader, matters)
+	configureAssessmentReviewTestAuthority(service, assessment.ID, actor.PrincipalID)
+	return service, actor, assessment, reader
+}
+
+func configureAssessmentReviewTestAuthority(service *AssessmentReviewService, assessmentID, principalID string) {
+	service.ConfigureAuthority(authority.NewResolver("review-test", []authority.Rule{{
+		ID: "assessment-reviewer", TenantID: "bank-a", LegalEntityID: "entity-a", ObjectType: assessmentObjectType, ObjectID: assessmentID,
+		Responsibility: authority.ResponsibilityReviewer, DecisionType: AssessmentReviewCommand, MinMateriality: 3,
+		Principal: authority.Principal{ID: principalID, Kind: "PERSON"}, Priority: 1,
+	}}))
 }
 
 func reviewAnswerByID(t *testing.T, answers []AssessmentReviewAnswer, fieldID string) AssessmentReviewAnswer {
