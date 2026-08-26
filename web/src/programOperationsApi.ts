@@ -22,6 +22,7 @@ export type ProgramOperations = {
   program_id: string;
   program_version: number;
   authority_available: boolean;
+  responsibility_labels_complete?: boolean;
   operations: ProgramOperation[];
   responsible_parties?: RecordResponsibleParty[];
   generated_at: string;

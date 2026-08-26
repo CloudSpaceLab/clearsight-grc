@@ -46,15 +46,17 @@ func (a *API) getProgramOperations(w http.ResponseWriter, r *http.Request) {
 func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, aggregate continuity.ProgramAggregate, now time.Time) programOperationsResponse {
 	response := programOperationsResponse{
 		ProgramID: aggregate.Program.ID, ProgramVersion: aggregate.Program.Version,
-		AuthorityAvailable: a.deps.Authority != nil, Operations: []RecordOperation{}, GeneratedAt: now.UTC(),
+		AuthorityAvailable: a.deps.Authority != nil, ResponsibilityLabelsComplete: true, Operations: []RecordOperation{}, GeneratedAt: now.UTC(),
 	}
 	exactActor, err := a.exactRecordActor(ctx, actor, aggregate.Program.TenantID, aggregate.Program.TenantID, aggregate.Program.LegalEntityID)
 	if err != nil {
 		response.AuthorityAvailable = false
+		response.ResponsibilityLabelsComplete = false
 		return response
 	}
 	actor = exactActor
 	ctx = identity.WithActor(ctx, actor)
+	ctx, response.ResponsibilityLabelsComplete = a.withPrincipalLabels(ctx, actor, programResponsibilityPrincipalIDs(aggregate))
 	if owner := a.storedProgramResponsibleParty(ctx, actor, aggregate.Program.OwnerPrincipalID, authority.ResponsibilityOwner); owner != nil {
 		response.ResponsibleParties = append(response.ResponsibleParties, *owner)
 	}
@@ -270,11 +272,26 @@ func (a *API) storedProgramResponsibleParty(ctx context.Context, actor identity.
 }
 
 func (a *API) storedProgramSubresourceParty(ctx context.Context, actor identity.Actor, principalID, scope, subresourceID string, responsibility authority.Responsibility) *RecordResponsibleParty {
-	principal := a.assignedPrincipal(ctx, actor, authority.Resolution{}, principalID)
-	if principal == nil || strings.TrimSpace(principal.DisplayName) == "" {
+	if strings.TrimSpace(principalID) == "" {
 		return nil
 	}
+	principal := a.assignedPrincipal(ctx, actor, authority.Resolution{}, principalID)
+	if principal == nil || strings.TrimSpace(principal.DisplayName) == "" {
+		return &RecordResponsibleParty{Scope: scope, SubresourceID: subresourceID, Responsibility: string(responsibility), DisplayName: unavailableResponsiblePartyName}
+	}
 	return &RecordResponsibleParty{Scope: scope, SubresourceID: subresourceID, Responsibility: string(responsibility), DisplayName: principal.DisplayName, Kind: principal.Kind}
+}
+
+func programResponsibilityPrincipalIDs(aggregate continuity.ProgramAggregate) []string {
+	values := make([]string, 0, len(aggregate.ControlImplementations)+len(aggregate.EvidenceAssessments)+2)
+	values = append(values, aggregate.Program.OwnerPrincipalID, aggregate.Program.AuthorityPrincipalID)
+	for _, safeguard := range aggregate.ControlImplementations {
+		values = append(values, safeguard.OwnerPrincipalID)
+	}
+	for _, assessment := range aggregate.EvidenceAssessments {
+		values = append(values, assessment.AssessedBy)
+	}
+	return values
 }
 
 type programOperationSpec struct {
@@ -430,6 +447,8 @@ func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor,
 		operation.Reason = "You hold the current responsibility for this Program and can complete this action."
 	} else if operation.AssignedTo != nil {
 		operation.Reason = fmt.Sprintf("Assigned to %s for the current Program state.", operation.AssignedTo.DisplayName)
+	} else if strings.TrimSpace(spec.AssignedPrincipalID) != "" {
+		operation.Reason = "This action has a recorded assignee, but their name is unavailable. Your signed-in responsibility does not match the stored assignment."
 	} else if requiresStoredPrincipal {
 		operation.Reason = "Assign a Program owner before this action can be completed."
 	} else {

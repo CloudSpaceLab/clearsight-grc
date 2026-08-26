@@ -31,19 +31,21 @@ type RecordResponsibleParty struct {
 }
 
 type matterOperationsResponse struct {
-	MatterID           string                   `json:"matter_id"`
-	MatterVersion      int64                    `json:"matter_version"`
-	AuthorityAvailable bool                     `json:"authority_available"`
-	Operations         []RecordOperation        `json:"operations"`
-	ResponsibleParties []RecordResponsibleParty `json:"responsible_parties,omitempty"`
-	GeneratedAt        time.Time                `json:"generated_at"`
+	MatterID                     string                   `json:"matter_id"`
+	MatterVersion                int64                    `json:"matter_version"`
+	AuthorityAvailable           bool                     `json:"authority_available"`
+	Operations                   []RecordOperation        `json:"operations"`
+	ResponsibleParties           []RecordResponsibleParty `json:"responsible_parties,omitempty"`
+	ResponsibilityLabelsComplete bool                     `json:"responsibility_labels_complete"`
+	GeneratedAt                  time.Time                `json:"generated_at"`
 }
 
 type programOperationsResponse struct {
-	ProgramID          string                   `json:"program_id"`
-	ProgramVersion     int64                    `json:"program_version"`
-	AuthorityAvailable bool                     `json:"authority_available"`
-	Operations         []RecordOperation        `json:"operations"`
-	ResponsibleParties []RecordResponsibleParty `json:"responsible_parties,omitempty"`
-	GeneratedAt        time.Time                `json:"generated_at"`
+	ProgramID                    string                   `json:"program_id"`
+	ProgramVersion               int64                    `json:"program_version"`
+	AuthorityAvailable           bool                     `json:"authority_available"`
+	Operations                   []RecordOperation        `json:"operations"`
+	ResponsibleParties           []RecordResponsibleParty `json:"responsible_parties,omitempty"`
+	ResponsibilityLabelsComplete bool                     `json:"responsibility_labels_complete"`
+	GeneratedAt                  time.Time                `json:"generated_at"`
 }

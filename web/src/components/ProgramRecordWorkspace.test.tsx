@@ -196,7 +196,7 @@ describe("Program record workspace", () => {
 	  program: { ...aggregate.program, status: "RETIRED", owner_principal_id: "retired-owner-id" },
 	});
 	vi.mocked(loadProgramOperations).mockResolvedValue({
-	  program_id: "program-1", program_version: 4, authority_available: true, generated_at: "2026-08-25T10:00:00Z",
+	  program_id: "program-1", program_version: 4, authority_available: true, responsibility_labels_complete: false, generated_at: "2026-08-25T10:00:00Z",
 	  operations: [],
 	  responsible_parties: [
 		{ scope: "RECORD", responsibility: "ACCOUNTABLE_OWNER", display_name: "Former Data Protection Officer", kind: "PERSON" },
@@ -209,6 +209,7 @@ describe("Program record workspace", () => {
 	expect(await screen.findByRole("heading", { name: "Nigeria data protection" })).toBeTruthy();
 	expect(screen.getAllByText("Former Data Protection Officer").length).toBeGreaterThan(0);
 	expect(screen.getByText("Chief Risk Officer")).toBeTruthy();
+	expect(screen.getByText("Some assignee names could not be loaded.")).toBeTruthy();
 	expect(screen.queryByText("Recorded approval authority unavailable")).toBeNull();
 	expect(screen.queryByText("retired-owner-id")).toBeNull();
 	expect(screen.queryByRole("button", { name: /Edit Program details|Change Program owner|Approve Program activation|Change Program status/ })).toBeNull();
@@ -588,7 +589,7 @@ describe("Program record workspace", () => {
 	vi.mocked(recordProgramEvidenceAssessment).mockResolvedValue(value);
 	vi.mocked(loadProgramOperations).mockResolvedValue({ ...operations, operations: [
 	  { command: "program.evidence.define", label: "Define an evidence check", responsibility: "ACCOUNTABLE_OWNER", can_act: true, reason: "You hold the current owner responsibility." },
-	  { command: "program.evidence.assess", label: "Record evidence check results", responsibility: "REVIEWER", can_act: true, assigned_to: { id: "reviewer-1", display_name: "Compliance assurance reviewer", kind: "PERSON", role: "Reviewer" }, reason: "You hold the current reviewer responsibility." },
+	  { command: "program.evidence.assess", subresource_id: "contract-1", label: "Record a result for Annual return filing evidence", responsibility: "REVIEWER", can_act: true, assigned_to: { id: "reviewer-1", display_name: "Compliance assurance reviewer", kind: "PERSON", role: "Reviewer" }, reason: "You hold the current reviewer responsibility." },
 	] });
 	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
 	await screen.findByRole("heading", { name: "Evidence checks and results" });

@@ -46,16 +46,18 @@ func (a *API) getMatterOperations(w http.ResponseWriter, r *http.Request) {
 func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, aggregate continuity.MatterAggregate, now time.Time) matterOperationsResponse {
 	response := matterOperationsResponse{
 		MatterID: aggregate.Matter.ID, MatterVersion: aggregate.Matter.Version,
-		AuthorityAvailable: a.deps.Authority != nil, Operations: []RecordOperation{}, GeneratedAt: now.UTC(),
+		AuthorityAvailable: a.deps.Authority != nil, ResponsibilityLabelsComplete: true, Operations: []RecordOperation{}, GeneratedAt: now.UTC(),
 	}
 	exactActor, err := a.exactRecordActor(ctx, actor, aggregate.Matter.TenantID, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID)
 	if err != nil {
 		response.AuthorityAvailable = false
+		response.ResponsibilityLabelsComplete = false
 		response.ResponsibleParties = nil
 		return response
 	}
 	actor = exactActor
 	ctx = identity.WithActor(ctx, actor)
+	ctx, response.ResponsibilityLabelsComplete = a.withPrincipalLabels(ctx, actor, matterResponsibilityPrincipalIDs(aggregate))
 	response.ResponsibleParties = a.matterResponsibleParties(ctx, actor, aggregate)
 	specs := make([]recordOperationSpec, 0, 16+len(aggregate.Actions)*3+len(aggregate.VerificationContracts)*3)
 	add := func(spec recordOperationSpec) {
@@ -316,6 +318,8 @@ func (a *API) resolveMatterOperation(ctx context.Context, actor identity.Actor, 
 		operation.Reason = "You hold the current responsibility for this issue and can complete this action."
 	} else if operation.AssignedTo != nil {
 		operation.Reason = fmt.Sprintf("Assigned to %s for the current issue state.", operation.AssignedTo.DisplayName)
+	} else if strings.TrimSpace(spec.RequiredPrincipalID) != "" {
+		operation.Reason = "This action has a recorded assignee, but their name is unavailable. Your signed-in responsibility does not match the stored assignment."
 	} else if requiresStoredPrincipal {
 		operation.Reason = "Assign an owner before this issue action can be completed."
 	} else {
@@ -350,6 +354,9 @@ func (a *API) assignedPrincipal(ctx context.Context, actor identity.Actor, resol
 			return &value
 		}
 	}
+	if principal, cached := cachedPrincipalLabel(ctx, requiredID); cached {
+		return principal
+	}
 	if a.deps.Access != nil {
 		resolved, err := a.deps.Access.ResolvePrincipal(ctx, actor.TenantID, requiredID, actor.LegalEntityID)
 		if err == nil {
@@ -357,6 +364,21 @@ func (a *API) assignedPrincipal(ctx context.Context, actor identity.Actor, resol
 		}
 	}
 	return nil
+}
+
+func matterResponsibilityPrincipalIDs(aggregate continuity.MatterAggregate) []string {
+	values := make([]string, 0, len(aggregate.Actions)+len(aggregate.VerificationContracts)+len(aggregate.VerificationResults)+1)
+	values = append(values, aggregate.Matter.OwnerPrincipalID)
+	for _, action := range aggregate.Actions {
+		values = append(values, action.OwnerPrincipalID)
+	}
+	for _, contract := range aggregate.VerificationContracts {
+		values = append(values, contract.AuthorityPrincipalID)
+	}
+	for _, result := range aggregate.VerificationResults {
+		values = append(values, result.ReviewerPrincipalID)
+	}
+	return values
 }
 
 func (a *API) matterResponsibleParties(ctx context.Context, actor identity.Actor, aggregate continuity.MatterAggregate) []RecordResponsibleParty {
@@ -384,9 +406,12 @@ func (a *API) matterResponsibleParties(ctx context.Context, actor identity.Actor
 }
 
 func (a *API) storedResponsibleParty(ctx context.Context, actor identity.Actor, principalID, scope, subresourceID string, responsibility authority.Responsibility) *RecordResponsibleParty {
+	if strings.TrimSpace(principalID) == "" {
+		return nil
+	}
 	principal := a.assignedPrincipal(ctx, actor, authority.Resolution{}, principalID)
 	if principal == nil || strings.TrimSpace(principal.DisplayName) == "" {
-		return nil
+		return &RecordResponsibleParty{Scope: scope, SubresourceID: subresourceID, Responsibility: string(responsibility), DisplayName: unavailableResponsiblePartyName}
 	}
 	return &RecordResponsibleParty{
 		Scope: scope, SubresourceID: subresourceID, Responsibility: string(responsibility),

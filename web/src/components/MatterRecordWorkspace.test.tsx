@@ -229,7 +229,7 @@ describe("Matter record workspace", () => {
       actions: [{ ...detail.actions[0]!, status: "IMPLEMENTED", owner_principal_id: "terminal-action-owner-id" }],
     });
     vi.mocked(loadMatterOperations).mockResolvedValue({
-      matter_id: "matter-1", matter_version: 7, authority_available: false, generated_at: "2026-08-25T09:00:00Z",
+      matter_id: "matter-1", matter_version: 7, authority_available: false, responsibility_labels_complete: false, generated_at: "2026-08-25T09:00:00Z",
       operations: [],
       responsible_parties: [
         { scope: "RECORD", responsibility: "ACCOUNTABLE_OWNER", display_name: "Privacy Program Owner", kind: "PERSON" },
@@ -242,6 +242,7 @@ describe("Matter record workspace", () => {
     expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
     expect(screen.getAllByText("Privacy Program Owner").length).toBeGreaterThan(0);
     expect(screen.getByText("Annual Return Lead")).toBeTruthy();
+    expect(screen.getByText("Some assignee names could not be loaded.")).toBeTruthy();
     expect(screen.queryByText(/terminal-owner-id|terminal-action-owner-id/)).toBeNull();
     expect(screen.queryByRole("button", { name: /Edit issue details|Change issue owner|Edit Update the annual return evidence checklist|Change owner for Update the annual return evidence checklist|Update status for Update the annual return evidence checklist/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Change issue status" })).toBeNull();
