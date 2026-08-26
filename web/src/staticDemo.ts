@@ -1,6 +1,7 @@
 import type { CoverageDecision, DocumentCoverage, DocumentImport, ProposalStatus } from "./documentTypes";
 import type { FormTemplate } from "./monitoringTypes";
 import type { VendorAssessment, VendorAssessmentReviewView } from "./vendorAssessmentTypes";
+import { normalizeWebsiteDomain } from "./vendorIdentity";
 import type { VendorRelationshipLink } from "./vendorLinkTypes";
 import type { VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "./vendorTypes";
 import type { VendorWorkRequest, VendorWorkResponseView, VendorWorkSendOutcome } from "./vendorWorkTypes";
@@ -397,7 +398,10 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     const input = parseBody(init) as Record<string, string | number | undefined>;
     if (input.expected_version !== current.vendor.version) throw new StaticDemoHTTPError(409, "vendor_identity_changed", "The vendor details changed before this action was recorded.");
     if (!String(input.legal_name ?? "").trim()) throw new StaticDemoHTTPError(422, "vendor_identity_invalid", "Enter the vendor's legal name.");
-    const updatedVendor = { ...current.vendor, legal_name: String(input.legal_name).trim(), trading_name: input.trading_name ? String(input.trading_name) : undefined, registration_ref: input.registration_ref ? String(input.registration_ref) : undefined, jurisdiction: input.jurisdiction ? String(input.jurisdiction) : undefined, website_domain: input.website_domain ? String(input.website_domain) : undefined, updated_at: now, version: current.vendor.version + 1 };
+    const websiteInput = String(input.website_domain ?? "").trim();
+    const websiteDomain = normalizeWebsiteDomain(websiteInput);
+    if (websiteInput && !websiteDomain) throw new StaticDemoHTTPError(422, "vendor_identity_invalid", "Enter the website hostname only, without a scheme, path, credentials, port or IP address.");
+    const updatedVendor = { ...current.vendor, legal_name: String(input.legal_name).trim(), trading_name: input.trading_name ? String(input.trading_name) : undefined, registration_ref: input.registration_ref ? String(input.registration_ref) : undefined, jurisdiction: input.jurisdiction ? String(input.jurisdiction) : undefined, website_domain: websiteDomain, updated_at: now, version: current.vendor.version + 1 };
     if (updatedVendor.website_domain !== current.vendor.website_domain) vendorBrand = { state: updatedVendor.website_domain ? "PENDING" : "UNAVAILABLE", version: vendorBrand.version + 1, event_version: vendorBrand.event_version + 1, updated_at: now };
     vendorRelationships = vendorRelationships.map((item) => item.vendor.id === vendorID ? { ...item, vendor: updatedVendor, brand: clone(vendorBrand) } : item);
     return clone({ vendor: updatedVendor, brand: vendorBrand }) as T;

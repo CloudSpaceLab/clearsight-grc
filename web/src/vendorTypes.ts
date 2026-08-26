@@ -52,6 +52,14 @@ export type VendorRelationship = {
 export type VendorRelationshipAggregate = { vendor: Vendor; relationship: VendorRelationship; brand?: VendorBrandPresentation };
 export type VendorRelationshipPage = { items: VendorRelationshipAggregate[]; next_cursor?: string };
 export type VendorIdentityPresentation = { vendor: Vendor; brand: VendorBrandPresentation };
+export type CommittedCommandReceipt = {
+  status: "COMMITTED";
+  aggregate_type: string;
+  aggregate_id: string;
+  version: number;
+  response_degraded: true;
+};
+export type VendorIdentityMutationOutcome = VendorIdentityPresentation | CommittedCommandReceipt;
 
 export type CreateVendorRelationshipInput = {
   existing_relationship_id?: string;

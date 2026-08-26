@@ -151,6 +151,56 @@ describe("static stakeholder demo transport", () => {
     expect(restored.brand).toMatchObject({ state: "PENDING", version: approved.brand.version + 1 });
   });
 
+  it("provides deterministic vendor-brand presentation fixtures for rendered review", async () => {
+    const { StaticDemoHTTPError, staticDemoRequest } = await demo();
+    type Presentation = { vendor: { id: string; website_domain?: string }; brand: { state: string; source?: string; asset_token?: string; version: number } };
+    const expected = [
+      ["vendor-brand-website", { state: "WEBSITE_ICON", source: "VENDOR_WEBSITE", asset_token: "website-1" }],
+      ["vendor-brand-approved", { state: "APPROVED_LOGO", source: "APPROVED_UPLOAD", asset_token: "approved-1" }],
+      ["vendor-brand-pending", { state: "PENDING" }],
+      ["vendor-brand-unavailable", { state: "UNAVAILABLE" }],
+      ["vendor-brand-broken", { state: "WEBSITE_ICON", source: "VENDOR_WEBSITE", asset_token: "broken-1" }],
+    ] as const;
+
+    for (const [fixture, brand] of expected) {
+      window.history.replaceState(null, "", `/?fixture=${fixture}`);
+      const page = await staticDemoRequest<{ items: Array<{ vendor: { id: string }; brand: Presentation["brand"] }> }>("/api/v1/vendors?limit=50");
+      expect(page.items[0]?.brand).toMatchObject(brand);
+      const identity = await staticDemoRequest<Presentation>(`/api/v1/vendor-identities/${page.items[0]!.vendor.id}`);
+      expect(identity.brand).toMatchObject(brand);
+    }
+
+    window.history.replaceState(null, "", "/?fixture=vendor-identity-brand-errors");
+    const current = await staticDemoRequest<Presentation>("/api/v1/vendor-identities/vendor-acme-processing");
+    await expect(staticDemoRequest("/api/v1/vendor-identities/vendor-acme-processing", { method: "PUT", body: JSON.stringify({ expected_version: 1, legal_name: "Acme Processing Limited", website_domain: "acme.example" }) })).rejects.toMatchObject({ status: 409, code: "vendor_identity_changed" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
+    const logo = new File([new Uint8Array([137, 80, 78, 71])], "approved.png", { type: "image/png" });
+    await expect(staticDemoRequest("/api/v1/vendor-identities/vendor-acme-processing/brand", { method: "PUT", headers: { "If-Match": `"${current.brand.version}"`, "Content-Type": "image/png", "Idempotency-Key": "vendor-brand-static-forbidden" }, body: logo })).rejects.toMatchObject({ status: 403, code: "permission_denied" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
+  });
+
+  it("applies the production website-hostname rules to vendor identity updates", async () => {
+    const { StaticDemoHTTPError, staticDemoRequest } = await demo();
+    const current = await staticDemoRequest<{ vendor: { id: string; legal_name: string; version: number } }>("/api/v1/vendor-identities/vendor-acme-processing");
+    const canonical = await staticDemoRequest<{ vendor: { website_domain?: string; version: number } }>("/api/v1/vendor-identities/vendor-acme-processing", { method: "PUT", body: JSON.stringify({ expected_version: current.vendor.version, legal_name: current.vendor.legal_name, website_domain: "BÜCHER.Example" }) });
+    expect(canonical.vendor.website_domain).toBe("xn--bcher-kva.example");
+    for (const value of ["vendor.example.", "vendor.example\\path", "%76endor.example", "127.1"]) {
+      await expect(staticDemoRequest("/api/v1/vendor-identities/vendor-acme-processing", { method: "PUT", body: JSON.stringify({ expected_version: canonical.vendor.version, legal_name: current.vendor.legal_name, website_domain: value }) })).rejects.toMatchObject({ status: 422, code: "vendor_identity_invalid" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
+    }
+  });
+
+  it("restores a website icon or monogram state when an approved fixture logo is removed", async () => {
+    const { staticDemoRequest } = await demo();
+    type Presentation = { vendor: { id: string }; brand: { state: string; source?: string; asset_token?: string; version: number } };
+    for (const [fixture, expected] of [
+      ["vendor-brand-approved", { state: "WEBSITE_ICON", source: "VENDOR_WEBSITE", asset_token: "website-2" }],
+      ["vendor-brand-approved-no-discovered", { state: "UNAVAILABLE" }],
+    ] as const) {
+      window.history.replaceState(null, "", `/?fixture=${fixture}`);
+      const current = await staticDemoRequest<Presentation>("/api/v1/vendor-identities/vendor-acme-processing");
+      const restored = await staticDemoRequest<Presentation>("/api/v1/vendor-identities/vendor-acme-processing/brand", { method: "DELETE", headers: { "If-Match": `"${current.brand.version}"`, "Idempotency-Key": `vendor-brand-remove-${fixture}` } });
+      expect(restored.brand).toMatchObject(expected);
+    }
+  });
+
   it("renders a submitted vendor response from bounded review fixture data", async () => {
     window.history.replaceState(null, "", "/?fixture=vendor-submitted");
     const { staticDemoRequest } = await demo();

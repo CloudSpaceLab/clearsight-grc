@@ -1,5 +1,5 @@
 import { parseJSON, requestJSON } from "./http";
-import type { CreateVendorRelationshipInput, UpdateVendorIdentityInput, UpdateVendorRelationshipInput, VendorIdentityPresentation, VendorRelationshipAggregate, VendorRelationshipPage } from "./vendorTypes";
+import type { CommittedCommandReceipt, CreateVendorRelationshipInput, UpdateVendorIdentityInput, UpdateVendorRelationshipInput, VendorIdentityMutationOutcome, VendorIdentityPresentation, VendorRelationshipAggregate, VendorRelationshipPage } from "./vendorTypes";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -27,12 +27,12 @@ export function loadVendorIdentity(vendorID: string): Promise<VendorIdentityPres
   return requestJSON<VendorIdentityPresentation>(apiBase, `/api/v1/vendor-identities/${encodeURIComponent(vendorID)}`);
 }
 
-export function updateVendorIdentity(vendorID: string, input: UpdateVendorIdentityInput): Promise<VendorIdentityPresentation> {
-  return requestJSON<VendorIdentityPresentation>(apiBase, `/api/v1/vendor-identities/${encodeURIComponent(vendorID)}`, { method: "PUT", body: JSON.stringify(input) });
+export function updateVendorIdentity(vendorID: string, input: UpdateVendorIdentityInput): Promise<VendorIdentityMutationOutcome> {
+  return requestJSON<VendorIdentityMutationOutcome>(apiBase, `/api/v1/vendor-identities/${encodeURIComponent(vendorID)}`, { method: "PUT", body: JSON.stringify(input) });
 }
 
-export async function uploadApprovedVendorLogo(vendorID: string, file: File, expectedVersion: number, idempotencyKey = newVendorBrandIdempotencyKey()): Promise<VendorIdentityPresentation> {
-  return parseJSON<VendorIdentityPresentation>(await fetch(`${apiBase}/api/v1/vendor-identities/${encodeURIComponent(vendorID)}/brand`, {
+export async function uploadApprovedVendorLogo(vendorID: string, file: File, expectedVersion: number, idempotencyKey = newVendorBrandIdempotencyKey()): Promise<VendorIdentityMutationOutcome> {
+  return parseJSON<VendorIdentityMutationOutcome>(await fetch(`${apiBase}/api/v1/vendor-identities/${encodeURIComponent(vendorID)}/brand`, {
     method: "PUT",
     body: file,
     credentials: "include",
@@ -40,12 +40,18 @@ export async function uploadApprovedVendorLogo(vendorID: string, file: File, exp
   }));
 }
 
-export async function removeApprovedVendorLogo(vendorID: string, expectedVersion: number, idempotencyKey = newVendorBrandIdempotencyKey()): Promise<VendorIdentityPresentation> {
-  return parseJSON<VendorIdentityPresentation>(await fetch(`${apiBase}/api/v1/vendor-identities/${encodeURIComponent(vendorID)}/brand`, {
+export async function removeApprovedVendorLogo(vendorID: string, expectedVersion: number, idempotencyKey = newVendorBrandIdempotencyKey()): Promise<VendorIdentityMutationOutcome> {
+  return parseJSON<VendorIdentityMutationOutcome>(await fetch(`${apiBase}/api/v1/vendor-identities/${encodeURIComponent(vendorID)}/brand`, {
     method: "DELETE",
     credentials: "include",
     headers: { "If-Match": `"${expectedVersion}"`, "Idempotency-Key": idempotencyKey },
   }));
+}
+
+export function isCommittedCommandReceipt(value: unknown): value is CommittedCommandReceipt {
+  if (!value || typeof value !== "object") return false;
+  const receipt = value as Partial<CommittedCommandReceipt>;
+  return receipt.status === "COMMITTED" && receipt.response_degraded === true && typeof receipt.aggregate_type === "string" && typeof receipt.aggregate_id === "string" && typeof receipt.version === "number";
 }
 
 export function newVendorBrandIdempotencyKey() {
@@ -64,5 +70,5 @@ function logoMediaTypeFromName(name: string) {
 export function vendorBrandURL(vendorID: string, assetToken?: string): string | undefined {
   const token = assetToken?.trim();
   if (!token || /^(?:https?:)?\/\//i.test(token) || /[\u0000-\u0020]/.test(token)) return undefined;
-  return `${apiBase}/api/v1/vendor-identities/${encodeURIComponent(vendorID)}/brand?version=${encodeURIComponent(token)}`;
+  return `/api/v1/vendor-identities/${encodeURIComponent(vendorID)}/brand?version=${encodeURIComponent(token)}`;
 }

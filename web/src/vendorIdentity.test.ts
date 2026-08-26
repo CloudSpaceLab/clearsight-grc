@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateWebsiteDomain } from "./vendorIdentity";
+import { normalizeWebsiteDomain, validateWebsiteDomain } from "./vendorIdentity";
 
 describe("validateWebsiteDomain", () => {
   it("accepts a DNS hostname and leaves an empty optional value valid", () => {
@@ -7,12 +7,18 @@ describe("validateWebsiteDomain", () => {
     expect(validateWebsiteDomain("intranet")).toBeUndefined();
     expect(validateWebsiteDomain("2130706433.example")).toBeUndefined();
     expect(validateWebsiteDomain("127.1.vendor.example")).toBeUndefined();
+    expect(validateWebsiteDomain("BÜCHER.Example")).toBeUndefined();
     expect(validateWebsiteDomain("")).toBeUndefined();
+    expect(normalizeWebsiteDomain(" BÜCHER.Example ")).toBe("xn--bcher-kva.example");
   });
 
   it.each([
     "https://vendor.example",
     "vendor.example/path",
+    "vendor.example\\path",
+    "vendor.example.",
+    "%76endor.example",
+    "vendor%2Eexample",
     "user@vendor.example",
     "vendor.example:443",
     "127.0.0.1",
@@ -20,6 +26,9 @@ describe("validateWebsiteDomain", () => {
     "2130706433",
     "0177.0.0.1",
     "0x7f000001",
+    "0x7f.0.0.0x1",
+    "0300.0250.0001.0001",
+    "127.0x0.01",
     "[2001:db8::1]",
     "-vendor.example",
     "vendor_.example",

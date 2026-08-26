@@ -7,7 +7,7 @@ const aggregate = {
 };
 
 describe("vendor API", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
   it("loads a bounded vendor relationship search", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [aggregate] }), { status: 200 }));
@@ -79,6 +79,13 @@ describe("vendor API", () => {
     expect(vendorBrandURL("vendor-1", "https://vendor.example/logo.png")).toBeUndefined();
     expect(vendorBrandURL("vendor-1", "//vendor.example/logo.png")).toBeUndefined();
     expect(vendorBrandURL("vendor-1", "")).toBeUndefined();
+  });
+
+  it("keeps brand images on the current origin when the JSON API uses a configured base", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "https://api.vendor-platform.example");
+    vi.resetModules();
+    const configured = await import("./vendorApi");
+    expect(configured.vendorBrandURL("vendor/1", "opaque-token")).toBe("/api/v1/vendor-identities/vendor%2F1/brand?version=opaque-token");
   });
 
   it("infers a supported media type when the browser leaves the file type empty", async () => {
