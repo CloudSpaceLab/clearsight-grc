@@ -72,9 +72,22 @@ func (s *AssessmentService) StartAssessment(ctx context.Context, _ Actor, relati
 		return Assessment{}, err
 	}
 	scope := scopeFrom(actor)
-	kind, sourceTrigger, err := normalizeAssessmentEpisode(input.ReviewKind, input.SourceTrigger)
+	kind, sourceTrigger, restartAssessmentID, err := normalizeAssessmentEpisode(input.ReviewKind, input.SourceTrigger, input.RestartAssessmentID)
 	if err != nil {
 		return Assessment{}, err
+	}
+	if restartAssessmentID != "" {
+		prior, lookupErr := s.repo.GetAssessment(ctx, scope, restartAssessmentID)
+		if lookupErr != nil {
+			return Assessment{}, lookupErr
+		}
+		if prior.RelationshipID != relationshipID || prior.ReviewKind != AssessmentReviewOnboarding || prior.Status != AssessmentCancelled {
+			return Assessment{}, ErrInvalidAssessmentTransition
+		}
+		sourceTrigger = "RESTART:" + prior.ID
+		if !validAssessmentIdentifier(sourceTrigger) {
+			return Assessment{}, ErrInvalid
+		}
 	}
 	stableKey := assessmentEpisodeKey(scope, relationshipID, kind, sourceTrigger)
 	current, err := s.repo.GetCurrentAssessment(ctx, scope, relationshipID, kind)
@@ -343,27 +356,34 @@ func assessmentEpisodeKey(scope Scope, relationshipID string, kind AssessmentRev
 	return hex.EncodeToString(digest[:])
 }
 
-func normalizeAssessmentEpisode(kind AssessmentReviewKind, sourceTrigger string) (AssessmentReviewKind, string, error) {
+func normalizeAssessmentEpisode(kind AssessmentReviewKind, sourceTrigger, restartAssessmentID string) (AssessmentReviewKind, string, string, error) {
 	if kind == "" {
 		kind = AssessmentReviewOnboarding
 	}
 	sourceTrigger = strings.TrimSpace(sourceTrigger)
+	restartAssessmentID = strings.TrimSpace(restartAssessmentID)
 	switch kind {
 	case AssessmentReviewOnboarding:
+		if restartAssessmentID != "" {
+			if sourceTrigger != "" || !validAssessmentIdentifier(restartAssessmentID) {
+				return "", "", "", ErrInvalid
+			}
+			return kind, "", restartAssessmentID, nil
+		}
 		if sourceTrigger == "" {
 			sourceTrigger = "INITIAL"
 		}
 		if sourceTrigger != "INITIAL" {
-			return "", "", ErrInvalid
+			return "", "", "", ErrInvalid
 		}
 	case AssessmentReviewPeriodic, AssessmentReviewTriggered:
-		if !validAssessmentIdentifier(sourceTrigger) || sourceTrigger == "INITIAL" {
-			return "", "", ErrInvalid
+		if restartAssessmentID != "" || !validAssessmentIdentifier(sourceTrigger) || sourceTrigger == "INITIAL" {
+			return "", "", "", ErrInvalid
 		}
 	default:
-		return "", "", ErrInvalid
+		return "", "", "", ErrInvalid
 	}
-	return kind, sourceTrigger, nil
+	return kind, sourceTrigger, "", nil
 }
 
 func assessmentEpisodeActive(status AssessmentStatus) bool {

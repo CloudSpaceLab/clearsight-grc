@@ -205,6 +205,47 @@ func TestStartAssessmentAllowsTriggeredReviewsForManagedRelationshipStates(t *te
 	}
 }
 
+func TestStartAssessmentRestartsCancelledOnboardingWithoutLosingEpisodeHistory(t *testing.T) {
+	service, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	first := mustStartAssessment(t, service, relationship)
+	cancelled, err := service.CancelAssessment(assessmentContext(), assessmentActor(), first.ID, CancelAssessmentInput{
+		ExpectedVersion: first.Version,
+		Reason:          "The vendor review will restart with the revised collection scope.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	input := validStartAssessmentInput(relationship.Relationship.Version)
+	input.RestartAssessmentID = cancelled.ID
+	restarted, err := service.StartAssessment(assessmentContext(), assessmentActor(), relationship.Relationship.ID, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replayed, err := service.StartAssessment(assessmentContext(), assessmentActor(), relationship.Relationship.ID, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restarted.ID == first.ID || replayed.ID != restarted.ID || restarted.ReviewKind != AssessmentReviewOnboarding || restarted.SourceTrigger != "RESTART:"+cancelled.ID {
+		t.Fatalf("restarted onboarding = first=%#v restarted=%#v replayed=%#v", first, restarted, replayed)
+	}
+	page, err := repo.ListAssessments(context.Background(), AssessmentListFilter{Scope: scopeFromVerified(), Limit: 10})
+	if err != nil || len(page.Items) != 2 {
+		t.Fatalf("assessment history = (%#v, %v)", page, err)
+	}
+}
+
+func TestStartAssessmentRejectsOnboardingRestartWithoutMatchingCancellation(t *testing.T) {
+	service, _, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	current := mustStartAssessment(t, service, relationship)
+	input := validStartAssessmentInput(relationship.Relationship.Version)
+	input.RestartAssessmentID = current.ID
+
+	if _, err := service.StartAssessment(assessmentContext(), assessmentActor(), relationship.Relationship.ID, input); !errors.Is(err, ErrInvalidAssessmentTransition) {
+		t.Fatalf("live onboarding used as restart source: %v", err)
+	}
+}
+
 func TestCancelAssessmentCommitsBeforeBestEffortCapabilityRevocation(t *testing.T) {
 	service, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	assessment := mustStartAssessment(t, service, relationship)

@@ -110,6 +110,7 @@ type StartAssessmentInput struct {
 	RelationshipVersion int64                `json:"relationship_version"`
 	ReviewKind          AssessmentReviewKind `json:"review_kind,omitempty"`
 	SourceTrigger       string               `json:"source_trigger,omitempty"`
+	RestartAssessmentID string               `json:"restart_assessment_id,omitempty"`
 	FormTemplateID      string               `json:"form_template_id"`
 	FormTemplateVersion int64                `json:"form_template_version"`
 	ReviewDueAt         time.Time            `json:"review_due_at"`

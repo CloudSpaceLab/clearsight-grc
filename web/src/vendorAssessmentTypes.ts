@@ -7,6 +7,8 @@ export type VendorAssessmentStatus =
   | "COMPLETED"
   | "CANCELLED";
 
+export type VendorAssessmentReviewKind = "ONBOARDING" | "PERIODIC" | "TRIGGERED";
+
 export type VendorAssessmentConclusion =
   | "SATISFACTORY"
   | "SATISFACTORY_WITH_CONDITIONS"
@@ -18,7 +20,8 @@ export type VendorAssessment = {
   tenant_id: string;
   legal_entity_id: string;
   relationship_id: string;
-  review_kind: "ONBOARDING";
+  review_kind: VendorAssessmentReviewKind;
+  source_trigger: string;
   stable_episode_key: string;
   status: VendorAssessmentStatus;
   form_template_id: string;
@@ -52,6 +55,9 @@ export type VendorAssessmentFormOption = {
 
 export type StartVendorAssessmentInput = {
   relationship_version: number;
+  review_kind?: VendorAssessmentReviewKind;
+  source_trigger?: string;
+  restart_assessment_id?: string;
   form_template_id: string;
   form_template_version: number;
   review_due_at: string;

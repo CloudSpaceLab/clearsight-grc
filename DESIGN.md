@@ -131,7 +131,7 @@ Image preview is appropriate for image evidence. For PDFs, Office files and othe
 
 ### Vendor due diligence
 
-The Vendors workspace uses one dominant action for the current assessment state: start setup, send the request, review collection status, begin bank review or record the conclusion. The selected vendor, service, accountable owner, exact form version and review deadline remain visible around that action.
+The Vendors workspace uses one dominant action for the current assessment state: start or restart onboarding, start a scheduled or event-driven reassessment, send the request, review collection status, begin bank review or record the conclusion. A reassessment requires the bank's schedule, change or event reference so a retry reuses the same episode. The selected vendor, service, accountable owner, exact form version and review deadline remain visible around that action.
 
 External collection uses the shared request-scoped invitation and capture experience. Known vendor and service facts are prefilled or shown as context; the active form decides between Classic and Wizard presentation and renders typed controls, limits, conditional fields, uploads and attestation. Submission means the response was received, not that the evidence was accepted or the relationship was approved.
 

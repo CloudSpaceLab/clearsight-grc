@@ -20,6 +20,7 @@ const assessment = {
   legal_entity_id: "entity",
   relationship_id: "relationship-1",
   review_kind: "ONBOARDING",
+  source_trigger: "INITIAL",
   stable_episode_key: "episode-1",
   status: "READY_TO_SEND",
   form_template_id: "form-1",

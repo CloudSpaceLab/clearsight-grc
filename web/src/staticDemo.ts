@@ -207,6 +207,7 @@ function submittedVendorAssessment(): VendorAssessment {
     legal_entity_id: "bank-ng",
     relationship_id: vendorRelationshipID,
     review_kind: "ONBOARDING",
+    source_trigger: "INITIAL",
     stable_episode_key: "vendor-relationship-payments:ONBOARDING:2026",
     status: "SUBMITTED",
     form_template_id: vendorDueDiligenceForm.id,
@@ -416,7 +417,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     return clone({ assessment: vendorAssessment, setup: { assessment_id: vendorAssessment.id, state: "COMPLETED", attempts: 1, updated_at: vendorAssessment.updated_at } }) as T;
   }
   if (pathname === `/api/v1/vendors/${vendorRelationshipID}/assessments` && method === "POST") {
-    const input = parseBody(init) as { relationship_version?: number; form_template_id?: string; form_template_version?: number; review_due_at?: string };
+    const input = parseBody(init) as { relationship_version?: number; review_kind?: VendorAssessment["review_kind"]; source_trigger?: string; restart_assessment_id?: string; form_template_id?: string; form_template_version?: number; review_due_at?: string };
     if (input.relationship_version !== vendorRelationships[0]?.relationship.version) throw new StaticDemoHTTPError(409, "vendor_version_conflict", "The vendor relationship changed before due diligence was started.");
     if (input.form_template_id !== vendorDueDiligenceForm.id || input.form_template_version !== vendorDueDiligenceForm.version) throw new StaticDemoHTTPError(409, "vendor_assessment_form_inactive", "Select the current approved due-diligence form.");
     vendorAssessment = {
@@ -424,8 +425,9 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
       tenant_id: "bank-demo",
       legal_entity_id: "bank-ng",
       relationship_id: vendorRelationshipID,
-      review_kind: "ONBOARDING",
-      stable_episode_key: "vendor-relationship-payments:ONBOARDING:2026",
+      review_kind: input.review_kind ?? "ONBOARDING",
+      source_trigger: input.restart_assessment_id ? `RESTART:${input.restart_assessment_id}` : input.source_trigger ?? "INITIAL",
+      stable_episode_key: `${vendorRelationshipID}:${input.review_kind ?? "ONBOARDING"}:${input.restart_assessment_id ?? input.source_trigger ?? "INITIAL"}`,
       status: "READY_TO_SEND",
       form_template_id: vendorDueDiligenceForm.id,
       form_template_version: vendorDueDiligenceForm.version,

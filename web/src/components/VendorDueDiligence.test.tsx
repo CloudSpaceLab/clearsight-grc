@@ -12,7 +12,7 @@ const relationship: VendorRelationshipAggregate = {
 function assessment(status: VendorAssessment["status"]): VendorAssessment {
   return {
     id: "assessment-1", tenant_id: "bank", legal_entity_id: "entity", relationship_id: "relationship-1",
-    review_kind: "ONBOARDING", stable_episode_key: "episode-1", status, form_template_id: "form-1", form_template_version: 3,
+    review_kind: "ONBOARDING", source_trigger: "INITIAL", stable_episode_key: "episode-1", status, form_template_id: "form-1", form_template_version: 3,
     review_due_at: "2026-09-30T17:00:00Z", started_by_principal_id: "owner-1", started_at: "2026-08-26T10:00:00Z",
     review_matter_id: status === "SETUP_PENDING" ? undefined : "matter-1", current_request_id: status === "COLLECTING" ? "request-1" : undefined,
     submitted_at: status === "SUBMITTED" || status === "UNDER_REVIEW" || status === "COMPLETED" ? "2026-08-28T11:00:00Z" : undefined,
@@ -51,6 +51,26 @@ describe("VendorDueDiligence", () => {
       form_template_id: "form-1",
       form_template_version: 3,
       review_due_at: "2026-09-30T23:59:59.000Z",
+    }));
+  });
+
+  it("starts an event-driven reassessment with the bank review reference", async () => {
+    const managedRelationship = { ...relationship, relationship: { ...relationship.relationship, status: "RESTRICTED" as const } };
+    const onStart = vi.fn().mockResolvedValue({ ...assessment("SETUP_PENDING"), review_kind: "TRIGGERED", source_trigger: "change-2099-0042" });
+    render(<VendorDueDiligence relationship={managedRelationship} assessment={assessment("COMPLETED")} form={form} defaultReviewDueDate="2099-09-30" onStart={onStart}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Start reassessment" }));
+    fireEvent.change(screen.getByLabelText("Review type"), { target: { value: "TRIGGERED" } });
+    fireEvent.change(screen.getByLabelText("Review reference"), { target: { value: "change-2099-0042" } });
+    fireEvent.click(screen.getByRole("button", { name: "Start reassessment" }));
+
+    await waitFor(() => expect(onStart).toHaveBeenCalledWith({
+      relationship_version: 4,
+      review_kind: "TRIGGERED",
+      source_trigger: "change-2099-0042",
+      form_template_id: "form-1",
+      form_template_version: 3,
+      review_due_at: "2099-09-30T23:59:59.000Z",
     }));
   });
 
@@ -463,12 +483,13 @@ describe("VendorDueDiligence", () => {
     expect((screen.getByRole("button", { name: "Send due diligence request" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("does not offer a false restart action for a cancelled onboarding episode", () => {
+  it("offers an explicit restart for cancelled onboarding without presenting it as a first assessment", () => {
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("CANCELLED")} form={form} onStart={vi.fn()}/>);
 
-    expect(screen.getByText("This assessment was cancelled. A new onboarding review has not been started.")).toBeTruthy();
+    expect(screen.getByText("This onboarding assessment was cancelled. The relationship remains available for a new review.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Start due diligence" })).toBeNull();
-    expect(primaryActions()).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Restart due diligence" })).toBeTruthy();
+    expect(primaryActions()).toHaveLength(1);
   });
 
   it("requires a reason before cancelling an active assessment", async () => {

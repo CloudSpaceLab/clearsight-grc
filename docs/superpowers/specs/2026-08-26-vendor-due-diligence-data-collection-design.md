@@ -43,7 +43,8 @@ Required fields:
 
 - tenant and bank legal-entity scope;
 - relationship ID;
-- review kind: `ONBOARDING` in this tranche;
+- review kind: `ONBOARDING`, `PERIODIC` or `TRIGGERED`;
+- source trigger: `INITIAL`, a purpose-bound cancelled-onboarding reference, or the bank's explicit schedule, change or event reference;
 - stable episode key;
 - status;
 - exact form-template ID and version;
@@ -66,7 +67,7 @@ Statuses are:
 6. `COMPLETED` — an authorized conclusion was recorded;
 7. `CANCELLED` — collection ended without a conclusion and the reason is retained.
 
-The stable episode key is tenant + legal entity + relationship + review kind + source trigger. A repeated command for the same current episode returns the existing assessment. A new episode requires an explicit new trigger or a later reassessment command.
+The stable episode key is tenant + legal entity + relationship + review kind + source trigger. A repeated command for the same episode returns the existing assessment. A scheduled or event-driven reassessment requires an explicit bank reference. Restarting cancelled onboarding creates a new episode whose source trigger is derived from the cancelled assessment ID; retries reuse that episode and the cancelled record remains reconstructable. Only one live episode may exist for a relationship.
 
 ### 3.2 Assessment-to-Matter links
 
@@ -377,7 +378,8 @@ Initial limits are:
 - assessment lists by legal entity, status, updated time and keyset cursor;
 - artifact size and count enforced by the existing storage policy plus field-specific lower limits;
 - one active draft per request-scoped session;
-- one current onboarding episode per stable episode key.
+- one live assessment episode per relationship;
+- stable source-trigger replay for onboarding restarts and scheduled or event-driven reassessments.
 
 High-cardinality answers and artifacts remain outside assessment rows. Assessment projections use bounded summaries rather than loading every answer or artifact.
 
@@ -386,6 +388,8 @@ High-cardinality answers and artifacts remain outside assessment rows. Assessmen
 ### Domain and repository
 
 - stable episode replay returns one assessment;
+- cancelled onboarding can restart without changing or deleting the cancelled episode;
+- periodic and event-driven reviews require an explicit source reference and preserve earlier episodes;
 - tenant and legal-entity isolation precede limit and cursor handling;
 - start atomically writes assessment, event, outbox and maintenance job;
 - provisioning retries create one Matter and one Evidence Request;

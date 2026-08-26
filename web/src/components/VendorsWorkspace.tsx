@@ -162,6 +162,8 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     setAssessment(value);
     setAssessmentSetup(undefined);
     setAssessmentState("live");
+    setReview(undefined);
+    setReviewState("live");
     return value;
   }
 

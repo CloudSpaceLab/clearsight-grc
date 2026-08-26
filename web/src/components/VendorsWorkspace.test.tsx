@@ -47,7 +47,7 @@ const activeVendorForm: FormTemplate = {
 function assessment(status: VendorAssessment["status"]): VendorAssessment {
   return {
     id: "assessment-1", tenant_id: "bank", legal_entity_id: "entity", relationship_id: "relationship-1",
-    review_kind: "ONBOARDING", stable_episode_key: "episode-1", status, form_template_id: "form-1", form_template_version: 3,
+    review_kind: "ONBOARDING", source_trigger: "INITIAL", stable_episode_key: "episode-1", status, form_template_id: "form-1", form_template_version: 3,
     review_due_at: "2099-09-30T23:59:59Z", started_by_principal_id: "owner-1", started_at: "2026-08-26T10:00:00Z",
     review_matter_id: status === "SETUP_PENDING" ? undefined : "matter-1", current_request_id: status === "COLLECTING" ? "request-1" : undefined,
     version: 3, created_at: "2026-08-26T10:00:00Z", updated_at: "2026-08-28T12:00:00Z",
@@ -193,6 +193,53 @@ describe("VendorsWorkspace", () => {
       relationship_version: 1, form_template_id: "form-1", form_template_version: 3, review_due_at: "2099-09-30T23:59:59.000Z",
     }));
     expect(await screen.findByText("Setup in progress")).toBeTruthy();
+  });
+
+  it("starts a scheduled reassessment for an eligible existing relationship", async () => {
+    const active = { ...record, relationship: { ...record.relationship, status: "ACTIVE" as const } };
+    vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [active] });
+    vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: review("COMPLETED").assessment });
+    vi.mocked(loadVendorAssessment).mockResolvedValue(review("COMPLETED"));
+    vi.mocked(startVendorAssessment).mockResolvedValue({ ...assessment("SETUP_PENDING"), review_kind: "PERIODIC", source_trigger: "annual-review-2099" });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+
+    expect(await screen.findByText(/Independent security testing/)).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Start reassessment" }));
+    fireEvent.change(screen.getByLabelText("Review type"), { target: { value: "PERIODIC" } });
+    fireEvent.change(screen.getByLabelText("Review reference"), { target: { value: "annual-review-2099" } });
+    fireEvent.change(screen.getByLabelText("Review due date"), { target: { value: "2099-09-30" } });
+    fireEvent.click(screen.getByRole("button", { name: "Start reassessment" }));
+
+    await waitFor(() => expect(startVendorAssessment).toHaveBeenCalledWith("relationship-1", {
+      relationship_version: 1,
+      review_kind: "PERIODIC",
+      source_trigger: "annual-review-2099",
+      form_template_id: "form-1",
+      form_template_version: 3,
+      review_due_at: "2099-09-30T23:59:59.000Z",
+    }));
+    expect(screen.queryByText("Proceed after the recorded access-control action is complete.")).toBeNull();
+    expect(screen.queryByText(/Independent security testing/)).toBeNull();
+  });
+
+  it("restarts cancelled onboarding with the cancelled assessment as the stable source", async () => {
+    const cancelled = { ...assessment("CANCELLED"), cancellation_reason: "The collection scope changed." };
+    vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: cancelled });
+    vi.mocked(startVendorAssessment).mockResolvedValue({ ...assessment("SETUP_PENDING"), id: "assessment-2", source_trigger: "RESTART:assessment-1" });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Restart due diligence" }));
+    fireEvent.change(screen.getByLabelText("Review due date"), { target: { value: "2099-09-30" } });
+    fireEvent.click(screen.getByRole("button", { name: "Restart due diligence" }));
+
+    await waitFor(() => expect(startVendorAssessment).toHaveBeenCalledWith("relationship-1", {
+      relationship_version: 1,
+      review_kind: "ONBOARDING",
+      restart_assessment_id: "assessment-1",
+      form_template_id: "form-1",
+      form_template_version: 3,
+      review_due_at: "2099-09-30T23:59:59.000Z",
+    }));
   });
 
   it("refreshes setup status and translates a terminal failure code into a safe recovery", async () => {
