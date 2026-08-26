@@ -15,48 +15,10 @@ const programID = "program-ndpa";
 const matterID = "matter-gaid-change";
 const evidenceID = "evidence-annual-return";
 
-const program = {
-  id: programID, tenant_id: "bank-demo", legal_entity_id: "bank-ng", code: "NDPA", name: "Nigeria Data Protection Programme", type: "PRIVACY", status: "ACTIVE", owning_function: "Data Protection Office", owner_principal_id: "role-dpo", authority_principal_id: "role-cro", jurisdiction: "Nigeria", scope: { legal_entity: "Bank Nigeria", business_lines: ["Retail", "Corporate", "Digital"] }, effective_from: "2025-01-01T00:00:00Z", created_at: "2026-07-01T09:00:00Z", updated_at: now, version: 12,
-};
-const programSummary = {
-  program, state_label: "Evidence incomplete", overall_state: "EVIDENCE_INSUFFICIENT", reasons: [{ code: "EVIDENCE_COVERAGE", summary: "Two annual-return evidence sections still need an accountable owner.", object_type: "EVIDENCE_CONTRACT", object_id: "contract-return" }], reasons_total: 1, reasons_omitted: 0, open_matter_count: 2, requirement_count: 5, safeguard_count: 5, evidence_check_count: 5, program_version: 12, assessed_program_version: 12, projection_version: 3, projection_stale: false, state_generated_at: now,
-};
-const programDetail = {
-  state_label: "Evidence incomplete", program,
-  requirements: [
-    { id: "req-1", code: "NDPA-RET-01", title: "Maintain accountable data-processing governance", statement: "The bank must maintain approved responsibilities, records and oversight for personal-data processing.", status: "APPROVED", source_anchor: "Nigeria Data Protection Act 2023 · governance duties" },
-    { id: "req-2", code: "GAID-RETURN-01", title: "Submit the annual compliance return", statement: "The bank must complete the annual return with source-linked evidence and internal approval before filing.", status: "APPROVED", source_anchor: "GAID 2025 · annual return" },
-  ],
-  applicability: [{ id: "app-1", requirement_id: "req-1", status: "APPLICABLE", rationale: "The bank processes customer and employee personal data in Nigeria." }],
-  control_objectives: [{ id: "obj-1", code: "PRIV-GOV", name: "Accountable privacy governance", outcome: "Responsibilities and decisions remain current and evidenced.", status: "ACTIVE" }],
-  control_implementations: [{ id: "control-1", name: "Annual privacy compliance review", description: "DPO-led review with accountable evidence owners and executive sign-off.", implementation_type: "PROCESS", status: "IMPLEMENTED" }],
-  requirement_control_links: [{ id: "coverage-link-1", requirement_id: "req-1", implementation_id: "control-1" }],
-  evidence_contracts: [
-    { id: "contract-return", code: "GAID-RETURN", name: "Annual return evidence package", claim: "Every required return section has an owner, authoritative source, review status and approval date.", status: "ACTIVE", freshness_minutes: 525600, minimum_coverage: 1 },
-    { id: "contract-training", code: "PRIV-TRAIN", name: "Privacy role training", claim: "Assigned privacy responsibilities have current training evidence.", status: "ACTIVE", freshness_minutes: 525600, minimum_coverage: .95 },
-  ],
-  evidence_assessments: [{ id: "assessment-1", contract_id: "contract-return", conclusion: "PARTIALLY_SUPPORTED", coverage: .8, assessed_at: now }],
-  current_state: { id: "state-1", overall_state: "EVIDENCE_INSUFFICIENT", dimensions: { requirements: "CURRENT", controls: "CURRENT", evidence: "EVIDENCE_INSUFFICIENT" }, reasons: programSummary.reasons, open_matter_count: 2, generated_at: now, program_version: 12, projection_version: 3 },
-  triggers: [{ id: "trigger-1", type: "REQUIREMENT_CHANGED", observed_at: "2026-08-04T10:00:00Z", source: "NDPC publication monitor" }],
-};
-const programOperations = {
-  program_id: programID, program_version: 12, authority_available: true, generated_at: now,
-  operations: [
-    { command: "program.details.update", label: "Edit Program details", responsibility: "ACCOUNTABLE_OWNER", can_act: false, assigned_to: { id: "role-dpo", display_name: "Data Protection Officer", kind: "POSITION", role: "DPO" }, reason: "Assigned to Data Protection Officer for the current Program state." },
-    { command: "program.assign", label: "Change Program owner", responsibility: "ACCOUNTABLE_OWNER", can_act: false, assigned_to: { id: "role-dpo", display_name: "Data Protection Officer", kind: "POSITION", role: "DPO" }, candidates: [{ id: "role-dpo", display_name: "Data Protection Officer", kind: "POSITION", role: "DPO" }, { id: "role-deputy-dpo", display_name: "Deputy Data Protection Officer", kind: "POSITION", role: "Deputy DPO" }], reason: "Assigned to Data Protection Officer for the current Program state." },
-    { command: "program.approval-authority.assign", label: "Change approval authority", responsibility: "AUTHORIZER", can_act: true, assigned_to: { id: "role-cro", display_name: "Chief Risk Officer", kind: "POSITION", role: "CRO" }, candidates: [{ id: "role-cro", display_name: "Chief Risk Officer", kind: "POSITION", role: "CRO" }, { id: "role-deputy-cro", display_name: "Deputy Chief Risk Officer", kind: "POSITION", role: "Deputy CRO" }], reason: "You hold the current responsibility for this Program and can complete this action." },
-    { command: "program.requirement.add", label: "Add a requirement", responsibility: "ACCOUNTABLE_OWNER", can_act: false, assigned_to: { id: "role-dpo", display_name: "Data Protection Officer", kind: "POSITION", role: "DPO" }, reason: "Assigned to Data Protection Officer for the current Program state." },
-    { command: "program.safeguard.define", label: "Define safeguards", responsibility: "ACCOUNTABLE_OWNER", can_act: false, assigned_to: { id: "role-dpo", display_name: "Data Protection Officer", kind: "POSITION", role: "DPO" }, candidates: [{ id: "role-privacy-control", display_name: "Privacy Control Owner", kind: "POSITION", role: "Control owner" }], reason: "Assigned to Data Protection Officer for the current Program state." },
-    { command: "program.evidence.define", label: "Define an evidence check", responsibility: "ACCOUNTABLE_OWNER", can_act: false, assigned_to: { id: "role-dpo", display_name: "Data Protection Officer", kind: "POSITION", role: "DPO" }, reason: "Assigned to Data Protection Officer for the current Program state." },
-    { command: "program.applicability.decide", label: "Decide whether requirements apply", responsibility: "AUTHORIZER", can_act: true, assigned_to: { id: "role-cro", display_name: "Chief Risk Officer", kind: "POSITION", role: "CRO" }, reason: "You hold the current responsibility for this Program and can complete this action." },
-    { command: "program.evidence.assess", subresource_id: "contract-return", label: "Record a result for Annual return evidence package", responsibility: "REVIEWER", can_act: false, assigned_to: { id: "role-dpco", display_name: "Data Protection Compliance Officer", kind: "POSITION", role: "DPCO reviewer" }, reason: "Assigned to Data Protection Compliance Officer for this evidence check." },
-    { command: "program.evidence.assess", subresource_id: "contract-training", label: "Record a result for Privacy role training", responsibility: "REVIEWER", can_act: false, assigned_to: { id: "role-training-reviewer", display_name: "Privacy Training Reviewer", kind: "POSITION", role: "Training reviewer" }, reason: "Assigned to Privacy Training Reviewer for this evidence check." },
-    { command: "program.review.accept", label: "Confirm the Program review", responsibility: "REVIEWER", can_act: true, assigned_to: { id: "role-cro", display_name: "Chief Risk Officer", kind: "POSITION", role: "CRO" }, reason: "You hold the current responsibility for this Program and can complete this action." },
-    { command: "program.transition", label: "Change Program status", responsibility: "AUTHORIZER", can_act: true, assigned_to: { id: "role-cro", display_name: "Chief Risk Officer", kind: "POSITION", role: "CRO" }, reason: "You hold the current responsibility for this Program and can complete this action.", allowed_targets: ["PAUSED", "RETIRED"] },
-    { command: "program.requirement.supersede", subresource_id: "req-1", label: "Replace Maintain accountable data-processing governance", responsibility: "ACCOUNTABLE_OWNER", can_act: false, assigned_to: { id: "role-dpo", display_name: "Data Protection Officer", kind: "POSITION", role: "DPO" }, reason: "Assigned to Data Protection Officer for the current Program state." },
-    { command: "program.requirement.supersede", subresource_id: "req-2", label: "Replace Submit the annual compliance return", responsibility: "ACCOUNTABLE_OWNER", can_act: false, assigned_to: { id: "role-dpo", display_name: "Data Protection Officer", kind: "POSITION", role: "DPO" }, reason: "Assigned to Data Protection Officer for the current Program state." },
-  ],
-};
+let program: Record<string, any>;
+let programSummary: Record<string, any>;
+let programDetail: Record<string, any>;
+let programOperations: Record<string, any>;
 const monitoringCheck = { id: "monitor-return", tenant_id: "bank-demo", program_id: programID, code: "RETURN-READINESS", name: "Annual return readiness", claim: "Every return section has an owner and approved evidence.", input_kind: "SOURCE", binding_id: "binding-return", binding_version: 2, status: "ACTIVE", is_current: true, submitted_by: "role-dpo", freshness_minutes: 1440, minimum_coverage: 1, failure_action: "RECOMMEND_MATTER", version: 3, created_at: now, updated_at: now };
 const monitoringResult = { id: "monitor-result-1", monitoring_check_id: monitoringCheck.id, monitoring_check_version: 3, evaluated_at: now, evaluation: { score: 20, band: "MODERATE", coverage: .8, rule_results: [{ rule_id: "return-owner", field_id: "section_owner", outcome: "FAIL", reason: "Two sections do not have an approved owner." }] } };
 const demoForms: any[] = [];
@@ -91,69 +53,55 @@ function programReviewDigest() {
   };
 }
 
-const matter = {
-  id: matterID, tenant_id: "bank-demo", reference: "CHG-2026-0042", type: "REGULATORY_CHANGE", status: "ACTION_IN_PROGRESS", priority: 4, title: "Implement GAID annual-return evidence requirements", summary: "Update the annual return process, evidence ownership and internal approval date.", scope: { journey_code: "REGULATORY_CHANGE", filing_year: 2027 }, known_facts: { official_source: "GAID 2025", filing_deadline: "31 March 2027", affected_process: "Annual privacy compliance return", complete_sections: 8, required_sections: 10 }, missing_facts: ["Owner for the processor register section", "Final DPCO review date"], contradictions: [], owner_principal_id: "role-dpo", required_authority: "AUTHORIZER", due_at: future, created_at: "2026-08-04T10:00:00Z", updated_at: now, version: 8,
-};
-const matterSummary = { matter, type_label: "Regulatory change", status_label: "Work in progress", next_action: "Complete the remaining evidence ownership updates", program_count: 1, open_action_count: 1, outcome_check_count: 1 };
-const matterDetail = {
-  type_label: "Regulatory change", status_label: "Work in progress", next_action: "Complete the remaining evidence ownership updates", matter,
-  links: [{ id: "link-1", program_id: programID, relationship: "AFFECTS" }],
-  decisions: [{ id: "decision-1", type: "IMPLEMENTATION_APPROACH", status: "APPROVED", selected_option: "UPDATE_CURRENT_PROCESS", rationale: "Use the existing annual return process with source-linked owners and an earlier internal approval date.", decided_at: "2026-08-05T11:00:00Z" }],
-  actions: [{ id: "action-1", title: "Complete the annual return evidence checklist", description: "Assign the two remaining sections and record the DPCO review date.", status: "IN_PROGRESS", due_at: future }],
-  verification_contracts: [{ id: "verify-1", expected_outcome: "All ten return sections have an owner, authoritative source and approved review status.", status: "ACTIVE", observation_period_minutes: 0 }],
-  verification_results: [], response_packages: [], closure: { ready: false, reasons: ["One action remains in progress.", "The independent outcome check has not passed."] },
-};
-
-const evidenceRequest = {
-  id: evidenceID, tenant_id: "bank-demo", subject_type: "MATTER", subject_id: matterID, title: "Confirm the remaining annual-return evidence owners", purpose: "Complete the evidence ownership record before the DPCO review.", why_you: "You own the affected privacy operations records.", sensitivity: "INTERNAL", audience_type: "INTERNAL", recipient: { type: "INTERNAL_PRINCIPAL", principal_id: "role-cro", state: "ASSIGNED" }, created_by: "role-dpo", estimated_minutes: 2, deadline: future, known_facts: { filing_year: "2027", completed_sections: "8 of 10", internal_approval_date: "1 March 2027" }, fields: [{ id: "processor_register_owner", label: "Processor register owner", type: "text", required: true, description: "Name the accountable role or position." }, { id: "dpco_review_date", label: "DPCO review date", type: "text", required: true, description: "Enter the approved review date." }], status: "READY", version: 1, created_at: now, updated_at: now,
-};
-
-const todayItems = [
-  { id: "today-change", type: "REGULATORY_CHANGE", title: matter.title, why_now: "The source change is approved and two evidence sections still need owners before the internal review.", scope: "Nigeria Data Protection · Regulatory change", state: "Work in progress", evidence: "8 of 10 sections complete", owner: "Data Protection Office", due_at: future, primary_action: "Complete the evidence ownership update", action_target_type: "MATTER", action_target_id: matterID },
-  { id: "today-evidence", type: "EVIDENCE_REQUEST", title: evidenceRequest.title, why_now: evidenceRequest.why_you, scope: "Annual privacy return · Evidence", state: "Response required", evidence: "Known facts prefilled", owner: "Privacy Operations", due_at: future, primary_action: "Provide the two missing details", action_target_type: "EVIDENCE_REQUEST", action_target_id: evidenceID },
-  { id: "today-program", type: "PROGRAM", title: "Review the Nigeria Data Protection Programme", why_now: "The latest status is evidence incomplete, not current.", scope: "Nigeria · Privacy", state: "Evidence incomplete", evidence: "5 evidence checks", owner: "Data Protection Officer", due_at: future, primary_action: "Review status reasons", action_target_type: "PROGRAM", action_target_id: programID, intervention_class: "REVIEW", authority: { responsibility: "REVIEWER", materiality: 2 } },
-];
-
-let document: DocumentImport = {
-  id: "document-gaid", tenant_id: "bank-demo", legal_entity_id: "bank-ng", file_name: "gaid-annual-return-notice.docx", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", purpose: "Assess updated annual return requirements", source_type: "REGULATORY", size_bytes: 186420, sha256: "c6c882f6f0a23c3b7aa213a7ddab2b62d2fa86289d5378a430da356228b551d8", storage_key: "document-imports/bank-demo/document-gaid/gaid-annual-return-notice.docx", artifact_status: "STORED_UNSCANNED", extraction_status: "EXTRACTED", extraction_method: "DOCX_XML_V1", analysis_status: "REVIEW_REQUIRED", analysis_method: "DETERMINISTIC_RULES_V1", limitations: ["This sample uses reference content; no customer or bank document is included.", "Review each proposal before use. The results are not legal advice or a compliance conclusion."], sections: [{ id: "section-return", sequence: 1, title: "Annual return requirements", text: "The institution must maintain an accountable owner and authoritative source for every required annual return section. The completed return shall be reviewed before filing." }], proposals: [{ id: "proposal-owner", kind: "REQUIREMENT_CANDIDATE", title: "Possible requirement", statement: "The institution must maintain an accountable owner and authoritative source for every required annual return section.", confidence: .86, anchor: { section_id: "section-return", quote: "The institution must maintain an accountable owner and authoritative source for every required annual return section." }, status: "PENDING_REVIEW" }], created_by: "role-cro", created_at: now, updated_at: now, version: 1,
+let matter: Record<string, any>;
+let matterSummary: Record<string, any>;
+let matterDetail: Record<string, any>;
+let evidenceRequest: Record<string, any>;
+let todayItems: Array<Record<string, any>>;
+type StaticDemoFixtures = {
+  program: Record<string, any>;
+  programSummary: Record<string, any>;
+  programDetail: Record<string, any>;
+  programOperations: Record<string, any>;
+  matter: Record<string, any>;
+  matterSummary: Record<string, any>;
+  matterDetail: Record<string, any>;
+  evidenceRequest: Record<string, any>;
+  todayItems: Array<Record<string, any>>;
+  guide: Record<string, any>;
+  document: DocumentImport;
+  documentCoverage: DocumentCoverage;
 };
 
-let documentCoverage: DocumentCoverage = {
-  id: "coverage-gaid", tenant_id: "bank-demo", legal_entity_id: "bank-ng", document_id: document.id, document_sha256: document.sha256,
-  status: "READY", analyzer_version: "STRUCTURED_OBLIGATION_V1", matcher_version: "EXPLAINABLE_MATCHER_V1", scoring_policy_version: "COVERAGE_POLICY_V1",
-  program_snapshot_hash: "static-program-snapshot-v1", version: 1, assessed_at: now, updated_at: now, next_cursor: "", limitations: ["Extracted obligations require human review before coverage is verified."],
-  metrics: {
-    estimated_verified: { numerator: 0, denominator: 2 }, verified: { numerator: 0, denominator: 2 },
-    requirement_mapped: { numerator: 1, denominator: 2 }, control_implemented: { numerator: 1, denominator: 2 }, evidence_supported: { numerator: 0, denominator: 2 },
-  },
-  candidates: [{
-    id: "coverage-owner", fingerprint: "gaid-owner", eligible: true,
-    statement: "The institution must maintain an accountable owner and authoritative source for every required annual return section.",
-    anchor: { section_id: "section-return", page: 3, quote: "The institution must maintain an accountable owner and authoritative source for every required annual return section." },
-    modality: "MUST", actor: "the institution", action: "maintain", object: "an accountable owner and authoritative source", citations: ["GAID 2025 annual return"], dates: [], topics: ["governance", "records"], uncertainty: [], jurisdiction: "Nigeria", regulator: "Nigeria Data Protection Commission", program_type: "PRIVACY", classification: "MAPPED_NO_CURRENT_EVIDENCE",
-    matches: [{
-      id: "match-owner", program_id: programID, program_code: "NDPA", program_name: "Nigeria Data Protection Programme", program_version: 12,
-      requirement_id: "req-1", requirement_code: "NDPA-RET-01", requirement_title: "Maintain accountable data-processing governance", requirement_version: 1,
-      score: .89, band: "STRONG", rationale: "The obligation and approved requirement share the same accountable-owner, source-record and Nigerian privacy scope.", conflicts: [],
-      components: [{ name: "SEMANTIC", weight: .35, score: .94, reason: "Accountable ownership and authoritative records align." }, { name: "SCOPE", weight: .3, score: 1, reason: "Both apply to the same Nigerian legal entity and privacy Program." }, { name: "MODALITY", weight: .2, score: 1, reason: "Both are mandatory obligations." }, { name: "CITATION", weight: .15, score: .55, reason: "The source families differ but address the same governance duty." }],
-      coverage: { requirement_id: "req-1", applicability: "APPLICABLE", applicable: true, control_implemented: true, evidence_supported: false, complete: false, control_ids: ["control-1"], evidence_contract_ids: ["contract-training"], reasons: ["EVIDENCE_NOT_ASSESSED"] },
-    }],
-  }, {
-    id: "coverage-review", fingerprint: "gaid-review", eligible: true,
-    statement: "The completed return shall be reviewed before filing.", anchor: { section_id: "section-return", page: 3, quote: "The completed return shall be reviewed before filing." },
-    modality: "MUST", actor: "the institution", action: "review", object: "the completed return", citations: ["GAID 2025 annual return"], dates: ["before filing"], topics: ["review", "filing"], uncertainty: [], jurisdiction: "Nigeria", regulator: "Nigeria Data Protection Commission", program_type: "PRIVACY", classification: "GAP", matches: [],
-  }],
-  suggestions: [{ id: "suggestion-review", candidate_id: "coverage-review", type: "ADD_REQUIREMENT", status: "PROPOSED", title: "Add the pre-filing review requirement", rationale: "The privacy Program is in scope, but no approved requirement captures this review-before-filing duty.", program_id: programID }],
-  matters: [{ candidate_id: "coverage-owner", matter_id: matterID, reference: matter.reference, type: matter.type, status: matter.status, title: matter.title, summary: matter.summary, score: .82 }],
-};
+let document: DocumentImport;
+let documentCoverage: DocumentCoverage;
 
-const guide = { code: "executive-first-run", profile: "executive", role: "Executive risk or compliance leader", version: 1, title: "Executive review", description: "Review priority work, Program status and supporting evidence.", illustration: "guided-orbit", steps: [
-  { id: "brief", title: "Review priority work", description: "Today shows work assigned to you, due dates and data freshness.", action: "Open Today", view: "today", target: "today-brief" },
-  { id: "attention", title: "Review a priority item", description: "Open the first Program, issue or evidence request in the queue.", action: "Review first item", view: "today", target: "attention-list", intent: "open-first-attention" },
-  { id: "programs", title: "Check Program status", description: "Programs show status, requirements, controls, evidence and open issues.", action: "Open Programs", view: "programs", target: "programs-workspace" },
-  { id: "finish", title: "Review status details", description: "Check the status reason, source, owner and next action.", action: "Done", view: "programs", target: "programs-workspace" },
-] };
-
+export async function loadStaticDemoFixtures(fetcher: typeof fetch = globalThis.fetch) {
+  const response = await fetcher("/static-demo-fixtures.json");
+  if (!response.ok) throw new Error(`Static demo fixtures are unavailable (HTTP ${response.status}).`);
+  const fixtures = await response.json() as StaticDemoFixtures;
+  program = clone(fixtures.program);
+  programSummary = clone(fixtures.programSummary);
+  programSummary.program = program;
+  programDetail = clone(fixtures.programDetail);
+  programDetail.program = program;
+  programOperations = clone(fixtures.programOperations);
+  matter = clone(fixtures.matter);
+  matter.due_at = future;
+  matterSummary = clone(fixtures.matterSummary);
+  matterSummary.matter = matter;
+  matterDetail = clone(fixtures.matterDetail);
+  matterDetail.matter = matter;
+  for (const action of matterDetail.actions ?? []) action.due_at = future;
+  evidenceRequest = clone(fixtures.evidenceRequest);
+  evidenceRequest.deadline = future;
+  todayItems = clone(fixtures.todayItems);
+  for (const item of todayItems) item.due_at = future;
+  guide = clone(fixtures.guide);
+  document = clone(fixtures.document);
+  documentCoverage = clone(fixtures.documentCoverage);
+}
+let guide: Record<string, any>;
 export async function staticDemoRequest<T>(path: string, init?: RequestInit): Promise<T> {
   if (!staticDemoEnabled) throw new Error("Static demo transport is disabled");
   const url = new URL(path, "https://clearsight.demo");
@@ -250,7 +198,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   }
   if (pathname === `/api/v1/matters/${matterID}`) return clone(matterDetail) as T;
   if (/\/api\/v1\/matters\/[^/]+\/links\/[^/]+\/retirement$/.test(pathname) && method === "POST") {
-    const input = parseBody(init) as { expected_version?: number }; if (input.expected_version !== matter.version) throw new StaticDemoHTTPError(409, "version_conflict", "The issue changed before the Program link was removed."); const linkID = decodeURIComponent(pathname.split("/").at(-2) ?? ""); (matterDetail as any).links = matterDetail.links.filter((value) => value.id !== linkID); matter.version += 1; matter.updated_at = now; return clone(matterDetail) as T;
+    const input = parseBody(init) as { expected_version?: number }; if (input.expected_version !== matter.version) throw new StaticDemoHTTPError(409, "version_conflict", "The issue changed before the Program link was removed."); const linkID = decodeURIComponent(pathname.split("/").at(-2) ?? ""); matterDetail.links = matterDetail.links.filter((value: { id: string }) => value.id !== linkID); matter.version += 1; matter.updated_at = now; return clone(matterDetail) as T;
   }
   if (pathname === "/api/v1/evidence/sources") return clone({ items: [{ id: "source-ndpc", tenant_id: "bank-demo", legal_entity_id: "bank-ng", code: "NDPC-PUBLICATIONS", name: "NDPC official publications", type: "REGULATORY", authority_class: "AUTHORITATIVE", expected_freshness_minutes: 1440, last_observed_at: now, last_success_at: now, health: "CURRENT", status: "ACTIVE", version: 3 }, { id: "source-iam", tenant_id: "bank-demo", legal_entity_id: "bank-ng", code: "IAM-ENTITLEMENTS", name: "Identity and access records", type: "SYSTEM", authority_class: "SYSTEM_OF_RECORD", expected_freshness_minutes: 60, last_observed_at: now, last_success_at: "2026-08-06T14:30:00Z", health: "DEGRADED", status: "ACTIVE", version: 8 }] }) as T;
   if (pathname === "/api/v1/form-templates" && method === "GET") return clone({ items: demoForms }) as T;

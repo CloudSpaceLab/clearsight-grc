@@ -1,8 +1,9 @@
-import { StaticDemoHTTPError, staticDemoEnabled, staticDemoRequest } from "./staticDemo";
+import { StaticDemoHTTPError, loadStaticDemoFixtures, staticDemoEnabled, staticDemoRequest } from "./staticDemo";
 import { staticExternalCaptureRequest } from "./staticExternalCapture";
 
 if (staticDemoEnabled) {
   const nativeFetch = globalThis.fetch.bind(globalThis);
+  await loadStaticDemoFixtures(nativeFetch);
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const raw = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
     const url = new URL(raw, window.location.origin);

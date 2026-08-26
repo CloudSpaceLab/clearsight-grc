@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import fixtures from "../public/static-demo-fixtures.json";
 import { canRespondToEvidenceRequest } from "./evidenceAuthorization";
 import type { EvidenceRequest } from "./types";
 
 async function demo() {
   vi.resetModules();
   vi.stubEnv("VITE_STATIC_DEMO", "true");
-  return import("./staticDemo");
+  const module = await import("./staticDemo");
+  await module.loadStaticDemoFixtures(async () => new Response(JSON.stringify(fixtures)));
+  return module;
 }
 
 beforeEach(() => {
