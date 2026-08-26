@@ -58,12 +58,24 @@ func main() {
 		logger.Error("vendor due-diligence initialization failed", "error", err)
 		os.Exit(1)
 	}
+	vendorWorkService, err := thirdparty.NewVendorWorkService(
+		services.ThirdPartyWorkRepo, services.ThirdPartyRelationshipLinkRepo, services.Evidence, services.MonitoringRepo,
+		evidence.NewInvitationDeliveryService(nil), cfg.CapturePublicBaseURL, cfg.Environment,
+	)
+	if err != nil {
+		logger.Error("vendor request initialization failed", "error", err)
+		os.Exit(1)
+	}
+	vendorWorkService.ConfigureRelationshipReader(services.ThirdPartyAssessmentRepo)
+	vendorWorkService.ConfigureAuthority(guard)
+	vendorWorkService.ConfigureReadAuthority(services.Authority)
+	services.ThirdPartyRelationshipLinks.ConfigureActiveWorkGuard(services.ThirdPartyWorkRepo)
 	handler := httpapi.New(httpapi.Dependencies{
 		Logger: logger, AllowedOrigin: cfg.AllowedOrigin, Mode: services.Mode, DemoMode: cfg.DemoMode,
 		IdentityMode: cfg.IdentityMode, OIDCIssuer: cfg.OIDCIssuer,
 		Identity: authenticator, Federation: federationService, SCIM: services.SCIM, AccessAdmin: services.AccessAdmin,
 		CommandGuard: guard, Authority: services.Authority, Governance: services.Governance,
-		Evidence: services.Evidence, Monitoring: services.Monitoring, ThirdParty: services.ThirdParty, ThirdPartyRelationshipLinks: services.ThirdPartyRelationshipLinks, ThirdPartyAssessments: assessmentService, ThirdPartyAssessmentReviews: assessmentReviewService, ThirdPartyAssessmentRequests: assessmentRequestService, ThirdPartyAssessmentDeficiencies: assessmentDeficiencyService, ThirdPartyAssessmentSetup: services.ThirdPartyAssessmentSetup, SourceCatalog: services.SourceCatalog, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
+		Evidence: services.Evidence, Monitoring: services.Monitoring, ThirdParty: services.ThirdParty, ThirdPartyRelationshipLinks: services.ThirdPartyRelationshipLinks, ThirdPartyWork: vendorWorkService, ThirdPartyAssessments: assessmentService, ThirdPartyAssessmentReviews: assessmentReviewService, ThirdPartyAssessmentRequests: assessmentRequestService, ThirdPartyAssessmentDeficiencies: assessmentDeficiencyService, ThirdPartyAssessmentSetup: services.ThirdPartyAssessmentSetup, SourceCatalog: services.SourceCatalog, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
 		Continuity: services.Continuity, Today: services.Today, Workflow: services.Workflow, Onboarding: services.Onboarding,
 		Autonomy: services.Autonomy, BankVerticals: services.BankVerticals, BackgroundJobs: services.BackgroundJobs,
 		MaxArtifactBytes: cfg.MaxArtifactBytes,

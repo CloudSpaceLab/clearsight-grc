@@ -68,7 +68,8 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	evidenceService := evidence.NewService(evidenceRepository, store)
 	assessmentRepository := thirdparty.NewPostgresRepository(pool)
 	assessmentSubmission := newAssessmentSubmissionConsumer(runtimeRepository, evidenceService, assessmentRepository)
-	publisher := workflowruntime.NewCompositePublisher(sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork, documentService, coverageService, assessmentSubmission, workflowruntime.LogPublisher{Logger: logger})
+	vendorWorkSubmission := newVendorWorkSubmissionConsumer(runtimeRepository, evidenceService, assessmentRepository)
+	publisher := workflowruntime.NewCompositePublisher(sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork, documentService, coverageService, assessmentSubmission, vendorWorkSubmission, workflowruntime.LogPublisher{Logger: logger})
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
 	configureWorkerRuntime(service, cfg, logger)
 	// Matter events update immediately through the outbox publisher. This slower

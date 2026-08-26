@@ -37,3 +37,7 @@ func newAssessmentSubmissionConsumer(inbox thirdparty.AssessmentSubmissionInbox,
 		Reactions: thirdparty.NewAssessmentService(assessments, nil),
 	}
 }
+
+func newVendorWorkSubmissionConsumer(inbox thirdparty.AssessmentSubmissionInbox, requests thirdparty.AssessmentSubmissionRequestReader, work thirdparty.VendorWorkRepository) *thirdparty.VendorWorkConsumer {
+	return &thirdparty.VendorWorkConsumer{Inbox: inbox, Requests: requests, Resolver: work, Reactions: thirdparty.NewVendorWorkSubmissionRecorder(work)}
+}

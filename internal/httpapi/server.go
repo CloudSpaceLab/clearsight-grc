@@ -47,6 +47,7 @@ type Dependencies struct {
 	Monitoring                       *monitoring.Service
 	ThirdParty                       *thirdparty.Service
 	ThirdPartyRelationshipLinks      *thirdparty.RelationshipLinkService
+	ThirdPartyWork                   *thirdparty.VendorWorkService
 	ThirdPartyAssessments            *thirdparty.AssessmentService
 	ThirdPartyAssessmentReviews      *thirdparty.AssessmentReviewService
 	ThirdPartyAssessmentRequests     *thirdparty.AssessmentRequestService

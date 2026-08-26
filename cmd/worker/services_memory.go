@@ -23,7 +23,9 @@ func buildWorker(_ context.Context, cfg config.Config, logger *slog.Logger) (wor
 	evidenceService := evidence.NewService(evidenceRepository, evidence.NewMemoryObjectStore())
 	assessmentRepository := thirdparty.NewMemoryAssessmentRepository()
 	assessmentSubmission := newAssessmentSubmissionConsumer(repository, evidenceService, assessmentRepository)
-	publisher := workflowruntime.NewCompositePublisher(assessmentSubmission, workflowruntime.LogPublisher{Logger: logger})
+	vendorWorkRepository := thirdparty.NewMemoryVendorWorkRepository()
+	vendorWorkSubmission := newVendorWorkSubmissionConsumer(repository, evidenceService, vendorWorkRepository)
+	publisher := workflowruntime.NewCompositePublisher(assessmentSubmission, vendorWorkSubmission, workflowruntime.LogPublisher{Logger: logger})
 	service := workflowruntime.NewService(repository, lifecycle, publisher, cfg.WorkerID)
 	configureWorkerRuntime(service, cfg, logger)
 

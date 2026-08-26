@@ -79,9 +79,20 @@ type RelationshipLinkRepository interface {
 }
 
 type RelationshipLinkService struct {
-	repo  RelationshipLinkRepository
+	repo RelationshipLinkRepository
+	work interface {
+		HasActiveVendorWork(context.Context, Scope, string) (bool, error)
+	}
 	now   func() time.Time
 	newID func() (string, error)
+}
+
+func (s *RelationshipLinkService) ConfigureActiveWorkGuard(work interface {
+	HasActiveVendorWork(context.Context, Scope, string) (bool, error)
+}) {
+	if s != nil {
+		s.work = work
+	}
 }
 
 func NewRelationshipLinkService(repo RelationshipLinkRepository) *RelationshipLinkService {
@@ -131,7 +142,17 @@ func (s *RelationshipLinkService) End(ctx context.Context, actor Actor, linkID s
 	if s == nil || s.repo == nil || !validActor(actor) || linkID == "" || input.ExpectedVersion < 1 || input.Reason == "" || len(input.Reason) > 1000 {
 		return RelationshipLink{}, ErrInvalid
 	}
-	return s.repo.EndRelationshipLink(ctx, scopeFrom(actor), linkID, input.ExpectedVersion, strings.TrimSpace(actor.PrincipalID), input.Reason, s.now().UTC())
+	scope := scopeFrom(actor)
+	if s.work != nil {
+		active, err := s.work.HasActiveVendorWork(ctx, scope, linkID)
+		if err != nil {
+			return RelationshipLink{}, err
+		}
+		if active {
+			return RelationshipLink{}, ErrVersionConflict
+		}
+	}
+	return s.repo.EndRelationshipLink(ctx, scope, linkID, input.ExpectedVersion, strings.TrimSpace(actor.PrincipalID), input.Reason, s.now().UTC())
 }
 
 func (s *RelationshipLinkService) List(ctx context.Context, actor Actor, input RelationshipLinkListInput) (RelationshipLinkPage, error) {

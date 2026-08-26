@@ -26,31 +26,33 @@ import (
 )
 
 type serviceSet struct {
-	Mode                        string
-	Authority                   authority.Service
-	Governance                  *governance.Service
-	Evidence                    *evidence.Service
-	Monitoring                  *monitoring.Service
-	ThirdParty                  *thirdparty.Service
-	ThirdPartyRelationshipLinks *thirdparty.RelationshipLinkService
-	MonitoringRepo              monitoring.Repository
-	ThirdPartyAssessmentRepo    thirdparty.AssessmentRepository
-	ThirdPartyAssessmentSetup   *thirdparty.AssessmentProvisioner
-	SourceCatalog               *sourceaccess.CatalogService
-	DocumentImports             *documentimport.Service
-	Coverage                    *documentcoverage.Service
-	Continuity                  *continuity.Service
-	Today                       *today.Service
-	Workflow                    *workflow.Service
-	Onboarding                  *onboarding.Service
-	Autonomy                    *autonomy.Service
-	BankVerticals               *bankverticals.Service
-	BackgroundJobs              *operations.Service
-	Access                      access.Resolver
-	AccessAdmin                 access.Administrator
-	SessionStore                scs.Store
-	SCIM                        *scimapi.Service
-	Close                       func()
+	Mode                           string
+	Authority                      authority.Service
+	Governance                     *governance.Service
+	Evidence                       *evidence.Service
+	Monitoring                     *monitoring.Service
+	ThirdParty                     *thirdparty.Service
+	ThirdPartyRelationshipLinks    *thirdparty.RelationshipLinkService
+	ThirdPartyRelationshipLinkRepo thirdparty.RelationshipLinkRepository
+	ThirdPartyWorkRepo             thirdparty.VendorWorkRepository
+	MonitoringRepo                 monitoring.Repository
+	ThirdPartyAssessmentRepo       thirdparty.AssessmentRepository
+	ThirdPartyAssessmentSetup      *thirdparty.AssessmentProvisioner
+	SourceCatalog                  *sourceaccess.CatalogService
+	DocumentImports                *documentimport.Service
+	Coverage                       *documentcoverage.Service
+	Continuity                     *continuity.Service
+	Today                          *today.Service
+	Workflow                       *workflow.Service
+	Onboarding                     *onboarding.Service
+	Autonomy                       *autonomy.Service
+	BankVerticals                  *bankverticals.Service
+	BackgroundJobs                 *operations.Service
+	Access                         access.Resolver
+	AccessAdmin                    access.Administrator
+	SessionStore                   scs.Store
+	SCIM                           *scimapi.Service
+	Close                          func()
 }
 
 type serviceBuilder func(context.Context, config.Config, *slog.Logger) (serviceSet, error)
