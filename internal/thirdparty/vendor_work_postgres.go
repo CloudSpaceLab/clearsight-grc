@@ -371,7 +371,7 @@ func (r *PostgresRepository) RecordVendorWorkChanges(ctx context.Context, scope 
 }
 
 func (r *PostgresRepository) ListVendorWork(ctx context.Context, scope Scope, input VendorWorkListInput) (VendorWorkPage, error) {
-	args := []any{scope.TenantID, scope.LegalEntityID, input.RelationshipID, string(input.TargetType), input.TargetID}
+	args := []any{scope.TenantID, scope.LegalEntityID, input.RelationshipID, string(input.TargetType), input.TargetID, input.VisiblePrincipalID}
 	cursorClause := ""
 	if input.Cursor != "" {
 		at, id, err := decodeCursor(input.Cursor)
@@ -379,10 +379,11 @@ func (r *PostgresRepository) ListVendorWork(ctx context.Context, scope Scope, in
 			return VendorWorkPage{}, ErrInvalid
 		}
 		args = append(args, at, id)
-		cursorClause = " AND (w.updated_at,w.id)<($6,$7::uuid)"
+		cursorClause = " AND (w.updated_at,w.id)<($7,$8::uuid)"
 	}
 	args = append(args, input.Limit+1)
-	rows, err := r.pool.Query(ctx, vendorWorkSelect+` WHERE (t.id::text=$1 OR t.slug=$1) AND w.legal_entity_id::text=$2 AND ($3='' OR w.relationship_id::text=$3) AND ($4='' OR w.target_type=$4) AND ($5='' OR w.target_id::text=$5)`+cursorClause+` ORDER BY w.updated_at DESC,w.id DESC LIMIT $`+fmt.Sprint(len(args)), args...)
+	rows, err := r.pool.Query(ctx, vendorWorkSelect+` WHERE (t.id::text=$1 OR t.slug=$1) AND w.legal_entity_id::text=$2 AND ($3='' OR w.relationship_id::text=$3) AND ($4='' OR w.target_type=$4) AND ($5='' OR w.target_id::text=$5)
+		AND (w.target_type<>'MATTER' OR EXISTS (SELECT 1 FROM matters m WHERE m.tenant_id=w.tenant_id AND m.id=w.target_id AND `+matterVisibilitySQL("m", 6)+`))`+cursorClause+` ORDER BY w.updated_at DESC,w.id DESC LIMIT $`+fmt.Sprint(len(args)), args...)
 	if err != nil {
 		return VendorWorkPage{}, fmt.Errorf("list vendor work: %w", err)
 	}

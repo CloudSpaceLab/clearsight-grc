@@ -47,6 +47,9 @@ export function VendorWorkPanel(props: Props) {
   const [nextCursor, setNextCursor] = useState("");
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState(false);
+  const [linkNextCursor, setLinkNextCursor] = useState("");
+  const [loadingMoreLinks, setLoadingMoreLinks] = useState(false);
+  const [linkLoadError, setLinkLoadError] = useState(false);
   const loadSequence = useRef(0);
   const targetKey = relationshipID ? `RELATIONSHIP:${relationshipID}` : `${targetType}:${targetID}`;
   const activeTarget = useRef(targetKey);
@@ -66,6 +69,7 @@ export function VendorWorkPanel(props: Props) {
     const sequence = ++loadSequence.current;
     setState("loading");
     setLoadMoreError(false);
+    setLinkLoadError(false);
     const [workResult, linksResult, formsResult] = await Promise.allSettled([
       relationshipID ? loadVendorWork({ relationship_id: relationshipID, limit: 20 }) : loadVendorWork({ target_type: targetType, target_id: targetID, limit: 20 }),
       relationshipID ? loadVendorRelationshipLinks({ relationship_id: relationshipID, limit: 50 }) : loadVendorRelationshipLinks({ target_type: targetType!, target_id: targetID!, limit: 50 }),
@@ -78,6 +82,7 @@ export function VendorWorkPanel(props: Props) {
     }
     setWork(workResult.value.items);
     setNextCursor(workResult.value.next_cursor ?? "");
+    setLinkNextCursor(linksResult.status === "fulfilled" ? linksResult.value.next_cursor ?? "" : "");
     if (relationshipID) {
       const value = await loadVendorRelationship(relationshipID).catch(() => null);
       if (sequence !== loadSequence.current) return;
@@ -112,6 +117,33 @@ export function VendorWorkPanel(props: Props) {
       setLoadMoreError(true);
     } finally {
       setLoadingMore(false);
+    }
+  }
+
+  async function loadMoreLinks() {
+    if (!linkNextCursor || loadingMoreLinks) return;
+    const requestedTarget = targetKey;
+    setLoadingMoreLinks(true);
+    setLinkLoadError(false);
+    try {
+      const page = await loadVendorRelationshipLinks(relationshipID
+        ? { relationship_id: relationshipID, cursor: linkNextCursor, limit: 50 }
+        : { target_type: targetType!, target_id: targetID!, cursor: linkNextCursor, limit: 50 });
+      const active = page.items.filter((item) => item.state === "ACTIVE");
+      let hydrated: LinkedRelationship[];
+      if (relationshipID) {
+        const value = relationships.find((item) => item.relationship)?.relationship ?? await loadVendorRelationship(relationshipID).catch(() => null);
+        hydrated = value ? active.map((link) => ({ link, relationship: value })) : [];
+      } else {
+        hydrated = await Promise.all(active.map(async (link) => ({ link, relationship: await loadVendorRelationship(link.relationship_id).catch(() => null) })));
+      }
+      if (activeTarget.current !== requestedTarget) return;
+      setRelationships((currentItems) => hydrated.reduce(upsertLinkedRelationship, currentItems));
+      setLinkNextCursor(page.next_cursor ?? "");
+    } catch {
+      setLinkLoadError(true);
+    } finally {
+      setLoadingMoreLinks(false);
     }
   }
 
@@ -173,9 +205,9 @@ export function VendorWorkPanel(props: Props) {
   if (state === "failed") return <section className="vendor-work-panel" role="alert"><h2>Vendor requests</h2><p>Vendor requests could not be loaded for this {targetName}. No request state is shown.</p><button type="button" className="secondary-button" onClick={() => void loadAll()}>Try again</button></section>;
 
   return <section className="vendor-work-panel" aria-labelledby={headingID}>
-    <div className="section-heading-row"><div><h2 id={headingID}>Vendor requests</h2><p>Information, documents or confirmations requested from vendors for this {targetName}.</p></div>{canCreate && !creating && <button type="button" className="primary-button" disabled={!setupAvailable || relationships.length === 0 || forms.length === 0} onClick={() => { setCreating(true); setError(""); setNotice(""); }}>Request vendor work</button>}</div>
+    <div className="section-heading-row"><div><h2 id={headingID}>Vendor requests</h2><p>Information, documents or confirmations requested from vendors for this {targetName}.</p></div>{canCreate && !creating && <button type="button" className="primary-button" disabled={!setupAvailable || (relationships.length === 0 && !linkNextCursor) || forms.length === 0} onClick={() => { setCreating(true); setError(""); setNotice(""); }}>Request vendor work</button>}</div>
     {canCreate && !setupAvailable && <p className="inline-notice">Linked vendors or approved forms are unavailable. Existing request history remains available.</p>}
-    {canCreate && setupAvailable && relationships.length === 0 && <p className="inline-notice">{relationshipID ? "Link this vendor relationship to a Program or issue before requesting vendor work." : `Link a vendor relationship to this ${targetName} before requesting vendor work.`}</p>}
+    {canCreate && setupAvailable && relationships.length === 0 && !linkNextCursor && <p className="inline-notice">{relationshipID ? "Link this vendor relationship to a Program or issue before requesting vendor work." : `Link a vendor relationship to this ${targetName} before requesting vendor work.`}</p>}
     {canCreate && setupAvailable && forms.length === 0 && <p className="inline-notice">No current approved collection form is available. Activate a form before preparing this request.</p>}
     {notice && <p className="inline-success" role="status">{notice}</p>}
     {current.length === 0 && history.length === 0 && <p>No vendor requests have been recorded for this {targetName}.</p>}
@@ -186,6 +218,8 @@ export function VendorWorkPanel(props: Props) {
     {creating && <form className="vendor-work-form" onSubmit={(event) => void prepareAndSend(event)}>
       <div><h3>Request vendor work</h3><p>Confirm the vendor, collection form and delivery details for this {targetName}.</p></div>
       <label>{relationshipID ? "Related Program or issue" : "Vendor relationship"}<select value={selectedLinkID} required onChange={(event) => setSelectedLinkID(event.target.value)}><option value="">{relationshipID ? "Choose related work" : "Choose a linked vendor"}</option>{relationships.map(({ link, relationship }) => <option key={link.id} value={link.id} disabled={!relationship}>{relationship ? relationshipID ? `${link.target_type === "PROGRAM" ? "Program" : "Issue or change"} · ${link.purpose_label}` : `${relationship.vendor.legal_name} — ${relationship.relationship.service_name}` : "Vendor details unavailable"}</option>)}</select></label>
+      {linkNextCursor && <button type="button" className="secondary-button" disabled={loadingMoreLinks} onClick={() => void loadMoreLinks()}>{loadingMoreLinks ? "Loading…" : relationshipID ? "Load more related work" : "Load more linked vendors"}</button>}
+      {linkLoadError && <p role="alert" className="inline-error">More related records could not be loaded. The current choices remain available.</p>}
       <label>Request purpose<input value={purpose} required maxLength={500} onChange={(event) => setPurpose(event.target.value)} placeholder="Confirm annual service controls"/></label>
       <label>Instructions for the vendor<textarea value={instructions} required maxLength={2000} rows={4} onChange={(event) => setInstructions(event.target.value)} placeholder="State what must be completed or provided."/></label>
       <div className="vendor-work-form-grid"><label>Collection form<select value={formKey} required onChange={(event) => setFormKey(event.target.value)}><option value="">Choose an approved form</option>{forms.map((item) => <option key={`${item.id}:${item.version}`} value={`${item.id}:${item.version}`}>{item.name} · version {item.version}</option>)}</select></label><label>Form layout<select value={presentation} onChange={(event) => setPresentation(event.target.value as CapturePresentationMode)}><option value="AUTOMATIC">Automatic</option><option value="CLASSIC">Classic</option><option value="WIZARD">Wizard</option></select></label></div>
@@ -351,6 +385,7 @@ function FormSummary({ form }: { form: FormTemplate }) {
 
 function findForm(forms: FormTemplate[], work: VendorWorkRequest) { return forms.find((form) => form.id === work.form_template_id && form.version === work.form_template_version); }
 function upsertWork(items: VendorWorkRequest[], next: VendorWorkRequest) { return [next, ...items.filter((item) => item.id !== next.id)].sort((left, right) => Date.parse(right.updated_at) - Date.parse(left.updated_at)); }
+function upsertLinkedRelationship(items: LinkedRelationship[], next: LinkedRelationship) { return [...items.filter((item) => item.link.id !== next.link.id), next]; }
 function validEmail(value: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()); }
 function endOfDayUTC(value: string) { return new Date(`${value}T23:59:59.000Z`).toISOString(); }
 function minimumDueDate() { const value = new Date(); value.setUTCDate(value.getUTCDate() + 1); return value.toISOString().slice(0, 10); }

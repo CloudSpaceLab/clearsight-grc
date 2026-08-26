@@ -316,6 +316,23 @@ describe("VendorWorkPanel", () => {
     expect(loadVendorWork).toHaveBeenLastCalledWith({ target_type: "PROGRAM", target_id: "program-1", cursor: "next-work", limit: 20 });
   });
 
+  it("loads additional linked vendors before preparing a request", async () => {
+    const secondLink = { ...link, id: "link-2", relationship_id: "relationship-2" };
+    const secondRelationship = { ...relationship, relationship: { ...relationship.relationship, id: "relationship-2", service_name: "Payment reconciliation" } };
+    vi.mocked(loadVendorRelationshipLinks)
+      .mockResolvedValueOnce({ items: [link], next_cursor: "next-link" })
+      .mockResolvedValueOnce({ items: [secondLink] });
+    vi.mocked(loadVendorRelationship).mockImplementation(async (id) => id === "relationship-2" ? secondRelationship : relationship);
+    render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
+    await screen.findByText("No vendor requests have been recorded for this Program.");
+    fireEvent.click(screen.getByRole("button", { name: "Request vendor work" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Load more linked vendors" }));
+
+    expect(await screen.findByRole("option", { name: "Acme Processing Limited — Payment reconciliation" })).toBeTruthy();
+    expect(loadVendorRelationshipLinks).toHaveBeenLastCalledWith({ target_type: "PROGRAM", target_id: "program-1", cursor: "next-link", limit: 50 });
+  });
+
   it("ignores preparation completed after the target changes", async () => {
     let finishPrepare!: (value: VendorWorkRequest) => void;
     vi.mocked(prepareVendorWork).mockImplementation(() => new Promise((resolve) => { finishPrepare = resolve; }));

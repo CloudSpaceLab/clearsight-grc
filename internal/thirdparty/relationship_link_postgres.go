@@ -181,7 +181,7 @@ func (r *PostgresRepository) EndRelationshipLink(ctx context.Context, scope Scop
 }
 
 func (r *PostgresRepository) ListRelationshipLinks(ctx context.Context, scope Scope, input RelationshipLinkListInput) (RelationshipLinkPage, error) {
-	args := []any{scope.TenantID, scope.LegalEntityID, input.RelationshipID, string(input.TargetType), input.TargetID, input.IncludeEnded}
+	args := []any{scope.TenantID, scope.LegalEntityID, input.RelationshipID, string(input.TargetType), input.TargetID, input.IncludeEnded, input.VisiblePrincipalID}
 	cursorClause := ""
 	if input.Cursor != "" {
 		cursorTime, cursorID, err := decodeCursor(input.Cursor)
@@ -189,13 +189,17 @@ func (r *PostgresRepository) ListRelationshipLinks(ctx context.Context, scope Sc
 			return RelationshipLinkPage{}, ErrInvalid
 		}
 		args = append(args, cursorTime, cursorID)
-		cursorClause = " AND (updated_at,id) < ($7,$8::uuid)"
+		cursorClause = " AND (updated_at,id) < ($8,$9::uuid)"
 	}
 	args = append(args, input.Limit+1)
 	limitArg := len(args)
 	rows, err := r.pool.Query(ctx, relationshipLinkUnion+` WHERE tenant_ref=$1 AND legal_entity_id::text=$2
 		AND ($3='' OR relationship_id::text=$3) AND ($4='' OR target_type=$4) AND ($5='' OR target_id::text=$5)
-		AND ($6 OR state='ACTIVE')`+cursorClause+` ORDER BY updated_at DESC,id DESC LIMIT $`+fmt.Sprint(limitArg), args...)
+		AND ($6 OR state='ACTIVE')
+		AND (target_type<>'MATTER' OR EXISTS (
+			SELECT 1 FROM matters m JOIN tenants mt ON mt.id=m.tenant_id
+			WHERE (mt.id::text=$1 OR mt.slug=$1) AND m.id=link_rows.target_id AND `+matterVisibilitySQL("m", 7)+`
+		))`+cursorClause+` ORDER BY updated_at DESC,id DESC LIMIT $`+fmt.Sprint(limitArg), args...)
 	if err != nil {
 		return RelationshipLinkPage{}, fmt.Errorf("list vendor relationship links: %w", err)
 	}
@@ -218,6 +222,29 @@ func (r *PostgresRepository) ListRelationshipLinks(ctx context.Context, scope Sc
 		page.NextCursor = encodeCursor(last.UpdatedAt, last.ID)
 	}
 	return page, nil
+}
+
+func matterVisibilitySQL(alias string, principalArg int) string {
+	return fmt.Sprintf(`CASE
+		WHEN NOT (%[1]s.scope ? 'access') THEN true
+		WHEN jsonb_typeof(%[1]s.scope->'access')<>'string' THEN false
+		WHEN upper(btrim(%[1]s.scope->>'access')) IN ('PUBLIC','INTERNAL') THEN true
+		WHEN upper(btrim(%[1]s.scope->>'access'))='RESTRICTED' THEN
+			CASE
+				WHEN jsonb_typeof(%[1]s.scope->'allowed_principal_ids')<>'array' THEN false
+				ELSE NOT EXISTS (
+					SELECT 1 FROM jsonb_array_elements(%[1]s.scope->'allowed_principal_ids') entry(value)
+					WHERE jsonb_typeof(entry.value)<>'string'
+				) AND EXISTS (
+					SELECT 1 FROM jsonb_array_elements_text(%[1]s.scope->'allowed_principal_ids') nonblank(value)
+					WHERE btrim(nonblank.value)<>''
+				) AND EXISTS (
+					SELECT 1 FROM jsonb_array_elements_text(%[1]s.scope->'allowed_principal_ids') allowed(value)
+					WHERE btrim(allowed.value)=$%[2]d
+				)
+			END
+		ELSE false
+	END`, alias, principalArg)
 }
 
 func relationshipLinkTable(targetType LinkTargetType) (string, string, error) {

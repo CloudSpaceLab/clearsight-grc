@@ -18,8 +18,9 @@ var ErrRelationshipLinkIdentityMismatch = errors.New("vendor link authority iden
 type LinkTargetType string
 
 const (
-	LinkTargetProgram LinkTargetType = "PROGRAM"
-	LinkTargetMatter  LinkTargetType = "MATTER"
+	LinkTargetProgram             LinkTargetType = "PROGRAM"
+	LinkTargetMatter              LinkTargetType = "MATTER"
+	thirdPartyVisibilityScanLimit                = 1000
 )
 
 type RelationshipLinkState string
@@ -61,12 +62,13 @@ type EndRelationshipLinkInput struct {
 }
 
 type RelationshipLinkListInput struct {
-	RelationshipID string         `json:"relationship_id,omitempty"`
-	TargetType     LinkTargetType `json:"target_type,omitempty"`
-	TargetID       string         `json:"target_id,omitempty"`
-	IncludeEnded   bool           `json:"include_ended,omitempty"`
-	Cursor         string         `json:"cursor,omitempty"`
-	Limit          int            `json:"limit,omitempty"`
+	RelationshipID     string         `json:"relationship_id,omitempty"`
+	TargetType         LinkTargetType `json:"target_type,omitempty"`
+	TargetID           string         `json:"target_id,omitempty"`
+	IncludeEnded       bool           `json:"include_ended,omitempty"`
+	Cursor             string         `json:"cursor,omitempty"`
+	Limit              int            `json:"limit,omitempty"`
+	VisiblePrincipalID string         `json:"-"`
 }
 
 type RelationshipLinkPage struct {
@@ -249,18 +251,40 @@ func (s *RelationshipLinkService) List(ctx context.Context, actor Actor, input R
 	if input.Limit == 0 {
 		input.Limit = 50
 	}
-	page, err := s.repo.ListRelationshipLinks(ctx, scopeFrom(actor), input)
-	if err != nil || s.targets == nil {
-		return page, err
+	input.VisiblePrincipalID = strings.TrimSpace(actor.PrincipalID)
+	if s.targets == nil {
+		return s.repo.ListRelationshipLinks(ctx, scopeFrom(actor), input)
 	}
-	visible := make([]RelationshipLink, 0, len(page.Items))
-	for _, link := range page.Items {
-		if s.targets.CanRead(ctx, actor, link.TargetType, link.TargetID) {
-			visible = append(visible, link)
+	visible := make([]RelationshipLink, 0, input.Limit)
+	scan := input
+	scanned := 0
+	for {
+		page, err := s.repo.ListRelationshipLinks(ctx, scopeFrom(actor), scan)
+		if err != nil {
+			return RelationshipLinkPage{}, err
 		}
+		for index, link := range page.Items {
+			scanned++
+			if !s.targets.CanRead(ctx, actor, link.TargetType, link.TargetID) {
+				continue
+			}
+			visible = append(visible, link)
+			if len(visible) == input.Limit {
+				next := ""
+				if index < len(page.Items)-1 || page.NextCursor != "" {
+					next = encodeCursor(link.UpdatedAt, link.ID)
+				}
+				return RelationshipLinkPage{Items: visible, NextCursor: next}, nil
+			}
+		}
+		if page.NextCursor == "" {
+			return RelationshipLinkPage{Items: visible}, nil
+		}
+		if scanned >= thirdPartyVisibilityScanLimit {
+			return RelationshipLinkPage{Items: visible, NextCursor: page.NextCursor}, nil
+		}
+		scan.Cursor = page.NextCursor
 	}
-	page.Items = visible
-	return page, nil
 }
 
 func relationshipLinkConflict(err error) error {

@@ -147,6 +147,24 @@ func TestRelationshipLinksHideRestrictedMatterTargetsFromOtherActors(t *testing.
 	}
 }
 
+func TestRelationshipLinkListFillsPageAfterRestrictedTargetsAreRemoved(t *testing.T) {
+	repo := NewMemoryRelationshipLinkRepository()
+	base := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repo.links["link-hidden"] = RelationshipLink{ID: "link-hidden", TenantID: "tenant-a", LegalEntityID: "entity-a", RelationshipID: "relationship-1", TargetType: LinkTargetMatter, TargetID: "matter-hidden", State: RelationshipLinkActive, UpdatedAt: base.Add(time.Minute)}
+	repo.links["link-visible"] = RelationshipLink{ID: "link-visible", TenantID: "tenant-a", LegalEntityID: "entity-a", RelationshipID: "relationship-1", TargetType: LinkTargetMatter, TargetID: "matter-visible", State: RelationshipLinkActive, UpdatedAt: base}
+	service := NewRelationshipLinkService(repo)
+	service.ConfigureTargetReader(relationshipTargetReaderStub{matters: map[string]continuity.MatterAggregate{
+		"matter-hidden":  {Matter: continuity.Matter{ID: "matter-hidden", TenantID: "tenant-a", Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["different-owner"]}`)}},
+		"matter-visible": {Matter: continuity.Matter{ID: "matter-visible", TenantID: "tenant-a", Scope: json.RawMessage(`{"access":"INTERNAL"}`)}},
+	}})
+	actor := Actor{TenantID: "tenant-a", LegalEntityID: "entity-a", PrincipalID: "owner-1"}
+
+	page, err := service.List(context.Background(), actor, RelationshipLinkListInput{RelationshipID: "relationship-1", Limit: 1})
+	if err != nil || len(page.Items) != 1 || page.Items[0].ID != "link-visible" || page.NextCursor != "" {
+		t.Fatalf("visible page = %#v, %v", page, err)
+	}
+}
+
 func TestRelationshipLinksRejectProgramsOutsideActorLegalEntity(t *testing.T) {
 	repo := NewMemoryRelationshipLinkRepository()
 	repo.AllowRelationship("tenant-a", "entity-a", "relationship-1")

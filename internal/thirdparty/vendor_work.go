@@ -149,11 +149,12 @@ type VendorWorkSubmissionInput struct {
 }
 
 type VendorWorkListInput struct {
-	RelationshipID string         `json:"relationship_id,omitempty"`
-	TargetType     LinkTargetType `json:"target_type,omitempty"`
-	TargetID       string         `json:"target_id,omitempty"`
-	Cursor         string         `json:"cursor,omitempty"`
-	Limit          int            `json:"limit,omitempty"`
+	RelationshipID     string         `json:"relationship_id,omitempty"`
+	TargetType         LinkTargetType `json:"target_type,omitempty"`
+	TargetID           string         `json:"target_id,omitempty"`
+	Cursor             string         `json:"cursor,omitempty"`
+	Limit              int            `json:"limit,omitempty"`
+	VisiblePrincipalID string         `json:"-"`
 }
 
 type VendorWorkPage struct {
@@ -217,7 +218,6 @@ type vendorWorkEvidence interface {
 	CreateRequest(context.Context, evidence.CreateRequestInput) (evidence.Request, error)
 	GetRequestByOrigin(context.Context, string, evidence.RequestOrigin) (evidence.Request, error)
 	IssueInvitation(context.Context, evidence.IssueInvitationInput) (evidence.IssuedInvitation, error)
-	RevokeInvitation(context.Context, string, string) error
 	RevokeRequestCapabilities(context.Context, string, string) error
 	GetSubmission(context.Context, string, string) (evidence.Submission, error)
 	GetArtifact(context.Context, string, string, string) (evidence.Artifact, error)
@@ -498,10 +498,13 @@ func (s *VendorWorkService) sendCurrent(ctx context.Context, actor Actor, work V
 		if readErr == nil && stored.Version == work.Version+1 && stored.CurrentRequestID == request.ID && stored.CurrentInvitationID == issued.InvitationID && stored.DeliveryState == deliveryState {
 			updated, err = stored, nil
 		} else {
-			if readErr == nil && stored.CurrentInvitationID != issued.InvitationID {
-				_ = s.evidence.RevokeInvitation(ctx, work.TenantID, issued.InvitationID)
+			_ = s.evidence.RevokeRequestCapabilities(ctx, work.TenantID, request.ID)
+			recovery = "Delivery could not be confirmed. Retry delivery to replace any prior secure access."
+			if readErr == nil {
+				return VendorWorkSendOutcome{Work: stored, State: stored.DeliveryState, Recovery: recovery}, nil
 			}
-			return VendorWorkSendOutcome{}, err
+			work.DeliveryState, work.Recovery = VendorWorkDeliveryRetryRequired, recovery
+			return VendorWorkSendOutcome{Work: work, State: VendorWorkDeliveryRetryRequired, Recovery: recovery}, nil
 		}
 	}
 	issued.Token = ""
@@ -684,18 +687,37 @@ func (s *VendorWorkService) List(ctx context.Context, actor Actor, input VendorW
 	if input.Limit == 0 {
 		input.Limit = 50
 	}
-	page, err := s.repo.ListVendorWork(ctx, scopeFrom(actor), input)
-	if err != nil {
-		return VendorWorkPage{}, err
-	}
-	visible := make([]VendorWorkRequest, 0, len(page.Items))
-	for _, work := range page.Items {
-		if s.authorizeRead(ctx, actor, work) == nil {
-			visible = append(visible, work)
+	input.VisiblePrincipalID = strings.TrimSpace(actor.PrincipalID)
+	visible := make([]VendorWorkRequest, 0, input.Limit)
+	scan := input
+	scanned := 0
+	for {
+		page, err := s.repo.ListVendorWork(ctx, scopeFrom(actor), scan)
+		if err != nil {
+			return VendorWorkPage{}, err
 		}
+		for index, work := range page.Items {
+			scanned++
+			if s.authorizeRead(ctx, actor, work) != nil {
+				continue
+			}
+			visible = append(visible, work)
+			if len(visible) == input.Limit {
+				next := ""
+				if index < len(page.Items)-1 || page.NextCursor != "" {
+					next = encodeCursor(work.UpdatedAt, work.ID)
+				}
+				return VendorWorkPage{Items: visible, NextCursor: next}, nil
+			}
+		}
+		if page.NextCursor == "" {
+			return VendorWorkPage{Items: visible}, nil
+		}
+		if scanned >= thirdPartyVisibilityScanLimit {
+			return VendorWorkPage{Items: visible, NextCursor: page.NextCursor}, nil
+		}
+		scan.Cursor = page.NextCursor
 	}
-	page.Items = visible
-	return page, nil
 }
 
 func (s *VendorWorkService) Response(ctx context.Context, actor Actor, id string) (VendorWorkReviewView, error) {
@@ -830,7 +852,7 @@ func (s *VendorWorkService) Retry(ctx context.Context, actor Actor, workID strin
 	if work.CurrentRequestID == "" || (work.DeliveryState != VendorWorkDeliveryLinkAvailable && work.DeliveryState != VendorWorkDeliveryRetryRequired) || (work.State != VendorWorkPreparing && work.State != VendorWorkAwaitingVendor && work.State != VendorWorkChangesRequested) {
 		return VendorWorkSendOutcome{}, ErrInvalidAssessmentTransition
 	}
-	if work.CurrentInvitationID != "" {
+	if work.CurrentRequestID != "" {
 		if err := s.evidence.RevokeRequestCapabilities(ctx, work.TenantID, work.CurrentRequestID); err != nil {
 			return VendorWorkSendOutcome{}, err
 		}

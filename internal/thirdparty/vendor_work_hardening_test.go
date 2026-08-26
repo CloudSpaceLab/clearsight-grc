@@ -121,6 +121,54 @@ func TestSendVendorWorkReconcilesCommittedInvitationBeforeRevocation(t *testing.
 	}
 }
 
+type failedVendorWorkDeliveryRepository struct {
+	*MemoryVendorWorkRepository
+	markAttempted bool
+}
+
+func (r *failedVendorWorkDeliveryRepository) MarkVendorWorkSent(context.Context, Scope, string, int64, string, VendorWorkDeliveryState, string, time.Time) (VendorWorkRequest, error) {
+	r.markAttempted = true
+	return VendorWorkRequest{}, errors.New("delivery state unavailable")
+}
+
+func (r *failedVendorWorkDeliveryRepository) GetVendorWork(ctx context.Context, scope Scope, id string) (VendorWorkRequest, error) {
+	if r.markAttempted {
+		return VendorWorkRequest{}, errors.New("delivery state read unavailable")
+	}
+	return r.MemoryVendorWorkRepository.GetVendorWork(ctx, scope, id)
+}
+
+type revocationTrackingVendorWorkEvidence struct {
+	vendorWorkEvidence
+	revokedRequests int
+}
+
+func (s *revocationTrackingVendorWorkEvidence) RevokeRequestCapabilities(ctx context.Context, tenantID, requestID string) error {
+	s.revokedRequests++
+	return s.vendorWorkEvidence.RevokeRequestCapabilities(ctx, tenantID, requestID)
+}
+
+func TestSendVendorWorkReturnsRecoverableStateWhenInvitationPersistenceIsAmbiguous(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	tracking := &revocationTrackingVendorWorkEvidence{vendorWorkEvidence: fixture.evidence}
+	fixture.service.evidence = tracking
+	fixture.service.repo = &failedVendorWorkDeliveryRepository{MemoryVendorWorkRepository: fixture.repository}
+	prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
+		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, Purpose: "Confirm service information.", Instructions: "Review the request.",
+		FormTemplateID: "form-1", FormTemplateVersion: 3, VendorAudience: fixture.audience, DueAt: fixture.now.Add(24 * time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	outcome, err := fixture.service.Send(context.Background(), fixture.actor, prepared.ID, SendVendorWorkInput{ExpectedVersion: prepared.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60})
+	if err != nil {
+		t.Fatalf("recoverable send = %v", err)
+	}
+	if outcome.State != VendorWorkDeliveryRetryRequired || outcome.Work.DeliveryState != VendorWorkDeliveryRetryRequired || outcome.CaptureURL != "" || tracking.revokedRequests != 1 {
+		t.Fatalf("recoverable invitation outcome = %#v, revocations=%d", outcome, tracking.revokedRequests)
+	}
+}
+
 type failingVendorWorkChangesRepository struct {
 	*MemoryVendorWorkRepository
 	failure error
@@ -380,6 +428,27 @@ func TestMemoryVendorWorkListUsesStableCursor(t *testing.T) {
 	}
 	if len(second.Items) != 1 || second.Items[0].ID == first.Items[0].ID || second.NextCursor != "" {
 		t.Fatalf("second page = %#v", second)
+	}
+}
+
+func TestVendorWorkListFillsPageAfterRestrictedTargetsAreRemoved(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	base := fixture.now.UTC()
+	for _, value := range []VendorWorkRequest{
+		{ID: "work-hidden", TenantID: "bank", LegalEntityID: "entity-a", RelationshipID: "relationship-1", RelationshipLinkID: "link-hidden", TargetType: LinkTargetProgram, TargetID: "program-hidden", Purpose: "Hidden", OwnerPrincipalID: fixture.actor.PrincipalID, State: VendorWorkAwaitingVendor, DeliveryState: VendorWorkDeliveryDelivered, DueAt: base.Add(24 * time.Hour), Version: 1, CreatedAt: base, UpdatedAt: base.Add(time.Minute)},
+		{ID: "work-visible", TenantID: "bank", LegalEntityID: "entity-a", RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, TargetType: LinkTargetProgram, TargetID: "program-1", Purpose: "Visible", OwnerPrincipalID: fixture.actor.PrincipalID, State: VendorWorkAwaitingVendor, DeliveryState: VendorWorkDeliveryDelivered, DueAt: base.Add(24 * time.Hour), Version: 1, CreatedAt: base, UpdatedAt: base},
+	} {
+		if _, err := fixture.repository.CreateVendorWork(context.Background(), value); err != nil {
+			t.Fatal(err)
+		}
+	}
+	fixture.service.ConfigureTargetReader(vendorWorkTargetReader{programs: map[string]continuity.ProgramAggregate{
+		"program-1": {Program: continuity.Program{ID: "program-1", TenantID: "bank", LegalEntityID: "entity-a"}},
+	}})
+
+	page, err := fixture.service.List(context.Background(), fixture.actor, VendorWorkListInput{RelationshipID: "relationship-1", Limit: 1})
+	if err != nil || len(page.Items) != 1 || page.Items[0].ID != "work-visible" || page.NextCursor != "" {
+		t.Fatalf("visible work page = %#v, %v", page, err)
 	}
 }
 
