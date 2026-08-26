@@ -81,6 +81,12 @@ type QueueHealthRepository interface {
 	OutboxQueueHealth(context.Context) (QueueHealth, error)
 }
 
+// MaintainerQueueHealth lets a bounded maintainer expose its own durable queue
+// without adding feature-specific repositories to the runtime service.
+type MaintainerQueueHealth interface {
+	QueueHealth(context.Context) (QueueHealth, error)
+}
+
 func defaultWorkClassOptions(poll time.Duration) WorkClassOptions {
 	if poll <= 0 {
 		poll = time.Second
@@ -191,21 +197,30 @@ func (s *Service) Health(ctx context.Context) ([]WorkClassHealth, error) {
 	s.healthMu.RUnlock()
 	sort.Slice(values, func(i, j int) bool { return values[i].Name < values[j].Name })
 
-	queueRepo, ok := s.repo.(QueueHealthRepository)
-	if !ok {
-		return values, nil
-	}
+	queueRepo, hasRuntimeQueues := s.repo.(QueueHealthRepository)
 	var healthErrors []error
 	for index := range values {
 		var queue QueueHealth
 		var err error
 		switch values[index].Name {
 		case WorkClassWorkflowTimers:
-			queue, err = queueRepo.TimerQueueHealth(ctx)
+			if hasRuntimeQueues {
+				queue, err = queueRepo.TimerQueueHealth(ctx)
+			} else {
+				continue
+			}
 		case WorkClassOutboxDelivery:
-			queue, err = queueRepo.OutboxQueueHealth(ctx)
+			if hasRuntimeQueues {
+				queue, err = queueRepo.OutboxQueueHealth(ctx)
+			} else {
+				continue
+			}
 		default:
-			continue
+			provider := s.maintainerQueueHealth(values[index].Name)
+			if provider == nil {
+				continue
+			}
+			queue, err = provider.QueueHealth(ctx)
 		}
 		if err != nil {
 			healthErr := fmt.Errorf("read %s queue health: %w", values[index].Name, err)
@@ -220,6 +235,16 @@ func (s *Service) Health(ctx context.Context) ([]WorkClassHealth, error) {
 		}
 	}
 	return values, errors.Join(healthErrors...)
+}
+
+func (s *Service) maintainerQueueHealth(name string) MaintainerQueueHealth {
+	for _, item := range s.maintainers {
+		if item.name == name {
+			provider, _ := item.maintainer.(MaintainerQueueHealth)
+			return provider
+		}
+	}
+	return nil
 }
 
 func (s *Service) workClasses(fallbackPoll time.Duration) []runtimeClass {

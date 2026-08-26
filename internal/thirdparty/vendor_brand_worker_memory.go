@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
+	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 )
 
 func (r *MemoryRepository) GetVendorForBrandDiscovery(_ context.Context, tenantID, vendorID string) (Vendor, error) {
@@ -26,6 +27,7 @@ func (r *MemoryRepository) ClaimVendorBrandJobs(_ context.Context, workerID stri
 	now = now.UTC()
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.requeueDueVendorBrandRefreshes(now)
 	candidates := make([]VendorBrandJob, 0)
 	for key, job := range r.vendorBrandJobs {
 		claimable := job.State == VendorBrandJobReady || (job.State == VendorBrandJobLeased && job.LeaseExpiresAt != nil && !job.LeaseExpiresAt.After(now))
@@ -70,6 +72,64 @@ func (r *MemoryRepository) ClaimVendorBrandJobs(_ context.Context, workerID stri
 		candidates[index] = job
 	}
 	return candidates, nil
+}
+
+func (r *MemoryRepository) requeueDueVendorBrandRefreshes(now time.Time) {
+	for key, job := range r.vendorBrandJobs {
+		if job.State != VendorBrandJobCompleted {
+			continue
+		}
+		vendor, ok := r.vendors[job.VendorID]
+		if !ok || vendor.TenantID != job.TenantID || vendor.WebsiteDomain == "" {
+			continue
+		}
+		due := false
+		for _, asset := range r.vendorBrandAssets {
+			if asset.TenantID == job.TenantID && asset.VendorID == job.VendorID && asset.SourceKind == VendorBrandAssetDiscovered && asset.State == VendorBrandAssetCurrent && asset.SourceDomain == vendor.WebsiteDomain && asset.NextRefreshAt != nil && !asset.NextRefreshAt.After(now) {
+				due = true
+				break
+			}
+		}
+		if !due {
+			continue
+		}
+		job.State = VendorBrandJobReady
+		job.VendorVersion = vendor.Version
+		job.WebsiteDomain = vendor.WebsiteDomain
+		job.Attempts = 0
+		job.AvailableAt = now
+		job.LeaseToken = ""
+		job.LeaseExpiresAt = nil
+		job.LastFailureCode = ""
+		job.UpdatedAt = now
+		job.Version++
+		r.vendorBrandJobs[key] = job
+	}
+}
+
+func (r *MemoryRepository) VendorBrandQueueHealth(context.Context) (workflowruntime.QueueHealth, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var health workflowruntime.QueueHealth
+	for _, job := range r.vendorBrandJobs {
+		switch job.State {
+		case VendorBrandJobReady, VendorBrandJobLeased:
+			health.Pending++
+			if job.Attempts > health.HighestAttempts {
+				health.HighestAttempts = job.Attempts
+			}
+			if health.OldestPending == nil || job.AvailableAt.Before(*health.OldestPending) {
+				available := job.AvailableAt
+				health.OldestPending = &available
+			}
+		case VendorBrandJobFailed:
+			health.Terminal++
+			if job.Attempts > health.HighestAttempts {
+				health.HighestAttempts = job.Attempts
+			}
+		}
+	}
+	return health, nil
 }
 
 func (r *MemoryRepository) CompleteVendorBrandJob(_ context.Context, claim VendorBrandJob, asset VendorBrandAsset, at time.Time) (VendorBrandAsset, error) {

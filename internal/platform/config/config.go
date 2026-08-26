@@ -40,6 +40,7 @@ type Config struct {
 	CommandAuthorizationMode             string
 	DemoMode                             bool
 	DocumentImportAllowUnscannedAnalysis bool
+	VendorBrandDiscoveryEnabled          bool
 	DemoTenantID                         string
 	DemoPrincipalID                      string
 	DemoLegalEntityID                    string
@@ -86,6 +87,7 @@ func Load() (Config, error) {
 		CommandAuthorizationMode:             strings.ToLower(env("CLEARSIGHT_COMMAND_AUTHORIZATION", defaultCommandMode)),
 		DemoMode:                             !production,
 		DocumentImportAllowUnscannedAnalysis: !production,
+		VendorBrandDiscoveryEnabled:          !production,
 		DemoTenantID:                         env("CLEARSIGHT_DEMO_TENANT_ID", "bank-demo"),
 		DemoPrincipalID:                      env("CLEARSIGHT_DEMO_PRINCIPAL_ID", "role-cro"),
 		DemoLegalEntityID:                    env("CLEARSIGHT_DEMO_LEGAL_ENTITY_ID", "bank-ng"),
@@ -127,6 +129,9 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	if cfg.DocumentImportAllowUnscannedAnalysis, err = boolValue("CLEARSIGHT_DOCUMENT_IMPORT_ALLOW_UNSCANNED_ANALYSIS", cfg.DocumentImportAllowUnscannedAnalysis); err != nil {
+		return Config{}, err
+	}
+	if cfg.VendorBrandDiscoveryEnabled, err = boolValue("CLEARSIGHT_VENDOR_BRAND_DISCOVERY_ENABLED", cfg.VendorBrandDiscoveryEnabled); err != nil {
 		return Config{}, err
 	}
 	if cfg.WorkerPoll <= 0 || cfg.CaptureSessionTTL < time.Minute || cfg.CaptureSessionTTL > time.Hour {

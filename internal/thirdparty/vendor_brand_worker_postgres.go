@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -25,37 +26,57 @@ func (r *PostgresRepository) GetVendorForBrandDiscovery(ctx context.Context, ten
 	return value, nil
 }
 
-func (r *PostgresRepository) ClaimVendorBrandJobs(ctx context.Context, workerID string, now time.Time, lease time.Duration, maxAttempts, limit int) ([]VendorBrandJob, error) {
+func (r *PostgresRepository) ClaimVendorBrandJobs(ctx context.Context, workerID string, _ time.Time, lease time.Duration, maxAttempts, limit int) ([]VendorBrandJob, error) {
 	if workerID == "" || lease <= 0 || maxAttempts < 1 || maxAttempts > 20 {
 		return nil, ErrInvalid
 	}
 	limit = boundedVendorBrandJobLimit(limit)
-	now = now.UTC()
-	expires := now.Add(lease)
+	if _, err := r.pool.Exec(ctx, `
+		WITH due AS (
+			SELECT job.id
+			FROM third_party_vendor_brand_jobs job
+			JOIN third_parties vendor ON vendor.tenant_id=job.tenant_id AND vendor.id=job.vendor_id
+			WHERE job.job_type='DISCOVER_ICON' AND job.state='COMPLETED' AND vendor.website_domain IS NOT NULL
+			  AND EXISTS (
+				SELECT 1 FROM third_party_vendor_brand_assets asset
+				WHERE asset.tenant_id=job.tenant_id AND asset.vendor_id=job.vendor_id
+				  AND asset.source_kind='DISCOVERED' AND asset.state='CURRENT'
+				  AND asset.source_domain=vendor.website_domain AND asset.next_refresh_at<=clock_timestamp()
+			  )
+			ORDER BY job.available_at,job.id FOR UPDATE OF job SKIP LOCKED LIMIT $1
+		)
+		UPDATE third_party_vendor_brand_jobs job
+		SET state='READY',vendor_version=vendor.version,website_domain=vendor.website_domain,
+			attempts=0,available_at=clock_timestamp(),lease_token=NULL,lease_expires_at=NULL,last_failure_code='',updated_at=clock_timestamp(),version=job.version+1
+		FROM third_parties vendor,due
+		WHERE job.id=due.id AND job.tenant_id=vendor.tenant_id AND job.vendor_id=vendor.id`, limit); err != nil {
+		return nil, fmt.Errorf("requeue due vendor brand refreshes: %w", err)
+	}
 	if _, err := r.pool.Exec(ctx, `
 		WITH exhausted AS (
 			SELECT id FROM third_party_vendor_brand_jobs
-			WHERE job_type='DISCOVER_ICON' AND attempts >= $2
-			  AND (state='READY' OR (state='LEASED' AND lease_expires_at<=$1))
-			ORDER BY available_at,id FOR UPDATE SKIP LOCKED LIMIT $3
+			WHERE job_type='DISCOVER_ICON' AND attempts >= $1
+			  AND (state='READY' OR (state='LEASED' AND lease_expires_at<=clock_timestamp()))
+			ORDER BY available_at,id FOR UPDATE SKIP LOCKED LIMIT $2
 		)
 		UPDATE third_party_vendor_brand_jobs job
-		SET state='FAILED',lease_token=NULL,lease_expires_at=NULL,last_failure_code=$4,updated_at=$1,version=version+1
-		FROM exhausted WHERE job.id=exhausted.id`, now, maxAttempts, limit, VendorBrandFailureAttemptsExhausted); err != nil {
+		SET state='FAILED',lease_token=NULL,lease_expires_at=NULL,last_failure_code=$3,updated_at=clock_timestamp(),version=version+1
+		FROM exhausted WHERE job.id=exhausted.id`, maxAttempts, limit, VendorBrandFailureAttemptsExhausted); err != nil {
 		return nil, fmt.Errorf("terminalize exhausted vendor brand jobs: %w", err)
 	}
 	rows, err := r.pool.Query(ctx, `
 		WITH candidates AS (
 			SELECT id FROM third_party_vendor_brand_jobs
-			WHERE job_type='DISCOVER_ICON' AND available_at<=$1 AND attempts<$4
-			  AND (state='READY' OR (state='LEASED' AND lease_expires_at<=$1))
-			ORDER BY available_at,id FOR UPDATE SKIP LOCKED LIMIT $2
+			WHERE job_type='DISCOVER_ICON' AND available_at<=clock_timestamp() AND attempts<$3
+			  AND (state='READY' OR (state='LEASED' AND lease_expires_at<=clock_timestamp()))
+			ORDER BY available_at,id FOR UPDATE SKIP LOCKED LIMIT $1
 		), claimed AS (
 			UPDATE third_party_vendor_brand_jobs job
-			SET state='LEASED',attempts=job.attempts+1,lease_token=uuidv7(),lease_expires_at=$3,updated_at=$1,version=version+1
+			SET state='LEASED',attempts=job.attempts+1,lease_token=uuidv7(),
+				lease_expires_at=clock_timestamp()+($2::double precision * interval '1 second'),updated_at=clock_timestamp(),version=version+1
 			FROM candidates WHERE job.id=candidates.id RETURNING job.*
 		)
-		SELECT `+vendorBrandJobProjection+` FROM claimed j JOIN tenants t ON t.id=j.tenant_id ORDER BY j.available_at,j.id`, now, limit, expires, maxAttempts)
+		SELECT `+vendorBrandJobProjection+` FROM claimed j JOIN tenants t ON t.id=j.tenant_id ORDER BY j.available_at,j.id`, limit, lease.Seconds(), maxAttempts)
 	if err != nil {
 		return nil, fmt.Errorf("claim vendor brand jobs: %w", err)
 	}
@@ -71,11 +92,10 @@ func (r *PostgresRepository) ClaimVendorBrandJobs(ctx context.Context, workerID 
 	return values, rows.Err()
 }
 
-func (r *PostgresRepository) CompleteVendorBrandJob(ctx context.Context, claim VendorBrandJob, asset VendorBrandAsset, at time.Time) (VendorBrandAsset, error) {
+func (r *PostgresRepository) CompleteVendorBrandJob(ctx context.Context, claim VendorBrandJob, asset VendorBrandAsset, _ time.Time) (VendorBrandAsset, error) {
 	if !validVendorBrandAssetCompletion(claim, asset) {
 		return VendorBrandAsset{}, ErrInvalid
 	}
-	at = at.UTC()
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return VendorBrandAsset{}, fmt.Errorf("begin vendor brand completion: %w", err)
@@ -89,8 +109,8 @@ func (r *PostgresRepository) CompleteVendorBrandJob(ctx context.Context, claim V
 		SELECT `+vendorBrandJobProjection+`
 		FROM third_party_vendor_brand_jobs j JOIN tenants t ON t.id=j.tenant_id
 		WHERE j.id::text=$1 AND j.tenant_id=$2::uuid AND j.vendor_id::text=$3
-		  AND j.state='LEASED' AND j.lease_token::text=$4 AND j.lease_expires_at>$5
-		FOR UPDATE OF j`, claim.ID, tenantID, claim.VendorID, claim.LeaseToken, at))
+		  AND j.state='LEASED' AND j.lease_token::text=$4 AND j.lease_expires_at>clock_timestamp()
+		FOR UPDATE OF j`, claim.ID, tenantID, claim.VendorID, claim.LeaseToken))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return VendorBrandAsset{}, ErrVendorBrandJobLeaseLost
 	}
@@ -111,11 +131,24 @@ func (r *PostgresRepository) CompleteVendorBrandJob(ctx context.Context, claim V
 	if vendorVersion != current.VendorVersion || websiteDomain != current.WebsiteDomain {
 		return VendorBrandAsset{}, ErrVendorBrandJobStale
 	}
+	var completionAt time.Time
+	if err := tx.QueryRow(ctx, `SELECT clock_timestamp()`).Scan(&completionAt); err != nil {
+		return VendorBrandAsset{}, fmt.Errorf("read vendor brand completion time: %w", err)
+	}
+	completionAt = completionAt.UTC()
+	nextRefresh := completionAt.Add(defaultVendorBrandRefresh)
+	if asset.NextRefreshAt != nil {
+		nextRefresh = completionAt.Add(asset.NextRefreshAt.Sub(*asset.RetrievedAt))
+	}
+	asset.RetrievedAt = &completionAt
+	asset.NextRefreshAt = &nextRefresh
+	asset.CreatedAt = completionAt
+	asset.UpdatedAt = completionAt
 	if _, err := tx.Exec(ctx, `
 		UPDATE third_party_vendor_brand_assets
 		SET state='SUPERSEDED',updated_at=$4,version=version+1
 		WHERE tenant_id=$1::uuid AND vendor_id=$2::uuid AND source_kind='DISCOVERED' AND state='CURRENT' AND id<>$3::uuid`,
-		tenantID, claim.VendorID, asset.ID, at); err != nil {
+		tenantID, claim.VendorID, asset.ID, completionAt); err != nil {
 		return VendorBrandAsset{}, fmt.Errorf("supersede vendor brand asset: %w", err)
 	}
 	_, err = tx.Exec(ctx, `
@@ -124,18 +157,19 @@ func (r *PostgresRepository) CompleteVendorBrandJob(ctx context.Context, claim V
 			pixel_width,pixel_height,byte_size,retrieved_at,next_refresh_at,approved_by_principal_id,created_at,updated_at,version
 		) VALUES($1::uuid,$2::uuid,$3::uuid,'DISCOVERED','CURRENT',$4,$5,$6,'image/png',$7,$8,$9,$10,$11,NULL,$10,$10,1)`,
 		asset.ID, tenantID, claim.VendorID, asset.SourceDomain, asset.ArtifactKey, asset.SourceDigest,
-		asset.PixelWidth, asset.PixelHeight, asset.ByteSize, at, asset.NextRefreshAt)
+		asset.PixelWidth, asset.PixelHeight, asset.ByteSize, completionAt, asset.NextRefreshAt)
 	if err != nil {
 		return VendorBrandAsset{}, fmt.Errorf("store vendor brand asset: %w", err)
 	}
-	if err := appendVendorBrandDiscoveredEvent(ctx, tx, tenantID, claim, asset, at); err != nil {
+	if err := appendVendorBrandDiscoveredEvent(ctx, tx, tenantID, claim, asset, completionAt); err != nil {
 		return VendorBrandAsset{}, err
 	}
 	commandTag, err := tx.Exec(ctx, `
 		UPDATE third_party_vendor_brand_jobs
-		SET state='COMPLETED',lease_token=NULL,lease_expires_at=NULL,last_failure_code='',updated_at=$5,version=version+1
-		WHERE id::text=$1 AND tenant_id=$2::uuid AND vendor_id::text=$3 AND state='LEASED' AND lease_token::text=$4`,
-		claim.ID, tenantID, claim.VendorID, claim.LeaseToken, at)
+		SET state='COMPLETED',lease_token=NULL,lease_expires_at=NULL,last_failure_code='',updated_at=clock_timestamp(),version=version+1
+		WHERE id::text=$1 AND tenant_id=$2::uuid AND vendor_id::text=$3 AND state='LEASED'
+		  AND lease_token::text=$4 AND lease_expires_at>clock_timestamp()`,
+		claim.ID, tenantID, claim.VendorID, claim.LeaseToken)
 	if err != nil {
 		return VendorBrandAsset{}, fmt.Errorf("complete vendor brand job: %w", err)
 	}
@@ -143,9 +177,56 @@ func (r *PostgresRepository) CompleteVendorBrandJob(ctx context.Context, claim V
 		return VendorBrandAsset{}, ErrVendorBrandJobLeaseLost
 	}
 	if err := tx.Commit(ctx); err != nil {
-		return VendorBrandAsset{}, fmt.Errorf("commit vendor brand completion: %w", err)
+		commitErr := fmt.Errorf("commit vendor brand completion: %w", err)
+		probeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
+		defer cancel()
+		confirmed, probeErr := r.vendorBrandCompletionRecorded(probeCtx, claim, asset)
+		if confirmed {
+			return asset, nil
+		}
+		if probeErr != nil {
+			return VendorBrandAsset{}, errors.Join(commitErr, fmt.Errorf("probe vendor brand completion: %w", probeErr))
+		}
+		return VendorBrandAsset{}, commitErr
 	}
 	return asset, nil
+}
+
+func (r *PostgresRepository) vendorBrandCompletionRecorded(ctx context.Context, claim VendorBrandJob, asset VendorBrandAsset) (bool, error) {
+	var recorded bool
+	err := r.pool.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM third_party_vendor_brand_jobs job
+			JOIN tenants tenant ON tenant.id=job.tenant_id
+			JOIN third_parties vendor ON vendor.tenant_id=job.tenant_id AND vendor.id=job.vendor_id
+			JOIN third_party_vendor_brand_assets brand ON brand.tenant_id=job.tenant_id AND brand.vendor_id=job.vendor_id
+			WHERE job.id::text=$1 AND (tenant.id::text=$2 OR tenant.slug=$2) AND job.vendor_id::text=$3
+			  AND job.state='COMPLETED' AND job.lease_token IS NULL AND job.lease_expires_at IS NULL
+			  AND job.vendor_version=$4 AND job.website_domain=$5
+			  AND vendor.version=$4 AND vendor.website_domain=$5
+			  AND brand.id::text=$6 AND brand.source_kind='DISCOVERED' AND brand.state='CURRENT'
+			  AND brand.artifact_key=$7 AND brand.source_digest=$8 AND brand.source_domain=$5
+			  AND brand.media_type='image/png' AND brand.pixel_width=$9 AND brand.pixel_height=$10 AND brand.byte_size=$11
+		)`, claim.ID, claim.TenantID, claim.VendorID, claim.VendorVersion, claim.WebsiteDomain,
+		asset.ID, asset.ArtifactKey, asset.SourceDigest, asset.PixelWidth, asset.PixelHeight, asset.ByteSize).Scan(&recorded)
+	return recorded, err
+}
+
+func (r *PostgresRepository) VendorBrandQueueHealth(ctx context.Context) (workflowruntime.QueueHealth, error) {
+	var health workflowruntime.QueueHealth
+	err := r.pool.QueryRow(ctx, `
+		SELECT
+			count(*) FILTER (WHERE state IN ('READY','LEASED')),
+			count(*) FILTER (WHERE state='FAILED'),
+			COALESCE(max(attempts) FILTER (WHERE state IN ('READY','LEASED','FAILED')),0),
+			min(available_at) FILTER (WHERE state IN ('READY','LEASED'))
+		FROM third_party_vendor_brand_jobs
+		WHERE job_type='DISCOVER_ICON'`).Scan(&health.Pending, &health.Terminal, &health.HighestAttempts, &health.OldestPending)
+	if err != nil {
+		return workflowruntime.QueueHealth{}, fmt.Errorf("read vendor brand queue health: %w", err)
+	}
+	return health, nil
 }
 
 func appendVendorBrandDiscoveredEvent(ctx context.Context, tx pgx.Tx, tenantID string, claim VendorBrandJob, asset VendorBrandAsset, at time.Time) error {
@@ -170,16 +251,16 @@ func appendVendorBrandDiscoveredEvent(ctx context.Context, tx pgx.Tx, tenantID s
 	return nil
 }
 
-func (r *PostgresRepository) CancelVendorBrandJob(ctx context.Context, claim VendorBrandJob, code string, at time.Time) error {
+func (r *PostgresRepository) CancelVendorBrandJob(ctx context.Context, claim VendorBrandJob, code string, _ time.Time) error {
 	if !validVendorBrandFailureCode(code) {
 		return ErrInvalid
 	}
 	commandTag, err := r.pool.Exec(ctx, `
 		UPDATE third_party_vendor_brand_jobs j
-		SET state='CANCELLED',website_domain='',lease_token=NULL,lease_expires_at=NULL,last_failure_code=$5,updated_at=$6,version=version+1
+		SET state='CANCELLED',website_domain='',lease_token=NULL,lease_expires_at=NULL,last_failure_code=$5,updated_at=clock_timestamp(),version=version+1
 		FROM tenants t
-		WHERE j.id::text=$1 AND j.tenant_id=t.id AND (t.id::text=$2 OR t.slug=$2) AND j.vendor_id::text=$3 AND j.state='LEASED' AND j.lease_token::text=$4 AND j.lease_expires_at>$6`,
-		claim.ID, claim.TenantID, claim.VendorID, claim.LeaseToken, code, at.UTC())
+		WHERE j.id::text=$1 AND j.tenant_id=t.id AND (t.id::text=$2 OR t.slug=$2) AND j.vendor_id::text=$3 AND j.state='LEASED' AND j.lease_token::text=$4 AND j.lease_expires_at>clock_timestamp()`,
+		claim.ID, claim.TenantID, claim.VendorID, claim.LeaseToken, code)
 	if err != nil {
 		return fmt.Errorf("cancel stale vendor brand job: %w", err)
 	}
@@ -197,12 +278,12 @@ func (r *PostgresRepository) FailVendorBrandJob(ctx context.Context, claim Vendo
 		UPDATE third_party_vendor_brand_jobs j
 		SET state=CASE WHEN attempts >= $6 THEN 'FAILED' ELSE 'READY' END,
 			available_at=CASE WHEN attempts >= $6 THEN available_at ELSE $7 END,
-			lease_token=NULL,lease_expires_at=NULL,last_failure_code=$8,updated_at=$9,version=version+1
+			lease_token=NULL,lease_expires_at=NULL,last_failure_code=$8,updated_at=clock_timestamp(),version=version+1
 		FROM tenants t
 		WHERE j.id::text=$1 AND j.tenant_id=t.id AND (t.id::text=$2 OR t.slug=$2) AND j.vendor_id::text=$3
-		  AND j.state='LEASED' AND j.lease_token::text=$4 AND j.lease_expires_at>$9 AND j.job_type=$5
+		  AND j.state='LEASED' AND j.lease_token::text=$4 AND j.lease_expires_at>clock_timestamp() AND j.job_type=$5
 		RETURNING `+vendorBrandJobProjection,
-		claim.ID, claim.TenantID, claim.VendorID, claim.LeaseToken, claim.JobType, maxAttempts, availableAt.UTC(), code, at.UTC()))
+		claim.ID, claim.TenantID, claim.VendorID, claim.LeaseToken, claim.JobType, maxAttempts, availableAt.UTC(), code))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return VendorBrandJob{}, ErrVendorBrandJobLeaseLost
 	}

@@ -49,7 +49,66 @@ func setupVendorBrandWorker(t *testing.T, now time.Time, domain string) (*Memory
 		return DiscoveredVendorBrand{PNG: pngBytes, MediaType: "image/png", PixelWidth: 32, PixelHeight: 32, SourceDigest: stringsDigest(string(pngBytes))}, nil
 	}
 	worker := NewVendorBrandWorker(repository, store, discoverer, "brand-worker")
+	worker.now = func() time.Time { return now }
 	return repository, store, worker, created.Vendor
+}
+
+func TestVendorBrandCompletedJobRequeuesWhenDiscoveredAssetRefreshIsDue(t *testing.T) {
+	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repository, _, worker, vendor := setupVendorBrandWorker(t, now, "vendor.example")
+	if processed, err := worker.Maintain(context.Background(), now, 1); err != nil || processed != 1 {
+		t.Fatalf("initial Maintain() = (%d, %v)", processed, err)
+	}
+	assets, _ := repository.ListVendorBrandAssets(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity"}, vendor.ID)
+	due := *assets[0].NextRefreshAt
+	approved := assets[0]
+	approved.ID = "approved-asset"
+	approved.SourceKind = VendorBrandAssetApprovedOverride
+	approved.ApprovedByPrincipalID = "brand-reviewer"
+	repository.mu.Lock()
+	repository.vendorBrandAssets[approved.ID] = approved
+	repository.mu.Unlock()
+
+	claims, err := repository.ClaimVendorBrandJobs(context.Background(), "refresh-worker", due, time.Minute, 5, 1)
+	if err != nil || len(claims) != 1 || claims[0].VendorVersion != vendor.Version || claims[0].WebsiteDomain != vendor.WebsiteDomain {
+		t.Fatalf("due refresh claim = (%#v, %v)", claims, err)
+	}
+	repository.mu.RLock()
+	retained := repository.vendorBrandAssets[approved.ID]
+	repository.mu.RUnlock()
+	if retained.State != VendorBrandAssetCurrent || retained.SourceKind != VendorBrandAssetApprovedOverride {
+		t.Fatalf("approved override changed during background refresh: %#v", retained)
+	}
+}
+
+func TestVendorBrandCompletionUsesActualTimeForLeaseFence(t *testing.T) {
+	batchTime := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repository, _, worker, vendor := setupVendorBrandWorker(t, batchTime, "vendor.example")
+	worker.Configure(4*time.Second, 5, time.Minute)
+	worker.now = func() time.Time { return batchTime.Add(5 * time.Second) }
+	processed, err := worker.Maintain(context.Background(), batchTime, 1)
+	if processed != 1 || !errors.Is(err, ErrVendorBrandJobLeaseLost) {
+		t.Fatalf("expired completion Maintain() = (%d, %v)", processed, err)
+	}
+	assets, _ := repository.ListVendorBrandAssets(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity"}, vendor.ID)
+	if len(assets) != 0 {
+		t.Fatalf("expired lease published assets: %#v", assets)
+	}
+}
+
+func TestVendorBrandQueueHealthReportsPendingAndTerminalJobs(t *testing.T) {
+	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repository, _, worker, vendor := setupVendorBrandWorker(t, now, "vendor.example")
+	repository.mu.Lock()
+	job := repository.vendorBrandJobs[vendorBrandJobKey("bank", vendor.ID)]
+	job.State, job.Attempts = VendorBrandJobFailed, 4
+	repository.vendorBrandJobs[vendorBrandJobKey("bank", vendor.ID)] = job
+	repository.vendorBrandJobs["bank/other"] = VendorBrandJob{ID: "pending", TenantID: "bank", VendorID: "other", JobType: VendorBrandDiscoveryJobType, State: VendorBrandJobReady, AvailableAt: now.Add(-time.Hour), Attempts: 2}
+	repository.mu.Unlock()
+	health, err := worker.QueueHealth(context.Background())
+	if err != nil || health.Pending != 1 || health.Terminal != 1 || health.HighestAttempts != 4 || health.OldestPending == nil || !health.OldestPending.Equal(now.Add(-time.Hour)) {
+		t.Fatalf("vendor brand queue health = (%#v, %v)", health, err)
+	}
 }
 
 func TestVendorBrandWorkerCompletesLeasedJobAndStoresCurrentAsset(t *testing.T) {
@@ -238,12 +297,59 @@ func TestVendorBrandRepositoryRejectsAssetOutsideClaimScope(t *testing.T) {
 
 func validVendorBrandAssetForTest(now time.Time, vendor Vendor) VendorBrandAsset {
 	next := now.Add(time.Hour)
+	digest := stringsDigest("source")
 	return VendorBrandAsset{
 		ID: "asset-1", TenantID: vendor.TenantID, VendorID: vendor.ID,
 		SourceKind: VendorBrandAssetDiscovered, State: VendorBrandAssetCurrent, SourceDomain: vendor.WebsiteDomain,
-		ArtifactKey: "vendor-brands/key.png", SourceDigest: stringsDigest("source"), MediaType: "image/png",
+		ArtifactKey: vendorBrandObjectKey(vendor.TenantID, vendor.ID, vendor.Version, digest), SourceDigest: digest, MediaType: "image/png",
 		PixelWidth: 1, PixelHeight: 1, ByteSize: 1, RetrievedAt: &now, NextRefreshAt: &next,
 		CreatedAt: now, UpdatedAt: now, Version: 1,
+	}
+}
+
+func TestVendorBrandRepositoryRejectsArtifactKeyNotBoundToClaim(t *testing.T) {
+	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repository, _, _, vendor := setupVendorBrandWorker(t, now, "vendor.example")
+	claims, err := repository.ClaimVendorBrandJobs(context.Background(), "worker-a", now, time.Minute, 5, 1)
+	if err != nil || len(claims) != 1 {
+		t.Fatalf("claim = (%#v, %v)", claims, err)
+	}
+	asset := validVendorBrandAssetForTest(now, vendor)
+	asset.ArtifactKey = vendorBrandObjectKey("other-bank", vendor.ID, vendor.Version, asset.SourceDigest)
+	if _, err := repository.CompleteVendorBrandJob(context.Background(), claims[0], asset, now); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("unbound artifact completion error = %v", err)
+	}
+}
+
+func TestVendorBrandDownMigrationRetainsAppendOnlyEventVocabulary(t *testing.T) {
+	t.Parallel()
+	content, err := os.ReadFile("../../migrations/000047_vendor_brand_assets.down.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema := string(content)
+	if !strings.Contains(schema, "retained VENDOR_BRAND event history") || strings.Contains(schema, "DELETE FROM third_party_events") || strings.Contains(schema, "DELETE FROM outbox_events") {
+		t.Fatalf("down migration does not preserve append-only vendor brand history:\n%s", schema)
+	}
+}
+
+func TestPostgresVendorBrandWorkerUsesDatabaseClockAndExactCommitProbe(t *testing.T) {
+	t.Parallel()
+	content, err := os.ReadFile("vendor_brand_worker_postgres.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(content)
+	for _, required := range []string{
+		"lease_expires_at=clock_timestamp()+",
+		"lease_expires_at>clock_timestamp()",
+		"asset.next_refresh_at<=clock_timestamp()",
+		"vendorBrandCompletionRecorded",
+		"brand.artifact_key=$7 AND brand.source_digest=$8",
+	} {
+		if !strings.Contains(source, required) {
+			t.Fatalf("PostgreSQL vendor brand durability path missing %q", required)
+		}
 	}
 }
 

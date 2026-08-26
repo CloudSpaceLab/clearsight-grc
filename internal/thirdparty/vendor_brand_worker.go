@@ -19,8 +19,6 @@ import (
 )
 
 const (
-	VendorBrandWorkClass = workflowruntime.WorkClassThirdPartyVendorBrand
-
 	VendorBrandFailureUnsafeDestination = "UNSAFE_DESTINATION"
 	VendorBrandFailureUnsafeURL         = "UNSAFE_URL"
 	VendorBrandFailureTimeout           = "FETCH_TIMEOUT"
@@ -64,6 +62,7 @@ type VendorBrandWorkerRepository interface {
 	CompleteVendorBrandJob(context.Context, VendorBrandJob, VendorBrandAsset, time.Time) (VendorBrandAsset, error)
 	CancelVendorBrandJob(context.Context, VendorBrandJob, string, time.Time) error
 	FailVendorBrandJob(context.Context, VendorBrandJob, int, string, time.Time, time.Time) (VendorBrandJob, error)
+	VendorBrandQueueHealth(context.Context) (workflowruntime.QueueHealth, error)
 }
 
 type VendorBrandWorker struct {
@@ -76,6 +75,7 @@ type VendorBrandWorker struct {
 	maxBackoff  time.Duration
 	refresh     time.Duration
 	newID       func() (string, error)
+	now         func() time.Time
 	afterStore  func()
 }
 
@@ -87,8 +87,15 @@ func NewVendorBrandWorker(repository VendorBrandWorkerRepository, store evidence
 	return &VendorBrandWorker{
 		repository: repository, store: store, discoverer: discoverer, workerID: workerID,
 		lease: defaultVendorBrandJobLease, maxAttempts: defaultVendorBrandJobAttempts, maxBackoff: defaultVendorBrandJobBackoff,
-		refresh: defaultVendorBrandRefresh, newID: id.NewUUIDv7,
+		refresh: defaultVendorBrandRefresh, newID: id.NewUUIDv7, now: time.Now,
 	}
+}
+
+func (w *VendorBrandWorker) QueueHealth(ctx context.Context) (workflowruntime.QueueHealth, error) {
+	if w == nil || w.repository == nil {
+		return workflowruntime.QueueHealth{}, errors.New("vendor brand discovery is not configured")
+	}
+	return w.repository.VendorBrandQueueHealth(ctx)
 }
 
 func (w *VendorBrandWorker) Configure(lease time.Duration, maxAttempts int, maxBackoff time.Duration) {
@@ -156,22 +163,23 @@ func (w *VendorBrandWorker) process(ctx context.Context, job VendorBrandJob, now
 	if w.afterStore != nil {
 		w.afterStore()
 	}
-	nextRefresh := now.Add(w.refresh)
+	completedAt := w.now().UTC()
+	nextRefresh := completedAt.Add(w.refresh)
 	asset := VendorBrandAsset{
 		ID: assetID, TenantID: job.TenantID, VendorID: job.VendorID,
 		SourceKind: VendorBrandAssetDiscovered, State: VendorBrandAssetCurrent, SourceDomain: job.WebsiteDomain,
 		ArtifactKey: object.Key, SourceDigest: result.SourceDigest, MediaType: result.MediaType,
 		PixelWidth: result.PixelWidth, PixelHeight: result.PixelHeight, ByteSize: object.SizeBytes,
-		RetrievedAt: &now, NextRefreshAt: &nextRefresh, CreatedAt: now, UpdatedAt: now, Version: 1,
+		RetrievedAt: &completedAt, NextRefreshAt: &nextRefresh, CreatedAt: completedAt, UpdatedAt: completedAt, Version: 1,
 	}
-	if _, err := w.repository.CompleteVendorBrandJob(ctx, job, asset, now); err != nil {
+	if _, err := w.repository.CompleteVendorBrandJob(ctx, job, asset, completedAt); err != nil {
 		// Canonical bytes are content-addressed and immutable. Keep an
 		// unreferenced copy when the database outcome is uncertain: deleting it
 		// could remove bytes referenced by a completion whose acknowledgement was
 		// lost. A retry writes the same key, and storage reconciliation can remove
 		// keys that have no authoritative asset record.
 		if errors.Is(err, ErrVendorBrandJobStale) {
-			if cancelErr := w.repository.CancelVendorBrandJob(ctx, job, VendorBrandFailureStale, now); cancelErr == nil {
+			if cancelErr := w.repository.CancelVendorBrandJob(ctx, job, VendorBrandFailureStale, completedAt); cancelErr == nil {
 				return nil
 			} else {
 				return errors.Join(err, cancelErr)
@@ -225,6 +233,9 @@ func (w *VendorBrandWorker) openMatchingObject(ctx context.Context, key string, 
 }
 
 func (w *VendorBrandWorker) release(ctx context.Context, job VendorBrandJob, code string, now time.Time, cause error) error {
+	if w.now != nil {
+		now = w.now().UTC()
+	}
 	next := now.Add(vendorBrandJobRetryDelay(job.Attempts, w.maxBackoff))
 	if _, err := w.repository.FailVendorBrandJob(ctx, job, w.maxAttempts, code, now, next); err != nil {
 		return errors.Join(cause, err)
@@ -299,8 +310,11 @@ func validVendorBrandAssetCompletion(claim VendorBrandJob, asset VendorBrandAsse
 	if strings.TrimSpace(asset.ID) == "" || asset.TenantID != claim.TenantID || asset.VendorID != claim.VendorID || asset.SourceKind != VendorBrandAssetDiscovered || asset.State != VendorBrandAssetCurrent || asset.SourceDomain != claim.WebsiteDomain || key == "" || key != asset.ArtifactKey || len(key) > 1024 || asset.MediaType != "image/png" || asset.PixelWidth < 1 || asset.PixelWidth > vendorBrandOutputDimension || asset.PixelHeight < 1 || asset.PixelHeight > vendorBrandOutputDimension || asset.ByteSize < 1 || asset.ByteSize > vendorBrandImageLimit || asset.RetrievedAt == nil || asset.RetrievedAt.IsZero() || asset.NextRefreshAt == nil || !asset.NextRefreshAt.After(*asset.RetrievedAt) || asset.ApprovedByPrincipalID != "" || asset.CreatedAt.IsZero() || asset.UpdatedAt.Before(asset.CreatedAt) || asset.Version != 1 || len(asset.SourceDigest) != sha256.Size*2 {
 		return false
 	}
+	if strings.ToLower(asset.SourceDigest) != asset.SourceDigest {
+		return false
+	}
 	_, err := hex.DecodeString(asset.SourceDigest)
-	return err == nil
+	return err == nil && asset.ArtifactKey == vendorBrandObjectKey(claim.TenantID, claim.VendorID, claim.VendorVersion, asset.SourceDigest)
 }
 
 func validateDiscoveredVendorBrand(value DiscoveredVendorBrand) error {

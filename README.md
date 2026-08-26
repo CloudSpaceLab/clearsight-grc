@@ -103,6 +103,8 @@ Production refuses to start with demo mode enabled.
 
 `CLEARSIGHT_DOCUMENT_IMPORT_ALLOW_UNSCANNED_ANALYSIS` separately controls whether deterministic local analysis may run before an approved scanning service marks an artifact available. It defaults to `true` in development and `false` in production.
 
+`CLEARSIGHT_VENDOR_BRAND_DISCOVERY_ENABLED` controls the worker's outbound HTTPS retrieval of public vendor website icons. It defaults to `true` in development and `false` in production. Production deployments must opt in explicitly after approving outbound-network policy; vendor records remain usable with the generated monogram when discovery is disabled or unavailable.
+
 ## Program status
 
 Program status is calculated from approved requirements, applicability, control coverage, implementation, evidence, open issues, source health and deadlines. It is not a manually selected red/amber/green value.
