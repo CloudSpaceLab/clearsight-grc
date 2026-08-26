@@ -113,7 +113,7 @@ describe("ExternalCaptureApp", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open request" }));
     fireEvent.click(await screen.findByRole("radio", { name: "Yes" }));
     fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
-    fireEvent.click(screen.getByRole("button", { name: "Submit evidence" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Submit evidence" }));
 
     await waitFor(() => expect(submitCaptureSession).toHaveBeenCalledWith("session-token", request.version, { present: "Yes" }));
     expect(await screen.findByRole("heading", { name: "Submitted" })).toBeTruthy();
@@ -132,7 +132,7 @@ describe("ExternalCaptureApp", () => {
 
     fireEvent.click(await screen.findByRole("radio", { name: "Yes" }));
     fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
-    fireEvent.click(screen.getByRole("button", { name: "Submit evidence" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Submit evidence" }));
 
     await waitFor(() => expect(submitCaptureSession).toHaveBeenCalled());
     expect(await screen.findByRole("heading", { name: "This request is no longer available" })).toBeTruthy();
