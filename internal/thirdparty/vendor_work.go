@@ -21,6 +21,7 @@ const VendorWorkOrigin = "THIRD_PARTY_WORK"
 var (
 	ErrVendorWorkAuthorityUnavailable = errors.New("vendor work authority is unavailable")
 	ErrVendorWorkIdentityMismatch     = errors.New("vendor work authority identity does not match the request identity")
+	ErrVendorWorkAcceptanceBlocked    = errors.New("vendor work response contains an unavailable document")
 )
 
 type VendorWorkState string
@@ -320,6 +321,9 @@ func (s *VendorWorkService) Prepare(ctx context.Context, actor Actor, input Prep
 	if s.targets != nil && !s.targets.CanRead(ctx, actor, link.TargetType, link.TargetID) {
 		return VendorWorkRequest{}, ErrNotFound
 	}
+	if err := s.authorizeObject(ctx, actor, string(link.TargetType), link.TargetID, authority.ResponsibilityOwner, "thirdparty.work.prepare"); err != nil {
+		return VendorWorkRequest{}, err
+	}
 	form, err := s.forms.FormRevision(ctx, scope.TenantID, input.FormTemplateID, input.FormTemplateVersion)
 	if err != nil {
 		return VendorWorkRequest{}, err
@@ -516,6 +520,18 @@ func (s *VendorWorkService) Accept(ctx context.Context, actor Actor, workID stri
 	input.Rationale = strings.TrimSpace(input.Rationale)
 	if input.Rationale == "" || len(input.Rationale) > 2000 {
 		return VendorWorkRequest{}, ErrInvalid
+	}
+	view, err := s.Response(ctx, actor, strings.TrimSpace(workID))
+	if err != nil {
+		return VendorWorkRequest{}, err
+	}
+	if view.Work.Version != input.ExpectedVersion {
+		return VendorWorkRequest{}, ErrVersionConflict
+	}
+	for _, document := range view.Documents {
+		if document.ArtifactStatus != evidence.ArtifactAvailable {
+			return VendorWorkRequest{}, ErrVendorWorkAcceptanceBlocked
+		}
 	}
 	return s.transition(ctx, actor, workID, input.ExpectedVersion, VendorWorkAccepted, input.Rationale, "")
 }
@@ -830,6 +846,10 @@ func (s *VendorWorkService) authorizeWorkTarget(ctx context.Context, actor Actor
 }
 
 func (s *VendorWorkService) authorize(ctx context.Context, actor Actor, relationshipID string, responsibility authority.Responsibility, command string) error {
+	return s.authorizeObject(ctx, actor, "VENDOR_RELATIONSHIP", relationshipID, responsibility, command)
+}
+
+func (s *VendorWorkService) authorizeObject(ctx context.Context, actor Actor, objectType, objectID string, responsibility authority.Responsibility, command string) error {
 	if s.guard == nil {
 		return nil
 	}
@@ -849,7 +869,7 @@ func (s *VendorWorkService) authorize(ctx context.Context, actor Actor, relation
 	if verified.TenantID != actor.TenantID || verified.LegalEntityID != actor.LegalEntityID || verified.PrincipalID != actor.PrincipalID {
 		return ErrVendorWorkIdentityMismatch
 	}
-	decision, err := s.guard.Authorize(ctx, commandauth.Request{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: "VENDOR_RELATIONSHIP", ObjectID: relationshipID, Responsibility: responsibility, DecisionType: command, Materiality: 3})
+	decision, err := s.guard.Authorize(ctx, commandauth.Request{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: objectType, ObjectID: objectID, Responsibility: responsibility, DecisionType: command, Materiality: 3})
 	if err != nil {
 		return err
 	}

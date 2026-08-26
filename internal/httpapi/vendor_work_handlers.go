@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
@@ -271,12 +272,16 @@ func (a *API) vendorWorkCommandContext(w http.ResponseWriter, r *http.Request) (
 
 func writeVendorWorkError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, commandauth.ErrNotAuthorized), errors.Is(err, thirdparty.ErrVendorWorkIdentityMismatch):
+		httpx.WriteError(w, http.StatusForbidden, "vendor_work_not_allowed", "Your current authority does not allow this vendor request action.")
 	case errors.Is(err, thirdparty.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "vendor_work_not_found", "The vendor request was not found in your current scope.")
 	case errors.Is(err, thirdparty.ErrVersionConflict):
 		httpx.WriteError(w, http.StatusConflict, "vendor_work_conflict", "This vendor request changed. Reload it before trying again.")
 	case errors.Is(err, thirdparty.ErrInvalidAssessmentTransition):
 		httpx.WriteError(w, http.StatusConflict, "vendor_work_state_changed", "This action is not available in the current request state. Reload the request to continue.")
+	case errors.Is(err, thirdparty.ErrVendorWorkAcceptanceBlocked):
+		httpx.WriteError(w, http.StatusConflict, "vendor_work_acceptance_blocked", "A submitted document is pending inspection, quarantined or unavailable. Wait for inspection or request a replacement before accepting this response.")
 	case errors.Is(err, thirdparty.ErrInvalid):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "vendor_work_invalid", "Check the request details, current version and due date, then try again.")
 	default:

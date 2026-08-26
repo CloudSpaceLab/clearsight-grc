@@ -79,4 +79,22 @@ func TestVendorWorkHandlersUseVerifiedRelationshipAndReturnTruthfulDeliveryState
 	}
 }
 
+func TestVendorWorkAcceptanceBlockedReturnsActionableConflict(t *testing.T) {
+	response := httptest.NewRecorder()
+	writeVendorWorkError(response, thirdparty.ErrVendorWorkAcceptanceBlocked)
+	if response.Code != http.StatusConflict {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+	var body struct {
+		Error   string `json:"error"`
+		Message string `json:"message"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Error != "vendor_work_acceptance_blocked" || body.Message != "A submitted document is pending inspection, quarantined or unavailable. Wait for inspection or request a replacement before accepting this response." {
+		t.Fatalf("error = %#v", body)
+	}
+}
+
 func jsonNumber(value int64) string { raw, _ := json.Marshal(value); return string(raw) }

@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { apiErrorKind } from "../http";
+import { ApiError, apiErrorKind } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
 import type { CapturePresentationMode } from "../types";
@@ -198,7 +198,7 @@ export function VendorWorkPanel(props: Props) {
   </section>;
 }
 
-function VendorWorkCard({ work, form, relationship, captureURL, onChanged }: { work: VendorWorkRequest; form?: FormTemplate; relationship: VendorRelationshipAggregate | null; captureURL?: string; onOpenRequest?: (requestID: string) => void; onChanged: (work: VendorWorkRequest, outcome?: VendorWorkSendOutcome) => void }) {
+function VendorWorkCard({ work, form, relationship, captureURL, onOpenRequest, onChanged }: { work: VendorWorkRequest; form?: FormTemplate; relationship: VendorRelationshipAggregate | null; captureURL?: string; onOpenRequest?: (requestID: string) => void; onChanged: (work: VendorWorkRequest, outcome?: VendorWorkSendOutcome) => void }) {
   const [mode, setMode] = useState<ActionMode>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -210,11 +210,20 @@ function VendorWorkCard({ work, form, relationship, captureURL, onChanged }: { w
   const [copyNotice, setCopyNotice] = useState("");
   const [responseState, setResponseState] = useState<"closed" | "loading" | "ready" | "failed">("closed");
   const [responseView, setResponseView] = useState<VendorWorkResponseView>();
+  const responseIdentity = `${work.current_request_id ?? ""}:${work.submission_id ?? ""}`;
+  const activeResponseIdentity = useRef(responseIdentity);
+  activeResponseIdentity.current = responseIdentity;
   const status = workStateLabel(work.state);
   const retry = work.delivery_state === "RETRY_REQUIRED" || work.delivery_state === "LINK_CREATED_EMAIL_NOT_SENT";
   const setupIncomplete = retry && work.state === "PREPARING" && !work.current_request_id;
   const canCancel = work.state !== "ACCEPTED" && work.state !== "CANCELLED";
   const changeFields = responseView?.answers.map((answer) => ({ id: answer.field_id, label: answer.label })) ?? form?.fields.map((field) => ({ id: field.id, label: field.label })) ?? [];
+  const acceptanceBlocked = responseView?.documents.some((document) => document.artifact_status !== "AVAILABLE") ?? false;
+
+  useEffect(() => {
+    setResponseView(undefined);
+    setResponseState("closed");
+  }, [responseIdentity]);
 
   async function run(action: () => Promise<VendorWorkRequest | VendorWorkSendOutcome>) {
     setBusy(true);
@@ -229,21 +238,25 @@ function VendorWorkCard({ work, form, relationship, captureURL, onChanged }: { w
       setDueDate("");
     } catch (caught) {
       const kind = apiErrorKind(caught);
-      setError(kind === "conflict" ? "This request changed. Reload vendor requests before trying again." : kind === "forbidden" || kind === "unauthorized" ? "Your current access does not allow this action." : "The request could not be updated. Your entries remain on this screen.");
+      const acceptanceConflict = caught instanceof ApiError && (caught.code === "vendor_work_acceptance_blocked" || caught.message === "A submitted document is pending inspection, quarantined or unavailable. Wait for inspection or request a replacement before accepting this response.");
+      setError(acceptanceConflict ? "A submitted document cannot be used yet. Wait for inspection or request a replacement before accepting." : kind === "conflict" ? "This request changed. Reload vendor requests before trying again." : kind === "forbidden" || kind === "unauthorized" ? "Your current access does not allow this action." : "The request could not be updated. Your entries remain on this screen.");
     } finally {
       setBusy(false);
     }
   }
 
   async function openResponse() {
+    const requestedIdentity = responseIdentity;
     setResponseState("loading");
     setError("");
     try {
       const view = await loadVendorWorkResponse(work.relationship_id, work.id);
+      if (activeResponseIdentity.current !== requestedIdentity) return;
       if (view.work.id !== work.id || view.request.request_id !== view.response.request_id || view.request.request_id !== work.current_request_id) throw new Error("response scope mismatch");
       setResponseView(view);
       setResponseState("ready");
     } catch {
+      if (activeResponseIdentity.current !== requestedIdentity) return;
       setResponseView(undefined);
       setResponseState("failed");
     }
@@ -282,12 +295,14 @@ function VendorWorkCard({ work, form, relationship, captureURL, onChanged }: { w
     {captureURL && <div className="vendor-work-secure-link"><label>Secure link<input readOnly value={captureURL} onFocus={(event) => event.currentTarget.select()}/></label><button type="button" className="secondary-button" onClick={() => void copySecureLink()}>Copy secure link</button>{copyNotice && <small role="status">{copyNotice}</small>}</div>}
     {retry && <div className="vendor-work-action"><label>Vendor contact<input type="email" autoComplete="email" value={audience} onChange={(event) => setAudience(event.target.value)}/></label><button type="button" className="primary-button" disabled={busy || !validEmail(audience)} onClick={() => void run(() => retryVendorWorkDelivery(work.relationship_id, work.id, { expected_version: work.version, vendor_audience: audience.trim(), invitation_ttl_minutes: invitationTTLMinutes }))}>{busy ? setupIncomplete ? "Completing…" : "Retrying…" : setupIncomplete ? "Complete setup" : "Retry delivery"}</button></div>}
     {!retry && work.state === "PREPARING" && <div className="vendor-work-action"><label>Vendor contact<input type="email" autoComplete="email" value={audience} onChange={(event) => setAudience(event.target.value)}/></label><button type="button" className="primary-button" disabled={busy || !validEmail(audience)} onClick={() => void run(() => sendVendorWork(work.relationship_id, work.id, { expected_version: work.version, vendor_audience: audience.trim(), invitation_ttl_minutes: invitationTTLMinutes }))}>{busy ? "Sending…" : "Send request"}</button></div>}
+    {work.current_request_id && onOpenRequest && <button type="button" className="secondary-button" onClick={() => onOpenRequest(work.current_request_id!)}>Open collection request</button>}
     {(work.state === "RESPONSE_RECEIVED" || work.state === "UNDER_REVIEW") && responseState === "closed" && <button type="button" className="primary-button" disabled={!work.current_request_id} onClick={() => void openResponse()}>Review response</button>}
     {responseState === "loading" && <p aria-live="polite" aria-busy="true">Loading the submitted response…</p>}
     {responseState === "failed" && <div role="alert" className="inline-error"><p>The submitted response could not be loaded. Review has not started.</p><button type="button" className="secondary-button" onClick={() => void openResponse()}>Try again</button></div>}
     {responseView && responseState === "ready" && <VendorWorkResponseReview view={responseView}/>}
     {work.state === "RESPONSE_RECEIVED" && responseState === "ready" && <button type="button" className="primary-button" disabled={busy} onClick={() => void beginReview()}>{busy ? "Starting review…" : "Begin review"}</button>}
-    {work.state === "UNDER_REVIEW" && responseState === "ready" && !mode && <div className="vendor-work-buttons"><button type="button" className="primary-button" onClick={() => setMode("accept")}>Accept response</button><button type="button" className="secondary-button" onClick={() => setMode("changes")}>Request changes</button></div>}
+    {work.state === "UNDER_REVIEW" && responseState === "ready" && acceptanceBlocked && <p className="inline-notice">Acceptance is unavailable while a submitted document is pending inspection, quarantined or unavailable. Wait for inspection or request a replacement.</p>}
+    {work.state === "UNDER_REVIEW" && responseState === "ready" && !mode && <div className="vendor-work-buttons"><button type="button" className="primary-button" disabled={acceptanceBlocked} onClick={() => setMode("accept")}>Accept response</button><button type="button" className="secondary-button" onClick={() => setMode("changes")}>Request changes</button></div>}
     {mode === "accept" && <div className="vendor-work-decision"><label>Acceptance basis<textarea rows={3} maxLength={2000} value={rationale} onChange={(event) => setRationale(event.target.value)}/></label><div className="form-actions"><button type="button" className="secondary-button" onClick={() => setMode(null)}>Back</button><button type="button" className="primary-button" disabled={busy || !rationale.trim()} onClick={() => void run(() => acceptVendorWork(work.relationship_id, work.id, { expected_version: work.version, rationale: rationale.trim() }))}>{busy ? "Accepting…" : "Confirm acceptance"}</button></div></div>}
     {mode === "changes" && <div className="vendor-work-decision"><label>What the vendor must change<textarea rows={3} maxLength={2000} value={message} onChange={(event) => setMessage(event.target.value)}/></label>{changeFields.length ? <fieldset><legend>Answers or documents to update</legend>{changeFields.map((field) => <label key={field.id}><input type="checkbox" checked={fieldIDs.includes(field.id)} onChange={(event) => setFieldIDs((current) => event.target.checked ? [...current, field.id] : current.filter((id) => id !== field.id))}/>{field.label}</label>)}</fieldset> : <p className="inline-notice">The form fields could not be loaded. Reload vendor requests before requesting changes.</p>}<div className="vendor-work-form-grid"><label>Vendor contact<input type="email" value={audience} onChange={(event) => setAudience(event.target.value)}/></label><label>Revised due date<input type="date" min={minimumDueDate()} value={dueDate} onChange={(event) => setDueDate(event.target.value)}/></label></div><div className="form-actions"><button type="button" className="secondary-button" onClick={() => setMode(null)}>Back</button><button type="button" className="primary-button" disabled={busy || !message.trim() || !fieldIDs.length || !validEmail(audience) || !dueDate} onClick={() => void run(() => requestVendorWorkChanges(work.relationship_id, work.id, { expected_version: work.version, message: message.trim(), field_ids: fieldIDs, vendor_audience: audience.trim(), due_at: endOfDayUTC(dueDate), invitation_ttl_minutes: invitationTTLMinutes }))}>{busy ? "Sending changes…" : "Send change request"}</button></div></div>}
     {mode === "cancel" && <div className="vendor-work-decision"><label>Cancellation reason<textarea rows={3} maxLength={1000} value={rationale} onChange={(event) => setRationale(event.target.value)}/></label><div className="form-actions"><button type="button" className="secondary-button" onClick={() => setMode(null)}>Back</button><button type="button" className="primary-button" disabled={busy || !rationale.trim()} onClick={() => void run(() => cancelVendorWork(work.relationship_id, work.id, { expected_version: work.version, reason: rationale.trim() }))}>{busy ? "Cancelling…" : "Cancel request"}</button></div></div>}

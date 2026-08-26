@@ -282,6 +282,78 @@ func TestVendorWorkResponseReturnsBoundDocumentBeforeScanCompletes(t *testing.T)
 	}
 }
 
+func TestAcceptVendorWorkBlocksUnavailableCurrentResponseDocument(t *testing.T) {
+	for _, status := range []evidence.ArtifactStatus{evidence.ArtifactStoredUnscanned, evidence.ArtifactQuarantined, evidence.ArtifactDeleted} {
+		t.Run(string(status), func(t *testing.T) {
+			fixture := newVendorWorkFixture(t)
+			forms := fixture.service.forms.(*monitoring.MemoryRepository)
+			_, err := forms.CreateFormRevision(context.Background(), monitoring.FormTemplate{
+				ID: "form-document", TenantID: "bank", Name: "Executed document", Purpose: "Collect the executed document.",
+				Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationClassic}, Sections: []formcontract.Section{{ID: "document", Title: "Document"}},
+				Fields:    []monitoring.TemplateField{{ID: "executed_document", SectionID: "document", Label: "Executed document", Type: formcontract.TypeVendorDocument, Required: true, AcceptedFormats: []string{"application/pdf"}}},
+				Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 1},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
+				RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, Purpose: "Collect the executed document.", Instructions: "Upload the signed document.",
+				FormTemplateID: "form-document", FormTemplateVersion: 1, VendorAudience: fixture.audience, DueAt: fixture.now.Add(24 * time.Hour),
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			sent, err := fixture.service.Send(context.Background(), fixture.actor, prepared.ID, SendVendorWorkInput{ExpectedVersion: prepared.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60})
+			if err != nil {
+				t.Fatal(err)
+			}
+			session, err := fixture.evidence.RedeemInvitation(context.Background(), vendorWorkCaptureToken(t, sent.CaptureURL), fixture.audience)
+			if err != nil {
+				t.Fatal(err)
+			}
+			artifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: fixture.actor.TenantID, RequestID: prepared.CurrentRequestID, SessionToken: session.SessionToken, FileName: "agreement.pdf", MediaType: "application/pdf"}, strings.NewReader("signed agreement"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			receipt, err := fixture.evidence.SubmitSession(context.Background(), session.SessionToken, map[string]formcontract.AnswerValue{"executed_document": {Document: &formcontract.DocumentAnswer{ArtifactID: artifact.ID, DocumentType: "Executed agreement"}}}, 1)
+			if err != nil {
+				t.Fatal(err)
+			}
+			received, err := fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: fixture.actor.TenantID, WorkRequestID: prepared.ID, RequestID: prepared.CurrentRequestID, SubmissionID: receipt.SubmissionID, CausationID: "document-event"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			reviewing, err := fixture.service.StartReview(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-1"}, received.ID, StartVendorWorkReviewInput{ExpectedVersion: received.Version})
+			if err != nil {
+				t.Fatal(err)
+			}
+			fixture.service.evidence = vendorWorkArtifactStatusStub{vendorWorkEvidence: fixture.evidence, artifactID: artifact.ID, status: status}
+			_, err = fixture.service.Accept(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-1"}, reviewing.ID, AcceptVendorWorkInput{ExpectedVersion: reviewing.Version, Rationale: "The executed agreement addresses the request."})
+			if !errors.Is(err, ErrVendorWorkAcceptanceBlocked) {
+				t.Fatalf("accept with %s document = %v", status, err)
+			}
+			stored, readErr := fixture.repository.GetVendorWork(context.Background(), scopeFrom(fixture.actor), reviewing.ID)
+			if readErr != nil || stored.State != VendorWorkUnderReview || stored.Version != reviewing.Version {
+				t.Fatalf("blocked acceptance changed work: value=%#v err=%v", stored, readErr)
+			}
+		})
+	}
+}
+
+type vendorWorkArtifactStatusStub struct {
+	vendorWorkEvidence
+	artifactID string
+	status     evidence.ArtifactStatus
+}
+
+func (s vendorWorkArtifactStatusStub) GetArtifact(ctx context.Context, tenantID, requestID, artifactID string) (evidence.Artifact, error) {
+	artifact, err := s.vendorWorkEvidence.GetArtifact(ctx, tenantID, requestID, artifactID)
+	if err == nil && artifact.ID == s.artifactID {
+		artifact.Status = s.status
+	}
+	return artifact, err
+}
+
 func TestMemoryVendorWorkListUsesStableCursor(t *testing.T) {
 	repo := NewMemoryVendorWorkRepository()
 	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
@@ -370,6 +442,24 @@ func TestAcceptVendorWorkUsesAcceptAuthorityDecision(t *testing.T) {
 	}
 	if len(guard.requests) != 1 || guard.requests[0].DecisionType != "thirdparty.work.accept" || guard.requests[0].Responsibility != authority.ResponsibilityReviewer {
 		t.Fatalf("accept authority request = %#v", guard.requests)
+	}
+}
+
+func TestPrepareVendorWorkRequiresRelationshipAndTargetOwnerAuthority(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	guard := &recordingVendorWorkGuard{}
+	fixture.service.ConfigureAuthority(guard)
+	actor := fixture.actor
+	ctx := identity.WithActor(context.Background(), identity.Actor{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID, Kind: "PERSON", IssuedAt: fixture.now.Add(-time.Minute), ExpiresAt: fixture.now.Add(time.Hour)})
+
+	if _, err := fixture.service.Prepare(ctx, actor, PrepareVendorWorkInput{
+		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, Purpose: "Confirm service information.", Instructions: "Review the request.",
+		FormTemplateID: "form-1", FormTemplateVersion: 3, VendorAudience: fixture.audience, DueAt: fixture.now.Add(24 * time.Hour),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if len(guard.requests) != 2 || guard.requests[0].ObjectType != "VENDOR_RELATIONSHIP" || guard.requests[1].ObjectType != "PROGRAM" || guard.requests[1].ObjectID != "program-1" || guard.requests[1].Responsibility != authority.ResponsibilityOwner {
+		t.Fatalf("authority requests = %#v", guard.requests)
 	}
 }
 

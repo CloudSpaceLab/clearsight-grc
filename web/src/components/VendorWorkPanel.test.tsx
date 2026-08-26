@@ -158,7 +158,8 @@ describe("VendorWorkPanel", () => {
     expect(startVendorWorkReview).not.toHaveBeenCalled();
     fireEvent.click(within(current).getByRole("button", { name: "Begin review" }));
     await waitFor(() => expect(startVendorWorkReview).toHaveBeenCalledWith("relationship-1", "work-current", { expected_version: 4 }));
-    expect(onOpenRequest).not.toHaveBeenCalled();
+    fireEvent.click(within(current).getByRole("button", { name: "Open collection request" }));
+    expect(onOpenRequest).toHaveBeenCalledWith("request-1");
     expect(await within(current).findByText("Under review")).toBeTruthy();
     expect(screen.getByText("Request history")).toBeTruthy();
     expect(screen.getByText("Accepted")).toBeTruthy();
@@ -209,6 +210,7 @@ describe("VendorWorkPanel", () => {
 
   it("requires review reasons for changes, acceptance and cancellation", async () => {
     vi.mocked(loadVendorWork).mockResolvedValue({ items: [{ ...work, state: "UNDER_REVIEW", delivery_state: "DELIVERED", version: 5 }] });
+    vi.mocked(loadVendorWorkResponse).mockResolvedValue({ ...response, work: { ...response.work, state: "UNDER_REVIEW", version: 5 }, documents: response.documents.filter((document) => document.artifact_status === "AVAILABLE") });
     vi.mocked(acceptVendorWork).mockResolvedValue({ ...work, state: "ACCEPTED", delivery_state: "DELIVERED", version: 6 });
     vi.mocked(requestVendorWorkChanges).mockResolvedValue({ work: { ...work, state: "CHANGES_REQUESTED", delivery_state: "DELIVERED", version: 7 }, state: "DELIVERED" });
     vi.mocked(cancelVendorWork).mockResolvedValue({ ...work, state: "CANCELLED", delivery_state: "DELIVERED", version: 6 });
@@ -239,7 +241,7 @@ describe("VendorWorkPanel", () => {
   });
 
   it("opens only available documents through the server-provided safe URL", async () => {
-    vi.mocked(loadVendorWork).mockResolvedValue({ items: [{ ...work, state: "RESPONSE_RECEIVED", version: 4 }] });
+    vi.mocked(loadVendorWork).mockResolvedValue({ items: [{ ...work, state: "UNDER_REVIEW", version: 5 }] });
     const open = vi.spyOn(window, "open").mockImplementation(() => null);
     render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
     const card = await screen.findByTestId("vendor-work-work-1");
@@ -251,6 +253,8 @@ describe("VendorWorkPanel", () => {
     expect(open).toHaveBeenCalledWith("/api/v1/vendors/relationship-1/work/work-1/requests/request-1/documents/artifact-available/open", "_blank", "noopener,noreferrer");
     expect(within(quarantined).queryByRole("button", { name: "Open document" })).toBeNull();
     expect(within(quarantined).getByText("This document is quarantined. Request a clean replacement before review.")).toBeTruthy();
+    expect((within(card).getByRole("button", { name: "Accept response" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(within(card).getByText("Acceptance is unavailable while a submitted document is pending inspection, quarantined or unavailable. Wait for inspection or request a replacement.")).toBeTruthy();
     expect(card.textContent).not.toContain("artifact-quarantined");
   });
 
@@ -265,6 +269,38 @@ describe("VendorWorkPanel", () => {
     expect(within(card).getByRole("button", { name: "Try again" })).toBeTruthy();
     expect(startVendorWorkReview).not.toHaveBeenCalled();
     expect(within(card).queryByRole("button", { name: "Accept response" })).toBeNull();
+  });
+
+  it("removes the reviewed response when a clarification becomes current", async () => {
+    vi.mocked(loadVendorWork).mockResolvedValue({ items: [{ ...work, state: "UNDER_REVIEW", delivery_state: "DELIVERED", version: 5 }] });
+    vi.mocked(requestVendorWorkChanges).mockResolvedValue({ work: { ...work, state: "CHANGES_REQUESTED", current_request_id: "request-2", submission_id: undefined, current_capture_sequence: 2, delivery_state: "DELIVERED", version: 6 }, state: "DELIVERED" });
+    render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
+    const card = await screen.findByTestId("vendor-work-work-1");
+    fireEvent.click(within(card).getByRole("button", { name: "Review response" }));
+    expect(await within(card).findByText("Vendor response: Yes")).toBeTruthy();
+    fireEvent.click(within(card).getByRole("button", { name: "Request changes" }));
+    fireEvent.change(within(card).getByLabelText("What the vendor must change"), { target: { value: "Upload a clean replacement." } });
+    fireEvent.click(within(card).getByLabelText("Are the controls operating?"));
+    fireEvent.change(within(card).getByLabelText("Vendor contact"), { target: { value: "assurance@vendor.example" } });
+    fireEvent.change(within(card).getByLabelText("Revised due date"), { target: { value: "2099-09-30" } });
+    fireEvent.click(within(card).getByRole("button", { name: "Send change request" }));
+
+    await waitFor(() => expect(requestVendorWorkChanges).toHaveBeenCalled());
+    await waitFor(() => expect(within(card).queryByLabelText("Vendor response")).toBeNull());
+  });
+
+  it("removes a loaded response when the current submission changes", async () => {
+    vi.mocked(loadVendorWork)
+      .mockResolvedValueOnce({ items: [{ ...work, state: "RESPONSE_RECEIVED", version: 4 }], next_cursor: "updated-response" })
+      .mockResolvedValueOnce({ items: [{ ...work, state: "RESPONSE_RECEIVED", submission_id: "submission-2", version: 5 }] });
+    render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
+    const card = await screen.findByTestId("vendor-work-work-1");
+    fireEvent.click(within(card).getByRole("button", { name: "Review response" }));
+    expect(await within(card).findByText("Vendor response: Yes")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Load more vendor requests" }));
+
+    await waitFor(() => expect(loadVendorWork).toHaveBeenLastCalledWith({ target_type: "PROGRAM", target_id: "program-1", cursor: "updated-response", limit: 20 }));
+    await waitFor(() => expect(within(card).queryByLabelText("Vendor response")).toBeNull());
   });
 
   it("loads additional request history with the bounded cursor", async () => {
