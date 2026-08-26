@@ -1,14 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { apiErrorKind } from "../http";
+import { loadFormTemplates } from "../monitoringApi";
+import type { FormTemplate } from "../monitoringTypes";
+import { loadCurrentVendorAssessment, sendVendorAssessmentRequest, startVendorAssessment } from "../vendorAssessmentApi";
+import type { CurrentVendorAssessment, StartVendorAssessmentInput, VendorAssessment, VendorAssessmentFormOption, VendorAssessmentSendOutcome } from "../vendorAssessmentTypes";
 import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
 import type { CreateVendorRelationshipInput, VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "../vendorTypes";
+import { VendorDueDiligence } from "./VendorDueDiligence";
 
 type Props = {
   organizationName: string;
   legalEntityName: string;
   targetID?: string;
   onTarget?: (id?: string) => void;
+  onOpenRequest?: (requestID: string) => void;
 };
+
+type LoadState = "loading" | "live" | "unavailable";
 
 type FormValues = {
   legalName: string;
@@ -29,7 +37,7 @@ const emptyForm: FormValues = {
   criticality: "STANDARD", privacyRole: "NONE", sourceID: "", externalRef: "", effectiveFrom: "", renewalAt: "",
 };
 
-export function VendorsWorkspace({ organizationName, legalEntityName, targetID, onTarget }: Props) {
+export function VendorsWorkspace({ organizationName, legalEntityName, targetID, onTarget, onOpenRequest }: Props) {
   const [records, setRecords] = useState<VendorRelationshipAggregate[]>([]);
   const [selected, setSelected] = useState<VendorRelationshipAggregate | null>(null);
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
@@ -40,8 +48,91 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   const [notice, setNotice] = useState("");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [forms, setForms] = useState<FormTemplate[]>([]);
+  const [formState, setFormState] = useState<LoadState>("loading");
+  const [assessment, setAssessment] = useState<VendorAssessment | null>(null);
+  const [assessmentSetup, setAssessmentSetup] = useState<CurrentVendorAssessment["setup"]>();
+  const [assessmentState, setAssessmentState] = useState<LoadState>("loading");
+  const [requestOutcome, setRequestOutcome] = useState<VendorAssessmentSendOutcome>();
+  const assessmentLoadID = useRef(0);
+  const formLoadID = useRef(0);
 
   useEffect(() => { void refresh(targetID); }, [targetID]);
+
+  useEffect(() => {
+    void refreshForms();
+    return () => { formLoadID.current += 1; };
+  }, []);
+
+  async function refreshForms() {
+    const loadID = ++formLoadID.current;
+    setFormState("loading");
+    try {
+      const values = await loadFormTemplates();
+      if (loadID !== formLoadID.current) return;
+      setForms(values);
+      setFormState("live");
+    } catch {
+      if (loadID !== formLoadID.current) return;
+      setForms([]);
+      setFormState("unavailable");
+    }
+  }
+
+  useEffect(() => {
+    if (!selected) {
+      assessmentLoadID.current += 1;
+      setAssessment(null);
+      setAssessmentSetup(undefined);
+      setAssessmentState("loading");
+      setRequestOutcome(undefined);
+      return;
+    }
+    void refreshAssessment(selected.relationship.id);
+  }, [selected?.relationship.id]);
+
+  const activeVendorForm = useMemo(() => selectActiveVendorForm(forms), [forms]);
+
+  async function refreshAssessment(relationshipID: string) {
+    const loadID = ++assessmentLoadID.current;
+    setAssessmentState("loading");
+    setRequestOutcome(undefined);
+    try {
+      const current = await loadCurrentVendorAssessment(relationshipID);
+      if (loadID !== assessmentLoadID.current) return;
+      setAssessment(current.assessment);
+      setAssessmentSetup(current.setup);
+      setAssessmentState("live");
+    } catch (error) {
+      if (loadID !== assessmentLoadID.current) return;
+      if (apiErrorKind(error) === "not_found") {
+        setAssessment(null);
+        setAssessmentSetup(undefined);
+        setAssessmentState("live");
+      } else {
+        setAssessment(null);
+        setAssessmentSetup(undefined);
+        setAssessmentState("unavailable");
+      }
+    }
+  }
+
+  async function startAssessment(input: StartVendorAssessmentInput) {
+    if (!selected) return;
+    const value = await startVendorAssessment(selected.relationship.id, input);
+    setAssessment(value);
+    setAssessmentSetup(undefined);
+    setAssessmentState("live");
+    return value;
+  }
+
+  async function sendAssessmentRequest(input: Parameters<typeof sendVendorAssessmentRequest>[1]) {
+    if (!assessment) throw new Error("No current assessment");
+    const outcome = await sendVendorAssessmentRequest(assessment.id, input);
+    setAssessment(outcome.assessment);
+    setRequestOutcome(outcome);
+    return outcome;
+  }
 
   async function refresh(requestedID?: string) {
     setState("loading");
@@ -142,8 +233,8 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   const workspaceClass = `vendors-workspace${mode !== "browse" ? " is-form" : selected ? " has-selection" : ""}`;
   return <div className={workspaceClass}>
     <header className="topbar vendors-topbar">
-      <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Vendors</h1><p>Manage the organizations and services supplied to {legalEntityName}. Assessment, approval and findings stay in their governed workflows.</p></div>
-      {mode !== "create" && <button type="button" className="primary-button" onClick={startCreate}>Add vendor</button>}
+      <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Vendors</h1><p>Manage vendors and the services they supply to {legalEntityName}. Review each relationship&apos;s owner, criticality and due-diligence status.</p></div>
+      {mode !== "create" && <button type="button" className={selected ? "secondary-button" : "primary-button"} onClick={startCreate}>Add vendor</button>}
     </header>
 
     {notice && <p className="vendor-notice" role="status">{notice}</p>}
@@ -159,15 +250,48 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       </section>
 
       <section className="vendor-focus" aria-label="Selected vendor relationship">
-        {(mode === "create" || mode === "edit") ? <VendorForm mode={mode} form={form} errors={fieldErrors} formError={formError} saving={saving} onChange={setValue} onCancel={cancelForm} onSubmit={submit}/> : selected ? <VendorDetail record={selected} onBack={() => { setSelected(null); onTarget?.(); }} onEdit={startEdit}/> : records.length > 0 ? <div className="vendor-selection"><h2>Select a vendor</h2><p>Choose a relationship to review its service, accountable owner, source and current record version.</p></div> : null}
+        {(mode === "create" || mode === "edit") ? <VendorForm mode={mode} form={form} errors={fieldErrors} formError={formError} saving={saving} onChange={setValue} onCancel={cancelForm} onSubmit={submit}/> : selected ? <VendorDetail
+          record={selected}
+          assessment={assessment}
+          assessmentSetup={assessmentSetup}
+          assessmentState={assessmentState}
+          form={activeVendorForm}
+          formState={formState}
+          requestOutcome={requestOutcome}
+          onBack={() => { setSelected(null); onTarget?.(); }}
+          onEdit={startEdit}
+          onRefreshAssessment={() => refreshAssessment(selected.relationship.id)}
+          onRefreshForms={refreshForms}
+          onStartAssessment={startAssessment}
+          onSendAssessmentRequest={sendAssessmentRequest}
+          onOpenRequest={onOpenRequest}
+        /> : records.length > 0 ? <div className="vendor-selection"><h2>Select a vendor</h2><p>Choose a relationship to review its service, accountable owner, source and current record version.</p></div> : null}
       </section>
     </div>}
   </div>;
 }
 
-function VendorDetail({ record, onBack, onEdit }: { record: VendorRelationshipAggregate; onBack: () => void; onEdit: () => void }) {
+function VendorDetail({ record, assessment, assessmentSetup, assessmentState, form, formState, requestOutcome, onBack, onEdit, onRefreshAssessment, onRefreshForms, onStartAssessment, onSendAssessmentRequest, onOpenRequest }: {
+  record: VendorRelationshipAggregate;
+  assessment: VendorAssessment | null;
+  assessmentSetup?: CurrentVendorAssessment["setup"];
+  assessmentState: LoadState;
+  form?: VendorAssessmentFormOption;
+  formState: LoadState;
+  requestOutcome?: VendorAssessmentSendOutcome;
+  onBack: () => void;
+  onEdit: () => void;
+  onRefreshAssessment: () => Promise<void>;
+  onRefreshForms: () => Promise<void>;
+  onStartAssessment: (input: StartVendorAssessmentInput) => Promise<VendorAssessment | void>;
+  onSendAssessmentRequest: (input: Parameters<typeof sendVendorAssessmentRequest>[1]) => Promise<VendorAssessmentSendOutcome>;
+  onOpenRequest?: (requestID: string) => void;
+}) {
   const { vendor, relationship } = record;
-  return <article className="vendor-detail">
+  const effectiveAssessmentState = assessmentState === "live" && !assessment && formState === "loading" ? "loading" : assessmentState;
+  const setupFailure = assessmentSetup?.state === "FAILED" ? setupFailureText(assessmentSetup.failure_code) : undefined;
+  return <>
+  <article className="vendor-detail">
     <button type="button" className="text-button vendor-mobile-back" onClick={onBack}>← Back to vendor register</button>
     <div className="vendor-detail-heading"><div><span className="eyebrow">{humanize(relationship.status)} relationship</span><h2>{vendor.legal_name}</h2><p>{vendor.trading_name ? `Trading as ${vendor.trading_name}` : "No trading name recorded"}</p></div><button type="button" className="secondary-button" onClick={onEdit}>Edit vendor relationship</button></div>
     <div className="vendor-service-callout"><span>Service supplied</span><strong>{relationship.service_name}</strong><small>{humanize(relationship.criticality)} criticality · {privacyLabel(relationship.privacy_role)}</small></div>
@@ -177,11 +301,50 @@ function VendorDetail({ record, onBack, onEdit }: { record: VendorRelationshipAg
       <Fact label="Renewal date" value={formatDate(relationship.renewal_at)}/><Fact label="Source" value={vendor.source_id && vendor.external_ref ? `${vendor.source_id} · ${vendor.external_ref}` : "Entered directly"}/>
       <Fact label="Record updated" value={formatDateTime(relationship.updated_at)}/><Fact label="Current record" value={`Version ${relationship.version}`}/>
     </dl>
-    <div className="vendor-boundary-note"><strong>What this record confirms</strong><p>This record identifies the vendor, supplied service and accountable owner. It does not by itself confirm assessment, approval, activation or compliance.</p></div>
-  </article>;
+    <div className="vendor-boundary-note"><strong>Relationship status</strong><p>{humanize(relationship.status)} for {relationship.service_name}. Review the due-diligence status below before the relationship moves to its next decision.</p></div>
+  </article>
+  {assessmentState === "live" && !assessment && formState === "unavailable" ? <section className="vdd-workspace" aria-label="Due diligence"><div className="vdd-state vdd-state-error" role="alert"><h2>Due-diligence forms are unavailable</h2><p>Approved collection forms could not be loaded for {relationship.service_name}. Try again before starting the assessment.</p><button type="button" className="secondary-button" onClick={() => void onRefreshForms()}>Reload forms</button></div></section> : <VendorDueDiligence
+    relationship={record}
+    assessment={assessment}
+    form={form}
+    requestOutcome={requestOutcome}
+    viewState={effectiveAssessmentState}
+    defaultReviewDueDate={recommendedReviewDate()}
+    setupFailure={setupFailure}
+    onRefresh={onRefreshAssessment}
+    onStart={onStartAssessment}
+    onSend={onSendAssessmentRequest}
+    onOpenRequest={onOpenRequest}
+  />}
+  </>;
 }
 
 function Fact({ label, value }: { label: string; value: string }) { return <div><dt>{label}</dt><dd>{value}</dd></div>; }
+
+function selectActiveVendorForm(forms: FormTemplate[]): VendorAssessmentFormOption | undefined {
+  const current = forms
+    .filter((form) => form.code.trim().toUpperCase() === "VENDOR-DUE-DILIGENCE" && form.status === "ACTIVE" && form.is_current)
+    .sort((left, right) => right.version - left.version)[0];
+  if (!current) return undefined;
+  return { id: current.id, version: current.version, name: current.name, presentation: current.presentation?.default_mode ?? "AUTOMATIC" };
+}
+
+function setupFailureText(code?: string) {
+  switch (code) {
+    case "ASSESSMENT_READ_FAILED": return "The assessment could not be reopened for setup. Ask an administrator to retry assessment setup.";
+    case "RELATIONSHIP_READ_FAILED": return "The vendor relationship could not be read during setup. Confirm that the relationship is still available, then ask an administrator to retry.";
+    case "MATTER_CREATE_FAILED": return "The review work item could not be created. Ask an administrator to retry assessment setup.";
+    case "ASSESSMENT_SETUP_FAILED": return "The review work item exists, but assessment setup could not be completed. Ask an administrator to retry setup.";
+    case "ATTEMPTS_EXHAUSTED": return "Assessment setup stopped after repeated attempts. Ask an administrator to retry setup.";
+    default: return "Assessment setup could not be completed. Ask an administrator to review the setup job before retrying.";
+  }
+}
+
+function recommendedReviewDate() {
+  const value = new Date();
+  value.setUTCDate(value.getUTCDate() + 30);
+  return value.toISOString().slice(0, 10);
+}
 
 function VendorForm({ mode, form, errors, formError, saving, onChange, onCancel, onSubmit }: { mode: "create" | "edit"; form: FormValues; errors: Record<string, string>; formError: string; saving: boolean; onChange: <K extends keyof FormValues>(key: K, value: FormValues[K]) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
   return <form className="vendor-form" onSubmit={onSubmit} noValidate>

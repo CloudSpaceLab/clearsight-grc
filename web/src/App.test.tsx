@@ -2,9 +2,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import type { RuntimeContext } from "./api";
-import { loadContext, loadReadiness, loadToday } from "./api";
+import { loadContext, loadEvidenceRequest, loadReadiness, loadToday } from "./api";
+import type { EvidenceRequest } from "./types";
 
 vi.mock("./components/RoleAwareOnboarding", () => ({ RoleAwareOnboarding: () => null }));
+vi.mock("./components/VendorsWorkspace", () => ({
+  VendorsWorkspace: ({ onOpenRequest }: { onOpenRequest?: (requestID: string) => void }) => <button type="button" onClick={() => onOpenRequest?.("request-vendor-1")}>Review vendor request</button>,
+}));
 vi.mock("./api", () => ({
   loadAutomationPolicies: vi.fn().mockResolvedValue([]),
   loadCaptureRequest: vi.fn(),
@@ -71,6 +75,28 @@ describe("runtime navigation", () => {
     fireEvent.click(vendorButton);
     expect(vendorButton.getAttribute("aria-current")).toBe("page");
     expect(window.location.hash).toBe("#vendors");
+  });
+
+  it("opens the exact evidence request selected from the vendor relationship", async () => {
+    const request: EvidenceRequest = {
+      id: "request-vendor-1", tenant_id: "bank-demo", subject_type: "VENDOR_RELATIONSHIP", subject_id: "relationship-1",
+      title: "Vendor due diligence request", purpose: "Collect the current vendor response.", why_you: "Relationship owner review",
+      sensitivity: "CONFIDENTIAL", audience_type: "VENDOR", estimated_minutes: 12, deadline: "2026-09-20T17:00:00Z",
+      known_facts: { vendor: "Acme Processing Limited" }, fields: [], status: "READY", version: 1,
+      created_at: "2026-08-26T12:00:00Z", updated_at: "2026-08-26T12:00:00Z",
+    };
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    vi.mocked(loadEvidenceRequest).mockResolvedValue(request);
+    render(<App />);
+
+    const vendorButton = (await screen.findAllByRole("button", { name: "Vendors" }))[0];
+    if (!vendorButton) throw new Error("Vendors navigation is missing");
+    fireEvent.click(vendorButton);
+    fireEvent.click(await screen.findByRole("button", { name: "Review vendor request" }));
+
+    expect(window.location.hash).toBe("#work/evidence/request-vendor-1");
+    expect(await screen.findByText("Vendor due diligence request")).toBeTruthy();
+    expect(loadEvidenceRequest).toHaveBeenCalledWith("request-vendor-1");
   });
 
   it("exposes the stakeholder reference experience when demo mode is on", async () => {
