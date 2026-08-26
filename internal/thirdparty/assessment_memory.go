@@ -2,6 +2,7 @@ package thirdparty
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -12,14 +13,16 @@ import (
 
 type MemoryAssessmentRepository struct {
 	*MemoryRepository
-	assessmentMu     sync.RWMutex
-	assessments      map[string]Assessment
-	episodes         map[string]string
-	requestLinks     map[string][]AssessmentRequestLink
-	reactions        map[string]assessmentReactionReceipt
-	setupJobs        map[string]AssessmentSetupJob
-	assessmentEvents []memoryAssessmentAudit
-	assessmentOutbox []memoryAssessmentAudit
+	assessmentMu        sync.RWMutex
+	assessments         map[string]Assessment
+	episodes            map[string]string
+	requestLinks        map[string][]AssessmentRequestLink
+	reactions           map[string]assessmentReactionReceipt
+	setupJobs           map[string]AssessmentSetupJob
+	matterLinks         map[string][]AssessmentMatterLink
+	assessmentEvents    []memoryAssessmentAudit
+	assessmentOutbox    []memoryAssessmentAudit
+	assessmentDocuments map[string]map[string]AssessmentDocument
 }
 
 type assessmentReactionReceipt struct {
@@ -38,12 +41,14 @@ type memoryAssessmentAudit struct {
 
 func NewMemoryAssessmentRepository() *MemoryAssessmentRepository {
 	return &MemoryAssessmentRepository{
-		MemoryRepository: NewMemoryRepository(),
-		assessments:      map[string]Assessment{},
-		episodes:         map[string]string{},
-		requestLinks:     map[string][]AssessmentRequestLink{},
-		reactions:        map[string]assessmentReactionReceipt{},
-		setupJobs:        map[string]AssessmentSetupJob{},
+		MemoryRepository:    NewMemoryRepository(),
+		assessments:         map[string]Assessment{},
+		episodes:            map[string]string{},
+		requestLinks:        map[string][]AssessmentRequestLink{},
+		reactions:           map[string]assessmentReactionReceipt{},
+		setupJobs:           map[string]AssessmentSetupJob{},
+		matterLinks:         map[string][]AssessmentMatterLink{},
+		assessmentDocuments: map[string]map[string]AssessmentDocument{},
 	}
 }
 
@@ -255,6 +260,12 @@ func (r *MemoryAssessmentRepository) PrepareAssessmentRequest(_ context.Context,
 	for _, link := range links {
 		if link.OriginType == record.OriginType && link.OriginID == record.OriginID && link.OriginSequence == record.OriginSequence {
 			if link.RequestID == record.RequestID && link.Purpose == record.Purpose {
+				if current.Version != record.ExpectedVersion {
+					return AssessmentRequestLink{}, Assessment{}, ErrVersionConflict
+				}
+				if (link.Sequence == 1 && current.Status != AssessmentReadyToSend) || (link.Sequence > 1 && current.Status != AssessmentUnderReview) {
+					return AssessmentRequestLink{}, Assessment{}, ErrInvalidAssessmentTransition
+				}
 				return link, current, nil
 			}
 			return AssessmentRequestLink{}, Assessment{}, ErrInvalid
@@ -288,6 +299,10 @@ func (r *MemoryAssessmentRepository) PrepareAssessmentRequest(_ context.Context,
 	current.UpdatedAt = record.PreparedAt.UTC()
 	current.Version++
 	r.assessments[current.ID] = current
+	r.appendMemoryAssessmentAudit(current, record.ActorPrincipalID, "AssessmentRequestPrepared")
+	payload := r.assessmentEvents[len(r.assessmentEvents)-1].Payload
+	payload["request_purpose"] = string(record.Purpose)
+	payload["origin_sequence"] = fmt.Sprintf("%d", record.OriginSequence)
 	return link, current, nil
 }
 
@@ -322,6 +337,10 @@ func (r *MemoryAssessmentRepository) RecordRequestIssued(_ context.Context, reco
 				current.UpdatedAt = record.IssuedAt.UTC()
 				current.Version++
 				r.assessments[current.ID] = current
+				r.appendMemoryAssessmentAudit(current, record.ActorPrincipalID, "AssessmentRequestIssued")
+				payload := r.assessmentEvents[len(r.assessmentEvents)-1].Payload
+				payload["request_purpose"] = string(record.Purpose)
+				payload["origin_sequence"] = fmt.Sprintf("%d", record.OriginSequence)
 				return link, current, nil
 			}
 			return AssessmentRequestLink{}, Assessment{}, ErrInvalid
@@ -457,6 +476,97 @@ func (r *MemoryAssessmentRepository) ListAssessmentMatterLinks(_ context.Context
 			Scope: scope, AssessmentID: assessment.ID, MatterID: assessment.ReviewMatterID,
 			Kind: AssessmentMatterReview, CreatedAt: assessment.UpdatedAt,
 		})
+	}
+	values = append(values, r.matterLinks[assessment.ID]...)
+	if len(values) > limit {
+		values = values[:limit]
+	}
+	return values, nil
+}
+
+func (r *MemoryAssessmentRepository) ReviewAssessmentDocument(_ context.Context, record AssessmentDocumentReviewRecord) (AssessmentDocument, Assessment, error) {
+	if !validAssessmentScope(record.Scope) || !validAssessmentIdentifiers(record.AssessmentID, record.ActorPrincipalID, record.Artifact.ID, record.Artifact.RequestID, record.Artifact.SubmissionID) || record.ExpectedVersion < 1 || !validAssessmentDocumentDecision(record.Decision) || !validAssessmentDocumentEvidenceClass(record.EvidenceClass) {
+		return AssessmentDocument{}, Assessment{}, ErrInvalid
+	}
+	r.assessmentMu.Lock()
+	defer r.assessmentMu.Unlock()
+	current, ok := r.assessments[record.AssessmentID]
+	if !ok || current.TenantID != record.TenantID || current.LegalEntityID != record.LegalEntityID || current.RelationshipID == "" {
+		return AssessmentDocument{}, Assessment{}, ErrNotFound
+	}
+	if current.Version != record.ExpectedVersion {
+		return AssessmentDocument{}, Assessment{}, ErrVersionConflict
+	}
+	if current.Status != AssessmentUnderReview || current.CurrentRequestID != record.Artifact.RequestID || current.SubmissionID != record.Artifact.SubmissionID || record.Artifact.TenantID != record.TenantID || record.Document.ArtifactID != record.Artifact.ID {
+		return AssessmentDocument{}, Assessment{}, ErrInvalidAssessmentTransition
+	}
+	if record.Decision == AssessmentDocumentValidate && record.Artifact.Status != evidence.ArtifactAvailable {
+		return AssessmentDocument{}, Assessment{}, ErrAssessmentCompletionBlocked
+	}
+	status := AssessmentDocumentValidated
+	eventType := "AssessmentDocumentValidated"
+	if record.Decision == AssessmentDocumentReject {
+		status = AssessmentDocumentRejected
+		eventType = "AssessmentDocumentRejected"
+	}
+	if r.assessmentDocuments[current.ID] == nil {
+		r.assessmentDocuments[current.ID] = map[string]AssessmentDocument{}
+	}
+	document, exists := r.assessmentDocuments[current.ID][record.Artifact.ID]
+	if !exists {
+		document = AssessmentDocument{
+			ID: "document-" + record.Artifact.ID, Scope: record.Scope, RelationshipID: current.RelationshipID, AssessmentID: current.ID,
+			RequestID: current.CurrentRequestID, ArtifactID: record.Artifact.ID, CreatedAt: record.At.UTC(), Version: 1,
+		}
+	} else {
+		document.Version++
+	}
+	issuedOn, err := assessmentDocumentDate(record.Document.IssuedOn)
+	if err != nil {
+		return AssessmentDocument{}, Assessment{}, ErrInvalid
+	}
+	document.DocumentType = record.DocumentType
+	document.Reference = strings.TrimSpace(record.Document.Reference)
+	document.IssuedBy = strings.TrimSpace(record.Document.IssuedBy)
+	document.IssuedOn = issuedOn
+	document.ExpiresOn = cloneAssessmentTime(record.ExpiresOn)
+	document.EvidenceClass = record.EvidenceClass
+	document.Status = status
+	document.ValidatedByPrincipalID = record.ActorPrincipalID
+	document.ValidatedAt = record.At.UTC()
+	document.UpdatedAt = record.At.UTC()
+	r.assessmentDocuments[current.ID][record.Artifact.ID] = document
+	current.Version++
+	current.UpdatedAt = record.At.UTC()
+	current.ReviewerPrincipalID = record.ActorPrincipalID
+	r.assessments[current.ID] = current
+	r.appendMemoryAssessmentAudit(current, record.ActorPrincipalID, eventType)
+	return document, current, nil
+}
+
+func (r *MemoryAssessmentRepository) ListAssessmentDocuments(_ context.Context, scope Scope, assessmentID string, limit int) ([]AssessmentDocument, error) {
+	assessmentID = strings.TrimSpace(assessmentID)
+	if !validAssessmentScope(scope) || !validAssessmentIdentifier(assessmentID) || limit < 1 || limit > assessmentReviewMaxArtifacts+1 {
+		return nil, ErrInvalid
+	}
+	r.assessmentMu.RLock()
+	defer r.assessmentMu.RUnlock()
+	assessment, ok := r.assessments[assessmentID]
+	if !ok || assessment.TenantID != scope.TenantID || assessment.LegalEntityID != scope.LegalEntityID {
+		return nil, ErrNotFound
+	}
+	values := make([]AssessmentDocument, 0, len(r.assessmentDocuments[assessmentID]))
+	for _, document := range r.assessmentDocuments[assessmentID] {
+		values = append(values, document)
+	}
+	sort.Slice(values, func(i, j int) bool {
+		if values[i].UpdatedAt.Equal(values[j].UpdatedAt) {
+			return values[i].ID < values[j].ID
+		}
+		return values[i].UpdatedAt.Before(values[j].UpdatedAt)
+	})
+	if len(values) > limit {
+		values = values[:limit]
 	}
 	return values, nil
 }

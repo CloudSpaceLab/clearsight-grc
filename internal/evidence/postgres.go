@@ -282,6 +282,10 @@ func (r *PostgresRepository) Submit(ctx context.Context, submission Submission) 
 	if request.Version != submission.ExpectedVersion {
 		return SubmissionReceipt{}, ErrVersionConflict
 	}
+	artifactIDs, err := submissionArtifactIDs(request, submission.Answers)
+	if err != nil {
+		return SubmissionReceipt{}, err
+	}
 	answers, err := json.Marshal(submission.Answers)
 	if err != nil {
 		return SubmissionReceipt{}, err
@@ -297,6 +301,19 @@ func (r *PostgresRepository) Submit(ctx context.Context, submission Submission) 
 	_, err = tx.Exec(ctx, `INSERT INTO capture_submissions(id,tenant_id,request_id,session_id,submitted_by,channel,answers,answer_provenance,submitted_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,NULLIF($5,'')::uuid,$6,$7::jsonb,$8::jsonb,$9)`, submission.ID, submission.TenantID, submission.RequestID, submission.SessionID, submission.SubmittedBy, submission.Channel, string(answers), string(answerProvenance), submission.SubmittedAt)
 	if err != nil {
 		return SubmissionReceipt{}, err
+	}
+	if len(artifactIDs) > 0 {
+		result, bindErr := tx.Exec(ctx, `
+			UPDATE capture_artifacts SET submission_id=$3::uuid
+			WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+			  AND request_id=$2::uuid AND submission_id IS NULL AND id::text=ANY($4::text[])`,
+			submission.TenantID, submission.RequestID, submission.ID, artifactIDs)
+		if bindErr != nil {
+			return SubmissionReceipt{}, bindErr
+		}
+		if result.RowsAffected() != int64(len(artifactIDs)) {
+			return SubmissionReceipt{}, ErrNotFound
+		}
 	}
 	var version int64
 	if err := tx.QueryRow(ctx, `UPDATE capture_requests SET status='SUBMITTED',version=version+1,updated_at=$3 WHERE id=$1::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) RETURNING version`, submission.RequestID, submission.TenantID, submission.SubmittedAt).Scan(&version); err != nil {

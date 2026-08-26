@@ -18,6 +18,12 @@ type assessmentGuardStub struct {
 	err           error
 }
 
+type assessmentCompletionReadinessStub struct{ err error }
+
+func (s assessmentCompletionReadinessStub) CheckAssessmentCompletion(context.Context, Actor, string) error {
+	return s.err
+}
+
 func (g *assessmentGuardStub) Authorize(ctx context.Context, request commandauth.Request) (commandauth.Decision, error) {
 	g.requests = append(g.requests, request)
 	if g.err != nil {
@@ -311,6 +317,7 @@ func newAssessmentServiceFixture(t *testing.T, guard AssessmentCommandGuard) (*A
 	}
 	service := NewAssessmentService(repo, guard)
 	service.now = func() time.Time { return time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC) }
+	service.ConfigureCompletionReadiness(assessmentCompletionReadinessStub{})
 	return service, repo, relationship
 }
 

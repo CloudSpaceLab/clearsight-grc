@@ -26,7 +26,11 @@ const (
 
 type AssessmentEvidenceClass string
 
-const AssessmentEvidenceVendorSupplied AssessmentEvidenceClass = "VENDOR_SUPPLIED"
+const (
+	AssessmentEvidenceVendorSupplied AssessmentEvidenceClass = "VENDOR_SUPPLIED"
+	AssessmentEvidenceBankValidated  AssessmentEvidenceClass = "BANK_VALIDATED"
+	AssessmentEvidenceOfficialSource AssessmentEvidenceClass = "OFFICIAL_SOURCE"
+)
 
 type AssessmentReviewRequest struct {
 	RequestID           string                   `json:"request_id"`
@@ -101,6 +105,7 @@ type AssessmentReviewView struct {
 	Documents        []AssessmentReviewDocument `json:"documents"`
 	ProvisionalScore *formcontract.ScoreResult  `json:"provisional_score,omitempty"`
 	Matters          []AssessmentReviewMatter   `json:"matters"`
+	artifactStatuses []evidence.ArtifactStatus
 }
 
 type AssessmentReviewLinkReader interface {
@@ -115,6 +120,10 @@ type AssessmentReviewEvidenceReader interface {
 
 type AssessmentReviewMatterReader interface {
 	ListAssessmentReviewMatters(context.Context, Actor, Scope, string, int) ([]AssessmentReviewMatter, error)
+}
+
+type AssessmentReviewDocumentReader interface {
+	ListAssessmentDocuments(context.Context, Scope, string, int) ([]AssessmentDocument, error)
 }
 
 type AssessmentReviewAuthority interface {
@@ -210,6 +219,42 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 		}
 		if err = s.addSubmission(ctx, &view, currentRequest, submission); err != nil {
 			return AssessmentReviewView{}, err
+		}
+	}
+	if documents, ok := s.links.(AssessmentReviewDocumentReader); ok {
+		values, readErr := documents.ListAssessmentDocuments(ctx, scope, assessment.ID, assessmentReviewMaxArtifacts+1)
+		if readErr != nil {
+			return AssessmentReviewView{}, readErr
+		}
+		if len(values) > assessmentReviewMaxArtifacts {
+			return AssessmentReviewView{}, ErrInvalid
+		}
+		byArtifact := make(map[string]AssessmentDocument, len(values))
+		for _, document := range values {
+			if document.TenantID != scope.TenantID || document.LegalEntityID != scope.LegalEntityID || document.AssessmentID != assessment.ID || document.RelationshipID != assessment.RelationshipID || document.RequestID != assessment.CurrentRequestID || !validAssessmentIdentifier(document.ArtifactID) || !validAssessmentDocumentEvidenceClass(document.EvidenceClass) || (document.Status != AssessmentDocumentValidated && document.Status != AssessmentDocumentRejected) {
+				return AssessmentReviewView{}, ErrNotFound
+			}
+			if _, duplicate := byArtifact[document.ArtifactID]; duplicate {
+				return AssessmentReviewView{}, ErrNotFound
+			}
+			byArtifact[document.ArtifactID] = document
+		}
+		for index := range view.Documents {
+			stored, exists := byArtifact[view.Documents[index].ArtifactID]
+			if !exists {
+				continue
+			}
+			view.Documents[index].Status = string(stored.Status)
+			view.Documents[index].EvidenceClass = AssessmentEvidenceClass(stored.EvidenceClass)
+			view.Documents[index].DocumentType = stored.DocumentType
+			view.Documents[index].Reference = stored.Reference
+			view.Documents[index].IssuedBy = stored.IssuedBy
+			view.Documents[index].IssuedOn = assessmentDocumentDateString(stored.IssuedOn)
+			view.Documents[index].ExpiresOn = assessmentDocumentDateString(stored.ExpiresOn)
+			delete(byArtifact, stored.ArtifactID)
+		}
+		if len(byArtifact) != 0 {
+			return AssessmentReviewView{}, ErrNotFound
 		}
 	}
 	if s.matters != nil {
@@ -323,6 +368,7 @@ func (s *AssessmentReviewService) addSubmission(ctx context.Context, view *Asses
 			return ErrInvalid
 		}
 		artifacts[artifactID] = artifact
+		view.artifactStatuses = append(view.artifactStatuses, artifact.Status)
 	}
 	scoreFields := make([]formcontract.Scoring, 0)
 	for _, field := range normalized.Fields {

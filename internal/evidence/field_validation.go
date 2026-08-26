@@ -313,6 +313,38 @@ func answerArtifactIDs(field formcontract.Field, answer formcontract.AnswerValue
 	return nil, fmt.Errorf("%s must contain an uploaded file", field.Label)
 }
 
+func submissionArtifactIDs(request Request, answers map[string]formcontract.AnswerValue) ([]string, error) {
+	values := make([]string, 0)
+	seen := make(map[string]struct{})
+	for _, requestField := range request.Fields {
+		fieldType := formcontract.Type(strings.ToLower(strings.TrimSpace(requestField.Type)))
+		if fieldType != formcontract.TypeFile && fieldType != formcontract.TypePhoto && fieldType != formcontract.TypeSignature && fieldType != formcontract.TypeVendorDocument {
+			continue
+		}
+		answer, exists := answers[requestField.ID]
+		if !exists || !answer.Answered() {
+			continue
+		}
+		field := formcontract.Field{ID: requestField.ID, Label: requestField.Label, Type: fieldType}
+		artifactIDs, err := answerArtifactIDs(field, answer)
+		if err != nil {
+			return nil, err
+		}
+		for _, artifactID := range artifactIDs {
+			artifactID = strings.TrimSpace(artifactID)
+			if artifactID == "" {
+				return nil, ErrNotFound
+			}
+			if _, duplicate := seen[artifactID]; duplicate {
+				continue
+			}
+			seen[artifactID] = struct{}{}
+			values = append(values, artifactID)
+		}
+	}
+	return values, nil
+}
+
 func decimalPlaces(value string) int {
 	value = strings.TrimSpace(value)
 	if exponent := strings.IndexAny(value, "eE"); exponent >= 0 {

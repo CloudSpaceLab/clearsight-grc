@@ -55,6 +55,13 @@ type completeVendorAssessmentRequest struct {
 	ActorID       string `json:"actor_id,omitempty"`
 }
 
+type reviewVendorAssessmentDocumentRequest struct {
+	thirdparty.ReviewAssessmentDocumentInput
+	TenantID      string `json:"tenant_id,omitempty"`
+	LegalEntityID string `json:"legal_entity_id,omitempty"`
+	ActorID       string `json:"actor_id,omitempty"`
+}
+
 type vendorAssessmentCurrentResponse struct {
 	Assessment thirdparty.Assessment             `json:"assessment"`
 	Setup      *thirdparty.AssessmentSetupStatus `json:"setup,omitempty"`
@@ -256,6 +263,29 @@ func (a *API) completeVendorAssessment(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, assessment)
 }
 
+func (a *API) reviewVendorAssessmentDocument(w http.ResponseWriter, r *http.Request) {
+	if a.deps.ThirdPartyAssessmentReviews == nil {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "vendor_document_review_unavailable", "The document decision cannot be recorded right now. No review state was changed.")
+		return
+	}
+	actor, err := thirdPartyActor(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to review this vendor document.")
+		return
+	}
+	var request reviewVendorAssessmentDocumentRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "Check the document decision, evidence class and current assessment version, then try again.")
+		return
+	}
+	view, err := a.deps.ThirdPartyAssessmentReviews.ReviewDocument(r.Context(), actor, r.PathValue("id"), r.PathValue("artifact_id"), request.ReviewAssessmentDocumentInput)
+	if err != nil {
+		writeThirdPartyAssessmentError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, view)
+}
+
 func writeThirdPartyAssessmentError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, identity.ErrMissingIdentity):
@@ -268,6 +298,10 @@ func writeThirdPartyAssessmentError(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusConflict, "vendor_assessment_changed", "This due-diligence record changed. Reload it before continuing.")
 	case errors.Is(err, thirdparty.ErrInvalidAssessmentTransition):
 		httpx.WriteError(w, http.StatusConflict, "vendor_assessment_action_unavailable", "This due-diligence action is not available in the current state. Reload the record.")
+	case errors.Is(err, thirdparty.ErrAssessmentCompletionBlocked):
+		httpx.WriteError(w, http.StatusConflict, "vendor_assessment_review_incomplete", "Required responses, available files and document decisions must be resolved before this assessment can be completed.")
+	case errors.Is(err, thirdparty.ErrAssessmentReadinessUnavailable):
+		httpx.WriteError(w, http.StatusServiceUnavailable, "vendor_assessment_readiness_unavailable", "Completion checks are temporarily unavailable. No assessment conclusion was recorded.")
 	case errors.Is(err, monitoring.ErrInactive):
 		httpx.WriteError(w, http.StatusConflict, "vendor_assessment_form_inactive", "The selected due-diligence form is no longer active. Select the current approved form.")
 	case errors.Is(err, thirdparty.ErrInvalid):

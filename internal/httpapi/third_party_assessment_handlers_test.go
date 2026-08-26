@@ -59,8 +59,11 @@ func newAssessmentHTTPFixture(t *testing.T, ready bool, inlineSetup ...bool) ass
 		ID: "form-1", TenantID: "bank", Name: "Vendor due diligence", Purpose: "Provide the information required for this vendor review.",
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
 		Sections:     []formcontract.Section{{ID: "organisation", Title: "Organisation"}},
-		Fields:       []monitoring.TemplateField{{ID: "contact_email", SectionID: "organisation", Label: "Contact email", Type: formcontract.TypeEmail, Required: true}},
-		Lifecycle:    monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 3, CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()},
+		Fields: []monitoring.TemplateField{
+			{ID: "contact_email", SectionID: "organisation", Label: "Contact email", Type: formcontract.TypeEmail, Required: true},
+			{ID: "assurance_report", SectionID: "organisation", Label: "Assurance report", Type: formcontract.TypeVendorDocument, AcceptedFormats: []string{"application/pdf"}},
+		},
+		Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 3, CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()},
 	})
 	if err != nil {
 		t.Fatal(err)

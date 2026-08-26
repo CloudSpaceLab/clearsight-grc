@@ -189,6 +189,87 @@ func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndRevokesPriorSession(
 	}
 }
 
+func TestPostgresAssessmentDocumentReviewCommitsDocumentAssessmentEventAndOutbox(t *testing.T) {
+	pool := assessmentPostgresPool(t)
+	ctx := context.Background()
+	relationship := seedAssessmentRelationship(t, pool, "Managed assurance reporting")
+	now := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
+	repository := NewPostgresRepository(pool)
+	assessment, err := repository.CreateAssessment(ctx, postgresAssessmentRecord(assessmentOneID, relationship, now))
+	if err != nil {
+		t.Fatal(err)
+	}
+	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
+	request, err := evidenceService.CreateRequest(ctx, evidence.CreateRequestInput{
+		TenantID: "third-party-bank", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: relationship.Relationship.ID,
+		Title: "Vendor due diligence", Purpose: "Collect the current assurance report.", WhyYou: "Provide the report required for the bank's review.",
+		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR",
+		Recipient:        evidence.RecipientInput{Type: evidence.RecipientInternalPrincipal, PrincipalID: thirdPartyPrincipal},
+		EstimatedMinutes: 5, Deadline: now.Add(24 * time.Hour),
+		Origin:       evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 1},
+		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard},
+		Sections:     []formcontract.Section{{ID: "documents", Title: "Assurance documents"}},
+		Fields: []evidence.Field{{
+			ID: "assurance_report", SectionID: "documents", Label: "Assurance report", Type: string(formcontract.TypeVendorDocument), Required: true,
+			AcceptedFormats: []string{"application/pdf"},
+		}},
+		FormTemplateID: assessmentTemplateID, FormTemplateVersion: 3, CreatedBy: thirdPartyPrincipal,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	artifact, err := evidenceService.StoreArtifact(ctx, evidence.ArtifactInput{
+		TenantID: "third-party-bank", RequestID: request.ID, FileName: "assurance-report.pdf", MediaType: "application/pdf", CreatedBy: thirdPartyPrincipal,
+	}, strings.NewReader("review evidence"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	documentAnswer := formcontract.DocumentAnswer{
+		ArtifactID: artifact.ID, DocumentType: "SOC_2_TYPE_II", Reference: "SOC2-2026", IssuedBy: "Independent auditor", IssuedOn: "2026-06-01", ExpiresOn: "2027-05-31",
+	}
+	receipt, err := evidenceService.Submit(ctx, evidence.Submission{
+		TenantID: "third-party-bank", RequestID: request.ID, SubmittedBy: thirdPartyPrincipal, Channel: "INTERNAL", ExpectedVersion: request.Version,
+		Answers: map[string]formcontract.AnswerValue{"assurance_report": {Document: &documentAnswer}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		UPDATE capture_artifacts SET status='AVAILABLE' WHERE tenant_id=$1::uuid AND request_id=$2::uuid AND submission_id=$3::uuid AND id=$4::uuid;
+		UPDATE third_party_assessments SET status='UNDER_REVIEW',current_request_id=$2::uuid,submission_id=$3::uuid,submitted_at=$5,review_started_at=$5,
+			reviewer_principal_id=$6::uuid,version=4,updated_at=$5 WHERE tenant_id=$1::uuid AND id=$7::uuid;
+		INSERT INTO third_party_assessment_request_links(
+			tenant_id,legal_entity_id,assessment_id,request_id,purpose,sequence,origin_type,origin_id,origin_sequence,is_current,created_at
+		) VALUES($1::uuid,$8::uuid,$7::uuid,$2::uuid,'INITIAL',1,$9,$7::uuid,1,true,$5)`,
+		thirdPartyTenantID, request.ID, receipt.SubmissionID, artifact.ID, now, thirdPartyPrincipal, assessment.ID, thirdPartyEntityA, AssessmentRequestOrigin); err != nil {
+		t.Fatal(err)
+	}
+	artifact.Status = evidence.ArtifactAvailable
+	artifact.SubmissionID = receipt.SubmissionID
+	expiresOn := time.Date(2027, 5, 31, 0, 0, 0, 0, time.UTC)
+	document, updated, err := repository.ReviewAssessmentDocument(ctx, AssessmentDocumentReviewRecord{
+		Scope: Scope{TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA}, AssessmentID: assessment.ID, ExpectedVersion: 4,
+		ActorPrincipalID: thirdPartyPrincipal, Artifact: artifact, Document: documentAnswer, Decision: AssessmentDocumentValidate,
+		DocumentType: "SOC_2_TYPE_II", EvidenceClass: AssessmentDocumentBankValidated, ExpiresOn: &expiresOn, At: now.Add(time.Minute),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if document.Status != AssessmentDocumentValidated || document.Version != 1 || updated.Version != 5 || updated.Status != AssessmentUnderReview {
+		t.Fatalf("unexpected committed review document=%#v assessment=%#v", document, updated)
+	}
+	var eventCount, outboxCount int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM third_party_events WHERE aggregate_id=$1::uuid AND event_type='AssessmentDocumentValidated'`, assessment.ID).Scan(&eventCount); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM outbox_events WHERE aggregate_id=$1::uuid AND event_type='AssessmentDocumentValidated'`, assessment.ID).Scan(&outboxCount); err != nil {
+		t.Fatal(err)
+	}
+	if eventCount != 1 || outboxCount != 1 {
+		t.Fatalf("document review audit transaction event=%d outbox=%d", eventCount, outboxCount)
+	}
+}
+
 func evidenceAssessmentPresentation() formcontract.Presentation {
 	return formcontract.Presentation{DefaultMode: formcontract.PresentationWizard}
 }

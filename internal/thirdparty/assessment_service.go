@@ -18,6 +18,7 @@ const (
 	AssessmentStartCommand          = "thirdparty.assessment.start"
 	AssessmentRequestIssuedCommand  = "thirdparty.assessment.request_issued"
 	AssessmentReviewCommand         = "thirdparty.assessment.review"
+	AssessmentDocumentReviewCommand = "thirdparty.assessment.document.review"
 	AssessmentCompleteCommand       = "thirdparty.assessment.complete"
 	AssessmentCancelCommand         = "thirdparty.assessment.cancel"
 	assessmentObjectType            = "THIRD_PARTY_ASSESSMENT"
@@ -33,14 +34,21 @@ type AssessmentCommandGuard interface {
 }
 
 type AssessmentService struct {
-	repo  AssessmentRepository
-	guard AssessmentCommandGuard
-	now   func() time.Time
-	newID func() (string, error)
+	repo      AssessmentRepository
+	guard     AssessmentCommandGuard
+	readiness AssessmentCompletionReadiness
+	now       func() time.Time
+	newID     func() (string, error)
 }
 
 func NewAssessmentService(repo AssessmentRepository, guard AssessmentCommandGuard) *AssessmentService {
 	return &AssessmentService{repo: repo, guard: guard, now: time.Now, newID: id.NewUUIDv7}
+}
+
+func (s *AssessmentService) ConfigureCompletionReadiness(readiness AssessmentCompletionReadiness) {
+	if s != nil {
+		s.readiness = readiness
+	}
 }
 
 func (s *AssessmentService) StartAssessment(ctx context.Context, _ Actor, relationshipID string, input StartAssessmentInput) (Assessment, error) {
@@ -171,12 +179,37 @@ func (s *AssessmentService) CompleteAssessment(ctx context.Context, _ Actor, ass
 		}
 		input.NextReviewRecommendedAt = &value
 	}
-	return s.transitionAt(ctx, assessmentID, input.ExpectedVersion, []AssessmentStatus{AssessmentUnderReview}, AssessmentCompleted, AssessmentCompleteCommand, authority.ResponsibilityReviewer, now, func(record *AssessmentTransitionRecord) {
-		record.Conclusion = input.Conclusion
-		record.ConclusionUncertainty = input.Uncertainty
-		record.ConclusionRationale = input.Rationale
-		record.NextReviewRecommendedAt = input.NextReviewRecommendedAt
-	})
+	assessmentID = strings.TrimSpace(assessmentID)
+	if !validAssessmentIdentifier(assessmentID) || input.ExpectedVersion < 1 {
+		return Assessment{}, ErrInvalid
+	}
+	actor, err := s.authorize(ctx, assessmentID, assessmentObjectType, AssessmentCompleteCommand, authority.ResponsibilityReviewer)
+	if err != nil {
+		return Assessment{}, err
+	}
+	current, err := s.repo.GetAssessment(ctx, scopeFrom(actor), assessmentID)
+	if err != nil {
+		return Assessment{}, err
+	}
+	if current.Version != input.ExpectedVersion {
+		return Assessment{}, ErrVersionConflict
+	}
+	if current.Status != AssessmentUnderReview {
+		return Assessment{}, ErrInvalidAssessmentTransition
+	}
+	if s.readiness == nil {
+		return Assessment{}, ErrAssessmentReadinessUnavailable
+	}
+	commandActor := Actor{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID}
+	if err := s.readiness.CheckAssessmentCompletion(ctx, commandActor, assessmentID); err != nil {
+		return Assessment{}, err
+	}
+	record := AssessmentTransitionRecord{
+		Scope: scopeFrom(actor), ID: assessmentID, ExpectedVersion: input.ExpectedVersion, From: []AssessmentStatus{AssessmentUnderReview}, To: AssessmentCompleted,
+		At: now, ActorPrincipalID: actor.PrincipalID, Conclusion: input.Conclusion, ConclusionUncertainty: input.Uncertainty,
+		ConclusionRationale: input.Rationale, NextReviewRecommendedAt: input.NextReviewRecommendedAt,
+	}
+	return s.repo.TransitionAssessment(ctx, record)
 }
 
 func (s *AssessmentService) CancelAssessment(ctx context.Context, _ Actor, assessmentID string, input CancelAssessmentInput) (Assessment, error) {

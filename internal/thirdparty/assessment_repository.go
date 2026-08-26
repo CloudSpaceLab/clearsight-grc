@@ -30,6 +30,9 @@ type AssessmentRepository interface {
 	FinalizeRequestReissue(context.Context, FinalizeRequestReissueRecord) (AssessmentRequestLink, Assessment, error)
 	ListAssessmentRequestLinks(context.Context, Scope, string) ([]AssessmentRequestLink, error)
 	ListAssessmentMatterLinks(context.Context, Scope, string, int) ([]AssessmentMatterLink, error)
+	LinkAssessmentDeficiency(context.Context, LinkAssessmentDeficiencyRecord) (AssessmentMatterLink, Assessment, error)
+	ReviewAssessmentDocument(context.Context, AssessmentDocumentReviewRecord) (AssessmentDocument, Assessment, error)
+	ListAssessmentDocuments(context.Context, Scope, string, int) ([]AssessmentDocument, error)
 	ResolveAssessmentRequest(context.Context, string, evidence.RequestOrigin, string) (AssessmentSubmissionTarget, error)
 }
 
@@ -83,6 +86,16 @@ type RequeueAssessmentSetupRecord struct {
 	ExpectedVersion  int64
 	ActorPrincipalID string
 	QueuedAt         time.Time
+}
+
+type LinkAssessmentDeficiencyRecord struct {
+	Scope
+	AssessmentID     string
+	ExpectedVersion  int64
+	ActorPrincipalID string
+	MatterID         string
+	MatterTriggerKey string
+	LinkedAt         time.Time
 }
 
 type RecordRequestIssuedRecord struct {

@@ -48,6 +48,8 @@ func main() {
 	assessmentMatterReader := thirdparty.NewCanonicalAssessmentReviewMatterReader(services.ThirdPartyAssessmentRepo, services.Continuity)
 	assessmentReviewService := thirdparty.NewAssessmentReviewService(assessmentService, services.ThirdPartyAssessmentRepo, services.Evidence, assessmentMatterReader)
 	assessmentReviewService.ConfigureAuthority(services.Authority)
+	assessmentService.ConfigureCompletionReadiness(assessmentReviewService)
+	assessmentDeficiencyService := thirdparty.NewAssessmentDeficiencyService(assessmentService, services.ThirdPartyAssessmentRepo, services.Continuity)
 	assessmentRequestService, err := thirdparty.NewAssessmentRequestService(
 		assessmentService, services.ThirdPartyAssessmentRepo, services.Evidence, services.MonitoringRepo,
 		evidence.NewInvitationDeliveryService(nil), cfg.CapturePublicBaseURL, cfg.Environment,
@@ -61,7 +63,7 @@ func main() {
 		IdentityMode: cfg.IdentityMode, OIDCIssuer: cfg.OIDCIssuer,
 		Identity: authenticator, Federation: federationService, SCIM: services.SCIM, AccessAdmin: services.AccessAdmin,
 		CommandGuard: guard, Authority: services.Authority, Governance: services.Governance,
-		Evidence: services.Evidence, Monitoring: services.Monitoring, ThirdParty: services.ThirdParty, ThirdPartyAssessments: assessmentService, ThirdPartyAssessmentReviews: assessmentReviewService, ThirdPartyAssessmentRequests: assessmentRequestService, ThirdPartyAssessmentSetup: services.ThirdPartyAssessmentSetup, SourceCatalog: services.SourceCatalog, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
+		Evidence: services.Evidence, Monitoring: services.Monitoring, ThirdParty: services.ThirdParty, ThirdPartyAssessments: assessmentService, ThirdPartyAssessmentReviews: assessmentReviewService, ThirdPartyAssessmentRequests: assessmentRequestService, ThirdPartyAssessmentDeficiencies: assessmentDeficiencyService, ThirdPartyAssessmentSetup: services.ThirdPartyAssessmentSetup, SourceCatalog: services.SourceCatalog, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
 		Continuity: services.Continuity, Today: services.Today, Workflow: services.Workflow, Onboarding: services.Onboarding,
 		Autonomy: services.Autonomy, BankVerticals: services.BankVerticals, BackgroundJobs: services.BackgroundJobs,
 		MaxArtifactBytes: cfg.MaxArtifactBytes,

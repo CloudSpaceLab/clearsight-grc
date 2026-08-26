@@ -191,6 +191,16 @@ func (r *MemoryRepository) Submit(_ context.Context, submission Submission) (Sub
 	if request.Version != submission.ExpectedVersion {
 		return SubmissionReceipt{}, ErrVersionConflict
 	}
+	artifactIDs, err := submissionArtifactIDs(request, submission.Answers)
+	if err != nil {
+		return SubmissionReceipt{}, err
+	}
+	for _, artifactID := range artifactIDs {
+		artifact, exists := r.artifacts[artifactID]
+		if !exists || artifact.TenantID != submission.TenantID || artifact.RequestID != submission.RequestID || artifact.SubmissionID != "" {
+			return SubmissionReceipt{}, ErrNotFound
+		}
+	}
 	request.Status = RequestSubmitted
 	request.Version++
 	request.UpdatedAt = submission.SubmittedAt
@@ -198,6 +208,11 @@ func (r *MemoryRepository) Submit(_ context.Context, submission Submission) (Sub
 	submission.Answers = cloneAnswerValues(submission.Answers)
 	submission.AnswerProvenance = cloneAnswerProvenance(submission.AnswerProvenance)
 	r.submissions[submission.ID] = submission
+	for _, artifactID := range artifactIDs {
+		artifact := r.artifacts[artifactID]
+		artifact.SubmissionID = submission.ID
+		r.artifacts[artifactID] = artifact
+	}
 	if submission.SessionID != "" {
 		delete(r.drafts, draftKey(submission.TenantID, submission.RequestID, submission.SessionID))
 	}

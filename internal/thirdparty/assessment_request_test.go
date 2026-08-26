@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -41,7 +42,7 @@ func (s *assessmentEvidenceStub) CreateRequest(_ context.Context, input evidence
 	s.created = append(s.created, input)
 	digest := sha256.Sum256([]byte(strings.ToLower(strings.TrimSpace(input.Recipient.Audience))))
 	request := evidence.Request{
-		ID: "request-1", TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID,
+		ID: fmt.Sprintf("request-%d", input.Origin.Version), TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID,
 		Title: input.Title, Purpose: input.Purpose, AudienceType: input.AudienceType, Recipient: evidence.Recipient{Type: evidence.RecipientExternalAudience, AudienceHint: "s***@vendor.example", AudienceHash: digest[:], State: evidence.RecipientStateAssigned, Revision: 1},
 		Deadline: input.Deadline, KnownFacts: input.KnownFacts, Presentation: input.Presentation, Sections: input.Sections,
 		Fields: input.Fields, FormTemplateID: input.FormTemplateID, FormTemplateVersion: input.FormTemplateVersion,

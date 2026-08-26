@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
@@ -25,7 +26,7 @@ type reviewHTTPFixture struct {
 	assessment thirdparty.Assessment
 }
 
-func newReviewHTTPFixture(t *testing.T) reviewHTTPFixture {
+func newReviewHTTPFixture(t *testing.T, includeDocument ...bool) reviewHTTPFixture {
 	t.Helper()
 	base := newAssessmentHTTPFixture(t, true)
 	sent := sendHTTPVendorAssessmentRequest(t, base)
@@ -41,9 +42,21 @@ func newReviewHTTPFixture(t *testing.T) reviewHTTPFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	receipt, err := base.evidence.SubmitSession(context.Background(), redeemed.SessionToken, map[string]formcontract.AnswerValue{
+	answers := map[string]formcontract.AnswerValue{
 		"contact_email": formcontract.TextAnswer("vendor-contact-response@example.test"),
-	}, sent.Request.Version)
+	}
+	if len(includeDocument) > 0 && includeDocument[0] {
+		artifact, storeErr := base.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{
+			TenantID: "bank", RequestID: sent.Request.ID, FileName: "assurance-report.pdf", MediaType: "application/pdf", SessionToken: redeemed.SessionToken,
+		}, strings.NewReader("review evidence"))
+		if storeErr != nil {
+			t.Fatal(storeErr)
+		}
+		answers["assurance_report"] = formcontract.AnswerValue{Document: &formcontract.DocumentAnswer{
+			ArtifactID: artifact.ID, DocumentType: "SOC_2_TYPE_II", Reference: "SOC2-2026", IssuedBy: "Independent auditor", IssuedOn: "2026-06-01", ExpiresOn: "2027-05-31",
+		}}
+	}
+	receipt, err := base.evidence.SubmitSession(context.Background(), redeemed.SessionToken, answers, sent.Request.Version)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,12 +74,62 @@ func newReviewHTTPFixture(t *testing.T) reviewHTTPFixture {
 		Responsibility: authority.ResponsibilityReviewer, DecisionType: thirdparty.AssessmentReviewCommand, MinMateriality: 3,
 		Principal: authority.Principal{ID: "verified-reviewer", Kind: "PERSON"}, Priority: 1,
 	}}))
+	base.service.ConfigureCompletionReadiness(reviews)
 	handler := New(Dependencies{
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory",
 		Identity:   identity.NewDevelopmentAuthenticator("bank", "verified-reviewer", "entity-a"),
 		ThirdParty: base.serviceRepositoryService(), ThirdPartyAssessments: base.service, ThirdPartyAssessmentReviews: reviews,
 	})
 	return reviewHTTPFixture{handler: handler, base: base, assessment: submitted}
+}
+
+func TestReviewVendorAssessmentDocumentReturnsRefreshedViewAndEnforcesVersion(t *testing.T) {
+	fixture := newReviewHTTPFixture(t, true)
+	response := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+fixture.assessment.ID+"/review/start", strings.NewReader(`{"expected_version":`+jsonInt(fixture.assessment.Version)+`}`)))
+	if response.Code != http.StatusOK {
+		t.Fatalf("start review expected 200, got %d: %s", response.Code, response.Body.String())
+	}
+	var underReview thirdparty.Assessment
+	if err := json.NewDecoder(response.Body).Decode(&underReview); err != nil {
+		t.Fatal(err)
+	}
+	viewResponse := httptest.NewRecorder()
+	body := `{"expected_version":` + jsonInt(underReview.Version) + `,"decision":"REJECT","document_type":"SOC_2_TYPE_II","evidence_class":"VENDOR_SUPPLIED","valid_until":"2027-05-31","actor_id":"forged-reviewer"}`
+	fixture.handler.ServeHTTP(viewResponse, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+fixture.assessment.ID+"/documents/"+reviewArtifactID(t, fixture)+"/validate", strings.NewReader(body)))
+	if viewResponse.Code != http.StatusOK {
+		t.Fatalf("document review expected 200, got %d: %s", viewResponse.Code, viewResponse.Body.String())
+	}
+	var view thirdparty.AssessmentReviewView
+	if err := json.NewDecoder(viewResponse.Body).Decode(&view); err != nil {
+		t.Fatal(err)
+	}
+	if view.Assessment.Version != underReview.Version+1 || len(view.Documents) != 1 || view.Documents[0].Status != "REJECTED" || view.Documents[0].Reference != "SOC2-2026" {
+		t.Fatalf("unexpected refreshed document review %#v", view)
+	}
+
+	stale := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(stale, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+fixture.assessment.ID+"/documents/"+view.Documents[0].ArtifactID+"/validate", strings.NewReader(body)))
+	if stale.Code != http.StatusConflict {
+		t.Fatalf("stale document review expected 409, got %d: %s", stale.Code, stale.Body.String())
+	}
+}
+
+func reviewArtifactID(t *testing.T, fixture reviewHTTPFixture) string {
+	t.Helper()
+	response := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/vendor-assessments/"+fixture.assessment.ID, nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("load document review expected 200, got %d: %s", response.Code, response.Body.String())
+	}
+	var view thirdparty.AssessmentReviewView
+	if err := json.NewDecoder(response.Body).Decode(&view); err != nil {
+		t.Fatal(err)
+	}
+	if len(view.Documents) != 1 {
+		t.Fatalf("expected one submitted document, got %#v", view.Documents)
+	}
+	return view.Documents[0].ArtifactID
 }
 
 func TestGetVendorAssessmentReviewUsesVerifiedScopeAndOmitsProtectedCaptureFields(t *testing.T) {
@@ -222,9 +285,10 @@ func TestVendorAssessmentReviewMutationsRequireReviewerAuthority(t *testing.T) {
 func TestVendorAssessmentReviewRoutesDeclareScopedReadAndReviewerCommands(t *testing.T) {
 	routes := (&API{}).routes()
 	wanted := map[string]bool{
-		http.MethodGet + " /api/v1/vendor-assessments/{id}":               false,
-		http.MethodPost + " /api/v1/vendor-assessments/{id}/review/start": false,
-		http.MethodPost + " /api/v1/vendor-assessments/{id}/complete":     false,
+		http.MethodGet + " /api/v1/vendor-assessments/{id}":                                   false,
+		http.MethodPost + " /api/v1/vendor-assessments/{id}/review/start":                     false,
+		http.MethodPost + " /api/v1/vendor-assessments/{id}/documents/{artifact_id}/validate": false,
+		http.MethodPost + " /api/v1/vendor-assessments/{id}/complete":                         false,
 	}
 	for _, route := range routes {
 		key := route.Method + " " + route.Path
