@@ -35,6 +35,12 @@ func (s *Service) applyTriggerBundle(ctx context.Context, trigger Trigger, aggre
 	if err != nil {
 		return ProgramAggregate{}, nil, false, err
 	}
+	committedProgram := aggregate
+	if err := applyProgramEventToAggregate(&committedProgram, programEvent); err != nil {
+		return ProgramAggregate{}, nil, false, err
+	}
+	committedProgram.Program.Version = programEvent.AggregateVersion
+	committedProgram.Program.UpdatedAt = programEvent.OccurredAt
 	bundle := TriggerBundle{Trigger: trigger, ProgramEvent: programEvent}
 	matterType, title, summary, create := matterForTrigger(trigger)
 	if create {
@@ -70,11 +76,10 @@ func (s *Service) applyTriggerBundle(ctx context.Context, trigger Trigger, aggre
 		return ProgramAggregate{}, nil, false, err
 	}
 	_ = s.requestProgramRefresh(ctx, trigger.TenantID, trigger.ProgramID, trigger.Type, trigger.ID, "system")
-	program, err := s.repo.GetProgram(ctx, trigger.TenantID, trigger.ProgramID)
-	if err != nil {
-		return ProgramAggregate{}, result.Matter, result.Inserted, err
+	if result.Inserted {
+		return committedProgram, result.Matter, true, nil
 	}
-	return program, result.Matter, result.Inserted, nil
+	return aggregate, result.Matter, false, nil
 }
 
 func (s *Service) requestProgramRefresh(ctx context.Context, tenant, programID, reason, triggerID, requestedBy string) error {

@@ -1,11 +1,33 @@
 package continuity
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"testing"
 	"time"
 )
+
+type triggerPostCommitReadFailureRepository struct {
+	Repository
+	bundles   TriggerBundleRepository
+	committed bool
+}
+
+func (r *triggerPostCommitReadFailureRepository) GetProgram(ctx context.Context, tenant, programID string) (ProgramAggregate, error) {
+	if r.committed {
+		return ProgramAggregate{}, errors.New("post-commit Program read unavailable")
+	}
+	return r.Repository.GetProgram(ctx, tenant, programID)
+}
+
+func (r *triggerPostCommitReadFailureRepository) ApplyTriggerBundle(ctx context.Context, bundle TriggerBundle) (TriggerBundleResult, error) {
+	result, err := r.bundles.ApplyTriggerBundle(ctx, bundle)
+	if err == nil {
+		r.committed = true
+	}
+	return result, err
+}
 
 func TestMonitoringAdverseTriggerCreatesOneGovernedEntityScopedControlGap(t *testing.T) {
 	ctx := WithTrustedSystemScope(t.Context())
@@ -128,5 +150,37 @@ func TestMemoryTriggerBundleRollsBackEveryRowWhenMatterLinkIsInvalid(t *testing.
 		if job.TriggerID == trigger.ID {
 			t.Fatalf("failed bundle retained projection job: %#v", job)
 		}
+	}
+}
+
+func TestTriggerBundleDoesNotReportFailureAfterCommitWhenProgramReadIsUnavailable(t *testing.T) {
+	ctx := WithTrustedSystemScope(t.Context())
+	memory := NewMemoryRepository()
+	setup := NewService(memory)
+	now := time.Date(2026, 8, 26, 14, 0, 0, 0, time.UTC)
+	program, err := setup.CreateProgram(ctx, CreateProgramInput{
+		TenantID: "bank", LegalEntityID: "entity-a", Code: "POST-COMMIT", Name: "Post-commit proof", Type: "COMPLIANCE",
+		OwningFunction: "Risk", OwnerPrincipalID: "owner", Scope: json.RawMessage(`{}`), EffectiveFrom: now,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo := &triggerPostCommitReadFailureRepository{Repository: memory, bundles: memory}
+	service := NewService(repo)
+	service.now = func() time.Time { return now }
+
+	updated, matter, inserted, err := service.ApplyTrigger(ctx, Trigger{
+		TenantID: "bank", ProgramID: program.Program.ID, Type: "MONITORING_RESULT_ADVERSE",
+		SubjectType: "MONITORING_RESULT", SubjectID: "result-1", DedupeKey: "monitoring-result:result-1",
+		Source: "monitoring", ObservedAt: now, Payload: json.RawMessage(`{"monitoring_result_id":"result-1"}`),
+	})
+	if err != nil {
+		t.Fatalf("a committed trigger bundle must not be reported as failed: %v", err)
+	}
+	if !inserted || matter == nil || updated.Program.Version != program.Program.Version+1 || len(updated.Triggers) != 1 {
+		t.Fatalf("expected deterministic committed result, got inserted=%v matter=%#v Program=%#v", inserted, matter, updated)
+	}
+	if _, err := service.GetProgram(ctx, "bank", program.Program.ID); err == nil {
+		t.Fatal("test repository must fail reads after the bundle commits")
 	}
 }
