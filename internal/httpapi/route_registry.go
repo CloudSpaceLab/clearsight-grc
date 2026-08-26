@@ -114,6 +114,7 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/vendor-assessments/{id}/reissue-request", "thirdparty.assessment.reissue_request", a.reissueVendorAssessmentRequest, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
 		material("/api/v1/vendor-assessments/{id}/setup/retry", thirdparty.AssessmentSetupRetryCommand, a.retryVendorAssessmentSetup, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
 		read("/api/v1/vendor-assessments/{id}", a.getVendorAssessmentReview),
+		read("/api/v1/vendor-assessments/{id}/requests/{request_id}/documents/{artifact_id}/open", a.openVendorAssessmentDocument),
 		material("/api/v1/vendor-assessments/{id}/review/start", "thirdparty.assessment.review", a.startVendorAssessmentReview, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
 		material("/api/v1/vendor-assessments/{id}/documents/{artifact_id}/validate", thirdparty.AssessmentDocumentReviewCommand, a.reviewVendorAssessmentDocument, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
 		material("/api/v1/vendor-assessments/{id}/clarifications", thirdparty.AssessmentClarificationCommand, a.requestVendorAssessmentClarification, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
