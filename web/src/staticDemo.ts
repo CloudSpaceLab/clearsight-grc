@@ -76,8 +76,9 @@ type StaticDemoFixtures = {
 let document: DocumentImport;
 let documentCoverage: DocumentCoverage;
 
-export async function loadStaticDemoFixtures(fetcher: typeof fetch = globalThis.fetch) {
-  const response = await fetcher("/static-demo-fixtures.json");
+export async function loadStaticDemoFixtures(fetcher: typeof fetch = globalThis.fetch, baseURL: string = import.meta.env.BASE_URL) {
+  const normalizedBaseURL = baseURL.endsWith("/") ? baseURL : `${baseURL}/`;
+  const response = await fetcher(`${normalizedBaseURL}static-demo-fixtures.json`);
   if (!response.ok) throw new Error(`Static demo fixtures are unavailable (HTTP ${response.status}).`);
   const fixtures = await response.json() as StaticDemoFixtures;
   program = clone(fixtures.program);

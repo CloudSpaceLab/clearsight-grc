@@ -18,6 +18,20 @@ beforeEach(() => {
 });
 
 describe("static stakeholder demo transport", () => {
+  it("loads fixtures from the configured deployment base path", async () => {
+    vi.resetModules();
+    vi.stubEnv("VITE_STATIC_DEMO", "true");
+    const module = await import("./staticDemo");
+    const requested: string[] = [];
+
+    await module.loadStaticDemoFixtures(async (input) => {
+      requested.push(String(input));
+      return new Response(JSON.stringify(fixtures));
+    }, "/clearsight-grc/");
+
+    expect(requested).toEqual(["/clearsight-grc/static-demo-fixtures.json"]);
+  });
+
   it("exposes clearly identified reference context and exact records", async () => {
     const { staticDemoRequest } = await demo();
     const context = await staticDemoRequest<{ demo_mode: boolean; actor: { role_codes: string[] }; tenant: { name: string }; capabilities: { config_read: boolean } }>("/api/v1/context");
