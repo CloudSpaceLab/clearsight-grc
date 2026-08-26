@@ -95,7 +95,7 @@ const evidenceRequest = {
 let vendorRelationships: VendorRelationshipAggregate[] = [{
   vendor: {
     id: "vendor-acme-processing", tenant_id: "bank-demo", legal_name: "Acme Processing Limited", trading_name: "Acme Processing",
-    registration_ref: "RC-10001", jurisdiction: "Nigeria", source_id: "procurement", external_ref: "vendor-10001", status: "ACTIVE",
+    registration_ref: "RC-10001", jurisdiction: "Nigeria", website_domain: "acme.example", source_id: "procurement", external_ref: "vendor-10001", status: "ACTIVE",
     created_at: "2026-07-10T09:00:00Z", updated_at: now, version: 1,
   },
   relationship: {
@@ -104,7 +104,9 @@ let vendorRelationships: VendorRelationshipAggregate[] = [{
     status: "PROPOSED", effective_from: "2026-09-01T00:00:00Z", renewal_at: "2027-09-01T00:00:00Z",
     source_id: "procurement", external_ref: "vendor-10001", created_at: "2026-07-10T09:00:00Z", updated_at: now, version: 1,
   },
+  brand: { state: "PENDING", version: 0, event_version: 0 },
 }];
+let vendorBrand = { state: "PENDING" as "PENDING" | "UNAVAILABLE" | "APPROVED_LOGO" | "WEBSITE_ICON", version: 0, event_version: 0, updated_at: now };
 
 const vendorDueDiligenceForm: FormTemplate = {
   id: "form-vendor-due-diligence",
@@ -356,6 +358,40 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     const targetID = url.searchParams.get("target_id");
     const items = vendorWorkRequests.filter((work) => relationshipID ? work.relationship_id === relationshipID : work.target_type === targetType && work.target_id === targetID);
     return clone({ items, next_cursor: "" }) as T;
+  }
+  const vendorIdentityBrandMatch = pathname.match(/^\/api\/v1\/vendor-identities\/([^/]+)\/brand$/);
+  if (vendorIdentityBrandMatch) {
+    const vendorID = decodeURIComponent(vendorIdentityBrandMatch[1]!);
+    const current = vendorRelationships.find((item) => item.vendor.id === vendorID);
+    if (!current) throw new StaticDemoHTTPError(404, "vendor_identity_not_found", "The vendor identity is not available in this tenant.");
+    if (method === "GET") throw new StaticDemoHTTPError(404, "vendor_brand_unavailable", "No stored vendor icon is available.");
+    const headers = new Headers(init?.headers);
+    if (!headers.get("Idempotency-Key")?.trim()) throw new StaticDemoHTTPError(400, "idempotency_key_required", "A request key is required before the vendor logo can be changed.");
+    const expectedVersion = Number(headers.get("If-Match")?.replaceAll('"', ""));
+    if (!Number.isFinite(expectedVersion) || expectedVersion !== vendorBrand.version) throw new StaticDemoHTTPError(409, "vendor_brand_changed", "The vendor logo changed before this action was recorded.");
+    if (method === "PUT") {
+      if (!(init?.body instanceof Blob) || init.body.size > 512 * 1024 || !["image/png", "image/jpeg", "image/webp", "image/x-icon", "image/vnd.microsoft.icon"].includes(headers.get("Content-Type") ?? "")) throw new StaticDemoHTTPError(422, "vendor_brand_invalid", "Select a PNG, JPEG, WebP or ICO file of 512 KiB or less.");
+      vendorBrand = { state: "APPROVED_LOGO", version: vendorBrand.version + 1, event_version: vendorBrand.event_version + 1, updated_at: now };
+    } else if (method === "DELETE") {
+      vendorBrand = { state: current.vendor.website_domain ? "PENDING" : "UNAVAILABLE", version: vendorBrand.version + 1, event_version: vendorBrand.event_version + 1, updated_at: now };
+    } else throw new StaticDemoHTTPError(501, "fixture_not_implemented", `Static stakeholder demo does not implement ${method} ${pathname}`);
+    vendorRelationships = vendorRelationships.map((item) => item.vendor.id === vendorID ? { ...item, brand: clone(vendorBrand) } : item);
+    return clone({ vendor: current.vendor, brand: vendorBrand }) as T;
+  }
+  const vendorIdentityMatch = pathname.match(/^\/api\/v1\/vendor-identities\/([^/]+)$/);
+  if (vendorIdentityMatch) {
+    const vendorID = decodeURIComponent(vendorIdentityMatch[1]!);
+    const current = vendorRelationships.find((item) => item.vendor.id === vendorID);
+    if (!current) throw new StaticDemoHTTPError(404, "vendor_identity_not_found", "The vendor identity is not available in this tenant.");
+    if (method === "GET") return clone({ vendor: current.vendor, brand: vendorBrand }) as T;
+    if (method !== "PUT") throw new StaticDemoHTTPError(501, "fixture_not_implemented", `Static stakeholder demo does not implement ${method} ${pathname}`);
+    const input = parseBody(init) as Record<string, string | number | undefined>;
+    if (input.expected_version !== current.vendor.version) throw new StaticDemoHTTPError(409, "vendor_identity_changed", "The vendor details changed before this action was recorded.");
+    if (!String(input.legal_name ?? "").trim()) throw new StaticDemoHTTPError(422, "vendor_identity_invalid", "Enter the vendor's legal name.");
+    const updatedVendor = { ...current.vendor, legal_name: String(input.legal_name).trim(), trading_name: input.trading_name ? String(input.trading_name) : undefined, registration_ref: input.registration_ref ? String(input.registration_ref) : undefined, jurisdiction: input.jurisdiction ? String(input.jurisdiction) : undefined, website_domain: input.website_domain ? String(input.website_domain) : undefined, updated_at: now, version: current.vendor.version + 1 };
+    if (updatedVendor.website_domain !== current.vendor.website_domain) vendorBrand = { state: updatedVendor.website_domain ? "PENDING" : "UNAVAILABLE", version: vendorBrand.version + 1, event_version: vendorBrand.event_version + 1, updated_at: now };
+    vendorRelationships = vendorRelationships.map((item) => item.vendor.id === vendorID ? { ...item, vendor: updatedVendor, brand: clone(vendorBrand) } : item);
+    return clone({ vendor: updatedVendor, brand: vendorBrand }) as T;
   }
   const prepareVendorWorkMatch = pathname.match(/^\/api\/v1\/vendors\/([^/]+)\/work\/prepare$/);
   if (prepareVendorWorkMatch && method === "POST") {

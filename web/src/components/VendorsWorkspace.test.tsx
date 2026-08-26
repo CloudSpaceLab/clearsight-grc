@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import axe from "axe-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
@@ -6,14 +7,19 @@ import type { FormTemplate } from "../monitoringTypes";
 import { completeVendorAssessment, createVendorAssessmentDeficiency, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, requestVendorAssessmentClarification, retryVendorAssessmentSetup, reviewVendorAssessmentDocument, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview, vendorAssessmentDocumentURL } from "../vendorAssessmentApi";
 import type { VendorAssessment, VendorAssessmentReviewView } from "../vendorAssessmentTypes";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
-import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
+import { createVendorRelationship, loadVendorIdentity, loadVendorRelationship, loadVendorRelationships, removeApprovedVendorLogo, updateVendorIdentity, updateVendorRelationship, uploadApprovedVendorLogo } from "../vendorApi";
 import { VendorsWorkspace } from "./VendorsWorkspace";
 
-vi.mock("../vendorApi", () => ({
+vi.mock("../vendorApi", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../vendorApi")>(),
   createVendorRelationship: vi.fn(),
   loadVendorRelationship: vi.fn(),
   loadVendorRelationships: vi.fn(),
+  loadVendorIdentity: vi.fn(),
+  removeApprovedVendorLogo: vi.fn(),
+  updateVendorIdentity: vi.fn(),
   updateVendorRelationship: vi.fn(),
+  uploadApprovedVendorLogo: vi.fn(),
 }));
 
 vi.mock("../monitoringApi", () => ({ loadFormTemplates: vi.fn() }));
@@ -86,6 +92,7 @@ beforeEach(() => {
   showVendorWorkAction = false;
   vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [record] });
   vi.mocked(loadVendorRelationship).mockResolvedValue(record);
+  vi.mocked(loadVendorIdentity).mockResolvedValue({ vendor: record.vendor, brand: { state: "UNAVAILABLE", version: 0, event_version: 0 } });
   vi.mocked(loadFormTemplates).mockResolvedValue([activeVendorForm]);
   vi.mocked(loadCurrentVendorAssessment).mockRejectedValue(new ApiError(404, "Not found"));
 });
@@ -126,8 +133,8 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-next-action" }} onGuideIntentCompleted={completed}/>);
 
     const legalName = await screen.findByLabelText("Legal name");
-    expect(document.activeElement).toBe(legalName);
-    expect(completed).toHaveBeenCalledWith(1);
+    await waitFor(() => expect(document.activeElement).toBe(legalName));
+    await waitFor(() => expect(completed).toHaveBeenCalledWith(1));
   });
 
   it("focuses but does not execute the first due-diligence action for the next vendor task", async () => {
@@ -149,7 +156,7 @@ describe("VendorsWorkspace", () => {
     view.rerender(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-next-action" }} onGuideIntentCompleted={completed}/>);
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Beacon Hosting Limited, Cloud hosting" }).getAttribute("aria-current")).toBe("true"));
-    expect(completed).toHaveBeenCalledWith(1);
+    await waitFor(() => expect(completed).toHaveBeenCalledWith(1));
   });
 
   it("moves a completed due-diligence review to the first vendor-work action without executing it", async () => {
@@ -670,5 +677,167 @@ describe("VendorsWorkspace", () => {
       effective_from: undefined, renewal_at: undefined,
     });
     expect(call[1]).toEqual(expect.not.objectContaining({ legal_name: expect.anything(), registration_ref: expect.anything() }));
+  });
+
+  it("renders a discovered same-origin icon in the register and selected vendor heading", async () => {
+    const branded = { ...record, brand: { state: "WEBSITE_ICON", source: "VENDOR_WEBSITE", asset_token: "brand-4", version: 4, event_version: 4 } as const };
+    vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [branded] });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+
+    const icons = await screen.findAllByRole("img", { name: "Acme Processing Limited icon" });
+    expect(icons).toHaveLength(1);
+    expect(icons[0]?.getAttribute("src")).toBe("/api/v1/vendor-identities/vendor-1/brand?version=brand-4");
+    expect(document.querySelector('img[src^="http"]')).toBeNull();
+    expect(screen.getByText("Website icon available")).toBeTruthy();
+  });
+
+  it.each([
+    ["PENDING", "Website icon pending"],
+    ["UNAVAILABLE", "Vendor icon unavailable"],
+    ["APPROVED_LOGO", "Approved logo"],
+    ["WEBSITE_ICON", "Website icon available"],
+  ] as const)("shows the %s brand state without changing due-diligence status", async (state, label) => {
+    const branded = { ...record, brand: { state, version: 2, event_version: 2 } };
+    vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [branded] });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+    expect(await screen.findByText(label)).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Start due diligence" })).toBeTruthy();
+  });
+
+  it("updates shared vendor details in every loaded relationship without changing relationship versions", async () => {
+    const second = { ...record, relationship: { ...record.relationship, id: "relationship-2", service_name: "Settlement reporting", version: 7 } };
+    vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [record, second] });
+    vi.mocked(loadVendorIdentity).mockResolvedValue({ vendor: record.vendor, brand: { state: "UNAVAILABLE", version: 0, event_version: 0 } });
+    vi.mocked(updateVendorIdentity).mockResolvedValue({ vendor: { ...record.vendor, legal_name: "Acme Payments Limited", website_domain: "acme.example", version: 2 }, brand: { state: "PENDING", version: 1, event_version: 1 } });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
+    const legalName = await screen.findByLabelText("Legal name");
+    fireEvent.change(legalName, { target: { value: "Acme Payments Limited" } });
+    fireEvent.change(screen.getByLabelText("Website domain"), { target: { value: "acme.example" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save vendor details" }));
+
+    await waitFor(() => expect(updateVendorIdentity).toHaveBeenCalledWith("vendor-1", expect.objectContaining({ expected_version: 1, legal_name: "Acme Payments Limited", website_domain: "acme.example" })));
+    expect(await screen.findByText("Vendor details updated.")).toBeTruthy();
+    expect(screen.getAllByText("Acme Payments Limited").length).toBeGreaterThanOrEqual(2);
+    fireEvent.click(screen.getByRole("button", { name: "Acme Payments Limited, Settlement reporting" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Edit vendor relationship" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save vendor relationship" }));
+    await waitFor(() => expect(updateVendorRelationship).toHaveBeenCalledWith("relationship-2", expect.objectContaining({ expected_version: 7 })));
+  });
+
+  it("rejects a URL, path, credentials, port and IP before updating a vendor identity", async () => {
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
+    const website = await screen.findByLabelText("Website domain");
+    for (const value of ["https://acme.example", "acme.example/icon", "user@acme.example", "acme.example:443", "127.0.0.1"]) {
+      fireEvent.change(website, { target: { value } });
+      fireEvent.click(screen.getByRole("button", { name: "Save vendor details" }));
+      expect(await screen.findByText(/website hostname only/i)).toBeTruthy();
+    }
+    expect(updateVendorIdentity).not.toHaveBeenCalled();
+  });
+
+  it("moves keyboard focus into the vendor identity form and passes axe", async () => {
+    const { container } = render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
+    const legalName = await screen.findByLabelText("Legal name");
+    await waitFor(() => expect(document.activeElement).toBe(legalName));
+    const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
+    expect(results.violations.map((violation) => violation.id)).toEqual([]);
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Save vendor details" })).toBeTruthy();
+  });
+
+  it("stages and replaces an approved logo before explicit upload", async () => {
+    vi.mocked(uploadApprovedVendorLogo).mockResolvedValue({ vendor: record.vendor, brand: { state: "APPROVED_LOGO", source: "APPROVED_UPLOAD", asset_token: "approved-2", version: 2, event_version: 2 } });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
+    expect(await screen.findByRole("button", { name: "Choose logo" })).toBeTruthy();
+    const input = await screen.findByLabelText("Approved logo file");
+    const first = new File([new Uint8Array(30)], "first.png", { type: "image/png" });
+    const replacement = new File([new Uint8Array(40)], "approved.webp", { type: "image/webp" });
+    fireEvent.change(input, { target: { files: [first] } });
+    expect(screen.getByText("first.png · 30 B")).toBeTruthy();
+    expect(screen.getByText("Selected file is ready to save.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Replace logo" })).toBeTruthy();
+    expect(uploadApprovedVendorLogo).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { files: [replacement] } });
+    expect(screen.getByText("approved.webp · 40 B")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Use approved logo" }));
+    await waitFor(() => expect(uploadApprovedVendorLogo).toHaveBeenCalledWith("vendor-1", replacement, 0, expect.stringMatching(/^vendor-brand-/)));
+    expect(await screen.findByText("Approved logo saved.")).toBeTruthy();
+  });
+
+  it("rejects SVG and files over 512 KiB before upload", async () => {
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
+    const input = await screen.findByLabelText("Approved logo file");
+    fireEvent.change(input, { target: { files: [new File(["<svg/>"] , "logo.svg", { type: "image/svg+xml" })] } });
+    expect(await screen.findByText("Select a PNG, JPEG, WebP or ICO file.")).toBeTruthy();
+    fireEvent.change(input, { target: { files: [new File([new Uint8Array(524289)], "large.png", { type: "image/png" })] } });
+    expect(await screen.findByText("Select a logo no larger than 512 KiB.")).toBeTruthy();
+    expect(uploadApprovedVendorLogo).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [409, "The vendor logo changed. The selected file is still here; reload the vendor before trying again."],
+    [403, "Your current role cannot change the approved vendor logo. The selected file is still here."],
+    [503, "The approved logo could not be saved. The selected file is still here; try again."],
+  ])("preserves the selected logo after a %s upload failure", async (status, message) => {
+    vi.mocked(uploadApprovedVendorLogo).mockRejectedValue(new ApiError(status, "failed"));
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
+    const input = await screen.findByLabelText("Approved logo file");
+    const file = new File([new Uint8Array(30)], "approved.png", { type: "image/png" });
+    fireEvent.change(input, { target: { files: [file] } });
+    fireEvent.click(screen.getByRole("button", { name: "Use approved logo" }));
+    expect(await screen.findByText(message)).toBeTruthy();
+    expect(screen.getByText("approved.png · 30 B")).toBeTruthy();
+  });
+
+  it("reuses the upload request key and brand version after an ambiguous failure", async () => {
+    vi.mocked(uploadApprovedVendorLogo)
+      .mockRejectedValueOnce(new ApiError(503, "response unavailable"))
+      .mockResolvedValueOnce({ vendor: record.vendor, brand: { state: "APPROVED_LOGO", source: "APPROVED_UPLOAD", asset_token: "approved-2", version: 1, event_version: 1 } });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
+    const file = new File([new Uint8Array(30)], "approved.png", { type: "image/png" });
+    fireEvent.change(await screen.findByLabelText("Approved logo file"), { target: { files: [file] } });
+    fireEvent.click(screen.getByRole("button", { name: "Use approved logo" }));
+    expect(await screen.findByText(/selected file is still here/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Use approved logo" }));
+    await waitFor(() => expect(uploadApprovedVendorLogo).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(uploadApprovedVendorLogo).mock.calls[0]?.slice(2)).toEqual(vi.mocked(uploadApprovedVendorLogo).mock.calls[1]?.slice(2));
+  });
+
+  it("removes an approved logo and restores the website-icon state", async () => {
+    const approved = { ...record, brand: { state: "APPROVED_LOGO", source: "APPROVED_UPLOAD", asset_token: "approved-2", version: 2, event_version: 2 } as const };
+    vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [approved] });
+    vi.mocked(loadVendorIdentity).mockResolvedValue({ vendor: approved.vendor, brand: approved.brand });
+    vi.mocked(removeApprovedVendorLogo).mockResolvedValue({ vendor: approved.vendor, brand: { state: "WEBSITE_ICON", source: "VENDOR_WEBSITE", asset_token: "website-1", version: 3, event_version: 3 } });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
+    expect(await screen.findByText(/restores the website icon/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Use website icon" }));
+    await waitFor(() => expect(removeApprovedVendorLogo).toHaveBeenCalledWith("vendor-1", 2, expect.stringMatching(/^vendor-brand-/)));
+    expect(await screen.findByText("Website icon restored.")).toBeTruthy();
+  });
+
+  it("reuses the removal request key and brand version after an ambiguous failure", async () => {
+    const approved = { ...record, brand: { state: "APPROVED_LOGO", source: "APPROVED_UPLOAD", asset_token: "approved-2", version: 2, event_version: 2 } as const };
+    vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [approved] });
+    vi.mocked(loadVendorIdentity).mockResolvedValue({ vendor: approved.vendor, brand: approved.brand });
+    vi.mocked(removeApprovedVendorLogo)
+      .mockRejectedValueOnce(new ApiError(503, "response unavailable"))
+      .mockResolvedValueOnce({ vendor: approved.vendor, brand: { state: "WEBSITE_ICON", source: "VENDOR_WEBSITE", asset_token: "website-1", version: 3, event_version: 3 } });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
+    const action = await screen.findByRole("button", { name: "Use website icon" });
+    fireEvent.click(action);
+    expect(await screen.findByText("The approved logo could not be removed. Try again.")).toBeTruthy();
+    fireEvent.click(action);
+    await waitFor(() => expect(removeApprovedVendorLogo).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(removeApprovedVendorLogo).mock.calls[0]?.slice(1)).toEqual(vi.mocked(removeApprovedVendorLogo).mock.calls[1]?.slice(1));
   });
 });

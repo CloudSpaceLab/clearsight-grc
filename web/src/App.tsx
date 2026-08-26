@@ -21,6 +21,7 @@ import { DisplayPreferencesMenu } from "./components/DisplayPreferences";
 import { DocumentImportWorkspace } from "./components/DocumentImportWorkspace";
 import { FocusedSheet } from "./components/FocusedSheet";
 import { NavigationIcon } from "./components/NavigationIcon";
+import { initials } from "./components/Monogram";
 import { RoleAwareOnboarding } from "./components/RoleAwareOnboarding";
 import type { CaptureLoadState } from "./components/CapturePanel";
 import { apiErrorKind } from "./http";
@@ -353,6 +354,5 @@ function humanRole(value?: string) {
   if (/^[A-Z0-9]+$/.test(value)) return value;
   return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 }
-function initials(value: string) { const parts = value.trim().split(/\s+/).filter(Boolean); const first = parts.at(0)?.at(0) ?? value.at(0) ?? ""; const last = parts.length > 1 ? parts.at(-1)?.at(0) ?? "" : value.at(1) ?? ""; return `${first}${last}`.toUpperCase(); }
 
 export default App;

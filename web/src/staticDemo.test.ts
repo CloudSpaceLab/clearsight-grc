@@ -130,6 +130,27 @@ describe("static stakeholder demo transport", () => {
     expect(sent.capture_url).toBeUndefined();
   });
 
+  it("supports exact vendor identity and approved-logo state without a remote image URL", async () => {
+    const { StaticDemoHTTPError, staticDemoRequest } = await demo();
+    type DemoVendor = { id: string; legal_name: string; website_domain?: string; version: number };
+    const page = await staticDemoRequest<{ items: Array<{ vendor: DemoVendor }> }>("/api/v1/vendors?limit=50");
+    const vendor = page.items[0]!.vendor;
+    const loaded = await staticDemoRequest<{ vendor: DemoVendor; brand: { state: string; asset_token?: string; version: number } }>(`/api/v1/vendor-identities/${vendor.id}`);
+    expect(loaded.vendor.website_domain).toBe("acme.example");
+    expect(loaded.brand).toMatchObject({ state: "PENDING", version: 0 });
+    expect(loaded.brand.asset_token).toBeUndefined();
+
+    const updated = await staticDemoRequest<typeof loaded>(`/api/v1/vendor-identities/${vendor.id}`, { method: "PUT", body: JSON.stringify({ expected_version: vendor.version, legal_name: "Acme Payments Limited", website_domain: "payments.acme.example" }) });
+    expect(updated.vendor).toMatchObject({ legal_name: "Acme Payments Limited", website_domain: "payments.acme.example", version: vendor.version + 1 });
+    const logo = new File([new Uint8Array([137, 80, 78, 71])], "approved.png", { type: "image/png" });
+    await expect(staticDemoRequest(`/api/v1/vendor-identities/${vendor.id}/brand`, { method: "PUT", headers: { "If-Match": `"${updated.brand.version}"`, "Content-Type": "image/png" }, body: logo })).rejects.toMatchObject({ status: 400, code: "idempotency_key_required" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
+    const approved = await staticDemoRequest<typeof loaded>(`/api/v1/vendor-identities/${vendor.id}/brand`, { method: "PUT", headers: { "If-Match": `"${updated.brand.version}"`, "Content-Type": "image/png", "Idempotency-Key": "vendor-brand-static-upload" }, body: logo });
+    expect(approved.brand).toMatchObject({ state: "APPROVED_LOGO", version: updated.brand.version + 1 });
+    expect(approved.brand.asset_token).toBeUndefined();
+    const restored = await staticDemoRequest<typeof loaded>(`/api/v1/vendor-identities/${vendor.id}/brand`, { method: "DELETE", headers: { "If-Match": `"${approved.brand.version}"`, "Idempotency-Key": "vendor-brand-static-remove" } });
+    expect(restored.brand).toMatchObject({ state: "PENDING", version: approved.brand.version + 1 });
+  });
+
   it("renders a submitted vendor response from bounded review fixture data", async () => {
     window.history.replaceState(null, "", "/?fixture=vendor-submitted");
     const { staticDemoRequest } = await demo();

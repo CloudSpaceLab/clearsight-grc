@@ -5,9 +5,11 @@ import type { FormTemplate } from "../monitoringTypes";
 import { cancelVendorAssessment, completeVendorAssessment, createVendorAssessmentDeficiency, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, requestVendorAssessmentClarification, retryVendorAssessmentSetup, reviewVendorAssessmentDocument, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview, vendorAssessmentDocumentURL } from "../vendorAssessmentApi";
 import type { CompleteVendorAssessmentInput, CreateVendorAssessmentDeficiencyInput, CurrentVendorAssessment, ReviewVendorAssessmentDocumentInput, StartVendorAssessmentInput, VendorAssessment, VendorAssessmentClarificationInput, VendorAssessmentFormOption, VendorAssessmentReviewView, VendorAssessmentSendOutcome, VendorAssessmentSetupRetryOutcome } from "../vendorAssessmentTypes";
 import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
-import type { CreateVendorRelationshipInput, VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "../vendorTypes";
+import type { CreateVendorRelationshipInput, VendorCriticality, VendorIdentityPresentation, VendorPrivacyRole, VendorRelationshipAggregate } from "../vendorTypes";
 import { VendorDueDiligence } from "./VendorDueDiligence";
 import { VendorWorkPanel } from "./VendorWorkPanel";
+import { VendorBrandIcon, vendorBrandLabel } from "./VendorBrandIcon";
+import { VendorIdentityEditor } from "./VendorIdentityEditor";
 
 type Props = {
   organizationName: string;
@@ -66,7 +68,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   const [records, setRecords] = useState<VendorRelationshipAggregate[]>([]);
   const [selected, setSelected] = useState<VendorRelationshipAggregate | null>(null);
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
-  const [mode, setMode] = useState<"browse" | "create" | "edit">("browse");
+  const [mode, setMode] = useState<"browse" | "create" | "edit" | "edit-identity">("browse");
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [nextCursor, setNextCursor] = useState("");
@@ -426,6 +428,19 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     setMode("edit"); setFieldErrors({}); setFormError(""); setNotice("");
   }
 
+  function startIdentityEdit() {
+    if (!selected) return;
+    setMode("edit-identity"); setFieldErrors({}); setFormError(""); setNotice("");
+  }
+
+  function applyVendorPresentation(presentation: VendorIdentityPresentation, message = "", close = false) {
+    const update = (item: VendorRelationshipAggregate) => item.vendor.id === presentation.vendor.id ? { ...item, vendor: presentation.vendor, brand: presentation.brand } : item;
+    setRecords((current) => current.map(update));
+    setSelected((current) => current ? update(current) : current);
+    if (message) setNotice(message);
+    if (close) setMode("browse");
+  }
+
   function cancelForm() {
     setMode("browse"); setExistingVendorSource(undefined); setVendorCandidates([]); setCandidateState("idle"); setFieldErrors({}); setFormError("");
   }
@@ -514,14 +529,14 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
         <div className="vendor-register-header"><div><h2>Vendor register</h2><p>{submittedQuery ? `Showing ${records.length} matching ${records.length === 1 ? "relationship" : "relationships"}` : `Showing ${records.length} ${records.length === 1 ? "relationship" : "relationships"} in this legal entity`}</p>{nextCursor && <small>More relationships are available.</small>}</div></div>
         <form className="vendor-search" onSubmit={searchRelationships}><label><span>Search vendors and services</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name, service or reference"/></label><button type="submit" className="secondary-button">Search vendors</button></form>
         {records.length > 0 ? <div className="vendor-list">{records.map((record) => <button type="button" key={record.relationship.id} aria-label={`${record.vendor.legal_name}, ${record.relationship.service_name}`} aria-current={selected?.relationship.id === record.relationship.id ? "true" : undefined} className={selected?.relationship.id === record.relationship.id ? "vendor-row selected" : "vendor-row"} onClick={() => choose(record)}>
-          <span className="vendor-row-icon" aria-hidden="true">V</span><span className="vendor-row-main"><strong>{record.vendor.legal_name}</strong><span>Service: {record.relationship.service_name}</span></span><span className={`vendor-criticality criticality-${record.relationship.criticality.toLowerCase()}`}>{humanize(record.relationship.criticality)}</span>
+          <VendorBrandIcon vendorID={record.vendor.id} legalName={record.vendor.legal_name} brand={record.brand} decorative/><span className="vendor-row-main"><strong>{record.vendor.legal_name}</strong><span>Service: {record.relationship.service_name}</span></span><span className={`vendor-criticality criticality-${record.relationship.criticality.toLowerCase()}`}>{humanize(record.relationship.criticality)}</span>
         </button>)}</div> : submittedQuery ? <div className="vendor-empty"><h3>No vendor relationships match this search.</h3><p>No legal name, service, registration or source reference matched “{submittedQuery}” in {legalEntityName}.</p><button type="button" className="secondary-button" onClick={() => { setQuery(""); setSubmittedQuery(""); void refresh(undefined, ""); }}>Clear search</button></div> : <div className="vendor-empty"><h3>No vendor relationships found for {legalEntityName}.</h3><p>Add the first vendor and the service it supplies. Use <strong>Add vendor</strong> above; the signed-in actor becomes the initial accountable owner.</p></div>}
         {nextCursor && <button type="button" className="secondary-button" disabled={loadingMore} onClick={() => void loadMoreRelationships()}>{loadingMore ? "Loading…" : "Load more vendors"}</button>}
         {loadMoreError && <p role="alert" className="inline-error">More vendor relationships could not be loaded. The current results remain available.</p>}
       </section>
 
       <section className="vendor-focus" aria-label="Selected vendor relationship">
-        {(mode === "create" || mode === "edit") ? <VendorForm mode={mode} form={form} errors={fieldErrors} formError={formError} saving={saving} existingVendor={existingVendorSource} candidates={vendorCandidates} candidateState={candidateState} onFindExisting={findExistingVendor} onUseExisting={useExistingVendor} onUseDifferent={() => { setExistingVendorSource(undefined); setForm((current) => ({ ...current, legalName: "", tradingName: "", registrationRef: "", jurisdiction: "" })); }} onChange={setValue} onCancel={cancelForm} onSubmit={submit}/> : selected ? <VendorDetail
+        {mode === "edit-identity" && selected ? <VendorIdentityEditor record={selected} onCancel={cancelForm} onIdentitySaved={(presentation) => applyVendorPresentation(presentation, "Vendor details updated.", true)} onBrandSaved={(presentation) => applyVendorPresentation(presentation)}/> : (mode === "create" || mode === "edit") ? <VendorForm mode={mode} form={form} errors={fieldErrors} formError={formError} saving={saving} existingVendor={existingVendorSource} candidates={vendorCandidates} candidateState={candidateState} onFindExisting={findExistingVendor} onUseExisting={useExistingVendor} onUseDifferent={() => { setExistingVendorSource(undefined); setForm((current) => ({ ...current, legalName: "", tradingName: "", registrationRef: "", jurisdiction: "" })); }} onChange={setValue} onCancel={cancelForm} onSubmit={submit}/> : selected ? <VendorDetail
           record={selected}
           assessment={assessment}
           assessmentSetup={assessmentSetup}
@@ -534,6 +549,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
           requestOutcomeKind={requestOutcomeKind}
           onBack={() => { setSelected(null); onTarget?.(); }}
           onEdit={startEdit}
+          onEditIdentity={startIdentityEdit}
           onRefreshAssessment={() => refreshAssessment(selected.relationship.id)}
           onRefreshForms={refreshForms}
           onStartAssessment={startAssessment}
@@ -555,7 +571,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   </div>;
 }
 
-function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onRefreshAssessment, onRefreshForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onOpenRequest, onOpenMatter }: {
+function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onEditIdentity, onRefreshAssessment, onRefreshForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onOpenRequest, onOpenMatter }: {
   record: VendorRelationshipAggregate;
   assessment: VendorAssessment | null;
   assessmentSetup?: CurrentVendorAssessment["setup"];
@@ -568,6 +584,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
   requestOutcomeKind: "initial" | "replacement";
   onBack: () => void;
   onEdit: () => void;
+  onEditIdentity: () => void;
   onRefreshAssessment: () => Promise<void>;
   onRefreshForms: () => Promise<void>;
   onStartAssessment: (input: StartVendorAssessmentInput) => Promise<VendorAssessment | void>;
@@ -590,13 +607,13 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
   return <>
   <article className="vendor-detail">
     <button type="button" className="text-button vendor-mobile-back" onClick={onBack}>← Back to vendor register</button>
-    <div className="vendor-detail-heading"><div><span className="eyebrow">{humanize(relationship.status)} relationship</span><h2>{vendor.legal_name}</h2><p>{vendor.trading_name ? `Trading as ${vendor.trading_name}` : "No trading name recorded"}</p></div><button type="button" className="secondary-button" onClick={onEdit}>Edit vendor relationship</button></div>
+    <div className="vendor-detail-heading"><div className="vendor-detail-identity"><VendorBrandIcon vendorID={vendor.id} legalName={vendor.legal_name} brand={record.brand} size="detail"/><div><span className="eyebrow">{humanize(relationship.status)} relationship</span><h2>{vendor.legal_name}</h2><p>{vendor.trading_name ? `Trading as ${vendor.trading_name}` : "No trading name recorded"}</p><small className="vendor-brand-label">{vendorBrandLabel(record.brand)}</small></div></div><div className="vendor-detail-actions"><button type="button" className="secondary-button" onClick={onEditIdentity}>Edit vendor details</button><button type="button" className="secondary-button" onClick={onEdit}>Edit vendor relationship</button></div></div>
     <div className="vendor-service-callout"><span>Service supplied</span><strong>{relationship.service_name}</strong><small>{humanize(relationship.criticality)} criticality · {privacyLabel(relationship.privacy_role)}</small></div>
     <dl className="vendor-facts">
       <Fact label="Accountable owner" value={relationship.business_owner_principal_id}/><Fact label="Jurisdiction" value={vendor.jurisdiction || "Not recorded"}/>
-      <Fact label="Registration reference" value={vendor.registration_ref || "Not recorded"}/><Fact label="Effective date" value={formatDate(relationship.effective_from)}/>
+      <Fact label="Registration reference" value={vendor.registration_ref || "Not recorded"}/><Fact label="Website domain" value={vendor.website_domain || "Not recorded"}/><Fact label="Effective date" value={formatDate(relationship.effective_from)}/>
       <Fact label="Renewal date" value={formatDate(relationship.renewal_at)}/><Fact label="Source" value={vendor.source_id && vendor.external_ref ? `${vendor.source_id} · ${vendor.external_ref}` : "Entered directly"}/>
-      <Fact label="Record updated" value={formatDateTime(relationship.updated_at)}/><Fact label="Current record" value={`Version ${relationship.version}`}/>
+      <Fact label="Relationship updated" value={formatDateTime(relationship.updated_at)}/><Fact label="Relationship version" value={`Version ${relationship.version}`}/><Fact label="Vendor details version" value={`Vendor version ${vendor.version}`}/>
     </dl>
     <div className="vendor-boundary-note"><strong>Relationship status</strong><p>{humanize(relationship.status)} for {relationship.service_name}. Review the due-diligence status below before the relationship moves to its next decision.</p></div>
   </article>

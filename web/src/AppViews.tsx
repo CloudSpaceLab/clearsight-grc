@@ -9,6 +9,7 @@ import { TodayInterventions } from "./components/TodayInterventions";
 import { WorkspaceErrorBoundary } from "./components/WorkspaceErrorBoundary";
 import type { AttentionItem, AutomationPolicy, AuthorityResolution, EvidenceRequest, EvidenceSource, IntegrityFinding, PolicySummary, Readiness, WorkflowTask } from "./types";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
+import { initials } from "./components/Monogram";
 
 export { CapturePanel } from "./components/CapturePanel";
 
@@ -75,6 +76,5 @@ export function RoutingPanel({ resolution, item, legalEntityName, state }: { res
   return <div className="panel-content"><span className="eyebrow">Authority · {item.authority?.responsibility ?? "Current responsibility"}</span><h2>Authority for this item</h2><p><strong>{item.title}</strong></p><h3>Approval details</h3>{hasResolvedPrincipal && <div className="resolution-card"><div className="principal-avatar">{initials(resolution.principal.display_name)}</div><div><strong>{resolution.principal.display_name}</strong><span>{resolution.principal.role} · {resolution.principal.kind}</span></div><mark>Resolved</mark></div>}{candidates.length > 1 && <section className="authority-candidates"><h3>Eligible approvers</h3><p>{resolution.strategy ? `Selection method: ${humanizeStatus(resolution.strategy)}` : "More than one person is eligible under the current policy."}</p><ul>{candidates.map((candidate) => <li key={candidate.id}><strong>{candidate.display_name}</strong><span>{candidate.role} · {candidate.kind}</span></li>)}</ul></section>}<dl className="explanation-list"><div><dt>Legal entity</dt><dd>{legalEntityName}</dd></div><div><dt>Responsibility</dt><dd>{item.authority?.responsibility ?? "Unavailable"}</dd></div>{item.authority?.decision_type && <div><dt>Decision type</dt><dd>{humanizeStatus(item.authority.decision_type)}</dd></div>}<div><dt>Materiality</dt><dd>{item.authority ? String(item.authority.materiality) : "Unavailable"}</dd></div><div><dt>Policy version</dt><dd>{resolution.policy_version || "Unavailable"}</dd></div><div><dt>Why this route</dt><dd>{resolution.explanation || "No additional explanation was provided."}</dd></div></dl></div>;
 }
 
-function initials(value: string) { const parts = value.trim().split(/\s+/).filter(Boolean); const first = parts.at(0)?.at(0) ?? value.at(0) ?? ""; const last = parts.length > 1 ? parts.at(-1)?.at(0) ?? "" : value.at(1) ?? ""; return `${first}${last}`.toUpperCase(); }
 function formatShortTime(value: string) { const parsed = Date.parse(value); if (!Number.isFinite(parsed)) return "recently"; return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(parsed)); }
 function formatDate(value: string) { const parsed = Date.parse(value); return Number.isFinite(parsed) ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(parsed)) : "unavailable"; }
