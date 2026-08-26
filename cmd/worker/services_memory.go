@@ -20,7 +20,8 @@ func buildWorker(_ context.Context, cfg config.Config, logger *slog.Logger) (wor
 	continuityRepository := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepository)
 	evidenceRepository := evidence.NewMemoryRepository(evidence.DemoSources(), evidence.DemoRequests())
-	evidenceService := evidence.NewService(evidenceRepository, evidence.NewMemoryObjectStore())
+	objectStore := evidence.NewMemoryObjectStore()
+	evidenceService := evidence.NewService(evidenceRepository, objectStore)
 	assessmentRepository := thirdparty.NewMemoryAssessmentRepository()
 	assessmentSubmission := newAssessmentSubmissionConsumer(repository, evidenceService, assessmentRepository)
 	assessmentCancellation := newAssessmentCancellationConsumer(evidenceService)
@@ -34,5 +35,8 @@ func buildWorker(_ context.Context, cfg config.Config, logger *slog.Logger) (wor
 	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
 	assessmentProvisioner := thirdparty.NewAssessmentProvisioner(assessmentRepository, continuityService, cfg.WorkerID)
 	service.AddMaintainerClass(thirdparty.AssessmentSetupWorkClass, assessmentProvisioner)
+	vendorBrandRepository := thirdparty.NewMemoryRepository()
+	vendorBrandWorker := thirdparty.NewVendorBrandWorker(vendorBrandRepository, objectStore, thirdparty.NewDefaultVendorBrandDiscoverer(), cfg.WorkerID)
+	service.AddMaintainerClass(thirdparty.VendorBrandWorkClass, vendorBrandWorker)
 	return workerSet{Runtime: service, Close: func() {}}, nil
 }

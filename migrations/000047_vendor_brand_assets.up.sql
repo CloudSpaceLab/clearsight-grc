@@ -93,9 +93,9 @@ ALTER TABLE third_party_events
     DROP CONSTRAINT third_party_events_aggregate_type_check,
     DROP CONSTRAINT third_party_events_event_type_check;
 ALTER TABLE third_party_events
-    ADD CONSTRAINT third_party_events_aggregate_type_check CHECK (aggregate_type IN ('VENDOR','VENDOR_RELATIONSHIP','THIRD_PARTY_ASSESSMENT')),
+    ADD CONSTRAINT third_party_events_aggregate_type_check CHECK (aggregate_type IN ('VENDOR','VENDOR_BRAND','VENDOR_RELATIONSHIP','THIRD_PARTY_ASSESSMENT')),
     ADD CONSTRAINT third_party_events_event_type_check CHECK (event_type IN (
-        'VendorIdentityCreated','VendorIdentityUpdated','VendorRelationshipCreated','VendorRelationshipUpdated',
+        'VendorIdentityCreated','VendorIdentityUpdated','VendorBrandDiscovered','VendorRelationshipCreated','VendorRelationshipUpdated',
         'AssessmentStarted','AssessmentSetupCompleted','AssessmentSetupRetryQueued','AssessmentRequestPrepared','AssessmentRequestIssued',
         'AssessmentRequestReissuePrepared','AssessmentRequestReissued','AssessmentSubmitted','AssessmentReviewStarted',
         'AssessmentDeficiencyLinked','AssessmentDocumentValidated','AssessmentDocumentRejected','AssessmentCompleted','AssessmentCancelled'
@@ -107,6 +107,11 @@ BEGIN
         SELECT 1 FROM third_parties WHERE id=NEW.aggregate_id AND tenant_id=NEW.tenant_id
     ) THEN
         RAISE EXCEPTION 'vendor identity event aggregate is outside tenant scope';
+    END IF;
+    IF NEW.aggregate_type='VENDOR_BRAND' AND NOT EXISTS (
+        SELECT 1 FROM third_parties WHERE id=NEW.aggregate_id AND tenant_id=NEW.tenant_id
+    ) THEN
+        RAISE EXCEPTION 'vendor brand event aggregate is outside tenant scope';
     END IF;
     IF NEW.aggregate_type='VENDOR_RELATIONSHIP' AND NOT EXISTS (
         SELECT 1 FROM third_party_relationships WHERE id=NEW.aggregate_id AND tenant_id=NEW.tenant_id

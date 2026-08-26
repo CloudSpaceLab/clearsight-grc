@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
@@ -26,9 +27,13 @@ func configureWorkerRuntime(service *workflowruntime.Service, cfg config.Config,
 		workflowruntime.WorkClassWorkflowTimers,
 		workflowruntime.WorkClassOutboxDelivery,
 		thirdparty.AssessmentSetupWorkClass,
+		thirdparty.VendorBrandWorkClass,
 	} {
 		service.ConfigureClass(name, options)
 	}
+	service.ConfigureClass(thirdparty.VendorBrandWorkClass, workflowruntime.WorkClassOptions{
+		Poll: cfg.WorkerPoll, Timeout: 20 * time.Second, Lease: time.Minute, MaxBackoff: 5 * time.Minute, Batch: 5, MaxAttempts: 5,
+	})
 }
 
 func newAssessmentSubmissionConsumer(inbox thirdparty.AssessmentSubmissionInbox, requests thirdparty.AssessmentSubmissionRequestReader, assessments thirdparty.AssessmentRepository) *thirdparty.AssessmentConsumer {

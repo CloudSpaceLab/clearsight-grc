@@ -16,6 +16,8 @@ type MemoryRepository struct {
 	relationships        map[string]Relationship
 	vendorBrandAssets    map[string]VendorBrandAsset
 	vendorBrandJobs      map[string]VendorBrandJob
+	vendorBrandEvents    []VendorBrandEvent
+	vendorBrandOutbox    []VendorBrandEvent
 	vendorIdentityEvents []VendorIdentityEvent
 	vendorIdentityOutbox []VendorIdentityEvent
 }

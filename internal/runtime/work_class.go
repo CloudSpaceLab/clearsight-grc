@@ -12,11 +12,12 @@ import (
 )
 
 const (
-	WorkClassEvidenceMaintenance = "evidence-source-maintenance"
-	WorkClassProgramProjection   = "program-projection"
-	WorkClassDelegationLifecycle = "delegation-lifecycle"
-	WorkClassWorkflowTimers      = "workflow-timers"
-	WorkClassOutboxDelivery      = "outbox-delivery"
+	WorkClassEvidenceMaintenance   = "evidence-source-maintenance"
+	WorkClassProgramProjection     = "program-projection"
+	WorkClassDelegationLifecycle   = "delegation-lifecycle"
+	WorkClassWorkflowTimers        = "workflow-timers"
+	WorkClassOutboxDelivery        = "outbox-delivery"
+	WorkClassThirdPartyVendorBrand = "third_party_vendor_brand"
 )
 
 const (
