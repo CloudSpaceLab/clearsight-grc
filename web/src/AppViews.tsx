@@ -2,6 +2,7 @@ import { EmptyState } from "./components/EmptyState";
 import { AutomationPolicies } from "./components/AutomationPolicies";
 import { BankJourneysWorkspace } from "./components/BankJourneysWorkspace";
 import { EvidenceWorkspace } from "./components/EvidenceWorkspace";
+import { GovernanceAdminPanel } from "./components/GovernanceAdminPanel";
 import { MattersWorkspace } from "./components/MattersWorkspace";
 import { ProjectionHealthCard } from "./components/ProjectionHealthCard";
 import { ProgramsWorkspace } from "./components/ProgramsWorkspace";
@@ -47,7 +48,7 @@ export function WorkView({ organizationName, actorPrincipalID, evidenceScopeToke
 
 export function ConfigureView({ policies, policyState, findings, integrityState, tasks, taskState, projectionHealth, projectionState, canReconcileProjection, automationPolicies, automationPolicyState, state, onRetry, onReconcile }: { policies: PolicySummary[]; policyState: SectionLoadState; findings: IntegrityFinding[]; integrityState: SectionLoadState; tasks: WorkflowTask[]; taskState: SectionLoadState; projectionHealth: ProjectionHealth | null; projectionState: SectionLoadState; canReconcileProjection: boolean; automationPolicies: AutomationPolicy[]; automationPolicyState: SectionLoadState; state: LoadState; onRetry: () => void; onReconcile: () => Promise<ReconcileResult> }) {
   if (state === "idle" || state === "loading") return <div id="configure-workspace"><header className="topbar"><div><span className="eyebrow">Governance configuration</span><h1>Routing and approvals</h1><p>Responsibility, approval limits, delegation and escalation rules.</p></div></header><section className="workspace-loading" aria-live="polite" aria-busy="true">Loading routing configuration…</section></div>;
-  if (state === "unavailable") return <div id="configure-workspace"><header className="topbar"><div><span className="eyebrow">Governance configuration</span><h1>Routing and approvals</h1><p>Responsibility, approval limits, delegation and escalation rules.</p></div></header><EmptyState kind="unavailable" label="Routing and approvals" title="Routing configuration could not be loaded" description="Try again before reviewing or changing routing and approvals." action="Try again" onAction={onRetry}/></div>;
+  if (state === "unavailable") return <div id="configure-workspace"><header className="topbar"><div><span className="eyebrow">Governance configuration</span><h1>Routing and approvals</h1><p>Responsibility, approval limits, delegation and escalation rules.</p></div></header><EmptyState kind="unavailable" label="Routing checks" title="Some routing checks could not be loaded" description="Retry the unavailable checks. The governance inventory below loads independently and will state whether changes are available." action="Try again" onAction={onRetry}/><WorkspaceErrorBoundary label="Governance policies and delegations"><GovernanceAdminPanel/></WorkspaceErrorBoundary></div>;
   const partial = [policyState, integrityState, taskState, projectionState, automationPolicyState].some((value) => value === "unavailable");
   return <div id="configure-workspace">
     <header className="topbar"><div><span className="eyebrow">Governance configuration</span><h1>Routing and approvals</h1><p>Responsibility, approval limits, delegation and escalation rules.</p></div></header>
@@ -59,6 +60,7 @@ export function ConfigureView({ policies, policyState, findings, integrityState,
       <article className="config-card wide"><div className="section-header"><div><h2>Workflow ownership</h2><p>Open tasks and current assignees.</p></div></div>{taskState === "unavailable" ? <EmptyState kind="unavailable" label="Workflow ownership" title="Workflow ownership is unavailable" description="Assigned work could not be loaded. Try again before changing task ownership."/> : taskState === "loading" ? <div className="workspace-loading compact" aria-live="polite">Loading workflow ownership…</div> : <div className="task-table">{tasks.length ? tasks.map((task) => <div className="task-row" key={task.id}><div><strong>{task.title}</strong><span>{task.responsibility} · {task.step_key}</span></div><span>{task.context?.scope ?? task.context?.program ?? "Scope not provided"}</span><mark>{humanizeStatus(task.status)}</mark></div>) : <div className="calm-empty"><span>✓</span><div><strong>No unassigned workflow tasks</strong><p>Every open task in this scope has an assignee.</p></div></div>}</div>}</article>
       <ProjectionHealthCard health={projectionHealth} state={projectionState} canReconcile={canReconcileProjection} onReconcile={onReconcile}/>
     </section>
+    <WorkspaceErrorBoundary label="Governance policies and delegations"><GovernanceAdminPanel/></WorkspaceErrorBoundary>
     <AutomationPolicies policies={automationPolicies} state={automationPolicyState}/>
   </div>;
 }

@@ -27,6 +27,15 @@ export type RuntimeContext = {
     department_grants?: DepartmentGrant[];
   };
   mode: string;
+  capabilities?: {
+    config_read?: boolean;
+    config_write?: boolean;
+    identity_read?: boolean;
+    identity_configure?: boolean;
+    platform_operations_read?: boolean;
+    platform_operations_write?: boolean;
+    [key: string]: boolean | undefined;
+  };
 };
 
 export type DemoAccount = {
