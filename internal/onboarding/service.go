@@ -38,17 +38,17 @@ func (s *Service) ResolveRoles(roleCodes []string) (Guide, error) {
 	return s.ResolveRolesForSurface(roleCodes, nil, SurfaceToday)
 }
 
-func (s *Service) ResolveRolesForSurface(roleCodes, permissionCodes []string, surface Surface) (Guide, error) {
+func (s *Service) ResolveRolesForSurface(roleCodes, capabilityCodes []string, surface Surface) (Guide, error) {
 	if !validSurface(surface) {
 		return Guide{}, fmt.Errorf("guide surface not found")
 	}
 	roles := normalizeRoles(roleCodes)
-	permissions := normalizeRoles(permissionCodes)
+	capabilities := normalizeRoles(capabilityCodes)
 	for _, guide := range s.guides {
 		if guide.Surface != surface {
 			continue
 		}
-		if _, required := permissions[normalizeRole(guide.RequiredCapability)]; guide.RequiredCapability != "" && !required {
+		if _, required := capabilities[normalizeRole(guide.RequiredCapability)]; guide.RequiredCapability != "" && !required {
 			continue
 		}
 		if len(guide.RoleCodes) == 0 {
@@ -220,12 +220,12 @@ func DemoGuides() []Guide {
 		},
 		{
 			Code: "vendor-operations-first-run", Surface: SurfaceVendors, Profile: "vendor-operations", Role: "Vendor relationship owner",
-			RoleCodes: []string{"BUSINESS_OWNER"}, RequiredCapability: VendorReadCapability, Priority: 100, Version: 1,
+			RoleCodes: []string{"BUSINESS_OWNER"}, RequiredCapability: CapabilityVendorWorkspace, Priority: 100, Version: 1,
 			Title: "Manage vendor relationships", Description: "Record the service, collect missing information and route vendor work for review.", Illustration: "guided-orbit",
 			Steps: []Step{
 				{ID: "register", Title: "Review the vendor register", Description: "Check the supplied service, owner and current relationship state.", Action: "Review vendors", View: "vendors", Target: "vendor-register"},
-				{ID: "due-diligence", Title: "Collect due diligence", Description: "Use known bank records first, then request only missing information.", Action: "Review due diligence", View: "vendors", Target: "vendor-due-diligence"},
-				{ID: "work", Title: "Request vendor action", Description: "Send a focused form, document, signature or upload request when the vendor must act.", Action: "Review vendor work", View: "vendors", Target: "vendor-work"},
+				{ID: "due-diligence", Title: "Collect due diligence", Description: "Use known bank records first, then request only missing information.", Action: "Open Vendors", View: "vendors", Target: "vendors-workspace"},
+				{ID: "work", Title: "Request vendor action", Description: "Send a focused form, document, signature or upload request when the vendor must act.", Action: "Open Vendors", View: "vendors", Target: "vendors-workspace"},
 				{ID: "finish", Title: "Confirm the outcome", Description: "Completion and upload remain separate from review and outcome confirmation.", Action: "Done", View: "vendors", Target: "vendors-workspace"},
 			},
 		},

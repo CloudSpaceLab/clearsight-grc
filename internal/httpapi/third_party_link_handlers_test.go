@@ -19,7 +19,7 @@ func thirdPartyLinkTestHandler() http.Handler {
 	repo.AllowTarget("bank", "entity-a", thirdparty.LinkTargetProgram, "program-1")
 	return New(Dependencies{
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory",
-		Identity:                    identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a", "BUSINESS_OWNER"),
+		Identity:                    identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a"),
 		ThirdPartyRelationshipLinks: thirdparty.NewRelationshipLinkService(repo),
 	})
 }

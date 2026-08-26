@@ -17,7 +17,7 @@ func thirdPartyTestHandler() http.Handler {
 	return New(Dependencies{
 		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Mode:       "test-memory",
-		Identity:   identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a", "BUSINESS_OWNER"),
+		Identity:   identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a"),
 		ThirdParty: thirdparty.NewService(thirdparty.NewMemoryRepository()),
 	})
 }

@@ -5,8 +5,6 @@ import (
 	"errors"
 	"strings"
 	"testing"
-
-	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 func TestOnboardingStateVersioning(t *testing.T) {
@@ -65,16 +63,39 @@ func TestGuideResolutionUsesRolePriorityAndFallbackOnToday(t *testing.T) {
 
 func TestGuideResolutionUsesVendorSurfaceForBusinessOwner(t *testing.T) {
 	service := NewService(NewMemoryRepository())
-	guide, err := service.ResolveRolesForSurface([]string{"BUSINESS_OWNER"}, []string{identity.PermissionVendorRead}, SurfaceVendors)
-	if err != nil || guide.Code != "vendor-operations-first-run" || guide.Surface != SurfaceVendors || guide.RequiredCapability != identity.PermissionVendorRead {
+	guide, err := service.ResolveRolesForSurface([]string{"BUSINESS_OWNER"}, []string{CapabilityVendorWorkspace}, SurfaceVendors)
+	if err != nil || guide.Code != "vendor-operations-first-run" || guide.Surface != SurfaceVendors || guide.RequiredCapability != CapabilityVendorWorkspace {
 		t.Fatalf("vendor guide = %#v, %v", guide, err)
 	}
 }
 
-func TestGuideResolutionRejectsVendorGuideWithoutRequiredPermission(t *testing.T) {
+func TestGuideResolutionRejectsVendorGuideWithoutServerCapability(t *testing.T) {
 	service := NewService(NewMemoryRepository())
 	if _, err := service.ResolveRolesForSurface([]string{"BUSINESS_OWNER"}, nil, SurfaceVendors); err == nil {
-		t.Fatal("expected vendor guide without permission to fail")
+		t.Fatal("expected vendor guide without server capability to fail")
+	}
+}
+
+func TestVendorGuideUsesStableWorkspaceTargets(t *testing.T) {
+	service := NewService(NewMemoryRepository())
+	guide, err := service.ResolveRolesForSurface([]string{"BUSINESS_OWNER"}, []string{CapabilityVendorWorkspace}, SurfaceVendors)
+	if err != nil {
+		t.Fatal(err)
+	}
+	targets := map[string]string{}
+	for _, step := range guide.Steps {
+		targets[step.ID] = step.Target
+	}
+	want := map[string]string{
+		"register":      "vendor-register",
+		"due-diligence": "vendors-workspace",
+		"work":          "vendors-workspace",
+		"finish":        "vendors-workspace",
+	}
+	for step, target := range want {
+		if targets[step] != target {
+			t.Fatalf("%s target = %q, want %q", step, targets[step], target)
+		}
 	}
 }
 

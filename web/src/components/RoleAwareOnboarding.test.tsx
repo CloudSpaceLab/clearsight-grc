@@ -10,7 +10,7 @@ vi.mock("../onboardingApi", () => ({
 }));
 
 const guide = {
-  code: "executive-first-run", profile: "executive", role: "Executive risk or compliance leader", version: 1,
+  code: "executive-first-run", surface: "TODAY" as const, profile: "executive", role: "Executive risk or compliance leader", version: 1,
   title: "Read the operating brief", description: "Understand what needs attention.", illustration: "guided-orbit",
   steps: [
     { id: "today", title: "Review Today", description: "Start with assigned work.", action: "Open Today", view: "today" as const, target: "today-brief" },

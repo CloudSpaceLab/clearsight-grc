@@ -298,11 +298,18 @@ let documentCoverage: DocumentCoverage = {
   matters: [{ candidate_id: "coverage-owner", matter_id: matterID, reference: matter.reference, type: matter.type, status: matter.status, title: matter.title, summary: matter.summary, score: .82 }],
 };
 
-const guide = { code: "executive-first-run", profile: "executive", role: "Executive risk or compliance leader", version: 1, title: "Executive review", description: "Review priority work, Program status and supporting evidence.", illustration: "guided-orbit", steps: [
+const todayGuide = { code: "executive-first-run", surface: "TODAY", profile: "executive", role: "Executive risk or compliance leader", version: 1, title: "Executive review", description: "Review priority work, Program status and supporting evidence.", illustration: "guided-orbit", steps: [
   { id: "brief", title: "Review priority work", description: "Today shows work assigned to you, due dates and data freshness.", action: "Open Today", view: "today", target: "today-brief" },
   { id: "attention", title: "Review a priority item", description: "Open the first Program, issue or evidence request in the queue.", action: "Review first item", view: "today", target: "attention-list", intent: "open-first-attention" },
   { id: "programs", title: "Check Program status", description: "Programs show status, requirements, controls, evidence and open issues.", action: "Open Programs", view: "programs", target: "programs-workspace" },
   { id: "finish", title: "Review status details", description: "Check the status reason, source, owner and next action.", action: "Done", view: "programs", target: "programs-workspace" },
+] };
+
+const vendorsGuide = { code: "vendor-operations-first-run", surface: "VENDORS", required_capability: "VENDORS", profile: "vendor-operations", role: "Vendor relationship owner", role_codes: ["BUSINESS_OWNER"], priority: 100, version: 1, title: "Manage vendor relationships", description: "Record the service, collect missing information and route vendor work for review.", illustration: "guided-orbit", steps: [
+  { id: "register", title: "Review the vendor register", description: "Check the supplied service, owner and current relationship state.", action: "Review vendors", view: "vendors", target: "vendor-register" },
+  { id: "due-diligence", title: "Collect due diligence", description: "Use known bank records first, then request only missing information.", action: "Open Vendors", view: "vendors", target: "vendors-workspace" },
+  { id: "work", title: "Request vendor action", description: "Send a focused form, document, signature or upload request when the vendor must act.", action: "Open Vendors", view: "vendors", target: "vendors-workspace" },
+  { id: "finish", title: "Confirm the outcome", description: "Completion and upload remain separate from review and outcome confirmation.", action: "Done", view: "vendors", target: "vendors-workspace" },
 ] };
 
 export async function staticDemoRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -324,6 +331,12 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     const productionUnavailable = fixture === "today-unavailable";
     const noConfig = fixture === "no-config-access";
     return clone({ tenant: { id: "bank-demo", name: "Meridian Trust Bank" }, legal_entity: { id: "bank-ng", name: "Meridian Trust Bank Nigeria" }, actor: { id: "role-cro", name: "Chief Risk Officer", kind: "PERSON", role_codes: ["CRO", "EXECUTIVE"], assurance_level: "MFA", authentication: "STATIC_DEMO", session_id: "pages-demo" }, mode: "static-stakeholder-demo", demo_mode: !productionUnavailable, capabilities: { document_import: true, reference_journeys: !productionUnavailable, config_read: !noConfig, config_write: !noConfig, platform_operations_read: !noConfig, platform_operations_write: !noConfig } }) as T;
+  }
+  if (pathname === "/api/v1/onboarding/guide") {
+    const surface = url.searchParams.get("surface")?.trim().toUpperCase() ?? "TODAY";
+    if (surface === "VENDORS") return clone(vendorsGuide) as T;
+    if (surface === "TODAY") return clone(todayGuide) as T;
+    throw new StaticDemoHTTPError(404, "not_found", "Guide not found.");
   }
   if (pathname === "/api/v1/today") return clone({ items: fixture === "today-empty" ? [] : todayItems, generated_at: now }) as T;
   if (pathname === "/api/v1/compliance/readiness") return clone({ tenant_id: "bank-demo", status: "AT_RISK", baseline_known: false, generated_at: now, dimensions: { current: 0, aging: 1, at_risk: 1, unknown: 1, blocked_routing: 0, pending_human: 1 }, active_drifts: [{ id: "drift-1", subject_type: "PROGRAM", subject_id: programID, dimension: "EVIDENCE", severity: 4, summary: "Two annual-return evidence sections are incomplete.", required_action: "Assign owners and complete DPCO review.", detected_at: now }], recommended_actions: ["Complete the two missing evidence ownership records.", "Confirm the final DPCO review date."] }) as T;
@@ -564,7 +577,6 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     document = { ...document, version: document.version + 1, updated_at: now, proposals: document.proposals.map((item) => ({ ...item, status: body.status ?? item.status, reviewed_by: "role-cro", reviewed_at: now, review_note: body.note })) };
     return clone(document) as T;
   }
-  if (pathname === "/api/v1/onboarding/guide") return clone(guide) as T;
   if (pathname === "/api/v1/onboarding/state") {
     const code = url.searchParams.get("guide_code") ?? "executive-first-run";
     const key = `clearsight-static-guide:${code}`;

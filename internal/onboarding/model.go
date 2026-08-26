@@ -1,17 +1,13 @@
 package onboarding
 
-import (
-	"time"
-
-	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
-)
+import "time"
 
 type Surface string
 
 const (
-	SurfaceToday         Surface = "TODAY"
-	SurfaceVendors       Surface = "VENDORS"
-	VendorReadCapability         = identity.PermissionVendorRead
+	SurfaceToday              Surface = "TODAY"
+	SurfaceVendors            Surface = "VENDORS"
+	CapabilityVendorWorkspace         = "VENDORS"
 )
 
 type Step struct {

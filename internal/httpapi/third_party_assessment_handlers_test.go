@@ -82,7 +82,7 @@ func newAssessmentHTTPFixture(t *testing.T, ready bool, inlineSetup ...bool) ass
 	}
 	handler := New(Dependencies{
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory",
-		Identity:   identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a", "BUSINESS_OWNER"),
+		Identity:   identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a"),
 		ThirdParty: vendorService, ThirdPartyAssessments: assessmentService, ThirdPartyAssessmentRequests: requestService, ThirdPartyAssessmentSetup: setup,
 	})
 	fixture := assessmentHTTPFixture{handler: handler, repository: repo, service: assessmentService, evidence: evidenceService, forms: formRepo, vendor: vendor}

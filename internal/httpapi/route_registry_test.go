@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -82,80 +81,6 @@ func TestAdministrativePermissionsLiveInRouteRegistry(t *testing.T) {
 	}
 	if len(seen) != len(expected) {
 		t.Fatalf("missing administrative routes from registry: got %#v", seen)
-	}
-}
-
-func TestVendorReadRoutesRequireVendorReadPermission(t *testing.T) {
-	expected := map[string]bool{
-		http.MethodGet + " /api/v1/vendors":                                 true,
-		http.MethodGet + " /api/v1/vendors/{id}":                            true,
-		http.MethodGet + " /api/v1/vendors/{id}/links":                      true,
-		http.MethodGet + " /api/v1/vendor-links":                            true,
-		http.MethodGet + " /api/v1/vendor-work":                             true,
-		http.MethodGet + " /api/v1/vendor-work/{request_id}":                true,
-		http.MethodGet + " /api/v1/vendors/{id}/work/{request_id}/response": true,
-		http.MethodGet + " /api/v1/vendors/{id}/work/{request_id}/requests/{capture_request_id}/documents/{artifact_id}/open": true,
-		http.MethodGet + " /api/v1/vendors/{id}/assessments/current":                                                          true,
-		http.MethodGet + " /api/v1/vendor-assessments/{id}":                                                                   true,
-		http.MethodGet + " /api/v1/vendor-assessments/{id}/requests/{request_id}/documents/{artifact_id}/open":                true,
-	}
-	for _, route := range (&API{}).routes() {
-		key := route.Method + " " + route.Path
-		if !expected[key] {
-			continue
-		}
-		if route.Permission != identity.PermissionVendorRead {
-			t.Fatalf("%s permission = %q, want %q", key, route.Permission, identity.PermissionVendorRead)
-		}
-		delete(expected, key)
-	}
-	if len(expected) != 0 {
-		t.Fatalf("vendor read routes missing from registry: %#v", expected)
-	}
-}
-
-func TestVendorReadRouteRequiresVerifiedPermission(t *testing.T) {
-	withoutPermission := New(Dependencies{
-		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Identity: identity.NewDevelopmentAuthenticator("bank-demo", "user", "bank-ng", "EVIDENCE_RESPONDENT"),
-	})
-	response := httptest.NewRecorder()
-	withoutPermission.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/vendors", nil))
-	if response.Code != http.StatusForbidden {
-		t.Fatalf("vendor list without permission returned %d: %s", response.Code, response.Body.String())
-	}
-
-	withPermission := New(Dependencies{
-		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Identity: identity.NewDevelopmentAuthenticator("bank-demo", "owner", "bank-ng", "BUSINESS_OWNER"),
-	})
-	response = httptest.NewRecorder()
-	withPermission.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/vendors", nil))
-	if response.Code != http.StatusServiceUnavailable {
-		t.Fatalf("vendor list with permission should reach the handler, got %d: %s", response.Code, response.Body.String())
-	}
-}
-
-func TestActorContextReportsVendorReadCapability(t *testing.T) {
-	now := time.Now().UTC()
-	actor := identity.Actor{
-		TenantID: "bank", PrincipalID: "owner", LegalEntityID: "entity", Kind: "PERSON", RoleCodes: []string{"BUSINESS_OWNER"},
-		PermissionCodes: []string{identity.PermissionVendorRead}, AuthenticationMethod: "test", AssuranceLevel: "test", SessionID: "session", IssuedAt: now, ExpiresAt: now.Add(time.Hour),
-	}
-	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: staticIdentityAuthenticator{actor: actor}})
-	response := httptest.NewRecorder()
-	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/context", nil))
-	if response.Code != http.StatusOK {
-		t.Fatalf("context response = %d: %s", response.Code, response.Body.String())
-	}
-	var body struct {
-		Capabilities map[string]bool `json:"capabilities"`
-	}
-	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
-		t.Fatal(err)
-	}
-	if !body.Capabilities["vendor_read"] {
-		t.Fatalf("vendor_read capability = %#v", body.Capabilities)
 	}
 }
 

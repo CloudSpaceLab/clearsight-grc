@@ -19,7 +19,7 @@ func (a *API) actorOnboardingGuide(w http.ResponseWriter, r *http.Request) {
 	if surface == "" {
 		surface = onboarding.SurfaceToday
 	}
-	resolved, err := a.deps.Onboarding.ResolveRolesForSurface(actor.RoleCodes, actor.PermissionCodes, surface)
+	resolved, err := a.deps.Onboarding.ResolveRolesForSurface(actor.RoleCodes, a.onboardingCapabilities(), surface)
 	if err != nil {
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "Guide not found.")
 		return
@@ -30,4 +30,11 @@ func (a *API) actorOnboardingGuide(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, resolved)
+}
+
+func (a *API) onboardingCapabilities() []string {
+	if a.deps.ThirdParty == nil {
+		return nil
+	}
+	return []string{onboarding.CapabilityVendorWorkspace}
 }

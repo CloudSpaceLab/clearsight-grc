@@ -53,6 +53,16 @@ describe("static stakeholder demo transport", () => {
     expect(reviewed.proposals[0]?.status).toBe("ACCEPTED");
   });
 
+  it("returns an onboarding guide for the requested workspace surface", async () => {
+    const { StaticDemoHTTPError, staticDemoRequest } = await demo();
+    const today = await staticDemoRequest<{ code: string; surface: string }>("/api/v1/onboarding/guide?surface=TODAY");
+    const vendors = await staticDemoRequest<{ code: string; surface: string }>("/api/v1/onboarding/guide?surface=VENDORS");
+
+    expect(today).toMatchObject({ code: "executive-first-run", surface: "TODAY" });
+    expect(vendors).toMatchObject({ code: "vendor-operations-first-run", surface: "VENDORS" });
+    await expect(staticDemoRequest("/api/v1/onboarding/guide?surface=UNKNOWN")).rejects.toMatchObject({ status: 404, code: "not_found" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
+  });
+
   it("demonstrates source-backed Program coverage and governed gap actions", async () => {
     const { staticDemoRequest } = await demo();
     const coverage = await staticDemoRequest<{ version: number; metrics: { verified: { denominator: number }; requirement_mapped: { numerator: number } }; candidates: Array<{ anchor: { page?: number }; matches: unknown[] }>; suggestions: Array<{ id: string; status: string }> }>("/api/v1/document-imports/document-gaid/coverage?limit=25");

@@ -42,7 +42,7 @@ func TestVendorWorkHandlersUseVerifiedRelationshipAndReturnTruthfulDeliveryState
 		t.Fatal(err)
 	}
 	workService.ConfigureRelationshipReader(relationships)
-	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory", Identity: identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a", "BUSINESS_OWNER"), ThirdPartyWork: workService})
+	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory", Identity: identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a"), ThirdPartyWork: workService})
 	due := time.Now().UTC().Add(48 * time.Hour).Format(time.RFC3339)
 	body := `{"relationship_link_id":"` + link.ID + `","purpose":"Confirm the service information needed for this Program.","instructions":"Review the known details and correct anything that changed.","form_template_id":"form-1","form_template_version":1,"presentation":"WIZARD","vendor_audience":"security@vendor.example","due_at":"` + due + `"}`
 	response := httptest.NewRecorder()

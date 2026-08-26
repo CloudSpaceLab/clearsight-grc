@@ -11,6 +11,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
 
 func TestOnboardingGuideUsesVerifiedActorRoles(t *testing.T) {
@@ -31,10 +32,10 @@ func TestOnboardingGuideUsesVerifiedActorRoles(t *testing.T) {
 }
 
 func TestOnboardingGuideRejectsClientRoleOverrideForVendorGuide(t *testing.T) {
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding/guide?role=BUSINESS_OWNER&surface=vendors", nil)
-	request.Header.Set("X-ClearSight-Demo-Roles", "PROGRAM_OWNER")
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding/guide?role=BUSINESS_OWNER&surface=vendors&code=vendor-operations-first-run", nil)
+	actor := onboardingTestActor("PROGRAM_OWNER")
 	response := httptest.NewRecorder()
-	testHandler().ServeHTTP(response, request)
+	onboardingGuideHandler(actor, true).ServeHTTP(response, request)
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", response.Code, response.Body.String())
 	}
@@ -42,31 +43,24 @@ func TestOnboardingGuideRejectsClientRoleOverrideForVendorGuide(t *testing.T) {
 
 func TestOnboardingGuideRejectsExplicitGuideOutsideVerifiedRoleAndSurface(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding/guide?surface=today&code=vendor-operations-first-run", nil)
-	request.Header.Set("X-ClearSight-Demo-Roles", "AUDITOR")
 	response := httptest.NewRecorder()
-	testHandler().ServeHTTP(response, request)
+	onboardingGuideHandler(onboardingTestActor("BUSINESS_OWNER"), true).ServeHTTP(response, request)
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", response.Code, response.Body.String())
 	}
 }
 
-func TestOnboardingVendorGuideRequiresVerifiedPermission(t *testing.T) {
-	now := time.Now().UTC()
-	actor := identity.Actor{
-		TenantID: "bank-demo", PrincipalID: "business-owner", LegalEntityID: "bank-ng", Kind: "PERSON",
-		RoleCodes: []string{"BUSINESS_OWNER"}, AuthenticationMethod: "test", AssuranceLevel: "test", SessionID: "session",
-		IssuedAt: now, ExpiresAt: now.Add(time.Hour),
-	}
+func TestOnboardingVendorGuideRequiresServerCapabilityAndVerifiedRole(t *testing.T) {
+	actor := onboardingTestActor("BUSINESS_OWNER")
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding/guide?surface=vendors&code=vendor-operations-first-run", nil)
 	response := httptest.NewRecorder()
-	onboardingGuideHandler(actor).ServeHTTP(response, request)
+	onboardingGuideHandler(actor, false).ServeHTTP(response, request)
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("expected missing capability to return 404, got %d: %s", response.Code, response.Body.String())
 	}
 
-	actor.PermissionCodes = []string{identity.PermissionVendorRead}
 	response = httptest.NewRecorder()
-	onboardingGuideHandler(actor).ServeHTTP(response, request)
+	onboardingGuideHandler(actor, true).ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
 		t.Fatalf("expected verified capability to return 200, got %d: %s", response.Code, response.Body.String())
 	}
@@ -79,10 +73,23 @@ func TestOnboardingVendorGuideRequiresVerifiedPermission(t *testing.T) {
 	}
 }
 
-func onboardingGuideHandler(actor identity.Actor) http.Handler {
-	return New(Dependencies{
+func onboardingTestActor(role string) identity.Actor {
+	now := time.Now().UTC()
+	return identity.Actor{
+		TenantID: "bank-demo", PrincipalID: "business-owner", LegalEntityID: "bank-ng", Kind: "PERSON",
+		RoleCodes: []string{role}, AuthenticationMethod: "test", AssuranceLevel: "test", SessionID: "session",
+		IssuedAt: now, ExpiresAt: now.Add(time.Hour),
+	}
+}
+
+func onboardingGuideHandler(actor identity.Actor, vendorModuleInstalled bool) http.Handler {
+	deps := Dependencies{
 		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Identity:   staticIdentityAuthenticator{actor: actor},
 		Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
-	})
+	}
+	if vendorModuleInstalled {
+		deps.ThirdParty = thirdparty.NewService(thirdparty.NewMemoryRepository())
+	}
+	return New(deps)
 }
