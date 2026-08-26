@@ -215,7 +215,7 @@ The implementation must reuse, rather than fork:
 - document import/reconciliation for spreadsheet migration;
 - the generic notification centre and governed report/export capability when those catalogue items are delivered.
 
-A vendor risk register is therefore a bounded projection over those canonical records, not another independently editable register. Vendor-supplied comments remain communications; uploaded evidence remains distinct from sufficiency; completed remediation remains distinct from independently verified outcome.
+A vendor risk register is therefore a bounded projection over those canonical records, not another independently editable register. Assessment review and deficiency associations now reference the same vendor relationship–Matter link used by Programs, issues and changes, while retaining the assessment-specific REVIEW or DEFICIENCY role for audit. If a new deficiency Matter cannot be linked, the command reconciles an ambiguous committed link or cancels the newly created Matter before reporting failure. Vendor-supplied comments remain communications; uploaded evidence remains distinct from sufficiency; completed remediation remains distinct from independently verified outcome.
 
 ### Capture / Imports
 
