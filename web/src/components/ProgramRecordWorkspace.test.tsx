@@ -48,7 +48,7 @@ vi.mock("../programReviewApi", async (importOriginal) => ({
   acceptProgramReview: vi.fn(),
   loadProgramReviewDigest: vi.fn(),
 }));
-vi.mock("./MonitoringSetup", () => ({ MonitoringSetup: ({ canOperate = true }: { canOperate?: boolean }) => <section aria-label="Program monitoring"><h3>Monitoring</h3>{canOperate ? <button type="button">Add monitoring check</button> : <p>Monitoring changes are disabled until current Program responsibilities are available.</p>}</section> }));
+vi.mock("./MonitoringSetup", () => ({ MonitoringSetup: ({ operations = [] }: { operations?: Array<{ command: string; can_act: boolean }> }) => <section aria-label="Program monitoring"><h3>Monitoring</h3>{operations.some((operation) => operation.command === "program.monitoring.define" && operation.can_act) ? <button type="button">Add monitoring check</button> : <p>Monitoring changes are disabled until current Program responsibilities are available.</p>}</section> }));
 
 const aggregate: ProgramAggregate = {
   state_label: "Evidence incomplete",
@@ -73,6 +73,7 @@ const operations = {
     { command: "program.details.update", label: "Edit Program details", responsibility: "ACCOUNTABLE_OWNER", can_act: false, assigned_to: { id: "owner-1", display_name: "Data Protection Officer", kind: "PERSON", role: "DPO" }, reason: "Assigned to Data Protection Officer." },
     { command: "program.approval-authority.assign", label: "Change approval authority", responsibility: "AUTHORIZER", can_act: true, assigned_to: { id: "cro", display_name: "Chief Risk Officer", kind: "PERSON", role: "CRO" }, reason: "You hold the current approval responsibility." },
     { command: "program.transition", label: "Approve Program activation", responsibility: "AUTHORIZER", can_act: true, assigned_to: { id: "cro", display_name: "Chief Risk Officer", kind: "PERSON", role: "CRO" }, reason: "You hold the current responsibility.", allowed_targets: ["ACTIVE", "RETIRED"] },
+    { command: "program.monitoring.define", label: "Add a monitoring check", responsibility: "ACCOUNTABLE_OWNER", can_act: true, assigned_to: { id: "owner-1", display_name: "Data Protection Officer", kind: "PERSON", role: "DPO" }, reason: "You hold the current responsibility." },
   ],
 };
 

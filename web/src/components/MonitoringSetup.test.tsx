@@ -8,6 +8,8 @@ import { MonitoringSetup } from "./MonitoringSetup";
 import { ProgramSetupWorkspace } from "./ProgramSetupWorkspace";
 import { createRESTBinding, prepareRESTSource } from "../sourceConfigApi";
 import { DataSourceBuilder } from "./DataSourceBuilder";
+import { loadProgramOperations } from "../programOperationsApi";
+import type { ProgramOperation } from "../programOperationsApi";
 
 vi.mock("../monitoringApi", () => ({
   createFormTemplate: vi.fn(),
@@ -23,12 +25,24 @@ vi.mock("../monitoringApi", () => ({
 
 vi.mock("../continuityCommands", () => ({ createProgram: vi.fn(), addProgramRequirement: vi.fn(), loadProgramSetupCandidates: vi.fn() }));
 vi.mock("../sourceConfigApi", () => ({ prepareRESTSource: vi.fn(), createRESTBinding: vi.fn() }));
+vi.mock("../programOperationsApi", () => ({ loadProgramOperations: vi.fn() }));
 
 const program: ProgramAggregate = {
   state_label: "Setup in progress",
   program: { id: "program-1", tenant_id: "bank-1", code: "MOBILE", name: "Mobile banking", type: "CHANNEL", status: "DRAFT", owning_function: "Digital Banking", owner_principal_id: "owner-1", scope: {}, effective_from: "2026-08-17T00:00:00Z", created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z", version: 1 },
   requirements: [], applicability: [], control_objectives: [], control_implementations: [], requirement_control_links: [], evidence_contracts: [], evidence_assessments: [], triggers: [],
 };
+
+const ownerOperations: ProgramOperation[] = [
+  { command: "program.monitoring.define", label: "Add a monitoring check", responsibility: "ACCOUNTABLE_OWNER", can_act: true, reason: "You hold the current responsibility." },
+];
+
+const allMonitoringOperations: ProgramOperation[] = [
+  ...ownerOperations,
+  { command: "program.monitoring.transition", subresource_id: "check-draft", label: "Change draft check status", responsibility: "ACCOUNTABLE_OWNER", can_act: true, reason: "You hold the current responsibility.", allowed_targets: ["PENDING_APPROVAL"] },
+  { command: "program.monitoring.transition", subresource_id: "check-pending", label: "Change pending check status", responsibility: "REVIEWER", can_act: true, reason: "You hold the current responsibility.", allowed_targets: ["ACTIVE", "REJECTED"] },
+  { command: "program.monitoring.evaluate", subresource_id: "check-source", label: "Check source now", responsibility: "PERFORMER", can_act: true, reason: "You hold the current responsibility." },
+];
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -65,7 +79,7 @@ describe("monitoring setup", () => {
   });
 
   it("keeps Program monitoring in the page and offers the two supported input choices", async () => {
-    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources/>);
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={ownerOperations}/>);
     expect(await screen.findByRole("heading", { name: "Monitoring" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Add monitoring check" }));
     expect(screen.getByRole("button", { name: "Collection form" })).toBeTruthy();
@@ -79,7 +93,7 @@ describe("monitoring setup", () => {
       status: "ACTIVE", is_current: true, version: 2, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
     }]);
 
-    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources/>);
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={ownerOperations}/>);
 
     expect(await screen.findByRole("button", { name: "Create monitoring check" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Collect responses" })).toBeNull();
@@ -101,7 +115,7 @@ describe("monitoring setup", () => {
       evaluation: { score: 100, band: "CRITICAL", coverage: 1, rule_results: [{ field_id: "identity", outcome: "FAIL", points: 100, critical: true, reason: "Answer evaluated against the active form rule." }] },
     }]);
 
-    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources/>);
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={[]}/>);
 
     expect(await screen.findByText("100% risk")).toBeTruthy();
     expect(screen.getByText("100% coverage")).toBeTruthy();
@@ -148,7 +162,7 @@ describe("monitoring setup", () => {
   });
 
   it("does not start source configuration without configuration access", async () => {
-    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources={false}/>);
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources={false} operations={ownerOperations}/>);
     fireEvent.click(await screen.findByRole("button", { name: "Add monitoring check" }));
     expect(screen.getByRole("button", { name: "Connected data" }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByText("A GRC administrator can connect a new source.")).toBeTruthy();
@@ -178,7 +192,7 @@ describe("monitoring setup", () => {
       thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1, failure_action: "RECOMMEND_MATTER", status: "ACTIVE", is_current: true, version: 1, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
     }]);
 
-    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources canOperate={false}/>);
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={[]}/>);
 
     expect(await screen.findByRole("heading", { name: "Draft owner review" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Active owner review" })).toBeTruthy();
@@ -197,7 +211,7 @@ describe("monitoring setup", () => {
   it("keeps monitoring retry available when mutations are disabled", async () => {
     vi.mocked(loadFormTemplates).mockRejectedValueOnce(new Error("forms unavailable")).mockResolvedValue([]);
     vi.mocked(loadMonitoringChecks).mockRejectedValueOnce(new Error("checks unavailable")).mockResolvedValue([]);
-    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources canOperate={false}/>);
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={[]}/>);
 
     fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
     await waitFor(() => {
@@ -206,4 +220,29 @@ describe("monitoring setup", () => {
     });
     expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
   });
+
+  it("shows each monitoring command only to its current assigned responsibility", async () => {
+    vi.mocked(loadMonitoringChecks).mockResolvedValue([{
+      id: "check-pending", tenant_id: "bank-1", program_id: "program-1", code: "PENDING", name: "Pending check", claim: "The check awaits review.", input_kind: "SOURCE", binding_id: "binding-1", binding_version: 1,
+      thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1, owner_principal_id: "owner-1", reviewer_principal_id: "reviewer-1", failure_action: "REVIEW", status: "PENDING_APPROVAL", submitted_by: "owner-1", is_current: false, version: 2, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    }, {
+      id: "check-source", tenant_id: "bank-1", program_id: "program-1", code: "ACTIVE", name: "Active source", claim: "The source remains healthy.", input_kind: "SOURCE", binding_id: "binding-2", binding_version: 1,
+      thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1, owner_principal_id: "owner-1", reviewer_principal_id: "reviewer-1", failure_action: "REVIEW", status: "ACTIVE", is_current: true, version: 3, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    }]);
+    const reviewerOperations: ProgramOperation[] = [{
+      command: "program.monitoring.transition", subresource_id: "check-pending", label: "Approve Pending check", responsibility: "REVIEWER", can_act: true,
+      assigned_to: { id: "reviewer-1", display_name: "Controls reviewer", kind: "PERSON", role: "Reviewer" }, reason: "You hold the current responsibility.", allowed_targets: ["ACTIVE", "REJECTED"],
+    }, {
+      command: "program.monitoring.evaluate", subresource_id: "check-source", label: "Check Active source now", responsibility: "PERFORMER", can_act: false,
+      assigned_to: { id: "performer-1", display_name: "Monitoring analyst", kind: "PERSON", role: "Analyst" }, reason: "Assigned to Monitoring analyst.",
+    }];
+
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="reviewer-1" canConfigureSources operations={reviewerOperations}/>);
+
+    expect(await screen.findByRole("button", { name: "Approve check" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Check source now" })).toBeNull();
+    expect(screen.getByText("Assigned to Monitoring analyst.")).toBeTruthy();
+  });
+  vi.mocked(loadProgramOperations).mockResolvedValue({ program_id: "program-1", program_version: 1, authority_available: true, operations: ownerOperations, generated_at: "2026-08-26T00:00:00Z" });
 });

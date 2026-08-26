@@ -146,6 +146,6 @@ export function ProgramEvidencePanel({ aggregate, operations, actorPrincipalID, 
     </form>}
 
     {!defineOperation?.can_act && defineOperation?.reason && <p className="program-operation-reason">{defineOperation.reason}</p>}
-    <MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} canOperate={canOperate}/>
+    <MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} operations={operations}/>
   </article>;
 }

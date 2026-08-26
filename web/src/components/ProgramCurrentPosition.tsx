@@ -19,6 +19,9 @@ const actionOrder = [
   "program.details.update",
   "program.assign",
   "program.approval-authority.assign",
+  "program.monitoring.transition",
+  "program.monitoring.evaluate",
+  "program.monitoring.define",
 ];
 
 function dominantAction(operations: ProgramOperation[], digest: ProgramReviewDigest) {
@@ -32,7 +35,7 @@ function dominantAction(operations: ProgramOperation[], digest: ProgramReviewDig
 
 function actionTarget(command: string) {
   if (command === "program.review.accept") return "program-review-panel";
-  if (command === "program.evidence.assess" || command === "program.evidence.define") return "program-evidence-panel";
+  if (command === "program.evidence.assess" || command === "program.evidence.define" || command.startsWith("program.monitoring.")) return "program-evidence-panel";
   if (command === "program.safeguard.define") return "program-safeguards-panel";
   if (command === "program.requirement.add" || command === "program.applicability.decide") return "program-requirements-panel";
   if (command === "program.transition") return "program-status-panel";

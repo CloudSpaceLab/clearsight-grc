@@ -22,6 +22,7 @@ const operationCommands = {
 
 const programOperationCommands = {
   createProgram: "program.create",
+  acceptProgramReview: "program.review.accept",
   updateProgramDetails: "program.details.update",
   assignProgram: "program.assign",
   assignProgramApprovalAuthority: "program.approval-authority.assign",
@@ -35,6 +36,9 @@ const programOperationCommands = {
   addProgramEvidenceContract: "program.evidence.define",
   recordProgramEvidenceAssessment: "program.evidence.assess",
   applyProgramTrigger: "program.trigger.apply",
+  createMonitoringCheck: "program.monitoring.define",
+  transitionMonitoringCheck: "program.monitoring.transition",
+  evaluateMonitoringSource: "program.monitoring.evaluate",
 } as const;
 
 describe("Matter operational UI coverage", () => {
@@ -65,7 +69,7 @@ describe("Program operational UI coverage", () => {
     const commands = materialOperationIDs.map((operationID) => programOperationCommands[operationID as keyof typeof programOperationCommands]);
     expect(commands).not.toContain(undefined);
     for (const command of commands) expect(programOperationalCoverage).toHaveProperty(command);
-    for (const command of ["program.review.accept", "monitoring.form.create", "monitoring.check.create", "monitoring.check.transition", "monitoring.collection.start", "monitoring.source.evaluate"]) {
+    for (const command of ["program.review.accept", "program.monitoring.define", "program.monitoring.transition", "program.monitoring.evaluate", "monitoring.form.create", "monitoring.check.create", "monitoring.check.transition", "monitoring.collection.start", "monitoring.source.evaluate"]) {
       expect(programOperationalCoverage).toHaveProperty(command);
     }
     for (const entry of Object.values(programOperationalCoverage)) {

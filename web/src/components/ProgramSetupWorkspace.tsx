@@ -4,6 +4,8 @@ import { addProgramRequirement, createProgram, loadProgramSetupCandidates } from
 import type { ProgramSetupCandidates } from "../continuityCommands";
 import type { ProgramAggregate } from "../types";
 import { MonitoringSetup } from "./MonitoringSetup";
+import { loadProgramOperations } from "../programOperationsApi";
+import type { ProgramOperation } from "../programOperationsApi";
 
 type Props = { actorPrincipalID: string; canConfigureSources: boolean; onCreated: (aggregate: ProgramAggregate) => void; onClose: () => void };
 
@@ -16,6 +18,7 @@ export function ProgramSetupWorkspace({ actorPrincipalID, canConfigureSources, o
   const [candidateState, setCandidateState] = useState<"loading" | "live" | "unavailable">("loading");
   const [ownerCandidateID, setOwnerCandidateID] = useState("");
   const [approvalAuthorityCandidateID, setApprovalAuthorityCandidateID] = useState("");
+  const [monitoringOperations, setMonitoringOperations] = useState<ProgramOperation[]>([]);
 
   async function loadCandidates() {
     setCandidateState("loading");
@@ -31,6 +34,14 @@ export function ProgramSetupWorkspace({ actorPrincipalID, canConfigureSources, o
   }
 
   useEffect(() => { void loadCandidates(); }, []);
+  useEffect(() => {
+    if (!aggregate) { setMonitoringOperations([]); return; }
+    let active = true;
+    void loadProgramOperations(aggregate.program.id).then((value) => {
+      if (active && value.program_version === aggregate.program.version && value.authority_available) setMonitoringOperations(value.operations);
+    }).catch(() => { if (active) setMonitoringOperations([]); });
+    return () => { active = false; };
+  }, [aggregate?.program.id, aggregate?.program.version]);
 
   async function saveProgram(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -96,7 +107,7 @@ export function ProgramSetupWorkspace({ actorPrincipalID, canConfigureSources, o
           <button className="secondary-button" type="submit" disabled={saving}>{saving ? "Adding…" : "Add requirement"}</button>
         </form>
       </section>
-      <MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources}/>
+      <MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} operations={monitoringOperations}/>
     </div>}
   </section>;
 }
