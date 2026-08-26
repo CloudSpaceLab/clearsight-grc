@@ -146,10 +146,7 @@ func (s *Service) UpdateMatterDetails(ctx context.Context, input UpdateMatterDet
 	}
 	matter.UpdatedAt = s.now().UTC()
 	value := matterDetailsUpdatedEvent{Matter: matter, Previous: previous, Rationale: strings.TrimSpace(input.Rationale)}
-	if err := s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterDetailsUpdated, value, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterDetailsUpdated, value, input.ActorID)
 }
 
 func (s *Service) ChangeMatterContext(ctx context.Context, input ChangeMatterContextInput) (MatterAggregate, error) {
@@ -295,10 +292,7 @@ func (s *Service) ChangeMatterContext(ctx context.Context, input ChangeMatterCon
 		Rationale:          strings.TrimSpace(input.Rationale),
 		EvidenceReferences: references,
 	}
-	if err := s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterContextChanged, eventValue, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterContextChanged, eventValue, input.ActorID)
 }
 
 func (s *Service) AssignMatter(ctx context.Context, input AssignMatterInput) (MatterAggregate, error) {
@@ -322,10 +316,7 @@ func (s *Service) AssignMatter(ctx context.Context, input AssignMatterInput) (Ma
 		OwnerPrincipalID: ownerID,
 		Rationale:        strings.TrimSpace(input.Rationale),
 	}
-	if err := s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterOwnerChanged, value, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterOwnerChanged, value, input.ActorID)
 }
 
 func (s *Service) UpdateAction(ctx context.Context, input UpdateActionInput) (MatterAggregate, error) {
@@ -358,10 +349,7 @@ func (s *Service) UpdateAction(ctx context.Context, input UpdateActionInput) (Ma
 	action.UpdatedAt = s.now().UTC()
 	action.Version++
 	value := actionUpdatedEvent{Action: action, Previous: previous, Rationale: strings.TrimSpace(input.Rationale)}
-	if err := s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionUpdated, value, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionUpdated, value, input.ActorID)
 }
 
 func (s *Service) AssignAction(ctx context.Context, input AssignActionInput) (MatterAggregate, error) {
@@ -393,10 +381,7 @@ func (s *Service) AssignAction(ctx context.Context, input AssignActionInput) (Ma
 		OwnerPrincipalID: ownerID,
 		Rationale:        strings.TrimSpace(input.Rationale),
 	}
-	if err := s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionAssigned, value, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionAssigned, value, input.ActorID)
 }
 
 func normalizedJSONObject(value json.RawMessage, fallback string) (json.RawMessage, error) {

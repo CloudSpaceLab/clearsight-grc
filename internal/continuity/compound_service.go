@@ -27,7 +27,10 @@ func (s *Service) createMatterWithInitialLink(ctx context.Context, input CreateM
 	// without that contract may refresh best-effort but must not turn a
 	// committed command into a false API failure.
 	_ = s.requestProgramRefresh(ctx, input.TenantID, input.ProgramID, EventMatterLinked, matter.ID, input.ActorID)
-	return s.GetMatter(ctx, input.TenantID, matter.ID)
+	matter.Version = linkEvent.AggregateVersion
+	matter.UpdatedAt = linkEvent.OccurredAt
+	fallback := MatterAggregate{Matter: matter, Links: []MatterLink{link}}
+	return s.currentMatterOrFallback(ctx, input.TenantID, matter.ID, fallback), nil
 }
 
 func (s *Service) applyTriggerBundle(ctx context.Context, trigger Trigger, aggregate ProgramAggregate, repo TriggerBundleRepository) (ProgramAggregate, *Matter, bool, error) {

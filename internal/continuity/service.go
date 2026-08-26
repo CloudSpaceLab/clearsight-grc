@@ -894,7 +894,7 @@ func (s *Service) CreateMatter(ctx context.Context, input CreateMatterInput) (Ma
 		}
 		return linked, nil
 	}
-	return s.GetMatter(ctx, input.TenantID, matter.ID)
+	return s.currentMatterOrFallback(ctx, input.TenantID, matter.ID, decorateMatter(MatterAggregate{Matter: matter})), nil
 }
 
 func (s *Service) AddMatterLink(ctx context.Context, input AddMatterLinkInput) (MatterAggregate, error) {
@@ -932,11 +932,12 @@ func (s *Service) AddMatterLink(ctx context.Context, input AddMatterLinkInput) (
 		return MatterAggregate{}, err
 	}
 	link := MatterLink{ID: linkID, TenantID: input.TenantID, MatterID: input.MatterID, ProgramID: input.ProgramID, RequirementID: input.RequirementID, ControlID: input.ControlID, Relationship: relationship, CreatedAt: s.now().UTC()}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterLinked, link, input.ActorID); err != nil {
+	result, err := s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterLinked, link, input.ActorID)
+	if err != nil {
 		return MatterAggregate{}, err
 	}
 	_ = s.requestProgramRefresh(ctx, input.TenantID, input.ProgramID, EventMatterLinked, input.MatterID, input.ActorID)
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return result, nil
 }
 
 func (s *Service) TransitionMatter(ctx context.Context, input TransitionInput) (MatterAggregate, error) {
@@ -988,10 +989,7 @@ func (s *Service) TransitionMatter(ctx context.Context, input TransitionInput) (
 	if input.To == MatterCancelled {
 		matter.ClosureReason = strings.TrimSpace(input.Rationale)
 	}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.ID, input.ExpectedVersion, EventMatterStateChanged, matter, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	result, err := s.GetMatter(ctx, input.TenantID, input.ID)
+	result, err := s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.ID, input.ExpectedVersion, EventMatterStateChanged, matter, input.ActorID)
 	if err != nil {
 		return MatterAggregate{}, err
 	}
@@ -1000,7 +998,7 @@ func (s *Service) TransitionMatter(ctx context.Context, input TransitionInput) (
 }
 
 func (s *Service) AddDecision(ctx context.Context, input AddDecisionInput) (MatterAggregate, error) {
-	_, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
+	aggregate, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
 	if err != nil {
 		return MatterAggregate{}, err
 	}
@@ -1029,14 +1027,11 @@ func (s *Service) AddDecision(ctx context.Context, input AddDecisionInput) (Matt
 	if input.Status == DecisionApproved || input.Status == DecisionConditionallyApproved || input.Status == DecisionRejected {
 		value.DecidedAt = &now
 	}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventDecisionAdded, value, input.AuthorityPrincipalID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventDecisionAdded, value, input.AuthorityPrincipalID)
 }
 
 func (s *Service) AddAction(ctx context.Context, input AddActionInput) (MatterAggregate, error) {
-	_, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
+	aggregate, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
 	if err != nil {
 		return MatterAggregate{}, err
 	}
@@ -1050,10 +1045,7 @@ func (s *Service) AddAction(ctx context.Context, input AddActionInput) (MatterAg
 	}
 	now := s.now().UTC()
 	value := Action{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, Title: strings.TrimSpace(input.Title), Description: strings.TrimSpace(input.Description), OwnerPrincipalID: ownerID, RequiredResponsibility: "PERFORMER", Status: ActionPlanned, DueAt: input.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionAdded, value, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionAdded, value, input.ActorID)
 }
 
 func (s *Service) TransitionAction(ctx context.Context, input TransitionActionInput) (MatterAggregate, error) {
@@ -1084,10 +1076,7 @@ func (s *Service) TransitionAction(ctx context.Context, input TransitionActionIn
 		implemented := action.UpdatedAt
 		action.ImplementedAt = &implemented
 	}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionStateChanged, *action, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionStateChanged, *action, input.ActorID)
 }
 
 func (s *Service) AddVerificationContract(ctx context.Context, input AddVerificationContractInput) (MatterAggregate, error) {
@@ -1128,10 +1117,7 @@ func (s *Service) AddVerificationContract(ctx context.Context, input AddVerifica
 	}
 	now := s.now().UTC()
 	value := VerificationContract{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, ActionID: input.ActionID, ExpectedOutcome: strings.TrimSpace(input.ExpectedOutcome), Baseline: baseline, Scope: scope, MeasurementSourceID: input.MeasurementSourceID, Threshold: threshold, ObservationPeriodMinutes: input.ObservationPeriodMinutes, AuthorityPrincipalID: input.AuthorityPrincipalID, FailureResponse: strings.ToUpper(strings.TrimSpace(input.FailureResponse)), Status: VerificationActive, CreatedAt: now, UpdatedAt: now, Version: 1}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventVerificationContractAdded, value, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventVerificationContractAdded, value, input.ActorID)
 }
 
 func (s *Service) RecordVerificationResult(ctx context.Context, input RecordVerificationResultInput) (MatterAggregate, error) {
@@ -1139,7 +1125,7 @@ func (s *Service) RecordVerificationResult(ctx context.Context, input RecordVeri
 }
 
 func (s *Service) AddResponsePackage(ctx context.Context, input AddResponsePackageInput) (MatterAggregate, error) {
-	_, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
+	aggregate, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
 	if err != nil {
 		return MatterAggregate{}, err
 	}
@@ -1156,10 +1142,7 @@ func (s *Service) AddResponsePackage(ctx context.Context, input AddResponsePacka
 	}
 	now := s.now().UTC()
 	value := ResponsePackage{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, Purpose: strings.TrimSpace(input.Purpose), Audience: strings.TrimSpace(input.Audience), Status: ResponseDraft, Manifest: manifest, CreatedAt: now, UpdatedAt: now, Version: 1}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventResponsePackageAdded, value, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventResponsePackageAdded, value, input.ActorID)
 }
 
 func (s *Service) TransitionResponsePackage(ctx context.Context, input TransitionResponseInput) (MatterAggregate, error) {
@@ -1196,10 +1179,7 @@ func (s *Service) TransitionResponsePackage(ctx context.Context, input Transitio
 		value := response.UpdatedAt
 		response.AcknowledgedAt = &value
 	}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventResponsePackageStateChanged, *response, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventResponsePackageStateChanged, *response, input.ActorID)
 }
 
 func (s *Service) MatterAt(ctx context.Context, tenant, id string, at time.Time) (MatterAggregate, error) {

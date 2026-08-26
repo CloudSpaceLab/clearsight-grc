@@ -83,10 +83,7 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 	// responses are driven by the recorded result, not by the Matter's current
 	// presentation state, so a valid early check cannot lose its consequence.
 	if input.Result != VerificationFailed || contract.FailureResponse == "BLOCK_CLOSE" {
-		if _, err = s.repo.ApplyMatterEvent(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, resultEvent); err != nil {
-			return MatterAggregate{}, err
-		}
-		return s.GetMatter(ctx, input.TenantID, input.MatterID)
+		return s.applyMatterEventAndResult(ctx, aggregate, resultEvent)
 	}
 
 	bundleRepo, ok := s.repo.(VerificationResultBundleRepository)
@@ -185,8 +182,19 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 		return MatterAggregate{}, fmt.Errorf("unsupported verification failure response %q", contract.FailureResponse)
 	}
 
+	committedEvents := []Event{bundle.ResultEvent}
+	if bundle.TransitionEvent != nil {
+		committedEvents = append(committedEvents, *bundle.TransitionEvent)
+	}
+	if bundle.EscalationEvent != nil {
+		committedEvents = append(committedEvents, *bundle.EscalationEvent)
+	}
+	committed, err := matterResultFromEvents(aggregate, committedEvents...)
+	if err != nil {
+		return MatterAggregate{}, err
+	}
 	if err := bundleRepo.ApplyVerificationResultBundle(ctx, bundle); err != nil {
 		return MatterAggregate{}, err
 	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.currentMatterOrFallback(ctx, input.TenantID, input.MatterID, committed), nil
 }
