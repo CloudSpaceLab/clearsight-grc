@@ -82,13 +82,14 @@ describe("VendorDueDiligence", () => {
     expect(primaryActions()).toHaveLength(0);
   });
 
-  it("retries failed setup without presenting the assessment as ready", () => {
-    const onRetrySetup = vi.fn();
+  it("retries failed setup without presenting the assessment as ready", async () => {
+    const onRetrySetup = vi.fn().mockResolvedValue({ assessment: { ...assessment("SETUP_PENDING"), version: 4 }, setup: { assessment_id: "assessment-1", state: "READY", attempts: 0 } });
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("SETUP_PENDING")} form={form} setupFailure="The review record could not be prepared after three attempts." onRetrySetup={onRetrySetup}/>);
 
     expect(screen.getByRole("alert").textContent).toContain("The review record could not be prepared after three attempts.");
     fireEvent.click(screen.getByRole("button", { name: "Retry due diligence setup" }));
-    expect(onRetrySetup).toHaveBeenCalledWith("assessment-1");
+    expect(onRetrySetup).toHaveBeenCalledWith("assessment-1", 3);
+    expect(await screen.findByText("Assessment setup queued. Review setup will continue in the background.")).toBeTruthy();
     expect(primaryActions()).toHaveLength(1);
   });
 

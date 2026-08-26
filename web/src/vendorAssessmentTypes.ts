@@ -112,6 +112,13 @@ export type CurrentVendorAssessment = {
   setup?: VendorAssessmentSetupStatus;
 };
 
+export type RetryVendorAssessmentSetupInput = { expected_version: number };
+
+export type VendorAssessmentSetupRetryOutcome = {
+  assessment: VendorAssessment;
+  setup: VendorAssessmentSetupStatus;
+};
+
 export type VendorAssessmentResponseSummary = {
   submission_id: string;
   request_id: string;

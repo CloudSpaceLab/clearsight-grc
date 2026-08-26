@@ -12,6 +12,7 @@ import type {
   VendorAssessmentFormOption,
   VendorAssessmentReviewView,
   VendorAssessmentSendOutcome,
+  VendorAssessmentSetupRetryOutcome,
 } from "../vendorAssessmentTypes";
 import "./vendor-due-diligence.css";
 
@@ -31,7 +32,7 @@ type Props = {
   sourceStatus?: { state: "CURRENT" | "STALE" | "UNAVAILABLE"; detail: string };
   clarificationFields?: { id: string; label: string }[];
   onStart?: (input: StartVendorAssessmentInput) => Promise<VendorAssessment | void> | VendorAssessment | void;
-  onRetrySetup?: (assessmentID: string) => Promise<void> | void;
+  onRetrySetup?: (assessmentID: string, expectedVersion: number) => Promise<VendorAssessmentSetupRetryOutcome>;
   onRefresh?: () => Promise<void> | void;
   onRefreshReview?: (assessmentID: string) => Promise<void> | void;
   onSend?: (input: SendVendorAssessmentRequestInput) => Promise<VendorAssessmentSendOutcome>;
@@ -220,6 +221,15 @@ export function VendorDueDiligence({
     }, "The vendor response could not be opened for review. Reload the assessment and try again.");
   }
 
+  async function retrySetup() {
+    if (!effectiveAssessment || !onRetrySetup) return;
+    await run(async () => {
+      const outcome = await onRetrySetup(effectiveAssessment.id, effectiveAssessment.version);
+      setLocalAssessment(outcome.assessment);
+      setNotice("Assessment setup queued. Review setup will continue in the background.");
+    }, "Assessment setup could not be queued. Reload the assessment before trying again.");
+  }
+
   async function submitClarification(event: React.FormEvent) {
     event.preventDefault();
     if (!effectiveAssessment || !onRequestClarification || selectedClarificationFields.length === 0 || !clarificationMessage.trim() || !clarificationDueDate) {
@@ -330,7 +340,7 @@ export function VendorDueDiligence({
         : effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <button type="button" className="primary-button" onClick={() => void copyCaptureLink()}>Copy secure link</button>
         : effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? <button type="button" className="primary-button" onClick={() => openPanel("send")} disabled={!onSend}>Retry invitation creation</button>
           : !effectiveAssessment ? <button type="button" className="primary-button" onClick={() => openPanel("start")} disabled={!form || !onStart}>Start due diligence</button>
-            : status === "SETUP_PENDING" ? setupFailure ? <button type="button" className="primary-button" onClick={() => onRetrySetup?.(effectiveAssessment.id)} disabled={!onRetrySetup}>Retry due diligence setup</button> : <button type="button" className="primary-button" onClick={() => void onRefresh?.()} disabled={!onRefresh}>View setup status</button>
+            : status === "SETUP_PENDING" ? setupFailure ? <button type="button" className="primary-button" onClick={() => void retrySetup()} disabled={!onRetrySetup || busy}>{busy ? "Queuing setup…" : "Retry due diligence setup"}</button> : <button type="button" className="primary-button" onClick={() => void onRefresh?.()} disabled={!onRefresh}>View setup status</button>
               : status === "READY_TO_SEND" ? <button type="button" className="primary-button" onClick={() => openPanel("send")} disabled={!onSend}>Send due diligence request</button>
                 : status === "SUBMITTED" ? <button type="button" className="primary-button" onClick={() => void startReview()} disabled={!onStartReview || busy || reviewState !== "live"}>{busy ? "Opening review…" : "Review vendor response"}</button>
                     : status === "UNDER_REVIEW" ? <button type="button" className="primary-button" onClick={() => openPanel("conclusion")} disabled={!onComplete || reviewState !== "live"}>Record assessment conclusion</button>

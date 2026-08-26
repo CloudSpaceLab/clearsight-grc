@@ -5,6 +5,7 @@ import type {
   CreateVendorAssessmentDeficiencyInput,
   ReviewVendorAssessmentDocumentInput,
   ReissueVendorAssessmentRequestInput,
+  RetryVendorAssessmentSetupInput,
   SendVendorAssessmentRequestInput,
   StartVendorAssessmentInput,
   StartVendorAssessmentReviewInput,
@@ -13,6 +14,7 @@ import type {
   VendorAssessmentFinding,
   VendorAssessmentReviewView,
   VendorAssessmentSendOutcome,
+  VendorAssessmentSetupRetryOutcome,
 } from "./vendorAssessmentTypes";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -43,6 +45,13 @@ export function sendVendorAssessmentRequest(assessmentID: string, input: SendVen
 
 export function reissueVendorAssessmentRequest(assessmentID: string, input: ReissueVendorAssessmentRequestInput): Promise<VendorAssessmentSendOutcome> {
   return requestJSON<VendorAssessmentSendOutcome>(apiBase, `/api/v1/vendor-assessments/${encodeURIComponent(assessmentID)}/reissue-request`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function retryVendorAssessmentSetup(assessmentID: string, input: RetryVendorAssessmentSetupInput): Promise<VendorAssessmentSetupRetryOutcome> {
+  return requestJSON<VendorAssessmentSetupRetryOutcome>(apiBase, `/api/v1/vendor-assessments/${encodeURIComponent(assessmentID)}/setup/retry`, {
     method: "POST",
     body: JSON.stringify(input),
   });

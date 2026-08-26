@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { apiErrorKind } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
-import { completeVendorAssessment, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview } from "../vendorAssessmentApi";
-import type { CompleteVendorAssessmentInput, CurrentVendorAssessment, StartVendorAssessmentInput, VendorAssessment, VendorAssessmentFormOption, VendorAssessmentReviewView, VendorAssessmentSendOutcome } from "../vendorAssessmentTypes";
+import { completeVendorAssessment, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, retryVendorAssessmentSetup, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview } from "../vendorAssessmentApi";
+import type { CompleteVendorAssessmentInput, CurrentVendorAssessment, StartVendorAssessmentInput, VendorAssessment, VendorAssessmentFormOption, VendorAssessmentReviewView, VendorAssessmentSendOutcome, VendorAssessmentSetupRetryOutcome } from "../vendorAssessmentTypes";
 import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
 import type { CreateVendorRelationshipInput, VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "../vendorTypes";
 import { VendorDueDiligence } from "./VendorDueDiligence";
@@ -166,6 +166,14 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     setAssessment(outcome.assessment);
     setRequestOutcome(outcome);
     setRequestOutcomeKind("replacement");
+    return outcome;
+  }
+
+  async function retryAssessmentSetup(assessmentID: string, expectedVersion: number): Promise<VendorAssessmentSetupRetryOutcome> {
+    const outcome = await retryVendorAssessmentSetup(assessmentID, { expected_version: expectedVersion });
+    setAssessment(outcome.assessment);
+    setAssessmentSetup(outcome.setup);
+    setAssessmentState("live");
     return outcome;
   }
 
@@ -333,6 +341,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
           onStartAssessment={startAssessment}
           onSendAssessmentRequest={sendAssessmentRequest}
           onReissueAssessmentRequest={reissueAssessmentRequest}
+          onRetryAssessmentSetup={retryAssessmentSetup}
           onRefreshReview={refreshReview}
           onStartAssessmentReview={beginAssessmentReview}
           onCompleteAssessmentReview={finishAssessmentReview}
@@ -343,7 +352,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   </div>;
 }
 
-function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onRefreshAssessment, onRefreshForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRefreshReview, onStartAssessmentReview, onCompleteAssessmentReview, onOpenRequest }: {
+function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onRefreshAssessment, onRefreshForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onCompleteAssessmentReview, onOpenRequest }: {
   record: VendorRelationshipAggregate;
   assessment: VendorAssessment | null;
   assessmentSetup?: CurrentVendorAssessment["setup"];
@@ -361,6 +370,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
   onStartAssessment: (input: StartVendorAssessmentInput) => Promise<VendorAssessment | void>;
   onSendAssessmentRequest: (input: Parameters<typeof sendVendorAssessmentRequest>[1]) => Promise<VendorAssessmentSendOutcome>;
   onReissueAssessmentRequest: (input: Parameters<typeof reissueVendorAssessmentRequest>[1]) => Promise<VendorAssessmentSendOutcome>;
+  onRetryAssessmentSetup: (assessmentID: string, expectedVersion: number) => Promise<VendorAssessmentSetupRetryOutcome>;
   onRefreshReview: (assessmentID: string) => Promise<void>;
   onStartAssessmentReview: (assessmentID: string, expectedVersion: number) => Promise<VendorAssessment>;
   onCompleteAssessmentReview: (assessmentID: string, input: CompleteVendorAssessmentInput) => Promise<VendorAssessment>;
@@ -397,6 +407,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
     onStart={onStartAssessment}
     onSend={onSendAssessmentRequest}
     onReissue={onReissueAssessmentRequest}
+    onRetrySetup={onRetryAssessmentSetup}
     onRefreshReview={onRefreshReview}
     onStartReview={onStartAssessmentReview}
     onComplete={onCompleteAssessmentReview}
@@ -421,12 +432,12 @@ function selectActiveVendorForm(forms: FormTemplate[]): VendorAssessmentFormOpti
 
 function setupFailureText(code?: string) {
   switch (code) {
-    case "ASSESSMENT_READ_FAILED": return "The assessment could not be reopened for setup. Ask an administrator to retry assessment setup.";
-    case "RELATIONSHIP_READ_FAILED": return "The vendor relationship could not be read during setup. Confirm that the relationship is still available, then ask an administrator to retry.";
-    case "MATTER_CREATE_FAILED": return "The review work item could not be created. Ask an administrator to retry assessment setup.";
-    case "ASSESSMENT_SETUP_FAILED": return "The review work item exists, but assessment setup could not be completed. Ask an administrator to retry setup.";
-    case "ATTEMPTS_EXHAUSTED": return "Assessment setup stopped after repeated attempts. Ask an administrator to retry setup.";
-    default: return "Assessment setup could not be completed. Ask an administrator to review the setup job before retrying.";
+    case "ASSESSMENT_READ_FAILED": return "The assessment could not be reopened for setup. Retry setup from the current assessment version.";
+    case "RELATIONSHIP_READ_FAILED": return "The vendor relationship could not be read during setup. Confirm that the relationship is still available, then retry setup.";
+    case "MATTER_CREATE_FAILED": return "The review work item could not be created. Retry assessment setup; no duplicate review will be created.";
+    case "ASSESSMENT_SETUP_FAILED": return "The review work item exists, but assessment setup could not be completed. Retry setup to continue the same review.";
+    case "ATTEMPTS_EXHAUSTED": return "Assessment setup stopped after repeated attempts. Retry setup to queue another controlled attempt.";
+    default: return "Assessment setup could not be completed. Retry setup from the current assessment version.";
   }
 }
 

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
-import { completeVendorAssessment, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview } from "../vendorAssessmentApi";
+import { completeVendorAssessment, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, retryVendorAssessmentSetup, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview } from "../vendorAssessmentApi";
 import type { VendorAssessment, VendorAssessmentReviewView } from "../vendorAssessmentTypes";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
@@ -22,6 +22,7 @@ vi.mock("../vendorAssessmentApi", () => ({
   loadCurrentVendorAssessment: vi.fn(),
   loadVendorAssessment: vi.fn(),
   reissueVendorAssessmentRequest: vi.fn(),
+  retryVendorAssessmentSetup: vi.fn(),
   sendVendorAssessmentRequest: vi.fn(),
   startVendorAssessment: vi.fn(),
   startVendorAssessmentReview: vi.fn(),
@@ -149,8 +150,25 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
 
     fireEvent.click(await screen.findByRole("button", { name: "View setup status" }));
-    expect(await screen.findByText("The review work item could not be created. Ask an administrator to retry assessment setup.")).toBeTruthy();
+    expect(await screen.findByText("The review work item could not be created. Retry assessment setup; no duplicate review will be created.")).toBeTruthy();
     expect(loadCurrentVendorAssessment).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries failed setup with the current version and shows the queued setup state", async () => {
+    vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: assessment("SETUP_PENDING"), setup: { assessment_id: "assessment-1", state: "FAILED", attempts: 3, failure_code: "MATTER_CREATE_FAILED" } });
+    vi.mocked(retryVendorAssessmentSetup).mockResolvedValue({
+      assessment: { ...assessment("SETUP_PENDING"), version: 4 },
+      setup: { assessment_id: "assessment-1", state: "READY", attempts: 0, next_attempt_at: "2026-08-26T10:10:00Z" },
+    });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Retry due diligence setup" }));
+
+    await waitFor(() => expect(retryVendorAssessmentSetup).toHaveBeenCalledWith("assessment-1", { expected_version: 3 }));
+    expect(await screen.findByText("Assessment setup queued. Review setup will continue in the background.")).toBeTruthy();
+    expect(screen.getByText("Setup in progress")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "View setup status" })).toBeTruthy();
+    expect(screen.getAllByRole("button").filter((button) => button.classList.contains("primary-button") && !(button as HTMLButtonElement).disabled)).toHaveLength(1);
   });
 
   it("opens the exact current evidence request when collection is in progress", async () => {

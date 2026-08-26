@@ -3,6 +3,7 @@ import {
   completeVendorAssessment,
   loadCurrentVendorAssessment,
   reissueVendorAssessmentRequest,
+  retryVendorAssessmentSetup,
   requestVendorAssessmentClarification,
   sendVendorAssessmentRequest,
   startVendorAssessment,
@@ -113,6 +114,19 @@ describe("vendor assessment API", () => {
       audience: "security@vendor.example",
       invitation_ttl_minutes: 1440,
     });
+  });
+
+  it("retries terminal setup using only the current assessment version", async () => {
+    const outcome = { assessment: { ...assessment, status: "SETUP_PENDING", version: 4 }, setup: { assessment_id: "assessment-1", state: "READY", attempts: 0, next_attempt_at: "2026-08-26T10:10:00Z" } };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(outcome), { status: 202 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(retryVendorAssessmentSetup("assessment/1", { expected_version: 3 })).resolves.toEqual(outcome);
+
+    const call = fetchMock.mock.calls[0];
+    if (!call) throw new Error("fetch was not called");
+    expect(call[0]).toBe("/api/v1/vendor-assessments/assessment%2F1/setup/retry");
+    expect(JSON.parse(String((call[1] as RequestInit).body))).toEqual({ expected_version: 3 });
   });
 
   it("uses versioned commands for review, clarification and conclusion", async () => {
