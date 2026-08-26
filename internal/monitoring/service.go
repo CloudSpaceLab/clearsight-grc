@@ -14,8 +14,10 @@ import (
 )
 
 var (
-	ErrMakerChecker = errors.New("submitter cannot approve the same monitoring revision")
-	ErrInactive     = errors.New("monitoring revision is not active")
+	ErrMakerChecker                = errors.New("submitter cannot approve the same monitoring revision")
+	ErrInactive                    = errors.New("monitoring revision is not active")
+	ErrLinkedIssueIneligible       = errors.New("this monitoring result is not the latest adverse result configured to create a linked issue")
+	ErrSourceValidationUnavailable = errors.New("connected-source validation is unavailable")
 )
 
 type Actor struct {
@@ -363,6 +365,34 @@ func (s *Service) ListResults(ctx context.Context, actor Actor, checkID string, 
 	return s.repo.ListResults(ctx, actor.TenantID, checkID, limit)
 }
 
+func (s *Service) Result(ctx context.Context, actor Actor, resultID string) (MonitoringResult, error) {
+	if err := validateActor(actor); err != nil {
+		return MonitoringResult{}, err
+	}
+	if strings.TrimSpace(resultID) == "" {
+		return MonitoringResult{}, errors.Join(ErrInvalid, fmt.Errorf("monitoring result is required"))
+	}
+	return s.repo.Result(ctx, actor.TenantID, strings.TrimSpace(resultID))
+}
+
+func EligibleForLinkedIssue(check MonitoringCheck, result MonitoringResult) bool {
+	if check.Status != LifecycleActive || !check.IsCurrent || check.FailureAction != FailureRecommendMatter {
+		return false
+	}
+	if result.TenantID != check.TenantID || result.ProgramID != check.ProgramID || result.MonitoringCheckID != check.ID || result.MonitoringCheckVersion != check.Version {
+		return false
+	}
+	if result.Evaluation.Band == RiskHigh || result.Evaluation.Band == RiskCritical || result.Evaluation.Coverage < check.MinimumCoverage || len(result.Evaluation.CriticalFailures) > 0 {
+		return true
+	}
+	for _, rule := range result.Evaluation.RuleResults {
+		if rule.Critical && rule.Outcome != RulePassed {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Service) EvaluateSource(ctx context.Context, actor Actor, input EvaluateSourceInput) (MonitoringResult, error) {
 	if err := validateActor(actor); err != nil {
 		return MonitoringResult{}, err
@@ -526,14 +556,14 @@ func (s *Service) validateSourceBinding(ctx context.Context, actor Actor, bindin
 		return sourceaccess.BindingRevision{}, errors.Join(ErrInvalid, fmt.Errorf("verified legal-entity scope is required for a connected-source check"))
 	}
 	if s.sources == nil {
-		return sourceaccess.BindingRevision{}, fmt.Errorf("connected-source reads are unavailable")
+		return sourceaccess.BindingRevision{}, fmt.Errorf("%w: connected-source reads are unavailable", ErrSourceValidationUnavailable)
 	}
 	if s.sourceValidator == nil {
-		return sourceaccess.BindingRevision{}, fmt.Errorf("connected-source legal-entity validation is unavailable")
+		return sourceaccess.BindingRevision{}, fmt.Errorf("%w: connected-source legal-entity validation is unavailable", ErrSourceValidationUnavailable)
 	}
 	binding, err := s.sources.Binding(ctx, tenantID, bindingID, bindingVersion)
 	if err != nil {
-		return sourceaccess.BindingRevision{}, err
+		return sourceaccess.BindingRevision{}, fmt.Errorf("%w: connected-source revision could not be resolved: %v", ErrSourceValidationUnavailable, err)
 	}
 	if binding.BindingID != bindingID || binding.Version != bindingVersion || binding.TenantID != tenantID || strings.TrimSpace(binding.SourceID) == "" {
 		return sourceaccess.BindingRevision{}, errors.Join(ErrInvalid, fmt.Errorf("connected-source revision does not match the monitoring check"))
@@ -553,7 +583,10 @@ func (s *Service) validateSourceBinding(ctx context.Context, actor Actor, bindin
 		return sourceaccess.BindingRevision{}, errors.Join(ErrInvalid, fmt.Errorf("connected-source revision does not allow page reads"))
 	}
 	if err := s.sourceValidator.ValidateActiveSourcesForEntity(ctx, tenantID, legalEntityID, []string{binding.SourceID}); err != nil {
-		return sourceaccess.BindingRevision{}, errors.Join(ErrInvalid, fmt.Errorf("connected source is not active in the selected legal entity: %w", err))
+		if errors.Is(err, evidence.ErrSourceScopeMismatch) || errors.Is(err, evidence.ErrSourceScopeRequired) {
+			return sourceaccess.BindingRevision{}, errors.Join(ErrInvalid, fmt.Errorf("connected source is not active in the selected legal entity: %w", err))
+		}
+		return sourceaccess.BindingRevision{}, fmt.Errorf("%w: connected-source legal-entity validation failed: %v", ErrSourceValidationUnavailable, err)
 	}
 	return binding, nil
 }

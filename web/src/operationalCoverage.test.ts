@@ -37,8 +37,12 @@ const programOperationCommands = {
   recordProgramEvidenceAssessment: "program.evidence.assess",
   applyProgramTrigger: "program.trigger.apply",
   createMonitoringCheck: "program.monitoring.define",
+  createFormTemplate: "program.monitoring.form.define",
+  transitionFormTemplate: "program.monitoring.form.transition",
+  startFormCollection: "program.monitoring.collect",
   transitionMonitoringCheck: "program.monitoring.transition",
   evaluateMonitoringSource: "program.monitoring.evaluate",
+  createMonitoringLinkedIssue: "program.monitoring.issue.create",
 } as const;
 
 describe("Matter operational UI coverage", () => {
@@ -62,14 +66,14 @@ describe("Matter operational UI coverage", () => {
 describe("Program operational UI coverage", () => {
   it("maps every executable Program material command and supported ongoing workflow", () => {
     const materialOperationIDs = Object.entries(runtimeContract.paths)
-      .filter(([path]) => path === "/api/v1/programs" || path.startsWith("/api/v1/programs/{id}"))
+      .filter(([path]) => path === "/api/v1/programs" || path.startsWith("/api/v1/programs/{id}") || path === "/api/v1/monitoring-results/{result_id}/linked-issue")
       .flatMap(([, methods]) => Object.values(methods))
       .filter((operation) => operation["x-clearsight-route-class"] === "MATERIAL_COMMAND")
       .map((operation) => operation.operationId);
     const commands = materialOperationIDs.map((operationID) => programOperationCommands[operationID as keyof typeof programOperationCommands]);
     expect(commands).not.toContain(undefined);
     for (const command of commands) expect(programOperationalCoverage).toHaveProperty(command);
-    for (const command of ["program.review.accept", "program.monitoring.define", "program.monitoring.transition", "program.monitoring.evaluate", "monitoring.form.create", "monitoring.check.create", "monitoring.check.transition", "monitoring.collection.start", "monitoring.source.evaluate"]) {
+    for (const command of ["program.review.accept", "program.monitoring.define", "program.monitoring.transition", "program.monitoring.evaluate", "program.monitoring.issue.create", "monitoring.form.create", "monitoring.check.create", "monitoring.check.transition", "monitoring.collection.start", "monitoring.source.evaluate"]) {
       expect(programOperationalCoverage).toHaveProperty(command);
     }
     for (const entry of Object.values(programOperationalCoverage)) {

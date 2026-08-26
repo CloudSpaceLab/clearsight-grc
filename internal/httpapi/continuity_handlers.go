@@ -415,6 +415,10 @@ func (a *API) applyProgramTrigger(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
+	if strings.EqualFold(strings.TrimSpace(input.Type), "MONITORING_RESULT_ADVERSE") {
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "monitoring_result_route_required", "Open the latest adverse monitoring result and choose Create linked issue. No issue was created from this generic trigger request.")
+		return
+	}
 	input.ProgramID = r.PathValue("id")
 	program, matter, inserted, err := service.ApplyTrigger(r.Context(), input)
 	if err != nil {

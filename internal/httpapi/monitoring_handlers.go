@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -44,6 +45,12 @@ type transitionMonitoringCheckRequest struct {
 type evaluateMonitoringSourceRequest struct {
 	monitoring.EvaluateSourceInput
 	TenantID string `json:"tenant_id,omitempty"`
+}
+
+type createMonitoringLinkedIssueRequest struct {
+	TenantID          string `json:"tenant_id,omitempty"`
+	ProgramID         string `json:"program_id,omitempty"`
+	MonitoringCheckID string `json:"monitoring_check_id,omitempty"`
 }
 
 func (a *API) monitoringService(w http.ResponseWriter) (*monitoring.Service, bool) {
@@ -101,6 +108,36 @@ func (a *API) bindMonitoringCheck(r *http.Request, service *monitoring.Service, 
 		return monitoring.Actor{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
 	}
 	return exactActor, check, aggregate, nil
+}
+
+func (a *API) bindEligibleMonitoringResult(r *http.Request, service *monitoring.Service, resultID string) (monitoring.Actor, monitoring.MonitoringResult, monitoring.MonitoringCheck, continuity.ProgramAggregate, error) {
+	actor, err := monitoringActor(r)
+	if err != nil {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
+	}
+	result, err := service.Result(r.Context(), actor, resultID)
+	if err != nil {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
+	}
+	check, err := service.Check(r.Context(), actor, result.MonitoringCheckID, result.MonitoringCheckVersion)
+	if err != nil {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
+	}
+	latest, err := service.ListResults(r.Context(), actor, check.ID, 1)
+	if err != nil {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
+	}
+	if len(latest) != 1 || latest[0].ID != result.ID || !monitoring.EligibleForLinkedIssue(check, result) {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, monitoring.ErrLinkedIssueIneligible
+	}
+	exactActor, aggregate, err := a.bindMonitoringProgram(r, check.ProgramID)
+	if err != nil {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
+	}
+	if result.ProgramID != aggregate.Program.ID || check.ProgramID != aggregate.Program.ID || check.TenantID != aggregate.Program.TenantID {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, continuity.ErrNotFound
+	}
+	return exactActor, result, check, aggregate, nil
 }
 
 func writeMonitoringScopeError(w http.ResponseWriter, err error) {
@@ -326,12 +363,91 @@ func (a *API) evaluateMonitoringSource(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusCreated, value)
 }
 
+func (a *API) createMonitoringLinkedIssue(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.monitoringService(w)
+	if !ok {
+		return
+	}
+	continuityService, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var request createMonitoringLinkedIssueRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	actor, result, check, aggregate, err := a.bindEligibleMonitoringResult(r, service, r.PathValue("result_id"))
+	if err != nil {
+		writeMonitoringError(w, err)
+		return
+	}
+	failedRuleIDs := make([]string, 0)
+	for _, rule := range result.Evaluation.RuleResults {
+		if rule.Outcome != monitoring.RulePassed {
+			failureID := rule.RuleID
+			if failureID == "" {
+				failureID = rule.FieldID
+			}
+			if failureID != "" {
+				failedRuleIDs = append(failedRuleIDs, failureID)
+			}
+		}
+	}
+	payload, err := json.Marshal(map[string]any{
+		"monitoring_result_id": result.ID, "monitoring_check_id": check.ID, "monitoring_check_version": check.Version,
+		"monitoring_check_name": check.Name, "risk_band": result.Evaluation.Band, "score": result.Evaluation.Score,
+		"coverage": result.Evaluation.Coverage, "failed_rule_ids": failedRuleIDs, "evaluated_at": result.EvaluatedAt,
+	})
+	if err != nil {
+		writeMonitoringError(w, err)
+		return
+	}
+	triggerKey := "monitoring-result-adverse:" + result.ID
+	if existing, lookupErr := continuityService.MatterByTriggerKey(r.Context(), actor.TenantID, triggerKey); lookupErr == nil {
+		linked := false
+		for _, link := range existing.Links {
+			if link.ProgramID == aggregate.Program.ID {
+				linked = true
+				break
+			}
+		}
+		if !linked || existing.Matter.LegalEntityID != aggregate.Program.LegalEntityID {
+			writeContinuityError(w, continuity.ErrNotFound)
+			return
+		}
+		httpx.WriteJSON(w, http.StatusOK, map[string]any{"matter": existing.Matter, "created": false})
+		return
+	} else if !errors.Is(lookupErr, continuity.ErrNotFound) {
+		writeContinuityError(w, lookupErr)
+		return
+	}
+	_, matter, inserted, err := continuityService.ApplyTrigger(r.Context(), continuity.Trigger{
+		TenantID: actor.TenantID, ProgramID: aggregate.Program.ID, Type: "MONITORING_RESULT_ADVERSE",
+		SubjectType: "MONITORING_RESULT", SubjectID: result.ID, DedupeKey: triggerKey,
+		Payload: payload, ObservedAt: result.EvaluatedAt, Source: "monitoring-result-review", ActorID: actor.PrincipalID,
+	})
+	if err != nil {
+		writeContinuityError(w, err)
+		return
+	}
+	status := http.StatusOK
+	if inserted {
+		status = http.StatusCreated
+	}
+	httpx.WriteJSON(w, status, map[string]any{"matter": matter, "created": inserted})
+}
+
 func writeMonitoringError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, monitoring.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "The monitoring record was not found.")
 	case errors.Is(err, monitoring.ErrConflict), errors.Is(err, monitoring.ErrMakerChecker), errors.Is(err, monitoring.ErrInactive):
 		httpx.WriteError(w, http.StatusConflict, "monitoring_conflict", err.Error())
+	case errors.Is(err, monitoring.ErrLinkedIssueIneligible):
+		httpx.WriteError(w, http.StatusConflict, "monitoring_result_not_eligible", err.Error())
+	case errors.Is(err, monitoring.ErrSourceValidationUnavailable):
+		httpx.WriteError(w, http.StatusServiceUnavailable, "monitoring_source_unavailable", "The connected source could not be checked. No monitoring record was changed. Try again when the connected source is available.")
 	case errors.Is(err, monitoring.ErrInvalid):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "monitoring_invalid", err.Error())
 	default:

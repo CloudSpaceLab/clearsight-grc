@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createFormTemplate, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection } from "../monitoringApi";
+import { createFormTemplate, createMonitoringLinkedIssue, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection } from "../monitoringApi";
 import { createProgram, loadProgramSetupCandidates } from "../continuityCommands";
 import type { ProgramAggregate } from "../types";
 import { FormBuilder } from "./FormBuilder";
@@ -18,6 +18,7 @@ vi.mock("../monitoringApi", () => ({
   loadMonitoringChecks: vi.fn(),
   loadMonitoringResults: vi.fn(),
   evaluateMonitoringSource: vi.fn(),
+  createMonitoringLinkedIssue: vi.fn(),
   startFormCollection: vi.fn(),
   transitionFormTemplate: vi.fn(),
   transitionMonitoringCheck: vi.fn(),
@@ -167,6 +168,62 @@ describe("monitoring setup", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Add monitoring check" }));
     expect(screen.getByRole("button", { name: "Connected data" }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByText("A GRC administrator can connect a new source.")).toBeTruthy();
+  });
+
+  it("creates the linked issue for an eligible latest result and opens the returned issue", async () => {
+    vi.mocked(loadMonitoringChecks).mockResolvedValue([{
+      id: "check-1", tenant_id: "bank-1", program_id: "program-1", code: "ACCESS", name: "Access status", claim: "Access controls remain current", input_kind: "SOURCE",
+      binding_id: "binding-1", binding_version: 1, thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1,
+      reviewer_principal_id: "reviewer-1", failure_action: "RECOMMEND_MATTER", status: "ACTIVE", is_current: true, version: 2, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    }]);
+    vi.mocked(loadMonitoringResults).mockResolvedValue([{
+      id: "result-1", monitoring_check_id: "check-1", monitoring_check_version: 2, evaluated_at: "2026-08-17T12:00:00Z",
+      evaluation: { score: 80, band: "CRITICAL", coverage: 1, rule_results: [{ rule_id: "status-rule", field_id: "status", outcome: "FAIL", points: 80, reason: "The expected status was not returned." }] },
+    }]);
+    vi.mocked(createMonitoringLinkedIssue).mockResolvedValue({ matter: { id: "matter-1", reference: "MAT-0001" }, created: true });
+    const onOpenMatter = vi.fn();
+    const operation: ProgramOperation = {
+      command: "program.monitoring.issue.create", subresource_id: "check-1", label: "Create linked issue for Access status", responsibility: "REVIEWER",
+      can_act: true, assigned_to: { id: "reviewer-1", display_name: "Control assurance reviewer", kind: "PERSON", role: "Reviewer" }, reason: "You hold the current responsibility.",
+    };
+
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="reviewer-1" canConfigureSources={false} operations={[operation]} onOpenMatter={onOpenMatter}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Create linked issue" }));
+
+    await waitFor(() => expect(createMonitoringLinkedIssue).toHaveBeenCalledWith("result-1"));
+    expect(onOpenMatter).toHaveBeenCalledWith("matter-1");
+    expect(screen.getByText("Linked issue MAT-0001 is ready for Control Assurance review.")).toBeTruthy();
+  });
+
+  it("shows why the eligible linked-issue action is disabled and hides it for a low result", async () => {
+    const check = {
+      id: "check-1", tenant_id: "bank-1", program_id: "program-1", code: "ACCESS", name: "Access status", claim: "Access controls remain current", input_kind: "SOURCE" as const,
+      binding_id: "binding-1", binding_version: 1, thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1,
+      reviewer_principal_id: "reviewer-1", failure_action: "RECOMMEND_MATTER" as const, status: "ACTIVE" as const, is_current: true, version: 2, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    };
+    vi.mocked(loadMonitoringChecks).mockResolvedValue([check]);
+    vi.mocked(loadMonitoringResults).mockResolvedValue([{
+      id: "result-1", monitoring_check_id: "check-1", monitoring_check_version: 2, evaluated_at: "2026-08-17T12:00:00Z", evaluation: { score: 80, band: "HIGH", coverage: 1 },
+    }]);
+    const operation: ProgramOperation = {
+      command: "program.monitoring.issue.create", subresource_id: "check-1", label: "Create linked issue for Access status", responsibility: "REVIEWER", can_act: false,
+      assigned_to: { id: "reviewer-1", display_name: "Control assurance reviewer", kind: "PERSON", role: "Reviewer" }, reason: "Assigned to Control assurance reviewer for the current Program state.",
+    };
+    const view = render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources={false} operations={[operation]}/>);
+    const disabled = await screen.findByRole("button", { name: "Create linked issue" });
+    expect(disabled.hasAttribute("disabled")).toBe(true);
+    expect(screen.getByText(operation.reason)).toBeTruthy();
+
+    view.unmount();
+    for (const [band, score] of [["LOW", 0], ["MODERATE", 30], ["NOT_ASSESSED", undefined]] as const) {
+      vi.mocked(loadMonitoringResults).mockResolvedValue([{
+        id: `result-${band}`, monitoring_check_id: "check-1", monitoring_check_version: 2, evaluated_at: "2026-08-17T13:00:00Z", evaluation: { score, band, coverage: 1 },
+      }]);
+      const candidate = render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources={false} operations={[operation]}/>);
+      await screen.findByLabelText("Latest result for Access status");
+      expect(screen.queryByRole("button", { name: "Create linked issue" })).toBeNull();
+      candidate.unmount();
+    }
   });
 
   it("starts a permitted collection without sending browser-selected respondent or reviewer identities", async () => {

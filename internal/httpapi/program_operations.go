@@ -152,6 +152,13 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 						ObjectType: "MONITORING_CHECK", ObjectID: check.ID, Responsibility: authority.ResponsibilityPerformer, Materiality: 2,
 					})
 				}
+				if check.Status == monitoring.LifecycleActive && check.IsCurrent && check.FailureAction == monitoring.FailureRecommendMatter {
+					add(programOperationSpec{
+						Command: "program.monitoring.issue.create", SubresourceID: check.ID, Label: "Create linked issue for " + check.Name,
+						ObjectType: "MONITORING_CHECK", ObjectID: check.ID, Responsibility: authority.ResponsibilityReviewer, Materiality: 4,
+						AssignedPrincipalID: check.ReviewerPrincipalID,
+					})
+				}
 			}
 		}
 	}
@@ -296,7 +303,7 @@ func programOperationRequiresStoredPrincipal(command string) bool {
 		return true
 	}
 	switch command {
-	case "program.transition", "program.applicability.decide", "program.approval-authority.assign":
+	case "program.transition", "program.applicability.decide", "program.approval-authority.assign", "program.monitoring.issue.create":
 		return true
 	default:
 		return false

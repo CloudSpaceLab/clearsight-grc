@@ -74,3 +74,7 @@ export async function loadMonitoringResults(checkID: string): Promise<Monitoring
 export function evaluateMonitoringSource(check: MonitoringCheck): Promise<MonitoringResult> {
   return scoped<MonitoringResult>(`/api/v1/monitoring-checks/${encodeURIComponent(check.id)}/evaluate-source`, { method: "POST", body: JSON.stringify({ check_version: check.version }) });
 }
+
+export function createMonitoringLinkedIssue(resultID: string): Promise<{ matter: { id: string; reference: string }; created: boolean }> {
+  return scoped<{ matter: { id: string; reference: string }; created: boolean }>(`/api/v1/monitoring-results/${encodeURIComponent(resultID)}/linked-issue`, { method: "POST", body: JSON.stringify({}) });
+}

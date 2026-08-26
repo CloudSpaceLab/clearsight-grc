@@ -15,6 +15,7 @@ type Props = {
   canOperate?: boolean;
   onUpdated: (value: ProgramAggregate) => void;
   onReload: () => void;
+  onOpenMatter?: (matterID: string) => void;
 };
 type Mode = "define" | "assess" | null;
 
@@ -22,7 +23,7 @@ function futureDate(days: number) { return new Date(Date.now() + days * 86400000
 function statusLabel(value: string) { return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); }
 function lines(value: string) { return value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean); }
 
-export function ProgramEvidencePanel({ aggregate, operations, responsibleParties = [], actorPrincipalID, canConfigureSources, canOperate = true, onUpdated, onReload }: Props) {
+export function ProgramEvidencePanel({ aggregate, operations, responsibleParties = [], actorPrincipalID, canConfigureSources, canOperate = true, onUpdated, onReload, onOpenMatter }: Props) {
   const defineOperation = operations.find((value) => value.command === "program.evidence.define");
   const assessOperation = operations.find((value) => value.command === "program.evidence.assess");
   const [sources, setSources] = useState<EvidenceSource[]>([]);
@@ -148,6 +149,6 @@ export function ProgramEvidencePanel({ aggregate, operations, responsibleParties
     </form>}
 
     {!defineOperation?.can_act && defineOperation?.reason && <p className="program-operation-reason">{defineOperation.reason}</p>}
-    <MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} operations={operations}/>
+    <MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} operations={operations} onOpenMatter={onOpenMatter}/>
   </article>;
 }

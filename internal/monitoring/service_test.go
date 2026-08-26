@@ -372,6 +372,40 @@ func TestServiceValidatesExactConnectedSourceScopeWhenCreatingCheck(t *testing.T
 	}
 }
 
+func TestServiceDistinguishesInvalidSourceScopeFromUnavailableValidation(t *testing.T) {
+	now := time.Date(2026, 8, 17, 13, 30, 0, 0, time.UTC)
+	actor := Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "owner"}
+
+	for _, scopeErr := range []error{evidence.ErrSourceScopeMismatch, evidence.ErrSourceScopeRequired} {
+		service := NewService(NewMemoryRepository(), nil)
+		service.now = func() time.Time { return now }
+		service.ConfigureSourceReader(&recordingSourceReader{binding: activeSourceBinding(now)})
+		service.ConfigureSourceValidator(&recordingSourceScopeValidator{err: scopeErr})
+		_, err := service.CreateCheck(t.Context(), actor, sourceCheckInput())
+		if !errors.Is(err, ErrInvalid) || errors.Is(err, ErrSourceValidationUnavailable) {
+			t.Fatalf("exact source-scope error %v classified as %v", scopeErr, err)
+		}
+	}
+
+	for _, dependencyErr := range []error{sourceaccess.ErrCatalogStorage, errors.New("validator storage unavailable")} {
+		service := NewService(NewMemoryRepository(), nil)
+		service.now = func() time.Time { return now }
+		reader := &recordingSourceReader{binding: activeSourceBinding(now)}
+		validator := &recordingSourceScopeValidator{}
+		if errors.Is(dependencyErr, sourceaccess.ErrCatalogStorage) {
+			reader.bindingErr = dependencyErr
+		} else {
+			validator.err = dependencyErr
+		}
+		service.ConfigureSourceReader(reader)
+		service.ConfigureSourceValidator(validator)
+		_, err := service.CreateCheck(t.Context(), actor, sourceCheckInput())
+		if !errors.Is(err, ErrSourceValidationUnavailable) || errors.Is(err, ErrInvalid) {
+			t.Fatalf("dependency error %v classified as %v", dependencyErr, err)
+		}
+	}
+}
+
 func TestServiceRevalidatesConnectedSourceScopeAtActivation(t *testing.T) {
 	repo := NewMemoryRepository()
 	now := time.Date(2026, 8, 17, 14, 0, 0, 0, time.UTC)

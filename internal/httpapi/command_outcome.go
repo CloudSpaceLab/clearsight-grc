@@ -106,6 +106,9 @@ func commandObjectID(r *http.Request, payload map[string]any) string {
 			return value
 		}
 	}
+	if value := stringValue(payload["monitoring_check_id"]); value != "" {
+		return value
+	}
 	if value := stringValue(payload["program_id"]); value != "" {
 		return value
 	}

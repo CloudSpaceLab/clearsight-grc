@@ -44,7 +44,7 @@ func TestMonitoringAdverseTriggerCreatesOneGovernedEntityScopedControlGap(t *tes
 		t.Fatal(err)
 	}
 	trigger := Trigger{
-		TenantID: "bank", ProgramID: program.Program.ID, Type: "MONITORING_RESULT_ADVERSE", SubjectType: "MONITORING_CHECK", SubjectID: "check-1",
+		TenantID: "bank", ProgramID: program.Program.ID, Type: "MONITORING_RESULT_ADVERSE", SubjectType: "MONITORING_RESULT", SubjectID: "result-1",
 		DedupeKey: "monitoring-adverse:check-1:period-2026-08", Source: "monitoring", ObservedAt: now,
 		Payload: json.RawMessage(`{"monitoring_check_id":"check-1","monitoring_result_id":"result-1","risk_band":"HIGH","score":72}`), ActorID: "reviewer-1",
 	}
@@ -58,7 +58,7 @@ func TestMonitoringAdverseTriggerCreatesOneGovernedEntityScopedControlGap(t *tes
 	if matter.Type != MatterControlGap || matter.Priority != 4 || matter.LegalEntityID != "entity-a" || matter.OwnerPrincipalID != "program-owner" || matter.RequiredAuthority != "CONTROL_ASSURANCE" {
 		t.Fatalf("adverse monitoring work is not governed: %#v", matter)
 	}
-	if matter.SourceType != "MONITORING_CHECK" || matter.SourceID != "check-1" {
+	if matter.SourceType != "MONITORING_RESULT" || matter.SourceID != "result-1" {
 		t.Fatalf("adverse monitoring source lineage is incomplete: %#v", matter)
 	}
 	if matter.TriggerType != trigger.Type || matter.TriggerKey != trigger.DedupeKey || matter.TriggerID == "" {

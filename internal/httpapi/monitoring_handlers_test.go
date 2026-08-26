@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -33,6 +34,7 @@ type monitoringSourceFixture struct {
 	tenant        string
 	legalEntityID string
 	bindings      map[string]sourceaccess.BindingRevision
+	validationErr error
 }
 
 func newMonitoringSourceFixture(tenant, legalEntityID string, bindingIDs ...string) *monitoringSourceFixture {
@@ -41,7 +43,7 @@ func newMonitoringSourceFixture(tenant, legalEntityID string, bindingIDs ...stri
 	for _, bindingID := range bindingIDs {
 		fixture.bindings[bindingID] = sourceaccess.BindingRevision{
 			BindingID: bindingID, TenantID: tenant, SourceID: "source-" + bindingID,
-			Operations: []sourceaccess.Operation{sourceaccess.OperationPage},
+			Operations:        []sourceaccess.Operation{sourceaccess.OperationPage},
 			RevisionLifecycle: sourceaccess.RevisionLifecycle{Status: sourceaccess.RevisionActive, IsCurrent: true, EffectiveFrom: &now, Version: 1},
 		}
 	}
@@ -61,6 +63,9 @@ func (f *monitoringSourceFixture) PreviewBinding(context.Context, string, string
 }
 
 func (f *monitoringSourceFixture) ValidateActiveSourcesForEntity(_ context.Context, tenant, legalEntityID string, sourceIDs []string) error {
+	if f.validationErr != nil {
+		return f.validationErr
+	}
 	if tenant != f.tenant || legalEntityID != f.legalEntityID || len(sourceIDs) != 1 {
 		return evidence.ErrSourceScopeMismatch
 	}
@@ -89,6 +94,7 @@ func TestMonitoringRoutesAreRegisteredOnce(t *testing.T) {
 		"POST /api/v1/monitoring-checks/{id}/transition":                  false,
 		"POST /api/v1/monitoring-checks/{id}/evaluate-source":             false,
 		"GET /api/v1/monitoring-checks/{id}/results":                      false,
+		"POST /api/v1/monitoring-results/{result_id}/linked-issue":        false,
 	}
 	for _, route := range routes {
 		key := route.Method + " " + route.Path
@@ -111,6 +117,7 @@ func TestMonitoringRoutesAreRegisteredOnce(t *testing.T) {
 		"POST /api/v1/programs/{id}/monitoring-checks":                    "program.monitoring.define",
 		"POST /api/v1/monitoring-checks/{id}/transition":                  "program.monitoring.transition",
 		"POST /api/v1/monitoring-checks/{id}/evaluate-source":             "program.monitoring.evaluate",
+		"POST /api/v1/monitoring-results/{result_id}/linked-issue":        "program.monitoring.issue.create",
 	}
 	for _, route := range routes {
 		key := route.Method + " " + route.Path
@@ -222,7 +229,8 @@ func TestCreateMonitoringCheckUsesCurrentProgramOwnerAndReviewer(t *testing.T) {
 		t.Fatal(err)
 	}
 	monitoringService := monitoring.NewService(monitoring.NewMemoryRepository(), nil)
-	configureMonitoringSources(monitoringService, newMonitoringSourceFixture("bank-a", "entity-a", "binding-1"))
+	sources := newMonitoringSourceFixture("bank-a", "entity-a", "binding-1")
+	configureMonitoringSources(monitoringService, sources)
 	resolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
 		authority.ResponsibilityOwner:     {Principal: authority.Principal{ID: "owner-a", DisplayName: "Data Protection Officer"}},
 		authority.ResponsibilityReviewer:  {Principal: authority.Principal{ID: "reviewer-a", DisplayName: "Controls reviewer"}},
@@ -254,6 +262,13 @@ func TestCreateMonitoringCheckUsesCurrentProgramOwnerAndReviewer(t *testing.T) {
 	}
 	if check.OwnerPrincipalID != "owner-a" || check.ReviewerPrincipalID != "reviewer-a" || check.CreatedBy != "owner-a" {
 		t.Fatalf("monitoring responsibilities trusted browser input: %#v", check)
+	}
+
+	sources.validationErr = errors.New("evidence repository unavailable")
+	unavailable := httptest.NewRecorder()
+	makeHandler("owner-a").ServeHTTP(unavailable, httptest.NewRequest(http.MethodPost, "/api/v1/programs/"+program.Program.ID+"/monitoring-checks", body()))
+	if unavailable.Code != http.StatusServiceUnavailable || !bytes.Contains(unavailable.Body.Bytes(), []byte(`"error":"monitoring_source_unavailable"`)) {
+		t.Fatalf("source validation infrastructure failure returned %d: %s", unavailable.Code, unavailable.Body.String())
 	}
 }
 

@@ -30,6 +30,7 @@ func TestPostgresMonitoringAdverseTriggerIsAtomicAndIdempotent(t *testing.T) {
 		ownerID        = "96666666-6666-7666-8666-666666666663"
 		reviewerID     = "96666666-6666-7666-8666-666666666664"
 		checkID        = "96666666-6666-7666-8666-666666666665"
+		resultID       = "96666666-6666-7666-8666-666666666670"
 		triggerID      = "96666666-6666-7666-8666-666666666666"
 		rollbackID     = "96666666-6666-7666-8666-666666666667"
 		rollbackMatter = "96666666-6666-7666-8666-666666666668"
@@ -60,7 +61,7 @@ func TestPostgresMonitoringAdverseTriggerIsAtomicAndIdempotent(t *testing.T) {
 	}
 	trigger := Trigger{
 		ID: triggerID, TenantID: "monitoring-adverse-trigger-test", ProgramID: program.Program.ID,
-		Type: "MONITORING_RESULT_ADVERSE", SubjectType: "MONITORING_CHECK", SubjectID: checkID,
+		Type: "MONITORING_RESULT_ADVERSE", SubjectType: "MONITORING_RESULT", SubjectID: resultID,
 		DedupeKey: "monitoring-adverse:check-1:period-2026-08", Payload: json.RawMessage(`{"risk_band":"HIGH","score":72}`),
 		ObservedAt: now.Add(time.Minute), Source: "monitoring", ActorID: reviewerID,
 	}
@@ -68,7 +69,7 @@ func TestPostgresMonitoringAdverseTriggerIsAtomicAndIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !inserted || matter == nil || matter.LegalEntityID != entityID || matter.OwnerPrincipalID != ownerID || matter.RequiredAuthority != "CONTROL_ASSURANCE" || matter.Type != MatterControlGap || matter.Priority != 4 {
+	if !inserted || matter == nil || matter.LegalEntityID != entityID || matter.OwnerPrincipalID != ownerID || matter.RequiredAuthority != "CONTROL_ASSURANCE" || matter.Type != MatterControlGap || matter.Priority != 4 || matter.SourceType != "MONITORING_RESULT" || matter.SourceID != resultID {
 		t.Fatalf("adverse monitoring result = inserted=%v matter=%#v", inserted, matter)
 	}
 	replayed, duplicate, inserted, err := service.ApplyTrigger(ctx, trigger)
@@ -106,7 +107,7 @@ func TestPostgresMonitoringAdverseTriggerIsAtomicAndIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rollbackTrigger := Trigger{ID: rollbackID, TenantID: "monitoring-adverse-trigger-test", ProgramID: program.Program.ID, Type: "MONITORING_RESULT_ADVERSE", SubjectType: "MONITORING_CHECK", SubjectID: checkID, DedupeKey: "monitoring-adverse:rollback", Payload: json.RawMessage(`{"risk_band":"CRITICAL"}`), ObservedAt: now.Add(2 * time.Minute), Source: "monitoring", ActorID: reviewerID}
+	rollbackTrigger := Trigger{ID: rollbackID, TenantID: "monitoring-adverse-trigger-test", ProgramID: program.Program.ID, Type: "MONITORING_RESULT_ADVERSE", SubjectType: "MONITORING_RESULT", SubjectID: resultID, DedupeKey: "monitoring-adverse:rollback", Payload: json.RawMessage(`{"risk_band":"CRITICAL"}`), ObservedAt: now.Add(2 * time.Minute), Source: "monitoring", ActorID: reviewerID}
 	programEvent, err := newEvent(rollbackTrigger.TenantID, "PROGRAM", rollbackTrigger.ProgramID, current.Program.Version+1, EventProgramTriggerRecorded, rollbackTrigger, ActorPerson, reviewerID, rollbackTrigger.ObservedAt)
 	if err != nil {
 		t.Fatal(err)

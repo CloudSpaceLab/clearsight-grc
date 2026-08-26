@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { createFormMonitoringCheck, createSourceMonitoringCheck, evaluateMonitoringSource, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection, transitionFormTemplate, transitionMonitoringCheck } from "../monitoringApi";
+import { createFormMonitoringCheck, createMonitoringLinkedIssue, createSourceMonitoringCheck, evaluateMonitoringSource, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection, transitionFormTemplate, transitionMonitoringCheck } from "../monitoringApi";
 import type { FormTemplate, LifecycleStatus, MonitoringCheck, MonitoringResult } from "../monitoringTypes";
 import type { ProgramAggregate } from "../types";
 import { FormBuilder } from "./FormBuilder";
@@ -8,7 +8,7 @@ import { DataSourceBuilder } from "./DataSourceBuilder";
 import type { SourceBinding } from "../sourceConfigApi";
 import type { ProgramOperation } from "../programOperationsApi";
 
-type Props = { aggregate: ProgramAggregate; actorPrincipalID: string; canConfigureSources: boolean; operations: ProgramOperation[] };
+type Props = { aggregate: ProgramAggregate; actorPrincipalID: string; canConfigureSources: boolean; operations: ProgramOperation[]; onOpenMatter?: (matterID: string) => void };
 type SetupMode = "closed" | "choose" | "form" | "source";
 
 function latestByID<T extends { id: string; version: number }>(values: T[]) {
@@ -36,7 +36,13 @@ function bandLabel(result: MonitoringResult) {
   return result.evaluation.band.toLowerCase().replaceAll("_", " ").replace(/^./, (value) => value.toUpperCase());
 }
 
-export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSources, operations }: Props) {
+function eligibleForLinkedIssue(check: MonitoringCheck, result?: MonitoringResult) {
+  if (!result || check.status !== "ACTIVE" || !check.is_current || check.failure_action !== "RECOMMEND_MATTER" || result.monitoring_check_version !== check.version) return false;
+  if (result.evaluation.band === "HIGH" || result.evaluation.band === "CRITICAL" || result.evaluation.coverage < check.minimum_coverage || (result.evaluation.critical_failures?.length ?? 0) > 0) return true;
+  return (result.evaluation.rule_results ?? []).some((rule) => rule.critical && rule.outcome !== "PASS");
+}
+
+export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSources, operations, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; } }: Props) {
   const [forms, setForms] = useState<FormTemplate[]>([]);
   const [checks, setChecks] = useState<MonitoringCheck[]>([]);
   const [latestResults, setLatestResults] = useState<Record<string, MonitoringResult>>({});
@@ -141,6 +147,20 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     } finally { setBusy(""); }
   }
 
+  async function createLinkedIssue(check: MonitoringCheck, result: MonitoringResult) {
+    const operation = checkOperation(check.id, "program.monitoring.issue.create");
+    if (!operation?.can_act) return;
+    setBusy(result.id); setError("");
+    try {
+      const linked = await createMonitoringLinkedIssue(result.id);
+      if (!linked.matter?.id) throw new Error("The linked issue was created but its record could not be opened. Reload the Program and try again.");
+      setNotice(`Linked issue ${linked.matter.reference} is ready for Control Assurance review.`);
+      onOpenMatter(linked.matter.id);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The linked issue could not be created from this monitoring result.");
+    } finally { setBusy(""); }
+  }
+
   async function collect(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!collecting || !collectionOperation(collecting.id)?.can_act) return;
@@ -205,6 +225,8 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
         const result = latestResults[check.id];
         const transitionOperation = checkOperation(check.id, "program.monitoring.transition");
         const evaluateOperation = checkOperation(check.id, "program.monitoring.evaluate");
+        const issueOperation = checkOperation(check.id, "program.monitoring.issue.create");
+        const issueEligible = eligibleForLinkedIssue(check, result);
         return <article className="monitoring-record" key={check.id}>
         <div><span className="record-type">Monitoring check</span><h4>{check.name}</h4><p>{check.input_kind === "FORM" ? "Collection form" : "Connected data"} · {statusLabel(check.status)}</p></div>
         {result && <div className="monitoring-result" aria-label={`Latest result for ${check.name}`}>
@@ -222,9 +244,11 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
           {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("RETIRED") && <button className="secondary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "RETIRED")}>End check</button>}
           {check.status === "PENDING_APPROVAL" && check.submitted_by === actorPrincipalID && <span className="action-note">Another approver must approve this check.</span>}
           {evaluateOperation?.can_act && check.status === "ACTIVE" && check.input_kind === "SOURCE" && <button className="primary-button" disabled={busy === check.id} onClick={() => void runSourceCheck(check)}>{busy === check.id ? "Checking…" : "Check source now"}</button>}
+          {issueEligible && issueOperation && <button className="primary-button" type="button" disabled={!issueOperation.can_act || busy === result!.id} onClick={() => void createLinkedIssue(check, result!)}>{busy === result!.id ? "Creating linked issue…" : "Create linked issue"}</button>}
         </div>
         {!transitionOperation?.can_act && transitionOperation?.reason && <p className="program-operation-reason">{transitionOperation.reason}</p>}
         {!evaluateOperation?.can_act && evaluateOperation?.reason && <p className="program-operation-reason">{evaluateOperation.reason}</p>}
+        {issueEligible && issueOperation && !issueOperation.can_act && <p className="program-operation-reason">{issueOperation.reason}</p>}
         {result && <details className="monitoring-result-detail">
           <summary>Review result</summary>
           {result.evaluation.band === "NOT_ASSESSED" ? <p>The available response or source data was not sufficient to calculate risk.</p> : (() => {

@@ -190,7 +190,7 @@ export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "
 		<ProgramDetailsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
 		<ProgramRequirementsPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
 		<ProgramSafeguardsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
-		<ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
+		<ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()} onOpenMatter={onOpenMatter}/>
 		<ProgramIssuesPanel aggregate={aggregate} canCreateIssue={mutationsReady} onOpenMatter={onOpenMatter}/>
       </section>
     </>}

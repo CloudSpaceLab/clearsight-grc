@@ -28,6 +28,21 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 	programID := ""
 	var monitoringCheck *monitoring.MonitoringCheck
 	var monitoringForm *monitoring.FormTemplate
+	var monitoringResult *monitoring.MonitoringResult
+	if name == "program.monitoring.issue.create" {
+		if a.deps.Monitoring == nil {
+			return policy, fmt.Errorf("%w: monitoring service is unavailable", commandauth.ErrGuardUnavailable)
+		}
+		_, result, check, _, loadErr := a.bindEligibleMonitoringResult(r, a.deps.Monitoring, r.PathValue("result_id"))
+		if loadErr != nil {
+			return policy, loadErr
+		}
+		monitoringResult = &result
+		monitoringCheck = &check
+		programID = check.ProgramID
+		payload["program_id"] = check.ProgramID
+		payload["monitoring_check_id"] = check.ID
+	}
 	if name == "program.monitoring.transition" || name == "program.monitoring.evaluate" {
 		if a.deps.Monitoring == nil {
 			return policy, fmt.Errorf("%w: monitoring service is unavailable", commandauth.ErrGuardUnavailable)
@@ -275,6 +290,18 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		}
 		policy.Responsibility = authority.ResponsibilityPerformer
 		if err := a.requireMonitoringResponsibility(ctx, tenant, programAggregate.Program, "MONITORING_CHECK", monitoringCheck.ID, policy.Responsibility, "", name, policy.Materiality); err != nil {
+			return policy, err
+		}
+		return policy, nil
+
+	case "program.monitoring.issue.create":
+		if programAggregate == nil || monitoringCheck == nil || monitoringResult == nil || monitoringCheck.ProgramID != programAggregate.Program.ID || monitoringResult.ProgramID != programAggregate.Program.ID {
+			return policy, continuity.ErrNotFound
+		}
+		policy.ObjectType = "MONITORING_CHECK"
+		policy.Responsibility = authority.ResponsibilityReviewer
+		policy.Materiality = 4
+		if err := a.requireMonitoringResponsibility(ctx, tenant, programAggregate.Program, "MONITORING_CHECK", monitoringCheck.ID, policy.Responsibility, monitoringCheck.ReviewerPrincipalID, name, policy.Materiality); err != nil {
 			return policy, err
 		}
 		return policy, nil
