@@ -211,6 +211,30 @@ func TestServiceGovernsFormMonitoringCheck(t *testing.T) {
 	}
 }
 
+func TestServiceLoadsExactAndLatestCheckForVerifiedTenant(t *testing.T) {
+	repo := NewMemoryRepository()
+	service := NewService(repo, nil)
+	created, err := service.CreateCheck(t.Context(), Actor{TenantID: "bank-a", PrincipalID: "owner"}, CreateCheckInput{
+		ProgramID: "program-a", Code: "SOURCE", Name: "Source health", Claim: "The source remains healthy.", InputKind: InputSource,
+		BindingID: "binding-1", BindingVersion: 1, SourceRules: []SourceRule{{ID: "healthy", Field: "healthy", Operator: OperatorEquals, Expected: "true", RiskPoints: 100}},
+		FreshnessMinutes: 60, MinimumCoverage: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	latest, err := service.LatestCheck(t.Context(), Actor{TenantID: "bank-a", PrincipalID: "viewer"}, created.ID)
+	if err != nil || latest.ProgramID != "program-a" || latest.Version != 1 {
+		t.Fatalf("latest check = %#v, err = %v", latest, err)
+	}
+	exact, err := service.Check(t.Context(), Actor{TenantID: "bank-a", PrincipalID: "viewer"}, created.ID, 1)
+	if err != nil || exact.ID != created.ID {
+		t.Fatalf("exact check = %#v, err = %v", exact, err)
+	}
+	if _, err := service.LatestCheck(t.Context(), Actor{TenantID: "bank-b", PrincipalID: "viewer"}, created.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("cross-tenant latest check error = %v, want not found", err)
+	}
+}
+
 func TestServiceRejectsInvalidFormScoring(t *testing.T) {
 	service := NewService(NewMemoryRepository(), &recordingRequestCreator{})
 	service.newID = func() (string, error) { return "form-1", nil }

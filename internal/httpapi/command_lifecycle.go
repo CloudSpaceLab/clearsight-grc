@@ -10,6 +10,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 )
 
 // lifecycleCommandPolicy resolves authority from the route-bound object and its
@@ -25,7 +26,31 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		}
 	}
 	programID := ""
-	if existingProgramCommand(name) {
+	var monitoringCheck *monitoring.MonitoringCheck
+	if name == "program.monitoring.transition" || name == "program.monitoring.evaluate" {
+		if a.deps.Monitoring == nil {
+			return policy, fmt.Errorf("%w: monitoring service is unavailable", commandauth.ErrGuardUnavailable)
+		}
+		actor, actorErr := identity.Require(ctx)
+		if actorErr != nil {
+			return policy, fmt.Errorf("%w: verified identity is required", commandauth.ErrIdentityRequired)
+		}
+		versionField := "expected_version"
+		if name == "program.monitoring.evaluate" {
+			versionField = "check_version"
+		}
+		version, ok := int64Value(payload[versionField])
+		if !ok || version < 1 {
+			return policy, monitoring.ErrInvalid
+		}
+		check, loadErr := a.deps.Monitoring.Check(ctx, monitoring.Actor{TenantID: tenant, PrincipalID: actor.PrincipalID}, r.PathValue("id"), version)
+		if loadErr != nil {
+			return policy, loadErr
+		}
+		monitoringCheck = &check
+		programID = check.ProgramID
+	}
+	if existingProgramCommand(name) && programID == "" {
 		var err error
 		programID, err = lifecycleProgramID(r, payload)
 		if err != nil {
@@ -92,8 +117,83 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 			delete(payload, "legal_entity_id")
 		}
 	}
+	if programAggregate != nil && programOwnerBoundCommand(name) {
+		storedOwner := strings.TrimSpace(programAggregate.Program.OwnerPrincipalID)
+		var err error
+		if name == "program.assign" && storedOwner == "" {
+			err = a.validateCurrentResponsibilityRouteActor(ctx, tenant, programAggregate.Program.LegalEntityID, "PROGRAM", programAggregate.Program.ID, name, policy.Materiality, authority.ResponsibilityOwner)
+		} else {
+			err = a.validateStoredResponsibilityActor(ctx, tenant, programAggregate.Program.LegalEntityID, "PROGRAM", programAggregate.Program.ID, name, policy.Materiality, authority.ResponsibilityOwner, storedOwner)
+		}
+		if err != nil {
+			return policy, err
+		}
+	}
+	if aggregate != nil && matterOwnerBoundCommand(name) {
+		storedOwner := strings.TrimSpace(aggregate.Matter.OwnerPrincipalID)
+		var err error
+		if name == "matter.assign" && storedOwner == "" {
+			err = a.validateCurrentResponsibilityRouteActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, max(policy.Materiality, matterPriority), authority.ResponsibilityOwner)
+		} else {
+			err = a.validateStoredResponsibilityActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, max(policy.Materiality, matterPriority), authority.ResponsibilityOwner, storedOwner)
+		}
+		if err != nil {
+			return policy, err
+		}
+	}
 
 	switch name {
+	case "program.monitoring.define":
+		if programAggregate == nil {
+			return policy, nil
+		}
+		if err := a.requireMonitoringResponsibility(ctx, tenant, programAggregate.Program, "PROGRAM", programAggregate.Program.ID, authority.ResponsibilityOwner, programAggregate.Program.OwnerPrincipalID, name, policy.Materiality); err != nil {
+			return policy, err
+		}
+		if a.deps.Authority == nil {
+			return policy, fmt.Errorf("%w: monitoring reviewer route is unavailable", commandauth.ErrGuardUnavailable)
+		}
+		reviewer, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
+			TenantID: tenant, LegalEntityID: programAggregate.Program.LegalEntityID, ObjectType: "PROGRAM", ObjectID: programAggregate.Program.ID,
+			Responsibility: authority.ResponsibilityReviewer, DecisionType: "program.monitoring.transition", Materiality: 3,
+		})
+		if err != nil || strings.TrimSpace(reviewer.Principal.ID) == "" {
+			return policy, fmt.Errorf("%w: monitoring reviewer route is unavailable", commandauth.ErrGuardUnavailable)
+		}
+		if reviewer.Principal.ID == programAggregate.Program.OwnerPrincipalID {
+			return policy, fmt.Errorf("%w: monitoring owner and reviewer must be different people", continuity.ErrInvalidState)
+		}
+		payload["owner_principal_id"] = programAggregate.Program.OwnerPrincipalID
+		payload["reviewer_principal_id"] = reviewer.Principal.ID
+		payload["program_id"] = programAggregate.Program.ID
+		return policy, nil
+
+	case "program.monitoring.transition":
+		if programAggregate == nil || monitoringCheck == nil {
+			return policy, nil
+		}
+		assignedID := monitoringCheck.ReviewerPrincipalID
+		policy.Responsibility = authority.ResponsibilityReviewer
+		if monitoringCheck.Status == monitoring.LifecycleDraft {
+			assignedID = monitoringCheck.OwnerPrincipalID
+			policy.Responsibility = authority.ResponsibilityOwner
+			policy.Materiality = 2
+		}
+		if err := a.requireMonitoringResponsibility(ctx, tenant, programAggregate.Program, "MONITORING_CHECK", monitoringCheck.ID, policy.Responsibility, assignedID, name, policy.Materiality); err != nil {
+			return policy, err
+		}
+		return policy, nil
+
+	case "program.monitoring.evaluate":
+		if programAggregate == nil || monitoringCheck == nil {
+			return policy, nil
+		}
+		policy.Responsibility = authority.ResponsibilityPerformer
+		if err := a.requireMonitoringResponsibility(ctx, tenant, programAggregate.Program, "MONITORING_CHECK", monitoringCheck.ID, policy.Responsibility, "", name, policy.Materiality); err != nil {
+			return policy, err
+		}
+		return policy, nil
+
 	case "program.transition", "program.applicability.decide":
 		if programAggregate == nil {
 			return policy, nil
@@ -168,6 +268,9 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 			policy.Materiality = max(4, matterPriority)
 		} else {
 			policy.Materiality = max(policy.Materiality, matterPriority)
+			if err := a.validateStoredResponsibilityActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, policy.Materiality, authority.ResponsibilityOwner, aggregate.Matter.OwnerPrincipalID); err != nil {
+				return policy, err
+			}
 		}
 		return policy, nil
 
@@ -262,12 +365,8 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 			if !found {
 				return policy, continuity.ErrNotFound
 			}
-			actor, err := identity.Require(ctx)
-			if err != nil {
-				return policy, fmt.Errorf("%w: verified identity is required for Action work", commandauth.ErrIdentityRequired)
-			}
-			if actor.PrincipalID != ownerID {
-				return policy, fmt.Errorf("%w: signed-in person is not assigned to this Action", commandauth.ErrNotAuthorized)
+			if err := a.validateStoredResponsibilityActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, max(policy.Materiality, matterPriority), authority.ResponsibilityPerformer, ownerID); err != nil {
+				return policy, err
 			}
 		}
 		policy.Responsibility = authority.ResponsibilityPerformer
@@ -332,6 +431,99 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 	}
 }
 
+func (a *API) requireMonitoringResponsibility(ctx context.Context, tenant string, program continuity.Program, objectType, objectID string, responsibility authority.Responsibility, assignedID, decisionType string, materiality int) error {
+	actor, err := identity.Require(ctx)
+	if err != nil {
+		return fmt.Errorf("%w: verified identity is required", commandauth.ErrIdentityRequired)
+	}
+	assignedID = strings.TrimSpace(assignedID)
+	if a.deps.Authority == nil || assignedID == "" && responsibility != authority.ResponsibilityPerformer {
+		return fmt.Errorf("%w: monitoring responsibility could not be checked", commandauth.ErrGuardUnavailable)
+	}
+	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
+		TenantID: tenant, LegalEntityID: program.LegalEntityID, ObjectType: objectType, ObjectID: objectID,
+		Responsibility: responsibility, DecisionType: decisionType, Materiality: materiality,
+	})
+	if err != nil {
+		return fmt.Errorf("%w: monitoring responsibility could not be checked", commandauth.ErrGuardUnavailable)
+	}
+	allowed := resolution.AllowsPrincipal(actor.PrincipalID)
+	if assignedID != "" {
+		allowed = resolution.AllowsPrincipalFor(actor.PrincipalID, assignedID)
+	}
+	if !allowed {
+		return fmt.Errorf("%w: signed-in person does not hold the current monitoring responsibility", commandauth.ErrNotAuthorized)
+	}
+	return nil
+}
+
+func programOwnerBoundCommand(name string) bool {
+	switch name {
+	case "program.details.update", "program.assign", "program.requirement.add", "program.requirement.supersede", "program.safeguard.define", "program.evidence.define":
+		return true
+	default:
+		return false
+	}
+}
+
+func matterOwnerBoundCommand(name string) bool {
+	switch name {
+	case "matter.details.update", "matter.context.change", "matter.assign", "matter.link", "matter.action.add", "matter.action.update", "matter.action.assign":
+		return true
+	default:
+		return false
+	}
+}
+
+func (a *API) validateStoredResponsibilityActor(ctx context.Context, tenant, legalEntity, objectType, objectID, decisionType string, materiality int, responsibility authority.Responsibility, storedPrincipalID string) error {
+	actor, err := identity.Require(ctx)
+	if err != nil {
+		return fmt.Errorf("%w: verified identity is required", commandauth.ErrIdentityRequired)
+	}
+	storedPrincipalID = strings.TrimSpace(storedPrincipalID)
+	if storedPrincipalID == "" {
+		return fmt.Errorf("%w: stored responsibility could not be checked", commandauth.ErrGuardUnavailable)
+	}
+	if a.deps.Authority == nil {
+		if actor.PrincipalID == storedPrincipalID {
+			return nil
+		}
+		return fmt.Errorf("%w: stored responsibility could not be checked", commandauth.ErrGuardUnavailable)
+	}
+	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
+		TenantID: tenant, LegalEntityID: legalEntity, ObjectType: objectType, ObjectID: objectID,
+		Responsibility: responsibility, DecisionType: decisionType, Materiality: materiality,
+	})
+	if err != nil {
+		return fmt.Errorf("%w: current responsibility route could not be checked", commandauth.ErrGuardUnavailable)
+	}
+	if !resolution.AllowsPrincipalFor(actor.PrincipalID, storedPrincipalID) {
+		return fmt.Errorf("%w: signed-in person is not assigned to the current responsibility", commandauth.ErrNotAuthorized)
+	}
+	return nil
+}
+
+func (a *API) validateCurrentResponsibilityRouteActor(ctx context.Context, tenant, legalEntity, objectType, objectID, decisionType string, materiality int, responsibility authority.Responsibility) error {
+	actor, err := identity.Require(ctx)
+	if err != nil {
+		return fmt.Errorf("%w: verified identity is required", commandauth.ErrIdentityRequired)
+	}
+	if a.deps.Authority == nil {
+		return fmt.Errorf("%w: current responsibility route could not be checked", commandauth.ErrGuardUnavailable)
+	}
+	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
+		TenantID: tenant, LegalEntityID: legalEntity, ObjectType: objectType, ObjectID: objectID,
+		Responsibility: responsibility, DecisionType: decisionType, Materiality: materiality,
+	})
+	if err != nil {
+		return fmt.Errorf("%w: current responsibility route could not be checked", commandauth.ErrGuardUnavailable)
+	}
+	if !resolution.AllowsPrincipal(actor.PrincipalID) {
+		return fmt.Errorf("%w: signed-in person does not hold the current responsibility route", commandauth.ErrNotAuthorized)
+	}
+	return nil
+}
+
 func governedMatterTransition(from, target continuity.MatterStatus) bool {
 	return target == continuity.MatterDecisionRequired || target == continuity.MatterClosed || target == continuity.MatterCancelled || from == continuity.MatterClosed
 }
@@ -355,7 +547,12 @@ func (a *API) validateProgramAssignmentCandidate(ctx context.Context, tenant, co
 	if err != nil {
 		return fmt.Errorf("%w: assignment route could not be checked", commandauth.ErrGuardUnavailable)
 	}
-	if !ownerResolution.AllowsPrincipalFor(actor.PrincipalID, aggregate.Program.OwnerPrincipalID) {
+	storedOwner := strings.TrimSpace(aggregate.Program.OwnerPrincipalID)
+	actorAllowed := ownerResolution.AllowsPrincipal(actor.PrincipalID)
+	if storedOwner != "" {
+		actorAllowed = ownerResolution.AllowsPrincipalFor(actor.PrincipalID, storedOwner)
+	}
+	if !actorAllowed {
 		return fmt.Errorf("%w: signed-in person does not hold the current Program owner route", continuity.ErrInvalidState)
 	}
 	candidateResolution := ownerResolution

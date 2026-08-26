@@ -11,6 +11,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 )
 
@@ -77,11 +78,48 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		{Command: "program.requirement.add", Label: "Add a requirement", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
 		{Command: "program.safeguard.define", Label: "Define safeguards", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: 2, AssignedPrincipalID: ownerID, IncludeCandidates: true},
 		{Command: "program.evidence.define", Label: "Define an evidence check", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
+		{Command: "program.monitoring.define", Label: "Add a monitoring check", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
 		{Command: "program.applicability.decide", Label: "Decide whether requirements apply", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3, AssignedPrincipalID: approvalAuthorityID},
 		{Command: "program.evidence.assess", Label: "Record evidence check results", Responsibility: authority.ResponsibilityReviewer, Materiality: 3},
 		{Command: "program.review.accept", Label: "Confirm the Program review", Responsibility: authority.ResponsibilityReviewer, Materiality: 3},
 	} {
 		add(spec)
+	}
+	if a.deps.Monitoring != nil {
+		checks, err := a.deps.Monitoring.ListChecks(ctx, monitoring.Actor{TenantID: actor.TenantID, PrincipalID: actor.PrincipalID}, aggregate.Program.ID, 500)
+		if err == nil {
+			latest := make([]monitoring.MonitoringCheck, 0, len(checks))
+			seen := map[string]bool{}
+			for _, check := range checks {
+				if !seen[check.ID] {
+					latest = append(latest, check)
+					seen[check.ID] = true
+				}
+			}
+			for _, check := range latest {
+				if targets := monitoringTransitionTargets(check.Status); len(targets) > 0 {
+					responsibility := authority.ResponsibilityReviewer
+					assignedID := check.ReviewerPrincipalID
+					materiality := 3
+					if check.Status == monitoring.LifecycleDraft {
+						responsibility = authority.ResponsibilityOwner
+						assignedID = check.OwnerPrincipalID
+						materiality = 2
+					}
+					add(programOperationSpec{
+						Command: "program.monitoring.transition", SubresourceID: check.ID, Label: "Change " + check.Name + " status",
+						ObjectType: "MONITORING_CHECK", ObjectID: check.ID, Responsibility: responsibility, Materiality: materiality,
+						AssignedPrincipalID: assignedID, AllowedTargets: targets,
+					})
+				}
+				if check.Status == monitoring.LifecycleActive && check.IsCurrent && check.InputKind == monitoring.InputSource {
+					add(programOperationSpec{
+						Command: "program.monitoring.evaluate", SubresourceID: check.ID, Label: "Check " + check.Name + " now",
+						ObjectType: "MONITORING_CHECK", ObjectID: check.ID, Responsibility: authority.ResponsibilityPerformer, Materiality: 2,
+					})
+				}
+			}
+		}
 	}
 	targets := continuity.AllowedProgramTargets(aggregate.Program.Status)
 	allowedTargets := make([]string, len(targets))
@@ -113,6 +151,8 @@ func (a *API) storedProgramResponsibleParty(ctx context.Context, actor identity.
 
 type programOperationSpec struct {
 	Command                 string
+	ObjectType              string
+	ObjectID                string
 	DecisionType            string
 	SubresourceID           string
 	Label                   string
@@ -129,6 +169,7 @@ func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor,
 		Command: spec.Command, SubresourceID: spec.SubresourceID, Label: spec.Label,
 		Responsibility: string(spec.Responsibility), AllowedTargets: spec.AllowedTargets,
 	}
+	requiresStoredPrincipal := programOperationRequiresStoredPrincipal(spec.Command)
 	if strings.TrimSpace(spec.AssignedPrincipalID) != "" {
 		operation.AssignedTo = a.assignedPrincipal(ctx, actor, authority.Resolution{}, spec.AssignedPrincipalID)
 	}
@@ -140,8 +181,16 @@ func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor,
 	if decisionType == "" {
 		decisionType = spec.Command
 	}
+	objectType := strings.TrimSpace(spec.ObjectType)
+	if objectType == "" {
+		objectType = "PROGRAM"
+	}
+	objectID := strings.TrimSpace(spec.ObjectID)
+	if objectID == "" {
+		objectID = program.ID
+	}
 	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
-		TenantID: actor.TenantID, LegalEntityID: program.LegalEntityID, ObjectType: "PROGRAM", ObjectID: program.ID,
+		TenantID: actor.TenantID, LegalEntityID: program.LegalEntityID, ObjectType: objectType, ObjectID: objectID,
 		Responsibility: spec.Responsibility, DecisionType: decisionType, Materiality: spec.Materiality,
 	})
 	if err != nil {
@@ -154,14 +203,14 @@ func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor,
 	}
 	if strings.TrimSpace(spec.AssignedPrincipalID) != "" {
 		operation.AssignedTo = a.assignedPrincipal(ctx, actor, resolution, spec.AssignedPrincipalID)
-	} else {
+	} else if !requiresStoredPrincipal {
 		operation.AssignedTo = a.assignedPrincipal(ctx, actor, resolution, "")
 	}
 	if spec.IncludeCandidates {
 		candidateResolution := resolution
 		if spec.CandidateResponsibility != "" && spec.CandidateResponsibility != spec.Responsibility {
 			candidateResolution, err = a.deps.Authority.Resolve(ctx, authority.ResolveInput{
-				TenantID: actor.TenantID, LegalEntityID: program.LegalEntityID, ObjectType: "PROGRAM", ObjectID: program.ID,
+				TenantID: actor.TenantID, LegalEntityID: program.LegalEntityID, ObjectType: objectType, ObjectID: objectID,
 				Responsibility: spec.CandidateResponsibility, DecisionType: decisionType, Materiality: spec.Materiality,
 			})
 			if err != nil {
@@ -174,15 +223,46 @@ func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor,
 	operation.CanAct = resolution.AllowsPrincipal(actor.PrincipalID)
 	if assigned := strings.TrimSpace(spec.AssignedPrincipalID); assigned != "" {
 		operation.CanAct = resolution.AllowsPrincipalFor(actor.PrincipalID, assigned)
+	} else if requiresStoredPrincipal && spec.Command != "program.assign" {
+		operation.CanAct = false
 	}
 	if operation.CanAct {
 		operation.Reason = "You hold the current responsibility for this Program and can complete this action."
 	} else if operation.AssignedTo != nil {
 		operation.Reason = fmt.Sprintf("Assigned to %s for the current Program state.", operation.AssignedTo.DisplayName)
+	} else if requiresStoredPrincipal {
+		operation.Reason = "Assign a Program owner before this action can be completed."
 	} else {
 		operation.Reason = fmt.Sprintf("The current %s route does not include your signed-in role.", responsibilityLabel(spec.Responsibility))
 	}
 	return operation, true
+}
+
+func monitoringTransitionTargets(status monitoring.LifecycleStatus) []string {
+	switch status {
+	case monitoring.LifecycleDraft:
+		return []string{string(monitoring.LifecyclePendingApproval)}
+	case monitoring.LifecyclePendingApproval:
+		return []string{string(monitoring.LifecycleActive), string(monitoring.LifecycleRejected)}
+	case monitoring.LifecycleActive:
+		return []string{string(monitoring.LifecyclePaused), string(monitoring.LifecycleRetired)}
+	case monitoring.LifecyclePaused:
+		return []string{string(monitoring.LifecycleActive), string(monitoring.LifecycleRetired)}
+	default:
+		return nil
+	}
+}
+
+func programOperationRequiresStoredPrincipal(command string) bool {
+	if programOwnerBoundCommand(command) {
+		return true
+	}
+	switch command {
+	case "program.transition", "program.applicability.decide", "program.approval-authority.assign":
+		return true
+	default:
+		return false
+	}
 }
 
 func visibleProgramCandidates(resolution authority.Resolution) []authority.Principal {

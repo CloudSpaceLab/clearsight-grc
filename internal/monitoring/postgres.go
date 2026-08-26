@@ -164,6 +164,11 @@ func (r *PostgresRepository) CheckRevision(ctx context.Context, tenant, id strin
 	return value, mapPostgresError(err)
 }
 
+func (r *PostgresRepository) LatestCheckRevision(ctx context.Context, tenant, id string) (MonitoringCheck, error) {
+	value, err := scanCheck(r.pool.QueryRow(ctx, checkSelect+` WHERE (t.id::text=$1 OR t.slug=$1) AND c.id=$2::uuid ORDER BY c.version DESC LIMIT 1`, tenant, id))
+	return value, mapPostgresError(err)
+}
+
 func (r *PostgresRepository) ListCheckRevisions(ctx context.Context, tenant, programID string, limit int) ([]MonitoringCheck, error) {
 	rows, err := r.pool.Query(ctx, checkSelect+` WHERE (t.id::text=$1 OR t.slug=$1) AND c.program_id=$2::uuid ORDER BY c.code,c.version DESC,c.id LIMIT $3`, tenant, programID, boundedLimit(limit))
 	if err != nil {

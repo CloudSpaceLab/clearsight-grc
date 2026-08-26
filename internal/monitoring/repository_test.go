@@ -72,3 +72,30 @@ func TestMemoryRepositoryStoresChecksAndAppendOnlyResults(t *testing.T) {
 		t.Fatalf("results = %#v, err = %v", items, err)
 	}
 }
+
+func TestMemoryRepositoryLoadsLatestMonitoringCheckRevisionByID(t *testing.T) {
+	repo := NewMemoryRepository()
+	createdAt := time.Now().UTC()
+	check := MonitoringCheck{
+		ID: "check-latest", TenantID: "bank-a", ProgramID: "program-a", Code: "LATEST", Name: "Latest check", Claim: "The latest revision is used.",
+		InputKind: InputSource, BindingID: "binding-1", BindingVersion: 1, Thresholds: DefaultThresholds(), FreshnessMinutes: 60, MinimumCoverage: 1,
+		FailureAction: FailureReview, Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: "owner", CreatedAt: createdAt, UpdatedAt: createdAt},
+	}
+	if _, err := repo.CreateCheckRevision(t.Context(), check); err != nil {
+		t.Fatal(err)
+	}
+	second, err := repo.TransitionCheck(t.Context(), LifecycleTransition{TenantID: "bank-a", ID: check.ID, ExpectedVersion: 1, To: LifecyclePendingApproval, ActorID: "owner", At: createdAt.Add(time.Minute)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	latest, err := repo.LatestCheckRevision(t.Context(), "bank-a", check.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if latest.Version != second.Version || latest.ProgramID != "program-a" {
+		t.Fatalf("latest check = %#v, want version %d for program-a", latest, second.Version)
+	}
+	if _, err := repo.LatestCheckRevision(t.Context(), "bank-b", check.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("cross-tenant latest check error = %v, want not found", err)
+	}
+}

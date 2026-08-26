@@ -18,6 +18,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 )
 
 type capturingProgramAuthority struct {
@@ -158,7 +159,7 @@ func TestProgramOperationsExplainCurrentResponsibilitiesAcrossRoles(t *testing.T
 	service := continuity.NewService(continuity.NewMemoryRepository())
 	program, err := service.CreateProgram(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateProgramInput{
 		TenantID: "bank", LegalEntityID: "bank-ng", Code: "NDPA", Name: "Data protection", Type: "PRIVACY",
-		OwningFunction: "Data Protection Office", OwnerPrincipalID: "owner-1",
+		OwningFunction: "Data Protection Office", OwnerPrincipalID: "owner-1", AuthorityPrincipalID: "cro",
 		EffectiveFrom: time.Now().UTC(), ActorID: "owner-1",
 	})
 	if err != nil {
@@ -384,5 +385,72 @@ func TestProgramOperationsFailClosedWhenAuthorityRouteIsUnavailable(t *testing.T
 		if operation.CanAct || operation.Reason == "" {
 			t.Fatalf("unavailable route invented an executable operation: %#v", operation)
 		}
+	}
+}
+
+func TestProgramOperationsExposeMonitoringResponsibilitiesPerCheck(t *testing.T) {
+	now := time.Now().UTC()
+	aggregate := continuity.ProgramAggregate{Program: continuity.Program{
+		ID: "program-1", TenantID: "bank", LegalEntityID: "entity-a", Code: "NDPA", Name: "Data protection", Status: continuity.ProgramDraft,
+		OwnerPrincipalID: "owner-1", AuthorityPrincipalID: "authorizer-1", Version: 4, CreatedAt: now, UpdatedAt: now,
+	}}
+	monitoringService := monitoring.NewService(monitoring.NewMemoryRepository(), nil)
+	draft, err := monitoringService.CreateCheck(t.Context(), monitoring.Actor{TenantID: "bank", PrincipalID: "owner-1"}, monitoring.CreateCheckInput{
+		ProgramID: aggregate.Program.ID, Code: "DRAFT", Name: "Draft check", Claim: "The draft is reviewed.", InputKind: monitoring.InputSource,
+		BindingID: "binding-1", BindingVersion: 1, SourceRules: []monitoring.SourceRule{{ID: "healthy", Field: "healthy", Operator: monitoring.OperatorEquals, Expected: "true", RiskPoints: 100}},
+		FreshnessMinutes: 60, MinimumCoverage: 1, OwnerPrincipalID: "owner-1", ReviewerPrincipalID: "reviewer-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	active, err := monitoringService.CreateCheck(t.Context(), monitoring.Actor{TenantID: "bank", PrincipalID: "owner-1"}, monitoring.CreateCheckInput{
+		ProgramID: aggregate.Program.ID, Code: "ACTIVE", Name: "Active check", Claim: "The active source is evaluated.", InputKind: monitoring.InputSource,
+		BindingID: "binding-2", BindingVersion: 1, SourceRules: []monitoring.SourceRule{{ID: "healthy", Field: "healthy", Operator: monitoring.OperatorEquals, Expected: "true", RiskPoints: 100}},
+		FreshnessMinutes: 60, MinimumCoverage: 1, OwnerPrincipalID: "owner-1", ReviewerPrincipalID: "reviewer-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	active, err = monitoringService.TransitionCheck(t.Context(), monitoring.Actor{TenantID: "bank", PrincipalID: "owner-1"}, monitoring.TransitionInput{ID: active.ID, ExpectedVersion: 1, To: monitoring.LifecyclePendingApproval})
+	if err != nil {
+		t.Fatal(err)
+	}
+	active, err = monitoringService.TransitionCheck(t.Context(), monitoring.Actor{TenantID: "bank", PrincipalID: "reviewer-1"}, monitoring.TransitionInput{ID: active.ID, ExpectedVersion: active.Version, To: monitoring.LifecycleActive})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner:     {Principal: authority.Principal{ID: "owner-1", DisplayName: "Data Protection Officer"}},
+		authority.ResponsibilityReviewer:  {Principal: authority.Principal{ID: "reviewer-1", DisplayName: "Controls reviewer"}},
+		authority.ResponsibilityPerformer: {Principal: authority.Principal{ID: "performer-1", DisplayName: "Monitoring analyst"}},
+	}}
+	api := &API{deps: Dependencies{Authority: resolver, Monitoring: monitoringService}}
+	find := func(payload programOperationsResponse, command, subresource string) RecordOperation {
+		t.Helper()
+		for _, operation := range payload.Operations {
+			if operation.Command == command && operation.SubresourceID == subresource {
+				return operation
+			}
+		}
+		t.Fatalf("operation %s/%s missing: %#v", command, subresource, payload.Operations)
+		return RecordOperation{}
+	}
+	owner := api.buildProgramOperations(t.Context(), identity.Actor{TenantID: "bank", PrincipalID: "owner-1", LegalEntityID: "entity-a"}, aggregate, now)
+	reviewer := api.buildProgramOperations(t.Context(), identity.Actor{TenantID: "bank", PrincipalID: "reviewer-1", LegalEntityID: "entity-a"}, aggregate, now)
+	performer := api.buildProgramOperations(t.Context(), identity.Actor{TenantID: "bank", PrincipalID: "performer-1", LegalEntityID: "entity-a"}, aggregate, now)
+	if operation := find(owner, "program.monitoring.define", ""); !operation.CanAct || operation.AssignedTo == nil || operation.AssignedTo.DisplayName != "Data Protection Officer" {
+		t.Fatalf("monitoring definition responsibility = %#v", operation)
+	}
+	if operation := find(owner, "program.monitoring.transition", draft.ID); !operation.CanAct || operation.Responsibility != string(authority.ResponsibilityOwner) {
+		t.Fatalf("draft transition responsibility = %#v", operation)
+	}
+	if operation := find(reviewer, "program.monitoring.transition", active.ID); !operation.CanAct || operation.AssignedTo == nil || operation.AssignedTo.DisplayName != "Controls reviewer" {
+		t.Fatalf("active transition responsibility = %#v", operation)
+	}
+	if operation := find(performer, "program.monitoring.evaluate", active.ID); !operation.CanAct || operation.AssignedTo == nil || operation.AssignedTo.DisplayName != "Monitoring analyst" {
+		t.Fatalf("source evaluation responsibility = %#v", operation)
+	}
+	if find(reviewer, "program.monitoring.define", "").CanAct || find(owner, "program.monitoring.evaluate", active.ID).CanAct {
+		t.Fatal("monitoring operations were granted outside their current responsibility")
 	}
 }

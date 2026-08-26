@@ -121,6 +121,23 @@ func (r *MemoryRepository) CheckRevision(_ context.Context, tenant, id string, v
 	return cloneValue(value), nil
 }
 
+func (r *MemoryRepository) LatestCheckRevision(_ context.Context, tenant, id string) (MonitoringCheck, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var latest MonitoringCheck
+	found := false
+	for _, value := range r.checks {
+		if value.TenantID == tenant && value.ID == id && (!found || value.Version > latest.Version) {
+			latest = value
+			found = true
+		}
+	}
+	if !found {
+		return MonitoringCheck{}, ErrNotFound
+	}
+	return cloneValue(latest), nil
+}
+
 func (r *MemoryRepository) ListCheckRevisions(_ context.Context, tenant, programID string, limit int) ([]MonitoringCheck, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

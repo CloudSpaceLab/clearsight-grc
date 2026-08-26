@@ -28,6 +28,7 @@ type Repository interface {
 	TransitionForm(context.Context, LifecycleTransition) (FormTemplate, error)
 	CreateCheckRevision(context.Context, MonitoringCheck) (MonitoringCheck, error)
 	CheckRevision(context.Context, string, string, int64) (MonitoringCheck, error)
+	LatestCheckRevision(context.Context, string, string) (MonitoringCheck, error)
 	ListCheckRevisions(context.Context, string, string, int) ([]MonitoringCheck, error)
 	TransitionCheck(context.Context, LifecycleTransition) (MonitoringCheck, error)
 	AppendResult(context.Context, MonitoringResult) (MonitoringResult, error)

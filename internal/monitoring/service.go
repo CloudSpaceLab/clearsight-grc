@@ -287,6 +287,26 @@ func (s *Service) ListChecks(ctx context.Context, actor Actor, programID string,
 	return s.repo.ListCheckRevisions(ctx, actor.TenantID, programID, limit)
 }
 
+func (s *Service) Check(ctx context.Context, actor Actor, checkID string, version int64) (MonitoringCheck, error) {
+	if err := validateActor(actor); err != nil {
+		return MonitoringCheck{}, err
+	}
+	if strings.TrimSpace(checkID) == "" || version < 1 {
+		return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("monitoring check and version are required"))
+	}
+	return s.repo.CheckRevision(ctx, actor.TenantID, strings.TrimSpace(checkID), version)
+}
+
+func (s *Service) LatestCheck(ctx context.Context, actor Actor, checkID string) (MonitoringCheck, error) {
+	if err := validateActor(actor); err != nil {
+		return MonitoringCheck{}, err
+	}
+	if strings.TrimSpace(checkID) == "" {
+		return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("monitoring check is required"))
+	}
+	return s.repo.LatestCheckRevision(ctx, actor.TenantID, strings.TrimSpace(checkID))
+}
+
 func (s *Service) ListResults(ctx context.Context, actor Actor, checkID string, limit int) ([]MonitoringResult, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
