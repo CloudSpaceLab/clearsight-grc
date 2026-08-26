@@ -18,6 +18,7 @@ export function RoleAwareOnboarding({ runtime, onStep }: Props) {
   const [state, setState] = useState<OnboardingState | null>(null);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
+  const [stepError, setStepError] = useState("");
 
   const load = useCallback(async () => {
     if (!runtime) return;
@@ -48,13 +49,14 @@ export function RoleAwareOnboarding({ runtime, onStep }: Props) {
   }
 
   async function advance(step: GuideStep, next: OnboardingState) {
+    setStepError("");
     setBusy(true);
     try {
       await onStep(step);
       if (step.intent !== "open-vendor-due-diligence" && step.intent !== "open-vendor-work") highlight(step.target);
       await persist(next);
     } catch {
-      // The workspace reports the actionable failure; leave this step available for retry.
+      setStepError("This guide step could not be opened. Try again.");
     } finally {
       setBusy(false);
     }
@@ -107,7 +109,7 @@ export function RoleAwareOnboarding({ runtime, onStep }: Props) {
     {!open && <button className="guide-launcher" type="button" onClick={() => void restart()} aria-label={`Restart ${guide.role} guide`} disabled={busy}>
       <span aria-hidden="true">?</span><strong>Guide</strong>
     </button>}
-    {open && <IntroGuide guide={guide} state={state} busy={busy} onAdvance={advance} onBack={back} onDismiss={dismiss}/>} 
+    {open && <>{stepError && <p className="inline-error" role="alert">{stepError}</p>}<IntroGuide guide={guide} state={state} busy={busy} onAdvance={advance} onBack={back} onDismiss={dismiss}/></>}
   </>;
 }
 

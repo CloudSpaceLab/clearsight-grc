@@ -72,6 +72,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   const assessmentLoadID = useRef(0);
   const formLoadID = useRef(0);
   const registerLoadID = useRef(0);
+  const acknowledgedGuideIntentID = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     setQuery("");
@@ -85,21 +86,28 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
 
   useEffect(() => {
     if (!guideIntent || state !== "live") return;
+    if (acknowledgedGuideIntentID.current === guideIntent.id) return;
     if (!selected) {
       if (mode === "create") {
         const form = document.getElementById("vendor-legal-name");
         form?.scrollIntoView?.({ behavior: "smooth", block: "center" });
         (form as HTMLElement | null)?.focus({ preventScroll: true });
+        acknowledgedGuideIntentID.current = guideIntent.id;
         onGuideIntentCompleted?.(guideIntent.id);
       }
       return;
     }
-    const target = guideIntent.type === "open-vendor-due-diligence" ? document.getElementById("vdd-title") : document.querySelector<HTMLElement>(".vendor-work-panel");
+    if (guideIntent.type === "open-vendor-due-diligence" && (assessmentState === "loading" || (!assessment && formState === "loading"))) return;
+    const target = guideIntent.type === "open-vendor-due-diligence"
+      ? document.getElementById("vdd-title") ?? document.querySelector<HTMLElement>(".vdd-workspace")
+      : document.querySelector<HTMLElement>(".vendor-work-panel") ?? document.querySelector<HTMLElement>(".vendors-workspace");
     if (!target) return;
     target.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
     target.focus({ preventScroll: true });
+    acknowledgedGuideIntentID.current = guideIntent.id;
     onGuideIntentCompleted?.(guideIntent.id);
-  }, [guideIntent, state, mode, selected?.relationship.id, assessmentState, onGuideIntentCompleted]);
+  }, [guideIntent, state, mode, selected?.relationship.id, assessment, assessmentState, formState, onGuideIntentCompleted]);
 
   useEffect(() => {
     void refreshForms();
@@ -432,7 +440,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   }
 
   const workspaceClass = `vendors-workspace${mode !== "browse" ? " is-form" : selected ? " has-selection" : ""}`;
-  return <div className={workspaceClass}>
+  return <div className={workspaceClass} tabIndex={-1}>
     <header className="topbar vendors-topbar">
       <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Vendors</h1><p>Manage vendors and the services they supply to {legalEntityName}. Review each relationship&apos;s owner, criticality and due-diligence status.</p></div>
       {mode !== "create" && <button type="button" className={selected ? "secondary-button" : "primary-button"} onClick={startCreate}>Add vendor</button>}
@@ -440,7 +448,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
 
     {notice && <p className="vendor-notice" role="status">{notice}</p>}
     {state === "loading" && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships for {legalEntityName}…</div>}
-    {state === "unavailable" && <section className="vendor-state" role="alert"><h2>Vendor records are unavailable</h2><p>The vendor register for {legalEntityName} could not be loaded. Try again before adding or changing a record.</p><button className="secondary-button" type="button" onClick={() => void refresh(targetID, "", guideIntent)}>Try again</button></section>}
+    {state === "unavailable" && <section className="vendor-state" role="alert"><h2>Vendor records are unavailable</h2><p>The vendor register for {legalEntityName} could not be loaded. Try again before adding or changing a record.</p><button className="secondary-button" type="button" onClick={() => void refresh(targetID, "")}>Try again</button></section>}
     {state === "live" && <div className="vendor-layout">
       <section className="vendor-register" aria-label={`Vendor relationships for ${legalEntityName}`}>
         <div className="vendor-register-header"><div><h2>Vendor register</h2><p>{submittedQuery ? `Showing ${records.length} matching ${records.length === 1 ? "relationship" : "relationships"}` : `Showing ${records.length} ${records.length === 1 ? "relationship" : "relationships"} in this legal entity`}</p>{nextCursor && <small>More relationships are available.</small>}</div></div>
@@ -532,7 +540,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
     </dl>
     <div className="vendor-boundary-note"><strong>Relationship status</strong><p>{humanize(relationship.status)} for {relationship.service_name}. Review the due-diligence status below before the relationship moves to its next decision.</p></div>
   </article>
-  {assessmentState === "live" && !assessment && formState === "unavailable" ? <section className="vdd-workspace" aria-label="Due diligence"><div className="vdd-state vdd-state-error" role="alert"><h2>Due-diligence forms are unavailable</h2><p>Approved collection forms could not be loaded for {relationship.service_name}. Try again before starting the assessment.</p><button type="button" className="secondary-button" onClick={() => void onRefreshForms()}>Reload forms</button></div></section> : <VendorDueDiligence
+  {assessmentState === "live" && !assessment && formState === "unavailable" ? <section className="vdd-workspace" aria-label="Due diligence" tabIndex={-1}><div className="vdd-state vdd-state-error" role="alert"><h2>Due-diligence forms are unavailable</h2><p>Approved collection forms could not be loaded for {relationship.service_name}. Try again before starting the assessment.</p><button type="button" className="secondary-button" onClick={() => void onRefreshForms()}>Reload forms</button></div></section> : <VendorDueDiligence
     relationship={record}
     assessment={assessment}
     review={review}

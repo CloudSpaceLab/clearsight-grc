@@ -32,17 +32,22 @@ describe("RoleAwareOnboarding", () => {
     expect(saveGuideState).toHaveBeenCalledWith(guide.code, expect.objectContaining({ current_step: 1, completed: false }));
   });
 
-  it("keeps the guide available when a workspace action cannot complete", async () => {
+  it("keeps the guide retryable and advances only after a recovered workspace action", async () => {
     vi.mocked(loadRoleGuide).mockResolvedValue(guide);
     vi.mocked(loadGuideState).mockResolvedValue(initial);
-    const onStep = vi.fn().mockRejectedValue(new Error("Vendor records are unavailable"));
+    vi.mocked(saveGuideState).mockImplementation(async (_code, value) => ({ ...initial, ...value, version: value.version + 1 }));
+    const onStep = vi.fn().mockRejectedValueOnce(new Error("Vendor records are unavailable")).mockResolvedValueOnce(undefined);
     render(<RoleAwareOnboarding runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={onStep}/>);
 
     const action = await screen.findByRole("button", { name: "Open Today" });
     fireEvent.click(action);
     await waitFor(() => expect((action as HTMLButtonElement).disabled).toBe(false));
     expect(saveGuideState).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Open Today" })).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toContain("This guide step could not be opened. Try again.");
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Today" }));
+    await waitFor(() => expect(saveGuideState).toHaveBeenCalledWith(guide.code, expect.objectContaining({ current_step: 1, completed: false })));
+    expect(screen.getByRole("heading", { name: "Inspect a Program" })).toBeTruthy();
   });
 
   it("allows a dismissed guide to be restarted from the launcher", async () => {

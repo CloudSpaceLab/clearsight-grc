@@ -433,14 +433,14 @@ export function VendorDueDiligence({
   }
 
   if (viewState === "loading") {
-    return <section className="vdd-workspace" aria-label="Due diligence"><div className="vdd-state" aria-live="polite" aria-busy="true">Loading due diligence for {relationship.relationship.service_name}…</div></section>;
+    return <section className="vdd-workspace" aria-label="Due diligence" tabIndex={-1}><div className="vdd-state" aria-live="polite" aria-busy="true">Loading due diligence for {relationship.relationship.service_name}…</div></section>;
   }
 
   if (viewState === "unavailable") {
-    return <section className="vdd-workspace" aria-label="Due diligence"><div className="vdd-state vdd-state-error" role="alert"><h2>Due diligence is unavailable</h2><p>The current assessment for {relationship.relationship.service_name} could not be loaded. Try again before starting or changing the review.</p>{onRefresh && <button type="button" className="secondary-button" onClick={() => void onRefresh()}>Try again</button>}</div></section>;
+    return <section className="vdd-workspace" aria-label="Due diligence" tabIndex={-1}><div className="vdd-state vdd-state-error" role="alert"><h2>Due diligence is unavailable</h2><p>The current assessment for {relationship.relationship.service_name} could not be loaded. Try again before starting or changing the review.</p>{onRefresh && <button type="button" className="secondary-button" onClick={() => void onRefresh()}>Try again</button>}</div></section>;
   }
 
-  return <section className="vdd-workspace" aria-labelledby="vdd-title">
+  return <section className="vdd-workspace" aria-labelledby="vdd-title" tabIndex={-1}>
     <header className="vdd-header">
       <div><span className="eyebrow">{relationship.relationship.service_name}</span><h2 id="vdd-title" tabIndex={-1}>Due diligence</h2><p>{statusCopy.description}</p></div>
       <span className={`vdd-status vdd-status-${statusCopy.tone}`}>{statusCopy.label}</span>

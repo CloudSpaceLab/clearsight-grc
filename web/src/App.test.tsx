@@ -5,7 +5,20 @@ import type { RuntimeContext } from "./api";
 import { loadContext, loadEvidenceRequest, loadReadiness, loadToday } from "./api";
 import type { EvidenceRequest } from "./types";
 
-vi.mock("./components/RoleAwareOnboarding", () => ({ RoleAwareOnboarding: ({ onStep }: { onStep: (step: { intent?: string; view?: string }) => void }) => <button type="button" onClick={() => onStep({ intent: "open-vendor-due-diligence", view: "vendors" })}>Review due diligence</button> }));
+vi.mock("./components/RoleAwareOnboarding", async () => {
+  const React = await import("react");
+  return { RoleAwareOnboarding: ({ onStep }: { onStep: (step: { intent?: string; view?: string }) => void | Promise<void> }) => {
+    const [busy, setBusy] = React.useState(false);
+    const [error, setError] = React.useState("");
+    async function openGuideAction() {
+      setBusy(true); setError("");
+      try { await onStep({ intent: "open-vendor-due-diligence", view: "vendors" }); }
+      catch { setError("This guide step could not be opened. Try again."); }
+      finally { setBusy(false); }
+    }
+    return <><button type="button" disabled={busy} onClick={() => void openGuideAction()}>Review due diligence</button>{error && <p role="alert">{error}</p>}</>;
+  }};
+});
 vi.mock("./components/VendorsWorkspace", () => ({
   VendorsWorkspace: ({ onOpenRequest, guideIntent, targetID }: { onOpenRequest?: (requestID: string) => void; guideIntent?: { type: string }; targetID?: string }) => <><output data-testid="vendor-guide-intent">{guideIntent?.type}</output><output data-testid="vendor-target">{targetID}</output><button type="button" onClick={() => onOpenRequest?.("request-vendor-1")}>Review vendor request</button></>,
 }));
@@ -94,6 +107,20 @@ describe("runtime navigation", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Review due diligence" }));
     expect((await screen.findByTestId("vendor-target")).textContent).toBe("relationship-b");
     expect(window.location.hash).toBe("#vendors/relationship-b");
+  });
+
+  it("cancels a slow vendor guide action when navigation leaves Vendors", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Review due diligence" }));
+    await screen.findByTestId("vendor-guide-intent");
+    const todayButton = (await screen.findAllByRole("button", { name: "Today" }))[0];
+    if (!todayButton) throw new Error("Today navigation is missing");
+    fireEvent.click(todayButton);
+
+    await waitFor(() => expect((screen.getByRole("button", { name: "Review due diligence" }) as HTMLButtonElement).disabled).toBe(false));
+    expect(screen.getByRole("alert").textContent).toContain("This guide step could not be opened. Try again.");
   });
 
   it("opens the exact evidence request selected from the vendor relationship", async () => {

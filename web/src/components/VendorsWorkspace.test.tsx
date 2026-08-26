@@ -130,7 +130,7 @@ describe("VendorsWorkspace", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: /Acme Processing Limited/ })).toBeTruthy());
   });
 
-  it("retries a failed guided load and completes the pending intent", async () => {
+  it("restores the register without completing a failed guide intent", async () => {
     const failed = vi.fn();
     const completed = vi.fn();
     const view = render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria"/>);
@@ -140,7 +140,17 @@ describe("VendorsWorkspace", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
     expect(failed).toHaveBeenCalledOnce();
-    expect(await screen.findByTestId("vendor-work-relationship-relationship-1")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /Acme Processing Limited/ })).toBeTruthy();
+    expect(completed).not.toHaveBeenCalled();
+  });
+
+  it("acknowledges a due-diligence guide at the available error workspace", async () => {
+    vi.mocked(loadCurrentVendorAssessment).mockRejectedValue(new ApiError(503, "Unavailable"));
+    const completed = vi.fn();
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-due-diligence" }} onGuideIntentCompleted={completed}/>);
+
+    const errorWorkspace = await screen.findByText("Due diligence is unavailable");
+    await waitFor(() => expect(document.activeElement).toBe(errorWorkspace.closest(".vdd-workspace")));
     expect(completed).toHaveBeenCalledOnce();
   });
 

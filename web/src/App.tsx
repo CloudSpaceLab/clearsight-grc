@@ -218,7 +218,21 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
     ...(configureEnabled ? [{ label: "Configure", view: "configure" as View }] : []),
   ];
 
+  function cancelVendorGuideIntent(reason: string) {
+    const pending = vendorGuideAck.current;
+    vendorGuideAck.current = undefined;
+    setVendorGuideIntent(undefined);
+    pending?.reject(new Error(reason));
+  }
+
+  useEffect(() => () => {
+    const pending = vendorGuideAck.current;
+    vendorGuideAck.current = undefined;
+    pending?.reject(new Error("Vendor guide action was cancelled."));
+  }, []);
+
   function navigate(view: View, nextTarget: WorkspaceTarget = {}, tab?: WorkTab) {
+    if (view !== "vendors") cancelVendorGuideIntent("Vendor guide action was cancelled.");
     const nextTab = tab ?? workTab;
     setActiveView(view); setTarget(nextTarget); if (tab) setWorkTab(tab);
     const hash = routeHash(view, nextTarget, nextTab);
@@ -281,7 +295,9 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
     const vendorIntent = step.intent;
     if (vendorIntent === "open-vendor-due-diligence" || vendorIntent === "open-vendor-work") {
       return new Promise<void>((resolve, reject) => {
-        vendorGuideAck.current?.reject(new Error("Vendor guide action was replaced."));
+        const previous = vendorGuideAck.current;
+        vendorGuideAck.current = undefined;
+        previous?.reject(new Error("Vendor guide action was replaced."));
         const id = ++vendorGuideIntentID.current;
         vendorGuideAck.current = { id, resolve, reject };
         setVendorGuideIntent({ id, type: vendorIntent });
@@ -305,9 +321,11 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
 
   function failVendorGuideIntent(id: number) {
     if (vendorGuideAck.current?.id === id) {
-      vendorGuideAck.current.reject(new Error("Vendor workspace could not be loaded."));
+      const pending = vendorGuideAck.current;
       vendorGuideAck.current = undefined;
+      pending.reject(new Error("Vendor workspace could not be loaded."));
     }
+    setVendorGuideIntent((current) => current?.id === id ? undefined : current);
   }
 
   const canOpenEvidence = demoMode || items.some((item) => item.action_target_type === "EVIDENCE_REQUEST" && item.action_target_id);
