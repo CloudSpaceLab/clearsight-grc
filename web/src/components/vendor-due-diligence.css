@@ -191,12 +191,16 @@
 .vdd-answer-list dd,
 .vdd-conclusion dd { margin: 0; overflow-wrap: anywhere; line-height: 1.5; }
 .vdd-answer-list .vdd-provenance,
+.vdd-answer-list .vdd-validation,
 .vdd-document .vdd-evidence-status,
 .vdd-document .vdd-document-decision { color: var(--muted); font-size: 11px; }
+.vdd-answer-list .vdd-answer-limitation { color: var(--amber); font-weight: 700; }
+.vdd-answer-list .vdd-critical-response { color: var(--coral); font-weight: 700; }
 .vdd-document .vdd-document-decision { font-weight: 700; }
 .vdd-document { padding: 12px 0; border-top: 1px solid var(--border); }
 .vdd-document > div:first-child { display: grid; gap: 4px; min-width: 0; }
 .vdd-document span { color: var(--muted); font-size: 11px; }
+.vdd-document .vdd-document-recovery { color: var(--amber); max-width: 68ch; line-height: 1.45; }
 .vdd-document > div:last-child { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .vdd-review-group ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .vdd-review-group li { display: flex; justify-content: space-between; gap: 14px; padding: 11px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }

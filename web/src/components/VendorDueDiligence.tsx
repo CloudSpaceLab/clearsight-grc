@@ -45,6 +45,7 @@ type Props = {
   onStartReview?: (assessmentID: string, expectedVersion: number) => Promise<VendorAssessment | void> | VendorAssessment | void;
   onRequestClarification?: (assessmentID: string, input: VendorAssessmentClarificationInput) => Promise<VendorAssessmentClarificationOutcome>;
   onCreateDeficiency?: (assessmentID: string, input: CreateVendorAssessmentDeficiencyInput) => Promise<VendorAssessmentDeficiencyOutcome>;
+  onOpenDocument?: (assessmentID: string, requestID: string, artifactID: string) => void;
   onReviewDocument?: (assessmentID: string, artifactID: string, input: ReviewVendorAssessmentDocumentInput) => Promise<VendorAssessmentReviewView>;
   onComplete?: (assessmentID: string, input: CompleteVendorAssessmentInput) => Promise<VendorAssessment | void> | VendorAssessment | void;
 };
@@ -81,6 +82,7 @@ export function VendorDueDiligence({
   onStartReview,
   onRequestClarification,
   onCreateDeficiency,
+  onOpenDocument,
   onReviewDocument,
   onComplete,
 }: Props) {
@@ -107,7 +109,7 @@ export function VendorDueDiligence({
   const [documentType, setDocumentType] = useState("");
   const [documentEvidenceClass, setDocumentEvidenceClass] = useState<ReviewVendorAssessmentDocumentInput["evidence_class"]>("VENDOR_SUPPLIED");
   const [documentValidUntil, setDocumentValidUntil] = useState("");
-  const [conclusion, setConclusion] = useState<VendorAssessmentConclusion>("SATISFACTORY_WITH_CONDITIONS");
+  const [conclusion, setConclusion] = useState<VendorAssessmentConclusion | "">("");
   const [rationale, setRationale] = useState("");
   const [uncertainty, setUncertainty] = useState("");
   const [nextReviewDate, setNextReviewDate] = useState("");
@@ -123,6 +125,10 @@ export function VendorDueDiligence({
     setPanel(null);
     setError("");
     setNotice("");
+    setConclusion("");
+    setRationale("");
+    setUncertainty("");
+    setNextReviewDate("");
   }, [assessment?.id]);
 
   useEffect(() => {
@@ -340,8 +346,8 @@ export function VendorDueDiligence({
 
   async function submitConclusion(event: React.FormEvent) {
     event.preventDefault();
-    if (!effectiveAssessment || !onComplete || !rationale.trim() || (nextReviewDate && Date.parse(startOfDay(nextReviewDate)) <= Date.now())) {
-      setError("Record the assessment basis before completing the review.");
+    if (!effectiveAssessment || !onComplete || !conclusion || !rationale.trim() || (nextReviewDate && Date.parse(startOfDay(nextReviewDate)) <= Date.now())) {
+      setError("Select a conclusion and record the assessment basis before completing the review.");
       return;
     }
     await run(async () => {
@@ -425,7 +431,7 @@ export function VendorDueDiligence({
     {effectiveAssessment && needsReviewView(status) && reviewState === "loading" && <div className="vdd-review-state" aria-live="polite" aria-busy="true">Loading the submitted response and supporting documents…</div>}
     {effectiveAssessment && needsReviewView(status) && reviewState === "unavailable" && <div className="vdd-alert" role="alert"><strong>Vendor response is unavailable</strong><span>The submitted answers and documents could not be loaded. Reload them before starting or completing the review.</span>{onRefreshReview && <button type="button" className="secondary-button" onClick={() => void onRefreshReview(effectiveAssessment.id)}>Reload vendor response</button>}</div>}
 
-    {reviewState === "live" && review && <ReviewSummary review={review} assessment={effectiveAssessment} onReviewDocument={!panel && onReviewDocument ? openDocumentReview : undefined} onCreateDeficiency={!panel && onCreateDeficiency ? () => openPanel("deficiency") : undefined}/>}
+    {reviewState === "live" && review && <ReviewSummary review={review} assessment={effectiveAssessment} onOpenDocument={!panel && onOpenDocument ? onOpenDocument : undefined} onReviewDocument={!panel && onReviewDocument ? openDocumentReview : undefined} onCreateDeficiency={!panel && onCreateDeficiency ? () => openPanel("deficiency") : undefined}/>}
 
     {panel === "start" && <StartPanel form={form} reviewDueDate={reviewDueDate} minimumDate={minimumFutureDate} busy={busy} onReviewDueDate={setReviewDueDate} onCancel={() => setPanel(null)} onSubmit={startAssessment}/>}
     {panel === "send" && effectiveAssessment && <SendPanel recipient={recipient} responseDueDate={responseDueDate} invitationMinutes={invitationMinutes} minimumDate={minimumFutureDate} reviewDueAt={effectiveAssessment.review_due_at} busy={busy} onRecipient={setRecipient} onResponseDueDate={setResponseDueDate} onInvitationMinutes={setInvitationMinutes} onCancel={() => { setRecipient(""); setPanel(null); }} onSubmit={sendRequest}/>}
@@ -526,29 +532,62 @@ function DocumentDecisionPanel({ document, decision, documentType, evidenceClass
   </form>;
 }
 
-function ConclusionPanel({ conclusion, rationale, uncertainty, nextReviewDate, minimumDate, busy, onConclusion, onRationale, onUncertainty, onNextReviewDate, onCancel, onSubmit }: { conclusion: VendorAssessmentConclusion; rationale: string; uncertainty: string; nextReviewDate: string; minimumDate: string; busy: boolean; onConclusion: (value: VendorAssessmentConclusion) => void; onRationale: (value: string) => void; onUncertainty: (value: string) => void; onNextReviewDate: (value: string) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
+function ConclusionPanel({ conclusion, rationale, uncertainty, nextReviewDate, minimumDate, busy, onConclusion, onRationale, onUncertainty, onNextReviewDate, onCancel, onSubmit }: { conclusion: VendorAssessmentConclusion | ""; rationale: string; uncertainty: string; nextReviewDate: string; minimumDate: string; busy: boolean; onConclusion: (value: VendorAssessmentConclusion | "") => void; onRationale: (value: string) => void; onUncertainty: (value: string) => void; onNextReviewDate: (value: string) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
   return <form className="vdd-panel" onSubmit={onSubmit} noValidate>
     <div><span className="eyebrow">Reviewer conclusion</span><h3>Record assessment conclusion</h3><p>Base the conclusion on the submitted response, reviewed documents and recorded findings.</p></div>
     <div className="vdd-form-grid">
-      <label className="vdd-field"><span>Conclusion</span><select value={conclusion} onChange={(event) => onConclusion(event.target.value as VendorAssessmentConclusion)}>{conclusionOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+      <label className="vdd-field"><span>Conclusion</span><select value={conclusion} onChange={(event) => onConclusion(event.target.value as VendorAssessmentConclusion | "")} required><option value="">Select a conclusion</option>{conclusionOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
       <label className="vdd-field"><span>Recommended next review</span><input type="date" min={minimumDate} value={nextReviewDate} onChange={(event) => onNextReviewDate(event.target.value)}/></label>
       <label className="vdd-field vdd-wide"><span>Assessment basis</span><textarea rows={5} value={rationale} onChange={(event) => onRationale(event.target.value)} required/></label>
       <label className="vdd-field vdd-wide"><span>Remaining uncertainty</span><textarea rows={3} value={uncertainty} onChange={(event) => onUncertainty(event.target.value)}/></label>
     </div>
     <p className="vdd-limitation">This conclusion completes the assessment review. It does not activate or approve the vendor relationship.</p>
-    <div className="vdd-panel-actions"><button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>Cancel</button><button type="submit" className="primary-button" disabled={busy}>{busy ? "Recording…" : "Record assessment conclusion"}</button></div>
+    <div className="vdd-panel-actions"><button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>Cancel</button><button type="submit" className="primary-button" disabled={busy || !conclusion || !rationale.trim()}>{busy ? "Recording…" : "Record assessment conclusion"}</button></div>
   </form>;
 }
 
-function ReviewSummary({ review, assessment, onReviewDocument, onCreateDeficiency }: { review: VendorAssessmentReviewView; assessment?: VendorAssessment | null; onReviewDocument?: (document: VendorAssessmentDocument, decision: "VALIDATE" | "REJECT") => void; onCreateDeficiency?: () => void }) {
-  const visibleAnswers = review.answers.filter((answer) => answer.visibility === "VISIBLE");
+function ReviewSummary({ review, assessment, onOpenDocument, onReviewDocument, onCreateDeficiency }: { review: VendorAssessmentReviewView; assessment?: VendorAssessment | null; onOpenDocument?: (assessmentID: string, requestID: string, artifactID: string) => void; onReviewDocument?: (document: VendorAssessmentDocument, decision: "VALIDATE" | "REJECT") => void; onCreateDeficiency?: () => void }) {
+  const criticalResponses = new Map(review.provisional_score?.critical_failures?.map((failure) => [failure.field_id, failure.outcome]) ?? []);
   return <section className="vdd-review" aria-label="Vendor response review">
     <div className="vdd-review-header"><div><h3>Vendor response</h3>{review.response ? <p>Submitted {formatDate(review.response.submitted_at)} · {review.response.answer_count} {itemLabel(review.response.answer_count, "answer")} · {review.response.artifact_count} {itemLabel(review.response.artifact_count, "document")}</p> : <p>No submitted response summary is available.</p>}</div><div className="vdd-review-metrics"><span>{review.coverage.answered_required} of {review.coverage.required_fields} required answers received</span>{review.provisional_score?.score !== undefined && <span>Provisional score: {formatScore(review.provisional_score.score)} of 100 · Form version {review.assessment.form_template_version}</span>}</div></div>
-    <div className="vdd-review-group"><h4>Submitted answers</h4>{visibleAnswers.length ? <dl className="vdd-answer-list">{visibleAnswers.map((answer) => <div key={answer.field_id}><dt>{answer.label}{answer.required ? " · Required" : ""}</dt><dd>{formatAnswer(answer.value)}</dd>{answer.provenance && <dd className="vdd-provenance">{provenanceLabel(answer.provenance)}</dd>}</div>)}</dl> : <p>No visible answers were submitted for this form version.</p>}</div>
-    {review.documents.length > 0 && <div className="vdd-review-group"><h4>Supporting documents</h4>{review.documents.map((document) => <article className="vdd-document" key={document.artifact_id}><div><strong>{document.file_name}</strong><span>{document.document_type.replaceAll("_", " ")} · {formatBytes(document.size_bytes)}{document.expires_on ? ` · Expires ${formatDate(document.expires_on)}` : ""}</span><span className="vdd-evidence-status">{artifactStatusLabel(document.artifact_status)} · {evidenceClassLabel(document.evidence_class)}</span>{document.status && <span className="vdd-document-decision">{documentDecisionLabel(document.status)} · {evidenceClassLabel(document.evidence_class)}</span>}</div>{assessment?.status === "UNDER_REVIEW" && onReviewDocument && <div><button type="button" className="text-button" onClick={() => onReviewDocument(document, "VALIDATE")} disabled={document.artifact_status !== "AVAILABLE"} title={document.artifact_status !== "AVAILABLE" ? "The security scan must complete before this document can be validated." : undefined}>Validate document</button><button type="button" className="text-button" onClick={() => onReviewDocument(document, "REJECT")}>Reject document</button></div>}</article>)}</div>}
+    <div className="vdd-review-group"><h4>Submitted answers</h4>{review.answers.length ? <dl className="vdd-answer-list">{review.answers.map((answer) => <ReviewAnswer key={answer.field_id} answer={answer} criticalResponse={criticalResponses.get(answer.field_id)}/>)}</dl> : <p>No answers were submitted for this form version.</p>}</div>
+    {review.documents.length > 0 && <div className="vdd-review-group"><h4>Supporting documents</h4>{review.documents.map((document) => <ReviewDocument key={document.artifact_id} document={document} assessment={assessment} requestID={review.response?.request_id} onOpenDocument={onOpenDocument} onReviewDocument={onReviewDocument}/>)}</div>}
     <div className="vdd-review-group"><div className="vdd-review-group-heading"><h4>Findings</h4>{assessment?.status === "UNDER_REVIEW" && onCreateDeficiency && <button type="button" className="secondary-button" onClick={onCreateDeficiency}>Record finding</button>}</div>{review.matters.length ? <ul>{review.matters.map((finding) => <li key={finding.matter_id}><strong>{finding.title}</strong><span>{humanizeStatus(finding.status)}</span></li>)}</ul> : <p>No findings are linked to this assessment.</p>}</div>
     {assessment?.status === "COMPLETED" && <div className="vdd-review-group"><h4>Recorded conclusion</h4><dl className="vdd-conclusion"><div><dt>Conclusion</dt><dd>{conclusionLabel(assessment.conclusion)}</dd></div><div><dt>Assessment basis</dt><dd>{assessment.conclusion_rationale || "No assessment basis was recorded."}</dd></div>{assessment.conclusion_uncertainty && <div><dt>Remaining uncertainty</dt><dd>{assessment.conclusion_uncertainty}</dd></div>}<div><dt>Completed</dt><dd>{formatDate(assessment.completed_at)}</dd></div></dl></div>}
   </section>;
+}
+
+function ReviewAnswer({ answer, criticalResponse }: { answer: VendorAssessmentReviewView["answers"][number]; criticalResponse?: string }) {
+  const conditionalOmission = answer.visibility === "CONDITIONALLY_OMITTED";
+  const sourceValue = answer.provenance?.source_value?.text;
+  const missingRequired = answer.required && !answer.value;
+  return <div role="group" aria-label={`Response: ${answer.label}`}>
+    <dt>{answer.label}{answer.required ? " · Required" : ""}</dt>
+    <dd className={conditionalOmission || missingRequired ? "vdd-answer-limitation" : undefined}>{conditionalOmission ? "Not requested because its condition was not met" : missingRequired ? "Required response missing" : `Vendor response: ${formatAnswer(answer.value)}`}</dd>
+    {sourceValue && <dd>Source value: {sourceValue}</dd>}
+    {criticalResponse && <dd className="vdd-critical-response">Critical response: {humanizeResponseOutcome(criticalResponse)}</dd>}
+    {answer.provenance && <dd className="vdd-provenance">{provenanceLabel(answer.provenance)}</dd>}
+    {answer.provenance?.validations?.map((validation, index) => <dd className="vdd-validation" key={`${answer.field_id}-validation-${index}`}>{validationLabel(validation)}</dd>)}
+  </div>;
+}
+
+function ReviewDocument({ document, assessment, requestID, onOpenDocument, onReviewDocument }: { document: VendorAssessmentDocument; assessment?: VendorAssessment | null; requestID?: string; onOpenDocument?: (assessmentID: string, requestID: string, artifactID: string) => void; onReviewDocument?: (document: VendorAssessmentDocument, decision: "VALIDATE" | "REJECT") => void }) {
+  const actionable = documentIsActionable(document);
+  const unavailableReason = actionable && requestID ? "" : documentRecovery(document, requestID);
+  return <article className="vdd-document" aria-label={document.file_name}>
+    <div>
+      <strong>{document.file_name}</strong>
+      <span>{document.document_type.replaceAll("_", " ")} · {formatBytes(document.size_bytes)}{document.expires_on ? ` · Expires ${formatDate(document.expires_on)}` : ""}</span>
+      <span className="vdd-evidence-status">{artifactStatusLabel(document.artifact_status)} · {evidenceClassLabel(document.evidence_class)}</span>
+      {document.status && <span className="vdd-document-decision">{documentDecisionLabel(document.status)} · {evidenceClassLabel(document.evidence_class)}</span>}
+      {unavailableReason && <span className="vdd-document-recovery">{unavailableReason}</span>}
+    </div>
+    {assessment?.status === "UNDER_REVIEW" && (onOpenDocument || onReviewDocument) && <div>
+      {onOpenDocument && <button type="button" className="text-button" onClick={() => requestID && onOpenDocument(assessment.id, requestID, document.artifact_id)} disabled={!actionable || !requestID}>Open document</button>}
+      {onReviewDocument && <button type="button" className="text-button" onClick={() => onReviewDocument(document, "VALIDATE")} disabled={!actionable}>Validate document</button>}
+      {onReviewDocument && <button type="button" className="text-button" onClick={() => onReviewDocument(document, "REJECT")} disabled={!actionable}>Reject document</button>}
+    </div>}
+  </article>;
 }
 
 function needsReviewView(status?: VendorAssessment["status"]) {
@@ -576,6 +615,39 @@ function provenanceLabel(provenance: NonNullable<VendorAssessmentReviewView["ans
   }
   if (provenance.origin === "RESPONDENT_ENTERED") return "Entered by the vendor";
   return observed ? `Answer source recorded · Observed ${observed}` : "Answer source recorded";
+}
+
+function validationLabel(validation: NonNullable<NonNullable<VendorAssessmentReviewView["answers"][number]["provenance"]>["validations"]>[number]) {
+  const state = validation.state ?? "UNKNOWN";
+  const status = state === "CURRENT" ? "Validation current"
+    : state === "STALE" ? "Validation out of date"
+      : state === "PARTIAL" ? "Validation incomplete"
+        : state === "NOT_FOUND" ? "Source did not confirm this value"
+          : state === "AMBIGUOUS" ? "Source returned more than one match"
+            : state === "SCHEMA_DRIFT" ? "Validation mapping changed"
+              : state === "UNAVAILABLE" ? "Validation source unavailable"
+                : state === "INVALID" ? "Source did not validate this value"
+                  : `Validation result: ${humanizeStatus(state)}`;
+  const source = validation.binding_name || validation.source_id;
+  const checked = validation.receipt?.observed_at ? `Checked ${formatDate(validation.receipt.observed_at)}` : "";
+  return [status, source, checked].filter(Boolean).join(" · ");
+}
+
+function documentIsActionable(document: VendorAssessmentDocument) {
+  return document.artifact_status === "AVAILABLE" && document.status !== "REJECTED" && document.status !== "EXPIRED";
+}
+
+function documentRecovery(document: VendorAssessmentDocument, requestID?: string) {
+  if (!requestID) return "The submitted request could not be confirmed. Reload the vendor response before opening this document.";
+  if (document.status === "REJECTED") return "This document was rejected. Request a replacement before reviewing it again.";
+  if (document.status === "EXPIRED") return "This document has expired. Request a current document before using it in the review.";
+  switch (document.artifact_status) {
+    case "STORED_UNSCANNED": return "The security scan is pending. Open and review actions will be available after the scan completes.";
+    case "QUARANTINED": return "This document is quarantined. Wait for a clean replacement before reviewing it.";
+    case "DELETED": return "This document is unavailable. Request a replacement before continuing the review.";
+    case "AVAILABLE": return "";
+    default: return "This document is unavailable for review. Reload the response or request a replacement.";
+  }
 }
 
 function artifactStatusLabel(value: string) {
@@ -623,6 +695,10 @@ function itemLabel(count: number, noun: string) {
 
 function humanizeStatus(value: string) {
   return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
+
+function humanizeResponseOutcome(value: string) {
+  return value.includes("_") || value === value.toUpperCase() ? humanizeStatus(value) : value;
 }
 
 function assessmentStatusCopy(assessment?: VendorAssessment | null, setupFailure?: string) {

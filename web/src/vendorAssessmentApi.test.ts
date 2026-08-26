@@ -11,6 +11,7 @@ import {
   startVendorAssessment,
   startVendorAssessmentReview,
 } from "./vendorAssessmentApi";
+import * as vendorAssessmentApi from "./vendorAssessmentApi";
 
 const assessment = {
   id: "assessment-1",
@@ -33,6 +34,12 @@ const assessment = {
 
 describe("vendor assessment API", () => {
   afterEach(() => vi.unstubAllGlobals());
+
+  it("builds an exact assessment and request scoped document URL", () => {
+    const api = vendorAssessmentApi as typeof vendorAssessmentApi & { vendorAssessmentDocumentURL?: (assessmentID: string, requestID: string, artifactID: string) => string };
+    expect(typeof api.vendorAssessmentDocumentURL).toBe("function");
+    expect(api.vendorAssessmentDocumentURL?.("assessment/1", "request/7", "artifact/3")).toBe("/api/v1/vendor-assessments/assessment%2F1/requests/request%2F7/documents/artifact%2F3/open");
+  });
 
   it("loads the current relationship-scoped assessment using the route identifier", async () => {
     const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify(assessment), { status: 200 })));

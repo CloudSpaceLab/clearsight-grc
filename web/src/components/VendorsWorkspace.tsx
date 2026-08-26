@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { apiErrorKind } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
-import { completeVendorAssessment, createVendorAssessmentDeficiency, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, requestVendorAssessmentClarification, retryVendorAssessmentSetup, reviewVendorAssessmentDocument, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview } from "../vendorAssessmentApi";
+import { completeVendorAssessment, createVendorAssessmentDeficiency, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, requestVendorAssessmentClarification, retryVendorAssessmentSetup, reviewVendorAssessmentDocument, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview, vendorAssessmentDocumentURL } from "../vendorAssessmentApi";
 import type { CompleteVendorAssessmentInput, CreateVendorAssessmentDeficiencyInput, CurrentVendorAssessment, ReviewVendorAssessmentDocumentInput, StartVendorAssessmentInput, VendorAssessment, VendorAssessmentClarificationInput, VendorAssessmentFormOption, VendorAssessmentReviewView, VendorAssessmentSendOutcome, VendorAssessmentSetupRetryOutcome } from "../vendorAssessmentTypes";
 import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
 import type { CreateVendorRelationshipInput, VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "../vendorTypes";
@@ -347,7 +347,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       <section className="vendor-register" aria-label={`Vendor relationships for ${legalEntityName}`}>
         <div className="vendor-register-header"><div><h2>Vendor register</h2><p>{records.length} {records.length === 1 ? "relationship" : "relationships"} in the current legal entity</p></div></div>
         <label className="vendor-search"><span>Search vendors and services</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search legal name or service"/></label>
-        {visibleRecords.length > 0 ? <div className="vendor-list">{visibleRecords.map((record) => <button type="button" key={record.relationship.id} aria-label={record.vendor.legal_name} aria-current={selected?.relationship.id === record.relationship.id ? "true" : undefined} className={selected?.relationship.id === record.relationship.id ? "vendor-row selected" : "vendor-row"} onClick={() => choose(record)}>
+        {visibleRecords.length > 0 ? <div className="vendor-list">{visibleRecords.map((record) => <button type="button" key={record.relationship.id} aria-label={`${record.vendor.legal_name}, ${record.relationship.service_name}`} aria-current={selected?.relationship.id === record.relationship.id ? "true" : undefined} className={selected?.relationship.id === record.relationship.id ? "vendor-row selected" : "vendor-row"} onClick={() => choose(record)}>
           <span className="vendor-row-icon" aria-hidden="true">V</span><span className="vendor-row-main"><strong>{record.vendor.legal_name}</strong><span>Service: {record.relationship.service_name}</span></span><span className={`vendor-criticality criticality-${record.relationship.criticality.toLowerCase()}`}>{humanize(record.relationship.criticality)}</span>
         </button>)}</div> : records.length === 0 ? <div className="vendor-empty"><h3>No vendor relationships found for {legalEntityName}.</h3><p>Add the first vendor and the service it supplies. Use <strong>Add vendor</strong> above; the signed-in actor becomes the initial accountable owner.</p></div> : <div className="vendor-empty"><h3>No vendors match this search.</h3><p>The current register contains {records.length} relationships. Clear the search to review them.</p><button type="button" className="secondary-button" onClick={() => setQuery("")}>Clear search</button></div>}
       </section>
@@ -449,6 +449,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
     clarificationFields={review?.answers.filter((answer) => answer.visibility === "VISIBLE").map((answer) => ({ id: answer.field_id, label: answer.label }))}
     onRequestClarification={onRequestAssessmentClarification}
     onCreateDeficiency={onCreateAssessmentDeficiency}
+    onOpenDocument={(assessmentID, requestID, artifactID) => window.open(vendorAssessmentDocumentURL(assessmentID, requestID, artifactID), "_blank", "noopener,noreferrer")}
     onReviewDocument={onReviewAssessmentDocument}
     onComplete={onCompleteAssessmentReview}
     onOpenRequest={onOpenRequest}

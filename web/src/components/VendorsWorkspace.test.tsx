@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
-import { completeVendorAssessment, createVendorAssessmentDeficiency, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, requestVendorAssessmentClarification, retryVendorAssessmentSetup, reviewVendorAssessmentDocument, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview } from "../vendorAssessmentApi";
+import { completeVendorAssessment, createVendorAssessmentDeficiency, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, requestVendorAssessmentClarification, retryVendorAssessmentSetup, reviewVendorAssessmentDocument, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview, vendorAssessmentDocumentURL } from "../vendorAssessmentApi";
 import type { VendorAssessment, VendorAssessmentReviewView } from "../vendorAssessmentTypes";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
@@ -29,6 +29,7 @@ vi.mock("../vendorAssessmentApi", () => ({
   sendVendorAssessmentRequest: vi.fn(),
   startVendorAssessment: vi.fn(),
   startVendorAssessmentReview: vi.fn(),
+  vendorAssessmentDocumentURL: vi.fn(),
 }));
 
 const record: VendorRelationshipAggregate = {
@@ -94,6 +95,12 @@ describe("VendorsWorkspace", () => {
     expect(screen.getByText("owner-1")).toBeTruthy();
     expect(screen.getByText("Version 1")).toBeTruthy();
     expect(await screen.findByRole("heading", { name: "Due diligence" })).toBeTruthy();
+  });
+
+  it("names each relationship with its vendor and service", async () => {
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria"/>);
+
+    expect(await screen.findByRole("button", { name: "Acme Processing Limited, Card transaction processing" })).toBeTruthy();
   });
 
   it("treats a scoped missing assessment as not started and selects only the current active vendor form", async () => {
@@ -246,6 +253,7 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
 
     fireEvent.click(await screen.findByRole("button", { name: "Record assessment conclusion" }));
+    fireEvent.change(screen.getByLabelText("Conclusion"), { target: { value: "SATISFACTORY_WITH_CONDITIONS" } });
     fireEvent.change(screen.getByLabelText("Assessment basis"), { target: { value: "Proceed after the recorded access-control action is complete." } });
     fireEvent.click(screen.getByRole("button", { name: "Record assessment conclusion" }));
 
@@ -319,6 +327,20 @@ describe("VendorsWorkspace", () => {
       expected_version: 3, decision: "VALIDATE", document_type: "SECURITY_TEST", evidence_class: "BANK_VALIDATED", valid_until: "2027-08-01",
     }));
     expect(await screen.findByText("Validated · Bank validated evidence")).toBeTruthy();
+  });
+
+  it("opens an authorized assessment document in a separate browser context", async () => {
+    vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: assessment("UNDER_REVIEW") });
+    vi.mocked(loadVendorAssessment).mockResolvedValue(review("UNDER_REVIEW"));
+    vi.mocked(vendorAssessmentDocumentURL).mockReturnValue("/api/v1/vendor-assessments/assessment-1/requests/request-1/documents/artifact-1/open");
+    const openDocument = vi.spyOn(window, "open").mockImplementation(() => null);
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open document" }));
+
+    expect(vendorAssessmentDocumentURL).toHaveBeenCalledWith("assessment-1", "request-1", "artifact-1");
+    expect(openDocument).toHaveBeenCalledWith("/api/v1/vendor-assessments/assessment-1/requests/request-1/documents/artifact-1/open", "_blank", "noopener,noreferrer");
+    openDocument.mockRestore();
   });
 
   it("shows a completed assessment as a read-only review record", async () => {

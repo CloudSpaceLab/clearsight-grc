@@ -170,7 +170,14 @@ export type VendorAssessmentReviewAnswer = {
       observed_at: string;
       [key: string]: unknown;
     };
-    validations?: { state?: string; [key: string]: unknown }[];
+    validations?: {
+      state?: string;
+      binding_name?: string;
+      source_id?: string;
+      failure_code?: string;
+      receipt?: { observed_at?: string; [key: string]: unknown };
+      [key: string]: unknown;
+    }[];
   };
 };
 

@@ -214,6 +214,88 @@ describe("VendorDueDiligence", () => {
     expect(primaryActions()).toHaveLength(1);
   });
 
+  it("requires an explicit conclusion and basis without selecting from the provisional score", () => {
+    const review: VendorAssessmentReviewView = {
+      assessment: assessment("UNDER_REVIEW"), requests: [], answers: [],
+      coverage: { visible_fields: 0, answered_fields: 0, required_fields: 0, answered_required: 0, ratio: 1 },
+      documents: [], provisional_score: { score: 100, coverage: 1, rule_results: [] }, matters: [],
+    };
+    const onComplete = vi.fn();
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onComplete={onComplete}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Record assessment conclusion" }));
+
+    const conclusion = screen.getByLabelText("Conclusion") as HTMLSelectElement;
+    const submit = screen.getByRole("button", { name: "Record assessment conclusion" }) as HTMLButtonElement;
+    expect(conclusion.value).toBe("");
+    expect(submit.disabled).toBe(true);
+
+    fireEvent.change(conclusion, { target: { value: "SATISFACTORY" } });
+    expect(submit.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Assessment basis"), { target: { value: "The submitted evidence supports the stated controls." } });
+    expect(submit.disabled).toBe(false);
+  });
+
+  it("shows corrections, omissions, critical responses, validation limits and freshness", () => {
+    const review: VendorAssessmentReviewView = {
+      assessment: assessment("UNDER_REVIEW"), requests: [],
+      response: { submission_id: "submission-1", request_id: "request-1", submitted_at: "2026-08-28T11:00:00Z", answer_count: 2, artifact_count: 0 },
+      answers: [
+        {
+          field_id: "service-criticality", label: "Service criticality", type: "SINGLE_SELECT", required: true, visibility: "VISIBLE", value: { text: "Critical" },
+          provenance: {
+            origin: "RESPONDENT_CORRECTED", source_value: { kind: "STRING", text: "Important" },
+            source_receipt: { source_id: "Procurement register", observed_at: "2026-08-27T09:30:00Z" },
+            validations: [{ state: "STALE", binding_name: "Approved vendor register", source_id: "Procurement register", receipt: { observed_at: "2026-08-20T09:30:00Z" } }],
+          },
+        },
+        { field_id: "insurance", label: "Cyber insurance", type: "YES_NO", required: true, visibility: "VISIBLE" },
+        { field_id: "insurance-limit", label: "Insurance limit", type: "NUMBER", required: true, visibility: "CONDITIONALLY_OMITTED" },
+      ],
+      coverage: { visible_fields: 2, answered_fields: 1, required_fields: 2, answered_required: 1, ratio: 0.5 },
+      documents: [],
+      provisional_score: {
+        score: 35, coverage: 0.5,
+        critical_failures: [{ field_id: "service-criticality", outcome: "Critical service", points: 0, critical: true }],
+        rule_results: [],
+      },
+      matters: [],
+    };
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onComplete={vi.fn()}/>);
+
+    const criticality = screen.getByRole("group", { name: "Response: Service criticality" });
+    expect(within(criticality).getByText("Vendor response: Critical")).toBeTruthy();
+    expect(within(criticality).getByText("Source value: Important")).toBeTruthy();
+    expect(within(criticality).getByText("Critical response: Critical service")).toBeTruthy();
+    expect(within(criticality).getByText("Validation out of date · Approved vendor register · Checked 20 Aug 2026")).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Response: Cyber insurance" }).textContent).toContain("Required response missing");
+    expect(screen.getByRole("group", { name: "Response: Insurance limit" }).textContent).toContain("Not requested because its condition was not met");
+  });
+
+  it("opens only an available assessment document before its review actions", () => {
+    const available = { field_id: "security-report", artifact_id: "artifact-1", file_name: "security-report.pdf", media_type: "application/pdf", size_bytes: 64000, artifact_status: "AVAILABLE", status: "SUBMITTED", evidence_class: "VENDOR_SUPPLIED" as const, document_type: "SECURITY_TEST" };
+    const quarantined = { ...available, artifact_id: "artifact-2", file_name: "quarantined-report.pdf", artifact_status: "QUARANTINED" };
+    const review: VendorAssessmentReviewView = {
+      assessment: assessment("UNDER_REVIEW"), requests: [],
+      response: { submission_id: "submission-1", request_id: "request-7", submitted_at: "2026-08-28T11:00:00Z", answer_count: 0, artifact_count: 2 },
+      answers: [], coverage: { visible_fields: 0, answered_fields: 0, required_fields: 0, answered_required: 0, ratio: 1 },
+      documents: [available, quarantined], matters: [],
+    };
+    const onOpenDocument = vi.fn();
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onOpenDocument={onOpenDocument} onReviewDocument={vi.fn()} onComplete={vi.fn()}/>);
+
+    const availableDocument = screen.getByRole("article", { name: "security-report.pdf" });
+    const availableActions = within(availableDocument).getAllByRole("button");
+    expect(availableActions.map((button) => button.textContent)).toEqual(["Open document", "Validate document", "Reject document"]);
+    fireEvent.click(availableActions[0]!);
+    expect(onOpenDocument).toHaveBeenCalledWith("assessment-1", "request-7", "artifact-1");
+
+    const quarantinedDocument = screen.getByRole("article", { name: "quarantined-report.pdf" });
+    expect((within(quarantinedDocument).getByRole("button", { name: "Open document" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(within(quarantinedDocument).getByText("This document is quarantined. Wait for a clean replacement before reviewing it.")).toBeTruthy();
+    expect((within(quarantinedDocument).getByRole("button", { name: "Reject document" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it("requests targeted clarification, clears the audience and exposes only a returned fallback link", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });

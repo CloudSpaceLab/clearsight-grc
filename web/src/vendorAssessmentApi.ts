@@ -20,6 +20,10 @@ import type {
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
+export function vendorAssessmentDocumentURL(assessmentID: string, requestID: string, artifactID: string): string {
+  return `${apiBase}/api/v1/vendor-assessments/${encodeURIComponent(assessmentID)}/requests/${encodeURIComponent(requestID)}/documents/${encodeURIComponent(artifactID)}/open`;
+}
+
 export async function loadCurrentVendorAssessment(relationshipID: string): Promise<CurrentVendorAssessment> {
   const response = await requestJSON<VendorAssessment | CurrentVendorAssessment>(apiBase, `/api/v1/vendors/${encodeURIComponent(relationshipID)}/assessments/current`);
   if ("assessment" in response) return response;
