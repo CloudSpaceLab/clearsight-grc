@@ -90,10 +90,11 @@ func (r *PostgresRepository) CreateRelationshipLink(ctx context.Context, value R
 	if err != nil {
 		return RelationshipLink{}, fmt.Errorf("store vendor relationship link: %w", err)
 	}
-	if err := appendRelationshipLinkEvent(ctx, tx, tenantID, value, "VendorRelationshipLinked"); err != nil {
+	eventID, err := appendRelationshipLinkEvent(ctx, tx, tenantID, value, "VendorRelationshipLinked")
+	if err != nil {
 		return RelationshipLink{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, relationshipLinkCommitProof(eventID, value, "VendorRelationshipLinked")); err != nil {
 		return RelationshipLink{}, fmt.Errorf("commit vendor relationship link: %w", err)
 	}
 	return value, nil
@@ -171,10 +172,11 @@ func (r *PostgresRepository) EndRelationshipLink(ctx context.Context, scope Scop
 	if err != nil {
 		return RelationshipLink{}, err
 	}
-	if err := appendRelationshipLinkEvent(ctx, tx, tenantID, current, "VendorRelationshipLinkEnded"); err != nil {
+	eventID, err := appendRelationshipLinkEvent(ctx, tx, tenantID, current, "VendorRelationshipLinkEnded")
+	if err != nil {
 		return RelationshipLink{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, relationshipLinkCommitProof(eventID, current, "VendorRelationshipLinkEnded")); err != nil {
 		return RelationshipLink{}, fmt.Errorf("commit vendor relationship unlink: %w", err)
 	}
 	return current, nil
@@ -278,24 +280,26 @@ func scanRelationshipLink(row rowScanner) (RelationshipLink, error) {
 	return value, err
 }
 
-func appendRelationshipLinkEvent(ctx context.Context, tx pgx.Tx, tenantID string, value RelationshipLink, eventType string) error {
+func appendRelationshipLinkEvent(ctx context.Context, tx pgx.Tx, tenantID string, value RelationshipLink, eventType string) (string, error) {
 	actor := value.CreatedBy
 	if value.EndedBy != "" {
 		actor = value.EndedBy
 	}
-	_, err := tx.Exec(ctx, `INSERT INTO third_party_relationship_link_events(tenant_id,legal_entity_id,link_id,relationship_id,target_type,target_id,link_version,actor_principal_id,event_type,payload,occurred_at)
-		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6::uuid,$7,$8::uuid,$9,jsonb_build_object('purpose_code',$10::text,'state',$11::text,'reason',$12::text),$13)`,
-		tenantID, value.LegalEntityID, value.ID, value.RelationshipID, value.TargetType, value.TargetID, value.Version, actor, eventType, value.PurposeCode, value.State, value.EndReason, value.UpdatedAt)
+	var eventID string
+	err := tx.QueryRow(ctx, `INSERT INTO third_party_relationship_link_events(tenant_id,legal_entity_id,link_id,relationship_id,target_type,target_id,link_version,actor_principal_id,event_type,payload,occurred_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6::uuid,$7,$8::uuid,$9,jsonb_build_object('purpose_code',$10::text,'state',$11::text,'reason',$12::text),$13)
+		RETURNING id::text`,
+		tenantID, value.LegalEntityID, value.ID, value.RelationshipID, value.TargetType, value.TargetID, value.Version, actor, eventType, value.PurposeCode, value.State, value.EndReason, value.UpdatedAt).Scan(&eventID)
 	if err != nil {
-		return fmt.Errorf("append vendor relationship link event: %w", err)
+		return "", fmt.Errorf("append vendor relationship link event: %w", err)
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at)
 		VALUES($1::uuid,'VENDOR_RELATIONSHIP_LINK',$2::uuid,$3,jsonb_build_object('version',$4::bigint,'relationship_id',$5::text,'target_type',$6::text,'target_id',$7::text,'state',$8::text),$9,$9)`,
 		tenantID, value.ID, eventType, value.Version, value.RelationshipID, value.TargetType, value.TargetID, value.State, value.UpdatedAt)
 	if err != nil {
-		return fmt.Errorf("append vendor relationship link outbox event: %w", err)
+		return "", fmt.Errorf("append vendor relationship link outbox event: %w", err)
 	}
-	return nil
+	return eventID, nil
 }
 
 func isUniqueViolation(err error) bool {

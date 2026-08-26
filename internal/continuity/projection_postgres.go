@@ -55,7 +55,7 @@ func (r *PostgresRepository) SaveProgramState(ctx context.Context, tenant, progr
 	if err = insertOutbox(ctx, tx, event); err != nil {
 		return 0, err
 	}
-	if err = tx.Commit(ctx); err != nil {
+	if err = r.commitContinuityEvents(ctx, tx, event); err != nil {
 		return 0, err
 	}
 	return projectionVersion, nil
@@ -265,7 +265,7 @@ func (r *PostgresRepository) CreateMatterWithLink(ctx context.Context, bundle Ma
 	if _, err = queueProgramStateTx(ctx, tx, matter.TenantID, bundle.Link.ProgramID, 0, EventMatterLinked, matter.ID, bundle.LinkEvent.ActorID, bundle.LinkEvent.OccurredAt); err != nil {
 		return Matter{}, err
 	}
-	if err = tx.Commit(ctx); err != nil {
+	if err = r.commitContinuityEvents(ctx, tx, bundle.MatterEvent, bundle.LinkEvent); err != nil {
 		return Matter{}, err
 	}
 	matter.Version = bundle.LinkEvent.AggregateVersion
@@ -355,7 +355,11 @@ func (r *PostgresRepository) ApplyTriggerBundle(ctx context.Context, bundle Trig
 	if _, err = queueProgramStateTx(ctx, tx, trigger.TenantID, trigger.ProgramID, bundle.ProgramEvent.AggregateVersion, trigger.Type, trigger.ID, bundle.ProgramEvent.ActorID, time.Now().UTC()); err != nil {
 		return TriggerBundleResult{}, err
 	}
-	if err = tx.Commit(ctx); err != nil {
+	events := []Event{bundle.ProgramEvent}
+	if bundle.MatterEvent != nil && bundle.LinkEvent != nil {
+		events = append(events, *bundle.MatterEvent, *bundle.LinkEvent)
+	}
+	if err = r.commitContinuityEvents(ctx, tx, events...); err != nil {
 		return TriggerBundleResult{}, err
 	}
 	return result, nil

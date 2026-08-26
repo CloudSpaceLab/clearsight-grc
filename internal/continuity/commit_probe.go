@@ -2,9 +2,20 @@ package continuity
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 )
+
+func exactCommitResult(commitErr error, confirmed bool, probeErr error) error {
+	if confirmed {
+		return nil
+	}
+	if probeErr != nil {
+		return errors.Join(commitErr, probeErr)
+	}
+	return commitErr
+}
 
 // CurrentVersionRepository exposes only the normalized authoritative version
 // required to distinguish an uncommitted command failure from a post-commit

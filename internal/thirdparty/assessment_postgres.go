@@ -86,7 +86,8 @@ func (r *PostgresRepository) CreateAssessment(ctx context.Context, record Create
 	if err != nil {
 		return Assessment{}, fmt.Errorf("store assessment: %w", err)
 	}
-	if err := appendAssessmentEvent(ctx, tx, tenantID, assessment, assessment.StartedByPrincipalID, "AssessmentStarted"); err != nil {
+	eventID, err := appendAssessmentEvent(ctx, tx, tenantID, assessment, assessment.StartedByPrincipalID, "AssessmentStarted")
+	if err != nil {
 		return Assessment{}, err
 	}
 	_, err = tx.Exec(ctx, `
@@ -97,7 +98,7 @@ func (r *PostgresRepository) CreateAssessment(ctx context.Context, record Create
 	if err != nil {
 		return Assessment{}, fmt.Errorf("store assessment setup job: %w", err)
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, assessmentCommitProof(eventID, assessment, "AssessmentStarted")); err != nil {
 		return Assessment{}, fmt.Errorf("commit assessment start: %w", err)
 	}
 	assessment.TenantID = record.TenantID
@@ -251,10 +252,11 @@ func (r *PostgresRepository) TransitionAssessment(ctx context.Context, record As
 	if err := updateAssessment(ctx, tx, tenantID, current); err != nil {
 		return Assessment{}, err
 	}
-	if err := appendAssessmentEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, eventType); err != nil {
+	eventID, err := appendAssessmentEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, eventType)
+	if err != nil {
 		return Assessment{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, assessmentCommitProof(eventID, current, eventType)); err != nil {
 		return Assessment{}, fmt.Errorf("commit assessment transition: %w", err)
 	}
 	return current, nil
@@ -351,7 +353,8 @@ func (r *PostgresRepository) ApplyAssessmentReaction(ctx context.Context, record
 	if err := updateAssessment(ctx, tx, tenantID, current); err != nil {
 		return Assessment{}, err
 	}
-	if err := appendAssessmentEvent(ctx, tx, tenantID, current, "", eventType); err != nil {
+	eventID, err := appendAssessmentEvent(ctx, tx, tenantID, current, "", eventType)
+	if err != nil {
 		return Assessment{}, err
 	}
 	snapshot, err := json.Marshal(current)
@@ -368,7 +371,7 @@ func (r *PostgresRepository) ApplyAssessmentReaction(ctx context.Context, record
 	if err != nil {
 		return Assessment{}, fmt.Errorf("store assessment reaction receipt: %w", err)
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, assessmentCommitProof(eventID, current, eventType)); err != nil {
 		return Assessment{}, fmt.Errorf("commit assessment reaction: %w", err)
 	}
 	return current, nil
@@ -459,10 +462,11 @@ func (r *PostgresRepository) PrepareAssessmentRequest(ctx context.Context, recor
 	if err := updateAssessment(ctx, tx, tenantID, current); err != nil {
 		return AssessmentRequestLink{}, Assessment{}, err
 	}
-	if err := appendAssessmentEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, "AssessmentRequestPrepared"); err != nil {
+	eventID, err := appendAssessmentEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, "AssessmentRequestPrepared")
+	if err != nil {
 		return AssessmentRequestLink{}, Assessment{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, assessmentCommitProof(eventID, current, "AssessmentRequestPrepared")); err != nil {
 		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("commit assessment request preparation: %w", err)
 	}
 	return link, current, nil
@@ -523,10 +527,11 @@ func (r *PostgresRepository) RecordRequestIssued(ctx context.Context, record Rec
 		if err := updateAssessment(ctx, tx, tenantID, current); err != nil {
 			return AssessmentRequestLink{}, Assessment{}, err
 		}
-		if err := appendAssessmentEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, "AssessmentRequestIssued"); err != nil {
-			return AssessmentRequestLink{}, Assessment{}, err
+		eventID, eventErr := appendAssessmentEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, "AssessmentRequestIssued")
+		if eventErr != nil {
+			return AssessmentRequestLink{}, Assessment{}, eventErr
 		}
-		if err := tx.Commit(ctx); err != nil {
+		if err := r.commitThirdPartyEvents(ctx, tx, assessmentCommitProof(eventID, current, "AssessmentRequestIssued")); err != nil {
 			return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("commit assessment request finalization: %w", err)
 		}
 		return existing, current, nil
@@ -588,10 +593,11 @@ func (r *PostgresRepository) PrepareRequestReissue(ctx context.Context, record P
 	if err := updateAssessment(ctx, tx, tenantID, current); err != nil {
 		return AssessmentRequestLink{}, Assessment{}, err
 	}
-	if err := appendAssessmentEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, "AssessmentRequestReissuePrepared"); err != nil {
+	eventID, err := appendAssessmentEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, "AssessmentRequestReissuePrepared")
+	if err != nil {
 		return AssessmentRequestLink{}, Assessment{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, assessmentCommitProof(eventID, current, "AssessmentRequestReissuePrepared")); err != nil {
 		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("commit assessment request reissue preparation: %w", err)
 	}
 	return link, current, nil
@@ -652,10 +658,11 @@ func (r *PostgresRepository) FinalizeRequestReissue(ctx context.Context, record 
 	if err := updateAssessment(ctx, tx, tenantID, current); err != nil {
 		return AssessmentRequestLink{}, Assessment{}, err
 	}
-	if err := appendAssessmentEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, "AssessmentRequestReissued"); err != nil {
+	eventID, err := appendAssessmentEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, "AssessmentRequestReissued")
+	if err != nil {
 		return AssessmentRequestLink{}, Assessment{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, assessmentCommitProof(eventID, current, "AssessmentRequestReissued")); err != nil {
 		return AssessmentRequestLink{}, Assessment{}, fmt.Errorf("commit assessment request reissue finalization: %w", err)
 	}
 	return link, current, nil
@@ -837,10 +844,11 @@ func (r *PostgresRepository) ReviewAssessmentDocument(ctx context.Context, recor
 	if err := updateAssessment(ctx, tx, tenantID, current); err != nil {
 		return AssessmentDocument{}, Assessment{}, err
 	}
-	if err := appendAssessmentDocumentEvent(ctx, tx, tenantID, current, document, record.ActorPrincipalID, eventType); err != nil {
+	eventID, err := appendAssessmentDocumentEvent(ctx, tx, tenantID, current, document, record.ActorPrincipalID, eventType)
+	if err != nil {
 		return AssessmentDocument{}, Assessment{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, assessmentCommitProof(eventID, current, eventType)); err != nil {
 		return AssessmentDocument{}, Assessment{}, fmt.Errorf("commit assessment document review: %w", err)
 	}
 	return document, current, nil
@@ -968,15 +976,17 @@ func updateAssessment(ctx context.Context, tx pgx.Tx, tenantID string, value Ass
 	return nil
 }
 
-func appendAssessmentEvent(ctx context.Context, tx pgx.Tx, tenantID string, value Assessment, actorID, eventType string) error {
-	_, err := tx.Exec(ctx, `
+func appendAssessmentEvent(ctx context.Context, tx pgx.Tx, tenantID string, value Assessment, actorID, eventType string) (string, error) {
+	var eventID string
+	err := tx.QueryRow(ctx, `
 		INSERT INTO third_party_events(tenant_id,aggregate_type,aggregate_id,aggregate_version,actor_principal_id,event_type,payload,occurred_at)
 		VALUES($1::uuid,'THIRD_PARTY_ASSESSMENT',$2::uuid,$3,NULLIF($4,'')::uuid,$5,
-			jsonb_build_object('status',$6::text,'relationship_id',$7::text,'request_id',$8::text,'matter_id',$9::text,'submission_id',$10::text),$11)`,
+			jsonb_build_object('status',$6::text,'relationship_id',$7::text,'request_id',$8::text,'matter_id',$9::text,'submission_id',$10::text),$11)
+		RETURNING id::text`,
 		tenantID, value.ID, value.Version, actorID, eventType, value.Status, value.RelationshipID,
-		value.CurrentRequestID, value.ReviewMatterID, value.SubmissionID, value.UpdatedAt)
+		value.CurrentRequestID, value.ReviewMatterID, value.SubmissionID, value.UpdatedAt).Scan(&eventID)
 	if err != nil {
-		return fmt.Errorf("append assessment event: %w", err)
+		return "", fmt.Errorf("append assessment event: %w", err)
 	}
 	_, err = tx.Exec(ctx, `
 		INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at)
@@ -984,20 +994,22 @@ func appendAssessmentEvent(ctx context.Context, tx pgx.Tx, tenantID string, valu
 			jsonb_build_object('version',$4::bigint,'status',$5::text,'relationship_id',$6::text,'request_id',$7::text,'matter_id',$8::text),$9,$9)`,
 		tenantID, value.ID, eventType, value.Version, value.Status, value.RelationshipID, value.CurrentRequestID, value.ReviewMatterID, value.UpdatedAt)
 	if err != nil {
-		return fmt.Errorf("append assessment outbox event: %w", err)
+		return "", fmt.Errorf("append assessment outbox event: %w", err)
 	}
-	return nil
+	return eventID, nil
 }
 
-func appendAssessmentDocumentEvent(ctx context.Context, tx pgx.Tx, tenantID string, assessment Assessment, document AssessmentDocument, actorID, eventType string) error {
-	_, err := tx.Exec(ctx, `
+func appendAssessmentDocumentEvent(ctx context.Context, tx pgx.Tx, tenantID string, assessment Assessment, document AssessmentDocument, actorID, eventType string) (string, error) {
+	var eventID string
+	err := tx.QueryRow(ctx, `
 		INSERT INTO third_party_events(tenant_id,aggregate_type,aggregate_id,aggregate_version,actor_principal_id,event_type,payload,occurred_at)
 		VALUES($1::uuid,'THIRD_PARTY_ASSESSMENT',$2::uuid,$3,$4::uuid,$5,
-			jsonb_build_object('status',$6::text,'relationship_id',$7::text,'request_id',$8::text,'artifact_id',$9::text,'document_id',$10::text,'document_status',$11::text),$12)`,
+			jsonb_build_object('status',$6::text,'relationship_id',$7::text,'request_id',$8::text,'artifact_id',$9::text,'document_id',$10::text,'document_status',$11::text),$12)
+		RETURNING id::text`,
 		tenantID, assessment.ID, assessment.Version, actorID, eventType, assessment.Status, assessment.RelationshipID,
-		assessment.CurrentRequestID, document.ArtifactID, document.ID, document.Status, assessment.UpdatedAt)
+		assessment.CurrentRequestID, document.ArtifactID, document.ID, document.Status, assessment.UpdatedAt).Scan(&eventID)
 	if err != nil {
-		return fmt.Errorf("append assessment document event: %w", err)
+		return "", fmt.Errorf("append assessment document event: %w", err)
 	}
 	_, err = tx.Exec(ctx, `
 		INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at)
@@ -1006,9 +1018,9 @@ func appendAssessmentDocumentEvent(ctx context.Context, tx pgx.Tx, tenantID stri
 		tenantID, assessment.ID, eventType, assessment.Version, assessment.Status, assessment.RelationshipID,
 		assessment.CurrentRequestID, document.ArtifactID, document.ID, document.Status, assessment.UpdatedAt)
 	if err != nil {
-		return fmt.Errorf("append assessment document outbox event: %w", err)
+		return "", fmt.Errorf("append assessment document outbox event: %w", err)
 	}
-	return nil
+	return eventID, nil
 }
 
 func verifyPostgresAssessmentCompletionReady(ctx context.Context, tx pgx.Tx, tenantID string, assessment Assessment) error {

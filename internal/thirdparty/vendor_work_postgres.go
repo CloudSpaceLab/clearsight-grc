@@ -59,10 +59,11 @@ func (r *PostgresRepository) CreateVendorWork(ctx context.Context, value VendorW
 	if err != nil {
 		return VendorWorkRequest{}, fmt.Errorf("store vendor work: %w", err)
 	}
-	if err := appendVendorWorkEvent(ctx, tx, tenantID, value, value.OwnerPrincipalID, "VendorWorkPrepared"); err != nil {
+	eventID, err := appendVendorWorkEvent(ctx, tx, tenantID, value, value.OwnerPrincipalID, "VendorWorkPrepared")
+	if err != nil {
 		return VendorWorkRequest{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, vendorWorkCommitProof(eventID, value, "VendorWorkPrepared")); err != nil {
 		return VendorWorkRequest{}, fmt.Errorf("commit vendor work preparation: %w", err)
 	}
 	return value, nil
@@ -122,10 +123,11 @@ func (r *PostgresRepository) AttachVendorWorkCapture(ctx context.Context, scope 
 	if err != nil {
 		return VendorWorkRequest{}, fmt.Errorf("update vendor work capture: %w", err)
 	}
-	if err := appendVendorWorkEvent(ctx, tx, tenantID, current, "", "VendorWorkCaptureAttached"); err != nil {
+	eventID, err := appendVendorWorkEvent(ctx, tx, tenantID, current, "", "VendorWorkCaptureAttached")
+	if err != nil {
 		return VendorWorkRequest{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, vendorWorkCommitProof(eventID, current, "VendorWorkCaptureAttached")); err != nil {
 		return VendorWorkRequest{}, err
 	}
 	return current, nil
@@ -168,10 +170,11 @@ func (r *PostgresRepository) ReserveVendorWorkInvitation(ctx context.Context, sc
 	if _, err := tx.Exec(ctx, `UPDATE third_party_work_requests SET delivery_state=$4,recovery=$5,version=$6,updated_at=$7 WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND version=$8`, tenantID, scope.LegalEntityID, id, current.DeliveryState, current.Recovery, current.Version, current.UpdatedAt, expected); err != nil {
 		return VendorWorkRequest{}, fmt.Errorf("record vendor work invitation reservation: %w", err)
 	}
-	if err := appendVendorWorkEvent(ctx, tx, tenantID, current, "", "VendorWorkInvitationReserved"); err != nil {
+	eventID, err := appendVendorWorkEvent(ctx, tx, tenantID, current, "", "VendorWorkInvitationReserved")
+	if err != nil {
 		return VendorWorkRequest{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, vendorWorkCommitProof(eventID, current, "VendorWorkInvitationReserved")); err != nil {
 		return VendorWorkRequest{}, err
 	}
 	return current, nil
@@ -233,10 +236,11 @@ func (r *PostgresRepository) MarkVendorWorkSent(ctx context.Context, scope Scope
 	if delivery == VendorWorkDeliveryRetryRequired {
 		eventType = "VendorWorkDeliveryRetryRequired"
 	}
-	if err := appendVendorWorkEvent(ctx, tx, tenantID, current, "", eventType); err != nil {
+	eventID, err := appendVendorWorkEvent(ctx, tx, tenantID, current, "", eventType)
+	if err != nil {
 		return VendorWorkRequest{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, vendorWorkCommitProof(eventID, current, eventType)); err != nil {
 		return VendorWorkRequest{}, err
 	}
 	return current, nil
@@ -267,10 +271,11 @@ func (r *PostgresRepository) MarkVendorWorkPreparationRequired(ctx context.Conte
 	if err != nil {
 		return VendorWorkRequest{}, err
 	}
-	if err := appendVendorWorkEvent(ctx, tx, tenantID, current, "", "VendorWorkPreparationRetryRequired"); err != nil {
+	eventID, err := appendVendorWorkEvent(ctx, tx, tenantID, current, "", "VendorWorkPreparationRetryRequired")
+	if err != nil {
 		return VendorWorkRequest{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, vendorWorkCommitProof(eventID, current, "VendorWorkPreparationRetryRequired")); err != nil {
 		return VendorWorkRequest{}, err
 	}
 	return current, nil
@@ -322,10 +327,11 @@ func (r *PostgresRepository) RecordVendorWorkSubmission(ctx context.Context, inp
 	if err != nil {
 		return VendorWorkRequest{}, err
 	}
-	if err := appendVendorWorkEvent(ctx, tx, tenantID, current, "", "VendorWorkResponseReceived"); err != nil {
+	eventID, err := appendVendorWorkEvent(ctx, tx, tenantID, current, "", "VendorWorkResponseReceived")
+	if err != nil {
 		return VendorWorkRequest{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, vendorWorkCommitProof(eventID, current, "VendorWorkResponseReceived")); err != nil {
 		return VendorWorkRequest{}, err
 	}
 	return current, nil
@@ -379,10 +385,11 @@ func (r *PostgresRepository) TransitionVendorWork(ctx context.Context, scope Sco
 	if err != nil {
 		return VendorWorkRequest{}, fmt.Errorf("transition vendor work: %w", err)
 	}
-	if err := appendVendorWorkEvent(ctx, tx, tenantID, current, actor, eventType); err != nil {
+	eventID, err := appendVendorWorkEvent(ctx, tx, tenantID, current, actor, eventType)
+	if err != nil {
 		return VendorWorkRequest{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, vendorWorkCommitProof(eventID, current, eventType)); err != nil {
 		return VendorWorkRequest{}, err
 	}
 	return current, nil
@@ -425,10 +432,11 @@ func (r *PostgresRepository) RecordVendorWorkChanges(ctx context.Context, scope 
 	if err != nil {
 		return VendorWorkRequest{}, fmt.Errorf("record vendor work clarification: %w", err)
 	}
-	if err := appendVendorWorkEvent(ctx, tx, tenantID, current, actor, "VendorWorkChangesRequested"); err != nil {
+	eventID, err := appendVendorWorkEvent(ctx, tx, tenantID, current, actor, "VendorWorkChangesRequested")
+	if err != nil {
 		return VendorWorkRequest{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, vendorWorkCommitProof(eventID, current, "VendorWorkChangesRequested")); err != nil {
 		return VendorWorkRequest{}, err
 	}
 	return current, nil
@@ -646,16 +654,17 @@ func scanVendorWork(row rowScanner) (VendorWorkRequest, error) {
 	return value, err
 }
 
-func appendVendorWorkEvent(ctx context.Context, tx pgx.Tx, tenantID string, value VendorWorkRequest, actor, eventType string) error {
-	_, err := tx.Exec(ctx, `INSERT INTO third_party_work_events(tenant_id,legal_entity_id,work_request_id,work_version,actor_principal_id,event_type,payload,occurred_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4,NULLIF($5,'')::uuid,$6,jsonb_build_object('state',$7::text,'delivery_state',$8::text,'request_id',$9::text,'submission_id',$10::text),$11)`, tenantID, value.LegalEntityID, value.ID, value.Version, actor, eventType, value.State, value.DeliveryState, value.CurrentRequestID, value.SubmissionID, value.UpdatedAt)
+func appendVendorWorkEvent(ctx context.Context, tx pgx.Tx, tenantID string, value VendorWorkRequest, actor, eventType string) (string, error) {
+	var eventID string
+	err := tx.QueryRow(ctx, `INSERT INTO third_party_work_events(tenant_id,legal_entity_id,work_request_id,work_version,actor_principal_id,event_type,payload,occurred_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4,NULLIF($5,'')::uuid,$6,jsonb_build_object('state',$7::text,'delivery_state',$8::text,'request_id',$9::text,'submission_id',$10::text),$11) RETURNING id::text`, tenantID, value.LegalEntityID, value.ID, value.Version, actor, eventType, value.State, value.DeliveryState, value.CurrentRequestID, value.SubmissionID, value.UpdatedAt).Scan(&eventID)
 	if err != nil {
-		return fmt.Errorf("append vendor work event: %w", err)
+		return "", fmt.Errorf("append vendor work event: %w", err)
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at) VALUES($1::uuid,'VENDOR_WORK_REQUEST',$2::uuid,$3,jsonb_build_object('version',$4::bigint,'state',$5::text,'delivery_state',$6::text),$7,$7)`, tenantID, value.ID, eventType, value.Version, value.State, value.DeliveryState, value.UpdatedAt)
 	if err != nil {
-		return fmt.Errorf("append vendor work outbox event: %w", err)
+		return "", fmt.Errorf("append vendor work outbox event: %w", err)
 	}
-	return nil
+	return eventID, nil
 }
 
 var _ VendorWorkRepository = (*PostgresRepository)(nil)

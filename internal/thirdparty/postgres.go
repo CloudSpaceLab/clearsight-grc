@@ -71,7 +71,8 @@ func (r *PostgresRepository) CreateRelationship(ctx context.Context, record Crea
 	if err != nil {
 		return Aggregate{}, fmt.Errorf("store vendor relationship: %w", err)
 	}
-	if err := appendRelationshipEvent(ctx, tx, tenantID, record.Relationship, record.Relationship.BusinessOwnerPrincipalID, "VendorRelationshipCreated"); err != nil {
+	eventID, err := appendRelationshipEvent(ctx, tx, tenantID, record.Relationship, record.Relationship.BusinessOwnerPrincipalID, "VendorRelationshipCreated")
+	if err != nil {
 		return Aggregate{}, err
 	}
 	if createdVendor {
@@ -84,7 +85,7 @@ func (r *PostgresRepository) CreateRelationship(ctx context.Context, record Crea
 			return Aggregate{}, err
 		}
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, relationshipCommitProof(eventID, record.Relationship, "VendorRelationshipCreated")); err != nil {
 		return Aggregate{}, fmt.Errorf("commit vendor relationship create: %w", err)
 	}
 	return Aggregate{Vendor: record.Vendor, Relationship: record.Relationship}, nil
@@ -132,7 +133,8 @@ func (r *PostgresRepository) UpdateRelationship(ctx context.Context, record Upda
 	record.Relationship.ID, record.Relationship.TenantID = record.ID, record.TenantID
 	record.Relationship.LegalEntityID, record.Relationship.VendorID = record.LegalEntityID, vendorID
 	record.Relationship.Version = relationshipVersion
-	if err := appendRelationshipEvent(ctx, tx, tenantID, record.Relationship, record.ActorID, "VendorRelationshipUpdated"); err != nil {
+	eventID, err := appendRelationshipEvent(ctx, tx, tenantID, record.Relationship, record.ActorID, "VendorRelationshipUpdated")
+	if err != nil {
 		return Aggregate{}, err
 	}
 	stored, err := scanAggregate(tx.QueryRow(ctx, relationshipSelect+`
@@ -140,7 +142,7 @@ func (r *PostgresRepository) UpdateRelationship(ctx context.Context, record Upda
 	if err != nil {
 		return Aggregate{}, fmt.Errorf("load updated vendor relationship: %w", err)
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, relationshipCommitProof(eventID, record.Relationship, "VendorRelationshipUpdated")); err != nil {
 		return Aggregate{}, fmt.Errorf("commit vendor relationship update: %w", err)
 	}
 	return stored, nil
@@ -235,22 +237,24 @@ func resolveTenant(ctx context.Context, tx pgx.Tx, tenant string) (string, error
 	return tenantID, nil
 }
 
-func appendRelationshipEvent(ctx context.Context, tx pgx.Tx, tenantID string, relationship Relationship, actorID, eventType string) error {
-	_, err := tx.Exec(ctx, `
+func appendRelationshipEvent(ctx context.Context, tx pgx.Tx, tenantID string, relationship Relationship, actorID, eventType string) (string, error) {
+	var eventID string
+	err := tx.QueryRow(ctx, `
 		INSERT INTO third_party_events(tenant_id,aggregate_type,aggregate_id,aggregate_version,actor_principal_id,event_type,payload,occurred_at)
-		VALUES($1::uuid,'VENDOR_RELATIONSHIP',$2::uuid,$3,$4::uuid,$5,jsonb_build_object('vendor_id',$6::text,'status',$7::text,'criticality',$8::text),$9)`,
-		tenantID, relationship.ID, relationship.Version, actorID, eventType, relationship.VendorID, relationship.Status, relationship.Criticality, relationship.UpdatedAt)
+		VALUES($1::uuid,'VENDOR_RELATIONSHIP',$2::uuid,$3,$4::uuid,$5,jsonb_build_object('vendor_id',$6::text,'status',$7::text,'criticality',$8::text),$9)
+		RETURNING id::text`,
+		tenantID, relationship.ID, relationship.Version, actorID, eventType, relationship.VendorID, relationship.Status, relationship.Criticality, relationship.UpdatedAt).Scan(&eventID)
 	if err != nil {
-		return fmt.Errorf("append vendor relationship event: %w", err)
+		return "", fmt.Errorf("append vendor relationship event: %w", err)
 	}
 	_, err = tx.Exec(ctx, `
 		INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at)
 		VALUES($1::uuid,'VENDOR_RELATIONSHIP',$2::uuid,$3,jsonb_build_object('version',$4::bigint,'status',$5::text),$6,$6)`,
 		tenantID, relationship.ID, eventType, relationship.Version, relationship.Status, relationship.UpdatedAt)
 	if err != nil {
-		return fmt.Errorf("append vendor relationship outbox event: %w", err)
+		return "", fmt.Errorf("append vendor relationship outbox event: %w", err)
 	}
-	return nil
+	return eventID, nil
 }
 
 var _ Repository = (*PostgresRepository)(nil)

@@ -136,5 +136,15 @@ func (r *PostgresRepository) ApplyVerificationResultBundle(ctx context.Context, 
 		}
 	}
 
-	return tx.Commit(ctx)
+	events := []Event{bundle.ResultEvent}
+	if bundle.TransitionEvent != nil {
+		events = append(events, *bundle.TransitionEvent)
+	}
+	if bundle.FollowUpEvent != nil {
+		events = append(events, *bundle.FollowUpEvent)
+	}
+	if bundle.FollowUpLinkEvent != nil {
+		events = append(events, *bundle.FollowUpLinkEvent)
+	}
+	return r.commitContinuityEvents(ctx, tx, events...)
 }

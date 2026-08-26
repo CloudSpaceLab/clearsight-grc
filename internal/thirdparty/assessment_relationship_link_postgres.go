@@ -47,7 +47,7 @@ func ensureAssessmentMatterRelationshipLink(ctx context.Context, tx pgx.Tx, tena
 		}
 		return existing, nil
 	}
-	if err := appendRelationshipLinkEvent(ctx, tx, tenantID, value, "VendorRelationshipLinked"); err != nil {
+	if _, err := appendRelationshipLinkEvent(ctx, tx, tenantID, value, "VendorRelationshipLinked"); err != nil {
 		return RelationshipLink{}, err
 	}
 	return value, nil
