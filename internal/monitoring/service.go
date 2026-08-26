@@ -563,6 +563,9 @@ func (s *Service) validateSourceBinding(ctx context.Context, actor Actor, bindin
 	}
 	binding, err := s.sources.Binding(ctx, tenantID, bindingID, bindingVersion)
 	if err != nil {
+		if errors.Is(err, sourceaccess.ErrCatalogNotFound) || errors.Is(err, sourceaccess.ErrCatalogInvalid) {
+			return sourceaccess.BindingRevision{}, errors.Join(ErrInvalid, fmt.Errorf("connected-source revision is missing or invalid: %w", err))
+		}
 		return sourceaccess.BindingRevision{}, fmt.Errorf("%w: connected-source revision could not be resolved: %v", ErrSourceValidationUnavailable, err)
 	}
 	if binding.BindingID != bindingID || binding.Version != bindingVersion || binding.TenantID != tenantID || strings.TrimSpace(binding.SourceID) == "" {

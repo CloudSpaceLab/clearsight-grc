@@ -34,6 +34,7 @@ type monitoringSourceFixture struct {
 	tenant        string
 	legalEntityID string
 	bindings      map[string]sourceaccess.BindingRevision
+	bindingErr    error
 	validationErr error
 }
 
@@ -51,6 +52,9 @@ func newMonitoringSourceFixture(tenant, legalEntityID string, bindingIDs ...stri
 }
 
 func (f *monitoringSourceFixture) Binding(_ context.Context, tenant, bindingID string, version int64) (sourceaccess.BindingRevision, error) {
+	if f.bindingErr != nil {
+		return sourceaccess.BindingRevision{}, f.bindingErr
+	}
 	binding, ok := f.bindings[bindingID]
 	if !ok || tenant != f.tenant || version != binding.Version {
 		return sourceaccess.BindingRevision{}, sourceaccess.ErrCatalogNotFound
@@ -269,6 +273,14 @@ func TestCreateMonitoringCheckUsesCurrentProgramOwnerAndReviewer(t *testing.T) {
 	makeHandler("owner-a").ServeHTTP(unavailable, httptest.NewRequest(http.MethodPost, "/api/v1/programs/"+program.Program.ID+"/monitoring-checks", body()))
 	if unavailable.Code != http.StatusServiceUnavailable || !bytes.Contains(unavailable.Body.Bytes(), []byte(`"error":"monitoring_source_unavailable"`)) {
 		t.Fatalf("source validation infrastructure failure returned %d: %s", unavailable.Code, unavailable.Body.String())
+	}
+
+	sources.validationErr = nil
+	sources.bindingErr = sourceaccess.ErrCatalogNotFound
+	invalid := httptest.NewRecorder()
+	makeHandler("owner-a").ServeHTTP(invalid, httptest.NewRequest(http.MethodPost, "/api/v1/programs/"+program.Program.ID+"/monitoring-checks", body()))
+	if invalid.Code != http.StatusUnprocessableEntity || !bytes.Contains(invalid.Body.Bytes(), []byte(`"error":"monitoring_invalid"`)) {
+		t.Fatalf("missing source configuration returned %d: %s", invalid.Code, invalid.Body.String())
 	}
 }
 

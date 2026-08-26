@@ -387,6 +387,17 @@ func TestServiceDistinguishesInvalidSourceScopeFromUnavailableValidation(t *test
 		}
 	}
 
+	for _, catalogErr := range []error{sourceaccess.ErrCatalogNotFound, sourceaccess.ErrCatalogInvalid} {
+		service := NewService(NewMemoryRepository(), nil)
+		service.now = func() time.Time { return now }
+		service.ConfigureSourceReader(&recordingSourceReader{bindingErr: catalogErr})
+		service.ConfigureSourceValidator(&recordingSourceScopeValidator{})
+		_, err := service.CreateCheck(t.Context(), actor, sourceCheckInput())
+		if !errors.Is(err, ErrInvalid) || errors.Is(err, ErrSourceValidationUnavailable) {
+			t.Fatalf("correctable source-catalog error %v classified as %v", catalogErr, err)
+		}
+	}
+
 	for _, dependencyErr := range []error{sourceaccess.ErrCatalogStorage, errors.New("validator storage unavailable")} {
 		service := NewService(NewMemoryRepository(), nil)
 		service.now = func() time.Time { return now }
