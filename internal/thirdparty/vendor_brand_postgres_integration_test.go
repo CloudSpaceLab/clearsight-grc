@@ -5,6 +5,7 @@ package thirdparty
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"testing"
 	"time"
@@ -13,6 +14,96 @@ import (
 )
 
 const vendorBrandBaselineVendorID = "33333333-3333-7333-8333-333333333335"
+
+func TestVendorBrandCompletionAndIdentityUpdateUseConsistentLockOrder(t *testing.T) {
+	databaseURL := os.Getenv("TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("TEST_DATABASE_URL is not configured")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+
+	const tenantID = "33333333-3333-7333-8333-333333333340"
+	const vendorID = "33333333-3333-7333-8333-333333333341"
+	const jobID = "33333333-3333-7333-8333-333333333342"
+	const leaseToken = "33333333-3333-7333-8333-333333333343"
+	const assetID = "33333333-3333-7333-8333-333333333344"
+	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
+	now := time.Now().UTC()
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'vendor-lock-bank','Vendor Lock Bank');
+		INSERT INTO third_parties(id,tenant_id,legal_name,trading_name,registration_ref,jurisdiction,source_id,external_ref,website_domain,status,created_at,updated_at,version)
+		VALUES($2::uuid,$1::uuid,'Lock Order Vendor','Lock Order Vendor','LOCK-1','Nigeria','test','lock-order','vendor.example','ACTIVE',$3,$3,1);
+		INSERT INTO third_party_vendor_brand_jobs(id,tenant_id,vendor_id,vendor_version,job_type,website_domain,state,attempts,available_at,lease_token,lease_expires_at,last_failure_code,created_at,updated_at,version)
+		VALUES($4::uuid,$1::uuid,$2::uuid,1,'DISCOVER_ICON','vendor.example','LEASED',1,$3,$5::uuid,$3 + interval '5 minutes','',$3,$3,2)`,
+		tenantID, vendorID, now, jobID, leaseToken); err != nil {
+		t.Fatal(err)
+	}
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback(context.Background()) }()
+	if _, err := tx.Exec(ctx, `SELECT 1 FROM third_parties WHERE tenant_id=$1::uuid AND id=$2::uuid FOR UPDATE`, tenantID, vendorID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(ctx, `UPDATE third_parties SET website_domain='changed.example',version=2,updated_at=clock_timestamp() WHERE tenant_id=$1::uuid AND id=$2::uuid`, tenantID, vendorID); err != nil {
+		t.Fatal(err)
+	}
+
+	claim := VendorBrandJob{ID: jobID, TenantID: "vendor-lock-bank", VendorID: vendorID, VendorVersion: 1, JobType: VendorBrandDiscoveryJobType, WebsiteDomain: "vendor.example", State: VendorBrandJobLeased, Attempts: 1, LeaseToken: leaseToken, LeaseExpiresAt: timePtrVendorBrand(now.Add(5 * time.Minute)), Version: 2}
+	vendor := Vendor{ID: vendorID, TenantID: "vendor-lock-bank", WebsiteDomain: "vendor.example", Version: 1}
+	asset := validVendorBrandAssetForTest(now, vendor)
+	asset.ID = assetID
+	completion := make(chan error, 1)
+	go func() {
+		_, completeErr := NewPostgresRepository(pool).CompleteVendorBrandJob(ctx, claim, asset, now)
+		completion <- completeErr
+	}()
+
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		var waiting bool
+		err := pool.QueryRow(ctx, `
+			SELECT EXISTS (
+				SELECT 1 FROM pg_stat_activity
+				WHERE datname=current_database() AND pid<>pg_backend_pid() AND wait_event_type='Lock'
+				  AND query LIKE '%SELECT version,COALESCE(website_domain%'
+			)`).Scan(&waiting)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if waiting {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("completion did not block on the vendor lock")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	if _, err := tx.Exec(ctx, `
+		UPDATE third_party_vendor_brand_jobs
+		SET vendor_version=2,website_domain='changed.example',state='READY',attempts=0,lease_token=NULL,lease_expires_at=NULL,updated_at=clock_timestamp(),version=version+1
+		WHERE tenant_id=$1::uuid AND vendor_id=$2::uuid`, tenantID, vendorID); err != nil {
+		t.Fatalf("identity update could not lock brand job after vendor row: %v", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-completion; !errors.Is(err, ErrVendorBrandJobLeaseLost) {
+		t.Fatalf("completion after concurrent identity update = %v, want lease loss", err)
+	}
+}
+
+func timePtrVendorBrand(value time.Time) *time.Time { return &value }
 
 func TestVendorBrandMigrationBackfillsIdentityOnceBeforeTheFirstUpdate(t *testing.T) {
 	databaseURL := os.Getenv("TEST_DATABASE_URL")

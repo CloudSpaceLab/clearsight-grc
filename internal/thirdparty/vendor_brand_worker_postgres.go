@@ -103,6 +103,20 @@ func (r *PostgresRepository) CompleteVendorBrandJob(ctx context.Context, claim V
 	if err != nil {
 		return VendorBrandAsset{}, err
 	}
+	// Vendor identity commands lock third_parties before their discovery job.
+	// Completion must keep the same order so the two transactions cannot wait
+	// on each other's row locks.
+	var vendorVersion int64
+	var websiteDomain WebsiteDomain
+	err = tx.QueryRow(ctx, `
+		SELECT version,COALESCE(website_domain,'') FROM third_parties
+		WHERE tenant_id=$1::uuid AND id::text=$2 FOR UPDATE`, tenantID, claim.VendorID).Scan(&vendorVersion, &websiteDomain)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return VendorBrandAsset{}, ErrVendorBrandJobStale
+	}
+	if err != nil {
+		return VendorBrandAsset{}, fmt.Errorf("lock vendor for brand completion: %w", err)
+	}
 	current, err := scanVendorBrandJob(tx.QueryRow(ctx, `
 		SELECT `+vendorBrandJobProjection+`
 		FROM third_party_vendor_brand_jobs j JOIN tenants t ON t.id=j.tenant_id
@@ -114,17 +128,6 @@ func (r *PostgresRepository) CompleteVendorBrandJob(ctx context.Context, claim V
 	}
 	if err != nil {
 		return VendorBrandAsset{}, fmt.Errorf("lock vendor brand job: %w", err)
-	}
-	var vendorVersion int64
-	var websiteDomain WebsiteDomain
-	err = tx.QueryRow(ctx, `
-		SELECT version,COALESCE(website_domain,'') FROM third_parties
-		WHERE tenant_id=$1::uuid AND id::text=$2 FOR UPDATE`, tenantID, claim.VendorID).Scan(&vendorVersion, &websiteDomain)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return VendorBrandAsset{}, ErrVendorBrandJobStale
-	}
-	if err != nil {
-		return VendorBrandAsset{}, fmt.Errorf("lock vendor for brand completion: %w", err)
 	}
 	if vendorVersion != current.VendorVersion || websiteDomain != current.WebsiteDomain {
 		return VendorBrandAsset{}, ErrVendorBrandJobStale

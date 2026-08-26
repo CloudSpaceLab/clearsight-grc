@@ -355,6 +355,21 @@ func TestPostgresVendorBrandWorkerUsesDatabaseClockAndExactCommitProbe(t *testin
 	}
 }
 
+func TestPostgresVendorBrandCompletionLocksVendorBeforeJob(t *testing.T) {
+	t.Parallel()
+	content, err := os.ReadFile("vendor_brand_worker_postgres.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(content)
+	completion := source[strings.Index(source, "func (r *PostgresRepository) CompleteVendorBrandJob"):strings.Index(source, "func (r *PostgresRepository) vendorBrandCompletionRecorded")]
+	vendorLock := strings.Index(completion, "lock vendor for brand completion")
+	jobLock := strings.Index(completion, "lock vendor brand job")
+	if vendorLock < 0 || jobLock < 0 || vendorLock > jobLock {
+		t.Fatal("vendor brand completion must lock the vendor before its discovery job")
+	}
+}
+
 func TestVendorBrandDiscovererProductionTransportHasNoProxyOrReuse(t *testing.T) {
 	discoverer := NewVendorBrandDiscoverer(&brandResolverStub{}, func(context.Context, string, string) (net.Conn, error) { return nil, errors.New("unused") })
 	transport, ok := discoverer.transportFactory(func(context.Context, string, string) (net.Conn, error) { return nil, nil }, "vendor.example").(*http.Transport)
