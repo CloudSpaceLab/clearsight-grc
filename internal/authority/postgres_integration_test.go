@@ -82,6 +82,9 @@ func TestPostgresEffectiveAuthorityDelegationGrantAndSegregation(t *testing.T) {
 	if !resolution.AllowsPrincipal(ownerID) || !resolution.AllowsPrincipal(delegateID) {
 		t.Fatalf("active delegation did not expand the effective route: %#v", resolution)
 	}
+	if !resolution.AllowsPrincipalFor(delegateID, ownerID) || resolution.AllowsPrincipalFor(blockedID, ownerID) {
+		t.Fatalf("delegation origin was not preserved on the effective route: %#v", resolution.EffectiveOrigins)
+	}
 
 	if _, err := pool.Exec(ctx, `INSERT INTO authority_grants(tenant_id,legal_entity_id,principal_id,decision_type,limits,valid_from,policy_version) VALUES($1::uuid,$2::uuid,$3::uuid,'matter.action.add','{"max_materiality":4}'::jsonb,$4,'grant:v1')`, tenantID, entityID, ownerID, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
@@ -117,6 +120,9 @@ func TestPostgresEffectiveAuthorityDelegationGrantAndSegregation(t *testing.T) {
 	}
 	if resolution.AllowsPrincipal(delegateID) || !resolution.AllowsPrincipal(ownerID) {
 		t.Fatalf("segregation did not remove only the conflicted delegate: %#v", resolution)
+	}
+	if resolution.AllowsPrincipalFor(delegateID, ownerID) {
+		t.Fatalf("segregated delegate retained stored-authority lineage: %#v", resolution.EffectiveOrigins)
 	}
 
 	if _, err := pool.Exec(ctx, `UPDATE delegations SET status='EXPIRED' WHERE tenant_id=$1::uuid`, tenantID); err != nil {

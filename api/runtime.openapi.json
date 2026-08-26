@@ -54,7 +54,7 @@
     "/api/v1/programs/{id}/history": { "get": { "operationId": "getProgramHistory", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
 	"/api/v1/programs/{id}/operations": { "get": { "operationId": "getProgramOperations", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/programs/{id}/review-digest": { "get": { "operationId": "getProgramReviewDigest", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
-    "/api/v1/programs/{id}/reviews": { "post": { "operationId": "acceptProgramReview", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
+    "/api/v1/programs/{id}/reviews": { "post": { "operationId": "acceptProgramReview", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
 	"/api/v1/programs/{id}/details": { "post": { "operationId": "updateProgramDetails", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
 	"/api/v1/programs/{id}/assignment": { "post": { "operationId": "assignProgram", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
 	"/api/v1/programs/{id}/approval-authority": { "post": { "operationId": "assignProgramApprovalAuthority", "x-clearsight-route-class": "MATERIAL_COMMAND" } },

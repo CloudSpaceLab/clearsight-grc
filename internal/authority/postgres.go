@@ -121,6 +121,7 @@ func (s *postgresService) Simulate(ctx context.Context, input ResolveInput) (Sim
 	selected := Resolution{
 		Principal:           principals[0],
 		CandidatePrincipals: principals,
+		EffectiveOrigins:    uniqueEffectiveOrigins(effective),
 		Strategy:            strategy,
 		RuleID:              top.RuleID,
 		PolicyVersion:       top.PolicyVersion,
@@ -552,4 +553,26 @@ func uniquePrincipals(values []effectiveCandidate) []Principal {
 		principals = append(principals, value.Principal)
 	}
 	return uniquePrincipalList(principals)
+}
+
+func uniqueEffectiveOrigins(values []effectiveCandidate) []EffectiveOrigin {
+	seen := make(map[string]EffectiveOrigin, len(values))
+	for _, value := range values {
+		if value.Principal.ID == "" || value.OriginID == "" {
+			continue
+		}
+		key := value.Principal.ID + "\x00" + value.OriginID
+		seen[key] = EffectiveOrigin{PrincipalID: value.Principal.ID, OriginPrincipalID: value.OriginID}
+	}
+	result := make([]EffectiveOrigin, 0, len(seen))
+	for _, value := range seen {
+		result = append(result, value)
+	}
+	sort.SliceStable(result, func(i, j int) bool {
+		if result[i].PrincipalID == result[j].PrincipalID {
+			return result[i].OriginPrincipalID < result[j].OriginPrincipalID
+		}
+		return result[i].PrincipalID < result[j].PrincipalID
+	})
+	return result
 }

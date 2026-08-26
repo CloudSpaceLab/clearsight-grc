@@ -49,6 +49,22 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		}
 		aggregate = &current
 		matterPriority = current.Matter.Priority
+		actor, actorErr := identity.Require(ctx)
+		if actorErr != nil {
+			return policy, fmt.Errorf("%w: verified identity is required", commandauth.ErrIdentityRequired)
+		}
+		if err := validateRequestedRecordEntity(actor, stringValue(payload["legal_entity_id"]), current.Matter.LegalEntityID); err != nil {
+			return policy, err
+		}
+		exactActor, err := a.exactRecordActor(ctx, actor, tenant, current.Matter.TenantID, current.Matter.LegalEntityID)
+		if err != nil {
+			return policy, err
+		}
+		ctx = identity.WithActor(ctx, exactActor)
+		if r != nil {
+			*r = *r.WithContext(ctx)
+		}
+		delete(payload, "legal_entity_id")
 	}
 	var programAggregate *continuity.ProgramAggregate
 	if existingProgramCommand(name) && programID != "" {
@@ -58,10 +74,48 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 				return policy, loadErr
 			}
 			programAggregate = &current
+			actor, actorErr := identity.Require(ctx)
+			if actorErr != nil {
+				return policy, fmt.Errorf("%w: verified identity is required", commandauth.ErrIdentityRequired)
+			}
+			if err := validateRequestedRecordEntity(actor, stringValue(payload["legal_entity_id"]), current.Program.LegalEntityID); err != nil {
+				return policy, err
+			}
+			exactActor, err := a.exactRecordActor(ctx, actor, tenant, current.Program.TenantID, current.Program.LegalEntityID)
+			if err != nil {
+				return policy, err
+			}
+			ctx = identity.WithActor(ctx, exactActor)
+			if r != nil {
+				*r = *r.WithContext(ctx)
+			}
+			delete(payload, "legal_entity_id")
 		}
 	}
 
 	switch name {
+	case "program.transition", "program.applicability.decide":
+		if programAggregate == nil {
+			return policy, nil
+		}
+		actor, err := identity.Require(ctx)
+		if err != nil {
+			return policy, fmt.Errorf("%w: verified identity is required", commandauth.ErrIdentityRequired)
+		}
+		storedAuthority := strings.TrimSpace(programAggregate.Program.AuthorityPrincipalID)
+		if storedAuthority == "" || a.deps.Authority == nil {
+			return policy, fmt.Errorf("%w: current Program approval authority could not be checked", commandauth.ErrGuardUnavailable)
+		}
+		resolution, resolveErr := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
+			TenantID: tenant, LegalEntityID: programAggregate.Program.LegalEntityID,
+			ObjectType: "PROGRAM", ObjectID: programAggregate.Program.ID,
+			Responsibility: authority.ResponsibilityAuthorizer, DecisionType: name, Materiality: policy.Materiality,
+		})
+		if resolveErr != nil || !resolution.AllowsPrincipalFor(actor.PrincipalID, storedAuthority) {
+			return policy, fmt.Errorf("%w: signed-in person is not the current Program approval authority", commandauth.ErrNotAuthorized)
+		}
+		return policy, nil
+
 	case "program.assign":
 		if programAggregate == nil {
 			return policy, nil
@@ -295,19 +349,19 @@ func (a *API) validateProgramAssignmentCandidate(ctx context.Context, tenant, co
 		return fmt.Errorf("%w: verified identity is required for assignment", commandauth.ErrIdentityRequired)
 	}
 	ownerResolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
-		TenantID: tenant, LegalEntityID: actor.LegalEntityID, ObjectType: "PROGRAM", ObjectID: aggregate.Program.ID,
+		TenantID: tenant, LegalEntityID: aggregate.Program.LegalEntityID, ObjectType: "PROGRAM", ObjectID: aggregate.Program.ID,
 		Responsibility: authority.ResponsibilityOwner, DecisionType: commandName, Materiality: materiality,
 	})
 	if err != nil {
 		return fmt.Errorf("%w: assignment route could not be checked", commandauth.ErrGuardUnavailable)
 	}
-	if !ownerResolution.AllowsPrincipal(actor.PrincipalID) {
+	if !ownerResolution.AllowsPrincipalFor(actor.PrincipalID, aggregate.Program.OwnerPrincipalID) {
 		return fmt.Errorf("%w: signed-in person does not hold the current Program owner route", continuity.ErrInvalidState)
 	}
 	candidateResolution := ownerResolution
 	if candidateResponsibility != authority.ResponsibilityOwner {
 		candidateResolution, err = a.deps.Authority.Resolve(ctx, authority.ResolveInput{
-			TenantID: tenant, LegalEntityID: actor.LegalEntityID, ObjectType: "PROGRAM", ObjectID: aggregate.Program.ID,
+			TenantID: tenant, LegalEntityID: aggregate.Program.LegalEntityID, ObjectType: "PROGRAM", ObjectID: aggregate.Program.ID,
 			Responsibility: candidateResponsibility, DecisionType: commandName, Materiality: materiality,
 		})
 		if err != nil {
@@ -333,13 +387,13 @@ func (a *API) validateProgramApprovalAuthorityCandidate(ctx context.Context, ten
 		return fmt.Errorf("%w: verified identity is required", commandauth.ErrIdentityRequired)
 	}
 	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
-		TenantID: tenant, LegalEntityID: actor.LegalEntityID, ObjectType: "PROGRAM", ObjectID: aggregate.Program.ID,
+		TenantID: tenant, LegalEntityID: aggregate.Program.LegalEntityID, ObjectType: "PROGRAM", ObjectID: aggregate.Program.ID,
 		Responsibility: authority.ResponsibilityAuthorizer, DecisionType: "program.transition", Materiality: materiality,
 	})
 	if err != nil {
 		return fmt.Errorf("%w: approval route could not be checked", commandauth.ErrGuardUnavailable)
 	}
-	if !resolution.AllowsPrincipal(actor.PrincipalID) {
+	if !resolution.AllowsPrincipalFor(actor.PrincipalID, aggregate.Program.AuthorityPrincipalID) {
 		return fmt.Errorf("%w: signed-in person does not hold the current Program approval route", continuity.ErrInvalidState)
 	}
 	if !resolution.AllowsPrincipal(candidateID) {
@@ -359,13 +413,12 @@ func (a *API) validateMatterAssignmentCandidate(ctx context.Context, tenant, com
 	if a.deps.Authority == nil {
 		return fmt.Errorf("%w: assignment route is unavailable", commandauth.ErrGuardUnavailable)
 	}
-	actor, err := identity.Require(ctx)
-	if err != nil {
+	if _, err := identity.Require(ctx); err != nil {
 		return fmt.Errorf("%w: verified identity is required for assignment", commandauth.ErrIdentityRequired)
 	}
 	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
 		TenantID:       tenant,
-		LegalEntityID:  actor.LegalEntityID,
+		LegalEntityID:  aggregate.Matter.LegalEntityID,
 		ObjectType:     "MATTER",
 		ObjectID:       aggregate.Matter.ID,
 		Responsibility: responsibility,

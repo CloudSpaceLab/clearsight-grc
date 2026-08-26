@@ -76,6 +76,7 @@ func (r *Resolver) Simulate(_ context.Context, input ResolveInput) (Simulation, 
 			value := Resolution{
 				Principal:           principal,
 				CandidatePrincipals: principals,
+				EffectiveOrigins:    directOrigins(principals),
 				Strategy:            strategy,
 				RuleID:              rule.ID,
 				PolicyVersion:       r.version,
@@ -85,6 +86,16 @@ func (r *Resolver) Simulate(_ context.Context, input ResolveInput) (Simulation, 
 		}
 	}
 	return Simulation{Selected: selected, Candidates: candidates, PolicyVersion: r.version}, nil
+}
+
+func directOrigins(principals []Principal) []EffectiveOrigin {
+	result := make([]EffectiveOrigin, 0, len(principals))
+	for _, principal := range principals {
+		if strings.TrimSpace(principal.ID) != "" {
+			result = append(result, EffectiveOrigin{PrincipalID: principal.ID, OriginPrincipalID: principal.ID})
+		}
+	}
+	return result
 }
 
 func normalizedRuleCandidates(rule Rule) []Principal {

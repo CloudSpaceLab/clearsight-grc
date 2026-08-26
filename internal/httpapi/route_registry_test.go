@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
@@ -174,6 +175,22 @@ func TestMatterEditRoutesAreMaterialCommands(t *testing.T) {
 	if len(seen) != len(expected) {
 		t.Fatalf("missing Matter edit routes: got %#v want %#v", seen, expected)
 	}
+}
+
+func TestProgramReviewAcceptanceIsAGovernedReviewerCommand(t *testing.T) {
+	for _, route := range (&API{}).routes() {
+		if route.Method != http.MethodPost || route.Path != "/api/v1/programs/{id}/reviews" {
+			continue
+		}
+		if route.Class != routeMaterialCommand || route.Command == nil {
+			t.Fatalf("Program review acceptance is not a material command: %#v", route)
+		}
+		if route.Command.Name != "program.review.accept" || route.Command.Policy.ObjectType != "PROGRAM" || route.Command.Policy.Responsibility != authority.ResponsibilityReviewer || route.Command.Policy.Materiality != 3 {
+			t.Fatalf("Program review acceptance has the wrong authority contract: %#v", route.Command)
+		}
+		return
+	}
+	t.Fatal("Program review acceptance route is missing")
 }
 
 func TestGovernanceMutationRoutesAreMaterialCommands(t *testing.T) {

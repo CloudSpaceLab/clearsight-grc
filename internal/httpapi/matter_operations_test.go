@@ -152,6 +152,32 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 	}
 }
 
+func TestMatterOperationsBindWildcardViewerToRecordEntity(t *testing.T) {
+	now := time.Now().UTC()
+	aggregate := continuity.MatterAggregate{Matter: continuity.Matter{
+		ID: "matter-1", TenantID: "bank", LegalEntityID: "entity-a", Type: continuity.MatterRegulatoryChange,
+		Status: continuity.MatterAssessment, Priority: 4, Title: "Annual return", OwnerPrincipalID: "owner-1",
+		CreatedAt: now, UpdatedAt: now, Version: 2,
+	}}
+	resolver := &capturingProgramAuthority{assignmentAuthorityStub: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner:      {Principal: authority.Principal{ID: "owner-1", DisplayName: "Program Owner"}},
+		authority.ResponsibilityReviewer:   {Principal: authority.Principal{ID: "reviewer-1", DisplayName: "Internal Auditor"}},
+		authority.ResponsibilityAuthorizer: {Principal: authority.Principal{ID: "authorizer-1", DisplayName: "CCO"}},
+	}}}
+	api := &API{deps: Dependencies{Authority: resolver}}
+	actor := identity.Actor{TenantID: "bank", PrincipalID: "owner-1", LegalEntityID: "*", Kind: "PERSON"}
+
+	payload := api.buildMatterOperations(t.Context(), actor, aggregate, now)
+	if len(payload.Operations) == 0 {
+		t.Fatal("Matter operations were not returned")
+	}
+	for _, entity := range resolver.legalEntities {
+		if entity != "entity-a" {
+			t.Fatalf("Matter authority resolved outside the record entity: %#v", resolver.legalEntities)
+		}
+	}
+}
+
 func TestMatterOperationsHideRestrictedMatterFromUnlistedActor(t *testing.T) {
 	service := continuity.NewService(continuity.NewMemoryRepository())
 	matter, err := service.CreateMatter(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateMatterInput{
@@ -343,7 +369,7 @@ func TestMatterOperationsExposeDecisionAndResponseLifecycleByResponsibility(t *t
 	now := time.Now().UTC()
 	aggregate := continuity.MatterAggregate{
 		Matter: continuity.Matter{
-			ID: "matter-1", TenantID: "bank", Type: continuity.MatterAuthorityRequest,
+			ID: "matter-1", TenantID: "bank", LegalEntityID: "bank-ng", Type: continuity.MatterAuthorityRequest,
 			Status: continuity.MatterDecisionRequired, Priority: 4, OwnerPrincipalID: "owner-1",
 			CreatedAt: now, UpdatedAt: now, Version: 5,
 		},

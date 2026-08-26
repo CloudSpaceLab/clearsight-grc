@@ -91,7 +91,7 @@ func (a *API) routes() []routeSpec {
 		read("/api/v1/programs/{id}/history", a.getProgramHistory),
 		read("/api/v1/programs/{id}/operations", a.getProgramOperations),
 		read("/api/v1/programs/{id}/review-digest", a.getProgramReviewDigest),
-		write(http.MethodPost, "/api/v1/programs/{id}/reviews", a.acceptProgramReview, nil),
+		material("/api/v1/programs/{id}/reviews", "program.review.accept", a.acceptProgramReview, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
 		material("/api/v1/programs/{id}/details", "program.details.update", a.updateProgramDetails, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
 		material("/api/v1/programs/{id}/assignment", "program.assign", a.assignProgram, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
 		material("/api/v1/programs/{id}/approval-authority", "program.approval-authority.assign", a.assignProgramApprovalAuthority, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, DecisionType: "program.transition"}),

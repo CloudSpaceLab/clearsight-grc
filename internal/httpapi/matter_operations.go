@@ -33,7 +33,13 @@ func (a *API) getMatterOperations(w http.ResponseWriter, r *http.Request) {
 		writeContinuityError(w, continuity.ErrNotFound)
 		return
 	}
-	value := a.buildMatterOperations(r.Context(), actor, aggregate, time.Now().UTC())
+	actor, err = a.exactRecordActor(r.Context(), actor, tenant, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID)
+	if err != nil {
+		writeContinuityError(w, continuity.ErrNotFound)
+		return
+	}
+	ctx := identity.WithActor(r.Context(), actor)
+	value := a.buildMatterOperations(ctx, actor, aggregate, time.Now().UTC())
 	httpx.WriteJSON(w, http.StatusOK, value)
 }
 
@@ -41,8 +47,16 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 	response := matterOperationsResponse{
 		MatterID: aggregate.Matter.ID, MatterVersion: aggregate.Matter.Version,
 		AuthorityAvailable: a.deps.Authority != nil, Operations: []RecordOperation{}, GeneratedAt: now.UTC(),
-		ResponsibleParties: a.matterResponsibleParties(ctx, actor, aggregate),
 	}
+	exactActor, err := a.exactRecordActor(ctx, actor, aggregate.Matter.TenantID, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID)
+	if err != nil {
+		response.AuthorityAvailable = false
+		response.ResponsibleParties = nil
+		return response
+	}
+	actor = exactActor
+	ctx = identity.WithActor(ctx, actor)
+	response.ResponsibleParties = a.matterResponsibleParties(ctx, actor, aggregate)
 	add := func(spec recordOperationSpec) {
 		operation, available := a.resolveRecordOperation(ctx, actor, aggregate.Matter, spec)
 		response.AuthorityAvailable = response.AuthorityAvailable && available
@@ -182,7 +196,7 @@ func (a *API) resolveRecordOperation(ctx context.Context, actor identity.Actor, 
 		return operation, false
 	}
 	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
-		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: "MATTER", ObjectID: matter.ID,
+		TenantID: actor.TenantID, LegalEntityID: matter.LegalEntityID, ObjectType: "MATTER", ObjectID: matter.ID,
 		Responsibility: spec.Responsibility, DecisionType: spec.Command, Materiality: spec.Materiality,
 	})
 	if err != nil {
@@ -198,7 +212,7 @@ func (a *API) resolveRecordOperation(ctx context.Context, actor identity.Actor, 
 		candidateResolution := resolution
 		if spec.CandidateResponsibility != "" && spec.CandidateResponsibility != spec.Responsibility {
 			candidateResolution, err = a.deps.Authority.Resolve(ctx, authority.ResolveInput{
-				TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: "MATTER", ObjectID: matter.ID,
+				TenantID: actor.TenantID, LegalEntityID: matter.LegalEntityID, ObjectType: "MATTER", ObjectID: matter.ID,
 				Responsibility: spec.CandidateResponsibility, DecisionType: spec.Command, Materiality: spec.Materiality,
 			})
 			if err != nil {

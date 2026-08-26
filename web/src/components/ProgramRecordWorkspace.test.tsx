@@ -651,4 +651,26 @@ describe("Program record workspace", () => {
 	fireEvent.click(screen.getByRole("button", { name: "Activate Program" }));
 	await waitFor(() => expect(transitionProgram).toHaveBeenCalledWith("program-1", 4, "ACTIVE", "The approved requirements, safeguards and evidence checks are in place."));
   });
+
+  it("shows the stored authorizer but no decision controls to another eligible authorizer", async () => {
+	vi.mocked(loadProgram).mockResolvedValue({
+	  ...aggregate,
+	  requirements: [{ id: "requirement-1", code: "NDPA-1", title: "File the annual return", statement: "The bank must file annually.", status: "APPROVED", effective_from: "2026-01-01T00:00:00Z" }],
+	});
+	vi.mocked(loadProgramOperations).mockResolvedValue({
+	  ...operations,
+	  operations: [
+		{ command: "program.applicability.decide", label: "Decide whether requirements apply", responsibility: "AUTHORIZER", can_act: false, assigned_to: { id: "cro", display_name: "Chief Risk Officer", kind: "PERSON", role: "CRO" }, reason: "Assigned to Chief Risk Officer for the current Program state." },
+		{ command: "program.transition", label: "Change Program status", responsibility: "AUTHORIZER", can_act: false, assigned_to: { id: "cro", display_name: "Chief Risk Officer", kind: "PERSON", role: "CRO" }, reason: "Assigned to Chief Risk Officer for the current Program state.", allowed_targets: ["ACTIVE"] },
+	  ],
+	});
+
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+
+	expect(await screen.findByRole("heading", { name: "Operating status" })).toBeTruthy();
+	expect(screen.getAllByText("Chief Risk Officer").length).toBeGreaterThan(0);
+	expect(screen.getAllByText("Assigned to Chief Risk Officer for the current Program state.").length).toBeGreaterThan(0);
+	expect(screen.queryByRole("button", { name: "Record applicability" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Activate Program" })).toBeNull();
+  });
 });

@@ -55,8 +55,40 @@ func TestMatterCommandUsesRouteLifecycleResponsibilityAndPriorityFloor(t *testin
 	if resolver.input.ObjectID != matter.Matter.ID || resolver.input.Responsibility != authority.ResponsibilityProposer || resolver.input.Materiality != 5 {
 		t.Fatalf("route-bound authority was not applied: %#v", resolver.input)
 	}
+	if resolver.input.LegalEntityID != "bank-ng" {
+		t.Fatalf("wildcard identity was not rebound to the Matter legal entity: %#v", resolver.input)
+	}
 	if received["authority_principal_id"] != "person-1" {
 		t.Fatalf("verified actor was not rebound after lifecycle policy resolution: %#v", received)
+	}
+}
+
+func TestMatterCommandRejectsWildcardEntityOverride(t *testing.T) {
+	service := continuity.NewService(continuity.NewMemoryRepository())
+	matter, err := service.CreateMatter(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateMatterInput{
+		TenantID: "bank", LegalEntityID: "entity-a", Type: continuity.MatterRegulatoryChange, Priority: 3,
+		Title: "Annual return", Summary: "Update the filing process.", OwnerPrincipalID: "owner-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolver := &capturingCommandAuthority{}
+	guard, _ := commandauth.New(resolver, commandauth.ModeEnforce, slog.Default())
+	api := &API{deps: Dependencies{Continuity: service, CommandGuard: guard}}
+	called := false
+	handler := api.command("matter.details.update", commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2}, func(w http.ResponseWriter, _ *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusNoContent)
+	})
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/matters/"+matter.Matter.ID, strings.NewReader(`{"legal_entity_id":"entity-b","expected_version":1}`))
+	request.SetPathValue("id", matter.Matter.ID)
+	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{
+		TenantID: "bank", PrincipalID: "person-1", LegalEntityID: "*", Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour),
+	}))
+	response := httptest.NewRecorder()
+	handler(response, request)
+	if response.Code != http.StatusForbidden || called {
+		t.Fatalf("wildcard actor redirected Matter authority to another entity: %d %s", response.Code, response.Body.String())
 	}
 }
 

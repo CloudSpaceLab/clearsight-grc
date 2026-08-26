@@ -59,6 +59,14 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 			writeContinuityError(w, err)
 			return
 		}
+		// Existing-record lifecycle binding may narrow a tenant-wide verified
+		// identity to the loaded record's exact legal entity. Use that narrowed
+		// identity for the authority guard and the material handler.
+		actor, err = identity.Require(r.Context())
+		if err != nil {
+			httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to continue.")
+			return
+		}
 		if field := commandActorField(policy); field != "" {
 			payload[field] = actor.PrincipalID
 		}
@@ -82,11 +90,6 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 			materiality = max(materiality, value)
 		}
 		legalEntityID := actor.LegalEntityID
-		if legalEntityID == "*" {
-			if requested := stringValue(payload["legal_entity_id"]); requested != "" {
-				legalEntityID = requested
-			}
-		}
 		decisionType := strings.TrimSpace(policy.DecisionType)
 		if decisionType == "" {
 			decisionType = name

@@ -33,7 +33,13 @@ func (a *API) getProgramOperations(w http.ResponseWriter, r *http.Request) {
 		writeContinuityError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, a.buildProgramOperations(r.Context(), actor, aggregate, time.Now().UTC()))
+	actor, err = a.exactRecordActor(r.Context(), actor, tenant, aggregate.Program.TenantID, aggregate.Program.LegalEntityID)
+	if err != nil {
+		writeContinuityError(w, continuity.ErrNotFound)
+		return
+	}
+	ctx := identity.WithActor(r.Context(), actor)
+	httpx.WriteJSON(w, http.StatusOK, a.buildProgramOperations(ctx, actor, aggregate, time.Now().UTC()))
 }
 
 func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, aggregate continuity.ProgramAggregate, now time.Time) programOperationsResponse {
@@ -41,6 +47,13 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		ProgramID: aggregate.Program.ID, ProgramVersion: aggregate.Program.Version,
 		AuthorityAvailable: a.deps.Authority != nil, Operations: []RecordOperation{}, GeneratedAt: now.UTC(),
 	}
+	exactActor, err := a.exactRecordActor(ctx, actor, aggregate.Program.TenantID, aggregate.Program.TenantID, aggregate.Program.LegalEntityID)
+	if err != nil {
+		response.AuthorityAvailable = false
+		return response
+	}
+	actor = exactActor
+	ctx = identity.WithActor(ctx, actor)
 	if owner := a.storedProgramResponsibleParty(ctx, actor, aggregate.Program.OwnerPrincipalID, authority.ResponsibilityOwner); owner != nil {
 		response.ResponsibleParties = append(response.ResponsibleParties, *owner)
 	}
@@ -64,7 +77,7 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		{Command: "program.requirement.add", Label: "Add a requirement", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
 		{Command: "program.safeguard.define", Label: "Define safeguards", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: 2, AssignedPrincipalID: ownerID, IncludeCandidates: true},
 		{Command: "program.evidence.define", Label: "Define an evidence check", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
-		{Command: "program.applicability.decide", Label: "Decide whether requirements apply", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3},
+		{Command: "program.applicability.decide", Label: "Decide whether requirements apply", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3, AssignedPrincipalID: approvalAuthorityID},
 		{Command: "program.evidence.assess", Label: "Record evidence check results", Responsibility: authority.ResponsibilityReviewer, Materiality: 3},
 		{Command: "program.review.accept", Label: "Confirm the Program review", Responsibility: authority.ResponsibilityReviewer, Materiality: 3},
 	} {
@@ -76,7 +89,7 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		allowedTargets[index] = string(targets[index])
 	}
 	if len(allowedTargets) > 0 {
-		add(programOperationSpec{Command: "program.transition", Label: "Change Program status", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3, AllowedTargets: allowedTargets})
+		add(programOperationSpec{Command: "program.transition", Label: "Change Program status", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3, AssignedPrincipalID: approvalAuthorityID, AllowedTargets: allowedTargets})
 	}
 	for _, requirement := range aggregate.Requirements {
 		if requirement.Status == continuity.RequirementApproved && requirement.EffectiveUntil == nil {
@@ -128,7 +141,7 @@ func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor,
 		decisionType = spec.Command
 	}
 	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
-		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: "PROGRAM", ObjectID: program.ID,
+		TenantID: actor.TenantID, LegalEntityID: program.LegalEntityID, ObjectType: "PROGRAM", ObjectID: program.ID,
 		Responsibility: spec.Responsibility, DecisionType: decisionType, Materiality: spec.Materiality,
 	})
 	if err != nil {
@@ -148,7 +161,7 @@ func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor,
 		candidateResolution := resolution
 		if spec.CandidateResponsibility != "" && spec.CandidateResponsibility != spec.Responsibility {
 			candidateResolution, err = a.deps.Authority.Resolve(ctx, authority.ResolveInput{
-				TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: "PROGRAM", ObjectID: program.ID,
+				TenantID: actor.TenantID, LegalEntityID: program.LegalEntityID, ObjectType: "PROGRAM", ObjectID: program.ID,
 				Responsibility: spec.CandidateResponsibility, DecisionType: decisionType, Materiality: spec.Materiality,
 			})
 			if err != nil {
@@ -159,6 +172,9 @@ func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor,
 		operation.Candidates = visibleProgramCandidates(candidateResolution)
 	}
 	operation.CanAct = resolution.AllowsPrincipal(actor.PrincipalID)
+	if assigned := strings.TrimSpace(spec.AssignedPrincipalID); assigned != "" {
+		operation.CanAct = resolution.AllowsPrincipalFor(actor.PrincipalID, assigned)
+	}
 	if operation.CanAct {
 		operation.Reason = "You hold the current responsibility for this Program and can complete this action."
 	} else if operation.AssignedTo != nil {

@@ -246,6 +246,68 @@ func TestProgramOperationsExplainCurrentResponsibilitiesAcrossRoles(t *testing.T
 	}
 }
 
+func TestProgramOperationsBindWildcardViewerToRecordEntityAndStoredAuthority(t *testing.T) {
+	now := time.Now().UTC()
+	aggregate := continuity.ProgramAggregate{Program: continuity.Program{
+		ID: "program-1", TenantID: "bank", LegalEntityID: "entity-a", Code: "NDPA", Name: "Data protection",
+		Status: continuity.ProgramDraft, OwnerPrincipalID: "owner-1", AuthorityPrincipalID: "cro-1", Version: 4,
+		CreatedAt: now, UpdatedAt: now,
+	}}
+	resolver := &capturingProgramAuthority{assignmentAuthorityStub: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner: {Principal: authority.Principal{ID: "owner-1", DisplayName: "Program owner"}},
+		authority.ResponsibilityAuthorizer: {
+			Principal:           authority.Principal{ID: "cro-1", DisplayName: "Chief Risk Officer"},
+			CandidatePrincipals: []authority.Principal{{ID: "deputy-cro", DisplayName: "Deputy Chief Risk Officer"}},
+		},
+	}}}
+	api := &API{deps: Dependencies{Authority: resolver}}
+
+	viewer := identity.Actor{TenantID: "bank", PrincipalID: "deputy-cro", LegalEntityID: "*", Kind: "PERSON"}
+	payload := api.buildProgramOperations(t.Context(), viewer, aggregate, now)
+	for _, entity := range resolver.legalEntities {
+		if entity != "entity-a" {
+			t.Fatalf("Program authority resolved outside the record entity: %#v", resolver.legalEntities)
+		}
+	}
+	for _, operation := range payload.Operations {
+		if operation.Command != "program.transition" && operation.Command != "program.applicability.decide" {
+			continue
+		}
+		if operation.CanAct {
+			t.Fatalf("eligible but unassigned authorizer can act: %#v", operation)
+		}
+		if operation.AssignedTo == nil || operation.AssignedTo.ID != "cro-1" || operation.AssignedTo.DisplayName != "Chief Risk Officer" {
+			t.Fatalf("stored Program authority was not shown: %#v", operation)
+		}
+	}
+}
+
+func TestProgramOperationsAllowDelegateActingForStoredAuthority(t *testing.T) {
+	now := time.Now().UTC()
+	aggregate := continuity.ProgramAggregate{Program: continuity.Program{
+		ID: "program-1", TenantID: "bank", LegalEntityID: "entity-a", Code: "NDPA", Name: "Data protection",
+		Status: continuity.ProgramDraft, OwnerPrincipalID: "owner-1", AuthorityPrincipalID: "cro-1", Version: 4,
+		CreatedAt: now, UpdatedAt: now,
+	}}
+	resolver := fixedProgramAuthority{resolution: authority.Resolution{
+		Principal:           authority.Principal{ID: "cro-1", DisplayName: "Chief Risk Officer"},
+		CandidatePrincipals: []authority.Principal{{ID: "delegate-1", DisplayName: "Acting Chief Risk Officer"}},
+		EffectiveOrigins:    []authority.EffectiveOrigin{{PrincipalID: "delegate-1", OriginPrincipalID: "cro-1"}},
+	}}
+	api := &API{deps: Dependencies{Authority: resolver}}
+	actor := identity.Actor{TenantID: "bank", PrincipalID: "delegate-1", LegalEntityID: "entity-a", Kind: "PERSON"}
+
+	payload := api.buildProgramOperations(t.Context(), actor, aggregate, now)
+	for _, operation := range payload.Operations {
+		if operation.Command != "program.transition" && operation.Command != "program.applicability.decide" {
+			continue
+		}
+		if !operation.CanAct || operation.AssignedTo == nil || operation.AssignedTo.ID != "cro-1" {
+			t.Fatalf("delegated Program operation did not retain stored authority: %#v", operation)
+		}
+	}
+}
+
 func TestProgramOperationsKeepRetiredOwnerReadableWithoutCommandsOrPrincipalID(t *testing.T) {
 	now := time.Now().UTC()
 	aggregate := continuity.ProgramAggregate{Program: continuity.Program{
