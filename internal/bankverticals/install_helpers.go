@@ -2,11 +2,71 @@ package bankverticals
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 )
+
+func implementReferenceSafeguard(ctx context.Context, service *continuity.Service, config SeedConfig, program continuity.ProgramAggregate, implementationID string) (continuity.ProgramAggregate, error) {
+	for {
+		var current *continuity.ControlImplementation
+		for index := range program.ControlImplementations {
+			if program.ControlImplementations[index].ID == implementationID {
+				current = &program.ControlImplementations[index]
+				break
+			}
+		}
+		if current == nil {
+			return program, continuity.ErrNotFound
+		}
+		if current.Status == continuity.ImplementationImplemented {
+			return program, nil
+		}
+		var target continuity.ControlImplementationStatus
+		switch current.Status {
+		case continuity.ImplementationPlanned:
+			target = continuity.ImplementationInProgress
+		case continuity.ImplementationInProgress:
+			target = continuity.ImplementationImplemented
+		case continuity.ImplementationInactive:
+			target = continuity.ImplementationInProgress
+		default:
+			return program, fmt.Errorf("reference safeguard %s cannot be implemented from %s", implementationID, current.Status)
+		}
+		var err error
+		program, err = service.TransitionControlImplementation(ctx, continuity.TransitionControlImplementationInput{
+			TenantID: config.TenantID, ProgramID: program.Program.ID, ImplementationID: implementationID,
+			ExpectedVersion: program.Program.Version, ExpectedImplementationVersion: current.Version,
+			To: target, Rationale: "The sample safeguard owner completed the recorded implementation step.", ActorID: config.OwnerPrincipalID,
+		})
+		if err != nil {
+			return program, err
+		}
+	}
+}
+
+func activateReferenceEvidenceCheck(ctx context.Context, service *continuity.Service, config SeedConfig, program continuity.ProgramAggregate, contractID string) (continuity.ProgramAggregate, error) {
+	for index := range program.EvidenceContracts {
+		contract := program.EvidenceContracts[index]
+		if contract.ID != contractID {
+			continue
+		}
+		if contract.Status == continuity.EvidenceContractActive {
+			return program, nil
+		}
+		if contract.Status != continuity.EvidenceContractDraft {
+			return program, fmt.Errorf("reference evidence check %s cannot be activated from %s", contractID, contract.Status)
+		}
+		return service.TransitionEvidenceContract(ctx, continuity.TransitionEvidenceContractInput{
+			TenantID: config.TenantID, ProgramID: program.Program.ID, ContractID: contractID,
+			ExpectedVersion: program.Program.Version, ExpectedContractVersion: contract.Version,
+			To: continuity.EvidenceContractActive, Rationale: "The sample reviewer approved the evidence check before results were recorded.", ActorID: config.ReviewerPrincipalID,
+		})
+	}
+	return program, continuity.ErrNotFound
+}
 
 func authorityEvidenceRequest(config SeedConfig, matterID string) evidence.CreateRequestInput {
 	return evidence.CreateRequestInput{

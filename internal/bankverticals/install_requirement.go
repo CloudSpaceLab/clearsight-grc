@@ -76,7 +76,7 @@ func (s *Service) ensureRequirementBundle(ctx context.Context, config SeedConfig
 	var implementation *continuity.ControlImplementation
 	for index := range program.ControlImplementations {
 		value := program.ControlImplementations[index]
-		if value.ObjectiveID == objective.ID && strings.EqualFold(value.Name, spec.implementationName) && value.Status == continuity.ImplementationImplemented {
+		if value.ObjectiveID == objective.ID && strings.EqualFold(value.Name, spec.implementationName) && value.Status != continuity.ImplementationRetired {
 			copy := value
 			implementation = &copy
 			break
@@ -93,7 +93,7 @@ func (s *Service) ensureRequirementBundle(ctx context.Context, config SeedConfig
 			ImplementationType: spec.implementationType,
 			OwnerPrincipalID:   config.OwnerPrincipalID,
 			Scope:              mustJSON(map[string]any{"bank": config.BankName}),
-			Status:             continuity.ImplementationImplemented,
+			Status:             continuity.ImplementationPlanned,
 			EffectiveFrom:      config.Now.AddDate(0, -3, 0),
 			ActorID:            config.ActorID,
 		})
@@ -102,6 +102,17 @@ func (s *Service) ensureRequirementBundle(ctx context.Context, config SeedConfig
 		}
 		value := program.ControlImplementations[len(program.ControlImplementations)-1]
 		implementation = &value
+	}
+	program, err = implementReferenceSafeguard(ctx, s.continuity, config, program, implementation.ID)
+	if err != nil {
+		return program, fmt.Errorf("repair safeguard implementation %s: %w", spec.code, err)
+	}
+	for index := range program.ControlImplementations {
+		if program.ControlImplementations[index].ID == implementation.ID {
+			value := program.ControlImplementations[index]
+			implementation = &value
+			break
+		}
 	}
 
 	linked := false
@@ -127,7 +138,7 @@ func (s *Service) ensureRequirementBundle(ctx context.Context, config SeedConfig
 
 	var contract *continuity.EvidenceContract
 	for index := range program.EvidenceContracts {
-		if strings.EqualFold(program.EvidenceContracts[index].Code, spec.evidenceCode) && program.EvidenceContracts[index].Status == continuity.EvidenceContractActive {
+		if strings.EqualFold(program.EvidenceContracts[index].Code, spec.evidenceCode) && program.EvidenceContracts[index].Status != continuity.EvidenceContractRetired {
 			value := program.EvidenceContracts[index]
 			contract = &value
 			break
@@ -153,7 +164,7 @@ func (s *Service) ensureRequirementBundle(ctx context.Context, config SeedConfig
 			IndependenceRequired:    true,
 			ContradictionPolicy:     "REVIEW",
 			FailureAction:           "MATTER",
-			Status:                  continuity.EvidenceContractActive,
+			Status:                  continuity.EvidenceContractDraft,
 			ActorID:                 config.ActorID,
 		})
 		if err != nil {
@@ -161,6 +172,17 @@ func (s *Service) ensureRequirementBundle(ctx context.Context, config SeedConfig
 		}
 		value := program.EvidenceContracts[len(program.EvidenceContracts)-1]
 		contract = &value
+	}
+	program, err = activateReferenceEvidenceCheck(ctx, s.continuity, config, program, contract.ID)
+	if err != nil {
+		return program, fmt.Errorf("repair evidence check activation %s: %w", spec.code, err)
+	}
+	for index := range program.EvidenceContracts {
+		if program.EvidenceContracts[index].ID == contract.ID {
+			value := program.EvidenceContracts[index]
+			contract = &value
+			break
+		}
 	}
 
 	current := false
