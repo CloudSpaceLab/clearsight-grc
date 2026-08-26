@@ -3,7 +3,10 @@ import type { FormEvent } from "react";
 import {
   addProgramControlImplementation,
   addProgramControlObjective,
+  assignProgramControlImplementation,
   linkProgramRequirementControl,
+  reviseProgramControlImplementation,
+  transitionProgramControlImplementation,
 } from "../programOperationsApi";
 import type { ProgramOperation } from "../programOperationsApi";
 import type { ProgramAggregate, RecordResponsibleParty } from "../types";
@@ -16,6 +19,7 @@ type Props = {
   onReload: () => void;
 };
 type Mode = "objective" | "safeguard" | "link" | null;
+type ResourceAction = { kind: "edit" | "assign" | "transition"; implementationID: string } | null;
 
 function today() { return new Date().toISOString().slice(0, 10); }
 function isoDate(value: string) { return new Date(`${value}T00:00:00Z`).toISOString(); }
@@ -26,6 +30,7 @@ function statusLabel(value: string) {
 export function ProgramSafeguardsPanel({ aggregate, operations, responsibleParties = [], onUpdated, onReload }: Props) {
   const operation = operations.find((value) => value.command === "program.safeguard.define");
   const [mode, setMode] = useState<Mode>(null);
+  const [resourceAction, setResourceAction] = useState<ResourceAction>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [objectiveCode, setObjectiveCode] = useState("");
@@ -40,6 +45,10 @@ export function ProgramSafeguardsPanel({ aggregate, operations, responsibleParti
   const [effectiveFrom, setEffectiveFrom] = useState(today());
   const [requirementID, setRequirementID] = useState(aggregate.requirements.find((value) => value.status === "APPROVED")?.id ?? "");
   const [implementationID, setImplementationID] = useState(aggregate.control_implementations[0]?.id ?? "");
+  const [rationale, setRationale] = useState("");
+  const [transitionTarget, setTransitionTarget] = useState("");
+
+  const operationFor = (command: string, subresourceID: string) => operations.find((value) => value.command === command && value.subresource_id === subresourceID);
 
   function begin(nextMode: Exclude<Mode, null>) {
     setMode(nextMode);
@@ -53,6 +62,21 @@ export function ProgramSafeguardsPanel({ aggregate, operations, responsibleParti
     } else {
       setRequirementID(aggregate.requirements.find((value) => value.status === "APPROVED")?.id ?? "");
       setImplementationID(aggregate.control_implementations[0]?.id ?? "");
+    }
+  }
+
+  function beginResourceAction(kind: "edit" | "assign" | "transition", implementationID: string) {
+    const implementation = aggregate.control_implementations.find((value) => value.id === implementationID);
+    if (!implementation) return;
+    setMode(null); setResourceAction({ kind, implementationID }); setError(""); setRationale("");
+    if (kind === "edit") {
+      setSafeguardName(implementation.name); setDescription(implementation.description);
+      setImplementationType(implementation.implementation_type); setScopeDescription(String(implementation.scope?.description ?? ""));
+      setEffectiveFrom(implementation.effective_from?.slice(0, 10) ?? today());
+    } else if (kind === "assign") {
+      setOwnerID(operationFor("program.safeguard.assign", implementationID)?.candidates?.[0]?.id ?? "");
+    } else {
+      setTransitionTarget(operationFor("program.safeguard.transition", implementationID)?.allowed_targets?.[0] ?? "");
     }
   }
 
@@ -78,7 +102,7 @@ export function ProgramSafeguardsPanel({ aggregate, operations, responsibleParti
         implementationType,
         ownerPrincipalID: ownerID,
         scope: { description: scopeDescription.trim() },
-        status: "IMPLEMENTED",
+        status: "PLANNED",
         effectiveFrom: isoDate(effectiveFrom),
       });
       onUpdated(value); setMode(null);
@@ -94,6 +118,30 @@ export function ProgramSafeguardsPanel({ aggregate, operations, responsibleParti
       onUpdated(value); setMode(null);
     } catch (value) {
       setError(value instanceof Error ? value.message : "The requirement coverage link could not be saved.");
+    } finally { setBusy(false); }
+  }
+
+  async function saveResourceAction(event: FormEvent) {
+    event.preventDefault();
+    if (!resourceAction) return;
+    const implementation = aggregate.control_implementations.find((value) => value.id === resourceAction.implementationID);
+    if (!implementation?.version) return;
+    setBusy(true); setError("");
+    try {
+      let value: ProgramAggregate;
+      if (resourceAction.kind === "edit") {
+        value = await reviseProgramControlImplementation(aggregate.program.id, implementation.id, aggregate.program.version, implementation.version, {
+          name: safeguardName, description, implementationType, scope: { description: scopeDescription.trim() },
+          effectiveFrom: isoDate(effectiveFrom), rationale,
+        });
+      } else if (resourceAction.kind === "assign") {
+        value = await assignProgramControlImplementation(aggregate.program.id, implementation.id, aggregate.program.version, implementation.version, ownerID, rationale);
+      } else {
+        value = await transitionProgramControlImplementation(aggregate.program.id, implementation.id, aggregate.program.version, implementation.version, transitionTarget, rationale);
+      }
+      onUpdated(value); setResourceAction(null);
+    } catch (value) {
+      setError(value instanceof Error ? value.message : "The safeguard change could not be saved.");
     } finally { setBusy(false); }
   }
 
@@ -117,7 +165,14 @@ export function ProgramSafeguardsPanel({ aggregate, operations, responsibleParti
           {implementations.length ? <ul>{implementations.map((implementation) => {
             const requirementCount = aggregate.requirement_control_links.filter((link) => link.implementation_id === implementation.id).length;
             const owner = responsibleParties.find((party) => party.scope === "SAFEGUARD" && party.subresource_id === implementation.id && party.responsibility === "PERFORMER")?.display_name ?? operation?.candidates?.find((candidate) => candidate.id === implementation.owner_principal_id)?.display_name ?? (implementation.owner_principal_id ? "Recorded safeguard owner unavailable" : "Safeguard owner not assigned");
-            return <li key={implementation.id}><strong>{implementation.name}</strong><span>{owner} · {statusLabel(implementation.status)} · {requirementCount} linked requirement{requirementCount === 1 ? "" : "s"}</span><p>{implementation.description}</p></li>;
+            const updateOperation = operationFor("program.safeguard.update", implementation.id);
+            const assignOperation = operationFor("program.safeguard.assign", implementation.id);
+            const transitionOperation = operationFor("program.safeguard.transition", implementation.id);
+            return <li key={implementation.id}><strong>{implementation.name}</strong><span>{owner} · {statusLabel(implementation.status)} · {requirementCount} linked requirement{requirementCount === 1 ? "" : "s"}</span><p>{implementation.description}</p><div className="program-panel-actions">
+              {updateOperation?.can_act && <button className="text-button" type="button" onClick={() => beginResourceAction("edit", implementation.id)}>Edit {implementation.name}</button>}
+              {assignOperation?.can_act && <button className="text-button" type="button" onClick={() => beginResourceAction("assign", implementation.id)}>Change {implementation.name} owner</button>}
+              {transitionOperation?.can_act && <button className="text-button" type="button" onClick={() => beginResourceAction("transition", implementation.id)}>Change {implementation.name} status</button>}
+            </div>{!transitionOperation?.can_act && transitionOperation?.reason && <small>{transitionOperation.reason}</small>}</li>;
           })}</ul> : <p>No safeguards implement this objective yet.</p>}
         </section>;
       })}
@@ -142,6 +197,29 @@ export function ProgramSafeguardsPanel({ aggregate, operations, responsibleParti
       {error && <p className="program-form-error wide" role="alert">{error} <button className="text-button" type="button" onClick={onReload}>Reload Program</button></p>}
       <div className="program-form-actions wide"><button className="primary-button" disabled={busy || !ownerID || !objectiveID} type="submit">{busy ? "Saving…" : "Save safeguard"}</button><button className="text-button" type="button" onClick={() => setMode(null)}>Cancel</button></div>
     </form>}
+
+    {resourceAction && (() => {
+      const implementation = aggregate.control_implementations.find((value) => value.id === resourceAction.implementationID);
+      if (!implementation) return null;
+      const assignOperation = operationFor("program.safeguard.assign", implementation.id);
+      const transitionOperation = operationFor("program.safeguard.transition", implementation.id);
+      return <form className="program-operation-form" onSubmit={(event) => void saveResourceAction(event)}>
+        <div className="wide"><strong>{resourceAction.kind === "edit" ? `Edit ${implementation.name}` : resourceAction.kind === "assign" ? `Change ${implementation.name} owner` : `Change ${implementation.name} status`}</strong></div>
+        {resourceAction.kind === "edit" && <>
+          <label><span>Safeguard name</span><input required value={safeguardName} onChange={(event) => setSafeguardName(event.target.value)}/></label>
+          <label><span>Safeguard type</span><select value={implementationType} onChange={(event) => setImplementationType(event.target.value)}><option value="CHECKLIST">Checklist</option><option value="REVIEW">Review</option><option value="RECONCILIATION">Reconciliation</option><option value="SYSTEM_CONTROL">System control</option><option value="MONITORING">Monitoring</option></select></label>
+          <label className="wide"><span>How the safeguard works</span><textarea required value={description} onChange={(event) => setDescription(event.target.value)}/></label>
+          <label className="wide"><span>Safeguard scope</span><textarea value={scopeDescription} onChange={(event) => setScopeDescription(event.target.value)}/></label>
+          <label><span>Effective from</span><input required type="date" value={effectiveFrom} onChange={(event) => setEffectiveFrom(event.target.value)}/></label>
+        </>}
+        {resourceAction.kind === "assign" && <label><span>New safeguard owner</span><select required value={ownerID} onChange={(event) => setOwnerID(event.target.value)}><option value="" disabled>Select an eligible owner</option>{assignOperation?.candidates?.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.display_name} · {candidate.role}</option>)}</select></label>}
+        {resourceAction.kind === "transition" && <label><span>New safeguard status</span><select required value={transitionTarget} onChange={(event) => setTransitionTarget(event.target.value)}>{transitionOperation?.allowed_targets?.map((target) => <option key={target} value={target}>{statusLabel(target)}</option>)}</select></label>}
+        <label className="wide"><span>Reason for this change</span><textarea required value={rationale} onChange={(event) => setRationale(event.target.value)}/></label>
+        {resourceAction.kind === "edit" && implementation.status === "IMPLEMENTED" && <p className="program-operation-reason wide">Saving a material change returns this safeguard to In progress until its owner confirms the revised procedure is operating.</p>}
+        {error && <p className="program-form-error wide" role="alert">{error} <button className="text-button" type="button" onClick={onReload}>Reload Program</button></p>}
+        <div className="program-form-actions wide"><button className="primary-button" disabled={busy || !rationale || (resourceAction.kind === "assign" && !ownerID) || (resourceAction.kind === "transition" && !transitionTarget)} type="submit">{busy ? "Saving…" : resourceAction.kind === "edit" ? "Save safeguard changes" : resourceAction.kind === "assign" ? "Save safeguard owner" : "Save safeguard status"}</button><button className="text-button" type="button" onClick={() => setResourceAction(null)}>Cancel</button></div>
+      </form>;
+    })()}
 
     {mode === "link" && <form className="program-operation-form" onSubmit={(event) => void saveLink(event)}>
       <label><span>Requirement</span><select required value={requirementID} onChange={(event) => setRequirementID(event.target.value)}>{aggregate.requirements.filter((value) => value.status === "APPROVED").map((requirement) => <option key={requirement.id} value={requirement.id}>{requirement.code} · {requirement.title}</option>)}</select></label>

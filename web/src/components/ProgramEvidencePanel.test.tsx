@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadEvidenceSources } from "../api";
-import { addProgramEvidenceContract, recordProgramEvidenceAssessment } from "../programOperationsApi";
+import { addProgramEvidenceContract, recordProgramEvidenceAssessment, reviseProgramEvidenceContract, transitionProgramEvidenceContract } from "../programOperationsApi";
 import type { ProgramAggregate } from "../types";
 import { ProgramEvidencePanel } from "./ProgramEvidencePanel";
 
@@ -10,6 +10,8 @@ vi.mock("../programOperationsApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../programOperationsApi")>()),
   addProgramEvidenceContract: vi.fn(),
   recordProgramEvidenceAssessment: vi.fn(),
+  reviseProgramEvidenceContract: vi.fn(),
+  transitionProgramEvidenceContract: vi.fn(),
 }));
 vi.mock("./MonitoringSetup", () => ({ MonitoringSetup: () => <section><h3>Monitoring</h3></section> }));
 
@@ -60,6 +62,49 @@ describe("Program evidence authority gating", () => {
     render(<ProgramEvidencePanel aggregate={aggregate} operations={operations} actorPrincipalID="actor-1" canConfigureSources canOperate onUpdated={vi.fn()} onReload={vi.fn()}/>);
     expect(await screen.findByText("No evidence result recorded")).toBeTruthy();
     expect(loadEvidenceSources).toHaveBeenCalledWith("entity-1");
+  });
+
+  it("creates draft evidence checks and exposes owner revision and reviewer status actions", async () => {
+    const draftAggregate = { ...aggregate, evidence_contracts: [{ ...aggregate.evidence_contracts[0]!, status: "DRAFT", version: 1 }] };
+    const lifecycleOperations = [
+      ...operations,
+      { command: "program.evidence.revise", subresource_id: "contract-1", label: "Edit evidence", responsibility: "OWNER", can_act: true, reason: "You can edit this draft." },
+      { command: "program.evidence.transition", subresource_id: "contract-1", label: "Review evidence status", responsibility: "REVIEWER", can_act: true, reason: "You can review this check.", allowed_targets: ["ACTIVE", "RETIRED"] },
+    ];
+    vi.mocked(addProgramEvidenceContract).mockResolvedValue(draftAggregate);
+    vi.mocked(reviseProgramEvidenceContract).mockResolvedValue(draftAggregate);
+    vi.mocked(transitionProgramEvidenceContract).mockResolvedValue(draftAggregate);
+    render(<ProgramEvidencePanel aggregate={draftAggregate} operations={lifecycleOperations} actorPrincipalID="actor-1" canConfigureSources canOperate onUpdated={vi.fn()} onReload={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Define evidence check" }));
+    fireEvent.change(screen.getByLabelText("Evidence code"), { target: { value: "CHECK-2" } });
+    fireEvent.change(screen.getByLabelText("Evidence check name"), { target: { value: "Filing receipt" } });
+    fireEvent.change(screen.getByLabelText("What must the evidence prove?"), { target: { value: "The filing was accepted." } });
+    fireEvent.click(screen.getByRole("button", { name: "Save evidence check" }));
+    expect(addProgramEvidenceContract).toHaveBeenCalledWith("program-1", 4, expect.objectContaining({ status: "DRAFT" }));
+
+    expect(screen.getByRole("button", { name: "Edit Filing evidence" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Review Filing evidence status" })).toBeTruthy();
+  });
+
+  it("explains that editing an active check requires reviewer reactivation", async () => {
+    render(<ProgramEvidencePanel aggregate={aggregate} operations={[...operations, { command: "program.evidence.revise", subresource_id: "contract-1", label: "Edit evidence", responsibility: "OWNER", can_act: true, reason: "You can edit this check." }]} actorPrincipalID="actor-1" canConfigureSources canOperate onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Edit Filing evidence" }));
+    expect(screen.getByText(/returns this evidence check to Draft/)).toBeTruthy();
+    expect(screen.getByText(/current reviewer must activate it again/)).toBeTruthy();
+  });
+
+  it("keeps manual evidence definition usable when connected sources are unavailable", async () => {
+    vi.mocked(loadEvidenceSources).mockRejectedValue(new Error("source registry unavailable"));
+    vi.mocked(addProgramEvidenceContract).mockResolvedValue(aggregate);
+    render(<ProgramEvidencePanel aggregate={aggregate} operations={operations} actorPrincipalID="actor-1" canConfigureSources canOperate onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    fireEvent.click(screen.getByRole("button", { name: "Define evidence check" }));
+    expect(await screen.findByText(/You can save a manual check without a connected source/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Evidence code"), { target: { value: "MANUAL" } });
+    fireEvent.change(screen.getByLabelText("Evidence check name"), { target: { value: "Manual review" } });
+    fireEvent.change(screen.getByLabelText("What must the evidence prove?"), { target: { value: "A reviewer confirms the retained evidence." } });
+    fireEvent.click(screen.getByRole("button", { name: "Save evidence check" }));
+    expect(addProgramEvidenceContract).toHaveBeenCalledWith("program-1", 4, expect.objectContaining({ acceptableSourceIDs: [], failureAction: "MATTER", status: "DRAFT" }));
   });
 
   it("shows a bounded labelled evidence result history without exposing reviewer identifiers", async () => {

@@ -6,14 +6,19 @@ import {
   addProgramControlObjective,
   addProgramEvidenceContract,
   addProgramRequirement,
+  assignProgramControlImplementation,
   assignProgram,
   assignProgramApprovalAuthority,
   determineProgramApplicability,
   linkProgramRequirementControl,
   loadProgramOperations,
   recordProgramEvidenceAssessment,
+  reviseProgramControlImplementation,
+  reviseProgramEvidenceContract,
   supersedeProgramRequirement,
   transitionProgram,
+  transitionProgramControlImplementation,
+  transitionProgramEvidenceContract,
   updateProgramDetails,
 } from "./programOperationsApi";
 
@@ -115,6 +120,27 @@ describe("Program operation API", () => {
       body: { tenant_id: "tenant-1", expected_version: 11, requirement_id: "requirement-1", implementation_id: "implementation-1" },
     },
     {
+      name: "safeguard revision",
+      run: () => reviseProgramControlImplementation("program-1", "implementation / 1", 11, 2, {
+        name: "Annual return checklist", description: "Confirm every filing section and exception.", implementationType: "CHECKLIST",
+        scope: { legal_entity: "Clear Bank Nigeria" }, effectiveFrom: "2026-09-01T00:00:00Z", rationale: "The filing procedure changed.",
+      }),
+      path: "/api/v1/programs/program-1/control-implementations/implementation%20%2F%201/details?tenant_id=tenant-1",
+      body: { tenant_id: "tenant-1", expected_version: 11, expected_implementation_version: 2, name: "Annual return checklist", description: "Confirm every filing section and exception.", implementation_type: "CHECKLIST", scope: { legal_entity: "Clear Bank Nigeria" }, effective_from: "2026-09-01T00:00:00Z", rationale: "The filing procedure changed." },
+    },
+    {
+      name: "safeguard assignment",
+      run: () => assignProgramControlImplementation("program-1", "implementation-1", 12, 3, "owner-3", "The operating team changed."),
+      path: "/api/v1/programs/program-1/control-implementations/implementation-1/assignment?tenant_id=tenant-1",
+      body: { tenant_id: "tenant-1", expected_version: 12, expected_implementation_version: 3, owner_principal_id: "owner-3", rationale: "The operating team changed." },
+    },
+    {
+      name: "safeguard transition",
+      run: () => transitionProgramControlImplementation("program-1", "implementation-1", 13, 4, "IMPLEMENTED", "The performer confirmed the safeguard is operating."),
+      path: "/api/v1/programs/program-1/control-implementations/implementation-1/transition?tenant_id=tenant-1",
+      body: { tenant_id: "tenant-1", expected_version: 13, expected_implementation_version: 4, to: "IMPLEMENTED", rationale: "The performer confirmed the safeguard is operating." },
+    },
+    {
       name: "evidence check",
       run: () => addProgramEvidenceContract("program-1", 12, {
         requirementID: "requirement-1", controlImplementationID: "implementation-1", code: "CAR-EVIDENCE",
@@ -133,6 +159,22 @@ describe("Program operation API", () => {
       }),
       path: "/api/v1/programs/program-1/evidence-assessments?tenant_id=tenant-1",
       body: { tenant_id: "tenant-1", expected_version: 13, contract_id: "contract-1", conclusion: "SUPPORTED", coverage: 1, basis: { receipt: "artifact-1" }, assessed_at: "2026-09-02T10:00:00Z" },
+    },
+    {
+      name: "evidence check revision",
+      run: () => reviseProgramEvidenceContract("program-1", "contract / 1", 14, 2, {
+        name: "Annual return evidence", claim: "Every filing section has current evidence.", acceptableSourceIDs: ["source-1"],
+        populationScope: { period: "2026" }, freshnessMinutes: 1440, minimumCoverage: 1, independenceRequired: true,
+        contradictionPolicy: "FAIL", failureAction: "MATTER", rationale: "The evidence population changed.",
+      }),
+      path: "/api/v1/programs/program-1/evidence-contracts/contract%20%2F%201/revision?tenant_id=tenant-1",
+      body: { tenant_id: "tenant-1", expected_version: 14, expected_contract_version: 2, name: "Annual return evidence", claim: "Every filing section has current evidence.", acceptable_source_ids: ["source-1"], population_scope: { period: "2026" }, freshness_minutes: 1440, minimum_coverage: 1, independence_required: true, contradiction_policy: "FAIL", failure_action: "MATTER", rationale: "The evidence population changed." },
+    },
+    {
+      name: "evidence check transition",
+      run: () => transitionProgramEvidenceContract("program-1", "contract-1", 15, 3, "ACTIVE", "Independent review confirmed the evidence rules."),
+      path: "/api/v1/programs/program-1/evidence-contracts/contract-1/transition?tenant_id=tenant-1",
+      body: { tenant_id: "tenant-1", expected_version: 15, expected_contract_version: 3, to: "ACTIVE", rationale: "Independent review confirmed the evidence rules." },
     },
     {
       name: "lifecycle transition",

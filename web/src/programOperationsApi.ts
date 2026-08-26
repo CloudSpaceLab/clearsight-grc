@@ -78,6 +78,10 @@ export type ProgramControlImplementationInput = {
   effectiveFrom: string;
 };
 
+export type ProgramControlImplementationRevisionInput = Omit<ProgramControlImplementationInput, "objectiveID" | "ownerPrincipalID" | "status"> & {
+  rationale: string;
+};
+
 export type ProgramEvidenceContractInput = {
   requirementID?: string;
   controlImplementationID?: string;
@@ -92,6 +96,10 @@ export type ProgramEvidenceContractInput = {
   contradictionPolicy: string;
   failureAction: string;
   status: string;
+};
+
+export type ProgramEvidenceContractRevisionInput = Omit<ProgramEvidenceContractInput, "requirementID" | "controlImplementationID" | "code" | "status"> & {
+  rationale: string;
 };
 
 export type ProgramEvidenceAssessmentInput = {
@@ -215,6 +223,37 @@ export function addProgramControlImplementation(programID: string, expectedVersi
   });
 }
 
+export function reviseProgramControlImplementation(programID: string, implementationID: string, expectedVersion: number, expectedImplementationVersion: number, input: ProgramControlImplementationRevisionInput): Promise<ProgramAggregate> {
+  return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/control-implementations/${encodeURIComponent(implementationID)}/details`, {
+    expected_version: expectedVersion,
+    expected_implementation_version: expectedImplementationVersion,
+    name: input.name,
+    description: input.description,
+    implementation_type: input.implementationType,
+    scope: input.scope,
+    effective_from: input.effectiveFrom,
+    rationale: input.rationale,
+  });
+}
+
+export function assignProgramControlImplementation(programID: string, implementationID: string, expectedVersion: number, expectedImplementationVersion: number, ownerPrincipalID: string, rationale: string): Promise<ProgramAggregate> {
+  return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/control-implementations/${encodeURIComponent(implementationID)}/assignment`, {
+    expected_version: expectedVersion,
+    expected_implementation_version: expectedImplementationVersion,
+    owner_principal_id: ownerPrincipalID,
+    rationale,
+  });
+}
+
+export function transitionProgramControlImplementation(programID: string, implementationID: string, expectedVersion: number, expectedImplementationVersion: number, to: string, rationale: string): Promise<ProgramAggregate> {
+  return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/control-implementations/${encodeURIComponent(implementationID)}/transition`, {
+    expected_version: expectedVersion,
+    expected_implementation_version: expectedImplementationVersion,
+    to,
+    rationale,
+  });
+}
+
 export function linkProgramRequirementControl(programID: string, expectedVersion: number, requirementID: string, implementationID: string): Promise<ProgramAggregate> {
   return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/control-links`, {
     expected_version: expectedVersion,
@@ -239,6 +278,32 @@ export function addProgramEvidenceContract(programID: string, expectedVersion: n
     contradiction_policy: input.contradictionPolicy,
     failure_action: input.failureAction,
     status: input.status,
+  });
+}
+
+export function reviseProgramEvidenceContract(programID: string, contractID: string, expectedVersion: number, expectedContractVersion: number, input: ProgramEvidenceContractRevisionInput): Promise<ProgramAggregate> {
+  return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/evidence-contracts/${encodeURIComponent(contractID)}/revision`, {
+    expected_version: expectedVersion,
+    expected_contract_version: expectedContractVersion,
+    name: input.name,
+    claim: input.claim,
+    acceptable_source_ids: input.acceptableSourceIDs,
+    population_scope: input.populationScope,
+    freshness_minutes: input.freshnessMinutes,
+    minimum_coverage: input.minimumCoverage,
+    independence_required: input.independenceRequired,
+    contradiction_policy: input.contradictionPolicy,
+    failure_action: input.failureAction,
+    rationale: input.rationale,
+  });
+}
+
+export function transitionProgramEvidenceContract(programID: string, contractID: string, expectedVersion: number, expectedContractVersion: number, to: string, rationale: string): Promise<ProgramAggregate> {
+  return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/evidence-contracts/${encodeURIComponent(contractID)}/transition`, {
+    expected_version: expectedVersion,
+    expected_contract_version: expectedContractVersion,
+    to,
+    rationale,
   });
 }
 
