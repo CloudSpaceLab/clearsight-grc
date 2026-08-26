@@ -548,6 +548,7 @@ A flow that misses the target requires documented cause, product review, and rem
 - [ ] tenant, legal-entity, request, submission and artifact scope fail closed;
 - [ ] current authority is re-evaluated for each material bank command;
 - [ ] invitation tokens and recipient addresses do not enter logs, events, URLs or recovery records;
+- [ ] invitation issuance is preceded by a durable work/request reservation, and a failed finalization plus failed revocation remains recoverable without an untracked active capability;
 - [ ] partial delivery and ambiguous preparation failures recover without duplicate requests;
 - [ ] Classic and Wizard use the same fields, limits, validation and draft state;
 - [ ] a prior response remains reconstructable after changes, cancellation or relationship-link end;

@@ -46,37 +46,39 @@ const (
 )
 
 type VendorWorkRequest struct {
-	ID                     string                        `json:"id"`
-	TenantID               string                        `json:"tenant_id"`
-	LegalEntityID          string                        `json:"legal_entity_id"`
-	RelationshipID         string                        `json:"relationship_id"`
-	RelationshipLinkID     string                        `json:"relationship_link_id"`
-	TargetType             LinkTargetType                `json:"target_type"`
-	TargetID               string                        `json:"target_id"`
-	Purpose                string                        `json:"purpose"`
-	Instructions           string                        `json:"instructions"`
-	OwnerPrincipalID       string                        `json:"owner_principal_id"`
-	ReviewerPrincipalID    string                        `json:"reviewer_principal_id,omitempty"`
-	FormTemplateID         string                        `json:"form_template_id"`
-	FormTemplateVersion    int64                         `json:"form_template_version"`
-	Presentation           formcontract.PresentationMode `json:"presentation"`
-	CurrentRequestID       string                        `json:"current_request_id,omitempty"`
-	CurrentInvitationID    string                        `json:"current_invitation_id,omitempty"`
-	CurrentCaptureSequence int                           `json:"current_capture_sequence"`
-	SubmissionID           string                        `json:"submission_id,omitempty"`
-	State                  VendorWorkState               `json:"state"`
-	DeliveryState          VendorWorkDeliveryState       `json:"delivery_state"`
-	Recovery               string                        `json:"recovery,omitempty"`
-	ReviewRationale        string                        `json:"review_rationale,omitempty"`
-	CancellationReason     string                        `json:"cancellation_reason,omitempty"`
-	DueAt                  time.Time                     `json:"due_at"`
-	Version                int64                         `json:"version"`
-	CreatedAt              time.Time                     `json:"created_at"`
-	UpdatedAt              time.Time                     `json:"updated_at"`
-	ResponseReceivedAt     *time.Time                    `json:"response_received_at,omitempty"`
-	ReviewStartedAt        *time.Time                    `json:"review_started_at,omitempty"`
-	AcceptedAt             *time.Time                    `json:"accepted_at,omitempty"`
-	CancelledAt            *time.Time                    `json:"cancelled_at,omitempty"`
+	ID                         string                        `json:"id"`
+	TenantID                   string                        `json:"tenant_id"`
+	LegalEntityID              string                        `json:"legal_entity_id"`
+	RelationshipID             string                        `json:"relationship_id"`
+	RelationshipLinkID         string                        `json:"relationship_link_id"`
+	TargetType                 LinkTargetType                `json:"target_type"`
+	TargetID                   string                        `json:"target_id"`
+	Purpose                    string                        `json:"purpose"`
+	Instructions               string                        `json:"instructions"`
+	OwnerPrincipalID           string                        `json:"owner_principal_id"`
+	ReviewerPrincipalID        string                        `json:"reviewer_principal_id,omitempty"`
+	FormTemplateID             string                        `json:"form_template_id"`
+	FormTemplateVersion        int64                         `json:"form_template_version"`
+	Presentation               formcontract.PresentationMode `json:"presentation"`
+	CurrentRequestID           string                        `json:"current_request_id,omitempty"`
+	CurrentInvitationID        string                        `json:"current_invitation_id,omitempty"`
+	PendingInvitationID        string                        `json:"-"`
+	PendingInvitationRequestID string                        `json:"-"`
+	CurrentCaptureSequence     int                           `json:"current_capture_sequence"`
+	SubmissionID               string                        `json:"submission_id,omitempty"`
+	State                      VendorWorkState               `json:"state"`
+	DeliveryState              VendorWorkDeliveryState       `json:"delivery_state"`
+	Recovery                   string                        `json:"recovery,omitempty"`
+	ReviewRationale            string                        `json:"review_rationale,omitempty"`
+	CancellationReason         string                        `json:"cancellation_reason,omitempty"`
+	DueAt                      time.Time                     `json:"due_at"`
+	Version                    int64                         `json:"version"`
+	CreatedAt                  time.Time                     `json:"created_at"`
+	UpdatedAt                  time.Time                     `json:"updated_at"`
+	ResponseReceivedAt         *time.Time                    `json:"response_received_at,omitempty"`
+	ReviewStartedAt            *time.Time                    `json:"review_started_at,omitempty"`
+	AcceptedAt                 *time.Time                    `json:"accepted_at,omitempty"`
+	CancelledAt                *time.Time                    `json:"cancelled_at,omitempty"`
 }
 
 type VendorWorkCaptureLink struct {
@@ -91,6 +93,25 @@ type VendorWorkCaptureLink struct {
 	InvitationID  string    `json:"invitation_id,omitempty"`
 	SubmissionID  string    `json:"submission_id,omitempty"`
 	CreatedAt     time.Time `json:"created_at"`
+}
+
+type VendorWorkInvitationReservationState string
+
+const (
+	VendorWorkInvitationPending    VendorWorkInvitationReservationState = "PENDING"
+	VendorWorkInvitationFinalized  VendorWorkInvitationReservationState = "FINALIZED"
+	VendorWorkInvitationSuperseded VendorWorkInvitationReservationState = "SUPERSEDED"
+)
+
+type VendorWorkInvitationReservation struct {
+	InvitationID string
+	Scope
+	WorkRequestID   string
+	RequestID       string
+	CaptureSequence int
+	State           VendorWorkInvitationReservationState
+	CreatedAt       time.Time
+	ResolvedAt      *time.Time
 }
 
 type PrepareVendorWorkInput struct {
@@ -197,6 +218,7 @@ type VendorWorkRepository interface {
 	FindActiveVendorWork(context.Context, Scope, string) (VendorWorkRequest, error)
 	GetVendorWork(context.Context, Scope, string) (VendorWorkRequest, error)
 	AttachVendorWorkCapture(context.Context, Scope, string, int64, VendorWorkCaptureLink, time.Time) (VendorWorkRequest, error)
+	ReserveVendorWorkInvitation(context.Context, Scope, string, int64, string, time.Time) (VendorWorkRequest, error)
 	MarkVendorWorkSent(context.Context, Scope, string, int64, string, VendorWorkDeliveryState, string, time.Time) (VendorWorkRequest, error)
 	MarkVendorWorkPreparationRequired(context.Context, Scope, string, int64, string, time.Time) (VendorWorkRequest, error)
 	RecordVendorWorkSubmission(context.Context, VendorWorkSubmissionInput, time.Time) (VendorWorkRequest, error)
@@ -224,19 +246,20 @@ type vendorWorkEvidence interface {
 }
 
 type VendorWorkService struct {
-	repo          VendorWorkRepository
-	links         RelationshipLinkRepository
-	evidence      vendorWorkEvidence
-	forms         assessmentFormReader
-	delivery      *evidence.InvitationDeliveryService
-	relationships Repository
-	guard         AssessmentCommandGuard
-	readAuthority authority.Service
-	targets       *RelationshipTargetAccess
-	coordinator   *RelationshipLinkCoordinator
-	captureBase   *url.URL
-	now           func() time.Time
-	newID         func() (string, error)
+	repo            VendorWorkRepository
+	links           RelationshipLinkRepository
+	evidence        vendorWorkEvidence
+	forms           assessmentFormReader
+	delivery        *evidence.InvitationDeliveryService
+	relationships   Repository
+	guard           AssessmentCommandGuard
+	readAuthority   authority.Service
+	targets         *RelationshipTargetAccess
+	coordinator     *RelationshipLinkCoordinator
+	captureBase     *url.URL
+	now             func() time.Time
+	newID           func() (string, error)
+	newInvitationID func() (string, error)
 }
 
 func NewVendorWorkService(repo VendorWorkRepository, links RelationshipLinkRepository, evidenceService vendorWorkEvidence, forms assessmentFormReader, delivery *evidence.InvitationDeliveryService, capturePublicBaseURL, environment string) (*VendorWorkService, error) {
@@ -250,7 +273,7 @@ func NewVendorWorkService(repo VendorWorkRepository, links RelationshipLinkRepos
 	if delivery == nil {
 		delivery = evidence.NewInvitationDeliveryService(nil)
 	}
-	return &VendorWorkService{repo: repo, links: links, evidence: evidenceService, forms: forms, delivery: delivery, captureBase: base, now: time.Now, newID: id.NewUUIDv7}, nil
+	return &VendorWorkService{repo: repo, links: links, evidence: evidenceService, forms: forms, delivery: delivery, captureBase: base, now: time.Now, newID: id.NewUUIDv7, newInvitationID: id.NewUUIDv7}, nil
 }
 
 func (s *VendorWorkService) ConfigureRelationshipReader(reader Repository) {
@@ -479,40 +502,66 @@ func (s *VendorWorkService) sendCurrent(ctx context.Context, actor Actor, work V
 		updated, updateErr := s.repo.MarkVendorWorkSent(ctx, scopeFrom(actor), work.ID, work.Version, "", VendorWorkDeliveryRetryRequired, "Set the secure capture address, then retry sending this vendor request.", s.now().UTC())
 		return VendorWorkSendOutcome{Work: updated, State: VendorWorkDeliveryRetryRequired, Recovery: updated.Recovery}, updateErr
 	}
-	issued, err := s.evidence.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: work.TenantID, RequestID: request.ID, Audience: audience, Purpose: "Complete the vendor request.", TTLMinutes: ttlMinutes, CreatedBy: actor.PrincipalID})
-	if err != nil {
-		updated, updateErr := s.repo.MarkVendorWorkSent(ctx, scopeFrom(actor), work.ID, work.Version, "", VendorWorkDeliveryRetryRequired, "Retry sending this vendor request.", s.now().UTC())
-		return VendorWorkSendOutcome{Work: updated, State: VendorWorkDeliveryRetryRequired, Recovery: updated.Recovery}, updateErr
-	}
-	linkURL := captureInvitationURL(s.captureBase, issued.Token)
-	receipt, deliveryErr := s.delivery.Deliver(ctx, evidence.InvitationDeliveryRequest{RecipientAddress: audience, InvitationLink: linkURL})
-	deliveryState := VendorWorkDeliveryDelivered
-	recovery := ""
-	if deliveryErr != nil || receipt.Status != evidence.InvitationDelivered {
-		deliveryState = VendorWorkDeliveryLinkAvailable
-		recovery = "Copy the secure link or retry email delivery."
-	}
-	updated, err := s.repo.MarkVendorWorkSent(ctx, scopeFrom(actor), work.ID, work.Version, issued.InvitationID, deliveryState, recovery, s.now().UTC())
-	if err != nil {
-		stored, readErr := s.repo.GetVendorWork(ctx, scopeFrom(actor), work.ID)
-		if readErr == nil && stored.Version == work.Version+1 && stored.CurrentRequestID == request.ID && stored.CurrentInvitationID == issued.InvitationID && stored.DeliveryState == deliveryState {
-			updated, err = stored, nil
-		} else {
-			_ = s.evidence.RevokeRequestCapabilities(ctx, work.TenantID, request.ID)
-			recovery = "Delivery could not be confirmed. Retry delivery to replace any prior secure access."
-			if readErr == nil {
-				return VendorWorkSendOutcome{Work: stored, State: stored.DeliveryState, Recovery: recovery}, nil
-			}
+	if work.PendingInvitationID != "" {
+		if work.PendingInvitationRequestID != request.ID {
+			return VendorWorkSendOutcome{}, ErrVersionConflict
+		}
+		if err := s.evidence.RevokeRequestCapabilities(ctx, work.TenantID, request.ID); err != nil {
+			recovery := "Secure access could not be replaced. Retry when revocation is available."
 			work.DeliveryState, work.Recovery = VendorWorkDeliveryRetryRequired, recovery
 			return VendorWorkSendOutcome{Work: work, State: VendorWorkDeliveryRetryRequired, Recovery: recovery}, nil
 		}
 	}
-	issued.Token = ""
-	outcome := VendorWorkSendOutcome{Work: updated, Invitation: &issued, Delivery: &receipt, State: deliveryState}
-	if deliveryState == VendorWorkDeliveryLinkAvailable {
-		outcome.CaptureURL, outcome.Recovery = linkURL, recovery
+	invitationID, err := s.newInvitationID()
+	if err != nil {
+		return VendorWorkSendOutcome{}, err
 	}
-	return outcome, nil
+	reserved, err := s.repo.ReserveVendorWorkInvitation(ctx, scopeFrom(actor), work.ID, work.Version, invitationID, s.now().UTC())
+	if err != nil {
+		stored, readErr := s.repo.GetVendorWork(ctx, scopeFrom(actor), work.ID)
+		if readErr != nil || stored.Version != work.Version+1 || stored.PendingInvitationID != invitationID || stored.PendingInvitationRequestID != request.ID || stored.DeliveryState != VendorWorkDeliveryRetryRequired {
+			return VendorWorkSendOutcome{}, err
+		}
+		reserved = stored
+	}
+	issued, err := s.evidence.IssueInvitation(ctx, evidence.IssueInvitationInput{InvitationID: invitationID, TenantID: work.TenantID, RequestID: request.ID, Audience: audience, Purpose: "Complete the vendor request.", TTLMinutes: ttlMinutes, CreatedBy: actor.PrincipalID})
+	if err != nil {
+		return VendorWorkSendOutcome{Work: reserved, State: VendorWorkDeliveryRetryRequired, Recovery: reserved.Recovery}, nil
+	}
+	linkURL := captureInvitationURL(s.captureBase, issued.Token)
+	recovery := "Copy the secure link or retry email delivery."
+	ready, err := s.repo.MarkVendorWorkSent(ctx, scopeFrom(actor), work.ID, reserved.Version, issued.InvitationID, VendorWorkDeliveryLinkAvailable, recovery, s.now().UTC())
+	if err != nil {
+		stored, readErr := s.repo.GetVendorWork(ctx, scopeFrom(actor), work.ID)
+		if readErr == nil && stored.Version == reserved.Version+1 && stored.CurrentRequestID == request.ID && stored.CurrentInvitationID == issued.InvitationID && stored.PendingInvitationID == "" && stored.DeliveryState == VendorWorkDeliveryLinkAvailable {
+			ready, err = stored, nil
+		} else {
+			revokeErr := s.evidence.RevokeRequestCapabilities(ctx, work.TenantID, request.ID)
+			recovery = "Secure-link setup could not be confirmed. Retry to replace the reserved access."
+			if revokeErr != nil {
+				recovery = "Secure access remains reserved to this request. Retry when revocation is available."
+			}
+			reserved.DeliveryState, reserved.Recovery = VendorWorkDeliveryRetryRequired, recovery
+			return VendorWorkSendOutcome{Work: reserved, State: VendorWorkDeliveryRetryRequired, Recovery: recovery}, nil
+		}
+	}
+	receipt, deliveryErr := s.delivery.Deliver(ctx, evidence.InvitationDeliveryRequest{RecipientAddress: audience, InvitationLink: linkURL})
+	if deliveryErr != nil || receipt.Status != evidence.InvitationDelivered {
+		issued.Token = ""
+		return VendorWorkSendOutcome{Work: ready, Invitation: &issued, Delivery: &receipt, State: VendorWorkDeliveryLinkAvailable, CaptureURL: linkURL, Recovery: recovery}, nil
+	}
+	delivered, deliveryRecordErr := s.repo.MarkVendorWorkSent(ctx, scopeFrom(actor), work.ID, ready.Version, "", VendorWorkDeliveryDelivered, "", s.now().UTC())
+	if deliveryRecordErr != nil {
+		stored, readErr := s.repo.GetVendorWork(ctx, scopeFrom(actor), work.ID)
+		if readErr == nil && stored.Version == ready.Version+1 && stored.CurrentInvitationID == issued.InvitationID && stored.DeliveryState == VendorWorkDeliveryDelivered {
+			delivered = stored
+		} else {
+			issued.Token = ""
+			return VendorWorkSendOutcome{Work: ready, Invitation: &issued, Delivery: &receipt, State: VendorWorkDeliveryLinkAvailable, CaptureURL: linkURL, Recovery: recovery}, nil
+		}
+	}
+	issued.Token = ""
+	return VendorWorkSendOutcome{Work: delivered, Invitation: &issued, Delivery: &receipt, State: VendorWorkDeliveryDelivered}, nil
 }
 
 func (s *VendorWorkService) StartReview(ctx context.Context, actor Actor, workID string, input StartVendorWorkReviewInput) (VendorWorkRequest, error) {

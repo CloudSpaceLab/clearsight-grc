@@ -242,6 +242,8 @@ When the request supports a Program or an issue or change, the request must reta
 
 A vendor submission records receipt; it does not approve the response or complete the bank's work. The bank reviews the exact submitted answers and available documents, then accepts the response or requests specific changes through a new request in the same immutable sequence. Cancelling the work revokes active invitation and session access while retaining request and response history.
 
+Before an invitation capability is issued, the vendor-work service durably reserves its opaque invitation identifier against the exact work item and capture request. The invitation is attached to the work history before delivery. A retry revokes capabilities for the reserved request before replacing the reservation; tokens and recipient addresses are never stored in the vendor-work recovery record.
+
 ## 10. Customer capture
 
 Customer requests require:

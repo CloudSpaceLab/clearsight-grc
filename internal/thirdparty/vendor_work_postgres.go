@@ -129,6 +129,52 @@ func (r *PostgresRepository) AttachVendorWorkCapture(ctx context.Context, scope 
 	return current, nil
 }
 
+func (r *PostgresRepository) ReserveVendorWorkInvitation(ctx context.Context, scope Scope, id string, expected int64, invitationID string, now time.Time) (VendorWorkRequest, error) {
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if err != nil {
+		return VendorWorkRequest{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	current, err := getVendorWorkLocked(ctx, tx, scope, id)
+	if err != nil {
+		return VendorWorkRequest{}, err
+	}
+	if current.Version != expected {
+		return VendorWorkRequest{}, ErrVersionConflict
+	}
+	if invitationID == "" || current.CurrentRequestID == "" || (current.State != VendorWorkPreparing && current.State != VendorWorkAwaitingVendor && current.State != VendorWorkChangesRequested) {
+		return VendorWorkRequest{}, ErrInvalidAssessmentTransition
+	}
+	tenantID, err := resolveTenant(ctx, tx, scope.TenantID)
+	if err != nil {
+		return VendorWorkRequest{}, err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE third_party_work_invitation_reservations SET state='SUPERSEDED',resolved_at=$4 WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND work_request_id=$3::uuid AND state='PENDING'`, tenantID, scope.LegalEntityID, id, now.UTC()); err != nil {
+		return VendorWorkRequest{}, fmt.Errorf("supersede vendor work invitation reservation: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO third_party_work_invitation_reservations(invitation_id,tenant_id,legal_entity_id,work_request_id,request_id,capture_sequence,state,created_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'PENDING',$7)`, invitationID, tenantID, scope.LegalEntityID, id, current.CurrentRequestID, current.CurrentCaptureSequence, now.UTC()); err != nil {
+		if isUniqueViolation(err) {
+			return VendorWorkRequest{}, ErrVersionConflict
+		}
+		return VendorWorkRequest{}, fmt.Errorf("reserve vendor work invitation: %w", err)
+	}
+	current.PendingInvitationID, current.PendingInvitationRequestID = invitationID, current.CurrentRequestID
+	current.DeliveryState = VendorWorkDeliveryRetryRequired
+	current.Recovery = "Complete secure-link setup for this vendor request."
+	current.Version++
+	current.UpdatedAt = now.UTC()
+	if _, err := tx.Exec(ctx, `UPDATE third_party_work_requests SET delivery_state=$4,recovery=$5,version=$6,updated_at=$7 WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND version=$8`, tenantID, scope.LegalEntityID, id, current.DeliveryState, current.Recovery, current.Version, current.UpdatedAt, expected); err != nil {
+		return VendorWorkRequest{}, fmt.Errorf("record vendor work invitation reservation: %w", err)
+	}
+	if err := appendVendorWorkEvent(ctx, tx, tenantID, current, "", "VendorWorkInvitationReserved"); err != nil {
+		return VendorWorkRequest{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return VendorWorkRequest{}, err
+	}
+	return current, nil
+}
+
 func (r *PostgresRepository) MarkVendorWorkSent(ctx context.Context, scope Scope, id string, expected int64, invitationID string, delivery VendorWorkDeliveryState, recovery string, now time.Time) (VendorWorkRequest, error) {
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
 	if err != nil {
@@ -150,6 +196,15 @@ func (r *PostgresRepository) MarkVendorWorkSent(ctx context.Context, scope Scope
 		return VendorWorkRequest{}, err
 	}
 	if invitationID != "" {
+		var reservedRequestID string
+		if err := tx.QueryRow(ctx, `SELECT request_id::text FROM third_party_work_invitation_reservations WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND work_request_id=$3::uuid AND invitation_id=$4::uuid AND state='PENDING' FOR UPDATE`, tenantID, scope.LegalEntityID, id, invitationID).Scan(&reservedRequestID); errors.Is(err, pgx.ErrNoRows) {
+			return VendorWorkRequest{}, ErrVersionConflict
+		} else if err != nil {
+			return VendorWorkRequest{}, fmt.Errorf("lock vendor work invitation reservation: %w", err)
+		}
+		if reservedRequestID != current.CurrentRequestID {
+			return VendorWorkRequest{}, ErrVersionConflict
+		}
 		current.CurrentInvitationID = invitationID
 		if current.State == VendorWorkPreparing {
 			current.State = VendorWorkAwaitingVendor
@@ -158,6 +213,10 @@ func (r *PostgresRepository) MarkVendorWorkSent(ctx context.Context, scope Scope
 		if err != nil {
 			return VendorWorkRequest{}, fmt.Errorf("attach vendor work invitation: %w", err)
 		}
+		if _, err := tx.Exec(ctx, `UPDATE third_party_work_invitation_reservations SET state='FINALIZED',resolved_at=$5 WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND work_request_id=$3::uuid AND invitation_id=$4::uuid AND state='PENDING'`, tenantID, scope.LegalEntityID, id, invitationID, now.UTC()); err != nil {
+			return VendorWorkRequest{}, fmt.Errorf("finalize vendor work invitation reservation: %w", err)
+		}
+		current.PendingInvitationID, current.PendingInvitationRequestID = "", ""
 	}
 	current.DeliveryState, current.Recovery, current.Version, current.UpdatedAt = delivery, recovery, current.Version+1, now.UTC()
 	_, err = tx.Exec(ctx, `UPDATE third_party_work_requests SET state=$4,current_invitation_id=NULLIF($5,'')::uuid,delivery_state=$6,recovery=$7,version=$8,updated_at=$9
@@ -166,6 +225,9 @@ func (r *PostgresRepository) MarkVendorWorkSent(ctx context.Context, scope Scope
 		return VendorWorkRequest{}, fmt.Errorf("record vendor work delivery: %w", err)
 	}
 	eventType := "VendorWorkSent"
+	if invitationID != "" {
+		eventType = "VendorWorkInvitationReady"
+	}
 	if delivery == VendorWorkDeliveryRetryRequired {
 		eventType = "VendorWorkDeliveryRetryRequired"
 	}
@@ -431,11 +493,11 @@ func getVendorWorkLocked(ctx context.Context, tx pgx.Tx, scope Scope, id string)
 	return value, err
 }
 
-const vendorWorkSelect = `SELECT w.id::text,t.slug,w.legal_entity_id::text,w.relationship_id::text,COALESCE(w.program_link_id,w.matter_link_id)::text,w.target_type,w.target_id::text,w.purpose,w.instructions,w.owner_principal_id::text,COALESCE(w.reviewer_principal_id::text,''),w.form_template_id::text,w.form_template_version,w.presentation,COALESCE(w.current_request_id::text,''),COALESCE(w.current_invitation_id::text,''),w.current_capture_sequence,COALESCE(w.submission_id::text,''),w.state,w.delivery_state,w.recovery,w.review_rationale,w.cancellation_reason,w.due_at,w.version,w.created_at,w.updated_at,w.response_received_at,w.review_started_at,w.accepted_at,w.cancelled_at FROM third_party_work_requests w JOIN tenants t ON t.id=w.tenant_id`
+const vendorWorkSelect = `SELECT w.id::text,t.slug,w.legal_entity_id::text,w.relationship_id::text,COALESCE(w.program_link_id,w.matter_link_id)::text,w.target_type,w.target_id::text,w.purpose,w.instructions,w.owner_principal_id::text,COALESCE(w.reviewer_principal_id::text,''),w.form_template_id::text,w.form_template_version,w.presentation,COALESCE(w.current_request_id::text,''),COALESCE(w.current_invitation_id::text,''),COALESCE((SELECT reservation.invitation_id::text FROM third_party_work_invitation_reservations reservation WHERE reservation.tenant_id=w.tenant_id AND reservation.legal_entity_id=w.legal_entity_id AND reservation.work_request_id=w.id AND reservation.state='PENDING' ORDER BY reservation.created_at DESC LIMIT 1),''),COALESCE((SELECT reservation.request_id::text FROM third_party_work_invitation_reservations reservation WHERE reservation.tenant_id=w.tenant_id AND reservation.legal_entity_id=w.legal_entity_id AND reservation.work_request_id=w.id AND reservation.state='PENDING' ORDER BY reservation.created_at DESC LIMIT 1),''),w.current_capture_sequence,COALESCE(w.submission_id::text,''),w.state,w.delivery_state,w.recovery,w.review_rationale,w.cancellation_reason,w.due_at,w.version,w.created_at,w.updated_at,w.response_received_at,w.review_started_at,w.accepted_at,w.cancelled_at FROM third_party_work_requests w JOIN tenants t ON t.id=w.tenant_id`
 
 func scanVendorWork(row rowScanner) (VendorWorkRequest, error) {
 	var value VendorWorkRequest
-	err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.RelationshipID, &value.RelationshipLinkID, &value.TargetType, &value.TargetID, &value.Purpose, &value.Instructions, &value.OwnerPrincipalID, &value.ReviewerPrincipalID, &value.FormTemplateID, &value.FormTemplateVersion, &value.Presentation, &value.CurrentRequestID, &value.CurrentInvitationID, &value.CurrentCaptureSequence, &value.SubmissionID, &value.State, &value.DeliveryState, &value.Recovery, &value.ReviewRationale, &value.CancellationReason, &value.DueAt, &value.Version, &value.CreatedAt, &value.UpdatedAt, &value.ResponseReceivedAt, &value.ReviewStartedAt, &value.AcceptedAt, &value.CancelledAt)
+	err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.RelationshipID, &value.RelationshipLinkID, &value.TargetType, &value.TargetID, &value.Purpose, &value.Instructions, &value.OwnerPrincipalID, &value.ReviewerPrincipalID, &value.FormTemplateID, &value.FormTemplateVersion, &value.Presentation, &value.CurrentRequestID, &value.CurrentInvitationID, &value.PendingInvitationID, &value.PendingInvitationRequestID, &value.CurrentCaptureSequence, &value.SubmissionID, &value.State, &value.DeliveryState, &value.Recovery, &value.ReviewRationale, &value.CancellationReason, &value.DueAt, &value.Version, &value.CreatedAt, &value.UpdatedAt, &value.ResponseReceivedAt, &value.ReviewStartedAt, &value.AcceptedAt, &value.CancelledAt)
 	return value, err
 }
 

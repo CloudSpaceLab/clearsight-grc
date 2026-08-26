@@ -319,9 +319,12 @@ func (s *Service) IssueInvitation(ctx context.Context, input IssueInvitationInpu
 		return IssuedInvitation{}, err
 	}
 	audienceDigest := sha256.Sum256([]byte(audience))
-	valueID, err := id.NewUUIDv7()
-	if err != nil {
-		return IssuedInvitation{}, err
+	valueID := strings.TrimSpace(input.InvitationID)
+	if valueID == "" {
+		valueID, err = id.NewUUIDv7()
+		if err != nil {
+			return IssuedInvitation{}, err
+		}
 	}
 	invitation := Invitation{ID: valueID, TenantID: input.TenantID, RequestID: input.RequestID, TokenHash: tokenHash, AudienceHash: audienceDigest[:], AudienceHint: request.Recipient.AudienceHint, Purpose: input.Purpose, ExpiresAt: now.Add(ttl), MaxRedemptions: 1, CreatedBy: input.CreatedBy, CreatedAt: now}
 	if invitation.ExpiresAt.After(request.Deadline) {

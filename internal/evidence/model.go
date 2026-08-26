@@ -314,13 +314,14 @@ type Invitation struct {
 }
 
 type IssueInvitationInput struct {
-	TenantID   string        `json:"tenant_id"`
-	RequestID  string        `json:"request_id"`
-	Audience   string        `json:"audience"`
-	Purpose    string        `json:"purpose"`
-	TTL        time.Duration `json:"-"`
-	TTLMinutes int           `json:"ttl_minutes"`
-	CreatedBy  string        `json:"created_by,omitempty"`
+	InvitationID string        `json:"-"`
+	TenantID     string        `json:"tenant_id"`
+	RequestID    string        `json:"request_id"`
+	Audience     string        `json:"audience"`
+	Purpose      string        `json:"purpose"`
+	TTL          time.Duration `json:"-"`
+	TTLMinutes   int           `json:"ttl_minutes"`
+	CreatedBy    string        `json:"created_by,omitempty"`
 }
 
 type IssuedInvitation struct {

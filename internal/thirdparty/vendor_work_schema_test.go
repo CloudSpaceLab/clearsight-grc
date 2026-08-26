@@ -27,3 +27,29 @@ func TestVendorWorkSchemaKeepsTypedTargetCaptureHistoryAndRecovery(t *testing.T)
 		t.Fatal("vendor work migration creates a retry ledger without a worker that can claim it")
 	}
 }
+
+func TestVendorWorkInvitationReservationMigrationKeepsPreIssueAssociationAndAudit(t *testing.T) {
+	up, err := os.ReadFile("../../migrations/000046_vendor_work_invitation_reservations.up.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	down, err := os.ReadFile("../../migrations/000046_vendor_work_invitation_reservations.down.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{
+		"CREATE TABLE third_party_work_invitation_reservations",
+		"invitation_id uuid PRIMARY KEY",
+		"state text NOT NULL CHECK (state IN ('PENDING','FINALIZED','SUPERSEDED'))",
+		"third_party_work_invitation_reservations_pending_idx",
+		"VendorWorkInvitationReserved",
+		"VendorWorkInvitationReady",
+	} {
+		if !strings.Contains(string(up), required) {
+			t.Fatalf("invitation reservation migration missing %q", required)
+		}
+	}
+	if strings.Contains(string(up), "token_hash") || strings.Contains(string(down), "DELETE FROM") || strings.Contains(string(down), "DROP TABLE") {
+		t.Fatal("invitation reservation migrations must not persist tokens or rewrite work history")
+	}
+}

@@ -11,14 +11,15 @@ import (
 )
 
 type MemoryVendorWorkRepository struct {
-	mu        sync.RWMutex
-	work      map[string]VendorWorkRequest
-	captures  map[string][]VendorWorkCaptureLink
-	reactions map[string]bool
+	mu           sync.RWMutex
+	work         map[string]VendorWorkRequest
+	captures     map[string][]VendorWorkCaptureLink
+	reservations map[string][]VendorWorkInvitationReservation
+	reactions    map[string]bool
 }
 
 func NewMemoryVendorWorkRepository() *MemoryVendorWorkRepository {
-	return &MemoryVendorWorkRepository{work: map[string]VendorWorkRequest{}, captures: map[string][]VendorWorkCaptureLink{}, reactions: map[string]bool{}}
+	return &MemoryVendorWorkRepository{work: map[string]VendorWorkRequest{}, captures: map[string][]VendorWorkCaptureLink{}, reservations: map[string][]VendorWorkInvitationReservation{}, reactions: map[string]bool{}}
 }
 
 func (r *MemoryVendorWorkRepository) CreateVendorWork(_ context.Context, value VendorWorkRequest) (VendorWorkRequest, error) {
@@ -84,6 +85,41 @@ func (r *MemoryVendorWorkRepository) AttachVendorWorkCapture(_ context.Context, 
 	return value, nil
 }
 
+func (r *MemoryVendorWorkRepository) ReserveVendorWorkInvitation(_ context.Context, scope Scope, id string, expected int64, invitationID string, now time.Time) (VendorWorkRequest, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	value, ok := r.work[id]
+	if !ok || value.TenantID != scope.TenantID || value.LegalEntityID != scope.LegalEntityID {
+		return VendorWorkRequest{}, ErrNotFound
+	}
+	if value.Version != expected {
+		return VendorWorkRequest{}, ErrVersionConflict
+	}
+	if strings.TrimSpace(invitationID) == "" || value.CurrentRequestID == "" || (value.State != VendorWorkPreparing && value.State != VendorWorkAwaitingVendor && value.State != VendorWorkChangesRequested) {
+		return VendorWorkRequest{}, ErrInvalidAssessmentTransition
+	}
+	resolved := now.UTC()
+	reservations := r.reservations[id]
+	for index := range reservations {
+		if reservations[index].State == VendorWorkInvitationPending {
+			reservations[index].State = VendorWorkInvitationSuperseded
+			reservations[index].ResolvedAt = &resolved
+		}
+		if reservations[index].InvitationID == invitationID {
+			return VendorWorkRequest{}, ErrVersionConflict
+		}
+	}
+	reservations = append(reservations, VendorWorkInvitationReservation{InvitationID: invitationID, Scope: scope, WorkRequestID: id, RequestID: value.CurrentRequestID, CaptureSequence: value.CurrentCaptureSequence, State: VendorWorkInvitationPending, CreatedAt: now.UTC()})
+	r.reservations[id] = reservations
+	value.PendingInvitationID, value.PendingInvitationRequestID = invitationID, value.CurrentRequestID
+	value.DeliveryState = VendorWorkDeliveryRetryRequired
+	value.Recovery = "Complete secure-link setup for this vendor request."
+	value.Version++
+	value.UpdatedAt = now.UTC()
+	r.work[id] = value
+	return value, nil
+}
+
 func (r *MemoryVendorWorkRepository) MarkVendorWorkSent(_ context.Context, scope Scope, id string, expected int64, invitationID string, delivery VendorWorkDeliveryState, recovery string, now time.Time) (VendorWorkRequest, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -98,6 +134,9 @@ func (r *MemoryVendorWorkRepository) MarkVendorWorkSent(_ context.Context, scope
 		return VendorWorkRequest{}, ErrInvalidAssessmentTransition
 	}
 	if invitationID != "" {
+		if value.PendingInvitationID != invitationID || value.PendingInvitationRequestID != value.CurrentRequestID {
+			return VendorWorkRequest{}, ErrVersionConflict
+		}
 		value.CurrentInvitationID = invitationID
 		if value.State == VendorWorkPreparing {
 			value.State = VendorWorkAwaitingVendor
@@ -109,6 +148,16 @@ func (r *MemoryVendorWorkRepository) MarkVendorWorkSent(_ context.Context, scope
 			}
 		}
 		r.captures[id] = links
+		resolved := now.UTC()
+		reservations := r.reservations[id]
+		for index := range reservations {
+			if reservations[index].InvitationID == invitationID && reservations[index].State == VendorWorkInvitationPending {
+				reservations[index].State = VendorWorkInvitationFinalized
+				reservations[index].ResolvedAt = &resolved
+			}
+		}
+		r.reservations[id] = reservations
+		value.PendingInvitationID, value.PendingInvitationRequestID = "", ""
 	}
 	value.DeliveryState, value.Recovery, value.UpdatedAt = delivery, recovery, now.UTC()
 	value.Version++

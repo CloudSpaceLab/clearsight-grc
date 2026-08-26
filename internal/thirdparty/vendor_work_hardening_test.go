@@ -141,11 +141,25 @@ func (r *failedVendorWorkDeliveryRepository) GetVendorWork(ctx context.Context, 
 type revocationTrackingVendorWorkEvidence struct {
 	vendorWorkEvidence
 	revokedRequests int
+	revokeFailures  int
+	issued          []evidence.IssuedInvitation
 }
 
 func (s *revocationTrackingVendorWorkEvidence) RevokeRequestCapabilities(ctx context.Context, tenantID, requestID string) error {
 	s.revokedRequests++
+	if s.revokeFailures > 0 {
+		s.revokeFailures--
+		return errors.New("capability revocation unavailable")
+	}
 	return s.vendorWorkEvidence.RevokeRequestCapabilities(ctx, tenantID, requestID)
+}
+
+func (s *revocationTrackingVendorWorkEvidence) IssueInvitation(ctx context.Context, input evidence.IssueInvitationInput) (evidence.IssuedInvitation, error) {
+	issued, err := s.vendorWorkEvidence.IssueInvitation(ctx, input)
+	if err == nil {
+		s.issued = append(s.issued, issued)
+	}
+	return issued, err
 }
 
 func TestSendVendorWorkReturnsRecoverableStateWhenInvitationPersistenceIsAmbiguous(t *testing.T) {
@@ -166,6 +180,66 @@ func TestSendVendorWorkReturnsRecoverableStateWhenInvitationPersistenceIsAmbiguo
 	}
 	if outcome.State != VendorWorkDeliveryRetryRequired || outcome.Work.DeliveryState != VendorWorkDeliveryRetryRequired || outcome.CaptureURL != "" || tracking.revokedRequests != 1 {
 		t.Fatalf("recoverable invitation outcome = %#v, revocations=%d", outcome, tracking.revokedRequests)
+	}
+}
+
+type failedVendorWorkFinalizationRepository struct {
+	*MemoryVendorWorkRepository
+	finalizeFailures  int
+	readFailures      int
+	finalizeAttempted bool
+}
+
+func (r *failedVendorWorkFinalizationRepository) MarkVendorWorkSent(ctx context.Context, scope Scope, id string, expected int64, invitationID string, delivery VendorWorkDeliveryState, recovery string, now time.Time) (VendorWorkRequest, error) {
+	if invitationID != "" && r.finalizeFailures > 0 {
+		r.finalizeFailures--
+		r.finalizeAttempted = true
+		return VendorWorkRequest{}, errors.New("invitation finalization unavailable")
+	}
+	return r.MemoryVendorWorkRepository.MarkVendorWorkSent(ctx, scope, id, expected, invitationID, delivery, recovery, now)
+}
+
+func (r *failedVendorWorkFinalizationRepository) GetVendorWork(ctx context.Context, scope Scope, id string) (VendorWorkRequest, error) {
+	if r.finalizeAttempted && r.readFailures > 0 {
+		r.readFailures--
+		return VendorWorkRequest{}, errors.New("vendor work read unavailable")
+	}
+	return r.MemoryVendorWorkRepository.GetVendorWork(ctx, scope, id)
+}
+
+func TestSendVendorWorkDurablyReservesInvitationBeforeIssueWhenFinalizationAndRevocationFail(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	repository := &failedVendorWorkFinalizationRepository{MemoryVendorWorkRepository: fixture.repository, finalizeFailures: 1, readFailures: 1}
+	tracking := &revocationTrackingVendorWorkEvidence{vendorWorkEvidence: fixture.evidence, revokeFailures: 1}
+	fixture.service.repo = repository
+	fixture.service.evidence = tracking
+	prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
+		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, Purpose: "Confirm service information.", Instructions: "Review the request.",
+		FormTemplateID: "form-1", FormTemplateVersion: 3, VendorAudience: fixture.audience, DueAt: fixture.now.Add(24 * time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	failed, err := fixture.service.Send(context.Background(), fixture.actor, prepared.ID, SendVendorWorkInput{ExpectedVersion: prepared.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60})
+	if err != nil {
+		t.Fatalf("recoverable send = %v", err)
+	}
+	if len(tracking.issued) != 1 || failed.Work.PendingInvitationID == "" || failed.Work.PendingInvitationID != tracking.issued[0].InvitationID || failed.Work.PendingInvitationRequestID != prepared.CurrentRequestID {
+		t.Fatalf("reserved invitation outcome=%#v issued=%#v", failed, tracking.issued)
+	}
+	if failed.State != VendorWorkDeliveryRetryRequired || failed.CaptureURL != "" || tracking.revokedRequests != 1 {
+		t.Fatalf("failed finalization outcome=%#v revocations=%d", failed, tracking.revokedRequests)
+	}
+
+	recovered, err := fixture.service.Retry(context.Background(), fixture.actor, prepared.ID, RetryVendorWorkInput{ExpectedVersion: failed.Work.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tracking.issued) != 2 || recovered.Work.PendingInvitationID != "" || recovered.Work.CurrentInvitationID != tracking.issued[1].InvitationID || recovered.Work.CurrentInvitationID == tracking.issued[0].InvitationID {
+		t.Fatalf("recovered invitation outcome=%#v issued=%#v", recovered, tracking.issued)
+	}
+	if _, err := fixture.evidence.RedeemInvitation(context.Background(), tracking.issued[0].Token, fixture.audience); !errors.Is(err, evidence.ErrInvitationInvalid) {
+		t.Fatalf("reserved predecessor remained usable: %v", err)
 	}
 }
 
