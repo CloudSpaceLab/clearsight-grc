@@ -35,7 +35,7 @@ const VendorsWorkspace = lazy(() => import("./components/VendorsWorkspace").then
 type LoadState = "idle" | "loading" | "live" | "unavailable";
 type SectionLoadState = Exclude<LoadState, "idle">;
 type ConnectionState = "loading" | "live" | "sample" | "unavailable";
-type VendorGuideIntent = { id: number; type: "open-vendor-due-diligence" | "open-vendor-work" };
+type VendorGuideIntent = { id: number; type: "open-vendor-due-diligence" | "open-vendor-work" | "open-vendor-next-action" };
 type ProductRuntime = RuntimeContext & {
   demo_mode?: boolean;
   capabilities?: {
@@ -293,7 +293,7 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
     if (step.intent === "open-first-program") { navigate("programs", { openFirstProgram: true }); return; }
     if (step.intent === "open-first-matter") { navigate("work", { openFirstMatter: true }, "matters"); return; }
     const vendorIntent = step.intent;
-    if (vendorIntent === "open-vendor-due-diligence" || vendorIntent === "open-vendor-work") {
+    if (vendorIntent === "open-vendor-due-diligence" || vendorIntent === "open-vendor-work" || vendorIntent === "open-vendor-next-action") {
       return new Promise<void>((resolve, reject) => {
         const previous = vendorGuideAck.current;
         vendorGuideAck.current = undefined;

@@ -79,6 +79,7 @@ describe("semantic accessibility gates", () => {
     for (const variant of ["today", "vendors"] as const) {
       const view = render(<CinematicGuidePanel
         variant={variant}
+        role={variant === "today" ? "Executive risk or compliance leader" : "Vendor relationship owner"}
         title={variant === "today" ? "Review assigned work" : "Manage vendor relationships"}
         description="Review the current context, complete the assigned work and confirm the outcome."
         onStart={vi.fn()}

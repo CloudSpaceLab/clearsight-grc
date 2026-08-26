@@ -31,7 +31,9 @@ vi.mock("../vendorAssessmentApi", () => ({
   startVendorAssessmentReview: vi.fn(),
   vendorAssessmentDocumentURL: vi.fn(),
 }));
-vi.mock("./VendorWorkPanel", () => ({ VendorWorkPanel: ({ relationshipID }: { relationshipID: string }) => <section className="vendor-work-panel" tabIndex={-1} data-testid={`vendor-work-relationship-${relationshipID}`}>Vendor requests</section> }));
+let showVendorWorkAction = false;
+const vendorWorkAction = vi.fn();
+vi.mock("./VendorWorkPanel", () => ({ VendorWorkPanel: ({ relationshipID }: { relationshipID: string }) => <section className="vendor-work-panel" tabIndex={-1} data-testid={`vendor-work-relationship-${relationshipID}`}>Vendor requests{showVendorWorkAction && <button type="button" className="primary-button" onClick={vendorWorkAction}>Request vendor work</button>}</section> }));
 
 const record: VendorRelationshipAggregate = {
   vendor: { id: "vendor-1", tenant_id: "bank", legal_name: "Acme Processing Limited", trading_name: "Acme", registration_ref: "RC-10001", jurisdiction: "Nigeria", source_id: "procurement", external_ref: "vendor-10001", status: "ACTIVE", created_at: "2026-08-25T12:00:00Z", updated_at: "2026-08-25T12:00:00Z", version: 1 },
@@ -81,6 +83,7 @@ function review(status: VendorAssessment["status"]): VendorAssessmentReviewView 
 
 beforeEach(() => {
   vi.clearAllMocks();
+  showVendorWorkAction = false;
   vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [record] });
   vi.mocked(loadVendorRelationship).mockResolvedValue(record);
   vi.mocked(loadFormTemplates).mockResolvedValue([activeVendorForm]);
@@ -115,6 +118,62 @@ describe("VendorsWorkspace", () => {
     const legalName = await screen.findByLabelText("Legal name");
     expect(document.activeElement).toBe(legalName);
     expect(completed).toHaveBeenCalledOnce();
+  });
+
+  it("opens the Add vendor legal-name field for the next vendor task when the register is empty", async () => {
+    vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [] });
+    const completed = vi.fn();
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-next-action" }} onGuideIntentCompleted={completed}/>);
+
+    const legalName = await screen.findByLabelText("Legal name");
+    expect(document.activeElement).toBe(legalName);
+    expect(completed).toHaveBeenCalledWith(1);
+  });
+
+  it("focuses but does not execute the first due-diligence action for the next vendor task", async () => {
+    const completed = vi.fn();
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-next-action" }} onGuideIntentCompleted={completed}/>);
+
+    const action = await screen.findByRole("button", { name: "Start due diligence" });
+    await waitFor(() => expect(document.activeElement).toBe(action));
+    expect(startVendorAssessment).not.toHaveBeenCalled();
+    expect(completed).toHaveBeenCalledWith(1);
+  });
+
+  it("preserves the currently selected vendor when opening its next task", async () => {
+    const second = { ...record, vendor: { ...record.vendor, id: "vendor-2", legal_name: "Beacon Hosting Limited" }, relationship: { ...record.relationship, id: "relationship-2", vendor_id: "vendor-2", service_name: "Cloud hosting" } };
+    vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [record, second] });
+    const completed = vi.fn();
+    const view = render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria"/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Beacon Hosting Limited, Cloud hosting" }));
+    view.rerender(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-next-action" }} onGuideIntentCompleted={completed}/>);
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Beacon Hosting Limited, Cloud hosting" }).getAttribute("aria-current")).toBe("true"));
+    expect(completed).toHaveBeenCalledWith(1);
+  });
+
+  it("moves a completed due-diligence review to the first vendor-work action without executing it", async () => {
+    showVendorWorkAction = true;
+    vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: assessment("COMPLETED") });
+    vi.mocked(loadVendorAssessment).mockResolvedValue(review("COMPLETED"));
+    const completed = vi.fn();
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-next-action" }} onGuideIntentCompleted={completed}/>);
+
+    const action = await screen.findByRole("button", { name: "Request vendor work" });
+    await waitFor(() => expect(document.activeElement).toBe(action));
+    expect(vendorWorkAction).not.toHaveBeenCalled();
+    expect(completed).toHaveBeenCalledWith(1);
+  });
+
+  it("uses the vendor workspace fallback only when a completed review has no enabled next action", async () => {
+    vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: assessment("COMPLETED") });
+    vi.mocked(loadVendorAssessment).mockResolvedValue(review("COMPLETED"));
+    const completed = vi.fn();
+    const { container } = render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-next-action" }} onGuideIntentCompleted={completed}/>);
+
+    const workspace = container.querySelector<HTMLElement>(".vendors-workspace");
+    await waitFor(() => expect(document.activeElement).toBe(workspace));
+    expect(completed).toHaveBeenCalledWith(1);
   });
 
   it("keeps the newer register result when an older load fails", async () => {

@@ -30,6 +30,7 @@ describe("CinematicGuidePanel", () => {
   it.each(variants)("renders the $variant introduction with accessible SVG and HTML meaning", ({ variant, panelName, illustrationName, stages }) => {
     render(<CinematicGuidePanel
       variant={variant}
+      role={variant === "today" ? "Executive risk or compliance leader" : "Vendor relationship owner"}
       title={variant === "today" ? "Review assigned work" : "Manage vendor relationships"}
       description={variant === "today"
         ? "Use current source context to review assigned work and confirm the outcome."
@@ -43,6 +44,7 @@ describe("CinematicGuidePanel", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(within(panel).getByRole("heading", { name: variant === "today" ? "Review assigned work" : "Manage vendor relationships" })).toBeTruthy();
     expect(within(panel).getAllByText(/confirm(?:ed| the) outcome/i).length).toBeGreaterThan(0);
+    expect(within(panel).getByText(variant === "today" ? "Guide for Executive risk or compliance leader" : "Guide for Vendor relationship owner")).toBeTruthy();
 
     const illustration = within(panel).getByRole("img", { name: illustrationName });
     expect(illustration.querySelector("title")?.textContent).toMatch(illustrationName);
@@ -58,6 +60,7 @@ describe("CinematicGuidePanel", () => {
     const onSkip = vi.fn();
     render(<CinematicGuidePanel
       variant="vendors"
+      role="Vendor relationship owner"
       title="Manage vendor relationships"
       description="Record the service and collect missing information for review."
       onStart={onStart}

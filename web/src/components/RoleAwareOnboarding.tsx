@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { loadGuideState, loadRoleGuide, saveGuideState } from "../onboardingApi";
 import type { GuideStep, GuideSurface, OnboardingGuide, OnboardingState } from "../types";
 import { CinematicGuidePanel } from "./CinematicGuidePanel";
@@ -22,18 +22,29 @@ export function RoleAwareOnboarding({ runtime, surface, onStep }: Props) {
   const [open, setOpen] = useState(false);
   const [introduced, setIntroduced] = useState(false);
   const [stepError, setStepError] = useState("");
+  const loadID = useRef(0);
 
   const load = useCallback(async () => {
+    const requestID = ++loadID.current;
+    setGuide(null);
+    setState(null);
+    setOpen(false);
+    setIntroduced(false);
+    setStepError("");
+    setBusy(false);
     if (!runtime) return;
     try {
       const resolved = await loadRoleGuide(surface);
+      if (requestID !== loadID.current) return;
       const saved = await loadGuideState(resolved.code);
+      if (requestID !== loadID.current) return;
       const tourMode = new URLSearchParams(window.location.search).get("tour");
       setGuide(resolved);
       setState(saved);
       setIntroduced(false);
       setOpen(tourMode === "on" || (tourMode !== "off" && !saved.completed && !saved.dismissed));
     } catch {
+      if (requestID !== loadID.current) return;
       setGuide(null);
       setState(null);
       setOpen(false);
@@ -41,6 +52,7 @@ export function RoleAwareOnboarding({ runtime, surface, onStep }: Props) {
   }, [runtime, surface]);
 
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => () => { loadID.current += 1; }, []);
 
   async function persist(next: OnboardingState) {
     if (!guide) return;
@@ -57,7 +69,7 @@ export function RoleAwareOnboarding({ runtime, surface, onStep }: Props) {
     setBusy(true);
     try {
       await onStep(step);
-      if (step.intent !== "open-vendor-due-diligence" && step.intent !== "open-vendor-work") highlight(step.target);
+      if (step.intent !== "open-vendor-due-diligence" && step.intent !== "open-vendor-work" && step.intent !== "open-vendor-next-action") highlight(step.target);
       await persist(next);
     } catch {
       setStepError("This guide step could not be opened. Try again.");
@@ -116,6 +128,7 @@ export function RoleAwareOnboarding({ runtime, surface, onStep }: Props) {
     </button>}
     {open && !introduced && <CinematicGuidePanel
       variant={guide.surface === "VENDORS" ? "vendors" : "today"}
+      role={guide.role}
       title={guide.title}
       description={guide.description}
       busy={busy}

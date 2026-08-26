@@ -101,10 +101,10 @@ func TestVendorGuideUsesStableWorkspaceTargets(t *testing.T) {
 	for _, step := range guide.Steps {
 		intents[step.ID] = step.Intent
 	}
-	if intents["due-diligence"] != "open-vendor-due-diligence" || intents["work"] != "open-vendor-work" {
+	if intents["due-diligence"] != "open-vendor-due-diligence" || intents["work"] != "open-vendor-work" || intents["finish"] != "open-vendor-next-action" {
 		t.Fatalf("vendor guide intents = %#v", intents)
 	}
-	if guide.Steps[3].Action != "Finish guide" {
+	if guide.Steps[3].Action != "Open next vendor task" {
 		t.Fatalf("finish action = %q", guide.Steps[3].Action)
 	}
 }

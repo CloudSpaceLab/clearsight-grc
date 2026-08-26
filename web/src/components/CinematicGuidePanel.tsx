@@ -4,6 +4,7 @@ export type CinematicGuideVariant = "today" | "vendors";
 
 type Props = {
   variant: CinematicGuideVariant;
+  role: string;
   title: string;
   description: string;
   busy?: boolean;
@@ -16,7 +17,7 @@ const stages = {
   vendors: ["Vendor register", "Collect missing facts", "Review exceptions", "Request vendor action", "Confirm the outcome"],
 } satisfies Record<CinematicGuideVariant, string[]>;
 
-export function CinematicGuidePanel({ variant, title, description, busy = false, onStart, onSkip }: Props) {
+export function CinematicGuidePanel({ variant, role, title, description, busy = false, onStart, onSkip }: Props) {
   const titleID = useId();
   const descriptionID = useId();
   const isVendors = variant === "vendors";
@@ -47,7 +48,7 @@ export function CinematicGuidePanel({ variant, title, description, busy = false,
     </div>
 
     <div className="cinematic-guide__content">
-      <span className="eyebrow">First run · {workspace} workspace</span>
+      <span className="eyebrow">Guide for {role}</span>
       <h2>{title}</h2>
       <p>{description}</p>
       <ol className="cinematic-guide__sequence" aria-label={`${workspace} guide sequence`}>

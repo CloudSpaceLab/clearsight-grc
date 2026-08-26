@@ -56,12 +56,12 @@ describe("static stakeholder demo transport", () => {
   it("returns an onboarding guide for the requested workspace surface", async () => {
     const { StaticDemoHTTPError, staticDemoRequest } = await demo();
     const today = await staticDemoRequest<{ code: string; surface: string }>("/api/v1/onboarding/guide?surface=TODAY");
-    const vendors = await staticDemoRequest<{ code: string; surface: string; role_codes: string[]; steps: Array<{ id: string; action: string }> }>("/api/v1/onboarding/guide?surface=VENDORS&code=vendor-operations-first-run");
+    const vendors = await staticDemoRequest<{ code: string; surface: string; role_codes: string[]; steps: Array<{ id: string; action: string; intent?: string }> }>("/api/v1/onboarding/guide?surface=VENDORS&code=vendor-operations-first-run");
 
     expect(today).toMatchObject({ code: "executive-first-run", surface: "TODAY" });
     expect(vendors).toMatchObject({ code: "vendor-operations-first-run", surface: "VENDORS" });
     expect(vendors.role_codes).toContain("BUSINESS_OWNER");
-    expect(vendors.steps.find((step) => step.id === "finish")?.action).toBe("Finish guide");
+    expect(vendors.steps.find((step) => step.id === "finish")).toMatchObject({ action: "Open next vendor task", intent: "open-vendor-next-action" });
     await expect(staticDemoRequest("/api/v1/onboarding/guide?surface=UNKNOWN")).rejects.toMatchObject({ status: 404, code: "not_found" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
     await expect(staticDemoRequest("/api/v1/onboarding/guide?surface=VENDORS&code=executive-first-run")).rejects.toMatchObject({ status: 404, code: "not_found" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
     await expect(staticDemoRequest("/api/v1/onboarding/guide?surface=TODAY&code=vendor-operations-first-run")).rejects.toMatchObject({ status: 404, code: "not_found" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);

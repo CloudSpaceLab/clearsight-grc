@@ -13,7 +13,7 @@ type Props = {
   organizationName: string;
   legalEntityName: string;
   targetID?: string;
-  guideIntent?: { id: number; type: "open-vendor-due-diligence" | "open-vendor-work" };
+  guideIntent?: { id: number; type: "open-vendor-due-diligence" | "open-vendor-work" | "open-vendor-next-action" };
   onGuideIntentCompleted?: (id: number) => void;
   onGuideIntentFailed?: (id: number) => void;
   onTarget?: (id?: string) => void;
@@ -41,6 +41,18 @@ const emptyForm: FormValues = {
   legalName: "", tradingName: "", registrationRef: "", jurisdiction: "", serviceName: "",
   criticality: "STANDARD", privacyRole: "NONE", sourceID: "", externalRef: "", effectiveFrom: "", renewalAt: "",
 };
+
+function focusGuideTarget(target: HTMLElement | null) {
+  if (!target) return false;
+  target.scrollIntoView?.({ behavior: "smooth", block: "center" });
+  if (!target.hasAttribute("tabindex") && !(target instanceof HTMLButtonElement) && !(target instanceof HTMLInputElement)) target.setAttribute("tabindex", "-1");
+  target.focus({ preventScroll: true });
+  return document.activeElement === target;
+}
+
+function firstVisiblePrimaryAction(selector: string) {
+  return [...document.querySelectorAll<HTMLElement>(`${selector} button.primary-button:not(:disabled)`)].find((element) => !element.hidden && !element.closest("[hidden], [aria-hidden='true']")) ?? null;
+}
 
 export function VendorsWorkspace({ organizationName, legalEntityName, targetID, guideIntent, onGuideIntentCompleted, onGuideIntentFailed, onTarget, onOpenRequest, onOpenMatter }: Props) {
   const [records, setRecords] = useState<VendorRelationshipAggregate[]>([]);
@@ -90,24 +102,41 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     if (!selected) {
       if (mode === "create") {
         const form = document.getElementById("vendor-legal-name");
-        form?.scrollIntoView?.({ behavior: "smooth", block: "center" });
-        (form as HTMLElement | null)?.focus({ preventScroll: true });
-        acknowledgedGuideIntentID.current = guideIntent.id;
-        onGuideIntentCompleted?.(guideIntent.id);
+        if (focusGuideTarget(form as HTMLElement | null)) acknowledgeGuideIntent(guideIntent.id);
       }
       return;
     }
-    if (guideIntent.type === "open-vendor-due-diligence" && (assessmentState === "loading" || (!assessment && formState === "loading"))) return;
+    if ((guideIntent.type === "open-vendor-due-diligence" || guideIntent.type === "open-vendor-next-action") && (assessmentState === "loading" || reviewState === "loading" || (!assessment && formState === "loading"))) return;
+    if (guideIntent.type === "open-vendor-next-action") {
+      const workspace = document.querySelector<HTMLElement>(".vendors-workspace");
+      if (!workspace) return;
+      const focusNextAction = () => {
+        const dueDiligenceAction = assessment?.status === "COMPLETED" ? null : firstVisiblePrimaryAction(".vdd-workspace");
+        if (dueDiligenceAction && focusGuideTarget(dueDiligenceAction)) return acknowledgeGuideIntent(guideIntent.id);
+        const vendorWork = workspace.querySelector<HTMLElement>(".vendor-work-panel");
+        if (!vendorWork || vendorWork.getAttribute("aria-busy") === "true") return false;
+        const vendorWorkAction = firstVisiblePrimaryAction(".vendor-work-panel");
+        if (vendorWorkAction && focusGuideTarget(vendorWorkAction)) return acknowledgeGuideIntent(guideIntent.id);
+        if (focusGuideTarget(workspace)) return acknowledgeGuideIntent(guideIntent.id);
+        return false;
+      };
+      if (focusNextAction()) return;
+      const observer = new MutationObserver(() => { if (focusNextAction()) observer.disconnect(); });
+      observer.observe(workspace, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-busy", "disabled", "hidden"] });
+      return () => observer.disconnect();
+    }
     const target = guideIntent.type === "open-vendor-due-diligence"
       ? document.getElementById("vdd-title") ?? document.querySelector<HTMLElement>(".vdd-workspace")
       : document.querySelector<HTMLElement>(".vendor-work-panel") ?? document.querySelector<HTMLElement>(".vendors-workspace");
     if (!target) return;
-    target.scrollIntoView?.({ behavior: "smooth", block: "center" });
-    if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
-    target.focus({ preventScroll: true });
-    acknowledgedGuideIntentID.current = guideIntent.id;
-    onGuideIntentCompleted?.(guideIntent.id);
-  }, [guideIntent, state, mode, selected?.relationship.id, assessment, assessmentState, formState, onGuideIntentCompleted]);
+    if (focusGuideTarget(target)) acknowledgeGuideIntent(guideIntent.id);
+
+    function acknowledgeGuideIntent(id: number) {
+      acknowledgedGuideIntentID.current = id;
+      onGuideIntentCompleted?.(id);
+      return true;
+    }
+  }, [guideIntent, state, mode, selected?.relationship.id, assessment, assessmentState, reviewState, formState, onGuideIntentCompleted]);
 
   useEffect(() => {
     void refreshForms();
@@ -309,7 +338,8 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       }
       setRecords(next);
       setNextCursor(page.next_cursor ?? "");
-      const nextSelected = exact ?? (intent ? next[0] : undefined);
+      const preserved = selected ? next.find((item) => item.relationship.id === selected.relationship.id) : undefined;
+      const nextSelected = exact ?? preserved ?? (intent ? next[0] : undefined);
       setSelected(nextSelected ?? null);
       if (nextSelected) setMode("browse");
       if (intent && next.length === 0) setMode("create");

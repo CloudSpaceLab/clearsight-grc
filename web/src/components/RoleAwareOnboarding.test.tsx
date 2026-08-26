@@ -18,6 +18,14 @@ const guide = {
   ],
 };
 const initial = { tenant_id: "bank-demo", principal_id: "role-cro", guide_code: guide.code, guide_version: 1, current_step: 0, completed: false, dismissed: false, version: 0 };
+const runtime = { tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } };
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => { resolve = resolvePromise; reject = rejectPromise; });
+  return { promise, resolve, reject };
+}
 
 describe("RoleAwareOnboarding", () => {
   it("resolves the guide from verified role codes and executes the live step action", async () => {
@@ -95,6 +103,58 @@ describe("RoleAwareOnboarding", () => {
     expect(await screen.findByRole("complementary", { name: /Vendor guide/i })).toBeTruthy();
     expect(screen.getByRole("img", { name: /Vendor relationship path/i })).toBeTruthy();
     expect(loadRoleGuide).toHaveBeenCalledWith("VENDORS");
+  });
+
+  it("discards a stale Today success after Vendors resolves", async () => {
+    const todayLoad = deferred<typeof guide>();
+    const vendorGuide = { ...guide, code: "vendor-operations-first-run", surface: "VENDORS" as const, role: "Vendor relationship owner", title: "Manage vendor relationships", steps: [{ ...guide.steps[0]!, id: "register", title: "Review the vendor register", action: "Review vendors", view: "vendors" as const }] };
+    const vendorsLoad = deferred<typeof vendorGuide>();
+    vi.mocked(loadRoleGuide).mockImplementation((surface) => surface === "TODAY" ? todayLoad.promise : vendorsLoad.promise);
+    vi.mocked(loadGuideState).mockImplementation(async (code) => ({ ...initial, guide_code: code }));
+    const onStep = vi.fn();
+    const view = render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={onStep}/>);
+
+    view.rerender(<RoleAwareOnboarding surface="VENDORS" runtime={runtime} onStep={onStep}/>);
+    vendorsLoad.resolve(vendorGuide);
+    expect(await screen.findByText("Guide for Vendor relationship owner")).toBeTruthy();
+    todayLoad.resolve(guide);
+    await waitFor(() => expect(screen.queryByText("Guide for Executive risk or compliance leader")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Start guide" }));
+    expect(screen.getByRole("heading", { name: "Review the vendor register" })).toBeTruthy();
+  });
+
+  it("keeps Vendors pending when the stale Today request resolves first", async () => {
+    const todayLoad = deferred<typeof guide>();
+    const vendorGuide = { ...guide, code: "vendor-operations-first-run", surface: "VENDORS" as const, role: "Vendor relationship owner", title: "Manage vendor relationships" };
+    const vendorsLoad = deferred<typeof vendorGuide>();
+    vi.mocked(loadRoleGuide).mockImplementation((surface) => surface === "TODAY" ? todayLoad.promise : vendorsLoad.promise);
+    vi.mocked(loadGuideState).mockImplementation(async (code) => ({ ...initial, guide_code: code }));
+    const view = render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={vi.fn()}/>);
+
+    view.rerender(<RoleAwareOnboarding surface="VENDORS" runtime={runtime} onStep={vi.fn()}/>);
+    todayLoad.resolve(guide);
+    await waitFor(() => expect(loadRoleGuide).toHaveBeenCalledWith("VENDORS"));
+    expect(screen.queryByText("Guide for Executive risk or compliance leader")).toBeNull();
+    vendorsLoad.resolve(vendorGuide);
+    expect(await screen.findByText("Guide for Vendor relationship owner")).toBeTruthy();
+  });
+
+  it("discards a stale Today failure after Vendors resolves and clears Today immediately", async () => {
+    vi.mocked(loadRoleGuide).mockResolvedValueOnce(guide);
+    vi.mocked(loadGuideState).mockResolvedValue(initial);
+    const view = render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={vi.fn()}/>);
+    expect(await screen.findByText("Guide for Executive risk or compliance leader")).toBeTruthy();
+
+    const todayFailure = deferred<typeof guide>();
+    const vendorGuide = { ...guide, code: "vendor-operations-first-run", surface: "VENDORS" as const, role: "Vendor relationship owner", title: "Manage vendor relationships" };
+    vi.mocked(loadRoleGuide).mockReset().mockImplementation((surface) => surface === "TODAY" ? todayFailure.promise : Promise.resolve(vendorGuide));
+    view.rerender(<RoleAwareOnboarding surface="TODAY" runtime={{ ...runtime, actor: { ...runtime.actor, id: "role-cro-2" } }} onStep={vi.fn()}/>);
+    await waitFor(() => expect(loadRoleGuide).toHaveBeenCalledWith("TODAY"));
+    view.rerender(<RoleAwareOnboarding surface="VENDORS" runtime={{ ...runtime, actor: { ...runtime.actor, id: "owner-1" } }} onStep={vi.fn()}/>);
+    expect(screen.queryByText("Guide for Executive risk or compliance leader")).toBeNull();
+    expect(await screen.findByText("Guide for Vendor relationship owner")).toBeTruthy();
+    todayFailure.reject(new Error("stale Today failure"));
+    await waitFor(() => expect(screen.getByText("Guide for Vendor relationship owner")).toBeTruthy());
   });
 
   it("shows first-run guidance without creating a modal or moving focus", async () => {

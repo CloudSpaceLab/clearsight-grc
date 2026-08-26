@@ -16,7 +16,13 @@ vi.mock("./components/RoleAwareOnboarding", async () => {
       catch { setError("This guide step could not be opened. Try again."); }
       finally { setBusy(false); }
     }
-    return <aside aria-label={`${surface === "VENDORS" ? "Vendor" : "Today"} guide`}><output data-testid="onboarding-surface">{surface}</output><button type="button" disabled={busy} onClick={() => void openGuideAction()}>Review due diligence</button>{error && <p role="alert">{error}</p>}</aside>;
+    async function openNextVendorTask() {
+      setBusy(true); setError("");
+      try { await onStep({ intent: "open-vendor-next-action", view: "vendors" }); }
+      catch { setError("This guide step could not be opened. Try again."); }
+      finally { setBusy(false); }
+    }
+    return <aside aria-label={`${surface === "VENDORS" ? "Vendor" : "Today"} guide`}><output data-testid="onboarding-surface">{surface}</output><button type="button" disabled={busy} onClick={() => void openGuideAction()}>Review due diligence</button><button type="button" disabled={busy} onClick={() => void openNextVendorTask()}>Open next vendor task</button>{error && <p role="alert">{error}</p>}</aside>;
   }};
 });
 vi.mock("./components/VendorsWorkspace", () => ({
@@ -96,6 +102,15 @@ describe("runtime navigation", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Review due diligence" }));
     expect((await screen.findByTestId("vendor-guide-intent")).textContent).toBe("open-vendor-due-diligence");
+    expect(window.location.hash).toBe("#vendors");
+  });
+
+  it("passes the next-action guide intent to the Vendors workspace", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open next vendor task" }));
+    expect((await screen.findByTestId("vendor-guide-intent")).textContent).toBe("open-vendor-next-action");
     expect(window.location.hash).toBe("#vendors");
   });
 
