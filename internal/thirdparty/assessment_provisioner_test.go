@@ -7,8 +7,49 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 )
+
+func TestAssessmentProvisionerFailsClosedWhenCurrentAuthorityRouteIsUnavailable(t *testing.T) {
+	now := time.Date(2026, 8, 26, 8, 30, 0, 0, time.UTC)
+	repository, assessment := assessmentProvisionerFixture(t, now)
+	recording := &recordingAssessmentMatterService{matters: map[string]continuity.MatterAggregate{}}
+	provisioner := NewAssessmentProvisioner(repository, recording, "worker-a")
+	provisioner.ConfigureAuthority(authority.NewResolver("authority-v2", nil))
+	provisioner.Configure(time.Minute, 3, time.Second)
+
+	if processed, err := provisioner.Maintain(context.Background(), now, 1); processed != 1 || err == nil {
+		t.Fatalf("authority failure = (%d, %v)", processed, err)
+	}
+	if recording.createCalls != 0 {
+		t.Fatalf("Matter creation ran without current authority: %d calls", recording.createCalls)
+	}
+	job := onlyAssessmentSetupJob(t, repository, assessment)
+	if job.State != AssessmentJobReady || job.LastFailureCode != AssessmentSetupFailureAuthority {
+		t.Fatalf("unexpected released job %#v", job)
+	}
+}
+
+func TestAssessmentProvisionerUsesCurrentRoutedOwner(t *testing.T) {
+	now := time.Date(2026, 8, 26, 8, 45, 0, 0, time.UTC)
+	repository, assessment := assessmentProvisionerFixture(t, now)
+	recording := &recordingAssessmentMatterService{matters: map[string]continuity.MatterAggregate{}}
+	provisioner := NewAssessmentProvisioner(repository, recording, "worker-a")
+	provisioner.ConfigureAuthority(authority.NewResolver("authority-v3", []authority.Rule{{
+		ID: "current-owner", TenantID: assessment.TenantID, LegalEntityID: assessment.LegalEntityID,
+		ObjectType: "THIRD_PARTY_RELATIONSHIP", ObjectID: assessment.RelationshipID,
+		Responsibility: authority.ResponsibilityOwner, DecisionType: AssessmentStartCommand, MinMateriality: 3,
+		Principal: authority.Principal{ID: "delegated-owner", Kind: "PERSON"}, Priority: 1,
+	}}))
+
+	if processed, err := provisioner.Maintain(context.Background(), now, 1); processed != 1 || err != nil {
+		t.Fatalf("authorized setup = (%d, %v)", processed, err)
+	}
+	if len(recording.inputs) != 1 || recording.inputs[0].OwnerPrincipalID != "delegated-owner" {
+		t.Fatalf("Matter did not use current authority route: %#v", recording.inputs)
+	}
+}
 
 func TestAssessmentProvisionerReusesMatterAfterWorkerCrash(t *testing.T) {
 	now := time.Date(2026, 8, 26, 9, 0, 0, 0, time.UTC)
@@ -180,6 +221,14 @@ func TestAssessmentProvisionerCreatesCanonicalVendorReviewMatter(t *testing.T) {
 	}
 	if scope["access"] != continuity.MatterAccessRestricted {
 		t.Fatalf("vendor review matter access = %#v", scope)
+	}
+	assessmentLinks, err := repository.ListAssessmentMatterLinks(context.Background(), Scope{TenantID: assessment.TenantID, LegalEntityID: assessment.LegalEntityID}, assessment.ID, assessmentReviewMaxMatters+1)
+	if err != nil || len(assessmentLinks) != 1 || assessmentLinks[0].Kind != AssessmentMatterReview || assessmentLinks[0].RelationshipLinkID == "" {
+		t.Fatalf("assessment review links = (%#v, %v)", assessmentLinks, err)
+	}
+	canonical, err := repository.ListRelationshipLinks(context.Background(), Scope{TenantID: assessment.TenantID, LegalEntityID: assessment.LegalEntityID}, RelationshipLinkListInput{RelationshipID: assessment.RelationshipID, TargetType: LinkTargetMatter, TargetID: assessmentLinks[0].MatterID, Limit: 2})
+	if err != nil || len(canonical.Items) != 1 || canonical.Items[0].ID != assessmentLinks[0].RelationshipLinkID || canonical.Items[0].PurposeCode != "ASSESSMENT_REVIEW" {
+		t.Fatalf("canonical review link = (%#v, %v)", canonical, err)
 	}
 	allowed, ok := scope["allowed_principal_ids"].([]any)
 	if !ok || len(allowed) != 1 || allowed[0] != "owner-1" {

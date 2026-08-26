@@ -85,6 +85,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.ConfigureClass(evidenceWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 5 * time.Second, Batch: 100})
 
 	assessmentProvisioner := thirdparty.NewAssessmentProvisioner(assessmentRepository, continuityService, cfg.WorkerID)
+	assessmentProvisioner.ConfigureAuthority(authorityService)
 	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
 	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
 	service.AddMaintainerClass(thirdparty.AssessmentSetupWorkClass, assessmentProvisioner)

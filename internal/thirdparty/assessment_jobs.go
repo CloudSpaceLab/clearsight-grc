@@ -20,6 +20,7 @@ const (
 	AssessmentSetupFailureRelationship      = "RELATIONSHIP_READ_FAILED"
 	AssessmentSetupFailureMatter            = "MATTER_CREATE_FAILED"
 	AssessmentSetupFailureCompletion        = "ASSESSMENT_SETUP_FAILED"
+	AssessmentSetupFailureAuthority         = "AUTHORITY_ROUTE_UNAVAILABLE"
 	AssessmentSetupFailureAttemptsExhausted = "ATTEMPTS_EXHAUSTED"
 	AssessmentSetupRetryCommand             = "thirdparty.assessment.setup.retry"
 )

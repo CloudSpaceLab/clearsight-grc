@@ -7,6 +7,7 @@ import type { CompleteVendorAssessmentInput, CreateVendorAssessmentDeficiencyInp
 import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
 import type { CreateVendorRelationshipInput, VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "../vendorTypes";
 import { VendorDueDiligence } from "./VendorDueDiligence";
+import { VendorWorkPanel } from "./VendorWorkPanel";
 
 type Props = {
   organizationName: string;
@@ -468,6 +469,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
     onOpenRequest={onOpenRequest}
     onOpenMatter={onOpenMatter}
   />}
+  <VendorWorkPanel relationshipID={relationship.id}/>
   </>;
 }
 
@@ -492,6 +494,7 @@ function setupFailureText(code?: string) {
     case "MATTER_CREATE_FAILED": return "The review work item could not be created. Retry assessment setup; no duplicate review will be created.";
     case "ASSESSMENT_SETUP_FAILED": return "The review work item exists, but assessment setup could not be completed. Retry setup to continue the same review.";
     case "ATTEMPTS_EXHAUSTED": return "Assessment setup stopped after repeated attempts. Retry setup to queue another controlled attempt.";
+    case "AUTHORITY_ROUTE_UNAVAILABLE": return "No current accountable owner can authorize assessment setup. Correct the relationship authority route, then retry setup.";
     default: return "Assessment setup could not be completed. Retry setup from the current assessment version.";
   }
 }

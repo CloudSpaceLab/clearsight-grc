@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 )
 
@@ -30,6 +31,13 @@ type AssessmentProvisioner struct {
 	lease       time.Duration
 	maxAttempts int
 	maxBackoff  time.Duration
+	authority   authority.Service
+}
+
+func (p *AssessmentProvisioner) ConfigureAuthority(service authority.Service) {
+	if p != nil {
+		p.authority = service
+	}
 }
 
 func NewAssessmentProvisioner(repository AssessmentSetupRepository, matters AssessmentMatterService, workerID string) *AssessmentProvisioner {
@@ -89,8 +97,23 @@ func (p *AssessmentProvisioner) provision(ctx context.Context, job AssessmentSet
 	if err != nil {
 		return p.release(ctx, job, AssessmentSetupFailureRelationship, now, err)
 	}
+	accountablePrincipalID := relationship.Relationship.BusinessOwnerPrincipalID
+	if p.authority != nil {
+		resolution, resolveErr := p.authority.Resolve(ctx, authority.ResolveInput{
+			TenantID: assessment.TenantID, LegalEntityID: assessment.LegalEntityID,
+			ObjectType: "THIRD_PARTY_RELATIONSHIP", ObjectID: assessment.RelationshipID,
+			Responsibility: authority.ResponsibilityOwner, DecisionType: AssessmentStartCommand, Materiality: 3, At: now,
+		})
+		if resolveErr != nil || strings.TrimSpace(resolution.Principal.ID) == "" {
+			if resolveErr == nil {
+				resolveErr = errors.New("current authority route has no accountable principal")
+			}
+			return p.release(ctx, job, AssessmentSetupFailureAuthority, now, resolveErr)
+		}
+		accountablePrincipalID = resolution.Principal.ID
+	}
 	triggerKey := "thirdparty-assessment:" + assessment.ID
-	matter, err := p.matters.CreateMatter(ctx, assessmentMatterInput(assessment, relationship, triggerKey))
+	matter, err := p.matters.CreateMatter(ctx, assessmentMatterInput(assessment, relationship, triggerKey, accountablePrincipalID))
 	if errors.Is(err, continuity.ErrDuplicate) {
 		matter, err = p.matters.MatterByTriggerKey(ctx, assessment.TenantID, triggerKey)
 	}
@@ -114,7 +137,7 @@ func (p *AssessmentProvisioner) release(ctx context.Context, job AssessmentSetup
 	return cause
 }
 
-func assessmentMatterInput(assessment Assessment, aggregate Aggregate, triggerKey string) continuity.CreateMatterInput {
+func assessmentMatterInput(assessment Assessment, aggregate Aggregate, triggerKey string, routedOwner ...string) continuity.CreateMatterInput {
 	priority := 3
 	switch aggregate.Relationship.Criticality {
 	case CriticalityImportant:
@@ -124,12 +147,16 @@ func assessmentMatterInput(assessment Assessment, aggregate Aggregate, triggerKe
 	}
 	vendorName := strings.TrimSpace(aggregate.Vendor.LegalName)
 	serviceName := strings.TrimSpace(aggregate.Relationship.ServiceName)
+	ownerPrincipalID := aggregate.Relationship.BusinessOwnerPrincipalID
+	if len(routedOwner) > 0 && strings.TrimSpace(routedOwner[0]) != "" {
+		ownerPrincipalID = strings.TrimSpace(routedOwner[0])
+	}
 	scope, _ := json.Marshal(map[string]any{
 		"assessment_id": assessment.ID, "relationship_id": assessment.RelationshipID,
 		"vendor_id": aggregate.Vendor.ID, "legal_entity_id": assessment.LegalEntityID,
 		"review_kind":           assessment.ReviewKind,
 		"access":                continuity.MatterAccessRestricted,
-		"allowed_principal_ids": uniqueAssessmentPrincipals(aggregate.Relationship.BusinessOwnerPrincipalID, assessment.StartedByPrincipalID),
+		"allowed_principal_ids": uniqueAssessmentPrincipals(ownerPrincipalID, assessment.StartedByPrincipalID),
 	})
 	known, _ := json.Marshal(map[string]any{
 		"vendor_legal_name": vendorName, "service_name": serviceName,
@@ -145,7 +172,7 @@ func assessmentMatterInput(assessment Assessment, aggregate Aggregate, triggerKe
 		Scope:   scope, SourceType: "THIRD_PARTY_ASSESSMENT", SourceID: assessment.ID,
 		TriggerType: "VENDOR_DUE_DILIGENCE_STARTED", TriggerID: assessment.ID, TriggerKey: triggerKey,
 		KnownFacts: known, MissingFacts: missing, Contradictions: json.RawMessage(`[]`),
-		OwnerPrincipalID: aggregate.Relationship.BusinessOwnerPrincipalID, RequiredAuthority: "REVIEWER", DueAt: &dueAt,
+		OwnerPrincipalID: ownerPrincipalID, RequiredAuthority: "REVIEWER", DueAt: &dueAt,
 	}
 }
 
