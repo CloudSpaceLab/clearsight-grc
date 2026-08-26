@@ -440,6 +440,7 @@ type VerificationContract struct {
 	ID                       string             `json:"id"`
 	TenantID                 string             `json:"tenant_id"`
 	MatterID                 string             `json:"matter_id"`
+	SupersedesContractID     string             `json:"supersedes_contract_id,omitempty"`
 	ActionID                 string             `json:"action_id,omitempty"`
 	ExpectedOutcome          string             `json:"expected_outcome"`
 	Baseline                 json.RawMessage    `json:"baseline"`

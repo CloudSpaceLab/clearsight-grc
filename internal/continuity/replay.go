@@ -23,21 +23,23 @@ const (
 	EventProgramTriggerRecorded          = "PROGRAM_TRIGGER_RECORDED"
 	EventProgramReviewAccepted           = "PROGRAM_REVIEW_ACCEPTED"
 
-	EventMatterCreated               = "MATTER_CREATED"
-	EventMatterLinked                = "MATTER_LINKED"
-	EventMatterStateChanged          = "MATTER_STATE_CHANGED"
-	EventMatterDetailsUpdated        = "MATTER_DETAILS_UPDATED"
-	EventMatterContextChanged        = "MATTER_CONTEXT_CHANGED"
-	EventMatterOwnerChanged          = "MATTER_OWNER_CHANGED"
-	EventDecisionAdded               = "DECISION_ADDED"
-	EventActionAdded                 = "ACTION_ADDED"
-	EventActionStateChanged          = "ACTION_STATE_CHANGED"
-	EventActionUpdated               = "ACTION_UPDATED"
-	EventActionAssigned              = "ACTION_ASSIGNED"
-	EventVerificationContractAdded   = "VERIFICATION_CONTRACT_ADDED"
-	EventVerificationResultRecorded  = "VERIFICATION_RESULT_RECORDED"
-	EventResponsePackageAdded        = "RESPONSE_PACKAGE_ADDED"
-	EventResponsePackageStateChanged = "RESPONSE_PACKAGE_STATE_CHANGED"
+	EventMatterCreated                  = "MATTER_CREATED"
+	EventMatterLinked                   = "MATTER_LINKED"
+	EventMatterStateChanged             = "MATTER_STATE_CHANGED"
+	EventMatterDetailsUpdated           = "MATTER_DETAILS_UPDATED"
+	EventMatterContextChanged           = "MATTER_CONTEXT_CHANGED"
+	EventMatterOwnerChanged             = "MATTER_OWNER_CHANGED"
+	EventDecisionAdded                  = "DECISION_ADDED"
+	EventActionAdded                    = "ACTION_ADDED"
+	EventActionStateChanged             = "ACTION_STATE_CHANGED"
+	EventActionUpdated                  = "ACTION_UPDATED"
+	EventActionAssigned                 = "ACTION_ASSIGNED"
+	EventVerificationContractAdded      = "VERIFICATION_CONTRACT_ADDED"
+	EventVerificationContractSuperseded = "VERIFICATION_CONTRACT_SUPERSEDED"
+	EventVerificationContractRetired    = "VERIFICATION_CONTRACT_RETIRED"
+	EventVerificationResultRecorded     = "VERIFICATION_RESULT_RECORDED"
+	EventResponsePackageAdded           = "RESPONSE_PACKAGE_ADDED"
+	EventResponsePackageStateChanged    = "RESPONSE_PACKAGE_STATE_CHANGED"
 )
 
 type matterStateChange struct {
@@ -231,6 +233,19 @@ func reconstructMatter(events []Event) (MatterAggregate, error) {
 				return MatterAggregate{}, err
 			}
 			aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, value)
+		case EventVerificationContractSuperseded:
+			var value verificationContractSupersededEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterAggregate{}, err
+			}
+			aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, value.Prior)
+			aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, value.Replacement)
+		case EventVerificationContractRetired:
+			var value verificationContractRetiredEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterAggregate{}, err
+			}
+			aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, value.Contract)
 		case EventVerificationResultRecorded:
 			var value VerificationResult
 			if err := json.Unmarshal(event.Payload, &value); err != nil {

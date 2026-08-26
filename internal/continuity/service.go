@@ -215,6 +215,34 @@ type AddVerificationContractInput struct {
 	ActorID                  string          `json:"actor_id,omitempty"`
 }
 
+type SupersedeVerificationContractInput struct {
+	TenantID                 string          `json:"tenant_id"`
+	MatterID                 string          `json:"matter_id"`
+	ContractID               string          `json:"contract_id"`
+	ExpectedVersion          int64           `json:"expected_version"`
+	ActionID                 string          `json:"action_id,omitempty"`
+	ExpectedOutcome          string          `json:"expected_outcome"`
+	Baseline                 json.RawMessage `json:"baseline"`
+	Scope                    json.RawMessage `json:"scope"`
+	MeasurementSourceID      string          `json:"measurement_source_id,omitempty"`
+	Threshold                json.RawMessage `json:"threshold"`
+	ObservationPeriodMinutes int             `json:"observation_period_minutes"`
+	ReviewerCandidateID      string          `json:"reviewer_candidate_id,omitempty"`
+	AuthorityPrincipalID     string          `json:"authority_principal_id,omitempty"`
+	FailureResponse          string          `json:"failure_response"`
+	Rationale                string          `json:"rationale"`
+	ActorID                  string          `json:"actor_id,omitempty"`
+}
+
+type RetireVerificationContractInput struct {
+	TenantID        string `json:"tenant_id"`
+	MatterID        string `json:"matter_id"`
+	ContractID      string `json:"contract_id"`
+	ExpectedVersion int64  `json:"expected_version"`
+	Rationale       string `json:"rationale"`
+	ActorID         string `json:"actor_id,omitempty"`
+}
+
 type RecordVerificationResultInput struct {
 	TenantID                     string                   `json:"tenant_id"`
 	MatterID                     string                   `json:"matter_id"`

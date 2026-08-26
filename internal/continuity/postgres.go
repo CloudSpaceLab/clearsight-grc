@@ -653,8 +653,38 @@ func applyMatterProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		if err := validateMatterEvidenceSourcesTx(ctx, tx, v.TenantID, v.MatterID, []string{v.MeasurementSourceID}); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `INSERT INTO verification_contracts(id,tenant_id,matter_id,action_id,expected_outcome,baseline,scope,measurement_source_id,threshold,observation_period_minutes,authority_principal_id,failure_response,status,created_at,updated_at,version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,$5,$6,$7,NULLIF($8,'')::uuid,$9,$10,NULLIF($11,'')::uuid,$12,$13,$14,$14,$15)`, v.ID, v.TenantID, v.MatterID, v.ActionID, v.ExpectedOutcome, rawJSON(v.Baseline, `{}`), rawJSON(v.Scope, `{}`), v.MeasurementSourceID, rawJSON(v.Threshold, `{}`), v.ObservationPeriodMinutes, v.AuthorityPrincipalID, v.FailureResponse, v.Status, v.CreatedAt, v.Version)
+		_, err := tx.Exec(ctx, `INSERT INTO verification_contracts(id,tenant_id,matter_id,supersedes_contract_id,action_id,expected_outcome,baseline,scope,measurement_source_id,threshold,observation_period_minutes,authority_principal_id,failure_response,status,created_at,updated_at,version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,NULLIF($5,'')::uuid,$6,$7,$8,NULLIF($9,'')::uuid,$10,$11,NULLIF($12,'')::uuid,$13,$14,$15,$15,$16)`, v.ID, v.TenantID, v.MatterID, v.SupersedesContractID, v.ActionID, v.ExpectedOutcome, rawJSON(v.Baseline, `{}`), rawJSON(v.Scope, `{}`), v.MeasurementSourceID, rawJSON(v.Threshold, `{}`), v.ObservationPeriodMinutes, v.AuthorityPrincipalID, v.FailureResponse, v.Status, v.CreatedAt, v.Version)
 		return err
+	case EventVerificationContractSuperseded:
+		var v verificationContractSupersededEvent
+		if err := json.Unmarshal(event.Payload, &v); err != nil {
+			return err
+		}
+		if err := validateMatterEvidenceSourcesTx(ctx, tx, v.Replacement.TenantID, v.Replacement.MatterID, []string{v.Replacement.MeasurementSourceID}); err != nil {
+			return err
+		}
+		result, err := tx.Exec(ctx, `UPDATE verification_contracts SET status=$4,updated_at=$5,version=$6 WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND matter_id=$2::uuid AND id=$3::uuid AND status=$7 AND version=$8`, v.Prior.TenantID, v.Prior.MatterID, v.Prior.ID, v.Prior.Status, v.Prior.UpdatedAt, v.Prior.Version, VerificationActive, v.Prior.Version-1)
+		if err != nil {
+			return err
+		}
+		if result.RowsAffected() != 1 {
+			return ErrVersionConflict
+		}
+		_, err = tx.Exec(ctx, `INSERT INTO verification_contracts(id,tenant_id,matter_id,supersedes_contract_id,action_id,expected_outcome,baseline,scope,measurement_source_id,threshold,observation_period_minutes,authority_principal_id,failure_response,status,created_at,updated_at,version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,NULLIF($5,'')::uuid,$6,$7,$8,NULLIF($9,'')::uuid,$10,$11,NULLIF($12,'')::uuid,$13,$14,$15,$15,$16)`, v.Replacement.ID, v.Replacement.TenantID, v.Replacement.MatterID, v.Replacement.SupersedesContractID, v.Replacement.ActionID, v.Replacement.ExpectedOutcome, rawJSON(v.Replacement.Baseline, `{}`), rawJSON(v.Replacement.Scope, `{}`), v.Replacement.MeasurementSourceID, rawJSON(v.Replacement.Threshold, `{}`), v.Replacement.ObservationPeriodMinutes, v.Replacement.AuthorityPrincipalID, v.Replacement.FailureResponse, v.Replacement.Status, v.Replacement.CreatedAt, v.Replacement.Version)
+		return err
+	case EventVerificationContractRetired:
+		var v verificationContractRetiredEvent
+		if err := json.Unmarshal(event.Payload, &v); err != nil {
+			return err
+		}
+		result, err := tx.Exec(ctx, `UPDATE verification_contracts SET status=$4,updated_at=$5,version=$6 WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND matter_id=$2::uuid AND id=$3::uuid AND status=$7 AND version=$8`, v.Contract.TenantID, v.Contract.MatterID, v.Contract.ID, v.Contract.Status, v.Contract.UpdatedAt, v.Contract.Version, VerificationActive, v.Contract.Version-1)
+		if err != nil {
+			return err
+		}
+		if result.RowsAffected() != 1 {
+			return ErrVersionConflict
+		}
+		return nil
 	case EventVerificationResultRecorded:
 		var v VerificationResult
 		if err := json.Unmarshal(event.Payload, &v); err != nil {

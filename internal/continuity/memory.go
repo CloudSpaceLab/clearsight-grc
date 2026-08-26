@@ -597,6 +597,19 @@ func applyMatterEventToAggregate(aggregate *MatterAggregate, event Event) error 
 			return err
 		}
 		aggregate.VerificationContracts = append(aggregate.VerificationContracts, value)
+	case EventVerificationContractSuperseded:
+		var value verificationContractSupersededEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, value.Prior)
+		aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, value.Replacement)
+	case EventVerificationContractRetired:
+		var value verificationContractRetiredEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.VerificationContracts = upsertVerificationContract(aggregate.VerificationContracts, value.Contract)
 	case EventVerificationResultRecorded:
 		var value VerificationResult
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
