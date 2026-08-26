@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { apiErrorKind } from "../http";
 import { loadVendorRelationship, loadVendorRelationships } from "../vendorApi";
-import { linkVendorRelationship, loadVendorRelationshipLinks } from "../vendorLinkApi";
+import { endVendorRelationshipLink, linkVendorRelationship, loadVendorRelationshipLinks } from "../vendorLinkApi";
 import type { VendorRelationshipLink, VendorLinkTargetType } from "../vendorLinkTypes";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import "../vendor-relationship-links.css";
@@ -37,6 +37,10 @@ export function VendorRelationshipLinks({ targetType, targetID }: Props) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveErrorKind, setSaveErrorKind] = useState<ReturnType<typeof apiErrorKind> | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [endingLinkID, setEndingLinkID] = useState("");
+  const [endReason, setEndReason] = useState("");
+  const [ending, setEnding] = useState(false);
+  const [endError, setEndError] = useState("");
   const loadSequence = useRef(0);
   const searchSequence = useRef(0);
   const saveSequence = useRef(0);
@@ -59,6 +63,9 @@ export function VendorRelationshipLinks({ targetType, targetID }: Props) {
     setNextCursor(null);
     setLoadMoreError(false);
     setLinking(false);
+    setEndingLinkID("");
+    setEndReason("");
+    setEndError("");
     resetForm();
     void loadLinks();
   }, [targetType, targetID]);
@@ -179,6 +186,30 @@ export function VendorRelationshipLinks({ targetType, targetID }: Props) {
     }
   }
 
+  async function endLink(event: React.FormEvent, value: LinkedVendor) {
+    event.preventDefault();
+    const reason = endReason.trim();
+    if (!reason) return;
+    const sequence = ++saveSequence.current;
+    const targetKey = activeTarget.current;
+    setEnding(true);
+    setEndError("");
+    try {
+      const ended = await endVendorRelationshipLink(value.link.relationship_id, value.link.id, { expected_version: value.link.version, reason });
+      if (sequence !== saveSequence.current || targetKey !== activeTarget.current) return;
+      setLinks((current) => current.map((item) => item.link.id === ended.id ? { ...item, link: ended } : item));
+      setEndingLinkID("");
+      setEndReason("");
+      setNotice("Vendor link ended. Existing history remains available.");
+    } catch (error) {
+      if (sequence !== saveSequence.current || targetKey !== activeTarget.current) return;
+      const kind = apiErrorKind(error);
+      setEndError(kind === "conflict" ? "This vendor link changed. Refresh related vendors before trying again." : kind === "forbidden" || kind === "unauthorized" ? "Your current access does not allow this vendor link to be ended." : "The vendor link could not be ended. Your reason remains on this screen.");
+    } finally {
+      if (sequence === saveSequence.current && targetKey === activeTarget.current) setEnding(false);
+    }
+  }
+
   return <section className="vendor-relationship-links" aria-labelledby={headingID}>
     <div className="section-heading-row">
       <div><h2 id={headingID}>Related vendors</h2><p>Vendor relationships connected to this {targetName} and the recorded purpose for each link.</p></div>
@@ -188,10 +219,11 @@ export function VendorRelationshipLinks({ targetType, targetID }: Props) {
     {loadState === "loading" && <p aria-live="polite" aria-busy="true">Loading vendor relationships linked to this {targetName}…</p>}
     {loadState === "failed" && <div role="alert"><p>Related vendors could not be loaded for this {targetName}. No link has been changed.</p><button type="button" className="primary-button" onClick={() => void loadLinks()}>Try again</button></div>}
     {loadState === "ready" && links.length === 0 && <p>No vendor relationships are linked to this {targetName}.</p>}
-    {loadState === "ready" && links.length > 0 && <ul className="vendor-link-list">{links.map(({ link, relationship }) => <li key={link.id} className={link.state === "ENDED" ? "ended" : undefined}>
+    {loadState === "ready" && links.length > 0 && <ul className="vendor-link-list">{links.map((value) => { const { link, relationship } = value; return <li key={link.id} className={link.state === "ENDED" ? "ended" : undefined}>
       <div className="vendor-link-identity">{relationship ? <><strong>{relationship.vendor.legal_name}</strong><span>{relationship.relationship.service_name}</span></> : <><strong>Vendor details unavailable</strong><span>The linked relationship could not be loaded in the current scope.</span></>}</div>
-      <div className="vendor-link-purpose"><span>{link.purpose_label}</span>{link.state === "ENDED" && <small>Link ended</small>}</div>
-    </li>)}</ul>}
+      <div className="vendor-link-purpose"><span>{link.purpose_label}</span>{link.state === "ENDED" ? <small>Link ended</small> : <button type="button" className="text-button" aria-label={`End link for ${relationship?.vendor.legal_name ?? "vendor relationship"}`} onClick={() => { setEndingLinkID(link.id); setEndReason(""); setEndError(""); setNotice(null); }}>End link</button>}</div>
+      {endingLinkID === link.id && <form className="vendor-link-end" onSubmit={(event) => void endLink(event, value)}><label>Reason for ending this link<textarea rows={3} maxLength={1000} value={endReason} onChange={(event) => setEndReason(event.target.value)} required/></label>{endError && <p role="alert">{endError}</p>}<div className="form-actions"><button type="button" className="secondary-button" disabled={ending} onClick={() => { setEndingLinkID(""); setEndReason(""); setEndError(""); }}>Keep link</button><button type="submit" className="primary-button" disabled={ending || !endReason.trim()}>{ending ? "Ending…" : "End vendor link"}</button></div></form>}
+    </li>; })}</ul>}
     {loadState === "ready" && nextCursor && <button type="button" className="secondary-button vendor-link-load-more" disabled={loadingMore} onClick={() => void loadLinks(nextCursor)}>{loadingMore ? "Loading…" : "Load more related vendors"}</button>}
     {loadMoreError && <div role="alert"><span>More related vendors could not be loaded. The current list remains available.</span><button type="button" className="secondary-button" onClick={() => nextCursor && void loadLinks(nextCursor)}>Try again</button></div>}
     {linking && <form className="vendor-link-form" onSubmit={(event) => void submit(event)}>

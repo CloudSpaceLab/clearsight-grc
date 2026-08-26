@@ -38,3 +38,8 @@ export type LinkVendorRelationshipInput = {
   purpose_code: string;
   purpose_label: string;
 };
+
+export type EndVendorRelationshipLinkInput = {
+  expected_version: number;
+  reason: string;
+};

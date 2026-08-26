@@ -1,5 +1,5 @@
 import { requestJSON } from "./http";
-import type { LinkVendorRelationshipInput, VendorRelationshipLink, VendorRelationshipLinkPage, VendorRelationshipLinkQuery } from "./vendorLinkTypes";
+import type { EndVendorRelationshipLinkInput, LinkVendorRelationshipInput, VendorRelationshipLink, VendorRelationshipLinkPage, VendorRelationshipLinkQuery } from "./vendorLinkTypes";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -14,6 +14,13 @@ export function loadVendorRelationshipLinks(query: VendorRelationshipLinkQuery):
 
 export function linkVendorRelationship(relationshipID: string, input: LinkVendorRelationshipInput): Promise<VendorRelationshipLink> {
   return requestJSON<VendorRelationshipLink>(apiBase, `/api/v1/vendors/${encodeURIComponent(relationshipID)}/links`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function endVendorRelationshipLink(relationshipID: string, linkID: string, input: EndVendorRelationshipLinkInput): Promise<VendorRelationshipLink> {
+  return requestJSON<VendorRelationshipLink>(apiBase, `/api/v1/vendors/${encodeURIComponent(relationshipID)}/links/${encodeURIComponent(linkID)}/end`, {
     method: "POST",
     body: JSON.stringify(input),
   });

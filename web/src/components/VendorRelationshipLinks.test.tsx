@@ -2,12 +2,12 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../http";
 import { loadVendorRelationship, loadVendorRelationships } from "../vendorApi";
-import { linkVendorRelationship, loadVendorRelationshipLinks } from "../vendorLinkApi";
+import { endVendorRelationshipLink, linkVendorRelationship, loadVendorRelationshipLinks } from "../vendorLinkApi";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 
 vi.mock("../vendorApi", () => ({ loadVendorRelationship: vi.fn(), loadVendorRelationships: vi.fn() }));
-vi.mock("../vendorLinkApi", () => ({ linkVendorRelationship: vi.fn(), loadVendorRelationshipLinks: vi.fn() }));
+vi.mock("../vendorLinkApi", () => ({ endVendorRelationshipLink: vi.fn(), linkVendorRelationship: vi.fn(), loadVendorRelationshipLinks: vi.fn() }));
 
 const acme: VendorRelationshipAggregate = {
   vendor: { id: "vendor-1", tenant_id: "bank", legal_name: "Acme Processing Limited", status: "ACTIVE", created_at: "2026-08-25T12:00:00Z", updated_at: "2026-08-25T12:00:00Z", version: 1 },
@@ -29,6 +29,7 @@ describe("VendorRelationshipLinks", () => {
   beforeEach(() => {
     vi.mocked(loadVendorRelationshipLinks).mockReset().mockResolvedValue({ items: [] });
     vi.mocked(linkVendorRelationship).mockReset();
+    vi.mocked(endVendorRelationshipLink).mockReset();
     vi.mocked(loadVendorRelationships).mockReset().mockResolvedValue({ items: [] });
     vi.mocked(loadVendorRelationship).mockReset();
   });
@@ -186,6 +187,24 @@ describe("VendorRelationshipLinks", () => {
     expect(screen.getByText("Link ended")).toBeTruthy();
     expect(screen.queryByText("No vendor relationships are linked to this Program.")).toBeNull();
     expect(screen.getByRole("button", { name: "Load more related vendors" })).toBeTruthy();
+  });
+
+  it("ends an active link with a required reason and retains it as history", async () => {
+    vi.mocked(loadVendorRelationshipLinks).mockResolvedValue({ items: [activeLink] });
+    vi.mocked(loadVendorRelationship).mockResolvedValue(acme);
+    vi.mocked(endVendorRelationshipLink).mockResolvedValue({ ...activeLink, state: "ENDED", version: 2, end_reason: "The vendor no longer supports this Program." });
+    render(<VendorRelationshipLinks targetType="PROGRAM" targetID="program-1"/>);
+
+    await screen.findByText("Acme Processing Limited");
+    fireEvent.click(screen.getByRole("button", { name: "End link for Acme Processing Limited" }));
+    const confirm = screen.getByRole("button", { name: "End vendor link" });
+    expect((confirm as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Reason for ending this link"), { target: { value: "The vendor no longer supports this Program." } });
+    fireEvent.click(confirm);
+
+    await waitFor(() => expect(endVendorRelationshipLink).toHaveBeenCalledWith("relationship-1", "link-1", { expected_version: 1, reason: "The vendor no longer supports this Program." }));
+    expect(await screen.findByText("Link ended")).toBeTruthy();
+    expect(screen.getByText("Vendor link ended. Existing history remains available.")).toBeTruthy();
   });
 
   it("refreshes related vendors after a conflict without clearing the link form", async () => {
