@@ -105,7 +105,7 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 					continue
 				}
 				seen[form.ID] = true
-				if targets := monitoringTransitionTargets(form.Status); len(targets) > 0 {
+				if targets := monitoringTransitionTargets(form.Status, form.SubmittedBy, actor.PrincipalID); len(targets) > 0 {
 					responsibility := authority.ResponsibilityReviewer
 					assignedID := ""
 					materiality := 3
@@ -132,7 +132,7 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 				}
 			}
 			for _, check := range latest {
-				if targets := monitoringTransitionTargets(check.Status); len(targets) > 0 {
+				if targets := monitoringTransitionTargets(check.Status, check.SubmittedBy, actor.PrincipalID); len(targets) > 0 {
 					responsibility := authority.ResponsibilityReviewer
 					assignedID := check.ReviewerPrincipalID
 					materiality := 3
@@ -457,12 +457,16 @@ func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor,
 	return operation, true
 }
 
-func monitoringTransitionTargets(status monitoring.LifecycleStatus) []string {
+func monitoringTransitionTargets(status monitoring.LifecycleStatus, submittedBy, actorID string) []string {
 	switch status {
 	case monitoring.LifecycleDraft:
 		return []string{string(monitoring.LifecyclePendingApproval)}
 	case monitoring.LifecyclePendingApproval:
-		return []string{string(monitoring.LifecycleActive), string(monitoring.LifecycleRejected)}
+		targets := []string{string(monitoring.LifecycleActive), string(monitoring.LifecycleRejected)}
+		if submittedBy != "" && submittedBy == actorID {
+			return withoutTarget(targets, string(monitoring.LifecycleActive))
+		}
+		return targets
 	case monitoring.LifecycleActive:
 		return []string{string(monitoring.LifecyclePaused), string(monitoring.LifecycleRetired)}
 	case monitoring.LifecyclePaused:

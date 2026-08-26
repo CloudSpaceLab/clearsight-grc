@@ -526,6 +526,79 @@ func TestProgramOperationsExposeMonitoringResponsibilitiesPerCheck(t *testing.T)
 	}
 }
 
+func TestProgramOperationsKeepMonitoringRejectionButHideOwnApproval(t *testing.T) {
+	now := time.Now().UTC()
+	aggregate := continuity.ProgramAggregate{Program: continuity.Program{
+		ID: "program-maker-checker", TenantID: "bank", LegalEntityID: "entity-a", Code: "NDPA", Name: "Data protection",
+		Status: continuity.ProgramActive, OwnerPrincipalID: "owner-1", AuthorityPrincipalID: "authorizer-1", Version: 7,
+		CreatedAt: now, UpdatedAt: now,
+	}}
+	repository := monitoring.NewMemoryRepository()
+	form, err := repository.CreateFormRevision(t.Context(), monitoring.FormTemplate{
+		ID: "form-pending", TenantID: "bank", LegalEntityID: "entity-a", ProgramID: aggregate.Program.ID,
+		Code: "OWNER-ATTESTATION", Name: "Owner attestation", Purpose: "Confirm the current control owner.",
+		Lifecycle: monitoring.Lifecycle{
+			Status: monitoring.LifecyclePendingApproval, IsCurrent: true, Version: 2,
+			CreatedBy: "maker-1", SubmittedBy: "maker-1", CreatedAt: now, UpdatedAt: now,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	check, err := repository.CreateCheckRevision(t.Context(), monitoring.MonitoringCheck{
+		ID: "check-pending", TenantID: "bank", ProgramID: aggregate.Program.ID,
+		Code: "OWNER-CHECK", Name: "Owner check", Claim: "The current control owner is confirmed.",
+		InputKind: monitoring.InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version,
+		OwnerPrincipalID: "owner-1", ReviewerPrincipalID: "reviewer-1", FailureAction: monitoring.FailureReview,
+		Lifecycle: monitoring.Lifecycle{
+			Status: monitoring.LifecyclePendingApproval, IsCurrent: true, Version: 2,
+			CreatedBy: "maker-1", SubmittedBy: "maker-1", CreatedAt: now, UpdatedAt: now,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner: {Principal: authority.Principal{ID: "owner-1", DisplayName: "Program owner"}},
+		authority.ResponsibilityReviewer: {
+			Principal:           authority.Principal{ID: "reviewer-1", DisplayName: "Independent reviewer"},
+			CandidatePrincipals: []authority.Principal{{ID: "maker-1", DisplayName: "Submitting reviewer"}},
+			EffectiveOrigins:    []authority.EffectiveOrigin{{PrincipalID: "maker-1", OriginPrincipalID: "reviewer-1"}},
+		},
+	}}
+	api := &API{deps: Dependencies{Authority: resolver, Monitoring: monitoring.NewService(repository, nil)}}
+	find := func(payload programOperationsResponse, command, subresource string) RecordOperation {
+		t.Helper()
+		for _, operation := range payload.Operations {
+			if operation.Command == command && operation.SubresourceID == subresource {
+				return operation
+			}
+		}
+		t.Fatalf("operation %s/%s missing: %#v", command, subresource, payload.Operations)
+		return RecordOperation{}
+	}
+
+	maker := api.buildProgramOperations(t.Context(), identity.Actor{TenantID: "bank", PrincipalID: "maker-1", LegalEntityID: "entity-a"}, aggregate, now)
+	reviewer := api.buildProgramOperations(t.Context(), identity.Actor{TenantID: "bank", PrincipalID: "reviewer-1", LegalEntityID: "entity-a"}, aggregate, now)
+	for _, operation := range []RecordOperation{
+		find(maker, "program.monitoring.form.transition", form.ID),
+		find(maker, "program.monitoring.transition", check.ID),
+	} {
+		if !operation.CanAct || !reflect.DeepEqual(operation.AllowedTargets, []string{string(monitoring.LifecycleRejected)}) {
+			t.Fatalf("submitter operation must retain rejection without self-approval: %#v", operation)
+		}
+	}
+	for _, operation := range []RecordOperation{
+		find(reviewer, "program.monitoring.form.transition", form.ID),
+		find(reviewer, "program.monitoring.transition", check.ID),
+	} {
+		want := []string{string(monitoring.LifecycleActive), string(monitoring.LifecycleRejected)}
+		if !operation.CanAct || !reflect.DeepEqual(operation.AllowedTargets, want) {
+			t.Fatalf("independent reviewer operation = %#v, want targets %#v", operation, want)
+		}
+	}
+}
+
 func TestProgramOperationsResolveAuthorityOnceForAnyCheckCountAndKeepReviewerLineageExact(t *testing.T) {
 	for _, checkCount := range []int{1, 40} {
 		t.Run(fmt.Sprintf("checks_%d", checkCount), func(t *testing.T) {
