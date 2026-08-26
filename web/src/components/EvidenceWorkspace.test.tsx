@@ -1,16 +1,26 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { declareWrongCaptureRecipient, reassignCaptureRecipient } from "../captureApi";
 import type { EvidenceRequest } from "../types";
 import { EvidenceWorkspace } from "./EvidenceWorkspace";
+
+const { listEvidenceRecipientCandidates } = vi.hoisted(() => ({ listEvidenceRecipientCandidates: vi.fn() }));
 
 vi.mock("../captureApi", () => ({
   declareWrongCaptureRecipient: vi.fn(),
   reassignCaptureRecipient: vi.fn(),
 }));
+vi.mock("../evidenceRequestAdminApi", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../evidenceRequestAdminApi")>(),
+  listEvidenceRecipientCandidates,
+}));
 
 beforeAll(() => {
   Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
+});
+
+beforeEach(() => {
+  listEvidenceRecipientCandidates.mockRejectedValue(new Error("Recipient candidates not configured"));
 });
 
 function request(overrides: Partial<EvidenceRequest> = {}): EvidenceRequest {
@@ -88,7 +98,7 @@ describe("EvidenceWorkspace response authority", () => {
     }), "requester-1");
 
     expect(screen.queryByRole("button", { name: "Open request" })).toBeNull();
-    expect(screen.getByText("The external recipient must respond through the active invitation.")).toBeTruthy();
+    expect(screen.getByText("The external recipient responds using an invitation link; check its current status below.")).toBeTruthy();
   });
 
   it("uses the invitation workflow for a vendor audience", () => {
@@ -98,8 +108,8 @@ describe("EvidenceWorkspace response authority", () => {
     }), "requester-1");
 
     expect(screen.queryByRole("button", { name: "Open request" })).toBeNull();
-    expect(screen.getByText("The external recipient must respond through the active invitation.")).toBeTruthy();
-    expect(screen.getByText("External recipient")).toBeTruthy();
+    expect(screen.getByText("The external recipient responds using an invitation link; check its current status below.")).toBeTruthy();
+    expect(screen.getByText("c***@supplier.example")).toBeTruthy();
   });
 
   it("offers the response control only to the exact assigned internal recipient", () => {
@@ -125,7 +135,7 @@ describe("EvidenceWorkspace response authority", () => {
     }), "recipient-1");
 
     expect(screen.queryByRole("button", { name: "Open request" })).toBeNull();
-    expect(screen.getByText("The external recipient must respond through the active invitation.")).toBeTruthy();
+    expect(screen.getByText("The external recipient responds using an invitation link; check its current status below.")).toBeTruthy();
   });
 
   it("fails closed when the recipient assignment state is missing", () => {
@@ -162,9 +172,11 @@ describe("EvidenceWorkspace response authority", () => {
       version: 2,
     });
     vi.mocked(reassignCaptureRecipient).mockResolvedValue(updated);
+    listEvidenceRecipientCandidates.mockResolvedValue({ items: [{ principal_id: "recipient-2", display_name: "Ada Okafor" }], has_more: false });
     const { onRequestUpdated } = renderWorkspace(request(), "requester-1");
 
-    fireEvent.change(screen.getByLabelText("New person ID"), { target: { value: "recipient-2" } });
+    await screen.findByRole("option", { name: "Ada Okafor" });
+    fireEvent.change(screen.getByLabelText("New assigned person"), { target: { value: "recipient-2" } });
     fireEvent.change(screen.getByLabelText("Reason for change"), { target: { value: "The control owner now holds the evidence." } });
     fireEvent.click(screen.getByRole("button", { name: "Save recipient" }));
 

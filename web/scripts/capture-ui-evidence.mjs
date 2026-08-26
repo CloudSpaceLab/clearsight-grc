@@ -331,7 +331,7 @@ async function captureFieldVisit() {
     const reviewCapture = { ...capture, name: "30-field-visit-review-light-390x844" };
     await saveScreenshot(page, reviewCapture.name);
     await record(page, reviewCapture, "external-field-visit-review");
-    await page.getByRole("button", { name: "Submit verification" }).click();
+    await page.getByRole("button", { name: "Submit evidence" }).click();
     await page.getByRole("heading", { name: "Submitted" }).waitFor();
     const receiptCapture = { ...capture, name: "31-field-visit-receipt-light-390x844" };
     await saveScreenshot(page, receiptCapture.name);

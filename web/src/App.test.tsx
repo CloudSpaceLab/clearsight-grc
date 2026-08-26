@@ -8,6 +8,8 @@ import type { EvidenceRequest } from "./types";
 import { declareWrongCaptureRecipient, reassignCaptureRecipient } from "./captureApi";
 import { ApiError } from "./http";
 
+const { listEvidenceRecipientCandidates } = vi.hoisted(() => ({ listEvidenceRecipientCandidates: vi.fn() }));
+
 vi.mock("./components/RoleAwareOnboarding", () => ({ RoleAwareOnboarding: () => null }));
 vi.mock("./captureApi", () => ({
   declareWrongCaptureRecipient: vi.fn(),
@@ -34,6 +36,10 @@ vi.mock("./api", () => ({
   reconcileProgramState: vi.fn(),
   resolveAuthority: vi.fn(),
   submitCaptureRequest: vi.fn(),
+}));
+vi.mock("./evidenceRequestAdminApi", async (importOriginal) => ({
+  ...await importOriginal<typeof import("./evidenceRequestAdminApi")>(),
+  listEvidenceRecipientCandidates,
 }));
 
 type RuntimeWithCapabilities = RuntimeContext & {
@@ -122,6 +128,7 @@ beforeEach(() => {
   vi.mocked(loadCaptureRequest).mockRejectedValue(new Error("Demo fallback must not be used"));
   vi.mocked(declareWrongCaptureRecipient).mockRejectedValue(new Error("Recipient lifecycle command not configured"));
   vi.mocked(reassignCaptureRecipient).mockRejectedValue(new Error("Recipient lifecycle command not configured"));
+  listEvidenceRecipientCandidates.mockRejectedValue(new Error("Recipient candidates not configured"));
   vi.mocked(loadReadiness).mockRejectedValue(new Error("No readiness baseline"));
 });
 
@@ -476,9 +483,12 @@ describe("runtime navigation", () => {
     vi.mocked(loadEvidenceRequest).mockResolvedValue(currentSecond);
     const command = deferred<EvidenceRequest>();
     vi.mocked(reassignCaptureRecipient).mockReturnValue(command.promise);
+    listEvidenceRecipientCandidates.mockResolvedValue({ items: [{ principal_id: "role-cro", display_name: "Chief Risk Officer" }], has_more: false });
     const view = render(<App presentation="demo"/>);
 
-    fireEvent.change(await screen.findByLabelText("New person ID"), { target: { value: "role-cro" } });
+    fireEvent.click(await screen.findByText("View details"));
+    await screen.findByRole("option", { name: "Chief Risk Officer" });
+    fireEvent.change(screen.getByLabelText("New assigned person"), { target: { value: "role-cro" } });
     fireEvent.change(screen.getByLabelText("Reason for change"), { target: { value: "The current owner must respond." } });
     fireEvent.click(screen.getByRole("button", { name: "Save recipient" }));
     await waitFor(() => expect(reassignCaptureRecipient).toHaveBeenCalled());
