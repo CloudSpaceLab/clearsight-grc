@@ -21,6 +21,7 @@ const (
 	aiGovernanceIntegrationMakerID  = "7f340000-0000-7340-8340-000000000002"
 	aiGovernanceIntegrationCheckID  = "7f340000-0000-7340-8340-000000000003"
 	aiGovernanceIntegrationOwnerID  = "7f340000-0000-7340-8340-000000000004"
+	aiGovernanceIntegrationEntityID = "7f340000-0000-7340-8340-000000000005"
 )
 
 func TestPostgresGovernanceLifecycleReceiptAndGrant(t *testing.T) {
@@ -41,6 +42,10 @@ func TestPostgresGovernanceLifecycleReceiptAndGrant(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'ai-governance-integration','AI governance integration')`, aiGovernanceIntegrationTenantID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1::uuid,$2::uuid,'AI-GOV-NG','AI governance Nigeria','NG')`, aiGovernanceIntegrationEntityID, aiGovernanceIntegrationTenantID); err != nil {
+		t.Fatal(err)
+	}
+	ctx = continuity.WithTrustedSystemEntityScope(ctx, "ai-governance-integration", aiGovernanceIntegrationEntityID)
 	for _, principal := range []struct{ id, name string }{
 		{aiGovernanceIntegrationMakerID, "Policy maker"},
 		{aiGovernanceIntegrationCheckID, "Policy checker"},
@@ -118,7 +123,7 @@ func TestPostgresGovernanceLifecycleReceiptAndGrant(t *testing.T) {
 	}
 
 	matter, err := matters.CreateMatter(ctx, continuity.CreateMatterInput{
-		TenantID: policy.TenantID, Type: continuity.MatterAuthorityRequest, Priority: 5,
+		TenantID: policy.TenantID, LegalEntityID: aiGovernanceIntegrationEntityID, Type: continuity.MatterAuthorityRequest, Priority: 5,
 		Title: "Approve exact AI action", Summary: "One action only.", Scope: json.RawMessage(`{}`),
 	})
 	if err != nil {
@@ -175,6 +180,7 @@ func cleanupAIGovernanceFixture(t *testing.T, pool *pgxpool.Pool) {
 		`DELETE FROM matter_decisions WHERE tenant_id=$1::uuid`,
 		`DELETE FROM matters WHERE tenant_id=$1::uuid`,
 		`DELETE FROM principals WHERE tenant_id=$1::uuid`,
+		`DELETE FROM legal_entities WHERE tenant_id=$1::uuid`,
 		`DELETE FROM tenants WHERE id=$1::uuid`,
 	} {
 		if _, err := pool.Exec(ctx, statement, aiGovernanceIntegrationTenantID); err != nil {
