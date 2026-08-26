@@ -346,6 +346,8 @@ func TestPostgresVendorBrandWorkerUsesDatabaseClockAndExactCommitProbe(t *testin
 		"asset.next_refresh_at<=clock_timestamp()",
 		"vendorBrandCompletionRecorded",
 		"brand.artifact_key=$7 AND brand.source_digest=$8",
+		"JOIN third_party_events event",
+		"JOIN outbox_events outbox",
 	} {
 		if !strings.Contains(source, required) {
 			t.Fatalf("PostgreSQL vendor brand durability path missing %q", required)

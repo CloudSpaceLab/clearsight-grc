@@ -34,16 +34,14 @@ func (r *PostgresRepository) ClaimVendorBrandJobs(ctx context.Context, workerID 
 	if _, err := r.pool.Exec(ctx, `
 		WITH due AS (
 			SELECT job.id
-			FROM third_party_vendor_brand_jobs job
-			JOIN third_parties vendor ON vendor.tenant_id=job.tenant_id AND vendor.id=job.vendor_id
-			WHERE job.job_type='DISCOVER_ICON' AND job.state='COMPLETED' AND vendor.website_domain IS NOT NULL
-			  AND EXISTS (
-				SELECT 1 FROM third_party_vendor_brand_assets asset
-				WHERE asset.tenant_id=job.tenant_id AND asset.vendor_id=job.vendor_id
-				  AND asset.source_kind='DISCOVERED' AND asset.state='CURRENT'
-				  AND asset.source_domain=vendor.website_domain AND asset.next_refresh_at<=clock_timestamp()
-			  )
-			ORDER BY job.available_at,job.id FOR UPDATE OF job SKIP LOCKED LIMIT $1
+			FROM third_party_vendor_brand_assets asset
+			JOIN third_party_vendor_brand_jobs job ON job.tenant_id=asset.tenant_id AND job.vendor_id=asset.vendor_id
+			JOIN third_parties vendor ON vendor.tenant_id=asset.tenant_id AND vendor.id=asset.vendor_id
+			WHERE asset.source_kind='DISCOVERED' AND asset.state='CURRENT' AND asset.next_refresh_at<=clock_timestamp()
+			  AND asset.source_domain=vendor.website_domain AND vendor.website_domain IS NOT NULL
+			  AND job.job_type='DISCOVER_ICON' AND job.state='COMPLETED'
+			ORDER BY asset.next_refresh_at,asset.tenant_id,asset.vendor_id
+			FOR UPDATE OF asset,job SKIP LOCKED LIMIT $1
 		)
 		UPDATE third_party_vendor_brand_jobs job
 		SET state='READY',vendor_version=vendor.version,website_domain=vendor.website_domain,
@@ -197,19 +195,23 @@ func (r *PostgresRepository) vendorBrandCompletionRecorded(ctx context.Context, 
 	err := r.pool.QueryRow(ctx, `
 		SELECT EXISTS (
 			SELECT 1
-			FROM third_party_vendor_brand_jobs job
-			JOIN tenants tenant ON tenant.id=job.tenant_id
-			JOIN third_parties vendor ON vendor.tenant_id=job.tenant_id AND vendor.id=job.vendor_id
-			JOIN third_party_vendor_brand_assets brand ON brand.tenant_id=job.tenant_id AND brand.vendor_id=job.vendor_id
-			WHERE job.id::text=$1 AND (tenant.id::text=$2 OR tenant.slug=$2) AND job.vendor_id::text=$3
-			  AND job.state='COMPLETED' AND job.lease_token IS NULL AND job.lease_expires_at IS NULL
-			  AND job.vendor_version=$4 AND job.website_domain=$5
-			  AND vendor.version=$4 AND vendor.website_domain=$5
-			  AND brand.id::text=$6 AND brand.source_kind='DISCOVERED' AND brand.state='CURRENT'
+			FROM third_party_vendor_brand_assets brand
+			JOIN tenants tenant ON tenant.id=brand.tenant_id
+			JOIN third_party_vendor_brand_jobs job ON job.tenant_id=brand.tenant_id AND job.vendor_id=brand.vendor_id AND job.id::text=$1
+			JOIN third_party_events event ON event.tenant_id=brand.tenant_id
+			  AND event.aggregate_type='VENDOR_BRAND' AND event.aggregate_id=brand.vendor_id
+			  AND event.event_type=$12 AND event.aggregate_version=$13 AND event.payload->>'asset_id'=brand.id::text
+			JOIN outbox_events outbox ON outbox.tenant_id=brand.tenant_id
+			  AND outbox.aggregate_type='VENDOR_BRAND' AND outbox.aggregate_id=brand.vendor_id
+			  AND outbox.event_type=$12 AND outbox.payload->>'asset_id'=brand.id::text
+			WHERE (tenant.id::text=$2 OR tenant.slug=$2) AND brand.vendor_id::text=$3
+			  AND brand.id::text=$6 AND brand.source_kind='DISCOVERED'
 			  AND brand.artifact_key=$7 AND brand.source_digest=$8 AND brand.source_domain=$5
 			  AND brand.media_type='image/png' AND brand.pixel_width=$9 AND brand.pixel_height=$10 AND brand.byte_size=$11
+			  AND event.payload->>'vendor_version'=$4::text AND event.payload->>'artifact_key'=$7 AND event.payload->>'source_digest'=$8
+			  AND outbox.payload->>'vendor_version'=$4::text AND outbox.payload->>'artifact_key'=$7 AND outbox.payload->>'source_digest'=$8
 		)`, claim.ID, claim.TenantID, claim.VendorID, claim.VendorVersion, claim.WebsiteDomain,
-		asset.ID, asset.ArtifactKey, asset.SourceDigest, asset.PixelWidth, asset.PixelHeight, asset.ByteSize).Scan(&recorded)
+		asset.ID, asset.ArtifactKey, asset.SourceDigest, asset.PixelWidth, asset.PixelHeight, asset.ByteSize, VendorBrandDiscoveredEvent, claim.Version).Scan(&recorded)
 	return recorded, err
 }
 

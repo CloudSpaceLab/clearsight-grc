@@ -26,6 +26,7 @@ func TestVendorBrandMigrationAddsScopedDurableStateWithoutParallelFoundations(t 
 		"UNIQUE (tenant_id,vendor_id)",
 		"third_party_vendor_brand_jobs_claim_idx",
 		"third_party_vendor_brand_assets_current_idx",
+		"third_party_vendor_brand_assets_refresh_due_idx",
 		"state IN ('READY','LEASED','COMPLETED','FAILED','CANCELLED')",
 		"lease_token uuid",
 		"lease_expires_at timestamptz",

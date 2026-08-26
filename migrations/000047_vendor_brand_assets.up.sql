@@ -60,6 +60,9 @@ CREATE UNIQUE INDEX third_party_vendor_brand_assets_current_idx
     WHERE state='CURRENT';
 CREATE INDEX third_party_vendor_brand_assets_vendor_idx
     ON third_party_vendor_brand_assets(tenant_id,vendor_id,state,updated_at DESC,id DESC);
+CREATE INDEX third_party_vendor_brand_assets_refresh_due_idx
+    ON third_party_vendor_brand_assets(next_refresh_at,tenant_id,vendor_id)
+    WHERE source_kind='DISCOVERED' AND state='CURRENT' AND next_refresh_at IS NOT NULL;
 
 CREATE TABLE third_party_vendor_brand_jobs (
     id uuid PRIMARY KEY DEFAULT uuidv7(),
