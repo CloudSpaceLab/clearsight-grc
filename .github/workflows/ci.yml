@@ -115,10 +115,10 @@ jobs:
           bash deploy/scripts/migrate.sh migrations
           bash deploy/scripts/seed-demo-foundation.sh
           bash deploy/scripts/seed-demo-foundation.sh
-          psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM routing_policies WHERE tenant_id='00000000-0000-4000-8000-000000000001' AND code='CLEARSIGHT-DEMO-AUTHORITY'" | grep -qx 1
-          psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM routing_policy_versions WHERE policy_id='00000000-0000-4000-8000-000000000201' AND version=1" | grep -qx 1
+          psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM routing_policies WHERE tenant_id='00000000-0000-4000-8000-000000000001' AND legal_entity_id='00000000-0000-4000-8000-000000000002' AND code='CLEARSIGHT-DEMO-AUTHORITY'" | grep -qx 1
+          psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM routing_policy_versions WHERE policy_id='00000000-0000-4000-8000-000000000201' AND legal_entity_id='00000000-0000-4000-8000-000000000002' AND version=1" | grep -qx 1
           psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM effective_authority_routes WHERE source_policy_id='00000000-0000-4000-8000-000000000201'" | grep -qx 11
-          psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT selector_ref FROM effective_authority_routes WHERE source_rule_id='demo-program-authorizer' AND object_type='PROGRAM' AND decision_type='program.transition' AND responsibility='AUTHORIZER'" | grep -qx 00000000-0000-4000-8000-000000000101
+          psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT selector_ref FROM effective_authority_routes WHERE source_rule_id='demo-program-authorizer' AND legal_entity_ref='00000000-0000-4000-8000-000000000002' AND object_type='PROGRAM' AND decision_type='program.transition' AND responsibility='AUTHORIZER'" | grep -qx 00000000-0000-4000-8000-000000000101
           migration_copy="$(mktemp -d)"
           cp migrations/*.up.sql "$migration_copy/"
           printf '\n-- checksum mismatch proof\n' >> "$migration_copy/000001_foundation.up.sql"

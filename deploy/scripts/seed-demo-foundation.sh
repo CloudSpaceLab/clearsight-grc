@@ -60,13 +60,18 @@ BEGIN
   IF EXISTS (
     SELECT 1 FROM routing_policies
     WHERE id = '00000000-0000-4000-8000-000000000201'
-      AND (tenant_id <> '00000000-0000-4000-8000-000000000001' OR code <> 'CLEARSIGHT-DEMO-AUTHORITY')
+      AND (
+        tenant_id <> '00000000-0000-4000-8000-000000000001'
+        OR legal_entity_id IS DISTINCT FROM '00000000-0000-4000-8000-000000000002'::uuid
+        OR code <> 'CLEARSIGHT-DEMO-AUTHORITY'
+      )
   ) THEN
     RAISE EXCEPTION 'demo authority policy id is already used by an incompatible policy';
   END IF;
   IF EXISTS (
     SELECT 1 FROM routing_policies
     WHERE tenant_id = '00000000-0000-4000-8000-000000000001'
+      AND legal_entity_id = '00000000-0000-4000-8000-000000000002'
       AND code = 'CLEARSIGHT-DEMO-AUTHORITY'
       AND id <> '00000000-0000-4000-8000-000000000201'
   ) THEN
@@ -75,7 +80,11 @@ BEGIN
   IF EXISTS (
     SELECT 1 FROM routing_policy_versions
     WHERE id = '00000000-0000-4000-8000-000000000202'
-      AND (policy_id <> '00000000-0000-4000-8000-000000000201' OR version <> 1)
+      AND (
+        policy_id <> '00000000-0000-4000-8000-000000000201'
+        OR legal_entity_id IS DISTINCT FROM '00000000-0000-4000-8000-000000000002'::uuid
+        OR version <> 1
+      )
   ) THEN
     RAISE EXCEPTION 'demo authority policy version id is already used by an incompatible version';
   END IF;
@@ -92,6 +101,7 @@ BEGIN
     WHERE id = '00000000-0000-4000-8000-000000000201'
       AND (
         tenant_id <> '00000000-0000-4000-8000-000000000001'
+        OR legal_entity_id IS DISTINCT FROM '00000000-0000-4000-8000-000000000002'::uuid
         OR code <> 'CLEARSIGHT-DEMO-AUTHORITY'
         OR name <> 'ClearSight demo authority routes'
         OR status <> 'ACTIVE'
@@ -110,6 +120,7 @@ BEGIN
     WHERE id = '00000000-0000-4000-8000-000000000202'
       AND (
         policy_id <> '00000000-0000-4000-8000-000000000201'
+        OR legal_entity_id IS DISTINCT FROM '00000000-0000-4000-8000-000000000002'::uuid
         OR version <> 1
         OR definition IS DISTINCT FROM expected_definition
         OR checksum <> 'd315abab6729fac5611327a56aa0f3d4ed07aad2ba160106beb0ce7a3f99e91e'
@@ -126,12 +137,13 @@ END
 $foundation$;
 
 INSERT INTO routing_policies(
-  id, tenant_id, code, name, status, current_version,
+  id, tenant_id, legal_entity_id, code, name, status, current_version,
   maker_id, checker_id, submitted_at, approved_at, version
 )
 VALUES (
   '00000000-0000-4000-8000-000000000201',
   '00000000-0000-4000-8000-000000000001',
+  '00000000-0000-4000-8000-000000000002',
   'CLEARSIGHT-DEMO-AUTHORITY', 'ClearSight demo authority routes', 'ACTIVE', 1,
   '00000000-0000-4000-8000-000000000104',
   '00000000-0000-4000-8000-000000000106',
@@ -140,12 +152,13 @@ VALUES (
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO routing_policy_versions(
-  id, policy_id, version, definition, checksum, effective_from,
+  id, policy_id, legal_entity_id, version, definition, checksum, effective_from,
   created_by, approved_by, approved_at
 )
 VALUES (
   '00000000-0000-4000-8000-000000000202',
   '00000000-0000-4000-8000-000000000201',
+  '00000000-0000-4000-8000-000000000002',
   1,
   $definition${
     "rules": [
