@@ -72,6 +72,10 @@ type MatterOutcomeCheckInput = {
   reviewerCandidateID: string;
 };
 
+type MatterOutcomeCheckRevisionInput = MatterOutcomeCheckInput & {
+  rationale: string;
+};
+
 type MatterLinkInput = {
   programID: string;
   requirementID?: string;
@@ -151,6 +155,29 @@ export function defineMatterOutcomeCheck(matterID: string, expectedVersion: numb
     observation_period_minutes: input.observationPeriodMinutes,
     reviewer_candidate_id: input.reviewerCandidateID,
     failure_response: input.failureResponse,
+  });
+}
+
+export function supersedeMatterOutcomeCheck(matterID: string, contractID: string, expectedVersion: number, input: MatterOutcomeCheckRevisionInput): Promise<MatterAggregate> {
+  return continuityCommand<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/verification-contracts/${encodeURIComponent(contractID)}/supersede`, {
+    expected_version: expectedVersion,
+    action_id: input.actionID,
+    expected_outcome: input.expectedOutcome,
+    baseline: input.baseline ?? {},
+    scope: input.scope ?? {},
+    measurement_source_id: input.measurementSourceID,
+    threshold: input.threshold ?? {},
+    observation_period_minutes: input.observationPeriodMinutes,
+    reviewer_candidate_id: input.reviewerCandidateID,
+    failure_response: input.failureResponse,
+    rationale: input.rationale,
+  });
+}
+
+export function retireMatterOutcomeCheck(matterID: string, contractID: string, expectedVersion: number, rationale: string): Promise<MatterAggregate> {
+  return continuityCommand<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/verification-contracts/${encodeURIComponent(contractID)}/retire`, {
+    expected_version: expectedVersion,
+    rationale,
   });
 }
 

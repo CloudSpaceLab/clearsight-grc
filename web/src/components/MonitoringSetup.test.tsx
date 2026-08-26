@@ -35,6 +35,7 @@ const program: ProgramAggregate = {
 };
 
 const ownerOperations: ProgramOperation[] = [
+  { command: "program.monitoring.form.define", label: "Create a collection form", responsibility: "ACCOUNTABLE_OWNER", can_act: true, reason: "You hold the current responsibility." },
   { command: "program.monitoring.define", label: "Add a monitoring check", responsibility: "ACCOUNTABLE_OWNER", can_act: true, reason: "You hold the current responsibility." },
 ];
 
@@ -59,6 +60,17 @@ beforeEach(() => {
 });
 
 describe("monitoring setup", () => {
+  it("uses the exact form-definition operation only for the collection form builder", async () => {
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={[
+      { command: "program.monitoring.form.define", label: "Create a collection form", responsibility: "ACCOUNTABLE_OWNER", can_act: false, reason: "Assigned to the Program owner." },
+      { command: "program.monitoring.define", label: "Add a monitoring check", responsibility: "ACCOUNTABLE_OWNER", can_act: true, reason: "You hold the current responsibility." },
+    ]}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add monitoring check" }));
+    expect((screen.getByRole("button", { name: "Collection form" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Connected data" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("builds a five-question password reset form with explicit risk scoring", async () => {
     vi.mocked(createFormTemplate).mockResolvedValue({
       id: "form-1", tenant_id: "bank-1", code: "PASSWORD-RESET-REVIEW", name: "Password reset security review", purpose: "Confirm that password reset safeguards operated during the reporting period.",

@@ -139,6 +139,8 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/matters/{id}/actions/{action_id}/assignment", "matter.action.assign", a.assignMatterAction, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
 		material("/api/v1/matters/{id}/actions/{action_id}/transition", "matter.action.transition", a.transitionMatterAction, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
 		material("/api/v1/matters/{id}/verification-contracts", "matter.outcome.define", a.addMatterVerificationContract, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
+		material("/api/v1/matters/{id}/verification-contracts/{contract_id}/supersede", "matter.outcome.supersede", a.supersedeMatterVerificationContract, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
+		material("/api/v1/matters/{id}/verification-contracts/{contract_id}/retire", "matter.outcome.retire", a.retireMatterVerificationContract, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
 		material("/api/v1/matters/{id}/verification-results", "matter.outcome.record", a.recordMatterVerificationResult, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityReviewer, Materiality: 4, ActorField: "reviewer_principal_id"}),
 		material("/api/v1/matters/{id}/responses", "matter.response.add", a.addMatterResponse, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
 		read("/api/v1/matters/{id}/responses/{response_id}/history", a.getMatterResponseHistory),

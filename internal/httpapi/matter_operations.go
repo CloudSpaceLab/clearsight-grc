@@ -126,6 +126,20 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 			add(recordOperationSpec{Command: "matter.action.transition", SubresourceID: action.ID, Label: "Update action status", Responsibility: actionResponsibility, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: action.OwnerPrincipalID, AllowedTargets: allowed})
 		}
 	}
+	for _, contract := range aggregate.VerificationContracts {
+		if contract.Status != continuity.VerificationActive {
+			continue
+		}
+		add(recordOperationSpec{
+			Command: "matter.outcome.supersede", SubresourceID: contract.ID, Label: "Replace outcome check",
+			Responsibility: authority.ResponsibilityReviewer, CandidateResponsibility: authority.ResponsibilityReviewer,
+			Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: contract.AuthorityPrincipalID, IncludeCandidates: true,
+		})
+		add(recordOperationSpec{
+			Command: "matter.outcome.retire", SubresourceID: contract.ID, Label: "End outcome check",
+			Responsibility: authority.ResponsibilityReviewer, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: contract.AuthorityPrincipalID,
+		})
+	}
 
 	requirements, ambiguities := continuity.CompileMatterWork(aggregate, now)
 	for _, requirement := range requirements {
@@ -249,7 +263,7 @@ func matterOperationRequiresStoredPrincipal(spec recordOperationSpec) bool {
 	if matterOwnerBoundCommand(spec.Command) {
 		return true
 	}
-	return (spec.Command == "matter.transition" && spec.Responsibility == authority.ResponsibilityOwner) || spec.Command == "matter.action.transition"
+	return (spec.Command == "matter.transition" && spec.Responsibility == authority.ResponsibilityOwner) || spec.Command == "matter.action.transition" || spec.Command == "matter.outcome.supersede" || spec.Command == "matter.outcome.retire"
 }
 
 func (a *API) assignedPrincipal(ctx context.Context, actor identity.Actor, resolution authority.Resolution, requiredID string) *authority.Principal {

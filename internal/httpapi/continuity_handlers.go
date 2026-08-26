@@ -749,6 +749,42 @@ func (a *API) addMatterVerificationContract(w http.ResponseWriter, r *http.Reque
 	writeContinuityResult(w, value, err, http.StatusCreated)
 }
 
+func (a *API) supersedeMatterVerificationContract(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.SupersedeVerificationContractInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.MatterID = r.PathValue("id")
+	input.ContractID = r.PathValue("contract_id")
+	// The lifecycle command boundary has already checked this candidate against
+	// the current reviewer route. Never retain an authority ID supplied directly
+	// by the browser.
+	input.AuthorityPrincipalID = strings.TrimSpace(input.ReviewerCandidateID)
+	value, err := service.SupersedeVerificationContract(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
+}
+
+func (a *API) retireMatterVerificationContract(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.RetireVerificationContractInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.MatterID = r.PathValue("id")
+	input.ContractID = r.PathValue("contract_id")
+	value, err := service.RetireVerificationContract(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
+}
+
 func (a *API) recordMatterVerificationResult(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.continuityService(w)
 	if !ok {

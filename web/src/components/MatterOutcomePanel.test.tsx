@@ -2,10 +2,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import type { MatterAggregate } from "../types";
 import { loadEvidenceSources } from "../api";
-import { defineMatterOutcomeCheck } from "../matterOperationsApi";
+import { defineMatterOutcomeCheck, retireMatterOutcomeCheck, supersedeMatterOutcomeCheck } from "../matterOperationsApi";
 import { MatterOutcomePanel } from "./MatterOutcomePanel";
 
-vi.mock("../matterOperationsApi", () => ({ defineMatterOutcomeCheck: vi.fn() }));
+vi.mock("../matterOperationsApi", () => ({ defineMatterOutcomeCheck: vi.fn(), supersedeMatterOutcomeCheck: vi.fn(), retireMatterOutcomeCheck: vi.fn() }));
 vi.mock("../continuityCommands", () => ({ recordVerificationResult: vi.fn(), transitionMatter: vi.fn() }));
 vi.mock("../api", () => ({ loadEvidenceSources: vi.fn() }));
 
@@ -144,4 +144,43 @@ it("shows all results within a bounded labelled outcome history", () => {
   expect(screen.getByText(/Recorded 2026-08-25 by Ada Okafor/)).toBeTruthy();
   expect(screen.getByText(/1 additional results/)).toBeTruthy();
   expect(screen.queryByText(/hidden-reviewer/)).toBeNull();
+});
+
+it("lets the assigned reviewer replace an active outcome check without losing its history", async () => {
+  const contract = { id: "contract-1", action_id: "action-1", expected_outcome: "Nine sections have current evidence", baseline: { description: "One section is incomplete" }, scope: { description: "All ten sections", measurement_method: "Review the approved evidence register" }, threshold: { success_condition: "Nine of ten sections pass" }, observation_period_minutes: 1440, authority_principal_id: "reviewer-1", failure_response: "BLOCK_CLOSE", status: "ACTIVE" };
+  const aggregate = { matter: { id: "matter-1", legal_entity_id: "entity-1", version: 9 }, actions: [{ id: "action-1", title: "Complete the evidence register" }], verification_contracts: [contract], verification_results: [], closure: { ready: false, reasons: [] } } as unknown as MatterAggregate;
+  const operations = [
+    { command: "matter.outcome.supersede", subresource_id: "contract-1", label: "Replace outcome check", responsibility: "REVIEWER", can_act: true, reason: "You hold the current responsibility.", assigned_to: { id: "reviewer-1", display_name: "Ada Okafor", kind: "PERSON", role: "Internal Audit reviewer" }, candidates: [{ id: "reviewer-1", display_name: "Ada Okafor", kind: "PERSON", role: "Internal Audit reviewer" }, { id: "reviewer-2", display_name: "Bola Ahmed", kind: "PERSON", role: "Assurance reviewer" }] },
+    { command: "matter.outcome.retire", subresource_id: "contract-1", label: "End outcome check", responsibility: "REVIEWER", can_act: true, reason: "You hold the current responsibility.", assigned_to: { id: "reviewer-1", display_name: "Ada Okafor", kind: "PERSON", role: "Internal Audit reviewer" } },
+  ];
+  vi.mocked(supersedeMatterOutcomeCheck).mockResolvedValue({ ...aggregate, matter: { ...aggregate.matter, version: 10 }, verification_contracts: [{ ...contract, status: "RETIRED" }, { ...contract, id: "contract-2", supersedes_contract_id: "contract-1", expected_outcome: "All ten sections have current approved evidence", authority_principal_id: "reviewer-2" }] } as unknown as MatterAggregate);
+  render(<MatterOutcomePanel aggregate={aggregate} operations={operations} responsibleParties={[{ scope: "OUTCOME_CHECK", subresource_id: "contract-1", responsibility: "REVIEWER", display_name: "Ada Okafor", kind: "PERSON" }]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+
+  fireEvent.click(screen.getByRole("button", { name: "Replace outcome check for Nine sections have current evidence" }));
+  expect(screen.getByDisplayValue("Nine sections have current evidence")).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Expected outcome"), { target: { value: "All ten sections have current approved evidence" } });
+  fireEvent.change(screen.getByLabelText("Independent reviewer"), { target: { value: "reviewer-2" } });
+  fireEvent.change(screen.getByLabelText("Reason for replacing this outcome check"), { target: { value: "The required evidence population now covers all ten sections." } });
+  fireEvent.click(screen.getByRole("button", { name: "Replace outcome check" }));
+
+  await waitFor(() => expect(supersedeMatterOutcomeCheck).toHaveBeenCalledWith("matter-1", "contract-1", 9, expect.objectContaining({
+    expectedOutcome: "All ten sections have current approved evidence", reviewerCandidateID: "reviewer-2",
+    rationale: "The required evidence population now covers all ten sections.",
+  })));
+});
+
+it("requires a reason before the assigned reviewer ends an active outcome check", async () => {
+  const contract = { id: "contract-1", expected_outcome: "All ten sections have current evidence", observation_period_minutes: 1440, authority_principal_id: "reviewer-1", failure_response: "BLOCK_CLOSE", status: "ACTIVE" };
+  const aggregate = { matter: { id: "matter-1", legal_entity_id: "entity-1", version: 9 }, actions: [], verification_contracts: [contract], verification_results: [], closure: { ready: false, reasons: [] } } as unknown as MatterAggregate;
+  const operations = [{ command: "matter.outcome.retire", subresource_id: "contract-1", label: "End outcome check", responsibility: "REVIEWER", can_act: true, reason: "You hold the current responsibility.", assigned_to: { id: "reviewer-1", display_name: "Ada Okafor", kind: "PERSON", role: "Internal Audit reviewer" } }];
+  vi.mocked(retireMatterOutcomeCheck).mockResolvedValue({ ...aggregate, matter: { ...aggregate.matter, version: 10 }, verification_contracts: [{ ...contract, status: "RETIRED" }] } as unknown as MatterAggregate);
+  render(<MatterOutcomePanel aggregate={aggregate} operations={operations} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+
+  fireEvent.click(screen.getByRole("button", { name: "End outcome check for All ten sections have current evidence" }));
+  const submit = screen.getByRole("button", { name: "End outcome check" }) as HTMLButtonElement;
+  expect(submit.disabled).toBe(true);
+  fireEvent.change(screen.getByLabelText("Reason for ending this outcome check"), { target: { value: "The linked action was cancelled and no result is required." } });
+  expect(submit.disabled).toBe(false);
+  fireEvent.click(submit);
+  await waitFor(() => expect(retireMatterOutcomeCheck).toHaveBeenCalledWith("matter-1", "contract-1", 9, "The linked action was cancelled and no result is required."));
 });

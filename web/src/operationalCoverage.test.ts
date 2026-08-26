@@ -15,6 +15,8 @@ const operationCommands = {
   assignMatterAction: "matter.action.assign",
   transitionMatterAction: "matter.action.transition",
   addMatterVerificationContract: "matter.outcome.define",
+  supersedeMatterVerificationContract: "matter.outcome.supersede",
+  retireMatterVerificationContract: "matter.outcome.retire",
   recordMatterVerificationResult: "matter.outcome.record",
   addMatterResponse: "matter.response.add",
   transitionMatterResponse: "matter.response.transition",

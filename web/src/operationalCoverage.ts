@@ -20,6 +20,8 @@ export const matterOperationalCoverage = {
   "matter.response.add": { surface: "MatterDecisionResponsePanel", states: ["empty", "draft"], testedBy: ["MatterRecordWorkspace.test.tsx"] },
   "matter.response.transition": { surface: "MatterDecisionResponsePanel", states: ["draft", "review", "approval", "transmission", "acknowledgement"], testedBy: ["MatterRecordWorkspace.test.tsx", "OperatingMutations.test.tsx"] },
   "matter.outcome.define": { surface: "MatterOutcomePanel", states: ["empty", "defined"], testedBy: ["MatterRecordWorkspace.test.tsx"] },
+  "matter.outcome.supersede": { surface: "MatterOutcomePanel", states: ["active", "replacement", "preserved_history"], testedBy: ["MatterOutcomePanel.test.tsx"] },
+  "matter.outcome.retire": { surface: "MatterOutcomePanel", states: ["active", "ended", "preserved_history"], testedBy: ["MatterOutcomePanel.test.tsx"] },
   "matter.outcome.record": { surface: "MatterOutcomePanel", states: ["ready", "pass", "fail", "inconclusive"], testedBy: ["MatterRecordWorkspace.test.tsx"] },
 } as const satisfies Record<string, OperationalCoverageEntry>;
 

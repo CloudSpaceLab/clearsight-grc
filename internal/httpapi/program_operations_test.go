@@ -492,6 +492,9 @@ func TestProgramOperationsExposeMonitoringResponsibilitiesPerCheck(t *testing.T)
 	if operation := find(owner, "program.monitoring.define", ""); !operation.CanAct || operation.AssignedTo == nil || operation.AssignedTo.DisplayName != "Data Protection Officer" {
 		t.Fatalf("monitoring definition responsibility = %#v", operation)
 	}
+	if operation := find(owner, "program.monitoring.form.define", ""); !operation.CanAct || operation.AssignedTo == nil || operation.AssignedTo.DisplayName != "Data Protection Officer" {
+		t.Fatalf("form definition responsibility = %#v", operation)
+	}
 	if operation := find(owner, "program.monitoring.transition", draft.ID); !operation.CanAct || operation.Responsibility != string(authority.ResponsibilityOwner) {
 		t.Fatalf("draft transition responsibility = %#v", operation)
 	}

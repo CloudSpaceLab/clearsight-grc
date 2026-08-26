@@ -529,6 +529,38 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		payload["authority_principal_id"] = candidateID
 		return policy, nil
 
+	case "matter.outcome.supersede", "matter.outcome.retire":
+		if aggregate == nil {
+			return policy, nil
+		}
+		contractID, err := lifecycleSubresourceID(r, payload, "contract_id")
+		if err != nil {
+			return policy, err
+		}
+		var contract *continuity.VerificationContract
+		for index := range aggregate.VerificationContracts {
+			if aggregate.VerificationContracts[index].ID == contractID {
+				contract = &aggregate.VerificationContracts[index]
+				break
+			}
+		}
+		if contract == nil || contract.Status != continuity.VerificationActive {
+			return policy, continuity.ErrNotFound
+		}
+		policy.Materiality = max(policy.Materiality, matterPriority)
+		if err := a.validateStoredResponsibilityActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, policy.Materiality, authority.ResponsibilityReviewer, contract.AuthorityPrincipalID); err != nil {
+			return policy, err
+		}
+		payload["contract_id"] = contractID
+		if name == "matter.outcome.supersede" {
+			candidateID := stringValue(payload["reviewer_candidate_id"])
+			if err := a.validateMatterAssignmentCandidate(ctx, tenant, name, *aggregate, candidateID, authority.ResponsibilityReviewer, policy.Materiality); err != nil {
+				return policy, err
+			}
+			payload["authority_principal_id"] = candidateID
+		}
+		return policy, nil
+
 	case "matter.outcome.record":
 		if aggregate == nil {
 			return policy, nil

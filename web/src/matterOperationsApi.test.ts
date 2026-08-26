@@ -6,6 +6,8 @@ import {
   changeMatterContext,
   defineMatterOutcomeCheck,
   loadMatterOperations,
+  retireMatterOutcomeCheck,
+  supersedeMatterOutcomeCheck,
   updateMatterAction,
   updateMatterDetails,
 } from "./matterOperationsApi";
@@ -113,6 +115,29 @@ describe("Matter operation API", () => {
         measurement_source_id: "source-1", observation_period_minutes: 1440,
         reviewer_candidate_id: "reviewer-1", failure_response: "REOPEN",
       },
+    },
+    {
+      name: "outcome check replacement",
+      run: () => supersedeMatterOutcomeCheck("matter-1", "contract / 1", 13, {
+        actionID: "action-1", expectedOutcome: "Every section has current approved evidence.",
+        baseline: { description: "One section is incomplete." }, scope: { description: "All ten sections." },
+        threshold: { success_condition: "Ten of ten sections pass." }, observationPeriodMinutes: 2880,
+        reviewerCandidateID: "reviewer-2", failureResponse: "REOPEN", rationale: "The population and review period changed.",
+      }),
+      path: "/api/v1/matters/matter-1/verification-contracts/contract%20%2F%201/supersede?tenant_id=tenant-1",
+      body: {
+        tenant_id: "tenant-1", expected_version: 13, action_id: "action-1",
+        expected_outcome: "Every section has current approved evidence.", baseline: { description: "One section is incomplete." },
+        scope: { description: "All ten sections." }, threshold: { success_condition: "Ten of ten sections pass." },
+        observation_period_minutes: 2880, reviewer_candidate_id: "reviewer-2", failure_response: "REOPEN",
+        rationale: "The population and review period changed.",
+      },
+    },
+    {
+      name: "outcome check retirement",
+      run: () => retireMatterOutcomeCheck("matter-1", "contract-1", 14, "The linked action was cancelled."),
+      path: "/api/v1/matters/matter-1/verification-contracts/contract-1/retire?tenant_id=tenant-1",
+      body: { tenant_id: "tenant-1", expected_version: 14, rationale: "The linked action was cancelled." },
     },
   ])("submits the $name request without browser-supplied command actors", async ({ run, path, body }) => {
     await run();
