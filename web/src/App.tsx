@@ -35,6 +35,7 @@ const VendorsWorkspace = lazy(() => import("./components/VendorsWorkspace").then
 type LoadState = "idle" | "loading" | "live" | "unavailable";
 type SectionLoadState = Exclude<LoadState, "idle">;
 type ConnectionState = "loading" | "live" | "sample" | "unavailable";
+type VendorGuideIntent = { id: number; type: "open-vendor-due-diligence" | "open-vendor-work" };
 type ProductRuntime = RuntimeContext & {
   demo_mode?: boolean;
   capabilities?: {
@@ -59,7 +60,9 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
   const [activeView, setActiveView] = useState<View>(initialRoute.view);
   const [workTab, setWorkTab] = useState<WorkTab>(initialRoute.workTab ?? "matters");
   const [target, setTarget] = useState<WorkspaceTarget>(initialRoute.target);
-  const [vendorGuideIntent, setVendorGuideIntent] = useState<"open-vendor-due-diligence" | "open-vendor-work">();
+  const [vendorGuideIntent, setVendorGuideIntent] = useState<VendorGuideIntent>();
+  const vendorGuideIntentID = useRef(0);
+  const vendorGuideAck = useRef<{ id: number; resolve: () => void; reject: (reason?: unknown) => void } | undefined>(undefined);
   const [items, setItems] = useState<AttentionItem[]>([]);
   const [todayGeneratedAt, setTodayGeneratedAt] = useState<string | undefined>();
   const [connection, setConnection] = useState<ConnectionState>("loading");
@@ -275,12 +278,36 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
     if (step.intent === "open-first-attention" && items[0]) { openAttention(items[0]); return; }
     if (step.intent === "open-first-program") { navigate("programs", { openFirstProgram: true }); return; }
     if (step.intent === "open-first-matter") { navigate("work", { openFirstMatter: true }, "matters"); return; }
-    if (step.intent === "open-vendor-due-diligence" || step.intent === "open-vendor-work") { setVendorGuideIntent(step.intent); navigate("vendors"); return; }
+    const vendorIntent = step.intent;
+    if (vendorIntent === "open-vendor-due-diligence" || vendorIntent === "open-vendor-work") {
+      return new Promise<void>((resolve, reject) => {
+        vendorGuideAck.current?.reject(new Error("Vendor guide action was replaced."));
+        const id = ++vendorGuideIntentID.current;
+        vendorGuideAck.current = { id, resolve, reject };
+        setVendorGuideIntent({ id, type: vendorIntent });
+        navigate("vendors", activeView === "vendors" ? target : {});
+      });
+    }
     if (step.intent === "switch-evidence" || step.intent === "open-first-evidence") {
       const requests = evidenceRequestState === "idle" ? await loadEvidenceWorkspace() : evidenceRequests;
       navigate("work", { evidenceID: step.intent === "open-first-evidence" ? requests[0]?.id : undefined, openFirstEvidence: step.intent === "open-first-evidence" }, "evidence"); return;
     }
     if (step.view) navigate(step.view);
+  }
+
+  function completeVendorGuideIntent(id: number) {
+    if (vendorGuideAck.current?.id === id) {
+      vendorGuideAck.current.resolve();
+      vendorGuideAck.current = undefined;
+    }
+    setVendorGuideIntent((current) => current?.id === id ? undefined : current);
+  }
+
+  function failVendorGuideIntent(id: number) {
+    if (vendorGuideAck.current?.id === id) {
+      vendorGuideAck.current.reject(new Error("Vendor workspace could not be loaded."));
+      vendorGuideAck.current = undefined;
+    }
   }
 
   const canOpenEvidence = demoMode || items.some((item) => item.action_target_type === "EVIDENCE_REQUEST" && item.action_target_id);
@@ -292,7 +319,7 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
       <RoleAwareOnboarding runtime={runtime} onStep={executeGuideStep}/>
       {activeView === "today" && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>} 
       {activeView === "programs" && <ProgramsView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")}/>}
-      {activeView === "vendors" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships…</div>}><VendorsWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.vendorRelationshipID} guideIntent={vendorGuideIntent} onGuideIntentHandled={() => setVendorGuideIntent(undefined)} onTarget={(id) => navigate("vendors", id ? { vendorRelationshipID: id } : {})} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")}/></Suspense>}
+      {activeView === "vendors" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships…</div>}><VendorsWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.vendorRelationshipID} guideIntent={vendorGuideIntent} onGuideIntentCompleted={completeVendorGuideIntent} onGuideIntentFailed={failVendorGuideIntent} onTarget={(id) => navigate("vendors", id ? { vendorRelationshipID: id } : {})} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")}/></Suspense>}
       {activeView === "work" && <WorkView organizationName={organizationName} tab={workTab} onTab={(tab) => navigate("work", {}, tab)} sources={sources} requests={evidenceRequests} evidenceSourceState={evidenceSourceState === "idle" ? "loading" : evidenceSourceState} evidenceRequestState={evidenceRequestState === "idle" ? "loading" : evidenceRequestState} onEvidenceRetry={() => void loadEvidenceWorkspace(target.evidenceID)} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)}/>} 
       {activeView === "imports" && importsEnabled && <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Imports</h1><p>Compare regulatory documents with current Programs, controls and evidence.</p></div></header><DocumentImportWorkspace/></>}
       {activeView === "explore" && demoMode && <ExploreView organizationName={organizationName}/>} 

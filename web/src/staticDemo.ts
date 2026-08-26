@@ -309,7 +309,7 @@ const vendorsGuide = { code: "vendor-operations-first-run", surface: "VENDORS", 
   { id: "register", title: "Review the vendor register", description: "Check the supplied service, owner and current relationship state.", action: "Review vendors", view: "vendors", target: "vendor-register" },
   { id: "due-diligence", title: "Collect due diligence", description: "Use known bank records first, then request only missing information.", action: "Review due diligence", view: "vendors", target: "vdd-title", intent: "open-vendor-due-diligence" },
   { id: "work", title: "Request vendor action", description: "Send a focused form, document, signature or upload request when the vendor must act.", action: "Review vendor requests", view: "vendors", target: "vendor-work-panel", intent: "open-vendor-work" },
-  { id: "finish", title: "Confirm the outcome", description: "Completion and upload remain separate from review and outcome confirmation.", action: "Done", view: "vendors", target: "vendors-workspace" },
+  { id: "finish", title: "Confirm the outcome", description: "Completion and upload remain separate from review and outcome confirmation.", action: "Finish guide", view: "vendors", target: "vendors-workspace" },
 ] };
 
 export async function staticDemoRequest<T>(path: string, init?: RequestInit): Promise<T> {

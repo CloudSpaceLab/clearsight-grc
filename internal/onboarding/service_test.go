@@ -104,6 +104,9 @@ func TestVendorGuideUsesStableWorkspaceTargets(t *testing.T) {
 	if intents["due-diligence"] != "open-vendor-due-diligence" || intents["work"] != "open-vendor-work" {
 		t.Fatalf("vendor guide intents = %#v", intents)
 	}
+	if guide.Steps[3].Action != "Finish guide" {
+		t.Fatalf("finish action = %q", guide.Steps[3].Action)
+	}
 }
 
 func TestGuideResolutionRejectsUnknownSurface(t *testing.T) {

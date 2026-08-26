@@ -13,8 +13,9 @@ type Props = {
   organizationName: string;
   legalEntityName: string;
   targetID?: string;
-  guideIntent?: "open-vendor-due-diligence" | "open-vendor-work";
-  onGuideIntentHandled?: () => void;
+  guideIntent?: { id: number; type: "open-vendor-due-diligence" | "open-vendor-work" };
+  onGuideIntentCompleted?: (id: number) => void;
+  onGuideIntentFailed?: (id: number) => void;
   onTarget?: (id?: string) => void;
   onOpenRequest?: (requestID: string) => void;
   onOpenMatter?: (matterID: string) => void;
@@ -41,7 +42,7 @@ const emptyForm: FormValues = {
   criticality: "STANDARD", privacyRole: "NONE", sourceID: "", externalRef: "", effectiveFrom: "", renewalAt: "",
 };
 
-export function VendorsWorkspace({ organizationName, legalEntityName, targetID, guideIntent, onGuideIntentHandled, onTarget, onOpenRequest, onOpenMatter }: Props) {
+export function VendorsWorkspace({ organizationName, legalEntityName, targetID, guideIntent, onGuideIntentCompleted, onGuideIntentFailed, onTarget, onOpenRequest, onOpenMatter }: Props) {
   const [records, setRecords] = useState<VendorRelationshipAggregate[]>([]);
   const [selected, setSelected] = useState<VendorRelationshipAggregate | null>(null);
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
@@ -85,14 +86,20 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   useEffect(() => {
     if (!guideIntent || state !== "live") return;
     if (!selected) {
-      if (mode === "create") onGuideIntentHandled?.();
+      if (mode === "create") {
+        const form = document.getElementById("vendor-legal-name");
+        form?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+        (form as HTMLElement | null)?.focus({ preventScroll: true });
+        onGuideIntentCompleted?.(guideIntent.id);
+      }
       return;
     }
-    const target = guideIntent === "open-vendor-due-diligence" ? document.getElementById("vdd-title") : document.querySelector<HTMLElement>(".vendor-work-panel");
+    const target = guideIntent.type === "open-vendor-due-diligence" ? document.getElementById("vdd-title") : document.querySelector<HTMLElement>(".vendor-work-panel");
     if (!target) return;
+    target.scrollIntoView?.({ behavior: "smooth", block: "center" });
     target.focus({ preventScroll: true });
-    onGuideIntentHandled?.();
-  }, [guideIntent, state, mode, selected?.relationship.id, assessmentState, onGuideIntentHandled]);
+    onGuideIntentCompleted?.(guideIntent.id);
+  }, [guideIntent, state, mode, selected?.relationship.id, assessmentState, onGuideIntentCompleted]);
 
   useEffect(() => {
     void refreshForms();
@@ -300,9 +307,11 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       if (intent && next.length === 0) setMode("create");
       setState("live");
     } catch {
+      if (loadID !== registerLoadID.current) return;
       setRecords([]);
       setSelected(null);
       setState("unavailable");
+      if (intent) onGuideIntentFailed?.(intent.id);
     }
   }
 
@@ -431,7 +440,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
 
     {notice && <p className="vendor-notice" role="status">{notice}</p>}
     {state === "loading" && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships for {legalEntityName}…</div>}
-    {state === "unavailable" && <section className="vendor-state" role="alert"><h2>Vendor records are unavailable</h2><p>The vendor register for {legalEntityName} could not be loaded. Try again before adding or changing a record.</p><button className="secondary-button" type="button" onClick={() => void refresh(targetID)}>Try again</button></section>}
+    {state === "unavailable" && <section className="vendor-state" role="alert"><h2>Vendor records are unavailable</h2><p>The vendor register for {legalEntityName} could not be loaded. Try again before adding or changing a record.</p><button className="secondary-button" type="button" onClick={() => void refresh(targetID, "", guideIntent)}>Try again</button></section>}
     {state === "live" && <div className="vendor-layout">
       <section className="vendor-register" aria-label={`Vendor relationships for ${legalEntityName}`}>
         <div className="vendor-register-header"><div><h2>Vendor register</h2><p>{submittedQuery ? `Showing ${records.length} matching ${records.length === 1 ? "relationship" : "relationships"}` : `Showing ${records.length} ${records.length === 1 ? "relationship" : "relationships"} in this legal entity`}</p>{nextCursor && <small>More relationships are available.</small>}</div></div>

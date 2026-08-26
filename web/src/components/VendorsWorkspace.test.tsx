@@ -89,25 +89,74 @@ beforeEach(() => {
 
 describe("VendorsWorkspace", () => {
   it("opens due diligence for the first loaded vendor when guided", async () => {
-    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent="open-vendor-due-diligence"/>);
+    const completed = vi.fn();
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-due-diligence" }} onGuideIntentCompleted={completed}/>);
 
     const heading = await screen.findByRole("heading", { name: "Due diligence" });
     expect(document.activeElement).toBe(heading);
+    expect(completed).toHaveBeenCalledOnce();
     expect(screen.getAllByText("Card transaction processing").length).toBeGreaterThan(0);
   });
 
   it("opens vendor requests for the first loaded vendor when guided", async () => {
-    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent="open-vendor-work"/>);
+    const completed = vi.fn();
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-work" }} onGuideIntentCompleted={completed}/>);
 
     const panel = await screen.findByTestId("vendor-work-relationship-relationship-1");
     expect(document.activeElement).toBe(panel);
+    expect(completed).toHaveBeenCalledOnce();
   });
 
   it("opens the Add vendor form when guided and the register is empty", async () => {
     vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [] });
-    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent="open-vendor-due-diligence"/>);
+    const completed = vi.fn();
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-due-diligence" }} onGuideIntentCompleted={completed}/>);
 
-    expect(await screen.findByLabelText("Legal name")).toBeTruthy();
+    const legalName = await screen.findByLabelText("Legal name");
+    expect(document.activeElement).toBe(legalName);
+    expect(completed).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the newer register result when an older load fails", async () => {
+    let rejectOlder!: (reason?: unknown) => void;
+    vi.mocked(loadVendorRelationships)
+      .mockImplementationOnce(() => new Promise((_, reject) => { rejectOlder = reject; }))
+      .mockResolvedValueOnce({ items: [record] });
+    const view = render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria"/>);
+    view.rerender(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+
+    expect(await screen.findByRole("button", { name: /Acme Processing Limited/ })).toBeTruthy();
+    rejectOlder(new Error("older request failed"));
+    await waitFor(() => expect(screen.getByRole("button", { name: /Acme Processing Limited/ })).toBeTruthy());
+  });
+
+  it("retries a failed guided load and completes the pending intent", async () => {
+    const failed = vi.fn();
+    const completed = vi.fn();
+    const view = render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria"/>);
+    await screen.findByRole("button", { name: /Acme Processing Limited/ });
+    vi.mocked(loadVendorRelationships).mockReset().mockRejectedValueOnce(new Error("unavailable")).mockResolvedValueOnce({ items: [record] });
+    view.rerender(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-work" }} onGuideIntentFailed={failed} onGuideIntentCompleted={completed}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
+    expect(failed).toHaveBeenCalledOnce();
+    expect(await screen.findByTestId("vendor-work-relationship-relationship-1")).toBeTruthy();
+    expect(completed).toHaveBeenCalledOnce();
+  });
+
+  it("waits for a slow guided load before acknowledging the action", async () => {
+    const completed = vi.fn();
+    const view = render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria"/>);
+    await screen.findByRole("button", { name: /Acme Processing Limited/ });
+    let resolveGuidedLoad!: (value: { items: VendorRelationshipAggregate[] }) => void;
+    vi.mocked(loadVendorRelationships).mockReset().mockImplementationOnce(() => new Promise((resolve) => { resolveGuidedLoad = resolve; }));
+    view.rerender(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-due-diligence" }} onGuideIntentCompleted={completed}/>);
+
+    await waitFor(() => expect(loadVendorRelationships).toHaveBeenCalledOnce());
+    expect(completed).not.toHaveBeenCalled();
+    resolveGuidedLoad({ items: [record] });
+    expect(await screen.findByRole("heading", { name: "Due diligence" })).toBeTruthy();
+    expect(completed).toHaveBeenCalledOnce();
   });
 
   it("shows the scoped vendor register and record details", async () => {

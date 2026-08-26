@@ -7,7 +7,7 @@ import type { EvidenceRequest } from "./types";
 
 vi.mock("./components/RoleAwareOnboarding", () => ({ RoleAwareOnboarding: ({ onStep }: { onStep: (step: { intent?: string; view?: string }) => void }) => <button type="button" onClick={() => onStep({ intent: "open-vendor-due-diligence", view: "vendors" })}>Review due diligence</button> }));
 vi.mock("./components/VendorsWorkspace", () => ({
-  VendorsWorkspace: ({ onOpenRequest, guideIntent }: { onOpenRequest?: (requestID: string) => void; guideIntent?: string }) => <><output data-testid="vendor-guide-intent">{guideIntent}</output><button type="button" onClick={() => onOpenRequest?.("request-vendor-1")}>Review vendor request</button></>,
+  VendorsWorkspace: ({ onOpenRequest, guideIntent, targetID }: { onOpenRequest?: (requestID: string) => void; guideIntent?: { type: string }; targetID?: string }) => <><output data-testid="vendor-guide-intent">{guideIntent?.type}</output><output data-testid="vendor-target">{targetID}</output><button type="button" onClick={() => onOpenRequest?.("request-vendor-1")}>Review vendor request</button></>,
 }));
 vi.mock("./api", () => ({
   loadAutomationPolicies: vi.fn().mockResolvedValue([]),
@@ -84,6 +84,16 @@ describe("runtime navigation", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Review due diligence" }));
     expect((await screen.findByTestId("vendor-guide-intent")).textContent).toBe("open-vendor-due-diligence");
     expect(window.location.hash).toBe("#vendors");
+  });
+
+  it("preserves the selected vendor when a guide starts from a vendor deep link", async () => {
+    window.history.replaceState(null, "", "#vendors/relationship-b");
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Review due diligence" }));
+    expect((await screen.findByTestId("vendor-target")).textContent).toBe("relationship-b");
+    expect(window.location.hash).toBe("#vendors/relationship-b");
   });
 
   it("opens the exact evidence request selected from the vendor relationship", async () => {

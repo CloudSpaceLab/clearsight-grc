@@ -51,8 +51,10 @@ export function RoleAwareOnboarding({ runtime, onStep }: Props) {
     setBusy(true);
     try {
       await onStep(step);
-      highlight(step.target);
+      if (step.intent !== "open-vendor-due-diligence" && step.intent !== "open-vendor-work") highlight(step.target);
       await persist(next);
+    } catch {
+      // The workspace reports the actionable failure; leave this step available for retry.
     } finally {
       setBusy(false);
     }

@@ -32,6 +32,19 @@ describe("RoleAwareOnboarding", () => {
     expect(saveGuideState).toHaveBeenCalledWith(guide.code, expect.objectContaining({ current_step: 1, completed: false }));
   });
 
+  it("keeps the guide available when a workspace action cannot complete", async () => {
+    vi.mocked(loadRoleGuide).mockResolvedValue(guide);
+    vi.mocked(loadGuideState).mockResolvedValue(initial);
+    const onStep = vi.fn().mockRejectedValue(new Error("Vendor records are unavailable"));
+    render(<RoleAwareOnboarding runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={onStep}/>);
+
+    const action = await screen.findByRole("button", { name: "Open Today" });
+    fireEvent.click(action);
+    await waitFor(() => expect((action as HTMLButtonElement).disabled).toBe(false));
+    expect(saveGuideState).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Open Today" })).toBeTruthy();
+  });
+
   it("allows a dismissed guide to be restarted from the launcher", async () => {
     vi.mocked(loadRoleGuide).mockResolvedValue(guide);
     vi.mocked(loadGuideState).mockResolvedValue({ ...initial, dismissed: true, version: 3 });
