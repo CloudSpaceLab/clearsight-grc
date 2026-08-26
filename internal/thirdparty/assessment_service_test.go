@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 )
 
 type assessmentGuardStub struct {
+	mu            sync.Mutex
 	requests      []commandauth.Request
 	decisionActor identity.Actor
 	overrideActor bool
@@ -36,7 +38,9 @@ func (s *assessmentCancellationRevokerStub) RevokeRequestCapabilities(_ context.
 }
 
 func (g *assessmentGuardStub) Authorize(ctx context.Context, request commandauth.Request) (commandauth.Decision, error) {
+	g.mu.Lock()
 	g.requests = append(g.requests, request)
+	g.mu.Unlock()
 	if g.err != nil {
 		return commandauth.Decision{}, g.err
 	}
