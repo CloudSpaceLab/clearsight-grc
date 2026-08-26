@@ -250,7 +250,7 @@ func (s *Service) CreateProgram(ctx context.Context, input CreateProgramInput) (
 	if _, err = s.repo.CreateProgram(ctx, program, event); err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, program.ID, "PROGRAM_CREATED", program.ID)
+	return s.refreshAndGetProgram(ctx, input.TenantID, program.ID, "PROGRAM_CREATED", program.ID, ProgramAggregate{Program: program}, event)
 }
 
 func (s *Service) TransitionProgram(ctx context.Context, input ProgramTransitionInput) (ProgramAggregate, error) {
@@ -301,14 +301,16 @@ func (s *Service) TransitionProgram(ctx context.Context, input ProgramTransition
 	if aggregate.Program.Status == ProgramPaused && input.To == ProgramActive {
 		program.EffectiveUntil = nil
 	}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ID, input.ExpectedVersion, EventProgramStatusChanged, program, input.ActorID); err != nil {
+	event, err := s.applyProgramValue(ctx, input.TenantID, input.ID, input.ExpectedVersion, EventProgramStatusChanged, program, input.ActorID)
+	if err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ID, EventProgramStatusChanged, input.ID)
+	return s.refreshAndGetProgram(ctx, input.TenantID, input.ID, EventProgramStatusChanged, input.ID, aggregate, event)
 }
 
 func (s *Service) AddRequirement(ctx context.Context, input AddRequirementInput) (ProgramAggregate, error) {
-	if _, err := s.programForMutation(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion); err != nil {
+	aggregate, err := s.programForMutation(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion)
+	if err != nil {
 		return ProgramAggregate{}, err
 	}
 	if strings.TrimSpace(input.Code) == "" || strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Statement) == "" {
@@ -336,10 +338,11 @@ func (s *Service) AddRequirement(ctx context.Context, input AddRequirementInput)
 	}
 	now := s.now().UTC()
 	value := Requirement{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, SourceID: input.SourceID, Code: strings.ToUpper(strings.TrimSpace(input.Code)), Title: strings.TrimSpace(input.Title), Statement: strings.TrimSpace(input.Statement), SourceAnchor: strings.TrimSpace(input.SourceAnchor), Modality: modality, Actor: strings.TrimSpace(input.Actor), Action: strings.TrimSpace(input.Action), Object: strings.TrimSpace(input.Object), Status: input.Status, EffectiveFrom: input.EffectiveFrom.UTC(), CreatedAt: now, Version: 1}
-	if err := s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventRequirementAdded, value, input.ActorID); err != nil {
+	event, err := s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventRequirementAdded, value, input.ActorID)
+	if err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventRequirementAdded, value.ID)
+	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventRequirementAdded, value.ID, aggregate, event)
 }
 
 func (s *Service) DetermineApplicability(ctx context.Context, input DetermineApplicabilityInput) (ProgramAggregate, error) {
@@ -368,14 +371,16 @@ func (s *Service) DetermineApplicability(ctx context.Context, input DetermineApp
 		input.EffectiveFrom = s.now().UTC()
 	}
 	value := Applicability{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, RequirementID: input.RequirementID, Status: input.Status, Scope: scope, Rationale: strings.TrimSpace(input.Rationale), ApprovedBy: input.ApprovedBy, EffectiveFrom: input.EffectiveFrom.UTC(), CreatedAt: s.now().UTC(), Version: 1}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventApplicabilityDetermined, value, input.ApprovedBy); err != nil {
+	event, err := s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventApplicabilityDetermined, value, input.ApprovedBy)
+	if err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventApplicabilityDetermined, value.ID)
+	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventApplicabilityDetermined, value.ID, aggregate, event)
 }
 
 func (s *Service) AddControlObjective(ctx context.Context, input AddControlObjectiveInput) (ProgramAggregate, error) {
-	if _, err := s.programForMutation(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion); err != nil {
+	aggregate, err := s.programForMutation(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion)
+	if err != nil {
 		return ProgramAggregate{}, err
 	}
 	if strings.TrimSpace(input.Code) == "" || strings.TrimSpace(input.Name) == "" || strings.TrimSpace(input.Outcome) == "" {
@@ -392,10 +397,11 @@ func (s *Service) AddControlObjective(ctx context.Context, input AddControlObjec
 		return ProgramAggregate{}, err
 	}
 	value := ControlObjective{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, Code: strings.ToUpper(strings.TrimSpace(input.Code)), Name: strings.TrimSpace(input.Name), Outcome: strings.TrimSpace(input.Outcome), Status: input.Status, CreatedAt: s.now().UTC(), Version: 1}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventControlObjectiveAdded, value, input.ActorID); err != nil {
+	event, err := s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventControlObjectiveAdded, value, input.ActorID)
+	if err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventControlObjectiveAdded, value.ID)
+	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventControlObjectiveAdded, value.ID, aggregate, event)
 }
 
 func (s *Service) AddControlImplementation(ctx context.Context, input AddControlImplementationInput) (ProgramAggregate, error) {
@@ -428,10 +434,11 @@ func (s *Service) AddControlImplementation(ctx context.Context, input AddControl
 	}
 	now := s.now().UTC()
 	value := ControlImplementation{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, ObjectiveID: input.ObjectiveID, Name: strings.TrimSpace(input.Name), Description: strings.TrimSpace(input.Description), ImplementationType: strings.TrimSpace(input.ImplementationType), OwnerPrincipalID: input.OwnerPrincipalID, Scope: scope, Status: input.Status, EffectiveFrom: input.EffectiveFrom.UTC(), CreatedAt: now, UpdatedAt: now, Version: 1}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventControlImplementationAdded, value, input.ActorID); err != nil {
+	event, err := s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventControlImplementationAdded, value, input.ActorID)
+	if err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventControlImplementationAdded, value.ID)
+	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventControlImplementationAdded, value.ID, aggregate, event)
 }
 
 func (s *Service) LinkRequirementControl(ctx context.Context, input LinkRequirementControlInput) (ProgramAggregate, error) {
@@ -450,10 +457,11 @@ func (s *Service) LinkRequirementControl(ctx context.Context, input LinkRequirem
 		return ProgramAggregate{}, err
 	}
 	value := RequirementControlLink{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, RequirementID: input.RequirementID, ImplementationID: input.ImplementationID, CreatedAt: s.now().UTC()}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventRequirementControlLinked, value, input.ActorID); err != nil {
+	event, err := s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventRequirementControlLinked, value, input.ActorID)
+	if err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventRequirementControlLinked, value.ID)
+	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventRequirementControlLinked, value.ID, aggregate, event)
 }
 
 func (s *Service) AddEvidenceContract(ctx context.Context, input AddEvidenceContractInput) (ProgramAggregate, error) {
@@ -512,10 +520,11 @@ func (s *Service) AddEvidenceContract(ctx context.Context, input AddEvidenceCont
 	}
 	now := s.now().UTC()
 	value := EvidenceContract{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, RequirementID: input.RequirementID, ControlImplementationID: input.ControlImplementationID, Code: strings.ToUpper(strings.TrimSpace(input.Code)), Name: strings.TrimSpace(input.Name), Claim: strings.TrimSpace(input.Claim), AcceptableSourceIDs: append([]string(nil), input.AcceptableSourceIDs...), PopulationScope: population, FreshnessMinutes: input.FreshnessMinutes, MinimumCoverage: input.MinimumCoverage, IndependenceRequired: input.IndependenceRequired, ContradictionPolicy: contradictionPolicy, FailureAction: failureAction, Status: input.Status, CreatedAt: now, UpdatedAt: now, Version: 1}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventEvidenceContractAdded, value, input.ActorID); err != nil {
+	event, err := s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventEvidenceContractAdded, value, input.ActorID)
+	if err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventEvidenceContractAdded, value.ID)
+	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventEvidenceContractAdded, value.ID, aggregate, event)
 }
 
 func (s *Service) RecordEvidenceAssessment(ctx context.Context, input RecordEvidenceAssessmentInput) (ProgramAggregate, error) {
@@ -562,10 +571,11 @@ func (s *Service) RecordEvidenceAssessment(ctx context.Context, input RecordEvid
 		return ProgramAggregate{}, err
 	}
 	value := EvidenceAssessment{ID: valueID, TenantID: input.TenantID, ProgramID: input.ProgramID, ContractID: input.ContractID, Conclusion: input.Conclusion, Coverage: input.Coverage, Basis: basis, ValidUntil: input.ValidUntil, AssessedBy: input.AssessedBy, AssessedAt: input.AssessedAt.UTC(), CreatedAt: s.now().UTC()}
-	if err = s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventEvidenceAssessmentRecorded, value, input.AssessedBy); err != nil {
+	event, err := s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventEvidenceAssessmentRecorded, value, input.AssessedBy)
+	if err != nil {
 		return ProgramAggregate{}, err
 	}
-	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventEvidenceAssessmentRecorded, value.ID)
+	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventEvidenceAssessmentRecorded, value.ID, aggregate, event)
 }
 
 func (s *Service) RefreshProgram(ctx context.Context, tenant, programID, triggerType, triggerID string) (ProgramAggregate, error) {
@@ -609,6 +619,7 @@ func (s *Service) ApplyTrigger(ctx context.Context, trigger Trigger) (ProgramAgg
 		return ProgramAggregate{}, nil, false, err
 	}
 	alreadyInStream := false
+	var programEvent Event
 	for _, recorded := range aggregate.Triggers {
 		if recorded.DedupeKey == trigger.DedupeKey {
 			alreadyInStream = true
@@ -617,7 +628,8 @@ func (s *Service) ApplyTrigger(ctx context.Context, trigger Trigger) (ProgramAgg
 		}
 	}
 	if !alreadyInStream {
-		if err = s.applyProgramValue(ctx, trigger.TenantID, trigger.ProgramID, aggregate.Program.Version, EventProgramTriggerRecorded, trigger, trigger.ActorID); err != nil {
+		programEvent, err = s.applyProgramValue(ctx, trigger.TenantID, trigger.ProgramID, aggregate.Program.Version, EventProgramTriggerRecorded, trigger, trigger.ActorID)
+		if err != nil {
 			return ProgramAggregate{}, nil, false, err
 		}
 	}
@@ -626,7 +638,7 @@ func (s *Service) ApplyTrigger(ctx context.Context, trigger Trigger) (ProgramAgg
 	if err != nil {
 		return ProgramAggregate{}, nil, false, err
 	}
-	program, err := s.refreshAndGetProgram(ctx, trigger.TenantID, trigger.ProgramID, trigger.Type, trigger.ID)
+	program, err := s.refreshAndGetProgram(ctx, trigger.TenantID, trigger.ProgramID, trigger.Type, trigger.ID, aggregate, programEvent)
 	return program, createdMatter, inserted, err
 }
 
@@ -796,11 +808,12 @@ func (s *Service) AddMatterLink(ctx context.Context, input AddMatterLinkInput) (
 		return MatterAggregate{}, err
 	}
 	link := MatterLink{ID: linkID, TenantID: input.TenantID, MatterID: input.MatterID, ProgramID: input.ProgramID, RequirementID: input.RequirementID, ControlID: input.ControlID, Relationship: relationship, CreatedAt: s.now().UTC()}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterLinked, link, input.ActorID); err != nil {
+	event, err := s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterLinked, link, input.ActorID)
+	if err != nil {
 		return MatterAggregate{}, err
 	}
 	_ = s.requestProgramRefresh(ctx, input.TenantID, input.ProgramID, EventMatterLinked, input.MatterID, input.ActorID)
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.matterResultOrFallback(ctx, input.TenantID, input.MatterID, aggregate, event)
 }
 
 func (s *Service) TransitionMatter(ctx context.Context, input TransitionInput) (MatterAggregate, error) {
@@ -852,19 +865,17 @@ func (s *Service) TransitionMatter(ctx context.Context, input TransitionInput) (
 	if input.To == MatterCancelled {
 		matter.ClosureReason = strings.TrimSpace(input.Rationale)
 	}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.ID, input.ExpectedVersion, EventMatterStateChanged, matter, input.ActorID); err != nil {
-		return MatterAggregate{}, err
-	}
-	result, err := s.GetMatter(ctx, input.TenantID, input.ID)
+	event, err := s.applyMatterValue(ctx, input.TenantID, input.ID, input.ExpectedVersion, EventMatterStateChanged, matter, input.ActorID)
 	if err != nil {
 		return MatterAggregate{}, err
 	}
+	result, _ := s.matterResultOrFallback(ctx, input.TenantID, input.ID, aggregate, event)
 	s.refreshLinkedPrograms(ctx, input.TenantID, input.ID, EventMatterStateChanged)
 	return result, nil
 }
 
 func (s *Service) AddDecision(ctx context.Context, input AddDecisionInput) (MatterAggregate, error) {
-	_, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
+	aggregate, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
 	if err != nil {
 		return MatterAggregate{}, err
 	}
@@ -893,14 +904,15 @@ func (s *Service) AddDecision(ctx context.Context, input AddDecisionInput) (Matt
 	if input.Status == DecisionApproved || input.Status == DecisionConditionallyApproved || input.Status == DecisionRejected {
 		value.DecidedAt = &now
 	}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventDecisionAdded, value, input.AuthorityPrincipalID); err != nil {
+	event, err := s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventDecisionAdded, value, input.AuthorityPrincipalID)
+	if err != nil {
 		return MatterAggregate{}, err
 	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.matterResultOrFallback(ctx, input.TenantID, input.MatterID, aggregate, event)
 }
 
 func (s *Service) AddAction(ctx context.Context, input AddActionInput) (MatterAggregate, error) {
-	_, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
+	aggregate, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
 	if err != nil {
 		return MatterAggregate{}, err
 	}
@@ -913,10 +925,11 @@ func (s *Service) AddAction(ctx context.Context, input AddActionInput) (MatterAg
 	}
 	now := s.now().UTC()
 	value := Action{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, Title: strings.TrimSpace(input.Title), Description: strings.TrimSpace(input.Description), OwnerPrincipalID: input.OwnerPrincipalID, Status: ActionPlanned, DueAt: input.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionAdded, value, input.ActorID); err != nil {
+	event, err := s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionAdded, value, input.ActorID)
+	if err != nil {
 		return MatterAggregate{}, err
 	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.matterResultOrFallback(ctx, input.TenantID, input.MatterID, aggregate, event)
 }
 
 func (s *Service) TransitionAction(ctx context.Context, input TransitionActionInput) (MatterAggregate, error) {
@@ -947,10 +960,11 @@ func (s *Service) TransitionAction(ctx context.Context, input TransitionActionIn
 		implemented := action.UpdatedAt
 		action.ImplementedAt = &implemented
 	}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionStateChanged, *action, input.ActorID); err != nil {
+	event, err := s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionStateChanged, *action, input.ActorID)
+	if err != nil {
 		return MatterAggregate{}, err
 	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.matterResultOrFallback(ctx, input.TenantID, input.MatterID, aggregate, event)
 }
 
 func (s *Service) AddVerificationContract(ctx context.Context, input AddVerificationContractInput) (MatterAggregate, error) {
@@ -988,10 +1002,11 @@ func (s *Service) AddVerificationContract(ctx context.Context, input AddVerifica
 	}
 	now := s.now().UTC()
 	value := VerificationContract{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, ActionID: input.ActionID, ExpectedOutcome: strings.TrimSpace(input.ExpectedOutcome), Baseline: baseline, Scope: scope, MeasurementSourceID: input.MeasurementSourceID, Threshold: threshold, ObservationPeriodMinutes: input.ObservationPeriodMinutes, AuthorityPrincipalID: input.AuthorityPrincipalID, FailureResponse: strings.ToUpper(strings.TrimSpace(input.FailureResponse)), Status: VerificationActive, CreatedAt: now, UpdatedAt: now, Version: 1}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventVerificationContractAdded, value, input.ActorID); err != nil {
+	event, err := s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventVerificationContractAdded, value, input.ActorID)
+	if err != nil {
 		return MatterAggregate{}, err
 	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.matterResultOrFallback(ctx, input.TenantID, input.MatterID, aggregate, event)
 }
 
 func (s *Service) RecordVerificationResult(ctx context.Context, input RecordVerificationResultInput) (MatterAggregate, error) {
@@ -999,7 +1014,7 @@ func (s *Service) RecordVerificationResult(ctx context.Context, input RecordVeri
 }
 
 func (s *Service) AddResponsePackage(ctx context.Context, input AddResponsePackageInput) (MatterAggregate, error) {
-	_, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
+	aggregate, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
 	if err != nil {
 		return MatterAggregate{}, err
 	}
@@ -1016,10 +1031,11 @@ func (s *Service) AddResponsePackage(ctx context.Context, input AddResponsePacka
 	}
 	now := s.now().UTC()
 	value := ResponsePackage{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, Purpose: strings.TrimSpace(input.Purpose), Audience: strings.TrimSpace(input.Audience), Status: ResponseDraft, Manifest: manifest, CreatedAt: now, UpdatedAt: now, Version: 1}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventResponsePackageAdded, value, input.ActorID); err != nil {
+	event, err := s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventResponsePackageAdded, value, input.ActorID)
+	if err != nil {
 		return MatterAggregate{}, err
 	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.matterResultOrFallback(ctx, input.TenantID, input.MatterID, aggregate, event)
 }
 
 func (s *Service) TransitionResponsePackage(ctx context.Context, input TransitionResponseInput) (MatterAggregate, error) {
@@ -1056,10 +1072,11 @@ func (s *Service) TransitionResponsePackage(ctx context.Context, input Transitio
 		value := response.UpdatedAt
 		response.AcknowledgedAt = &value
 	}
-	if err = s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventResponsePackageStateChanged, *response, input.ActorID); err != nil {
+	event, err := s.applyMatterValue(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, EventResponsePackageStateChanged, *response, input.ActorID)
+	if err != nil {
 		return MatterAggregate{}, err
 	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	return s.matterResultOrFallback(ctx, input.TenantID, input.MatterID, aggregate, event)
 }
 
 func (s *Service) MatterAt(ctx context.Context, tenant, id string, at time.Time) (MatterAggregate, error) {
@@ -1070,29 +1087,63 @@ func (s *Service) MatterAt(ctx context.Context, tenant, id string, at time.Time)
 	return reconstructMatter(events)
 }
 
-func (s *Service) applyProgramValue(ctx context.Context, tenant, programID string, expected int64, eventType string, value any, actorID string) error {
+func (s *Service) applyProgramValue(ctx context.Context, tenant, programID string, expected int64, eventType string, value any, actorID string) (Event, error) {
 	event, err := newEvent(tenant, "PROGRAM", programID, expected+1, eventType, value, actorFor(actorID), actorID, s.now().UTC())
 	if err != nil {
-		return err
+		return Event{}, err
 	}
 	_, err = s.repo.ApplyProgramEvent(ctx, tenant, programID, expected, event)
-	return err
+	if err != nil {
+		return Event{}, err
+	}
+	return event, nil
 }
 
-func (s *Service) applyMatterValue(ctx context.Context, tenant, matterID string, expected int64, eventType string, value any, actorID string) error {
+func (s *Service) applyMatterValue(ctx context.Context, tenant, matterID string, expected int64, eventType string, value any, actorID string) (Event, error) {
 	event, err := newEvent(tenant, "MATTER", matterID, expected+1, eventType, value, actorFor(actorID), actorID, s.now().UTC())
 	if err != nil {
-		return err
+		return Event{}, err
 	}
 	_, err = s.repo.ApplyMatterEvent(ctx, tenant, matterID, expected, event)
-	return err
+	if err != nil {
+		return Event{}, err
+	}
+	return event, nil
 }
 
-func (s *Service) refreshAndGetProgram(ctx context.Context, tenant, programID, triggerType, triggerID string) (ProgramAggregate, error) {
-	if err := s.requestProgramRefresh(ctx, tenant, programID, triggerType, triggerID, "system"); err != nil {
-		return ProgramAggregate{}, err
+func (s *Service) matterResultOrFallback(ctx context.Context, tenant, matterID string, fallback MatterAggregate, events ...Event) (MatterAggregate, error) {
+	current, err := s.GetMatter(ctx, tenant, matterID)
+	if err == nil {
+		return current, nil
 	}
-	return s.repo.GetProgram(ctx, tenant, programID)
+	for _, event := range events {
+		if event.Type == "" {
+			continue
+		}
+		if applyErr := applyMatterEventToAggregate(&fallback, event); applyErr != nil {
+			return MatterAggregate{}, err
+		}
+		fallback.Matter.Version = event.AggregateVersion
+		fallback.Matter.UpdatedAt = event.OccurredAt
+	}
+	fallback.Closure = assessClosure(fallback)
+	return fallback, nil
+}
+
+func (s *Service) refreshAndGetProgram(ctx context.Context, tenant, programID, triggerType, triggerID string, fallback ProgramAggregate, event Event) (ProgramAggregate, error) {
+	_ = s.requestProgramRefresh(ctx, tenant, programID, triggerType, triggerID, "system")
+	current, err := s.repo.GetProgram(ctx, tenant, programID)
+	if err == nil {
+		return current, nil
+	}
+	if event.Type != "" && event.Type != EventProgramCreated {
+		if applyErr := applyProgramEventToAggregate(&fallback, event); applyErr != nil {
+			return ProgramAggregate{}, err
+		}
+		fallback.Program.Version = event.AggregateVersion
+		fallback.Program.UpdatedAt = event.OccurredAt
+	}
+	return decorateProgram(fallback), nil
 }
 
 func (s *Service) refreshProgram(ctx context.Context, tenant, programID, triggerType, triggerID string) error {

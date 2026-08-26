@@ -81,7 +81,7 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 		if _, err = s.repo.ApplyMatterEvent(ctx, input.TenantID, input.MatterID, input.ExpectedVersion, resultEvent); err != nil {
 			return MatterAggregate{}, err
 		}
-		return s.GetMatter(ctx, input.TenantID, input.MatterID)
+		return s.matterResultOrFallback(ctx, input.TenantID, input.MatterID, aggregate, resultEvent)
 	}
 
 	bundleRepo, ok := s.repo.(VerificationResultBundleRepository)
@@ -155,5 +155,9 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 	if err := bundleRepo.ApplyVerificationResultBundle(ctx, bundle); err != nil {
 		return MatterAggregate{}, err
 	}
-	return s.GetMatter(ctx, input.TenantID, input.MatterID)
+	events := []Event{resultEvent}
+	if bundle.TransitionEvent != nil {
+		events = append(events, *bundle.TransitionEvent)
+	}
+	return s.matterResultOrFallback(ctx, input.TenantID, input.MatterID, aggregate, events...)
 }

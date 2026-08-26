@@ -698,7 +698,13 @@ func (s *VendorWorkService) RequestChanges(ctx context.Context, actor Actor, wor
 		}
 		updated = stored
 	}
-	return s.sendCurrent(ctx, actor, updated, input.VendorAudience, input.InvitationTTLMinutes)
+	outcome, sendErr := s.sendCurrent(ctx, actor, updated, input.VendorAudience, input.InvitationTTLMinutes)
+	if sendErr == nil {
+		return outcome, nil
+	}
+	recovery := "The clarification was recorded, but secure delivery could not be prepared. Retry sending from this request."
+	updated.DeliveryState, updated.Recovery = VendorWorkDeliveryRetryRequired, recovery
+	return VendorWorkSendOutcome{Work: updated, State: VendorWorkDeliveryRetryRequired, Recovery: recovery}, nil
 }
 
 func (s *VendorWorkService) RecordSubmission(ctx context.Context, input VendorWorkSubmissionInput) (VendorWorkRequest, error) {

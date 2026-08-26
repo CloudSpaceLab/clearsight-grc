@@ -1,12 +1,33 @@
 package thirdparty
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 )
+
+type postCommitAssessmentReviewReadFailure struct {
+	*MemoryAssessmentRepository
+	failReads bool
+}
+
+func (r *postCommitAssessmentReviewReadFailure) ReviewAssessmentDocument(ctx context.Context, input AssessmentDocumentReviewRecord) (AssessmentDocument, Assessment, error) {
+	document, assessment, err := r.MemoryAssessmentRepository.ReviewAssessmentDocument(ctx, input)
+	if err == nil {
+		r.failReads = true
+	}
+	return document, assessment, err
+}
+
+func (r *postCommitAssessmentReviewReadFailure) ListAssessmentRequestLinks(ctx context.Context, scope Scope, assessmentID string) ([]AssessmentRequestLink, error) {
+	if r.failReads {
+		return nil, errors.New("review projection unavailable")
+	}
+	return r.MemoryAssessmentRepository.ListAssessmentRequestLinks(ctx, scope, assessmentID)
+}
 
 func TestReviewAssessmentDocumentUsesExactCurrentSubmissionAndRecordsMaterialDecision(t *testing.T) {
 	service, actor, assessment, _ := assessmentReviewFixture(t)
@@ -36,6 +57,24 @@ func TestReviewAssessmentDocumentUsesExactCurrentSubmissionAndRecordsMaterialDec
 	}
 	if event := repository.assessmentOutbox[len(repository.assessmentOutbox)-1]; event.Type != "AssessmentDocumentValidated" || event.ActorPrincipalID != "" {
 		t.Fatalf("safe document outbox event was not recorded: %#v", event)
+	}
+}
+
+func TestReviewAssessmentDocumentReturnsCommittedDecisionWhenReviewRefreshFails(t *testing.T) {
+	service, actor, assessment, _ := assessmentReviewFixture(t)
+	prepareAssessmentDocumentReviewFixture(service, assessment)
+	base := service.links.(*MemoryAssessmentRepository)
+	service.links = &postCommitAssessmentReviewReadFailure{MemoryAssessmentRepository: base}
+
+	view, err := service.ReviewDocument(assessmentContextFor(actor.TenantID, actor.LegalEntityID, actor.PrincipalID), actor, assessment.ID, "artifact-1", ReviewAssessmentDocumentInput{
+		ExpectedVersion: assessment.Version, Decision: AssessmentDocumentReject,
+		DocumentType: "SOC_2_TYPE_II", EvidenceClass: AssessmentDocumentVendorSupplied,
+	})
+	if err != nil {
+		t.Fatalf("committed document review returned an error: %v", err)
+	}
+	if view.Assessment.Version != assessment.Version+1 || view.Documents[0].Status != string(AssessmentDocumentRejected) {
+		t.Fatalf("fallback review = %#v", view)
 	}
 }
 

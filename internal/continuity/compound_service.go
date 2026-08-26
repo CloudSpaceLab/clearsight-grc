@@ -26,7 +26,15 @@ func (s *Service) createMatterWithInitialLink(ctx context.Context, input CreateM
 	// without that contract may refresh best-effort but must not turn a
 	// committed command into a false API failure.
 	_ = s.requestProgramRefresh(ctx, input.TenantID, input.ProgramID, EventMatterLinked, matter.ID, input.ActorID)
-	return s.GetMatter(ctx, input.TenantID, matter.ID)
+	current, readErr := s.GetMatter(ctx, input.TenantID, matter.ID)
+	if readErr == nil {
+		return current, nil
+	}
+	matter.Version = linkEvent.AggregateVersion
+	matter.UpdatedAt = linkEvent.OccurredAt
+	fallback := MatterAggregate{Matter: matter, Links: []MatterLink{link}}
+	fallback.Closure = assessClosure(fallback)
+	return fallback, nil
 }
 
 func (s *Service) applyTriggerBundle(ctx context.Context, trigger Trigger, aggregate ProgramAggregate, repo TriggerBundleRepository) (ProgramAggregate, *Matter, bool, error) {
@@ -65,7 +73,12 @@ func (s *Service) applyTriggerBundle(ctx context.Context, trigger Trigger, aggre
 	_ = s.requestProgramRefresh(ctx, trigger.TenantID, trigger.ProgramID, trigger.Type, trigger.ID, "system")
 	program, err := s.repo.GetProgram(ctx, trigger.TenantID, trigger.ProgramID)
 	if err != nil {
-		return ProgramAggregate{}, result.Matter, result.Inserted, err
+		if applyErr := applyProgramEventToAggregate(&aggregate, programEvent); applyErr != nil {
+			return ProgramAggregate{}, result.Matter, result.Inserted, err
+		}
+		aggregate.Program.Version = programEvent.AggregateVersion
+		aggregate.Program.UpdatedAt = programEvent.OccurredAt
+		program = decorateProgram(aggregate)
 	}
 	return program, result.Matter, result.Inserted, nil
 }

@@ -152,7 +152,7 @@ func (s *AssessmentReviewService) ReviewDocument(ctx context.Context, _ Actor, a
 	if !ok {
 		return AssessmentReviewView{}, ErrAssessmentReadinessUnavailable
 	}
-	_, assessment, err := repository.ReviewAssessmentDocument(ctx, AssessmentDocumentReviewRecord{
+	document, assessment, err := repository.ReviewAssessmentDocument(ctx, AssessmentDocumentReviewRecord{
 		Scope: scopeFrom(actor), AssessmentID: assessmentID, ExpectedVersion: input.ExpectedVersion, ActorPrincipalID: actor.PrincipalID,
 		Artifact: evidence.Artifact{ID: submitted.ArtifactID, TenantID: actor.TenantID, RequestID: view.Assessment.CurrentRequestID, SubmissionID: view.Assessment.SubmissionID, Status: submitted.ArtifactStatus},
 		Document: *submittedMetadata,
@@ -163,7 +163,20 @@ func (s *AssessmentReviewService) ReviewDocument(ctx context.Context, _ Actor, a
 	}
 	refreshed, err := s.GetReview(ctx, actor, assessmentID)
 	if err != nil {
-		return AssessmentReviewView{}, err
+		view.Assessment = assessment
+		for index := range view.Documents {
+			if view.Documents[index].ArtifactID != document.ArtifactID {
+				continue
+			}
+			view.Documents[index].Status = string(document.Status)
+			view.Documents[index].EvidenceClass = AssessmentEvidenceClass(document.EvidenceClass)
+			view.Documents[index].DocumentType = document.DocumentType
+			view.Documents[index].Reference = document.Reference
+			view.Documents[index].IssuedBy = document.IssuedBy
+			view.Documents[index].IssuedOn = assessmentDocumentDateString(document.IssuedOn)
+			view.Documents[index].ExpiresOn = assessmentDocumentDateString(document.ExpiresOn)
+		}
+		return view, nil
 	}
 	if refreshed.Assessment.ID != assessment.ID || refreshed.Assessment.Version != assessment.Version || refreshed.Assessment.Status != assessment.Status {
 		return AssessmentReviewView{}, ErrNotFound
