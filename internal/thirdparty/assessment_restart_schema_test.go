@@ -23,23 +23,24 @@ func TestAssessmentRestartMigrationAllowsPurposeBoundOnboardingRestartKeys(t *te
 	}
 }
 
-func TestAssessmentRestartRollbackRefusesToRewriteUsedRestartHistory(t *testing.T) {
-	content, err := os.ReadFile("../../migrations/000045_third_party_assessment_restart.down.sql")
+func TestAssessmentRestartRollbackKeepsACompatibilityConstraintWithoutRewritingHistory(t *testing.T) {
+	up, err := os.ReadFile("../../migrations/000045_third_party_assessment_restart.up.sql")
 	if err != nil {
 		t.Fatal(err)
 	}
-	schema := string(content)
-	guard := "IF EXISTS (SELECT 1 FROM third_party_assessments"
-	drop := "DROP CONSTRAINT third_party_assessments_source_trigger_kind_check"
-	if !strings.Contains(schema, guard) || !strings.Contains(schema, "source_trigger LIKE 'RESTART:%'") || !strings.Contains(schema, "RAISE EXCEPTION") {
-		t.Fatal("assessment restart rollback must refuse to discard or relabel used restart history")
+	down, err := os.ReadFile("../../migrations/000045_third_party_assessment_restart.down.sql")
+	if err != nil {
+		t.Fatal(err)
 	}
-	if strings.Index(schema, guard) > strings.Index(schema, drop) {
-		t.Fatal("assessment restart rollback guard must run before changing the constraint")
+	compatibility := "CHECK ((review_kind='ONBOARDING' AND (source_trigger='INITIAL' OR source_trigger LIKE 'RESTART:%'))"
+	for name, schema := range map[string]string{"up": string(up), "down": string(down)} {
+		if !strings.Contains(schema, compatibility) {
+			t.Fatalf("assessment restart %s migration must admit preserved restart history", name)
+		}
 	}
-	for _, prohibited := range []string{"DELETE FROM third_party_assessments", "UPDATE third_party_assessments"} {
-		if strings.Contains(schema, prohibited) {
-			t.Fatalf("assessment restart rollback must not mutate assessment history with %q", prohibited)
+	for _, prohibited := range []string{"RAISE EXCEPTION", "DELETE FROM third_party_assessments", "UPDATE third_party_assessments"} {
+		if strings.Contains(string(down), prohibited) {
+			t.Fatalf("assessment restart rollback must preserve rows without %q", prohibited)
 		}
 	}
 }

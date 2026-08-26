@@ -1,19 +1,10 @@
 BEGIN;
 
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM third_party_assessments
-               WHERE review_kind='ONBOARDING' AND source_trigger LIKE 'RESTART:%'
-               LIMIT 1) THEN
-        RAISE EXCEPTION 'restarted onboarding assessments exist; retain migration 000045 or migrate their history before rollback';
-    END IF;
-END $$;
-
 ALTER TABLE third_party_assessments
     DROP CONSTRAINT third_party_assessments_source_trigger_kind_check;
 ALTER TABLE third_party_assessments
     ADD CONSTRAINT third_party_assessments_source_trigger_kind_check
-    CHECK ((review_kind='ONBOARDING' AND source_trigger='INITIAL')
+    CHECK ((review_kind='ONBOARDING' AND (source_trigger='INITIAL' OR source_trigger LIKE 'RESTART:%'))
         OR (review_kind IN ('PERIODIC','TRIGGERED') AND source_trigger<>'INITIAL'));
 
 COMMIT;
