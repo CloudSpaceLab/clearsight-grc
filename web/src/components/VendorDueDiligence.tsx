@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import type {
   CompleteVendorAssessmentInput,
+  CancelVendorAssessmentInput,
   CreateVendorAssessmentDeficiencyInput,
   ReissueVendorAssessmentRequestInput,
   ReviewVendorAssessmentDocumentInput,
@@ -49,9 +50,10 @@ type Props = {
   onOpenDocument?: (assessmentID: string, requestID: string, artifactID: string) => void;
   onReviewDocument?: (assessmentID: string, artifactID: string, input: ReviewVendorAssessmentDocumentInput) => Promise<VendorAssessmentReviewView>;
   onComplete?: (assessmentID: string, input: CompleteVendorAssessmentInput) => Promise<VendorAssessment | void> | VendorAssessment | void;
+  onCancelAssessment?: (assessmentID: string, input: CancelVendorAssessmentInput) => Promise<VendorAssessment | void> | VendorAssessment | void;
 };
 
-type ActionPanel = "start" | "send" | "reissue" | "clarification" | "deficiency" | "document" | "conclusion" | null;
+type ActionPanel = "start" | "send" | "reissue" | "clarification" | "deficiency" | "document" | "conclusion" | "cancelAssessment" | null;
 
 const conclusionOptions: { value: VendorAssessmentConclusion; label: string }[] = [
   { value: "SATISFACTORY", label: "Satisfactory" },
@@ -87,6 +89,7 @@ export function VendorDueDiligence({
   onOpenDocument,
   onReviewDocument,
   onComplete,
+  onCancelAssessment,
 }: Props) {
   const [panel, setPanel] = useState<ActionPanel>(null);
   const [localAssessment, setLocalAssessment] = useState<VendorAssessment | null | undefined>(assessment);
@@ -115,6 +118,7 @@ export function VendorDueDiligence({
   const [rationale, setRationale] = useState("");
   const [uncertainty, setUncertainty] = useState("");
   const [nextReviewDate, setNextReviewDate] = useState("");
+  const [cancellationReason, setCancellationReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -131,6 +135,7 @@ export function VendorDueDiligence({
     setRationale("");
     setUncertainty("");
     setNextReviewDate("");
+    setCancellationReason("");
   }, [assessment?.id]);
 
   useEffect(() => {
@@ -367,6 +372,21 @@ export function VendorDueDiligence({
     }, "The assessment conclusion could not be recorded. Your entries remain on this screen; reload the assessment before trying again.");
   }
 
+  async function cancelAssessment(event: React.FormEvent) {
+    event.preventDefault();
+    if (!effectiveAssessment || !onCancelAssessment || !cancellationReason.trim()) {
+      setError("Enter why this assessment is being cancelled.");
+      return;
+    }
+    await run(async () => {
+      const result = await onCancelAssessment(effectiveAssessment.id, { expected_version: effectiveAssessment.version, reason: cancellationReason.trim() });
+      if (result) setLocalAssessment(result);
+      setCancellationReason("");
+      setPanel(null);
+      setNotice("Assessment cancelled. The vendor relationship was not changed.");
+    }, "The assessment could not be cancelled. Your reason remains on this screen; reload the assessment before trying again.");
+  }
+
   async function copyCaptureLink() {
     const captureURL = effectiveOutcome?.capture_url;
     if (!captureURL) return;
@@ -442,6 +462,7 @@ export function VendorDueDiligence({
     {panel === "deficiency" && <DeficiencyPanel triggerKey={deficiencyKey} title={deficiencyTitle} summary={deficiencySummary} dueDate={deficiencyDueDate} minimumDate={minimumFutureDate} busy={busy} onTriggerKey={setDeficiencyKey} onTitle={setDeficiencyTitle} onSummary={setDeficiencySummary} onDueDate={setDeficiencyDueDate} onCancel={() => setPanel(null)} onSubmit={submitDeficiency}/>}
     {panel === "document" && selectedDocument && <DocumentDecisionPanel document={selectedDocument} decision={documentDecision} documentType={documentType} evidenceClass={documentEvidenceClass} validUntil={documentValidUntil} busy={busy} onDocumentType={setDocumentType} onEvidenceClass={setDocumentEvidenceClass} onValidUntil={setDocumentValidUntil} onCancel={() => { setSelectedDocument(undefined); setPanel(null); }} onSubmit={submitDocumentDecision}/>}
     {panel === "conclusion" && <ConclusionPanel conclusion={conclusion} rationale={rationale} uncertainty={uncertainty} nextReviewDate={nextReviewDate} minimumDate={minimumFutureDate} busy={busy} onConclusion={setConclusion} onRationale={setRationale} onUncertainty={setUncertainty} onNextReviewDate={setNextReviewDate} onCancel={() => setPanel(null)} onSubmit={submitConclusion}/>}
+    {panel === "cancelAssessment" && <CancelAssessmentPanel reason={cancellationReason} busy={busy} onReason={setCancellationReason} onCancel={() => setPanel(null)} onSubmit={cancelAssessment}/>}
 
     {!panel && <div className="vdd-actions">
       {status === "COLLECTING" ? <><button type="button" className="primary-button" onClick={() => requestID && onOpenRequest?.(requestID)} disabled={!requestID || !onOpenRequest}>Review request status</button>{clarificationOutcome?.capture_url && <button type="button" className="secondary-button" onClick={() => void copyClarificationLink()}>Copy clarification link</button>}{effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <button type="button" className="secondary-button" onClick={() => void copyCaptureLink()}>{effectiveOutcomeKind === "replacement" ? "Copy replacement link" : "Copy secure link"}</button> : <button type="button" className="secondary-button" onClick={() => openPanel("reissue")} disabled={!onReissue}>{effectiveOutcomeKind === "replacement" && effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? "Retry replacement link" : "Send replacement link"}</button>}</>
@@ -454,10 +475,19 @@ export function VendorDueDiligence({
                     : status === "UNDER_REVIEW" ? <button type="button" className="primary-button" onClick={() => openPanel("conclusion")} disabled={!onComplete || reviewState !== "live"}>Record assessment conclusion</button>
                       : null}
       {status === "UNDER_REVIEW" && onRequestClarification && <button type="button" className="secondary-button" onClick={() => openPanel("clarification")}>Request clarification</button>}
+      {effectiveAssessment && !["COMPLETED", "CANCELLED"].includes(effectiveAssessment.status) && onCancelAssessment && <button type="button" className="secondary-button" onClick={() => openPanel("cancelAssessment")}>Cancel assessment</button>}
     </div>}
 
     {!form && !effectiveAssessment && <p className="vdd-limitation">No active due diligence form is available for this relationship. Activate a collection form before starting the review.</p>}
   </section>;
+}
+
+function CancelAssessmentPanel({ reason, busy, onReason, onCancel, onSubmit }: { reason: string; busy: boolean; onReason: (value: string) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
+  return <form className="vdd-panel" onSubmit={onSubmit} noValidate>
+    <div><span className="eyebrow">Assessment status</span><h3>Cancel assessment</h3><p>Cancel this assessment when the current review should stop. The vendor relationship and recorded evidence remain available.</p></div>
+    <label className="vdd-field"><span>Reason for cancellation</span><textarea rows={4} maxLength={2000} value={reason} onChange={(event) => onReason(event.target.value)} required/></label>
+    <div className="vdd-panel-actions"><button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>Keep assessment</button><button type="submit" className="primary-button" disabled={busy || !reason.trim()}>{busy ? "Cancelling…" : "Cancel assessment"}</button></div>
+  </form>;
 }
 
 function StartPanel({ form, reviewDueDate, minimumDate, busy, onReviewDueDate, onCancel, onSubmit }: { form?: VendorAssessmentFormOption; reviewDueDate: string; minimumDate: string; busy: boolean; onReviewDueDate: (value: string) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {

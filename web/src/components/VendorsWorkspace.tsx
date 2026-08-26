@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { apiErrorKind } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
-import { completeVendorAssessment, createVendorAssessmentDeficiency, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, requestVendorAssessmentClarification, retryVendorAssessmentSetup, reviewVendorAssessmentDocument, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview, vendorAssessmentDocumentURL } from "../vendorAssessmentApi";
+import { cancelVendorAssessment, completeVendorAssessment, createVendorAssessmentDeficiency, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, requestVendorAssessmentClarification, retryVendorAssessmentSetup, reviewVendorAssessmentDocument, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview, vendorAssessmentDocumentURL } from "../vendorAssessmentApi";
 import type { CompleteVendorAssessmentInput, CreateVendorAssessmentDeficiencyInput, CurrentVendorAssessment, ReviewVendorAssessmentDocumentInput, StartVendorAssessmentInput, VendorAssessment, VendorAssessmentClarificationInput, VendorAssessmentFormOption, VendorAssessmentReviewView, VendorAssessmentSendOutcome, VendorAssessmentSetupRetryOutcome } from "../vendorAssessmentTypes";
 import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
 import type { CreateVendorRelationshipInput, VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "../vendorTypes";
@@ -238,6 +238,13 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     return value;
   }
 
+  async function cancelAssessment(assessmentID: string, input: Parameters<typeof cancelVendorAssessment>[1]) {
+    const value = await cancelVendorAssessment(assessmentID, input);
+    setAssessment(value);
+    setReview((current) => current ? { ...current, assessment: value } : current);
+    return value;
+  }
+
   async function refresh(requestedID?: string) {
     setState("loading");
     try {
@@ -379,6 +386,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
           onCreateAssessmentDeficiency={recordAssessmentDeficiency}
           onReviewAssessmentDocument={decideAssessmentDocument}
           onCompleteAssessmentReview={finishAssessmentReview}
+          onCancelAssessment={cancelAssessment}
           onOpenRequest={onOpenRequest}
           onOpenMatter={onOpenMatter}
         /> : records.length > 0 ? <div className="vendor-selection"><h2>Select a vendor</h2><p>Choose a relationship to review its service, accountable owner, source and current record version.</p></div> : null}
@@ -387,7 +395,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   </div>;
 }
 
-function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onRefreshAssessment, onRefreshForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onOpenRequest, onOpenMatter }: {
+function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onRefreshAssessment, onRefreshForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onOpenRequest, onOpenMatter }: {
   record: VendorRelationshipAggregate;
   assessment: VendorAssessment | null;
   assessmentSetup?: CurrentVendorAssessment["setup"];
@@ -412,6 +420,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
   onCreateAssessmentDeficiency: typeof createVendorAssessmentDeficiency;
   onReviewAssessmentDocument: typeof reviewVendorAssessmentDocument;
   onCompleteAssessmentReview: (assessmentID: string, input: CompleteVendorAssessmentInput) => Promise<VendorAssessment>;
+  onCancelAssessment: (assessmentID: string, input: Parameters<typeof cancelVendorAssessment>[1]) => Promise<VendorAssessment>;
   onOpenRequest?: (requestID: string) => void;
   onOpenMatter?: (matterID: string) => void;
 }) {
@@ -455,6 +464,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
     onOpenDocument={(assessmentID, requestID, artifactID) => window.open(vendorAssessmentDocumentURL(assessmentID, requestID, artifactID), "_blank", "noopener,noreferrer")}
     onReviewDocument={onReviewAssessmentDocument}
     onComplete={onCompleteAssessmentReview}
+    onCancelAssessment={onCancelAssessment}
     onOpenRequest={onOpenRequest}
     onOpenMatter={onOpenMatter}
   />}

@@ -1,6 +1,7 @@
 import { requestJSON } from "./http";
 import type {
   CompleteVendorAssessmentInput,
+  CancelVendorAssessmentInput,
   CurrentVendorAssessment,
   CreateVendorAssessmentDeficiencyInput,
   ReviewVendorAssessmentDocumentInput,
@@ -92,6 +93,13 @@ export function createVendorAssessmentDeficiency(assessmentID: string, input: Cr
 
 export function completeVendorAssessment(assessmentID: string, input: CompleteVendorAssessmentInput): Promise<VendorAssessment> {
   return requestJSON<VendorAssessment>(apiBase, `/api/v1/vendor-assessments/${encodeURIComponent(assessmentID)}/complete`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function cancelVendorAssessment(assessmentID: string, input: CancelVendorAssessmentInput): Promise<VendorAssessment> {
+  return requestJSON<VendorAssessment>(apiBase, `/api/v1/vendor-assessments/${encodeURIComponent(assessmentID)}/cancel`, {
     method: "POST",
     body: JSON.stringify(input),
   });

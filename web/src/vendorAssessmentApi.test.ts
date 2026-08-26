@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  cancelVendorAssessment,
   completeVendorAssessment,
   createVendorAssessmentDeficiency,
   loadCurrentVendorAssessment,
@@ -164,6 +165,19 @@ describe("vendor assessment API", () => {
       "/api/v1/vendor-assessments/assessment-1/clarifications",
       "/api/v1/vendor-assessments/assessment-1/complete",
     ]);
+  });
+
+  it("cancels the current assessment with a reason and current version", async () => {
+    const cancelled = { ...assessment, status: "CANCELLED", version: 3, cancellation_reason: "The proposed service is no longer being procured." };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(cancelled), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await cancelVendorAssessment("assessment/1", { expected_version: 2, reason: "The proposed service is no longer being procured." });
+
+    const call = fetchMock.mock.calls[0];
+    if (!call) throw new Error("fetch was not called");
+    expect(call[0]).toBe("/api/v1/vendor-assessments/assessment%2F1/cancel");
+    expect(JSON.parse(String((call[1] as RequestInit).body))).toEqual({ expected_version: 2, reason: "The proposed service is no longer being procured." });
   });
 
   it("sends exact bounded follow-up and document-decision bodies", async () => {

@@ -55,6 +55,13 @@ type completeVendorAssessmentRequest struct {
 	ActorID       string `json:"actor_id,omitempty"`
 }
 
+type cancelVendorAssessmentRequest struct {
+	thirdparty.CancelAssessmentInput
+	TenantID      string `json:"tenant_id,omitempty"`
+	LegalEntityID string `json:"legal_entity_id,omitempty"`
+	ActorID       string `json:"actor_id,omitempty"`
+}
+
 type reviewVendorAssessmentDocumentRequest struct {
 	thirdparty.ReviewAssessmentDocumentInput
 	TenantID      string `json:"tenant_id,omitempty"`
@@ -256,6 +263,29 @@ func (a *API) completeVendorAssessment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	assessment, err := service.CompleteAssessment(r.Context(), actor, r.PathValue("id"), request.CompleteAssessmentInput)
+	if err != nil {
+		writeThirdPartyAssessmentError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, assessment)
+}
+
+func (a *API) cancelVendorAssessment(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.assessmentService(w)
+	if !ok {
+		return
+	}
+	actor, err := thirdPartyActor(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to cancel this vendor assessment.")
+		return
+	}
+	var request cancelVendorAssessmentRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "Enter why this assessment is being cancelled, then try again.")
+		return
+	}
+	assessment, err := service.CancelAssessment(r.Context(), actor, r.PathValue("id"), request.CancelAssessmentInput)
 	if err != nil {
 		writeThirdPartyAssessmentError(w, err)
 		return

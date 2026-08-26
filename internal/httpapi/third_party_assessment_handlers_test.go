@@ -160,6 +160,29 @@ func TestStartAndGetCurrentVendorAssessmentUseVerifiedRouteScope(t *testing.T) {
 	}
 }
 
+func TestCancelVendorAssessmentUsesVerifiedOwnerAndCurrentVersion(t *testing.T) {
+	fixture := newAssessmentHTTPFixture(t, true)
+	body := []byte(`{"expected_version":` + jsonInt(fixture.assessment.Version) + `,"reason":"The proposed service is no longer being procured.","actor_id":"forged-owner"}`)
+	response := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+fixture.assessment.ID+"/cancel", bytes.NewReader(body)))
+	if response.Code != http.StatusOK {
+		t.Fatalf("cancel expected 200, got %d: %s", response.Code, response.Body.String())
+	}
+	var cancelled thirdparty.Assessment
+	if err := json.NewDecoder(response.Body).Decode(&cancelled); err != nil {
+		t.Fatal(err)
+	}
+	if cancelled.Status != thirdparty.AssessmentCancelled || cancelled.CancellationReason == "" || cancelled.Version != fixture.assessment.Version+1 {
+		t.Fatalf("unexpected cancelled assessment %#v", cancelled)
+	}
+
+	stale := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(stale, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+fixture.assessment.ID+"/cancel", bytes.NewReader(body)))
+	if stale.Code != http.StatusConflict {
+		t.Fatalf("stale cancel expected 409, got %d: %s", stale.Code, stale.Body.String())
+	}
+}
+
 func TestRetryVendorAssessmentSetupRequeuesSameTerminalJobAndIsReplaySafe(t *testing.T) {
 	fixture := newAssessmentHTTPFixture(t, false)
 	assessment, terminal := terminalHTTPAssessmentSetup(t, fixture)

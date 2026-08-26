@@ -114,6 +114,11 @@ export type CurrentVendorAssessment = {
 
 export type RetryVendorAssessmentSetupInput = { expected_version: number };
 
+export type CancelVendorAssessmentInput = {
+  expected_version: number;
+  reason: string;
+};
+
 export type VendorAssessmentSetupRetryOutcome = {
   assessment: VendorAssessment;
   setup: VendorAssessmentSetupStatus;

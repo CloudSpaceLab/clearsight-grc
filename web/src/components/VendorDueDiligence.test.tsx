@@ -470,4 +470,18 @@ describe("VendorDueDiligence", () => {
     expect(screen.queryByRole("button", { name: "Start due diligence" })).toBeNull();
     expect(primaryActions()).toHaveLength(0);
   });
+
+  it("requires a reason before cancelling an active assessment", async () => {
+    const onCancelAssessment = vi.fn().mockResolvedValue({ ...assessment("READY_TO_SEND"), status: "CANCELLED", version: 3, cancellation_reason: "The service is no longer being procured." });
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("READY_TO_SEND")} form={form} onSend={vi.fn()} onCancelAssessment={onCancelAssessment}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel assessment" }));
+    const confirm = screen.getByRole("button", { name: "Cancel assessment" });
+    expect((confirm as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Reason for cancellation"), { target: { value: "The service is no longer being procured." } });
+    fireEvent.click(confirm);
+
+    await waitFor(() => expect(onCancelAssessment).toHaveBeenCalledWith("assessment-1", { expected_version: 3, reason: "The service is no longer being procured." }));
+    expect(await screen.findByText("Assessment cancelled. The vendor relationship was not changed.")).toBeTruthy();
+  });
 });

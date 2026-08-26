@@ -120,6 +120,7 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/vendor-assessments/{id}/clarifications", thirdparty.AssessmentClarificationCommand, a.requestVendorAssessmentClarification, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
 		material("/api/v1/vendor-assessments/{id}/deficiencies", thirdparty.AssessmentDeficiencyCommand, a.createVendorAssessmentDeficiency, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
 		material("/api/v1/vendor-assessments/{id}/complete", "thirdparty.assessment.complete", a.completeVendorAssessment, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
+		material("/api/v1/vendor-assessments/{id}/cancel", thirdparty.AssessmentCancelCommand, a.cancelVendorAssessment, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
 
 		read("/api/v1/form-templates", a.listFormTemplates),
 		write(http.MethodPost, "/api/v1/form-templates", a.createFormTemplate, nil),
