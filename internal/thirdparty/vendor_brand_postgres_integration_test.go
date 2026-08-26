@@ -3,17 +3,67 @@
 package thirdparty
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"image/color"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const vendorBrandBaselineVendorID = "33333333-3333-7333-8333-333333333335"
+
+func TestPostgresVendorBrandIdempotencyKeyCannotChangeCommand(t *testing.T) {
+	databaseURL := os.Getenv("TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("TEST_DATABASE_URL is not configured")
+	}
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	if _, err := pool.Exec(ctx, `TRUNCATE tenants CASCADE`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'third-party-bank','Third Party Bank');
+		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($2::uuid,$1::uuid,'ENTITY-A','Entity A','Nigeria');
+		INSERT INTO principals(id,tenant_id,kind,display_name,status) VALUES($3::uuid,$1::uuid,'PERSON','Vendor Owner','ACTIVE')`,
+		thirdPartyTenantID, thirdPartyEntityA, thirdPartyPrincipal); err != nil {
+		t.Fatal(err)
+	}
+	repository := NewPostgresRepository(pool)
+	actor := Actor{TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA, PrincipalID: thirdPartyPrincipal}
+	created, err := NewService(repository).CreateRelationship(ctx, actor, validPostgresCreateInput("Card transaction processing"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	brands := NewVendorBrandService(repository, evidence.NewMemoryObjectStore(), &vendorIdentityGuardStub{})
+	verified := vendorIdentityContext(actor.TenantID, actor.LegalEntityID, actor.PrincipalID, time.Now().UTC())
+	if _, err := brands.PutApprovedBrand(verified, created.Vendor.ID, 0, "same-command-key", "image/png", bytes.NewReader(testBrandPNG(t, color.Black))); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := brands.RemoveApprovedBrand(verified, created.Vendor.ID, 1, "same-command-key"); !errors.Is(err, ErrVersionConflict) {
+		t.Fatalf("cross-command idempotency replay = %v", err)
+	}
+	var receipts, brandEvents int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM third_party_vendor_brand_command_receipts WHERE tenant_id=$1::uuid AND vendor_id=$2::uuid`, thirdPartyTenantID, created.Vendor.ID).Scan(&receipts); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM third_party_events WHERE tenant_id=$1::uuid AND aggregate_type='VENDOR_BRAND' AND aggregate_id=$2::uuid`, thirdPartyTenantID, created.Vendor.ID).Scan(&brandEvents); err != nil {
+		t.Fatal(err)
+	}
+	if receipts != 1 || brandEvents != 1 {
+		t.Fatalf("cross-command replay mutated state: receipts=%d events=%d", receipts, brandEvents)
+	}
+}
 
 func TestVendorBrandCompletionAndIdentityUpdateUseConsistentLockOrder(t *testing.T) {
 	databaseURL := os.Getenv("TEST_DATABASE_URL")

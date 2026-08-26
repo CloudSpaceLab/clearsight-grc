@@ -101,6 +101,54 @@ func TestVendorBrandApprovedOverridePrecedenceAndRemoval(t *testing.T) {
 	}
 }
 
+func TestVendorBrandReceiptReplayRequiresSameCommandAndExpectedVersion(t *testing.T) {
+	receipt := VendorBrandReceipt{
+		TenantID: "bank", VendorID: "vendor", IdempotencyKey: "command-1",
+		Command: VendorBrandApproveCommand, ExpectedVersion: 2, ResultVersion: 3,
+	}
+	if version, err := vendorBrandReceiptVersion(receipt, VendorBrandApproveCommand, 2); err != nil || version != 3 {
+		t.Fatalf("matching receipt = %d, %v", version, err)
+	}
+	for _, request := range []struct {
+		command  string
+		expected int64
+	}{
+		{command: VendorBrandRemoveCommand, expected: 2},
+		{command: VendorBrandApproveCommand, expected: 1},
+	} {
+		if _, err := vendorBrandReceiptVersion(receipt, request.command, request.expected); !errors.Is(err, ErrVersionConflict) {
+			t.Fatalf("receipt reuse for %s at %d = %v", request.command, request.expected, err)
+		}
+	}
+	receipt.ResultVersion = receipt.ExpectedVersion
+	if _, err := vendorBrandReceiptVersion(receipt, VendorBrandApproveCommand, receipt.ExpectedVersion); !errors.Is(err, ErrVersionConflict) {
+		t.Fatalf("non-advancing receipt = %v", err)
+	}
+}
+
+func TestVendorBrandUploadRejectsCrossCommandReceiptBeforeReservingArtifact(t *testing.T) {
+	repo := NewMemoryRepository()
+	store := evidence.NewMemoryObjectStore()
+	created, err := NewService(repo).CreateRelationship(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "owner"}, validCreateInput())
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := NewVendorBrandService(repo, store, &vendorIdentityGuardStub{})
+	ctx := vendorIdentityContext("bank", "entity", "owner", time.Now().UTC())
+	if _, err := service.PutApprovedBrand(ctx, created.Vendor.ID, 0, "initial-upload", "image/png", bytes.NewReader(testBrandPNG(t, color.Black))); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.RemoveApprovedBrand(ctx, created.Vendor.ID, 1, "reused-key"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.PutApprovedBrand(ctx, created.Vendor.ID, 2, "reused-key", "image/png", bytes.NewReader(testBrandPNG(t, color.White))); !errors.Is(err, ErrVersionConflict) {
+		t.Fatalf("cross-command upload = %v", err)
+	}
+	if _, reserved := repo.vendorBrandReservations["bank\x00"+created.Vendor.ID+"\x00reused-key"]; reserved {
+		t.Fatal("cross-command replay created an upload reservation")
+	}
+}
+
 func TestVendorBrandRejectsSVGAndDomainMismatchedDiscovery(t *testing.T) {
 	repo := NewMemoryRepository()
 	store := evidence.NewMemoryObjectStore()
@@ -234,6 +282,41 @@ func TestVendorBrandReservationCleanerPreservesObjectReferencedByAnotherReservat
 	if stale, ok := repo.vendorBrandReservations[oldKey]; ok && stale.State == "COMMITTED" {
 		t.Fatal("stale reservation was falsely marked committed")
 	}
+}
+
+func TestVendorBrandReservationCleanerDoesNotMarkLegacySharedKeyCommitted(t *testing.T) {
+	repo := NewMemoryRepository()
+	store := evidence.NewMemoryObjectStore()
+	now := time.Now().UTC()
+	key := "vendor-brands/legacy-shared-with-asset.png"
+	if _, err := store.Put(context.Background(), key, bytes.NewBufferString("shared"), 100); err != nil {
+		t.Fatal(err)
+	}
+	reservationKey := "bank\x00vendor-stale\x00stale-command"
+	repo.vendorBrandReservations[reservationKey] = VendorBrandUploadReservation{
+		TenantID: "bank", VendorID: "vendor-stale", IdempotencyKey: "stale-command",
+		ArtifactKey: key, SourceDigest: strings.Repeat("a", 64), State: "RESERVED",
+		CreatedAt: now.Add(-48 * time.Hour), UpdatedAt: now.Add(-48 * time.Hour),
+	}
+	repo.vendorBrandAssets["another-command"] = VendorBrandAsset{
+		ID: "another-command", TenantID: "bank", VendorID: "vendor-current",
+		SourceKind: VendorBrandAssetApprovedOverride, State: VendorBrandAssetCurrent,
+		ArtifactKey: key, SourceDigest: strings.Repeat("b", 64), MediaType: "image/png",
+		CreatedAt: now, UpdatedAt: now, Version: 1,
+	}
+
+	cleaner := &VendorBrandReservationCleaner{Repository: repo, Store: store, Retention: 24 * time.Hour}
+	if _, err := cleaner.Maintain(context.Background(), now, 1); err != nil {
+		t.Fatal(err)
+	}
+	if stale, ok := repo.vendorBrandReservations[reservationKey]; ok && stale.State == "COMMITTED" {
+		t.Fatal("legacy reservation was falsely marked committed from a shared artifact key")
+	}
+	reader, err := store.Open(context.Background(), key)
+	if err != nil {
+		t.Fatalf("shared object deleted: %v", err)
+	}
+	reader.Close()
 }
 
 func TestVendorBrandReservationCleanerConvergesTwoStaleLegacySharedReservations(t *testing.T) {

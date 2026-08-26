@@ -72,6 +72,13 @@ type VendorBrandReceipt struct {
 	Asset           VendorBrandAsset
 }
 
+func vendorBrandReceiptVersion(receipt VendorBrandReceipt, command string, expectedVersion int64) (int64, error) {
+	if receipt.Command != command || receipt.ExpectedVersion != expectedVersion || receipt.ResultVersion <= expectedVersion {
+		return 0, ErrVersionConflict
+	}
+	return receipt.ResultVersion, nil
+}
+
 type VendorBrandWorkerRepository interface {
 	GetVendorForBrandDiscovery(context.Context, string, string) (Vendor, error)
 	ClaimVendorBrandJobs(context.Context, string, time.Time, time.Duration, int, int) ([]VendorBrandJob, error)

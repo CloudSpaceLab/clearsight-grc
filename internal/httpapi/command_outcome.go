@@ -2,15 +2,13 @@ package httpapi
 
 import (
 	"bytes"
-	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
-
-var errMaterialVersionUnavailable = errors.New("material aggregate version unavailable")
 
 type bufferedCommandResponse struct {
 	header http.Header
@@ -66,15 +64,6 @@ func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, pol
 		return
 	}
 
-	baseline, baselineErr := a.currentMaterialVersion(r, objectType, objectID, stringValue(payload["tenant_id"]))
-	if baselineErr != nil {
-		handler(w, r)
-		return
-	}
-	if expected, ok := int64Value(payload["expected_version"]); ok && expected > baseline {
-		baseline = expected
-	}
-
 	buffered := newBufferedCommandResponse()
 	handler(buffered, r)
 	status := buffered.status
@@ -86,8 +75,8 @@ func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, pol
 		return
 	}
 
-	version, err := a.currentMaterialVersion(r, objectType, objectID, stringValue(payload["tenant_id"]))
-	if err != nil || version <= baseline {
+	version, confirmed := a.exactMaterialOutcomeVersion(r, objectType, objectID, payload)
+	if !confirmed {
 		buffered.flushTo(w)
 		return
 	}
@@ -103,64 +92,33 @@ func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, pol
 	})
 }
 
-func (a *API) currentMaterialVersion(r *http.Request, objectType, objectID, tenantID string) (int64, error) {
-	switch objectType {
-	case "PROGRAM", "MATTER":
-		if a.deps.Continuity == nil {
-			return 0, errMaterialVersionUnavailable
-		}
-		return a.deps.Continuity.CurrentVersion(r.Context(), tenantID, objectType, objectID)
-	case "VENDOR_RELATIONSHIP":
-		if a.deps.ThirdParty == nil {
-			return 0, errMaterialVersionUnavailable
-		}
-		actor, err := thirdPartyActor(r)
-		if err != nil {
-			return 0, err
-		}
-		value, err := a.deps.ThirdParty.GetRelationship(r.Context(), actor, objectID)
-		return value.Relationship.Version, err
-	case "VENDOR":
-		if a.deps.ThirdParty == nil {
-			return 0, errMaterialVersionUnavailable
-		}
-		actor, err := thirdPartyActor(r)
-		if err != nil {
-			return 0, err
-		}
-		return a.deps.ThirdParty.CurrentVendorIdentityVersion(r.Context(), actor, objectID)
-	case "VENDOR_BRAND":
-		if a.deps.VendorBrands == nil {
-			return 0, errMaterialVersionUnavailable
-		}
-		actor, err := thirdPartyActor(r)
-		if err != nil {
-			return 0, err
-		}
-		return a.deps.VendorBrands.CurrentVersion(r.Context(), actor, objectID)
-	case "THIRD_PARTY_ASSESSMENT":
-		if a.deps.ThirdPartyAssessments == nil {
-			return 0, errMaterialVersionUnavailable
-		}
-		actor, err := thirdPartyActor(r)
-		if err != nil {
-			return 0, err
-		}
-		value, err := a.deps.ThirdPartyAssessments.GetAssessment(r.Context(), actor, objectID)
-		return value.Version, err
-	case "VENDOR_WORK_REQUEST":
-		if a.deps.ThirdPartyWork == nil {
-			return 0, errMaterialVersionUnavailable
-		}
-		actor, err := thirdPartyActor(r)
-		if err != nil {
-			return 0, err
-		}
-		value, err := a.deps.ThirdPartyWork.Get(r.Context(), actor, objectID)
-		return value.Version, err
-	default:
-		return 0, errMaterialVersionUnavailable
+func (a *API) exactMaterialOutcomeVersion(r *http.Request, objectType, objectID string, payload map[string]any) (int64, bool) {
+	if objectType != "VENDOR_BRAND" || a.deps.VendorBrands == nil || r == nil {
+		return 0, false
 	}
+	expectedVersion, ok := int64Value(payload["expected_version"])
+	if !ok || expectedVersion < 0 {
+		return 0, false
+	}
+	idempotencyKey := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	if idempotencyKey == "" {
+		return 0, false
+	}
+	command := ""
+	switch r.Method {
+	case http.MethodPut:
+		command = thirdparty.VendorBrandApproveCommand
+	case http.MethodDelete:
+		command = thirdparty.VendorBrandRemoveCommand
+	default:
+		return 0, false
+	}
+	actor, err := thirdPartyActor(r)
+	if err != nil {
+		return 0, false
+	}
+	version, err := a.deps.VendorBrands.CommandReceiptVersion(r.Context(), actor, objectID, idempotencyKey, command, expectedVersion)
+	return version, err == nil
 }
 
 func commandOutcomeObject(r *http.Request, policy commandPolicy, payload map[string]any) (string, string) {

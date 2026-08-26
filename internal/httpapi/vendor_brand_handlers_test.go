@@ -2,7 +2,9 @@ package httpapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"image"
 	"image/color"
 	"image/png"
@@ -17,6 +19,12 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
+
+type failingHTTPBrandProjectionRepository struct{ *thirdparty.MemoryRepository }
+
+func (r *failingHTTPBrandProjectionRepository) GetVendorBrandProjection(context.Context, thirdparty.Scope, string) (thirdparty.VendorBrandProjection, error) {
+	return thirdparty.VendorBrandProjection{}, errors.New("brand projection unavailable")
+}
 
 func vendorBrandTestHandler(t *testing.T) http.Handler {
 	t.Helper()
@@ -101,6 +109,41 @@ func TestVendorBrandCurrentURLRevalidatesAndNeverDisclosesStorageMetadata(t *tes
 	}
 }
 
+func TestVendorIdentityUpdateReturnsCommittedRecordWhenBrandProjectionIsUnavailable(t *testing.T) {
+	base := thirdparty.NewMemoryRepository()
+	repository := &failingHTTPBrandProjectionRepository{MemoryRepository: base}
+	guard, err := commandauth.New(nil, commandauth.ModeOff, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	identities := thirdparty.NewService(repository)
+	identities.ConfigureIdentityAuthority(guard)
+	actor := thirdparty.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "verified-owner"}
+	created, err := identities.CreateRelationship(t.Context(), actor, thirdparty.CreateRelationshipInput{LegalName: "Northstar Systems", ServiceName: "Application support", Criticality: thirdparty.CriticalityImportant, PrivacyRole: thirdparty.PrivacyProcessor})
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory",
+		Identity:     identity.NewDevelopmentAuthenticator(actor.TenantID, actor.PrincipalID, actor.LegalEntityID),
+		CommandGuard: guard, ThirdParty: identities,
+		VendorBrands: thirdparty.NewVendorBrandService(repository, evidence.NewMemoryObjectStore(), guard),
+	})
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPut, "/api/v1/vendor-identities/"+created.Vendor.ID, bytes.NewBufferString(`{"expected_version":1,"legal_name":"Northstar Systems Limited","website_domain":"northstar.example"}`))
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("identity update = %d %s", response.Code, response.Body.String())
+	}
+	var view thirdparty.VendorIdentityView
+	if err := json.NewDecoder(response.Body).Decode(&view); err != nil {
+		t.Fatal(err)
+	}
+	if view.Vendor.Version != 2 || view.Vendor.LegalName != "Northstar Systems Limited" || view.Brand.State != thirdparty.VendorBrandPending {
+		t.Fatalf("committed identity response = %#v", view)
+	}
+}
+
 func TestVendorBrandCommandHeaderErrorsAreDistinct(t *testing.T) {
 	handler := vendorBrandTestHandler(t)
 	missing := httptest.NewRecorder()
@@ -115,7 +158,7 @@ func TestVendorBrandCommandHeaderErrorsAreDistinct(t *testing.T) {
 	if malformed.Code != http.StatusBadRequest || !bytes.Contains(malformed.Body.Bytes(), []byte("brand_version_invalid")) {
 		t.Fatalf("malformed If-Match = %d %s", malformed.Code, malformed.Body.String())
 	}
-	for _, value := range []string{`"1`, `1"`, `1`} {
+	for _, value := range []string{`"1`, `1"`, `1`, `"+1"`, `"-0"`} {
 		response := httptest.NewRecorder()
 		request = httptest.NewRequest(http.MethodDelete, "/api/v1/vendor-identities/vendor/brand", nil)
 		request.Header.Set("If-Match", value)

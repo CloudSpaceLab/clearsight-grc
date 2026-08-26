@@ -15,6 +15,10 @@ func (r *MemoryRepository) ReserveApprovedVendorBrand(_ context.Context, record 
 		return ErrNotFound
 	}
 	key := record.TenantID + "\x00" + record.VendorID + "\x00" + record.IdempotencyKey
+	if receipt, ok := r.vendorBrandReceipts[key]; ok {
+		_, err := vendorBrandReceiptVersion(receipt, VendorBrandApproveCommand, record.ExpectedVersion)
+		return err
+	}
 	if existing, ok := r.vendorBrandReservations[key]; ok {
 		if existing.ArtifactKey != record.Asset.ArtifactKey || existing.SourceDigest != record.Asset.SourceDigest || existing.ExpectedVersion != record.ExpectedVersion {
 			return ErrVersionConflict
@@ -115,6 +119,19 @@ func (r *MemoryRepository) CurrentVendorBrandVersion(_ context.Context, scope Sc
 	return r.nextVendorBrandEventVersion(scope.TenantID, vendorID) - 1, nil
 }
 
+func (r *MemoryRepository) VendorBrandCommandReceipt(_ context.Context, scope Scope, vendorID, idempotencyKey string) (VendorBrandReceipt, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if !r.vendorVisibleInScope(scope, vendorID) {
+		return VendorBrandReceipt{}, ErrNotFound
+	}
+	receipt, ok := r.vendorBrandReceipts[scope.TenantID+"\x00"+vendorID+"\x00"+idempotencyKey]
+	if !ok {
+		return VendorBrandReceipt{}, ErrNotFound
+	}
+	return receipt, nil
+}
+
 func (r *MemoryRepository) ClaimExpiredVendorBrandReservations(_ context.Context, now, cutoff time.Time, lease time.Duration, limit int) ([]VendorBrandUploadReservation, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -147,9 +164,15 @@ func (r *MemoryRepository) ClaimExpiredVendorBrandReservations(_ context.Context
 func (r *MemoryRepository) VendorBrandArtifactReference(_ context.Context, item VendorBrandUploadReservation) (VendorBrandArtifactReference, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+	receiptKey := item.TenantID + "\x00" + item.VendorID + "\x00" + item.IdempotencyKey
+	expectedAssetID := vendorBrandReservationAssetID(item.TenantID, item.VendorID, item.IdempotencyKey)
+	receipt, hasReceipt := r.vendorBrandReceipts[receiptKey]
 	for _, a := range r.vendorBrandAssets {
 		if a.TenantID == item.TenantID && a.ArtifactKey == item.ArtifactKey {
-			return VendorBrandArtifactCommitted, nil
+			if a.ID == expectedAssetID && a.VendorID == item.VendorID && a.SourceDigest == item.SourceDigest && hasReceipt && receipt.Command == VendorBrandApproveCommand && receipt.ExpectedVersion == item.ExpectedVersion {
+				return VendorBrandArtifactCommitted, nil
+			}
+			return VendorBrandArtifactProtected, nil
 		}
 	}
 	for _, other := range r.vendorBrandReservations {

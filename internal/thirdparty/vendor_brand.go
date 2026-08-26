@@ -85,6 +85,7 @@ type VendorBrandMutationRepository interface {
 	ReserveApprovedVendorBrand(context.Context, VendorBrandMutationRecord) error
 	PutApprovedVendorBrand(context.Context, VendorBrandMutationRecord) (VendorBrandAsset, int64, error)
 	RemoveApprovedVendorBrand(context.Context, VendorBrandMutationRecord) (VendorBrandAsset, int64, error)
+	VendorBrandCommandReceipt(context.Context, Scope, string, string) (VendorBrandReceipt, error)
 	CurrentVendorBrandVersion(context.Context, Scope, string) (int64, error)
 }
 

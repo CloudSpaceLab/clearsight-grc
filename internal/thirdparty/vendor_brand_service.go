@@ -60,6 +60,17 @@ func (s *VendorBrandService) CurrentVersion(ctx context.Context, actor Actor, ve
 	return projection.EventVersion, nil
 }
 
+func (s *VendorBrandService) CommandReceiptVersion(ctx context.Context, actor Actor, vendorID, idempotencyKey, command string, expectedVersion int64) (int64, error) {
+	if s == nil || s.repo == nil || !validActor(actor) || strings.TrimSpace(vendorID) == "" || strings.TrimSpace(idempotencyKey) == "" || expectedVersion < 0 {
+		return 0, ErrInvalid
+	}
+	receipt, err := s.repo.VendorBrandCommandReceipt(ctx, scopeFrom(actor), strings.TrimSpace(vendorID), strings.TrimSpace(idempotencyKey))
+	if err != nil {
+		return 0, err
+	}
+	return vendorBrandReceiptVersion(receipt, command, expectedVersion)
+}
+
 func (s *VendorBrandService) PutApprovedBrand(ctx context.Context, vendorID string, expectedVersion int64, idempotencyKey, contentType string, reader io.Reader) (VendorIdentityView, error) {
 	if strings.TrimSpace(idempotencyKey) == "" {
 		return VendorIdentityView{}, ErrIdempotencyKeyRequired

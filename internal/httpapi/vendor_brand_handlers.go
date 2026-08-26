@@ -174,8 +174,13 @@ func parseBrandIfMatch(r *http.Request) (int64, error) {
 		return 0, errBrandIfMatchInvalid
 	}
 	value := raw[1 : len(raw)-1]
-	if value == "" || strings.Contains(value, `"`) {
+	if value == "" {
 		return 0, errBrandIfMatchInvalid
+	}
+	for index := 0; index < len(value); index++ {
+		if value[index] < '0' || value[index] > '9' {
+			return 0, errBrandIfMatchInvalid
+		}
 	}
 	version, err := strconv.ParseInt(value, 10, 64)
 	if err != nil || version < 0 {
