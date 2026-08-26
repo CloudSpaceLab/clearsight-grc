@@ -173,6 +173,7 @@ func (m *ProjectionMaintainer) Maintain(ctx context.Context, now time.Time, limi
 	if m.Now != nil {
 		now = m.Now().UTC()
 	}
+	ctx = WithTrustedSystemScope(ctx)
 	jobs, err := m.Repo.ClaimProgramState(ctx, m.WorkerID, now, m.Lease, limit)
 	if err != nil {
 		return 0, err

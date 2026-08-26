@@ -119,7 +119,7 @@ func (s *Service) recordVerificationResult(ctx context.Context, input RecordVeri
 			return MatterAggregate{}, idErr
 		}
 		follow := Matter{
-			ID: followID, TenantID: input.TenantID, Reference: matterReference(followID),
+			ID: followID, TenantID: input.TenantID, LegalEntityID: aggregate.Matter.LegalEntityID, Reference: matterReference(followID),
 			Type: MatterFailedVerification, Status: MatterInitialReview, Priority: maxInt(aggregate.Matter.Priority, 3),
 			Title: "Resolve a failed outcome check", Summary: "The expected outcome was not observed and needs separate follow-up.",
 			Scope: aggregate.Matter.Scope, SourceType: "MATTER", SourceID: aggregate.Matter.ID,

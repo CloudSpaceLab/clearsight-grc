@@ -58,6 +58,9 @@ func (r *ReliablePostgresRepository) GetProgram(ctx context.Context, tenant, id 
 	}
 	r.mu.Unlock()
 	if ok {
+		if !visibleToActorLegalEntity(ctx, created.TenantID, created.LegalEntityID) {
+			return ProgramAggregate{}, ErrNotFound
+		}
 		return decorateProgram(ProgramAggregate{Program: created}), nil
 	}
 	return ProgramAggregate{}, err
@@ -102,6 +105,9 @@ func (r *ReliablePostgresRepository) GetMatter(ctx context.Context, tenant, id s
 	}
 	r.mu.Unlock()
 	if ok {
+		if !visibleToActorLegalEntity(ctx, created.Matter.TenantID, created.Matter.LegalEntityID) {
+			return MatterAggregate{}, ErrNotFound
+		}
 		created.Closure = assessClosure(created)
 		return decorateMatter(created), nil
 	}

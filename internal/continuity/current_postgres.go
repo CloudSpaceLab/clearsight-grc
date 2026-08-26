@@ -25,7 +25,8 @@ func NewCurrentPostgresRepository(pool *pgxpool.Pool) *CurrentPostgresRepository
 
 func (r *CurrentPostgresRepository) GetProgram(ctx context.Context, tenant, id string) (ProgramAggregate, error) {
 	var raw []byte
-	if err := r.pool.QueryRow(ctx, currentProgramSQL, tenant, id).Scan(&raw); err != nil {
+	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
+	if err := r.pool.QueryRow(ctx, currentProgramSQL, tenant, id, enforce, actorTenant, actorEntity).Scan(&raw); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ProgramAggregate{}, ErrNotFound
 		}
@@ -39,7 +40,8 @@ func (r *CurrentPostgresRepository) GetProgram(ctx context.Context, tenant, id s
 }
 
 func (r *CurrentPostgresRepository) ListPrograms(ctx context.Context, tenant string, limit int) ([]ProgramAggregate, error) {
-	rows, err := r.pool.Query(ctx, `SELECT p.id::text FROM programs p JOIN tenants t ON t.id=p.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) ORDER BY CASE p.status WHEN 'ACTIVE' THEN 0 WHEN 'PAUSED' THEN 1 WHEN 'DRAFT' THEN 2 ELSE 3 END,p.updated_at DESC,p.id LIMIT $2`, tenant, limit)
+	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
+	rows, err := r.pool.Query(ctx, `SELECT p.id::text FROM programs p JOIN tenants t ON t.id=p.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND (NOT $2 OR ((t.id::text=$3 OR t.slug=$3) AND p.legal_entity_id IS NOT NULL AND ($4='*' OR p.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=p.tenant_id AND (le.id::text=$4 OR le.code=$4) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1)))) ORDER BY CASE p.status WHEN 'ACTIVE' THEN 0 WHEN 'PAUSED' THEN 1 WHEN 'DRAFT' THEN 2 ELSE 3 END,p.updated_at DESC,p.id LIMIT $5`, tenant, enforce, actorTenant, actorEntity, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +70,8 @@ func (r *CurrentPostgresRepository) ListPrograms(ctx context.Context, tenant str
 
 func (r *CurrentPostgresRepository) GetMatter(ctx context.Context, tenant, id string) (MatterAggregate, error) {
 	var raw []byte
-	if err := r.pool.QueryRow(ctx, currentMatterSQL, tenant, id).Scan(&raw); err != nil {
+	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
+	if err := r.pool.QueryRow(ctx, currentMatterSQL, tenant, id, enforce, actorTenant, actorEntity).Scan(&raw); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return MatterAggregate{}, ErrNotFound
 		}
@@ -90,6 +93,7 @@ func (r *CurrentPostgresRepository) ListMatters(ctx context.Context, tenant, sta
 		principalID = actor.PrincipalID
 		actorTenant = actor.TenantID
 	}
+	enforceEntity, actorEntityTenant, actorEntity := postgresActorScope(ctx)
 	rows, err := r.pool.Query(ctx, `
 		SELECT m.id::text
 		FROM matters m
@@ -97,6 +101,7 @@ func (r *CurrentPostgresRepository) ListMatters(ctx context.Context, tenant, sta
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND ($2='' OR ($2='OPEN' AND m.status NOT IN ('CLOSED','CANCELLED')) OR m.status=$2)
 		  AND (NOT $3 OR t.id::text=$5 OR t.slug=$5)
+		  AND (NOT $7 OR ((t.id::text=$8 OR t.slug=$8) AND m.legal_entity_id IS NOT NULL AND ($9='*' OR m.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=m.tenant_id AND (le.id::text=$9 OR le.code=$9) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
 		  AND (
 			NOT $3 OR
 			CASE
@@ -124,7 +129,7 @@ func (r *CurrentPostgresRepository) ListMatters(ctx context.Context, tenant, sta
 			END
 		  )
 		ORDER BY m.priority DESC,m.due_at NULLS LAST,m.updated_at DESC,m.id
-		LIMIT $6`, tenant, status, enforceVisibility, principalID, actorTenant, limit)
+		LIMIT $6`, tenant, status, enforceVisibility, principalID, actorTenant, limit, enforceEntity, actorEntityTenant, actorEntity)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +171,8 @@ SELECT jsonb_build_object(
 )
 FROM programs p
 JOIN tenants t ON t.id=p.tenant_id
-WHERE (t.id::text=$1 OR t.slug=$1) AND p.id=$2::uuid`
+WHERE (t.id::text=$1 OR t.slug=$1) AND p.id=$2::uuid
+  AND (NOT $3 OR ((t.id::text=$4 OR t.slug=$4) AND p.legal_entity_id IS NOT NULL AND ($5='*' OR p.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=p.tenant_id AND (le.id::text=$5 OR le.code=$5) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))`
 
 const currentMatterSQL = `
 SELECT jsonb_build_object(
@@ -180,6 +186,7 @@ SELECT jsonb_build_object(
 )
 FROM matters m
 JOIN tenants t ON t.id=m.tenant_id
-WHERE (t.id::text=$1 OR t.slug=$1) AND m.id=$2::uuid`
+WHERE (t.id::text=$1 OR t.slug=$1) AND m.id=$2::uuid
+  AND (NOT $3 OR ((t.id::text=$4 OR t.slug=$4) AND m.legal_entity_id IS NOT NULL AND ($5='*' OR m.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=m.tenant_id AND (le.id::text=$5 OR le.code=$5) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))`
 
 var _ Repository = (*CurrentPostgresRepository)(nil)

@@ -10,7 +10,7 @@ import (
 )
 
 func TestSampleJourneysConnectProgramEvidenceDecisionsResponsesAndOutcomeChecks(t *testing.T) {
-	ctx := context.Background()
+	ctx := continuity.WithTrustedSystemScope(context.Background())
 	now := time.Date(2026, 8, 5, 18, 0, 0, 0, time.UTC)
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewServiceWithClock(continuityRepo, func() time.Time { return now })

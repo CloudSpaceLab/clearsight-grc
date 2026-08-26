@@ -10,7 +10,7 @@ import (
 )
 
 func TestProgramReviewCheckpointIsActorScopedAndDerivedFromCanonicalVersions(t *testing.T) {
-	ctx := context.Background()
+	ctx := WithTrustedSystemScope(context.Background())
 	repo := NewMemoryRepository()
 	service := NewService(repo)
 	now := time.Date(2026, 8, 9, 13, 0, 0, 0, time.UTC)
@@ -18,6 +18,7 @@ func TestProgramReviewCheckpointIsActorScopedAndDerivedFromCanonicalVersions(t *
 
 	program, err := service.CreateProgram(ctx, CreateProgramInput{
 		TenantID:       "bank",
+		LegalEntityID:  "entity-a",
 		Code:           "AML",
 		Name:           "AML Programme",
 		Type:           "REGULATORY",

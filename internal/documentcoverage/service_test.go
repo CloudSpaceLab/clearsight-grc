@@ -217,20 +217,21 @@ func TestServicePaginatesCandidatesWithOpaqueCursor(t *testing.T) {
 }
 
 func TestServiceAppliesCreateProgramSuggestionAsDraft(t *testing.T) {
+	trusted := continuity.WithTrustedSystemScope(context.Background())
 	now := time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC)
 	documents := documentimport.NewMemoryRepository()
 	document, _ := documents.Create(context.Background(), extractedCoverageDocument(now))
 	continuityService := continuity.NewService(continuity.NewMemoryRepository())
 	service := NewService(NewMemoryRepository(), documents, continuityService)
 	service.now = func() time.Time { return now }
-	assessment, err := service.Process(context.Background(), document.TenantID, document.ID)
+	assessment, err := service.Process(trusted, document.TenantID, document.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(assessment.Suggestions) != 1 || assessment.Suggestions[0].Type != SuggestionCreateProgram {
 		t.Fatalf("expected a create Program suggestion, got %#v", assessment.Suggestions)
 	}
-	result, err := service.ApplySuggestion(context.Background(), ApplySuggestionInput{
+	result, err := service.ApplySuggestion(trusted, ApplySuggestionInput{
 		TenantID: document.TenantID, LegalEntityID: document.LegalEntityID, DocumentID: document.ID,
 		SuggestionID: assessment.Suggestions[0].ID, ExpectedVersion: assessment.Version, ActorID: "reviewer-1",
 	})
@@ -240,7 +241,7 @@ func TestServiceAppliesCreateProgramSuggestionAsDraft(t *testing.T) {
 	if result.ObjectType != "PROGRAM" || result.ObjectID == "" || result.Assessment.Version != 2 || result.Assessment.Suggestions[0].Status != SuggestionApplied {
 		t.Fatalf("unexpected applied suggestion result: %#v", result)
 	}
-	program, err := continuityService.GetProgram(context.Background(), document.TenantID, result.ObjectID)
+	program, err := continuityService.GetProgram(trusted, document.TenantID, result.ObjectID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -250,11 +251,12 @@ func TestServiceAppliesCreateProgramSuggestionAsDraft(t *testing.T) {
 }
 
 func TestServiceAppliesAddRequirementWithoutMisusingEvidenceSourceID(t *testing.T) {
+	trusted := continuity.WithTrustedSystemScope(context.Background())
 	now := time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC)
 	documents := documentimport.NewMemoryRepository()
 	document, _ := documents.Create(context.Background(), extractedCoverageDocument(now))
 	continuityService := continuity.NewService(continuity.NewMemoryRepository())
-	program, err := continuityService.CreateProgram(context.Background(), continuity.CreateProgramInput{
+	program, err := continuityService.CreateProgram(trusted, continuity.CreateProgramInput{
 		TenantID: document.TenantID, LegalEntityID: document.LegalEntityID, Code: "NDPA-BASE", Name: "Nigeria privacy baseline",
 		Type: "PRIVACY", OwningFunction: "Privacy", Jurisdiction: "Nigeria", Scope: json.RawMessage(`{}`), EffectiveFrom: now.Add(-time.Hour), ActorID: "reviewer-1",
 	})
@@ -263,21 +265,21 @@ func TestServiceAppliesAddRequirementWithoutMisusingEvidenceSourceID(t *testing.
 	}
 	service := NewService(NewMemoryRepository(), documents, continuityService)
 	service.now = func() time.Time { return now }
-	assessment, err := service.Process(context.Background(), document.TenantID, document.ID)
+	assessment, err := service.Process(trusted, document.TenantID, document.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(assessment.Suggestions) != 1 || assessment.Suggestions[0].Type != SuggestionAddRequirement {
 		t.Fatalf("expected an add-requirement suggestion, got %#v", assessment.Suggestions)
 	}
-	result, err := service.ApplySuggestion(context.Background(), ApplySuggestionInput{
+	result, err := service.ApplySuggestion(trusted, ApplySuggestionInput{
 		TenantID: document.TenantID, LegalEntityID: document.LegalEntityID, DocumentID: document.ID,
 		SuggestionID: assessment.Suggestions[0].ID, ExpectedVersion: assessment.Version, ActorID: "reviewer-1",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	updated, err := continuityService.GetProgram(context.Background(), document.TenantID, program.Program.ID)
+	updated, err := continuityService.GetProgram(trusted, document.TenantID, program.Program.ID)
 	if err != nil {
 		t.Fatal(err)
 	}

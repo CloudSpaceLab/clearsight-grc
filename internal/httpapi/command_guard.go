@@ -43,6 +43,9 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 			httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to continue.")
 			return
 		}
+		if (name == "program.create" || name == "matter.create") && actor.LegalEntityID != "" && actor.LegalEntityID != "*" {
+			payload["legal_entity_id"] = actor.LegalEntityID
+		}
 		if !bindPayloadIdentity(w, payload, actor, policy.BindLegalEntity) {
 			return
 		}

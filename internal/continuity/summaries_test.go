@@ -6,7 +6,7 @@ import (
 )
 
 func TestProgramSummaryPaginationAndSearch(t *testing.T) {
-	ctx := context.Background()
+	ctx := WithTrustedSystemScope(context.Background())
 	service := NewService(NewMemoryRepository())
 	if err := SeedDemo(ctx, service); err != nil {
 		t.Fatalf("seed demo: %v", err)
@@ -38,7 +38,7 @@ func TestProgramSummaryPaginationAndSearch(t *testing.T) {
 }
 
 func TestMatterSummaryPaginationAndInvalidCursor(t *testing.T) {
-	ctx := context.Background()
+	ctx := WithTrustedSystemScope(context.Background())
 	service := NewService(NewMemoryRepository())
 	if err := SeedDemo(ctx, service); err != nil {
 		t.Fatalf("seed demo: %v", err)
@@ -59,7 +59,7 @@ func TestMatterSummaryPaginationAndInvalidCursor(t *testing.T) {
 }
 
 func TestMatterSummariesCanBeBoundedToAnExactProgram(t *testing.T) {
-	ctx := context.Background()
+	ctx := WithTrustedSystemScope(context.Background())
 	service := NewService(NewMemoryRepository())
 	if err := SeedDemo(ctx, service); err != nil {
 		t.Fatalf("seed demo: %v", err)

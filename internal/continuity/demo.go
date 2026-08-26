@@ -8,8 +8,9 @@ import (
 )
 
 func SeedDemo(ctx context.Context, service *Service) error {
+	ctx = WithTrustedSystemScope(ctx)
 	now := time.Now().UTC()
-	privacy, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank-demo", Code: "NDPA", Name: "Data protection", Type: "PRIVACY", OwningFunction: "Privacy Office", OwnerPrincipalID: "user-demo", AuthorityPrincipalID: "user-demo", Jurisdiction: "Nigeria", Scope: json.RawMessage(`{"legal_entity":"Clear Bank Nigeria"}`), EffectiveFrom: now.AddDate(0, -6, 0), ActorID: "user-demo"})
+	privacy, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank-demo", LegalEntityID: "bank-ng", Code: "NDPA", Name: "Data protection", Type: "PRIVACY", OwningFunction: "Privacy Office", OwnerPrincipalID: "user-demo", AuthorityPrincipalID: "user-demo", Jurisdiction: "Nigeria", Scope: json.RawMessage(`{"legal_entity":"Clear Bank Nigeria"}`), EffectiveFrom: now.AddDate(0, -6, 0), ActorID: "user-demo"})
 	if err != nil && err != ErrDuplicate {
 		return fmt.Errorf("create privacy demo: %w", err)
 	}
@@ -54,7 +55,7 @@ func SeedDemo(ctx context.Context, service *Service) error {
 		}
 	}
 
-	cyber, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank-demo", Code: "CBN-CYBER", Name: "Cybersecurity controls", Type: "CYBERSECURITY", OwningFunction: "Information Security", OwnerPrincipalID: "user-demo", AuthorityPrincipalID: "user-demo", Jurisdiction: "Nigeria", Scope: json.RawMessage(`{"legal_entity":"Clear Bank Nigeria"}`), EffectiveFrom: now.AddDate(-1, 0, 0), ActorID: "user-demo"})
+	cyber, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank-demo", LegalEntityID: "bank-ng", Code: "CBN-CYBER", Name: "Cybersecurity controls", Type: "CYBERSECURITY", OwningFunction: "Information Security", OwnerPrincipalID: "user-demo", AuthorityPrincipalID: "user-demo", Jurisdiction: "Nigeria", Scope: json.RawMessage(`{"legal_entity":"Clear Bank Nigeria"}`), EffectiveFrom: now.AddDate(-1, 0, 0), ActorID: "user-demo"})
 	if err != nil && err != ErrDuplicate {
 		return err
 	}

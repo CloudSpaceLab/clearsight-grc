@@ -17,7 +17,7 @@ import (
 
 func TestProgramOperationsExplainCurrentResponsibilitiesAcrossRoles(t *testing.T) {
 	service := continuity.NewService(continuity.NewMemoryRepository())
-	program, err := service.CreateProgram(t.Context(), continuity.CreateProgramInput{
+	program, err := service.CreateProgram(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateProgramInput{
 		TenantID: "bank", LegalEntityID: "bank-ng", Code: "NDPA", Name: "Data protection", Type: "PRIVACY",
 		OwningFunction: "Data Protection Office", OwnerPrincipalID: "owner-1",
 		EffectiveFrom: time.Now().UTC(), ActorID: "owner-1",
@@ -25,7 +25,7 @@ func TestProgramOperationsExplainCurrentResponsibilitiesAcrossRoles(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	program, err = service.AddRequirement(t.Context(), continuity.AddRequirementInput{
+	program, err = service.AddRequirement(continuity.WithTrustedSystemScope(t.Context()), continuity.AddRequirementInput{
 		TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version,
 		Code: "CAR-01", Title: "File the annual return", Statement: "The bank must file its annual compliance return.",
 		SourceAnchor: "GAID 2025, section 7", EffectiveFrom: time.Now().UTC(), ActorID: "owner-1",
@@ -109,8 +109,8 @@ func TestProgramOperationsExplainCurrentResponsibilitiesAcrossRoles(t *testing.T
 
 func TestProgramOperationsFailClosedWhenAuthorityRouteIsUnavailable(t *testing.T) {
 	service := continuity.NewService(continuity.NewMemoryRepository())
-	program, err := service.CreateProgram(t.Context(), continuity.CreateProgramInput{
-		TenantID: "bank", Code: "AML", Name: "Financial crime", Type: "AML", OwningFunction: "Compliance",
+	program, err := service.CreateProgram(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateProgramInput{
+		TenantID: "bank", LegalEntityID: "bank-ng", Code: "AML", Name: "Financial crime", Type: "AML", OwningFunction: "Compliance",
 		OwnerPrincipalID: "owner-1", EffectiveFrom: time.Now().UTC(), ActorID: "owner-1",
 	})
 	if err != nil {

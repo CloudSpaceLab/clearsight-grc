@@ -85,7 +85,7 @@ func TestDocumentCoverageApplyCreatesGovernedDraft(t *testing.T) {
 	if result.ObjectType != "PROGRAM" || result.ObjectID == "" || result.Assessment.Suggestions[0].Status != documentcoverage.SuggestionApplied {
 		t.Fatalf("unexpected apply result: %#v", result)
 	}
-	program, err := api.deps.Continuity.GetProgram(context.Background(), document.TenantID, result.ObjectID)
+	program, err := api.deps.Continuity.GetProgram(continuity.WithTrustedSystemScope(context.Background()), document.TenantID, result.ObjectID)
 	if err != nil {
 		t.Fatal(err)
 	}

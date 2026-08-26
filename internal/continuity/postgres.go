@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -20,6 +19,23 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
 
+func (r *PostgresRepository) ResolveLegalEntity(ctx context.Context, tenant, identifier string) (string, error) {
+	identifier = strings.TrimSpace(identifier)
+	var resolved string
+	err := r.pool.QueryRow(ctx, `SELECT le.id::text FROM legal_entities le JOIN tenants t ON t.id=le.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND le.id::text=$2 AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)`, tenant, identifier).Scan(&resolved)
+	if err == nil { return resolved, nil }
+	if !errors.Is(err, pgx.ErrNoRows) { return "", err }
+	rows, err := r.pool.Query(ctx, `SELECT le.id::text FROM legal_entities le JOIN tenants t ON t.id=le.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND le.code=$2 AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.id LIMIT 2`, tenant, identifier)
+	if err != nil { return "", err }
+	defer rows.Close()
+	matches := []string{}
+	for rows.Next() { if err := rows.Scan(&resolved); err != nil { return "", err }; matches = append(matches, resolved) }
+	if err := rows.Err(); err != nil { return "", err }
+	if len(matches) == 0 { return "", ErrNotFound }
+	if len(matches) > 1 { return "", ErrLegalEntityAmbiguous }
+	return matches[0], nil
+}
+
 func (r *PostgresRepository) CreateProgram(ctx context.Context, program Program, event Event) (Program, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -27,7 +43,7 @@ func (r *PostgresRepository) CreateProgram(ctx context.Context, program Program,
 	}
 	defer tx.Rollback(ctx)
 	_, err = tx.Exec(ctx, `INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,owner_principal_id,authority_principal_id,jurisdiction,scope,effective_from,effective_until,created_at,updated_at,version)
-		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),NULLIF($3,'')::uuid,$4,$5,$6,$7,$8,NULLIF($9,'')::uuid,NULLIF($10,'')::uuid,$11,$12,$13,$14,$15,$15,$16)`,
+		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,NULLIF($9,'')::uuid,NULLIF($10,'')::uuid,$11,$12,$13,$14,$15,$15,$16)`,
 		program.ID, program.TenantID, program.LegalEntityID, program.Code, program.Name, program.Type, program.Status, program.OwningFunction, program.OwnerPrincipalID, program.AuthorityPrincipalID, program.Jurisdiction, rawJSON(program.Scope, `{}`), program.EffectiveFrom, program.EffectiveUntil, program.CreatedAt, program.Version)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -51,7 +67,11 @@ func (r *PostgresRepository) CreateProgram(ctx context.Context, program Program,
 }
 
 func (r *PostgresRepository) ListPrograms(ctx context.Context, tenant string, limit int) ([]ProgramAggregate, error) {
-	rows, err := r.pool.Query(ctx, `SELECT p.id::text FROM programs p JOIN tenants t ON t.id=p.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) ORDER BY CASE p.status WHEN 'ACTIVE' THEN 0 WHEN 'PAUSED' THEN 1 WHEN 'DRAFT' THEN 2 ELSE 3 END,p.updated_at DESC,p.id LIMIT $2`, tenant, limit)
+	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
+	rows, err := r.pool.Query(ctx, `SELECT p.id::text FROM programs p JOIN tenants t ON t.id=p.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND (NOT $2 OR ((t.id::text=$3 OR t.slug=$3) AND p.legal_entity_id IS NOT NULL AND ($4='*' OR p.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=p.tenant_id AND (le.id::text=$4 OR le.code=$4) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
+		ORDER BY CASE p.status WHEN 'ACTIVE' THEN 0 WHEN 'PAUSED' THEN 1 WHEN 'DRAFT' THEN 2 ELSE 3 END,p.updated_at DESC,p.id LIMIT $5`, tenant, enforce, actorTenant, actorEntity, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +124,8 @@ func (r *PostgresRepository) ApplyProgramEvent(ctx context.Context, tenant, id s
 	}
 	defer tx.Rollback(ctx)
 	var current int64
-	err = tx.QueryRow(ctx, `SELECT p.version FROM programs p JOIN tenants t ON t.id=p.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND p.id=$2::uuid FOR UPDATE`, tenant, id).Scan(&current)
+	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
+	err = tx.QueryRow(ctx, `SELECT p.version FROM programs p JOIN tenants t ON t.id=p.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND p.id=$2::uuid AND (NOT $3 OR ((t.id::text=$4 OR t.slug=$4) AND p.legal_entity_id IS NOT NULL AND ($5='*' OR p.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=p.tenant_id AND (le.id::text=$5 OR le.code=$5) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1)))) FOR UPDATE`, tenant, id, enforce, actorTenant, actorEntity).Scan(&current)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return 0, ErrNotFound
 	}
@@ -149,7 +170,7 @@ func (r *PostgresRepository) ApplyProgramEvent(ctx context.Context, tenant, id s
 
 func (r *PostgresRepository) RecordProgramTrigger(ctx context.Context, trigger Trigger) (bool, error) {
 	tag, err := r.pool.Exec(ctx, `INSERT INTO program_trigger_events(id,tenant_id,program_id,trigger_type,subject_type,subject_id,dedupe_key,payload,observed_at,source)
-		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(tenant_id,dedupe_key) DO NOTHING`,
+		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(tenant_id,program_id,dedupe_key) DO NOTHING`,
 		trigger.ID, trigger.TenantID, trigger.ProgramID, strings.ToUpper(trigger.Type), trigger.SubjectType, trigger.SubjectID, trigger.DedupeKey, rawJSON(trigger.Payload, `{}`), trigger.ObservedAt, trigger.Source)
 	if err != nil {
 		if isForeignKeyViolation(err) {
@@ -161,11 +182,14 @@ func (r *PostgresRepository) RecordProgramTrigger(ctx context.Context, trigger T
 }
 
 func (r *PostgresRepository) ProgramEvents(ctx context.Context, tenant, id string, until *time.Time) ([]Event, error) {
+	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
 	query := `SELECT ce.id::text,t.slug,ce.aggregate_type,ce.aggregate_id::text,ce.aggregate_version,ce.event_type,ce.payload,ce.actor_type,COALESCE(ce.actor_id::text,''),ce.occurred_at
-		FROM continuity_events ce JOIN tenants t ON t.id=ce.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND ce.aggregate_type='PROGRAM' AND ce.aggregate_id=$2::uuid`
-	args := []any{tenant, id}
+		FROM continuity_events ce JOIN tenants t ON t.id=ce.tenant_id JOIN programs p ON p.tenant_id=ce.tenant_id AND p.id=ce.aggregate_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND ce.aggregate_type='PROGRAM' AND ce.aggregate_id=$2::uuid
+		  AND (NOT $3 OR ((t.id::text=$4 OR t.slug=$4) AND p.legal_entity_id IS NOT NULL AND ($5='*' OR p.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=p.tenant_id AND (le.id::text=$5 OR le.code=$5) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))`
+	args := []any{tenant, id, enforce, actorTenant, actorEntity}
 	if until != nil {
-		query += ` AND ce.occurred_at<=$3`
+		query += ` AND ce.occurred_at<=$6`
 		args = append(args, *until)
 	}
 	query += ` ORDER BY ce.aggregate_version`
@@ -178,9 +202,9 @@ func (r *PostgresRepository) CreateMatter(ctx context.Context, matter Matter, ev
 		return Matter{}, err
 	}
 	defer tx.Rollback(ctx)
-	_, err = tx.Exec(ctx, `INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,source_type,source_id,trigger_type,trigger_id,trigger_key,known_facts,missing_facts,contradictions,owner_principal_id,required_authority,due_at,closed_at,closure_reason,reopen_count,created_at,updated_at,version)
-		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,NULLIF($18,'')::uuid,$19,$20,$21,$22,$23,$24,$24,$25)`,
-		matter.ID, matter.TenantID, matter.Reference, matter.Type, matter.Status, matter.Priority, matter.Title, matter.Summary, rawJSON(matter.Scope, `{}`), matter.SourceType, matter.SourceID, matter.TriggerType, matter.TriggerID, matter.TriggerKey, rawJSON(matter.KnownFacts, `{}`), rawJSON(matter.MissingFacts, `[]`), rawJSON(matter.Contradictions, `[]`), matter.OwnerPrincipalID, matter.RequiredAuthority, matter.DueAt, matter.ClosedAt, matter.ClosureReason, matter.ReopenCount, matter.CreatedAt, matter.Version)
+	_, err = tx.Exec(ctx, `INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,source_type,source_id,trigger_type,trigger_id,trigger_key,known_facts,missing_facts,contradictions,owner_principal_id,required_authority,due_at,closed_at,closure_reason,reopen_count,created_at,updated_at,version,legal_entity_id)
+		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,NULLIF($18,'')::uuid,$19,$20,$21,$22,$23,$24,$24,$25,$26::uuid)`,
+		matter.ID, matter.TenantID, matter.Reference, matter.Type, matter.Status, matter.Priority, matter.Title, matter.Summary, rawJSON(matter.Scope, `{}`), matter.SourceType, matter.SourceID, matter.TriggerType, matter.TriggerID, matter.TriggerKey, rawJSON(matter.KnownFacts, `{}`), rawJSON(matter.MissingFacts, `[]`), rawJSON(matter.Contradictions, `[]`), matter.OwnerPrincipalID, matter.RequiredAuthority, matter.DueAt, matter.ClosedAt, matter.ClosureReason, matter.ReopenCount, matter.CreatedAt, matter.Version, matter.LegalEntityID)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return Matter{}, ErrDuplicate
@@ -200,17 +224,12 @@ func (r *PostgresRepository) CreateMatter(ctx context.Context, matter Matter, ev
 }
 
 func (r *PostgresRepository) ListMatters(ctx context.Context, tenant, status string, limit int) ([]MatterAggregate, error) {
-	query := `SELECT m.id::text FROM matters m JOIN tenants t ON t.id=m.tenant_id WHERE (t.id::text=$1 OR t.slug=$1)`
-	args := []any{tenant}
-	if status == "OPEN" {
-		query += ` AND m.status NOT IN ('CLOSED','CANCELLED')`
-	} else if status != "" {
-		query += ` AND m.status=$2`
-		args = append(args, status)
-	}
-	query += fmt.Sprintf(` ORDER BY m.priority DESC,m.due_at NULLS LAST,m.updated_at DESC,m.id LIMIT $%d`, len(args)+1)
-	args = append(args, limit)
-	rows, err := r.pool.Query(ctx, query, args...)
+	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
+	rows, err := r.pool.Query(ctx, `SELECT m.id::text FROM matters m JOIN tenants t ON t.id=m.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND ($2='' OR ($2='OPEN' AND m.status NOT IN ('CLOSED','CANCELLED')) OR m.status=$2)
+		  AND (NOT $3 OR ((t.id::text=$4 OR t.slug=$4) AND m.legal_entity_id IS NOT NULL AND ($5='*' OR m.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=m.tenant_id AND (le.id::text=$5 OR le.code=$5) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
+		ORDER BY m.priority DESC,m.due_at NULLS LAST,m.updated_at DESC,m.id LIMIT $6`, tenant, status, enforce, actorTenant, actorEntity, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +271,8 @@ func (r *PostgresRepository) ApplyMatterEvent(ctx context.Context, tenant, id st
 	}
 	defer tx.Rollback(ctx)
 	var current int64
-	err = tx.QueryRow(ctx, `SELECT m.version FROM matters m JOIN tenants t ON t.id=m.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND m.id=$2::uuid FOR UPDATE`, tenant, id).Scan(&current)
+	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
+	err = tx.QueryRow(ctx, `SELECT m.version FROM matters m JOIN tenants t ON t.id=m.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND m.id=$2::uuid AND (NOT $3 OR ((t.id::text=$4 OR t.slug=$4) AND m.legal_entity_id IS NOT NULL AND ($5='*' OR m.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=m.tenant_id AND (le.id::text=$5 OR le.code=$5) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1)))) FOR UPDATE`, tenant, id, enforce, actorTenant, actorEntity).Scan(&current)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return 0, ErrNotFound
 	}
@@ -315,7 +335,8 @@ func (r *PostgresRepository) ApplyMatterEvent(ctx context.Context, tenant, id st
 
 func (r *PostgresRepository) MatterByTriggerKey(ctx context.Context, tenant, triggerKey string) (Matter, error) {
 	var id string
-	err := r.pool.QueryRow(ctx, `SELECT m.id::text FROM matters m JOIN tenants t ON t.id=m.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND m.trigger_key=$2 AND m.status NOT IN ('CLOSED','CANCELLED') ORDER BY m.created_at DESC LIMIT 1`, tenant, triggerKey).Scan(&id)
+	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
+	err := r.pool.QueryRow(ctx, `SELECT m.id::text FROM matters m JOIN tenants t ON t.id=m.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND m.trigger_key=$2 AND m.status NOT IN ('CLOSED','CANCELLED') AND (NOT $3 OR ((t.id::text=$4 OR t.slug=$4) AND m.legal_entity_id IS NOT NULL AND ($5='*' OR m.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=m.tenant_id AND (le.id::text=$5 OR le.code=$5) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1)))) ORDER BY m.created_at DESC LIMIT 1`, tenant, triggerKey, enforce, actorTenant, actorEntity).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Matter{}, ErrNotFound
 	}
@@ -327,11 +348,14 @@ func (r *PostgresRepository) MatterByTriggerKey(ctx context.Context, tenant, tri
 }
 
 func (r *PostgresRepository) MatterEvents(ctx context.Context, tenant, id string, until *time.Time) ([]Event, error) {
+	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
 	query := `SELECT ce.id::text,t.slug,ce.aggregate_type,ce.aggregate_id::text,ce.aggregate_version,ce.event_type,ce.payload,ce.actor_type,COALESCE(ce.actor_id::text,''),ce.occurred_at
-		FROM continuity_events ce JOIN tenants t ON t.id=ce.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND ce.aggregate_type='MATTER' AND ce.aggregate_id=$2::uuid`
-	args := []any{tenant, id}
+		FROM continuity_events ce JOIN tenants t ON t.id=ce.tenant_id JOIN matters m ON m.tenant_id=ce.tenant_id AND m.id=ce.aggregate_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND ce.aggregate_type='MATTER' AND ce.aggregate_id=$2::uuid
+		  AND (NOT $3 OR ((t.id::text=$4 OR t.slug=$4) AND m.legal_entity_id IS NOT NULL AND ($5='*' OR m.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=m.tenant_id AND (le.id::text=$5 OR le.code=$5) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))`
+	args := []any{tenant, id, enforce, actorTenant, actorEntity}
 	if until != nil {
-		query += ` AND ce.occurred_at<=$3`
+		query += ` AND ce.occurred_at<=$6`
 		args = append(args, *until)
 	}
 	query += ` ORDER BY ce.aggregate_version`

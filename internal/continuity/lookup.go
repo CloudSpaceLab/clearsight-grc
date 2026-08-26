@@ -46,24 +46,24 @@ func (s *Service) MatterByTriggerKey(ctx context.Context, tenant, triggerKey str
 	return s.GetMatter(ctx, tenant, matter.ID)
 }
 
-func (r *MemoryRepository) ProgramByCode(_ context.Context, tenant, code string) (ProgramAggregate, error) {
+func (r *MemoryRepository) ProgramByCode(ctx context.Context, tenant, code string) (ProgramAggregate, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	for _, aggregate := range r.programs[tenant] {
-		if strings.EqualFold(aggregate.Program.Code, code) {
+		if strings.EqualFold(aggregate.Program.Code, code) && r.visibleLegalEntity(ctx, aggregate.Program.TenantID, aggregate.Program.LegalEntityID) {
 			return decorateProgram(cloneProgramAggregate(aggregate)), nil
 		}
 	}
 	return ProgramAggregate{}, ErrNotFound
 }
 
-func (r *MemoryRepository) MatterAggregateByTriggerKey(_ context.Context, tenant, triggerKey string) (MatterAggregate, error) {
+func (r *MemoryRepository) MatterAggregateByTriggerKey(ctx context.Context, tenant, triggerKey string) (MatterAggregate, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	var selected MatterAggregate
 	found := false
 	for _, aggregate := range r.matters[tenant] {
-		if aggregate.Matter.TriggerKey != triggerKey {
+		if aggregate.Matter.TriggerKey != triggerKey || !r.visibleLegalEntity(ctx, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID) {
 			continue
 		}
 		if !found || aggregate.Matter.UpdatedAt.After(selected.Matter.UpdatedAt) {

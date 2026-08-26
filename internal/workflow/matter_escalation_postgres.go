@@ -236,7 +236,7 @@ func (c *MatterEscalationCoordinator) processEscalation(ctx context.Context, ten
 	if payload.StepIndex < 0 || payload.StepIndex >= len(sequence.Steps) {
 		return fmt.Errorf("escalation step index %d is out of range", payload.StepIndex)
 	}
-	matter, err := c.Continuity.GetMatter(ctx, tenant, matterID)
+	matter, err := c.Continuity.GetMatter(continuity.WithTrustedSystemScope(ctx), tenant, matterID)
 	if errors.Is(err, continuity.ErrNotFound) {
 		_, cancelErr := c.Runtime.CancelPendingTaskTimers(ctx, tenant, task.ID, matterEscalationTimerType)
 		return cancelErr

@@ -9,12 +9,12 @@ import (
 )
 
 func TestDecisionLifecyclePreservesDistinctActors(t *testing.T) {
-	ctx := context.Background()
+	ctx := WithTrustedSystemScope(context.Background())
 	service := NewService(NewMemoryRepository())
 	now := time.Date(2026, 8, 7, 16, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
 
-	matter, err := service.CreateMatter(ctx, CreateMatterInput{TenantID: "bank", Type: MatterRegulatoryChange, Priority: 3, Title: "Review a regulatory change", Summary: "A current regulatory position is required.", Scope: json.RawMessage(`{}`)})
+	matter, err := service.CreateMatter(ctx, CreateMatterInput{TenantID: "bank", LegalEntityID: "entity-a", Type: MatterRegulatoryChange, Priority: 3, Title: "Review a regulatory change", Summary: "A current regulatory position is required.", Scope: json.RawMessage(`{}`)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,12 +49,12 @@ func TestDecisionLifecyclePreservesDistinctActors(t *testing.T) {
 }
 
 func TestResponseLifecyclePreservesActorsFromEventEnvelopeInMemory(t *testing.T) {
-	ctx := context.Background()
+	ctx := WithTrustedSystemScope(context.Background())
 	service := NewService(NewMemoryRepository())
 	now := time.Date(2026, 8, 7, 16, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
 
-	matter, err := service.CreateMatter(ctx, CreateMatterInput{TenantID: "bank", Type: MatterAuthorityRequest, Priority: 4, Title: "Regulator response", Summary: "Prepare and send the response.", Scope: json.RawMessage(`{}`)})
+	matter, err := service.CreateMatter(ctx, CreateMatterInput{TenantID: "bank", LegalEntityID: "entity-a", Type: MatterAuthorityRequest, Priority: 4, Title: "Regulator response", Summary: "Prepare and send the response.", Scope: json.RawMessage(`{}`)})
 	if err != nil {
 		t.Fatal(err)
 	}

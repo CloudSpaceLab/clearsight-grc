@@ -22,6 +22,14 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo, now: time.Now}
 }
 
+func (s *Service) resolveLegalEntity(ctx context.Context, tenant, identifier string) (string, error) {
+	resolver, ok := s.repo.(LegalEntityResolver)
+	if !ok {
+		return "", ErrNotFound
+	}
+	return resolver.ResolveLegalEntity(ctx, strings.TrimSpace(tenant), strings.TrimSpace(identifier))
+}
+
 type AddRequirementInput struct {
 	TenantID        string            `json:"tenant_id"`
 	ProgramID       string            `json:"program_id"`
@@ -222,6 +230,16 @@ func (s *Service) CreateProgram(ctx context.Context, input CreateProgramInput) (
 	if strings.TrimSpace(input.TenantID) == "" || strings.TrimSpace(input.Code) == "" || strings.TrimSpace(input.Name) == "" || strings.TrimSpace(input.Type) == "" || strings.TrimSpace(input.OwningFunction) == "" {
 		return ProgramAggregate{}, fmt.Errorf("tenant_id, code, name, type and owning_function are required")
 	}
+	legalEntityID, scopeOK := actorLegalEntity(ctx, input.TenantID, input.LegalEntityID)
+	if !scopeOK {
+		return ProgramAggregate{}, ErrNotFound
+	}
+	canonicalEntityID, err := s.resolveLegalEntity(ctx, input.TenantID, legalEntityID)
+	if err != nil {
+		return ProgramAggregate{}, err
+	}
+	input.LegalEntityID = canonicalEntityID
+	ctx = withCanonicalLegalEntity(ctx, input.TenantID, canonicalEntityID)
 	if input.EffectiveFrom.IsZero() {
 		input.EffectiveFrom = s.now().UTC()
 	}
@@ -635,19 +653,30 @@ func (s *Service) ensureTriggerMatter(ctx context.Context, trigger Trigger) (*Ma
 	if !create {
 		return nil, nil
 	}
-	existing, err := s.repo.MatterByTriggerKey(ctx, trigger.TenantID, trigger.DedupeKey)
+	existingAggregate, err := s.MatterByTriggerKey(ctx, trigger.TenantID, trigger.DedupeKey)
 	if err == nil {
-		return &existing, nil
+		if matterLinkedToProgram(existingAggregate, trigger.ProgramID) {
+			existing := existingAggregate.Matter
+			return &existing, nil
+		}
+		return nil, nil
 	}
 	if !errors.Is(err, ErrNotFound) {
 		return nil, err
 	}
 	matterAggregate, err := s.CreateMatter(ctx, CreateMatterInput{TenantID: trigger.TenantID, Type: matterType, Priority: triggerPriority(trigger.Type), Title: title, Summary: summary, Scope: trigger.Payload, TriggerType: trigger.Type, TriggerID: trigger.ID, TriggerKey: trigger.DedupeKey, KnownFacts: trigger.Payload, MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`), ProgramID: trigger.ProgramID, ActorID: trigger.ActorID})
 	if errors.Is(err, ErrDuplicate) {
-		existing, lookupErr := s.repo.MatterByTriggerKey(ctx, trigger.TenantID, trigger.DedupeKey)
+		existingAggregate, lookupErr := s.MatterByTriggerKey(ctx, trigger.TenantID, trigger.DedupeKey)
 		if lookupErr != nil {
+			if errors.Is(lookupErr, ErrNotFound) {
+				return nil, nil
+			}
 			return nil, lookupErr
 		}
+		if !matterLinkedToProgram(existingAggregate, trigger.ProgramID) {
+			return nil, nil
+		}
+		existing := existingAggregate.Matter
 		return &existing, nil
 	}
 	if err != nil {
@@ -698,11 +727,24 @@ func (s *Service) CreateMatter(ctx context.Context, input CreateMatterInput) (Ma
 	if strings.TrimSpace(input.TenantID) == "" || !validMatterType(input.Type) || strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Summary) == "" {
 		return MatterAggregate{}, fmt.Errorf("tenant_id, supported type, title and summary are required")
 	}
+	legalEntityID, scopeOK := actorLegalEntity(ctx, input.TenantID, input.LegalEntityID)
+	if !scopeOK {
+		return MatterAggregate{}, ErrNotFound
+	}
 	if input.Priority < 1 || input.Priority > 5 {
 		return MatterAggregate{}, fmt.Errorf("priority must be between 1 and 5")
 	}
 	if (strings.TrimSpace(input.RequirementID) != "" || strings.TrimSpace(input.ControlID) != "") && strings.TrimSpace(input.ProgramID) == "" {
 		return MatterAggregate{}, fmt.Errorf("program_id is required when linking a requirement or control")
+	}
+	canonicalEntityID := ""
+	var err error
+	if strings.TrimSpace(legalEntityID) != "" {
+		canonicalEntityID, err = s.resolveLegalEntity(ctx, input.TenantID, legalEntityID)
+		if err != nil {
+			return MatterAggregate{}, err
+		}
+		ctx = withCanonicalLegalEntity(ctx, input.TenantID, canonicalEntityID)
 	}
 	if strings.TrimSpace(input.ProgramID) != "" {
 		program, getErr := s.GetProgram(ctx, input.TenantID, input.ProgramID)
@@ -715,7 +757,21 @@ func (s *Service) CreateMatter(ctx context.Context, input CreateMatterInput) (Ma
 		if input.ControlID != "" && !containsImplementation(program.ControlImplementations, input.ControlID) {
 			return MatterAggregate{}, fmt.Errorf("control_id does not belong to this program")
 		}
+		if canonicalEntityID == "" {
+			canonicalEntityID, err = s.resolveLegalEntity(ctx, input.TenantID, program.Program.LegalEntityID)
+			if err != nil {
+				return MatterAggregate{}, err
+			}
+			ctx = withCanonicalLegalEntity(ctx, input.TenantID, canonicalEntityID)
+		}
+		if program.Program.LegalEntityID != canonicalEntityID {
+			return MatterAggregate{}, ErrNotFound
+		}
 	}
+	if canonicalEntityID == "" {
+		return MatterAggregate{}, ErrNotFound
+	}
+	input.LegalEntityID = canonicalEntityID
 	scope, err := normalizedJSON(input.Scope, `{}`)
 	if err != nil {
 		return MatterAggregate{}, err
@@ -741,7 +797,7 @@ func (s *Service) CreateMatter(ctx context.Context, input CreateMatterInput) (Ma
 	if input.TriggerType != "" {
 		status = MatterInitialReview
 	}
-	matter := Matter{ID: matterID, TenantID: input.TenantID, Reference: matterReference(matterID), Type: input.Type, Status: status, Priority: input.Priority, Title: strings.TrimSpace(input.Title), Summary: strings.TrimSpace(input.Summary), Scope: scope, SourceType: input.SourceType, SourceID: input.SourceID, TriggerType: input.TriggerType, TriggerID: input.TriggerID, TriggerKey: input.TriggerKey, KnownFacts: known, MissingFacts: missing, Contradictions: contradictions, OwnerPrincipalID: input.OwnerPrincipalID, RequiredAuthority: input.RequiredAuthority, DueAt: input.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1}
+	matter := Matter{ID: matterID, TenantID: input.TenantID, LegalEntityID: input.LegalEntityID, Reference: matterReference(matterID), Type: input.Type, Status: status, Priority: input.Priority, Title: strings.TrimSpace(input.Title), Summary: strings.TrimSpace(input.Summary), Scope: scope, SourceType: input.SourceType, SourceID: input.SourceID, TriggerType: input.TriggerType, TriggerID: input.TriggerID, TriggerKey: input.TriggerKey, KnownFacts: known, MissingFacts: missing, Contradictions: contradictions, OwnerPrincipalID: input.OwnerPrincipalID, RequiredAuthority: input.RequiredAuthority, DueAt: input.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1}
 	event, err := newEvent(input.TenantID, "MATTER", matter.ID, 1, EventMatterCreated, matter, actorFor(input.ActorID), input.ActorID, now)
 	if err != nil {
 		return MatterAggregate{}, err
@@ -775,6 +831,9 @@ func (s *Service) AddMatterLink(ctx context.Context, input AddMatterLinkInput) (
 	program, err := s.GetProgram(ctx, input.TenantID, input.ProgramID)
 	if err != nil {
 		return MatterAggregate{}, err
+	}
+	if strings.TrimSpace(aggregate.Matter.LegalEntityID) == "" || aggregate.Matter.LegalEntityID != program.Program.LegalEntityID {
+		return MatterAggregate{}, ErrNotFound
 	}
 	if input.RequirementID != "" && !containsRequirement(program.Requirements, input.RequirementID) {
 		return MatterAggregate{}, fmt.Errorf("requirement_id does not belong to this program")

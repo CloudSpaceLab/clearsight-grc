@@ -43,6 +43,10 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		if loadErr != nil {
 			return policy, loadErr
 		}
+		actor, actorOK := identity.FromContext(ctx)
+		if !actorOK || !continuity.MatterVisibleTo(current.Matter, actor.PrincipalID) {
+			return policy, continuity.ErrNotFound
+		}
 		aggregate = &current
 		matterPriority = current.Matter.Priority
 	}

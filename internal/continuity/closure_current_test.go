@@ -161,7 +161,7 @@ func TestRecordVerificationResultRejectsInvalidPassBeforePersistence(t *testing.
 	service := NewService(repo)
 	service.now = func() time.Time { return now }
 
-	_, err := service.RecordVerificationResult(context.Background(), RecordVerificationResultInput{
+	_, err := service.RecordVerificationResult(WithTrustedSystemScope(context.Background()), RecordVerificationResultInput{
 		TenantID: "bank", MatterID: "matter-1", ExpectedVersion: 4, ContractID: "contract-1",
 		Result: VerificationPassed, ReviewerPrincipalID: "owner", Rationale: "Checked.", ObservedAt: now,
 	})
@@ -169,7 +169,7 @@ func TestRecordVerificationResultRejectsInvalidPassBeforePersistence(t *testing.
 		t.Fatalf("self-review should fail before persistence, got %v", err)
 	}
 
-	_, err = service.RecordVerificationResult(context.Background(), RecordVerificationResultInput{
+	_, err = service.RecordVerificationResult(WithTrustedSystemScope(context.Background()), RecordVerificationResultInput{
 		TenantID: "bank", MatterID: "matter-1", ExpectedVersion: 4, ContractID: "contract-1",
 		Result: VerificationPassed, ReviewerPrincipalID: "reviewer", Rationale: "Checked.", ObservedAt: now,
 	})

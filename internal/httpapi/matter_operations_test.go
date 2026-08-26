@@ -19,15 +19,15 @@ import (
 
 func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 	service := continuity.NewService(continuity.NewMemoryRepository())
-	matter, err := service.CreateMatter(t.Context(), continuity.CreateMatterInput{
-		TenantID: "bank", Type: continuity.MatterRegulatoryChange, Priority: 4,
+	matter, err := service.CreateMatter(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateMatterInput{
+		TenantID: "bank", LegalEntityID: "bank-ng", Type: continuity.MatterRegulatoryChange, Priority: 4,
 		Title: "Annual return", Summary: "Update the filing process.",
 		OwnerPrincipalID: "program-owner", ActorID: "program-owner",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	matter, err = service.AddAction(t.Context(), continuity.AddActionInput{
+	matter, err = service.AddAction(continuity.WithTrustedSystemScope(t.Context()), continuity.AddActionInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
 		Title: "Update checklist", Description: "Map every section.", OwnerPrincipalID: "program-owner", ActorID: "program-owner",
 	})
@@ -35,7 +35,7 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 		t.Fatal(err)
 	}
 	activeActionID := matter.Actions[0].ID
-	matter, err = service.AddAction(t.Context(), continuity.AddActionInput{
+	matter, err = service.AddAction(continuity.WithTrustedSystemScope(t.Context()), continuity.AddActionInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
 		Title: "Publish filing timetable", Description: "Publish the approved timetable.", OwnerPrincipalID: "program-owner", ActorID: "program-owner",
 	})
@@ -44,7 +44,7 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 	}
 	completedActionID := matter.Actions[1].ID
 	for _, target := range []continuity.ActionStatus{continuity.ActionInProgress, continuity.ActionImplemented} {
-		matter, err = service.TransitionAction(t.Context(), continuity.TransitionActionInput{
+		matter, err = service.TransitionAction(continuity.WithTrustedSystemScope(t.Context()), continuity.TransitionActionInput{
 			TenantID: "bank", MatterID: matter.Matter.ID, ActionID: completedActionID,
 			ExpectedVersion: matter.Matter.Version, To: target, ActorID: "program-owner", Rationale: "Complete the timetable work.",
 		})
@@ -52,7 +52,7 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	matter, err = service.AddVerificationContract(t.Context(), continuity.AddVerificationContractInput{
+	matter, err = service.AddVerificationContract(continuity.WithTrustedSystemScope(t.Context()), continuity.AddVerificationContractInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
 		ActionID: completedActionID, ExpectedOutcome: "The approved timetable is available to every filing owner.",
 		FailureResponse: "BLOCK_CLOSE", AuthorityPrincipalID: "auditor", ActorID: "program-owner",
@@ -149,8 +149,8 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 
 func TestMatterOperationsHideRestrictedMatterFromUnlistedActor(t *testing.T) {
 	service := continuity.NewService(continuity.NewMemoryRepository())
-	matter, err := service.CreateMatter(t.Context(), continuity.CreateMatterInput{
-		TenantID: "bank", Type: continuity.MatterAuthorityRequest, Priority: 5,
+	matter, err := service.CreateMatter(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateMatterInput{
+		TenantID: "bank", LegalEntityID: "bank-ng", Type: continuity.MatterAuthorityRequest, Priority: 5,
 		Title: "Restricted request", Summary: "Protected response work.",
 		Scope:            json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["program-owner"]}`),
 		OwnerPrincipalID: "program-owner", ActorID: "program-owner",
@@ -171,8 +171,8 @@ func TestMatterOperationsHideRestrictedMatterFromUnlistedActor(t *testing.T) {
 
 func TestMatterOperationsResolveStoredParticipantOutsideCurrentRoute(t *testing.T) {
 	service := continuity.NewService(continuity.NewMemoryRepository())
-	matter, err := service.CreateMatter(t.Context(), continuity.CreateMatterInput{
-		TenantID: "bank", Type: continuity.MatterRegulatoryChange, Priority: 3,
+	matter, err := service.CreateMatter(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateMatterInput{
+		TenantID: "bank", LegalEntityID: "bank-ng", Type: continuity.MatterRegulatoryChange, Priority: 3,
 		Title: "Annual return", Summary: "Update the filing process.", OwnerPrincipalID: "stored-owner", ActorID: "stored-owner",
 	})
 	if err != nil {
@@ -188,7 +188,7 @@ func TestMatterOperationsResolveStoredParticipantOutsideCurrentRoute(t *testing.
 		}},
 	}}
 	actor := identity.Actor{TenantID: "bank", PrincipalID: "cro", LegalEntityID: "bank-ng", Kind: "PERSON"}
-	payload := api.buildMatterOperations(t.Context(), actor, matter, matter.Matter.UpdatedAt)
+	payload := api.buildMatterOperations(continuity.WithTrustedSystemScope(t.Context()), actor, matter, matter.Matter.UpdatedAt)
 	for _, operation := range payload.Operations {
 		if operation.Command == "matter.details.update" {
 			if operation.AssignedTo == nil || operation.AssignedTo.DisplayName != "Program Owner" {
@@ -202,8 +202,8 @@ func TestMatterOperationsResolveStoredParticipantOutsideCurrentRoute(t *testing.
 
 func TestMatterOperationsKeepStoredOwnerVisibleWhenAuthorityIsUnavailable(t *testing.T) {
 	service := continuity.NewService(continuity.NewMemoryRepository())
-	matter, err := service.CreateMatter(t.Context(), continuity.CreateMatterInput{
-		TenantID: "bank", Type: continuity.MatterRegulatoryChange, Priority: 3,
+	matter, err := service.CreateMatter(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateMatterInput{
+		TenantID: "bank", LegalEntityID: "bank-ng", Type: continuity.MatterRegulatoryChange, Priority: 3,
 		Title: "Annual return", Summary: "Update the filing process.", OwnerPrincipalID: "stored-owner", ActorID: "stored-owner",
 	})
 	if err != nil {
@@ -216,7 +216,7 @@ func TestMatterOperationsKeepStoredOwnerVisibleWhenAuthorityIsUnavailable(t *tes
 		}},
 	}}
 	actor := identity.Actor{TenantID: "bank", PrincipalID: "cro", LegalEntityID: "bank-ng", Kind: "PERSON"}
-	payload := api.buildMatterOperations(t.Context(), actor, matter, matter.Matter.UpdatedAt)
+	payload := api.buildMatterOperations(continuity.WithTrustedSystemScope(t.Context()), actor, matter, matter.Matter.UpdatedAt)
 	if payload.AuthorityAvailable {
 		t.Fatal("authority was reported available")
 	}
@@ -250,7 +250,7 @@ func TestMatterOperationsExposeDecisionAndResponseLifecycleByResponsibility(t *t
 		authority.ResponsibilityChallenger: {Principal: authority.Principal{ID: "challenger-1", DisplayName: "Independent Risk"}},
 	}}}}
 	actor := identity.Actor{TenantID: "bank", PrincipalID: "reviewer-1", LegalEntityID: "bank-ng", Kind: "PERSON"}
-	payload := api.buildMatterOperations(t.Context(), actor, aggregate, now)
+	payload := api.buildMatterOperations(continuity.WithTrustedSystemScope(t.Context()), actor, aggregate, now)
 
 	var decision, response *RecordOperation
 	for index := range payload.Operations {

@@ -166,7 +166,7 @@ func (p *MatterLifecycleProjector) ReconcileMatter(ctx context.Context, tenant, 
 		at = at.UTC()
 	}
 
-	aggregate, err := p.Continuity.GetMatter(ctx, tenant, matterID)
+	aggregate, err := p.Continuity.GetMatter(continuity.WithTrustedSystemScope(ctx), tenant, matterID)
 	if err != nil {
 		if errors.Is(err, continuity.ErrNotFound) {
 			return p.completeMatterWorkflow(ctx, tenant, matterID, at)

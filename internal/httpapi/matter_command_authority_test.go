@@ -16,10 +16,10 @@ import (
 )
 
 func TestMatterCommandUsesRouteLifecycleResponsibilityAndPriorityFloor(t *testing.T) {
-	ctx := t.Context()
+	ctx := continuity.WithTrustedSystemScope(t.Context())
 	continuityService := continuity.NewService(continuity.NewMemoryRepository())
 	matter, err := continuityService.CreateMatter(ctx, continuity.CreateMatterInput{
-		TenantID: "bank", Type: continuity.MatterRegulatoryChange, Priority: 5,
+		TenantID: "bank", LegalEntityID: "bank-ng", Type: continuity.MatterRegulatoryChange, Priority: 5,
 		Title: "Material regulatory change", Summary: "Test route-bound authority.", Scope: json.RawMessage(`{}`),
 	})
 	if err != nil {

@@ -8,12 +8,12 @@ import (
 )
 
 func TestProgramStateDoesNotAdvanceCommandVersion(t *testing.T) {
-	ctx := context.Background()
+	ctx := WithTrustedSystemScope(context.Background())
 	repo := NewMemoryRepository()
 	service := NewService(repo)
 	now := time.Date(2026, 8, 5, 18, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
-	program, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", Code: "PRIVACY", Name: "Privacy", Type: "PRIVACY", OwningFunction: "Privacy", Scope: json.RawMessage(`{}`), EffectiveFrom: now})
+	program, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", LegalEntityID: "entity-a", Code: "PRIVACY", Name: "Privacy", Type: "PRIVACY", OwningFunction: "Privacy", Scope: json.RawMessage(`{}`), EffectiveFrom: now})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,12 +33,12 @@ func TestProgramStateDoesNotAdvanceCommandVersion(t *testing.T) {
 }
 
 func TestProjectionRebuildQueueAndMaintainer(t *testing.T) {
-	ctx := context.Background()
+	ctx := WithTrustedSystemScope(context.Background())
 	repo := NewMemoryRepository()
 	service := NewService(repo)
 	now := time.Date(2026, 8, 5, 18, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
-	program, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", Code: "CYBER", Name: "Cyber", Type: "CYBER", OwningFunction: "Security", Scope: json.RawMessage(`{}`), EffectiveFrom: now})
+	program, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", LegalEntityID: "entity-a", Code: "CYBER", Name: "Cyber", Type: "CYBER", OwningFunction: "Security", Scope: json.RawMessage(`{}`), EffectiveFrom: now})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,16 +63,16 @@ func TestProjectionRebuildQueueAndMaintainer(t *testing.T) {
 }
 
 func TestMatterCreationAndInitialProgramLinkAreAtomicInMemory(t *testing.T) {
-	ctx := context.Background()
+	ctx := WithTrustedSystemScope(context.Background())
 	repo := NewMemoryRepository()
 	service := NewService(repo)
 	now := time.Date(2026, 8, 5, 18, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
-	program, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", Code: "OPS", Name: "Operations", Type: "OPERATIONS", OwningFunction: "Operations", Scope: json.RawMessage(`{}`), EffectiveFrom: now})
+	program, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "bank", LegalEntityID: "entity-a", Code: "OPS", Name: "Operations", Type: "OPERATIONS", OwningFunction: "Operations", Scope: json.RawMessage(`{}`), EffectiveFrom: now})
 	if err != nil {
 		t.Fatal(err)
 	}
-	matter, err := service.CreateMatter(ctx, CreateMatterInput{TenantID: "bank", Type: MatterControlGap, Priority: 3, Title: "Resolve missing review", Summary: "A required review is missing.", Scope: json.RawMessage(`{}`), ProgramID: program.Program.ID})
+	matter, err := service.CreateMatter(ctx, CreateMatterInput{TenantID: "bank", LegalEntityID: "entity-a", Type: MatterControlGap, Priority: 3, Title: "Resolve missing review", Summary: "A required review is missing.", Scope: json.RawMessage(`{}`), ProgramID: program.Program.ID})
 	if err != nil {
 		t.Fatal(err)
 	}

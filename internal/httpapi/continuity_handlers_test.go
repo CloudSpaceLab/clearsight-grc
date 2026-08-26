@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
@@ -148,7 +149,7 @@ func TestProgramEditRoutesBindVerifiedActorAndPreserveAssignmentSubject(t *testi
 	repo := continuity.NewMemoryRepository()
 	service := continuity.NewService(repo)
 	effectiveFrom := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
-	program, err := service.CreateProgram(t.Context(), continuity.CreateProgramInput{
+	program, err := service.CreateProgram(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateProgramInput{
 		TenantID: "bank", LegalEntityID: "bank-ng", Code: "NDPA", Name: "Data protection", Type: "PRIVACY",
 		OwningFunction: "Data Protection Office", OwnerPrincipalID: "owner-1",
 		EffectiveFrom: effectiveFrom, ActorID: "owner-1",
@@ -156,7 +157,7 @@ func TestProgramEditRoutesBindVerifiedActorAndPreserveAssignmentSubject(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	program, err = service.AddRequirement(t.Context(), continuity.AddRequirementInput{
+	program, err = service.AddRequirement(continuity.WithTrustedSystemScope(t.Context()), continuity.AddRequirementInput{
 		TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version,
 		Code: "CAR-01", Title: "File the annual return", Statement: "The bank must file its annual compliance return.",
 		SourceAnchor: "GAID 2025, section 7", EffectiveFrom: effectiveFrom, ActorID: "owner-1",
@@ -194,7 +195,7 @@ func TestProgramEditRoutesBindVerifiedActorAndPreserveAssignmentSubject(t *testi
 	if program.Program.OwnerPrincipalID != "owner-2" || len(program.Requirements) != 2 || program.Requirements[0].Status != continuity.RequirementSuperseded {
 		t.Fatalf("Program edit journey did not persist requested subjects: %#v", program)
 	}
-	events, err := repo.ProgramEvents(t.Context(), "bank", program.Program.ID, nil)
+	events, err := repo.ProgramEvents(continuity.WithTrustedSystemScope(t.Context()), "bank", program.Program.ID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +212,7 @@ func TestProgramEditRoutesBindVerifiedActorAndPreserveAssignmentSubject(t *testi
 func TestProgramAssignmentAuthorityFailsClosedWithoutMutation(t *testing.T) {
 	repo := continuity.NewMemoryRepository()
 	service := continuity.NewService(repo)
-	program, err := service.CreateProgram(t.Context(), continuity.CreateProgramInput{
+	program, err := service.CreateProgram(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateProgramInput{
 		TenantID: "bank", LegalEntityID: "bank-ng", Code: "AML", Name: "Financial crime", Type: "AML",
 		OwningFunction: "Compliance", OwnerPrincipalID: "owner-1", EffectiveFrom: time.Now().UTC(), ActorID: "owner-1",
 	})
@@ -227,7 +228,7 @@ func TestProgramAssignmentAuthorityFailsClosedWithoutMutation(t *testing.T) {
 	if response.Code != http.StatusServiceUnavailable {
 		t.Fatalf("authority failure returned %d: %s", response.Code, response.Body.String())
 	}
-	current, err := service.GetProgram(t.Context(), "bank", program.Program.ID)
+	current, err := service.GetProgram(continuity.WithTrustedSystemScope(t.Context()), "bank", program.Program.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -238,14 +239,14 @@ func TestProgramAssignmentAuthorityFailsClosedWithoutMutation(t *testing.T) {
 
 func TestProgramSafeguardOwnerMustBeAnEligiblePerformer(t *testing.T) {
 	service := continuity.NewService(continuity.NewMemoryRepository())
-	program, err := service.CreateProgram(t.Context(), continuity.CreateProgramInput{
+	program, err := service.CreateProgram(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateProgramInput{
 		TenantID: "bank", LegalEntityID: "bank-ng", Code: "NDPA", Name: "Data protection", Type: "PRIVACY",
 		OwningFunction: "Data Protection Office", OwnerPrincipalID: "owner-1", EffectiveFrom: time.Now().UTC(), ActorID: "owner-1",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	program, err = service.AddControlObjective(t.Context(), continuity.AddControlObjectiveInput{
+	program, err = service.AddControlObjective(continuity.WithTrustedSystemScope(t.Context()), continuity.AddControlObjectiveInput{
 		TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version,
 		Code: "CAR-COMPLETE", Name: "Complete return", Outcome: "Every required section is filed.", Status: continuity.ObjectiveActive, ActorID: "owner-1",
 	})
@@ -276,8 +277,8 @@ func TestProgramSafeguardOwnerMustBeAnEligiblePerformer(t *testing.T) {
 
 func TestOpenMatterFilterExcludesClosedRecords(t *testing.T) {
 	service := continuity.NewService(continuity.NewMemoryRepository())
-	ctx := context.Background()
-	matter, err := service.CreateMatter(ctx, continuity.CreateMatterInput{TenantID: "bank", Type: continuity.MatterAuthorityRequest, Priority: 2, Title: "Provide requested records", Summary: "A response is due.", Scope: json.RawMessage(`{}`), KnownFacts: json.RawMessage(`{}`), MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`)})
+	ctx := continuity.WithTrustedSystemScope(context.Background())
+	matter, err := service.CreateMatter(ctx, continuity.CreateMatterInput{TenantID: "bank", LegalEntityID: "bank-ng", Type: continuity.MatterAuthorityRequest, Priority: 2, Title: "Provide requested records", Summary: "A response is due.", Scope: json.RawMessage(`{}`), KnownFacts: json.RawMessage(`{}`), MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -291,8 +292,8 @@ func TestOpenMatterFilterExcludesClosedRecords(t *testing.T) {
 func TestMatterEditHandlersBindVerifiedActorAndKeepAssignmentSubject(t *testing.T) {
 	repo := continuity.NewMemoryRepository()
 	service := continuity.NewService(repo)
-	matter, err := service.CreateMatter(t.Context(), continuity.CreateMatterInput{
-		TenantID: "bank", Type: continuity.MatterRegulatoryChange, Priority: 4,
+	matter, err := service.CreateMatter(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateMatterInput{
+		TenantID: "bank", LegalEntityID: "bank-ng", Type: continuity.MatterRegulatoryChange, Priority: 4,
 		Title: "Annual return", Summary: "Update the filing process.",
 		Scope: json.RawMessage(`{}`), KnownFacts: json.RawMessage(`{"filing_channel":"email"}`),
 		MissingFacts: json.RawMessage(`["final checklist"]`), Contradictions: json.RawMessage(`[]`),
@@ -301,7 +302,7 @@ func TestMatterEditHandlersBindVerifiedActorAndKeepAssignmentSubject(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	matter, err = service.AddAction(t.Context(), continuity.AddActionInput{
+	matter, err = service.AddAction(continuity.WithTrustedSystemScope(t.Context()), continuity.AddActionInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
 		Title: "Update checklist", Description: "Map every section.", OwnerPrincipalID: "performer-1", ActorID: "owner-1",
 	})
@@ -338,7 +339,7 @@ func TestMatterEditHandlersBindVerifiedActorAndKeepAssignmentSubject(t *testing.
 	if matter.Matter.OwnerPrincipalID != "owner-2" || matter.Actions[0].OwnerPrincipalID != "performer-2" || matter.Matter.KnownFacts == nil {
 		t.Fatalf("edit journey did not persist requested subjects: %#v", matter)
 	}
-	events, err := repo.MatterEvents(t.Context(), "bank", matter.Matter.ID, nil)
+	events, err := repo.MatterEvents(continuity.WithTrustedSystemScope(t.Context()), "bank", matter.Matter.ID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -352,8 +353,8 @@ func TestMatterEditHandlersBindVerifiedActorAndKeepAssignmentSubject(t *testing.
 func TestMatterAssignmentAuthorityFailureReturnsServiceUnavailableWithoutMutation(t *testing.T) {
 	repo := continuity.NewMemoryRepository()
 	service := continuity.NewService(repo)
-	matter, err := service.CreateMatter(t.Context(), continuity.CreateMatterInput{
-		TenantID: "bank", Type: continuity.MatterRegulatoryChange, Priority: 4,
+	matter, err := service.CreateMatter(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateMatterInput{
+		TenantID: "bank", LegalEntityID: "bank-ng", Type: continuity.MatterRegulatoryChange, Priority: 4,
 		Title: "Annual return", Summary: "Update the filing process.", Scope: json.RawMessage(`{}`),
 		OwnerPrincipalID: "owner-1", ActorID: "owner-1",
 	})
@@ -369,11 +370,92 @@ func TestMatterAssignmentAuthorityFailureReturnsServiceUnavailableWithoutMutatio
 	if response.Code != http.StatusServiceUnavailable {
 		t.Fatalf("authority failure returned %d: %s", response.Code, response.Body.String())
 	}
-	current, err := service.GetMatter(t.Context(), "bank", matter.Matter.ID)
+	current, err := service.GetMatter(continuity.WithTrustedSystemScope(t.Context()), "bank", matter.Matter.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if current.Matter.Version != matter.Matter.Version || current.Matter.OwnerPrincipalID != "owner-1" {
 		t.Fatalf("assignment mutated after authority failure: %#v", current.Matter)
+	}
+}
+
+func TestCreateCommandsOverwriteRequestLegalEntityFromVerifiedActor(t *testing.T) {
+	repo := continuity.NewMemoryRepository()
+	service := continuity.NewService(repo)
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "owner-1", "entity-a"), Continuity: service,
+	})
+
+	programResponse := httptest.NewRecorder()
+	handler.ServeHTTP(programResponse, httptest.NewRequest(http.MethodPost, "/api/v1/programs", strings.NewReader(`{"tenant_id":"bank","legal_entity_id":"entity-b","code":"ENTITY-A","name":"Entity A controls","type":"COMPLIANCE","owning_function":"Compliance","scope":{},"effective_from":"2026-08-26T00:00:00Z","actor_id":"forged"}`)))
+	if programResponse.Code != http.StatusCreated {
+		t.Fatalf("Program create returned %d: %s", programResponse.Code, programResponse.Body.String())
+	}
+	var program continuity.ProgramAggregate
+	if err := json.NewDecoder(programResponse.Body).Decode(&program); err != nil {
+		t.Fatal(err)
+	}
+	if program.Program.LegalEntityID != "entity-a" {
+		t.Fatalf("Program entity = %q", program.Program.LegalEntityID)
+	}
+	programEvents, err := repo.ProgramEvents(continuity.WithTrustedSystemScope(context.Background()), "bank", program.Program.ID, nil)
+	if err != nil || len(programEvents) == 0 || !strings.Contains(string(programEvents[0].Payload), `"legal_entity_id":"entity-a"`) {
+		t.Fatalf("Program event entity missing: %#v, %v", programEvents, err)
+	}
+
+	matterResponse := httptest.NewRecorder()
+	handler.ServeHTTP(matterResponse, httptest.NewRequest(http.MethodPost, "/api/v1/matters", strings.NewReader(`{"tenant_id":"bank","legal_entity_id":"entity-b","type":"CONTROL_GAP","priority":3,"title":"Entity A gap","summary":"A scoped issue","scope":{},"actor_id":"forged"}`)))
+	if matterResponse.Code != http.StatusCreated {
+		t.Fatalf("Matter create returned %d: %s", matterResponse.Code, matterResponse.Body.String())
+	}
+	var matter continuity.MatterAggregate
+	if err := json.NewDecoder(matterResponse.Body).Decode(&matter); err != nil {
+		t.Fatal(err)
+	}
+	if matter.Matter.LegalEntityID != "entity-a" {
+		t.Fatalf("Matter entity = %q", matter.Matter.LegalEntityID)
+	}
+	matterEvents, err := repo.MatterEvents(continuity.WithTrustedSystemScope(context.Background()), "bank", matter.Matter.ID, nil)
+	if err != nil || len(matterEvents) == 0 || !strings.Contains(string(matterEvents[0].Payload), `"legal_entity_id":"entity-a"`) {
+		t.Fatalf("Matter event entity missing: %#v, %v", matterEvents, err)
+	}
+}
+
+func TestRestrictedMatterCommandFailsBeforeAuthorityAndPreservesState(t *testing.T) {
+	repo := continuity.NewMemoryRepository()
+	service := continuity.NewService(repo)
+	matter, err := service.CreateMatter(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateMatterInput{
+		TenantID: "bank", LegalEntityID: "entity-a", Type: continuity.MatterControlGap, Priority: 3,
+		Title: "Restricted gap", Summary: "Only the named reviewer may open it.",
+		Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["allowed-person"]}`), ActorID: "allowed-person",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolver := &capturingCommandAuthority{}
+	guard, err := commandauth.New(resolver, commandauth.ModeEnforce, slog.Default())
+	if err != nil {
+		t.Fatal(err)
+	}
+	api := &API{deps: Dependencies{Continuity: service, CommandGuard: guard}}
+	handler := api.command("matter.details.update", commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 2}, api.updateMatterDetails)
+	response := httptest.NewRecorder()
+	body := fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"title":"Leaked change","summary":"Should not persist.","priority":3,"scope":{},"rationale":"Attempt"}`, matter.Matter.Version)
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/matters/"+matter.Matter.ID+"/details", strings.NewReader(body))
+	request.SetPathValue("id", matter.Matter.ID)
+	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{TenantID: "bank", PrincipalID: "blocked-person", LegalEntityID: "entity-a", Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour)}))
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("restricted command returned %d: %s", response.Code, response.Body.String())
+	}
+	current, err := service.GetMatter(continuity.WithTrustedSystemScope(context.Background()), "bank", matter.Matter.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if current.Matter.Version != matter.Matter.Version || current.Matter.Title != matter.Matter.Title {
+		t.Fatalf("restricted command mutated Matter: %#v", current.Matter)
+	}
+	if resolver.calls != 0 {
+		t.Fatalf("authority was consulted %d times before restricted visibility failed", resolver.calls)
 	}
 }

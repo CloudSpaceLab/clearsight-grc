@@ -259,7 +259,7 @@ func (r *MemoryRepository) CreateMatterWithLink(_ context.Context, bundle Matter
 	}
 	if matter.TriggerKey != "" {
 		for _, existing := range r.matters[matter.TenantID] {
-			if existing.Matter.TriggerKey == matter.TriggerKey && existing.Matter.Status != MatterClosed && existing.Matter.Status != MatterCancelled {
+			if existing.Matter.TriggerKey == matter.TriggerKey && matterLinkedToProgram(existing, bundle.Link.ProgramID) && existing.Matter.Status != MatterClosed && existing.Matter.Status != MatterCancelled {
 				return Matter{}, ErrDuplicate
 			}
 		}
@@ -286,9 +286,11 @@ func (r *MemoryRepository) ApplyTriggerBundle(ctx context.Context, bundle Trigge
 	if r.triggers[trigger.TenantID] == nil {
 		r.triggers[trigger.TenantID] = map[string]Trigger{}
 	}
-	if _, exists := r.triggers[trigger.TenantID][trigger.DedupeKey]; exists {
+	key := programTriggerDedupeKey(trigger.ProgramID, trigger.DedupeKey)
+	if _, exists := r.triggers[trigger.TenantID][key]; exists {
 		for _, aggregate := range r.matters[trigger.TenantID] {
-			if aggregate.Matter.TriggerKey == trigger.DedupeKey && aggregate.Matter.Status != MatterClosed && aggregate.Matter.Status != MatterCancelled {
+			if aggregate.Matter.TriggerKey == trigger.DedupeKey && aggregate.Matter.Status != MatterClosed && aggregate.Matter.Status != MatterCancelled &&
+				aggregate.Matter.LegalEntityID == program.Program.LegalEntityID && r.visibleLegalEntity(ctx, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID) && matterLinkedToProgram(aggregate, trigger.ProgramID) {
 				matter := aggregate.Matter
 				return TriggerBundleResult{Inserted: false, Matter: &matter}, nil
 			}
@@ -305,7 +307,7 @@ func (r *MemoryRepository) ApplyTriggerBundle(ctx context.Context, bundle Trigge
 	program.Program.UpdatedAt = bundle.ProgramEvent.OccurredAt
 	r.programs[trigger.TenantID][trigger.ProgramID] = program
 	r.programEvents[trigger.TenantID][trigger.ProgramID] = append(r.programEvents[trigger.TenantID][trigger.ProgramID], bundle.ProgramEvent)
-	r.triggers[trigger.TenantID][trigger.DedupeKey] = trigger
+	r.triggers[trigger.TenantID][key] = trigger
 	result := TriggerBundleResult{Inserted: true}
 	if bundle.Matter != nil && bundle.MatterEvent != nil && bundle.Link != nil && bundle.LinkEvent != nil {
 		matter := *bundle.Matter
@@ -326,6 +328,15 @@ func (r *MemoryRepository) ApplyTriggerBundle(ctx context.Context, bundle Trigge
 	}
 	_, _ = r.QueueProgramState(ctx, trigger.TenantID, trigger.ProgramID, program.Program.Version, trigger.Type, trigger.ID, "system")
 	return result, nil
+}
+
+func matterLinkedToProgram(aggregate MatterAggregate, programID string) bool {
+	for _, link := range aggregate.Links {
+		if link.ProgramID == programID {
+			return true
+		}
+	}
+	return false
 }
 
 var _ ProgramStateRepository = (*MemoryRepository)(nil)

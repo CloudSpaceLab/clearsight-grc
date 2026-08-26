@@ -80,9 +80,9 @@ func TestResponsePreparationUsesProposerResponsibility(t *testing.T) {
 }
 
 func TestLifecyclePolicyLoadsCurrentDecisionStateBeforeAuthorization(t *testing.T) {
-	ctx := context.Background()
+	ctx := identity.WithActor(t.Context(), identity.Actor{TenantID: "bank", PrincipalID: "reviewer", LegalEntityID: "entity-a", Kind: "PERSON", ExpiresAt: time.Now().UTC().Add(time.Hour)})
 	service := continuity.NewService(continuity.NewMemoryRepository())
-	matter, err := service.CreateMatter(ctx, continuity.CreateMatterInput{TenantID: "bank", Type: continuity.MatterRegulatoryChange, Priority: 3, Title: "Decision lifecycle", Summary: "Test lifecycle authority.", Scope: json.RawMessage(`{}`)})
+	matter, err := service.CreateMatter(ctx, continuity.CreateMatterInput{TenantID: "bank", LegalEntityID: "entity-a", Type: continuity.MatterRegulatoryChange, Priority: 3, Title: "Decision lifecycle", Summary: "Test lifecycle authority.", Scope: json.RawMessage(`{}`)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,9 +101,9 @@ func TestLifecyclePolicyLoadsCurrentDecisionStateBeforeAuthorization(t *testing.
 }
 
 func TestLifecyclePolicyUsesRouteMatterAndPriorityFloor(t *testing.T) {
-	ctx := context.Background()
+	ctx := identity.WithActor(t.Context(), identity.Actor{TenantID: "bank", PrincipalID: "proposer", LegalEntityID: "entity-a", Kind: "PERSON", ExpiresAt: time.Now().UTC().Add(time.Hour)})
 	service := continuity.NewService(continuity.NewMemoryRepository())
-	matter, err := service.CreateMatter(ctx, continuity.CreateMatterInput{TenantID: "bank", Type: continuity.MatterException, Priority: 5, Title: "Material exception", Summary: "High-impact exception.", Scope: json.RawMessage(`{}`)})
+	matter, err := service.CreateMatter(ctx, continuity.CreateMatterInput{TenantID: "bank", LegalEntityID: "entity-a", Type: continuity.MatterException, Priority: 5, Title: "Material exception", Summary: "High-impact exception.", Scope: json.RawMessage(`{}`)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,10 +126,10 @@ func TestLifecyclePolicyRejectsBodyMatterThatConflictsWithRoute(t *testing.T) {
 }
 
 func TestLifecyclePolicyRejectsRestrictedMatterActionOwnerWithoutVisibility(t *testing.T) {
-	ctx := context.Background()
+	ctx := identity.WithActor(t.Context(), identity.Actor{TenantID: "bank", PrincipalID: "allowed-owner", LegalEntityID: "entity-a", Kind: "PERSON", ExpiresAt: time.Now().UTC().Add(time.Hour)})
 	service := continuity.NewService(continuity.NewMemoryRepository())
 	matter, err := service.CreateMatter(ctx, continuity.CreateMatterInput{
-		TenantID: "bank", Type: continuity.MatterAuthorityRequest, Priority: 5,
+		TenantID: "bank", LegalEntityID: "entity-a", Type: continuity.MatterAuthorityRequest, Priority: 5,
 		Title: "Restricted authority request", Summary: "Protected response work.",
 		Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["allowed-owner"]}`),
 	})

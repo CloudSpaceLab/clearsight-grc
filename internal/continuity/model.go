@@ -361,6 +361,7 @@ type ProgramAggregate struct {
 type Matter struct {
 	ID                string          `json:"id"`
 	TenantID          string          `json:"tenant_id"`
+	LegalEntityID     string          `json:"legal_entity_id,omitempty"`
 	Reference         string          `json:"reference"`
 	Type              MatterType      `json:"type"`
 	Status            MatterStatus    `json:"status"`
@@ -562,6 +563,7 @@ type ProgramTransitionInput struct {
 
 type CreateMatterInput struct {
 	TenantID          string          `json:"tenant_id"`
+	LegalEntityID     string          `json:"legal_entity_id,omitempty"`
 	Type              MatterType      `json:"type"`
 	Priority          int             `json:"priority"`
 	Title             string          `json:"title"`

@@ -9,8 +9,9 @@ import (
 
 func TestUpdateMatterDetailsAndResolveMissingFact(t *testing.T) {
 	service := NewService(NewMemoryRepository())
-	matter, err := service.CreateMatter(t.Context(), CreateMatterInput{
+	matter, err := service.CreateMatter(WithTrustedSystemScope(t.Context()), CreateMatterInput{
 		TenantID:       "bank",
+		LegalEntityID:  "entity-a",
 		Type:           MatterRegulatoryChange,
 		Priority:       4,
 		Title:          "Annual return",
@@ -23,7 +24,7 @@ func TestUpdateMatterDetailsAndResolveMissingFact(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	updated, err := service.UpdateMatterDetails(t.Context(), UpdateMatterDetailsInput{
+	updated, err := service.UpdateMatterDetails(WithTrustedSystemScope(t.Context()), UpdateMatterDetailsInput{
 		TenantID:        "bank",
 		MatterID:        matter.Matter.ID,
 		ExpectedVersion: matter.Matter.Version,
@@ -39,7 +40,7 @@ func TestUpdateMatterDetailsAndResolveMissingFact(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	resolved, err := service.ChangeMatterContext(t.Context(), ChangeMatterContextInput{
+	resolved, err := service.ChangeMatterContext(WithTrustedSystemScope(t.Context()), ChangeMatterContextInput{
 		TenantID:           "bank",
 		MatterID:           matter.Matter.ID,
 		ExpectedVersion:    updated.Matter.Version,
@@ -73,8 +74,9 @@ func TestUpdateMatterDetailsAndResolveMissingFact(t *testing.T) {
 func TestUpdateMatterDetailsPreservesAuditMetadataAndRejectsNoOp(t *testing.T) {
 	repo := NewMemoryRepository()
 	service := NewService(repo)
-	matter, err := service.CreateMatter(t.Context(), CreateMatterInput{
+	matter, err := service.CreateMatter(WithTrustedSystemScope(t.Context()), CreateMatterInput{
 		TenantID:       "bank",
+		LegalEntityID:  "entity-a",
 		Type:           MatterRegulatoryChange,
 		Priority:       4,
 		Title:          "Annual return",
@@ -87,7 +89,7 @@ func TestUpdateMatterDetailsPreservesAuditMetadataAndRejectsNoOp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	updated, err := service.UpdateMatterDetails(t.Context(), UpdateMatterDetailsInput{
+	updated, err := service.UpdateMatterDetails(WithTrustedSystemScope(t.Context()), UpdateMatterDetailsInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
 		Title: "Annual return filing", Summary: matter.Matter.Summary, Priority: matter.Matter.Priority,
 		Scope: matter.Matter.Scope, DueAt: matter.Matter.DueAt, ActorID: "owner", Rationale: "Use the approved working title.",
@@ -95,7 +97,7 @@ func TestUpdateMatterDetailsPreservesAuditMetadataAndRejectsNoOp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	events, err := repo.MatterEvents(t.Context(), "bank", matter.Matter.ID, nil)
+	events, err := repo.MatterEvents(WithTrustedSystemScope(t.Context()), "bank", matter.Matter.ID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +109,7 @@ func TestUpdateMatterDetailsPreservesAuditMetadataAndRejectsNoOp(t *testing.T) {
 		t.Fatalf("detail audit metadata missing: %#v", changed)
 	}
 
-	_, err = service.UpdateMatterDetails(t.Context(), UpdateMatterDetailsInput{
+	_, err = service.UpdateMatterDetails(WithTrustedSystemScope(t.Context()), UpdateMatterDetailsInput{
 		TenantID: "bank", MatterID: updated.Matter.ID, ExpectedVersion: updated.Matter.Version,
 		Title: updated.Matter.Title, Summary: updated.Matter.Summary, Priority: updated.Matter.Priority,
 		Scope: updated.Matter.Scope, DueAt: updated.Matter.DueAt, ActorID: "owner", Rationale: "No material change.",
@@ -115,7 +117,7 @@ func TestUpdateMatterDetailsPreservesAuditMetadataAndRejectsNoOp(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an unchanged detail command to be rejected")
 	}
-	eventsAfterNoOp, err := repo.MatterEvents(t.Context(), "bank", matter.Matter.ID, nil)
+	eventsAfterNoOp, err := repo.MatterEvents(WithTrustedSystemScope(t.Context()), "bank", matter.Matter.ID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,8 +129,9 @@ func TestUpdateMatterDetailsPreservesAuditMetadataAndRejectsNoOp(t *testing.T) {
 func TestChangeMatterContextSupportsExplicitFactAndIssueChanges(t *testing.T) {
 	repo := NewMemoryRepository()
 	service := NewService(repo)
-	matter, err := service.CreateMatter(t.Context(), CreateMatterInput{
+	matter, err := service.CreateMatter(WithTrustedSystemScope(t.Context()), CreateMatterInput{
 		TenantID:       "bank",
+		LegalEntityID:  "entity-a",
 		Type:           MatterRegulatoryChange,
 		Priority:       4,
 		Title:          "Annual return",
@@ -154,7 +157,7 @@ func TestChangeMatterContextSupportsExplicitFactAndIssueChanges(t *testing.T) {
 		changes[index].MatterID = matter.Matter.ID
 		changes[index].ExpectedVersion = matter.Matter.Version
 		changes[index].ActorID = "owner"
-		matter, err = service.ChangeMatterContext(t.Context(), changes[index])
+		matter, err = service.ChangeMatterContext(WithTrustedSystemScope(t.Context()), changes[index])
 		if err != nil {
 			t.Fatalf("change %s failed: %v", changes[index].Kind, err)
 		}
@@ -174,7 +177,7 @@ func TestChangeMatterContextSupportsExplicitFactAndIssueChanges(t *testing.T) {
 		t.Fatalf("contradiction was not resolved: %s", matter.Matter.Contradictions)
 	}
 
-	events, err := repo.MatterEvents(context.Background(), "bank", matter.Matter.ID, nil)
+	events, err := repo.MatterEvents(WithTrustedSystemScope(context.Background()), "bank", matter.Matter.ID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +189,7 @@ func TestChangeMatterContextSupportsExplicitFactAndIssueChanges(t *testing.T) {
 		t.Fatalf("correction audit metadata missing: %#v", corrected)
 	}
 
-	replayed, err := service.MatterAt(t.Context(), "bank", matter.Matter.ID, events[len(events)-1].OccurredAt)
+	replayed, err := service.MatterAt(WithTrustedSystemScope(t.Context()), "bank", matter.Matter.ID, events[len(events)-1].OccurredAt)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,8 +200,9 @@ func TestChangeMatterContextSupportsExplicitFactAndIssueChanges(t *testing.T) {
 
 func TestChangeMatterContextRejectsAmbiguousOrUngovernedChanges(t *testing.T) {
 	service := NewService(NewMemoryRepository())
-	matter, err := service.CreateMatter(t.Context(), CreateMatterInput{
+	matter, err := service.CreateMatter(WithTrustedSystemScope(t.Context()), CreateMatterInput{
 		TenantID:       "bank",
+		LegalEntityID:  "entity-a",
 		Type:           MatterRegulatoryChange,
 		Priority:       4,
 		Title:          "Annual return",
@@ -224,7 +228,7 @@ func TestChangeMatterContextRejectsAmbiguousOrUngovernedChanges(t *testing.T) {
 	tests[3].input.ActorID = ""
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if _, err := service.ChangeMatterContext(t.Context(), test.input); err == nil || errors.Is(err, ErrVersionConflict) {
+			if _, err := service.ChangeMatterContext(WithTrustedSystemScope(t.Context()), test.input); err == nil || errors.Is(err, ErrVersionConflict) {
 				t.Fatalf("expected a validation error, got %v", err)
 			}
 		})
@@ -243,14 +247,14 @@ func TestAssignMatterAndUpdateAction(t *testing.T) {
 	service, matter := editableMatterFixture(t)
 	action := matter.Actions[0]
 
-	assigned, err := service.AssignMatter(t.Context(), AssignMatterInput{
+	assigned, err := service.AssignMatter(WithTrustedSystemScope(t.Context()), AssignMatterInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
 		OwnerPrincipalID: "owner-2", ActorID: "owner-1", Rationale: "Move accountability to privacy operations.",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	updated, err := service.UpdateAction(t.Context(), UpdateActionInput{
+	updated, err := service.UpdateAction(WithTrustedSystemScope(t.Context()), UpdateActionInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ActionID: action.ID,
 		ExpectedVersion: assigned.Matter.Version, Title: action.Title,
 		Description: "Assign every annual-return section and attach its source.",
@@ -259,7 +263,7 @@ func TestAssignMatterAndUpdateAction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assignedAction, err := service.AssignAction(t.Context(), AssignActionInput{
+	assignedAction, err := service.AssignAction(WithTrustedSystemScope(t.Context()), AssignActionInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ActionID: action.ID,
 		ExpectedVersion: updated.Matter.Version, OwnerPrincipalID: "performer-2",
 		ActorID: "owner-2", Rationale: "Assign the active privacy operations owner.",
@@ -281,8 +285,8 @@ func TestAssignMatterAndUpdateAction(t *testing.T) {
 func editableMatterFixture(t *testing.T) (*Service, MatterAggregate) {
 	t.Helper()
 	service := NewService(NewMemoryRepository())
-	matter, err := service.CreateMatter(t.Context(), CreateMatterInput{
-		TenantID: "bank", Type: MatterRegulatoryChange, Priority: 4,
+	matter, err := service.CreateMatter(WithTrustedSystemScope(t.Context()), CreateMatterInput{
+		TenantID: "bank", LegalEntityID: "entity-a", Type: MatterRegulatoryChange, Priority: 4,
 		Title: "Annual return", Summary: "Update the filing process.",
 		Scope: json.RawMessage(`{}`), KnownFacts: json.RawMessage(`{}`),
 		MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`),
@@ -291,7 +295,7 @@ func editableMatterFixture(t *testing.T) (*Service, MatterAggregate) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	matter, err = service.AddAction(t.Context(), AddActionInput{
+	matter, err = service.AddAction(WithTrustedSystemScope(t.Context()), AddActionInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
 		Title: "Update annual-return evidence checklist", Description: "Map each return section to current evidence.",
 		OwnerPrincipalID: "performer-1", ActorID: "owner-1",
@@ -305,8 +309,8 @@ func editableMatterFixture(t *testing.T) (*Service, MatterAggregate) {
 func TestActionEditsPreserveHistoryAndRejectTerminalActions(t *testing.T) {
 	repo := NewMemoryRepository()
 	service := NewService(repo)
-	matter, err := service.CreateMatter(t.Context(), CreateMatterInput{
-		TenantID: "bank", Type: MatterRegulatoryChange, Priority: 4,
+	matter, err := service.CreateMatter(WithTrustedSystemScope(t.Context()), CreateMatterInput{
+		TenantID: "bank", LegalEntityID: "entity-a", Type: MatterRegulatoryChange, Priority: 4,
 		Title: "Annual return", Summary: "Update the filing process.",
 		Scope: json.RawMessage(`{}`), KnownFacts: json.RawMessage(`{}`),
 		MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`),
@@ -315,7 +319,7 @@ func TestActionEditsPreserveHistoryAndRejectTerminalActions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	matter, err = service.AddAction(t.Context(), AddActionInput{
+	matter, err = service.AddAction(WithTrustedSystemScope(t.Context()), AddActionInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
 		Title: "Update checklist", Description: "Map every section.", OwnerPrincipalID: "performer-1", ActorID: "owner-1",
 	})
@@ -323,7 +327,7 @@ func TestActionEditsPreserveHistoryAndRejectTerminalActions(t *testing.T) {
 		t.Fatal(err)
 	}
 	action := matter.Actions[0]
-	matter, err = service.UpdateAction(t.Context(), UpdateActionInput{
+	matter, err = service.UpdateAction(WithTrustedSystemScope(t.Context()), UpdateActionInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ActionID: action.ID, ExpectedVersion: matter.Matter.Version,
 		Title: action.Title, Description: "Map every section to its current source.", DueAt: action.DueAt,
 		ActorID: "owner-1", Rationale: "Make the evidence requirement explicit.",
@@ -331,14 +335,14 @@ func TestActionEditsPreserveHistoryAndRejectTerminalActions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	matter, err = service.AssignAction(t.Context(), AssignActionInput{
+	matter, err = service.AssignAction(WithTrustedSystemScope(t.Context()), AssignActionInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ActionID: action.ID, ExpectedVersion: matter.Matter.Version,
 		OwnerPrincipalID: "performer-2", ActorID: "owner-1", Rationale: "Assign the current process owner.",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	events, err := repo.MatterEvents(t.Context(), "bank", matter.Matter.ID, nil)
+	events, err := repo.MatterEvents(WithTrustedSystemScope(t.Context()), "bank", matter.Matter.ID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -355,7 +359,7 @@ func TestActionEditsPreserveHistoryAndRejectTerminalActions(t *testing.T) {
 	}
 
 	for _, state := range []ActionStatus{ActionInProgress, ActionImplemented} {
-		matter, err = service.TransitionAction(t.Context(), TransitionActionInput{
+		matter, err = service.TransitionAction(WithTrustedSystemScope(t.Context()), TransitionActionInput{
 			TenantID: "bank", MatterID: matter.Matter.ID, ActionID: action.ID,
 			ExpectedVersion: matter.Matter.Version, To: state, ActorID: "performer-2", Rationale: "Complete assigned work.",
 		})
@@ -364,14 +368,14 @@ func TestActionEditsPreserveHistoryAndRejectTerminalActions(t *testing.T) {
 		}
 	}
 	terminal := matter.Actions[0]
-	if _, err := service.UpdateAction(t.Context(), UpdateActionInput{
+	if _, err := service.UpdateAction(WithTrustedSystemScope(t.Context()), UpdateActionInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ActionID: action.ID, ExpectedVersion: matter.Matter.Version,
 		Title: terminal.Title, Description: "Rewrite completed work.", DueAt: terminal.DueAt,
 		ActorID: "owner-1", Rationale: "Attempt to rewrite completion.",
 	}); !errors.Is(err, ErrInvalidState) {
 		t.Fatalf("expected terminal action update to fail closed, got %v", err)
 	}
-	if _, err := service.AssignAction(t.Context(), AssignActionInput{
+	if _, err := service.AssignAction(WithTrustedSystemScope(t.Context()), AssignActionInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ActionID: action.ID, ExpectedVersion: matter.Matter.Version,
 		OwnerPrincipalID: "performer-3", ActorID: "owner-1", Rationale: "Attempt to reassign completed work.",
 	}); !errors.Is(err, ErrInvalidState) {

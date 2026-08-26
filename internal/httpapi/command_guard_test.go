@@ -102,9 +102,13 @@ func TestCommandRejectsTenantMismatch(t *testing.T) {
 	}
 }
 
-type capturingCommandAuthority struct{ input authority.ResolveInput }
+type capturingCommandAuthority struct {
+	input authority.ResolveInput
+	calls int
+}
 
 func (s *capturingCommandAuthority) Resolve(_ context.Context, input authority.ResolveInput) (authority.Resolution, error) {
+	s.calls++
 	s.input = input
 	return authority.Resolution{Principal: authority.Principal{ID: "person-1"}, RuleID: "route-1", PolicyVersion: "v1"}, nil
 }
