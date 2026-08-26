@@ -27,7 +27,7 @@ The capture suite prefers production components and realistic deterministic fixt
 
 ## UI foundation and capture matrix
 
-The current suite exercises **49 deterministic rendered states/interactions** across:
+The current suite exercises **61 deterministic rendered states/interactions** across:
 
 - Today in light and dark themes;
 - comfortable and compact desktop density;
@@ -51,6 +51,12 @@ The current suite exercises **49 deterministic rendered states/interactions** ac
 - vendor due-diligence start, ready-to-send, submitted review and mobile review states;
 - vendor form-source degradation with an explicit reload action;
 - vendor invitation delivery failure with recovery status and no retained raw recipient field.
+- vendor work entered from exact Program and issue/change records, using the linked vendor relationship already in scope;
+- vendor work preparation with Automatic, Classic and Wizard layout choices, typed email/date controls, the approved form version and its document requirement;
+- partial vendor-work delivery followed by a successful retry, without retaining the invitation capability in the page;
+- exact submitted vendor answers with source provenance, missing and conditionally omitted fields, and available versus quarantined document handling;
+- response review, change-request preparation and accepted request history with one dominant action for the current state;
+- vendor-work response review at 390px and 320px, with answer, value and provenance stacked instead of compressed into desktop columns.
 
 Mechanical checks fail CI for conditions such as unexpected horizontal overflow, browser runtime errors, loss of the first Today action from the unobstructed first viewport, focus escaping a focused-work sheet, authority-detail leakage in a forbidden state, terminal requests exposing submission actions, degraded views hiding still-available context, external capture asking for a known address again, or a required field-agent happy path depending on free-text explanation.
 

@@ -1,7 +1,9 @@
 import type { CoverageDecision, DocumentCoverage, DocumentImport, ProposalStatus } from "./documentTypes";
 import type { FormTemplate } from "./monitoringTypes";
 import type { VendorAssessment, VendorAssessmentReviewView } from "./vendorAssessmentTypes";
+import type { VendorRelationshipLink } from "./vendorLinkTypes";
 import type { VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "./vendorTypes";
+import type { VendorWorkRequest, VendorWorkResponseView, VendorWorkSendOutcome } from "./vendorWorkTypes";
 
 export const staticDemoEnabled = import.meta.env.VITE_STATIC_DEMO === "true";
 
@@ -134,6 +136,68 @@ const vendorDueDiligenceForm: FormTemplate = {
   updated_at: now,
 };
 
+const vendorProgramLink: VendorRelationshipLink = {
+  id: "vendor-link-program-payments", tenant_id: "bank-demo", legal_entity_id: "bank-ng", relationship_id: vendorRelationshipID,
+  target_type: "PROGRAM", target_id: programID, purpose_code: "CONTROL_ASSURANCE", purpose_label: "Payment-service control assurance",
+  state: "ACTIVE", created_by: "role-payments-owner", version: 1, created_at: "2026-08-18T09:00:00Z", updated_at: now,
+};
+const vendorMatterLink: VendorRelationshipLink = {
+  id: "vendor-link-matter-payments", tenant_id: "bank-demo", legal_entity_id: "bank-ng", relationship_id: vendorRelationshipID,
+  target_type: "MATTER", target_id: matterID, purpose_code: "REMEDIATION", purpose_label: "Annual-return evidence update",
+  state: "ACTIVE", created_by: "role-dpo", version: 1, created_at: "2026-08-19T09:00:00Z", updated_at: now,
+};
+const vendorWorkLinks = [vendorProgramLink, vendorMatterLink];
+let vendorWorkFixture = "";
+let vendorWorkRequests: VendorWorkRequest[] = [];
+
+function vendorWorkRecord(link: VendorRelationshipLink, state: VendorWorkRequest["state"], deliveryState: VendorWorkRequest["delivery_state"], version: number): VendorWorkRequest {
+  const submitted = state === "RESPONSE_RECEIVED" || state === "UNDER_REVIEW" || state === "ACCEPTED";
+  return {
+    id: link.target_type === "PROGRAM" ? "vendor-work-program-controls" : "vendor-work-matter-evidence",
+    tenant_id: "bank-demo", legal_entity_id: "bank-ng", relationship_id: vendorRelationshipID, relationship_link_id: link.id,
+    target_type: link.target_type, target_id: link.target_id, purpose: link.target_type === "PROGRAM" ? "Confirm payment-service controls" : "Complete annual-return evidence",
+    instructions: link.target_type === "PROGRAM" ? "Complete the control questions and provide the current independent assurance report." : "Upload the signed evidence schedule and confirm the remaining service-control details.",
+    owner_principal_id: link.target_type === "PROGRAM" ? "role-payments-owner" : "role-dpo", reviewer_principal_id: state === "UNDER_REVIEW" || state === "ACCEPTED" ? "role-cro" : undefined,
+    form_template_id: vendorDueDiligenceForm.id, form_template_version: vendorDueDiligenceForm.version, presentation: "WIZARD",
+    current_request_id: state === "PREPARING" ? undefined : "vendor-work-capture-1", current_invitation_id: state === "PREPARING" ? undefined : "vendor-work-invitation-1", current_capture_sequence: state === "PREPARING" ? 0 : 1,
+    submission_id: submitted ? "vendor-work-submission-1" : undefined, state, delivery_state: deliveryState,
+    recovery: deliveryState === "RETRY_REQUIRED" ? "Email delivery was not confirmed. Retry delivery to issue a replacement secure link." : undefined,
+    review_rationale: state === "ACCEPTED" ? "The response and current assurance report address this request." : undefined,
+    due_at: "2026-09-30T23:59:59Z", version, created_at: "2026-08-20T09:00:00Z", updated_at: now,
+    response_received_at: submitted ? "2026-08-25T14:20:00Z" : undefined, review_started_at: state === "UNDER_REVIEW" || state === "ACCEPTED" ? "2026-08-25T15:00:00Z" : undefined,
+    accepted_at: state === "ACCEPTED" ? "2026-08-26T11:00:00Z" : undefined,
+  };
+}
+
+function syncVendorWorkFixture(fixture: string) {
+  if (vendorWorkFixture === fixture) return;
+  vendorWorkFixture = fixture;
+  if (fixture === "vendor-work-submitted") vendorWorkRequests = [vendorWorkRecord(vendorMatterLink, "RESPONSE_RECEIVED", "DELIVERED", 4)];
+  else if (fixture === "vendor-work-partial-delivery") vendorWorkRequests = [vendorWorkRecord(vendorProgramLink, "AWAITING_VENDOR", "RETRY_REQUIRED", 3)];
+  else if (fixture === "vendor-work-accepted") vendorWorkRequests = [vendorWorkRecord(vendorMatterLink, "ACCEPTED", "DELIVERED", 6)];
+  else vendorWorkRequests = [];
+}
+
+function vendorWorkResponse(work: VendorWorkRequest): VendorWorkResponseView {
+  const requestID = work.current_request_id!;
+  return {
+    work,
+    request: { request_id: requestID, status: "SUBMITTED", deadline: work.due_at, form_template_id: work.form_template_id, form_template_version: work.form_template_version, presentation: { default_mode: "WIZARD", allow_mode_switch: true } },
+    response: { submission_id: work.submission_id!, request_id: requestID, submitted_at: work.response_received_at! },
+    answers: [
+      { field_id: "service_description", label: "Service description", type: "LONG_TEXT", required: true, visibility: "VISIBLE", value: { text: "Card transaction processing, settlement routing and operational support for the bank." }, provenance: { origin: "SOURCE_PREFILLED", source_receipt: { source_id: "Vendor register", observed_at: "2026-08-24T09:00:00Z" } } },
+      { field_id: "data_classes", label: "Bank information used", type: "MULTI_SELECT", required: true, visibility: "VISIBLE", value: { values: ["Customer personal data", "Payment data"] }, provenance: { origin: "RESPONDENT_ENTERED" } },
+      { field_id: "subprocessors", label: "Do subcontractors process bank information?", type: "YES_NO", required: true, visibility: "VISIBLE", value: { text: "Yes" }, provenance: { origin: "RESPONDENT_ENTERED" } },
+      { field_id: "subprocessor_details", label: "Subcontractor details", type: "LONG_TEXT", required: true, visibility: "CONDITIONALLY_OMITTED" },
+      { field_id: "control_owner", label: "Control owner", type: "SHORT_TEXT", required: true, visibility: "VISIBLE" },
+    ],
+    documents: [
+      { field_id: "security_document", artifact_id: "artifact-vendor-iso27001", file_name: "acme-iso-27001-certificate.pdf", media_type: "application/pdf", size_bytes: 684220, artifact_status: "AVAILABLE", evidence_class: "VENDOR_SUPPLIED", document_type: "ISO_27001_CERTIFICATE", reference: "ISO-27001-ACME-2026", issued_by: "Accredited certification body", issued_on: "2026-03-01", expires_on: "2027-03-01" },
+      { field_id: "security_document", artifact_id: "artifact-vendor-test-report", file_name: "acme-penetration-test-report.pdf", media_type: "application/pdf", size_bytes: 921430, artifact_status: "QUARANTINED", evidence_class: "VENDOR_SUPPLIED", document_type: "PENETRATION_TEST_REPORT" },
+    ],
+  };
+}
+
 let vendorAssessment: VendorAssessment | null = null;
 
 function submittedVendorAssessment(): VendorAssessment {
@@ -246,6 +310,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   const pathname = url.pathname;
   const method = (init?.method ?? "GET").toUpperCase();
   const fixture = activeFixture();
+  syncVendorWorkFixture(fixture);
 
   if (fixture === "today-loading" && pathname === "/api/v1/today") await delay(1800);
   if (fixture === "today-unavailable" && pathname === "/api/v1/today") throw new StaticDemoHTTPError(503, "today_unavailable", "Today's work is unavailable.");
@@ -265,6 +330,70 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/form-templates" && method === "GET") {
     if (fixture === "vendor-source-degraded") throw new StaticDemoHTTPError(503, "vendor_forms_unavailable", "Approved due-diligence forms could not be loaded.");
     return clone({ items: [vendorDueDiligenceForm], next_cursor: "" }) as T;
+  }
+  if (pathname === "/api/v1/vendor-links" && method === "GET") {
+    const targetType = url.searchParams.get("target_type");
+    const targetID = url.searchParams.get("target_id");
+    return clone({ items: vendorWorkLinks.filter((link) => link.target_type === targetType && link.target_id === targetID), next_cursor: "" }) as T;
+  }
+  if (pathname === "/api/v1/vendor-work" && method === "GET") {
+    const relationshipID = url.searchParams.get("relationship_id");
+    const targetType = url.searchParams.get("target_type");
+    const targetID = url.searchParams.get("target_id");
+    const items = vendorWorkRequests.filter((work) => relationshipID ? work.relationship_id === relationshipID : work.target_type === targetType && work.target_id === targetID);
+    return clone({ items, next_cursor: "" }) as T;
+  }
+  const prepareVendorWorkMatch = pathname.match(/^\/api\/v1\/vendors\/([^/]+)\/work\/prepare$/);
+  if (prepareVendorWorkMatch && method === "POST") {
+    const relationshipID = decodeURIComponent(prepareVendorWorkMatch[1]!);
+    const input = parseBody(init) as { relationship_link_id?: string; purpose?: string; instructions?: string; form_template_id?: string; form_template_version?: number; presentation?: VendorWorkRequest["presentation"]; vendor_audience?: string; due_at?: string };
+    const link = vendorWorkLinks.find((item) => item.id === input.relationship_link_id && item.relationship_id === relationshipID && item.state === "ACTIVE");
+    if (!link || !input.purpose?.trim() || !input.instructions?.trim() || input.form_template_id !== vendorDueDiligenceForm.id || input.form_template_version !== vendorDueDiligenceForm.version || !input.vendor_audience?.includes("@") || !input.due_at) throw new StaticDemoHTTPError(422, "vendor_work_invalid", "Confirm the linked vendor, purpose, form, vendor contact and due date.");
+    const work = { ...vendorWorkRecord(link, "PREPARING", "NOT_SENT", 1), purpose: input.purpose.trim(), instructions: input.instructions.trim(), presentation: input.presentation ?? "AUTOMATIC", due_at: input.due_at };
+    vendorWorkRequests = [work, ...vendorWorkRequests.filter((item) => item.id !== work.id)];
+    return clone(work) as T;
+  }
+  const vendorWorkResponseMatch = pathname.match(/^\/api\/v1\/vendors\/([^/]+)\/work\/([^/]+)\/response$/);
+  if (vendorWorkResponseMatch && method === "GET") {
+    const relationshipID = decodeURIComponent(vendorWorkResponseMatch[1]!);
+    const workID = decodeURIComponent(vendorWorkResponseMatch[2]!);
+    const work = vendorWorkRequests.find((item) => item.id === workID && item.relationship_id === relationshipID);
+    if (!work?.submission_id || !work.current_request_id) throw new StaticDemoHTTPError(404, "vendor_work_response_not_found", "The submitted vendor response is not available for this request.");
+    return clone(vendorWorkResponse(work)) as T;
+  }
+  const vendorWorkCommandMatch = pathname.match(/^\/api\/v1\/vendors\/([^/]+)\/work\/([^/]+)\/(send|retry|review\/start|changes|accept|cancel)$/);
+  if (vendorWorkCommandMatch && method === "POST") {
+    const relationshipID = decodeURIComponent(vendorWorkCommandMatch[1]!);
+    const workID = decodeURIComponent(vendorWorkCommandMatch[2]!);
+    const command = vendorWorkCommandMatch[3]!;
+    const index = vendorWorkRequests.findIndex((item) => item.id === workID && item.relationship_id === relationshipID);
+    if (index < 0) throw new StaticDemoHTTPError(404, "vendor_work_not_found", "The vendor request is not available in this legal entity.");
+    const current = vendorWorkRequests[index]!;
+    const input = parseBody(init) as { expected_version?: number; vendor_audience?: string; invitation_ttl_minutes?: number; message?: string; field_ids?: string[]; due_at?: string; rationale?: string; reason?: string };
+    if (input.expected_version !== current.version) throw new StaticDemoHTTPError(409, "vendor_work_changed", "The vendor request changed before this action was recorded.");
+    let updated: VendorWorkRequest;
+    let outcome: VendorWorkSendOutcome | undefined;
+    if (command === "send" || command === "retry") {
+      if (!input.vendor_audience?.includes("@") || !input.invitation_ttl_minutes) throw new StaticDemoHTTPError(422, "vendor_work_invalid", "Enter a valid vendor contact and secure-link lifetime.");
+      const partial = command === "send" && fixture === "vendor-work-partial-delivery";
+      updated = { ...current, state: "AWAITING_VENDOR", delivery_state: partial ? "RETRY_REQUIRED" : "DELIVERED", recovery: partial ? "Email delivery was not confirmed. Retry delivery to issue a replacement secure link." : undefined, current_request_id: current.current_request_id ?? "vendor-work-capture-1", current_invitation_id: "vendor-work-invitation-replacement", current_capture_sequence: current.current_capture_sequence + 1, version: current.version + 1, updated_at: now };
+      outcome = { work: updated, state: updated.delivery_state, delivery: { status: partial ? "FAILED" : "DELIVERED" }, recovery: updated.recovery, ...(partial ? { capture_url: "https://capture.example.test/?capture_invite=sample-vendor-work-recovery" } : {}) };
+    } else if (command === "review/start") {
+      if (current.state !== "RESPONSE_RECEIVED") throw new StaticDemoHTTPError(409, "vendor_work_action_unavailable", "A submitted response is required before review starts.");
+      updated = { ...current, state: "UNDER_REVIEW", reviewer_principal_id: "role-cro", review_started_at: now, version: current.version + 1, updated_at: now };
+    } else if (command === "changes") {
+      if (current.state !== "UNDER_REVIEW" || !input.message?.trim() || !input.field_ids?.length || !input.vendor_audience?.includes("@") || !input.due_at) throw new StaticDemoHTTPError(422, "vendor_work_invalid", "Identify what the vendor must change, the affected fields, vendor contact and revised due date.");
+      updated = { ...current, state: "CHANGES_REQUESTED", delivery_state: "DELIVERED", due_at: input.due_at, current_invitation_id: "vendor-work-invitation-changes", current_capture_sequence: current.current_capture_sequence + 1, version: current.version + 1, updated_at: now };
+      outcome = { work: updated, state: "DELIVERED", delivery: { status: "DELIVERED" } };
+    } else if (command === "accept") {
+      if (current.state !== "UNDER_REVIEW" || !input.rationale?.trim()) throw new StaticDemoHTTPError(422, "vendor_work_invalid", "Record the basis for accepting this response.");
+      updated = { ...current, state: "ACCEPTED", review_rationale: input.rationale.trim(), accepted_at: now, version: current.version + 1, updated_at: now };
+    } else {
+      if (!input.reason?.trim()) throw new StaticDemoHTTPError(422, "vendor_work_invalid", "Record why this vendor request is being cancelled.");
+      updated = { ...current, state: "CANCELLED", cancellation_reason: input.reason.trim(), cancelled_at: now, version: current.version + 1, updated_at: now };
+    }
+    vendorWorkRequests = vendorWorkRequests.map((item, itemIndex) => itemIndex === index ? updated : item);
+    return clone(outcome ?? updated) as T;
   }
   if (pathname === "/api/v1/vendors" && method === "GET") {
     const query = (url.searchParams.get("search") ?? "").trim().toLowerCase();

@@ -22,7 +22,9 @@ The review fails when it detects, among other things:
 
 ## Executable flow coverage
 
-The current review exercises Today, Program, Vendor, Matter, Evidence, Import and Configure workspaces across light/dark modes and desktop, tablet, mobile and 320-pixel reflow layouts. It includes loading, empty, unavailable, partial-degradation and permission-denied states; authority disclosure; evidence entry/review/receipt; not-found, expiry and optimistic conflict; external field-visit upload/signature; vendor due-diligence start, request, review and delivery-recovery states; lifecycle disclosure; operating mutations; and Program review acknowledgement.
+The current review exercises Today, Program, Vendor, Matter, Evidence, Import and Configure workspaces across light/dark modes and desktop, tablet, mobile and 320-pixel reflow layouts. It includes loading, empty, unavailable, partial-degradation and permission-denied states; authority disclosure; evidence entry/review/receipt; not-found, expiry and optimistic conflict; external field-visit upload/signature; vendor due-diligence start, request, review and delivery recovery; vendor work linked to exact Programs and issues/changes; Automatic, Classic and Wizard collection choices; typed request inputs; partial delivery and retry; submitted-answer and document review; change preparation; accepted history; lifecycle disclosure; operating mutations; and Program review acknowledgement.
+
+The vendor-work reflow checks fail when the panel, form, card, response or typed control is clipped by its containing Program or issue/change record. They also require answer labels, values and provenance to stack into one readable column at 390px and 320px. Document actions remain available only for artifacts reported as available by the response contract.
 
 A dedicated behavioral defect runner additionally checks deep-link visibility beneath sticky headers, fixed-navigation overlap, actual 200% CSS-pixel reflow, required-rationale validation, in-flight double-submit prevention, concise operational copy and mobile target sizing.
 

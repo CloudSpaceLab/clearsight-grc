@@ -152,4 +152,55 @@ describe("static stakeholder demo transport", () => {
     expect(partial).toMatchObject({ state: "LINK_CREATED_EMAIL_NOT_SENT", delivery: { status: "FAILED" } });
     expect(partial.capture_url).toContain("capture_invite=");
   });
+
+  it("supports vendor work linked to exact Program and Matter records", async () => {
+    window.history.replaceState(null, "", "/?fixture=vendor-work-empty");
+    const { staticDemoRequest } = await demo();
+
+    const programLinks = await staticDemoRequest<{ items: Array<{ id: string; target_type: string; target_id: string; relationship_id: string }> }>("/api/v1/vendor-links?target_type=PROGRAM&target_id=program-ndpa&limit=50");
+    const matterLinks = await staticDemoRequest<{ items: Array<{ id: string; target_type: string; target_id: string; relationship_id: string }> }>("/api/v1/vendor-links?target_type=MATTER&target_id=matter-gaid-change&limit=50");
+    expect(programLinks.items[0]).toMatchObject({ target_type: "PROGRAM", target_id: "program-ndpa", relationship_id: "vendor-relationship-payments" });
+    expect(matterLinks.items[0]).toMatchObject({ target_type: "MATTER", target_id: "matter-gaid-change", relationship_id: "vendor-relationship-payments" });
+
+    const prepared = await staticDemoRequest<{ id: string; target_type: string; target_id: string; presentation: string; state: string; version: number }>("/api/v1/vendors/vendor-relationship-payments/work/prepare", {
+      method: "POST",
+      body: JSON.stringify({ relationship_link_id: programLinks.items[0]?.id, purpose: "Confirm payment-service controls", instructions: "Complete the control questions and provide the current assurance report.", form_template_id: "form-vendor-due-diligence", form_template_version: 3, presentation: "WIZARD", vendor_audience: "security@acme.example", due_at: "2026-09-30T23:59:59Z" }),
+    });
+    expect(prepared).toMatchObject({ target_type: "PROGRAM", target_id: "program-ndpa", presentation: "WIZARD", state: "PREPARING", version: 1 });
+
+    const sent = await staticDemoRequest<{ work: { state: string; delivery_state: string; version: number }; state: string }>(`/api/v1/vendors/vendor-relationship-payments/work/${prepared.id}/send`, { method: "POST", body: JSON.stringify({ expected_version: 1, vendor_audience: "security@acme.example", invitation_ttl_minutes: 1440 }) });
+    expect(sent).toMatchObject({ work: { state: "AWAITING_VENDOR", delivery_state: "DELIVERED", version: 2 }, state: "DELIVERED" });
+  });
+
+  it("renders exact vendor work responses and deterministic review decisions", async () => {
+    window.history.replaceState(null, "", "/?fixture=vendor-work-submitted");
+    const { staticDemoRequest } = await demo();
+    const page = await staticDemoRequest<{ items: Array<{ id: string; relationship_id: string; current_request_id: string; state: string; version: number }> }>("/api/v1/vendor-work?target_type=MATTER&target_id=matter-gaid-change&limit=20");
+    const work = page.items[0]!;
+    const response = await staticDemoRequest<{ work: { id: string }; request: { request_id: string; presentation: { default_mode: string } }; response: { request_id: string }; answers: Array<{ visibility: string; value?: unknown }>; documents: Array<{ artifact_status: string }> }>(`/api/v1/vendors/${work.relationship_id}/work/${work.id}/response`);
+
+    expect(work).toMatchObject({ state: "RESPONSE_RECEIVED", current_request_id: "vendor-work-capture-1", version: 4 });
+    expect(response.work.id).toBe(work.id);
+    expect(response.request).toMatchObject({ request_id: work.current_request_id, presentation: { default_mode: "WIZARD" } });
+    expect(response.response.request_id).toBe(work.current_request_id);
+    expect(response.answers.some((answer) => answer.visibility === "CONDITIONALLY_OMITTED")).toBe(true);
+    expect(response.answers.some((answer) => !answer.value)).toBe(true);
+    expect(response.documents.map((document) => document.artifact_status)).toEqual(["AVAILABLE", "QUARANTINED"]);
+
+    const reviewing = await staticDemoRequest<{ state: string; version: number }>(`/api/v1/vendors/${work.relationship_id}/work/${work.id}/review/start`, { method: "POST", body: JSON.stringify({ expected_version: work.version }) });
+    expect(reviewing).toMatchObject({ state: "UNDER_REVIEW", version: 5 });
+    const accepted = await staticDemoRequest<{ state: string; version: number; review_rationale: string }>(`/api/v1/vendors/${work.relationship_id}/work/${work.id}/accept`, { method: "POST", body: JSON.stringify({ expected_version: 5, rationale: "The response and current assurance report address this request." }) });
+    expect(accepted).toMatchObject({ state: "ACCEPTED", version: 6, review_rationale: "The response and current assurance report address this request." });
+  });
+
+  it("recovers vendor work after partial invitation delivery", async () => {
+    window.history.replaceState(null, "", "/?fixture=vendor-work-partial-delivery");
+    const { staticDemoRequest } = await demo();
+    const page = await staticDemoRequest<{ items: Array<{ id: string; relationship_id: string; delivery_state: string; version: number }> }>("/api/v1/vendor-work?target_type=PROGRAM&target_id=program-ndpa&limit=20");
+    const work = page.items[0]!;
+    expect(work.delivery_state).toBe("RETRY_REQUIRED");
+
+    const retried = await staticDemoRequest<{ work: { delivery_state: string; version: number }; state: string }>(`/api/v1/vendors/${work.relationship_id}/work/${work.id}/retry`, { method: "POST", body: JSON.stringify({ expected_version: work.version, vendor_audience: "security@acme.example", invitation_ttl_minutes: 1440 }) });
+    expect(retried).toMatchObject({ work: { delivery_state: "DELIVERED", version: work.version + 1 }, state: "DELIVERED" });
+  });
 });

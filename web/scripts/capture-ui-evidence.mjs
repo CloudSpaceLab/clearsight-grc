@@ -34,6 +34,7 @@ const captures = [
 ];
 
 try {
+  await captureVendorLinkedWorkflows();
   for (const capture of captures) await capturePage(capture);
   await captureRouting();
   await captureAuthorityForbidden();
@@ -363,6 +364,18 @@ async function captureImportSelection() {
   }
 }
 
+async function assertVendorWorkContained(page, name) {
+  const result = await page.locator(".vendor-work-panel").evaluate((panel) => {
+    const viewportWidth = document.documentElement.clientWidth;
+    const elements = [panel, ...panel.querySelectorAll(".vendor-work-form, .vendor-work-card, .vendor-work-response, input, select, textarea")];
+    return elements.map((element) => {
+      const rect = element.getBoundingClientRect();
+      return { tag: element.tagName, className: element.className, left: rect.left, right: rect.right };
+    }).filter((rect) => rect.left < 0 || rect.right > viewportWidth + 1);
+  });
+  if (result.length) throw new Error(`${name} clips vendor work content: ${JSON.stringify(result.slice(0, 3))}`);
+}
+
 async function captureVendorWorkflows() {
   const scenarios = [
     { name: "40-vendor-start-light-1440x900", fixture: undefined, state: "vendor-due-diligence-start", viewport: { width: 1440, height: 900 }, action: "Start due diligence" },
@@ -403,6 +416,190 @@ async function captureVendorWorkflows() {
     await assertNoHorizontalOverflow(page, partial.name);
     await saveScreenshot(page, partial.name);
     await record(page, partial, partial.state);
+  } finally {
+    await context.close();
+  }
+}
+
+async function captureVendorLinkedWorkflows() {
+  await captureVendorTargetEntry({ name: "46-vendor-work-program-entry-light-1440x900", route: "#programs/program-ndpa", title: "Programs", fixture: "vendor-work-empty", state: "vendor-work-program-entry", theme: "light", viewport: { width: 1440, height: 900 } });
+  await captureVendorTargetEntry({ name: "47-vendor-work-matter-entry-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "vendor-work-empty", state: "vendor-work-matter-entry", theme: "dark", viewport: { width: 1440, height: 900 } });
+  await captureVendorWorkCreation();
+  await captureVendorWorkCreationMobile();
+  await captureVendorWorkDeliveryRecovery();
+  await captureVendorWorkReview();
+  await captureVendorWorkReviewMobile(390, "55-vendor-work-response-mobile-light-390x844", "vendor-work-response-mobile");
+  await captureVendorWorkReviewMobile(320, "56-vendor-work-response-reflow-light-320x800", "vendor-work-response-reflow");
+  await captureVendorWorkHistory();
+}
+
+async function openVendorWorkTarget(capture) {
+  const opened = await openPage({ ...capture, density: "comfortable" });
+  const heading = opened.page.getByRole("heading", { name: "Vendor requests", exact: true });
+  await heading.waitFor({ state: "visible" });
+  await heading.scrollIntoViewIfNeeded();
+  return opened;
+}
+
+async function captureVendorTargetEntry(capture) {
+  const { context, page } = await openVendorWorkTarget(capture);
+  try {
+    await page.getByRole("button", { name: "Request vendor work" }).waitFor({ state: "visible" });
+    await page.getByText("No vendor requests have been recorded for this", { exact: false }).waitFor({ state: "visible" });
+    await assertNoHorizontalOverflow(page, capture.name);
+    await saveScreenshot(page, capture.name);
+    await record(page, { ...capture, density: "comfortable" }, capture.state);
+  } finally {
+    await context.close();
+  }
+}
+
+async function fillVendorWorkCreation(page, layout) {
+  await page.getByRole("button", { name: "Request vendor work" }).click();
+  const relationship = page.getByLabel("Vendor relationship");
+  const form = page.getByLabel("Collection form");
+  const layoutSelect = page.getByLabel("Form layout");
+  const relationshipValues = await relationship.locator("option").evaluateAll((options) => options.map((option) => option.value));
+  await relationship.selectOption(relationshipValues.includes("vendor-link-program-payments") ? "vendor-link-program-payments" : "vendor-link-matter-payments");
+  await page.getByLabel("Request purpose", { exact: true }).fill("Confirm payment-service controls");
+  await page.getByLabel("Instructions for the vendor", { exact: true }).fill("Complete the control questions and provide the current independent assurance report.");
+  await form.selectOption("form-vendor-due-diligence:3");
+  const layouts = await layoutSelect.locator("option").evaluateAll((options) => options.map((option) => ({ value: option.value, label: option.textContent?.trim() })));
+  if (JSON.stringify(layouts) !== JSON.stringify([{ value: "AUTOMATIC", label: "Automatic" }, { value: "CLASSIC", label: "Classic" }, { value: "WIZARD", label: "Wizard" }])) throw new Error("Vendor work form does not offer Automatic, Classic and Wizard layouts");
+  await layoutSelect.selectOption("CLASSIC");
+  await layoutSelect.selectOption(layout);
+  const contact = page.getByLabel("Vendor contact", { exact: true });
+  const due = page.getByLabel("Due date", { exact: true });
+  if (await contact.getAttribute("type") !== "email" || await due.getAttribute("type") !== "date") throw new Error("Vendor work delivery fields do not use email and date input types");
+  await contact.fill("security@acme.example");
+  await due.fill("2026-09-30");
+  await page.getByText("8 fields · 8 required · 1 document upload", { exact: true }).waitFor({ state: "visible" });
+  if (!(await page.getByRole("button", { name: "Prepare and send request" }).isEnabled())) throw new Error("Vendor work request remains unavailable after every required field is completed");
+}
+
+async function captureVendorWorkCreation() {
+  const capture = { name: "48-vendor-work-create-light-1440x900", route: "#programs/program-ndpa", title: "Programs", fixture: "vendor-work-empty", state: "vendor-work-create-layouts-and-typed-fields", theme: "light", viewport: { width: 1440, height: 900 }, density: "comfortable" };
+  const { context, page } = await openVendorWorkTarget(capture);
+  try {
+    await fillVendorWorkCreation(page, "AUTOMATIC");
+    await page.getByRole("heading", { name: "Request vendor work", exact: true }).scrollIntoViewIfNeeded();
+    await assertNoHorizontalOverflow(page, capture.name);
+    await saveScreenshot(page, capture.name);
+    await record(page, capture, capture.state);
+  } finally {
+    await context.close();
+  }
+}
+
+async function captureVendorWorkCreationMobile() {
+  const capture = { name: "49-vendor-work-create-wizard-light-390x844", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "vendor-work-empty", state: "vendor-work-create-wizard-mobile", theme: "light", viewport: { width: 390, height: 844 }, touch: true, density: "comfortable" };
+  const { context, page } = await openVendorWorkTarget(capture);
+  try {
+    await fillVendorWorkCreation(page, "WIZARD");
+    await page.getByRole("heading", { name: "Request vendor work", exact: true }).scrollIntoViewIfNeeded();
+    await assertVendorWorkContained(page, capture.name);
+    await assertNoHorizontalOverflow(page, capture.name);
+    await saveScreenshot(page, capture.name);
+    await record(page, capture, capture.state);
+  } finally {
+    await context.close();
+  }
+}
+
+async function captureVendorWorkDeliveryRecovery() {
+  const capture = { name: "50-vendor-work-delivery-partial-light-1440x900", route: "#programs/program-ndpa", title: "Programs", fixture: "vendor-work-partial-delivery", state: "vendor-work-delivery-partial", theme: "light", viewport: { width: 1440, height: 900 }, density: "comfortable" };
+  const { context, page } = await openVendorWorkTarget(capture);
+  try {
+    const retry = page.getByRole("button", { name: "Retry delivery" });
+    await retry.waitFor({ state: "visible" });
+    await page.getByText("Email delivery was not confirmed", { exact: false }).waitFor({ state: "visible" });
+    await page.getByRole("heading", { name: "Current requests" }).scrollIntoViewIfNeeded();
+    await saveScreenshot(page, capture.name);
+    await record(page, capture, capture.state);
+    await page.getByLabel("Vendor contact", { exact: true }).fill("security@acme.example");
+    await retry.click();
+    await page.getByText("Vendor request sent.", { exact: true }).waitFor({ state: "visible" });
+    if (await page.getByRole("button", { name: "Retry delivery" }).count()) throw new Error("Retry delivery remained available after delivery succeeded");
+    const recovered = { ...capture, name: "51-vendor-work-delivery-recovered-light-1440x900" };
+    await saveScreenshot(page, recovered.name);
+    await record(page, recovered, "vendor-work-delivery-recovered");
+  } finally {
+    await context.close();
+  }
+}
+
+async function openVendorWorkResponse(page) {
+  await page.getByRole("button", { name: "Review response" }).click();
+  await page.getByRole("heading", { name: "Vendor response", exact: true }).waitFor({ state: "visible" });
+  await page.getByText("Required response missing", { exact: true }).waitFor({ state: "visible" });
+  await page.getByText("Not requested because its condition was not met", { exact: true }).waitFor({ state: "visible" });
+  const available = page.getByRole("article", { name: "acme-iso-27001-certificate.pdf" });
+  const quarantined = page.getByRole("article", { name: "acme-penetration-test-report.pdf" });
+  if (await available.getByRole("button", { name: "Open document" }).count() !== 1 || await quarantined.getByRole("button", { name: "Open document" }).count() !== 0) throw new Error("Vendor response document actions do not match artifact availability");
+}
+
+async function captureVendorWorkReview() {
+  const capture = { name: "52-vendor-work-response-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "vendor-work-submitted", state: "vendor-work-response-review", theme: "light", viewport: { width: 1440, height: 900 }, density: "comfortable" };
+  const { context, page } = await openVendorWorkTarget(capture);
+  try {
+    await openVendorWorkResponse(page);
+    await page.getByRole("heading", { name: "Vendor response", exact: true }).scrollIntoViewIfNeeded();
+    await assertNoHorizontalOverflow(page, capture.name);
+    await saveScreenshot(page, capture.name);
+    await record(page, capture, capture.state);
+    await page.getByRole("heading", { name: "Supporting documents", exact: true }).scrollIntoViewIfNeeded();
+    const documents = { ...capture, name: "53-vendor-work-documents-light-1440x900" };
+    await saveScreenshot(page, documents.name);
+    await record(page, documents, "vendor-work-document-review");
+    await page.getByRole("button", { name: "Begin review" }).click();
+    await page.getByRole("button", { name: "Request changes" }).click();
+    const changeMessage = page.getByLabel("What the vendor must change", { exact: true });
+    await changeMessage.fill("Provide a clean current assurance report and identify the accountable control owner.");
+    await page.getByLabel("Control owner", { exact: true }).check();
+    await page.getByLabel("Vendor contact", { exact: true }).fill("security@acme.example");
+    await page.getByLabel("Revised due date", { exact: true }).fill("2026-10-07");
+    if (!(await page.getByRole("button", { name: "Send change request" }).isEnabled())) throw new Error("Change request remains unavailable after its required decision record is complete");
+    await page.locator(".vendor-work-decision textarea").first().scrollIntoViewIfNeeded();
+    const changes = { ...capture, name: "54-vendor-work-changes-light-1440x900" };
+    await saveScreenshot(page, changes.name);
+    await record(page, changes, "vendor-work-change-request");
+  } finally {
+    await context.close();
+  }
+}
+
+async function captureVendorWorkReviewMobile(width, name, state) {
+  const capture = { name, route: "#work/matters/matter-gaid-change", title: "Work", fixture: "vendor-work-submitted", state, theme: "light", viewport: { width, height: width === 390 ? 844 : 800 }, touch: true, density: "comfortable" };
+  const { context, page } = await openVendorWorkTarget(capture);
+  try {
+    await openVendorWorkResponse(page);
+    await page.getByRole("heading", { name: "Vendor response", exact: true }).scrollIntoViewIfNeeded();
+    const answerLayout = await page.locator(".vendor-work-answer-list > div").first().evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { display: style.display, columns: style.gridTemplateColumns.split(" ").filter(Boolean).length };
+    });
+    if (answerLayout.display !== "grid" || answerLayout.columns !== 1) throw new Error(`${capture.name} does not stack answer, value and provenance for narrow review`);
+    await assertVendorWorkContained(page, capture.name);
+    await assertNoHorizontalOverflow(page, capture.name);
+    await saveScreenshot(page, capture.name);
+    await record(page, capture, capture.state);
+  } finally {
+    await context.close();
+  }
+}
+
+async function captureVendorWorkHistory() {
+  const capture = { name: "57-vendor-work-accepted-history-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "vendor-work-accepted", state: "vendor-work-accepted-history", theme: "light", viewport: { width: 1440, height: 900 }, density: "comfortable" };
+  const { context, page } = await openVendorWorkTarget(capture);
+  try {
+    await page.getByText("Request history", { exact: true }).waitFor({ state: "visible" });
+    await page.getByText("Accepted", { exact: true }).waitFor({ state: "visible" });
+    await page.getByText("The response and current assurance report address this request.", { exact: false }).waitFor({ state: "visible" });
+    if (await page.getByRole("button", { name: /Accept|Request changes|Cancel request|Retry delivery/ }).count()) throw new Error("Accepted vendor work exposes a material command");
+    await page.getByText("Request history", { exact: true }).scrollIntoViewIfNeeded();
+    await assertNoHorizontalOverflow(page, capture.name);
+    await saveScreenshot(page, capture.name);
+    await record(page, capture, capture.state);
   } finally {
     await context.close();
   }

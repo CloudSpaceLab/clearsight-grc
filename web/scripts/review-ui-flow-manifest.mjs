@@ -54,6 +54,18 @@ const expectedNames = [
   "43-vendor-review-light-390x844",
   "44-vendor-source-degraded-light-1440x900",
   "45-vendor-delivery-partial-light-1440x900",
+  "46-vendor-work-program-entry-light-1440x900",
+  "47-vendor-work-matter-entry-dark-1440x900",
+  "48-vendor-work-create-light-1440x900",
+  "49-vendor-work-create-wizard-light-390x844",
+  "50-vendor-work-delivery-partial-light-1440x900",
+  "51-vendor-work-delivery-recovered-light-1440x900",
+  "52-vendor-work-response-light-1440x900",
+  "53-vendor-work-documents-light-1440x900",
+  "54-vendor-work-changes-light-1440x900",
+  "55-vendor-work-response-mobile-light-390x844",
+  "56-vendor-work-response-reflow-light-320x800",
+  "57-vendor-work-accepted-history-light-1440x900",
 ];
 const requiredStates = [
   "baseline",
@@ -86,6 +98,18 @@ const requiredStates = [
   "vendor-response-review-mobile",
   "vendor-form-source-unavailable",
   "vendor-delivery-partial",
+  "vendor-work-program-entry",
+  "vendor-work-matter-entry",
+  "vendor-work-create-layouts-and-typed-fields",
+  "vendor-work-create-wizard-mobile",
+  "vendor-work-delivery-partial",
+  "vendor-work-delivery-recovered",
+  "vendor-work-response-review",
+  "vendor-work-document-review",
+  "vendor-work-change-request",
+  "vendor-work-response-mobile",
+  "vendor-work-response-reflow",
+  "vendor-work-accepted-history",
 ];
 
 const failures = [];
