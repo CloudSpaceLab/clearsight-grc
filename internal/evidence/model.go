@@ -201,6 +201,7 @@ type RecipientInput struct {
 type Request struct {
 	ID                    string                    `json:"id"`
 	TenantID              string                    `json:"tenant_id"`
+	LegalEntityID         string                    `json:"legal_entity_id"`
 	SubjectType           string                    `json:"subject_type"`
 	SubjectID             string                    `json:"subject_id"`
 	Title                 string                    `json:"title"`
@@ -227,6 +228,7 @@ type Request struct {
 
 type CreateRequestInput struct {
 	TenantID              string                    `json:"tenant_id"`
+	LegalEntityID         string                    `json:"legal_entity_id,omitempty"`
 	SubjectType           string                    `json:"subject_type"`
 	SubjectID             string                    `json:"subject_id"`
 	Title                 string                    `json:"title"`
@@ -249,6 +251,7 @@ type CreateRequestInput struct {
 
 type DeclareWrongRecipientInput struct {
 	TenantID         string `json:"tenant_id"`
+	LegalEntityID    string `json:"legal_entity_id,omitempty"`
 	RequestID        string `json:"request_id"`
 	ActorPrincipalID string `json:"actor_principal_id,omitempty"`
 	Reason           string `json:"reason"`
@@ -257,6 +260,7 @@ type DeclareWrongRecipientInput struct {
 
 type ReassignRecipientInput struct {
 	TenantID         string         `json:"tenant_id"`
+	LegalEntityID    string         `json:"legal_entity_id,omitempty"`
 	RequestID        string         `json:"request_id"`
 	ActorPrincipalID string         `json:"actor_principal_id,omitempty"`
 	Recipient        RecipientInput `json:"recipient"`
@@ -267,6 +271,7 @@ type ReassignRecipientInput struct {
 type Submission struct {
 	ID               string                      `json:"id"`
 	TenantID         string                      `json:"tenant_id"`
+	LegalEntityID    string                      `json:"legal_entity_id,omitempty"`
 	RequestID        string                      `json:"request_id"`
 	SessionID        string                      `json:"session_id,omitempty"`
 	SubmittedBy      string                      `json:"submitted_by,omitempty"`
@@ -302,13 +307,14 @@ type Invitation struct {
 }
 
 type IssueInvitationInput struct {
-	TenantID   string        `json:"tenant_id"`
-	RequestID  string        `json:"request_id"`
-	Audience   string        `json:"audience"`
-	Purpose    string        `json:"purpose"`
-	TTL        time.Duration `json:"-"`
-	TTLMinutes int           `json:"ttl_minutes"`
-	CreatedBy  string        `json:"created_by,omitempty"`
+	TenantID      string        `json:"tenant_id"`
+	LegalEntityID string        `json:"legal_entity_id,omitempty"`
+	RequestID     string        `json:"request_id"`
+	Audience      string        `json:"audience"`
+	Purpose       string        `json:"purpose"`
+	TTL           time.Duration `json:"-"`
+	TTLMinutes    int           `json:"ttl_minutes"`
+	CreatedBy     string        `json:"created_by,omitempty"`
 }
 
 type IssuedInvitation struct {
@@ -318,10 +324,60 @@ type IssuedInvitation struct {
 	ExpiresAt    time.Time `json:"expires_at"`
 }
 
+// InvitationMetadata is safe for requester administration responses. Token
+// material, token hashes, audience hashes, and raw audience addresses are
+// deliberately not part of this type.
+type InvitationMetadata struct {
+	ID             string     `json:"id"`
+	RequestID      string     `json:"request_id"`
+	AudienceHint   string     `json:"audience_hint"`
+	Purpose        string     `json:"purpose"`
+	ExpiresAt      time.Time  `json:"expires_at"`
+	MaxRedemptions int        `json:"max_redemptions"`
+	Redemptions    int        `json:"redemptions"`
+	RevokedAt      *time.Time `json:"revoked_at,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+}
+
+type ManageInvitationsInput struct {
+	TenantID         string `json:"tenant_id"`
+	LegalEntityID    string `json:"legal_entity_id,omitempty"`
+	RequestID        string `json:"request_id"`
+	ActorPrincipalID string `json:"actor_principal_id,omitempty"`
+}
+
+type RevokeInvitationAsRequesterInput struct {
+	TenantID         string `json:"tenant_id"`
+	LegalEntityID    string `json:"legal_entity_id,omitempty"`
+	RequestID        string `json:"request_id"`
+	InvitationID     string `json:"invitation_id"`
+	ActorPrincipalID string `json:"actor_principal_id,omitempty"`
+}
+
+type RevokeSessionAsRequesterInput struct {
+	TenantID         string `json:"tenant_id"`
+	LegalEntityID    string `json:"legal_entity_id,omitempty"`
+	RequestID        string `json:"request_id"`
+	SessionID        string `json:"session_id"`
+	ActorPrincipalID string `json:"actor_principal_id,omitempty"`
+}
+
+type ReplaceInvitationInput struct {
+	TenantID         string `json:"tenant_id"`
+	LegalEntityID    string `json:"legal_entity_id,omitempty"`
+	RequestID        string `json:"request_id"`
+	InvitationID     string `json:"invitation_id"`
+	ActorPrincipalID string `json:"actor_principal_id,omitempty"`
+	Audience         string `json:"audience"`
+	Purpose          string `json:"purpose"`
+	TTLMinutes       int    `json:"ttl_minutes"`
+}
+
 type Session struct {
 	ID           string     `json:"id"`
 	TenantID     string     `json:"tenant_id"`
 	RequestID    string     `json:"request_id"`
+	InvitationID string     `json:"-"`
 	AudienceHint string     `json:"audience_hint"`
 	TokenHash    []byte     `json:"-"`
 	ExpiresAt    time.Time  `json:"expires_at"`

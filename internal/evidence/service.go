@@ -128,6 +128,25 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if err := validateRequestInput(input); err != nil {
 		return Request{}, err
 	}
+	scope, err := resolveCreateSubjectScope(ctx, s.repo, input)
+	if err != nil {
+		return Request{}, err
+	}
+	if strings.TrimSpace(input.CreatedBy) != "" {
+		access, ok := s.repo.(SubjectAccessChecker)
+		if !ok {
+			return Request{}, ErrSubjectAccessDenied
+		}
+		allowed, accessErr := access.CanReadSubject(ctx, input.TenantID, input.CreatedBy, input.SubjectType, input.SubjectID)
+		if accessErr != nil {
+			return Request{}, accessErr
+		}
+		if !allowed {
+			return Request{}, ErrSubjectAccessDenied
+		}
+	} else if _, exact := s.repo.(SubjectScopeResolver); exact {
+		return Request{}, ErrSubjectAccessDenied
+	}
 	if err := validateFieldContracts(input.Fields); err != nil {
 		return Request{}, err
 	}
@@ -168,7 +187,7 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if !deadline.After(now) {
 		return Request{}, fmt.Errorf("deadline must be in the future")
 	}
-	request := Request{ID: valueID, TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: fields, SourceBindings: sourceBindings, FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion, CollectionPeriodStart: cloneTimePointer(input.CollectionPeriodStart), CollectionPeriodEnd: cloneTimePointer(input.CollectionPeriodEnd), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
+	request := Request{ID: valueID, TenantID: input.TenantID, LegalEntityID: scope.LegalEntityID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: fields, SourceBindings: sourceBindings, FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion, CollectionPeriodStart: cloneTimePointer(input.CollectionPeriodStart), CollectionPeriodEnd: cloneTimePointer(input.CollectionPeriodEnd), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
 	return store.CreateRequestWithRecipient(ctx, request)
 }
 
@@ -207,6 +226,17 @@ func (s *Service) GetRequest(ctx context.Context, tenant, requestID string) (Req
 	return effectiveRequest(value, s.now().UTC()), nil
 }
 
+func (s *Service) GetRequestForEntity(ctx context.Context, tenant, legalEntityID, requestID string) (Request, error) {
+	value, err := s.GetRequest(ctx, tenant, requestID)
+	if err != nil {
+		return Request{}, err
+	}
+	if err := validateCurrentRequestScope(ctx, s.repo, value, legalEntityID); err != nil {
+		return Request{}, err
+	}
+	return value, nil
+}
+
 func (s *Service) GetSubmission(ctx context.Context, tenant, submissionID string) (Submission, error) {
 	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(submissionID) == "" {
 		return Submission{}, fmt.Errorf("tenant and submission are required")
@@ -222,6 +252,11 @@ func (s *Service) Submit(ctx context.Context, submission Submission) (Submission
 	request, err := s.GetRequest(ctx, submission.TenantID, submission.RequestID)
 	if err != nil {
 		return SubmissionReceipt{}, err
+	}
+	if !strings.EqualFold(strings.TrimSpace(submission.Channel), "MAGIC_LINK") {
+		if err := validateCurrentRequestScope(ctx, s.repo, request, submission.LegalEntityID); err != nil {
+			return SubmissionReceipt{}, err
+		}
 	}
 	now := s.now().UTC()
 	if !requestOpenAt(request, now) {
@@ -267,6 +302,9 @@ func (s *Service) IssueInvitation(ctx context.Context, input IssueInvitationInpu
 	}
 	if !RequestManageableBy(request, input.CreatedBy) || !externalRecipientRequest(request) {
 		return IssuedInvitation{}, ErrRecipientMismatch
+	}
+	if err := validateCurrentRequestScope(ctx, s.repo, request, input.LegalEntityID); err != nil {
+		return IssuedInvitation{}, err
 	}
 	access, ok := s.repo.(SubjectAccessChecker)
 	if !ok {
@@ -371,14 +409,14 @@ func (s *Service) RevokeInvitation(ctx context.Context, tenant, id string) error
 	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(id) == "" {
 		return fmt.Errorf("tenant and invitation are required")
 	}
-	return s.repo.RevokeInvitation(ctx, tenant, id, s.now().UTC())
+	return ErrRecipientManagerRequired
 }
 
 func (s *Service) RevokeSession(ctx context.Context, tenant, id string) error {
 	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(id) == "" {
 		return fmt.Errorf("tenant and session are required")
 	}
-	return s.repo.RevokeSession(ctx, tenant, id, s.now().UTC())
+	return ErrRecipientManagerRequired
 }
 
 func (s *Service) StoreArtifact(ctx context.Context, input ArtifactInput, reader io.Reader) (Artifact, error) {
@@ -585,7 +623,7 @@ func DemoSources() []Source {
 
 func DemoRequests() []Request {
 	now := time.Now().UTC()
-	return []Request{{ID: "019fd333-3333-7333-8333-333333333333", TenantID: "bank-demo", SubjectType: "CONTROL", SubjectID: "branch-backup-power", Title: "Confirm branch backup-power condition", Purpose: "Complete the August resilience review for Enugu Main Branch.", WhyYou: "You are the current branch operations manager.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL", Recipient: Recipient{Type: RecipientInternalPrincipal, PrincipalID: "role-branch-manager"}, EstimatedMinutes: 2, Deadline: now.Add(48 * time.Hour), KnownFacts: map[string]string{"Branch": "Enugu Main Branch", "Last service": "18 Jul 2026", "Maintenance firm": "Northstar Engineering"}, Fields: []Field{{ID: "condition", Label: "Current generator condition", Type: "single_select", Required: true, Options: []string{"Operational", "Operational with concern", "Unavailable"}}, {ID: "concern", Label: "Concern or supporting note", Type: "text"}}, Status: RequestReady, Version: 1, CreatedAt: now, UpdatedAt: now}}
+	return []Request{{ID: "019fd333-3333-7333-8333-333333333333", TenantID: "bank-demo", LegalEntityID: "bank-ng", SubjectType: "CONTROL", SubjectID: "branch-backup-power", Title: "Confirm branch backup-power condition", Purpose: "Complete the August resilience review for Enugu Main Branch.", WhyYou: "You are the current branch operations manager.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL", Recipient: Recipient{Type: RecipientInternalPrincipal, PrincipalID: "role-branch-manager"}, EstimatedMinutes: 2, Deadline: now.Add(48 * time.Hour), KnownFacts: map[string]string{"Branch": "Enugu Main Branch", "Last service": "18 Jul 2026", "Maintenance firm": "Northstar Engineering"}, Fields: []Field{{ID: "condition", Label: "Current generator condition", Type: "single_select", Required: true, Options: []string{"Operational", "Operational with concern", "Unavailable"}}, {ID: "concern", Label: "Concern or supporting note", Type: "text"}}, Status: RequestReady, Version: 1, CreatedAt: now, UpdatedAt: now}}
 }
 
 func sortSources(values []Source) {

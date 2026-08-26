@@ -252,7 +252,7 @@ func (r *MemoryRepository) RedeemInvitation(_ context.Context, input RedeemInput
 	}
 	invitation.Redemptions++
 	r.invitations[key] = invitation
-	session := Session{ID: input.SessionID, TenantID: invitation.TenantID, RequestID: invitation.RequestID, AudienceHint: invitation.AudienceHint, TokenHash: append([]byte(nil), input.SessionTokenHash...), ExpiresAt: expires, CreatedAt: input.Now}
+	session := Session{ID: input.SessionID, TenantID: invitation.TenantID, RequestID: invitation.RequestID, InvitationID: invitation.ID, AudienceHint: invitation.AudienceHint, TokenHash: append([]byte(nil), input.SessionTokenHash...), ExpiresAt: expires, CreatedAt: input.Now}
 	r.sessions[hex.EncodeToString(session.TokenHash)] = session
 	return session, nil
 }
@@ -296,6 +296,134 @@ func (r *MemoryRepository) RevokeSession(_ context.Context, tenant, id string, n
 	}
 	return ErrNotFound
 }
+
+func (r *MemoryRepository) ListInvitationMetadata(_ context.Context, tenant, requestID string, limit int) ([]InvitationMetadata, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	request, ok := r.requests[requestID]
+	if !ok || request.TenantID != tenant {
+		return nil, ErrNotFound
+	}
+	values := make([]InvitationMetadata, 0)
+	for _, invitation := range r.invitations {
+		if invitation.TenantID != tenant || invitation.RequestID != requestID {
+			continue
+		}
+		metadata := InvitationMetadata{ID: invitation.ID, RequestID: invitation.RequestID, AudienceHint: invitation.AudienceHint, Purpose: invitation.Purpose, ExpiresAt: invitation.ExpiresAt, MaxRedemptions: invitation.MaxRedemptions, Redemptions: invitation.Redemptions, CreatedAt: invitation.CreatedAt}
+		if invitation.RevokedAt != nil {
+			metadata.RevokedAt = pointerTime(*invitation.RevokedAt)
+		}
+		values = append(values, metadata)
+	}
+	sort.Slice(values, func(i, j int) bool {
+		if values[i].CreatedAt.Equal(values[j].CreatedAt) {
+			return values[i].ID > values[j].ID
+		}
+		return values[i].CreatedAt.After(values[j].CreatedAt)
+	})
+	if len(values) > limit {
+		values = values[:limit]
+	}
+	return values, nil
+}
+
+func (r *MemoryRepository) RevokeInvitationForRequester(_ context.Context, input RevokeInvitationAsRequesterInput, now time.Time) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	request, ok := r.requests[input.RequestID]
+	if !ok || request.TenantID != input.TenantID {
+		return ErrNotFound
+	}
+	if request.CreatedBy == "" || request.CreatedBy != input.ActorPrincipalID {
+		return ErrRecipientManagerRequired
+	}
+	var revokedID string
+	for key, invitation := range r.invitations {
+		if invitation.ID == input.InvitationID && invitation.RequestID == input.RequestID && invitation.TenantID == input.TenantID {
+			if invitation.RevokedAt == nil {
+				invitation.RevokedAt = pointerTime(now)
+				r.invitations[key] = invitation
+			}
+			revokedID = invitation.ID
+			break
+		}
+	}
+	if revokedID == "" {
+		return ErrNotFound
+	}
+	for key, session := range r.sessions {
+		if session.InvitationID == revokedID && session.RevokedAt == nil {
+			session.RevokedAt = pointerTime(now)
+			r.sessions[key] = session
+		}
+	}
+	return nil
+}
+
+func (r *MemoryRepository) RevokeSessionForRequester(_ context.Context, input RevokeSessionAsRequesterInput, now time.Time) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	request, ok := r.requests[input.RequestID]
+	if !ok || request.TenantID != input.TenantID {
+		return ErrNotFound
+	}
+	if request.CreatedBy == "" || request.CreatedBy != input.ActorPrincipalID {
+		return ErrRecipientManagerRequired
+	}
+	for key, session := range r.sessions {
+		if session.ID == input.SessionID && session.RequestID == input.RequestID && session.TenantID == input.TenantID {
+			if session.RevokedAt == nil {
+				session.RevokedAt = pointerTime(now)
+				r.sessions[key] = session
+			}
+			return nil
+		}
+	}
+	return ErrNotFound
+}
+
+func (r *MemoryRepository) ReplaceInvitation(_ context.Context, input ReplaceInvitationInput, replacement Invitation, now time.Time) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	request, ok := r.requests[input.RequestID]
+	if !ok || request.TenantID != input.TenantID {
+		return ErrNotFound
+	}
+	if request.CreatedBy == "" || request.CreatedBy != input.ActorPrincipalID {
+		return ErrRecipientManagerRequired
+	}
+	if !requestOpenAt(request, now) {
+		return ErrRequestClosed
+	}
+	var replacedID string
+	for key, invitation := range r.invitations {
+		if invitation.ID == input.InvitationID && invitation.RequestID == input.RequestID && invitation.TenantID == input.TenantID {
+			if invitation.RevokedAt == nil {
+				invitation.RevokedAt = pointerTime(now)
+				r.invitations[key] = invitation
+			}
+			replacedID = invitation.ID
+			break
+		}
+	}
+	if replacedID == "" {
+		return ErrNotFound
+	}
+	for key, session := range r.sessions {
+		if session.InvitationID == replacedID && session.RevokedAt == nil {
+			session.RevokedAt = pointerTime(now)
+			r.sessions[key] = session
+		}
+	}
+	key := hex.EncodeToString(replacement.TokenHash)
+	if _, exists := r.invitations[key]; exists {
+		return ErrVersionConflict
+	}
+	r.invitations[key] = replacement
+	return nil
+}
+
+var _ invitationAdministrationStore = (*MemoryRepository)(nil)
 
 func (r *MemoryRepository) CreateArtifact(_ context.Context, artifact Artifact) (Artifact, error) {
 	r.mu.Lock()

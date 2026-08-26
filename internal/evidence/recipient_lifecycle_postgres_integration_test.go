@@ -29,6 +29,8 @@ func TestEvidenceRecipientLifecycleIsAuditableAtomicAndRevokesSupersededCapabili
 		creatorID  = "96666666-6666-7666-8666-666666666662"
 		recipientA = "96666666-6666-7666-8666-666666666663"
 		recipientB = "96666666-6666-7666-8666-666666666664"
+		entityID   = "96666666-6666-7666-8666-666666666665"
+		programID  = "96666666-6666-7666-8666-666666666666"
 	)
 	now := time.Date(2026, 8, 9, 10, 0, 0, 0, time.UTC)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
@@ -40,13 +42,15 @@ func TestEvidenceRecipientLifecycleIsAuditableAtomicAndRevokesSupersededCapabili
 		($2::uuid,$4::uuid,'PERSON','Recipient A','ACTIVE',$5),
 		($3::uuid,$4::uuid,'PERSON','Recipient B','ACTIVE',$5)`,
 		creatorID, recipientA, recipientB, tenantID, now.Add(-24*time.Hour))
+	mustExecRecipient(t, ctx, pool, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'BANK','Lifecycle Test Bank','GB',$3)`, entityID, tenantID, now.Add(-24*time.Hour))
+	mustExecRecipient(t, ctx, pool, `INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,jurisdiction,scope,effective_from) VALUES($1::uuid,$2::uuid,$3::uuid,'LIFECYCLE','Lifecycle Test','COMPLIANCE','ACTIVE','Compliance','GB','{}'::jsonb,$4)`, programID, tenantID, entityID, now.Add(-time.Hour))
 
 	repo := NewPostgresRepository(pool)
 	service := NewService(repo, nil)
 	service.now = func() time.Time { return now }
 
 	internal, err := service.CreateRequest(ctx, CreateRequestInput{
-		TenantID: "recipient-lifecycle-test", SubjectType: "CONTROL", SubjectID: "control-1",
+		TenantID: "recipient-lifecycle-test", LegalEntityID: entityID, SubjectType: "PROGRAM", SubjectID: programID,
 		Title: "Confirm current control owner", Purpose: "Collect one current control fact.", WhyYou: "You are the intended respondent.",
 		Sensitivity: "INTERNAL", AudienceType: "INTERNAL",
 		Recipient:        RecipientInput{Type: RecipientInternalPrincipal, PrincipalID: recipientA},
@@ -57,7 +61,7 @@ func TestEvidenceRecipientLifecycleIsAuditableAtomicAndRevokesSupersededCapabili
 		t.Fatal(err)
 	}
 	wrong, err := service.DeclareWrongRecipient(ctx, DeclareWrongRecipientInput{
-		TenantID: "recipient-lifecycle-test", RequestID: internal.ID, ActorPrincipalID: recipientA,
+		TenantID: "recipient-lifecycle-test", LegalEntityID: entityID, RequestID: internal.ID, ActorPrincipalID: recipientA,
 		Reason: "This control moved to another owner.", ExpectedVersion: internal.Version,
 	})
 	if err != nil {
@@ -75,7 +79,7 @@ func TestEvidenceRecipientLifecycleIsAuditableAtomicAndRevokesSupersededCapabili
 	}
 
 	reassigned, err := service.ReassignRecipient(ctx, ReassignRecipientInput{
-		TenantID: "recipient-lifecycle-test", RequestID: internal.ID, ActorPrincipalID: creatorID,
+		TenantID: "recipient-lifecycle-test", LegalEntityID: entityID, RequestID: internal.ID, ActorPrincipalID: creatorID,
 		Recipient: RecipientInput{Type: RecipientInternalPrincipal, PrincipalID: recipientB},
 		Reason:    "Responsibility transferred to Recipient B.", ExpectedVersion: wrong.Version,
 	})
@@ -118,7 +122,7 @@ func TestEvidenceRecipientLifecycleIsAuditableAtomicAndRevokesSupersededCapabili
 	}
 
 	external, err := service.CreateRequest(ctx, CreateRequestInput{
-		TenantID: "recipient-lifecycle-test", SubjectType: "CONTROL", SubjectID: "control-2",
+		TenantID: "recipient-lifecycle-test", LegalEntityID: entityID, SubjectType: "PROGRAM", SubjectID: programID,
 		Title: "External confirmation", Purpose: "Collect one bounded external fact.", WhyYou: "You are the intended respondent.",
 		Sensitivity: "CONFIDENTIAL", AudienceType: "CUSTOMER",
 		Recipient:        RecipientInput{Type: RecipientExternalAudience, Audience: "first@example.com"},
@@ -129,7 +133,7 @@ func TestEvidenceRecipientLifecycleIsAuditableAtomicAndRevokesSupersededCapabili
 		t.Fatal(err)
 	}
 	issued, err := service.IssueInvitation(ctx, IssueInvitationInput{
-		TenantID: "recipient-lifecycle-test", RequestID: external.ID, Audience: "first@example.com",
+		TenantID: "recipient-lifecycle-test", LegalEntityID: entityID, RequestID: external.ID, Audience: "first@example.com",
 		Purpose: "Respond", TTLMinutes: 30, CreatedBy: creatorID,
 	})
 	if err != nil {
@@ -144,7 +148,7 @@ func TestEvidenceRecipientLifecycleIsAuditableAtomicAndRevokesSupersededCapabili
 	}
 
 	reassignedExternal, err := service.ReassignRecipient(ctx, ReassignRecipientInput{
-		TenantID: "recipient-lifecycle-test", RequestID: external.ID, ActorPrincipalID: creatorID,
+		TenantID: "recipient-lifecycle-test", LegalEntityID: entityID, RequestID: external.ID, ActorPrincipalID: creatorID,
 		Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: "second@example.com"},
 		Reason:    "Correct the intended customer contact.", ExpectedVersion: external.Version,
 	})

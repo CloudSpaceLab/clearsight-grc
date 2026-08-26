@@ -26,7 +26,7 @@ func TestInvitationAndSessionRevocation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := service.RevokeInvitation(context.Background(), "bank", issued.InvitationID); err != nil {
+	if err := service.RevokeInvitationAsRequester(context.Background(), RevokeInvitationAsRequesterInput{TenantID: "bank", RequestID: request.ID, InvitationID: issued.InvitationID, ActorPrincipalID: "creator"}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := service.RedeemInvitation(context.Background(), issued.Token, audience); !errors.Is(err, ErrInvitationInvalid) {
@@ -40,7 +40,7 @@ func TestInvitationAndSessionRevocation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := service.RevokeSession(context.Background(), "bank", session.SessionID); err != nil {
+	if err := service.RevokeSessionAsRequester(context.Background(), RevokeSessionAsRequesterInput{TenantID: "bank", RequestID: request.ID, SessionID: session.SessionID, ActorPrincipalID: "creator"}); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err := service.SessionRequest(context.Background(), session.SessionToken); !errors.Is(err, ErrSessionInvalid) {

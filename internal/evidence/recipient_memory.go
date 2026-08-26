@@ -71,6 +71,38 @@ func (r *MemoryRepository) ListManageableRequests(_ context.Context, tenant, pri
 	return values, nil
 }
 
+func (r *MemoryRepository) ListVisibleRequestsForEntity(_ context.Context, tenant, legalEntityID, principalID string, limit int) ([]Request, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	values := make([]Request, 0, limit)
+	for _, value := range r.requests {
+		if value.TenantID == tenant && value.LegalEntityID == legalEntityID && RequestAssignedTo(value, principalID) {
+			values = append(values, cloneRequest(value))
+		}
+	}
+	sortRequests(values)
+	if len(values) > limit {
+		values = values[:limit]
+	}
+	return values, nil
+}
+
+func (r *MemoryRepository) ListManageableRequestsForEntity(_ context.Context, tenant, legalEntityID, principalID string, limit int) ([]Request, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	values := make([]Request, 0, limit)
+	for _, value := range r.requests {
+		if value.TenantID == tenant && value.LegalEntityID == legalEntityID && RequestManageableBy(value, principalID) {
+			values = append(values, cloneRequest(value))
+		}
+	}
+	sortRequests(values)
+	if len(values) > limit {
+		values = values[:limit]
+	}
+	return values, nil
+}
+
 func sortRecipientRequests(values []Request) {
 	sort.Slice(values, func(i, j int) bool { return values[i].Deadline.Before(values[j].Deadline) })
 }
@@ -79,3 +111,5 @@ var _ recipientStore = (*MemoryRepository)(nil)
 var _ internalRecipientDirectory = (*MemoryRepository)(nil)
 var _ SubjectAccessChecker = (*MemoryRepository)(nil)
 var _ manageableRequestRepository = (*MemoryRepository)(nil)
+var _ entityScopedVisibleRequestRepository = (*MemoryRepository)(nil)
+var _ entityScopedManageableRequestRepository = (*MemoryRepository)(nil)

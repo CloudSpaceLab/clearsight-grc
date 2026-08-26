@@ -32,6 +32,8 @@ func TestEvidenceRecipientTruthIsTenantBoundPreLimitAndAudienceBound(t *testing.
 	const legacyRequestID = "99999999-8888-7888-8888-888888888886"
 	const otherTenantID = "99999999-8888-7888-8888-888888888887"
 	const otherPrincipalID = "99999999-8888-7888-8888-888888888888"
+	const legalEntityID = "99999999-8888-7888-8888-888888888889"
+	const programID = "99999999-8888-7888-8888-888888888890"
 	now := time.Date(2026, 8, 8, 14, 0, 0, 0, time.UTC)
 
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id IN ($1::uuid,$2::uuid)`, tenantID, otherTenantID)
@@ -46,9 +48,11 @@ func TestEvidenceRecipientTruthIsTenantBoundPreLimitAndAudienceBound(t *testing.
 		($2::uuid,$4::uuid,'PERSON','Recipient A','ACTIVE',$6),
 		($3::uuid,$4::uuid,'PERSON','Recipient B','ACTIVE',$6),
 		($5::uuid,$7::uuid,'PERSON','Other tenant recipient','ACTIVE',$6)`, requesterID, recipientA, recipientB, tenantID, otherPrincipalID, now.Add(-24*time.Hour), otherTenantID)
-	mustExecRecipient(t, ctx, pool, `INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at)
-		VALUES($1::uuid,$2::uuid,'MAT-RECIPIENT-1','CONTROL_GAP','TRIAGE',3,'Restricted control gap','Only Recipient A may read this Matter',$3::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4,$4)`,
-		restrictedMatterID, tenantID, `{"access":"RESTRICTED","allowed_principal_ids":["`+requesterID+`","`+recipientA+`"]}`, now.Add(-time.Hour))
+	mustExecRecipient(t, ctx, pool, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'BANK','Test Bank','GB',$3)`, legalEntityID, tenantID, now.Add(-24*time.Hour))
+	mustExecRecipient(t, ctx, pool, `INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,jurisdiction,scope,effective_from) VALUES($1::uuid,$2::uuid,$3::uuid,'RECIPIENT','Recipient Test','COMPLIANCE','ACTIVE','Compliance','GB','{}'::jsonb,$4)`, programID, tenantID, legalEntityID, now.Add(-time.Hour))
+	mustExecRecipient(t, ctx, pool, `INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at)
+		VALUES($1::uuid,$2::uuid,$5::uuid,'MAT-RECIPIENT-1','CONTROL_GAP','TRIAGE',3,'Restricted control gap','Only Recipient A may read this Matter',$3::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4,$4)`,
+		restrictedMatterID, tenantID, `{"access":"RESTRICTED","allowed_principal_ids":["`+requesterID+`","`+recipientA+`"]}`, now.Add(-time.Hour), legalEntityID)
 
 	repo := NewPostgresRepository(pool)
 	service := NewService(repo, nil)
@@ -57,12 +61,12 @@ func TestEvidenceRecipientTruthIsTenantBoundPreLimitAndAudienceBound(t *testing.
 	// Other-recipient requests have earlier deadlines. With limit=1 they must
 	// not crowd the current actor's own request out of the queue.
 	for i := 0; i < 3; i++ {
-		_, err := service.CreateRequest(ctx, recipientRequestInput("recipient-truth-test", "CONTROL", "control-b", recipientB, requesterID, now.Add(time.Duration(i+1)*time.Minute)))
+		_, err := service.CreateRequest(ctx, recipientRequestInput("recipient-truth-test", legalEntityID, "PROGRAM", programID, recipientB, requesterID, now.Add(time.Duration(i+1)*time.Minute)))
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
-	assigned, err := service.CreateRequest(ctx, recipientRequestInput("recipient-truth-test", "CONTROL", "control-a", recipientA, requesterID, now.Add(time.Hour)))
+	assigned, err := service.CreateRequest(ctx, recipientRequestInput("recipient-truth-test", legalEntityID, "PROGRAM", programID, recipientA, requesterID, now.Add(time.Hour)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,20 +89,20 @@ func TestEvidenceRecipientTruthIsTenantBoundPreLimitAndAudienceBound(t *testing.
 
 	// A readable request description is not enough: Recipient B cannot be
 	// assigned a restricted Matter they cannot read.
-	_, err = service.CreateRequest(ctx, recipientRequestInput("recipient-truth-test", "MATTER", restrictedMatterID, recipientB, requesterID, now.Add(2*time.Hour)))
+	_, err = service.CreateRequest(ctx, recipientRequestInput("recipient-truth-test", legalEntityID, "MATTER", restrictedMatterID, recipientB, requesterID, now.Add(2*time.Hour)))
 	if !errors.Is(err, ErrRecipientInvalid) {
 		t.Fatalf("restricted Matter was assigned to a principal without access: %v", err)
 	}
-	restrictedAssigned, err := service.CreateRequest(ctx, recipientRequestInput("recipient-truth-test", "MATTER", restrictedMatterID, recipientA, requesterID, now.Add(2*time.Hour)))
+	restrictedAssigned, err := service.CreateRequest(ctx, recipientRequestInput("recipient-truth-test", legalEntityID, "MATTER", restrictedMatterID, recipientA, requesterID, now.Add(2*time.Hour)))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Existing historical rows are deliberately left unassigned. Even with an
 	// earlier deadline and readable subject they must not become actor work.
-	mustExecRecipient(t, ctx, pool, `INSERT INTO capture_requests(id,tenant_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,known_facts,fields,status,created_by,version,created_at,updated_at)
-		VALUES($1::uuid,$2::uuid,'CONTROL','legacy-control','Legacy request','Historical','Old descriptive copy','INTERNAL','INTERNAL',2,$3,'{}'::jsonb,'[{"id":"value","label":"Value","type":"text","required":true}]'::jsonb,'READY',$4::uuid,1,$5,$5)`,
-		legacyRequestID, tenantID, now.Add(30*time.Second), requesterID, now.Add(-time.Hour))
+	mustExecRecipient(t, ctx, pool, `INSERT INTO capture_requests(id,tenant_id,legal_entity_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,known_facts,fields,status,created_by,version,created_at,updated_at)
+		VALUES($1::uuid,$2::uuid,$6::uuid,'CONTROL','legacy-control','Legacy request','Historical','Old descriptive copy','INTERNAL','INTERNAL',2,$3,'{}'::jsonb,'[{"id":"value","label":"Value","type":"text","required":true}]'::jsonb,'READY',$4::uuid,1,$5,$5)`,
+		legacyRequestID, tenantID, now.Add(30*time.Second), requesterID, now.Add(-time.Hour), legalEntityID)
 	visible, err = service.ListVisibleRequests(ctx, "recipient-truth-test", recipientA, 1, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -112,6 +116,7 @@ func TestEvidenceRecipientTruthIsTenantBoundPreLimitAndAudienceBound(t *testing.
 	// may issue an invitation for the matching audience.
 	external, err := service.CreateRequest(ctx, CreateRequestInput{
 		TenantID:         "recipient-truth-test",
+		LegalEntityID:    legalEntityID,
 		SubjectType:      "MATTER",
 		SubjectID:        restrictedMatterID,
 		Title:            "Confirm external statement",
@@ -137,15 +142,15 @@ func TestEvidenceRecipientTruthIsTenantBoundPreLimitAndAudienceBound(t *testing.
 	if hashLength != 32 || hint != "c***@example.com" || containsRaw {
 		t.Fatalf("external audience persistence leaked or weakened recipient identity: hash=%d hint=%q raw=%v", hashLength, hint, containsRaw)
 	}
-	_, err = service.IssueInvitation(ctx, IssueInvitationInput{TenantID: "recipient-truth-test", RequestID: external.ID, Audience: "customer@example.com", Purpose: "Respond", TTLMinutes: 30, CreatedBy: recipientA})
+	_, err = service.IssueInvitation(ctx, IssueInvitationInput{TenantID: "recipient-truth-test", LegalEntityID: legalEntityID, RequestID: external.ID, Audience: "customer@example.com", Purpose: "Respond", TTLMinutes: 30, CreatedBy: recipientA})
 	if !errors.Is(err, ErrRecipientMismatch) {
 		t.Fatalf("non-requester issued external invitation: %v", err)
 	}
-	_, err = service.IssueInvitation(ctx, IssueInvitationInput{TenantID: "recipient-truth-test", RequestID: external.ID, Audience: "other@example.com", Purpose: "Respond", TTLMinutes: 30, CreatedBy: requesterID})
+	_, err = service.IssueInvitation(ctx, IssueInvitationInput{TenantID: "recipient-truth-test", LegalEntityID: legalEntityID, RequestID: external.ID, Audience: "other@example.com", Purpose: "Respond", TTLMinutes: 30, CreatedBy: requesterID})
 	if !errors.Is(err, ErrRecipientMismatch) {
 		t.Fatalf("requester changed invitation audience without changing request recipient: %v", err)
 	}
-	issued, err := service.IssueInvitation(ctx, IssueInvitationInput{TenantID: "recipient-truth-test", RequestID: external.ID, Audience: "customer@example.com", Purpose: "Respond", TTLMinutes: 30, CreatedBy: requesterID})
+	issued, err := service.IssueInvitation(ctx, IssueInvitationInput{TenantID: "recipient-truth-test", LegalEntityID: legalEntityID, RequestID: external.ID, Audience: "customer@example.com", Purpose: "Respond", TTLMinutes: 30, CreatedBy: requesterID})
 	if err != nil || issued.Token == "" {
 		t.Fatalf("canonical external invitation failed: %#v err=%v", issued, err)
 	}
@@ -155,7 +160,7 @@ func TestEvidenceRecipientTruthIsTenantBoundPreLimitAndAudienceBound(t *testing.
 	// be issued even though the request still records that historical creator.
 	mustExecRecipient(t, ctx, pool, `UPDATE matters SET scope=$2::jsonb,updated_at=$3 WHERE id=$1::uuid`, restrictedMatterID,
 		`{"access":"RESTRICTED","allowed_principal_ids":["`+recipientA+`"]}`, now.Add(time.Minute))
-	_, err = service.IssueInvitation(ctx, IssueInvitationInput{TenantID: "recipient-truth-test", RequestID: external.ID, Audience: "customer@example.com", Purpose: "Respond again", TTLMinutes: 30, CreatedBy: requesterID})
+	_, err = service.IssueInvitation(ctx, IssueInvitationInput{TenantID: "recipient-truth-test", LegalEntityID: legalEntityID, RequestID: external.ID, Audience: "customer@example.com", Purpose: "Respond again", TTLMinutes: 30, CreatedBy: requesterID})
 	if !errors.Is(err, ErrRecipientMismatch) {
 		t.Fatalf("creator retained invitation power after losing Matter visibility: %v", err)
 	}
@@ -176,9 +181,10 @@ func TestEvidenceRecipientTruthIsTenantBoundPreLimitAndAudienceBound(t *testing.
 	}
 }
 
-func recipientRequestInput(tenant, subjectType, subjectID, recipient, requester string, deadline time.Time) CreateRequestInput {
+func recipientRequestInput(tenant, legalEntityID, subjectType, subjectID, recipient, requester string, deadline time.Time) CreateRequestInput {
 	return CreateRequestInput{
 		TenantID:         tenant,
+		LegalEntityID:    legalEntityID,
 		SubjectType:      subjectType,
 		SubjectID:        subjectID,
 		Title:            "Confirm evidence fact",
