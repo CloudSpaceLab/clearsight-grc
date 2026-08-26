@@ -139,6 +139,14 @@ function mapPolicy(record: GovernancePolicyRecord, entity: { id: string; label: 
     effectiveUntil: record.effective_until,
     maker: party(record.maker_id),
     checker: record.checker_id ? party(record.checker_id) : undefined,
+    latestDecision: record.latest_decision ? {
+      fromState: record.latest_decision.from_state,
+      toState: record.latest_decision.to_state,
+      actor: party(record.latest_decision.actor_id ?? ""),
+      rationale: record.latest_decision.rationale,
+      decidedAt: record.latest_decision.decided_at,
+      recordVersion: record.latest_decision.record_version,
+    } : undefined,
   };
 }
 

@@ -88,6 +88,23 @@ describe("governance administration API", () => {
     expect(body).not.toHaveProperty("maker_id");
   });
 
+  it("expands the combined Program and issue scope without creating a global object wildcard", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ id: "policy-1", version: 1 }, 201));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createGovernancePolicyDraft({
+      legalEntityId: "entity-1", code: "REVIEW", name: "Review route", responsibility: "REVIEWER",
+      roleCode: "CONTROL_ASSURANCE", objectType: "*", minMateriality: 0, priority: 100,
+    });
+
+    const body = JSON.parse(String(fetchMock.mock.calls[0]![1]?.body));
+    expect(body.definition.rules).toEqual([
+      expect.objectContaining({ id: "review-route-program", object_type: "PROGRAM" }),
+      expect.objectContaining({ id: "review-route-matter", object_type: "MATTER" }),
+    ]);
+    expect(body.definition.rules.some((rule: Record<string, unknown>) => !rule.object_type || rule.object_type === "*")).toBe(false);
+  });
+
   it("sends only the record version and rationale for lifecycle actions", async () => {
     const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse({ id: "record-1", version: 3 })));
     vi.stubGlobal("fetch", fetchMock);

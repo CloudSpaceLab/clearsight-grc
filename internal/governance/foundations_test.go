@@ -157,6 +157,61 @@ func TestMemoryActivationRevalidatesDelegationCycle(t *testing.T) {
 	}
 }
 
+func TestMemoryActivationRevalidatesDelegatorAuthorityAndCurrentRecipient(t *testing.T) {
+	now := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
+	entries := []DelegationCandidateDirectoryEntry{
+		{PrincipalID: "giver", TenantID: "bank", LegalEntityID: testEntityA, Responsibilities: []string{"REVIEWER"}, CanReceive: true, Active: true},
+		{PrincipalID: "recipient", TenantID: "bank", LegalEntityID: testEntityA, CanReceive: true, Active: true},
+	}
+	for _, test := range []struct {
+		name    string
+		entries []DelegationCandidateDirectoryEntry
+	}{
+		{name: "giver lacks responsibility", entries: []DelegationCandidateDirectoryEntry{
+			{PrincipalID: "giver", TenantID: "bank", LegalEntityID: testEntityA, CanReceive: true, Active: true},
+			entries[1],
+		}},
+		{name: "recipient is inactive", entries: []DelegationCandidateDirectoryEntry{
+			entries[0],
+			{PrincipalID: "recipient", TenantID: "bank", LegalEntityID: testEntityA, CanReceive: true, Active: false},
+		}},
+		{name: "recipient belongs to another entity", entries: []DelegationCandidateDirectoryEntry{
+			entries[0],
+			{PrincipalID: "recipient", TenantID: "bank", LegalEntityID: testEntityB, CanReceive: true, Active: true},
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			repo := NewMemoryRepositoryWithDelegationCandidates(test.entries)
+			candidate := Delegation{ID: "candidate", TenantID: "bank", LegalEntityID: testEntityA, FromPrincipalID: "giver", ToPrincipalID: "recipient", Responsibility: "REVIEWER", StartsAt: now, EndsAt: now.Add(time.Hour), Status: DelegationPendingApproval, MakerID: "maker", Version: 2}
+			_, _ = repo.CreateDelegation(context.Background(), candidate)
+
+			_, err := repo.ActivateDelegation(context.Background(), "bank", testEntityA, candidate.ID, candidate.Version, "checker", "reviewed", now)
+			if !errors.Is(err, ErrDelegationEligibility) {
+				t.Fatalf("expected eligibility rejection, got %v", err)
+			}
+			stored, _ := repo.GetDelegation(context.Background(), "bank", candidate.ID)
+			if stored.Status != DelegationPendingApproval || stored.Version != 2 {
+				t.Fatalf("failed activation changed candidate: %#v", stored)
+			}
+		})
+	}
+}
+
+func TestRejectedPolicyProjectsLatestDecisionReasonActorAndVersion(t *testing.T) {
+	repo := NewMemoryRepository()
+	now := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
+	policy := RoutingPolicy{ID: "policy", TenantID: "bank", LegalEntityID: testEntityA, Status: PolicyPendingApproval, MakerID: "maker", Version: 4, CurrentVersion: 1, Definition: validDefinition()}
+	_, _ = repo.CreatePolicy(context.Background(), policy)
+
+	updated, err := repo.TransitionPolicy(context.Background(), "bank", testEntityA, policy.ID, 4, PolicyPendingApproval, PolicyDraft, "checker", "Limit the route to payment issues.", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.LatestDecision == nil || updated.LatestDecision.ActorID != "checker" || updated.LatestDecision.Rationale != "Limit the route to payment issues." || updated.LatestDecision.RecordVersion != 5 || !updated.LatestDecision.DecidedAt.Equal(now) {
+		t.Fatalf("latest rejection decision was not projected: %#v", updated.LatestDecision)
+	}
+}
+
 func TestDueDelegationActivationRevalidatesCycle(t *testing.T) {
 	repo := NewMemoryRepository()
 	ctx := context.Background()

@@ -15,6 +15,7 @@ export type GovernancePolicyRecord = {
   effective_from?: string;
   effective_until?: string;
   version: number;
+  latest_decision?: { from_state: string; to_state: string; actor_id?: string; rationale: string; decided_at: string; record_version: number };
 };
 
 export type GovernanceDelegationRecord = {
@@ -57,7 +58,7 @@ export type CreateGovernancePolicyDraftRequest = {
   name: string;
   responsibility: string;
   roleCode: string;
-  objectType?: "*" | "PROGRAM" | "MATTER";
+  objectType: "*" | "PROGRAM" | "MATTER";
   decisionType?: string;
   minMateriality: number;
   priority: number;
@@ -119,8 +120,9 @@ export function searchGovernanceDelegationCandidates(responsibility: string, que
 
 export function createGovernancePolicyDraft(input: CreateGovernancePolicyDraftRequest): Promise<GovernancePolicyRecord> {
   const ruleBase = slug(input.name) || "policy";
+  const baseID = ruleBase.endsWith("-route") ? ruleBase : `${ruleBase}-route`;
   const rule: Record<string, unknown> = {
-    id: ruleBase.endsWith("-route") ? ruleBase : `${ruleBase}-route`,
+    id: baseID,
     legal_entity_id: input.legalEntityId,
     responsibility: input.responsibility,
     min_materiality: input.minMateriality,
@@ -129,6 +131,9 @@ export function createGovernancePolicyDraft(input: CreateGovernancePolicyDraftRe
   };
   if (input.objectType && input.objectType !== "*") rule.object_type = input.objectType;
   if (input.decisionType?.trim()) rule.decision_type = input.decisionType.trim();
+  const rules = input.objectType === "*"
+    ? (["PROGRAM", "MATTER"] as const).map((objectType) => ({ ...rule, id: `${baseID}-${objectType.toLowerCase()}`, object_type: objectType }))
+    : [rule];
   return request("/api/v1/governance/policies", {
     method: "POST",
     body: JSON.stringify({
@@ -136,7 +141,7 @@ export function createGovernancePolicyDraft(input: CreateGovernancePolicyDraftRe
       code: input.code.trim(),
       name: input.name.trim(),
       ...(input.effectiveFrom ? { effective_from: input.effectiveFrom } : {}),
-      definition: { rules: [rule] },
+      definition: { rules },
     }),
   });
 }

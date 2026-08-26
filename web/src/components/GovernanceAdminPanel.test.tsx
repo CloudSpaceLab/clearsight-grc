@@ -63,3 +63,19 @@ it("keeps the inventory readable and marks authority labels degraded when identi
   expect(screen.getByRole("alert").textContent).toMatch(/people and legal-entity labels could not be confirmed.*records remain available.*changes are disabled/i);
   expect((screen.getByRole("button", { name: "Submit Payment approval for approval" }) as HTMLButtonElement).disabled).toBe(true);
 });
+
+it("shows the latest rejection reason, reviewer label, date, and resulting record version", async () => {
+  loadGovernanceInventory.mockResolvedValue({
+    policies: [{
+      id: "policy-1", code: "PAYMENT", name: "Payment approval", status: "DRAFT", legal_entity_id: "entity-1", current_version: 1, version: 5, maker_id: "actor-1",
+      latest_decision: { from_state: "PENDING_APPROVAL", to_state: "DRAFT", actor_id: "person-2", rationale: "Limit the route to payment issues.", decided_at: "2026-08-26T10:00:00Z", record_version: 5 },
+    }],
+    delegations: [], policiesAvailable: true, delegationsAvailable: true,
+  });
+
+  render(<GovernanceAdminPanel/>);
+
+  expect(await screen.findByText(/Returned for changes by Tunde Bello/)).toBeTruthy();
+  expect(screen.getByText(/Limit the route to payment issues\./)).toBeTruthy();
+  expect(screen.getByText(/Record version 5/)).toBeTruthy();
+});

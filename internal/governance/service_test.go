@@ -59,7 +59,10 @@ func TestPolicyCreationRejectsInvalidEscalationSequence(t *testing.T) {
 
 func TestDelegationRejectsReverseCycle(t *testing.T) {
 	ctx := context.Background()
-	repo := NewMemoryRepository()
+	repo := NewMemoryRepositoryWithDelegationCandidates([]DelegationCandidateDirectoryEntry{
+		{PrincipalID: "a", TenantID: "t1", LegalEntityID: testEntityA, Responsibilities: []string{"REVIEWER"}, CanReceive: true, Active: true},
+		{PrincipalID: "b", TenantID: "t1", LegalEntityID: testEntityA, Responsibilities: []string{"REVIEWER"}, CanReceive: true, Active: true},
+	})
 	svc := NewService(repo)
 	now := time.Date(2026, 8, 5, 8, 0, 0, 0, time.UTC)
 	svc.now = func() time.Time { return now }

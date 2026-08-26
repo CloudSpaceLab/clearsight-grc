@@ -27,34 +27,45 @@ const (
 )
 
 var (
-	ErrNotFound          = errors.New("governance object not found")
-	ErrVersionConflict   = errors.New("governance object version conflict")
-	ErrInvalidTransition = errors.New("invalid governance transition")
-	ErrMakerChecker      = errors.New("maker and checker must be different principals")
-	ErrConflict          = errors.New("segregation or delegation conflict")
-	ErrRevisionStale     = errors.New("routing policy revision is stale")
+	ErrNotFound              = errors.New("governance object not found")
+	ErrVersionConflict       = errors.New("governance object version conflict")
+	ErrInvalidTransition     = errors.New("invalid governance transition")
+	ErrMakerChecker          = errors.New("maker and checker must be different principals")
+	ErrConflict              = errors.New("segregation or delegation conflict")
+	ErrRevisionStale         = errors.New("routing policy revision is stale")
+	ErrDelegationEligibility = errors.New("delegation participant eligibility could not be confirmed")
 )
 
+type GovernanceDecisionSummary struct {
+	FromState     string    `json:"from_state"`
+	ToState       string    `json:"to_state"`
+	ActorID       string    `json:"actor_id,omitempty"`
+	Rationale     string    `json:"rationale"`
+	DecidedAt     time.Time `json:"decided_at"`
+	RecordVersion int64     `json:"record_version"`
+}
+
 type RoutingPolicy struct {
-	ID             string          `json:"id"`
-	TenantID       string          `json:"tenant_id"`
-	LegalEntityID  string          `json:"legal_entity_id"`
-	Code           string          `json:"code"`
-	Name           string          `json:"name"`
-	Status         PolicyState     `json:"status"`
-	CurrentVersion int             `json:"current_version"`
-	Definition     json.RawMessage `json:"definition"`
-	Checksum       string          `json:"checksum"`
-	MakerID        string          `json:"maker_id"`
-	CheckerID      string          `json:"checker_id,omitempty"`
-	EffectiveFrom  *time.Time      `json:"effective_from,omitempty"`
-	EffectiveUntil *time.Time      `json:"effective_until,omitempty"`
-	SubmittedAt    *time.Time      `json:"submitted_at,omitempty"`
-	ApprovedAt     *time.Time      `json:"approved_at,omitempty"`
-	RetiredAt      *time.Time      `json:"retired_at,omitempty"`
-	CreatedAt      time.Time       `json:"created_at"`
-	UpdatedAt      time.Time       `json:"updated_at"`
-	Version        int64           `json:"version"`
+	ID             string                     `json:"id"`
+	TenantID       string                     `json:"tenant_id"`
+	LegalEntityID  string                     `json:"legal_entity_id"`
+	Code           string                     `json:"code"`
+	Name           string                     `json:"name"`
+	Status         PolicyState                `json:"status"`
+	CurrentVersion int                        `json:"current_version"`
+	Definition     json.RawMessage            `json:"definition"`
+	Checksum       string                     `json:"checksum"`
+	MakerID        string                     `json:"maker_id"`
+	CheckerID      string                     `json:"checker_id,omitempty"`
+	EffectiveFrom  *time.Time                 `json:"effective_from,omitempty"`
+	EffectiveUntil *time.Time                 `json:"effective_until,omitempty"`
+	SubmittedAt    *time.Time                 `json:"submitted_at,omitempty"`
+	ApprovedAt     *time.Time                 `json:"approved_at,omitempty"`
+	RetiredAt      *time.Time                 `json:"retired_at,omitempty"`
+	CreatedAt      time.Time                  `json:"created_at"`
+	UpdatedAt      time.Time                  `json:"updated_at"`
+	Version        int64                      `json:"version"`
+	LatestDecision *GovernanceDecisionSummary `json:"latest_decision,omitempty"`
 }
 
 type RoutingPolicyRevision struct {

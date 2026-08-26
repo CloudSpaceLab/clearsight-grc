@@ -20,7 +20,7 @@ export type GovernancePolicyItem = {
   effectiveUntil?: string;
   maker: GovernanceParty;
   checker?: GovernanceParty;
-  latestDecision?: string;
+  latestDecision?: { fromState: string; toState: string; actor: GovernanceParty; rationale: string; decidedAt: string; recordVersion: number };
 };
 
 export type GovernanceDelegationItem = {
@@ -274,7 +274,7 @@ export function GovernanceAdminWorkspace({ policies, delegations, eligiblePeople
           <div><dt>Effective dates</dt><dd>{dateWindow(policy.effectiveFrom, policy.effectiveUntil)}</dd></div>
         </dl>
         <p>Made by {policy.maker.label} · checked by {policy.checker?.label ?? "Not checked yet"}</p>
-        {policy.latestDecision && <p>Latest decision: {policy.latestDecision}</p>}
+        {policy.latestDecision && <PolicyDecisionSummary decision={policy.latestDecision}/>}
         <PolicyNextAction policy={policy} actorId={actorId} canConfigure={canConfigure} mutationDisabled={!mutationsEnabled || busy !== ""} busy={busy === `policy:${policy.id}`} onAction={runPolicyAction}/>
       </article>)}
     </section>
@@ -297,6 +297,14 @@ export function GovernanceAdminWorkspace({ policies, delegations, eligiblePeople
       </article>)}
     </section>
   </section>;
+}
+
+function PolicyDecisionSummary({ decision }: { decision: NonNullable<GovernancePolicyItem["latestDecision"]> }) {
+  const action = decision.fromState === "PENDING_APPROVAL" && decision.toState === "DRAFT" ? "Returned for changes" : `${humanize(decision.fromState)} to ${humanize(decision.toState)}`;
+  return <div>
+    <p>Latest decision: {action} by {decision.actor.label} on {formatDate(decision.decidedAt)}.</p>
+    {decision.rationale && <p>Reason: {decision.rationale} · Record version {decision.recordVersion}</p>}
+  </div>;
 }
 
 function DelegationNextAction({ delegation, actorId, canConfigure, mutationDisabled, busy, onAction }: { delegation: GovernanceDelegationItem; actorId: string; canConfigure: boolean; mutationDisabled: boolean; busy: boolean; onAction: (input: GovernanceDelegationActionInput) => Promise<void> }) {

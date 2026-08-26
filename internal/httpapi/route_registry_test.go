@@ -175,3 +175,31 @@ func TestMatterEditRoutesAreMaterialCommands(t *testing.T) {
 		t.Fatalf("missing Matter edit routes: got %#v want %#v", seen, expected)
 	}
 }
+
+func TestGovernanceMutationRoutesAreMaterialCommands(t *testing.T) {
+	expected := map[string]string{
+		"/api/v1/governance/policies":                 "governance.policy.create",
+		"/api/v1/governance/policies/{id}/submit":     "governance.policy.submit",
+		"/api/v1/governance/policies/{id}/approve":    "governance.policy.approve",
+		"/api/v1/governance/policies/{id}/reject":     "governance.policy.reject",
+		"/api/v1/governance/policies/{id}/retire":     "governance.policy.retire",
+		"/api/v1/governance/delegations":              "governance.delegation.create",
+		"/api/v1/governance/delegations/{id}/submit":  "governance.delegation.submit",
+		"/api/v1/governance/delegations/{id}/approve": "governance.delegation.approve",
+		"/api/v1/governance/delegations/{id}/revoke":  "governance.delegation.revoke",
+	}
+	seen := map[string]bool{}
+	for _, route := range (&API{}).routes() {
+		name, wanted := expected[route.Path]
+		if !wanted || route.Method != http.MethodPost {
+			continue
+		}
+		seen[route.Path] = true
+		if route.Class != routeMaterialCommand || route.Command == nil || route.Command.Name != name {
+			t.Fatalf("%s is not the governed command %s: %#v", route.Path, name, route)
+		}
+	}
+	if len(seen) != len(expected) {
+		t.Fatalf("missing governance material routes: got %#v want %#v", seen, expected)
+	}
+}

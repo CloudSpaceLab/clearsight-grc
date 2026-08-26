@@ -108,6 +108,7 @@ func (r *MemoryRepository) TransitionPolicy(_ context.Context, tenantID, legalEn
 	v.Status = to
 	v.Version++
 	v.UpdatedAt = at
+	v.LatestDecision = &GovernanceDecisionSummary{FromState: string(from), ToState: string(to), ActorID: actor, Rationale: rationale, DecidedAt: at, RecordVersion: v.Version}
 	if to == PolicyPendingApproval {
 		v.SubmittedAt = &at
 	}
@@ -149,6 +150,7 @@ func (r *MemoryRepository) ActivatePolicy(_ context.Context, tenantID, legalEnti
 	policy.ApprovedAt = &at
 	policy.UpdatedAt = at
 	policy.Version++
+	policy.LatestDecision = &GovernanceDecisionSummary{FromState: string(PolicyPendingApproval), ToState: string(PolicyActive), ActorID: actor, Rationale: rationale, DecidedAt: at, RecordVersion: policy.Version}
 	if policy.EffectiveFrom == nil {
 		policy.EffectiveFrom = &at
 	}
@@ -449,6 +451,9 @@ func (r *MemoryRepository) ActivateDelegation(_ context.Context, tenantID, legal
 	if reaches(candidate.ToPrincipalID) {
 		return Delegation{}, ErrConflict
 	}
+	if !r.memoryDelegationParticipantsEligible(candidate, at) {
+		return Delegation{}, ErrDelegationEligibility
+	}
 	target := DelegationApproved
 	if !at.Before(candidate.StartsAt) && at.Before(candidate.EndsAt) {
 		target = DelegationActive
@@ -479,6 +484,9 @@ func (r *MemoryRepository) ActivateDueDelegations(_ context.Context, now time.Ti
 		if len(r.conflicts[candidate.TenantID+":"+candidate.ToPrincipalID+":"+candidate.Responsibility]) > 0 || memoryDelegationCycle(r.delegations, candidate) {
 			return 0, ErrConflict
 		}
+		if !r.memoryDelegationParticipantsEligible(candidate, now) {
+			return 0, ErrDelegationEligibility
+		}
 	}
 	for _, k := range keys {
 		v := r.delegations[k]
@@ -488,6 +496,37 @@ func (r *MemoryRepository) ActivateDueDelegations(_ context.Context, now time.Ti
 		r.delegations[k] = v
 	}
 	return len(keys), nil
+}
+
+func (r *MemoryRepository) memoryDelegationParticipantsEligible(candidate Delegation, at time.Time) bool {
+	if !r.delegationCandidatesConfigured {
+		return false
+	}
+	giverCurrent := false
+	recipientCurrent := false
+	for _, entry := range r.delegationCandidates {
+		if !entry.Active || entry.TenantID != candidate.TenantID || entry.LegalEntityID != candidate.LegalEntityID {
+			continue
+		}
+		if entry.PrincipalID == candidate.FromPrincipalID && containsResponsibility(entry.Responsibilities, candidate.Responsibility) {
+			giverCurrent = true
+		}
+		if entry.PrincipalID == candidate.ToPrincipalID && entry.CanReceive {
+			recipientCurrent = true
+		}
+	}
+	if !giverCurrent {
+		for _, source := range r.delegations {
+			if source.ID == candidate.ID || source.TenantID != candidate.TenantID || source.LegalEntityID != candidate.LegalEntityID || source.ToPrincipalID != candidate.FromPrincipalID || source.Responsibility != candidate.Responsibility || source.Status != DelegationActive {
+				continue
+			}
+			if !source.StartsAt.After(candidate.StartsAt) && !source.EndsAt.Before(candidate.EndsAt) && !at.Before(source.StartsAt) && at.Before(source.EndsAt) {
+				giverCurrent = true
+				break
+			}
+		}
+	}
+	return giverCurrent && recipientCurrent
 }
 
 func memoryDelegationCycle(values map[string]Delegation, candidate Delegation) bool {

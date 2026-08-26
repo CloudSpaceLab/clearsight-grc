@@ -179,6 +179,8 @@ func writeGovernanceResult[T any](w http.ResponseWriter, value T, err error) {
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "maker_checker_failed", "The maker cannot perform the checker action.")
 	case errors.Is(err, governance.ErrConflict):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "governance_conflict", err.Error())
+	case errors.Is(err, governance.ErrDelegationEligibility):
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "delegation_eligibility_changed", "The delegator's current responsibility or the recipient's current legal-entity membership could not be confirmed. No delegation was activated.")
 	case errors.Is(err, governance.ErrInvalidTransition):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "invalid_transition", "The requested governance transition is not allowed.")
 	case err != nil:

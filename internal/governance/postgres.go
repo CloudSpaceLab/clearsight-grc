@@ -21,14 +21,22 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 }
 
 const policySelect = `SELECT rp.id::text,t.slug,rp.legal_entity_id::text,rp.code,rp.name,rp.status,rp.current_version,rpv.definition,rpv.checksum,
-COALESCE(rp.maker_id::text,''),COALESCE(rp.checker_id::text,''),COALESCE(rpv.effective_from,'epoch'::timestamptz),COALESCE(rpv.effective_until,'epoch'::timestamptz),
-COALESCE(rp.submitted_at,'epoch'::timestamptz),COALESCE(rp.approved_at,'epoch'::timestamptz),COALESCE(rp.retired_at,'epoch'::timestamptz),rp.created_at,rp.updated_at,rp.version
-FROM routing_policies rp JOIN tenants t ON t.id=rp.tenant_id JOIN routing_policy_versions rpv ON rpv.policy_id=rp.id AND rpv.version=rp.current_version`
+	COALESCE(rp.maker_id::text,''),COALESCE(rp.checker_id::text,''),COALESCE(rpv.effective_from,'epoch'::timestamptz),COALESCE(rpv.effective_until,'epoch'::timestamptz),
+	COALESCE(rp.submitted_at,'epoch'::timestamptz),COALESCE(rp.approved_at,'epoch'::timestamptz),COALESCE(rp.retired_at,'epoch'::timestamptz),rp.created_at,rp.updated_at,rp.version,
+	COALESCE(latest.from_state,''),COALESCE(latest.to_state,''),COALESCE(latest.actor_id::text,''),COALESCE(latest.rationale,''),COALESCE(latest.decided_at,'epoch'::timestamptz)
+	FROM routing_policies rp JOIN tenants t ON t.id=rp.tenant_id JOIN routing_policy_versions rpv ON rpv.policy_id=rp.id AND rpv.version=rp.current_version
+	LEFT JOIN LATERAL (
+		SELECT gd.from_state,gd.to_state,gd.actor_id,gd.rationale,gd.decided_at
+		FROM governance_decisions gd
+		WHERE gd.tenant_id=rp.tenant_id AND gd.object_type='ROUTING_POLICY' AND gd.object_id=rp.id
+		ORDER BY gd.decided_at DESC,gd.id DESC LIMIT 1
+	) latest ON true`
 
 func scanPolicy(row pgx.Row) (RoutingPolicy, error) {
 	var p RoutingPolicy
-	var effectiveFrom, effectiveUntil, submitted, approved, retired time.Time
-	err := row.Scan(&p.ID, &p.TenantID, &p.LegalEntityID, &p.Code, &p.Name, &p.Status, &p.CurrentVersion, &p.Definition, &p.Checksum, &p.MakerID, &p.CheckerID, &effectiveFrom, &effectiveUntil, &submitted, &approved, &retired, &p.CreatedAt, &p.UpdatedAt, &p.Version)
+	var effectiveFrom, effectiveUntil, submitted, approved, retired, decisionAt time.Time
+	var decision GovernanceDecisionSummary
+	err := row.Scan(&p.ID, &p.TenantID, &p.LegalEntityID, &p.Code, &p.Name, &p.Status, &p.CurrentVersion, &p.Definition, &p.Checksum, &p.MakerID, &p.CheckerID, &effectiveFrom, &effectiveUntil, &submitted, &approved, &retired, &p.CreatedAt, &p.UpdatedAt, &p.Version, &decision.FromState, &decision.ToState, &decision.ActorID, &decision.Rationale, &decisionAt)
 	if err != nil {
 		return RoutingPolicy{}, err
 	}
@@ -37,6 +45,11 @@ func scanPolicy(row pgx.Row) (RoutingPolicy, error) {
 	p.SubmittedAt = pointerTime(submitted)
 	p.ApprovedAt = pointerTime(approved)
 	p.RetiredAt = pointerTime(retired)
+	if !decisionAt.Equal(time.Unix(0, 0).UTC()) {
+		decision.DecidedAt = decisionAt.UTC()
+		decision.RecordVersion = p.Version
+		p.LatestDecision = &decision
+	}
 	return p, nil
 }
 func pointerTime(v time.Time) *time.Time {
@@ -509,6 +522,13 @@ func (r *PostgresRepository) ActivateDelegation(ctx context.Context, tenantID, l
 	if cycle {
 		return Delegation{}, ErrConflict
 	}
+	participantsEligible, err := delegationParticipantsEligible(ctx, tx, tenantID, legalEntityID, candidate, at)
+	if err != nil {
+		return Delegation{}, err
+	}
+	if !participantsEligible {
+		return Delegation{}, ErrDelegationEligibility
+	}
 	var conflicts int
 	if err := tx.QueryRow(ctx, `SELECT count(*) FROM segregation_rules sr
 		JOIN role_templates rt ON rt.tenant_id=sr.tenant_id AND rt.code=sr.prohibited_role_code AND rt.valid_until IS NULL
@@ -542,6 +562,55 @@ func (r *PostgresRepository) ActivateDelegation(ctx context.Context, tenantID, l
 		return Delegation{}, err
 	}
 	return r.GetDelegationForEntity(ctx, tenantID, legalEntityID, id)
+}
+
+func delegationParticipantsEligible(ctx context.Context, tx pgx.Tx, tenantID, legalEntityID string, candidate Delegation, at time.Time) (bool, error) {
+	var giverMember, giverAuthority, recipientEligible bool
+	if err := tx.QueryRow(ctx, `
+		SELECT
+			EXISTS (
+				SELECT 1 FROM principals p JOIN org_positions op ON op.tenant_id=p.tenant_id AND op.occupant_principal_id=p.id
+				WHERE p.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND p.id=$3::uuid
+				  AND p.kind='PERSON' AND p.status='ACTIVE' AND p.valid_from<=$6 AND (p.valid_until IS NULL OR $6<p.valid_until)
+				  AND op.legal_entity_id=$2::uuid AND op.valid_from<=$6 AND (op.valid_until IS NULL OR $6<op.valid_until)
+			),
+			EXISTS (
+				SELECT 1 FROM responsibility_assignments ra
+				WHERE ra.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND ra.legal_entity_id=$2::uuid
+				  AND ra.responsibility=$5 AND ra.valid_from<=$6 AND (ra.valid_until IS NULL OR $6<ra.valid_until)
+				  AND ra.valid_from<=$7 AND (ra.valid_until IS NULL OR $8<=ra.valid_until)
+				  AND ((ra.object_type='LEGAL_ENTITY' AND (ra.object_id IS NULL OR ra.object_id=$2::uuid)) OR (ra.object_type='*' AND ra.object_id IS NULL))
+				  AND (
+					ra.principal_id=$3::uuid
+					OR ra.position_id IN (
+						SELECT op.id FROM org_positions op WHERE op.tenant_id=ra.tenant_id AND op.legal_entity_id=$2::uuid
+						  AND op.occupant_principal_id=$3::uuid AND op.valid_from<=$6 AND (op.valid_until IS NULL OR $6<op.valid_until)
+					)
+					OR ra.role_template_id IN (
+						SELECT prb.role_template_id FROM position_role_bindings prb
+						JOIN org_positions op ON op.tenant_id=prb.tenant_id AND op.id=prb.position_id
+						WHERE prb.tenant_id=ra.tenant_id AND op.legal_entity_id=$2::uuid AND op.occupant_principal_id=$3::uuid
+						  AND prb.valid_from<=$6 AND (prb.valid_until IS NULL OR $6<prb.valid_until)
+						  AND op.valid_from<=$6 AND (op.valid_until IS NULL OR $6<op.valid_until)
+					)
+				  )
+			) OR EXISTS (
+				SELECT 1 FROM delegations source
+				WHERE source.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND source.legal_entity_id=$2::uuid
+				  AND source.id<>$9::uuid AND source.to_principal_id=$3::uuid AND source.responsibility=$5 AND source.status='ACTIVE'
+				  AND source.starts_at<=$6 AND $6<source.ends_at AND source.starts_at<=$7 AND $8<=source.ends_at
+				  AND COALESCE(source.scope->>'object_type','')='' AND COALESCE(source.scope->>'object_id','')=''
+				  AND COALESCE(source.scope->>'decision_type','')='' AND NOT (source.scope ? 'min_materiality') AND NOT (source.scope ? 'max_materiality')
+			),
+			EXISTS (
+				SELECT 1 FROM principals p JOIN org_positions op ON op.tenant_id=p.tenant_id AND op.occupant_principal_id=p.id
+				WHERE p.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND p.id=$4::uuid
+				  AND p.kind='PERSON' AND p.status='ACTIVE' AND p.valid_from<=$6 AND (p.valid_until IS NULL OR $6<p.valid_until)
+				  AND op.legal_entity_id=$2::uuid AND op.valid_from<=$6 AND (op.valid_until IS NULL OR $6<op.valid_until)
+			)`, tenantID, legalEntityID, candidate.FromPrincipalID, candidate.ToPrincipalID, candidate.Responsibility, at, candidate.StartsAt, candidate.EndsAt, candidate.ID).Scan(&giverMember, &giverAuthority, &recipientEligible); err != nil {
+		return false, err
+	}
+	return giverMember && giverAuthority && recipientEligible, nil
 }
 func (r *PostgresRepository) ActivateDueDelegations(ctx context.Context, now time.Time, limit int) (int, error) {
 	tx, err := r.pool.Begin(ctx)
@@ -588,6 +657,13 @@ func (r *PostgresRepository) ActivateDueDelegations(ctx context.Context, now tim
 		}
 		if cycle {
 			return 0, ErrConflict
+		}
+		participantsEligible, err := delegationParticipantsEligible(ctx, tx, item.TenantID, item.LegalEntityID, item, now)
+		if err != nil {
+			return 0, err
+		}
+		if !participantsEligible {
+			return 0, ErrDelegationEligibility
 		}
 		var conflicts int
 		if err := tx.QueryRow(ctx, `SELECT count(*) FROM segregation_rules sr
