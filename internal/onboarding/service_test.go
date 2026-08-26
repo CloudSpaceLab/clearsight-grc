@@ -46,18 +46,73 @@ func TestCompletedGuideMustReachFinalStep(t *testing.T) {
 	}
 }
 
-func TestGuideResolutionUsesRolePriorityAndFallback(t *testing.T) {
+func TestGuideResolutionUsesRolePriorityAndFallbackOnToday(t *testing.T) {
 	service := NewService(NewMemoryRepository())
-	guide, err := service.ResolveRoles([]string{"program owner", "cro"})
+	guide, err := service.ResolveRolesForSurface([]string{"program owner", "cro"}, nil, SurfaceToday)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if guide.Code != "executive-first-run" {
 		t.Fatalf("expected executive priority, got %s", guide.Code)
 	}
-	guide, err = service.ResolveRoles(nil)
+	guide, err = service.ResolveRolesForSurface(nil, nil, SurfaceToday)
 	if err != nil || guide.Code != "general-first-run" {
 		t.Fatalf("expected general fallback, guide=%#v err=%v", guide, err)
+	}
+}
+
+func TestGuideResolutionUsesVendorSurfaceForBusinessOwner(t *testing.T) {
+	service := NewService(NewMemoryRepository())
+	guide, err := service.ResolveRolesForSurface([]string{"BUSINESS_OWNER"}, []string{CapabilityVendorWorkspace}, SurfaceVendors)
+	if err != nil || guide.Code != "vendor-operations-first-run" || guide.Surface != SurfaceVendors || guide.RequiredCapability != CapabilityVendorWorkspace {
+		t.Fatalf("vendor guide = %#v, %v", guide, err)
+	}
+}
+
+func TestGuideResolutionRejectsVendorGuideWithoutServerCapability(t *testing.T) {
+	service := NewService(NewMemoryRepository())
+	if _, err := service.ResolveRolesForSurface([]string{"BUSINESS_OWNER"}, nil, SurfaceVendors); err == nil {
+		t.Fatal("expected vendor guide without server capability to fail")
+	}
+}
+
+func TestVendorGuideUsesStableWorkspaceTargets(t *testing.T) {
+	service := NewService(NewMemoryRepository())
+	guide, err := service.ResolveRolesForSurface([]string{"BUSINESS_OWNER"}, []string{CapabilityVendorWorkspace}, SurfaceVendors)
+	if err != nil {
+		t.Fatal(err)
+	}
+	targets := map[string]string{}
+	for _, step := range guide.Steps {
+		targets[step.ID] = step.Target
+	}
+	want := map[string]string{
+		"register":      "vendor-register",
+		"due-diligence": "vdd-title",
+		"work":          "vendor-work-panel",
+		"finish":        "vendors-workspace",
+	}
+	for step, target := range want {
+		if targets[step] != target {
+			t.Fatalf("%s target = %q, want %q", step, targets[step], target)
+		}
+	}
+	intents := map[string]string{}
+	for _, step := range guide.Steps {
+		intents[step.ID] = step.Intent
+	}
+	if intents["due-diligence"] != "open-vendor-due-diligence" || intents["work"] != "open-vendor-work" || intents["finish"] != "open-vendor-next-action" {
+		t.Fatalf("vendor guide intents = %#v", intents)
+	}
+	if guide.Steps[3].Action != "Open next vendor task" {
+		t.Fatalf("finish action = %q", guide.Steps[3].Action)
+	}
+}
+
+func TestGuideResolutionRejectsUnknownSurface(t *testing.T) {
+	service := NewService(NewMemoryRepository())
+	if _, err := service.ResolveRolesForSurface([]string{"BUSINESS_OWNER"}, nil, "UNKNOWN"); err == nil {
+		t.Fatal("expected unknown surface to fail")
 	}
 }
 

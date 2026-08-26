@@ -201,10 +201,10 @@ export function VendorWorkPanel(props: Props) {
     }
   }
 
-  if (state === "loading") return <section className="vendor-work-panel" aria-live="polite" aria-busy="true">Loading vendor requests for this {targetName}…</section>;
-  if (state === "failed") return <section className="vendor-work-panel" role="alert"><h2>Vendor requests</h2><p>Vendor requests could not be loaded for this {targetName}. No request state is shown.</p><button type="button" className="secondary-button" onClick={() => void loadAll()}>Try again</button></section>;
+  if (state === "loading") return <section className="vendor-work-panel" data-testid={relationshipID ? `vendor-work-relationship-${relationshipID}` : `vendor-work-${targetType}-${targetID}`} tabIndex={-1} aria-live="polite" aria-busy="true">Loading vendor requests for this {targetName}…</section>;
+  if (state === "failed") return <section className="vendor-work-panel" data-testid={relationshipID ? `vendor-work-relationship-${relationshipID}` : `vendor-work-${targetType}-${targetID}`} tabIndex={-1} role="alert"><h2>Vendor requests</h2><p>Vendor requests could not be loaded for this {targetName}. No request state is shown.</p><button type="button" className="secondary-button" onClick={() => void loadAll()}>Try again</button></section>;
 
-  return <section className="vendor-work-panel" aria-labelledby={headingID}>
+  return <section className="vendor-work-panel" data-testid={relationshipID ? `vendor-work-relationship-${relationshipID}` : `vendor-work-${targetType}-${targetID}`} tabIndex={-1} aria-labelledby={headingID}>
     <div className="section-heading-row"><div><h2 id={headingID}>Vendor requests</h2><p>Information, documents or confirmations requested from vendors for this {targetName}.</p></div>{canCreate && !creating && <button type="button" className="primary-button" disabled={!setupAvailable || (relationships.length === 0 && !linkNextCursor) || forms.length === 0} onClick={() => { setCreating(true); setError(""); setNotice(""); }}>Request vendor work</button>}</div>
     {canCreate && !setupAvailable && <p className="inline-notice">Linked vendors or approved forms are unavailable. Existing request history remains available.</p>}
     {canCreate && setupAvailable && relationships.length === 0 && !linkNextCursor && <p className="inline-notice">{relationshipID ? "Link this vendor relationship to a Program or issue before requesting vendor work." : `Link a vendor relationship to this ${targetName} before requesting vendor work.`}</p>}

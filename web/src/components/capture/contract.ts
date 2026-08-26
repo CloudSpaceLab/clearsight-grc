@@ -126,7 +126,9 @@ export function validateCaptureFields(fields: CaptureField[], answers: CaptureAn
     const selections = answerValues(value).length;
     if (constraints.min_selections !== undefined && selections < constraints.min_selections) errors.push({ fieldID: field.id, message: `${field.label} requires at least ${constraints.min_selections} selections` });
     if (constraints.max_selections !== undefined && selections > constraints.max_selections) errors.push({ fieldID: field.id, message: `${field.label} allows no more than ${constraints.max_selections} selections` });
-    if (constraints.max_files !== undefined && (value?.artifact_ids?.length ?? 0) > constraints.max_files) errors.push({ fieldID: field.id, message: `${field.label} allows no more than ${constraints.max_files} files` });
+	const fileCount = type === "vendor_document" ? (value?.document?.artifact_id ? 1 : 0) : value?.artifact_ids?.length ?? 0;
+	if (constraints.min_files !== undefined && (field.required || fileCount > 0) && fileCount < constraints.min_files) errors.push({ fieldID: field.id, message: `${field.label} requires at least ${constraints.min_files} files` });
+	if (constraints.max_files !== undefined && fileCount > constraints.max_files) errors.push({ fieldID: field.id, message: `${field.label} allows no more than ${constraints.max_files} files` });
     if (type === "vendor_document" && value?.document && (!value.document.artifact_id || !value.document.document_type.trim())) errors.push({ fieldID: field.id, message: `${field.label} requires a file and document type` });
   }
   return errors;

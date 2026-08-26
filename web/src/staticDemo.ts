@@ -1,11 +1,12 @@
 import type { CoverageDecision, DocumentCoverage, DocumentImport, ProposalStatus } from "./documentTypes";
+import staticDemoFixturesURL from "./staticDemoFixtures.json?url";
+import staticDemoWorkflowRuntimeURL from "./staticDemoWorkflowRuntime.js?url";
 import type { FormTemplate } from "./monitoringTypes";
 import type { VendorAssessment, VendorAssessmentReviewView } from "./vendorAssessmentTypes";
+import { normalizeWebsiteDomain } from "./vendorIdentity";
 import type { VendorRelationshipLink } from "./vendorLinkTypes";
 import type { VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "./vendorTypes";
 import type { VendorWorkRequest, VendorWorkResponseView, VendorWorkSendOutcome } from "./vendorWorkTypes";
-import staticDemoFixturesURL from "./staticDemoFixtures.json?url";
-import staticDemoWorkflowRuntimeURL from "./staticDemoWorkflowRuntime.js?url";
 
 export const staticDemoEnabled = import.meta.env.VITE_STATIC_DEMO === "true";
 
@@ -82,11 +83,65 @@ let responseHistory: Record<string, Array<Record<string, any>>>;
 let evidenceRequest: Record<string, any>;
 let evidenceRequests: Array<Record<string, any>> = [];
 let todayItems: Array<Record<string, any>>;
+type StaticDemoFixtures = {
+  program: Record<string, any>;
+  programSummary: Record<string, any>;
+  programDetail: Record<string, any>;
+  programOperations: Record<string, any>;
+  matter: Record<string, any>;
+  matterSummary: Record<string, any>;
+  matterDetail: Record<string, any>;
+  evidenceRequest: Record<string, any>;
+  todayItems: Array<Record<string, any>>;
+  guide: Record<string, any>;
+  document: DocumentImport;
+  documentCoverage: DocumentCoverage;
+};
 
+let document: DocumentImport;
+let documentCoverage: DocumentCoverage;
+
+export async function loadStaticDemoFixtures(fetcher: typeof fetch = globalThis.fetch, baseURL: string = import.meta.env.BASE_URL) {
+  const response = await fetcher(assetURLForBase(staticDemoFixturesURL, baseURL));
+  if (!response.ok) throw new Error(`Static demo fixtures are unavailable (HTTP ${response.status}).`);
+  const fixtures = await response.json() as StaticDemoFixtures;
+  programID = "program-ndpa"; matterID = "matter-gaid-change";
+  currentStaticActor = workflowRuntime().accounts[0]!.actor;
+  programReviewAcknowledged = false; demoForms.splice(0); demoChecks.splice(0, demoChecks.length, clone(monitoringCheck)); monitoringResults.clear(); monitoringResults.set(monitoringCheck.id, clone(monitoringResult)); monitoringIssues.clear(); createdSources.splice(0); sourceConnections.splice(0); sourceViews.splice(0); sourceBindings.splice(0);
+  program = clone(fixtures.program);
+  programSummary = clone(fixtures.programSummary);
+  programSummary.program = program;
+  programDetail = clone(fixtures.programDetail);
+  programDetail.program = program;
+  programBaseline = clone(programDetail);
+  programOperations = clone(fixtures.programOperations);
+  matter = clone(fixtures.matter);
+  matter.due_at = future;
+  matterSummary = clone(fixtures.matterSummary);
+  matterSummary.matter = matter;
+  matterDetail = clone(fixtures.matterDetail);
+  matterDetail.matter = matter;
+  for (const action of matterDetail.actions ?? []) { action.due_at = future; action.version ??= 1; action.owner_principal_id ??= "role-privacy-control"; }
+  for (const contract of matterDetail.verification_contracts ?? []) { contract.version ??= 1; contract.authority_principal_id ??= "role-dpco"; }
+  for (const implementation of programDetail.control_implementations ?? []) implementation.version ??= 1;
+  for (const implementation of programDetail.control_implementations ?? []) implementation.owner_principal_id ??= "role-privacy-control";
+  for (const contract of programDetail.evidence_contracts ?? []) { contract.version ??= 1; contract.configured_by ??= "role-dpo"; }
+  responseHistory = {};
+  matterBaseline = clone(matterDetail);
+  evidenceRequest = clone(fixtures.evidenceRequest);
+  evidenceRequest.deadline = future;
+  evidenceRequests = [evidenceRequest];
+  todayItems = clone(fixtures.todayItems);
+  for (const item of todayItems) item.due_at = future;
+  guide = clone(fixtures.guide);
+  document = clone(fixtures.document);
+  documentCoverage = clone(fixtures.documentCoverage);
+}
+let guide: Record<string, any>;
 let vendorRelationships: VendorRelationshipAggregate[] = [{
   vendor: {
     id: "vendor-acme-processing", tenant_id: "bank-demo", legal_name: "Acme Processing Limited", trading_name: "Acme Processing",
-    registration_ref: "RC-10001", jurisdiction: "Nigeria", source_id: "procurement", external_ref: "vendor-10001", status: "ACTIVE",
+    registration_ref: "RC-10001", jurisdiction: "Nigeria", website_domain: "acme.example", source_id: "procurement", external_ref: "vendor-10001", status: "ACTIVE",
     created_at: "2026-07-10T09:00:00Z", updated_at: now, version: 1,
   },
   relationship: {
@@ -95,11 +150,17 @@ let vendorRelationships: VendorRelationshipAggregate[] = [{
     status: "PROPOSED", effective_from: "2026-09-01T00:00:00Z", renewal_at: "2027-09-01T00:00:00Z",
     source_id: "procurement", external_ref: "vendor-10001", created_at: "2026-07-10T09:00:00Z", updated_at: now, version: 1,
   },
+  brand: { state: "PENDING", version: 0, event_version: 0 },
 }];
+type StaticVendorBrand = NonNullable<VendorRelationshipAggregate["brand"]>;
+let vendorBrand: StaticVendorBrand = { state: "PENDING", version: 0, event_version: 0, updated_at: now };
+let vendorBrandFixture = "";
 
 const vendorDueDiligenceForm: FormTemplate = {
-  id: "form-vendor-due-diligence", tenant_id: "bank-demo", legal_entity_id: "bank-ng", program_id: "program-ndpa",
-  code: "VENDOR-DUE-DILIGENCE", name: "Vendor security and privacy review",
+  id: "form-vendor-due-diligence",
+  tenant_id: "bank-demo",
+  code: "VENDOR-DUE-DILIGENCE",
+  name: "Vendor security and privacy review",
   purpose: "Collect the vendor information and supporting documents required for onboarding review.",
   presentation: { default_mode: "WIZARD", allow_mode_switch: true },
   sections: [
@@ -118,17 +179,21 @@ const vendorDueDiligenceForm: FormTemplate = {
     { id: "security_document", section_id: "controls", label: "Current independent assurance document", type: "vendor_document", required: true, accepted_formats: ["application/pdf"], constraints: { max_files: 1, max_file_bytes: 25_000_000 } },
     { id: "authorized_attestation", section_id: "attestation", label: "Authorized representative confirmation", type: "attestation", required: true, attestation: "I confirm that this response is complete and accurate to the best of my knowledge." },
   ],
-  status: "ACTIVE", is_current: true, version: 3, created_at: "2026-08-01T09:00:00Z", updated_at: now,
+  status: "ACTIVE",
+  is_current: true,
+  version: 3,
+  created_at: "2026-08-01T09:00:00Z",
+  updated_at: now,
 };
 
 const vendorProgramLink: VendorRelationshipLink = {
   id: "vendor-link-program-payments", tenant_id: "bank-demo", legal_entity_id: "bank-ng", relationship_id: vendorRelationshipID,
-  target_type: "PROGRAM", target_id: "program-ndpa", purpose_code: "CONTROL_ASSURANCE", purpose_label: "Payment-service control assurance",
+  target_type: "PROGRAM", target_id: programID, purpose_code: "CONTROL_ASSURANCE", purpose_label: "Payment-service control assurance",
   state: "ACTIVE", created_by: "role-payments-owner", version: 1, created_at: "2026-08-18T09:00:00Z", updated_at: now,
 };
 const vendorMatterLink: VendorRelationshipLink = {
   id: "vendor-link-matter-payments", tenant_id: "bank-demo", legal_entity_id: "bank-ng", relationship_id: vendorRelationshipID,
-  target_type: "MATTER", target_id: "matter-gaid-change", purpose_code: "REMEDIATION", purpose_label: "Annual-return evidence update",
+  target_type: "MATTER", target_id: matterID, purpose_code: "REMEDIATION", purpose_label: "Annual-return evidence update",
   state: "ACTIVE", created_by: "role-dpo", version: 1, created_at: "2026-08-19T09:00:00Z", updated_at: now,
 };
 const vendorWorkLinks = [vendorProgramLink, vendorMatterLink];
@@ -140,21 +205,16 @@ function vendorWorkRecord(link: VendorRelationshipLink, state: VendorWorkRequest
   return {
     id: link.target_type === "PROGRAM" ? "vendor-work-program-controls" : "vendor-work-matter-evidence",
     tenant_id: "bank-demo", legal_entity_id: "bank-ng", relationship_id: vendorRelationshipID, relationship_link_id: link.id,
-    target_type: link.target_type, target_id: link.target_id,
-    purpose: link.target_type === "PROGRAM" ? "Confirm payment-service controls" : "Complete annual-return evidence",
+    target_type: link.target_type, target_id: link.target_id, purpose: link.target_type === "PROGRAM" ? "Confirm payment-service controls" : "Complete annual-return evidence",
     instructions: link.target_type === "PROGRAM" ? "Complete the control questions and provide the current independent assurance report." : "Upload the signed evidence schedule and confirm the remaining service-control details.",
-    owner_principal_id: link.target_type === "PROGRAM" ? "role-payments-owner" : "role-dpo",
-    reviewer_principal_id: state === "UNDER_REVIEW" || state === "ACCEPTED" ? "role-cro" : undefined,
+    owner_principal_id: link.target_type === "PROGRAM" ? "role-payments-owner" : "role-dpo", reviewer_principal_id: state === "UNDER_REVIEW" || state === "ACCEPTED" ? "role-cro" : undefined,
     form_template_id: vendorDueDiligenceForm.id, form_template_version: vendorDueDiligenceForm.version, presentation: "WIZARD",
-    current_request_id: state === "PREPARING" ? undefined : "vendor-work-capture-1",
-    current_invitation_id: state === "PREPARING" ? undefined : "vendor-work-invitation-1",
-    current_capture_sequence: state === "PREPARING" ? 0 : 1, submission_id: submitted ? "vendor-work-submission-1" : undefined,
-    state, delivery_state: deliveryState,
+    current_request_id: state === "PREPARING" ? undefined : "vendor-work-capture-1", current_invitation_id: state === "PREPARING" ? undefined : "vendor-work-invitation-1", current_capture_sequence: state === "PREPARING" ? 0 : 1,
+    submission_id: submitted ? "vendor-work-submission-1" : undefined, state, delivery_state: deliveryState,
     recovery: deliveryState === "RETRY_REQUIRED" ? "Email delivery was not confirmed. Retry delivery to issue a replacement secure link." : undefined,
     review_rationale: state === "ACCEPTED" ? "The response and current assurance report address this request." : undefined,
     due_at: "2026-09-30T23:59:59Z", version, created_at: "2026-08-20T09:00:00Z", updated_at: now,
-    response_received_at: submitted ? "2026-08-25T14:20:00Z" : undefined,
-    review_started_at: state === "UNDER_REVIEW" || state === "ACCEPTED" ? "2026-08-25T15:00:00Z" : undefined,
+    response_received_at: submitted ? "2026-08-25T14:20:00Z" : undefined, review_started_at: state === "UNDER_REVIEW" || state === "ACCEPTED" ? "2026-08-25T15:00:00Z" : undefined,
     accepted_at: state === "ACCEPTED" ? "2026-08-26T11:00:00Z" : undefined,
   };
 }
@@ -189,14 +249,29 @@ function vendorWorkResponse(work: VendorWorkRequest): VendorWorkResponseView {
 }
 
 let vendorAssessment: VendorAssessment | null = null;
+
 function submittedVendorAssessment(): VendorAssessment {
   return {
-    id: "vendor-assessment-payments-2026", tenant_id: "bank-demo", legal_entity_id: "bank-ng", relationship_id: vendorRelationshipID,
-    review_kind: "ONBOARDING", source_trigger: "INITIAL", stable_episode_key: "vendor-relationship-payments:ONBOARDING:2026", status: "SUBMITTED",
-    form_template_id: vendorDueDiligenceForm.id, form_template_version: vendorDueDiligenceForm.version,
-    current_request_id: "vendor-request-payments-2026", submission_id: "vendor-submission-payments-2026", review_matter_id: "matter-vendor-review-payments",
-    review_due_at: "2026-09-25T23:59:59Z", started_by_principal_id: "role-payments-owner", started_at: "2026-08-20T09:00:00Z",
-    submitted_at: "2026-08-25T14:20:00Z", version: 4, created_at: "2026-08-20T09:00:00Z", updated_at: "2026-08-25T14:20:00Z",
+    id: "vendor-assessment-payments-2026",
+    tenant_id: "bank-demo",
+    legal_entity_id: "bank-ng",
+    relationship_id: vendorRelationshipID,
+    review_kind: "ONBOARDING",
+    source_trigger: "INITIAL",
+    stable_episode_key: "vendor-relationship-payments:ONBOARDING:2026",
+    status: "SUBMITTED",
+    form_template_id: vendorDueDiligenceForm.id,
+    form_template_version: vendorDueDiligenceForm.version,
+    current_request_id: "vendor-request-payments-2026",
+    submission_id: "vendor-submission-payments-2026",
+    review_matter_id: "matter-vendor-review-payments",
+    review_due_at: "2026-09-25T23:59:59Z",
+    started_by_principal_id: "role-payments-owner",
+    started_at: "2026-08-20T09:00:00Z",
+    submitted_at: "2026-08-25T14:20:00Z",
+    version: 4,
+    created_at: "2026-08-20T09:00:00Z",
+    updated_at: "2026-08-25T14:20:00Z",
   };
 }
 
@@ -228,71 +303,33 @@ function submittedVendorReview(assessment: VendorAssessment): VendorAssessmentRe
       { field_id: "subprocessor_details", label: "Subcontractor details", type: "LONG_TEXT", required: true, visibility: "VISIBLE", value: { text: "Payment-routing infrastructure is provided by a contracted hosting provider in the stated service scope." }, provenance: { source: "Vendor response" } },
     ],
     coverage: { visible_fields: 7, answered_fields: 7, required_fields: 4, answered_required: 4, ratio: 1 },
-    documents: [{ field_id: "security_document", artifact_id: "artifact-vendor-iso27001", file_name: "acme-iso-27001-certificate.pdf", media_type: "application/pdf", size_bytes: 684220, artifact_status: "AVAILABLE", evidence_class: "VENDOR_SUPPLIED", document_type: "ISO_27001_CERTIFICATE", reference: "ISO-27001-ACME-2026", issued_by: "Accredited certification body", issued_on: "2026-03-01", expires_on: "2027-03-01" }],
-    provisional_score: { score: 82, coverage: 1, rule_results: [] }, matters: [],
+    documents: [{ field_id: "security_document", artifact_id: "artifact-vendor-iso27001", file_name: "acme-iso-27001-certificate.pdf", media_type: "application/pdf", size_bytes: 684_220, artifact_status: "AVAILABLE", evidence_class: "VENDOR_SUPPLIED", document_type: "ISO_27001_CERTIFICATE", reference: "ISO-27001-ACME-2026", issued_by: "Accredited certification body", issued_on: "2026-03-01", expires_on: "2027-03-01" }],
+    provisional_score: { score: 82, coverage: 1, rule_results: [] },
+    matters: [],
   };
 }
-type StaticDemoFixtures = {
-  program: Record<string, any>;
-  programSummary: Record<string, any>;
-  programDetail: Record<string, any>;
-  programOperations: Record<string, any>;
-  matter: Record<string, any>;
-  matterSummary: Record<string, any>;
-  matterDetail: Record<string, any>;
-  evidenceRequest: Record<string, any>;
-  todayItems: Array<Record<string, any>>;
-  guide: Record<string, any>;
-  document: DocumentImport;
-  documentCoverage: DocumentCoverage;
-};
 
-let document: DocumentImport;
-let documentCoverage: DocumentCoverage;
+const todayGuide = { code: "executive-first-run", surface: "TODAY", profile: "executive", role: "Executive risk or compliance leader", version: 1, title: "Executive review", description: "Review priority work, Program status and supporting evidence.", illustration: "guided-orbit", steps: [
+  { id: "brief", title: "Review priority work", description: "Today shows work assigned to you, due dates and data freshness.", action: "Open Today", view: "today", target: "today-brief" },
+  { id: "attention", title: "Review a priority item", description: "Open the first Program, issue or evidence request in the queue.", action: "Review first item", view: "today", target: "attention-list", intent: "open-first-attention" },
+  { id: "programs", title: "Check Program status", description: "Programs show status, requirements, controls, evidence and open issues.", action: "Open Programs", view: "programs", target: "programs-workspace" },
+  { id: "finish", title: "Review status details", description: "Check the status reason, source, owner and next action.", action: "Done", view: "programs", target: "programs-workspace" },
+] };
 
-export async function loadStaticDemoFixtures(fetcher: typeof fetch = globalThis.fetch, baseURL: string = import.meta.env.BASE_URL) {
-  const response = await fetcher(assetURLForBase(staticDemoFixturesURL, baseURL));
-  if (!response.ok) throw new Error(`Static demo fixtures are unavailable (HTTP ${response.status}).`);
-  const fixtures = await response.json() as StaticDemoFixtures;
-  programID = "program-ndpa"; matterID = "matter-gaid-change";
-  currentStaticActor = workflowRuntime().accounts[0]!.actor;
-  programReviewAcknowledged = false; demoForms.splice(0, demoForms.length, clone(vendorDueDiligenceForm)); demoChecks.splice(0, demoChecks.length, clone(monitoringCheck)); monitoringResults.clear(); monitoringResults.set(monitoringCheck.id, clone(monitoringResult)); monitoringIssues.clear(); createdSources.splice(0); sourceConnections.splice(0); sourceViews.splice(0); sourceBindings.splice(0);
-  program = clone(fixtures.program);
-  programSummary = clone(fixtures.programSummary);
-  programSummary.program = program;
-  programDetail = clone(fixtures.programDetail);
-  programDetail.program = program;
-  programBaseline = clone(programDetail);
-  programOperations = clone(fixtures.programOperations);
-  matter = clone(fixtures.matter);
-  matter.due_at = future;
-  matterSummary = clone(fixtures.matterSummary);
-  matterSummary.matter = matter;
-  matterDetail = clone(fixtures.matterDetail);
-  matterDetail.matter = matter;
-  for (const action of matterDetail.actions ?? []) { action.due_at = future; action.version ??= 1; action.owner_principal_id ??= "role-privacy-control"; }
-  for (const contract of matterDetail.verification_contracts ?? []) { contract.version ??= 1; contract.authority_principal_id ??= "role-dpco"; }
-  for (const implementation of programDetail.control_implementations ?? []) implementation.version ??= 1;
-  for (const implementation of programDetail.control_implementations ?? []) implementation.owner_principal_id ??= "role-privacy-control";
-  for (const contract of programDetail.evidence_contracts ?? []) { contract.version ??= 1; contract.configured_by ??= "role-dpo"; }
-  responseHistory = {};
-  matterBaseline = clone(matterDetail);
-  evidenceRequest = clone(fixtures.evidenceRequest);
-  evidenceRequest.deadline = future;
-  evidenceRequests = [evidenceRequest];
-  todayItems = clone(fixtures.todayItems);
-  for (const item of todayItems) item.due_at = future;
-  guide = clone(fixtures.guide);
-  document = clone(fixtures.document);
-  documentCoverage = clone(fixtures.documentCoverage);
-}
-let guide: Record<string, any>;
+const vendorsGuide = { code: "vendor-operations-first-run", surface: "VENDORS", required_capability: "VENDORS", profile: "vendor-operations", role: "Vendor relationship owner", role_codes: ["BUSINESS_OWNER"], priority: 100, version: 1, title: "Manage vendor relationships", description: "Record the service, collect missing information and route vendor work for review.", illustration: "guided-orbit", steps: [
+  { id: "register", title: "Review the vendor register", description: "Check the supplied service, owner and current relationship state.", action: "Review vendors", view: "vendors", target: "vendor-register" },
+  { id: "due-diligence", title: "Collect due diligence", description: "Use known bank records first, then request only missing information.", action: "Review due diligence", view: "vendors", target: "vdd-title", intent: "open-vendor-due-diligence" },
+  { id: "work", title: "Request vendor action", description: "Send a focused form, document, signature or upload request when the vendor must act.", action: "Review vendor requests", view: "vendors", target: "vendor-work-panel", intent: "open-vendor-work" },
+  { id: "finish", title: "Confirm the outcome", description: "Completion and upload remain separate from review and outcome confirmation.", action: "Open next vendor task", view: "vendors", target: "vendors-workspace", intent: "open-vendor-next-action" },
+] };
+
 export async function staticDemoRequest<T>(path: string, init?: RequestInit): Promise<T> {
   if (!staticDemoEnabled) throw new Error("disabled");
   const url = new URL(path, "https://clearsight.demo");
   const pathname = url.pathname;
   const method = (init?.method ?? "GET").toUpperCase();
   const fixture = activeFixture();
+  syncVendorBrandFixture(fixture);
   syncVendorWorkFixture(fixture);
 
   if (fixture === "today-loading" && pathname === "/api/v1/today") await delay(1800);
@@ -308,6 +345,12 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     const noConfig = fixture === "no-config-access";
     return clone({ tenant: { id: "bank-demo", name: "Meridian Trust Bank" }, legal_entity: { id: "bank-ng", name: "Meridian Trust Bank Nigeria" }, actor: { ...currentStaticActor, assurance_level: "MFA", authentication: "STATIC_DEMO", session_id: "pages-demo" }, mode: "static-stakeholder-demo", demo_mode: !productionUnavailable, capabilities: { document_import: true, reference_journeys: !productionUnavailable, config_read: !noConfig, config_write: !noConfig, platform_operations_read: !noConfig, platform_operations_write: !noConfig } }) as T;
   }
+  if (pathname === "/api/v1/onboarding/guide") {
+    const surface = url.searchParams.get("surface")?.trim().toUpperCase() ?? "TODAY";
+    const guide = surface === "VENDORS" ? vendorsGuide : surface === "TODAY" ? todayGuide : undefined;
+    if (guide && (!url.searchParams.get("code") || url.searchParams.get("code") === guide.code)) return clone(guide) as T;
+    throw new StaticDemoHTTPError(404, "not_found", "Guide not found.");
+  }
   if (pathname === "/api/v1/today") return clone({ items: fixture === "today-empty" ? [] : todayItems, generated_at: now }) as T;
   if (pathname === "/api/v1/compliance/readiness") return clone({ tenant_id: "bank-demo", status: "AT_RISK", baseline_known: false, generated_at: now, dimensions: { current: 0, aging: 1, at_risk: 1, unknown: 1, blocked_routing: 0, pending_human: 1 }, active_drifts: [{ id: "drift-1", subject_type: "PROGRAM", subject_id: programID, dimension: "EVIDENCE", severity: 4, summary: "Two annual-return evidence sections are incomplete.", required_action: "Assign owners and complete DPCO review.", detected_at: now }], recommended_actions: ["Complete the two missing evidence ownership records.", "Confirm the final DPCO review date."] }) as T;
   if (pathname === "/api/v1/programs" && method === "POST") {
@@ -318,6 +361,10 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   }
   if (pathname === "/api/v1/programs/setup-candidates" && method === "GET") return clone({ owner_candidates: [{ id: "role-dpo", display_name: "Data Protection Officer", kind: "POSITION", role: "DPO" }], approval_authority_candidates: [{ id: "role-cro", display_name: "Chief Risk Officer", kind: "POSITION", role: "CRO" }, { id: "role-deputy-cro", display_name: "Deputy Chief Risk Officer", kind: "POSITION", role: "Deputy CRO" }], has_more: false, generated_at: now }) as T;
   if (pathname === "/api/v1/program-summaries") return clone({ items: matches(url, programSummary.program.name, programSummary.program.code) ? [programSummary] : [], generated_at: now }) as T;
+  if (pathname === "/api/v1/form-templates" && method === "GET") {
+    if (fixture === "vendor-source-degraded") throw new StaticDemoHTTPError(503, "vendor_forms_unavailable", "Approved due-diligence forms could not be loaded.");
+    return clone({ items: [vendorDueDiligenceForm], next_cursor: "" }) as T;
+  }
   if (pathname === "/api/v1/vendor-links" && method === "GET") {
     const targetType = url.searchParams.get("target_type");
     const targetID = url.searchParams.get("target_id");
@@ -329,6 +376,49 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     const targetID = url.searchParams.get("target_id");
     const items = vendorWorkRequests.filter((work) => relationshipID ? work.relationship_id === relationshipID : work.target_type === targetType && work.target_id === targetID);
     return clone({ items, next_cursor: "" }) as T;
+  }
+  const vendorIdentityBrandMatch = pathname.match(/^\/api\/v1\/vendor-identities\/([^/]+)\/brand$/);
+  if (vendorIdentityBrandMatch) {
+    const vendorID = decodeURIComponent(vendorIdentityBrandMatch[1]!);
+    const current = vendorRelationships.find((item) => item.vendor.id === vendorID);
+    if (!current) throw new StaticDemoHTTPError(404, "vendor_identity_not_found", "The vendor identity is not available in this tenant.");
+    if (method === "GET") throw new StaticDemoHTTPError(404, "vendor_brand_unavailable", "No stored vendor icon is available.");
+    const headers = new Headers(init?.headers);
+    if (!headers.get("Idempotency-Key")?.trim()) throw new StaticDemoHTTPError(400, "idempotency_key_required", "A request key is required before the vendor logo can be changed.");
+    const expectedVersion = Number(headers.get("If-Match")?.replaceAll('"', ""));
+    if (!Number.isFinite(expectedVersion) || expectedVersion !== vendorBrand.version) throw new StaticDemoHTTPError(409, "vendor_brand_changed", "The vendor logo changed before this action was recorded.");
+    if (method === "PUT") {
+      if (fixture === "vendor-identity-brand-errors") throw new StaticDemoHTTPError(403, "permission_denied", "Your current role cannot change the approved vendor logo.");
+      if (!(init?.body instanceof Blob) || init.body.size > 512 * 1024 || !["image/png", "image/jpeg", "image/webp", "image/x-icon", "image/vnd.microsoft.icon"].includes(headers.get("Content-Type") ?? "")) throw new StaticDemoHTTPError(422, "vendor_brand_invalid", "Select a PNG, JPEG, WebP or ICO file of 512 KiB or less.");
+      vendorBrand = { state: "APPROVED_LOGO", source: "APPROVED_UPLOAD", asset_token: fixture.startsWith("vendor-brand-") ? `approved-${vendorBrand.version + 1}` : undefined, version: vendorBrand.version + 1, event_version: vendorBrand.event_version + 1, updated_at: now };
+    } else if (method === "DELETE") {
+      vendorBrand = fixture === "vendor-brand-approved"
+        ? { state: "WEBSITE_ICON", source: "VENDOR_WEBSITE", asset_token: "website-2", version: vendorBrand.version + 1, event_version: vendorBrand.event_version + 1, updated_at: now }
+        : fixture === "vendor-brand-approved-no-discovered"
+          ? { state: "UNAVAILABLE", version: vendorBrand.version + 1, event_version: vendorBrand.event_version + 1, updated_at: now }
+          : { state: current.vendor.website_domain ? "PENDING" : "UNAVAILABLE", version: vendorBrand.version + 1, event_version: vendorBrand.event_version + 1, updated_at: now };
+    } else throw new StaticDemoHTTPError(501, "fixture_not_implemented", `Static stakeholder demo does not implement ${method} ${pathname}`);
+    vendorRelationships = vendorRelationships.map((item) => item.vendor.id === vendorID ? { ...item, brand: clone(vendorBrand) } : item);
+    return clone({ vendor: current.vendor, brand: vendorBrand }) as T;
+  }
+  const vendorIdentityMatch = pathname.match(/^\/api\/v1\/vendor-identities\/([^/]+)$/);
+  if (vendorIdentityMatch) {
+    const vendorID = decodeURIComponent(vendorIdentityMatch[1]!);
+    const current = vendorRelationships.find((item) => item.vendor.id === vendorID);
+    if (!current) throw new StaticDemoHTTPError(404, "vendor_identity_not_found", "The vendor identity is not available in this tenant.");
+    if (method === "GET") return clone({ vendor: current.vendor, brand: vendorBrand }) as T;
+    if (method !== "PUT") throw new StaticDemoHTTPError(501, "fixture_not_implemented", `Static stakeholder demo does not implement ${method} ${pathname}`);
+    if (fixture === "vendor-identity-brand-errors") throw new StaticDemoHTTPError(409, "vendor_identity_changed", "The vendor details changed before this action was recorded.");
+    const input = parseBody(init) as Record<string, string | number | undefined>;
+    if (input.expected_version !== current.vendor.version) throw new StaticDemoHTTPError(409, "vendor_identity_changed", "The vendor details changed before this action was recorded.");
+    if (!String(input.legal_name ?? "").trim()) throw new StaticDemoHTTPError(422, "vendor_identity_invalid", "Enter the vendor's legal name.");
+    const websiteInput = String(input.website_domain ?? "").trim();
+    const websiteDomain = normalizeWebsiteDomain(websiteInput);
+    if (websiteInput && !websiteDomain) throw new StaticDemoHTTPError(422, "vendor_identity_invalid", "Enter the website hostname only, without a scheme, path, credentials, port or IP address.");
+    const updatedVendor = { ...current.vendor, legal_name: String(input.legal_name).trim(), trading_name: input.trading_name ? String(input.trading_name) : undefined, registration_ref: input.registration_ref ? String(input.registration_ref) : undefined, jurisdiction: input.jurisdiction ? String(input.jurisdiction) : undefined, website_domain: websiteDomain, updated_at: now, version: current.vendor.version + 1 };
+    if (updatedVendor.website_domain !== current.vendor.website_domain) vendorBrand = { state: updatedVendor.website_domain ? "PENDING" : "UNAVAILABLE", version: vendorBrand.version + 1, event_version: vendorBrand.event_version + 1, updated_at: now };
+    vendorRelationships = vendorRelationships.map((item) => item.vendor.id === vendorID ? { ...item, vendor: updatedVendor, brand: clone(vendorBrand) } : item);
+    return clone({ vendor: updatedVendor, brand: vendorBrand }) as T;
   }
   const prepareVendorWorkMatch = pathname.match(/^\/api\/v1\/vendors\/([^/]+)\/work\/prepare$/);
   if (prepareVendorWorkMatch && method === "POST") {
@@ -384,7 +474,8 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   }
   if (pathname === "/api/v1/vendors" && method === "GET") {
     const query = (url.searchParams.get("search") ?? "").trim().toLowerCase();
-    const items = query ? vendorRelationships.filter((item) => `${item.vendor.legal_name} ${item.vendor.trading_name} ${item.relationship.service_name}`.toLowerCase().includes(query)) : vendorRelationships;
+    const available = fixture === "vendor-guide-empty" ? [] : vendorRelationships;
+    const items = query ? available.filter((item) => `${item.vendor.legal_name} ${item.vendor.trading_name} ${item.relationship.service_name}`.toLowerCase().includes(query)) : available;
     return clone({ items, next_cursor: "" }) as T;
   }
   if (pathname === "/api/v1/vendors" && method === "POST") {
@@ -557,7 +648,6 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (matterMutation.handled) return clone(matterMutation.body) as T;
   const connectedData = workflowRuntime().connectedDataRequest({ pathname, method, url, input: parseBody(init), state: { sources: createdSources, connections: sourceConnections, views: sourceViews, bindings: sourceBindings }, ErrorType: StaticDemoHTTPError, now });
   if (connectedData.handled) return clone(connectedData.body) as T;
-  if (fixture === "vendor-source-degraded" && pathname === `/api/v1/programs/${programID}/form-templates` && method === "GET") throw new StaticDemoHTTPError(503, "vendor_forms_unavailable", "Approved due-diligence forms could not be loaded.");
   const monitoringResponse = workflowRuntime().monitoringRequest({ pathname, method, input: parseBody(init), programID, forms: demoForms, checks: demoChecks, results: monitoringResults, actor: currentStaticActor, evidenceRequest, evidenceRequests, monitoringResult, ErrorType: StaticDemoHTTPError, now });
   if (monitoringResponse.handled) return clone(monitoringResponse.body) as T;
   if (/\/api\/v1\/monitoring-results\/[^/]+\/linked-issue$/.test(pathname) && method === "POST") {
@@ -633,7 +723,6 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     document = { ...document, version: document.version + 1, updated_at: now, proposals: document.proposals.map((item) => ({ ...item, status: body.status ?? item.status, reviewed_by: "role-cro", reviewed_at: now, review_note: body.note })) };
     return clone(document) as T;
   }
-  if (pathname === "/api/v1/onboarding/guide") return clone(guide) as T;
   if (pathname === "/api/v1/onboarding/state") {
     const code = url.searchParams.get("guide_code") ?? "executive-first-run";
     const key = `clearsight-static-guide:${code}`;
@@ -661,6 +750,21 @@ function finishProgramMutation() {
 }
 function currentMatterOperations() { return workflowRuntime().matterOperations({ matter, detail: matterDetail, currentActor: currentStaticActor, now }); }
 function currentProgramOperations() { return workflowRuntime().programOperations({ program, detail: programDetail, base: programOperations, forms: demoForms.filter((item) => item.program_id === programID), checks: demoChecks.filter((item) => item.program_id === programID), currentActor: currentStaticActor, now }); }
+function syncVendorBrandFixture(fixture: string) {
+  if (vendorBrandFixture === fixture) return;
+  vendorBrandFixture = fixture;
+  const presentations: Record<string, StaticVendorBrand> = {
+    "vendor-brand-website": { state: "WEBSITE_ICON", source: "VENDOR_WEBSITE", asset_token: "website-1", version: 1, event_version: 1, updated_at: now },
+    "vendor-brand-approved": { state: "APPROVED_LOGO", source: "APPROVED_UPLOAD", asset_token: "approved-1", version: 1, event_version: 1, updated_at: now },
+    "vendor-brand-approved-no-discovered": { state: "APPROVED_LOGO", source: "APPROVED_UPLOAD", asset_token: "approved-1", version: 1, event_version: 1, updated_at: now },
+    "vendor-brand-pending": { state: "PENDING", version: 0, event_version: 0, updated_at: now },
+    "vendor-brand-unavailable": { state: "UNAVAILABLE", version: 1, event_version: 1, updated_at: now },
+    "vendor-brand-broken": { state: "WEBSITE_ICON", source: "VENDOR_WEBSITE", asset_token: "broken-1", version: 1, event_version: 1, updated_at: now },
+    "vendor-identity-brand-errors": { state: "PENDING", version: 0, event_version: 0, updated_at: now },
+  };
+  vendorBrand = clone(presentations[fixture] ?? { state: "PENDING", version: 0, event_version: 0, updated_at: now });
+  vendorRelationships = vendorRelationships.map((item) => item.vendor.id === "vendor-acme-processing" ? { ...item, brand: clone(vendorBrand) } : item);
+}
 function delay(ms: number) { return new Promise((resolve) => window.setTimeout(resolve, ms)); }
 function matches(url: URL, ...values: string[]) { const query = (url.searchParams.get("q") ?? "").trim().toLowerCase(); const status = url.searchParams.get("status") ?? ""; if (status && ![program.status, matter.status, "OPEN"].includes(status)) return false; return !query || values.some((value) => value.toLowerCase().includes(query)); }
 function parseBody(init?: RequestInit) { if (typeof init?.body !== "string") return {}; try { return JSON.parse(init.body) as unknown; } catch { return {}; } }

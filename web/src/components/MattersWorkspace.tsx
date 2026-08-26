@@ -85,7 +85,7 @@ function summaryFromAggregate(detail: MatterAggregate): MatterSummary {
 }
 
 export function MattersWorkspace({ targetID, openFirst = false, onBack, onOpenRequest }: Props) {
-  if (targetID) return <MatterRecordWorkspace matterID={targetID} onOpenRequest={onOpenRequest} onBack={onBack ?? (() => { window.location.hash = "#work"; })}/>;
+  if (targetID) return <MatterRecordWorkspace matterID={targetID} onBack={onBack ?? (() => { window.location.hash = "#work"; })} onOpenRequest={onOpenRequest}/>;
   return <MatterListWorkspace openFirst={openFirst} onOpenRequest={onOpenRequest}/>;
 }
 

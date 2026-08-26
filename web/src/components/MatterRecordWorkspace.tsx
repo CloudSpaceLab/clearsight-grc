@@ -147,8 +147,8 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest }: Props
         <MatterActionsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
         <MatterDecisionResponsePanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
         <MatterOutcomePanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
-        <section className="matter-record-panel matter-wide-panel" data-testid={`vendor-links-MATTER-${aggregate.matter.id}`}><VendorRelationshipLinks targetType="MATTER" targetID={aggregate.matter.id}/></section>
-        <section className="matter-record-panel matter-wide-panel" data-testid={`vendor-work-MATTER-${aggregate.matter.id}`}><VendorWorkPanel targetType="MATTER" targetID={aggregate.matter.id} onOpenRequest={onOpenRequest}/></section>
+        <VendorRelationshipLinks targetType="MATTER" targetID={aggregate.matter.id}/>
+        <VendorWorkPanel targetType="MATTER" targetID={aggregate.matter.id} onOpenRequest={onOpenRequest}/>
       </section>
     </>}
   </section>;

@@ -28,6 +28,7 @@ function Harness({
     uploadingField={null}
     onAnswer={(fieldID: string, value: CaptureAnswerValue) => setAnswers((current) => ({ ...current, [fieldID]: value }))}
     onUpload={vi.fn()}
+	  onRemoveAttachment={vi.fn()}
     onModeChange={setMode}
     onBeforeSectionNavigation={onBeforeSectionNavigation}
     onReview={onReview}

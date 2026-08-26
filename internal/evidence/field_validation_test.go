@@ -200,6 +200,34 @@ func TestCapturePhotoMustReferenceArtifactFromExactRequest(t *testing.T) {
 	}
 }
 
+func TestCaptureFilesEnforceMinimumCountAndCombinedSizeAtSubmission(t *testing.T) {
+	service, repo, now := testCaptureService()
+	minimum, maximum := 2, 3
+	totalLimit := int64(2000)
+	request, err := service.CreateRequest(context.Background(), testRequestInput(now, []Field{{ID: "documents", Label: "Due diligence documents", Type: "file", Required: true, Constraints: formcontract.Constraints{MinFiles: &minimum, MaxFiles: &maximum, MaxTotalFileBytes: &totalLimit}}}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, artifact := range []Artifact{
+		{ID: "file-1", TenantID: "bank", RequestID: request.ID, FileName: "policy.txt", MediaType: "text/plain", SizeBytes: 1200, SHA256: "one", StorageKey: "one", Status: ArtifactStoredUnscanned, CreatedAt: now},
+		{ID: "file-2", TenantID: "bank", RequestID: request.ID, FileName: "register.txt", MediaType: "text/plain", SizeBytes: 900, SHA256: "two", StorageKey: "two", Status: ArtifactStoredUnscanned, CreatedAt: now},
+	} {
+		if _, err := repo.CreateArtifact(context.Background(), artifact); err != nil {
+			t.Fatal(err)
+		}
+	}
+	submit := func(ids ...string) error {
+		_, err := service.Submit(context.Background(), Submission{TenantID: request.TenantID, RequestID: request.ID, SubmittedBy: testCaptureRecipient, Channel: "INTERNAL", ExpectedVersion: request.Version, Answers: map[string]formcontract.AnswerValue{"documents": {ArtifactIDs: ids}}})
+		return err
+	}
+	if err := submit("file-1"); err == nil || !strings.Contains(err.Error(), "at least 2 files") {
+		t.Fatalf("expected minimum file count rejection, got %v", err)
+	}
+	if err := submit("file-1", "file-2"); err == nil || !strings.Contains(err.Error(), "combined size limit") {
+		t.Fatalf("expected combined size rejection, got %v", err)
+	}
+}
+
 func TestCaptureSignatureUsesBoundedPNGArtifactNotRawDataURL(t *testing.T) {
 	service, repo, now := testCaptureService()
 	request, err := service.CreateRequest(context.Background(), testRequestInput(now, []Field{{ID: "signature", Label: "Signature", Type: "signature", Required: true, AcceptedFormats: []string{"image/png"}}}))

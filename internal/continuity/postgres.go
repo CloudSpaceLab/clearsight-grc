@@ -78,7 +78,7 @@ func (r *PostgresRepository) CreateProgram(ctx context.Context, program Program,
 	if _, err = queueProgramStateTx(ctx, tx, program.TenantID, program.ID, program.Version, "PROGRAM_CREATED", program.ID, event.ActorID, event.OccurredAt); err != nil {
 		return Program{}, err
 	}
-	if err = tx.Commit(ctx); err != nil {
+	if err = r.commitContinuityEvents(ctx, tx, event); err != nil {
 		return Program{}, err
 	}
 	return program, nil
@@ -155,7 +155,7 @@ func (r *PostgresRepository) ApplyProgramEvent(ctx context.Context, tenant, id s
 			return 0, err
 		}
 	}
-	if err = tx.Commit(ctx); err != nil {
+	if err = r.commitContinuityEvents(ctx, tx, event); err != nil {
 		return 0, err
 	}
 	return event.AggregateVersion, nil
@@ -210,7 +210,7 @@ func (r *PostgresRepository) CreateMatter(ctx context.Context, matter Matter, ev
 	if err = insertOutbox(ctx, tx, event); err != nil {
 		return Matter{}, err
 	}
-	if err = tx.Commit(ctx); err != nil {
+	if err = r.commitContinuityEvents(ctx, tx, event); err != nil {
 		return Matter{}, err
 	}
 	return matter, nil
@@ -302,7 +302,7 @@ func (r *PostgresRepository) ApplyMatterEvent(ctx context.Context, tenant, id st
 			return 0, err
 		}
 	}
-	if err = tx.Commit(ctx); err != nil {
+	if err = r.commitContinuityEvents(ctx, tx, event); err != nil {
 		return 0, err
 	}
 	return event.AggregateVersion, nil

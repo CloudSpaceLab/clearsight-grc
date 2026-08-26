@@ -1,4 +1,4 @@
-import { loadContext, loadProgramSummaries } from "./api";
+import { loadContext } from "./api";
 import { requestJSON } from "./http";
 import type { EvidenceRequest } from "./types";
 import type { CreateFormTemplateInput, FormTemplate, LifecycleStatus, MonitoringCheck, MonitoringResult } from "./monitoringTypes";
@@ -13,11 +13,10 @@ async function scoped<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function loadFormTemplates(programID?: string): Promise<FormTemplate[]> {
-  if (programID) return (await scoped<{ items: FormTemplate[] }>(`/api/v1/programs/${encodeURIComponent(programID)}/form-templates?limit=100`)).items;
-  const programs = await loadProgramSummaries({ limit: 100 });
-  const pages = await Promise.all(programs.items.map(({ program }) => loadFormTemplates(program.id)));
-  const forms = pages.flat().filter((form) => form.status === "ACTIVE" && form.is_current);
-  return Array.from(new Map(forms.map((form) => [`${form.id}:${form.version}`, form])).values());
+	const path = programID
+		? `/api/v1/programs/${encodeURIComponent(programID)}/form-templates?limit=100`
+		: "/api/v1/form-templates?limit=100";
+	return (await scoped<{ items: FormTemplate[] }>(path)).items;
 }
 
 export function createFormTemplate(programID: string, input: CreateFormTemplateInput): Promise<FormTemplate> {

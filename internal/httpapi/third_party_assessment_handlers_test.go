@@ -58,7 +58,7 @@ func newAssessmentHTTPFixture(t *testing.T, ready bool, inlineSetup ...bool) ass
 	assessmentService := thirdparty.NewAssessmentService(repo, httpAssessmentGuard{})
 	formRepo := monitoring.NewMemoryRepository()
 	form, err := formRepo.CreateFormRevision(context.Background(), monitoring.FormTemplate{
-		ID: "form-1", TenantID: "bank", Name: "Vendor due diligence", Purpose: "Provide the information required for this vendor review.",
+		ID: "form-1", TenantID: "bank", LegalEntityID: "entity-a", ProgramID: "program-1", Name: "Vendor due diligence", Purpose: "Provide the information required for this vendor review.",
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
 		Sections:     []formcontract.Section{{ID: "organisation", Title: "Organisation"}},
 		Fields: []monitoring.TemplateField{
@@ -424,7 +424,7 @@ func terminalHTTPAssessmentSetup(t *testing.T, fixture assessmentHTTPFixture) (t
 	t.Helper()
 	now := time.Now().UTC()
 	ctx := identity.WithActor(context.Background(), identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "verified-owner", Kind: "PERSON", IssuedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour)})
-	form, err := fixture.forms.AssessmentFormRevision(context.Background(), "bank", "entity-a", "form-1", 3)
+	form, err := fixture.forms.FormRevision(context.Background(), "bank", "entity-a", "program-1", "form-1", 3)
 	if err != nil {
 		t.Fatal(err)
 	}

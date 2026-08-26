@@ -27,7 +27,7 @@ func TestVendorWorkHandlersUseVerifiedRelationshipAndReturnTruthfulDeliveryState
 		t.Fatal(err)
 	}
 	forms := monitoring.NewMemoryRepository()
-	_, err = forms.CreateFormRevision(context.Background(), monitoring.FormTemplate{ID: "form-1", TenantID: "bank", Name: "Service confirmation", Purpose: "Confirm current service information.", Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationAutomatic, AllowModeSwitch: true}, Sections: []formcontract.Section{{ID: "service", Title: "Service"}}, Fields: []monitoring.TemplateField{{ID: "current", SectionID: "service", Label: "Is this information current?", Type: formcontract.TypeYesNo, Required: true}}, Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 1}})
+	_, err = forms.CreateFormRevision(context.Background(), monitoring.FormTemplate{ID: "form-1", TenantID: "bank", LegalEntityID: "entity-a", ProgramID: "program-1", Name: "Service confirmation", Purpose: "Confirm current service information.", Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationAutomatic, AllowModeSwitch: true}, Sections: []formcontract.Section{{ID: "service", Title: "Service"}}, Fields: []monitoring.TemplateField{{ID: "current", SectionID: "service", Label: "Is this information current?", Type: formcontract.TypeYesNo, Required: true}}, Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 1}})
 	if err != nil {
 		t.Fatal(err)
 	}

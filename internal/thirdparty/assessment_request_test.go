@@ -116,7 +116,7 @@ func (s *assessmentEvidenceStub) RevokeRequestCapabilities(context.Context, stri
 
 type assessmentFormReaderStub struct{ form monitoring.FormTemplate }
 
-func (s assessmentFormReaderStub) AssessmentFormRevision(context.Context, string, string, string, int64) (monitoring.FormTemplate, error) {
+func (s assessmentFormReaderStub) ReusableFormRevision(context.Context, string, string, string, int64) (monitoring.FormTemplate, error) {
 	return s.form, nil
 }
 

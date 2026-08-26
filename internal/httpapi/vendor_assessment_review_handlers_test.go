@@ -48,7 +48,7 @@ func newReviewHTTPFixture(t *testing.T, includeDocument ...bool) reviewHTTPFixtu
 	if len(includeDocument) > 0 && includeDocument[0] {
 		artifact, storeErr := base.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{
 			TenantID: "bank", RequestID: sent.Request.ID, FileName: "assurance-report.pdf", MediaType: "application/pdf", SessionToken: redeemed.SessionToken,
-		}, strings.NewReader("review evidence"))
+		}, strings.NewReader("%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"))
 		if storeErr != nil {
 			t.Fatal(storeErr)
 		}

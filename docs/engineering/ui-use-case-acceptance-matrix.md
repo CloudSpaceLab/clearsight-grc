@@ -26,11 +26,14 @@ Every implemented workspace must provide:
 | Reviewer/independent challenger | Inspect facts and contradictions without conflating work completion with verified outcome | Today → issue detail → evidence queue → independent outcome explanation | Implemented |
 | Authorizer/signatory | Confirm why authority resolved to them before deciding | Today → approval route → full decision record → outcome-check explanation | Implemented |
 | Evidence respondent | Understand why selected and answer only unresolved questions | Today → exact request → prefilled known facts → response form | Implemented for current request form; redirect/delegation remains future work |
+| Vendor relationship owner | Find the shared vendor identity, manage the supplied service, collect missing due-diligence facts and request bounded vendor work | Vendors → relationship register → due diligence → vendor work → outcome confirmation | Implemented; final rendered first-run proof pending |
 | Configure administrator | Inspect configuration health and understand governed setup boundaries | Configure → approval route → Imports → maker-checker continuation | Implemented orientation; complete configuration builders remain future work |
 | Auditor/read-only reviewer | Trace current state to source, decision and outcome history without changing state | Programs → issue detail → imported source lineage → restricted-existence explanation | Implemented orientation; dedicated immutable audit-history UI remains future work |
 | Unmatched/general user | Understand the core application model safely | Today → Programs → Work → exact-record semantics | Implemented fallback |
 
 Guide selection is server-authoritative. Signed identities and development identities expose normalized role codes. The client requests the guide matching the verified role set and stores progress independently for each guide version.
+
+Today and Vendors resolve separate guide surfaces from the verified actor. Each first eligible visit may show the same non-modal cinematic presentation component with surface-specific SVG and HTML steps. **Start guide** and **Skip for now** remain immediately available; navigation and workspace actions remain usable; saved progress can be resumed or restarted. Reduced motion displays the final panel state without entry animation.
 
 ## Primary navigation and routing
 
@@ -55,6 +58,7 @@ Guide selection is server-authoritative. Signed identities and development ident
 | Approval route | Opens explainable route panel with legal entity, responsibility and policy version | Implemented |
 | Evidence shortcut | Uses a real seeded/current request only when available | Implemented |
 | Exact-record action | Opens Program, Matter or evidence request encoded in the item | Implemented |
+| First eligible visit | Optional role-aware cinematic introduction leads to an authorized current task and does not cover the work queue | Implemented; final desktop/mobile render proof pending |
 
 ## Programs
 
@@ -119,6 +123,11 @@ Guide selection is server-authoritative. Signed identities and development ident
 | State/use case | Expected result | Status |
 |---|---|---|
 | Relationship register | Bounded search and pagination distinguish separate services supplied by the same vendor | Implemented |
+| Vendor identity | Shared legal name, registration details, jurisdiction and optional website hostname are edited separately from the selected service relationship | Implemented |
+| Website hostname | Hostname-only input permits an empty value and rejects schemes, paths, credentials, ports and numeric IP representations | Implemented |
+| Vendor icon | Protected same-origin stored icon is shown when available; a stable monogram remains available for pending, unavailable or broken images | Implemented; final rendered-state proof pending |
+| Approved logo | PNG, JPEG, WebP or ICO up to 512 KiB is staged before save; an approved upload takes precedence and removal restores a matching discovered icon | Implemented; final rendered-state proof pending |
+| First eligible visit | Optional Vendors introduction opens the register, due diligence or vendor-work action already available to the actor | Implemented; final desktop/mobile render proof pending |
 | Due diligence | Setup, secure collection, exact response review, findings and conclusion remain distinct states | Implemented |
 | Program or issue association | Canonical relationship link is visible from both records without duplicating Program or Matter ownership | Implemented |
 | Request vendor work | Bank owner selects the vendor relationship, purpose, form revision, Classic/Wizard presentation and deadline | Implemented |
@@ -159,6 +168,8 @@ The release gate includes:
 - strict TypeScript checking;
 - rendered-state tests for demo-on/demo-off and exact-record navigation;
 - role-aware onboarding action and restart tests;
+- surface-aware Today/Vendors start, skip, resume, conflict and unavailable-service tests;
+- vendor icon loaded, pending, unavailable, approved override, removal and broken-image fallback states;
 - existing import-state Vitest coverage;
 - axe semantic checks;
 - visible focus for controls and detail summaries;

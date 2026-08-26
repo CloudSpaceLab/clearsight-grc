@@ -15,6 +15,9 @@ var (
 	ErrDraftInvalid      = errors.New("response draft is invalid")
 	ErrArtifactTooLarge  = errors.New("artifact exceeds the configured size limit")
 	ErrMediaType         = errors.New("artifact media type is not allowed")
+	ErrFileName          = errors.New("artifact filename is invalid")
+	ErrContentInvalid    = errors.New("artifact content does not match an allowed file type")
+	ErrFieldInvalid      = errors.New("artifact field is unavailable")
 )
 
 type Repository interface {

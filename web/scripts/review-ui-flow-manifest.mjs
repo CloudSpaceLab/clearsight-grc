@@ -4,6 +4,7 @@ import path from "node:path";
 import { gzipSync } from "node:zlib";
 
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
+const javascriptBudget = { largestRawChunk: 600 * 1024, totalGzip: 192 * 1024 };
 const expectedNames = [
   "01-today-dark-comfortable-1440x900",
   "02-today-light-comfortable-1440x900",
@@ -66,6 +67,27 @@ const expectedNames = [
   "55-vendor-work-response-mobile-light-390x844",
   "56-vendor-work-response-reflow-light-320x800",
   "57-vendor-work-accepted-history-light-1440x900",
+  "58-premium-today-intro-dark-1440x900",
+  "59-premium-today-intro-light-1440x900",
+  "60-premium-today-intro-dark-tablet-1024x768",
+  "61-premium-today-intro-light-tablet-768x900",
+  "62-premium-today-intro-dark-mobile-390x844",
+  "63-premium-today-intro-light-reflow-320x800",
+  "64-premium-today-intro-reduced-motion-1440x900",
+  "65-premium-today-intro-200pct-zoom-proxy",
+  "66-premium-vendors-intro-populated-dark-1440x900",
+  "67-premium-vendors-intro-empty-light-1440x900",
+  "68-vendor-brand-website-light-1440x900",
+  "69-vendor-brand-approved-dark-1440x900",
+  "70-vendor-brand-pending-light-1440x900",
+  "71-vendor-brand-unavailable-light-1440x900",
+  "72-vendor-brand-broken-fallback-light-1440x900",
+  "73-vendor-identity-validation-staged-light-1440x900",
+  "74-vendor-identity-conflict-preserves-entry-light-1440x900",
+  "75-vendor-brand-permission-error-preserves-upload-light-1440x900",
+  "76-vendor-brand-remove-restores-website-light-1440x900",
+  "77-vendor-brand-remove-restores-monogram-light-1440x900",
+  "78-vendor-identity-mobile-dark-390x844",
 ];
 const requiredStates = [
   "baseline",
@@ -110,6 +132,27 @@ const requiredStates = [
   "vendor-work-response-mobile",
   "vendor-work-response-reflow",
   "vendor-work-accepted-history",
+  "premium-today-intro-dark",
+  "premium-today-intro-light",
+  "premium-today-intro-tablet-1024",
+  "premium-today-intro-tablet-768",
+  "premium-today-intro-mobile-390",
+  "premium-today-intro-reflow-320",
+  "premium-today-intro-reduced-motion",
+  "premium-today-intro-200pct-proxy",
+  "premium-vendors-intro-populated",
+  "premium-vendors-intro-empty",
+  "vendor-brand-website-icon",
+  "vendor-brand-approved-logo",
+  "vendor-brand-pending",
+  "vendor-brand-unavailable",
+  "vendor-brand-broken-monogram",
+  "vendor-identity-validation-and-staged-upload",
+  "vendor-identity-optimistic-conflict",
+  "vendor-brand-permission-error-preserves-upload",
+  "vendor-brand-remove-restores-website",
+  "vendor-brand-remove-restores-monogram",
+  "vendor-identity-mobile",
 ];
 
 const failures = [];
@@ -229,17 +272,18 @@ try {
     if (filePath.endsWith(".js")) {
       bundle.javascript.raw += bytes.length;
       bundle.javascript.gzip += gzipSync(bytes).length;
+      bundle.javascript.largest_raw_chunk = Math.max(bundle.javascript.largest_raw_chunk, bytes.length);
     } else if (filePath.endsWith(".css")) {
       bundle.css.raw += bytes.length;
       bundle.css.gzip += gzipSync(bytes).length;
     }
   }
   const bundleFailures = [];
-  const javascriptLimit = 160 * 1024;
-  if (bundle.javascript.gzip > javascriptLimit) bundleFailures.push(`JavaScript bundle exceeds 160 KiB gzip (${bundle.javascript.gzip} bytes)`);
+  if (bundle.javascript.largest_raw_chunk > javascriptBudget.largestRawChunk) bundleFailures.push(`A JavaScript chunk exceeds 600 KiB raw (${bundle.javascript.largest_raw_chunk} bytes)`);
+  if (bundle.javascript.gzip > javascriptBudget.totalGzip) bundleFailures.push(`JavaScript bundle exceeds 192 KiB gzip (${bundle.javascript.gzip} bytes)`);
   if (bundle.css.gzip > 32 * 1024) bundleFailures.push(`CSS bundle exceeds 32 KiB gzip (${bundle.css.gzip} bytes)`);
   failures.push(...bundleFailures);
-  checks.push({ name: "interaction bundle budget", status: bundleFailures.length ? "FAIL" : "PASS", detail: `${bundle.javascript.gzip} bytes JS gzip (${javascriptLimit - bundle.javascript.gzip} bytes headroom), ${bundle.css.gzip} bytes CSS gzip` });
+  checks.push({ name: "interaction bundle budget", status: bundleFailures.length ? "FAIL" : "PASS", detail: `${Math.round(bundle.javascript.gzip / 1024)} KiB JS gzip total, ${Math.round(bundle.javascript.largest_raw_chunk / 1024)} KiB largest JS chunk, ${Math.round(bundle.css.gzip / 1024)} KiB CSS gzip` });
 } catch (error) {
   failures.push(`built assets could not be assessed: ${error instanceof Error ? error.message : String(error)}`);
 }

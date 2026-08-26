@@ -44,18 +44,19 @@ type Actor struct {
 }
 
 type Vendor struct {
-	ID              string       `json:"id"`
-	TenantID        string       `json:"tenant_id"`
-	LegalName       string       `json:"legal_name"`
-	TradingName     string       `json:"trading_name,omitempty"`
-	RegistrationRef string       `json:"registration_ref,omitempty"`
-	Jurisdiction    string       `json:"jurisdiction,omitempty"`
-	SourceID        string       `json:"source_id,omitempty"`
-	ExternalRef     string       `json:"external_ref,omitempty"`
-	Status          VendorStatus `json:"status"`
-	CreatedAt       time.Time    `json:"created_at"`
-	UpdatedAt       time.Time    `json:"updated_at"`
-	Version         int64        `json:"version"`
+	ID              string        `json:"id"`
+	TenantID        string        `json:"tenant_id"`
+	LegalName       string        `json:"legal_name"`
+	TradingName     string        `json:"trading_name,omitempty"`
+	RegistrationRef string        `json:"registration_ref,omitempty"`
+	Jurisdiction    string        `json:"jurisdiction,omitempty"`
+	SourceID        string        `json:"source_id,omitempty"`
+	ExternalRef     string        `json:"external_ref,omitempty"`
+	WebsiteDomain   WebsiteDomain `json:"website_domain,omitempty"`
+	Status          VendorStatus  `json:"status"`
+	CreatedAt       time.Time     `json:"created_at"`
+	UpdatedAt       time.Time     `json:"updated_at"`
+	Version         int64         `json:"version"`
 }
 
 type Relationship struct {
@@ -78,8 +79,9 @@ type Relationship struct {
 }
 
 type Aggregate struct {
-	Vendor       Vendor       `json:"vendor"`
-	Relationship Relationship `json:"relationship"`
+	Vendor       Vendor                  `json:"vendor"`
+	Relationship Relationship            `json:"relationship"`
+	Brand        VendorBrandPresentation `json:"brand"`
 }
 
 type CreateRelationshipInput struct {
@@ -90,6 +92,7 @@ type CreateRelationshipInput struct {
 	Jurisdiction           string      `json:"jurisdiction,omitempty"`
 	SourceID               string      `json:"source_id,omitempty"`
 	ExternalRef            string      `json:"external_ref,omitempty"`
+	WebsiteDomain          string      `json:"website_domain,omitempty"`
 	ServiceName            string      `json:"service_name"`
 	Criticality            Criticality `json:"criticality"`
 	PrivacyRole            PrivacyRole `json:"privacy_role"`
@@ -101,6 +104,8 @@ type CreateRecord struct {
 	Vendor       Vendor
 	Relationship Relationship
 	ReuseVendor  bool
+	ActorID      string
+	BrandJob     *VendorBrandJob
 }
 
 type Scope struct {
@@ -141,4 +146,22 @@ type UpdateRecord struct {
 	ExpectedVersion int64
 	Relationship    Relationship
 	ActorID         string
+}
+
+type UpdateVendorIdentityInput struct {
+	ExpectedVersion int64  `json:"expected_version"`
+	LegalName       string `json:"legal_name"`
+	TradingName     string `json:"trading_name,omitempty"`
+	RegistrationRef string `json:"registration_ref,omitempty"`
+	Jurisdiction    string `json:"jurisdiction,omitempty"`
+	WebsiteDomain   string `json:"website_domain,omitempty"`
+}
+
+type UpdateVendorIdentityRecord struct {
+	Scope
+	ID              string
+	ExpectedVersion int64
+	Vendor          Vendor
+	ActorID         string
+	BrandJob        *VendorBrandJob
 }

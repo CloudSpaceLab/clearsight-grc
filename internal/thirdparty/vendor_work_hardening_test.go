@@ -250,6 +250,31 @@ type failingVendorWorkChangesRepository struct {
 
 type ambiguousVendorWorkChangesRepository struct{ *MemoryVendorWorkRepository }
 
+type postCommitVendorWorkEvidenceFailure struct {
+	vendorWorkEvidence
+	failOriginRead bool
+}
+
+func (r *postCommitVendorWorkEvidenceFailure) GetRequestByOrigin(ctx context.Context, tenant string, origin evidence.RequestOrigin) (evidence.Request, error) {
+	if r.failOriginRead {
+		return evidence.Request{}, errors.New("capture request read unavailable")
+	}
+	return r.vendorWorkEvidence.GetRequestByOrigin(ctx, tenant, origin)
+}
+
+type postCommitVendorWorkChangesRepository struct {
+	*MemoryVendorWorkRepository
+	evidence *postCommitVendorWorkEvidenceFailure
+}
+
+func (r *postCommitVendorWorkChangesRepository) RecordVendorWorkChanges(ctx context.Context, scope Scope, id string, expected int64, link VendorWorkCaptureLink, actor, message string, dueAt, now time.Time) (VendorWorkRequest, error) {
+	work, err := r.MemoryVendorWorkRepository.RecordVendorWorkChanges(ctx, scope, id, expected, link, actor, message, dueAt, now)
+	if err == nil {
+		r.evidence.failOriginRead = true
+	}
+	return work, err
+}
+
 func (r *ambiguousVendorWorkChangesRepository) RecordVendorWorkChanges(ctx context.Context, scope Scope, id string, expected int64, link VendorWorkCaptureLink, actor, message string, dueAt, now time.Time) (VendorWorkRequest, error) {
 	if _, err := r.MemoryVendorWorkRepository.RecordVendorWorkChanges(ctx, scope, id, expected, link, actor, message, dueAt, now); err != nil {
 		return VendorWorkRequest{}, err
@@ -271,6 +296,29 @@ func TestRequestVendorWorkChangesReconcilesCommittedReplacement(t *testing.T) {
 	}
 	if outcome.Work.State != VendorWorkChangesRequested || outcome.Work.CurrentCaptureSequence != reviewing.CurrentCaptureSequence+1 || outcome.Work.CurrentInvitationID == "" || !outcome.Work.DueAt.Equal(revisedDueAt) {
 		t.Fatalf("reconciled clarification = %#v", outcome)
+	}
+}
+
+func TestRequestVendorWorkChangesReturnsRecoveryWhenPostCommitSendReadFails(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	_, reviewing := vendorWorkUnderReview(t, fixture)
+	evidenceFailure := &postCommitVendorWorkEvidenceFailure{vendorWorkEvidence: fixture.service.evidence}
+	fixture.service.evidence = evidenceFailure
+	fixture.service.repo = &postCommitVendorWorkChangesRepository{MemoryVendorWorkRepository: fixture.repository, evidence: evidenceFailure}
+
+	outcome, err := fixture.service.RequestChanges(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-1"}, reviewing.ID, RequestVendorWorkChangesInput{
+		ExpectedVersion: reviewing.Version, Message: "Confirm the updated service owner.", FieldIDs: []string{"service_current"},
+		VendorAudience: fixture.audience, DueAt: fixture.now.Add(5 * 24 * time.Hour), InvitationTTLMinutes: 60,
+	})
+	if err != nil {
+		t.Fatalf("committed clarification returned an error: %v", err)
+	}
+	if outcome.Work.State != VendorWorkChangesRequested || outcome.State != VendorWorkDeliveryRetryRequired || outcome.Recovery == "" {
+		t.Fatalf("fallback delivery outcome = %#v", outcome)
+	}
+	stored, readErr := fixture.repository.GetVendorWork(context.Background(), scopeFrom(fixture.actor), reviewing.ID)
+	if readErr != nil || stored.State != VendorWorkChangesRequested {
+		t.Fatalf("stored clarification = %#v err=%v", stored, readErr)
 	}
 }
 
@@ -360,7 +408,7 @@ func TestVendorWorkResponseReturnsBoundDocumentBeforeScanCompletes(t *testing.T)
 	fixture := newVendorWorkFixture(t)
 	forms := fixture.service.forms.(*monitoring.MemoryRepository)
 	_, err := forms.CreateFormRevision(context.Background(), monitoring.FormTemplate{
-		ID: "form-document", TenantID: "bank", Name: "Executed document", Purpose: "Collect the executed document.",
+		ID: "form-document", TenantID: "bank", LegalEntityID: "entity-a", ProgramID: "program-1", Name: "Executed document", Purpose: "Collect the executed document.",
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationClassic}, Sections: []formcontract.Section{{ID: "document", Title: "Document"}},
 		Fields:    []monitoring.TemplateField{{ID: "executed_document", SectionID: "document", Label: "Executed document", Type: formcontract.TypeVendorDocument, Required: true, AcceptedFormats: []string{"application/pdf"}}},
 		Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 1},
@@ -383,7 +431,7 @@ func TestVendorWorkResponseReturnsBoundDocumentBeforeScanCompletes(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	artifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: fixture.actor.TenantID, RequestID: prepared.CurrentRequestID, SessionToken: session.SessionToken, FileName: "agreement.pdf", MediaType: "application/pdf"}, strings.NewReader("signed agreement"))
+	artifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: fixture.actor.TenantID, RequestID: prepared.CurrentRequestID, SessionToken: session.SessionToken, FileName: "agreement.pdf", MediaType: "application/pdf"}, strings.NewReader("%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -410,7 +458,7 @@ func TestAcceptVendorWorkBlocksUnavailableCurrentResponseDocument(t *testing.T) 
 			fixture := newVendorWorkFixture(t)
 			forms := fixture.service.forms.(*monitoring.MemoryRepository)
 			_, err := forms.CreateFormRevision(context.Background(), monitoring.FormTemplate{
-				ID: "form-document", TenantID: "bank", Name: "Executed document", Purpose: "Collect the executed document.",
+				ID: "form-document", TenantID: "bank", LegalEntityID: "entity-a", ProgramID: "program-1", Name: "Executed document", Purpose: "Collect the executed document.",
 				Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationClassic}, Sections: []formcontract.Section{{ID: "document", Title: "Document"}},
 				Fields:    []monitoring.TemplateField{{ID: "executed_document", SectionID: "document", Label: "Executed document", Type: formcontract.TypeVendorDocument, Required: true, AcceptedFormats: []string{"application/pdf"}}},
 				Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 1},
@@ -433,7 +481,7 @@ func TestAcceptVendorWorkBlocksUnavailableCurrentResponseDocument(t *testing.T) 
 			if err != nil {
 				t.Fatal(err)
 			}
-			artifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: fixture.actor.TenantID, RequestID: prepared.CurrentRequestID, SessionToken: session.SessionToken, FileName: "agreement.pdf", MediaType: "application/pdf"}, strings.NewReader("signed agreement"))
+			artifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: fixture.actor.TenantID, RequestID: prepared.CurrentRequestID, SessionToken: session.SessionToken, FileName: "agreement.pdf", MediaType: "application/pdf"}, strings.NewReader("%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"))
 			if err != nil {
 				t.Fatal(err)
 			}

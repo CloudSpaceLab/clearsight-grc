@@ -45,6 +45,35 @@ func TestProductionDefaultsDisableUnscannedDocumentAnalysis(t *testing.T) {
 	}
 }
 
+func TestProductionDefaultsDisableOutboundVendorBrandDiscovery(t *testing.T) {
+	t.Setenv("CLEARSIGHT_ENV", "production")
+	t.Setenv("CLEARSIGHT_IDENTITY_MODE", "signed")
+	t.Setenv("CLEARSIGHT_IDENTITY_HMAC_SECRET", "01234567890123456789012345678901")
+	t.Setenv("CLEARSIGHT_COMMAND_AUTHORIZATION", "enforce")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.VendorBrandDiscoveryEnabled {
+		t.Fatal("production enabled outbound vendor brand discovery without an explicit opt-in")
+	}
+}
+
+func TestProductionAllowsExplicitOutboundVendorBrandDiscoveryOptIn(t *testing.T) {
+	t.Setenv("CLEARSIGHT_ENV", "production")
+	t.Setenv("CLEARSIGHT_IDENTITY_MODE", "signed")
+	t.Setenv("CLEARSIGHT_IDENTITY_HMAC_SECRET", "01234567890123456789012345678901")
+	t.Setenv("CLEARSIGHT_COMMAND_AUTHORIZATION", "enforce")
+	t.Setenv("CLEARSIGHT_VENDOR_BRAND_DISCOVERY_ENABLED", "true")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.VendorBrandDiscoveryEnabled {
+		t.Fatal("production ignored explicit outbound vendor brand discovery opt-in")
+	}
+}
+
 func TestProductionAllowsOIDCWithSecureServerSessions(t *testing.T) {
 	t.Setenv("CLEARSIGHT_ENV", "production")
 	t.Setenv("CLEARSIGHT_IDENTITY_MODE", "oidc")

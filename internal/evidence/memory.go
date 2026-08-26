@@ -109,8 +109,8 @@ func (r *MemoryRepository) ListSourcesForEntity(_ context.Context, query SourceL
 func (r *MemoryRepository) ValidateActiveSourcesForEntity(_ context.Context, tenant, legalEntity string, sourceIDs []string) error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	for _, sourceID := range sourceIDs {
-		value, ok := r.sources[sourceID]
+	for _, id := range sourceIDs {
+		value, ok := r.sources[id]
 		if !ok || value.TenantID != tenant || value.LegalEntityID != legalEntity || value.Status != SourceActive {
 			return ErrSourceScopeMismatch
 		}
@@ -617,6 +617,8 @@ func (r *MemoryRepository) ReplaceInvitation(_ context.Context, input ReplaceInv
 	return nil
 }
 
+var _ invitationAdministrationStore = (*MemoryRepository)(nil)
+
 func (r *MemoryRepository) CreateArtifact(_ context.Context, artifact Artifact) (Artifact, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -677,7 +679,3 @@ func cloneBoolMap(value map[string]bool) map[string]bool {
 	}
 	return cloned
 }
-
-var _ DraftStore = (*MemoryRepository)(nil)
-var _ OriginRequestStore = (*MemoryRepository)(nil)
-var _ invitationAdministrationStore = (*MemoryRepository)(nil)

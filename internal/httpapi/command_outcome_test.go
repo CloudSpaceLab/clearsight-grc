@@ -1,8 +1,11 @@
 package httpapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,12 +13,74 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
+
+func TestMaterialHandlerReturnsReceiptForCommittedVendorBrandBinaryCommand(t *testing.T) {
+	repo := thirdparty.NewMemoryRepository()
+	relationships := thirdparty.NewService(repo)
+	actor := thirdparty.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "owner-1"}
+	created, err := relationships.CreateRelationship(t.Context(), actor, thirdparty.CreateRelationshipInput{LegalName: "Northstar Systems", ServiceName: "Application support", Criticality: thirdparty.CriticalityImportant, PrivacyRole: thirdparty.PrivacyProcessor})
+	if err != nil {
+		t.Fatal(err)
+	}
+	guard, err := commandauth.New(nil, commandauth.ModeOff, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	brands := thirdparty.NewVendorBrandService(repo, evidence.NewMemoryObjectStore(), guard)
+	api := &API{deps: Dependencies{ThirdParty: relationships, VendorBrands: brands}}
+	request := httptest.NewRequest(http.MethodPut, "/api/v1/vendor-identities/"+created.Vendor.ID+"/brand", nil)
+	request.SetPathValue("vendor_id", created.Vendor.ID)
+	request.Header.Set("Idempotency-Key", "upload")
+	request = request.WithContext(verifiedCommandContext(request.Context(), actor))
+	response := httptest.NewRecorder()
+	policy := commandPolicy{ObjectType: thirdparty.VendorIdentityObjectType, OutcomeObjectType: "VENDOR_BRAND", OutcomePathValue: "vendor_id"}
+	api.executeMaterialHandler(response, request, policy, map[string]any{"tenant_id": actor.TenantID, "expected_version": int64(0)}, func(w http.ResponseWriter, _ *http.Request) {
+		if _, uploadErr := brands.PutApprovedBrand(request.Context(), created.Vendor.ID, 0, "upload", "image/png", bytes.NewReader(httpBrandPNG(t))); uploadErr != nil {
+			t.Fatal(uploadErr)
+		}
+		http.Error(w, "simulated presentation failure", http.StatusInternalServerError)
+	})
+	assertCommittedReceipt(t, response, "VENDOR_BRAND", created.Vendor.ID, 1)
+}
+
+func TestMaterialHandlerDoesNotAttributeAnotherBrandCommandToThisRequest(t *testing.T) {
+	repo := thirdparty.NewMemoryRepository()
+	relationships := thirdparty.NewService(repo)
+	actor := thirdparty.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "owner-1"}
+	created, err := relationships.CreateRelationship(t.Context(), actor, thirdparty.CreateRelationshipInput{LegalName: "Northstar Systems", ServiceName: "Application support", Criticality: thirdparty.CriticalityImportant, PrivacyRole: thirdparty.PrivacyProcessor})
+	if err != nil {
+		t.Fatal(err)
+	}
+	guard, err := commandauth.New(nil, commandauth.ModeOff, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	brands := thirdparty.NewVendorBrandService(repo, evidence.NewMemoryObjectStore(), guard)
+	api := &API{deps: Dependencies{ThirdParty: relationships, VendorBrands: brands}}
+	request := httptest.NewRequest(http.MethodPut, "/api/v1/vendor-identities/"+created.Vendor.ID+"/brand", nil)
+	request.SetPathValue("vendor_id", created.Vendor.ID)
+	request.Header.Set("Idempotency-Key", "this-request")
+	request = request.WithContext(verifiedCommandContext(request.Context(), actor))
+	response := httptest.NewRecorder()
+	policy := commandPolicy{ObjectType: thirdparty.VendorIdentityObjectType, OutcomeObjectType: "VENDOR_BRAND", OutcomePathValue: "vendor_id"}
+	api.executeMaterialHandler(response, request, policy, map[string]any{"tenant_id": actor.TenantID, "expected_version": int64(0)}, func(w http.ResponseWriter, _ *http.Request) {
+		if _, uploadErr := brands.PutApprovedBrand(request.Context(), created.Vendor.ID, 0, "another-request", "image/png", bytes.NewReader(httpBrandPNG(t))); uploadErr != nil {
+			t.Fatal(uploadErr)
+		}
+		http.Error(w, "genuine failure for this request", http.StatusInternalServerError)
+	})
+
+	if response.Code != http.StatusInternalServerError {
+		t.Fatalf("unrelated command was attributed to this request: %d %s", response.Code, response.Body.String())
+	}
+}
 
 func TestMaterialHandlerReturnsReceiptWhenWriteCommittedBeforeResponseFailure(t *testing.T) {
 	repo := continuity.NewMemoryRepository()

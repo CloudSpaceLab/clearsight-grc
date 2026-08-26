@@ -41,6 +41,7 @@ type routeSpec struct {
 	Binder     routeBinder
 	Command    *routeCommand
 	Permission string
+	RawCommand bool
 }
 
 func (a *API) registerRoutes(mux *http.ServeMux) {
@@ -51,7 +52,11 @@ func (a *API) registerRoutes(mux *http.ServeMux) {
 	for _, spec := range routes {
 		handler := spec.Handler
 		if spec.Command != nil {
-			handler = a.command(spec.Command.Name, spec.Command.Policy, handler)
+			if spec.RawCommand {
+				handler = a.rawCommand(spec.Command.Name, spec.Command.Policy, handler)
+			} else {
+				handler = a.command(spec.Command.Name, spec.Command.Policy, handler)
+			}
 		}
 		handler = a.routeAccess(spec, handler)
 		mux.HandleFunc(spec.Method+" "+spec.Path, handler)
@@ -83,39 +88,6 @@ func (a *API) routes() []routeSpec {
 		withPermission(material("/api/v1/governance/delegations/{id}/submit", "governance.delegation.submit", a.governanceDelegationAction("submit"), commandPolicy{ObjectType: "DELEGATION", Responsibility: authority.ResponsibilityProposer, Materiality: 4, BindLegalEntity: true}), identity.PermissionConfigWrite),
 		withPermission(material("/api/v1/governance/delegations/{id}/approve", "governance.delegation.approve", a.governanceDelegationAction("approve"), commandPolicy{ObjectType: "DELEGATION", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 5, BindLegalEntity: true}), identity.PermissionConfigWrite),
 		withPermission(material("/api/v1/governance/delegations/{id}/revoke", "governance.delegation.revoke", a.governanceDelegationAction("revoke"), commandPolicy{ObjectType: "DELEGATION", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 5, BindLegalEntity: true}), identity.PermissionConfigWrite),
-
-		read("/api/v1/vendors", a.listVendorRelationships),
-		material("/api/v1/vendors", "thirdparty.relationship.create", a.createVendorRelationship, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3, BindLegalEntity: true}),
-		read("/api/v1/vendors/{id}", a.getVendorRelationship),
-		material("/api/v1/vendors/{id}", "thirdparty.relationship.update", a.updateVendorRelationship, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
-		read("/api/v1/vendors/{id}/links", a.listVendorRelationshipLinks),
-		read("/api/v1/vendor-links", a.listVendorRelationshipLinks),
-		material("/api/v1/vendors/{id}/links", "thirdparty.relationship.link", a.linkVendorRelationship, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
-		material("/api/v1/vendors/{id}/links/{link_id}/end", "thirdparty.relationship.unlink", a.endVendorRelationshipLink, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
-		read("/api/v1/vendor-work", a.listVendorWork),
-		read("/api/v1/vendor-work/{request_id}", a.getVendorWork),
-		read("/api/v1/vendors/{id}/work/{request_id}/response", a.getVendorWorkResponse),
-		read("/api/v1/vendors/{id}/work/{request_id}/requests/{capture_request_id}/documents/{artifact_id}/open", a.openVendorWorkDocument),
-		material("/api/v1/vendors/{id}/work/prepare", "thirdparty.work.prepare", a.prepareVendorWork, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
-		material("/api/v1/vendors/{id}/work/{request_id}/send", "thirdparty.work.send", a.sendVendorWork, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3, OutcomeObjectType: "VENDOR_WORK_REQUEST", OutcomePathValue: "request_id"}),
-		material("/api/v1/vendors/{id}/work/{request_id}/review/start", "thirdparty.work.review", a.startVendorWorkReview, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, OutcomeObjectType: "VENDOR_WORK_REQUEST", OutcomePathValue: "request_id"}),
-		material("/api/v1/vendors/{id}/work/{request_id}/changes", "thirdparty.work.request_changes", a.requestVendorWorkChanges, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, OutcomeObjectType: "VENDOR_WORK_REQUEST", OutcomePathValue: "request_id"}),
-		material("/api/v1/vendors/{id}/work/{request_id}/accept", "thirdparty.work.accept", a.acceptVendorWork, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, OutcomeObjectType: "VENDOR_WORK_REQUEST", OutcomePathValue: "request_id"}),
-		material("/api/v1/vendors/{id}/work/{request_id}/cancel", "thirdparty.work.cancel", a.cancelVendorWork, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3, OutcomeObjectType: "VENDOR_WORK_REQUEST", OutcomePathValue: "request_id"}),
-		material("/api/v1/vendors/{id}/work/{request_id}/retry", "thirdparty.work.retry", a.retryVendorWork, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3, OutcomeObjectType: "VENDOR_WORK_REQUEST", OutcomePathValue: "request_id"}),
-		material("/api/v1/vendors/{id}/assessments", "thirdparty.assessment.start", a.startVendorAssessment, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
-		read("/api/v1/vendors/{id}/assessments/current", a.getCurrentVendorAssessment),
-		material("/api/v1/vendor-assessments/{id}/send-request", "thirdparty.assessment.send_request", a.sendVendorAssessmentRequest, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
-		material("/api/v1/vendor-assessments/{id}/reissue-request", "thirdparty.assessment.reissue_request", a.reissueVendorAssessmentRequest, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
-		material("/api/v1/vendor-assessments/{id}/setup/retry", thirdparty.AssessmentSetupRetryCommand, a.retryVendorAssessmentSetup, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
-		read("/api/v1/vendor-assessments/{id}", a.getVendorAssessmentReview),
-		read("/api/v1/vendor-assessments/{id}/requests/{request_id}/documents/{artifact_id}/open", a.openVendorAssessmentDocument),
-		material("/api/v1/vendor-assessments/{id}/review/start", "thirdparty.assessment.review", a.startVendorAssessmentReview, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
-		material("/api/v1/vendor-assessments/{id}/documents/{artifact_id}/validate", thirdparty.AssessmentDocumentReviewCommand, a.reviewVendorAssessmentDocument, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
-		material("/api/v1/vendor-assessments/{id}/clarifications", thirdparty.AssessmentClarificationCommand, a.requestVendorAssessmentClarification, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
-		material("/api/v1/vendor-assessments/{id}/deficiencies", thirdparty.AssessmentDeficiencyCommand, a.createVendorAssessmentDeficiency, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
-		material("/api/v1/vendor-assessments/{id}/complete", "thirdparty.assessment.complete", a.completeVendorAssessment, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
-		material("/api/v1/vendor-assessments/{id}/cancel", thirdparty.AssessmentCancelCommand, a.cancelVendorAssessment, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
 
 		read("/api/v1/program-summaries", a.listProgramSummaries),
 		read("/api/v1/programs", a.listPrograms),
@@ -150,6 +122,46 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/programs/{id}/form-templates", "program.monitoring.form.define", a.createFormTemplate, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2, ActorField: noActorField}),
 		material("/api/v1/programs/{id}/form-templates/{form_id}/transition", "program.monitoring.form.transition", a.transitionFormTemplate, commandPolicy{ObjectType: "FORM_TEMPLATE", ObjectIDPath: "form_id", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: noActorField}),
 		material("/api/v1/programs/{id}/form-templates/{form_id}/collections", "program.monitoring.collect", a.startFormCollection, commandPolicy{ObjectType: "FORM_TEMPLATE", ObjectIDPath: "form_id", Responsibility: authority.ResponsibilityOwner, Materiality: 2, ActorField: noActorField}),
+
+		read("/api/v1/vendors", a.listVendorRelationships),
+		material("/api/v1/vendors", "thirdparty.relationship.create", a.createVendorRelationship, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3, BindLegalEntity: true}),
+		read("/api/v1/vendors/{id}", a.getVendorRelationship),
+		material("/api/v1/vendors/{id}", "thirdparty.relationship.update", a.updateVendorRelationship, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
+		read("/api/v1/vendor-identities/{vendor_id}", a.getVendorIdentity),
+		materialMethod(http.MethodPut, "/api/v1/vendor-identities/{vendor_id}", thirdparty.VendorIdentityUpdateCommand, a.updateVendorIdentity, commandPolicy{ObjectType: thirdparty.VendorIdentityObjectType, Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
+		read("/api/v1/vendor-identities/{vendor_id}/brand", a.openVendorBrand),
+		materialBinary(http.MethodPut, "/api/v1/vendor-identities/{vendor_id}/brand", thirdparty.VendorBrandApproveCommand, a.uploadVendorBrand, commandPolicy{ObjectType: thirdparty.VendorIdentityObjectType, OutcomeObjectType: "VENDOR_BRAND", OutcomePathValue: "vendor_id", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
+		materialBinary(http.MethodDelete, "/api/v1/vendor-identities/{vendor_id}/brand", thirdparty.VendorBrandRemoveCommand, a.removeVendorBrand, commandPolicy{ObjectType: thirdparty.VendorIdentityObjectType, OutcomeObjectType: "VENDOR_BRAND", OutcomePathValue: "vendor_id", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
+		read("/api/v1/vendors/{id}/links", a.listVendorRelationshipLinks),
+		read("/api/v1/vendor-links", a.listVendorRelationshipLinks),
+		material("/api/v1/vendors/{id}/links", "thirdparty.relationship.link", a.linkVendorRelationship, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
+		material("/api/v1/vendors/{id}/links/{link_id}/end", "thirdparty.relationship.unlink", a.endVendorRelationshipLink, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
+		read("/api/v1/vendor-work", a.listVendorWork),
+		read("/api/v1/vendor-work/{request_id}", a.getVendorWork),
+		read("/api/v1/vendors/{id}/work/{request_id}/response", a.getVendorWorkResponse),
+		read("/api/v1/vendors/{id}/work/{request_id}/requests/{capture_request_id}/documents/{artifact_id}/open", a.openVendorWorkDocument),
+		material("/api/v1/vendors/{id}/work/prepare", "thirdparty.work.prepare", a.prepareVendorWork, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
+		material("/api/v1/vendors/{id}/work/{request_id}/send", "thirdparty.work.send", a.sendVendorWork, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3, OutcomeObjectType: "VENDOR_WORK_REQUEST", OutcomePathValue: "request_id"}),
+		material("/api/v1/vendors/{id}/work/{request_id}/review/start", "thirdparty.work.review", a.startVendorWorkReview, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, OutcomeObjectType: "VENDOR_WORK_REQUEST", OutcomePathValue: "request_id"}),
+		material("/api/v1/vendors/{id}/work/{request_id}/changes", "thirdparty.work.request_changes", a.requestVendorWorkChanges, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, OutcomeObjectType: "VENDOR_WORK_REQUEST", OutcomePathValue: "request_id"}),
+		material("/api/v1/vendors/{id}/work/{request_id}/accept", "thirdparty.work.accept", a.acceptVendorWork, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, OutcomeObjectType: "VENDOR_WORK_REQUEST", OutcomePathValue: "request_id"}),
+		material("/api/v1/vendors/{id}/work/{request_id}/cancel", "thirdparty.work.cancel", a.cancelVendorWork, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3, OutcomeObjectType: "VENDOR_WORK_REQUEST", OutcomePathValue: "request_id"}),
+		material("/api/v1/vendors/{id}/work/{request_id}/retry", "thirdparty.work.retry", a.retryVendorWork, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3, OutcomeObjectType: "VENDOR_WORK_REQUEST", OutcomePathValue: "request_id"}),
+		material("/api/v1/vendors/{id}/assessments", "thirdparty.assessment.start", a.startVendorAssessment, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
+		read("/api/v1/vendors/{id}/assessments/current", a.getCurrentVendorAssessment),
+		material("/api/v1/vendor-assessments/{id}/send-request", "thirdparty.assessment.send_request", a.sendVendorAssessmentRequest, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
+		material("/api/v1/vendor-assessments/{id}/reissue-request", "thirdparty.assessment.reissue_request", a.reissueVendorAssessmentRequest, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
+		material("/api/v1/vendor-assessments/{id}/setup/retry", thirdparty.AssessmentSetupRetryCommand, a.retryVendorAssessmentSetup, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
+		read("/api/v1/vendor-assessments/{id}", a.getVendorAssessmentReview),
+		read("/api/v1/vendor-assessments/{id}/requests/{request_id}/documents/{artifact_id}/open", a.openVendorAssessmentDocument),
+		material("/api/v1/vendor-assessments/{id}/review/start", "thirdparty.assessment.review", a.startVendorAssessmentReview, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
+		material("/api/v1/vendor-assessments/{id}/documents/{artifact_id}/validate", thirdparty.AssessmentDocumentReviewCommand, a.reviewVendorAssessmentDocument, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
+		material("/api/v1/vendor-assessments/{id}/clarifications", thirdparty.AssessmentClarificationCommand, a.requestVendorAssessmentClarification, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
+		material("/api/v1/vendor-assessments/{id}/deficiencies", thirdparty.AssessmentDeficiencyCommand, a.createVendorAssessmentDeficiency, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
+		material("/api/v1/vendor-assessments/{id}/complete", "thirdparty.assessment.complete", a.completeVendorAssessment, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
+		material("/api/v1/vendor-assessments/{id}/cancel", thirdparty.AssessmentCancelCommand, a.cancelVendorAssessment, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
+
+		read("/api/v1/form-templates", a.listReusableFormTemplates),
 		read("/api/v1/programs/{id}/monitoring-checks", a.listMonitoringChecks),
 		material("/api/v1/programs/{id}/monitoring-checks", "program.monitoring.define", a.createMonitoringCheck, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2, ActorField: noActorField}),
 		material("/api/v1/monitoring-checks/{id}/transition", "program.monitoring.transition", a.transitionMonitoringCheck, commandPolicy{ObjectType: "MONITORING_CHECK", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: noActorField}),
@@ -292,7 +304,15 @@ func write(method, path string, handler http.HandlerFunc, binder routeBinder) ro
 	return routeSpec{Method: method, Path: path, Class: routeAuthenticatedWrite, Handler: handler, Binder: binder}
 }
 func material(path, name string, handler http.HandlerFunc, policy commandPolicy) routeSpec {
-	return routeSpec{Method: http.MethodPost, Path: path, Class: routeMaterialCommand, Handler: handler, Command: &routeCommand{Name: name, Policy: policy}}
+	return materialMethod(http.MethodPost, path, name, handler, policy)
+}
+func materialMethod(method, path, name string, handler http.HandlerFunc, policy commandPolicy) routeSpec {
+	return routeSpec{Method: method, Path: path, Class: routeMaterialCommand, Handler: handler, Command: &routeCommand{Name: name, Policy: policy}}
+}
+func materialBinary(method, path, name string, handler http.HandlerFunc, policy commandPolicy) routeSpec {
+	spec := materialMethod(method, path, name, handler, policy)
+	spec.RawCommand = true
+	return spec
 }
 func materialService(path, name string, handler http.HandlerFunc, policy commandPolicy) routeSpec {
 	policy.AllowService = true

@@ -124,16 +124,31 @@ func (r *PostgresRepository) FormRevision(ctx context.Context, tenant, legalEnti
 	return value, mapPostgresError(err)
 }
 
-const assessmentFormRevisionSQL = `
-	SELECT f.id::text,f.tenant_id::text,COALESCE(f.legal_entity_id::text,''),COALESCE(f.program_id::text,''),f.code,f.name,f.purpose,f.presentation,f.sections,f.fields,f.status,f.is_current,f.effective_from,f.effective_until,f.version,
-	       COALESCE(f.created_by::text,''),COALESCE(f.submitted_by::text,''),COALESCE(f.approved_by::text,''),COALESCE(f.rejected_by::text,''),f.created_at,f.updated_at
-	FROM monitoring_form_templates f JOIN tenants t ON t.id=f.tenant_id
-	WHERE (t.id::text=$1 OR t.slug=$1) AND (f.legal_entity_id=$2::uuid OR (f.legal_entity_id IS NULL AND f.program_id IS NULL))
-	  AND f.id=$3::uuid AND f.version=$4`
-
-func (r *PostgresRepository) AssessmentFormRevision(ctx context.Context, tenant, legalEntityID, id string, version int64) (FormTemplate, error) {
-	value, err := scanForm(r.pool.QueryRow(ctx, assessmentFormRevisionSQL, tenant, legalEntityID, id, version))
+func (r *PostgresRepository) ReusableFormRevision(ctx context.Context, tenant, legalEntityID, id string, version int64) (FormTemplate, error) {
+	value, err := scanForm(r.pool.QueryRow(ctx, `SELECT `+formProjection+`
+		FROM monitoring_form_templates f JOIN tenants t ON t.id=f.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND f.legal_entity_id=$2::uuid AND f.id=$3::uuid AND f.version=$4`, tenant, legalEntityID, id, version))
 	return value, mapPostgresError(err)
+}
+
+func (r *PostgresRepository) ListReusableFormRevisions(ctx context.Context, tenant, legalEntityID string, limit int) ([]FormTemplate, error) {
+	rows, err := r.pool.Query(ctx, `SELECT `+formProjection+`
+		FROM monitoring_form_templates f JOIN tenants t ON t.id=f.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND f.legal_entity_id=$2::uuid AND f.status='ACTIVE' AND f.is_current
+		ORDER BY f.code,f.version DESC,f.id LIMIT $3`, tenant, legalEntityID, boundedLimit(limit))
+	if err != nil {
+		return nil, mapPostgresError(err)
+	}
+	defer rows.Close()
+	values := make([]FormTemplate, 0)
+	for rows.Next() {
+		value, scanErr := scanForm(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		values = append(values, value)
+	}
+	return values, rows.Err()
 }
 
 const listFormRevisionsSQL = `

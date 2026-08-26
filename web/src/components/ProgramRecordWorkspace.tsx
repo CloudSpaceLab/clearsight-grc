@@ -195,8 +195,8 @@ export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "
 		<ProgramSafeguardsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
 		<ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()} onOpenMatter={onOpenMatter}/>
 		<ProgramIssuesPanel aggregate={aggregate} canCreateIssue={mutationsReady} onOpenMatter={onOpenMatter}/>
-		<section className="program-record-panel program-wide-panel" data-testid={`vendor-links-PROGRAM-${aggregate.program.id}`}><VendorRelationshipLinks targetType="PROGRAM" targetID={aggregate.program.id}/></section>
-		<section className="program-record-panel program-wide-panel" data-testid={`vendor-work-PROGRAM-${aggregate.program.id}`}><VendorWorkPanel targetType="PROGRAM" targetID={aggregate.program.id} onOpenRequest={onOpenRequest}/></section>
+		<VendorRelationshipLinks targetType="PROGRAM" targetID={aggregate.program.id}/>
+		<VendorWorkPanel targetType="PROGRAM" targetID={aggregate.program.id} onOpenRequest={onOpenRequest}/>
       </section>
     </>}
   </section>;

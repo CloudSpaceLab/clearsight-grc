@@ -38,6 +38,7 @@ Claims durable jobs for:
 - signal normalization and drift assessment;
 - readiness snapshot generation;
 - ingestion, extraction, matching and reconciliation;
+- bounded vendor website-icon discovery and orphaned upload-reservation cleanup;
 - AI recommendations and report/package generation;
 - external execution and outcome verification.
 
@@ -45,7 +46,7 @@ Workers use leases, bounded batches, retry policy, dead-letter review, idempoten
 
 ### Web client
 
-Renders deterministic context immediately, then progressively adds recommendations and long-running results. It includes role-specific intro guidance, premium illustration primitives, empty states, Today, Configure, readiness, authority explanation and focused capture. It is never the authorization boundary.
+Renders deterministic context immediately, then progressively adds recommendations and long-running results. It includes surface-aware Today and Vendors guidance, premium illustration primitives, empty states, Today, Vendors, Configure, readiness, authority explanation and focused capture. Guidance is optional and non-blocking. It is never the authorization boundary.
 
 ## Modules
 
@@ -89,6 +90,12 @@ HTTP request
 ```
 
 Vendor due diligence and vendor-completed Program or Matter work follow this command path. The third-party module owns the relationship association, request purpose, bank owner, reviewer, deadline, delivery recovery and review outcome. Evidence and Capture own the exact form snapshot, invitation, session, draft, artifact and submission. Program and Matter modules retain their existing ownership, authority and closure rules. A vendor response cannot directly complete a Matter action, pass an outcome check or change a Program state.
+
+Vendor legal identity is addressed separately from a service relationship. `/api/v1/vendor-identities/{vendor_id}` reads or changes the shared vendor identity, while `/api/v1/vendors/{relationship_id}` remains the legal-entity-scoped relationship resource. Identity and approved-logo commands use verified actor context, current authority and their own optimistic versions; they do not mutate relationship versions.
+
+The protected `/api/v1/vendor-identities/{vendor_id}/brand` route returns only validated stored PNG bytes. A version token identifies an immutable historical asset; the unversioned read resolves the current approved override, then the current discovered icon. Remote URLs, storage keys, digests and job identifiers are not browser contracts. Upload reservation is durable before object write, final metadata/event/outbox/receipt state is transactional, and the worker reclaims uncommitted stored objects. Removing an override retains history and restores a matching discovered icon when available.
+
+Outbound discovery uses an isolated no-proxy HTTPS client with address and redirect validation, bounded responses and safe raster conversion. It is enabled by default only for development. Production must opt in with `CLEARSIGHT_VENDOR_BRAND_DISCOVERY_ENABLED`; vendor records continue to use monograms when the worker is disabled or retrieval fails.
 
 ## Continuous-autonomy path
 

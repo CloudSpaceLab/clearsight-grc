@@ -199,6 +199,9 @@ type Recipient struct {
 	AudienceHash []byte         `json:"-"`
 }
 
+// RecipientCandidate is the safe requester-facing view of an eligible
+// internal principal. Directory scope fields support the in-memory repository
+// only and are never serialized by the API.
 type RecipientCandidate struct {
 	PrincipalID      string          `json:"principal_id"`
 	DisplayName      string          `json:"display_name"`
@@ -214,6 +217,7 @@ type RecipientCandidateSearch struct {
 	Query string
 	Limit int
 }
+
 type RecipientCandidatePage struct {
 	Items   []RecipientCandidate `json:"items"`
 	HasMore bool                 `json:"has_more"`
@@ -358,6 +362,9 @@ type IssuedInvitation struct {
 	ExpiresAt    time.Time `json:"expires_at"`
 }
 
+// InvitationMetadata is safe for requester administration responses. Token
+// material, token hashes, audience hashes, and raw audience addresses are
+// deliberately not part of this type.
 type InvitationMetadata struct {
 	ID             string     `json:"id"`
 	RequestID      string     `json:"request_id"`
@@ -376,6 +383,7 @@ type ManageInvitationsInput struct {
 	RequestID        string `json:"request_id"`
 	ActorPrincipalID string `json:"actor_principal_id,omitempty"`
 }
+
 type RevokeInvitationAsRequesterInput struct {
 	TenantID         string `json:"tenant_id"`
 	LegalEntityID    string `json:"legal_entity_id,omitempty"`
@@ -383,6 +391,7 @@ type RevokeInvitationAsRequesterInput struct {
 	InvitationID     string `json:"invitation_id"`
 	ActorPrincipalID string `json:"actor_principal_id,omitempty"`
 }
+
 type RevokeSessionAsRequesterInput struct {
 	TenantID         string `json:"tenant_id"`
 	LegalEntityID    string `json:"legal_entity_id,omitempty"`
@@ -390,6 +399,7 @@ type RevokeSessionAsRequesterInput struct {
 	SessionID        string `json:"session_id"`
 	ActorPrincipalID string `json:"actor_principal_id,omitempty"`
 }
+
 type ReplaceInvitationInput struct {
 	TenantID         string `json:"tenant_id"`
 	LegalEntityID    string `json:"legal_entity_id,omitempty"`
@@ -457,6 +467,7 @@ type Artifact struct {
 type ArtifactInput struct {
 	TenantID     string
 	RequestID    string
+	FieldID      string
 	SubmissionID string
 	FileName     string
 	MediaType    string

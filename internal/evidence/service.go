@@ -1,13 +1,13 @@
 package evidence
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"io"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -145,18 +145,28 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if err := validateRequestInput(input); err != nil {
 		return Request{}, err
 	}
+	if !requestOriginAllowed(ctx, input.Origin) {
+		return Request{}, fmt.Errorf("request origin is reserved for its owning workflow")
+	}
 	scope, err := resolveCreateSubjectScope(ctx, s.repo, input)
 	if err != nil {
 		return Request{}, err
 	}
-	if !requestOriginAllowed(ctx, input.Origin) {
-		return Request{}, fmt.Errorf("request origin is reserved for its owning workflow")
+	if strings.TrimSpace(input.CreatedBy) != "" {
+		access, ok := s.repo.(SubjectAccessChecker)
+		if !ok {
+			return Request{}, ErrSubjectAccessDenied
+		}
+		allowed, accessErr := access.CanReadSubject(ctx, input.TenantID, input.CreatedBy, input.SubjectType, input.SubjectID)
+		if accessErr != nil {
+			return Request{}, accessErr
+		}
+		if !allowed {
+			return Request{}, ErrSubjectAccessDenied
+		}
+	} else if _, exact := s.repo.(SubjectScopeResolver); exact {
+		return Request{}, ErrSubjectAccessDenied
 	}
-	fields, err := normalizeFieldContracts(input.Presentation, input.Sections, input.Fields)
-	if err != nil {
-		return Request{}, err
-	}
-	input.Fields = fields
 	fields, sourceBindings, err := s.prepareRequestBindings(ctx, input)
 	if err != nil {
 		return Request{}, err
@@ -175,7 +185,7 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 			return Request{}, accessErr
 		}
 		if !allowed {
-			return Request{}, ErrSubjectAccessDenied
+			return Request{}, ErrRecipientInvalid
 		}
 	}
 	recipient, err := buildRecipient(ctx, s.repo, input.TenantID, input.AudienceType, input.Recipient)
@@ -466,17 +476,42 @@ func (s *Service) StoreArtifact(ctx context.Context, input ArtifactInput, reader
 	if err := s.authorizeArtifactUpload(ctx, request, input); err != nil {
 		return Artifact{}, err
 	}
-	fileName := filepath.Base(strings.TrimSpace(input.FileName))
-	mediaType := normalizeMediaType(input.MediaType)
-	if fileName == "." || fileName == "" || !allowedMediaType(mediaType) {
+	fileName := strings.TrimSpace(input.FileName)
+	maximum := s.maxArtifactBytes
+	var requestField *Field
+	if strings.TrimSpace(input.FieldID) != "" {
+		for index := range request.Fields {
+			if request.Fields[index].ID == strings.TrimSpace(input.FieldID) {
+				requestField = &request.Fields[index]
+				break
+			}
+		}
+		if requestField == nil || !isFileFieldType(requestField.Type) {
+			return Artifact{}, ErrFieldInvalid
+		}
+		if requestField.Constraints.MaxFileBytes != nil && *requestField.Constraints.MaxFileBytes < maximum {
+			maximum = *requestField.Constraints.MaxFileBytes
+		}
+	}
+	data, mediaType, err := inspectArtifact(fileName, input.MediaType, reader, maximum)
+	if err != nil {
+		return Artifact{}, err
+	}
+	if !allowedMediaType(mediaType) {
 		return Artifact{}, ErrMediaType
+	}
+	if requestField != nil {
+		candidate := Artifact{MediaType: mediaType, SizeBytes: int64(len(data)), Status: ArtifactStoredUnscanned}
+		if err := validateArtifactForField(*requestField, candidate); err != nil {
+			return Artifact{}, fmt.Errorf("%w: %v", ErrFieldInvalid, err)
+		}
 	}
 	valueID, err := id.NewUUIDv7()
 	if err != nil {
 		return Artifact{}, err
 	}
 	key := strings.Join([]string{input.TenantID, "requests", input.RequestID, valueID}, "/")
-	object, err := s.store.Put(ctx, key, reader, s.maxArtifactBytes)
+	object, err := s.store.Put(ctx, key, bytes.NewReader(data), maximum)
 	if err != nil {
 		return Artifact{}, err
 	}
@@ -487,6 +522,15 @@ func (s *Service) StoreArtifact(ctx context.Context, input ArtifactInput, reader
 		return Artifact{}, err
 	}
 	return created, nil
+}
+
+func isFileFieldType(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case string(formcontract.TypeFile), string(formcontract.TypePhoto), string(formcontract.TypeSignature), string(formcontract.TypeVendorDocument):
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *Service) authorizeArtifactUpload(ctx context.Context, request Request, input ArtifactInput) error {

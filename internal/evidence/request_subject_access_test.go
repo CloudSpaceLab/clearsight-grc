@@ -24,7 +24,7 @@ func TestCreateExternalRequestValidatesRequesterSubjectAccess(t *testing.T) {
 		Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: "contact@vendor.example"}, EstimatedMinutes: 5,
 		Deadline: now.Add(time.Hour), Fields: []Field{{ID: "confirm", Label: "Confirm", Type: "yes_no", Required: true}}, CreatedBy: "requester-1",
 	})
-	if !errors.Is(err, ErrRecipientInvalid) {
+	if !errors.Is(err, ErrSubjectAccessDenied) {
 		t.Fatalf("expected inaccessible subject rejection, got %v", err)
 	}
 }

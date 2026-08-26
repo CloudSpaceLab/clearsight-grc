@@ -3,14 +3,13 @@ package evidence
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 )
 
 var (
 	ErrSubjectUnsupported   = errors.New("evidence request subject type is not supported for exact scope resolution")
 	ErrSubjectScopeMismatch = errors.New("evidence request subject is outside the legal entity scope")
-	ErrSubjectAccessDenied  = fmt.Errorf("%w: evidence request creator cannot access the subject", ErrRecipientInvalid)
+	ErrSubjectAccessDenied  = errors.New("evidence request creator cannot access the subject")
 )
 
 // SubjectScope is the canonical tenant/entity identity resolved from an

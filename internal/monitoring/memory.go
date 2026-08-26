@@ -22,7 +22,7 @@ func NewMemoryRepository() *MemoryRepository {
 }
 
 func (r *MemoryRepository) CreateFormRevision(_ context.Context, value FormTemplate) (FormTemplate, error) {
-	if value.TenantID == "" || value.ID == "" || value.Version < 1 || (value.LegalEntityID == "") != (value.ProgramID == "") {
+	if value.TenantID == "" || value.LegalEntityID == "" || value.ProgramID == "" || value.ID == "" || value.Version < 1 {
 		return FormTemplate{}, ErrInvalid
 	}
 	event, err := newMonitoringEvent(value.TenantID, AggregateMonitoringForm, value.ID, value.Version, EventMonitoringFormCreated, value, value.CreatedBy, value.CreatedAt)
@@ -51,14 +51,35 @@ func (r *MemoryRepository) FormRevision(_ context.Context, tenant, legalEntityID
 	return cloneValue(value), nil
 }
 
-func (r *MemoryRepository) AssessmentFormRevision(_ context.Context, tenant, legalEntityID, id string, version int64) (FormTemplate, error) {
+func (r *MemoryRepository) ReusableFormRevision(_ context.Context, tenant, legalEntityID, id string, version int64) (FormTemplate, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	value, ok := r.forms[revisionKey(tenant, id, version)]
-	if !ok || (value.LegalEntityID != "" && value.LegalEntityID != legalEntityID) {
+	if !ok || value.LegalEntityID != legalEntityID {
 		return FormTemplate{}, ErrNotFound
 	}
 	return cloneValue(value), nil
+}
+
+func (r *MemoryRepository) ListReusableFormRevisions(_ context.Context, tenant, legalEntityID string, limit int) ([]FormTemplate, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	values := make([]FormTemplate, 0)
+	for _, value := range r.forms {
+		if value.TenantID == tenant && value.LegalEntityID == legalEntityID && value.Status == LifecycleActive && value.IsCurrent {
+			values = append(values, cloneValue(value))
+		}
+	}
+	sort.Slice(values, func(i, j int) bool {
+		if values[i].Code == values[j].Code {
+			if values[i].Version == values[j].Version {
+				return values[i].ID < values[j].ID
+			}
+			return values[i].Version > values[j].Version
+		}
+		return values[i].Code < values[j].Code
+	})
+	return boundedForms(values, limit), nil
 }
 
 func (r *MemoryRepository) ListFormRevisions(_ context.Context, tenant, legalEntityID, programID string, limit int) ([]FormTemplate, error) {

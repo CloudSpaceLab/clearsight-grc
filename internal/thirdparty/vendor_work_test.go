@@ -41,7 +41,7 @@ func newVendorWorkFixture(t *testing.T) vendorWorkFixture {
 	}
 	forms := monitoring.NewMemoryRepository()
 	_, err = forms.CreateFormRevision(context.Background(), monitoring.FormTemplate{
-		ID: "form-1", TenantID: "bank", Name: "Quarterly service confirmation", Purpose: "Confirm current service and control information.",
+		ID: "form-1", TenantID: "bank", LegalEntityID: "entity-a", ProgramID: "program-1", Name: "Quarterly service confirmation", Purpose: "Confirm current service and control information.",
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
 		Sections:     []formcontract.Section{{ID: "service", Title: "Service"}},
 		Fields:       []monitoring.TemplateField{{ID: "service_current", SectionID: "service", Label: "Is the service information current?", Type: formcontract.TypeYesNo, Required: true}},

@@ -66,17 +66,17 @@ func (r *PostgresRepository) CreateRequestWithRecipient(ctx context.Context, val
 	}
 	row := r.pool.QueryRow(ctx, `
 		INSERT INTO capture_requests(
-			id,tenant_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
+			id,tenant_id,legal_entity_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
 			recipient_type,recipient_principal_id,recipient_audience_hash,recipient_hint,recipient_state,recipient_revision,recipient_issue_reason,
 			estimated_minutes,deadline,known_facts,presentation,sections,fields,source_bindings,form_template_id,form_template_version,collection_period_start,collection_period_end,
 			origin_type,origin_id,origin_version,status,created_by,version,created_at,updated_at
 		) VALUES(
-			$1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4,$5,$6,$7,$8,$9,
-			$10,NULLIF($11,'')::uuid,$12,$13,$14,$15,'',$16,$17,$18::jsonb,$19::jsonb,$20::jsonb,$21::jsonb,$22::jsonb,NULLIF($23,'')::uuid,NULLIF($24,0),$25,$26,
-			NULLIF($27,''),NULLIF($28,''),NULLIF($29,0),$30,NULLIF($31,'')::uuid,$32,$33,$33
+			$1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,$9,$10,
+			$11,NULLIF($12,'')::uuid,$13,$14,$15,$16,'',$17,$18,$19::jsonb,$20::jsonb,$21::jsonb,$22::jsonb,$23::jsonb,NULLIF($24,'')::uuid,NULLIF($25,0),$26,$27,
+			NULLIF($28,''),NULLIF($29,''),NULLIF($30,0),$31,NULLIF($32,'')::uuid,$33,$34,$34
 		)
 		RETURNING `+requestReturningColumns,
-		value.ID, value.TenantID, value.SubjectType, value.SubjectID, value.Title, value.Purpose, value.WhyYou, value.Sensitivity, value.AudienceType,
+		value.ID, value.TenantID, value.LegalEntityID, value.SubjectType, value.SubjectID, value.Title, value.Purpose, value.WhyYou, value.Sensitivity, value.AudienceType,
 		value.Recipient.Type, value.Recipient.PrincipalID, nullableAudienceHash(value.Recipient), value.Recipient.AudienceHint, state, revision,
 		value.EstimatedMinutes, value.Deadline, string(facts), string(presentation), string(sections), string(fields), string(sourceBindings), value.FormTemplateID, value.FormTemplateVersion, value.CollectionPeriodStart, value.CollectionPeriodEnd,
 		value.Origin.Type, value.Origin.ID, value.Origin.Version, value.Status, value.CreatedBy, value.Version, value.CreatedAt)
@@ -91,15 +91,16 @@ func (r *PostgresRepository) CreateRequestWithRecipient(ctx context.Context, val
 }
 
 func (r *PostgresRepository) GetRequestRecipient(ctx context.Context, tenant, requestID string) (Recipient, error) {
-	var recipientType, principalID, hint, state, issueReason string
+	var recipientType, principalID, displayName, hint, state, issueReason string
 	var audienceHash []byte
 	var revision int64
 	err := r.pool.QueryRow(ctx, `
-		SELECT COALESCE(er.recipient_type,''),COALESCE(er.recipient_principal_id::text,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
+		SELECT COALESCE(er.recipient_type,''),COALESCE(er.recipient_principal_id::text,''),COALESCE(rp.display_name,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
 		       er.recipient_state,er.recipient_revision,er.recipient_issue_reason
 		FROM capture_requests er
 		JOIN tenants t ON t.id=er.tenant_id
-		WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2)`, requestID, tenant).Scan(&recipientType, &principalID, &audienceHash, &hint, &state, &revision, &issueReason)
+		LEFT JOIN principals rp ON rp.tenant_id=er.tenant_id AND rp.id=er.recipient_principal_id
+		WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2)`, requestID, tenant).Scan(&recipientType, &principalID, &displayName, &audienceHash, &hint, &state, &revision, &issueReason)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Recipient{}, ErrNotFound
 	}
@@ -107,7 +108,7 @@ func (r *PostgresRepository) GetRequestRecipient(ctx context.Context, tenant, re
 		return Recipient{}, err
 	}
 	return Recipient{
-		Type: RecipientType(recipientType), PrincipalID: principalID,
+		Type: RecipientType(recipientType), PrincipalID: principalID, DisplayName: displayName,
 		AudienceHash: append([]byte(nil), audienceHash...), AudienceHint: hint,
 		State: RecipientState(state), Revision: revision, IssueReason: issueReason,
 	}, nil
@@ -115,10 +116,11 @@ func (r *PostgresRepository) GetRequestRecipient(ctx context.Context, tenant, re
 
 func (r *PostgresRepository) ListRecipientRequests(ctx context.Context, tenant, principalID string, limit int) ([]Request, error) {
 	rows, err := r.pool.Query(ctx, `SELECT `+requestProjection+`,
-		       er.recipient_type,COALESCE(er.recipient_principal_id::text,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
+		       er.recipient_type,COALESCE(er.recipient_principal_id::text,''),COALESCE(rp.display_name,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
 		       er.recipient_state,er.recipient_revision,er.recipient_issue_reason
 		FROM capture_requests er
 		JOIN tenants t ON t.id=er.tenant_id
+		LEFT JOIN principals rp ON rp.tenant_id=er.tenant_id AND rp.id=er.recipient_principal_id
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND er.recipient_type='INTERNAL_PRINCIPAL'
 		  AND er.recipient_state='ASSIGNED'

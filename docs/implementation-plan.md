@@ -1,7 +1,7 @@
 # ClearSight implementation ledger
 
 **Status date:** 2026-08-26
-**Current execution issue:** Program and issue/change operational completeness
+**Current execution:** Vendor workflow integration and shared collection controls; final verification pending
 **Umbrella pilot/GA catalogue:** #13
 
 This file is the authoritative implementation ledger. Code, migrations and executable tests remain final capability truth. Completed detail belongs in focused architecture documents, PRs and tests rather than parallel planning frameworks.
@@ -31,11 +31,21 @@ This file is the authoritative implementation ledger. Code, migrations and execu
 | Complete Program operating record | Versioned details and ownership, requirement supersession, applicability, safeguards and eligible performers, evidence expectations/results, lifecycle, monitoring and exact linked issues |
 | Complete issue/change operating record | Facts and gaps, eligible assignment, decisions, actions, responses, outcome checks and closure through actor-scoped UI commands |
 
-## Current execution — complete Program and Matter operations
+## Program and Matter operational foundation
 
 The approved [`Program and Work operational-completeness design`](superpowers/specs/2026-08-25-program-work-operational-completeness-design.md) closes the remaining API-only operating gaps without creating parallel workflow, assignment, authority or review state. Delivery follows the detailed [`Matter plan`](superpowers/plans/2026-08-25-matter-operational-completeness.md) first, then the [`Program plan`](superpowers/plans/2026-08-25-program-operational-completeness.md). PR #51 remains a completed initial mutation tranche; it did not make every supported command reachable or every record maintainable.
 
 Domain expansion must build on these operation/participant reads and dedicated record workspaces. It must not reimplement generic Matter facts, assignment, Actions, Decisions, evidence assessment, outcome checks, Program requirements or linked-issue UI inside a vertical-specific module.
+
+## Current execution — premium first-run and vendor identity presentation
+
+The approved [`premium first-run and vendor-branding design`](superpowers/specs/2026-08-26-premium-first-run-and-vendor-branding-design.md) adds surface-aware Today and Vendors guides, a shared optional cinematic panel and stored vendor icons without creating a separate vendor dashboard or treating an icon as identity evidence. Guides remain actor-, tenant-, surface- and version-scoped; they can be skipped, resumed and restarted, and a guidance failure leaves the workspace available.
+
+Vendor identity and service relationship use distinct resources and versions. `/api/v1/vendor-identities/{vendor_id}` owns shared legal-identity facts, including an optional normalized website hostname. `/api/v1/vendors/{relationship_id}` continues to own the legal-entity-scoped service, owner and due-diligence context. The protected brand subresource returns validated stored PNG bytes only. Browser image markup never uses the vendor website URL.
+
+Website icon retrieval is durable, bounded and independent of vendor workflow availability. The worker uses no ambient proxy or credentials, validates DNS and connected destinations, revalidates redirects, bounds response size and converts accepted PNG, JPEG, WebP or ICO input to a canonical PNG. Discovery is disabled by default in production until outbound-network policy explicitly enables it. An approved upload overrides a discovered icon; removing the override restores the latest safe icon matching the current hostname. Upload reservation, command receipt, brand events and cleanup preserve replay and orphan recovery.
+
+Code and executable unit/tagged-build gates are being completed on the feature branch. This tranche remains **in verification** until the final exact-HEAD suite, rendered Today/Vendors matrix, reduced-motion and responsive inspection, and the 1600×900 presentation cover are recorded. PostgreSQL integration tests may compile and skip when `TEST_DATABASE_URL` is absent; that skip is not production database evidence.
 
 ## 2. Mobile-channel monitoring — implemented application slice
 

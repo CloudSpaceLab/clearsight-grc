@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
 
 var errMaterialVersionUnavailable = errors.New("material aggregate version unavailable")
@@ -66,6 +67,11 @@ func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, pol
 		return
 	}
 
+	if objectType == "VENDOR_BRAND" {
+		a.executeExactVendorBrandHandler(w, r, objectType, objectID, payload, handler)
+		return
+	}
+
 	baseline, baselineErr := a.currentMaterialVersion(r, objectType, objectID, stringValue(payload["tenant_id"]))
 	if baselineErr != nil {
 		handler(w, r)
@@ -101,6 +107,64 @@ func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, pol
 		Version:          version,
 		ResponseDegraded: true,
 	})
+}
+
+func (a *API) executeExactVendorBrandHandler(w http.ResponseWriter, r *http.Request, objectType, objectID string, payload map[string]any, handler http.HandlerFunc) {
+	buffered := newBufferedCommandResponse()
+	handler(buffered, r)
+	status := buffered.status
+	if status == 0 {
+		status = http.StatusOK
+	}
+	if status < http.StatusInternalServerError {
+		buffered.flushTo(w)
+		return
+	}
+
+	version, confirmed := a.exactVendorBrandOutcomeVersion(r, objectID, payload)
+	if !confirmed {
+		buffered.flushTo(w)
+		return
+	}
+
+	w.Header().Set("X-ClearSight-Command-Outcome", "committed-response-degraded")
+	w.Header().Set("X-ClearSight-Aggregate-Version", strconv.FormatInt(version, 10))
+	httpx.WriteJSON(w, http.StatusOK, committedCommandReceipt{
+		Status:           "COMMITTED",
+		AggregateType:    objectType,
+		AggregateID:      objectID,
+		Version:          version,
+		ResponseDegraded: true,
+	})
+}
+
+func (a *API) exactVendorBrandOutcomeVersion(r *http.Request, objectID string, payload map[string]any) (int64, bool) {
+	if a.deps.VendorBrands == nil || r == nil {
+		return 0, false
+	}
+	expectedVersion, ok := int64Value(payload["expected_version"])
+	if !ok || expectedVersion < 0 {
+		return 0, false
+	}
+	idempotencyKey := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	if idempotencyKey == "" {
+		return 0, false
+	}
+	command := ""
+	switch r.Method {
+	case http.MethodPut:
+		command = thirdparty.VendorBrandApproveCommand
+	case http.MethodDelete:
+		command = thirdparty.VendorBrandRemoveCommand
+	default:
+		return 0, false
+	}
+	actor, err := thirdPartyActor(r)
+	if err != nil {
+		return 0, false
+	}
+	version, err := a.deps.VendorBrands.CommandReceiptVersion(r.Context(), actor, objectID, idempotencyKey, command, expectedVersion)
+	return version, err == nil
 }
 
 func (a *API) currentMaterialVersion(r *http.Request, objectType, objectID, tenantID string) (int64, error) {

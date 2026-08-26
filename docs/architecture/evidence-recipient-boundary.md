@@ -130,6 +130,8 @@ The external upload route already validates a capability session before the serv
 
 An attachment is evidence submitted by a recipient. Upload permission therefore follows recipient/capability truth rather than general subject readability.
 
+Form uploads are also bound to the selected request field. The upload route applies the field's format and per-file limit after recipient authorization; submission rechecks every artifact against the request, field, count and combined-size rules. Content-derived media type and bounded PDF/Open XML inspection reduce mislabeled or active-content uploads, but do not replace malware scanning. Newly stored artifacts therefore retain `STORED_UNSCANNED` until a separate security decision is recorded.
+
 ## 10. Failure behavior
 
 Fail closed:

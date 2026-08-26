@@ -52,7 +52,7 @@ function kindFromStatus(status: number): ApiErrorKind {
   if (status === 403) return "forbidden";
   if (status === 404) return "not_found";
   if (status === 409 || status === 412) return "conflict";
-  if (status === 400 || status === 422) return "validation";
+	if (status === 400 || status === 413 || status === 415 || status === 422) return "validation";
   if (status === 429 || status >= 500) return "unavailable";
   return "unknown";
 }

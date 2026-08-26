@@ -26,7 +26,6 @@ type LifecycleTransition struct {
 type Repository interface {
 	CreateFormRevision(context.Context, FormTemplate) (FormTemplate, error)
 	FormRevision(context.Context, string, string, string, string, int64) (FormTemplate, error)
-	AssessmentFormRevision(context.Context, string, string, string, int64) (FormTemplate, error)
 	ListFormRevisions(context.Context, string, string, string, int) ([]FormTemplate, error)
 	TransitionForm(context.Context, LifecycleTransition) (FormTemplate, error)
 	CreateCheckRevision(context.Context, MonitoringCheck) (MonitoringCheck, error)
@@ -37,4 +36,12 @@ type Repository interface {
 	AppendResult(context.Context, MonitoringResult) (MonitoringResult, error)
 	Result(context.Context, string, string) (MonitoringResult, error)
 	ListResults(context.Context, string, string, int) ([]MonitoringResult, error)
+}
+
+// ReusableFormRepository exposes exact, legal-entity-scoped form revisions to
+// workflows that are not owned by a single Program, such as vendor due
+// diligence and record-linked vendor requests.
+type ReusableFormRepository interface {
+	ReusableFormRevision(context.Context, string, string, string, int64) (FormTemplate, error)
+	ListReusableFormRevisions(context.Context, string, string, int) ([]FormTemplate, error)
 }

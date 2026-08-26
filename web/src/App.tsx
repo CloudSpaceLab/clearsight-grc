@@ -20,6 +20,7 @@ import { DisplayPreferencesMenu } from "./components/DisplayPreferences";
 import { DocumentImportWorkspace } from "./components/DocumentImportWorkspace";
 import { FocusedSheet } from "./components/FocusedSheet";
 import { NavigationIcon } from "./components/NavigationIcon";
+import { initials } from "./components/Monogram";
 import { RoleAwareOnboarding } from "./components/RoleAwareOnboarding";
 import type { CaptureLoadState } from "./components/CapturePanel";
 import { apiErrorKind } from "./http";
@@ -36,6 +37,7 @@ type LoadState = "idle" | "loading" | "live" | "unavailable";
 type SectionLoadState = Exclude<LoadState, "idle">;
 type ConnectionState = "loading" | "live" | "sample" | "unavailable";
 type PrimaryEvidenceLoad = { targetID?: string; state: "idle" | "loading" | "live" | "unavailable" };
+type VendorGuideIntent = { id: number; type: "open-vendor-due-diligence" | "open-vendor-work" | "open-vendor-next-action" };
 type ProductRuntime = RuntimeContext & {
   demo_mode?: boolean;
   capabilities?: {
@@ -60,6 +62,9 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
   const [activeView, setActiveView] = useState<View>(initialRoute.view);
   const [workTab, setWorkTab] = useState<WorkTab>(initialRoute.workTab ?? "matters");
   const [target, setTarget] = useState<WorkspaceTarget>(initialRoute.target);
+  const [vendorGuideIntent, setVendorGuideIntent] = useState<VendorGuideIntent>();
+  const vendorGuideIntentID = useRef(0);
+  const vendorGuideAck = useRef<{ id: number; resolve: () => void; reject: (reason?: unknown) => void } | undefined>(undefined);
   const [items, setItems] = useState<AttentionItem[]>([]);
   const [todayGeneratedAt, setTodayGeneratedAt] = useState<string | undefined>();
   const [connection, setConnection] = useState<ConnectionState>("loading");
@@ -302,7 +307,21 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
     ...(configureEnabled ? [{ label: "Configure", view: "configure" as View }] : []),
   ];
 
+  function cancelVendorGuideIntent(reason: string) {
+    const pending = vendorGuideAck.current;
+    vendorGuideAck.current = undefined;
+    setVendorGuideIntent(undefined);
+    pending?.reject(new Error(reason));
+  }
+
+  useEffect(() => () => {
+    const pending = vendorGuideAck.current;
+    vendorGuideAck.current = undefined;
+    pending?.reject(new Error("Vendor guide action was cancelled."));
+  }, []);
+
   function navigate(view: View, nextTarget: WorkspaceTarget = {}, tab?: WorkTab) {
+    if (view !== "vendors") cancelVendorGuideIntent("Vendor guide action was cancelled.");
     const nextTab = tab ?? workTab;
     setActiveView(view); setTarget(nextTarget); if (tab) setWorkTab(tab);
     const hash = routeHash(view, nextTarget, nextTab);
@@ -366,6 +385,18 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
     if (step.intent === "open-first-attention" && items[0]) { openAttention(items[0]); return; }
     if (step.intent === "open-first-program") { navigate("programs", { openFirstProgram: true }); return; }
     if (step.intent === "open-first-matter") { navigate("work", { openFirstMatter: true }, "matters"); return; }
+    const vendorIntent = step.intent;
+    if (vendorIntent === "open-vendor-due-diligence" || vendorIntent === "open-vendor-work" || vendorIntent === "open-vendor-next-action") {
+      return new Promise<void>((resolve, reject) => {
+        const previous = vendorGuideAck.current;
+        vendorGuideAck.current = undefined;
+        previous?.reject(new Error("Vendor guide action was replaced."));
+        const id = ++vendorGuideIntentID.current;
+        vendorGuideAck.current = { id, resolve, reject };
+        setVendorGuideIntent({ id, type: vendorIntent });
+        navigate("vendors", activeView === "vendors" ? target : {});
+      });
+    }
     if (step.intent === "switch-evidence" || step.intent === "open-first-evidence") {
       const requests = evidenceRequestState === "idle" ? await loadEvidenceWorkspace() : evidenceRequests;
       navigate("work", { evidenceID: step.intent === "open-first-evidence" ? requests[0]?.id : undefined, openFirstEvidence: step.intent === "open-first-evidence" }, "evidence"); return;
@@ -377,14 +408,32 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
   const primaryEvidenceRequest = primaryEvidenceEntity && canRespondToEvidenceRequest(primaryEvidenceEntity, runtime?.actor.id) ? primaryEvidenceEntity : undefined;
   const canOpenEvidence = Boolean(primaryEvidenceRequest);
 
+  function completeVendorGuideIntent(id: number) {
+    if (vendorGuideAck.current?.id === id) {
+      vendorGuideAck.current.resolve();
+      vendorGuideAck.current = undefined;
+    }
+    setVendorGuideIntent((current) => current?.id === id ? undefined : current);
+  }
+
+  function failVendorGuideIntent(id: number) {
+    if (vendorGuideAck.current?.id === id) {
+      const pending = vendorGuideAck.current;
+      vendorGuideAck.current = undefined;
+      pending.reject(new Error("Vendor workspace could not be loaded."));
+    }
+    setVendorGuideIntent((current) => current?.id === id ? undefined : current);
+  }
+
+
   return <div className="app-shell">
     <aside className="sidebar" aria-label="Primary navigation"><div className="brand-mark" aria-label="ClearSight">C</div><nav>{navigation.map(({ label, view }) => <button className={view === activeView ? "nav-item active" : "nav-item"} key={view} aria-current={view === activeView ? "page" : undefined} onClick={() => navigate(view)}><NavigationIcon view={view}/><b>{label}</b></button>)}</nav><div className="avatar" aria-label={`Signed in as ${actorName}`}>{initials(actorName)}</div></aside>
     <main>
       <div className="context-bar" aria-label="Active workspace context"><div><strong>{organizationName}</strong><span>{legalEntityName}</span></div><div className="context-role"><DisplayPreferencesMenu/><span>{roleName}</span>{demoMode ? <mark>Stakeholder demo</mark> : serverDemoMode && presentation === "live-preview" ? <mark>Live preview · Non-production</mark> : null}</div></div>
-      <RoleAwareOnboarding runtime={runtime} onStep={executeGuideStep}/>
+      {(activeView === "today" || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>}
       {activeView === "today" && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>} 
       {activeView === "programs" && <ProgramsView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")}/>}
-      {activeView === "vendors" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships…</div>}><VendorsWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.vendorRelationshipID} onTarget={(id) => navigate("vendors", id ? { vendorRelationshipID: id } : {})} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")}/></Suspense>}
+      {activeView === "vendors" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships…</div>}><VendorsWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.vendorRelationshipID} guideIntent={vendorGuideIntent} onGuideIntentCompleted={completeVendorGuideIntent} onGuideIntentFailed={failVendorGuideIntent} onTarget={(id) => navigate("vendors", id ? { vendorRelationshipID: id } : {})} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")}/></Suspense>}
       {activeView === "work" && <WorkView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} evidenceScopeToken={evidenceScopeEpoch.current} tab={workTab} onTab={(tab) => navigate("work", {}, tab)} onBackMatter={() => navigate("work", {}, "matters")} sources={sources} requests={evidenceRequests} evidenceSourceState={evidenceSourceState === "idle" ? "loading" : evidenceSourceState} evidenceRequestState={evidenceRequestState === "idle" ? "loading" : evidenceRequestState} onEvidenceRetry={() => void loadEvidenceWorkspace(target.evidenceID)} onEvidenceRequestUpdated={updateEvidenceEntity} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)}/>}
       {activeView === "imports" && importsEnabled && <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Imports</h1><p>Compare regulatory documents with current Programs, controls and evidence.</p></div></header><DocumentImportWorkspace/></>}
       {activeView === "explore" && demoMode && <ExploreView organizationName={organizationName}/>} 
@@ -404,6 +453,5 @@ function evidenceRuntimeScopeKey(runtime: ProductRuntime | null) {
   if (!runtime) return undefined;
   return `${runtime.tenant.id}\u0000${runtime.legal_entity.id}\u0000${runtime.actor.id}`;
 }
-function initials(value: string) { const parts = value.trim().split(/\s+/).filter(Boolean); const first = parts.at(0)?.at(0) ?? value.at(0) ?? ""; const last = parts.length > 1 ? parts.at(-1)?.at(0) ?? "" : value.at(1) ?? ""; return `${first}${last}`.toUpperCase(); }
 
 export default App;

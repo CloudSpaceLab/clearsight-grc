@@ -1,11 +1,12 @@
 import { loadContext } from "./api";
 import { requestJSON } from "./http";
-import type { OnboardingGuide, OnboardingState } from "./types";
+import type { GuideSurface, OnboardingGuide, OnboardingState } from "./types";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
-export function loadRoleGuide(): Promise<OnboardingGuide> {
-  return requestJSON<OnboardingGuide>(apiBase, "/api/v1/onboarding/guide");
+export function loadRoleGuide(surface: GuideSurface = "TODAY"): Promise<OnboardingGuide> {
+  const params = new URLSearchParams({ surface });
+  return requestJSON<OnboardingGuide>(apiBase, `/api/v1/onboarding/guide?${params.toString()}`);
 }
 
 export async function loadGuideState(guideCode: string): Promise<OnboardingState> {

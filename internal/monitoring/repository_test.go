@@ -14,10 +14,11 @@ func TestMemoryRepositoryStoresExactFormVersionsWithinTenant(t *testing.T) {
 	now := time.Date(2026, 8, 17, 10, 0, 0, 0, time.UTC)
 	form := FormTemplate{
 		ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "PASSWORD-RESET", Name: "Password reset review",
+		Purpose:      "Collect the weekly password reset control review.",
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
-		Sections:     []formcontract.Section{{ID: "identity", Title: "Identity checks"}},
-		Purpose:      "Collect the weekly password reset control review.", Fields: []TemplateField{{ID: "identity", Label: "Identity verification completed", Type: "single_select", Required: true, Options: []string{"Yes", "No"}}},
-		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: "maker", CreatedAt: now, UpdatedAt: now},
+		Sections:     []formcontract.Section{{ID: "identity-checks", Title: "Identity checks"}},
+		Fields:       []TemplateField{{ID: "identity", SectionID: "identity-checks", Label: "Identity verification completed", Type: "single_select", Required: true, Options: []string{"Yes", "No"}}},
+		Lifecycle:    Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: "maker", CreatedAt: now, UpdatedAt: now},
 	}
 	created, err := repo.CreateFormRevision(context.Background(), form)
 	if err != nil {
@@ -51,6 +52,32 @@ func TestMemoryRepositoryRejectsDuplicateFormVersion(t *testing.T) {
 	}
 	if _, err := repo.CreateFormRevision(context.Background(), form); !errors.Is(err, ErrConflict) {
 		t.Fatalf("duplicate error = %v, want conflict", err)
+	}
+}
+
+func TestMemoryRepositoryListsOnlyCurrentActiveReusableFormsForLegalEntity(t *testing.T) {
+	repo := NewMemoryRepository()
+	forms := []FormTemplate{
+		{ID: "form-a", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "ACCESS", Name: "Access review", Purpose: "Confirm access.", Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, Version: 2}},
+		{ID: "form-b", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-2", Code: "RESILIENCE", Name: "Resilience review", Purpose: "Confirm resilience.", Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, Version: 1}},
+		{ID: "form-c", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "DRAFT", Name: "Draft review", Purpose: "Not approved.", Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1}},
+		{ID: "form-d", TenantID: "bank-a", LegalEntityID: "entity-b", ProgramID: "program-3", Code: "OTHER", Name: "Other entity review", Purpose: "Other entity.", Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, Version: 1}},
+	}
+	for _, form := range forms {
+		if _, err := repo.CreateFormRevision(context.Background(), form); err != nil {
+			t.Fatalf("create form %s: %v", form.ID, err)
+		}
+	}
+
+	values, err := repo.ListReusableFormRevisions(context.Background(), "bank-a", "entity-a", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(values) != 2 || values[0].ID != "form-a" || values[1].ID != "form-b" {
+		t.Fatalf("reusable forms = %#v", values)
+	}
+	if _, err := repo.ReusableFormRevision(context.Background(), "bank-a", "entity-b", "form-a", 2); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("cross-entity exact read error = %v, want not found", err)
 	}
 }
 

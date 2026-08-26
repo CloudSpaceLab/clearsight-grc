@@ -104,12 +104,38 @@ describe("CapturePanel", () => {
     const input = screen.getByLabelText(/Site photo/) as HTMLInputElement;
     const file = new File(["photo"], "atm.jpg", { type: "image/jpeg" });
     fireEvent.change(input, { target: { files: [file] } });
-    await waitFor(() => expect(upload).toHaveBeenCalledWith(request.id, file));
+	await waitFor(() => expect(upload).toHaveBeenCalledWith(request.id, file, "photo"));
     expect(screen.getByText(/atm\.jpg/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review response" }));
     expect(screen.getByText(/Photo attached · atm.jpg/)).toBeTruthy();
     expect(screen.queryByText("artifact-secret-id")).toBeNull();
   });
+
+	it("uploads, reviews and removes multiple files without losing successful uploads", async () => {
+	  const upload = vi.fn()
+		.mockResolvedValueOnce({ id: "artifact-policy", request_id: request.id, file_name: "policy.pdf", media_type: "application/pdf", size_bytes: 1200, sha256: "hash-1", status: "STORED_UNSCANNED" })
+		.mockResolvedValueOnce({ id: "artifact-register", request_id: request.id, file_name: "register.xlsx", media_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", size_bytes: 2200, sha256: "hash-2", status: "STORED_UNSCANNED" });
+	  const submit = vi.fn().mockResolvedValue({ submitted_at: "2026-08-26T12:00:00Z" });
+	  render(<CapturePanel request={{ ...request, fields: [{ id: "documents", label: "Due diligence documents", type: "file", required: true, accepted_formats: ["application/pdf", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"], constraints: { min_files: 1, max_files: 3, max_file_bytes: 5000, max_total_file_bytes: 10000 } }] }} onUploadArtifact={upload} onSubmit={submit}/>);
+
+	  const input = screen.getByLabelText(/Due diligence documents/) as HTMLInputElement;
+	  expect(input.multiple).toBe(true);
+	  const policy = new File(["policy"], "policy.pdf", { type: "application/pdf" });
+	  const register = new File(["register"], "register.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+	  fireEvent.change(input, { target: { files: [policy, register] } });
+	  await waitFor(() => expect(upload).toHaveBeenCalledTimes(2));
+	  expect(upload).toHaveBeenNthCalledWith(1, request.id, policy, "documents");
+	  expect(upload).toHaveBeenNthCalledWith(2, request.id, register, "documents");
+	  expect(screen.getByText("policy.pdf")).toBeTruthy();
+	  expect(screen.getByText("register.xlsx")).toBeTruthy();
+
+	  fireEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]!);
+	  expect(screen.queryByText("policy.pdf")).toBeNull();
+	  fireEvent.click(screen.getByRole("button", { name: "Review response" }));
+    expect(screen.getByText(/1 file attached · register.xlsx/)).toBeTruthy();
+	  fireEvent.click(screen.getByRole("button", { name: "Submit response" }));
+	  await waitFor(() => expect(submit).toHaveBeenCalledWith(expect.objectContaining({ id: request.id }), { documents: { artifact_ids: ["artifact-register"] } }));
+	});
 
   it("preserves the previous valid attachment when a replacement upload fails", async () => {
     const upload = vi.fn()
@@ -124,7 +150,7 @@ describe("CapturePanel", () => {
 
     const replacement = new File(["replacement"], "replacement.jpg", { type: "image/jpeg" });
     fireEvent.change(input, { target: { files: [replacement] } });
-    expect((await screen.findByRole("alert")).textContent).toMatch(/previous attachment is still selected/i);
+	expect((await screen.findByRole("alert")).textContent).toMatch(/previous file remains selected/i);
     expect(screen.getByText(/original\.jpg/)).toBeTruthy();
 
     const review = screen.getByRole("button", { name: "Review response" }) as HTMLButtonElement;
@@ -205,7 +231,7 @@ describe("CapturePanel", () => {
     fireEvent.change(screen.getByLabelText("Document reference"), { target: { value: "CERT-2026-81" } });
     const file = new File(["certificate"], "iso.pdf", { type: "application/pdf" });
     fireEvent.change(screen.getByLabelText(/ISO certificate file/), { target: { files: [file] } });
-    await waitFor(() => expect(upload).toHaveBeenCalledWith(request.id, file));
+	await waitFor(() => expect(upload).toHaveBeenCalledWith(request.id, file, "certificate"));
 
     fireEvent.click(screen.getByRole("button", { name: "Review response" }));
     expect(screen.getByText(/ISO 27001 certificate · CERT-2026-81/)).toBeTruthy();
@@ -296,6 +322,22 @@ describe("CapturePanel", () => {
     }), { timeout: 1500 });
     expect(await screen.findByText("Saved")).toBeTruthy();
   });
+
+	it("restores draft attachment identifiers before appending another file", async () => {
+	  vi.mocked(loadCaptureDraft).mockResolvedValue({ answers: { documents: { artifact_ids: ["artifact-existing"] } }, presentation_mode: "CLASSIC", version: 2 });
+	  vi.mocked(saveCaptureDraft).mockResolvedValue({ answers: {}, presentation_mode: "CLASSIC", version: 3, updated_at: "2026-08-26T12:00:00Z" });
+	  const upload = vi.fn().mockResolvedValue({ id: "artifact-new", request_id: request.id, file_name: "current.pdf", media_type: "application/pdf", size_bytes: 900, sha256: "hash", status: "STORED_UNSCANNED" });
+	  const submit = vi.fn().mockResolvedValue({ submitted_at: "2026-08-26T12:00:00Z" });
+	  render(<CapturePanel request={{ ...request, fields: [{ id: "documents", label: "Due diligence documents", type: "file", required: true, accepted_formats: ["application/pdf"], constraints: { max_files: 3 } }] }} external sessionToken="session-secret" onUploadArtifact={upload} onSubmit={submit}/>);
+
+	  expect(await screen.findByText("Previously uploaded file")).toBeTruthy();
+	  const file = new File(["current"], "current.pdf", { type: "application/pdf" });
+	  fireEvent.change(screen.getByLabelText(/Due diligence documents/), { target: { files: [file] } });
+	  await waitFor(() => expect(screen.getByText("current.pdf")).toBeTruthy());
+	  fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
+	  fireEvent.click(screen.getByRole("button", { name: "Submit evidence" }));
+	  await waitFor(() => expect(submit).toHaveBeenCalledWith(expect.objectContaining({ id: request.id }), { documents: { artifact_ids: ["artifact-existing", "artifact-new"] } }));
+	});
 
   it("keeps local entries when autosave fails and offers one retry", async () => {
     vi.mocked(loadCaptureDraft).mockResolvedValue({ answers: {}, presentation_mode: "AUTOMATIC", version: 0 });

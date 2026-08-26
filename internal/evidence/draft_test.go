@@ -93,7 +93,7 @@ func TestMemoryDraftAccessEndsWithSession(t *testing.T) {
 	if _, err := service.SaveDraft(ctx, redeemed.SessionToken, SaveDraftInput{Answers: map[string]formcontract.AnswerValue{}, PresentationMode: formcontract.PresentationClassic}); err != nil {
 		t.Fatal(err)
 	}
-	if err := service.RevokeSessionAsRequester(ctx, RevokeSessionAsRequesterInput{TenantID: "bank-a", RequestID: request.ID, SessionID: redeemed.SessionID, ActorPrincipalID: "owner"}); err != nil {
+	if err := repo.RevokeSession(ctx, "bank-a", redeemed.SessionID, now); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := service.GetDraft(ctx, redeemed.SessionToken); !errors.Is(err, ErrSessionInvalid) {

@@ -66,11 +66,12 @@ function request<T>(path: string, init?: RequestInit): Promise<T> {
   return requestJSON<T>(apiBase, path, init);
 }
 
-export async function uploadInternalCaptureArtifact(requestID: string, file: File): Promise<CaptureArtifact> {
+export async function uploadInternalCaptureArtifact(requestID: string, file: File, fieldID?: string): Promise<CaptureArtifact> {
   const context = await loadContext();
   const body = new FormData();
   body.append("tenant_id", context.tenant.id);
   body.append("request_id", requestID);
+	if (fieldID) body.append("field_id", fieldID);
   body.append("file", file, file.name);
   return request<CaptureArtifact>("/api/v1/evidence/artifacts", { method: "POST", body });
 }
@@ -139,8 +140,9 @@ export function submitCaptureSession(sessionToken: string, version: number, answ
   });
 }
 
-export async function uploadCaptureSessionArtifact(sessionToken: string, file: File): Promise<CaptureArtifact> {
+export async function uploadCaptureSessionArtifact(sessionToken: string, file: File, fieldID?: string): Promise<CaptureArtifact> {
   const body = new FormData();
+	if (fieldID) body.append("field_id", fieldID);
   body.append("file", file, file.name);
   return request<CaptureArtifact>("/api/v1/evidence/artifacts", {
     method: "POST",

@@ -8,15 +8,16 @@ export type CaptureAttachment = { id?: string; file_name: string; media_type: st
 type Props = {
   field: CaptureField;
   value?: CaptureAnswerValue;
-  attachment?: CaptureAttachment;
+  attachments?: CaptureAttachment[];
   uploading: boolean;
   external: boolean;
   error?: string;
   onChange: (value: CaptureAnswerValue) => void;
-  onUpload: (file: File, previewURL?: string) => void;
+  onUpload: (files: File[], previewURL?: string) => void;
+  onRemove: (attachmentID: string) => void;
 };
 
-export function CaptureFieldControl({ field, value, attachment, uploading, external, error, onChange, onUpload }: Props) {
+export function CaptureFieldControl({ field, value, attachments = [], uploading, external, error, onChange, onUpload, onRemove }: Props) {
   const type = normalizeFieldType(field.type);
   if (!type) return null;
   const text = answerText(value);
@@ -29,8 +30,9 @@ export function CaptureFieldControl({ field, value, attachment, uploading, exter
   const constraints = field.constraints ?? {};
   const inputHelp = [field.description, type === "currency" ? `Enter the amount in ${constraints.currency || "the request currency"}.` : ""].filter(Boolean).join(" ");
 
-  if (type === "signature") return <SignatureCapture value={attachment?.preview_url} label={label} attestation={field.attestation || field.description} busy={uploading} onCapture={onUpload}/>;
-  if (type === "vendor_document") return <VendorDocumentControl field={field} value={value} attachment={attachment} uploading={uploading} error={error} onChange={onChange} onUpload={onUpload}/>;
+	const attachment = attachments[0];
+	if (type === "signature") return <SignatureCapture value={attachment?.preview_url} label={label} attestation={field.attestation || field.description} busy={uploading} onCapture={(file, previewURL) => onUpload([file], previewURL)}/>;
+	if (type === "vendor_document") return <VendorDocumentControl field={field} value={value} attachment={attachment} uploading={uploading} error={error} onChange={onChange} onUpload={(file) => onUpload([file])}/>;
   if (type === "photo" || type === "file") {
     const photo = type === "photo";
     const accept = normalizedAcceptedFormats(field.accepted_formats) ?? (photo ? "image/*" : undefined);
@@ -41,13 +43,15 @@ export function CaptureFieldControl({ field, value, attachment, uploading, exter
       capture={photo ? "environment" : undefined}
       compact={!photo}
       busy={uploading}
-      actionLabel={photo ? "Take or add photo" : "Choose file"}
+	  multiple={!photo && (field.constraints?.max_files ?? 1) > 1}
+	  actionLabel={photo ? "Take or add photo" : (field.constraints?.max_files ?? 1) > 1 ? "Add files" : "Choose file"}
       replaceLabel={photo ? "Replace photo" : "Replace file"}
-      fileName={attachment?.file_name}
-      fileSize={attachment?.size_bytes}
+	  fileName={(photo || (field.constraints?.max_files ?? 1) === 1) ? attachment?.file_name : undefined}
+	  fileSize={(photo || (field.constraints?.max_files ?? 1) === 1) ? attachment?.size_bytes : undefined}
       previewUrl={attachment?.preview_url}
-      onSelect={onUpload}
-    />{error && <p id={errorID} className="field-error">{error}</p>}</div>;
+	  onSelect={(file) => onUpload([file])}
+	  onSelectMany={(files) => onUpload(files)}
+	/>{!photo && attachments.length > 0 && <AttachmentList attachments={attachments} onRemove={onRemove}/>} {error && <p id={errorID} className="field-error">{error}</p>}</div>;
   }
   if (type === "yes_no") return <ChoiceField field={field} values={["Yes", "No"]} selected={text ? [text] : []} describedBy={describedBy} error={error} onSelect={(selected) => onChange({ text: selected[0] ?? "" })}/>;
   if (type === "single_select" && (field.options?.length ?? 0) <= 4) return <ChoiceField field={field} values={field.options ?? []} selected={text ? [text] : []} describedBy={describedBy} error={error} onSelect={(selected) => onChange({ text: selected[0] ?? "" })}/>;
@@ -74,6 +78,10 @@ export function CaptureFieldControl({ field, value, attachment, uploading, exter
     value={text}
     onChange={(event) => onChange({ text: event.target.value })}
   />{error && <small id={errorID} className="field-error">{error}</small>}</label>;
+}
+
+function AttachmentList({ attachments, onRemove }: { attachments: CaptureAttachment[]; onRemove: (attachmentID: string) => void }) {
+	return <ul className="capture-attachment-list" aria-label="Selected files">{attachments.map((attachment) => <li key={attachment.id ?? attachment.file_name}><span><strong>{attachment.file_name}</strong><small>{formatBytes(attachment.size_bytes)}</small></span>{attachment.id && <button type="button" onClick={() => onRemove(attachment.id!)}>Remove</button>}</li>)}</ul>;
 }
 
 function ChoiceField({ field, values, selected, multiple = false, describedBy, error, onSelect }: { field: CaptureField; values: string[]; selected: string[]; multiple?: boolean; describedBy?: string; error?: string; onSelect: (values: string[]) => void }) {
@@ -104,7 +112,10 @@ function normalizedAcceptedFormats(values?: string[]) {
 function fileDescription(field: CaptureField) {
   const parts = [field.description];
   if (field.constraints?.max_file_bytes) parts.push(`Maximum file size ${formatBytes(field.constraints.max_file_bytes)}.`);
-  if (field.constraints?.max_files && field.constraints.max_files > 1) parts.push(`Up to ${field.constraints.max_files} files.`);
+	if (field.constraints?.min_files && field.constraints?.max_files) parts.push(`Select ${field.constraints.min_files} to ${field.constraints.max_files} files.`);
+	else if (field.constraints?.min_files) parts.push(`Select at least ${field.constraints.min_files} files.`);
+	else if (field.constraints?.max_files && field.constraints.max_files > 1) parts.push(`Up to ${field.constraints.max_files} files.`);
+	if (field.constraints?.max_total_file_bytes) parts.push(`Combined limit ${formatBytes(field.constraints.max_total_file_bytes)}.`);
   return parts.filter(Boolean).join(" ") || undefined;
 }
 

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
@@ -26,9 +27,22 @@ func configureWorkerRuntime(service *workflowruntime.Service, cfg config.Config,
 		workflowruntime.WorkClassWorkflowTimers,
 		workflowruntime.WorkClassOutboxDelivery,
 		thirdparty.AssessmentSetupWorkClass,
+		workflowruntime.WorkClassThirdPartyVendorBrand,
+		workflowruntime.WorkClassThirdPartyVendorBrandCleanup,
 	} {
 		service.ConfigureClass(name, options)
 	}
+	service.ConfigureClass(workflowruntime.WorkClassThirdPartyVendorBrand, vendorBrandWorkClassOptions(cfg.WorkerPoll))
+	service.ConfigureClass(workflowruntime.WorkClassThirdPartyVendorBrandCleanup, workflowruntime.WorkClassOptions{Poll: cfg.WorkerPoll, Timeout: 20 * time.Second, Lease: time.Minute, Batch: 25, MaxAttempts: 5, MaxBackoff: 5 * time.Minute})
+}
+
+func vendorBrandWorkClassOptions(poll time.Duration) workflowruntime.WorkClassOptions {
+	return workflowruntime.WorkClassOptions{Poll: poll, Timeout: 20 * time.Second, Lease: time.Minute, MaxBackoff: 5 * time.Minute, Batch: 5, MaxAttempts: 5}
+}
+
+func configureVendorBrandWorker(worker *thirdparty.VendorBrandWorker, poll time.Duration) {
+	options := vendorBrandWorkClassOptions(poll)
+	worker.Configure(options.Lease, options.MaxAttempts, options.MaxBackoff)
 }
 
 func newAssessmentSubmissionConsumer(inbox thirdparty.AssessmentSubmissionInbox, requests thirdparty.AssessmentSubmissionRequestReader, assessments thirdparty.AssessmentRepository) *thirdparty.AssessmentConsumer {

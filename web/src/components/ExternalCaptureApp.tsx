@@ -1,17 +1,11 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { loadCaptureSession, redeemCaptureInvitation, submitCaptureSession, uploadCaptureSessionArtifact } from "../captureApi";
-import { clearCaptureSession, EXTERNAL_CAPTURE_LOCATOR_KEY, readCaptureSession, saveCaptureSession } from "../captureInvitationBrowser";
+import { clearCaptureSession, readCaptureSession, saveCaptureSession } from "../captureInvitationBrowser";
 import { apiErrorKind, ApiError } from "../http";
 import type { CaptureAnswers, CaptureRequest } from "../types";
 import { CapturePanel } from "./CapturePanel";
 
 type ExternalCaptureState = "identify" | "loading" | "live" | "recoverable" | "terminal" | "submitted";
-
-export const captureActiveSessionStorageKey = EXTERNAL_CAPTURE_LOCATOR_KEY;
-export function captureSessionStorageKey(locator: string) { return `clearsight.capture.session.${locator}`; }
-export function bootstrapExternalCapture(browserWindow: Window) {
-  return { invitationToken: new URLSearchParams(browserWindow.location.search).get("capture_invite") ?? undefined };
-}
 
 export function ExternalCaptureApp({ invitationToken }: { invitationToken: string }) {
   const [audience, setAudience] = useState("");
@@ -32,10 +26,13 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
     void resumeSavedSession();
   }, [invitationToken]);
 
-  async function openSession(token: string) {
+  async function openSession(token: string, expectedSessionID?: string) {
     const payload = await loadCaptureSession(token);
     if (!resumableRequest(payload.request)) {
-      endSession(payload.request.status === "EXPIRED" ? "This request has expired" : "This request is no longer available", "Ask the sender for a new invitation link.");
+      endSession(
+        payload.request.status === "EXPIRED" ? "This request has expired" : "This request is no longer available",
+        "Ask the sender for a new invitation link.",
+      );
       return;
     }
     setSessionToken(token);
@@ -76,10 +73,11 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
     if (!identity) return;
     setState("loading");
     setError("");
-    let token: string;
+    let sessionToken: string;
     try {
+      if (!invitationToken) throw new Error("Invitation unavailable");
       const redeemed = await redeemCaptureInvitation(invitationToken, identity);
-      token = redeemed.session_token;
+      sessionToken = redeemed.session_token;
     } catch {
       clearCaptureSession(sessionStorage);
       clearAuthorityState();
@@ -87,8 +85,8 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
       setError("This link could not be opened with that email address or phone number. Check what the sender used, or ask them for a new link.");
       return;
     }
-    saveCaptureSession(sessionStorage, token);
-    await resumeSession(token);
+    saveCaptureSession(sessionStorage, sessionToken);
+    await resumeSession(sessionToken);
   }
 
   async function submit(answers: CaptureAnswers) {
@@ -99,16 +97,20 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
       setState("submitted");
       return receipt;
     } catch (cause) {
-      if (terminalSessionFailure(cause)) endSession("This request is no longer available", "Ask the sender for a new invitation link.");
+      if (terminalSessionFailure(cause)) {
+        endSession("This request is no longer available", "Ask the sender for a new invitation link.");
+      }
       throw cause;
     }
   }
 
-  async function upload(file: File) {
+  async function upload(file: File, fieldID?: string) {
     try {
-      return await uploadCaptureSessionArtifact(sessionToken, file);
+      return await uploadCaptureSessionArtifact(sessionToken, file, fieldID);
     } catch (cause) {
-      if (terminalSessionFailure(cause)) endSession("This request is no longer available", "Ask the sender for a new invitation link.");
+      if (terminalSessionFailure(cause)) {
+        endSession("This request is no longer available", "Ask the sender for a new invitation link.");
+      }
       throw cause;
     }
   }
@@ -131,18 +133,20 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
   return <main className="external-capture-shell">
     <header className="external-capture-brand"><div className="brand-mark" aria-label="ClearSight">C</div><div><strong>ClearSight</strong><span>Evidence response</span></div></header>
     {state === "identify" ? <section className="external-capture-entry" aria-labelledby="external-capture-title">
-      <span className="eyebrow">Evidence request</span><h1 id="external-capture-title">Open your request</h1>
+      <span className="eyebrow">Evidence request</span>
+      <h1 id="external-capture-title">Open your request</h1>
       <p>Enter the email address or phone number this link was sent to. You do not need a ClearSight account.</p>
       <form onSubmit={redeem}>
         <label className="field"><span>Email or phone number</span><input value={audience} autoCapitalize="none" autoCorrect="off" onChange={(event) => setAudience(event.target.value)} placeholder="name@example.com or phone number"/></label>
         {error && <p className="error-text" role="alert">{error}</p>}
         <button className="primary-button" type="submit" disabled={!audience.trim()}>Open request</button>
-      </form><small>Only the request linked to this invitation will be available.</small>
+      </form>
+      <small>Only the request linked to this invitation will be available.</small>
     </section> : state === "loading" ? <section className="external-capture-entry" aria-live="polite" aria-busy="true"><span className="eyebrow">Evidence request</span><h1>Opening request</h1><p>Checking the invitation…</p></section>
       : state === "recoverable" ? <section className="external-capture-entry" aria-labelledby="external-capture-title"><span className="eyebrow">Evidence request</span><h1 id="external-capture-title">Request could not be loaded</h1><p>{error}</p><button className="primary-button" type="button" onClick={() => void resumeSavedSession()}>Try again</button></section>
         : state === "terminal" ? <section className="external-capture-entry" aria-labelledby="external-capture-title"><span className="eyebrow">Evidence request</span><h1 id="external-capture-title">{terminalTitle}</h1><p>{error}</p></section>
           : state === "submitted" ? <section className="external-capture-entry" aria-labelledby="external-capture-title"><span className="eyebrow">Evidence request</span><h1 id="external-capture-title">Submitted</h1><p>Your evidence response was submitted for this request.</p></section>
-            : request && sessionToken ? <section className="external-capture-work"><div className="external-session-hint">Opened for {audienceHint || "invited respondent"}</div><CapturePanel request={request} external sessionToken={sessionToken} onSubmit={(_, answers) => submit(answers)} onUploadArtifact={(_, file) => upload(file)}/></section> : null}
+            : request && sessionToken ? <section className="external-capture-work"><div className="external-session-hint">Opened for {audienceHint || "invited respondent"}</div><CapturePanel request={request} external sessionToken={sessionToken} onSubmit={(_, answers) => submit(answers)} onUploadArtifact={(_, file, fieldID) => upload(file, fieldID)}/></section> : null}
   </main>;
 }
 

@@ -10,7 +10,7 @@ import {
 } from "../captureInvitationBrowser";
 import { ApiError } from "../http";
 import type { CaptureRequest } from "../types";
-import { bootstrapExternalCapture, captureActiveSessionStorageKey, captureSessionStorageKey, ExternalCaptureApp } from "./ExternalCaptureApp";
+import { ExternalCaptureApp } from "./ExternalCaptureApp";
 
 vi.mock("../captureApi", () => ({ loadCaptureDraft: vi.fn().mockResolvedValue({ answers: {}, presentation_mode: "AUTOMATIC", version: 0 }), saveCaptureDraft: vi.fn(), loadCaptureSession: vi.fn(), redeemCaptureInvitation: vi.fn(), submitCaptureSession: vi.fn(), uploadCaptureSessionArtifact: vi.fn() }));
 

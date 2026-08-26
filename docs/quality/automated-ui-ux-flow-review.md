@@ -28,6 +28,8 @@ The vendor-work reflow checks fail when the panel, form, card, response or typed
 
 A dedicated behavioral defect runner additionally checks deep-link visibility beneath sticky headers, fixed-navigation overlap, actual 200% CSS-pixel reflow, required-rationale validation, in-flight double-submit prevention, concise operational copy and mobile target sizing.
 
+The bounded JavaScript ceiling is 600 KiB for the largest raw chunk and 192 KiB total gzip. The August 2026 premium first-run, vendor-brand and multi-file capture review measured the deterministic static-evidence build at 578,586 bytes for its largest raw chunk and 178,064 bytes total gzip; the corresponding production build measured 473,526 bytes and 164,651 bytes. The higher evidence-build weight includes static fixture data used only to exercise failure and recovery states. These figures are a regression baseline, not an optimization claim; the gate fails above either ceiling.
+
 ## Review receipts
 
 `web/ui-evidence/defects.json` records the behavioral scenarios and any blocking defect. `review.json` combines those results with rendered-state coverage, accessibility and bundle budgets. `review.md` is written to the GitHub Actions step summary. Screenshots, logs and digests are retained as diagnostic artifacts only.

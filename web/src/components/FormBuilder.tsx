@@ -242,7 +242,7 @@ export function FormBuilder({ programID, onSaved, onCancel }: Props) {
 
     <section className="builder-preview" aria-labelledby="form-preview-title">
       <div className="section-editor-heading"><div><h5 id="form-preview-title">Response preview</h5><p>Check the question layout before saving the draft.</p></div><div className="builder-row-actions" role="group" aria-label="Preview layout"><button className="secondary-button" type="button" aria-pressed={previewMode === "CLASSIC"} onClick={() => setPreviewMode("CLASSIC")}>Preview Classic</button><button className="secondary-button" type="button" aria-pressed={previewMode === "WIZARD"} onClick={() => setPreviewMode("WIZARD")}>Preview Wizard</button></div></div>
-      {previewMode && <div className="form-builder-preview"><CaptureForm contract={previewContract} answers={previewAnswers} attachments={{}} mode={previewMode} external uploadingField={null} onAnswer={(fieldID, value) => setPreviewAnswers((current) => ({ ...current, [fieldID]: value }))} onUpload={() => undefined} onModeChange={setPreviewMode} onReview={() => undefined}/></div>}
+      {previewMode && <div className="form-builder-preview"><CaptureForm contract={previewContract} answers={previewAnswers} attachments={{}} mode={previewMode} external uploadingField={null} onAnswer={(fieldID, value) => setPreviewAnswers((current) => ({ ...current, [fieldID]: value }))} onUpload={() => undefined} onRemoveAttachment={() => undefined} onModeChange={setPreviewMode} onReview={() => undefined}/></div>}
     </section>
 
     {error && <p className="inline-form-error" role="alert">{error}</p>}
@@ -294,7 +294,7 @@ function TypeSettings({ field, onChange, onConstraint }: { field: FieldDraft; on
   if (type === "attestation") return <fieldset className="builder-subpanel"><legend>Attestation</legend><label><span>Statement to confirm</span><textarea value={field.attestation ?? ""} maxLength={1000} rows={3} onChange={(event) => onChange({ attestation: event.target.value })} required/></label></fieldset>;
   if (fileType(type)) {
     const available = type === "photo" ? formatOptions.filter((format) => format.value.startsWith("image/")) : type === "signature" ? formatOptions.filter((format) => format.value === "image/png") : formatOptions;
-    return <><fieldset className="builder-subpanel"><legend>Accepted files</legend><div className="format-options">{available.map((format) => <label className="compact-control" key={format.value}><input type="checkbox" checked={field.accepted_formats?.includes(format.value) ?? false} disabled={type === "signature"} onChange={(event) => onChange({ accepted_formats: event.target.checked ? [...(field.accepted_formats ?? []), format.value] : (field.accepted_formats ?? []).filter((value) => value !== format.value) })}/>{format.label}</label>)}</div></fieldset><fieldset className="builder-subpanel"><legend>Response limits</legend><div className="builder-control-grid"><NumberInput label="Maximum files" value={field.constraints?.max_files} min={1} max={10} disabled={type === "photo" || type === "signature"} onChange={(value) => onConstraint("max_files", value)}/><NumberInput label="Maximum file size (MB)" value={field.constraints?.max_file_bytes ? field.constraints.max_file_bytes / (1024 * 1024) : undefined} min={1} max={100} onChange={(value) => onConstraint("max_file_bytes", value ? value * 1024 * 1024 : undefined)}/></div></fieldset></>;
+    return <><fieldset className="builder-subpanel"><legend>Accepted files</legend><div className="format-options">{available.map((format) => <label className="compact-control" key={format.value}><input type="checkbox" checked={field.accepted_formats?.includes(format.value) ?? false} disabled={type === "signature"} onChange={(event) => onChange({ accepted_formats: event.target.checked ? [...(field.accepted_formats ?? []), format.value] : (field.accepted_formats ?? []).filter((value) => value !== format.value) })}/>{format.label}</label>)}</div></fieldset><fieldset className="builder-subpanel"><legend>Response limits</legend><div className="builder-control-grid"><NumberInput label="Minimum files" value={field.constraints?.min_files} min={0} max={10} disabled={type === "photo" || type === "signature" || type === "vendor_document"} onChange={(value) => onConstraint("min_files", value)}/><NumberInput label="Maximum files" value={field.constraints?.max_files} min={1} max={10} disabled={type === "photo" || type === "signature" || type === "vendor_document"} onChange={(value) => onConstraint("max_files", value)}/><NumberInput label="Maximum file size (MB)" value={field.constraints?.max_file_bytes ? field.constraints.max_file_bytes / (1024 * 1024) : undefined} min={1} max={100} onChange={(value) => onConstraint("max_file_bytes", value ? value * 1024 * 1024 : undefined)}/><NumberInput label="Combined file limit (MB)" value={field.constraints?.max_total_file_bytes ? field.constraints.max_total_file_bytes / (1024 * 1024) : undefined} min={1} max={500} onChange={(value) => onConstraint("max_total_file_bytes", value ? value * 1024 * 1024 : undefined)}/></div></fieldset></>;
   }
   return null;
 }
@@ -311,6 +311,8 @@ function validateDraft(code: string, name: string, purpose: string, sections: Se
     if ((field.type === "single_select" || field.type === "multi_select") && (field.options?.length ?? 0) < 2) return `${field.label} requires at least two choices.`;
     if (field.type === "attestation" && !field.attestation?.trim()) return `${field.label} requires an attestation statement.`;
     if (fileType(field.type) && (field.accepted_formats?.length ?? 0) === 0) return `${field.label} requires at least one accepted file type.`;
+	if (fileType(field.type) && field.constraints?.min_files !== undefined && field.constraints?.max_files !== undefined && field.constraints.min_files > field.constraints.max_files) return `${field.label} has a minimum file count above its maximum.`;
+	if (fileType(field.type) && field.constraints?.max_file_bytes !== undefined && field.constraints?.max_total_file_bytes !== undefined && field.constraints.max_total_file_bytes < field.constraints.max_file_bytes) return `${field.label} has a combined limit below its per-file limit.`;
     if (field.condition?.operator !== "ANSWERED" && field.condition && !(field.condition.values ?? []).some((value) => value.trim())) return `${field.label} requires a condition value.`;
   }
   return "";
@@ -382,6 +384,7 @@ function initialFormats(type: FormFieldType) {
 function initialConstraints(type: FormFieldType): CaptureFieldConstraints | undefined {
   if (type === "currency") return { currency: "NGN" };
   if (type === "percentage") return { minimum: 0, maximum: 100 };
-  if (type === "photo" || type === "signature") return { max_files: 1 };
+	if (type === "photo" || type === "signature" || type === "vendor_document") return { max_files: 1 };
+	if (type === "file") return { max_files: 1 };
   return undefined;
 }

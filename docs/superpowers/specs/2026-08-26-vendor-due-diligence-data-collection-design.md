@@ -209,9 +209,15 @@ Fields use bounded declarative constraints:
 - selection minimum and maximum;
 - two to fifty static choices or bounded source-backed choices;
 - accepted media types;
-- per-file and total-request size limits;
-- maximum file count;
+- minimum and maximum file count, with one file unless a form explicitly permits several;
+- per-file and combined size limits for each upload question;
 - attestation text and required acknowledgement.
+
+### 6.4 Attachment admission
+
+The shared evidence route accepts the selected field identifier with each upload. It applies that field's accepted formats and per-file limit before storage, then repeats count, combined-size, request-scope and field-format checks when the response is submitted. A respondent may remove an uploaded artifact from the current answer without deleting the immutable artifact record.
+
+The service validates the filename and derives a canonical media type from bounded content. PDFs require recognizable structure and cannot contain active actions or embedded files. DOCX and XLSX files require the expected Open XML package entries and cannot contain macros, executable payloads or embedded objects. Images and text use signature or encoding checks. These heuristics reject malformed or misleading uploads early but do not claim malware clearance; accepted files remain `STORED_UNSCANNED` pending the separate security process.
 
 Server validation is authoritative and applies the same contract used for rendering. HTML input attributes improve the experience but are not the enforcement boundary.
 
@@ -407,6 +413,10 @@ High-cardinality answers and artifacts remain outside assessment rows. Assessmen
 - Classic and Wizard use the same draft and final payload;
 - autosave, resume, mode switch and conflict recovery preserve answers;
 - request expiry, cancellation, revocation and recipient change revoke draft access;
+- one-file fields replace the current selection while explicitly multi-file fields append and allow removal;
+- minimum count, maximum count, per-file size and combined size fail in the browser and are rechecked at submission;
+- misleading extensions, malformed PDF/Open XML packages, active PDF actions, Office macros and embedded payloads are rejected before storage;
+- partial multi-file failure preserves earlier successful uploads and the respondent's other answers;
 - document artifacts cannot become validated documents without reviewer action.
 
 ### HTTP and security
