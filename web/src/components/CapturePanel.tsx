@@ -44,6 +44,7 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
   const draftReadyRef = useRef(false);
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftSaveInFlight = useRef(false);
+  const draftSavePromise = useRef<Promise<boolean> | null>(null);
   const lastSavedDraft = useRef("");
   const locallyEditedFields = useRef(new Set<string>());
   const locallyChangedMode = useRef(false);
@@ -151,31 +152,52 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
     draftTimer.current = setTimeout(() => void performDraftSave(), delay);
   }
 
-  async function performDraftSave() {
-    if (!sessionToken || !draftReadyRef.current || draftSaveInFlight.current) return;
-    const saveRequestKey = requestKey;
-    const saveAnswers = answersRef.current;
-    const saveMode = modeRef.current;
-    const snapshot = captureDraftSnapshot(saveAnswers, saveMode);
-    if (snapshot === lastSavedDraft.current) return;
-    draftSaveInFlight.current = true;
-    setDraftState("saving");
+  async function performDraftSave(): Promise<boolean> {
+    if (!sessionToken || !draftReadyRef.current) return false;
+    if (draftSavePromise.current) return draftSavePromise.current;
+    const operation = (async () => {
+      const saveRequestKey = requestKey;
+      const saveAnswers = answersRef.current;
+      const saveMode = modeRef.current;
+      const snapshot = captureDraftSnapshot(saveAnswers, saveMode);
+      if (snapshot === lastSavedDraft.current) return true;
+      draftSaveInFlight.current = true;
+      setDraftState("saving");
+      try {
+        const saved = await saveCaptureDraft(sessionToken, { answers: saveAnswers, presentation_mode: saveMode, expected_version: draftVersion.current });
+        if (!currentRequest(mounted.current, activeRequestKey.current, saveRequestKey)) return false;
+        draftVersion.current = saved.version;
+        lastSavedDraft.current = snapshot;
+        setDraftState("saved");
+        if (captureDraftSnapshot(answersRef.current, modeRef.current) !== snapshot) scheduleDraftSave(500);
+        return true;
+      } catch (cause) {
+        if (!currentRequest(mounted.current, activeRequestKey.current, saveRequestKey)) return false;
+        const kind = apiErrorKind(cause);
+        draftReadyRef.current = false;
+        setDraftReady(false);
+        setDraftState(kind === "unauthorized" || kind === "forbidden" ? "ended" : "failed");
+        return false;
+      } finally {
+        draftSaveInFlight.current = false;
+      }
+    })();
+    draftSavePromise.current = operation;
     try {
-      const saved = await saveCaptureDraft(sessionToken, { answers: saveAnswers, presentation_mode: saveMode, expected_version: draftVersion.current });
-      if (!currentRequest(mounted.current, activeRequestKey.current, saveRequestKey)) return;
-      draftVersion.current = saved.version;
-      lastSavedDraft.current = snapshot;
-      setDraftState("saved");
-      if (captureDraftSnapshot(answersRef.current, modeRef.current) !== snapshot) scheduleDraftSave(500);
-    } catch (cause) {
-      if (!currentRequest(mounted.current, activeRequestKey.current, saveRequestKey)) return;
-      const kind = apiErrorKind(cause);
-      draftReadyRef.current = false;
-      setDraftReady(false);
-      setDraftState(kind === "unauthorized" || kind === "forbidden" ? "ended" : "failed");
+      return await operation;
     } finally {
-      draftSaveInFlight.current = false;
+      if (draftSavePromise.current === operation) draftSavePromise.current = null;
     }
+  }
+
+  async function saveBeforeSectionNavigation() {
+    if (!external || !sessionToken) return true;
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    draftTimer.current = null;
+    const activeSave = draftSavePromise.current;
+    if (activeSave && !await activeSave) return false;
+    if (!draftReadyRef.current) return false;
+    return performDraftSave();
   }
 
   async function retryDraftSave() {
@@ -187,7 +209,7 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
       setDraftReady(true);
       draftReadyRef.current = true;
       lastSavedDraft.current = "";
-      scheduleDraftSave(0);
+      await performDraftSave();
     } catch (cause) {
       draftReadyRef.current = false;
       setDraftReady(false);
@@ -273,7 +295,7 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
     <div className="why-you"><strong>Why this was sent to you</strong><span>{request.why_you}</span></div>
     {Object.keys(request.known_facts).length > 0 && <><h3>Already filled in</h3><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl></>}
     {external && sessionToken && <DraftStatus state={draftState} onRetry={() => void retryDraftSave()}/>}
-    <CaptureForm contract={contract} answers={answers} attachments={attachments} mode={effectivePresentationMode(contract, answers, mode)} external={external} uploadingField={uploadingField} onAnswer={updateAnswer} onUpload={(field, file, previewURL) => void upload(field, file, previewURL)} onModeChange={changeMode} onReview={() => { setError(null); setErrorKind(null); setReviewing(true); }}/>
+    <CaptureForm contract={contract} answers={answers} attachments={attachments} mode={effectivePresentationMode(contract, answers, mode)} external={external} uploadingField={uploadingField} onAnswer={updateAnswer} onUpload={(field, file, previewURL) => void upload(field, file, previewURL)} onModeChange={changeMode} onBeforeSectionNavigation={external && sessionToken ? saveBeforeSectionNavigation : undefined} onReview={() => { setError(null); setErrorKind(null); setReviewing(true); }}/>
     {error && <p className="error-text" role="alert">{error}</p>}
   </div>;
 }
@@ -283,7 +305,7 @@ function DraftStatus({ state, onRetry }: { state: DraftState; onRetry: () => voi
   if (state === "saving") return <div className="capture-draft-status" aria-live="polite"><span>Saving</span></div>;
   if (state === "saved") return <div className="capture-draft-status" aria-live="polite"><span>Saved</span></div>;
   if (state === "ended") return <div className="capture-draft-status capture-draft-status-error" aria-live="polite"><span><strong>Access ended</strong> Ask the sender for a new link.</span><button type="button" onClick={onRetry}>Check access</button></div>;
-  return <div className="capture-draft-status capture-draft-status-error" aria-live="polite"><span><strong>Could not save</strong> Your entries remain on this screen.</span><button type="button" onClick={onRetry}>Try saving again</button></div>;
+  return <div className="capture-draft-status capture-draft-status-error" aria-live="polite"><span><strong>Could not save</strong> Your entries remain on this screen.</span><button type="button" onClick={onRetry}>Try again</button></div>;
 }
 
 function TerminalRequest({ request, status }: { request: CaptureRequest; status: string }) {

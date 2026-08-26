@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { CaptureAnswerValue, CaptureAnswers, CaptureFormContract, CapturePresentationMode } from "../../types";
@@ -9,11 +9,13 @@ function Harness({
   initialAnswers = {},
   initialMode = "CLASSIC",
   onReview = vi.fn(),
+  onBeforeSectionNavigation,
 }: {
   contract: CaptureFormContract;
   initialAnswers?: CaptureAnswers;
   initialMode?: CapturePresentationMode;
   onReview?: () => void;
+  onBeforeSectionNavigation?: () => Promise<boolean>;
 }) {
   const [answers, setAnswers] = useState(initialAnswers);
   const [mode, setMode] = useState(initialMode);
@@ -27,6 +29,7 @@ function Harness({
     onAnswer={(fieldID: string, value: CaptureAnswerValue) => setAnswers((current) => ({ ...current, [fieldID]: value }))}
     onUpload={vi.fn()}
     onModeChange={setMode}
+    onBeforeSectionNavigation={onBeforeSectionNavigation}
     onReview={onReview}
   />;
 }
@@ -154,5 +157,48 @@ describe("CaptureForm", () => {
     fireEvent.change(screen.getByRole("textbox", { name: /Evidence note/ }), { target: { value: "Policy attached separately" } });
     fireEvent.click(screen.getByRole("button", { name: "Review response" }));
     expect(onReview).toHaveBeenCalledTimes(1);
+  });
+
+  it("waits for a successful draft save before moving to the next Wizard section", async () => {
+    let finishSave!: (saved: boolean) => void;
+    const save = vi.fn(() => new Promise<boolean>((resolve) => { finishSave = resolve; }));
+    const contract: CaptureFormContract = {
+      presentation: { default_mode: "WIZARD", allow_mode_switch: false },
+      sections: [{ id: "company", title: "Company" }, { id: "evidence", title: "Evidence" }],
+      fields: [
+        { id: "name", section_id: "company", label: "Registered name", type: "short_text", required: true },
+        { id: "note", section_id: "evidence", label: "Evidence note", type: "long_text", required: false },
+      ],
+    };
+
+    render(<Harness contract={contract} initialMode="WIZARD" onBeforeSectionNavigation={save}/>);
+    fireEvent.change(screen.getByRole("textbox", { name: /Registered name/ }), { target: { value: "Acme Processing Limited" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Step 1 of 2")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Saving…" }) as HTMLButtonElement).disabled).toBe(true);
+
+    finishSave(true);
+    await waitFor(() => expect(screen.getByText("Step 2 of 2")).toBeTruthy());
+  });
+
+  it("keeps the current Wizard section and values when draft saving fails", async () => {
+    const contract: CaptureFormContract = {
+      presentation: { default_mode: "WIZARD", allow_mode_switch: false },
+      sections: [{ id: "company", title: "Company" }, { id: "evidence", title: "Evidence" }],
+      fields: [
+        { id: "name", section_id: "company", label: "Registered name", type: "short_text", required: true },
+        { id: "note", section_id: "evidence", label: "Evidence note", type: "long_text", required: false },
+      ],
+    };
+
+    render(<Harness contract={contract} initialMode="WIZARD" onBeforeSectionNavigation={vi.fn().mockResolvedValue(false)}/>);
+    const name = screen.getByRole("textbox", { name: /Registered name/ }) as HTMLInputElement;
+    fireEvent.change(name, { target: { value: "Acme Processing Limited" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    await waitFor(() => expect(screen.getByText("Step 1 of 2")).toBeTruthy());
+    expect(name.value).toBe("Acme Processing Limited");
   });
 });

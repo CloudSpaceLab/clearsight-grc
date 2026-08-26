@@ -36,6 +36,17 @@ const multiFieldRequest: CaptureRequest = {
   ],
 };
 
+const wizardRequest: CaptureRequest = {
+  ...request,
+  id: "request-wizard",
+  presentation: { default_mode: "WIZARD", allow_mode_switch: false },
+  sections: [{ id: "company", title: "Company" }, { id: "evidence", title: "Evidence" }],
+  fields: [
+    { id: "owner", section_id: "company", label: "Current owner", type: "short_text", required: true },
+    { id: "note", section_id: "evidence", label: "Evidence note", type: "long_text", required: false },
+  ],
+};
+
 describe("CapturePanel", () => {
   beforeEach(() => {
     vi.mocked(loadCaptureDraft).mockReset();
@@ -287,7 +298,7 @@ describe("CapturePanel", () => {
     expect(await screen.findByText("Could not save", {}, { timeout: 1500 })).toBeTruthy();
     expect(screen.getByText(/entries remain on this screen/i)).toBeTruthy();
     expect((owner as HTMLInputElement).value).toBe("Treasury Technology");
-    expect(screen.getByRole("button", { name: "Try saving again" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   });
 
   it("refreshes only the draft version before retrying a conflict", async () => {
@@ -303,7 +314,7 @@ describe("CapturePanel", () => {
     fireEvent.change(owner, { target: { value: "Treasury Technology" } });
     expect(await screen.findByText("Could not save", {}, { timeout: 1500 })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Try saving again" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     await waitFor(() => expect(saveCaptureDraft).toHaveBeenLastCalledWith("session-secret", {
       answers: { owner: { text: "Treasury Technology" } }, presentation_mode: "AUTOMATIC", expected_version: 7,
     }));
@@ -320,6 +331,93 @@ describe("CapturePanel", () => {
     fireEvent.change(owner, { target: { value: "Treasury Technology" } });
     expect(owner.value).toBe("Treasury Technology");
     expect(saveCaptureDraft).not.toHaveBeenCalled();
+  });
+
+  it("does not leave a Wizard section until its delayed draft save completes", async () => {
+    let finishSave!: (value: { answers: { owner: { text: string } }; presentation_mode: "WIZARD"; version: number; updated_at: string }) => void;
+    vi.mocked(loadCaptureDraft).mockResolvedValue({ answers: {}, presentation_mode: "WIZARD", version: 0 });
+    vi.mocked(saveCaptureDraft).mockImplementation(() => new Promise((resolve) => { finishSave = resolve; }));
+    render(<CapturePanel request={wizardRequest} external sessionToken="session-secret"/>);
+
+    const owner = await screen.findByRole("textbox", { name: /Current owner/ }) as HTMLInputElement;
+    await waitFor(() => expect(loadCaptureDraft).toHaveBeenCalledTimes(1));
+    fireEvent.change(owner, { target: { value: "Treasury Technology" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    await waitFor(() => expect(saveCaptureDraft).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole("heading", { name: "Company" })).toBeTruthy();
+    expect(owner.value).toBe("Treasury Technology");
+
+    finishSave({ answers: { owner: { text: "Treasury Technology" } }, presentation_mode: "WIZARD", version: 1, updated_at: "2026-08-26T12:00:00Z" });
+    expect(await screen.findByRole("heading", { name: "Evidence" })).toBeTruthy();
+  });
+
+  it("saves newer Wizard entries after an earlier background save finishes", async () => {
+    let finishFirst!: (value: { answers: { owner: { text: string } }; presentation_mode: "WIZARD"; version: number }) => void;
+    let finishSecond!: (value: { answers: { owner: { text: string } }; presentation_mode: "WIZARD"; version: number }) => void;
+    vi.mocked(loadCaptureDraft).mockResolvedValue({ answers: {}, presentation_mode: "WIZARD", version: 0 });
+    vi.mocked(saveCaptureDraft)
+      .mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }))
+      .mockImplementationOnce(() => new Promise((resolve) => { finishSecond = resolve; }));
+    render(<CapturePanel request={wizardRequest} external sessionToken="session-secret"/>);
+
+    const owner = await screen.findByRole("textbox", { name: /Current owner/ }) as HTMLInputElement;
+    fireEvent.change(owner, { target: { value: "First owner" } });
+    await waitFor(() => expect(saveCaptureDraft).toHaveBeenCalledTimes(1), { timeout: 1500 });
+
+    fireEvent.change(owner, { target: { value: "Current owner" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    finishFirst({ answers: { owner: { text: "First owner" } }, presentation_mode: "WIZARD", version: 1 });
+
+    await waitFor(() => expect(saveCaptureDraft).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("heading", { name: "Company" })).toBeTruthy();
+    expect(saveCaptureDraft).toHaveBeenLastCalledWith("session-secret", {
+      answers: { owner: { text: "Current owner" } }, presentation_mode: "WIZARD", expected_version: 1,
+    });
+
+    finishSecond({ answers: { owner: { text: "Current owner" } }, presentation_mode: "WIZARD", version: 2 });
+    expect(await screen.findByRole("heading", { name: "Evidence" })).toBeTruthy();
+  });
+
+  it("keeps Wizard entries on the current section when saving is unavailable", async () => {
+    vi.mocked(loadCaptureDraft).mockResolvedValue({ answers: {}, presentation_mode: "WIZARD", version: 0 });
+    vi.mocked(saveCaptureDraft).mockRejectedValue(new ApiError(503, "Draft unavailable", "draft_unavailable"));
+    render(<CapturePanel request={wizardRequest} external sessionToken="session-secret"/>);
+
+    const owner = await screen.findByRole("textbox", { name: /Current owner/ }) as HTMLInputElement;
+    fireEvent.change(owner, { target: { value: "Treasury Technology" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(await screen.findByText("Could not save")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Company" })).toBeTruthy();
+    expect(owner.value).toBe("Treasury Technology");
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+  });
+
+  it("refreshes the draft version and preserves Wizard entries after a navigation conflict", async () => {
+    vi.mocked(loadCaptureDraft)
+      .mockResolvedValueOnce({ answers: {}, presentation_mode: "WIZARD", version: 2 })
+      .mockResolvedValueOnce({ answers: { owner: { text: "Other tab value" } }, presentation_mode: "WIZARD", version: 7 });
+    vi.mocked(saveCaptureDraft)
+      .mockRejectedValueOnce(new ApiError(409, "Draft changed", "draft_conflict"))
+      .mockResolvedValueOnce({ answers: { owner: { text: "Treasury Technology" } }, presentation_mode: "WIZARD", version: 8 });
+    render(<CapturePanel request={wizardRequest} external sessionToken="session-secret"/>);
+
+    const owner = await screen.findByRole("textbox", { name: /Current owner/ }) as HTMLInputElement;
+    fireEvent.change(owner, { target: { value: "Treasury Technology" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(await screen.findByText("Could not save")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Company" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("Saved")).toBeTruthy();
+    expect(owner.value).toBe("Treasury Technology");
+    expect(saveCaptureDraft).toHaveBeenLastCalledWith("session-secret", {
+      answers: { owner: { text: "Treasury Technology" } }, presentation_mode: "WIZARD", expected_version: 7,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(await screen.findByRole("heading", { name: "Evidence" })).toBeTruthy();
   });
 
   it("does not use response draft APIs for an internal request", async () => {
