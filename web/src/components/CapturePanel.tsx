@@ -59,7 +59,7 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
     };
   }, []);
 
-  if (state === "loading") return <div className="panel-content"><span className="eyebrow">{external ? "Verification request" : "Evidence request"}</span><h2>Loading request</h2><p aria-live="polite" aria-busy="true">Getting the latest request…</p></div>;
+  if (state === "loading") return <div className="panel-content"><span className="eyebrow">Evidence request</span><h2>Loading request</h2><p aria-live="polite" aria-busy="true">Getting the latest request…</p></div>;
   if (state === "forbidden") return <div className="panel-content"><EmptyState kind="forbidden" label="Request" title="You cannot open this request" description="Your current access does not allow you to view it."/></div>;
   if (state === "not-found") return <div className="panel-content"><EmptyState kind="not-found" label="Request" title="This request is no longer available" description="It may have been replaced, cancelled, or moved outside your access."/></div>;
   if (state === "unavailable") return <div className="panel-content"><EmptyState kind="unavailable" label="Request" title="The request could not be loaded" description="Try again. No response has been recorded." action={onReload ? "Try again" : undefined} onAction={onReload}/></div>;
@@ -159,11 +159,11 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
     <dl className="capture-review-list">{fields.map((field) => <div key={field.id}><dt>{field.label}</dt><dd>{reviewValue(field, answers[field.id], attachments[field.id])}{reviewSourceLabel(field, answers[field.id]) && <small className="source-origin-review">{reviewSourceLabel(field, answers[field.id])}</small>}</dd></div>)}</dl>
     <details className="capture-context"><summary>Request details</summary><p>{request.purpose}</p><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl><p>Due {new Date(request.deadline).toLocaleString()} · {humanize(request.sensitivity)}</p></details>
     {error && <p className="error-text" role="alert">{error}</p>}
-    <div className="wizard-actions"><button className="secondary-button" type="button" onClick={() => setReviewing(false)} disabled={submitting}>Edit</button>{errorKind === "conflict" && onReload && <button className="secondary-button" type="button" onClick={onReload} disabled={submitting}>Reload request</button>}<button className="primary-button" type="button" onClick={() => void submit()} disabled={submitting}>{submitting ? "Submitting…" : external ? "Submit verification" : "Submit response"}</button></div>
+    <div className="wizard-actions"><button className="secondary-button" type="button" onClick={() => setReviewing(false)} disabled={submitting}>Edit</button>{errorKind === "conflict" && onReload && <button className="secondary-button" type="button" onClick={onReload} disabled={submitting}>Reload request</button>}<button className="primary-button" type="button" onClick={() => void submit()} disabled={submitting}>{submitting ? "Submitting…" : external ? "Submit evidence" : "Submit response"}</button></div>
   </div>;
 
   return <div className="panel-content">
-    <span className="eyebrow">{external ? "Verification request" : "Evidence request"} · about {request.estimated_minutes} min</span><h2>{request.title}</h2><p>{request.purpose}</p>
+    <span className="eyebrow">Evidence request · about {request.estimated_minutes} min</span><h2>{request.title}</h2><p>{request.purpose}</p>
     <div className="why-you"><strong>Why this was sent to you</strong><span>{request.why_you}</span></div>
     {Object.keys(request.known_facts).length > 0 && <><h3>Already filled in</h3><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl></>}
     {unsupported.length > 0 && <div className="inline-error" role="alert"><strong>This request includes a field this version cannot safely collect.</strong><p>{unsupported.map((field) => field.label).join(", ")}. Ask the sender to update the request.</p></div>}

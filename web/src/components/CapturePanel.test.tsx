@@ -145,17 +145,19 @@ describe("CapturePanel", () => {
     expect((screen.getByRole("textbox", { name: /Current owner/ }) as HTMLInputElement).value).toBe("");
   });
 
-  it("records an external submission as a response without claiming verification", async () => {
+  it("describes an external submission as evidence without claiming verification", async () => {
     const submit = vi.fn().mockResolvedValue({ submitted_at: "2026-08-07T21:30:00Z" });
     render(<CapturePanel request={request} external onSubmit={submit}/>);
 
+    expect(screen.getByText(/Evidence request/)).toBeTruthy();
     fireEvent.change(screen.getByRole("textbox", { name: /Current owner/ }), { target: { value: "Treasury Technology" } });
     fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
-    fireEvent.click(screen.getByRole("button", { name: "Submit verification" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit evidence" }));
 
     expect(await screen.findByRole("heading", { name: "Submitted" })).toBeTruthy();
     expect(screen.getByText("Your response was recorded.")).toBeTruthy();
     expect(screen.queryByText("Your verification was recorded.")).toBeNull();
+    expect(screen.queryByText(/verification/i)).toBeNull();
   });
 
   it("normalizes server-valid field types and accepted media formats in the browser", () => {

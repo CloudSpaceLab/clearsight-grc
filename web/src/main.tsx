@@ -2,6 +2,7 @@ import "./staticDemoBootstrap";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { consumeCaptureInvitation, EXTERNAL_CAPTURE_SESSION_KEY } from "./captureInvitationBrowser";
 import { DemoAuthGate } from "./components/DemoAuthGate";
 import { ExternalCaptureApp } from "./components/ExternalCaptureApp";
 import { LifecycleTodayEvidencePage } from "./components/LifecycleTodayEvidencePage";
@@ -26,16 +27,17 @@ import "./demo-login.css";
 import "./defect-review-fixes.css";
 import "./monitoring.css";
 
+const invitationToken = consumeCaptureInvitation(window);
 const root = document.getElementById("root");
 if (!root) throw new Error("Application root is missing");
 const params = new URLSearchParams(window.location.search);
 const presentation = runtimePresentation(window.location.search);
-const invitationToken = params.get("capture_invite");
 const fixture = params.get("fixture");
+const hasExternalSession = sessionStorage.getItem(EXTERNAL_CAPTURE_SESSION_KEY) !== null;
 const lifecycleEvidence = import.meta.env.VITE_STATIC_DEMO === "true" && fixture === "today-lifecycle";
 const operatingEvidence = import.meta.env.VITE_STATIC_DEMO === "true" && fixture === "operating-mutations";
-const application = invitationToken
-  ? <ExternalCaptureApp invitationToken={invitationToken}/>
+const application = invitationToken !== null || hasExternalSession
+  ? <ExternalCaptureApp invitationToken={invitationToken ?? ""}/>
   : lifecycleEvidence
     ? <LifecycleTodayEvidencePage/>
     : operatingEvidence
