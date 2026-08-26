@@ -492,6 +492,12 @@ func applyProgramEventToAggregate(aggregate *ProgramAggregate, event Event) erro
 			return err
 		}
 		aggregate.ControlImplementations = append(aggregate.ControlImplementations, value)
+	case EventControlImplementationRevised, EventControlImplementationOwnerChanged, EventControlImplementationStatusChanged:
+		var value controlImplementationLifecycleEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.ControlImplementations = upsertImplementation(aggregate.ControlImplementations, value.Current)
 	case EventRequirementControlLinked:
 		var value RequirementControlLink
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
@@ -504,6 +510,12 @@ func applyProgramEventToAggregate(aggregate *ProgramAggregate, event Event) erro
 			return err
 		}
 		aggregate.EvidenceContracts = append(aggregate.EvidenceContracts, value)
+	case EventEvidenceContractRevised, EventEvidenceContractStatusChanged:
+		var value evidenceContractLifecycleEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.EvidenceContracts = upsertEvidenceContract(aggregate.EvidenceContracts, value.Current)
 	case EventEvidenceAssessmentRecorded:
 		var value EvidenceAssessment
 		if err := json.Unmarshal(event.Payload, &value); err != nil {

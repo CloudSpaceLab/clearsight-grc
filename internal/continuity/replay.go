@@ -6,22 +6,27 @@ import (
 )
 
 const (
-	EventProgramCreated                  = "PROGRAM_CREATED"
-	EventProgramStatusChanged            = "PROGRAM_STATUS_CHANGED"
-	EventProgramDetailsUpdated           = "PROGRAM_DETAILS_UPDATED"
-	EventProgramOwnerChanged             = "PROGRAM_OWNER_CHANGED"
-	EventProgramApprovalAuthorityChanged = "PROGRAM_APPROVAL_AUTHORITY_CHANGED"
-	EventRequirementAdded                = "REQUIREMENT_ADDED"
-	EventRequirementSuperseded           = "REQUIREMENT_SUPERSEDED"
-	EventApplicabilityDetermined         = "APPLICABILITY_DETERMINED"
-	EventControlObjectiveAdded           = "CONTROL_OBJECTIVE_ADDED"
-	EventControlImplementationAdded      = "CONTROL_IMPLEMENTATION_ADDED"
-	EventRequirementControlLinked        = "REQUIREMENT_CONTROL_LINKED"
-	EventEvidenceContractAdded           = "EVIDENCE_CONTRACT_ADDED"
-	EventEvidenceAssessmentRecorded      = "EVIDENCE_ASSESSMENT_RECORDED"
-	EventProgramStateUpdated             = "PROGRAM_STATE_UPDATED"
-	EventProgramTriggerRecorded          = "PROGRAM_TRIGGER_RECORDED"
-	EventProgramReviewAccepted           = "PROGRAM_REVIEW_ACCEPTED"
+	EventProgramCreated                     = "PROGRAM_CREATED"
+	EventProgramStatusChanged               = "PROGRAM_STATUS_CHANGED"
+	EventProgramDetailsUpdated              = "PROGRAM_DETAILS_UPDATED"
+	EventProgramOwnerChanged                = "PROGRAM_OWNER_CHANGED"
+	EventProgramApprovalAuthorityChanged    = "PROGRAM_APPROVAL_AUTHORITY_CHANGED"
+	EventRequirementAdded                   = "REQUIREMENT_ADDED"
+	EventRequirementSuperseded              = "REQUIREMENT_SUPERSEDED"
+	EventApplicabilityDetermined            = "APPLICABILITY_DETERMINED"
+	EventControlObjectiveAdded              = "CONTROL_OBJECTIVE_ADDED"
+	EventControlImplementationAdded         = "CONTROL_IMPLEMENTATION_ADDED"
+	EventControlImplementationRevised       = "CONTROL_IMPLEMENTATION_REVISED"
+	EventControlImplementationOwnerChanged  = "CONTROL_IMPLEMENTATION_OWNER_CHANGED"
+	EventControlImplementationStatusChanged = "CONTROL_IMPLEMENTATION_STATUS_CHANGED"
+	EventRequirementControlLinked           = "REQUIREMENT_CONTROL_LINKED"
+	EventEvidenceContractAdded              = "EVIDENCE_CONTRACT_ADDED"
+	EventEvidenceContractRevised            = "EVIDENCE_CONTRACT_REVISED"
+	EventEvidenceContractStatusChanged      = "EVIDENCE_CONTRACT_STATUS_CHANGED"
+	EventEvidenceAssessmentRecorded         = "EVIDENCE_ASSESSMENT_RECORDED"
+	EventProgramStateUpdated                = "PROGRAM_STATE_UPDATED"
+	EventProgramTriggerRecorded             = "PROGRAM_TRIGGER_RECORDED"
+	EventProgramReviewAccepted              = "PROGRAM_REVIEW_ACCEPTED"
 
 	EventMatterCreated                  = "MATTER_CREATED"
 	EventMatterLinked                   = "MATTER_LINKED"
@@ -120,6 +125,12 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 				return ProgramAggregate{}, err
 			}
 			aggregate.ControlImplementations = upsertImplementation(aggregate.ControlImplementations, value)
+		case EventControlImplementationRevised, EventControlImplementationOwnerChanged, EventControlImplementationStatusChanged:
+			var value controlImplementationLifecycleEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.ControlImplementations = upsertImplementation(aggregate.ControlImplementations, value.Current)
 		case EventRequirementControlLinked:
 			var value RequirementControlLink
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
@@ -132,6 +143,12 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 				return ProgramAggregate{}, err
 			}
 			aggregate.EvidenceContracts = upsertEvidenceContract(aggregate.EvidenceContracts, value)
+		case EventEvidenceContractRevised, EventEvidenceContractStatusChanged:
+			var value evidenceContractLifecycleEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.EvidenceContracts = upsertEvidenceContract(aggregate.EvidenceContracts, value.Current)
 		case EventEvidenceAssessmentRecorded:
 			var value EvidenceAssessment
 			if err := json.Unmarshal(event.Payload, &value); err != nil {

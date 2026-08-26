@@ -95,6 +95,11 @@ func programEventChange(aggregate ProgramAggregate, event Event) (ProgramReviewC
 		if json.Unmarshal(event.Payload, &value) == nil {
 			return ProgramReviewChange{Kind: "SAFEGUARD", Summary: "Safeguard changed: " + value.Name + ".", ObjectType: "CONTROL_IMPLEMENTATION", ObjectID: value.ID}, true
 		}
+	case EventControlImplementationRevised, EventControlImplementationOwnerChanged, EventControlImplementationStatusChanged:
+		var value controlImplementationLifecycleEvent
+		if json.Unmarshal(event.Payload, &value) == nil {
+			return ProgramReviewChange{Kind: "SAFEGUARD", Summary: "Safeguard changed: " + value.Current.Name + ".", ObjectType: "CONTROL_IMPLEMENTATION", ObjectID: value.Current.ID}, true
+		}
 	case EventRequirementControlLinked:
 		var value RequirementControlLink
 		if json.Unmarshal(event.Payload, &value) == nil {
@@ -104,6 +109,11 @@ func programEventChange(aggregate ProgramAggregate, event Event) (ProgramReviewC
 		var value EvidenceContract
 		if json.Unmarshal(event.Payload, &value) == nil {
 			return ProgramReviewChange{Kind: "EVIDENCE", Summary: "Evidence check changed: " + value.Name + ".", ObjectType: "EVIDENCE_CONTRACT", ObjectID: value.ID}, true
+		}
+	case EventEvidenceContractRevised, EventEvidenceContractStatusChanged:
+		var value evidenceContractLifecycleEvent
+		if json.Unmarshal(event.Payload, &value) == nil {
+			return ProgramReviewChange{Kind: "EVIDENCE", Summary: "Evidence check changed: " + value.Current.Name + ".", ObjectType: "EVIDENCE_CONTRACT", ObjectID: value.Current.ID}, true
 		}
 	case EventEvidenceAssessmentRecorded:
 		var value EvidenceAssessment

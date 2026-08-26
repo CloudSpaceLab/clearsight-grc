@@ -525,6 +525,19 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		}
 		_, err := tx.Exec(ctx, `INSERT INTO control_implementations(id,tenant_id,program_id,objective_id,name,description,implementation_type,owner_principal_id,scope,status,effective_from,effective_until,created_at,updated_at,version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,$5,$6,$7,NULLIF($8,'')::uuid,$9,$10,$11,$12,$13,$13,$14)`, v.ID, v.TenantID, v.ProgramID, v.ObjectiveID, v.Name, v.Description, v.ImplementationType, v.OwnerPrincipalID, rawJSON(v.Scope, `{}`), v.Status, v.EffectiveFrom, v.EffectiveUntil, v.CreatedAt, v.Version)
 		return err
+	case EventControlImplementationRevised, EventControlImplementationOwnerChanged, EventControlImplementationStatusChanged:
+		var v controlImplementationLifecycleEvent
+		if err := json.Unmarshal(event.Payload, &v); err != nil {
+			return err
+		}
+		result, err := tx.Exec(ctx, `UPDATE control_implementations SET name=$5,description=$6,implementation_type=$7,owner_principal_id=NULLIF($8,'')::uuid,scope=$9,status=$10,effective_from=$11,effective_until=$12,updated_at=$13,version=$14 WHERE id=$3::uuid AND program_id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND version=$4`, v.Current.TenantID, v.Current.ProgramID, v.Current.ID, v.Prior.Version, v.Current.Name, v.Current.Description, v.Current.ImplementationType, v.Current.OwnerPrincipalID, rawJSON(v.Current.Scope, `{}`), v.Current.Status, v.Current.EffectiveFrom, v.Current.EffectiveUntil, v.Current.UpdatedAt, v.Current.Version)
+		if err != nil {
+			return err
+		}
+		if result.RowsAffected() != 1 {
+			return ErrVersionConflict
+		}
+		return nil
 	case EventRequirementControlLinked:
 		var v RequirementControlLink
 		if err := json.Unmarshal(event.Payload, &v); err != nil {
@@ -550,6 +563,34 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 				continue
 			}
 			if _, err = tx.Exec(ctx, `INSERT INTO evidence_contract_sources(tenant_id,program_id,contract_id,source_id) VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,$3::uuid,$4::uuid)`, v.TenantID, v.ProgramID, v.ID, sourceID); err != nil {
+				return err
+			}
+		}
+		return nil
+	case EventEvidenceContractRevised, EventEvidenceContractStatusChanged:
+		var v evidenceContractLifecycleEvent
+		if err := json.Unmarshal(event.Payload, &v); err != nil {
+			return err
+		}
+		if err := validateProgramEvidenceSourcesTx(ctx, tx, v.Current.TenantID, v.Current.ProgramID, v.Current.AcceptableSourceIDs); err != nil {
+			return err
+		}
+		sources, _ := json.Marshal(v.Current.AcceptableSourceIDs)
+		result, err := tx.Exec(ctx, `UPDATE evidence_contracts SET name=$5,claim=$6,acceptable_source_ids=$7,population_scope=$8,freshness_minutes=$9,minimum_coverage=$10,independence_required=$11,contradiction_policy=$12,failure_action=$13,status=$14,updated_at=$15,version=$16 WHERE id=$3::uuid AND program_id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND version=$4`, v.Current.TenantID, v.Current.ProgramID, v.Current.ID, v.Prior.Version, v.Current.Name, v.Current.Claim, sources, rawJSON(v.Current.PopulationScope, `{}`), v.Current.FreshnessMinutes, v.Current.MinimumCoverage, v.Current.IndependenceRequired, v.Current.ContradictionPolicy, v.Current.FailureAction, v.Current.Status, v.Current.UpdatedAt, v.Current.Version)
+		if err != nil {
+			return err
+		}
+		if result.RowsAffected() != 1 {
+			return ErrVersionConflict
+		}
+		if _, err = tx.Exec(ctx, `DELETE FROM evidence_contract_sources WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND program_id=$2::uuid AND contract_id=$3::uuid`, v.Current.TenantID, v.Current.ProgramID, v.Current.ID); err != nil {
+			return err
+		}
+		for _, sourceID := range v.Current.AcceptableSourceIDs {
+			if strings.TrimSpace(sourceID) == "" {
+				continue
+			}
+			if _, err = tx.Exec(ctx, `INSERT INTO evidence_contract_sources(tenant_id,program_id,contract_id,source_id) VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,$3::uuid,$4::uuid)`, v.Current.TenantID, v.Current.ProgramID, v.Current.ID, sourceID); err != nil {
 				return err
 			}
 		}
