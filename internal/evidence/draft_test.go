@@ -16,7 +16,7 @@ func TestMemoryRepositoryOriginAndSessionDraftLifecycle(t *testing.T) {
 	service := NewService(repo, nil)
 	service.now = func() time.Time { return now }
 	origin := RequestOrigin{Type: "THIRD_PARTY_ASSESSMENT", ID: "assessment-1", Version: 1}
-	request, err := service.CreateRequest(ctx, CreateRequestInput{
+	request, err := service.CreateRequest(WithRequestOriginAuthority(ctx, origin.Type), CreateRequestInput{
 		TenantID: "bank-a", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: "relationship-1",
 		Title: "Complete due diligence", Purpose: "Collect one vendor fact.", WhyYou: "You are the invited vendor contact.",
 		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR", Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: "security@vendor.example"},

@@ -45,7 +45,8 @@ func TestRequestOriginAndResponseDraftPersistence(t *testing.T) {
 	service := NewService(repo, nil)
 	service.now = func() time.Time { return now }
 	origin := RequestOrigin{Type: "THIRD_PARTY_ASSESSMENT", ID: "assessment-42", Version: 1}
-	request, err := service.CreateRequest(ctx, CreateRequestInput{
+	workflowCtx := WithRequestOriginAuthority(ctx, origin.Type)
+	request, err := service.CreateRequest(workflowCtx, CreateRequestInput{
 		TenantID: "draft-persistence-test", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: "relationship-42",
 		Title: "Complete vendor due diligence", Purpose: "Collect the vendor security response.", WhyYou: "You are the vendor security contact.",
 		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR", Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: "security@vendor.example"},
@@ -68,7 +69,7 @@ func TestRequestOriginAndResponseDraftPersistence(t *testing.T) {
 	if _, err := repo.GetRequestByOrigin(ctx, "draft-persistence-other", origin); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("cross-tenant origin lookup error = %v, want not found", err)
 	}
-	if _, err := service.CreateRequest(ctx, CreateRequestInput{
+	if _, err := service.CreateRequest(workflowCtx, CreateRequestInput{
 		TenantID: "draft-persistence-test", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: "relationship-42",
 		Title: "Duplicate vendor due diligence", Purpose: "Must reuse the original request.", WhyYou: "You are the vendor security contact.",
 		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR", Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: "security@vendor.example"},
