@@ -42,6 +42,7 @@ type Props = {
   onSend?: (input: SendVendorAssessmentRequestInput) => Promise<VendorAssessmentSendOutcome>;
   onReissue?: (input: ReissueVendorAssessmentRequestInput) => Promise<VendorAssessmentSendOutcome>;
   onOpenRequest?: (requestID: string) => void;
+  onOpenMatter?: (matterID: string) => void;
   onStartReview?: (assessmentID: string, expectedVersion: number) => Promise<VendorAssessment | void> | VendorAssessment | void;
   onRequestClarification?: (assessmentID: string, input: VendorAssessmentClarificationInput) => Promise<VendorAssessmentClarificationOutcome>;
   onCreateDeficiency?: (assessmentID: string, input: CreateVendorAssessmentDeficiencyInput) => Promise<VendorAssessmentDeficiencyOutcome>;
@@ -79,6 +80,7 @@ export function VendorDueDiligence({
   onSend,
   onReissue,
   onOpenRequest,
+  onOpenMatter,
   onStartReview,
   onRequestClarification,
   onCreateDeficiency,
@@ -431,7 +433,7 @@ export function VendorDueDiligence({
     {effectiveAssessment && needsReviewView(status) && reviewState === "loading" && <div className="vdd-review-state" aria-live="polite" aria-busy="true">Loading the submitted response and supporting documents…</div>}
     {effectiveAssessment && needsReviewView(status) && reviewState === "unavailable" && <div className="vdd-alert" role="alert"><strong>Vendor response is unavailable</strong><span>The submitted answers and documents could not be loaded. Reload them before starting or completing the review.</span>{onRefreshReview && <button type="button" className="secondary-button" onClick={() => void onRefreshReview(effectiveAssessment.id)}>Reload vendor response</button>}</div>}
 
-    {reviewState === "live" && review && <ReviewSummary review={review} assessment={effectiveAssessment} onOpenDocument={!panel && onOpenDocument ? onOpenDocument : undefined} onReviewDocument={!panel && onReviewDocument ? openDocumentReview : undefined} onCreateDeficiency={!panel && onCreateDeficiency ? () => openPanel("deficiency") : undefined}/>}
+    {reviewState === "live" && review && <ReviewSummary review={review} assessment={effectiveAssessment} onOpenMatter={onOpenMatter} onOpenDocument={!panel && onOpenDocument ? onOpenDocument : undefined} onReviewDocument={!panel && onReviewDocument ? openDocumentReview : undefined} onCreateDeficiency={!panel && onCreateDeficiency ? () => openPanel("deficiency") : undefined}/>}
 
     {panel === "start" && <StartPanel form={form} reviewDueDate={reviewDueDate} minimumDate={minimumFutureDate} busy={busy} onReviewDueDate={setReviewDueDate} onCancel={() => setPanel(null)} onSubmit={startAssessment}/>}
     {panel === "send" && effectiveAssessment && <SendPanel recipient={recipient} responseDueDate={responseDueDate} invitationMinutes={invitationMinutes} minimumDate={minimumFutureDate} reviewDueAt={effectiveAssessment.review_due_at} busy={busy} onRecipient={setRecipient} onResponseDueDate={setResponseDueDate} onInvitationMinutes={setInvitationMinutes} onCancel={() => { setRecipient(""); setPanel(null); }} onSubmit={sendRequest}/>}
@@ -546,13 +548,13 @@ function ConclusionPanel({ conclusion, rationale, uncertainty, nextReviewDate, m
   </form>;
 }
 
-function ReviewSummary({ review, assessment, onOpenDocument, onReviewDocument, onCreateDeficiency }: { review: VendorAssessmentReviewView; assessment?: VendorAssessment | null; onOpenDocument?: (assessmentID: string, requestID: string, artifactID: string) => void; onReviewDocument?: (document: VendorAssessmentDocument, decision: "VALIDATE" | "REJECT") => void; onCreateDeficiency?: () => void }) {
+function ReviewSummary({ review, assessment, onOpenMatter, onOpenDocument, onReviewDocument, onCreateDeficiency }: { review: VendorAssessmentReviewView; assessment?: VendorAssessment | null; onOpenMatter?: (matterID: string) => void; onOpenDocument?: (assessmentID: string, requestID: string, artifactID: string) => void; onReviewDocument?: (document: VendorAssessmentDocument, decision: "VALIDATE" | "REJECT") => void; onCreateDeficiency?: () => void }) {
   const criticalResponses = new Map(review.provisional_score?.critical_failures?.map((failure) => [failure.field_id, failure.outcome]) ?? []);
   return <section className="vdd-review" aria-label="Vendor response review">
     <div className="vdd-review-header"><div><h3>Vendor response</h3>{review.response ? <p>Submitted {formatDate(review.response.submitted_at)} · {review.response.answer_count} {itemLabel(review.response.answer_count, "answer")} · {review.response.artifact_count} {itemLabel(review.response.artifact_count, "document")}</p> : <p>No submitted response summary is available.</p>}</div><div className="vdd-review-metrics"><span>{review.coverage.answered_required} of {review.coverage.required_fields} required answers received</span>{review.provisional_score?.score !== undefined && <span>Provisional score: {formatScore(review.provisional_score.score)} of 100 · Form version {review.assessment.form_template_version}</span>}</div></div>
     <div className="vdd-review-group"><h4>Submitted answers</h4>{review.answers.length ? <dl className="vdd-answer-list">{review.answers.map((answer) => <ReviewAnswer key={answer.field_id} answer={answer} criticalResponse={criticalResponses.get(answer.field_id)}/>)}</dl> : <p>No answers were submitted for this form version.</p>}</div>
     {review.documents.length > 0 && <div className="vdd-review-group"><h4>Supporting documents</h4>{review.documents.map((document) => <ReviewDocument key={document.artifact_id} document={document} assessment={assessment} requestID={review.response?.request_id} onOpenDocument={onOpenDocument} onReviewDocument={onReviewDocument}/>)}</div>}
-    <div className="vdd-review-group"><div className="vdd-review-group-heading"><h4>Findings</h4>{assessment?.status === "UNDER_REVIEW" && onCreateDeficiency && <button type="button" className="secondary-button" onClick={onCreateDeficiency}>Record finding</button>}</div>{review.matters.length ? <ul>{review.matters.map((finding) => <li key={finding.matter_id}><strong>{finding.title}</strong><span>{humanizeStatus(finding.status)}</span></li>)}</ul> : <p>No findings are linked to this assessment.</p>}</div>
+    <div className="vdd-review-group"><div className="vdd-review-group-heading"><h4>Findings</h4>{assessment?.status === "UNDER_REVIEW" && onCreateDeficiency && <button type="button" className="secondary-button" onClick={onCreateDeficiency}>Record finding</button>}</div>{review.matters.length ? <ul>{review.matters.map((finding) => <li key={finding.matter_id}><strong>{finding.title}</strong><span>{humanizeStatus(finding.status)}</span>{onOpenMatter && <button type="button" className="text-button" onClick={() => onOpenMatter(finding.matter_id)}>Open finding</button>}</li>)}</ul> : <p>No findings are linked to this assessment.</p>}</div>
     {assessment?.status === "COMPLETED" && <div className="vdd-review-group"><h4>Recorded conclusion</h4><dl className="vdd-conclusion"><div><dt>Conclusion</dt><dd>{conclusionLabel(assessment.conclusion)}</dd></div><div><dt>Assessment basis</dt><dd>{assessment.conclusion_rationale || "No assessment basis was recorded."}</dd></div>{assessment.conclusion_uncertainty && <div><dt>Remaining uncertainty</dt><dd>{assessment.conclusion_uncertainty}</dd></div>}<div><dt>Completed</dt><dd>{formatDate(assessment.completed_at)}</dd></div></dl></div>}
   </section>;
 }

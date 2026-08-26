@@ -195,6 +195,7 @@ describe("VendorDueDiligence", () => {
   });
 
   it("keeps clarification and findings secondary to the review conclusion", () => {
+	const openMatter = vi.fn();
     const review: VendorAssessmentReviewView = {
       assessment: assessment("UNDER_REVIEW"),
       requests: [],
@@ -204,13 +205,15 @@ describe("VendorDueDiligence", () => {
       documents: [{ field_id: "security-report", artifact_id: "artifact-1", file_name: "independent-security-test.pdf", media_type: "application/pdf", size_bytes: 64000, artifact_status: "AVAILABLE", evidence_class: "VENDOR_SUPPLIED", document_type: "SECURITY_TEST" }],
       matters: [{ matter_id: "finding-1", type: "VENDOR_DEFICIENCY", title: "Independent test renewal is due", status: "ACTION_AGREED" }],
     };
-    render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onRequestClarification={vi.fn()} onCreateDeficiency={vi.fn()} onReviewDocument={vi.fn()} onComplete={vi.fn()}/>);
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onRequestClarification={vi.fn()} onCreateDeficiency={vi.fn()} onReviewDocument={vi.fn()} onComplete={vi.fn()} onOpenMatter={openMatter}/>);
 
     const reviewRegion = screen.getByRole("region", { name: "Vendor response review" });
     expect(within(reviewRegion).getByText(/14 answers · 2 documents/)).toBeTruthy();
     expect(within(reviewRegion).getByText("independent-security-test.pdf")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Request clarification" }).classList.contains("secondary-button")).toBe(true);
     expect(screen.getByRole("button", { name: "Record assessment conclusion" }).classList.contains("primary-button")).toBe(true);
+	fireEvent.click(screen.getByRole("button", { name: "Open finding" }));
+	expect(openMatter).toHaveBeenCalledWith("finding-1");
     expect(primaryActions()).toHaveLength(1);
   });
 

@@ -14,6 +14,7 @@ type Props = {
   targetID?: string;
   onTarget?: (id?: string) => void;
   onOpenRequest?: (requestID: string) => void;
+  onOpenMatter?: (matterID: string) => void;
 };
 
 type LoadState = "loading" | "live" | "unavailable";
@@ -37,7 +38,7 @@ const emptyForm: FormValues = {
   criticality: "STANDARD", privacyRole: "NONE", sourceID: "", externalRef: "", effectiveFrom: "", renewalAt: "",
 };
 
-export function VendorsWorkspace({ organizationName, legalEntityName, targetID, onTarget, onOpenRequest }: Props) {
+export function VendorsWorkspace({ organizationName, legalEntityName, targetID, onTarget, onOpenRequest, onOpenMatter }: Props) {
   const [records, setRecords] = useState<VendorRelationshipAggregate[]>([]);
   const [selected, setSelected] = useState<VendorRelationshipAggregate | null>(null);
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
@@ -379,13 +380,14 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
           onReviewAssessmentDocument={decideAssessmentDocument}
           onCompleteAssessmentReview={finishAssessmentReview}
           onOpenRequest={onOpenRequest}
+          onOpenMatter={onOpenMatter}
         /> : records.length > 0 ? <div className="vendor-selection"><h2>Select a vendor</h2><p>Choose a relationship to review its service, accountable owner, source and current record version.</p></div> : null}
       </section>
     </div>}
   </div>;
 }
 
-function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onRefreshAssessment, onRefreshForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onOpenRequest }: {
+function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onRefreshAssessment, onRefreshForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onOpenRequest, onOpenMatter }: {
   record: VendorRelationshipAggregate;
   assessment: VendorAssessment | null;
   assessmentSetup?: CurrentVendorAssessment["setup"];
@@ -411,6 +413,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
   onReviewAssessmentDocument: typeof reviewVendorAssessmentDocument;
   onCompleteAssessmentReview: (assessmentID: string, input: CompleteVendorAssessmentInput) => Promise<VendorAssessment>;
   onOpenRequest?: (requestID: string) => void;
+  onOpenMatter?: (matterID: string) => void;
 }) {
   const { vendor, relationship } = record;
   const effectiveAssessmentState = assessmentState === "live" && !assessment && formState === "loading" ? "loading" : assessmentState;
@@ -453,6 +456,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
     onReviewDocument={onReviewAssessmentDocument}
     onComplete={onCompleteAssessmentReview}
     onOpenRequest={onOpenRequest}
+    onOpenMatter={onOpenMatter}
   />}
   </>;
 }
