@@ -7,6 +7,7 @@ import {
   addProgramEvidenceContract,
   addProgramRequirement,
   assignProgram,
+  assignProgramApprovalAuthority,
   determineProgramApplicability,
   linkProgramRequirementControl,
   loadProgramOperations,
@@ -55,6 +56,12 @@ describe("Program operation API", () => {
       run: () => assignProgram("program-1", 5, "owner-2", "Assign the current DPO position."),
       path: "/api/v1/programs/program-1/assignment?tenant_id=tenant-1",
       body: { tenant_id: "tenant-1", expected_version: 5, owner_principal_id: "owner-2", rationale: "Assign the current DPO position." },
+    },
+    {
+      name: "approval authority assignment",
+      run: () => assignProgramApprovalAuthority("program-1", 6, "cro-2", "Move approval to the current delegated CRO position."),
+      path: "/api/v1/programs/program-1/approval-authority?tenant_id=tenant-1",
+      body: { tenant_id: "tenant-1", expected_version: 6, candidate_id: "cro-2", rationale: "Move approval to the current delegated CRO position." },
     },
     {
       name: "requirement supersession",

@@ -8,6 +8,7 @@ import {
 	addProgramControlImplementation,
 	addProgramControlObjective,
   assignProgram,
+  assignProgramApprovalAuthority,
   determineProgramApplicability,
   loadProgramOperations,
 	linkProgramRequirementControl,
@@ -31,6 +32,7 @@ vi.mock("../programOperationsApi", async (importOriginal) => ({
   loadProgramOperations: vi.fn(),
   updateProgramDetails: vi.fn(),
   assignProgram: vi.fn(),
+  assignProgramApprovalAuthority: vi.fn(),
   addProgramRequirement: vi.fn(),
   supersedeProgramRequirement: vi.fn(),
   determineProgramApplicability: vi.fn(),
@@ -52,7 +54,7 @@ const aggregate: ProgramAggregate = {
   state_label: "Evidence incomplete",
   program: {
     id: "program-1", tenant_id: "bank", code: "NDPA", name: "Nigeria data protection", type: "PRIVACY",
-    status: "DRAFT", owning_function: "Data Protection Office", owner_principal_id: "owner-1", jurisdiction: "Nigeria",
+    status: "DRAFT", owning_function: "Data Protection Office", owner_principal_id: "owner-1", authority_principal_id: "cro", jurisdiction: "Nigeria",
     scope: { business_lines: ["Retail"] }, effective_from: "2026-01-01T00:00:00Z",
     created_at: "2026-01-01T00:00:00Z", updated_at: "2026-08-25T10:00:00Z", version: 4,
   },
@@ -107,6 +109,7 @@ describe("Program record workspace", () => {
 	vi.mocked(loadMatterSummaries).mockResolvedValue({ items: [], generated_at: "2026-08-25T10:00:00Z" });
 	vi.mocked(updateProgramDetails).mockResolvedValue(aggregate);
 	vi.mocked(assignProgram).mockResolvedValue(aggregate);
+	vi.mocked(assignProgramApprovalAuthority).mockResolvedValue(aggregate);
 	vi.mocked(addProgramRequirement).mockResolvedValue(aggregate);
 	vi.mocked(supersedeProgramRequirement).mockResolvedValue(aggregate);
 	vi.mocked(determineProgramApplicability).mockResolvedValue(aggregate);
@@ -183,6 +186,27 @@ describe("Program record workspace", () => {
 	expect(screen.getByText(/Recorded safeguard owner unavailable/)).toBeTruthy();
 	expect(screen.getByText(/Accepted sources: Source name unavailable/)).toBeTruthy();
 	expect(screen.getByText(/Reviewer name unavailable/)).toBeTruthy();
+  });
+
+  it("keeps a retired Program owner readable without restoring commands", async () => {
+	vi.mocked(loadProgram).mockResolvedValue({
+	  ...aggregate,
+	  program: { ...aggregate.program, status: "RETIRED", owner_principal_id: "retired-owner-id" },
+	});
+	vi.mocked(loadProgramOperations).mockResolvedValue({
+	  program_id: "program-1", program_version: 4, authority_available: true, generated_at: "2026-08-25T10:00:00Z",
+	  operations: [],
+	  responsible_parties: [{ scope: "RECORD", responsibility: "ACCOUNTABLE_OWNER", display_name: "Former Data Protection Officer", kind: "PERSON" }],
+	} as unknown as Awaited<ReturnType<typeof loadProgramOperations>>);
+
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+
+	expect(await screen.findByRole("heading", { name: "Nigeria data protection" })).toBeTruthy();
+	expect(screen.getAllByText("Former Data Protection Officer").length).toBeGreaterThan(0);
+	expect(screen.queryByText("retired-owner-id")).toBeNull();
+	expect(screen.queryByRole("button", { name: /Edit Program details|Change Program owner|Approve Program activation|Change Program status/ })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Record new issue" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
   });
 
   it("shows review history without acknowledgement when the live review operation cannot act", async () => {
@@ -436,6 +460,28 @@ describe("Program record workspace", () => {
 	fireEvent.change(screen.getByLabelText("Reason for changing owner"), { target: { value: "The deputy now holds the DPO position." } });
 	fireEvent.click(screen.getByRole("button", { name: "Save Program owner" }));
 	await waitFor(() => expect(assignProgram).toHaveBeenCalledWith("program-1", 4, "owner-2", "The deputy now holds the DPO position."));
+  });
+
+  it("shows approval authority separately and lets the current authorizer choose an eligible successor", async () => {
+	vi.mocked(loadProgramOperations).mockResolvedValue({
+	  ...operations,
+	  operations: [
+		operations.operations[0]!,
+		{ command: "program.approval-authority.assign", label: "Change approval authority", responsibility: "AUTHORIZER", can_act: true, assigned_to: { id: "cro", display_name: "Chief Risk Officer", kind: "PERSON", role: "CRO" }, candidates: [{ id: "cro", display_name: "Chief Risk Officer", kind: "PERSON", role: "CRO" }, { id: "deputy-cro", display_name: "Deputy Chief Risk Officer", kind: "PERSON", role: "Deputy CRO" }, { id: "owner-1", display_name: "Data Protection Officer", kind: "PERSON", role: "DPO" }], reason: "You hold the current approval responsibility." },
+	  ],
+	});
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+
+	await screen.findByRole("heading", { name: "Scope and ownership" });
+	const panel = document.getElementById("program-details-panel")!;
+	expect(within(panel).getByText("Chief Risk Officer")).toBeTruthy();
+	fireEvent.click(within(panel).getByRole("button", { name: "Change approval authority" }));
+	const selector = screen.getByLabelText("New approval authority") as HTMLSelectElement;
+	expect(Array.from(selector.options).map((option) => option.textContent)).not.toContain("Data Protection Officer");
+	fireEvent.change(selector, { target: { value: "deputy-cro" } });
+	fireEvent.change(screen.getByLabelText("Reason for changing approval authority"), { target: { value: "The delegated CRO position now holds this approval." } });
+	fireEvent.click(screen.getByRole("button", { name: "Save approval authority" }));
+	await waitFor(() => expect(assignProgramApprovalAuthority).toHaveBeenCalledWith("program-1", 4, "deputy-cro", "The delegated CRO position now holds this approval."));
   });
 
   it("supports source-anchored requirements, supersession and applicability decisions", async () => {

@@ -41,6 +41,9 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		ProgramID: aggregate.Program.ID, ProgramVersion: aggregate.Program.Version,
 		AuthorityAvailable: a.deps.Authority != nil, Operations: []RecordOperation{}, GeneratedAt: now.UTC(),
 	}
+	if owner := a.storedProgramResponsibleParty(ctx, actor, aggregate.Program.OwnerPrincipalID, authority.ResponsibilityOwner); owner != nil {
+		response.ResponsibleParties = append(response.ResponsibleParties, *owner)
+	}
 	if aggregate.Program.Status == continuity.ProgramRetired {
 		return response
 	}
@@ -50,9 +53,11 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		response.Operations = append(response.Operations, operation)
 	}
 	ownerID := aggregate.Program.OwnerPrincipalID
+	approvalAuthorityID := aggregate.Program.AuthorityPrincipalID
 	for _, spec := range []programOperationSpec{
 		{Command: "program.details.update", Label: "Edit Program details", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
 		{Command: "program.assign", Label: "Change Program owner", Responsibility: authority.ResponsibilityOwner, Materiality: 3, AssignedPrincipalID: ownerID, IncludeCandidates: true},
+		{Command: "program.approval-authority.assign", DecisionType: "program.transition", Label: "Change approval authority", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID, IncludeCandidates: true},
 		{Command: "program.requirement.add", Label: "Add a requirement", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
 		{Command: "program.safeguard.define", Label: "Define safeguards", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: 2, AssignedPrincipalID: ownerID, IncludeCandidates: true},
 		{Command: "program.evidence.define", Label: "Define an evidence check", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
@@ -82,8 +87,17 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 	return response
 }
 
+func (a *API) storedProgramResponsibleParty(ctx context.Context, actor identity.Actor, principalID string, responsibility authority.Responsibility) *RecordResponsibleParty {
+	principal := a.assignedPrincipal(ctx, actor, authority.Resolution{}, principalID)
+	if principal == nil || strings.TrimSpace(principal.DisplayName) == "" {
+		return nil
+	}
+	return &RecordResponsibleParty{Scope: "RECORD", Responsibility: string(responsibility), DisplayName: principal.DisplayName, Kind: principal.Kind}
+}
+
 type programOperationSpec struct {
 	Command                 string
+	DecisionType            string
 	SubresourceID           string
 	Label                   string
 	Responsibility          authority.Responsibility
@@ -106,9 +120,13 @@ func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor,
 		operation.Reason = "Responsibility could not be checked. No Program change is available until the authority route is restored."
 		return operation, false
 	}
+	decisionType := spec.DecisionType
+	if decisionType == "" {
+		decisionType = spec.Command
+	}
 	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
 		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: "PROGRAM", ObjectID: program.ID,
-		Responsibility: spec.Responsibility, DecisionType: spec.Command, Materiality: spec.Materiality,
+		Responsibility: spec.Responsibility, DecisionType: decisionType, Materiality: spec.Materiality,
 	})
 	if err != nil {
 		if errors.Is(err, authority.ErrNoRoute) {
@@ -128,7 +146,7 @@ func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor,
 		if spec.CandidateResponsibility != "" && spec.CandidateResponsibility != spec.Responsibility {
 			candidateResolution, err = a.deps.Authority.Resolve(ctx, authority.ResolveInput{
 				TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: "PROGRAM", ObjectID: program.ID,
-				Responsibility: spec.CandidateResponsibility, DecisionType: spec.Command, Materiality: spec.Materiality,
+				Responsibility: spec.CandidateResponsibility, DecisionType: decisionType, Materiality: spec.Materiality,
 			})
 			if err != nil {
 				operation.Reason = "Eligible assignment candidates could not be checked. No assignment change is available."

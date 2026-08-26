@@ -49,6 +49,7 @@
       "get": { "operationId": "listPrograms", "x-clearsight-route-class": "AUTHENTICATED_READ" },
       "post": { "operationId": "createProgram", "x-clearsight-route-class": "MATERIAL_COMMAND" }
     },
+    "/api/v1/programs/setup-candidates": { "get": { "operationId": "listProgramSetupCandidates", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/programs/{id}": { "get": { "operationId": "getProgram", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/programs/{id}/history": { "get": { "operationId": "getProgramHistory", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
 	"/api/v1/programs/{id}/operations": { "get": { "operationId": "getProgramOperations", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
@@ -56,6 +57,7 @@
     "/api/v1/programs/{id}/reviews": { "post": { "operationId": "acceptProgramReview", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
 	"/api/v1/programs/{id}/details": { "post": { "operationId": "updateProgramDetails", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
 	"/api/v1/programs/{id}/assignment": { "post": { "operationId": "assignProgram", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+	"/api/v1/programs/{id}/approval-authority": { "post": { "operationId": "assignProgramApprovalAuthority", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/programs/{id}/transition": { "post": { "operationId": "transitionProgram", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/programs/{id}/requirements": { "post": { "operationId": "addProgramRequirement", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
 	"/api/v1/programs/{id}/requirements/{requirement_id}/supersede": { "post": { "operationId": "supersedeProgramRequirement", "x-clearsight-route-class": "MATERIAL_COMMAND" } },

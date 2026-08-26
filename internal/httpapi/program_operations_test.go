@@ -1,19 +1,120 @@
 package httpapi
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
+
+func TestProgramSetupCandidatesAndCreationKeepOwnerAndApprovalAuthorityDistinct(t *testing.T) {
+	service := continuity.NewService(continuity.NewMemoryRepository())
+	resolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner: {
+			Principal: authority.Principal{ID: "owner-1", DisplayName: "Data Protection Officer", Kind: "PERSON", Role: "DPO"},
+		},
+		authority.ResponsibilityAuthorizer: {
+			Principal:           authority.Principal{ID: "cro-1", DisplayName: "Chief Risk Officer", Kind: "PERSON", Role: "CRO"},
+			CandidatePrincipals: []authority.Principal{{ID: "deputy-cro", DisplayName: "Deputy Chief Risk Officer", Kind: "PERSON", Role: "Deputy CRO"}},
+		},
+	}}
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "owner-1", "bank-ng"),
+		Continuity: service, Authority: resolver,
+	})
+
+	candidates := httptest.NewRecorder()
+	handler.ServeHTTP(candidates, httptest.NewRequest(http.MethodGet, "/api/v1/programs/setup-candidates?tenant_id=bank", nil))
+	if candidates.Code != http.StatusOK || !bytes.Contains(candidates.Body.Bytes(), []byte(`"owner_candidates"`)) || !bytes.Contains(candidates.Body.Bytes(), []byte(`"approval_authority_candidates"`)) {
+		t.Fatalf("setup candidates returned %d: %s", candidates.Code, candidates.Body.String())
+	}
+
+	created := httptest.NewRecorder()
+	body := bytes.NewBufferString(`{"tenant_id":"bank","legal_entity_id":"forged-entity","code":"NDPA","name":"Data protection","type":"PRIVACY","owning_function":"Privacy","owner_candidate_id":"owner-1","approval_authority_candidate_id":"cro-1","owner_principal_id":"forged-owner","authority_principal_id":"forged-approver","scope":{},"effective_from":"2026-08-26T00:00:00Z"}`)
+	handler.ServeHTTP(created, httptest.NewRequest(http.MethodPost, "/api/v1/programs", body))
+	if created.Code != http.StatusCreated {
+		t.Fatalf("create returned %d: %s", created.Code, created.Body.String())
+	}
+	var aggregate continuity.ProgramAggregate
+	if err := json.NewDecoder(created.Body).Decode(&aggregate); err != nil {
+		t.Fatal(err)
+	}
+	if aggregate.Program.LegalEntityID != "bank-ng" || aggregate.Program.OwnerPrincipalID != "owner-1" || aggregate.Program.AuthorityPrincipalID != "cro-1" {
+		t.Fatalf("create trusted unverified scope or principals: %#v", aggregate.Program)
+	}
+	if aggregate.Program.OwnerPrincipalID == aggregate.Program.AuthorityPrincipalID {
+		t.Fatal("Program owner and approval authority were collapsed")
+	}
+}
+
+func TestProgramCreationRejectsIneligibleOrConflictedApprovalAuthority(t *testing.T) {
+	service := continuity.NewService(continuity.NewMemoryRepository())
+	resolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner:      {Principal: authority.Principal{ID: "owner-1", DisplayName: "Program owner"}},
+		authority.ResponsibilityAuthorizer: {Principal: authority.Principal{ID: "cro-1", DisplayName: "Chief Risk Officer"}},
+	}}
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "owner-1", "bank-ng"),
+		Continuity: service, Authority: resolver,
+	})
+
+	for name, approvalID := range map[string]string{"unrouted": "forged-approver", "same as owner": "owner-1"} {
+		t.Run(name, func(t *testing.T) {
+			response := httptest.NewRecorder()
+			body := bytes.NewBufferString(`{"tenant_id":"bank","code":"TEST","name":"Test Program","type":"PRIVACY","owning_function":"Privacy","owner_candidate_id":"owner-1","approval_authority_candidate_id":"` + approvalID + `","scope":{},"effective_from":"2026-08-26T00:00:00Z"}`)
+			handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/programs", body))
+			if response.Code != http.StatusConflict && response.Code != http.StatusBadRequest && response.Code != http.StatusUnprocessableEntity {
+				t.Fatalf("expected rejected assignment, got %d: %s", response.Code, response.Body.String())
+			}
+		})
+	}
+}
+
+func TestProgramApprovalAuthorityMaintenanceUsesCurrentRouteAndIgnoresForgedAuthorityField(t *testing.T) {
+	service := continuity.NewService(continuity.NewMemoryRepository())
+	program, err := service.CreateProgram(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateProgramInput{
+		TenantID: "bank", LegalEntityID: "bank-ng", Code: "NDPA", Name: "Data protection", Type: "PRIVACY", OwningFunction: "Privacy",
+		OwnerPrincipalID: "owner-1", AuthorityPrincipalID: "cro-1", Scope: json.RawMessage(`{}`), EffectiveFrom: time.Now().UTC(), ActorID: "maker-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityAuthorizer: {
+			Principal:           authority.Principal{ID: "cro-1", DisplayName: "Chief Risk Officer"},
+			CandidatePrincipals: []authority.Principal{{ID: "deputy-cro", DisplayName: "Deputy Chief Risk Officer"}},
+		},
+	}}
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "cro-1", "bank-ng"),
+		Continuity: service, Authority: resolver,
+	})
+	body := bytes.NewBufferString(fmt.Sprintf(`{"tenant_id":"bank","expected_version":%d,"candidate_id":"deputy-cro","authority_principal_id":"forged-approver","actor_id":"forged-actor","rationale":"The delegated CRO position now holds this approval."}`, program.Program.Version))
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/programs/"+program.Program.ID+"/approval-authority", body))
+	if response.Code != http.StatusOK {
+		t.Fatalf("approval authority change returned %d: %s", response.Code, response.Body.String())
+	}
+	current, err := service.GetProgram(continuity.WithTrustedSystemScope(t.Context()), "bank", program.Program.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if current.Program.AuthorityPrincipalID != "deputy-cro" || current.Program.OwnerPrincipalID != "owner-1" {
+		t.Fatalf("approval authority was not changed independently: %#v", current.Program)
+	}
+}
 
 func TestProgramOperationsExplainCurrentResponsibilitiesAcrossRoles(t *testing.T) {
 	service := continuity.NewService(continuity.NewMemoryRepository())
@@ -104,6 +205,45 @@ func TestProgramOperationsExplainCurrentResponsibilitiesAcrossRoles(t *testing.T
 	}
 	if find(authorizer, "program.details.update", "").CanAct || find(owner, "program.applicability.decide", "").CanAct {
 		t.Fatal("operations were granted outside the current responsibility route")
+	}
+}
+
+func TestProgramOperationsKeepRetiredOwnerReadableWithoutCommandsOrPrincipalID(t *testing.T) {
+	now := time.Now().UTC()
+	aggregate := continuity.ProgramAggregate{Program: continuity.Program{
+		ID: "program-retired", TenantID: "bank", LegalEntityID: "bank-ng", Code: "OLD-PRIVACY",
+		Name: "Retired privacy controls", Status: continuity.ProgramRetired,
+		OwnerPrincipalID: "stored-retired-owner", CreatedAt: now, UpdatedAt: now, Version: 9,
+	}}
+	api := &API{deps: Dependencies{Access: principalResolverStub{values: map[string]access.Resolution{
+		"stored-retired-owner": {TenantID: "bank", PrincipalID: "stored-retired-owner", LegalEntityID: "bank-ng", DisplayName: "Former Data Protection Officer", Kind: "PERSON"},
+	}}}}
+	actor := identity.Actor{TenantID: "bank", PrincipalID: "auditor", LegalEntityID: "bank-ng", Kind: "PERSON"}
+
+	payload := api.buildProgramOperations(continuity.WithTrustedSystemScope(t.Context()), actor, aggregate, now)
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var response struct {
+		Operations         []RecordOperation `json:"operations"`
+		ResponsibleParties []struct {
+			Scope          string `json:"scope"`
+			Responsibility string `json:"responsibility"`
+			DisplayName    string `json:"display_name"`
+		} `json:"responsible_parties"`
+	}
+	if err := json.Unmarshal(encoded, &response); err != nil {
+		t.Fatal(err)
+	}
+	if len(response.Operations) != 0 {
+		t.Fatalf("retired Program exposed commands: %#v", response.Operations)
+	}
+	if len(response.ResponsibleParties) != 1 || response.ResponsibleParties[0].Scope != "RECORD" || response.ResponsibleParties[0].Responsibility != "ACCOUNTABLE_OWNER" || response.ResponsibleParties[0].DisplayName != "Former Data Protection Officer" {
+		t.Fatalf("retired Program responsibility = %#v", response.ResponsibleParties)
+	}
+	if strings.Contains(string(encoded), "stored-retired-owner") {
+		t.Fatalf("retired Program response exposed a principal ID: %s", encoded)
 	}
 }
 

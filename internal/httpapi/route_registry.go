@@ -85,6 +85,7 @@ func (a *API) routes() []routeSpec {
 
 		read("/api/v1/program-summaries", a.listProgramSummaries),
 		read("/api/v1/programs", a.listPrograms),
+		read("/api/v1/programs/setup-candidates", a.listProgramSetupCandidates),
 		material("/api/v1/programs", "program.create", a.createProgram, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2, BindLegalEntity: true}),
 		read("/api/v1/programs/{id}", a.getProgram),
 		read("/api/v1/programs/{id}/history", a.getProgramHistory),
@@ -93,6 +94,7 @@ func (a *API) routes() []routeSpec {
 		write(http.MethodPost, "/api/v1/programs/{id}/reviews", a.acceptProgramReview, nil),
 		material("/api/v1/programs/{id}/details", "program.details.update", a.updateProgramDetails, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
 		material("/api/v1/programs/{id}/assignment", "program.assign", a.assignProgram, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
+		material("/api/v1/programs/{id}/approval-authority", "program.approval-authority.assign", a.assignProgramApprovalAuthority, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, DecisionType: "program.transition"}),
 		material("/api/v1/programs/{id}/transition", "program.transition", a.transitionProgram, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3}),
 		material("/api/v1/programs/{id}/requirements", "program.requirement.add", a.addProgramRequirement, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
 		material("/api/v1/programs/{id}/requirements/{requirement_id}/supersede", "program.requirement.supersede", a.supersedeProgramRequirement, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),

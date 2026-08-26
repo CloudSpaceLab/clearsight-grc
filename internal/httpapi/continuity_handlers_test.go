@@ -26,12 +26,16 @@ func continuityTestHandler() http.Handler {
 		Mode:          "test-memory",
 		Identity:      identity.NewDevelopmentAuthenticator("bank", "role-cro", "bank-ng"),
 		Continuity:    continuity.NewService(continuity.NewMemoryRepository()),
+		Authority: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+			authority.ResponsibilityOwner:      {Principal: authority.Principal{ID: "role-cro", DisplayName: "Program creator"}, CandidatePrincipals: []authority.Principal{{ID: "owner", DisplayName: "Program owner"}}},
+			authority.ResponsibilityAuthorizer: {Principal: authority.Principal{ID: "approver", DisplayName: "Approval authority"}},
+		}},
 	})
 }
 
 func TestProgramAPIUsesHumanStatusLabels(t *testing.T) {
 	handler := continuityTestHandler()
-	payload := []byte(`{"tenant_id":"bank","code":"NDPA","name":"Data protection","type":"PRIVACY","owning_function":"Privacy Office","owner_principal_id":"owner","authority_principal_id":"approver","scope":{"entity":"Bank NG"},"effective_from":"2026-08-05T10:00:00Z","effective_until":"2027-08-05T10:00:00Z","actor_id":"owner"}`)
+	payload := []byte(`{"tenant_id":"bank","code":"NDPA","name":"Data protection","type":"PRIVACY","owning_function":"Privacy Office","owner_candidate_id":"owner","approval_authority_candidate_id":"approver","owner_principal_id":"forged-owner","authority_principal_id":"forged-approver","scope":{"entity":"Bank NG"},"effective_from":"2026-08-05T10:00:00Z","effective_until":"2027-08-05T10:00:00Z","actor_id":"owner"}`)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/programs", bytes.NewReader(payload))
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
@@ -80,7 +84,7 @@ func TestMatterAPIReportsVersionConflictInPlainLanguage(t *testing.T) {
 func TestMatterLinkAPIAddsASecondProgramAndIsIdempotent(t *testing.T) {
 	handler := continuityTestHandler()
 	createProgram := func(code, name string) continuity.ProgramAggregate {
-		body := []byte(`{"tenant_id":"bank","code":"` + code + `","name":"` + name + `","type":"ASSURANCE","owning_function":"Control Assurance","scope":{},"effective_from":"2026-08-05T10:00:00Z"}`)
+		body := []byte(`{"tenant_id":"bank","code":"` + code + `","name":"` + name + `","type":"ASSURANCE","owning_function":"Control Assurance","owner_candidate_id":"owner","approval_authority_candidate_id":"approver","scope":{},"effective_from":"2026-08-05T10:00:00Z"}`)
 		response := httptest.NewRecorder()
 		handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/programs", bytes.NewReader(body)))
 		if response.Code != http.StatusCreated {
@@ -384,10 +388,14 @@ func TestCreateCommandsOverwriteRequestLegalEntityFromVerifiedActor(t *testing.T
 	service := continuity.NewService(repo)
 	handler := New(Dependencies{
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "owner-1", "entity-a"), Continuity: service,
+		Authority: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+			authority.ResponsibilityOwner:      {Principal: authority.Principal{ID: "owner-1", DisplayName: "Program owner"}},
+			authority.ResponsibilityAuthorizer: {Principal: authority.Principal{ID: "approver-1", DisplayName: "Approval authority"}},
+		}},
 	})
 
 	programResponse := httptest.NewRecorder()
-	handler.ServeHTTP(programResponse, httptest.NewRequest(http.MethodPost, "/api/v1/programs", strings.NewReader(`{"tenant_id":"bank","legal_entity_id":"entity-b","code":"ENTITY-A","name":"Entity A controls","type":"COMPLIANCE","owning_function":"Compliance","scope":{},"effective_from":"2026-08-26T00:00:00Z","actor_id":"forged"}`)))
+	handler.ServeHTTP(programResponse, httptest.NewRequest(http.MethodPost, "/api/v1/programs", strings.NewReader(`{"tenant_id":"bank","legal_entity_id":"entity-b","code":"ENTITY-A","name":"Entity A controls","type":"COMPLIANCE","owning_function":"Compliance","owner_candidate_id":"owner-1","approval_authority_candidate_id":"approver-1","scope":{},"effective_from":"2026-08-26T00:00:00Z","actor_id":"forged"}`)))
 	if programResponse.Code != http.StatusCreated {
 		t.Fatalf("Program create returned %d: %s", programResponse.Code, programResponse.Body.String())
 	}

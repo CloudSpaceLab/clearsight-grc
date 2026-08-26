@@ -230,6 +230,9 @@ func (s *Service) CreateProgram(ctx context.Context, input CreateProgramInput) (
 	if strings.TrimSpace(input.TenantID) == "" || strings.TrimSpace(input.Code) == "" || strings.TrimSpace(input.Name) == "" || strings.TrimSpace(input.Type) == "" || strings.TrimSpace(input.OwningFunction) == "" {
 		return ProgramAggregate{}, fmt.Errorf("tenant_id, code, name, type and owning_function are required")
 	}
+	if strings.TrimSpace(input.OwnerPrincipalID) != "" && strings.TrimSpace(input.OwnerPrincipalID) == strings.TrimSpace(input.AuthorityPrincipalID) {
+		return ProgramAggregate{}, fmt.Errorf("the Program owner and approval authority must be different people")
+	}
 	legalEntityID, scopeOK := actorLegalEntity(ctx, input.TenantID, input.LegalEntityID)
 	if !scopeOK {
 		return ProgramAggregate{}, ErrNotFound

@@ -34,6 +34,15 @@ type AssignProgramInput struct {
 	Rationale        string `json:"rationale"`
 }
 
+type AssignProgramApprovalAuthorityInput struct {
+	TenantID             string `json:"tenant_id"`
+	ProgramID            string `json:"program_id"`
+	ExpectedVersion      int64  `json:"expected_version"`
+	AuthorityPrincipalID string `json:"authority_principal_id"`
+	ActorID              string `json:"actor_id,omitempty"`
+	Rationale            string `json:"rationale"`
+}
+
 type SupersedeRequirementInput struct {
 	TenantID        string    `json:"tenant_id"`
 	ProgramID       string    `json:"program_id"`
@@ -64,6 +73,13 @@ type programOwnerChangedEvent struct {
 	PreviousOwnerID  string  `json:"previous_owner_principal_id,omitempty"`
 	OwnerPrincipalID string  `json:"owner_principal_id"`
 	Rationale        string  `json:"rationale"`
+}
+
+type programApprovalAuthorityChangedEvent struct {
+	Program                      Program `json:"program"`
+	PreviousAuthorityPrincipalID string  `json:"previous_authority_principal_id,omitempty"`
+	AuthorityPrincipalID         string  `json:"authority_principal_id"`
+	Rationale                    string  `json:"rationale"`
 }
 
 type requirementSupersededEvent struct {
@@ -125,6 +141,9 @@ func (s *Service) AssignProgram(ctx context.Context, input AssignProgramInput) (
 	if ownerID == aggregate.Program.OwnerPrincipalID {
 		return ProgramAggregate{}, fmt.Errorf("the Program is already assigned to that owner")
 	}
+	if ownerID == aggregate.Program.AuthorityPrincipalID {
+		return ProgramAggregate{}, fmt.Errorf("the Program owner and approval authority must be different people")
+	}
 	program := aggregate.Program
 	program.OwnerPrincipalID = ownerID
 	program.UpdatedAt = s.now().UTC()
@@ -133,6 +152,31 @@ func (s *Service) AssignProgram(ctx context.Context, input AssignProgramInput) (
 		return ProgramAggregate{}, err
 	}
 	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventProgramOwnerChanged, input.ProgramID)
+}
+
+func (s *Service) AssignProgramApprovalAuthority(ctx context.Context, input AssignProgramApprovalAuthorityInput) (ProgramAggregate, error) {
+	aggregate, err := s.programForMutation(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion)
+	if err != nil {
+		return ProgramAggregate{}, err
+	}
+	authorityID := strings.TrimSpace(input.AuthorityPrincipalID)
+	if strings.TrimSpace(input.ActorID) == "" || strings.TrimSpace(input.Rationale) == "" || authorityID == "" {
+		return ProgramAggregate{}, fmt.Errorf("authority_principal_id, actor_id and rationale are required")
+	}
+	if authorityID == aggregate.Program.AuthorityPrincipalID {
+		return ProgramAggregate{}, fmt.Errorf("that person already holds the Program approval authority")
+	}
+	if authorityID == aggregate.Program.OwnerPrincipalID {
+		return ProgramAggregate{}, fmt.Errorf("the Program owner and approval authority must be different people")
+	}
+	program := aggregate.Program
+	program.AuthorityPrincipalID = authorityID
+	program.UpdatedAt = s.now().UTC()
+	event := programApprovalAuthorityChangedEvent{Program: program, PreviousAuthorityPrincipalID: aggregate.Program.AuthorityPrincipalID, AuthorityPrincipalID: authorityID, Rationale: strings.TrimSpace(input.Rationale)}
+	if err := s.applyProgramValue(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion, EventProgramApprovalAuthorityChanged, event, input.ActorID); err != nil {
+		return ProgramAggregate{}, err
+	}
+	return s.refreshAndGetProgram(ctx, input.TenantID, input.ProgramID, EventProgramApprovalAuthorityChanged, input.ProgramID)
 }
 
 func (s *Service) SupersedeRequirement(ctx context.Context, input SupersedeRequirementInput) (ProgramAggregate, error) {

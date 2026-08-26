@@ -13,7 +13,7 @@ import (
 func TestProgramSummaryEndpointIsBoundedAndCursorBased(t *testing.T) {
 	handler := continuityTestHandler()
 	for index, code := range []string{"ALPHA", "BETA"} {
-		body := []byte(`{"tenant_id":"bank","code":"` + code + `","name":"Program ` + code + `","type":"ASSURANCE","owning_function":"Control Assurance","scope":{},"effective_from":"2026-08-05T10:00:00Z"}`)
+		body := []byte(`{"tenant_id":"bank","code":"` + code + `","name":"Program ` + code + `","type":"ASSURANCE","owning_function":"Control Assurance","owner_candidate_id":"owner","approval_authority_candidate_id":"approver","scope":{},"effective_from":"2026-08-05T10:00:00Z"}`)
 		response := httptest.NewRecorder()
 		handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/programs", bytes.NewReader(body)))
 		if response.Code != http.StatusCreated {
@@ -66,7 +66,7 @@ func TestMatterSummaryEndpointUsesOperationalLabels(t *testing.T) {
 
 func TestMatterSummaryEndpointAcceptsExactProgramFilter(t *testing.T) {
 	handler := continuityTestHandler()
-	programBody := []byte(`{"tenant_id":"bank","code":"FILTER","name":"Filtered Program","type":"ASSURANCE","owning_function":"Control Assurance","scope":{},"effective_from":"2026-08-05T10:00:00Z"}`)
+	programBody := []byte(`{"tenant_id":"bank","code":"FILTER","name":"Filtered Program","type":"ASSURANCE","owning_function":"Control Assurance","owner_candidate_id":"owner","approval_authority_candidate_id":"approver","scope":{},"effective_from":"2026-08-05T10:00:00Z"}`)
 	programResponse := httptest.NewRecorder()
 	handler.ServeHTTP(programResponse, httptest.NewRequest(http.MethodPost, "/api/v1/programs", bytes.NewReader(programBody)))
 	var program continuity.ProgramAggregate

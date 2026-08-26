@@ -23,16 +23,33 @@ func (r *PostgresRepository) ResolveLegalEntity(ctx context.Context, tenant, ide
 	identifier = strings.TrimSpace(identifier)
 	var resolved string
 	err := r.pool.QueryRow(ctx, `SELECT le.id::text FROM legal_entities le JOIN tenants t ON t.id=le.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND le.id::text=$2 AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)`, tenant, identifier).Scan(&resolved)
-	if err == nil { return resolved, nil }
-	if !errors.Is(err, pgx.ErrNoRows) { return "", err }
+	if err == nil {
+		return resolved, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return "", err
+	}
 	rows, err := r.pool.Query(ctx, `SELECT le.id::text FROM legal_entities le JOIN tenants t ON t.id=le.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND le.code=$2 AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.id LIMIT 2`, tenant, identifier)
-	if err != nil { return "", err }
+	if err != nil {
+		return "", err
+	}
 	defer rows.Close()
 	matches := []string{}
-	for rows.Next() { if err := rows.Scan(&resolved); err != nil { return "", err }; matches = append(matches, resolved) }
-	if err := rows.Err(); err != nil { return "", err }
-	if len(matches) == 0 { return "", ErrNotFound }
-	if len(matches) > 1 { return "", ErrLegalEntityAmbiguous }
+	for rows.Next() {
+		if err := rows.Scan(&resolved); err != nil {
+			return "", err
+		}
+		matches = append(matches, resolved)
+	}
+	if err := rows.Err(); err != nil {
+		return "", err
+	}
+	if len(matches) == 0 {
+		return "", ErrNotFound
+	}
+	if len(matches) > 1 {
+		return "", ErrLegalEntityAmbiguous
+	}
 	return matches[0], nil
 }
 
@@ -456,7 +473,7 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		}
 		_, err := tx.Exec(ctx, `UPDATE programs SET status=$3,effective_until=$4,updated_at=$5 WHERE id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)`, v.TenantID, v.ID, v.Status, v.EffectiveUntil, v.UpdatedAt)
 		return err
-	case EventProgramDetailsUpdated, EventProgramOwnerChanged:
+	case EventProgramDetailsUpdated, EventProgramOwnerChanged, EventProgramApprovalAuthorityChanged:
 		v, ok, err := programProjectionProgram(event)
 		if err != nil {
 			return err
@@ -464,7 +481,7 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		if !ok {
 			return ErrInvalidState
 		}
-		_, err = tx.Exec(ctx, `UPDATE programs SET name=$3,owning_function=$4,owner_principal_id=NULLIF($5,'')::uuid,jurisdiction=$6,scope=$7,effective_from=$8,effective_until=$9,updated_at=$10 WHERE id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)`, v.TenantID, v.ID, v.Name, v.OwningFunction, v.OwnerPrincipalID, v.Jurisdiction, rawJSON(v.Scope, `{}`), v.EffectiveFrom, v.EffectiveUntil, v.UpdatedAt)
+		_, err = tx.Exec(ctx, `UPDATE programs SET name=$3,owning_function=$4,owner_principal_id=NULLIF($5,'')::uuid,authority_principal_id=NULLIF($6,'')::uuid,jurisdiction=$7,scope=$8,effective_from=$9,effective_until=$10,updated_at=$11 WHERE id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)`, v.TenantID, v.ID, v.Name, v.OwningFunction, v.OwnerPrincipalID, v.AuthorityPrincipalID, v.Jurisdiction, rawJSON(v.Scope, `{}`), v.EffectiveFrom, v.EffectiveUntil, v.UpdatedAt)
 		return err
 	case EventRequirementAdded:
 		var v Requirement
@@ -567,6 +584,12 @@ func programProjectionProgram(event Event) (Program, bool, error) {
 		return changed.Program, true, nil
 	case EventProgramOwnerChanged:
 		var changed programOwnerChangedEvent
+		if err := json.Unmarshal(event.Payload, &changed); err != nil {
+			return Program{}, true, err
+		}
+		return changed.Program, true, nil
+	case EventProgramApprovalAuthorityChanged:
+		var changed programApprovalAuthorityChangedEvent
 		if err := json.Unmarshal(event.Payload, &changed); err != nil {
 			return Program{}, true, err
 		}

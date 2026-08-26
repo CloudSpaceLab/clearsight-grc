@@ -27,6 +27,7 @@ export const programOperationalCoverage = {
   "program.create": { surface: "ProgramSetupWorkspace", states: ["list", "empty", "create"], testedBy: ["ProgramsWorkspace.test.tsx"] },
   "program.details.update": { surface: "ProgramDetailsPanel", states: ["current", "edit", "conflict", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
   "program.assign": { surface: "ProgramDetailsPanel", states: ["assigned", "eligible_candidate_selection", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
+  "program.approval-authority.assign": { surface: "ProgramDetailsPanel", states: ["assigned", "eligible_candidate_selection", "conflict_separated", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
   "program.transition": { surface: "ProgramStatusPanel", states: ["draft", "active", "paused", "ended", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx", "OperatingMutations.test.tsx"] },
   "program.requirement.add": { surface: "ProgramRequirementsPanel", states: ["empty", "source_anchored", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
   "program.requirement.supersede": { surface: "ProgramRequirementsPanel", states: ["current", "replacement", "preserved_history"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },

@@ -3,6 +3,7 @@
 ## Program lifecycle
 
 - A new Program is “Setup in progress,” not silently active.
+- Program setup selects an accountable owner and a different approval authority from current legal-entity-scoped server candidates; request-body actor or approval fields cannot grant authority.
 - Activation requires an accountable owner, approval authority, approved requirement, actor and rationale.
 - A complete applicable requirement, implemented control and current supporting evidence can produce “Up to date.”
 - Missing control coverage produces “Gap found.”
@@ -14,7 +15,7 @@
 ## Program operating record
 
 - The exact Program route loads the aggregate, calculated-state freshness, review digest and actor-scoped operations together.
-- Authorized owners can edit scope and dates, choose an eligible successor, add source-anchored requirements and supersede a current requirement without overwriting its prior version.
+- Authorized owners can edit scope and dates and choose an eligible successor; current authorizers can maintain approval authority separately, and neither assignment may collapse into the other.
 - Applicability decisions are available only to the current authorizer and retain scope, rationale and effective date.
 - Safeguard setup separates the control objective, implementation and eligible performer, then links only Program-owned requirements and implementations.
 - Evidence checks select named current sources and record freshness, population coverage, independence, contradiction and failure rules.

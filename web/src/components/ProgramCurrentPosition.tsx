@@ -44,6 +44,7 @@ export function ProgramCurrentPosition({ aggregate, operations, digest }: Props)
   const stale = !current || assessedVersion < aggregate.program.version;
   const ownerOperation = operations.operations.find((operation) => operation.command === "program.details.update" || operation.command === "program.assign");
   const owner = ownerOperation?.assigned_to;
+  const storedOwner = operations.responsible_parties?.find((party) => party.scope === "RECORD" && party.responsibility === "ACCOUNTABLE_OWNER")?.display_name;
   const action = dominantAction(operations.operations, digest);
   const reasons = current?.reasons ?? [];
 
@@ -59,7 +60,7 @@ export function ProgramCurrentPosition({ aggregate, operations, digest }: Props)
       <h2 id="program-current-position-heading">{stale ? "Updating status" : aggregate.state_label}</h2>
       <p>{stale ? `Assessed version ${assessedVersion} · current version ${aggregate.program.version}` : `Calculated from Program version ${aggregate.program.version} and projection ${current?.projection_version ?? 0}.`}</p>
       <div className="program-position-facts">
-        <span><strong>Owner</strong> {owner?.display_name ?? (aggregate.program.owner_principal_id ? "Recorded Program owner unavailable" : "Program owner not assigned")}</span>
+        <span><strong>Owner</strong> {owner?.display_name ?? storedOwner ?? (aggregate.program.owner_principal_id ? "Recorded Program owner unavailable" : "Program owner not assigned")}</span>
         <span><strong>Open issues</strong> {current?.open_matter_count ?? 0}</span>
         <span><strong>Requirements</strong> {aggregate.requirements.filter((requirement) => requirement.status === "APPROVED").length}</span>
       </div>

@@ -69,6 +69,42 @@ func TestProgramEditsRequireActorRationaleAndCurrentVersion(t *testing.T) {
 	}
 }
 
+func TestProgramApprovalAuthorityChangeIsVersionedAndCannotBecomeTheOwner(t *testing.T) {
+	now := time.Date(2026, 8, 26, 9, 0, 0, 0, time.UTC)
+	service := NewService(NewMemoryRepository())
+	service.now = func() time.Time { return now }
+	created, err := service.CreateProgram(WithTrustedSystemScope(t.Context()), CreateProgramInput{
+		TenantID: "bank", LegalEntityID: "entity", Code: "NDPA", Name: "Data protection", Type: "PRIVACY",
+		OwningFunction: "Privacy", OwnerPrincipalID: "owner-1", AuthorityPrincipalID: "cro-1", Scope: json.RawMessage(`{}`), EffectiveFrom: now, ActorID: "maker-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changed, err := service.AssignProgramApprovalAuthority(WithTrustedSystemScope(t.Context()), AssignProgramApprovalAuthorityInput{
+		TenantID: "bank", ProgramID: created.Program.ID, ExpectedVersion: created.Program.Version,
+		AuthorityPrincipalID: "deputy-cro", ActorID: "cro-1", Rationale: "The delegated CRO position now authorizes this Program.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed.Program.AuthorityPrincipalID != "deputy-cro" || changed.Program.OwnerPrincipalID != "owner-1" || changed.Program.Version != created.Program.Version+1 {
+		t.Fatalf("approval authority change was not independently versioned: %#v", changed.Program)
+	}
+	if _, err = service.AssignProgramApprovalAuthority(WithTrustedSystemScope(t.Context()), AssignProgramApprovalAuthorityInput{
+		TenantID: "bank", ProgramID: changed.Program.ID, ExpectedVersion: changed.Program.Version,
+		AuthorityPrincipalID: "owner-1", ActorID: "deputy-cro", Rationale: "Collapse duties.",
+	}); err == nil {
+		t.Fatal("approval authority was allowed to become the Program owner")
+	}
+	if _, err = service.AssignProgram(WithTrustedSystemScope(t.Context()), AssignProgramInput{
+		TenantID: "bank", ProgramID: changed.Program.ID, ExpectedVersion: changed.Program.Version,
+		OwnerPrincipalID: "deputy-cro", ActorID: "owner-1", Rationale: "Collapse duties.",
+	}); err == nil {
+		t.Fatal("Program owner was allowed to become the approval authority")
+	}
+}
+
 func TestSupersedeRequirementPreservesHistory(t *testing.T) {
 	service := NewService(NewMemoryRepository())
 	effectiveFrom := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)

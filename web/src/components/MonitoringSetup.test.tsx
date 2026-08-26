@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createFormTemplate, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults } from "../monitoringApi";
-import { createProgram } from "../continuityCommands";
+import { createProgram, loadProgramSetupCandidates } from "../continuityCommands";
 import type { ProgramAggregate } from "../types";
 import { FormBuilder } from "./FormBuilder";
 import { MonitoringSetup } from "./MonitoringSetup";
@@ -21,7 +21,7 @@ vi.mock("../monitoringApi", () => ({
   transitionMonitoringCheck: vi.fn(),
 }));
 
-vi.mock("../continuityCommands", () => ({ createProgram: vi.fn(), addProgramRequirement: vi.fn() }));
+vi.mock("../continuityCommands", () => ({ createProgram: vi.fn(), addProgramRequirement: vi.fn(), loadProgramSetupCandidates: vi.fn() }));
 vi.mock("../sourceConfigApi", () => ({ prepareRESTSource: vi.fn(), createRESTBinding: vi.fn() }));
 
 const program: ProgramAggregate = {
@@ -35,6 +35,11 @@ beforeEach(() => {
   vi.mocked(loadFormTemplates).mockResolvedValue([]);
   vi.mocked(loadMonitoringChecks).mockResolvedValue([]);
   vi.mocked(loadMonitoringResults).mockResolvedValue([]);
+  vi.mocked(loadProgramSetupCandidates).mockResolvedValue({
+    owner_candidates: [{ id: "owner-1", display_name: "Data Protection Officer", kind: "PERSON", role: "DPO" }],
+    approval_authority_candidates: [{ id: "cro-1", display_name: "Chief Risk Officer", kind: "PERSON", role: "CRO" }],
+    has_more: false, generated_at: "2026-08-26T00:00:00Z",
+  });
 });
 
 describe("monitoring setup", () => {
@@ -109,12 +114,14 @@ describe("monitoring setup", () => {
     vi.mocked(createProgram).mockResolvedValue(program);
     const onCreated = vi.fn();
     render(<ProgramSetupWorkspace actorPrincipalID="owner-1" canConfigureSources onCreated={onCreated} onClose={vi.fn()}/>);
+    expect((await screen.findByLabelText("Accountable owner") as HTMLSelectElement).value).toBe("owner-1");
+    expect((screen.getByLabelText("Approval authority") as HTMLSelectElement).value).toBe("cro-1");
     fireEvent.change(screen.getByLabelText("Program name"), { target: { value: "Mobile banking" } });
     fireEvent.change(screen.getByLabelText("Code"), { target: { value: "MOBILE" } });
     fireEvent.change(screen.getByLabelText("Owning function"), { target: { value: "Digital Banking" } });
     fireEvent.change(screen.getByLabelText("Scope"), { target: { value: "Retail mobile banking channel" } });
     fireEvent.click(screen.getByRole("button", { name: "Create Program" }));
-    await waitFor(() => expect(createProgram).toHaveBeenCalledWith(expect.objectContaining({ name: "Mobile banking", type: "CHANNEL", scopeDescription: "Retail mobile banking channel" })));
+    await waitFor(() => expect(createProgram).toHaveBeenCalledWith(expect.objectContaining({ name: "Mobile banking", type: "CHANNEL", scopeDescription: "Retail mobile banking channel", ownerCandidateID: "owner-1", approvalAuthorityCandidateID: "cro-1" })));
     expect(onCreated).toHaveBeenCalledWith(program);
   });
 

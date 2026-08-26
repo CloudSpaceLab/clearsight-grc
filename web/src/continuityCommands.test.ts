@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadContext } from "./api";
-import { createMatter } from "./continuityCommands";
+import { createMatter, createProgram } from "./continuityCommands";
 import { requestJSON } from "./http";
 
 vi.mock("./api", () => ({ loadContext: vi.fn(), resolveAuthority: vi.fn() }));
@@ -35,5 +35,20 @@ describe("continuity commands", () => {
       known_facts: { notes: "The status check failed." }, missing_facts: ["Confirm SDK version"], contradictions: [],
       owner_principal_id: "actor-1", due_at: "2026-09-30T22:59:59.999Z", program_id: "program-mobile",
     });
+  });
+
+  it("submits separate server-issued Program responsibility selections without actor or approval fields", async () => {
+	await createProgram({
+	  code: "NDPA", name: "Data protection", type: "PRIVACY", owningFunction: "Privacy",
+	  scopeDescription: "Nigeria privacy obligations", ownerCandidateID: "owner-1", approvalAuthorityCandidateID: "cro-1",
+	});
+
+	const [, path, init] = vi.mocked(requestJSON).mock.calls[0]!;
+	expect(path).toBe("/api/v1/programs?tenant_id=tenant-1");
+	const body = JSON.parse(String(init?.body));
+	expect(body).toMatchObject({ owner_candidate_id: "owner-1", approval_authority_candidate_id: "cro-1" });
+	expect(body).not.toHaveProperty("owner_principal_id");
+	expect(body).not.toHaveProperty("authority_principal_id");
+	expect(body).not.toHaveProperty("actor_id");
   });
 });

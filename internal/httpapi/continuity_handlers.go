@@ -1,13 +1,18 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 )
 
@@ -42,13 +47,116 @@ func (a *API) createProgram(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var input continuity.CreateProgramInput
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+	var request struct {
+		continuity.CreateProgramInput
+		OwnerCandidateID             string `json:"owner_candidate_id"`
+		ApprovalAuthorityCandidateID string `json:"approval_authority_candidate_id"`
+	}
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	value, err := service.CreateProgram(r.Context(), input)
+	owner, approval, err := a.resolveProgramSetupSelections(r.Context(), request.OwnerCandidateID, request.ApprovalAuthorityCandidateID)
+	if err != nil {
+		if errors.Is(err, commandauth.ErrIdentityRequired) || errors.Is(err, commandauth.ErrGuardUnavailable) {
+			writeCommandAuthorizationError(w, err)
+			return
+		}
+		writeContinuityError(w, err)
+		return
+	}
+	request.OwnerPrincipalID = owner.ID
+	request.AuthorityPrincipalID = approval.ID
+	value, err := service.CreateProgram(r.Context(), request.CreateProgramInput)
 	writeContinuityResult(w, value, err, http.StatusCreated)
+}
+
+type programSetupCandidatesResponse struct {
+	OwnerCandidates             []authority.Principal `json:"owner_candidates"`
+	ApprovalAuthorityCandidates []authority.Principal `json:"approval_authority_candidates"`
+	HasMore                     bool                  `json:"has_more"`
+	GeneratedAt                 time.Time             `json:"generated_at"`
+}
+
+func (a *API) listProgramSetupCandidates(w http.ResponseWriter, r *http.Request) {
+	if _, ok := requiredQuery(w, r, "tenant_id"); !ok {
+		return
+	}
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to choose Program responsibilities.")
+		return
+	}
+	ownerResolution, approvalResolution, err := a.resolveProgramSetupRoutes(r.Context(), actor)
+	if err != nil {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "program_responsibilities_unavailable", "Current Program ownership and approval responsibilities could not be confirmed.")
+		return
+	}
+	if !ownerResolution.AllowsPrincipal(actor.PrincipalID) {
+		httpx.WriteError(w, http.StatusForbidden, "program_creation_not_allowed", "You do not hold the current responsibility to create a Program in this legal entity.")
+		return
+	}
+	owners := visibleProgramCandidates(ownerResolution)
+	approvers := visibleProgramCandidates(approvalResolution)
+	hasMore := len(owners) > 50 || len(approvers) > 50
+	owners = boundedPrincipals(owners, 50)
+	approvers = boundedPrincipals(approvers, 50)
+	httpx.WriteJSON(w, http.StatusOK, programSetupCandidatesResponse{OwnerCandidates: owners, ApprovalAuthorityCandidates: approvers, HasMore: hasMore, GeneratedAt: time.Now().UTC()})
+}
+
+func boundedPrincipals(values []authority.Principal, limit int) []authority.Principal {
+	if len(values) <= limit {
+		return values
+	}
+	return values[:limit]
+}
+
+func (a *API) resolveProgramSetupRoutes(ctx context.Context, actor identity.Actor) (authority.Resolution, authority.Resolution, error) {
+	if a.deps.Authority == nil {
+		return authority.Resolution{}, authority.Resolution{}, commandauth.ErrGuardUnavailable
+	}
+	owner, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: "PROGRAM", ObjectID: "*", Responsibility: authority.ResponsibilityOwner, DecisionType: "program.create", Materiality: 2})
+	if err != nil {
+		return authority.Resolution{}, authority.Resolution{}, err
+	}
+	approval, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: "PROGRAM", ObjectID: "*", Responsibility: authority.ResponsibilityAuthorizer, DecisionType: "program.transition", Materiality: 3})
+	if err != nil {
+		return authority.Resolution{}, authority.Resolution{}, err
+	}
+	return owner, approval, nil
+}
+
+func (a *API) resolveProgramSetupSelections(ctx context.Context, ownerCandidateID, approvalCandidateID string) (authority.Principal, authority.Principal, error) {
+	actor, err := identity.Require(ctx)
+	if err != nil {
+		return authority.Principal{}, authority.Principal{}, fmt.Errorf("%w: verified identity is required", commandauth.ErrIdentityRequired)
+	}
+	ownerResolution, approvalResolution, err := a.resolveProgramSetupRoutes(ctx, actor)
+	if err != nil {
+		return authority.Principal{}, authority.Principal{}, fmt.Errorf("%w: Program responsibilities could not be checked", commandauth.ErrGuardUnavailable)
+	}
+	if !ownerResolution.AllowsPrincipal(actor.PrincipalID) {
+		return authority.Principal{}, authority.Principal{}, fmt.Errorf("%w: signed-in person does not hold the current Program creation responsibility", continuity.ErrInvalidState)
+	}
+	owner, ownerOK := selectedPrincipal(ownerResolution, ownerCandidateID)
+	approval, approvalOK := selectedPrincipal(approvalResolution, approvalCandidateID)
+	if !ownerOK || !approvalOK {
+		return authority.Principal{}, authority.Principal{}, fmt.Errorf("%w: choose current eligible Program responsibilities", continuity.ErrInvalidState)
+	}
+	if owner.ID == approval.ID {
+		return authority.Principal{}, authority.Principal{}, fmt.Errorf("%w: Program owner and approval authority must be different people", continuity.ErrInvalidState)
+	}
+	return owner, approval, nil
+}
+
+func selectedPrincipal(resolution authority.Resolution, candidateID string) (authority.Principal, bool) {
+	candidateID = strings.TrimSpace(candidateID)
+	for _, candidate := range visibleProgramCandidates(resolution) {
+		if candidate.ID == candidateID {
+			return candidate, true
+		}
+	}
+	return authority.Principal{}, false
 }
 
 func (a *API) getProgram(w http.ResponseWriter, r *http.Request) {
@@ -123,6 +231,30 @@ func (a *API) assignProgram(w http.ResponseWriter, r *http.Request) {
 	}
 	input.ProgramID = r.PathValue("id")
 	value, err := service.AssignProgram(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
+}
+
+func (a *API) assignProgramApprovalAuthority(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var request struct {
+		TenantID                      string `json:"tenant_id"`
+		ExpectedVersion               int64  `json:"expected_version"`
+		CandidateID                   string `json:"candidate_id"`
+		UntrustedAuthorityPrincipalID string `json:"authority_principal_id,omitempty"`
+		ActorID                       string `json:"actor_id,omitempty"`
+		Rationale                     string `json:"rationale"`
+	}
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	value, err := service.AssignProgramApprovalAuthority(r.Context(), continuity.AssignProgramApprovalAuthorityInput{
+		TenantID: request.TenantID, ProgramID: r.PathValue("id"), ExpectedVersion: request.ExpectedVersion,
+		AuthorityPrincipalID: request.CandidateID, ActorID: request.ActorID, Rationale: request.Rationale,
+	})
 	writeContinuityResult(w, value, err, http.StatusOK)
 }
 

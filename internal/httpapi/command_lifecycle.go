@@ -72,6 +72,19 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		}
 		return policy, nil
 
+	case "program.approval-authority.assign":
+		if programAggregate == nil {
+			return policy, nil
+		}
+		candidateID := stringValue(payload["candidate_id"])
+		if candidateID == programAggregate.Program.OwnerPrincipalID {
+			return policy, fmt.Errorf("%w: Program owner and approval authority must be different people", continuity.ErrInvalidState)
+		}
+		if err := a.validateProgramApprovalAuthorityCandidate(ctx, tenant, *programAggregate, candidateID, policy.Materiality); err != nil {
+			return policy, err
+		}
+		return policy, nil
+
 	case "program.safeguard.define":
 		if programAggregate == nil || stringValue(payload["owner_principal_id"]) == "" {
 			return policy, nil
@@ -271,6 +284,34 @@ func (a *API) validateProgramAssignmentCandidate(ctx context.Context, tenant, co
 	}
 	if !candidateResolution.AllowsPrincipal(candidateID) {
 		return fmt.Errorf("%w: selected person is not eligible for Program ownership", continuity.ErrInvalidState)
+	}
+	return nil
+}
+
+func (a *API) validateProgramApprovalAuthorityCandidate(ctx context.Context, tenant string, aggregate continuity.ProgramAggregate, candidateID string, materiality int) error {
+	candidateID = strings.TrimSpace(candidateID)
+	if candidateID == "" {
+		return fmt.Errorf("%w: candidate_id is required", continuity.ErrInvalidState)
+	}
+	if a.deps.Authority == nil {
+		return fmt.Errorf("%w: approval route is unavailable", commandauth.ErrGuardUnavailable)
+	}
+	actor, err := identity.Require(ctx)
+	if err != nil {
+		return fmt.Errorf("%w: verified identity is required", commandauth.ErrIdentityRequired)
+	}
+	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
+		TenantID: tenant, LegalEntityID: actor.LegalEntityID, ObjectType: "PROGRAM", ObjectID: aggregate.Program.ID,
+		Responsibility: authority.ResponsibilityAuthorizer, DecisionType: "program.transition", Materiality: materiality,
+	})
+	if err != nil {
+		return fmt.Errorf("%w: approval route could not be checked", commandauth.ErrGuardUnavailable)
+	}
+	if !resolution.AllowsPrincipal(actor.PrincipalID) {
+		return fmt.Errorf("%w: signed-in person does not hold the current Program approval route", continuity.ErrInvalidState)
+	}
+	if !resolution.AllowsPrincipal(candidateID) {
+		return fmt.Errorf("%w: selected person is not eligible for Program approval authority", continuity.ErrInvalidState)
 	}
 	return nil
 }

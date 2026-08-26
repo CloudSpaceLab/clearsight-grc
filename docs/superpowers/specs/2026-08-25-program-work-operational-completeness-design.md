@@ -215,8 +215,8 @@ The Programs list remains the ongoing-obligation portfolio. Opening a Program di
 
 Authorized users can perform the existing Program commands without API work:
 
-- create a Program and complete setup;
-- correct Program working details and change eligible ownership through versioned commands;
+- create a Program with separate server-authorized accountable-owner and approval-authority selections, then complete setup;
+- correct Program working details and change eligible ownership or approval authority through separate versioned commands;
 - add a requirement with its source anchor;
 - record the current applicability decision and rationale;
 - define a safeguard objective and implementation;
@@ -235,7 +235,7 @@ Existing requirements, safeguards and evidence expectations show owner, status, 
 The implementation will maintain a command-to-UI coverage manifest for:
 
 - `program.create`;
-- `program.details.update` and `program.assign`;
+- `program.details.update`, `program.assign` and `program.approval-authority.assign`;
 - `program.transition`;
 - `program.requirement.add` and the supported supersession/correction command;
 - `program.applicability.decide`;

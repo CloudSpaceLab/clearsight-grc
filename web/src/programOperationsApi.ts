@@ -2,7 +2,7 @@ import { loadContext } from "./api";
 import { continuityCommand } from "./continuityCommands";
 import { requestJSON } from "./http";
 import { normalizeProgramAggregate } from "./programAggregate";
-import type { AuthorityPrincipal, ProgramAggregate } from "./types";
+import type { AuthorityPrincipal, ProgramAggregate, RecordResponsibleParty } from "./types";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -23,6 +23,7 @@ export type ProgramOperations = {
   program_version: number;
   authority_available: boolean;
   operations: ProgramOperation[];
+  responsible_parties?: RecordResponsibleParty[];
   generated_at: string;
 };
 
@@ -133,6 +134,14 @@ export function assignProgram(programID: string, expectedVersion: number, ownerP
   return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/assignment`, {
     expected_version: expectedVersion,
     owner_principal_id: ownerPrincipalID,
+    rationale,
+  });
+}
+
+export function assignProgramApprovalAuthority(programID: string, expectedVersion: number, candidateID: string, rationale: string): Promise<ProgramAggregate> {
+  return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/approval-authority`, {
+    expected_version: expectedVersion,
+    candidate_id: candidateID,
     rationale,
   });
 }

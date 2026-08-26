@@ -24,6 +24,7 @@ const programOperationCommands = {
   createProgram: "program.create",
   updateProgramDetails: "program.details.update",
   assignProgram: "program.assign",
+  assignProgramApprovalAuthority: "program.approval-authority.assign",
   transitionProgram: "program.transition",
   addProgramRequirement: "program.requirement.add",
   supersedeProgramRequirement: "program.requirement.supersede",

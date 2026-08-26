@@ -1,6 +1,6 @@
 import { loadContext, resolveAuthority } from "./api";
 import { requestJSON } from "./http";
-import type { MatterAggregate, ProgramAggregate, WorkflowTask } from "./types";
+import type { AuthorityPrincipal, MatterAggregate, ProgramAggregate, WorkflowTask } from "./types";
 import { normalizeProgramAggregate } from "./programAggregate";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -47,6 +47,15 @@ type CreateProgramInput = {
   owningFunction: string;
   jurisdiction?: string;
   scopeDescription?: string;
+  ownerCandidateID: string;
+  approvalAuthorityCandidateID: string;
+};
+
+export type ProgramSetupCandidates = {
+  owner_candidates: AuthorityPrincipal[];
+  approval_authority_candidates: AuthorityPrincipal[];
+  has_more: boolean;
+  generated_at: string;
 };
 
 type AddRequirementInput = {
@@ -104,13 +113,19 @@ export async function createProgram(input: CreateProgramInput): Promise<ProgramA
     name: input.name,
     type: input.type,
     owning_function: input.owningFunction,
-    owner_principal_id: context.actor.id,
-    authority_principal_id: context.actor.id,
+    owner_candidate_id: input.ownerCandidateID,
+    approval_authority_candidate_id: input.approvalAuthorityCandidateID,
     jurisdiction: input.jurisdiction,
     scope: { description: input.scopeDescription ?? "" },
     effective_from: new Date().toISOString(),
   });
   return normalizeProgramAggregate(value);
+}
+
+export async function loadProgramSetupCandidates(): Promise<ProgramSetupCandidates> {
+  const context = await loadContext();
+  const params = new URLSearchParams({ tenant_id: context.tenant.id });
+  return requestJSON<ProgramSetupCandidates>(apiBase, `/api/v1/programs/setup-candidates?${params.toString()}`);
 }
 
 export async function createMatter(input: CreateMatterInput): Promise<MatterAggregate> {

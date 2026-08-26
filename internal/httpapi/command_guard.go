@@ -25,6 +25,7 @@ type commandPolicy struct {
 	AllowService    bool
 	BindLegalEntity bool
 	ActorField      string
+	DecisionType    string
 }
 
 // command binds verified identity, resolves the lifecycle-specific authority
@@ -86,13 +87,17 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 				legalEntityID = requested
 			}
 		}
+		decisionType := strings.TrimSpace(policy.DecisionType)
+		if decisionType == "" {
+			decisionType = name
+		}
 		decision, authErr := a.deps.CommandGuard.Authorize(r.Context(), commandauth.Request{
 			TenantID:       actor.TenantID,
 			LegalEntityID:  legalEntityID,
 			ObjectType:     policy.ObjectType,
 			ObjectID:       objectID,
 			Responsibility: policy.Responsibility,
-			DecisionType:   name,
+			DecisionType:   decisionType,
 			Materiality:    materiality,
 			AllowService:   policy.AllowService,
 		})

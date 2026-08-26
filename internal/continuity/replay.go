@@ -6,20 +6,21 @@ import (
 )
 
 const (
-	EventProgramCreated             = "PROGRAM_CREATED"
-	EventProgramStatusChanged       = "PROGRAM_STATUS_CHANGED"
-	EventProgramDetailsUpdated      = "PROGRAM_DETAILS_UPDATED"
-	EventProgramOwnerChanged        = "PROGRAM_OWNER_CHANGED"
-	EventRequirementAdded           = "REQUIREMENT_ADDED"
-	EventRequirementSuperseded      = "REQUIREMENT_SUPERSEDED"
-	EventApplicabilityDetermined    = "APPLICABILITY_DETERMINED"
-	EventControlObjectiveAdded      = "CONTROL_OBJECTIVE_ADDED"
-	EventControlImplementationAdded = "CONTROL_IMPLEMENTATION_ADDED"
-	EventRequirementControlLinked   = "REQUIREMENT_CONTROL_LINKED"
-	EventEvidenceContractAdded      = "EVIDENCE_CONTRACT_ADDED"
-	EventEvidenceAssessmentRecorded = "EVIDENCE_ASSESSMENT_RECORDED"
-	EventProgramStateUpdated        = "PROGRAM_STATE_UPDATED"
-	EventProgramTriggerRecorded     = "PROGRAM_TRIGGER_RECORDED"
+	EventProgramCreated                  = "PROGRAM_CREATED"
+	EventProgramStatusChanged            = "PROGRAM_STATUS_CHANGED"
+	EventProgramDetailsUpdated           = "PROGRAM_DETAILS_UPDATED"
+	EventProgramOwnerChanged             = "PROGRAM_OWNER_CHANGED"
+	EventProgramApprovalAuthorityChanged = "PROGRAM_APPROVAL_AUTHORITY_CHANGED"
+	EventRequirementAdded                = "REQUIREMENT_ADDED"
+	EventRequirementSuperseded           = "REQUIREMENT_SUPERSEDED"
+	EventApplicabilityDetermined         = "APPLICABILITY_DETERMINED"
+	EventControlObjectiveAdded           = "CONTROL_OBJECTIVE_ADDED"
+	EventControlImplementationAdded      = "CONTROL_IMPLEMENTATION_ADDED"
+	EventRequirementControlLinked        = "REQUIREMENT_CONTROL_LINKED"
+	EventEvidenceContractAdded           = "EVIDENCE_CONTRACT_ADDED"
+	EventEvidenceAssessmentRecorded      = "EVIDENCE_ASSESSMENT_RECORDED"
+	EventProgramStateUpdated             = "PROGRAM_STATE_UPDATED"
+	EventProgramTriggerRecorded          = "PROGRAM_TRIGGER_RECORDED"
 
 	EventMatterCreated               = "MATTER_CREATED"
 	EventMatterLinked                = "MATTER_LINKED"
@@ -75,6 +76,12 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 			aggregate.Program = value.Program
 		case EventProgramOwnerChanged:
 			var value programOwnerChangedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.Program = value.Program
+		case EventProgramApprovalAuthorityChanged:
+			var value programApprovalAuthorityChangedEvent
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
 				return ProgramAggregate{}, err
 			}

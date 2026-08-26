@@ -142,7 +142,7 @@ export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "
   const expectedProjectionVersion = aggregate?.current_state?.projection_version ?? 0;
   const digestVersionMatches = Boolean(aggregate && digest && digest.current_program_version === aggregate.program.version && digest.current_projection_version === expectedProjectionVersion);
   const reviewOutdated = reviewState === "live" && Boolean(aggregate && digest) && !digestVersionMatches;
-  const mutationsReady = operationsState === "live" && Boolean(operations?.authority_available) && operationVersionMatches && reviewState === "live" && Boolean(digest) && digestVersionMatches;
+  const mutationsReady = aggregate?.program.status !== "RETIRED" && operationsState === "live" && Boolean(operations?.authority_available) && operationVersionMatches && reviewState === "live" && Boolean(digest) && digestVersionMatches;
   const canAcknowledgeReview = mutationsReady && Boolean(operations?.operations.some((operation) => operation.command === "program.review.accept" && operation.can_act));
   const displayedOperations: ProgramOperations = operations
     ? {
@@ -161,6 +161,7 @@ export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "
         authority_available: false,
         generated_at: "",
         operations: [],
+        responsible_parties: [],
       };
 
   return <section className="program-record-workspace" aria-label="Program record">
@@ -186,7 +187,7 @@ export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "
       <section className="program-record-grid">
         <article className="program-record-panel" id="program-review-panel">{digest ? <ProgramReviewDigest aggregate={aggregate} initialDigest={digest} canAcknowledge={canAcknowledgeReview} onDigestUpdated={applyDigestUpdated}/> : <div className="inline-notice">Review actions are disabled until the current review status is available.</div>}</article>
 		<ProgramStatusPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
-		<ProgramDetailsPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
+		<ProgramDetailsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
 		<ProgramRequirementsPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
 		<ProgramSafeguardsPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
 		<ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>

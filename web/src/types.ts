@@ -16,6 +16,7 @@ export type CaptureField = { id: string; label: string; type: string; required: 
 export type EvidenceRecipient = { type?: "INTERNAL_PRINCIPAL" | "EXTERNAL_AUDIENCE"; principal_id?: string; display_name?: string; audience_hint?: string; state?: "ASSIGNED" | "REASSIGNMENT_REQUIRED" | "LEGACY_UNASSIGNED"; revision?: number; issue_reason?: string };
 export type CaptureRequest = { id: string; title: string; purpose: string; why_you: string; status: string; sensitivity: string; audience_type?: string; recipient?: EvidenceRecipient; created_by?: string; estimated_minutes: number; deadline: string; known_facts: Record<string, string>; fields: CaptureField[]; version: number; };
 export type AuthorityPrincipal = { id: string; display_name: string; kind: string; role: string };
+export type RecordResponsibleParty = { scope: "RECORD" | "ACTION" | string; subresource_id?: string; responsibility: string; display_name: string; kind?: string };
 export type AuthorityResolution = { principal: AuthorityPrincipal; candidate_principals?: AuthorityPrincipal[]; strategy?: string; rule_id: string; policy_version: string; explanation: string; };
 export type IntegrityFinding = { type: string; severity: string; summary: string; required_action: string; rule_ids?: string[]; };
 export type PolicySummary = { id: string; code: string; name: string; status: string; version: number; effective_from?: string; };

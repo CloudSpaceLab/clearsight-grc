@@ -18,18 +18,32 @@ type RecordOperation struct {
 	AllowedTargets []string              `json:"allowed_targets,omitempty"`
 }
 
+// RecordResponsibleParty preserves a safe human label for responsibility that
+// belonged to a stored record. It intentionally omits the principal identifier:
+// commands use current authority resolution, while this value is read-only
+// reconstruction context.
+type RecordResponsibleParty struct {
+	Scope          string `json:"scope"`
+	SubresourceID  string `json:"subresource_id,omitempty"`
+	Responsibility string `json:"responsibility"`
+	DisplayName    string `json:"display_name"`
+	Kind           string `json:"kind,omitempty"`
+}
+
 type matterOperationsResponse struct {
-	MatterID           string            `json:"matter_id"`
-	MatterVersion      int64             `json:"matter_version"`
-	AuthorityAvailable bool              `json:"authority_available"`
-	Operations         []RecordOperation `json:"operations"`
-	GeneratedAt        time.Time         `json:"generated_at"`
+	MatterID           string                   `json:"matter_id"`
+	MatterVersion      int64                    `json:"matter_version"`
+	AuthorityAvailable bool                     `json:"authority_available"`
+	Operations         []RecordOperation        `json:"operations"`
+	ResponsibleParties []RecordResponsibleParty `json:"responsible_parties,omitempty"`
+	GeneratedAt        time.Time                `json:"generated_at"`
 }
 
 type programOperationsResponse struct {
-	ProgramID          string            `json:"program_id"`
-	ProgramVersion     int64             `json:"program_version"`
-	AuthorityAvailable bool              `json:"authority_available"`
-	Operations         []RecordOperation `json:"operations"`
-	GeneratedAt        time.Time         `json:"generated_at"`
+	ProgramID          string                   `json:"program_id"`
+	ProgramVersion     int64                    `json:"program_version"`
+	AuthorityAvailable bool                     `json:"authority_available"`
+	Operations         []RecordOperation        `json:"operations"`
+	ResponsibleParties []RecordResponsibleParty `json:"responsible_parties,omitempty"`
+	GeneratedAt        time.Time                `json:"generated_at"`
 }
