@@ -4,6 +4,7 @@ import type {
   CurrentVendorAssessment,
   CreateVendorAssessmentDeficiencyInput,
   ReviewVendorAssessmentDocumentInput,
+  ReissueVendorAssessmentRequestInput,
   SendVendorAssessmentRequestInput,
   StartVendorAssessmentInput,
   StartVendorAssessmentReviewInput,
@@ -35,6 +36,13 @@ export function startVendorAssessment(relationshipID: string, input: StartVendor
 
 export function sendVendorAssessmentRequest(assessmentID: string, input: SendVendorAssessmentRequestInput): Promise<VendorAssessmentSendOutcome> {
   return requestJSON<VendorAssessmentSendOutcome>(apiBase, `/api/v1/vendor-assessments/${encodeURIComponent(assessmentID)}/send-request`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function reissueVendorAssessmentRequest(assessmentID: string, input: ReissueVendorAssessmentRequestInput): Promise<VendorAssessmentSendOutcome> {
+  return requestJSON<VendorAssessmentSendOutcome>(apiBase, `/api/v1/vendor-assessments/${encodeURIComponent(assessmentID)}/reissue-request`, {
     method: "POST",
     body: JSON.stringify(input),
   });

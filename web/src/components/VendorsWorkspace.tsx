@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { apiErrorKind } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
-import { loadCurrentVendorAssessment, sendVendorAssessmentRequest, startVendorAssessment } from "../vendorAssessmentApi";
+import { loadCurrentVendorAssessment, reissueVendorAssessmentRequest, sendVendorAssessmentRequest, startVendorAssessment } from "../vendorAssessmentApi";
 import type { CurrentVendorAssessment, StartVendorAssessmentInput, VendorAssessment, VendorAssessmentFormOption, VendorAssessmentSendOutcome } from "../vendorAssessmentTypes";
 import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
 import type { CreateVendorRelationshipInput, VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "../vendorTypes";
@@ -54,6 +54,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   const [assessmentSetup, setAssessmentSetup] = useState<CurrentVendorAssessment["setup"]>();
   const [assessmentState, setAssessmentState] = useState<LoadState>("loading");
   const [requestOutcome, setRequestOutcome] = useState<VendorAssessmentSendOutcome>();
+  const [requestOutcomeKind, setRequestOutcomeKind] = useState<"initial" | "replacement">("initial");
   const assessmentLoadID = useRef(0);
   const formLoadID = useRef(0);
 
@@ -86,6 +87,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       setAssessmentSetup(undefined);
       setAssessmentState("loading");
       setRequestOutcome(undefined);
+      setRequestOutcomeKind("initial");
       return;
     }
     void refreshAssessment(selected.relationship.id);
@@ -97,6 +99,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     const loadID = ++assessmentLoadID.current;
     setAssessmentState("loading");
     setRequestOutcome(undefined);
+    setRequestOutcomeKind("initial");
     try {
       const current = await loadCurrentVendorAssessment(relationshipID);
       if (loadID !== assessmentLoadID.current) return;
@@ -131,6 +134,16 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     const outcome = await sendVendorAssessmentRequest(assessment.id, input);
     setAssessment(outcome.assessment);
     setRequestOutcome(outcome);
+    setRequestOutcomeKind("initial");
+    return outcome;
+  }
+
+  async function reissueAssessmentRequest(input: Parameters<typeof reissueVendorAssessmentRequest>[1]) {
+    if (!assessment) throw new Error("No current assessment");
+    const outcome = await reissueVendorAssessmentRequest(assessment.id, input);
+    setAssessment(outcome.assessment);
+    setRequestOutcome(outcome);
+    setRequestOutcomeKind("replacement");
     return outcome;
   }
 
@@ -258,12 +271,14 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
           form={activeVendorForm}
           formState={formState}
           requestOutcome={requestOutcome}
+          requestOutcomeKind={requestOutcomeKind}
           onBack={() => { setSelected(null); onTarget?.(); }}
           onEdit={startEdit}
           onRefreshAssessment={() => refreshAssessment(selected.relationship.id)}
           onRefreshForms={refreshForms}
           onStartAssessment={startAssessment}
           onSendAssessmentRequest={sendAssessmentRequest}
+          onReissueAssessmentRequest={reissueAssessmentRequest}
           onOpenRequest={onOpenRequest}
         /> : records.length > 0 ? <div className="vendor-selection"><h2>Select a vendor</h2><p>Choose a relationship to review its service, accountable owner, source and current record version.</p></div> : null}
       </section>
@@ -271,7 +286,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   </div>;
 }
 
-function VendorDetail({ record, assessment, assessmentSetup, assessmentState, form, formState, requestOutcome, onBack, onEdit, onRefreshAssessment, onRefreshForms, onStartAssessment, onSendAssessmentRequest, onOpenRequest }: {
+function VendorDetail({ record, assessment, assessmentSetup, assessmentState, form, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onRefreshAssessment, onRefreshForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onOpenRequest }: {
   record: VendorRelationshipAggregate;
   assessment: VendorAssessment | null;
   assessmentSetup?: CurrentVendorAssessment["setup"];
@@ -279,12 +294,14 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, fo
   form?: VendorAssessmentFormOption;
   formState: LoadState;
   requestOutcome?: VendorAssessmentSendOutcome;
+  requestOutcomeKind: "initial" | "replacement";
   onBack: () => void;
   onEdit: () => void;
   onRefreshAssessment: () => Promise<void>;
   onRefreshForms: () => Promise<void>;
   onStartAssessment: (input: StartVendorAssessmentInput) => Promise<VendorAssessment | void>;
   onSendAssessmentRequest: (input: Parameters<typeof sendVendorAssessmentRequest>[1]) => Promise<VendorAssessmentSendOutcome>;
+  onReissueAssessmentRequest: (input: Parameters<typeof reissueVendorAssessmentRequest>[1]) => Promise<VendorAssessmentSendOutcome>;
   onOpenRequest?: (requestID: string) => void;
 }) {
   const { vendor, relationship } = record;
@@ -308,12 +325,14 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, fo
     assessment={assessment}
     form={form}
     requestOutcome={requestOutcome}
+    requestOutcomeKind={requestOutcomeKind}
     viewState={effectiveAssessmentState}
     defaultReviewDueDate={recommendedReviewDate()}
     setupFailure={setupFailure}
     onRefresh={onRefreshAssessment}
     onStart={onStartAssessment}
     onSend={onSendAssessmentRequest}
+    onReissue={onReissueAssessmentRequest}
     onOpenRequest={onOpenRequest}
   />}
   </>;

@@ -64,6 +64,12 @@ export type SendVendorAssessmentRequestInput = {
   invitation_ttl_minutes: number;
 };
 
+export type ReissueVendorAssessmentRequestInput = {
+  expected_version: number;
+  audience: string;
+  invitation_ttl_minutes: number;
+};
+
 export type VendorAssessmentRequestSummary = {
   id: string;
   status: string;

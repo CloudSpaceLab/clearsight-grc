@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   completeVendorAssessment,
   loadCurrentVendorAssessment,
+  reissueVendorAssessmentRequest,
   requestVendorAssessmentClarification,
   sendVendorAssessmentRequest,
   startVendorAssessment,
@@ -89,6 +90,27 @@ describe("vendor assessment API", () => {
       expected_version: 2,
       audience: "security@vendor.example",
       deadline: "2026-09-20T17:00:00Z",
+      invitation_ttl_minutes: 1440,
+    });
+  });
+
+  it("sends replacement-link details only to the reissue command", async () => {
+    const outcome = { assessment: { ...assessment, status: "COLLECTING", version: 4 }, request: { id: "request-1" }, state: "DELIVERED" };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(outcome), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await reissueVendorAssessmentRequest("assessment/1", {
+      expected_version: 3,
+      audience: "security@vendor.example",
+      invitation_ttl_minutes: 1440,
+    });
+
+    const call = fetchMock.mock.calls[0];
+    if (!call) throw new Error("fetch was not called");
+    expect(call[0]).toBe("/api/v1/vendor-assessments/assessment%2F1/reissue-request");
+    expect(JSON.parse(String((call[1] as RequestInit).body))).toEqual({
+      expected_version: 3,
+      audience: "security@vendor.example",
       invitation_ttl_minutes: 1440,
     });
   });

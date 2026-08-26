@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import type {
   CompleteVendorAssessmentInput,
+  ReissueVendorAssessmentRequestInput,
   SendVendorAssessmentRequestInput,
   StartVendorAssessmentInput,
   VendorAssessment,
@@ -22,6 +23,7 @@ type Props = {
   form?: VendorAssessmentFormOption;
   review?: VendorAssessmentReviewView;
   requestOutcome?: VendorAssessmentSendOutcome;
+  requestOutcomeKind?: "initial" | "replacement";
   viewState?: ViewState;
   defaultReviewDueDate?: string;
   setupFailure?: string;
@@ -31,6 +33,7 @@ type Props = {
   onRetrySetup?: (assessmentID: string) => Promise<void> | void;
   onRefresh?: () => Promise<void> | void;
   onSend?: (input: SendVendorAssessmentRequestInput) => Promise<VendorAssessmentSendOutcome>;
+  onReissue?: (input: ReissueVendorAssessmentRequestInput) => Promise<VendorAssessmentSendOutcome>;
   onOpenRequest?: (requestID: string) => void;
   onStartReview?: (assessmentID: string, expectedVersion: number) => Promise<VendorAssessment | void> | VendorAssessment | void;
   onRequestClarification?: (assessmentID: string, input: VendorAssessmentClarificationInput) => Promise<VendorAssessment | void> | VendorAssessment | void;
@@ -40,7 +43,7 @@ type Props = {
   onOpenCompleted?: (assessmentID: string) => void;
 };
 
-type ActionPanel = "start" | "send" | "clarification" | "conclusion" | null;
+type ActionPanel = "start" | "send" | "reissue" | "clarification" | "conclusion" | null;
 
 const conclusionOptions: { value: VendorAssessmentConclusion; label: string }[] = [
   { value: "SATISFACTORY", label: "Satisfactory" },
@@ -55,6 +58,7 @@ export function VendorDueDiligence({
   form,
   review,
   requestOutcome,
+  requestOutcomeKind = "initial",
   viewState = "live",
   defaultReviewDueDate = "",
   setupFailure,
@@ -64,6 +68,7 @@ export function VendorDueDiligence({
   onRetrySetup,
   onRefresh,
   onSend,
+  onReissue,
   onOpenRequest,
   onStartReview,
   onRequestClarification,
@@ -75,6 +80,7 @@ export function VendorDueDiligence({
   const [panel, setPanel] = useState<ActionPanel>(null);
   const [localAssessment, setLocalAssessment] = useState<VendorAssessment | null | undefined>(assessment);
   const [localOutcome, setLocalOutcome] = useState<VendorAssessmentSendOutcome>();
+  const [localOutcomeKind, setLocalOutcomeKind] = useState<"initial" | "replacement">("initial");
   const [reviewDueDate, setReviewDueDate] = useState(defaultReviewDueDate);
   const [recipient, setRecipient] = useState("");
   const [responseDueDate, setResponseDueDate] = useState("");
@@ -93,12 +99,14 @@ export function VendorDueDiligence({
   useEffect(() => {
     setLocalAssessment(assessment);
     setLocalOutcome(undefined);
+    setLocalOutcomeKind("initial");
     setPanel(null);
     setError("");
     setNotice("");
   }, [assessment]);
 
   const effectiveOutcome = localOutcome ?? requestOutcome;
+  const effectiveOutcomeKind = localOutcome ? localOutcomeKind : requestOutcomeKind;
   const effectiveAssessment = effectiveOutcome?.assessment ?? localAssessment;
   const status = effectiveAssessment?.status;
   const requestID = effectiveAssessment?.current_request_id ?? effectiveOutcome?.request.id;
@@ -156,6 +164,7 @@ export function VendorDueDiligence({
       });
       setRecipient("");
       setLocalOutcome(outcome);
+      setLocalOutcomeKind("initial");
       setPanel(null);
       if (outcome.state === "DELIVERED") setNotice(`The request was sent. The response is due ${formatDate(outcome.request.deadline)}.`);
     } catch {
@@ -163,6 +172,34 @@ export function VendorDueDiligence({
       setPanel(null);
       setError("The request was not sent. Re-enter the vendor contact email before trying again.");
     } finally {
+      setBusy(false);
+    }
+  }
+
+  async function reissueRequest(event: React.FormEvent) {
+    event.preventDefault();
+    if (!effectiveAssessment || !onReissue || !validEmail(recipient)) {
+      setError("Enter a valid vendor contact email before sending the replacement link.");
+      setRecipient("");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const outcome = await onReissue({
+        expected_version: effectiveAssessment.version,
+        audience: recipient.trim().toLowerCase(),
+        invitation_ttl_minutes: invitationMinutes,
+      });
+      setLocalOutcome(outcome);
+      setLocalOutcomeKind("replacement");
+      setPanel(null);
+      if (outcome.state === "DELIVERED") setNotice("Replacement link sent. Previous access to this request has ended.");
+    } catch {
+      setPanel(null);
+      setError("The replacement link was not sent. Re-enter the vendor contact email before trying again.");
+    } finally {
+      setRecipient("");
       setBusy(false);
     }
   }
@@ -224,7 +261,7 @@ export function VendorDueDiligence({
     if (!captureURL) return;
     try {
       await navigator.clipboard.writeText(captureURL);
-      setNotice("Secure link copied.");
+      setNotice(effectiveOutcomeKind === "replacement" ? "Replacement link copied." : "Secure link copied.");
     } catch {
       setError("The secure link could not be copied. Use the request status to retry delivery.");
     }
@@ -274,20 +311,21 @@ export function VendorDueDiligence({
 
     {panel === "start" && <StartPanel form={form} reviewDueDate={reviewDueDate} minimumDate={minimumFutureDate} busy={busy} onReviewDueDate={setReviewDueDate} onCancel={() => setPanel(null)} onSubmit={startAssessment}/>}
     {panel === "send" && effectiveAssessment && <SendPanel recipient={recipient} responseDueDate={responseDueDate} invitationMinutes={invitationMinutes} minimumDate={minimumFutureDate} reviewDueAt={effectiveAssessment.review_due_at} busy={busy} onRecipient={setRecipient} onResponseDueDate={setResponseDueDate} onInvitationMinutes={setInvitationMinutes} onCancel={() => { setRecipient(""); setPanel(null); }} onSubmit={sendRequest}/>}
+    {panel === "reissue" && effectiveAssessment && <ReissuePanel recipient={recipient} invitationMinutes={invitationMinutes} busy={busy} onRecipient={setRecipient} onInvitationMinutes={setInvitationMinutes} onCancel={() => { setRecipient(""); setPanel(null); }} onSubmit={reissueRequest}/>}
     {panel === "clarification" && <ClarificationPanel fields={clarificationFields} selected={selectedClarificationFields} message={clarificationMessage} dueDate={clarificationDueDate} busy={busy} onSelected={setSelectedClarificationFields} onMessage={setClarificationMessage} onDueDate={setClarificationDueDate} onCancel={() => setPanel(null)} onSubmit={submitClarification}/>}
     {panel === "conclusion" && <ConclusionPanel conclusion={conclusion} rationale={rationale} uncertainty={uncertainty} nextReviewDate={nextReviewDate} minimumDate={minimumFutureDate} busy={busy} onConclusion={setConclusion} onRationale={setRationale} onUncertainty={setUncertainty} onNextReviewDate={setNextReviewDate} onCancel={() => setPanel(null)} onSubmit={submitConclusion}/>}
 
     {!panel && <div className="vdd-actions">
-      {effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <button type="button" className="primary-button" onClick={() => void copyCaptureLink()}>Copy secure link</button>
+      {status === "COLLECTING" ? <><button type="button" className="primary-button" onClick={() => requestID && onOpenRequest?.(requestID)} disabled={!requestID || !onOpenRequest}>Review request status</button>{effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <button type="button" className="secondary-button" onClick={() => void copyCaptureLink()}>{effectiveOutcomeKind === "replacement" ? "Copy replacement link" : "Copy secure link"}</button> : <button type="button" className="secondary-button" onClick={() => openPanel("reissue")} disabled={!onReissue}>{effectiveOutcomeKind === "replacement" && effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? "Retry replacement link" : "Send replacement link"}</button>}</>
+        : effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <button type="button" className="primary-button" onClick={() => void copyCaptureLink()}>Copy secure link</button>
         : effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? <button type="button" className="primary-button" onClick={() => openPanel("send")} disabled={!onSend}>Retry invitation creation</button>
           : !effectiveAssessment ? <button type="button" className="primary-button" onClick={() => openPanel("start")} disabled={!form || !onStart}>Start due diligence</button>
             : status === "SETUP_PENDING" ? setupFailure ? <button type="button" className="primary-button" onClick={() => onRetrySetup?.(effectiveAssessment.id)} disabled={!onRetrySetup}>Retry due diligence setup</button> : <button type="button" className="primary-button" onClick={() => void onRefresh?.()} disabled={!onRefresh}>View setup status</button>
               : status === "READY_TO_SEND" ? <button type="button" className="primary-button" onClick={() => openPanel("send")} disabled={!onSend}>Send due diligence request</button>
-                : status === "COLLECTING" ? <button type="button" className="primary-button" onClick={() => requestID && onOpenRequest?.(requestID)} disabled={!requestID || !onOpenRequest}>Review request status</button>
-                  : status === "SUBMITTED" ? <button type="button" className="primary-button" onClick={() => void startReview()} disabled={!onStartReview || busy}>{busy ? "Opening review…" : "Review vendor response"}</button>
+                : status === "SUBMITTED" ? <button type="button" className="primary-button" onClick={() => void startReview()} disabled={!onStartReview || busy}>{busy ? "Opening review…" : "Review vendor response"}</button>
                     : status === "UNDER_REVIEW" ? <button type="button" className="primary-button" onClick={() => openPanel("conclusion")} disabled={!onComplete}>Record assessment conclusion</button>
                       : status === "COMPLETED" ? <button type="button" className="primary-button" onClick={() => onOpenCompleted?.(effectiveAssessment.id)} disabled={!onOpenCompleted}>View completed assessment</button>
-                        : status === "CANCELLED" ? <button type="button" className="primary-button" onClick={() => openPanel("start")} disabled={!form || !onStart}>Start due diligence</button> : null}
+                        : null}
       {status === "UNDER_REVIEW" && onRequestClarification && <button type="button" className="secondary-button" onClick={() => openPanel("clarification")}>Request clarification</button>}
     </div>}
 
@@ -314,6 +352,17 @@ function SendPanel({ recipient, responseDueDate, invitationMinutes, minimumDate,
     </div>
     <p className="vdd-limitation">Sending the request starts evidence collection. A submitted response still requires bank review.</p>
     <div className="vdd-panel-actions"><button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>Cancel</button><button type="submit" className="primary-button" disabled={busy}>{busy ? "Sending…" : "Send due diligence request"}</button></div>
+  </form>;
+}
+
+function ReissuePanel({ recipient, invitationMinutes, busy, onRecipient, onInvitationMinutes, onCancel, onSubmit }: { recipient: string; invitationMinutes: number; busy: boolean; onRecipient: (value: string) => void; onInvitationMinutes: (value: number) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
+  return <form className="vdd-panel" onSubmit={onSubmit} noValidate>
+    <div><span className="eyebrow">Vendor request access</span><h3>Send replacement link</h3><p>Sending a replacement ends access from the previous link and active vendor session.</p></div>
+    <div className="vdd-form-grid">
+      <label className="vdd-field vdd-wide"><span>Vendor contact email</span><input type="email" inputMode="email" autoComplete="email" value={recipient} onChange={(event) => onRecipient(event.target.value)} required/></label>
+      <label className="vdd-field"><span>Replacement link valid for</span><select value={invitationMinutes} onChange={(event) => onInvitationMinutes(Number(event.target.value))}><option value={60}>1 hour</option><option value={1440}>24 hours</option><option value={10080}>7 days</option></select></label>
+    </div>
+    <div className="vdd-panel-actions"><button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>Cancel</button><button type="submit" className="primary-button" disabled={busy}>{busy ? "Sending…" : "Send replacement link"}</button></div>
   </form>;
 }
 
@@ -360,7 +409,7 @@ function assessmentStatusCopy(assessment?: VendorAssessment | null, setupFailure
     case "SUBMITTED": return { label: "Response received", tone: "information", description: "The vendor response was submitted and now requires bank review." };
     case "UNDER_REVIEW": return { label: "Under review", tone: "pending", description: "Review the response, documents and findings before recording a conclusion." };
     case "COMPLETED": return { label: conclusionLabel(assessment.conclusion), tone: assessment.conclusion === "UNSATISFACTORY" ? "danger" : "complete", description: "The assessment conclusion is recorded. The vendor relationship status remains separate." };
-    case "CANCELLED": return { label: "Cancelled", tone: "neutral", description: "This assessment was cancelled. Start a new review only when the relationship still requires due diligence." };
+    case "CANCELLED": return { label: "Cancelled", tone: "neutral", description: "This assessment was cancelled. A new onboarding review has not been started." };
   }
 }
 

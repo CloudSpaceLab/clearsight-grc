@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
-import { loadCurrentVendorAssessment, sendVendorAssessmentRequest, startVendorAssessment } from "../vendorAssessmentApi";
+import { loadCurrentVendorAssessment, reissueVendorAssessmentRequest, sendVendorAssessmentRequest, startVendorAssessment } from "../vendorAssessmentApi";
 import type { VendorAssessment } from "../vendorAssessmentTypes";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
@@ -19,6 +19,7 @@ vi.mock("../vendorApi", () => ({
 vi.mock("../monitoringApi", () => ({ loadFormTemplates: vi.fn() }));
 vi.mock("../vendorAssessmentApi", () => ({
   loadCurrentVendorAssessment: vi.fn(),
+  reissueVendorAssessmentRequest: vi.fn(),
   sendVendorAssessmentRequest: vi.fn(),
   startVendorAssessment: vi.fn(),
 }));
@@ -150,6 +151,26 @@ describe("VendorsWorkspace", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("Email delivery did not complete");
     expect(sendVendorAssessmentRequest).toHaveBeenCalledWith("assessment-1", expect.objectContaining({ audience: "security@vendor.example", expected_version: 3 }));
     expect(screen.queryByText("security@vendor.example")).toBeNull();
+  });
+
+  it("reissues the current request without replacing the request-status action", async () => {
+    vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: assessment("COLLECTING") });
+    vi.mocked(reissueVendorAssessmentRequest).mockResolvedValue({
+      assessment: { ...assessment("COLLECTING"), version: 4 }, request: { id: "request-1", status: "READY" }, state: "DELIVERED",
+    });
+    const onOpenRequest = vi.fn();
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1" onOpenRequest={onOpenRequest}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Send replacement link" }));
+    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+
+    await waitFor(() => expect(reissueVendorAssessmentRequest).toHaveBeenCalledWith("assessment-1", {
+      expected_version: 3, audience: "security@vendor.example", invitation_ttl_minutes: 1440,
+    }));
+    expect(await screen.findByText("Replacement link sent. Previous access to this request has ended.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Review request status" }));
+    expect(onOpenRequest).toHaveBeenCalledWith("request-1");
   });
 
   it("states the exact empty population and next action", async () => {

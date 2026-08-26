@@ -123,6 +123,72 @@ describe("VendorDueDiligence", () => {
     expect(primaryActions()).toHaveLength(1);
   });
 
+  it("keeps request status primary and sends a replacement link as a focused secondary action", async () => {
+    const delivered = { assessment: { ...assessment("COLLECTING"), version: 4 }, request: { id: "request-1", status: "READY" }, state: "DELIVERED" as const };
+    const onReissue = vi.fn().mockResolvedValue(delivered);
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("COLLECTING")} form={form} onOpenRequest={vi.fn()} onReissue={onReissue}/>);
+
+    expect(screen.getByRole("button", { name: "Review request status" }).classList.contains("primary-button")).toBe(true);
+    expect(screen.getByRole("button", { name: "Send replacement link" }).classList.contains("secondary-button")).toBe(true);
+    expect(primaryActions()).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
+    fireEvent.change(screen.getByLabelText("Replacement link valid for"), { target: { value: "10080" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+
+    await waitFor(() => expect(onReissue).toHaveBeenCalledWith({ expected_version: 3, audience: "security@vendor.example", invitation_ttl_minutes: 10080 }));
+    expect(await screen.findByText("Replacement link sent. Previous access to this request has ended.")).toBeTruthy();
+    expect(screen.queryByText("security@vendor.example")).toBeNull();
+    expect(screen.queryByDisplayValue("security@vendor.example")).toBeNull();
+    expect(primaryActions()).toHaveLength(1);
+  });
+
+  it("clears the replacement recipient after a failed attempt", async () => {
+    const onReissue = vi.fn().mockRejectedValue(new Error("unavailable"));
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("COLLECTING")} form={form} onOpenRequest={vi.fn()} onReissue={onReissue}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+
+    expect(await screen.findByText("The replacement link was not sent. Re-enter the vendor contact email before trying again.")).toBeTruthy();
+    expect(screen.queryByText("security@vendor.example")).toBeNull();
+    expect(screen.queryByDisplayValue("security@vendor.example")).toBeNull();
+  });
+
+  it("clears an invalid replacement recipient after validation", async () => {
+    const onReissue = vi.fn();
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("COLLECTING")} form={form} onOpenRequest={vi.fn()} onReissue={onReissue}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "not-an-email" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+
+    expect(await screen.findByText("Enter a valid vendor contact email before sending the replacement link.")).toBeTruthy();
+    expect((screen.getByLabelText("Vendor contact email") as HTMLInputElement).value).toBe("");
+    expect(onReissue).not.toHaveBeenCalled();
+  });
+
+  it("offers controlled copy recovery when replacement email delivery fails", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    const failed = {
+      assessment: { ...assessment("COLLECTING"), version: 4 }, request: { id: "request-1", status: "READY" },
+      state: "LINK_CREATED_EMAIL_NOT_SENT" as const, recovery: "Copy the replacement secure link or retry email delivery.",
+      capture_url: "https://capture.example.test/?capture_invite=replacement-secret",
+    };
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("COLLECTING")} form={form} onOpenRequest={vi.fn()} onReissue={vi.fn().mockResolvedValue(failed)}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+
+    fireEvent.click(await screen.findByRole("button", { name: "Copy replacement link" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("https://capture.example.test/?capture_invite=replacement-secret"));
+    expect(screen.queryByText(/replacement-secret/)).toBeNull();
+    expect(primaryActions()).toHaveLength(1);
+  });
+
   it("keeps clarification and findings secondary to the review conclusion", () => {
     const review: VendorAssessmentReviewView = {
       assessment: assessment("UNDER_REVIEW"),
@@ -163,5 +229,13 @@ describe("VendorDueDiligence", () => {
     rerender(<VendorDueDiligence relationship={relationship} assessment={assessment("READY_TO_SEND")} form={form} sourceStatus={{ state: "STALE", detail: "Procurement data was last received on 20 Aug 2026." }} onSend={vi.fn()}/>);
     expect(screen.getByRole("status").textContent).toContain("Procurement data was last received on 20 Aug 2026.");
     expect((screen.getByRole("button", { name: "Send due diligence request" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("does not offer a false restart action for a cancelled onboarding episode", () => {
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("CANCELLED")} form={form} onStart={vi.fn()}/>);
+
+    expect(screen.getByText("This assessment was cancelled. A new onboarding review has not been started.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Start due diligence" })).toBeNull();
+    expect(primaryActions()).toHaveLength(0);
   });
 });
