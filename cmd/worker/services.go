@@ -28,10 +28,12 @@ func configureWorkerRuntime(service *workflowruntime.Service, cfg config.Config,
 		workflowruntime.WorkClassOutboxDelivery,
 		thirdparty.AssessmentSetupWorkClass,
 		workflowruntime.WorkClassThirdPartyVendorBrand,
+		workflowruntime.WorkClassThirdPartyVendorBrandCleanup,
 	} {
 		service.ConfigureClass(name, options)
 	}
 	service.ConfigureClass(workflowruntime.WorkClassThirdPartyVendorBrand, vendorBrandWorkClassOptions(cfg.WorkerPoll))
+	service.ConfigureClass(workflowruntime.WorkClassThirdPartyVendorBrandCleanup, workflowruntime.WorkClassOptions{Poll: cfg.WorkerPoll, Timeout: 20 * time.Second, Lease: time.Minute, Batch: 25, MaxAttempts: 5, MaxBackoff: 5 * time.Minute})
 }
 
 func vendorBrandWorkClassOptions(poll time.Duration) workflowruntime.WorkClassOptions {

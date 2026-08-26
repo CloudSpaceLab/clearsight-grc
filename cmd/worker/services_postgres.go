@@ -91,6 +91,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
 	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
 	service.AddMaintainerClass(thirdparty.AssessmentSetupWorkClass, assessmentProvisioner)
+	service.AddMaintainerClass(workflowruntime.WorkClassThirdPartyVendorBrandCleanup, &thirdparty.VendorBrandReservationCleaner{Repository: assessmentRepository, Store: store})
 	if cfg.VendorBrandDiscoveryEnabled {
 		vendorBrandWorker := thirdparty.NewVendorBrandWorker(assessmentRepository, store, thirdparty.NewDefaultVendorBrandDiscoverer(), cfg.WorkerID)
 		configureVendorBrandWorker(vendorBrandWorker, cfg.WorkerPoll)

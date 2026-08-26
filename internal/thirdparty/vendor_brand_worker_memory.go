@@ -164,7 +164,7 @@ func (r *MemoryRepository) CompleteVendorBrandJob(_ context.Context, claim Vendo
 	current.UpdatedAt = at
 	current.Version++
 	r.vendorBrandJobs[key] = current
-	event := VendorBrandEvent{TenantID: claim.TenantID, VendorID: claim.VendorID, AssetID: asset.ID, AssetVersion: asset.Version, VendorVersion: claim.VendorVersion, EventType: VendorBrandDiscoveredEvent, ArtifactKey: asset.ArtifactKey, SourceDigest: asset.SourceDigest, OccurredAt: at}
+	event := VendorBrandEvent{TenantID: claim.TenantID, VendorID: claim.VendorID, AssetID: asset.ID, AssetVersion: asset.Version, VendorVersion: claim.VendorVersion, EventType: VendorBrandDiscoveredEvent, ArtifactKey: asset.ArtifactKey, SourceDigest: asset.SourceDigest, OccurredAt: at, EventVersion: r.nextVendorBrandEventVersion(claim.TenantID, claim.VendorID)}
 	r.vendorBrandEvents = append(r.vendorBrandEvents, event)
 	r.vendorBrandOutbox = append(r.vendorBrandOutbox, event)
 	return asset, nil
@@ -223,3 +223,13 @@ func sameVendorBrandLease(current, claim VendorBrandJob, at time.Time) bool {
 }
 
 var _ VendorBrandWorkerRepository = (*MemoryRepository)(nil)
+
+func (r *MemoryRepository) nextVendorBrandEventVersion(tenantID, vendorID string) int64 {
+	var version int64
+	for _, event := range r.vendorBrandEvents {
+		if event.TenantID == tenantID && event.VendorID == vendorID && event.EventVersion > version {
+			version = event.EventVersion
+		}
+	}
+	return version + 1
+}

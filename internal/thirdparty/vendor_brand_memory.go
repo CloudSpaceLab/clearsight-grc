@@ -3,7 +3,176 @@ package thirdparty
 import (
 	"context"
 	"sort"
+	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 )
+
+func (r *MemoryRepository) ReserveApprovedVendorBrand(_ context.Context, record VendorBrandMutationRecord) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if !r.vendorVisibleInScope(record.Scope, record.VendorID) {
+		return ErrNotFound
+	}
+	key := record.TenantID + "\x00" + record.VendorID + "\x00" + record.IdempotencyKey
+	if existing, ok := r.vendorBrandReservations[key]; ok {
+		if existing.ArtifactKey != record.Asset.ArtifactKey || existing.SourceDigest != record.Asset.SourceDigest || existing.ExpectedVersion != record.ExpectedVersion {
+			return ErrVersionConflict
+		}
+		return nil
+	}
+	r.vendorBrandReservations[key] = VendorBrandUploadReservation{TenantID: record.TenantID, VendorID: record.VendorID, IdempotencyKey: record.IdempotencyKey, ArtifactKey: record.Asset.ArtifactKey, SourceDigest: record.Asset.SourceDigest, State: "RESERVED", ExpectedVersion: record.ExpectedVersion, CreatedAt: record.OccurredAt, UpdatedAt: record.OccurredAt}
+	return nil
+}
+
+func (r *MemoryRepository) PutApprovedVendorBrand(_ context.Context, record VendorBrandMutationRecord) (VendorBrandAsset, int64, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if !r.vendorVisibleInScope(record.Scope, record.VendorID) {
+		return VendorBrandAsset{}, 0, ErrNotFound
+	}
+	receiptKey := record.TenantID + "\x00" + record.VendorID + "\x00" + record.IdempotencyKey
+	if receipt, ok := r.vendorBrandReceipts[receiptKey]; ok {
+		if receipt.Command != VendorBrandApproveCommand || receipt.ExpectedVersion != record.ExpectedVersion {
+			return VendorBrandAsset{}, 0, ErrVersionConflict
+		}
+		for _, a := range r.vendorBrandAssets {
+			if a.TenantID == record.TenantID && a.VendorID == record.VendorID && a.SourceKind == VendorBrandAssetApprovedOverride && a.State == VendorBrandAssetCurrent {
+				return a, receipt.ResultVersion, nil
+			}
+		}
+		return record.Asset, receipt.ResultVersion, nil
+	}
+	currentVersion := r.nextVendorBrandEventVersion(record.TenantID, record.VendorID) - 1
+	if currentVersion != record.ExpectedVersion {
+		return VendorBrandAsset{}, currentVersion, ErrBrandVersionConflict
+	}
+	for key, a := range r.vendorBrandAssets {
+		if a.TenantID == record.TenantID && a.VendorID == record.VendorID && a.SourceKind == VendorBrandAssetApprovedOverride && a.State == VendorBrandAssetCurrent {
+			a.State = VendorBrandAssetSuperseded
+			a.UpdatedAt = record.OccurredAt
+			a.Version++
+			r.vendorBrandAssets[key] = a
+		}
+	}
+	r.vendorBrandAssets[record.Asset.ID] = record.Asset
+	version := currentVersion + 1
+	event := VendorBrandEvent{TenantID: record.TenantID, VendorID: record.VendorID, AssetID: record.Asset.ID, AssetVersion: record.Asset.Version, EventType: VendorBrandApprovedEvent, ArtifactKey: record.Asset.ArtifactKey, SourceDigest: record.Asset.SourceDigest, OccurredAt: record.OccurredAt, EventVersion: version}
+	r.vendorBrandEvents = append(r.vendorBrandEvents, event)
+	r.vendorBrandOutbox = append(r.vendorBrandOutbox, event)
+	r.vendorBrandReceipts[receiptKey] = VendorBrandReceipt{TenantID: record.TenantID, VendorID: record.VendorID, IdempotencyKey: record.IdempotencyKey, Command: VendorBrandApproveCommand, ExpectedVersion: record.ExpectedVersion, ResultVersion: version}
+	reservation := r.vendorBrandReservations[receiptKey]
+	reservation.State = "COMMITTED"
+	reservation.UpdatedAt = record.OccurredAt
+	r.vendorBrandReservations[receiptKey] = reservation
+	return record.Asset, version, nil
+}
+
+func (r *MemoryRepository) RemoveApprovedVendorBrand(_ context.Context, record VendorBrandMutationRecord) (int64, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if !r.vendorVisibleInScope(record.Scope, record.VendorID) {
+		return 0, ErrNotFound
+	}
+	receiptKey := record.TenantID + "\x00" + record.VendorID + "\x00" + record.IdempotencyKey
+	if receipt, ok := r.vendorBrandReceipts[receiptKey]; ok {
+		if receipt.Command != VendorBrandRemoveCommand || receipt.ExpectedVersion != record.ExpectedVersion {
+			return 0, ErrVersionConflict
+		}
+		return receipt.ResultVersion, nil
+	}
+	currentVersion := r.nextVendorBrandEventVersion(record.TenantID, record.VendorID) - 1
+	if currentVersion != record.ExpectedVersion {
+		return currentVersion, ErrBrandVersionConflict
+	}
+	for key, a := range r.vendorBrandAssets {
+		if a.TenantID == record.TenantID && a.VendorID == record.VendorID && a.SourceKind == VendorBrandAssetApprovedOverride && a.State == VendorBrandAssetCurrent {
+			a.State = VendorBrandAssetSuperseded
+			a.UpdatedAt = record.OccurredAt
+			a.Version++
+			r.vendorBrandAssets[key] = a
+		}
+	}
+	version := currentVersion + 1
+	event := VendorBrandEvent{TenantID: record.TenantID, VendorID: record.VendorID, EventType: VendorBrandRemovedEvent, OccurredAt: record.OccurredAt, EventVersion: version}
+	r.vendorBrandEvents = append(r.vendorBrandEvents, event)
+	r.vendorBrandOutbox = append(r.vendorBrandOutbox, event)
+	r.vendorBrandReceipts[receiptKey] = VendorBrandReceipt{TenantID: record.TenantID, VendorID: record.VendorID, IdempotencyKey: record.IdempotencyKey, Command: VendorBrandRemoveCommand, ExpectedVersion: record.ExpectedVersion, ResultVersion: version}
+	return version, nil
+}
+
+func (r *MemoryRepository) CurrentVendorBrandVersion(_ context.Context, scope Scope, vendorID string) (int64, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if !r.vendorVisibleInScope(scope, vendorID) {
+		return 0, ErrNotFound
+	}
+	return r.nextVendorBrandEventVersion(scope.TenantID, vendorID) - 1, nil
+}
+
+func (r *MemoryRepository) ClaimExpiredVendorBrandReservations(_ context.Context, now, cutoff time.Time, lease time.Duration, limit int) ([]VendorBrandUploadReservation, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if limit < 1 {
+		limit = 25
+	}
+	items := []VendorBrandUploadReservation{}
+	for key, item := range r.vendorBrandReservations {
+		claimable := item.State == "RESERVED" && !item.UpdatedAt.After(cutoff) || item.State == "CLEANING" && item.LeaseExpiresAt != nil && !item.LeaseExpiresAt.After(now)
+		if !claimable {
+			continue
+		}
+		token, err := id.NewUUIDv7()
+		if err != nil {
+			return nil, err
+		}
+		expires := now.Add(lease)
+		item.State = "CLEANING"
+		item.LeaseToken = token
+		item.LeaseExpiresAt = &expires
+		item.UpdatedAt = now
+		r.vendorBrandReservations[key] = item
+		items = append(items, item)
+		if len(items) >= limit {
+			break
+		}
+	}
+	return items, nil
+}
+func (r *MemoryRepository) VendorBrandArtifactReferenced(_ context.Context, item VendorBrandUploadReservation) (bool, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, a := range r.vendorBrandAssets {
+		if a.TenantID == item.TenantID && a.ArtifactKey == item.ArtifactKey {
+			return true, nil
+		}
+	}
+	for _, other := range r.vendorBrandReservations {
+		if other.TenantID == item.TenantID && other.ArtifactKey == item.ArtifactKey && (other.VendorID != item.VendorID || other.IdempotencyKey != item.IdempotencyKey) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+func (r *MemoryRepository) CompleteVendorBrandReservationCleanup(_ context.Context, item VendorBrandUploadReservation, referenced bool, at time.Time) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	key := item.TenantID + "\x00" + item.VendorID + "\x00" + item.IdempotencyKey
+	current, ok := r.vendorBrandReservations[key]
+	if !ok || current.State != "CLEANING" || current.LeaseToken != item.LeaseToken {
+		return ErrVersionConflict
+	}
+	if referenced {
+		current.State = "COMMITTED"
+		current.LeaseToken = ""
+		current.LeaseExpiresAt = nil
+		current.UpdatedAt = at
+		r.vendorBrandReservations[key] = current
+	} else {
+		delete(r.vendorBrandReservations, key)
+	}
+	return nil
+}
 
 func (r *MemoryRepository) UpdateVendorIdentity(_ context.Context, record UpdateVendorIdentityRecord) (Vendor, error) {
 	r.mu.Lock()
@@ -83,6 +252,20 @@ func (r *MemoryRepository) ListVendorBrandAssets(_ context.Context, scope Scope,
 		return values[i].UpdatedAt.After(values[j].UpdatedAt)
 	})
 	return values, nil
+}
+
+func (r *MemoryRepository) GetVendorBrandAsset(_ context.Context, scope Scope, vendorID, token string) (VendorBrandAsset, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if !r.vendorVisibleInScope(scope, vendorID) {
+		return VendorBrandAsset{}, ErrNotFound
+	}
+	for _, asset := range r.vendorBrandAssets {
+		if asset.TenantID == scope.TenantID && asset.VendorID == vendorID && brandAssetToken(asset) == token {
+			return asset, nil
+		}
+	}
+	return VendorBrandAsset{}, ErrNotFound
 }
 
 func (r *MemoryRepository) vendorVisibleInScope(scope Scope, vendorID string) bool {

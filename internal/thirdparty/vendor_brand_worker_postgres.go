@@ -155,14 +155,18 @@ func (r *PostgresRepository) CompleteVendorBrandJob(ctx context.Context, claim V
 	_, err = tx.Exec(ctx, `
 		INSERT INTO third_party_vendor_brand_assets(
 			id,tenant_id,vendor_id,source_kind,state,source_domain,artifact_key,source_digest,media_type,
-			pixel_width,pixel_height,byte_size,retrieved_at,next_refresh_at,approved_by_principal_id,created_at,updated_at,version
-		) VALUES($1::uuid,$2::uuid,$3::uuid,'DISCOVERED','CURRENT',$4,$5,$6,'image/png',$7,$8,$9,$10,$11,NULL,$10,$10,1)`,
+			pixel_width,pixel_height,byte_size,retrieved_at,next_refresh_at,approved_by_principal_id,created_at,updated_at,version,asset_token
+		) VALUES($1::uuid,$2::uuid,$3::uuid,'DISCOVERED','CURRENT',$4,$5,$6,'image/png',$7,$8,$9,$10,$11,NULL,$10,$10,1,$12)`,
 		asset.ID, tenantID, claim.VendorID, asset.SourceDomain, asset.ArtifactKey, asset.SourceDigest,
-		asset.PixelWidth, asset.PixelHeight, asset.ByteSize, completionAt, asset.NextRefreshAt)
+		asset.PixelWidth, asset.PixelHeight, asset.ByteSize, completionAt, asset.NextRefreshAt, asset.AssetToken)
 	if err != nil {
 		return VendorBrandAsset{}, fmt.Errorf("store vendor brand asset: %w", err)
 	}
-	if err := appendVendorBrandDiscoveredEvent(ctx, tx, tenantID, claim, asset, completionAt); err != nil {
+	eventVersion, err := nextVendorBrandEventVersionPG(ctx, tx, tenantID, claim.VendorID)
+	if err != nil {
+		return VendorBrandAsset{}, fmt.Errorf("allocate vendor brand event version: %w", err)
+	}
+	if err := appendVendorBrandDiscoveredEvent(ctx, tx, tenantID, claim, asset, completionAt, eventVersion); err != nil {
 		return VendorBrandAsset{}, err
 	}
 	commandTag, err := tx.Exec(ctx, `
@@ -203,7 +207,7 @@ func (r *PostgresRepository) vendorBrandCompletionRecorded(ctx context.Context, 
 			JOIN third_party_vendor_brand_jobs job ON job.tenant_id=brand.tenant_id AND job.vendor_id=brand.vendor_id AND job.id::text=$1
 			JOIN third_party_events event ON event.tenant_id=brand.tenant_id
 			  AND event.aggregate_type='VENDOR_BRAND' AND event.aggregate_id=brand.vendor_id
-			  AND event.event_type=$12 AND event.aggregate_version=$13 AND event.payload->>'asset_id'=brand.id::text
+			  AND event.event_type=$12 AND event.payload->>'asset_id'=brand.id::text
 			JOIN outbox_events outbox ON outbox.tenant_id=brand.tenant_id
 			  AND outbox.aggregate_type='VENDOR_BRAND' AND outbox.aggregate_id=brand.vendor_id
 			  AND outbox.event_type=$12 AND outbox.payload->>'asset_id'=brand.id::text
@@ -214,7 +218,7 @@ func (r *PostgresRepository) vendorBrandCompletionRecorded(ctx context.Context, 
 			  AND event.payload->>'vendor_version'=$4::text AND event.payload->>'artifact_key'=$7 AND event.payload->>'source_digest'=$8
 			  AND outbox.payload->>'vendor_version'=$4::text AND outbox.payload->>'artifact_key'=$7 AND outbox.payload->>'source_digest'=$8
 		)`, claim.ID, claim.TenantID, claim.VendorID, claim.VendorVersion, claim.WebsiteDomain,
-		asset.ID, asset.ArtifactKey, asset.SourceDigest, asset.PixelWidth, asset.PixelHeight, asset.ByteSize, VendorBrandDiscoveredEvent, claim.Version).Scan(&recorded)
+		asset.ID, asset.ArtifactKey, asset.SourceDigest, asset.PixelWidth, asset.PixelHeight, asset.ByteSize, VendorBrandDiscoveredEvent).Scan(&recorded)
 	return recorded, err
 }
 
@@ -234,12 +238,12 @@ func (r *PostgresRepository) VendorBrandQueueHealth(ctx context.Context) (workfl
 	return health, nil
 }
 
-func appendVendorBrandDiscoveredEvent(ctx context.Context, tx pgx.Tx, tenantID string, claim VendorBrandJob, asset VendorBrandAsset, at time.Time) error {
+func appendVendorBrandDiscoveredEvent(ctx context.Context, tx pgx.Tx, tenantID string, claim VendorBrandJob, asset VendorBrandAsset, at time.Time, eventVersion int64) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO third_party_events(tenant_id,aggregate_type,aggregate_id,aggregate_version,actor_principal_id,event_type,payload,occurred_at)
 		VALUES($1::uuid,'VENDOR_BRAND',$2::uuid,$3,NULL,$4,
 			jsonb_build_object('asset_id',$5::text,'asset_version',$6::bigint,'vendor_version',$7::bigint,'artifact_key',$8::text,'source_digest',$9::text,'media_type','image/png','pixel_width',$10::integer,'pixel_height',$11::integer,'byte_size',$12::bigint),$13)`,
-		tenantID, claim.VendorID, claim.Version, VendorBrandDiscoveredEvent, asset.ID, asset.Version, claim.VendorVersion,
+		tenantID, claim.VendorID, eventVersion, VendorBrandDiscoveredEvent, asset.ID, asset.Version, claim.VendorVersion,
 		asset.ArtifactKey, asset.SourceDigest, asset.PixelWidth, asset.PixelHeight, asset.ByteSize, at)
 	if err != nil {
 		return fmt.Errorf("append vendor brand event: %w", err)

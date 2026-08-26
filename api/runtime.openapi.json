@@ -71,6 +71,15 @@
       "get": { "operationId": "getVendorRelationship", "x-clearsight-route-class": "AUTHENTICATED_READ" },
       "post": { "operationId": "updateVendorRelationship", "x-clearsight-route-class": "MATERIAL_COMMAND" }
     },
+    "/api/v1/vendor-identities/{vendor_id}": {
+      "get": { "operationId": "getVendorIdentity", "x-clearsight-route-class": "AUTHENTICATED_READ" },
+      "put": { "operationId": "updateVendorIdentity", "x-clearsight-route-class": "MATERIAL_COMMAND" }
+    },
+    "/api/v1/vendor-identities/{vendor_id}/brand": {
+      "get": { "operationId": "openVendorBrand", "x-clearsight-route-class": "AUTHENTICATED_READ" },
+      "put": { "operationId": "uploadVendorBrand", "x-clearsight-route-class": "MATERIAL_COMMAND" },
+      "delete": { "operationId": "removeVendorBrand", "x-clearsight-route-class": "MATERIAL_COMMAND" }
+    },
     "/api/v1/vendors/{id}/links": {
       "get": { "operationId": "listVendorRelationshipLinks", "x-clearsight-route-class": "AUTHENTICATED_READ" },
       "post": { "operationId": "linkVendorRelationship", "x-clearsight-route-class": "MATERIAL_COMMAND" }

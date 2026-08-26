@@ -1,7 +1,9 @@
 package thirdparty
 
 import (
+	"context"
 	"errors"
+	"io"
 	"net/netip"
 	"strings"
 	"time"
@@ -12,6 +14,8 @@ import (
 const (
 	VendorIdentityObjectType    = "VENDOR"
 	VendorIdentityUpdateCommand = "thirdparty.vendor.identity.update"
+	VendorBrandApproveCommand   = "thirdparty.vendor.brand.approve"
+	VendorBrandRemoveCommand    = "thirdparty.vendor.brand.remove"
 
 	VendorIdentityCreatedEvent = "VendorIdentityCreated"
 	VendorIdentityUpdatedEvent = "VendorIdentityUpdated"
@@ -20,7 +24,77 @@ const (
 var (
 	ErrVendorIdentityAuthorityUnavailable = errors.New("vendor identity authority service is unavailable")
 	ErrVendorIdentityMismatch             = errors.New("vendor identity command identity does not match verified context")
+	ErrBrandVersionConflict               = errors.New("vendor brand version conflict")
+	ErrVendorBrandAssetUnavailable        = errors.New("vendor brand asset unavailable")
 )
+
+const VendorBrandMaximumUploadBytes int64 = 512 << 10
+
+type VendorBrandPresentationState string
+
+const (
+	VendorBrandApprovedLogo VendorBrandPresentationState = "APPROVED_LOGO"
+	VendorBrandWebsiteIcon  VendorBrandPresentationState = "WEBSITE_ICON"
+	VendorBrandPending      VendorBrandPresentationState = "PENDING"
+	VendorBrandUnavailable  VendorBrandPresentationState = "UNAVAILABLE"
+)
+
+type VendorBrandPresentationSource string
+
+const (
+	VendorBrandSourceApprovedUpload VendorBrandPresentationSource = "APPROVED_UPLOAD"
+	VendorBrandSourceVendorWebsite  VendorBrandPresentationSource = "VENDOR_WEBSITE"
+)
+
+type VendorBrandPresentation struct {
+	State        VendorBrandPresentationState  `json:"state"`
+	Source       VendorBrandPresentationSource `json:"source,omitempty"`
+	AssetToken   string                        `json:"asset_token,omitempty"`
+	Version      int64                         `json:"version"`
+	EventVersion int64                         `json:"event_version"`
+	UpdatedAt    *time.Time                    `json:"updated_at,omitempty"`
+}
+
+type VendorIdentityView struct {
+	Vendor Vendor                  `json:"vendor"`
+	Brand  VendorBrandPresentation `json:"brand"`
+}
+
+type VendorBrandMutationRecord struct {
+	Scope
+	VendorID        string
+	ExpectedVersion int64
+	IdempotencyKey  string
+	Asset           VendorBrandAsset
+	ActorID         string
+	OccurredAt      time.Time
+}
+
+type VendorBrandMutationRepository interface {
+	VendorBrandRepository
+	ReserveApprovedVendorBrand(context.Context, VendorBrandMutationRecord) error
+	PutApprovedVendorBrand(context.Context, VendorBrandMutationRecord) (VendorBrandAsset, int64, error)
+	RemoveApprovedVendorBrand(context.Context, VendorBrandMutationRecord) (int64, error)
+	CurrentVendorBrandVersion(context.Context, Scope, string) (int64, error)
+}
+
+type VendorBrandUploadReservation struct {
+	TenantID, VendorID, IdempotencyKey, ArtifactKey, SourceDigest, State string
+	ExpectedVersion                                                      int64
+	CreatedAt, UpdatedAt                                                 time.Time
+	LeaseToken                                                           string
+	LeaseExpiresAt                                                       *time.Time
+}
+
+type VendorBrandReservationRepository interface {
+	ClaimExpiredVendorBrandReservations(context.Context, time.Time, time.Time, time.Duration, int) ([]VendorBrandUploadReservation, error)
+	VendorBrandArtifactReferenced(context.Context, VendorBrandUploadReservation) (bool, error)
+	CompleteVendorBrandReservationCleanup(context.Context, VendorBrandUploadReservation, bool, time.Time) error
+}
+
+type VendorBrandObjectReader interface {
+	Open(context.Context, string) (io.ReadCloser, error)
+}
 
 // WebsiteDomain is the canonical ASCII DNS hostname used to discover a
 // vendor's public website icon. It never contains a URL scheme or authority
@@ -72,6 +146,7 @@ type VendorBrandAsset struct {
 	CreatedAt             time.Time              `json:"created_at"`
 	UpdatedAt             time.Time              `json:"updated_at"`
 	Version               int64                  `json:"version"`
+	AssetToken            string                 `json:"-"`
 }
 
 type VendorBrandJob struct {

@@ -23,6 +23,7 @@ func buildWorker(_ context.Context, cfg config.Config, logger *slog.Logger) (wor
 	objectStore := evidence.NewMemoryObjectStore()
 	evidenceService := evidence.NewService(evidenceRepository, objectStore)
 	assessmentRepository := thirdparty.NewMemoryAssessmentRepository()
+	vendorBrandRepository := thirdparty.NewMemoryRepository()
 	assessmentSubmission := newAssessmentSubmissionConsumer(repository, evidenceService, assessmentRepository)
 	assessmentCancellation := newAssessmentCancellationConsumer(evidenceService)
 	vendorWorkRepository := thirdparty.NewMemoryVendorWorkRepository()
@@ -35,8 +36,8 @@ func buildWorker(_ context.Context, cfg config.Config, logger *slog.Logger) (wor
 	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
 	assessmentProvisioner := thirdparty.NewAssessmentProvisioner(assessmentRepository, continuityService, cfg.WorkerID)
 	service.AddMaintainerClass(thirdparty.AssessmentSetupWorkClass, assessmentProvisioner)
+	service.AddMaintainerClass(workflowruntime.WorkClassThirdPartyVendorBrandCleanup, &thirdparty.VendorBrandReservationCleaner{Repository: vendorBrandRepository, Store: objectStore})
 	if cfg.VendorBrandDiscoveryEnabled {
-		vendorBrandRepository := thirdparty.NewMemoryRepository()
 		vendorBrandWorker := thirdparty.NewVendorBrandWorker(vendorBrandRepository, objectStore, thirdparty.NewDefaultVendorBrandDiscoverer(), cfg.WorkerID)
 		configureVendorBrandWorker(vendorBrandWorker, cfg.WorkerPoll)
 		service.AddMaintainerClass(workflowruntime.WorkClassThirdPartyVendorBrand, vendorBrandWorker)

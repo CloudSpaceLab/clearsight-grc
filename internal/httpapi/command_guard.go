@@ -104,6 +104,32 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 	}
 }
 
+func (a *API) rawCommand(name string, policy commandPolicy, handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		actor, err := identity.Require(r.Context())
+		if err != nil {
+			httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to continue.")
+			return
+		}
+		if a.deps.CommandGuard == nil || a.deps.CommandGuard.Mode() == commandauth.ModeOff {
+			handler(w, r)
+			return
+		}
+		objectID := strings.TrimSpace(r.PathValue("vendor_id"))
+		decision, err := a.deps.CommandGuard.Authorize(r.Context(), commandauth.Request{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: policy.ObjectType, ObjectID: objectID, Responsibility: policy.Responsibility, DecisionType: name, Materiality: policy.Materiality, AllowService: policy.AllowService})
+		if err != nil {
+			writeCommandAuthorizationError(w, err)
+			return
+		}
+		if decision.Enforced {
+			w.Header().Set("X-ClearSight-Command-Authorization", "enforced")
+		} else {
+			w.Header().Set("X-ClearSight-Command-Authorization", "audit")
+		}
+		handler(w, r)
+	}
+}
+
 func commandActorField(policy commandPolicy) string {
 	if policy.ActorField == noActorField {
 		return ""

@@ -79,8 +79,9 @@ type Relationship struct {
 }
 
 type Aggregate struct {
-	Vendor       Vendor       `json:"vendor"`
-	Relationship Relationship `json:"relationship"`
+	Vendor       Vendor                  `json:"vendor"`
+	Relationship Relationship            `json:"relationship"`
+	Brand        VendorBrandPresentation `json:"brand"`
 }
 
 type CreateRelationshipInput struct {

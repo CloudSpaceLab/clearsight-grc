@@ -32,6 +32,8 @@ type serviceSet struct {
 	Evidence                       *evidence.Service
 	Monitoring                     *monitoring.Service
 	ThirdParty                     *thirdparty.Service
+	ThirdPartyBrandRepo            thirdparty.VendorBrandMutationRepository
+	ObjectStore                    evidence.ObjectStore
 	ThirdPartyRelationshipLinks    *thirdparty.RelationshipLinkService
 	ThirdPartyRelationshipLinkRepo thirdparty.RelationshipLinkRepository
 	ThirdPartyWorkRepo             thirdparty.VendorWorkRepository

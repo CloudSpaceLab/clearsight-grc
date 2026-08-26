@@ -119,6 +119,11 @@ func TestVendorBrandMigrationBackfillsIdentityOnceBeforeTheFirstUpdate(t *testin
 
 	down := readVendorBrandMigration(t, "../../migrations/000047_vendor_brand_assets.down.sql")
 	up := readVendorBrandMigration(t, "../../migrations/000047_vendor_brand_assets.up.sql")
+	downOverrides := readVendorBrandMigration(t, "../../migrations/000048_vendor_brand_overrides.down.sql")
+	upOverrides := readVendorBrandMigration(t, "../../migrations/000048_vendor_brand_overrides.up.sql")
+	if _, err := pool.Exec(ctx, downOverrides); err != nil {
+		t.Fatalf("roll back vendor brand overrides: %v", err)
+	}
 	if _, err := pool.Exec(ctx, down); err != nil {
 		t.Fatalf("roll back vendor brand migration: %v", err)
 	}
@@ -127,6 +132,9 @@ func TestVendorBrandMigrationBackfillsIdentityOnceBeforeTheFirstUpdate(t *testin
 		if migrationIsDown {
 			if _, cleanupErr := pool.Exec(context.Background(), up); cleanupErr != nil {
 				t.Errorf("restore vendor brand migration: %v", cleanupErr)
+			}
+			if _, cleanupErr := pool.Exec(context.Background(), upOverrides); cleanupErr != nil {
+				t.Errorf("restore vendor brand overrides: %v", cleanupErr)
 			}
 		}
 	})
@@ -152,6 +160,9 @@ func TestVendorBrandMigrationBackfillsIdentityOnceBeforeTheFirstUpdate(t *testin
 	}
 	if _, err := pool.Exec(ctx, up); err != nil {
 		t.Fatalf("apply vendor brand migration: %v", err)
+	}
+	if _, err := pool.Exec(ctx, upOverrides); err != nil {
+		t.Fatalf("apply vendor brand overrides: %v", err)
 	}
 	migrationIsDown = false
 
@@ -195,12 +206,18 @@ func TestVendorBrandMigrationBackfillsIdentityOnceBeforeTheFirstUpdate(t *testin
 		"status":           "ACTIVE",
 	})
 
+	if _, err := pool.Exec(ctx, downOverrides); err != nil {
+		t.Fatalf("roll back vendor brand overrides after update: %v", err)
+	}
 	if _, err := pool.Exec(ctx, down); err != nil {
 		t.Fatalf("roll back vendor brand migration after update: %v", err)
 	}
 	migrationIsDown = true
 	if _, err := pool.Exec(ctx, up); err != nil {
 		t.Fatalf("reapply vendor brand migration: %v", err)
+	}
+	if _, err := pool.Exec(ctx, upOverrides); err != nil {
+		t.Fatalf("reapply vendor brand overrides: %v", err)
 	}
 	migrationIsDown = false
 	var eventCount int

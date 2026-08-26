@@ -52,9 +52,24 @@ type VendorBrandEvent struct {
 	ArtifactKey   string
 	SourceDigest  string
 	OccurredAt    time.Time
+	EventVersion  int64
 }
 
 const VendorBrandDiscoveredEvent = "VendorBrandDiscovered"
+
+const (
+	VendorBrandApprovedEvent = "VendorBrandApproved"
+	VendorBrandRemovedEvent  = "VendorBrandRemoved"
+)
+
+type VendorBrandReceipt struct {
+	TenantID        string
+	VendorID        string
+	IdempotencyKey  string
+	Command         string
+	ExpectedVersion int64
+	ResultVersion   int64
+}
 
 type VendorBrandWorkerRepository interface {
 	GetVendorForBrandDiscovery(context.Context, string, string) (Vendor, error)
@@ -172,6 +187,7 @@ func (w *VendorBrandWorker) process(ctx context.Context, job VendorBrandJob, now
 		PixelWidth: result.PixelWidth, PixelHeight: result.PixelHeight, ByteSize: object.SizeBytes,
 		RetrievedAt: &completedAt, NextRefreshAt: &nextRefresh, CreatedAt: completedAt, UpdatedAt: completedAt, Version: 1,
 	}
+	asset.AssetToken = brandAssetToken(asset)
 	if _, err := w.repository.CompleteVendorBrandJob(ctx, job, asset, completedAt); err != nil {
 		// Canonical bytes are content-addressed and immutable. Keep an
 		// unreferenced copy when the database outcome is uncertain: deleting it

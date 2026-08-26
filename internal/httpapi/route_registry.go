@@ -41,6 +41,7 @@ type routeSpec struct {
 	Binder     routeBinder
 	Command    *routeCommand
 	Permission string
+	RawCommand bool
 }
 
 func (a *API) registerRoutes(mux *http.ServeMux) {
@@ -51,7 +52,11 @@ func (a *API) registerRoutes(mux *http.ServeMux) {
 	for _, spec := range routes {
 		handler := spec.Handler
 		if spec.Command != nil {
-			handler = a.command(spec.Command.Name, spec.Command.Policy, handler)
+			if spec.RawCommand {
+				handler = a.rawCommand(spec.Command.Name, spec.Command.Policy, handler)
+			} else {
+				handler = a.command(spec.Command.Name, spec.Command.Policy, handler)
+			}
 		}
 		handler = a.routeAccess(spec, handler)
 		mux.HandleFunc(spec.Method+" "+spec.Path, handler)
@@ -104,6 +109,11 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/vendors", "thirdparty.relationship.create", a.createVendorRelationship, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3, BindLegalEntity: true}),
 		read("/api/v1/vendors/{id}", a.getVendorRelationship),
 		material("/api/v1/vendors/{id}", "thirdparty.relationship.update", a.updateVendorRelationship, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
+		read("/api/v1/vendor-identities/{vendor_id}", a.getVendorIdentity),
+		materialMethod(http.MethodPut, "/api/v1/vendor-identities/{vendor_id}", thirdparty.VendorIdentityUpdateCommand, a.updateVendorIdentity, commandPolicy{ObjectType: thirdparty.VendorIdentityObjectType, Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
+		read("/api/v1/vendor-identities/{vendor_id}/brand", a.openVendorBrand),
+		materialBinary(http.MethodPut, "/api/v1/vendor-identities/{vendor_id}/brand", thirdparty.VendorBrandApproveCommand, a.uploadVendorBrand, commandPolicy{ObjectType: thirdparty.VendorIdentityObjectType, Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
+		materialBinary(http.MethodDelete, "/api/v1/vendor-identities/{vendor_id}/brand", thirdparty.VendorBrandRemoveCommand, a.removeVendorBrand, commandPolicy{ObjectType: thirdparty.VendorIdentityObjectType, Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
 		read("/api/v1/vendors/{id}/links", a.listVendorRelationshipLinks),
 		read("/api/v1/vendor-links", a.listVendorRelationshipLinks),
 		material("/api/v1/vendors/{id}/links", "thirdparty.relationship.link", a.linkVendorRelationship, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityOwner, Materiality: 2}),
@@ -264,7 +274,15 @@ func write(method, path string, handler http.HandlerFunc, binder routeBinder) ro
 	return routeSpec{Method: method, Path: path, Class: routeAuthenticatedWrite, Handler: handler, Binder: binder}
 }
 func material(path, name string, handler http.HandlerFunc, policy commandPolicy) routeSpec {
-	return routeSpec{Method: http.MethodPost, Path: path, Class: routeMaterialCommand, Handler: handler, Command: &routeCommand{Name: name, Policy: policy}}
+	return materialMethod(http.MethodPost, path, name, handler, policy)
+}
+func materialMethod(method, path, name string, handler http.HandlerFunc, policy commandPolicy) routeSpec {
+	return routeSpec{Method: method, Path: path, Class: routeMaterialCommand, Handler: handler, Command: &routeCommand{Name: name, Policy: policy}}
+}
+func materialBinary(method, path, name string, handler http.HandlerFunc, policy commandPolicy) routeSpec {
+	spec := materialMethod(method, path, name, handler, policy)
+	spec.RawCommand = true
+	return spec
 }
 func materialService(path, name string, handler http.HandlerFunc, policy commandPolicy) routeSpec {
 	policy.AllowService = true

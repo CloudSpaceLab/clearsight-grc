@@ -17,6 +17,13 @@ type Service struct {
 	now           func() time.Time
 	newID         func() (string, error)
 	identityGuard AssessmentCommandGuard
+	brands        *VendorBrandService
+}
+
+func (s *Service) ConfigureVendorBrands(brands *VendorBrandService) {
+	if s != nil {
+		s.brands = brands
+	}
 }
 
 func NewService(repo Repository) *Service {
@@ -160,6 +167,9 @@ func (s *Service) authorizeVendorIdentity(ctx context.Context, vendorID string) 
 	if s.identityGuard == nil {
 		return Actor{}, errors.Join(ErrVendorIdentityAuthorityUnavailable, commandauth.ErrGuardUnavailable)
 	}
+	if guard, ok := s.identityGuard.(*commandauth.Guard); ok && guard.Mode() == commandauth.ModeOff {
+		return Actor{TenantID: contextActor.TenantID, LegalEntityID: contextActor.LegalEntityID, PrincipalID: contextActor.PrincipalID}, nil
+	}
 	decision, err := s.identityGuard.Authorize(ctx, commandauth.Request{
 		TenantID: contextActor.TenantID, LegalEntityID: contextActor.LegalEntityID,
 		ObjectType: VendorIdentityObjectType, ObjectID: vendorID,
@@ -188,7 +198,11 @@ func (s *Service) GetRelationship(ctx context.Context, actor Actor, relationship
 	if !validActor(actor) || strings.TrimSpace(relationshipID) == "" {
 		return Aggregate{}, ErrInvalid
 	}
-	return s.repo.GetRelationship(ctx, scopeFrom(actor), strings.TrimSpace(relationshipID))
+	value, err := s.repo.GetRelationship(ctx, scopeFrom(actor), strings.TrimSpace(relationshipID))
+	if err != nil {
+		return Aggregate{}, err
+	}
+	return s.attachBrand(ctx, actor, value)
 }
 
 func (s *Service) ListRelationships(ctx context.Context, actor Actor, input ListInput) (RelationshipPage, error) {
@@ -198,7 +212,30 @@ func (s *Service) ListRelationships(ctx context.Context, actor Actor, input List
 	if input.Limit == 0 {
 		input.Limit = 50
 	}
-	return s.repo.ListRelationships(ctx, ListFilter{Scope: scopeFrom(actor), Search: strings.TrimSpace(input.Search), Cursor: strings.TrimSpace(input.Cursor), Limit: input.Limit})
+	page, err := s.repo.ListRelationships(ctx, ListFilter{Scope: scopeFrom(actor), Search: strings.TrimSpace(input.Search), Cursor: strings.TrimSpace(input.Cursor), Limit: input.Limit})
+	if err != nil {
+		return RelationshipPage{}, err
+	}
+	for index := range page.Items {
+		page.Items[index], err = s.attachBrand(ctx, actor, page.Items[index])
+		if err != nil {
+			return RelationshipPage{}, err
+		}
+	}
+	return page, nil
+}
+
+func (s *Service) attachBrand(ctx context.Context, actor Actor, value Aggregate) (Aggregate, error) {
+	if s.brands == nil {
+		value.Brand = VendorBrandPresentation{State: VendorBrandUnavailable}
+		return value, nil
+	}
+	brand, err := s.brands.presentation(ctx, scopeFrom(actor), value.Vendor)
+	if err != nil {
+		return Aggregate{}, err
+	}
+	value.Brand = brand
+	return value, nil
 }
 
 func (s *Service) UpdateRelationship(ctx context.Context, actor Actor, relationshipID string, input UpdateRelationshipInput) (Aggregate, error) {

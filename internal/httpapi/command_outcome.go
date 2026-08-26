@@ -162,6 +162,9 @@ func commandObjectID(r *http.Request, payload map[string]any) string {
 		if value := strings.TrimSpace(r.PathValue("id")); value != "" {
 			return value
 		}
+		if value := strings.TrimSpace(r.PathValue("vendor_id")); value != "" {
+			return value
+		}
 	}
 	if value := stringValue(payload["program_id"]); value != "" {
 		return value

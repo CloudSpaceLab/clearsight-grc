@@ -11,21 +11,23 @@ import (
 )
 
 type MemoryRepository struct {
-	mu                   sync.RWMutex
-	vendors              map[string]Vendor
-	relationships        map[string]Relationship
-	vendorBrandAssets    map[string]VendorBrandAsset
-	vendorBrandJobs      map[string]VendorBrandJob
-	vendorBrandEvents    []VendorBrandEvent
-	vendorBrandOutbox    []VendorBrandEvent
-	vendorIdentityEvents []VendorIdentityEvent
-	vendorIdentityOutbox []VendorIdentityEvent
+	mu                      sync.RWMutex
+	vendors                 map[string]Vendor
+	relationships           map[string]Relationship
+	vendorBrandAssets       map[string]VendorBrandAsset
+	vendorBrandJobs         map[string]VendorBrandJob
+	vendorBrandEvents       []VendorBrandEvent
+	vendorBrandOutbox       []VendorBrandEvent
+	vendorBrandReceipts     map[string]VendorBrandReceipt
+	vendorBrandReservations map[string]VendorBrandUploadReservation
+	vendorIdentityEvents    []VendorIdentityEvent
+	vendorIdentityOutbox    []VendorIdentityEvent
 }
 
 func NewMemoryRepository() *MemoryRepository {
 	return &MemoryRepository{
 		vendors: map[string]Vendor{}, relationships: map[string]Relationship{},
-		vendorBrandAssets: map[string]VendorBrandAsset{}, vendorBrandJobs: map[string]VendorBrandJob{},
+		vendorBrandAssets: map[string]VendorBrandAsset{}, vendorBrandJobs: map[string]VendorBrandJob{}, vendorBrandReceipts: map[string]VendorBrandReceipt{}, vendorBrandReservations: map[string]VendorBrandUploadReservation{},
 	}
 }
 
