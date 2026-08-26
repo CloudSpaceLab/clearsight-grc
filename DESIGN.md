@@ -137,6 +137,12 @@ External collection uses the shared request-scoped invitation and capture experi
 
 Internal review shows only the exact scoped response, answer provenance, coverage, artifact scan state, evidence classification, linked canonical findings and version-qualified provisional score. Reviewer conclusion, vendor-relationship activation and deficiency closure remain separate material outcomes. Completed assessments are read-only in the relationship workspace.
 
+### Vendor requests for Programs and issues
+
+A Program or issue or change may link one or more vendor relationships without transferring the bank owner's responsibility. `Request vendor work` uses the existing form revision, invitation, capture, artifact and submission experience. The request keeps one primary Program or Matter target, a concise purpose, a bank owner, a reviewer, a deadline and an immutable sequence of the initial request and any requested changes.
+
+The bank review shows the exact current response and AVAILABLE documents before `Accept response` is enabled as the dominant conclusion. Receipt, upload, review, acceptance, implementation and verified outcome remain separate states. Acceptance never closes a Matter, completes an action, changes a Program's status or approves the vendor relationship. Ending a vendor link is unavailable while active vendor work still depends on it; ended links and prior responses remain in history.
+
 External capture should minimize normal-path typing. A field-visit verification should ordinarily be completable through known context, tap choices, required photo evidence, an optional exception note and an attestation/signature. The interface target is under four minutes for a representative simple visit; that target is not considered proven until a timed usability run confirms it.
 
 ## States and recovery

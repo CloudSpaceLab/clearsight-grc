@@ -101,6 +101,19 @@ Guide selection is server-authoritative. Signed identities and development ident
 | Wrong recipient/delegation | Redirect, delegate or report incorrect scope | Future productization work |
 | Production scanning/storage | Malware scanning, encrypted object storage, retention and legal hold | Future production work |
 
+## Vendors
+
+| State/use case | Expected result | Status |
+|---|---|---|
+| Relationship register | Bounded search and pagination distinguish separate services supplied by the same vendor | Implemented |
+| Due diligence | Setup, secure collection, exact response review, findings and conclusion remain distinct states | Implemented |
+| Program or issue association | Canonical relationship link is visible from both records without duplicating Program or Matter ownership | Implemented |
+| Request vendor work | Bank owner selects the vendor relationship, purpose, form revision, Classic/Wizard presentation and deadline | Implemented |
+| Vendor response | Secure invitation shows safe known context and typed fields; submission does not claim acceptance | Implemented |
+| Bank review | Exact current answers and AVAILABLE documents are reviewed before acceptance or a specific change request | Implemented |
+| Cancellation and relationship end | Active access is revoked, reasons are retained, and active work blocks ending its link | Implemented |
+| Contract obligations, restriction and verified exit | Governed end-to-end third-party lifecycle beyond collection and response review | Future productization work |
+
 ## Imports
 
 | State/use case | Expected result | Status |

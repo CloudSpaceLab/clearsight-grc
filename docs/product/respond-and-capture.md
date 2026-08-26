@@ -238,6 +238,10 @@ For vendors or organizations, support:
 - certificate and evidence expiry;
 - organization-level audit trail.
 
+When the request supports a Program or an issue or change, the request must retain the exact bank record, vendor relationship, bank owner, reviewer, deadline, form revision and presentation mode. Known vendor and service facts are displayed as context or prefilled with provenance. The external party receives only the minimum purpose-bound context needed to respond.
+
+A vendor submission records receipt; it does not approve the response or complete the bank's work. The bank reviews the exact submitted answers and available documents, then accepts the response or requests specific changes through a new request in the same immutable sequence. Cancelling the work revokes active invitation and session access while retaining request and response history.
+
 ## 10. Customer capture
 
 Customer requests require:

@@ -56,6 +56,7 @@ Authority Routing and Integrity
 Programs and Requirements
 Matters and Durable Workflow
 Evidence and Capture
+Third-Party Relationships and External Work
 Signals, Drift and Readiness
 Decisions and Actions
 Verification and Assurance
@@ -86,6 +87,8 @@ HTTP request
 → return durable acknowledgement
 → workers update projections or perform side effects
 ```
+
+Vendor due diligence and vendor-completed Program or Matter work follow this command path. The third-party module owns the relationship association, request purpose, bank owner, reviewer, deadline, delivery recovery and review outcome. Evidence and Capture own the exact form snapshot, invitation, session, draft, artifact and submission. Program and Matter modules retain their existing ownership, authority and closure rules. A vendor response cannot directly complete a Matter action, pass an outcome check or change a Program state.
 
 ## Continuous-autonomy path
 

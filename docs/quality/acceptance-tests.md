@@ -522,7 +522,40 @@ A flow that misses the target requires documented cause, product review, and rem
 
 ---
 
-# 16. AI usefulness release gate
+# 16. Golden Journey M — Vendor work for a Program or issue
+
+## Setup
+
+- one existing vendor relationship supplies the service in scope;
+- a Program or issue needs a vendor response, document or bounded attestation;
+- the bank owner has current authority and a purpose-appropriate form revision;
+- the vendor contact has no broader bank access.
+
+## Required path
+
+1. the bank owner finds the existing vendor relationship without creating a duplicate;
+2. the relationship is linked to the exact Program or Matter;
+3. known vendor, service and bank context is shown without asking the vendor to re-enter it;
+4. the owner selects Classic, Wizard or form-controlled presentation, sets the deadline and sends a short-lived request-scoped invitation;
+5. the vendor completes typed fields or uploads the required document and receives a submission receipt;
+6. the bank reviewer opens the exact current answers and AVAILABLE documents;
+7. the reviewer accepts the response with rationale or requests specific changes through a new capture in the same history;
+8. acceptance leaves Program status, Matter action completion and outcome verification unchanged;
+9. cancellation revokes active access, and the vendor link cannot end while active work depends on it.
+
+## Assertions
+
+- [ ] tenant, legal-entity, request, submission and artifact scope fail closed;
+- [ ] current authority is re-evaluated for each material bank command;
+- [ ] invitation tokens and recipient addresses do not enter logs, events, URLs or recovery records;
+- [ ] partial delivery and ambiguous preparation failures recover without duplicate requests;
+- [ ] Classic and Wizard use the same fields, limits, validation and draft state;
+- [ ] a prior response remains reconstructable after changes, cancellation or relationship-link end;
+- [ ] vendor submission, bank acceptance, implementation and verified outcome remain separate.
+
+---
+
+# 17. AI usefulness release gate
 
 An AI capability may not ship solely because its outputs appear plausible.
 
@@ -541,7 +574,7 @@ A capability that adds review burden without proportional correctness benefit mu
 
 ---
 
-# 17. Visual regression and golden screens
+# 18. Visual regression and golden screens
 
 Maintain light/dark and relevant breakpoint references for:
 
@@ -576,7 +609,7 @@ Reject uncontrolled density, decorative effects, control walls, module hopping, 
 
 ---
 
-# 18. Final release standard
+# 19. Final release standard
 
 ClearSight passes only when it can:
 
