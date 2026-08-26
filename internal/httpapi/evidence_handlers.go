@@ -98,17 +98,13 @@ func (a *API) listEvidenceRequests(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	tenant, ok := requiredQuery(w, r, "tenant_id")
-	if !ok {
-		return
-	}
-	actor, authenticated := identity.FromContext(r.Context())
-	if !authenticated || actor.TenantID != tenant {
-		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence requests not found.")
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	values, err := service.ListManageableRequests(r.Context(), tenant, actor.PrincipalID, limit, func(value evidence.Request) bool {
+	values, err := service.ListManageableRequests(r.Context(), actor.TenantID, actor.PrincipalID, limit, func(value evidence.Request) bool {
 		return a.canReadEvidenceRequest(r.Context(), value)
 	})
 	if err != nil {

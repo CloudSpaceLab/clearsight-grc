@@ -33,6 +33,30 @@ func TestEvidenceSourcesEndpoint(t *testing.T) {
 	}
 }
 
+func TestEvidenceRequestQueueIncludesRequestsCreatedByActor(t *testing.T) {
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/evidence/requests?limit=50", nil)
+	response := httptest.NewRecorder()
+	testHandler().ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String())
+	}
+	var body struct {
+		Items []evidence.Request `json:"items"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	foundExternalCreatedRequest := false
+	for _, item := range body.Items {
+		if item.ID == demoExternalEvidenceRequestID && item.CreatedBy == "role-cro" {
+			foundExternalCreatedRequest = true
+		}
+	}
+	if !foundExternalCreatedRequest {
+		t.Fatalf("requester queue did not include the actor's external request: %#v", body.Items)
+	}
+}
+
 func TestEvidenceMagicLinkSessionAndSubmission(t *testing.T) {
 	handler := testHandler()
 	const audience = "manager@example.com"
