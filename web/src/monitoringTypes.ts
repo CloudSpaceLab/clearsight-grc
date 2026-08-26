@@ -37,6 +37,8 @@ export type Lifecycle = {
 export type FormTemplate = Lifecycle & {
   id: string;
   tenant_id: string;
+  legal_entity_id?: string;
+  program_id?: string;
   code: string;
   name: string;
   purpose: string;

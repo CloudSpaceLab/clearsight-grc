@@ -50,24 +50,25 @@ func TestServiceEnforcesMakerCheckerFormActivation(t *testing.T) {
 	now := time.Date(2026, 8, 17, 11, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
 	service.newID = func() (string, error) { return "form-1", nil }
-	maker := Actor{TenantID: "bank-a", PrincipalID: "maker"}
+	maker := Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "maker"}
 
 	form, err := service.CreateForm(context.Background(), maker, CreateFormInput{
+		ProgramID: "program-1", LegalEntityID: "entity-a",
 		Code: "PASSWORD-RESET", Name: "Password reset review", Purpose: "Collect the password reset control review.",
 		Fields: []TemplateField{{ID: "identity", Label: "Identity verification completed", Type: "single_select", Required: true, Options: []string{"Yes", "No"}, Scoring: &FormField{Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}, CriticalAnswers: []string{"No"}}}},
 	})
 	if err != nil || form.Status != LifecycleDraft || form.Version != 1 {
 		t.Fatalf("created form = %#v, err = %v", form, err)
 	}
-	pending, err := service.TransitionForm(context.Background(), maker, TransitionInput{ID: form.ID, ExpectedVersion: form.Version, To: LifecyclePendingApproval})
+	pending, err := service.TransitionForm(context.Background(), maker, TransitionInput{ID: form.ID, ProgramID: "program-1", LegalEntityID: "entity-a", ExpectedVersion: form.Version, To: LifecyclePendingApproval})
 	if err != nil || pending.Status != LifecyclePendingApproval || pending.SubmittedBy != maker.PrincipalID {
 		t.Fatalf("pending form = %#v, err = %v", pending, err)
 	}
-	if _, err := service.TransitionForm(context.Background(), maker, TransitionInput{ID: form.ID, ExpectedVersion: pending.Version, To: LifecycleActive}); !errors.Is(err, ErrMakerChecker) {
+	if _, err := service.TransitionForm(context.Background(), maker, TransitionInput{ID: form.ID, ProgramID: "program-1", LegalEntityID: "entity-a", ExpectedVersion: pending.Version, To: LifecycleActive}); !errors.Is(err, ErrMakerChecker) {
 		t.Fatalf("maker approval error = %v, want maker-checker error", err)
 	}
 
-	active, err := service.TransitionForm(context.Background(), Actor{TenantID: "bank-a", PrincipalID: "reviewer"}, TransitionInput{ID: form.ID, ExpectedVersion: pending.Version, To: LifecycleActive})
+	active, err := service.TransitionForm(context.Background(), Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "reviewer"}, TransitionInput{ID: form.ID, ProgramID: "program-1", LegalEntityID: "entity-a", ExpectedVersion: pending.Version, To: LifecycleActive})
 	if err != nil || active.Status != LifecycleActive || !active.IsCurrent || active.ApprovedBy != "reviewer" || active.EffectiveFrom == nil {
 		t.Fatalf("active form = %#v, err = %v", active, err)
 	}
@@ -81,7 +82,7 @@ func TestServiceStartsCollectionFromExactActiveForm(t *testing.T) {
 	service.now = func() time.Time { return now }
 	activeAt := now.Add(-time.Hour)
 	form := FormTemplate{
-		ID: "form-1", TenantID: "bank-a", Code: "PASSWORD-RESET", Name: "Password reset review", Purpose: "Collect the password reset control review.",
+		ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "PASSWORD-RESET", Name: "Password reset review", Purpose: "Collect the password reset control review.",
 		Fields:    []TemplateField{{ID: "identity", Label: "Identity verification completed", Type: "single_select", Required: true, Options: []string{"Yes", "No"}, Scoring: &FormField{ID: "identity", Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}}}},
 		Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 3},
 	}
@@ -99,9 +100,9 @@ func TestServiceStartsCollectionFromExactActiveForm(t *testing.T) {
 	periodStart := now.AddDate(0, 0, -7)
 	periodEnd := now
 
-	request, err := service.StartCollection(context.Background(), Actor{TenantID: "bank-a", PrincipalID: "owner"}, StartCollectionInput{
+	request, err := service.StartCollection(context.Background(), Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "owner"}, StartCollectionInput{
 		FormTemplateID: "form-1", FormTemplateVersion: 3, ProgramID: "program-1", RespondentPrincipalID: "respondent",
-		ReviewerPrincipalID: "reviewer", PeriodStart: periodStart, PeriodEnd: periodEnd, Deadline: now.Add(24 * time.Hour),
+		LegalEntityID: "entity-a", ReviewerPrincipalID: "reviewer", PeriodStart: periodStart, PeriodEnd: periodEnd, Deadline: now.Add(24 * time.Hour),
 	})
 	if err != nil {
 		t.Fatalf("start collection: %v", err)
@@ -119,12 +120,12 @@ func TestServiceRejectsCollectionWithoutActiveProgramCheck(t *testing.T) {
 	service := NewService(repo, &recordingRequestCreator{})
 	now := time.Date(2026, 8, 17, 11, 0, 0, 0, time.UTC)
 	activeAt := now.Add(-time.Hour)
-	form := FormTemplate{ID: "form-1", TenantID: "bank-a", Code: "FORM", Name: "Form", Purpose: "Purpose", Fields: []TemplateField{{ID: "answer", Label: "Answer", Type: "single_select", Required: true, Options: []string{"Yes", "No"}, Scoring: &FormField{ID: "answer", Required: true, Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}}}}, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 1}}
+	form := FormTemplate{ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "FORM", Name: "Form", Purpose: "Purpose", Fields: []TemplateField{{ID: "answer", Label: "Answer", Type: "single_select", Required: true, Options: []string{"Yes", "No"}, Scoring: &FormField{ID: "answer", Required: true, Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}}}}, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 1}}
 	if _, err := repo.CreateFormRevision(context.Background(), form); err != nil {
 		t.Fatal(err)
 	}
 
-	_, err := service.StartCollection(context.Background(), Actor{TenantID: "bank-a", PrincipalID: "owner"}, StartCollectionInput{FormTemplateID: form.ID, FormTemplateVersion: form.Version, ProgramID: "program-1", RespondentPrincipalID: "respondent", ReviewerPrincipalID: "reviewer", PeriodStart: now.Add(-time.Hour), PeriodEnd: now, Deadline: now.Add(time.Hour)})
+	_, err := service.StartCollection(context.Background(), Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "owner"}, StartCollectionInput{FormTemplateID: form.ID, FormTemplateVersion: form.Version, ProgramID: "program-1", LegalEntityID: "entity-a", RespondentPrincipalID: "respondent", ReviewerPrincipalID: "reviewer", PeriodStart: now.Add(-time.Hour), PeriodEnd: now, Deadline: now.Add(time.Hour)})
 	if !errors.Is(err, ErrInactive) {
 		t.Fatalf("collection without active check error = %v, want inactive", err)
 	}
@@ -133,11 +134,11 @@ func TestServiceRejectsCollectionWithoutActiveProgramCheck(t *testing.T) {
 func TestServiceRejectsCollectionFromDraftForm(t *testing.T) {
 	repo := NewMemoryRepository()
 	service := NewService(repo, &recordingRequestCreator{})
-	form := FormTemplate{ID: "form-1", TenantID: "bank-a", Code: "FORM", Name: "Form", Purpose: "Purpose", Fields: []TemplateField{{ID: "answer", Label: "Answer", Type: "text"}}, Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1}}
+	form := FormTemplate{ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "FORM", Name: "Form", Purpose: "Purpose", Fields: []TemplateField{{ID: "answer", Label: "Answer", Type: "text"}}, Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1}}
 	if _, err := repo.CreateFormRevision(context.Background(), form); err != nil {
 		t.Fatal(err)
 	}
-	_, err := service.StartCollection(context.Background(), Actor{TenantID: "bank-a", PrincipalID: "owner"}, StartCollectionInput{FormTemplateID: "form-1", FormTemplateVersion: 1, ProgramID: "program-1", RespondentPrincipalID: "respondent", ReviewerPrincipalID: "reviewer", PeriodStart: time.Now().Add(-time.Hour), PeriodEnd: time.Now(), Deadline: time.Now().Add(time.Hour)})
+	_, err := service.StartCollection(context.Background(), Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "owner"}, StartCollectionInput{FormTemplateID: "form-1", FormTemplateVersion: 1, ProgramID: "program-1", LegalEntityID: "entity-a", RespondentPrincipalID: "respondent", ReviewerPrincipalID: "reviewer", PeriodStart: time.Now().Add(-time.Hour), PeriodEnd: time.Now(), Deadline: time.Now().Add(time.Hour)})
 	if !errors.Is(err, ErrInactive) {
 		t.Fatalf("draft collection error = %v, want inactive", err)
 	}
@@ -149,26 +150,26 @@ func TestServiceFormPauseResumeAndRetire(t *testing.T) {
 	now := time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
 	activeAt := now.Add(-time.Hour)
-	form := FormTemplate{ID: "form-1", TenantID: "bank-a", Code: "FORM", Name: "Form", Purpose: "Purpose", Fields: []TemplateField{{ID: "answer", Label: "Answer", Type: "text"}}, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 3}}
+	form := FormTemplate{ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "FORM", Name: "Form", Purpose: "Purpose", Fields: []TemplateField{{ID: "answer", Label: "Answer", Type: "text"}}, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 3}}
 	if _, err := repo.CreateFormRevision(context.Background(), form); err != nil {
 		t.Fatal(err)
 	}
-	actor := Actor{TenantID: "bank-a", PrincipalID: "owner"}
-	paused, err := service.TransitionForm(context.Background(), actor, TransitionInput{ID: form.ID, ExpectedVersion: 3, To: LifecyclePaused})
+	actor := Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "owner"}
+	paused, err := service.TransitionForm(context.Background(), actor, TransitionInput{ID: form.ID, ProgramID: "program-1", LegalEntityID: "entity-a", ExpectedVersion: 3, To: LifecyclePaused})
 	if err != nil || paused.Status != LifecyclePaused || !paused.IsCurrent || paused.Version != 4 {
 		t.Fatalf("paused = %#v, err = %v", paused, err)
 	}
 	now = now.Add(time.Minute)
-	resumed, err := service.TransitionForm(context.Background(), actor, TransitionInput{ID: form.ID, ExpectedVersion: 4, To: LifecycleActive})
+	resumed, err := service.TransitionForm(context.Background(), actor, TransitionInput{ID: form.ID, ProgramID: "program-1", LegalEntityID: "entity-a", ExpectedVersion: 4, To: LifecycleActive})
 	if err != nil || resumed.Status != LifecycleActive || !resumed.IsCurrent || resumed.Version != 5 {
 		t.Fatalf("resumed = %#v, err = %v", resumed, err)
 	}
 	now = now.Add(time.Minute)
-	retired, err := service.TransitionForm(context.Background(), actor, TransitionInput{ID: form.ID, ExpectedVersion: 5, To: LifecycleRetired})
+	retired, err := service.TransitionForm(context.Background(), actor, TransitionInput{ID: form.ID, ProgramID: "program-1", LegalEntityID: "entity-a", ExpectedVersion: 5, To: LifecycleRetired})
 	if err != nil || retired.Status != LifecycleRetired || retired.IsCurrent || retired.EffectiveUntil == nil || retired.Version != 6 {
 		t.Fatalf("retired = %#v, err = %v", retired, err)
 	}
-	versions, err := repo.ListFormRevisions(context.Background(), "bank-a", 20)
+	versions, err := repo.ListFormRevisions(context.Background(), "bank-a", "entity-a", "program-1", 20)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,11 +187,11 @@ func TestServiceGovernsFormMonitoringCheck(t *testing.T) {
 	service.now = func() time.Time { return now }
 	service.newID = func() (string, error) { return "check-1", nil }
 	activeAt := now.Add(-time.Hour)
-	form := FormTemplate{ID: "form-1", TenantID: "bank-a", Code: "FORM", Name: "Review", Purpose: "Review the control.", Fields: []TemplateField{{ID: "secure", Label: "Secure", Type: "single_select", Required: true, Options: []string{"Yes", "No"}, Scoring: &FormField{ID: "secure", Required: true, Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}}}}, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 3}}
+	form := FormTemplate{ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "FORM", Name: "Review", Purpose: "Review the control.", Fields: []TemplateField{{ID: "secure", Label: "Secure", Type: "single_select", Required: true, Options: []string{"Yes", "No"}, Scoring: &FormField{ID: "secure", Required: true, Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}}}}, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 3}}
 	if _, err := repo.CreateFormRevision(context.Background(), form); err != nil {
 		t.Fatal(err)
 	}
-	maker := Actor{TenantID: "bank-a", PrincipalID: "maker"}
+	maker := Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "maker"}
 	check, err := service.CreateCheck(context.Background(), maker, CreateCheckInput{
 		ProgramID: "program-1", Code: "RESET", Name: "Password reset safeguards", Claim: "Password reset safeguards are operating.",
 		InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version, Thresholds: DefaultThresholds(), FreshnessMinutes: 10080, MinimumCoverage: 1, FailureAction: FailureReview,
@@ -205,9 +206,26 @@ func TestServiceGovernsFormMonitoringCheck(t *testing.T) {
 	if _, err := service.TransitionCheck(context.Background(), maker, TransitionInput{ID: check.ID, ExpectedVersion: pending.Version, To: LifecycleActive}); !errors.Is(err, ErrMakerChecker) {
 		t.Fatalf("same-maker approval error = %v", err)
 	}
-	active, err := service.TransitionCheck(context.Background(), Actor{TenantID: "bank-a", PrincipalID: "reviewer"}, TransitionInput{ID: check.ID, ExpectedVersion: pending.Version, To: LifecycleActive})
+	active, err := service.TransitionCheck(context.Background(), Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "reviewer"}, TransitionInput{ID: check.ID, ExpectedVersion: pending.Version, To: LifecycleActive})
 	if err != nil || active.Status != LifecycleActive || !active.IsCurrent || active.ApprovedBy != "reviewer" {
 		t.Fatalf("active = %#v, err = %v", active, err)
+	}
+}
+
+func TestServiceRejectsFormMonitoringCheckOutsideExactProgram(t *testing.T) {
+	repo := NewMemoryRepository()
+	activeAt := time.Now().UTC().Add(-time.Hour)
+	form := FormTemplate{ID: "form-other", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-other", Code: "FORM", Name: "Other Program review", Purpose: "Review another Program.", Fields: []TemplateField{{ID: "answer", Label: "Answer", Type: "text"}}, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 2}}
+	if _, err := repo.CreateFormRevision(t.Context(), form); err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(repo, nil)
+	_, err := service.CreateCheck(t.Context(), Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "owner"}, CreateCheckInput{
+		ProgramID: "program-1", Code: "FORM-CHECK", Name: "Form check", Claim: "The exact Program form is used.", InputKind: InputForm,
+		FormTemplateID: form.ID, FormTemplateVersion: form.Version, FreshnessMinutes: 60, MinimumCoverage: 1,
+	})
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("cross-Program form check error = %v, want not found", err)
 	}
 }
 
@@ -238,7 +256,8 @@ func TestServiceLoadsExactAndLatestCheckForVerifiedTenant(t *testing.T) {
 func TestServiceRejectsInvalidFormScoring(t *testing.T) {
 	service := NewService(NewMemoryRepository(), &recordingRequestCreator{})
 	service.newID = func() (string, error) { return "form-1", nil }
-	_, err := service.CreateForm(context.Background(), Actor{TenantID: "bank-a", PrincipalID: "maker"}, CreateFormInput{
+	_, err := service.CreateForm(context.Background(), Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "maker"}, CreateFormInput{
+		ProgramID: "program-1", LegalEntityID: "entity-a",
 		Code: "FORM", Name: "Review", Purpose: "Review the control.",
 		Fields: []TemplateField{{ID: "secure", Label: "Secure", Type: "single_select", Required: true, Options: []string{"Yes", "No"}, Scoring: &FormField{Weight: 1, AnswerScores: map[string]int{"Maybe": 100}}}},
 	})
@@ -251,7 +270,7 @@ func TestServiceEvaluatesSubmissionAgainstExactActiveRevisions(t *testing.T) {
 	repo := NewMemoryRepository()
 	now := time.Date(2026, 8, 17, 14, 0, 0, 0, time.UTC)
 	activeAt := now.Add(-time.Hour)
-	form := FormTemplate{ID: "form-1", TenantID: "bank-a", Code: "RESET", Name: "Password reset review", Purpose: "Review safeguards.", Fields: []TemplateField{{ID: "secure", Label: "Secure", Type: "single_select", Required: true, Options: []string{"Yes", "No"}, Scoring: &FormField{ID: "secure", Required: true, Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}, CriticalAnswers: []string{"No"}}}}, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 3}}
+	form := FormTemplate{ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "RESET", Name: "Password reset review", Purpose: "Review safeguards.", Fields: []TemplateField{{ID: "secure", Label: "Secure", Type: "single_select", Required: true, Options: []string{"Yes", "No"}, Scoring: &FormField{ID: "secure", Required: true, Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}, CriticalAnswers: []string{"No"}}}}, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 3}}
 	check := MonitoringCheck{ID: "check-1", TenantID: "bank-a", ProgramID: "program-1", Code: "RESET-CHECK", Name: "Password reset safeguards", Claim: "Safeguards operated.", InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version, Thresholds: DefaultThresholds(), FreshnessMinutes: 10080, MinimumCoverage: 1, FailureAction: FailureReview, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 2}}
 	if _, err := repo.CreateFormRevision(context.Background(), form); err != nil {
 		t.Fatal(err)
@@ -263,7 +282,7 @@ func TestServiceEvaluatesSubmissionAgainstExactActiveRevisions(t *testing.T) {
 	service.now = func() time.Time { return now }
 	service.newID = func() (string, error) { return "result-1", nil }
 	service.ConfigureEvidenceReader(recordingEvidenceReader{
-		request:    evidence.Request{ID: "request-1", TenantID: "bank-a", SubjectType: "PROGRAM", SubjectID: "program-1", FormTemplateID: form.ID, FormTemplateVersion: form.Version},
+		request:    evidence.Request{ID: "request-1", TenantID: "bank-a", SubjectType: "PROGRAM", SubjectID: "program-1", FormTemplateID: form.ID, FormTemplateVersion: form.Version, KnownFacts: map[string]string{"legal_entity_id": "entity-a"}},
 		submission: evidence.Submission{ID: "submission-1", TenantID: "bank-a", RequestID: "request-1", Channel: "INTERNAL", Answers: map[string]string{"secure": "No"}, SubmittedBy: "operator", SubmittedAt: now},
 	})
 

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createFormTemplate, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults } from "../monitoringApi";
+import { createFormTemplate, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection } from "../monitoringApi";
 import { createProgram, loadProgramSetupCandidates } from "../continuityCommands";
 import type { ProgramAggregate } from "../types";
 import { FormBuilder } from "./FormBuilder";
@@ -39,6 +39,7 @@ const ownerOperations: ProgramOperation[] = [
 
 const allMonitoringOperations: ProgramOperation[] = [
   ...ownerOperations,
+  { command: "program.monitoring.collect", subresource_id: "form-1", label: "Collect responses", responsibility: "ACCOUNTABLE_OWNER", can_act: true, reason: "You hold the current responsibility." },
   { command: "program.monitoring.transition", subresource_id: "check-draft", label: "Change draft check status", responsibility: "ACCOUNTABLE_OWNER", can_act: true, reason: "You hold the current responsibility.", allowed_targets: ["PENDING_APPROVAL"] },
   { command: "program.monitoring.transition", subresource_id: "check-pending", label: "Change pending check status", responsibility: "REVIEWER", can_act: true, reason: "You hold the current responsibility.", allowed_targets: ["ACTIVE", "REJECTED"] },
   { command: "program.monitoring.evaluate", subresource_id: "check-source", label: "Check source now", responsibility: "PERFORMER", can_act: true, reason: "You hold the current responsibility." },
@@ -63,13 +64,13 @@ describe("monitoring setup", () => {
       fields: [], status: "DRAFT", is_current: false, version: 1, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
     });
     const onSaved = vi.fn();
-    render(<FormBuilder onSaved={onSaved} onCancel={vi.fn()}/>);
+    render(<FormBuilder programID="program-1" onSaved={onSaved} onCancel={vi.fn()}/>);
 
     fireEvent.click(screen.getByRole("button", { name: "Use password reset review" }));
     expect(screen.getAllByLabelText("Question")).toHaveLength(5);
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
 
-    await waitFor(() => expect(createFormTemplate).toHaveBeenCalledWith(expect.objectContaining({
+    await waitFor(() => expect(createFormTemplate).toHaveBeenCalledWith("program-1", expect.objectContaining({
       code: "PASSWORD-RESET-REVIEW",
       fields: expect.arrayContaining([expect.objectContaining({
         type: "single_select", options: ["Yes", "No"], scoring: expect.objectContaining({ answer_scores: { Yes: 0, No: 100 }, critical_answers: ["No"] }),
@@ -166,6 +167,27 @@ describe("monitoring setup", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Add monitoring check" }));
     expect(screen.getByRole("button", { name: "Connected data" }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByText("A GRC administrator can connect a new source.")).toBeTruthy();
+  });
+
+  it("starts a permitted collection without sending browser-selected respondent or reviewer identities", async () => {
+    vi.mocked(loadFormTemplates).mockResolvedValue([{
+      id: "form-1", tenant_id: "bank-1", program_id: "program-1", legal_entity_id: "entity-1", code: "RESET", name: "Password reset review", purpose: "Confirm safeguards", fields: [],
+      status: "ACTIVE", is_current: true, version: 2, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    }]);
+    vi.mocked(loadMonitoringChecks).mockResolvedValue([{
+      id: "check-1", tenant_id: "bank-1", program_id: "program-1", code: "RESET", name: "Password reset review", claim: "Safeguards operated", input_kind: "FORM",
+      form_template_id: "form-1", form_template_version: 2, thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1,
+      failure_action: "REVIEW", status: "ACTIVE", is_current: true, version: 2, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    }]);
+    vi.mocked(startFormCollection).mockResolvedValue({ id: "request-1" } as never);
+
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={allMonitoringOperations}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Collect responses" }));
+    fireEvent.submit(screen.getByRole("button", { name: "Create request" }).closest("form")!);
+
+    await waitFor(() => expect(startFormCollection).toHaveBeenCalledWith(expect.objectContaining({ id: "form-1" }), expect.not.objectContaining({
+      respondentPrincipalID: expect.anything(), reviewerPrincipalID: expect.anything(),
+    })));
   });
 
   it("keeps monitoring records readable but hides every mutation while Program responsibilities are unavailable", async () => {

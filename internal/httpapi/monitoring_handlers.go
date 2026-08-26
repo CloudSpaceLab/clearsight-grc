@@ -16,6 +16,19 @@ type createFormTemplateRequest struct {
 	monitoring.CreateFormInput
 	TenantID  string `json:"tenant_id,omitempty"`
 	CreatedBy string `json:"created_by,omitempty"`
+	ActorID   string `json:"actor_id,omitempty"`
+}
+
+type transitionFormTemplateRequest struct {
+	monitoring.TransitionInput
+	TenantID string `json:"tenant_id,omitempty"`
+	ActorID  string `json:"actor_id,omitempty"`
+}
+
+type startFormCollectionRequest struct {
+	monitoring.StartCollectionInput
+	TenantID string `json:"tenant_id,omitempty"`
+	ActorID  string `json:"actor_id,omitempty"`
 }
 
 type createMonitoringCheckRequest struct {
@@ -46,7 +59,7 @@ func monitoringActor(r *http.Request) (monitoring.Actor, error) {
 	if err != nil {
 		return monitoring.Actor{}, err
 	}
-	return monitoring.Actor{TenantID: actor.TenantID, PrincipalID: actor.PrincipalID}, nil
+	return monitoring.Actor{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID}, nil
 }
 
 func (a *API) bindMonitoringProgram(r *http.Request, programID string) (monitoring.Actor, continuity.ProgramAggregate, error) {
@@ -66,7 +79,7 @@ func (a *API) bindMonitoringProgram(r *http.Request, programID string) (monitori
 		return monitoring.Actor{}, continuity.ProgramAggregate{}, continuity.ErrNotFound
 	}
 	*r = *r.WithContext(identity.WithActor(r.Context(), exactActor))
-	return monitoring.Actor{TenantID: exactActor.TenantID, PrincipalID: exactActor.PrincipalID}, aggregate, nil
+	return monitoring.Actor{TenantID: exactActor.TenantID, LegalEntityID: exactActor.LegalEntityID, PrincipalID: exactActor.PrincipalID}, aggregate, nil
 }
 
 func (a *API) bindMonitoringCheck(r *http.Request, service *monitoring.Service, checkID string, version int64) (monitoring.Actor, monitoring.MonitoringCheck, continuity.ProgramAggregate, error) {
@@ -107,13 +120,13 @@ func (a *API) listFormTemplates(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, _, err := a.bindMonitoringProgram(r, r.PathValue("id"))
 	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
+		writeMonitoringScopeError(w, err)
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	values, err := service.ListForms(r.Context(), actor, limit)
+	values, err := service.ListForms(r.Context(), actor, r.PathValue("id"), limit)
 	if err != nil {
 		writeMonitoringError(w, err)
 		return
@@ -126,9 +139,9 @@ func (a *API) createFormTemplate(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, aggregate, err := a.bindMonitoringProgram(r, r.PathValue("id"))
 	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
+		writeMonitoringScopeError(w, err)
 		return
 	}
 	var request createFormTemplateRequest
@@ -136,6 +149,8 @@ func (a *API) createFormTemplate(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
+	request.ProgramID = aggregate.Program.ID
+	request.LegalEntityID = aggregate.Program.LegalEntityID
 	value, err := service.CreateForm(r.Context(), actor, request.CreateFormInput)
 	if err != nil {
 		writeMonitoringError(w, err)
@@ -149,17 +164,20 @@ func (a *API) transitionFormTemplate(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, aggregate, err := a.bindMonitoringProgram(r, r.PathValue("id"))
 	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
+		writeMonitoringScopeError(w, err)
 		return
 	}
-	var input monitoring.TransitionInput
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+	var request transitionFormTemplateRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	input.ID = r.PathValue("id")
+	input := request.TransitionInput
+	input.ID = r.PathValue("form_id")
+	input.ProgramID = aggregate.Program.ID
+	input.LegalEntityID = aggregate.Program.LegalEntityID
 	value, err := service.TransitionForm(r.Context(), actor, input)
 	if err != nil {
 		writeMonitoringError(w, err)
@@ -173,17 +191,20 @@ func (a *API) startFormCollection(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, err := monitoringActor(r)
+	actor, aggregate, err := a.bindMonitoringProgram(r, r.PathValue("id"))
 	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
+		writeMonitoringScopeError(w, err)
 		return
 	}
-	var input monitoring.StartCollectionInput
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+	var request startFormCollectionRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	input.FormTemplateID = r.PathValue("id")
+	input := request.StartCollectionInput
+	input.FormTemplateID = r.PathValue("form_id")
+	input.ProgramID = aggregate.Program.ID
+	input.LegalEntityID = aggregate.Program.LegalEntityID
 	value, err := service.StartCollection(r.Context(), actor, input)
 	if err != nil {
 		writeMonitoringError(w, err)

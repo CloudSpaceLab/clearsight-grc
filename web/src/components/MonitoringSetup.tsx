@@ -49,7 +49,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
 
   async function reload() {
     setState("loading");
-    const [formResult, checkResult] = await Promise.allSettled([loadFormTemplates(), loadMonitoringChecks(aggregate.program.id)]);
+    const [formResult, checkResult] = await Promise.allSettled([loadFormTemplates(aggregate.program.id), loadMonitoringChecks(aggregate.program.id)]);
     if (formResult.status === "fulfilled") setForms(latestByID(formResult.value));
     if (checkResult.status === "fulfilled") {
       const currentChecks = latestByID(checkResult.value);
@@ -65,8 +65,9 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
   useEffect(() => { void reload(); }, [aggregate.program.id]);
   const defineOperation = operations.find((operation) => operation.command === "program.monitoring.define" && !operation.subresource_id);
   const canDefine = Boolean(defineOperation?.can_act);
-  const canReviewForms = operations.some((operation) => operation.command === "program.monitoring.transition" && operation.responsibility === "REVIEWER" && operation.can_act);
   const checkOperation = (checkID: string, command: string) => operations.find((operation) => operation.command === command && operation.subresource_id === checkID);
+  const formTransitionOperation = (formID: string) => operations.find((operation) => operation.command === "program.monitoring.form.transition" && operation.subresource_id === formID);
+  const collectionOperation = (formID: string) => operations.find((operation) => operation.command === "program.monitoring.collect" && operation.subresource_id === formID);
 
   useEffect(() => {
     if (!canDefine) {
@@ -80,10 +81,11 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
   const formFields = useMemo(() => new Map(forms.flatMap((form) => form.fields.map((field) => [`${form.id}:${field.id}`, field.label] as const))), [forms]);
 
   async function changeForm(form: FormTemplate, to: LifecycleStatus) {
-    if (to === "ACTIVE" ? !canReviewForms : !canDefine) return;
+    const operation = formTransitionOperation(form.id);
+    if (!operation?.can_act || !operation.allowed_targets?.includes(to)) return;
     setBusy(form.id); setError("");
     try {
-      const updated = await transitionFormTemplate(form.id, form.version, to);
+      const updated = await transitionFormTemplate(aggregate.program.id, form.id, form.version, to);
       setForms((current) => latestByID([...current, updated]));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The form status could not be changed.");
@@ -141,18 +143,18 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
 
   async function collect(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canDefine || !collecting) return;
+    if (!collecting || !collectionOperation(collecting.id)?.can_act) return;
     const data = new FormData(event.currentTarget);
     setBusy(collecting.id); setError("");
     try {
       await startFormCollection(collecting, {
-        programID: aggregate.program.id, respondentPrincipalID: actorPrincipalID, reviewerPrincipalID: actorPrincipalID,
+        programID: aggregate.program.id,
         periodStart: new Date(String(data.get("period_start"))).toISOString(),
         periodEnd: new Date(String(data.get("period_end"))).toISOString(),
         deadline: new Date(String(data.get("deadline"))).toISOString(),
       });
       setCollecting(null);
-      setNotice("Collection request created and assigned to you.");
+      setNotice("Collection request created for the current responder and reviewer.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The collection request could not be created.");
     } finally { setBusy(""); }
@@ -175,7 +177,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
       <button type="button" aria-label="Connected data" disabled={!canConfigureSources} onClick={() => setMode("source")}><strong>Connected data</strong><span>{canConfigureSources ? "Check a status endpoint and calculate risk from the returned value." : "A GRC administrator can connect a new source."}</span></button>
     </div>}
     {canDefine && mode === "form" && (
-      <FormBuilder onCancel={() => setMode("choose")} onSaved={(form) => { setForms((current) => latestByID([...current, form])); setMode("closed"); setNotice("Form draft saved."); }}/>
+      <FormBuilder programID={aggregate.program.id} onCancel={() => setMode("choose")} onSaved={(form) => { setForms((current) => latestByID([...current, form])); setMode("closed"); setNotice("Form draft saved."); }}/>
     )}
     {canDefine && mode === "source" && (
       <DataSourceBuilder onCancel={() => setMode("choose")} onSaved={(binding, config) => void addSourceCheck(binding, config)}/>
@@ -185,17 +187,17 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
       {forms.map((form) => <article className="monitoring-record" key={form.id}>
         <div><span className="record-type">Collection form</span><h4>{form.name}</h4><p>{form.fields.length} question{form.fields.length === 1 ? "" : "s"} · {statusLabel(form.status)}</p></div>
         <div className="record-actions">
-          {canDefine && form.status === "DRAFT" && <button className="secondary-button" disabled={busy === form.id} onClick={() => void changeForm(form, "PENDING_APPROVAL")}>Send for approval</button>}
-          {canReviewForms && form.status === "PENDING_APPROVAL" && form.submitted_by !== actorPrincipalID && <button className="primary-button" disabled={busy === form.id} onClick={() => void changeForm(form, "ACTIVE")}>Approve form</button>}
+          {formTransitionOperation(form.id)?.can_act && formTransitionOperation(form.id)?.allowed_targets?.includes("PENDING_APPROVAL") && form.status === "DRAFT" && <button className="secondary-button" disabled={busy === form.id} onClick={() => void changeForm(form, "PENDING_APPROVAL")}>Send for approval</button>}
+          {formTransitionOperation(form.id)?.can_act && formTransitionOperation(form.id)?.allowed_targets?.includes("ACTIVE") && form.status === "PENDING_APPROVAL" && form.submitted_by !== actorPrincipalID && <button className="primary-button" disabled={busy === form.id} onClick={() => void changeForm(form, "ACTIVE")}>Approve form</button>}
           {form.status === "PENDING_APPROVAL" && form.submitted_by === actorPrincipalID && <span className="action-note">Another approver must approve this form.</span>}
           {canDefine && form.status === "ACTIVE" && !linkedFormVersions.has(`${form.id}:${form.version}`) && <button className="secondary-button" disabled={busy === form.id} onClick={() => void addCheck(form)}>Create monitoring check</button>}
-          {canDefine && form.status === "ACTIVE" && activeFormVersions.has(`${form.id}:${form.version}`) && <button className="primary-button" disabled={busy === form.id} onClick={() => setCollecting(form)}>Collect responses</button>}
+          {collectionOperation(form.id)?.can_act && form.status === "ACTIVE" && activeFormVersions.has(`${form.id}:${form.version}`) && <button className="primary-button" disabled={busy === form.id} onClick={() => setCollecting(form)}>Collect responses</button>}
         </div>
         {collecting?.id === form.id && <form className="collection-schedule" onSubmit={collect}>
           <label><span>Period starts</span><input name="period_start" type="date" defaultValue={periodStart} required/></label>
           <label><span>Period ends</span><input name="period_end" type="date" defaultValue={periodEnd} required/></label>
           <label><span>Due</span><input name="deadline" type="datetime-local" defaultValue={deadline} required/></label>
-          <p>The request will be assigned to you. It can be reassigned from Evidence.</p>
+          <p>The request will be assigned to the current responder and kept separate from its reviewer.</p>
           <button className="text-button" type="button" onClick={() => setCollecting(null)}>Cancel</button><button className="primary-button" type="submit" disabled={busy === form.id}>Create request</button>
         </form>}
       </article>)}

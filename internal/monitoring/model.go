@@ -117,12 +117,14 @@ type TemplateField struct {
 }
 
 type FormTemplate struct {
-	ID       string          `json:"id"`
-	TenantID string          `json:"tenant_id"`
-	Code     string          `json:"code"`
-	Name     string          `json:"name"`
-	Purpose  string          `json:"purpose"`
-	Fields   []TemplateField `json:"fields"`
+	ID            string          `json:"id"`
+	TenantID      string          `json:"tenant_id"`
+	LegalEntityID string          `json:"legal_entity_id"`
+	ProgramID     string          `json:"program_id"`
+	Code          string          `json:"code"`
+	Name          string          `json:"name"`
+	Purpose       string          `json:"purpose"`
+	Fields        []TemplateField `json:"fields"`
 	Lifecycle
 }
 

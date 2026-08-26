@@ -13,6 +13,8 @@ type MemoryRepository struct {
 	forms   map[string]FormTemplate
 	checks  map[string]MonitoringCheck
 	results map[string]MonitoringResult
+	events  []MonitoringEvent
+	outbox  []MonitoringEvent
 }
 
 func NewMemoryRepository() *MemoryRepository {
@@ -20,8 +22,12 @@ func NewMemoryRepository() *MemoryRepository {
 }
 
 func (r *MemoryRepository) CreateFormRevision(_ context.Context, value FormTemplate) (FormTemplate, error) {
-	if value.TenantID == "" || value.ID == "" || value.Version < 1 {
+	if value.TenantID == "" || value.LegalEntityID == "" || value.ProgramID == "" || value.ID == "" || value.Version < 1 {
 		return FormTemplate{}, ErrInvalid
+	}
+	event, err := newMonitoringEvent(value.TenantID, AggregateMonitoringForm, value.ID, value.Version, EventMonitoringFormCreated, value, value.CreatedBy, value.CreatedAt)
+	if err != nil {
+		return FormTemplate{}, err
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -31,25 +37,26 @@ func (r *MemoryRepository) CreateFormRevision(_ context.Context, value FormTempl
 	}
 	stored := cloneValue(value)
 	r.forms[key] = stored
+	r.appendEvent(event)
 	return cloneValue(stored), nil
 }
 
-func (r *MemoryRepository) FormRevision(_ context.Context, tenant, id string, version int64) (FormTemplate, error) {
+func (r *MemoryRepository) FormRevision(_ context.Context, tenant, legalEntityID, programID, id string, version int64) (FormTemplate, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	value, ok := r.forms[revisionKey(tenant, id, version)]
-	if !ok {
+	if !ok || value.LegalEntityID != legalEntityID || value.ProgramID != programID {
 		return FormTemplate{}, ErrNotFound
 	}
 	return cloneValue(value), nil
 }
 
-func (r *MemoryRepository) ListFormRevisions(_ context.Context, tenant string, limit int) ([]FormTemplate, error) {
+func (r *MemoryRepository) ListFormRevisions(_ context.Context, tenant, legalEntityID, programID string, limit int) ([]FormTemplate, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	values := make([]FormTemplate, 0)
 	for _, value := range r.forms {
-		if value.TenantID == tenant {
+		if value.TenantID == tenant && value.LegalEntityID == legalEntityID && value.ProgramID == programID {
 			values = append(values, cloneValue(value))
 		}
 	}
@@ -70,12 +77,19 @@ func (r *MemoryRepository) TransitionForm(_ context.Context, input LifecycleTran
 	if !ok {
 		return FormTemplate{}, ErrNotFound
 	}
+	if current.LegalEntityID != input.LegalEntityID || current.ProgramID != input.ProgramID {
+		return FormTemplate{}, ErrNotFound
+	}
 	nextLifecycle, err := transitionLifecycle(current.Lifecycle, input)
 	if err != nil {
 		return FormTemplate{}, err
 	}
 	next := cloneValue(current)
 	next.Lifecycle = nextLifecycle
+	event, err := newMonitoringEvent(input.TenantID, AggregateMonitoringForm, input.ID, next.Version, EventMonitoringFormStateChanged, next, input.ActorID, input.At)
+	if err != nil {
+		return FormTemplate{}, err
+	}
 	nextKey := revisionKey(input.TenantID, input.ID, next.Version)
 	if _, exists := r.forms[nextKey]; exists {
 		return FormTemplate{}, ErrConflict
@@ -93,12 +107,17 @@ func (r *MemoryRepository) TransitionForm(_ context.Context, input LifecycleTran
 		}
 	}
 	r.forms[nextKey] = cloneValue(next)
+	r.appendEvent(event)
 	return cloneValue(next), nil
 }
 
 func (r *MemoryRepository) CreateCheckRevision(_ context.Context, value MonitoringCheck) (MonitoringCheck, error) {
 	if value.TenantID == "" || value.ID == "" || value.ProgramID == "" || value.Version < 1 {
 		return MonitoringCheck{}, ErrInvalid
+	}
+	event, err := newMonitoringEvent(value.TenantID, AggregateMonitoringCheck, value.ID, value.Version, EventMonitoringCheckCreated, value, value.CreatedBy, value.CreatedAt)
+	if err != nil {
+		return MonitoringCheck{}, err
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -108,6 +127,7 @@ func (r *MemoryRepository) CreateCheckRevision(_ context.Context, value Monitori
 	}
 	stored := cloneValue(value)
 	r.checks[key] = stored
+	r.appendEvent(event)
 	return cloneValue(stored), nil
 }
 
@@ -170,6 +190,10 @@ func (r *MemoryRepository) TransitionCheck(_ context.Context, input LifecycleTra
 	}
 	next := cloneValue(current)
 	next.Lifecycle = nextLifecycle
+	event, err := newMonitoringEvent(input.TenantID, AggregateMonitoringCheck, input.ID, next.Version, EventMonitoringCheckStateChanged, next, input.ActorID, input.At)
+	if err != nil {
+		return MonitoringCheck{}, err
+	}
 	nextKey := revisionKey(input.TenantID, input.ID, next.Version)
 	if _, exists := r.checks[nextKey]; exists {
 		return MonitoringCheck{}, ErrConflict
@@ -187,6 +211,7 @@ func (r *MemoryRepository) TransitionCheck(_ context.Context, input LifecycleTra
 		}
 	}
 	r.checks[nextKey] = cloneValue(next)
+	r.appendEvent(event)
 	return cloneValue(next), nil
 }
 
@@ -245,6 +270,10 @@ func (r *MemoryRepository) AppendResult(_ context.Context, value MonitoringResul
 	if value.TenantID == "" || value.ID == "" || value.MonitoringCheckID == "" || value.MonitoringCheckVersion < 1 || value.InputReferenceID == "" || value.EvaluatorVersion == "" {
 		return MonitoringResult{}, ErrInvalid
 	}
+	event, err := newMonitoringEvent(value.TenantID, AggregateMonitoringResult, value.ID, 1, EventMonitoringResultRecorded, value, "", value.CreatedAt)
+	if err != nil {
+		return MonitoringResult{}, err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for _, existing := range r.results {
@@ -257,7 +286,36 @@ func (r *MemoryRepository) AppendResult(_ context.Context, value MonitoringResul
 	}
 	stored := cloneValue(value)
 	r.results[value.ID] = stored
+	r.appendEvent(event)
 	return cloneValue(stored), nil
+}
+
+func (r *MemoryRepository) appendEvent(event MonitoringEvent) {
+	r.events = append(r.events, cloneValue(event))
+	r.outbox = append(r.outbox, cloneValue(event))
+}
+
+func (r *MemoryRepository) MonitoringEvents(tenant, aggregateType, aggregateID string) []MonitoringEvent {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return filterMonitoringEvents(r.events, tenant, aggregateType, aggregateID)
+}
+
+func (r *MemoryRepository) MonitoringOutbox(tenant, aggregateType, aggregateID string) []MonitoringEvent {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return filterMonitoringEvents(r.outbox, tenant, aggregateType, aggregateID)
+}
+
+func filterMonitoringEvents(values []MonitoringEvent, tenant, aggregateType, aggregateID string) []MonitoringEvent {
+	result := make([]MonitoringEvent, 0)
+	for _, event := range values {
+		if event.TenantID == tenant && event.AggregateType == aggregateType && event.AggregateID == aggregateID {
+			result = append(result, cloneValue(event))
+		}
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].AggregateVersion < result[j].AggregateVersion })
+	return result
 }
 
 func (r *MemoryRepository) ListResults(_ context.Context, tenant, checkID string, limit int) ([]MonitoringResult, error) {

@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { createFormTemplate } from "../monitoringApi";
 import type { FormTemplate, FormTemplateField } from "../monitoringTypes";
 
-type Props = { onSaved: (form: FormTemplate) => void; onCancel: () => void };
+type Props = { programID: string; onSaved: (form: FormTemplate) => void; onCancel: () => void };
 
 type Question = { id: string; label: string; required: boolean; scored: boolean; weight: number; noScore: number; criticalNo: boolean };
 
@@ -17,7 +17,7 @@ const passwordResetQuestions = [
   "Were reset events logged and reviewed for unusual activity?",
 ];
 
-export function FormBuilder({ onSaved, onCancel }: Props) {
+export function FormBuilder({ programID, onSaved, onCancel }: Props) {
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [purpose, setPurpose] = useState("");
@@ -60,7 +60,7 @@ export function FormBuilder({ onSaved, onCancel }: Props) {
     });
     setSaving(true);
     try {
-      const saved = await createFormTemplate({ code: code.trim().toUpperCase().replace(/\s+/g, "-"), name: name.trim(), purpose: purpose.trim(), fields });
+      const saved = await createFormTemplate(programID, { code: code.trim().toUpperCase().replace(/\s+/g, "-"), name: name.trim(), purpose: purpose.trim(), fields });
       onSaved(saved);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The form could not be saved. Check the fields and try again.");

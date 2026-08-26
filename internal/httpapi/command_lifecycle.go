@@ -27,6 +27,7 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 	}
 	programID := ""
 	var monitoringCheck *monitoring.MonitoringCheck
+	var monitoringForm *monitoring.FormTemplate
 	if name == "program.monitoring.transition" || name == "program.monitoring.evaluate" {
 		if a.deps.Monitoring == nil {
 			return policy, fmt.Errorf("%w: monitoring service is unavailable", commandauth.ErrGuardUnavailable)
@@ -49,6 +50,36 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		}
 		monitoringCheck = &check
 		programID = check.ProgramID
+	}
+	if name == "program.monitoring.form.transition" || name == "program.monitoring.collect" {
+		if a.deps.Monitoring == nil {
+			return policy, fmt.Errorf("%w: monitoring service is unavailable", commandauth.ErrGuardUnavailable)
+		}
+		actor, actorErr := identity.Require(ctx)
+		if actorErr != nil {
+			return policy, fmt.Errorf("%w: verified identity is required", commandauth.ErrIdentityRequired)
+		}
+		versionField := "expected_version"
+		if name == "program.monitoring.collect" {
+			versionField = "form_template_version"
+		}
+		version, ok := int64Value(payload[versionField])
+		if !ok || version < 1 {
+			return policy, monitoring.ErrInvalid
+		}
+		form, loadErr := a.deps.Monitoring.Form(ctx, monitoring.Actor{TenantID: tenant, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID}, r.PathValue("id"), r.PathValue("form_id"), version)
+		if loadErr != nil {
+			return policy, loadErr
+		}
+		monitoringForm = &form
+		boundProgramID, bindErr := lifecycleProgramID(r, payload)
+		if bindErr != nil {
+			return policy, bindErr
+		}
+		if boundProgramID == "" || boundProgramID != form.ProgramID {
+			return policy, continuity.ErrNotFound
+		}
+		programID = boundProgramID
 	}
 	if existingProgramCommand(name) && programID == "" {
 		var err error
@@ -166,6 +197,60 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		payload["owner_principal_id"] = programAggregate.Program.OwnerPrincipalID
 		payload["reviewer_principal_id"] = reviewer.Principal.ID
 		payload["program_id"] = programAggregate.Program.ID
+		return policy, nil
+
+	case "program.monitoring.form.define":
+		if programAggregate == nil {
+			return policy, nil
+		}
+		if err := a.requireMonitoringResponsibility(ctx, tenant, programAggregate.Program, "PROGRAM", programAggregate.Program.ID, authority.ResponsibilityOwner, programAggregate.Program.OwnerPrincipalID, name, policy.Materiality); err != nil {
+			return policy, err
+		}
+		payload["program_id"] = programAggregate.Program.ID
+		payload["legal_entity_id"] = programAggregate.Program.LegalEntityID
+		return policy, nil
+
+	case "program.monitoring.form.transition":
+		if programAggregate == nil || monitoringForm == nil || monitoringForm.ProgramID != programAggregate.Program.ID || monitoringForm.LegalEntityID != programAggregate.Program.LegalEntityID {
+			return policy, continuity.ErrNotFound
+		}
+		policy.Responsibility = authority.ResponsibilityReviewer
+		policy.Materiality = 3
+		assignedID := ""
+		if monitoringForm.Status == monitoring.LifecycleDraft {
+			policy.Responsibility = authority.ResponsibilityOwner
+			policy.Materiality = 2
+			assignedID = programAggregate.Program.OwnerPrincipalID
+		}
+		if err := a.requireMonitoringResponsibility(ctx, tenant, programAggregate.Program, "PROGRAM", programAggregate.Program.ID, policy.Responsibility, assignedID, name, policy.Materiality); err != nil {
+			return policy, err
+		}
+		payload["program_id"] = programAggregate.Program.ID
+		payload["legal_entity_id"] = programAggregate.Program.LegalEntityID
+		return policy, nil
+
+	case "program.monitoring.collect":
+		if programAggregate == nil || monitoringForm == nil || monitoringForm.ProgramID != programAggregate.Program.ID || monitoringForm.LegalEntityID != programAggregate.Program.LegalEntityID {
+			return policy, continuity.ErrNotFound
+		}
+		if err := a.requireMonitoringResponsibility(ctx, tenant, programAggregate.Program, "PROGRAM", programAggregate.Program.ID, authority.ResponsibilityOwner, programAggregate.Program.OwnerPrincipalID, name, policy.Materiality); err != nil {
+			return policy, err
+		}
+		respondentID, err := a.resolveMonitoringAssignee(ctx, tenant, programAggregate.Program, authority.ResponsibilityPerformer, name, 2)
+		if err != nil {
+			return policy, err
+		}
+		reviewerID, err := a.resolveMonitoringAssignee(ctx, tenant, programAggregate.Program, authority.ResponsibilityReviewer, name, 3)
+		if err != nil {
+			return policy, err
+		}
+		if respondentID == reviewerID {
+			return policy, fmt.Errorf("%w: monitoring respondent and reviewer must be different people", continuity.ErrInvalidState)
+		}
+		payload["program_id"] = programAggregate.Program.ID
+		payload["legal_entity_id"] = programAggregate.Program.LegalEntityID
+		payload["respondent_principal_id"] = respondentID
+		payload["reviewer_principal_id"] = reviewerID
 		return policy, nil
 
 	case "program.monitoring.transition":
@@ -492,9 +577,23 @@ func (a *API) requireMonitoringResponsibility(ctx context.Context, tenant string
 	return nil
 }
 
+func (a *API) resolveMonitoringAssignee(ctx context.Context, tenant string, program continuity.Program, responsibility authority.Responsibility, decisionType string, materiality int) (string, error) {
+	if a.deps.Authority == nil {
+		return "", fmt.Errorf("%w: monitoring responsibility could not be resolved", commandauth.ErrGuardUnavailable)
+	}
+	resolution, err := a.deps.Authority.Resolve(ctx, authority.ResolveInput{
+		TenantID: tenant, LegalEntityID: program.LegalEntityID, ObjectType: "PROGRAM", ObjectID: program.ID,
+		Responsibility: responsibility, DecisionType: decisionType, Materiality: materiality,
+	})
+	if err != nil || strings.TrimSpace(resolution.Principal.ID) == "" {
+		return "", fmt.Errorf("%w: monitoring responsibility could not be resolved", commandauth.ErrGuardUnavailable)
+	}
+	return strings.TrimSpace(resolution.Principal.ID), nil
+}
+
 func programOwnerBoundCommand(name string) bool {
 	switch name {
-	case "program.details.update", "program.assign", "program.requirement.add", "program.requirement.supersede", "program.safeguard.define", "program.evidence.define":
+	case "program.details.update", "program.assign", "program.requirement.add", "program.requirement.supersede", "program.safeguard.define", "program.evidence.define", "program.monitoring.form.define", "program.monitoring.collect":
 		return true
 	default:
 		return false

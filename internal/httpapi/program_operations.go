@@ -96,6 +96,30 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		add(spec)
 	}
 	if a.deps.Monitoring != nil {
+		forms, err := a.deps.Monitoring.ListForms(ctx, monitoring.Actor{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID}, aggregate.Program.ID, 500)
+		if err == nil {
+			seen := map[string]bool{}
+			for _, form := range forms {
+				if seen[form.ID] {
+					continue
+				}
+				seen[form.ID] = true
+				if targets := monitoringTransitionTargets(form.Status); len(targets) > 0 {
+					responsibility := authority.ResponsibilityReviewer
+					assignedID := ""
+					materiality := 3
+					if form.Status == monitoring.LifecycleDraft {
+						responsibility = authority.ResponsibilityOwner
+						assignedID = ownerID
+						materiality = 2
+					}
+					add(programOperationSpec{Command: "program.monitoring.form.transition", SubresourceID: form.ID, Label: "Change " + form.Name + " status", Responsibility: responsibility, Materiality: materiality, AssignedPrincipalID: assignedID, AllowedTargets: targets})
+				}
+				if form.Status == monitoring.LifecycleActive && form.IsCurrent {
+					add(programOperationSpec{Command: "program.monitoring.collect", SubresourceID: form.ID, Label: "Collect " + form.Name + " responses", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID})
+				}
+			}
+		}
 		checks, err := a.deps.Monitoring.ListChecks(ctx, monitoring.Actor{TenantID: actor.TenantID, PrincipalID: actor.PrincipalID}, aggregate.Program.ID, 500)
 		if err == nil {
 			latest := make([]monitoring.MonitoringCheck, 0, len(checks))
