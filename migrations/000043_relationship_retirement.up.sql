@@ -8,8 +8,19 @@ ALTER TABLE requirement_control_links
         (retired_at IS NOT NULL AND retired_by IS NOT NULL AND retirement_reason <> '')
     );
 
-ALTER TABLE requirement_control_links
-    DROP CONSTRAINT requirement_control_links_tenant_id_program_id_requirement_id_implementation_id_key;
+DO $$
+DECLARE current_unique_constraint text;
+BEGIN
+    SELECT conname INTO current_unique_constraint
+    FROM pg_constraint
+    WHERE conrelid='requirement_control_links'::regclass
+      AND contype='u'
+      AND pg_get_constraintdef(oid)='UNIQUE (tenant_id, program_id, requirement_id, implementation_id)';
+    IF current_unique_constraint IS NULL THEN
+        RAISE EXCEPTION 'requirement-control link uniqueness constraint is missing';
+    END IF;
+    EXECUTE format('ALTER TABLE requirement_control_links DROP CONSTRAINT %I', current_unique_constraint);
+END $$;
 DROP INDEX requirement_control_links_program_idx;
 CREATE UNIQUE INDEX requirement_control_links_current_unique_idx
     ON requirement_control_links(tenant_id,program_id,requirement_id,implementation_id)

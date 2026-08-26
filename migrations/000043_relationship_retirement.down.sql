@@ -35,7 +35,7 @@ ALTER TABLE requirement_control_links
     DROP COLUMN retired_by,
     DROP COLUMN retired_at;
 ALTER TABLE requirement_control_links
-    ADD CONSTRAINT requirement_control_links_tenant_id_program_id_requirement_id_implementation_id_key
+    ADD CONSTRAINT requirement_control_links_scope_key
     UNIQUE (tenant_id,program_id,requirement_id,implementation_id);
 CREATE INDEX requirement_control_links_program_idx
     ON requirement_control_links(tenant_id,program_id,requirement_id);

@@ -21,6 +21,7 @@ func TestRelationshipRetirementMigrationKeepsHistoryAndCurrentIndexes(t *testing
 		"retirement_reason text",
 		"requirement_control_links_current_unique_idx",
 		"matter_links_current_unique_idx",
+		"pg_get_constraintdef(oid)='UNIQUE (tenant_id, program_id, requirement_id, implementation_id)'",
 		"WHERE retired_at IS NULL",
 		"WHERE program_id IS NOT NULL AND retired_at IS NULL",
 	} {
@@ -43,5 +44,8 @@ func TestRelationshipRetirementDownFailsBeforeDDLWhenHistoryExists(t *testing.T)
 	}
 	if strings.Contains(strings.ToUpper(content), "DELETE FROM MATTER_LINKS") || strings.Contains(strings.ToUpper(content), "DELETE FROM REQUIREMENT_CONTROL_LINKS") {
 		t.Fatal("down migration must not delete retired material relationship history")
+	}
+	if !strings.Contains(content, "ADD CONSTRAINT requirement_control_links_scope_key") {
+		t.Fatal("down migration must restore the requirement-control uniqueness constraint with a bounded explicit name")
 	}
 }
