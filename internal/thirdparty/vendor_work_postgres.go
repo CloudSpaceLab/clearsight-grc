@@ -24,11 +24,25 @@ func (r *PostgresRepository) CreateVendorWork(ctx context.Context, value VendorW
 		return VendorWorkRequest{}, err
 	}
 	var programLink, matterLink any
+	table, targetColumn, tableErr := relationshipLinkTable(value.TargetType)
+	if tableErr != nil {
+		return VendorWorkRequest{}, tableErr
+	}
 	if value.TargetType == LinkTargetProgram {
 		programLink = value.RelationshipLinkID
 	} else if value.TargetType == LinkTargetMatter {
 		matterLink = value.RelationshipLinkID
 	} else {
+		return VendorWorkRequest{}, ErrInvalid
+	}
+	var linkState RelationshipLinkState
+	linkQuery := fmt.Sprintf(`SELECT state FROM %s WHERE id=$1::uuid AND tenant_id=$2::uuid AND legal_entity_id=$3::uuid AND relationship_id=$4::uuid AND %s=$5::uuid FOR UPDATE`, table, targetColumn)
+	if err := tx.QueryRow(ctx, linkQuery, value.RelationshipLinkID, tenantID, value.LegalEntityID, value.RelationshipID, value.TargetID).Scan(&linkState); errors.Is(err, pgx.ErrNoRows) {
+		return VendorWorkRequest{}, ErrNotFound
+	} else if err != nil {
+		return VendorWorkRequest{}, fmt.Errorf("lock vendor relationship link: %w", err)
+	}
+	if linkState != RelationshipLinkActive {
 		return VendorWorkRequest{}, ErrInvalid
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO third_party_work_requests(
@@ -154,11 +168,6 @@ func (r *PostgresRepository) MarkVendorWorkSent(ctx context.Context, scope Scope
 	eventType := "VendorWorkSent"
 	if delivery == VendorWorkDeliveryRetryRequired {
 		eventType = "VendorWorkDeliveryRetryRequired"
-		_, err = tx.Exec(ctx, `INSERT INTO third_party_work_jobs(tenant_id,legal_entity_id,work_request_id,job_type,dedupe_key,state,available_at,created_at,updated_at)
-		VALUES($1::uuid,$2::uuid,$3::uuid,'DELIVERY_RETRY',$4,'READY',$5,$5,$5) ON CONFLICT (tenant_id,dedupe_key) DO UPDATE SET state='READY',available_at=EXCLUDED.available_at,updated_at=EXCLUDED.updated_at`, tenantID, scope.LegalEntityID, id, fmt.Sprintf("vendor-work-delivery:%s:%d", id, current.CurrentCaptureSequence), now.UTC())
-	}
-	if err != nil {
-		return VendorWorkRequest{}, fmt.Errorf("schedule vendor work delivery retry: %w", err)
 	}
 	if err := appendVendorWorkEvent(ctx, tx, tenantID, current, "", eventType); err != nil {
 		return VendorWorkRequest{}, err
@@ -191,10 +200,6 @@ func (r *PostgresRepository) MarkVendorWorkPreparationRequired(ctx context.Conte
 	}
 	current.DeliveryState, current.Recovery, current.Version, current.UpdatedAt = VendorWorkDeliveryRetryRequired, recovery, current.Version+1, now.UTC()
 	_, err = tx.Exec(ctx, `UPDATE third_party_work_requests SET delivery_state='RETRY_REQUIRED',recovery=$4,version=$5,updated_at=$6 WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND version=$7`, tenantID, scope.LegalEntityID, id, recovery, current.Version, current.UpdatedAt, expected)
-	if err != nil {
-		return VendorWorkRequest{}, err
-	}
-	_, err = tx.Exec(ctx, `INSERT INTO third_party_work_jobs(tenant_id,legal_entity_id,work_request_id,job_type,dedupe_key,state,available_at,created_at,updated_at) VALUES($1::uuid,$2::uuid,$3::uuid,'DELIVERY_RETRY',$4,'READY',$5,$5,$5) ON CONFLICT (tenant_id,dedupe_key) DO UPDATE SET state='READY',available_at=EXCLUDED.available_at,updated_at=EXCLUDED.updated_at`, tenantID, scope.LegalEntityID, id, "vendor-work-prepare:"+id, now.UTC())
 	if err != nil {
 		return VendorWorkRequest{}, err
 	}
@@ -311,6 +316,52 @@ func (r *PostgresRepository) TransitionVendorWork(ctx context.Context, scope Sco
 		return VendorWorkRequest{}, fmt.Errorf("transition vendor work: %w", err)
 	}
 	if err := appendVendorWorkEvent(ctx, tx, tenantID, current, actor, eventType); err != nil {
+		return VendorWorkRequest{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return VendorWorkRequest{}, err
+	}
+	return current, nil
+}
+
+func (r *PostgresRepository) RecordVendorWorkChanges(ctx context.Context, scope Scope, id string, expected int64, link VendorWorkCaptureLink, actor, message string, dueAt, now time.Time) (VendorWorkRequest, error) {
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if err != nil {
+		return VendorWorkRequest{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	current, err := getVendorWorkLocked(ctx, tx, scope, id)
+	if err != nil {
+		return VendorWorkRequest{}, err
+	}
+	if current.Version != expected {
+		return VendorWorkRequest{}, ErrVersionConflict
+	}
+	if current.State != VendorWorkUnderReview || link.Sequence != current.CurrentCaptureSequence+1 || !dueAt.After(now) {
+		return VendorWorkRequest{}, ErrInvalidAssessmentTransition
+	}
+	tenantID, err := resolveTenant(ctx, tx, scope.TenantID)
+	if err != nil {
+		return VendorWorkRequest{}, err
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO third_party_work_capture_links(id,tenant_id,legal_entity_id,work_request_id,request_id,sequence,purpose,origin_type,origin_id,origin_version,created_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'CLARIFICATION','THIRD_PARTY_WORK',$4::uuid,$6,$7)`, link.ID, tenantID, scope.LegalEntityID, id, link.RequestID, link.Sequence, link.CreatedAt)
+	if isUniqueViolation(err) {
+		return VendorWorkRequest{}, ErrVersionConflict
+	}
+	if err != nil {
+		return VendorWorkRequest{}, fmt.Errorf("attach vendor work clarification: %w", err)
+	}
+	current.CurrentRequestID, current.CurrentInvitationID, current.CurrentCaptureSequence, current.SubmissionID = link.RequestID, "", link.Sequence, ""
+	current.State, current.DeliveryState, current.Recovery = VendorWorkChangesRequested, VendorWorkDeliveryNotSent, ""
+	current.ReviewerPrincipalID, current.ReviewRationale, current.DueAt = actor, message, dueAt.UTC()
+	current.Version, current.UpdatedAt = current.Version+1, now.UTC()
+	_, err = tx.Exec(ctx, `UPDATE third_party_work_requests SET current_request_id=$4::uuid,current_invitation_id=NULL,current_capture_sequence=$5,submission_id=NULL,state='CHANGES_REQUESTED',delivery_state='NOT_SENT',recovery='',reviewer_principal_id=$6::uuid,review_rationale=$7,due_at=$8,version=$9,updated_at=$10
+		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND version=$11`, tenantID, scope.LegalEntityID, id, link.RequestID, link.Sequence, actor, message, current.DueAt, current.Version, current.UpdatedAt, expected)
+	if err != nil {
+		return VendorWorkRequest{}, fmt.Errorf("record vendor work clarification: %w", err)
+	}
+	if err := appendVendorWorkEvent(ctx, tx, tenantID, current, actor, "VendorWorkChangesRequested"); err != nil {
 		return VendorWorkRequest{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {

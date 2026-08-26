@@ -120,27 +120,4 @@ CREATE TABLE third_party_work_events (
 CREATE INDEX third_party_work_events_history_idx
     ON third_party_work_events(tenant_id,legal_entity_id,work_request_id,work_version,id);
 
-CREATE TABLE third_party_work_jobs (
-    id uuid PRIMARY KEY DEFAULT uuidv7(),
-    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    legal_entity_id uuid NOT NULL,
-    work_request_id uuid NOT NULL,
-    job_type text NOT NULL CHECK (job_type='DELIVERY_RETRY'),
-    dedupe_key text NOT NULL CHECK (dedupe_key=btrim(dedupe_key) AND char_length(dedupe_key) BETWEEN 1 AND 256),
-    state text NOT NULL CHECK (state IN ('READY','LEASED','COMPLETED','FAILED')),
-    attempts integer NOT NULL DEFAULT 0 CHECK (attempts BETWEEN 0 AND 20),
-    available_at timestamptz NOT NULL,
-    lease_token uuid,
-    lease_expires_at timestamptz,
-    last_failure_code text NOT NULL DEFAULT '' CHECK (last_failure_code=btrim(last_failure_code) AND char_length(last_failure_code) <= 128),
-    created_at timestamptz NOT NULL,
-    updated_at timestamptz NOT NULL CHECK (updated_at >= created_at),
-    UNIQUE (tenant_id,dedupe_key),
-    FOREIGN KEY (work_request_id,tenant_id,legal_entity_id) REFERENCES third_party_work_requests(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
-    CHECK ((state='LEASED' AND lease_token IS NOT NULL AND lease_expires_at IS NOT NULL) OR
-           (state<>'LEASED' AND lease_token IS NULL AND lease_expires_at IS NULL))
-);
-CREATE INDEX third_party_work_jobs_claim_idx
-    ON third_party_work_jobs(state,available_at,id) WHERE state IN ('READY','LEASED');
-
 COMMIT;

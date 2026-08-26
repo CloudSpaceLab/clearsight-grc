@@ -19,12 +19,14 @@ const maxCommandBody = 1 << 20
 const noActorField = "-"
 
 type commandPolicy struct {
-	ObjectType      string
-	Responsibility  authority.Responsibility
-	Materiality     int
-	AllowService    bool
-	BindLegalEntity bool
-	ActorField      string
+	ObjectType        string
+	Responsibility    authority.Responsibility
+	Materiality       int
+	AllowService      bool
+	BindLegalEntity   bool
+	ActorField        string
+	OutcomeObjectType string
+	OutcomePathValue  string
 }
 
 // command binds verified identity, resolves the lifecycle-specific authority

@@ -60,13 +60,13 @@ type committedCommandReceipt struct {
 }
 
 func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, policy commandPolicy, payload map[string]any, handler http.HandlerFunc) {
-	objectID := commandObjectID(r, payload)
+	objectType, objectID := commandOutcomeObject(r, policy, payload)
 	if objectID == "" || objectID == "*" {
 		handler(w, r)
 		return
 	}
 
-	baseline, baselineErr := a.currentMaterialVersion(r, policy.ObjectType, objectID, stringValue(payload["tenant_id"]))
+	baseline, baselineErr := a.currentMaterialVersion(r, objectType, objectID, stringValue(payload["tenant_id"]))
 	if baselineErr != nil {
 		handler(w, r)
 		return
@@ -86,7 +86,7 @@ func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, pol
 		return
 	}
 
-	version, err := a.currentMaterialVersion(r, policy.ObjectType, objectID, stringValue(payload["tenant_id"]))
+	version, err := a.currentMaterialVersion(r, objectType, objectID, stringValue(payload["tenant_id"]))
 	if err != nil || version <= baseline {
 		buffered.flushTo(w)
 		return
@@ -96,7 +96,7 @@ func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, pol
 	w.Header().Set("X-ClearSight-Aggregate-Version", strconv.FormatInt(version, 10))
 	httpx.WriteJSON(w, http.StatusOK, committedCommandReceipt{
 		Status:           "COMMITTED",
-		AggregateType:    policy.ObjectType,
+		AggregateType:    objectType,
 		AggregateID:      objectID,
 		Version:          version,
 		ResponseDegraded: true,
@@ -130,9 +130,31 @@ func (a *API) currentMaterialVersion(r *http.Request, objectType, objectID, tena
 		}
 		value, err := a.deps.ThirdPartyAssessments.GetAssessment(r.Context(), actor, objectID)
 		return value.Version, err
+	case "VENDOR_WORK_REQUEST":
+		if a.deps.ThirdPartyWork == nil {
+			return 0, errMaterialVersionUnavailable
+		}
+		actor, err := thirdPartyActor(r)
+		if err != nil {
+			return 0, err
+		}
+		value, err := a.deps.ThirdPartyWork.Get(r.Context(), actor, objectID)
+		return value.Version, err
 	default:
 		return 0, errMaterialVersionUnavailable
 	}
+}
+
+func commandOutcomeObject(r *http.Request, policy commandPolicy, payload map[string]any) (string, string) {
+	objectType := policy.ObjectType
+	objectID := commandObjectID(r, payload)
+	if strings.TrimSpace(policy.OutcomeObjectType) != "" {
+		objectType = strings.TrimSpace(policy.OutcomeObjectType)
+	}
+	if r != nil && strings.TrimSpace(policy.OutcomePathValue) != "" {
+		objectID = strings.TrimSpace(r.PathValue(policy.OutcomePathValue))
+	}
+	return objectType, objectID
 }
 
 func commandObjectID(r *http.Request, payload map[string]any) string {

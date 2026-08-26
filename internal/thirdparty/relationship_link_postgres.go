@@ -135,6 +135,27 @@ func (r *PostgresRepository) EndRelationshipLink(ctx context.Context, scope Scop
 		return RelationshipLink{}, ErrInvalid
 	}
 	table, _, _ := relationshipLinkTable(current.TargetType)
+	var lockedVersion int64
+	var lockedState RelationshipLinkState
+	lockQuery := fmt.Sprintf(`SELECT version,state FROM %s WHERE id::text=$1 AND tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) AND legal_entity_id::text=$3 FOR UPDATE`, table)
+	if err := tx.QueryRow(ctx, lockQuery, linkID, scope.TenantID, scope.LegalEntityID).Scan(&lockedVersion, &lockedState); errors.Is(err, pgx.ErrNoRows) {
+		return RelationshipLink{}, ErrNotFound
+	} else if err != nil {
+		return RelationshipLink{}, fmt.Errorf("lock vendor relationship link: %w", err)
+	}
+	if lockedVersion != expected {
+		return RelationshipLink{}, ErrVersionConflict
+	}
+	if lockedState != RelationshipLinkActive {
+		return RelationshipLink{}, ErrInvalid
+	}
+	var activeWork bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM third_party_work_requests WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND legal_entity_id::text=$2 AND COALESCE(program_link_id,matter_link_id)::text=$3 AND state NOT IN ('ACCEPTED','CANCELLED'))`, scope.TenantID, scope.LegalEntityID, linkID).Scan(&activeWork); err != nil {
+		return RelationshipLink{}, fmt.Errorf("check active vendor work: %w", err)
+	}
+	if activeWork {
+		return RelationshipLink{}, ErrVersionConflict
+	}
 	query := fmt.Sprintf(`UPDATE %s SET state='ENDED',ended_by_principal_id=$4::uuid,end_reason=$5,ended_at=$6,updated_at=$6,version=version+1
 		WHERE id::text=$1 AND tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) AND legal_entity_id::text=$3 AND version=$7 RETURNING version`, table)
 	var version int64

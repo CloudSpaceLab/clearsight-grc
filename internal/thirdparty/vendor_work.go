@@ -199,6 +199,7 @@ type VendorWorkRepository interface {
 	MarkVendorWorkPreparationRequired(context.Context, Scope, string, int64, string, time.Time) (VendorWorkRequest, error)
 	RecordVendorWorkSubmission(context.Context, VendorWorkSubmissionInput, time.Time) (VendorWorkRequest, error)
 	TransitionVendorWork(context.Context, Scope, string, int64, VendorWorkState, string, string, time.Time) (VendorWorkRequest, error)
+	RecordVendorWorkChanges(context.Context, Scope, string, int64, VendorWorkCaptureLink, string, string, time.Time, time.Time) (VendorWorkRequest, error)
 	ListVendorWork(context.Context, Scope, VendorWorkListInput) (VendorWorkPage, error)
 	ResolveVendorWorkCapture(context.Context, string, evidence.RequestOrigin, string) (VendorWorkSubmissionTarget, error)
 	HasActiveVendorWork(context.Context, Scope, string) (bool, error)
@@ -215,6 +216,7 @@ type vendorWorkEvidence interface {
 	CreateRequest(context.Context, evidence.CreateRequestInput) (evidence.Request, error)
 	GetRequestByOrigin(context.Context, string, evidence.RequestOrigin) (evidence.Request, error)
 	IssueInvitation(context.Context, evidence.IssueInvitationInput) (evidence.IssuedInvitation, error)
+	RevokeInvitation(context.Context, string, string) error
 	RevokeRequestCapabilities(context.Context, string, string) error
 	GetSubmission(context.Context, string, string) (evidence.Submission, error)
 	GetArtifact(context.Context, string, string, string) (evidence.Artifact, error)
@@ -229,6 +231,8 @@ type VendorWorkService struct {
 	relationships Repository
 	guard         AssessmentCommandGuard
 	readAuthority authority.Service
+	targets       *RelationshipTargetAccess
+	coordinator   *RelationshipLinkCoordinator
 	captureBase   *url.URL
 	now           func() time.Time
 	newID         func() (string, error)
@@ -264,6 +268,18 @@ func (s *VendorWorkService) ConfigureReadAuthority(service authority.Service) {
 	}
 }
 
+func (s *VendorWorkService) ConfigureTargetReader(reader RelationshipTargetReader) {
+	if s != nil {
+		s.targets = NewRelationshipTargetAccess(reader)
+	}
+}
+
+func (s *VendorWorkService) ConfigureCoordinator(coordinator *RelationshipLinkCoordinator) {
+	if s != nil {
+		s.coordinator = coordinator
+	}
+}
+
 func (s *VendorWorkService) Prepare(ctx context.Context, actor Actor, input PrepareVendorWorkInput) (VendorWorkRequest, error) {
 	input.RelationshipID, input.RelationshipLinkID = strings.TrimSpace(input.RelationshipID), strings.TrimSpace(input.RelationshipLinkID)
 	input.Purpose, input.Instructions = strings.TrimSpace(input.Purpose), strings.TrimSpace(input.Instructions)
@@ -281,12 +297,28 @@ func (s *VendorWorkService) Prepare(ctx context.Context, actor Actor, input Prep
 	if err := s.authorize(ctx, actor, input.RelationshipID, authority.ResponsibilityOwner, "thirdparty.work.prepare"); err != nil {
 		return VendorWorkRequest{}, err
 	}
+	s.coordinator.Lock()
+	coordinatorLocked := true
+	defer func() {
+		if coordinatorLocked {
+			s.coordinator.Unlock()
+		}
+	}()
+	unlockCoordinator := func() {
+		if coordinatorLocked {
+			s.coordinator.Unlock()
+			coordinatorLocked = false
+		}
+	}
 	link, err := s.links.GetRelationshipLink(ctx, scope, input.RelationshipLinkID)
 	if err != nil {
 		return VendorWorkRequest{}, err
 	}
 	if link.State != RelationshipLinkActive || link.RelationshipID != input.RelationshipID {
 		return VendorWorkRequest{}, ErrInvalid
+	}
+	if s.targets != nil && !s.targets.CanRead(ctx, actor, link.TargetType, link.TargetID) {
+		return VendorWorkRequest{}, ErrNotFound
 	}
 	form, err := s.forms.FormRevision(ctx, scope.TenantID, input.FormTemplateID, input.FormTemplateVersion)
 	if err != nil {
@@ -303,6 +335,7 @@ func (s *VendorWorkService) Prepare(ctx context.Context, actor Actor, input Prep
 		if current.CurrentRequestID != "" {
 			return current, nil
 		}
+		unlockCoordinator()
 		return s.createCaptureRecoverably(ctx, actor, current, form, input.VendorAudience, input.Instructions, input.DueAt.UTC(), 1, "INITIAL")
 	}
 	if !errors.Is(err, ErrNotFound) {
@@ -320,8 +353,13 @@ func (s *VendorWorkService) Prepare(ctx context.Context, actor Actor, input Prep
 		State: VendorWorkPreparing, DeliveryState: VendorWorkDeliveryNotSent, DueAt: input.DueAt.UTC(), Version: 1, CreatedAt: now, UpdatedAt: now,
 	})
 	if err != nil {
-		return VendorWorkRequest{}, err
+		stored, readErr := s.repo.FindActiveVendorWork(ctx, scope, link.ID)
+		if readErr != nil || stored.RelationshipID != input.RelationshipID || stored.Purpose != input.Purpose || stored.Instructions != input.Instructions || stored.FormTemplateID != form.ID || stored.FormTemplateVersion != form.Version || stored.Presentation != input.Presentation || !stored.DueAt.Equal(input.DueAt.UTC()) {
+			return VendorWorkRequest{}, err
+		}
+		work = stored
 	}
+	unlockCoordinator()
 	return s.createCaptureRecoverably(ctx, actor, work, form, input.VendorAudience, input.Instructions, input.DueAt.UTC(), 1, "INITIAL")
 }
 
@@ -340,6 +378,29 @@ func (s *VendorWorkService) createCaptureRecoverably(ctx context.Context, actor 
 }
 
 func (s *VendorWorkService) createCapture(ctx context.Context, actor Actor, work VendorWorkRequest, form monitoring.FormTemplate, audience, instructions string, dueAt time.Time, sequence int, purpose string) (VendorWorkRequest, error) {
+	request, err := s.ensureCaptureRequest(ctx, actor, work, form, audience, instructions, dueAt, sequence)
+	if err != nil {
+		return work, err
+	}
+	linkID, err := s.newID()
+	if err != nil {
+		return work, err
+	}
+	updated, err := s.repo.AttachVendorWorkCapture(ctx, scopeFrom(actor), work.ID, work.Version, VendorWorkCaptureLink{
+		ID: linkID, TenantID: work.TenantID, LegalEntityID: work.LegalEntityID, WorkRequestID: work.ID, RequestID: request.ID,
+		Sequence: sequence, Purpose: purpose, OriginVersion: int64(sequence), CreatedAt: s.now().UTC(),
+	}, s.now().UTC())
+	if err == nil {
+		return updated, nil
+	}
+	stored, readErr := s.repo.GetVendorWork(ctx, scopeFrom(actor), work.ID)
+	if readErr == nil && stored.Version == work.Version+1 && stored.CurrentRequestID == request.ID && stored.CurrentCaptureSequence == sequence {
+		return stored, nil
+	}
+	return work, err
+}
+
+func (s *VendorWorkService) ensureCaptureRequest(ctx context.Context, actor Actor, work VendorWorkRequest, form monitoring.FormTemplate, audience, instructions string, dueAt time.Time, sequence int) (evidence.Request, error) {
 	origin := evidence.RequestOrigin{Type: VendorWorkOrigin, ID: work.ID, Version: int64(sequence)}
 	request, err := s.evidence.GetRequestByOrigin(ctx, work.TenantID, origin)
 	if errors.Is(err, evidence.ErrNotFound) {
@@ -355,7 +416,7 @@ func (s *VendorWorkService) createCapture(ctx context.Context, actor Actor, work
 		if s.relationships != nil {
 			relationship, relationshipErr := s.relationships.GetRelationship(ctx, Scope{TenantID: work.TenantID, LegalEntityID: work.LegalEntityID}, work.RelationshipID)
 			if relationshipErr != nil {
-				return work, relationshipErr
+				return evidence.Request{}, relationshipErr
 			}
 			if name := strings.TrimSpace(relationship.Vendor.LegalName); name != "" {
 				knownFacts["Vendor"] = name
@@ -373,16 +434,9 @@ func (s *VendorWorkService) createCapture(ctx context.Context, actor Actor, work
 		})
 	}
 	if err != nil {
-		return work, err
+		return evidence.Request{}, err
 	}
-	linkID, err := s.newID()
-	if err != nil {
-		return work, err
-	}
-	return s.repo.AttachVendorWorkCapture(ctx, scopeFrom(actor), work.ID, work.Version, VendorWorkCaptureLink{
-		ID: linkID, TenantID: work.TenantID, LegalEntityID: work.LegalEntityID, WorkRequestID: work.ID, RequestID: request.ID,
-		Sequence: sequence, Purpose: purpose, OriginVersion: int64(sequence), CreatedAt: s.now().UTC(),
-	}, s.now().UTC())
+	return request, nil
 }
 
 func (s *VendorWorkService) Send(ctx context.Context, actor Actor, workID string, input SendVendorWorkInput) (VendorWorkSendOutcome, error) {
@@ -396,6 +450,9 @@ func (s *VendorWorkService) Send(ctx context.Context, actor Actor, workID string
 	}
 	if work.Version != input.ExpectedVersion {
 		return VendorWorkSendOutcome{}, ErrVersionConflict
+	}
+	if err := s.authorizeWorkTarget(ctx, actor, work); err != nil {
+		return VendorWorkSendOutcome{}, err
 	}
 	if err := s.authorize(ctx, actor, work.RelationshipID, authority.ResponsibilityOwner, "thirdparty.work.send"); err != nil {
 		return VendorWorkSendOutcome{}, err
@@ -433,8 +490,15 @@ func (s *VendorWorkService) sendCurrent(ctx context.Context, actor Actor, work V
 	}
 	updated, err := s.repo.MarkVendorWorkSent(ctx, scopeFrom(actor), work.ID, work.Version, issued.InvitationID, deliveryState, recovery, s.now().UTC())
 	if err != nil {
-		_ = s.evidence.RevokeRequestCapabilities(ctx, work.TenantID, request.ID)
-		return VendorWorkSendOutcome{}, err
+		stored, readErr := s.repo.GetVendorWork(ctx, scopeFrom(actor), work.ID)
+		if readErr == nil && stored.Version == work.Version+1 && stored.CurrentRequestID == request.ID && stored.CurrentInvitationID == issued.InvitationID && stored.DeliveryState == deliveryState {
+			updated, err = stored, nil
+		} else {
+			if readErr == nil && stored.CurrentInvitationID != issued.InvitationID {
+				_ = s.evidence.RevokeInvitation(ctx, work.TenantID, issued.InvitationID)
+			}
+			return VendorWorkSendOutcome{}, err
+		}
 	}
 	issued.Token = ""
 	outcome := VendorWorkSendOutcome{Work: updated, Invitation: &issued, Delivery: &receipt, State: deliveryState}
@@ -468,6 +532,9 @@ func (s *VendorWorkService) Cancel(ctx context.Context, actor Actor, workID stri
 	if work.Version != input.ExpectedVersion {
 		return VendorWorkRequest{}, ErrVersionConflict
 	}
+	if err := s.authorizeWorkTarget(ctx, actor, work); err != nil {
+		return VendorWorkRequest{}, err
+	}
 	if err := s.authorize(ctx, actor, work.RelationshipID, authority.ResponsibilityOwner, "thirdparty.work.cancel"); err != nil {
 		return VendorWorkRequest{}, err
 	}
@@ -493,7 +560,14 @@ func (s *VendorWorkService) transition(ctx context.Context, actor Actor, workID 
 	if work.Version != expected {
 		return VendorWorkRequest{}, ErrVersionConflict
 	}
-	if err := s.authorize(ctx, actor, work.RelationshipID, authority.ResponsibilityReviewer, "thirdparty.work.review"); err != nil {
+	if err := s.authorizeWorkTarget(ctx, actor, work); err != nil {
+		return VendorWorkRequest{}, err
+	}
+	command := "thirdparty.work.review"
+	if target == VendorWorkAccepted {
+		command = "thirdparty.work.accept"
+	}
+	if err := s.authorize(ctx, actor, work.RelationshipID, authority.ResponsibilityReviewer, command); err != nil {
 		return VendorWorkRequest{}, err
 	}
 	return s.repo.TransitionVendorWork(ctx, scopeFrom(actor), work.ID, expected, target, actor.PrincipalID, firstNonEmpty(rationale, reason), s.now().UTC())
@@ -510,6 +584,9 @@ func (s *VendorWorkService) RequestChanges(ctx context.Context, actor Actor, wor
 	}
 	if work.Version != input.ExpectedVersion || work.State != VendorWorkUnderReview {
 		return VendorWorkSendOutcome{}, ErrInvalidAssessmentTransition
+	}
+	if err := s.authorizeWorkTarget(ctx, actor, work); err != nil {
+		return VendorWorkSendOutcome{}, err
 	}
 	if err := s.authorize(ctx, actor, work.RelationshipID, authority.ResponsibilityReviewer, "thirdparty.work.request_changes"); err != nil {
 		return VendorWorkSendOutcome{}, err
@@ -534,13 +611,24 @@ func (s *VendorWorkService) RequestChanges(ctx context.Context, actor Actor, wor
 	}
 	form.Fields = append([]monitoring.TemplateField(nil), fields...)
 	sequence := work.CurrentCaptureSequence + 1
-	updated, err := s.createCapture(ctx, actor, work, form, input.VendorAudience, input.Message, input.DueAt.UTC(), sequence, "CLARIFICATION")
+	request, err := s.ensureCaptureRequest(ctx, actor, work, form, input.VendorAudience, input.Message, input.DueAt.UTC(), sequence)
 	if err != nil {
 		return VendorWorkSendOutcome{}, err
 	}
-	updated, err = s.repo.TransitionVendorWork(ctx, scopeFrom(actor), updated.ID, updated.Version, VendorWorkChangesRequested, actor.PrincipalID, input.Message, s.now().UTC())
+	linkID, err := s.newID()
 	if err != nil {
 		return VendorWorkSendOutcome{}, err
+	}
+	updated, err := s.repo.RecordVendorWorkChanges(ctx, scopeFrom(actor), work.ID, work.Version, VendorWorkCaptureLink{
+		ID: linkID, TenantID: work.TenantID, LegalEntityID: work.LegalEntityID, WorkRequestID: work.ID, RequestID: request.ID,
+		Sequence: sequence, Purpose: "CLARIFICATION", OriginVersion: int64(sequence), CreatedAt: s.now().UTC(),
+	}, actor.PrincipalID, input.Message, input.DueAt.UTC(), s.now().UTC())
+	if err != nil {
+		stored, readErr := s.repo.GetVendorWork(ctx, scopeFrom(actor), work.ID)
+		if readErr != nil || stored.Version != work.Version+1 || stored.State != VendorWorkChangesRequested || stored.CurrentRequestID != request.ID || stored.CurrentCaptureSequence != sequence || stored.ReviewerPrincipalID != actor.PrincipalID || stored.ReviewRationale != input.Message || !stored.DueAt.Equal(input.DueAt.UTC()) {
+			return VendorWorkSendOutcome{}, err
+		}
+		updated = stored
 	}
 	return s.sendCurrent(ctx, actor, updated, input.VendorAudience, input.InvitationTTLMinutes)
 }
@@ -642,7 +730,7 @@ func (s *VendorWorkService) Response(ctx context.Context, actor Actor, id string
 		}
 		for _, artifactID := range reviewArtifactIDs(*answer.Value) {
 			artifact, readErr := s.evidence.GetArtifact(ctx, work.TenantID, request.ID, artifactID)
-			if readErr != nil || artifact.SubmissionID != submission.ID || artifact.Status != evidence.ArtifactAvailable {
+			if readErr != nil || artifact.SubmissionID != submission.ID {
 				return VendorWorkReviewView{}, ErrNotFound
 			}
 			document := AssessmentReviewDocument{FieldID: field.ID, ArtifactID: artifact.ID, FileName: artifact.FileName, MediaType: artifact.MediaType, SizeBytes: artifact.SizeBytes, ArtifactStatus: artifact.Status, Status: "SUBMITTED", EvidenceClass: AssessmentEvidenceVendorSupplied}
@@ -660,6 +748,9 @@ func (s *VendorWorkService) Response(ctx context.Context, actor Actor, id string
 }
 
 func (s *VendorWorkService) authorizeRead(ctx context.Context, actor Actor, work VendorWorkRequest) error {
+	if err := s.authorizeWorkTarget(ctx, actor, work); err != nil {
+		return err
+	}
 	if s.relationships == nil {
 		return ErrNotFound
 	}
@@ -673,11 +764,19 @@ func (s *VendorWorkService) authorizeRead(ctx context.Context, actor Actor, work
 	if s.readAuthority == nil {
 		return ErrNotFound
 	}
-	resolution, err := s.readAuthority.Resolve(ctx, authority.ResolveInput{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: "VENDOR_RELATIONSHIP", ObjectID: work.RelationshipID, Responsibility: authority.ResponsibilityReviewer, DecisionType: "thirdparty.work.review", Materiality: 3})
-	if err != nil || !resolution.AllowsPrincipal(actor.PrincipalID) {
-		return ErrNotFound
+	for _, route := range []struct {
+		responsibility authority.Responsibility
+		decisionType   string
+	}{
+		{responsibility: authority.ResponsibilityOwner, decisionType: "thirdparty.work.send"},
+		{responsibility: authority.ResponsibilityReviewer, decisionType: "thirdparty.work.review"},
+	} {
+		resolution, resolveErr := s.readAuthority.Resolve(ctx, authority.ResolveInput{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: "VENDOR_RELATIONSHIP", ObjectID: work.RelationshipID, Responsibility: route.responsibility, DecisionType: route.decisionType, Materiality: 3})
+		if resolveErr == nil && resolution.AllowsPrincipal(actor.PrincipalID) {
+			return nil
+		}
 	}
-	return nil
+	return ErrNotFound
 }
 
 func (s *VendorWorkService) Retry(ctx context.Context, actor Actor, workID string, input RetryVendorWorkInput) (VendorWorkSendOutcome, error) {
@@ -692,8 +791,25 @@ func (s *VendorWorkService) Retry(ctx context.Context, actor Actor, workID strin
 	if work.Version != input.ExpectedVersion {
 		return VendorWorkSendOutcome{}, ErrVersionConflict
 	}
+	if err := s.authorizeWorkTarget(ctx, actor, work); err != nil {
+		return VendorWorkSendOutcome{}, err
+	}
 	if err := s.authorize(ctx, actor, work.RelationshipID, authority.ResponsibilityOwner, "thirdparty.work.retry"); err != nil {
 		return VendorWorkSendOutcome{}, err
+	}
+	if work.CurrentRequestID == "" && work.State == VendorWorkPreparing && work.DeliveryState == VendorWorkDeliveryRetryRequired {
+		form, formErr := s.forms.FormRevision(ctx, work.TenantID, work.FormTemplateID, work.FormTemplateVersion)
+		if formErr != nil {
+			return VendorWorkSendOutcome{}, formErr
+		}
+		prepared, prepareErr := s.createCaptureRecoverably(ctx, actor, work, form, input.VendorAudience, work.Instructions, work.DueAt, 1, "INITIAL")
+		if prepareErr != nil {
+			return VendorWorkSendOutcome{}, prepareErr
+		}
+		if prepared.CurrentRequestID == "" {
+			return VendorWorkSendOutcome{Work: prepared, State: prepared.DeliveryState, Recovery: prepared.Recovery}, nil
+		}
+		return s.sendCurrent(ctx, actor, prepared, input.VendorAudience, input.InvitationTTLMinutes)
 	}
 	if work.CurrentRequestID == "" || (work.DeliveryState != VendorWorkDeliveryLinkAvailable && work.DeliveryState != VendorWorkDeliveryRetryRequired) || (work.State != VendorWorkPreparing && work.State != VendorWorkAwaitingVendor && work.State != VendorWorkChangesRequested) {
 		return VendorWorkSendOutcome{}, ErrInvalidAssessmentTransition
@@ -704,6 +820,13 @@ func (s *VendorWorkService) Retry(ctx context.Context, actor Actor, workID strin
 		}
 	}
 	return s.sendCurrent(ctx, actor, work, input.VendorAudience, input.InvitationTTLMinutes)
+}
+
+func (s *VendorWorkService) authorizeWorkTarget(ctx context.Context, actor Actor, work VendorWorkRequest) error {
+	if s.targets != nil && !s.targets.CanRead(ctx, actor, work.TargetType, work.TargetID) {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (s *VendorWorkService) authorize(ctx context.Context, actor Actor, relationshipID string, responsibility authority.Responsibility, command string) error {

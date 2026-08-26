@@ -211,12 +211,51 @@ func (r *MemoryVendorWorkRepository) TransitionVendorWork(_ context.Context, sco
 	return value, nil
 }
 
+func (r *MemoryVendorWorkRepository) RecordVendorWorkChanges(_ context.Context, scope Scope, id string, expected int64, link VendorWorkCaptureLink, actor, message string, dueAt, now time.Time) (VendorWorkRequest, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	value, ok := r.work[id]
+	if !ok || value.TenantID != scope.TenantID || value.LegalEntityID != scope.LegalEntityID {
+		return VendorWorkRequest{}, ErrNotFound
+	}
+	if value.Version != expected {
+		return VendorWorkRequest{}, ErrVersionConflict
+	}
+	if value.State != VendorWorkUnderReview || link.Sequence != value.CurrentCaptureSequence+1 || !dueAt.After(now) {
+		return VendorWorkRequest{}, ErrInvalidAssessmentTransition
+	}
+	for _, current := range r.captures[id] {
+		if current.Sequence == link.Sequence || current.RequestID == link.RequestID {
+			return VendorWorkRequest{}, ErrVersionConflict
+		}
+	}
+	value.CurrentRequestID, value.CurrentInvitationID, value.CurrentCaptureSequence, value.SubmissionID = link.RequestID, "", link.Sequence, ""
+	value.State, value.DeliveryState, value.Recovery = VendorWorkChangesRequested, VendorWorkDeliveryNotSent, ""
+	value.ReviewerPrincipalID, value.ReviewRationale, value.DueAt = actor, message, dueAt.UTC()
+	value.Version, value.UpdatedAt = value.Version+1, now.UTC()
+	r.work[id] = value
+	r.captures[id] = append(r.captures[id], link)
+	return value, nil
+}
+
 func (r *MemoryVendorWorkRepository) ListVendorWork(_ context.Context, scope Scope, input VendorWorkListInput) (VendorWorkPage, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+	var cursorTime time.Time
+	var cursorID string
+	if input.Cursor != "" {
+		var err error
+		cursorTime, cursorID, err = decodeCursor(input.Cursor)
+		if err != nil {
+			return VendorWorkPage{}, ErrInvalid
+		}
+	}
 	values := []VendorWorkRequest{}
 	for _, value := range r.work {
 		if value.TenantID != scope.TenantID || value.LegalEntityID != scope.LegalEntityID || (input.RelationshipID != "" && value.RelationshipID != input.RelationshipID) || (input.TargetType != "" && value.TargetType != input.TargetType) || (input.TargetID != "" && value.TargetID != input.TargetID) {
+			continue
+		}
+		if input.Cursor != "" && (value.UpdatedAt.After(cursorTime) || (value.UpdatedAt.Equal(cursorTime) && value.ID >= cursorID)) {
 			continue
 		}
 		values = append(values, value)
@@ -228,8 +267,10 @@ func (r *MemoryVendorWorkRepository) ListVendorWork(_ context.Context, scope Sco
 		return values[i].UpdatedAt.After(values[j].UpdatedAt)
 	})
 	page := VendorWorkPage{Items: values}
-	if len(page.Items) > input.Limit {
-		page.Items = page.Items[:input.Limit]
+	if len(values) > input.Limit {
+		page.Items = values[:input.Limit]
+		last := page.Items[len(page.Items)-1]
+		page.NextCursor = encodeCursor(last.UpdatedAt, last.ID)
 	}
 	return page, nil
 }

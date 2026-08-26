@@ -11,7 +11,9 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
 
@@ -137,6 +139,47 @@ func TestMaterialHandlerReturnsReceiptForCommittedVendorAssessment(t *testing.T)
 		http.Error(w, "simulated response reconstruction failure", http.StatusInternalServerError)
 	})
 	assertCommittedReceipt(t, response, "THIRD_PARTY_ASSESSMENT", assessment.ID, 2)
+}
+
+func TestMaterialHandlerReturnsReceiptForCommittedVendorWorkChild(t *testing.T) {
+	actor := thirdparty.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "owner-1"}
+	workRepo := thirdparty.NewMemoryVendorWorkRepository()
+	work, err := workRepo.CreateVendorWork(t.Context(), thirdparty.VendorWorkRequest{
+		ID: "work-1", TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, RelationshipID: "relationship-1", RelationshipLinkID: "link-1",
+		OwnerPrincipalID: actor.PrincipalID, State: thirdparty.VendorWorkResponseReceived, Version: 1, CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	links := thirdparty.NewMemoryRelationshipLinkRepository()
+	workService, err := thirdparty.NewVendorWorkService(workRepo, links, evidence.NewService(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore()), monitoring.NewMemoryRepository(), nil, "https://capture.example.test/respond", "production")
+	if err != nil {
+		t.Fatal(err)
+	}
+	relationships := thirdparty.NewMemoryRepository()
+	_, err = relationships.CreateRelationship(t.Context(), thirdparty.CreateRecord{
+		Vendor:       thirdparty.Vendor{ID: "vendor-1", TenantID: actor.TenantID, LegalName: "Northstar Hosting Limited", Status: thirdparty.VendorActive, Version: 1},
+		Relationship: thirdparty.Relationship{ID: work.RelationshipID, TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, VendorID: "vendor-1", ServiceName: "Transaction screening", BusinessOwnerPrincipalID: actor.PrincipalID, Status: thirdparty.RelationshipActive, Version: 1},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	workService.ConfigureRelationshipReader(relationships)
+
+	api := &API{deps: Dependencies{ThirdPartyWork: workService}}
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/vendors/relationship-1/work/work-1/review/start", strings.NewReader(`{}`))
+	request.SetPathValue("id", work.RelationshipID)
+	request.SetPathValue("request_id", work.ID)
+	request = request.WithContext(verifiedCommandContext(request.Context(), actor))
+	response := httptest.NewRecorder()
+	policy := commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityReviewer, OutcomeObjectType: "VENDOR_WORK_REQUEST", OutcomePathValue: "request_id"}
+	api.executeMaterialHandler(response, request, policy, map[string]any{"tenant_id": actor.TenantID, "expected_version": float64(work.Version)}, func(w http.ResponseWriter, _ *http.Request) {
+		if _, transitionErr := workRepo.TransitionVendorWork(t.Context(), thirdparty.Scope{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID}, work.ID, work.Version, thirdparty.VendorWorkUnderReview, actor.PrincipalID, "", time.Now().UTC()); transitionErr != nil {
+			t.Fatal(transitionErr)
+		}
+		http.Error(w, "simulated response reconstruction failure", http.StatusInternalServerError)
+	})
+	assertCommittedReceipt(t, response, "VENDOR_WORK_REQUEST", work.ID, work.Version+1)
 }
 
 func verifiedCommandContext(ctx context.Context, actor thirdparty.Actor) context.Context {

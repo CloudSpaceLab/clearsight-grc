@@ -17,10 +17,13 @@ func TestVendorWorkSchemaKeepsTypedTargetCaptureHistoryAndRecovery(t *testing.T)
 		"REFERENCES third_party_relationship_program_links", "REFERENCES third_party_relationship_matter_links",
 		"CREATE TABLE third_party_work_capture_links", "origin_type='THIRD_PARTY_WORK'",
 		"CREATE TABLE third_party_work_reactions", "CREATE TABLE third_party_work_events",
-		"CREATE TABLE third_party_work_jobs", "third_party_work_requests_target_idx",
+		"third_party_work_requests_target_idx",
 	} {
 		if !strings.Contains(schema, required) {
 			t.Fatalf("schema missing %q", required)
 		}
+	}
+	if strings.Contains(schema, "CREATE TABLE third_party_work_jobs") {
+		t.Fatal("vendor work migration creates a retry ledger without a worker that can claim it")
 	}
 }

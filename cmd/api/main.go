@@ -69,6 +69,10 @@ func main() {
 	vendorWorkService.ConfigureRelationshipReader(services.ThirdPartyAssessmentRepo)
 	vendorWorkService.ConfigureAuthority(guard)
 	vendorWorkService.ConfigureReadAuthority(services.Authority)
+	vendorWorkService.ConfigureTargetReader(services.Continuity)
+	linkCoordinator := &thirdparty.RelationshipLinkCoordinator{}
+	vendorWorkService.ConfigureCoordinator(linkCoordinator)
+	services.ThirdPartyRelationshipLinks.ConfigureCoordinator(linkCoordinator)
 	services.ThirdPartyRelationshipLinks.ConfigureActiveWorkGuard(services.ThirdPartyWorkRepo)
 	services.ThirdPartyRelationshipLinks.ConfigureTargetReader(services.Continuity)
 	handler := httpapi.New(httpapi.Dependencies{
