@@ -186,13 +186,22 @@ BEGIN
            OR (NULLIF(NEW.scope->>'object_id','') IS NOT NULL AND NULLIF(NEW.scope->>'object_type','') IS NULL)
            OR upper(COALESCE(NEW.scope->>'object_type','')) NOT IN ('','PROGRAM','MATTER')
            OR NEW.scope->>'object_id'='*'
-           OR (NEW.scope ? 'min_materiality' AND (jsonb_typeof(NEW.scope->'min_materiality')<>'number' OR NEW.scope->>'min_materiality' !~ '^[0-5]$'))
-           OR (NEW.scope ? 'max_materiality' AND (jsonb_typeof(NEW.scope->'max_materiality')<>'number' OR NEW.scope->>'max_materiality' !~ '^[0-5]$'))
-           OR CASE
-                WHEN COALESCE(NEW.scope->>'min_materiality','') ~ '^[0-5]$' AND COALESCE(NEW.scope->>'max_materiality','') ~ '^[0-5]$'
-                THEN (NEW.scope->>'min_materiality')::integer>(NEW.scope->>'max_materiality')::integer
-                ELSE false
-              END
+        THEN
+            RAISE EXCEPTION 'delegation scope is not canonical or contains unsupported fields';
+        END IF;
+        IF NEW.scope->'min_materiality' IS NOT NULL
+           AND (jsonb_typeof(NEW.scope->'min_materiality')<>'number' OR NOT (COALESCE(NEW.scope->>'min_materiality','') ~ '^[0-5]$'))
+        THEN
+            RAISE EXCEPTION 'delegation scope is not canonical or contains unsupported fields';
+        END IF;
+        IF NEW.scope->'max_materiality' IS NOT NULL
+           AND (jsonb_typeof(NEW.scope->'max_materiality')<>'number' OR NOT (COALESCE(NEW.scope->>'max_materiality','') ~ '^[0-5]$'))
+        THEN
+            RAISE EXCEPTION 'delegation scope is not canonical or contains unsupported fields';
+        END IF;
+        IF COALESCE(NEW.scope->>'min_materiality','') ~ '^[0-5]$'
+           AND COALESCE(NEW.scope->>'max_materiality','') ~ '^[0-5]$'
+           AND (NEW.scope->>'min_materiality')::integer>(NEW.scope->>'max_materiality')::integer
         THEN
             RAISE EXCEPTION 'delegation scope is not canonical or contains unsupported fields';
         END IF;

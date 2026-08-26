@@ -110,7 +110,7 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-due-diligence" }} onGuideIntentCompleted={completed}/>);
 
     const heading = await screen.findByRole("heading", { name: "Due diligence" });
-    expect(document.activeElement).toBe(heading);
+    await waitFor(() => expect(document.activeElement).toBe(heading));
     expect(completed).toHaveBeenCalledOnce();
     expect(screen.getAllByText("Card transaction processing").length).toBeGreaterThan(0);
   });
@@ -120,7 +120,7 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-work" }} onGuideIntentCompleted={completed}/>);
 
     const panel = await screen.findByTestId("vendor-work-relationship-relationship-1");
-    expect(document.activeElement).toBe(panel);
+    await waitFor(() => expect(document.activeElement).toBe(panel));
     expect(completed).toHaveBeenCalledOnce();
   });
 

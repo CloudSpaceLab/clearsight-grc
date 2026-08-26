@@ -18,6 +18,8 @@ func TestGovernanceLegalEntityMigrationIsFailClosedAndBounded(t *testing.T) {
 		"routing_policies(tenant_id,legal_entity_id,code", "delegations(tenant_id,legal_entity_id,status",
 		"jsonb_object_keys", "legal_entity_id",
 		"published_at is null", "routing_policies_entity_code_uidx",
+		"new.scope->'min_materiality' is not null", "new.scope->'max_materiality' is not null",
+		"(new.scope->>'min_materiality')::integer>(new.scope->>'max_materiality')::integer",
 	} {
 		if !strings.Contains(sql, required) {
 			t.Fatalf("migration lacks %q", required)
