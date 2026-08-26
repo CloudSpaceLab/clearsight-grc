@@ -98,7 +98,11 @@ func (s *Service) ResolveLifecycleSequence(ctx context.Context, input LifecycleS
 			}
 		}
 	}
-	policies, err := s.repo.ListPolicies(ctx, input.TenantID)
+	entityScope := strings.ToLower(strings.TrimSpace(input.LegalEntityID))
+	if entityScope == "" || entityScope == "*" {
+		return LifecycleSequenceResolution{}, ErrNoLifecycleSequence
+	}
+	policies, err := s.repo.ListPoliciesForEntity(ctx, input.TenantID, entityScope, 200)
 	if err != nil {
 		return LifecycleSequenceResolution{}, err
 	}

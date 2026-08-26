@@ -17,16 +17,20 @@ func (s *Service) PendingPolicyRevision(ctx context.Context, tenantID, policyID 
 
 func (s *Service) ProposeEscalationGuardRevision(ctx context.Context, input EscalationGuardRevisionInput) (RoutingPolicyRevision, error) {
 	input.TenantID = strings.TrimSpace(input.TenantID)
+	input.LegalEntityID = strings.ToLower(strings.TrimSpace(input.LegalEntityID))
 	input.PolicyID = strings.TrimSpace(input.PolicyID)
 	input.SequenceID = strings.TrimSpace(input.SequenceID)
 	input.ActorID = strings.TrimSpace(input.ActorID)
-	if input.TenantID == "" || input.PolicyID == "" || input.SequenceID == "" || input.ActorID == "" || input.StepIndex < 0 || input.ExpectedPolicyVersion < 1 {
-		return RoutingPolicyRevision{}, fmt.Errorf("tenant_id, policy_id, sequence_id, actor_id, step_index and expected_policy_version are required")
+	if input.TenantID == "" || input.LegalEntityID == "" || input.LegalEntityID == "*" || input.PolicyID == "" || input.SequenceID == "" || input.ActorID == "" || input.StepIndex < 0 || input.ExpectedPolicyVersion < 1 {
+		return RoutingPolicyRevision{}, fmt.Errorf("tenant_id, legal_entity_id, policy_id, sequence_id, actor_id, step_index and expected_policy_version are required")
 	}
 
-	policy, err := s.repo.GetPolicy(ctx, input.TenantID, input.PolicyID)
+	policy, err := s.repo.GetPolicyForEntity(ctx, input.TenantID, input.LegalEntityID, input.PolicyID)
 	if err != nil {
 		return RoutingPolicyRevision{}, err
+	}
+	if !sameLegalEntity(policy.LegalEntityID, input.LegalEntityID) {
+		return RoutingPolicyRevision{}, ErrNotFound
 	}
 	if policy.Status != PolicyActive {
 		return RoutingPolicyRevision{}, ErrInvalidTransition
@@ -63,16 +67,20 @@ func (s *Service) ProposeEscalationGuardRevision(ctx context.Context, input Esca
 
 func (s *Service) ApprovePolicyRevision(ctx context.Context, input ApprovePolicyRevisionInput) (RoutingPolicy, error) {
 	input.TenantID = strings.TrimSpace(input.TenantID)
+	input.LegalEntityID = strings.ToLower(strings.TrimSpace(input.LegalEntityID))
 	input.PolicyID = strings.TrimSpace(input.PolicyID)
 	input.ActorID = strings.TrimSpace(input.ActorID)
 	input.Rationale = strings.TrimSpace(input.Rationale)
-	if input.TenantID == "" || input.PolicyID == "" || input.ActorID == "" || input.RevisionVersion < 1 || input.ExpectedPolicyVersion < 1 || input.Rationale == "" {
-		return RoutingPolicy{}, fmt.Errorf("tenant_id, policy_id, revision_version, actor_id, expected_policy_version and rationale are required")
+	if input.TenantID == "" || input.LegalEntityID == "" || input.LegalEntityID == "*" || input.PolicyID == "" || input.ActorID == "" || input.RevisionVersion < 1 || input.ExpectedPolicyVersion < 1 || input.Rationale == "" {
+		return RoutingPolicy{}, fmt.Errorf("tenant_id, legal_entity_id, policy_id, revision_version, actor_id, expected_policy_version and rationale are required")
 	}
 
-	policy, err := s.repo.GetPolicy(ctx, input.TenantID, input.PolicyID)
+	policy, err := s.repo.GetPolicyForEntity(ctx, input.TenantID, input.LegalEntityID, input.PolicyID)
 	if err != nil {
 		return RoutingPolicy{}, err
+	}
+	if !sameLegalEntity(policy.LegalEntityID, input.LegalEntityID) {
+		return RoutingPolicy{}, ErrNotFound
 	}
 	if policy.Status != PolicyActive {
 		return RoutingPolicy{}, ErrInvalidTransition

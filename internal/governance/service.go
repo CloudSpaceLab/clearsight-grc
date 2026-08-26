@@ -27,12 +27,30 @@ func (s *Service) ListPolicies(ctx context.Context, tenantID string) ([]RoutingP
 	return s.repo.ListPolicies(ctx, tenantID)
 }
 
+func (s *Service) ListPoliciesForEntity(ctx context.Context, tenantID, legalEntityID string, limit int) ([]RoutingPolicy, error) {
+	legalEntityID = strings.ToLower(strings.TrimSpace(legalEntityID))
+	if strings.TrimSpace(tenantID) == "" || legalEntityID == "" || legalEntityID == "*" {
+		return nil, fmt.Errorf("tenant_id and canonical legal_entity_id are required")
+	}
+	if limit < 1 || limit > 200 {
+		return nil, fmt.Errorf("limit must be between 1 and 200")
+	}
+	return s.repo.ListPoliciesForEntity(ctx, tenantID, legalEntityID, limit)
+}
+
 func (s *Service) CreatePolicy(ctx context.Context, input CreatePolicyInput) (RoutingPolicy, error) {
+	input.LegalEntityID = strings.ToLower(strings.TrimSpace(input.LegalEntityID))
 	if strings.TrimSpace(input.TenantID) == "" || strings.TrimSpace(input.Code) == "" || strings.TrimSpace(input.Name) == "" || strings.TrimSpace(input.MakerID) == "" {
 		return RoutingPolicy{}, fmt.Errorf("tenant_id, code, name and maker_id are required")
 	}
+	if input.LegalEntityID == "" || input.LegalEntityID == "*" {
+		return RoutingPolicy{}, fmt.Errorf("legal_entity_id is required and must be a canonical non-wildcard reference")
+	}
 	definition, checksum, err := normalizeDefinition(input.Definition)
 	if err != nil {
+		return RoutingPolicy{}, err
+	}
+	if err := validatePolicyLegalEntity(definition, input.LegalEntityID); err != nil {
 		return RoutingPolicy{}, err
 	}
 	policyID, err := id.NewUUIDv7()
@@ -40,16 +58,19 @@ func (s *Service) CreatePolicy(ctx context.Context, input CreatePolicyInput) (Ro
 		return RoutingPolicy{}, err
 	}
 	now := s.now().UTC()
-	return s.repo.CreatePolicy(ctx, RoutingPolicy{ID: policyID, TenantID: input.TenantID, Code: strings.ToUpper(strings.TrimSpace(input.Code)), Name: strings.TrimSpace(input.Name), Status: PolicyDraft, CurrentVersion: 1, Definition: definition, Checksum: checksum, MakerID: input.MakerID, EffectiveFrom: input.EffectiveFrom, CreatedAt: now, UpdatedAt: now, Version: 1})
+	return s.repo.CreatePolicy(ctx, RoutingPolicy{ID: policyID, TenantID: input.TenantID, LegalEntityID: input.LegalEntityID, Code: strings.ToUpper(strings.TrimSpace(input.Code)), Name: strings.TrimSpace(input.Name), Status: PolicyDraft, CurrentVersion: 1, Definition: definition, Checksum: checksum, MakerID: input.MakerID, EffectiveFrom: input.EffectiveFrom, CreatedAt: now, UpdatedAt: now, Version: 1})
 }
 
 func (s *Service) SubmitPolicy(ctx context.Context, input TransitionInput) (RoutingPolicy, error) {
 	if err := validateTransition(input); err != nil {
 		return RoutingPolicy{}, err
 	}
-	current, err := s.repo.GetPolicy(ctx, input.TenantID, input.ID)
+	current, err := s.repo.GetPolicyForEntity(ctx, input.TenantID, strings.ToLower(strings.TrimSpace(input.LegalEntityID)), input.ID)
 	if err != nil {
 		return RoutingPolicy{}, err
+	}
+	if !sameLegalEntity(current.LegalEntityID, input.LegalEntityID) {
+		return RoutingPolicy{}, ErrNotFound
 	}
 	if current.Status != PolicyDraft {
 		return RoutingPolicy{}, ErrInvalidTransition
@@ -60,16 +81,19 @@ func (s *Service) SubmitPolicy(ctx context.Context, input TransitionInput) (Rout
 	if err := validatePolicyDefinition(current.Definition); err != nil {
 		return RoutingPolicy{}, err
 	}
-	return s.repo.TransitionPolicy(ctx, input.TenantID, input.ID, input.ExpectedVersion, PolicyDraft, PolicyPendingApproval, input.ActorID, input.Rationale, s.now().UTC())
+	return s.repo.TransitionPolicy(ctx, input.TenantID, current.LegalEntityID, input.ID, input.ExpectedVersion, PolicyDraft, PolicyPendingApproval, input.ActorID, input.Rationale, s.now().UTC())
 }
 
 func (s *Service) ApprovePolicy(ctx context.Context, input TransitionInput) (RoutingPolicy, error) {
 	if err := validateTransition(input); err != nil {
 		return RoutingPolicy{}, err
 	}
-	current, err := s.repo.GetPolicy(ctx, input.TenantID, input.ID)
+	current, err := s.repo.GetPolicyForEntity(ctx, input.TenantID, strings.ToLower(strings.TrimSpace(input.LegalEntityID)), input.ID)
 	if err != nil {
 		return RoutingPolicy{}, err
+	}
+	if !sameLegalEntity(current.LegalEntityID, input.LegalEntityID) {
+		return RoutingPolicy{}, ErrNotFound
 	}
 	if current.Status != PolicyPendingApproval {
 		return RoutingPolicy{}, ErrInvalidTransition
@@ -90,7 +114,7 @@ func (s *Service) ApprovePolicy(ctx context.Context, input TransitionInput) (Rou
 	if len(findings) > 0 {
 		return RoutingPolicy{}, fmt.Errorf("%w: %s", ErrConflict, findings[0].Summary)
 	}
-	return s.repo.TransitionPolicy(ctx, input.TenantID, input.ID, input.ExpectedVersion, PolicyPendingApproval, PolicyActive, input.ActorID, input.Rationale, s.now().UTC())
+	return s.repo.ActivatePolicy(ctx, input.TenantID, current.LegalEntityID, input.ID, input.ExpectedVersion, input.ActorID, input.Rationale, s.now().UTC())
 }
 
 func (s *Service) RejectPolicy(ctx context.Context, input TransitionInput) (RoutingPolicy, error) {
@@ -100,9 +124,12 @@ func (s *Service) RejectPolicy(ctx context.Context, input TransitionInput) (Rout
 	if strings.TrimSpace(input.Rationale) == "" {
 		return RoutingPolicy{}, fmt.Errorf("rationale is required to reject a policy")
 	}
-	current, err := s.repo.GetPolicy(ctx, input.TenantID, input.ID)
+	current, err := s.repo.GetPolicyForEntity(ctx, input.TenantID, strings.ToLower(strings.TrimSpace(input.LegalEntityID)), input.ID)
 	if err != nil {
 		return RoutingPolicy{}, err
+	}
+	if !sameLegalEntity(current.LegalEntityID, input.LegalEntityID) {
+		return RoutingPolicy{}, ErrNotFound
 	}
 	if current.Status != PolicyPendingApproval {
 		return RoutingPolicy{}, ErrInvalidTransition
@@ -110,7 +137,7 @@ func (s *Service) RejectPolicy(ctx context.Context, input TransitionInput) (Rout
 	if input.ActorID == "" || input.ActorID == current.MakerID {
 		return RoutingPolicy{}, ErrMakerChecker
 	}
-	return s.repo.TransitionPolicy(ctx, input.TenantID, input.ID, input.ExpectedVersion, PolicyPendingApproval, PolicyDraft, input.ActorID, input.Rationale, s.now().UTC())
+	return s.repo.TransitionPolicy(ctx, input.TenantID, current.LegalEntityID, input.ID, input.ExpectedVersion, PolicyPendingApproval, PolicyDraft, input.ActorID, input.Rationale, s.now().UTC())
 }
 
 func (s *Service) RetirePolicy(ctx context.Context, input TransitionInput) (RoutingPolicy, error) {
@@ -120,14 +147,17 @@ func (s *Service) RetirePolicy(ctx context.Context, input TransitionInput) (Rout
 	if strings.TrimSpace(input.Rationale) == "" {
 		return RoutingPolicy{}, fmt.Errorf("rationale is required to retire a policy")
 	}
-	current, err := s.repo.GetPolicy(ctx, input.TenantID, input.ID)
+	current, err := s.repo.GetPolicyForEntity(ctx, input.TenantID, strings.ToLower(strings.TrimSpace(input.LegalEntityID)), input.ID)
 	if err != nil {
 		return RoutingPolicy{}, err
+	}
+	if !sameLegalEntity(current.LegalEntityID, input.LegalEntityID) {
+		return RoutingPolicy{}, ErrNotFound
 	}
 	if current.Status != PolicyActive || strings.TrimSpace(input.ActorID) == "" {
 		return RoutingPolicy{}, ErrInvalidTransition
 	}
-	return s.repo.TransitionPolicy(ctx, input.TenantID, input.ID, input.ExpectedVersion, PolicyActive, PolicyRetired, input.ActorID, input.Rationale, s.now().UTC())
+	return s.repo.TransitionPolicy(ctx, input.TenantID, current.LegalEntityID, input.ID, input.ExpectedVersion, PolicyActive, PolicyRetired, input.ActorID, input.Rationale, s.now().UTC())
 }
 
 func (s *Service) ListDelegations(ctx context.Context, tenantID string) ([]Delegation, error) {
@@ -137,7 +167,19 @@ func (s *Service) ListDelegations(ctx context.Context, tenantID string) ([]Deleg
 	return s.repo.ListDelegations(ctx, tenantID)
 }
 
+func (s *Service) ListDelegationsForEntity(ctx context.Context, tenantID, legalEntityID string, limit int) ([]Delegation, error) {
+	legalEntityID = strings.ToLower(strings.TrimSpace(legalEntityID))
+	if strings.TrimSpace(tenantID) == "" || legalEntityID == "" || legalEntityID == "*" {
+		return nil, fmt.Errorf("tenant_id and canonical legal_entity_id are required")
+	}
+	if limit < 1 || limit > 200 {
+		return nil, fmt.Errorf("limit must be between 1 and 200")
+	}
+	return s.repo.ListDelegationsForEntity(ctx, tenantID, legalEntityID, limit)
+}
+
 func (s *Service) CreateDelegation(ctx context.Context, input CreateDelegationInput) (Delegation, error) {
+	input.LegalEntityID = strings.ToLower(strings.TrimSpace(input.LegalEntityID))
 	if strings.TrimSpace(input.TenantID) == "" || strings.TrimSpace(input.FromPrincipalID) == "" || strings.TrimSpace(input.ToPrincipalID) == "" || strings.TrimSpace(input.Responsibility) == "" || strings.TrimSpace(input.MakerID) == "" {
 		return Delegation{}, fmt.Errorf("tenant, principals, responsibility and maker are required")
 	}
@@ -147,42 +189,45 @@ func (s *Service) CreateDelegation(ctx context.Context, input CreateDelegationIn
 	if !input.StartsAt.Before(input.EndsAt) {
 		return Delegation{}, fmt.Errorf("starts_at must be before ends_at")
 	}
-	scope := input.Scope
-	if len(scope) == 0 {
-		scope = json.RawMessage(`{}`)
-	}
-	if !json.Valid(scope) {
-		return Delegation{}, fmt.Errorf("scope must be valid JSON")
+	_, scope, err := decodeDelegationScope(input.Scope, input.LegalEntityID)
+	if err != nil {
+		return Delegation{}, err
 	}
 	valueID, err := id.NewUUIDv7()
 	if err != nil {
 		return Delegation{}, err
 	}
 	now := s.now().UTC()
-	return s.repo.CreateDelegation(ctx, Delegation{ID: valueID, TenantID: input.TenantID, FromPrincipalID: input.FromPrincipalID, ToPrincipalID: input.ToPrincipalID, Responsibility: input.Responsibility, Scope: scope, StartsAt: input.StartsAt.UTC(), EndsAt: input.EndsAt.UTC(), Status: DelegationDraft, Reason: strings.TrimSpace(input.Reason), MakerID: input.MakerID, CreatedAt: now, UpdatedAt: now, Version: 1})
+	return s.repo.CreateDelegation(ctx, Delegation{ID: valueID, TenantID: input.TenantID, LegalEntityID: input.LegalEntityID, FromPrincipalID: input.FromPrincipalID, ToPrincipalID: input.ToPrincipalID, Responsibility: strings.ToUpper(strings.TrimSpace(input.Responsibility)), Scope: scope, StartsAt: input.StartsAt.UTC(), EndsAt: input.EndsAt.UTC(), Status: DelegationDraft, Reason: strings.TrimSpace(input.Reason), MakerID: input.MakerID, CreatedAt: now, UpdatedAt: now, Version: 1})
 }
 
 func (s *Service) SubmitDelegation(ctx context.Context, input TransitionInput) (Delegation, error) {
 	if err := validateTransition(input); err != nil {
 		return Delegation{}, err
 	}
-	current, err := s.repo.GetDelegation(ctx, input.TenantID, input.ID)
+	current, err := s.repo.GetDelegationForEntity(ctx, input.TenantID, strings.ToLower(strings.TrimSpace(input.LegalEntityID)), input.ID)
 	if err != nil {
 		return Delegation{}, err
+	}
+	if !sameLegalEntity(current.LegalEntityID, input.LegalEntityID) {
+		return Delegation{}, ErrNotFound
 	}
 	if current.Status != DelegationDraft || input.ActorID != current.MakerID {
 		return Delegation{}, ErrInvalidTransition
 	}
-	return s.repo.TransitionDelegation(ctx, input.TenantID, input.ID, input.ExpectedVersion, DelegationDraft, DelegationPendingApproval, input.ActorID, input.Rationale, s.now().UTC())
+	return s.repo.TransitionDelegation(ctx, input.TenantID, current.LegalEntityID, input.ID, input.ExpectedVersion, DelegationDraft, DelegationPendingApproval, input.ActorID, input.Rationale, s.now().UTC())
 }
 
 func (s *Service) ApproveDelegation(ctx context.Context, input TransitionInput) (Delegation, error) {
 	if err := validateTransition(input); err != nil {
 		return Delegation{}, err
 	}
-	current, err := s.repo.GetDelegation(ctx, input.TenantID, input.ID)
+	current, err := s.repo.GetDelegationForEntity(ctx, input.TenantID, strings.ToLower(strings.TrimSpace(input.LegalEntityID)), input.ID)
 	if err != nil {
 		return Delegation{}, err
+	}
+	if !sameLegalEntity(current.LegalEntityID, input.LegalEntityID) {
+		return Delegation{}, ErrNotFound
 	}
 	if current.Status != DelegationPendingApproval {
 		return Delegation{}, ErrInvalidTransition
@@ -204,12 +249,7 @@ func (s *Service) ApproveDelegation(ctx context.Context, input TransitionInput) 
 	if len(findings) > 0 {
 		return Delegation{}, fmt.Errorf("%w: %s", ErrConflict, findings[0].Summary)
 	}
-	now := s.now().UTC()
-	target := DelegationApproved
-	if !now.Before(current.StartsAt) && now.Before(current.EndsAt) {
-		target = DelegationActive
-	}
-	return s.repo.TransitionDelegation(ctx, input.TenantID, input.ID, input.ExpectedVersion, DelegationPendingApproval, target, input.ActorID, input.Rationale, now)
+	return s.repo.ActivateDelegation(ctx, input.TenantID, current.LegalEntityID, input.ID, input.ExpectedVersion, input.ActorID, input.Rationale, s.now().UTC())
 }
 
 func (s *Service) RevokeDelegation(ctx context.Context, input TransitionInput) (Delegation, error) {
@@ -219,9 +259,12 @@ func (s *Service) RevokeDelegation(ctx context.Context, input TransitionInput) (
 	if strings.TrimSpace(input.Rationale) == "" {
 		return Delegation{}, fmt.Errorf("rationale is required to revoke a delegation")
 	}
-	current, err := s.repo.GetDelegation(ctx, input.TenantID, input.ID)
+	current, err := s.repo.GetDelegationForEntity(ctx, input.TenantID, strings.ToLower(strings.TrimSpace(input.LegalEntityID)), input.ID)
 	if err != nil {
 		return Delegation{}, err
+	}
+	if !sameLegalEntity(current.LegalEntityID, input.LegalEntityID) {
+		return Delegation{}, ErrNotFound
 	}
 	if current.Status != DelegationApproved && current.Status != DelegationActive {
 		return Delegation{}, ErrInvalidTransition
@@ -229,17 +272,23 @@ func (s *Service) RevokeDelegation(ctx context.Context, input TransitionInput) (
 	if input.ActorID != current.FromPrincipalID && input.ActorID != current.ApproverID {
 		return Delegation{}, ErrMakerChecker
 	}
-	return s.repo.TransitionDelegation(ctx, input.TenantID, input.ID, input.ExpectedVersion, current.Status, DelegationRevoked, input.ActorID, input.Rationale, s.now().UTC())
+	return s.repo.TransitionDelegation(ctx, input.TenantID, current.LegalEntityID, input.ID, input.ExpectedVersion, current.Status, DelegationRevoked, input.ActorID, input.Rationale, s.now().UTC())
 }
 
 func validateTransition(input TransitionInput) error {
-	if strings.TrimSpace(input.TenantID) == "" || strings.TrimSpace(input.ID) == "" || strings.TrimSpace(input.ActorID) == "" {
-		return fmt.Errorf("tenant_id, id and actor_id are required")
+	if strings.TrimSpace(input.TenantID) == "" || strings.TrimSpace(input.LegalEntityID) == "" || strings.TrimSpace(input.ID) == "" || strings.TrimSpace(input.ActorID) == "" {
+		return fmt.Errorf("tenant_id, legal_entity_id, id and actor_id are required")
 	}
 	if input.ExpectedVersion < 1 {
 		return fmt.Errorf("expected_version must be positive")
 	}
 	return nil
+}
+
+func sameLegalEntity(stored, requested string) bool {
+	stored = strings.ToLower(strings.TrimSpace(stored))
+	requested = strings.ToLower(strings.TrimSpace(requested))
+	return stored != "" && requested != "" && requested != "*" && stored == requested
 }
 
 func normalizeDefinition(value json.RawMessage) (json.RawMessage, string, error) {

@@ -35,11 +35,43 @@ func (r *MemoryRepository) ListPolicies(_ context.Context, tenantID string) ([]R
 	sort.Slice(out, func(i, j int) bool { return out[i].Code < out[j].Code })
 	return out, nil
 }
+func (r *MemoryRepository) ListPoliciesForEntity(_ context.Context, tenantID, legalEntityID string, limit int) ([]RoutingPolicy, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if limit < 1 {
+		return []RoutingPolicy{}, nil
+	}
+	out := []RoutingPolicy{}
+	for _, v := range r.policies {
+		if v.TenantID == tenantID && v.LegalEntityID == legalEntityID {
+			out = append(out, v)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Code != out[j].Code {
+			return out[i].Code < out[j].Code
+		}
+		return out[i].ID < out[j].ID
+	})
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
 func (r *MemoryRepository) GetPolicy(_ context.Context, tenantID, id string) (RoutingPolicy, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	v, ok := r.policies[key(tenantID, id)]
 	if !ok {
+		return RoutingPolicy{}, ErrNotFound
+	}
+	return v, nil
+}
+func (r *MemoryRepository) GetPolicyForEntity(_ context.Context, tenantID, legalEntityID, id string) (RoutingPolicy, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	v, ok := r.policies[key(tenantID, id)]
+	if !ok || v.LegalEntityID != legalEntityID {
 		return RoutingPolicy{}, ErrNotFound
 	}
 	return v, nil
@@ -50,12 +82,12 @@ func (r *MemoryRepository) CreatePolicy(_ context.Context, v RoutingPolicy) (Rou
 	r.policies[key(v.TenantID, v.ID)] = v
 	return v, nil
 }
-func (r *MemoryRepository) TransitionPolicy(_ context.Context, tenantID, id string, expected int64, from, to PolicyState, actor, rationale string, at time.Time) (RoutingPolicy, error) {
+func (r *MemoryRepository) TransitionPolicy(_ context.Context, tenantID, legalEntityID, id string, expected int64, from, to PolicyState, actor, rationale string, at time.Time) (RoutingPolicy, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	k := key(tenantID, id)
 	v, ok := r.policies[k]
-	if !ok {
+	if !ok || v.LegalEntityID != legalEntityID {
 		return RoutingPolicy{}, ErrNotFound
 	}
 	if v.Version != expected {
@@ -83,6 +115,37 @@ func (r *MemoryRepository) TransitionPolicy(_ context.Context, tenantID, id stri
 	r.policies[k] = v
 	return v, nil
 }
+func (r *MemoryRepository) ActivatePolicy(_ context.Context, tenantID, legalEntityID, id string, expected int64, actor, rationale string, at time.Time) (RoutingPolicy, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	k := key(tenantID, id)
+	policy, ok := r.policies[k]
+	if !ok || policy.LegalEntityID != legalEntityID {
+		return RoutingPolicy{}, ErrNotFound
+	}
+	if policy.Version != expected {
+		return RoutingPolicy{}, ErrVersionConflict
+	}
+	if policy.Status != PolicyPendingApproval {
+		return RoutingPolicy{}, ErrInvalidTransition
+	}
+	if actor == "" || actor == policy.MakerID {
+		return RoutingPolicy{}, ErrMakerChecker
+	}
+	if len(r.conflicts[tenantID+":policy:"+id]) > 0 {
+		return RoutingPolicy{}, ErrConflict
+	}
+	policy.Status = PolicyActive
+	policy.CheckerID = actor
+	policy.ApprovedAt = &at
+	policy.UpdatedAt = at
+	policy.Version++
+	if policy.EffectiveFrom == nil {
+		policy.EffectiveFrom = &at
+	}
+	r.policies[k] = policy
+	return policy, nil
+}
 func (r *MemoryRepository) CreatePolicyRevision(_ context.Context, tenantID, id string, expected int64, actor string, definition []byte, checksum string, at time.Time) (RoutingPolicyRevision, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -104,7 +167,7 @@ func (r *MemoryRepository) CreatePolicyRevision(_ context.Context, tenantID, id 
 		}
 	}
 	revision := RoutingPolicyRevision{
-		PolicyID: id, TenantID: tenantID, Version: version, BaseVersion: policy.CurrentVersion,
+		PolicyID: id, TenantID: tenantID, LegalEntityID: policy.LegalEntityID, Version: version, BaseVersion: policy.CurrentVersion,
 		Definition: append([]byte(nil), definition...), Checksum: checksum, MakerID: actor, CreatedAt: at,
 	}
 	r.revisions[k] = append(r.revisions[k], revision)
@@ -164,6 +227,15 @@ func (r *MemoryRepository) ActivatePolicyRevision(_ context.Context, tenantID, i
 	if revision.MakerID == actor {
 		return RoutingPolicy{}, ErrMakerChecker
 	}
+	if revision.LegalEntityID != policy.LegalEntityID || len(r.conflicts[tenantID+":policy:"+id]) > 0 {
+		return RoutingPolicy{}, ErrConflict
+	}
+	if err := validatePolicyDefinition(revision.Definition); err != nil {
+		return RoutingPolicy{}, err
+	}
+	if err := validatePolicyLegalEntity(revision.Definition, policy.LegalEntityID); err != nil {
+		return RoutingPolicy{}, err
+	}
 	revision.ApprovedBy = actor
 	revision.ApprovedAt = &at
 	revision.EffectiveFrom = &at
@@ -199,11 +271,43 @@ func (r *MemoryRepository) ListDelegations(_ context.Context, tenantID string) (
 	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.Before(out[j].CreatedAt) })
 	return out, nil
 }
+func (r *MemoryRepository) ListDelegationsForEntity(_ context.Context, tenantID, legalEntityID string, limit int) ([]Delegation, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if limit < 1 {
+		return []Delegation{}, nil
+	}
+	out := []Delegation{}
+	for _, v := range r.delegations {
+		if v.TenantID == tenantID && v.LegalEntityID == legalEntityID {
+			out = append(out, v)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if !out[i].CreatedAt.Equal(out[j].CreatedAt) {
+			return out[i].CreatedAt.After(out[j].CreatedAt)
+		}
+		return out[i].ID < out[j].ID
+	})
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
 func (r *MemoryRepository) GetDelegation(_ context.Context, tenantID, id string) (Delegation, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	v, ok := r.delegations[key(tenantID, id)]
 	if !ok {
+		return Delegation{}, ErrNotFound
+	}
+	return v, nil
+}
+func (r *MemoryRepository) GetDelegationForEntity(_ context.Context, tenantID, legalEntityID, id string) (Delegation, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	v, ok := r.delegations[key(tenantID, id)]
+	if !ok || v.LegalEntityID != legalEntityID {
 		return Delegation{}, ErrNotFound
 	}
 	return v, nil
@@ -214,12 +318,12 @@ func (r *MemoryRepository) CreateDelegation(_ context.Context, v Delegation) (De
 	r.delegations[key(v.TenantID, v.ID)] = v
 	return v, nil
 }
-func (r *MemoryRepository) TransitionDelegation(_ context.Context, tenantID, id string, expected int64, from, to DelegationState, actor, rationale string, at time.Time) (Delegation, error) {
+func (r *MemoryRepository) TransitionDelegation(_ context.Context, tenantID, legalEntityID, id string, expected int64, from, to DelegationState, actor, rationale string, at time.Time) (Delegation, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	k := key(tenantID, id)
 	v, ok := r.delegations[k]
-	if !ok {
+	if !ok || v.LegalEntityID != legalEntityID {
 		return Delegation{}, ErrNotFound
 	}
 	if v.Version != expected {
@@ -249,7 +353,7 @@ func (r *MemoryRepository) HasDelegationCycle(_ context.Context, candidate Deleg
 	defer r.mu.Unlock()
 	graph := map[string][]string{}
 	for _, value := range r.delegations {
-		if value.TenantID != candidate.TenantID || value.Responsibility != candidate.Responsibility || value.ID == candidate.ID {
+		if value.TenantID != candidate.TenantID || value.LegalEntityID != candidate.LegalEntityID || value.Responsibility != candidate.Responsibility || value.ID == candidate.ID {
 			continue
 		}
 		if value.Status != DelegationApproved && value.Status != DelegationActive {
@@ -284,23 +388,130 @@ func (r *MemoryRepository) DelegationConflicts(_ context.Context, tenantID, prin
 	defer r.mu.Unlock()
 	return append([]ConflictFinding(nil), r.conflicts[tenantID+":"+principalID+":"+responsibility]...), nil
 }
+func (r *MemoryRepository) ActivateDelegation(_ context.Context, tenantID, legalEntityID, id string, expected int64, actor, rationale string, at time.Time) (Delegation, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	k := key(tenantID, id)
+	candidate, ok := r.delegations[k]
+	if !ok || candidate.LegalEntityID != legalEntityID {
+		return Delegation{}, ErrNotFound
+	}
+	if candidate.Version != expected {
+		return Delegation{}, ErrVersionConflict
+	}
+	if candidate.Status != DelegationPendingApproval {
+		return Delegation{}, ErrInvalidTransition
+	}
+	if actor == "" || actor == candidate.MakerID || actor == candidate.FromPrincipalID || actor == candidate.ToPrincipalID {
+		return Delegation{}, ErrMakerChecker
+	}
+	if len(r.conflicts[tenantID+":"+candidate.ToPrincipalID+":"+candidate.Responsibility]) > 0 {
+		return Delegation{}, ErrConflict
+	}
+	graph := map[string][]string{}
+	for _, value := range r.delegations {
+		if value.ID == candidate.ID || value.TenantID != tenantID || value.LegalEntityID != legalEntityID || value.Responsibility != candidate.Responsibility {
+			continue
+		}
+		if value.Status != DelegationApproved && value.Status != DelegationActive {
+			continue
+		}
+		if value.StartsAt.Before(candidate.EndsAt) && candidate.StartsAt.Before(value.EndsAt) {
+			graph[value.FromPrincipalID] = append(graph[value.FromPrincipalID], value.ToPrincipalID)
+		}
+	}
+	seen := map[string]bool{}
+	var reaches func(string) bool
+	reaches = func(node string) bool {
+		if node == candidate.FromPrincipalID {
+			return true
+		}
+		if seen[node] {
+			return false
+		}
+		seen[node] = true
+		for _, next := range graph[node] {
+			if reaches(next) {
+				return true
+			}
+		}
+		return false
+	}
+	if reaches(candidate.ToPrincipalID) {
+		return Delegation{}, ErrConflict
+	}
+	target := DelegationApproved
+	if !at.Before(candidate.StartsAt) && at.Before(candidate.EndsAt) {
+		target = DelegationActive
+	}
+	candidate.Status = target
+	candidate.ApproverID = actor
+	candidate.ApprovedAt = &at
+	candidate.UpdatedAt = at
+	candidate.Version++
+	r.delegations[k] = candidate
+	return candidate, nil
+}
 func (r *MemoryRepository) ActivateDueDelegations(_ context.Context, now time.Time, limit int) (int, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	n := 0
+	keys := make([]string, 0, limit)
 	for k, v := range r.delegations {
-		if n >= limit {
-			break
-		}
 		if v.Status == DelegationApproved && !now.Before(v.StartsAt) && now.Before(v.EndsAt) {
-			v.Status = DelegationActive
-			v.Version++
-			v.UpdatedAt = now
-			r.delegations[k] = v
-			n++
+			keys = append(keys, k)
 		}
 	}
-	return n, nil
+	sort.Strings(keys)
+	if len(keys) > limit {
+		keys = keys[:limit]
+	}
+	for _, k := range keys {
+		candidate := r.delegations[k]
+		if len(r.conflicts[candidate.TenantID+":"+candidate.ToPrincipalID+":"+candidate.Responsibility]) > 0 || memoryDelegationCycle(r.delegations, candidate) {
+			return 0, ErrConflict
+		}
+	}
+	for _, k := range keys {
+		v := r.delegations[k]
+		v.Status = DelegationActive
+		v.Version++
+		v.UpdatedAt = now
+		r.delegations[k] = v
+	}
+	return len(keys), nil
+}
+
+func memoryDelegationCycle(values map[string]Delegation, candidate Delegation) bool {
+	graph := map[string][]string{}
+	for _, value := range values {
+		if value.ID == candidate.ID || value.TenantID != candidate.TenantID || value.LegalEntityID != candidate.LegalEntityID || value.Responsibility != candidate.Responsibility {
+			continue
+		}
+		if value.Status != DelegationApproved && value.Status != DelegationActive {
+			continue
+		}
+		if value.StartsAt.Before(candidate.EndsAt) && candidate.StartsAt.Before(value.EndsAt) {
+			graph[value.FromPrincipalID] = append(graph[value.FromPrincipalID], value.ToPrincipalID)
+		}
+	}
+	seen := map[string]bool{}
+	var reaches func(string) bool
+	reaches = func(node string) bool {
+		if node == candidate.FromPrincipalID {
+			return true
+		}
+		if seen[node] {
+			return false
+		}
+		seen[node] = true
+		for _, next := range graph[node] {
+			if reaches(next) {
+				return true
+			}
+		}
+		return false
+	}
+	return reaches(candidate.ToPrincipalID)
 }
 func (r *MemoryRepository) ExpireDueDelegations(_ context.Context, now time.Time, limit int) (int, error) {
 	r.mu.Lock()

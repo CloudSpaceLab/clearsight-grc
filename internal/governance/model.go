@@ -38,6 +38,7 @@ var (
 type RoutingPolicy struct {
 	ID             string          `json:"id"`
 	TenantID       string          `json:"tenant_id"`
+	LegalEntityID  string          `json:"legal_entity_id"`
 	Code           string          `json:"code"`
 	Name           string          `json:"name"`
 	Status         PolicyState     `json:"status"`
@@ -59,6 +60,7 @@ type RoutingPolicy struct {
 type RoutingPolicyRevision struct {
 	PolicyID       string          `json:"policy_id"`
 	TenantID       string          `json:"tenant_id"`
+	LegalEntityID  string          `json:"legal_entity_id"`
 	Version        int             `json:"version"`
 	BaseVersion    int             `json:"base_version"`
 	Definition     json.RawMessage `json:"definition"`
@@ -73,6 +75,7 @@ type RoutingPolicyRevision struct {
 
 type EscalationGuardRevisionInput struct {
 	TenantID              string   `json:"tenant_id"`
+	LegalEntityID         string   `json:"legal_entity_id"`
 	PolicyID              string   `json:"policy_id"`
 	SequenceID            string   `json:"sequence_id"`
 	StepIndex             int      `json:"step_index"`
@@ -85,6 +88,7 @@ type EscalationGuardRevisionInput struct {
 
 type ApprovePolicyRevisionInput struct {
 	TenantID              string `json:"tenant_id"`
+	LegalEntityID         string `json:"legal_entity_id"`
 	PolicyID              string `json:"policy_id"`
 	RevisionVersion       int    `json:"revision_version"`
 	ActorID               string `json:"actor_id"`
@@ -95,6 +99,7 @@ type ApprovePolicyRevisionInput struct {
 type Delegation struct {
 	ID              string          `json:"id"`
 	TenantID        string          `json:"tenant_id"`
+	LegalEntityID   string          `json:"legal_entity_id"`
 	FromPrincipalID string          `json:"from_principal_id"`
 	ToPrincipalID   string          `json:"to_principal_id"`
 	Responsibility  string          `json:"responsibility"`
@@ -120,6 +125,7 @@ type ConflictFinding struct {
 
 type CreatePolicyInput struct {
 	TenantID      string          `json:"tenant_id"`
+	LegalEntityID string          `json:"legal_entity_id"`
 	Code          string          `json:"code"`
 	Name          string          `json:"name"`
 	MakerID       string          `json:"maker_id"`
@@ -129,6 +135,7 @@ type CreatePolicyInput struct {
 
 type CreateDelegationInput struct {
 	TenantID        string          `json:"tenant_id"`
+	LegalEntityID   string          `json:"legal_entity_id"`
 	FromPrincipalID string          `json:"from_principal_id"`
 	ToPrincipalID   string          `json:"to_principal_id"`
 	Responsibility  string          `json:"responsibility"`
@@ -141,6 +148,7 @@ type CreateDelegationInput struct {
 
 type TransitionInput struct {
 	TenantID        string `json:"tenant_id"`
+	LegalEntityID   string `json:"legal_entity_id"`
 	ID              string `json:"id,omitempty"`
 	ActorID         string `json:"actor_id"`
 	ExpectedVersion int64  `json:"expected_version"`
