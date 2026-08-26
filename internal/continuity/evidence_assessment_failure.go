@@ -24,6 +24,21 @@ func (s *Service) recordEvidenceAssessmentWithFailure(ctx context.Context, aggre
 		return ProgramAggregate{}, err
 	}
 	triggerKey := "program-evidence-failure:" + assessment.ProgramID + ":" + assessment.ContractID
+	matterType := MatterControlGap
+	triggerType := "EVIDENCE_CHECK_FAILED"
+	title := "Resolve failed evidence check: " + contract.Name
+	summary := fmt.Sprintf("The %s result did not support the claim: %s", strings.ToLower(strings.ReplaceAll(string(assessment.Conclusion), "_", " ")), contract.Claim)
+	requiredAuthority := "CONTROL_ASSURANCE"
+	missingFacts := json.RawMessage(`[]`)
+	if contract.FailureAction == "REQUEST" {
+		triggerKey = "program-evidence-request:" + assessment.ProgramID + ":" + assessment.ContractID
+		matterType = MatterAuthorityRequest
+		triggerType = "EVIDENCE_REQUEST_REQUIRED"
+		title = "Provide evidence for check: " + contract.Name
+		summary = "The latest result did not support the evidence claim. The Program owner must provide or obtain current evidence for review."
+		requiredAuthority = "EVIDENCE_OWNER"
+		missingFacts, _ = json.Marshal([]string{"evidence that supports: " + contract.Claim})
+	}
 	priority := 3
 	if assessment.Conclusion == EvidenceUnsupported || assessment.Conclusion == EvidenceContradicted {
 		priority = 4
@@ -36,15 +51,14 @@ func (s *Service) recordEvidenceAssessmentWithFailure(ctx context.Context, aggre
 		"evidence_check": contract.Name, "claim": contract.Claim, "conclusion": assessment.Conclusion,
 		"coverage": assessment.Coverage, "required_coverage": contract.MinimumCoverage, "assessed_at": assessment.AssessedAt,
 	})
-	title := "Resolve failed evidence check: " + contract.Name
 	matter := Matter{
 		ID: matterID, TenantID: assessment.TenantID, LegalEntityID: aggregate.Program.LegalEntityID,
-		Reference: matterReference(matterID), Type: MatterControlGap, Status: MatterInitialReview, Priority: priority,
-		Title: title, Summary: fmt.Sprintf("The %s result did not support the claim: %s", strings.ToLower(strings.ReplaceAll(string(assessment.Conclusion), "_", " ")), contract.Claim),
+		Reference: matterReference(matterID), Type: matterType, Status: MatterInitialReview, Priority: priority,
+		Title: title, Summary: summary,
 		Scope: scope, SourceType: "EVIDENCE_CONTRACT", SourceID: contract.ID,
-		TriggerType: "EVIDENCE_CHECK_FAILED", TriggerID: assessment.ID, TriggerKey: triggerKey,
-		KnownFacts: known, MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`),
-		OwnerPrincipalID: aggregate.Program.OwnerPrincipalID, RequiredAuthority: "CONTROL_ASSURANCE",
+		TriggerType: triggerType, TriggerID: assessment.ID, TriggerKey: triggerKey,
+		KnownFacts: known, MissingFacts: missingFacts, Contradictions: json.RawMessage(`[]`),
+		OwnerPrincipalID: aggregate.Program.OwnerPrincipalID, RequiredAuthority: requiredAuthority,
 		CreatedAt: now, UpdatedAt: now, Version: 1,
 	}
 	matterEvent, err := newEvent(assessment.TenantID, "MATTER", matter.ID, 1, EventMatterCreated, matter, actorFor(assessment.AssessedBy), assessment.AssessedBy, now)
