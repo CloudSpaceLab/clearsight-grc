@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { loadProgram } from "../api";
+import { loadProgram, loadProgramAt } from "../api";
 import { loadProgramOperations } from "../programOperationsApi";
 import type { ProgramOperations } from "../programOperationsApi";
 import { loadProgramReviewDigest } from "../programReviewApi";
@@ -14,6 +14,7 @@ import { ProgramSafeguardsPanel } from "./ProgramSafeguardsPanel";
 import { ProgramEvidencePanel } from "./ProgramEvidencePanel";
 import { ProgramIssuesPanel } from "./ProgramIssuesPanel";
 import { ProgramStatusPanel } from "./ProgramStatusPanel";
+import { RecordSnapshotControl } from "./RecordSnapshotControl";
 
 type Props = { programID: string; onBack: () => void; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenMatter?: (matterID: string) => void };
 type LoadState = "loading" | "live" | "unavailable";
@@ -171,6 +172,7 @@ export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "
         <div><span className="program-kicker">{aggregate.program.code} · {aggregate.program.owning_function}</span><h1>{aggregate.program.name}</h1><p>{aggregate.program.jurisdiction || "Jurisdiction not recorded"}</p></div>
         <dl><div><dt>Operating status</dt><dd>{statusLabel(aggregate.program.status)}</dd></div><div><dt>Calculated state</dt><dd>{aggregate.state_label}</dd></div><div><dt>Record version</dt><dd>{aggregate.program.version}</dd></div></dl>
       </header>
+      <RecordSnapshotControl recordLabel="Program" loadSnapshot={async (at) => { const value = await loadProgramAt(aggregate.program.id, at); return { version: value.program.version, status: value.program.status, updatedAt: value.program.updated_at }; }}/>
       {operationsState === "loading" && <div className="inline-notice" role="status"><strong>Checking current responsibilities.</strong> Program values remain visible while the current responsibility route is loaded.</div>}
       {operationsState === "unavailable" && <div className="inline-notice" role="status"><strong>Program responsibilities could not be checked.</strong> Program values and stored owners remain visible, but changes are disabled until the current responsibility route is available. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry responsibilities</button></div>}
       {operations && !operations.authority_available && <div className="inline-notice" role="status"><strong>Responsibilities are temporarily unavailable.</strong> Program values and stored owners remain visible, but changes are disabled until authority routing recovers. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry responsibilities</button></div>}

@@ -366,6 +366,39 @@ func (r *MemoryRepository) MatterEvents(ctx context.Context, tenant, id string, 
 	return filterEvents(values, until), nil
 }
 
+func (r *MemoryRepository) ResponsePackageHistory(ctx context.Context, tenant, matterID, responseID string, limit int) ([]ResponseHistoryItem, bool, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	aggregate, ok := r.matters[tenant][matterID]
+	if !ok || !r.visibleLegalEntity(ctx, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID) {
+		return nil, false, ErrNotFound
+	}
+	values := make([]ResponseHistoryItem, 0, limit+1)
+	events := r.matterEvents[tenant][matterID]
+	for index := len(events) - 1; index >= 0 && len(values) <= limit; index-- {
+		event := events[index]
+		if event.Type != EventResponsePackageAdded && event.Type != EventResponsePackageStateChanged {
+			continue
+		}
+		var response ResponsePackage
+		if err := json.Unmarshal(event.Payload, &response); err != nil {
+			return nil, false, err
+		}
+		if response.ID != responseID {
+			continue
+		}
+		values = append(values, ResponseHistoryItem{Status: response.Status, OccurredAt: event.OccurredAt, ActorLabel: "Recorded person unavailable", AggregateVersion: event.AggregateVersion})
+	}
+	if len(values) == 0 {
+		return nil, false, ErrNotFound
+	}
+	hasMore := len(values) > limit
+	if hasMore {
+		values = values[:limit]
+	}
+	return values, hasMore, nil
+}
+
 func (r *MemoryRepository) OpenMatterCount(_ context.Context, tenant, programID string) (int, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

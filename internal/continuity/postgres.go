@@ -362,6 +362,45 @@ func (r *PostgresRepository) MatterEvents(ctx context.Context, tenant, id string
 	return r.scanEvents(ctx, query, args...)
 }
 
+func (r *PostgresRepository) ResponsePackageHistory(ctx context.Context, tenant, matterID, responseID string, limit int) ([]ResponseHistoryItem, bool, error) {
+	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
+	rows, err := r.pool.Query(ctx, `SELECT ce.payload->>'status',ce.occurred_at,
+		CASE WHEN ce.actor_type='SYSTEM' THEN 'Automated process' ELSE COALESCE(NULLIF(trim(p.display_name),''),'Recorded person unavailable') END,
+		ce.aggregate_version
+		FROM continuity_events ce
+		JOIN tenants t ON t.id=ce.tenant_id
+		JOIN matters m ON m.tenant_id=ce.tenant_id AND m.id=ce.aggregate_id
+		LEFT JOIN principals p ON p.tenant_id=ce.tenant_id AND p.id=ce.actor_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND ce.aggregate_type='MATTER' AND ce.aggregate_id=$2::uuid
+		  AND (NOT $3 OR ((t.id::text=$4 OR t.slug=$4) AND m.legal_entity_id IS NOT NULL AND ($5='*' OR m.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=m.tenant_id AND (le.id::text=$5 OR le.code=$5) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
+		  AND ce.event_type IN ('RESPONSE_PACKAGE_ADDED','RESPONSE_PACKAGE_STATE_CHANGED')
+		  AND ce.payload->>'id'=$6
+		ORDER BY ce.aggregate_version DESC LIMIT $7`, tenant, matterID, enforce, actorTenant, actorEntity, responseID, limit+1)
+	if err != nil {
+		return nil, false, err
+	}
+	defer rows.Close()
+	values := make([]ResponseHistoryItem, 0, limit+1)
+	for rows.Next() {
+		var value ResponseHistoryItem
+		if err = rows.Scan(&value.Status, &value.OccurredAt, &value.ActorLabel, &value.AggregateVersion); err != nil {
+			return nil, false, err
+		}
+		values = append(values, value)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, false, err
+	}
+	if len(values) == 0 {
+		return nil, false, ErrNotFound
+	}
+	hasMore := len(values) > limit
+	if hasMore {
+		values = values[:limit]
+	}
+	return values, hasMore, nil
+}
+
 func (r *PostgresRepository) OpenMatterCount(ctx context.Context, tenant, programID string) (int, error) {
 	var count int
 	err := r.pool.QueryRow(ctx, `SELECT count(DISTINCT m.id) FROM matters m JOIN matter_links ml ON ml.matter_id=m.id AND ml.tenant_id=m.tenant_id JOIN tenants t ON t.id=m.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND ml.program_id=$2::uuid AND m.status NOT IN ('CLOSED','CANCELLED')`, tenant, programID).Scan(&count)

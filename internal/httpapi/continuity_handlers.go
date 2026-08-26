@@ -549,6 +549,24 @@ func (a *API) transitionMatterResponse(w http.ResponseWriter, r *http.Request) {
 	writeContinuityResult(w, value, err, http.StatusOK)
 }
 
+func (a *API) getMatterResponseHistory(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	tenant, ok := requiredQuery(w, r, "tenant_id")
+	if !ok {
+		return
+	}
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil && r.URL.Query().Get("limit") != "" {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_limit", "History limit must be a number.")
+		return
+	}
+	value, err := service.ResponsePackageHistory(r.Context(), tenant, r.PathValue("id"), r.PathValue("response_id"), limit)
+	writeContinuityResult(w, value, err, http.StatusOK)
+}
+
 func requiredTimeQuery(w http.ResponseWriter, r *http.Request, name string) (time.Time, bool) {
 	value := strings.TrimSpace(r.URL.Query().Get(name))
 	if value == "" {

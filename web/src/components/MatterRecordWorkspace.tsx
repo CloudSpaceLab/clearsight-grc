@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { loadMatter } from "../api";
+import { loadMatter, loadMatterAt } from "../api";
 import { loadMatterOperations } from "../matterOperationsApi";
 import type { MatterOperations } from "../matterOperationsApi";
 import type { MatterAggregate } from "../types";
@@ -10,6 +10,7 @@ import { MatterInformationPanel } from "./MatterInformationPanel";
 import { MatterActionsPanel } from "./MatterActionsPanel";
 import { MatterOutcomePanel } from "./MatterOutcomePanel";
 import { MatterDecisionResponsePanel } from "./MatterDecisionResponsePanel";
+import { RecordSnapshotControl } from "./RecordSnapshotControl";
 
 type Props = {
   matterID: string;
@@ -129,6 +130,7 @@ export function MatterRecordWorkspace({ matterID, onBack }: Props) {
           <div><dt>Record version</dt><dd>{aggregate.matter.version}</dd></div>
         </dl>
       </header>
+      <RecordSnapshotControl recordLabel="issue" loadSnapshot={async (at) => { const value = await loadMatterAt(aggregate.matter.id, at); return { version: value.matter.version, status: value.matter.status, updatedAt: value.matter.updated_at }; }}/>
       {operationsState === "loading" && <div className="inline-notice" role="status"><strong>Checking current responsibilities.</strong> Issue values remain visible while the current responsibility route is loaded.</div>}
       {operationsState === "unavailable" && <div className="inline-notice" role="status"><strong>Issue responsibilities could not be checked.</strong> Issue values remain visible, but changes are disabled until the current responsibility route is available. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry responsibilities</button></div>}
       {operations && !operations.authority_available && <div className="inline-notice" role="status"><strong>Responsibilities are temporarily unavailable.</strong> Values and stored owners remain visible, but changes are disabled until authority routing recovers. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry responsibilities</button></div>}

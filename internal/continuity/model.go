@@ -536,6 +536,19 @@ type Event struct {
 	OccurredAt       time.Time       `json:"occurred_at"`
 }
 
+type ResponseHistoryItem struct {
+	Status           ResponseStatus `json:"status"`
+	OccurredAt       time.Time      `json:"occurred_at"`
+	ActorLabel       string         `json:"actor_label"`
+	AggregateVersion int64          `json:"matter_version"`
+}
+
+type ResponseHistoryPage struct {
+	Items       []ResponseHistoryItem `json:"items"`
+	HasMore     bool                  `json:"has_more"`
+	GeneratedAt time.Time             `json:"generated_at"`
+}
+
 type CreateProgramInput struct {
 	TenantID             string          `json:"tenant_id"`
 	LegalEntityID        string          `json:"legal_entity_id,omitempty"`

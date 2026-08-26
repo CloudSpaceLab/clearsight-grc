@@ -1,5 +1,5 @@
 import { requestJSON, requestVoid } from "./http";
-import type { AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, PolicySummary, ProgramAggregate, Readiness, WorkflowTask } from "./types";
+import type { AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, PolicySummary, ProgramAggregate, Readiness, ResponseHistoryPage, WorkflowTask } from "./types";
 import type { MatterSummary, ProgramSummary, SummaryPage, SummaryQuery } from "./summaryTypes";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
 import type { BankJourneysResponse } from "./verticalTypes";
@@ -200,6 +200,18 @@ export function loadProgram(id: string): Promise<ProgramAggregate> {
 
 export function loadMatter(id: string): Promise<MatterAggregate> {
   return scopedRequest<NullableMatterAggregate>(`/api/v1/matters/${encodeURIComponent(id)}`).then(normalizeMatterAggregate);
+}
+
+export function loadProgramAt(id: string, at: string): Promise<ProgramAggregate> {
+  return scopedRequest<Parameters<typeof normalizeProgramAggregate>[0]>(`/api/v1/programs/${encodeURIComponent(id)}/history`, { at }).then(normalizeProgramAggregate);
+}
+
+export function loadMatterAt(id: string, at: string): Promise<MatterAggregate> {
+  return scopedRequest<NullableMatterAggregate>(`/api/v1/matters/${encodeURIComponent(id)}/history`, { at }).then(normalizeMatterAggregate);
+}
+
+export function loadResponsePackageHistory(matterID: string, responseID: string, limit = 20): Promise<ResponseHistoryPage> {
+  return scopedRequest<ResponseHistoryPage>(`/api/v1/matters/${encodeURIComponent(matterID)}/responses/${encodeURIComponent(responseID)}/history`, { limit });
 }
 
 export async function loadPrograms(): Promise<ProgramAggregate[]> {

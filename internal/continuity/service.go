@@ -1129,6 +1129,20 @@ func (s *Service) MatterAt(ctx context.Context, tenant, id string, at time.Time)
 	return reconstructMatter(events)
 }
 
+func (s *Service) ResponsePackageHistory(ctx context.Context, tenant, matterID, responseID string, limit int) (ResponseHistoryPage, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 50 {
+		limit = 50
+	}
+	items, hasMore, err := s.repo.ResponsePackageHistory(ctx, tenant, matterID, responseID, limit)
+	if err != nil {
+		return ResponseHistoryPage{}, err
+	}
+	return ResponseHistoryPage{Items: items, HasMore: hasMore, GeneratedAt: s.now().UTC()}, nil
+}
+
 func (s *Service) applyProgramValue(ctx context.Context, tenant, programID string, expected int64, eventType string, value any, actorID string) error {
 	event, err := newEvent(tenant, "PROGRAM", programID, expected+1, eventType, value, actorFor(actorID), actorID, s.now().UTC())
 	if err != nil {

@@ -156,9 +156,11 @@ export function MatterOutcomePanel({ aggregate, operations, onUpdated, onReload 
       {defineOperation?.can_act && !active && <button className="secondary-button" type="button" onClick={beginDefine}>Define outcome check</button>}
     </div>
     {aggregate.verification_contracts.length ? <div className="matter-outcome-list">{aggregate.verification_contracts.map((contract) => {
-      const recorded = aggregate.verification_results.filter((item) => item.contract_id === contract.id).at(-1);
+      const results = aggregate.verification_results.filter((item) => item.contract_id === contract.id).sort((left, right) => right.observed_at.localeCompare(left.observed_at));
+      const recorded = results[0];
       const recordOperation = operationFor(operations, "matter.outcome.record", contract.id);
       const linkedAction = aggregate.actions.find((action) => action.id === contract.action_id);
+      const reviewerLabel = (reviewerID?: string) => operations.flatMap((operation) => operation.candidates ?? []).find((candidate) => candidate.id === reviewerID)?.display_name ?? recordOperation?.assigned_to?.display_name ?? "Recorded reviewer unavailable";
       return <section className="matter-outcome-card" key={contract.id} aria-labelledby={`matter-outcome-${contract.id}`}>
         <div className="matter-action-heading"><div><h3 id={`matter-outcome-${contract.id}`}>{contract.expected_outcome}</h3>{linkedAction && <p>Checks the result of: {linkedAction.title}</p>}</div><span>{resultLabel(recorded?.result)}</span></div>
         <dl className="matter-outcome-meta">
@@ -166,6 +168,7 @@ export function MatterOutcomePanel({ aggregate, operations, onUpdated, onReload 
           <div><dt>Observation period</dt><dd>{contract.observation_period_minutes} minutes</dd></div>
         </dl>
         {recorded?.rationale && <p className="matter-outcome-rationale"><strong>Recorded basis:</strong> {recorded.rationale}</p>}
+        {results.length > 0 && <details><summary>View outcome result history ({results.length})</summary><p>Showing {Math.min(results.length, 20)} of {results.length} stored results for issue version {aggregate.matter.version}.</p><ol>{results.slice(0, 20).map((item) => <li key={item.id}><strong>{resultLabel(item.result)}</strong><span>Recorded {item.observed_at.slice(0, 10)} by {reviewerLabel(item.reviewer_principal_id)}</span>{item.rationale && <p>{item.rationale}</p>}</li>)}</ol>{results.length > 20 && <p>Older results are not shown. The issue record contains {results.length - 20} additional results.</p>}</details>}
         {contract.failure_response && <p className="matter-outcome-rationale"><strong>If not achieved:</strong> {failureLabel(contract.failure_response)}</p>}
         {!active && recordOperation?.can_act && <button className="secondary-button" type="button" aria-label={`Record result for ${contract.expected_outcome}`} onClick={() => beginResult(contract)}>Record outcome result</button>}
         {!recordOperation?.can_act && recordOperation?.reason && <p className="matter-operation-reason">{recordOperation.reason}</p>}

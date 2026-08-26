@@ -1,9 +1,10 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { apiErrorKind } from "../http";
+import { loadResponsePackageHistory } from "../api";
 import type { MatterOperation } from "../matterOperationsApi";
 import { addResponsePackage, recordMatterDecision, transitionResponsePackage } from "../continuityCommands";
-import type { MatterAggregate } from "../types";
+import type { MatterAggregate, ResponseHistoryPage } from "../types";
 
 type Props = {
   aggregate: MatterAggregate;
@@ -13,6 +14,7 @@ type Props = {
 };
 
 type Active = { kind: "decision"; decisionID?: string } | { kind: "response-add" } | { kind: "response-status"; responseID: string } | null;
+type HistoryState = { state: "loading" | "live" | "unavailable"; page?: ResponseHistoryPage };
 
 function operationsFor(operations: MatterOperation[], command: string, subresourceID?: string) {
   const matches = operations.filter((operation) => operation.command === command && (subresourceID === undefined || operation.subresource_id === subresourceID));
@@ -49,6 +51,18 @@ export function MatterDecisionResponsePanel({ aggregate, operations, onUpdated, 
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [conflict, setConflict] = useState(false);
+  const [responseHistories, setResponseHistories] = useState<Record<string, HistoryState>>({});
+
+  async function openResponseHistory(responseID: string) {
+    if (responseHistories[responseID]?.state === "loading" || responseHistories[responseID]?.state === "live") return;
+    setResponseHistories((current) => ({ ...current, [responseID]: { state: "loading" } }));
+    try {
+      const page = await loadResponsePackageHistory(aggregate.matter.id, responseID, 20);
+      setResponseHistories((current) => ({ ...current, [responseID]: { state: "live", page } }));
+    } catch {
+      setResponseHistories((current) => ({ ...current, [responseID]: { state: "unavailable" } }));
+    }
+  }
 
   function beginDecision(decisionID?: string) {
     const current = aggregate.decisions.find((decision) => decision.id === decisionID);
@@ -98,6 +112,8 @@ export function MatterDecisionResponsePanel({ aggregate, operations, onUpdated, 
       }
       const completedKind = active.kind;
       await onUpdated(updated);
+      if (completedKind === "response-add") setResponseHistories({});
+      if (completedKind === "response-status" && active.kind === "response-status") setResponseHistories((current) => { const next = { ...current }; delete next[active.responseID]; return next; });
       setActive(null);
       setNotice(completedKind === "decision" ? "Decision recorded." : completedKind === "response-add" ? "Response package created." : "Response status updated.");
     } catch (cause) { handleError(cause); } finally { setSaving(false); }
@@ -124,7 +140,8 @@ export function MatterDecisionResponsePanel({ aggregate, operations, onUpdated, 
     <section className="matter-governance-section" aria-labelledby="matter-response-history"><h3 id="matter-response-history">Response packages</h3>
       {aggregate.response_packages.length ? <div className="matter-governance-list">{aggregate.response_packages.map((response) => {
         const operation = operationsFor(operations, "matter.response.transition", response.id);
-        return <div className="matter-governance-row" key={response.id}><div><strong>{response.purpose}</strong><span>{statusLabel(response.status)} · {response.audience}</span>{operation?.assigned_to && <small>Current responsibility: {operation.assigned_to.display_name}</small>}</div>{!active && operation?.can_act && <button className="secondary-button" type="button" aria-label={`Update response status for ${response.purpose}`} onClick={() => beginResponseStatus(response.id)}>Update response status</button>}</div>;
+        const history = responseHistories[response.id];
+        return <div className="matter-governance-row" key={response.id}><div><strong>{response.purpose}</strong><span>{statusLabel(response.status)} · {response.audience}</span>{operation?.assigned_to && <small>Current responsibility: {operation.assigned_to.display_name}</small>}<details onToggle={(event) => { if (event.currentTarget.open) void openResponseHistory(response.id); }}><summary>View response status history</summary>{history?.state === "loading" && <p role="status">Loading response status history…</p>}{history?.state === "unavailable" && <p role="alert">Response status history could not be loaded. Close and reopen this history to retry.</p>}{history?.page && <><p>Showing {history.page.items.length} stored transitions{history.page.has_more ? "; older transitions are not shown" : ""}. Loaded {new Date(history.page.generated_at).toLocaleString()}.</p><ol>{history.page.items.map((item) => <li key={`${item.matter_version}-${item.occurred_at}`}><strong>{statusLabel(item.status)}</strong><span>{new Date(item.occurred_at).toLocaleString()} · {item.actor_label}</span><small>Issue version {item.matter_version}</small></li>)}</ol></>}</details></div>{!active && operation?.can_act && <button className="secondary-button" type="button" aria-label={`Update response status for ${response.purpose}`} onClick={() => beginResponseStatus(response.id)}>Update response status</button>}</div>;
       })}</div> : <p>No response package has been prepared for this issue.</p>}
     </section>
 

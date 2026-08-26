@@ -32,6 +32,20 @@ beforeEach(() => {
 });
 
 describe("Program evidence authority gating", () => {
+  it("shows a bounded labelled evidence result history without exposing reviewer identifiers", async () => {
+    vi.mocked(loadEvidenceSources).mockResolvedValue([{ id: "source-1", tenant_id: "bank", code: "REG", name: "Regulatory filing register", type: "REGISTER", authority_class: "AUTHORITATIVE", expected_freshness_minutes: 1440, health: "HEALTHY", status: "ACTIVE", version: 1 }]);
+    const assessments = Array.from({ length: 22 }, (_, index) => ({ id: `assessment-${index}`, contract_id: "contract-1", conclusion: index ? "SUPPORTED" : "NOT_SUPPORTED", coverage: .9, basis: { summary: `Result basis ${index}` }, assessed_by: index ? "reviewer-hidden" : "reviewer-1", assessed_at: new Date(Date.UTC(2026, 7, 25 - index)).toISOString() }));
+    const value = { ...aggregate, evidence_contracts: [{ ...aggregate.evidence_contracts[0]!, acceptable_source_ids: ["source-1"] }], evidence_assessments: assessments };
+    render(<ProgramEvidencePanel aggregate={value} operations={[...operations, { ...operations[1]!, candidates: [{ id: "reviewer-1", display_name: "Ada Okafor", kind: "PERSON", role: "Reviewer" }] }]} actorPrincipalID="actor-1" canConfigureSources canOperate onUpdated={vi.fn()} onReload={vi.fn()}/>);
+
+    fireEvent.click(screen.getByText("View evidence result history (22)"));
+    expect(await screen.findByText(/Showing 20 of 22 stored results for Program version 4/)).toBeTruthy();
+    expect(screen.getByText(/assessed 2026-08-25 by Ada Okafor/)).toBeTruthy();
+    expect(screen.getAllByText(/Sources: Regulatory filing register/)).toHaveLength(20);
+    expect(screen.getByText(/2 additional results/)).toBeTruthy();
+    expect(screen.queryByText(/reviewer-hidden/)).toBeNull();
+  });
+
   it.each([
     ["Define evidence check", "Save evidence check"],
     ["Record evidence result", "Save evidence result"],
