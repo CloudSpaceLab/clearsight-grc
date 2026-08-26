@@ -79,6 +79,58 @@
       "get": { "operationId": "listFormTemplates", "x-clearsight-route-class": "AUTHENTICATED_READ" },
       "post": { "operationId": "createFormTemplate", "x-clearsight-route-class": "MATERIAL_COMMAND" }
     },
+
+    "/api/v1/vendors": {
+      "get": { "operationId": "listVendorRelationships", "x-clearsight-route-class": "AUTHENTICATED_READ" },
+      "post": { "operationId": "createVendorRelationship", "x-clearsight-route-class": "MATERIAL_COMMAND" }
+    },
+    "/api/v1/vendors/{id}": {
+      "get": { "operationId": "getVendorRelationship", "x-clearsight-route-class": "AUTHENTICATED_READ" },
+      "post": { "operationId": "updateVendorRelationship", "x-clearsight-route-class": "MATERIAL_COMMAND" }
+    },
+    "/api/v1/vendor-identities/{vendor_id}": {
+      "get": { "operationId": "getVendorIdentity", "x-clearsight-route-class": "AUTHENTICATED_READ" },
+      "put": { "operationId": "updateVendorIdentity", "x-clearsight-route-class": "MATERIAL_COMMAND" }
+    },
+    "/api/v1/vendor-identities/{vendor_id}/brand": {
+      "get": { "operationId": "openVendorBrand", "x-clearsight-route-class": "AUTHENTICATED_READ" },
+      "put": { "operationId": "uploadVendorBrand", "x-clearsight-route-class": "MATERIAL_COMMAND" },
+      "delete": { "operationId": "removeVendorBrand", "x-clearsight-route-class": "MATERIAL_COMMAND" }
+    },
+    "/api/v1/vendors/{id}/links": {
+      "get": { "operationId": "listVendorRelationshipLinks", "x-clearsight-route-class": "AUTHENTICATED_READ" },
+      "post": { "operationId": "linkVendorRelationship", "x-clearsight-route-class": "MATERIAL_COMMAND" }
+    },
+    "/api/v1/vendors/{id}/links/{link_id}/end": { "post": { "operationId": "endVendorRelationshipLink", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/vendor-links": { "get": { "operationId": "listVendorLinksByTarget", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/vendor-work": { "get": { "operationId": "listVendorWork", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/vendor-work/{request_id}": { "get": { "operationId": "getVendorWork", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/vendors/{id}/work/{request_id}/response": { "get": { "operationId": "getVendorWorkResponse", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/vendors/{id}/work/{request_id}/requests/{capture_request_id}/documents/{artifact_id}/open": { "get": { "operationId": "openVendorWorkDocument", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/vendors/{id}/work/prepare": { "post": { "operationId": "prepareVendorWork", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/vendors/{id}/work/{request_id}/send": { "post": { "operationId": "sendVendorWork", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/vendors/{id}/work/{request_id}/review/start": { "post": { "operationId": "startVendorWorkReview", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/vendors/{id}/work/{request_id}/changes": { "post": { "operationId": "requestVendorWorkChanges", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/vendors/{id}/work/{request_id}/accept": { "post": { "operationId": "acceptVendorWork", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/vendors/{id}/work/{request_id}/cancel": { "post": { "operationId": "cancelVendorWork", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/vendors/{id}/work/{request_id}/retry": { "post": { "operationId": "retryVendorWork", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/vendors/{id}/assessments": { "post": { "operationId": "startVendorAssessment", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/vendors/{id}/assessments/current": { "get": { "operationId": "getCurrentVendorAssessment", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/vendor-assessments/{id}/send-request": { "post": { "operationId": "sendVendorAssessmentRequest", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/vendor-assessments/{id}/reissue-request": { "post": { "operationId": "reissueVendorAssessmentRequest", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+	"/api/v1/vendor-assessments/{id}/setup/retry": { "post": { "operationId": "retryVendorAssessmentSetup", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+	"/api/v1/vendor-assessments/{id}": { "get": { "operationId": "getVendorAssessmentReview", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/vendor-assessments/{id}/requests/{request_id}/documents/{artifact_id}/open": { "get": { "operationId": "openVendorAssessmentDocument", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/vendor-assessments/{id}/review/start": { "post": { "operationId": "startVendorAssessmentReview", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/vendor-assessments/{id}/documents/{artifact_id}/validate": { "post": { "operationId": "reviewVendorAssessmentDocument", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/vendor-assessments/{id}/clarifications": { "post": { "operationId": "requestVendorAssessmentClarification", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/vendor-assessments/{id}/deficiencies": { "post": { "operationId": "createVendorAssessmentDeficiency", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/vendor-assessments/{id}/complete": { "post": { "operationId": "completeVendorAssessment", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/vendor-assessments/{id}/cancel": { "post": { "operationId": "cancelVendorAssessment", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+
+    "/api/v1/form-templates": {
+      "get": { "operationId": "listReusableFormTemplates", "x-clearsight-route-class": "AUTHENTICATED_READ" }
+    },
     "/api/v1/programs/{id}/form-templates/{form_id}/transition": { "post": { "operationId": "transitionFormTemplate", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/programs/{id}/form-templates/{form_id}/collections": { "post": { "operationId": "startFormCollection", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/programs/{id}/monitoring-checks": {
@@ -152,7 +204,7 @@
     "/api/v1/evidence/sources/{id}/observations": { "post": { "operationId": "recordEvidenceSourceObservation", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/evidence/requests": {
       "get": { "operationId": "listEvidenceRequests", "x-clearsight-route-class": "AUTHENTICATED_READ" },
-      "post": { "operationId": "createEvidenceRequest", "x-clearsight-route-class": "MATERIAL_COMMAND" }
+      "post": { "operationId": "createEvidenceRequest", "x-clearsight-route-class": "AUTHENTICATED_WRITE" }
     },
     "/api/v1/governance/delegation-candidates": { "get": { "operationId": "listGovernanceDelegationCandidates", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_WRITE" } },
     "/api/v1/evidence/requests/{id}": { "get": { "operationId": "getEvidenceRequest", "x-clearsight-route-class": "AUTHENTICATED_READ" } },

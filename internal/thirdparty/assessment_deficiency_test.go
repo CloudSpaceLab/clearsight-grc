@@ -164,7 +164,7 @@ func TestCreateAssessmentDeficiencyCanonicalLinkWinsAfterLaterAssessmentMutation
 	if outcome.Assessment.Version != assessment.Version+2 {
 		t.Fatalf("reconciled current assessment = %#v", outcome.Assessment)
 	}
-	stored, err := matters.service.GetMatter(context.Background(), assessment.TenantID, matters.created.Matter.ID)
+	stored, err := matters.service.GetMatter(assessmentContext(), assessment.TenantID, matters.created.Matter.ID)
 	if err != nil || stored.Matter.Status == continuity.MatterCancelled {
 		t.Fatalf("linked Matter was cancelled: (%#v, %v)", stored.Matter, err)
 	}
@@ -182,7 +182,7 @@ func TestCreateAssessmentDeficiencyReconcilesByExactCanonicalAssociation(t *test
 	if err != nil || outcome.Matter.Matter.ID == "" {
 		t.Fatalf("exact canonical reconciliation = (%#v, %v)", outcome, err)
 	}
-	stored, err := matters.service.GetMatter(context.Background(), assessment.TenantID, matters.created.Matter.ID)
+	stored, err := matters.service.GetMatter(assessmentContext(), assessment.TenantID, matters.created.Matter.ID)
 	if err != nil || stored.Matter.Status == continuity.MatterCancelled {
 		t.Fatalf("linked Matter was cancelled: (%#v, %v)", stored.Matter, err)
 	}
@@ -198,7 +198,7 @@ func TestCreateAssessmentDeficiencyCancelsNewMatterWhenLinkDidNotCommit(t *testi
 	if _, err := service.CreateDeficiency(assessmentContext(), assessmentActor(), assessment.ID, input); err == nil {
 		t.Fatal("link failure returned success")
 	}
-	stored, err := matters.service.GetMatter(context.Background(), assessment.TenantID, matters.created.Matter.ID)
+	stored, err := matters.service.GetMatter(assessmentContext(), assessment.TenantID, matters.created.Matter.ID)
 	if err != nil {
 		t.Fatal(err)
 	}

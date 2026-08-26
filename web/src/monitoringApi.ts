@@ -12,11 +12,14 @@ async function scoped<T>(path: string, init?: RequestInit): Promise<T> {
   return requestJSON<T>(apiBase, `${path}${separator}tenant_id=${encodeURIComponent(context.tenant.id)}`, init);
 }
 
-export async function loadFormTemplates(programID: string): Promise<FormTemplate[]> {
-  return (await scoped<{ items: FormTemplate[] }>(`/api/v1/programs/${encodeURIComponent(programID)}/form-templates?limit=100`)).items;
+export async function loadFormTemplates(programID?: string): Promise<FormTemplate[]> {
+	const path = programID
+		? `/api/v1/programs/${encodeURIComponent(programID)}/form-templates?limit=100`
+		: "/api/v1/form-templates?limit=100";
+	return (await scoped<{ items: FormTemplate[] }>(path)).items;
 }
 
-export function createFormTemplate(programID: string, input: { code: string; name: string; purpose: string; fields: FormTemplateField[] }): Promise<FormTemplate> {
+export function createFormTemplate(programID: string, input: CreateFormTemplateInput): Promise<FormTemplate> {
   return scoped<FormTemplate>(`/api/v1/programs/${encodeURIComponent(programID)}/form-templates`, { method: "POST", body: JSON.stringify(input) });
 }
 

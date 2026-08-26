@@ -2,6 +2,14 @@ package onboarding
 
 import "time"
 
+type Surface string
+
+const (
+	SurfaceToday              Surface = "TODAY"
+	SurfaceVendors            Surface = "VENDORS"
+	CapabilityVendorWorkspace         = "VENDORS"
+)
+
 type Step struct {
 	ID          string `json:"id"`
 	Title       string `json:"title"`
@@ -14,16 +22,18 @@ type Step struct {
 }
 
 type Guide struct {
-	Code         string   `json:"code"`
-	Profile      string   `json:"profile"`
-	Role         string   `json:"role"`
-	RoleCodes    []string `json:"role_codes,omitempty"`
-	Priority     int      `json:"priority,omitempty"`
-	Version      int      `json:"version"`
-	Title        string   `json:"title"`
-	Description  string   `json:"description"`
-	Illustration string   `json:"illustration"`
-	Steps        []Step   `json:"steps"`
+	Code               string   `json:"code"`
+	Surface            Surface  `json:"surface"`
+	RequiredCapability string   `json:"required_capability,omitempty"`
+	Profile            string   `json:"profile"`
+	Role               string   `json:"role"`
+	RoleCodes          []string `json:"role_codes,omitempty"`
+	Priority           int      `json:"priority,omitempty"`
+	Version            int      `json:"version"`
+	Title              string   `json:"title"`
+	Description        string   `json:"description"`
+	Illustration       string   `json:"illustration"`
+	Steps              []Step   `json:"steps"`
 }
 
 type State struct {

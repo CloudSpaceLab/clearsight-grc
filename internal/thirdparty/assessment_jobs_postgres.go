@@ -134,7 +134,8 @@ func (r *PostgresRepository) CompleteAssessmentSetupJob(ctx context.Context, job
 	if err := updateAssessment(ctx, tx, tenantID, current); err != nil {
 		return Assessment{}, err
 	}
-	if err := appendAssessmentEvent(ctx, tx, tenantID, current, "", "AssessmentSetupCompleted"); err != nil {
+	eventID, err := appendAssessmentEvent(ctx, tx, tenantID, current, "", "AssessmentSetupCompleted")
+	if err != nil {
 		return Assessment{}, err
 	}
 	snapshot, err := json.Marshal(current)
@@ -161,7 +162,7 @@ func (r *PostgresRepository) CompleteAssessmentSetupJob(ctx context.Context, job
 	if commandTag.RowsAffected() != 1 {
 		return Assessment{}, ErrAssessmentJobLeaseLost
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, assessmentCommitProof(eventID, current, "AssessmentSetupCompleted")); err != nil {
 		return Assessment{}, fmt.Errorf("commit assessment setup completion: %w", err)
 	}
 	return current, nil
@@ -261,23 +262,26 @@ func (r *PostgresRepository) RequeueAssessmentSetup(ctx context.Context, record 
 	if err := updateAssessment(ctx, tx, tenantID, current); err != nil {
 		return AssessmentSetupJob{}, Assessment{}, err
 	}
-	if err := appendAssessmentSetupRetryEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, job.ID, previousFailureCode); err != nil {
+	eventID, err := appendAssessmentSetupRetryEvent(ctx, tx, tenantID, current, record.ActorPrincipalID, job.ID, previousFailureCode)
+	if err != nil {
 		return AssessmentSetupJob{}, Assessment{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, assessmentCommitProof(eventID, current, "AssessmentSetupRetryQueued")); err != nil {
 		return AssessmentSetupJob{}, Assessment{}, fmt.Errorf("commit assessment setup retry: %w", err)
 	}
 	return job, current, nil
 }
 
-func appendAssessmentSetupRetryEvent(ctx context.Context, tx pgx.Tx, tenantID string, assessment Assessment, actorID, jobID, failureCode string) error {
-	_, err := tx.Exec(ctx, `
+func appendAssessmentSetupRetryEvent(ctx context.Context, tx pgx.Tx, tenantID string, assessment Assessment, actorID, jobID, failureCode string) (string, error) {
+	var eventID string
+	err := tx.QueryRow(ctx, `
 		INSERT INTO third_party_events(tenant_id,aggregate_type,aggregate_id,aggregate_version,actor_principal_id,event_type,payload,occurred_at)
 		VALUES($1::uuid,'THIRD_PARTY_ASSESSMENT',$2::uuid,$3,$4::uuid,'AssessmentSetupRetryQueued',
-			jsonb_build_object('status',$5::text,'relationship_id',$6::text,'matter_id',$7::text,'setup_job_id',$8::text,'previous_failure_code',$9::text),$10)`,
-		tenantID, assessment.ID, assessment.Version, actorID, assessment.Status, assessment.RelationshipID, assessment.ReviewMatterID, jobID, failureCode, assessment.UpdatedAt)
+			jsonb_build_object('status',$5::text,'relationship_id',$6::text,'matter_id',$7::text,'setup_job_id',$8::text,'previous_failure_code',$9::text),$10)
+		RETURNING id::text`,
+		tenantID, assessment.ID, assessment.Version, actorID, assessment.Status, assessment.RelationshipID, assessment.ReviewMatterID, jobID, failureCode, assessment.UpdatedAt).Scan(&eventID)
 	if err != nil {
-		return fmt.Errorf("append assessment setup retry event: %w", err)
+		return "", fmt.Errorf("append assessment setup retry event: %w", err)
 	}
 	_, err = tx.Exec(ctx, `
 		INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at)
@@ -285,9 +289,9 @@ func appendAssessmentSetupRetryEvent(ctx context.Context, tx pgx.Tx, tenantID st
 			jsonb_build_object('version',$3::bigint,'status',$4::text,'relationship_id',$5::text,'matter_id',$6::text,'setup_job_id',$7::text,'previous_failure_code',$8::text),$9,$9)`,
 		tenantID, assessment.ID, assessment.Version, assessment.Status, assessment.RelationshipID, assessment.ReviewMatterID, jobID, failureCode, assessment.UpdatedAt)
 	if err != nil {
-		return fmt.Errorf("append assessment setup retry outbox event: %w", err)
+		return "", fmt.Errorf("append assessment setup retry outbox event: %w", err)
 	}
-	return nil
+	return eventID, nil
 }
 
 func (r *PostgresRepository) ListAssessmentSetupJobs(ctx context.Context, scope Scope, assessmentID string) ([]AssessmentSetupJob, error) {

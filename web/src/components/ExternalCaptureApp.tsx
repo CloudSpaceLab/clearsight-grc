@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { loadCaptureSession, redeemCaptureInvitation, submitCaptureSession, uploadCaptureSessionArtifact } from "../captureApi";
 import { clearCaptureSession, readCaptureSession, saveCaptureSession } from "../captureInvitationBrowser";
 import { apiErrorKind, ApiError } from "../http";
-import type { CaptureRequest } from "../types";
+import type { CaptureAnswers, CaptureRequest } from "../types";
 import { CapturePanel } from "./CapturePanel";
 
 type ExternalCaptureState = "identify" | "loading" | "live" | "recoverable" | "terminal" | "submitted";
@@ -89,7 +89,7 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
     await resumeSession(sessionToken);
   }
 
-  async function submit(answers: Record<string, string>) {
+  async function submit(answers: CaptureAnswers) {
     try {
       const receipt = await submitCaptureSession(sessionToken, request!.version, answers);
       clearCaptureSession(sessionStorage);
@@ -104,9 +104,9 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
     }
   }
 
-  async function upload(file: File) {
+  async function upload(file: File, fieldID?: string) {
     try {
-      return await uploadCaptureSessionArtifact(sessionToken, file);
+      return await uploadCaptureSessionArtifact(sessionToken, file, fieldID);
     } catch (cause) {
       if (terminalSessionFailure(cause)) {
         endSession("This request is no longer available", "Ask the sender for a new invitation link.");
@@ -146,7 +146,7 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
       : state === "recoverable" ? <section className="external-capture-entry" aria-labelledby="external-capture-title"><span className="eyebrow">Evidence request</span><h1 id="external-capture-title">Request could not be loaded</h1><p>{error}</p><button className="primary-button" type="button" onClick={() => void resumeSavedSession()}>Try again</button></section>
         : state === "terminal" ? <section className="external-capture-entry" aria-labelledby="external-capture-title"><span className="eyebrow">Evidence request</span><h1 id="external-capture-title">{terminalTitle}</h1><p>{error}</p></section>
           : state === "submitted" ? <section className="external-capture-entry" aria-labelledby="external-capture-title"><span className="eyebrow">Evidence request</span><h1 id="external-capture-title">Submitted</h1><p>Your evidence response was submitted for this request.</p></section>
-            : request && sessionToken ? <section className="external-capture-work"><div className="external-session-hint">Opened for {audienceHint || "invited respondent"}</div><CapturePanel request={request} external onSubmit={(_, answers) => submit(answers)} onUploadArtifact={(_, file) => upload(file)}/></section> : null}
+            : request && sessionToken ? <section className="external-capture-work"><div className="external-session-hint">Opened for {audienceHint || "invited respondent"}</div><CapturePanel request={request} external sessionToken={sessionToken} onSubmit={(_, answers) => submit(answers)} onUploadArtifact={(_, file, fieldID) => upload(file, fieldID)}/></section> : null}
   </main>;
 }
 

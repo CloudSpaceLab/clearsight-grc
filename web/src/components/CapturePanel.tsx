@@ -20,12 +20,12 @@ type Props = {
   external?: boolean;
   sessionToken?: string;
   onSubmit?: (request: CaptureRequest, answers: CaptureAnswers) => Promise<SubmitResult>;
-  onUploadArtifact?: (requestID: string, file: File) => Promise<CaptureArtifact>;
+  onUploadArtifact?: (requestID: string, file: File, fieldID?: string) => Promise<CaptureArtifact>;
 };
 
 export function CapturePanel({ request, state = "live", onReload, external = false, sessionToken, onSubmit, onUploadArtifact }: Props) {
   const [answers, setAnswers] = useState<CaptureAnswers>({});
-  const [attachments, setAttachments] = useState<Record<string, CaptureAttachment>>({});
+	const [attachments, setAttachments] = useState<Record<string, CaptureAttachment[]>>({});
   const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [mode, setMode] = useState<CapturePresentationMode>("AUTOMATIC");
   const [reviewing, setReviewing] = useState(false);
@@ -96,6 +96,14 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
         lastSavedDraft.current = captureDraftSnapshot(visible, restoredMode);
         return visible;
       });
+	  setAttachments((current) => {
+		const restored = restoredCaptureAttachments(draft.answers);
+		for (const fieldID of locallyEditedFields.current) {
+		  if (current[fieldID]) restored[fieldID] = current[fieldID];
+		  else delete restored[fieldID];
+		}
+		return restored;
+	  });
       setDraftReady(true);
       draftReadyRef.current = true;
       setDraftState(draft.version > 0 ? "saved" : "idle");
@@ -217,52 +225,83 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
     }
   }
 
-  async function upload(field: CaptureField, file: File, preferredPreviewURL?: string) {
+	async function upload(field: CaptureField, files: File[], preferredPreviewURL?: string) {
     if (!request || uploadingField) return;
+	locallyEditedFields.current.add(field.id);
+	const currentAttachments = attachments[field.id] ?? [];
+	const validationError = validateSelectedFiles(field, currentAttachments, files);
+	if (validationError) {
+	  setErrorKind("validation");
+	  setError(validationError);
+	  return;
+	}
     const uploadRequestKey = requestKey;
-    const previousAttachment = attachments[field.id];
+	const single = normalizeFieldType(field.type) !== "file" || (field.constraints?.max_files ?? 1) === 1;
+	const previousAttachments = currentAttachments;
     const previousObjectPreview = previewURLs.current[field.id];
-    let previewURL = preferredPreviewURL;
-    let createdObjectPreview = false;
-    if (!previousAttachment && !previewURL && file.type.startsWith("image/") && typeof URL.createObjectURL === "function") {
-      previewURL = URL.createObjectURL(file);
-      createdObjectPreview = true;
-      previewURLs.current[field.id] = previewURL;
-    }
-    if (!previousAttachment) setAttachments((current) => ({ ...current, [field.id]: { file_name: file.name, media_type: file.type, size_bytes: file.size, preview_url: previewURL } }));
     setUploadingField(field.id);
     setError(null);
     setErrorKind(null);
-    try {
-      const artifact = await (onUploadArtifact ?? uploadInternalCaptureArtifact)(request.id, file);
-      if (!currentRequest(mounted.current, activeRequestKey.current, uploadRequestKey)) return;
-      if (previousAttachment && !previewURL && file.type.startsWith("image/") && typeof URL.createObjectURL === "function") {
-        previewURL = URL.createObjectURL(file);
-        createdObjectPreview = true;
-      }
-      if (previousObjectPreview && previousObjectPreview !== previewURL) URL.revokeObjectURL(previousObjectPreview);
-      if (createdObjectPreview && previewURL) previewURLs.current[field.id] = previewURL;
-      else delete previewURLs.current[field.id];
-      setAttachments((current) => ({ ...current, [field.id]: { id: artifact.id, file_name: artifact.file_name, media_type: artifact.media_type, size_bytes: artifact.size_bytes, preview_url: previewURL } }));
-      setAnswers((current) => {
-        const nextValue: CaptureAnswerValue = normalizeFieldType(field.type) === "vendor_document"
-          ? { document: { ...current[field.id]?.document, artifact_id: artifact.id, document_type: current[field.id]?.document?.document_type ?? "" } }
-          : { artifact_ids: [artifact.id] };
-        return contract ? keepVisibleAnswers(contract, { ...current, [field.id]: nextValue }) : current;
-      });
-    } catch (cause) {
-      if (!currentRequest(mounted.current, activeRequestKey.current, uploadRequestKey)) return;
-      if (createdObjectPreview && previewURL && previewURL !== previousObjectPreview) URL.revokeObjectURL(previewURL);
-      if (previousObjectPreview) previewURLs.current[field.id] = previousObjectPreview;
-      else delete previewURLs.current[field.id];
-      if (!previousAttachment) setAttachments((current) => { const next = { ...current }; delete next[field.id]; return next; });
-      const kind = apiErrorKind(cause);
-      setErrorKind(kind);
-      setError(kind === "validation" ? "That file cannot be used for this request." : previousAttachment ? "The replacement could not be uploaded. Your previous attachment is still selected." : "The file could not be uploaded. Your other answers are still here.");
-    } finally {
-      if (currentRequest(mounted.current, activeRequestKey.current, uploadRequestKey)) setUploadingField(null);
-    }
+	let completed = single ? [] as CaptureAttachment[] : [...previousAttachments];
+	let failedFile = "";
+	for (const file of files) {
+	  let previewURL = files.length === 1 ? preferredPreviewURL : undefined;
+	  let createdObjectPreview = false;
+	  try {
+		const artifact = await (onUploadArtifact ?? uploadInternalCaptureArtifact)(request.id, file, field.id);
+		if (!currentRequest(mounted.current, activeRequestKey.current, uploadRequestKey)) return;
+		if (single && !previewURL && file.type.startsWith("image/") && typeof URL.createObjectURL === "function") {
+		  previewURL = URL.createObjectURL(file);
+		  createdObjectPreview = true;
+		}
+		const attachment: CaptureAttachment = { id: artifact.id, file_name: artifact.file_name, media_type: artifact.media_type, size_bytes: artifact.size_bytes, preview_url: previewURL };
+		completed = single ? [attachment] : [...completed, attachment];
+		if (single) {
+		  if (previousObjectPreview && previousObjectPreview !== previewURL) URL.revokeObjectURL(previousObjectPreview);
+		  if (previewURL) previewURLs.current[field.id] = previewURL;
+		  else delete previewURLs.current[field.id];
+		}
+		setAttachments((current) => ({ ...current, [field.id]: completed }));
+		setAnswers((current) => {
+		  const artifactIDs = completed.flatMap((item) => item.id ? [item.id] : []);
+		  const nextValue: CaptureAnswerValue = normalizeFieldType(field.type) === "vendor_document"
+			? { document: { ...current[field.id]?.document, artifact_id: artifact.id, document_type: current[field.id]?.document?.document_type ?? "" } }
+			: { artifact_ids: artifactIDs };
+		  return contract ? keepVisibleAnswers(contract, { ...current, [field.id]: nextValue }) : current;
+		});
+	  } catch (cause) {
+		if (createdObjectPreview && previewURL) URL.revokeObjectURL(previewURL);
+		if (!currentRequest(mounted.current, activeRequestKey.current, uploadRequestKey)) return;
+		failedFile = file.name;
+		setErrorKind(apiErrorKind(cause));
+		break;
+	  }
+	}
+	if (failedFile) {
+	  setError(completed.length > previousAttachments.length
+		? `${failedFile} could not be uploaded. The files uploaded before it remain selected.`
+		: single && previousAttachments.length ? `${failedFile} could not be uploaded. The previous file remains selected.` : `${failedFile} could not be uploaded. Your other answers remain on this screen.`);
+	}
+	if (currentRequest(mounted.current, activeRequestKey.current, uploadRequestKey)) setUploadingField(null);
   }
+
+	function removeAttachment(field: CaptureField, attachmentID: string) {
+	  locallyEditedFields.current.add(field.id);
+	  setAttachments((current) => {
+		const remaining = (current[field.id] ?? []).filter((attachment) => attachment.id !== attachmentID);
+		const next = { ...current };
+		if (remaining.length) next[field.id] = remaining;
+		else delete next[field.id];
+		return next;
+	  });
+	  setAnswers((current) => {
+		const remaining = current[field.id]?.artifact_ids?.filter((id) => id !== attachmentID) ?? [];
+		const next = { ...current };
+		if (remaining.length) next[field.id] = { artifact_ids: remaining };
+		else delete next[field.id];
+		return contract ? keepVisibleAnswers(contract, next) : next;
+	  });
+	}
 
   async function submit() {
     if (!request || !contract || submitting) return;
@@ -287,26 +326,21 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
     }
   }
 
-  if (receipt) return <div className="panel-content response-receipt"><span className="eyebrow">Receipt</span><div className="receipt-mark" aria-hidden="true">✓</div><h2>{external ? "Submitted" : "Response submitted"}</h2><p>{receipt}</p><p>{external ? "Your response was recorded." : "Recorded. Evidence quality is reviewed separately."}</p></div>;
+  if (receipt) return <div className="panel-content response-receipt"><span className="eyebrow">Receipt</span><div className="receipt-mark" aria-hidden="true">✓</div><h2>{external ? "Submitted" : "Response submitted"}</h2><p>{receipt}</p><p>{external ? "Your response was recorded." : "The response was recorded for evidence review."}</p></div>;
 
-  const fields = request.fields;
-  const unsupported = fields.filter((field) => !supportedFieldType(field.type));
-  const requiredMissing = fields.some((field) => field.required && !(answers[field.id] ?? "").trim());
-
-  if (reviewing) return <div className="panel-content response-review">
-    <span className="eyebrow">Review</span><h2>Check your response</h2><p>{request.title}</p>
-    <dl className="capture-review-list">{fields.map((field) => <div key={field.id}><dt>{field.label}</dt><dd>{reviewValue(field, answers[field.id], attachments[field.id])}{reviewSourceLabel(field, answers[field.id]) && <small className="source-origin-review">{reviewSourceLabel(field, answers[field.id])}</small>}</dd></div>)}</dl>
-    <details className="capture-context"><summary>Request details</summary><p>{request.purpose}</p><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl><p>Due {new Date(request.deadline).toLocaleString()} · {humanize(request.sensitivity)}</p></details>
-    {error && <p className="error-text" role="alert">{error}</p>}
-    <div className="wizard-actions"><button className="secondary-button" type="button" onClick={() => setReviewing(false)} disabled={submitting}>Edit</button>{errorKind === "conflict" && onReload && <button className="secondary-button" type="button" onClick={onReload} disabled={submitting}>Reload request</button>}<button className="primary-button" type="button" onClick={() => void submit()} disabled={submitting}>{submitting ? "Submitting…" : external ? "Submit evidence" : "Submit response"}</button></div>
-  </div>;
+  if (reviewing) return <CaptureReview request={request} fields={visibleCaptureFields(contract, answers)} answers={answers} attachments={attachments} external={external} submitting={submitting} error={error} errorKind={errorKind} onEdit={() => setReviewing(false)} onReload={onReload} onSubmit={() => void submit()}/>;
 
   return <div className="panel-content">
     <span className="eyebrow">Evidence request · about {request.estimated_minutes} min</span><h2>{request.title}</h2><p>{request.purpose}</p>
+    {external && <div className="external-request-context" aria-label="Request details">
+      <strong>Due {formatCaptureDeadline(request.deadline)}</strong>
+      <span>Your answers and files are shared with the organization that sent this request.</span>
+      <span>For changes to the request or your access, contact the person who sent this link.</span>
+    </div>}
     <div className="why-you"><strong>Why this was sent to you</strong><span>{request.why_you}</span></div>
     {Object.keys(request.known_facts).length > 0 && <><h3>Already filled in</h3><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl></>}
     {external && sessionToken && <DraftStatus state={draftState} onRetry={() => void retryDraftSave()}/>}
-    <CaptureForm contract={contract} answers={answers} attachments={attachments} mode={effectivePresentationMode(contract, answers, mode)} external={external} uploadingField={uploadingField} onAnswer={updateAnswer} onUpload={(field, file, previewURL) => void upload(field, file, previewURL)} onModeChange={changeMode} onBeforeSectionNavigation={external && sessionToken ? saveBeforeSectionNavigation : undefined} onReview={() => { setError(null); setErrorKind(null); setReviewing(true); }}/>
+	<CaptureForm contract={contract} answers={answers} attachments={attachments} mode={effectivePresentationMode(contract, answers, mode)} external={external} uploadingField={uploadingField} onAnswer={updateAnswer} onUpload={(field, files, previewURL) => void upload(field, files, previewURL)} onRemoveAttachment={removeAttachment} onModeChange={changeMode} onBeforeSectionNavigation={external && sessionToken ? saveBeforeSectionNavigation : undefined} onReview={() => { setError(null); setErrorKind(null); setReviewing(true); }}/>
     {error && <p className="error-text" role="alert">{error}</p>}
   </div>;
 }
@@ -336,3 +370,42 @@ function formatCaptureDeadline(value: string) {
 function errorMessage(kind: ApiErrorKind, cause: unknown) { if (kind === "conflict") return "This request changed while you were working. Reload it before submitting. Your current entries remain on this screen."; if (kind === "forbidden" || kind === "unauthorized") return "Your access to this request has ended. Ask the sender to confirm your access or send a new link."; if (kind === "not_found") return "This request is no longer available."; if (kind === "unavailable") return "The response could not be submitted right now. Your entries remain on this screen."; return cause instanceof Error ? cause.message : "The response could not be submitted."; }
 function humanize(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); }
 function captureDraftSnapshot(answers: CaptureAnswers, mode: CapturePresentationMode) { return JSON.stringify({ answers, mode }); }
+
+function validateSelectedFiles(field: CaptureField, current: CaptureAttachment[], selected: File[]) {
+	const single = normalizeFieldType(field.type) !== "file" || (field.constraints?.max_files ?? 1) === 1;
+	const maximumFiles = normalizeFieldType(field.type) === "file" ? field.constraints?.max_files ?? 1 : 1;
+	const retained = single ? [] : current;
+	if (selected.length === 0) return "Choose at least one file.";
+	if (retained.length + selected.length > maximumFiles) return `${field.label} accepts no more than ${maximumFiles} file${maximumFiles === 1 ? "" : "s"}.`;
+	for (const file of selected) {
+	  if (field.constraints?.max_file_bytes && file.size > field.constraints.max_file_bytes) return `${file.name} exceeds the ${formatFileBytes(field.constraints.max_file_bytes)} per-file limit.`;
+	  if (!clientFileFormatAllowed(file, field.accepted_formats)) return `${file.name} does not use a permitted file type.`;
+	  if (retained.some((attachment) => attachment.file_name === file.name && attachment.size_bytes === file.size)) return `${file.name} is already selected.`;
+	}
+	const total = [...retained.map((attachment) => attachment.size_bytes), ...selected.map((file) => file.size)].reduce((sum, size) => sum + size, 0);
+	if (field.constraints?.max_total_file_bytes && total > field.constraints.max_total_file_bytes) return `${field.label} exceeds the ${formatFileBytes(field.constraints.max_total_file_bytes)} combined limit.`;
+	return null;
+}
+
+function clientFileFormatAllowed(file: File, accepted?: string[]) {
+	if (!accepted?.length) return true;
+	const name = file.name.toLowerCase();
+	const mediaType = file.type.toLowerCase().split(";", 1)[0] ?? "";
+	return accepted.some((value) => { const normalized = value.toLowerCase().split(";", 1)[0]?.trim() ?? ""; return normalized.startsWith(".") ? name.endsWith(normalized) : normalized === mediaType || (normalized.endsWith("/*") && mediaType.startsWith(normalized.slice(0, -1))) || fileExtensionMatchesMediaType(name, normalized); });
+}
+
+function fileExtensionMatchesMediaType(name: string, mediaType: string) {
+	const extensions: Record<string, string[]> = { "application/pdf": [".pdf"], "image/png": [".png"], "image/jpeg": [".jpg", ".jpeg"], "text/plain": [".txt"], "text/csv": [".csv"], "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] };
+	return (extensions[mediaType] ?? []).some((extension) => name.endsWith(extension));
+}
+
+function formatFileBytes(bytes: number) { return bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / (1024 * 1024)).toFixed(bytes % (1024 * 1024) === 0 ? 0 : 1)} MB`; }
+
+function restoredCaptureAttachments(answers: CaptureAnswers) {
+	const restored: Record<string, CaptureAttachment[]> = {};
+	for (const [fieldID, answer] of Object.entries(answers)) {
+	  const artifactIDs = answer.artifact_ids ?? (answer.document?.artifact_id ? [answer.document.artifact_id] : []);
+	  if (artifactIDs.length) restored[fieldID] = artifactIDs.map((id) => ({ id, file_name: "Previously uploaded file", media_type: "", size_bytes: 0 }));
+	}
+	return restored;
+}

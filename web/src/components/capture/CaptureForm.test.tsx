@@ -28,6 +28,7 @@ function Harness({
     uploadingField={null}
     onAnswer={(fieldID: string, value: CaptureAnswerValue) => setAnswers((current) => ({ ...current, [fieldID]: value }))}
     onUpload={vi.fn()}
+	  onRemoveAttachment={vi.fn()}
     onModeChange={setMode}
     onBeforeSectionNavigation={onBeforeSectionNavigation}
     onReview={onReview}
@@ -155,7 +156,7 @@ describe("CaptureForm", () => {
     expect((screen.getByRole("textbox", { name: /Registered name/ }) as HTMLInputElement).value).toBe("Acme Processing Limited");
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     fireEvent.change(screen.getByRole("textbox", { name: /Evidence note/ }), { target: { value: "Policy attached separately" } });
-    fireEvent.click(screen.getByRole("button", { name: "Review response" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
     expect(onReview).toHaveBeenCalledTimes(1);
   });
 

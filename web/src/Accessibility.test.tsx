@@ -2,6 +2,7 @@ import axe from "axe-core";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { CapturePanel } from "./components/CapturePanel";
+import { CinematicGuidePanel } from "./components/CinematicGuidePanel";
 import { DemoLoginPage } from "./components/DemoLoginPage";
 import { MattersWorkspace } from "./components/MattersWorkspace";
 import { ProgramsWorkspace } from "./components/ProgramsWorkspace";
@@ -74,6 +75,21 @@ async function waitForEmptyState(container: HTMLElement) {
 }
 
 describe("semantic accessibility gates", () => {
+  it("passes axe for both cinematic first-run guide variants", async () => {
+    for (const variant of ["today", "vendors"] as const) {
+      const view = render(<CinematicGuidePanel
+        variant={variant}
+        role={variant === "today" ? "Executive risk or compliance leader" : "Vendor relationship owner"}
+        title={variant === "today" ? "Review assigned work" : "Manage vendor relationships"}
+        description="Review the current context, complete the assigned work and confirm the outcome."
+        onStart={vi.fn()}
+        onSkip={vi.fn()}
+      />);
+      await expectNoSemanticViolations(view.container);
+      view.unmount();
+    }
+  });
+
   it("passes axe for the Today intervention surface", async () => {
     const { container } = render(<TodayInterventions items={[item]} connection="live" readiness={readiness} readinessState="live" onOpenItem={vi.fn()}/>);
     await expectNoSemanticViolations(container);

@@ -220,7 +220,7 @@ func TestPostgresAssessmentDocumentReviewCommitsDocumentAssessmentEventAndOutbox
 	}
 	artifact, err := evidenceService.StoreArtifact(ctx, evidence.ArtifactInput{
 		TenantID: "third-party-bank", RequestID: request.ID, FileName: "assurance-report.pdf", MediaType: "application/pdf", CreatedBy: thirdPartyPrincipal,
-	}, strings.NewReader("review evidence"))
+	}, strings.NewReader("%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"))
 	if err != nil {
 		t.Fatal(err)
 	}

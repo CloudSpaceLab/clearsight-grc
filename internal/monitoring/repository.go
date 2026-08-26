@@ -37,3 +37,11 @@ type Repository interface {
 	Result(context.Context, string, string) (MonitoringResult, error)
 	ListResults(context.Context, string, string, int) ([]MonitoringResult, error)
 }
+
+// ReusableFormRepository exposes exact, legal-entity-scoped form revisions to
+// workflows that are not owned by a single Program, such as vendor due
+// diligence and record-linked vendor requests.
+type ReusableFormRepository interface {
+	ReusableFormRevision(context.Context, string, string, string, int64) (FormTemplate, error)
+	ListReusableFormRevisions(context.Context, string, string, int) ([]FormTemplate, error)
+}

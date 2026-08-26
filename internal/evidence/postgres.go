@@ -292,7 +292,18 @@ func (r *PostgresRepository) CreateRequest(ctx context.Context, value Request) (
 	if err != nil {
 		return Request{}, err
 	}
-	row := r.pool.QueryRow(ctx, `INSERT INTO capture_requests(id,tenant_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,known_facts,fields,source_bindings,form_template_id,form_template_version,collection_period_start,collection_period_end,status,created_by,version,created_at,updated_at,legal_entity_id) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13::jsonb,$14::jsonb,NULLIF($15,'')::uuid,NULLIF($16,0),$17,$18,$19,NULLIF($20,'')::uuid,$21,$22,$22,$23::uuid) RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),legal_entity_id::text,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,known_facts,fields,source_bindings,COALESCE(form_template_id::text,''),COALESCE(form_template_version,0),collection_period_start,collection_period_end,status,COALESCE(created_by::text,''),version,created_at,updated_at`, value.ID, value.TenantID, value.SubjectType, value.SubjectID, value.Title, value.Purpose, value.WhyYou, value.Sensitivity, value.AudienceType, value.EstimatedMinutes, value.Deadline, string(facts), string(fields), string(sourceBindings), value.FormTemplateID, value.FormTemplateVersion, value.CollectionPeriodStart, value.CollectionPeriodEnd, value.Status, value.CreatedBy, value.Version, value.CreatedAt, value.LegalEntityID)
+	row := r.pool.QueryRow(ctx, `INSERT INTO capture_requests(
+		id,tenant_id,legal_entity_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,
+		known_facts,presentation,sections,fields,source_bindings,form_template_id,form_template_version,collection_period_start,collection_period_end,
+		origin_type,origin_id,origin_version,status,created_by,version,created_at,updated_at
+	) VALUES(
+		$1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+		$13::jsonb,$14::jsonb,$15::jsonb,$16::jsonb,$17::jsonb,NULLIF($18,'')::uuid,NULLIF($19,0),$20,$21,
+		NULLIF($22,''),NULLIF($23,''),NULLIF($24,0),$25,NULLIF($26,'')::uuid,$27,$28,$28
+	) RETURNING `+requestReturningColumns,
+		value.ID, value.TenantID, value.LegalEntityID, value.SubjectType, value.SubjectID, value.Title, value.Purpose, value.WhyYou, value.Sensitivity, value.AudienceType, value.EstimatedMinutes, value.Deadline,
+		string(facts), string(presentation), string(sections), string(fields), string(sourceBindings), value.FormTemplateID, value.FormTemplateVersion, value.CollectionPeriodStart, value.CollectionPeriodEnd,
+		value.Origin.Type, value.Origin.ID, value.Origin.Version, value.Status, value.CreatedBy, value.Version, value.CreatedAt)
 	created, err := scanRequest(row)
 	if err != nil {
 		return Request{}, fmt.Errorf("create evidence request: %w", err)
@@ -301,7 +312,7 @@ func (r *PostgresRepository) CreateRequest(ctx context.Context, value Request) (
 }
 
 func (r *PostgresRepository) ListRequests(ctx context.Context, tenant string, limit int) ([]Request, error) {
-	rows, err := r.pool.Query(ctx, `SELECT er.id::text,t.id::text,er.legal_entity_id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,COALESCE(er.form_template_id::text,''),COALESCE(er.form_template_version,0),er.collection_period_start,er.collection_period_end,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) ORDER BY er.deadline,er.id LIMIT $2`, tenant, limit)
+	rows, err := r.pool.Query(ctx, requestSelect+` WHERE (t.id::text=$1 OR t.slug=$1) ORDER BY er.deadline,er.id LIMIT $2`, tenant, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -318,7 +329,18 @@ func (r *PostgresRepository) ListRequests(ctx context.Context, tenant string, li
 }
 
 func (r *PostgresRepository) GetRequest(ctx context.Context, tenant, id string) (Request, error) {
-	value, err := scanRequest(r.pool.QueryRow(ctx, `SELECT er.id::text,t.id::text,er.legal_entity_id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,COALESCE(er.form_template_id::text,''),COALESCE(er.form_template_version,0),er.collection_period_start,er.collection_period_end,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2)`, id, tenant))
+	value, err := scanRequest(r.pool.QueryRow(ctx, requestSelect+` WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2)`, id, tenant))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Request{}, ErrNotFound
+	}
+	return value, err
+}
+
+func (r *PostgresRepository) GetRequestByOrigin(ctx context.Context, tenant string, origin RequestOrigin) (Request, error) {
+	origin = origin.normalized()
+	value, err := scanRequest(r.pool.QueryRow(ctx, requestSelect+`
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND er.origin_type=$2 AND er.origin_id=$3 AND er.origin_version=$4`, tenant, origin.Type, origin.ID, origin.Version))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Request{}, ErrNotFound
 	}
@@ -331,7 +353,7 @@ func (r *PostgresRepository) Submit(ctx context.Context, submission Submission) 
 		return SubmissionReceipt{}, err
 	}
 	defer tx.Rollback(ctx)
-	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.id::text,er.legal_entity_id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,COALESCE(er.form_template_id::text,''),COALESCE(er.form_template_version,0),er.collection_period_start,er.collection_period_end,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, submission.RequestID, submission.TenantID))
+	request, err := scanRequest(tx.QueryRow(ctx, requestSelect+` WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, submission.RequestID, submission.TenantID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return SubmissionReceipt{}, ErrNotFound
 	}
@@ -427,7 +449,7 @@ func (r *PostgresRepository) CreateInvitation(ctx context.Context, value Invitat
 		return err
 	}
 	defer tx.Rollback(ctx)
-	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.id::text,er.legal_entity_id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,COALESCE(er.form_template_id::text,''),COALESCE(er.form_template_version,0),er.collection_period_start,er.collection_period_end,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, value.RequestID, value.TenantID))
+	request, err := scanRequest(tx.QueryRow(ctx, requestSelect+` WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, value.RequestID, value.TenantID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}
@@ -563,7 +585,7 @@ func (r *PostgresRepository) CreateArtifact(ctx context.Context, value Artifact)
 		return Artifact{}, err
 	}
 	defer tx.Rollback(ctx)
-	request, err := scanRequest(tx.QueryRow(ctx, `SELECT er.id::text,t.id::text,er.legal_entity_id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,COALESCE(er.form_template_id::text,''),COALESCE(er.form_template_version,0),er.collection_period_start,er.collection_period_end,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, value.RequestID, value.TenantID))
+	request, err := scanRequest(tx.QueryRow(ctx, requestSelect+` WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, value.RequestID, value.TenantID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Artifact{}, ErrNotFound
 	}
@@ -584,12 +606,12 @@ func (r *PostgresRepository) CreateArtifact(ctx context.Context, value Artifact)
 	return created, nil
 }
 
-const requestReturningColumns = `id::text,(SELECT slug FROM tenants WHERE id=tenant_id),subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
+const requestReturningColumns = `id::text,(SELECT slug FROM tenants WHERE id=tenant_id),legal_entity_id::text,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
 	estimated_minutes,deadline,known_facts,presentation,sections,fields,source_bindings,
 	COALESCE(form_template_id::text,''),COALESCE(form_template_version,0),collection_period_start,collection_period_end,
 	COALESCE(origin_type,''),COALESCE(origin_id,''),COALESCE(origin_version,0),status,COALESCE(created_by::text,''),version,created_at,updated_at`
 
-const requestProjection = `er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,
+const requestProjection = `er.id::text,t.id::text,er.legal_entity_id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,
 	er.estimated_minutes,er.deadline,er.known_facts,er.presentation,er.sections,er.fields,er.source_bindings,
 	COALESCE(er.form_template_id::text,''),COALESCE(er.form_template_version,0),er.collection_period_start,er.collection_period_end,
 	COALESCE(er.origin_type,''),COALESCE(er.origin_id,''),COALESCE(er.origin_version,0),er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at`
@@ -615,8 +637,12 @@ func scanSource(row scanner) (Source, error) {
 
 func scanRequest(row scanner) (Request, error) {
 	var value Request
-	var facts, fields, sourceBindings []byte
-	if err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.SubjectType, &value.SubjectID, &value.Title, &value.Purpose, &value.WhyYou, &value.Sensitivity, &value.AudienceType, &value.EstimatedMinutes, &value.Deadline, &facts, &fields, &sourceBindings, &value.FormTemplateID, &value.FormTemplateVersion, &value.CollectionPeriodStart, &value.CollectionPeriodEnd, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt); err != nil {
+	var facts, presentation, sections, fields, sourceBindings []byte
+	if err := row.Scan(
+		&value.ID, &value.TenantID, &value.LegalEntityID, &value.SubjectType, &value.SubjectID, &value.Title, &value.Purpose, &value.WhyYou, &value.Sensitivity, &value.AudienceType,
+		&value.EstimatedMinutes, &value.Deadline, &facts, &presentation, &sections, &fields, &sourceBindings, &value.FormTemplateID, &value.FormTemplateVersion, &value.CollectionPeriodStart, &value.CollectionPeriodEnd,
+		&value.Origin.Type, &value.Origin.ID, &value.Origin.Version, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt,
+	); err != nil {
 		return Request{}, err
 	}
 	if err := json.Unmarshal(facts, &value.KnownFacts); err != nil {

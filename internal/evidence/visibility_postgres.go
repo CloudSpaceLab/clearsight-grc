@@ -24,9 +24,7 @@ func (r *PostgresRepository) ListManageableRequestsForEntity(ctx context.Context
 }
 
 func (r *PostgresRepository) listActorRequests(ctx context.Context, tenant, legalEntityID, principal string, limit int, includeCreated bool) ([]Request, error) {
-	rows, err := r.pool.Query(ctx, `
-		SELECT er.id::text,t.id::text,er.legal_entity_id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,
-		       er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,COALESCE(er.form_template_id::text,''),COALESCE(er.form_template_version,0),er.collection_period_start,er.collection_period_end,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at,
+	rows, err := r.pool.Query(ctx, `SELECT `+requestProjection+`,
 		       COALESCE(er.recipient_type,''),COALESCE(er.recipient_principal_id::text,''),COALESCE(rp.display_name,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
 		       er.recipient_state,er.recipient_revision,er.recipient_issue_reason
 		FROM capture_requests er
@@ -107,12 +105,13 @@ func (r *PostgresRepository) listActorRequests(ctx context.Context, tenant, lega
 
 func scanRequestWithRecipient(row scanner) (Request, error) {
 	var value Request
-	var facts, fields, sourceBindings []byte
+	var facts, presentation, sections, fields, sourceBindings []byte
 	var recipientType, principalID, displayName, hint, state, issueReason string
 	var audienceHash []byte
 	if err := row.Scan(
 		&value.ID, &value.TenantID, &value.LegalEntityID, &value.SubjectType, &value.SubjectID, &value.Title, &value.Purpose, &value.WhyYou, &value.Sensitivity, &value.AudienceType,
-		&value.EstimatedMinutes, &value.Deadline, &facts, &fields, &sourceBindings, &value.FormTemplateID, &value.FormTemplateVersion, &value.CollectionPeriodStart, &value.CollectionPeriodEnd, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt,
+		&value.EstimatedMinutes, &value.Deadline, &facts, &presentation, &sections, &fields, &sourceBindings, &value.FormTemplateID, &value.FormTemplateVersion, &value.CollectionPeriodStart, &value.CollectionPeriodEnd,
+		&value.Origin.Type, &value.Origin.ID, &value.Origin.Version, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt,
 		&recipientType, &principalID, &displayName, &audienceHash, &hint, &state, &value.Recipient.Revision, &issueReason,
 	); err != nil {
 		return Request{}, err

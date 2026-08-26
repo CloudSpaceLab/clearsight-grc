@@ -29,7 +29,7 @@ beforeEach(() => {
 
 describe("FormBuilder", () => {
   it("offers every approved response type without exposing internal field codes", () => {
-    render(<FormBuilder onSaved={vi.fn()} onCancel={vi.fn()}/>);
+    render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
 
     const responseType = screen.getByLabelText("Response type");
     expect(within(responseType).getAllByRole("option").map((option) => option.textContent)).toEqual([
@@ -41,7 +41,7 @@ describe("FormBuilder", () => {
   });
 
   it("shows only the limits that apply to the selected response type", () => {
-    render(<FormBuilder onSaved={vi.fn()} onCancel={vi.fn()}/>);
+    render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
 
     expect(screen.getByRole("group", { name: "Response limits" })).toBeTruthy();
     expect(screen.getByLabelText("Minimum characters")).toBeTruthy();
@@ -56,7 +56,7 @@ describe("FormBuilder", () => {
   });
 
   it("adds and reorders sections while preserving their assigned questions", () => {
-    render(<FormBuilder onSaved={vi.fn()} onCancel={vi.fn()}/>);
+    render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
 
     fireEvent.change(screen.getByLabelText("Section title"), { target: { value: "Vendor profile" } });
     fireEvent.click(screen.getByRole("button", { name: "Add section" }));
@@ -71,7 +71,7 @@ describe("FormBuilder", () => {
 
   it("limits conditions to earlier questions and saves the shared form contract", async () => {
     const onSaved = vi.fn();
-    render(<FormBuilder onSaved={onSaved} onCancel={vi.fn()}/>);
+    render(<FormBuilder programID="program-1" onSaved={onSaved} onCancel={vi.fn()}/>);
 
     fireEvent.change(screen.getByLabelText("Form name"), { target: { value: "Vendor due diligence" } });
     fireEvent.change(screen.getByLabelText("Code"), { target: { value: "vendor due diligence" } });
@@ -91,7 +91,7 @@ describe("FormBuilder", () => {
     fireEvent.click(screen.getByLabelText("Allow respondents to switch layouts"));
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
 
-    await waitFor(() => expect(createFormTemplate).toHaveBeenCalledWith({
+    await waitFor(() => expect(createFormTemplate).toHaveBeenCalledWith("program-1", {
       code: "VENDOR-DUE-DILIGENCE",
       name: "Vendor due diligence",
       purpose: "Collect information required for the vendor review.",
@@ -106,7 +106,7 @@ describe("FormBuilder", () => {
   });
 
   it("uses the shared capture renderer for Classic and Wizard previews", () => {
-    render(<FormBuilder onSaved={vi.fn()} onCancel={vi.fn()}/>);
+    render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
 
     fireEvent.change(screen.getByLabelText("Question"), { target: { value: "Primary contact email" } });
     fireEvent.change(screen.getByLabelText("Response type"), { target: { value: "email" } });
@@ -120,7 +120,7 @@ describe("FormBuilder", () => {
   });
 
   it("saves the form draft while its unanswered preview is open", async () => {
-    render(<FormBuilder onSaved={vi.fn()} onCancel={vi.fn()}/>);
+    render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
     fireEvent.change(screen.getByLabelText("Form name"), { target: { value: "Vendor due diligence" } });
     fireEvent.change(screen.getByLabelText("Code"), { target: { value: "VENDOR-DUE-DILIGENCE" } });
     fireEvent.change(screen.getByLabelText("Purpose"), { target: { value: "Collect information required for the vendor review." } });
@@ -133,7 +133,7 @@ describe("FormBuilder", () => {
   });
 
   it("keeps Save draft as the only primary form action", () => {
-    render(<FormBuilder onSaved={vi.fn()} onCancel={vi.fn()}/>);
+    render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
 
     const primaryActions = Array.from(document.querySelectorAll("button.primary-button"));
     expect(primaryActions).toHaveLength(1);

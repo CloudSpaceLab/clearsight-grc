@@ -32,10 +32,12 @@ type serviceSet struct {
 	Evidence                       *evidence.Service
 	Monitoring                     *monitoring.Service
 	ThirdParty                     *thirdparty.Service
+	ThirdPartyBrandRepo            thirdparty.VendorBrandMutationRepository
+	ObjectStore                    evidence.ObjectStore
 	ThirdPartyRelationshipLinks    *thirdparty.RelationshipLinkService
 	ThirdPartyRelationshipLinkRepo thirdparty.RelationshipLinkRepository
 	ThirdPartyWorkRepo             thirdparty.VendorWorkRepository
-	MonitoringRepo                 monitoring.Repository
+	MonitoringRepo                 monitoringFormRepository
 	ThirdPartyAssessmentRepo       thirdparty.AssessmentRepository
 	ThirdPartyAssessmentSetup      *thirdparty.AssessmentProvisioner
 	SourceCatalog                  *sourceaccess.CatalogService
@@ -53,6 +55,11 @@ type serviceSet struct {
 	SessionStore                   scs.Store
 	SCIM                           *scimapi.Service
 	Close                          func()
+}
+
+type monitoringFormRepository interface {
+	monitoring.Repository
+	monitoring.ReusableFormRepository
 }
 
 type serviceBuilder func(context.Context, config.Config, *slog.Logger) (serviceSet, error)

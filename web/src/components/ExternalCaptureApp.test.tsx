@@ -10,7 +10,7 @@ import {
 } from "../captureInvitationBrowser";
 import { ApiError } from "../http";
 import type { CaptureRequest } from "../types";
-import { bootstrapExternalCapture, captureActiveSessionStorageKey, captureSessionStorageKey, ExternalCaptureApp } from "./ExternalCaptureApp";
+import { ExternalCaptureApp } from "./ExternalCaptureApp";
 
 vi.mock("../captureApi", () => ({ loadCaptureDraft: vi.fn().mockResolvedValue({ answers: {}, presentation_mode: "AUTOMATIC", version: 0 }), saveCaptureDraft: vi.fn(), loadCaptureSession: vi.fn(), redeemCaptureInvitation: vi.fn(), submitCaptureSession: vi.fn(), uploadCaptureSessionArtifact: vi.fn() }));
 
@@ -115,7 +115,7 @@ describe("ExternalCaptureApp", () => {
     fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
     fireEvent.click(await screen.findByRole("button", { name: "Submit evidence" }));
 
-    await waitFor(() => expect(submitCaptureSession).toHaveBeenCalledWith("session-token", request.version, { present: "Yes" }));
+    await waitFor(() => expect(submitCaptureSession).toHaveBeenCalledWith("session-token", request.version, { present: { text: "Yes" } }));
     expect(await screen.findByRole("heading", { name: "Submitted" })).toBeTruthy();
     expect(readCaptureSession(sessionStorage)).toBeNull();
     expect(screen.queryByRole("radio", { name: "Yes" })).toBeNull();

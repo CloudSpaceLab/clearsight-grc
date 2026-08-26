@@ -210,7 +210,7 @@ export function VendorRelationshipLinks({ targetType, targetID }: Props) {
     }
   }
 
-  return <section className="vendor-relationship-links" aria-labelledby={headingID}>
+  return <section className="vendor-relationship-links" aria-labelledby={headingID} data-testid={`vendor-links-${targetType}-${targetID}`}>
     <div className="section-heading-row">
       <div><h2 id={headingID}>Related vendors</h2><p>Vendor relationships connected to this {targetName} and the recorded purpose for each link.</p></div>
       {loadState === "ready" && !linking && <button ref={openButton} type="button" className="primary-button" onClick={() => { restoreOpenFocus.current = true; setNotice(null); setLinking(true); }}>Link vendor</button>}

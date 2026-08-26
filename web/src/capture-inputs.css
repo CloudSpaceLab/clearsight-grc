@@ -25,6 +25,12 @@
 .file-dropzone-action:hover:not(:disabled) { border-color: var(--accent); }
 .file-dropzone-action:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .file-dropzone-action:disabled { cursor: default; opacity: .65; }
+.capture-attachment-list { list-style: none; display: grid; gap: 8px; margin: 8px 0 0; padding: 0; }
+.capture-attachment-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; padding: 9px 11px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-1); }
+.capture-attachment-list li span { display: grid; min-width: 0; gap: 2px; }
+.capture-attachment-list strong { overflow: hidden; color: var(--text); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.capture-attachment-list small { color: var(--muted); font-size: 11px; }
+.capture-attachment-list button { min-height: 36px; border: 0; background: transparent; color: var(--accent); font: inherit; font-weight: 650; cursor: pointer; }
 .capture-optional-field { border-top: 1px solid var(--border); padding-top: 2px; }
 .capture-optional-field > summary { min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; color: var(--text); font-size: 13px; font-weight: 650; list-style: none; }
 .capture-optional-field > summary::-webkit-details-marker { display: none; }

@@ -171,6 +171,25 @@ func (a *API) listFormTemplates(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values})
 }
 
+func (a *API) listReusableFormTemplates(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.monitoringService(w)
+	if !ok {
+		return
+	}
+	actor, err := monitoringActor(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
+		return
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	values, err := service.ListReusableForms(r.Context(), actor, limit)
+	if err != nil {
+		writeMonitoringError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values})
+}
+
 func (a *API) createFormTemplate(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.monitoringService(w)
 	if !ok {

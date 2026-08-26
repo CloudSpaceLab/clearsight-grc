@@ -28,12 +28,14 @@ type Actor struct {
 }
 
 type CreateFormInput struct {
-	ProgramID     string          `json:"program_id"`
-	LegalEntityID string          `json:"legal_entity_id"`
-	Code          string          `json:"code"`
-	Name          string          `json:"name"`
-	Purpose       string          `json:"purpose"`
-	Fields        []TemplateField `json:"fields"`
+	ProgramID     string                    `json:"program_id"`
+	LegalEntityID string                    `json:"legal_entity_id"`
+	Code          string                    `json:"code"`
+	Name          string                    `json:"name"`
+	Purpose       string                    `json:"purpose"`
+	Presentation  formcontract.Presentation `json:"presentation"`
+	Sections      []formcontract.Section    `json:"sections"`
+	Fields        []TemplateField           `json:"fields"`
 }
 
 type TransitionInput struct {
@@ -138,7 +140,7 @@ func (s *Service) CreateForm(ctx context.Context, actor Actor, input CreateFormI
 	if err := validateProgramScope(actor, input.ProgramID, input.LegalEntityID); err != nil {
 		return FormTemplate{}, err
 	}
-	fields, err := normalizeTemplateFields(input.Fields)
+	contract, err := formcontract.Normalize(formcontract.Contract{Presentation: input.Presentation, Sections: input.Sections, Fields: input.Fields})
 	if err != nil {
 		return FormTemplate{}, errors.Join(ErrInvalid, err)
 	}
@@ -152,7 +154,7 @@ func (s *Service) CreateForm(ctx context.Context, actor Actor, input CreateFormI
 	now := s.now().UTC()
 	return s.repo.CreateFormRevision(ctx, FormTemplate{
 		ID: valueID, TenantID: actor.TenantID, LegalEntityID: strings.TrimSpace(input.LegalEntityID), ProgramID: strings.TrimSpace(input.ProgramID), Code: strings.TrimSpace(input.Code), Name: strings.TrimSpace(input.Name),
-		Purpose: strings.TrimSpace(input.Purpose), Fields: fields,
+		Purpose: strings.TrimSpace(input.Purpose), Presentation: contract.Presentation, Sections: contract.Sections, Fields: contract.Fields,
 		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now},
 	})
 }
@@ -165,6 +167,17 @@ func (s *Service) ListForms(ctx context.Context, actor Actor, programID string, 
 		return nil, err
 	}
 	return s.repo.ListFormRevisions(ctx, actor.TenantID, actor.LegalEntityID, strings.TrimSpace(programID), limit)
+}
+
+func (s *Service) ListReusableForms(ctx context.Context, actor Actor, limit int) ([]FormTemplate, error) {
+	if err := validateActor(actor); err != nil {
+		return nil, err
+	}
+	repo, ok := s.repo.(ReusableFormRepository)
+	if !ok {
+		return nil, errors.Join(ErrInvalid, fmt.Errorf("reusable form lookup is unavailable"))
+	}
+	return repo.ListReusableFormRevisions(ctx, actor.TenantID, actor.LegalEntityID, limit)
 }
 
 func (s *Service) Form(ctx context.Context, actor Actor, programID, id string, version int64) (FormTemplate, error) {

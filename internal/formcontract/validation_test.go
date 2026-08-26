@@ -109,6 +109,9 @@ func TestNormalizeRejectsInvalidBoundedContractDefinitions(t *testing.T) {
 	maximumSelections := 3
 	maximumFiles := 11
 	maximumFileBytes := int64(100<<20) + 1
+	minimumFiles, fewerMaximumFiles := 3, 2
+	maximumTotalFileBytes := int64(500<<20) + 1
+	perFileBytes, smallerTotalBytes := int64(10<<20), int64(5<<20)
 	minimumLength, maximumLength := 10, 2
 	precision := 7
 	notANumber := math.NaN()
@@ -127,7 +130,11 @@ func TestNormalizeRejectsInvalidBoundedContractDefinitions(t *testing.T) {
 		{name: "invalid date range", contract: Contract{Fields: []Field{{ID: "date", Label: "Date", Type: TypeDate, Constraints: Constraints{MinDate: "2026-12-31", MaxDate: "2026-01-01"}}}}},
 		{name: "excessive selections", contract: Contract{Fields: []Field{{ID: "regions", Label: "Regions", Type: TypeMultiSelect, Options: []string{"A", "B"}, Constraints: Constraints{MaxSelections: &maximumSelections}}}}},
 		{name: "excessive file count", contract: Contract{Fields: []Field{{ID: "files", Label: "Files", Type: TypeFile, Constraints: Constraints{MaxFiles: &maximumFiles}}}}},
+		{name: "reversed file count", contract: Contract{Fields: []Field{{ID: "files", Label: "Files", Type: TypeFile, Constraints: Constraints{MinFiles: &minimumFiles, MaxFiles: &fewerMaximumFiles}}}}},
 		{name: "excessive file size", contract: Contract{Fields: []Field{{ID: "files", Label: "Files", Type: TypeFile, Constraints: Constraints{MaxFileBytes: &maximumFileBytes}}}}},
+		{name: "excessive total file size", contract: Contract{Fields: []Field{{ID: "files", Label: "Files", Type: TypeFile, Constraints: Constraints{MaxTotalFileBytes: &maximumTotalFileBytes}}}}},
+		{name: "total smaller than per file", contract: Contract{Fields: []Field{{ID: "files", Label: "Files", Type: TypeFile, Constraints: Constraints{MaxFileBytes: &perFileBytes, MaxTotalFileBytes: &smallerTotalBytes}}}}},
+		{name: "file limits on text", contract: Contract{Fields: []Field{{ID: "answer", Label: "Answer", Type: TypeShortText, Constraints: Constraints{MinFiles: &fewerMaximumFiles}}}}},
 		{name: "invalid photo format", contract: Contract{Fields: []Field{{ID: "photo", Label: "Photo", Type: TypePhoto, AcceptedFormats: []string{"application/pdf"}}}}},
 		{name: "invalid scoring option", contract: Contract{Fields: []Field{{ID: "answer", Label: "Answer", Type: TypeSingleSelect, Options: []string{"Yes", "No"}, Scoring: &Scoring{Weight: 1, AnswerScores: map[string]int{"Maybe": 100}}}}}},
 	}

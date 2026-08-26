@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadCaptureDraft, saveCaptureDraft, submitCaptureSession, submitInternalCaptureRequest } from "./captureApi";
+import { loadCaptureDraft, saveCaptureDraft, submitCaptureSession, submitInternalCaptureRequest, uploadCaptureSessionArtifact, uploadInternalCaptureArtifact } from "./captureApi";
 
 vi.mock("./api", () => ({
   loadContext: vi.fn().mockResolvedValue({ tenant: { id: "tenant-demo" } }),
@@ -102,4 +102,21 @@ describe("capture API", () => {
       answers: { approved: { text: "Yes" } }, presentation_mode: "WIZARD", expected_version: 0,
     });
   });
+
+	it("binds internal and external artifact uploads to the selected form field", async () => {
+	  const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ id: "artifact-1" }), { status: 201, headers: { "Content-Type": "application/json" } })));
+	  vi.stubGlobal("fetch", fetchMock);
+	  const file = new File(["evidence"], "evidence.txt", { type: "text/plain" });
+
+	  await uploadInternalCaptureArtifact("request-1", file, "documents");
+	  await uploadCaptureSessionArtifact("session-secret", file, "documents");
+
+	  const internalBody = fetchMock.mock.calls[0]?.[1]?.body as FormData;
+	  const externalCall = fetchMock.mock.calls[1];
+	  const externalBody = externalCall?.[1]?.body as FormData;
+	  expect(internalBody.get("request_id")).toBe("request-1");
+	  expect(internalBody.get("field_id")).toBe("documents");
+	  expect(externalBody.get("field_id")).toBe("documents");
+	  expect(new Headers(externalCall?.[1]?.headers).get("Authorization")).toBe("Bearer session-secret");
+	});
 });

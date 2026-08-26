@@ -19,14 +19,16 @@ const maxCommandBody = 1 << 20
 const noActorField = "-"
 
 type commandPolicy struct {
-	ObjectType      string
-	ObjectIDPath    string
-	Responsibility  authority.Responsibility
-	Materiality     int
-	AllowService    bool
-	BindLegalEntity bool
-	ActorField      string
-	DecisionType    string
+	ObjectType        string
+	ObjectIDPath      string
+	Responsibility    authority.Responsibility
+	Materiality       int
+	AllowService      bool
+	BindLegalEntity   bool
+	ActorField        string
+	DecisionType      string
+	OutcomeObjectType string
+	OutcomePathValue  string
 }
 
 // command binds verified identity, resolves the lifecycle-specific authority
@@ -125,6 +127,40 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 		}
 		a.executeMaterialHandler(w, r, requestPolicy, payload, handler)
 	}
+}
+
+func (a *API) rawCommand(name string, policy commandPolicy, handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		actor, err := identity.Require(r.Context())
+		if err != nil {
+			httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to continue.")
+			return
+		}
+		if a.deps.CommandGuard == nil || a.deps.CommandGuard.Mode() == commandauth.ModeOff {
+			a.executeRawMaterialHandler(w, r, policy, actor.TenantID, handler)
+			return
+		}
+		objectID := strings.TrimSpace(r.PathValue("vendor_id"))
+		decision, err := a.deps.CommandGuard.Authorize(r.Context(), commandauth.Request{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: policy.ObjectType, ObjectID: objectID, Responsibility: policy.Responsibility, DecisionType: name, Materiality: policy.Materiality, AllowService: policy.AllowService})
+		if err != nil {
+			writeCommandAuthorizationError(w, err)
+			return
+		}
+		if decision.Enforced {
+			w.Header().Set("X-ClearSight-Command-Authorization", "enforced")
+		} else {
+			w.Header().Set("X-ClearSight-Command-Authorization", "audit")
+		}
+		a.executeRawMaterialHandler(w, r, policy, actor.TenantID, handler)
+	}
+}
+
+func (a *API) executeRawMaterialHandler(w http.ResponseWriter, r *http.Request, policy commandPolicy, tenantID string, handler http.HandlerFunc) {
+	payload := map[string]any{"tenant_id": tenantID}
+	if version, err := parseBrandIfMatch(r); err == nil {
+		payload["expected_version"] = version
+	}
+	a.executeMaterialHandler(w, r, policy, payload, handler)
 }
 
 func commandActorField(policy commandPolicy) string {

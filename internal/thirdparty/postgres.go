@@ -30,29 +30,32 @@ func (r *PostgresRepository) CreateRelationship(ctx context.Context, record Crea
 		return Aggregate{}, err
 	}
 	vendorID := record.Vendor.ID
+	createdVendor := false
 	if record.ReuseVendor {
 		err = tx.QueryRow(ctx, `SELECT id::text FROM third_parties WHERE tenant_id=$1::uuid AND id::text=$2`, tenantID, record.Vendor.ID).Scan(&vendorID)
 	} else if record.Vendor.SourceID != "" && record.Vendor.ExternalRef != "" {
 		err = tx.QueryRow(ctx, `
-			INSERT INTO third_parties(id,tenant_id,legal_name,trading_name,registration_ref,jurisdiction,source_id,external_ref,status,created_at,updated_at,version)
-			VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8,$9,$10,$10,1)
+			INSERT INTO third_parties(id,tenant_id,legal_name,trading_name,registration_ref,jurisdiction,source_id,external_ref,website_domain,status,created_at,updated_at,version)
+			VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8,NULLIF($9,''),$10,$11,$11,1)
 			ON CONFLICT (tenant_id,source_id,external_ref) WHERE source_id<>'' AND external_ref<>''
 			DO UPDATE SET source_id=EXCLUDED.source_id
-			RETURNING id::text`, record.Vendor.ID, tenantID, record.Vendor.LegalName, record.Vendor.TradingName, record.Vendor.RegistrationRef, record.Vendor.Jurisdiction, record.Vendor.SourceID, record.Vendor.ExternalRef, record.Vendor.Status, record.Vendor.CreatedAt).Scan(&vendorID)
+			RETURNING id::text`, record.Vendor.ID, tenantID, record.Vendor.LegalName, record.Vendor.TradingName, record.Vendor.RegistrationRef, record.Vendor.Jurisdiction, record.Vendor.SourceID, record.Vendor.ExternalRef, record.Vendor.WebsiteDomain, record.Vendor.Status, record.Vendor.CreatedAt).Scan(&vendorID)
+		createdVendor = vendorID == record.Vendor.ID
 	} else {
 		_, err = tx.Exec(ctx, `
-			INSERT INTO third_parties(id,tenant_id,legal_name,trading_name,registration_ref,jurisdiction,source_id,external_ref,status,created_at,updated_at,version)
-			VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,'','',$7,$8,$8,1)`, record.Vendor.ID, tenantID, record.Vendor.LegalName, record.Vendor.TradingName, record.Vendor.RegistrationRef, record.Vendor.Jurisdiction, record.Vendor.Status, record.Vendor.CreatedAt)
+			INSERT INTO third_parties(id,tenant_id,legal_name,trading_name,registration_ref,jurisdiction,source_id,external_ref,website_domain,status,created_at,updated_at,version)
+			VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,'','',NULLIF($7,''),$8,$9,$9,1)`, record.Vendor.ID, tenantID, record.Vendor.LegalName, record.Vendor.TradingName, record.Vendor.RegistrationRef, record.Vendor.Jurisdiction, record.Vendor.WebsiteDomain, record.Vendor.Status, record.Vendor.CreatedAt)
+		createdVendor = err == nil
 	}
 	if err != nil {
 		return Aggregate{}, fmt.Errorf("store vendor: %w", err)
 	}
 	storedVendor := Vendor{TenantID: record.Vendor.TenantID}
 	err = tx.QueryRow(ctx, `
-		SELECT id::text,legal_name,trading_name,registration_ref,jurisdiction,source_id,external_ref,status,created_at,updated_at,version
+		SELECT id::text,legal_name,trading_name,registration_ref,jurisdiction,source_id,external_ref,COALESCE(website_domain,''),status,created_at,updated_at,version
 		FROM third_parties WHERE tenant_id=$1::uuid AND id=$2::uuid`, tenantID, vendorID).Scan(
 		&storedVendor.ID, &storedVendor.LegalName, &storedVendor.TradingName, &storedVendor.RegistrationRef, &storedVendor.Jurisdiction,
-		&storedVendor.SourceID, &storedVendor.ExternalRef, &storedVendor.Status, &storedVendor.CreatedAt, &storedVendor.UpdatedAt, &storedVendor.Version,
+		&storedVendor.SourceID, &storedVendor.ExternalRef, &storedVendor.WebsiteDomain, &storedVendor.Status, &storedVendor.CreatedAt, &storedVendor.UpdatedAt, &storedVendor.Version,
 	)
 	if err != nil {
 		return Aggregate{}, fmt.Errorf("load stored vendor: %w", err)
@@ -68,10 +71,21 @@ func (r *PostgresRepository) CreateRelationship(ctx context.Context, record Crea
 	if err != nil {
 		return Aggregate{}, fmt.Errorf("store vendor relationship: %w", err)
 	}
-	if err := appendRelationshipEvent(ctx, tx, tenantID, record.Relationship, record.Relationship.BusinessOwnerPrincipalID, "VendorRelationshipCreated"); err != nil {
+	eventID, err := appendRelationshipEvent(ctx, tx, tenantID, record.Relationship, record.Relationship.BusinessOwnerPrincipalID, "VendorRelationshipCreated")
+	if err != nil {
 		return Aggregate{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if createdVendor {
+		if record.BrandJob != nil {
+			if err := storeVendorBrandJob(ctx, tx, tenantID, *record.BrandJob); err != nil {
+				return Aggregate{}, err
+			}
+		}
+		if err := appendVendorIdentityEvent(ctx, tx, tenantID, storedVendor, record.ActorID, VendorIdentityCreatedEvent); err != nil {
+			return Aggregate{}, err
+		}
+	}
+	if err := r.commitThirdPartyEvents(ctx, tx, relationshipCommitProof(eventID, record.Relationship, "VendorRelationshipCreated")); err != nil {
 		return Aggregate{}, fmt.Errorf("commit vendor relationship create: %w", err)
 	}
 	return Aggregate{Vendor: record.Vendor, Relationship: record.Relationship}, nil
@@ -119,7 +133,8 @@ func (r *PostgresRepository) UpdateRelationship(ctx context.Context, record Upda
 	record.Relationship.ID, record.Relationship.TenantID = record.ID, record.TenantID
 	record.Relationship.LegalEntityID, record.Relationship.VendorID = record.LegalEntityID, vendorID
 	record.Relationship.Version = relationshipVersion
-	if err := appendRelationshipEvent(ctx, tx, tenantID, record.Relationship, record.ActorID, "VendorRelationshipUpdated"); err != nil {
+	eventID, err := appendRelationshipEvent(ctx, tx, tenantID, record.Relationship, record.ActorID, "VendorRelationshipUpdated")
+	if err != nil {
 		return Aggregate{}, err
 	}
 	stored, err := scanAggregate(tx.QueryRow(ctx, relationshipSelect+`
@@ -127,7 +142,7 @@ func (r *PostgresRepository) UpdateRelationship(ctx context.Context, record Upda
 	if err != nil {
 		return Aggregate{}, fmt.Errorf("load updated vendor relationship: %w", err)
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := r.commitThirdPartyEvents(ctx, tx, relationshipCommitProof(eventID, record.Relationship, "VendorRelationshipUpdated")); err != nil {
 		return Aggregate{}, fmt.Errorf("commit vendor relationship update: %w", err)
 	}
 	return stored, nil
@@ -188,7 +203,7 @@ func (r *PostgresRepository) ListRelationships(ctx context.Context, filter ListF
 }
 
 const relationshipSelect = `
-	SELECT p.id::text,t.slug,p.legal_name,p.trading_name,p.registration_ref,p.jurisdiction,p.source_id,p.external_ref,p.status,p.created_at,p.updated_at,p.version,
+	SELECT p.id::text,t.slug,p.legal_name,p.trading_name,p.registration_ref,p.jurisdiction,p.source_id,p.external_ref,COALESCE(p.website_domain,''),p.status,p.created_at,p.updated_at,p.version,
 	       r.id::text,t.slug,r.legal_entity_id::text,r.vendor_id::text,r.service_name,r.business_owner_principal_id::text,r.criticality,r.privacy_role,r.status,
 	       r.effective_from,r.renewal_at,r.source_id,r.external_ref,r.created_at,r.updated_at,r.version
 	FROM third_party_relationships r
@@ -201,7 +216,7 @@ func scanAggregate(row rowScanner) (Aggregate, error) {
 	var value Aggregate
 	err := row.Scan(
 		&value.Vendor.ID, &value.Vendor.TenantID, &value.Vendor.LegalName, &value.Vendor.TradingName, &value.Vendor.RegistrationRef, &value.Vendor.Jurisdiction,
-		&value.Vendor.SourceID, &value.Vendor.ExternalRef, &value.Vendor.Status, &value.Vendor.CreatedAt, &value.Vendor.UpdatedAt, &value.Vendor.Version,
+		&value.Vendor.SourceID, &value.Vendor.ExternalRef, &value.Vendor.WebsiteDomain, &value.Vendor.Status, &value.Vendor.CreatedAt, &value.Vendor.UpdatedAt, &value.Vendor.Version,
 		&value.Relationship.ID, &value.Relationship.TenantID, &value.Relationship.LegalEntityID, &value.Relationship.VendorID, &value.Relationship.ServiceName,
 		&value.Relationship.BusinessOwnerPrincipalID, &value.Relationship.Criticality, &value.Relationship.PrivacyRole, &value.Relationship.Status,
 		&value.Relationship.EffectiveFrom, &value.Relationship.RenewalAt, &value.Relationship.SourceID, &value.Relationship.ExternalRef,
@@ -222,22 +237,24 @@ func resolveTenant(ctx context.Context, tx pgx.Tx, tenant string) (string, error
 	return tenantID, nil
 }
 
-func appendRelationshipEvent(ctx context.Context, tx pgx.Tx, tenantID string, relationship Relationship, actorID, eventType string) error {
-	_, err := tx.Exec(ctx, `
+func appendRelationshipEvent(ctx context.Context, tx pgx.Tx, tenantID string, relationship Relationship, actorID, eventType string) (string, error) {
+	var eventID string
+	err := tx.QueryRow(ctx, `
 		INSERT INTO third_party_events(tenant_id,aggregate_type,aggregate_id,aggregate_version,actor_principal_id,event_type,payload,occurred_at)
-		VALUES($1::uuid,'VENDOR_RELATIONSHIP',$2::uuid,$3,$4::uuid,$5,jsonb_build_object('vendor_id',$6::text,'status',$7::text,'criticality',$8::text),$9)`,
-		tenantID, relationship.ID, relationship.Version, actorID, eventType, relationship.VendorID, relationship.Status, relationship.Criticality, relationship.UpdatedAt)
+		VALUES($1::uuid,'VENDOR_RELATIONSHIP',$2::uuid,$3,$4::uuid,$5,jsonb_build_object('vendor_id',$6::text,'status',$7::text,'criticality',$8::text),$9)
+		RETURNING id::text`,
+		tenantID, relationship.ID, relationship.Version, actorID, eventType, relationship.VendorID, relationship.Status, relationship.Criticality, relationship.UpdatedAt).Scan(&eventID)
 	if err != nil {
-		return fmt.Errorf("append vendor relationship event: %w", err)
+		return "", fmt.Errorf("append vendor relationship event: %w", err)
 	}
 	_, err = tx.Exec(ctx, `
 		INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at)
 		VALUES($1::uuid,'VENDOR_RELATIONSHIP',$2::uuid,$3,jsonb_build_object('version',$4::bigint,'status',$5::text),$6,$6)`,
 		tenantID, relationship.ID, eventType, relationship.Version, relationship.Status, relationship.UpdatedAt)
 	if err != nil {
-		return fmt.Errorf("append vendor relationship outbox event: %w", err)
+		return "", fmt.Errorf("append vendor relationship outbox event: %w", err)
 	}
-	return nil
+	return eventID, nil
 }
 
 var _ Repository = (*PostgresRepository)(nil)

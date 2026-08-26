@@ -30,7 +30,7 @@ func NewMemoryRepository(sources []Source, requests []Request) *MemoryRepository
 }
 
 func NewMemoryRepositoryWithRecipientCandidates(sources []Source, requests []Request, candidates []RecipientCandidate) *MemoryRepository {
-	repo := &MemoryRepository{sources: map[string]Source{}, observations: map[string]SourceObservation{}, requests: map[string]Request{}, submissions: map[string]Submission{}, invitations: map[string]Invitation{}, sessions: map[string]Session{}, artifacts: map[string]Artifact{}, candidates: map[string]RecipientCandidate{}}
+	repo := &MemoryRepository{sources: map[string]Source{}, observations: map[string]SourceObservation{}, requests: map[string]Request{}, submissions: map[string]Submission{}, invitations: map[string]Invitation{}, sessions: map[string]Session{}, drafts: map[string]ResponseDraft{}, artifacts: map[string]Artifact{}, candidates: map[string]RecipientCandidate{}}
 	for _, source := range sources {
 		repo.sources[source.ID] = source
 	}

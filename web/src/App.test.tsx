@@ -10,7 +10,29 @@ import { ApiError } from "./http";
 
 const { listEvidenceRecipientCandidates } = vi.hoisted(() => ({ listEvidenceRecipientCandidates: vi.fn() }));
 
-vi.mock("./components/RoleAwareOnboarding", () => ({ RoleAwareOnboarding: () => null }));
+vi.mock("./components/RoleAwareOnboarding", async () => {
+  const React = await import("react");
+  return { RoleAwareOnboarding: ({ onStep, surface }: { onStep: (step: { intent?: string; view?: string }) => void | Promise<void>; surface: string }) => {
+    const [busy, setBusy] = React.useState(false);
+    const [error, setError] = React.useState("");
+    async function openGuideAction() {
+      setBusy(true); setError("");
+      try { await onStep({ intent: "open-vendor-due-diligence", view: "vendors" }); }
+      catch { setError("This guide step could not be opened. Try again."); }
+      finally { setBusy(false); }
+    }
+    async function openNextVendorTask() {
+      setBusy(true); setError("");
+      try { await onStep({ intent: "open-vendor-next-action", view: "vendors" }); }
+      catch { setError("This guide step could not be opened. Try again."); }
+      finally { setBusy(false); }
+    }
+    return <aside aria-label={`${surface === "VENDORS" ? "Vendor" : "Today"} guide`}><output data-testid="onboarding-surface">{surface}</output><button type="button" disabled={busy} onClick={() => void openGuideAction()}>Review due diligence</button><button type="button" disabled={busy} onClick={() => void openNextVendorTask()}>Open next vendor task</button>{error && <p role="alert">{error}</p>}</aside>;
+  }};
+});
+vi.mock("./components/VendorsWorkspace", () => ({
+  VendorsWorkspace: ({ onOpenRequest, guideIntent, targetID }: { onOpenRequest?: (requestID: string) => void; guideIntent?: { type: string }; targetID?: string }) => <><output data-testid="vendor-guide-intent">{guideIntent?.type}</output><output data-testid="vendor-target">{targetID}</output><button type="button" onClick={() => onOpenRequest?.("request-vendor-1")}>Review vendor request</button></>,
+}));
 vi.mock("./captureApi", () => ({
   declareWrongCaptureRecipient: vi.fn(),
   reassignCaptureRecipient: vi.fn(),
@@ -153,6 +175,61 @@ describe("runtime navigation", () => {
     fireEvent.click(vendorButton);
     expect(vendorButton.getAttribute("aria-current")).toBe("page");
     expect(window.location.hash).toBe("#vendors");
+  });
+
+  it("passes the due-diligence guide intent to the Vendors workspace", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Review due diligence" }));
+    expect((await screen.findByTestId("vendor-guide-intent")).textContent).toBe("open-vendor-due-diligence");
+    expect(window.location.hash).toBe("#vendors");
+  });
+
+  it("passes the next-action guide intent to the Vendors workspace", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open next vendor task" }));
+    expect((await screen.findByTestId("vendor-guide-intent")).textContent).toBe("open-vendor-next-action");
+    expect(window.location.hash).toBe("#vendors");
+  });
+
+  it("keeps the Vendors workspace usable while its guide is open", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    render(<App />);
+
+    const vendorButton = (await screen.findAllByRole("button", { name: "Vendors" }))[0];
+    if (!vendorButton) throw new Error("Vendors navigation is missing");
+    fireEvent.click(vendorButton);
+
+    expect((await screen.findByTestId("onboarding-surface")).textContent).toBe("VENDORS");
+    expect(screen.getByRole("complementary", { name: "Vendor guide" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Review vendor request" })).toBeTruthy();
+  });
+
+  it("preserves the selected vendor when a guide starts from a vendor deep link", async () => {
+    window.history.replaceState(null, "", "#vendors/relationship-b");
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Review due diligence" }));
+    expect((await screen.findByTestId("vendor-target")).textContent).toBe("relationship-b");
+    expect(window.location.hash).toBe("#vendors/relationship-b");
+  });
+
+  it("cancels a slow vendor guide action when navigation leaves Vendors", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Review due diligence" }));
+    await screen.findByTestId("vendor-guide-intent");
+    const todayButton = (await screen.findAllByRole("button", { name: "Today" }))[0];
+    if (!todayButton) throw new Error("Today navigation is missing");
+    fireEvent.click(todayButton);
+
+    await waitFor(() => expect((screen.getByRole("button", { name: "Review due diligence" }) as HTMLButtonElement).disabled).toBe(false));
+    expect(screen.getByRole("alert").textContent).toContain("This guide step could not be opened. Try again.");
   });
 
   it("opens the exact evidence request selected from the vendor relationship", async () => {

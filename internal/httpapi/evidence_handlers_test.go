@@ -286,7 +286,7 @@ func TestEvidenceSessionDraftDoesNotEnumerateEndedAccess(t *testing.T) {
 	}
 
 	session := openExternalEvidenceSession(t, handler)
-	revoke := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/sessions/"+session.SessionID+"/revoke", strings.NewReader(`{"tenant_id":"outside-scope"}`))
+	revoke := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/requests/"+demoExternalEvidenceRequestID+"/sessions/"+session.SessionID+"/revoke", strings.NewReader(`{"tenant_id":"outside-scope"}`))
 	revokeResponse := httptest.NewRecorder()
 	handler.ServeHTTP(revokeResponse, revoke)
 	if revokeResponse.Code != http.StatusNoContent {

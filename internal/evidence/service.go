@@ -1,13 +1,13 @@
 package evidence
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"io"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -145,6 +145,9 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if err := validateRequestInput(input); err != nil {
 		return Request{}, err
 	}
+	if !requestOriginAllowed(ctx, input.Origin) {
+		return Request{}, fmt.Errorf("request origin is reserved for its owning workflow")
+	}
 	scope, err := resolveCreateSubjectScope(ctx, s.repo, input)
 	if err != nil {
 		return Request{}, err
@@ -164,10 +167,6 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	} else if _, exact := s.repo.(SubjectScopeResolver); exact {
 		return Request{}, ErrSubjectAccessDenied
 	}
-	if err := validateFieldContracts(input.Fields); err != nil {
-		return Request{}, err
-	}
-	input.Fields = fields
 	fields, sourceBindings, err := s.prepareRequestBindings(ctx, input)
 	if err != nil {
 		return Request{}, err
@@ -219,7 +218,8 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if !deadline.After(now) {
 		return Request{}, fmt.Errorf("deadline must be in the future")
 	}
-	request := Request{ID: valueID, TenantID: input.TenantID, LegalEntityID: scope.LegalEntityID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: fields, SourceBindings: sourceBindings, FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion, CollectionPeriodStart: cloneTimePointer(input.CollectionPeriodStart), CollectionPeriodEnd: cloneTimePointer(input.CollectionPeriodEnd), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
+	contract, _ := formContract(input.Presentation, input.Sections, fields)
+	request := Request{ID: valueID, TenantID: input.TenantID, LegalEntityID: scope.LegalEntityID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Presentation: contract.Presentation, Sections: contract.Sections, Fields: fields, SourceBindings: sourceBindings, FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion, CollectionPeriodStart: cloneTimePointer(input.CollectionPeriodStart), CollectionPeriodEnd: cloneTimePointer(input.CollectionPeriodEnd), Origin: input.Origin.normalized(), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
 	return store.CreateRequestWithRecipient(ctx, request)
 }
 
@@ -476,17 +476,42 @@ func (s *Service) StoreArtifact(ctx context.Context, input ArtifactInput, reader
 	if err := s.authorizeArtifactUpload(ctx, request, input); err != nil {
 		return Artifact{}, err
 	}
-	fileName := filepath.Base(strings.TrimSpace(input.FileName))
-	mediaType := normalizeMediaType(input.MediaType)
-	if fileName == "." || fileName == "" || !allowedMediaType(mediaType) {
+	fileName := strings.TrimSpace(input.FileName)
+	maximum := s.maxArtifactBytes
+	var requestField *Field
+	if strings.TrimSpace(input.FieldID) != "" {
+		for index := range request.Fields {
+			if request.Fields[index].ID == strings.TrimSpace(input.FieldID) {
+				requestField = &request.Fields[index]
+				break
+			}
+		}
+		if requestField == nil || !isFileFieldType(requestField.Type) {
+			return Artifact{}, ErrFieldInvalid
+		}
+		if requestField.Constraints.MaxFileBytes != nil && *requestField.Constraints.MaxFileBytes < maximum {
+			maximum = *requestField.Constraints.MaxFileBytes
+		}
+	}
+	data, mediaType, err := inspectArtifact(fileName, input.MediaType, reader, maximum)
+	if err != nil {
+		return Artifact{}, err
+	}
+	if !allowedMediaType(mediaType) {
 		return Artifact{}, ErrMediaType
+	}
+	if requestField != nil {
+		candidate := Artifact{MediaType: mediaType, SizeBytes: int64(len(data)), Status: ArtifactStoredUnscanned}
+		if err := validateArtifactForField(*requestField, candidate); err != nil {
+			return Artifact{}, fmt.Errorf("%w: %v", ErrFieldInvalid, err)
+		}
 	}
 	valueID, err := id.NewUUIDv7()
 	if err != nil {
 		return Artifact{}, err
 	}
 	key := strings.Join([]string{input.TenantID, "requests", input.RequestID, valueID}, "/")
-	object, err := s.store.Put(ctx, key, reader, s.maxArtifactBytes)
+	object, err := s.store.Put(ctx, key, bytes.NewReader(data), maximum)
 	if err != nil {
 		return Artifact{}, err
 	}
@@ -497,6 +522,15 @@ func (s *Service) StoreArtifact(ctx context.Context, input ArtifactInput, reader
 		return Artifact{}, err
 	}
 	return created, nil
+}
+
+func isFileFieldType(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case string(formcontract.TypeFile), string(formcontract.TypePhoto), string(formcontract.TypeSignature), string(formcontract.TypeVendorDocument):
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *Service) authorizeArtifactUpload(ctx context.Context, request Request, input ArtifactInput) error {

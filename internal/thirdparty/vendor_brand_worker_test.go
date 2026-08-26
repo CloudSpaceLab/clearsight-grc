@@ -1,0 +1,380 @@
+package thirdparty
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"net"
+	"net/http"
+	"net/netip"
+	"os"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+)
+
+func TestVendorBrandMigrationPermitsSafeBrandEventOnExistingVendorStream(t *testing.T) {
+	t.Parallel()
+	content, err := os.ReadFile("../../migrations/000047_vendor_brand_assets.up.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema := string(content)
+	for _, required := range []string{"'VENDOR_BRAND'", "'VendorBrandDiscovered'", "NEW.aggregate_type='VENDOR_BRAND'"} {
+		if !strings.Contains(schema, required) {
+			t.Fatalf("vendor brand migration missing event contract %q", required)
+		}
+	}
+}
+
+func setupVendorBrandWorker(t *testing.T, now time.Time, domain string) (*MemoryRepository, *evidence.MemoryObjectStore, *VendorBrandWorker, Vendor) {
+	t.Helper()
+	repository := NewMemoryRepository()
+	service := NewService(repository)
+	service.now = func() time.Time { return now }
+	ids := []string{"vendor-1", "relationship-1", "brand-job-1"}
+	service.newID = func() (string, error) { value := ids[0]; ids = ids[1:]; return value, nil }
+	input := validCreateInput()
+	input.WebsiteDomain = domain
+	created, err := service.CreateRelationship(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "owner"}, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := evidence.NewMemoryObjectStore()
+	discoverer := &VendorBrandDiscoverer{timeout: 3 * time.Second}
+	discoverer.discover = func(context.Context, WebsiteDomain) (DiscoveredVendorBrand, error) {
+		pngBytes := brandPNG(t, 32, 32)
+		return DiscoveredVendorBrand{PNG: pngBytes, MediaType: "image/png", PixelWidth: 32, PixelHeight: 32, SourceDigest: stringsDigest(string(pngBytes))}, nil
+	}
+	worker := NewVendorBrandWorker(repository, store, discoverer, "brand-worker")
+	worker.now = func() time.Time { return now }
+	return repository, store, worker, created.Vendor
+}
+
+func TestVendorBrandCompletedJobRequeuesWhenDiscoveredAssetRefreshIsDue(t *testing.T) {
+	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repository, _, worker, vendor := setupVendorBrandWorker(t, now, "vendor.example")
+	if processed, err := worker.Maintain(context.Background(), now, 1); err != nil || processed != 1 {
+		t.Fatalf("initial Maintain() = (%d, %v)", processed, err)
+	}
+	assets, _ := repository.ListVendorBrandAssets(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity"}, vendor.ID)
+	due := *assets[0].NextRefreshAt
+	approved := assets[0]
+	approved.ID = "approved-asset"
+	approved.SourceKind = VendorBrandAssetApprovedOverride
+	approved.ApprovedByPrincipalID = "brand-reviewer"
+	repository.mu.Lock()
+	repository.vendorBrandAssets[approved.ID] = approved
+	repository.mu.Unlock()
+
+	claims, err := repository.ClaimVendorBrandJobs(context.Background(), "refresh-worker", due, time.Minute, 5, 1)
+	if err != nil || len(claims) != 1 || claims[0].VendorVersion != vendor.Version || claims[0].WebsiteDomain != vendor.WebsiteDomain {
+		t.Fatalf("due refresh claim = (%#v, %v)", claims, err)
+	}
+	repository.mu.RLock()
+	retained := repository.vendorBrandAssets[approved.ID]
+	repository.mu.RUnlock()
+	if retained.State != VendorBrandAssetCurrent || retained.SourceKind != VendorBrandAssetApprovedOverride {
+		t.Fatalf("approved override changed during background refresh: %#v", retained)
+	}
+}
+
+func TestVendorBrandCompletionUsesActualTimeForLeaseFence(t *testing.T) {
+	batchTime := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repository, _, worker, vendor := setupVendorBrandWorker(t, batchTime, "vendor.example")
+	worker.Configure(4*time.Second, 5, time.Minute)
+	worker.now = func() time.Time { return batchTime.Add(5 * time.Second) }
+	processed, err := worker.Maintain(context.Background(), batchTime, 1)
+	if processed != 1 || !errors.Is(err, ErrVendorBrandJobLeaseLost) {
+		t.Fatalf("expired completion Maintain() = (%d, %v)", processed, err)
+	}
+	assets, _ := repository.ListVendorBrandAssets(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity"}, vendor.ID)
+	if len(assets) != 0 {
+		t.Fatalf("expired lease published assets: %#v", assets)
+	}
+}
+
+func TestVendorBrandQueueHealthReportsPendingAndTerminalJobs(t *testing.T) {
+	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repository, _, worker, vendor := setupVendorBrandWorker(t, now, "vendor.example")
+	repository.mu.Lock()
+	job := repository.vendorBrandJobs[vendorBrandJobKey("bank", vendor.ID)]
+	job.State, job.Attempts = VendorBrandJobFailed, 4
+	repository.vendorBrandJobs[vendorBrandJobKey("bank", vendor.ID)] = job
+	repository.vendorBrandJobs["bank/other"] = VendorBrandJob{ID: "pending", TenantID: "bank", VendorID: "other", JobType: VendorBrandDiscoveryJobType, State: VendorBrandJobReady, AvailableAt: now.Add(-time.Hour), Attempts: 2}
+	repository.mu.Unlock()
+	health, err := worker.QueueHealth(context.Background())
+	if err != nil || health.Pending != 1 || health.Terminal != 1 || health.HighestAttempts != 4 || health.OldestPending == nil || !health.OldestPending.Equal(now.Add(-time.Hour)) {
+		t.Fatalf("vendor brand queue health = (%#v, %v)", health, err)
+	}
+}
+
+func TestVendorBrandWorkerCompletesLeasedJobAndStoresCurrentAsset(t *testing.T) {
+	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repository, store, worker, vendor := setupVendorBrandWorker(t, now, "vendor.example")
+	processed, err := worker.Maintain(context.Background(), now, 10)
+	if err != nil || processed != 1 {
+		t.Fatalf("Maintain() = (%d, %v)", processed, err)
+	}
+	job, err := repository.GetVendorBrandJob(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity"}, vendor.ID)
+	if err != nil || job.State != VendorBrandJobCompleted || job.LeaseToken != "" {
+		t.Fatalf("completed job = (%#v, %v)", job, err)
+	}
+	assets, err := repository.ListVendorBrandAssets(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity"}, vendor.ID)
+	if err != nil || len(assets) != 1 || assets[0].State != VendorBrandAssetCurrent || assets[0].SourceKind != VendorBrandAssetDiscovered {
+		t.Fatalf("assets = (%#v, %v)", assets, err)
+	}
+	opened, err := store.Open(context.Background(), assets[0].ArtifactKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer opened.Close()
+	if data := make([]byte, 8); func() bool { _, err = opened.Read(data); return err != nil && !errors.Is(err, context.Canceled) }() || !bytes.Equal(data, []byte("\x89PNG\r\n\x1a\n")) {
+		t.Fatalf("stored object is not PNG: %x (%v)", data, err)
+	}
+	if len(repository.vendorBrandEvents) != 1 || len(repository.vendorBrandOutbox) != 1 {
+		t.Fatalf("brand event/outbox counts = %d/%d", len(repository.vendorBrandEvents), len(repository.vendorBrandOutbox))
+	}
+}
+
+func TestVendorBrandWorkerCancelsStaleVendorVersionWithoutFetching(t *testing.T) {
+	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repository, _, worker, vendor := setupVendorBrandWorker(t, now, "vendor.example")
+	repository.mu.Lock()
+	changed := repository.vendors[vendor.ID]
+	changed.Version++
+	changed.WebsiteDomain = "other.example"
+	repository.vendors[vendor.ID] = changed
+	repository.mu.Unlock()
+	called := false
+	worker.discoverer.discover = func(context.Context, WebsiteDomain) (DiscoveredVendorBrand, error) {
+		called = true
+		return DiscoveredVendorBrand{}, nil
+	}
+	processed, err := worker.Maintain(context.Background(), now, 1)
+	if err != nil || processed != 1 || called {
+		t.Fatalf("stale Maintain() = (%d, %v), discover called=%v", processed, err, called)
+	}
+	job, _ := repository.GetVendorBrandJob(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity"}, vendor.ID)
+	if job.State != VendorBrandJobCancelled || job.LastFailureCode != VendorBrandFailureStale {
+		t.Fatalf("stale job = %#v", job)
+	}
+}
+
+func TestVendorBrandWorkerRetryIsLeasedIdempotentAndBounded(t *testing.T) {
+	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repository, _, worker, vendor := setupVendorBrandWorker(t, now, "vendor.example")
+	worker.Configure(time.Minute, 2, time.Minute)
+	worker.discoverer.discover = func(context.Context, WebsiteDomain) (DiscoveredVendorBrand, error) {
+		return DiscoveredVendorBrand{}, ErrVendorBrandTimeout
+	}
+	processed, err := worker.Maintain(context.Background(), now, 1)
+	if processed != 1 || err == nil {
+		t.Fatalf("first Maintain() = (%d, %v)", processed, err)
+	}
+	job, _ := repository.GetVendorBrandJob(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity"}, vendor.ID)
+	if job.State != VendorBrandJobReady || job.Attempts != 1 || job.LastFailureCode != VendorBrandFailureTimeout || !job.AvailableAt.After(now) {
+		t.Fatalf("retry job = %#v", job)
+	}
+	processed, err = worker.Maintain(context.Background(), job.AvailableAt, 1)
+	if processed != 1 || err == nil {
+		t.Fatalf("terminal Maintain() = (%d, %v)", processed, err)
+	}
+	job, _ = repository.GetVendorBrandJob(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity"}, vendor.ID)
+	if job.State != VendorBrandJobFailed || job.Attempts != 2 || job.LastFailureCode != VendorBrandFailureTimeout {
+		t.Fatalf("terminal job = %#v", job)
+	}
+	processed, err = worker.Maintain(context.Background(), now.Add(10*time.Minute), 1)
+	if err != nil || processed != 0 {
+		t.Fatalf("terminal job was retried: (%d, %v)", processed, err)
+	}
+}
+
+func TestVendorBrandWorkerRejectsMalformedDiscoveryResultBeforeStorage(t *testing.T) {
+	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repository, store, worker, vendor := setupVendorBrandWorker(t, now, "vendor.example")
+	worker.discoverer.discover = func(context.Context, WebsiteDomain) (DiscoveredVendorBrand, error) {
+		return DiscoveredVendorBrand{PNG: brandPNG(t, 1, 1), MediaType: "image/png", PixelWidth: 1, PixelHeight: 1, SourceDigest: "../../unsafe"}, nil
+	}
+	processed, err := worker.Maintain(context.Background(), now, 1)
+	if processed != 1 || err == nil {
+		t.Fatalf("malformed result Maintain() = (%d, %v)", processed, err)
+	}
+	job, _ := repository.GetVendorBrandJob(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity"}, vendor.ID)
+	if job.State != VendorBrandJobReady || job.LastFailureCode != VendorBrandFailureImage {
+		t.Fatalf("malformed result job = %#v", job)
+	}
+	if _, err := store.Open(context.Background(), vendorBrandObjectKey("bank", vendor.ID, vendor.Version, stringsDigest("replacement"))); err == nil {
+		t.Fatal("malformed discovery result wrote an object")
+	}
+}
+
+func TestVendorBrandObjectWriteReusesIdenticalContentAddress(t *testing.T) {
+	t.Parallel()
+	store := evidence.NewMemoryObjectStore()
+	worker := NewVendorBrandWorker(NewMemoryRepository(), store, NewDefaultVendorBrandDiscoverer(), "worker")
+	content := brandPNG(t, 8, 8)
+	key := "vendor-brands/tenant/vendor/v1/" + stringsDigest(string(content)) + ".png"
+	first, err := worker.putObject(context.Background(), key, content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := worker.putObject(context.Background(), key, content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first != second {
+		t.Fatalf("idempotent object info differs: %#v != %#v", first, second)
+	}
+}
+
+func TestVendorBrandWorkerLeaseLossDoesNotPublishAsset(t *testing.T) {
+	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repository, store, worker, vendor := setupVendorBrandWorker(t, now, "vendor.example")
+	worker.afterStore = func() {
+		repository.mu.Lock()
+		job := repository.vendorBrandJobs[vendorBrandJobKey("bank", vendor.ID)]
+		job.LeaseToken = "other-lease"
+		repository.vendorBrandJobs[vendorBrandJobKey("bank", vendor.ID)] = job
+		repository.mu.Unlock()
+	}
+	processed, err := worker.Maintain(context.Background(), now, 1)
+	if processed != 1 || !errors.Is(err, ErrVendorBrandJobLeaseLost) {
+		t.Fatalf("lease loss Maintain() = (%d, %v)", processed, err)
+	}
+	assets, _ := repository.ListVendorBrandAssets(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity"}, vendor.ID)
+	if len(assets) != 0 {
+		t.Fatalf("lease-lost assets = %#v", assets)
+	}
+	// Content-addressed bytes remain intact because completion may have committed
+	// even when its acknowledgement was lost. Unreferenced bytes are harmless and
+	// can be reconciled without deleting a winner's referenced artifact.
+	pngBytes := brandPNG(t, 32, 32)
+	key := vendorBrandObjectKey("bank", vendor.ID, vendor.Version, stringsDigest(string(pngBytes)))
+	if opened, err := store.Open(context.Background(), key); err != nil {
+		t.Fatalf("lease-lost content-addressed object was deleted: %v", err)
+	} else {
+		_ = opened.Close()
+	}
+}
+
+func TestVendorBrandRepositoryRejectsStaleClaimCompletion(t *testing.T) {
+	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repository, _, _, vendor := setupVendorBrandWorker(t, now, "vendor.example")
+	claims, err := repository.ClaimVendorBrandJobs(context.Background(), "worker-a", now, time.Minute, 5, 1)
+	if err != nil || len(claims) != 1 {
+		t.Fatalf("claim = (%#v, %v)", claims, err)
+	}
+	second, err := repository.ClaimVendorBrandJobs(context.Background(), "worker-b", now.Add(2*time.Minute), time.Minute, 5, 1)
+	if err != nil || len(second) != 1 {
+		t.Fatalf("reclaim = (%#v, %v)", second, err)
+	}
+	asset := validVendorBrandAssetForTest(now, vendor)
+	if _, err := repository.CompleteVendorBrandJob(context.Background(), claims[0], asset, now.Add(2*time.Minute)); !errors.Is(err, ErrVendorBrandJobLeaseLost) {
+		t.Fatalf("stale completion error = %v", err)
+	}
+}
+
+func TestVendorBrandRepositoryRejectsAssetOutsideClaimScope(t *testing.T) {
+	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repository, _, _, vendor := setupVendorBrandWorker(t, now, "vendor.example")
+	claims, err := repository.ClaimVendorBrandJobs(context.Background(), "worker-a", now, time.Minute, 5, 1)
+	if err != nil || len(claims) != 1 {
+		t.Fatalf("claim = (%#v, %v)", claims, err)
+	}
+	asset := validVendorBrandAssetForTest(now, vendor)
+	asset.TenantID = "other-bank"
+	if _, err := repository.CompleteVendorBrandJob(context.Background(), claims[0], asset, now); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("cross-scope asset completion error = %v", err)
+	}
+	assets, _ := repository.ListVendorBrandAssets(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity"}, vendor.ID)
+	if len(assets) != 0 {
+		t.Fatalf("cross-scope asset was stored: %#v", assets)
+	}
+}
+
+func validVendorBrandAssetForTest(now time.Time, vendor Vendor) VendorBrandAsset {
+	next := now.Add(time.Hour)
+	digest := stringsDigest("source")
+	return VendorBrandAsset{
+		ID: "asset-1", TenantID: vendor.TenantID, VendorID: vendor.ID,
+		SourceKind: VendorBrandAssetDiscovered, State: VendorBrandAssetCurrent, SourceDomain: vendor.WebsiteDomain,
+		ArtifactKey: vendorBrandObjectKey(vendor.TenantID, vendor.ID, vendor.Version, digest), SourceDigest: digest, MediaType: "image/png",
+		PixelWidth: 1, PixelHeight: 1, ByteSize: 1, RetrievedAt: &now, NextRefreshAt: &next,
+		CreatedAt: now, UpdatedAt: now, Version: 1,
+	}
+}
+
+func TestVendorBrandRepositoryRejectsArtifactKeyNotBoundToClaim(t *testing.T) {
+	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
+	repository, _, _, vendor := setupVendorBrandWorker(t, now, "vendor.example")
+	claims, err := repository.ClaimVendorBrandJobs(context.Background(), "worker-a", now, time.Minute, 5, 1)
+	if err != nil || len(claims) != 1 {
+		t.Fatalf("claim = (%#v, %v)", claims, err)
+	}
+	asset := validVendorBrandAssetForTest(now, vendor)
+	asset.ArtifactKey = vendorBrandObjectKey("other-bank", vendor.ID, vendor.Version, asset.SourceDigest)
+	if _, err := repository.CompleteVendorBrandJob(context.Background(), claims[0], asset, now); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("unbound artifact completion error = %v", err)
+	}
+}
+
+func TestVendorBrandDownMigrationRetainsAppendOnlyEventVocabulary(t *testing.T) {
+	t.Parallel()
+	content, err := os.ReadFile("../../migrations/000047_vendor_brand_assets.down.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema := string(content)
+	if !strings.Contains(schema, "retained VENDOR_BRAND event history") || strings.Contains(schema, "DELETE FROM third_party_events") || strings.Contains(schema, "DELETE FROM outbox_events") {
+		t.Fatalf("down migration does not preserve append-only vendor brand history:\n%s", schema)
+	}
+}
+
+func TestPostgresVendorBrandWorkerUsesDatabaseClockAndExactCommitProbe(t *testing.T) {
+	t.Parallel()
+	content, err := os.ReadFile("vendor_brand_worker_postgres.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(content)
+	for _, required := range []string{
+		"lease_expires_at=clock_timestamp()+",
+		"lease_expires_at>clock_timestamp()",
+		"asset.next_refresh_at<=clock_timestamp()",
+		"vendorBrandCompletionRecorded",
+		"brand.artifact_key=$7 AND brand.source_digest=$8",
+		"JOIN third_party_events event",
+		"JOIN outbox_events outbox",
+	} {
+		if !strings.Contains(source, required) {
+			t.Fatalf("PostgreSQL vendor brand durability path missing %q", required)
+		}
+	}
+}
+
+func TestPostgresVendorBrandCompletionLocksVendorBeforeJob(t *testing.T) {
+	t.Parallel()
+	content, err := os.ReadFile("vendor_brand_worker_postgres.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(content)
+	completion := source[strings.Index(source, "func (r *PostgresRepository) CompleteVendorBrandJob"):strings.Index(source, "func (r *PostgresRepository) vendorBrandCompletionRecorded")]
+	vendorLock := strings.Index(completion, "lock vendor for brand completion")
+	jobLock := strings.Index(completion, "lock vendor brand job")
+	if vendorLock < 0 || jobLock < 0 || vendorLock > jobLock {
+		t.Fatal("vendor brand completion must lock the vendor before its discovery job")
+	}
+}
+
+func TestVendorBrandDiscovererProductionTransportHasNoProxyOrReuse(t *testing.T) {
+	discoverer := NewVendorBrandDiscoverer(&brandResolverStub{}, func(context.Context, string, string) (net.Conn, error) { return nil, errors.New("unused") })
+	transport, ok := discoverer.transportFactory(func(context.Context, string, string) (net.Conn, error) { return nil, nil }, "vendor.example").(*http.Transport)
+	if !ok || transport.Proxy != nil || !transport.DisableKeepAlives || transport.MaxResponseHeaderBytes <= 0 || transport.TLSClientConfig == nil || transport.TLSClientConfig.ServerName != "vendor.example" {
+		t.Fatalf("unsafe transport = %#v", transport)
+	}
+	_ = netip.MustParseAddr("93.184.216.34")
+}
