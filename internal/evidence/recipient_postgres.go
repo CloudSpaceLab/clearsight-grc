@@ -80,15 +80,16 @@ func (r *PostgresRepository) CreateRequestWithRecipient(ctx context.Context, val
 }
 
 func (r *PostgresRepository) GetRequestRecipient(ctx context.Context, tenant, requestID string) (Recipient, error) {
-	var recipientType, principalID, hint, state, issueReason string
+	var recipientType, principalID, displayName, hint, state, issueReason string
 	var audienceHash []byte
 	var revision int64
 	err := r.pool.QueryRow(ctx, `
-		SELECT COALESCE(er.recipient_type,''),COALESCE(er.recipient_principal_id::text,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
+		SELECT COALESCE(er.recipient_type,''),COALESCE(er.recipient_principal_id::text,''),COALESCE(rp.display_name,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
 		       er.recipient_state,er.recipient_revision,er.recipient_issue_reason
 		FROM capture_requests er
 		JOIN tenants t ON t.id=er.tenant_id
-		WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2)`, requestID, tenant).Scan(&recipientType, &principalID, &audienceHash, &hint, &state, &revision, &issueReason)
+		LEFT JOIN principals rp ON rp.tenant_id=er.tenant_id AND rp.id=er.recipient_principal_id
+		WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2)`, requestID, tenant).Scan(&recipientType, &principalID, &displayName, &audienceHash, &hint, &state, &revision, &issueReason)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Recipient{}, ErrNotFound
 	}
@@ -96,7 +97,7 @@ func (r *PostgresRepository) GetRequestRecipient(ctx context.Context, tenant, re
 		return Recipient{}, err
 	}
 	return Recipient{
-		Type: RecipientType(recipientType), PrincipalID: principalID,
+		Type: RecipientType(recipientType), PrincipalID: principalID, DisplayName: displayName,
 		AudienceHash: append([]byte(nil), audienceHash...), AudienceHint: hint,
 		State: RecipientState(state), Revision: revision, IssueReason: issueReason,
 	}, nil
@@ -106,10 +107,11 @@ func (r *PostgresRepository) ListRecipientRequests(ctx context.Context, tenant, 
 	rows, err := r.pool.Query(ctx, `
 		SELECT er.id::text,t.id::text,er.legal_entity_id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,
 		       er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,COALESCE(er.form_template_id::text,''),COALESCE(er.form_template_version,0),er.collection_period_start,er.collection_period_end,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at,
-		       er.recipient_type,COALESCE(er.recipient_principal_id::text,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
+		       er.recipient_type,COALESCE(er.recipient_principal_id::text,''),COALESCE(rp.display_name,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
 		       er.recipient_state,er.recipient_revision,er.recipient_issue_reason
 		FROM capture_requests er
 		JOIN tenants t ON t.id=er.tenant_id
+		LEFT JOIN principals rp ON rp.tenant_id=er.tenant_id AND rp.id=er.recipient_principal_id
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND er.recipient_type='INTERNAL_PRINCIPAL'
 		  AND er.recipient_state='ASSIGNED'

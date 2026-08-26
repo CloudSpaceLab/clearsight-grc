@@ -185,11 +185,36 @@ type Field struct {
 type Recipient struct {
 	Type         RecipientType  `json:"type,omitempty"`
 	PrincipalID  string         `json:"principal_id,omitempty"`
+	DisplayName  string         `json:"display_name,omitempty"`
 	AudienceHint string         `json:"audience_hint,omitempty"`
 	State        RecipientState `json:"state,omitempty"`
 	Revision     int64          `json:"revision,omitempty"`
 	IssueReason  string         `json:"issue_reason,omitempty"`
 	AudienceHash []byte         `json:"-"`
+}
+
+// RecipientCandidate is the safe requester-facing view of an eligible
+// internal principal. Directory scope fields support the in-memory repository
+// only and are never serialized by the API.
+type RecipientCandidate struct {
+	PrincipalID      string          `json:"principal_id"`
+	DisplayName      string          `json:"display_name"`
+	ContextLabel     string          `json:"context_label,omitempty"`
+	TenantID         string          `json:"-"`
+	LegalEntityIDs   []string        `json:"-"`
+	Kind             string          `json:"-"`
+	Active           bool            `json:"-"`
+	ReadableSubjects map[string]bool `json:"-"`
+}
+
+type RecipientCandidateSearch struct {
+	Query string
+	Limit int
+}
+
+type RecipientCandidatePage struct {
+	Items   []RecipientCandidate `json:"items"`
+	HasMore bool                 `json:"has_more"`
 }
 
 type RecipientInput struct {

@@ -7,10 +7,33 @@ import (
 )
 
 func (r *MemoryRepository) InternalRecipientEligible(_ context.Context, tenant, principalID string) (bool, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if len(r.candidates) > 0 {
+		candidate, ok := r.candidates[principalID]
+		return ok && candidate.TenantID == tenant && candidate.Kind == "PERSON" && candidate.Active, nil
+	}
 	return strings.TrimSpace(tenant) != "" && strings.TrimSpace(principalID) != "", nil
 }
 
+func (r *MemoryRepository) InternalRecipientDisplayName(_ context.Context, tenant, principalID string) (string, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	candidate, ok := r.candidates[principalID]
+	if !ok || candidate.TenantID != tenant {
+		return "", nil
+	}
+	return candidate.DisplayName, nil
+}
+
 func (r *MemoryRepository) CanReadSubject(_ context.Context, tenant, principalID, subjectType, subjectID string) (bool, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if len(r.candidates) > 0 {
+		candidate, ok := r.candidates[principalID]
+		subjectKey := strings.ToUpper(strings.TrimSpace(subjectType)) + ":" + strings.TrimSpace(subjectID)
+		return ok && candidate.TenantID == tenant && candidate.Kind == "PERSON" && candidate.Active && candidate.ReadableSubjects[subjectKey], nil
+	}
 	return strings.TrimSpace(tenant) != "" && strings.TrimSpace(principalID) != "" && strings.TrimSpace(subjectType) != "" && strings.TrimSpace(subjectID) != "", nil
 }
 
@@ -34,7 +57,13 @@ func (r *MemoryRepository) GetRequestRecipient(_ context.Context, tenant, reques
 	if !ok || value.TenantID != tenant {
 		return Recipient{}, ErrNotFound
 	}
-	return cloneRecipient(value.Recipient), nil
+	recipient := cloneRecipient(value.Recipient)
+	if recipient.Type == RecipientInternalPrincipal {
+		if candidate, exists := r.candidates[recipient.PrincipalID]; exists && candidate.TenantID == tenant {
+			recipient.DisplayName = candidate.DisplayName
+		}
+	}
+	return recipient, nil
 }
 
 func (r *MemoryRepository) ListRecipientRequests(_ context.Context, tenant, principalID string, limit int) ([]Request, error) {
@@ -109,6 +138,7 @@ func sortRecipientRequests(values []Request) {
 
 var _ recipientStore = (*MemoryRepository)(nil)
 var _ internalRecipientDirectory = (*MemoryRepository)(nil)
+var _ internalRecipientLabelDirectory = (*MemoryRepository)(nil)
 var _ SubjectAccessChecker = (*MemoryRepository)(nil)
 var _ manageableRequestRepository = (*MemoryRepository)(nil)
 var _ entityScopedVisibleRequestRepository = (*MemoryRepository)(nil)

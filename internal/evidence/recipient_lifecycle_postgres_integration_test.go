@@ -33,8 +33,12 @@ func TestEvidenceRecipientLifecycleIsAuditableAtomicAndRevokesSupersededCapabili
 		programID  = "96666666-6666-7666-8666-666666666666"
 	)
 	now := time.Date(2026, 8, 9, 10, 0, 0, 0, time.UTC)
+	_, _ = pool.Exec(ctx, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
-	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	})
 	mustExecRecipient(t, ctx, pool, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'recipient-lifecycle-test','Recipient Lifecycle Test')`, tenantID)
 	mustExecRecipient(t, ctx, pool, `
 		INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES
@@ -43,6 +47,9 @@ func TestEvidenceRecipientLifecycleIsAuditableAtomicAndRevokesSupersededCapabili
 		($3::uuid,$4::uuid,'PERSON','Recipient B','ACTIVE',$5)`,
 		creatorID, recipientA, recipientB, tenantID, now.Add(-24*time.Hour))
 	mustExecRecipient(t, ctx, pool, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'BANK','Lifecycle Test Bank','GB',$3)`, entityID, tenantID, now.Add(-24*time.Hour))
+	mustExecRecipient(t, ctx, pool, `INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,occupant_principal_id,valid_from) VALUES
+		('96666666-6666-7666-8666-666666666667'::uuid,$1::uuid,$2::uuid,'RECIPIENT-B','Recipient B',$3::uuid,$5),
+		('96666666-6666-7666-8666-666666666668'::uuid,$1::uuid,$2::uuid,'REQUESTER','Requester',$4::uuid,$5)`, tenantID, entityID, recipientB, creatorID, now.Add(-24*time.Hour))
 	mustExecRecipient(t, ctx, pool, `INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,jurisdiction,scope,effective_from) VALUES($1::uuid,$2::uuid,$3::uuid,'LIFECYCLE','Lifecycle Test','COMPLIANCE','ACTIVE','Compliance','GB','{}'::jsonb,$4)`, programID, tenantID, entityID, now.Add(-time.Hour))
 
 	repo := NewPostgresRepository(pool)

@@ -27,10 +27,11 @@ func (r *PostgresRepository) listActorRequests(ctx context.Context, tenant, lega
 	rows, err := r.pool.Query(ctx, `
 		SELECT er.id::text,t.id::text,er.legal_entity_id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,
 		       er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,COALESCE(er.form_template_id::text,''),COALESCE(er.form_template_version,0),er.collection_period_start,er.collection_period_end,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at,
-		       COALESCE(er.recipient_type,''),COALESCE(er.recipient_principal_id::text,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
+		       COALESCE(er.recipient_type,''),COALESCE(er.recipient_principal_id::text,''),COALESCE(rp.display_name,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
 		       er.recipient_state,er.recipient_revision,er.recipient_issue_reason
 		FROM capture_requests er
 		JOIN tenants t ON t.id=er.tenant_id
+		LEFT JOIN principals rp ON rp.tenant_id=er.tenant_id AND rp.id=er.recipient_principal_id
 		LEFT JOIN matters m ON er.subject_type='MATTER' AND m.tenant_id=er.tenant_id AND m.id::text=er.subject_id
 		LEFT JOIN programs p ON er.subject_type='PROGRAM' AND p.tenant_id=er.tenant_id AND p.id::text=er.subject_id
 		WHERE (t.id::text=$1 OR t.slug=$1)
@@ -107,12 +108,12 @@ func (r *PostgresRepository) listActorRequests(ctx context.Context, tenant, lega
 func scanRequestWithRecipient(row scanner) (Request, error) {
 	var value Request
 	var facts, fields, sourceBindings []byte
-	var recipientType, principalID, hint, state, issueReason string
+	var recipientType, principalID, displayName, hint, state, issueReason string
 	var audienceHash []byte
 	if err := row.Scan(
 		&value.ID, &value.TenantID, &value.LegalEntityID, &value.SubjectType, &value.SubjectID, &value.Title, &value.Purpose, &value.WhyYou, &value.Sensitivity, &value.AudienceType,
 		&value.EstimatedMinutes, &value.Deadline, &facts, &fields, &sourceBindings, &value.FormTemplateID, &value.FormTemplateVersion, &value.CollectionPeriodStart, &value.CollectionPeriodEnd, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt,
-		&recipientType, &principalID, &audienceHash, &hint, &state, &value.Recipient.Revision, &issueReason,
+		&recipientType, &principalID, &displayName, &audienceHash, &hint, &state, &value.Recipient.Revision, &issueReason,
 	); err != nil {
 		return Request{}, err
 	}
@@ -128,6 +129,7 @@ func scanRequestWithRecipient(row scanner) (Request, error) {
 	value.Recipient = Recipient{
 		Type:         RecipientType(recipientType),
 		PrincipalID:  principalID,
+		DisplayName:  displayName,
 		AudienceHash: append([]byte(nil), audienceHash...),
 		AudienceHint: hint,
 		State:        RecipientState(state),

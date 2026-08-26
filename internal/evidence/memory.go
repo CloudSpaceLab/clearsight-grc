@@ -18,10 +18,15 @@ type MemoryRepository struct {
 	invitations  map[string]Invitation
 	sessions     map[string]Session
 	artifacts    map[string]Artifact
+	candidates   map[string]RecipientCandidate
 }
 
 func NewMemoryRepository(sources []Source, requests []Request) *MemoryRepository {
-	repo := &MemoryRepository{sources: map[string]Source{}, observations: map[string]SourceObservation{}, requests: map[string]Request{}, submissions: map[string]Submission{}, invitations: map[string]Invitation{}, sessions: map[string]Session{}, artifacts: map[string]Artifact{}}
+	return NewMemoryRepositoryWithRecipientCandidates(sources, requests, nil)
+}
+
+func NewMemoryRepositoryWithRecipientCandidates(sources []Source, requests []Request, candidates []RecipientCandidate) *MemoryRepository {
+	repo := &MemoryRepository{sources: map[string]Source{}, observations: map[string]SourceObservation{}, requests: map[string]Request{}, submissions: map[string]Submission{}, invitations: map[string]Invitation{}, sessions: map[string]Session{}, artifacts: map[string]Artifact{}, candidates: map[string]RecipientCandidate{}}
 	for _, source := range sources {
 		repo.sources[source.ID] = source
 	}
@@ -30,6 +35,11 @@ func NewMemoryRepository(sources []Source, requests []Request) *MemoryRepository
 		request.Fields = cloneFields(request.Fields)
 		request.SourceBindings = cloneRequestBindings(request.SourceBindings)
 		repo.requests[request.ID] = request
+	}
+	for _, candidate := range candidates {
+		candidate.LegalEntityIDs = append([]string(nil), candidate.LegalEntityIDs...)
+		candidate.ReadableSubjects = cloneBoolMap(candidate.ReadableSubjects)
+		repo.candidates[candidate.PrincipalID] = candidate
 	}
 	return repo
 }
@@ -451,4 +461,15 @@ func cloneRequest(value Request) Request {
 func pointerTime(value time.Time) *time.Time {
 	copy := value
 	return &copy
+}
+
+func cloneBoolMap(value map[string]bool) map[string]bool {
+	if value == nil {
+		return nil
+	}
+	cloned := make(map[string]bool, len(value))
+	for key, allowed := range value {
+		cloned[key] = allowed
+	}
+	return cloned
 }
