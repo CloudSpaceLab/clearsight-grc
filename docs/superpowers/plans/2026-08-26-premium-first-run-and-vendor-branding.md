@@ -6,7 +6,7 @@
 
 **Architecture:** Extend the canonical onboarding guide resolver with a surface dimension and render both guides through one accessible React component. Extend canonical vendor identity with a hostname-only website domain and a separate, durable brand-asset job/state model. A bounded worker fetches and rasterizes declared website icons through an SSRF-safe transport, stores them in the existing object store, and exposes only same-origin bytes to the browser.
 
-**Tech Stack:** Go 1.24, pgx/PostgreSQL, transactional outbox and leased jobs, React 19, TypeScript, inline SVG, CSS animations, Vitest/Testing Library/axe, Playwright UI review.
+**Tech Stack:** Go 1.25.13, pgx/PostgreSQL, transactional outbox and leased jobs, React 19, TypeScript, inline SVG, CSS animations, Vitest/Testing Library/axe, Playwright UI review.
 
 ---
 
@@ -256,6 +256,10 @@ git commit -m "feat(thirdparty): discover vendor icons safely"
 **Files:**
 - Create: `internal/httpapi/vendor_brand_handlers.go`
 - Create: `internal/httpapi/vendor_brand_handlers_test.go`
+- Create: `internal/thirdparty/vendor_brand_service.go`
+- Create: `internal/thirdparty/vendor_brand_cleanup.go`
+- Create: `migrations/000048_vendor_brand_overrides.up.sql`
+- Create: `migrations/000048_vendor_brand_overrides.down.sql`
 - Modify: `internal/httpapi/route_registry.go`
 - Modify: `internal/httpapi/server.go`
 - Modify: `api/runtime.openapi.json`
@@ -267,10 +271,10 @@ git commit -m "feat(thirdparty): discover vendor icons safely"
 
 - [ ] **Step 1: Write failing API and UI tests**
 
-API tests prove exact tenant/legal-entity vendor visibility, same-origin image bytes, immutable cache metadata, 404 for missing/unavailable assets and no storage key or remote URL disclosure. Command tests prove that domain edits and uploaded overrides use verified actor authority, optimistic versioning, image decoding and material event/outbox persistence. UI tests prove discovered image, monogram fallback, website-domain input validation, pending/unavailable copy, approved upload/remove override and broken-image fallback.
+API tests prove exact tenant/legal-entity vendor visibility, same-origin image bytes, immutable version-token cache metadata, 404 for missing/unavailable assets and no storage key or remote URL disclosure. Command tests prove that domain edits and uploaded overrides use verified actor authority, separate vendor/brand optimistic versions, image decoding and material event/outbox persistence. UI tests prove discovered image, monogram fallback, website-domain input validation, pending/unavailable copy, approved upload/remove override and broken-image fallback.
 
 ```tsx
-expect(screen.getByRole("img", { name: "Northstar Systems icon" })).toHaveAttribute("src", "/api/v1/vendors/vendor-1/brand");
+expect(screen.getByRole("img", { name: "Northstar Systems icon" })).toHaveAttribute("src", expect.stringMatching(/^\/api\/v1\/vendor-identities\/vendor-1\/brand\?version=/));
 expect(container.querySelector('img[src^="http"]')).toBeNull();
 ```
 
@@ -284,7 +288,7 @@ Expected: FAIL because the endpoint and brand rendering are absent.
 
 - [ ] **Step 3: Implement actor-scoped asset read and UI**
 
-Add `GET /api/v1/vendors/{vendor_id}/brand` through the existing verified actor scope. Stream only the stored safe raster, set content type, ETag and bounded cache headers, and never expose storage metadata. Add `PUT /api/v1/vendors/{vendor_id}` for the actor-authorized identity command, `PUT /api/v1/vendors/{vendor_id}/brand` for a bounded PNG/JPEG/WebP override, and `DELETE /api/v1/vendors/{vendor_id}/brand` to restore the latest safe discovered asset. Override commands validate current authority and commit metadata, event and outbox together; raw image bytes are written to versioned storage before the metadata transaction and orphan cleanup is recoverable. Add optional website domain and approved-logo controls to vendor identity editing. Render a 36–44 px icon with `onError` fallback to the existing monogram; state remains visible in text where action is required.
+Add `GET /api/v1/vendor-identities/{vendor_id}` and `GET /api/v1/vendor-identities/{vendor_id}/brand` through the existing verified actor scope. The existing `/api/v1/vendors/{relationship_id}` route remains the service-relationship resource. Stream only the stored safe raster, set content type, ETag and bounded cache headers, and never expose storage metadata. Add `PUT /api/v1/vendor-identities/{vendor_id}` for the actor-authorized identity command, `PUT /api/v1/vendor-identities/{vendor_id}/brand` for a bounded PNG/JPEG/WebP/ICO override, and `DELETE /api/v1/vendor-identities/{vendor_id}/brand` to restore the latest safe discovered asset that matches the current hostname. Override commands validate current authority and brand version. A durable reservation precedes object write; final metadata, event, outbox, receipt and reservation state commit together; a leased cleanup path removes only expired unreferenced objects. Add optional website domain and approved-logo controls to vendor identity editing. Render a 36–44 px icon with `onError` fallback to the existing monogram; state remains visible in text where action is required.
 
 - [ ] **Step 4: Run API, UI, copy and accessibility tests**
 
@@ -312,6 +316,8 @@ git commit -m "feat(vendors): show stored vendor brand icons"
 - Modify: `docs/engineering/ui-use-case-acceptance-matrix.md`
 - Modify: `docs/quality/acceptance-tests.md`
 - Modify: `docs/quality/rendered-ui-evidence.md`
+- Modify: `docs/superpowers/specs/2026-08-26-premium-first-run-and-vendor-branding-design.md`
+- Modify: `docs/superpowers/plans/2026-08-26-premium-first-run-and-vendor-branding.md`
 
 - [ ] **Step 1: Add copy-quality expectations before visible copy changes are accepted**
 
@@ -323,7 +329,7 @@ Document the cinematic panel variant, motion tokens and reduced-motion behavior;
 
 - [ ] **Step 3: Run documentation and schema regression checks**
 
-Run: `rg -n "vendor brand|first-run|reduced motion|website_domain" README.md DESIGN.md docs api/runtime.openapi.json migrations/000047*`
+Run: `rg -n "vendor brand|first-run|reduced motion|website_domain|vendor-identities" README.md DESIGN.md docs api/runtime.openapi.json migrations/000047* migrations/000048*`
 
 Run: `go test ./internal/thirdparty ./internal/httpapi ./internal/onboarding -count=1`
 

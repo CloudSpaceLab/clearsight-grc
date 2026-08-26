@@ -33,6 +33,7 @@ The documentation is layered so product semantics, safety, architecture, experie
 27. [`engineering/enterprise-identity-access.md`](engineering/enterprise-identity-access.md) — focused OSS-first identity, department-aware capabilities and multi-level escalation implementation boundary; supersedes greenfield LDAP/SAML implementation guidance.
 28. [`engineering/demo-role-login.md`](engineering/demo-role-login.md) — non-production stakeholder role catalogue, supplied demo credentials, signed demo session and production isolation boundary.
 29. [`quality/release-gates-and-traceability.md`](quality/release-gates-and-traceability.md), [`quality/rendered-ui-evidence.md`](quality/rendered-ui-evidence.md) and domain acceptance tests.
+30. [`superpowers/specs/2026-08-26-premium-first-run-and-vendor-branding-design.md`](superpowers/specs/2026-08-26-premium-first-run-and-vendor-branding-design.md) — current first-run guidance and vendor identity presentation decision.
 
 ## Canonical precedence
 
@@ -78,7 +79,8 @@ Architecture never overrides the simpler user-facing Program, issue/change, requ
 - Program-status update queue, lag health, reconciliation and governed rebuild;
 - typed Matters for changes, findings, exceptions, requests, actions, responses and outcome checks;
 - point-in-time Program and Matter reconstruction;
-- role-aware onboarding and per-user guide state;
+- surface-aware onboarding for Today and Vendors with per-user, versioned guide state;
+- canonical vendor identities with optional website hostnames, durable brand discovery and protected same-origin icon delivery;
 - compliance Signal ingestion, drift and readiness;
 - non-demo Today projection from active Workflow Tasks assigned to the verified principal;
 - intervention-first Today and progressively disclosed Programs, Work/Evidence and Imports;
@@ -94,7 +96,7 @@ The repository is a strong working foundation and reference MVP. It is not yet a
 
 The enterprise identity/access sequence **EIA-0 through EIA-5 is implemented on PR #59**: OIDC, server sessions, SCIM, department-aware capabilities, governed directory-group mappings, executable multi-level `OVERDUE` escalation, role/group escalation guards, maker-checker guard revisions, and the compact Configure → Identity & Access surface. Demo mode additionally exposes a supplied role catalogue on a dedicated login page; those routes and credentials do not exist when demo mode is disabled.
 
-Current execution truth is maintained in [`implementation-plan.md`](implementation-plan.md). Do not infer capability from historical issue text, a durable table name, a descriptive API schema, or an older branch.
+Current execution truth is maintained in [`implementation-plan.md`](implementation-plan.md). The premium first-run and vendor-branding tranche is implemented in code but remains in verification until its rendered browser evidence and final exact-HEAD gates are recorded. Do not infer capability from historical issue text, a durable table name, a descriptive API schema, or an older branch.
 
 Remaining productization is outside generic IAM: non-`OVERDUE` escalation adapters when real domain events exist, broader enterprise operator surfaces where backend capability already exists, production storage/security/recovery/scale evidence, and representative bank-user acceptance.
 
@@ -116,6 +118,8 @@ Do not collapse these objects while implementing later work:
 - Escalation sequence = ordered responsibility/scope selection, not a hard-coded assignee chain.
 - Escalation role/group guard = candidate restriction, not an authority grant.
 - Demo role credential = non-production fixture, not an enterprise authentication mechanism.
+- Vendor identity = shared vendor organization facts; vendor relationship = one legal-entity-scoped supplied service, owner and lifecycle context.
+- Vendor icon = presentation asset, not evidence of vendor identity, approval, due diligence or compliance.
 
 ## Traceability
 

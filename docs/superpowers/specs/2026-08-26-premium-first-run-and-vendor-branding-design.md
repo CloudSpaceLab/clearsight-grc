@@ -45,6 +45,8 @@ The server resolves only guides that match the verified actor and available capa
 
 The canonical vendor identity gains an optional normalized `website_domain`. It stores a DNS hostname only: no scheme, path, query, fragment, credentials or port. Existing vendors remain valid without it.
 
+Vendor identity and service relationship are separate resources. `/api/v1/vendor-identities/{vendor_id}` addresses the shared organization identity. `/api/v1/vendors/{relationship_id}` continues to address one legal-entity-scoped supplied service, owner and due-diligence context. Changing identity or brand state does not silently change a relationship version.
+
 Brand metadata is separate from the legal identity and records:
 
 - vendor ID and tenant scope;
@@ -55,7 +57,7 @@ Brand metadata is separate from the legal identity and records:
 - retrieved and next-refresh timestamps;
 - whether an approved uploaded override is active.
 
-An uploaded override takes precedence over discovered assets. Removing an override restores the most recent safe discovered asset. When neither exists, the UI renders a stable monogram derived from the legal name.
+An uploaded override takes precedence over discovered assets. Removing an override restores the most recent safe discovered asset that matches the current website hostname. When neither exists, the UI renders a stable monogram derived from the legal name.
 
 ## Discovery and security boundary
 
@@ -72,7 +74,11 @@ Changing a website domain writes the vendor record, event, outbox message and di
 
 Remote SVG is never served as received. HTML, script, data URLs and malformed images are rejected. Retries are idempotent and bounded. Retrieval failure never blocks vendor creation or due diligence.
 
-The API returns a same-origin ClearSight asset URL or monogram seed. It never returns the discovered remote URL as an image source.
+Discovery is enabled by default only for development. Production must opt in with `CLEARSIGHT_VENDOR_BRAND_DISCOVERY_ENABLED` after outbound-network policy is approved. The Vendors workspace remains usable with monograms when discovery is disabled or unavailable.
+
+Approved uploads reserve their content-addressed object before bytes are written. Final asset metadata, append-only brand event, outbox record, idempotency receipt and reservation completion commit together. A leased cleanup path deletes only expired, unreferenced upload objects. Superseded and removed metadata remain reconstructable.
+
+The protected `/api/v1/vendor-identities/{vendor_id}/brand` route returns a same-origin stored PNG. A version token identifies the exact immutable historical asset; the unversioned request resolves the current presentation. The API never returns the discovered remote URL, object-store key, digest or discovery-job identifier as a browser contract.
 
 ## States and copy
 

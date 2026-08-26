@@ -556,7 +556,45 @@ A flow that misses the target requires documented cause, product review, and rem
 
 ---
 
-# 17. AI usefulness release gate
+# 17. Golden Journey N — First vendor visit and identity presentation
+
+## Setup
+
+- the signed-in vendor relationship owner can access the Vendors workspace;
+- one existing vendor has a website hostname and one has no hostname;
+- safe discovery is enabled for the test worker and no remote content is trusted by the browser;
+- the first vendor has a discovered icon and may receive an approved logo override.
+
+## Required path
+
+1. the first Vendors visit shows optional guidance above the usable relationship register;
+2. the owner may start, skip, resume or restart the guide without losing access to vendor work;
+3. the guide opens the existing relationship, due-diligence or vendor-work action allowed for the actor;
+4. the owner edits shared vendor identity without changing the selected service relationship or its version;
+5. saving a valid website hostname schedules bounded icon discovery without blocking the vendor record;
+6. the browser loads only the protected ClearSight brand subresource and falls back to a monogram when the image is absent or fails;
+7. an approved upload replaces the website icon after explicit save;
+8. removing the approved upload restores the latest safe icon for the current hostname, or the monogram when none exists.
+
+## Assertions
+
+- [ ] guide resolution is scoped to verified actor, tenant, surface and guide version;
+- [ ] the cinematic panel is non-modal, keyboard reachable, dismissible and usable at reduced motion and 200% zoom;
+- [ ] navigation and the dominant vendor action remain available when guide persistence is unavailable;
+- [ ] vendor identity and service relationship use separate resource IDs and optimistic versions;
+- [ ] the website field accepts an empty hostname and rejects a scheme, path, credentials, port and IPv4/IPv6 or legacy numeric address;
+- [ ] discovery validates DNS answers, connected addresses and redirects and rejects private, loopback, link-local, reserved, multicast and metadata destinations;
+- [ ] response, timeout, media, decode, dimensions and stored-byte integrity are bounded;
+- [ ] browser markup contains no remote vendor image URL, object-store key, source digest or discovery-job identifier;
+- [ ] an approved-logo reservation is durable before object write, material finalization is idempotent, and an unreferenced object remains recoverable for cleanup;
+- [ ] discovery, approval and removal share one append-only vendor-brand event sequence and preserve historical version reads;
+- [ ] pending, unavailable and monogram states do not change or imply vendor due-diligence, approval or compliance status;
+- [ ] production discovery remains disabled until explicitly enabled by outbound-network policy;
+- [ ] light/dark desktop, tablet, mobile, 200% zoom, reduced-motion, loaded-icon, monogram, pending, unavailable and approved-override renders are inspected before release.
+
+---
+
+# 18. AI usefulness release gate
 
 An AI capability may not ship solely because its outputs appear plausible.
 
@@ -575,7 +613,7 @@ A capability that adds review burden without proportional correctness benefit mu
 
 ---
 
-# 18. Visual regression and golden screens
+# 19. Visual regression and golden screens
 
 Maintain light/dark and relevant breakpoint references for:
 
@@ -610,7 +648,7 @@ Reject uncontrolled density, decorative effects, control walls, module hopping, 
 
 ---
 
-# 19. Final release standard
+# 20. Final release standard
 
 ClearSight passes only when it can:
 

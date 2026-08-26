@@ -10,7 +10,7 @@ ClearSight helps bank compliance, risk, security, privacy, resilience, audit, le
 The repository contains a working application foundation for ongoing Programs and specific issues or changes:
 
 - Go API, durable worker and isolated stateless AI gateway processes;
-- React/Vite **Today, Programs, Work, Imports, Explore and Configure** surfaces;
+- React/Vite **Today, Programs, Vendors, Work, Imports, Explore and Configure** surfaces;
 - PostgreSQL 18 schema and pgx-backed repositories;
 - verified actor context with tenant/query-scope conflict rejection;
 - deterministic authority resolution and routing-integrity checks;
@@ -31,7 +31,8 @@ The repository contains a working application foundation for ongoing Programs an
 - four Nigerian-bank **reference journeys** across privacy, regulatory change, protected authority response and verified remediation;
 - recoverable, opt-in non-production reference-data installation;
 - configurable stakeholder demo mode that remains separate from normal product operation;
-- role-specific onboarding, premium illustrations and semantic vector icons;
+- surface-aware, role-specific onboarding with optional cinematic introductions, premium illustrations and semantic vector icons;
+- canonical vendor identities with optional normalized website domains, same-origin stored icons, approved-logo overrides and deterministic monogram fallback;
 - compliance Signals, drift assessment and readiness;
 - rendered-state and axe accessibility tests enforced in CI;
 - mechanically verified main API and isolated AI gateway route/access contracts, Docker Compose, CI and PostgreSQL integration tests;
@@ -104,6 +105,8 @@ Production refuses to start with demo mode enabled.
 `CLEARSIGHT_DOCUMENT_IMPORT_ALLOW_UNSCANNED_ANALYSIS` separately controls whether deterministic local analysis may run before an approved scanning service marks an artifact available. It defaults to `true` in development and `false` in production.
 
 `CLEARSIGHT_VENDOR_BRAND_DISCOVERY_ENABLED` controls the worker's outbound HTTPS retrieval of public vendor website icons. It defaults to `true` in development and `false` in production. Production deployments must opt in explicitly after approving outbound-network policy; vendor records remain usable with the generated monogram when discovery is disabled or unavailable.
+
+Vendor identity and service relationship remain separate resources. `/api/v1/vendor-identities/{vendor_id}` updates the shared legal identity; relationship routes continue to manage the legal-entity-scoped service, owner and due-diligence context. Brand bytes are returned only through the protected same-origin `/api/v1/vendor-identities/{vendor_id}/brand` route. The browser does not fetch vendor images from external websites.
 
 ## Program status
 

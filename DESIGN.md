@@ -137,6 +137,12 @@ External collection uses the shared request-scoped invitation and capture experi
 
 Internal review shows only the exact scoped response, answer provenance, coverage, artifact scan state, evidence classification, linked canonical findings and version-qualified provisional score. Reviewer conclusion, vendor-relationship activation and deficiency closure remain separate material outcomes. Completed assessments are read-only in the relationship workspace.
 
+### Vendor identity and icon
+
+The vendor identity editor is separate from the service-relationship editor. It changes the shared legal name, trading name, registration reference, jurisdiction and optional website hostname without changing a relationship owner, service, assessment or relationship version. Website input accepts a normalized hostname only; a missing hostname is valid.
+
+Vendor rows and details use a stored safe raster when available and a stable monogram otherwise. An approved logo takes precedence over a discovered website icon. Removing the approved logo restores the latest icon that matches the current website hostname; when no safe icon exists, the monogram remains available. Pending or unavailable retrieval is stated in text and never changes due-diligence or relationship status. Image sources stay on the ClearSight origin.
+
 ### Vendor requests for Programs and issues
 
 A Program or issue or change may link one or more vendor relationships without transferring the bank owner's responsibility. `Request vendor work` uses the existing form revision, invitation, capture, artifact and submission experience. The request keeps one primary Program or Matter target, a concise purpose, a bank owner, a reviewer, a deadline and an immutable sequence of the initial request and any requested changes.
@@ -177,13 +183,15 @@ Responsive work is replacement, not shrinking:
 
 Motion is functional and short: panel entry, expansion, focus, progress and state change. The initiating component owns the motion. Every animation has a reduced-motion fallback and should not delay interaction. No ambient motion around material decisions or alerts.
 
+The Today and Vendors first-run introductions use the shared cinematic panel. Two SVG groups and the action block may enter through opacity and transform only, with each segment no longer than 400 ms. Reduced-motion preference renders the final state immediately. The guide remains non-modal, keeps navigation and work available, and exposes **Start guide** and **Skip for now** without delay. Saved progress is scoped to the actor, tenant, guide and version; a failed save does not block the workspace.
+
 ## Illustration and icons
 
 Illustrations use an editorial, semi-abstract vector language with restrained geometry, soft depth and no mascot personality. They support first-run guidance, empty states, education and completion. Semantic line icons identify recurring object types. Neither replaces labels or status.
 
 Illustration geometry stays shared across themes; palette comes from semantic/theme variables. Each production illustration exposes an accessible title/description rather than a generic unlabeled SVG.
 
-Populated default Today, Programs, Work, Evidence and Configure states do not use decorative hero illustrations. Their primary visual hierarchy comes from the human gate, status, evidence and next action.
+Populated repeat-visit Today, Programs, Vendors, Work, Evidence and Configure states do not use decorative hero illustrations. The optional first-run cinematic panel is the bounded exception; its operational sequence and actions are also present as HTML. Primary visual hierarchy still comes from the human gate, status, evidence and next action.
 
 ## Design proof
 

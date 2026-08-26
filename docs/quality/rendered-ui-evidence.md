@@ -58,6 +58,20 @@ The current suite exercises **61 deterministic rendered states/interactions** ac
 - response review, change-request preparation and accepted request history with one dominant action for the current state;
 - vendor-work response review at 390px and 320px, with answer, value and provenance stacked instead of compressed into desktop columns.
 
+## Pending premium first-run and vendor-brand evidence
+
+The code path for the premium first-run and vendor-branding tranche is present, but these renders are not included in the **61** accepted captures above. Final visual acceptance must add and inspect:
+
+- Today first-run introduction in dark and light themes, including a dark 1600×900 presentation-cover capture with the sidebar and current-work context visible;
+- Vendors first-run introduction with a populated register and with an empty register;
+- desktop 1440px, tablet 1024px and 768px, mobile 390px and 320px replacement layouts;
+- actual browser reduced-motion behavior and the 200% zoom approximation, with guide actions and workspace navigation still reachable;
+- discovered website icon, approved logo, pending retrieval, unavailable icon and broken-image monogram fallback;
+- vendor identity edit with hostname validation, staged image metadata, optimistic conflict, permission failure and retry-preserving error states;
+- removal of an approved logo with the restored website icon and with monogram fallback when no matching discovered icon exists.
+
+The presentation-cover file and updated capture manifest remain pending until the exact-HEAD browser run is complete. Unit, semantic or screenshot-generation success alone must not change this section to accepted evidence.
+
 Mechanical checks fail CI for conditions such as unexpected horizontal overflow, browser runtime errors, loss of the first Today action from the unobstructed first viewport, focus escaping a focused-work sheet, authority-detail leakage in a forbidden state, terminal requests exposing submission actions, degraded views hiding still-available context, external capture asking for a known address again, or a required field-agent happy path depending on free-text explanation.
 
 The suite deliberately uses production-shaped readiness and import fixtures rather than inventing stronger product truth. Static fixture schemas for authority, projection health, evidence capture and reconciliation are test-locked to the browser contracts they exercise.
