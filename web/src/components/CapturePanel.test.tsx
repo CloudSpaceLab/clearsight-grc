@@ -186,6 +186,14 @@ describe("CapturePanel", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
+  it("shows external respondents the deadline, data boundary and recovery path before the form", () => {
+    render(<CapturePanel request={request} external/>);
+
+    expect(screen.getByText(/Due 9 Aug 2027/)).toBeTruthy();
+    expect(screen.getByText("Your answers and files are shared with the organization that sent this request.")).toBeTruthy();
+    expect(screen.getByText("For changes to the request or your access, contact the person who sent this link.")).toBeTruthy();
+  });
+
   it("submits typed vendor-document metadata with the uploaded artifact", async () => {
     const submit = vi.fn().mockResolvedValue({ submitted_at: "2026-08-07T21:30:00Z" });
     const upload = vi.fn().mockResolvedValue({ id: "artifact-certificate", request_id: request.id, file_name: "iso.pdf", media_type: "application/pdf", size_bytes: 2400, sha256: "hash", status: "STORED_UNSCANNED" });

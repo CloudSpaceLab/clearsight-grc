@@ -59,6 +59,9 @@
 .external-capture-entry form { display: grid; gap: 14px; }
 .external-capture-entry > small { display: block; margin-top: 16px; color: var(--muted); }
 .external-session-hint { margin: -4px 0 14px; color: var(--muted); font-size: 11px; }
+.external-request-context { display: grid; gap: 5px; margin: 18px 0; padding: 13px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+.external-request-context strong { color: var(--text); font-size: 13px; }
+.external-request-context span { color: var(--muted); font-size: 12px; line-height: 1.45; }
 .external-capture-work .panel-content { padding: 0; }
 @media (max-width: 600px) {
   .external-capture-shell { padding-top: 14px; padding-bottom: 28px; }

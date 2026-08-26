@@ -292,6 +292,11 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
 
   return <div className="panel-content">
     <span className="eyebrow">{external ? "Response request" : "Evidence request"} · about {request.estimated_minutes} min</span><h2>{request.title}</h2><p>{request.purpose}</p>
+    {external && <div className="external-request-context" aria-label="Request details">
+      <strong>Due {formatCaptureDeadline(request.deadline)}</strong>
+      <span>Your answers and files are shared with the organization that sent this request.</span>
+      <span>For changes to the request or your access, contact the person who sent this link.</span>
+    </div>}
     <div className="why-you"><strong>Why this was sent to you</strong><span>{request.why_you}</span></div>
     {Object.keys(request.known_facts).length > 0 && <><h3>Already filled in</h3><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl></>}
     {external && sessionToken && <DraftStatus state={draftState} onRetry={() => void retryDraftSave()}/>}
@@ -317,6 +322,11 @@ function TerminalRequest({ request, status }: { request: CaptureRequest; status:
 function currentRequest(isMounted: boolean, activeKey: string, operationKey: string) { return isMounted && activeKey === operationKey; }
 function revokeAllPreviews(values: Record<string, string>) { if (typeof URL.revokeObjectURL !== "function") return; for (const value of Object.values(values)) URL.revokeObjectURL(value); }
 function isPastDeadline(request: CaptureRequest) { const deadline = Date.parse(request.deadline); return Number.isFinite(deadline) && deadline <= Date.now(); }
+function formatCaptureDeadline(value: string) {
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return "not recorded";
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" }).format(new Date(parsed));
+}
 function errorMessage(kind: ApiErrorKind, cause: unknown) { if (kind === "conflict") return "This request changed while you were working. Reload it before submitting. Your current entries remain on this screen."; if (kind === "forbidden" || kind === "unauthorized") return "Your access to this request has ended. Ask the sender to confirm your access or send a new link."; if (kind === "not_found") return "This request is no longer available."; if (kind === "unavailable") return "The response could not be submitted right now. Your entries remain on this screen."; return cause instanceof Error ? cause.message : "The response could not be submitted."; }
 function humanize(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); }
 function captureDraftSnapshot(answers: CaptureAnswers, mode: CapturePresentationMode) { return JSON.stringify({ answers, mode }); }
