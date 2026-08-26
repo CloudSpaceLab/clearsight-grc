@@ -77,7 +77,7 @@ func newReviewHTTPFixture(t *testing.T, includeDocument ...bool) reviewHTTPFixtu
 	base.service.ConfigureCompletionReadiness(reviews)
 	handler := New(Dependencies{
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory",
-		Identity:   identity.NewDevelopmentAuthenticator("bank", "verified-reviewer", "entity-a"),
+		Identity:   identity.NewDevelopmentAuthenticator("bank", "verified-reviewer", "entity-a", "REVIEWER"),
 		ThirdParty: base.serviceRepositoryService(), ThirdPartyAssessments: base.service, ThirdPartyAssessmentReviews: reviews,
 	})
 	return reviewHTTPFixture{handler: handler, base: base, assessment: submitted}
@@ -157,7 +157,7 @@ func TestGetVendorAssessmentReviewUsesVerifiedScopeAndOmitsProtectedCaptureField
 	}
 
 	wrongScope := New(Dependencies{
-		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "verified-reviewer", "entity-b"),
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "verified-reviewer", "entity-b", "REVIEWER"),
 		ThirdPartyAssessments:       fixture.base.service,
 		ThirdPartyAssessmentReviews: thirdparty.NewAssessmentReviewService(fixture.base.service, fixture.base.repository, fixture.base.evidence, nil),
 	})
@@ -177,7 +177,7 @@ func TestGetVendorAssessmentReviewRejectsUnrelatedSameScopePrincipal(t *testing.
 		Principal: authority.Principal{ID: "verified-reviewer", Kind: "PERSON"}, Priority: 1,
 	}}))
 	handler := New(Dependencies{
-		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "unrelated-principal", "entity-a"),
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "unrelated-principal", "entity-a", "REVIEWER"),
 		ThirdPartyAssessments:       fixture.base.service,
 		ThirdPartyAssessmentReviews: reviews,
 	})

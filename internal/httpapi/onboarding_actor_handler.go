@@ -19,7 +19,7 @@ func (a *API) actorOnboardingGuide(w http.ResponseWriter, r *http.Request) {
 	if surface == "" {
 		surface = onboarding.SurfaceToday
 	}
-	resolved, err := a.deps.Onboarding.ResolveRolesForSurface(actor.RoleCodes, surface)
+	resolved, err := a.deps.Onboarding.ResolveRolesForSurface(actor.RoleCodes, actor.PermissionCodes, surface)
 	if err != nil {
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "Guide not found.")
 		return

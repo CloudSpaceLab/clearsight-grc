@@ -1,12 +1,17 @@
 package onboarding
 
-import "time"
+import (
+	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+)
 
 type Surface string
 
 const (
-	SurfaceToday   Surface = "TODAY"
-	SurfaceVendors Surface = "VENDORS"
+	SurfaceToday         Surface = "TODAY"
+	SurfaceVendors       Surface = "VENDORS"
+	VendorReadCapability         = identity.PermissionVendorRead
 )
 
 type Step struct {
@@ -21,17 +26,18 @@ type Step struct {
 }
 
 type Guide struct {
-	Code         string   `json:"code"`
-	Surface      Surface  `json:"surface"`
-	Profile      string   `json:"profile"`
-	Role         string   `json:"role"`
-	RoleCodes    []string `json:"role_codes,omitempty"`
-	Priority     int      `json:"priority,omitempty"`
-	Version      int      `json:"version"`
-	Title        string   `json:"title"`
-	Description  string   `json:"description"`
-	Illustration string   `json:"illustration"`
-	Steps        []Step   `json:"steps"`
+	Code               string   `json:"code"`
+	Surface            Surface  `json:"surface"`
+	RequiredCapability string   `json:"required_capability,omitempty"`
+	Profile            string   `json:"profile"`
+	Role               string   `json:"role"`
+	RoleCodes          []string `json:"role_codes,omitempty"`
+	Priority           int      `json:"priority,omitempty"`
+	Version            int      `json:"version"`
+	Title              string   `json:"title"`
+	Description        string   `json:"description"`
+	Illustration       string   `json:"illustration"`
+	Steps              []Step   `json:"steps"`
 }
 
 type State struct {

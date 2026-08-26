@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 func TestOnboardingStateVersioning(t *testing.T) {
@@ -48,14 +50,14 @@ func TestCompletedGuideMustReachFinalStep(t *testing.T) {
 
 func TestGuideResolutionUsesRolePriorityAndFallbackOnToday(t *testing.T) {
 	service := NewService(NewMemoryRepository())
-	guide, err := service.ResolveRolesForSurface([]string{"program owner", "cro"}, SurfaceToday)
+	guide, err := service.ResolveRolesForSurface([]string{"program owner", "cro"}, nil, SurfaceToday)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if guide.Code != "executive-first-run" {
 		t.Fatalf("expected executive priority, got %s", guide.Code)
 	}
-	guide, err = service.ResolveRolesForSurface(nil, SurfaceToday)
+	guide, err = service.ResolveRolesForSurface(nil, nil, SurfaceToday)
 	if err != nil || guide.Code != "general-first-run" {
 		t.Fatalf("expected general fallback, guide=%#v err=%v", guide, err)
 	}
@@ -63,15 +65,22 @@ func TestGuideResolutionUsesRolePriorityAndFallbackOnToday(t *testing.T) {
 
 func TestGuideResolutionUsesVendorSurfaceForBusinessOwner(t *testing.T) {
 	service := NewService(NewMemoryRepository())
-	guide, err := service.ResolveRolesForSurface([]string{"BUSINESS_OWNER"}, SurfaceVendors)
-	if err != nil || guide.Code != "vendor-operations-first-run" || guide.Surface != SurfaceVendors {
+	guide, err := service.ResolveRolesForSurface([]string{"BUSINESS_OWNER"}, []string{identity.PermissionVendorRead}, SurfaceVendors)
+	if err != nil || guide.Code != "vendor-operations-first-run" || guide.Surface != SurfaceVendors || guide.RequiredCapability != identity.PermissionVendorRead {
 		t.Fatalf("vendor guide = %#v, %v", guide, err)
+	}
+}
+
+func TestGuideResolutionRejectsVendorGuideWithoutRequiredPermission(t *testing.T) {
+	service := NewService(NewMemoryRepository())
+	if _, err := service.ResolveRolesForSurface([]string{"BUSINESS_OWNER"}, nil, SurfaceVendors); err == nil {
+		t.Fatal("expected vendor guide without permission to fail")
 	}
 }
 
 func TestGuideResolutionRejectsUnknownSurface(t *testing.T) {
 	service := NewService(NewMemoryRepository())
-	if _, err := service.ResolveRolesForSurface([]string{"BUSINESS_OWNER"}, "UNKNOWN"); err == nil {
+	if _, err := service.ResolveRolesForSurface([]string{"BUSINESS_OWNER"}, nil, "UNKNOWN"); err == nil {
 		t.Fatal("expected unknown surface to fail")
 	}
 }

@@ -35,16 +35,20 @@ func (s *Service) Guide(role, code string) (Guide, error) {
 }
 
 func (s *Service) ResolveRoles(roleCodes []string) (Guide, error) {
-	return s.ResolveRolesForSurface(roleCodes, SurfaceToday)
+	return s.ResolveRolesForSurface(roleCodes, nil, SurfaceToday)
 }
 
-func (s *Service) ResolveRolesForSurface(roleCodes []string, surface Surface) (Guide, error) {
+func (s *Service) ResolveRolesForSurface(roleCodes, permissionCodes []string, surface Surface) (Guide, error) {
 	if !validSurface(surface) {
 		return Guide{}, fmt.Errorf("guide surface not found")
 	}
 	roles := normalizeRoles(roleCodes)
+	permissions := normalizeRoles(permissionCodes)
 	for _, guide := range s.guides {
 		if guide.Surface != surface {
+			continue
+		}
+		if _, required := permissions[normalizeRole(guide.RequiredCapability)]; guide.RequiredCapability != "" && !required {
 			continue
 		}
 		if len(guide.RoleCodes) == 0 {
@@ -57,7 +61,10 @@ func (s *Service) ResolveRolesForSurface(roleCodes []string, surface Surface) (G
 		}
 	}
 	for _, guide := range s.guides {
-		if guide.Surface == surface && len(guide.RoleCodes) == 0 {
+		if guide.Surface != surface || guide.RequiredCapability != "" || len(guide.RoleCodes) != 0 {
+			continue
+		}
+		if len(guide.RoleCodes) == 0 {
 			return guide, nil
 		}
 	}
@@ -213,7 +220,7 @@ func DemoGuides() []Guide {
 		},
 		{
 			Code: "vendor-operations-first-run", Surface: SurfaceVendors, Profile: "vendor-operations", Role: "Vendor relationship owner",
-			RoleCodes: []string{"BUSINESS_OWNER"}, Priority: 100, Version: 1,
+			RoleCodes: []string{"BUSINESS_OWNER"}, RequiredCapability: VendorReadCapability, Priority: 100, Version: 1,
 			Title: "Manage vendor relationships", Description: "Record the service, collect missing information and route vendor work for review.", Illustration: "guided-orbit",
 			Steps: []Step{
 				{ID: "register", Title: "Review the vendor register", Description: "Check the supplied service, owner and current relationship state.", Action: "Review vendors", View: "vendors", Target: "vendor-register"},

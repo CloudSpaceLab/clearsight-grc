@@ -77,3 +77,18 @@ func TestDevelopmentSystemAdminIncludesIdentityAdministrationCapabilities(t *tes
 		t.Fatalf("development system admin missing identity administration permissions: %#v", actor.PermissionCodes)
 	}
 }
+
+func TestDevelopmentAuthenticatorGrantsVendorReadToOperationalRoles(t *testing.T) {
+	for _, role := range []string{"BUSINESS_OWNER", "GRC_ADMIN", "THIRD_PARTY_ADMIN"} {
+		t.Run(role, func(t *testing.T) {
+			authenticator := NewDevelopmentAuthenticator("bank", "principal", "entity", role)
+			actor, present, err := authenticator.Authenticate(httptest.NewRequest("GET", "https://example.test/api/v1/vendors", nil))
+			if err != nil || !present {
+				t.Fatalf("development identity missing: present=%v err=%v", present, err)
+			}
+			if !HasPermission(actor, PermissionVendorRead) {
+				t.Fatalf("%s lacks vendor read: %#v", role, actor.PermissionCodes)
+			}
+		})
+	}
+}

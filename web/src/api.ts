@@ -26,6 +26,9 @@ export type RuntimeContext = {
     role_codes?: string[];
     department_grants?: DepartmentGrant[];
   };
+  capabilities?: {
+    vendor_read?: boolean;
+  };
   mode: string;
 };
 
