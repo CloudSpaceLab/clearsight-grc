@@ -17,8 +17,7 @@ export function validateWebsiteDomain(value: string): string | undefined {
 export function normalizeWebsiteDomain(value: string): string | undefined {
   const candidate = value.trim();
   if (!candidate || candidate.length > vendorIdentityLimits.websiteDomain || candidate.endsWith(".") || /[\/\\@:#?\[\]%]/.test(candidate)) return undefined;
-  const suppliedLabels = candidate.split(".");
-  if (suppliedLabels.length <= 4 && suppliedLabels.every((label) => /^(?:0x[0-9a-f]+|[0-9]+)$/i.test(label))) return undefined;
+  if (looksLikeNumericHost(candidate)) return undefined;
   let hostname: string;
   try {
     hostname = new URL(`https://${candidate}`).hostname;
@@ -27,9 +26,15 @@ export function normalizeWebsiteDomain(value: string): string | undefined {
   }
   hostname = hostname.toLowerCase();
   if (!hostname || hostname.length > vendorIdentityLimits.websiteDomain) return undefined;
+  if (looksLikeNumericHost(hostname)) return undefined;
   const labels = hostname.split(".");
   if (labels.some((label) => !/^(?!-)[a-z0-9-]{1,63}(?<!-)$/i.test(label))) {
     return undefined;
   }
   return hostname;
+}
+
+function looksLikeNumericHost(value: string) {
+  const labels = value.split(".");
+  return labels.length <= 4 && labels.every((label) => /^(?:0x[0-9a-f]+|[0-9]+)$/i.test(label));
 }

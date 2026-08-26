@@ -29,6 +29,8 @@ describe("validateWebsiteDomain", () => {
     "0x7f.0.0.0x1",
     "0300.0250.0001.0001",
     "127.0x0.01",
+    "１２７．０．０．１",
+    "０ｘ７ｆ．０．０．１",
     "[2001:db8::1]",
     "-vendor.example",
     "vendor_.example",

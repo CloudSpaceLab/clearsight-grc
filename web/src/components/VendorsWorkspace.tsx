@@ -386,7 +386,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   }
 
   async function loadMoreRelationships() {
-    if (!nextCursor || loadingMore) return;
+    if (mode !== "browse" || !nextCursor || loadingMore) return;
     setLoadingMore(true);
     setLoadMoreError(false);
     try {
@@ -402,6 +402,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
 
   function searchRelationships(event: React.FormEvent) {
     event.preventDefault();
+    if (mode !== "browse") return;
     const search = query.trim();
     setSubmittedQuery(search);
     setSelected(null);
@@ -410,6 +411,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   }
 
   function choose(record: VendorRelationshipAggregate) {
+    if (mode !== "browse") return;
     setSelected(record); setMode("browse"); setNotice(""); setFormError(""); onTarget?.(record.relationship.id);
   }
 
@@ -514,24 +516,31 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     }
   }
 
-  const workspaceClass = `vendors-workspace${mode !== "browse" ? " is-form" : selected ? " has-selection" : ""}`;
+  const registerLocked = mode !== "browse";
+  const registerLockMessage = mode === "create"
+    ? "Add or cancel this vendor relationship before using the register."
+    : mode === "edit"
+      ? "Save or cancel this vendor relationship before using the register."
+      : "Save or cancel these vendor details before using the register.";
+  const workspaceClass = `vendors-workspace${registerLocked ? " is-form" : selected ? " has-selection" : ""}`;
   return <div className={workspaceClass} tabIndex={-1}>
     <header className="topbar vendors-topbar">
       <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Vendors</h1><p>Manage vendors and the services they supply to {legalEntityName}. Review each relationship&apos;s owner, criticality and due-diligence status.</p></div>
-      {mode !== "create" && mode !== "edit-identity" && <button id="vendor-add-action" type="button" className={selected ? "secondary-button" : "primary-button"} onClick={startCreate} disabled={state !== "live"}>Add vendor</button>}
+      {mode === "browse" && <button id="vendor-add-action" type="button" className={selected ? "secondary-button" : "primary-button"} onClick={startCreate} disabled={state !== "live"}>Add vendor</button>}
     </header>
 
     {notice && <p className="vendor-notice" role="status">{notice}</p>}
     {state === "loading" && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships for {legalEntityName}…</div>}
     {state === "unavailable" && <section className="vendor-state" role="alert"><h2>Vendor records are unavailable</h2><p>The vendor register for {legalEntityName} could not be loaded. Try again before adding or changing a record.</p><button className="secondary-button" type="button" onClick={() => void refresh(targetID, "")}>Try again</button></section>}
     {state === "live" && <div className="vendor-layout">
-      <section className="vendor-register" aria-label={`Vendor relationships for ${legalEntityName}`}>
+      <section className="vendor-register" aria-label={`Vendor relationships for ${legalEntityName}`} aria-describedby={registerLocked ? "vendor-register-lock-note" : undefined}>
         <div className="vendor-register-header"><div><h2>Vendor register</h2><p>{submittedQuery ? `Showing ${records.length} matching ${records.length === 1 ? "relationship" : "relationships"}` : `Showing ${records.length} ${records.length === 1 ? "relationship" : "relationships"} in this legal entity`}</p>{nextCursor && <small>More relationships are available.</small>}</div></div>
-        <form className="vendor-search" onSubmit={searchRelationships}><label><span>Search vendors and services</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name, service or reference"/></label><button type="submit" className="secondary-button">Search vendors</button></form>
-        {records.length > 0 ? <div className="vendor-list">{records.map((record) => <button type="button" key={record.relationship.id} aria-label={`${record.vendor.legal_name}, ${record.relationship.service_name}`} aria-current={selected?.relationship.id === record.relationship.id ? "true" : undefined} className={selected?.relationship.id === record.relationship.id ? "vendor-row selected" : "vendor-row"} onClick={() => choose(record)}>
+        {registerLocked && <p id="vendor-register-lock-note" className="vendor-register-lock-note">{registerLockMessage}</p>}
+        <form className="vendor-search" onSubmit={searchRelationships}><label><span>Search vendors and services</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name, service or reference" disabled={registerLocked}/></label><button type="submit" className="secondary-button" disabled={registerLocked}>Search vendors</button></form>
+        {records.length > 0 ? <div className="vendor-list">{records.map((record) => <button type="button" key={record.relationship.id} aria-label={`${record.vendor.legal_name}, ${record.relationship.service_name}`} aria-current={selected?.relationship.id === record.relationship.id ? "true" : undefined} className={selected?.relationship.id === record.relationship.id ? "vendor-row selected" : "vendor-row"} onClick={() => choose(record)} disabled={registerLocked}>
           <VendorBrandIcon vendorID={record.vendor.id} legalName={record.vendor.legal_name} brand={record.brand} decorative/><span className="vendor-row-main"><strong>{record.vendor.legal_name}</strong><span>Service: {record.relationship.service_name}</span></span><span className={`vendor-criticality criticality-${record.relationship.criticality.toLowerCase()}`}>{humanize(record.relationship.criticality)}</span>
-        </button>)}</div> : submittedQuery ? <div className="vendor-empty"><h3>No vendor relationships match this search.</h3><p>No legal name, service, registration or source reference matched “{submittedQuery}” in {legalEntityName}.</p><button type="button" className="secondary-button" onClick={() => { setQuery(""); setSubmittedQuery(""); void refresh(undefined, ""); }}>Clear search</button></div> : <div className="vendor-empty"><h3>No vendor relationships found for {legalEntityName}.</h3><p>Add the first vendor and the service it supplies. Use <strong>Add vendor</strong> above; the signed-in actor becomes the initial accountable owner.</p></div>}
-        {nextCursor && <button type="button" className="secondary-button" disabled={loadingMore} onClick={() => void loadMoreRelationships()}>{loadingMore ? "Loading…" : "Load more vendors"}</button>}
+        </button>)}</div> : submittedQuery ? <div className="vendor-empty"><h3>No vendor relationships match this search.</h3><p>No legal name, service, registration or source reference matched “{submittedQuery}” in {legalEntityName}.</p><button type="button" className="secondary-button" onClick={() => { setQuery(""); setSubmittedQuery(""); void refresh(undefined, ""); }} disabled={registerLocked}>Clear search</button></div> : <div className="vendor-empty"><h3>No vendor relationships found for {legalEntityName}.</h3><p>Add the first vendor and the service it supplies. Use <strong>Add vendor</strong> above; the signed-in actor becomes the initial accountable owner.</p></div>}
+        {nextCursor && <button type="button" className="secondary-button" disabled={registerLocked || loadingMore} onClick={() => void loadMoreRelationships()}>{loadingMore ? "Loading…" : "Load more vendors"}</button>}
         {loadMoreError && <p role="alert" className="inline-error">More vendor relationships could not be loaded. The current results remain available.</p>}
       </section>
 

@@ -7,6 +7,7 @@
 .vendor-register-header { padding:20px 20px 4px; }
 .vendor-register-header p { margin:5px 0 0; font-size:12px; }
 .vendor-register-header small { display:block; margin-top:4px; color:var(--muted); font-size:11px; }
+.vendor-register-lock-note { margin:12px 20px 0; padding:10px 12px; border:1px solid color-mix(in srgb,var(--cyan) 24%,var(--border)); border-radius:10px; background:color-mix(in srgb,var(--cyan) 7%,var(--surface-2)); color:var(--muted); font-size:12px; line-height:1.45; }
 .vendor-search { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:end; padding:14px 20px 18px; color:var(--muted); font-size:12px; }
 .vendor-search label { display:grid; gap:6px; }
 .vendor-search input,.vendor-field input,.vendor-field select { width:100%; min-height:42px; border:1px solid var(--border); border-radius:10px; background:var(--surface-2); color:var(--text); padding:0 12px; }

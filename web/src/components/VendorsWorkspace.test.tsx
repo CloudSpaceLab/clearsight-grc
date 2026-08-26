@@ -670,6 +670,21 @@ describe("VendorsWorkspace", () => {
     expect(service.value).toBe("Card processing and settlement");
   });
 
+  it("keeps a relationship draft open while register navigation is unavailable", async () => {
+    const second = { ...record, vendor: { ...record.vendor, id: "vendor-2", legal_name: "Beacon Hosting Limited" }, relationship: { ...record.relationship, id: "relationship-2", vendor_id: "vendor-2", service_name: "Cloud hosting" } };
+    vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [record, second] });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Edit vendor relationship" }));
+    const service = screen.getByLabelText("Service supplied") as HTMLInputElement;
+    fireEvent.change(service, { target: { value: "Card processing draft" } });
+    expect(screen.queryByRole("button", { name: "Add vendor" })).toBeNull();
+    expect((screen.getByRole("searchbox", { name: "Search vendors and services" }) as HTMLInputElement).disabled).toBe(true);
+    const otherVendor = screen.getByRole("button", { name: "Beacon Hosting Limited, Cloud hosting" }) as HTMLButtonElement;
+    expect(otherVendor.disabled).toBe(true);
+    fireEvent.click(otherVendor);
+    expect(service.value).toBe("Card processing draft");
+  });
+
   it("updates only relationship-scoped fields", async () => {
     vi.mocked(updateVendorRelationship).mockResolvedValue({ ...record, relationship: { ...record.relationship, service_name: "Card settlement", version: 2 } });
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
@@ -757,12 +772,23 @@ describe("VendorsWorkspace", () => {
   });
 
   it("keeps the vendor draft open and removes Add vendor while editing shared details", async () => {
+    const second = { ...record, vendor: { ...record.vendor, id: "vendor-2", legal_name: "Beacon Hosting Limited" }, relationship: { ...record.relationship, id: "relationship-2", vendor_id: "vendor-2", service_name: "Cloud hosting" } };
+    vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [record, second] });
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
     const legalName = await screen.findByLabelText("Legal name") as HTMLInputElement;
     fireEvent.change(legalName, { target: { value: "Acme Payments draft" } });
     expect(screen.queryByRole("button", { name: "Add vendor" })).toBeNull();
     expect(screen.getByRole("button", { name: "Return to relationship" })).toBeTruthy();
+    const searchInput = screen.getByRole("searchbox", { name: "Search vendors and services" }) as HTMLInputElement;
+    const searchButton = screen.getByRole("button", { name: "Search vendors" }) as HTMLButtonElement;
+    const otherVendor = screen.getByRole("button", { name: "Beacon Hosting Limited, Cloud hosting" }) as HTMLButtonElement;
+    expect(searchInput.disabled).toBe(true);
+    expect(searchButton.disabled).toBe(true);
+    expect(otherVendor.disabled).toBe(true);
+    fireEvent.submit(searchButton.closest("form")!);
+    fireEvent.click(otherVendor);
+    expect(loadVendorRelationships).toHaveBeenCalledOnce();
     expect(legalName.value).toBe("Acme Payments draft");
   });
 
