@@ -91,6 +91,17 @@ describe("EvidenceWorkspace response authority", () => {
     expect(screen.getByText("The external recipient must respond through the active invitation.")).toBeTruthy();
   });
 
+  it("uses the invitation workflow for a vendor audience", () => {
+    renderWorkspace(request({
+      audience_type: "VENDOR",
+      recipient: { type: "EXTERNAL_AUDIENCE", audience_hint: "c***@supplier.example", state: "ASSIGNED" },
+    }), "requester-1");
+
+    expect(screen.queryByRole("button", { name: "Open request" })).toBeNull();
+    expect(screen.getByText("The external recipient must respond through the active invitation.")).toBeTruthy();
+    expect(screen.getByText("External recipient")).toBeTruthy();
+  });
+
   it("offers the response control only to the exact assigned internal recipient", () => {
     const { onOpenRequest } = renderWorkspace(request(), "recipient-1");
 
