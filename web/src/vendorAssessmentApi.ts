@@ -11,7 +11,8 @@ import type {
   StartVendorAssessmentReviewInput,
   VendorAssessment,
   VendorAssessmentClarificationInput,
-  VendorAssessmentFinding,
+  VendorAssessmentClarificationOutcome,
+  VendorAssessmentDeficiencyOutcome,
   VendorAssessmentReviewView,
   VendorAssessmentSendOutcome,
   VendorAssessmentSetupRetryOutcome,
@@ -64,8 +65,8 @@ export function startVendorAssessmentReview(assessmentID: string, input: StartVe
   });
 }
 
-export function requestVendorAssessmentClarification(assessmentID: string, input: VendorAssessmentClarificationInput): Promise<VendorAssessment> {
-  return requestJSON<VendorAssessment>(apiBase, `/api/v1/vendor-assessments/${encodeURIComponent(assessmentID)}/clarifications`, {
+export function requestVendorAssessmentClarification(assessmentID: string, input: VendorAssessmentClarificationInput): Promise<VendorAssessmentClarificationOutcome> {
+  return requestJSON<VendorAssessmentClarificationOutcome>(apiBase, `/api/v1/vendor-assessments/${encodeURIComponent(assessmentID)}/clarifications`, {
     method: "POST",
     body: JSON.stringify(input),
   });
@@ -78,8 +79,8 @@ export function reviewVendorAssessmentDocument(assessmentID: string, artifactID:
   });
 }
 
-export function createVendorAssessmentDeficiency(assessmentID: string, input: CreateVendorAssessmentDeficiencyInput): Promise<VendorAssessmentFinding> {
-  return requestJSON<VendorAssessmentFinding>(apiBase, `/api/v1/vendor-assessments/${encodeURIComponent(assessmentID)}/deficiencies`, {
+export function createVendorAssessmentDeficiency(assessmentID: string, input: CreateVendorAssessmentDeficiencyInput): Promise<VendorAssessmentDeficiencyOutcome> {
+  return requestJSON<VendorAssessmentDeficiencyOutcome>(apiBase, `/api/v1/vendor-assessments/${encodeURIComponent(assessmentID)}/deficiencies`, {
     method: "POST",
     body: JSON.stringify(input),
   });

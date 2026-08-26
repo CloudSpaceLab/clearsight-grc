@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
-import { completeVendorAssessment, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, retryVendorAssessmentSetup, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview } from "../vendorAssessmentApi";
+import { completeVendorAssessment, createVendorAssessmentDeficiency, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, requestVendorAssessmentClarification, retryVendorAssessmentSetup, reviewVendorAssessmentDocument, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview } from "../vendorAssessmentApi";
 import type { VendorAssessment, VendorAssessmentReviewView } from "../vendorAssessmentTypes";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
@@ -19,10 +19,13 @@ vi.mock("../vendorApi", () => ({
 vi.mock("../monitoringApi", () => ({ loadFormTemplates: vi.fn() }));
 vi.mock("../vendorAssessmentApi", () => ({
   completeVendorAssessment: vi.fn(),
+  createVendorAssessmentDeficiency: vi.fn(),
   loadCurrentVendorAssessment: vi.fn(),
   loadVendorAssessment: vi.fn(),
   reissueVendorAssessmentRequest: vi.fn(),
+  requestVendorAssessmentClarification: vi.fn(),
   retryVendorAssessmentSetup: vi.fn(),
+  reviewVendorAssessmentDocument: vi.fn(),
   sendVendorAssessmentRequest: vi.fn(),
   startVendorAssessment: vi.fn(),
   startVendorAssessmentReview: vi.fn(),
@@ -252,6 +255,70 @@ describe("VendorsWorkspace", () => {
       rationale: "Proceed after the recorded access-control action is complete.",
     })));
     expect(await screen.findByText("Assessment conclusion recorded. The vendor relationship status has not changed.")).toBeTruthy();
+  });
+
+  it("sends clarification through the secure outcome contract and clears the raw audience", async () => {
+    vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: assessment("UNDER_REVIEW") });
+    vi.mocked(loadVendorAssessment).mockResolvedValue(review("UNDER_REVIEW"));
+    vi.mocked(requestVendorAssessmentClarification).mockResolvedValue({
+      assessment: { ...assessment("COLLECTING"), version: 4, current_request_id: "request-2" },
+      state: "DELIVERED",
+    });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1" onOpenRequest={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Request clarification" }));
+    fireEvent.click(screen.getByLabelText("Independent security testing"));
+    fireEvent.change(screen.getByLabelText("What the vendor must provide"), { target: { value: "Provide the current independent test report." } });
+    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
+    fireEvent.change(screen.getByLabelText("Response due date"), { target: { value: "2099-09-12" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send clarification request" }));
+
+    await waitFor(() => expect(requestVendorAssessmentClarification).toHaveBeenCalledWith("assessment-1", expect.objectContaining({
+      expected_version: 3, request_fields: ["security-testing"], audience: "security@vendor.example", invitation_ttl_minutes: 1440,
+    })));
+    expect(await screen.findByText("Clarification sent. The assessment will return to review when the vendor responds.")).toBeTruthy();
+    expect(screen.queryByText("security@vendor.example")).toBeNull();
+  });
+
+  it("reloads canonical findings after the deficiency command instead of adding one locally", async () => {
+    const initial = review("UNDER_REVIEW");
+    const refreshed = { ...initial, assessment: { ...initial.assessment, version: 4 }, matters: [...initial.matters, { matter_id: "matter-2", type: "VENDOR_DEFICIENCY", status: "OPEN", title: "Current security test required" }] };
+    vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: assessment("UNDER_REVIEW") });
+    vi.mocked(loadVendorAssessment).mockResolvedValueOnce(initial).mockResolvedValueOnce(refreshed);
+    vi.mocked(createVendorAssessmentDeficiency).mockResolvedValue({
+      assessment: refreshed.assessment,
+      matter: { matter: { id: "matter-2", reference: "MAT-002", title: "Current security test required", status: "OPEN" } },
+    });
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Record finding" }));
+    fireEvent.change(screen.getByLabelText("Finding reference"), { target: { value: "security-test-report" } });
+    fireEvent.change(screen.getByLabelText("Finding title"), { target: { value: "Current security test required" } });
+    fireEvent.change(screen.getByLabelText("Finding details"), { target: { value: "The submitted report is no longer current for this review." } });
+    fireEvent.change(screen.getByLabelText("Action due date"), { target: { value: "2099-09-20" } });
+    fireEvent.click(screen.getByRole("button", { name: "Record finding" }));
+
+    await waitFor(() => expect(createVendorAssessmentDeficiency).toHaveBeenCalledWith("assessment-1", expect.objectContaining({ expected_version: 3, trigger_key: "security-test-report" })));
+    expect(await screen.findByText("Current security test required")).toBeTruthy();
+    expect(loadVendorAssessment).toHaveBeenCalledTimes(2);
+  });
+
+  it("renders the refreshed review returned by a document decision", async () => {
+    const initial = review("UNDER_REVIEW");
+    const refreshed = { ...initial, assessment: { ...initial.assessment, version: 4 }, documents: initial.documents.map((document) => ({ ...document, status: "VALIDATED", evidence_class: "BANK_VALIDATED" })) };
+    vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: assessment("UNDER_REVIEW") });
+    vi.mocked(loadVendorAssessment).mockResolvedValue(initial);
+    vi.mocked(reviewVendorAssessmentDocument).mockResolvedValue(refreshed);
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Validate document" }));
+    fireEvent.change(screen.getByLabelText("Evidence class"), { target: { value: "BANK_VALIDATED" } });
+    fireEvent.click(screen.getByRole("button", { name: "Record validation" }));
+
+    await waitFor(() => expect(reviewVendorAssessmentDocument).toHaveBeenCalledWith("assessment-1", "artifact-1", {
+      expected_version: 3, decision: "VALIDATE", document_type: "SECURITY_TEST", evidence_class: "BANK_VALIDATED", valid_until: "2027-08-01",
+    }));
+    expect(await screen.findByText("Validated · Bank validated evidence")).toBeTruthy();
   });
 
   it("shows a completed assessment as a read-only review record", async () => {

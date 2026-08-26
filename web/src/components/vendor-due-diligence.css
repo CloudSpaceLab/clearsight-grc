@@ -191,7 +191,9 @@
 .vdd-answer-list dd,
 .vdd-conclusion dd { margin: 0; overflow-wrap: anywhere; line-height: 1.5; }
 .vdd-answer-list .vdd-provenance,
-.vdd-document .vdd-evidence-status { color: var(--muted); font-size: 11px; }
+.vdd-document .vdd-evidence-status,
+.vdd-document .vdd-document-decision { color: var(--muted); font-size: 11px; }
+.vdd-document .vdd-document-decision { font-weight: 700; }
 .vdd-document { padding: 12px 0; border-top: 1px solid var(--border); }
 .vdd-document > div:first-child { display: grid; gap: 4px; min-width: 0; }
 .vdd-document span { color: var(--muted); font-size: 11px; }

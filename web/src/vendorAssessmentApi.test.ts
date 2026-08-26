@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   completeVendorAssessment,
+  createVendorAssessmentDeficiency,
   loadCurrentVendorAssessment,
   reissueVendorAssessmentRequest,
+  reviewVendorAssessmentDocument,
   retryVendorAssessmentSetup,
   requestVendorAssessmentClarification,
   sendVendorAssessmentRequest,
@@ -138,7 +140,9 @@ describe("vendor assessment API", () => {
       expected_version: 4,
       request_fields: ["security_testing"],
       message: "Provide the current independent security test report.",
+      audience: "security@vendor.example",
       deadline: "2026-09-12T17:00:00Z",
+      invitation_ttl_minutes: 1440,
     });
     await completeVendorAssessment("assessment-1", {
       expected_version: 5,
@@ -152,6 +156,52 @@ describe("vendor assessment API", () => {
       "/api/v1/vendor-assessments/assessment-1/review/start",
       "/api/v1/vendor-assessments/assessment-1/clarifications",
       "/api/v1/vendor-assessments/assessment-1/complete",
+    ]);
+  });
+
+  it("sends exact bounded follow-up and document-decision bodies", async () => {
+    const clarification = { assessment: { ...assessment, status: "COLLECTING", version: 5 }, state: "DELIVERED" };
+    const deficiency = { assessment: { ...assessment, status: "UNDER_REVIEW", version: 6 }, matter: { matter: { id: "matter-2", reference: "MAT-002", title: "Current security test required", status: "OPEN" } } };
+    const refreshed = { assessment: { ...assessment, status: "UNDER_REVIEW", version: 7 }, requests: [], answers: [], coverage: { visible_fields: 0, answered_fields: 0, required_fields: 0, answered_required: 0, ratio: 1 }, documents: [], matters: [] };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(clarification), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(deficiency), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(refreshed), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await requestVendorAssessmentClarification("assessment/1", {
+      expected_version: 4,
+      request_fields: ["security-testing"],
+      message: "Provide the current independent security test report.",
+      audience: "security@vendor.example",
+      deadline: "2026-09-12T23:59:59.000Z",
+      invitation_ttl_minutes: 60,
+    });
+    await createVendorAssessmentDeficiency("assessment/1", {
+      expected_version: 5,
+      trigger_key: "security-test-report",
+      title: "Current security test required",
+      summary: "The submitted report is no longer current for this review.",
+      due_at: "2026-09-20T23:59:59.000Z",
+    });
+    await reviewVendorAssessmentDocument("assessment/1", "artifact/1", {
+      expected_version: 6,
+      decision: "VALIDATE",
+      document_type: "SOC_2_TYPE_II",
+      evidence_class: "BANK_VALIDATED",
+      valid_until: "2027-05-31",
+    });
+
+    expect(fetchMock.mock.calls.map((call) => [call[0], JSON.parse(String((call[1] as RequestInit).body))])).toEqual([
+      ["/api/v1/vendor-assessments/assessment%2F1/clarifications", {
+        expected_version: 4, request_fields: ["security-testing"], message: "Provide the current independent security test report.", audience: "security@vendor.example", deadline: "2026-09-12T23:59:59.000Z", invitation_ttl_minutes: 60,
+      }],
+      ["/api/v1/vendor-assessments/assessment%2F1/deficiencies", {
+        expected_version: 5, trigger_key: "security-test-report", title: "Current security test required", summary: "The submitted report is no longer current for this review.", due_at: "2026-09-20T23:59:59.000Z",
+      }],
+      ["/api/v1/vendor-assessments/assessment%2F1/documents/artifact%2F1/validate", {
+        expected_version: 6, decision: "VALIDATE", document_type: "SOC_2_TYPE_II", evidence_class: "BANK_VALIDATED", valid_until: "2027-05-31",
+      }],
     ]);
   });
 });

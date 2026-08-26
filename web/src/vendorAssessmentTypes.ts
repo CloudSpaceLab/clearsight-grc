@@ -189,6 +189,7 @@ export type VendorAssessmentDocument = {
   media_type: string;
   size_bytes: number;
   artifact_status: string;
+  status?: "SUBMITTED" | "VALIDATED" | "REJECTED" | "EXPIRED" | string;
   evidence_class: "VENDOR_SUPPLIED" | "BANK_VALIDATED" | "OFFICIAL_SOURCE" | string;
   document_type: string;
   reference?: string;
@@ -228,7 +229,22 @@ export type VendorAssessmentClarificationInput = {
   expected_version: number;
   request_fields: string[];
   message: string;
+  audience: string;
   deadline: string;
+  invitation_ttl_minutes: number;
+};
+
+export type VendorAssessmentClarificationOutcome = {
+  assessment: VendorAssessment;
+  state: VendorAssessmentSendState;
+  recovery?: string;
+  capture_url?: string;
+  delivery?: {
+    status: string;
+    recipient_hint?: string;
+    delivered_at?: string;
+    failure_code?: string;
+  };
 };
 
 export type CompleteVendorAssessmentInput = {
@@ -249,7 +265,27 @@ export type ReviewVendorAssessmentDocumentInput = {
 
 export type CreateVendorAssessmentDeficiencyInput = {
   expected_version: number;
+  trigger_key: string;
   title: string;
   summary: string;
-  due_at?: string;
+  due_at: string;
+};
+
+export type VendorAssessmentDeficiencyOutcome = {
+  assessment: VendorAssessment;
+  matter: {
+    type_label?: string;
+    status_label?: string;
+    next_action?: string;
+    matter: {
+      id: string;
+      reference: string;
+      type?: string;
+      status: string;
+      title: string;
+      summary?: string;
+      due_at?: string;
+      version?: number;
+    };
+  };
 };

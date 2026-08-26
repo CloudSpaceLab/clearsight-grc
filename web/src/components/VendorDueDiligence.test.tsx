@@ -214,6 +214,123 @@ describe("VendorDueDiligence", () => {
     expect(primaryActions()).toHaveLength(1);
   });
 
+  it("requests targeted clarification, clears the audience and exposes only a returned fallback link", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    const review: VendorAssessmentReviewView = {
+      assessment: assessment("UNDER_REVIEW"), requests: [],
+      response: { submission_id: "submission-1", request_id: "request-1", submitted_at: "2026-08-28T11:00:00Z", answer_count: 1, artifact_count: 0 },
+      answers: [{ field_id: "security-testing", label: "Independent security testing", type: "YES_NO", required: true, visibility: "VISIBLE", value: { text: "Yes" } }],
+      coverage: { visible_fields: 1, answered_fields: 1, required_fields: 1, answered_required: 1, ratio: 1 }, documents: [], matters: [],
+    };
+    const outcome = {
+      assessment: { ...assessment("COLLECTING"), version: 4, current_request_id: "request-2" },
+      state: "LINK_CREATED_EMAIL_NOT_SENT" as const,
+      recovery: "Copy the secure link or retry email delivery.",
+      capture_url: "https://capture.example.test/?capture_invite=clarification-secret",
+    };
+    const onRequestClarification = vi.fn().mockResolvedValue(outcome);
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onRequestClarification={onRequestClarification} onOpenRequest={vi.fn()} onComplete={vi.fn()}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Request clarification" }));
+    fireEvent.click(screen.getByLabelText("Independent security testing"));
+    fireEvent.change(screen.getByLabelText("What the vendor must provide"), { target: { value: "Provide the current independent security test report." } });
+    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
+    fireEvent.change(screen.getByLabelText("Response due date"), { target: { value: "2026-09-12" } });
+    fireEvent.change(screen.getByLabelText("Secure link valid for"), { target: { value: "60" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send clarification request" }));
+
+    await waitFor(() => expect(onRequestClarification).toHaveBeenCalledWith("assessment-1", {
+      expected_version: 3,
+      request_fields: ["security-testing"],
+      message: "Provide the current independent security test report.",
+      audience: "security@vendor.example",
+      deadline: "2026-09-12T23:59:59.000Z",
+      invitation_ttl_minutes: 60,
+    }));
+    expect(screen.queryByText("security@vendor.example")).toBeNull();
+    expect(screen.queryByDisplayValue("security@vendor.example")).toBeNull();
+    expect(screen.queryByText(/clarification-secret/)).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "Copy clarification link" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(outcome.capture_url));
+    expect(primaryActions()).toHaveLength(1);
+  });
+
+  it("clears the clarification audience after an unsuccessful attempt", async () => {
+    const review: VendorAssessmentReviewView = {
+      assessment: assessment("UNDER_REVIEW"), requests: [],
+      answers: [{ field_id: "security-testing", label: "Independent security testing", type: "YES_NO", required: true, visibility: "VISIBLE", value: { text: "Yes" } }],
+      coverage: { visible_fields: 1, answered_fields: 1, required_fields: 1, answered_required: 1, ratio: 1 }, documents: [], matters: [],
+    };
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onRequestClarification={vi.fn().mockRejectedValue(new Error("unavailable"))} onComplete={vi.fn()}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Request clarification" }));
+    fireEvent.click(screen.getByLabelText("Independent security testing"));
+    fireEvent.change(screen.getByLabelText("What the vendor must provide"), { target: { value: "Provide the current report." } });
+    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
+    fireEvent.change(screen.getByLabelText("Response due date"), { target: { value: "2026-09-12" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send clarification request" }));
+
+    expect(await screen.findByText("The clarification request was not sent. Re-enter the vendor contact email before trying again.")).toBeTruthy();
+    expect((screen.getByLabelText("Vendor contact email") as HTMLInputElement).value).toBe("");
+  });
+
+  it("records a bounded canonical finding without adding a local finding", async () => {
+    const review: VendorAssessmentReviewView = {
+      assessment: assessment("UNDER_REVIEW"), requests: [], answers: [],
+      coverage: { visible_fields: 0, answered_fields: 0, required_fields: 0, answered_required: 0, ratio: 1 }, documents: [], matters: [],
+    };
+    const onCreateDeficiency = vi.fn().mockResolvedValue({
+      assessment: { ...assessment("UNDER_REVIEW"), version: 4 },
+      matter: { matter: { id: "finding-1", reference: "MAT-002", title: "Current security test required", status: "OPEN" } },
+    });
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onCreateDeficiency={onCreateDeficiency} onComplete={vi.fn()}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Record finding" }));
+    const reference = screen.getByLabelText("Finding reference") as HTMLInputElement;
+    expect(reference.maxLength).toBe(80);
+    fireEvent.change(reference, { target: { value: "security-test-report" } });
+    fireEvent.change(screen.getByLabelText("Finding title"), { target: { value: "Current security test required" } });
+    fireEvent.change(screen.getByLabelText("Finding details"), { target: { value: "The submitted report is no longer current for this review." } });
+    fireEvent.change(screen.getByLabelText("Action due date"), { target: { value: "2026-09-20" } });
+    fireEvent.click(screen.getByRole("button", { name: "Record finding" }));
+
+    await waitFor(() => expect(onCreateDeficiency).toHaveBeenCalledWith("assessment-1", {
+      expected_version: 3, trigger_key: "security-test-report", title: "Current security test required", summary: "The submitted report is no longer current for this review.", due_at: "2026-09-20T23:59:59.000Z",
+    }));
+    expect(await screen.findByText("Finding MAT-002 is open and linked to this assessment.")).toBeTruthy();
+    expect(screen.getByText("No findings are linked to this assessment.")).toBeTruthy();
+    expect(primaryActions()).toHaveLength(1);
+  });
+
+  it("records the exact document decision metadata through a focused panel", async () => {
+    const document = { field_id: "security-report", artifact_id: "artifact-1", file_name: "independent-security-test.pdf", media_type: "application/pdf", size_bytes: 64000, artifact_status: "AVAILABLE", status: "SUBMITTED", evidence_class: "VENDOR_SUPPLIED" as const, document_type: "SOC_2_TYPE_II", expires_on: "2027-05-31" };
+    const review: VendorAssessmentReviewView = {
+      assessment: assessment("UNDER_REVIEW"), requests: [], answers: [],
+      coverage: { visible_fields: 0, answered_fields: 0, required_fields: 0, answered_required: 0, ratio: 1 }, documents: [document], matters: [],
+    };
+    const onReviewDocument = vi.fn().mockResolvedValue({ ...review, assessment: { ...assessment("UNDER_REVIEW"), version: 4 }, documents: [{ ...document, status: "VALIDATED", evidence_class: "BANK_VALIDATED" }] });
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onReviewDocument={onReviewDocument} onComplete={vi.fn()}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Validate document" }));
+    expect((screen.getByLabelText("Document type") as HTMLInputElement).maxLength).toBe(128);
+    fireEvent.change(screen.getByLabelText("Evidence class"), { target: { value: "BANK_VALIDATED" } });
+    fireEvent.change(screen.getByLabelText("Valid until"), { target: { value: "2027-05-31" } });
+    fireEvent.click(screen.getByRole("button", { name: "Record validation" }));
+
+    await waitFor(() => expect(onReviewDocument).toHaveBeenCalledWith("assessment-1", "artifact-1", {
+      expected_version: 3, decision: "VALIDATE", document_type: "SOC_2_TYPE_II", evidence_class: "BANK_VALIDATED", valid_until: "2027-05-31",
+    }));
+    expect(await screen.findByText("Document validation recorded. The response view now shows the current decision.")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reject document" }));
+    fireEvent.click(screen.getByRole("button", { name: "Record rejection" }));
+    await waitFor(() => expect(onReviewDocument).toHaveBeenLastCalledWith("assessment-1", "artifact-1", {
+      expected_version: 4, decision: "REJECT", document_type: "SOC_2_TYPE_II", evidence_class: "VENDOR_SUPPLIED", valid_until: "2027-05-31",
+    }));
+    expect(await screen.findByText("Document rejection recorded. The response view now shows the current decision.")).toBeTruthy();
+  });
+
   it("shows answer provenance and document security status without exposing internal identifiers", () => {
     const review: VendorAssessmentReviewView = {
       assessment: assessment("UNDER_REVIEW"),
