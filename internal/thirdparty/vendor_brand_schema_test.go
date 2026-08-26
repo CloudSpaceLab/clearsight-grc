@@ -17,6 +17,8 @@ func TestVendorBrandMigrationAddsScopedDurableStateWithoutParallelFoundations(t 
 	for _, required := range []string{
 		"CREATE FUNCTION third_party_website_domain_valid(value text)",
 		"char_length(label) BETWEEN 1 AND 63",
+		"cardinality(string_to_array(value,'.')) BETWEEN 1 AND 4",
+		"label ~ '^(?:[0-9]+|0x[0-9a-f]+)$'",
 		"ALTER TABLE third_parties",
 		"ADD COLUMN website_domain",
 		"CREATE TABLE third_party_vendor_brand_assets",
@@ -36,10 +38,16 @@ func TestVendorBrandMigrationAddsScopedDurableStateWithoutParallelFoundations(t 
 		"'VENDOR'",
 		"'VendorIdentityCreated'",
 		"'VendorIdentityUpdated'",
+		"INSERT INTO third_party_events",
+		"'VENDOR',p.id,p.version,NULL::uuid,'VendorIdentityCreated'",
+		"ON CONFLICT (tenant_id,aggregate_type,aggregate_id,aggregate_version) DO NOTHING",
 	} {
 		if !strings.Contains(schema, required) {
 			t.Fatalf("vendor brand migration missing %q", required)
 		}
+	}
+	if strings.Contains(schema, "INSERT INTO outbox_events") {
+		t.Fatal("vendor identity baseline backfill must not redeliver historical state through the outbox")
 	}
 	if got := strings.Count(schema, "third_party_website_domain_valid("); got != 4 {
 		t.Fatalf("hostname validator definition/use count = %d, want one definition and three checks", got)

@@ -122,7 +122,7 @@ func NormalizeWebsiteDomain(value string) (WebsiteDomain, error) {
 		return "", ErrInvalid
 	}
 	value = strings.ToLower(value)
-	if value == "" || len(value) > 253 {
+	if value == "" || len(value) > 253 || looksLikeLegacyIPv4Literal(value) {
 		return "", ErrInvalid
 	}
 	for _, label := range strings.Split(value, ".") {
@@ -136,4 +136,33 @@ func NormalizeWebsiteDomain(value string) (WebsiteDomain, error) {
 		}
 	}
 	return WebsiteDomain(value), nil
+}
+
+func looksLikeLegacyIPv4Literal(value string) bool {
+	labels := strings.Split(value, ".")
+	if len(labels) == 0 || len(labels) > 4 {
+		return false
+	}
+	for _, label := range labels {
+		if label == "" {
+			return false
+		}
+		if strings.HasPrefix(label, "0x") {
+			if len(label) == 2 {
+				return false
+			}
+			for _, character := range label[2:] {
+				if (character < '0' || character > '9') && (character < 'a' || character > 'f') {
+					return false
+				}
+			}
+			continue
+		}
+		for _, character := range label {
+			if character < '0' || character > '9' {
+				return false
+			}
+		}
+	}
+	return true
 }

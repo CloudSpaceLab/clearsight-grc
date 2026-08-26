@@ -11,6 +11,14 @@ LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE AS $$
            FROM unnest(string_to_array(value,'.')) AS segment(label)
            WHERE NOT (char_length(label) BETWEEN 1 AND 63)
        )
+       AND NOT (
+           cardinality(string_to_array(value,'.')) BETWEEN 1 AND 4
+           AND NOT EXISTS (
+               SELECT 1
+               FROM unnest(string_to_array(value,'.')) AS numeric_segment(label)
+               WHERE NOT (label ~ '^(?:[0-9]+|0x[0-9a-f]+)$')
+           )
+       )
 $$;
 
 ALTER TABLE third_parties
@@ -112,5 +120,16 @@ BEGIN
     END IF;
     RETURN NEW;
 END $$;
+
+INSERT INTO third_party_events(
+    tenant_id,aggregate_type,aggregate_id,aggregate_version,actor_principal_id,event_type,payload,occurred_at
+)
+SELECT p.tenant_id,'VENDOR',p.id,p.version,NULL::uuid,'VendorIdentityCreated',
+       jsonb_build_object(
+           'legal_name',p.legal_name,'trading_name',p.trading_name,'registration_ref',p.registration_ref,
+           'jurisdiction',p.jurisdiction,'website_domain',COALESCE(p.website_domain,''),'status',p.status
+       ),p.updated_at
+FROM third_parties p
+ON CONFLICT (tenant_id,aggregate_type,aggregate_id,aggregate_version) DO NOTHING;
 
 COMMIT;

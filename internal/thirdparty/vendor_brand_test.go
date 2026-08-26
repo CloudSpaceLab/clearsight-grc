@@ -9,9 +9,11 @@ func TestNormalizeWebsiteDomainCanonicalizesDNSHostname(t *testing.T) {
 	t.Parallel()
 
 	for input, want := range map[string]WebsiteDomain{
-		"Vendor.Example": "vendor.example",
-		"BÜCHER.Example": "xn--bcher-kva.example",
-		" café.example ": "xn--caf-dma.example",
+		"Vendor.Example":       "vendor.example",
+		"BÜCHER.Example":       "xn--bcher-kva.example",
+		" café.example ":       "xn--caf-dma.example",
+		"2130706433.example":   "2130706433.example",
+		"127.1.vendor.example": "127.1.vendor.example",
 	} {
 		got, err := NormalizeWebsiteDomain(input)
 		if err != nil {
@@ -38,6 +40,13 @@ func TestNormalizeWebsiteDomainRejectsURLsAddressesAndInvalidLabels(t *testing.T
 		"127.0.0.1",
 		"[2001:db8::1]",
 		"2001:db8::1",
+		"2130706433",
+		"127.1",
+		"0177.0.0.1",
+		"0x7f000001",
+		"0x7f.0.0.0x1",
+		"0300.0250.0001.0001",
+		"127.0x0.01",
 		"vendor..example",
 		".vendor.example",
 		"vendor.example.",
