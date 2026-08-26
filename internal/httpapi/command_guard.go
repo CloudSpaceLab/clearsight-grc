@@ -35,6 +35,10 @@ type commandPolicy struct {
 // server-bound and lifecycle validity is still enforced.
 func (a *API) command(name string, policy commandPolicy, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Each request receives its own lifecycle policy. The handler returned by
+		// command is shared by concurrent requests, so the captured route policy
+		// must remain immutable.
+		requestPolicy := policy
 		payload, _, err := commandPayload(r)
 		if err != nil {
 			httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "The command body must be valid JSON.")
@@ -53,10 +57,10 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 			// accountable owner. Client-supplied ownership cannot redirect it.
 			payload["owner_principal_id"] = actor.PrincipalID
 		}
-		if !bindPayloadIdentity(w, payload, actor, policy.BindLegalEntity) {
+		if !bindPayloadIdentity(w, payload, actor, requestPolicy.BindLegalEntity) {
 			return
 		}
-		policy, err = a.lifecycleCommandPolicy(r.Context(), r, actor.TenantID, name, payload, policy)
+		requestPolicy, err = a.lifecycleCommandPolicy(r.Context(), r, actor.TenantID, name, payload, requestPolicy)
 		if err != nil {
 			if errors.Is(err, commandauth.ErrIdentityRequired) || errors.Is(err, commandauth.ErrTenantMismatch) || errors.Is(err, commandauth.ErrLegalEntityMismatch) || errors.Is(err, commandauth.ErrNotAuthorized) || errors.Is(err, commandauth.ErrGuardUnavailable) {
 				writeCommandAuthorizationError(w, err)
@@ -73,7 +77,7 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 			httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to continue.")
 			return
 		}
-		if field := commandActorField(policy); field != "" {
+		if field := commandActorField(requestPolicy); field != "" {
 			payload[field] = actor.PrincipalID
 		}
 		raw, err := json.Marshal(payload)
@@ -84,31 +88,31 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 		restoreJSONBody(r, raw)
 
 		if a.deps.CommandGuard == nil || a.deps.CommandGuard.Mode() == commandauth.ModeOff {
-			a.executeMaterialHandler(w, r, policy, payload, handler)
+			a.executeMaterialHandler(w, r, requestPolicy, payload, handler)
 			return
 		}
 
-		objectID := commandObjectID(r, payload, policy)
-		materiality := policy.Materiality
+		objectID := commandObjectID(r, payload, requestPolicy)
+		materiality := requestPolicy.Materiality
 		if value, ok := numberValue(payload["materiality"]); ok {
 			materiality = max(materiality, value)
 		} else if value, ok := numberValue(payload["priority"]); ok {
 			materiality = max(materiality, value)
 		}
 		legalEntityID := actor.LegalEntityID
-		decisionType := strings.TrimSpace(policy.DecisionType)
+		decisionType := strings.TrimSpace(requestPolicy.DecisionType)
 		if decisionType == "" {
 			decisionType = name
 		}
 		decision, authErr := a.deps.CommandGuard.Authorize(r.Context(), commandauth.Request{
 			TenantID:       actor.TenantID,
 			LegalEntityID:  legalEntityID,
-			ObjectType:     policy.ObjectType,
+			ObjectType:     requestPolicy.ObjectType,
 			ObjectID:       objectID,
-			Responsibility: policy.Responsibility,
+			Responsibility: requestPolicy.Responsibility,
 			DecisionType:   decisionType,
 			Materiality:    materiality,
-			AllowService:   policy.AllowService,
+			AllowService:   requestPolicy.AllowService,
 		})
 		if authErr != nil {
 			writeCommandAuthorizationError(w, authErr)
@@ -119,7 +123,7 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 		} else {
 			w.Header().Set("X-ClearSight-Command-Authorization", "audit")
 		}
-		a.executeMaterialHandler(w, r, policy, payload, handler)
+		a.executeMaterialHandler(w, r, requestPolicy, payload, handler)
 	}
 }
 

@@ -29,7 +29,7 @@ func TestEvidenceRecipientCandidatesUseVerifiedRequesterScopeAndSafeLabels(t *te
 		PrincipalID: "requester", DisplayName: "Reni Requester", TenantID: "bank", LegalEntityIDs: []string{"entity-1"},
 		Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"PROGRAM:program-1": true},
 	}})
-	service := evidence.NewService(repo, nil)
+	service := evidence.NewServiceWithClock(repo, nil, func() time.Time { return now })
 	api := &API{deps: Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Evidence: service}}
 
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/evidence/requests/request-1/recipient-candidates?limit=50&q=operations", nil)
@@ -77,7 +77,7 @@ func TestEvidenceRecipientCandidatesHideRequestFromRequesterWithoutCurrentEntity
 		{PrincipalID: "requester", TenantID: "bank", LegalEntityIDs: []string{"entity-2"}, Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"PROGRAM:program-1": true}},
 		{PrincipalID: "candidate", TenantID: "bank", LegalEntityIDs: []string{"entity-1"}, Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"PROGRAM:program-1": true}},
 	})
-	api := &API{deps: Dependencies{Evidence: evidence.NewService(repo, nil)}}
+	api := &API{deps: Dependencies{Evidence: evidence.NewServiceWithClock(repo, nil, func() time.Time { return now })}}
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/evidence/requests/request-1/recipient-candidates", nil)
 	request.SetPathValue("id", requestValue.ID)
 	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{
@@ -98,7 +98,7 @@ func TestEvidenceRecipientCandidatesReturnSameNotFoundOutsideRequesterScope(t *t
 		ID: "request-1", TenantID: "bank", LegalEntityID: "entity-1", SubjectType: "PROGRAM", SubjectID: "program-1",
 		Status: evidence.RequestReady, CreatedBy: "requester", Deadline: now.Add(time.Hour),
 	}}, nil)
-	api := &API{deps: Dependencies{Evidence: evidence.NewService(repo, nil)}}
+	api := &API{deps: Dependencies{Evidence: evidence.NewServiceWithClock(repo, nil, func() time.Time { return now })}}
 
 	responses := make([]string, 0, 3)
 	for _, test := range []struct {
