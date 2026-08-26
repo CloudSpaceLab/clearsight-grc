@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { loadGuideState, loadRoleGuide, saveGuideState } from "../onboardingApi";
-import type { GuideStep, OnboardingGuide, OnboardingState } from "../types";
+import type { GuideStep, GuideSurface, OnboardingGuide, OnboardingState } from "../types";
+import { CinematicGuidePanel } from "./CinematicGuidePanel";
 import { IntroGuide } from "./IntroGuide";
 
 type Runtime = {
@@ -10,31 +11,34 @@ type Runtime = {
 
 type Props = {
   runtime: Runtime | null;
+  surface: GuideSurface;
   onStep: (step: GuideStep) => void | Promise<void>;
 };
 
-export function RoleAwareOnboarding({ runtime, onStep }: Props) {
+export function RoleAwareOnboarding({ runtime, surface, onStep }: Props) {
   const [guide, setGuide] = useState<OnboardingGuide | null>(null);
   const [state, setState] = useState<OnboardingState | null>(null);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
+  const [introduced, setIntroduced] = useState(false);
   const [stepError, setStepError] = useState("");
 
   const load = useCallback(async () => {
     if (!runtime) return;
     try {
-      const resolved = await loadRoleGuide();
+      const resolved = await loadRoleGuide(surface);
       const saved = await loadGuideState(resolved.code);
       const tourMode = new URLSearchParams(window.location.search).get("tour");
       setGuide(resolved);
       setState(saved);
+      setIntroduced(false);
       setOpen(tourMode === "on" || (tourMode !== "off" && !saved.completed && !saved.dismissed));
     } catch {
       setGuide(null);
       setState(null);
       setOpen(false);
     }
-  }, [runtime]);
+  }, [runtime, surface]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -95,6 +99,7 @@ export function RoleAwareOnboarding({ runtime, onStep }: Props) {
     try {
       const next = await saveGuideState(state.guide_code, { current_step: 0, completed: false, dismissed: false, version: state.version });
       setState(next);
+      setIntroduced(false);
       setOpen(true);
     } catch {
       await load();
@@ -109,7 +114,15 @@ export function RoleAwareOnboarding({ runtime, onStep }: Props) {
     {!open && <button className="guide-launcher" type="button" onClick={() => void restart()} aria-label={`Restart ${guide.role} guide`} disabled={busy}>
       <span aria-hidden="true">?</span><strong>Guide</strong>
     </button>}
-    {open && <>{stepError && <p className="inline-error" role="alert">{stepError}</p>}<IntroGuide guide={guide} state={state} busy={busy} onAdvance={advance} onBack={back} onDismiss={dismiss}/></>}
+    {open && !introduced && <CinematicGuidePanel
+      variant={guide.surface === "VENDORS" ? "vendors" : "today"}
+      title={guide.title}
+      description={guide.description}
+      busy={busy}
+      onStart={() => setIntroduced(true)}
+      onSkip={dismiss}
+    />}
+    {open && introduced && <>{stepError && <p className="inline-error" role="alert">{stepError}</p>}<IntroGuide guide={guide} state={state} busy={busy} onAdvance={advance} onBack={back} onDismiss={dismiss}/></>}
   </>;
 }
 

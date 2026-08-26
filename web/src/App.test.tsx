@@ -7,7 +7,7 @@ import type { EvidenceRequest } from "./types";
 
 vi.mock("./components/RoleAwareOnboarding", async () => {
   const React = await import("react");
-  return { RoleAwareOnboarding: ({ onStep }: { onStep: (step: { intent?: string; view?: string }) => void | Promise<void> }) => {
+  return { RoleAwareOnboarding: ({ onStep, surface }: { onStep: (step: { intent?: string; view?: string }) => void | Promise<void>; surface: string }) => {
     const [busy, setBusy] = React.useState(false);
     const [error, setError] = React.useState("");
     async function openGuideAction() {
@@ -16,7 +16,7 @@ vi.mock("./components/RoleAwareOnboarding", async () => {
       catch { setError("This guide step could not be opened. Try again."); }
       finally { setBusy(false); }
     }
-    return <><button type="button" disabled={busy} onClick={() => void openGuideAction()}>Review due diligence</button>{error && <p role="alert">{error}</p>}</>;
+    return <aside aria-label={`${surface === "VENDORS" ? "Vendor" : "Today"} guide`}><output data-testid="onboarding-surface">{surface}</output><button type="button" disabled={busy} onClick={() => void openGuideAction()}>Review due diligence</button>{error && <p role="alert">{error}</p>}</aside>;
   }};
 });
 vi.mock("./components/VendorsWorkspace", () => ({
@@ -97,6 +97,19 @@ describe("runtime navigation", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Review due diligence" }));
     expect((await screen.findByTestId("vendor-guide-intent")).textContent).toBe("open-vendor-due-diligence");
     expect(window.location.hash).toBe("#vendors");
+  });
+
+  it("keeps the Vendors workspace usable while its guide is open", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    render(<App />);
+
+    const vendorButton = (await screen.findAllByRole("button", { name: "Vendors" }))[0];
+    if (!vendorButton) throw new Error("Vendors navigation is missing");
+    fireEvent.click(vendorButton);
+
+    expect((await screen.findByTestId("onboarding-surface")).textContent).toBe("VENDORS");
+    expect(screen.getByRole("complementary", { name: "Vendor guide" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Review vendor request" })).toBeTruthy();
   });
 
   it("preserves the selected vendor when a guide starts from a vendor deep link", async () => {

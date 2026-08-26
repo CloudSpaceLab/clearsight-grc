@@ -25,11 +25,14 @@ describe("RoleAwareOnboarding", () => {
     vi.mocked(loadGuideState).mockResolvedValue(initial);
     vi.mocked(saveGuideState).mockImplementation(async (_code, value) => ({ ...initial, ...value, version: value.version + 1 }));
     const onStep = vi.fn();
-    render(<RoleAwareOnboarding runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={onStep}/>);
+    render(<RoleAwareOnboarding surface="TODAY" runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={onStep}/>);
 
+    fireEvent.click(await screen.findByRole("button", { name: "Start guide" }));
+    expect(saveGuideState).not.toHaveBeenCalled();
     fireEvent.click(await screen.findByRole("button", { name: "Open Today" }));
     await waitFor(() => expect(onStep).toHaveBeenCalledWith(expect.objectContaining({ id: "today", view: "today" })));
     expect(saveGuideState).toHaveBeenCalledWith(guide.code, expect.objectContaining({ current_step: 1, completed: false }));
+    expect(loadRoleGuide).toHaveBeenCalledWith("TODAY");
   });
 
   it("keeps the guide retryable and advances only after a recovered workspace action", async () => {
@@ -37,8 +40,9 @@ describe("RoleAwareOnboarding", () => {
     vi.mocked(loadGuideState).mockResolvedValue(initial);
     vi.mocked(saveGuideState).mockImplementation(async (_code, value) => ({ ...initial, ...value, version: value.version + 1 }));
     const onStep = vi.fn().mockRejectedValueOnce(new Error("Vendor records are unavailable")).mockResolvedValueOnce(undefined);
-    render(<RoleAwareOnboarding runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={onStep}/>);
+    render(<RoleAwareOnboarding surface="TODAY" runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={onStep}/>);
 
+    fireEvent.click(await screen.findByRole("button", { name: "Start guide" }));
     const action = await screen.findByRole("button", { name: "Open Today" });
     fireEvent.click(action);
     await waitFor(() => expect((action as HTMLButtonElement).disabled).toBe(false));
@@ -54,11 +58,43 @@ describe("RoleAwareOnboarding", () => {
     vi.mocked(loadRoleGuide).mockResolvedValue(guide);
     vi.mocked(loadGuideState).mockResolvedValue({ ...initial, dismissed: true, version: 3 });
     vi.mocked(saveGuideState).mockResolvedValue({ ...initial, version: 4 });
-    render(<RoleAwareOnboarding runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
+    render(<RoleAwareOnboarding surface="TODAY" runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
 
     fireEvent.click(await screen.findByRole("button", { name: /Restart Executive risk or compliance leader guide/ }));
-    expect(await screen.findByRole("complementary", { name: "Getting started" })).toBeTruthy();
+    expect(await screen.findByRole("complementary", { name: /Today guide/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Start guide" })).toBeTruthy();
+    expect(screen.queryByRole("complementary", { name: "Getting started" })).toBeNull();
     expect(saveGuideState).toHaveBeenCalledWith(guide.code, { current_step: 0, completed: false, dismissed: false, version: 3 });
+  });
+
+  it("persists Skip for now through the existing dismissal state", async () => {
+    vi.mocked(loadRoleGuide).mockResolvedValue(guide);
+    vi.mocked(loadGuideState).mockResolvedValue(initial);
+    vi.mocked(saveGuideState).mockResolvedValue({ ...initial, dismissed: true, version: 1 });
+    render(<RoleAwareOnboarding surface="TODAY" runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Skip for now" }));
+
+    await waitFor(() => expect(saveGuideState).toHaveBeenCalledWith(guide.code, expect.objectContaining({ completed: false, dismissed: true })));
+    expect(screen.getByRole("button", { name: /Restart Executive risk or compliance leader guide/ })).toBeTruthy();
+  });
+
+  it("loads and renders the Vendors introduction for the Vendors surface", async () => {
+    const vendorGuide = {
+      ...guide,
+      code: "vendor-operations-first-run",
+      surface: "VENDORS" as const,
+      role: "Vendor relationship owner",
+      title: "Manage vendor relationships",
+      description: "Record the service, collect missing facts and route exceptions for review.",
+    };
+    vi.mocked(loadRoleGuide).mockResolvedValue(vendorGuide);
+    vi.mocked(loadGuideState).mockResolvedValue({ ...initial, guide_code: vendorGuide.code });
+    render(<RoleAwareOnboarding surface="VENDORS" runtime={{ tenant: { id: "bank-demo" }, actor: { id: "owner-1", role_codes: ["BUSINESS_OWNER"] } }} onStep={vi.fn()}/>);
+
+    expect(await screen.findByRole("complementary", { name: /Vendor guide/i })).toBeTruthy();
+    expect(screen.getByRole("img", { name: /Vendor relationship path/i })).toBeTruthy();
+    expect(loadRoleGuide).toHaveBeenCalledWith("VENDORS");
   });
 
   it("shows first-run guidance without creating a modal or moving focus", async () => {
@@ -69,9 +105,9 @@ describe("RoleAwareOnboarding", () => {
     document.body.append(workspaceAction);
     workspaceAction.focus();
 
-    render(<RoleAwareOnboarding runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
+    render(<RoleAwareOnboarding surface="TODAY" runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
 
-    const panel = await screen.findByRole("complementary", { name: "Getting started" });
+    const panel = await screen.findByRole("complementary", { name: /Today guide/i });
     expect(panel.getAttribute("aria-modal")).toBeNull();
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(workspaceAction);
@@ -85,12 +121,12 @@ describe("RoleAwareOnboarding", () => {
       .mockResolvedValue({ ...initial, version: 2 });
     vi.mocked(saveGuideState).mockRejectedValue(new Error("Onboarding state changed"));
 
-    render(<RoleAwareOnboarding runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
+    render(<RoleAwareOnboarding surface="TODAY" runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Dismiss" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Skip for now" }));
 
     await waitFor(() => expect(saveGuideState).toHaveBeenCalledTimes(2));
-    expect(screen.queryByRole("complementary", { name: "Getting started" })).toBeNull();
+    expect(screen.queryByRole("complementary", { name: /Today guide/i })).toBeNull();
     expect(screen.getByRole("button", { name: /Restart Executive risk or compliance leader guide/ })).toBeTruthy();
   });
 });

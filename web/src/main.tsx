@@ -9,6 +9,7 @@ import { OperatingMutationsEvidencePage } from "./components/OperatingMutationsE
 import { DisplayPreferencesRoot } from "./components/DisplayPreferences";
 import { runtimePresentation } from "./runtimePresentation";
 import "./styles.css";
+import "./cinematic-guide.css";
 import "./evidence.css";
 import "./continuity.css";
 import "./journeys.css";
