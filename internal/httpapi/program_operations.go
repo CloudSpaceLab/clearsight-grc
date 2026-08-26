@@ -87,6 +87,7 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		{Command: "program.requirement.add", Label: "Add a requirement", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
 		{Command: "program.safeguard.define", Label: "Define safeguards", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: 2, AssignedPrincipalID: ownerID, IncludeCandidates: true},
 		{Command: "program.evidence.define", Label: "Define an evidence check", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
+		{Command: "program.monitoring.form.define", Label: "Create a collection form", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
 		{Command: "program.monitoring.define", Label: "Add a monitoring check", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
 		{Command: "program.applicability.decide", Label: "Decide whether requirements apply", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3, AssignedPrincipalID: approvalAuthorityID},
 		{Command: "program.evidence.assess", Label: "Record evidence check results", Responsibility: authority.ResponsibilityReviewer, Materiality: 3},
@@ -175,6 +176,49 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 				Command: "program.requirement.supersede", SubresourceID: requirement.ID,
 				Label: "Replace " + requirement.Title, Responsibility: authority.ResponsibilityOwner,
 				Materiality: 2, AssignedPrincipalID: ownerID,
+			})
+		}
+	}
+	for _, safeguard := range aggregate.ControlImplementations {
+		if safeguard.Status == continuity.ImplementationRetired {
+			continue
+		}
+		add(programOperationSpec{
+			Command: "program.safeguard.update", SubresourceID: safeguard.ID,
+			Label: "Edit " + safeguard.Name, Responsibility: authority.ResponsibilityOwner,
+			Materiality: 2, AssignedPrincipalID: ownerID,
+		})
+		add(programOperationSpec{
+			Command: "program.safeguard.assign", SubresourceID: safeguard.ID,
+			Label: "Change the owner of " + safeguard.Name, Responsibility: authority.ResponsibilityOwner,
+			CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: 3,
+			AssignedPrincipalID: ownerID, IncludeCandidates: true,
+		})
+		if transitionTargets := safeguardTransitionTargets(safeguard.Status); len(transitionTargets) > 0 {
+			add(programOperationSpec{
+				Command: "program.safeguard.transition", SubresourceID: safeguard.ID,
+				Label: "Change " + safeguard.Name + " status", ObjectType: "CONTROL_IMPLEMENTATION", ObjectID: safeguard.ID,
+				Responsibility: authority.ResponsibilityPerformer, Materiality: 3,
+				AssignedPrincipalID: safeguard.OwnerPrincipalID, AllowedTargets: transitionTargets,
+			})
+		}
+	}
+	for _, contract := range aggregate.EvidenceContracts {
+		if contract.Status == continuity.EvidenceContractRetired {
+			continue
+		}
+		if contract.Status == continuity.EvidenceContractDraft {
+			add(programOperationSpec{
+				Command: "program.evidence.revise", SubresourceID: contract.ID,
+				Label: "Edit " + contract.Name, Responsibility: authority.ResponsibilityOwner,
+				Materiality: 2, AssignedPrincipalID: ownerID,
+			})
+		}
+		if transitionTargets := evidenceContractTransitionTargets(contract.Status); len(transitionTargets) > 0 {
+			add(programOperationSpec{
+				Command: "program.evidence.transition", SubresourceID: contract.ID,
+				Label: "Review " + contract.Name + " status", Responsibility: authority.ResponsibilityReviewer,
+				Materiality: 3, AllowedTargets: transitionTargets,
 			})
 		}
 	}
@@ -356,12 +400,38 @@ func monitoringTransitionTargets(status monitoring.LifecycleStatus) []string {
 	}
 }
 
+func safeguardTransitionTargets(status continuity.ControlImplementationStatus) []string {
+	switch status {
+	case continuity.ImplementationPlanned:
+		return []string{string(continuity.ImplementationInProgress), string(continuity.ImplementationRetired)}
+	case continuity.ImplementationInProgress:
+		return []string{string(continuity.ImplementationImplemented), string(continuity.ImplementationInactive), string(continuity.ImplementationRetired)}
+	case continuity.ImplementationImplemented:
+		return []string{string(continuity.ImplementationInactive), string(continuity.ImplementationRetired)}
+	case continuity.ImplementationInactive:
+		return []string{string(continuity.ImplementationInProgress), string(continuity.ImplementationRetired)}
+	default:
+		return nil
+	}
+}
+
+func evidenceContractTransitionTargets(status continuity.EvidenceContractStatus) []string {
+	switch status {
+	case continuity.EvidenceContractDraft:
+		return []string{string(continuity.EvidenceContractActive), string(continuity.EvidenceContractRetired)}
+	case continuity.EvidenceContractActive:
+		return []string{string(continuity.EvidenceContractRetired)}
+	default:
+		return nil
+	}
+}
+
 func programOperationRequiresStoredPrincipal(command string) bool {
 	if programOwnerBoundCommand(command) {
 		return true
 	}
 	switch command {
-	case "program.transition", "program.applicability.decide", "program.approval-authority.assign", "program.monitoring.issue.create":
+	case "program.transition", "program.applicability.decide", "program.approval-authority.assign", "program.safeguard.transition", "program.monitoring.issue.create":
 		return true
 	default:
 		return false

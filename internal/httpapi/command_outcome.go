@@ -57,7 +57,7 @@ type committedCommandReceipt struct {
 }
 
 func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, policy commandPolicy, payload map[string]any, handler http.HandlerFunc) {
-	objectID := commandObjectID(r, payload)
+	objectID := commandObjectID(r, payload, policy)
 	if a.deps.Continuity == nil || objectID == "" || objectID == "*" || (policy.ObjectType != "PROGRAM" && policy.ObjectType != "MATTER") {
 		handler(w, r)
 		return
@@ -100,7 +100,12 @@ func (a *API) executeMaterialHandler(w http.ResponseWriter, r *http.Request, pol
 	})
 }
 
-func commandObjectID(r *http.Request, payload map[string]any) string {
+func commandObjectID(r *http.Request, payload map[string]any, policy commandPolicy) string {
+	if r != nil && strings.TrimSpace(policy.ObjectIDPath) != "" {
+		if value := strings.TrimSpace(r.PathValue(policy.ObjectIDPath)); value != "" {
+			return value
+		}
+	}
 	if r != nil {
 		if value := strings.TrimSpace(r.PathValue("id")); value != "" {
 			return value

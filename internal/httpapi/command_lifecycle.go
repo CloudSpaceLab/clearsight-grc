@@ -351,13 +351,48 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		}
 		return policy, nil
 
-	case "program.safeguard.define":
+	case "program.safeguard.define", "program.safeguard.assign":
 		if programAggregate == nil || stringValue(payload["owner_principal_id"]) == "" {
 			return policy, nil
 		}
 		if err := a.validateProgramAssignmentCandidate(ctx, tenant, name, *programAggregate, stringValue(payload["owner_principal_id"]), authority.ResponsibilityPerformer, policy.Materiality); err != nil {
 			return policy, err
 		}
+		return policy, nil
+
+	case "program.safeguard.update":
+		implementationID, err := lifecycleSubresourceID(r, payload, "implementation_id")
+		if err != nil {
+			return policy, err
+		}
+		if programAggregate != nil && !programHasImplementation(*programAggregate, implementationID) {
+			return policy, continuity.ErrNotFound
+		}
+		payload["implementation_id"] = implementationID
+		return policy, nil
+
+	case "program.safeguard.transition":
+		implementationID, err := lifecycleSubresourceID(r, payload, "implementation_id")
+		if err != nil {
+			return policy, err
+		}
+		if programAggregate == nil {
+			return policy, continuity.ErrNotFound
+		}
+		var implementation *continuity.ControlImplementation
+		for index := range programAggregate.ControlImplementations {
+			if programAggregate.ControlImplementations[index].ID == implementationID {
+				implementation = &programAggregate.ControlImplementations[index]
+				break
+			}
+		}
+		if implementation == nil {
+			return policy, continuity.ErrNotFound
+		}
+		if err := a.validateStoredResponsibilityActor(ctx, tenant, programAggregate.Program.LegalEntityID, "CONTROL_IMPLEMENTATION", implementation.ID, name, policy.Materiality, authority.ResponsibilityPerformer, implementation.OwnerPrincipalID); err != nil {
+			return policy, err
+		}
+		payload["implementation_id"] = implementation.ID
 		return policy, nil
 
 	case "program.requirement.supersede":
@@ -620,11 +655,20 @@ func (a *API) resolveMonitoringAssignee(ctx context.Context, tenant string, prog
 
 func programOwnerBoundCommand(name string) bool {
 	switch name {
-	case "program.details.update", "program.assign", "program.requirement.add", "program.requirement.supersede", "program.safeguard.define", "program.evidence.define", "program.monitoring.form.define", "program.monitoring.collect":
+	case "program.details.update", "program.assign", "program.requirement.add", "program.requirement.supersede", "program.safeguard.define", "program.safeguard.update", "program.safeguard.assign", "program.evidence.define", "program.evidence.revise", "program.monitoring.form.define", "program.monitoring.collect":
 		return true
 	default:
 		return false
 	}
+}
+
+func programHasImplementation(aggregate continuity.ProgramAggregate, implementationID string) bool {
+	for _, implementation := range aggregate.ControlImplementations {
+		if implementation.ID == implementationID {
+			return true
+		}
+	}
+	return false
 }
 
 func matterOwnerBoundCommand(name string) bool {

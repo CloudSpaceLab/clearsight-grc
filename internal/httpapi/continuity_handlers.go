@@ -360,6 +360,54 @@ func (a *API) addProgramControlImplementation(w http.ResponseWriter, r *http.Req
 	writeContinuityResult(w, value, err, http.StatusCreated)
 }
 
+func (a *API) reviseProgramControlImplementation(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.ReviseControlImplementationInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.ProgramID = r.PathValue("id")
+	input.ImplementationID = r.PathValue("implementation_id")
+	value, err := service.ReviseControlImplementation(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
+}
+
+func (a *API) assignProgramControlImplementation(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.AssignControlImplementationInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.ProgramID = r.PathValue("id")
+	input.ImplementationID = r.PathValue("implementation_id")
+	value, err := service.AssignControlImplementation(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
+}
+
+func (a *API) transitionProgramControlImplementation(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.TransitionControlImplementationInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.ProgramID = r.PathValue("id")
+	input.ImplementationID = r.PathValue("implementation_id")
+	value, err := service.TransitionControlImplementation(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
+}
+
 func (a *API) linkProgramRequirementControl(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.continuityService(w)
 	if !ok {
@@ -388,6 +436,38 @@ func (a *API) addProgramEvidenceContract(w http.ResponseWriter, r *http.Request)
 	input.ProgramID = r.PathValue("id")
 	value, err := service.AddEvidenceContract(r.Context(), input)
 	writeContinuityResult(w, value, err, http.StatusCreated)
+}
+
+func (a *API) reviseProgramEvidenceContract(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.ReviseEvidenceContractInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.ProgramID = r.PathValue("id")
+	input.ContractID = r.PathValue("contract_id")
+	value, err := service.ReviseEvidenceContract(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
+}
+
+func (a *API) transitionProgramEvidenceContract(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	var input continuity.TransitionEvidenceContractInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.ProgramID = r.PathValue("id")
+	input.ContractID = r.PathValue("contract_id")
+	value, err := service.TransitionEvidenceContract(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusOK)
 }
 
 func (a *API) recordProgramEvidenceAssessment(w http.ResponseWriter, r *http.Request) {
