@@ -17,6 +17,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
 type monitoringRequestRecorder struct {
@@ -26,6 +27,54 @@ type monitoringRequestRecorder struct {
 func (r *monitoringRequestRecorder) CreateRequest(_ context.Context, input evidence.CreateRequestInput) (evidence.Request, error) {
 	r.input = input
 	return evidence.Request{ID: "request-1", TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, FormTemplateID: input.FormTemplateID, FormTemplateVersion: input.FormTemplateVersion, Version: 1}, nil
+}
+
+type monitoringSourceFixture struct {
+	tenant        string
+	legalEntityID string
+	bindings      map[string]sourceaccess.BindingRevision
+}
+
+func newMonitoringSourceFixture(tenant, legalEntityID string, bindingIDs ...string) *monitoringSourceFixture {
+	now := time.Now().UTC()
+	fixture := &monitoringSourceFixture{tenant: tenant, legalEntityID: legalEntityID, bindings: map[string]sourceaccess.BindingRevision{}}
+	for _, bindingID := range bindingIDs {
+		fixture.bindings[bindingID] = sourceaccess.BindingRevision{
+			BindingID: bindingID, TenantID: tenant, SourceID: "source-" + bindingID,
+			Operations: []sourceaccess.Operation{sourceaccess.OperationPage},
+			RevisionLifecycle: sourceaccess.RevisionLifecycle{Status: sourceaccess.RevisionActive, IsCurrent: true, EffectiveFrom: &now, Version: 1},
+		}
+	}
+	return fixture
+}
+
+func (f *monitoringSourceFixture) Binding(_ context.Context, tenant, bindingID string, version int64) (sourceaccess.BindingRevision, error) {
+	binding, ok := f.bindings[bindingID]
+	if !ok || tenant != f.tenant || version != binding.Version {
+		return sourceaccess.BindingRevision{}, sourceaccess.ErrCatalogNotFound
+	}
+	return binding, nil
+}
+
+func (f *monitoringSourceFixture) PreviewBinding(context.Context, string, string, int64, sourceaccess.PageRequest) (sourceaccess.RecordPage, error) {
+	return sourceaccess.RecordPage{}, sourceaccess.ErrCatalogStorage
+}
+
+func (f *monitoringSourceFixture) ValidateActiveSourcesForEntity(_ context.Context, tenant, legalEntityID string, sourceIDs []string) error {
+	if tenant != f.tenant || legalEntityID != f.legalEntityID || len(sourceIDs) != 1 {
+		return evidence.ErrSourceScopeMismatch
+	}
+	for _, binding := range f.bindings {
+		if binding.SourceID == sourceIDs[0] {
+			return nil
+		}
+	}
+	return evidence.ErrSourceScopeMismatch
+}
+
+func configureMonitoringSources(service *monitoring.Service, fixture *monitoringSourceFixture) {
+	service.ConfigureSourceReader(fixture)
+	service.ConfigureSourceValidator(fixture)
 }
 
 func TestMonitoringRoutesAreRegisteredOnce(t *testing.T) {
@@ -138,7 +187,8 @@ func TestMonitoringProgramReadsBindTheExactRecordEntity(t *testing.T) {
 		t.Fatal(err)
 	}
 	monitoringService := monitoring.NewService(monitoring.NewMemoryRepository(), nil)
-	check, err := monitoringService.CreateCheck(t.Context(), monitoring.Actor{TenantID: "bank-a", PrincipalID: "owner-a"}, monitoring.CreateCheckInput{
+	configureMonitoringSources(monitoringService, newMonitoringSourceFixture("bank-a", "entity-a", "binding-1"))
+	check, err := monitoringService.CreateCheck(t.Context(), monitoring.Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "owner-a"}, monitoring.CreateCheckInput{
 		ProgramID: program.Program.ID, Code: "STATUS", Name: "Status check", Claim: "The service remains available.", InputKind: monitoring.InputSource,
 		BindingID: "binding-1", BindingVersion: 1, SourceRules: []monitoring.SourceRule{{ID: "available", Field: "available", Operator: monitoring.OperatorEquals, Expected: "true", RiskPoints: 100}},
 		FreshnessMinutes: 60, MinimumCoverage: 1,
@@ -172,6 +222,7 @@ func TestCreateMonitoringCheckUsesCurrentProgramOwnerAndReviewer(t *testing.T) {
 		t.Fatal(err)
 	}
 	monitoringService := monitoring.NewService(monitoring.NewMemoryRepository(), nil)
+	configureMonitoringSources(monitoringService, newMonitoringSourceFixture("bank-a", "entity-a", "binding-1"))
 	resolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
 		authority.ResponsibilityOwner:     {Principal: authority.Principal{ID: "owner-a", DisplayName: "Data Protection Officer"}},
 		authority.ResponsibilityReviewer:  {Principal: authority.Principal{ID: "reviewer-a", DisplayName: "Controls reviewer"}},
@@ -275,7 +326,8 @@ func TestMonitoringTransitionsAndEvaluationUseStoredCurrentResponsibilities(t *t
 		t.Fatal(err)
 	}
 	monitoringService := monitoring.NewService(monitoring.NewMemoryRepository(), nil)
-	check, err := monitoringService.CreateCheck(t.Context(), monitoring.Actor{TenantID: "bank-a", PrincipalID: "owner-a"}, monitoring.CreateCheckInput{
+	configureMonitoringSources(monitoringService, newMonitoringSourceFixture("bank-a", "entity-a", "binding-1"))
+	check, err := monitoringService.CreateCheck(t.Context(), monitoring.Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "owner-a"}, monitoring.CreateCheckInput{
 		ProgramID: program.Program.ID, Code: "STATUS", Name: "Status check", Claim: "The service remains available.", InputKind: monitoring.InputSource,
 		BindingID: "binding-1", BindingVersion: 1, SourceRules: []monitoring.SourceRule{{ID: "available", Field: "available", Operator: monitoring.OperatorEquals, Expected: "true", RiskPoints: 100}},
 		FreshnessMinutes: 60, MinimumCoverage: 1, OwnerPrincipalID: "owner-a", ReviewerPrincipalID: "reviewer-a",

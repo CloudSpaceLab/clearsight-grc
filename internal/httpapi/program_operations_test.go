@@ -400,7 +400,8 @@ func TestProgramOperationsExposeMonitoringResponsibilitiesPerCheck(t *testing.T)
 		OwnerPrincipalID: "owner-1", AuthorityPrincipalID: "authorizer-1", Version: 4, CreatedAt: now, UpdatedAt: now,
 	}}
 	monitoringService := monitoring.NewService(monitoring.NewMemoryRepository(), nil)
-	draft, err := monitoringService.CreateCheck(t.Context(), monitoring.Actor{TenantID: "bank", PrincipalID: "owner-1"}, monitoring.CreateCheckInput{
+	configureMonitoringSources(monitoringService, newMonitoringSourceFixture("bank", "entity-a", "binding-1", "binding-2"))
+	draft, err := monitoringService.CreateCheck(t.Context(), monitoring.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "owner-1"}, monitoring.CreateCheckInput{
 		ProgramID: aggregate.Program.ID, Code: "DRAFT", Name: "Draft check", Claim: "The draft is reviewed.", InputKind: monitoring.InputSource,
 		BindingID: "binding-1", BindingVersion: 1, SourceRules: []monitoring.SourceRule{{ID: "healthy", Field: "healthy", Operator: monitoring.OperatorEquals, Expected: "true", RiskPoints: 100}},
 		FreshnessMinutes: 60, MinimumCoverage: 1, OwnerPrincipalID: "owner-1", ReviewerPrincipalID: "reviewer-1",
@@ -408,7 +409,7 @@ func TestProgramOperationsExposeMonitoringResponsibilitiesPerCheck(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	active, err := monitoringService.CreateCheck(t.Context(), monitoring.Actor{TenantID: "bank", PrincipalID: "owner-1"}, monitoring.CreateCheckInput{
+	active, err := monitoringService.CreateCheck(t.Context(), monitoring.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "owner-1"}, monitoring.CreateCheckInput{
 		ProgramID: aggregate.Program.ID, Code: "ACTIVE", Name: "Active check", Claim: "The active source is evaluated.", InputKind: monitoring.InputSource,
 		BindingID: "binding-2", BindingVersion: 1, SourceRules: []monitoring.SourceRule{{ID: "healthy", Field: "healthy", Operator: monitoring.OperatorEquals, Expected: "true", RiskPoints: 100}},
 		FreshnessMinutes: 60, MinimumCoverage: 1, OwnerPrincipalID: "owner-1", ReviewerPrincipalID: "reviewer-1",
@@ -416,11 +417,11 @@ func TestProgramOperationsExposeMonitoringResponsibilitiesPerCheck(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	active, err = monitoringService.TransitionCheck(t.Context(), monitoring.Actor{TenantID: "bank", PrincipalID: "owner-1"}, monitoring.TransitionInput{ID: active.ID, ExpectedVersion: 1, To: monitoring.LifecyclePendingApproval})
+	active, err = monitoringService.TransitionCheck(t.Context(), monitoring.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "owner-1"}, monitoring.TransitionInput{ID: active.ID, ExpectedVersion: 1, To: monitoring.LifecyclePendingApproval})
 	if err != nil {
 		t.Fatal(err)
 	}
-	active, err = monitoringService.TransitionCheck(t.Context(), monitoring.Actor{TenantID: "bank", PrincipalID: "reviewer-1"}, monitoring.TransitionInput{ID: active.ID, ExpectedVersion: active.Version, To: monitoring.LifecycleActive})
+	active, err = monitoringService.TransitionCheck(t.Context(), monitoring.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-1"}, monitoring.TransitionInput{ID: active.ID, ExpectedVersion: active.Version, To: monitoring.LifecycleActive})
 	if err != nil {
 		t.Fatal(err)
 	}
