@@ -51,6 +51,7 @@ export function ProgramCurrentPosition({ aggregate, operations, digest }: Props)
   const storedOwner = operations.responsible_parties?.find((party) => party.scope === "RECORD" && party.responsibility === "ACCOUNTABLE_OWNER")?.display_name;
   const action = dominantAction(operations.operations, digest);
   const reasons = current?.reasons ?? [];
+  const calculatedAt = current?.generated_at ? new Date(current.generated_at).toLocaleString() : "time unavailable";
 
   function goToAction() {
     if (!action) return;
@@ -62,7 +63,7 @@ export function ProgramCurrentPosition({ aggregate, operations, digest }: Props)
     <div>
       <span className="eyebrow">Current position</span>
       <h2 id="program-current-position-heading">{stale ? "Updating status" : aggregate.state_label}</h2>
-      <p>{stale ? `Assessed version ${assessedVersion} · current version ${aggregate.program.version}` : `Calculated from Program version ${aggregate.program.version} and projection ${current?.projection_version ?? 0}.`}</p>
+      <p>{stale ? "Status is being recalculated after the Program changed." : <>Status calculated <time dateTime={current?.generated_at}>{calculatedAt}</time> from the latest Program changes.</>}</p>
       <div className="program-position-facts">
         <span><strong>Owner</strong> {owner?.display_name ?? storedOwner ?? (aggregate.program.owner_principal_id ? "Recorded Program owner unavailable" : "Program owner not assigned")}</span>
         <span><strong>Open issues</strong> {current?.open_matter_count ?? 0}</span>

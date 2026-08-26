@@ -129,7 +129,7 @@ describe("Program record workspace", () => {
     expect(await screen.findByRole("heading", { name: "Nigeria data protection" })).toBeTruthy();
     expect(screen.getAllByText("Data Protection Officer").length).toBeGreaterThan(0);
     expect(screen.getByText("Updating status")).toBeTruthy();
-    expect(screen.getByText("Assessed version 3 · current version 4")).toBeTruthy();
+    expect(screen.getByText("Status is being recalculated after the Program changed.")).toBeTruthy();
     expect(screen.getByText("Two applicable requirements do not have evidence checks.")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Approve Program activation" })).toBeTruthy();
     expect(screen.getAllByTestId("program-dominant-action")).toHaveLength(1);

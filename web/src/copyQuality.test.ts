@@ -10,6 +10,7 @@ const productCommentary = [
   /exact (?:linked )?record/i,
   /authoritative server/i,
   /projection cycle/i,
+  /\bprojection\b(?=\s+(?:version|status|data|result|health|record|update)\b|\s*\$\{)/i,
   /bounded daily digest/i,
   /current canonical/i,
   /second directory console/i,
