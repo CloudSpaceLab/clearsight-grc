@@ -79,13 +79,20 @@ type RelationshipLinkRepository interface {
 }
 
 type RelationshipLinkService struct {
-	repo    RelationshipLinkRepository
-	targets *RelationshipTargetAccess
-	work    interface {
+	repo        RelationshipLinkRepository
+	targets     *RelationshipTargetAccess
+	coordinator *RelationshipLinkCoordinator
+	work        interface {
 		HasActiveVendorWork(context.Context, Scope, string) (bool, error)
 	}
 	now   func() time.Time
 	newID func() (string, error)
+}
+
+func (s *RelationshipLinkService) ConfigureCoordinator(coordinator *RelationshipLinkCoordinator) {
+	if s != nil {
+		s.coordinator = coordinator
+	}
 }
 
 func (s *RelationshipLinkService) ConfigureTargetReader(reader RelationshipTargetReader) {
@@ -152,6 +159,8 @@ func (s *RelationshipLinkService) End(ctx context.Context, actor Actor, linkID s
 	if s == nil || s.repo == nil || !validActor(actor) || linkID == "" || input.ExpectedVersion < 1 || input.Reason == "" || len(input.Reason) > 1000 {
 		return RelationshipLink{}, ErrInvalid
 	}
+	s.coordinator.Lock()
+	defer s.coordinator.Unlock()
 	scope := scopeFrom(actor)
 	current, err := s.repo.GetRelationshipLink(ctx, scope, linkID)
 	if err != nil {

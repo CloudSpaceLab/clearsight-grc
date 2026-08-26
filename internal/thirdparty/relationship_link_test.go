@@ -157,3 +157,27 @@ func TestRelationshipLinksRejectProgramsOutsideActorLegalEntity(t *testing.T) {
 		t.Fatalf("cross-entity program link error = %v, want not found", err)
 	}
 }
+
+func TestRelationshipLinkCoordinatorSerializesInvariantChecks(t *testing.T) {
+	coordinator := &RelationshipLinkCoordinator{}
+	coordinator.Lock()
+	entered := make(chan struct{})
+	done := make(chan struct{})
+	go func() {
+		coordinator.Lock()
+		close(entered)
+		coordinator.Unlock()
+		close(done)
+	}()
+	select {
+	case <-entered:
+		t.Fatal("second relationship operation entered before the first completed")
+	case <-time.After(20 * time.Millisecond):
+	}
+	coordinator.Unlock()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("second relationship operation did not resume")
+	}
+}
