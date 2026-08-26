@@ -131,7 +131,7 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 			m.source_type,COALESCE(m.source_id::text,''),m.trigger_type,COALESCE(m.trigger_id::text,''),m.trigger_key,m.known_facts,m.missing_facts,m.contradictions,
 			COALESCE(m.owner_principal_id::text,''),m.required_authority,m.due_at,m.closed_at,m.closure_reason,m.reopen_count,
 			m.created_at,m.updated_at,m.version,
-			(SELECT count(DISTINCT ml.program_id) FROM matter_links ml WHERE ml.tenant_id=m.tenant_id AND ml.matter_id=m.id AND ml.program_id IS NOT NULL),
+			(SELECT count(DISTINCT ml.program_id) FROM matter_links ml WHERE ml.tenant_id=m.tenant_id AND ml.matter_id=m.id AND ml.program_id IS NOT NULL AND ml.retired_at IS NULL),
 			(SELECT count(*) FROM matter_actions ma WHERE ma.tenant_id=m.tenant_id AND ma.matter_id=m.id AND ma.status NOT IN ('IMPLEMENTED','CANCELLED')),
 			(SELECT count(*) FROM verification_contracts vc WHERE vc.tenant_id=m.tenant_id AND vc.matter_id=m.id AND vc.status='ACTIVE'),
 			latest.result,latest.observed_at
@@ -150,7 +150,7 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 		  AND ($3='' OR m.search_document @@ websearch_to_tsquery('simple'::regconfig,$3))
 		  AND ($12='' OR EXISTS (
 			SELECT 1 FROM matter_links program_link
-			WHERE program_link.tenant_id=m.tenant_id AND program_link.matter_id=m.id AND program_link.program_id=NULLIF($12,'')::uuid
+			WHERE program_link.tenant_id=m.tenant_id AND program_link.matter_id=m.id AND program_link.program_id=NULLIF($12,'')::uuid AND program_link.retired_at IS NULL
 		  ))
 		  AND (NOT $4 OR t.id::text=$6 OR t.slug=$6)
 		  AND (

@@ -265,12 +265,15 @@ type ControlImplementation struct {
 }
 
 type RequirementControlLink struct {
-	ID               string    `json:"id"`
-	TenantID         string    `json:"tenant_id"`
-	ProgramID        string    `json:"program_id"`
-	RequirementID    string    `json:"requirement_id"`
-	ImplementationID string    `json:"implementation_id"`
-	CreatedAt        time.Time `json:"created_at"`
+	ID               string     `json:"id"`
+	TenantID         string     `json:"tenant_id"`
+	ProgramID        string     `json:"program_id"`
+	RequirementID    string     `json:"requirement_id"`
+	ImplementationID string     `json:"implementation_id"`
+	CreatedAt        time.Time  `json:"created_at"`
+	RetiredAt        *time.Time `json:"retired_at,omitempty"`
+	RetiredBy        string     `json:"retired_by,omitempty"`
+	RetirementReason string     `json:"retirement_reason,omitempty"`
 }
 
 type EvidenceContract struct {
@@ -389,14 +392,17 @@ type Matter struct {
 }
 
 type MatterLink struct {
-	ID            string    `json:"id"`
-	TenantID      string    `json:"tenant_id"`
-	MatterID      string    `json:"matter_id"`
-	ProgramID     string    `json:"program_id,omitempty"`
-	RequirementID string    `json:"requirement_id,omitempty"`
-	ControlID     string    `json:"control_id,omitempty"`
-	Relationship  string    `json:"relationship"`
-	CreatedAt     time.Time `json:"created_at"`
+	ID               string     `json:"id"`
+	TenantID         string     `json:"tenant_id"`
+	MatterID         string     `json:"matter_id"`
+	ProgramID        string     `json:"program_id,omitempty"`
+	RequirementID    string     `json:"requirement_id,omitempty"`
+	ControlID        string     `json:"control_id,omitempty"`
+	Relationship     string     `json:"relationship"`
+	CreatedAt        time.Time  `json:"created_at"`
+	RetiredAt        *time.Time `json:"retired_at,omitempty"`
+	RetiredBy        string     `json:"retired_by,omitempty"`
+	RetirementReason string     `json:"retirement_reason,omitempty"`
 }
 
 type Decision struct {

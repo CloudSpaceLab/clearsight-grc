@@ -54,7 +54,7 @@ func (r *PostgresRepository) RecordEvidenceAssessmentWithFailure(ctx context.Con
 
 	result := EvidenceAssessmentFailureResult{}
 	err = tx.QueryRow(ctx, `SELECT m.id::text,t.slug,m.legal_entity_id::text,m.reference,m.matter_type,m.status,m.priority,m.title,m.summary,m.scope,m.source_type,COALESCE(m.source_id::text,''),m.trigger_type,COALESCE(m.trigger_id::text,''),m.trigger_key,m.known_facts,m.missing_facts,m.contradictions,COALESCE(m.owner_principal_id::text,''),m.required_authority,m.due_at,m.closed_at,m.closure_reason,m.reopen_count,m.created_at,m.updated_at,m.version
-		FROM matters m JOIN tenants t ON t.id=m.tenant_id JOIN matter_links ml ON ml.tenant_id=m.tenant_id AND ml.matter_id=m.id
+		FROM matters m JOIN tenants t ON t.id=m.tenant_id JOIN matter_links ml ON ml.tenant_id=m.tenant_id AND ml.matter_id=m.id AND ml.retired_at IS NULL
 		WHERE (t.id::text=$1 OR t.slug=$1) AND m.trigger_key=$2 AND ml.program_id=$3::uuid AND m.legal_entity_id=$4::uuid AND m.status NOT IN ('CLOSED','CANCELLED')
 		ORDER BY m.created_at DESC LIMIT 1`, bundle.TenantID, bundle.Matter.TriggerKey, bundle.ProgramID, programEntity).Scan(
 		&result.Matter.ID, &result.Matter.TenantID, &result.Matter.LegalEntityID, &result.Matter.Reference, &result.Matter.Type, &result.Matter.Status,

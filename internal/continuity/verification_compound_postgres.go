@@ -81,7 +81,7 @@ func (r *PostgresRepository) ApplyVerificationResultBundle(ctx context.Context, 
 		return ErrVersionConflict
 	}
 
-	rows, err := tx.Query(ctx, `SELECT DISTINCT program_id::text FROM matter_links WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND matter_id=$2::uuid AND program_id IS NOT NULL`, bundle.TenantID, bundle.MatterID)
+	rows, err := tx.Query(ctx, `SELECT DISTINCT program_id::text FROM matter_links WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND matter_id=$2::uuid AND program_id IS NOT NULL AND retired_at IS NULL`, bundle.TenantID, bundle.MatterID)
 	if err != nil {
 		return err
 	}

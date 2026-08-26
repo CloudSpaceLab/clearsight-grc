@@ -20,6 +20,7 @@ const (
 	EventControlImplementationOwnerChanged  = "CONTROL_IMPLEMENTATION_OWNER_CHANGED"
 	EventControlImplementationStatusChanged = "CONTROL_IMPLEMENTATION_STATUS_CHANGED"
 	EventRequirementControlLinked           = "REQUIREMENT_CONTROL_LINKED"
+	EventRequirementControlLinkRetired      = "REQUIREMENT_CONTROL_LINK_RETIRED"
 	EventEvidenceContractAdded              = "EVIDENCE_CONTRACT_ADDED"
 	EventEvidenceContractRevised            = "EVIDENCE_CONTRACT_REVISED"
 	EventEvidenceContractStatusChanged      = "EVIDENCE_CONTRACT_STATUS_CHANGED"
@@ -30,6 +31,7 @@ const (
 
 	EventMatterCreated                  = "MATTER_CREATED"
 	EventMatterLinked                   = "MATTER_LINKED"
+	EventMatterLinkRetired              = "MATTER_LINK_RETIRED"
 	EventMatterStateChanged             = "MATTER_STATE_CHANGED"
 	EventMatterDetailsUpdated           = "MATTER_DETAILS_UPDATED"
 	EventMatterContextChanged           = "MATTER_CONTEXT_CHANGED"
@@ -137,6 +139,12 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 				return ProgramAggregate{}, err
 			}
 			aggregate.RequirementControlLinks = append(aggregate.RequirementControlLinks, value)
+		case EventRequirementControlLinkRetired:
+			var value RequirementControlLink
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.RequirementControlLinks = removeRequirementControlLink(aggregate.RequirementControlLinks, value.ID)
 		case EventEvidenceContractAdded:
 			var value EvidenceContract
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
@@ -195,6 +203,12 @@ func reconstructMatter(events []Event) (MatterAggregate, error) {
 				return MatterAggregate{}, err
 			}
 			aggregate.Links = append(aggregate.Links, value)
+		case EventMatterLinkRetired:
+			var value MatterLink
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterAggregate{}, err
+			}
+			aggregate.Links = removeMatterLink(aggregate.Links, value.ID)
 		case EventMatterStateChanged:
 			var value Matter
 			if err := json.Unmarshal(event.Payload, &value); err != nil {

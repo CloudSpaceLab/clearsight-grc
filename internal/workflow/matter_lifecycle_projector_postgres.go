@@ -359,6 +359,7 @@ func (p *MatterLifecycleProjector) matterLegalEntity(ctx context.Context, tenant
 		JOIN legal_entities le ON le.tenant_id=pr.tenant_id AND le.id=pr.legal_entity_id
 		WHERE ml.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 		  AND ml.matter_id=$2::uuid
+		  AND ml.retired_at IS NULL
 		  AND le.valid_from<=$3
 		  AND (le.valid_until IS NULL OR $3<le.valid_until)
 		ORDER BY le.code

@@ -504,6 +504,12 @@ func applyProgramEventToAggregate(aggregate *ProgramAggregate, event Event) erro
 			return err
 		}
 		aggregate.RequirementControlLinks = append(aggregate.RequirementControlLinks, value)
+	case EventRequirementControlLinkRetired:
+		var value RequirementControlLink
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.RequirementControlLinks = removeRequirementControlLink(aggregate.RequirementControlLinks, value.ID)
 	case EventEvidenceContractAdded:
 		var value EvidenceContract
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
@@ -548,6 +554,12 @@ func applyMatterEventToAggregate(aggregate *MatterAggregate, event Event) error 
 			return err
 		}
 		aggregate.Links = append(aggregate.Links, value)
+	case EventMatterLinkRetired:
+		var value MatterLink
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Links = removeMatterLink(aggregate.Links, value.ID)
 	case EventMatterStateChanged:
 		var value Matter
 		if err := json.Unmarshal(event.Payload, &value); err != nil {

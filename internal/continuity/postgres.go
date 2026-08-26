@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"slices"
 	"strings"
 	"time"
 
@@ -321,7 +322,7 @@ func (r *PostgresRepository) ApplyMatterEvent(ctx context.Context, tenant, id st
 	if err = insertOutbox(ctx, tx, event); err != nil {
 		return 0, err
 	}
-	programRows, err := tx.Query(ctx, `SELECT DISTINCT program_id::text FROM matter_links WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND matter_id=$2::uuid AND program_id IS NOT NULL`, tenant, id)
+	programRows, err := tx.Query(ctx, `SELECT DISTINCT program_id::text FROM matter_links WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND matter_id=$2::uuid AND program_id IS NOT NULL AND retired_at IS NULL`, tenant, id)
 	if err != nil {
 		return 0, err
 	}
@@ -339,6 +340,15 @@ func (r *PostgresRepository) ApplyMatterEvent(ctx context.Context, tenant, id st
 		return 0, err
 	}
 	programRows.Close()
+	if event.Type == EventMatterLinkRetired {
+		var retired MatterLink
+		if err := json.Unmarshal(event.Payload, &retired); err != nil {
+			return 0, err
+		}
+		if retired.ProgramID != "" && !slices.Contains(programIDs, retired.ProgramID) {
+			programIDs = append(programIDs, retired.ProgramID)
+		}
+	}
 	for _, programID := range programIDs {
 		if _, err = queueProgramStateTx(ctx, tx, tenant, programID, 0, event.Type, id, event.ActorID, event.OccurredAt); err != nil {
 			return 0, err
@@ -420,12 +430,12 @@ func (r *PostgresRepository) ResponsePackageHistory(ctx context.Context, tenant,
 
 func (r *PostgresRepository) OpenMatterCount(ctx context.Context, tenant, programID string) (int, error) {
 	var count int
-	err := r.pool.QueryRow(ctx, `SELECT count(DISTINCT m.id) FROM matters m JOIN matter_links ml ON ml.matter_id=m.id AND ml.tenant_id=m.tenant_id JOIN tenants t ON t.id=m.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND ml.program_id=$2::uuid AND m.status NOT IN ('CLOSED','CANCELLED')`, tenant, programID).Scan(&count)
+	err := r.pool.QueryRow(ctx, `SELECT count(DISTINCT m.id) FROM matters m JOIN matter_links ml ON ml.matter_id=m.id AND ml.tenant_id=m.tenant_id JOIN tenants t ON t.id=m.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND ml.program_id=$2::uuid AND ml.retired_at IS NULL AND m.status NOT IN ('CLOSED','CANCELLED')`, tenant, programID).Scan(&count)
 	return count, err
 }
 
 func (r *PostgresRepository) LinkedProgramIDs(ctx context.Context, tenant, matterID string) ([]string, error) {
-	rows, err := r.pool.Query(ctx, `SELECT DISTINCT ml.program_id::text FROM matter_links ml JOIN tenants t ON t.id=ml.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND ml.matter_id=$2::uuid AND ml.program_id IS NOT NULL ORDER BY ml.program_id::text`, tenant, matterID)
+	rows, err := r.pool.Query(ctx, `SELECT DISTINCT ml.program_id::text FROM matter_links ml JOIN tenants t ON t.id=ml.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND ml.matter_id=$2::uuid AND ml.program_id IS NOT NULL AND ml.retired_at IS NULL ORDER BY ml.program_id::text`, tenant, matterID)
 	if err != nil {
 		return nil, err
 	}
@@ -545,6 +555,19 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		}
 		_, err := tx.Exec(ctx, `INSERT INTO requirement_control_links(id,tenant_id,program_id,requirement_id,implementation_id,created_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,$5::uuid,$6)`, v.ID, v.TenantID, v.ProgramID, v.RequirementID, v.ImplementationID, v.CreatedAt)
 		return err
+	case EventRequirementControlLinkRetired:
+		var v RequirementControlLink
+		if err := json.Unmarshal(event.Payload, &v); err != nil {
+			return err
+		}
+		result, err := tx.Exec(ctx, `UPDATE requirement_control_links SET retired_at=$4,retired_by=$5::uuid,retirement_reason=$6 WHERE id=$3::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND program_id=$2::uuid AND retired_at IS NULL`, v.TenantID, v.ProgramID, v.ID, v.RetiredAt, v.RetiredBy, v.RetirementReason)
+		if err != nil {
+			return err
+		}
+		if result.RowsAffected() != 1 {
+			return ErrNotFound
+		}
+		return nil
 	case EventEvidenceContractAdded:
 		var v EvidenceContract
 		if err := json.Unmarshal(event.Payload, &v); err != nil {
@@ -652,6 +675,19 @@ func applyMatterProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		}
 		_, err := tx.Exec(ctx, `INSERT INTO matter_links(id,tenant_id,matter_id,program_id,requirement_id,control_id,relationship,created_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,NULLIF($5,'')::uuid,NULLIF($6,'')::uuid,$7,$8)`, v.ID, v.TenantID, v.MatterID, v.ProgramID, v.RequirementID, v.ControlID, v.Relationship, v.CreatedAt)
 		return err
+	case EventMatterLinkRetired:
+		var v MatterLink
+		if err := json.Unmarshal(event.Payload, &v); err != nil {
+			return err
+		}
+		result, err := tx.Exec(ctx, `UPDATE matter_links SET retired_at=$4,retired_by=$5::uuid,retirement_reason=$6 WHERE id=$3::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND matter_id=$2::uuid AND retired_at IS NULL`, v.TenantID, v.MatterID, v.ID, v.RetiredAt, v.RetiredBy, v.RetirementReason)
+		if err != nil {
+			return err
+		}
+		if result.RowsAffected() != 1 {
+			return ErrNotFound
+		}
+		return nil
 	case EventMatterStateChanged, EventMatterDetailsUpdated, EventMatterContextChanged, EventMatterOwnerChanged:
 		v, ok, err := matterProjectionMatter(event)
 		if err != nil {
