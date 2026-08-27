@@ -2,9 +2,7 @@
 
 package evidence
 
-import (
-	"database/sql"
-)
+import "database/sql"
 
 const accessRouteSelect = `
 	SELECT ar.id::text,ar.tenant_id::text,ar.legal_entity_id::text,ar.distribution_id::text,
