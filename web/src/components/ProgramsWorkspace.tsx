@@ -7,6 +7,7 @@ import { EmptyState } from "./EmptyState";
 import { ProgramReviewDigest } from "./ProgramReviewDigest";
 import { ProgramSetupWorkspace } from "./ProgramSetupWorkspace";
 import { ProgramRecordWorkspace } from "./ProgramRecordWorkspace";
+import { readWorkspaceFilters, replaceWorkspaceHash, workspaceHash } from "../workspaceFilters";
 
 type LoadState = "loading" | "live" | "unavailable";
 type Props = { targetID?: string; openFirst?: boolean; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenRequest?: (requestID: string) => void };
@@ -58,17 +59,39 @@ function summaryFromAggregate(detail: ProgramAggregate): ProgramSummary {
 }
 
 export function ProgramsWorkspace(props: Props) {
-  if (props.targetID) return <ProgramRecordWorkspace programID={props.targetID} actorPrincipalID={props.actorPrincipalID} canConfigureSources={props.canConfigureSources} onOpenRequest={props.onOpenRequest} onBack={() => { window.location.hash = "#programs"; }}/>;
+  if (props.targetID) return <ProgramRecordWorkspace programID={props.targetID} actorPrincipalID={props.actorPrincipalID} canConfigureSources={props.canConfigureSources} onOpenRequest={props.onOpenRequest} onBack={() => { window.location.hash = workspaceHash("#programs", readWorkspaceFilters(window.location.hash)); }}/>;
   return <ProgramListWorkspace {...props}/>;
 }
 
+function humanizeProgramState(value: string) {
+  const labels: Record<string, string> = {
+    CURRENT: "Up to date",
+    AT_RISK: "At risk",
+    GAP_IDENTIFIED: "Gap identified",
+    EVIDENCE_INSUFFICIENT: "Evidence incomplete",
+    IMPLEMENTATION_PENDING: "Implementation pending",
+    OVERDUE: "Overdue",
+    UNDER_REVIEW: "Under review",
+    UNKNOWN: "Not assessed",
+  };
+  return labels[value] ?? value.replaceAll("_", " ").toLowerCase();
+}
+
 function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = "", canConfigureSources = false }: Props) {
+  const initialFilters = useMemo(() => readWorkspaceFilters(window.location.hash), []);
   const [items, setItems] = useState<ProgramSummary[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [nextCursor, setNextCursor] = useState("");
-  const [searchDraft, setSearchDraft] = useState("");
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
+  const [searchDraft, setSearchDraft] = useState(initialFilters.q ?? "");
+  const [search, setSearch] = useState(initialFilters.q ?? "");
+  const [statusDraft, setStatusDraft] = useState(initialFilters.status ?? "");
+  const [status, setStatus] = useState(initialFilters.status ?? "");
+  const [overallStateDraft, setOverallStateDraft] = useState(initialFilters.overall_state ?? "");
+  const [overallState, setOverallState] = useState(initialFilters.overall_state ?? "");
+  const [jurisdictionDraft, setJurisdictionDraft] = useState(initialFilters.jurisdiction ?? "");
+  const [jurisdiction, setJurisdiction] = useState(initialFilters.jurisdiction ?? "");
+  const [assignedDraft, setAssignedDraft] = useState(initialFilters.assigned_to_me === "true");
+  const [assignedToMe, setAssignedToMe] = useState(initialFilters.assigned_to_me === "true");
   const [openID, setOpenID] = useState<string | null>(null);
   const [details, setDetails] = useState<Record<string, ProgramAggregate>>({});
   const [detailState, setDetailState] = useState<Record<string, LoadState>>({});
@@ -92,7 +115,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
     const currentRequest = ++requestID.current;
     if (reset) setState("loading"); else setLoadingMore(true);
     try {
-      const page = await loadProgramSummaries({ q: search, status, cursor, limit: 20 });
+      const page = await loadProgramSummaries({ q: search, status, overallState, jurisdiction, assignedToMe, cursor, limit: 20 });
       if (currentRequest !== requestID.current) return;
       setItems((current) => reset ? page.items : [...current, ...page.items]);
       setNextCursor(page.next_cursor ?? "");
@@ -103,7 +126,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
     } finally {
       if (currentRequest === requestID.current) setLoadingMore(false);
     }
-  }, [search, status]);
+  }, [assignedToMe, jurisdiction, overallState, search, status]);
 
   useEffect(() => { void load(true); }, [load]);
 
@@ -115,13 +138,28 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
 
   function submitSearch(event: FormEvent) {
     event.preventDefault();
-    setSearch(searchDraft.trim());
+    const nextSearch = searchDraft.trim();
+    const nextJurisdiction = jurisdictionDraft.trim();
+    setSearch(nextSearch);
+    setStatus(statusDraft);
+    setOverallState(overallStateDraft);
+    setJurisdiction(nextJurisdiction);
+    setAssignedToMe(assignedDraft);
+    replaceWorkspaceHash(workspaceHash("#programs", { q: nextSearch, status: statusDraft, overall_state: overallStateDraft, jurisdiction: nextJurisdiction, assigned_to_me: assignedDraft }));
   }
 
   function clearFilters() {
     setSearchDraft("");
     setSearch("");
+    setStatusDraft("");
     setStatus("");
+    setOverallStateDraft("");
+    setOverallState("");
+    setJurisdictionDraft("");
+    setJurisdiction("");
+    setAssignedDraft(false);
+    setAssignedToMe(false);
+    replaceWorkspaceHash("#programs");
   }
 
   async function fetchDetail(id: string): Promise<ProgramAggregate | null> {
@@ -192,6 +230,8 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
   const targetInList = !targetID || items.some((item) => item.program.id === targetID);
   const targetLoading = Boolean(targetID && !targetInList && detailState[targetID] === "loading");
   const targetUnavailable = Boolean(targetID && !targetInList && detailState[targetID] === "unavailable");
+  const filtersActive = Boolean(search || status || overallState || jurisdiction || assignedToMe);
+  const programFilters = { q: search, status, overall_state: overallState, jurisdiction, assigned_to_me: assignedToMe };
 
   return <div id="programs-workspace">
     <section className="workspace-brief">
@@ -200,14 +240,18 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
     </section>
     {setupOpen && <ProgramSetupWorkspace actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} onCreated={applyCreatedProgram} onClose={() => setSetupOpen(false)}/>}
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
-      <label><span>Search programs</span><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Name, code, function or jurisdiction"/></label>
-      <label><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">All statuses</option><option value="ACTIVE">Active</option><option value="PAUSED">Paused</option><option value="DRAFT">Setup in progress</option><option value="RETIRED">Ended</option></select></label>
-      <button className="secondary-button" type="submit">Search</button>
-      {(search || status) && <button className="text-button" type="button" onClick={clearFilters}>Clear filters</button>}
+      <label className="workspace-search-field"><span>Search programs</span><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Name, code, function or jurisdiction"/></label>
+      <label><span>Status</span><select value={statusDraft} onChange={(event) => setStatusDraft(event.target.value)}><option value="">All statuses</option><option value="ACTIVE">Active</option><option value="PAUSED">Paused</option><option value="DRAFT">Setup in progress</option><option value="RETIRED">Ended</option></select></label>
+      <label><span>Operating state</span><select value={overallStateDraft} onChange={(event) => setOverallStateDraft(event.target.value)}><option value="">All operating states</option><option value="CURRENT">Up to date</option><option value="AT_RISK">At risk</option><option value="GAP_IDENTIFIED">Gap identified</option><option value="EVIDENCE_INSUFFICIENT">Evidence incomplete</option><option value="IMPLEMENTATION_PENDING">Implementation pending</option><option value="OVERDUE">Overdue</option><option value="UNDER_REVIEW">Under review</option><option value="UNKNOWN">Not assessed</option></select></label>
+      <label><span>Jurisdiction</span><input value={jurisdictionDraft} onChange={(event) => setJurisdictionDraft(event.target.value)} placeholder="Country or regulator"/></label>
+      <label className="workspace-check-filter"><input type="checkbox" checked={assignedDraft} onChange={(event) => setAssignedDraft(event.target.checked)}/><span>Assigned to me</span></label>
+      <button className="secondary-button" type="submit">Apply filters</button>
+      {filtersActive && <button className="text-button" type="button" onClick={clearFilters}>Clear filters</button>}
     </form>
+    {filtersActive && <div className="workspace-filter-chips" aria-label="Applied Program filters">{search && <span>Search: {search}</span>}{status && <span>{status === "DRAFT" ? "Setup in progress" : status[0] + status.slice(1).toLowerCase()}</span>}{overallState && <span>{humanizeProgramState(overallState)}</span>}{jurisdiction && <span>{jurisdiction}</span>}{assignedToMe && <span>Assigned to me</span>}</div>}
     {targetLoading && <div className="workspace-loading compact" aria-live="polite" aria-busy="true">Loading requested Program…</div>}
     {targetUnavailable && <EmptyState label="Requested Program" title="The requested Program could not be loaded" description="It may be outside your current access scope or no longer available."/>}
-      {!items.length && !targetLoading && !targetUnavailable ? <EmptyState label="Programs" title={search || status ? "No programs match these filters" : "No programs in this scope"} description={search || status ? "Change the search or status filter to see other programs." : "There are no ongoing compliance or control Programs in your current access scope."} action={search || status ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="program-list">
+      {!items.length && !targetLoading && !targetUnavailable ? <EmptyState label="Programs" title={filtersActive ? "No programs match these filters" : "No programs in this scope"} description={filtersActive ? "Change or clear the filters to see other Programs in your access scope." : "There are no ongoing compliance or control Programs in your current access scope."} action={filtersActive ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="program-list">
       {items.map((summaryItem) => {
         const program = summaryItem.program;
         const isOpen = openID === program.id;
@@ -226,7 +270,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
             <span className={`program-state ${stateClass(displayState)}`}><strong>{displayLabel}</strong><small>{displayReason}</small></span>
             <span className="expand-indicator" aria-hidden="true">{isOpen ? "−" : "+"}</span>
           </button>
-          <div className="record-open-actions"><button className="secondary-button" type="button" onClick={() => { window.location.hash = `#programs/${encodeURIComponent(program.id)}`; }}>Open Program</button></div>
+          <div className="record-open-actions"><button className="secondary-button" type="button" onClick={() => { window.location.hash = workspaceHash(`#programs/${encodeURIComponent(program.id)}`, programFilters); }}>Open Program</button></div>
           {isOpen && <div className="program-detail progressive-detail" id={`program-detail-${program.id}`}>
             {currentDetailState === "loading" && <p aria-live="polite">Loading program details…</p>}
             {currentDetailState === "unavailable" && <div className="inline-error"><p>Program details could not be loaded.</p><button className="secondary-button" onClick={() => void fetchDetail(program.id)}>Try again</button></div>}

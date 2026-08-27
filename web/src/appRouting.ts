@@ -12,15 +12,20 @@ export type WorkspaceTarget = {
 };
 
 export function parseRoute(hash: string): { view: View; workTab?: WorkTab; target: WorkspaceTarget } {
-  const parts = hash.replace(/^#\/?/, "").split("/").filter(Boolean);
+  const route = hash.replace(/^#\/?/, "").split("?", 1)[0] ?? "";
+  const parts = route.split("/").filter(Boolean);
+  const decodeTarget = (value?: string) => {
+    if (!value) return undefined;
+    try { return decodeURIComponent(value); } catch { return value; }
+  };
   const allowed: View[] = ["today", "programs", "vendors", "work", "imports", "explore", "configure"];
   const view = allowed.includes(parts[0] as View) ? parts[0] as View : "today";
-  if (view === "programs") return { view, target: { programID: parts[1] } };
-  if (view === "vendors") return { view, target: { vendorRelationshipID: parts[1] } };
-  if (view === "imports") return { view, target: { documentID: parts[1] } };
+  if (view === "programs") return { view, target: { programID: decodeTarget(parts[1]) } };
+  if (view === "vendors") return { view, target: { vendorRelationshipID: decodeTarget(parts[1]) } };
+  if (view === "imports") return { view, target: { documentID: decodeTarget(parts[1]) } };
   if (view === "work") {
     const workTab: WorkTab = parts[1] === "evidence" ? "evidence" : "matters";
-    const target = workTab === "evidence" ? { evidenceID: parts[2] } : { matterID: parts[2] };
+    const target = workTab === "evidence" ? { evidenceID: decodeTarget(parts[2]) } : { matterID: decodeTarget(parts[2]) };
     return { view, workTab, target };
   }
   return { view, target: {} };

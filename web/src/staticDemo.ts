@@ -342,7 +342,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     return clone(programDetail) as T;
   }
   if (pathname === "/api/v1/programs/setup-candidates" && method === "GET") return clone({ owner_candidates: [{ id: "role-dpo", display_name: "Data Protection Officer", kind: "POSITION", role: "DPO" }], approval_authority_candidates: [{ id: "role-cro", display_name: "Chief Risk Officer", kind: "POSITION", role: "CRO" }, { id: "role-deputy-cro", display_name: "Deputy Chief Risk Officer", kind: "POSITION", role: "Deputy CRO" }], has_more: false, generated_at: now }) as T;
-  if (pathname === "/api/v1/program-summaries") return clone({ items: matches(url, programSummary.program.name, programSummary.program.code) ? [programSummary] : [], generated_at: now }) as T;
+  if (pathname === "/api/v1/program-summaries") return clone({ items: matchesProgramSummary(url) ? [programSummary] : [], generated_at: now }) as T;
   if (pathname === "/api/v1/form-templates" && method === "GET") {
     if (fixture === "vendor-source-degraded") throw new StaticDemoHTTPError(503, "vendor_forms_unavailable", "Approved due-diligence forms could not be loaded.");
     return clone({ items: [vendorDueDiligenceForm], next_cursor: "" }) as T;
@@ -611,7 +611,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     programReviewAcknowledged = true;
     return clone(programReviewDigest()) as T;
   }
-  if (pathname === "/api/v1/matter-summaries") return clone({ items: matches(url, matter.title, matter.reference) ? [matterSummary] : [], generated_at: now }) as T;
+  if (pathname === "/api/v1/matter-summaries") return clone({ items: matchesMatterSummary(url) ? [matterSummary] : [], generated_at: now }) as T;
   if (pathname === "/api/v1/matters" && method === "POST") {
     const input = parseBody(init) as Record<string, any>;
     const createdMatter = { ...matter, id: "matter-created", reference: "MAT-DEMO-NEW", type: input.type ?? "CONTROL_GAP", status: "DRAFT", priority: input.priority ?? 3, title: input.title ?? "New issue", summary: input.summary ?? "New Program issue", scope: input.scope ?? {}, known_facts: input.known_facts ?? {}, missing_facts: input.missing_facts ?? [], contradictions: input.contradictions ?? [], version: 1 };
@@ -750,7 +750,42 @@ function syncVendorBrandFixture(fixture: string) {
   vendorRelationships = vendorRelationships.map((item) => item.vendor.id === "vendor-acme-processing" ? { ...item, brand: clone(vendorBrand) } : item);
 }
 function delay(ms: number) { return new Promise((resolve) => window.setTimeout(resolve, ms)); }
-function matches(url: URL, ...values: string[]) { const query = (url.searchParams.get("q") ?? "").trim().toLowerCase(); const status = url.searchParams.get("status") ?? ""; if (status && ![program.status, matter.status, "OPEN"].includes(status)) return false; return !query || values.some((value) => value.toLowerCase().includes(query)); }
+function includesQuery(url: URL, ...values: Array<string | undefined>) {
+  const query = (url.searchParams.get("q") ?? "").trim().toLowerCase();
+  return !query || values.some((value) => value?.toLowerCase().includes(query));
+}
+function matchesProgramSummary(url: URL) {
+  const status = url.searchParams.get("status") ?? "";
+  const operatingState = url.searchParams.get("overall_state") ?? "";
+  const jurisdiction = (url.searchParams.get("jurisdiction") ?? "").trim().toLowerCase();
+  const assigned = url.searchParams.get("assigned_to_me") === "true";
+  return (!status || program.status === status)
+    && (!operatingState || programSummary.overall_state === operatingState)
+    && (!jurisdiction || String(program.jurisdiction ?? "").toLowerCase().includes(jurisdiction))
+    && (!assigned || [program.owner_principal_id, program.authority_principal_id].includes(currentStaticActor.id))
+    && includesQuery(url, program.name, program.code, program.owning_function, program.jurisdiction);
+}
+function matchesMatterSummary(url: URL) {
+  const status = url.searchParams.get("status") ?? "";
+  const type = url.searchParams.get("matter_type") ?? "";
+  const priority = Number(url.searchParams.get("priority") ?? 0);
+  const due = url.searchParams.get("due") ?? "";
+  const assigned = url.searchParams.get("assigned_to_me") === "true";
+  const dueAt = matter.due_at ? Date.parse(matter.due_at) : 0;
+  const day = 24 * 60 * 60 * 1000;
+  const isOpen = !["CLOSED", "CANCELLED"].includes(matter.status);
+  const dueMatches = !due
+    || (due === "OVERDUE" && dueAt > 0 && dueAt < Date.now() && isOpen)
+    || (due === "DUE_7_DAYS" && dueAt >= Date.now() && dueAt <= Date.now() + 7 * day)
+    || (due === "DUE_30_DAYS" && dueAt >= Date.now() && dueAt <= Date.now() + 30 * day)
+    || (due === "NO_DUE_DATE" && !dueAt);
+  return (!status || (status === "OPEN" ? isOpen : matter.status === status))
+    && (!type || matter.type === type)
+    && (!priority || matter.priority === priority)
+    && dueMatches
+    && (!assigned || [matter.owner_principal_id, matter.assigned_principal_id].includes(currentStaticActor.id))
+    && includesQuery(url, matter.title, matter.reference, matter.summary, matter.type);
+}
 function parseBody(init?: RequestInit) { if (typeof init?.body !== "string") return {}; try { return JSON.parse(init.body) as unknown; } catch { return {}; } }
 function maskEmail(value: string) { const [local, domain] = value.split("@"); return `${local?.slice(0, 1) || "*"}***@${domain || "vendor"}`; }
 function clone<T>(value: T): T { return typeof structuredClone === "function" ? structuredClone(value) : JSON.parse(JSON.stringify(value)) as T; }

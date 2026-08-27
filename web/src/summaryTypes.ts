@@ -40,6 +40,12 @@ export type SummaryQuery = {
   q?: string;
   status?: string;
   programID?: string;
+  overallState?: string;
+  jurisdiction?: string;
+  matterType?: string;
+  dueCondition?: string;
+  priority?: number;
+  assignedToMe?: boolean;
   cursor?: string;
   limit?: number;
 };

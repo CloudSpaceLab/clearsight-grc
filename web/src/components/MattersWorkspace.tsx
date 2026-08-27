@@ -9,6 +9,7 @@ import { MatterRecordWorkspace } from "./MatterRecordWorkspace";
 import { MatterSetupWorkspace } from "./MatterSetupWorkspace";
 import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
+import { readWorkspaceFilters, replaceWorkspaceHash, workspaceHash } from "../workspaceFilters";
 
 type LoadState = "loading" | "live" | "unavailable";
 type Props = { targetID?: string; openFirst?: boolean; onBack?: () => void; onOpenRequest?: (requestID: string) => void };
@@ -41,6 +42,11 @@ function priorityLabel(value: number) {
 
 function humanizeKey(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
+
+function matterTypeLabel(value: string) {
+  const text = value.replaceAll("_", " ").toLowerCase();
+  return text ? (text[0]?.toUpperCase() ?? "") + text.slice(1) : text;
 }
 
 function formatFact(value: unknown) {
@@ -85,17 +91,28 @@ function summaryFromAggregate(detail: MatterAggregate): MatterSummary {
 }
 
 export function MattersWorkspace({ targetID, openFirst = false, onBack, onOpenRequest }: Props) {
-  if (targetID) return <MatterRecordWorkspace matterID={targetID} onBack={onBack ?? (() => { window.location.hash = "#work"; })} onOpenRequest={onOpenRequest}/>;
+  if (targetID) return <MatterRecordWorkspace matterID={targetID} onBack={onBack ?? (() => { window.location.hash = workspaceHash("#work/matters", readWorkspaceFilters(window.location.hash)); })} onOpenRequest={onOpenRequest}/>;
   return <MatterListWorkspace openFirst={openFirst} onOpenRequest={onOpenRequest}/>;
 }
 
 function MatterListWorkspace({ openFirst = false, onOpenRequest }: Pick<Props, "openFirst" | "onOpenRequest">) {
+  const initialFilters = useMemo(() => readWorkspaceFilters(window.location.hash), []);
+  const initialStatus = initialFilters.status === "ALL" ? "" : initialFilters.status ?? "OPEN";
   const [items, setItems] = useState<MatterSummary[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [nextCursor, setNextCursor] = useState("");
-  const [searchDraft, setSearchDraft] = useState("");
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("OPEN");
+  const [searchDraft, setSearchDraft] = useState(initialFilters.q ?? "");
+  const [search, setSearch] = useState(initialFilters.q ?? "");
+  const [statusDraft, setStatusDraft] = useState(initialStatus);
+  const [status, setStatus] = useState(initialStatus);
+  const [matterTypeDraft, setMatterTypeDraft] = useState(initialFilters.matter_type ?? "");
+  const [matterType, setMatterType] = useState(initialFilters.matter_type ?? "");
+  const [priorityDraft, setPriorityDraft] = useState(initialFilters.priority ?? "");
+  const [priority, setPriority] = useState(initialFilters.priority ? Number(initialFilters.priority) : undefined);
+  const [dueDraft, setDueDraft] = useState(initialFilters.due ?? "");
+  const [dueCondition, setDueCondition] = useState(initialFilters.due ?? "");
+  const [assignedDraft, setAssignedDraft] = useState(initialFilters.assigned_to_me === "true");
+  const [assignedToMe, setAssignedToMe] = useState(initialFilters.assigned_to_me === "true");
   const [openID, setOpenID] = useState<string | null>(null);
   const [details, setDetails] = useState<Record<string, MatterAggregate>>({});
   const [detailState, setDetailState] = useState<Record<string, LoadState>>({});
@@ -120,7 +137,7 @@ function MatterListWorkspace({ openFirst = false, onOpenRequest }: Pick<Props, "
     const currentRequest = ++requestID.current;
     if (reset) setState("loading"); else setLoadingMore(true);
     try {
-      const page = await loadMatterSummaries({ q: search, status, cursor, limit: 20 });
+      const page = await loadMatterSummaries({ q: search, status, matterType, priority, dueCondition, assignedToMe, cursor, limit: 20 });
       if (currentRequest !== requestID.current) return;
       setItems((current) => reset ? page.items : [...current, ...page.items]);
       setNextCursor(page.next_cursor ?? "");
@@ -131,7 +148,7 @@ function MatterListWorkspace({ openFirst = false, onOpenRequest }: Pick<Props, "
     } finally {
       if (currentRequest === requestID.current) setLoadingMore(false);
     }
-  }, [search, status]);
+  }, [assignedToMe, dueCondition, matterType, priority, search, status]);
 
   useEffect(() => { void load(true); }, [load]);
 
@@ -143,13 +160,31 @@ function MatterListWorkspace({ openFirst = false, onOpenRequest }: Pick<Props, "
 
   function submitSearch(event: FormEvent) {
     event.preventDefault();
-    setSearch(searchDraft.trim());
+    const nextSearch = searchDraft.trim();
+    const nextPriority = priorityDraft ? Number(priorityDraft) : undefined;
+    setSearch(nextSearch);
+    setStatus(statusDraft);
+    setMatterType(matterTypeDraft);
+    setPriority(nextPriority);
+    setDueCondition(dueDraft);
+    setAssignedToMe(assignedDraft);
+    replaceWorkspaceHash(workspaceHash("#work/matters", { q: nextSearch, status: statusDraft === "OPEN" ? undefined : statusDraft || "ALL", matter_type: matterTypeDraft, priority: nextPriority, due: dueDraft, assigned_to_me: assignedDraft }));
   }
 
   function clearFilters() {
     setSearchDraft("");
     setSearch("");
+    setStatusDraft("OPEN");
     setStatus("OPEN");
+    setMatterTypeDraft("");
+    setMatterType("");
+    setPriorityDraft("");
+    setPriority(undefined);
+    setDueDraft("");
+    setDueCondition("");
+    setAssignedDraft(false);
+    setAssignedToMe(false);
+    replaceWorkspaceHash("#work/matters");
   }
 
   async function fetchDetail(id: string): Promise<MatterAggregate | null> {
@@ -174,9 +209,7 @@ function MatterListWorkspace({ openFirst = false, onOpenRequest }: Pick<Props, "
   }
 
   function applyCreatedMatter(value: MatterAggregate) {
-    setSearchDraft("");
-    setSearch("");
-    setStatus("OPEN");
+    clearFilters();
     setDetails((current) => ({ ...current, [value.matter.id]: value }));
     setDetailState((current) => ({ ...current, [value.matter.id]: "live" }));
     setItems((current) => [summaryFromAggregate(value), ...current.filter((item) => item.matter.id !== value.matter.id)]);
@@ -219,6 +252,9 @@ function MatterListWorkspace({ openFirst = false, onOpenRequest }: Pick<Props, "
   if (state === "loading") return <section id="matters-workspace" className="workspace-loading" aria-live="polite" aria-busy="true">Loading issues and changes…</section>;
   if (state === "unavailable") return <div id="matters-workspace"><EmptyState label="Issues and changes" title="Issues and changes could not be loaded" description="The service is unavailable. No current work totals are shown." action="Try again" onAction={() => void load(true)}/></div>;
 
+  const filtersActive = Boolean(search || status !== "OPEN" || matterType || priority || dueCondition || assignedToMe);
+  const matterFilters = { q: search, status: status === "OPEN" ? undefined : status || "ALL", matter_type: matterType, priority, due: dueCondition, assigned_to_me: assignedToMe };
+
   return <div id="matters-workspace">
     <section className="workspace-brief">
       <div><span className="eyebrow">Issues and changes</span><h2>{items.length ? `${items.length} loaded item${items.length === 1 ? "" : "s"}` : "No open items in this view"}</h2><p>Open an item to review its current handoff, facts, actions and outcome checks.</p></div>
@@ -227,12 +263,17 @@ function MatterListWorkspace({ openFirst = false, onOpenRequest }: Pick<Props, "
     {setupOpen && <MatterSetupWorkspace onCreated={applyCreatedMatter} onClose={() => setSetupOpen(false)}/>}
     {creationNotice && <p className="inline-success" role="status">{creationNotice}</p>}
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
-      <label><span>Search issues and changes</span><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Reference, title, summary or type"/></label>
-      <label><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="OPEN">Open</option><option value="DECISION_REQUIRED">Decision needed</option><option value="ACTION_IN_PROGRESS">Work in progress</option><option value="VERIFICATION">Confirming outcome</option><option value="CLOSED">Closed</option><option value="">All statuses</option></select></label>
-      <button className="secondary-button" type="submit">Search</button>
-      {(search || status !== "OPEN") && <button className="text-button" type="button" onClick={clearFilters}>Clear filters</button>}
+      <label className="workspace-search-field"><span>Search issues and changes</span><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Reference, title, summary or type"/></label>
+      <label><span>Status</span><select value={statusDraft} onChange={(event) => setStatusDraft(event.target.value)}><option value="OPEN">Open</option><option value="DECISION_REQUIRED">Decision needed</option><option value="ACTION_IN_PROGRESS">Work in progress</option><option value="VERIFICATION">Confirming outcome</option><option value="CLOSED">Closed</option><option value="">All statuses</option></select></label>
+      <label><span>Issue type</span><select value={matterTypeDraft} onChange={(event) => setMatterTypeDraft(event.target.value)}><option value="">All issue types</option><option value="CONTROL_GAP">Control gap</option><option value="AUDIT_FINDING">Audit finding</option><option value="SUPERVISORY_FINDING">Supervisory finding</option><option value="REGULATORY_CHANGE">Regulatory change</option><option value="AUTHORITY_REQUEST">Authority request</option><option value="EXCEPTION">Exception</option><option value="INCIDENT">Incident</option><option value="DATA_BREACH">Data breach</option><option value="VENDOR_REVIEW">Vendor review</option><option value="VENDOR_DEFICIENCY">Vendor deficiency</option><option value="EVIDENCE_CONTRADICTION">Evidence contradiction</option></select></label>
+      <label><span>Priority</span><select value={priorityDraft} onChange={(event) => setPriorityDraft(event.target.value)}><option value="">All priorities</option><option value="5">Critical</option><option value="4">High</option><option value="3">Medium</option><option value="2">Normal</option><option value="1">Low</option></select></label>
+      <label><span>Due</span><select value={dueDraft} onChange={(event) => setDueDraft(event.target.value)}><option value="">Any due date</option><option value="OVERDUE">Overdue</option><option value="DUE_7_DAYS">Due in 7 days</option><option value="DUE_30_DAYS">Due in 30 days</option><option value="NO_DUE_DATE">No due date</option></select></label>
+      <label className="workspace-check-filter"><input type="checkbox" checked={assignedDraft} onChange={(event) => setAssignedDraft(event.target.checked)}/><span>Assigned to me</span></label>
+      <button className="secondary-button" type="submit">Apply filters</button>
+      {filtersActive && <button className="text-button" type="button" onClick={clearFilters}>Clear filters</button>}
     </form>
-      {!setupOpen && !items.length ? <EmptyState label="Issues and changes" title={search || status !== "OPEN" ? "No items match these filters" : "No open issues or changes"} description={search || status !== "OPEN" ? "Change the search or status filter to see other work." : "There are no open changes, gaps, findings, exceptions or responses in your current access scope."} action={search || status !== "OPEN" ? "Clear filters" : "Create issue or change"} onAction={search || status !== "OPEN" ? clearFilters : () => { setCreationNotice(""); setSetupOpen(true); }}/> : items.length ? <section className="matter-list">{items.map((summaryItem) => {
+    {filtersActive && <div className="workspace-filter-chips" aria-label="Applied issue filters">{search && <span>Search: {search}</span>}{status !== "OPEN" && <span>{status ? matterTypeLabel(status) : "All statuses"}</span>}{matterType && <span>{matterTypeLabel(matterType)}</span>}{priority && <span>{priorityLabel(priority)} priority</span>}{dueCondition && <span>{dueCondition === "OVERDUE" ? "Overdue" : dueCondition === "NO_DUE_DATE" ? "No due date" : dueCondition === "DUE_7_DAYS" ? "Due in 7 days" : "Due in 30 days"}</span>}{assignedToMe && <span>Assigned to me</span>}</div>}
+      {!setupOpen && !items.length ? <EmptyState label="Issues and changes" title={filtersActive ? "No items match these filters" : "No open issues or changes"} description={filtersActive ? "Change or clear the filters to see other issues and changes in your access scope." : "There are no open changes, gaps, findings, exceptions or responses in your current access scope."} action={filtersActive ? "Clear filters" : "Create issue or change"} onAction={filtersActive ? clearFilters : () => { setCreationNotice(""); setSetupOpen(true); }}/> : items.length ? <section className="matter-list">{items.map((summaryItem) => {
       const matter = summaryItem.matter;
       const isOpen = openID === matter.id;
       const detail = details[matter.id];
@@ -253,7 +294,7 @@ function MatterListWorkspace({ openFirst = false, onOpenRequest }: Pick<Props, "
           <span className={`matter-status status-${matter.status.toLowerCase().replaceAll("_", "-")}`}><strong>{summaryItem.status_label}</strong><small>{summaryItem.next_action}</small></span>
           <span className="expand-indicator" aria-hidden="true">{isOpen ? "−" : "+"}</span>
         </button>
-        <div className="record-open-actions"><button className="secondary-button" type="button" onClick={() => { window.location.hash = `#work/matters/${encodeURIComponent(matter.id)}`; }}>Open issue workspace</button></div>
+        <div className="record-open-actions"><button className="secondary-button" type="button" onClick={() => { window.location.hash = workspaceHash(`#work/matters/${encodeURIComponent(matter.id)}`, matterFilters); }}>Open issue workspace</button></div>
         {isOpen && <div className="matter-detail progressive-detail" id={`matter-detail-${matter.id}`}>
           {currentDetailState === "loading" && <p aria-live="polite">Loading issue details…</p>}
           {currentDetailState === "unavailable" && <div className="inline-error"><p>Issue details could not be loaded.</p><button className="secondary-button" onClick={() => void fetchDetail(matter.id)}>Try again</button></div>}
