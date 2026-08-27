@@ -207,7 +207,7 @@ type Recipient struct {
 // only and are never serialized by the API.
 type RecipientCandidate struct {
 	PrincipalID      string          `json:"principal_id"`
-	DisplayName      string          `json:"display_name,omitempty"`
+	DisplayName      string          `json:"display_name"`
 	ContextLabel     string          `json:"context_label,omitempty"`
 	TenantID         string          `json:"-"`
 	LegalEntityIDs   []string        `json:"-"`
