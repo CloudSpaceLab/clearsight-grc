@@ -58,8 +58,12 @@ describe("Forms workspace", () => {
   it("states the bounded legal-entity population when no search result matches", async () => {
     render(<FormsWorkspace initialSearch="outsourcing"/>);
     expect(await screen.findByText("No form templates match ‘outsourcing’ in this legal entity.")).toBeTruthy();
-    expect((screen.getByRole("button", { name: "Create form template" }) as HTMLButtonElement).disabled).toBe(false);
-    expect((screen.getByRole("button", { name: "Use a starter template" }) as HTMLButtonElement).disabled).toBe(false);
+    const createButtons = screen.getAllByRole("button", { name: "Create form template" });
+    const starterButtons = screen.getAllByRole("button", { name: "Use a starter template" });
+    expect(createButtons.length).toBeGreaterThan(0);
+    expect(starterButtons.length).toBeGreaterThan(0);
+    expect(createButtons.every((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
+    expect(starterButtons.every((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
   });
 
   it("creates a valid governed draft rather than exposing an enabled no-op", async () => {
