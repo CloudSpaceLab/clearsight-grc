@@ -3,7 +3,49 @@ package continuity
 import (
 	"context"
 	"testing"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
+
+func TestSummaryStructuredFiltersUseVerifiedActor(t *testing.T) {
+	service := NewService(NewMemoryRepository())
+	if err := SeedDemo(context.Background(), service); err != nil {
+		t.Fatalf("seed demo: %v", err)
+	}
+	actorContext := identity.WithActor(context.Background(), identity.Actor{TenantID: "bank-demo", LegalEntityID: "bank-ng", PrincipalID: "user-demo"})
+	programs, err := service.ListProgramSummaries(actorContext, "bank-demo", SummaryQuery{Limit: 10, OverallState: "CURRENT", Jurisdiction: "nigeria", AssignedToMe: true})
+	if err != nil || len(programs.Items) != 1 || programs.Items[0].Program.Code != "CBN-CYBER" {
+		t.Fatalf("filtered Programs = %#v, err %v", programs.Items, err)
+	}
+	matters, err := service.ListMatterSummaries(actorContext, "bank-demo", SummaryQuery{Limit: 10, MatterType: "CONTROL_GAP", Priority: 3, DueCondition: "DUE_30_DAYS", AssignedToMe: true})
+	if err != nil || len(matters.Items) != 1 || matters.Items[0].Matter.OwnerPrincipalID != "user-demo" {
+		t.Fatalf("filtered matters = %#v, err %v", matters.Items, err)
+	}
+	otherContext := identity.WithActor(context.Background(), identity.Actor{TenantID: "bank-demo", LegalEntityID: "bank-ng", PrincipalID: "someone-else"})
+	none, err := service.ListMatterSummaries(otherContext, "bank-demo", SummaryQuery{Limit: 10, AssignedToMe: true})
+	if err != nil || len(none.Items) != 0 {
+		t.Fatalf("someone else's assigned matters = %#v, err %v", none.Items, err)
+	}
+}
+
+func TestSummaryStructuredFiltersRejectInvalidValues(t *testing.T) {
+	service := NewService(NewMemoryRepository())
+	for name, query := range map[string]SummaryQuery{
+		"program state": {OverallState: "COMPLIANT"},
+		"matter type":   {MatterType: "OTHER"},
+		"due condition": {DueCondition: "SOMETIME"},
+		"priority":      {Priority: 6},
+	} {
+		if _, err := service.ListProgramSummaries(context.Background(), "bank", query); err == nil && name == "program state" {
+			t.Fatalf("%s was accepted", name)
+		}
+		if name != "program state" {
+			if _, err := service.ListMatterSummaries(context.Background(), "bank", query); err == nil {
+				t.Fatalf("%s was accepted", name)
+			}
+		}
+	}
+}
 
 func TestProgramSummaryPaginationAndSearch(t *testing.T) {
 	ctx := WithTrustedSystemScope(context.Background())

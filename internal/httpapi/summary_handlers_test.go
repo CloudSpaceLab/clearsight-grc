@@ -88,3 +88,17 @@ func TestMatterSummaryEndpointAcceptsExactProgramFilter(t *testing.T) {
 		t.Fatalf("unexpected filtered matters: %#v", page.Items)
 	}
 }
+
+func TestSummaryEndpointsValidateAndAcceptStructuredFilters(t *testing.T) {
+	handler := continuityTestHandler()
+	valid := httptest.NewRecorder()
+	handler.ServeHTTP(valid, httptest.NewRequest(http.MethodGet, "/api/v1/matter-summaries?tenant_id=bank&matter_type=CONTROL_GAP&priority=4&due=NO_DUE_DATE&assigned_to_me=true", nil))
+	if valid.Code != http.StatusOK {
+		t.Fatalf("valid filters returned %d: %s", valid.Code, valid.Body.String())
+	}
+	invalid := httptest.NewRecorder()
+	handler.ServeHTTP(invalid, httptest.NewRequest(http.MethodGet, "/api/v1/program-summaries?tenant_id=bank&overall_state=COMPLIANT", nil))
+	if invalid.Code != http.StatusBadRequest || !bytes.Contains(invalid.Body.Bytes(), []byte("overall state")) {
+		t.Fatalf("invalid state returned %d: %s", invalid.Code, invalid.Body.String())
+	}
+}

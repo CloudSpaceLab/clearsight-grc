@@ -36,6 +36,15 @@ func (r *MemoryRepository) ListProgramSummaries(ctx context.Context, tenant stri
 		if query.Status != "" && string(value.Program.Status) != query.Status {
 			continue
 		}
+		if query.OverallState != "" && string(value.OverallState) != query.OverallState {
+			continue
+		}
+		if query.Jurisdiction != "" && !strings.EqualFold(value.Program.Jurisdiction, query.Jurisdiction) {
+			continue
+		}
+		if query.AssignedToMe && value.Program.OwnerPrincipalID != query.principalID {
+			continue
+		}
 		if search != "" && !strings.Contains(strings.ToLower(value.Program.Code+" "+value.Program.Name+" "+value.Program.OwningFunction+" "+value.Program.Jurisdiction), search) {
 			continue
 		}
@@ -117,6 +126,18 @@ func (r *MemoryRepository) ListMatterSummaries(ctx context.Context, tenant strin
 				continue
 			}
 		}
+		if query.MatterType != "" && string(aggregate.Matter.Type) != query.MatterType {
+			continue
+		}
+		if query.Priority > 0 && aggregate.Matter.Priority != query.Priority {
+			continue
+		}
+		if query.AssignedToMe && aggregate.Matter.OwnerPrincipalID != query.principalID {
+			continue
+		}
+		if !matterMatchesDueCondition(aggregate.Matter, query.DueCondition, query.asOf) {
+			continue
+		}
 		value := summarizeMatter(cloneMatterAggregate(aggregate))
 		if search != "" && !strings.Contains(strings.ToLower(value.Matter.Reference+" "+value.Matter.Title+" "+value.Matter.Summary+" "+value.TypeLabel), search) {
 			continue
@@ -156,4 +177,27 @@ func (r *MemoryRepository) ListMatterSummaries(ctx context.Context, tenant strin
 	}
 	page.Items = values
 	return page, nil
+}
+
+func matterMatchesDueCondition(matter Matter, condition string, asOf time.Time) bool {
+	if condition == "" {
+		return true
+	}
+	if condition == "NO_DUE_DATE" {
+		return matter.DueAt == nil
+	}
+	if matter.DueAt == nil || matter.Status == MatterClosed || matter.Status == MatterCancelled {
+		return false
+	}
+	due := matter.DueAt.UTC()
+	switch condition {
+	case "OVERDUE":
+		return due.Before(asOf)
+	case "DUE_7_DAYS":
+		return !due.Before(asOf) && !due.After(asOf.AddDate(0, 0, 7))
+	case "DUE_30_DAYS":
+		return !due.Before(asOf) && !due.After(asOf.AddDate(0, 0, 30))
+	default:
+		return false
+	}
 }

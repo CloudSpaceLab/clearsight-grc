@@ -7,17 +7,27 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 // SummaryQuery describes a bounded, tenant-scoped operational list read.
 // Cursor values are opaque to clients and encode the last item from the
 // previous page.
 type SummaryQuery struct {
-	Search    string
-	Status    string
-	ProgramID string
-	Cursor    string
-	Limit     int
+	Search       string
+	Status       string
+	ProgramID    string
+	OverallState string
+	Jurisdiction string
+	MatterType   string
+	DueCondition string
+	Cursor       string
+	Priority     int
+	AssignedToMe bool
+	asOf         time.Time
+	principalID  string
+	Limit        int
 }
 
 type ProgramSummary struct {
@@ -76,7 +86,13 @@ func (s *Service) ListProgramSummaries(ctx context.Context, tenant string, query
 	query.Search = strings.TrimSpace(query.Search)
 	query.Status = strings.ToUpper(strings.TrimSpace(query.Status))
 	query.ProgramID = strings.TrimSpace(query.ProgramID)
+	query.OverallState = strings.ToUpper(strings.TrimSpace(query.OverallState))
+	query.Jurisdiction = strings.TrimSpace(query.Jurisdiction)
+	query.asOf = s.now().UTC()
 	query.Limit = boundedLimit(query.Limit)
+	if err := validateProgramSummaryQuery(ctx, tenant, &query); err != nil {
+		return ProgramSummaryPage{}, err
+	}
 	if summaries, ok := s.repo.(SummaryRepository); ok {
 		return summaries.ListProgramSummaries(ctx, tenant, query)
 	}
@@ -97,7 +113,14 @@ func (s *Service) ListMatterSummaries(ctx context.Context, tenant string, query 
 	}
 	query.Search = strings.TrimSpace(query.Search)
 	query.Status = strings.ToUpper(strings.TrimSpace(query.Status))
+	query.ProgramID = strings.TrimSpace(query.ProgramID)
+	query.MatterType = strings.ToUpper(strings.TrimSpace(query.MatterType))
+	query.DueCondition = strings.ToUpper(strings.TrimSpace(query.DueCondition))
+	query.asOf = s.now().UTC()
 	query.Limit = boundedLimit(query.Limit)
+	if err := validateMatterSummaryQuery(ctx, tenant, &query); err != nil {
+		return MatterSummaryPage{}, err
+	}
 	if summaries, ok := s.repo.(SummaryRepository); ok {
 		return summaries.ListMatterSummaries(ctx, tenant, query)
 	}
@@ -122,6 +145,53 @@ func (s *Service) ListMatterSummaries(ctx context.Context, tenant string, query 
 		items = append(items, summarizeMatter(value))
 	}
 	return MatterSummaryPage{Items: items, GeneratedAt: s.now().UTC()}, nil
+}
+
+func validateProgramSummaryQuery(ctx context.Context, tenant string, query *SummaryQuery) error {
+	if query.Status != "" && !oneOf(query.Status, string(ProgramDraft), string(ProgramActive), string(ProgramPaused), string(ProgramRetired)) {
+		return fmt.Errorf("invalid filter: Program status is not supported")
+	}
+	if query.OverallState != "" && !oneOf(query.OverallState, string(StateCurrent), string(StateAtRisk), string(StateGapIdentified), string(StateEvidenceInsufficient), string(StateImplementationPending), string(StateOverdue), string(StateUnderReview), string(StateNotApplicable), string(StateUnknown)) {
+		return fmt.Errorf("invalid filter: overall state is not supported")
+	}
+	return bindSummaryPrincipal(ctx, tenant, query)
+}
+
+func validateMatterSummaryQuery(ctx context.Context, tenant string, query *SummaryQuery) error {
+	if query.Status != "" && !oneOf(query.Status, "OPEN", string(MatterDraft), string(MatterInitialReview), string(MatterAssessment), string(MatterDecisionRequired), string(MatterActionsInProgress), string(MatterResponsePreparation), string(MatterVerification), string(MatterClosed), string(MatterCancelled)) {
+		return fmt.Errorf("invalid filter: issue status is not supported")
+	}
+	if query.MatterType != "" && !oneOf(query.MatterType, string(MatterRegulatoryChange), string(MatterSupervisoryFinding), string(MatterAuthorityRequest), string(MatterRiskSituation), string(MatterControlGap), string(MatterAuditFinding), string(MatterException), string(MatterIncident), string(MatterOperationalLoss), string(MatterDataBreach), string(MatterVendorReview), string(MatterVendorDeficiency), string(MatterCustomerConcern), string(MatterOverdueObligation), string(MatterFailedVerification), string(MatterEvidenceContradiction), string(MatterKRIBreach)) {
+		return fmt.Errorf("invalid filter: issue type is not supported")
+	}
+	if query.Priority < 0 || query.Priority > 5 {
+		return fmt.Errorf("invalid filter: priority must be between 1 and 5")
+	}
+	if query.DueCondition != "" && !oneOf(query.DueCondition, "OVERDUE", "DUE_7_DAYS", "DUE_30_DAYS", "NO_DUE_DATE") {
+		return fmt.Errorf("invalid filter: due condition is not supported")
+	}
+	return bindSummaryPrincipal(ctx, tenant, query)
+}
+
+func bindSummaryPrincipal(ctx context.Context, tenant string, query *SummaryQuery) error {
+	if !query.AssignedToMe {
+		return nil
+	}
+	actor, ok := identity.FromContext(ctx)
+	if !ok || strings.TrimSpace(actor.PrincipalID) == "" || actor.TenantID != tenant {
+		return fmt.Errorf("invalid filter: assigned-to-me requires a verified identity in this tenant")
+	}
+	query.principalID = actor.PrincipalID
+	return nil
+}
+
+func oneOf(value string, allowed ...string) bool {
+	for _, candidate := range allowed {
+		if value == candidate {
+			return true
+		}
+	}
+	return false
 }
 
 func summarizeProgram(aggregate ProgramAggregate) ProgramSummary {

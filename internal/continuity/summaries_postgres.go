@@ -29,7 +29,7 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 			p.id::text,t.id::text,COALESCE(p.legal_entity_id::text,''),p.code,p.name,p.program_type,p.status,
 			p.owning_function,COALESCE(p.owner_principal_id::text,''),COALESCE(p.authority_principal_id::text,''),
 			p.jurisdiction,p.scope,p.effective_from,p.effective_until,p.created_at,p.updated_at,p.version,
-			COALESCE(ps.overall_state,'UNKNOWN'),COALESCE(ps.dimensions,'{}'::jsonb),COALESCE(ps.reasons,'[]'::jsonb),
+			COALESCE(effective_state.overall_state,'UNKNOWN'),COALESCE(ps.dimensions,'{}'::jsonb),COALESCE(ps.reasons,'[]'::jsonb),
 			CASE WHEN $9 THEN COALESCE(visible.open_matter_count,0) ELSE COALESCE(ps.open_matter_count,0) END,
 			CASE WHEN $9 THEN visible.latest_visible_at ELSE NULL END,
 			ps.generated_at,COALESCE(ps.program_version,0),COALESCE(ps.projection_version,0),
@@ -80,10 +80,33 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 					ELSE false
 				END
 		) visible ON TRUE
+		LEFT JOIN LATERAL (
+			SELECT CASE
+				WHEN ps.generated_at IS NULL THEN 'UNKNOWN'
+				WHEN 'OVERDUE'=ANY(state_values.values) THEN 'OVERDUE'
+				WHEN 'GAP_IDENTIFIED'=ANY(state_values.values) THEN 'GAP_IDENTIFIED'
+				WHEN 'EVIDENCE_INSUFFICIENT'=ANY(state_values.values) THEN 'EVIDENCE_INSUFFICIENT'
+				WHEN 'IMPLEMENTATION_PENDING'=ANY(state_values.values) THEN 'IMPLEMENTATION_PENDING'
+				WHEN 'AT_RISK'=ANY(state_values.values) THEN 'AT_RISK'
+				WHEN 'UNDER_REVIEW'=ANY(state_values.values) THEN 'UNDER_REVIEW'
+				WHEN ps.dimensions->>'applicability'='NOT_APPLICABLE' THEN 'NOT_APPLICABLE'
+				WHEN 'UNKNOWN'=ANY(state_values.values) OR array_position(state_values.values,NULL) IS NOT NULL THEN 'UNKNOWN'
+				ELSE 'CURRENT'
+			END AS overall_state
+			FROM (SELECT ARRAY[
+				ps.dimensions->>'interpretation',ps.dimensions->>'applicability',ps.dimensions->>'control_design',ps.dimensions->>'implementation',
+				ps.dimensions->>'evidence_sufficiency',ps.dimensions->>'operating_effectiveness',
+				CASE WHEN $9 THEN CASE WHEN COALESCE(visible.open_matter_count,0)>0 THEN 'AT_RISK' ELSE 'CURRENT' END ELSE ps.dimensions->>'exception' END,
+				ps.dimensions->>'assurance',ps.dimensions->>'deadline',ps.dimensions->>'source_quality'
+			]::text[] AS values) state_values
+		) effective_state ON TRUE
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND (NOT $9 OR ((t.id::text=$11 OR t.slug=$11) AND p.legal_entity_id IS NOT NULL AND ($12='*' OR p.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=p.tenant_id AND (le.id::text=$12 OR le.code=$12) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
 		  AND ($2='' OR p.status=$2)
 		  AND ($3='' OR p.search_document @@ websearch_to_tsquery('simple'::regconfig,$3))
+		  AND ($13='' OR lower(btrim(p.jurisdiction))=lower(btrim($13)))
+		  AND ($14='' OR effective_state.overall_state=$14)
+		  AND (NOT $15 OR COALESCE(p.owner_principal_id::text,'')=$16)
 		  AND (
 			NOT $4 OR
 			CASE p.status WHEN 'ACTIVE' THEN 0 WHEN 'PAUSED' THEN 1 WHEN 'DRAFT' THEN 2 ELSE 3 END > $5 OR
@@ -92,7 +115,7 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 		  )
 		ORDER BY CASE p.status WHEN 'ACTIVE' THEN 0 WHEN 'PAUSED' THEN 1 WHEN 'DRAFT' THEN 2 ELSE 3 END,
 			p.updated_at DESC,p.id DESC
-		LIMIT $8`, tenant, query.Status, query.Search, hasCursor, cursor.Rank, cursor.UpdatedAt, cursor.ID, limit+1, enforceEntity, principalID, actorTenant, actorEntity)
+		LIMIT $8`, tenant, query.Status, query.Search, hasCursor, cursor.Rank, cursor.UpdatedAt, cursor.ID, limit+1, enforceEntity, principalID, actorTenant, actorEntity, query.Jurisdiction, query.OverallState, query.AssignedToMe, query.principalID)
 	if err != nil {
 		return ProgramSummaryPage{}, err
 	}
@@ -221,6 +244,16 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 			SELECT 1 FROM matter_links program_link
 			WHERE program_link.tenant_id=m.tenant_id AND program_link.matter_id=m.id AND program_link.program_id=NULLIF($12,'')::uuid AND program_link.retired_at IS NULL
 		  ))
+		  AND ($16='' OR m.matter_type=$16)
+		  AND ($17=0 OR m.priority=$17)
+		  AND (NOT $20 OR COALESCE(m.owner_principal_id::text,'')=$21)
+		  AND (
+			$18='' OR
+			($18='NO_DUE_DATE' AND m.due_at IS NULL) OR
+			($18='OVERDUE' AND m.due_at<$19 AND m.status NOT IN ('CLOSED','CANCELLED')) OR
+			($18='DUE_7_DAYS' AND m.due_at>=$19 AND m.due_at<=$19+interval '7 days' AND m.status NOT IN ('CLOSED','CANCELLED')) OR
+			($18='DUE_30_DAYS' AND m.due_at>=$19 AND m.due_at<=$19+interval '30 days' AND m.status NOT IN ('CLOSED','CANCELLED'))
+		  )
 		  AND (NOT $4 OR t.id::text=$6 OR t.slug=$6)
 		  AND (
 			NOT $4 OR
@@ -256,7 +289,7 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 			(m.priority = $8 AND (m.updated_at < $9 OR (m.updated_at = $9 AND m.id < NULLIF($10,'')::uuid)))
 		  )
 		ORDER BY m.priority DESC,m.updated_at DESC,m.id DESC
-		LIMIT $11`, tenant, query.Status, query.Search, enforceVisibility, principalID, actorTenant, hasCursor, cursor.Priority, cursor.UpdatedAt, cursor.ID, limit+1, query.ProgramID, enforceEntity, actorEntityTenant, actorEntity)
+		LIMIT $11`, tenant, query.Status, query.Search, enforceVisibility, principalID, actorTenant, hasCursor, cursor.Priority, cursor.UpdatedAt, cursor.ID, limit+1, query.ProgramID, enforceEntity, actorEntityTenant, actorEntity, query.MatterType, query.Priority, query.DueCondition, query.asOf, query.AssignedToMe, query.principalID)
 	if err != nil {
 		return MatterSummaryPage{}, err
 	}
