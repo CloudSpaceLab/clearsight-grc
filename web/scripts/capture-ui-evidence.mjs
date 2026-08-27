@@ -31,6 +31,12 @@ const captures = [
   { name: "27-evidence-long-content-mobile-390x844", route: "#work/evidence", title: "Work", fixture: "long-content", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Confirm the accountable owner for the processor register" },
   { name: "37-new-work-light-1440x900", route: "#work/matters", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openMatterSetup: true },
   { name: "38-new-work-dark-mobile-390x844", route: "#work/matters", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openMatterSetup: true },
+  { name: "83-program-filters-light-1440x900", route: "#programs?overall_state=EVIDENCE_INSUFFICIENT&jurisdiction=Nigeria", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "program-portfolio-filters" },
+  { name: "84-matter-filters-dark-1440x900", route: "#work/matters?matter_type=REGULATORY_CHANGE&priority=4&due=DUE_7_DAYS", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "matter-portfolio-filters" },
+  { name: "85-vendor-add-light-1440x900", route: "#vendors", title: "Vendors", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-add-website-address", openVendorSetup: true },
+  { name: "86-vendor-form-readiness-light-1440x900", route: "#vendors", title: "Vendors", fixture: "vendor-no-form", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-form-readiness", openFormReadiness: true },
+  { name: "87-vendor-link-sheet-light-1440x900", route: "#programs/program-ndpa", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-link-focused-sheet", openVendorLink: true },
+  { name: "88-vendor-link-sheet-dark-mobile-390x844", route: "#programs/program-ndpa", title: "Programs", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "vendor-link-focused-sheet-mobile", openVendorLink: true },
 ];
 
 try {
@@ -67,8 +73,30 @@ async function capturePage(capture) {
       const workType = page.locator('select[name="type"]');
       if (!await workType.evaluate((element) => element === document.activeElement)) throw new Error(`${capture.name} did not focus the first creation field`);
     }
+    if (capture.openVendorSetup) {
+      await page.getByRole("button", { name: "Add vendor" }).click();
+      await page.getByRole("heading", { name: "Add a vendor and service" }).waitFor({ state: "visible" });
+      await page.getByLabel("Website").waitFor({ state: "visible" });
+      await page.getByLabel("Registered address").waitFor({ state: "visible" });
+    }
+    if (capture.openFormReadiness) {
+      await page.getByRole("button", { name: /Acme Processing Limited.*Card transaction processing/ }).click();
+      await page.getByRole("heading", { name: "Due diligence" }).waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Set up due-diligence form" }).click();
+      await page.getByRole("dialog", { name: "Set up due-diligence form" }).waitFor({ state: "visible" });
+      await page.getByLabel("Program").waitFor({ state: "visible" });
+    }
+    if (capture.openVendorLink) {
+      const link = page.getByRole("button", { name: "Link vendor" });
+      await link.scrollIntoViewIfNeeded();
+      await link.click();
+      const dialog = page.getByRole("dialog", { name: "Link vendor to this Program" });
+      await dialog.waitFor({ state: "visible" });
+      await dialog.getByLabel("Search vendor relationships").fill("Acme");
+      await dialog.getByRole("radio", { name: /Acme Processing Limited.*Card transaction processing/ }).waitFor({ state: "visible" });
+    }
     await saveScreenshot(page, capture.name);
-    await record(page, capture, capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline");
+    await record(page, capture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
     await assertNoHorizontalOverflow(page, capture.name);
     if (capture.assertFirstActionVisible) await assertFirstActionVisible(page, capture.viewport.height, capture.name, capture.touch === true);
     if (capture.assertNoConfigureNav && await page.getByRole("button", { name: /Configure/ }).count()) throw new Error(`${capture.name} exposes Configure without config-read capability`);

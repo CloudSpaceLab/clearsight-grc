@@ -88,6 +88,12 @@ const expectedNames = [
   "76-vendor-brand-remove-restores-website-light-1440x900",
   "77-vendor-brand-remove-restores-monogram-light-1440x900",
   "78-vendor-identity-mobile-dark-390x844",
+  "83-program-filters-light-1440x900",
+  "84-matter-filters-dark-1440x900",
+  "85-vendor-add-light-1440x900",
+  "86-vendor-form-readiness-light-1440x900",
+  "87-vendor-link-sheet-light-1440x900",
+  "88-vendor-link-sheet-dark-mobile-390x844",
 ];
 const requiredStates = [
   "baseline",
@@ -153,6 +159,12 @@ const requiredStates = [
   "vendor-brand-remove-restores-website",
   "vendor-brand-remove-restores-monogram",
   "vendor-identity-mobile",
+  "program-portfolio-filters",
+  "matter-portfolio-filters",
+  "vendor-add-website-address",
+  "vendor-form-readiness",
+  "vendor-link-focused-sheet",
+  "vendor-link-focused-sheet-mobile",
 ];
 
 const failures = [];

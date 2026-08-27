@@ -115,9 +115,9 @@ async function captureVendorIdentityWorkflows() {
   const staged = { name: "73-vendor-identity-validation-staged-light-1440x900", fixture: "vendor-brand-pending", theme: "light", viewport: { width: 1440, height: 900 }, state: "vendor-identity-validation-and-staged-upload" };
   const opened = await openVendorEditor(staged);
   try {
-    await opened.page.getByLabel("Website domain").fill("https://acme.example/path");
+    await opened.page.getByLabel("Website domain").fill("http://acme.example");
     await opened.page.getByRole("button", { name: "Save vendor details" }).click();
-    await opened.page.getByText("Enter the website hostname only, without a scheme, path, credentials, port or IP address.", { exact: true }).waitFor({ state: "visible" });
+    await opened.page.getByText("Enter a website hostname or full HTTPS URL without credentials, a port or an IP address.", { exact: true }).waitFor({ state: "visible" });
     await stageLogo(opened.page, "approved-logo.png");
     await opened.page.getByText("Selected file is ready to save.", { exact: true }).waitFor({ state: "visible" });
     await capturePage(opened.page, staged, "#vendors");

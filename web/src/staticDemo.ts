@@ -4,7 +4,7 @@ import staticDemoWorkflowRuntimeURL from "./staticDemoWorkflowRuntime.js?url";
 import type { FormTemplate } from "./monitoringTypes";
 import { vendorDueDiligenceStarterForm } from "./vendorDueDiligenceForm";
 import type { VendorAssessment, VendorAssessmentReviewView } from "./vendorAssessmentTypes";
-import { normalizeWebsiteDomain } from "./vendorIdentity";
+import { normalizeRegisteredAddress, normalizeWebsiteDomain } from "./vendorIdentity";
 import type { VendorRelationshipLink } from "./vendorLinkTypes";
 import type { VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "./vendorTypes";
 import type { VendorWorkRequest, VendorWorkResponseView, VendorWorkSendOutcome } from "./vendorWorkTypes";
@@ -345,6 +345,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/program-summaries") return clone({ items: matchesProgramSummary(url) ? [programSummary] : [], generated_at: now }) as T;
   if (pathname === "/api/v1/form-templates" && method === "GET") {
     if (fixture === "vendor-source-degraded") throw new StaticDemoHTTPError(503, "vendor_forms_unavailable", "Approved due-diligence forms could not be loaded.");
+    if (fixture === "vendor-no-form") return clone({ items: [], next_cursor: "" }) as T;
     return clone({ items: [vendorDueDiligenceForm], next_cursor: "" }) as T;
   }
   if (pathname === "/api/v1/vendor-links" && method === "GET") {
@@ -396,8 +397,8 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     if (!String(input.legal_name ?? "").trim()) throw new StaticDemoHTTPError(422, "vendor_identity_invalid", "Enter the vendor's legal name.");
     const websiteInput = String(input.website_domain ?? "").trim();
     const websiteDomain = normalizeWebsiteDomain(websiteInput);
-    if (websiteInput && !websiteDomain) throw new StaticDemoHTTPError(422, "vendor_identity_invalid", "Enter the website hostname only, without a scheme, path, credentials, port or IP address.");
-    const updatedVendor = { ...current.vendor, legal_name: String(input.legal_name).trim(), trading_name: input.trading_name ? String(input.trading_name) : undefined, registration_ref: input.registration_ref ? String(input.registration_ref) : undefined, jurisdiction: input.jurisdiction ? String(input.jurisdiction) : undefined, website_domain: websiteDomain, updated_at: now, version: current.vendor.version + 1 };
+    if (websiteInput && !websiteDomain) throw new StaticDemoHTTPError(422, "vendor_identity_invalid", "Enter a website hostname or full HTTPS URL without credentials, a port or an IP address.");
+    const updatedVendor = { ...current.vendor, legal_name: String(input.legal_name).trim(), trading_name: input.trading_name ? String(input.trading_name) : undefined, registration_ref: input.registration_ref ? String(input.registration_ref) : undefined, jurisdiction: input.jurisdiction ? String(input.jurisdiction) : undefined, website_domain: websiteDomain, registered_address: normalizeRegisteredAddress(String(input.registered_address ?? "")), updated_at: now, version: current.vendor.version + 1 };
     if (updatedVendor.website_domain !== current.vendor.website_domain) vendorBrand = { state: updatedVendor.website_domain ? "PENDING" : "UNAVAILABLE", version: vendorBrand.version + 1, event_version: vendorBrand.event_version + 1, updated_at: now };
     vendorRelationships = vendorRelationships.map((item) => item.vendor.id === vendorID ? { ...item, vendor: updatedVendor, brand: clone(vendorBrand) } : item);
     return clone({ vendor: updatedVendor, brand: vendorBrand }) as T;
@@ -463,7 +464,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/vendors" && method === "POST") {
     const input = parseBody(init) as Record<string, string>;
     const created: VendorRelationshipAggregate = {
-      vendor: { id: "vendor-static-new", tenant_id: "bank-demo", legal_name: input.legal_name ?? "Unnamed vendor", trading_name: input.trading_name ?? "", registration_ref: input.registration_ref ?? "", jurisdiction: input.jurisdiction ?? "", source_id: input.source_id ?? "", external_ref: input.external_ref ?? "", status: "ACTIVE", created_at: now, updated_at: now, version: 1 },
+      vendor: { id: "vendor-static-new", tenant_id: "bank-demo", legal_name: input.legal_name ?? "Unnamed vendor", trading_name: input.trading_name ?? "", registration_ref: input.registration_ref ?? "", jurisdiction: input.jurisdiction ?? "", website_domain: normalizeWebsiteDomain(input.website_domain ?? ""), registered_address: normalizeRegisteredAddress(input.registered_address ?? ""), source_id: input.source_id ?? "", external_ref: input.external_ref ?? "", status: "ACTIVE", created_at: now, updated_at: now, version: 1 },
       relationship: { id: "vendor-relationship-static-new", tenant_id: "bank-demo", legal_entity_id: "bank-ng", vendor_id: "vendor-static-new", service_name: input.service_name ?? "Service not recorded", business_owner_principal_id: "role-cro", criticality: (input.criticality ?? "STANDARD") as VendorCriticality, privacy_role: (input.privacy_role ?? "NONE") as VendorPrivacyRole, status: "PROPOSED", effective_from: input.effective_from, renewal_at: input.renewal_at, source_id: input.source_id ?? "", external_ref: input.external_ref ?? "", created_at: now, updated_at: now, version: 1 },
     };
     vendorRelationships = [created, ...vendorRelationships];
@@ -471,6 +472,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   }
   if (pathname === `/api/v1/vendors/${vendorRelationshipID}/assessments/current` && method === "GET") {
     const fixtureAssessment = fixtureVendorAssessment(fixture);
+    if (fixture === "vendor-no-form") vendorAssessment = null;
     if (fixtureAssessment && vendorAssessment?.status !== fixtureAssessment.status) vendorAssessment = fixtureAssessment;
     if (!vendorAssessment) throw new StaticDemoHTTPError(404, "vendor_assessment_not_found", "No due-diligence assessment has been started for this vendor relationship.");
     return clone({ assessment: vendorAssessment, setup: { assessment_id: vendorAssessment.id, state: "COMPLETED", attempts: 1, updated_at: vendorAssessment.updated_at } }) as T;
