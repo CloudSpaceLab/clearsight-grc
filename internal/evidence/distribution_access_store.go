@@ -2,6 +2,7 @@ package evidence
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -26,6 +27,12 @@ type DistributionOTPDelivery struct {
 	DistributionID string    `json:"distribution_id"`
 	ExpiresAt      time.Time `json:"expires_at"`
 }
+
+func (value DistributionOTPDelivery) String() string {
+	return fmt.Sprintf("DistributionOTPDelivery{challenge_id:%q distribution_id:%q expires_at:%s address:protected code:protected}", value.ChallengeID, value.DistributionID, value.ExpiresAt.UTC().Format(time.RFC3339))
+}
+
+func (value DistributionOTPDelivery) GoString() string { return value.String() }
 
 // OTPSendReceipt is safe for public callers. The code and full address remain
 // inside the protected delivery boundary.
@@ -63,6 +70,12 @@ type RedeemedDistributionSession struct {
 	ExpiresAt      time.Time       `json:"expires_at"`
 }
 
+func (value RedeemedDistributionSession) String() string {
+	return fmt.Sprintf("RedeemedDistributionSession{session_id:%q distribution_id:%q request_id:%q assurance:%q expires_at:%s token:protected}", value.SessionID, value.DistributionID, value.RequestID, value.Assurance, value.ExpiresAt.UTC().Format(time.RFC3339))
+}
+
+func (value RedeemedDistributionSession) GoString() string { return value.String() }
+
 type otpChallengeSnapshot struct {
 	Challenge OTPChallenge
 	Found     bool
@@ -84,11 +97,13 @@ type accessSessionCommit struct {
 // mutate semantics for challenge updates and session commits.
 type DistributionAccessStore interface {
 	GetDistribution(context.Context, string, string, string) (DistributionBundle, error)
+	GetRequest(context.Context, string, string) (Request, error)
 	CreateAccessRoutes(context.Context, []AccessRoute) error
 	AccessRouteBySelectorHash(context.Context, []byte) (AccessRoute, error)
 	AccessRouteByID(context.Context, string, string, string, string) (AccessRoute, error)
 	ProtectedRecipientForAccess(context.Context, AccessRoute, string) (DistributionRecipient, protectedRecipientAddress, error)
 	ActiveOTPChallenge(context.Context, AccessRoute, string, time.Time) (otpChallengeSnapshot, error)
+	OTPChallengeByID(context.Context, AccessRoute, string, time.Time) (OTPChallenge, error)
 	CreateOTPChallenge(context.Context, OTPChallenge) error
 	UpdateOTPChallenge(context.Context, OTPChallenge, int, int, []byte) error
 	CommitAccessSession(context.Context, accessSessionCommit) error
@@ -96,3 +111,10 @@ type DistributionAccessStore interface {
 	RevokeAccessRoute(context.Context, AccessRoute, time.Time) error
 	DistributionSessionByTokenHash(context.Context, []byte, time.Time) (DistributionAccessSession, error)
 }
+
+var (
+	_ fmt.Stringer   = DistributionOTPDelivery{}
+	_ fmt.GoStringer = DistributionOTPDelivery{}
+	_ fmt.Stringer   = RedeemedDistributionSession{}
+	_ fmt.GoStringer = RedeemedDistributionSession{}
+)
