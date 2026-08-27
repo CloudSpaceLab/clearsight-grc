@@ -17,6 +17,7 @@ import {
   duplicateSection,
   enableScoring,
   maxGeneratedNumber,
+  reconcileAuthoringOrder,
   updateConstraint,
   type FormDraft,
 } from "./forms/formAuthoring";
@@ -84,15 +85,15 @@ export function FormBuilder({
   }
 
   function updateField(index: number, change: Partial<FormDraft["fields"][number]>) {
-    setDraft((current) => ({
-      ...current,
-      fields: current.fields.map((field, fieldIndex) => {
+    setDraft((current) => {
+      const fields = current.fields.map((field, fieldIndex) => {
         if (fieldIndex !== index) return field;
         let next = { ...field, ...change };
         if (change.options && next.scoring) next = enableScoring(next, current.scoringMode);
         return next;
-      }),
-    }));
+      });
+      return { ...current, ...reconcileAuthoringOrder(current.sections, fields) };
+    });
     setError("");
   }
 
@@ -133,7 +134,11 @@ export function FormBuilder({
     if (draft.sections.length >= 20) return;
     const copied = duplicateSection(sectionID, draft.sections, draft.fields, nextSection, nextField);
     if (!copied) return;
-    setDraft((current) => ({ ...current, sections: [...current.sections, copied.section], fields: [...current.fields, ...copied.fields] }));
+    setDraft((current) => {
+      const sections = [...current.sections, copied.section];
+      const fields = [...current.fields, ...copied.fields];
+      return { ...current, ...reconcileAuthoringOrder(sections, fields) };
+    });
     setNextSection(copied.nextSection);
     setNextField(copied.nextField);
   }
@@ -142,13 +147,20 @@ export function FormBuilder({
     if (draft.sections.length >= 20) return;
     const copied = copySectionFromTemplate(template, sectionID, nextSection, nextField);
     if (!copied) return;
-    setDraft((current) => ({ ...current, sections: [...current.sections, copied.section], fields: [...current.fields, ...copied.fields] }));
+    setDraft((current) => {
+      const sections = [...current.sections, copied.section];
+      const fields = [...current.fields, ...copied.fields];
+      return { ...current, ...reconcileAuthoringOrder(sections, fields) };
+    });
     setNextSection(copied.nextSection);
     setNextField(copied.nextField);
   }
 
   function moveSection(index: number, offset: -1 | 1) {
-    setDraft((current) => ({ ...current, sections: move(current.sections, index, offset) }));
+    setDraft((current) => {
+      const sections = move(current.sections, index, offset);
+      return { ...current, ...reconcileAuthoringOrder(sections, current.fields) };
+    });
   }
 
   function removeSection(sectionID: string) {
@@ -157,11 +169,8 @@ export function FormBuilder({
       const sections = current.sections.filter((section) => section.id !== sectionID);
       const replacement = sections[0]?.id;
       if (!replacement) return current;
-      return {
-        ...current,
-        sections,
-        fields: current.fields.map((field) => field.section_id === sectionID ? { ...field, section_id: replacement } : field),
-      };
+      const fields = current.fields.map((field) => field.section_id === sectionID ? { ...field, section_id: replacement } : field);
+      return { ...current, ...reconcileAuthoringOrder(sections, fields) };
     });
   }
 
@@ -173,19 +182,17 @@ export function FormBuilder({
   }
 
   function moveField(index: number, offset: -1 | 1) {
-    setDraft((current) => ({ ...current, fields: move(current.fields, index, offset) }));
+    setDraft((current) => {
+      const fields = move(current.fields, index, offset);
+      return { ...current, ...reconcileAuthoringOrder(current.sections, fields) };
+    });
   }
 
   function removeField(index: number) {
     setDraft((current) => {
       if (current.fields.length <= 1) return current;
-      const removedID = current.fields[index]?.id;
-      return {
-        ...current,
-        fields: current.fields
-          .filter((_, fieldIndex) => fieldIndex !== index)
-          .map((field) => field.condition?.field_id === removedID ? { ...field, condition: undefined } : field),
-      };
+      const fields = current.fields.filter((_, fieldIndex) => fieldIndex !== index);
+      return { ...current, ...reconcileAuthoringOrder(current.sections, fields) };
     });
   }
 
