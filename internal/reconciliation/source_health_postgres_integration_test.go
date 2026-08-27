@@ -31,12 +31,17 @@ func TestSourceHealthPostgresReplayAndRecovery(t *testing.T) {
 		tenantID    = "83333333-3333-7333-8333-333333333331"
 		ownerID     = "83333333-3333-7333-8333-333333333332"
 		authorityID = "83333333-3333-7333-8333-333333333333"
+		entityID    = "83333333-3333-7333-8333-333333333334"
 	)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
-	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
+	defer func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) }()
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'source-replay-test','Source Replay Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'ENTITY-A','Entity A','NG',clock_timestamp()-interval '1 day')`, entityID, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	ctx = continuity.WithTrustedSystemEntityScope(ctx, "source-replay-test", entityID)
 	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name,status) VALUES($1::uuid,$3::uuid,'PERSON','Program owner','ACTIVE'),($2::uuid,$3::uuid,'PERSON','Program authority','ACTIVE')`, ownerID, authorityID, tenantID); err != nil {
 		t.Fatal(err)
 	}
@@ -46,6 +51,7 @@ func TestSourceHealthPostgresReplayAndRecovery(t *testing.T) {
 	evidenceService := evidence.NewService(evidenceRepo, nil)
 	source, err := evidenceService.CreateSource(ctx, evidence.CreateSourceInput{
 		TenantID:                 "source-replay-test",
+		LegalEntityID:            entityID,
 		Code:                     "CORE-SOURCE",
 		Name:                     "Core governed source",
 		Type:                     evidence.SourceSystem,
@@ -63,6 +69,7 @@ func TestSourceHealthPostgresReplayAndRecovery(t *testing.T) {
 	continuityService := continuity.NewService(continuityRepo)
 	program, err := continuityService.CreateProgram(ctx, continuity.CreateProgramInput{
 		TenantID:             "source-replay-test",
+		LegalEntityID:        entityID,
 		Code:                 "SOURCE-REPLAY",
 		Name:                 "Source replay program",
 		Type:                 "CONTINUOUS",
