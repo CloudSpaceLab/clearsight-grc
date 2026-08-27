@@ -14,8 +14,9 @@ ClearSight can already define governed form revisions, collect typed answers, is
 - there is no direct Forms workspace for finding templates, composing distributions, monitoring responses, managing imports or reviewing communication settings;
 - the current builder exposes only a subset of the form contract and does not provide reusable field groups, scored sections, strong recommendations, template search or a clear compliance-weight model;
 - active forms can be reused, but template ownership and lifecycle remain coupled to Program monitoring and are not presented as a coherent template library;
-- an invitation is effectively a one-time redemption followed by a short browser session, so the emailed link cannot safely reopen the same server-side response workspace until its deadline;
-- requests model one recipient rather than a governed distribution with multiple To respondents, notification-only CC recipients and individual audience-bound access grants;
+- an invitation is effectively a one-time redemption followed by a short browser session, so the emailed link cannot safely reopen the same server-side response workspace until its deadline or apply an explicit access-assurance policy;
+- requests model one recipient rather than a governed distribution with multiple To respondents, notification-only CC recipients, reusable direct or shared access routes, and recipient-bound access grants where email verification is required;
+- long responses have server-side autosave but no immediate browser recovery for refresh, crash or temporary network loss, and the UI cannot distinguish a server-synced draft from a device-only pending change;
 - generated requests cannot be safely amended, reminded, reopened or superseded through a single visible lifecycle;
 - imported DOCX, XLSX and PDF artifacts already have a hardened extraction path, but their extracted structure cannot yet be reviewed as a proposed form template; legacy XLS and scanned-document OCR have no complete production path;
 - the governed AI gateway cannot yet propose or revise a form contract, and there is no exact-version diff or provenance view for AI-assisted authoring;
@@ -38,7 +39,7 @@ The implementation must close those gaps without creating another form engine, c
 | Versioned form lifecycle and maker-checker activation | `internal/monitoring` | Promote the existing records and commands into the canonical legal-entity form-template aggregate while preserving IDs, revisions, authority and monitoring compatibility. Do not create a second template store. |
 | Classic/wizard rendering, file/photo/vendor-document fields, attestation and signature | shared capture React components | Reuse unchanged where possible. Add current-value comparison controls around the existing inputs. |
 | Internal-principal and external-audience recipients | `internal/evidence` | Make vendor orchestration accept the existing recipient union. Do not create vendor-specific recipient records. |
-| Opaque invitation, bounded session, revocation, replacement and deadline clamping | `internal/evidence` | Retain token and session security. Add repeat redemption until the effective deadline, with a new short session on each redemption and one server-side response workspace per distribution. |
+| Opaque invitation, bounded session, revocation, replacement and deadline clamping | `internal/evidence` | Retain token and session security. Add explicit link-possession, shared-link-plus-email-OTP and direct-link-plus-email-OTP policies; repeat access until the effective deadline; and one server-side response workspace per distribution. |
 | Protected invitation-delivery interface and redacted receipt | `internal/evidence` | Add a branded renderer and configured email adapter behind this interface. Do not persist or enqueue a raw token. |
 | Immutable submission answers and provenance | `internal/evidence` | Treat the submission as the change proposal. Add an application receipt that links accepted fields to the resulting authoritative version. |
 | Vendor identity update command, version check, authority route, event and outbox | `internal/thirdparty` | Apply approved identity corrections through this command. Do not write `third_parties` directly. |
@@ -47,7 +48,7 @@ The implementation must close those gaps without creating another form engine, c
 | Document review | `internal/thirdparty` | Extend validation with explicit, version-checked supersession. |
 | Bounded DOCX/XLSX/PDF extraction and artifact scanning | `internal/documentimport` | Reuse the existing artifact, scan, extraction, provenance and worker pipeline. Add a form-template proposal transformation; do not add a parallel upload service. |
 | Governed OpenAI/Anthropic routing, budgets and receipts | `internal/aigateway` | Add form-template proposal and revision workloads with strict schemas and human review. Do not call a model directly from the browser. |
-| Response draft autosave and optimistic versions | `internal/evidence` and shared capture | Move durable draft ownership from a short session to the distribution response workspace so a newly redeemed link resumes the same bounded draft. |
+| Response draft autosave and optimistic versions | `internal/evidence` and shared capture | Move durable draft ownership from a short session to the distribution response workspace. Add an encrypted, expiring IndexedDB recovery cache for immediate same-browser recovery; it never becomes authoritative. |
 
 ## Non-goals
 
@@ -55,8 +56,8 @@ The implementation must close those gaps without creating another form engine, c
 - No automatic acceptance of respondent claims into authoritative records.
 - No separate vendor form builder, invitation table, signature service or email campaign system.
 - No wholesale embedding of SurveyJS Creator, Form.io, Formbricks, Vensuite or another survey platform as a second source of form semantics.
-- No public “anyone with the link” bearer URL for protected GRC collection.
-- No browser-only draft as the authoritative resume mechanism.
+- No implication that link possession proves control of an email account or the identity or authority of a signatory. Link-only access remains available when explicitly selected and is recorded as `LINK_POSSESSION` assurance.
+- No browser-only draft as the authoritative record, cross-device resume mechanism or source of a submitted response.
 - No arbitrary HTML, scripts, remote pixels or unvalidated placeholders in configurable email content.
 - No automatic activation of a document- or AI-generated template.
 - No AI dependency for expiry, staleness, field selection, validation or routing.
@@ -92,7 +93,7 @@ The local Vensuite form implementation at `C:\Users\Son\cowork\vensuite` was rev
 - AI generation as an authoring accelerator rather than a respondent dependency;
 - response detail and analytics separated from authoring.
 
-Patterns that are not suitable as ClearSight's trust model include static prompt templates held in browser session storage, public share slugs described as “anyone with this link,” browser-local seven-day response resume state, client-shaped sharing metadata, absence of compliance weighting and no governed multi-recipient/email-template lifecycle. ClearSight borrows interaction ideas, not those authority or persistence semantics.
+Patterns that are not suitable as ClearSight's trust model include static prompt templates held in browser session storage, unclassified public share slugs, browser-only seven-day response state, client-shaped sharing metadata, absence of compliance weighting and no governed multi-recipient/email-template lifecycle. ClearSight retains the useful low-friction link and local-recovery interactions while making their assurance, expiry, revocation and server authority explicit.
 
 ### Open-source references
 
@@ -101,6 +102,9 @@ Patterns that are not suitable as ClearSight's trust model include static prompt
 - [LimeSurvey](https://github.com/LimeSurvey/LimeSurvey) and its [email-template documentation](https://help.limesurvey.org/portal/en/kb/articles/email-templates) provide mature participant-token, invitation/reminder/completion and validated-placeholder patterns.
 - [Documenso](https://github.com/Documenso/documenso) provides useful distinctions among signer, approver, viewer and CC recipient roles and per-recipient access.
 - [Docling supported formats](https://github.com/docling-project/docling/blob/main/docs/usage/supported_formats.md) show a possible optional normalization/OCR path for difficult PDF and legacy Office documents.
+- [MultiXtract](https://github.com/srivnamrata/multixtract) provides useful extractor-registry, per-page structure, degradation-reporting, image-deduplication and optional-adapter patterns. Its alpha maturity, incomplete hostile-file limits, broad catch-and-return failure behavior and lack of an accuracy corpus make it a reference rather than a production dependency.
+- [PyMuPDF](https://github.com/pymupdf/PyMuPDF) provides strong PDF layout, table, image, OCR, bounding-box and AcroForm capabilities. Its AGPL-3.0-or-commercial licensing requires explicit approval before it can be embedded in proprietary ClearSight workers.
+- [Microsoft Simplify-Docx](https://github.com/microsoft/Simplify-Docx) demonstrates semantic DOCX-to-JSON and Word checkbox, dropdown, text-field, list and table mappings. ClearSight should reproduce the bounded OOXML mappings it needs rather than depend on its low-activity package and custom `python-docx` fork.
 - [Lexical](https://github.com/facebook/lexical) is a suitable accessible React editor framework candidate for the constrained communication WYSIWYG; the persisted contract remains ClearSight's smaller server-validated document model.
 
 Licensing, bundle size, backend assumptions and GRC authority semantics prevent blindly embedding a reference product. Any dependency choice requires a separate license, security, accessibility, bundle and maintenance review.
@@ -139,18 +143,19 @@ Activation retains maker-checker review. Editing an active template always creat
 
 Curated starter templates are installed as governed template records or explicitly labelled product reference fixtures. They are not hard-coded prompts or browser-session objects. The vendor empty state links to this same library and lifecycle.
 
-### 2. Separate template, distribution, access grant and response workspace
+### 2. Separate template, distribution, access route, grant and response workspace
 
-The form system uses four related but distinct records:
+The form system uses five related but distinct records:
 
 1. **Form template and revision** — the reusable question, validation, logic, scoring, presentation and sign-off contract.
-2. **Form distribution** — a generated assessment/questionnaire/request pinned to one template revision, subject, purpose, due time, reminder policy and recipient set.
-3. **Recipient access grant** — one internal assignment or opaque external invitation per To recipient. Each external recipient receives a different audience-bound secret.
-4. **Response workspace and revisions** — the shared server-side draft for the distribution and every immutable submitted or amended revision.
+2. **Form distribution** — a generated assessment/questionnaire/request pinned to one template revision, subject, purpose, due time, reminder policy, recipient set and access policy.
+3. **External access route** — the reusable direct or shared opaque URL that starts the configured external-access ceremony and expires no later than the distribution deadline.
+4. **Recipient access grant** — an internal assignment, a direct link-possession grant or an email-verified external grant. The grant records the actual assurance achieved and is independently revocable.
+5. **Response workspace and revisions** — the shared server-side draft for the distribution and every immutable submitted or amended revision.
 
-Multiple To recipients collaborate on one shared response workspace. CC recipients receive notifications and status messages but have no link or edit authority by default. Granting view or response rights requires an explicit To role and its own access grant; forwarding another recipient's link must not broaden access.
+Multiple To recipients collaborate on one shared response workspace. CC recipients receive notifications and status messages but have no edit authority by default. Granting response rights requires an explicit To role. A direct link may intentionally authorize its possessor; shared-link access requires selection and verification of an eligible To recipient. The chosen access policy and achieved assurance are visible in distribution review and submission provenance.
 
-Internal recipients authenticate normally and receive work-queue assignments. External recipients redeem their individual invitation repeatedly until the earlier of request deadline, configured link expiry, revocation or relationship withdrawal. Every redemption produces a new short-lived request-scoped session; it does not create a new draft.
+Internal recipients authenticate normally and receive work-queue assignments. External respondents may reopen the configured link repeatedly until the earlier of request deadline, configured link expiry, revocation or relationship withdrawal. Successful access produces a new short-lived request-scoped session; it does not create a new draft.
 
 Draft ownership therefore moves from `session_id` to the distribution response workspace. Optimistic workspace versions and field-level edit provenance prevent silent overwrites. The initial release does not require CRDT or real-time co-editing: a stale save returns the latest changed fields and a focused merge/retry experience. Every save records the verified internal principal or external access grant responsible for changed fields.
 
@@ -162,6 +167,24 @@ Distribution changes are versioned:
 - a revoked recipient loses future redemption immediately without deleting their contribution history;
 - changing form fields after send requires a superseding distribution pinned to a new template revision;
 - compatible answers may be proposed for carry-forward by stable field keys, but the sender must preview and confirm the mapping; incompatible or removed fields are retained only in prior history.
+
+### 2a. Keep long-form browser recovery without making the browser authoritative
+
+Server autosave remains the primary durable draft and runs after a short bounded debounce and on explicit page transitions. The capture application also writes an immediate recovery envelope to IndexedDB so a refresh, browser crash or temporary network loss does not erase painful long-form work.
+
+The recovery envelope contains only the distribution/workspace identifier, schema revision, last known server workspace version, current page, permitted scalar answers, local edit sequence and timestamps. It is encrypted with Web Crypto using a non-exportable device key scoped to the ClearSight origin and distribution. This reduces exposure to casual disk inspection but is not represented as protection from same-origin script compromise.
+
+The browser must not cache:
+
+- invitation secrets, OTPs, session tokens or complete email addresses;
+- signature strokes/images, uploaded file bytes or protected document previews;
+- fields marked `NO_BROWSER_CACHE` by the versioned template sensitivity policy.
+
+For an unsynced file answer the envelope may retain only the field key, filename, size, media type and the fact that reselection is required. The UI states **Reselect file to upload** and never implies that the file is safe on the server.
+
+The recovery lifetime is the earliest of the distribution deadline, access-route expiry and the legal-entity device-cache maximum, initially capped at seven days. It is purged after successful final submission and synchronization, distribution completion, revocation, expiry or **Clear saved response on this device**. A sensitive template can disable browser caching while retaining server autosave.
+
+The capture header exposes two truthful states: **Saved to ClearSight** and **Saved on this device — waiting to sync**. On reconnect, the client supplies the cached base workspace version and changed field set. The server either applies it through optimistic concurrency or returns current field changes for an explicit field-level merge. It never silently applies last-write-wins. Cross-device resume always uses the server workspace.
 
 ### 3. Add explicit compliance scoring without weakening existing risk scoring
 
@@ -191,9 +214,15 @@ Deterministic transformation runs first:
 - every proposed field carries extraction confidence and its source page, sheet, cell range, paragraph or table anchor;
 - ambiguous content remains visibly unresolved instead of being guessed.
 
-The existing DOCX/XLSX/PDF extractors stay the default. Legacy XLS support is added behind the same bounded extractor interface using a maintained parser or isolated conversion worker. Scanned PDFs use a configured OCR adapter only when ordinary extraction reports insufficient text. OCR and legacy conversion run in CI/production workers with explicit size, time, page, memory and output limits; they do not require installing a heavy Docker/model stack on the user's development machine.
+The existing bounded Go DOCX/XLSX/PDF extractors stay authoritative. MultiXtract is not added as a second upload or extraction service. ClearSight selectively ports or reimplements only useful patterns: a common element model, explicit per-page/per-sheet provenance, text/table/image/link separation, image filtering and duplicate-reference handling, and a structured degradation list. Every adapter must return `EXTRACTED`, `PARTIAL`, `UNSUPPORTED`, `TRUNCATED` or `FAILED`; caught errors may not become an empty successful document.
 
-An optional richer parser such as Docling may be evaluated behind the extraction interface for difficult table/layout cases. It is not a mandatory runtime or a replacement for the current safe path until corpus tests prove a material accuracy gain within resource limits.
+DOCX parsing gains bounded OOXML mappings inspired by Simplify-Docx for content controls, legacy form fields, checkboxes, dropdowns, text inputs, numbering, indentation and tables. It retains ClearSight's archive-entry, expanded-byte, compression-ratio, output and time limits and does not enable an XML “huge tree” mode for untrusted files.
+
+Legacy XLS support is added behind the same bounded extractor interface using a maintained parser or isolated LibreOffice conversion worker. Scanned PDFs use a configured OCR adapter only when ordinary extraction reports insufficient text. OCR and legacy conversion run in CI/production workers with explicit size, time, page, memory and output limits; they do not require installing a heavy Docker/model stack on the user's development machine.
+
+PyMuPDF may be evaluated behind an optional PDF adapter for layout blocks, bounding boxes, tables, page images, OCR fallback and AcroForm widgets. It is not added to the default build unless commercial licensing is approved or counsel confirms a compatible distribution model. Docling may likewise be evaluated for difficult layout cases. Neither replaces the current path until a fixed representative corpus proves a material accuracy gain without weakening resource, failure, provenance or recovery semantics.
+
+The evaluation corpus includes native and scanned PDFs, AcroForms, DOCX content controls and legacy fields, nested/repeated tables, XLS/XLSX questionnaires, malformed archives, decompression bombs, encrypted files and deliberately ambiguous layouts. Golden expectations cover detected fields/options/types, reading order, table shape, source anchors, confidence, degradation and explicit failure—not merely that extraction returned a document.
 
 ### 5. Add governed AI authoring as proposals and exact-version diffs
 
@@ -223,7 +252,7 @@ Authoring supports:
 - undo/redo within the draft plus immutable server revision history;
 - a concise pre-approval quality panel for missing labels, invalid logic, inaccessible copy, scoring totals, unbounded files and unreachable required fields.
 
-Vensuite's compact block insertion, separate builder/player modules, design preview and deterministic spreadsheet suggestions are useful interaction references. ClearSight does not adopt its public share slug, browser-local resume state, static prompt templates or client-defined form authority.
+Vensuite's compact block insertion, separate builder/player modules, design preview, local recovery and deterministic spreadsheet suggestions are useful interaction references. ClearSight keeps recovery as an encrypted convenience cache and classifies link assurance explicitly; it does not adopt static prompt templates or client-defined form authority.
 
 ### 7. Add bounded response intent, not database mapping
 
@@ -300,25 +329,35 @@ Vendor assessment send, reissue and focused follow-up commands compose the same 
 - **To — vendor or other third party:** an approved external audience receives its own purpose-bound invitation. Vendor attestation must never be inferred when an internal user responds on the vendor's behalf.
 - **CC — notification only:** receives the configured invitation/status message without a response link. CC does not imply visibility or contribution authority.
 
-The UI uses the existing bounded internal-recipient search and repeatable recipient rows with explicit To/CC labels. External addresses are normalized and stored in the protected recipient boundary. Broad list projections show a masked address and recipient label; an authorized recipient-management read may return the exact address for that one distribution. Addresses never enter logs, analytics or general administration responses. Each external To recipient has its own delivery state, revocation state and redacted receipt.
+The UI uses the existing bounded internal-recipient search and repeatable recipient rows with explicit To/CC labels. External addresses are normalized and stored in the protected recipient boundary. Broad list projections show a masked address and recipient label; an authorized recipient-management read may return the exact address for that one distribution. Addresses never enter logs, analytics or general administration responses. Each external To recipient has its own eligibility, delivery, verification, revocation and redacted receipt state even when respondents enter through one shared URL.
 
-### 12. Due-date-aware reusable invitation expiry
+### 12. Provide reusable links with selectable assurance
+
+Each external distribution chooses one access policy. The UI explains its assurance and friction before send:
+
+1. **Direct magic link (`DIRECT_MAGIC_LINK`)** — each external To recipient receives an opaque reusable URL. Possession of the URL is sufficient to open the form. This is the lowest-friction option for lower-sensitivity collection, but forwarding can transfer access. Sessions and response revisions record `LINK_POSSESSION`; the UI must not describe the respondent as email verified or identity verified.
+2. **Shared link plus email OTP (`SHARED_LINK_EMAIL_OTP`)** — the recommended vendor due-diligence default. One reusable distribution URL shows only masked eligible To addresses. The respondent selects their address, receives an OTP at the exact bound address and enters it before a recipient-specific session is issued. CC addresses are never offered. Where masks collide, a configured non-sensitive contact label or domain suffix disambiguates them without revealing the full address.
+3. **Direct link plus email OTP (`DIRECT_LINK_EMAIL_OTP`)** — each external To recipient receives an opaque URL and must also prove access to the bound email address. This is the default for higher-sensitivity, signatory or explicitly identity-reliant collection and may require another OTP on a new device or risk event.
+
+Internal users continue through normal ClearSight authentication. A legal-entity policy may constrain which access modes are allowed by template sensitivity, record-update intent, signature requirement or subject type. The distribution stores the selected policy, and each session/submission stores the achieved assurance. Reviewers see that assurance next to sign-off provenance.
+
+OTP values are generated cryptographically, stored only as a keyed hash, single-use, and expire after ten minutes by default. Verification, selection, resend and delivery are rate-limited by distribution, recipient, network risk and bounded time window. Attempts and resend counts are capped; error text does not reveal whether an unmasked address exists. OTPs and full addresses never enter logs, analytics, previews, generic outbox payloads or receipts. Revocation and recipient removal invalidate outstanding OTP challenges and sessions. A verified device may be remembered only when policy permits and never beyond the earliest of distribution deadline, access-route expiry, revocation or the configured device maximum.
 
 The invitation service remains authoritative for the five-minute minimum, configured maximum and request-deadline ceiling. Command inputs gain an optional absolute `invitation_expires_at`; legacy duration minutes remain accepted during migration. The maximum remains 30 days unless an approved legal-entity policy explicitly permits a different bounded maximum.
 
 The UI uses a date-and-time control with presets such as one day, seven days and “at the response due time.” Its maximum is the request due time and it previews the effective expiry before send. If a caller requests a later time, the API returns the bounded effective expiry and a machine-readable adjustment reason; the UI states that the link ends when the response is due. Replacement invitations use the same rule.
 
-Successful redemption no longer consumes the invitation permanently. It records a redemption event and issues a short session bound to the same access grant and response workspace. Rate limits, audience checks, revocation and maximum failed-attempt controls apply on every redemption. A replacement invitation revokes the prior grant. Tokens never appear in URLs subsequently loaded by analytics, referrers or preview services; redemption immediately exchanges and removes the secret-bearing URL from browser history.
+Successful access no longer consumes the route permanently. It records an access event and issues a short session bound to the route, achieved assurance, eligible recipient where verified, and response workspace. Rate limits, policy checks, revocation and maximum failed-attempt controls apply on every access. Replacing a direct route revokes its prior secret; rotating a shared route revokes the old route and all sessions derived from it. Tokens never appear in URLs subsequently loaded by analytics, referrers or preview services; the first request exchanges the secret and immediately removes the secret-bearing URL from browser history.
 
 ### 13. Govern branded form communications through the existing protected seam
 
-The protected delivery request is extended with non-secret message data: bank display name, form title, task summary, due time, effective link expiry and support text. The raw recipient and reusable-until-deadline secure link remain in protected fields and are never serializable.
+The protected delivery request is extended with non-secret message data: bank display name, form title, task summary, due time, effective link expiry, selected access policy and support text. The raw recipient, direct/shared route and OTP material remain in protected fields and are never serializable.
 
 A legal-entity **Form communications** configuration owns versioned templates for invitation, reminder, due soon, overdue or expired, changes requested, response amended, completion and internal notification. Each action supports subject, preheader, structured rich-text body, button label, locale and fallback plain text. Global defaults may be overridden by an approved form-template communication profile; distributions reference the exact effective configuration version.
 
 The WYSIWYG editor uses a restricted structured document model rather than saving arbitrary HTML. The initial node allowlist includes paragraphs, headings, bold, italic, links, bulleted/numbered lists, dividers, callout text and one primary action button. The server validates the structure and link protocols, renders responsive HTML and plain text, and rejects scripts, remote tracking pixels, inline event handlers, unknown nodes and unsafe CSS.
 
-An allowlisted placeholder picker exposes values such as recipient name, bank name, form title, task summary, due time, secure-link expiry, support contact and personal secure link. Required placeholders are validated before approval. Preview uses labelled sample values and never materializes a real invitation secret. Send-time expansion fails closed if a required protected placeholder cannot be resolved.
+An allowlisted placeholder picker exposes values such as recipient name, bank name, form title, task summary, due time, secure-link expiry, access instructions, support contact and secure form link. Required placeholders are validated before approval. Preview uses labelled sample values and never materializes a real route secret or OTP. Send-time expansion fails closed if a required protected placeholder cannot be resolved.
 
 Branding configuration supports a versioned logo upload with file-type, dimension, size, malware-scan and alt-text checks, plus bank display name, approved colours and support details. Configuration changes require simulation, impact preview, maker-checker approval, effective dating, rollback and audit.
 
@@ -329,10 +368,10 @@ A responsive HTML and plain-text renderer produces:
 - response due time and secure-link expiry;
 - one primary **Open secure form** action;
 - a plain URL fallback;
-- a warning not to forward the link;
+- access guidance appropriate to the selected policy, including a forwarding warning for direct magic links and email-verification instructions for OTP modes;
 - recovery/support guidance.
 
-A configured production email adapter implements the existing `InvitationDelivery` interface. Provider responses are normalized to the existing redacted receipt. Each distribution recipient has scheduled reminder state and delivery attempts, but the generic outbox never contains raw token or full recipient data. A protected delivery job receives only a secret reference and resolves the address/link inside the invitation boundary just before send. Retries are idempotent and stop after completion, revocation or deadline. When delivery is unavailable or fails, the current one-time manual-link recovery remains visible; reliable resend rotates the access grant instead of replaying exposed secret material.
+A configured production email adapter implements the existing `InvitationDelivery` interface. Provider responses are normalized to the existing redacted receipt. Each distribution recipient has scheduled reminder state and delivery attempts, but the generic outbox never contains raw token, OTP or full recipient data. A protected delivery job receives only a secret reference and resolves the address/link inside the invitation boundary just before send. Retries are idempotent and stop after completion, revocation or deadline. When invitation delivery is unavailable, an authorized owner can copy the active route after a fresh authority check: a shared OTP route may be shared through another channel, while a direct magic link is shown with its link-possession warning. Reliable resend reuses the still-valid route; suspected exposure uses explicit rotation and revocation rather than silently multiplying valid secrets.
 
 ### 14. Review and apply proposed record changes
 
@@ -406,6 +445,7 @@ Authoring uses real date/calendar controls, compact labelled icons, clear typogr
 - choose a reusable template and preview the exact revision;
 - bind the business subject and purpose;
 - add one or more To respondents and CC notification recipients;
+- choose direct magic link, shared link plus email OTP or direct link plus email OTP, with the actual assurance and forwarding implications stated before send;
 - set due date/time, secure-link expiry and reminder schedule with calendar controls;
 - preview each communication and the exact population that will receive it;
 - review field scope, held-value baselines, scoring and sign-off before send;
@@ -436,6 +476,9 @@ Authoring uses real date/calendar controls, compact labelled icons, clear typogr
 - compact icons only where they aid scanning, always paired with accessible labels;
 - focused dialog/drawer overlays use subtle backdrop blur without obscuring errors or required context;
 - date values use native calendar inputs and readable localized review text;
+- a persistent save indicator distinguishes server-synced work from encrypted device-only recovery and offers retry or **Clear saved response on this device**;
+- reopening after a crash or refresh explains which answers were recovered, which are still syncing and which files must be reselected;
+- shared-link access shows only masked eligible To addresses, then a focused accessible OTP step with resend timing and recovery guidance;
 - keyboard, screen-reader, reduced-motion, 200% zoom and mobile layouts remain supported.
 
 ### Form communications configuration
@@ -453,10 +496,12 @@ Authoring uses real date/calendar controls, compact labelled icons, clear typogr
 - Every material command uses verified request identity; actor-like body fields remain ignored.
 - Template, communication, branding and scoring-policy transitions retain maker-checker separation, effective dating, simulation and rollback.
 - Internal recipients must have exact subject access.
-- External invitations remain distribution-, request-, audience- and purpose-bound, revocable and bounded by the effective deadline. Reusability never means an unbound public link.
-- Every external To recipient receives a unique secret; CC recipients never receive an access token.
-- Short sessions remain request scoped. Repeated redemption resumes the same response workspace only after audience, purpose, tenant, legal-entity, revocation and deadline checks succeed.
+- External routes remain distribution-, request- and purpose-bound, revocable and bounded by the effective deadline. Recipient/audience binding is enforced for email-OTP modes; direct magic-link mode deliberately treats link possession as its lower assurance.
+- CC recipients never receive edit authority. A shared route lists only masked To recipients and requires OTP verification before binding a session to one of them.
+- Short sessions remain request scoped. Repeated access resumes the same response workspace only after access-policy, purpose, tenant, legal-entity, revocation and deadline checks succeed.
+- OTP challenges are hashed, single-use, short-lived and rate-limited. Full addresses, OTPs, route secrets and session tokens never enter client analytics, logs or generic delivery infrastructure.
 - Draft writes require the current workspace version and retain field-level actor provenance. Conflicts never resolve by last-write-wins without user visibility.
+- IndexedDB recovery is an encrypted convenience copy, not an authorization source or authoritative draft. It excludes secrets, signature material and file bytes, obeys per-field cache policy, expires automatically and cannot bypass server validation or current access checks.
 - Record target resolution is server-side and allowlisted.
 - Applying a response re-evaluates the current authority route and fails closed on missing identity, route failure, tenant/entity mismatch, conflict, delegation expiry or revoked responsibility.
 - Invitation secret material never enters events, outbox, logs, analytics, previews or saved delivery receipts.
@@ -470,8 +515,8 @@ Authoring uses real date/calendar controls, compact labelled icons, clear typogr
 - Reuse the existing bounded reusable-form index and keyset portfolio patterns, adding legal-entity, lifecycle, owner, use/tag and updated-at indexes needed by the direct Forms workspace.
 - Distribution lists use keyset pagination over legal entity, status, deadline and stable ID. Recipient and reminder work is claimed in bounded leased batches with dedupe keys.
 - Response workspaces are addressed by exact distribution ID. Draft saves read/write one workspace version and changed field set; they never replay broad response populations.
-- Template previews and normalized schemas are cached by tenant, legal entity and exact immutable revision. Draft content is not shared through cross-purpose caches.
-- Import workers record source size, format, pages/sheets/cells, extraction duration, output size and proposal size; limits fail explicitly and recoverably.
+- Template previews and normalized schemas are cached by tenant, legal entity and exact immutable revision. Draft content is not shared through cross-purpose caches. Device recovery envelopes are keyed by exact origin, legal entity, distribution and schema revision; their expiry is bounded and their contents are never restored before current route/session authorization succeeds.
+- Import workers record parser/adapter version, source size, format, pages/sheets/cells, extraction duration, output size, proposal size, status, truncation and degradations; limits fail explicitly and recoverably.
 - AI inputs are chunked from exact source anchors with per-workload budget and output cardinality limits.
 - Request composition reads only selected target keys for one exact relationship.
 - Current document lookup uses tenant, legal entity, relationship, document type and current status.
@@ -484,35 +529,38 @@ Authoring uses real date/calendar controls, compact labelled icons, clear typogr
 2. **Governed lifecycle:** a maker can create and preview typed fields, sections, logic, file limits, record intents, scoring, attestation and signature; a distinct checker can activate the exact revision. Editing it creates a draft without changing active distributions.
 3. **Builder parity:** the builder preview and production capture renderer pass the same condition, validation, normalization and scoring fixtures. Required unreachable fields and invalid logic block approval with actionable messages.
 4. **Compliance weights:** a compliance-scored form cannot be approved unless section and field weights total 100 as defined. A completed fixture produces a reconstructable score, coverage and critical-result explanation; existing risk-scored forms retain their prior result.
-5. **Document proposal:** DOCX, XLSX, XLS and text-based PDF fixtures produce source-anchored form proposals with confidence and unresolved items. A scanned PDF either uses the configured bounded OCR adapter or states the recovery action. No import activates a form automatically.
+5. **Document proposal:** DOCX, XLSX, XLS and text-based PDF fixtures produce source-anchored form proposals with confidence and unresolved items. DOCX form controls and PDF AcroForm fixtures retain useful field structure. A scanned PDF either uses the configured bounded OCR adapter or states the recovery action. Malformed, oversized and ambiguous files return explicit status/degradation rather than empty success. No import activates a form automatically, and an optional parser cannot become default without licensing approval and golden-corpus evidence.
 6. **AI proposal:** an authorized maker can generate or revise a selected draft through the existing AI gateway, review a field-level diff and accept selected changes. Provider failure leaves manual/deterministic authoring usable and changes no active form.
-7. **Multi-recipient distribution:** a due-diligence owner can send one distribution to eligible internal and external To respondents and notification-only CC recipients. Internal assignments create no token; each external To recipient receives a different opaque invitation; CC receives no response link.
-8. **Reusable secure link:** an external To recipient can redeem the same emailed link in a new browser session before the deadline and resume the same server-side draft. Revocation, replacement, expiry or audience mismatch prevents access. Redemption does not expose the token to logs, analytics or subsequent browser history.
-9. **Shared response:** two To recipients can save to one response workspace. A stale conflicting save produces a visible field-level conflict rather than silently overwriting work, and edit provenance identifies each contributor.
-10. **Amendment until deadline:** submission creates an immutable revision. Before the deadline, an authorized respondent can reopen, edit and sign off again; a new revision supersedes the prior one and reviewers see which decisions reference stale submissions.
-11. **Safe distribution amendments:** an authorized sender can amend due date, reminder policy or recipients with impact preview and notification. Changing questions requires a superseding distribution and explicit compatible-answer carry-forward preview.
-12. **Due-date-aware access:** the sender can choose exact link expiry no later than the request due time and configured maximum. The UI displays the effective expiry and any adjustment before and after send.
-13. **Governed communications:** a maker can edit invitation/reminder/completion messages in the constrained WYSIWYG editor, insert allowlisted placeholders, upload a validated logo, preview HTML/plain text and submit the version for checker approval. Unsafe content and missing required placeholders fail validation.
-14. **Protected delivery:** with email configured, each recipient receives the correct approved action template and only an authorized To recipient receives their bound link. Delivery retries are idempotent and redacted. With email unavailable, safe manual-link recovery remains available without secret leakage.
-15. **Held-data refresh:** a form can request confirmation or correction of vendor legal name, registered address or website domain using the frozen request baseline. A respondent can confirm or propose a correction; submission changes no vendor record.
-16. **Governed application:** an authorized reviewer can accept selected proposed identity fields. The existing vendor identity command creates the new version, event and outbox, and an application receipt links it to the exact submission revision. A newer vendor version causes a visible conflict.
-17. **Document supersession:** a replacement certificate submission retains the old document. Reviewer validation supersedes the exact prior document in one transaction and preserves both versions.
-18. **Deterministic refresh:** expired documents are marked by deterministic maintenance and produce owner attention. Starting the suggested refresh opens a triggered assessment with the relevant document and stale-fact fields selected.
-19. **Sign-off provenance:** required attestations and signatures are visible in template preview, capture and final review; every response revision identifies internal principals or external access-grant/session provenance.
-20. **Experience and compatibility:** every affected screen has loading, empty, degraded, unauthorized, conflict, success and recovery fixtures; desktop/mobile/200%-zoom renders pass accessibility, visual and copy-quality review; existing onboarding, clarification, vendor work, invitation administration and static-demo workflows remain compatible.
+7. **Multi-recipient distribution:** a due-diligence owner can send one distribution to eligible internal and external To respondents and notification-only CC recipients. Internal assignments create no token; external access follows the selected policy; CC receives no edit authority.
+8. **Selectable external assurance:** direct magic-link access records `LINK_POSSESSION`. Shared-link and direct-link OTP modes verify an eligible To address and record email-verified assurance. Masked selection never exposes complete addresses or CC recipients; OTP expiry, retry, resend, rate-limit, revocation and generic-error fixtures pass.
+9. **Reusable secure access:** an eligible external respondent can reopen the configured route in a new browser session before the deadline and resume the same server-side draft. Revocation, rotation, expiry or failed policy checks prevent access. Access does not expose route or OTP secrets to logs, analytics or subsequent browser history.
+10. **Browser recovery:** after refresh, crash and offline edits, permitted scalar answers recover from encrypted IndexedDB with a truthful device-only status and synchronize through optimistic versions. Secrets, signatures and file bytes are absent; files require reselection; expiry/revocation/submission purges the envelope; a concurrent server edit produces a visible field-level merge.
+11. **Shared response:** two To recipients can save to one response workspace. A stale conflicting save produces a visible field-level conflict rather than silently overwriting work, and edit provenance identifies each contributor and achieved assurance.
+12. **Amendment until deadline:** submission creates an immutable revision. Before the deadline, an authorized respondent can reopen, edit and sign off again; a new revision supersedes the prior one and reviewers see which decisions reference stale submissions.
+13. **Safe distribution amendments:** an authorized sender can amend due date, reminder policy or recipients with impact preview and notification. Changing questions requires a superseding distribution and explicit compatible-answer carry-forward preview.
+14. **Due-date-aware access:** the sender can choose exact link expiry no later than the request due time and configured maximum. The UI displays the effective expiry and any adjustment before and after send.
+15. **Governed communications:** a maker can edit invitation/reminder/completion messages in the constrained WYSIWYG editor, insert allowlisted placeholders, upload a validated logo, preview HTML/plain text and submit the version for checker approval. Unsafe content and missing required placeholders fail validation.
+16. **Protected delivery:** with email configured, each recipient receives the correct approved action template and route for the selected policy. Delivery retries are idempotent and redacted. With email unavailable, authorized route-copy recovery preserves the same assurance warning and does not expose OTP or recipient data.
+17. **Held-data refresh:** a form can request confirmation or correction of vendor legal name, registered address or website domain using the frozen request baseline. A respondent can confirm or propose a correction; submission changes no vendor record.
+18. **Governed application:** an authorized reviewer can accept selected proposed identity fields. The existing vendor identity command creates the new version, event and outbox, and an application receipt links it to the exact submission revision. A newer vendor version causes a visible conflict.
+19. **Document supersession:** a replacement certificate submission retains the old document. Reviewer validation supersedes the exact prior document in one transaction and preserves both versions.
+20. **Deterministic refresh:** expired documents are marked by deterministic maintenance and produce owner attention. Starting the suggested refresh opens a triggered assessment with the relevant document and stale-fact fields selected.
+21. **Sign-off provenance:** required attestations and signatures are visible in template preview, capture and final review; every response revision identifies internal principals or external route/grant/session provenance and its achieved assurance.
+22. **Experience and compatibility:** every affected screen has loading, empty, degraded, unauthorized, conflict, success and recovery fixtures; desktop/mobile/200%-zoom renders pass accessibility, visual and copy-quality review; existing onboarding, clarification, vendor work, invitation administration and static-demo workflows remain compatible.
 
 ## Verification strategy
 
 - `internal/formcontract`: normalization, builder/renderer conformance, logic reachability, target-catalog rejection, risk compatibility and compliance-weight/coverage/critical-rule tests.
 - promoted Forms/`internal/monitoring`: migration, revision, maker-checker, legal-entity reusable lookup, optional Program reference, retirement and compatibility-route tests.
-- `internal/documentimport`: DOCX/XLSX/XLS/PDF/OCR fixtures, resource limits, scan gate, source anchors, confidence, retry and malicious-document tests.
+- `internal/documentimport`: DOCX content controls/legacy fields, XLSX/XLS, PDF/AcroForm/OCR fixtures, golden accuracy expectations, explicit partial/truncated/failed states, resource limits, scan gate, source anchors, confidence, retry and malicious-document tests.
 - `internal/aigateway`: strict form workload schemas, budgets, redaction, source provenance, invalid output, diff acceptance and provider-degraded tests.
-- `internal/evidence`: distribution recipients/roles, shared workspace versions, field conflicts, repeated redemption, exact expiry bounds, revocation/replacement, amendment revisions, baseline serialization, sign-off artifacts and protected-delivery redaction tests.
+- `internal/evidence`: distribution recipients/roles, all three external-access policies, masked-email selection, OTP lifecycle/rate limits, achieved assurance, shared workspace versions, field conflicts, repeated access, exact expiry bounds, revocation/rotation, amendment revisions, baseline serialization, sign-off artifacts and protected-delivery redaction tests.
 - communications: structured-document validation, unsafe markup/link rejection, placeholder requirements, logo validation, locale fallback, maker-checker lifecycle, protected expansion and idempotent reminder tests.
 - `internal/thirdparty`: selected-scope assessment, identity apply/conflict, document supersession, expiry maintenance, dedupe, transaction/outbox and reconstruction tests.
 - `internal/httpapi`: verified identity, route authority, field-target tampering and error mapping tests.
-- React: direct Forms workspace, keyset search/filter state, authoring recommendations, weight editor, import/AI diff, distribution composer, multi-recipient roles, exact expiry, resume/amend/conflict, WYSIWYG/branding, confirmation/correction, replacement, sign-off, review/apply, responsive and accessibility tests.
-- Static demo: equivalent happy, empty, conflict, email-fallback and expiry states without weakening production authority semantics.
+- React: direct Forms workspace, keyset search/filter state, authoring recommendations, weight editor, import/AI diff, distribution composer, access-policy guidance, masked-recipient/OTP flow, exact expiry, server/device save states, crash/offline recovery, file reselection, amend/conflict, WYSIWYG/branding, confirmation/correction, replacement, sign-off, review/apply, responsive and accessibility tests.
+- Browser security: IndexedDB envelope schema/version migration, Web Crypto key lifecycle, excluded-field assertions, TTL/purge, failed decryption, revoked access, XSS controls and optimistic merge tests.
+- Static demo: equivalent happy, empty, conflict, email-fallback, access-assurance, device-recovery and expiry states without weakening production authority semantics.
 - Run Go unit/integration suites, migration tests, web unit tests, copy-quality regression, production build, affected UI state renderer, responsive screenshots and deployed end-to-end smoke checks before completion.
 
 ## Rollout sequence
@@ -520,9 +568,9 @@ Authoring uses real date/calendar controls, compact labelled icons, clear typogr
 1. Add characterization/conformance tests around the existing form contract, monitoring lifecycle, scoring, drafts, invitations, document extraction and capture renderer.
 2. Promote the existing records and compatibility routes into the legal-entity Forms domain; add the direct Forms workspace and bounded template search without duplicating data.
 3. Complete builder parity, recommendations, reusable groups, scoring modes/weights and pre-approval quality checks.
-4. Add form-template import proposals on the existing document pipeline, followed by bounded XLS/OCR adapters and source-anchored review.
+4. Add form-template import proposals on the existing document pipeline, bounded DOCX form-control mappings, explicit extraction states and the golden corpus; follow with bounded XLS/OCR adapters and source-anchored review. Gate any PyMuPDF or Docling adapter on licensing, security and demonstrated corpus gain.
 5. Add governed AI proposal/revision workloads and exact-version diff acceptance.
-6. Add distributions, To/CC roles, individual grants, shared response workspaces, repeated redemption and response amendments while retaining legacy one-recipient requests during migration.
+6. Add distributions, To/CC roles, direct/shared routes, all three external-assurance policies, OTP challenges, grants, shared response workspaces, repeated access, encrypted device recovery and response amendments while retaining legacy one-recipient requests during migration.
 7. Add governed communication/branding configuration, protected asynchronous delivery, reminders and safe fallback.
 8. Add request baselines, confirmation/correction, reviewer comparison and vendor identity application receipts.
 9. Add document supersession, scoped reassessments and deterministic expiry/staleness attention.
