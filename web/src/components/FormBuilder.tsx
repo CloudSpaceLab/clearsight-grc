@@ -281,12 +281,21 @@ export function FormBuilder({
       setError(qualityError());
       return;
     }
+    const needsPersist = !initialValue || changedFromInitial;
+    let candidate: FormTemplate | undefined;
     setSaving(true);
     try {
-      const candidate = initialValue && !changedFromInitial ? initialValue : await persist(createInput);
+      candidate = needsPersist ? await persist(createInput) : initialValue;
+      if (!candidate) throw new Error("The current governed draft could not be resolved.");
       const transitioned = await onSendForApproval(candidate);
       onSaved(transitioned ?? candidate);
     } catch (caught) {
+      if (needsPersist && candidate) {
+        // Persistence already created a new immutable revision. Return that exact
+        // draft to the workspace instead of retrying against its stale parent.
+        onSaved(candidate);
+        return;
+      }
       setError(caught instanceof Error ? caught.message : "The form could not be sent for approval. Reload the current revision and try again.");
     } finally {
       setSaving(false);
