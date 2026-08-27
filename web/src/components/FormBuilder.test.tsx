@@ -140,7 +140,7 @@ describe("FormBuilder", () => {
     };
     const saveDraft = vi.fn().mockResolvedValue(complianceForm);
     const sendForApproval = vi.fn();
-    render(<FormBuilder initialValue={complianceForm} saveDraft={saveDraft} onSendForApproval={sendForApproval} onSaved={vi.fn()} onCancel={vi.fn()}/>);
+    render(<FormBuilder initialValue={complianceForm} saveDraft={saveDraft} onSendForApproval={sendForApproval} onSaved={vi.fn()} onCancel={vi.fn()} allowIncompleteComplianceDraft/>);
     expect(screen.getByText("20% remains to allocate in Vendor identity")).toBeTruthy();
     expect((screen.getByRole("button", { name: "Send for approval" }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
