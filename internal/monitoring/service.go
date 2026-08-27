@@ -295,6 +295,11 @@ func (s *Service) TransitionLibraryForm(ctx context.Context, formID string, inpu
 	if err := s.authorizeFormCommand(ctx, actor, "FORM_TEMPLATE", current.ID, responsibility, "forms.template.transition", 3); err != nil {
 		return FormTemplate{}, err
 	}
+	if input.To == LifecyclePendingApproval || input.To == LifecycleActive {
+		if err := validateLibraryApprovalContract(current); err != nil {
+			return FormTemplate{}, err
+		}
+	}
 	return s.TransitionForm(ctx, Actor{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID}, TransitionInput{
 		ID: current.ID, ProgramID: current.ProgramID, LegalEntityID: current.LegalEntityID,
 		ExpectedVersion: input.ExpectedVersion, To: input.To,
@@ -343,9 +348,9 @@ func (s *Service) DeleteSavedFormView(ctx context.Context, viewID string) error 
 }
 
 func (s *Service) createLibraryRevision(ctx context.Context, actor identity.Actor, id string, version int64, input CreateFormInput, base FormTemplate) (FormTemplate, error) {
-	contract, err := formcontract.Normalize(formcontract.Contract{Presentation: input.Presentation, ScoringMode: input.ScoringMode, Sections: input.Sections, Fields: input.Fields})
+	contract, err := normalizeLibraryDraft(input)
 	if err != nil {
-		return FormTemplate{}, errors.Join(ErrInvalid, err)
+		return FormTemplate{}, err
 	}
 	if err := validateTextFields(input.Code, input.Name, input.Purpose); err != nil {
 		return FormTemplate{}, err

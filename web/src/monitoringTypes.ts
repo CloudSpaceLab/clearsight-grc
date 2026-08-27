@@ -2,6 +2,10 @@ import type { CaptureFieldConstraints, CapturePresentation, CaptureSection, Capt
 
 export type LifecycleStatus = "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "REJECTED" | "PAUSED" | "RETIRED";
 export type RiskBand = "LOW" | "MODERATE" | "HIGH" | "CRITICAL" | "NOT_ASSESSED";
+export type FormScoringMode = "NONE" | "RISK" | "COMPLIANCE";
+export type FormCollectionIntent = "CAPTURE" | "CONFIRM_OR_CORRECT" | "REPLACE_HELD_DOCUMENT";
+export type FormBrowserCachePolicy = "ALLOWED" | "NO_BROWSER_CACHE";
+export type FormRecordTarget = { key: string; required_subject_type: string };
 
 export type FormFieldType =
   | "short_text" | "long_text" | "email" | "telephone" | "url"
@@ -17,6 +21,11 @@ export type FormScoring = {
   critical_answers?: string[];
 };
 
+export type FormTemplateSection = CaptureSection & {
+  weight?: number;
+  condition?: CaptureVisibilityCondition;
+};
+
 export type FormTemplateField = {
   id: string;
   section_id?: string;
@@ -30,14 +39,18 @@ export type FormTemplateField = {
   constraints?: CaptureFieldConstraints;
   condition?: CaptureVisibilityCondition;
   scoring?: FormScoring;
+  collection_intent?: FormCollectionIntent;
+  record_target?: FormRecordTarget;
+  browser_cache_policy?: FormBrowserCachePolicy;
 };
 
 export type CreateFormTemplateInput = {
   code: string;
   name: string;
   purpose: string;
+  scoring_mode?: FormScoringMode;
   presentation: CapturePresentation;
-  sections: CaptureSection[];
+  sections: FormTemplateSection[];
   fields: FormTemplateField[];
 };
 
@@ -63,8 +76,9 @@ export type FormTemplate = Lifecycle & {
   code: string;
   name: string;
   purpose: string;
+  scoring_mode?: FormScoringMode;
   presentation?: CapturePresentation;
-  sections?: CaptureSection[];
+  sections?: FormTemplateSection[];
   fields: FormTemplateField[];
 };
 

@@ -28,7 +28,7 @@ func TestPostgresAssessmentRequestResolverRequiresExactCurrentCollectingLink(t *
 	pool := assessmentPostgresPool(t)
 	ctx := context.Background()
 	relationship := seedAssessmentRelationship(t, pool, "Managed identity verification")
-	now := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
+	now := time.Now().UTC()
 	repository := NewPostgresRepository(pool)
 	assessment, err := repository.CreateAssessment(ctx, postgresAssessmentRecord(assessmentOneID, relationship, now))
 	if err != nil {
@@ -93,7 +93,7 @@ func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndRevokesPriorSession(
 	pool := assessmentPostgresPool(t)
 	ctx := context.Background()
 	relationship := seedAssessmentRelationship(t, pool, "Managed secure document exchange")
-	now := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
+	now := time.Now().UTC()
 	repository := NewPostgresRepository(pool)
 	assessment, err := repository.CreateAssessment(ctx, postgresAssessmentRecord(assessmentOneID, relationship, now))
 	if err != nil {
@@ -196,7 +196,7 @@ func TestPostgresAssessmentDocumentReviewCommitsDocumentAssessmentEventAndOutbox
 	pool := assessmentPostgresPool(t)
 	ctx := context.Background()
 	relationship := seedAssessmentRelationship(t, pool, "Managed assurance reporting")
-	now := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
+	now := time.Now().UTC()
 	repository := NewPostgresRepository(pool)
 	assessment, err := repository.CreateAssessment(ctx, postgresAssessmentRecord(assessmentOneID, relationship, now))
 	if err != nil {

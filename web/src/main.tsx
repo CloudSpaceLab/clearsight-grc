@@ -29,6 +29,7 @@ import "./program-record.css";
 import "./demo-login.css";
 import "./defect-review-fixes.css";
 import "./monitoring.css";
+import "./forms-foundation.css";
 import "./vendors.css";
 
 const invitationToken = consumeCaptureInvitation(window);

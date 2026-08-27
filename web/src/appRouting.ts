@@ -1,7 +1,8 @@
-export type View = "today" | "programs" | "vendors" | "work" | "imports" | "explore" | "configure";
+export type View = "today" | "programs" | "forms" | "vendors" | "work" | "imports" | "explore" | "configure";
 export type WorkTab = "matters" | "evidence";
 export type WorkspaceTarget = {
   programID?: string;
+  formTemplateID?: string;
   matterID?: string;
   evidenceID?: string;
   vendorRelationshipID?: string;
@@ -18,9 +19,10 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     if (!value) return undefined;
     try { return decodeURIComponent(value); } catch { return value; }
   };
-  const allowed: View[] = ["today", "programs", "vendors", "work", "imports", "explore", "configure"];
+  const allowed: View[] = ["today", "programs", "forms", "vendors", "work", "imports", "explore", "configure"];
   const view = allowed.includes(parts[0] as View) ? parts[0] as View : "today";
   if (view === "programs") return { view, target: { programID: decodeTarget(parts[1]) } };
+  if (view === "forms") return { view, target: { formTemplateID: decodeTarget(parts[1]) } };
   if (view === "vendors") return { view, target: { vendorRelationshipID: decodeTarget(parts[1]) } };
   if (view === "imports") return { view, target: { documentID: decodeTarget(parts[1]) } };
   if (view === "work") {
@@ -33,6 +35,7 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
 
 export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab) {
   if (view === "programs" && target.programID) return `#programs/${encodeURIComponent(target.programID)}`;
+  if (view === "forms" && target.formTemplateID) return `#forms/${encodeURIComponent(target.formTemplateID)}`;
   if (view === "vendors" && target.vendorRelationshipID) return `#vendors/${encodeURIComponent(target.vendorRelationshipID)}`;
   if (view === "imports" && target.documentID) return `#imports/${encodeURIComponent(target.documentID)}`;
   if (view === "work") {
