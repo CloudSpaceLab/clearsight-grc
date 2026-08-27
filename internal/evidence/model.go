@@ -172,20 +172,23 @@ type AnswerProvenance struct {
 }
 
 type Field struct {
-	ID                string                            `json:"id"`
-	SectionID         string                            `json:"section_id"`
-	Label             string                            `json:"label"`
-	Type              string                            `json:"type"`
-	Required          bool                              `json:"required"`
-	Description       string                            `json:"description,omitempty"`
-	Options           []string                          `json:"options,omitempty"`
-	AcceptedFormats   []string                          `json:"accepted_formats,omitempty"`
-	Attestation       string                            `json:"attestation,omitempty"`
-	Constraints       formcontract.Constraints          `json:"constraints,omitempty"`
-	Condition         *formcontract.VisibilityCondition `json:"condition,omitempty"`
-	Scoring           *formcontract.Scoring             `json:"scoring,omitempty"`
-	Bindings          []FieldBindingReference           `json:"bindings,omitempty"`
-	SourceResolutions []SourceResolution                `json:"source_resolutions,omitempty"`
+	ID                 string                            `json:"id"`
+	SectionID          string                            `json:"section_id"`
+	Label              string                            `json:"label"`
+	Type               string                            `json:"type"`
+	Required           bool                              `json:"required"`
+	Description        string                            `json:"description,omitempty"`
+	Options            []string                          `json:"options,omitempty"`
+	AcceptedFormats    []string                          `json:"accepted_formats,omitempty"`
+	Attestation        string                            `json:"attestation,omitempty"`
+	Constraints        formcontract.Constraints          `json:"constraints,omitempty"`
+	Condition          *formcontract.VisibilityCondition `json:"condition,omitempty"`
+	Scoring            *formcontract.Scoring             `json:"scoring,omitempty"`
+	CollectionIntent   formcontract.CollectionIntent     `json:"collection_intent,omitempty"`
+	RecordTarget       *formcontract.RecordTarget        `json:"record_target,omitempty"`
+	BrowserCachePolicy formcontract.BrowserCachePolicy   `json:"browser_cache_policy,omitempty"`
+	Bindings           []FieldBindingReference           `json:"bindings,omitempty"`
+	SourceResolutions  []SourceResolution                `json:"source_resolutions,omitempty"`
 }
 
 type Recipient struct {
@@ -204,7 +207,7 @@ type Recipient struct {
 // only and are never serialized by the API.
 type RecipientCandidate struct {
 	PrincipalID      string          `json:"principal_id"`
-	DisplayName      string          `json:"display_name"`
+	DisplayName      string          `json:"display_name,omitempty"`
 	ContextLabel     string          `json:"context_label,omitempty"`
 	TenantID         string          `json:"-"`
 	LegalEntityIDs   []string        `json:"-"`
