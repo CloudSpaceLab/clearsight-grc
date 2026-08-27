@@ -3,11 +3,9 @@
 package evidence
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -343,8 +341,4 @@ func validPersistedPostgresAccessRoute(route AccessRoute) bool {
 	return route.ID != "" && len(route.SelectorHash) == 32 && route.Redemptions == 0 && accessRouteOpen(route, route.CreatedAt)
 }
 
-var (
-	_ DistributionAccessStore = (*PostgresDistributionStore)(nil)
-	_ = bytes.Equal
-	_ = fmt.Sprintf
-)
+var _ DistributionAccessStore = (*PostgresDistributionStore)(nil)
