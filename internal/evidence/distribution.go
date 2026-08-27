@@ -88,20 +88,20 @@ type FormDistribution struct {
 // hashes, ciphertext, key identifiers and full external addresses never leave
 // the storage boundary through this type.
 type DistributionRecipient struct {
-	ID            string
+	ID             string
 	DistributionID string
-	TenantID      string
-	LegalEntityID string
-	Role          RecipientRole
-	Type          RecipientType
-	PrincipalID   string
-	RequestID     string
-	AudienceHint  string
-	ContactLabel  string
-	State         DistributionRecipientState
-	Version       int64
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	TenantID       string
+	LegalEntityID  string
+	Role           RecipientRole
+	Type           RecipientType
+	PrincipalID    string
+	RequestID      string
+	AudienceHint   string
+	ContactLabel   string
+	State          DistributionRecipientState
+	Version        int64
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type DistributionRecipientInput struct {
@@ -131,34 +131,34 @@ type CreateDistributionInput struct {
 }
 
 type ResponseWorkspace struct {
-	ID            string
-	TenantID      string
-	LegalEntityID string
+	ID             string
+	TenantID       string
+	LegalEntityID  string
 	DistributionID string
-	Status        ResponseWorkspaceStatus
-	Version       int64
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	Status         ResponseWorkspaceStatus
+	Version        int64
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type ResponseRevision struct {
-	ID                    string
-	TenantID              string
-	LegalEntityID         string
-	DistributionID        string
-	WorkspaceID           string
-	SubmissionID          string
-	Revision              int64
-	SupersedesRevisionID  string
-	AchievedAssurance     AccessAssurance
-	SignoffSummary        map[string]any
-	ComplianceScore       *float64
-	ScoredWeightCoverage  float64
-	State                 ResponseRevisionState
-	CriticalFieldResults  []map[string]any
-	ScoringPolicyVersion  string
-	Current               bool
-	CreatedAt             time.Time
+	ID                   string
+	TenantID             string
+	LegalEntityID        string
+	DistributionID       string
+	WorkspaceID          string
+	SubmissionID         string
+	Revision             int64
+	SupersedesRevisionID string
+	AchievedAssurance    AccessAssurance
+	SignoffSummary       map[string]any
+	ComplianceScore      *float64
+	ScoredWeightCoverage float64
+	State                ResponseRevisionState
+	CriticalFieldResults []map[string]any
+	ScoringPolicyVersion string
+	Current              bool
+	CreatedAt            time.Time
 }
 
 type DistributionBundle struct {
