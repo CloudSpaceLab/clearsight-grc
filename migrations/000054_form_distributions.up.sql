@@ -43,7 +43,9 @@ CREATE INDEX capture_requests_distribution_idx
     ON capture_requests(tenant_id,legal_entity_id,distribution_id,deadline,id)
     WHERE distribution_id IS NOT NULL;
 
-ALTER TABLE capture_submissions ADD COLUMN distribution_id uuid;
+ALTER TABLE capture_submissions
+    ADD COLUMN distribution_id uuid,
+    ADD CONSTRAINT capture_submissions_id_tenant_key UNIQUE(id,tenant_id);
 ALTER TABLE capture_submissions
     ADD CONSTRAINT capture_submissions_distribution_tenant_fk
     FOREIGN KEY (distribution_id,tenant_id)
