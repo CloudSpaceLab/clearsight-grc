@@ -101,6 +101,31 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		}
 		programID = boundProgramID
 	}
+	if name == "forms.template.revise" || name == "forms.template.transition" {
+		if a.deps.Monitoring == nil {
+			return policy, fmt.Errorf("%w: forms service is unavailable", commandauth.ErrGuardUnavailable)
+		}
+		version, ok := int64Value(payload["expected_version"])
+		if !ok || version < 1 {
+			return policy, monitoring.ErrInvalid
+		}
+		form, loadErr := a.deps.Monitoring.GetLibraryForm(ctx, r.PathValue("id"), version)
+		if loadErr != nil {
+			return policy, loadErr
+		}
+		policy.ObjectType = "FORM_TEMPLATE"
+		policy.ObjectIDPath = "id"
+		policy.Responsibility = authority.ResponsibilityOwner
+		policy.Materiality = 2
+		if name == "forms.template.transition" && form.Status == monitoring.LifecyclePendingApproval {
+			to := monitoring.LifecycleStatus(stringValue(payload["to"]))
+			if to == monitoring.LifecycleActive || to == monitoring.LifecycleRejected {
+				policy.Responsibility = authority.ResponsibilityReviewer
+				policy.Materiality = 3
+			}
+		}
+		return policy, nil
+	}
 	if existingProgramCommand(name) && programID == "" {
 		var err error
 		programID, err = lifecycleProgramID(r, payload)

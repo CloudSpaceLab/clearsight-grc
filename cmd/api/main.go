@@ -45,6 +45,7 @@ func main() {
 		os.Exit(1)
 	}
 	services.ThirdParty.ConfigureIdentityAuthority(guard)
+	services.Monitoring.ConfigureCommandGuard(guard)
 	vendorBrandService := thirdparty.NewVendorBrandService(services.ThirdPartyBrandRepo, services.ObjectStore, guard)
 	vendorBrandService.ConfigureDiscoveryEnabled(cfg.VendorBrandDiscoveryEnabled)
 	services.ThirdParty.ConfigureVendorBrands(vendorBrandService)

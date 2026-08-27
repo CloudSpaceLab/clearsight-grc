@@ -249,6 +249,9 @@ func commandObjectID(r *http.Request, payload map[string]any, policy commandPoli
 	if value := stringValue(payload["subject_id"]); value != "" {
 		return value
 	}
+	if value := stringValue(payload["legal_entity_id"]); value != "" {
+		return value
+	}
 	return "*"
 }
 

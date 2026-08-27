@@ -147,6 +147,32 @@
     "/api/v1/form-templates": {
       "get": { "operationId": "listReusableFormTemplates", "x-clearsight-route-class": "AUTHENTICATED_READ" }
     },
+    "/api/v1/forms/templates": {
+      "get": { "operationId": "listFormTemplatesLibrary", "x-clearsight-route-class": "AUTHENTICATED_READ" },
+      "post": { "operationId": "createFormTemplateLibraryDraft", "x-clearsight-route-class": "MATERIAL_COMMAND" }
+    },
+    "/api/v1/forms/templates/{id}/revisions/{version}": {
+      "get": { "operationId": "getFormTemplateRevision", "x-clearsight-route-class": "AUTHENTICATED_READ" }
+    },
+    "/api/v1/forms/templates/{id}/revisions": {
+      "post": { "operationId": "createFormTemplateRevision", "x-clearsight-route-class": "MATERIAL_COMMAND" }
+    },
+    "/api/v1/forms/templates/{id}/transition": {
+      "post": { "operationId": "transitionFormTemplateLibraryRevision", "x-clearsight-route-class": "MATERIAL_COMMAND" }
+    },
+    "/api/v1/forms/starter-templates": {
+      "get": { "operationId": "listStarterFormTemplates", "x-clearsight-route-class": "AUTHENTICATED_READ" }
+    },
+    "/api/v1/forms/starter-templates/{code}/instantiate": {
+      "post": { "operationId": "instantiateStarterFormTemplate", "x-clearsight-route-class": "MATERIAL_COMMAND" }
+    },
+    "/api/v1/forms/saved-views": {
+      "get": { "operationId": "listSavedFormViews", "x-clearsight-route-class": "AUTHENTICATED_READ" },
+      "post": { "operationId": "saveFormView", "x-clearsight-route-class": "AUTHENTICATED_WRITE" }
+    },
+    "/api/v1/forms/saved-views/{id}": {
+      "delete": { "operationId": "deleteSavedFormView", "x-clearsight-route-class": "AUTHENTICATED_WRITE" }
+    },
     "/api/v1/programs/{id}/form-templates/{form_id}/transition": { "post": { "operationId": "transitionFormTemplate", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/programs/{id}/form-templates/{form_id}/collections": { "post": { "operationId": "startFormCollection", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/programs/{id}/monitoring-checks": {

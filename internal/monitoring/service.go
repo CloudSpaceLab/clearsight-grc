@@ -8,8 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
@@ -28,14 +31,40 @@ type Actor struct {
 }
 
 type CreateFormInput struct {
-	ProgramID     string                    `json:"program_id"`
-	LegalEntityID string                    `json:"legal_entity_id"`
-	Code          string                    `json:"code"`
-	Name          string                    `json:"name"`
-	Purpose       string                    `json:"purpose"`
-	Presentation  formcontract.Presentation `json:"presentation"`
-	Sections      []formcontract.Section    `json:"sections"`
-	Fields        []TemplateField           `json:"fields"`
+	ProgramID        string                    `json:"program_id"`
+	LegalEntityID    string                    `json:"legal_entity_id"`
+	Code             string                    `json:"code"`
+	Name             string                    `json:"name"`
+	Purpose          string                    `json:"purpose"`
+	OwnerPrincipalID string                    `json:"owner_principal_id,omitempty"`
+	ResponsibleTeam  string                    `json:"responsible_team,omitempty"`
+	ApprovedUses     []string                  `json:"approved_uses,omitempty"`
+	Tags             []string                  `json:"tags,omitempty"`
+	Jurisdiction     string                    `json:"jurisdiction,omitempty"`
+	Industry         string                    `json:"industry,omitempty"`
+	Sensitivity      string                    `json:"sensitivity,omitempty"`
+	ScoringMode      formcontract.ScoringMode  `json:"scoring_mode,omitempty"`
+	NextReviewAt     *time.Time                `json:"next_review_at,omitempty"`
+	Presentation     formcontract.Presentation `json:"presentation"`
+	Sections         []formcontract.Section    `json:"sections"`
+	Fields           []TemplateField           `json:"fields"`
+}
+
+type CreateFormRevisionInput struct {
+	ExpectedVersion int64           `json:"expected_version"`
+	Form            CreateFormInput `json:"form"`
+}
+
+type InstantiateStarterTemplateInput struct {
+	Code             string     `json:"code,omitempty"`
+	Name             string     `json:"name,omitempty"`
+	Purpose          string     `json:"purpose,omitempty"`
+	ProgramID        string     `json:"program_id,omitempty"`
+	OwnerPrincipalID string     `json:"owner_principal_id,omitempty"`
+	ResponsibleTeam  string     `json:"responsible_team,omitempty"`
+	Jurisdiction     string     `json:"jurisdiction,omitempty"`
+	Industry         string     `json:"industry,omitempty"`
+	NextReviewAt     *time.Time `json:"next_review_at,omitempty"`
 }
 
 type TransitionInput struct {
@@ -111,6 +140,11 @@ type Service struct {
 	sourceValidator sourceScopeValidator
 	now             func() time.Time
 	newID           func() (string, error)
+	commandGuard    *commandauth.Guard
+}
+
+func (s *Service) ConfigureCommandGuard(guard *commandauth.Guard) {
+	s.commandGuard = guard
 }
 
 func NewService(repo Repository, requests requestCreator) *Service {
@@ -131,6 +165,234 @@ func (s *Service) ConfigureSourceReader(reader sourceReader) {
 
 func (s *Service) ConfigureSourceValidator(validator sourceScopeValidator) {
 	s.sourceValidator = validator
+}
+
+func (s *Service) CreateLibraryForm(ctx context.Context, input CreateFormInput) (FormTemplate, error) {
+	actor, err := s.requireFormActor(ctx)
+	if err != nil {
+		return FormTemplate{}, err
+	}
+	if err := s.authorizeFormCommand(ctx, actor, "LEGAL_ENTITY", actor.LegalEntityID, authority.ResponsibilityOwner, "forms.template.create", 2); err != nil {
+		return FormTemplate{}, err
+	}
+	valueID, err := s.newID()
+	if err != nil {
+		return FormTemplate{}, err
+	}
+	return s.createLibraryRevision(ctx, actor, valueID, 1, input, FormTemplate{})
+}
+
+func (s *Service) CreateFormRevision(ctx context.Context, formID string, input CreateFormRevisionInput) (FormTemplate, error) {
+	actor, err := s.requireFormActor(ctx)
+	if err != nil {
+		return FormTemplate{}, err
+	}
+	formID = strings.TrimSpace(formID)
+	if formID == "" || input.ExpectedVersion < 1 {
+		return FormTemplate{}, errors.Join(ErrInvalid, fmt.Errorf("form and expected version are required"))
+	}
+	base, err := s.repo.ReusableFormRevision(ctx, actor.TenantID, actor.LegalEntityID, formID, input.ExpectedVersion)
+	if err != nil {
+		return FormTemplate{}, err
+	}
+	if err := s.authorizeFormCommand(ctx, actor, "FORM_TEMPLATE", base.ID, authority.ResponsibilityOwner, "forms.template.revise", 2); err != nil {
+		return FormTemplate{}, err
+	}
+	return s.createLibraryRevision(ctx, actor, base.ID, base.Version+1, input.Form, base)
+}
+
+func (s *Service) GetLibraryForm(ctx context.Context, formID string, version int64) (FormTemplate, error) {
+	actor, err := s.requireFormActor(ctx)
+	if err != nil {
+		return FormTemplate{}, err
+	}
+	if strings.TrimSpace(formID) == "" || version < 1 {
+		return FormTemplate{}, errors.Join(ErrInvalid, fmt.Errorf("form and version are required"))
+	}
+	return s.repo.ReusableFormRevision(ctx, actor.TenantID, actor.LegalEntityID, strings.TrimSpace(formID), version)
+}
+
+func (s *Service) ListFormLibrary(ctx context.Context, filter FormLibraryFilter) (FormTemplatePage, error) {
+	actor, err := s.requireFormActor(ctx)
+	if err != nil {
+		return FormTemplatePage{}, err
+	}
+	filter.TenantID = actor.TenantID
+	filter.LegalEntityID = actor.LegalEntityID
+	return s.repo.ListFormLibrary(ctx, filter)
+}
+
+func (s *Service) ListStarterTemplates(ctx context.Context) ([]StarterTemplate, error) {
+	if _, err := s.requireFormActor(ctx); err != nil {
+		return nil, err
+	}
+	return StarterTemplates()
+}
+
+func (s *Service) InstantiateStarterTemplate(ctx context.Context, starterCode string, input InstantiateStarterTemplateInput) (FormTemplate, error) {
+	actor, err := s.requireFormActor(ctx)
+	if err != nil {
+		return FormTemplate{}, err
+	}
+	if err := s.authorizeFormCommand(ctx, actor, "LEGAL_ENTITY", actor.LegalEntityID, authority.ResponsibilityOwner, "forms.starter.instantiate", 2); err != nil {
+		return FormTemplate{}, err
+	}
+	starter, err := StarterTemplateByCode(starterCode)
+	if err != nil {
+		return FormTemplate{}, err
+	}
+	valueID, err := s.newID()
+	if err != nil {
+		return FormTemplate{}, err
+	}
+	value := cloneValue(starter.Template)
+	value.ID = valueID
+	value.TenantID = actor.TenantID
+	value.LegalEntityID = actor.LegalEntityID
+	value.ProgramID = strings.TrimSpace(input.ProgramID)
+	value.OwnerPrincipalID = strings.TrimSpace(input.OwnerPrincipalID)
+	if value.OwnerPrincipalID == "" {
+		value.OwnerPrincipalID = actor.PrincipalID
+	}
+	value.ResponsibleTeam = strings.TrimSpace(input.ResponsibleTeam)
+	value.Jurisdiction = strings.TrimSpace(input.Jurisdiction)
+	value.Industry = strings.TrimSpace(input.Industry)
+	value.NextReviewAt = input.NextReviewAt
+	if strings.TrimSpace(input.Code) != "" {
+		value.Code = strings.TrimSpace(input.Code)
+	}
+	if strings.TrimSpace(input.Name) != "" {
+		value.Name = strings.TrimSpace(input.Name)
+	}
+	if strings.TrimSpace(input.Purpose) != "" {
+		value.Purpose = strings.TrimSpace(input.Purpose)
+	}
+	if err := validateTextFields(value.Code, value.Name, value.Purpose); err != nil {
+		return FormTemplate{}, err
+	}
+	now := s.now().UTC()
+	value.Lifecycle = Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now}
+	return s.repo.CreateFormRevision(ctx, value)
+}
+
+func (s *Service) TransitionLibraryForm(ctx context.Context, formID string, input TransitionInput) (FormTemplate, error) {
+	actor, err := s.requireFormActor(ctx)
+	if err != nil {
+		return FormTemplate{}, err
+	}
+	formID = strings.TrimSpace(formID)
+	if formID == "" || input.ExpectedVersion < 1 {
+		return FormTemplate{}, errors.Join(ErrInvalid, fmt.Errorf("form and expected version are required"))
+	}
+	current, err := s.repo.ReusableFormRevision(ctx, actor.TenantID, actor.LegalEntityID, formID, input.ExpectedVersion)
+	if err != nil {
+		return FormTemplate{}, err
+	}
+	responsibility := authority.ResponsibilityOwner
+	if current.Status == LifecyclePendingApproval && (input.To == LifecycleActive || input.To == LifecycleRejected) {
+		responsibility = authority.ResponsibilityReviewer
+	}
+	if err := s.authorizeFormCommand(ctx, actor, "FORM_TEMPLATE", current.ID, responsibility, "forms.template.transition", 3); err != nil {
+		return FormTemplate{}, err
+	}
+	return s.TransitionForm(ctx, Actor{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID}, TransitionInput{
+		ID: current.ID, ProgramID: current.ProgramID, LegalEntityID: current.LegalEntityID,
+		ExpectedVersion: input.ExpectedVersion, To: input.To,
+	})
+}
+
+func (s *Service) ListSavedFormViews(ctx context.Context) ([]SavedFormView, error) {
+	actor, err := s.requireFormActor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return s.repo.ListSavedFormViews(ctx, actor.TenantID, actor.LegalEntityID, actor.PrincipalID)
+}
+
+func (s *Service) SaveFormView(ctx context.Context, view SavedFormView) (SavedFormView, error) {
+	actor, err := s.requireFormActor(ctx)
+	if err != nil {
+		return SavedFormView{}, err
+	}
+	view.TenantID = actor.TenantID
+	view.LegalEntityID = actor.LegalEntityID
+	view.PrincipalID = actor.PrincipalID
+	view.Filter.TenantID = ""
+	view.Filter.LegalEntityID = ""
+	view.Filter.Cursor = ""
+	if strings.TrimSpace(view.ID) == "" {
+		view.ID, err = s.newID()
+		if err != nil {
+			return SavedFormView{}, err
+		}
+	}
+	now := s.now().UTC()
+	if view.CreatedAt.IsZero() {
+		view.CreatedAt = now
+	}
+	view.UpdatedAt = now
+	return s.repo.SaveFormView(ctx, view)
+}
+
+func (s *Service) DeleteSavedFormView(ctx context.Context, viewID string) error {
+	actor, err := s.requireFormActor(ctx)
+	if err != nil {
+		return err
+	}
+	return s.repo.DeleteSavedFormView(ctx, actor.TenantID, actor.LegalEntityID, actor.PrincipalID, strings.TrimSpace(viewID))
+}
+
+func (s *Service) createLibraryRevision(ctx context.Context, actor identity.Actor, id string, version int64, input CreateFormInput, base FormTemplate) (FormTemplate, error) {
+	contract, err := formcontract.Normalize(formcontract.Contract{Presentation: input.Presentation, ScoringMode: input.ScoringMode, Sections: input.Sections, Fields: input.Fields})
+	if err != nil {
+		return FormTemplate{}, errors.Join(ErrInvalid, err)
+	}
+	if err := validateTextFields(input.Code, input.Name, input.Purpose); err != nil {
+		return FormTemplate{}, err
+	}
+	ownerID := strings.TrimSpace(input.OwnerPrincipalID)
+	if ownerID == "" {
+		ownerID = actor.PrincipalID
+	}
+	now := s.now().UTC()
+	value := FormTemplate{
+		ID: id, TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ProgramID: strings.TrimSpace(base.ProgramID),
+		Code: strings.TrimSpace(input.Code), Name: strings.TrimSpace(input.Name), Purpose: strings.TrimSpace(input.Purpose),
+		OwnerPrincipalID: ownerID, ResponsibleTeam: strings.TrimSpace(input.ResponsibleTeam), ApprovedUses: append([]string(nil), input.ApprovedUses...), Tags: append([]string(nil), input.Tags...),
+		Jurisdiction: strings.TrimSpace(input.Jurisdiction), Industry: strings.TrimSpace(input.Industry), Sensitivity: strings.TrimSpace(input.Sensitivity), ScoringMode: contract.ScoringMode, NextReviewAt: input.NextReviewAt,
+		StarterCatalogCode: base.StarterCatalogCode, StarterCatalogVersion: base.StarterCatalogVersion,
+		Presentation: contract.Presentation, Sections: contract.Sections, Fields: contract.Fields,
+		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: version, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now},
+	}
+	if base.ID == "" {
+		value.ProgramID = strings.TrimSpace(input.ProgramID)
+	}
+	return s.repo.CreateFormRevision(ctx, value)
+}
+
+func (s *Service) requireFormActor(ctx context.Context) (identity.Actor, error) {
+	actor, err := identity.Require(ctx)
+	if err != nil {
+		return identity.Actor{}, err
+	}
+	if err := actor.Valid(s.now().UTC()); err != nil {
+		return identity.Actor{}, err
+	}
+	if actor.LegalEntityID == "*" {
+		return identity.Actor{}, identity.ErrInvalidIdentity
+	}
+	return actor, nil
+}
+
+func (s *Service) authorizeFormCommand(ctx context.Context, actor identity.Actor, objectType, objectID string, responsibility authority.Responsibility, decisionType string, materiality int) error {
+	if s.commandGuard == nil {
+		return commandauth.ErrGuardUnavailable
+	}
+	_, err := s.commandGuard.Authorize(ctx, commandauth.Request{
+		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: objectType, ObjectID: objectID,
+		Responsibility: responsibility, DecisionType: decisionType, Materiality: materiality,
+	})
+	return err
 }
 
 func (s *Service) CreateForm(ctx context.Context, actor Actor, input CreateFormInput) (FormTemplate, error) {
@@ -628,6 +890,16 @@ func validateProgramScope(actor Actor, programID, legalEntityID string) error {
 }
 
 func validateStoredFormScope(actor Actor, form FormTemplate, programID, legalEntityID string) error {
+	if strings.TrimSpace(form.ProgramID) == "" && strings.TrimSpace(programID) == "" {
+		legalEntityID = strings.TrimSpace(legalEntityID)
+		if legalEntityID == "" || strings.TrimSpace(actor.LegalEntityID) == "" {
+			return errors.Join(ErrInvalid, fmt.Errorf("verified legal-entity scope is required"))
+		}
+		if actor.LegalEntityID != legalEntityID || form.TenantID != actor.TenantID || form.LegalEntityID != legalEntityID {
+			return ErrNotFound
+		}
+		return nil
+	}
 	if err := validateProgramScope(actor, programID, legalEntityID); err != nil {
 		return err
 	}

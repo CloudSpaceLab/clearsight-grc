@@ -26,6 +26,7 @@ type LifecycleTransition struct {
 type Repository interface {
 	CreateFormRevision(context.Context, FormTemplate) (FormTemplate, error)
 	FormRevision(context.Context, string, string, string, string, int64) (FormTemplate, error)
+	ReusableFormRevision(context.Context, string, string, string, int64) (FormTemplate, error)
 	ListFormRevisions(context.Context, string, string, string, int) ([]FormTemplate, error)
 	TransitionForm(context.Context, LifecycleTransition) (FormTemplate, error)
 	CreateCheckRevision(context.Context, MonitoringCheck) (MonitoringCheck, error)
