@@ -27,6 +27,7 @@ type Config struct {
 	MaxArtifactBytes                     int64
 	CaptureSessionTTL                    time.Duration
 	CapturePublicBaseURL                 string
+	RecipientSecurity                    RecipientSecurityConfig
 	IdentityMode                         string
 	IdentityHMACSecret                   string
 	IdentityMaxSkew                      time.Duration
@@ -134,11 +135,17 @@ func Load() (Config, error) {
 	if cfg.VendorBrandDiscoveryEnabled, err = boolValue("CLEARSIGHT_VENDOR_BRAND_DISCOVERY_ENABLED", cfg.VendorBrandDiscoveryEnabled); err != nil {
 		return Config{}, err
 	}
+	if cfg.RecipientSecurity, err = loadRecipientSecurityConfig(); err != nil {
+		return Config{}, err
+	}
 	if cfg.WorkerPoll <= 0 || cfg.CaptureSessionTTL < time.Minute || cfg.CaptureSessionTTL > time.Hour {
 		return Config{}, fmt.Errorf("worker poll must be positive and capture session ttl must be 1-60 minutes")
 	}
 	if err := validateCapturePublicBaseURL(cfg.CapturePublicBaseURL, environment); err != nil {
 		return Config{}, err
+	}
+	if cfg.RecipientSecurity.ExternalDeliveryEnabled && strings.TrimSpace(cfg.CapturePublicBaseURL) == "" {
+		return Config{}, fmt.Errorf("external distribution delivery requires CLEARSIGHT_CAPTURE_PUBLIC_BASE_URL")
 	}
 	if cfg.IdentityMaxSkew <= 0 || cfg.IdentityMaxSkew > 10*time.Minute {
 		return Config{}, fmt.Errorf("identity maximum clock skew must be between 1 second and 10 minutes")

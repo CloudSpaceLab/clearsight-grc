@@ -137,6 +137,8 @@ CREATE TABLE capture_otp_challenges (
     code_hash bytea NOT NULL,
     attempts integer NOT NULL DEFAULT 0 CHECK (attempts BETWEEN 0 AND 5),
     max_attempts integer NOT NULL DEFAULT 5 CHECK (max_attempts BETWEEN 1 AND 5 AND attempts <= max_attempts),
+    resends integer NOT NULL DEFAULT 0 CHECK (resends BETWEEN 0 AND 3),
+    max_resends integer NOT NULL DEFAULT 3 CHECK (max_resends BETWEEN 1 AND 3 AND resends <= max_resends),
     expires_at timestamptz NOT NULL,
     consumed_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
