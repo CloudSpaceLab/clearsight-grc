@@ -74,6 +74,18 @@ export function evaluateQuality(draft: FormDraft): FormQualityIssue[] {
   return issues;
 }
 
+// Mirrors formcontract.NormalizeDraft: COMPLIANCE drafts retain full structural,
+// field, condition and per-answer validation while deferring only allocation
+// completeness until approval. Reusing evaluateQuality keeps one client model.
+export function evaluateDraftValidity(draft: FormDraft): FormQualityIssue[] {
+  if (draft.scoringMode !== "COMPLIANCE") return evaluateQuality(draft);
+  return evaluateQuality({
+    ...draft,
+    scoringMode: "RISK",
+    sections: draft.sections.map((section) => ({ ...section, weight: undefined })),
+  });
+}
+
 export function isTemplateApprovalReady(template: FormTemplate) {
   return !evaluateQuality(draftFromTemplate(template)).some((issue) => issue.blocking);
 }
