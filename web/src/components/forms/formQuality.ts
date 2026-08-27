@@ -1,10 +1,19 @@
-import type { FormScoringMode } from "../../formsTypes";
-import { fileType, isSelectionType, normalizeOptionText, type AuthoringField, type AuthoringSection, type FormDraft, type FormQualityIssue } from "./formAuthoring";
+import type { FormTemplate } from "../../monitoringTypes";
+import {
+  draftFromTemplate,
+  fileType,
+  isSelectionType,
+  normalizeOptionText,
+  type AuthoringField,
+  type FormDraft,
+  type FormQualityIssue,
+} from "./formAuthoring";
 export type { FormQualityIssue } from "./formAuthoring";
 
 export function evaluateQuality(draft: FormDraft): FormQualityIssue[] {
   const issues: FormQualityIssue[] = [];
   const block = (id: string, message: string, extra: Partial<FormQualityIssue> = {}) => issues.push({ id, message, blocking: true, ...extra });
+
   if (!draft.code.trim()) block("code", "Add a form code.");
   if (!draft.name.trim()) block("name", "Add a form name.");
   if (!draft.purpose.trim()) block("purpose", "Add a clear form purpose.");
@@ -26,29 +35,47 @@ export function evaluateQuality(draft: FormDraft): FormQualityIssue[] {
     if (fieldIDs.has(field.id)) block(`field-duplicate:${field.id}`, `Question key ${field.id} is duplicated.`, { fieldID: field.id });
     fieldIDs.add(field.id);
     if (!sectionIDs.has(field.section_id ?? "")) block(`field-section:${field.id}`, `${displayField(field, index)} references a missing section.`, { fieldID: field.id });
+
     if (isSelectionType(field.type)) {
       const options = field.type === "yes_no" ? ["Yes", "No"] : normalizeOptionText((field.options ?? []).join("\n"));
       if (options.length < 2 || options.length > 50) block(`field-options:${field.id}`, `${displayField(field, index)} requires 2–50 unique choices.`, { fieldID: field.id });
       if (field.scoring) {
         if (field.scoring.weight < 1 || field.scoring.weight > 100) block(`field-weight:${field.id}`, `${displayField(field, index)} requires a score weight from 1–100%.`, { fieldID: field.id });
-        for (const option of options) if (field.scoring.answer_scores[option] === undefined) block(`field-score:${field.id}:${option}`, `${displayField(field, index)} needs a score for “${option}”.`, { fieldID: field.id });
+        for (const option of options) {
+          const score = field.scoring.answer_scores[option];
+          if (score === undefined || score < 0 || score > 100) block(`field-score:${field.id}:${option}`, `${displayField(field, index)} needs a score from 0–100 for “${option}”.`, { fieldID: field.id });
+        }
       }
-    } else if (field.scoring) block(`field-scoring-type:${field.id}`, `${displayField(field, index)} cannot be scored with this response type.`, { fieldID: field.id });
+    } else if (field.scoring) {
+      block(`field-scoring-type:${field.id}`, `${displayField(field, index)} cannot be scored with this response type.`, { fieldID: field.id });
+    }
+
     if (field.type === "attestation" && !field.attestation?.trim()) block(`attestation:${field.id}`, `${displayField(field, index)} requires a statement to confirm.`, { fieldID: field.id });
     if (fileType(field.type)) validateFile(field, index, block);
+    validateLimits(field, index, block);
+
     if (field.condition) {
       const sourceIndex = fieldIndex.get(field.condition.field_id);
       if (sourceIndex === undefined || sourceIndex >= index) block(`condition-order:${field.id}`, `${displayField(field, index)} must depend on an earlier question.`, { fieldID: field.id });
       if (field.condition.operator !== "ANSWERED" && !(field.condition.values ?? []).some((value) => value.trim())) block(`condition-value:${field.id}`, `${displayField(field, index)} requires a display-rule value.`, { fieldID: field.id });
     }
-    if ((field.collection_intent ?? "CAPTURE") !== "CAPTURE" && (!field.record_target?.key.trim() || !field.record_target?.required_subject_type.trim())) block(`record-target:${field.id}`, `${displayField(field, index)} requires a record target for this collection purpose.`, { fieldID: field.id });
-    if (field.collection_intent === "REPLACE_HELD_DOCUMENT" && field.type !== "file" && field.type !== "vendor_document") block(`replace-document:${field.id}`, `${displayField(field, index)} must use File or Vendor document when replacing a held document.`, { fieldID: field.id });
+
+    if ((field.collection_intent ?? "CAPTURE") !== "CAPTURE" && (!field.record_target?.key.trim() || !field.record_target?.required_subject_type.trim())) {
+      block(`record-target:${field.id}`, `${displayField(field, index)} requires a record target for this collection purpose.`, { fieldID: field.id });
+    }
+    if (field.collection_intent === "REPLACE_HELD_DOCUMENT" && field.type !== "file" && field.type !== "vendor_document") {
+      block(`replace-document:${field.id}`, `${displayField(field, index)} must use File or Vendor document when replacing a held document.`, { fieldID: field.id });
+    }
   }
 
   if (draft.scoringMode === "NONE" && draft.fields.some((field) => field.scoring)) block("scoring-none", "Remove scored questions or choose a scoring mode.");
   if (draft.scoringMode === "RISK" && draft.sections.some((section) => (section.weight ?? 0) !== 0)) block("risk-section-weight", "Section weights are only valid for compliance scoring.");
   if (draft.scoringMode === "COMPLIANCE") validateCompliance(draft, block);
   return issues;
+}
+
+export function isTemplateApprovalReady(template: FormTemplate) {
+  return !evaluateQuality(draftFromTemplate(template)).some((issue) => issue.blocking);
 }
 
 function validateCompliance(draft: FormDraft, block: (id: string, message: string, extra?: Partial<FormQualityIssue>) => void) {
@@ -67,7 +94,11 @@ function validateCompliance(draft: FormDraft, block: (id: string, message: strin
     const fieldTotal = scoredFields.reduce((sum, field) => sum + (field.scoring?.weight ?? 0), 0);
     if (fieldTotal !== 100) {
       const delta = 100 - fieldTotal;
-      block(`compliance-fields:${section.id}`, delta > 0 ? `${delta}% remains to allocate in ${section.title || "this section"}` : `${Math.abs(delta)}% is over-allocated in ${section.title || "this section"}`, { sectionID: section.id });
+      block(
+        `compliance-fields:${section.id}`,
+        delta > 0 ? `${delta}% remains to allocate in ${section.title || "this section"}` : `${Math.abs(delta)}% is over-allocated in ${section.title || "this section"}`,
+        { sectionID: section.id },
+      );
     }
     const weight = section.weight ?? 0;
     if (weight < 1 || weight > 100) block(`compliance-section:${section.id}`, `${section.title || "Scored section"} requires a section weight from 1–100%.`, { sectionID: section.id });
@@ -89,4 +120,14 @@ function validateFile(field: AuthoringField, index: number, block: (id: string, 
   if (["photo", "signature", "vendor_document"].includes(field.type) && max_files !== undefined && max_files !== 1) block(`single-file:${field.id}`, `${displayField(field, index)} accepts exactly one file.`, { fieldID: field.id });
 }
 
-function displayField(field: AuthoringField, index: number) { return field.label.trim() || `Question ${index + 1}`; }
+function validateLimits(field: AuthoringField, index: number, block: (id: string, message: string, extra?: Partial<FormQualityIssue>) => void) {
+  const constraints = field.constraints ?? {};
+  if (constraints.min_length !== undefined && constraints.max_length !== undefined && constraints.min_length > constraints.max_length) block(`text-range:${field.id}`, `${displayField(field, index)} has a minimum length above its maximum.`, { fieldID: field.id });
+  if (constraints.minimum !== undefined && constraints.maximum !== undefined && constraints.minimum > constraints.maximum) block(`number-range:${field.id}`, `${displayField(field, index)} has a minimum value above its maximum.`, { fieldID: field.id });
+  if (constraints.min_date && constraints.max_date && constraints.min_date > constraints.max_date) block(`date-range:${field.id}`, `${displayField(field, index)} has an earliest date after its latest date.`, { fieldID: field.id });
+  if (constraints.min_selections !== undefined && constraints.max_selections !== undefined && constraints.min_selections > constraints.max_selections) block(`selection-range:${field.id}`, `${displayField(field, index)} has a minimum selection count above its maximum.`, { fieldID: field.id });
+}
+
+function displayField(field: AuthoringField, index: number) {
+  return field.label.trim() || `Question ${index + 1}`;
+}

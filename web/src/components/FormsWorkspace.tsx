@@ -2,21 +2,34 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import {
   createLibraryFormDraft,
+  createLibraryFormRevision,
   deleteSavedFormView,
   instantiateStarterTemplate,
   loadFormTemplatePage,
+  loadFormTemplateRevision,
+  loadReusableFormTemplateRefs,
   loadSavedFormViews,
   loadStarterTemplates,
   saveFormView,
   transitionFormTemplateRevision,
 } from "../formsApi";
-import type { FormLibraryItem, FormTemplateQuery, SavedFormView, StarterTemplate } from "../formsTypes";
-import type { LifecycleStatus } from "../monitoringTypes";
+import type {
+  FormLibraryItem,
+  FormTemplate,
+  FormTemplateQuery,
+  ReusableFormTemplateRef,
+  SavedFormView,
+  StarterTemplate,
+} from "../formsTypes";
+import type { CreateFormTemplateInput, FormTemplate as MonitoringFormTemplate, LifecycleStatus } from "../monitoringTypes";
+import { FormBuilder } from "./FormBuilder";
+import { isTemplateApprovalReady } from "./forms/formQuality";
 
 const tabs = ["Templates", "Sent forms", "Responses", "Imports", "Communications"] as const;
 type FormsTab = typeof tabs[number];
 type LoadState = "loading" | "live" | "unavailable";
 type Layout = "table" | "grid";
+type EditorState = { mode: "create" } | { mode: "edit"; template: FormTemplate };
 
 type Props = {
   organizationName?: string;
@@ -26,9 +39,6 @@ type Props = {
   onTarget?: (id?: string) => void;
 };
 
-type DraftComposer = { code: string; name: string; purpose: string; firstQuestion: string };
-const emptyDraft: DraftComposer = { code: "", name: "", purpose: "", firstQuestion: "" };
-
 export function FormsWorkspace({ organizationName = "Organization", legalEntityName = "Legal entity", targetID, initialSearch, onTarget }: Props) {
   const [activeTab, setActiveTab] = useState<FormsTab>("Templates");
   const [query, setQuery] = useState<FormTemplateQuery>(() => readFormsQuery(window.location.hash, initialSearch));
@@ -36,13 +46,13 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   const [state, setState] = useState<LoadState>("loading");
   const [layout, setLayout] = useState<Layout>("table");
   const [starters, setStarters] = useState<StarterTemplate[]>([]);
+  const [reusableTemplates, setReusableTemplates] = useState<ReusableFormTemplateRef[]>([]);
   const [savedViews, setSavedViews] = useState<SavedFormView[]>([]);
   const [selectedIDs, setSelectedIDs] = useState<Set<string>>(new Set());
-  const [createOpen, setCreateOpen] = useState(false);
+  const [editor, setEditor] = useState<EditorState | null>(null);
   const [starterOpen, setStarterOpen] = useState(false);
   const [saveViewOpen, setSaveViewOpen] = useState(false);
   const [savedViewName, setSavedViewName] = useState("");
-  const [draft, setDraft] = useState<DraftComposer>(emptyDraft);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -50,7 +60,9 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
 
   const selected = useMemo(() => page.items.find((item) => item.template.id === targetID), [page.items, targetID]);
   const selectedItems = useMemo(() => page.items.filter((item) => selectedIDs.has(item.template.id)), [page.items, selectedIDs]);
-  const bulkTransition = selectedItems.length > 0 && selectedItems.every((item) => item.template.status === "DRAFT") ? "PENDING_APPROVAL" : undefined;
+  const bulkTransition = selectedItems.length > 0 && selectedItems.every((item) => item.template.status === "DRAFT" && isTemplateApprovalReady(item.template))
+    ? "PENDING_APPROVAL" as const
+    : undefined;
   const recent = page.items.slice(0, 3);
 
   useEffect(() => {
@@ -70,10 +82,11 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
 
   useEffect(() => {
     let active = true;
-    void Promise.allSettled([loadStarterTemplates(), loadSavedFormViews()]).then(([starterResult, viewResult]) => {
+    void Promise.allSettled([loadStarterTemplates(), loadSavedFormViews(), loadReusableFormTemplateRefs()]).then(([starterResult, viewResult, reusableResult]) => {
       if (!active) return;
       if (starterResult.status === "fulfilled") setStarters(starterResult.value);
       if (viewResult.status === "fulfilled") setSavedViews(viewResult.value);
+      if (reusableResult.status === "fulfilled") setReusableTemplates(reusableResult.value);
     });
     return () => { active = false; };
   }, []);
@@ -100,6 +113,14 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     }
   }
 
+  async function refreshReusableTemplates() {
+    try {
+      setReusableTemplates(await loadReusableFormTemplateRefs());
+    } catch {
+      // The editor remains usable without reusable section suggestions.
+    }
+  }
+
   async function loadMore() {
     if (!page.next_cursor || busy) return;
     setBusy("load-more");
@@ -123,6 +144,17 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   function choose(id?: string) {
     onTarget?.(id);
     writeFormsLocation(query, id, Boolean(onTarget));
+  }
+
+  function openCreate() {
+    setEditor({ mode: "create" });
+    setStarterOpen(false);
+    setError(null);
+  }
+
+  function openEdit(template: FormTemplate) {
+    setEditor({ mode: "edit", template });
+    setError(null);
   }
 
   function applySavedView(view: SavedFormView) {
@@ -173,56 +205,17 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     }
   }
 
-  async function submitDraft(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (busy) return;
-    const normalized = {
-      code: draft.code.trim(), name: draft.name.trim(), purpose: draft.purpose.trim(), firstQuestion: draft.firstQuestion.trim(),
-    };
-    if (Object.values(normalized).some((value) => !value)) {
-      setError("Add a code, name, purpose and first question before creating the draft.");
-      return;
-    }
-    setBusy("create-draft");
-    setError(null);
-    try {
-      const created = await createLibraryFormDraft({
-        code: normalized.code,
-        name: normalized.name,
-        purpose: normalized.purpose,
-        scoring_mode: "NONE",
-        presentation: { default_mode: "AUTOMATIC", allow_mode_switch: true },
-        sections: [{ id: "general", title: "General" }],
-        fields: [{ id: "question_1", section_id: "general", label: normalized.firstQuestion, type: "short_text", required: true }],
-      });
-      const cleanQuery: FormTemplateQuery = { limit: query.limit ?? 25 };
-      setDraft(emptyDraft);
-      setCreateOpen(false);
-      setQuery(cleanQuery);
-      onTarget?.(created.id);
-      writeFormsLocation(cleanQuery, created.id, true);
-      setNotice("Draft created. It must be sent for independent approval before it can be reused.");
-      await refresh(cleanQuery);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "The form draft could not be created.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
   async function useStarter(starter: StarterTemplate) {
     if (busy) return;
     setBusy(`starter:${starter.code}`);
     setError(null);
     try {
       const created = await instantiateStarterTemplate(starter.code);
-      const cleanQuery: FormTemplateQuery = { limit: query.limit ?? 25 };
       setStarterOpen(false);
-      setQuery(cleanQuery);
-      onTarget?.(created.id);
-      writeFormsLocation(cleanQuery, created.id, true);
-      setNotice("Starter copied into an ordinary draft. Review it against bank policy, then send it for approval.");
-      await refresh(cleanQuery);
+      setEditor({ mode: "edit", template: created });
+      choose(created.id);
+      setNotice("Starter copied into an ordinary draft. Review its exact fields and quality checks before approval.");
+      await refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The starter template could not be copied.");
     } finally {
@@ -230,14 +223,34 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     }
   }
 
+  async function saveEditorDraft(input: CreateFormTemplateInput) {
+    if (!editor || editor.mode === "create") return createLibraryFormDraft(input);
+    return createLibraryFormRevision(editor.template.id, editor.template.version, input);
+  }
+
+  async function sendEditorForApproval(form: MonitoringFormTemplate) {
+    return transitionFormTemplateRevision(form.id, form.version, "PENDING_APPROVAL");
+  }
+
+  async function editorSaved(form: MonitoringFormTemplate) {
+    setEditor(null);
+    choose(form.id);
+    setNotice(form.status === "PENDING_APPROVAL" ? "Draft sent for independent approval." : "Form draft saved as a new governed revision.");
+    await Promise.all([refresh(), refreshReusableTemplates()]);
+  }
+
   async function transition(item: FormLibraryItem, to: LifecycleStatus) {
     if (busy) return;
+    if (to === "PENDING_APPROVAL" && !isTemplateApprovalReady(item.template)) {
+      setError("Resolve this draft’s approval-quality checks in the editor before sending it for approval.");
+      return;
+    }
     setBusy(`transition:${item.template.id}`);
     setError(null);
     try {
       await transitionFormTemplateRevision(item.template.id, item.template.version, to);
       setNotice(to === "PENDING_APPROVAL" ? "Draft sent for independent approval." : to === "ACTIVE" ? "The approved revision is now active." : "The revision state was updated.");
-      await refresh();
+      await Promise.all([refresh(), refreshReusableTemplates()]);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The form state could not be changed.");
     } finally {
@@ -252,7 +265,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     try {
       await Promise.all(selectedItems.map((item) => transitionFormTemplateRevision(item.template.id, item.template.version, bulkTransition)));
       setSelectedIDs(new Set());
-      setNotice(`${selectedItems.length} drafts were sent for independent approval.`);
+      setNotice(`${selectedItems.length} approval-ready drafts were sent for independent approval.`);
       await refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The selected forms could not all be updated. The library has been refreshed.");
@@ -265,17 +278,28 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   return <section className="forms-workspace" aria-labelledby="forms-title">
     <header className="forms-header">
       <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1 id="forms-title">Forms</h1><p>Build governed reusable templates, then distribute exact approved revisions without duplicating evidence or vendor records.</p></div>
-      {activeTab === "Templates" && <button className="forms-primary" type="button" onClick={() => { setCreateOpen(true); setStarterOpen(false); }}>Create form template</button>}
+      {activeTab === "Templates" && !editor && <button className="forms-primary" type="button" onClick={openCreate}>Create form template</button>}
     </header>
 
     <nav className="forms-tabs" aria-label="Forms sections">
-      {tabs.map((tab) => <button key={tab} type="button" className={activeTab === tab ? "active" : ""} aria-current={activeTab === tab ? "page" : undefined} onClick={() => setActiveTab(tab)}>{tab}</button>)}
+      {tabs.map((tab) => <button key={tab} type="button" className={activeTab === tab ? "active" : ""} aria-current={activeTab === tab ? "page" : undefined} onClick={() => { setActiveTab(tab); setEditor(null); }}>{tab}</button>)}
     </nav>
 
     {error && <div className="forms-message error" role="alert">{error}</div>}
     {notice && <div className="forms-message" role="status">{notice}<button type="button" aria-label="Dismiss Forms notice" onClick={() => setNotice(null)}>×</button></div>}
 
-    {activeTab === "Templates" ? <div className="forms-template-layout">
+    {activeTab === "Templates" && editor ? <div className="forms-editor-shell">
+      <FormBuilder
+        key={editor.mode === "edit" ? `${editor.template.id}:${editor.template.version}` : "new-form"}
+        initialValue={editor.mode === "edit" ? editor.template : undefined}
+        saveDraft={saveEditorDraft}
+        onSendForApproval={sendEditorForApproval}
+        onSaved={(form) => { void editorSaved(form); }}
+        onCancel={() => setEditor(null)}
+        reusableTemplates={reusableTemplates}
+        loadReusableTemplate={loadFormTemplateRevision}
+      />
+    </div> : activeTab === "Templates" ? <div className="forms-template-layout">
       <div className="forms-library">
         <div className="forms-toolbar">
           <label className="forms-search"><span>Search templates</span><input type="search" value={query.search ?? ""} placeholder="Name, code or purpose" onChange={(event) => changeQuery({ search: event.target.value || undefined })}/></label>
@@ -291,23 +315,21 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
           {saveViewOpen && <form className="forms-save-view" onSubmit={submitSavedView}><label><span>View name</span><input value={savedViewName} onChange={(event) => setSavedViewName(event.target.value)} maxLength={120}/></label><button type="submit" disabled={!savedViewName.trim() || busy === "save-view"}>Save</button></form>}
         </div>
 
-        {createOpen && <form className="forms-composer" onSubmit={submitDraft} aria-label="Create form template draft"><div><strong>Start a governed draft</strong><span>Task 5 adds full field authoring; this creates the first valid revision without bypassing approval.</span></div><label><span>Code</span><input value={draft.code} maxLength={80} onChange={(event) => setDraft({ ...draft, code: event.target.value.toUpperCase() })}/></label><label><span>Name</span><input value={draft.name} maxLength={160} onChange={(event) => setDraft({ ...draft, name: event.target.value })}/></label><label className="wide"><span>Purpose</span><textarea value={draft.purpose} maxLength={600} onChange={(event) => setDraft({ ...draft, purpose: event.target.value })}/></label><label className="wide"><span>First question</span><input value={draft.firstQuestion} maxLength={300} onChange={(event) => setDraft({ ...draft, firstQuestion: event.target.value })}/></label><div className="forms-composer-actions"><button type="button" onClick={() => setCreateOpen(false)}>Cancel</button><button className="forms-primary" type="submit" disabled={busy === "create-draft"}>{busy === "create-draft" ? "Creating…" : "Create draft"}</button></div></form>}
-
-        <div className="forms-secondary-actions"><button type="button" onClick={() => { setStarterOpen((open) => !open); setCreateOpen(false); }}>Use a starter template</button>{starterOpen && <div className="forms-starters">{starters.length ? starters.map((starter) => <article key={`${starter.code}:${starter.catalog_version}`}><div><strong>{starter.template.name}</strong><span>v{starter.catalog_version} · published {starter.published_on}</span><p>{starter.reference_label}</p></div><button type="button" disabled={busy === `starter:${starter.code}`} onClick={() => void useStarter(starter)}>Create governed draft</button></article>) : <p>No starter templates are currently available.</p>}</div>}</div>
+        <div className="forms-secondary-actions"><button type="button" onClick={() => setStarterOpen((open) => !open)}>Use a starter template</button>{starterOpen && <div className="forms-starters">{starters.length ? starters.map((starter) => <article key={`${starter.code}:${starter.catalog_version}`}><div><strong>{starter.template.name}</strong><span>v{starter.catalog_version} · published {starter.published_on}</span><p>{starter.reference_label}</p></div><button type="button" disabled={busy === `starter:${starter.code}`} onClick={() => void useStarter(starter)}>Create governed draft</button></article>) : <p>No starter templates are currently available.</p>}</div>}</div>
 
         {recent.length > 0 && <section className="forms-recent" aria-labelledby="forms-recent-title"><div><h2 id="forms-recent-title">Recently updated</h2><span>Latest bounded server results</span></div><ol>{recent.map((item) => <li key={item.template.id}><button type="button" onClick={() => choose(item.template.id)}><strong>{item.template.name}</strong><span>{statusLabel(item.template.status)} · v{item.template.version}</span></button></li>)}</ol></section>}
 
-        {selectedItems.length > 0 && <div className="forms-bulk" role="status"><strong>{selectedItems.length} selected</strong>{bulkTransition ? <button type="button" disabled={busy === "bulk-transition"} onClick={() => void runBulkTransition()}>Send {selectedItems.length} for approval</button> : <span>Bulk actions require every selected row to share the same permitted lifecycle action.</span>}<button type="button" onClick={() => setSelectedIDs(new Set())}>Clear selection</button></div>}
+        {selectedItems.length > 0 && <div className="forms-bulk" role="status"><strong>{selectedItems.length} selected</strong>{bulkTransition ? <button type="button" disabled={busy === "bulk-transition"} onClick={() => void runBulkTransition()}>Send {selectedItems.length} for approval</button> : <span>Bulk approval is available only when every selected row is an approval-ready draft with the same permitted lifecycle action.</span>}<button type="button" onClick={() => setSelectedIDs(new Set())}>Clear selection</button></div>}
 
-        {state === "loading" ? <div className="forms-loading" aria-live="polite" aria-busy="true">Loading form templates…</div> : state === "unavailable" ? <div className="forms-empty"><h2>Forms are temporarily unavailable</h2><p>The library could not be read. No template state was changed.</p><button type="button" onClick={() => void refresh()}>Retry</button></div> : page.items.length === 0 ? <div className="forms-empty"><h2>{query.search ? `No form templates match ‘${query.search}’ in this legal entity.` : "No form templates are available in this legal entity yet."}</h2><p>{query.search ? "Change the search or filters, or start a new governed draft." : "Create a template from scratch or copy the reviewed starter into a draft."}</p><div><button className="forms-primary" type="button" onClick={() => setCreateOpen(true)}>Create form template</button><button type="button" onClick={() => setStarterOpen(true)}>Use a starter template</button></div></div> : layout === "table" ? <TemplateTable items={page.items} selectedIDs={selectedIDs} targetID={targetID} onToggle={(id) => toggleSelected(id, selectedIDs, setSelectedIDs)} onOpen={choose}/> : <TemplateGrid items={page.items} selectedIDs={selectedIDs} targetID={targetID} onToggle={(id) => toggleSelected(id, selectedIDs, setSelectedIDs)} onOpen={choose}/>}
+        {state === "loading" ? <div className="forms-loading" aria-live="polite" aria-busy="true">Loading form templates…</div> : state === "unavailable" ? <div className="forms-empty"><h2>Forms are temporarily unavailable</h2><p>The library could not be read. No template state was changed.</p><button type="button" onClick={() => void refresh()}>Retry</button></div> : page.items.length === 0 ? <div className="forms-empty"><h2>{query.search ? `No form templates match ‘${query.search}’ in this legal entity.` : "No form templates are available in this legal entity yet."}</h2><p>{query.search ? "Change the search or filters, or start a new governed draft." : "Create a template from scratch or copy the reviewed starter into a draft."}</p><div><button className="forms-primary" type="button" onClick={openCreate}>Create form template</button><button type="button" onClick={() => setStarterOpen(true)}>Use a starter template</button></div></div> : layout === "table" ? <TemplateTable items={page.items} selectedIDs={selectedIDs} targetID={targetID} onToggle={(id) => toggleSelected(id, selectedIDs, setSelectedIDs)} onOpen={choose}/> : <TemplateGrid items={page.items} selectedIDs={selectedIDs} targetID={targetID} onToggle={(id) => toggleSelected(id, selectedIDs, setSelectedIDs)} onOpen={choose}/>}
 
         {page.next_cursor && state === "live" && <button className="forms-load-more" type="button" disabled={busy === "load-more"} onClick={() => void loadMore()}>{busy === "load-more" ? "Loading…" : "Load more"}</button>}
       </div>
 
       <aside className="forms-detail" aria-label="Selected form template">
-        {selected ? <TemplateDetail item={selected} busy={busy} onTransition={(to) => void transition(selected, to)}/> : targetID ? <><span className="forms-detail-kicker">Selected template</span><h2>Template is outside this bounded page</h2><p>Clear filters or search for the template to inspect its latest and active revision state.</p><button type="button" onClick={() => { changeQuery({ search: undefined, status: undefined, owner: undefined, program: undefined, use: undefined, tag: undefined }); choose(undefined); }}>Clear filters</button></> : <><span className="forms-detail-kicker">Template detail</span><h2>Select a template</h2><p>Inspect the latest stored revision separately from the active revision available for reuse.</p></>}
+        {selected ? <TemplateDetail item={selected} busy={busy} onEdit={() => openEdit(selected.template)} onTransition={(to) => void transition(selected, to)}/> : targetID ? <><span className="forms-detail-kicker">Selected template</span><h2>Template is outside this bounded page</h2><p>Clear filters or search for the template to inspect its latest and active revision state.</p><button type="button" onClick={() => { changeQuery({ search: undefined, status: undefined, owner: undefined, program: undefined, use: undefined, tag: undefined }); choose(undefined); }}>Clear filters</button></> : <><span className="forms-detail-kicker">Template detail</span><h2>Select a template</h2><p>Inspect the latest stored revision separately from the active revision available for reuse.</p></>}
       </aside>
-    </div> : <FutureFormsTab tab={activeTab}/>} 
+    </div> : <FutureFormsTab tab={activeTab as Exclude<FormsTab, "Templates">}/>} 
   </section>;
 }
 
@@ -319,9 +341,10 @@ function TemplateGrid({ items, selectedIDs, targetID, onToggle, onOpen }: { item
   return <div className="forms-grid">{items.map((item) => <article key={item.template.id} className={targetID === item.template.id ? "selected" : ""}><div className="forms-card-top"><input type="checkbox" aria-label={`Select ${item.template.name}`} checked={selectedIDs.has(item.template.id)} onChange={() => onToggle(item.template.id)}/><StatusPill status={item.template.status}/></div><button className="forms-card-open" type="button" onClick={() => onOpen(item.template.id)}><strong>{item.template.name}</strong><span>{item.template.code} · latest v{item.template.version}</span><p>{item.template.purpose}</p></button><div className="forms-card-meta"><span>{item.active_version ? `Reusable v${item.active_version}` : "No active revision"}</span><span>{formatDate(item.template.updated_at)}</span></div></article>)}</div>;
 }
 
-function TemplateDetail({ item, busy, onTransition }: { item: FormLibraryItem; busy: string | null; onTransition: (to: LifecycleStatus) => void }) {
+function TemplateDetail({ item, busy, onEdit, onTransition }: { item: FormLibraryItem; busy: string | null; onEdit: () => void; onTransition: (to: LifecycleStatus) => void }) {
   const form = item.template;
-  return <><span className="forms-detail-kicker">{form.code}</span><h2>{form.name}</h2><p>{form.purpose}</p><div className="forms-detail-state"><div><span>Latest stored</span><strong><StatusPill status={form.status}/> v{form.version}</strong></div><div><span>Reusable now</span><strong>{item.active_version ? <><StatusPill status={item.active_status ?? "ACTIVE"}/> v{item.active_version}</> : "None"}</strong></div></div><dl><div><dt>Scoring</dt><dd>{form.scoring_mode || "NONE"}</dd></div><div><dt>Fields</dt><dd>{form.fields.length}</dd></div><div><dt>Owner</dt><dd>{form.owner_principal_id || form.responsible_team || "Not assigned"}</dd></div><div><dt>Next review</dt><dd>{form.next_review_at ? formatDate(form.next_review_at) : "Not scheduled"}</dd></div></dl>{form.tags?.length ? <div className="forms-tags">{form.tags.map((tag) => <span key={tag}>{tag}</span>)}</div> : null}<div className="forms-detail-actions">{form.status === "DRAFT" && <button className="forms-primary" type="button" disabled={busy !== null} onClick={() => onTransition("PENDING_APPROVAL")}>Send for approval</button>}{form.status === "PENDING_APPROVAL" && <><button className="forms-primary" type="button" disabled={busy !== null} onClick={() => onTransition("ACTIVE")}>Approve and activate</button><button type="button" disabled={busy !== null} onClick={() => onTransition("REJECTED")}>Reject</button></>}{form.status === "ACTIVE" && <button type="button" disabled={busy !== null} onClick={() => onTransition("RETIRED")}>Retire revision</button>}</div></>;
+  const approvalReady = form.status === "DRAFT" && isTemplateApprovalReady(form);
+  return <><span className="forms-detail-kicker">{form.code}</span><h2>{form.name}</h2><p>{form.purpose}</p><div className="forms-detail-state"><div><span>Latest stored</span><strong><StatusPill status={form.status}/> v{form.version}</strong></div><div><span>Reusable now</span><strong>{item.active_version ? <><StatusPill status={item.active_status ?? "ACTIVE"}/> v{item.active_version}</> : "None"}</strong></div></div><dl><div><dt>Scoring</dt><dd>{form.scoring_mode || "NONE"}</dd></div><div><dt>Fields</dt><dd>{form.fields.length}</dd></div><div><dt>Owner</dt><dd>{form.owner_principal_id || form.responsible_team || "Not assigned"}</dd></div><div><dt>Next review</dt><dd>{form.next_review_at ? formatDate(form.next_review_at) : "Not scheduled"}</dd></div></dl>{form.tags?.length ? <div className="forms-tags">{form.tags.map((tag) => <span key={tag}>{tag}</span>)}</div> : null}<div className="forms-detail-actions">{form.status === "DRAFT" && <><button type="button" onClick={onEdit}>Edit draft</button><button className="forms-primary" type="button" disabled={busy !== null || !approvalReady} onClick={() => onTransition("PENDING_APPROVAL")}>Send for approval</button></>}{form.status === "DRAFT" && !approvalReady && <small className="forms-muted">Open the editor to resolve approval-quality checks before submission.</small>}{form.status === "PENDING_APPROVAL" && <><button className="forms-primary" type="button" disabled={busy !== null} onClick={() => onTransition("ACTIVE")}>Approve and activate</button><button type="button" disabled={busy !== null} onClick={() => onTransition("REJECTED")}>Reject</button></>}{form.status === "ACTIVE" && <button type="button" disabled={busy !== null} onClick={() => onTransition("RETIRED")}>Retire revision</button>}</div></>;
 }
 
 function FutureFormsTab({ tab }: { tab: Exclude<FormsTab, "Templates"> }) {
