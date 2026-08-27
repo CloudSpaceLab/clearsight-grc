@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { FormEvent } from "react";
+import type { CSSProperties, FormEvent } from "react";
 import "../forms.css";
 import {
   createLibraryFormDraft,
@@ -24,6 +24,10 @@ import type {
 } from "../formsTypes";
 import type { CreateFormTemplateInput, FormTemplate as MonitoringFormTemplate, LifecycleStatus } from "../monitoringTypes";
 import { FormBuilder } from "./FormBuilder";
+import { FormsBrandHeader } from "./forms/FormsBrandHeader";
+import { FormsEmptyState } from "./forms/FormsEmptyState";
+import { FormsLibrarySummary } from "./forms/FormsLibrarySummary";
+import { defaultFormsAccent, loadFormsAppearance, normalizeAccentColor, normalizeLogoURL, saveFormsAppearance, type FormsAppearance } from "./forms/formsAppearance";
 import { preserveLibraryRevisionMetadata } from "./forms/formRevisionInput";
 import { isTemplateApprovalReady } from "./forms/formQuality";
 import { clearedFormsQuery, readFormsQuery, writeFormsLocation } from "./forms/formsLocation";
@@ -37,12 +41,14 @@ type EditorState = { mode: "create" } | { mode: "edit"; template: FormTemplate }
 type Props = {
   organizationName?: string;
   legalEntityName?: string;
+  appearanceScope?: string;
   targetID?: string;
   initialSearch?: string;
   onTarget?: (id?: string) => void;
 };
 
-export function FormsWorkspace({ organizationName = "Organization", legalEntityName = "Legal entity", targetID, initialSearch, onTarget }: Props) {
+export function FormsWorkspace({ organizationName = "Organization", legalEntityName = "Legal entity", appearanceScope, targetID, initialSearch, onTarget }: Props) {
+  const appearanceKey = appearanceScope?.trim() || legalEntityName;
   const [activeTab, setActiveTab] = useState<FormsTab>("Templates");
   const [query, setQuery] = useState<FormTemplateQuery>(() => readFormsQuery(window.location.hash, initialSearch));
   const [page, setPage] = useState<{ items: FormLibraryItem[]; next_cursor?: string }>({ items: [] });
@@ -59,6 +65,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [appearance, setAppearance] = useState<FormsAppearance>(() => readAppearance(appearanceKey));
   const loadEpoch = useRef(0);
 
   const selected = useMemo(() => page.items.find((item) => item.template.id === targetID), [page.items, targetID]);
@@ -68,9 +75,11 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     : undefined;
   const recent = page.items.slice(0, 3);
 
+  useEffect(() => setAppearance(readAppearance(appearanceKey)), [appearanceKey]);
+
   useEffect(() => {
     const sync = () => {
-      loadEpoch.current += 1;
+      invalidatePagedLoad();
       setQuery(readFormsQuery(window.location.hash, initialSearch));
     };
     window.addEventListener("hashchange", sync);
@@ -101,6 +110,16 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     const visible = new Set(page.items.map((item) => item.template.id));
     setSelectedIDs((current) => new Set([...current].filter((id) => visible.has(id))));
   }, [page.items]);
+
+  function invalidatePagedLoad() {
+    loadEpoch.current += 1;
+    setBusy((current) => current === "load-more" ? null : current);
+  }
+
+  function updateAppearance(next: FormsAppearance) {
+    const normalized = writeAppearance(appearanceKey, next);
+    setAppearance(normalized);
+  }
 
   async function refresh(nextQuery = query) {
     const epoch = ++loadEpoch.current;
@@ -147,7 +166,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
 
   function changeQuery(patch: Partial<FormTemplateQuery>) {
     const next = { ...query, ...patch, cursor: undefined };
-    loadEpoch.current += 1;
+    invalidatePagedLoad();
     setQuery(next);
     writeFormsLocation(next, targetID, true);
   }
@@ -159,7 +178,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
 
   function clearFiltersAndTarget() {
     const next = clearedFormsQuery(query);
-    loadEpoch.current += 1;
+    invalidatePagedLoad();
     setQuery(next);
     onTarget?.(undefined);
     writeFormsLocation(next, undefined, true);
@@ -186,7 +205,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       tag: view.filter.tag,
       limit: view.filter.limit ?? query.limit ?? 25,
     };
-    loadEpoch.current += 1;
+    invalidatePagedLoad();
     setQuery(next);
     onTarget?.(undefined);
     writeFormsLocation(next, undefined, true);
@@ -299,11 +318,15 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     }
   }
 
-  return <section className="forms-workspace" aria-labelledby="forms-title">
-    <header className="forms-header">
-      <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1 id="forms-title">Forms</h1><p>Build governed reusable templates, then distribute exact approved revisions without duplicating evidence or vendor records.</p></div>
-      {activeTab === "Templates" && !editor && <button className="forms-primary" type="button" onClick={openCreate}>Create form template</button>}
-    </header>
+  const workspaceStyle = { "--forms-accent": appearance.accentColor } as CSSProperties;
+  return <section className="forms-workspace" aria-labelledby="forms-title" style={workspaceStyle}>
+    <FormsBrandHeader
+      organizationName={organizationName}
+      legalEntityName={legalEntityName}
+      appearance={appearance}
+      onAppearanceChange={updateAppearance}
+      action={activeTab === "Templates" && !editor ? <button className="forms-primary" type="button" onClick={openCreate}>Create form template</button> : undefined}
+    />
 
     <nav className="forms-tabs" aria-label="Forms sections">
       {tabs.map((tab) => <button key={tab} type="button" className={activeTab === tab ? "active" : ""} aria-current={activeTab === tab ? "page" : undefined} onClick={() => { setActiveTab(tab); setEditor(null); }}>{tab}</button>)}
@@ -342,11 +365,22 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
 
         <div className="forms-secondary-actions"><button type="button" onClick={() => setStarterOpen((open) => !open)}>Use a starter template</button>{starterOpen && <div className="forms-starters">{starters.length ? starters.map((starter) => <article key={`${starter.code}:${starter.catalog_version}`}><div><strong>{starter.template.name}</strong><span>v{starter.catalog_version} · published {starter.published_on}</span><p>{starter.reference_label}</p></div><button type="button" disabled={busy === `starter:${starter.code}`} onClick={() => void useStarter(starter)}>Create governed draft</button></article>) : <p>No starter templates are currently available.</p>}</div>}</div>
 
+        {state === "live" && page.items.length > 0 && <FormsLibrarySummary items={page.items}/>} 
         {recent.length > 0 && <section className="forms-recent" aria-labelledby="forms-recent-title"><div><h2 id="forms-recent-title">Recently updated</h2><span>Latest updates</span></div><ol>{recent.map((item) => <li key={item.template.id}><button type="button" onClick={() => choose(item.template.id)}><strong>{item.template.name}</strong><span>{statusLabel(item.template.status)} · v{item.template.version}</span></button></li>)}</ol></section>}
 
         {selectedItems.length > 0 && <div className="forms-bulk" role="status"><strong>{selectedItems.length} selected</strong>{bulkTransition ? <button type="button" disabled={busy === "bulk-transition"} onClick={() => void runBulkTransition()}>Send {selectedItems.length} for approval</button> : <span>Bulk approval is available only when every selected row is an approval-ready draft with the same permitted lifecycle action.</span>}<button type="button" onClick={() => setSelectedIDs(new Set())}>Clear selection</button></div>}
 
-        {state === "loading" ? <div className="forms-loading" aria-live="polite" aria-busy="true">Loading form templates…</div> : state === "unavailable" ? <div className="forms-empty"><h2>Forms are temporarily unavailable</h2><p>The library could not be read. No template state was changed.</p><button type="button" onClick={() => void refresh()}>Retry</button></div> : page.items.length === 0 ? <div className="forms-empty"><h2>{query.search ? `No form templates match ‘${query.search}’ in this legal entity.` : "No form templates are available in this legal entity yet."}</h2><p>{query.search ? "Change the search or filters, or start a new governed draft." : "Create a template from scratch or copy the reviewed starter into a draft."}</p><div><button className="forms-primary" type="button" onClick={openCreate}>Create form template</button><button type="button" onClick={() => setStarterOpen(true)}>Use a starter template</button></div></div> : layout === "table" ? <TemplateTable items={page.items} selectedIDs={selectedIDs} targetID={targetID} onToggle={(id) => toggleSelected(id, selectedIDs, setSelectedIDs)} onOpen={choose}/> : <TemplateGrid items={page.items} selectedIDs={selectedIDs} targetID={targetID} onToggle={(id) => toggleSelected(id, selectedIDs, setSelectedIDs)} onOpen={choose}/>} 
+        {state === "loading" ? <div className="forms-loading" aria-live="polite" aria-busy="true">Loading form templates…</div>
+          : state === "unavailable" ? <FormsEmptyState tone="unavailable" eyebrow="Connection" title="Forms are temporarily unavailable" detail="The library could not be read, and no template state was changed." actions={<button type="button" onClick={() => void refresh()}>Retry</button>}/>
+          : page.items.length === 0 ? <FormsEmptyState
+            tone={query.search ? "search" : "empty"}
+            eyebrow={query.search ? "No matches" : "Start here"}
+            title={query.search ? `No templates match “${query.search}”` : "Create your governed form library"}
+            detail={query.search ? "Adjust the search or filters, or create a new template without losing your current view." : "Start from a blank governed template or copy a reviewed starter, then send the exact revision through independent approval."}
+            actions={<><button className="forms-primary" type="button" onClick={openCreate}>Create form template</button><button type="button" onClick={() => setStarterOpen(true)}>Browse starter templates</button>{query.search && <button className="text-button" type="button" onClick={clearFiltersAndTarget}>Clear filters</button>}</>}
+          />
+          : layout === "table" ? <TemplateTable items={page.items} selectedIDs={selectedIDs} targetID={targetID} onToggle={(id) => toggleSelected(id, selectedIDs, setSelectedIDs)} onOpen={choose}/>
+            : <TemplateGrid items={page.items} selectedIDs={selectedIDs} targetID={targetID} onToggle={(id) => toggleSelected(id, selectedIDs, setSelectedIDs)} onOpen={choose}/>} 
 
         {page.next_cursor && state === "live" && <button className="forms-load-more" type="button" disabled={busy === "load-more"} onClick={() => void loadMore()}>{busy === "load-more" ? "Loading…" : "Load more"}</button>}
       </div>
@@ -373,14 +407,14 @@ function TemplateDetail({ item, busy, onEdit, onTransition }: { item: FormLibrar
 }
 
 function FutureFormsTab({ tab }: { tab: Exclude<FormsTab, "Templates"> }) {
-  if (tab === "Imports") return <div className="forms-future"><span className="forms-detail-kicker">Imports</span><h2>Turn governed source documents into reviewable form proposals</h2><p>The current Imports workspace remains the authoritative document intake path. Reviewable form proposals will appear here after document extraction is enabled; extracted content is never silently activated.</p><button type="button" onClick={() => { window.location.hash = "#imports"; }}>Open Imports</button></div>;
+  if (tab === "Imports") return <FormsEmptyState eyebrow="Imports" tone="future" title="Turn source documents into reviewable form proposals" detail="Imports remains the authoritative document intake path. Form proposals will appear here after governed extraction is enabled; extracted content is never silently activated." actions={<button type="button" onClick={() => { window.location.hash = "#imports"; }}>Open Imports</button>}/>;
   const messages: Record<Exclude<FormsTab, "Templates" | "Imports">, [string, string]> = {
-    "Sent forms": ["No form distributions yet", "Distribution records, recipients and protected delivery are not enabled in this workspace yet."],
-    Responses: ["No distribution responses yet", "Responses will appear here from immutable submission revisions after governed distribution is enabled."],
-    Communications: ["Communication configuration is not enabled yet", "Invitation, reminder and branding configuration will be available with governed form distribution."],
+    "Sent forms": ["No form distributions yet", "Distribution records, recipients and protected delivery will appear here when governed distribution is enabled."],
+    Responses: ["No distribution responses yet", "Immutable response revisions will appear here after governed distribution is enabled."],
+    Communications: ["Communication configuration is not enabled yet", "Invitation, reminder and recipient branding configuration belongs to the governed distribution tranche."],
   };
   const [title, detail] = messages[tab];
-  return <div className="forms-future"><span className="forms-detail-kicker">{tab}</span><h2>{title}</h2><p>{detail}</p></div>;
+  return <FormsEmptyState eyebrow={tab} tone="future" title={title} detail={detail}/>;
 }
 
 function StatusPill({ status }: { status: LifecycleStatus }) {
@@ -401,4 +435,23 @@ function toggleSelected(id: string, selected: Set<string>, setSelected: (value: 
   const next = new Set(selected);
   if (next.has(id)) next.delete(id); else next.add(id);
   setSelected(next);
+}
+
+function readAppearance(scope: string): FormsAppearance {
+  try {
+    return loadFormsAppearance(window.localStorage, scope, window.location.href);
+  } catch {
+    return { accentColor: defaultFormsAccent };
+  }
+}
+
+function writeAppearance(scope: string, appearance: FormsAppearance): FormsAppearance {
+  try {
+    return saveFormsAppearance(window.localStorage, scope, appearance, window.location.href);
+  } catch {
+    return {
+      accentColor: normalizeAccentColor(appearance.accentColor),
+      logoURL: normalizeLogoURL(appearance.logoURL, window.location.href),
+    };
+  }
 }
