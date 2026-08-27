@@ -144,7 +144,7 @@ func activeDistributionForm() DistributionFormRevision {
 	return DistributionFormRevision{
 		ID: "form-a", TenantID: "tenant-a", LegalEntityID: "entity-a", Version: 3, Sensitivity: "CONFIDENTIAL", Active: true,
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
-		Sections: []formcontract.Section{{ID: "general", Title: "General"}},
-		Fields: []formcontract.Field{{ID: "q1", SectionID: "general", Label: "Control operating?", Type: formcontract.TypeYesNo, Required: true}},
+		Sections:     []formcontract.Section{{ID: "general", Title: "General"}},
+		Fields:       []formcontract.Field{{ID: "q1", SectionID: "general", Label: "Control operating?", Type: formcontract.TypeYesNo, Required: true}},
 	}
 }
