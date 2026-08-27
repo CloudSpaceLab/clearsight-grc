@@ -20,11 +20,11 @@ type OTPDelivery interface {
 }
 
 type DistributionOTPDelivery struct {
-	Address      string    `json:"-"`
-	Code         string    `json:"-"`
-	ChallengeID  string    `json:"challenge_id"`
-	DistributionID string  `json:"distribution_id"`
-	ExpiresAt    time.Time `json:"expires_at"`
+	Address        string    `json:"-"`
+	Code           string    `json:"-"`
+	ChallengeID    string    `json:"challenge_id"`
+	DistributionID string    `json:"distribution_id"`
+	ExpiresAt      time.Time `json:"expires_at"`
 }
 
 // OTPSendReceipt is safe for public callers. The code and full address remain
@@ -35,19 +35,47 @@ type OTPSendReceipt struct {
 	ExpiresAt   time.Time `json:"expires_at"`
 }
 
+// DistributionAccessSession is the bounded capability produced only by the new
+// distribution access ceremony. Legacy invitation sessions remain unchanged.
+type DistributionAccessSession struct {
+	ID             string          `json:"id"`
+	TenantID       string          `json:"-"`
+	LegalEntityID  string          `json:"-"`
+	DistributionID string          `json:"distribution_id"`
+	RecipientID    string          `json:"-"`
+	RequestID      string          `json:"request_id"`
+	RouteID        string          `json:"-"`
+	AudienceHint   string          `json:"audience_hint"`
+	Assurance      AccessAssurance `json:"assurance"`
+	TokenHash      []byte          `json:"-"`
+	ExpiresAt      time.Time       `json:"expires_at"`
+	RevokedAt      *time.Time      `json:"revoked_at,omitempty"`
+	CreatedAt      time.Time       `json:"created_at"`
+}
+
+type RedeemedDistributionSession struct {
+	SessionID      string          `json:"session_id"`
+	SessionToken   string          `json:"session_token"`
+	DistributionID string          `json:"distribution_id"`
+	RequestID      string          `json:"request_id"`
+	AudienceHint   string          `json:"audience_hint"`
+	Assurance      AccessAssurance `json:"assurance"`
+	ExpiresAt      time.Time       `json:"expires_at"`
+}
+
 type otpChallengeSnapshot struct {
 	Challenge OTPChallenge
 	Found     bool
 }
 
 type accessSessionCommit struct {
-	Route              AccessRoute
-	Recipient          DistributionRecipient
-	Session            Session
-	Challenge          *OTPChallenge
-	ExpectedAttempts   int
-	ExpectedResends    int
-	ExpectedDigest     []byte
+	Route               AccessRoute
+	Recipient           DistributionRecipient
+	Session             DistributionAccessSession
+	Challenge           *OTPChallenge
+	ExpectedAttempts    int
+	ExpectedResends     int
+	ExpectedDigest      []byte
 	ExpectedRedemptions int
 }
 
@@ -66,5 +94,5 @@ type DistributionAccessStore interface {
 	CommitAccessSession(context.Context, accessSessionCommit) error
 	RotateAccessRoute(context.Context, AccessRoute, AccessRoute, time.Time) error
 	RevokeAccessRoute(context.Context, AccessRoute, time.Time) error
-	DistributionSessionByTokenHash(context.Context, []byte, time.Time) (Session, error)
+	DistributionSessionByTokenHash(context.Context, []byte, time.Time) (DistributionAccessSession, error)
 }
