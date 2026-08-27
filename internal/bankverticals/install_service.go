@@ -18,6 +18,12 @@ func (s *Service) InstallSample(ctx context.Context, config SeedConfig) ([]Journ
 		return nil, err
 	}
 	ctx = continuity.WithTrustedSystemEntityScope(ctx, config.TenantID, config.LegalEntityID)
+	canonicalEntityID, err := s.continuity.ResolveLegalEntity(ctx, config.TenantID, config.LegalEntityID)
+	if err != nil {
+		return nil, fmt.Errorf("resolve reference-data legal entity: %w", err)
+	}
+	config.LegalEntityID = canonicalEntityID
+	ctx = continuity.WithTrustedSystemEntityScope(ctx, config.TenantID, config.LegalEntityID)
 
 	sourceIDs, err := s.seedSources(ctx, config)
 	if err != nil {

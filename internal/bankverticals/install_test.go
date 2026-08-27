@@ -6,14 +6,13 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 )
 
 func TestInstallSampleRecoversPartialProgram(t *testing.T) {
 	ctx := continuity.WithTrustedSystemScope(context.Background())
 	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
 	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
-	evidenceService := evidence.NewServiceWithClock(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore(), func() time.Time { return now })
+	evidenceService := newReferenceEvidenceService(now, "bank-ng")
 	service := NewService(continuityService, evidenceService)
 	config := DemoSeedConfig()
 	config.Now = now
@@ -65,7 +64,7 @@ func TestInstallSampleResumesPartiallyTransitionedMatter(t *testing.T) {
 	ctx := continuity.WithTrustedSystemScope(context.Background())
 	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
 	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
-	evidenceService := evidence.NewServiceWithClock(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore(), func() time.Time { return now })
+	evidenceService := newReferenceEvidenceService(now, "bank-ng")
 	service := NewService(continuityService, evidenceService)
 	config := DemoSeedConfig()
 	config.Now = now
@@ -127,7 +126,7 @@ func TestInstallSampleUsesEntityBoundedProgramLookup(t *testing.T) {
 	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
 	repo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewServiceWithClock(repo, func() time.Time { return now })
-	evidenceService := evidence.NewServiceWithClock(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore(), func() time.Time { return now })
+	evidenceService := newReferenceEvidenceService(now, "bank-ng")
 	service := NewService(continuityService, evidenceService)
 	config := normalizeSeedConfig(DemoSeedConfig())
 	config.Now = now
@@ -157,7 +156,7 @@ func TestInstallSampleCanonicalizesConfiguredEntityCodeInMemory(t *testing.T) {
 	repo.RegisterLegalEntity("bank-demo", targetID, "bank-ng")
 	repo.RegisterLegalEntity("bank-demo", "22222222-2222-4222-8222-222222222222", "other-ng")
 	continuityService := continuity.NewServiceWithClock(repo, func() time.Time { return now })
-	evidenceService := evidence.NewServiceWithClock(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore(), func() time.Time { return now })
+	evidenceService := newReferenceEvidenceService(now, targetID)
 	service := NewService(continuityService, evidenceService)
 	config := normalizeSeedConfig(DemoSeedConfig())
 	config.Now = now

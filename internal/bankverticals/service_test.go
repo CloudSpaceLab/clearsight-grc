@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 )
 
 func TestSampleJourneysConnectProgramEvidenceDecisionsResponsesAndOutcomeChecks(t *testing.T) {
@@ -14,7 +13,7 @@ func TestSampleJourneysConnectProgramEvidenceDecisionsResponsesAndOutcomeChecks(
 	now := time.Date(2026, 8, 5, 18, 0, 0, 0, time.UTC)
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewServiceWithClock(continuityRepo, func() time.Time { return now })
-	evidenceService := evidence.NewServiceWithClock(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore(), func() time.Time { return now })
+	evidenceService := newReferenceEvidenceService(now, "bank-ng")
 	service := NewService(continuityService, evidenceService)
 	config := DemoSeedConfig()
 	config.Now = now
@@ -76,7 +75,7 @@ func TestReferenceProgramEvidenceStartsSupportedWithoutOpeningDuplicateIssues(t 
 	ctx := continuity.WithTrustedSystemScope(context.Background())
 	now := time.Date(2026, 8, 5, 18, 0, 0, 0, time.UTC)
 	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
-	evidenceService := evidence.NewServiceWithClock(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore(), func() time.Time { return now })
+	evidenceService := newReferenceEvidenceService(now, "bank-ng")
 	service := NewService(continuityService, evidenceService)
 	config := normalizeSeedConfig(DemoSeedConfig())
 	config.Now = now

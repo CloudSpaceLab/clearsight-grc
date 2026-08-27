@@ -43,6 +43,13 @@ func (s *Service) SeedSample(ctx context.Context, config SeedConfig) ([]Journey,
 	if err := validateSeedConfig(config); err != nil {
 		return nil, err
 	}
+	ctx = continuity.WithTrustedSystemEntityScope(ctx, config.TenantID, config.LegalEntityID)
+	canonicalEntityID, err := s.continuity.ResolveLegalEntity(ctx, config.TenantID, config.LegalEntityID)
+	if err != nil {
+		return nil, fmt.Errorf("resolve reference-data legal entity: %w", err)
+	}
+	config.LegalEntityID = canonicalEntityID
+	ctx = continuity.WithTrustedSystemEntityScope(ctx, config.TenantID, config.LegalEntityID)
 	if _, err := s.continuity.ProgramByCode(ctx, config.TenantID, programCodeNDPA); err == nil {
 		return s.List(ctx, config.TenantID)
 	} else if err != continuity.ErrNotFound {
