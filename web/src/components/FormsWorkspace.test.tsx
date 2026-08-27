@@ -48,7 +48,7 @@ beforeEach(() => {
 describe("Forms workspace", () => {
   it("keeps latest draft state separate from the exact reusable active revision", async () => {
     render(<FormsWorkspace targetID="template-a"/>);
-    expect(await screen.findByText("Vendor due diligence")).toBeTruthy();
+    expect((await screen.findAllByText("Vendor due diligence")).length).toBeGreaterThan(0);
     const latest = screen.getByText("Latest stored").parentElement;
     const reusable = screen.getByText("Reusable now").parentElement;
     expect(latest?.textContent).toMatch(/Draft.*v2/);
@@ -58,14 +58,14 @@ describe("Forms workspace", () => {
   it("states the bounded legal-entity population when no search result matches", async () => {
     render(<FormsWorkspace initialSearch="outsourcing"/>);
     expect(await screen.findByText("No form templates match ‘outsourcing’ in this legal entity.")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Create form template" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Use a starter template" })).toBeEnabled();
+    expect((screen.getByRole("button", { name: "Create form template" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: "Use a starter template" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("creates a valid governed draft rather than exposing an enabled no-op", async () => {
     api.createLibraryFormDraft.mockResolvedValueOnce({ ...draftItem.template, id: "template-new", version: 1 });
     render(<FormsWorkspace/>);
-    await screen.findByText("Vendor due diligence");
+    expect((await screen.findAllByText("Vendor due diligence")).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Create form template" }));
     fireEvent.change(screen.getByLabelText("Code"), { target: { value: "OPS" } });
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Operations review" } });
@@ -78,7 +78,7 @@ describe("Forms workspace", () => {
 
   it("passes semantic accessibility checks for the loaded library", async () => {
     const view = render(<FormsWorkspace targetID="template-a"/>);
-    await screen.findByText("Vendor due diligence");
+    expect((await screen.findAllByText("Vendor due diligence")).length).toBeGreaterThan(0);
     const results = await axe.run(view.container, { rules: { "color-contrast": { enabled: false } } });
     expect(results.violations.map((violation) => violation.id)).toEqual([]);
   });
