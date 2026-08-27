@@ -51,7 +51,7 @@ func TestPostgresDistributionAccessPersistsProtectedVerifiedSessionAndRevokesOnR
 	store := NewPostgresDistributionStore(NewPostgresRepository(pool), keyring)
 	store.now = func() time.Time { return now }
 	bundle, err := store.CreateDistribution(ctx, CreateDistributionInput{
-		TenantID: tenantID, LegalEntityID: entityID, FormTemplateID: formID, FormTemplateVersion: 1,
+		TenantID: "distribution-access-integration", LegalEntityID: "ACCESS", FormTemplateID: formID, FormTemplateVersion: 1,
 		SubjectType: "VENDOR", SubjectID: subjectID, Title: "External resilience review", Purpose: "Verify protected access.",
 		AccessPolicy: AccessSharedEmailOTP, EstimatedMinutes: 5,
 		Deadline: now.Add(4 * time.Hour), RouteExpiresAt: now.Add(3 * time.Hour), CreatedBy: actorID,
@@ -62,6 +62,9 @@ func TestPostgresDistributionAccessPersistsProtectedVerifiedSessionAndRevokesOnR
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if bundle.Distribution.TenantID != tenantID || bundle.Distribution.LegalEntityID != entityID || bundle.Recipients[0].TenantID != tenantID || bundle.Recipients[0].LegalEntityID != entityID {
+		t.Fatalf("distribution aliases were not canonicalized before protection: %+v %+v", bundle.Distribution, bundle.Recipients[0])
 	}
 	if _, err := pool.Exec(ctx, `UPDATE capture_form_distributions SET status='OPEN',updated_at=$2 WHERE id=$1::uuid`, bundle.Distribution.ID, now); err != nil {
 		t.Fatal(err)
@@ -151,7 +154,7 @@ func setupDistributionAccessFixture(t *testing.T, ctx context.Context, pool *pgx
 			$4::uuid,$1::uuid,$2::uuid,'ACCESS-FORM','Access form','Protected distribution access integration.',
 			'{"default_mode":"WIZARD","allow_mode_switch":true}'::jsonb,
 			'[{"id":"general","title":"General"}]'::jsonb,
-			'[{"id":"confirmed","section_id":"general","label":"Confirmed","type":"yes_no","required":true,"collection_intent":"COLLECT","browser_cache_policy":"NO_BROWSER_CACHE"}]'::jsonb,
+			'[{"id":"registered_address","section_id":"general","label":"Registered address","type":"short_text","required":true,"collection_intent":"CONFIRM_OR_CORRECT","record_target":{"key":"registered_address","required_subject_type":"VENDOR"},"browser_cache_policy":"NO_BROWSER_CACHE"}]'::jsonb,
 			'ACTIVE',true,$5,1,$3::uuid,$5,$5
 		)`, pgx.QueryExecModeSimpleProtocol, tenantID, entityID, actorID, formID, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
