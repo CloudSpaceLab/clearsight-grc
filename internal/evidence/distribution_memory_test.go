@@ -82,6 +82,13 @@ func TestMemoryDistributionCreatesTORequestsCCWithoutRequestAndOneWorkspace(t *t
 		if request.FormTemplateID != "form-a" || request.FormTemplateVersion != 3 || request.LegalEntityID != "entity-a" {
 			t.Fatalf("request lost exact distribution scope: %+v", request)
 		}
+		if len(request.Fields) != 1 {
+			t.Fatalf("request lost governed form fields: %+v", request.Fields)
+		}
+		field := request.Fields[0]
+		if field.CollectionIntent != formcontract.IntentConfirmOrCorrect || field.BrowserCachePolicy != formcontract.BrowserCacheDenied || field.RecordTarget == nil || field.RecordTarget.Key != "registered_address" || field.RecordTarget.RequiredSubjectType != "VENDOR" {
+			t.Fatalf("request lost governed collection semantics: %+v", field)
+		}
 	}
 
 	stored := store.recipients[bundle.Distribution.ID]
@@ -145,6 +152,11 @@ func activeDistributionForm() DistributionFormRevision {
 		ID: "form-a", TenantID: "tenant-a", LegalEntityID: "entity-a", Version: 3, Sensitivity: "CONFIDENTIAL", Active: true,
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
 		Sections:     []formcontract.Section{{ID: "general", Title: "General"}},
-		Fields:       []formcontract.Field{{ID: "q1", SectionID: "general", Label: "Control operating?", Type: formcontract.TypeYesNo, Required: true}},
+		Fields: []formcontract.Field{{
+			ID: "q1", SectionID: "general", Label: "Control operating?", Type: formcontract.TypeYesNo, Required: true,
+			CollectionIntent: formcontract.IntentConfirmOrCorrect,
+			RecordTarget:     &formcontract.RecordTarget{Key: "registered_address", RequiredSubjectType: "VENDOR"},
+			BrowserCachePolicy: formcontract.BrowserCacheDenied,
+		}},
 	}
 }
