@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import "../forms.css";
 import {
   createLibraryFormDraft,
   createLibraryFormRevision,
@@ -23,6 +24,7 @@ import type {
 } from "../formsTypes";
 import type { CreateFormTemplateInput, FormTemplate as MonitoringFormTemplate, LifecycleStatus } from "../monitoringTypes";
 import { FormBuilder } from "./FormBuilder";
+import { preserveLibraryRevisionMetadata } from "./forms/formRevisionInput";
 import { isTemplateApprovalReady } from "./forms/formQuality";
 import { clearedFormsQuery, readFormsQuery, writeFormsLocation } from "./forms/formsLocation";
 
@@ -67,7 +69,10 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   const recent = page.items.slice(0, 3);
 
   useEffect(() => {
-    const sync = () => setQuery(readFormsQuery(window.location.hash, initialSearch));
+    const sync = () => {
+      loadEpoch.current += 1;
+      setQuery(readFormsQuery(window.location.hash, initialSearch));
+    };
     window.addEventListener("hashchange", sync);
     window.addEventListener("popstate", sync);
     return () => {
@@ -124,20 +129,25 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
 
   async function loadMore() {
     if (!page.next_cursor || busy) return;
+    const epoch = loadEpoch.current;
+    const cursor = page.next_cursor;
     setBusy("load-more");
     setError(null);
     try {
-      const next = await loadFormTemplatePage({ ...query, cursor: page.next_cursor, limit: query.limit ?? 25 });
-      setPage({ items: [...page.items, ...next.items], next_cursor: next.next_cursor });
+      const next = await loadFormTemplatePage({ ...query, cursor, limit: query.limit ?? 25 });
+      if (epoch !== loadEpoch.current) return;
+      setPage((current) => ({ items: [...current.items, ...next.items], next_cursor: next.next_cursor }));
     } catch (cause) {
+      if (epoch !== loadEpoch.current) return;
       setError(cause instanceof Error ? cause.message : "More form templates could not be loaded.");
     } finally {
-      setBusy(null);
+      if (epoch === loadEpoch.current) setBusy(null);
     }
   }
 
   function changeQuery(patch: Partial<FormTemplateQuery>) {
     const next = { ...query, ...patch, cursor: undefined };
+    loadEpoch.current += 1;
     setQuery(next);
     writeFormsLocation(next, targetID, true);
   }
@@ -149,6 +159,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
 
   function clearFiltersAndTarget() {
     const next = clearedFormsQuery(query);
+    loadEpoch.current += 1;
     setQuery(next);
     onTarget?.(undefined);
     writeFormsLocation(next, undefined, true);
@@ -175,6 +186,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       tag: view.filter.tag,
       limit: view.filter.limit ?? query.limit ?? 25,
     };
+    loadEpoch.current += 1;
     setQuery(next);
     onTarget?.(undefined);
     writeFormsLocation(next, undefined, true);
@@ -233,7 +245,11 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
 
   async function saveEditorDraft(input: CreateFormTemplateInput) {
     if (!editor || editor.mode === "create") return createLibraryFormDraft(input);
-    return createLibraryFormRevision(editor.template.id, editor.template.version, input);
+    return createLibraryFormRevision(
+      editor.template.id,
+      editor.template.version,
+      preserveLibraryRevisionMetadata(editor.template, input),
+    );
   }
 
   async function sendEditorForApproval(form: MonitoringFormTemplate) {
@@ -306,6 +322,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
         onCancel={() => setEditor(null)}
         reusableTemplates={reusableTemplates}
         loadReusableTemplate={loadFormTemplateRevision}
+        allowIncompleteComplianceDraft
       />
     </div> : activeTab === "Templates" ? <div className="forms-template-layout">
       <div className="forms-library">
@@ -313,7 +330,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
           <label className="forms-search"><span>Search templates</span><input type="search" value={query.search ?? ""} placeholder="Name, code or purpose" onChange={(event) => changeQuery({ search: event.target.value || undefined })}/></label>
           <label><span>Status</span><select value={query.status ?? ""} onChange={(event) => changeQuery({ status: event.target.value ? event.target.value as LifecycleStatus : undefined })}><option value="">All states</option><option value="DRAFT">Draft</option><option value="PENDING_APPROVAL">Pending approval</option><option value="ACTIVE">Active</option><option value="PAUSED">Paused</option><option value="RETIRED">Retired</option><option value="REJECTED">Rejected</option></select></label>
           <div className="forms-layout-toggle" aria-label="Template layout"><button type="button" aria-pressed={layout === "table"} onClick={() => setLayout("table")}>Table</button><button type="button" aria-pressed={layout === "grid"} onClick={() => setLayout("grid")}>Cards</button></div>
-          <details className="forms-more-filters"><summary>More filters</summary><div><label><span>Owner ID</span><input value={query.owner ?? ""} onChange={(event) => changeQuery({ owner: event.target.value || undefined })}/></label><label><span>Program ID</span><input value={query.program ?? ""} onChange={(event) => changeQuery({ program: event.target.value || undefined })}/></label><label><span>Approved use</span><input value={query.use ?? ""} onChange={(event) => changeQuery({ use: event.target.value || undefined })}/></label><label><span>Tag</span><input value={query.tag ?? ""} onChange={(event) => changeQuery({ tag: event.target.value || undefined })}/></label></div></details>
+          <details className="forms-more-filters"><summary>More filters</summary><div><label><span>Owner identifier</span><input value={query.owner ?? ""} onChange={(event) => changeQuery({ owner: event.target.value || undefined })}/></label><label><span>Program identifier</span><input value={query.program ?? ""} onChange={(event) => changeQuery({ program: event.target.value || undefined })}/></label><label><span>Approved use</span><input value={query.use ?? ""} onChange={(event) => changeQuery({ use: event.target.value || undefined })}/></label><label><span>Tag</span><input value={query.tag ?? ""} onChange={(event) => changeQuery({ tag: event.target.value || undefined })}/></label></div></details>
         </div>
 
         <div className="forms-saved-views" aria-label="Saved form views">
@@ -325,17 +342,17 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
 
         <div className="forms-secondary-actions"><button type="button" onClick={() => setStarterOpen((open) => !open)}>Use a starter template</button>{starterOpen && <div className="forms-starters">{starters.length ? starters.map((starter) => <article key={`${starter.code}:${starter.catalog_version}`}><div><strong>{starter.template.name}</strong><span>v{starter.catalog_version} · published {starter.published_on}</span><p>{starter.reference_label}</p></div><button type="button" disabled={busy === `starter:${starter.code}`} onClick={() => void useStarter(starter)}>Create governed draft</button></article>) : <p>No starter templates are currently available.</p>}</div>}</div>
 
-        {recent.length > 0 && <section className="forms-recent" aria-labelledby="forms-recent-title"><div><h2 id="forms-recent-title">Recently updated</h2><span>Latest bounded server results</span></div><ol>{recent.map((item) => <li key={item.template.id}><button type="button" onClick={() => choose(item.template.id)}><strong>{item.template.name}</strong><span>{statusLabel(item.template.status)} · v{item.template.version}</span></button></li>)}</ol></section>}
+        {recent.length > 0 && <section className="forms-recent" aria-labelledby="forms-recent-title"><div><h2 id="forms-recent-title">Recently updated</h2><span>Latest updates</span></div><ol>{recent.map((item) => <li key={item.template.id}><button type="button" onClick={() => choose(item.template.id)}><strong>{item.template.name}</strong><span>{statusLabel(item.template.status)} · v{item.template.version}</span></button></li>)}</ol></section>}
 
         {selectedItems.length > 0 && <div className="forms-bulk" role="status"><strong>{selectedItems.length} selected</strong>{bulkTransition ? <button type="button" disabled={busy === "bulk-transition"} onClick={() => void runBulkTransition()}>Send {selectedItems.length} for approval</button> : <span>Bulk approval is available only when every selected row is an approval-ready draft with the same permitted lifecycle action.</span>}<button type="button" onClick={() => setSelectedIDs(new Set())}>Clear selection</button></div>}
 
-        {state === "loading" ? <div className="forms-loading" aria-live="polite" aria-busy="true">Loading form templates…</div> : state === "unavailable" ? <div className="forms-empty"><h2>Forms are temporarily unavailable</h2><p>The library could not be read. No template state was changed.</p><button type="button" onClick={() => void refresh()}>Retry</button></div> : page.items.length === 0 ? <div className="forms-empty"><h2>{query.search ? `No form templates match ‘${query.search}’ in this legal entity.` : "No form templates are available in this legal entity yet."}</h2><p>{query.search ? "Change the search or filters, or start a new governed draft." : "Create a template from scratch or copy the reviewed starter into a draft."}</p><div><button className="forms-primary" type="button" onClick={openCreate}>Create form template</button><button type="button" onClick={() => setStarterOpen(true)}>Use a starter template</button></div></div> : layout === "table" ? <TemplateTable items={page.items} selectedIDs={selectedIDs} targetID={targetID} onToggle={(id) => toggleSelected(id, selectedIDs, setSelectedIDs)} onOpen={choose}/> : <TemplateGrid items={page.items} selectedIDs={selectedIDs} targetID={targetID} onToggle={(id) => toggleSelected(id, selectedIDs, setSelectedIDs)} onOpen={choose}/>}
+        {state === "loading" ? <div className="forms-loading" aria-live="polite" aria-busy="true">Loading form templates…</div> : state === "unavailable" ? <div className="forms-empty"><h2>Forms are temporarily unavailable</h2><p>The library could not be read. No template state was changed.</p><button type="button" onClick={() => void refresh()}>Retry</button></div> : page.items.length === 0 ? <div className="forms-empty"><h2>{query.search ? `No form templates match ‘${query.search}’ in this legal entity.` : "No form templates are available in this legal entity yet."}</h2><p>{query.search ? "Change the search or filters, or start a new governed draft." : "Create a template from scratch or copy the reviewed starter into a draft."}</p><div><button className="forms-primary" type="button" onClick={openCreate}>Create form template</button><button type="button" onClick={() => setStarterOpen(true)}>Use a starter template</button></div></div> : layout === "table" ? <TemplateTable items={page.items} selectedIDs={selectedIDs} targetID={targetID} onToggle={(id) => toggleSelected(id, selectedIDs, setSelectedIDs)} onOpen={choose}/> : <TemplateGrid items={page.items} selectedIDs={selectedIDs} targetID={targetID} onToggle={(id) => toggleSelected(id, selectedIDs, setSelectedIDs)} onOpen={choose}/>} 
 
         {page.next_cursor && state === "live" && <button className="forms-load-more" type="button" disabled={busy === "load-more"} onClick={() => void loadMore()}>{busy === "load-more" ? "Loading…" : "Load more"}</button>}
       </div>
 
       <aside className="forms-detail" aria-label="Selected form template">
-        {selected ? <TemplateDetail item={selected} busy={busy} onEdit={() => openEdit(selected.template)} onTransition={(to) => void transition(selected, to)}/> : targetID ? <><span className="forms-detail-kicker">Selected template</span><h2>Template is outside this bounded page</h2><p>Clear filters or search for the template to inspect its latest and active revision state.</p><button type="button" onClick={clearFiltersAndTarget}>Clear filters</button></> : <><span className="forms-detail-kicker">Template detail</span><h2>Select a template</h2><p>Inspect the latest stored revision separately from the active revision available for reuse.</p></>}
+        {selected ? <TemplateDetail item={selected} busy={busy} onEdit={() => openEdit(selected.template)} onTransition={(to) => void transition(selected, to)}/> : targetID ? <><span className="forms-detail-kicker">Selected template</span><h2>Template isn’t in the current results</h2><p>Clear filters or search for this template to inspect its latest and active revision state.</p><button type="button" onClick={clearFiltersAndTarget}>Clear filters</button></> : <><span className="forms-detail-kicker">Template detail</span><h2>Select a template</h2><p>Inspect the latest stored revision separately from the active revision available for reuse.</p></>}
       </aside>
     </div> : <FutureFormsTab tab={activeTab as Exclude<FormsTab, "Templates">}/>} 
   </section>;
