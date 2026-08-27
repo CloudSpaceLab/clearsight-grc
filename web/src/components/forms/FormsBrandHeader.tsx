@@ -46,7 +46,7 @@ export function FormsBrandHeader({ organizationName, legalEntityName, appearance
   const showLogo = Boolean(appearance.logoURL && !failedLogo);
   return <header className="forms-header forms-brand-header">
     <div className="forms-brand-context">
-      <div className="forms-brand-mark" aria-label={`${organizationName} workspace identity`} style={{ color: contrastTextForAccent(appearance.accentColor) }}>
+      <div className="forms-brand-mark" style={{ color: contrastTextForAccent(appearance.accentColor) }}>
         {showLogo
           ? <img src={appearance.logoURL} alt={`${organizationName} logo`} onError={() => setFailedLogo(true)}/>
           : <Monogram name={organizationName} decorative className="forms-brand-monogram"/>}
