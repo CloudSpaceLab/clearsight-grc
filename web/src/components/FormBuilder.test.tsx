@@ -123,7 +123,7 @@ describe("FormBuilder", () => {
     expect(input.fields[2]?.condition?.field_id).toBe("question_2");
   });
 
-  it("blocks approval while compliance question weight remains", () => {
+  it("saves incomplete compliance allocation as a draft while blocking approval", async () => {
     const complianceForm: FormTemplate = {
       ...savedForm,
       scoring_mode: "COMPLIANCE",
@@ -138,9 +138,14 @@ describe("FormBuilder", () => {
         scoring: { weight: 80, answer_scores: { Yes: 100, No: 0 } },
       }],
     };
-    render(<FormBuilder initialValue={complianceForm} saveDraft={vi.fn()} onSendForApproval={vi.fn()} onSaved={vi.fn()} onCancel={vi.fn()}/>);
+    const saveDraft = vi.fn().mockResolvedValue(complianceForm);
+    const sendForApproval = vi.fn();
+    render(<FormBuilder initialValue={complianceForm} saveDraft={saveDraft} onSendForApproval={sendForApproval} onSaved={vi.fn()} onCancel={vi.fn()}/>);
     expect(screen.getByText("20% remains to allocate in Vendor identity")).toBeTruthy();
     expect((screen.getByRole("button", { name: "Send for approval" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await waitFor(() => expect(saveDraft).toHaveBeenCalledTimes(1));
+    expect(sendForApproval).not.toHaveBeenCalled();
   });
 
   it("adds an explicit required sign-off without making it an implicit contract rule", () => {
