@@ -15,8 +15,4 @@ DROP INDEX IF EXISTS capture_access_routes_active_shared_uq;
 ALTER TABLE capture_distribution_recipients
     DROP CONSTRAINT IF EXISTS capture_distribution_recipients_session_binding_key;
 
-ALTER TABLE capture_otp_challenges
-    DROP COLUMN IF EXISTS max_resends,
-    DROP COLUMN IF EXISTS resends;
-
 COMMIT;
