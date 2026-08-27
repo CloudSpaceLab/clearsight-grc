@@ -153,9 +153,13 @@ func activeDistributionForm() DistributionFormRevision {
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
 		Sections:     []formcontract.Section{{ID: "general", Title: "General"}},
 		Fields: []formcontract.Field{{
-			ID: "q1", SectionID: "general", Label: "Control operating?", Type: formcontract.TypeYesNo, Required: true,
-			CollectionIntent: formcontract.IntentConfirmOrCorrect,
-			RecordTarget:     &formcontract.RecordTarget{Key: "registered_address", RequiredSubjectType: "VENDOR"},
+			ID:                 "q1",
+			SectionID:          "general",
+			Label:              "Control operating?",
+			Type:               formcontract.TypeYesNo,
+			Required:           true,
+			CollectionIntent:   formcontract.IntentConfirmOrCorrect,
+			RecordTarget:       &formcontract.RecordTarget{Key: "registered_address", RequiredSubjectType: "VENDOR"},
 			BrowserCachePolicy: formcontract.BrowserCacheDenied,
 		}},
 	}
