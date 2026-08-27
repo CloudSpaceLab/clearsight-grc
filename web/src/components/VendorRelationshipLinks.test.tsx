@@ -69,6 +69,32 @@ describe("VendorRelationshipLinks", () => {
     expect(await screen.findByText("Vendor linked to this Program.")).toBeTruthy();
   });
 
+  it("opens vendor linking as a focused task with contextual vendor choices", async () => {
+    vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [acme] });
+    render(<VendorRelationshipLinks targetType="PROGRAM" targetID="program-1"/>);
+    await screen.findByText("No vendor relationships are linked to this Program.");
+    fireEvent.click(screen.getByRole("button", { name: "Link vendor" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Link vendor to this Program" });
+    expect(within(dialog).getByRole("button", { name: "Close" })).toBe(document.activeElement);
+    fireEvent.change(within(dialog).getByLabelText("Search vendor relationships"), { target: { value: "Acme" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Search vendors" }));
+
+    const choice = await within(dialog).findByRole("radio", { name: /Acme Processing Limited.*Card transaction processing.*Important.*Active/i });
+    expect(choice).toBeTruthy();
+    expect(within(dialog).getByLabelText("Acme Processing Limited initials")).toBeTruthy();
+  });
+
+  it("searches after a short pause without requiring a separate button press", async () => {
+    vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [acme] });
+    render(<VendorRelationshipLinks targetType="PROGRAM" targetID="program-1"/>);
+    await screen.findByText("No vendor relationships are linked to this Program.");
+    fireEvent.click(screen.getByRole("button", { name: "Link vendor" }));
+    fireEvent.change(screen.getByLabelText("Search vendor relationships"), { target: { value: "Acme" } });
+
+    await waitFor(() => expect(loadVendorRelationships).toHaveBeenCalledWith({ search: "Acme", limit: 20 }), { timeout: 1000 });
+  });
+
   it("preserves search, selection and purpose inputs when linking fails", async () => {
     vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [acme] });
     vi.mocked(linkVendorRelationship).mockRejectedValue(new Error("unavailable"));
@@ -235,7 +261,7 @@ describe("VendorRelationshipLinks", () => {
     const open = screen.getByRole("button", { name: "Link vendor" });
     fireEvent.click(open);
 
-    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Search vendor relationships")));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close" })));
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Link vendor" })));
   });

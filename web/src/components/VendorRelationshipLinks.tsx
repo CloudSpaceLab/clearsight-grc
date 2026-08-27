@@ -1,9 +1,11 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { apiErrorKind } from "../http";
 import { loadVendorRelationship, loadVendorRelationships } from "../vendorApi";
 import { endVendorRelationshipLink, linkVendorRelationship, loadVendorRelationshipLinks } from "../vendorLinkApi";
 import type { VendorRelationshipLink, VendorLinkTargetType } from "../vendorLinkTypes";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
+import { FocusedSheet } from "./FocusedSheet";
+import { VendorBrandIcon } from "./VendorBrandIcon";
 import "../vendor-relationship-links.css";
 
 type Props = { targetType: VendorLinkTargetType; targetID: string };
@@ -44,10 +46,9 @@ export function VendorRelationshipLinks({ targetType, targetID }: Props) {
   const loadSequence = useRef(0);
   const searchSequence = useRef(0);
   const saveSequence = useRef(0);
+  const searchTimer = useRef<number | null>(null);
   const activeTarget = useRef("");
   const openButton = useRef<HTMLButtonElement | null>(null);
-  const searchInput = useRef<HTMLInputElement | null>(null);
-  const restoreOpenFocus = useRef(false);
   const purposeID = useId();
   const customPurposeID = useId();
   const customPurposeHelpID = useId();
@@ -55,10 +56,33 @@ export function VendorRelationshipLinks({ targetType, targetID }: Props) {
   const targetName = targetType === "PROGRAM" ? "Program" : "issue or change";
   activeTarget.current = `${targetType}:${targetID}`;
 
+  const resetForm = useCallback(() => {
+    setQuery("");
+    setResults([]);
+    setSearching(false);
+    setSearchAttempted(false);
+    setSearchError(false);
+    ++searchSequence.current;
+    if (searchTimer.current !== null) window.clearTimeout(searchTimer.current);
+    searchTimer.current = null;
+    setSelectedID("");
+    setPurpose("");
+    setCustomPurpose("");
+    setSaving(false);
+    setSaveError(null);
+    setSaveErrorKind(null);
+    setNotice(null);
+  }, []);
+
+  const closeLinking = useCallback(() => {
+    setLinking(false);
+    resetForm();
+    window.setTimeout(() => openButton.current?.focus(), 0);
+  }, [resetForm]);
+
   useEffect(() => {
     ++saveSequence.current;
     ++searchSequence.current;
-    restoreOpenFocus.current = false;
     setLinks([]);
     setNextCursor(null);
     setLoadMoreError(false);
@@ -68,16 +92,20 @@ export function VendorRelationshipLinks({ targetType, targetID }: Props) {
     setEndError("");
     resetForm();
     void loadLinks();
-  }, [targetType, targetID]);
+  }, [targetType, targetID, resetForm]);
 
   useEffect(() => {
-    if (linking) {
-      searchInput.current?.focus();
-    } else if (restoreOpenFocus.current) {
-      restoreOpenFocus.current = false;
-      openButton.current?.focus();
-    }
-  }, [linking]);
+    const searchValue = query.trim();
+    if (!linking || !searchValue) return;
+    searchTimer.current = window.setTimeout(() => {
+      searchTimer.current = null;
+      void runSearch(searchValue);
+    }, 300);
+    return () => {
+      if (searchTimer.current !== null) window.clearTimeout(searchTimer.current);
+      searchTimer.current = null;
+    };
+  }, [linking, query]);
 
   async function loadLinks(cursor?: string) {
     const sequence = ++loadSequence.current;
@@ -108,25 +136,15 @@ export function VendorRelationshipLinks({ targetType, targetID }: Props) {
     }
   }
 
-  function resetForm() {
-    setQuery("");
-    setResults([]);
-    setSearching(false);
-    setSearchAttempted(false);
-    setSearchError(false);
-    ++searchSequence.current;
-    setSelectedID("");
-    setPurpose("");
-    setCustomPurpose("");
-    setSaving(false);
-    setSaveError(null);
-    setSaveErrorKind(null);
-    setNotice(null);
-  }
-
   async function search() {
     const search = query.trim();
     if (!search) return;
+    if (searchTimer.current !== null) window.clearTimeout(searchTimer.current);
+    searchTimer.current = null;
+    await runSearch(search);
+  }
+
+  async function runSearch(search: string) {
     const sequence = ++searchSequence.current;
     setSearchAttempted(true);
     setSearchError(false);
@@ -210,10 +228,10 @@ export function VendorRelationshipLinks({ targetType, targetID }: Props) {
     }
   }
 
-  return <section className="vendor-relationship-links" aria-labelledby={headingID} data-testid={`vendor-links-${targetType}-${targetID}`}>
+  return <section className="vendor-relationship-links" aria-labelledby={headingID} aria-hidden={linking ? "true" : undefined} data-testid={`vendor-links-${targetType}-${targetID}`}>
     <div className="section-heading-row">
       <div><h2 id={headingID}>Related vendors</h2><p>Vendor relationships connected to this {targetName} and the recorded purpose for each link.</p></div>
-      {loadState === "ready" && !linking && <button ref={openButton} type="button" className="primary-button" onClick={() => { restoreOpenFocus.current = true; setNotice(null); setLinking(true); }}>Link vendor</button>}
+      {loadState === "ready" && <button ref={openButton} type="button" className="primary-button" onClick={() => { if (!linking) { setNotice(null); setLinking(true); } }}>Link vendor</button>}
     </div>
     {notice && <p role="status">{notice}</p>}
     {loadState === "loading" && <p aria-live="polite" aria-busy="true">Loading vendor relationships linked to this {targetName}…</p>}
@@ -226,18 +244,26 @@ export function VendorRelationshipLinks({ targetType, targetID }: Props) {
     </li>; })}</ul>}
     {loadState === "ready" && nextCursor && <button type="button" className="secondary-button vendor-link-load-more" disabled={loadingMore} onClick={() => void loadLinks(nextCursor)}>{loadingMore ? "Loading…" : "Load more related vendors"}</button>}
     {loadMoreError && <div role="alert"><span>More related vendors could not be loaded. The current list remains available.</span><button type="button" className="secondary-button" onClick={() => nextCursor && void loadLinks(nextCursor)}>Try again</button></div>}
-    {linking && <form className="vendor-link-form" onSubmit={(event) => void submit(event)}>
-      <h3>Link a vendor relationship</h3>
-      <p>Search the current vendor register, then record why the relationship supports this {targetName}.</p>
-      <div className="form-grid"><label>Search vendor relationships<input ref={searchInput} value={query} onChange={(event) => changeQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void search(); } }} autoComplete="off"/></label><button type="button" className="secondary-button" disabled={searching || !query.trim()} onClick={() => void search()}>{searching ? "Searching…" : "Search vendors"}</button></div>
+    {linking && <FocusedSheet label={`Link vendor to this ${targetName}`} onClose={closeLinking} panelClassName="vendor-link-sheet">
+      <form className="vendor-link-form" onSubmit={(event) => void submit(event)}>
+      <div className="vendor-link-sheet-heading"><span className="eyebrow">Related vendor</span><h2>Link vendor to this {targetName}</h2><p>Search the vendor register, choose the relevant service relationship, and record why it supports this {targetName}.</p></div>
+      <div className="form-grid vendor-link-search"><label>Search vendor relationships<input value={query} onChange={(event) => changeQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void search(); } }} autoComplete="off" placeholder="Vendor or service name"/></label><button type="button" className="secondary-button" disabled={searching || !query.trim()} onClick={() => void search()}>{searching ? "Searching…" : "Search vendors"}</button></div>
       {searchError && <div role="alert"><span>Vendor search is unavailable. Your search remains on this screen.</span><button type="button" className="secondary-button" disabled={searching} onClick={() => void search()}>Try again</button></div>}
       {!searchError && searchAttempted && results.length === 0 && <p>No vendor relationships match this search. Check the vendor or service name and search again.</p>}
-      {results.length > 0 && <fieldset><legend>Search results</legend>{results.map((item) => <label key={item.relationship.id}><input type="radio" name="vendor-relationship" value={item.relationship.id} checked={selectedID === item.relationship.id} onChange={() => setSelectedID(item.relationship.id)}/><span><strong>{item.vendor.legal_name}</strong> · {item.relationship.service_name}</span></label>)}</fieldset>}
+      {results.length > 0 && <fieldset className="vendor-link-results"><legend>Search results</legend>{results.map((item) => <label key={item.relationship.id} className={selectedID === item.relationship.id ? "selected" : undefined}><input type="radio" name="vendor-relationship" value={item.relationship.id} checked={selectedID === item.relationship.id} onChange={() => setSelectedID(item.relationship.id)}/><VendorBrandIcon vendorID={item.vendor.id} legalName={item.vendor.legal_name} brand={item.brand}/><span className="vendor-link-result-copy"><strong>{item.vendor.legal_name}</strong><span>{item.relationship.service_name}</span><small>{relationshipContext(item)}</small></span></label>)}</fieldset>}
       <div className="form-grid"><div><label htmlFor={purposeID}>Relationship purpose</label><select id={purposeID} value={purpose} onChange={(event) => setPurpose(event.target.value as PurposeSelection)}><option value="">Choose a purpose</option>{Object.entries(relationshipPurposes).map(([code, label]) => <option key={code} value={code}>{label}</option>)}<option value="OTHER">Other</option></select></div>{purpose === "OTHER" && <div><label htmlFor={customPurposeID}>Custom purpose</label><input id={customPurposeID} aria-describedby={customPurposeHelpID} value={customPurpose} maxLength={160} required onChange={(event) => setCustomPurpose(event.target.value)}/><small id={customPurposeHelpID}>Briefly state how this vendor relationship supports the current record.</small></div>}</div>
       {saveError && <div role="alert"><span>{saveError}</span>{saveErrorKind === "conflict" && <button type="button" className="secondary-button" onClick={() => void loadLinks()}>Refresh related vendors</button>}</div>}
-      <div className="form-actions"><button type="button" className="secondary-button" disabled={saving} onClick={() => { setLinking(false); resetForm(); }}>Cancel</button><button type="submit" className="primary-button" disabled={saving || !selectedID || !relationshipPurposeInput(purpose, customPurpose)}>{saving ? "Linking…" : "Link vendor"}</button></div>
-    </form>}
+      <div className="form-actions"><button type="button" className="secondary-button" disabled={saving} onClick={closeLinking}>Cancel</button><button type="submit" className="primary-button" disabled={saving || !selectedID || !relationshipPurposeInput(purpose, customPurpose)}>{saving ? "Linking…" : "Link vendor"}</button></div>
+      </form>
+    </FocusedSheet>}
   </section>;
+}
+
+function relationshipContext(item: VendorRelationshipAggregate) {
+  const criticality = item.relationship.criticality.replaceAll("_", " ").toLowerCase();
+  const status = item.relationship.status.replaceAll("_", " ").toLowerCase();
+  const titleCase = (value: string) => value ? (value[0]?.toUpperCase() ?? "") + value.slice(1) : value;
+  return `${titleCase(criticality)} · ${titleCase(status)}`;
 }
 
 function relationshipPurposeInput(purpose: PurposeSelection, customPurpose: string) {
