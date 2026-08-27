@@ -257,6 +257,7 @@ func requestFieldsFromContract(fields []formcontract.Field) []Field {
 			ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: string(field.Type), Required: field.Required,
 			Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...),
 			Attestation: field.Attestation, Constraints: field.Constraints, Condition: field.Condition, Scoring: field.Scoring,
+			CollectionIntent: field.CollectionIntent, RecordTarget: field.RecordTarget, BrowserCachePolicy: field.BrowserCachePolicy,
 		}
 	}
 	return result
