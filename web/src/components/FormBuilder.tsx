@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import "../form-authoring.css";
 import type { ReusableFormTemplateRef } from "../formsTypes";
 import { createFormTemplate } from "../monitoringApi";
 import type { CreateFormTemplateInput, FormFieldType, FormScoringMode, FormTemplate } from "../monitoringTypes";
@@ -32,6 +33,7 @@ type Props = {
   onSendForApproval?: (form: FormTemplate) => Promise<FormTemplate | void>;
   reusableTemplates?: ReusableFormTemplateRef[];
   loadReusableTemplate?: (id: string, version: number) => Promise<FormTemplate>;
+  allowIncompleteComplianceDraft?: boolean;
 };
 
 const passwordResetQuestions = [
@@ -51,6 +53,7 @@ export function FormBuilder({
   onSendForApproval,
   reusableTemplates,
   loadReusableTemplate,
+  allowIncompleteComplianceDraft = false,
 }: Props) {
   const [draft, setDraft] = useState<FormDraft>(() => draftFromTemplate(initialValue));
   const [nextSection, setNextSection] = useState(() => maxGeneratedNumber(draft.sections.map((section) => section.id), "section"));
@@ -65,7 +68,10 @@ export function FormBuilder({
     fields: createInput.fields,
   }), [createInput]);
   const issues = useMemo(() => evaluateQuality(draft), [draft]);
-  const draftIssues = useMemo(() => evaluateDraftValidity(draft), [draft]);
+  const draftIssues = useMemo(
+    () => allowIncompleteComplianceDraft ? evaluateDraftValidity(draft) : evaluateQuality(draft),
+    [allowIncompleteComplianceDraft, draft],
+  );
   const approvalReady = !issues.some((issue) => issue.blocking);
   const draftValid = !draftIssues.some((issue) => issue.blocking);
   const initialInput = useMemo(() => initialValue ? buildCreateInput(draftFromTemplate(initialValue)) : undefined, [initialValue]);
