@@ -24,6 +24,7 @@ import type {
 import type { CreateFormTemplateInput, FormTemplate as MonitoringFormTemplate, LifecycleStatus } from "../monitoringTypes";
 import { FormBuilder } from "./FormBuilder";
 import { isTemplateApprovalReady } from "./forms/formQuality";
+import { clearedFormsQuery, readFormsQuery, writeFormsLocation } from "./forms/formsLocation";
 
 const tabs = ["Templates", "Sent forms", "Responses", "Imports", "Communications"] as const;
 type FormsTab = typeof tabs[number];
@@ -146,6 +147,13 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     writeFormsLocation(query, id, Boolean(onTarget));
   }
 
+  function clearFiltersAndTarget() {
+    const next = clearedFormsQuery(query);
+    setQuery(next);
+    onTarget?.(undefined);
+    writeFormsLocation(next, undefined, true);
+  }
+
   function openCreate() {
     setEditor({ mode: "create" });
     setStarterOpen(false);
@@ -168,8 +176,8 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       limit: view.filter.limit ?? query.limit ?? 25,
     };
     setQuery(next);
-    writeFormsLocation(next, undefined, true);
     onTarget?.(undefined);
+    writeFormsLocation(next, undefined, true);
   }
 
   async function submitSavedView(event: FormEvent<HTMLFormElement>) {
@@ -327,7 +335,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       </div>
 
       <aside className="forms-detail" aria-label="Selected form template">
-        {selected ? <TemplateDetail item={selected} busy={busy} onEdit={() => openEdit(selected.template)} onTransition={(to) => void transition(selected, to)}/> : targetID ? <><span className="forms-detail-kicker">Selected template</span><h2>Template is outside this bounded page</h2><p>Clear filters or search for the template to inspect its latest and active revision state.</p><button type="button" onClick={() => { changeQuery({ search: undefined, status: undefined, owner: undefined, program: undefined, use: undefined, tag: undefined }); choose(undefined); }}>Clear filters</button></> : <><span className="forms-detail-kicker">Template detail</span><h2>Select a template</h2><p>Inspect the latest stored revision separately from the active revision available for reuse.</p></>}
+        {selected ? <TemplateDetail item={selected} busy={busy} onEdit={() => openEdit(selected.template)} onTransition={(to) => void transition(selected, to)}/> : targetID ? <><span className="forms-detail-kicker">Selected template</span><h2>Template is outside this bounded page</h2><p>Clear filters or search for the template to inspect its latest and active revision state.</p><button type="button" onClick={clearFiltersAndTarget}>Clear filters</button></> : <><span className="forms-detail-kicker">Template detail</span><h2>Select a template</h2><p>Inspect the latest stored revision separately from the active revision available for reuse.</p></>}
       </aside>
     </div> : <FutureFormsTab tab={activeTab as Exclude<FormsTab, "Templates">}/>} 
   </section>;
@@ -348,11 +356,11 @@ function TemplateDetail({ item, busy, onEdit, onTransition }: { item: FormLibrar
 }
 
 function FutureFormsTab({ tab }: { tab: Exclude<FormsTab, "Templates"> }) {
-  if (tab === "Imports") return <div className="forms-future"><span className="forms-detail-kicker">Imports</span><h2>Turn governed source documents into reviewable form proposals</h2><p>The current Imports workspace remains the authoritative document intake path. Form-template proposal review is enabled in Tranche 3; no extracted content is silently converted into an active form.</p><button type="button" onClick={() => { window.location.hash = "#imports"; }}>Open Imports</button></div>;
+  if (tab === "Imports") return <div className="forms-future"><span className="forms-detail-kicker">Imports</span><h2>Turn governed source documents into reviewable form proposals</h2><p>The current Imports workspace remains the authoritative document intake path. Reviewable form proposals will appear here after document extraction is enabled; extracted content is never silently activated.</p><button type="button" onClick={() => { window.location.hash = "#imports"; }}>Open Imports</button></div>;
   const messages: Record<Exclude<FormsTab, "Templates" | "Imports">, [string, string]> = {
-    "Sent forms": ["No form distributions yet", "Distribution records, recipients and protected delivery become available when the Tranche 2 distribution APIs are deployed."],
-    Responses: ["No distribution responses yet", "Responses will appear here from immutable submission revisions; legacy evidence requests remain in Work until that migration is proven."],
-    Communications: ["Communication configuration is not enabled yet", "Invitation, reminder and branding configuration arrives with governed Tranche 2 communications and maker-checker activation."],
+    "Sent forms": ["No form distributions yet", "Distribution records, recipients and protected delivery are not enabled in this workspace yet."],
+    Responses: ["No distribution responses yet", "Responses will appear here from immutable submission revisions after governed distribution is enabled."],
+    Communications: ["Communication configuration is not enabled yet", "Invitation, reminder and branding configuration will be available with governed form distribution."],
   };
   const [title, detail] = messages[tab];
   return <div className="forms-future"><span className="forms-detail-kicker">{tab}</span><h2>{title}</h2><p>{detail}</p></div>;
@@ -376,33 +384,4 @@ function toggleSelected(id: string, selected: Set<string>, setSelected: (value: 
   const next = new Set(selected);
   if (next.has(id)) next.delete(id); else next.add(id);
   setSelected(next);
-}
-
-function readFormsQuery(hash: string, fallbackSearch?: string): FormTemplateQuery {
-  const raw = hash.includes("?") ? hash.slice(hash.indexOf("?") + 1) : "";
-  const params = new URLSearchParams(raw);
-  const limitValue = Number(params.get("limit") || "25");
-  return {
-    search: params.get("search") || fallbackSearch || undefined,
-    status: (params.get("status") || undefined) as LifecycleStatus | undefined,
-    owner: params.get("owner") || undefined,
-    program: params.get("program") || undefined,
-    use: params.get("use") || undefined,
-    tag: params.get("tag") || undefined,
-    limit: Number.isFinite(limitValue) && limitValue >= 1 && limitValue <= 100 ? limitValue : 25,
-  };
-}
-
-function writeFormsLocation(query: FormTemplateQuery, targetID?: string, replace = true) {
-  const params = new URLSearchParams();
-  if (query.search?.trim()) params.set("search", query.search.trim());
-  if (query.status) params.set("status", query.status);
-  if (query.owner?.trim()) params.set("owner", query.owner.trim());
-  if (query.program?.trim()) params.set("program", query.program.trim());
-  if (query.use?.trim()) params.set("use", query.use.trim());
-  if (query.tag?.trim()) params.set("tag", query.tag.trim());
-  if (query.limit && query.limit !== 25) params.set("limit", String(query.limit));
-  const encoded = params.toString();
-  const hash = `#forms${targetID ? `/${encodeURIComponent(targetID)}` : ""}${encoded ? `?${encoded}` : ""}`;
-  if (replace) window.history.replaceState(null, "", hash); else window.history.pushState(null, "", hash);
 }
