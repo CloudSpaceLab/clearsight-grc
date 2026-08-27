@@ -70,7 +70,8 @@ export function EvidenceWorkspace({ sources, requests, sourceState, requestState
     const id = targetID ?? (openFirst ? currentRequests[0]?.id : undefined);
     if (!id) return;
     setOpenID(id);
-    window.setTimeout(() => document.getElementById(`evidence-request-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+    const timer = window.setTimeout(() => document.getElementById(`evidence-request-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+    return () => window.clearTimeout(timer);
   }, [targetID, openFirst, currentRequests]);
 
   function updateEdit(id: string, patch: Partial<EditState>) {
