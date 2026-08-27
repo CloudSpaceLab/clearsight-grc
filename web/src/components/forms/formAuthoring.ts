@@ -106,7 +106,6 @@ export function normalizeOptionText(value: string): string[] {
     if (seen.has(key)) continue;
     seen.add(key);
     values.push(option);
-    if (values.length === 50) break;
   }
   return values;
 }
@@ -406,7 +405,7 @@ function uniqueOptions(values: string[]) {
     if (!value || seen.has(key)) return false;
     seen.add(key);
     return true;
-  }).slice(0, 50);
+  });
 }
 
 function uniqueLower(values: string[]) {
