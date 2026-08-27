@@ -5,26 +5,29 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 )
 
 type MemoryRepository struct {
-	mu      sync.RWMutex
-	forms   map[string]FormTemplate
-	checks  map[string]MonitoringCheck
-	results map[string]MonitoringResult
-	events  []MonitoringEvent
-	outbox  []MonitoringEvent
+	mu         sync.RWMutex
+	forms      map[string]FormTemplate
+	savedViews map[string]SavedFormView
+	checks     map[string]MonitoringCheck
+	results    map[string]MonitoringResult
+	events     []MonitoringEvent
+	outbox     []MonitoringEvent
 }
 
 func NewMemoryRepository() *MemoryRepository {
-	return &MemoryRepository{forms: map[string]FormTemplate{}, checks: map[string]MonitoringCheck{}, results: map[string]MonitoringResult{}}
+	return &MemoryRepository{forms: map[string]FormTemplate{}, savedViews: map[string]SavedFormView{}, checks: map[string]MonitoringCheck{}, results: map[string]MonitoringResult{}}
 }
 
 func (r *MemoryRepository) CreateFormRevision(_ context.Context, value FormTemplate) (FormTemplate, error) {
-	if value.TenantID == "" || value.LegalEntityID == "" || value.ProgramID == "" || value.ID == "" || value.Version < 1 {
+	if value.TenantID == "" || value.LegalEntityID == "" || value.ID == "" || value.Version < 1 {
 		return FormTemplate{}, ErrInvalid
 	}
+	applyFormMetadataDefaults(&value)
 	event, err := newMonitoringEvent(value.TenantID, AggregateMonitoringForm, value.ID, value.Version, EventMonitoringFormCreated, value, value.CreatedBy, value.CreatedAt)
 	if err != nil {
 		return FormTemplate{}, err
@@ -80,6 +83,130 @@ func (r *MemoryRepository) ListReusableFormRevisions(_ context.Context, tenant, 
 		return values[i].Code < values[j].Code
 	})
 	return boundedForms(values, limit), nil
+}
+
+func (r *MemoryRepository) ListFormLibrary(_ context.Context, filter FormLibraryFilter) (FormTemplatePage, error) {
+	if filter.TenantID == "" || filter.LegalEntityID == "" {
+		return FormTemplatePage{}, ErrInvalid
+	}
+	cursor, err := decodeFormLibraryCursor(filter.Cursor)
+	if err != nil {
+		return FormTemplatePage{}, err
+	}
+	limit := boundedFormLibraryLimit(filter.Limit)
+	search := strings.ToLower(strings.TrimSpace(filter.Search))
+	use := strings.ToUpper(strings.TrimSpace(filter.Use))
+	tag := strings.ToLower(strings.TrimSpace(filter.Tag))
+
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	latest := make(map[string]FormTemplate)
+	activeVersions := make(map[string]FormTemplate)
+	for _, value := range r.forms {
+		if value.TenantID != filter.TenantID || value.LegalEntityID != filter.LegalEntityID {
+			continue
+		}
+		if prior, exists := latest[value.ID]; !exists || value.Version > prior.Version {
+			latest[value.ID] = value
+		}
+		if value.IsCurrent && (value.Status == LifecycleActive || value.Status == LifecyclePaused) {
+			activeVersions[value.ID] = value
+		}
+	}
+	items := make([]FormLibraryItem, 0, len(latest))
+	for _, value := range latest {
+		if search != "" && !strings.Contains(strings.ToLower(value.Code+" "+value.Name+" "+value.Purpose), search) {
+			continue
+		}
+		if filter.ProgramID != "" && value.ProgramID != filter.ProgramID || filter.OwnerPrincipalID != "" && value.OwnerPrincipalID != filter.OwnerPrincipalID || filter.Status != "" && value.Status != filter.Status {
+			continue
+		}
+		if use != "" && !containsFold(value.ApprovedUses, use) || tag != "" && !containsFold(value.Tags, tag) {
+			continue
+		}
+		if !cursor.UpdatedAt.IsZero() && (value.UpdatedAt.After(cursor.UpdatedAt) || value.UpdatedAt.Equal(cursor.UpdatedAt) && value.ID >= cursor.ID) {
+			continue
+		}
+		item := FormLibraryItem{Template: cloneValue(value)}
+		if active, exists := activeVersions[value.ID]; exists {
+			item.ActiveVersion = active.Version
+			item.ActiveStatus = active.Status
+		}
+		items = append(items, item)
+	}
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].Template.UpdatedAt.Equal(items[j].Template.UpdatedAt) {
+			return items[i].Template.ID > items[j].Template.ID
+		}
+		return items[i].Template.UpdatedAt.After(items[j].Template.UpdatedAt)
+	})
+	page := FormTemplatePage{Items: items}
+	if len(page.Items) > limit {
+		page.Items = page.Items[:limit]
+		last := page.Items[len(page.Items)-1].Template
+		page.NextCursor = encodeFormLibraryCursor(formLibraryCursor{UpdatedAt: last.UpdatedAt, ID: last.ID})
+	}
+	return page, nil
+}
+
+func (r *MemoryRepository) ListSavedFormViews(_ context.Context, tenantID, legalEntityID, principalID string) ([]SavedFormView, error) {
+	if tenantID == "" || legalEntityID == "" || principalID == "" {
+		return nil, ErrInvalid
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	views := make([]SavedFormView, 0)
+	for _, view := range r.savedViews {
+		if view.TenantID == tenantID && view.LegalEntityID == legalEntityID && view.PrincipalID == principalID {
+			views = append(views, cloneSavedFormView(view))
+		}
+	}
+	sort.Slice(views, func(i, j int) bool {
+		if views[i].UpdatedAt.Equal(views[j].UpdatedAt) {
+			return views[i].Name < views[j].Name
+		}
+		return views[i].UpdatedAt.After(views[j].UpdatedAt)
+	})
+	return views, nil
+}
+
+func (r *MemoryRepository) SaveFormView(_ context.Context, view SavedFormView) (SavedFormView, error) {
+	view.Name = strings.TrimSpace(view.Name)
+	if view.ID == "" || view.TenantID == "" || view.LegalEntityID == "" || view.PrincipalID == "" || view.Name == "" || len(view.Name) > 120 || view.CreatedAt.IsZero() || view.UpdatedAt.Before(view.CreatedAt) || view.Filter.TenantID != "" || view.Filter.LegalEntityID != "" || view.Filter.Cursor != "" {
+		return SavedFormView{}, ErrInvalid
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for key, existing := range r.savedViews {
+		if key != savedViewKey(view.TenantID, view.LegalEntityID, view.PrincipalID, view.ID) && existing.TenantID == view.TenantID && existing.LegalEntityID == view.LegalEntityID && existing.PrincipalID == view.PrincipalID && strings.EqualFold(existing.Name, view.Name) {
+			return SavedFormView{}, ErrConflict
+		}
+	}
+	r.savedViews[savedViewKey(view.TenantID, view.LegalEntityID, view.PrincipalID, view.ID)] = cloneSavedFormView(view)
+	return cloneSavedFormView(view), nil
+}
+
+func (r *MemoryRepository) DeleteSavedFormView(_ context.Context, tenantID, legalEntityID, principalID, id string) error {
+	if tenantID == "" || legalEntityID == "" || principalID == "" || id == "" {
+		return ErrInvalid
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	key := savedViewKey(tenantID, legalEntityID, principalID, id)
+	if _, exists := r.savedViews[key]; !exists {
+		return ErrNotFound
+	}
+	delete(r.savedViews, key)
+	return nil
+}
+
+func containsFold(values []string, expected string) bool {
+	for _, value := range values {
+		if strings.EqualFold(strings.TrimSpace(value), expected) {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *MemoryRepository) ListFormRevisions(_ context.Context, tenant, legalEntityID, programID string, limit int) ([]FormTemplate, error) {

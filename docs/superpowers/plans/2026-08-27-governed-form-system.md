@@ -238,11 +238,11 @@ CREATE UNIQUE INDEX monitoring_form_templates_unscoped_current_code_idx
   WHERE is_current AND program_id IS NULL AND legal_entity_id IS NULL;
 
 CREATE INDEX monitoring_form_templates_library_idx
-  ON monitoring_form_templates(tenant_id,legal_entity_id,status,updated_at DESC,id DESC)
-  WHERE is_current;
+  ON monitoring_form_templates(tenant_id,legal_entity_id,updated_at DESC,id DESC,version DESC)
+  WHERE legal_entity_id IS NOT NULL;
 CREATE INDEX monitoring_form_templates_library_search_idx
   ON monitoring_form_templates(tenant_id,legal_entity_id,lower(name),updated_at DESC,id DESC)
-  WHERE is_current;
+  WHERE legal_entity_id IS NOT NULL;
 
 CREATE TABLE form_saved_views (
   id uuid PRIMARY KEY DEFAULT uuidv7(), tenant_id uuid NOT NULL REFERENCES tenants(id), legal_entity_id uuid NOT NULL,
@@ -264,7 +264,8 @@ type FormLibraryFilter struct {
 	TenantID, LegalEntityID, Search, ProgramID, OwnerPrincipalID, Use, Tag, Status, Cursor string
 	Limit int
 }
-type FormTemplatePage struct { Items []FormTemplate `json:"items"`; NextCursor string `json:"next_cursor,omitempty"` }
+type FormLibraryItem struct { Template FormTemplate `json:"template"`; ActiveVersion int64 `json:"active_version,omitempty"`; ActiveStatus LifecycleStatus `json:"active_status,omitempty"` }
+type FormTemplatePage struct { Items []FormLibraryItem `json:"items"`; NextCursor string `json:"next_cursor,omitempty"` }
 type SavedFormView struct { ID, Name string; Filter FormLibraryFilter; CreatedAt, UpdatedAt time.Time }
 
 type FormLibraryRepository interface {
@@ -276,7 +277,7 @@ type FormLibraryRepository interface {
 }
 ```
 
-Use `(updated_at,id) < ($cursor_time,$cursor_id)` and fetch `limit+1`. Existing `ListReusableFormRevisions` remains as a compatibility wrapper over `ListFormLibrary` with `Status=ACTIVE`.
+Select the greatest stored version per stable template ID, then attach the independently current active/paused version. This keeps a newer draft visible without mislabelling it active. Use `(updated_at,id) < ($cursor_time,$cursor_id)` and fetch `limit+1`. Existing `ListReusableFormRevisions` remains a compatibility read of exact active/current revisions.
 
 - [ ] **Step 5: Add a governed starter-template catalog**
 

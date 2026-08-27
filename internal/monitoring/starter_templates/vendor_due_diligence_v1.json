@@ -1,0 +1,53 @@
+{
+  "code": "VENDOR_DUE_DILIGENCE",
+  "catalog_version": 1,
+  "published_on": "2026-08-27",
+  "reference_label": "ClearSight product reference. Review this draft against the bank's policy before approval.",
+  "name": "Vendor due diligence review",
+  "purpose": "Confirm the vendor identity held by the bank and collect current operating evidence for review.",
+  "approved_uses": ["VENDOR_DUE_DILIGENCE", "VENDOR_REFRESH"],
+  "tags": ["vendor", "due-diligence", "reference"],
+  "sensitivity": "CONFIDENTIAL",
+  "presentation": {"default_mode": "WIZARD", "allow_mode_switch": true},
+  "scoring_mode": "COMPLIANCE",
+  "sections": [
+    {"id": "identity", "title": "Vendor identity"},
+    {"id": "operations", "title": "Operating safeguards", "weight": 100}
+  ],
+  "fields": [
+    {
+      "id": "legal_name", "section_id": "identity", "label": "Legal name", "type": "short_text", "required": true,
+      "collection_intent": "CONFIRM_OR_CORRECT", "record_target": {"key": "VENDOR.IDENTITY.LEGAL_NAME", "required_subject_type": "VENDOR_RELATIONSHIP"}
+    },
+    {
+      "id": "registered_address", "section_id": "identity", "label": "Registered office address", "type": "long_text", "required": true,
+      "collection_intent": "CONFIRM_OR_CORRECT", "record_target": {"key": "VENDOR.IDENTITY.REGISTERED_ADDRESS", "required_subject_type": "VENDOR_RELATIONSHIP"}
+    },
+    {
+      "id": "website_domain", "section_id": "identity", "label": "Website", "type": "url", "required": true,
+      "collection_intent": "CONFIRM_OR_CORRECT", "record_target": {"key": "VENDOR.IDENTITY.WEBSITE_DOMAIN", "required_subject_type": "VENDOR_RELATIONSHIP"}
+    },
+    {
+      "id": "certificate", "section_id": "identity", "label": "Certificate of operation", "type": "vendor_document", "required": true,
+      "collection_intent": "REPLACE_HELD_DOCUMENT", "browser_cache_policy": "NO_BROWSER_CACHE",
+      "record_target": {"key": "VENDOR.DOCUMENT.CERTIFICATE_OF_OPERATION", "required_subject_type": "VENDOR_RELATIONSHIP"},
+      "accepted_formats": ["application/pdf", "image/png", "image/jpeg"]
+    },
+    {
+      "id": "security_policy", "section_id": "operations", "label": "An approved information security policy is current", "type": "yes_no", "required": true,
+      "scoring": {"weight": 50, "answer_scores": {"Yes": 100, "No": 0}, "critical_answers": ["No"]}
+    },
+    {
+      "id": "incident_process", "section_id": "operations", "label": "The incident response process has been tested in the last 12 months", "type": "yes_no", "required": true,
+      "scoring": {"weight": 50, "answer_scores": {"Yes": 100, "No": 0}, "critical_answers": ["No"]}
+    },
+    {
+      "id": "attestation", "section_id": "operations", "label": "Response confirmation", "type": "attestation", "required": true,
+      "attestation": "I confirm that this response is accurate to the best of my knowledge."
+    },
+    {
+      "id": "signature", "section_id": "operations", "label": "Authorized sign-off", "type": "signature", "required": true,
+      "browser_cache_policy": "NO_BROWSER_CACHE", "accepted_formats": ["image/png"]
+    }
+  ]
+}

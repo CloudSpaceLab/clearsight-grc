@@ -56,3 +56,31 @@ func TestMonitoringEventMigrationOwnsImmutableJournalAndOutboxDedupe(t *testing.
 		t.Fatal("monitoring event migration must be transactional")
 	}
 }
+
+func TestLegalEntityFormsMigrationPromotesWithoutRewritingHistoricalRows(t *testing.T) {
+	up, err := os.ReadFile("../../migrations/000053_legal_entity_forms.up.sql")
+	if err != nil {
+		t.Fatalf("read legal-entity Forms migration: %v", err)
+	}
+	down, err := os.ReadFile("../../migrations/000053_legal_entity_forms.down.sql")
+	if err != nil {
+		t.Fatalf("read legal-entity Forms rollback: %v", err)
+	}
+	for _, required := range []string{
+		"ADD COLUMN owner_principal_id", "ADD COLUMN scoring_mode", "form_saved_views",
+		"monitoring_form_templates_entity_current_code_idx", "monitoring_form_templates_unscoped_current_code_idx",
+		"program_id IS NULL OR legal_entity_id IS NOT NULL", "jsonb_array_elements", "FOREIGN KEY (legal_entity_id,tenant_id)",
+	} {
+		if !strings.Contains(string(up), required) {
+			t.Fatalf("legal-entity Forms migration missing %q", required)
+		}
+	}
+	for _, prohibited := range []string{"DELETE FROM monitoring_form_templates", "UPDATE monitoring_form_templates SET legal_entity_id"} {
+		if strings.Contains(string(up), prohibited) || strings.Contains(string(down), prohibited) {
+			t.Fatalf("migration rewrites or deletes historical forms with %q", prohibited)
+		}
+	}
+	if !strings.Contains(string(down), "RAISE EXCEPTION") || !strings.Contains(string(down), "program_id IS NULL AND legal_entity_id IS NOT NULL") {
+		t.Fatal("rollback must fail closed after legal-entity-only Forms adoption")
+	}
+}

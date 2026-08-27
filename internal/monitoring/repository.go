@@ -36,6 +36,10 @@ type Repository interface {
 	AppendResult(context.Context, MonitoringResult) (MonitoringResult, error)
 	Result(context.Context, string, string) (MonitoringResult, error)
 	ListResults(context.Context, string, string, int) ([]MonitoringResult, error)
+	ListFormLibrary(context.Context, FormLibraryFilter) (FormTemplatePage, error)
+	ListSavedFormViews(context.Context, string, string, string) ([]SavedFormView, error)
+	SaveFormView(context.Context, SavedFormView) (SavedFormView, error)
+	DeleteSavedFormView(context.Context, string, string, string, string) error
 }
 
 // ReusableFormRepository exposes exact, legal-entity-scoped form revisions to

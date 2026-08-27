@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -47,6 +48,7 @@ type queryRower interface {
 }
 
 func insertFormRevision(ctx context.Context, db queryRower, value FormTemplate) (FormTemplate, error) {
+	applyFormMetadataDefaults(&value)
 	presentation, err := json.Marshal(value.Presentation)
 	if err != nil {
 		return FormTemplate{}, errors.Join(ErrInvalid, err)
@@ -60,10 +62,15 @@ func insertFormRevision(ctx context.Context, db queryRower, value FormTemplate) 
 		return FormTemplate{}, errors.Join(ErrInvalid, err)
 	}
 	created, err := scanForm(db.QueryRow(ctx, `
-		INSERT INTO monitoring_form_templates(id,tenant_id,legal_entity_id,program_id,code,name,purpose,presentation,sections,fields,status,is_current,effective_from,effective_until,version,created_by,submitted_by,approved_by,rejected_by,created_at,updated_at)
-		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),NULLIF($3,'')::uuid,NULLIF($4,'')::uuid,$5,$6,$7,$8::jsonb,$9::jsonb,$10::jsonb,$11,$12,$13,$14,$15,NULLIF($16,'')::uuid,NULLIF($17,'')::uuid,NULLIF($18,'')::uuid,NULLIF($19,'')::uuid,$20,$21)
-		RETURNING id::text,tenant_id::text,COALESCE(legal_entity_id::text,''),COALESCE(program_id::text,''),code,name,purpose,presentation,sections,fields,status,is_current,effective_from,effective_until,version,COALESCE(created_by::text,''),COALESCE(submitted_by::text,''),COALESCE(approved_by::text,''),COALESCE(rejected_by::text,''),created_at,updated_at`,
-		value.ID, value.TenantID, value.LegalEntityID, value.ProgramID, value.Code, value.Name, value.Purpose, presentation, sections, fields, value.Status, value.IsCurrent, value.EffectiveFrom, value.EffectiveUntil, value.Version, value.CreatedBy, value.SubmittedBy, value.ApprovedBy, value.RejectedBy, value.CreatedAt, value.UpdatedAt))
+		INSERT INTO monitoring_form_templates AS f(
+			id,tenant_id,legal_entity_id,program_id,code,name,purpose,owner_principal_id,responsible_team,approved_uses,tags,jurisdiction,industry,sensitivity,scoring_mode,next_review_at,starter_catalog_code,starter_catalog_version,
+			presentation,sections,fields,status,is_current,effective_from,effective_until,version,created_by,submitted_by,approved_by,rejected_by,created_at,updated_at)
+		VALUES(
+			$1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),NULLIF($3,'')::uuid,NULLIF($4,'')::uuid,$5,$6,$7,NULLIF($8,'')::uuid,$9,$10,$11,$12,$13,$14,$15,$16,NULLIF($17,''),NULLIF($18,0),
+			$19::jsonb,$20::jsonb,$21::jsonb,$22,$23,$24,$25,$26,NULLIF($27,'')::uuid,NULLIF($28,'')::uuid,NULLIF($29,'')::uuid,NULLIF($30,'')::uuid,$31,$32)
+		RETURNING `+formProjection,
+		value.ID, value.TenantID, value.LegalEntityID, value.ProgramID, value.Code, value.Name, value.Purpose, value.OwnerPrincipalID, value.ResponsibleTeam, value.ApprovedUses, value.Tags, value.Jurisdiction, value.Industry, value.Sensitivity, value.ScoringMode, value.NextReviewAt, value.StarterCatalogCode, value.StarterCatalogVersion,
+		presentation, sections, fields, value.Status, value.IsCurrent, value.EffectiveFrom, value.EffectiveUntil, value.Version, value.CreatedBy, value.SubmittedBy, value.ApprovedBy, value.RejectedBy, value.CreatedAt, value.UpdatedAt))
 	return created, mapPostgresError(err)
 }
 
@@ -74,11 +81,10 @@ func (r *PostgresRepository) TransitionForm(ctx context.Context, input Lifecycle
 	}
 	defer tx.Rollback(ctx)
 	current, err := scanForm(tx.QueryRow(ctx, `
-		SELECT f.id::text,f.tenant_id::text,COALESCE(f.legal_entity_id::text,''),COALESCE(f.program_id::text,''),f.code,f.name,f.purpose,f.presentation,f.sections,f.fields,f.status,f.is_current,f.effective_from,f.effective_until,f.version,
-		       COALESCE(f.created_by::text,''),COALESCE(f.submitted_by::text,''),COALESCE(f.approved_by::text,''),COALESCE(f.rejected_by::text,''),f.created_at,f.updated_at
+		SELECT `+formProjection+`
 		FROM monitoring_form_templates f JOIN tenants t ON t.id=f.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND f.id=$2::uuid AND f.version=$3
-		  AND f.legal_entity_id=$4::uuid AND f.program_id=$5::uuid
+		  AND f.legal_entity_id=$4::uuid AND f.program_id IS NOT DISTINCT FROM NULLIF($5,'')::uuid
 		FOR UPDATE`, input.TenantID, input.ID, input.ExpectedVersion, input.LegalEntityID, input.ProgramID))
 	if err != nil {
 		return FormTemplate{}, mapPostgresError(err)
@@ -88,7 +94,7 @@ func (r *PostgresRepository) TransitionForm(ctx context.Context, input Lifecycle
 		return FormTemplate{}, err
 	}
 	if nextLifecycle.IsCurrent || current.IsCurrent {
-		_, err = tx.Exec(ctx, `UPDATE monitoring_form_templates SET status='RETIRED',is_current=false,effective_until=$5,updated_at=$5 WHERE tenant_id=$1::uuid AND id=$2::uuid AND legal_entity_id=$3::uuid AND program_id=$4::uuid AND is_current`, current.TenantID, current.ID, current.LegalEntityID, current.ProgramID, input.At.UTC())
+		_, err = tx.Exec(ctx, `UPDATE monitoring_form_templates SET status='RETIRED',is_current=false,effective_until=$5,updated_at=$5 WHERE tenant_id=$1::uuid AND id=$2::uuid AND legal_entity_id=$3::uuid AND program_id IS NOT DISTINCT FROM NULLIF($4,'')::uuid AND is_current`, current.TenantID, current.ID, current.LegalEntityID, current.ProgramID, input.At.UTC())
 		if err != nil {
 			return FormTemplate{}, mapPostgresError(err)
 		}
@@ -113,8 +119,7 @@ func (r *PostgresRepository) TransitionForm(ctx context.Context, input Lifecycle
 }
 
 const formRevisionSQL = `
-	SELECT f.id::text,f.tenant_id::text,COALESCE(f.legal_entity_id::text,''),COALESCE(f.program_id::text,''),f.code,f.name,f.purpose,f.presentation,f.sections,f.fields,f.status,f.is_current,f.effective_from,f.effective_until,f.version,
-	       COALESCE(f.created_by::text,''),COALESCE(f.submitted_by::text,''),COALESCE(f.approved_by::text,''),COALESCE(f.rejected_by::text,''),f.created_at,f.updated_at
+	SELECT ` + formProjection + `
 	FROM monitoring_form_templates f JOIN tenants t ON t.id=f.tenant_id
 	WHERE (t.id::text=$1 OR t.slug=$1) AND f.legal_entity_id=$2::uuid AND f.program_id=$3::uuid
 	  AND f.id=$4::uuid AND f.version=$5`
@@ -151,9 +156,141 @@ func (r *PostgresRepository) ListReusableFormRevisions(ctx context.Context, tena
 	return values, rows.Err()
 }
 
+const listFormLibrarySQL = `
+	WITH latest_ids AS (
+		SELECT DISTINCT ON (f.tenant_id,f.id) f.revision_id
+		FROM monitoring_form_templates f JOIN tenants t ON t.id=f.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND f.legal_entity_id=$2::uuid
+		ORDER BY f.tenant_id,f.id,f.version DESC
+	)
+	SELECT ` + formProjection + `,COALESCE(active.version,0),COALESCE(active.status,'')
+	FROM latest_ids latest
+	JOIN monitoring_form_templates f ON f.revision_id=latest.revision_id
+	LEFT JOIN monitoring_form_templates active ON active.tenant_id=f.tenant_id AND active.id=f.id AND active.is_current
+	WHERE ($3='' OR lower(f.code) LIKE '%'||lower($3)||'%' OR lower(f.name) LIKE '%'||lower($3)||'%' OR lower(f.purpose) LIKE '%'||lower($3)||'%')
+	  AND ($4='' OR f.program_id=NULLIF($4,'')::uuid)
+	  AND ($5='' OR f.owner_principal_id=NULLIF($5,'')::uuid)
+	  AND ($6='' OR f.approved_uses @> ARRAY[$6]::text[])
+	  AND ($7='' OR f.tags @> ARRAY[$7]::text[])
+	  AND ($8='' OR f.status=$8)
+	  AND ($9='' OR (f.updated_at,f.id) < (NULLIF($9,'')::timestamptz,NULLIF($10,'')::uuid))
+	ORDER BY f.updated_at DESC,f.id DESC
+	LIMIT $11`
+
+func (r *PostgresRepository) ListFormLibrary(ctx context.Context, filter FormLibraryFilter) (FormTemplatePage, error) {
+	if filter.TenantID == "" || filter.LegalEntityID == "" {
+		return FormTemplatePage{}, ErrInvalid
+	}
+	cursor, err := decodeFormLibraryCursor(filter.Cursor)
+	if err != nil {
+		return FormTemplatePage{}, err
+	}
+	cursorTime := ""
+	if !cursor.UpdatedAt.IsZero() {
+		cursorTime = cursor.UpdatedAt.UTC().Format("2006-01-02T15:04:05.999999999Z07:00")
+	}
+	limit := boundedFormLibraryLimit(filter.Limit)
+	rows, err := r.pool.Query(ctx, listFormLibrarySQL,
+		filter.TenantID, filter.LegalEntityID, strings.TrimSpace(filter.Search), filter.ProgramID, filter.OwnerPrincipalID,
+		strings.ToUpper(strings.TrimSpace(filter.Use)), strings.ToLower(strings.TrimSpace(filter.Tag)), string(filter.Status), cursorTime, cursor.ID, limit+1,
+	)
+	if err != nil {
+		return FormTemplatePage{}, mapPostgresError(err)
+	}
+	defer rows.Close()
+	page := FormTemplatePage{Items: make([]FormLibraryItem, 0, limit)}
+	for rows.Next() {
+		var activeVersion int64
+		var activeStatus string
+		value, scanErr := scanFormWithExtra(rows, &activeVersion, &activeStatus)
+		if scanErr != nil {
+			return FormTemplatePage{}, scanErr
+		}
+		page.Items = append(page.Items, FormLibraryItem{Template: value, ActiveVersion: activeVersion, ActiveStatus: LifecycleStatus(activeStatus)})
+	}
+	if err := rows.Err(); err != nil {
+		return FormTemplatePage{}, mapPostgresError(err)
+	}
+	if len(page.Items) > limit {
+		page.Items = page.Items[:limit]
+		last := page.Items[len(page.Items)-1].Template
+		page.NextCursor = encodeFormLibraryCursor(formLibraryCursor{UpdatedAt: last.UpdatedAt, ID: last.ID})
+	}
+	return page, nil
+}
+
+func (r *PostgresRepository) ListSavedFormViews(ctx context.Context, tenantID, legalEntityID, principalID string) ([]SavedFormView, error) {
+	if tenantID == "" || legalEntityID == "" || principalID == "" {
+		return nil, ErrInvalid
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT v.id::text,v.tenant_id::text,v.legal_entity_id::text,v.principal_id::text,v.name,v.filter,v.created_at,v.updated_at
+		FROM form_saved_views v JOIN tenants t ON t.id=v.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND v.legal_entity_id=$2::uuid AND v.principal_id=$3::uuid
+		ORDER BY v.updated_at DESC,v.id DESC`, tenantID, legalEntityID, principalID)
+	if err != nil {
+		return nil, mapPostgresError(err)
+	}
+	defer rows.Close()
+	views := make([]SavedFormView, 0)
+	for rows.Next() {
+		view, scanErr := scanSavedFormView(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		views = append(views, view)
+	}
+	return views, mapPostgresError(rows.Err())
+}
+
+func (r *PostgresRepository) SaveFormView(ctx context.Context, view SavedFormView) (SavedFormView, error) {
+	view.Name = strings.TrimSpace(view.Name)
+	if view.ID == "" || view.TenantID == "" || view.LegalEntityID == "" || view.PrincipalID == "" || view.Name == "" || len(view.Name) > 120 || view.CreatedAt.IsZero() || view.UpdatedAt.Before(view.CreatedAt) || view.Filter.TenantID != "" || view.Filter.LegalEntityID != "" || view.Filter.Cursor != "" {
+		return SavedFormView{}, ErrInvalid
+	}
+	filter, err := json.Marshal(view.Filter)
+	if err != nil {
+		return SavedFormView{}, errors.Join(ErrInvalid, err)
+	}
+	stored, err := scanSavedFormView(r.pool.QueryRow(ctx, `
+		INSERT INTO form_saved_views(id,tenant_id,legal_entity_id,principal_id,name,filter,created_at,updated_at)
+		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,$5,$6::jsonb,$7,$8)
+		ON CONFLICT(id) DO UPDATE SET name=EXCLUDED.name,filter=EXCLUDED.filter,updated_at=EXCLUDED.updated_at
+		WHERE form_saved_views.tenant_id=EXCLUDED.tenant_id AND form_saved_views.legal_entity_id=EXCLUDED.legal_entity_id AND form_saved_views.principal_id=EXCLUDED.principal_id
+		RETURNING id::text,tenant_id::text,legal_entity_id::text,principal_id::text,name,filter,created_at,updated_at`,
+		view.ID, view.TenantID, view.LegalEntityID, view.PrincipalID, view.Name, filter, view.CreatedAt, view.UpdatedAt))
+	return stored, mapPostgresError(err)
+}
+
+func (r *PostgresRepository) DeleteSavedFormView(ctx context.Context, tenantID, legalEntityID, principalID, id string) error {
+	if tenantID == "" || legalEntityID == "" || principalID == "" || id == "" {
+		return ErrInvalid
+	}
+	command, err := r.pool.Exec(ctx, `DELETE FROM form_saved_views
+		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND legal_entity_id=$2::uuid AND principal_id=$3::uuid AND id=$4::uuid`, tenantID, legalEntityID, principalID, id)
+	if err != nil {
+		return mapPostgresError(err)
+	}
+	if command.RowsAffected() != 1 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func scanSavedFormView(row scanner) (SavedFormView, error) {
+	var value SavedFormView
+	var filter []byte
+	if err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.PrincipalID, &value.Name, &filter, &value.CreatedAt, &value.UpdatedAt); err != nil {
+		return SavedFormView{}, err
+	}
+	if err := json.Unmarshal(filter, &value.Filter); err != nil {
+		return SavedFormView{}, err
+	}
+	return value, nil
+}
+
 const listFormRevisionsSQL = `
-	SELECT f.id::text,f.tenant_id::text,COALESCE(f.legal_entity_id::text,''),COALESCE(f.program_id::text,''),f.code,f.name,f.purpose,f.presentation,f.sections,f.fields,f.status,f.is_current,f.effective_from,f.effective_until,f.version,
-	       COALESCE(f.created_by::text,''),COALESCE(f.submitted_by::text,''),COALESCE(f.approved_by::text,''),COALESCE(f.rejected_by::text,''),f.created_at,f.updated_at
+	SELECT ` + formProjection + `
 	FROM monitoring_form_templates f JOIN tenants t ON t.id=f.tenant_id
 	WHERE (t.id::text=$1 OR t.slug=$1) AND f.legal_entity_id=$2::uuid AND f.program_id=$3::uuid
 	ORDER BY f.code,f.version DESC,f.id LIMIT $4`
@@ -356,15 +493,26 @@ func (r *PostgresRepository) Result(ctx context.Context, tenant, id string) (Mon
 
 const checkSelect = `SELECT c.id::text,c.tenant_id::text,c.program_id::text,COALESCE(c.requirement_id::text,''),COALESCE(c.control_implementation_id::text,''),COALESCE(c.evidence_contract_id::text,''),c.code,c.name,c.claim,c.input_kind,COALESCE(c.form_template_id::text,''),COALESCE(c.form_template_version,0),COALESCE(c.binding_id::text,''),COALESCE(c.binding_version,0),c.source_rules,c.thresholds,c.freshness_minutes,c.minimum_coverage,COALESCE(c.owner_principal_id::text,''),COALESCE(c.reviewer_principal_id::text,''),c.failure_action,c.status,c.is_current,c.effective_from,c.effective_until,c.version,COALESCE(c.created_by::text,''),COALESCE(c.submitted_by::text,''),COALESCE(c.approved_by::text,''),COALESCE(c.rejected_by::text,''),c.created_at,c.updated_at FROM monitoring_checks c JOIN tenants t ON t.id=c.tenant_id`
 const resultSelect = `SELECT r.id::text,r.tenant_id::text,r.program_id::text,r.monitoring_check_id::text,r.monitoring_check_version,r.input_kind,r.input_reference_id,r.input_reference_version,r.evaluation,r.source_receipt,r.submission_provenance,r.evaluated_at,r.evaluator_version,r.created_at FROM monitoring_results r JOIN tenants t ON t.id=r.tenant_id`
-const formProjection = `f.id::text,f.tenant_id::text,COALESCE(f.legal_entity_id::text,''),COALESCE(f.program_id::text,''),f.code,f.name,f.purpose,f.presentation,f.sections,f.fields,f.status,f.is_current,f.effective_from,f.effective_until,f.version,
+const formProjection = `f.id::text,f.tenant_id::text,COALESCE(f.legal_entity_id::text,''),COALESCE(f.program_id::text,''),f.code,f.name,f.purpose,
+	COALESCE(f.owner_principal_id::text,''),f.responsible_team,f.approved_uses,f.tags,f.jurisdiction,f.industry,f.sensitivity,f.scoring_mode,f.next_review_at,COALESCE(f.starter_catalog_code,''),COALESCE(f.starter_catalog_version,0),
+	f.presentation,f.sections,f.fields,f.status,f.is_current,f.effective_from,f.effective_until,f.version,
 	COALESCE(f.created_by::text,''),COALESCE(f.submitted_by::text,''),COALESCE(f.approved_by::text,''),COALESCE(f.rejected_by::text,''),f.created_at,f.updated_at`
 
 type scanner interface{ Scan(...any) error }
 
 func scanForm(row scanner) (FormTemplate, error) {
+	return scanFormWithExtra(row)
+}
+
+func scanFormWithExtra(row scanner, extra ...any) (FormTemplate, error) {
 	var value FormTemplate
 	var presentation, sections, fields []byte
-	err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.ProgramID, &value.Code, &value.Name, &value.Purpose, &presentation, &sections, &fields, &value.Status, &value.IsCurrent, &value.EffectiveFrom, &value.EffectiveUntil, &value.Version, &value.CreatedBy, &value.SubmittedBy, &value.ApprovedBy, &value.RejectedBy, &value.CreatedAt, &value.UpdatedAt)
+	targets := []any{
+		&value.ID, &value.TenantID, &value.LegalEntityID, &value.ProgramID, &value.Code, &value.Name, &value.Purpose,
+		&value.OwnerPrincipalID, &value.ResponsibleTeam, &value.ApprovedUses, &value.Tags, &value.Jurisdiction, &value.Industry, &value.Sensitivity, &value.ScoringMode, &value.NextReviewAt, &value.StarterCatalogCode, &value.StarterCatalogVersion,
+		&presentation, &sections, &fields, &value.Status, &value.IsCurrent, &value.EffectiveFrom, &value.EffectiveUntil, &value.Version, &value.CreatedBy, &value.SubmittedBy, &value.ApprovedBy, &value.RejectedBy, &value.CreatedAt, &value.UpdatedAt,
+	}
+	err := row.Scan(append(targets, extra...)...)
 	if err != nil {
 		return FormTemplate{}, err
 	}
