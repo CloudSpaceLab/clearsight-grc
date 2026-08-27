@@ -146,8 +146,19 @@ func (store *MemoryDistributionAccessStore) UpdateOTPChallenge(_ context.Context
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	current, ok := store.challenges[challenge.ID]
-	if !ok || current.Attempts != expectedAttempts || current.Resends != expectedResends || current.ConsumedAt != nil || !bytes.Equal(current.Digest, expectedDigest) ||
+	if !ok || current.Resends != expectedResends || current.ConsumedAt != nil || !bytes.Equal(current.Digest, expectedDigest) ||
 		current.RouteID != challenge.RouteID || current.RecipientID != challenge.RecipientID {
+		return ErrAccessVerificationFailed
+	}
+	if otpFailedAttemptMutation(challenge, expectedAttempts, expectedResends, expectedDigest) {
+		if current.Attempts >= current.MaxAttempts {
+			return ErrAccessVerificationFailed
+		}
+		current.Attempts++
+		store.challenges[challenge.ID] = cloneOTPChallenge(current)
+		return nil
+	}
+	if current.Attempts != expectedAttempts {
 		return ErrAccessVerificationFailed
 	}
 	store.challenges[challenge.ID] = cloneOTPChallenge(challenge)
