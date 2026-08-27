@@ -411,6 +411,7 @@ func (r *PostgresRepository) scanEvents(ctx context.Context, query string, args 
 		if err := rows.Scan(&value.ID, &value.TenantID, &value.AggregateType, &value.AggregateID, &value.AggregateVersion, &value.Type, &value.Payload, &value.ActorType, &value.ActorID, &value.OccurredAt); err != nil {
 			return nil, err
 		}
+		value.OccurredAt = value.OccurredAt.UTC()
 		values = append(values, value)
 	}
 	if err := rows.Err(); err != nil {
@@ -524,7 +525,11 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		if err := validateProgramEvidenceSourcesTx(ctx, tx, v.TenantID, v.ProgramID, v.AcceptableSourceIDs); err != nil {
 			return err
 		}
-		sources, _ := json.Marshal(v.AcceptableSourceIDs)
+		sourceIDs := v.AcceptableSourceIDs
+		if sourceIDs == nil {
+			sourceIDs = []string{}
+		}
+		sources, _ := json.Marshal(sourceIDs)
 		_, err := tx.Exec(ctx, `INSERT INTO evidence_contracts(id,tenant_id,program_id,requirement_id,control_implementation_id,code,name,claim,acceptable_source_ids,population_scope,freshness_minutes,minimum_coverage,independence_required,contradiction_policy,failure_action,configured_by,status,created_at,updated_at,version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,NULLIF($5,'')::uuid,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NULLIF($16,'')::uuid,$17,$18,$18,$19)`, v.ID, v.TenantID, v.ProgramID, v.RequirementID, v.ControlImplementationID, v.Code, v.Name, v.Claim, sources, rawJSON(v.PopulationScope, `{}`), v.FreshnessMinutes, v.MinimumCoverage, v.IndependenceRequired, v.ContradictionPolicy, v.FailureAction, v.ConfiguredBy, v.Status, v.CreatedAt, v.Version)
 		if err != nil {
 			return err
@@ -546,7 +551,11 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		if err := validateProgramEvidenceSourcesTx(ctx, tx, v.Current.TenantID, v.Current.ProgramID, v.Current.AcceptableSourceIDs); err != nil {
 			return err
 		}
-		sources, _ := json.Marshal(v.Current.AcceptableSourceIDs)
+		sourceIDs := v.Current.AcceptableSourceIDs
+		if sourceIDs == nil {
+			sourceIDs = []string{}
+		}
+		sources, _ := json.Marshal(sourceIDs)
 		result, err := tx.Exec(ctx, `UPDATE evidence_contracts SET name=$5,claim=$6,acceptable_source_ids=$7,population_scope=$8,freshness_minutes=$9,minimum_coverage=$10,independence_required=$11,contradiction_policy=$12,failure_action=$13,configured_by=NULLIF($14,'')::uuid,status=$15,updated_at=$16,version=$17 WHERE id=$3::uuid AND program_id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND version=$4`, v.Current.TenantID, v.Current.ProgramID, v.Current.ID, v.Prior.Version, v.Current.Name, v.Current.Claim, sources, rawJSON(v.Current.PopulationScope, `{}`), v.Current.FreshnessMinutes, v.Current.MinimumCoverage, v.Current.IndependenceRequired, v.Current.ContradictionPolicy, v.Current.FailureAction, v.Current.ConfiguredBy, v.Current.Status, v.Current.UpdatedAt, v.Current.Version)
 		if err != nil {
 			return err

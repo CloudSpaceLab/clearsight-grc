@@ -37,6 +37,7 @@ func TestPostgresProgramResourceLifecycleCommitsProjectionEventAndOutboxTogether
 	if _, err = pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1::uuid,$2::uuid,'ENTITY-A','Entity A','NG')`, entityID, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	ctx = WithTrustedSystemEntityScope(ctx, "program-resource-lifecycle-test", entityID)
 	if _, err = pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($1::uuid,$3::uuid,'PERSON','Program owner'),($2::uuid,$3::uuid,'PERSON','Safeguard owner')`, ownerID, otherID, tenantID); err != nil {
 		t.Fatal(err)
 	}

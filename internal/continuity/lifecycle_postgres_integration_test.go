@@ -39,6 +39,8 @@ func TestPostgresLifecycleActorsPersistAndReconstruct(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'lifecycle-actor-test','Lifecycle Actor Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	entityID := seedPostgresTestLegalEntity(t, ctx, pool, tenantID, "ENTITY-A")
+	ctx = WithTrustedSystemEntityScope(ctx, "lifecycle-actor-test", entityID)
 	for _, principal := range []string{proposer, reviewer, challenger, authorizer, preparer, signatory, transmitter, ackRecorder} {
 		if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES($1::uuid,$2::uuid,'PERSON',$1::text,'Lifecycle actor')`, principal, tenantID); err != nil {
 			t.Fatal(err)
@@ -49,7 +51,7 @@ func TestPostgresLifecycleActorsPersistAndReconstruct(t *testing.T) {
 	service := NewService(repo)
 	now := time.Now().UTC().Truncate(time.Second)
 	service.now = func() time.Time { return now }
-	matter, err := service.CreateMatter(ctx, CreateMatterInput{TenantID: "lifecycle-actor-test", Type: MatterAuthorityRequest, Priority: 4, Title: "Lifecycle actor persistence", Summary: "Persist every actor in the command lifecycle.", Scope: json.RawMessage(`{}`)})
+	matter, err := service.CreateMatter(ctx, CreateMatterInput{TenantID: "lifecycle-actor-test", LegalEntityID: entityID, Type: MatterAuthorityRequest, Priority: 4, Title: "Lifecycle actor persistence", Summary: "Persist every actor in the command lifecycle.", Scope: json.RawMessage(`{}`)})
 	if err != nil {
 		t.Fatal(err)
 	}

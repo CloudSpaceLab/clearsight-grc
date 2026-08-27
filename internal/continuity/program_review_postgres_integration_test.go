@@ -49,6 +49,9 @@ func TestProgramReviewPostgresKeepsActorTenantAndVersionTruth(t *testing.T) {
 		($2::uuid,'program-review-b','Program Review B')`, tenantA, tenantB); err != nil {
 		t.Fatal(err)
 	}
+	entityA := seedPostgresTestLegalEntity(t, ctx, pool, tenantA, "ENTITY-A")
+	_ = seedPostgresTestLegalEntity(t, ctx, pool, tenantB, "ENTITY-B")
+	ctx = WithTrustedSystemEntityScope(ctx, "program-review-a", entityA)
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES
 		($1::uuid,$3::uuid,'PERSON','reviewer-a','Reviewer A'),
@@ -61,6 +64,7 @@ func TestProgramReviewPostgresKeepsActorTenantAndVersionTruth(t *testing.T) {
 	service := NewServiceWithClock(repo, func() time.Time { return now })
 	program, err := service.CreateProgram(ctx, CreateProgramInput{
 		TenantID:       "program-review-a",
+		LegalEntityID:  entityA,
 		Code:           "PRIVACY",
 		Name:           "Privacy Programme",
 		Type:           "PRIVACY",

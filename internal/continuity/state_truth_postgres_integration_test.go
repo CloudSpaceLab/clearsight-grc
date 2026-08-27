@@ -43,13 +43,15 @@ func TestPostgresProgramStateTemporalAndSourceTruth(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'state-truth-test','State Truth Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO programs(id,tenant_id,code,name,program_type,status,owning_function,scope,effective_from,effective_until,version) VALUES($1::uuid,$2::uuid,'STATE','State truth','COMPLIANCE','PAUSED','Compliance','{}'::jsonb,$3,$4,3)`, programID, tenantID, now.Add(-24*time.Hour), end); err != nil {
+	entityID := seedPostgresTestLegalEntity(t, ctx, pool, tenantID, "ENTITY-A")
+	ctx = WithTrustedSystemEntityScope(ctx, "state-truth-test", entityID)
+	if _, err := pool.Exec(ctx, `INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,scope,effective_from,effective_until,version) VALUES($1::uuid,$2::uuid,$5::uuid,'STATE','State truth','COMPLIANCE','PAUSED','Compliance','{}'::jsonb,$3,$4,3)`, programID, tenantID, now.Add(-24*time.Hour), end, entityID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO evidence_sources(id,tenant_id,code,name,source_type,authority_class,expected_freshness_minutes,health) VALUES
-		($1::uuid,$4::uuid,'A','Source A','SYSTEM','SYSTEM_OF_RECORD',60,'CURRENT'),
-		($2::uuid,$4::uuid,'B','Source B','SYSTEM','SYSTEM_OF_RECORD',60,'DEGRADED'),
-		($3::uuid,$4::uuid,'C','Future source','SYSTEM','SYSTEM_OF_RECORD',60,'DEGRADED')`, sourceA, sourceB, sourceC, tenantID); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO evidence_sources(id,tenant_id,legal_entity_id,code,name,source_type,authority_class,expected_freshness_minutes,health) VALUES
+		($1::uuid,$4::uuid,$5::uuid,'A','Source A','SYSTEM','SYSTEM_OF_RECORD',60,'CURRENT'),
+		($2::uuid,$4::uuid,$5::uuid,'B','Source B','SYSTEM','SYSTEM_OF_RECORD',60,'DEGRADED'),
+		($3::uuid,$4::uuid,$5::uuid,'C','Future source','SYSTEM','SYSTEM_OF_RECORD',60,'DEGRADED')`, sourceA, sourceB, sourceC, tenantID, entityID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `INSERT INTO program_requirements(id,tenant_id,program_id,source_id,code,title,statement,modality,status,effective_from) VALUES
@@ -139,7 +141,9 @@ func TestPostgresProgramSummaryExposesProjectionFreshness(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'summary-truth-test','Summary Truth Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO programs(id,tenant_id,code,name,program_type,status,owning_function,scope,effective_from,version) VALUES($1::uuid,$2::uuid,'SUMMARY','Summary truth','COMPLIANCE','ACTIVE','Compliance','{}'::jsonb,$3,5)`, programID, tenantID, now.Add(-time.Hour)); err != nil {
+	entityID := seedPostgresTestLegalEntity(t, ctx, pool, tenantID, "ENTITY-A")
+	ctx = WithTrustedSystemEntityScope(ctx, "summary-truth-test", entityID)
+	if _, err := pool.Exec(ctx, `INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,scope,effective_from,version) VALUES($1::uuid,$2::uuid,$4::uuid,'SUMMARY','Summary truth','COMPLIANCE','ACTIVE','Compliance','{}'::jsonb,$3,5)`, programID, tenantID, now.Add(-time.Hour), entityID); err != nil {
 		t.Fatal(err)
 	}
 	reasons := make([]map[string]string, 8)

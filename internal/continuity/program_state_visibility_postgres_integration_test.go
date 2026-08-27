@@ -39,17 +39,18 @@ func TestPostgresProgramSummaryHidesRestrictedMatterStateAndTiming(t *testing.T)
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'program-state-visibility','Program State Visibility')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	entityID := seedPostgresTestLegalEntity(t, ctx, pool, tenantID, "ENTITY-A")
 
 	now := time.Now().UTC().Truncate(time.Second)
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO programs(id,tenant_id,code,name,program_type,status,owning_function,jurisdiction,scope,effective_from,created_at,updated_at,version)
-		VALUES($1::uuid,$2::uuid,'PSV','Program state visibility','COMPLIANCE','ACTIVE','Compliance','','{}'::jsonb,$3,$3,$3,1)`, programID, tenantID, now); err != nil {
+		INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,jurisdiction,scope,effective_from,created_at,updated_at,version)
+		VALUES($1::uuid,$2::uuid,$4::uuid,'PSV','Program state visibility','COMPLIANCE','ACTIVE','Compliance','','{}'::jsonb,$3,$3,$3,1)`, programID, tenantID, now, entityID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at,version)
-		VALUES($1::uuid,$2::uuid,'PSV-MAT','AUTHORITY_REQUEST','ASSESSMENT',4,'Restricted issue','Restricted issue',
-		'{"access":"RESTRICTED","allowed_principal_ids":["f1666666-6666-4666-8666-666666666667"]}'::jsonb,'{}','[]','[]',$3,$3,1)`, matterID, tenantID, now); err != nil {
+		INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at,version)
+		VALUES($1::uuid,$2::uuid,$4::uuid,'PSV-MAT','AUTHORITY_REQUEST','ASSESSMENT',4,'Restricted issue','Restricted issue',
+		'{"access":"RESTRICTED","allowed_principal_ids":["f1666666-6666-4666-8666-666666666667"]}'::jsonb,'{}','[]','[]',$3,$3,1)`, matterID, tenantID, now, entityID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
@@ -69,8 +70,8 @@ func TestPostgresProgramSummaryHidesRestrictedMatterStateAndTiming(t *testing.T)
 	}
 
 	repo := NewPostgresRepository(pool)
-	actorA := identity.WithActor(ctx, identity.Actor{TenantID: tenantID, PrincipalID: principalA})
-	actorB := identity.WithActor(ctx, identity.Actor{TenantID: tenantID, PrincipalID: principalB})
+	actorA := identity.WithActor(ctx, identity.Actor{TenantID: tenantID, LegalEntityID: entityID, PrincipalID: principalA})
+	actorB := identity.WithActor(ctx, identity.Actor{TenantID: tenantID, LegalEntityID: entityID, PrincipalID: principalB})
 
 	pageA, err := repo.ListProgramSummaries(actorA, tenantID, SummaryQuery{Limit: 10})
 	if err != nil {
@@ -154,25 +155,26 @@ func TestPostgresVisibleProgramMatterVisibilityRespectsHistoricalAccess(t *testi
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'program-state-history','Program State History')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	entityID := seedPostgresTestLegalEntity(t, ctx, pool, tenantID, "ENTITY-A")
 
 	t1 := time.Date(2026, 8, 20, 10, 0, 0, 0, time.UTC)
 	t2 := t1.Add(2 * time.Hour)
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO programs(id,tenant_id,code,name,program_type,status,owning_function,jurisdiction,scope,effective_from,created_at,updated_at,version)
-		VALUES($1::uuid,$2::uuid,'PSH','Program state history','COMPLIANCE','ACTIVE','Compliance','','{}'::jsonb,$3,$3,$3,1)`, programID, tenantID, t1); err != nil {
+		INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,jurisdiction,scope,effective_from,created_at,updated_at,version)
+		VALUES($1::uuid,$2::uuid,$4::uuid,'PSH','Program state history','COMPLIANCE','ACTIVE','Compliance','','{}'::jsonb,$3,$3,$3,1)`, programID, tenantID, t1, entityID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at,version)
-		VALUES($1::uuid,$2::uuid,'PSH-MAT','AUTHORITY_REQUEST','ASSESSMENT',4,'Historical issue','Historical issue',
-		'{"access":"RESTRICTED","allowed_principal_ids":["f1777777-7777-4777-8777-777777777778"]}'::jsonb,'{}','[]','[]',$3,$4,2)`, matterID, tenantID, t1, t2); err != nil {
+		INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at,version)
+		VALUES($1::uuid,$2::uuid,$5::uuid,'PSH-MAT','AUTHORITY_REQUEST','ASSESSMENT',4,'Historical issue','Historical issue',
+		'{"access":"RESTRICTED","allowed_principal_ids":["f1777777-7777-4777-8777-777777777778"]}'::jsonb,'{}','[]','[]',$3,$4,2)`, matterID, tenantID, t1, t2, entityID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `INSERT INTO matter_links(id,tenant_id,matter_id,program_id,relationship,created_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,'AFFECTS',$5)`, linkID, tenantID, matterID, programID, t1); err != nil {
 		t.Fatal(err)
 	}
 
-	createdMatter := Matter{ID: matterID, TenantID: tenantID, Status: MatterAssessment, Scope: json.RawMessage(`{"access":"INTERNAL"}`), CreatedAt: t1, UpdatedAt: t1, Version: 1}
+	createdMatter := Matter{ID: matterID, TenantID: tenantID, LegalEntityID: entityID, Status: MatterAssessment, Scope: json.RawMessage(`{"access":"INTERNAL"}`), CreatedAt: t1, UpdatedAt: t1, Version: 1}
 	changedMatter := createdMatter
 	changedMatter.Scope = json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["f1777777-7777-4777-8777-777777777778"]}`)
 	changedMatter.UpdatedAt = t2

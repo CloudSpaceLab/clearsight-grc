@@ -32,6 +32,8 @@ func TestRequirementSupersessionPersistsHistoryAndOutboxAtomically(t *testing.T)
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'program-edits-test','Program Edits Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	entityID := seedPostgresTestLegalEntity(t, ctx, pool, tenantID, "ENTITY-A")
+	ctx = WithTrustedSystemEntityScope(ctx, "program-edits-test", entityID)
 	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($1::uuid,$2::uuid,'PERSON','Privacy owner')`, ownerID, tenantID); err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +42,7 @@ func TestRequirementSupersessionPersistsHistoryAndOutboxAtomically(t *testing.T)
 	service := NewService(NewPostgresRepository(pool))
 	service.now = func() time.Time { return now }
 	program, err := service.CreateProgram(ctx, CreateProgramInput{
-		TenantID: "program-edits-test", Code: "NDPA", Name: "Data protection", Type: "PRIVACY",
+		TenantID: "program-edits-test", LegalEntityID: entityID, Code: "NDPA", Name: "Data protection", Type: "PRIVACY",
 		OwningFunction: "Data Protection Office", OwnerPrincipalID: ownerID,
 		EffectiveFrom: now.AddDate(-1, 0, 0), ActorID: ownerID,
 	})

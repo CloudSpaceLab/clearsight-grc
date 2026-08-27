@@ -35,6 +35,8 @@ func TestMatterEditsPersistEventAndOutbox(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'matter-edits-test','Matter Edits Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	entityID := seedPostgresTestLegalEntity(t, ctx, pool, tenantID, "ENTITY-A")
+	ctx = WithTrustedSystemEntityScope(ctx, "matter-edits-test", entityID)
 	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name) VALUES
 		($1::uuid,$4::uuid,'PERSON','Privacy owner'),
 		($2::uuid,$4::uuid,'PERSON','Current performer'),
@@ -46,7 +48,7 @@ func TestMatterEditsPersistEventAndOutbox(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
 	service.now = func() time.Time { return now }
 	matter, err := service.CreateMatter(ctx, CreateMatterInput{
-		TenantID: "matter-edits-test", Type: MatterRegulatoryChange, Priority: 4,
+		TenantID: "matter-edits-test", LegalEntityID: entityID, Type: MatterRegulatoryChange, Priority: 4,
 		Title: "Annual return", Summary: "Update the filing process.",
 		Scope: json.RawMessage(`{"area":"Privacy"}`), KnownFacts: json.RawMessage(`{"filing_channel":"licensed DPCO"}`),
 		MissingFacts: json.RawMessage(`["final DPCO checklist"]`), Contradictions: json.RawMessage(`[]`),

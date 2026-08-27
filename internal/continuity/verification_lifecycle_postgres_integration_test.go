@@ -34,6 +34,8 @@ func TestPostgresOutcomeFailureBeforeVerificationCanBeRechecked(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'outcome-recheck-test','Outcome Recheck Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	entityID := seedPostgresTestLegalEntity(t, ctx, pool, tenantID, "ENTITY-A")
+	ctx = WithTrustedSystemEntityScope(ctx, "outcome-recheck-test", entityID)
 	for _, principal := range []string{ownerID, reviewer, escalationOwner} {
 		if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES($1::uuid,$2::uuid,'PERSON',$1::text,'Outcome lifecycle actor')`, principal, tenantID); err != nil {
 			t.Fatal(err)
@@ -44,7 +46,7 @@ func TestPostgresOutcomeFailureBeforeVerificationCanBeRechecked(t *testing.T) {
 	now := time.Now().UTC().Add(-time.Minute).Truncate(time.Second)
 	service.now = func() time.Time { return now }
 	matter, err := service.CreateMatter(ctx, CreateMatterInput{
-		TenantID: "outcome-recheck-test", Type: MatterAuditFinding, Priority: 4,
+		TenantID: "outcome-recheck-test", LegalEntityID: entityID, Type: MatterAuditFinding, Priority: 4,
 		Title: "Recheck remediated access exceptions", Summary: "An independent reviewer must confirm that the corrected access list is complete.",
 	})
 	if err != nil {

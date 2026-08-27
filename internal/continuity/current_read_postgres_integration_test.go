@@ -118,8 +118,13 @@ func TestCurrentPostgresReadsMatchReplayAndStayFixedQuery(t *testing.T) {
 		t.Fatalf("current Program detail used %d SQL calls after %d events; want exactly 1", got, len(events))
 	}
 	canonicalizeProgramAggregateTenant(&replayedProgram, tenantID)
-	if !sameJSON(currentProgram.Program, replayedProgram.Program) || !sameJSON(currentProgram.Requirements, replayedProgram.Requirements) || !sameJSON(currentProgram.CurrentState, replayedProgram.CurrentState) {
-		t.Fatalf("normalized Program current state diverged from reconstruction\ncurrent=%#v\nreconstructed=%#v", currentProgram, replayedProgram)
+	programSame := sameJSON(currentProgram.Program, replayedProgram.Program)
+	requirementsSame := sameJSON(currentProgram.Requirements, replayedProgram.Requirements)
+	stateSame := sameJSON(currentProgram.CurrentState, replayedProgram.CurrentState)
+	if !programSame || !requirementsSame || !stateSame {
+		currentStateJSON, _ := json.Marshal(currentProgram.CurrentState)
+		replayedStateJSON, _ := json.Marshal(replayedProgram.CurrentState)
+		t.Fatalf("normalized Program current state diverged from reconstruction (program=%v requirements=%v state=%v)\ncurrent state=%s\nreconstructed state=%s", programSame, requirementsSame, stateSame, currentStateJSON, replayedStateJSON)
 	}
 	if currentProgram.CurrentState == nil || currentProgram.CurrentState.Overall != StateAtRisk || currentProgram.CurrentState.ProjectionVersion != projectionVersion {
 		t.Fatalf("normalized Program detail lost state/projection identity: %#v", currentProgram.CurrentState)

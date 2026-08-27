@@ -25,9 +25,10 @@ func TestPostgresRelationshipRetirementCommitsCurrentProjectionEventOutboxAndRef
 	defer pool.Close()
 
 	const (
-		tenantID = "94666666-6666-7666-8666-666666666661"
-		entityID = "94666666-6666-7666-8666-666666666662"
-		ownerID  = "94666666-6666-7666-8666-666666666663"
+		tenantID    = "94666666-6666-7666-8666-666666666661"
+		entityID    = "94666666-6666-7666-8666-666666666662"
+		ownerID     = "94666666-6666-7666-8666-666666666663"
+		authorityID = "94666666-6666-7666-8666-666666666664"
 	)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
@@ -37,14 +38,15 @@ func TestPostgresRelationshipRetirementCommitsCurrentProjectionEventOutboxAndRef
 	if _, err = pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1::uuid,$2::uuid,'ENTITY-A','Entity A','NG')`, entityID, tenantID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($1::uuid,$2::uuid,'PERSON','Program owner')`, ownerID, tenantID); err != nil {
+	if _, err = pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($1::uuid,$3::uuid,'PERSON','Program owner'),($2::uuid,$3::uuid,'PERSON','Approval authority')`, ownerID, authorityID, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	ctx = WithTrustedSystemEntityScope(ctx, "relationship-retirement-test", entityID)
 
 	service := NewService(NewCurrentPostgresRepository(pool))
 	now := time.Now().UTC().Truncate(time.Second)
 	service.now = func() time.Time { return now }
-	program, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "relationship-retirement-test", LegalEntityID: entityID, Code: "LINKS", Name: "Relationship lifecycle", Type: "ASSURANCE", OwningFunction: "Risk", OwnerPrincipalID: ownerID, AuthorityPrincipalID: ownerID, Scope: json.RawMessage(`{}`), EffectiveFrom: now, ActorID: ownerID})
+	program, err := service.CreateProgram(ctx, CreateProgramInput{TenantID: "relationship-retirement-test", LegalEntityID: entityID, Code: "LINKS", Name: "Relationship lifecycle", Type: "ASSURANCE", OwningFunction: "Risk", OwnerPrincipalID: ownerID, AuthorityPrincipalID: authorityID, Scope: json.RawMessage(`{}`), EffectiveFrom: now, ActorID: ownerID})
 	if err != nil {
 		t.Fatal(err)
 	}

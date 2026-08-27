@@ -25,6 +25,7 @@ func TestPostgresSourceDependenciesIncludeRequirementsAndEvidenceContracts(t *te
 
 	const (
 		tenantID            = "33333333-3333-7333-8333-333333333331"
+		entityID            = "33333333-3333-7333-8333-333333333330"
 		programID           = "33333333-3333-7333-8333-333333333332"
 		requirementID       = "33333333-3333-7333-8333-333333333333"
 		contractID          = "33333333-3333-7333-8333-333333333334"
@@ -40,13 +41,14 @@ func TestPostgresSourceDependenciesIncludeRequirementsAndEvidenceContracts(t *te
 		args  []any
 	}{
 		{`INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'source-dependency-test','Source Dependency Test')`, []any{tenantID}},
-		{`INSERT INTO evidence_sources(id,tenant_id,code,name,source_type,authority_class,expected_freshness_minutes,health,status)
-		  VALUES($1::uuid,$3::uuid,'REQ-SOURCE','Requirement Source','REGULATORY','AUTHORITATIVE',1440,'CURRENT','ACTIVE'),
-		        ($2::uuid,$3::uuid,'CONTRACT-SOURCE','Contract Source','SYSTEM','SYSTEM_OF_RECORD',60,'DEGRADED','ACTIVE')`,
-			[]any{requirementSourceID, contractSourceID, tenantID}},
-		{`INSERT INTO programs(id,tenant_id,code,name,program_type,status,owning_function,scope,effective_from,version)
-		  VALUES($1::uuid,$2::uuid,'SOURCE-DEPS','Source Dependency Program','CONTINUOUS','ACTIVE','Compliance','{}'::jsonb,$3,1)`,
-			[]any{programID, tenantID, now}},
+		{`INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1::uuid,$2::uuid,'ENTITY-A','Entity A','NG')`, []any{entityID, tenantID}},
+		{`INSERT INTO evidence_sources(id,tenant_id,legal_entity_id,code,name,source_type,authority_class,expected_freshness_minutes,health,status)
+		  VALUES($1::uuid,$3::uuid,$4::uuid,'REQ-SOURCE','Requirement Source','REGULATORY','AUTHORITATIVE',1440,'CURRENT','ACTIVE'),
+		        ($2::uuid,$3::uuid,$4::uuid,'CONTRACT-SOURCE','Contract Source','SYSTEM','SYSTEM_OF_RECORD',60,'DEGRADED','ACTIVE')`,
+			[]any{requirementSourceID, contractSourceID, tenantID, entityID}},
+		{`INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,scope,effective_from,version)
+		  VALUES($1::uuid,$2::uuid,$4::uuid,'SOURCE-DEPS','Source Dependency Program','CONTINUOUS','ACTIVE','Compliance','{}'::jsonb,$3,1)`,
+			[]any{programID, tenantID, now, entityID}},
 		{`INSERT INTO program_requirements(id,tenant_id,program_id,source_id,code,title,statement,modality,status,effective_from,version)
 		  VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,'REQ-1','Source-backed requirement','Maintain the governed source.','MUST','APPROVED',$5,1)`,
 			[]any{requirementID, tenantID, programID, requirementSourceID, now}},

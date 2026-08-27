@@ -30,13 +30,15 @@ func TestPostgresMatterClosureUsesLatestDecisionInDecisionChain(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'closure-truth-test','Closure Truth Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	entityID := seedPostgresTestLegalEntity(t, ctx, pool, tenantID, "ENTITY-A")
+	ctx = WithTrustedSystemEntityScope(ctx, "closure-truth-test", entityID)
 
 	repo := NewPostgresRepository(pool)
 	service := NewService(repo)
 	now := time.Now().UTC().Truncate(time.Second)
 	service.now = func() time.Time { return now }
 	matter, err := service.CreateMatter(ctx, CreateMatterInput{
-		TenantID: "closure-truth-test", Type: MatterRegulatoryChange, Priority: 3,
+		TenantID: "closure-truth-test", LegalEntityID: entityID, Type: MatterRegulatoryChange, Priority: 3,
 		Title: "Current decision reconstruction", Summary: "Prove closure uses the current decision record.",
 	})
 	if err != nil {

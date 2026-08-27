@@ -24,8 +24,8 @@ func TestProgramReviewEventReadIsStrictlyBoundedAndNewestFirst(t *testing.T) {
 	defer pool.Close()
 
 	const (
-		tenantID  = "93333333-3333-7333-8333-333333333331"
-		programID = "93333333-3333-7333-8333-333333333332"
+		tenantID  = "93333333-3333-7333-8333-333333333351"
+		programID = "93333333-3333-7333-8333-333333333352"
 	)
 	_, _ = pool.Exec(ctx, `DELETE FROM continuity_events WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)

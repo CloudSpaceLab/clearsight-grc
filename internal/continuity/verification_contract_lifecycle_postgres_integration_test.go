@@ -34,6 +34,8 @@ func TestPostgresVerificationContractSupersessionAndRetirementAreAtomic(t *testi
 	if _, err = pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'verification-contract-lifecycle','Verification Contract Lifecycle')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	entityID := seedPostgresTestLegalEntity(t, ctx, pool, tenantID, "ENTITY-A")
+	ctx = WithTrustedSystemEntityScope(ctx, "verification-contract-lifecycle", entityID)
 	if _, err = pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES($1::uuid,$2::uuid,'PERSON','verification-contract-reviewer','Outcome reviewer')`, actorID, tenantID); err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +44,7 @@ func TestPostgresVerificationContractSupersessionAndRetirementAreAtomic(t *testi
 	now := time.Now().UTC().Truncate(time.Second)
 	service.now = func() time.Time { return now }
 	matter, err := service.CreateMatter(ctx, CreateMatterInput{
-		TenantID: "verification-contract-lifecycle", Type: MatterControlGap, Priority: 4,
+		TenantID: "verification-contract-lifecycle", LegalEntityID: entityID, Type: MatterControlGap, Priority: 4,
 		Title: "Correct an outcome check", Summary: "The reviewer must correct the population before closure.",
 	})
 	if err != nil {

@@ -27,8 +27,8 @@ func TestAcceptedProgramReviewPreventsBaselineSnapshotDeletion(t *testing.T) {
 	defer pool.Close()
 
 	const (
-		tenantID    = "94444444-4444-7444-8444-444444444441"
-		principalID = "94444444-4444-7444-8444-444444444442"
+		tenantID    = "94444444-4444-7444-8444-444444444461"
+		principalID = "94444444-4444-7444-8444-444444444462"
 	)
 	_, _ = pool.Exec(ctx, `DELETE FROM program_review_checkpoints WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
@@ -40,6 +40,8 @@ func TestAcceptedProgramReviewPreventsBaselineSnapshotDeletion(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'review-retention','Review Retention')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	entityID := seedPostgresTestLegalEntity(t, ctx, pool, tenantID, "ENTITY-A")
+	ctx = WithTrustedSystemEntityScope(ctx, "review-retention", entityID)
 	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES($1::uuid,$2::uuid,'PERSON','review-retention-actor','Review Retention Actor')`, principalID, tenantID); err != nil {
 		t.Fatal(err)
 	}
@@ -49,6 +51,7 @@ func TestAcceptedProgramReviewPreventsBaselineSnapshotDeletion(t *testing.T) {
 	service := NewServiceWithClock(repo, func() time.Time { return now })
 	program, err := service.CreateProgram(ctx, CreateProgramInput{
 		TenantID:       "review-retention",
+		LegalEntityID:  entityID,
 		Code:           "RETENTION",
 		Name:           "Review retention programme",
 		Type:           "REGULATORY",

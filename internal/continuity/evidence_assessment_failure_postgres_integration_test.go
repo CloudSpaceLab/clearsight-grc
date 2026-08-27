@@ -31,12 +31,14 @@ func TestPostgresEvidenceFailureCommitsAssessmentMatterEventsAndOutboxTogether(t
 		reviewerID = "93333333-3333-7333-8333-333333333334"
 	)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	defer func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) }()
 	if _, err = pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'evidence-failure-test','Evidence Failure Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1::uuid,$2::uuid,'ENTITY-A','Entity A','NG')`, entityID, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	ctx = WithTrustedSystemEntityScope(ctx, "evidence-failure-test", entityID)
 	if _, err = pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($1::uuid,$3::uuid,'PERSON','Program owner'),($2::uuid,$3::uuid,'PERSON','Evidence reviewer')`, ownerID, reviewerID, tenantID); err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +64,16 @@ func TestPostgresEvidenceFailureCommitsAssessmentMatterEventsAndOutboxTogether(t
 	program, err = service.AddEvidenceContract(ctx, AddEvidenceContractInput{
 		TenantID: "evidence-failure-test", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version,
 		RequirementID: program.Requirements[0].ID, Code: "CHECK", Name: "Retention evidence", Claim: "Required evidence is retained.",
-		FreshnessMinutes: 60, MinimumCoverage: 1, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractActive,
+		FreshnessMinutes: 60, MinimumCoverage: 1, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: EvidenceContractDraft,
+		ActorID: ownerID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.TransitionEvidenceContract(ctx, TransitionEvidenceContractInput{
+		TenantID: "evidence-failure-test", ProgramID: program.Program.ID, ContractID: program.EvidenceContracts[0].ID,
+		ExpectedVersion: program.Program.Version, ExpectedContractVersion: program.EvidenceContracts[0].Version,
+		To: EvidenceContractActive, Rationale: "The evidence check is ready for use.", ActorID: reviewerID,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -85,11 +96,11 @@ func TestPostgresEvidenceFailureCommitsAssessmentMatterEventsAndOutboxTogether(t
 		args   []any
 		target *int
 	}{
-		{`SELECT count(*) FROM matters WHERE tenant_id=$1::uuid AND source_id=$2::uuid AND legal_entity_id=$3::uuid`, []any{tenantID, program.EvidenceContracts[0].ID, entityID}, &matters},
-		{`SELECT count(*) FROM matter_links ml JOIN matters m ON m.tenant_id=ml.tenant_id AND m.id=ml.matter_id WHERE ml.tenant_id=$1::uuid AND m.source_id=$2::uuid AND ml.program_id=$3::uuid`, []any{tenantID, program.EvidenceContracts[0].ID, program.Program.ID}, &links},
+		{`SELECT count(*) FROM matters WHERE tenant_id=$1::uuid AND source_id=$2 AND legal_entity_id=$3::uuid`, []any{tenantID, program.EvidenceContracts[0].ID, entityID}, &matters},
+		{`SELECT count(*) FROM matter_links ml JOIN matters m ON m.tenant_id=ml.tenant_id AND m.id=ml.matter_id WHERE ml.tenant_id=$1::uuid AND m.source_id=$2 AND ml.program_id=$3::uuid`, []any{tenantID, program.EvidenceContracts[0].ID, program.Program.ID}, &links},
 		{`SELECT count(*) FROM continuity_events WHERE tenant_id=$1::uuid AND aggregate_type='PROGRAM' AND aggregate_id=$2::uuid AND event_type='EVIDENCE_ASSESSMENT_RECORDED'`, []any{tenantID, program.Program.ID}, &assessmentEvents},
-		{`SELECT count(*) FROM continuity_events ce JOIN matters m ON m.tenant_id=ce.tenant_id AND m.id=ce.aggregate_id WHERE ce.tenant_id=$1::uuid AND m.source_id=$2::uuid`, []any{tenantID, program.EvidenceContracts[0].ID}, &matterEvents},
-		{`SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND ((aggregate_type='PROGRAM' AND aggregate_id=$2::uuid AND event_type='EVIDENCE_ASSESSMENT_RECORDED') OR (aggregate_type='MATTER' AND aggregate_id IN (SELECT id FROM matters WHERE tenant_id=$1::uuid AND source_id=$3::uuid)))`, []any{tenantID, program.Program.ID, program.EvidenceContracts[0].ID}, &outboxEvents},
+		{`SELECT count(*) FROM continuity_events ce JOIN matters m ON m.tenant_id=ce.tenant_id AND m.id=ce.aggregate_id WHERE ce.tenant_id=$1::uuid AND m.source_id=$2`, []any{tenantID, program.EvidenceContracts[0].ID}, &matterEvents},
+		{`SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND ((aggregate_type='PROGRAM' AND aggregate_id=$2::uuid AND event_type='EVIDENCE_ASSESSMENT_RECORDED') OR (aggregate_type='MATTER' AND aggregate_id IN (SELECT id FROM matters WHERE tenant_id=$1::uuid AND source_id=$3)))`, []any{tenantID, program.Program.ID, program.EvidenceContracts[0].ID}, &outboxEvents},
 		{`SELECT count(*) FROM continuity_projection_jobs WHERE tenant_id=$1::uuid AND aggregate_type='PROGRAM' AND aggregate_id=$2::uuid AND source_aggregate_version=$3`, []any{tenantID, program.Program.ID, program.Program.Version}, &projectionJobs},
 	}
 	for _, check := range queries {
@@ -124,12 +135,14 @@ func TestPostgresLegacyEvidenceFailureActionsRemainExecutable(t *testing.T) {
 		blockID    = "94444444-4444-7444-8444-444444444447"
 	)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	defer func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) }()
 	if _, err = pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'legacy-evidence-failure-test','Legacy Evidence Failure Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1::uuid,$2::uuid,'ENTITY-A','Entity A','NG')`, entityID, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	ctx = WithTrustedSystemEntityScope(ctx, "legacy-evidence-failure-test", entityID)
 	if _, err = pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($1::uuid,$3::uuid,'PERSON','Program owner'),($2::uuid,$3::uuid,'PERSON','Evidence reviewer')`, ownerID, reviewerID, tenantID); err != nil {
 		t.Fatal(err)
 	}
@@ -188,13 +201,13 @@ func TestPostgresLegacyEvidenceFailureActionsRemainExecutable(t *testing.T) {
 	recordFailure(blockID)
 
 	var requests, flagMatters, blockMatters, legacyAssessments int
-	if err := pool.QueryRow(ctx, `SELECT count(*) FROM matters WHERE tenant_id=$1::uuid AND source_id=$2::uuid AND legal_entity_id=$3::uuid AND matter_type='AUTHORITY_REQUEST' AND trigger_type='EVIDENCE_REQUEST_REQUIRED'`, tenantID, requestID, entityID).Scan(&requests); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM matters WHERE tenant_id=$1::uuid AND source_id=$2::text AND legal_entity_id=$3::uuid AND matter_type='AUTHORITY_REQUEST' AND trigger_type='EVIDENCE_REQUEST_REQUIRED'`, tenantID, requestID, entityID).Scan(&requests); err != nil {
 		t.Fatal(err)
 	}
-	if err := pool.QueryRow(ctx, `SELECT count(*) FROM matters WHERE tenant_id=$1::uuid AND source_id=$2::uuid`, tenantID, flagID).Scan(&flagMatters); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM matters WHERE tenant_id=$1::uuid AND source_id=$2::text`, tenantID, flagID).Scan(&flagMatters); err != nil {
 		t.Fatal(err)
 	}
-	if err := pool.QueryRow(ctx, `SELECT count(*) FROM matters WHERE tenant_id=$1::uuid AND source_id=$2::uuid`, tenantID, blockID).Scan(&blockMatters); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM matters WHERE tenant_id=$1::uuid AND source_id=$2::text`, tenantID, blockID).Scan(&blockMatters); err != nil {
 		t.Fatal(err)
 	}
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM evidence_assessments WHERE tenant_id=$1::uuid AND contract_id IN ($2::uuid,$3::uuid,$4::uuid)`, tenantID, requestID, flagID, blockID).Scan(&legacyAssessments); err != nil {

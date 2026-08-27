@@ -486,6 +486,36 @@ func matterNextAction(status MatterStatus) string {
 }
 
 func decorateProgram(aggregate ProgramAggregate) ProgramAggregate {
+	if aggregate.CurrentState != nil {
+		aggregate.CurrentState.GeneratedAt = aggregate.CurrentState.GeneratedAt.UTC()
+		if aggregate.CurrentState.Reasons == nil {
+			aggregate.CurrentState.Reasons = []StateReason{}
+		}
+	}
+	if aggregate.Requirements == nil {
+		aggregate.Requirements = []Requirement{}
+	}
+	if aggregate.Applicability == nil {
+		aggregate.Applicability = []Applicability{}
+	}
+	if aggregate.ControlObjectives == nil {
+		aggregate.ControlObjectives = []ControlObjective{}
+	}
+	if aggregate.ControlImplementations == nil {
+		aggregate.ControlImplementations = []ControlImplementation{}
+	}
+	if aggregate.RequirementControlLinks == nil {
+		aggregate.RequirementControlLinks = []RequirementControlLink{}
+	}
+	if aggregate.EvidenceContracts == nil {
+		aggregate.EvidenceContracts = []EvidenceContract{}
+	}
+	if aggregate.EvidenceAssessments == nil {
+		aggregate.EvidenceAssessments = []EvidenceAssessment{}
+	}
+	if aggregate.Triggers == nil {
+		aggregate.Triggers = []Trigger{}
+	}
 	switch aggregate.Program.Status {
 	case ProgramDraft:
 		aggregate.StateLabel = "Setup in progress"
@@ -504,6 +534,27 @@ func decorateProgram(aggregate ProgramAggregate) ProgramAggregate {
 }
 
 func decorateMatter(aggregate MatterAggregate) MatterAggregate {
+	if aggregate.Links == nil {
+		aggregate.Links = []MatterLink{}
+	}
+	if aggregate.Decisions == nil {
+		aggregate.Decisions = []Decision{}
+	}
+	if aggregate.Actions == nil {
+		aggregate.Actions = []Action{}
+	}
+	if aggregate.VerificationContracts == nil {
+		aggregate.VerificationContracts = []VerificationContract{}
+	}
+	if aggregate.VerificationResults == nil {
+		aggregate.VerificationResults = []VerificationResult{}
+	}
+	if aggregate.ResponsePackages == nil {
+		aggregate.ResponsePackages = []ResponsePackage{}
+	}
+	if aggregate.Closure.Reasons == nil {
+		aggregate.Closure.Reasons = []string{}
+	}
 	aggregate.TypeLabel = matterTypeLabel(aggregate.Matter.Type)
 	aggregate.StatusLabel = matterStatusLabel(aggregate.Matter.Status)
 	aggregate.NextAction = matterNextAction(aggregate.Matter.Status)

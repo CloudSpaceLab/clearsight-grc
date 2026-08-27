@@ -37,6 +37,7 @@ func TestPostgresMatterSummariesMatchCanonicalRestrictedVisibilityBeforePaginati
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'matter-summary-visibility','Matter Summary Visibility')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	entityID := seedPostgresTestLegalEntity(t, ctx, pool, tenantID, "ENTITY-A")
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES
 		($1::uuid,$3::uuid,'PERSON','summary-a','Summary A'),
@@ -47,18 +48,18 @@ func TestPostgresMatterSummariesMatchCanonicalRestrictedVisibilityBeforePaginati
 	now := time.Now().UTC().Truncate(time.Second)
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO matters(
-			id,tenant_id,reference,matter_type,status,priority,title,summary,scope,
+			id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,
 			known_facts,missing_facts,contradictions,created_at,updated_at,version
 		) VALUES
-		($1::uuid,$4::uuid,'VIS-001','AUTHORITY_REQUEST','ASSESSMENT',5,'Hidden restricted','hidden restricted','{"access":"RESTRICTED","allowed_principal_ids":["95555555-5555-7555-8555-555555555553"]}'::jsonb,'{}','[]','[]',$5,$5,1),
-		($2::uuid,$4::uuid,'VIS-002','AUTHORITY_REQUEST','ASSESSMENT',4,'Mixed secret','mixed-secret','{"access":"RESTRICTED","allowed_principal_ids":["95555555-5555-7555-8555-555555555552",42]}'::jsonb,'{}','[]','[]',$5,$5,1),
-		($3::uuid,$4::uuid,'VIS-003','REGULATORY_CHANGE','ASSESSMENT',3,'Visible internal','visible internal','{"access":"INTERNAL"}'::jsonb,'{}','[]','[]',$5,$5,1)`, hiddenID, mixedID, visibleID, tenantID, now); err != nil {
+		($1::uuid,$4::uuid,$6::uuid,'VIS-001','AUTHORITY_REQUEST','ASSESSMENT',5,'Hidden restricted','hidden restricted','{"access":"RESTRICTED","allowed_principal_ids":["95555555-5555-7555-8555-555555555553"]}'::jsonb,'{}','[]','[]',$5,$5,1),
+		($2::uuid,$4::uuid,$6::uuid,'VIS-002','AUTHORITY_REQUEST','ASSESSMENT',4,'Mixed secret','mixed-secret','{"access":"RESTRICTED","allowed_principal_ids":["95555555-5555-7555-8555-555555555552",42]}'::jsonb,'{}','[]','[]',$5,$5,1),
+		($3::uuid,$4::uuid,$6::uuid,'VIS-003','REGULATORY_CHANGE','ASSESSMENT',3,'Visible internal','visible internal','{"access":"INTERNAL"}'::jsonb,'{}','[]','[]',$5,$5,1)`, hiddenID, mixedID, visibleID, tenantID, now, entityID); err != nil {
 		t.Fatal(err)
 	}
 
 	repo := NewPostgresRepository(pool)
 	current := NewCurrentPostgresRepository(pool)
-	actorA := identity.WithActor(ctx, identity.Actor{TenantID: tenantID, PrincipalID: principalA})
+	actorA := identity.WithActor(ctx, identity.Actor{TenantID: tenantID, LegalEntityID: entityID, PrincipalID: principalA})
 	page, err := repo.ListMatterSummaries(actorA, tenantID, SummaryQuery{Status: "OPEN", Limit: 2})
 	if err != nil {
 		t.Fatal(err)
@@ -105,7 +106,7 @@ func TestPostgresMatterSummariesMatchCanonicalRestrictedVisibilityBeforePaginati
 		t.Fatalf("current Matter list trusted caller tenant over verified actor tenant: %#v", wrongList)
 	}
 
-	actorB := identity.WithActor(ctx, identity.Actor{TenantID: "matter-summary-visibility", PrincipalID: principalB})
+	actorB := identity.WithActor(ctx, identity.Actor{TenantID: "matter-summary-visibility", LegalEntityID: entityID, PrincipalID: principalB})
 	allowed, err := repo.ListMatterSummaries(actorB, "matter-summary-visibility", SummaryQuery{Status: "OPEN", Limit: 2})
 	if err != nil {
 		t.Fatal(err)
