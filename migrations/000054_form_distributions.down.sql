@@ -21,14 +21,18 @@ DROP TABLE IF EXISTS capture_distribution_recipients;
 DROP INDEX IF EXISTS capture_submissions_distribution_idx;
 ALTER TABLE capture_submissions
     DROP CONSTRAINT IF EXISTS capture_submissions_distribution_tenant_fk,
-    DROP CONSTRAINT IF EXISTS capture_submissions_id_tenant_key,
+    DROP CONSTRAINT IF EXISTS capture_submissions_distribution_scope_key,
     DROP COLUMN IF EXISTS distribution_id;
 
 DROP INDEX IF EXISTS capture_requests_distribution_idx;
 ALTER TABLE capture_requests
     DROP CONSTRAINT IF EXISTS capture_requests_distribution_scope_fk,
+    DROP CONSTRAINT IF EXISTS capture_requests_distribution_scope_key,
     DROP COLUMN IF EXISTS distribution_id;
 
 DROP TABLE IF EXISTS capture_form_distributions;
+
+ALTER TABLE monitoring_form_templates
+    DROP CONSTRAINT IF EXISTS monitoring_form_templates_distribution_scope_key;
 
 COMMIT;
