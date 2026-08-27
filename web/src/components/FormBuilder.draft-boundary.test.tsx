@@ -39,7 +39,8 @@ describe("FormBuilder draft validation boundary", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
 
-    expect(await screen.findByText("20% remains to allocate in Vendor identity")).toBeTruthy();
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("20% remains to allocate in Vendor identity");
     expect(createFormTemplate).not.toHaveBeenCalled();
   });
 
