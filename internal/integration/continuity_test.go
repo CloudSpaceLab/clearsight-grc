@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -20,6 +21,7 @@ const (
 	continuityActorID       = "44444444-4444-7444-8444-444444444443"
 	continuityReviewerID    = "44444444-4444-7444-8444-444444444444"
 	continuitySourceID      = "44444444-4444-7444-8444-444444444445"
+	continuityEntityID      = "44444444-4444-7444-8444-444444444446"
 )
 
 func TestProgramMatterPostgresContracts(t *testing.T) {
@@ -39,17 +41,22 @@ func TestProgramMatterPostgresContracts(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'continuity-bank','Continuity Bank'),($2::uuid,'other-bank','Other Bank')`, continuityTenantID, continuityOtherTenantID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'ENTITY-A','Continuity Bank','NG',clock_timestamp()-interval '1 day')`, continuityEntityID, continuityTenantID); err != nil {
+		t.Fatal(err)
+	}
+	ctx = continuity.WithTrustedSystemEntityScope(ctx, "continuity-bank", continuityEntityID)
 	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES($2::uuid,$1::uuid,'PERSON','owner','Program Owner'),($3::uuid,$1::uuid,'PERSON','reviewer','Independent Reviewer')`, continuityTenantID, continuityActorID, continuityReviewerID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO evidence_sources(id,tenant_id,code,name,source_type,authority_class,expected_freshness_minutes,health) VALUES($2::uuid,$1::uuid,'IAM','Identity directory','SYSTEM','SYSTEM_OF_RECORD',60,'CURRENT')`, continuityTenantID, continuitySourceID); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO evidence_sources(id,tenant_id,legal_entity_id,code,name,source_type,authority_class,expected_freshness_minutes,health) VALUES($2::uuid,$1::uuid,$3::uuid,'IAM','Identity directory','SYSTEM','SYSTEM_OF_RECORD',60,'CURRENT')`, continuityTenantID, continuitySourceID, continuityEntityID); err != nil {
 		t.Fatal(err)
 	}
 
 	service := continuity.NewService(continuity.NewPostgresRepository(pool))
+	service.ConfigureEvidenceSourceValidator(evidence.NewService(evidence.NewPostgresRepository(pool), nil))
 	now := time.Now().UTC().Truncate(time.Second)
 
-	program, err := service.CreateProgram(ctx, continuity.CreateProgramInput{TenantID: "continuity-bank", Code: "ACCESS", Name: "Privileged access", Type: "CYBERSECURITY", OwningFunction: "Information Security", OwnerPrincipalID: continuityActorID, AuthorityPrincipalID: continuityActorID, Scope: json.RawMessage(`{"population":"privileged_accounts"}`), EffectiveFrom: now.AddDate(0, -6, 0), ActorID: continuityActorID})
+	program, err := service.CreateProgram(ctx, continuity.CreateProgramInput{TenantID: "continuity-bank", LegalEntityID: continuityEntityID, Code: "ACCESS", Name: "Privileged access", Type: "CYBERSECURITY", OwningFunction: "Information Security", OwnerPrincipalID: continuityActorID, AuthorityPrincipalID: continuityReviewerID, Scope: json.RawMessage(`{"population":"privileged_accounts"}`), EffectiveFrom: now.AddDate(0, -6, 0), ActorID: continuityActorID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,15 +72,27 @@ func TestProgramMatterPostgresContracts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	program, err = service.AddControlImplementation(ctx, continuity.AddControlImplementationInput{TenantID: "continuity-bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ObjectiveID: program.ControlObjectives[0].ID, Name: "Monthly account review", Description: "IAM accounts are reconciled with HR and owner approvals.", ImplementationType: "ACCESS_REVIEW", OwnerPrincipalID: continuityActorID, Scope: json.RawMessage(`{"population":"privileged_accounts"}`), Status: continuity.ImplementationImplemented, EffectiveFrom: now.AddDate(0, -3, 0), ActorID: continuityActorID})
+	program, err = service.AddControlImplementation(ctx, continuity.AddControlImplementationInput{TenantID: "continuity-bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ObjectiveID: program.ControlObjectives[0].ID, Name: "Monthly account review", Description: "IAM accounts are reconciled with HR and owner approvals.", ImplementationType: "ACCESS_REVIEW", OwnerPrincipalID: continuityActorID, Scope: json.RawMessage(`{"population":"privileged_accounts"}`), Status: continuity.ImplementationPlanned, EffectiveFrom: now.AddDate(0, -3, 0), ActorID: continuityActorID})
 	if err != nil {
 		t.Fatal(err)
+	}
+	for _, target := range []continuity.ControlImplementationStatus{continuity.ImplementationInProgress, continuity.ImplementationImplemented} {
+		implementation := program.ControlImplementations[0]
+		program, err = service.TransitionControlImplementation(ctx, continuity.TransitionControlImplementationInput{TenantID: "continuity-bank", ProgramID: program.Program.ID, ImplementationID: implementation.ID, ExpectedVersion: program.Program.Version, ExpectedImplementationVersion: implementation.Version, To: target, Rationale: "The safeguard owner confirmed the operating state.", ActorID: continuityActorID})
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	program, err = service.LinkRequirementControl(ctx, continuity.LinkRequirementControlInput{TenantID: "continuity-bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, RequirementID: program.Requirements[0].ID, ImplementationID: program.ControlImplementations[0].ID, ActorID: continuityActorID})
 	if err != nil {
 		t.Fatal(err)
 	}
-	program, err = service.AddEvidenceContract(ctx, continuity.AddEvidenceContractInput{TenantID: "continuity-bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ControlImplementationID: program.ControlImplementations[0].ID, Code: "ACCESS-COVERAGE", Name: "Access review coverage", Claim: "Every privileged account is resolved for the current period.", AcceptableSourceIDs: []string{continuitySourceID}, PopulationScope: json.RawMessage(`{"population":"privileged_accounts"}`), FreshnessMinutes: 44640, MinimumCoverage: .99, ContradictionPolicy: "FAIL", FailureAction: "MATTER", Status: continuity.EvidenceContractActive, ActorID: continuityActorID})
+	program, err = service.AddEvidenceContract(ctx, continuity.AddEvidenceContractInput{TenantID: "continuity-bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ControlImplementationID: program.ControlImplementations[0].ID, Code: "ACCESS-COVERAGE", Name: "Access review coverage", Claim: "Every privileged account is resolved for the current period.", AcceptableSourceIDs: []string{continuitySourceID}, PopulationScope: json.RawMessage(`{"population":"privileged_accounts"}`), FreshnessMinutes: 44640, MinimumCoverage: .99, ContradictionPolicy: "FAIL", FailureAction: "MATTER", Status: continuity.EvidenceContractDraft, ActorID: continuityActorID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := program.EvidenceContracts[0]
+	program, err = service.TransitionEvidenceContract(ctx, continuity.TransitionEvidenceContractInput{TenantID: "continuity-bank", ProgramID: program.Program.ID, ContractID: contract.ID, ExpectedVersion: program.Program.Version, ExpectedContractVersion: contract.Version, To: continuity.EvidenceContractActive, Rationale: "The independent reviewer approved the evidence check.", ActorID: continuityReviewerID})
 	if err != nil {
 		t.Fatal(err)
 	}

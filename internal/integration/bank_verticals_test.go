@@ -43,6 +43,7 @@ func TestNigerianBankReferenceJourneys(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1::uuid,$2::uuid,'BANK-NG','Reference Bank Nigeria','Nigeria')`, entityID, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	ctx = continuity.WithTrustedSystemEntityScope(ctx, "vertical-bank", entityID)
 	for _, principal := range []struct{ id, name string }{{actorID, "Amaka Okafor"}, {ownerID, "Data Protection Owner"}, {reviewerID, "Control Assurance Reviewer"}, {signatoryID, "Executive Signatory"}} {
 		if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($1::uuid,$2::uuid,'PERSON',$3)`, principal.id, tenantID, principal.name); err != nil {
 			t.Fatal(err)

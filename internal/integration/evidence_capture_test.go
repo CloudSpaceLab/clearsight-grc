@@ -20,6 +20,10 @@ const (
 	evidenceOtherTenantID = "33333333-3333-7333-8333-333333333332"
 	evidenceRequesterID   = "33333333-3333-7333-8333-333333333333"
 	evidenceRecipientID   = "33333333-3333-7333-8333-333333333334"
+	evidenceEntityID      = "33333333-3333-7333-8333-333333333335"
+	evidenceMatterID      = "33333333-3333-7333-8333-333333333336"
+	evidenceVendorID      = "33333333-3333-7333-8333-333333333337"
+	evidenceRelationship  = "33333333-3333-7333-8333-333333333338"
 )
 
 func TestEvidenceCapturePostgresContracts(t *testing.T) {
@@ -40,9 +44,23 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 		t.Fatal(err)
 	}
 	now := time.Now().UTC().Truncate(time.Second)
+	if _, err := pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'ENTITY-A','Evidence Bank','NG',$3)`, evidenceEntityID, evidenceTenantID, now.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES
 		($1::uuid,$3::uuid,'PERSON','Evidence requester','ACTIVE',$4),
 		($2::uuid,$3::uuid,'PERSON','Evidence recipient','ACTIVE',$4)`, evidenceRequesterID, evidenceRecipientID, evidenceTenantID, now.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,'MAT-EVIDENCE','CONTROL_GAP','ASSESSMENT',3,'Evidence review','Collect the current evidence.','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4,$4)`, evidenceMatterID, evidenceTenantID, evidenceEntityID, now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO third_parties(id,tenant_id,legal_name,status,created_at,updated_at,version) VALUES($1::uuid,$2::uuid,'Evidence Vendor','ACTIVE',$3,$3,1)`, evidenceVendorID, evidenceTenantID, now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO third_party_relationships(id,tenant_id,legal_entity_id,vendor_id,service_name,business_owner_principal_id,criticality,privacy_role,status,effective_from,created_at,updated_at,version)
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,'Evidence collection',$5::uuid,'IMPORTANT','PROCESSOR','ACTIVE',$6,$6,$6,1)`, evidenceRelationship, evidenceTenantID, evidenceEntityID, evidenceVendorID, evidenceRequesterID, now); err != nil {
 		t.Fatal(err)
 	}
 	store, err := evidence.NewLocalObjectStore(t.TempDir())
@@ -52,7 +70,7 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 	service := evidence.NewService(evidence.NewPostgresRepository(pool), store)
 
 	t.Run("source observations and freshness changes emit durable events", func(t *testing.T) {
-		source, err := service.CreateSource(ctx, evidence.CreateSourceInput{TenantID: "evidence-bank", Code: "IAM", Name: "Identity directory", Type: evidence.SourceSystem, AuthorityClass: "SYSTEM_OF_RECORD", ExpectedFreshnessMinutes: 30})
+		source, err := service.CreateSource(ctx, evidence.CreateSourceInput{TenantID: "evidence-bank", LegalEntityID: evidenceEntityID, Code: "IAM", Name: "Identity directory", Type: evidence.SourceSystem, AuthorityClass: "SYSTEM_OF_RECORD", ExpectedFreshnessMinutes: 30})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -95,7 +113,7 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 		if _, err := service.GetRequest(ctx, "other-bank", request.ID); !errors.Is(err, evidence.ErrNotFound) {
 			t.Fatalf("expected tenant-scoped not found, got %v", err)
 		}
-		receipt, err := service.Submit(ctx, evidence.Submission{TenantID: "evidence-bank", RequestID: request.ID, SubmittedBy: evidenceRecipientID, Channel: "INTERNAL", ExpectedVersion: request.Version, Answers: formcontract.TextAnswers(map[string]string{"state": "Operating"})})
+		receipt, err := service.Submit(ctx, evidence.Submission{TenantID: "evidence-bank", LegalEntityID: evidenceEntityID, RequestID: request.ID, SubmittedBy: evidenceRecipientID, Channel: "INTERNAL", ExpectedVersion: request.Version, Answers: formcontract.TextAnswers(map[string]string{"state": "Operating"})})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -120,7 +138,7 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		first, err := service.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "evidence-bank", RequestID: request.ID, Audience: audience, Purpose: "Vendor assurance response", TTLMinutes: 60, CreatedBy: evidenceRequesterID})
+		first, err := service.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "evidence-bank", LegalEntityID: evidenceEntityID, RequestID: request.ID, Audience: audience, Purpose: "Vendor assurance response", TTLMinutes: 60, CreatedBy: evidenceRequesterID})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -144,7 +162,7 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 		if session.ExpiresAt.After(first.ExpiresAt) {
 			t.Fatalf("session exceeded invitation expiry: %#v %#v", session, first)
 		}
-		if err := service.RevokeSession(ctx, "evidence-bank", session.SessionID); err != nil {
+		if err := service.RevokeSessionAsRequester(ctx, evidence.RevokeSessionAsRequesterInput{TenantID: "evidence-bank", LegalEntityID: evidenceEntityID, RequestID: request.ID, SessionID: session.SessionID, ActorPrincipalID: evidenceRequesterID}); err != nil {
 			t.Fatal(err)
 		}
 		if _, _, err := service.SessionRequest(ctx, session.SessionToken); !errors.Is(err, evidence.ErrSessionInvalid) {
@@ -156,7 +174,7 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		issued, err := service.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "evidence-bank", RequestID: cancelled.ID, Audience: cancelledAudience, Purpose: "Cancelled response", TTLMinutes: 60, CreatedBy: evidenceRequesterID})
+		issued, err := service.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "evidence-bank", LegalEntityID: evidenceEntityID, RequestID: cancelled.ID, Audience: cancelledAudience, Purpose: "Cancelled response", TTLMinutes: 60, CreatedBy: evidenceRequesterID})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -204,8 +222,9 @@ func TestEvidenceCapturePostgresContracts(t *testing.T) {
 func createInternalEvidenceRequest(ctx context.Context, service *evidence.Service, now time.Time, subjectType, subjectID string) (evidence.Request, error) {
 	return service.CreateRequest(ctx, evidence.CreateRequestInput{
 		TenantID:         "evidence-bank",
-		SubjectType:      subjectType,
-		SubjectID:        subjectID,
+		LegalEntityID:    evidenceEntityID,
+		SubjectType:      "MATTER",
+		SubjectID:        evidenceMatterID,
 		Title:            "Confirm current evidence",
 		Purpose:          "Complete the current assurance review.",
 		WhyYou:           "You are the assigned evidence owner.",
@@ -223,8 +242,9 @@ func createInternalEvidenceRequest(ctx context.Context, service *evidence.Servic
 func createExternalEvidenceRequest(ctx context.Context, service *evidence.Service, now time.Time, subjectType, subjectID, audience string) (evidence.Request, error) {
 	return service.CreateRequest(ctx, evidence.CreateRequestInput{
 		TenantID:         "evidence-bank",
-		SubjectType:      subjectType,
-		SubjectID:        subjectID,
+		LegalEntityID:    evidenceEntityID,
+		SubjectType:      "VENDOR_RELATIONSHIP",
+		SubjectID:        evidenceRelationship,
 		Title:            "Confirm external evidence",
 		Purpose:          "Complete the current assurance review.",
 		WhyYou:           "You are the intended external respondent.",

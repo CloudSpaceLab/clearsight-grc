@@ -54,19 +54,19 @@ func TestGovernanceRuntimePhase(t *testing.T) {
 
 	t.Run("policy maker checker writes decision and outbox", func(t *testing.T) {
 		service := governance.NewService(governance.NewPostgresRepository(pool))
-		definition := json.RawMessage(`{"rules":[{"id":"r1","responsibility":"AUTHORIZER","selector":{"kind":"ROLE","ref":"INTERNAL_AUDIT"}}]}`)
-		policy, err := service.CreatePolicy(ctx, governance.CreatePolicyInput{TenantID: "phase2-bank", Code: "risk", Name: "Risk routing", MakerID: phase2MakerID, Definition: definition})
+		definition := json.RawMessage(`{"rules":[{"id":"r1","legal_entity_id":"33333333-3333-7333-8333-333333333332","responsibility":"AUTHORIZER","selector":{"kind":"ROLE","ref":"INTERNAL_AUDIT"}}]}`)
+		policy, err := service.CreatePolicy(ctx, governance.CreatePolicyInput{TenantID: "phase2-bank", LegalEntityID: phase2EntityID, Code: "risk", Name: "Risk routing", MakerID: phase2MakerID, Definition: definition})
 		if err != nil {
 			t.Fatal(err)
 		}
-		policy, err = service.SubmitPolicy(ctx, governance.TransitionInput{TenantID: "phase2-bank", ID: policy.ID, ActorID: phase2MakerID, ExpectedVersion: policy.Version})
+		policy, err = service.SubmitPolicy(ctx, governance.TransitionInput{TenantID: "phase2-bank", LegalEntityID: phase2EntityID, ID: policy.ID, ActorID: phase2MakerID, ExpectedVersion: policy.Version})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := service.ApprovePolicy(ctx, governance.TransitionInput{TenantID: "phase2-bank", ID: policy.ID, ActorID: phase2MakerID, ExpectedVersion: policy.Version}); !errors.Is(err, governance.ErrMakerChecker) {
+		if _, err := service.ApprovePolicy(ctx, governance.TransitionInput{TenantID: "phase2-bank", LegalEntityID: phase2EntityID, ID: policy.ID, ActorID: phase2MakerID, ExpectedVersion: policy.Version}); !errors.Is(err, governance.ErrMakerChecker) {
 			t.Fatalf("expected maker-checker, got %v", err)
 		}
-		policy, err = service.ApprovePolicy(ctx, governance.TransitionInput{TenantID: "phase2-bank", ID: policy.ID, ActorID: phase2CheckerID, ExpectedVersion: policy.Version, Rationale: "Independent approval"})
+		policy, err = service.ApprovePolicy(ctx, governance.TransitionInput{TenantID: "phase2-bank", LegalEntityID: phase2EntityID, ID: policy.ID, ActorID: phase2CheckerID, ExpectedVersion: policy.Version, Rationale: "Independent approval"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -88,30 +88,30 @@ func TestGovernanceRuntimePhase(t *testing.T) {
 	t.Run("delegation cycles and segregation conflicts are blocked", func(t *testing.T) {
 		service := governance.NewService(governance.NewPostgresRepository(pool))
 		now := time.Now().UTC()
-		first, err := service.CreateDelegation(ctx, governance.CreateDelegationInput{TenantID: "phase2-bank", FromPrincipalID: phase2FromID, ToPrincipalID: phase2ToID, Responsibility: "REVIEWER", StartsAt: now.Add(time.Hour), EndsAt: now.Add(48 * time.Hour), MakerID: phase2MakerID})
+		first, err := service.CreateDelegation(ctx, governance.CreateDelegationInput{TenantID: "phase2-bank", LegalEntityID: phase2EntityID, FromPrincipalID: phase2FromID, ToPrincipalID: phase2ToID, Responsibility: "REVIEWER", StartsAt: now.Add(time.Hour), EndsAt: now.Add(48 * time.Hour), MakerID: phase2MakerID})
 		if err != nil {
 			t.Fatal(err)
 		}
-		first, err = service.SubmitDelegation(ctx, governance.TransitionInput{TenantID: "phase2-bank", ID: first.ID, ActorID: phase2MakerID, ExpectedVersion: first.Version})
+		first, err = service.SubmitDelegation(ctx, governance.TransitionInput{TenantID: "phase2-bank", LegalEntityID: phase2EntityID, ID: first.ID, ActorID: phase2MakerID, ExpectedVersion: first.Version})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err = service.ApproveDelegation(ctx, governance.TransitionInput{TenantID: "phase2-bank", ID: first.ID, ActorID: phase2CheckerID, ExpectedVersion: first.Version}); err != nil {
+		if _, err = service.ApproveDelegation(ctx, governance.TransitionInput{TenantID: "phase2-bank", LegalEntityID: phase2EntityID, ID: first.ID, ActorID: phase2CheckerID, ExpectedVersion: first.Version}); err != nil {
 			t.Fatal(err)
 		}
-		second, _ := service.CreateDelegation(ctx, governance.CreateDelegationInput{TenantID: "phase2-bank", FromPrincipalID: phase2ToID, ToPrincipalID: phase2ThirdID, Responsibility: "REVIEWER", StartsAt: now.Add(2 * time.Hour), EndsAt: now.Add(24 * time.Hour), MakerID: phase2MakerID})
-		second, _ = service.SubmitDelegation(ctx, governance.TransitionInput{TenantID: "phase2-bank", ID: second.ID, ActorID: phase2MakerID, ExpectedVersion: second.Version})
-		if _, err = service.ApproveDelegation(ctx, governance.TransitionInput{TenantID: "phase2-bank", ID: second.ID, ActorID: phase2CheckerID, ExpectedVersion: second.Version}); err != nil {
+		second, _ := service.CreateDelegation(ctx, governance.CreateDelegationInput{TenantID: "phase2-bank", LegalEntityID: phase2EntityID, FromPrincipalID: phase2ToID, ToPrincipalID: phase2ThirdID, Responsibility: "REVIEWER", StartsAt: now.Add(2 * time.Hour), EndsAt: now.Add(24 * time.Hour), MakerID: phase2MakerID})
+		second, _ = service.SubmitDelegation(ctx, governance.TransitionInput{TenantID: "phase2-bank", LegalEntityID: phase2EntityID, ID: second.ID, ActorID: phase2MakerID, ExpectedVersion: second.Version})
+		if _, err = service.ApproveDelegation(ctx, governance.TransitionInput{TenantID: "phase2-bank", LegalEntityID: phase2EntityID, ID: second.ID, ActorID: phase2CheckerID, ExpectedVersion: second.Version}); err != nil {
 			t.Fatal(err)
 		}
-		cycle, _ := service.CreateDelegation(ctx, governance.CreateDelegationInput{TenantID: "phase2-bank", FromPrincipalID: phase2ThirdID, ToPrincipalID: phase2FromID, Responsibility: "REVIEWER", StartsAt: now.Add(3 * time.Hour), EndsAt: now.Add(12 * time.Hour), MakerID: phase2MakerID})
-		cycle, _ = service.SubmitDelegation(ctx, governance.TransitionInput{TenantID: "phase2-bank", ID: cycle.ID, ActorID: phase2MakerID, ExpectedVersion: cycle.Version})
-		if _, err = service.ApproveDelegation(ctx, governance.TransitionInput{TenantID: "phase2-bank", ID: cycle.ID, ActorID: phase2CheckerID, ExpectedVersion: cycle.Version}); !errors.Is(err, governance.ErrConflict) {
+		cycle, _ := service.CreateDelegation(ctx, governance.CreateDelegationInput{TenantID: "phase2-bank", LegalEntityID: phase2EntityID, FromPrincipalID: phase2ThirdID, ToPrincipalID: phase2FromID, Responsibility: "REVIEWER", StartsAt: now.Add(3 * time.Hour), EndsAt: now.Add(12 * time.Hour), MakerID: phase2MakerID})
+		cycle, _ = service.SubmitDelegation(ctx, governance.TransitionInput{TenantID: "phase2-bank", LegalEntityID: phase2EntityID, ID: cycle.ID, ActorID: phase2MakerID, ExpectedVersion: cycle.Version})
+		if _, err = service.ApproveDelegation(ctx, governance.TransitionInput{TenantID: "phase2-bank", LegalEntityID: phase2EntityID, ID: cycle.ID, ActorID: phase2CheckerID, ExpectedVersion: cycle.Version}); !errors.Is(err, governance.ErrConflict) {
 			t.Fatalf("expected cycle conflict, got %v", err)
 		}
-		conflict, _ := service.CreateDelegation(ctx, governance.CreateDelegationInput{TenantID: "phase2-bank", FromPrincipalID: phase2FromID, ToPrincipalID: phase2ThirdID, Responsibility: "AUTHORIZER", StartsAt: now.Add(time.Hour), EndsAt: now.Add(12 * time.Hour), MakerID: phase2MakerID})
-		conflict, _ = service.SubmitDelegation(ctx, governance.TransitionInput{TenantID: "phase2-bank", ID: conflict.ID, ActorID: phase2MakerID, ExpectedVersion: conflict.Version})
-		if _, err = service.ApproveDelegation(ctx, governance.TransitionInput{TenantID: "phase2-bank", ID: conflict.ID, ActorID: phase2CheckerID, ExpectedVersion: conflict.Version}); !errors.Is(err, governance.ErrConflict) {
+		conflict, _ := service.CreateDelegation(ctx, governance.CreateDelegationInput{TenantID: "phase2-bank", LegalEntityID: phase2EntityID, FromPrincipalID: phase2FromID, ToPrincipalID: phase2ThirdID, Responsibility: "AUTHORIZER", StartsAt: now.Add(time.Hour), EndsAt: now.Add(12 * time.Hour), MakerID: phase2MakerID})
+		conflict, _ = service.SubmitDelegation(ctx, governance.TransitionInput{TenantID: "phase2-bank", LegalEntityID: phase2EntityID, ID: conflict.ID, ActorID: phase2MakerID, ExpectedVersion: conflict.Version})
+		if _, err = service.ApproveDelegation(ctx, governance.TransitionInput{TenantID: "phase2-bank", LegalEntityID: phase2EntityID, ID: conflict.ID, ActorID: phase2CheckerID, ExpectedVersion: conflict.Version}); !errors.Is(err, governance.ErrConflict) {
 			t.Fatalf("expected segregation conflict, got %v", err)
 		}
 	})
@@ -163,8 +163,16 @@ func seedGovernanceRuntime(t *testing.T, pool *pgxpool.Pool) {
 		('` + phase2ToID + `','` + phase2TenantID + `','PERSON','to','Delegate'),
 		('` + phase2ThirdID + `','` + phase2TenantID + `','PERSON','third','Conflicted delegate')`,
 		`INSERT INTO role_templates(id,tenant_id,code,name) VALUES('` + phase2RoleID + `','` + phase2TenantID + `','INTERNAL_AUDIT','Internal Audit')`,
-		`INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,occupant_principal_id) VALUES('` + phase2PositionID + `','` + phase2TenantID + `','` + phase2EntityID + `','AUDIT','Audit','` + phase2ThirdID + `')`,
+		`INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,occupant_principal_id) VALUES
+		('` + phase2PositionID + `','` + phase2TenantID + `','` + phase2EntityID + `','AUDIT','Audit','` + phase2ThirdID + `'),
+		('33333333-3333-7333-8333-333333333342','` + phase2TenantID + `','` + phase2EntityID + `','DELEGATOR','Delegator','` + phase2FromID + `'),
+		('33333333-3333-7333-8333-333333333343','` + phase2TenantID + `','` + phase2EntityID + `','DELEGATE','Delegate','` + phase2ToID + `')`,
 		`INSERT INTO position_role_bindings(tenant_id,position_id,role_template_id,priority) VALUES('` + phase2TenantID + `','` + phase2PositionID + `','` + phase2RoleID + `',100)`,
+		`INSERT INTO responsibility_assignments(tenant_id,legal_entity_id,principal_id,responsibility,object_type,object_id,priority,valid_from,policy_version) VALUES
+		('` + phase2TenantID + `','` + phase2EntityID + `','` + phase2FromID + `','REVIEWER','LEGAL_ENTITY','` + phase2EntityID + `',100,clock_timestamp()-interval '1 day','fixture:v1'),
+		('` + phase2TenantID + `','` + phase2EntityID + `','` + phase2ToID + `','REVIEWER','LEGAL_ENTITY','` + phase2EntityID + `',100,clock_timestamp()-interval '1 day','fixture:v1'),
+		('` + phase2TenantID + `','` + phase2EntityID + `','` + phase2ThirdID + `','REVIEWER','LEGAL_ENTITY','` + phase2EntityID + `',100,clock_timestamp()-interval '1 day','fixture:v1'),
+		('` + phase2TenantID + `','` + phase2EntityID + `','` + phase2FromID + `','AUTHORIZER','LEGAL_ENTITY','` + phase2EntityID + `',100,clock_timestamp()-interval '1 day','fixture:v1')`,
 		`INSERT INTO segregation_rules(tenant_id,code,responsibility,prohibited_role_code) VALUES('` + phase2TenantID + `','no-audit-authorizer','AUTHORIZER','INTERNAL_AUDIT')`,
 		`INSERT INTO workflow_instances(id,tenant_id,kind,subject_type,subject_id,state,policy_version) VALUES('` + phase2WorkflowID + `','` + phase2TenantID + `','REVIEW','MATTER','` + phase2SubjectID + `','ACTIVE','phase2:v1')`,
 	}

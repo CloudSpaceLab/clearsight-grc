@@ -28,14 +28,19 @@ func TestCommandIntegrityAndProgramStatusOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 	const tenantID = "66666666-6666-7666-8666-666666666661"
+	const entityID = "66666666-6666-7666-8666-666666666662"
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'integrity-bank','Integrity Bank')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'ENTITY-A','Integrity Bank','NG',clock_timestamp()-interval '1 day')`, entityID, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	ctx = continuity.WithTrustedSystemEntityScope(ctx, "integrity-bank", entityID)
 
 	repository := continuity.NewPostgresRepository(pool)
 	service := continuity.NewService(repository)
 	now := time.Now().UTC().Truncate(time.Second)
-	program, err := service.CreateProgram(ctx, continuity.CreateProgramInput{TenantID: "integrity-bank", Code: "RESILIENCE", Name: "Operational resilience", Type: "RESILIENCE", OwningFunction: "Operational Risk", Scope: json.RawMessage(`{"entity":"Integrity Bank"}`), EffectiveFrom: now})
+	program, err := service.CreateProgram(ctx, continuity.CreateProgramInput{TenantID: "integrity-bank", LegalEntityID: entityID, Code: "RESILIENCE", Name: "Operational resilience", Type: "RESILIENCE", OwningFunction: "Operational Risk", Scope: json.RawMessage(`{"entity":"Integrity Bank"}`), EffectiveFrom: now})
 	if err != nil {
 		t.Fatal(err)
 	}

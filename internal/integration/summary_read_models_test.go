@@ -29,15 +29,20 @@ func TestOperationalSummaryReadModels(t *testing.T) {
 		t.Fatal(err)
 	}
 	const tenantID = "55555555-5555-7555-8555-555555555551"
+	const entityID = "55555555-5555-7555-8555-555555555552"
 	if _, err = pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'summary-bank','Summary Bank')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err = pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'ENTITY-A','Summary Bank','NG',clock_timestamp()-interval '1 day')`, entityID, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	ctx = continuity.WithTrustedSystemEntityScope(ctx, "summary-bank", entityID)
 	if _, err = pool.Exec(ctx, `
-		INSERT INTO programs(id,tenant_id,code,name,program_type,status,owning_function,jurisdiction,scope,effective_from,created_at,updated_at,version)
-		SELECT uuidv7(),$1::uuid,format('PRG-%s',lpad(g::text,4,'0')),format('Operational program %s',g),'COMPLIANCE',
+		INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,jurisdiction,scope,effective_from,created_at,updated_at,version)
+		SELECT uuidv7(),$1::uuid,$2::uuid,format('PRG-%s',lpad(g::text,4,'0')),format('Operational program %s',g),'COMPLIANCE',
 			CASE WHEN g % 9 = 0 THEN 'PAUSED' ELSE 'ACTIVE' END,'Compliance','Nigeria','{}'::jsonb,
 			clock_timestamp()-interval '1 year',clock_timestamp()-g*interval '1 minute',clock_timestamp()-g*interval '1 minute',1
-		FROM generate_series(1,250) g`, tenantID); err != nil {
+		FROM generate_series(1,250) g`, tenantID, entityID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = pool.Exec(ctx, `
@@ -49,14 +54,14 @@ func TestOperationalSummaryReadModels(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err = pool.Exec(ctx, `
-		INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,closed_at,closure_reason,created_at,updated_at,version)
-		SELECT uuidv7(),$1::uuid,format('MAT-%s',lpad(g::text,4,'0')),'CONTROL_GAP',
+		INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,closed_at,closure_reason,created_at,updated_at,version)
+		SELECT uuidv7(),$1::uuid,$2::uuid,format('MAT-%s',lpad(g::text,4,'0')),'CONTROL_GAP',
 			CASE WHEN g % 11 = 0 THEN 'CLOSED' ELSE 'ASSESSMENT' END,(g % 5)+1,
 			format('Operational issue %s',g),'A bounded issue used to test the operational list read.','{}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,
 			CASE WHEN g % 11 = 0 THEN clock_timestamp()-g*interval '1 minute' ELSE NULL END,
 			CASE WHEN g % 11 = 0 THEN 'Test closure' ELSE '' END,
 			clock_timestamp()-g*interval '1 minute',clock_timestamp()-g*interval '1 minute',1
-		FROM generate_series(1,300) g`, tenantID); err != nil {
+		FROM generate_series(1,300) g`, tenantID, entityID); err != nil {
 		t.Fatal(err)
 	}
 

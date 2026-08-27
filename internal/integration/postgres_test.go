@@ -206,7 +206,7 @@ func seedPostgres(t *testing.T, pool *pgxpool.Pool) {
 		{`INSERT INTO role_templates(id,tenant_id,code,name) VALUES($1::uuid,$2::uuid,'CRO','Chief Risk Officer')`, []any{roleTemplateID, tenantID}},
 		{`INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,occupant_principal_id) VALUES($1::uuid,$5::uuid,$3::uuid,'CRO','NG CRO',$6::uuid),($2::uuid,$5::uuid,$4::uuid,'CRO','GH CRO',$7::uuid)`, []any{positionNG, positionGH, legalEntityNG, legalEntityGH, tenantID, principalNG, principalGH}},
 		{`INSERT INTO position_role_bindings(tenant_id,position_id,role_template_id,priority) VALUES($1::uuid,$2::uuid,$4::uuid,100),($1::uuid,$3::uuid,$4::uuid,100)`, []any{tenantID, positionNG, positionGH, roleTemplateID}},
-		{`INSERT INTO routing_policies(id,tenant_id,code,name,status,current_version) VALUES($1::uuid,$2::uuid,'default','Default routing','ACTIVE',1)`, []any{policyID, tenantID}},
+		{`INSERT INTO routing_policies(id,tenant_id,legal_entity_id,code,name,status,current_version) VALUES($1::uuid,$2::uuid,$3::uuid,'default','Default routing','ACTIVE',1)`, []any{policyID, tenantID, legalEntityNG}},
 		{`INSERT INTO workflow_instances(id,tenant_id,kind,subject_type,subject_id,state,policy_version) VALUES($1::uuid,$2::uuid,'REVIEW','MATTER',$3::uuid,'ACTIVE','default:v1')`, []any{workflowID, tenantID, subjectID}},
 	}
 	for _, statement := range statements {
@@ -215,13 +215,13 @@ func seedPostgres(t *testing.T, pool *pgxpool.Pool) {
 		}
 	}
 	definition, err := json.Marshal(map[string]any{"rules": []map[string]any{
-		{"id": "ng-authorizer", "legal_entity_id": "bank-ng", "object_type": "MATTER", "object_id": "*", "responsibility": "AUTHORIZER", "min_materiality": 4, "priority": 100, "selector": map[string]any{"kind": "ROLE", "ref": "CRO"}},
-		{"id": "missing-reviewer", "legal_entity_id": "bank-ng", "object_type": "MATTER", "object_id": "*", "responsibility": "REVIEWER", "min_materiality": 0, "priority": 50, "selector": map[string]any{"kind": "ROLE", "ref": "MISSING_ROLE"}},
+		{"id": "ng-authorizer", "legal_entity_id": legalEntityNG, "object_type": "MATTER", "object_id": "*", "responsibility": "AUTHORIZER", "min_materiality": 4, "priority": 100, "selector": map[string]any{"kind": "ROLE", "ref": "CRO"}},
+		{"id": "missing-reviewer", "legal_entity_id": legalEntityNG, "object_type": "MATTER", "object_id": "*", "responsibility": "REVIEWER", "min_materiality": 0, "priority": 50, "selector": map[string]any{"kind": "ROLE", "ref": "MISSING_ROLE"}},
 	}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO routing_policy_versions(policy_id,version,definition,checksum,approved_at) VALUES($1::uuid,1,$2::jsonb,'test',clock_timestamp())`, policyID, string(definition)); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO routing_policy_versions(policy_id,legal_entity_id,version,definition,checksum,approved_at) VALUES($1::uuid,$2::uuid,1,$3::jsonb,'test',clock_timestamp())`, policyID, legalEntityNG, string(definition)); err != nil {
 		t.Fatal(err)
 	}
 }
