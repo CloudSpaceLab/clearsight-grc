@@ -165,14 +165,15 @@ func (s *MemoryDistributionStore) ListDistributions(_ context.Context, query Dis
 	if strings.TrimSpace(query.TenantID) == "" || strings.TrimSpace(query.LegalEntityID) == "" || query.Limit < 1 || query.Limit > 100 {
 		return nil, fmt.Errorf("tenant_id, legal_entity_id and limit between 1 and 100 are required")
 	}
-	if query.Cursor != "" {
-		return nil, fmt.Errorf("memory distribution cursor is not implemented")
+	cursor, err := decodeDistributionCursor(query.Cursor)
+	if err != nil {
+		return nil, err
 	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	values := make([]FormDistribution, 0)
 	for _, value := range s.distributions {
-		if value.TenantID != query.TenantID || value.LegalEntityID != query.LegalEntityID || (query.Status != "" && value.Status != query.Status) {
+		if value.TenantID != query.TenantID || value.LegalEntityID != query.LegalEntityID || (query.Status != "" && value.Status != query.Status) || !distributionAfterCursor(value, cursor) {
 			continue
 		}
 		values = append(values, cloneDistribution(value))

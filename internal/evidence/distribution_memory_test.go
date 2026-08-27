@@ -147,6 +147,43 @@ func TestMemoryDistributionRejectsNonActiveOrCrossScopeRevision(t *testing.T) {
 	}
 }
 
+func TestMemoryDistributionUsesSharedKeysetCursor(t *testing.T) {
+	store := NewMemoryDistributionStore(nil, nil, nil)
+	base := time.Date(2026, 8, 27, 18, 0, 0, 0, time.UTC)
+	const (
+		firstID  = "00000000-0000-7000-8000-000000000103"
+		secondID = "00000000-0000-7000-8000-000000000102"
+		thirdID  = "00000000-0000-7000-8000-000000000101"
+	)
+	store.distributions[firstID] = FormDistribution{ID: firstID, TenantID: "tenant-a", LegalEntityID: "entity-a", Status: DistributionOpen, UpdatedAt: base.Add(2 * time.Hour)}
+	store.distributions[secondID] = FormDistribution{ID: secondID, TenantID: "tenant-a", LegalEntityID: "entity-a", Status: DistributionOpen, UpdatedAt: base.Add(time.Hour)}
+	store.distributions[thirdID] = FormDistribution{ID: thirdID, TenantID: "tenant-a", LegalEntityID: "entity-a", Status: DistributionOpen, UpdatedAt: base.Add(time.Hour)}
+	store.distributions["00000000-0000-7000-8000-000000000999"] = FormDistribution{ID: "00000000-0000-7000-8000-000000000999", TenantID: "tenant-a", LegalEntityID: "entity-b", Status: DistributionOpen, UpdatedAt: base.Add(3 * time.Hour)}
+
+	query := DistributionListQuery{TenantID: "tenant-a", LegalEntityID: "entity-a", Status: DistributionOpen, Limit: 2}
+	firstPage, err := store.ListDistributions(context.Background(), query)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(firstPage) != 2 || firstPage[0].ID != firstID || firstPage[1].ID != secondID {
+		t.Fatalf("unexpected first page: %+v", firstPage)
+	}
+
+	query.Cursor = encodeDistributionCursor(firstPage[len(firstPage)-1])
+	secondPage, err := store.ListDistributions(context.Background(), query)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(secondPage) != 1 || secondPage[0].ID != thirdID {
+		t.Fatalf("unexpected second page: %+v", secondPage)
+	}
+
+	query.Cursor = "not-a-valid-cursor"
+	if _, err := store.ListDistributions(context.Background(), query); err == nil {
+		t.Fatal("expected invalid shared cursor rejection")
+	}
+}
+
 func activeDistributionForm() DistributionFormRevision {
 	return DistributionFormRevision{
 		ID: "form-a", TenantID: "tenant-a", LegalEntityID: "entity-a", Version: 3, Sensitivity: "CONFIDENTIAL", Active: true,

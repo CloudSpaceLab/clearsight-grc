@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -209,6 +210,80 @@ func TestPostgresDistributionRejectsCrossEntityActiveRevision(t *testing.T) {
 	}
 }
 
+func TestPostgresDistributionRejectsDirectWrongEntityTampering(t *testing.T) {
+	pool, ctx := distributionTestPool(t)
+	const (
+		tenantID          = "9d444444-4444-7444-8444-444444444441"
+		entityID          = "9d444444-4444-7444-8444-444444444442"
+		otherEntityID     = "9d444444-4444-7444-8444-444444444443"
+		actorID           = "9d444444-4444-7444-8444-444444444444"
+		internalRecipient = "9d444444-4444-7444-8444-444444444445"
+		formID            = "9d444444-4444-7444-8444-444444444446"
+		subjectID         = "9d444444-4444-7444-8444-444444444447"
+	)
+	now := time.Date(2026, 8, 27, 22, 0, 0, 0, time.UTC)
+	setupDistributionFixture(t, ctx, pool, tenantID, entityID, actorID, internalRecipient, formID, now)
+	defer cleanupDistributionTenant(context.Background(), pool, tenantID)
+	if _, err := pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'OTHER','Other entity','NG',$3)`, otherEntityID, tenantID, now.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+
+	store := NewPostgresDistributionStore(NewPostgresRepository(pool), postgresTestRecipientProtector{})
+	store.now = func() time.Time { return now }
+	bundle, err := store.CreateDistribution(ctx, CreateDistributionInput{
+		TenantID: "distribution-tamper", LegalEntityID: entityID,
+		FormTemplateID: formID, FormTemplateVersion: 1,
+		SubjectType: "VENDOR", SubjectID: subjectID, Title: "Tamper regression", Purpose: "Prove entity scope cannot drift.",
+		AccessPolicy: AccessDirectMagicLink, EstimatedMinutes: 5,
+		Deadline: now.Add(24 * time.Hour), RouteExpiresAt: now.Add(12 * time.Hour), CreatedBy: actorID,
+		Recipients: []DistributionRecipientInput{{Role: RecipientTo, Type: RecipientInternalPrincipal, PrincipalID: internalRecipient}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	attempts := []struct {
+		name  string
+		query string
+	}{
+		{name: "distribution root", query: `UPDATE capture_form_distributions SET legal_entity_id=$1::uuid WHERE tenant_id=$2::uuid AND id=$3::uuid`},
+		{name: "canonical request", query: `UPDATE capture_requests SET legal_entity_id=$1::uuid WHERE tenant_id=$2::uuid AND distribution_id=$3::uuid`},
+		{name: "recipient binding", query: `UPDATE capture_distribution_recipients SET legal_entity_id=$1::uuid WHERE tenant_id=$2::uuid AND distribution_id=$3::uuid`},
+		{name: "shared workspace", query: `UPDATE capture_response_workspaces SET legal_entity_id=$1::uuid WHERE tenant_id=$2::uuid AND distribution_id=$3::uuid`},
+	}
+	for _, attempt := range attempts {
+		t.Run(attempt.name, func(t *testing.T) {
+			_, err := pool.Exec(ctx, attempt.query, otherEntityID, tenantID, bundle.Distribution.ID)
+			requireForeignKeyViolation(t, err)
+		})
+	}
+
+	var wrongEntityRows int
+	if err := pool.QueryRow(ctx, `
+		SELECT
+			(SELECT count(*) FROM capture_form_distributions WHERE tenant_id=$1::uuid AND id=$2::uuid AND legal_entity_id=$3::uuid) +
+			(SELECT count(*) FROM capture_requests WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid AND legal_entity_id=$3::uuid) +
+			(SELECT count(*) FROM capture_distribution_recipients WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid AND legal_entity_id=$3::uuid) +
+			(SELECT count(*) FROM capture_response_workspaces WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid AND legal_entity_id=$3::uuid)`,
+		tenantID, bundle.Distribution.ID, otherEntityID).Scan(&wrongEntityRows); err != nil {
+		t.Fatal(err)
+	}
+	if wrongEntityRows != 0 {
+		t.Fatalf("direct SQL tampering moved %d aggregate rows into the wrong entity", wrongEntityRows)
+	}
+}
+
+func requireForeignKeyViolation(t *testing.T, err error) {
+	t.Helper()
+	if err == nil {
+		t.Fatal("expected composite foreign key to reject wrong-entity tampering")
+	}
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) || pgErr.Code != "23503" {
+		t.Fatalf("expected PostgreSQL foreign-key violation 23503, got %T: %v", err, err)
+	}
+}
+
 func distributionTestPool(t *testing.T) (*pgxpool.Pool, context.Context) {
 	t.Helper()
 	url := os.Getenv("TEST_DATABASE_URL")
@@ -228,10 +303,13 @@ func setupDistributionFixture(t *testing.T, ctx context.Context, pool *pgxpool.P
 	t.Helper()
 	cleanupDistributionTenant(ctx, pool, tenantID)
 	slug := "distribution-test"
-	if tenantID == "9d222222-2222-7222-8222-222222222221" {
+	switch tenantID {
+	case "9d222222-2222-7222-8222-222222222221":
 		slug = "distribution-rollback"
-	} else if tenantID == "9d333333-3333-7333-8333-333333333331" {
+	case "9d333333-3333-7333-8333-333333333331":
 		slug = "distribution-cross-scope"
+	case "9d444444-4444-7444-8444-444444444441":
+		slug = "distribution-tamper"
 	}
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$6,'Distribution Test');
@@ -261,5 +339,3 @@ func cleanupDistributionFailureTrigger(ctx context.Context, pool *pgxpool.Pool) 
 	_, _ = pool.Exec(ctx, `DROP TRIGGER IF EXISTS distribution_outbox_failure_test ON outbox_events`)
 	_, _ = pool.Exec(ctx, `DROP FUNCTION IF EXISTS distribution_outbox_failure_test()`)
 }
-
-var _ = errors.Is
