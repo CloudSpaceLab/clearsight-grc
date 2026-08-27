@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const webhookRuntimeTenantID = "7e111111-1111-7111-8111-111111111111"
+const webhookRuntimeTenantID = "7f111111-1111-7111-8111-111111111111"
 
 func TestRecordInboxWithOutboxIsAtomicAndReplaySafe(t *testing.T) {
 	databaseURL := os.Getenv("TEST_DATABASE_URL")
@@ -38,9 +38,9 @@ func TestRecordInboxWithOutboxIsAtomicAndReplaySafe(t *testing.T) {
 		{TenantID: webhookRuntimeTenantID, Consumer: "source-webhook-checkpoint-v1", EventID: "checkpoint-1"},
 	}
 	event := OutboxEvent{
-		ID: "7e222222-2222-7222-8222-222222222222", TenantID: webhookRuntimeTenantID,
-		AggregateType: "SOURCE_BINDING", AggregateID: "7e333333-3333-7333-8333-333333333333",
-		EventType: "SourceBindingChanged", Payload: []byte(`{"binding_id":"7e333333-3333-7333-8333-333333333333"}`), OccurredAt: now,
+		ID: "7f222222-2222-7222-8222-222222222222", TenantID: webhookRuntimeTenantID,
+		AggregateType: "SOURCE_BINDING", AggregateID: "7f333333-3333-7333-8333-333333333333",
+		EventType: "SourceBindingChanged", Payload: []byte(`{"binding_id":"7f333333-3333-7333-8333-333333333333"}`), OccurredAt: now,
 	}
 	created, err := repository.RecordInboxWithOutbox(ctx, first, event, now)
 	if err != nil || !created {
@@ -49,7 +49,7 @@ func TestRecordInboxWithOutboxIsAtomicAndReplaySafe(t *testing.T) {
 	assertWebhookRuntimeCounts(t, ctx, pool, 2, 1)
 
 	replay := event
-	replay.ID = "7e444444-4444-7444-8444-444444444444"
+	replay.ID = "7f444444-4444-7444-8444-444444444444"
 	created, err = repository.RecordInboxWithOutbox(ctx, first, replay, now.Add(time.Second))
 	if err != nil || created {
 		t.Fatalf("provider replay created=%v err=%v", created, err)
@@ -61,7 +61,7 @@ func TestRecordInboxWithOutboxIsAtomicAndReplaySafe(t *testing.T) {
 		{TenantID: webhookRuntimeTenantID, Consumer: "source-webhook-checkpoint-v1", EventID: "checkpoint-1"},
 	}
 	conflict := event
-	conflict.ID = "7e555555-5555-7555-8555-555555555555"
+	conflict.ID = "7f555555-5555-7555-8555-555555555555"
 	created, err = repository.RecordInboxWithOutbox(ctx, conflictReceipts, conflict, now.Add(2*time.Second))
 	if created || !errors.Is(err, ErrInboxReceiptConflict) {
 		t.Fatalf("secondary conflict created=%v err=%v", created, err)
