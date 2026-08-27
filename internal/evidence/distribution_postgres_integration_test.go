@@ -243,18 +243,19 @@ func TestPostgresDistributionRejectsDirectWrongEntityTampering(t *testing.T) {
 	}
 
 	attempts := []struct {
-		name  string
-		query string
+		name         string
+		query        string
+		wantSQLState string
 	}{
-		{name: "distribution root", query: `UPDATE capture_form_distributions SET legal_entity_id=$1::uuid WHERE tenant_id=$2::uuid AND id=$3::uuid`},
-		{name: "canonical request", query: `UPDATE capture_requests SET legal_entity_id=$1::uuid WHERE tenant_id=$2::uuid AND distribution_id=$3::uuid`},
-		{name: "recipient binding", query: `UPDATE capture_distribution_recipients SET legal_entity_id=$1::uuid WHERE tenant_id=$2::uuid AND distribution_id=$3::uuid`},
-		{name: "shared workspace", query: `UPDATE capture_response_workspaces SET legal_entity_id=$1::uuid WHERE tenant_id=$2::uuid AND distribution_id=$3::uuid`},
+		{name: "distribution root", query: `UPDATE capture_form_distributions SET legal_entity_id=$1::uuid WHERE tenant_id=$2::uuid AND id=$3::uuid`, wantSQLState: "23503"},
+		{name: "canonical request", query: `UPDATE capture_requests SET legal_entity_id=$1::uuid WHERE tenant_id=$2::uuid AND distribution_id=$3::uuid`, wantSQLState: "23514"},
+		{name: "recipient binding", query: `UPDATE capture_distribution_recipients SET legal_entity_id=$1::uuid WHERE tenant_id=$2::uuid AND distribution_id=$3::uuid`, wantSQLState: "23503"},
+		{name: "shared workspace", query: `UPDATE capture_response_workspaces SET legal_entity_id=$1::uuid WHERE tenant_id=$2::uuid AND distribution_id=$3::uuid`, wantSQLState: "23503"},
 	}
 	for _, attempt := range attempts {
 		t.Run(attempt.name, func(t *testing.T) {
 			_, err := pool.Exec(ctx, attempt.query, otherEntityID, tenantID, bundle.Distribution.ID)
-			requireForeignKeyViolation(t, err)
+			requirePostgresState(t, err, attempt.wantSQLState)
 		})
 	}
 
@@ -273,14 +274,14 @@ func TestPostgresDistributionRejectsDirectWrongEntityTampering(t *testing.T) {
 	}
 }
 
-func requireForeignKeyViolation(t *testing.T, err error) {
+func requirePostgresState(t *testing.T, err error, wantSQLState string) {
 	t.Helper()
 	if err == nil {
-		t.Fatal("expected composite foreign key to reject wrong-entity tampering")
+		t.Fatal("expected database guard to reject wrong-entity tampering")
 	}
 	var pgErr *pgconn.PgError
-	if !errors.As(err, &pgErr) || pgErr.Code != "23503" {
-		t.Fatalf("expected PostgreSQL foreign-key violation 23503, got %T: %v", err, err)
+	if !errors.As(err, &pgErr) || pgErr.Code != wantSQLState {
+		t.Fatalf("expected PostgreSQL SQLSTATE %s, got %T: %v", wantSQLState, err, err)
 	}
 }
 
