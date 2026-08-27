@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createLibraryFormDraft, loadFormTemplatePage, saveFormView, transitionFormTemplateRevision } from "./formsApi";
+import { createLibraryFormDraft, loadFormTemplatePage, loadReusableFormTemplateRefs, saveFormView, transitionFormTemplateRevision } from "./formsApi";
 
 const fetchMock = vi.fn();
 
@@ -22,6 +22,17 @@ describe("Forms API", () => {
     expect(url).not.toContain("tenant_id=");
   });
 
+  it("derives reusable section sources from exact active revisions even when the latest revision is a draft", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ items: [
+      { template: { id: "form-a", code: "VENDOR", name: "Vendor review", status: "DRAFT", version: 3 }, active_version: 2, active_status: "ACTIVE" },
+      { template: { id: "form-b", code: "OPS", name: "Operations", status: "DRAFT", version: 1 } },
+    ] }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    await expect(loadReusableFormTemplateRefs()).resolves.toEqual([{ id: "form-a", code: "VENDOR", name: "Vendor review", version: 2 }]);
+    const url = String(fetchMock.mock.calls[0]?.[0]);
+    expect(url).toContain("limit=50");
+    expect(url).not.toContain("status=ACTIVE");
+  });
+
   it("keeps material form transitions version-pinned", async () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ id: "form-a", version: 2, status: "PENDING_APPROVAL" }), { status: 200, headers: { "Content-Type": "application/json" } }));
     await transitionFormTemplateRevision("form/a", 1, "PENDING_APPROVAL");
@@ -31,12 +42,7 @@ describe("Forms API", () => {
 
   it("creates ordinary drafts and principal-owned saved filters without scope fields", async () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ id: "form-a", version: 1, status: "DRAFT" }), { status: 201, headers: { "Content-Type": "application/json" } }));
-    await createLibraryFormDraft({
-      code: "VENDOR", name: "Vendor review", purpose: "Collect evidence.",
-      presentation: { default_mode: "AUTOMATIC", allow_mode_switch: true },
-      sections: [{ id: "general", title: "General" }],
-      fields: [{ id: "question_1", section_id: "general", label: "Question", type: "short_text", required: true }],
-    });
+    await createLibraryFormDraft({ code: "VENDOR", name: "Vendor review", purpose: "Collect evidence.", scoring_mode: "NONE", presentation: { default_mode: "AUTOMATIC", allow_mode_switch: true }, sections: [{ id: "general", title: "General" }], fields: [{ id: "question_1", section_id: "general", label: "Question", type: "short_text", required: true }] });
     expect(String(fetchMock.mock.calls[0]?.[1]?.body)).not.toContain("tenant_id");
     expect(String(fetchMock.mock.calls[0]?.[1]?.body)).not.toContain("legal_entity_id");
 
