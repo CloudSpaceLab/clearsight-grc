@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { apiErrorKind } from "../http";
 import { isCommittedCommandReceipt, loadVendorIdentity, newVendorBrandIdempotencyKey, removeApprovedVendorLogo, updateVendorIdentity, uploadApprovedVendorLogo } from "../vendorApi";
 import { normalizeWebsiteDomain, validateWebsiteDomain, vendorIdentityLimits } from "../vendorIdentity";
@@ -56,7 +56,7 @@ export function VendorIdentityEditor({ record, onCancel, onIdentitySaved, onBran
     return () => { current = false; };
   }, [record.vendor.id]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (state === "ready") legalNameInput.current?.focus();
   }, [state]);
 
