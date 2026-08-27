@@ -1,5 +1,14 @@
 BEGIN;
 
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM capture_form_distributions)
+       OR EXISTS (SELECT 1 FROM outbox_events WHERE aggregate_type='FORM_DISTRIBUTION') THEN
+        RAISE EXCEPTION 'cannot roll back form distributions after distribution or delivery history exists';
+    END IF;
+END;
+$$;
+
 DROP INDEX IF EXISTS capture_distribution_outbox_uq;
 DROP TABLE IF EXISTS capture_distribution_events;
 DROP TABLE IF EXISTS capture_response_revisions;
