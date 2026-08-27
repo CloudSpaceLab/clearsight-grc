@@ -183,7 +183,14 @@ export function FormBuilder({
 
   function moveField(index: number, offset: -1 | 1) {
     setDraft((current) => {
-      const fields = move(current.fields, index, offset);
+      const source = current.fields[index];
+      if (!source) return current;
+      const siblingIndices = current.fields.flatMap((field, fieldIndex) => field.section_id === source.section_id ? [fieldIndex] : []);
+      const siblingPosition = siblingIndices.indexOf(index);
+      const destination = siblingIndices[siblingPosition + offset];
+      if (siblingPosition < 0 || destination === undefined) return current;
+      const fields = [...current.fields];
+      [fields[index], fields[destination]] = [fields[destination]!, fields[index]!];
       return { ...current, ...reconcileAuthoringOrder(current.sections, fields) };
     });
   }
