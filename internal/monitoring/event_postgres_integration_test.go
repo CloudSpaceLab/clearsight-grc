@@ -25,11 +25,11 @@ func TestPostgresMonitoringResultRowEventAndOutboxAreAtomicAndIdempotent(t *test
 	}
 	defer pool.Close()
 	const (
-		tenantID  = "94444444-4444-7444-8444-444444444441"
-		entityID  = "94444444-4444-7444-8444-444444444442"
-		programID = "94444444-4444-7444-8444-444444444443"
-		checkID   = "94444444-4444-7444-8444-444444444444"
-		resultID  = "94444444-4444-7444-8444-444444444445"
+		tenantID  = "9c444444-4444-7444-8444-444444444441"
+		entityID  = "9c444444-4444-7444-8444-444444444442"
+		programID = "9c444444-4444-7444-8444-444444444443"
+		checkID   = "9c444444-4444-7444-8444-444444444444"
+		resultID  = "9c444444-4444-7444-8444-444444444445"
 	)
 	cleanupMonitoringFailureTrigger(ctx, pool)
 	cleanupMonitoringEventTenant(ctx, pool, tenantID)
@@ -43,7 +43,7 @@ func TestPostgresMonitoringResultRowEventAndOutboxAreAtomicAndIdempotent(t *test
 		t.Fatal(err)
 	}
 	repo := NewPostgresRepository(pool)
-	check := MonitoringCheck{ID: checkID, TenantID: "monitoring-events-test", ProgramID: programID, Code: "EVENT", Name: "Event check", Claim: "The result is reconstructable.", InputKind: InputSource, BindingID: "94444444-4444-7444-8444-444444444446", BindingVersion: 1, SourceRules: []SourceRule{{ID: "healthy", Field: "healthy", Operator: OperatorEquals, Expected: "true", RiskPoints: 100}}, Thresholds: DefaultThresholds(), FreshnessMinutes: 60, MinimumCoverage: 1, FailureAction: FailureReview, Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedAt: now, UpdatedAt: now}}
+	check := MonitoringCheck{ID: checkID, TenantID: "monitoring-events-test", ProgramID: programID, Code: "EVENT", Name: "Event check", Claim: "The result is reconstructable.", InputKind: InputSource, BindingID: "9c444444-4444-7444-8444-444444444446", BindingVersion: 1, SourceRules: []SourceRule{{ID: "healthy", Field: "healthy", Operator: OperatorEquals, Expected: "true", RiskPoints: 100}}, Thresholds: DefaultThresholds(), FreshnessMinutes: 60, MinimumCoverage: 1, FailureAction: FailureReview, Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedAt: now, UpdatedAt: now}}
 	if _, err := repo.CreateCheckRevision(ctx, check); err != nil {
 		t.Fatal(err)
 	}
@@ -82,10 +82,10 @@ func TestPostgresMonitoringRollsBackAuthoritativeRowWhenOutboxInsertFails(t *tes
 	}
 	defer pool.Close()
 	const (
-		tenantID  = "95555555-5555-7555-8555-555555555551"
-		entityID  = "95555555-5555-7555-8555-555555555552"
-		programID = "95555555-5555-7555-8555-555555555553"
-		checkID   = "95555555-5555-7555-8555-555555555554"
+		tenantID  = "9c555555-5555-7555-8555-555555555551"
+		entityID  = "9c555555-5555-7555-8555-555555555552"
+		programID = "9c555555-5555-7555-8555-555555555553"
+		checkID   = "9c555555-5555-7555-8555-555555555554"
 	)
 	cleanupMonitoringFailureTrigger(ctx, pool)
 	cleanupMonitoringEventTenant(ctx, pool, tenantID)
@@ -104,7 +104,7 @@ func TestPostgresMonitoringRollsBackAuthoritativeRowWhenOutboxInsertFails(t *tes
 		t.Fatal(err)
 	}
 	repo := NewPostgresRepository(pool)
-	check := MonitoringCheck{ID: checkID, TenantID: "monitoring-rollback-test", ProgramID: programID, Code: "ROLLBACK", Name: "Rollback check", Claim: "No partial command commits.", InputKind: InputSource, BindingID: "95555555-5555-7555-8555-555555555555", BindingVersion: 1, SourceRules: []SourceRule{{ID: "healthy", Field: "healthy", Operator: OperatorEquals, Expected: "true", RiskPoints: 100}}, Thresholds: DefaultThresholds(), FreshnessMinutes: 60, MinimumCoverage: 1, FailureAction: FailureReview, Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedAt: now, UpdatedAt: now}}
+	check := MonitoringCheck{ID: checkID, TenantID: "monitoring-rollback-test", ProgramID: programID, Code: "ROLLBACK", Name: "Rollback check", Claim: "No partial command commits.", InputKind: InputSource, BindingID: "9c555555-5555-7555-8555-555555555555", BindingVersion: 1, SourceRules: []SourceRule{{ID: "healthy", Field: "healthy", Operator: OperatorEquals, Expected: "true", RiskPoints: 100}}, Thresholds: DefaultThresholds(), FreshnessMinutes: 60, MinimumCoverage: 1, FailureAction: FailureReview, Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedAt: now, UpdatedAt: now}}
 	if _, err := repo.CreateCheckRevision(ctx, check); err == nil {
 		t.Fatal("expected forced outbox failure")
 	}

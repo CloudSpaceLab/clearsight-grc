@@ -26,12 +26,12 @@ func TestMatterActionProjectorIsIdempotentAndKeepsTaskDerived(t *testing.T) {
 	defer pool.Close()
 
 	const (
-		tenantID  = "96666666-6666-7666-8666-666666666661"
-		entityID  = "96666666-6666-7666-8666-666666666666"
-		ownerID   = "96666666-6666-7666-8666-666666666662"
-		matterID  = "96666666-6666-7666-8666-666666666663"
-		actionID  = "96666666-6666-7666-8666-666666666664"
-		action2ID = "96666666-6666-7666-8666-666666666665"
+		tenantID  = "9f666666-6666-7666-8666-666666666661"
+		entityID  = "9f666666-6666-7666-8666-666666666666"
+		ownerID   = "9f666666-6666-7666-8666-666666666662"
+		matterID  = "9f666666-6666-7666-8666-666666666663"
+		actionID  = "9f666666-6666-7666-8666-666666666664"
+		action2ID = "9f666666-6666-7666-8666-666666666665"
 	)
 	occurred := time.Date(2026, 8, 7, 18, 30, 0, 0, time.UTC)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)

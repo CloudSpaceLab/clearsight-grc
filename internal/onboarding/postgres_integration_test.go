@@ -23,8 +23,8 @@ func TestPostgresStateReturnsCanonicalTenantIdentity(t *testing.T) {
 	defer pool.Close()
 
 	const (
-		tenantID    = "93333333-3333-7333-8333-333333333331"
-		principalID = "93333333-3333-7333-8333-333333333332"
+		tenantID    = "9b333333-3333-7333-8333-333333333331"
+		principalID = "9b333333-3333-7333-8333-333333333332"
 		tenantSlug  = "onboarding-canonical-test"
 	)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)

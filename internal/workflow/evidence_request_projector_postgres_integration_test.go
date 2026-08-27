@@ -25,14 +25,14 @@ func TestEvidenceRequestProjectorConvergesRecipientVisibilityWithoutDuplicateWor
 	defer pool.Close()
 
 	const (
-		tenantID          = "95555555-5555-7555-8555-555555555551"
-		entityID          = "95555555-5555-7555-8555-555555555558"
-		creatorID         = "95555555-5555-7555-8555-555555555552"
-		recipientA        = "95555555-5555-7555-8555-555555555553"
-		recipientB        = "95555555-5555-7555-8555-555555555554"
-		matterID          = "95555555-5555-7555-8555-555555555555"
-		requestID         = "95555555-5555-7555-8555-555555555556"
-		terminalRequestID = "95555555-5555-7555-8555-555555555557"
+		tenantID          = "9f555555-5555-7555-8555-555555555551"
+		entityID          = "9f555555-5555-7555-8555-555555555558"
+		creatorID         = "9f555555-5555-7555-8555-555555555552"
+		recipientA        = "9f555555-5555-7555-8555-555555555553"
+		recipientB        = "9f555555-5555-7555-8555-555555555554"
+		matterID          = "9f555555-5555-7555-8555-555555555555"
+		requestID         = "9f555555-5555-7555-8555-555555555556"
+		terminalRequestID = "9f555555-5555-7555-8555-555555555557"
 	)
 	// Actor visibility uses database now(), so keep this integration fixture
 	// relative to the executing database clock rather than a wall-clock date.
