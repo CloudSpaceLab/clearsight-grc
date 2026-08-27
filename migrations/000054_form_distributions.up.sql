@@ -1,5 +1,9 @@
 BEGIN;
 
+ALTER TABLE monitoring_form_templates
+    ADD CONSTRAINT monitoring_form_templates_distribution_scope_key
+    UNIQUE (tenant_id,id,version,legal_entity_id);
+
 CREATE TABLE capture_form_distributions (
     id uuid PRIMARY KEY DEFAULT uuidv7(),
     tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -22,7 +26,8 @@ CREATE TABLE capture_form_distributions (
     UNIQUE (id,tenant_id),
     UNIQUE (id,tenant_id,legal_entity_id),
     FOREIGN KEY (legal_entity_id,tenant_id) REFERENCES legal_entities(id,tenant_id),
-    FOREIGN KEY (tenant_id,form_template_id,form_template_version) REFERENCES monitoring_form_templates(tenant_id,id,version),
+    FOREIGN KEY (tenant_id,form_template_id,form_template_version,legal_entity_id)
+        REFERENCES monitoring_form_templates(tenant_id,id,version,legal_entity_id),
     FOREIGN KEY (created_by,tenant_id) REFERENCES principals(id,tenant_id),
     CHECK (route_expires_at <= deadline),
     CHECK (updated_at >= created_at)
@@ -34,22 +39,24 @@ CREATE INDEX capture_form_distributions_updated_idx
 CREATE INDEX capture_form_distributions_template_idx
     ON capture_form_distributions(tenant_id,legal_entity_id,form_template_id,form_template_version,created_at DESC,id DESC);
 
-ALTER TABLE capture_requests ADD COLUMN distribution_id uuid;
 ALTER TABLE capture_requests
+    ADD COLUMN distribution_id uuid,
+    ADD CONSTRAINT capture_requests_distribution_scope_key
+        UNIQUE (id,tenant_id,legal_entity_id,distribution_id),
     ADD CONSTRAINT capture_requests_distribution_scope_fk
-    FOREIGN KEY (distribution_id,tenant_id,legal_entity_id)
-    REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id);
+        FOREIGN KEY (distribution_id,tenant_id,legal_entity_id)
+        REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id);
 CREATE INDEX capture_requests_distribution_idx
     ON capture_requests(tenant_id,legal_entity_id,distribution_id,deadline,id)
     WHERE distribution_id IS NOT NULL;
 
 ALTER TABLE capture_submissions
     ADD COLUMN distribution_id uuid,
-    ADD CONSTRAINT capture_submissions_id_tenant_key UNIQUE(id,tenant_id);
-ALTER TABLE capture_submissions
+    ADD CONSTRAINT capture_submissions_distribution_scope_key
+        UNIQUE(id,tenant_id,distribution_id),
     ADD CONSTRAINT capture_submissions_distribution_tenant_fk
-    FOREIGN KEY (distribution_id,tenant_id)
-    REFERENCES capture_form_distributions(id,tenant_id);
+        FOREIGN KEY (distribution_id,tenant_id)
+        REFERENCES capture_form_distributions(id,tenant_id);
 CREATE INDEX capture_submissions_distribution_idx
     ON capture_submissions(tenant_id,distribution_id,submitted_at DESC,id DESC)
     WHERE distribution_id IS NOT NULL;
@@ -74,9 +81,12 @@ CREATE TABLE capture_distribution_recipients (
     updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     UNIQUE (id,tenant_id),
     UNIQUE (id,tenant_id,legal_entity_id),
-    FOREIGN KEY (distribution_id,tenant_id,legal_entity_id) REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
+    UNIQUE (id,tenant_id,legal_entity_id,distribution_id),
+    FOREIGN KEY (distribution_id,tenant_id,legal_entity_id)
+        REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
     FOREIGN KEY (principal_id,tenant_id) REFERENCES principals(id,tenant_id),
-    FOREIGN KEY (request_id,tenant_id) REFERENCES capture_requests(id,tenant_id),
+    FOREIGN KEY (request_id,tenant_id,legal_entity_id,distribution_id)
+        REFERENCES capture_requests(id,tenant_id,legal_entity_id,distribution_id),
     CHECK ((recipient_type='INTERNAL_PRINCIPAL' AND principal_id IS NOT NULL AND address_hash IS NULL AND address_ciphertext IS NULL AND address_key_id IS NULL)
         OR (recipient_type='EXTERNAL_AUDIENCE' AND principal_id IS NULL AND address_hash IS NOT NULL AND address_ciphertext IS NOT NULL AND address_key_id IS NOT NULL AND btrim(address_key_id)<>'')),
     CHECK ((role='TO' AND request_id IS NOT NULL) OR (role='CC' AND request_id IS NULL)),
@@ -104,8 +114,11 @@ CREATE TABLE capture_access_routes (
     created_by uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     UNIQUE (id,tenant_id),
-    FOREIGN KEY (distribution_id,tenant_id,legal_entity_id) REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
-    FOREIGN KEY (recipient_id,tenant_id,legal_entity_id) REFERENCES capture_distribution_recipients(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
+    UNIQUE (id,tenant_id,legal_entity_id,distribution_id),
+    FOREIGN KEY (distribution_id,tenant_id,legal_entity_id)
+        REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
+    FOREIGN KEY (recipient_id,tenant_id,legal_entity_id,distribution_id)
+        REFERENCES capture_distribution_recipients(id,tenant_id,legal_entity_id,distribution_id) ON DELETE CASCADE,
     FOREIGN KEY (created_by,tenant_id) REFERENCES principals(id,tenant_id),
     CHECK ((access_policy='SHARED_LINK_EMAIL_OTP' AND recipient_id IS NULL) OR (access_policy<>'SHARED_LINK_EMAIL_OTP' AND recipient_id IS NOT NULL)),
     CHECK (revoked_at IS NULL OR revoked_at >= created_at)
@@ -128,9 +141,12 @@ CREATE TABLE capture_otp_challenges (
     consumed_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     UNIQUE (id,tenant_id),
-    FOREIGN KEY (distribution_id,tenant_id,legal_entity_id) REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
-    FOREIGN KEY (route_id,tenant_id) REFERENCES capture_access_routes(id,tenant_id) ON DELETE CASCADE,
-    FOREIGN KEY (recipient_id,tenant_id,legal_entity_id) REFERENCES capture_distribution_recipients(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
+    FOREIGN KEY (distribution_id,tenant_id,legal_entity_id)
+        REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
+    FOREIGN KEY (route_id,tenant_id,legal_entity_id,distribution_id)
+        REFERENCES capture_access_routes(id,tenant_id,legal_entity_id,distribution_id) ON DELETE CASCADE,
+    FOREIGN KEY (recipient_id,tenant_id,legal_entity_id,distribution_id)
+        REFERENCES capture_distribution_recipients(id,tenant_id,legal_entity_id,distribution_id) ON DELETE CASCADE,
     CHECK (expires_at > created_at),
     CHECK (consumed_at IS NULL OR consumed_at >= created_at)
 );
@@ -150,7 +166,9 @@ CREATE TABLE capture_response_workspaces (
     UNIQUE (distribution_id),
     UNIQUE (id,tenant_id),
     UNIQUE (id,tenant_id,legal_entity_id),
-    FOREIGN KEY (distribution_id,tenant_id,legal_entity_id) REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
+    UNIQUE (id,tenant_id,legal_entity_id,distribution_id),
+    FOREIGN KEY (distribution_id,tenant_id,legal_entity_id)
+        REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
     CHECK (updated_at >= created_at)
 );
 CREATE INDEX capture_response_workspaces_updated_idx
@@ -168,10 +186,14 @@ CREATE TABLE capture_response_workspace_edits (
     result_version bigint NOT NULL CHECK (result_version = base_version + 1),
     patch jsonb NOT NULL CHECK (jsonb_typeof(patch)='object' AND octet_length(patch::text) <= 1048576),
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    FOREIGN KEY (distribution_id,tenant_id,legal_entity_id) REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
-    FOREIGN KEY (workspace_id,tenant_id,legal_entity_id) REFERENCES capture_response_workspaces(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
-    FOREIGN KEY (recipient_id,tenant_id,legal_entity_id) REFERENCES capture_distribution_recipients(id,tenant_id,legal_entity_id),
-    FOREIGN KEY (request_id,tenant_id) REFERENCES capture_requests(id,tenant_id)
+    FOREIGN KEY (distribution_id,tenant_id,legal_entity_id)
+        REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
+    FOREIGN KEY (workspace_id,tenant_id,legal_entity_id,distribution_id)
+        REFERENCES capture_response_workspaces(id,tenant_id,legal_entity_id,distribution_id) ON DELETE CASCADE,
+    FOREIGN KEY (recipient_id,tenant_id,legal_entity_id,distribution_id)
+        REFERENCES capture_distribution_recipients(id,tenant_id,legal_entity_id,distribution_id),
+    FOREIGN KEY (request_id,tenant_id,legal_entity_id,distribution_id)
+        REFERENCES capture_requests(id,tenant_id,legal_entity_id,distribution_id)
 );
 CREATE UNIQUE INDEX capture_response_workspace_edits_version_uq
     ON capture_response_workspace_edits(tenant_id,workspace_id,result_version);
@@ -197,11 +219,16 @@ CREATE TABLE capture_response_revisions (
     is_current boolean NOT NULL DEFAULT true,
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     UNIQUE (id,tenant_id),
+    UNIQUE (id,tenant_id,legal_entity_id,distribution_id,workspace_id),
     UNIQUE (tenant_id,workspace_id,revision),
-    FOREIGN KEY (distribution_id,tenant_id,legal_entity_id) REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
-    FOREIGN KEY (workspace_id,tenant_id,legal_entity_id) REFERENCES capture_response_workspaces(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
-    FOREIGN KEY (submission_id,tenant_id) REFERENCES capture_submissions(id,tenant_id),
-    FOREIGN KEY (supersedes_revision_id,tenant_id) REFERENCES capture_response_revisions(id,tenant_id),
+    FOREIGN KEY (distribution_id,tenant_id,legal_entity_id)
+        REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
+    FOREIGN KEY (workspace_id,tenant_id,legal_entity_id,distribution_id)
+        REFERENCES capture_response_workspaces(id,tenant_id,legal_entity_id,distribution_id) ON DELETE CASCADE,
+    FOREIGN KEY (submission_id,tenant_id,distribution_id)
+        REFERENCES capture_submissions(id,tenant_id,distribution_id),
+    FOREIGN KEY (supersedes_revision_id,tenant_id,legal_entity_id,distribution_id,workspace_id)
+        REFERENCES capture_response_revisions(id,tenant_id,legal_entity_id,distribution_id,workspace_id),
     CHECK ((revision=1 AND supersedes_revision_id IS NULL) OR (revision>1 AND supersedes_revision_id IS NOT NULL))
 );
 CREATE UNIQUE INDEX capture_response_revisions_current_uq
@@ -221,7 +248,8 @@ CREATE TABLE capture_distribution_events (
     actor_id uuid,
     occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     UNIQUE (tenant_id,distribution_id,distribution_version,event_type),
-    FOREIGN KEY (distribution_id,tenant_id,legal_entity_id) REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
+    FOREIGN KEY (distribution_id,tenant_id,legal_entity_id)
+        REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id) ON DELETE CASCADE,
     FOREIGN KEY (actor_id,tenant_id) REFERENCES principals(id,tenant_id)
 );
 CREATE INDEX capture_distribution_events_history_idx
