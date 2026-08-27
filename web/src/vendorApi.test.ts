@@ -21,12 +21,12 @@ describe("vendor API", () => {
   it("does not send browser identity fields when creating a relationship", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(aggregate), { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
-    await createVendorRelationship({ legal_name: "Acme", service_name: "Payments", criticality: "IMPORTANT", privacy_role: "PROCESSOR" });
+    await createVendorRelationship({ legal_name: "Acme", website_domain: "acme.example", registered_address: "1 Marina Road\nLagos", service_name: "Payments", criticality: "IMPORTANT", privacy_role: "PROCESSOR" });
     const call = fetchMock.mock.calls[0];
     if (!call) throw new Error("fetch was not called");
     const init = call[1] as RequestInit;
     expect(call[0]).toBe("/api/v1/vendors");
-    expect(JSON.parse(String(init.body))).toEqual({ legal_name: "Acme", service_name: "Payments", criticality: "IMPORTANT", privacy_role: "PROCESSOR" });
+    expect(JSON.parse(String(init.body))).toEqual({ legal_name: "Acme", website_domain: "acme.example", registered_address: "1 Marina Road\nLagos", service_name: "Payments", criticality: "IMPORTANT", privacy_role: "PROCESSOR" });
   });
 
   it("uses the route id and expected version for updates", async () => {

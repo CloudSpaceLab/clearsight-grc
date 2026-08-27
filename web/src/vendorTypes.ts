@@ -22,6 +22,7 @@ export type Vendor = {
   registration_ref?: string;
   jurisdiction?: string;
   website_domain?: string;
+  registered_address?: string;
   source_id?: string;
   external_ref?: string;
   status: VendorStatus;
@@ -67,6 +68,8 @@ export type CreateVendorRelationshipInput = {
   trading_name?: string;
   registration_ref?: string;
   jurisdiction?: string;
+  website_domain?: string;
+  registered_address?: string;
   source_id?: string;
   external_ref?: string;
   service_name: string;
@@ -86,4 +89,5 @@ export type UpdateVendorIdentityInput = {
   registration_ref?: string;
   jurisdiction?: string;
   website_domain?: string;
+  registered_address?: string;
 };

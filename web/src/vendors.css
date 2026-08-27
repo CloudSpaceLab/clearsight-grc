@@ -10,8 +10,9 @@
 .vendor-register-lock-note { margin:12px 20px 0; padding:10px 12px; border:1px solid color-mix(in srgb,var(--cyan) 24%,var(--border)); border-radius:10px; background:color-mix(in srgb,var(--cyan) 7%,var(--surface-2)); color:var(--muted); font-size:12px; line-height:1.45; }
 .vendor-search { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:end; padding:14px 20px 18px; color:var(--muted); font-size:12px; }
 .vendor-search label { display:grid; gap:6px; }
-.vendor-search input,.vendor-field input,.vendor-field select { width:100%; min-height:42px; border:1px solid var(--border); border-radius:10px; background:var(--surface-2); color:var(--text); padding:0 12px; }
-.vendor-search input:focus,.vendor-field input:focus,.vendor-field select:focus { outline:2px solid var(--cyan); outline-offset:2px; }
+.vendor-search input,.vendor-field input,.vendor-field select,.vendor-field textarea { width:100%; min-height:42px; border:1px solid var(--border); border-radius:10px; background:var(--surface-2); color:var(--text); padding:0 12px; }
+.vendor-field textarea { min-height:88px; padding-block:10px; resize:vertical; line-height:1.5; }
+.vendor-search input:focus,.vendor-field input:focus,.vendor-field select:focus,.vendor-field textarea:focus { outline:2px solid var(--cyan); outline-offset:2px; }
 .vendor-list { border-top:1px solid var(--border); max-height:620px; overflow:auto; }
 .vendor-row { width:100%; display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:12px; align-items:center; padding:16px 18px; border:0; border-bottom:1px solid var(--border); background:transparent; text-align:left; cursor:pointer; }
 .vendor-row:hover,.vendor-row.selected { background:color-mix(in srgb,var(--cyan) 7%,var(--surface)); }
@@ -44,7 +45,7 @@
 .vendor-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 24px; margin:0; }
 .vendor-facts div { padding:14px 0; border-top:1px solid var(--border); }
 .vendor-facts dt { color:var(--muted); font-size:11px; }
-.vendor-facts dd { margin:5px 0 0; overflow-wrap:anywhere; font-size:13px; }
+.vendor-facts dd { margin:5px 0 0; overflow-wrap:anywhere; white-space:pre-line; font-size:13px; }
 .vendor-boundary-note { margin-top:20px; padding:15px; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); }
 .vendor-boundary-note strong { font-size:12px; }
 .vendor-boundary-note p { margin:5px 0 0; font-size:12px; }
@@ -69,7 +70,7 @@
 .vendor-field.wide { grid-column:1/-1; }
 .vendor-field small { color:var(--coral); line-height:1.4; }
 .vendor-field-help { grid-column:1/-1; margin:-7px 0 0; color:var(--muted); font-size:11px; line-height:1.5; }
-.vendor-field input[aria-invalid="true"] { border-color:var(--coral); }
+.vendor-field input[aria-invalid="true"],.vendor-field textarea[aria-invalid="true"] { border-color:var(--coral); }
 .vendor-brand-controls { display:grid; gap:14px; margin-top:24px; padding:18px; border:1px solid var(--border); border-radius:14px; background:var(--surface-2); }
 .vendor-brand-status { display:flex; justify-content:space-between; align-items:flex-start; gap:18px; }
 .vendor-brand-status h3 { margin:0 0 5px; font-size:14px; }

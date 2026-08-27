@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { apiErrorKind } from "../http";
 import { isCommittedCommandReceipt, loadVendorIdentity, newVendorBrandIdempotencyKey, removeApprovedVendorLogo, updateVendorIdentity, uploadApprovedVendorLogo } from "../vendorApi";
-import { normalizeWebsiteDomain, validateWebsiteDomain, vendorIdentityLimits } from "../vendorIdentity";
+import { normalizeRegisteredAddress, normalizeWebsiteDomain, validateWebsiteDomain, vendorIdentityLimits } from "../vendorIdentity";
 import type { VendorIdentityPresentation, VendorRelationshipAggregate } from "../vendorTypes";
 import { FileDropzone } from "./FileDropzone";
 import { VendorBrandIcon, vendorBrandLabel } from "./VendorBrandIcon";
@@ -9,7 +9,7 @@ import { VendorBrandIcon, vendorBrandLabel } from "./VendorBrandIcon";
 const allowedLogoTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/x-icon", "image/vnd.microsoft.icon"]);
 const maxLogoBytes = 512 * 1024;
 
-type IdentityValues = { legalName: string; tradingName: string; registrationRef: string; jurisdiction: string; websiteDomain: string };
+type IdentityValues = { legalName: string; tradingName: string; registrationRef: string; jurisdiction: string; websiteDomain: string; registeredAddress: string };
 
 export function VendorIdentityEditor({ record, onCancel, onIdentitySaved, onBrandSaved, onPresentationReloaded }: {
   record: VendorRelationshipAggregate;
@@ -77,6 +77,7 @@ export function VendorIdentityEditor({ record, onCancel, onIdentitySaved, onBran
     if (!values.legalName.trim()) nextErrors.legalName = "Enter the vendor's legal name.";
     const websiteError = validateWebsiteDomain(values.websiteDomain);
     if (websiteError) nextErrors.websiteDomain = websiteError;
+    if ([...values.registeredAddress].length > vendorIdentityLimits.registeredAddress) nextErrors.registeredAddress = "Enter a registered address of 2,000 characters or fewer.";
     setErrors(nextErrors);
     if (Object.values(nextErrors).some(Boolean)) return;
     mutationRef.current = true;
@@ -89,6 +90,7 @@ export function VendorIdentityEditor({ record, onCancel, onIdentitySaved, onBran
         registration_ref: optional(values.registrationRef),
         jurisdiction: optional(values.jurisdiction),
         website_domain: normalizeWebsiteDomain(values.websiteDomain),
+        registered_address: normalizeRegisteredAddress(values.registeredAddress),
       });
       if (isCommittedCommandReceipt(saved)) {
         setFormError("Vendor details were saved, but the updated vendor could not be loaded. Reload the current vendor to confirm the saved version.");
@@ -234,8 +236,9 @@ export function VendorIdentityEditor({ record, onCancel, onIdentitySaved, onBran
       <IdentityField label="Trading name"><input id="vendor-identity-trading-name" value={values.tradingName} maxLength={vendorIdentityLimits.tradingName} disabled={mutating} onChange={(event) => setValue("tradingName", event.target.value)}/></IdentityField>
       <IdentityField label="Registration reference"><input id="vendor-identity-registration" value={values.registrationRef} maxLength={vendorIdentityLimits.registrationRef} disabled={mutating} onChange={(event) => setValue("registrationRef", event.target.value)}/></IdentityField>
       <IdentityField label="Jurisdiction"><input id="vendor-identity-jurisdiction" value={values.jurisdiction} maxLength={vendorIdentityLimits.jurisdiction} disabled={mutating} onChange={(event) => setValue("jurisdiction", event.target.value)}/></IdentityField>
-      <IdentityField label="Website domain" error={errors.websiteDomain} wide><input id="vendor-identity-website" type="text" inputMode="url" autoComplete="url" value={values.websiteDomain} maxLength={vendorIdentityLimits.websiteDomain} placeholder="vendor.example" disabled={mutating} onChange={(event) => setValue("websiteDomain", event.target.value)} aria-invalid={Boolean(errors.websiteDomain)} aria-describedby={descriptionID}/></IdentityField>
-      <p id={descriptionID} className="vendor-field-help">Enter the hostname only, such as vendor.example. The saved hostname is used to retrieve a website icon.</p>
+      <IdentityField label="Website domain" error={errors.websiteDomain} wide><input id="vendor-identity-website" type="url" inputMode="url" autoComplete="url" value={values.websiteDomain} maxLength={vendorIdentityLimits.websiteInput} placeholder="https://vendor.example" disabled={mutating} onChange={(event) => setValue("websiteDomain", event.target.value)} aria-invalid={Boolean(errors.websiteDomain)} aria-describedby={descriptionID}/></IdentityField>
+      <p id={descriptionID} className="vendor-field-help">Enter a hostname or full HTTPS URL. The saved hostname is used to retrieve a website icon.</p>
+      <IdentityField label="Registered address" error={errors.registeredAddress} wide><textarea id="vendor-identity-registered-address" autoComplete="street-address" value={values.registeredAddress} maxLength={vendorIdentityLimits.registeredAddress} rows={3} disabled={mutating} onChange={(event) => setValue("registeredAddress", event.target.value)} aria-invalid={Boolean(errors.registeredAddress)}/></IdentityField>
     </div>
     <section className="vendor-brand-controls" aria-labelledby="vendor-brand-heading">
       <div className="vendor-brand-status"><div><h3 id="vendor-brand-heading">Vendor icon</h3><strong>{vendorBrandLabel(presentation.brand)}</strong></div><p>{brandStatusDetail(presentation.brand.state)}</p></div>
@@ -257,7 +260,7 @@ function IdentityField({ label, required, error, wide, children }: { label: stri
 }
 
 function identityValues(vendor: VendorIdentityPresentation["vendor"]): IdentityValues {
-  return { legalName: vendor.legal_name, tradingName: vendor.trading_name ?? "", registrationRef: vendor.registration_ref ?? "", jurisdiction: vendor.jurisdiction ?? "", websiteDomain: vendor.website_domain ?? "" };
+  return { legalName: vendor.legal_name, tradingName: vendor.trading_name ?? "", registrationRef: vendor.registration_ref ?? "", jurisdiction: vendor.jurisdiction ?? "", websiteDomain: vendor.website_domain ?? "", registeredAddress: vendor.registered_address ?? "" };
 }
 function optional(value: string) { return value.trim() || undefined; }
 function identityErrorText(kind: ReturnType<typeof apiErrorKind>) {

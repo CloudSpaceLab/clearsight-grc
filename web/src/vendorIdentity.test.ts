@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { normalizeWebsiteDomain, validateWebsiteDomain } from "./vendorIdentity";
 
 describe("validateWebsiteDomain", () => {
-  it("accepts a DNS hostname and leaves an empty optional value valid", () => {
+  it("accepts a DNS hostname or safe HTTPS URL and leaves an empty optional value valid", () => {
     expect(validateWebsiteDomain("Vendor.Example")).toBeUndefined();
     expect(validateWebsiteDomain("intranet")).toBeUndefined();
     expect(validateWebsiteDomain("2130706433.example")).toBeUndefined();
@@ -10,10 +10,14 @@ describe("validateWebsiteDomain", () => {
     expect(validateWebsiteDomain("BÜCHER.Example")).toBeUndefined();
     expect(validateWebsiteDomain("")).toBeUndefined();
     expect(normalizeWebsiteDomain(" BÜCHER.Example ")).toBe("xn--bcher-kva.example");
+    expect(validateWebsiteDomain("https://Vendor.Example/about?source=register#company")).toBeUndefined();
+    expect(normalizeWebsiteDomain("https://Vendor.Example/about?source=register#company")).toBe("vendor.example");
   });
 
   it.each([
-    "https://vendor.example",
+    "http://vendor.example",
+    "https://user@vendor.example",
+    "https://vendor.example:443/about",
     "vendor.example/path",
     "vendor.example\\path",
     "vendor.example.",
@@ -35,8 +39,8 @@ describe("validateWebsiteDomain", () => {
     "-vendor.example",
     "vendor_.example",
     "vendor..example",
-  ])("rejects non-hostname website input %s", (value) => {
-    expect(validateWebsiteDomain(value)).toMatch(/hostname only/i);
+  ])("rejects unsafe website input %s", (value) => {
+    expect(validateWebsiteDomain(value)).toMatch(/website hostname or full HTTPS URL/i);
   });
 
   it("rejects an overlong hostname", () => {

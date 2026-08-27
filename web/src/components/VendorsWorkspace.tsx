@@ -5,6 +5,7 @@ import type { FormTemplate } from "../monitoringTypes";
 import { cancelVendorAssessment, completeVendorAssessment, createVendorAssessmentDeficiency, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, requestVendorAssessmentClarification, retryVendorAssessmentSetup, reviewVendorAssessmentDocument, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview, vendorAssessmentDocumentURL } from "../vendorAssessmentApi";
 import type { CompleteVendorAssessmentInput, CreateVendorAssessmentDeficiencyInput, CurrentVendorAssessment, ReviewVendorAssessmentDocumentInput, StartVendorAssessmentInput, VendorAssessment, VendorAssessmentClarificationInput, VendorAssessmentFormOption, VendorAssessmentReviewView, VendorAssessmentSendOutcome, VendorAssessmentSetupRetryOutcome } from "../vendorAssessmentTypes";
 import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
+import { normalizeRegisteredAddress, normalizeWebsiteDomain, validateWebsiteDomain, vendorIdentityLimits } from "../vendorIdentity";
 import type { CreateVendorRelationshipInput, VendorCriticality, VendorIdentityPresentation, VendorPrivacyRole, VendorRelationshipAggregate } from "../vendorTypes";
 import { VendorDueDiligence } from "./VendorDueDiligence";
 import { VendorWorkPanel } from "./VendorWorkPanel";
@@ -30,6 +31,8 @@ type FormValues = {
   tradingName: string;
   registrationRef: string;
   jurisdiction: string;
+  websiteDomain: string;
+  registeredAddress: string;
   serviceName: string;
   criticality: VendorCriticality;
   privacyRole: VendorPrivacyRole;
@@ -40,7 +43,7 @@ type FormValues = {
 };
 
 const emptyForm: FormValues = {
-  legalName: "", tradingName: "", registrationRef: "", jurisdiction: "", serviceName: "",
+  legalName: "", tradingName: "", registrationRef: "", jurisdiction: "", websiteDomain: "", registeredAddress: "", serviceName: "",
   criticality: "STANDARD", privacyRole: "NONE", sourceID: "", externalRef: "", effectiveFrom: "", renewalAt: "",
 };
 
@@ -423,7 +426,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     if (!selected) return;
     const { vendor, relationship } = selected;
     setForm({
-      legalName: vendor.legal_name, tradingName: vendor.trading_name ?? "", registrationRef: vendor.registration_ref ?? "", jurisdiction: vendor.jurisdiction ?? "",
+      legalName: vendor.legal_name, tradingName: vendor.trading_name ?? "", registrationRef: vendor.registration_ref ?? "", jurisdiction: vendor.jurisdiction ?? "", websiteDomain: vendor.website_domain ?? "", registeredAddress: vendor.registered_address ?? "",
       serviceName: relationship.service_name, criticality: relationship.criticality, privacyRole: relationship.privacy_role,
       sourceID: vendor.source_id ?? "", externalRef: vendor.external_ref ?? "", effectiveFrom: dateInput(relationship.effective_from), renewalAt: dateInput(relationship.renewal_at),
     });
@@ -469,7 +472,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
 
   function useExistingVendor(candidate: VendorRelationshipAggregate) {
     setExistingVendorSource(candidate);
-    setForm((current) => ({ ...current, legalName: candidate.vendor.legal_name, tradingName: candidate.vendor.trading_name ?? "", registrationRef: candidate.vendor.registration_ref ?? "", jurisdiction: candidate.vendor.jurisdiction ?? "", sourceID: "", externalRef: "" }));
+    setForm((current) => ({ ...current, legalName: candidate.vendor.legal_name, tradingName: candidate.vendor.trading_name ?? "", registrationRef: candidate.vendor.registration_ref ?? "", jurisdiction: candidate.vendor.jurisdiction ?? "", websiteDomain: "", registeredAddress: "", sourceID: "", externalRef: "" }));
     setCandidateState("idle");
     setVendorCandidates([]);
   }
@@ -478,6 +481,11 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     event.preventDefault();
     const errors: Record<string, string> = {};
     if (mode === "create" && !form.legalName.trim()) errors.legalName = "Enter the vendor's legal name.";
+    if (mode === "create" && !existingVendorSource) {
+      const websiteError = validateWebsiteDomain(form.websiteDomain);
+      if (websiteError) errors.websiteDomain = websiteError;
+      if ([...form.registeredAddress].length > vendorIdentityLimits.registeredAddress) errors.registeredAddress = "Enter a registered address of 2,000 characters or fewer.";
+    }
     if (!form.serviceName.trim()) errors.serviceName = "Enter the service supplied to this legal entity.";
     if ((form.sourceID.trim() && !form.externalRef.trim()) || (!form.sourceID.trim() && form.externalRef.trim())) errors.sourceID = "Enter both source system and source reference, or leave both blank.";
     if (form.effectiveFrom && form.renewalAt && form.renewalAt < form.effectiveFrom) errors.renewalAt = "Renewal date cannot be before the effective date.";
@@ -498,6 +506,8 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
         const input: CreateVendorRelationshipInput = {
           ...relationshipInput, existing_relationship_id: existingVendorSource?.relationship.id, legal_name: form.legalName.trim(), trading_name: optional(form.tradingName),
           registration_ref: optional(form.registrationRef), jurisdiction: optional(form.jurisdiction),
+          website_domain: existingVendorSource ? undefined : normalizeWebsiteDomain(form.websiteDomain),
+          registered_address: existingVendorSource ? undefined : normalizeRegisteredAddress(form.registeredAddress),
           source_id: optional(form.sourceID), external_ref: optional(form.externalRef),
         };
         saved = await createVendorRelationship(input);
@@ -545,7 +555,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       </section>
 
       <section className="vendor-focus" aria-label="Selected vendor relationship">
-        {mode === "edit-identity" && selected ? <VendorIdentityEditor record={selected} onCancel={cancelForm} onIdentitySaved={(presentation) => applyVendorPresentation(presentation, "Vendor details updated.", true)} onBrandSaved={(presentation) => applyVendorPresentation(presentation)} onPresentationReloaded={(presentation) => applyVendorPresentation(presentation)}/> : (mode === "create" || mode === "edit") ? <VendorForm mode={mode} form={form} errors={fieldErrors} formError={formError} saving={saving} existingVendor={existingVendorSource} candidates={vendorCandidates} candidateState={candidateState} onFindExisting={findExistingVendor} onUseExisting={useExistingVendor} onUseDifferent={() => { setExistingVendorSource(undefined); setForm((current) => ({ ...current, legalName: "", tradingName: "", registrationRef: "", jurisdiction: "" })); }} onChange={setValue} onCancel={cancelForm} onSubmit={submit}/> : selected ? <VendorDetail
+        {mode === "edit-identity" && selected ? <VendorIdentityEditor record={selected} onCancel={cancelForm} onIdentitySaved={(presentation) => applyVendorPresentation(presentation, "Vendor details updated.", true)} onBrandSaved={(presentation) => applyVendorPresentation(presentation)} onPresentationReloaded={(presentation) => applyVendorPresentation(presentation)}/> : (mode === "create" || mode === "edit") ? <VendorForm mode={mode} form={form} errors={fieldErrors} formError={formError} saving={saving} existingVendor={existingVendorSource} candidates={vendorCandidates} candidateState={candidateState} onFindExisting={findExistingVendor} onUseExisting={useExistingVendor} onUseDifferent={() => { setExistingVendorSource(undefined); setForm((current) => ({ ...current, legalName: "", tradingName: "", registrationRef: "", jurisdiction: "", websiteDomain: "", registeredAddress: "" })); }} onChange={setValue} onCancel={cancelForm} onSubmit={submit}/> : selected ? <VendorDetail
           record={selected}
           assessment={assessment}
           assessmentSetup={assessmentSetup}
@@ -620,7 +630,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
     <div className="vendor-service-callout"><span>Service supplied</span><strong>{relationship.service_name}</strong><small>{humanize(relationship.criticality)} criticality · {privacyLabel(relationship.privacy_role)}</small></div>
     <dl className="vendor-facts">
       <Fact label="Accountable owner" value={relationship.business_owner_principal_id}/><Fact label="Jurisdiction" value={vendor.jurisdiction || "Not recorded"}/>
-      <Fact label="Registration reference" value={vendor.registration_ref || "Not recorded"}/><Fact label="Website domain" value={vendor.website_domain || "Not recorded"}/><Fact label="Effective date" value={formatDate(relationship.effective_from)}/>
+      <Fact label="Registration reference" value={vendor.registration_ref || "Not recorded"}/><Fact label="Website domain" value={vendor.website_domain || "Not recorded"}/><Fact label="Registered address" value={vendor.registered_address || "Not recorded"}/><Fact label="Effective date" value={formatDate(relationship.effective_from)}/>
       <Fact label="Renewal date" value={formatDate(relationship.renewal_at)}/><Fact label="Source" value={vendor.source_id && vendor.external_ref ? `${vendor.source_id} · ${vendor.external_ref}` : "Entered directly"}/>
       <Fact label="Relationship updated" value={formatDateTime(relationship.updated_at)}/><Fact label="Relationship version" value={`Version ${relationship.version}`}/><Fact label="Vendor details version" value={`Vendor version ${vendor.version}`}/>
     </dl>
@@ -725,7 +735,9 @@ function VendorForm({ mode, form, errors, formError, saving, existingVendor, can
         </div>}
         {!existingVendor && <><Field label="Trading name"><input id="vendor-trading-name" value={form.tradingName} onChange={(event) => onChange("tradingName", event.target.value)}/></Field>
         <Field label="Registration reference"><input id="vendor-registration" value={form.registrationRef} onChange={(event) => onChange("registrationRef", event.target.value)}/></Field>
-        <Field label="Jurisdiction"><input id="vendor-jurisdiction" value={form.jurisdiction} onChange={(event) => onChange("jurisdiction", event.target.value)} placeholder="For example, Nigeria"/></Field></>}
+        <Field label="Jurisdiction"><input id="vendor-jurisdiction" value={form.jurisdiction} onChange={(event) => onChange("jurisdiction", event.target.value)} placeholder="For example, Nigeria"/></Field>
+        <Field label="Website" error={errors.websiteDomain} wide><input id="vendor-website" type="url" inputMode="url" autoComplete="url" maxLength={vendorIdentityLimits.websiteInput} value={form.websiteDomain} onChange={(event) => onChange("websiteDomain", event.target.value)} placeholder="https://vendor.example" aria-invalid={Boolean(errors.websiteDomain)}/></Field>
+        <Field label="Registered address" error={errors.registeredAddress} wide><textarea id="vendor-registered-address" autoComplete="street-address" maxLength={vendorIdentityLimits.registeredAddress} rows={3} value={form.registeredAddress} onChange={(event) => onChange("registeredAddress", event.target.value)} aria-invalid={Boolean(errors.registeredAddress)}/></Field></>}
       </> : <div className="vendor-identity-note">
         <span>Vendor legal details</span><strong>{form.legalName}</strong>
         <small>{[form.registrationRef, form.jurisdiction].filter(Boolean).join(" · ") || "No registration or jurisdiction recorded"}</small>

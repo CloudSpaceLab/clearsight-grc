@@ -645,6 +645,11 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onTarget={onTarget}/>);
     fireEvent.click(await screen.findByRole("button", { name: "Add vendor" }));
     fireEvent.change(screen.getByLabelText("Legal name"), { target: { value: "Acme Processing Limited" } });
+    const website = screen.getByLabelText("Website") as HTMLInputElement;
+    expect(website.type).toBe("url");
+    expect(website.autocomplete).toBe("url");
+    fireEvent.change(website, { target: { value: "https://Acme.Example/about" } });
+    fireEvent.change(screen.getByLabelText("Registered address"), { target: { value: " 1 Marina Road\r\n Lagos " } });
     fireEvent.change(screen.getByLabelText("Service supplied"), { target: { value: "Card transaction processing" } });
     fireEvent.change(screen.getByLabelText("Criticality"), { target: { value: "IMPORTANT" } });
     fireEvent.change(screen.getByLabelText("Privacy role"), { target: { value: "PROCESSOR" } });
@@ -653,6 +658,7 @@ describe("VendorsWorkspace", () => {
     const call = vi.mocked(createVendorRelationship).mock.calls[0];
     if (!call) throw new Error("createVendorRelationship was not called");
     expect(call[0]).toEqual(expect.not.objectContaining({ tenant_id: expect.anything(), legal_entity_id: expect.anything(), actor_id: expect.anything() }));
+    expect(call[0]).toEqual(expect.objectContaining({ website_domain: "acme.example", registered_address: "1 Marina Road\n Lagos" }));
     expect(onTarget).toHaveBeenCalledWith("relationship-1");
     expect(await screen.findByText("Vendor relationship added.")).toBeTruthy();
   });
@@ -730,16 +736,17 @@ describe("VendorsWorkspace", () => {
     const second = { ...record, relationship: { ...record.relationship, id: "relationship-2", service_name: "Settlement reporting", version: 7 } };
     vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [record, second] });
     vi.mocked(loadVendorIdentity).mockResolvedValue({ vendor: record.vendor, brand: { state: "UNAVAILABLE", version: 0, event_version: 0 } });
-    vi.mocked(updateVendorIdentity).mockResolvedValue({ vendor: { ...record.vendor, legal_name: "Acme Payments Limited", website_domain: "acme.example", version: 2 }, brand: { state: "PENDING", version: 1, event_version: 1 } });
+    vi.mocked(updateVendorIdentity).mockResolvedValue({ vendor: { ...record.vendor, legal_name: "Acme Payments Limited", website_domain: "acme.example", registered_address: "1 Marina Road\nLagos", version: 2 }, brand: { state: "PENDING", version: 1, event_version: 1 } });
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
 
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
     const legalName = await screen.findByLabelText("Legal name");
     fireEvent.change(legalName, { target: { value: "Acme Payments Limited" } });
     fireEvent.change(screen.getByLabelText("Website domain"), { target: { value: "acme.example" } });
+    fireEvent.change(screen.getByLabelText("Registered address"), { target: { value: "1 Marina Road\r\nLagos" } });
     fireEvent.click(screen.getByRole("button", { name: "Save vendor details" }));
 
-    await waitFor(() => expect(updateVendorIdentity).toHaveBeenCalledWith("vendor-1", expect.objectContaining({ expected_version: 1, legal_name: "Acme Payments Limited", website_domain: "acme.example" })));
+    await waitFor(() => expect(updateVendorIdentity).toHaveBeenCalledWith("vendor-1", expect.objectContaining({ expected_version: 1, legal_name: "Acme Payments Limited", website_domain: "acme.example", registered_address: "1 Marina Road\nLagos" })));
     expect(await screen.findByText("Vendor details updated.")).toBeTruthy();
     expect(screen.getAllByText("Acme Payments Limited").length).toBeGreaterThanOrEqual(2);
     fireEvent.click(screen.getByRole("button", { name: "Acme Payments Limited, Settlement reporting" }));
@@ -748,14 +755,20 @@ describe("VendorsWorkspace", () => {
     await waitFor(() => expect(updateVendorRelationship).toHaveBeenCalledWith("relationship-2", expect.objectContaining({ expected_version: 7 })));
   });
 
-  it("rejects a URL, path, credentials, port and IP before updating a vendor identity", async () => {
+  it("accepts an HTTPS URL but rejects credentials, ports and IPs before updating a vendor identity", async () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
     const website = await screen.findByLabelText("Website domain");
-    for (const value of ["https://acme.example", "acme.example/icon", "user@acme.example", "acme.example:443", "127.0.0.1"]) {
-      fireEvent.change(website, { target: { value } });
+    fireEvent.change(website, { target: { value: "https://Acme.Example/about" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save vendor details" }));
+    await waitFor(() => expect(updateVendorIdentity).toHaveBeenCalledWith("vendor-1", expect.objectContaining({ website_domain: "acme.example" })));
+    vi.mocked(updateVendorIdentity).mockClear();
+    fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
+    const reopenedWebsite = await screen.findByLabelText("Website domain");
+    for (const value of ["https://user@acme.example", "https://acme.example:443/about", "user@acme.example", "acme.example:443", "127.0.0.1"]) {
+      fireEvent.change(reopenedWebsite, { target: { value } });
       fireEvent.click(screen.getByRole("button", { name: "Save vendor details" }));
-      expect(await screen.findByText(/website hostname only/i)).toBeTruthy();
+      expect(await screen.findByText(/website hostname or full HTTPS URL/i)).toBeTruthy();
     }
     expect(updateVendorIdentity).not.toHaveBeenCalled();
   });
