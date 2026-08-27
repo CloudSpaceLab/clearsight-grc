@@ -1,6 +1,11 @@
 package evidence
 
-import "context"
+import (
+	"context"
+	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
+)
 
 type DistributionListQuery struct {
 	TenantID      string
@@ -8,6 +13,42 @@ type DistributionListQuery struct {
 	Status        DistributionStatus
 	Limit         int
 	Cursor        string
+}
+
+// DistributionFormRevision is the evidence package's cycle-free projection of
+// an exact governed form revision. Callers must provide only ACTIVE revisions.
+type DistributionFormRevision struct {
+	ID            string
+	TenantID      string
+	LegalEntityID string
+	Version       int64
+	Sensitivity   string
+	Presentation  formcontract.Presentation
+	Sections      []formcontract.Section
+	Fields        []formcontract.Field
+	Active        bool
+}
+
+type DistributionFormReader interface {
+	GetDistributionFormRevision(context.Context, string, string, string, int64) (DistributionFormRevision, error)
+}
+
+type protectedRecipientAddress struct {
+	Hash       []byte
+	Ciphertext []byte
+	KeyID      string
+}
+
+type recipientAddressProtector interface {
+	ProtectRecipientAddress(context.Context, string, string, string, string) (protectedRecipientAddress, error)
+}
+
+type distributionEvent struct {
+	DistributionID string
+	Version        int64
+	EventType      string
+	ActorID        string
+	OccurredAt     time.Time
 }
 
 // DistributionStore owns atomic creation and recovery of governed form
