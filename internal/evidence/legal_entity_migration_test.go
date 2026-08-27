@@ -47,18 +47,26 @@ func TestFormDistributionMigrationPinsScopeAndIsReversible(t *testing.T) {
 	}
 	upSQL := string(up)
 	for _, required := range []string{
+		"monitoring_form_templates_distribution_scope_key",
+		"FOREIGN KEY (tenant_id,form_template_id,form_template_version,legal_entity_id)",
 		"CREATE TABLE capture_form_distributions",
-		"FOREIGN KEY (tenant_id,form_template_id,form_template_version) REFERENCES monitoring_form_templates(tenant_id,id,version)",
 		"CHECK (route_expires_at <= deadline)",
+		"capture_requests_distribution_scope_key",
 		"CREATE TABLE capture_distribution_recipients",
+		"FOREIGN KEY (request_id,tenant_id,legal_entity_id,distribution_id)",
 		"CHECK ((role='TO' AND request_id IS NOT NULL) OR (role='CC' AND request_id IS NULL))",
 		"CREATE UNIQUE INDEX capture_distribution_recipients_request_uq",
 		"CREATE TABLE capture_access_routes",
+		"FOREIGN KEY (recipient_id,tenant_id,legal_entity_id,distribution_id)",
 		"CREATE TABLE capture_otp_challenges",
+		"FOREIGN KEY (route_id,tenant_id,legal_entity_id,distribution_id)",
 		"CREATE TABLE capture_response_workspaces",
 		"UNIQUE (distribution_id)",
 		"CREATE TABLE capture_response_workspace_edits",
+		"FOREIGN KEY (workspace_id,tenant_id,legal_entity_id,distribution_id)",
 		"CREATE TABLE capture_response_revisions",
+		"capture_submissions_distribution_scope_key",
+		"FOREIGN KEY (submission_id,tenant_id,distribution_id)",
 		"achieved_assurance text NOT NULL CHECK (achieved_assurance IN ('LINK_POSSESSION','EMAIL_VERIFIED'))",
 		"ADD COLUMN distribution_id uuid",
 		"capture_form_distributions_deadline_idx",
@@ -82,8 +90,11 @@ func TestFormDistributionMigrationPinsScopeAndIsReversible(t *testing.T) {
 		"DROP TABLE IF EXISTS capture_response_revisions",
 		"DROP TABLE IF EXISTS capture_response_workspaces",
 		"DROP TABLE IF EXISTS capture_distribution_recipients",
+		"DROP CONSTRAINT IF EXISTS capture_submissions_distribution_scope_key",
+		"DROP CONSTRAINT IF EXISTS capture_requests_distribution_scope_key",
 		"DROP COLUMN IF EXISTS distribution_id",
 		"DROP TABLE IF EXISTS capture_form_distributions",
+		"DROP CONSTRAINT IF EXISTS monitoring_form_templates_distribution_scope_key",
 	} {
 		if !strings.Contains(downSQL, required) {
 			t.Fatalf("distribution down migration lacks %q", required)
