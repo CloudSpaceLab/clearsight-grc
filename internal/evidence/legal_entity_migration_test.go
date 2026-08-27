@@ -77,6 +77,8 @@ func TestFormDistributionMigrationPinsScopeAndIsReversible(t *testing.T) {
 	}
 	downSQL := string(down)
 	for _, required := range []string{
+		"IF EXISTS (SELECT 1 FROM capture_form_distributions)",
+		"cannot roll back form distributions after distribution or delivery history exists",
 		"DROP TABLE IF EXISTS capture_response_revisions",
 		"DROP TABLE IF EXISTS capture_response_workspaces",
 		"DROP TABLE IF EXISTS capture_distribution_recipients",
