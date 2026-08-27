@@ -30,7 +30,6 @@ import "./demo-login.css";
 import "./defect-review-fixes.css";
 import "./monitoring.css";
 import "./form-authoring.css";
-import "./forms.css";
 import "./vendors.css";
 
 const invitationToken = consumeCaptureInvitation(window);
