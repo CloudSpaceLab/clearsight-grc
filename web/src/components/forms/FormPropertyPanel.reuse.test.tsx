@@ -79,7 +79,8 @@ describe("FormPropertyPanel reusable revisions", () => {
     fireEvent.click(screen.getByText("Insert section from active template"));
     fireEvent.change(screen.getByLabelText("Active template revision"), { target: { value: "template-a:2" } });
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("no longer an active reusable template");
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("no longer an active reusable template");
     expect(screen.queryByRole("button", { name: "Insert section" })).toBeNull();
   });
 });
