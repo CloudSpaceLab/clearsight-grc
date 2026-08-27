@@ -21,7 +21,7 @@ import {
   updateConstraint,
   type FormDraft,
 } from "./forms/formAuthoring";
-import { evaluateQuality } from "./forms/formQuality";
+import { evaluateDraftValidity, evaluateQuality } from "./forms/formQuality";
 
 type Props = {
   programID?: string;
@@ -65,7 +65,9 @@ export function FormBuilder({
     fields: createInput.fields,
   }), [createInput]);
   const issues = useMemo(() => evaluateQuality(draft), [draft]);
+  const draftIssues = useMemo(() => evaluateDraftValidity(draft), [draft]);
   const approvalReady = !issues.some((issue) => issue.blocking);
+  const draftValid = !draftIssues.some((issue) => issue.blocking);
   const initialInput = useMemo(() => initialValue ? buildCreateInput(draftFromTemplate(initialValue)) : undefined, [initialValue]);
   const changedFromInitial = !initialInput || JSON.stringify(initialInput) !== JSON.stringify(createInput);
 
@@ -243,16 +245,16 @@ export function FormBuilder({
     throw new Error("This form editor is not connected to a governed save command.");
   }
 
-  function qualityError() {
-    const first = issues.find((issue) => issue.blocking);
-    return first?.message ?? "Resolve the approval-quality checks before continuing.";
+  function qualityError(sourceIssues = issues, fallback = "Resolve the approval-quality checks before continuing.") {
+    const first = sourceIssues.find((issue) => issue.blocking);
+    return first?.message ?? fallback;
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    if (!approvalReady) {
-      setError(qualityError());
+    if (!draftValid) {
+      setError(qualityError(draftIssues, "Resolve the draft validation checks before saving."));
       return;
     }
     setSaving(true);
