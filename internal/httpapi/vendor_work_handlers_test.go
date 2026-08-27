@@ -31,7 +31,7 @@ func TestVendorWorkHandlersUseVerifiedRelationshipAndReturnTruthfulDeliveryState
 	if err != nil {
 		t.Fatal(err)
 	}
-	evidenceService := evidence.NewService(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore())
+	evidenceService := evidence.NewService(newScopedVendorEvidenceRepository("bank", "entity-a", "relationship-1"), evidence.NewMemoryObjectStore())
 	workService, err := thirdparty.NewVendorWorkService(thirdparty.NewMemoryVendorWorkRepository(), links, evidenceService, forms, nil, "https://capture.example.test/respond", "production")
 	if err != nil {
 		t.Fatal(err)

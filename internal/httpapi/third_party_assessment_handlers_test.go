@@ -70,7 +70,7 @@ func newAssessmentHTTPFixture(t *testing.T, ready bool, inlineSetup ...bool) ass
 	if err != nil {
 		t.Fatal(err)
 	}
-	evidenceService := evidence.NewService(evidence.NewMemoryRepository(nil, nil), evidence.NewMemoryObjectStore())
+	evidenceService := evidence.NewService(newScopedVendorEvidenceRepository("bank", "entity-a", vendor.Relationship.ID), evidence.NewMemoryObjectStore())
 	assessmentService.ConfigureCancellationRevoker(evidenceService)
 	requestService, err := thirdparty.NewAssessmentRequestService(assessmentService, repo, evidenceService, formRepo, nil, "https://capture.example.test/respond", "production")
 	if err != nil {
