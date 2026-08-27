@@ -33,6 +33,9 @@ func (s *Service) InstallSample(ctx context.Context, config SeedConfig) ([]Journ
 	if err != nil {
 		return nil, err
 	}
+	if err := s.ensureVendorDueDiligenceForm(ctx, config, program.Program.ID); err != nil {
+		return nil, err
+	}
 	if err := s.ensureProgramEvidenceRequest(ctx, config, program.Program.ID); err != nil {
 		return nil, err
 	}

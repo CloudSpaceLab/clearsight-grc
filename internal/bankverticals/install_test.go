@@ -2,11 +2,97 @@ package bankverticals
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 )
+
+func TestInstallSampleCreatesGovernedVendorDueDiligenceFormIdempotently(t *testing.T) {
+	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
+	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
+	evidenceService := newReferenceEvidenceService(now, "bank-ng")
+	monitoringService := monitoring.NewService(monitoring.NewMemoryRepository(), evidenceService)
+	service := NewService(continuityService, evidenceService)
+	service.ConfigureMonitoring(monitoringService)
+	config := normalizeSeedConfig(DemoSeedConfig())
+	config.Now = now
+
+	if _, err := service.InstallSample(context.Background(), config); err != nil {
+		t.Fatal(err)
+	}
+	program, err := continuityService.ProgramByCode(
+		continuity.WithTrustedSystemEntityScope(context.Background(), config.TenantID, config.LegalEntityID),
+		config.TenantID,
+		programCodeNDPA,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actor := monitoring.Actor{TenantID: config.TenantID, LegalEntityID: program.Program.LegalEntityID, PrincipalID: config.OwnerPrincipalID}
+	forms, err := monitoringService.ListReusableForms(context.Background(), actor, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(forms) != 1 {
+		t.Fatalf("active reusable forms=%d, want 1: %#v", len(forms), forms)
+	}
+	form := forms[0]
+	if form.Code != "VENDOR-DUE-DILIGENCE" || form.Status != monitoring.LifecycleActive || !form.IsCurrent {
+		t.Fatalf("vendor due-diligence form was not activated: %#v", form)
+	}
+	if form.CreatedBy != config.ActorID || form.SubmittedBy != config.ActorID || form.ApprovedBy != config.ReviewerPrincipalID {
+		t.Fatalf("maker-checker history was not preserved: %#v", form.Lifecycle)
+	}
+	if len(form.Sections) != 4 || len(form.Fields) != 8 {
+		t.Fatalf("vendor due-diligence contract sections=%d fields=%d", len(form.Sections), len(form.Fields))
+	}
+
+	revisions, err := monitoringService.ListForms(context.Background(), actor, program.Program.ID, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(revisions) != 3 {
+		t.Fatalf("initial form lifecycle revisions=%d, want 3", len(revisions))
+	}
+	if _, err := service.InstallSample(context.Background(), config); err != nil {
+		t.Fatal(err)
+	}
+	revisionsAfterRepeat, err := monitoringService.ListForms(context.Background(), actor, program.Program.ID, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(revisionsAfterRepeat) != len(revisions) {
+		t.Fatalf("repeat installation duplicated form revisions: before=%d after=%d", len(revisions), len(revisionsAfterRepeat))
+	}
+}
+
+func TestInstallSampleRejectsSameVendorFormMakerAndChecker(t *testing.T) {
+	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
+	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
+	evidenceService := newReferenceEvidenceService(now, "bank-ng")
+	monitoringService := monitoring.NewService(monitoring.NewMemoryRepository(), evidenceService)
+	service := NewService(continuityService, evidenceService)
+	config := normalizeSeedConfig(DemoSeedConfig())
+	config.Now = now
+	sourceIDs, err := service.seedSources(continuity.WithTrustedSystemScope(context.Background()), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err := service.ensureNDPAProgram(continuity.WithTrustedSystemScope(context.Background()), config, sourceIDs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service.ConfigureMonitoring(monitoringService)
+	config.ReviewerPrincipalID = config.ActorID
+
+	err = service.ensureVendorDueDiligenceForm(context.Background(), config, program.Program.ID)
+	if !errors.Is(err, monitoring.ErrMakerChecker) {
+		t.Fatalf("same maker/checker error=%v, want %v", err, monitoring.ErrMakerChecker)
+	}
+}
 
 func TestInstallSampleRecoversPartialProgram(t *testing.T) {
 	ctx := continuity.WithTrustedSystemScope(context.Background())

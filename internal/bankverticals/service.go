@@ -11,6 +11,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 )
 
 var (
@@ -33,6 +34,7 @@ var (
 type Service struct {
 	continuity *continuity.Service
 	evidence   *evidence.Service
+	monitoring *monitoring.Service
 }
 
 func NewService(continuityService *continuity.Service, evidenceService *evidence.Service) *Service {
@@ -41,6 +43,15 @@ func NewService(continuityService *continuity.Service, evidenceService *evidence
 		evidenceService.ConfigureLegalEntityResolver(continuityService)
 	}
 	return &Service{continuity: continuityService, evidence: evidenceService}
+}
+
+// ConfigureMonitoring enables reference-form installation for explicitly
+// configured demo and reference-data runtimes. A normal production service
+// without this dependency never creates or activates monitoring forms.
+func (s *Service) ConfigureMonitoring(service *monitoring.Service) {
+	if s != nil {
+		s.monitoring = service
+	}
 }
 
 func (s *Service) List(ctx context.Context, tenant string) ([]Journey, error) {
