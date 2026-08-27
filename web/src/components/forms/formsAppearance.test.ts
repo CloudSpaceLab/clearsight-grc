@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { appearanceStorageKey, defaultFormsAccent, loadFormsAppearance, normalizeAccentColor, normalizeLogoURL, saveFormsAppearance } from "./formsAppearance";
+import { appearanceStorageKey, contrastTextForAccent, defaultFormsAccent, loadFormsAppearance, normalizeAccentColor, normalizeLogoURL, saveFormsAppearance } from "./formsAppearance";
 
 describe("Forms appearance", () => {
   it("normalizes safe accent colors and rejects arbitrary values", () => {
     expect(normalizeAccentColor("#3a7")).toBe("#33AA77");
     expect(normalizeAccentColor("#2244cc")).toBe("#2244CC");
     expect(normalizeAccentColor("url(javascript:alert(1))")).toBe(defaultFormsAccent);
+  });
+
+  it("chooses readable button text for light and dark accents", () => {
+    expect(contrastTextForAccent("#F8D33A")).toBe("#111827");
+    expect(contrastTextForAccent("#163A73")).toBe("#FFFFFF");
   });
 
   it("accepts https and same-origin logos but rejects insecure third-party URLs", () => {
