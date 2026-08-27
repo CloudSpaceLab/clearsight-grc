@@ -14,6 +14,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
 )
@@ -47,7 +48,9 @@ func main() {
 	continuityRepo := continuity.NewPostgresRepository(pool)
 	continuityService := continuity.NewService(continuityRepo)
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
+	monitoringService := monitoring.NewService(monitoring.NewPostgresRepository(pool), evidenceService)
 	installer := bankverticals.NewService(continuityService, evidenceService)
+	installer.ConfigureMonitoring(monitoringService)
 	journeys, err := installer.InstallSample(ctx, seed)
 	fatalIf(err)
 

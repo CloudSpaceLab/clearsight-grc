@@ -74,6 +74,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	aiGovernanceService := aigovernance.NewService(aiGovernanceRepo, auto, sourceCatalog, continuityService)
 	coverageService := documentcoverage.NewService(documentcoverage.NewPostgresRepository(pool), documentService, continuityService)
 	verticals := bankverticals.NewService(continuityService, evidenceService)
+	verticals.ConfigureMonitoring(monitoringService)
 	workflowService := workflow.NewService(workflow.NewPostgresRepository(pool))
 	todayService := today.NewDynamicService(func(loadCtx context.Context, actor identity.Actor) ([]today.AttentionItem, error) {
 		if cfg.DemoMode {

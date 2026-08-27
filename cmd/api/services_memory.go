@@ -78,6 +78,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	aiGovernanceService := aigovernance.NewService(aiGovernanceRepo, auto, sourceCatalog, continuityService)
 	coverageService := documentcoverage.NewService(documentcoverage.NewMemoryRepository(), documentService, continuityService)
 	verticals := bankverticals.NewService(continuityService, evidenceService)
+	configureReferenceVerticals(verticals, monitoringService)
 	if cfg.DemoMode {
 		if _, err := verticals.InstallSample(ctx, bankverticals.DemoSeedConfig()); err != nil {
 			return serviceSet{}, err
@@ -130,4 +131,8 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
 		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo), Close: func() {},
 	}, nil
+}
+
+func configureReferenceVerticals(verticals *bankverticals.Service, monitoringService *monitoring.Service) {
+	verticals.ConfigureMonitoring(monitoringService)
 }
