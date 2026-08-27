@@ -151,19 +151,23 @@ Image preview is appropriate for image evidence. For PDFs, Office files and othe
 
 The Vendors workspace uses one dominant action for the current assessment state: start or restart onboarding, start a scheduled or event-driven reassessment, send the request, review collection status, begin bank review or record the conclusion. A reassessment requires the bank's schedule, change or event reference so a retry reuses the same episode. The selected vendor, service, accountable owner, exact form version and review deadline remain visible around that action.
 
+A new vendor records legal name, service, website and registered address in the same focused setup. Website discovery is optional and never blocks creation or due diligence. The reference environment installs its standard due-diligence form through the same draft, maker submission and distinct-checker activation transitions used by configuration commands. A non-reference tenant with no active form opens a focused governed setup that selects a Program, creates the draft, submits it for approval and requires a different authorized checker before activation; the interface never silently activates a form.
+
 External collection uses the shared request-scoped invitation and capture experience. Known vendor and service facts are prefilled or shown as context; the active form decides between Classic and Wizard presentation and renders typed controls, limits, conditional fields, uploads and attestation. Submission means the response was received, not that the evidence was accepted or the relationship was approved.
 
 Internal review shows only the exact scoped response, answer provenance, coverage, artifact scan state, evidence classification, linked canonical findings and version-qualified provisional score. Reviewer conclusion, vendor-relationship activation and deficiency closure remain separate material outcomes. Completed assessments are read-only in the relationship workspace.
 
 ### Vendor identity and icon
 
-The vendor identity editor is separate from the service-relationship editor. It changes the shared legal name, trading name, registration reference, jurisdiction and optional website hostname without changing a relationship owner, service, assessment or relationship version. Website input accepts a normalized hostname only; a missing hostname is valid.
+The vendor identity editor is separate from the service-relationship editor. It changes the shared legal name, trading name, registration reference, jurisdiction, optional website hostname and registered address without changing a relationship owner, service, assessment or relationship version. Website input accepts an HTTPS URL or hostname and stores a normalized hostname; a missing hostname is valid.
 
 Vendor rows and details use a stored safe raster when available and a stable monogram otherwise. An approved logo takes precedence over a discovered website icon. Removing the approved logo restores the latest icon that matches the current website hostname; when no safe icon exists, the monogram remains available. Pending or unavailable retrieval is stated in text and never changes due-diligence or relationship status. Image sources stay on the ClearSight origin.
 
 ### Vendor requests for Programs and issues
 
 A Program or issue or change may link one or more vendor relationships without transferring the bank owner's responsibility. `Request vendor work` uses the existing form revision, invitation, capture, artifact and submission experience. The request keeps one primary Program or Matter target, a concise purpose, a bank owner, a reviewer, a deadline and an immutable sequence of the initial request and any requested changes.
+
+`Link vendor` opens a focused sheet with a blurred, opaque-fallback backdrop. Search is bounded and delayed briefly while typing; each choice shows the stored vendor icon or monogram, legal name, service, criticality and relationship status. The sheet traps keyboard focus, supports Escape, restores focus to its trigger and preserves the search, selection and purpose after a recoverable failure.
 
 The bank review shows the exact current response and AVAILABLE documents before `Accept response` is enabled as the dominant conclusion. Receipt, upload, review, acceptance, implementation and verified outcome remain separate states. Acceptance never closes a Matter, completes an action, changes a Program's status or approves the vendor relationship. Ending a vendor link is unavailable while active vendor work still depends on it; ended links and prior responses remain in history.
 

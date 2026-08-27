@@ -9,7 +9,7 @@ Program owners, reviewers and executives need to understand ongoing obligations 
 - **Program:** inspect current status and the recorded reasons behind it.
 - **Issue or change:** understand the next required decision, action, response or outcome check.
 
-This phase is primarily read/inspect. Creation and material transitions remain API/domain foundations until authenticated authority and complete workflows are connected.
+The workspaces support both review and governed action. Program and issue creation, current-state changes, facts, assignment, decisions, actions, responses and outcome checks are available only when the verified actor has the required route; read-only users retain the same reconstructable record without enabled controls that cannot act.
 
 ## Structure
 
@@ -17,6 +17,9 @@ This phase is primarily read/inspect. Creation and material transitions remain A
 - Use two tabs: **Programs** and **Issues and changes**.
 - Programs use expandable rows to retain portfolio scan speed while exposing requirements and evidence checks.
 - Issues/changes use expandable rows showing type, priority, owner, due date, current stage and next step.
+- Portfolio queries remain bounded to 20 rows per page and are filtered by the service before rendering. Programs support text, lifecycle status, operating state, jurisdiction and verified-actor assignment. Issues and changes support text, status, type, priority, due condition and verified-actor assignment.
+- Applied filters are recorded in the hash query, preserved when opening an exact record and restored on return. Query text is never parsed as part of a record identifier.
+- Vendor linking opens a focused, keyboard-contained sheet with bounded search and contextual service rows instead of expanding a dense form inside the record.
 - Use illustrations only in the workspace introduction; recurring objects use semantic icons.
 
 ## Working language
@@ -45,7 +48,7 @@ This phase is primarily read/inspect. Creation and material transitions remain A
 
 ## Responsive replacement
 
-Desktop rows show counts, state and next step together. Narrow screens stack object summary, counts/state and expansion control. Details become one column. Material action flows should later replace side panels with full-screen mobile steps.
+Desktop rows show counts, state and next step together. Common filters remain visible in a compact wrapping toolbar. Narrow screens stack object summary, counts/state, filter controls and expansion control; details become one column. Focused material tasks use a full-width sheet on narrow screens rather than compressing the desktop form.
 
 ## Acceptance evidence
 
@@ -57,3 +60,7 @@ Desktop rows show counts, state and next step together. Narrow screens stack obj
 - no active control without behavior;
 - no count without explicit scope;
 - outcome confirmation remains separate from completed action.
+- combined filters remain scoped and keyset-paginated;
+- filter routes restore after exact-record navigation;
+- native date/calendar inputs are used for dates and deadlines;
+- focused sheets trap and restore focus, close with Escape, preserve recoverable input and retain an opaque fallback behind blur.

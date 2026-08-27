@@ -519,6 +519,8 @@ A flow that misses the target requires documented cause, product review, and rem
 - [ ] unauthorized record details do not leak;
 - [ ] partial success is explicit;
 - [ ] action is idempotent and auditable.
+- [ ] combined Program and Issue or Change filters remain tenant-, legal-entity- and visibility-scoped across keyset pages;
+- [ ] filter state survives exact-record navigation and back navigation without putting query text into the record identifier;
 
 ---
 
@@ -553,6 +555,10 @@ A flow that misses the target requires documented cause, product review, and rem
 - [ ] Classic and Wizard use the same fields, limits, validation and draft state;
 - [ ] a prior response remains reconstructable after changes, cancellation or relationship-link end;
 - [ ] vendor submission, bank acceptance, implementation and verified outcome remain separate.
+- [ ] a new vendor can start due diligence without API or database intervention;
+- [ ] missing production configuration leads to governed draft and approval, not silent activation;
+- [ ] website discovery failure leaves vendor creation and due diligence usable;
+- [ ] link-vendor focus, keyboard and error recovery work at desktop, mobile and 200% zoom.
 
 ---
 
@@ -570,11 +576,12 @@ A flow that misses the target requires documented cause, product review, and rem
 1. the first Vendors visit shows optional guidance above the usable relationship register;
 2. the owner may start, skip, resume or restart the guide without losing access to vendor work;
 3. the guide opens the existing relationship, due-diligence or vendor-work action allowed for the actor;
-4. the owner edits shared vendor identity without changing the selected service relationship or its version;
-5. saving a valid website hostname schedules bounded icon discovery without blocking the vendor record;
-6. the browser loads only the protected ClearSight brand subresource and falls back to a monogram when the image is absent or fails;
-7. an approved upload replaces the website icon after explicit save;
-8. removing the approved upload restores the latest safe icon for the current hostname, or the monogram when none exists.
+4. the owner can add a relationship with legal name, service, optional HTTPS website and registered address;
+5. the owner edits shared vendor identity without changing the selected service relationship or its version;
+6. saving a valid website hostname schedules bounded icon discovery without blocking the vendor record;
+7. the browser loads only the protected ClearSight brand subresource and falls back to a monogram when the image is absent or fails;
+8. an approved upload replaces the website icon after explicit save;
+9. removing the approved upload restores the latest safe icon for the current hostname, or the monogram when none exists.
 
 ## Assertions
 
@@ -582,7 +589,7 @@ A flow that misses the target requires documented cause, product review, and rem
 - [ ] the cinematic panel is non-modal, keyboard reachable, dismissible and usable at reduced motion and 200% zoom;
 - [ ] navigation and the dominant vendor action remain available when guide persistence is unavailable;
 - [ ] vendor identity and service relationship use separate resource IDs and optimistic versions;
-- [ ] the website field accepts an empty hostname and rejects a scheme, path, credentials, port and IPv4/IPv6 or legacy numeric address;
+- [ ] the website field accepts an empty value or safe HTTPS URL/hostname, normalizes it to a hostname, and rejects credentials, ports, paths and IPv4/IPv6 or legacy numeric addresses;
 - [ ] discovery validates DNS answers, connected addresses and redirects and rejects private, loopback, link-local, reserved, multicast and metadata destinations;
 - [ ] response, timeout, media, decode, dimensions and stored-byte integrity are bounded;
 - [ ] browser markup contains no remote vendor image URL, object-store key, source digest or discovery-job identifier;
