@@ -52,6 +52,7 @@ type Props = {
   onReviewDocument?: (assessmentID: string, artifactID: string, input: ReviewVendorAssessmentDocumentInput) => Promise<VendorAssessmentReviewView>;
   onComplete?: (assessmentID: string, input: CompleteVendorAssessmentInput) => Promise<VendorAssessment | void> | VendorAssessment | void;
   onCancelAssessment?: (assessmentID: string, input: CancelVendorAssessmentInput) => Promise<VendorAssessment | void> | VendorAssessment | void;
+  onSetUpForm?: () => void;
 };
 
 type ActionPanel = "start" | "send" | "reissue" | "clarification" | "deficiency" | "document" | "conclusion" | "cancelAssessment" | null;
@@ -92,6 +93,7 @@ export function VendorDueDiligence({
   onReviewDocument,
   onComplete,
   onCancelAssessment,
+  onSetUpForm,
 }: Props) {
   const [panel, setPanel] = useState<ActionPanel>(null);
   const [localAssessment, setLocalAssessment] = useState<VendorAssessment | null | undefined>(assessment);
@@ -480,7 +482,7 @@ export function VendorDueDiligence({
       {status === "COLLECTING" ? <><button type="button" className="primary-button" onClick={() => requestID && onOpenRequest?.(requestID)} disabled={!requestID || !onOpenRequest}>Review request status</button>{clarificationOutcome?.capture_url && <button type="button" className="secondary-button" onClick={() => void copyClarificationLink()}>Copy clarification link</button>}{effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <button type="button" className="secondary-button" onClick={() => void copyCaptureLink()}>{effectiveOutcomeKind === "replacement" ? "Copy replacement link" : "Copy secure link"}</button> : <button type="button" className="secondary-button" onClick={() => openPanel("reissue")} disabled={!onReissue}>{effectiveOutcomeKind === "replacement" && effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? "Retry replacement link" : "Send replacement link"}</button>}</>
         : effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <button type="button" className="primary-button" onClick={() => void copyCaptureLink()}>Copy secure link</button>
         : effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? <button type="button" className="primary-button" onClick={() => openPanel("send")} disabled={!onSend}>Retry invitation creation</button>
-          : startMode ? <button type="button" className="primary-button" onClick={() => openPanel("start")} disabled={!form || !onStart}>{startActionLabel(startMode)}</button>
+          : startMode ? form ? <button type="button" className="primary-button" onClick={() => openPanel("start")} disabled={!onStart}>{startActionLabel(startMode)}</button> : <button type="button" className="primary-button" onClick={onSetUpForm} disabled={!onSetUpForm}>Set up due-diligence form</button>
             : status === "SETUP_PENDING" ? setupFailure ? <button type="button" className="primary-button" onClick={() => void retrySetup()} disabled={!onRetrySetup || busy}>{busy ? "Queuing setup…" : "Retry due diligence setup"}</button> : <button type="button" className="primary-button" onClick={() => void onRefresh?.()} disabled={!onRefresh}>View setup status</button>
               : status === "READY_TO_SEND" ? <button type="button" className="primary-button" onClick={() => openPanel("send")} disabled={!onSend}>Send due diligence request</button>
                 : status === "SUBMITTED" ? <button type="button" className="primary-button" onClick={() => void startReview()} disabled={!onStartReview || busy || reviewState !== "live"}>{busy ? "Opening review…" : "Review vendor response"}</button>
@@ -490,7 +492,7 @@ export function VendorDueDiligence({
       {effectiveAssessment && !["COMPLETED", "CANCELLED"].includes(effectiveAssessment.status) && onCancelAssessment && <button type="button" className="secondary-button" onClick={() => openPanel("cancelAssessment")}>Cancel assessment</button>}
     </div>}
 
-    {!form && !effectiveAssessment && <p className="vdd-limitation">No active due diligence form is available for this relationship. Activate a collection form before starting the review.</p>}
+    {!form && !effectiveAssessment && <p className="vdd-limitation">No active due-diligence form is available for this legal entity. Set up and independently approve a form before starting this vendor review.</p>}
   </section>;
 }
 

@@ -11,6 +11,7 @@ import { VendorDueDiligence } from "./VendorDueDiligence";
 import { VendorWorkPanel } from "./VendorWorkPanel";
 import { VendorBrandIcon, vendorBrandLabel } from "./VendorBrandIcon";
 import { VendorIdentityEditor } from "./VendorIdentityEditor";
+import { VendorFormReadiness } from "./VendorFormReadiness";
 
 type Props = {
   organizationName: string;
@@ -87,6 +88,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   const [candidateState, setCandidateState] = useState<"idle" | "loading" | "ready" | "failed">("idle");
   const [forms, setForms] = useState<FormTemplate[]>([]);
   const [formState, setFormState] = useState<LoadState>("loading");
+  const [formSetupOpen, setFormSetupOpen] = useState(false);
   const [assessment, setAssessment] = useState<VendorAssessment | null>(null);
   const [assessmentSetup, setAssessmentSetup] = useState<CurrentVendorAssessment["setup"]>();
   const [assessmentState, setAssessmentState] = useState<LoadState>("loading");
@@ -571,6 +573,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
           onEditIdentity={startIdentityEdit}
           onRefreshAssessment={() => refreshAssessment(selected.relationship.id)}
           onRefreshForms={refreshForms}
+          onSetUpForm={() => setFormSetupOpen(true)}
           onStartAssessment={startAssessment}
           onSendAssessmentRequest={sendAssessmentRequest}
           onReissueAssessmentRequest={reissueAssessmentRequest}
@@ -587,10 +590,18 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
         /> : records.length > 0 ? <div className="vendor-selection"><h2>Select a vendor</h2><p>Choose a relationship to review its service, accountable owner, source and current record version.</p></div> : null}
       </section>
     </div>}
+    {formSetupOpen && <VendorFormReadiness
+      onClose={() => setFormSetupOpen(false)}
+      onReady={(ready) => {
+        setForms((current) => [ready, ...current.filter((item) => item.id !== ready.id)]);
+        setFormState("live");
+        setFormSetupOpen(false);
+      }}
+    />}
   </div>;
 }
 
-function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onEditIdentity, onRefreshAssessment, onRefreshForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onOpenRequest, onOpenMatter }: {
+function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onEditIdentity, onRefreshAssessment, onRefreshForms, onSetUpForm, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onOpenRequest, onOpenMatter }: {
   record: VendorRelationshipAggregate;
   assessment: VendorAssessment | null;
   assessmentSetup?: CurrentVendorAssessment["setup"];
@@ -606,6 +617,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
   onEditIdentity: () => void;
   onRefreshAssessment: () => Promise<void>;
   onRefreshForms: () => Promise<void>;
+  onSetUpForm: () => void;
   onStartAssessment: (input: StartVendorAssessmentInput) => Promise<VendorAssessment | void>;
   onSendAssessmentRequest: (input: Parameters<typeof sendVendorAssessmentRequest>[1]) => Promise<VendorAssessmentSendOutcome>;
   onReissueAssessmentRequest: (input: Parameters<typeof reissueVendorAssessmentRequest>[1]) => Promise<VendorAssessmentSendOutcome>;
@@ -648,6 +660,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
     defaultReviewDueDate={recommendedReviewDate()}
     setupFailure={setupFailure}
     onRefresh={onRefreshAssessment}
+    onSetUpForm={onSetUpForm}
     onStart={onStartAssessment}
     onSend={onSendAssessmentRequest}
     onReissue={onReissueAssessmentRequest}

@@ -40,6 +40,7 @@ vi.mock("../vendorAssessmentApi", () => ({
 let showVendorWorkAction = false;
 const vendorWorkAction = vi.fn();
 vi.mock("./VendorWorkPanel", () => ({ VendorWorkPanel: ({ relationshipID }: { relationshipID: string }) => <section className="vendor-work-panel" tabIndex={-1} data-testid={`vendor-work-relationship-${relationshipID}`}>Vendor requests{showVendorWorkAction && <button type="button" className="primary-button" onClick={vendorWorkAction}>Request vendor work</button>}</section> }));
+vi.mock("./VendorFormReadiness", () => ({ VendorFormReadiness: ({ onReady, onClose }: { onReady: (form: FormTemplate) => void; onClose: () => void }) => <div role="dialog" aria-label="Set up due-diligence form"><button type="button" onClick={() => onReady(activeVendorForm)}>Activate test form</button><button type="button" onClick={onClose}>Close setup</button></div> }));
 
 const record: VendorRelationshipAggregate = {
   vendor: { id: "vendor-1", tenant_id: "bank", legal_name: "Acme Processing Limited", trading_name: "Acme", registration_ref: "RC-10001", jurisdiction: "Nigeria", source_id: "procurement", external_ref: "vendor-10001", status: "ACTIVE", created_at: "2026-08-25T12:00:00Z", updated_at: "2026-08-25T12:00:00Z", version: 1 },
@@ -348,6 +349,18 @@ describe("VendorsWorkspace", () => {
     expect(screen.queryByText("Access review")).toBeNull();
     expect(loadCurrentVendorAssessment).toHaveBeenCalledWith("relationship-1");
     expect(screen.getAllByRole("button").filter((button) => button.classList.contains("primary-button") && !(button as HTMLButtonElement).disabled)).toHaveLength(1);
+  });
+
+  it("opens governed setup when no active vendor form exists and enables due diligence after activation", async () => {
+    vi.mocked(loadFormTemplates).mockResolvedValue([]);
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Set up due-diligence form" }));
+    const dialog = screen.getByRole("dialog", { name: "Set up due-diligence form" });
+    expect(dialog).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Activate test form" }));
+    expect(await screen.findByRole("button", { name: "Start due diligence" })).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Set up due-diligence form" })).toBeNull();
   });
 
   it("shows an assessment load failure instead of presenting a new assessment", async () => {

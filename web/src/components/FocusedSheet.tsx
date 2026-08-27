@@ -12,7 +12,7 @@ type Props = {
 };
 
 export function FocusedSheet({ label, onClose, children, panelClassName = "", backdropClassName = "", closeLabel = "Close" }: Props) {
-  const panelRef = useRef<HTMLElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const panel = panelRef.current;
@@ -70,9 +70,9 @@ export function FocusedSheet({ label, onClose, children, panelClassName = "", ba
   }, [onClose]);
 
   return createPortal(<div className={`panel-backdrop ${backdropClassName}`.trim()} onMouseDown={onClose}>
-    <aside ref={panelRef} className={`side-panel ${panelClassName}`.trim()} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onMouseDown={(event) => event.stopPropagation()}>
+    <div ref={panelRef} className={`side-panel ${panelClassName}`.trim()} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onMouseDown={(event) => event.stopPropagation()}>
       <button className="panel-close icon-button" type="button" onClick={onClose} aria-label={closeLabel}><CloseIcon/></button>
       {children}
-    </aside>
+    </div>
   </div>, document.body);
 }

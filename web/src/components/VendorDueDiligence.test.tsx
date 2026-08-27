@@ -31,6 +31,15 @@ function primaryActions() {
 }
 
 describe("VendorDueDiligence", () => {
+  it("offers governed form setup when no active form is available", () => {
+    const onSetUpForm = vi.fn();
+    render(<VendorDueDiligence relationship={relationship} assessment={null} onSetUpForm={onSetUpForm}/>);
+    expect(screen.getByText(/No active due-diligence form is available for this legal entity/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Set up due-diligence form" }));
+    expect(onSetUpForm).toHaveBeenCalledOnce();
+    expect(primaryActions()).toHaveLength(1);
+  });
+
   it("starts from a relationship-scoped preview with one primary action", async () => {
     const onStart = vi.fn().mockResolvedValue(assessment("SETUP_PENDING"));
     render(<VendorDueDiligence relationship={relationship} assessment={null} form={form} defaultReviewDueDate="2026-09-30" onStart={onStart}/>);

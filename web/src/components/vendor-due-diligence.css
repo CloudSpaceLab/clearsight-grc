@@ -224,6 +224,16 @@
 .vdd-state-error { border-color: color-mix(in srgb, var(--coral) 38%, var(--border)); }
 .vdd-workspace button:disabled { cursor: not-allowed; opacity: .52; }
 
+.vendor-form-readiness-sheet { width: min(600px, 100%); }
+.vendor-form-readiness-backdrop { backdrop-filter: blur(var(--overlay-blur, 5px)); }
+.vendor-form-readiness { display: grid; gap: 20px; padding: 64px 28px 32px; }
+.vendor-form-readiness h2 { margin: 8px 0 0; font-size: clamp(24px, 3vw, 34px); letter-spacing: -.025em; }
+.vendor-form-readiness header p { margin: 9px 0 0; max-width: 58ch; color: var(--muted); line-height: 1.55; }
+.vendor-form-readiness-state { display: grid; gap: 18px; padding: 18px; border: 1px solid color-mix(in srgb, var(--cyan) 24%, var(--border)); border-radius: 14px; background: color-mix(in srgb, var(--cyan) 4%, var(--surface-2)); }
+.vendor-form-readiness-state h3 { margin: 0; font-size: 16px; }
+.vendor-form-readiness-state p { margin: 7px 0 0; color: var(--muted); line-height: 1.5; }
+.vendor-form-readiness-state .primary-button { justify-self: end; }
+
 @media (max-width: 860px) {
   .vdd-scope { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .vdd-scope > div:nth-child(2) { border-right: 0; }
@@ -251,6 +261,8 @@
   .vdd-panel-actions button { width: 100%; min-height: 44px; }
   .vdd-document > div:last-child { display: grid; justify-content: stretch; }
   .vdd-review-group li { display: grid; }
+  .vendor-form-readiness { padding: 60px 18px 24px; }
+  .vendor-form-readiness-state .primary-button { width: 100%; justify-self: stretch; }
 }
 
 @media (prefers-reduced-motion: reduce) {
