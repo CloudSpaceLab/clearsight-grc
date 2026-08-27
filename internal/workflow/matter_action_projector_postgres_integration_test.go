@@ -27,6 +27,7 @@ func TestMatterActionProjectorIsIdempotentAndKeepsTaskDerived(t *testing.T) {
 
 	const (
 		tenantID  = "96666666-6666-7666-8666-666666666661"
+		entityID  = "96666666-6666-7666-8666-666666666666"
 		ownerID   = "96666666-6666-7666-8666-666666666662"
 		matterID  = "96666666-6666-7666-8666-666666666663"
 		actionID  = "96666666-6666-7666-8666-666666666664"
@@ -38,14 +39,17 @@ func TestMatterActionProjectorIsIdempotentAndKeepsTaskDerived(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'action-work-test','Action Work Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'ENTITY-A','Entity A','NG',$3)`, entityID, tenantID, occurred.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES($1::uuid,$2::uuid,'PERSON','action-owner','Action Owner')`, ownerID, tenantID); err != nil {
 		t.Fatal(err)
 	}
 	scope, _ := json.Marshal(map[string]any{"access": "RESTRICTED", "allowed_principal_ids": []string{ownerID}})
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,owner_principal_id,created_at,updated_at)
-		VALUES($1::uuid,$2::uuid,'MAT-WORK-1','CONTROL_GAP','ACTION_IN_PROGRESS',5,'Material action matter','Test actor work projection',$3::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4::uuid,$5,$5)`,
-		matterID, tenantID, string(scope), ownerID, occurred); err != nil {
+		INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,owner_principal_id,created_at,updated_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,'MAT-WORK-1','CONTROL_GAP','ACTION_IN_PROGRESS',5,'Material action matter','Test actor work projection',$4::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$5::uuid,$6,$6)`,
+		matterID, tenantID, entityID, string(scope), ownerID, occurred); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
@@ -161,6 +165,7 @@ func TestMatterActionProjectorReassignsCurrentTask(t *testing.T) {
 
 	const (
 		tenantID = "97666666-6666-7766-8766-666666666661"
+		entityID = "97666666-6666-7766-8766-666666666666"
 		oldOwner = "97666666-6666-7766-8766-666666666662"
 		newOwner = "97666666-6666-7766-8766-666666666663"
 		matterID = "97666666-6666-7766-8766-666666666664"
@@ -172,13 +177,16 @@ func TestMatterActionProjectorReassignsCurrentTask(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'action-reassignment-test','Action Reassignment Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'ENTITY-A','Entity A','NG',$3)`, entityID, tenantID, occurred.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name) VALUES
 		($1::uuid,$3::uuid,'PERSON','Previous performer'),
 		($2::uuid,$3::uuid,'PERSON','Current performer')`, oldOwner, newOwner, tenantID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,owner_principal_id,created_at,updated_at)
-		VALUES($1::uuid,$2::uuid,'MAT-REASSIGN-1','CONTROL_GAP','ACTION_IN_PROGRESS',4,'Reassign action','Test current workflow ownership','{}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$3::uuid,$4,$4)`, matterID, tenantID, oldOwner, occurred); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,owner_principal_id,created_at,updated_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,'MAT-REASSIGN-1','CONTROL_GAP','ACTION_IN_PROGRESS',4,'Reassign action','Test current workflow ownership','{}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4::uuid,$5,$5)`, matterID, tenantID, entityID, oldOwner, occurred); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `INSERT INTO matter_actions(id,tenant_id,matter_id,title,description,owner_principal_id,status,created_at,updated_at)

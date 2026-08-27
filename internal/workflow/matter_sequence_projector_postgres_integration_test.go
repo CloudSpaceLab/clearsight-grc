@@ -48,8 +48,8 @@ func TestMatterLifecycleProjectorRoutesPolicySelectedResponsibilityWithoutPredet
 	mustExecSequence(t, ctx, pool, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES
 		($1::uuid,$3::uuid,'PERSON','Independent reviewer','ACTIVE',$4),
 		($2::uuid,$3::uuid,'PERSON','Entity authorizer','ACTIVE',$4)`, reviewerID, authorizerID, tenantID, now.Add(-24*time.Hour))
-	mustExecSequence(t, ctx, pool, `INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at)
-		VALUES($1::uuid,$2::uuid,'MAT-SEQ-1','EXCEPTION','DECISION_REQUIRED',4,'Approve temporary exception','Material exception requires governed review','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$3,$3)`, matterID, tenantID, now.Add(-time.Hour))
+	mustExecSequence(t, ctx, pool, `INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,'MAT-SEQ-1','EXCEPTION','DECISION_REQUIRED',4,'Approve temporary exception','Material exception requires governed review','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4,$4)`, matterID, tenantID, entityID, now.Add(-time.Hour))
 	mustExecSequence(t, ctx, pool, `INSERT INTO matter_decisions(id,tenant_id,matter_id,decision_type,status,options,rationale,conditions,created_at,updated_at,version)
 		VALUES($1::uuid,$2::uuid,$3::uuid,'EXCEPTION_APPROVAL','PROPOSED','[]'::jsonb,'Await governed review','[]'::jsonb,$4,$4,1)`, decisionID, tenantID, matterID, now.Add(-30*time.Minute))
 
@@ -152,10 +152,10 @@ func activateSequencePolicy(t *testing.T, ctx context.Context, pool *pgxpool.Poo
 	if err != nil {
 		t.Fatal(err)
 	}
-	mustExecSequence(t, ctx, pool, `INSERT INTO routing_policies(id,tenant_id,code,name,status,current_version,approved_at,version)
-		VALUES($1::uuid,$2::uuid,$3,$3,'DRAFT',1,$4,1)`, policyID, tenantID, code, at)
-	mustExecSequence(t, ctx, pool, `INSERT INTO routing_policy_versions(id,policy_id,version,definition,checksum,effective_from,approved_at)
-		VALUES($1::uuid,$2::uuid,1,$3::jsonb,'sequence-test',$4,$4)`, versionID, policyID, string(definition), at.Add(-time.Second))
+	mustExecSequence(t, ctx, pool, `INSERT INTO routing_policies(id,tenant_id,legal_entity_id,code,name,status,current_version,approved_at,version)
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4,$4,'DRAFT',1,$5,1)`, policyID, tenantID, legalEntityRef, code, at)
+	mustExecSequence(t, ctx, pool, `INSERT INTO routing_policy_versions(id,policy_id,legal_entity_id,version,definition,checksum,effective_from,approved_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,1,$4::jsonb,'sequence-test',$5,$5)`, versionID, policyID, legalEntityRef, string(definition), at.Add(-time.Second))
 	mustExecSequence(t, ctx, pool, `UPDATE routing_policies SET status='ACTIVE' WHERE id=$1::uuid`, policyID)
 
 	var sequenceRoutes, authorityRoutes int

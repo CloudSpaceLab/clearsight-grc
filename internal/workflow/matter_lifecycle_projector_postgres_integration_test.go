@@ -53,10 +53,10 @@ func TestMatterLifecycleProjectorConvergesCurrentAuthorityAndVisibility(t *testi
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at)
+		INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at)
 		VALUES
-		($1::uuid,$3::uuid,'MAT-WORK-2','AUTHORITY_REQUEST','RESPONSE_PREPARATION',4,'Respond to authority','Await acknowledgement','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4,$4),
-		($2::uuid,$3::uuid,'MAT-WORK-EMPTY','CONTROL_GAP','DRAFT',2,'No lifecycle work','No current work','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4,$4)`, matterID, emptyMatter, tenantID, oldEventTime); err != nil {
+		($1::uuid,$3::uuid,$4::uuid,'MAT-WORK-2','AUTHORITY_REQUEST','RESPONSE_PREPARATION',4,'Respond to authority','Await acknowledgement','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$5,$5),
+		($2::uuid,$3::uuid,$4::uuid,'MAT-WORK-EMPTY','CONTROL_GAP','DRAFT',2,'No lifecycle work','No current work','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$5,$5)`, matterID, emptyMatter, tenantID, entityID, oldEventTime); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `

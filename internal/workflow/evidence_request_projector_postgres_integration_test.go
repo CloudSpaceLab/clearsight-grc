@@ -26,6 +26,7 @@ func TestEvidenceRequestProjectorConvergesRecipientVisibilityWithoutDuplicateWor
 
 	const (
 		tenantID          = "95555555-5555-7555-8555-555555555551"
+		entityID          = "95555555-5555-7555-8555-555555555558"
 		creatorID         = "95555555-5555-7555-8555-555555555552"
 		recipientA        = "95555555-5555-7555-8555-555555555553"
 		recipientB        = "95555555-5555-7555-8555-555555555554"
@@ -40,6 +41,7 @@ func TestEvidenceRequestProjectorConvergesRecipientVisibilityWithoutDuplicateWor
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 
 	mustExecEvidenceWork(t, ctx, pool, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'evidence-work-test','Evidence Work Test')`, tenantID)
+	mustExecEvidenceWork(t, ctx, pool, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'ENTITY-A','Entity A','NG',$3)`, entityID, tenantID, now.Add(-24*time.Hour))
 	mustExecEvidenceWork(t, ctx, pool, `
 		INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES
 		($1::uuid,$4::uuid,'PERSON','Requester','ACTIVE',$5),
@@ -47,27 +49,27 @@ func TestEvidenceRequestProjectorConvergesRecipientVisibilityWithoutDuplicateWor
 		($3::uuid,$4::uuid,'PERSON','Recipient B','ACTIVE',$5)`,
 		creatorID, recipientA, recipientB, tenantID, now.Add(-24*time.Hour))
 	mustExecEvidenceWork(t, ctx, pool, `
-		INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at)
-		VALUES($1::uuid,$2::uuid,'MAT-EVIDENCE-WORK','CONTROL_GAP','TRIAGE',4,'Restricted evidence matter','Recipient visibility drives work',$3::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4,$4)`,
-		matterID, tenantID, restrictedScope(recipientA), now)
+		INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,'MAT-EVIDENCE-WORK','CONTROL_GAP','TRIAGE',4,'Restricted evidence matter','Recipient visibility drives work',$4::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$5,$5)`,
+		matterID, tenantID, entityID, restrictedScope(recipientA), now)
 	mustExecEvidenceWork(t, ctx, pool, `
 		INSERT INTO capture_requests(
-			id,tenant_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
+			id,tenant_id,legal_entity_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
 			recipient_type,recipient_principal_id,recipient_state,recipient_revision,
 			estimated_minutes,deadline,known_facts,fields,status,created_by,version,created_at,updated_at
 		) VALUES(
-			$1::uuid,$2::uuid,'MATTER',$3,'Provide current evidence','Confirm the current control evidence.','You are the current respondent.','RESTRICTED','INTERNAL',
-			'INTERNAL_PRINCIPAL',$4::uuid,'ASSIGNED',1,3,$5,'{}'::jsonb,'[{"id":"confirm","label":"Confirm","type":"text","required":true}]'::jsonb,'READY',$6::uuid,1,$7,$7
-		)`, requestID, tenantID, matterID, recipientA, now.Add(2*time.Hour), creatorID, now)
+			$1::uuid,$2::uuid,$3::uuid,'MATTER',$4,'Provide current evidence','Confirm the current control evidence.','You are the current respondent.','RESTRICTED','INTERNAL',
+			'INTERNAL_PRINCIPAL',$5::uuid,'ASSIGNED',1,3,$6,'{}'::jsonb,'[{"id":"confirm","label":"Confirm","type":"text","required":true}]'::jsonb,'READY',$7::uuid,1,$8,$8
+		)`, requestID, tenantID, entityID, matterID, recipientA, now.Add(2*time.Hour), creatorID, now)
 	mustExecEvidenceWork(t, ctx, pool, `
 		INSERT INTO capture_requests(
-			id,tenant_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
+			id,tenant_id,legal_entity_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
 			recipient_type,recipient_principal_id,recipient_state,recipient_revision,
 			estimated_minutes,deadline,known_facts,fields,status,created_by,version,created_at,updated_at
 		) VALUES(
-			$1::uuid,$2::uuid,'MATTER',$3,'Historical submitted request','Already complete.','Historical.','RESTRICTED','INTERNAL',
-			'INTERNAL_PRINCIPAL',$4::uuid,'ASSIGNED',1,3,$5,'{}'::jsonb,'[{"id":"confirm","label":"Confirm","type":"text","required":true}]'::jsonb,'SUBMITTED',$6::uuid,2,$7,$7
-		)`, terminalRequestID, tenantID, matterID, recipientA, now.Add(time.Hour), creatorID, now.Add(-time.Hour))
+			$1::uuid,$2::uuid,$3::uuid,'MATTER',$4,'Historical submitted request','Already complete.','Historical.','RESTRICTED','INTERNAL',
+			'INTERNAL_PRINCIPAL',$5::uuid,'ASSIGNED',1,3,$6,'{}'::jsonb,'[{"id":"confirm","label":"Confirm","type":"text","required":true}]'::jsonb,'SUBMITTED',$7::uuid,2,$8,$8
+		)`, terminalRequestID, tenantID, entityID, matterID, recipientA, now.Add(time.Hour), creatorID, now.Add(-time.Hour))
 
 	repo := NewPostgresRepository(pool)
 	projector := &EvidenceRequestProjector{Repo: repo}

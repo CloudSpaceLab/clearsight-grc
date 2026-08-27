@@ -86,9 +86,9 @@ func TestMatterEscalationExecutesOrderedDepartmentSequenceAndCancelsOnCompletion
 
 	definition, err := json.Marshal(map[string]any{
 		"rules": []map[string]any{
-			{"id": "owner-route", "legal_entity_id": "BANK-NG", "object_type": "MATTER", "object_id": "*", "responsibility": "ACCOUNTABLE_OWNER", "decision_type": "matter.test", "priority": 100, "selector": map[string]any{"kind": "ROLE", "ref": "DEPT_OWNER"}},
-			{"id": "risk-route", "legal_entity_id": "BANK-NG", "object_type": "MATTER", "object_id": "*", "responsibility": "ESCALATION_OWNER", "decision_type": "matter.test", "priority": 90, "selector": map[string]any{"kind": "ROLE", "ref": "RISK_MANAGER"}},
-			{"id": "cro-route", "legal_entity_id": "BANK-NG", "object_type": "MATTER", "object_id": "*", "responsibility": "AUTHORIZER", "decision_type": "matter.test", "priority": 80, "selector": map[string]any{"kind": "ROLE", "ref": "CRO"}},
+			{"id": "owner-route", "legal_entity_id": entityID, "object_type": "MATTER", "object_id": "*", "responsibility": "ACCOUNTABLE_OWNER", "decision_type": "matter.test", "priority": 100, "selector": map[string]any{"kind": "ROLE", "ref": "DEPT_OWNER"}},
+			{"id": "risk-route", "legal_entity_id": entityID, "object_type": "MATTER", "object_id": "*", "responsibility": "ESCALATION_OWNER", "decision_type": "matter.test", "priority": 90, "selector": map[string]any{"kind": "ROLE", "ref": "RISK_MANAGER"}},
+			{"id": "cro-route", "legal_entity_id": entityID, "object_type": "MATTER", "object_id": "*", "responsibility": "AUTHORIZER", "decision_type": "matter.test", "priority": 80, "selector": map[string]any{"kind": "ROLE", "ref": "CRO"}},
 		},
 		"escalations": []map[string]any{{
 			"id": "overdue-matter", "trigger": "OVERDUE", "steps": []map[string]any{
@@ -102,12 +102,12 @@ func TestMatterEscalationExecutesOrderedDepartmentSequenceAndCancelsOnCompletion
 	if err != nil {
 		t.Fatal(err)
 	}
-	mustExecEscalation(t, ctx, pool, `INSERT INTO routing_policies(id,tenant_id,code,name,status,current_version,approved_at,version) VALUES($1::uuid,$2::uuid,'EIA4-ESCALATION','EIA4 escalation','DRAFT',1,$3,1)`, policyID, tenantID, now.Add(-time.Hour))
-	mustExecEscalation(t, ctx, pool, `INSERT INTO routing_policy_versions(id,policy_id,version,definition,checksum,effective_from,approved_at) VALUES($1::uuid,$2::uuid,1,$3::jsonb,'eia4',$4,$4)`, policyVersion, policyID, string(definition), now.Add(-time.Hour))
+	mustExecEscalation(t, ctx, pool, `INSERT INTO routing_policies(id,tenant_id,legal_entity_id,code,name,status,current_version,approved_at,version) VALUES($1::uuid,$2::uuid,$3::uuid,'EIA4-ESCALATION','EIA4 escalation','DRAFT',1,$4,1)`, policyID, tenantID, entityID, now.Add(-time.Hour))
+	mustExecEscalation(t, ctx, pool, `INSERT INTO routing_policy_versions(id,policy_id,legal_entity_id,version,definition,checksum,effective_from,approved_at) VALUES($1::uuid,$2::uuid,$3::uuid,1,$4::jsonb,'eia4',$5,$5)`, policyVersion, policyID, entityID, string(definition), now.Add(-time.Hour))
 	mustExecEscalation(t, ctx, pool, `UPDATE routing_policies SET status='ACTIVE' WHERE id=$1::uuid`, policyID)
 
-	mustExecEscalation(t, ctx, pool, `INSERT INTO matters(id,tenant_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,due_at,created_at,updated_at)
-		VALUES($1::uuid,$2::uuid,'MAT-EIA4-1','EXCEPTION','ASSESSMENT',4,'Escalation test','Overdue work must escalate','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$3,$4,$4)`, matterID, tenantID, now, now.Add(-time.Hour))
+	mustExecEscalation(t, ctx, pool, `INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,due_at,created_at,updated_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,'MAT-EIA4-1','EXCEPTION','ASSESSMENT',4,'Escalation test','Overdue work must escalate','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$4,$5,$5)`, matterID, tenantID, entityID, now, now.Add(-time.Hour))
 	mustExecEscalation(t, ctx, pool, `INSERT INTO workflow_instances(id,tenant_id,kind,subject_type,subject_id,state,policy_version,due_at,created_at,updated_at,version)
 		VALUES($1::uuid,$2::uuid,$3,'MATTER',$4::uuid,'ACTIVE','matter-work-v1',$5,$6,$6,1)`, workflowID, tenantID, MatterLifecycleWorkflowKind, matterID, now, now.Add(-time.Hour))
 	baseContext := map[string]string{
