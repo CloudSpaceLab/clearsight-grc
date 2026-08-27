@@ -25,16 +25,16 @@ func TestPostgresCoverageRoundTripReviewConflictAndQueue(t *testing.T) {
 	defer pool.Close()
 
 	const (
-		tenantID      = "96666666-6666-7666-8666-666666666661"
-		legalEntityID = "96666666-6666-7666-8666-666666666662"
-		principalID   = "96666666-6666-7666-8666-666666666663"
-		documentID    = "96666666-6666-7666-8666-666666666664"
-		assessmentID  = "96666666-6666-7666-8666-666666666665"
-		programID     = "96666666-6666-7666-8666-666666666666"
-		requirementID = "96666666-6666-7666-8666-666666666667"
+		tenantID      = "f2666666-6666-4666-8666-666666666661"
+		legalEntityID = "f2666666-6666-4666-8666-666666666662"
+		principalID   = "f2666666-6666-4666-8666-666666666663"
+		documentID    = "f2666666-6666-4666-8666-666666666664"
+		assessmentID  = "f2666666-6666-4666-8666-666666666665"
+		programID     = "f2666666-6666-4666-8666-666666666666"
+		requirementID = "f2666666-6666-4666-8666-666666666667"
 	)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
-	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
+	defer func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) }()
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		t.Fatal(err)

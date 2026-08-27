@@ -31,8 +31,9 @@ func TestPostgresMonitoringResultRowEventAndOutboxAreAtomicAndIdempotent(t *test
 		checkID   = "94444444-4444-7444-8444-444444444444"
 		resultID  = "94444444-4444-7444-8444-444444444445"
 	)
+	cleanupMonitoringFailureTrigger(ctx, pool)
 	cleanupMonitoringEventTenant(ctx, pool, tenantID)
-	t.Cleanup(func() { cleanupMonitoringEventTenant(context.Background(), pool, tenantID) })
+	defer func() { cleanupMonitoringEventTenant(context.Background(), pool, tenantID) }()
 	now := time.Date(2026, 8, 26, 8, 0, 0, 0, time.UTC)
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'monitoring-events-test','Monitoring Events Test');
@@ -86,12 +87,12 @@ func TestPostgresMonitoringRollsBackAuthoritativeRowWhenOutboxInsertFails(t *tes
 		programID = "95555555-5555-7555-8555-555555555553"
 		checkID   = "95555555-5555-7555-8555-555555555554"
 	)
+	cleanupMonitoringFailureTrigger(ctx, pool)
 	cleanupMonitoringEventTenant(ctx, pool, tenantID)
-	t.Cleanup(func() {
-		_, _ = pool.Exec(context.Background(), `DROP TRIGGER IF EXISTS monitoring_outbox_failure_test ON outbox_events`)
-		_, _ = pool.Exec(context.Background(), `DROP FUNCTION IF EXISTS monitoring_outbox_failure_test()`)
+	defer func() {
+		cleanupMonitoringFailureTrigger(context.Background(), pool)
 		cleanupMonitoringEventTenant(context.Background(), pool, tenantID)
-	})
+	}()
 	now := time.Date(2026, 8, 26, 9, 0, 0, 0, time.UTC)
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'monitoring-rollback-test','Monitoring Rollback Test');
@@ -123,4 +124,9 @@ func cleanupMonitoringEventTenant(ctx context.Context, pool *pgxpool.Pool, tenan
 	_, _ = pool.Exec(ctx, `DELETE FROM outbox_events WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM monitoring_events WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+}
+
+func cleanupMonitoringFailureTrigger(ctx context.Context, pool *pgxpool.Pool) {
+	_, _ = pool.Exec(ctx, `DROP TRIGGER IF EXISTS monitoring_outbox_failure_test ON outbox_events`)
+	_, _ = pool.Exec(ctx, `DROP FUNCTION IF EXISTS monitoring_outbox_failure_test()`)
 }
