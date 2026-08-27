@@ -13,10 +13,23 @@ import (
 
 var tableDDL = regexp.MustCompile(`(?i)\b(CREATE|DROP)\s+TABLE\s+(?:IF\s+(?:NOT\s+)?EXISTS\s+)?(?:public\.)?([a-z_][a-z0-9_]*)`)
 
+var allowedOwnershipClassifications = map[string]struct{}{
+	"active authoritative state":                   {},
+	"active projection":                            {},
+	"active infrastructure ledger":                 {},
+	"explicitly reserved for a named future phase": {},
+	"deprecated/migration-only":                    {},
+	"removable":                                    {},
+}
+
 func TestLiveTablesHaveExactlyOneOwnershipEntry(t *testing.T) {
 	root := repositoryRoot(t)
 	live := liveTablesFromMigrations(t, filepath.Join(root, "migrations"))
-	registered := ownershipRegister(t, filepath.Join(root, "docs", "architecture", "durable-schema-ownership.md"))
+	registered := ownershipRegisters(
+		t,
+		filepath.Join(root, "docs", "architecture", "durable-schema-ownership.md"),
+		filepath.Join(root, "docs", "architecture", "durable-schema-ownership.d"),
+	)
 
 	missing := difference(live, registered)
 	extra := difference(registered, live)
@@ -76,7 +89,27 @@ func liveTablesFromMigrations(t *testing.T, migrationDir string) map[string]stru
 	return live
 }
 
-func ownershipRegister(t *testing.T, path string) map[string]struct{} {
+func ownershipRegisters(t *testing.T, corePath, fragmentDir string) map[string]struct{} {
+	t.Helper()
+	paths := []string{corePath}
+	fragments, err := filepath.Glob(filepath.Join(fragmentDir, "*.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sort.Strings(fragments)
+	paths = append(paths, fragments...)
+
+	registered := make(map[string]struct{})
+	for _, path := range paths {
+		loadOwnershipRegister(t, path, registered)
+	}
+	if len(registered) == 0 {
+		t.Fatal("durable schema ownership register contains no table rows")
+	}
+	return registered
+}
+
+func loadOwnershipRegister(t *testing.T, path string, registered map[string]struct{}) {
 	t.Helper()
 	raw, err := os.ReadFile(path)
 	if err != nil {
@@ -91,15 +124,7 @@ func ownershipRegister(t *testing.T, path string) map[string]struct{} {
 		t.Fatalf("ownership markers are missing or out of order in %s", path)
 	}
 
-	allowed := map[string]struct{}{
-		"active authoritative state":                   {},
-		"active projection":                            {},
-		"active infrastructure ledger":                 {},
-		"explicitly reserved for a named future phase": {},
-		"deprecated/migration-only":                    {},
-		"removable":                                    {},
-	}
-	registered := make(map[string]struct{})
+	rows := 0
 	body := text[start+len(begin) : finish]
 	for _, line := range strings.Split(body, "\n") {
 		line = strings.TrimSpace(line)
@@ -108,7 +133,7 @@ func ownershipRegister(t *testing.T, path string) map[string]struct{} {
 		}
 		parts := strings.Split(line, "|")
 		if len(parts) != 10 { // leading/trailing separators plus eight cells
-			t.Fatalf("ownership row must contain eight cells: %q", line)
+			t.Fatalf("ownership row must contain eight cells in %s: %q", path, line)
 		}
 		cells := make([]string, 0, 8)
 		for _, part := range parts[1 : len(parts)-1] {
@@ -116,25 +141,25 @@ func ownershipRegister(t *testing.T, path string) map[string]struct{} {
 		}
 		name := strings.Trim(cells[0], "`")
 		if name == "" {
-			t.Fatalf("ownership row has an empty table name: %q", line)
+			t.Fatalf("ownership row has an empty table name in %s: %q", path, line)
 		}
 		if _, exists := registered[name]; exists {
-			t.Fatalf("duplicate ownership entry for table %s", name)
+			t.Fatalf("duplicate ownership entry for table %s while loading %s", name, path)
 		}
-		if _, ok := allowed[cells[1]]; !ok {
-			t.Fatalf("table %s has unsupported classification %q", name, cells[1])
+		if _, ok := allowedOwnershipClassifications[cells[1]]; !ok {
+			t.Fatalf("table %s has unsupported classification %q in %s", name, cells[1], path)
 		}
 		for index, cell := range cells[2:] {
 			if cell == "" || cell == "—" || strings.EqualFold(cell, "tbd") {
-				t.Fatalf("table %s has an incomplete ownership field at column %d", name, index+3)
+				t.Fatalf("table %s has an incomplete ownership field at column %d in %s", name, index+3, path)
 			}
 		}
 		registered[name] = struct{}{}
+		rows++
 	}
-	if len(registered) == 0 {
+	if rows == 0 {
 		t.Fatalf("ownership register contains no table rows: %s", path)
 	}
-	return registered
 }
 
 func stripSQLLineComments(sql string) string {
