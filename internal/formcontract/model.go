@@ -35,6 +35,34 @@ type Presentation struct {
 	AllowModeSwitch bool             `json:"allow_mode_switch"`
 }
 
+type ScoringMode string
+
+const (
+	ScoringNone       ScoringMode = "NONE"
+	ScoringRisk       ScoringMode = "RISK"
+	ScoringCompliance ScoringMode = "COMPLIANCE"
+)
+
+type CollectionIntent string
+
+const (
+	IntentCapture             CollectionIntent = "CAPTURE"
+	IntentConfirmOrCorrect    CollectionIntent = "CONFIRM_OR_CORRECT"
+	IntentReplaceHeldDocument CollectionIntent = "REPLACE_HELD_DOCUMENT"
+)
+
+type BrowserCachePolicy string
+
+const (
+	BrowserCacheAllowed BrowserCachePolicy = "ALLOWED"
+	BrowserCacheDenied  BrowserCachePolicy = "NO_BROWSER_CACHE"
+)
+
+type RecordTarget struct {
+	Key                 string `json:"key"`
+	RequiredSubjectType string `json:"required_subject_type"`
+}
+
 type ConditionOperator string
 
 const (
@@ -55,6 +83,7 @@ type Section struct {
 	ID        string               `json:"id"`
 	Title     string               `json:"title"`
 	Help      string               `json:"help,omitempty"`
+	Weight    int                  `json:"weight,omitempty"`
 	Condition *VisibilityCondition `json:"condition,omitempty"`
 }
 
@@ -109,22 +138,26 @@ type Scoring struct {
 }
 
 type Field struct {
-	ID              string               `json:"id"`
-	SectionID       string               `json:"section_id"`
-	Label           string               `json:"label"`
-	Type            Type                 `json:"type"`
-	Required        bool                 `json:"required"`
-	Description     string               `json:"description,omitempty"`
-	Options         []string             `json:"options,omitempty"`
-	AcceptedFormats []string             `json:"accepted_formats,omitempty"`
-	Attestation     string               `json:"attestation,omitempty"`
-	Constraints     Constraints          `json:"constraints,omitempty"`
-	Condition       *VisibilityCondition `json:"condition,omitempty"`
-	Scoring         *Scoring             `json:"scoring,omitempty"`
+	ID                 string               `json:"id"`
+	SectionID          string               `json:"section_id"`
+	Label              string               `json:"label"`
+	Type               Type                 `json:"type"`
+	Required           bool                 `json:"required"`
+	Description        string               `json:"description,omitempty"`
+	Options            []string             `json:"options,omitempty"`
+	AcceptedFormats    []string             `json:"accepted_formats,omitempty"`
+	Attestation        string               `json:"attestation,omitempty"`
+	Constraints        Constraints          `json:"constraints,omitempty"`
+	Condition          *VisibilityCondition `json:"condition,omitempty"`
+	Scoring            *Scoring             `json:"scoring,omitempty"`
+	CollectionIntent   CollectionIntent     `json:"collection_intent,omitempty"`
+	RecordTarget       *RecordTarget        `json:"record_target,omitempty"`
+	BrowserCachePolicy BrowserCachePolicy   `json:"browser_cache_policy,omitempty"`
 }
 
 type Contract struct {
 	Presentation Presentation `json:"presentation"`
+	ScoringMode  ScoringMode  `json:"scoring_mode,omitempty"`
 	Sections     []Section    `json:"sections"`
 	Fields       []Field      `json:"fields"`
 }

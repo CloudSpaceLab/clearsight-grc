@@ -17,6 +17,19 @@ func Normalize(input Contract) (Contract, error) {
 	if !slices.Contains([]PresentationMode{PresentationClassic, PresentationWizard, PresentationAutomatic}, input.Presentation.DefaultMode) {
 		return Contract{}, invalid("presentation mode is not supported")
 	}
+	input.ScoringMode = ScoringMode(strings.ToUpper(strings.TrimSpace(string(input.ScoringMode))))
+	if input.ScoringMode == "" {
+		input.ScoringMode = ScoringNone
+		for _, field := range input.Fields {
+			if field.Scoring != nil {
+				input.ScoringMode = ScoringRisk
+				break
+			}
+		}
+	}
+	if !slices.Contains([]ScoringMode{ScoringNone, ScoringRisk, ScoringCompliance}, input.ScoringMode) {
+		return Contract{}, invalid("scoring mode is not supported")
+	}
 	if len(input.Sections) == 0 {
 		input.Sections = []Section{{ID: DefaultSectionID, Title: "General"}}
 	}
@@ -33,7 +46,7 @@ func Normalize(input Contract) (Contract, error) {
 		section.ID = strings.TrimSpace(section.ID)
 		section.Title = strings.TrimSpace(section.Title)
 		section.Help = strings.TrimSpace(section.Help)
-		if section.ID == "" || section.Title == "" || len(section.ID) > maxFieldIDLength || len(section.Title) > maxSectionTitle || len(section.Help) > maxSectionHelp {
+		if section.ID == "" || section.Title == "" || len(section.ID) > maxFieldIDLength || len(section.Title) > maxSectionTitle || len(section.Help) > maxSectionHelp || section.Weight < 0 || section.Weight > 100 {
 			return Contract{}, invalid("every section requires a bounded id and title")
 		}
 		if _, exists := sectionIDs[section.ID]; exists {
@@ -71,6 +84,9 @@ func Normalize(input Contract) (Contract, error) {
 	if err := validateVisibility(&input); err != nil {
 		return Contract{}, err
 	}
+	if err := validateScoringContract(input); err != nil {
+		return Contract{}, err
+	}
 	return input, nil
 }
 
@@ -93,6 +109,35 @@ func normalizeField(field *Field) error {
 		TypeAttestation, TypeFile, TypePhoto, TypeSignature, TypeVendorDocument,
 	}, field.Type) {
 		return invalid("%s uses unsupported field type %q", field.Label, field.Type)
+	}
+	field.CollectionIntent = CollectionIntent(strings.ToUpper(strings.TrimSpace(string(field.CollectionIntent))))
+	if field.CollectionIntent == "" {
+		field.CollectionIntent = IntentCapture
+	}
+	if !slices.Contains([]CollectionIntent{IntentCapture, IntentConfirmOrCorrect, IntentReplaceHeldDocument}, field.CollectionIntent) {
+		return invalid("%s uses an unsupported collection intent", field.Label)
+	}
+	field.BrowserCachePolicy = BrowserCachePolicy(strings.ToUpper(strings.TrimSpace(string(field.BrowserCachePolicy))))
+	if field.BrowserCachePolicy == "" {
+		field.BrowserCachePolicy = BrowserCacheAllowed
+	}
+	if !slices.Contains([]BrowserCachePolicy{BrowserCacheAllowed, BrowserCacheDenied}, field.BrowserCachePolicy) {
+		return invalid("%s uses an unsupported browser cache policy", field.Label)
+	}
+	if field.RecordTarget != nil {
+		target := *field.RecordTarget
+		target.Key = strings.ToUpper(strings.TrimSpace(target.Key))
+		target.RequiredSubjectType = strings.ToUpper(strings.TrimSpace(target.RequiredSubjectType))
+		if !validRecordTargetIdentifier(target.Key, 200, true) || !validRecordTargetIdentifier(target.RequiredSubjectType, 80, false) {
+			return invalid("%s requires a bounded record target", field.Label)
+		}
+		field.RecordTarget = &target
+	}
+	if field.CollectionIntent != IntentCapture && field.RecordTarget == nil {
+		return invalid("%s requires a record target for its collection intent", field.Label)
+	}
+	if field.CollectionIntent == IntentReplaceHeldDocument && field.Type != TypeFile && field.Type != TypeVendorDocument {
+		return invalid("%s must use a document field for replacement", field.Label)
 	}
 	field.Constraints.Currency = strings.ToUpper(strings.TrimSpace(field.Constraints.Currency))
 	for index := range field.Options {
@@ -159,7 +204,7 @@ func normalizeField(field *Field) error {
 	if field.Scoring != nil {
 		field.Scoring.ID, field.Scoring.Required = field.ID, field.Required
 		if !selection || field.Scoring.Weight < 1 || field.Scoring.Weight > 100 || len(field.Scoring.AnswerScores) == 0 {
-			return invalid("%s has invalid risk scoring", field.Label)
+			return invalid("%s has invalid scoring", field.Label)
 		}
 		for answer, points := range field.Scoring.AnswerScores {
 			if !slices.Contains(field.Options, answer) || points < 0 || points > 100 {
@@ -173,6 +218,66 @@ func normalizeField(field *Field) error {
 		}
 	}
 	return nil
+}
+
+func validateScoringContract(contract Contract) error {
+	sectionFieldWeights := make(map[string]int, len(contract.Sections))
+	sectionsWithScoring := make(map[string]struct{}, len(contract.Sections))
+	for _, field := range contract.Fields {
+		if field.Scoring == nil {
+			continue
+		}
+		sectionsWithScoring[field.SectionID] = struct{}{}
+		sectionFieldWeights[field.SectionID] += field.Scoring.Weight
+	}
+
+	switch contract.ScoringMode {
+	case ScoringNone:
+		if len(sectionsWithScoring) != 0 {
+			return invalid("NONE scoring mode cannot contain scored fields")
+		}
+	case ScoringRisk:
+		for _, section := range contract.Sections {
+			if section.Weight != 0 {
+				return invalid("section weights require COMPLIANCE scoring mode")
+			}
+		}
+	case ScoringCompliance:
+		if len(sectionsWithScoring) == 0 {
+			return invalid("COMPLIANCE scoring mode requires scored fields")
+		}
+		sectionWeightTotal := 0
+		for _, section := range contract.Sections {
+			_, scored := sectionsWithScoring[section.ID]
+			if !scored {
+				if section.Weight != 0 {
+					return invalid("unscored section %s cannot have compliance weight", section.Title)
+				}
+				continue
+			}
+			if section.Weight < 1 || sectionFieldWeights[section.ID] != 100 {
+				return invalid("scored section %s and its fields must each allocate 100 percent", section.Title)
+			}
+			sectionWeightTotal += section.Weight
+		}
+		if sectionWeightTotal != 100 {
+			return invalid("compliance section weights must total 100 percent")
+		}
+	}
+	return nil
+}
+
+func validRecordTargetIdentifier(value string, maximum int, allowDot bool) bool {
+	if value == "" || len(value) > maximum || strings.HasPrefix(value, ".") || strings.HasSuffix(value, ".") || strings.Contains(value, "..") {
+		return false
+	}
+	for _, character := range value {
+		if character >= 'A' && character <= 'Z' || character >= '0' && character <= '9' || character == '_' || allowDot && character == '.' {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 func validateConstraints(field *Field) error {

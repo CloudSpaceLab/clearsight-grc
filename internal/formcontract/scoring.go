@@ -27,6 +27,15 @@ type ScoreResult struct {
 	RuleResults      []ScoreRuleResult `json:"rule_results"`
 }
 
+type ComplianceResult struct {
+	Score         *float64          `json:"score,omitempty"`
+	Coverage      float64           `json:"coverage"`
+	Final         bool              `json:"final"`
+	Denominator   int               `json:"denominator"`
+	CriticalRules []ScoreRuleResult `json:"critical_rules,omitempty"`
+	RuleResults   []ScoreRuleResult `json:"rule_results"`
+}
+
 func ScoreAnswers(fields []Scoring, answers map[string]AnswerValue) (ScoreResult, error) {
 	var weightedPoints, totalWeight, requiredScored, answeredRequired int
 	result := ScoreResult{RuleResults: make([]ScoreRuleResult, 0, len(fields))}
@@ -76,6 +85,83 @@ func ScoreAnswers(fields []Scoring, answers map[string]AnswerValue) (ScoreResult
 		return result, nil
 	}
 	score := math.Round((float64(weightedPoints)/float64(totalWeight))*100) / 100
+	result.Score = &score
+	return result, nil
+}
+
+func ScoreCompliance(contract Contract, answers map[string]AnswerValue) (ComplianceResult, error) {
+	normalized, err := Normalize(contract)
+	if err != nil {
+		return ComplianceResult{}, err
+	}
+	if normalized.ScoringMode != ScoringCompliance {
+		return ComplianceResult{}, invalid("compliance scoring requires COMPLIANCE mode")
+	}
+	visible, err := VisibleFields(normalized, answers)
+	if err != nil {
+		return ComplianceResult{}, err
+	}
+
+	fieldsBySection := make(map[string][]Field, len(normalized.Sections))
+	for _, field := range visible {
+		if field.Scoring != nil {
+			fieldsBySection[field.SectionID] = append(fieldsBySection[field.SectionID], field)
+		}
+	}
+	visibleSectionWeight := 0
+	for _, section := range normalized.Sections {
+		if len(fieldsBySection[section.ID]) != 0 {
+			visibleSectionWeight += section.Weight
+		}
+	}
+	if visibleSectionWeight == 0 {
+		return ComplianceResult{}, invalid("at least one applicable scored field is required")
+	}
+
+	result := ComplianceResult{RuleResults: make([]ScoreRuleResult, 0, len(visible))}
+	var achieved, covered float64
+	for _, section := range normalized.Sections {
+		fields := fieldsBySection[section.ID]
+		if len(fields) == 0 {
+			continue
+		}
+		fieldWeightTotal := 0
+		for _, field := range fields {
+			fieldWeightTotal += field.Scoring.Weight
+		}
+		sectionShare := float64(section.Weight) / float64(visibleSectionWeight)
+		for _, field := range fields {
+			result.Denominator++
+			fieldShare := sectionShare * float64(field.Scoring.Weight) / float64(fieldWeightTotal)
+			answer, exists := answers[field.ID]
+			text, scalar := answer.ScalarText()
+			if !exists || !scalar || text == "" {
+				result.RuleResults = append(result.RuleResults, ScoreRuleResult{FieldID: field.ID, Outcome: ScoreIndeterminate})
+				continue
+			}
+			points, configured := field.Scoring.AnswerScores[text]
+			if !configured || points < 0 || points > 100 {
+				return ComplianceResult{}, invalid("field %s answer is not an allowed scored choice", field.ID)
+			}
+			critical := slicesContains(field.Scoring.CriticalAnswers, text)
+			outcome := ScoreFailed
+			if points == 100 && !critical {
+				outcome = ScorePassed
+			}
+			rule := ScoreRuleResult{FieldID: field.ID, Outcome: outcome, Points: points, Critical: critical}
+			result.RuleResults = append(result.RuleResults, rule)
+			if critical {
+				result.CriticalRules = append(result.CriticalRules, rule)
+			}
+			covered += fieldShare
+			achieved += fieldShare * float64(points) / 100
+		}
+	}
+
+	coverage := math.Round(covered*10000) / 10000
+	score := math.Round(achieved*10000) / 100
+	result.Coverage = coverage
+	result.Final = coverage == 1
 	result.Score = &score
 	return result, nil
 }

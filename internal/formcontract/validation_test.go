@@ -175,4 +175,47 @@ func TestNormalizeAppliesSmartDefaultsAndCanonicalValues(t *testing.T) {
 	}
 }
 
+func TestNormalizeAppliesCollectionAndBrowserCacheDefaults(t *testing.T) {
+	contract, err := Normalize(Contract{Fields: []Field{{ID: "contact", Label: "Security contact", Type: TypeEmail}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	field := contract.Fields[0]
+	if contract.ScoringMode != ScoringNone || field.CollectionIntent != IntentCapture || field.BrowserCachePolicy != BrowserCacheAllowed {
+		t.Fatalf("unexpected form defaults: %#v", contract)
+	}
+}
+
+func TestNormalizeRequiresBoundedTargetsForHeldRecordIntents(t *testing.T) {
+	tests := []struct {
+		name  string
+		field Field
+	}{
+		{name: "confirmation without target", field: Field{ID: "address", Label: "Registered address", Type: TypeLongText, CollectionIntent: IntentConfirmOrCorrect}},
+		{name: "replacement without target", field: Field{ID: "certificate", Label: "Certificate", Type: TypeVendorDocument, CollectionIntent: IntentReplaceHeldDocument}},
+		{name: "replacement on scalar", field: Field{ID: "name", Label: "Legal name", Type: TypeShortText, CollectionIntent: IntentReplaceHeldDocument, RecordTarget: &RecordTarget{Key: "VENDOR.IDENTITY.LEGAL_NAME", RequiredSubjectType: "VENDOR_RELATIONSHIP"}}},
+		{name: "unsupported cache policy", field: Field{ID: "name", Label: "Legal name", Type: TypeShortText, BrowserCachePolicy: "FOREVER"}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := Normalize(Contract{Fields: []Field{test.field}}); !errors.Is(err, ErrInvalid) {
+				t.Fatalf("expected invalid field metadata, got %v", err)
+			}
+		})
+	}
+
+	normalized, err := Normalize(Contract{Fields: []Field{{
+		ID: " certificate ", Label: " Certificate ", Type: TypeVendorDocument,
+		CollectionIntent: " replace_held_document ", BrowserCachePolicy: " no_browser_cache ",
+		RecordTarget: &RecordTarget{Key: " vendor.document.certificate_of_operation ", RequiredSubjectType: " vendor_relationship "},
+	}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	field := normalized.Fields[0]
+	if field.CollectionIntent != IntentReplaceHeldDocument || field.BrowserCachePolicy != BrowserCacheDenied || field.RecordTarget.Key != "VENDOR.DOCUMENT.CERTIFICATE_OF_OPERATION" || field.RecordTarget.RequiredSubjectType != "VENDOR_RELATIONSHIP" {
+		t.Fatalf("unexpected normalized metadata: %#v", field)
+	}
+}
+
 func floatPointer(value float64) *float64 { return &value }
