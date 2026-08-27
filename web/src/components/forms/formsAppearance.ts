@@ -21,6 +21,14 @@ export function normalizeAccentColor(value?: string) {
   return defaultFormsAccent;
 }
 
+export function contrastTextForAccent(value: string) {
+  const color = normalizeAccentColor(value).slice(1);
+  const channels = [0, 2, 4].map((offset) => Number.parseInt(color.slice(offset, offset + 2), 16) / 255);
+  const [red, green, blue] = channels.map((channel) => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+  const luminance = 0.2126 * red! + 0.7152 * green! + 0.0722 * blue!;
+  return luminance > 0.45 ? "#111827" : "#FFFFFF";
+}
+
 export function normalizeLogoURL(value: string | undefined, baseURL: string) {
   const trimmed = value?.trim();
   if (!trimmed || trimmed.length > 2048) return undefined;
