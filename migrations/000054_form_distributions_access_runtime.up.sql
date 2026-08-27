@@ -1,9 +1,5 @@
 BEGIN;
 
-ALTER TABLE capture_otp_challenges
-    ADD COLUMN resends integer NOT NULL DEFAULT 0 CHECK (resends BETWEEN 0 AND 3),
-    ADD COLUMN max_resends integer NOT NULL DEFAULT 3 CHECK (max_resends BETWEEN 1 AND 3 AND resends <= max_resends);
-
 ALTER TABLE capture_distribution_recipients
     ADD CONSTRAINT capture_distribution_recipients_session_binding_key
     UNIQUE (id,tenant_id,legal_entity_id,distribution_id,request_id);
