@@ -46,6 +46,7 @@ const draftItem: FormLibraryItem = {
 
 beforeEach(() => {
   window.history.replaceState(null, "", "#forms");
+  window.localStorage.clear();
   api.loadFormTemplatePage.mockReset();
   api.loadFormTemplatePage.mockImplementation(async (query: { search?: string }) => query.search === "outsourcing" ? { items: [] } : { items: [draftItem] });
   api.loadFormTemplateRevision.mockReset();
@@ -75,15 +76,26 @@ describe("Forms workspace", () => {
     expect(reusable?.textContent).toMatch(/Active.*v1/);
   });
 
-  it("states the bounded legal-entity population when no search result matches", async () => {
+  it("offers a graphical recovery path when no search result matches", async () => {
     render(<FormsWorkspace initialSearch="outsourcing"/>);
-    expect(await screen.findByText("No form templates match ‘outsourcing’ in this legal entity.")).toBeTruthy();
-    const createButtons = screen.getAllByRole("button", { name: "Create form template" });
-    const starterButtons = screen.getAllByRole("button", { name: "Use a starter template" });
-    expect(createButtons.length).toBeGreaterThan(0);
-    expect(starterButtons.length).toBeGreaterThan(0);
-    expect(createButtons.every((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
-    expect(starterButtons.every((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
+    expect(await screen.findByText("No templates match “outsourcing”")).toBeTruthy();
+    expect(screen.getByText("No matches")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Create form template" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Browse starter templates" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Clear filters" })).toBeTruthy();
+  });
+
+  it("applies and persists safe browser-local workspace styling", async () => {
+    const view = render(<FormsWorkspace organizationName="Clear Bank" legalEntityName="Nigeria Bank" appearanceScope="entity-a"/>);
+    expect((await screen.findAllByText("Vendor due diligence")).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByText("Style workspace"));
+    fireEvent.change(screen.getByLabelText("Workspace accent color"), { target: { value: "#118844" } });
+    await waitFor(() => expect((view.container.querySelector(".forms-workspace") as HTMLElement).style.getPropertyValue("--forms-accent")).toBe("#118844"));
+
+    fireEvent.change(screen.getByLabelText("Bank or organization logo"), { target: { value: "/bank-logo.svg" } });
+    fireEvent.click(screen.getByRole("button", { name: "Apply logo" }));
+    expect(await screen.findByAltText("Clear Bank logo")).toBeTruthy();
+    expect(window.localStorage.getItem("clearsight:forms:appearance:entity-a")).toContain("bank-logo.svg");
   });
 
   it("uses the full governed builder for new templates", async () => {
