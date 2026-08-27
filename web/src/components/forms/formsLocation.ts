@@ -1,4 +1,3 @@
-import "../../forms.css";
 import type { FormTemplateQuery } from "../../formsTypes";
 import type { LifecycleStatus } from "../../monitoringTypes";
 
