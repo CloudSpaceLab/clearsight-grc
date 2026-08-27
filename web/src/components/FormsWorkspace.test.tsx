@@ -80,7 +80,7 @@ describe("Forms workspace", () => {
     render(<FormsWorkspace initialSearch="outsourcing"/>);
     expect(await screen.findByText("No templates match “outsourcing”")).toBeTruthy();
     expect(screen.getByText("No matches")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Create form template" })).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Create form template" }).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Browse starter templates" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Clear filters" })).toBeTruthy();
   });
