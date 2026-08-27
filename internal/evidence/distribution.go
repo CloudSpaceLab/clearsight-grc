@@ -123,6 +123,7 @@ type CreateDistributionInput struct {
 	Title               string
 	Purpose             string
 	AccessPolicy        AccessPolicy
+	EstimatedMinutes    int
 	Deadline            time.Time
 	RouteExpiresAt      time.Time
 	ReminderPolicy      map[string]any
