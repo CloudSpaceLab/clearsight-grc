@@ -82,7 +82,7 @@ describe("FormBuilder", () => {
     fireEvent.click(screen.getByRole("button", { name: "Duplicate Questions" }));
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() => expect(createFormTemplate).toHaveBeenCalledTimes(1));
-    const input = vi.mocked(createFormTemplate).mock.calls[0]?.[1];
+    const input = vi.mocked(createFormTemplate).mock.calls[0]![1];
     expect(input.sections.map((section) => section.id)).toEqual(["section_1", "section_2"]);
     expect(input.fields.map((field) => field.id)).toEqual(["question_1", "question_2", "question_3", "question_4"]);
     expect(input.fields[3]?.condition?.field_id).toBe("question_3");
@@ -117,7 +117,7 @@ describe("FormBuilder", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Insert section" }));
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() => expect(createFormTemplate).toHaveBeenCalledTimes(1));
-    const input = vi.mocked(createFormTemplate).mock.calls[0]?.[1];
+    const input = vi.mocked(createFormTemplate).mock.calls[0]![1];
     expect(input.sections[1]).toMatchObject({ id: "section_2", title: "Security" });
     expect(input.fields[1]).toMatchObject({ id: "question_2", section_id: "section_2", label: "Is MFA required?" });
     expect(input.fields[2]?.condition?.field_id).toBe("question_2");
