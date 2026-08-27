@@ -87,12 +87,17 @@ export function FormPropertyPanel(props: Props) {
 
     <fieldset className="question-list">
       <legend>Questions</legend>
-      {props.fields.map((field, index) => <FormFieldPropertyEditor
-        key={field.id} field={field} index={index} scoringMode={props.scoringMode} sections={props.sections} earlierFields={props.fields.slice(0, index)}
-        onChange={(change) => props.onFieldChange(index, change)} onTypeChange={(type) => props.onFieldTypeChange(index, type)}
-        onConstraint={(key, value) => props.onFieldConstraint(index, key, value)} onScoringToggle={(enabled) => props.onFieldScoringToggle(index, enabled)}
-        onMove={(offset) => props.onMoveField(index, offset)} onRemove={() => props.onRemoveField(index)} removable={props.fields.length > 1} first={index === 0} last={index === props.fields.length - 1}
-      />)}
+      {props.fields.map((field, index) => {
+        const sectionPeers = props.fields.filter((candidate) => candidate.section_id === field.section_id);
+        const sectionPosition = sectionPeers.findIndex((candidate) => candidate.id === field.id);
+        return <FormFieldPropertyEditor
+          key={field.id} field={field} index={index} scoringMode={props.scoringMode} sections={props.sections} earlierFields={props.fields.slice(0, index)}
+          onChange={(change) => props.onFieldChange(index, change)} onTypeChange={(type) => props.onFieldTypeChange(index, type)}
+          onConstraint={(key, value) => props.onFieldConstraint(index, key, value)} onScoringToggle={(enabled) => props.onFieldScoringToggle(index, enabled)}
+          onMove={(offset) => props.onMoveField(index, offset)} onRemove={() => props.onRemoveField(index)} removable={props.fields.length > 1}
+          first={sectionPosition <= 0} last={sectionPosition === sectionPeers.length - 1}
+        />;
+      })}
       <div className="builder-add-actions"><button className="secondary-button" type="button" disabled={props.fields.length >= 200} onClick={() => props.onAddField("short_text")}>Add question</button><button className="secondary-button" type="button" disabled={props.fields.length >= 200} onClick={() => props.onAddField("yes_no")}>Add Yes/No question</button></div>
     </fieldset>
   </div>;
