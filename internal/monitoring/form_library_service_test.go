@@ -65,6 +65,18 @@ func validLibraryFormInput() CreateFormInput {
 	}
 }
 
+func partialComplianceLibraryFormInput() CreateFormInput {
+	input := validLibraryFormInput()
+	input.ScoringMode = formcontract.ScoringCompliance
+	input.Sections[0].Weight = 80
+	input.Fields[0].Type = formcontract.TypeYesNo
+	input.Fields[0].Scoring = &formcontract.Scoring{
+		Weight:       80,
+		AnswerScores: map[string]int{"Yes": 100, "No": 0},
+	}
+	return input
+}
+
 func TestCreateLibraryFormUsesVerifiedIdentity(t *testing.T) {
 	repo := NewMemoryRepository()
 	service := libraryService(t, repo, "maker-a")
@@ -112,6 +124,46 @@ func TestCreateFormRevisionPinsExpectedVersionAndScope(t *testing.T) {
 	}
 	if _, err := service.CreateFormRevision(ctx, created.ID, CreateFormRevisionInput{ExpectedVersion: 1, Form: input}); !errors.Is(err, ErrConflict) {
 		t.Fatalf("stale revision error = %v, want conflict", err)
+	}
+}
+
+func TestLibraryFormAllowsPartialComplianceDraftButBlocksApproval(t *testing.T) {
+	repo := NewMemoryRepository()
+	service := libraryService(t, repo, "maker-a")
+	service.newID = func() (string, error) { return "form-a", nil }
+	ctx := formActorContext("bank-a", "entity-a", "maker-a")
+
+	draft, err := service.CreateLibraryForm(ctx, partialComplianceLibraryFormInput())
+	if err != nil {
+		t.Fatalf("partial compliance draft was rejected: %v", err)
+	}
+	if draft.Status != LifecycleDraft || draft.Version != 1 {
+		t.Fatalf("draft = %#v", draft)
+	}
+	if _, err := service.TransitionLibraryForm(ctx, draft.ID, TransitionInput{ExpectedVersion: draft.Version, To: LifecyclePendingApproval}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("incomplete compliance draft approval error = %v, want invalid", err)
+	}
+	stored, err := service.GetLibraryForm(ctx, draft.ID, draft.Version)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Status != LifecycleDraft || stored.Version != draft.Version {
+		t.Fatalf("rejected approval mutated draft: %#v", stored)
+	}
+
+	complete := partialComplianceLibraryFormInput()
+	complete.Sections[0].Weight = 100
+	complete.Fields[0].Scoring.Weight = 100
+	revised, err := service.CreateFormRevision(ctx, draft.ID, CreateFormRevisionInput{ExpectedVersion: draft.Version, Form: complete})
+	if err != nil {
+		t.Fatalf("complete compliance revision failed: %v", err)
+	}
+	pending, err := service.TransitionLibraryForm(ctx, revised.ID, TransitionInput{ExpectedVersion: revised.Version, To: LifecyclePendingApproval})
+	if err != nil {
+		t.Fatalf("complete compliance revision could not enter approval: %v", err)
+	}
+	if pending.Status != LifecyclePendingApproval {
+		t.Fatalf("pending = %#v", pending)
 	}
 }
 
