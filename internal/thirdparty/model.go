@@ -44,19 +44,20 @@ type Actor struct {
 }
 
 type Vendor struct {
-	ID              string        `json:"id"`
-	TenantID        string        `json:"tenant_id"`
-	LegalName       string        `json:"legal_name"`
-	TradingName     string        `json:"trading_name,omitempty"`
-	RegistrationRef string        `json:"registration_ref,omitempty"`
-	Jurisdiction    string        `json:"jurisdiction,omitempty"`
-	SourceID        string        `json:"source_id,omitempty"`
-	ExternalRef     string        `json:"external_ref,omitempty"`
-	WebsiteDomain   WebsiteDomain `json:"website_domain,omitempty"`
-	Status          VendorStatus  `json:"status"`
-	CreatedAt       time.Time     `json:"created_at"`
-	UpdatedAt       time.Time     `json:"updated_at"`
-	Version         int64         `json:"version"`
+	ID                string        `json:"id"`
+	TenantID          string        `json:"tenant_id"`
+	LegalName         string        `json:"legal_name"`
+	TradingName       string        `json:"trading_name,omitempty"`
+	RegistrationRef   string        `json:"registration_ref,omitempty"`
+	Jurisdiction      string        `json:"jurisdiction,omitempty"`
+	SourceID          string        `json:"source_id,omitempty"`
+	ExternalRef       string        `json:"external_ref,omitempty"`
+	RegisteredAddress string        `json:"registered_address,omitempty"`
+	WebsiteDomain     WebsiteDomain `json:"website_domain,omitempty"`
+	Status            VendorStatus  `json:"status"`
+	CreatedAt         time.Time     `json:"created_at"`
+	UpdatedAt         time.Time     `json:"updated_at"`
+	Version           int64         `json:"version"`
 }
 
 type Relationship struct {
@@ -92,6 +93,7 @@ type CreateRelationshipInput struct {
 	Jurisdiction           string      `json:"jurisdiction,omitempty"`
 	SourceID               string      `json:"source_id,omitempty"`
 	ExternalRef            string      `json:"external_ref,omitempty"`
+	RegisteredAddress      string      `json:"registered_address,omitempty"`
 	WebsiteDomain          string      `json:"website_domain,omitempty"`
 	ServiceName            string      `json:"service_name"`
 	Criticality            Criticality `json:"criticality"`
@@ -149,12 +151,13 @@ type UpdateRecord struct {
 }
 
 type UpdateVendorIdentityInput struct {
-	ExpectedVersion int64  `json:"expected_version"`
-	LegalName       string `json:"legal_name"`
-	TradingName     string `json:"trading_name,omitempty"`
-	RegistrationRef string `json:"registration_ref,omitempty"`
-	Jurisdiction    string `json:"jurisdiction,omitempty"`
-	WebsiteDomain   string `json:"website_domain,omitempty"`
+	ExpectedVersion   int64  `json:"expected_version"`
+	LegalName         string `json:"legal_name"`
+	TradingName       string `json:"trading_name,omitempty"`
+	RegistrationRef   string `json:"registration_ref,omitempty"`
+	Jurisdiction      string `json:"jurisdiction,omitempty"`
+	RegisteredAddress string `json:"registered_address,omitempty"`
+	WebsiteDomain     string `json:"website_domain,omitempty"`
 }
 
 type UpdateVendorIdentityRecord struct {

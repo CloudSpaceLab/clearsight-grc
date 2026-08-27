@@ -369,7 +369,7 @@ func (r *MemoryRepository) appendVendorIdentityAudit(vendor Vendor, actorID, eve
 		TenantID: vendor.TenantID, VendorID: vendor.ID, VendorVersion: vendor.Version,
 		ActorPrincipalID: actorID, EventType: eventType,
 		LegalName: vendor.LegalName, TradingName: vendor.TradingName, RegistrationRef: vendor.RegistrationRef,
-		Jurisdiction: vendor.Jurisdiction, WebsiteDomain: vendor.WebsiteDomain, Status: vendor.Status, OccurredAt: vendor.UpdatedAt,
+		Jurisdiction: vendor.Jurisdiction, RegisteredAddress: vendor.RegisteredAddress, WebsiteDomain: vendor.WebsiteDomain, Status: vendor.Status, OccurredAt: vendor.UpdatedAt,
 	}
 	r.vendorIdentityEvents = append(r.vendorIdentityEvents, event)
 	r.vendorIdentityOutbox = append(r.vendorIdentityOutbox, event)

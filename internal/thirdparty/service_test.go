@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -261,7 +262,8 @@ func TestCreateRelationshipWithWebsiteSchedulesBrandDiscoveryAtomically(t *testi
 		return value, nil
 	}
 	input := validCreateInput()
-	input.WebsiteDomain = "Vendor.Example"
+	input.WebsiteDomain = "https://Vendor.Example/about?source=procurement#company"
+	input.RegisteredAddress = "  1 Marina Road\r\nLagos, Nigeria  "
 
 	created, err := service.CreateRelationship(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "owner"}, input)
 	if err != nil {
@@ -269,6 +271,9 @@ func TestCreateRelationshipWithWebsiteSchedulesBrandDiscoveryAtomically(t *testi
 	}
 	if created.Vendor.WebsiteDomain != "vendor.example" {
 		t.Fatalf("website domain = %q", created.Vendor.WebsiteDomain)
+	}
+	if created.Vendor.RegisteredAddress != "1 Marina Road\nLagos, Nigeria" {
+		t.Fatalf("registered address = %q", created.Vendor.RegisteredAddress)
 	}
 	job, err := repo.GetVendorBrandJob(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity"}, created.Vendor.ID)
 	if err != nil {
@@ -282,6 +287,32 @@ func TestCreateRelationshipWithWebsiteSchedulesBrandDiscoveryAtomically(t *testi
 	}
 	if repo.vendorIdentityEvents[0].EventType != VendorIdentityCreatedEvent || repo.vendorIdentityEvents[0].ActorPrincipalID != "owner" {
 		t.Fatalf("identity event = %#v", repo.vendorIdentityEvents[0])
+	}
+	if repo.vendorIdentityEvents[0].RegisteredAddress != created.Vendor.RegisteredAddress {
+		t.Fatalf("identity event address = %q", repo.vendorIdentityEvents[0].RegisteredAddress)
+	}
+}
+
+func TestCreateRelationshipRejectsUnsafeWebsiteURLsAndOversizedAddress(t *testing.T) {
+	service := NewService(NewMemoryRepository())
+	actor := Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "owner"}
+	for _, website := range []string{
+		"http://vendor.example",
+		"https://user:secret@vendor.example",
+		"https://127.0.0.1",
+		"https://vendor.example:8443",
+		"https://vendor..example",
+	} {
+		input := validCreateInput()
+		input.WebsiteDomain = website
+		if _, err := service.CreateRelationship(context.Background(), actor, input); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("website %q error=%v, want invalid", website, err)
+		}
+	}
+	input := validCreateInput()
+	input.RegisteredAddress = strings.Repeat("a", 2001)
+	if _, err := service.CreateRelationship(context.Background(), actor, input); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("oversized address error=%v, want invalid", err)
 	}
 }
 
@@ -347,18 +378,22 @@ func TestUpdateVendorIdentityUsesVerifiedAuthorityAndExpectedVersion(t *testing.
 	ctx := vendorIdentityContext("bank", "entity", "verified-owner", service.now())
 
 	updated, err := service.UpdateVendorIdentity(ctx, Actor{TenantID: "other", LegalEntityID: "other", PrincipalID: "body-actor"}, created.Vendor.ID, UpdateVendorIdentityInput{
-		ExpectedVersion: created.Vendor.Version,
-		LegalName:       "Acme Payments Limited",
-		TradingName:     "Acme Payments",
-		RegistrationRef: "RC-20002",
-		Jurisdiction:    "Ghana",
-		WebsiteDomain:   "BÜCHER.Example",
+		ExpectedVersion:   created.Vendor.Version,
+		LegalName:         "Acme Payments Limited",
+		TradingName:       "Acme Payments",
+		RegistrationRef:   "RC-20002",
+		Jurisdiction:      "Ghana",
+		WebsiteDomain:     "https://BÜCHER.Example/company",
+		RegisteredAddress: "20 Independence Avenue\r\nAccra, Ghana",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if updated.Version != created.Vendor.Version+1 || updated.WebsiteDomain != "xn--bcher-kva.example" {
 		t.Fatalf("updated vendor = %#v", updated)
+	}
+	if updated.RegisteredAddress != "20 Independence Avenue\nAccra, Ghana" {
+		t.Fatalf("updated address = %q", updated.RegisteredAddress)
 	}
 	if len(guard.requests) != 1 || guard.requests[0].TenantID != "bank" || guard.requests[0].LegalEntityID != "entity" || guard.requests[0].ObjectID != created.Vendor.ID || guard.requests[0].DecisionType != VendorIdentityUpdateCommand {
 		t.Fatalf("authority request = %#v", guard.requests)
@@ -367,7 +402,7 @@ func TestUpdateVendorIdentityUsesVerifiedAuthorityAndExpectedVersion(t *testing.
 		t.Fatalf("event actor = %q", got)
 	}
 	updatedEvent := repo.vendorIdentityEvents[len(repo.vendorIdentityEvents)-1]
-	if updatedEvent.VendorVersion != updated.Version || updatedEvent.LegalName != updated.LegalName || updatedEvent.TradingName != updated.TradingName || updatedEvent.RegistrationRef != updated.RegistrationRef || updatedEvent.Jurisdiction != updated.Jurisdiction || updatedEvent.WebsiteDomain != updated.WebsiteDomain || updatedEvent.Status != updated.Status {
+	if updatedEvent.VendorVersion != updated.Version || updatedEvent.LegalName != updated.LegalName || updatedEvent.TradingName != updated.TradingName || updatedEvent.RegistrationRef != updated.RegistrationRef || updatedEvent.Jurisdiction != updated.Jurisdiction || updatedEvent.RegisteredAddress != updated.RegisteredAddress || updatedEvent.WebsiteDomain != updated.WebsiteDomain || updatedEvent.Status != updated.Status {
 		t.Fatalf("updated identity event cannot reconstruct vendor: event=%#v vendor=%#v", updatedEvent, updated)
 	}
 	updatedOutbox := repo.vendorIdentityOutbox[len(repo.vendorIdentityOutbox)-1]

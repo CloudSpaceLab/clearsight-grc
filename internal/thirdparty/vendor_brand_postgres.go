@@ -85,7 +85,7 @@ func decodeVendorBrandAssetJSON(raw []byte) (*VendorBrandAsset, error) {
 
 const vendorProjection = `
 	p.id::text,t.slug,p.legal_name,p.trading_name,p.registration_ref,p.jurisdiction,p.source_id,p.external_ref,
-	COALESCE(p.website_domain,''),p.status,p.created_at,p.updated_at,p.version`
+	COALESCE(p.registered_address,''),COALESCE(p.website_domain,''),p.status,p.created_at,p.updated_at,p.version`
 
 const vendorBrandJobProjection = `
 	j.id::text,t.slug,j.vendor_id::text,j.vendor_version,j.job_type,j.website_domain,j.state,j.attempts,j.available_at,
@@ -148,10 +148,10 @@ func (r *PostgresRepository) UpdateVendorIdentity(ctx context.Context, record Up
 	updated.Status, updated.CreatedAt = current.Status, current.CreatedAt
 	err = tx.QueryRow(ctx, `
 		UPDATE third_parties
-		SET legal_name=$3,trading_name=$4,registration_ref=$5,jurisdiction=$6,website_domain=NULLIF($7,''),updated_at=$8,version=version+1
-		WHERE tenant_id=$1::uuid AND id=$2::uuid AND version=$9
+		SET legal_name=$3,trading_name=$4,registration_ref=$5,jurisdiction=$6,registered_address=NULLIF($7,''),website_domain=NULLIF($8,''),updated_at=$9,version=version+1
+		WHERE tenant_id=$1::uuid AND id=$2::uuid AND version=$10
 		RETURNING version`, tenantID, current.ID, updated.LegalName, updated.TradingName, updated.RegistrationRef,
-		updated.Jurisdiction, updated.WebsiteDomain, updated.UpdatedAt, record.ExpectedVersion).Scan(&updated.Version)
+		updated.Jurisdiction, updated.RegisteredAddress, updated.WebsiteDomain, updated.UpdatedAt, record.ExpectedVersion).Scan(&updated.Version)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Vendor{}, ErrVersionConflict
 	}
@@ -188,13 +188,13 @@ func (r *PostgresRepository) vendorIdentityMutationRecorded(ctx context.Context,
 	var confirmed bool
 	err := r.pool.QueryRow(ctx, `SELECT EXISTS(
 		SELECT 1 FROM third_parties p JOIN tenants t ON t.id=p.tenant_id
-		JOIN third_party_events e ON e.tenant_id=p.tenant_id AND e.aggregate_type='VENDOR' AND e.aggregate_id=p.id AND e.aggregate_version=p.version AND e.event_type=$11 AND e.actor_principal_id::text=$12
-		JOIN outbox_events o ON o.tenant_id=p.tenant_id AND o.aggregate_type='VENDOR' AND o.aggregate_id=p.id AND o.event_type=$11 AND o.payload->>'version'=$10::text
+		JOIN third_party_events e ON e.tenant_id=p.tenant_id AND e.aggregate_type='VENDOR' AND e.aggregate_id=p.id AND e.aggregate_version=p.version AND e.event_type=$12 AND e.actor_principal_id::text=$13
+		JOIN outbox_events o ON o.tenant_id=p.tenant_id AND o.aggregate_type='VENDOR' AND o.aggregate_id=p.id AND o.event_type=$12 AND o.payload->>'version'=$11::text
 		WHERE (t.id::text=$1 OR t.slug=$1) AND p.id::text=$2 AND p.legal_name=$3 AND COALESCE(p.trading_name,'')=$4 AND COALESCE(p.registration_ref,'')=$5
-		  AND COALESCE(p.jurisdiction,'')=$6 AND COALESCE(p.website_domain,'')=$7 AND p.status=$8 AND p.updated_at=$9 AND p.version=$10
-		  AND e.payload->>'legal_name'=$3 AND e.payload->>'trading_name'=$4 AND e.payload->>'registration_ref'=$5 AND e.payload->>'jurisdiction'=$6 AND e.payload->>'website_domain'=$7 AND e.payload->>'status'=$8
-		  AND o.payload->>'legal_name'=$3 AND o.payload->>'trading_name'=$4 AND o.payload->>'registration_ref'=$5 AND o.payload->>'jurisdiction'=$6 AND o.payload->>'website_domain'=$7 AND o.payload->>'status'=$8
-	)`, vendor.TenantID, vendor.ID, vendor.LegalName, vendor.TradingName, vendor.RegistrationRef, vendor.Jurisdiction, vendor.WebsiteDomain, vendor.Status, vendor.UpdatedAt, vendor.Version, VendorIdentityUpdatedEvent, actorID).Scan(&confirmed)
+		  AND COALESCE(p.jurisdiction,'')=$6 AND COALESCE(p.registered_address,'')=$7 AND COALESCE(p.website_domain,'')=$8 AND p.status=$9 AND p.updated_at=$10 AND p.version=$11
+		  AND e.payload->>'legal_name'=$3 AND e.payload->>'trading_name'=$4 AND e.payload->>'registration_ref'=$5 AND e.payload->>'jurisdiction'=$6 AND e.payload->>'registered_address'=$7 AND e.payload->>'website_domain'=$8 AND e.payload->>'status'=$9
+		  AND o.payload->>'legal_name'=$3 AND o.payload->>'trading_name'=$4 AND o.payload->>'registration_ref'=$5 AND o.payload->>'jurisdiction'=$6 AND o.payload->>'registered_address'=$7 AND o.payload->>'website_domain'=$8 AND o.payload->>'status'=$9
+	)`, vendor.TenantID, vendor.ID, vendor.LegalName, vendor.TradingName, vendor.RegistrationRef, vendor.Jurisdiction, vendor.RegisteredAddress, vendor.WebsiteDomain, vendor.Status, vendor.UpdatedAt, vendor.Version, VendorIdentityUpdatedEvent, actorID).Scan(&confirmed)
 	return confirmed, err
 }
 
@@ -280,10 +280,10 @@ func appendVendorIdentityEvent(ctx context.Context, tx pgx.Tx, tenantID string, 
 		VALUES($1::uuid,'VENDOR',$2::uuid,$3,$4::uuid,$5,
 			jsonb_build_object(
 				'legal_name',$6::text,'trading_name',$7::text,'registration_ref',$8::text,
-				'jurisdiction',$9::text,'website_domain',$10::text,'status',$11::text
-			),$12)`,
+				'jurisdiction',$9::text,'registered_address',$10::text,'website_domain',$11::text,'status',$12::text
+			),$13)`,
 		tenantID, vendor.ID, vendor.Version, actorID, eventType, vendor.LegalName, vendor.TradingName,
-		vendor.RegistrationRef, vendor.Jurisdiction, vendor.WebsiteDomain, vendor.Status, vendor.UpdatedAt)
+		vendor.RegistrationRef, vendor.Jurisdiction, vendor.RegisteredAddress, vendor.WebsiteDomain, vendor.Status, vendor.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("append vendor identity event: %w", err)
 	}
@@ -292,10 +292,10 @@ func appendVendorIdentityEvent(ctx context.Context, tx pgx.Tx, tenantID string, 
 		VALUES($1::uuid,'VENDOR',$2::uuid,$3,
 			jsonb_build_object(
 				'version',$4::bigint,'legal_name',$5::text,'trading_name',$6::text,'registration_ref',$7::text,
-				'jurisdiction',$8::text,'website_domain',$9::text,'status',$10::text
-			),$11,$11)`,
+				'jurisdiction',$8::text,'registered_address',$9::text,'website_domain',$10::text,'status',$11::text
+			),$12,$12)`,
 		tenantID, vendor.ID, eventType, vendor.Version, vendor.LegalName, vendor.TradingName,
-		vendor.RegistrationRef, vendor.Jurisdiction, vendor.WebsiteDomain, vendor.Status, vendor.UpdatedAt)
+		vendor.RegistrationRef, vendor.Jurisdiction, vendor.RegisteredAddress, vendor.WebsiteDomain, vendor.Status, vendor.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("append vendor identity outbox event: %w", err)
 	}
@@ -306,7 +306,7 @@ func scanVendor(row rowScanner) (Vendor, error) {
 	var value Vendor
 	err := row.Scan(
 		&value.ID, &value.TenantID, &value.LegalName, &value.TradingName, &value.RegistrationRef, &value.Jurisdiction,
-		&value.SourceID, &value.ExternalRef, &value.WebsiteDomain, &value.Status, &value.CreatedAt, &value.UpdatedAt, &value.Version,
+		&value.SourceID, &value.ExternalRef, &value.RegisteredAddress, &value.WebsiteDomain, &value.Status, &value.CreatedAt, &value.UpdatedAt, &value.Version,
 	)
 	return value, err
 }

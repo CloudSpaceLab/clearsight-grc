@@ -188,18 +188,19 @@ type VendorBrandJob struct {
 }
 
 type VendorIdentityEvent struct {
-	TenantID         string
-	VendorID         string
-	VendorVersion    int64
-	ActorPrincipalID string
-	EventType        string
-	LegalName        string
-	TradingName      string
-	RegistrationRef  string
-	Jurisdiction     string
-	WebsiteDomain    WebsiteDomain
-	Status           VendorStatus
-	OccurredAt       time.Time
+	TenantID          string
+	VendorID          string
+	VendorVersion     int64
+	ActorPrincipalID  string
+	EventType         string
+	LegalName         string
+	TradingName       string
+	RegistrationRef   string
+	Jurisdiction      string
+	RegisteredAddress string
+	WebsiteDomain     WebsiteDomain
+	Status            VendorStatus
+	OccurredAt        time.Time
 }
 
 // NormalizeWebsiteDomain converts an internationalized DNS hostname to its

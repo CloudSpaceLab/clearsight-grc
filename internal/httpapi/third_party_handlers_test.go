@@ -24,7 +24,7 @@ func thirdPartyTestHandler() http.Handler {
 
 func TestCreateVendorRelationshipUsesVerifiedOwnerAndScope(t *testing.T) {
 	handler := thirdPartyTestHandler()
-	body := []byte(`{"legal_name":"Acme Processing Limited","service_name":"Card transaction processing","criticality":"IMPORTANT","privacy_role":"PROCESSOR","tenant_id":"bank","legal_entity_id":"entity-a","actor_id":"verified-owner"}`)
+	body := []byte(`{"legal_name":"Acme Processing Limited","website_domain":"https://acme.example/about","registered_address":"1 Marina Road\nLagos, Nigeria","service_name":"Card transaction processing","criticality":"IMPORTANT","privacy_role":"PROCESSOR","tenant_id":"bank","legal_entity_id":"entity-a","actor_id":"verified-owner"}`)
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendors", bytes.NewReader(body)))
 	if response.Code != http.StatusCreated {
@@ -36,6 +36,9 @@ func TestCreateVendorRelationshipUsesVerifiedOwnerAndScope(t *testing.T) {
 	}
 	if value.Relationship.TenantID != "bank" || value.Relationship.LegalEntityID != "entity-a" || value.Relationship.BusinessOwnerPrincipalID != "verified-owner" {
 		t.Fatalf("command was not bound to verified identity: %#v", value.Relationship)
+	}
+	if value.Vendor.WebsiteDomain != "acme.example" || value.Vendor.RegisteredAddress != "1 Marina Road\nLagos, Nigeria" {
+		t.Fatalf("vendor identity fields were not stored: %#v", value.Vendor)
 	}
 }
 

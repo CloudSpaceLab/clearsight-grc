@@ -102,7 +102,7 @@ func TestVendorIdentityPostgresEventsCarryReconstructableSafeState(t *testing.T)
 		t.Fatal("vendor identity event writer not found")
 	}
 	source = source[start : start+end]
-	for _, required := range []string{"'legal_name'", "'trading_name'", "'registration_ref'", "'jurisdiction'", "'website_domain'", "'status'"} {
+	for _, required := range []string{"'legal_name'", "'trading_name'", "'registration_ref'", "'jurisdiction'", "'registered_address'", "'website_domain'", "'status'"} {
 		if got := strings.Count(source, required); got != 2 {
 			t.Fatalf("vendor identity event/outbox payload field %s count = %d, want one in each payload", required, got)
 		}
@@ -110,6 +110,31 @@ func TestVendorIdentityPostgresEventsCarryReconstructableSafeState(t *testing.T)
 	for _, prohibited := range []string{"'source_id'", "'external_ref'"} {
 		if strings.Contains(source, prohibited) {
 			t.Fatalf("vendor identity event/outbox payload includes unnecessary field %s", prohibited)
+		}
+	}
+}
+
+func TestVendorRegisteredAddressMigrationIsAdditiveAndBounded(t *testing.T) {
+	t.Parallel()
+	up, err := os.ReadFile("../../migrations/000051_vendor_registered_address.up.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	down, err := os.ReadFile("../../migrations/000051_vendor_registered_address.down.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"ALTER TABLE third_parties", "ADD COLUMN registered_address text", "char_length(registered_address) <= 2000"} {
+		if !strings.Contains(string(up), required) {
+			t.Fatalf("registered-address migration missing %q", required)
+		}
+	}
+	if !strings.Contains(string(down), "DROP COLUMN IF EXISTS registered_address") {
+		t.Fatal("registered-address rollback does not remove only its additive column")
+	}
+	for _, prohibited := range []string{"DROP TABLE", "DELETE FROM", "TRUNCATE"} {
+		if strings.Contains(string(down), prohibited) {
+			t.Fatalf("registered-address rollback is destructive with %q", prohibited)
 		}
 	}
 }

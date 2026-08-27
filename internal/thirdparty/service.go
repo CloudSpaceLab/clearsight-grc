@@ -3,8 +3,10 @@ package thirdparty
 import (
 	"context"
 	"errors"
+	"net/url"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
@@ -51,6 +53,10 @@ func (s *Service) CreateRelationship(ctx context.Context, actor Actor, input Cre
 	input.ExistingRelationshipID = strings.TrimSpace(input.ExistingRelationshipID)
 	input.LegalName = strings.TrimSpace(input.LegalName)
 	input.ServiceName = strings.TrimSpace(input.ServiceName)
+	registeredAddress, err := normalizeRegisteredAddress(input.RegisteredAddress)
+	if err != nil {
+		return Aggregate{}, err
+	}
 	websiteDomain, err := normalizeOptionalWebsiteDomain(input.WebsiteDomain)
 	if err != nil {
 		return Aggregate{}, err
@@ -77,7 +83,7 @@ func (s *Service) CreateRelationship(ctx context.Context, actor Actor, input Cre
 			TradingName: strings.TrimSpace(input.TradingName), RegistrationRef: strings.TrimSpace(input.RegistrationRef),
 			Jurisdiction: strings.TrimSpace(input.Jurisdiction), SourceID: strings.TrimSpace(input.SourceID),
 			ExternalRef: strings.TrimSpace(input.ExternalRef), Status: VendorActive, CreatedAt: now, UpdatedAt: now, Version: 1,
-			WebsiteDomain: websiteDomain,
+			RegisteredAddress: registeredAddress, WebsiteDomain: websiteDomain,
 		}
 	}
 	relationshipID, err := s.newID()
@@ -120,8 +126,9 @@ func (s *Service) UpdateVendorIdentity(ctx context.Context, _ Actor, vendorID st
 	input.TradingName = strings.TrimSpace(input.TradingName)
 	input.RegistrationRef = strings.TrimSpace(input.RegistrationRef)
 	input.Jurisdiction = strings.TrimSpace(input.Jurisdiction)
+	registeredAddress, addressErr := normalizeRegisteredAddress(input.RegisteredAddress)
 	websiteDomain, err := normalizeOptionalWebsiteDomain(input.WebsiteDomain)
-	if err != nil || vendorID == "" || input.ExpectedVersion < 1 || input.LegalName == "" {
+	if addressErr != nil || err != nil || vendorID == "" || input.ExpectedVersion < 1 || input.LegalName == "" {
 		return Vendor{}, ErrInvalid
 	}
 	actor, err := s.authorizeVendorIdentity(ctx, vendorID)
@@ -135,7 +142,7 @@ func (s *Service) UpdateVendorIdentity(ctx context.Context, _ Actor, vendorID st
 	if current.Version != input.ExpectedVersion {
 		return Vendor{}, ErrVersionConflict
 	}
-	if current.LegalName == input.LegalName && current.TradingName == input.TradingName && current.RegistrationRef == input.RegistrationRef && current.Jurisdiction == input.Jurisdiction && current.WebsiteDomain == websiteDomain {
+	if current.LegalName == input.LegalName && current.TradingName == input.TradingName && current.RegistrationRef == input.RegistrationRef && current.Jurisdiction == input.Jurisdiction && current.RegisteredAddress == registeredAddress && current.WebsiteDomain == websiteDomain {
 		return current, nil
 	}
 	now := s.now().UTC()
@@ -144,6 +151,7 @@ func (s *Service) UpdateVendorIdentity(ctx context.Context, _ Actor, vendorID st
 	updated.TradingName = input.TradingName
 	updated.RegistrationRef = input.RegistrationRef
 	updated.Jurisdiction = input.Jurisdiction
+	updated.RegisteredAddress = registeredAddress
 	updated.WebsiteDomain = websiteDomain
 	updated.UpdatedAt = now
 	var brandJob *VendorBrandJob
@@ -203,10 +211,28 @@ func (s *Service) authorizeVendorIdentity(ctx context.Context, vendorID string) 
 }
 
 func normalizeOptionalWebsiteDomain(value string) (WebsiteDomain, error) {
-	if strings.TrimSpace(value) == "" {
+	value = strings.TrimSpace(value)
+	if value == "" {
 		return "", nil
 	}
+	if strings.Contains(value, "://") {
+		parsed, err := url.Parse(value)
+		if err != nil || !strings.EqualFold(parsed.Scheme, "https") || parsed.Host == "" || parsed.User != nil || parsed.Port() != "" || parsed.Opaque != "" {
+			return "", ErrInvalid
+		}
+		value = parsed.Hostname()
+	}
 	return NormalizeWebsiteDomain(value)
+}
+
+func normalizeRegisteredAddress(value string) (string, error) {
+	value = strings.ReplaceAll(value, "\r\n", "\n")
+	value = strings.ReplaceAll(value, "\r", "\n")
+	value = strings.TrimSpace(value)
+	if utf8.RuneCountInString(value) > 2000 {
+		return "", ErrInvalid
+	}
+	return value, nil
 }
 
 func (s *Service) GetRelationship(ctx context.Context, actor Actor, relationshipID string) (Aggregate, error) {
