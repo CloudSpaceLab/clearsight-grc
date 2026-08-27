@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { FormScoringMode, ReusableFormTemplateRef } from "../../formsTypes";
 import type { FormFieldType, FormTemplate } from "../../monitoringTypes";
 import type { CaptureFieldConstraints } from "../../types";
@@ -31,24 +31,32 @@ export function FormPropertyPanel(props: Props) {
   const [sourceTemplate, setSourceTemplate] = useState<FormTemplate | null>(null);
   const [sourceSectionID, setSourceSectionID] = useState("");
   const [sourceState, setSourceState] = useState<"idle" | "loading" | "error">("idle");
+  const loadSequence = useRef(0);
 
   const reusableByKey = useMemo(() => new Map((props.reusableTemplates ?? []).map((item) => [`${item.id}:${item.version}`, item])), [props.reusableTemplates]);
 
   async function chooseReusableTemplate(key: string) {
+    const sequence = ++loadSequence.current;
     setSelectedTemplateKey(key);
     setSourceTemplate(null);
     setSourceSectionID("");
+    setSourceState("idle");
     if (!key || !props.loadReusableTemplate) return;
     const selected = reusableByKey.get(key);
     if (!selected) return;
     setSourceState("loading");
     try {
       const template = await props.loadReusableTemplate(selected.id, selected.version);
+      if (sequence !== loadSequence.current) return;
+      if (template.id !== selected.id || template.version !== selected.version || template.status !== "ACTIVE") {
+        setSourceState("error");
+        return;
+      }
       setSourceTemplate(template);
       setSourceSectionID(template.sections?.[0]?.id ?? "");
       setSourceState("idle");
     } catch {
-      setSourceState("error");
+      if (sequence === loadSequence.current) setSourceState("error");
     }
   }
 
@@ -80,7 +88,7 @@ export function FormPropertyPanel(props: Props) {
           {sourceTemplate && <label><span>Section to insert</span><select value={sourceSectionID} onChange={(event) => setSourceSectionID(event.target.value)}>{(sourceTemplate.sections ?? []).map((section) => <option key={section.id} value={section.id}>{section.title}</option>)}</select></label>}
         </div>
         {sourceState === "loading" && <p className="field-note" role="status">Loading the exact active revision…</p>}
-        {sourceState === "error" && <p className="inline-form-error" role="alert">The active template revision could not be loaded. No section was inserted.</p>}
+        {sourceState === "error" && <p className="inline-form-error" role="alert">The selected revision is no longer an active reusable template. No section was inserted.</p>}
         {sourceTemplate && <button className="secondary-button" type="button" disabled={!sourceSectionID || props.sections.length >= 20} onClick={() => props.onInsertReusableSection(sourceTemplate, sourceSectionID)}>Insert section</button>}
       </details>}
     </fieldset>
