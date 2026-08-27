@@ -26,20 +26,24 @@ func TestRequestOriginAndResponseDraftPersistence(t *testing.T) {
 	defer pool.Close()
 
 	const (
-		tenantID    = "88888888-7777-7777-8777-777777777771"
-		otherTenant = "88888888-7777-7777-8777-777777777772"
-		requesterID = "88888888-7777-7777-8777-777777777773"
+		tenantID       = "88888888-7777-7777-8777-777777777771"
+		otherTenant    = "88888888-7777-7777-8777-777777777772"
+		requesterID    = "88888888-7777-7777-8777-777777777773"
+		entityID       = "88888888-7777-7777-8777-777777777774"
+		vendorID       = "88888888-7777-7777-8777-777777777775"
+		relationshipID = "88888888-7777-7777-8777-777777777776"
 	)
 	now := time.Date(2026, 8, 26, 11, 0, 0, 0, time.UTC)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id IN ($1::uuid,$2::uuid)`, tenantID, otherTenant)
-	t.Cleanup(func() {
+	defer func() {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id IN ($1::uuid,$2::uuid)`, tenantID, otherTenant)
-	})
+	}()
 	mustExecDraft(t, ctx, pool, `INSERT INTO tenants(id,slug,name) VALUES
 		($1::uuid,'draft-persistence-test','Draft Persistence Test'),
 		($2::uuid,'draft-persistence-other','Draft Persistence Other')`, tenantID, otherTenant)
 	mustExecDraft(t, ctx, pool, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from)
 		VALUES($1::uuid,$2::uuid,'PERSON','Request owner','ACTIVE',$3)`, requesterID, tenantID, now.Add(-time.Hour))
+	seedDraftVendorRelationship(t, ctx, pool, tenantID, entityID, vendorID, relationshipID, requesterID, now)
 
 	repo := NewPostgresRepository(pool)
 	service := NewService(repo, nil)
@@ -47,7 +51,7 @@ func TestRequestOriginAndResponseDraftPersistence(t *testing.T) {
 	origin := RequestOrigin{Type: "THIRD_PARTY_ASSESSMENT", ID: "assessment-42", Version: 1}
 	workflowCtx := WithRequestOriginAuthority(ctx, origin.Type)
 	request, err := service.CreateRequest(workflowCtx, CreateRequestInput{
-		TenantID: "draft-persistence-test", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: "relationship-42",
+		TenantID: "draft-persistence-test", LegalEntityID: entityID, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: relationshipID,
 		Title: "Complete vendor due diligence", Purpose: "Collect the vendor security response.", WhyYou: "You are the vendor security contact.",
 		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR", Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: "security@vendor.example"},
 		EstimatedMinutes: 10, Deadline: now.Add(24 * time.Hour), Origin: origin,
@@ -70,7 +74,7 @@ func TestRequestOriginAndResponseDraftPersistence(t *testing.T) {
 		t.Fatalf("cross-tenant origin lookup error = %v, want not found", err)
 	}
 	if _, err := service.CreateRequest(workflowCtx, CreateRequestInput{
-		TenantID: "draft-persistence-test", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: "relationship-42",
+		TenantID: "draft-persistence-test", LegalEntityID: entityID, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: relationshipID,
 		Title: "Duplicate vendor due diligence", Purpose: "Must reuse the original request.", WhyYou: "You are the vendor security contact.",
 		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR", Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: "security@vendor.example"},
 		EstimatedMinutes: 10, Deadline: now.Add(24 * time.Hour), Origin: origin,
@@ -79,7 +83,7 @@ func TestRequestOriginAndResponseDraftPersistence(t *testing.T) {
 		t.Fatal("expected duplicate tenant origin to be rejected")
 	}
 
-	issued, err := service.IssueInvitation(ctx, IssueInvitationInput{TenantID: "draft-persistence-test", RequestID: request.ID, Audience: "security@vendor.example", Purpose: "Complete due diligence", TTL: 2 * time.Hour, CreatedBy: requesterID})
+	issued, err := service.IssueInvitation(ctx, IssueInvitationInput{TenantID: "draft-persistence-test", LegalEntityID: entityID, RequestID: request.ID, Audience: "security@vendor.example", Purpose: "Complete due diligence", TTL: 2 * time.Hour, CreatedBy: requesterID})
 	if err != nil {
 		t.Fatalf("issue invitation: %v", err)
 	}
@@ -109,7 +113,10 @@ func TestRequestOriginAndResponseDraftPersistence(t *testing.T) {
 		t.Fatal("expected cross-tenant draft write to fail")
 	}
 
-	if err := service.RevokeSession(ctx, "draft-persistence-test", redeemed.SessionID); err != nil {
+	if err := service.RevokeSessionAsRequester(ctx, RevokeSessionAsRequesterInput{
+		TenantID: "draft-persistence-test", LegalEntityID: entityID, RequestID: request.ID,
+		SessionID: redeemed.SessionID, ActorPrincipalID: requesterID,
+	}); err != nil {
 		t.Fatalf("revoke session: %v", err)
 	}
 	if _, err := service.GetDraft(ctx, redeemed.SessionToken); !errors.Is(err, ErrSessionInvalid) {
@@ -130,20 +137,24 @@ func TestSubmissionDeletesResponseDraftInSameTransaction(t *testing.T) {
 	defer pool.Close()
 
 	const (
-		tenantID    = "77777777-6666-7666-8666-666666666661"
-		requesterID = "77777777-6666-7666-8666-666666666662"
+		tenantID       = "77777777-6666-7666-8666-666666666661"
+		requesterID    = "77777777-6666-7666-8666-666666666662"
+		entityID       = "77777777-6666-7666-8666-666666666663"
+		vendorID       = "77777777-6666-7666-8666-666666666664"
+		relationshipID = "77777777-6666-7666-8666-666666666665"
 	)
 	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
-	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
+	defer func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) }()
 	mustExecDraft(t, ctx, pool, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'draft-submit-test','Draft Submit Test')`, tenantID)
 	mustExecDraft(t, ctx, pool, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES($1::uuid,$2::uuid,'PERSON','Request owner','ACTIVE',$3)`, requesterID, tenantID, now.Add(-time.Hour))
+	seedDraftVendorRelationship(t, ctx, pool, tenantID, entityID, vendorID, relationshipID, requesterID, now)
 
 	repo := NewPostgresRepository(pool)
 	service := NewService(repo, nil)
 	service.now = func() time.Time { return now }
 	request, err := service.CreateRequest(ctx, CreateRequestInput{
-		TenantID: "draft-submit-test", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: "relationship-submit",
+		TenantID: "draft-submit-test", LegalEntityID: entityID, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: relationshipID,
 		Title: "Submit vendor details", Purpose: "Collect one vendor fact.", WhyYou: "You are the invited vendor contact.",
 		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR", Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: "submit@vendor.example"},
 		EstimatedMinutes: 2, Deadline: now.Add(4 * time.Hour),
@@ -152,7 +163,7 @@ func TestSubmissionDeletesResponseDraftInSameTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	issued, err := service.IssueInvitation(ctx, IssueInvitationInput{TenantID: "draft-submit-test", RequestID: request.ID, Audience: "submit@vendor.example", Purpose: "Respond", TTL: time.Hour, CreatedBy: requesterID})
+	issued, err := service.IssueInvitation(ctx, IssueInvitationInput{TenantID: "draft-submit-test", LegalEntityID: entityID, RequestID: request.ID, Audience: "submit@vendor.example", Purpose: "Respond", TTL: time.Hour, CreatedBy: requesterID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,6 +182,16 @@ func TestSubmissionDeletesResponseDraftInSameTransaction(t *testing.T) {
 	if _, err := repo.GetDraft(ctx, tenantID, request.ID, redeemed.SessionID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("draft after submission error = %v, want not found", err)
 	}
+}
+
+func seedDraftVendorRelationship(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, entityID, vendorID, relationshipID, ownerID string, now time.Time) {
+	t.Helper()
+	mustExecDraft(t, ctx, pool, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from)
+		VALUES($1::uuid,$2::uuid,'DRAFT-ENTITY','Draft Entity','NG',$3)`, entityID, tenantID, now.Add(-time.Hour))
+	mustExecDraft(t, ctx, pool, `INSERT INTO third_parties(id,tenant_id,legal_name,status,created_at,updated_at,version)
+		VALUES($1::uuid,$2::uuid,'Draft Vendor','ACTIVE',$3,$3,1)`, vendorID, tenantID, now)
+	mustExecDraft(t, ctx, pool, `INSERT INTO third_party_relationships(id,tenant_id,legal_entity_id,vendor_id,service_name,business_owner_principal_id,criticality,privacy_role,status,effective_from,created_at,updated_at,version)
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,'Evidence collection',$5::uuid,'IMPORTANT','PROCESSOR','ACTIVE',$6,$6,$6,1)`, relationshipID, tenantID, entityID, vendorID, ownerID, now)
 }
 
 func mustExecDraft(t *testing.T, ctx context.Context, pool *pgxpool.Pool, query string, args ...any) {

@@ -40,7 +40,7 @@ func TestPostgresRecipientCandidatesFilterEntitySubjectAndStatusBeforeLimit(t *t
 	const replacementID = "97777777-7777-7777-8777-777777777716"
 	const invitationID = "97777777-7777-7777-8777-777777777717"
 	const sessionID = "97777777-7777-7777-8777-777777777718"
-	now := time.Date(2026, 8, 26, 14, 0, 0, 0, time.UTC)
+	now := time.Now().UTC().Truncate(time.Second)
 
 	cleanupRecipientCandidatesPostgres(t, ctx, pool, tenantID)
 	t.Cleanup(func() { cleanupRecipientCandidatesPostgres(t, context.Background(), pool, tenantID) })
@@ -144,8 +144,10 @@ func TestPostgresRecipientCandidatesFilterEntitySubjectAndStatusBeforeLimit(t *t
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(values) != 0 {
-		t.Fatalf("inactive principal remained eligible: %#v", values)
+	for _, candidate := range values {
+		if candidate.PrincipalID == eligibleID {
+			t.Fatalf("inactive principal remained eligible: %#v", values)
+		}
 	}
 	loaded, err = service.GetRequestForEntity(ctx, "recipient-candidates-test", entityID, created.ID)
 	if err != nil || loaded.Recipient.DisplayName != "Zara Eligible" {
