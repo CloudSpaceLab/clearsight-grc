@@ -421,7 +421,7 @@ func TestSendAssessmentRequestCapsInvitationAtRequestDeadline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	deadline := time.Date(2026, 8, 27, 10, 0, 0, 0, time.UTC)
+	deadline := time.Now().UTC().Add(24 * time.Hour)
 	outcome, err := service.SendRequest(assessmentContext(), assessmentActor(), assessment.ID, SendAssessmentRequestInput{
 		ExpectedVersion: assessment.Version, Audience: "security@vendor.example", Deadline: deadline, InvitationTTLMinutes: 2 * 24 * 60,
 	})
@@ -439,7 +439,7 @@ func TestSendAssessmentRequestRecipientChangeRevokesPriorInvitation(t *testing.T
 	evidenceService := newAssessmentEvidenceService()
 	form := activeAssessmentForm()
 	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 1}
-	deadline := time.Date(2026, 8, 27, 10, 0, 0, 0, time.UTC)
+	deadline := time.Now().UTC().Add(24 * time.Hour)
 	request, err := evidenceService.CreateRequest(evidence.WithRequestOriginAuthority(context.Background(), AssessmentRequestOrigin), assessmentEvidenceRequestInput(assessmentActor(), assessment, relationship, form, origin, "old@vendor.example", deadline))
 	if err != nil {
 		t.Fatal(err)
