@@ -173,6 +173,39 @@ export function updateConstraint(
   return { ...field, constraints };
 }
 
+export function reconcileAuthoringOrder(sections: AuthoringSection[], fields: AuthoringField[]) {
+  const sectionOrder = new Map(sections.map((section, index) => [section.id, index]));
+  const orderedFields = fields
+    .map((field, index) => ({ field, index }))
+    .sort((left, right) => {
+      const leftSection = sectionOrder.get(left.field.section_id ?? "") ?? sections.length;
+      const rightSection = sectionOrder.get(right.field.section_id ?? "") ?? sections.length;
+      return leftSection - rightSection || left.index - right.index;
+    })
+    .map(({ field }) => field);
+  const fieldIndex = new Map(orderedFields.map((field, index) => [field.id, index]));
+  const firstFieldBySection = new Map<string, number>();
+  orderedFields.forEach((field, index) => {
+    if (field.section_id && !firstFieldBySection.has(field.section_id)) firstFieldBySection.set(field.section_id, index);
+  });
+  const conditionIsEarlier = (condition: CaptureVisibilityCondition, dependentIndex: number) => {
+    const sourceIndex = fieldIndex.get(condition.field_id);
+    return sourceIndex !== undefined && sourceIndex < dependentIndex;
+  };
+  return {
+    sections: sections.map((section) => {
+      if (!section.condition) return section;
+      const firstFieldIndex = firstFieldBySection.get(section.id);
+      return firstFieldIndex !== undefined && conditionIsEarlier(section.condition, firstFieldIndex)
+        ? section
+        : { ...section, condition: undefined };
+    }),
+    fields: orderedFields.map((field, index) => field.condition && !conditionIsEarlier(field.condition, index)
+      ? { ...field, condition: undefined }
+      : field),
+  };
+}
+
 export function duplicateSection(
   sectionID: string,
   sections: AuthoringSection[],
@@ -229,7 +262,6 @@ function cloneSectionWithFields(
       const id = fieldIDs.get(field.id)!;
       const scoring = field.scoring ? {
         ...field.scoring,
-        id,
         answer_scores: { ...field.scoring.answer_scores },
         critical_answers: [...(field.scoring.critical_answers ?? [])],
       } : undefined;
