@@ -80,8 +80,7 @@ func New(deps Dependencies) http.Handler {
 	api := &API{deps: deps}
 	mux := http.NewServeMux()
 	api.registerFederationRoutes(mux)
-	api.registerRoutes(mux)
-	api.registerFormDistributionRoutes(mux)
+	api.registerProductionRoutes(mux)
 	appHandler := httpx.Chain(
 		mux,
 		httpx.CORS(deps.AllowedOrigin),
