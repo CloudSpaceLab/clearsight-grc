@@ -76,7 +76,7 @@ func (service *CommunicationBrandService) StoreLogo(ctx context.Context, input C
 	if err := ValidateCommunicationLogo(validation); err != nil {
 		return BrandAsset{}, err
 	}
-	if err := service.objects.Put(ctx, artifactKey, data); err != nil {
+	if _, err := service.objects.Put(ctx, artifactKey, bytes.NewReader(data), maxCommunicationLogoBytes); err != nil {
 		return BrandAsset{}, ErrCommunicationInvalid
 	}
 	asset := BrandAsset{
