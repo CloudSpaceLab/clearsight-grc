@@ -184,6 +184,29 @@
     "/api/v1/forms/distributions/{id}/lock": { "post": { "operationId": "lockFormDistribution", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/forms/distributions/{id}/reopen": { "post": { "operationId": "reopenFormDistribution", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/forms/distributions/{id}/revoke": { "post": { "operationId": "revokeFormDistribution", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+
+    "/api/v1/forms/communications/profiles": {
+      "get": { "operationId": "listFormCommunicationProfiles", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" },
+      "post": { "operationId": "createFormCommunicationProfile", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "CONFIG_WRITE" }
+    },
+    "/api/v1/forms/communications/profiles/{version}": { "get": { "operationId": "getFormCommunicationProfile", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/forms/communications/profiles/{version}/transition": { "post": { "operationId": "transitionFormCommunicationProfile", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/forms/communications/profiles/{version}/rollback": { "post": { "operationId": "rollbackFormCommunicationProfile", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/forms/communications/templates": {
+      "get": { "operationId": "listFormCommunicationTemplates", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" },
+      "post": { "operationId": "createFormCommunicationTemplate", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "CONFIG_WRITE" }
+    },
+    "/api/v1/forms/communications/templates/{action}/{locale}/revisions/{version}": { "get": { "operationId": "getFormCommunicationTemplate", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/forms/communications/templates/{action}/{locale}/revisions/{version}/preview": { "post": { "operationId": "previewFormCommunicationTemplate", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/forms/communications/templates/{action}/{locale}/revisions/{version}/impact": { "post": { "operationId": "impactFormCommunicationTemplate", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_READ" } },
+    "/api/v1/forms/communications/templates/{action}/{locale}/revisions/{version}/transition": { "post": { "operationId": "transitionFormCommunicationTemplate", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/forms/communications/templates/{action}/{locale}/revisions/{version}/rollback": { "post": { "operationId": "rollbackFormCommunicationTemplate", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/forms/communications/templates/{action}/{locale}/revisions/{version}/test-send": { "post": { "operationId": "testSendFormCommunicationTemplate", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/forms/communications/brand-assets": {
+      "get": { "operationId": "listFormCommunicationBrandAssets", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" },
+      "post": { "operationId": "uploadFormCommunicationBrandAsset", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "CONFIG_WRITE" }
+    },
+
     "/api/v1/programs/{id}/form-templates/{form_id}/transition": { "post": { "operationId": "transitionFormTemplate", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/programs/{id}/form-templates/{form_id}/collections": { "post": { "operationId": "startFormCollection", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/programs/{id}/monitoring-checks": {
