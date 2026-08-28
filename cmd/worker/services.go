@@ -10,6 +10,8 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
 
+const formCommunicationReminderClass = "form-communication-reminders"
+
 type workerSet struct {
 	Runtime *workflowruntime.Service
 	Close   func()
@@ -29,9 +31,11 @@ func configureWorkerRuntime(service *workflowruntime.Service, cfg config.Config,
 		thirdparty.AssessmentSetupWorkClass,
 		workflowruntime.WorkClassThirdPartyVendorBrand,
 		workflowruntime.WorkClassThirdPartyVendorBrandCleanup,
+		formCommunicationReminderClass,
 	} {
 		service.ConfigureClass(name, options)
 	}
+	service.ConfigureClass(formCommunicationReminderClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 100, Timeout: 20 * time.Second})
 	service.ConfigureClass(workflowruntime.WorkClassThirdPartyVendorBrand, vendorBrandWorkClassOptions(cfg.WorkerPoll))
 	service.ConfigureClass(workflowruntime.WorkClassThirdPartyVendorBrandCleanup, workflowruntime.WorkClassOptions{Poll: cfg.WorkerPoll, Timeout: 20 * time.Second, Lease: time.Minute, Batch: 25, MaxAttempts: 5, MaxBackoff: 5 * time.Minute})
 }
