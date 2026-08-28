@@ -5,6 +5,7 @@ package evidence
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -48,6 +49,32 @@ func (store *PostgresDistributionStore) CreateAccessRoutes(ctx context.Context, 
 		return ErrDistributionAccessUnavailable
 	}
 	return nil
+}
+
+func (store *PostgresDistributionStore) ListActiveAccessRoutes(ctx context.Context, tenantID, legalEntityID, distributionID string, now time.Time) ([]AccessRoute, error) {
+	if store == nil || store.repo == nil || store.repo.pool == nil || tenantID == "" || legalEntityID == "" || distributionID == "" || now.IsZero() {
+		return nil, ErrDistributionAccessUnavailable
+	}
+	rows, err := store.repo.pool.Query(ctx, accessRouteSelect+`
+		WHERE ar.tenant_id=$1::uuid AND ar.legal_entity_id=$2::uuid AND ar.distribution_id=$3::uuid
+		  AND ar.revoked_at IS NULL AND ar.expires_at>$4
+		ORDER BY ar.created_at,ar.id`, tenantID, legalEntityID, distributionID, now.UTC())
+	if err != nil {
+		return nil, ErrDistributionAccessUnavailable
+	}
+	defer rows.Close()
+	values := make([]AccessRoute, 0)
+	for rows.Next() {
+		route, scanErr := scanAccessRoute(rows)
+		if scanErr != nil {
+			return nil, ErrDistributionAccessUnavailable
+		}
+		values = append(values, route)
+	}
+	if rows.Err() != nil {
+		return nil, ErrDistributionAccessUnavailable
+	}
+	return values, nil
 }
 
 func (store *PostgresDistributionStore) AccessRouteBySelectorHash(ctx context.Context, selectorHash []byte) (AccessRoute, error) {
