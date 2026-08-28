@@ -91,8 +91,8 @@ CREATE TABLE form_delivery_attempts (
     distribution_id uuid NOT NULL,
     recipient_id uuid NOT NULL,
     action text NOT NULL CHECK (action IN ('INVITATION','REMINDER','DUE_SOON','EXPIRED','CHANGE_REQUESTED','AMENDMENT','COMPLETION')),
-    template_id uuid NOT NULL,
-    template_version bigint NOT NULL CHECK (template_version>0),
+    template_id uuid,
+    template_version bigint,
     outbox_event_id uuid NOT NULL REFERENCES outbox_events(id) ON DELETE CASCADE,
     status text NOT NULL CHECK (status IN ('PENDING','DELIVERED','FAILED','SKIPPED')),
     provider_message_id text NOT NULL DEFAULT '' CHECK (char_length(provider_message_id)<=512),
@@ -106,7 +106,9 @@ CREATE TABLE form_delivery_attempts (
     FOREIGN KEY (recipient_id,tenant_id,legal_entity_id,distribution_id)
         REFERENCES capture_distribution_recipients(id,tenant_id,legal_entity_id,distribution_id) ON DELETE CASCADE,
     FOREIGN KEY (template_id,tenant_id,legal_entity_id)
-        REFERENCES form_communication_templates(id,tenant_id,legal_entity_id)
+        REFERENCES form_communication_templates(id,tenant_id,legal_entity_id),
+    CHECK ((status='SKIPPED' AND template_id IS NULL AND template_version IS NULL)
+        OR (status<>'SKIPPED' AND template_id IS NOT NULL AND template_version>0))
 );
 CREATE INDEX form_delivery_attempts_distribution_idx
     ON form_delivery_attempts(tenant_id,legal_entity_id,distribution_id,attempted_at DESC,id DESC);
