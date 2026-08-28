@@ -109,8 +109,7 @@ func (service *DistributionService) List(ctx context.Context, query Distribution
 	}
 	page := DistributionPage{Items: values}
 	if len(values) == query.Limit {
-		last := values[len(values)-1]
-		page.NextCursor = encodeDistributionCursor(distributionCursor{UpdatedAt: last.UpdatedAt, ID: last.ID})
+		page.NextCursor = encodeDistributionCursor(values[len(values)-1])
 	}
 	return page, nil
 }
