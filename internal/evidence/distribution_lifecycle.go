@@ -19,13 +19,13 @@ type DistributionPage struct {
 }
 
 type AmendDistributionInput struct {
-	ExpectedVersion   int64
-	Deadline          *time.Time
-	RouteExpiresAt    *time.Time
-	ReminderPolicy    *map[string]any
-	AddRecipients     []DistributionRecipientInput
+	ExpectedVersion    int64
+	Deadline           *time.Time
+	RouteExpiresAt     *time.Time
+	ReminderPolicy     *map[string]any
+	AddRecipients      []DistributionRecipientInput
 	RevokeRecipientIDs []string
-	ActorID           string
+	ActorID            string
 }
 
 type DistributionImpact struct {
