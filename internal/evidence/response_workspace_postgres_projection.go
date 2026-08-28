@@ -20,12 +20,12 @@ type postgresWorkspaceState struct {
 }
 
 type postgresWorkspaceEditPatch struct {
-	FieldID          string                         `json:"field_id"`
-	Value            formcontract.AnswerValue       `json:"value"`
-	PresentationMode formcontract.PresentationMode  `json:"presentation_mode"`
-	SessionID        string                         `json:"session_id"`
-	RouteID          string                         `json:"route_id"`
-	Assurance        AccessAssurance                `json:"assurance"`
+	FieldID          string                        `json:"field_id"`
+	Value            formcontract.AnswerValue      `json:"value"`
+	PresentationMode formcontract.PresentationMode `json:"presentation_mode"`
+	SessionID        string                        `json:"session_id"`
+	RouteID          string                        `json:"route_id"`
+	Assurance        AccessAssurance               `json:"assurance"`
 }
 
 func loadPostgresWorkspaceState(ctx context.Context, tx pgx.Tx, session DistributionAccessSession, request Request, now time.Time, lock bool) (postgresWorkspaceState, error) {
