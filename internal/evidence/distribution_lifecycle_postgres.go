@@ -33,8 +33,21 @@ func (s *PostgresDistributionStore) AmendDistribution(ctx context.Context, tenan
 		return AmendDistributionResult{}, ErrDistributionConflict
 	}
 
+	prepared, pinnedForm, err := preparePostgresRecipientAdditions(ctx, s, tx, current, input.AddRecipients, now)
+	if err != nil {
+		return AmendDistributionResult{}, err
+	}
+	revokedCount, err := validatePostgresRecipientRevocations(ctx, tx, current, input.RevokeRecipientIDs, prepared)
+	if err != nil {
+		return AmendDistributionResult{}, err
+	}
+
 	next := current
-	impact := DistributionImpact{CurrentVersion: current.Version, NextVersion: current.Version + 1, EffectiveDeadline: current.Deadline, EffectiveRouteExpiry: current.RouteExpiresAt}
+	impact := DistributionImpact{
+		CurrentVersion: current.Version, NextVersion: current.Version + 1,
+		EffectiveDeadline: current.Deadline, EffectiveRouteExpiry: current.RouteExpiresAt,
+		RecipientsAdded: len(prepared), RecipientsRevoked: revokedCount,
+	}
 	if input.Deadline != nil {
 		deadline := input.Deadline.UTC()
 		if !deadline.After(now) {
@@ -59,10 +72,12 @@ func (s *PostgresDistributionStore) AmendDistribution(ctx context.Context, tenan
 		next.ReminderPolicy = cloneAnyMap(*input.ReminderPolicy)
 		impact.ReminderPolicyChanged = !reflect.DeepEqual(next.ReminderPolicy, current.ReminderPolicy)
 	}
-	if err := tx.QueryRow(ctx, `SELECT count(*) FROM capture_distribution_recipients WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid`, current.TenantID, current.ID).Scan(&impact.AffectedRecipients); err != nil {
+	var existingRecipients int
+	if err := tx.QueryRow(ctx, `SELECT count(*) FROM capture_distribution_recipients WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid`, current.TenantID, current.ID).Scan(&existingRecipients); err != nil {
 		return AmendDistributionResult{}, err
 	}
-	if !impact.DeadlineChanged && !impact.RouteExpiryChanged && !impact.ReminderPolicyChanged {
+	impact.AffectedRecipients = existingRecipients + len(prepared)
+	if !impact.DeadlineChanged && !impact.RouteExpiryChanged && !impact.ReminderPolicyChanged && impact.RecipientsAdded == 0 && impact.RecipientsRevoked == 0 {
 		bundle, err := postgresBundleInTx(ctx, tx, current)
 		if err != nil {
 			return AmendDistributionResult{}, err
@@ -83,10 +98,17 @@ func (s *PostgresDistributionStore) AmendDistribution(ctx context.Context, tenan
 	if err != nil || tag.RowsAffected() != 1 {
 		return AmendDistributionResult{}, ErrDistributionConflict
 	}
-	if _, err := tx.Exec(ctx, `UPDATE capture_requests SET deadline=$3,version=version+1,updated_at=$4 WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid AND status NOT IN ('CANCELLED','EXPIRED')`, current.TenantID, current.ID, next.Deadline, next.UpdatedAt); err != nil {
+	if _, err := tx.Exec(ctx, `
+		UPDATE capture_requests
+		SET deadline=$3,version=version+1,updated_at=$4
+		WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid AND status NOT IN ('CANCELLED','EXPIRED')`,
+		current.TenantID, current.ID, next.Deadline, next.UpdatedAt); err != nil {
 		return AmendDistributionResult{}, err
 	}
-	if err := appendPostgresDistributionLifecycleEvent(ctx, tx, next, "FORM_DISTRIBUTION_AMENDED", next.CreatedBy, now); err != nil {
+	if err := applyPostgresRecipientAmendment(ctx, tx, next, prepared, pinnedForm, input.RevokeRecipientIDs, now); err != nil {
+		return AmendDistributionResult{}, err
+	}
+	if err := appendPostgresDistributionLifecycleEvent(ctx, tx, next, "FORM_DISTRIBUTION_AMENDED", input.ActorID, now); err != nil {
 		return AmendDistributionResult{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
