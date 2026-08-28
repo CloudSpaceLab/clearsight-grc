@@ -9,21 +9,24 @@ import (
 )
 
 type MemoryDistributionAccessStore struct {
-	mu            sync.RWMutex
-	distributions *MemoryDistributionStore
-	routes        map[string]AccessRoute
-	routeHashes   map[string]string
-	challenges    map[string]OTPChallenge
-	sessions      map[string]DistributionAccessSession
+	mu              sync.RWMutex
+	workspaceMu     sync.Mutex
+	distributions   *MemoryDistributionStore
+	routes          map[string]AccessRoute
+	routeHashes     map[string]string
+	challenges      map[string]OTPChallenge
+	sessions        map[string]DistributionAccessSession
+	workspaceStates map[string]*memoryWorkspaceState
 }
 
 func NewMemoryDistributionAccessStore(distributions *MemoryDistributionStore) *MemoryDistributionAccessStore {
 	return &MemoryDistributionAccessStore{
-		distributions: distributions,
-		routes:        map[string]AccessRoute{},
-		routeHashes:   map[string]string{},
-		challenges:    map[string]OTPChallenge{},
-		sessions:      map[string]DistributionAccessSession{},
+		distributions:   distributions,
+		routes:          map[string]AccessRoute{},
+		routeHashes:     map[string]string{},
+		challenges:      map[string]OTPChallenge{},
+		sessions:        map[string]DistributionAccessSession{},
+		workspaceStates: map[string]*memoryWorkspaceState{},
 	}
 }
 
@@ -59,6 +62,22 @@ func (store *MemoryDistributionAccessStore) CreateAccessRoutes(_ context.Context
 		store.routeHashes[hex.EncodeToString(route.SelectorHash)] = route.ID
 	}
 	return nil
+}
+
+func (store *MemoryDistributionAccessStore) ListActiveAccessRoutes(_ context.Context, tenantID, legalEntityID, distributionID string, now time.Time) ([]AccessRoute, error) {
+	if store == nil {
+		return nil, ErrDistributionAccessUnavailable
+	}
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+	values := make([]AccessRoute, 0)
+	for _, route := range store.routes {
+		if route.TenantID != tenantID || route.LegalEntityID != legalEntityID || route.DistributionID != distributionID || !accessRouteOpen(route, now.UTC()) {
+			continue
+		}
+		values = append(values, cloneAccessRoute(route))
+	}
+	return values, nil
 }
 
 func (store *MemoryDistributionAccessStore) AccessRouteBySelectorHash(_ context.Context, selectorHash []byte) (AccessRoute, error) {
