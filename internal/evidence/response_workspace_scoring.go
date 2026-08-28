@@ -28,6 +28,7 @@ func buildResponseRevision(request Request, assurance AccessAssurance, attestati
 			"attestation_count":     len(attestationFieldIDs),
 		},
 		State:                ResponseRevisionFinal,
+		CriticalFieldResults: []map[string]any{},
 		ScoringPolicyVersion: "formcontract-v1",
 		Current:              true,
 	}
