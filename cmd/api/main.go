@@ -88,6 +88,7 @@ func main() {
 		Identity: authenticator, Federation: federationService, SCIM: services.SCIM, Access: services.Access, AccessAdmin: services.AccessAdmin,
 		CommandGuard: guard, Authority: services.Authority, Governance: services.Governance,
 		Evidence: services.Evidence, FormDistributions: services.FormDistributions, FormDistributionAccess: services.FormDistributionAccess,
+		FormCommunications: services.FormCommunications, FormCommunicationBrands: services.FormCommunicationBrands, FormCommunicationTestDelivery: services.FormCommunicationTestDelivery,
 		Monitoring: services.Monitoring, ThirdParty: services.ThirdParty, VendorBrands: vendorBrandService, ThirdPartyRelationshipLinks: services.ThirdPartyRelationshipLinks, ThirdPartyWork: vendorWorkService, ThirdPartyAssessments: assessmentService, ThirdPartyAssessmentReviews: assessmentReviewService, ThirdPartyAssessmentRequests: assessmentRequestService, ThirdPartyAssessmentDeficiencies: assessmentDeficiencyService, ThirdPartyAssessmentSetup: services.ThirdPartyAssessmentSetup, SourceCatalog: services.SourceCatalog, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
 		Continuity: services.Continuity, Today: services.Today, Workflow: services.Workflow, Onboarding: services.Onboarding,
 		Autonomy: services.Autonomy, AIGovernance: services.AIGovernance, BankVerticals: services.BankVerticals, BackgroundJobs: services.BackgroundJobs,
