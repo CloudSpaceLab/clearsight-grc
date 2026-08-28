@@ -1,0 +1,133 @@
+name: Task 11 staging validation
+
+on:
+  push:
+    branches:
+      - agent/task11-staging-20260828
+
+permissions:
+  contents: write
+
+concurrency:
+  group: task11-staging
+  cancel-in-progress: true
+
+jobs:
+  assemble-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.4-alpine
+        env:
+          POSTGRES_DB: clearsight
+          POSTGRES_USER: clearsight
+          POSTGRES_PASSWORD: clearsight
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U clearsight -d clearsight"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/task11-staging-20260828
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+      - name: Assemble Task 11 integration
+        shell: python
+        run: |
+          from pathlib import Path
+
+          forms = Path("web/src/forms.css")
+          current = forms.read_text()
+          if '@import "./forms-task11.css";' not in current:
+              forms.write_text('@import "./forms-task11.css";\n' + current)
+
+          workspace = Path("web/src/components/FormsWorkspace.tsx")
+          text = workspace.read_text()
+          marker = 'import { FormsLibrarySummary } from "./forms/FormsLibrarySummary";\n'
+          addition = marker + 'import { FormsTabContent } from "./forms/FormsTabContent";\n'
+          if 'from "./forms/FormsTabContent"' not in text:
+              if marker not in text:
+                  raise SystemExit("FormsWorkspace import anchor changed")
+              text = text.replace(marker, addition, 1)
+          old_render = ': <FutureFormsTab tab={activeTab as Exclude<FormsTab, "Templates">}/>} '
+          new_render = ': <FormsTabContent tab={activeTab as Exclude<FormsTab, "Templates">}/>} '
+          if old_render in text:
+              text = text.replace(old_render, new_render, 1)
+          elif new_render not in text:
+              raise SystemExit("FormsWorkspace tab render anchor changed")
+          start = text.find('\nfunction FutureFormsTab(')
+          end = text.find('\nfunction StatusPill', start)
+          if start >= 0:
+              if end < 0:
+                  raise SystemExit("FutureFormsTab end anchor changed")
+              text = text[:start] + text[end:]
+          workspace.write_text(text)
+
+          routes = Path("internal/httpapi/form_distribution_routes.go")
+          text = routes.read_text()
+          anchor = '\t\tread("/api/v1/forms/distributions/{id}", a.getFormDistribution),\n'
+          addition = anchor + '\t\tread("/api/v1/forms/distributions/{id}/responses", a.listFormDistributionResponses),\n'
+          if 'a.listFormDistributionResponses' not in text:
+              if anchor not in text:
+                  raise SystemExit("distribution route anchor changed")
+              text = text.replace(anchor, addition, 1)
+          routes.write_text(text)
+
+          contract = Path("api/runtime.openapi.json")
+          text = contract.read_text()
+          anchor = '    "/api/v1/forms/distributions/{id}": { "get": { "operationId": "getFormDistribution", "x-clearsight-route-class": "AUTHENTICATED_READ" } },\n'
+          addition = anchor + '    "/api/v1/forms/distributions/{id}/responses": { "get": { "operationId": "listFormDistributionResponses", "x-clearsight-route-class": "AUTHENTICATED_READ" } },\n'
+          if 'listFormDistributionResponses' not in text:
+              if anchor not in text:
+                  raise SystemExit("runtime OpenAPI anchor changed")
+              text = text.replace(anchor, addition, 1)
+          contract.write_text(text)
+      - name: Generate exact Lexical lock
+        working-directory: web
+        run: npm install --package-lock-only --ignore-scripts --save-exact lexical@0.49.0 @lexical/react@0.49.0 @lexical/rich-text@0.49.0 @lexical/history@0.49.0 @lexical/list@0.49.0 @lexical/link@0.49.0
+      - name: Format Go additions
+        run: gofmt -w internal/evidence/distribution_response_revisions.go internal/evidence/distribution_response_revisions_postgres.go internal/httpapi/form_distribution_responses.go internal/httpapi/form_distribution_routes.go
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+      - name: Web typecheck
+        working-directory: web
+        run: npm run typecheck
+      - name: Web tests
+        working-directory: web
+        run: npm test
+      - name: Production build
+        working-directory: web
+        run: npm run build
+      - name: Go unit tests
+        run: go test ./internal/evidence ./internal/httpapi
+      - name: PostgreSQL composition
+        env:
+          DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
+        run: go test -tags postgres ./internal/evidence ./internal/httpapi
+      - name: Go vet
+        run: go vet ./internal/evidence ./internal/httpapi
+      - name: Commit assembled staging tree
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add api/runtime.openapi.json internal/evidence/distribution_response_revisions.go internal/evidence/distribution_response_revisions_postgres.go internal/httpapi/form_distribution_responses.go internal/httpapi/form_distribution_routes.go web/package.json web/package-lock.json web/src/forms.css web/src/components/FormsWorkspace.tsx
+          if git diff --cached --quiet; then
+            echo "Task 11 assembly already committed."
+          else
+            git commit -m "chore(forms): assemble task11 staging tree"
+            git push origin HEAD:agent/task11-staging-20260828
+          fi
