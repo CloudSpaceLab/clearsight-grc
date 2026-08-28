@@ -4,7 +4,6 @@ package evidence
 
 import (
 	"context"
-	"strings"
 	"testing"
 	"time"
 
@@ -163,11 +162,5 @@ func cleanupCommunicationFixture(ctx context.Context, pool *pgxpool.Pool, tenant
 		`DELETE FROM tenants WHERE id=$1::uuid`,
 	} {
 		_, _ = pool.Exec(ctx, statement, tenantID)
-	}
-}
-
-func TestCommunicationGovernanceOutboxMetadataDoesNotContainTemplateCopy(t *testing.T) {
-	if strings.Contains(strings.ToLower("legal_entity_id action locale version status"), "subject_template") {
-		t.Fatal("safe metadata contract unexpectedly includes template copy")
 	}
 }
