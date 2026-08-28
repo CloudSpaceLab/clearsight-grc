@@ -1,3 +1,4 @@
+import axe from "axe-core";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DistributionComposer } from "./DistributionComposer";
@@ -25,6 +26,11 @@ const detail = {
   ],
   workspace: { id: "workspace-a", status: "OPEN", version: 3, updated_at: "2026-08-28T10:00:00Z" },
 } as const;
+const responseRevision = {
+  id: "revision-2", revision: 2, supersedes_revision_id: "revision-1", achieved_assurance: "EMAIL_VERIFIED",
+  signoff_summary: { attested: true }, compliance_score: 92, scored_weight_coverage: 100, state: "FINAL",
+  critical_field_results: [], scoring_policy_version: "policy-1", current: true, created_at: "2026-08-28T12:00:00Z",
+} as const;
 
 beforeEach(() => {
   window.history.replaceState(null, "", "/?safe=1#forms");
@@ -45,8 +51,8 @@ describe("Task 11 governed form views", () => {
     fireEvent.change(screen.getByLabelText("Subject identifier"), { target: { value: "control-a" } });
     fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Quarterly control review" } });
     fireEvent.change(screen.getByLabelText("Purpose"), { target: { value: "Collect operating evidence" } });
-    fireEvent.change(screen.getByLabelText("Deadline"), { target: { value: "2026-09-01T12:00" } });
-    fireEvent.change(screen.getByLabelText("Access route expiry"), { target: { value: "2026-09-01T11:00" } });
+    fireEvent.change(screen.getByLabelText(/Deadline/), { target: { value: "2026-09-01T12:00" } });
+    fireEvent.change(screen.getByLabelText(/Access route expiry/), { target: { value: "2026-09-01T11:00" } });
     fireEvent.change(screen.getByLabelText("Find internal recipient"), { target: { value: "Jane" } });
     fireEvent.click(await screen.findByRole("option", { name: /Jane Reviewer/ }));
     fireEvent.click(screen.getByRole("button", { name: "Create and dispatch" }));
@@ -69,15 +75,25 @@ describe("Task 11 governed form views", () => {
   });
 
   it("shows immutable response revision state without mutation controls", async () => {
-    distributionApi.loadResponseRevisions.mockResolvedValue({ items: [{
-      id: "revision-2", revision: 2, supersedes_revision_id: "revision-1", achieved_assurance: "EMAIL_VERIFIED",
-      signoff_summary: { attested: true }, compliance_score: 92, scored_weight_coverage: 100, state: "FINAL",
-      critical_field_results: [], scoring_policy_version: "policy-1", current: true, created_at: "2026-08-28T12:00:00Z",
-    }] });
+    distributionApi.loadResponseRevisions.mockResolvedValue({ items: [responseRevision] });
     render(<ResponsesView/>);
     expect(await screen.findByText("Revision 2 · Current")).toBeTruthy();
     expect(screen.getByText("Email Verified")).toBeTruthy();
     expect(screen.getByText("92%")).toBeTruthy();
     expect((screen.getByRole("button", { name: "Edit response" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("passes semantic accessibility checks for the new sender and immutable-response surfaces", async () => {
+    const sent = render(<SentFormsView/>);
+    expect(await screen.findByText("2 To · 0 CC")).toBeTruthy();
+    const sentResults = await axe.run(sent.container, { rules: { "color-contrast": { enabled: false } } });
+    expect(sentResults.violations.map((violation) => violation.id)).toEqual([]);
+    sent.unmount();
+
+    distributionApi.loadResponseRevisions.mockResolvedValue({ items: [responseRevision] });
+    const responses = render(<ResponsesView/>);
+    expect(await screen.findByText("Revision 2 · Current")).toBeTruthy();
+    const responseResults = await axe.run(responses.container, { rules: { "color-contrast": { enabled: false } } });
+    expect(responseResults.violations.map((violation) => violation.id)).toEqual([]);
   });
 });
