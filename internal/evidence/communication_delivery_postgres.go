@@ -97,7 +97,7 @@ func (repository *PostgresCommunicationDeliveryRepository) GetCommunicationDeliv
 }
 
 func (repository *PostgresCommunicationDeliveryRepository) RecordCommunicationDeliveryAttempt(ctx context.Context, event workflowruntime.OutboxEvent, bundle communicationDeliveryBundle, recipient communicationDeliveryRecipient, template CommunicationTemplate, receipt InvitationDeliveryReceipt, failureCode string, attemptedAt time.Time) error {
-	if repository == nil || repository.repo == nil || repository.repo.pool == nil || template.ID == "" {
+	if repository == nil || repository.repo == nil || repository.repo.pool == nil {
 		return ErrCommunicationUnavailable
 	}
 	status := "FAILED"
@@ -105,6 +105,13 @@ func (repository *PostgresCommunicationDeliveryRepository) RecordCommunicationDe
 		status = "DELIVERED"
 	} else if failureCode == "DISTRIBUTION_NOT_DELIVERABLE" || failureCode == "RECIPIENT_NOT_DELIVERABLE" {
 		status = "SKIPPED"
+	}
+	if status != "SKIPPED" && (template.ID == "" || template.Version < 1) {
+		return ErrCommunicationUnavailable
+	}
+	if status == "SKIPPED" {
+		template.ID = ""
+		template.Version = 0
 	}
 	if failureCode == "" {
 		failureCode = string(receipt.FailureCode)
@@ -119,7 +126,7 @@ func (repository *PostgresCommunicationDeliveryRepository) RecordCommunicationDe
 		INSERT INTO form_delivery_attempts(
 			tenant_id,legal_entity_id,distribution_id,recipient_id,action,template_id,template_version,outbox_event_id,
 			status,provider_message_id,recipient_hint,failure_code,attempted_at
-		) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6::uuid,$7,$8::uuid,$9,$10,$11,$12,$13)
+		) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,NULLIF($6,'')::uuid,NULLIF($7,0),$8::uuid,$9,$10,$11,$12,$13)
 		ON CONFLICT (tenant_id,outbox_event_id,recipient_id,action) DO UPDATE
 		SET template_id=EXCLUDED.template_id,template_version=EXCLUDED.template_version,status=EXCLUDED.status,
 		    provider_message_id=EXCLUDED.provider_message_id,recipient_hint=EXCLUDED.recipient_hint,
