@@ -33,9 +33,13 @@ func configuredRecipientKeyring(cfg config.Config) (evidence.RecipientKeyring, b
 	return keyring, err == nil, err
 }
 
-func configuredDistributionAccessService(store evidence.DistributionAccessStore, keyring evidence.RecipientKeyring, hasKeyring bool, otpDelivery evidence.OTPDelivery, cfg config.Config) (*evidence.DistributionAccessService, error) {
+func configuredDistributionAccessService(store evidence.DistributionAccessStore, keyring evidence.RecipientKeyring, hasKeyring bool, cfg config.Config) (*evidence.DistributionAccessService, error) {
 	if !hasKeyring || cfg.RecipientSecurity.AccessHMACKey == ([32]byte{}) {
 		return nil, nil
 	}
-	return evidence.NewDistributionAccessService(store, keyring, otpDelivery, cfg.RecipientSecurity.AccessHMACKey, cfg.CaptureSessionTTL)
+	mailDelivery, err := configuredCommunicationDelivery(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return evidence.NewDistributionAccessService(store, keyring, evidence.NewEmailOTPDelivery(mailDelivery), cfg.RecipientSecurity.AccessHMACKey, cfg.CaptureSessionTTL)
 }
