@@ -95,11 +95,26 @@ jobs:
                   raise SystemExit("runtime OpenAPI anchor changed")
               text = text.replace(anchor, addition, 1)
           contract.write_text(text)
+
+          composer = Path("web/src/components/forms/DistributionComposer.tsx")
+          text = composer.read_text()
+          text = text.replace('`${local.slice(0, 1)}***@${domain}`', '`${(local ?? "").slice(0, 1)}***@${domain}`')
+          composer.write_text(text)
+
+          distribution_api = Path("web/src/formsDistributionApi.ts")
+          text = distribution_api.read_text()
+          old = 'return requestJSON(apiBase, `/api/v1/forms/distributions/${encodeURIComponent(id)}/${action}`, { method: "POST", body: JSON.stringify({ expected_version: version }) }).then(normalizeDetail);'
+          new = 'return requestJSON<Parameters<typeof normalizeDetail>[0]>(apiBase, `/api/v1/forms/distributions/${encodeURIComponent(id)}/${action}`, { method: "POST", body: JSON.stringify({ expected_version: version }) }).then(normalizeDetail);'
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif new not in text:
+              raise SystemExit("distribution transition client anchor changed")
+          distribution_api.write_text(text)
       - name: Generate exact Lexical lock
         working-directory: web
         run: npm install --package-lock-only --ignore-scripts --save-exact lexical@0.49.0 @lexical/react@0.49.0 @lexical/rich-text@0.49.0 @lexical/history@0.49.0 @lexical/list@0.49.0 @lexical/link@0.49.0
       - name: Format Go additions
-        run: gofmt -w internal/evidence/distribution_response_revisions.go internal/evidence/distribution_response_revisions_postgres.go internal/httpapi/form_distribution_responses.go internal/httpapi/form_distribution_routes.go
+        run: gofmt -w internal/evidence/distribution_response_revisions.go internal/evidence/distribution_response_revisions_postgres.go internal/evidence/distribution_response_revisions_test.go internal/httpapi/form_distribution_responses.go internal/httpapi/form_distribution_responses_test.go internal/httpapi/form_distribution_routes.go
       - name: Install web dependencies
         working-directory: web
         run: npm ci
@@ -124,7 +139,7 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add api/runtime.openapi.json internal/evidence/distribution_response_revisions.go internal/evidence/distribution_response_revisions_postgres.go internal/httpapi/form_distribution_responses.go internal/httpapi/form_distribution_routes.go web/package.json web/package-lock.json web/src/forms.css web/src/components/FormsWorkspace.tsx
+          git add -A
           if git diff --cached --quiet; then
             echo "Task 11 assembly already committed."
           else
