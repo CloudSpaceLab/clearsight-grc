@@ -2,7 +2,6 @@ package evidence
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -13,14 +12,14 @@ import (
 )
 
 type memoryWorkspaceState struct {
-	mu        sync.Mutex
-	workspace ResponseWorkspace
-	answers   map[string]formcontract.AnswerValue
-	mode      formcontract.PresentationMode
-	sequences map[string]int64
+	mu         sync.Mutex
+	workspace  ResponseWorkspace
+	answers    map[string]formcontract.AnswerValue
+	mode       formcontract.PresentationMode
+	sequences  map[string]int64
 	provenance map[string]WorkspaceFieldProvenance
-	edits     []workspaceEditRecord
-	revisions []ResponseRevision
+	edits      []workspaceEditRecord
+	revisions  []ResponseRevision
 }
 
 type memoryWorkspaceRegistry struct {
@@ -175,15 +174,15 @@ func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(_ context.Co
 	distributions.workspaces[command.Session.DistributionID] = state.workspace
 	event := distributionEvent{
 		DistributionID: command.Session.DistributionID,
-		Version: state.workspace.Version,
-		EventType: fmt.Sprintf("FORM_RESPONSE_REVISION_SUBMITTED_%d", revisionNumber),
-		OccurredAt: command.Now.UTC(),
+		Version:        state.workspace.Version,
+		EventType:      fmt.Sprintf("FORM_RESPONSE_REVISION_SUBMITTED_%d", revisionNumber),
+		OccurredAt:     command.Now.UTC(),
 	}
 	distributions.events = append(distributions.events, event)
 	distributions.outbox = append(distributions.outbox, event)
 	return WorkspaceSubmissionResult{
 		Workspace: state.workspace,
-		Revision: cloneResponseRevision(metadata),
+		Revision:  cloneResponseRevision(metadata),
 		Submission: SubmissionReceipt{
 			SubmissionID: submissionID, RequestID: request.ID, Status: request.Status,
 			SubmittedAt: command.Now.UTC(), Version: request.Version,
@@ -274,8 +273,10 @@ func (store *MemoryDistributionAccessStore) saveMemoryWorkspaceLocked(state *mem
 	state.workspace.UpdatedAt = command.Now.UTC()
 	distributions.workspaces[command.Session.DistributionID] = state.workspace
 	event := distributionEvent{
-		DistributionID: command.Session.DistributionID, Version: state.workspace.Version,
-		EventType: fmt.Sprintf("FORM_RESPONSE_WORKSPACE_SAVED_%d", state.workspace.Version), OccurredAt: command.Now.UTC(),
+		DistributionID: command.Session.DistributionID,
+		Version:        state.workspace.Version,
+		EventType:      fmt.Sprintf("FORM_RESPONSE_WORKSPACE_SAVED_%d", state.workspace.Version),
+		OccurredAt:     command.Now.UTC(),
 	}
 	distributions.events = append(distributions.events, event)
 	distributions.outbox = append(distributions.outbox, event)
@@ -291,8 +292,10 @@ func (store *MemoryDistributionAccessStore) memoryWorkspaceState(workspace Respo
 		return state
 	}
 	state = &memoryWorkspaceState{
-		workspace: workspace, answers: map[string]formcontract.AnswerValue{},
-		mode: defaultDraftPresentation(request), sequences: map[string]int64{},
+		workspace:  workspace,
+		answers:    map[string]formcontract.AnswerValue{},
+		mode:       defaultDraftPresentation(request),
+		sequences:  map[string]int64{},
 		provenance: map[string]WorkspaceFieldProvenance{},
 	}
 	registry.workspaces[workspace.DistributionID] = state
@@ -341,8 +344,11 @@ func validateMemoryDistributionWorkspaceLocked(distributions *MemoryDistribution
 
 func memoryWorkspaceView(state *memoryWorkspaceState) ResponseWorkspaceView {
 	view := ResponseWorkspaceView{
-		Workspace: state.workspace, Answers: cloneAnswerValues(state.answers), PresentationMode: state.mode,
-		FieldSequences: cloneInt64Map(state.sequences), FieldProvenance: make(map[string]WorkspaceFieldProvenance, len(state.provenance)),
+		Workspace:        state.workspace,
+		Answers:          cloneAnswerValues(state.answers),
+		PresentationMode: state.mode,
+		FieldSequences:   cloneInt64Map(state.sequences),
+		FieldProvenance:  make(map[string]WorkspaceFieldProvenance, len(state.provenance)),
 	}
 	for key, value := range state.provenance {
 		view.FieldProvenance[key] = value
@@ -363,7 +369,6 @@ func respondentWorkspaceProvenance(answers map[string]formcontract.AnswerValue) 
 }
 
 var (
-	_ responseWorkspaceStore             = (*MemoryDistributionAccessStore)(nil)
+	_ responseWorkspaceStore            = (*MemoryDistributionAccessStore)(nil)
 	_ workspaceAnswerValidationProvider = (*MemoryDistributionAccessStore)(nil)
-	_ = errors.Is
 )
