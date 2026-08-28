@@ -162,8 +162,8 @@ func (s *MemoryDistributionStore) GetDistribution(_ context.Context, tenantID, l
 }
 
 func (s *MemoryDistributionStore) ListDistributions(_ context.Context, query DistributionListQuery) ([]FormDistribution, error) {
-	if strings.TrimSpace(query.TenantID) == "" || strings.TrimSpace(query.LegalEntityID) == "" || query.Limit < 1 || query.Limit > 100 {
-		return nil, fmt.Errorf("tenant_id, legal_entity_id and limit between 1 and 100 are required")
+	if !normalizeDistributionListQuery(&query, s.now()) {
+		return nil, fmt.Errorf("distribution list filters are invalid")
 	}
 	cursor, err := decodeDistributionCursor(query.Cursor)
 	if err != nil {
@@ -173,7 +173,7 @@ func (s *MemoryDistributionStore) ListDistributions(_ context.Context, query Dis
 	defer s.mu.RUnlock()
 	values := make([]FormDistribution, 0)
 	for _, value := range s.distributions {
-		if value.TenantID != query.TenantID || value.LegalEntityID != query.LegalEntityID || (query.Status != "" && value.Status != query.Status) || !distributionAfterCursor(value, cursor) {
+		if !distributionMatchesListQuery(value, query) || !distributionAfterCursor(value, cursor) {
 			continue
 		}
 		values = append(values, cloneDistribution(value))
@@ -242,8 +242,8 @@ func materializeDistributionRequest(requestID string, distribution FormDistribut
 		ID: requestID, TenantID: distribution.TenantID, LegalEntityID: distribution.LegalEntityID,
 		SubjectType: distribution.SubjectType, SubjectID: distribution.SubjectID, Title: distribution.Title,
 		Purpose: distribution.Purpose, WhyYou: distribution.Purpose, Sensitivity: form.Sensitivity,
-		AudienceType:     audienceType,
-		Recipient:        Recipient{Type: recipient.Type, PrincipalID: recipient.PrincipalID, AudienceHint: recipient.AudienceHint, State: RecipientStateAssigned, Revision: 1},
+		AudienceType: audienceType,
+		Recipient: Recipient{Type: recipient.Type, PrincipalID: recipient.PrincipalID, AudienceHint: recipient.AudienceHint, State: RecipientStateAssigned, Revision: 1},
 		EstimatedMinutes: estimatedMinutes, Deadline: distribution.Deadline, KnownFacts: map[string]string{},
 		Presentation: form.Presentation, Sections: cloneSections(form.Sections), Fields: requestFieldsFromContract(form.Fields),
 		FormTemplateID: form.ID, FormTemplateVersion: form.Version, Status: RequestReady,
