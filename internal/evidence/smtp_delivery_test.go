@@ -247,7 +247,7 @@ func smtpTestCertificate(t *testing.T) (tls.Certificate, *x509.CertPool) {
 		SerialNumber: big.NewInt(1),
 		Subject:      pkix.Name{CommonName: "localhost"},
 		DNSNames:     []string{"localhost"},
-		NotBefore: now.Add(-time.Hour), NotAfter: now.Add(time.Hour),
+		NotBefore:    now.Add(-time.Hour), NotAfter: now.Add(time.Hour),
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
