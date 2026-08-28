@@ -2,7 +2,6 @@ package evidence
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
@@ -88,25 +87,36 @@ func (store *MemoryDistributionAccessStore) CommitSupersession(_ context.Context
 	distributions.mu.RLock()
 	oldWorkspace := distributions.workspaces[command.PreviousDistributionID]
 	newWorkspace := distributions.workspaces[command.ReplacementDistributionID]
+	oldRecipients := cloneMemoryDistributionRecipients(distributions.recipients[command.PreviousDistributionID])
 	newRecipients := cloneMemoryDistributionRecipients(distributions.recipients[command.ReplacementDistributionID])
 	distributions.mu.RUnlock()
 	if oldWorkspace.ID == "" || newWorkspace.ID == "" {
 		return DistributionBundle{}, DistributionBundle{}, ErrNotFound
 	}
 
-	var replacementRequest Request
+	var oldRequest, replacementRequest Request
 	distributions.repo.mu.RLock()
+	for _, recipient := range oldRecipients {
+		if recipient.safe.Role == RecipientTo && recipient.safe.RequestID != "" {
+			oldRequest = cloneRequest(distributions.repo.requests[recipient.safe.RequestID])
+			if oldRequest.ID != "" {
+				break
+			}
+		}
+	}
 	for _, recipient := range newRecipients {
 		if recipient.safe.Role == RecipientTo && recipient.safe.RequestID != "" {
 			replacementRequest = cloneRequest(distributions.repo.requests[recipient.safe.RequestID])
-			break
+			if replacementRequest.ID != "" {
+				break
+			}
 		}
 	}
 	distributions.repo.mu.RUnlock()
-	if replacementRequest.ID == "" {
+	if oldRequest.ID == "" || replacementRequest.ID == "" {
 		return DistributionBundle{}, DistributionBundle{}, ErrDistributionInvalid
 	}
-	oldState := store.memoryWorkspaceState(oldWorkspace, replacementRequest)
+	oldState := store.memoryWorkspaceState(oldWorkspace, oldRequest)
 	newState := store.memoryWorkspaceState(newWorkspace, replacementRequest)
 
 	editIDs := make([]string, len(command.Carries))
