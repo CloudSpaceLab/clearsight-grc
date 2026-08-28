@@ -419,7 +419,7 @@ func resolveCommunicationScope(ctx context.Context, tx pgx.Tx, tenantID, legalEn
 }
 
 func lockCommunicationScope(ctx context.Context, tx pgx.Tx, kind, tenantID, legalEntityID string, action CommunicationAction, locale string) error {
-	key := strings.Join([]string{"form-communication", kind, tenantID, legalEntityID, string(action), locale}, "\x00")
+	key := communicationPostgresLockKey("form-communication", kind, tenantID, legalEntityID, string(action), locale)
 	_, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, key)
 	return err
 }
