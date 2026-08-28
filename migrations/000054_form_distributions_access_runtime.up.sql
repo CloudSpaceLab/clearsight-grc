@@ -12,6 +12,11 @@ CREATE UNIQUE INDEX capture_access_routes_active_direct_uq
     ON capture_access_routes(tenant_id,legal_entity_id,distribution_id,recipient_id)
     WHERE revoked_at IS NULL AND access_policy<>'SHARED_LINK_EMAIL_OTP';
 
+DROP INDEX capture_otp_challenges_active_idx;
+CREATE INDEX capture_otp_challenges_active_idx
+    ON capture_otp_challenges(tenant_id,distribution_id,route_id,expires_at DESC,id DESC)
+    WHERE consumed_at IS NULL;
+
 CREATE TABLE capture_distribution_sessions (
     id uuid PRIMARY KEY DEFAULT uuidv7(),
     tenant_id uuid NOT NULL,
