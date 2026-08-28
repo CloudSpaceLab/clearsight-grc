@@ -19,10 +19,13 @@ type DistributionPage struct {
 }
 
 type AmendDistributionInput struct {
-	ExpectedVersion int64
-	Deadline        *time.Time
-	RouteExpiresAt  *time.Time
-	ReminderPolicy  *map[string]any
+	ExpectedVersion   int64
+	Deadline          *time.Time
+	RouteExpiresAt    *time.Time
+	ReminderPolicy    *map[string]any
+	AddRecipients     []DistributionRecipientInput
+	RevokeRecipientIDs []string
+	ActorID           string
 }
 
 type DistributionImpact struct {
@@ -31,6 +34,8 @@ type DistributionImpact struct {
 	DeadlineChanged       bool      `json:"deadline_changed"`
 	RouteExpiryChanged    bool      `json:"route_expiry_changed"`
 	ReminderPolicyChanged bool      `json:"reminder_policy_changed"`
+	RecipientsAdded       int       `json:"recipients_added"`
+	RecipientsRevoked     int       `json:"recipients_revoked"`
 	EffectiveDeadline     time.Time `json:"effective_deadline"`
 	EffectiveRouteExpiry  time.Time `json:"effective_route_expiry"`
 	AffectedRecipients    int       `json:"affected_recipients"`
@@ -115,8 +120,24 @@ func (service *DistributionService) List(ctx context.Context, query Distribution
 }
 
 func (service *DistributionService) Amend(ctx context.Context, tenantID, legalEntityID, distributionID string, input AmendDistributionInput) (AmendDistributionResult, error) {
-	if service == nil || service.store == nil || input.ExpectedVersion < 1 {
-		return AmendDistributionResult{}, fmt.Errorf("%w: expected_version is required", ErrDistributionInvalid)
+	if service == nil || service.store == nil || input.ExpectedVersion < 1 || strings.TrimSpace(input.ActorID) == "" {
+		return AmendDistributionResult{}, fmt.Errorf("%w: expected_version and actor are required", ErrDistributionInvalid)
+	}
+	input.ActorID = strings.TrimSpace(input.ActorID)
+	if len(input.AddRecipients)+len(input.RevokeRecipientIDs) > 500 {
+		return AmendDistributionResult{}, fmt.Errorf("%w: too many recipient changes", ErrDistributionInvalid)
+	}
+	seen := make(map[string]struct{}, len(input.RevokeRecipientIDs))
+	for index, recipientID := range input.RevokeRecipientIDs {
+		recipientID = strings.TrimSpace(recipientID)
+		if recipientID == "" {
+			return AmendDistributionResult{}, fmt.Errorf("%w: recipient id is required", ErrDistributionInvalid)
+		}
+		if _, duplicate := seen[recipientID]; duplicate {
+			return AmendDistributionResult{}, fmt.Errorf("%w: duplicate recipient revocation", ErrDistributionInvalid)
+		}
+		seen[recipientID] = struct{}{}
+		input.RevokeRecipientIDs[index] = recipientID
 	}
 	value, err := service.store.AmendDistribution(ctx, tenantID, legalEntityID, distributionID, input, service.currentTime())
 	if err != nil {
