@@ -59,8 +59,11 @@ func communicationRecipientDeliverable(recipient communicationDeliveryRecipient,
 	if recipient.Type != RecipientExternalAudience || recipient.State == DistributionRecipientRevoked {
 		return false
 	}
-	if action == CommunicationInvitation && recipient.State == DistributionRecipientCompleted {
-		return false
+	if recipient.State == DistributionRecipientCompleted {
+		switch action {
+		case CommunicationInvitation, CommunicationReminder, CommunicationDueSoon:
+			return false
+		}
 	}
 	return recipient.Role == RecipientTo || recipient.Role == RecipientCC
 }
@@ -146,9 +149,9 @@ func renderCommunicationWithoutResponseRoute(template CommunicationTemplate, con
 		return RenderedMessage{}, fmt.Errorf("%w: CC copy has no status content after response-route removal", ErrCommunicationInvalid)
 	}
 	return RenderedMessage{
-		Subject:   protectedString{value: strings.TrimSpace(subject)},
+		Subject: protectedString{value: strings.TrimSpace(subject)},
 		PlainText: protectedString{value: strings.Join(plainParts, "\n\n")},
-		HTML:      protectedString{value: strings.Join(htmlParts, "\n")},
+		HTML: protectedString{value: strings.Join(htmlParts, "\n")},
 	}, nil
 }
 
