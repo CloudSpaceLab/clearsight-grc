@@ -18,6 +18,7 @@ func (a *API) formCommunicationRoutes() []routeSpec {
 	return []routeSpec{
 		withPermission(read("/api/v1/forms/communications/profiles", a.listCommunicationProfiles), identity.PermissionConfigRead),
 		configCommand("/api/v1/forms/communications/profiles", "forms.communication.profile.create", a.createCommunicationProfile),
+		withPermission(read("/api/v1/forms/communications/profiles/{version}", a.getCommunicationProfile), identity.PermissionConfigRead),
 		configCommand("/api/v1/forms/communications/profiles/{version}/transition", "forms.communication.profile.transition", a.transitionCommunicationProfile),
 		configCommand("/api/v1/forms/communications/profiles/{version}/rollback", "forms.communication.profile.rollback", a.rollbackCommunicationProfile),
 
