@@ -8,9 +8,11 @@ import "net/http"
 func (a *API) productionRoutes() []routeSpec {
 	base := a.routes()
 	distributions := a.formDistributionRoutes()
-	routes := make([]routeSpec, 0, len(base)+len(distributions))
+	communications := a.formCommunicationRoutes()
+	routes := make([]routeSpec, 0, len(base)+len(distributions)+len(communications))
 	routes = append(routes, base...)
 	routes = append(routes, distributions...)
+	routes = append(routes, communications...)
 	return routes
 }
 
