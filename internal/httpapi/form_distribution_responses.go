@@ -45,16 +45,16 @@ func (a *API) listFormDistributionResponses(w http.ResponseWriter, r *http.Reque
 
 func responseRevisionJSON(value evidence.ResponseRevision) map[string]any {
 	item := map[string]any{
-		"id": value.ID,
-		"revision": value.Revision,
-		"achieved_assurance": value.AchievedAssurance,
-		"signoff_summary": value.SignoffSummary,
+		"id":                     value.ID,
+		"revision":               value.Revision,
+		"achieved_assurance":     value.AchievedAssurance,
+		"signoff_summary":        value.SignoffSummary,
 		"scored_weight_coverage": value.ScoredWeightCoverage,
-		"state": value.State,
+		"state":                  value.State,
 		"critical_field_results": value.CriticalFieldResults,
 		"scoring_policy_version": value.ScoringPolicyVersion,
-		"current": value.Current,
-		"created_at": value.CreatedAt,
+		"current":                value.Current,
+		"created_at":             value.CreatedAt,
 	}
 	if value.SupersedesRevisionID != "" {
 		item["supersedes_revision_id"] = value.SupersedesRevisionID

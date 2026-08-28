@@ -178,7 +178,7 @@ export function loadRecipientCandidates(search: string, limit = 12): Promise<Rec
 }
 
 export function transitionDistribution(id: string, version: number, action: "lock" | "reopen" | "revoke"): Promise<DistributionDetail> {
-  return requestJSON(apiBase, `/api/v1/forms/distributions/${encodeURIComponent(id)}/${action}`, { method: "POST", body: JSON.stringify({ expected_version: version }) }).then(normalizeDetail);
+  return requestJSON<Parameters<typeof normalizeDetail>[0]>(apiBase, `/api/v1/forms/distributions/${encodeURIComponent(id)}/${action}`, { method: "POST", body: JSON.stringify({ expected_version: version }) }).then(normalizeDetail);
 }
 
 export function loadResponseRevisions(id: string, limit = 100): Promise<ResponseRevisionPage> {

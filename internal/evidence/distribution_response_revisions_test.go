@@ -42,7 +42,7 @@ func (store *responseRevisionTestStore) ListDistributionResponseRevisions(_ cont
 
 func TestDistributionResponseRevisionsResolveScopeBeforeHistoryRead(t *testing.T) {
 	store := &responseRevisionTestStore{
-		bundle: DistributionBundle{Distribution: FormDistribution{ID: "distribution-a", TenantID: "bank", LegalEntityID: "entity-a"}},
+		bundle:    DistributionBundle{Distribution: FormDistribution{ID: "distribution-a", TenantID: "bank", LegalEntityID: "entity-a"}},
 		revisions: []ResponseRevision{{ID: "revision-a", Revision: 2, Current: true, State: ResponseRevisionFinal}},
 	}
 	service := NewDistributionService(store)

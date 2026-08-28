@@ -143,5 +143,5 @@ function validDates(deadline: string, expiry: string) {
 function maskAddress(value?: string) {
   if (!value) return "External recipient";
   const [local, domain] = value.split("@");
-  return domain ? `${local.slice(0, 1)}***@${domain}` : "External recipient";
+  return domain ? `${(local ?? "").slice(0, 1)}***@${domain}` : "External recipient";
 }
