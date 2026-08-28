@@ -100,8 +100,8 @@ func (service *DistributionService) List(ctx context.Context, query Distribution
 	if query.Limit == 0 {
 		query.Limit = 25
 	}
-	if query.Limit < 1 || query.Limit > 100 {
-		return DistributionPage{}, fmt.Errorf("%w: limit must be between 1 and 100", ErrDistributionInvalid)
+	if !normalizeDistributionListQuery(&query, service.currentTime()) {
+		return DistributionPage{}, fmt.Errorf("%w: distribution filters are invalid", ErrDistributionInvalid)
 	}
 	values, err := service.store.ListDistributions(ctx, query)
 	if err != nil {
