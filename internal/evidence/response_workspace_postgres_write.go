@@ -80,7 +80,7 @@ func insertPostgresWorkspaceSubmission(ctx context.Context, tx pgx.Tx, command w
 			  ON r.request_id=a.request_id AND r.tenant_id=a.tenant_id
 			WHERE a.tenant_id=$1::uuid AND a.id::text=ANY($2::text[])
 			  AND r.distribution_id=$3::uuid AND r.legal_entity_id=$4::uuid AND r.role='TO'
-			  AND r.state NOT IN ('REVOKED','COMPLETED')`,
+			  AND r.state<>'REVOKED'`,
 			command.Session.TenantID, artifactIDs, command.Session.DistributionID, command.Session.LegalEntityID).Scan(&eligible); err != nil || eligible != len(artifactIDs) {
 			return SubmissionReceipt{}, ErrWorkspaceUnavailable
 		}
