@@ -22,18 +22,6 @@ type memoryWorkspaceState struct {
 	revisions  []ResponseRevision
 }
 
-type memoryWorkspaceRegistry struct {
-	mu         sync.Mutex
-	workspaces map[string]*memoryWorkspaceState
-}
-
-var memoryWorkspaceRegistries sync.Map
-
-func memoryWorkspaceRegistryFor(store *MemoryDistributionAccessStore) *memoryWorkspaceRegistry {
-	value, _ := memoryWorkspaceRegistries.LoadOrStore(store, &memoryWorkspaceRegistry{workspaces: map[string]*memoryWorkspaceState{}})
-	return value.(*memoryWorkspaceRegistry)
-}
-
 func (store *MemoryDistributionAccessStore) GetResponseWorkspace(_ context.Context, session DistributionAccessSession, request Request, now time.Time) (ResponseWorkspaceView, error) {
 	workspace, err := store.validateMemoryWorkspaceAccess(session, request, now)
 	if err != nil {
@@ -298,10 +286,9 @@ func (store *MemoryDistributionAccessStore) saveMemoryWorkspaceLocked(state *mem
 }
 
 func (store *MemoryDistributionAccessStore) memoryWorkspaceState(workspace ResponseWorkspace, request Request) *memoryWorkspaceState {
-	registry := memoryWorkspaceRegistryFor(store)
-	registry.mu.Lock()
-	defer registry.mu.Unlock()
-	state := registry.workspaces[workspace.DistributionID]
+	store.workspaceMu.Lock()
+	defer store.workspaceMu.Unlock()
+	state := store.workspaceStates[workspace.DistributionID]
 	if state != nil {
 		return state
 	}
@@ -312,7 +299,7 @@ func (store *MemoryDistributionAccessStore) memoryWorkspaceState(workspace Respo
 		sequences:  map[string]int64{},
 		provenance: map[string]WorkspaceFieldProvenance{},
 	}
-	registry.workspaces[workspace.DistributionID] = state
+	store.workspaceStates[workspace.DistributionID] = state
 	return state
 }
 
