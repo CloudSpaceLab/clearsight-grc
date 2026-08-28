@@ -43,7 +43,7 @@ func TestRuntimeOpenAPIExactlyMatchesRegisteredProductionRoutes(t *testing.T) {
 		}
 	}
 
-	registered := (&API{}).routes()
+	registered := (&API{}).productionRoutes()
 	if len(documented) != len(registered) {
 		t.Fatalf("runtime OpenAPI has %d operations but route registry has %d", len(documented), len(registered))
 	}
