@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 )
@@ -11,6 +13,9 @@ func configuredCommunicationDelivery(cfg config.Config) (*evidence.InvitationDel
 		return nil, err
 	}
 	if !smtpConfig.Enabled {
+		if cfg.RecipientSecurity.ExternalDeliveryEnabled {
+			return nil, fmt.Errorf("external form delivery requires SMTP configuration")
+		}
 		return nil, nil
 	}
 	adapter, err := evidence.NewSMTPDelivery(evidence.SMTPDeliveryConfig{
