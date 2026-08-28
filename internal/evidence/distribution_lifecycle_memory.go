@@ -61,10 +61,12 @@ func (s *MemoryDistributionStore) AmendDistribution(ctx context.Context, tenantI
 
 	next := cloneDistribution(current)
 	impact := DistributionImpact{
-		CurrentVersion: current.Version, NextVersion: current.Version + 1,
-		EffectiveDeadline: current.Deadline, EffectiveRouteExpiry: current.RouteExpiresAt,
-		AffectedRecipients: len(s.recipients[distributionID]) + len(preparedRecipients),
-		RecipientsAdded: len(preparedRecipients),
+		CurrentVersion:       current.Version,
+		NextVersion:          current.Version + 1,
+		EffectiveDeadline:    current.Deadline,
+		EffectiveRouteExpiry: current.RouteExpiresAt,
+		AffectedRecipients:   len(s.recipients[distributionID]) + len(preparedRecipients),
+		RecipientsAdded:      len(preparedRecipients),
 	}
 	if input.Deadline != nil {
 		deadline := input.Deadline.UTC()
