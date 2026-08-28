@@ -140,7 +140,7 @@ func (worker *CommunicationDeliveryWorker) Publish(ctx context.Context, event wo
 			return fmt.Errorf("%w: render %s", ErrCommunicationDeliveryRetry, action)
 		}
 
-		receipt, deliveryErr := worker.delivery.Deliver(ctx, InvitationDeliveryRequest{
+		receipt, deliveryErr := worker.delivery.DeliverGoverned(ctx, InvitationDeliveryRequest{
 			RecipientAddress: address,
 			InvitationLink:   link,
 			Subject:          rendered.Subject.value,
@@ -178,6 +178,39 @@ func (worker *CommunicationDeliveryWorker) deliveryRoute(ctx context.Context, bu
 		recipientID = ""
 		hint = ""
 	}
+
+	active, err := worker.access.store.ListActiveAccessRoutes(
+		ctx,
+		bundle.Distribution.TenantID,
+		bundle.Distribution.LegalEntityID,
+		bundle.Distribution.ID,
+		worker.currentTime(),
+	)
+	if err != nil {
+		return IssuedAccessRoute{}, fmt.Errorf("%w: inspect access routes", ErrCommunicationDeliveryRetry)
+	}
+	for _, current := range active {
+		if current.Policy != bundle.Distribution.AccessPolicy || current.RecipientID != recipientID {
+			continue
+		}
+		issued, rotateErr := worker.access.RotateDistributionAccessRoute(
+			ctx,
+			bundle.Distribution.TenantID,
+			bundle.Distribution.LegalEntityID,
+			bundle.Distribution.ID,
+			current.ID,
+			bundle.Distribution.CreatedBy,
+		)
+		if rotateErr != nil {
+			return IssuedAccessRoute{}, fmt.Errorf("%w: rotate access route", ErrCommunicationDeliveryRetry)
+		}
+		if bundle.Distribution.AccessPolicy == AccessSharedEmailOTP {
+			copy := issued
+			*shared = &copy
+		}
+		return issued, nil
+	}
+
 	route, issued, err := worker.access.engine.IssueRoute(AccessRouteInput{
 		TenantID: bundle.Distribution.TenantID, LegalEntityID: bundle.Distribution.LegalEntityID,
 		DistributionID: bundle.Distribution.ID, RecipientID: recipientID,
@@ -199,7 +232,7 @@ func (worker *CommunicationDeliveryWorker) deliveryRoute(ctx context.Context, bu
 }
 
 func (worker *CommunicationDeliveryWorker) skipRecipients(ctx context.Context, event workflowruntime.OutboxEvent, bundle communicationDeliveryBundle, action CommunicationAction, reason string, now time.Time) error {
-	template := CommunicationTemplate{ID: "00000000-0000-0000-0000-000000000000", TenantID: bundle.Distribution.TenantID, LegalEntityID: bundle.Distribution.LegalEntityID, Action: action, Version: 1}
+	template := CommunicationTemplate{TenantID: bundle.Distribution.TenantID, LegalEntityID: bundle.Distribution.LegalEntityID, Action: action}
 	for _, recipient := range bundle.Recipients {
 		if !communicationRecipientDeliverable(recipient, action) {
 			continue
