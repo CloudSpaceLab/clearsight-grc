@@ -13,7 +13,7 @@ import (
 func (store *PostgresDistributionStore) ActiveOTPChallenge(ctx context.Context, route AccessRoute, recipientID string, now time.Time) (otpChallengeSnapshot, error) {
 	challenge, err := scanOTPChallenge(store.repo.pool.QueryRow(ctx, otpChallengeSelect+`
 		WHERE c.route_id=$1::uuid AND c.tenant_id=$2::uuid AND c.legal_entity_id=$3::uuid AND c.distribution_id=$4::uuid
-		  AND c.recipient_id=$5::uuid AND c.consumed_at IS NULL AND c.attempts<c.max_attempts AND c.expires_at>$6
+		  AND c.recipient_id=$5::uuid AND c.consumed_at IS NULL AND c.expires_at>$6
 		ORDER BY c.created_at DESC,c.id DESC LIMIT 1`, route.ID, route.TenantID, route.LegalEntityID, route.DistributionID, recipientID, now))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return otpChallengeSnapshot{}, nil
@@ -51,8 +51,7 @@ func (store *PostgresDistributionStore) CreateOTPChallenge(ctx context.Context, 
 	if err := tx.QueryRow(ctx, `
 		SELECT EXISTS(
 			SELECT 1 FROM capture_otp_challenges
-			WHERE route_id=$1::uuid AND recipient_id=$2::uuid AND consumed_at IS NULL
-			  AND attempts<max_attempts AND expires_at>$3
+			WHERE route_id=$1::uuid AND recipient_id=$2::uuid AND consumed_at IS NULL AND expires_at>$3
 		)`, challenge.RouteID, challenge.RecipientID, challenge.CreatedAt).Scan(&active); err != nil || active {
 		return ErrAccessVerificationFailed
 	}
