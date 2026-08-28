@@ -44,7 +44,7 @@ func (service *DistributionAccessService) SaveResponseWorkspace(ctx context.Cont
 		Input:   input,
 		Now:     service.currentTime(),
 		Validate: func(answers map[string]formcontract.AnswerValue) error {
-			return validator.ValidateWorkspaceAnswers(ctx, request, answers, false)
+			return validator.ValidateWorkspaceAnswers(ctx, session, request, answers, false)
 		},
 	})
 	if err != nil {
@@ -75,7 +75,7 @@ func (service *DistributionAccessService) SubmitResponseWorkspace(ctx context.Co
 		Input:   input,
 		Now:     service.currentTime(),
 		Validate: func(answers map[string]formcontract.AnswerValue) error {
-			return validator.ValidateWorkspaceAnswers(ctx, request, answers, true)
+			return validator.ValidateWorkspaceAnswers(ctx, session, request, answers, true)
 		},
 		BuildRevision: func(answers map[string]formcontract.AnswerValue) (ResponseRevision, error) {
 			return buildResponseRevision(request, session.Assurance, input.AttestationFieldIDs, answers)
@@ -108,7 +108,7 @@ func (service *DistributionAccessService) ClearResponseWorkspace(ctx context.Con
 		},
 		Now: service.currentTime(),
 		Validate: func(answers map[string]formcontract.AnswerValue) error {
-			return validator.ValidateWorkspaceAnswers(ctx, request, answers, false)
+			return validator.ValidateWorkspaceAnswers(ctx, session, request, answers, false)
 		},
 	})
 	if err != nil {
