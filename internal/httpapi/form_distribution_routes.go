@@ -6,32 +6,13 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 )
 
-func (a *API) registerFormDistributionRoutes(mux *http.ServeMux) {
-	routes := a.formDistributionRoutes()
-	if err := validateRoutes(routes); err != nil {
-		panic(err)
-	}
-	for _, spec := range routes {
-		handler := spec.Handler
-		if spec.Command != nil {
-			if spec.RawCommand {
-				handler = a.rawCommand(spec.Command.Name, spec.Command.Policy, handler)
-			} else {
-				handler = a.command(spec.Command.Name, spec.Command.Policy, handler)
-			}
-		}
-		handler = a.routeAccess(spec, handler)
-		mux.HandleFunc(spec.Method+" "+spec.Path, handler)
-	}
-}
-
 func (a *API) formDistributionRoutes() []routeSpec {
 	owner := func(path, command string, handler http.HandlerFunc) routeSpec {
 		return material(path, command, handler, commandPolicy{ObjectType: "FORM_DISTRIBUTION", ObjectIDPath: "id", Responsibility: authority.ResponsibilityOwner, Materiality: 3, ActorField: noActorField})
 	}
 	return []routeSpec{
 		read("/api/v1/forms/distributions", a.listFormDistributions),
-		material("/api/v1/forms/distributions", "forms.distribution.create", a.createFormDistribution, commandPolicy{ObjectType: "LEGAL_ENTITY", Responsibility: authority.ResponsibilityOwner, Materiality: 3, BindLegalEntity: true, ActorField: noActorField}),
+		material("/api/v1/forms/distributions", "forms.distribution.create", a.dispatchFormDistribution, commandPolicy{ObjectType: "LEGAL_ENTITY", Responsibility: authority.ResponsibilityOwner, Materiality: 3, BindLegalEntity: true, ActorField: noActorField}),
 		read("/api/v1/forms/distributions/{id}", a.getFormDistribution),
 		owner("/api/v1/forms/distributions/{id}/amend", "forms.distribution.amend", a.amendFormDistribution),
 		owner("/api/v1/forms/distributions/{id}/access-routes/{route_id}/rotate", "forms.distribution.access.rotate", a.rotateFormDistributionAccessRoute),
