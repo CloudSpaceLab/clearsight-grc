@@ -206,6 +206,6 @@ func postgresWorkspaceConflict(view ResponseWorkspaceView, edits []FieldEdit) *W
 }
 
 var (
-	_ responseWorkspaceStore             = (*PostgresDistributionStore)(nil)
+	_ responseWorkspaceStore            = (*PostgresDistributionStore)(nil)
 	_ workspaceAnswerValidationProvider = (*PostgresDistributionStore)(nil)
 )
