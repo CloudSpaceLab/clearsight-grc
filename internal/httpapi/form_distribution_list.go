@@ -42,11 +42,15 @@ func (a *API) listFilteredFormDistributions(w http.ResponseWriter, r *http.Reque
 		limit = value
 	}
 	page, err := service.List(r.Context(), evidence.DistributionListQuery{
-		TenantID: actor.TenantID, LegalEntityID: legalEntityID,
-		Status: evidence.DistributionStatus(strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("status")))),
-		DueState: evidence.DistributionDueState(strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("due_state")))),
-		SubjectType: r.URL.Query().Get("subject_type"), SubjectID: r.URL.Query().Get("subject_id"),
-		OwnerPrincipalID: r.URL.Query().Get("owner"), Cursor: strings.TrimSpace(r.URL.Query().Get("cursor")), Limit: limit,
+		TenantID:         actor.TenantID,
+		LegalEntityID:    legalEntityID,
+		Status:           evidence.DistributionStatus(strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("status")))),
+		DueState:         evidence.DistributionDueState(strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("due_state")))),
+		SubjectType:      r.URL.Query().Get("subject_type"),
+		SubjectID:        r.URL.Query().Get("subject_id"),
+		OwnerPrincipalID: r.URL.Query().Get("owner"),
+		Cursor:           strings.TrimSpace(r.URL.Query().Get("cursor")),
+		Limit:            limit,
 	})
 	if err != nil {
 		writeFormDistributionError(w, err)
