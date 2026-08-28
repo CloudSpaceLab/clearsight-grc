@@ -112,7 +112,7 @@ type responseWorkspaceStore interface {
 }
 
 type workspaceAnswerValidationProvider interface {
-	ValidateWorkspaceAnswers(context.Context, Request, map[string]formcontract.AnswerValue, bool) error
+	ValidateWorkspaceAnswers(context.Context, DistributionAccessSession, Request, map[string]formcontract.AnswerValue, bool) error
 }
 
 func applyWorkspaceEdit(answers map[string]formcontract.AnswerValue, edit FieldEdit) {
