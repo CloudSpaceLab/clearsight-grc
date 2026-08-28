@@ -22,17 +22,28 @@ import (
 
 func main() {
 	cfg, err := config.Load()
-	if err != nil { panic(err) }
+	if err != nil {
+		panic(err)
+	}
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.LogLevel}))
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	services, err := buildServices(ctx, cfg, logger)
-	if err != nil { logger.Error("service initialization failed", "error", err); os.Exit(1) }
+	if err != nil {
+		logger.Error("service initialization failed", "error", err)
+		os.Exit(1)
+	}
 	defer services.Close()
 	authenticator, federationService, err := buildIdentity(ctx, cfg, services)
-	if err != nil { logger.Error("identity initialization failed", "error", err); os.Exit(1) }
+	if err != nil {
+		logger.Error("identity initialization failed", "error", err)
+		os.Exit(1)
+	}
 	guard, err := commandauth.New(services.Authority, commandauth.Mode(cfg.CommandAuthorizationMode), logger)
-	if err != nil { logger.Error("command authorization initialization failed", "error", err); os.Exit(1) }
+	if err != nil {
+		logger.Error("command authorization initialization failed", "error", err)
+		os.Exit(1)
+	}
 	services.ThirdParty.ConfigureIdentityAuthority(guard)
 	services.Monitoring.ConfigureCommandGuard(guard)
 	vendorBrandService := thirdparty.NewVendorBrandService(services.ThirdPartyBrandRepo, services.ObjectStore, guard)
@@ -49,12 +60,18 @@ func main() {
 		assessmentService, services.ThirdPartyAssessmentRepo, services.Evidence, services.MonitoringRepo,
 		evidence.NewInvitationDeliveryService(nil), cfg.CapturePublicBaseURL, cfg.Environment,
 	)
-	if err != nil { logger.Error("vendor due-diligence initialization failed", "error", err); os.Exit(1) }
+	if err != nil {
+		logger.Error("vendor due-diligence initialization failed", "error", err)
+		os.Exit(1)
+	}
 	vendorWorkService, err := thirdparty.NewVendorWorkService(
 		services.ThirdPartyWorkRepo, services.ThirdPartyRelationshipLinkRepo, services.Evidence, services.MonitoringRepo,
 		evidence.NewInvitationDeliveryService(nil), cfg.CapturePublicBaseURL, cfg.Environment,
 	)
-	if err != nil { logger.Error("vendor request initialization failed", "error", err); os.Exit(1) }
+	if err != nil {
+		logger.Error("vendor request initialization failed", "error", err)
+		os.Exit(1)
+	}
 	vendorWorkService.ConfigureRelationshipReader(services.ThirdPartyAssessmentRepo)
 	vendorWorkService.ConfigureAuthority(guard)
 	vendorWorkService.ConfigureReadAuthority(services.Authority)
@@ -88,24 +105,34 @@ func main() {
 	case sig := <-stop:
 		logger.Info("shutdown requested", "signal", sig.String())
 	case err := <-serverErrors:
-		if !errors.Is(err, http.ErrServerClosed) { logger.Error("api stopped unexpectedly", "error", err); os.Exit(1) }
+		if !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("api stopped unexpectedly", "error", err)
+			os.Exit(1)
+		}
 	}
 	cancel()
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
-	if err := server.Shutdown(shutdownCtx); err != nil { logger.Error("graceful shutdown failed", "error", err); _ = server.Close() }
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		logger.Error("graceful shutdown failed", "error", err)
+		_ = server.Close()
+	}
 }
 
 func buildIdentity(ctx context.Context, cfg config.Config, services serviceSet) (identity.Authenticator, *federation.Service, error) {
 	switch cfg.IdentityMode {
 	case "oidc":
-		if services.Access == nil || services.SessionStore == nil { return nil, nil, fmt.Errorf("OIDC identity mode requires PostgreSQL access and session services") }
+		if services.Access == nil || services.SessionStore == nil {
+			return nil, nil, fmt.Errorf("OIDC identity mode requires PostgreSQL access and session services")
+		}
 		service, err := federation.New(ctx, federation.Config{
 			Issuer: cfg.OIDCIssuer, ClientID: cfg.OIDCClientID, ClientSecret: cfg.OIDCClientSecret,
 			RedirectURL: cfg.OIDCRedirectURL, ApplicationURL: cfg.AllowedOrigin,
 			SessionLifetime: cfg.OIDCSessionLifetime, IdleTimeout: cfg.OIDCSessionIdleTimeout, SecureCookies: cfg.OIDCSecureCookies,
 		}, services.SessionStore, services.Access)
-		if err != nil { return nil, nil, err }
+		if err != nil {
+			return nil, nil, err
+		}
 		return service, service, nil
 	case "signed":
 		authenticator, err := identity.NewSignedAuthenticator(cfg.IdentityHMACSecret, cfg.IdentityMaxSkew)

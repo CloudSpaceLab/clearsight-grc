@@ -64,7 +64,9 @@ func (s *PostgresDistributionStore) AmendDistribution(ctx context.Context, tenan
 	}
 	if !impact.DeadlineChanged && !impact.RouteExpiryChanged && !impact.ReminderPolicyChanged {
 		bundle, err := postgresBundleInTx(ctx, tx, current)
-		if err != nil { return AmendDistributionResult{}, err }
+		if err != nil {
+			return AmendDistributionResult{}, err
+		}
 		return AmendDistributionResult{Bundle: bundle, Impact: impact}, nil
 	}
 	policyJSON, err := json.Marshal(next.ReminderPolicy)
@@ -93,7 +95,9 @@ func (s *PostgresDistributionStore) AmendDistribution(ctx context.Context, tenan
 	impact.EffectiveDeadline = next.Deadline
 	impact.EffectiveRouteExpiry = next.RouteExpiresAt
 	bundle, err := s.GetDistribution(ctx, next.TenantID, next.LegalEntityID, next.ID)
-	if err != nil { return AmendDistributionResult{}, err }
+	if err != nil {
+		return AmendDistributionResult{}, err
+	}
 	return AmendDistributionResult{Bundle: bundle, Impact: impact}, nil
 }
 
@@ -102,11 +106,17 @@ func (s *PostgresDistributionStore) TransitionDistribution(ctx context.Context, 
 		return DistributionBundle{}, ErrDistributionInvalid
 	}
 	tx, err := s.repo.pool.Begin(ctx)
-	if err != nil { return DistributionBundle{}, err }
+	if err != nil {
+		return DistributionBundle{}, err
+	}
 	defer tx.Rollback(ctx)
 	current, err := lockPostgresDistribution(ctx, tx, tenantID, legalEntityID, distributionID)
-	if errors.Is(err, pgx.ErrNoRows) { return DistributionBundle{}, ErrNotFound }
-	if err != nil { return DistributionBundle{}, err }
+	if errors.Is(err, pgx.ErrNoRows) {
+		return DistributionBundle{}, ErrNotFound
+	}
+	if err != nil {
+		return DistributionBundle{}, err
+	}
 	if current.Version != input.ExpectedVersion || !validDistributionTransition(current.Status, input.To, now.UTC(), current.Deadline) {
 		return DistributionBundle{}, ErrDistributionConflict
 	}
@@ -114,21 +124,39 @@ func (s *PostgresDistributionStore) TransitionDistribution(ctx context.Context, 
 	current.Version++
 	current.UpdatedAt = now.UTC()
 	tag, err := tx.Exec(ctx, `UPDATE capture_form_distributions SET status=$5,version=$6,updated_at=$7 WHERE id=$1::uuid AND tenant_id=$2::uuid AND legal_entity_id=$3::uuid AND version=$4`, current.ID, current.TenantID, current.LegalEntityID, input.ExpectedVersion, current.Status, current.Version, current.UpdatedAt)
-	if err != nil || tag.RowsAffected() != 1 { return DistributionBundle{}, ErrDistributionConflict }
+	if err != nil || tag.RowsAffected() != 1 {
+		return DistributionBundle{}, ErrDistributionConflict
+	}
 	workspaceStatus := ResponseWorkspaceOpen
 	switch input.To {
-	case DistributionLocked: workspaceStatus = ResponseWorkspaceLocked
-	case DistributionRevoked: workspaceStatus = ResponseWorkspaceRevoked
+	case DistributionLocked:
+		workspaceStatus = ResponseWorkspaceLocked
+	case DistributionRevoked:
+		workspaceStatus = ResponseWorkspaceRevoked
 	}
-	if _, err := tx.Exec(ctx, `UPDATE capture_response_workspaces SET status=$4,version=version+1,updated_at=$5 WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND distribution_id=$3::uuid`, current.TenantID, current.LegalEntityID, current.ID, workspaceStatus, now.UTC()); err != nil { return DistributionBundle{}, err }
+	if _, err := tx.Exec(ctx, `UPDATE capture_response_workspaces SET status=$4,version=version+1,updated_at=$5 WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND distribution_id=$3::uuid`, current.TenantID, current.LegalEntityID, current.ID, workspaceStatus, now.UTC()); err != nil {
+		return DistributionBundle{}, err
+	}
 	if input.To == DistributionRevoked {
-		if _, err := tx.Exec(ctx, `UPDATE capture_distribution_recipients SET state='REVOKED',version=version+1,updated_at=$3 WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid AND state<>'REVOKED'`, current.TenantID, current.ID, now.UTC()); err != nil { return DistributionBundle{}, err }
-		if _, err := tx.Exec(ctx, `UPDATE capture_requests SET status='CANCELLED',version=version+1,updated_at=$3 WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid AND status NOT IN ('CANCELLED','EXPIRED')`, current.TenantID, current.ID, now.UTC()); err != nil { return DistributionBundle{}, err }
-		if _, err := tx.Exec(ctx, `UPDATE capture_access_routes SET revoked_at=COALESCE(revoked_at,$3) WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid`, current.TenantID, current.ID, now.UTC()); err != nil { return DistributionBundle{}, err }
-		if _, err := tx.Exec(ctx, `UPDATE capture_distribution_sessions SET revoked_at=COALESCE(revoked_at,$3) WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid`, current.TenantID, current.ID, now.UTC()); err != nil { return DistributionBundle{}, err }
+		if _, err := tx.Exec(ctx, `UPDATE capture_distribution_recipients SET state='REVOKED',version=version+1,updated_at=$3 WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid AND state<>'REVOKED'`, current.TenantID, current.ID, now.UTC()); err != nil {
+			return DistributionBundle{}, err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE capture_requests SET status='CANCELLED',version=version+1,updated_at=$3 WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid AND status NOT IN ('CANCELLED','EXPIRED')`, current.TenantID, current.ID, now.UTC()); err != nil {
+			return DistributionBundle{}, err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE capture_access_routes SET revoked_at=COALESCE(revoked_at,$3) WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid`, current.TenantID, current.ID, now.UTC()); err != nil {
+			return DistributionBundle{}, err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE capture_distribution_sessions SET revoked_at=COALESCE(revoked_at,$3) WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid`, current.TenantID, current.ID, now.UTC()); err != nil {
+			return DistributionBundle{}, err
+		}
 	}
-	if err := appendPostgresDistributionLifecycleEvent(ctx, tx, current, "FORM_DISTRIBUTION_"+string(input.To), input.ActorID, now); err != nil { return DistributionBundle{}, err }
-	if err := tx.Commit(ctx); err != nil { return DistributionBundle{}, err }
+	if err := appendPostgresDistributionLifecycleEvent(ctx, tx, current, "FORM_DISTRIBUTION_"+string(input.To), input.ActorID, now); err != nil {
+		return DistributionBundle{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return DistributionBundle{}, err
+	}
 	return s.GetDistribution(ctx, current.TenantID, current.LegalEntityID, current.ID)
 }
 
@@ -144,24 +172,36 @@ func lockPostgresDistribution(ctx context.Context, tx pgx.Tx, tenantID, legalEnt
 
 func appendPostgresDistributionLifecycleEvent(ctx context.Context, tx pgx.Tx, distribution FormDistribution, eventType, actorID string, now time.Time) error {
 	payloadJSON, err := json.Marshal(map[string]any{"version": distribution.Version, "status": distribution.Status})
-	if err != nil { return err }
-	if _, err := tx.Exec(ctx, `INSERT INTO capture_distribution_events(tenant_id,legal_entity_id,distribution_id,distribution_version,event_type,payload,actor_id,occurred_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5,$6::jsonb,NULLIF($7,'')::uuid,$8)`, distribution.TenantID, distribution.LegalEntityID, distribution.ID, distribution.Version, eventType, string(payloadJSON), actorID, now.UTC()); err != nil { return err }
+	if err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO capture_distribution_events(tenant_id,legal_entity_id,distribution_id,distribution_version,event_type,payload,actor_id,occurred_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5,$6::jsonb,NULLIF($7,'')::uuid,$8)`, distribution.TenantID, distribution.LegalEntityID, distribution.ID, distribution.Version, eventType, string(payloadJSON), actorID, now.UTC()); err != nil {
+		return err
+	}
 	_, err = tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at) VALUES($1::uuid,'FORM_DISTRIBUTION',$2::uuid,$3,$4::jsonb,$5,$5,$5)`, distribution.TenantID, distribution.ID, eventType, string(payloadJSON), now.UTC())
 	return err
 }
 
 func postgresBundleInTx(ctx context.Context, tx pgx.Tx, distribution FormDistribution) (DistributionBundle, error) {
 	rows, err := tx.Query(ctx, `SELECT id::text,distribution_id::text,tenant_id::text,legal_entity_id::text,role,recipient_type,COALESCE(principal_id::text,''),COALESCE(request_id::text,''),audience_hint,contact_label,state,version,created_at,updated_at FROM capture_distribution_recipients WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND distribution_id=$3::uuid ORDER BY created_at,id`, distribution.TenantID, distribution.LegalEntityID, distribution.ID)
-	if err != nil { return DistributionBundle{}, err }
+	if err != nil {
+		return DistributionBundle{}, err
+	}
 	defer rows.Close()
 	recipients := []DistributionRecipient{}
 	for rows.Next() {
 		var value DistributionRecipient
-		if err := rows.Scan(&value.ID,&value.DistributionID,&value.TenantID,&value.LegalEntityID,&value.Role,&value.Type,&value.PrincipalID,&value.RequestID,&value.AudienceHint,&value.ContactLabel,&value.State,&value.Version,&value.CreatedAt,&value.UpdatedAt); err != nil { return DistributionBundle{}, err }
-		recipients = append(recipients,value)
+		if err := rows.Scan(&value.ID, &value.DistributionID, &value.TenantID, &value.LegalEntityID, &value.Role, &value.Type, &value.PrincipalID, &value.RequestID, &value.AudienceHint, &value.ContactLabel, &value.State, &value.Version, &value.CreatedAt, &value.UpdatedAt); err != nil {
+			return DistributionBundle{}, err
+		}
+		recipients = append(recipients, value)
 	}
-	if err := rows.Err(); err != nil { return DistributionBundle{}, err }
+	if err := rows.Err(); err != nil {
+		return DistributionBundle{}, err
+	}
 	workspace, err := scanWorkspace(tx.QueryRow(ctx, `SELECT id::text,tenant_id::text,legal_entity_id::text,distribution_id::text,status,version,created_at,updated_at FROM capture_response_workspaces WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND distribution_id=$3::uuid`, distribution.TenantID, distribution.LegalEntityID, distribution.ID))
-	if err != nil { return DistributionBundle{}, err }
+	if err != nil {
+		return DistributionBundle{}, err
+	}
 	return DistributionBundle{Distribution: distribution, Recipients: recipients, Workspace: workspace}, nil
 }

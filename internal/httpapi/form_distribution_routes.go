@@ -8,11 +8,17 @@ import (
 
 func (a *API) registerFormDistributionRoutes(mux *http.ServeMux) {
 	routes := a.formDistributionRoutes()
-	if err := validateRoutes(routes); err != nil { panic(err) }
+	if err := validateRoutes(routes); err != nil {
+		panic(err)
+	}
 	for _, spec := range routes {
 		handler := spec.Handler
 		if spec.Command != nil {
-			if spec.RawCommand { handler = a.rawCommand(spec.Command.Name, spec.Command.Policy, handler) } else { handler = a.command(spec.Command.Name, spec.Command.Policy, handler) }
+			if spec.RawCommand {
+				handler = a.rawCommand(spec.Command.Name, spec.Command.Policy, handler)
+			} else {
+				handler = a.command(spec.Command.Name, spec.Command.Policy, handler)
+			}
 		}
 		handler = a.routeAccess(spec, handler)
 		mux.HandleFunc(spec.Method+" "+spec.Path, handler)
