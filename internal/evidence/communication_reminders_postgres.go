@@ -48,9 +48,7 @@ func (repository *PostgresCommunicationReminderRepository) ScheduleDueCommunicat
 		}
 		candidates = append(candidates, value)
 	}
-	if err := rows.Close(); err != nil {
-		return 0, err
-	}
+	rows.Close()
 	if err := rows.Err(); err != nil {
 		return 0, err
 	}
