@@ -9,12 +9,12 @@ import (
 )
 
 type communicationDeliveryRepositoryStub struct {
-	bundle       communicationDeliveryBundle
-	prior        CommunicationDeliveryAttempt
-	priorFound   bool
-	records      int
-	lastFailure  string
-	lastReceipt  InvitationDeliveryReceipt
+	bundle      communicationDeliveryBundle
+	prior       CommunicationDeliveryAttempt
+	priorFound  bool
+	records     int
+	lastFailure string
+	lastReceipt InvitationDeliveryReceipt
 }
 
 func (stub *communicationDeliveryRepositoryStub) LoadCommunicationDelivery(context.Context, string, string) (communicationDeliveryBundle, error) {
@@ -40,9 +40,9 @@ func TestCommunicationDeliveryWorkerSkipsAlreadyFinalAttempt(t *testing.T) {
 	repository := &communicationDeliveryRepositoryStub{
 		bundle: communicationDeliveryBundle{
 			Distribution: FormDistribution{ID: "distribution", TenantID: "tenant", LegalEntityID: "entity", Status: DistributionOpen, Deadline: now.Add(24 * time.Hour), RouteExpiresAt: now.Add(12 * time.Hour)},
-			Recipients: []communicationDeliveryRecipient{{DistributionRecipient: DistributionRecipient{ID: "recipient", Role: RecipientTo, Type: RecipientExternalAudience, State: DistributionRecipientDelivered}}},
+			Recipients:   []communicationDeliveryRecipient{{DistributionRecipient: DistributionRecipient{ID: "recipient", Role: RecipientTo, Type: RecipientExternalAudience, State: DistributionRecipientDelivered}}},
 		},
-		prior: CommunicationDeliveryAttempt{Status: "DELIVERED", AttemptedAt: now.Add(-time.Minute)},
+		prior:      CommunicationDeliveryAttempt{Status: "DELIVERED", AttemptedAt: now.Add(-time.Minute)},
 		priorFound: true,
 	}
 	deliveryCalls := 0
@@ -70,7 +70,7 @@ func TestCommunicationDeliveryWorkerStopsAfterDeadline(t *testing.T) {
 	repository := &communicationDeliveryRepositoryStub{
 		bundle: communicationDeliveryBundle{
 			Distribution: FormDistribution{ID: "distribution", TenantID: "tenant", LegalEntityID: "entity", Status: DistributionOpen, Deadline: now.Add(-time.Minute), RouteExpiresAt: now.Add(time.Hour)},
-			Recipients: []communicationDeliveryRecipient{{DistributionRecipient: DistributionRecipient{ID: "recipient", Role: RecipientTo, Type: RecipientExternalAudience, State: DistributionRecipientDelivered}}},
+			Recipients:   []communicationDeliveryRecipient{{DistributionRecipient: DistributionRecipient{ID: "recipient", Role: RecipientTo, Type: RecipientExternalAudience, State: DistributionRecipientDelivered}}},
 		},
 	}
 	deliveryCalls := 0
