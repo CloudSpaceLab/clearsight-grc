@@ -7,12 +7,25 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
 
+type DistributionDueState string
+
+const (
+	DistributionDueOpen    DistributionDueState = "OPEN"
+	DistributionDueOverdue DistributionDueState = "OVERDUE"
+	DistributionDueClosed  DistributionDueState = "CLOSED"
+)
+
 type DistributionListQuery struct {
-	TenantID      string
-	LegalEntityID string
-	Status        DistributionStatus
-	Limit         int
-	Cursor        string
+	TenantID        string
+	LegalEntityID   string
+	Status          DistributionStatus
+	DueState        DistributionDueState
+	SubjectType     string
+	SubjectID       string
+	OwnerPrincipalID string
+	Now             time.Time
+	Limit           int
+	Cursor          string
 }
 
 // DistributionFormRevision is the evidence package's cycle-free projection of
