@@ -50,11 +50,11 @@ func (fn SMTPSecretResolverFunc) ResolveSecret(ctx context.Context, reference st
 }
 
 type SMTPDelivery struct {
-	config   SMTPDeliveryConfig
-	secrets  SMTPSecretResolver
-	dialer   net.Dialer
-	now      func() time.Time
-	newID    func() (string, error)
+	config  SMTPDeliveryConfig
+	secrets SMTPSecretResolver
+	dialer  net.Dialer
+	now     func() time.Time
+	newID   func() (string, error)
 }
 
 func NewSMTPDelivery(config SMTPDeliveryConfig, secrets SMTPSecretResolver) (*SMTPDelivery, error) {
@@ -68,11 +68,11 @@ func NewSMTPDelivery(config SMTPDeliveryConfig, secrets SMTPSecretResolver) (*SM
 		return nil, err
 	}
 	return &SMTPDelivery{
-		config: config,
+		config:  config,
 		secrets: secrets,
-		dialer: net.Dialer{Timeout: 15 * time.Second},
-		now: time.Now,
-		newID: id.NewUUIDv7,
+		dialer:  net.Dialer{Timeout: 15 * time.Second},
+		now:     time.Now,
+		newID:   id.NewUUIDv7,
 	}, nil
 }
 
