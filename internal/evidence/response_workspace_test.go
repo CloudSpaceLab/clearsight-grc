@@ -27,7 +27,7 @@ func TestResponseWorkspaceMergesDifferentFieldsAndConflictsOnSameField(t *testin
 
 	first, err := fixture.access.SaveResponseWorkspace(ctx, tokens[0], SaveWorkspaceInput{
 		ExpectedVersion: initialA.Workspace.Version,
-		Edits: []FieldEdit{{FieldID: "q1", Value: formcontract.TextAnswer("Yes"), BaseSequence: initialA.FieldSequences["q1"]}},
+		Edits:           []FieldEdit{{FieldID: "q1", Value: formcontract.TextAnswer("Yes"), BaseSequence: initialA.FieldSequences["q1"]}},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -38,7 +38,7 @@ func TestResponseWorkspaceMergesDifferentFieldsAndConflictsOnSameField(t *testin
 
 	merged, err := fixture.access.SaveResponseWorkspace(ctx, tokens[1], SaveWorkspaceInput{
 		ExpectedVersion: initialB.Workspace.Version,
-		Edits: []FieldEdit{{FieldID: "q2", Value: formcontract.TextAnswer("No"), BaseSequence: initialB.FieldSequences["q2"]}},
+		Edits:           []FieldEdit{{FieldID: "q2", Value: formcontract.TextAnswer("No"), BaseSequence: initialB.FieldSequences["q2"]}},
 	})
 	if err != nil {
 		t.Fatalf("stale different-field edit should merge: %v", err)
@@ -61,7 +61,7 @@ func TestResponseWorkspaceMergesDifferentFieldsAndConflictsOnSameField(t *testin
 
 	_, err = fixture.access.SaveResponseWorkspace(ctx, tokens[1], SaveWorkspaceInput{
 		ExpectedVersion: initialB.Workspace.Version,
-		Edits: []FieldEdit{{FieldID: "q1", Value: formcontract.TextAnswer("No"), BaseSequence: initialB.FieldSequences["q1"]}},
+		Edits:           []FieldEdit{{FieldID: "q1", Value: formcontract.TextAnswer("No"), BaseSequence: initialB.FieldSequences["q1"]}},
 	})
 	var conflict WorkspaceConflict
 	if !errors.As(err, &conflict) || conflict.CurrentVersion != 3 || len(conflict.Changed) != 1 || conflict.Changed[0].FieldID != "q1" || conflict.Changed[0].Sequence != 2 {
@@ -82,7 +82,7 @@ func TestResponseWorkspaceCreatesImmutableAmendmentWithoutClosingDistribution(t 
 	}
 	view, err = fixture.access.SaveResponseWorkspace(ctx, tokens[0], SaveWorkspaceInput{
 		ExpectedVersion: view.Workspace.Version,
-		Edits: []FieldEdit{{FieldID: "q1", Value: formcontract.TextAnswer("Yes"), BaseSequence: view.FieldSequences["q1"]}},
+		Edits:           []FieldEdit{{FieldID: "q1", Value: formcontract.TextAnswer("Yes"), BaseSequence: view.FieldSequences["q1"]}},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -115,7 +115,7 @@ func TestResponseWorkspaceCreatesImmutableAmendmentWithoutClosingDistribution(t 
 	}
 	amended, err := fixture.access.SaveResponseWorkspace(ctx, tokens[1], SaveWorkspaceInput{
 		ExpectedVersion: afterFirst.Workspace.Version,
-		Edits: []FieldEdit{{FieldID: "q1", Value: formcontract.TextAnswer("No"), BaseSequence: afterFirst.FieldSequences["q1"]}},
+		Edits:           []FieldEdit{{FieldID: "q1", Value: formcontract.TextAnswer("No"), BaseSequence: afterFirst.FieldSequences["q1"]}},
 	})
 	if err != nil {
 		t.Fatal(err)
