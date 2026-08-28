@@ -48,4 +48,17 @@ func TestMemoryOTPConcurrentFailuresEachConsumeAttempt(t *testing.T) {
 	if err := store.UpdateOTPChallenge(context.Background(), failedAttempt, 0, 0, challenge.Digest); err == nil {
 		t.Fatal("attempt counter exceeded the configured cap")
 	}
+
+	route := AccessRoute{ID: challenge.RouteID}
+	snapshot, err := store.ActiveOTPChallenge(context.Background(), route, challenge.RecipientID, now.Add(time.Minute))
+	if err != nil || !snapshot.Found || snapshot.Challenge.Attempts != OTPMaxAttempts {
+		t.Fatalf("exhausted challenge did not remain authoritative until expiry: %+v %v", snapshot, err)
+	}
+	replacement := challenge
+	replacement.ID = "challenge-b"
+	replacement.CreatedAt = now.Add(time.Minute)
+	replacement.ExpiresAt = replacement.CreatedAt.Add(OTPValidity)
+	if err := store.CreateOTPChallenge(context.Background(), replacement); err == nil {
+		t.Fatal("attempt exhaustion was bypassed with a fresh challenge before expiry")
+	}
 }
