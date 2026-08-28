@@ -9,29 +9,22 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testing.T) {
 	pool, ctx := distributionTestPool(t)
-	const (
-		tenantID  = "9e666666-6666-7666-8666-666666666661"
-		entityID  = "9e666666-6666-7666-8666-666666666662"
-		actorID   = "9e666666-6666-7666-8666-666666666663"
-		formID    = "9e666666-6666-7666-8666-666666666664"
-		subjectID = "9e666666-6666-7666-8666-666666666665"
-	)
+	tenantID := mustResponseWorkspaceID(t)
+	entityID := mustResponseWorkspaceID(t)
+	actorID := mustResponseWorkspaceID(t)
+	formID := mustResponseWorkspaceID(t)
+	subjectID := mustResponseWorkspaceID(t)
+	tenantSlug := "response-workspace-" + tenantID[len(tenantID)-12:]
 	now := time.Date(2026, 8, 28, 2, 0, 0, 0, time.UTC)
-	setupDistributionAccessFixture(t, ctx, pool, tenantID, entityID, actorID, formID, now)
-	defer cleanupDistributionTenant(context.Background(), pool, tenantID)
-	if _, err := pool.Exec(ctx, `
-		UPDATE monitoring_form_templates
-		SET fields='[
-		  {"id":"registered_address","section_id":"general","label":"Registered address","type":"short_text","required":true},
-		  {"id":"control_confirmed","section_id":"general","label":"Control confirmed","type":"yes_no","required":false,"options":["Yes","No"]}
-		]'::jsonb
-		WHERE id=$1::uuid`, formID); err != nil {
-		t.Fatal(err)
-	}
+	setupResponseWorkspaceFixture(t, ctx, pool, tenantID, tenantSlug, entityID, actorID, formID, now)
+	t.Cleanup(func() { cleanupResponseWorkspaceTenant(context.Background(), pool, tenantID) })
 
 	var recipientKey, accessKey [32]byte
 	for index := range recipientKey {
@@ -45,7 +38,7 @@ func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testin
 	store := NewPostgresDistributionStore(NewPostgresRepository(pool), keyring)
 	store.now = func() time.Time { return now }
 	bundle, err := store.CreateDistribution(ctx, CreateDistributionInput{
-		TenantID: "distribution-access-integration", LegalEntityID: "ACCESS", FormTemplateID: formID, FormTemplateVersion: 1,
+		TenantID: tenantSlug, LegalEntityID: "WORKSPACE", FormTemplateID: formID, FormTemplateVersion: 1,
 		SubjectType: "VENDOR", SubjectID: subjectID, Title: "Shared workspace review", Purpose: "Exercise shared response amendments.",
 		AccessPolicy: AccessSharedEmailOTP, EstimatedMinutes: 5,
 		Deadline: now.Add(4 * time.Hour), RouteExpiresAt: now.Add(3 * time.Hour), CreatedBy: actorID,
@@ -175,5 +168,61 @@ func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testin
 	}
 	if firstAddress != "Lagos" || secondAddress != "Abuja" {
 		t.Fatalf("immutable submission snapshots changed: first=%q second=%q", firstAddress, secondAddress)
+	}
+}
+
+func mustResponseWorkspaceID(t *testing.T) string {
+	t.Helper()
+	value, err := id.NewUUIDv7()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return value
+}
+
+func setupResponseWorkspaceFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, tenantSlug, entityID, actorID, formID string, now time.Time) {
+	t.Helper()
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,'Response Workspace Integration');
+		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from)
+		VALUES($3::uuid,$1::uuid,'WORKSPACE','Response Workspace Entity','NG',$6);
+		INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from)
+		VALUES($4::uuid,$1::uuid,'PERSON','Response Workspace Actor','ACTIVE',$6);
+		INSERT INTO monitoring_form_templates(
+			id,tenant_id,legal_entity_id,code,name,purpose,presentation,sections,fields,status,is_current,effective_from,version,created_by,created_at,updated_at
+		) VALUES(
+			$5::uuid,$1::uuid,$3::uuid,'WORKSPACE-FORM','Workspace form','Shared response workspace integration.',
+			'{"default_mode":"WIZARD","allow_mode_switch":true}'::jsonb,
+			'[{"id":"general","title":"General"}]'::jsonb,
+			'[
+			  {"id":"registered_address","section_id":"general","label":"Registered address","type":"short_text","required":true},
+			  {"id":"control_confirmed","section_id":"general","label":"Control confirmed","type":"yes_no","required":false,"options":["Yes","No"]}
+			]'::jsonb,
+			'ACTIVE',true,$6,1,$4::uuid,$6,$6
+		)`, pgx.QueryExecModeSimpleProtocol, tenantID, tenantSlug, entityID, actorID, formID, now.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func cleanupResponseWorkspaceTenant(ctx context.Context, pool *pgxpool.Pool, tenantID string) {
+	for _, statement := range []string{
+		`DELETE FROM outbox_events WHERE tenant_id=$1::uuid`,
+		`DELETE FROM capture_response_revisions WHERE tenant_id=$1::uuid`,
+		`DELETE FROM capture_response_workspace_edits WHERE tenant_id=$1::uuid`,
+		`DELETE FROM capture_otp_challenges WHERE tenant_id=$1::uuid`,
+		`DELETE FROM capture_distribution_sessions WHERE tenant_id=$1::uuid`,
+		`DELETE FROM capture_access_routes WHERE tenant_id=$1::uuid`,
+		`DELETE FROM capture_submissions WHERE tenant_id=$1::uuid`,
+		`DELETE FROM capture_artifacts WHERE tenant_id=$1::uuid`,
+		`DELETE FROM capture_distribution_recipients WHERE tenant_id=$1::uuid`,
+		`DELETE FROM capture_response_workspaces WHERE tenant_id=$1::uuid`,
+		`DELETE FROM capture_requests WHERE tenant_id=$1::uuid`,
+		`DELETE FROM capture_form_distributions WHERE tenant_id=$1::uuid`,
+		`DELETE FROM monitoring_form_templates WHERE tenant_id=$1::uuid`,
+		`DELETE FROM principals WHERE tenant_id=$1::uuid`,
+		`DELETE FROM legal_entities WHERE tenant_id=$1::uuid`,
+		`DELETE FROM tenants WHERE id=$1::uuid`,
+	} {
+		_, _ = pool.Exec(ctx, statement, tenantID)
 	}
 }
