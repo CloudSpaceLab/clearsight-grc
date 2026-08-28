@@ -1,10 +1,9 @@
 import { createHash } from "node:crypto";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { gzipSync } from "node:zlib";
+import { assessInteractionBundle, collectInteractionBundleMetrics } from "./ui-bundle-budget.mjs";
 
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
-const javascriptBudget = { largestRawChunk: 600 * 1024, totalGzip: 192 * 1024 };
 const expectedNames = [
   "01-today-dark-comfortable-1440x900",
   "02-today-light-comfortable-1440x900",
@@ -267,35 +266,16 @@ if (accessibility) {
   checks.push({ name: "accessibility and touch", status: failed.length ? "FAIL" : "PASS", detail: `${accessibility.scenarios.length} rendered route states` });
 }
 
-const bundle = { javascript: { raw: 0, gzip: 0, largest_raw_chunk: 0 }, css: { raw: 0, gzip: 0 } };
+let bundle = { javascript: { raw: 0, gzip: 0, initial_gzip: 0, largest_raw_chunk: 0 }, css: { raw: 0, gzip: 0, initial_gzip: 0 } };
 try {
-  const pending = [path.resolve("dist")];
-  const builtFiles = [];
-  while (pending.length) {
-    const directory = pending.pop();
-    for (const entry of await readdir(directory, { withFileTypes: true })) {
-      const entryPath = path.join(directory, entry.name);
-      if (entry.isDirectory()) pending.push(entryPath);
-      else builtFiles.push(entryPath);
-    }
-  }
-  for (const filePath of builtFiles) {
-    const bytes = await readFile(filePath);
-    if (filePath.endsWith(".js")) {
-      bundle.javascript.raw += bytes.length;
-      bundle.javascript.gzip += gzipSync(bytes).length;
-      bundle.javascript.largest_raw_chunk = Math.max(bundle.javascript.largest_raw_chunk, bytes.length);
-    } else if (filePath.endsWith(".css")) {
-      bundle.css.raw += bytes.length;
-      bundle.css.gzip += gzipSync(bytes).length;
-    }
-  }
-  const bundleFailures = [];
-  if (bundle.javascript.largest_raw_chunk > javascriptBudget.largestRawChunk) bundleFailures.push(`A JavaScript chunk exceeds 600 KiB raw (${bundle.javascript.largest_raw_chunk} bytes)`);
-  if (bundle.javascript.gzip > javascriptBudget.totalGzip) bundleFailures.push(`JavaScript bundle exceeds 192 KiB gzip (${bundle.javascript.gzip} bytes)`);
-  if (bundle.css.gzip > 32 * 1024) bundleFailures.push(`CSS bundle exceeds 32 KiB gzip (${bundle.css.gzip} bytes)`);
+  bundle = await collectInteractionBundleMetrics(path.resolve("dist"));
+  const bundleFailures = assessInteractionBundle(bundle);
   failures.push(...bundleFailures);
-  checks.push({ name: "interaction bundle budget", status: bundleFailures.length ? "FAIL" : "PASS", detail: `${Math.round(bundle.javascript.gzip / 1024)} KiB JS gzip total, ${Math.round(bundle.javascript.largest_raw_chunk / 1024)} KiB largest JS chunk, ${Math.round(bundle.css.gzip / 1024)} KiB CSS gzip` });
+  checks.push({
+    name: "interaction bundle budget",
+    status: bundleFailures.length ? "FAIL" : "PASS",
+    detail: `${Math.round(bundle.javascript.initial_gzip / 1024)} KiB initial JS gzip, ${Math.round(bundle.javascript.gzip / 1024)} KiB total JS gzip, ${Math.round(bundle.javascript.largest_raw_chunk / 1024)} KiB largest JS chunk, ${Math.round(bundle.css.initial_gzip / 1024)} KiB initial CSS gzip, ${Math.round(bundle.css.gzip / 1024)} KiB total CSS gzip`,
+  });
 } catch (error) {
   failures.push(`built assets could not be assessed: ${error instanceof Error ? error.message : String(error)}`);
 }
