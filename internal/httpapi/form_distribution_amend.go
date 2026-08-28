@@ -28,11 +28,11 @@ func (a *API) amendGovernedFormDistribution(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	value, err := service.Amend(r.Context(), actor.TenantID, legalEntityID, r.PathValue("id"), evidence.AmendDistributionInput{
-		ExpectedVersion: request.ExpectedVersion,
-		Deadline:        request.Deadline,
-		RouteExpiresAt:  request.RouteExpiresAt,
-		ReminderPolicy:  request.ReminderPolicy,
-		AddRecipients:   request.AddRecipients,
+		ExpectedVersion:    request.ExpectedVersion,
+		Deadline:           request.Deadline,
+		RouteExpiresAt:     request.RouteExpiresAt,
+		ReminderPolicy:     request.ReminderPolicy,
+		AddRecipients:      request.AddRecipients,
 		RevokeRecipientIDs: request.RevokeRecipientIDs,
 		ActorID:            actor.PrincipalID,
 	})
