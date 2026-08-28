@@ -83,6 +83,12 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		return serviceSet{}, err
 	}
 	distributionService := evidence.NewDistributionService(distributionStore)
+	communicationService := evidence.NewCommunicationService(evidence.NewMemoryCommunicationStore())
+	communicationBrands := evidence.NewCommunicationBrandService(evidence.NewMemoryCommunicationBrandStore(), store)
+	communicationDelivery, err := configuredCommunicationDelivery(cfg)
+	if err != nil {
+		return serviceSet{}, err
+	}
 
 	thirdPartyRepo := thirdparty.NewMemoryAssessmentRepository()
 	thirdPartyService := thirdparty.NewService(thirdPartyRepo)
@@ -147,6 +153,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	return serviceSet{
 		Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()),
 		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,
+		FormCommunications: communicationService, FormCommunicationBrands: communicationBrands, FormCommunicationTestDelivery: communicationDelivery,
 		ObjectStore: store, Monitoring: monitoringService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRelationshipLinkRepo, ThirdPartyWorkRepo: thirdPartyWorkRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
 		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo), Close: func() {},
