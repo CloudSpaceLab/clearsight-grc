@@ -102,8 +102,7 @@ func (store *MemoryDistributionAccessStore) ActiveOTPChallenge(_ context.Context
 	defer store.mu.RUnlock()
 	var selected OTPChallenge
 	for _, challenge := range store.challenges {
-		if challenge.RouteID != route.ID || challenge.RecipientID != recipientID || challenge.ConsumedAt != nil ||
-			challenge.Attempts >= challenge.MaxAttempts || !challenge.ExpiresAt.After(now) {
+		if challenge.RouteID != route.ID || challenge.RecipientID != recipientID || challenge.ConsumedAt != nil || !challenge.ExpiresAt.After(now) {
 			continue
 		}
 		if selected.ID == "" || challenge.CreatedAt.After(selected.CreatedAt) {
@@ -133,8 +132,7 @@ func (store *MemoryDistributionAccessStore) CreateOTPChallenge(_ context.Context
 		return ErrAccessVerificationFailed
 	}
 	for _, existing := range store.challenges {
-		if existing.RouteID == challenge.RouteID && existing.RecipientID == challenge.RecipientID && existing.ConsumedAt == nil &&
-			existing.Attempts < existing.MaxAttempts && existing.ExpiresAt.After(challenge.CreatedAt) {
+		if existing.RouteID == challenge.RouteID && existing.RecipientID == challenge.RecipientID && existing.ConsumedAt == nil && existing.ExpiresAt.After(challenge.CreatedAt) {
 			return ErrAccessVerificationFailed
 		}
 	}
