@@ -123,6 +123,7 @@ func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(_ context.Co
 	if err := validateMemoryDistributionWorkspaceLocked(distributions, command.Session, state.workspace, command.Now); err != nil {
 		return WorkspaceSubmissionResult{}, err
 	}
+	eligibleRequests := memoryDistributionTORequestIDsLocked(distributions, command.Session.DistributionID)
 	repo := distributions.repo
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
@@ -132,7 +133,7 @@ func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(_ context.Co
 	}
 	for _, artifactID := range artifactIDs {
 		artifact, exists := repo.artifacts[artifactID]
-		if !exists || artifact.TenantID != command.Session.TenantID || artifact.RequestID != command.Request.ID || artifact.SubmissionID != "" {
+		if !exists || artifact.TenantID != command.Session.TenantID || !eligibleRequests[artifact.RequestID] {
 			return WorkspaceSubmissionResult{}, ErrWorkspaceUnavailable
 		}
 	}
@@ -142,15 +143,17 @@ func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(_ context.Co
 
 	submission := Submission{
 		ID: submissionID, TenantID: command.Session.TenantID, LegalEntityID: command.Session.LegalEntityID,
-		RequestID: command.Request.ID, SessionID: command.Session.ID, Channel: "MAGIC_LINK",
+		RequestID: command.Request.ID, Channel: "MAGIC_LINK",
 		Answers: cloneAnswerValues(answers), AnswerProvenance: respondentWorkspaceProvenance(answers),
 		ExpectedVersion: request.Version, SubmittedAt: command.Now.UTC(),
 	}
 	repo.submissions[submissionID] = submission
 	for _, artifactID := range artifactIDs {
 		artifact := repo.artifacts[artifactID]
-		artifact.SubmissionID = submissionID
-		repo.artifacts[artifactID] = artifact
+		if artifact.SubmissionID == "" {
+			artifact.SubmissionID = submissionID
+			repo.artifacts[artifactID] = artifact
+		}
 	}
 
 	revisionNumber := int64(len(state.revisions) + 1)
@@ -190,12 +193,23 @@ func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(_ context.Co
 	}, nil
 }
 
-func (store *MemoryDistributionAccessStore) ValidateWorkspaceAnswers(ctx context.Context, request Request, answers map[string]formcontract.AnswerValue, requireComplete bool) error {
+func (store *MemoryDistributionAccessStore) ValidateWorkspaceAnswers(ctx context.Context, session DistributionAccessSession, request Request, answers map[string]formcontract.AnswerValue, requireComplete bool) error {
 	if store == nil || store.distributions == nil || store.distributions.repo == nil {
 		return ErrWorkspaceUnavailable
 	}
-	validator := NewService(store.distributions.repo, nil)
-	return validator.validateAnswerSet(ctx, request, answers, requireComplete)
+	store.distributions.mu.RLock()
+	eligibleRequests := memoryDistributionTORequestIDsLocked(store.distributions, session.DistributionID)
+	store.distributions.mu.RUnlock()
+	repo := store.distributions.repo
+	return validateWorkspaceAnswerSet(ctx, repo, request, answers, requireComplete, func(_ context.Context, tenantID, _ string, artifactID string) (Artifact, error) {
+		repo.mu.RLock()
+		defer repo.mu.RUnlock()
+		artifact, ok := repo.artifacts[artifactID]
+		if !ok || artifact.TenantID != tenantID || !eligibleRequests[artifact.RequestID] {
+			return Artifact{}, ErrNotFound
+		}
+		return artifact, nil
+	})
 }
 
 func (store *MemoryDistributionAccessStore) saveMemoryWorkspaceLocked(state *memoryWorkspaceState, command workspaceSaveCommand) (ResponseWorkspaceView, error) {
@@ -340,6 +354,16 @@ func validateMemoryDistributionWorkspaceLocked(distributions *MemoryDistribution
 		return ErrWorkspaceUnavailable
 	}
 	return nil
+}
+
+func memoryDistributionTORequestIDsLocked(distributions *MemoryDistributionStore, distributionID string) map[string]bool {
+	result := map[string]bool{}
+	for _, recipient := range distributions.recipients[distributionID] {
+		if recipient.safe.Role == RecipientTo && recipient.safe.RequestID != "" && recipient.safe.State != DistributionRecipientRevoked {
+			result[recipient.safe.RequestID] = true
+		}
+	}
+	return result
 }
 
 func memoryWorkspaceView(state *memoryWorkspaceState) ResponseWorkspaceView {
