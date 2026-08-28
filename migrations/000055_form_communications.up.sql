@@ -84,6 +84,24 @@ CREATE TABLE form_communication_templates (
 CREATE INDEX form_communication_templates_lookup_idx
     ON form_communication_templates(tenant_id,legal_entity_id,action,locale,status,effective_from DESC,version DESC);
 
+CREATE TABLE form_communication_events (
+    id uuid PRIMARY KEY DEFAULT uuidv7(),
+    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    legal_entity_id uuid NOT NULL,
+    aggregate_type text NOT NULL CHECK (aggregate_type IN ('FORM_COMMUNICATION_PROFILE','FORM_COMMUNICATION_TEMPLATE')),
+    aggregate_id uuid NOT NULL,
+    event_type text NOT NULL CHECK (event_type=btrim(event_type) AND char_length(event_type) BETWEEN 1 AND 128),
+    actor_id uuid NOT NULL,
+    aggregate_version bigint NOT NULL CHECK (aggregate_version > 0),
+    safe_metadata jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(safe_metadata)='object' AND octet_length(safe_metadata::text)<=8192),
+    occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    FOREIGN KEY (legal_entity_id,tenant_id) REFERENCES legal_entities(id,tenant_id),
+    FOREIGN KEY (actor_id,tenant_id) REFERENCES principals(id,tenant_id),
+    UNIQUE (tenant_id,aggregate_type,aggregate_id,event_type,aggregate_version)
+);
+CREATE INDEX form_communication_events_history_idx
+    ON form_communication_events(tenant_id,legal_entity_id,aggregate_type,aggregate_id,occurred_at DESC,id DESC);
+
 CREATE TABLE form_delivery_attempts (
     id uuid PRIMARY KEY DEFAULT uuidv7(),
     tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
