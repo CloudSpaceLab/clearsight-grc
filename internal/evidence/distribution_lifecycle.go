@@ -71,6 +71,11 @@ func (service *DistributionService) Create(ctx context.Context, input CreateDist
 	if service == nil || service.store == nil {
 		return DistributionBundle{}, ErrDistributionInvalid
 	}
+	reminderPolicy, err := normalizeDistributionReminderPolicy(input.ReminderPolicy)
+	if err != nil {
+		return DistributionBundle{}, err
+	}
+	input.ReminderPolicy = reminderPolicy
 	bundle, err := service.store.CreateDistribution(ctx, input)
 	if err != nil {
 		return DistributionBundle{}, normalizeDistributionError(err)
@@ -124,6 +129,13 @@ func (service *DistributionService) Amend(ctx context.Context, tenantID, legalEn
 		return AmendDistributionResult{}, fmt.Errorf("%w: expected_version and actor are required", ErrDistributionInvalid)
 	}
 	input.ActorID = strings.TrimSpace(input.ActorID)
+	if input.ReminderPolicy != nil {
+		normalized, err := normalizeDistributionReminderPolicy(*input.ReminderPolicy)
+		if err != nil {
+			return AmendDistributionResult{}, err
+		}
+		input.ReminderPolicy = &normalized
+	}
 	if len(input.AddRecipients)+len(input.RevokeRecipientIDs) > 500 {
 		return AmendDistributionResult{}, fmt.Errorf("%w: too many recipient changes", ErrDistributionInvalid)
 	}
