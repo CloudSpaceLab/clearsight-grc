@@ -64,24 +64,26 @@ func loadPinnedDistributionForm(ctx context.Context, tx pgx.Tx, distribution For
 }
 
 func validatePostgresRecipientRevocations(ctx context.Context, tx pgx.Tx, distribution FormDistribution, revokeIDs []string, additions []postgresPreparedRecipient) (int, error) {
-	if len(revokeIDs) == 0 {
-		return 0, nil
-	}
-	var found, remainingTO int
-	if err := tx.QueryRow(ctx, `
-		SELECT count(*), count(*) FILTER (WHERE role='TO' AND state<>'REVOKED' AND NOT (id::text=ANY($3::text[])))
-		FROM capture_distribution_recipients
-		WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid`, distribution.TenantID, distribution.ID, revokeIDs).Scan(&found, &remainingTO); err != nil {
-		return 0, err
-	}
-	if found < len(revokeIDs) {
-		var exact int
-		if err := tx.QueryRow(ctx, `SELECT count(*) FROM capture_distribution_recipients WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid AND id::text=ANY($3::text[])`, distribution.TenantID, distribution.ID, revokeIDs).Scan(&exact); err != nil {
+	var exact, remainingTO int
+	if len(revokeIDs) > 0 {
+		if err := tx.QueryRow(ctx, `
+			SELECT count(*)
+			FROM capture_distribution_recipients
+			WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid AND id::text=ANY($3::text[])`,
+			distribution.TenantID, distribution.ID, revokeIDs).Scan(&exact); err != nil {
 			return 0, err
 		}
 		if exact != len(revokeIDs) {
 			return 0, fmt.Errorf("%w: recipient to revoke was not found", ErrDistributionInvalid)
 		}
+	}
+	if err := tx.QueryRow(ctx, `
+		SELECT count(*)
+		FROM capture_distribution_recipients
+		WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid AND role='TO' AND state<>'REVOKED'
+		  AND (cardinality($3::text[])=0 OR NOT (id::text=ANY($3::text[])))`,
+		distribution.TenantID, distribution.ID, revokeIDs).Scan(&remainingTO); err != nil {
+		return 0, err
 	}
 	for _, recipient := range additions {
 		if recipient.safe.Role == RecipientTo {
@@ -91,8 +93,14 @@ func validatePostgresRecipientRevocations(ctx context.Context, tx pgx.Tx, distri
 	if remainingTO == 0 {
 		return 0, fmt.Errorf("%w: at least one active TO recipient is required", ErrDistributionInvalid)
 	}
+	if len(revokeIDs) == 0 {
+		return 0, nil
+	}
 	var changed int
-	if err := tx.QueryRow(ctx, `SELECT count(*) FROM capture_distribution_recipients WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid AND id::text=ANY($3::text[]) AND state<>'REVOKED'`, distribution.TenantID, distribution.ID, revokeIDs).Scan(&changed); err != nil {
+	if err := tx.QueryRow(ctx, `
+		SELECT count(*) FROM capture_distribution_recipients
+		WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid AND id::text=ANY($3::text[]) AND state<>'REVOKED'`,
+		distribution.TenantID, distribution.ID, revokeIDs).Scan(&changed); err != nil {
 		return 0, err
 	}
 	return changed, nil
@@ -135,10 +143,20 @@ func applyPostgresRecipientAmendment(ctx context.Context, tx pgx.Tx, distributio
 			return err
 		}
 	}
+
+	estimatedMinutes := 0
+	if len(prepared) > 0 {
+		if err := tx.QueryRow(ctx, `
+			SELECT estimated_minutes FROM capture_requests
+			WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid
+			ORDER BY created_at,id LIMIT 1`, distribution.TenantID, distribution.ID).Scan(&estimatedMinutes); err != nil {
+			return fmt.Errorf("load pinned distribution effort: %w", err)
+		}
+	}
 	for index := range prepared {
 		recipient := &prepared[index]
 		if recipient.safe.Role == RecipientTo {
-			if err := insertDistributionRequest(ctx, tx, distribution, recipient, form, 10, now); err != nil {
+			if err := insertDistributionRequest(ctx, tx, distribution, recipient, form, estimatedMinutes, now); err != nil {
 				return err
 			}
 		}
