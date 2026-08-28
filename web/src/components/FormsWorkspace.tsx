@@ -27,6 +27,7 @@ import { FormBuilder } from "./FormBuilder";
 import { FormsBrandHeader } from "./forms/FormsBrandHeader";
 import { FormsEmptyState } from "./forms/FormsEmptyState";
 import { FormsLibrarySummary } from "./forms/FormsLibrarySummary";
+import { FormsTabContent } from "./forms/FormsTabContent";
 import { defaultFormsAccent, loadFormsAppearance, normalizeAccentColor, normalizeLogoURL, saveFormsAppearance, type FormsAppearance } from "./forms/formsAppearance";
 import { preserveLibraryRevisionMetadata } from "./forms/formRevisionInput";
 import { isTemplateApprovalReady } from "./forms/formQuality";
@@ -388,7 +389,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       <aside className="forms-detail" aria-label="Selected form template">
         {selected ? <TemplateDetail item={selected} busy={busy} onEdit={() => openEdit(selected.template)} onTransition={(to) => void transition(selected, to)}/> : targetID ? <><span className="forms-detail-kicker">Selected template</span><h2>Template isn’t in the current results</h2><p>Clear filters or search for this template to inspect its latest and active revision state.</p><button type="button" onClick={clearFiltersAndTarget}>Clear filters</button></> : <><span className="forms-detail-kicker">Template detail</span><h2>Select a template</h2><p>Inspect the latest stored revision separately from the active revision available for reuse.</p></>}
       </aside>
-    </div> : <FutureFormsTab tab={activeTab as Exclude<FormsTab, "Templates">}/>} 
+    </div> : <FormsTabContent tab={activeTab as Exclude<FormsTab, "Templates">}/>} 
   </section>;
 }
 
@@ -404,17 +405,6 @@ function TemplateDetail({ item, busy, onEdit, onTransition }: { item: FormLibrar
   const form = item.template;
   const approvalReady = form.status === "DRAFT" && isTemplateApprovalReady(form);
   return <><span className="forms-detail-kicker">{form.code}</span><h2>{form.name}</h2><p>{form.purpose}</p><div className="forms-detail-state"><div><span>Latest stored</span><strong><StatusPill status={form.status}/> v{form.version}</strong></div><div><span>Reusable now</span><strong>{item.active_version ? <><StatusPill status={item.active_status ?? "ACTIVE"}/> v{item.active_version}</> : "None"}</strong></div></div><dl><div><dt>Scoring</dt><dd>{form.scoring_mode || "NONE"}</dd></div><div><dt>Fields</dt><dd>{form.fields.length}</dd></div><div><dt>Owner</dt><dd>{form.owner_principal_id || form.responsible_team || "Not assigned"}</dd></div><div><dt>Next review</dt><dd>{form.next_review_at ? formatDate(form.next_review_at) : "Not scheduled"}</dd></div></dl>{form.tags?.length ? <div className="forms-tags">{form.tags.map((tag) => <span key={tag}>{tag}</span>)}</div> : null}<div className="forms-detail-actions">{form.status === "DRAFT" && <><button type="button" onClick={onEdit}>Edit draft</button><button className="forms-primary" type="button" disabled={busy !== null || !approvalReady} onClick={() => onTransition("PENDING_APPROVAL")}>Send for approval</button></>}{form.status === "DRAFT" && !approvalReady && <small className="forms-muted">Open the editor to resolve approval-quality checks before submission.</small>}{form.status === "PENDING_APPROVAL" && <><button className="forms-primary" type="button" disabled={busy !== null} onClick={() => onTransition("ACTIVE")}>Approve and activate</button><button type="button" disabled={busy !== null} onClick={() => onTransition("REJECTED")}>Reject</button></>}{form.status === "ACTIVE" && <button type="button" disabled={busy !== null} onClick={() => onTransition("RETIRED")}>Retire revision</button>}</div></>;
-}
-
-function FutureFormsTab({ tab }: { tab: Exclude<FormsTab, "Templates"> }) {
-  if (tab === "Imports") return <FormsEmptyState eyebrow="Imports" tone="future" title="Turn source documents into reviewable form proposals" detail="Imports remains the authoritative document intake path. Form proposals will appear here after governed extraction is enabled; extracted content is never silently activated." actions={<button type="button" onClick={() => { window.location.hash = "#imports"; }}>Open Imports</button>}/>;
-  const messages: Record<Exclude<FormsTab, "Templates" | "Imports">, [string, string]> = {
-    "Sent forms": ["No form distributions yet", "Distribution records, recipients and protected delivery will appear here when governed distribution is enabled."],
-    Responses: ["No distribution responses yet", "Immutable response revisions will appear here after governed distribution is enabled."],
-    Communications: ["Communication configuration is not enabled yet", "Invitation, reminder and recipient branding configuration belongs to the governed distribution tranche."],
-  };
-  const [title, detail] = messages[tab];
-  return <FormsEmptyState eyebrow={tab} tone="future" title={title} detail={detail}/>;
 }
 
 function StatusPill({ status }: { status: LifecycleStatus }) {
