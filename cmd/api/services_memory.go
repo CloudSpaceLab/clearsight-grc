@@ -43,7 +43,8 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		autonomy.SeedDemo(ctx, auto)
 	}
 	store := evidence.NewMemoryObjectStore()
-	evidenceService := evidence.NewService(evidence.NewMemoryRepository(nil, nil), store)
+	evidenceRepo := evidence.NewMemoryRepository(nil, nil)
+	evidenceService := evidence.NewService(evidenceRepo, store)
 	evidenceService.Configure(cfg.CaptureSessionTTL, cfg.MaxArtifactBytes)
 	sourceScopes := []sourceaccess.SourceScope{}
 	if cfg.DemoMode {
@@ -65,6 +66,24 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	monitoringService := monitoring.NewService(monitoringRepo, evidenceService)
 	monitoringService.ConfigureSourceReader(sourceCatalog)
 	monitoringService.ConfigureSourceValidator(evidenceService)
+
+	keyring, hasKeyring, err := configuredRecipientKeyring(cfg)
+	if err != nil {
+		return serviceSet{}, err
+	}
+	var distributionStore *evidence.MemoryDistributionStore
+	if hasKeyring {
+		distributionStore = evidence.NewMemoryDistributionStore(evidenceRepo, formDistributionReader{repo: monitoringRepo}, keyring)
+	} else {
+		distributionStore = evidence.NewMemoryDistributionStore(evidenceRepo, formDistributionReader{repo: monitoringRepo}, nil)
+	}
+	distributionAccessStore := evidence.NewMemoryDistributionAccessStore(distributionStore)
+	distributionAccess, err := configuredDistributionAccessService(distributionAccessStore, keyring, hasKeyring, cfg)
+	if err != nil {
+		return serviceSet{}, err
+	}
+	distributionService := evidence.NewDistributionService(distributionStore)
+
 	thirdPartyRepo := thirdparty.NewMemoryAssessmentRepository()
 	thirdPartyService := thirdparty.NewService(thirdPartyRepo)
 	thirdPartyRelationshipLinkRepo := thirdparty.RelationshipLinkRepository(thirdPartyRepo)
@@ -127,7 +146,8 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 
 	return serviceSet{
 		Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()),
-		Evidence: evidenceService, ObjectStore: store, Monitoring: monitoringService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRelationshipLinkRepo, ThirdPartyWorkRepo: thirdPartyWorkRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
+		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,
+		ObjectStore: store, Monitoring: monitoringService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRelationshipLinkRepo, ThirdPartyWorkRepo: thirdPartyWorkRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
 		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo), Close: func() {},
 	}, nil

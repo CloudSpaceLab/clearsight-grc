@@ -31,6 +31,8 @@ type serviceSet struct {
 	Authority                      authority.Service
 	Governance                     *governance.Service
 	Evidence                       *evidence.Service
+	FormDistributions              *evidence.DistributionService
+	FormDistributionAccess         *evidence.DistributionAccessService
 	Monitoring                     *monitoring.Service
 	ThirdParty                     *thirdparty.Service
 	ThirdPartyBrandRepo            thirdparty.VendorBrandMutationRepository

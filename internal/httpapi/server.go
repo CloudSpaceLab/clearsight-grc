@@ -46,6 +46,8 @@ type Dependencies struct {
 	Authority                        authority.Service
 	Governance                       *governance.Service
 	Evidence                         *evidence.Service
+	FormDistributions                *evidence.DistributionService
+	FormDistributionAccess           *evidence.DistributionAccessService
 	Monitoring                       *monitoring.Service
 	ThirdParty                       *thirdparty.Service
 	VendorBrands                     *thirdparty.VendorBrandService
@@ -79,6 +81,7 @@ func New(deps Dependencies) http.Handler {
 	mux := http.NewServeMux()
 	api.registerFederationRoutes(mux)
 	api.registerRoutes(mux)
+	api.registerFormDistributionRoutes(mux)
 	appHandler := httpx.Chain(
 		mux,
 		httpx.CORS(deps.AllowedOrigin),

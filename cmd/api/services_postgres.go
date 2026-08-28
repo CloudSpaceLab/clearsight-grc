@@ -47,7 +47,8 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	}
 	autonomyRepo := autonomy.NewPostgresRepository(pool)
 	auto := autonomy.NewService(autonomyRepo)
-	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), store)
+	evidenceRepo := evidence.NewPostgresRepository(pool)
+	evidenceService := evidence.NewService(evidenceRepo, store)
 	evidenceService.Configure(cfg.CaptureSessionTTL, cfg.MaxArtifactBytes)
 	documentService := documentimport.NewService(documentimport.NewPostgresRepository(pool), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
@@ -63,6 +64,25 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	monitoringService := monitoring.NewService(monitoringRepo, evidenceService)
 	monitoringService.ConfigureSourceReader(sourceCatalog)
 	monitoringService.ConfigureSourceValidator(evidenceService)
+
+	keyring, hasKeyring, err := configuredRecipientKeyring(cfg)
+	if err != nil {
+		pool.Close()
+		return serviceSet{}, err
+	}
+	var distributionStore *evidence.PostgresDistributionStore
+	if hasKeyring {
+		distributionStore = evidence.NewPostgresDistributionStore(evidenceRepo, keyring)
+	} else {
+		distributionStore = evidence.NewPostgresDistributionStore(evidenceRepo, nil)
+	}
+	distributionAccess, err := configuredDistributionAccessService(distributionStore, keyring, hasKeyring, cfg)
+	if err != nil {
+		pool.Close()
+		return serviceSet{}, err
+	}
+	distributionService := evidence.NewDistributionService(distributionStore)
+
 	thirdPartyRepo := thirdparty.NewPostgresRepository(pool)
 	thirdPartyService := thirdparty.NewService(thirdPartyRepo)
 	thirdPartyRelationshipLinks := thirdparty.NewRelationshipLinkService(thirdPartyRepo)
@@ -114,7 +134,8 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	logger.Info("postgres repositories enabled", "max_connections", cfg.DatabaseMaxConns, "artifact_root", cfg.ArtifactRoot, "demo_mode", cfg.DemoMode)
 	return serviceSet{
 		Mode: "postgres", Authority: authority.NewEffectivePostgresService(pool), Governance: governance.NewService(governance.NewPostgresRepository(pool)),
-		Evidence: evidenceService, ObjectStore: store, Monitoring: monitoringService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRepo, ThirdPartyWorkRepo: thirdPartyRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
+		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,
+		ObjectStore: store, Monitoring: monitoringService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRepo, ThirdPartyWorkRepo: thirdPartyRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
 		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo),
 		Access: access.NewPostgresResolver(pool), AccessAdmin: access.NewPostgresAdministrator(pool), SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
