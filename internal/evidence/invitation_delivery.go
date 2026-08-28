@@ -79,10 +79,32 @@ func NewInvitationDeliveryService(adapter InvitationDelivery) *InvitationDeliver
 	return &InvitationDeliveryService{adapter: adapter}
 }
 
+// Deliver preserves the legacy invitation contract: both an address and a
+// one-time invitation link are required.
 func (service *InvitationDeliveryService) Deliver(ctx context.Context, request InvitationDeliveryRequest) (InvitationDeliveryReceipt, error) {
+	if strings.TrimSpace(request.InvitationLink) == "" {
+		return InvitationDeliveryReceipt{}, ErrInvitationDeliveryRequestInvalid
+	}
+	return service.deliver(ctx, request, false)
+}
+
+// DeliverGoverned sends fully rendered governed communication. A response link
+// is optional so CC/status messages can never be forced to carry responder
+// capability material.
+func (service *InvitationDeliveryService) DeliverGoverned(ctx context.Context, request InvitationDeliveryRequest) (InvitationDeliveryReceipt, error) {
+	return service.deliver(ctx, request, true)
+}
+
+func (service *InvitationDeliveryService) deliver(ctx context.Context, request InvitationDeliveryRequest, governed bool) (InvitationDeliveryReceipt, error) {
 	address := strings.TrimSpace(request.RecipientAddress)
 	link := strings.TrimSpace(request.InvitationLink)
-	if address == "" || link == "" {
+	request.Subject = strings.TrimSpace(request.Subject)
+	request.PlainText = strings.TrimSpace(request.PlainText)
+	request.HTML = strings.TrimSpace(request.HTML)
+	if address == "" || (!governed && link == "") {
+		return InvitationDeliveryReceipt{}, ErrInvitationDeliveryRequestInvalid
+	}
+	if governed && (request.Subject == "" || (request.PlainText == "" && request.HTML == "")) {
 		return InvitationDeliveryReceipt{}, ErrInvitationDeliveryRequestInvalid
 	}
 	request.RecipientAddress = address
