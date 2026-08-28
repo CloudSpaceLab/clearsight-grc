@@ -73,6 +73,11 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	coverageService := documentcoverage.NewService(documentcoverage.NewPostgresRepository(pool), documentService, continuityService)
 	evidenceRepository := evidence.NewPostgresRepository(pool)
 	evidenceService := evidence.NewService(evidenceRepository, store)
+	formCommunicationWorker, formReminderScheduler, err := buildFormCommunicationWorker(cfg, pool, evidenceRepository)
+	if err != nil {
+		pool.Close()
+		return workerSet{}, err
+	}
 	assessmentRepository := thirdparty.NewPostgresRepository(pool)
 	assessmentSubmission := newAssessmentSubmissionConsumer(runtimeRepository, evidenceService, assessmentRepository)
 	assessmentCancellation := newAssessmentCancellationConsumer(evidenceService)
@@ -80,6 +85,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	publisher := workflowruntime.NewCompositePublisher(
 		sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork,
 		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, vendorWorkSubmission,
+		formCommunicationWorker,
 		workflowruntime.LogPublisher{Logger: logger},
 	)
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
@@ -112,6 +118,9 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 		vendorBrandWorker := thirdparty.NewVendorBrandWorker(assessmentRepository, store, thirdparty.NewDefaultVendorBrandDiscoverer(), cfg.WorkerID)
 		configureVendorBrandWorker(vendorBrandWorker, cfg.WorkerPoll)
 		service.AddMaintainerClass(workflowruntime.WorkClassThirdPartyVendorBrand, vendorBrandWorker)
+	}
+	if formReminderScheduler != nil {
+		service.AddMaintainerClass(formCommunicationReminderClass, formReminderScheduler)
 	}
 	service.AddMaintainerClass(matterWorkProjectionClass, lifecycleWork)
 	service.AddMaintainerClass(workflow.MatterEscalationWorkClass, escalationWork)
