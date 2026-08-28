@@ -92,7 +92,7 @@ type workspaceSaveCommand struct {
 	Request  Request
 	Input    SaveWorkspaceInput
 	Now      time.Time
-	Validate func(map[string]formcontract.AnswerValue, map[string]WorkspaceFieldProvenance) error
+	Validate func(map[string]formcontract.AnswerValue) error
 }
 
 type workspaceSubmitCommand struct {
@@ -100,7 +100,7 @@ type workspaceSubmitCommand struct {
 	Request       Request
 	Input         SubmitWorkspaceInput
 	Now           time.Time
-	Validate      func(map[string]formcontract.AnswerValue, map[string]WorkspaceFieldProvenance) error
+	Validate      func(map[string]formcontract.AnswerValue) error
 	BuildRevision func(map[string]formcontract.AnswerValue) (ResponseRevision, error)
 }
 
@@ -112,7 +112,7 @@ type responseWorkspaceStore interface {
 }
 
 type workspaceAnswerValidationProvider interface {
-	ValidateWorkspaceAnswers(context.Context, Request, map[string]formcontract.AnswerValue, map[string]WorkspaceFieldProvenance, bool) error
+	ValidateWorkspaceAnswers(context.Context, Request, map[string]formcontract.AnswerValue, bool) error
 }
 
 func applyWorkspaceEdit(answers map[string]formcontract.AnswerValue, edit FieldEdit) {
