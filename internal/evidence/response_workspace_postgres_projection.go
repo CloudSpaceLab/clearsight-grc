@@ -141,7 +141,3 @@ func loadCurrentPostgresResponseRevision(ctx context.Context, tx pgx.Tx, tenantI
 	}
 	return value, nil
 }
-
-func validAccessAssurance(value AccessAssurance) bool {
-	return value == AssuranceLinkPossession || value == AssuranceEmailVerified
-}
