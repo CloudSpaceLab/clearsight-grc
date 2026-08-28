@@ -98,14 +98,14 @@ func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testin
 	}
 	first, err := access.SaveResponseWorkspace(ctx, tokens[0], SaveWorkspaceInput{
 		ExpectedVersion: initialA.Workspace.Version,
-		Edits: []FieldEdit{{FieldID: "registered_address", Value: formcontract.TextAnswer("Lagos"), BaseSequence: 0}},
+		Edits:           []FieldEdit{{FieldID: "registered_address", Value: formcontract.TextAnswer("Lagos"), BaseSequence: 0}},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	merged, err := access.SaveResponseWorkspace(ctx, tokens[1], SaveWorkspaceInput{
 		ExpectedVersion: initialB.Workspace.Version,
-		Edits: []FieldEdit{{FieldID: "control_confirmed", Value: formcontract.TextAnswer("Yes"), BaseSequence: 0}},
+		Edits:           []FieldEdit{{FieldID: "control_confirmed", Value: formcontract.TextAnswer("Yes"), BaseSequence: 0}},
 	})
 	if err != nil {
 		t.Fatalf("stale different-field PostgreSQL edit should merge: %v", err)
@@ -115,7 +115,7 @@ func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testin
 	}
 	_, err = access.SaveResponseWorkspace(ctx, tokens[1], SaveWorkspaceInput{
 		ExpectedVersion: initialB.Workspace.Version,
-		Edits: []FieldEdit{{FieldID: "registered_address", Value: formcontract.TextAnswer("Abuja"), BaseSequence: 0}},
+		Edits:           []FieldEdit{{FieldID: "registered_address", Value: formcontract.TextAnswer("Abuja"), BaseSequence: 0}},
 	})
 	var conflict WorkspaceConflict
 	if !errors.As(err, &conflict) || len(conflict.Changed) != 1 || conflict.Changed[0].FieldID != "registered_address" {
