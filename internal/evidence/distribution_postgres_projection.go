@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -55,8 +54,8 @@ func (s *PostgresDistributionStore) ListDistributions(ctx context.Context, query
 	if s.repo == nil || s.repo.pool == nil {
 		return nil, fmt.Errorf("postgres distribution repository is required")
 	}
-	if strings.TrimSpace(query.TenantID) == "" || strings.TrimSpace(query.LegalEntityID) == "" || query.Limit < 1 || query.Limit > 100 {
-		return nil, fmt.Errorf("tenant_id, legal_entity_id and limit between 1 and 100 are required")
+	if !normalizeDistributionListQuery(&query, s.now()) {
+		return nil, fmt.Errorf("distribution list filters are invalid")
 	}
 	cursor, err := decodeDistributionCursor(query.Cursor)
 	if err != nil {
@@ -72,8 +71,18 @@ func (s *PostgresDistributionStore) ListDistributions(ctx context.Context, query
 		WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2)
 		  AND ($3='' OR d.status=$3)
 		  AND ($4::timestamptz IS NULL OR (d.updated_at,d.id) < ($4::timestamptz,$5::uuid))
+		  AND ($6='' OR upper(d.subject_type)=$6)
+		  AND ($7='' OR d.subject_id::text=$7)
+		  AND ($8='' OR d.created_by::text=$8)
+		  AND (
+		    $9='' OR
+		    ($9='OPEN' AND d.status NOT IN ('COMPLETED','EXPIRED','REVOKED','SUPERSEDED') AND d.deadline>$10) OR
+		    ($9='OVERDUE' AND d.status NOT IN ('COMPLETED','EXPIRED','REVOKED','SUPERSEDED') AND d.deadline<=$10) OR
+		    ($9='CLOSED' AND d.status IN ('COMPLETED','EXPIRED','REVOKED','SUPERSEDED'))
+		  )
 		ORDER BY d.updated_at DESC,d.id DESC
-		LIMIT $6`, query.TenantID, query.LegalEntityID, string(query.Status), cursor.UpdatedAt, nullableUUID(cursor.ID), query.Limit)
+		LIMIT $11`, query.TenantID, query.LegalEntityID, string(query.Status), cursor.UpdatedAt, nullableUUID(cursor.ID),
+		query.SubjectType, query.SubjectID, query.OwnerPrincipalID, string(query.DueState), query.Now, query.Limit)
 	if err != nil {
 		return nil, fmt.Errorf("list form distributions: %w", err)
 	}
