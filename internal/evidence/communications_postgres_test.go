@@ -79,25 +79,25 @@ func TestPostgresCommunicationGovernancePersistsActivationFallbackAndRollback(t 
 		t.Fatalf("exact rollback lineage was not persisted: %+v", rollback)
 	}
 
-	var profileCount, templateCount, activeCount, retiredCount, auditCount, outboxCount, exposedPayloads int
+	var profileCount, templateCount, activeCount, retiredCount, eventCount, outboxCount, exposedPayloads int
 	if err := pool.QueryRow(ctx, `
 		SELECT
 		  (SELECT count(*) FROM form_communication_profiles WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid),
 		  (SELECT count(*) FROM form_communication_templates WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid),
 		  (SELECT count(*) FROM form_communication_templates WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND action='INVITATION' AND locale='en-NG' AND status='ACTIVE'),
 		  (SELECT count(*) FROM form_communication_templates WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND action='INVITATION' AND locale='en-NG' AND status='RETIRED'),
-		  (SELECT count(*) FROM audit_events WHERE tenant_id=$1::uuid AND subject_type IN ('FORM_COMMUNICATION_PROFILE','FORM_COMMUNICATION_TEMPLATE')),
+		  (SELECT count(*) FROM form_communication_events WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND aggregate_type IN ('FORM_COMMUNICATION_PROFILE','FORM_COMMUNICATION_TEMPLATE')),
 		  (SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND aggregate_type IN ('FORM_COMMUNICATION_PROFILE','FORM_COMMUNICATION_TEMPLATE')),
 		  (SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND aggregate_type IN ('FORM_COMMUNICATION_PROFILE','FORM_COMMUNICATION_TEMPLATE') AND (payload::text LIKE '%Action required:%' OR payload::text LIKE '%secure_form_link%'))`,
 		tenantID, entityID,
-	).Scan(&profileCount, &templateCount, &activeCount, &retiredCount, &auditCount, &outboxCount, &exposedPayloads); err != nil {
+	).Scan(&profileCount, &templateCount, &activeCount, &retiredCount, &eventCount, &outboxCount, &exposedPayloads); err != nil {
 		t.Fatal(err)
 	}
 	if profileCount != 1 || templateCount != 3 || activeCount != 1 || retiredCount != 1 {
 		t.Fatalf("unexpected persisted communication counts: profiles=%d templates=%d active=%d retired=%d", profileCount, templateCount, activeCount, retiredCount)
 	}
-	if auditCount < 11 || outboxCount < 11 || exposedPayloads != 0 {
-		t.Fatalf("governance records are incomplete or exposed copy: audit=%d outbox=%d exposed=%d", auditCount, outboxCount, exposedPayloads)
+	if eventCount < 11 || outboxCount < 11 || exposedPayloads != 0 {
+		t.Fatalf("governance records are incomplete or exposed copy: events=%d outbox=%d exposed=%d", eventCount, outboxCount, exposedPayloads)
 	}
 }
 
@@ -152,8 +152,8 @@ func setupCommunicationFixture(t *testing.T, ctx context.Context, pool *pgxpool.
 func cleanupCommunicationFixture(ctx context.Context, pool *pgxpool.Pool, tenantID string) {
 	for _, statement := range []string{
 		`DELETE FROM outbox_events WHERE tenant_id=$1::uuid`,
-		`DELETE FROM audit_events WHERE tenant_id=$1::uuid`,
 		`DELETE FROM form_delivery_attempts WHERE tenant_id=$1::uuid`,
+		`DELETE FROM form_communication_events WHERE tenant_id=$1::uuid`,
 		`DELETE FROM form_communication_templates WHERE tenant_id=$1::uuid`,
 		`DELETE FROM form_communication_profiles WHERE tenant_id=$1::uuid`,
 		`DELETE FROM form_brand_assets WHERE tenant_id=$1::uuid`,
