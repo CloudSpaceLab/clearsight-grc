@@ -13,7 +13,11 @@ func (store *PostgresDistributionStore) GetRequest(ctx context.Context, tenantID
 	if store == nil || store.repo == nil {
 		return Request{}, ErrNotFound
 	}
-	return store.repo.GetRequest(ctx, tenantID, requestID)
+	request, err := store.repo.GetRequest(ctx, tenantID, requestID)
+	if err != nil {
+		return Request{}, err
+	}
+	return hydrateRequestRecipient(ctx, store.repo, request)
 }
 
 func (store *PostgresDistributionStore) CreateAccessRoutes(ctx context.Context, routes []AccessRoute) error {
