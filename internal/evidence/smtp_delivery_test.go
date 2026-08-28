@@ -59,10 +59,10 @@ func TestSMTPDeliveryUsesSTARTTLSAndSendsRenderedAlternatives(t *testing.T) {
 
 	receipt, err := delivery.Deliver(context.Background(), InvitationDeliveryRequest{
 		RecipientAddress: "owner@example.test",
-		InvitationLink: "https://forms.example.test/s/selector",
-		Subject: "Example Bank: control review",
-		PlainText: "Open the secure form: https://forms.example.test/s/selector",
-		HTML: `<p>Open the secure form.</p><p><a href="https://forms.example.test/s/selector">Continue</a></p>`,
+		InvitationLink:   "https://forms.example.test/s/selector",
+		Subject:          "Example Bank: control review",
+		PlainText:        "Open the secure form: https://forms.example.test/s/selector",
+		HTML:             `<p>Open the secure form.</p><p><a href="https://forms.example.test/s/selector">Continue</a></p>`,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -245,11 +245,11 @@ func smtpTestCertificate(t *testing.T) (tls.Certificate, *x509.CertPool) {
 	now := time.Now().UTC()
 	template := &x509.Certificate{
 		SerialNumber: big.NewInt(1),
-		Subject: pkix.Name{CommonName: "localhost"},
-		DNSNames: []string{"localhost"},
+		Subject:      pkix.Name{CommonName: "localhost"},
+		DNSNames:     []string{"localhost"},
 		NotBefore: now.Add(-time.Hour), NotAfter: now.Add(time.Hour),
-		KeyUsage: x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
-		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
 	}
 	der, err := x509.CreateCertificate(rand.Reader, template, template, &privateKey.PublicKey, privateKey)
