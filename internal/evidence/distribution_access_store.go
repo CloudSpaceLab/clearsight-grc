@@ -99,6 +99,7 @@ type DistributionAccessStore interface {
 	GetDistribution(context.Context, string, string, string) (DistributionBundle, error)
 	GetRequest(context.Context, string, string) (Request, error)
 	CreateAccessRoutes(context.Context, []AccessRoute) error
+	ListActiveAccessRoutes(context.Context, string, string, string, time.Time) ([]AccessRoute, error)
 	AccessRouteBySelectorHash(context.Context, []byte) (AccessRoute, error)
 	AccessRouteByID(context.Context, string, string, string, string) (AccessRoute, error)
 	ProtectedRecipientForAccess(context.Context, AccessRoute, string) (DistributionRecipient, protectedRecipientAddress, error)
