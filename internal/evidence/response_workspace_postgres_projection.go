@@ -20,12 +20,13 @@ type postgresWorkspaceState struct {
 }
 
 type postgresWorkspaceEditPatch struct {
-	FieldID          string                        `json:"field_id"`
-	Value            formcontract.AnswerValue      `json:"value"`
-	PresentationMode formcontract.PresentationMode `json:"presentation_mode"`
-	SessionID        string                        `json:"session_id"`
-	RouteID          string                        `json:"route_id"`
-	Assurance        AccessAssurance               `json:"assurance"`
+	FieldID                   string                        `json:"field_id"`
+	Value                     formcontract.AnswerValue      `json:"value"`
+	PresentationMode          formcontract.PresentationMode `json:"presentation_mode"`
+	SessionID                 string                        `json:"session_id,omitempty"`
+	RouteID                   string                        `json:"route_id,omitempty"`
+	Assurance                 AccessAssurance               `json:"assurance"`
+	CarriedFromDistributionID string                        `json:"carried_from_distribution_id,omitempty"`
 }
 
 func loadPostgresWorkspaceState(ctx context.Context, tx pgx.Tx, session DistributionAccessSession, request Request, now time.Time, lock bool) (postgresWorkspaceState, error) {
@@ -87,7 +88,7 @@ func loadPostgresWorkspaceState(ctx context.Context, tx pgx.Tx, session Distribu
 			return postgresWorkspaceState{}, ErrWorkspaceUnavailable
 		}
 		var patch postgresWorkspaceEditPatch
-		if err := json.Unmarshal(patchJSON, &patch); err != nil || patch.FieldID == "" || resultVersion != baseVersion+1 || patch.SessionID == "" || patch.RouteID == "" || !validAccessAssurance(patch.Assurance) {
+		if err := json.Unmarshal(patchJSON, &patch); err != nil || patch.FieldID == "" || resultVersion != baseVersion+1 || !validPersistedWorkspaceEditOrigin(patch) || !validAccessAssurance(patch.Assurance) {
 			return postgresWorkspaceState{}, fmt.Errorf("%w: invalid persisted workspace edit", ErrWorkspaceUnavailable)
 		}
 		applyWorkspaceEdit(view.Answers, FieldEdit{FieldID: patch.FieldID, Value: patch.Value})
