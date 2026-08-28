@@ -16,16 +16,16 @@ const (
 )
 
 type DistributionListQuery struct {
-	TenantID        string
-	LegalEntityID   string
-	Status          DistributionStatus
-	DueState        DistributionDueState
-	SubjectType     string
-	SubjectID       string
+	TenantID         string
+	LegalEntityID    string
+	Status           DistributionStatus
+	DueState         DistributionDueState
+	SubjectType      string
+	SubjectID        string
 	OwnerPrincipalID string
-	Now             time.Time
-	Limit           int
-	Cursor          string
+	Now              time.Time
+	Limit            int
+	Cursor           string
 }
 
 // DistributionFormRevision is the evidence package's cycle-free projection of
