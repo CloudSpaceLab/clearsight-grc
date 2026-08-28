@@ -64,8 +64,8 @@ type ResponseWorkspaceView struct {
 
 type WorkspaceSubmissionResult struct {
 	Workspace  ResponseWorkspace `json:"workspace"`
-	Revision   ResponseRevision   `json:"revision"`
-	Submission SubmissionReceipt  `json:"submission"`
+	Revision   ResponseRevision  `json:"revision"`
+	Submission SubmissionReceipt `json:"submission"`
 }
 
 type workspaceEditRecord struct {
