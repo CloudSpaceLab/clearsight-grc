@@ -173,6 +173,7 @@
     "/api/v1/forms/saved-views/{id}": {
       "delete": { "operationId": "deleteSavedFormView", "x-clearsight-route-class": "AUTHENTICATED_WRITE" }
     },
+    "/api/v1/forms/recipient-candidates": { "get": { "operationId": "listFormDistributionRecipientCandidates", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/forms/distributions": {
       "get": { "operationId": "listFormDistributions", "x-clearsight-route-class": "AUTHENTICATED_READ" },
       "post": { "operationId": "createFormDistribution", "x-clearsight-route-class": "MATERIAL_COMMAND" }
