@@ -16,7 +16,7 @@ func (a *API) formDistributionRoutes() []routeSpec {
 		read("/api/v1/forms/distributions/{id}", a.getFormDistribution),
 		owner("/api/v1/forms/distributions/{id}/amend", "forms.distribution.amend", a.amendGovernedFormDistribution),
 		owner("/api/v1/forms/distributions/{id}/access-routes/{route_id}/rotate", "forms.distribution.access.rotate", a.rotateFormDistributionAccessRoute),
-		owner("/api/v1/forms/distributions/{id}/supersede", "forms.distribution.supersede", a.supersedeFormDistribution),
+		owner("/api/v1/forms/distributions/{id}/supersede", "forms.distribution.supersede", a.supersedeGovernedFormDistribution),
 		owner("/api/v1/forms/distributions/{id}/lock", "forms.distribution.lock", a.lockFormDistribution),
 		owner("/api/v1/forms/distributions/{id}/reopen", "forms.distribution.reopen", a.reopenFormDistribution),
 		owner("/api/v1/forms/distributions/{id}/revoke", "forms.distribution.revoke", a.revokeFormDistribution),
