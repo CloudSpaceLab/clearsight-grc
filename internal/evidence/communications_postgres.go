@@ -441,8 +441,10 @@ func appendCommunicationGovernanceRecords(ctx context.Context, tx pgx.Tx, tenant
 		return err
 	}
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO audit_events(tenant_id,actor_id,event_type,subject_type,subject_id,purpose,safe_metadata,occurred_at)
-		VALUES($1::uuid,NULLIF($2,'')::uuid,$3,$4,$5::uuid,'governed form communication configuration',$6::jsonb,$7)`, tenantID, actorID, eventType, aggregateType, aggregateID, string(payload), now.UTC()); err != nil {
+		INSERT INTO form_communication_events(
+			tenant_id,legal_entity_id,aggregate_type,aggregate_id,event_type,actor_id,aggregate_version,safe_metadata,occurred_at
+		) VALUES($1::uuid,$2::uuid,$3,$4::uuid,$5,$6::uuid,$7,$8::jsonb,$9)`,
+		tenantID, legalEntityID, aggregateType, aggregateID, eventType, actorID, version, string(payload), now.UTC()); err != nil {
 		return err
 	}
 	_, err = tx.Exec(ctx, `
