@@ -43,8 +43,8 @@ func (service *DistributionAccessService) SaveResponseWorkspace(ctx context.Cont
 		Request: request,
 		Input:   input,
 		Now:     service.currentTime(),
-		Validate: func(answers map[string]formcontract.AnswerValue) error {
-			return validator.ValidateWorkspaceAnswers(ctx, request, answers, false)
+		Validate: func(answers map[string]formcontract.AnswerValue, provenance map[string]WorkspaceFieldProvenance) error {
+			return validator.ValidateWorkspaceAnswers(ctx, request, answers, provenance, false)
 		},
 	})
 	if err != nil {
@@ -74,8 +74,8 @@ func (service *DistributionAccessService) SubmitResponseWorkspace(ctx context.Co
 		Request: request,
 		Input:   input,
 		Now:     service.currentTime(),
-		Validate: func(answers map[string]formcontract.AnswerValue) error {
-			return validator.ValidateWorkspaceAnswers(ctx, request, answers, true)
+		Validate: func(answers map[string]formcontract.AnswerValue, provenance map[string]WorkspaceFieldProvenance) error {
+			return validator.ValidateWorkspaceAnswers(ctx, request, answers, provenance, true)
 		},
 		BuildRevision: func(answers map[string]formcontract.AnswerValue) (ResponseRevision, error) {
 			return buildResponseRevision(request, session.Assurance, input.AttestationFieldIDs, answers)
@@ -107,8 +107,8 @@ func (service *DistributionAccessService) ClearResponseWorkspace(ctx context.Con
 			PresentationMode: defaultDraftPresentation(request),
 		},
 		Now: service.currentTime(),
-		Validate: func(answers map[string]formcontract.AnswerValue) error {
-			return validator.ValidateWorkspaceAnswers(ctx, request, answers, false)
+		Validate: func(answers map[string]formcontract.AnswerValue, provenance map[string]WorkspaceFieldProvenance) error {
+			return validator.ValidateWorkspaceAnswers(ctx, request, answers, provenance, false)
 		},
 	})
 	if err != nil {
