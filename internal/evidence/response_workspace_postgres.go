@@ -180,12 +180,13 @@ func (store *PostgresDistributionStore) SubmitResponseWorkspace(ctx context.Cont
 	return WorkspaceSubmissionResult{Workspace: state.View.Workspace, Revision: metadata, Submission: receipt}, nil
 }
 
-func (store *PostgresDistributionStore) ValidateWorkspaceAnswers(ctx context.Context, request Request, answers map[string]formcontract.AnswerValue, requireComplete bool) error {
+func (store *PostgresDistributionStore) ValidateWorkspaceAnswers(ctx context.Context, session DistributionAccessSession, request Request, answers map[string]formcontract.AnswerValue, requireComplete bool) error {
 	if store == nil || store.repo == nil {
 		return ErrWorkspaceUnavailable
 	}
-	validator := NewService(store.repo, nil)
-	return validator.validateAnswerSet(ctx, request, answers, requireComplete)
+	return validateWorkspaceAnswerSet(ctx, store.repo, request, answers, requireComplete, func(ctx context.Context, tenantID, _ string, artifactID string) (Artifact, error) {
+		return loadPostgresDistributionArtifact(ctx, store, session, tenantID, artifactID)
+	})
 }
 
 func postgresWorkspaceConflict(view ResponseWorkspaceView, edits []FieldEdit) *WorkspaceConflict {
