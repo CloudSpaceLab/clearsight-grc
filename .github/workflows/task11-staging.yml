@@ -110,6 +110,33 @@ jobs:
           elif new not in text:
               raise SystemExit("distribution transition client anchor changed")
           distribution_api.write_text(text)
+
+          review = Path("web/scripts/review-ui-flow-manifest.mjs")
+          text = review.read_text()
+          text = text.replace('import { gzipSync } from "node:zlib";\n', 'import { assessInteractionBundle, collectInteractionBundleMetrics } from "./ui-bundle-budget.mjs";\n')
+          text = text.replace('const javascriptBudget = { largestRawChunk: 600 * 1024, totalGzip: 192 * 1024 };\n', '')
+          start = text.find('const bundle = { javascript:')
+          end = text.find('\nconst status =', start)
+          if start < 0 or end < 0:
+              if 'collectInteractionBundleMetrics(path.resolve("dist"))' not in text:
+                  raise SystemExit("interaction bundle review anchor changed")
+          else:
+              replacement = '''let bundle = { javascript: { raw: 0, gzip: 0, initial_gzip: 0, largest_raw_chunk: 0 }, css: { raw: 0, gzip: 0, initial_gzip: 0 } };
+          try {
+            bundle = await collectInteractionBundleMetrics(path.resolve("dist"));
+            const bundleFailures = assessInteractionBundle(bundle);
+            failures.push(...bundleFailures);
+            checks.push({
+              name: "interaction bundle budget",
+              status: bundleFailures.length ? "FAIL" : "PASS",
+              detail: `${Math.round(bundle.javascript.initial_gzip / 1024)} KiB initial JS gzip, ${Math.round(bundle.javascript.gzip / 1024)} KiB total JS gzip, ${Math.round(bundle.javascript.largest_raw_chunk / 1024)} KiB largest JS chunk, ${Math.round(bundle.css.initial_gzip / 1024)} KiB initial CSS gzip, ${Math.round(bundle.css.gzip / 1024)} KiB total CSS gzip`,
+            });
+          } catch (error) {
+            failures.push(`built assets could not be assessed: ${error instanceof Error ? error.message : String(error)}`);
+          }
+          '''
+              text = text[:start] + replacement + text[end:]
+          review.write_text(text)
       - name: Generate exact Lexical lock
         working-directory: web
         run: npm install --package-lock-only --ignore-scripts --save-exact lexical@0.49.0 @lexical/react@0.49.0 @lexical/rich-text@0.49.0 @lexical/history@0.49.0 @lexical/list@0.49.0 @lexical/link@0.49.0
@@ -127,6 +154,19 @@ jobs:
       - name: Production build
         working-directory: web
         run: npm run build
+      - name: Interaction bundle budget
+        working-directory: web
+        run: |
+          node --input-type=module <<'NODE'
+          import { assessInteractionBundle, collectInteractionBundleMetrics } from './scripts/ui-bundle-budget.mjs';
+          const metrics = await collectInteractionBundleMetrics('./dist');
+          console.log(JSON.stringify(metrics, null, 2));
+          const failures = assessInteractionBundle(metrics);
+          if (failures.length) {
+            console.error(failures.join('\n'));
+            process.exit(1);
+          }
+          NODE
       - name: Go unit tests
         run: go test ./internal/evidence ./internal/httpapi
       - name: PostgreSQL composition
