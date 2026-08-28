@@ -27,9 +27,9 @@ func buildResponseRevision(request Request, assurance AccessAssurance, attestati
 			"attestation_field_ids": append([]string(nil), attestationFieldIDs...),
 			"attestation_count":     len(attestationFieldIDs),
 		},
-		State:                 ResponseRevisionFinal,
+		State:                ResponseRevisionFinal,
 		ScoringPolicyVersion: "formcontract-v1",
-		Current:               true,
+		Current:              true,
 	}
 	contract, err := workspaceScoringContract(request)
 	if err != nil {
