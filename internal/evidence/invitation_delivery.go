@@ -37,9 +37,14 @@ var (
 // InvitationDeliveryRequest contains protected values only for the duration of
 // one synchronous adapter call. Adapters MUST NOT persist or log this value.
 // JSON and ordinary formatted output deliberately omit the protected fields.
+// Subject, PlainText and HTML are optional so legacy invitation callers remain
+// compatible; governed communication delivery supplies all three.
 type InvitationDeliveryRequest struct {
 	RecipientAddress string `json:"-"`
 	InvitationLink   string `json:"-"`
+	Subject          string `json:"-"`
+	PlainText        string `json:"-"`
+	HTML             string `json:"-"`
 }
 
 func (InvitationDeliveryRequest) String() string {
@@ -57,12 +62,13 @@ type InvitationDelivery interface {
 }
 
 // InvitationDeliveryReceipt is safe to retain. It contains no provider payload,
-// raw recipient address, invitation token or one-time link.
+// raw recipient address, invitation token, message body or one-time link.
 type InvitationDeliveryReceipt struct {
-	Status        InvitationDeliveryStatus      `json:"status"`
-	RecipientHint string                        `json:"recipient_hint"`
-	DeliveredAt   *time.Time                    `json:"delivered_at,omitempty"`
-	FailureCode   InvitationDeliveryFailureCode `json:"failure_code,omitempty"`
+	Status            InvitationDeliveryStatus      `json:"status"`
+	RecipientHint     string                        `json:"recipient_hint"`
+	ProviderMessageID string                        `json:"provider_message_id,omitempty"`
+	DeliveredAt       *time.Time                    `json:"delivered_at,omitempty"`
+	FailureCode       InvitationDeliveryFailureCode `json:"failure_code,omitempty"`
 }
 
 type InvitationDeliveryService struct {
@@ -118,7 +124,11 @@ func invitationFailureReceipt(hint string, code InvitationDeliveryFailureCode) I
 }
 
 func normalizeInvitationDeliveryReceipt(provider InvitationDeliveryReceipt, request InvitationDeliveryRequest, hint string) (InvitationDeliveryReceipt, bool) {
-	if invitationReceiptContainsProtectedFailure(provider, request) {
+	if invitationReceiptContainsProtectedValue(provider, request) {
+		return InvitationDeliveryReceipt{}, false
+	}
+	messageID := strings.TrimSpace(provider.ProviderMessageID)
+	if len(messageID) > 512 || strings.ContainsAny(messageID, "\r\n") {
 		return InvitationDeliveryReceipt{}, false
 	}
 
@@ -129,17 +139,18 @@ func normalizeInvitationDeliveryReceipt(provider InvitationDeliveryReceipt, requ
 		}
 		deliveredAt := provider.DeliveredAt.UTC()
 		return InvitationDeliveryReceipt{
-			Status:        InvitationDelivered,
-			RecipientHint: hint,
-			DeliveredAt:   &deliveredAt,
+			Status:            InvitationDelivered,
+			RecipientHint:     hint,
+			ProviderMessageID: messageID,
+			DeliveredAt:       &deliveredAt,
 		}, true
 	case InvitationLinkCreatedEmailNotSent:
-		if provider.DeliveredAt != nil || provider.FailureCode != "" {
+		if provider.DeliveredAt != nil || provider.FailureCode != "" || messageID != "" {
 			return InvitationDeliveryReceipt{}, false
 		}
 		return invitationFallbackReceipt(hint), true
 	case InvitationDeliveryFailed:
-		if provider.DeliveredAt != nil || !validInvitationFailureCode(provider.FailureCode) {
+		if provider.DeliveredAt != nil || !validInvitationFailureCode(provider.FailureCode) || messageID != "" {
 			return InvitationDeliveryReceipt{}, false
 		}
 		return invitationFailureReceipt(hint, provider.FailureCode), true
@@ -161,22 +172,24 @@ func validInvitationFailureCode(code InvitationDeliveryFailureCode) bool {
 	}
 }
 
-func invitationReceiptContainsProtectedFailure(receipt InvitationDeliveryReceipt, request InvitationDeliveryRequest) bool {
-	value := strings.ToLower(string(receipt.FailureCode))
-	if value == "" {
-		return false
-	}
-	for _, protected := range invitationDeliveryProtectedValues(request) {
-		protected = strings.ToLower(strings.TrimSpace(protected))
-		if protected != "" && strings.Contains(value, protected) {
-			return true
+func invitationReceiptContainsProtectedValue(receipt InvitationDeliveryReceipt, request InvitationDeliveryRequest) bool {
+	for _, candidate := range []string{string(receipt.FailureCode), receipt.ProviderMessageID} {
+		candidate = strings.ToLower(candidate)
+		if candidate == "" {
+			continue
+		}
+		for _, protected := range invitationDeliveryProtectedValues(request) {
+			protected = strings.ToLower(strings.TrimSpace(protected))
+			if protected != "" && strings.Contains(candidate, protected) {
+				return true
+			}
 		}
 	}
 	return false
 }
 
 func invitationDeliveryProtectedValues(request InvitationDeliveryRequest) []string {
-	values := []string{request.RecipientAddress, request.InvitationLink}
+	values := []string{request.RecipientAddress, request.InvitationLink, request.Subject, request.PlainText, request.HTML}
 	parsed, err := url.Parse(request.InvitationLink)
 	if err != nil {
 		return values
