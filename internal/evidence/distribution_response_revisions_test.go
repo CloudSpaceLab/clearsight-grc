@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 )
 
 type responseRevisionTestStore struct {
@@ -24,6 +25,12 @@ func (store *responseRevisionTestStore) GetDistribution(_ context.Context, tenan
 }
 func (store *responseRevisionTestStore) ListDistributions(context.Context, DistributionListQuery) ([]FormDistribution, error) {
 	return nil, nil
+}
+func (store *responseRevisionTestStore) AmendDistribution(context.Context, string, string, string, AmendDistributionInput, time.Time) (AmendDistributionResult, error) {
+	return AmendDistributionResult{}, ErrDistributionInvalid
+}
+func (store *responseRevisionTestStore) TransitionDistribution(context.Context, string, string, string, TransitionDistributionInput, time.Time) (DistributionBundle, error) {
+	return DistributionBundle{}, ErrDistributionInvalid
 }
 func (store *responseRevisionTestStore) ListDistributionResponseRevisions(_ context.Context, tenantID, legalEntityID, distributionID string, limit int) ([]ResponseRevision, error) {
 	store.responseRead = true
