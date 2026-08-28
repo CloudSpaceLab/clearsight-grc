@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func (s *MemoryDistributionStore) AmendDistribution(_ context.Context, tenantID, legalEntityID, distributionID string, input AmendDistributionInput, now time.Time) (AmendDistributionResult, error) {
+func (s *MemoryDistributionStore) AmendDistribution(ctx context.Context, tenantID, legalEntityID, distributionID string, input AmendDistributionInput, now time.Time) (AmendDistributionResult, error) {
 	if s == nil || s.repo == nil {
 		return AmendDistributionResult{}, ErrDistributionInvalid
 	}
@@ -27,8 +27,45 @@ func (s *MemoryDistributionStore) AmendDistribution(_ context.Context, tenantID,
 		return AmendDistributionResult{}, ErrDistributionConflict
 	}
 
+	preparedRecipients, preparedRequests, err := prepareMemoryRecipientAdditions(ctx, s, current, input.AddRecipients, now)
+	if err != nil {
+		return AmendDistributionResult{}, err
+	}
+	revokeSet := make(map[string]struct{}, len(input.RevokeRecipientIDs))
+	for _, recipientID := range input.RevokeRecipientIDs {
+		revokeSet[recipientID] = struct{}{}
+	}
+	foundRevocations := make(map[string]struct{}, len(revokeSet))
+	activeTO := 0
+	for _, recipient := range s.recipients[distributionID] {
+		if _, revoke := revokeSet[recipient.safe.ID]; revoke {
+			foundRevocations[recipient.safe.ID] = struct{}{}
+		}
+		if recipient.safe.Role == RecipientTo && recipient.safe.State != DistributionRecipientRevoked {
+			if _, revoke := revokeSet[recipient.safe.ID]; !revoke {
+				activeTO++
+			}
+		}
+	}
+	if len(foundRevocations) != len(revokeSet) {
+		return AmendDistributionResult{}, fmt.Errorf("%w: recipient to revoke was not found", ErrDistributionInvalid)
+	}
+	for _, recipient := range preparedRecipients {
+		if recipient.safe.Role == RecipientTo {
+			activeTO++
+		}
+	}
+	if activeTO == 0 {
+		return AmendDistributionResult{}, fmt.Errorf("%w: at least one active TO recipient is required", ErrDistributionInvalid)
+	}
+
 	next := cloneDistribution(current)
-	impact := DistributionImpact{CurrentVersion: current.Version, NextVersion: current.Version + 1, EffectiveDeadline: current.Deadline, EffectiveRouteExpiry: current.RouteExpiresAt, AffectedRecipients: len(s.recipients[distributionID])}
+	impact := DistributionImpact{
+		CurrentVersion: current.Version, NextVersion: current.Version + 1,
+		EffectiveDeadline: current.Deadline, EffectiveRouteExpiry: current.RouteExpiresAt,
+		AffectedRecipients: len(s.recipients[distributionID]) + len(preparedRecipients),
+		RecipientsAdded: len(preparedRecipients),
+	}
 	if input.Deadline != nil {
 		deadline := input.Deadline.UTC()
 		if !deadline.After(now) {
@@ -54,7 +91,12 @@ func (s *MemoryDistributionStore) AmendDistribution(_ context.Context, tenantID,
 		impact.ReminderPolicyChanged = !reflect.DeepEqual(policy, current.ReminderPolicy)
 		next.ReminderPolicy = policy
 	}
-	if !impact.DeadlineChanged && !impact.RouteExpiryChanged && !impact.ReminderPolicyChanged {
+	for _, recipient := range s.recipients[distributionID] {
+		if _, revoke := revokeSet[recipient.safe.ID]; revoke && recipient.safe.State != DistributionRecipientRevoked {
+			impact.RecipientsRevoked++
+		}
+	}
+	if !impact.DeadlineChanged && !impact.RouteExpiryChanged && !impact.ReminderPolicyChanged && impact.RecipientsAdded == 0 && impact.RecipientsRevoked == 0 {
 		return AmendDistributionResult{Bundle: bundleFromMemory(current, s.recipients[distributionID], s.workspaces[distributionID]), Impact: impact}, nil
 	}
 
@@ -63,12 +105,24 @@ func (s *MemoryDistributionStore) AmendDistribution(_ context.Context, tenantID,
 	impact.EffectiveDeadline = next.Deadline
 	impact.EffectiveRouteExpiry = next.RouteExpiresAt
 	s.distributions[distributionID] = cloneDistribution(next)
-	for _, recipient := range s.recipients[distributionID] {
-		if recipient.safe.RequestID == "" {
-			continue
+
+	recipients := s.recipients[distributionID]
+	for index := range recipients {
+		if _, revoke := revokeSet[recipients[index].safe.ID]; revoke && recipients[index].safe.State != DistributionRecipientRevoked {
+			recipients[index].safe.State = DistributionRecipientRevoked
+			recipients[index].safe.Version++
+			recipients[index].safe.UpdatedAt = now.UTC()
+			if requestID := recipients[index].safe.RequestID; requestID != "" {
+				request := s.repo.requests[requestID]
+				request.Status = RequestCancelled
+				request.Version++
+				request.UpdatedAt = now.UTC()
+				s.repo.requests[requestID] = request
+			}
 		}
-		request, exists := s.repo.requests[recipient.safe.RequestID]
-		if !exists {
+	}
+	for _, request := range s.repo.requests {
+		if s.requestDistribution[request.ID] != distributionID || request.Status == RequestCancelled || request.Status == RequestExpired {
 			continue
 		}
 		request.Deadline = next.Deadline
@@ -76,10 +130,18 @@ func (s *MemoryDistributionStore) AmendDistribution(_ context.Context, tenantID,
 		request.UpdatedAt = now.UTC()
 		s.repo.requests[request.ID] = request
 	}
-	event := distributionEvent{DistributionID: next.ID, Version: next.Version, EventType: "FORM_DISTRIBUTION_AMENDED", ActorID: next.CreatedBy, OccurredAt: now.UTC()}
+	for _, request := range preparedRequests {
+		request.Deadline = next.Deadline
+		s.repo.requests[request.ID] = cloneRequest(request)
+		s.requestDistribution[request.ID] = distributionID
+	}
+	recipients = append(recipients, preparedRecipients...)
+	s.recipients[distributionID] = recipients
+
+	event := distributionEvent{DistributionID: next.ID, Version: next.Version, EventType: "FORM_DISTRIBUTION_AMENDED", ActorID: input.ActorID, OccurredAt: now.UTC()}
 	s.events = append(s.events, event)
 	s.outbox = append(s.outbox, event)
-	return AmendDistributionResult{Bundle: bundleFromMemory(next, s.recipients[distributionID], s.workspaces[distributionID]), Impact: impact}, nil
+	return AmendDistributionResult{Bundle: bundleFromMemory(next, recipients, s.workspaces[distributionID]), Impact: impact}, nil
 }
 
 func (s *MemoryDistributionStore) TransitionDistribution(_ context.Context, tenantID, legalEntityID, distributionID string, input TransitionDistributionInput, now time.Time) (DistributionBundle, error) {
