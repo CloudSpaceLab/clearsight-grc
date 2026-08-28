@@ -19,8 +19,8 @@ func TestDraftCompatibilityTranslatesDistributionSnapshotsToFieldEdits(t *testin
 		t.Fatalf("initial compatibility draft = %+v, err = %v", first, err)
 	}
 	first, err = compatibility.SaveDraft(ctx, tokens[0], SaveDraftInput{
-		ExpectedVersion: first.Version,
-		Answers:         map[string]formcontract.AnswerValue{"q1": formcontract.TextAnswer("Yes")},
+		ExpectedVersion:  first.Version,
+		Answers:          map[string]formcontract.AnswerValue{"q1": formcontract.TextAnswer("Yes")},
 		PresentationMode: formcontract.PresentationWizard,
 	})
 	if err != nil || first.Version != 2 {
@@ -77,8 +77,8 @@ func TestDraftCompatibilityPreservesLegacySessionOwnedDrafts(t *testing.T) {
 	compatibility := NewDraftCompatibilityService(legacy, nil)
 
 	saved, err := compatibility.SaveDraft(ctx, token, SaveDraftInput{
-		ExpectedVersion: 0,
-		Answers:         map[string]formcontract.AnswerValue{"answer": formcontract.TextAnswer("legacy")},
+		ExpectedVersion:  0,
+		Answers:          map[string]formcontract.AnswerValue{"answer": formcontract.TextAnswer("legacy")},
 		PresentationMode: formcontract.PresentationClassic,
 	})
 	if err != nil || saved.Version != 1 {
