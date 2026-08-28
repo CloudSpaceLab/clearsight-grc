@@ -154,6 +154,15 @@ jobs:
       - name: Production build
         working-directory: web
         run: npm run build
+      - name: Install pinned UI review runtime
+        working-directory: web
+        run: npm install --no-save --package-lock=false playwright@1.55.0
+      - name: Build deterministic stakeholder application
+        working-directory: web
+        env:
+          VITE_STATIC_DEMO: "true"
+          VITE_API_BASE_URL: ""
+        run: npm run build -- --base=/
       - name: Interaction bundle budget
         working-directory: web
         run: |
