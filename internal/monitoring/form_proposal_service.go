@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -154,17 +155,21 @@ func (s *FormProposalService) Accept(ctx context.Context, proposalID string, inp
 	if s.store == nil || s.docs == nil || s.forms == nil || input.ExpectedVersion < 1 || strings.TrimSpace(proposalID) == "" {
 		return FormTemplateProposal{}, ErrInvalid
 	}
+	changeIDs := normalizeProposalChangeIDs(input.ChangeIDs)
+	if len(changeIDs) == 0 || len(changeIDs) > 500 {
+		return FormTemplateProposal{}, ErrFormProposalSelection
+	}
 	proposal, err := s.store.Get(ctx, actor.TenantID, actor.LegalEntityID, strings.TrimSpace(proposalID))
 	if err != nil {
 		return FormTemplateProposal{}, err
+	}
+	if proposal.Status == FormProposalAccepted && proposal.ReviewedBy == actor.PrincipalID && slices.Equal(proposal.AcceptedChangeIDs, changeIDs) {
+		return proposal, nil
 	}
 	if proposal.Version != input.ExpectedVersion {
 		return FormTemplateProposal{}, ErrConflict
 	}
 	if proposal.Status != FormProposalReviewRequired {
-		if proposal.Status == FormProposalAccepted && proposal.ReviewedBy == actor.PrincipalID {
-			return proposal, nil
-		}
 		return FormTemplateProposal{}, ErrFormProposalState
 	}
 	document, err := s.docs.Get(ctx, actor.TenantID, proposal.SourceDocumentID)
@@ -182,11 +187,35 @@ func (s *FormProposalService) Accept(ctx context.Context, proposalID string, inp
 			return FormTemplateProposal{}, err
 		}
 	}
-	contract, err := applySelectedProposalChanges(base, proposal, input.ChangeIDs)
+	contract, err := applySelectedProposalChanges(base, proposal, changeIDs)
 	if err != nil {
 		return FormTemplateProposal{}, err
 	}
 	formInput := proposalFormInput(base, document, proposal, contract)
+	mutation := FormProposalReviewMutation{
+		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ProposalID: proposal.ID,
+		ExpectedVersion: proposal.Version, Status: FormProposalAccepted, ReviewerID: actor.PrincipalID,
+		ChangeIDs: changeIDs, At: s.now().UTC(),
+	}
+
+	if atomic, ok := s.store.(formProposalAtomicAcceptor); ok {
+		preparer, ok := s.forms.(proposalFormPreparer)
+		if !ok {
+			return FormTemplateProposal{}, errors.Join(ErrInvalid, errors.New("atomic proposal acceptance requires a transaction-capable form preparer"))
+		}
+		var draft FormTemplate
+		if base.ID != "" {
+			draft, err = preparer.PrepareFormRevision(ctx, base.ID, CreateFormRevisionInput{ExpectedVersion: base.Version, Form: formInput})
+		} else {
+			draft, err = preparer.PrepareLibraryForm(ctx, formInput)
+		}
+		if err != nil {
+			return FormTemplateProposal{}, err
+		}
+		mutation.ResultTemplateID = draft.ID
+		mutation.ResultTemplateVersion = draft.Version
+		return atomic.AcceptWithDraft(ctx, mutation, draft)
+	}
 
 	var draft FormTemplate
 	if base.ID != "" {
@@ -197,11 +226,9 @@ func (s *FormProposalService) Accept(ctx context.Context, proposalID string, inp
 	if err != nil {
 		return FormTemplateProposal{}, err
 	}
-	return s.store.Review(ctx, FormProposalReviewMutation{
-		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ProposalID: proposal.ID,
-		ExpectedVersion: proposal.Version, Status: FormProposalAccepted, ReviewerID: actor.PrincipalID,
-		ResultTemplateID: draft.ID, ResultTemplateVersion: draft.Version, At: s.now().UTC(),
-	})
+	mutation.ResultTemplateID = draft.ID
+	mutation.ResultTemplateVersion = draft.Version
+	return s.store.Review(ctx, mutation)
 }
 
 func (s *FormProposalService) failGeneration(ctx context.Context, current FormTemplateProposal, code, message string) (FormTemplateProposal, error) {
