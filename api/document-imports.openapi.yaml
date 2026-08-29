@@ -1,18 +1,18 @@
 openapi: 3.1.0
 info:
   title: ClearSight Governed Document Imports API
-  version: 0.1.0
+  version: 0.2.0
   description: |
-    Actor-bound document intake, deterministic extraction and source-anchored analysis proposals.
+    Actor-bound document intake, bounded deterministic extraction and source-anchored analysis proposals.
     Import and proposal review do not create or approve Requirements, Programs, Matters, controls,
     legal interpretations or compliance conclusions.
 paths:
   /api/v1/document-imports:
     get:
-      summary: List imported documents visible to the verified actor tenant
+      summary: List imported documents visible to the verified actor tenant and legal entity
       responses:
         '200':
-          description: Bounded imported-document list
+          description: Bounded imported-document summaries; structured element bodies are detail-only
           content:
             application/json:
               schema:
@@ -22,15 +22,17 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/DocumentImport'
+                      $ref: '#/components/schemas/DocumentImportSummary'
         '401':
           $ref: '#/components/responses/IdentityRequired'
     post:
-      summary: Store, extract and analyse one document
+      summary: Store and queue or perform bounded extraction of one document
       description: |
         Tenant, legal entity and importing principal are derived from verified identity.
-        Supported extraction types are TXT, Markdown, CSV, DOCX and XLSX. PDF originals are retained,
-        but this build does not claim PDF text extraction or OCR.
+        Supported deterministic extraction includes TXT/Markdown, CSV/JSON/NDJSON, DOCX and XLSX.
+        PDF text extraction is available only when the bounded Poppler adapter is installed; image-only
+        or scanned PDFs explicitly require OCR and are never represented as successfully extracted text.
+        PostgreSQL-backed imports may return PENDING while durable outbox processing is outstanding.
       requestBody:
         required: true
         content:
@@ -49,7 +51,7 @@ paths:
                   examples: [DOCUMENT, REGULATORY, POLICY, FINDING]
       responses:
         '201':
-          description: Imported document with extraction and proposal state
+          description: Imported document with current extraction and proposal state
           content:
             application/json:
               schema:
@@ -59,10 +61,10 @@ paths:
         '413':
           description: Document exceeds the configured limit
         '422':
-          description: Document could not be stored or processed
+          description: Document could not be stored or queued
   /api/v1/document-imports/{id}:
     get:
-      summary: Load one tenant-scoped imported document
+      summary: Load one tenant- and legal-entity-scoped imported document
       parameters:
         - $ref: '#/components/parameters/DocumentID'
       responses:
@@ -75,7 +77,7 @@ paths:
         '401':
           $ref: '#/components/responses/IdentityRequired'
         '404':
-          description: Not found or outside the verified actor tenant
+          description: Not found or outside the verified actor scope
   /api/v1/document-imports/{id}/proposals/{proposal_id}/review:
     post:
       summary: Accept or reject one analysis proposal
@@ -134,7 +136,13 @@ components:
     IdentityRequired:
       description: Verified identity is required
   schemas:
-    DocumentImport:
+    ExtractionStatus:
+      type: string
+      enum: [PENDING, EXTRACTED, PARTIAL, TRUNCATED, UNSUPPORTED, FAILED]
+    AnalysisStatus:
+      type: string
+      enum: [PENDING, REVIEW_REQUIRED, NO_PROPOSALS, UNAVAILABLE]
+    DocumentImportSummary:
       type: object
       required:
         - id
@@ -147,12 +155,105 @@ components:
         - sha256
         - artifact_status
         - extraction_status
+        - analysis_status
+        - sections_total
+        - sections_omitted
+        - proposals_total
+        - proposals_omitted
+        - pending_proposal_count
+        - reviewed_proposal_count
+        - content_truncated
+        - created_at
+        - updated_at
+        - version
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+        legal_entity_id:
+          type: string
+        file_name:
+          type: string
+        media_type:
+          type: string
+        purpose:
+          type: string
+        source_type:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
+        sha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+        artifact_status:
+          type: string
+          enum: [STORED_UNSCANNED, AVAILABLE, QUARANTINED, DELETED]
+        extraction_status:
+          $ref: '#/components/schemas/ExtractionStatus'
+        parser_version:
+          type: string
+        analysis_status:
+          $ref: '#/components/schemas/AnalysisStatus'
+        sections_total:
+          type: integer
+          minimum: 0
+        sections_omitted:
+          type: integer
+          minimum: 0
+        proposals_total:
+          type: integer
+          minimum: 0
+        proposals_omitted:
+          type: integer
+          minimum: 0
+        pending_proposal_count:
+          type: integer
+          minimum: 0
+        reviewed_proposal_count:
+          type: integer
+          minimum: 0
+        content_truncated:
+          type: boolean
+        processed_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          minimum: 1
+    DocumentImport:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - file_name
+        - media_type
+        - purpose
+        - source_type
+        - size_bytes
+        - sha256
+        - storage_key
+        - artifact_status
+        - extraction_status
         - extraction_method
         - analysis_status
         - analysis_method
         - limitations
         - sections
         - proposals
+        - sections_total
+        - sections_omitted
+        - proposals_total
+        - proposals_omitted
+        - content_truncated
         - created_by
         - created_at
         - updated_at
@@ -185,13 +286,15 @@ components:
           type: string
           enum: [STORED_UNSCANNED, AVAILABLE, QUARANTINED, DELETED]
         extraction_status:
-          type: string
-          enum: [EXTRACTED, UNSUPPORTED, FAILED]
+          $ref: '#/components/schemas/ExtractionStatus'
         extraction_method:
           type: string
-        analysis_status:
+        parser_version:
           type: string
-          enum: [REVIEW_REQUIRED, NO_PROPOSALS, UNAVAILABLE]
+        adapter_version:
+          type: string
+        analysis_status:
+          $ref: '#/components/schemas/AnalysisStatus'
         analysis_method:
           type: string
         limitations:
@@ -202,10 +305,37 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DocumentSection'
+        elements:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentExtractedElement'
+        degradations:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentExtractionDegradation'
         proposals:
           type: array
           items:
             $ref: '#/components/schemas/DocumentProposal'
+        sections_total:
+          type: integer
+          minimum: 0
+        sections_omitted:
+          type: integer
+          minimum: 0
+        proposals_total:
+          type: integer
+          minimum: 0
+        proposals_omitted:
+          type: integer
+          minimum: 0
+        content_truncated:
+          type: boolean
+        tabular:
+          $ref: '#/components/schemas/DocumentTabularMetadata'
+        processed_at:
+          type: string
+          format: date-time
         created_by:
           type: string
         created_at:
@@ -226,18 +356,169 @@ components:
           format: uuid
         sequence:
           type: integer
+          minimum: 1
         title:
           type: string
         text:
           type: string
         page:
           type: integer
+          minimum: 1
         sheet:
           type: string
         row_start:
           type: integer
+          minimum: 1
         row_end:
           type: integer
+          minimum: 1
+    DocumentExtractedElement:
+      type: object
+      required: [kind, anchor]
+      properties:
+        ref:
+          type: string
+        kind:
+          type: string
+          enum: [HEADING, PARAGRAPH, TABLE, FORM_CONTROL, IMAGE, LINK]
+        text:
+          type: string
+        values:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+        control:
+          $ref: '#/components/schemas/DocumentFormControl'
+        anchor:
+          $ref: '#/components/schemas/DocumentSourceAnchor'
+    DocumentFormControl:
+      type: object
+      required: [kind]
+      properties:
+        kind:
+          type: string
+        label:
+          type: string
+        help:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        checked:
+          type: boolean
+    DocumentExtractionDegradation:
+      type: object
+      required: [code, message, recoverable]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        recoverable:
+          type: boolean
+        anchor:
+          $ref: '#/components/schemas/DocumentSourceAnchor'
+    DocumentSourceAnchor:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        sheet:
+          type: string
+        row_start:
+          type: integer
+          minimum: 1
+        row_end:
+          type: integer
+          minimum: 1
+        paragraph:
+          type: string
+        table:
+          type: string
+        cell:
+          type: string
+        bounding_box:
+          $ref: '#/components/schemas/DocumentBoundingBox'
+    DocumentBoundingBox:
+      type: object
+      required: [x0, y0, x1, y1]
+      properties:
+        x0:
+          type: number
+        y0:
+          type: number
+        x1:
+          type: number
+        y1:
+          type: number
+    DocumentTabularMetadata:
+      type: object
+      required: [format, parser_version, rows_total, rows_rejected, resources, row_errors]
+      properties:
+        format:
+          type: string
+          enum: [CSV, JSON, NDJSON, XLSX]
+        parser_version:
+          type: string
+        rows_total:
+          type: integer
+          minimum: 0
+        rows_rejected:
+          type: integer
+          minimum: 0
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentTabularResource'
+        row_errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentTabularRowError'
+        fatal_error:
+          type: string
+    DocumentTabularResource:
+      type: object
+      required: [name, rows_total, rows_rejected, fields]
+      properties:
+        name:
+          type: string
+        rows_total:
+          type: integer
+          minimum: 0
+        rows_rejected:
+          type: integer
+          minimum: 0
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentTabularField'
+        schema_fingerprint:
+          type: string
+    DocumentTabularField:
+      type: object
+      required: [name, native_type, nullable]
+      properties:
+        name:
+          type: string
+        native_type:
+          type: string
+        nullable:
+          type: boolean
+    DocumentTabularRowError:
+      type: object
+      required: [resource, row, message]
+      properties:
+        resource:
+          type: string
+        row:
+          type: integer
+          minimum: 1
+        message:
+          type: string
     DocumentProposal:
       type: object
       required: [id, kind, title, statement, confidence, anchor, status]
@@ -279,9 +560,12 @@ components:
           type: string
         page:
           type: integer
+          minimum: 1
         sheet:
           type: string
         row_start:
           type: integer
+          minimum: 1
         row_end:
           type: integer
+          minimum: 1
