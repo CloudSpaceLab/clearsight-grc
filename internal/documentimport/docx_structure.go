@@ -110,11 +110,14 @@ func (p *docxStructureParser) parse(file *zip.File) error {
 				return err
 			}
 		case "sdt":
-			control, text, truncated, err := readDOCXContentControl(p.ctx, decoder, p.policy)
+			control, text, truncated, complexStructure, err := readDOCXContentControl(p.ctx, decoder, p.policy)
 			if err != nil {
 				return err
 			}
 			p.truncated = p.truncated || truncated
+			if complexStructure {
+				p.degrade("DOCX_COMPLEX_CONTROL_STRUCTURE_NOT_EXTRACTED", "A DOCX content control contains nested structure that was retained only as bounded visible text.", nil)
+			}
 			if control != nil {
 				p.addElement(ExtractedElement{Kind: ElementFormControl, Text: text, Control: control})
 			} else if text != "" {
@@ -172,12 +175,17 @@ func (p *docxStructureParser) readParagraph(decoder *xml.Decoder, inTable bool, 
 			case "br", "cr":
 				appendBounded(&text, "\n", p.policy.MaxCellBytes, &result.truncated)
 			case "sdt":
-				control, visible, truncated, err := readDOCXContentControl(p.ctx, decoder, p.policy)
+				control, visible, truncated, complexStructure, err := readDOCXContentControl(p.ctx, decoder, p.policy)
 				if err != nil {
 					return result, err
 				}
 				depth--
 				result.truncated = result.truncated || truncated
+				if complexStructure {
+					result.degradations = append(result.degradations, Degradation{
+						Code: "DOCX_COMPLEX_CONTROL_STRUCTURE_NOT_EXTRACTED", Message: "A DOCX content control contains nested structure that was retained only as bounded visible text.", Recoverable: true, Anchor: cloneSourceAnchor(anchor),
+					})
+				}
 				if visible != "" {
 					appendBounded(&text, visible, p.policy.MaxCellBytes, &result.truncated)
 				}
@@ -379,6 +387,15 @@ func (p *docxStructureParser) readTable(decoder *xml.Decoder) error {
 					p.addDegradation(degradation)
 				}
 				inline = append(inline, paragraph.inline...)
+			case "tbl":
+				anchor := SourceAnchor{Table: tableRef, Cell: fmt.Sprintf("r%dc%d", rowIndex, cellIndex), RowStart: rowIndex, RowEnd: rowIndex}
+				p.addDegradation(Degradation{
+					Code: "DOCX_NESTED_TABLE_NOT_EXTRACTED", Message: "A nested DOCX table was not flattened into its parent table; review the original artifact for that nested structure.", Recoverable: true, Anchor: cloneSourceAnchor(anchor),
+				})
+				if err := skipXMLElement(p.ctx, decoder); err != nil {
+					return err
+				}
+				depth--
 			}
 		case xml.EndElement:
 			switch item.Name.Local {
