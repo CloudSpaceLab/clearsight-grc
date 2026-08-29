@@ -113,6 +113,8 @@ func (r *MemoryRepository) SaveProcessing(_ context.Context, value Document, exp
 func cloneDocument(value Document) Document {
 	value.Limitations = append([]string(nil), value.Limitations...)
 	value.Sections = append([]Section(nil), value.Sections...)
+	value.Elements = cloneElements(value.Elements)
+	value.Degradations = cloneDegradations(value.Degradations)
 	value.Proposals = append([]Proposal(nil), value.Proposals...)
 	for index := range value.Proposals {
 		if value.Proposals[index].Obligation != nil {
@@ -141,5 +143,5 @@ func cloneDocument(value Document) Document {
 		}
 		value.Tabular = &metadata
 	}
-	return value
+	return withDerivedExtractionDetails(value)
 }
