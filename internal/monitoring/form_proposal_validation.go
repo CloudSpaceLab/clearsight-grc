@@ -25,7 +25,7 @@ func validateNewFormProposal(value FormTemplateProposal) error {
 	if (strings.TrimSpace(value.BaseTemplateID) == "") != (value.BaseTemplateVersion == 0) || value.BaseTemplateVersion < 0 {
 		return errors.Join(ErrInvalid, errors.New("base template id and version must be supplied together"))
 	}
-	if value.ReviewedBy != "" || value.ReviewedAt != nil || value.ResultTemplateID != "" || value.ResultTemplateVersion != 0 {
+	if value.ReviewedBy != "" || value.ReviewedAt != nil || len(value.AcceptedChangeIDs) != 0 || value.ResultTemplateID != "" || value.ResultTemplateVersion != 0 {
 		return errors.Join(ErrInvalid, errors.New("new proposal cannot contain review results"))
 	}
 	return nil
