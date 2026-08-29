@@ -32,12 +32,12 @@ func (r formProposalHTTPDocuments) Get(_ context.Context, tenantID, documentID s
 
 func TestFormProposalRoutesAreRegisteredAndClassified(t *testing.T) {
 	want := map[string]routeClass{
-		"POST /api/v1/document-imports/{id}/form-template-proposals":             routeAuthenticatedWrite,
-		"POST /api/v1/forms/proposals/ai":                                        routeAuthenticatedWrite,
-		"POST /api/v1/forms/templates/{id}/revisions/{version}/ai-proposals":     routeAuthenticatedWrite,
-		"GET /api/v1/forms/proposals/{id}":                                       routeAuthenticatedRead,
-		"POST /api/v1/forms/proposals/{id}/accept":                               routeAuthenticatedWrite,
-		"POST /api/v1/forms/proposals/{id}/reject":                               routeAuthenticatedWrite,
+		"POST /api/v1/document-imports/{id}/form-template-proposals":         routeAuthenticatedWrite,
+		"POST /api/v1/forms/proposals/ai":                                    routeAuthenticatedWrite,
+		"POST /api/v1/forms/templates/{id}/revisions/{version}/ai-proposals": routeAuthenticatedWrite,
+		"GET /api/v1/forms/proposals/{id}":                                   routeAuthenticatedRead,
+		"POST /api/v1/forms/proposals/{id}/accept":                           routeAuthenticatedWrite,
+		"POST /api/v1/forms/proposals/{id}/reject":                           routeAuthenticatedWrite,
 	}
 	for _, route := range (&API{}).productionRoutes() {
 		key := route.Method + " " + route.Path
