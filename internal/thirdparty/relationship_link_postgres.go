@@ -195,7 +195,9 @@ func (r *PostgresRepository) ListRelationshipLinks(ctx context.Context, scope Sc
 	}
 	args = append(args, input.Limit+1)
 	limitArg := len(args)
-	rows, err := r.pool.Query(ctx, relationshipLinkUnion+` WHERE tenant_ref=$1 AND legal_entity_id::text=$2
+	rows, err := r.pool.Query(ctx, relationshipLinkUnion+` WHERE (tenant_ref=$1 OR EXISTS (
+		SELECT 1 FROM tenants tenant_scope WHERE tenant_scope.slug=tenant_ref AND tenant_scope.id::text=$1
+	)) AND legal_entity_id::text=$2
 		AND ($3='' OR relationship_id::text=$3) AND ($4='' OR target_type=$4) AND ($5='' OR target_id::text=$5)
 		AND ($6 OR state='ACTIVE')
 		AND (target_type<>'MATTER' OR EXISTS (
