@@ -3,6 +3,7 @@ package monitoring
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -112,7 +113,8 @@ func (s *MemoryFormProposalStore) Review(_ context.Context, mutation FormProposa
 	if !ok {
 		return FormTemplateProposal{}, ErrNotFound
 	}
-	if current.Status == mutation.Status && current.ReviewedBy == mutation.ReviewerID && current.ResultTemplateID == mutation.ResultTemplateID && current.ResultTemplateVersion == mutation.ResultTemplateVersion {
+	changeIDs := normalizeProposalChangeIDs(mutation.ChangeIDs)
+	if current.Status == mutation.Status && current.ReviewedBy == mutation.ReviewerID && current.ResultTemplateID == mutation.ResultTemplateID && current.ResultTemplateVersion == mutation.ResultTemplateVersion && slices.Equal(current.AcceptedChangeIDs, changeIDs) {
 		return cloneFormTemplateProposal(current), nil
 	}
 	if current.Version != mutation.ExpectedVersion {
@@ -122,22 +124,41 @@ func (s *MemoryFormProposalStore) Review(_ context.Context, mutation FormProposa
 		return FormTemplateProposal{}, ErrFormProposalState
 	}
 	if mutation.Status == FormProposalAccepted {
-		if strings.TrimSpace(mutation.ResultTemplateID) == "" || mutation.ResultTemplateVersion < 1 {
+		if strings.TrimSpace(mutation.ResultTemplateID) == "" || mutation.ResultTemplateVersion < 1 || len(changeIDs) == 0 {
 			return FormTemplateProposal{}, ErrInvalid
 		}
-	} else if mutation.ResultTemplateID != "" || mutation.ResultTemplateVersion != 0 {
+	} else if mutation.ResultTemplateID != "" || mutation.ResultTemplateVersion != 0 || len(changeIDs) != 0 {
 		return FormTemplateProposal{}, ErrInvalid
 	}
 	at := mutation.At.UTC()
 	current.Status = mutation.Status
 	current.ReviewedBy = strings.TrimSpace(mutation.ReviewerID)
 	current.ReviewedAt = &at
+	current.AcceptedChangeIDs = append([]string(nil), changeIDs...)
 	current.ResultTemplateID = strings.TrimSpace(mutation.ResultTemplateID)
 	current.ResultTemplateVersion = mutation.ResultTemplateVersion
 	current.UpdatedAt = at
 	current.Version++
 	s.values[key] = current
 	return cloneFormTemplateProposal(current), nil
+}
+
+func normalizeProposalChangeIDs(values []string) []string {
+	result := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	slices.Sort(result)
+	return result
 }
 
 func formProposalKey(tenantID, legalEntityID, proposalID string) string {
