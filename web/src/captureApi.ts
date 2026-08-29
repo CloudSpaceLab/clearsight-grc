@@ -1,6 +1,13 @@
 import { loadContext } from "./api";
 import { requestJSON } from "./http";
-import type { CaptureAnswerInputs, CaptureAnswers, CaptureRequest, EvidenceRecipient } from "./types";
+import type {
+  CaptureAnswerInputs,
+  CaptureAnswerValue,
+  CaptureAnswers,
+  CapturePresentationMode,
+  CaptureRequest,
+  EvidenceRecipient,
+} from "./types";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -44,7 +51,7 @@ export type CaptureReceipt = {
 
 export type CaptureDraft = {
   answers: CaptureAnswers;
-  presentation_mode: "CLASSIC" | "WIZARD" | "AUTOMATIC";
+  presentation_mode: CapturePresentationMode;
   version: number;
   updated_at?: string;
 };
@@ -55,10 +62,102 @@ export type SaveCaptureDraftInput = {
   expected_version: number;
 };
 
+export type FormAccessPolicy = "DIRECT_MAGIC_LINK" | "SHARED_LINK_EMAIL_OTP" | "DIRECT_LINK_EMAIL_OTP";
+export type FormAccessAssurance = "LINK_POSSESSION" | "EMAIL_VERIFIED";
+
+export type MaskedFormRecipient = {
+  selector_id: string;
+  hint: string;
+  contact_label?: string;
+};
+
+export type FormAccessStart = {
+  policy: FormAccessPolicy;
+  recipients?: MaskedFormRecipient[];
+  expires_at: string;
+};
+
+export type FormAccessOTPReceipt = {
+  challenge_id: string;
+  hint: string;
+  expires_at: string;
+};
+
+export type RedeemedFormAccessSession = {
+  session_id: string;
+  session_token: string;
+  distribution_id: string;
+  request_id: string;
+  audience_hint: string;
+  assurance: FormAccessAssurance;
+  expires_at: string;
+};
+
+export type FormAccessSession = {
+  id: string;
+  distribution_id: string;
+  request_id: string;
+  audience_hint: string;
+  assurance: FormAccessAssurance;
+  expires_at: string;
+  revoked_at?: string;
+  created_at: string;
+};
+
+export type FormResponseWorkspaceState = {
+  id: string;
+  distribution_id: string;
+  status: "OPEN" | "LOCKED" | "COMPLETED" | "REVOKED";
+  version: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FormResponseWorkspace = {
+  workspace: FormResponseWorkspaceState;
+  answers: CaptureAnswers;
+  presentation_mode: CapturePresentationMode;
+  field_sequences: Record<string, number>;
+  current_revision?: Record<string, unknown>;
+};
+
+export type FormResponseWorkspacePayload = {
+  session: FormAccessSession;
+  request: CaptureRequest;
+  workspace: FormResponseWorkspace;
+};
+
+export type FormWorkspaceEditInput = {
+  field_id: string;
+  value: CaptureAnswerValue;
+  base_sequence: number;
+};
+
+export type SaveFormResponseWorkspaceInput = {
+  expected_version: number;
+  presentation_mode: CapturePresentationMode;
+  edits: FormWorkspaceEditInput[];
+};
+
+export type SubmitFormResponseWorkspaceInput = {
+  expected_version: number;
+  attestation_field_ids?: string[];
+};
+
+export type FormWorkspaceSubmissionResult = {
+  workspace: FormResponseWorkspaceState;
+  revision: Record<string, unknown>;
+  submission: CaptureReceipt;
+};
+
+export function normalizeCaptureAnswer(value: CaptureAnswerValue | string): CaptureAnswerValue {
+  return typeof value === "string" ? { text: value } : value;
+}
+
 export function normalizeCaptureAnswers(answers: CaptureAnswerInputs): CaptureAnswers {
   return Object.fromEntries(Object.entries(answers).map(([fieldID, value]) => [
     fieldID,
-    typeof value === "string" ? { text: value } : value,
+    normalizeCaptureAnswer(value),
   ]));
 }
 
@@ -71,7 +170,7 @@ export async function uploadInternalCaptureArtifact(requestID: string, file: Fil
   const body = new FormData();
   body.append("tenant_id", context.tenant.id);
   body.append("request_id", requestID);
-	if (fieldID) body.append("field_id", fieldID);
+  if (fieldID) body.append("field_id", fieldID);
   body.append("file", file, file.name);
   return request<CaptureArtifact>("/api/v1/evidence/artifacts", { method: "POST", body });
 }
@@ -97,6 +196,7 @@ export async function reassignCaptureRecipient(
   });
 }
 
+/** @deprecated Distribution-backed external forms use the policy-driven access ceremony below. */
 export function redeemCaptureInvitation(token: string, audience: string): Promise<RedeemedCaptureSession> {
   return request<RedeemedCaptureSession>("/api/v1/evidence/invitations/redeem", {
     method: "POST",
@@ -104,23 +204,76 @@ export function redeemCaptureInvitation(token: string, audience: string): Promis
   });
 }
 
+/** @deprecated Distribution-backed external forms use loadFormResponseWorkspace. */
 export function loadCaptureSession(sessionToken: string): Promise<CaptureSessionPayload> {
   return request<CaptureSessionPayload>("/api/v1/evidence/session", {
     headers: { Authorization: `Bearer ${sessionToken}` },
   });
 }
 
+/** @deprecated Distribution-backed external forms use the shared response workspace. */
 export function loadCaptureDraft(sessionToken: string): Promise<CaptureDraft> {
   return request<CaptureDraft>("/api/v1/evidence/session/draft", {
     headers: { Authorization: `Bearer ${sessionToken}` },
   });
 }
 
+/** @deprecated Distribution-backed external forms use saveFormResponseWorkspace. */
 export function saveCaptureDraft(sessionToken: string, input: SaveCaptureDraftInput): Promise<CaptureDraft> {
   return request<CaptureDraft>("/api/v1/evidence/session/draft", {
     method: "PUT",
     headers: { Authorization: `Bearer ${sessionToken}` },
     body: JSON.stringify({ ...input, answers: normalizeCaptureAnswers(input.answers) }),
+  });
+}
+
+export function startFormAccess(routeSelector: string): Promise<FormAccessStart> {
+  return request<FormAccessStart>("/api/v1/evidence/access/start", {
+    method: "POST",
+    body: JSON.stringify({ route_selector: routeSelector }),
+  });
+}
+
+export function sendFormAccessOTP(routeSelector: string, recipientSelector: string): Promise<FormAccessOTPReceipt> {
+  return request<FormAccessOTPReceipt>("/api/v1/evidence/access/otp/send", {
+    method: "POST",
+    body: JSON.stringify({ route_selector: routeSelector, recipient_selector: recipientSelector }),
+  });
+}
+
+export function verifyFormAccessOTP(routeSelector: string, challengeID: string, code: string): Promise<RedeemedFormAccessSession> {
+  return request<RedeemedFormAccessSession>("/api/v1/evidence/access/otp/verify", {
+    method: "POST",
+    body: JSON.stringify({ route_selector: routeSelector, challenge_id: challengeID, code }),
+  });
+}
+
+export function redeemFormAccess(routeSelector: string): Promise<RedeemedFormAccessSession> {
+  return request<RedeemedFormAccessSession>("/api/v1/evidence/access/redeem", {
+    method: "POST",
+    body: JSON.stringify({ route_selector: routeSelector }),
+  });
+}
+
+export function loadFormResponseWorkspace(sessionToken: string): Promise<FormResponseWorkspacePayload> {
+  return request<FormResponseWorkspacePayload>("/api/v1/evidence/session/workspace", {
+    headers: { Authorization: `Bearer ${sessionToken}` },
+  });
+}
+
+export function saveFormResponseWorkspace(sessionToken: string, input: SaveFormResponseWorkspaceInput): Promise<FormResponseWorkspace> {
+  return request<FormResponseWorkspace>("/api/v1/evidence/session/workspace", {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${sessionToken}` },
+    body: JSON.stringify(input),
+  });
+}
+
+export function submitFormResponseWorkspace(sessionToken: string, input: SubmitFormResponseWorkspaceInput): Promise<FormWorkspaceSubmissionResult> {
+  return request<FormWorkspaceSubmissionResult>("/api/v1/evidence/session/workspace/submissions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${sessionToken}` },
+    body: JSON.stringify(input),
   });
 }
 
@@ -132,6 +285,7 @@ export async function submitInternalCaptureRequest(requestID: string, version: n
   });
 }
 
+/** @deprecated Distribution-backed external forms submit through submitFormResponseWorkspace. */
 export function submitCaptureSession(sessionToken: string, version: number, answers: CaptureAnswerInputs): Promise<CaptureReceipt> {
   return request<CaptureReceipt>("/api/v1/evidence/session/submissions", {
     method: "POST",
@@ -142,7 +296,7 @@ export function submitCaptureSession(sessionToken: string, version: number, answ
 
 export async function uploadCaptureSessionArtifact(sessionToken: string, file: File, fieldID?: string): Promise<CaptureArtifact> {
   const body = new FormData();
-	if (fieldID) body.append("field_id", fieldID);
+  if (fieldID) body.append("field_id", fieldID);
   body.append("file", file, file.name);
   return request<CaptureArtifact>("/api/v1/evidence/artifacts", {
     method: "POST",

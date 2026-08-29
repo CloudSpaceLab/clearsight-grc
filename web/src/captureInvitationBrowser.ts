@@ -1,8 +1,7 @@
-export const EXTERNAL_CAPTURE_LOCATOR_KEY = "clearsight.capture.active-session";
+const LEGACY_CAPTURE_LOCATOR_KEY = "clearsight.capture.active-session";
+const LEGACY_CAPTURE_SESSION_PREFIX = "clearsight.capture.session.";
 
-const EXTERNAL_CAPTURE_SESSION_PREFIX = "clearsight.capture.session.";
-
-type CaptureSessionStorage = Pick<Storage, "getItem" | "removeItem" | "setItem">;
+type CaptureSessionStorage = Pick<Storage, "getItem" | "removeItem" | "key" | "length">;
 
 export function consumeCaptureInvitation(browser: Pick<Window, "history" | "location">): string | null {
   const url = new URL(browser.location.href);
@@ -14,32 +13,18 @@ export function consumeCaptureInvitation(browser: Pick<Window, "history" | "loca
   return invitationToken;
 }
 
-export function saveCaptureSession(
-  storage: CaptureSessionStorage,
-  sessionToken: string,
-  createLocator: () => string = () => crypto.randomUUID(),
-): void {
-  clearCaptureSession(storage);
-  const locator = createLocator();
-  storage.setItem(sessionStorageKey(locator), sessionToken);
-  storage.setItem(EXTERNAL_CAPTURE_LOCATOR_KEY, locator);
-}
-
-export function readCaptureSession(storage: CaptureSessionStorage): string | null {
-  const locator = storage.getItem(EXTERNAL_CAPTURE_LOCATOR_KEY);
-  return locator ? storage.getItem(sessionStorageKey(locator)) : null;
-}
-
-export function hasCaptureSession(storage: CaptureSessionStorage): boolean {
-  return readCaptureSession(storage) !== null;
-}
-
-export function clearCaptureSession(storage: CaptureSessionStorage): void {
-  const locator = storage.getItem(EXTERNAL_CAPTURE_LOCATOR_KEY);
-  if (locator) storage.removeItem(sessionStorageKey(locator));
-  storage.removeItem(EXTERNAL_CAPTURE_LOCATOR_KEY);
-}
-
-function sessionStorageKey(locator: string): string {
-  return `${EXTERNAL_CAPTURE_SESSION_PREFIX}${locator}`;
+/**
+ * Removes bearer material written by pre-distribution external-capture builds.
+ * New policy-driven form sessions are intentionally memory-only.
+ */
+export function purgeLegacyCaptureSession(storage: CaptureSessionStorage): void {
+  const keys: string[] = [];
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index);
+    if (key?.startsWith(LEGACY_CAPTURE_SESSION_PREFIX)) keys.push(key);
+  }
+  const locator = storage.getItem(LEGACY_CAPTURE_LOCATOR_KEY);
+  if (locator) keys.push(`${LEGACY_CAPTURE_SESSION_PREFIX}${locator}`);
+  for (const key of new Set(keys)) storage.removeItem(key);
+  storage.removeItem(LEGACY_CAPTURE_LOCATOR_KEY);
 }

@@ -115,7 +115,7 @@ describe("capture recovery", () => {
     const encrypted = await store.get(key);
     if (!encrypted) throw new Error("missing test envelope");
     const tampered = new Uint8Array(encrypted.ciphertext.slice(0));
-    tampered[0] ^= 0xff;
+    tampered[0] = (tampered[0] ?? 0) ^ 0xff;
     store.replaceRaw(key, { ...encrypted, ciphertext: tampered.buffer });
     expect(await recovery.restore(current, new Date("2026-09-01T12:01:00.000Z"))).toEqual({ status: "discarded", reason: "corrupt" });
     expect(store.readRaw(key)).toBeUndefined();

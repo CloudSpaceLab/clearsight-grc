@@ -10,14 +10,14 @@ export type RecoveryCryptoContext = {
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function recoveryAAD(context: RecoveryCryptoContext): Uint8Array {
+export function recoveryAAD(context: RecoveryCryptoContext): Uint8Array<ArrayBuffer> {
   return encoder.encode([
     "clearsight.capture-recovery.v1",
     context.origin,
     context.legalEntityID,
     context.distributionID,
     String(context.schemaVersion),
-  ].join("\n"));
+  ].join("\n")) as Uint8Array<ArrayBuffer>;
 }
 
 export function recoveryDeviceKeyName(context: Pick<RecoveryCryptoContext, "origin">): string {
@@ -31,11 +31,12 @@ export async function encryptRecoveryEnvelope<T extends object>(
   expiresAt: string,
 ): Promise<EncryptedRecoveryEnvelope> {
   const key = await store.getOrCreateDeviceKey(recoveryDeviceKeyName(context));
-  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const iv = crypto.getRandomValues(new Uint8Array(12)) as Uint8Array<ArrayBuffer>;
+  const plaintext = encoder.encode(JSON.stringify(value)) as Uint8Array<ArrayBuffer>;
   const ciphertext = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv, additionalData: recoveryAAD(context), tagLength: 128 },
     key,
-    encoder.encode(JSON.stringify(value)),
+    plaintext,
   );
   return {
     version: 1,
@@ -59,7 +60,7 @@ export async function decryptRecoveryEnvelope<T>(
   const plaintext = await crypto.subtle.decrypt(
     {
       name: "AES-GCM",
-      iv: new Uint8Array(value.iv),
+      iv: new Uint8Array(value.iv) as Uint8Array<ArrayBuffer>,
       additionalData: recoveryAAD(context),
       tagLength: 128,
     },

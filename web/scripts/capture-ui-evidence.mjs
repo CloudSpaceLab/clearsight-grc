@@ -332,9 +332,6 @@ async function captureFieldVisit() {
   const page = await context.newPage();
   try {
     await page.goto(`${baseURL}/?capture_invite=field-agent-demo`, { waitUntil: "networkidle" });
-    await page.getByRole("heading", { name: "Open your request" }).waitFor();
-    await page.getByRole("textbox", { name: "Email or phone number" }).fill("field.agent@example.com");
-    await page.getByRole("button", { name: "Open request" }).click();
     await page.getByRole("heading", { name: capture.title }).waitFor();
     await page.getByText("12 Admiralty Way, Lekki Phase 1, Lagos", { exact: true }).waitFor();
     if (await page.getByRole("textbox", { name: /address/i }).count()) throw new Error("Field visit asks the agent to re-enter the known address");
@@ -635,7 +632,7 @@ async function captureVendorWorkHistory() {
     await page.getByText("Request history", { exact: true }).scrollIntoViewIfNeeded();
     await assertNoHorizontalOverflow(page, capture.name);
     await saveScreenshot(page, capture.name);
-    await record(page, capture, capture.state);
+    await record(page, capture, "vendor-work-accepted-history");
   } finally {
     await context.close();
   }
