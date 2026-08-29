@@ -12,8 +12,21 @@ services:
       timeout: 3s
       retries: 20
     volumes:
-      - clearsight-postgres:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d:ro
+      - clearsight-postgres:/var/lib/postgresql
+
+  migrate:
+    image: postgres:18.4
+    entrypoint: ["/bin/bash", "/deploy/scripts/migrate.sh"]
+    command: ["/migrations"]
+    environment:
+      DATABASE_URL: postgres://clearsight:clearsight@postgres:5432/clearsight?sslmode=disable
+    volumes:
+      - ./deploy/scripts/migrate.sh:/deploy/scripts/migrate.sh:ro
+      - ./migrations:/migrations:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   api:
     build:
       context: .
@@ -29,9 +42,16 @@ services:
     ports: ["8080:8080"]
     volumes:
       - clearsight-artifacts:/var/lib/clearsight/artifacts
+    healthcheck:
+      test: ["CMD", "/clearsight-healthcheck", "http://127.0.0.1:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 12
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
   worker:
     build:
       context: .
@@ -40,10 +60,14 @@ services:
       CLEARSIGHT_ENV: development
       CLEARSIGHT_WORKER_ID: worker-compose
       CLEARSIGHT_WORKER_POLL: 1s
+      CLEARSIGHT_ARTIFACT_ROOT: /var/lib/clearsight/artifacts
       DATABASE_URL: postgres://clearsight:clearsight@postgres:5432/clearsight?sslmode=disable
+    volumes:
+      - clearsight-artifacts:/var/lib/clearsight/artifacts
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
   web:
     image: node:24.18.0-alpine
     working_dir: /app
@@ -55,6 +79,7 @@ services:
       - ./web:/app
       - clearsight-node-modules:/app/node_modules
     depends_on: [api]
+
 volumes:
   clearsight-postgres:
   clearsight-artifacts:
