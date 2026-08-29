@@ -149,11 +149,8 @@ async function auditResponsiveZoom() {
 }
 
 async function auditMobileTouchTargets() {
-  const { context, page, browserErrors } = await openPage({ viewport: { width: 390, height: 844 }, query: "capture_invite=field-agent-demo", heading: "Open your request", touch: true });
+  const { context, page, browserErrors } = await openPage({ viewport: { width: 390, height: 844 }, query: "capture_invite=field-agent-demo", heading: "Verify ATM location after your visit", touch: true });
   try {
-    await page.getByRole("textbox", { name: "Email or phone number" }).fill("field.agent@example.com");
-    await page.getByRole("button", { name: "Open request" }).click();
-    await page.getByRole("heading", { name: "Verify ATM location after your visit" }).waitFor({ state: "visible" });
     const undersized = await page.evaluate(() => {
       const selectors = ["button", "a[href]", "summary", "input[type=radio]", "input[type=checkbox]"];
       return [...document.querySelectorAll(selectors.join(","))]

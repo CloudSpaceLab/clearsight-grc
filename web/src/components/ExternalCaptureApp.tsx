@@ -1,29 +1,52 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   loadFormResponseWorkspace,
-  normalizeCaptureAnswer,
-  saveFormResponseWorkspace,
   submitFormResponseWorkspace,
   uploadCaptureSessionArtifact,
   type FormResponseWorkspace,
+  type FormResponseWorkspacePayload,
   type RedeemedFormAccessSession,
 } from "../captureApi";
+import { CaptureRecovery, type CaptureRecoveryContext } from "../captureRecovery";
+import { IndexedDBRecoveryStore } from "../captureRecoveryStore";
+import {
+  CaptureWorkspaceSync,
+  type CaptureWorkspaceSyncSnapshot,
+} from "../captureWorkspaceSync";
 import { apiErrorKind, ApiError } from "../http";
-import type { CaptureAnswerValue, CaptureAnswers, CaptureRequest } from "../types";
-import { CapturePanel } from "./CapturePanel";
+import type { CaptureAnswers, CaptureRequest } from "../types";
+import { CapturePanel, type CaptureWorkspacePersistence } from "./CapturePanel";
 import { ExternalAccessGate } from "./capture/ExternalAccessGate";
 
 type ExternalCaptureState = "access" | "loading" | "live" | "recoverable" | "terminal" | "submitted";
+type RecoveryAwareRequest = CaptureRequest & {
+  legal_entity_id?: string;
+  form_template_version?: number;
+};
 
 export function ExternalCaptureApp({ invitationToken }: { invitationToken: string }) {
   const [sessionToken, setSessionToken] = useState("");
   const [request, setRequest] = useState<CaptureRequest | null>(null);
   const [workspace, setWorkspace] = useState<FormResponseWorkspace | null>(null);
+  const [syncSnapshot, setSyncSnapshot] = useState<CaptureWorkspaceSyncSnapshot | null>(null);
   const [audienceHint, setAudienceHint] = useState("");
   const [assurance, setAssurance] = useState("");
   const [state, setState] = useState<ExternalCaptureState>(invitationToken ? "access" : "terminal");
   const [error, setError] = useState(invitationToken ? "" : "Ask the sender for a new invitation link.");
   const [terminalTitle, setTerminalTitle] = useState("This request is no longer available");
+  const syncRef = useRef<CaptureWorkspaceSync | null>(null);
+
+  useEffect(() => {
+    const flushHiddenEdits = () => {
+      if (document.visibilityState === "hidden") void syncRef.current?.flush();
+    };
+    document.addEventListener("visibilitychange", flushHiddenEdits);
+    return () => {
+      document.removeEventListener("visibilitychange", flushHiddenEdits);
+      syncRef.current?.dispose();
+      syncRef.current = null;
+    };
+  }, []);
 
   async function openRedeemedSession(redeemed: RedeemedFormAccessSession) {
     setSessionToken(redeemed.session_token);
@@ -40,8 +63,7 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
         );
         return;
       }
-      setRequest(payload.request);
-      setWorkspace(payload.workspace);
+      await activateWorkspace(redeemed.session_token, payload);
       setAudienceHint(payload.session.audience_hint || redeemed.audience_hint);
       setAssurance(payload.session.assurance || redeemed.assurance);
       setState("live");
@@ -71,8 +93,7 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
         );
         return;
       }
-      setRequest(payload.request);
-      setWorkspace(payload.workspace);
+      await activateWorkspace(sessionToken, payload);
       setAudienceHint(payload.session.audience_hint);
       setAssurance(payload.session.assurance);
       setState("live");
@@ -86,20 +107,51 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
     }
   }
 
+  async function activateWorkspace(token: string, payload: FormResponseWorkspacePayload) {
+    syncRef.current?.dispose();
+    syncRef.current = null;
+    setSyncSnapshot(null);
+
+    const recoveryContext = responseRecoveryContext(payload);
+    const recovery = browserRecoveryAvailable() && recoveryContext.authorized
+      ? new CaptureRecovery(new IndexedDBRecoveryStore())
+      : undefined;
+    const controller = await CaptureWorkspaceSync.create({
+      sessionToken: token,
+      fields: payload.request.fields,
+      workspace: payload.workspace,
+      recovery,
+      recoveryContext,
+      onStateChange: setSyncSnapshot,
+      onError: (cause) => {
+        if (terminalSessionFailure(cause)) endSession("This request is no longer available", "Ask the sender for a new invitation link.");
+      },
+    });
+    syncRef.current = controller;
+    setRequest(payload.request);
+    setWorkspace(controller.currentWorkspace());
+    setSyncSnapshot(controller.snapshot());
+  }
+
   async function submit(answers: CaptureAnswers) {
-    if (!workspace || !sessionToken) throw new Error("Response workspace is unavailable");
+    const controller = syncRef.current;
+    if (!workspace || !sessionToken || !controller) throw new Error("Response workspace is unavailable");
     try {
-      let current = workspace;
-      const edits = responseEdits(current, answers);
-      if (edits.length > 0) {
-        current = await saveFormResponseWorkspace(sessionToken, {
-          expected_version: current.workspace.version,
-          presentation_mode: current.presentation_mode,
-          edits,
-        });
-        setWorkspace(current);
+      const currentSnapshot = controller.snapshot();
+      controller.change(answers, currentSnapshot.presentationMode, currentSnapshot.page);
+      const saved = await controller.flush();
+      if (!saved) {
+        if (controller.snapshot().saveState === "conflict") {
+          throw new ApiError(409, "Resolve changed answers before submitting.", "workspace_conflict");
+        }
+        throw new ApiError(503, "Save the response before submitting.", "workspace_save_failed");
       }
+      const current = controller.currentWorkspace();
       const result = await submitFormResponseWorkspace(sessionToken, { expected_version: current.workspace.version });
+      if (result.workspace.status !== "COMPLETED" || !result.revision) {
+        throw new ApiError(503, "The final response could not be confirmed.", "submission_unconfirmed");
+      }
+      await controller.clearRecovery().catch(() => undefined);
       clearAuthorityState();
       setState("submitted");
       return result.submission;
@@ -123,6 +175,9 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
   }
 
   function clearAuthorityState() {
+    syncRef.current?.dispose();
+    syncRef.current = null;
+    setSyncSnapshot(null);
     setSessionToken("");
     setRequest(null);
     setWorkspace(null);
@@ -137,6 +192,23 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
     setState("terminal");
   }
 
+  const persistence: CaptureWorkspacePersistence | undefined = request && workspace && syncSnapshot && syncRef.current
+    ? {
+      key: `${request.id}:${workspace.workspace.id}`,
+      initialAnswers: syncSnapshot.answers,
+      initialPresentationMode: syncSnapshot.presentationMode,
+      saveState: syncSnapshot.saveState,
+      onChange: (answers, presentationMode) => syncRef.current?.change(answers, presentationMode),
+      onFlush: async (answers, presentationMode) => {
+        const controller = syncRef.current;
+        if (!controller) return false;
+        controller.change(answers, presentationMode);
+        return controller.flush();
+      },
+      onRetry: () => void syncRef.current?.retry(),
+    }
+    : undefined;
+
   return <main className="external-capture-shell">
     <header className="external-capture-brand"><div className="brand-mark" aria-label="ClearSight">C</div><div><strong>ClearSight</strong><span>Evidence response</span></div></header>
     {state === "access" ? <ExternalAccessGate routeSelector={invitationToken} onRedeemed={openRedeemedSession}/>
@@ -144,27 +216,38 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
         : state === "recoverable" ? <section className="external-capture-entry" aria-labelledby="external-capture-title"><span className="eyebrow">Evidence request</span><h1 id="external-capture-title">Request could not be loaded</h1><p>{error}</p><button className="primary-button" type="button" onClick={() => void retrySession()}>Try again</button></section>
           : state === "terminal" ? <section className="external-capture-entry" aria-labelledby="external-capture-title"><span className="eyebrow">Evidence request</span><h1 id="external-capture-title">{terminalTitle}</h1><p>{error}</p></section>
             : state === "submitted" ? <section className="external-capture-entry" aria-labelledby="external-capture-title"><span className="eyebrow">Evidence request</span><h1 id="external-capture-title">Submitted</h1><p>Your evidence response was submitted for this request.</p></section>
-              : request && workspace && sessionToken ? <section className="external-capture-work">
+              : request && workspace && sessionToken && persistence ? <section className="external-capture-work">
                 <div className="external-session-hint">Opened for {audienceHint || "invited respondent"}{assurance === "EMAIL_VERIFIED" ? " · Email verified" : ""}</div>
-                <CapturePanel request={request} external onSubmit={(_, answers) => submit(answers)} onUploadArtifact={(_, file, fieldID) => upload(file, fieldID)}/>
+                <CapturePanel request={request} external workspacePersistence={persistence} onSubmit={(_, answers) => submit(answers)} onUploadArtifact={(_, file, fieldID) => upload(file, fieldID)}/>
               </section> : null}
   </main>;
 }
 
-function responseEdits(workspace: FormResponseWorkspace, answers: CaptureAnswers) {
-  return Object.entries(answers).flatMap(([fieldID, value]) => {
-    const normalized = normalizeCaptureAnswer(value);
-    if (sameAnswer(workspace.answers[fieldID], normalized)) return [];
-    return [{
-      field_id: fieldID,
-      value: normalized,
-      base_sequence: workspace.field_sequences[fieldID] ?? 0,
-    }];
-  });
+function responseRecoveryContext(payload: FormResponseWorkspacePayload): CaptureRecoveryContext {
+  const request = payload.request as RecoveryAwareRequest;
+  const distributionID = payload.session.distribution_id;
+  const legalEntityID = payload.recovery_context?.legal_entity_id ?? request.legal_entity_id ?? "";
+  const schemaVersion = payload.recovery_context?.schema_version
+    ?? request.form_template_version
+    ?? request.version;
+  const routeExpiresAt = payload.recovery_context?.route_expires_at ?? payload.session.expires_at;
+  const workspaceMatches = payload.workspace.workspace.distribution_id === distributionID;
+  return {
+    origin: typeof window === "undefined" ? "" : window.location.origin,
+    legalEntityID: legalEntityID || "recovery-disabled",
+    distributionID,
+    schemaVersion: Math.max(1, Math.trunc(schemaVersion || 1)),
+    workspaceID: payload.workspace.workspace.id,
+    serverVersion: payload.workspace.workspace.version,
+    authorized: Boolean(legalEntityID && distributionID && workspaceMatches),
+    deadline: payload.request.deadline,
+    routeExpiresAt,
+    cachePolicy: legalEntityID && workspaceMatches ? "ENCRYPTED_BROWSER_CACHE" : "NO_BROWSER_CACHE",
+  };
 }
 
-function sameAnswer(left: CaptureAnswerValue | undefined, right: CaptureAnswerValue): boolean {
-  return left !== undefined && JSON.stringify(left) === JSON.stringify(right);
+function browserRecoveryAvailable() {
+  return typeof indexedDB !== "undefined" && typeof crypto !== "undefined" && Boolean(crypto.subtle);
 }
 
 function resumableRequest(request: CaptureRequest) {

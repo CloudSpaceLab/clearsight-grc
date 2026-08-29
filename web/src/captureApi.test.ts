@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadCaptureDraft, saveCaptureDraft, submitCaptureSession, submitInternalCaptureRequest, uploadCaptureSessionArtifact, uploadInternalCaptureArtifact } from "./captureApi";
+import {
+  FormWorkspaceConflictError,
+  loadCaptureDraft,
+  saveCaptureDraft,
+  saveFormResponseWorkspace,
+  submitCaptureSession,
+  submitInternalCaptureRequest,
+  uploadCaptureSessionArtifact,
+  uploadInternalCaptureArtifact,
+} from "./captureApi";
 
 vi.mock("./api", () => ({
   loadContext: vi.fn().mockResolvedValue({ tenant: { id: "tenant-demo" } }),
@@ -103,20 +112,46 @@ describe("capture API", () => {
     });
   });
 
-	it("binds internal and external artifact uploads to the selected form field", async () => {
-	  const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ id: "artifact-1" }), { status: 201, headers: { "Content-Type": "application/json" } })));
-	  vi.stubGlobal("fetch", fetchMock);
-	  const file = new File(["evidence"], "evidence.txt", { type: "text/plain" });
+  it("preserves field-level conflict details from shared workspace PATCH", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      current_version: 9,
+      changed_fields: [{ field_id: "owner", server_value: { text: "Server owner" }, sequence: 4 }],
+    }), { status: 409, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
 
-	  await uploadInternalCaptureArtifact("request-1", file, "documents");
-	  await uploadCaptureSessionArtifact("session-secret", file, "documents");
+    await expect(saveFormResponseWorkspace("session-secret", {
+      expected_version: 8,
+      presentation_mode: "AUTOMATIC",
+      edits: [{ field_id: "owner", value: { text: "Local owner" }, base_sequence: 3 }],
+    })).rejects.toMatchObject<FormWorkspaceConflictError>({
+      name: "FormWorkspaceConflictError",
+      conflict: {
+        current_version: 9,
+        changed_fields: [{ field_id: "owner", server_value: { text: "Server owner" }, sequence: 4 }],
+      },
+    });
 
-	  const internalBody = fetchMock.mock.calls[0]?.[1]?.body as FormData;
-	  const externalCall = fetchMock.mock.calls[1];
-	  const externalBody = externalCall?.[1]?.body as FormData;
-	  expect(internalBody.get("request_id")).toBe("request-1");
-	  expect(internalBody.get("field_id")).toBe("documents");
-	  expect(externalBody.get("field_id")).toBe("documents");
-	  expect(new Headers(externalCall?.[1]?.headers).get("Authorization")).toBe("Bearer session-secret");
-	});
+    const call = fetchMock.mock.calls[0];
+    if (!call) throw new Error("workspace PATCH was not made");
+    expect(call[0]).toBe("/api/v1/evidence/session/workspace");
+    expect((call[1] as RequestInit).method).toBe("PATCH");
+    expect(new Headers((call[1] as RequestInit).headers).get("Authorization")).toBe("Bearer session-secret");
+  });
+
+  it("binds internal and external artifact uploads to the selected form field", async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ id: "artifact-1" }), { status: 201, headers: { "Content-Type": "application/json" } })));
+    vi.stubGlobal("fetch", fetchMock);
+    const file = new File(["evidence"], "evidence.txt", { type: "text/plain" });
+
+    await uploadInternalCaptureArtifact("request-1", file, "documents");
+    await uploadCaptureSessionArtifact("session-secret", file, "documents");
+
+    const internalBody = fetchMock.mock.calls[0]?.[1]?.body as FormData;
+    const externalCall = fetchMock.mock.calls[1];
+    const externalBody = externalCall?.[1]?.body as FormData;
+    expect(internalBody.get("request_id")).toBe("request-1");
+    expect(internalBody.get("field_id")).toBe("documents");
+    expect(externalBody.get("field_id")).toBe("documents");
+    expect(new Headers(externalCall?.[1]?.headers).get("Authorization")).toBe("Bearer session-secret");
+  });
 });

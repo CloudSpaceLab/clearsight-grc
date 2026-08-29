@@ -4,6 +4,10 @@ import type { CaptureAnswerInputs, CaptureAnswerValue, CaptureField } from "./ty
 
 export const CAPTURE_RECOVERY_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
+type RecoveryAwareField = CaptureField & {
+  browser_cache_policy?: "ALLOWED" | "ENCRYPTED_BROWSER_CACHE" | "NO_BROWSER_CACHE";
+};
+
 export type CaptureRecoveryContext = RecoveryCryptoContext & {
   workspaceID: string;
   serverVersion: number;
@@ -146,12 +150,17 @@ export function sanitizeRecoveryAnswers(fields: CaptureField[], answers: Capture
   answers: CaptureAnswerInputs;
   filesToReselect: string[];
 } {
-  const fieldTypes = new Map(fields.map((field) => [field.id, field.type]));
+  const fieldMetadata = new Map(fields.map((field) => {
+    const recoveryField = field as RecoveryAwareField;
+    return [field.id, { type: field.type, cachePolicy: recoveryField.browser_cache_policy }] as const;
+  }));
   const safe: CaptureAnswerInputs = {};
   const filesToReselect = new Set<string>();
 
   for (const [fieldID, raw] of Object.entries(answers)) {
-    const type = fieldTypes.get(fieldID);
+    const metadata = fieldMetadata.get(fieldID);
+    if (!metadata || metadata.cachePolicy === "NO_BROWSER_CACHE") continue;
+    const type = metadata.type;
     if (isBinaryOrSignatureField(type)) {
       if (isFileField(type) && hasAnswer(raw)) filesToReselect.add(fieldID);
       continue;
