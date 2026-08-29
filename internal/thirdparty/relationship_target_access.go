@@ -28,10 +28,13 @@ func (a *RelationshipTargetAccess) CanRead(ctx context.Context, actor Actor, tar
 	switch targetType {
 	case LinkTargetProgram:
 		aggregate, err := a.reader.GetProgram(ctx, actor.TenantID, targetID)
-		return err == nil && aggregate.Program.TenantID == actor.TenantID && (aggregate.Program.LegalEntityID == "" || aggregate.Program.LegalEntityID == actor.LegalEntityID)
+		// The scoped read accepts either a tenant slug or its canonical UUID and
+		// may return the other representation. A successful exact read establishes
+		// tenant scope; retain the legal-entity boundary here.
+		return err == nil && (aggregate.Program.LegalEntityID == "" || aggregate.Program.LegalEntityID == actor.LegalEntityID)
 	case LinkTargetMatter:
 		aggregate, err := a.reader.GetMatter(ctx, actor.TenantID, targetID)
-		return err == nil && aggregate.Matter.TenantID == actor.TenantID && continuity.MatterVisibleTo(aggregate.Matter, actor.PrincipalID)
+		return err == nil && (aggregate.Matter.LegalEntityID == "" || aggregate.Matter.LegalEntityID == actor.LegalEntityID) && continuity.MatterVisibleTo(aggregate.Matter, actor.PrincipalID)
 	default:
 		return false
 	}

@@ -165,6 +165,24 @@ func TestRelationshipLinkListFillsPageAfterRestrictedTargetsAreRemoved(t *testin
 	}
 }
 
+func TestRelationshipLinksAcceptCanonicalTenantIDFromScopedTargetRead(t *testing.T) {
+	repo := NewMemoryRelationshipLinkRepository()
+	repo.links["link-canonical-tenant"] = RelationshipLink{
+		ID: "link-canonical-tenant", TenantID: "tenant-a", LegalEntityID: "entity-a", RelationshipID: "relationship-1",
+		TargetType: LinkTargetMatter, TargetID: "matter-1", State: RelationshipLinkActive, UpdatedAt: time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC),
+	}
+	service := NewRelationshipLinkService(repo)
+	service.ConfigureTargetReader(relationshipTargetReaderStub{matters: map[string]continuity.MatterAggregate{
+		"matter-1": {Matter: continuity.Matter{ID: "matter-1", TenantID: "33333333-3333-7333-8333-333333333331", LegalEntityID: "entity-a", Scope: json.RawMessage(`{"access":"INTERNAL"}`)}},
+	}})
+	actor := Actor{TenantID: "tenant-a", LegalEntityID: "entity-a", PrincipalID: "owner-1"}
+
+	page, err := service.List(context.Background(), actor, RelationshipLinkListInput{TargetType: LinkTargetMatter, TargetID: "matter-1", Limit: 20})
+	if err != nil || len(page.Items) != 1 || page.Items[0].ID != "link-canonical-tenant" {
+		t.Fatalf("canonical tenant target page = %#v, %v", page, err)
+	}
+}
+
 func TestRelationshipLinksRejectProgramsOutsideActorLegalEntity(t *testing.T) {
 	repo := NewMemoryRelationshipLinkRepository()
 	repo.AllowRelationship("tenant-a", "entity-a", "relationship-1")
