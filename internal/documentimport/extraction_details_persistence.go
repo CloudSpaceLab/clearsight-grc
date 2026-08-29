@@ -1,9 +1,6 @@
 package documentimport
 
-import (
-	"encoding/json"
-	"errors"
-)
+import "encoding/json"
 
 type persistedExtractionDetails struct {
 	ParserVersion  string             `json:"parser_version,omitempty"`
@@ -27,7 +24,7 @@ func marshalExtractionDetails(value Document) ([]byte, error) {
 	}
 	encoded, err := json.Marshal(details)
 	if err != nil {
-		return nil, errors.Join(ErrInvalid, err)
+		return nil, err
 	}
 	return encoded, nil
 }
