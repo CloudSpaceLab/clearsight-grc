@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 const interfaceSources = import.meta.glob(
-  ["./*.ts", "./*.tsx", "./components/*.ts", "./components/*.tsx", "!./**/*.test.ts", "!./**/*.test.tsx"],
+  ["./*.ts", "./*.tsx", "./components/*.ts", "./components/*.tsx", "./components/forms/*.ts", "./components/forms/*.tsx", "!./**/*.test.ts", "!./**/*.test.tsx"],
   { eager: true, query: "?raw", import: "default" },
 ) as Record<string, string>;
 

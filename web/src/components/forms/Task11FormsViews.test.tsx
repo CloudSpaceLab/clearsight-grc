@@ -7,7 +7,7 @@ import { SentFormsView } from "./SentFormsView";
 
 const formApi = vi.hoisted(() => ({ loadReusableFormTemplateRefs: vi.fn() }));
 const distributionApi = vi.hoisted(() => ({
-  createDistribution: vi.fn(), loadRecipientCandidates: vi.fn(), loadDistributionPage: vi.fn(), loadDistribution: vi.fn(), transitionDistribution: vi.fn(), loadResponseRevisions: vi.fn(),
+  amendDistribution: vi.fn(), createDistribution: vi.fn(), loadRecipientCandidates: vi.fn(), loadDistributionPage: vi.fn(), loadDistribution: vi.fn(), previewDistributionSupersession: vi.fn(), supersedeDistribution: vi.fn(), transitionDistribution: vi.fn(), loadResponseRevisions: vi.fn(),
 }));
 vi.mock("../../formsApi", () => formApi);
 vi.mock("../../formsDistributionApi", () => distributionApi);
@@ -42,6 +42,9 @@ beforeEach(() => {
   distributionApi.loadDistributionPage.mockResolvedValue({ items: [distribution] });
   distributionApi.loadDistribution.mockResolvedValue(detail);
   distributionApi.loadResponseRevisions.mockResolvedValue({ items: [] });
+  distributionApi.amendDistribution.mockResolvedValue({ detail: { ...detail, distribution: { ...distribution, deadline: "2026-09-02T12:00:00Z", version: 3 } }, impact: { deadline_changed: true } });
+  distributionApi.previewDistributionSupersession.mockResolvedValue({ distribution_id: "dist-a", expected_version: 2, expected_workspace_version: 3, target_form_template_id: "form-a", target_form_version: 5, compatible_fields: [{ field_id: "legal-name" }], excluded_fields: [{ field_id: "certificate", reason: "Field type changed" }] });
+  distributionApi.supersedeDistribution.mockResolvedValue({ previous: { ...detail, distribution: { ...distribution, status: "SUPERSEDED", version: 3 } }, replacement: { ...detail, distribution: { ...distribution, id: "dist-b", form_template_version: 5, version: 2 } }, carried_field_ids: ["legal-name"] });
 });
 
 describe("Task 11 governed form views", () => {
@@ -63,15 +66,27 @@ describe("Task 11 governed form views", () => {
     });
   });
 
-  it("renders recipient counts and explains unavailable access actions", async () => {
+  it("renders recipient counts and opens distribution amendment", async () => {
     render(<SentFormsView/>);
     expect(await screen.findByText("2 To · 0 CC")).toBeTruthy();
     expect(screen.getByText("1/2")).toBeTruthy();
-    const rotate = screen.getByRole("button", { name: "Rotate access route" }) as HTMLButtonElement;
-    const supersede = screen.getByRole("button", { name: "Supersede" }) as HTMLButtonElement;
-    expect(rotate.disabled).toBe(true);
-    expect(rotate.title).toMatch(/Open a recipient access route/);
-    expect(supersede.disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Amend distribution" }));
+    fireEvent.change(screen.getByLabelText("Response deadline"), { target: { value: "2026-09-02T12:00" } });
+    fireEvent.change(screen.getByLabelText(/Access expiry/), { target: { value: "2026-09-02T11:00" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save amendment" }));
+    await waitFor(() => expect(distributionApi.amendDistribution).toHaveBeenCalledWith("dist-a", expect.objectContaining({ expected_version: 2, deadline: expect.any(String), route_expires_at: expect.any(String) })));
+  });
+
+  it("previews and confirms replacement form versions before superseding", async () => {
+    formApi.loadReusableFormTemplateRefs.mockResolvedValue([{ id: "form-a", name: "Control review", code: "CONTROL", version: 5 }]);
+    render(<SentFormsView/>);
+    expect(await screen.findByText("2 To · 0 CC")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Replace form version" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Preview replacement" }));
+    expect(await screen.findByText("1 response can carry forward")).toBeTruthy();
+    fireEvent.click(screen.getByLabelText("Carry compatible responses into the replacement"));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm replacement" }));
+    await waitFor(() => expect(distributionApi.supersedeDistribution).toHaveBeenCalledWith("dist-a", expect.objectContaining({ expected_version: 2, expected_workspace_version: 3, target_form_version: 5, carry_forward: true, confirmed_field_ids: ["legal-name"] })));
   });
 
   it("shows immutable response revision state without mutation controls", async () => {

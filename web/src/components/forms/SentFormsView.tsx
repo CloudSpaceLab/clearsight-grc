@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadDistribution, loadDistributionPage, transitionDistribution, type Distribution, type DistributionDetail, type DistributionDueState, type DistributionQuery, type DistributionStatus } from "../../formsDistributionApi";
 import { DistributionComposer } from "./DistributionComposer";
+import { DistributionChangePanel } from "./DistributionChangePanel";
 
 const statusOptions: DistributionStatus[] = ["OPEN", "LOCKED", "COMPLETED", "EXPIRED", "REVOKED", "SUPERSEDED"];
 const dueOptions: DistributionDueState[] = ["OPEN", "OVERDUE", "CLOSED"];
@@ -12,8 +13,10 @@ export function SentFormsView() {
   const [selectedID, setSelectedID] = useState<string>();
   const [detail, setDetail] = useState<DistributionDetail>();
   const [composerOpen, setComposerOpen] = useState(false);
+  const [changeMode, setChangeMode] = useState<"amend" | "supersede">();
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
+  const [notice, setNotice] = useState<string>();
 
   useEffect(() => { void refresh(); }, [query.status, query.due_state, query.subject_type, query.subject_id, query.owner, query.limit]);
   useEffect(() => { if (selectedID) void loadDetail(selectedID); else setDetail(undefined); }, [selectedID]);
@@ -60,10 +63,12 @@ export function SentFormsView() {
   } : undefined, [detail]);
 
   if (composerOpen) return <DistributionComposer onCancel={() => setComposerOpen(false)} onCreated={(value) => { setComposerOpen(false); setItems((current) => [value.distribution, ...current]); setSelectedID(value.distribution.id); setDetail(value); }}/>
+  if (changeMode && detail) return <DistributionChangePanel mode={changeMode} detail={detail} onCancel={() => setChangeMode(undefined)} onSaved={(value, resultNotice) => { setChangeMode(undefined); setItems((current) => [value.distribution, ...current.filter((item) => item.id !== detail.distribution.id && item.id !== value.distribution.id)]); setSelectedID(value.distribution.id); setDetail(value); setNotice(resultNotice); }}/>
 
   return <section className="forms-task-shell" aria-labelledby="sent-forms-title">
-    <div className="forms-task-heading"><div><span>Sender workspace</span><h2 id="sent-forms-title">Sent forms</h2><p>Server-paged distribution state with exact revision, recipient and access-policy metadata.</p></div><button className="forms-primary" type="button" onClick={() => setComposerOpen(true)}>Send form</button></div>
+    <div className="forms-task-heading"><div><span>Sender workspace</span><h2 id="sent-forms-title">Sent forms</h2><p>Track each sent form, its recipients, response status, access method and deadline.</p></div><button className="forms-primary" type="button" onClick={() => setComposerOpen(true)}>Send form</button></div>
     {error && <div className="forms-message error" role="alert">{error}</div>}
+    {notice && <div className="forms-message" role="status">{notice}</div>}
     <div className="forms-task-toolbar">
       <label><span>Status</span><select value={query.status ?? ""} onChange={(event) => updateQuery({ status: event.target.value ? event.target.value as DistributionStatus : undefined })}><option value="">All states</option>{statusOptions.map((value) => <option key={value} value={value}>{label(value)}</option>)}</select></label>
       <label><span>Due state</span><select value={query.due_state ?? ""} onChange={(event) => updateQuery({ due_state: event.target.value ? event.target.value as DistributionDueState : undefined })}><option value="">Any deadline</option>{dueOptions.map((value) => <option key={value} value={value}>{label(value)}</option>)}</select></label>
@@ -77,7 +82,7 @@ export function SentFormsView() {
         {items.length === 0 && <div className="forms-task-empty"><strong>No sent forms match this view</strong><span>Change the filters or send a form.</span></div>}
         {nextCursor && <button className="forms-load-more" type="button" disabled={busy === "more"} onClick={() => void loadMore()}>{busy === "more" ? "Loading…" : "Load more"}</button>}
       </div>
-      <aside className="forms-task-detail" aria-label="Selected distribution">{detail ? <><span className="forms-detail-kicker">{detail.distribution.subject_type}</span><h3>{detail.distribution.title}</h3><p>{detail.distribution.purpose}</p><dl><div><dt>Status</dt><dd>{label(detail.distribution.status)}</dd></div><div><dt>Recipients</dt><dd>{counts?.to ?? 0} To · {counts?.cc ?? 0} CC</dd></div><div><dt>Completed</dt><dd>{counts?.completed ?? 0}/{counts?.to ?? 0}</dd></div><div><dt>Deadline</dt><dd>{formatDateTime(detail.distribution.deadline)}</dd></div><div><dt>Access</dt><dd>{label(detail.distribution.access_policy)}</dd></div><div><dt>Workspace</dt><dd>{label(detail.workspace.status)} · v{detail.workspace.version}</dd></div><div><dt>Form</dt><dd>{detail.distribution.form_template_id} · v{detail.distribution.form_template_version}</dd></div></dl><div className="forms-detail-actions">{detail.distribution.status === "OPEN" && <button type="button" disabled={Boolean(busy)} onClick={() => void lifecycle("lock")}>Lock responses</button>}{detail.distribution.status === "LOCKED" && <button type="button" disabled={Boolean(busy)} onClick={() => void lifecycle("reopen")}>Reopen</button>}{!["REVOKED", "COMPLETED", "SUPERSEDED"].includes(detail.distribution.status) && <button type="button" disabled={Boolean(busy)} onClick={() => void lifecycle("revoke")}>Revoke</button>}<button type="button" disabled title="Open a recipient access route before rotating it.">Rotate access route</button><button type="button" disabled title="Create and confirm an amended distribution before replacing this one.">Supersede</button></div></> : <><span className="forms-detail-kicker">Distribution detail</span><h3>Select a sent form</h3><p>Choose a sent form to review recipient progress, deadline and access method.</p></>}</aside>
+      <aside className="forms-task-detail" aria-label="Selected distribution">{detail ? <><span className="forms-detail-kicker">{detail.distribution.subject_type}</span><h3>{detail.distribution.title}</h3><p>{detail.distribution.purpose}</p><dl><div><dt>Status</dt><dd>{label(detail.distribution.status)}</dd></div><div><dt>Recipients</dt><dd>{counts?.to ?? 0} To · {counts?.cc ?? 0} CC</dd></div><div><dt>Completed</dt><dd>{counts?.completed ?? 0}/{counts?.to ?? 0}</dd></div><div><dt>Deadline</dt><dd>{formatDateTime(detail.distribution.deadline)}</dd></div><div><dt>Access</dt><dd>{label(detail.distribution.access_policy)}</dd></div><div><dt>Workspace</dt><dd>{label(detail.workspace.status)} · v{detail.workspace.version}</dd></div><div><dt>Form</dt><dd>{detail.distribution.form_template_id} · v{detail.distribution.form_template_version}</dd></div></dl><div className="forms-detail-actions">{detail.distribution.status === "OPEN" && <button type="button" disabled={Boolean(busy)} onClick={() => void lifecycle("lock")}>Lock responses</button>}{detail.distribution.status === "LOCKED" && <button type="button" disabled={Boolean(busy)} onClick={() => void lifecycle("reopen")}>Reopen</button>}{!["REVOKED", "COMPLETED", "SUPERSEDED"].includes(detail.distribution.status) && <button type="button" disabled={Boolean(busy)} onClick={() => void lifecycle("revoke")}>Revoke</button>}{detail.distribution.status === "OPEN" && <button type="button" disabled={Boolean(busy)} onClick={() => setChangeMode("amend")}>Amend distribution</button>}{detail.distribution.status === "OPEN" && <button type="button" disabled={Boolean(busy)} onClick={() => setChangeMode("supersede")}>Replace form version</button>}</div></> : <><span className="forms-detail-kicker">Distribution detail</span><h3>Select a sent form</h3><p>Choose a sent form to review recipient progress, deadline and access method.</p></>}</aside>
     </div>
   </section>;
 }

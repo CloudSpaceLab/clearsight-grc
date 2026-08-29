@@ -55,6 +55,47 @@ export type DistributionDetail = {
   issued_access_routes?: Array<{ route_id?: string; route_selector?: string; recipient_id?: string; expires_at?: string }>;
 };
 
+export type DistributionAmendmentImpact = {
+  deadline_changed?: boolean;
+  route_expiry_changed?: boolean;
+  reminder_policy_changed?: boolean;
+  recipients_added?: number;
+  recipients_revoked?: number;
+};
+
+export type AmendDistributionInput = {
+  expected_version: number;
+  deadline?: string;
+  route_expires_at?: string;
+  reminder_policy?: Record<string, unknown>;
+  add_recipients?: CreateDistributionRecipient[];
+  revoke_recipient_ids?: string[];
+};
+
+export type SupersessionFieldDecision = { field_id: string; reason?: string };
+export type DistributionSupersessionPreview = {
+  distribution_id: string;
+  expected_version: number;
+  expected_workspace_version: number;
+  target_form_template_id: string;
+  target_form_version: number;
+  compatible_fields: SupersessionFieldDecision[];
+  excluded_fields: SupersessionFieldDecision[];
+};
+export type SupersedeDistributionInput = {
+  expected_version: number;
+  expected_workspace_version: number;
+  target_form_version: number;
+  carry_forward: boolean;
+  confirmed_field_ids: string[];
+};
+export type DistributionSupersessionResult = {
+  previous: DistributionDetail;
+  replacement: DistributionDetail;
+  carried_field_ids: string[];
+  issued_access_routes?: DistributionDetail["issued_access_routes"];
+};
+
 export type DistributionPage = { items: Distribution[]; next_cursor?: string };
 export type DistributionQuery = {
   status?: DistributionStatus;
@@ -171,6 +212,21 @@ export async function loadDistribution(id: string): Promise<DistributionDetail> 
 
 export async function createDistribution(input: CreateDistributionInput): Promise<DistributionDetail> {
   return normalizeDetail(await requestJSON(apiBase, "/api/v1/forms/distributions", { method: "POST", body: JSON.stringify(input) }));
+}
+
+export async function amendDistribution(id: string, input: AmendDistributionInput): Promise<{ detail: DistributionDetail; impact: DistributionAmendmentImpact; issued_access_routes?: DistributionDetail["issued_access_routes"] }> {
+  const raw = await requestJSON<{ distribution: Parameters<typeof normalizeDetail>[0]; impact: DistributionAmendmentImpact; issued_access_routes?: DistributionDetail["issued_access_routes"] }>(apiBase, `/api/v1/forms/distributions/${encodeURIComponent(id)}/amend`, { method: "POST", body: JSON.stringify(input) });
+  return { detail: normalizeDetail(raw.distribution), impact: raw.impact, issued_access_routes: raw.issued_access_routes };
+}
+
+export async function previewDistributionSupersession(id: string, expectedVersion: number, targetFormVersion: number): Promise<DistributionSupersessionPreview> {
+  const raw = await requestJSON<{ preview: DistributionSupersessionPreview }>(apiBase, `/api/v1/forms/distributions/${encodeURIComponent(id)}/supersede`, { method: "POST", body: JSON.stringify({ expected_version: expectedVersion, target_form_version: targetFormVersion, confirm: false }) });
+  return raw.preview;
+}
+
+export async function supersedeDistribution(id: string, input: SupersedeDistributionInput): Promise<DistributionSupersessionResult> {
+  const raw = await requestJSON<{ previous: Parameters<typeof normalizeDetail>[0]; replacement: Parameters<typeof normalizeDetail>[0]; carried_field_ids?: string[]; issued_access_routes?: DistributionDetail["issued_access_routes"] }>(apiBase, `/api/v1/forms/distributions/${encodeURIComponent(id)}/supersede`, { method: "POST", body: JSON.stringify({ ...input, confirm: true }) });
+  return { previous: normalizeDetail(raw.previous), replacement: normalizeDetail(raw.replacement), carried_field_ids: raw.carried_field_ids ?? [], issued_access_routes: raw.issued_access_routes };
 }
 
 export function loadRecipientCandidates(search: string, limit = 12): Promise<RecipientCandidatePage> {

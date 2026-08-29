@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createDistribution, loadDistributionPage, loadRecipientCandidates, loadResponseRevisions } from "./formsDistributionApi";
+import { amendDistribution, createDistribution, loadDistributionPage, loadRecipientCandidates, loadResponseRevisions, previewDistributionSupersession, supersedeDistribution } from "./formsDistributionApi";
 
 const fetchMock = vi.fn();
 beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal("fetch", fetchMock); });
@@ -26,5 +26,18 @@ describe("forms distribution API", () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "r1", revision: 2, achieved_assurance: "EMAIL_VERIFIED", scored_weight_coverage: 100, state: "FINAL", current: true, created_at: "2026-08-28T10:00:00Z" }] }), { status: 200, headers: { "Content-Type": "application/json" } }));
     await expect(loadResponseRevisions("dist/a")).resolves.toMatchObject({ items: [{ revision: 2, current: true }] });
     expect(String(fetchMock.mock.calls[1]?.[0])).toContain("/api/v1/forms/distributions/dist%2Fa/responses?limit=100");
+  });
+
+  it("amends and supersedes distributions through preview-confirm commands", async () => {
+    const bundle = { distribution: { id: "dist-a", form_template_id: "form-a", form_template_version: 4, subject_type: "VENDOR", subject_id: "vendor-a", title: "Review", purpose: "Evidence", access_policy: "DIRECT_LINK_EMAIL_OTP", status: "OPEN", deadline: "2026-09-02T10:00:00Z", route_expires_at: "2026-09-02T09:00:00Z", version: 3, created_at: "2026-08-28T10:00:00Z", updated_at: "2026-08-28T10:00:00Z" }, recipients: [], workspace: { id: "w1", status: "OPEN", version: 2, updated_at: "2026-08-28T10:00:00Z" } };
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ distribution: bundle, impact: { deadline_changed: true } }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    await expect(amendDistribution("dist-a", { expected_version: 2, deadline: "2026-09-02T10:00:00Z" })).resolves.toMatchObject({ detail: { distribution: { version: 3 } }, impact: { deadline_changed: true } });
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({ expected_version: 2, deadline: "2026-09-02T10:00:00Z" });
+
+    const preview = { distribution_id: "dist-a", expected_version: 3, expected_workspace_version: 2, target_form_template_id: "form-a", target_form_version: 5, compatible_fields: [{ field_id: "legal-name" }], excluded_fields: [] };
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ preview, confirmation_required: true }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    await expect(previewDistributionSupersession("dist-a", 3, 5)).resolves.toEqual(preview);
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ previous: bundle, replacement: { ...bundle, distribution: { ...bundle.distribution, id: "dist-b", form_template_version: 5 } }, carried_field_ids: ["legal-name"] }), { status: 201, headers: { "Content-Type": "application/json" } }));
+    await expect(supersedeDistribution("dist-a", { expected_version: 3, expected_workspace_version: 2, target_form_version: 5, carry_forward: true, confirmed_field_ids: ["legal-name"] })).resolves.toMatchObject({ replacement: { distribution: { id: "dist-b", form_template_version: 5 } }, carried_field_ids: ["legal-name"] });
   });
 });

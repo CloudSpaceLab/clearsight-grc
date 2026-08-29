@@ -1,0 +1,32 @@
+.forms-recipient-panel {
+  min-width: 0;
+  border: 0;
+}
+
+.forms-recipient-panel legend {
+  padding: 0;
+  font-weight: 700;
+}
+
+.forms-change-preview {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--forms-border, #d8dee8);
+  border-radius: 14px;
+  background: var(--forms-subtle, #f6f8fb);
+}
+
+.forms-change-preview h3 {
+  margin-top: 0;
+}
+
+.forms-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.forms-check-row input {
+  width: auto;
+}
