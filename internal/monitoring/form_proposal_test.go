@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
@@ -87,16 +88,10 @@ func TestFormTemplateProposalGenerationFailsClosedWhenSourceChanges(t *testing.T
 	document := proposalSourceDocument()
 	docs := &proposalDocumentStub{document: document}
 	store := NewMemoryFormProposalStore()
-	now := formActorContext("bank-a", "entity-a", "maker-a")
-	_ = now
 	proposal := FormTemplateProposal{
 		ID: "018f0000-0000-7000-8000-000000000003", TenantID: "bank-a", LegalEntityID: "entity-a",
 		SourceKind: FormProposalSourceDocument, SourceDocumentID: document.ID, SourceDocumentVersion: document.Version, SourceSHA256: document.SHA256,
-		Status: FormProposalGenerating, CreatedBy: "maker-a", CreatedAt: document.CreatedAt, UpdatedAt: document.CreatedAt, Version: 1,
-	}
-	if proposal.CreatedAt.IsZero() {
-		proposal.CreatedAt = testProposalTime()
-		proposal.UpdatedAt = proposal.CreatedAt
+		Status: FormProposalGenerating, CreatedBy: "maker-a", CreatedAt: testProposalTime(), UpdatedAt: testProposalTime(), Version: 1,
 	}
 	if _, err := store.Create(context.Background(), proposal); err != nil {
 		t.Fatal(err)
