@@ -3,6 +3,7 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
@@ -29,6 +30,47 @@ func (a *API) createDocumentFormProposal(w http.ResponseWriter, r *http.Request)
 	// PostgreSQL generation is intentionally asynchronous through the shared
 	// outbox. Memory/demo may already have produced REVIEW_REQUIRED by the time
 	// this response is written, but the create contract remains uniformly 202.
+	httpx.WriteJSON(w, http.StatusAccepted, value)
+}
+
+func (a *API) createAIFormProposal(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.formProposalService(w)
+	if !ok {
+		return
+	}
+	var input monitoring.RequestAIFormProposalInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	value, err := service.RequestAI(r.Context(), input)
+	if err != nil {
+		writeFormProposalError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusAccepted, value)
+}
+
+func (a *API) createAIFormRevisionProposal(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.formProposalService(w)
+	if !ok {
+		return
+	}
+	version, err := strconv.ParseInt(r.PathValue("version"), 10, 64)
+	if err != nil || version < 1 {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "A positive base form revision is required.")
+		return
+	}
+	var input monitoring.RequestAIFormProposalInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	value, err := service.RequestAIRevision(r.Context(), r.PathValue("id"), version, input)
+	if err != nil {
+		writeFormProposalError(w, err)
+		return
+	}
 	httpx.WriteJSON(w, http.StatusAccepted, value)
 }
 
@@ -97,6 +139,8 @@ func writeFormProposalError(w http.ResponseWriter, err error) {
 		writeCommandAuthorizationError(w, err)
 	case errors.Is(err, commandauth.ErrGuardUnavailable):
 		httpx.WriteError(w, http.StatusServiceUnavailable, "form_authority_unavailable", "The current form authority could not be checked. No draft was changed.")
+	case errors.Is(err, monitoring.ErrFormAIUnavailable):
+		httpx.WriteError(w, http.StatusServiceUnavailable, "form_ai_unavailable", "Governed AI form authoring is not available. Manual and deterministic authoring remain available.")
 	case errors.Is(err, monitoring.ErrNotFound), errors.Is(err, documentimport.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "form_proposal_not_found", "The form proposal or its exact source document was not found in this legal entity.")
 	case errors.Is(err, monitoring.ErrConflict), errors.Is(err, documentimport.ErrVersionConflict), errors.Is(err, monitoring.ErrFormProposalSourceChanged), errors.Is(err, monitoring.ErrFormProposalState):
