@@ -155,8 +155,12 @@ func ExtractWithPolicy(ctx context.Context, fileName, mediaType string, data []b
 		method = "NDJSON_TABULAR_V1"
 		err = tabularSections(ctx, TabularNDJSON, data, collector)
 	case ".docx":
-		method = "DOCX_XML_STREAM_V2"
-		err = docxSections(ctx, data, collector, policy)
+		method = docxParserVersion
+		result, docxErr := extractDOCX(ctx, data, policy)
+		if docxErr == nil {
+			return result
+		}
+		err = docxErr
 	case ".xlsx":
 		method = "XLSX_XML_STREAM_V2"
 		err = xlsxSections(ctx, data, collector, policy)
