@@ -173,6 +173,9 @@
     "/api/v1/forms/saved-views/{id}": {
       "delete": { "operationId": "deleteSavedFormView", "x-clearsight-route-class": "AUTHENTICATED_WRITE" }
     },
+    "/api/v1/forms/proposals/{id}": { "get": { "operationId": "getFormProposal", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/forms/proposals/{id}/accept": { "post": { "operationId": "acceptFormProposal", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
+    "/api/v1/forms/proposals/{id}/reject": { "post": { "operationId": "rejectFormProposal", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/forms/recipient-candidates": { "get": { "operationId": "listFormDistributionRecipientCandidates", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/forms/distributions": {
       "get": { "operationId": "listFormDistributions", "x-clearsight-route-class": "AUTHENTICATED_READ" },
@@ -321,6 +324,7 @@
       "post": { "operationId": "createDocumentImport", "x-clearsight-route-class": "AUTHENTICATED_WRITE" }
     },
     "/api/v1/document-imports/{id}": { "get": { "operationId": "getDocumentImport", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/document-imports/{id}/form-template-proposals": { "post": { "operationId": "createDocumentFormProposal", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/document-imports/{id}/proposals/{proposal_id}/review": { "post": { "operationId": "reviewDocumentProposal", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/document-imports/{id}/proposals/{proposal_id}/handoff/review": { "post": { "operationId": "reviewDocumentProposalHandoff", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/document-imports/{id}/proposals/{proposal_id}/handoff/authorize": { "post": { "operationId": "authorizeDocumentProposalHandoff", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
