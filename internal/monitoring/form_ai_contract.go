@@ -17,10 +17,11 @@ type RequestAIFormProposalInput struct {
 }
 
 type FormAISourceSnapshot struct {
-	DocumentID string
-	Version    int64
-	SHA256     string
-	Elements   []documentimport.ExtractedElement
+	DocumentID       string
+	Version          int64
+	SHA256           string
+	ExtractionStatus documentimport.ExtractionStatus
+	Elements         []documentimport.ExtractedElement
 }
 
 type FormAIClientRequest struct {
