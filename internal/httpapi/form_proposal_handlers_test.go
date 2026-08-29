@@ -33,9 +33,9 @@ func (r formProposalHTTPDocuments) Get(_ context.Context, tenantID, documentID s
 func TestFormProposalRoutesAreRegisteredAndClassified(t *testing.T) {
 	want := map[string]routeClass{
 		"POST /api/v1/document-imports/{id}/form-template-proposals": routeAuthenticatedWrite,
-		"GET /api/v1/forms/proposals/{id}":                          routeAuthenticatedRead,
-		"POST /api/v1/forms/proposals/{id}/accept":                  routeAuthenticatedWrite,
-		"POST /api/v1/forms/proposals/{id}/reject":                  routeAuthenticatedWrite,
+		"GET /api/v1/forms/proposals/{id}":                           routeAuthenticatedRead,
+		"POST /api/v1/forms/proposals/{id}/accept":                   routeAuthenticatedWrite,
+		"POST /api/v1/forms/proposals/{id}/reject":                   routeAuthenticatedWrite,
 	}
 	for _, route := range (&API{}).productionRoutes() {
 		key := route.Method + " " + route.Path
@@ -75,10 +75,10 @@ func TestFormProposalHTTPCreateGetAcceptAndIdempotentRetry(t *testing.T) {
 	}}
 	proposals := monitoring.NewFormProposalService(monitoring.NewMemoryFormProposalStore(), documents, forms)
 	handler := New(Dependencies{
-		Logger: logger,
-		Identity: identity.NewDevelopmentAuthenticator("bank-a", "maker-a", "entity-a"),
-		CommandGuard: guard,
-		Monitoring: forms,
+		Logger:        logger,
+		Identity:      identity.NewDevelopmentAuthenticator("bank-a", "maker-a", "entity-a"),
+		CommandGuard:  guard,
+		Monitoring:    forms,
 		FormProposals: proposals,
 	})
 
