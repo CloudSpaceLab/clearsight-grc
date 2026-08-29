@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"strconv"
 	"strings"
 )
+
+const maxDOCXNumberingLevel = 8
 
 type docxRelationship struct {
 	Target  string
@@ -131,7 +134,10 @@ func readDOCXNumbering(ctx context.Context, files []*zip.File, policy Extraction
 				if definitions > policy.MaxElements {
 					return nil, limitError("DOCX numbering definition count exceeds %d", policy.MaxElements)
 				}
-				currentAbstract = boundedDOCXMetadataAttribute(item, "abstractNumId", policy.MaxCellBytes)
+				currentAbstract, err = requiredBoundedDOCXAttribute(item, "abstractNumId", policy.MaxCellBytes)
+				if err != nil {
+					return nil, err
+				}
 				currentLevel = -1
 				if currentAbstract != "" && value.levels[currentAbstract] == nil {
 					value.levels[currentAbstract] = make(map[int]docxNumberingLevel)
@@ -141,17 +147,28 @@ func readDOCXNumbering(ctx context.Context, files []*zip.File, policy Extraction
 				if definitions > policy.MaxElements {
 					return nil, limitError("DOCX numbering definition count exceeds %d", policy.MaxElements)
 				}
-				currentLevel = parseNonNegativeInt(xmlAttribute(item, "ilvl"), 0)
+				currentLevel, err = parseDOCXNumberingLevel(xmlAttribute(item, "ilvl"))
+				if err != nil {
+					return nil, err
+				}
 			case "numFmt":
 				if currentAbstract != "" && currentLevel >= 0 {
+					format, attributeErr := requiredBoundedDOCXAttribute(item, "val", policy.MaxCellBytes)
+					if attributeErr != nil {
+						return nil, attributeErr
+					}
 					level := value.levels[currentAbstract][currentLevel]
-					level.Format = boundedDOCXMetadataAttribute(item, "val", policy.MaxCellBytes)
+					level.Format = format
 					value.levels[currentAbstract][currentLevel] = level
 				}
 			case "lvlText":
 				if currentAbstract != "" && currentLevel >= 0 {
+					text, attributeErr := requiredBoundedDOCXAttribute(item, "val", policy.MaxCellBytes)
+					if attributeErr != nil {
+						return nil, attributeErr
+					}
 					level := value.levels[currentAbstract][currentLevel]
-					level.Text = boundedDOCXMetadataAttribute(item, "val", policy.MaxCellBytes)
+					level.Text = text
 					value.levels[currentAbstract][currentLevel] = level
 				}
 			case "num":
@@ -159,10 +176,17 @@ func readDOCXNumbering(ctx context.Context, files []*zip.File, policy Extraction
 				if definitions > policy.MaxElements {
 					return nil, limitError("DOCX numbering definition count exceeds %d", policy.MaxElements)
 				}
-				currentNum = boundedDOCXMetadataAttribute(item, "numId", policy.MaxCellBytes)
+				currentNum, err = requiredBoundedDOCXAttribute(item, "numId", policy.MaxCellBytes)
+				if err != nil {
+					return nil, err
+				}
 			case "abstractNumId":
 				if currentNum != "" {
-					value.numAbstract[currentNum] = boundedDOCXMetadataAttribute(item, "val", policy.MaxCellBytes)
+					abstractID, attributeErr := requiredBoundedDOCXAttribute(item, "val", policy.MaxCellBytes)
+					if attributeErr != nil {
+						return nil, attributeErr
+					}
+					value.numAbstract[currentNum] = abstractID
 				}
 			}
 		case xml.EndElement:
@@ -178,16 +202,24 @@ func readDOCXNumbering(ctx context.Context, files []*zip.File, policy Extraction
 	return value, nil
 }
 
-func boundedDOCXMetadataAttribute(start xml.StartElement, name string, maximum int) string {
+func requiredBoundedDOCXAttribute(start xml.StartElement, name string, maximum int) (string, error) {
 	value := strings.TrimSpace(xmlAttribute(start, name))
 	if len(value) > maximum {
-		return ""
+		return "", limitError("DOCX numbering metadata exceeds %d bytes", maximum)
 	}
-	return value
+	return value, nil
+}
+
+func parseDOCXNumberingLevel(value string) (int, error) {
+	parsed, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil || parsed < 0 || parsed > maxDOCXNumberingLevel {
+		return 0, limitError("DOCX numbering level must be between 0 and %d", maxDOCXNumberingLevel)
+	}
+	return parsed, nil
 }
 
 func (n *docxNumbering) label(numID string, level int, counters map[string][]int) string {
-	if n == nil || strings.TrimSpace(numID) == "" {
+	if n == nil || strings.TrimSpace(numID) == "" || level < 0 || level > maxDOCXNumberingLevel {
 		return ""
 	}
 	abstractID := n.numAbstract[numID]
