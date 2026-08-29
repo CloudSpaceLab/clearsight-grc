@@ -1,12 +1,15 @@
 package monitoring
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 )
 
 func TestFormAIClientRejectsTenantBindingBeforeGatewayCall(t *testing.T) {
@@ -29,9 +32,8 @@ func TestFormAIClientRejectsTenantBindingBeforeGatewayCall(t *testing.T) {
 }
 
 func TestFormAIClientRejectsUnknownGovernedFieldSemantics(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"id":"resp-1","status":"completed","model":"authoring","output":[{"type":"function_call","name":"submit_form_proposal","arguments":"{\"sections\":[{\"id\":\"general\",\"title\":\"General\"}],\"changes\":[{\"kind\":\"ADD_FIELD\",\"confidence\":0.9,\"field\":{\"key\":\"owner\",\"section_id\":\"general\",\"label\":\"Control owner\",\"type\":\"short_text\",\"scoring\":{\"weight\":100}}}]}"}]}`))
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeFormAIGatewayToolResponse(t, w, "resp-1", `{"sections":[{"id":"general","title":"General"}],"changes":[{"kind":"ADD_FIELD","confidence":0.9,"field":{"key":"owner","section_id":"general","label":"Control owner","type":"short_text","scoring":{"weight":100}}}]}`)
 	}))
 	defer server.Close()
 	client, err := NewHTTPFormAIClient(FormAIGatewayConfig{
@@ -54,11 +56,10 @@ func TestFormAIClientCapturesGatewayAndValidationProvenance(t *testing.T) {
 		if got := r.Header.Get("Authorization"); got != "Bearer credential-123" {
 			t.Fatalf("authorization = %q", got)
 		}
-		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("X-Request-ID", "req_0011223344556677")
 		w.Header().Set("X-ClearSight-Policy", "form-authoring-policy@7")
 		w.Header().Set("X-ClearSight-Route", "openai-primary")
-		_, _ = w.Write([]byte(`{"id":"resp-2","status":"completed","model":"authoring","output":[{"type":"function_call","name":"submit_form_proposal","arguments":"{\"sections\":[{\"id\":\"general\",\"title\":\"General\"}],\"changes\":[{\"kind\":\"ADD_FIELD\",\"source_ref\":\"source-1\",\"confidence\":0.9,\"field\":{\"key\":\"owner\",\"section_id\":\"general\",\"label\":\"Control owner\",\"type\":\"short_text\"}}]}"}]}`))
+		writeFormAIGatewayToolResponse(t, w, "resp-2", `{"sections":[{"id":"general","title":"General"}],"changes":[{"kind":"ADD_FIELD","source_ref":"source-1","confidence":0.9,"field":{"key":"owner","section_id":"general","label":"Control owner","type":"short_text"}}]}`)
 	}))
 	defer server.Close()
 	client, err := NewHTTPFormAIClient(FormAIGatewayConfig{
@@ -71,7 +72,10 @@ func TestFormAIClientCapturesGatewayAndValidationProvenance(t *testing.T) {
 	result, err := client.Propose(t.Context(), FormAIClientRequest{
 		TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "maker-a", Objective: "Draft a control-owner field.",
 		SnapshotSHA256: strings.Repeat("b", 64),
-		Source: &FormAISourceSnapshot{DocumentID: "doc-1", Version: 3, SHA256: strings.Repeat("c", 64), Elements: []documentimport.ExtractedElement{{Ref: "source-1", Kind: documentimport.ElementParagraph, Text: "Who owns this control?", Anchor: documentimport.SourceAnchor{Page: 2}}}},
+		Source: &FormAISourceSnapshot{
+			DocumentID: "doc-1", Version: 3, SHA256: strings.Repeat("c", 64),
+			Elements: []documentimport.ExtractedElement{{Ref: "source-1", Kind: documentimport.ElementParagraph, Text: "Who owns this control?", Anchor: documentimport.SourceAnchor{Page: 2}}},
+		},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -82,4 +86,17 @@ func TestFormAIClientCapturesGatewayAndValidationProvenance(t *testing.T) {
 	if result.Provenance.WorkloadID != "forms-authoring" || result.Provenance.PolicyRef != "form-authoring-policy@7" || result.Provenance.GatewayRequestID != "req_0011223344556677" || result.Provenance.GatewayResponseID != "resp-2" || result.Provenance.RouteID != "openai-primary" || result.Provenance.PromptVersion != "FORM_AUTHORING_V7" || len(result.Provenance.ValidationResults) == 0 {
 		t.Fatalf("gateway provenance = %#v", result.Provenance)
 	}
+}
+
+func writeFormAIGatewayToolResponse(t *testing.T, w http.ResponseWriter, id, arguments string) {
+	t.Helper()
+	payload, err := json.Marshal(map[string]any{
+		"id": id, "status": "completed", "model": "authoring",
+		"output": []map[string]string{{"type": "function_call", "name": "submit_form_proposal", "arguments": arguments}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(payload)
 }
