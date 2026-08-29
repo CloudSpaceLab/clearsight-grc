@@ -229,7 +229,7 @@ func (c *HTTPFormAIClient) gatewayRequest(request FormAIClientRequest) (formAIGa
 	}
 	return formAIGatewayRequest{
 		Model: c.config.ModelAlias, Input: string(encoded), Instructions: "Create only a reviewable ClearSight form-template diff. Never claim that the form is approved or active.",
-		Tools: []formAITool{{Type: "function", Name: "submit_form_proposal", Description: "Return a bounded reviewable form-template diff.", Parameters: json.RawMessage(formAIToolSchema), Strict: false}},
+		Tools:      []formAITool{{Type: "function", Name: "submit_form_proposal", Description: "Return a bounded reviewable form-template diff.", Parameters: json.RawMessage(formAIToolSchema), Strict: false}},
 		ToolChoice: formAIToolChoice{Type: "function", Name: "submit_form_proposal"}, MaxOutputTokens: 8192, Temperature: 0,
 		Metadata: map[string]string{
 			"clearsight_tenant_id": request.TenantID, "clearsight_legal_entity_id": request.LegalEntityID,
