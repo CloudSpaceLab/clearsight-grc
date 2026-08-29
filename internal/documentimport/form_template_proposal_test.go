@@ -127,3 +127,12 @@ func strings64(value string) string {
 	}
 	return result[:64]
 }
+
+func containsUnresolved(items []ProposalUnresolvedItem, code string) bool {
+	for _, item := range items {
+		if item.Code == code {
+			return true
+		}
+	}
+	return false
+}
