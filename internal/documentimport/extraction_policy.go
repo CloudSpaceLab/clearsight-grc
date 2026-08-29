@@ -22,6 +22,7 @@ type ExtractionPolicy struct {
 	MaxSharedStringBytes  int64
 	MaxExtractedTextBytes int64
 	MaxSections           int
+	MaxElements           int
 	MaxProposals          int
 	MaxRowErrors          int
 	MaxPDFPages           int
@@ -43,6 +44,7 @@ func DefaultExtractionPolicy() ExtractionPolicy {
 		MaxSharedStringBytes:  16 << 20,
 		MaxExtractedTextBytes: 8 << 20,
 		MaxSections:           5000,
+		MaxElements:           10_000,
 		MaxProposals:          500,
 		MaxRowErrors:          50,
 		MaxPDFPages:           500,
@@ -90,6 +92,9 @@ func (p ExtractionPolicy) normalized() ExtractionPolicy {
 	}
 	if p.MaxSections <= 0 {
 		p.MaxSections = defaults.MaxSections
+	}
+	if p.MaxElements <= 0 {
+		p.MaxElements = defaults.MaxElements
 	}
 	if p.MaxProposals <= 0 {
 		p.MaxProposals = defaults.MaxProposals
