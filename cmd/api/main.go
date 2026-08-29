@@ -60,6 +60,7 @@ func main() {
 	assessmentReviewService := thirdparty.NewAssessmentReviewService(assessmentService, services.ThirdPartyAssessmentRepo, services.Evidence, assessmentMatterReader)
 	assessmentReviewService.ConfigureAuthority(services.Authority)
 	assessmentService.ConfigureCompletionReadiness(assessmentReviewService)
+	assessmentApplicationService := thirdparty.NewAssessmentApplicationService(assessmentService, assessmentReviewService, services.ThirdPartyAssessmentRepo)
 	assessmentDeficiencyService := thirdparty.NewAssessmentDeficiencyService(assessmentService, services.ThirdPartyAssessmentRepo, services.Continuity)
 	assessmentRequestService, err := thirdparty.NewAssessmentRequestService(
 		assessmentService, services.ThirdPartyAssessmentRepo, services.Evidence, services.MonitoringRepo,
@@ -69,6 +70,7 @@ func main() {
 		logger.Error("vendor due-diligence initialization failed", "error", err)
 		os.Exit(1)
 	}
+	assessmentRequestService.ConfigureRecordTargetResolver(thirdparty.NewRecordTargetResolver(services.ThirdPartyAssessmentRepo))
 	vendorWorkService, err := thirdparty.NewVendorWorkService(
 		services.ThirdPartyWorkRepo, services.ThirdPartyRelationshipLinkRepo, services.Evidence, services.MonitoringRepo,
 		evidence.NewInvitationDeliveryService(nil), cfg.CapturePublicBaseURL, cfg.Environment,
@@ -94,7 +96,7 @@ func main() {
 		CommandGuard: guard, Authority: services.Authority, Governance: services.Governance,
 		Evidence: services.Evidence, FormDistributions: services.FormDistributions, FormDistributionAccess: services.FormDistributionAccess,
 		FormCommunications: services.FormCommunications, FormCommunicationBrands: services.FormCommunicationBrands, FormCommunicationTestDelivery: services.FormCommunicationTestDelivery,
-		Monitoring: services.Monitoring, FormProposals: services.FormProposals, ThirdParty: services.ThirdParty, VendorBrands: vendorBrandService, ThirdPartyRelationshipLinks: services.ThirdPartyRelationshipLinks, ThirdPartyWork: vendorWorkService, ThirdPartyAssessments: assessmentService, ThirdPartyAssessmentReviews: assessmentReviewService, ThirdPartyAssessmentRequests: assessmentRequestService, ThirdPartyAssessmentDeficiencies: assessmentDeficiencyService, ThirdPartyAssessmentSetup: services.ThirdPartyAssessmentSetup, SourceCatalog: services.SourceCatalog, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
+		Monitoring: services.Monitoring, FormProposals: services.FormProposals, ThirdParty: services.ThirdParty, VendorBrands: vendorBrandService, ThirdPartyRelationshipLinks: services.ThirdPartyRelationshipLinks, ThirdPartyWork: vendorWorkService, ThirdPartyAssessments: assessmentService, ThirdPartyAssessmentReviews: assessmentReviewService, ThirdPartyAssessmentApplications: assessmentApplicationService, ThirdPartyAssessmentRequests: assessmentRequestService, ThirdPartyAssessmentDeficiencies: assessmentDeficiencyService, ThirdPartyAssessmentSetup: services.ThirdPartyAssessmentSetup, SourceCatalog: services.SourceCatalog, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
 		Continuity: services.Continuity, Today: services.Today, Workflow: services.Workflow, Onboarding: services.Onboarding,
 		Autonomy: services.Autonomy, AIGovernance: services.AIGovernance, BankVerticals: services.BankVerticals, BackgroundJobs: services.BackgroundJobs,
 		MaxArtifactBytes: cfg.MaxArtifactBytes,

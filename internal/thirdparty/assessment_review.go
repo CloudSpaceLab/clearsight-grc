@@ -68,6 +68,7 @@ type AssessmentReviewAnswer struct {
 	Visibility AssessmentAnswerVisibility `json:"visibility"`
 	Value      *formcontract.AnswerValue  `json:"value,omitempty"`
 	Provenance *evidence.AnswerProvenance `json:"provenance,omitempty"`
+	Baseline   *evidence.RecordBaseline   `json:"baseline,omitempty"`
 }
 
 type AssessmentReviewDocument struct {
@@ -317,6 +318,10 @@ func (s *AssessmentReviewService) addSubmission(ctx context.Context, view *Asses
 		return err
 	}
 	visibleByID := make(map[string]formcontract.Field, len(visible))
+	requestFieldByID := make(map[string]evidence.Field, len(request.Fields))
+	for _, field := range request.Fields {
+		requestFieldByID[field.ID] = field
+	}
 	for _, field := range visible {
 		visibleByID[field.ID] = field
 	}
@@ -374,6 +379,11 @@ func (s *AssessmentReviewService) addSubmission(ctx context.Context, view *Asses
 	for _, field := range normalized.Fields {
 		visibleField, isVisible := visibleByID[field.ID]
 		answer := AssessmentReviewAnswer{FieldID: field.ID, Label: field.Label, Type: field.Type, Required: field.Required, Visibility: AssessmentAnswerConditionallyOmitted}
+		if requestField := requestFieldByID[field.ID]; requestField.RecordBaseline != nil {
+			baseline := *requestField.RecordBaseline
+			baseline.ExpiresAt = cloneAssessmentTime(requestField.RecordBaseline.ExpiresAt)
+			answer.Baseline = &baseline
+		}
 		if isVisible {
 			answer.Visibility = AssessmentAnswerVisible
 			if field.Required {

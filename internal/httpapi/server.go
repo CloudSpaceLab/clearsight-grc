@@ -59,6 +59,7 @@ type Dependencies struct {
 	ThirdPartyWork                   *thirdparty.VendorWorkService
 	ThirdPartyAssessments            *thirdparty.AssessmentService
 	ThirdPartyAssessmentReviews      *thirdparty.AssessmentReviewService
+	ThirdPartyAssessmentApplications *thirdparty.AssessmentApplicationService
 	ThirdPartyAssessmentRequests     *thirdparty.AssessmentRequestService
 	ThirdPartyAssessmentDeficiencies *thirdparty.AssessmentDeficiencyService
 	ThirdPartyAssessmentSetup        interface {

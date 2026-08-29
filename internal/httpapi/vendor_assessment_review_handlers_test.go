@@ -288,6 +288,7 @@ func TestVendorAssessmentReviewRoutesDeclareScopedReadAndReviewerCommands(t *tes
 		http.MethodGet + " /api/v1/vendor-assessments/{id}":                                   false,
 		http.MethodPost + " /api/v1/vendor-assessments/{id}/review/start":                     false,
 		http.MethodPost + " /api/v1/vendor-assessments/{id}/documents/{artifact_id}/validate": false,
+		http.MethodPost + " /api/v1/vendor-assessments/{id}/responses/{revision_id}/apply":    false,
 		http.MethodPost + " /api/v1/vendor-assessments/{id}/complete":                         false,
 	}
 	for _, route := range routes {

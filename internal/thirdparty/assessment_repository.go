@@ -34,7 +34,10 @@ type AssessmentRepository interface {
 	LinkAssessmentDeficiency(context.Context, LinkAssessmentDeficiencyRecord) (AssessmentMatterLink, Assessment, error)
 	ReviewAssessmentDocument(context.Context, AssessmentDocumentReviewRecord) (AssessmentDocument, Assessment, error)
 	ListAssessmentDocuments(context.Context, Scope, string, int) ([]AssessmentDocument, error)
+	CurrentRelationshipDocuments(context.Context, Scope, string, string) ([]AssessmentDocument, error)
 	ResolveAssessmentRequest(context.Context, string, evidence.RequestOrigin, string) (AssessmentSubmissionTarget, error)
+	GetResponseApplicationReceipt(context.Context, Scope, string, string) (ResponseApplicationReceipt, error)
+	ApplyAssessmentResponse(context.Context, AssessmentApplicationRecord) (ResponseApplicationReceipt, error)
 }
 
 type AssessmentReactionKind string

@@ -34,8 +34,9 @@ BEGIN
 END $$;
 ALTER TABLE third_party_documents
     ADD CONSTRAINT third_party_documents_validation_state_check CHECK (
-        (status IN ('VALIDATED','REJECTED','SUPERSEDED') AND validated_by_principal_id IS NOT NULL AND validated_at IS NOT NULL)
+        (status IN ('VALIDATED','REJECTED') AND validated_by_principal_id IS NOT NULL AND validated_at IS NOT NULL)
         OR (status IN ('SUBMITTED','EXPIRED') AND validated_by_principal_id IS NULL AND validated_at IS NULL)
+        OR status='SUPERSEDED'
     );
 
 CREATE INDEX third_party_documents_current_type_idx
@@ -56,14 +57,16 @@ CREATE TABLE third_party_response_application_receipts (
     actor_principal_id uuid NOT NULL,
     accepted_field_ids jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(accepted_field_ids)='array'),
     rejected_field_ids jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(rejected_field_ids)='array'),
+    decisions jsonb NOT NULL CHECK (jsonb_typeof(decisions)='array' AND jsonb_array_length(decisions)>0),
     prior_vendor_version bigint NOT NULL CHECK (prior_vendor_version > 0),
     result_vendor_version bigint NOT NULL CHECK (result_vendor_version >= prior_vendor_version),
+    result_assessment_version bigint NOT NULL CHECK (result_assessment_version > 0),
     applied_at timestamptz NOT NULL,
     UNIQUE (tenant_id,assessment_id,response_revision_id),
     UNIQUE (id,tenant_id,legal_entity_id),
     FOREIGN KEY (assessment_id,tenant_id,legal_entity_id) REFERENCES third_party_assessments(id,tenant_id,legal_entity_id),
     FOREIGN KEY (distribution_id,tenant_id,legal_entity_id) REFERENCES capture_form_distributions(id,tenant_id,legal_entity_id),
-    FOREIGN KEY (vendor_id,tenant_id) REFERENCES third_party_vendors(id,tenant_id),
+    FOREIGN KEY (vendor_id,tenant_id) REFERENCES third_parties(id,tenant_id),
     FOREIGN KEY (actor_principal_id,tenant_id) REFERENCES principals(id,tenant_id),
     FOREIGN KEY (legal_entity_id,tenant_id) REFERENCES legal_entities(id,tenant_id)
 );

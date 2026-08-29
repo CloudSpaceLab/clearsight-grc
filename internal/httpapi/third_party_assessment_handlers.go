@@ -69,6 +69,13 @@ type reviewVendorAssessmentDocumentRequest struct {
 	ActorID       string `json:"actor_id,omitempty"`
 }
 
+type applyVendorAssessmentResponseRequest struct {
+	thirdparty.ApplyAssessmentResponseInput
+	TenantID      string `json:"tenant_id,omitempty"`
+	LegalEntityID string `json:"legal_entity_id,omitempty"`
+	ActorID       string `json:"actor_id,omitempty"`
+}
+
 type vendorAssessmentCurrentResponse struct {
 	Assessment thirdparty.Assessment             `json:"assessment"`
 	Setup      *thirdparty.AssessmentSetupStatus `json:"setup,omitempty"`
@@ -314,6 +321,29 @@ func (a *API) reviewVendorAssessmentDocument(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, view)
+}
+
+func (a *API) applyVendorAssessmentResponse(w http.ResponseWriter, r *http.Request) {
+	if a.deps.ThirdPartyAssessmentApplications == nil {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "vendor_response_application_unavailable", "The reviewed vendor changes cannot be applied right now. No vendor record was changed.")
+		return
+	}
+	actor, err := thirdPartyActor(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to apply reviewed vendor changes.")
+		return
+	}
+	var request applyVendorAssessmentResponseRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "Choose accept or reject for every held vendor field, add a rationale, then try again.")
+		return
+	}
+	result, err := a.deps.ThirdPartyAssessmentApplications.ApplyResponse(r.Context(), actor, r.PathValue("id"), r.PathValue("revision_id"), request.ApplyAssessmentResponseInput)
+	if err != nil {
+		writeThirdPartyAssessmentError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, result)
 }
 
 func writeThirdPartyAssessmentError(w http.ResponseWriter, err error) {
