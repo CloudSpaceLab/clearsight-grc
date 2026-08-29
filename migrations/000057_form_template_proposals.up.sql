@@ -31,6 +31,7 @@ CREATE TABLE form_template_proposals (
     failure_message text NOT NULL DEFAULT '',
     created_by uuid NOT NULL,
     reviewed_by uuid,
+    accepted_change_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
     result_template_id uuid,
     result_template_version bigint,
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
@@ -73,6 +74,7 @@ CREATE TABLE form_template_proposals (
         AND jsonb_typeof(field_changes)='array'
         AND jsonb_typeof(unresolved_items)='array'
         AND jsonb_typeof(provenance)='object'
+        AND jsonb_typeof(accepted_change_ids)='array'
     ),
     CONSTRAINT form_template_proposals_bounds_ck CHECK (
         octet_length(proposed_contract::text) <= 1048576
@@ -81,16 +83,24 @@ CREATE TABLE form_template_proposals (
         AND jsonb_array_length(unresolved_items) <= 1000
         AND octet_length(unresolved_items::text) <= 1048576
         AND octet_length(provenance::text) <= 262144
+        AND jsonb_array_length(accepted_change_ids) <= 500
+        AND octet_length(accepted_change_ids::text) <= 65536
         AND char_length(failure_code) <= 128
         AND char_length(failure_message) <= 2000
     ),
     CONSTRAINT form_template_proposals_review_state_ck CHECK (
-        (status IN ('GENERATING','REVIEW_REQUIRED','FAILED') AND reviewed_by IS NULL AND reviewed_at IS NULL)
-        OR (status IN ('ACCEPTED','REJECTED') AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)
-    ),
-    CONSTRAINT form_template_proposals_result_state_ck CHECK (
-        status='ACCEPTED'
-        OR (result_template_id IS NULL AND result_template_version IS NULL)
+        (status IN ('GENERATING','REVIEW_REQUIRED','FAILED')
+            AND reviewed_by IS NULL AND reviewed_at IS NULL
+            AND accepted_change_ids='[]'::jsonb
+            AND result_template_id IS NULL AND result_template_version IS NULL)
+        OR (status='REJECTED'
+            AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL
+            AND accepted_change_ids='[]'::jsonb
+            AND result_template_id IS NULL AND result_template_version IS NULL)
+        OR (status='ACCEPTED'
+            AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL
+            AND jsonb_array_length(accepted_change_ids) > 0
+            AND result_template_id IS NOT NULL AND result_template_version > 0)
     ),
     CHECK (updated_at >= created_at),
     CHECK (reviewed_at IS NULL OR reviewed_at >= created_at)
