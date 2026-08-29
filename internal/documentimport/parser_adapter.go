@@ -1,10 +1,12 @@
 package documentimport
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"path/filepath"
 	"strings"
@@ -23,7 +25,7 @@ type ParserRequest struct {
 	ArtifactID string
 	FileName   string
 	MediaType  string
-	Data       []byte
+	Data       io.Reader
 	MaxBytes   int64
 	MaxPages   int
 	Deadline   time.Time
@@ -101,7 +103,7 @@ func ApplyParserAdapter(ctx context.Context, artifactID, fileName, mediaType str
 	defer cancel()
 	response, err := adapter.Extract(adapterCtx, ParserRequest{
 		ArtifactID: strings.TrimSpace(artifactID), FileName: fileName, MediaType: mediaType,
-		Data: append([]byte(nil), data...), MaxBytes: policy.MaxBytes, MaxPages: policy.MaxPages, Deadline: deadline,
+		Data: bytes.NewReader(data), MaxBytes: policy.MaxBytes, MaxPages: policy.MaxPages, Deadline: deadline,
 	})
 	if err != nil {
 		if adapterCtx.Err() != nil {
@@ -215,6 +217,7 @@ func validateAdapterAnchor(anchor SourceAnchor) error {
 			if math.IsNaN(value) || math.IsInf(value, 0) || value < 0 {
 				return errors.Join(ErrParserAdapterInvalid, errors.New("bounding box is invalid"))
 			}
+		}
 		if box.X1 < box.X0 || box.Y1 < box.Y0 {
 			return errors.Join(ErrParserAdapterInvalid, errors.New("bounding box coordinates are inverted"))
 		}
