@@ -154,6 +154,9 @@
     "/api/v1/forms/templates/{id}/revisions/{version}": {
       "get": { "operationId": "getFormTemplateRevision", "x-clearsight-route-class": "AUTHENTICATED_READ" }
     },
+    "/api/v1/forms/templates/{id}/revisions/{version}/ai-proposals": {
+      "post": { "operationId": "createAIFormRevisionProposal", "x-clearsight-route-class": "AUTHENTICATED_WRITE" }
+    },
     "/api/v1/forms/templates/{id}/revisions": {
       "post": { "operationId": "createFormTemplateRevision", "x-clearsight-route-class": "MATERIAL_COMMAND" }
     },
@@ -173,6 +176,7 @@
     "/api/v1/forms/saved-views/{id}": {
       "delete": { "operationId": "deleteSavedFormView", "x-clearsight-route-class": "AUTHENTICATED_WRITE" }
     },
+    "/api/v1/forms/proposals/ai": { "post": { "operationId": "createAIFormProposal", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/forms/proposals/{id}": { "get": { "operationId": "getFormProposal", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/forms/proposals/{id}/accept": { "post": { "operationId": "acceptFormProposal", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/forms/proposals/{id}/reject": { "post": { "operationId": "rejectFormProposal", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },

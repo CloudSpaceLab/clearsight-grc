@@ -71,7 +71,7 @@ func TestAIFormProposalRouteFailsCleanlyWhenGatewayIsNotConfigured(t *testing.T)
 
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/forms/proposals/ai", bytes.NewBufferString(`{"objective":"Draft a vendor onboarding questionnaire."}`)))
-	if response.Code != http.StatusServiceUnavailable || !bytes.Contains(response.Body.Bytes(), []byte(`"code":"form_ai_unavailable"`)) {
+	if response.Code != http.StatusServiceUnavailable || !bytes.Contains(response.Body.Bytes(), []byte(`"error":"form_ai_unavailable"`)) {
 		t.Fatalf("unconfigured AI route returned %d: %s", response.Code, response.Body.String())
 	}
 }

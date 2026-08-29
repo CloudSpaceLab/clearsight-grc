@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -59,5 +61,35 @@ func TestFormAuthoringConfigAcceptsGovernedAIGatewayOnly(t *testing.T) {
 	}
 	if cfg.AI.WorkloadID != "form-authoring" || cfg.AI.ModelAlias != "reasoning-medium" || cfg.AI.PromptVersion != "FORM_AUTHORING_V2" {
 		t.Fatalf("unexpected AI config: %#v", cfg.AI)
+	}
+}
+
+func TestFormAuthoringEnvironmentIsDocumented(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", ".env.example"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	documented := string(raw)
+	for _, name := range []string{
+		"CLEARSIGHT_PDF_PARSER_ADAPTER",
+		"CLEARSIGHT_PDF_PARSER_ENDPOINT",
+		"CLEARSIGHT_PYMUPDF_LICENSE_APPROVED",
+		"CLEARSIGHT_PARSER_ADAPTER_TIMEOUT",
+		"CLEARSIGHT_PARSER_ADAPTER_MAX_OUTPUT_BYTES",
+		"CLEARSIGHT_LEGACY_OFFICE_EXECUTABLE",
+		"CLEARSIGHT_LEGACY_OFFICE_TIMEOUT",
+		"CLEARSIGHT_LEGACY_OFFICE_MAX_OUTPUT_BYTES",
+		"CLEARSIGHT_FORM_AI_GATEWAY_URL",
+		"CLEARSIGHT_FORM_AI_TENANT_ID",
+		"CLEARSIGHT_FORM_AI_WORKLOAD_ID",
+		"CLEARSIGHT_FORM_AI_CREDENTIAL",
+		"CLEARSIGHT_FORM_AI_MODEL_ALIAS",
+		"CLEARSIGHT_FORM_AI_PROMPT_VERSION",
+		"CLEARSIGHT_FORM_AI_TIMEOUT",
+		"CLEARSIGHT_FORM_AI_MAX_OUTPUT_BYTES",
+	} {
+		if !strings.Contains(documented, name+"=") {
+			t.Errorf(".env.example does not document %s", name)
+		}
 	}
 }
