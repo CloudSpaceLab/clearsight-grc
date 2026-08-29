@@ -9,6 +9,11 @@ import (
 
 func TestBackendDockerBuildContextIncludesTestContracts(t *testing.T) {
 	root := filepath.Join("..", "..", "..")
+	if _, err := os.Stat(filepath.Join(root, ".dockerignore")); os.IsNotExist(err) {
+		t.Skip("repository-only Docker context contract is not present in the reduced image build context")
+	} else if err != nil {
+		t.Fatal(err)
+	}
 	dockerignore := readRepositoryFile(t, filepath.Join(root, ".dockerignore"))
 	if !strings.Contains(dockerignore, "!.env.example") {
 		t.Fatal(".dockerignore must allow .env.example for backend build-time contract tests")
