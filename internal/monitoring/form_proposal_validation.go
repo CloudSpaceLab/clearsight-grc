@@ -33,7 +33,7 @@ func validateNewFormProposal(value FormTemplateProposal) error {
 
 func validProposalSHA256(value string) bool {
 	value = strings.TrimSpace(value)
-	if len(value) != 64 {
+	if len(value) != 64 || value != strings.ToLower(value) {
 		return false
 	}
 	decoded := make([]byte, 32)
