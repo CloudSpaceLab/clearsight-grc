@@ -24,6 +24,8 @@ type ConversionTarget string
 const (
 	ExtractionPending     ExtractionStatus = "PENDING"
 	ExtractionExtracted   ExtractionStatus = "EXTRACTED"
+	ExtractionPartial     ExtractionStatus = "PARTIAL"
+	ExtractionTruncated   ExtractionStatus = "TRUNCATED"
 	ExtractionUnsupported ExtractionStatus = "UNSUPPORTED"
 	ExtractionFailed      ExtractionStatus = "FAILED"
 
@@ -127,35 +129,39 @@ type Proposal struct {
 }
 
 type Document struct {
-	ID               string           `json:"id"`
-	TenantID         string           `json:"tenant_id"`
-	LegalEntityID    string           `json:"legal_entity_id,omitempty"`
-	FileName         string           `json:"file_name"`
-	MediaType        string           `json:"media_type"`
-	Purpose          string           `json:"purpose"`
-	SourceType       string           `json:"source_type"`
-	SizeBytes        int64            `json:"size_bytes"`
-	SHA256           string           `json:"sha256"`
-	StorageKey       string           `json:"storage_key"`
-	ArtifactStatus   string           `json:"artifact_status"`
-	ExtractionStatus ExtractionStatus `json:"extraction_status"`
-	ExtractionMethod string           `json:"extraction_method"`
-	AnalysisStatus   AnalysisStatus   `json:"analysis_status"`
-	AnalysisMethod   string           `json:"analysis_method"`
-	Limitations      []string         `json:"limitations"`
-	Sections         []Section        `json:"sections"`
-	Proposals        []Proposal       `json:"proposals"`
-	SectionsTotal    int              `json:"sections_total"`
-	SectionsOmitted  int              `json:"sections_omitted"`
-	ProposalsTotal   int              `json:"proposals_total"`
-	ProposalsOmitted int              `json:"proposals_omitted"`
-	ContentTruncated bool             `json:"content_truncated"`
-	Tabular          *TabularMetadata `json:"tabular,omitempty"`
-	ProcessedAt      *time.Time       `json:"processed_at,omitempty"`
-	CreatedBy        string           `json:"created_by"`
-	CreatedAt        time.Time        `json:"created_at"`
-	UpdatedAt        time.Time        `json:"updated_at"`
-	Version          int64            `json:"version"`
+	ID               string             `json:"id"`
+	TenantID         string             `json:"tenant_id"`
+	LegalEntityID    string             `json:"legal_entity_id,omitempty"`
+	FileName         string             `json:"file_name"`
+	MediaType        string             `json:"media_type"`
+	Purpose          string             `json:"purpose"`
+	SourceType       string             `json:"source_type"`
+	SizeBytes        int64              `json:"size_bytes"`
+	SHA256           string             `json:"sha256"`
+	StorageKey       string             `json:"storage_key"`
+	ArtifactStatus   string             `json:"artifact_status"`
+	ExtractionStatus ExtractionStatus   `json:"extraction_status"`
+	ExtractionMethod string             `json:"extraction_method"`
+	ParserVersion    string             `json:"parser_version,omitempty"`
+	AdapterVersion   string             `json:"adapter_version,omitempty"`
+	AnalysisStatus   AnalysisStatus     `json:"analysis_status"`
+	AnalysisMethod   string             `json:"analysis_method"`
+	Limitations      []string           `json:"limitations"`
+	Sections         []Section          `json:"sections"`
+	Elements         []ExtractedElement `json:"elements,omitempty"`
+	Degradations     []Degradation      `json:"degradations,omitempty"`
+	Proposals        []Proposal         `json:"proposals"`
+	SectionsTotal    int                `json:"sections_total"`
+	SectionsOmitted  int                `json:"sections_omitted"`
+	ProposalsTotal   int                `json:"proposals_total"`
+	ProposalsOmitted int                `json:"proposals_omitted"`
+	ContentTruncated bool               `json:"content_truncated"`
+	Tabular          *TabularMetadata   `json:"tabular,omitempty"`
+	ProcessedAt      *time.Time         `json:"processed_at,omitempty"`
+	CreatedBy        string             `json:"created_by"`
+	CreatedAt        time.Time          `json:"created_at"`
+	UpdatedAt        time.Time          `json:"updated_at"`
+	Version          int64              `json:"version"`
 }
 
 type DocumentSummary struct {
@@ -170,6 +176,7 @@ type DocumentSummary struct {
 	SHA256                string           `json:"sha256"`
 	ArtifactStatus        string           `json:"artifact_status"`
 	ExtractionStatus      ExtractionStatus `json:"extraction_status"`
+	ParserVersion         string           `json:"parser_version,omitempty"`
 	AnalysisStatus        AnalysisStatus   `json:"analysis_status"`
 	SectionsTotal         int              `json:"sections_total"`
 	SectionsOmitted       int              `json:"sections_omitted"`
@@ -215,11 +222,21 @@ func summarizeDocument(value Document) DocumentSummary {
 		ID: value.ID, TenantID: value.TenantID, LegalEntityID: value.LegalEntityID,
 		FileName: value.FileName, MediaType: value.MediaType, Purpose: value.Purpose, SourceType: value.SourceType,
 		SizeBytes: value.SizeBytes, SHA256: value.SHA256, ArtifactStatus: value.ArtifactStatus,
-		ExtractionStatus: value.ExtractionStatus, AnalysisStatus: value.AnalysisStatus,
+		ExtractionStatus: value.ExtractionStatus, ParserVersion: parserVersionFor(value), AnalysisStatus: value.AnalysisStatus,
 		SectionsTotal: value.SectionsTotal, SectionsOmitted: value.SectionsOmitted,
 		ProposalsTotal: value.ProposalsTotal, ProposalsOmitted: value.ProposalsOmitted,
 		PendingProposalCount: pending, ReviewedProposalCount: len(value.Proposals) - pending,
 		ContentTruncated: value.ContentTruncated, ProcessedAt: value.ProcessedAt,
 		CreatedAt: value.CreatedAt, UpdatedAt: value.UpdatedAt, Version: value.Version,
 	}
+}
+
+func parserVersionFor(value Document) string {
+	if value.ParserVersion != "" {
+		return value.ParserVersion
+	}
+	if value.ExtractionMethod == "PENDING" || value.ExtractionMethod == "NONE" {
+		return ""
+	}
+	return value.ExtractionMethod
 }
