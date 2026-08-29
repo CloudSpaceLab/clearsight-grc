@@ -130,19 +130,16 @@ func explicitExtractionStatus(base ExtractionStatus, truncated bool, degradation
 	return ExtractionExtracted
 }
 
-// HasUsableContent reports whether retained source text is safe for the current
-// deterministic proposal and coverage pipelines. PARTIAL is intentionally
-// excluded: it means a known structural element class was not preserved, while
-// TRUNCATED retains the prior bounded-analysis behavior with explicit loss.
-func (status ExtractionStatus) HasUsableContent() bool {
+// hasUsableContent governs deterministic proposal analysis, not whether an
+// operator may review the recovered structure. PARTIAL means a known source
+// element class was not preserved; treating its text as a complete source for
+// proposal generation would silently erase that limitation. TRUNCATED retains
+// the existing bounded-analysis behavior with an explicit incompleteness flag.
+func (status ExtractionStatus) hasUsableContent() bool {
 	switch status {
 	case ExtractionExtracted, ExtractionTruncated:
 		return true
 	default:
 		return false
 	}
-}
-
-func (status ExtractionStatus) hasUsableContent() bool {
-	return status.HasUsableContent()
 }
