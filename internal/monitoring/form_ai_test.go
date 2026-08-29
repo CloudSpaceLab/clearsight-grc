@@ -42,24 +42,24 @@ func TestAIFormProposalUsesExactSelectedSourceAndIsIdempotent(t *testing.T) {
 	field := formcontract.Field{ID: "legal_name", SectionID: formcontract.DefaultSectionID, Label: "Legal name", Type: formcontract.TypeShortText}
 	contract, err := formcontract.Normalize(formcontract.Contract{
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationAutomatic, AllowModeSwitch: true},
-		ScoringMode: formcontract.ScoringNone,
-		Sections: []formcontract.Section{{ID: formcontract.DefaultSectionID, Title: "General"}},
-		Fields: []formcontract.Field{field},
+		ScoringMode:  formcontract.ScoringNone,
+		Sections:     []formcontract.Section{{ID: formcontract.DefaultSectionID, Title: "General"}},
+		Fields:       []formcontract.Field{field},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	client := &formAIClientStub{result: FormAIClientResult{
-		Contract: contract,
+		Contract:     contract,
 		FieldChanges: []documentimport.FormFieldChange{{ID: "ai-change-1", Kind: "ADD_FIELD", Field: contract.Fields[0], Confidence: 0.95}},
-		Provenance: FormAIProvenance{WorkloadID: "forms-authoring", ModelAlias: "authoring", PromptVersion: formAIPromptVersionDefault, ValidationResults: []string{"LOCAL_CONTRACT_NORMALIZATION"}},
+		Provenance:   FormAIProvenance{WorkloadID: "forms-authoring", ModelAlias: "authoring", PromptVersion: formAIPromptVersionDefault, ValidationResults: []string{"LOCAL_CONTRACT_NORMALIZATION"}},
 	}}
 	service := NewFormProposalService(NewMemoryFormProposalStore(), docs, forms)
 	service.ConfigureAIClient(client)
 	service.newID = func() (string, error) { return "018f0000-0000-7000-8000-000000000101", nil }
 	ctx := formActorContext("bank-a", "entity-a", "maker-a")
 	input := RequestAIFormProposalInput{
-		Objective: "Draft only the legal-name question from the selected source.",
+		Objective:        "Draft only the legal-name question from the selected source.",
 		SourceDocumentID: document.ID, ExpectedSourceDocumentVersion: document.Version,
 		SourceElementRefs: []string{"control-1"},
 	}
