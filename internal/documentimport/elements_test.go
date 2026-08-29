@@ -22,7 +22,7 @@ func TestCollectorMarksRetainedOutputTruncated(t *testing.T) {
 }
 
 func TestElementsPreserveSectionStructureAndAnchors(t *testing.T) {
-	result := Extract("policy.md", "text/markdown", []byte("# Reporting duty\n\nThe bank must file monthly.\n\nSupporting paragraph."))
+	result := Extract("policy.md", "text/markdown", []byte("# Reporting duty\nThe bank must file monthly.\n\nSupporting paragraph."))
 	if result.Status != ExtractionExtracted {
 		t.Fatalf("unexpected extraction status: %#v", result)
 	}
