@@ -67,6 +67,10 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	evidenceWork := &workflow.EvidenceRequestProjector{Repo: workflowRepository}
 	documentService := documentimport.NewService(documentimport.NewPostgresRepository(pool), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
+	if err := configureWorkerDocumentAuthoring(cfg, documentService); err != nil {
+		pool.Close()
+		return workerSet{}, err
+	}
 	formProposalGeneration := buildFormProposalGenerationPublisher(pool, documentService)
 	documentProposalWork := &workflow.DocumentProposalProjector{
 		Repo: workflowRepository, Documents: documentService, Authority: authorityService,
