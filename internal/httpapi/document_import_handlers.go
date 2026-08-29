@@ -77,7 +77,7 @@ func (a *API) createDocumentImport(w http.ResponseWriter, r *http.Request) {
 		// The in-memory runtime extracts synchronously, so make its comparison
 		// immediately available. PostgreSQL imports remain pending here and are
 		// processed durably by the outbox worker.
-		if a.deps.Coverage != nil && value.ExtractionStatus == documentimport.ExtractionExtracted {
+		if a.deps.Coverage != nil && value.ExtractionStatus.HasUsableContent() {
 			if _, coverageErr := a.deps.Coverage.Process(r.Context(), actor.TenantID, value.ID); coverageErr != nil && a.deps.Logger != nil {
 				a.deps.Logger.WarnContext(r.Context(), "document coverage comparison failed after import", "document_id", value.ID, "error", coverageErr)
 			}
