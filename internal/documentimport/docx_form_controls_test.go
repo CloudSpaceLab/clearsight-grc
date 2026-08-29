@@ -144,6 +144,33 @@ func TestDOCXNumberingMetadataBudgetFailsClosed(t *testing.T) {
 	assertResourceFailure(t, result, "numbering definition count exceeds 2")
 }
 
+func TestDOCXNumberingLevelBudgetFailsClosed(t *testing.T) {
+	entries := map[string][]byte{}
+	entries["word/numbering.xml"] = []byte(`<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:abstractNum w:abstractNumId="7"><w:lvl w:ilvl="999999"><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/></w:lvl></w:abstractNum></w:numbering>`)
+	entries["word/document.xml"] = []byte(`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Document</w:t></w:r></w:p></w:body></w:document>`)
+	result := ExtractWithPolicy(context.Background(), "numbering-level.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", zipFixture(t, entries), DefaultExtractionPolicy())
+	assertResourceFailure(t, result, "numbering level must be between 0 and 8")
+}
+
+func TestDOCXSimpleFieldInstructionIsBounded(t *testing.T) {
+	instruction := "FORMTEXT " + strings.Repeat("X", 64)
+	data := zipFixture(t, map[string][]byte{
+		"word/document.xml": []byte(`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:fldSimple w:instr="` + instruction + `"><w:ffData><w:name w:val="Legal name"/><w:textInput/></w:ffData><w:r><w:t>A</w:t></w:r></w:fldSimple></w:p></w:body></w:document>`),
+	})
+	policy := DefaultExtractionPolicy()
+	policy.MaxCellBytes = 16
+	result := ExtractWithPolicy(context.Background(), "bounded-field.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data, policy)
+	if result.Status != ExtractionTruncated || !result.ContentTruncated {
+		t.Fatalf("oversized field instruction must be explicit truncation: %#v", result)
+	}
+	for _, element := range result.Elements {
+		if element.Control != nil && element.Control.Kind == "TEXT" && element.Control.Label == "Legal name" {
+			return
+		}
+	}
+	t.Fatalf("bounded field metadata was not retained: %#v", result.Elements)
+}
+
 func TestDOCXNestedTableDoesNotMasqueradeAsFlatStructure(t *testing.T) {
 	data := zipFixture(t, map[string][]byte{
 		"word/document.xml": []byte(`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:tbl><w:tr><w:tc><w:p><w:r><w:t>Outer</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p><w:r><w:t>Inner</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:tc></w:tr></w:tbl></w:body></w:document>`),
