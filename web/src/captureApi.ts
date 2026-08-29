@@ -132,7 +132,7 @@ export type FormResponseWorkspacePayload = {
   session: FormAccessSession;
   request: CaptureRequest;
   workspace: FormResponseWorkspace;
-  recovery_context?: FormResponseRecoveryContext;
+  recovery_context: FormResponseRecoveryContext;
 };
 
 export type FormWorkspaceEditInput = {
