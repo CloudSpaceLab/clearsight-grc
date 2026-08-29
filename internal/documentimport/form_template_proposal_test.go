@@ -70,7 +70,7 @@ func TestProposeFormTemplateInfersTabularFieldTypesButNotChoices(t *testing.T) {
 		ID: "doc-2", SHA256: strings64("c"), ExtractionStatus: ExtractionExtracted,
 		Tabular: &TabularMetadata{Format: TabularXLSX, ParserVersion: TabularParserVersion, Resources: []TabularResource{{Name: "Vendors", RowsTotal: 25, Fields: []TabularField{
 			{Name: "Name", NativeType: "string"}, {Name: "Employees", NativeType: "integer"}, {Name: "Renewal Date", NativeType: "date", Nullable: true},
-		}}},
+		}}}},
 	}
 
 	proposal, err := ProposeFormTemplate(document, DefaultProposalPolicy())
@@ -126,13 +126,4 @@ func strings64(value string) string {
 		result += value
 	}
 	return result[:64]
-}
-
-func containsUnresolved(items []ProposalUnresolvedItem, code string) bool {
-	for _, item := range items {
-		if item.Code == code {
-			return true
-		}
-	}
-	return false
 }
