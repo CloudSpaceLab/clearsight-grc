@@ -74,10 +74,10 @@ type FormTemplateProposal struct {
 func ProposeFormTemplate(document Document, policy ProposalPolicy) (FormTemplateProposal, error) {
 	policy = policy.normalized()
 	if document.ExtractionStatus != ExtractionExtracted && document.ExtractionStatus != ExtractionTruncated {
-		return FormTemplateProposal{}, fmt.Errorf("form proposal requires extracted or explicitly truncated source content")
+		return FormTemplateProposal{}, errors.New("form proposal requires extracted or explicitly truncated source content")
 	}
 	if len(document.Elements) == 0 && (document.Tabular == nil || len(document.Tabular.Resources) == 0) {
-		return FormTemplateProposal{}, fmt.Errorf("form proposal source contains no usable structured fields")
+		return FormTemplateProposal{}, errors.New("form proposal source contains no usable structured fields")
 	}
 
 	builder := formProposalBuilder{
@@ -163,14 +163,14 @@ func (b *formProposalBuilder) useHeading(value string) {
 	if title == "" {
 		return
 	}
-	sectionID := stableProposalID("section", b.document.SHA256, title)
+	sectionID := stableFormProposalID("section", b.document.SHA256, title)
 	if _, exists := b.sectionIDs[sectionID]; exists {
 		b.currentSectionID = sectionID
 		return
 	}
 	if len(b.sections) >= b.policy.MaxSections {
 		b.truncated = true
-		b.addUnresolved(ProposalUnresolvedItem{Code: "SECTION_LIMIT_REACHED", Message: "Additional source headings were retained under the current section because the proposal section limit was reached."})
+		b.addUnresolved(ProposalUnresolvedItem{Code: "SECTION_LIMIT_REACHED", Message: unresolvedMessage("SECTION_LIMIT_REACHED")})
 		return
 	}
 	b.sections = append(b.sections, formcontract.Section{ID: sectionID, Title: truncateProposalText(title, 200)})
@@ -186,6 +186,7 @@ func (b *formProposalBuilder) addControl(element ExtractedElement) {
 		b.markFieldLimit()
 		return
 	}
+
 	label := strings.TrimSpace(element.Control.Label)
 	unresolved := []string{"REQUIREDNESS_UNKNOWN"}
 	if label == "" {
@@ -198,14 +199,13 @@ func (b *formProposalBuilder) addControl(element ExtractedElement) {
 	fieldType, options, typeUnresolved := formTypeForControl(*element.Control)
 	unresolved = append(unresolved, typeUnresolved...)
 	anchor := element.Anchor
-	fieldID := stableProposalID("field", b.document.SHA256, anchorIdentity(anchor), label)
-	changeID := stableProposalID("change", fieldID)
+	fieldID := stableFormProposalID("field", b.document.SHA256, anchorIdentity(anchor), label)
+	changeID := stableFormProposalID("change", fieldID)
 	field := formcontract.Field{
 		ID:                 fieldID,
 		SectionID:          b.currentSectionID,
 		Label:              truncateProposalText(label, 200),
 		Type:               fieldType,
-		Required:           false,
 		Description:        truncateProposalText(strings.TrimSpace(element.Control.Help), 1000),
 		Options:            append([]string(nil), options...),
 		CollectionIntent:   formcontract.IntentCapture,
@@ -215,10 +215,15 @@ func (b *formProposalBuilder) addControl(element ExtractedElement) {
 	if len(typeUnresolved) > 0 || slicesContains(unresolved, "LABEL_MISSING") {
 		confidence = 0.75
 	}
-	b.changes = append(b.changes, FormFieldChange{ID: changeID, Kind: "ADD_FIELD", Field: field, Anchor: anchor, Confidence: confidence, Unresolved: append([]string(nil), unresolved...)})
+	b.changes = append(b.changes, FormFieldChange{
+		ID: changeID, Kind: "ADD_FIELD", Field: field, Anchor: anchor,
+		Confidence: confidence, Unresolved: append([]string(nil), unresolved...),
+	})
 	for _, code := range unresolved {
-		message := unresolvedMessage(code)
-		b.addUnresolved(ProposalUnresolvedItem{Code: code, Message: message, FieldChangeID: changeID, Anchor: cloneSourceAnchor(anchor)})
+		b.addUnresolved(ProposalUnresolvedItem{
+			Code: code, Message: unresolvedMessage(code), FieldChangeID: changeID,
+			Anchor: cloneSourceAnchor(anchor),
+		})
 	}
 }
 
@@ -249,7 +254,7 @@ func (b *formProposalBuilder) consumeTabular(metadata *TabularMetadata) {
 		if len(resource.Fields) == 0 {
 			continue
 		}
-		sectionID := stableProposalID("section", b.document.SHA256, "tabular", resource.Name)
+		sectionID := stableFormProposalID("section", b.document.SHA256, "tabular", resource.Name)
 		if _, exists := b.sectionIDs[sectionID]; !exists {
 			if len(b.sections) < b.policy.MaxSections {
 				title := strings.TrimSpace(resource.Name)
@@ -264,6 +269,7 @@ func (b *formProposalBuilder) consumeTabular(metadata *TabularMetadata) {
 				b.addUnresolved(ProposalUnresolvedItem{Code: "SECTION_LIMIT_REACHED", Message: unresolvedMessage("SECTION_LIMIT_REACHED")})
 			}
 		}
+
 		for fieldIndex, sourceField := range resource.Fields {
 			if len(b.changes) >= b.policy.MaxFields {
 				b.markFieldLimit()
@@ -274,21 +280,26 @@ func (b *formProposalBuilder) consumeTabular(metadata *TabularMetadata) {
 				label = fmt.Sprintf("Column %d", fieldIndex+1)
 			}
 			anchor := SourceAnchor{Sheet: strings.TrimSpace(resource.Name), RowStart: 1, RowEnd: max(1, resource.RowsTotal)}
-			fieldID := stableProposalID("field", b.document.SHA256, "tabular", resource.Name, sourceField.Name)
-			changeID := stableProposalID("change", fieldID)
+			fieldID := stableFormProposalID("field", b.document.SHA256, "tabular", resource.Name, sourceField.Name)
+			changeID := stableFormProposalID("change", fieldID)
 			field := formcontract.Field{
 				ID:                 fieldID,
 				SectionID:          sectionID,
 				Label:              truncateProposalText(label, 200),
 				Type:               formTypeForNativeType(sourceField.NativeType),
-				Required:           false,
 				CollectionIntent:   formcontract.IntentCapture,
 				BrowserCachePolicy: formcontract.BrowserCacheAllowed,
 			}
 			unresolved := []string{"REQUIREDNESS_UNKNOWN", "OPTIONS_NOT_INFERRED"}
-			b.changes = append(b.changes, FormFieldChange{ID: changeID, Kind: "ADD_FIELD", Field: field, Anchor: anchor, Confidence: 0.70, Unresolved: unresolved})
+			b.changes = append(b.changes, FormFieldChange{
+				ID: changeID, Kind: "ADD_FIELD", Field: field, Anchor: anchor,
+				Confidence: 0.70, Unresolved: append([]string(nil), unresolved...),
+			})
 			for _, code := range unresolved {
-				b.addUnresolved(ProposalUnresolvedItem{Code: code, Message: unresolvedMessage(code), FieldChangeID: changeID, Anchor: cloneSourceAnchor(anchor)})
+				b.addUnresolved(ProposalUnresolvedItem{
+					Code: code, Message: unresolvedMessage(code), FieldChangeID: changeID,
+					Anchor: cloneSourceAnchor(anchor),
+				})
 			}
 		}
 	}
@@ -325,7 +336,7 @@ func (b *formProposalBuilder) addUnresolved(item ProposalUnresolvedItem) {
 	b.unresolved = append(b.unresolved, item)
 }
 
-func stableProposalID(prefix string, parts ...string) string {
+func stableFormProposalID(prefix string, parts ...string) string {
 	normalized := make([]string, 0, len(parts)+1)
 	normalized = append(normalized, strings.ToLower(strings.TrimSpace(prefix)))
 	for _, part := range parts {
