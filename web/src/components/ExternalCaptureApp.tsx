@@ -11,12 +11,15 @@ import { CaptureRecovery, type CaptureRecoveryContext } from "../captureRecovery
 import { IndexedDBRecoveryStore } from "../captureRecoveryStore";
 import {
   CaptureWorkspaceSync,
+  type CaptureWorkspaceConflictChoice,
   type CaptureWorkspaceSyncSnapshot,
 } from "../captureWorkspaceSync";
 import { apiErrorKind, ApiError } from "../http";
 import type { CaptureAnswers, CaptureRequest } from "../types";
 import { CapturePanel, type CaptureWorkspacePersistence } from "./CapturePanel";
+import { CaptureWorkspaceRecoveryProvider } from "./capture/CaptureWorkspaceRecoveryContext";
 import { ExternalAccessGate } from "./capture/ExternalAccessGate";
+import { WorkspaceConflictPanel } from "./capture/WorkspaceConflictPanel";
 
 type ExternalCaptureState = "access" | "loading" | "live" | "recoverable" | "terminal" | "submitted";
 type RecoveryAwareRequest = CaptureRequest & {
@@ -31,6 +34,7 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
   const [syncSnapshot, setSyncSnapshot] = useState<CaptureWorkspaceSyncSnapshot | null>(null);
   const [audienceHint, setAudienceHint] = useState("");
   const [assurance, setAssurance] = useState("");
+  const [panelGeneration, setPanelGeneration] = useState(0);
   const [state, setState] = useState<ExternalCaptureState>(invitationToken ? "access" : "terminal");
   const [error, setError] = useState(invitationToken ? "" : "Ask the sender for a new invitation link.");
   const [terminalTitle, setTerminalTitle] = useState("This request is no longer available");
@@ -111,6 +115,7 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
     syncRef.current?.dispose();
     syncRef.current = null;
     setSyncSnapshot(null);
+    setPanelGeneration(0);
 
     const recoveryContext = responseRecoveryContext(payload);
     const recovery = browserRecoveryAvailable() && recoveryContext.authorized
@@ -131,6 +136,21 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
     setRequest(payload.request);
     setWorkspace(controller.currentWorkspace());
     setSyncSnapshot(controller.snapshot());
+  }
+
+  async function resolveWorkspaceConflict(fieldID: string, choice: CaptureWorkspaceConflictChoice) {
+    const controller = syncRef.current;
+    if (!controller) return;
+    await controller.resolveConflict(fieldID, choice);
+    setSyncSnapshot(controller.snapshot());
+    setPanelGeneration((current) => current + 1);
+  }
+
+  function changeWorkspacePage(page: number) {
+    const controller = syncRef.current;
+    if (!controller) return;
+    const current = controller.snapshot();
+    controller.change(current.answers, current.presentationMode, page);
   }
 
   async function submit(answers: CaptureAnswers) {
@@ -209,6 +229,12 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
     }
     : undefined;
 
+  const recoveryUI = syncSnapshot ? {
+    initialPage: syncSnapshot.page,
+    filesToReselect: syncSnapshot.filesToReselect,
+    onPageChange: changeWorkspacePage,
+  } : null;
+
   return <main className="external-capture-shell">
     <header className="external-capture-brand"><div className="brand-mark" aria-label="ClearSight">C</div><div><strong>ClearSight</strong><span>Evidence response</span></div></header>
     {state === "access" ? <ExternalAccessGate routeSelector={invitationToken} onRedeemed={openRedeemedSession}/>
@@ -216,9 +242,12 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
         : state === "recoverable" ? <section className="external-capture-entry" aria-labelledby="external-capture-title"><span className="eyebrow">Evidence request</span><h1 id="external-capture-title">Request could not be loaded</h1><p>{error}</p><button className="primary-button" type="button" onClick={() => void retrySession()}>Try again</button></section>
           : state === "terminal" ? <section className="external-capture-entry" aria-labelledby="external-capture-title"><span className="eyebrow">Evidence request</span><h1 id="external-capture-title">{terminalTitle}</h1><p>{error}</p></section>
             : state === "submitted" ? <section className="external-capture-entry" aria-labelledby="external-capture-title"><span className="eyebrow">Evidence request</span><h1 id="external-capture-title">Submitted</h1><p>Your evidence response was submitted for this request.</p></section>
-              : request && workspace && sessionToken && persistence ? <section className="external-capture-work">
+              : request && workspace && sessionToken && persistence && recoveryUI ? <section className="external-capture-work">
                 <div className="external-session-hint">Opened for {audienceHint || "invited respondent"}{assurance === "EMAIL_VERIFIED" ? " · Email verified" : ""}</div>
-                <CapturePanel request={request} external workspacePersistence={persistence} onSubmit={(_, answers) => submit(answers)} onUploadArtifact={(_, file, fieldID) => upload(file, fieldID)}/>
+                <WorkspaceConflictPanel fields={request.fields} conflicts={syncSnapshot?.conflicts ?? []} onResolve={(fieldID, choice) => void resolveWorkspaceConflict(fieldID, choice)}/>
+                <CaptureWorkspaceRecoveryProvider value={recoveryUI}>
+                  <CapturePanel key={`${request.id}:${workspace.workspace.id}:${panelGeneration}`} request={request} external workspacePersistence={persistence} onSubmit={(_, answers) => submit(answers)} onUploadArtifact={(_, file, fieldID) => upload(file, fieldID)}/>
+                </CaptureWorkspaceRecoveryProvider>
               </section> : null}
   </main>;
 }

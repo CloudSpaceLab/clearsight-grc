@@ -1,7 +1,6 @@
 import {
   FormWorkspaceConflictError,
   normalizeCaptureAnswer,
-  normalizeCaptureAnswers,
   saveFormResponseWorkspace,
   type FormResponseWorkspace,
   type FormWorkspaceConflict,
@@ -10,19 +9,22 @@ import {
 } from "./captureApi";
 import {
   CaptureRecovery,
-  mergeRecoveredAnswers,
+  rebaseRecoveryEnvelope,
   type CaptureRecoveryContext,
-  type RecoveryMergeConflict,
+  type RecoveryDeltaOperation,
+  type RecoverySaveResult,
 } from "./captureRecovery";
 import { apiErrorKind } from "./http";
 import type { CaptureAnswerValue, CaptureAnswers, CaptureField, CapturePresentationMode } from "./types";
 
 export type CaptureWorkspaceSaveState = "saved_server" | "saving" | "saved_device" | "conflict" | "failed";
+export type CaptureWorkspaceConflictChoice = "server" | "local";
 
 export type CaptureWorkspaceConflict = {
   fieldID: string;
   serverValue: CaptureAnswerValue;
   localValue: CaptureAnswerValue;
+  localOperation: RecoveryDeltaOperation;
   sequence: number;
 };
 
@@ -54,6 +56,7 @@ type LocalSnapshot = {
   presentationMode: CapturePresentationMode;
   page: number;
   localSequence: number;
+  filesToReselect: string[];
 };
 
 export class CaptureWorkspaceSync {
@@ -73,7 +76,7 @@ export class CaptureWorkspaceSync {
   private filesToReselect: string[] = [];
   private conflicts: CaptureWorkspaceConflict[] = [];
   private saveState: CaptureWorkspaceSaveState = "saved_server";
-  private localRecoveryAvailable = false;
+  private localRecoveryComplete = false;
   private localWrite: Promise<void> = Promise.resolve();
   private flushPromise: Promise<boolean> | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -83,7 +86,7 @@ export class CaptureWorkspaceSync {
     this.sessionToken = options.sessionToken;
     this.fields = options.fields;
     this.serverWorkspace = cloneWorkspace(options.workspace);
-    this.latestAnswers = { ...options.workspace.answers };
+    this.latestAnswers = cloneAnswers(options.workspace.answers);
     this.latestMode = options.workspace.presentation_mode;
     this.recovery = options.recovery;
     this.recoveryContext = { ...options.recoveryContext, serverVersion: options.workspace.workspace.version };
@@ -102,15 +105,15 @@ export class CaptureWorkspaceSync {
 
   snapshot(): CaptureWorkspaceSyncSnapshot {
     return {
-      answers: { ...this.latestAnswers },
+      answers: cloneAnswers(this.latestAnswers),
       presentationMode: this.latestMode,
       page: this.page,
       saveState: this.saveState,
       filesToReselect: [...this.filesToReselect],
       conflicts: this.conflicts.map((conflict) => ({
         ...conflict,
-        serverValue: { ...conflict.serverValue },
-        localValue: { ...conflict.localValue },
+        serverValue: cloneAnswer(conflict.serverValue),
+        localValue: cloneAnswer(conflict.localValue),
       })),
     };
   }
@@ -121,31 +124,30 @@ export class CaptureWorkspaceSync {
 
   change(answers: CaptureAnswers, presentationMode: CapturePresentationMode, page = this.page): void {
     if (this.disposed) return;
-    this.latestAnswers = { ...answers };
+    const nextPage = Math.max(0, Math.trunc(page));
+    const pageChanged = nextPage !== this.page;
+    this.latestAnswers = cloneAnswers(answers);
     this.latestMode = presentationMode;
-    this.page = Math.max(0, Math.trunc(page));
+    this.page = nextPage;
+    this.clearCompletedReselections();
     this.localSequence += 1;
     const snapshot = this.localSnapshot();
+    if (pageChanged) this.emit();
 
     if (!this.recovery) {
-      if (this.conflicts.length === 0) this.setSaveState("saving");
+      if (this.conflicts.length === 0 && this.hasUnsyncedChanges()) this.setSaveState("saving");
       this.scheduleFlush();
       return;
     }
 
     this.localWrite = this.localWrite.catch(() => undefined).then(async () => {
-      const envelope = await this.recovery!.save(
-        { ...this.recoveryContext, serverVersion: this.serverWorkspace.workspace.version },
-        this.fields,
-        snapshot.answers,
-        { page: snapshot.page, localSequence: snapshot.localSequence },
-      );
-      this.localRecoveryAvailable = envelope !== undefined;
+      const result = await this.persistSnapshot(snapshot);
+      this.localRecoveryComplete = Boolean(result?.complete);
       if (!this.disposed && this.conflicts.length === 0 && snapshot.localSequence === this.localSequence) {
-        this.setSaveState(this.localRecoveryAvailable ? "saved_device" : "saving");
+        this.setSaveState(this.saveStateForPendingChanges());
       }
     }).catch((error) => {
-      this.localRecoveryAvailable = false;
+      this.localRecoveryComplete = false;
       if (!this.disposed) {
         this.setSaveState("failed");
         this.onError?.(error);
@@ -162,9 +164,13 @@ export class CaptureWorkspaceSync {
       this.setSaveState("conflict");
       return false;
     }
+    if (this.filesToReselect.length > 0) {
+      this.setSaveState(this.localRecoveryComplete ? "saved_device" : "failed");
+      return false;
+    }
     if (this.flushPromise) {
       const previous = await this.flushPromise;
-      if (!previous || this.conflicts.length > 0) return false;
+      if (!previous || this.conflicts.length > 0 || this.filesToReselect.length > 0) return false;
       if (this.hasUnsyncedChanges()) return this.flush();
       return true;
     }
@@ -182,11 +188,41 @@ export class CaptureWorkspaceSync {
     return this.flush();
   }
 
+  async resolveConflict(fieldID: string, choice: CaptureWorkspaceConflictChoice): Promise<void> {
+    if (this.disposed) return;
+    const conflict = this.conflicts.find((item) => item.fieldID === fieldID);
+    if (!conflict) return;
+
+    if (choice === "server") {
+      this.filesToReselect = this.filesToReselect.filter((id) => id !== fieldID);
+      if (hasAnswer(conflict.serverValue)) this.latestAnswers[fieldID] = cloneAnswer(conflict.serverValue);
+      else delete this.latestAnswers[fieldID];
+    } else if (conflict.localOperation === "reselect") {
+      delete this.latestAnswers[fieldID];
+      if (!this.filesToReselect.includes(fieldID)) this.filesToReselect = [...this.filesToReselect, fieldID].sort();
+    } else if (conflict.localOperation === "delete") {
+      delete this.latestAnswers[fieldID];
+    } else if (hasAnswer(conflict.localValue)) {
+      this.latestAnswers[fieldID] = cloneAnswer(conflict.localValue);
+    }
+
+    this.conflicts = this.conflicts.filter((item) => item.fieldID !== fieldID);
+    this.localSequence += 1;
+    await this.persistCurrentAgainstServer();
+    if (this.conflicts.length > 0) {
+      this.setSaveState("conflict");
+    } else {
+      this.setSaveState(this.saveStateForPendingChanges());
+      this.scheduleFlush();
+    }
+    this.emit();
+  }
+
   async clearRecovery(): Promise<void> {
     this.clearTimer();
     await this.localWrite.catch(() => undefined);
     if (this.recovery) await this.recovery.clear(this.recoveryContext);
-    this.localRecoveryAvailable = false;
+    this.localRecoveryComplete = false;
   }
 
   dispose(): void {
@@ -199,26 +235,30 @@ export class CaptureWorkspaceSync {
     const restored = await this.recovery.restore(this.recoveryContext);
     if (restored.status !== "restored") return;
 
+    const rebased = rebaseRecoveryEnvelope({
+      answers: this.serverWorkspace.answers,
+      fieldSequences: this.serverWorkspace.field_sequences,
+      presentationMode: this.serverWorkspace.presentation_mode,
+    }, restored.envelope);
     this.localSequence = restored.envelope.localSequence;
-    this.page = restored.envelope.page;
-    this.filesToReselect = [...restored.envelope.filesToReselect];
-    this.localRecoveryAvailable = true;
-
-    if (restored.envelope.serverVersion === this.serverWorkspace.workspace.version) {
-      this.latestAnswers = normalizeCaptureAnswers({ ...this.serverWorkspace.answers, ...restored.envelope.answers });
-      this.saveState = this.hasUnsyncedChanges() ? "saved_device" : "saved_server";
-      return;
-    }
-
-    const merged = mergeRecoveredAnswers(this.serverWorkspace.answers, restored.envelope.answers);
-    this.latestAnswers = normalizeCaptureAnswers(merged.answers);
-    this.conflicts = merged.conflicts.map((conflict) => recoveryConflict(this.serverWorkspace, conflict));
-    this.saveState = this.conflicts.length > 0 ? "conflict" : this.hasUnsyncedChanges() ? "saved_device" : "saved_server";
+    this.page = rebased.page;
+    this.latestAnswers = rebased.answers;
+    this.latestMode = rebased.presentationMode;
+    this.filesToReselect = rebased.filesToReselect;
+    this.conflicts = rebased.conflicts.map((conflict) => ({
+      fieldID: conflict.fieldID,
+      serverValue: conflict.serverValue,
+      localValue: conflict.localValue,
+      localOperation: conflict.operation,
+      sequence: conflict.sequence,
+    }));
+    this.localRecoveryComplete = restored.envelope.complete;
+    this.saveState = this.conflicts.length > 0 ? "conflict" : this.saveStateForPendingChanges();
   }
 
   private async performFlush(): Promise<boolean> {
     const sent = this.localSnapshot();
-    const edits = workspaceEdits(this.serverWorkspace, sent.answers);
+    const edits = workspaceEdits(this.serverWorkspace, sent.answers, sent.filesToReselect);
     const modeChanged = sent.presentationMode !== this.serverWorkspace.presentation_mode;
     if (edits.length === 0 && !modeChanged) {
       this.setSaveState("saved_server");
@@ -239,7 +279,7 @@ export class CaptureWorkspaceSync {
       if (sameLocalSnapshot(sent, this.localSnapshot())) {
         this.setSaveState("saved_server");
       } else {
-        this.setSaveState(this.localRecoveryAvailable ? "saved_device" : "saving");
+        this.setSaveState(this.saveStateForPendingChanges());
         this.scheduleFlush();
       }
       return true;
@@ -248,79 +288,137 @@ export class CaptureWorkspaceSync {
       if (error instanceof FormWorkspaceConflictError) {
         this.applyServerConflict(error.conflict);
         await this.persistCurrentAgainstServer();
-        this.setSaveState("conflict");
+        if (this.conflicts.length > 0) {
+          this.setSaveState("conflict");
+        } else {
+          this.setSaveState(this.saveStateForPendingChanges());
+          this.scheduleFlush();
+        }
         return false;
       }
       const kind = apiErrorKind(error);
-      this.setSaveState(this.localRecoveryAvailable && kind !== "validation" ? "saved_device" : "failed");
+      this.setSaveState(this.localRecoveryComplete && kind !== "validation" ? "saved_device" : "failed");
       this.onError?.(error);
       return false;
     }
   }
 
+  private persistSnapshot(snapshot: LocalSnapshot): Promise<RecoverySaveResult | undefined> {
+    if (!this.recovery) return Promise.resolve(undefined);
+    return this.recovery.save(
+      { ...this.recoveryContext, serverVersion: this.serverWorkspace.workspace.version },
+      this.fields,
+      {
+        answers: this.serverWorkspace.answers,
+        fieldSequences: this.serverWorkspace.field_sequences,
+        presentationMode: this.serverWorkspace.presentation_mode,
+        serverVersion: this.serverWorkspace.workspace.version,
+      },
+      {
+        answers: snapshot.answers,
+        presentationMode: snapshot.presentationMode,
+        page: snapshot.page,
+        filesToReselect: snapshot.filesToReselect,
+        localSequence: snapshot.localSequence,
+      },
+    );
+  }
+
   private async persistCurrentAgainstServer(): Promise<void> {
     if (!this.recovery) {
-      this.localRecoveryAvailable = false;
+      this.localRecoveryComplete = false;
       return;
     }
     try {
-      const envelope = await this.recovery.save(
-        { ...this.recoveryContext, serverVersion: this.serverWorkspace.workspace.version },
-        this.fields,
-        this.latestAnswers,
-        { page: this.page, localSequence: this.localSequence },
-      );
-      this.localRecoveryAvailable = envelope !== undefined;
+      const result = await this.persistSnapshot(this.localSnapshot());
+      this.localRecoveryComplete = Boolean(result?.complete);
     } catch (error) {
-      this.localRecoveryAvailable = false;
+      this.localRecoveryComplete = false;
       this.onError?.(error);
     }
   }
 
   private applyServerConflict(conflict: FormWorkspaceConflict): void {
-    const answers = { ...this.serverWorkspace.answers };
-    const sequences = { ...this.serverWorkspace.field_sequences };
+    const previousWorkspace = this.serverWorkspace;
+    const answers = cloneAnswers(previousWorkspace.answers);
+    const sequences = { ...previousWorkspace.field_sequences };
+    const nextConflicts: CaptureWorkspaceConflict[] = [];
+
     for (const changed of conflict.changed_fields) {
-      if (hasAnswer(changed.server_value)) answers[changed.field_id] = normalizeCaptureAnswer(changed.server_value);
+      const oldServerValue = previousWorkspace.answers[changed.field_id];
+      const localValue = this.latestAnswers[changed.field_id];
+      const awaitingReselection = this.filesToReselect.includes(changed.field_id);
+      const localOperation: RecoveryDeltaOperation | null = awaitingReselection
+        ? "reselect"
+        : sameOptionalAnswer(oldServerValue, localValue)
+          ? null
+          : hasAnswer(localValue) ? "set" : "delete";
+      const serverValue = normalizeCaptureAnswer(changed.server_value);
+
+      if (hasAnswer(serverValue)) answers[changed.field_id] = cloneAnswer(serverValue);
       else delete answers[changed.field_id];
       sequences[changed.field_id] = changed.sequence;
+
+      if (localOperation === null || localOperationSatisfied(localOperation, localValue, serverValue)) {
+        if (hasAnswer(serverValue)) this.latestAnswers[changed.field_id] = cloneAnswer(serverValue);
+        else delete this.latestAnswers[changed.field_id];
+        if (awaitingReselection) this.filesToReselect = this.filesToReselect.filter((id) => id !== changed.field_id);
+        continue;
+      }
+
+      nextConflicts.push({
+        fieldID: changed.field_id,
+        serverValue: cloneAnswer(serverValue),
+        localValue: localValue ? cloneAnswer(localValue) : {},
+        localOperation,
+        sequence: changed.sequence,
+      });
     }
+
     this.serverWorkspace = {
-      ...this.serverWorkspace,
-      workspace: { ...this.serverWorkspace.workspace, version: conflict.current_version },
+      ...previousWorkspace,
+      workspace: { ...previousWorkspace.workspace, version: conflict.current_version },
       answers,
       field_sequences: sequences,
     };
     this.recoveryContext = { ...this.recoveryContext, serverVersion: conflict.current_version };
-    this.conflicts = conflict.changed_fields.flatMap((changed) => {
-      const localValue = this.latestAnswers[changed.field_id] ?? {};
-      const serverValue = normalizeCaptureAnswer(changed.server_value);
-      return sameAnswer(serverValue, localValue) ? [] : [{
-        fieldID: changed.field_id,
-        serverValue,
-        localValue: normalizeCaptureAnswer(localValue),
-        sequence: changed.sequence,
-      }];
+    this.conflicts = nextConflicts;
+  }
+
+  private clearCompletedReselections(): void {
+    if (this.filesToReselect.length === 0) return;
+    this.filesToReselect = this.filesToReselect.filter((fieldID) => {
+      const local = this.latestAnswers[fieldID];
+      const server = this.serverWorkspace.answers[fieldID];
+      return !hasFileReference(local) || sameOptionalAnswer(server, local);
     });
   }
 
   private hasUnsyncedChanges(): boolean {
-    return workspaceEdits(this.serverWorkspace, this.latestAnswers).length > 0
+    return this.filesToReselect.length > 0
+      || workspaceEdits(this.serverWorkspace, this.latestAnswers, this.filesToReselect).length > 0
       || this.latestMode !== this.serverWorkspace.presentation_mode;
+  }
+
+  private saveStateForPendingChanges(): CaptureWorkspaceSaveState {
+    if (!this.hasUnsyncedChanges()) return "saved_server";
+    return this.localRecoveryComplete ? "saved_device" : "failed";
   }
 
   private localSnapshot(): LocalSnapshot {
     return {
-      answers: { ...this.latestAnswers },
+      answers: cloneAnswers(this.latestAnswers),
       presentationMode: this.latestMode,
       page: this.page,
       localSequence: this.localSequence,
+      filesToReselect: [...this.filesToReselect],
     };
   }
 
   private scheduleFlush(): void {
     this.clearTimer();
-    if (this.disposed || this.conflicts.length > 0) return;
+    if (this.disposed || this.conflicts.length > 0 || this.filesToReselect.length > 0) return;
+    if (!this.hasUnsyncedChanges()) return;
     this.timer = setTimeout(() => void this.flush(), this.debounceMs);
   }
 
@@ -340,9 +438,11 @@ export class CaptureWorkspaceSync {
   }
 }
 
-export function workspaceEdits(workspace: FormResponseWorkspace, answers: CaptureAnswers): FormWorkspaceEditInput[] {
+export function workspaceEdits(workspace: FormResponseWorkspace, answers: CaptureAnswers, filesToReselect: readonly string[] = []): FormWorkspaceEditInput[] {
+  const waiting = new Set(filesToReselect);
   const fieldIDs = new Set([...Object.keys(workspace.answers), ...Object.keys(answers)]);
   return [...fieldIDs].sort().flatMap((fieldID) => {
+    if (waiting.has(fieldID)) return [];
     const serverValue = workspace.answers[fieldID];
     const localValue = answers[fieldID];
     if (sameOptionalAnswer(serverValue, localValue)) return [];
@@ -354,49 +454,55 @@ export function workspaceEdits(workspace: FormResponseWorkspace, answers: Captur
   });
 }
 
-function recoveryConflict(workspace: FormResponseWorkspace, conflict: RecoveryMergeConflict): CaptureWorkspaceConflict {
-  return {
-    fieldID: conflict.fieldID,
-    serverValue: normalizeCaptureAnswer(conflict.serverValue),
-    localValue: normalizeCaptureAnswer(conflict.localValue),
-    sequence: workspace.field_sequences[conflict.fieldID] ?? 0,
-  };
-}
-
 function sameLocalSnapshot(left: LocalSnapshot, right: LocalSnapshot): boolean {
   return left.presentationMode === right.presentationMode
     && left.page === right.page
     && left.localSequence === right.localSequence
-    && JSON.stringify(left.answers) === JSON.stringify(right.answers);
+    && JSON.stringify(left.answers) === JSON.stringify(right.answers)
+    && JSON.stringify(left.filesToReselect) === JSON.stringify(right.filesToReselect);
+}
+
+function localOperationSatisfied(operation: RecoveryDeltaOperation, localValue: CaptureAnswerValue | undefined, serverValue: CaptureAnswerValue): boolean {
+  if (operation === "delete") return !hasAnswer(serverValue);
+  if (operation === "set" && localValue) return sameOptionalAnswer(localValue, serverValue);
+  return false;
 }
 
 function sameOptionalAnswer(left?: CaptureAnswerValue, right?: CaptureAnswerValue): boolean {
-  if (left === undefined || right === undefined) return left === right;
-  return sameAnswer(left, right);
-}
-
-function sameAnswer(left: CaptureAnswerValue, right: CaptureAnswerValue): boolean {
+  if (left === undefined || right === undefined) return !hasAnswer(left) && !hasAnswer(right);
   return JSON.stringify(normalizeComparable(left)) === JSON.stringify(normalizeComparable(right));
 }
 
 function normalizeComparable(value: CaptureAnswerValue): CaptureAnswerValue {
-  const normalized: CaptureAnswerValue = {};
-  if (value.text !== undefined) normalized.text = value.text;
-  if (value.values !== undefined) normalized.values = [...value.values];
-  if (value.artifact_ids !== undefined) normalized.artifact_ids = [...value.artifact_ids];
-  if (value.document !== undefined) normalized.document = { ...value.document };
-  return normalized;
+  return cloneAnswer(value);
 }
 
-function hasAnswer(value: CaptureAnswerValue): boolean {
-  return Boolean(value.text || value.values?.length || value.artifact_ids?.length || value.document);
+function hasAnswer(value?: CaptureAnswerValue): boolean {
+  return Boolean(value?.text || value?.values?.length || value?.artifact_ids?.length || value?.document);
+}
+
+function hasFileReference(value?: CaptureAnswerValue): boolean {
+  return Boolean(value?.artifact_ids?.length || value?.document?.artifact_id);
+}
+
+function cloneAnswer(value: CaptureAnswerValue): CaptureAnswerValue {
+  return {
+    ...(value.text !== undefined ? { text: value.text } : {}),
+    ...(value.values !== undefined ? { values: [...value.values] } : {}),
+    ...(value.artifact_ids !== undefined ? { artifact_ids: [...value.artifact_ids] } : {}),
+    ...(value.document !== undefined ? { document: { ...value.document } } : {}),
+  };
+}
+
+function cloneAnswers(answers: CaptureAnswers): CaptureAnswers {
+  return Object.fromEntries(Object.entries(answers).map(([fieldID, value]) => [fieldID, cloneAnswer(value)]));
 }
 
 function cloneWorkspace(workspace: FormResponseWorkspace): FormResponseWorkspace {
   return {
     ...workspace,
     workspace: { ...workspace.workspace },
-    answers: Object.fromEntries(Object.entries(workspace.answers).map(([fieldID, value]) => [fieldID, normalizeCaptureAnswer(value)])),
+    answers: cloneAnswers(workspace.answers),
     field_sequences: { ...workspace.field_sequences },
     current_revision: workspace.current_revision ? { ...workspace.current_revision } : undefined,
   };
