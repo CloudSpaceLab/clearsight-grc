@@ -21,7 +21,11 @@ import (
 type ExtractionResult struct {
 	Status           ExtractionStatus
 	Method           string
+	ParserVersion    string
+	AdapterVersion   string
 	Sections         []Section
+	Elements         []ExtractedElement
+	Degradations     []Degradation
 	Limitations      []string
 	SectionsTotal    int
 	SectionsOmitted  int
@@ -34,16 +38,21 @@ type extractionBudget struct {
 }
 
 type sectionCollector struct {
-	policy    ExtractionPolicy
-	sections  []Section
-	total     int
-	omitted   int
-	textBytes int64
-	truncated bool
+	policy       ExtractionPolicy
+	sections     []Section
+	degradations []Degradation
+	total        int
+	omitted      int
+	textBytes    int64
+	truncated    bool
 }
 
 func newSectionCollector(policy ExtractionPolicy) *sectionCollector {
-	return &sectionCollector{policy: policy.normalized(), sections: make([]Section, 0, min(policy.normalized().MaxSections, 64))}
+	normalized := policy.normalized()
+	return &sectionCollector{
+		policy: normalized, sections: make([]Section, 0, min(normalized.MaxSections, 64)),
+		degradations: make([]Degradation, 0, 4),
+	}
 }
 
 func (c *sectionCollector) canRetain() bool {
@@ -93,10 +102,32 @@ func (c *sectionCollector) add(section Section, contentExists, alreadyTruncated 
 	c.sections = append(c.sections, section)
 }
 
+func (c *sectionCollector) degrade(code, message string, anchor *SourceAnchor) {
+	code = strings.TrimSpace(code)
+	message = strings.TrimSpace(message)
+	if code == "" || message == "" {
+		return
+	}
+	for _, existing := range c.degradations {
+		if existing.Code == code {
+			return
+		}
+	}
+	c.degradations = append(c.degradations, Degradation{
+		Code: code, Message: message, Recoverable: true, Anchor: anchor,
+	})
+}
+
 func (c *sectionCollector) result(status ExtractionStatus, method string, limitations ...string) ExtractionResult {
+	status = explicitExtractionStatus(status, c.truncated, c.degradations)
+	limitations = append([]string(nil), limitations...)
+	for _, degradation := range c.degradations {
+		limitations = append(limitations, degradation.Message)
+	}
 	return ExtractionResult{
-		Status: status, Method: method, Sections: c.sections, Limitations: limitations,
-		SectionsTotal: c.total, SectionsOmitted: c.omitted, ContentTruncated: c.truncated,
+		Status: status, Method: method, ParserVersion: method, AdapterVersion: extractionElementAdapterVersion,
+		Sections: c.sections, Elements: elementsFromSections(c.sections), Degradations: cloneDegradations(c.degradations),
+		Limitations: limitations, SectionsTotal: c.total, SectionsOmitted: c.omitted, ContentTruncated: c.truncated,
 	}
 }
 
@@ -148,7 +179,10 @@ func ExtractWithPolicy(ctx context.Context, fileName, mediaType string, data []b
 	}
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return ExtractionResult{Status: ExtractionFailed, Method: method, Limitations: []string{err.Error()}}
+			return ExtractionResult{
+				Status: ExtractionFailed, Method: method, ParserVersion: method, AdapterVersion: extractionElementAdapterVersion,
+				Limitations: []string{err.Error()},
+			}
 		}
 		return failedExtraction(method, err)
 	}
@@ -160,7 +194,10 @@ func failedExtraction(method string, err error) ExtractionResult {
 	if errors.Is(err, ErrResourceLimit) {
 		message = "Extraction resource limit exceeded: " + message
 	}
-	return ExtractionResult{Status: ExtractionFailed, Method: method, Limitations: []string{message, "No compliance proposal was generated."}}
+	return ExtractionResult{
+		Status: ExtractionFailed, Method: method, ParserVersion: method, AdapterVersion: extractionElementAdapterVersion,
+		Limitations: []string{message, "No compliance proposal was generated."},
+	}
 }
 
 func textSections(ctx context.Context, data []byte, collector *sectionCollector) error {
@@ -320,6 +357,14 @@ func docxSections(ctx context.Context, data []byte, collector *sectionCollector,
 		}
 		switch value := token.(type) {
 		case xml.StartElement:
+			switch value.Name.Local {
+			case "sdt":
+				collector.degrade("DOCX_FORM_CONTROLS_NOT_EXTRACTED", "The DOCX contains form controls that this parser version cannot yet preserve structurally.", nil)
+			case "hyperlink":
+				collector.degrade("DOCX_LINKS_NOT_EXTRACTED", "The DOCX contains hyperlinks that this parser version cannot yet preserve structurally.", nil)
+			case "drawing", "pict":
+				collector.degrade("DOCX_IMAGES_NOT_EXTRACTED", "The DOCX contains embedded images that this parser version cannot yet preserve structurally.", nil)
+			}
 			if value.Name.Local == "p" {
 				inParagraph = true
 				paragraph.Reset()
