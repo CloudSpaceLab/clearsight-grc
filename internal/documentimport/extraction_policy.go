@@ -108,7 +108,7 @@ func (p ExtractionPolicy) normalized() ExtractionPolicy {
 
 type resourceLimitError struct{ message string }
 
-func (e resourceLimitError) Error() string  { return e.message }
+func (e resourceLimitError) Error() string { return e.message }
 func (e resourceLimitError) Unwrap() error { return ErrResourceLimit }
 
 func limitError(format string, args ...any) error {
