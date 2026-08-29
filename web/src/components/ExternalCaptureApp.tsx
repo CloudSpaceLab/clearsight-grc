@@ -175,5 +175,5 @@ function resumableRequest(request: CaptureRequest) {
 function terminalSessionFailure(cause: unknown) {
   const kind = apiErrorKind(cause);
   return ["unauthorized", "forbidden", "not_found"].includes(kind)
-    || (cause instanceof ApiError && ["request_closed", "workspace_unavailable", "session_unavailable"].includes(cause.code));
+    || (cause instanceof ApiError && ["request_closed", "workspace_unavailable", "session_unavailable"].includes(cause.code ?? ""));
 }
