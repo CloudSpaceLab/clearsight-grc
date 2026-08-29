@@ -67,6 +67,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	evidenceWork := &workflow.EvidenceRequestProjector{Repo: workflowRepository}
 	documentService := documentimport.NewService(documentimport.NewPostgresRepository(pool), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
+	formProposalGeneration := buildFormProposalGenerationPublisher(pool, documentService)
 	documentProposalWork := &workflow.DocumentProposalProjector{
 		Repo: workflowRepository, Documents: documentService, Authority: authorityService,
 	}
@@ -85,7 +86,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	publisher := workflowruntime.NewCompositePublisher(
 		sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork,
 		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, vendorWorkSubmission,
-		formCommunicationWorker,
+		formProposalGeneration, formCommunicationWorker,
 		workflowruntime.LogPublisher{Logger: logger},
 	)
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
