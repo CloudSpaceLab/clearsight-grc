@@ -1,8 +1,6 @@
 package documentimport
 
 import (
-	"archive/zip"
-	"bytes"
 	"strings"
 	"testing"
 )
@@ -48,29 +46,24 @@ func TestElementTableAnchorPreservesSheetAndRow(t *testing.T) {
 	}
 }
 
-func TestDOCXUnsupportedElementClassesAreExplicitlyPartial(t *testing.T) {
-	var buffer bytes.Buffer
-	writer := zip.NewWriter(&buffer)
-	file, err := writer.Create("word/document.xml")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = file.Write([]byte(`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Questionnaire</w:t></w:r></w:p><w:sdt><w:sdtPr><w:alias w:val="Country"/></w:sdtPr><w:sdtContent><w:p><w:r><w:t>Nigeria</w:t></w:r></w:p></w:sdtContent></w:sdt></w:body></w:document>`))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := writer.Close(); err != nil {
-		t.Fatal(err)
-	}
+func TestDOCXRecoveredFormControlDropsLegacyPartialDegradation(t *testing.T) {
+	data := zipFixture(t, map[string][]byte{
+		"word/document.xml": []byte(`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:sdt><w:sdtPr><w:alias w:val="Country"/></w:sdtPr><w:sdtContent><w:p><w:r><w:t>Nigeria</w:t></w:r></w:p></w:sdtContent></w:sdt></w:body></w:document>`),
+	})
 
-	result := Extract("questionnaire.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", buffer.Bytes())
-	if result.Status != ExtractionPartial {
-		t.Fatalf("expected recoverable partial extraction, got %#v", result)
+	result := Extract("questionnaire.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data)
+	if result.Status != ExtractionExtracted {
+		t.Fatalf("expected recovered control extraction, got %#v", result)
 	}
 	for _, degradation := range result.Degradations {
-		if degradation.Code == "DOCX_FORM_CONTROLS_NOT_EXTRACTED" && degradation.Recoverable {
+		if degradation.Code == "DOCX_FORM_CONTROLS_NOT_EXTRACTED" {
+			t.Fatalf("legacy form-control degradation survived Task 14: %#v", result.Degradations)
+		}
+	}
+	for _, element := range result.Elements {
+		if element.Kind == ElementFormControl && element.Control != nil && element.Control.Label == "Country" && element.Text == "Nigeria" {
 			return
 		}
 	}
-	t.Fatalf("missing structured DOCX degradation: %#v", result.Degradations)
+	t.Fatalf("recovered form control missing: %#v", result.Elements)
 }
