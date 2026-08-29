@@ -16,43 +16,62 @@ type Runtime struct {
 }
 
 func Build(cfg config.FormAuthoringConfig, maxArtifactBytes int64, allowLegacyOffice bool) (Runtime, error) {
+	runtime, err := BuildDocuments(cfg.DocumentParser, maxArtifactBytes, allowLegacyOffice)
+	if err != nil {
+		return Runtime{}, err
+	}
+	ai, err := BuildAI(cfg.AI)
+	if err != nil {
+		return Runtime{}, err
+	}
+	runtime.aiClient = ai.aiClient
+	return runtime, nil
+}
+
+func BuildDocuments(cfg config.DocumentParserConfig, maxArtifactBytes int64, allowLegacyOffice bool) (Runtime, error) {
 	runtime := Runtime{}
-	if cfg.DocumentParser.PDFAdapter == "PYMUPDF" {
-		adapter, err := documentimport.NewHTTPParserAdapter("PYMUPDF_HTTP_V1", cfg.DocumentParser.PDFAdapterEndpoint, nil)
+	if cfg.PDFAdapter == "PYMUPDF" {
+		adapter, err := documentimport.NewHTTPParserAdapter("PYMUPDF_HTTP_V1", cfg.PDFAdapterEndpoint, nil)
 		if err != nil {
 			return Runtime{}, fmt.Errorf("configure PDF parser adapter: %w", err)
 		}
 		policy := documentimport.DefaultParserAdapterPolicy(documentimport.DefaultExtractionPolicy(), maxArtifactBytes)
 		policy.Enabled = true
-		policy.Timeout = cfg.DocumentParser.AdapterTimeout
-		policy.MaxOutputBytes = cfg.DocumentParser.AdapterMaxOutputBytes
+		policy.Timeout = cfg.AdapterTimeout
+		policy.MaxOutputBytes = cfg.AdapterMaxOutputBytes
 		runtime.parserAdapter = adapter
 		runtime.parserPolicy = policy
 	}
-	if allowLegacyOffice && cfg.DocumentParser.LegacyOfficeExecutable != "" {
+	if allowLegacyOffice && cfg.LegacyOfficeExecutable != "" {
 		runtime.legacyOfficeConverter = &documentimport.LegacyOfficeConverter{
-			Executable: cfg.DocumentParser.LegacyOfficeExecutable,
-			Timeout: cfg.DocumentParser.LegacyOfficeTimeout,
-			MaxInputBytes: maxArtifactBytes,
-			MaxOutputBytes: cfg.DocumentParser.LegacyOfficeMaxBytes,
+			Executable:     cfg.LegacyOfficeExecutable,
+			Timeout:        cfg.LegacyOfficeTimeout,
+			MaxInputBytes:  maxArtifactBytes,
+			MaxOutputBytes: cfg.LegacyOfficeMaxBytes,
 		}
 	}
-	if cfg.AI.GatewayURL != "" {
-		client, err := monitoring.NewHTTPFormAIClient(monitoring.FormAIGatewayConfig{
-			GatewayURL: cfg.AI.GatewayURL,
-			TenantID: cfg.AI.TenantID,
-			WorkloadID: cfg.AI.WorkloadID,
-			Credential: cfg.AI.Credential,
-			ModelAlias: cfg.AI.ModelAlias,
-			PromptVersion: cfg.AI.PromptVersion,
-			Timeout: cfg.AI.Timeout,
-			MaxOutputBytes: cfg.AI.MaxOutputBytes,
-		}, nil)
-		if err != nil {
-			return Runtime{}, fmt.Errorf("configure governed form AI client: %w", err)
-		}
-		runtime.aiClient = client
+	return runtime, nil
+}
+
+func BuildAI(cfg config.FormAIConfig) (Runtime, error) {
+	runtime := Runtime{}
+	if cfg.GatewayURL == "" {
+		return runtime, nil
 	}
+	client, err := monitoring.NewHTTPFormAIClient(monitoring.FormAIGatewayConfig{
+		GatewayURL:     cfg.GatewayURL,
+		TenantID:       cfg.TenantID,
+		WorkloadID:     cfg.WorkloadID,
+		Credential:     cfg.Credential,
+		ModelAlias:     cfg.ModelAlias,
+		PromptVersion:  cfg.PromptVersion,
+		Timeout:        cfg.Timeout,
+		MaxOutputBytes: cfg.MaxOutputBytes,
+	}, nil)
+	if err != nil {
+		return Runtime{}, fmt.Errorf("configure governed form AI client: %w", err)
+	}
+	runtime.aiClient = client
 	return runtime, nil
 }
 
