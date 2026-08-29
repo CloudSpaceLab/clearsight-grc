@@ -114,3 +114,27 @@ func (e resourceLimitError) Unwrap() error { return ErrResourceLimit }
 func limitError(format string, args ...any) error {
 	return resourceLimitError{message: fmt.Sprintf(format, args...)}
 }
+
+func explicitExtractionStatus(base ExtractionStatus, truncated bool, degradations []Degradation) ExtractionStatus {
+	if base != ExtractionExtracted {
+		return base
+	}
+	if truncated {
+		return ExtractionTruncated
+	}
+	for _, degradation := range degradations {
+		if degradation.Recoverable {
+			return ExtractionPartial
+		}
+	}
+	return ExtractionExtracted
+}
+
+func (status ExtractionStatus) hasUsableContent() bool {
+	switch status {
+	case ExtractionExtracted, ExtractionPartial, ExtractionTruncated:
+		return true
+	default:
+		return false
+	}
+}
