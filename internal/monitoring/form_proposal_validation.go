@@ -17,10 +17,16 @@ func validateNewFormProposal(value FormTemplateProposal) error {
 	if value.SourceKind != FormProposalSourceDocument && value.SourceKind != FormProposalSourceAI {
 		return errors.Join(ErrInvalid, errors.New("unsupported proposal source kind"))
 	}
+	if !validProposalSHA256(value.SourceSHA256) {
+		return errors.Join(ErrInvalid, errors.New("proposal requires an exact sha256 source snapshot"))
+	}
 	if value.SourceKind == FormProposalSourceDocument {
-		if strings.TrimSpace(value.SourceDocumentID) == "" || value.SourceDocumentVersion < 1 || !validProposalSHA256(value.SourceSHA256) {
+		if strings.TrimSpace(value.SourceDocumentID) == "" || value.SourceDocumentVersion < 1 {
 			return errors.Join(ErrInvalid, errors.New("document proposal requires exact source id, version and sha256"))
 		}
+	}
+	if value.SourceKind == FormProposalSourceAI && (strings.TrimSpace(value.SourceDocumentID) == "") != (value.SourceDocumentVersion == 0) {
+		return errors.Join(ErrInvalid, errors.New("AI proposal source document id and version must be supplied together"))
 	}
 	if (strings.TrimSpace(value.BaseTemplateID) == "") != (value.BaseTemplateVersion == 0) || value.BaseTemplateVersion < 0 {
 		return errors.Join(ErrInvalid, errors.New("base template id and version must be supplied together"))
