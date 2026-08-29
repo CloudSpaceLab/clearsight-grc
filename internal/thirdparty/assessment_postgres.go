@@ -73,15 +73,19 @@ func (r *PostgresRepository) CreateAssessment(ctx context.Context, record Create
 		return Assessment{}, fmt.Errorf("lock assessment form: %w", err)
 	}
 	assessment := record.Assessment
+	selectedFieldIDsJSON, err := json.Marshal(assessment.SelectedFieldIDs)
+	if err != nil {
+		return Assessment{}, fmt.Errorf("encode assessment field scope: %w", err)
+	}
 	_, err = tx.Exec(ctx, `
 		INSERT INTO third_party_assessments(
 			id,tenant_id,legal_entity_id,relationship_id,review_kind,source_trigger,stable_episode_key,status,
-			form_template_id,form_template_version,review_due_at,started_by_principal_id,started_at,version,created_at,updated_at
+			form_template_id,form_template_version,scope_kind,scope_version,selected_field_ids,review_due_at,started_by_principal_id,started_at,version,created_at,updated_at
 		) VALUES(
-			$1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8,$9::uuid,$10,$11,$12::uuid,$13,$14,$15,$16
+			$1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8,$9::uuid,$10,$11,$12,$13::jsonb,$14,$15::uuid,$16,$17,$18,$19
 		)`, assessment.ID, tenantID, record.LegalEntityID, record.RelationshipID, assessment.ReviewKind,
 		assessment.SourceTrigger, assessment.StableEpisodeKey, assessment.Status, assessment.FormTemplateID, assessment.FormTemplateVersion,
-		assessment.ReviewDueAt, assessment.StartedByPrincipalID, assessment.StartedAt, assessment.Version,
+		assessment.ScopeKind, assessment.ScopeVersion, string(selectedFieldIDsJSON), assessment.ReviewDueAt, assessment.StartedByPrincipalID, assessment.StartedAt, assessment.Version,
 		assessment.CreatedAt, assessment.UpdatedAt)
 	if err != nil {
 		return Assessment{}, fmt.Errorf("store assessment: %w", err)
@@ -920,7 +924,7 @@ func (r *PostgresRepository) ResolveAssessmentRequest(ctx context.Context, tenan
 }
 
 const assessmentProjection = `a.id::text,t.slug,a.legal_entity_id::text,a.relationship_id::text,a.review_kind,a.source_trigger,a.stable_episode_key,a.status,
-	a.form_template_id::text,a.form_template_version,COALESCE(a.current_request_id::text,''),COALESCE(a.submission_id::text,''),COALESCE(a.review_matter_id::text,''),
+	a.form_template_id::text,a.form_template_version,a.scope_kind,a.scope_version,a.selected_field_ids,COALESCE(a.current_request_id::text,''),COALESCE(a.submission_id::text,''),COALESCE(a.review_matter_id::text,''),
 	a.review_due_at,a.started_by_principal_id::text,a.started_at,a.submitted_at,a.review_started_at,a.completed_at,
 	COALESCE(a.reviewer_principal_id::text,''),COALESCE(a.conclusion,''),a.conclusion_uncertainty,a.conclusion_rationale,a.next_review_recommended_at,
 	a.cancellation_reason,a.version,a.created_at,a.updated_at`
@@ -933,13 +937,17 @@ const assessmentRequestLinkSelect = `SELECT l.tenant_id::text,l.legal_entity_id:
 
 func scanAssessment(row rowScanner) (Assessment, error) {
 	var value Assessment
+	var selectedFieldIDs []byte
 	err := row.Scan(
 		&value.ID, &value.TenantID, &value.LegalEntityID, &value.RelationshipID, &value.ReviewKind, &value.SourceTrigger, &value.StableEpisodeKey, &value.Status,
-		&value.FormTemplateID, &value.FormTemplateVersion, &value.CurrentRequestID, &value.SubmissionID, &value.ReviewMatterID,
+		&value.FormTemplateID, &value.FormTemplateVersion, &value.ScopeKind, &value.ScopeVersion, &selectedFieldIDs, &value.CurrentRequestID, &value.SubmissionID, &value.ReviewMatterID,
 		&value.ReviewDueAt, &value.StartedByPrincipalID, &value.StartedAt, &value.SubmittedAt, &value.ReviewStartedAt, &value.CompletedAt,
 		&value.ReviewerPrincipalID, &value.Conclusion, &value.ConclusionUncertainty, &value.ConclusionRationale, &value.NextReviewRecommendedAt,
 		&value.CancellationReason, &value.Version, &value.CreatedAt, &value.UpdatedAt,
 	)
+	if err == nil {
+		err = json.Unmarshal(selectedFieldIDs, &value.SelectedFieldIDs)
+	}
 	return value, err
 }
 

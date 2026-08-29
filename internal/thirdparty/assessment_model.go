@@ -50,6 +50,9 @@ type Assessment struct {
 	Status                  AssessmentStatus     `json:"status"`
 	FormTemplateID          string               `json:"form_template_id"`
 	FormTemplateVersion     int64                `json:"form_template_version"`
+	ScopeKind               AssessmentScopeKind  `json:"scope_kind"`
+	ScopeVersion            int64                `json:"scope_version"`
+	SelectedFieldIDs        []string             `json:"selected_field_ids"`
 	CurrentRequestID        string               `json:"current_request_id,omitempty"`
 	SubmissionID            string               `json:"submission_id,omitempty"`
 	ReviewMatterID          string               `json:"review_matter_id,omitempty"`
@@ -113,6 +116,8 @@ type StartAssessmentInput struct {
 	RestartAssessmentID string               `json:"restart_assessment_id,omitempty"`
 	FormTemplateID      string               `json:"form_template_id"`
 	FormTemplateVersion int64                `json:"form_template_version"`
+	ScopeKind           AssessmentScopeKind  `json:"scope_kind,omitempty"`
+	SelectedFieldIDs    []string             `json:"selected_field_ids,omitempty"`
 	ReviewDueAt         time.Time            `json:"review_due_at"`
 }
 

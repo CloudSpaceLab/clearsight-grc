@@ -10,6 +10,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 )
 
@@ -60,6 +61,13 @@ type AssessmentRequestService struct {
 	forms       assessmentFormReader
 	delivery    *evidence.InvitationDeliveryService
 	captureBase *url.URL
+	targets     RecordTargetResolver
+}
+
+func (s *AssessmentRequestService) ConfigureRecordTargetResolver(resolver RecordTargetResolver) {
+	if s != nil {
+		s.targets = resolver
+	}
 }
 
 func NewAssessmentRequestService(assessments *AssessmentService, repo AssessmentRepository, evidenceService assessmentRequestEvidence, forms assessmentFormReader, delivery *evidence.InvitationDeliveryService, capturePublicBaseURL, environment string) (*AssessmentRequestService, error) {
@@ -117,7 +125,11 @@ func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, ass
 	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 1}
 	request, err := s.evidence.GetRequestByOrigin(ctx, scope.TenantID, origin)
 	if errors.Is(err, evidence.ErrNotFound) {
-		request, err = s.evidence.CreateRequest(evidence.WithRequestOriginAuthority(ctx, AssessmentRequestOrigin), assessmentEvidenceRequestInput(verified, assessment, relationship, form, origin, audience, deadline))
+		requestInput, composeErr := s.composeAssessmentEvidenceRequest(ctx, verified, assessment, relationship, form, origin, audience, deadline)
+		if composeErr != nil {
+			return SendRequestOutcome{}, composeErr
+		}
+		request, err = s.evidence.CreateRequest(evidence.WithRequestOriginAuthority(ctx, AssessmentRequestOrigin), requestInput)
 	}
 	if err != nil {
 		return SendRequestOutcome{}, err
@@ -183,6 +195,36 @@ func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, ass
 	return outcome, nil
 }
 
+func (s *AssessmentRequestService) composeAssessmentEvidenceRequest(ctx context.Context, actor Actor, assessment Assessment, aggregate Aggregate, form monitoring.FormTemplate, origin evidence.RequestOrigin, audience string, deadline time.Time) (evidence.CreateRequestInput, error) {
+	contract := formcontract.Contract{Presentation: form.Presentation, Sections: form.Sections, Fields: form.Fields}
+	sections, scopedFields, err := ComposeAssessmentScope(contract, assessment.ScopeKind, assessment.SelectedFieldIDs)
+	if err != nil {
+		return evidence.CreateRequestInput{}, err
+	}
+	copy := form
+	copy.Sections = sections
+	copy.Fields = scopedFields
+	input := assessmentEvidenceRequestInput(actor, assessment, aggregate, copy, origin, audience, deadline)
+	for index := range input.Fields {
+		field := &input.Fields[index]
+		if field.RecordTarget == nil {
+			continue
+		}
+		if err := validateRecordTargetKey(*field.RecordTarget); err != nil {
+			return evidence.CreateRequestInput{}, err
+		}
+		if s.targets == nil {
+			return evidence.CreateRequestInput{}, ErrUnsupportedRecordTarget
+		}
+		baseline, err := s.targets.Resolve(ctx, actor, aggregate, *field.RecordTarget)
+		if err != nil {
+			return evidence.CreateRequestInput{}, err
+		}
+		field.RecordBaseline = &baseline
+	}
+	return input, nil
+}
+
 func preparedOutcome(assessment Assessment, request evidence.Request, recovery string) SendRequestOutcome {
 	return SendRequestOutcome{Assessment: assessment, Request: request, State: SendRequestReadyInvitationNotIssued, Recovery: recovery}
 }
@@ -194,6 +236,7 @@ func assessmentEvidenceRequestInput(actor Actor, assessment Assessment, aggregat
 			ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: string(field.Type), Required: field.Required,
 			Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...),
 			Attestation: field.Attestation, Constraints: field.Constraints, Condition: field.Condition, Scoring: field.Scoring,
+			CollectionIntent: field.CollectionIntent, RecordTarget: field.RecordTarget, BrowserCachePolicy: field.BrowserCachePolicy,
 		}
 	}
 	facts := map[string]string{

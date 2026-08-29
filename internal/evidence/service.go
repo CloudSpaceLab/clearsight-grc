@@ -709,6 +709,15 @@ func cloneFields(input []Field) []Field {
 			}
 		}
 		out[index].SourceResolutions = cloneSourceResolutions(input[index].SourceResolutions)
+		if input[index].RecordTarget != nil {
+			target := *input[index].RecordTarget
+			out[index].RecordTarget = &target
+		}
+		if input[index].RecordBaseline != nil {
+			baseline := *input[index].RecordBaseline
+			baseline.ExpiresAt = cloneTimePointer(input[index].RecordBaseline.ExpiresAt)
+			out[index].RecordBaseline = &baseline
+		}
 	}
 	return out
 }

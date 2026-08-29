@@ -74,6 +74,7 @@ func (r *MemoryAssessmentRepository) CreateAssessment(ctx context.Context, recor
 		}
 	}
 	assessment := record.Assessment
+	assessment.SelectedFieldIDs = append([]string(nil), record.Assessment.SelectedFieldIDs...)
 	assessment.TenantID = record.TenantID
 	assessment.LegalEntityID = record.LegalEntityID
 	assessment.RelationshipID = record.RelationshipID
@@ -86,6 +87,7 @@ func (r *MemoryAssessmentRepository) CreateAssessment(ctx context.Context, recor
 		return Assessment{}, err
 	}
 	r.setupJobs[job.ID] = job
+	assessment.SelectedFieldIDs = append([]string(nil), assessment.SelectedFieldIDs...)
 	return assessment, nil
 }
 
@@ -96,6 +98,7 @@ func (r *MemoryAssessmentRepository) GetAssessment(_ context.Context, scope Scop
 	if !ok || assessment.TenantID != scope.TenantID || assessment.LegalEntityID != scope.LegalEntityID {
 		return Assessment{}, ErrNotFound
 	}
+	assessment.SelectedFieldIDs = append([]string(nil), assessment.SelectedFieldIDs...)
 	return assessment, nil
 }
 
@@ -116,7 +119,23 @@ func (r *MemoryAssessmentRepository) GetCurrentAssessment(_ context.Context, sco
 	if !found {
 		return Assessment{}, ErrNotFound
 	}
+	current.SelectedFieldIDs = append([]string(nil), current.SelectedFieldIDs...)
 	return current, nil
+}
+
+func (r *MemoryAssessmentRepository) CurrentRelationshipDocuments(_ context.Context, scope Scope, relationshipID, documentType string) ([]AssessmentDocument, error) {
+	r.assessmentMu.RLock()
+	defer r.assessmentMu.RUnlock()
+	items := []AssessmentDocument{}
+	for _, byArtifact := range r.assessmentDocuments {
+		for _, document := range byArtifact {
+			if document.TenantID == scope.TenantID && document.LegalEntityID == scope.LegalEntityID && document.RelationshipID == relationshipID && strings.EqualFold(document.DocumentType, documentType) && (document.Status == AssessmentDocumentValidated || document.Status == AssessmentDocumentExpired) {
+				items = append(items, document)
+			}
+		}
+	}
+	sort.Slice(items, func(i, j int) bool { return items[i].ID < items[j].ID })
+	return items, nil
 }
 
 func (r *MemoryAssessmentRepository) ListAssessments(_ context.Context, filter AssessmentListFilter) (AssessmentPage, error) {

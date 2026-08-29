@@ -26,10 +26,11 @@ const (
 type AssessmentDocumentStatus string
 
 const (
-	AssessmentDocumentSubmitted AssessmentDocumentStatus = "SUBMITTED"
-	AssessmentDocumentValidated AssessmentDocumentStatus = "VALIDATED"
-	AssessmentDocumentRejected  AssessmentDocumentStatus = "REJECTED"
-	AssessmentDocumentExpired   AssessmentDocumentStatus = "EXPIRED"
+	AssessmentDocumentSubmitted  AssessmentDocumentStatus = "SUBMITTED"
+	AssessmentDocumentValidated  AssessmentDocumentStatus = "VALIDATED"
+	AssessmentDocumentRejected   AssessmentDocumentStatus = "REJECTED"
+	AssessmentDocumentExpired    AssessmentDocumentStatus = "EXPIRED"
+	AssessmentDocumentSuperseded AssessmentDocumentStatus = "SUPERSEDED"
 )
 
 type AssessmentDocumentEvidenceClass string
@@ -47,6 +48,7 @@ type AssessmentDocument struct {
 	AssessmentID           string                          `json:"assessment_id"`
 	RequestID              string                          `json:"request_id"`
 	ArtifactID             string                          `json:"artifact_id"`
+	SupersedesDocumentID   string                          `json:"supersedes_document_id,omitempty"`
 	DocumentType           string                          `json:"document_type"`
 	Reference              string                          `json:"reference,omitempty"`
 	IssuedBy               string                          `json:"issued_by,omitempty"`

@@ -185,6 +185,41 @@ func TestSendAssessmentRequestSupportsPeriodicReviewForActiveRelationship(t *tes
 	}
 }
 
+func TestSendAssessmentRequestFreezesFocusedHeldValueBaselines(t *testing.T) {
+	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	input := validStartAssessmentInput(relationship.Relationship.Version)
+	input.ScopeKind = AssessmentScopeFocused
+	input.SelectedFieldIDs = []string{"registered_address"}
+	assessment, err := assessmentService.StartAssessment(assessmentContext(), assessmentActor(), relationship.Relationship.ID, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment = mustReadyAssessment(t, assessmentService, assessment)
+	form := activeAssessmentForm()
+	form.Fields = []monitoring.TemplateField{
+		{ID: "legal_name", SectionID: "organisation", Label: "Legal name", Type: formcontract.TypeShortText, CollectionIntent: formcontract.IntentConfirmOrCorrect, RecordTarget: &formcontract.RecordTarget{Key: "VENDOR.IDENTITY.LEGAL_NAME", RequiredSubjectType: "VENDOR_RELATIONSHIP"}},
+		{ID: "registered_address", SectionID: "organisation", Label: "Registered address", Type: formcontract.TypeLongText, CollectionIntent: formcontract.IntentConfirmOrCorrect, RecordTarget: &formcontract.RecordTarget{Key: "VENDOR.IDENTITY.REGISTERED_ADDRESS", RequiredSubjectType: "VENDOR_RELATIONSHIP"}},
+	}
+	evidenceStub := &assessmentEvidenceStub{repo: repo, assessmentID: assessment.ID}
+	service, err := NewAssessmentRequestService(assessmentService, repo, evidenceStub, assessmentFormReaderStub{form: form}, nil, "https://capture.example.test/respond", "production")
+	if err != nil {
+		t.Fatal(err)
+	}
+	service.ConfigureRecordTargetResolver(NewRecordTargetResolver(nil))
+
+	_, err = service.SendRequest(assessmentContext(), assessmentActor(), assessment.ID, SendAssessmentRequestInput{ExpectedVersion: assessment.Version, Audience: "security@vendor.example", Deadline: time.Date(2026, 9, 8, 10, 0, 0, 0, time.UTC), InvitationTTLMinutes: 60})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(evidenceStub.created) != 1 || len(evidenceStub.created[0].Fields) != 1 {
+		t.Fatalf("focused request fields = %#v", evidenceStub.created)
+	}
+	field := evidenceStub.created[0].Fields[0]
+	if field.ID != "registered_address" || field.RecordBaseline == nil || field.RecordBaseline.RecordID != relationship.Vendor.ID || field.RecordBaseline.RecordVersion != relationship.Vendor.Version || field.RecordBaseline.DisplayValue != relationship.Vendor.RegisteredAddress {
+		t.Fatalf("focused baseline = %#v", field)
+	}
+}
+
 func TestSendAssessmentRequestRejectsRelationshipThatLeftOnboarding(t *testing.T) {
 	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	assessment := mustReadyAssessment(t, assessmentService, mustStartAssessment(t, assessmentService, relationship))

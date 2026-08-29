@@ -171,6 +171,21 @@ type AnswerProvenance struct {
 	Validations    []SourceResolution             `json:"validations,omitempty"`
 }
 
+// RecordBaseline freezes the exact held record shown to a recipient when a
+// request is created. It is part of the immutable request snapshot and must
+// not be re-resolved while displaying or reviewing a response.
+type RecordBaseline struct {
+	TargetKey             string     `json:"target_key"`
+	SubjectType           string     `json:"subject_type"`
+	SubjectID             string     `json:"subject_id"`
+	RecordID              string     `json:"record_id"`
+	DisplayValue          string     `json:"display_value"`
+	SourceLabel           string     `json:"source_label"`
+	RecordVersion         int64      `json:"record_version"`
+	ObservedOrConfirmedAt time.Time  `json:"observed_or_confirmed_at"`
+	ExpiresAt             *time.Time `json:"expires_at,omitempty"`
+}
+
 type Field struct {
 	ID                 string                            `json:"id"`
 	SectionID          string                            `json:"section_id"`
@@ -186,6 +201,7 @@ type Field struct {
 	Scoring            *formcontract.Scoring             `json:"scoring,omitempty"`
 	CollectionIntent   formcontract.CollectionIntent     `json:"collection_intent,omitempty"`
 	RecordTarget       *formcontract.RecordTarget        `json:"record_target,omitempty"`
+	RecordBaseline     *RecordBaseline                   `json:"record_baseline,omitempty"`
 	BrowserCachePolicy formcontract.BrowserCachePolicy   `json:"browser_cache_policy,omitempty"`
 	Bindings           []FieldBindingReference           `json:"bindings,omitempty"`
 	SourceResolutions  []SourceResolution                `json:"source_resolutions,omitempty"`

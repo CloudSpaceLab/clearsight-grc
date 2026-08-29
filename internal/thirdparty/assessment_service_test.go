@@ -3,6 +3,7 @@ package thirdparty
 import (
 	"context"
 	"errors"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -309,7 +310,7 @@ func TestSetupCompletionReactionIsIdempotentAndCarriesExactReferences(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	if first != second || first.Status != AssessmentReadyToSend || first.ReviewMatterID != "matter-1" {
+	if !reflect.DeepEqual(first, second) || first.Status != AssessmentReadyToSend || first.ReviewMatterID != "matter-1" {
 		t.Fatalf("setup reaction was not idempotent: first=%#v second=%#v", first, second)
 	}
 }
@@ -372,7 +373,7 @@ func TestSubmissionReactionIsIdempotentAndRequiresCurrentRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if first != second || first.Status != AssessmentSubmitted || first.SubmissionID != "submission-1" {
+	if !reflect.DeepEqual(first, second) || first.Status != AssessmentSubmitted || first.SubmissionID != "submission-1" {
 		t.Fatalf("submission reaction was not idempotent: first=%#v second=%#v", first, second)
 	}
 }

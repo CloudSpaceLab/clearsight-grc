@@ -98,6 +98,10 @@ func (s *AssessmentService) StartAssessment(ctx context.Context, _ Actor, relati
 		return Assessment{}, err
 	}
 	input.FormTemplateID = strings.TrimSpace(input.FormTemplateID)
+	scopeKind, selectedFieldIDs, err := NormalizeAssessmentScope(input.ScopeKind, input.SelectedFieldIDs)
+	if err != nil {
+		return Assessment{}, err
+	}
 	now := s.now().UTC()
 	if input.RelationshipVersion < 1 || !validAssessmentIdentifier(input.FormTemplateID) || input.FormTemplateVersion < 1 || input.ReviewDueAt.IsZero() || !input.ReviewDueAt.After(now) {
 		return Assessment{}, ErrInvalid
@@ -130,6 +134,7 @@ func (s *AssessmentService) StartAssessment(ctx context.Context, _ Actor, relati
 		RelationshipID: relationshipID, ReviewKind: kind, SourceTrigger: sourceTrigger,
 		StableEpisodeKey: stableKey,
 		Status:           AssessmentSetupPending, FormTemplateID: input.FormTemplateID, FormTemplateVersion: input.FormTemplateVersion,
+		ScopeKind: scopeKind, ScopeVersion: 1, SelectedFieldIDs: selectedFieldIDs,
 		ReviewDueAt: input.ReviewDueAt.UTC(), StartedByPrincipalID: actor.PrincipalID, StartedAt: now,
 		Version: 1, CreatedAt: now, UpdatedAt: now,
 	}
