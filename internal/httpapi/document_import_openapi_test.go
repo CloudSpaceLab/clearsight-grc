@@ -21,6 +21,8 @@ func TestDocumentImportOpenAPITracksDurableExtractionContract(t *testing.T) {
 		"adapter_version:",
 		"elements:",
 		"degradations:",
+		"target:",
+		"Allowlisted external hyperlink target or in-document anchor for LINK elements.",
 		"content_truncated:",
 		"DocumentTabularMetadata:",
 		"PDF text extraction is available only when the bounded Poppler adapter is installed",
