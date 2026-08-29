@@ -631,7 +631,7 @@ describe("Program record workspace", () => {
 	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()} onOpenMatter={onOpenMatter}/>);
 	await screen.findByRole("heading", { name: "Linked issues and changes" });
 	const issues = document.getElementById("program-issues-panel")!;
-	expect(loadMatterSummaries).toHaveBeenCalledWith({ status: "OPEN", programID: "program-1", limit: 20 });
+	await waitFor(() => expect(loadMatterSummaries).toHaveBeenCalledWith({ status: "OPEN", programID: "program-1", limit: 20 }));
 	fireEvent.click(await within(issues).findByRole("button", { name: "Open MAT-001" }));
 	expect(onOpenMatter).toHaveBeenCalledWith("matter-1");
 
