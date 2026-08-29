@@ -6,6 +6,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 )
 
 func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
@@ -73,6 +74,9 @@ func (a *API) actorToday(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "today_failed", "Today's work could not be loaded.")
 		return
+	}
+	if items == nil {
+		items = []today.AttentionItem{}
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": items, "generated_at": time.Now().UTC()})
 }
