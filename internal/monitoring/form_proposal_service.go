@@ -24,12 +24,17 @@ type FormProposalService struct {
 	store FormProposalStore
 	docs  formProposalDocumentReader
 	forms proposalFormAuthor
+	ai    FormAIClient
 	now   func() time.Time
 	newID func() (string, error)
 }
 
 func NewFormProposalService(store FormProposalStore, docs formProposalDocumentReader, forms proposalFormAuthor) *FormProposalService {
 	return &FormProposalService{store: store, docs: docs, forms: forms, now: time.Now, newID: id.NewUUIDv7}
+}
+
+func (s *FormProposalService) ConfigureAIClient(client FormAIClient) {
+	s.ai = client
 }
 
 func (s *FormProposalService) RequestFromDocument(ctx context.Context, documentID string, input RequestDocumentFormProposalInput) (FormTemplateProposal, error) {
@@ -97,7 +102,7 @@ func (s *FormProposalService) Generate(ctx context.Context, tenantID, legalEntit
 		return current, nil
 	}
 	if current.SourceKind != FormProposalSourceDocument {
-		return s.failGeneration(ctx, current, "UNSUPPORTED_SOURCE_KIND", "Deterministic generation requires a document source.")
+		return s.failGeneration(ctx, current, "UNSUPPORTED_SOURCE_KIND", "Background deterministic generation requires a document source.")
 	}
 	document, err := s.docs.Get(ctx, current.TenantID, current.SourceDocumentID)
 	if err != nil {
@@ -115,7 +120,7 @@ func (s *FormProposalService) Generate(ctx context.Context, tenantID, legalEntit
 	current.ProposedContract = generated.Contract
 	current.FieldChanges = generated.FieldChanges
 	current.UnresolvedItems = generated.UnresolvedItems
-	current.Provenance = generated.Provenance
+	current.Provenance = FormProposalProvenance{FormProposalProvenance: generated.Provenance}
 	current.FailureCode = ""
 	current.FailureMessage = ""
 	current.UpdatedAt = now
@@ -152,7 +157,7 @@ func (s *FormProposalService) Accept(ctx context.Context, proposalID string, inp
 	if err != nil {
 		return FormTemplateProposal{}, err
 	}
-	if s.store == nil || s.docs == nil || s.forms == nil || input.ExpectedVersion < 1 || strings.TrimSpace(proposalID) == "" {
+	if s.store == nil || s.forms == nil || input.ExpectedVersion < 1 || strings.TrimSpace(proposalID) == "" {
 		return FormTemplateProposal{}, ErrInvalid
 	}
 	changeIDs := normalizeProposalChangeIDs(input.ChangeIDs)
@@ -172,11 +177,30 @@ func (s *FormProposalService) Accept(ctx context.Context, proposalID string, inp
 	if proposal.Status != FormProposalReviewRequired {
 		return FormTemplateProposal{}, ErrFormProposalState
 	}
-	document, err := s.docs.Get(ctx, actor.TenantID, proposal.SourceDocumentID)
-	if err != nil {
-		return FormTemplateProposal{}, err
-	}
-	if !proposalSourceMatchesDocument(proposal, document) {
+
+	var sourceDocument *documentimport.Document
+	if proposal.SourceDocumentID != "" {
+		if s.docs == nil {
+			return FormTemplateProposal{}, ErrInvalid
+		}
+		document, err := s.docs.Get(ctx, actor.TenantID, proposal.SourceDocumentID)
+		if err != nil {
+			return FormTemplateProposal{}, err
+		}
+		switch proposal.SourceKind {
+		case FormProposalSourceDocument:
+			if !proposalSourceMatchesDocument(proposal, document) {
+				return FormTemplateProposal{}, ErrFormProposalSourceChanged
+			}
+		case FormProposalSourceAI:
+			if !proposalAISourceMatchesDocument(proposal, document) {
+				return FormTemplateProposal{}, ErrFormProposalSourceChanged
+			}
+		default:
+			return FormTemplateProposal{}, ErrFormProposalSourceChanged
+		}
+		sourceDocument = &document
+	} else if proposal.SourceKind == FormProposalSourceDocument {
 		return FormTemplateProposal{}, ErrFormProposalSourceChanged
 	}
 
@@ -191,7 +215,7 @@ func (s *FormProposalService) Accept(ctx context.Context, proposalID string, inp
 	if err != nil {
 		return FormTemplateProposal{}, err
 	}
-	formInput := proposalFormInput(base, document, proposal, contract)
+	formInput := proposalFormInput(base, sourceDocument, proposal, contract)
 	mutation := FormProposalReviewMutation{
 		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ProposalID: proposal.ID,
 		ExpectedVersion: proposal.Version, Status: FormProposalAccepted, ReviewerID: actor.PrincipalID,
@@ -242,7 +266,14 @@ func proposalSourceMatchesDocument(proposal FormTemplateProposal, document docum
 		proposal.SourceSHA256 == document.SHA256
 }
 
-func proposalFormInput(base FormTemplate, document documentimport.Document, proposal FormTemplateProposal, contract formcontract.Contract) CreateFormInput {
+func proposalAISourceMatchesDocument(proposal FormTemplateProposal, document documentimport.Document) bool {
+	return proposal.SourceKind == FormProposalSourceAI && proposal.Provenance.AI != nil &&
+		proposal.TenantID == document.TenantID && proposal.LegalEntityID == document.LegalEntityID &&
+		proposal.SourceDocumentID == document.ID && proposal.SourceDocumentVersion == document.Version &&
+		proposal.Provenance.AI.SourceDocumentSHA256 == document.SHA256
+}
+
+func proposalFormInput(base FormTemplate, document *documentimport.Document, proposal FormTemplateProposal, contract formcontract.Contract) CreateFormInput {
 	if base.ID != "" {
 		return CreateFormInput{
 			ProgramID: base.ProgramID, LegalEntityID: base.LegalEntityID, Code: base.Code, Name: base.Name, Purpose: base.Purpose,
@@ -253,25 +284,39 @@ func proposalFormInput(base FormTemplate, document documentimport.Document, prop
 			Presentation: contract.Presentation, Sections: contract.Sections, Fields: contract.Fields,
 		}
 	}
-	name := strings.TrimSpace(document.FileName)
-	if extension := filepath.Ext(name); extension != "" {
-		name = strings.TrimSpace(strings.TrimSuffix(name, extension))
-	}
-	name = boundedProposalText(name, 512)
-	if name == "" {
-		name = "Imported form"
-	}
-	purpose := boundedProposalText(document.Purpose, 2000)
-	if purpose == "" {
-		purpose = "Form template derived from an imported document."
-	}
-	codeSuffix := proposal.SourceSHA256
-	if len(codeSuffix) > 12 {
-		codeSuffix = codeSuffix[:12]
+	if document != nil {
+		name := strings.TrimSpace(document.FileName)
+		if extension := filepath.Ext(name); extension != "" {
+			name = strings.TrimSpace(strings.TrimSuffix(name, extension))
+		}
+		name = boundedProposalText(name, 512)
+		if name == "" {
+			name = "Imported form"
+		}
+		purpose := boundedProposalText(document.Purpose, 2000)
+		if purpose == "" {
+			purpose = "Form template derived from an imported document."
+		}
+		return CreateFormInput{
+			Code: proposalDraftCode("IMPORT", proposal.SourceSHA256), Name: name, Purpose: purpose,
+			Sensitivity: "INTERNAL", ScoringMode: contract.ScoringMode,
+			Presentation: contract.Presentation, Sections: contract.Sections, Fields: contract.Fields,
+		}
 	}
 	return CreateFormInput{
-		Code: "IMPORT-" + strings.ToUpper(codeSuffix), Name: name, Purpose: purpose,
-		Sensitivity: "INTERNAL", ScoringMode: formcontract.ScoringNone,
+		Code: proposalDraftCode("AI", proposal.SourceSHA256), Name: "AI-assisted form", Purpose: "Draft form template created from a governed AI proposal.",
+		Sensitivity: "INTERNAL", ScoringMode: contract.ScoringMode,
 		Presentation: contract.Presentation, Sections: contract.Sections, Fields: contract.Fields,
 	}
+}
+
+func proposalDraftCode(prefix, sha string) string {
+	suffix := strings.TrimSpace(sha)
+	if len(suffix) > 12 {
+		suffix = suffix[:12]
+	}
+	if suffix == "" {
+		suffix = "DRAFT"
+	}
+	return prefix + "-" + strings.ToUpper(suffix)
 }
