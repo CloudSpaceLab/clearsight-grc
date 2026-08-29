@@ -33,6 +33,11 @@ func main() {
 		logger.Error("service initialization failed", "error", err)
 		os.Exit(1)
 	}
+	if err := configureFormAuthoring(cfg, &services); err != nil {
+		services.Close()
+		logger.Error("form authoring initialization failed", "error", err)
+		os.Exit(1)
+	}
 	defer services.Close()
 	authenticator, federationService, err := buildIdentity(ctx, cfg, services)
 	if err != nil {
