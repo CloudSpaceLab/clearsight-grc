@@ -29,6 +29,7 @@ type ViewState = "live" | "loading" | "unavailable";
 
 type Props = {
   relationship: VendorRelationshipAggregate;
+  accountableOwnerLabel?: string;
   assessment?: VendorAssessment | null;
   form?: VendorAssessmentFormOption;
   forms?: VendorAssessmentFormOption[];
@@ -73,6 +74,7 @@ const conclusionOptions: { value: VendorAssessmentConclusion; label: string }[] 
 
 export function VendorDueDiligence({
   relationship,
+  accountableOwnerLabel = "Current owner unavailable",
   assessment,
   form,
   forms = [],
@@ -478,7 +480,7 @@ export function VendorDueDiligence({
     <div className="vdd-scope" aria-label="Assessment scope">
       <div><span>Vendor</span><strong>{relationship.vendor.legal_name}</strong></div>
       <div><span>Service</span><strong>{relationship.relationship.service_name}</strong></div>
-      <div><span>Accountable owner</span><strong>{relationship.relationship.business_owner_principal_id}</strong></div>
+      <div><span>Accountable owner</span><strong>{accountableOwnerLabel}</strong></div>
       <div><span>Review due</span><strong>{formatDate(dueDate)}</strong></div>
     </div>
 

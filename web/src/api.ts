@@ -52,7 +52,7 @@ export type SessionStatus = {
 
 export type TodaySnapshot = { items: AttentionItem[]; generated_at?: string };
 export type AuthorityResolveInput = {
-  object_type: "PROGRAM" | "MATTER" | "EVIDENCE_REQUEST";
+  object_type: "PROGRAM" | "MATTER" | "EVIDENCE_REQUEST" | "THIRD_PARTY_RELATIONSHIP";
   object_id: string;
   responsibility: string;
   decision_type?: string;

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import axe from "axe-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { resolveAuthority } from "../api";
 import { ApiError } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
@@ -9,6 +10,11 @@ import type { VendorAssessment, VendorAssessmentReviewView } from "../vendorAsse
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import { createVendorRelationship, loadVendorIdentity, loadVendorRelationship, loadVendorRelationships, removeApprovedVendorLogo, updateVendorIdentity, updateVendorRelationship, uploadApprovedVendorLogo } from "../vendorApi";
 import { VendorsWorkspace } from "./VendorsWorkspace";
+
+vi.mock("../api", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../api")>(),
+  resolveAuthority: vi.fn(),
+}));
 
 vi.mock("../vendorApi", async (importOriginal) => ({
   ...await importOriginal<typeof import("../vendorApi")>(),
@@ -104,6 +110,7 @@ beforeEach(() => {
   vi.mocked(loadVendorIdentity).mockResolvedValue({ vendor: record.vendor, brand: { state: "UNAVAILABLE", version: 0, event_version: 0 } });
   vi.mocked(loadFormTemplates).mockResolvedValue([activeVendorForm]);
   vi.mocked(loadCurrentVendorAssessment).mockRejectedValue(new ApiError(404, "Not found"));
+  vi.mocked(resolveAuthority).mockResolvedValue({ principal: { id: "owner-current", display_name: "Program Owner", kind: "PERSON", role: "Vendor owner" }, rule_id: "vendor-owner", policy_version: "v1", explanation: "Current vendor owner" });
 });
 
 describe("VendorsWorkspace", () => {
@@ -284,7 +291,8 @@ describe("VendorsWorkspace", () => {
     expect(await screen.findByRole("heading", { name: "Vendors" })).toBeTruthy();
     fireEvent.click(await screen.findByRole("button", { name: /Acme Processing Limited/ }));
     expect(screen.getByText("Card transaction processing")).toBeTruthy();
-    expect(screen.getByText("owner-1")).toBeTruthy();
+    expect(await screen.findAllByText("Program Owner")).toHaveLength(2);
+    expect(screen.queryByText("owner-1")).toBeNull();
     expect(screen.getByText("Version 1")).toBeTruthy();
     expect(await screen.findByRole("heading", { name: "Due diligence" })).toBeTruthy();
     expect(screen.getByTestId("vendor-work-relationship-relationship-1")).toBeTruthy();
@@ -350,6 +358,15 @@ describe("VendorsWorkspace", () => {
     expect(screen.queryByText("Access review")).toBeNull();
     expect(loadCurrentVendorAssessment).toHaveBeenCalledWith("relationship-1");
     expect(screen.getAllByRole("button").filter((button) => button.classList.contains("primary-button") && !(button as HTMLButtonElement).disabled)).toHaveLength(1);
+  });
+
+  it("does not expose a stored principal identifier when the current owner route cannot be read", async () => {
+    vi.mocked(resolveAuthority).mockRejectedValue(new ApiError(503, "Authority unavailable"));
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria"/>);
+    fireEvent.click(await screen.findByRole("button", { name: /Acme Processing Limited/ }));
+
+    expect(await screen.findAllByText("Current owner unavailable")).toHaveLength(2);
+    expect(screen.queryByText("owner-1")).toBeNull();
   });
 
   it("opens governed setup when no active vendor form exists and enables due diligence after activation", async () => {

@@ -12,6 +12,45 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 )
 
+func TestPostgresAssessmentProvisionerCreatesEntityScopedReviewMatter(t *testing.T) {
+	pool := assessmentPostgresPool(t)
+	ctx := context.Background()
+	now := time.Date(2026, 8, 26, 13, 0, 0, 0, time.UTC)
+	relationship := seedAssessmentRelationship(t, pool, "Account verification")
+	repository := NewPostgresRepository(pool)
+	record := postgresAssessmentRecord(assessmentOneID, relationship, now)
+	assessment, err := repository.CreateAssessment(ctx, record)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	provisioner := NewAssessmentProvisioner(repository, continuity.NewService(continuity.NewPostgresRepository(pool)), "worker-a")
+	processed, err := provisioner.Maintain(ctx, now, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if processed != 1 {
+		t.Fatalf("processed=%d want=1", processed)
+	}
+
+	ready, err := repository.GetAssessment(ctx, record.Scope, assessment.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ready.Status != AssessmentReadyToSend || ready.ReviewMatterID == "" {
+		t.Fatalf("ready assessment = %#v", ready)
+	}
+	triggerKey := "thirdparty-assessment:" + assessment.ID
+	scoped := continuity.WithTrustedSystemEntityScope(ctx, record.TenantID, record.LegalEntityID)
+	matter, err := continuity.NewService(continuity.NewPostgresRepository(pool)).MatterByTriggerKey(scoped, record.TenantID, triggerKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if matter.Matter.ID != ready.ReviewMatterID || matter.Matter.LegalEntityID != record.LegalEntityID || matter.Matter.Type != continuity.MatterVendorReview {
+		t.Fatalf("review matter = %#v", matter.Matter)
+	}
+}
+
 func TestPostgresAssessmentProvisionerLeaseFencing(t *testing.T) {
 	pool := assessmentPostgresPool(t)
 	ctx := context.Background()

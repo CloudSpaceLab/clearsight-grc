@@ -239,6 +239,31 @@ func TestAssessmentProvisionerCreatesCanonicalVendorReviewMatter(t *testing.T) {
 	}
 }
 
+func TestAssessmentProvisionerCreatesMatterThroughEntityScopedContinuityService(t *testing.T) {
+	now := time.Date(2026, 8, 29, 22, 50, 0, 0, time.UTC)
+	repository, assessment := assessmentProvisionerFixture(t, now)
+	matterRepository := continuity.NewMemoryRepository()
+	matterService := continuity.NewServiceWithClock(matterRepository, func() time.Time { return now })
+	provisioner := NewAssessmentProvisioner(repository, matterService, "worker-a")
+
+	processed, err := provisioner.Maintain(context.Background(), now, 1)
+	if err != nil || processed != 1 {
+		t.Fatalf("entity-scoped assessment setup = (%d, %v)", processed, err)
+	}
+	ready, err := repository.GetAssessment(context.Background(), Scope{TenantID: assessment.TenantID, LegalEntityID: assessment.LegalEntityID}, assessment.ID)
+	if err != nil || ready.Status != AssessmentReadyToSend || ready.ReviewMatterID == "" {
+		t.Fatalf("ready assessment = (%#v, %v)", ready, err)
+	}
+	matterContext := continuity.WithTrustedSystemEntityScope(context.Background(), assessment.TenantID, assessment.LegalEntityID)
+	matter, err := matterService.MatterByTriggerKey(matterContext, assessment.TenantID, "thirdparty-assessment:"+assessment.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if matter.Matter.ID != ready.ReviewMatterID || matter.Matter.LegalEntityID != assessment.LegalEntityID {
+		t.Fatalf("review Matter scope = %#v", matter.Matter)
+	}
+}
+
 type recordingAssessmentMatterService struct {
 	inputs         []continuity.CreateMatterInput
 	matters        map[string]continuity.MatterAggregate

@@ -113,9 +113,10 @@ func (p *AssessmentProvisioner) provision(ctx context.Context, job AssessmentSet
 		accountablePrincipalID = resolution.Principal.ID
 	}
 	triggerKey := "thirdparty-assessment:" + assessment.ID
-	matter, err := p.matters.CreateMatter(ctx, assessmentMatterInput(assessment, relationship, triggerKey, accountablePrincipalID))
+	matterContext := continuity.WithTrustedSystemEntityScope(ctx, assessment.TenantID, assessment.LegalEntityID)
+	matter, err := p.matters.CreateMatter(matterContext, assessmentMatterInput(assessment, relationship, triggerKey, accountablePrincipalID))
 	if errors.Is(err, continuity.ErrDuplicate) {
-		matter, err = p.matters.MatterByTriggerKey(ctx, assessment.TenantID, triggerKey)
+		matter, err = p.matters.MatterByTriggerKey(matterContext, assessment.TenantID, triggerKey)
 	}
 	if err != nil {
 		return p.release(ctx, job, AssessmentSetupFailureMatter, now, err)
@@ -166,7 +167,7 @@ func assessmentMatterInput(assessment Assessment, aggregate Aggregate, triggerKe
 	missing := json.RawMessage(`["vendor response","supporting evidence","review conclusion"]`)
 	dueAt := assessment.ReviewDueAt
 	return continuity.CreateMatterInput{
-		TenantID: assessment.TenantID, Type: continuity.MatterVendorReview, Priority: priority,
+		TenantID: assessment.TenantID, LegalEntityID: assessment.LegalEntityID, Type: continuity.MatterVendorReview, Priority: priority,
 		Title:   boundedAssessmentMatterTitle("Review " + vendorName + " for " + serviceName),
 		Summary: "Review the vendor response and supporting evidence before this service relationship is approved.",
 		Scope:   scope, SourceType: "THIRD_PARTY_ASSESSMENT", SourceID: assessment.ID,

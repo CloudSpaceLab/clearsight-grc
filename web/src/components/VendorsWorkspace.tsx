@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { resolveAuthority } from "../api";
 import { apiErrorKind } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
@@ -72,6 +73,7 @@ function firstVisiblePrimaryAction(selector: string) {
 export function VendorsWorkspace({ organizationName, legalEntityName, targetID, guideIntent, onGuideIntentCompleted, onGuideIntentFailed, onTarget, onOpenRequest, onOpenMatter, onOpenForms }: Props) {
   const [records, setRecords] = useState<VendorRelationshipAggregate[]>([]);
   const [selected, setSelected] = useState<VendorRelationshipAggregate | null>(null);
+  const [accountableOwnerLabel, setAccountableOwnerLabel] = useState("Current owner unavailable");
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
   const [mode, setMode] = useState<"browse" | "create" | "edit" | "edit-identity">("browse");
   const [query, setQuery] = useState("");
@@ -180,6 +182,27 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     void refreshForms();
     return () => { formLoadID.current += 1; };
   }, []);
+
+  useEffect(() => {
+    let current = true;
+    if (!selected) {
+      setAccountableOwnerLabel("Current owner unavailable");
+      return () => { current = false; };
+    }
+    setAccountableOwnerLabel("Loading current owner…");
+    void resolveAuthority({
+      object_type: "THIRD_PARTY_RELATIONSHIP",
+      object_id: selected.relationship.id,
+      responsibility: "ACCOUNTABLE_OWNER",
+      decision_type: "thirdparty.assessment.start",
+      materiality: 3,
+    }).then((resolution) => {
+      if (current) setAccountableOwnerLabel(resolution.principal.display_name.trim() || "Current owner unavailable");
+    }).catch(() => {
+      if (current) setAccountableOwnerLabel("Current owner unavailable");
+    });
+    return () => { current = false; };
+  }, [selected?.relationship.id]);
 
   async function refreshForms() {
     const loadID = ++formLoadID.current;
@@ -600,6 +623,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
           onApplyAssessmentResponse={applyAssessmentResponse}
           onOpenRequest={onOpenRequest}
           onOpenMatter={onOpenMatter}
+          accountableOwnerLabel={accountableOwnerLabel}
         /> : records.length > 0 ? <div className="vendor-selection"><h2>Select a vendor</h2><p>Choose a relationship to review its service, accountable owner, source and current record version.</p></div> : null}
       </section>
     </div>}
@@ -614,7 +638,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   </div>;
 }
 
-function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, forms, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onEditIdentity, onRefreshAssessment, onRefreshForms, onSetUpForm, onOpenForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onApplyAssessmentResponse, onOpenRequest, onOpenMatter }: {
+function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, forms, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onEditIdentity, onRefreshAssessment, onRefreshForms, onSetUpForm, onOpenForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onApplyAssessmentResponse, onOpenRequest, onOpenMatter, accountableOwnerLabel }: {
   record: VendorRelationshipAggregate;
   assessment: VendorAssessment | null;
   assessmentSetup?: CurrentVendorAssessment["setup"];
@@ -647,6 +671,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
   onApplyAssessmentResponse: (assessmentID: string, revisionID: string, input: ApplyVendorAssessmentResponseInput) => Promise<VendorAssessmentApplicationResult>;
   onOpenRequest?: (requestID: string) => void;
   onOpenMatter?: (matterID: string) => void;
+  accountableOwnerLabel: string;
 }) {
   const { vendor, relationship } = record;
   const effectiveAssessmentState = assessmentState === "live" && !assessment && formState === "loading" ? "loading" : assessmentState;
@@ -657,7 +682,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
     <div className="vendor-detail-heading"><div className="vendor-detail-identity"><VendorBrandIcon vendorID={vendor.id} legalName={vendor.legal_name} brand={record.brand} size="detail"/><div><span className="eyebrow">{humanize(relationship.status)} relationship</span><h2>{vendor.legal_name}</h2><p>{vendor.trading_name ? `Trading as ${vendor.trading_name}` : "No trading name recorded"}</p><small className="vendor-brand-label">{vendorBrandLabel(record.brand)}</small></div></div><div className="vendor-detail-actions"><button type="button" className="secondary-button" onClick={onEditIdentity}>Edit vendor details</button><button type="button" className="secondary-button" onClick={onEdit}>Edit vendor relationship</button></div></div>
     <div className="vendor-service-callout"><span>Service supplied</span><strong>{relationship.service_name}</strong><small>{humanize(relationship.criticality)} criticality · {privacyLabel(relationship.privacy_role)}</small></div>
     <dl className="vendor-facts">
-      <Fact label="Accountable owner" value={relationship.business_owner_principal_id}/><Fact label="Jurisdiction" value={vendor.jurisdiction || "Not recorded"}/>
+      <Fact label="Current accountable owner" value={accountableOwnerLabel}/><Fact label="Jurisdiction" value={vendor.jurisdiction || "Not recorded"}/>
       <Fact label="Registration reference" value={vendor.registration_ref || "Not recorded"}/><Fact label="Website domain" value={vendor.website_domain || "Not recorded"}/><Fact label="Registered address" value={vendor.registered_address || "Not recorded"}/><Fact label="Effective date" value={formatDate(relationship.effective_from)}/>
       <Fact label="Renewal date" value={formatDate(relationship.renewal_at)}/><Fact label="Source" value={vendor.source_id && vendor.external_ref ? `${vendor.source_id} · ${vendor.external_ref}` : "Entered directly"}/>
       <Fact label="Relationship updated" value={formatDateTime(relationship.updated_at)}/><Fact label="Relationship version" value={`Version ${relationship.version}`}/><Fact label="Vendor details version" value={`Vendor version ${vendor.version}`}/>
@@ -666,6 +691,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
   </article>
   {assessmentState === "live" && !assessment && formState === "unavailable" ? <section className="vdd-workspace" aria-label="Due diligence" tabIndex={-1}><div className="vdd-state vdd-state-error" role="alert"><h2>Due-diligence forms are unavailable</h2><p>Approved collection forms could not be loaded for {relationship.service_name}. Try again before starting the assessment.</p><button type="button" className="secondary-button" onClick={() => void onRefreshForms()}>Reload forms</button></div></section> : <VendorDueDiligence
     relationship={record}
+    accountableOwnerLabel={accountableOwnerLabel}
     assessment={assessment}
     review={review}
     reviewState={reviewState}
