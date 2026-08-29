@@ -5,7 +5,10 @@ import (
 	"strings"
 )
 
-const extractionElementAdapterVersion = "SECTION_ELEMENT_ADAPTER_V1"
+const (
+	extractionElementAdapterVersion = "SECTION_ELEMENT_ADAPTER_V1"
+	docxElementAdapterVersion       = "DOCX_STRUCTURE_ADAPTER_V1"
+)
 
 type ElementKind string
 
@@ -55,6 +58,7 @@ type ExtractedElement struct {
 	Ref     string       `json:"ref,omitempty"`
 	Kind    ElementKind  `json:"kind"`
 	Text    string       `json:"text,omitempty"`
+	Target  string       `json:"target,omitempty"`
 	Values  [][]string   `json:"values,omitempty"`
 	Control *FormControl `json:"control,omitempty"`
 	Anchor  SourceAnchor `json:"anchor"`
