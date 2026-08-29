@@ -75,15 +75,15 @@ type RejectFormProposalInput struct {
 }
 
 type FormProposalReviewMutation struct {
-	TenantID             string
-	LegalEntityID        string
-	ProposalID           string
-	ExpectedVersion      int64
-	Status               FormProposalStatus
-	ReviewerID           string
-	ResultTemplateID     string
+	TenantID              string
+	LegalEntityID         string
+	ProposalID            string
+	ExpectedVersion       int64
+	Status                FormProposalStatus
+	ReviewerID            string
+	ResultTemplateID      string
 	ResultTemplateVersion int64
-	At                   time.Time
+	At                    time.Time
 }
 
 type FormProposalStore interface {
@@ -105,15 +105,25 @@ func cloneFormTemplateProposal(value FormTemplateProposal) FormTemplateProposal 
 	cloned.FieldChanges = append([]documentimport.FormFieldChange(nil), value.FieldChanges...)
 	for index := range cloned.FieldChanges {
 		cloned.FieldChanges[index].Field = cloneTemplateField(value.FieldChanges[index].Field)
+		cloned.FieldChanges[index].Anchor = cloneProposalAnchor(value.FieldChanges[index].Anchor)
 		cloned.FieldChanges[index].Unresolved = append([]string(nil), value.FieldChanges[index].Unresolved...)
 	}
 	cloned.UnresolvedItems = append([]documentimport.ProposalUnresolvedItem(nil), value.UnresolvedItems...)
+	for index := range cloned.UnresolvedItems {
+		if value.UnresolvedItems[index].Anchor != nil {
+			anchor := cloneProposalAnchor(*value.UnresolvedItems[index].Anchor)
+			cloned.UnresolvedItems[index].Anchor = &anchor
+		}
+	}
 	return cloned
 }
 
 func cloneProposalContract(value formcontract.Contract) formcontract.Contract {
 	cloned := value
-	cloned.Sections = append([]formcontract.Section(nil), value.Sections...)
+	cloned.Sections = make([]formcontract.Section, len(value.Sections))
+	for index := range value.Sections {
+		cloned.Sections[index] = cloneProposalSection(value.Sections[index])
+	}
 	cloned.Fields = make([]formcontract.Field, len(value.Fields))
 	for index := range value.Fields {
 		cloned.Fields[index] = cloneTemplateField(value.Fields[index])
@@ -124,5 +134,53 @@ func cloneProposalContract(value formcontract.Contract) formcontract.Contract {
 func cloneTemplateField(value formcontract.Field) formcontract.Field {
 	cloned := value
 	cloned.Options = append([]string(nil), value.Options...)
+	cloned.AcceptedFormats = append([]string(nil), value.AcceptedFormats...)
+	cloned.Constraints.MinLength = cloneProposalPointer(value.Constraints.MinLength)
+	cloned.Constraints.MaxLength = cloneProposalPointer(value.Constraints.MaxLength)
+	cloned.Constraints.Minimum = cloneProposalPointer(value.Constraints.Minimum)
+	cloned.Constraints.Maximum = cloneProposalPointer(value.Constraints.Maximum)
+	cloned.Constraints.Step = cloneProposalPointer(value.Constraints.Step)
+	cloned.Constraints.DecimalPrecision = cloneProposalPointer(value.Constraints.DecimalPrecision)
+	cloned.Constraints.MinSelections = cloneProposalPointer(value.Constraints.MinSelections)
+	cloned.Constraints.MaxSelections = cloneProposalPointer(value.Constraints.MaxSelections)
+	cloned.Constraints.MinFiles = cloneProposalPointer(value.Constraints.MinFiles)
+	cloned.Constraints.MaxFiles = cloneProposalPointer(value.Constraints.MaxFiles)
+	cloned.Constraints.MaxFileBytes = cloneProposalPointer(value.Constraints.MaxFileBytes)
+	cloned.Constraints.MaxTotalFileBytes = cloneProposalPointer(value.Constraints.MaxTotalFileBytes)
+	if value.Condition != nil {
+		condition := *value.Condition
+		condition.Values = append([]string(nil), value.Condition.Values...)
+		cloned.Condition = &condition
+	}
+	if value.Scoring != nil {
+		scoring := *value.Scoring
+		scoring.AnswerScores = make(map[string]int, len(value.Scoring.AnswerScores))
+		for key, score := range value.Scoring.AnswerScores {
+			scoring.AnswerScores[key] = score
+		}
+		scoring.CriticalAnswers = append([]string(nil), value.Scoring.CriticalAnswers...)
+		cloned.Scoring = &scoring
+	}
+	if value.RecordTarget != nil {
+		target := *value.RecordTarget
+		cloned.RecordTarget = &target
+	}
 	return cloned
+}
+
+func cloneProposalAnchor(value documentimport.SourceAnchor) documentimport.SourceAnchor {
+	cloned := value
+	if value.BoundingBox != nil {
+		box := *value.BoundingBox
+		cloned.BoundingBox = &box
+	}
+	return cloned
+}
+
+func cloneProposalPointer[T any](value *T) *T {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+	return &cloned
 }
