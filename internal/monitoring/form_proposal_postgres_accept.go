@@ -60,7 +60,10 @@ func (s *PostgresFormProposalStore) AcceptWithDraft(ctx context.Context, mutatio
 	if current.TenantID != draft.TenantID || current.LegalEntityID != draft.LegalEntityID {
 		return FormTemplateProposal{}, ErrFormProposalSourceChanged
 	}
-	if current.SourceKind == FormProposalSourceDocument {
+	if sourceSHA, required := proposalAcceptanceSourceSHA256(current); required {
+		if sourceSHA == "" {
+			return FormTemplateProposal{}, ErrFormProposalSourceChanged
+		}
 		var sourceValid bool
 		err = tx.QueryRow(ctx, `
 			SELECT EXISTS(
@@ -69,7 +72,7 @@ func (s *PostgresFormProposalStore) AcceptWithDraft(ctx context.Context, mutatio
 				WHERE (t.id::text=$1 OR t.slug=$1)
 				  AND di.legal_entity_id=$2::uuid AND di.id=$3::uuid
 				  AND di.version=$4 AND di.sha256=$5
-			)`, current.TenantID, current.LegalEntityID, current.SourceDocumentID, current.SourceDocumentVersion, current.SourceSHA256).Scan(&sourceValid)
+			)`, current.TenantID, current.LegalEntityID, current.SourceDocumentID, current.SourceDocumentVersion, sourceSHA).Scan(&sourceValid)
 		if err != nil {
 			return FormTemplateProposal{}, mapPostgresError(err)
 		}
