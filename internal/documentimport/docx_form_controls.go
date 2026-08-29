@@ -107,7 +107,8 @@ func readDOCXContentControl(ctx context.Context, decoder *xml.Decoder, policy Ex
 
 func readDOCXSimpleField(ctx context.Context, decoder *xml.Decoder, start xml.StartElement, policy ExtractionPolicy) (*FormControl, string, bool, error) {
 	state := docxFieldState{active: true}
-	state.instruction.WriteString(strings.TrimSpace(xmlAttribute(start, "instr")))
+	instruction := strings.TrimSpace(xmlAttribute(start, "instr"))
+	appendBounded(&state.instruction, instruction, policy.MaxCellBytes, &state.truncated)
 	depth := 1
 	inText := false
 	for depth > 0 {
