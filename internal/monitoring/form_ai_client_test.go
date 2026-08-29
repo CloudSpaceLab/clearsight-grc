@@ -32,8 +32,15 @@ func TestFormAIClientRejectsTenantBindingBeforeGatewayCall(t *testing.T) {
 }
 
 func TestFormAIClientRejectsUnknownGovernedFieldSemantics(t *testing.T) {
+	arguments := formAIGatewayArguments(t, map[string]any{
+		"sections": []map[string]any{{"id": "general", "title": "General"}},
+		"changes": []map[string]any{{
+			"kind": "ADD_FIELD", "confidence": 0.9,
+			"field": map[string]any{"key": "owner", "section_id": "general", "label": "Control owner", "type": "short_text", "scoring": map[string]any{"weight": 100}},
+		}},
+	})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		writeFormAIGatewayToolResponse(t, w, "resp-1", `{"sections":[]}`)
+		writeFormAIGatewayToolResponse(t, w, "resp-1", arguments)
 	}))
 	defer server.Close()
 	client, err := NewHTTPFormAIClient(FormAIGatewayConfig{
@@ -47,11 +54,18 @@ func TestFormAIClientRejectsUnknownGovernedFieldSemantics(t *testing.T) {
 		SnapshotSHA256: strings.Repeat("a", 64),
 	})
 	if !errors.Is(err, ErrFormAIUnavailable) {
-		t.Fatalf("malformed governed response was accepted: %v", err)
+		t.Fatalf("unknown scoring semantics were accepted: %v", err)
 	}
 }
 
 func TestFormAIClientCapturesGatewayAndValidationProvenance(t *testing.T) {
+	arguments := formAIGatewayArguments(t, map[string]any{
+		"sections": []map[string]any{{"id": "general", "title": "General"}},
+		"changes": []map[string]any{{
+			"kind": "ADD_FIELD", "source_ref": "source-1", "confidence": 0.9,
+			"field": map[string]any{"key": "owner", "section_id": "general", "label": "Control owner", "type": "short_text"},
+		}},
+	})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if got := r.Header.Get("Authorization"); got != "Bearer credential-123" {
 			t.Fatalf("authorization = %q", got)
@@ -59,7 +73,7 @@ func TestFormAIClientCapturesGatewayAndValidationProvenance(t *testing.T) {
 		w.Header().Set("X-Request-ID", "req_0011223344556677")
 		w.Header().Set("X-ClearSight-Policy", "form-authoring-policy@7")
 		w.Header().Set("X-ClearSight-Route", "openai-primary")
-		writeFormAIGatewayToolResponse(t, w, "resp-2", `{"sections":[]}`)
+		writeFormAIGatewayToolResponse(t, w, "resp-2", arguments)
 	}))
 	defer server.Close()
 	client, err := NewHTTPFormAIClient(FormAIGatewayConfig{
@@ -69,7 +83,32 @@ func TestFormAIClientCapturesGatewayAndValidationProvenance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _ = client, documentimport.ElementParagraph
+	result, err := client.Propose(t.Context(), FormAIClientRequest{
+		TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "maker-a", Objective: "Draft a control-owner field.",
+		SnapshotSHA256: strings.Repeat("b", 64),
+		Source: &FormAISourceSnapshot{
+			DocumentID: "doc-1", Version: 3, SHA256: strings.Repeat("c", 64),
+			Elements: []documentimport.ExtractedElement{{Ref: "source-1", Kind: documentimport.ElementParagraph, Text: "Who owns this control?", Anchor: documentimport.SourceAnchor{Page: 2}}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.FieldChanges) != 1 || result.FieldChanges[0].Anchor.Page != 2 {
+		t.Fatalf("source anchored result = %#v", result)
+	}
+	if result.Provenance.WorkloadID != "forms-authoring" || result.Provenance.PolicyRef != "form-authoring-policy@7" || result.Provenance.GatewayRequestID != "req_0011223344556677" || result.Provenance.GatewayResponseID != "resp-2" || result.Provenance.RouteID != "openai-primary" || result.Provenance.PromptVersion != "FORM_AUTHORING_V7" || len(result.Provenance.ValidationResults) == 0 {
+		t.Fatalf("gateway provenance = %#v", result.Provenance)
+	}
+}
+
+func formAIGatewayArguments(t *testing.T, value map[string]any) string {
+	t.Helper()
+	payload, err := json.Marshal(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(payload)
 }
 
 func writeFormAIGatewayToolResponse(t *testing.T, w http.ResponseWriter, id, arguments string) {
