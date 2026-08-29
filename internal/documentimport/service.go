@@ -24,6 +24,9 @@ type Service struct {
 	maxBytes               int64
 	allowUnscannedAnalysis bool
 	extractionPolicy       ExtractionPolicy
+	parserAdapter          ParserAdapter
+	parserAdapterPolicy    ParserAdapterPolicy
+	legacyOfficeConverter  *LegacyOfficeConverter
 	now                    func() time.Time
 }
 
@@ -45,6 +48,19 @@ func (s *Service) Configure(maxBytes int64, allowUnscannedAnalysis ...bool) {
 
 func (s *Service) ConfigureExtractionPolicy(policy ExtractionPolicy) {
 	s.extractionPolicy = policy.normalized()
+}
+
+func (s *Service) ConfigureAdvancedExtraction(adapter ParserAdapter, policy ParserAdapterPolicy, converter *LegacyOfficeConverter) {
+	if s == nil {
+		return
+	}
+	policy = policy.normalized(s.extractionPolicy, s.maximumBytes())
+	if adapter == nil {
+		policy.Enabled = false
+	}
+	s.parserAdapter = adapter
+	s.parserAdapterPolicy = policy
+	s.legacyOfficeConverter = converter
 }
 
 func (s *Service) Import(ctx context.Context, input ImportInput, reader io.Reader) (Document, error) {
@@ -201,7 +217,7 @@ func (s *Service) processStored(ctx context.Context, value Document) (Document, 
 	if err != nil {
 		return Document{}, err
 	}
-	extraction := ExtractWithPolicy(ctx, value.FileName, value.MediaType, data, s.extractionPolicy)
+	extraction := ExtractAdvanced(ctx, value, data, s.extractionPolicy, s.parserAdapter, s.parserAdapterPolicy, s.legacyOfficeConverter)
 	if ctx.Err() != nil {
 		return Document{}, ctx.Err()
 	}
