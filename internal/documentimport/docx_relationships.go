@@ -34,7 +34,7 @@ func archivePart(files []*zip.File, name string) *zip.File {
 	return nil
 }
 
-func readDOCXRelationships(ctx context.Context, files []*zip.File) (map[string]docxRelationship, error) {
+func readDOCXRelationships(ctx context.Context, files []*zip.File, policy ExtractionPolicy) (map[string]docxRelationship, error) {
 	file := archivePart(files, "word/_rels/document.xml.rels")
 	if file == nil {
 		return map[string]docxRelationship{}, nil
@@ -68,6 +68,12 @@ func readDOCXRelationships(ctx context.Context, files []*zip.File) (map[string]d
 		if id == "" || target == "" || !strings.HasSuffix(relType, "/hyperlink") {
 			continue
 		}
+		if len(id) > policy.MaxCellBytes || len(target) > policy.MaxCellBytes {
+			return nil, limitError("DOCX hyperlink relationship metadata exceeds %d bytes", policy.MaxCellBytes)
+		}
+		if _, exists := values[id]; !exists && len(values) >= policy.MaxElements {
+			return nil, limitError("DOCX hyperlink relationship count exceeds %d", policy.MaxElements)
+		}
 		values[id] = docxRelationship{Target: target, Allowed: allowedHyperlinkTarget(target)}
 	}
 	return values, nil
@@ -86,7 +92,7 @@ func allowedHyperlinkTarget(target string) bool {
 	}
 }
 
-func readDOCXNumbering(ctx context.Context, files []*zip.File) (*docxNumbering, error) {
+func readDOCXNumbering(ctx context.Context, files []*zip.File, policy ExtractionPolicy) (*docxNumbering, error) {
 	file := archivePart(files, "word/numbering.xml")
 	if file == nil {
 		return nil, nil
@@ -105,6 +111,7 @@ func readDOCXNumbering(ctx context.Context, files []*zip.File) (*docxNumbering, 
 	currentAbstract := ""
 	currentNum := ""
 	currentLevel := -1
+	definitions := 0
 	for {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -120,30 +127,42 @@ func readDOCXNumbering(ctx context.Context, files []*zip.File) (*docxNumbering, 
 		case xml.StartElement:
 			switch item.Name.Local {
 			case "abstractNum":
-				currentAbstract = strings.TrimSpace(xmlAttribute(item, "abstractNumId"))
+				definitions++
+				if definitions > policy.MaxElements {
+					return nil, limitError("DOCX numbering definition count exceeds %d", policy.MaxElements)
+				}
+				currentAbstract = boundedDOCXMetadataAttribute(item, "abstractNumId", policy.MaxCellBytes)
 				currentLevel = -1
 				if currentAbstract != "" && value.levels[currentAbstract] == nil {
 					value.levels[currentAbstract] = make(map[int]docxNumberingLevel)
 				}
 			case "lvl":
+				definitions++
+				if definitions > policy.MaxElements {
+					return nil, limitError("DOCX numbering definition count exceeds %d", policy.MaxElements)
+				}
 				currentLevel = parseNonNegativeInt(xmlAttribute(item, "ilvl"), 0)
 			case "numFmt":
 				if currentAbstract != "" && currentLevel >= 0 {
 					level := value.levels[currentAbstract][currentLevel]
-					level.Format = strings.TrimSpace(xmlAttribute(item, "val"))
+					level.Format = boundedDOCXMetadataAttribute(item, "val", policy.MaxCellBytes)
 					value.levels[currentAbstract][currentLevel] = level
 				}
 			case "lvlText":
 				if currentAbstract != "" && currentLevel >= 0 {
 					level := value.levels[currentAbstract][currentLevel]
-					level.Text = strings.TrimSpace(xmlAttribute(item, "val"))
+					level.Text = boundedDOCXMetadataAttribute(item, "val", policy.MaxCellBytes)
 					value.levels[currentAbstract][currentLevel] = level
 				}
 			case "num":
-				currentNum = strings.TrimSpace(xmlAttribute(item, "numId"))
+				definitions++
+				if definitions > policy.MaxElements {
+					return nil, limitError("DOCX numbering definition count exceeds %d", policy.MaxElements)
+				}
+				currentNum = boundedDOCXMetadataAttribute(item, "numId", policy.MaxCellBytes)
 			case "abstractNumId":
 				if currentNum != "" {
-					value.numAbstract[currentNum] = strings.TrimSpace(xmlAttribute(item, "val"))
+					value.numAbstract[currentNum] = boundedDOCXMetadataAttribute(item, "val", policy.MaxCellBytes)
 				}
 			}
 		case xml.EndElement:
@@ -157,6 +176,14 @@ func readDOCXNumbering(ctx context.Context, files []*zip.File) (*docxNumbering, 
 		}
 	}
 	return value, nil
+}
+
+func boundedDOCXMetadataAttribute(start xml.StartElement, name string, maximum int) string {
+	value := strings.TrimSpace(xmlAttribute(start, name))
+	if len(value) > maximum {
+		return ""
+	}
+	return value
 }
 
 func (n *docxNumbering) label(numID string, level int, counters map[string][]int) string {
