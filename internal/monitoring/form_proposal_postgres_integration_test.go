@@ -84,10 +84,12 @@ func TestPostgresFormProposalAcceptanceIsAtomicAndAuditable(t *testing.T) {
 	generatedInput := created
 	generatedInput.ProposedContract = contract
 	generatedInput.FieldChanges = []documentimport.FormFieldChange{{ID: changeID, Kind: "ADD_FIELD", Field: contract.Fields[0]}}
-	generatedInput.Provenance = FormProposalProvenance{FormProposalProvenance: documentimport.FormProposalProvenance{
-		ProposalVersion: "FORM_TEMPLATE_PROPOSAL_V1", SourceDocumentID: documentID, SourceSHA256: sha256,
-		SourceVersion: 1, ParserVersion: "DOCX_XML_STREAM_V3", ExtractionStatus: string(documentimport.ExtractionExtracted),
-	}}
+	generatedInput.Provenance = FormProposalProvenance{
+		FormProposalProvenance: documentimport.FormProposalProvenance{
+			ProposalVersion: "FORM_TEMPLATE_PROPOSAL_V1", SourceDocumentID: documentID, SourceSHA256: sha256,
+			SourceVersion: 1, ParserVersion: "DOCX_XML_STREAM_V3", ExtractionStatus: string(documentimport.ExtractionExtracted),
+		},
+	}
 	generatedInput.UpdatedAt = now.Add(time.Second)
 	generated, err := store.CompleteGeneration(ctx, generatedInput, created.Version)
 	if err != nil {
