@@ -57,10 +57,10 @@ func TestDOCXFormControlsKeepCheckboxAndTextInput(t *testing.T) {
 }
 
 func TestDOCXNumberingAndNestedTableAnchorsArePreserved(t *testing.T) {
-	data := zipFixture(t, map[string][]byte{
-		"word/numbering.xml": []byte(`<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:abstractNum w:abstractNumId="7"><w:lvl w:ilvl="0"><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/></w:lvl></w:abstractNum><w:num w:numId="3"><w:abstractNumId w:val="7"/></w:num></w:numbering>`),
-		"word/document.xml": []byte(`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="3"/></w:numPr></w:pPr><w:r><w:t>Provide registration details</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p><w:r><w:t>Country</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>Nigeria</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:body></w:document>`),
-	})
+	entries := map[string][]byte{}
+	entries["word/numbering.xml"] = []byte(`<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:abstractNum w:abstractNumId="7"><w:lvl w:ilvl="0"><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/></w:lvl></w:abstractNum><w:num w:numId="3"><w:abstractNumId w:val="7"/></w:num></w:numbering>`)
+	entries["word/document.xml"] = []byte(`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="3"/></w:numPr></w:pPr><w:r><w:t>Provide registration details</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p><w:r><w:t>Country</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>Nigeria</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:body></w:document>`)
+	data := zipFixture(t, entries)
 
 	result, err := extractDOCX(context.Background(), data, DefaultExtractionPolicy())
 	if err != nil {
@@ -82,10 +82,10 @@ func TestDOCXNumberingAndNestedTableAnchorsArePreserved(t *testing.T) {
 }
 
 func TestDOCXHyperlinksResolveOnlyAllowlistedRelationships(t *testing.T) {
-	data := zipFixture(t, map[string][]byte{
-		"word/_rels/document.xml.rels": []byte(`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://example.com/policy" TargetMode="External"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="javascript:alert(1)" TargetMode="External"/></Relationships>`),
-		"word/document.xml": []byte(`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body><w:p><w:hyperlink r:id="rId1"><w:r><w:t>Policy source</w:t></w:r></w:hyperlink></w:p><w:p><w:hyperlink r:id="rId2"><w:r><w:t>Unsafe source</w:t></w:r></w:hyperlink></w:p></w:body></w:document>`),
-	})
+	entries := map[string][]byte{}
+	entries["word/_rels/document.xml.rels"] = []byte(`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://example.com/policy" TargetMode="External"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="javascript:alert(1)" TargetMode="External"/></Relationships>`)
+	entries["word/document.xml"] = []byte(`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body><w:p><w:hyperlink r:id="rId1"><w:r><w:t>Policy source</w:t></w:r></w:hyperlink></w:p><w:p><w:hyperlink r:id="rId2"><w:r><w:t>Unsafe source</w:t></w:r></w:hyperlink></w:p></w:body></w:document>`)
+	data := zipFixture(t, entries)
 
 	result, err := extractDOCX(context.Background(), data, DefaultExtractionPolicy())
 	if err != nil {
