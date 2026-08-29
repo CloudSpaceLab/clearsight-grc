@@ -24,6 +24,9 @@ func TestApplyAssessmentResponseUpdatesAcceptedIdentityAndStoresIdempotentReceip
 	if first.Receipt.PriorVendorVersion != 1 || first.Receipt.ResultVendorVersion != 2 || len(first.Receipt.AcceptedFieldIDs) != 1 || first.Receipt.AcceptedFieldIDs[0] != "legal_name" {
 		t.Fatalf("unexpected application receipt: %#v", first.Receipt)
 	}
+	if first.Review.ApplicationReceipt == nil || first.Review.ApplicationReceipt.ID != first.Receipt.ID {
+		t.Fatalf("review did not expose the immutable application receipt: %#v", first.Review.ApplicationReceipt)
+	}
 	updated, err := repository.GetVendor(context.Background(), Scope{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID}, "vendor-1")
 	if err != nil || updated.LegalName != "Vendor Holdings Limited" || updated.TradingName != "Vendor" || updated.Version != 2 {
 		t.Fatalf("updated vendor = %#v err=%v", updated, err)

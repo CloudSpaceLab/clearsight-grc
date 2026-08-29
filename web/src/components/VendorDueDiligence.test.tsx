@@ -33,10 +33,13 @@ function primaryActions() {
 describe("VendorDueDiligence", () => {
   it("offers governed form setup when no active form is available", () => {
     const onSetUpForm = vi.fn();
-    render(<VendorDueDiligence relationship={relationship} assessment={null} onSetUpForm={onSetUpForm}/>);
-    expect(screen.getByText(/No active due-diligence form is available for this legal entity/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Set up due-diligence form" }));
+    const onOpenForms = vi.fn();
+    render(<VendorDueDiligence relationship={relationship} assessment={null} onSetUpForm={onSetUpForm} onOpenForms={onOpenForms}/>);
+    expect(screen.getByText(/No active due-diligence form was found in this legal entity/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Use a starter template" }));
     expect(onSetUpForm).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "Open Forms" }));
+    expect(onOpenForms).toHaveBeenCalledOnce();
     expect(primaryActions()).toHaveLength(1);
   });
 
@@ -80,7 +83,28 @@ describe("VendorDueDiligence", () => {
       form_template_id: "form-1",
       form_template_version: 3,
       review_due_at: "2099-09-30T23:59:59.000Z",
+      scope_kind: "FULL",
+      selected_field_ids: [],
     }));
+  });
+
+  it("starts a focused reassessment for selected held records", async () => {
+    const managedRelationship = { ...relationship, relationship: { ...relationship.relationship, status: "ACTIVE" as const } };
+    const focusedForm = { ...form, fields: [{ id: "registered-address", label: "Registered address", type: "LONG_TEXT", collection_intent: "CONFIRM_OR_CORRECT" as const, target_key: "VENDOR.IDENTITY.REGISTERED_ADDRESS" }] };
+    const onStart = vi.fn().mockResolvedValue(assessment("SETUP_PENDING"));
+    render(<VendorDueDiligence relationship={managedRelationship} assessment={assessment("COMPLETED")} form={focusedForm} defaultReviewDueDate="2099-09-30" onStart={onStart}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Start reassessment" }));
+    fireEvent.change(screen.getByLabelText("Review reference"), { target: { value: "address-refresh-2099" } });
+    fireEvent.click(screen.getByLabelText("Selected held records only"));
+    expect((screen.getByLabelText(/Registered address/) as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Start reassessment" }));
+
+    await waitFor(() => expect(onStart).toHaveBeenCalledWith(expect.objectContaining({
+      scope_kind: "FOCUSED",
+      selected_field_ids: ["registered-address"],
+      source_trigger: "address-refresh-2099",
+    })));
   });
 
   it.each([

@@ -19,7 +19,10 @@ import type {
   VendorAssessmentReviewView,
   VendorAssessmentSendOutcome,
   VendorAssessmentSetupRetryOutcome,
+  VendorAssessmentApplicationResult,
+  ApplyVendorAssessmentResponseInput,
 } from "../vendorAssessmentTypes";
+import { VendorResponseReview } from "./forms/VendorResponseReview";
 import "./vendor-due-diligence.css";
 
 type ViewState = "live" | "loading" | "unavailable";
@@ -28,6 +31,7 @@ type Props = {
   relationship: VendorRelationshipAggregate;
   assessment?: VendorAssessment | null;
   form?: VendorAssessmentFormOption;
+  forms?: VendorAssessmentFormOption[];
   review?: VendorAssessmentReviewView;
   reviewState?: ViewState;
   requestOutcome?: VendorAssessmentSendOutcome;
@@ -53,6 +57,8 @@ type Props = {
   onComplete?: (assessmentID: string, input: CompleteVendorAssessmentInput) => Promise<VendorAssessment | void> | VendorAssessment | void;
   onCancelAssessment?: (assessmentID: string, input: CancelVendorAssessmentInput) => Promise<VendorAssessment | void> | VendorAssessment | void;
   onSetUpForm?: () => void;
+  onOpenForms?: () => void;
+  onApplyResponse?: (assessmentID: string, revisionID: string, input: ApplyVendorAssessmentResponseInput) => Promise<VendorAssessmentApplicationResult>;
 };
 
 type ActionPanel = "start" | "send" | "reissue" | "clarification" | "deficiency" | "document" | "conclusion" | "cancelAssessment" | null;
@@ -69,6 +75,7 @@ export function VendorDueDiligence({
   relationship,
   assessment,
   form,
+  forms = [],
   review,
   reviewState = "live",
   requestOutcome,
@@ -94,6 +101,8 @@ export function VendorDueDiligence({
   onComplete,
   onCancelAssessment,
   onSetUpForm,
+  onOpenForms,
+  onApplyResponse,
 }: Props) {
   const [panel, setPanel] = useState<ActionPanel>(null);
   const [localAssessment, setLocalAssessment] = useState<VendorAssessment | null | undefined>(assessment);
@@ -102,6 +111,11 @@ export function VendorDueDiligence({
   const [reviewDueDate, setReviewDueDate] = useState(defaultReviewDueDate);
   const [reviewKind, setReviewKind] = useState<Extract<VendorAssessmentReviewKind, "PERIODIC" | "TRIGGERED">>("PERIODIC");
   const [reviewReference, setReviewReference] = useState("");
+  const availableForms = useMemo(() => forms.length ? forms : form ? [form] : [], [forms, form]);
+  const [selectedFormKey, setSelectedFormKey] = useState(form ? `${form.id}:${form.version}` : "");
+  const [scopeKind, setScopeKind] = useState<"FULL" | "FOCUSED">("FULL");
+  const [selectedFieldIDs, setSelectedFieldIDs] = useState<string[]>([]);
+  const [applicationComplete, setApplicationComplete] = useState(false);
   const [recipient, setRecipient] = useState("");
   const [responseDueDate, setResponseDueDate] = useState("");
   const [invitationMinutes, setInvitationMinutes] = useState(1440);
@@ -142,6 +156,9 @@ export function VendorDueDiligence({
     setUncertainty("");
     setNextReviewDate("");
     setCancellationReason("");
+    setScopeKind("FULL");
+    setSelectedFieldIDs([]);
+    setApplicationComplete(false);
   }, [assessment?.id]);
 
   useEffect(() => {
@@ -149,6 +166,8 @@ export function VendorDueDiligence({
     setPanel(null);
     if (assessment?.status !== "COLLECTING") setClarificationOutcome(undefined);
   }, [assessment]);
+
+  useEffect(() => setApplicationComplete(Boolean(review?.application_receipt)), [assessment?.id, review?.application_receipt?.id]);
 
   const effectiveOutcome = localOutcome ?? requestOutcome;
   const effectiveOutcomeKind = localOutcome ? localOutcomeKind : requestOutcomeKind;
@@ -163,6 +182,13 @@ export function VendorDueDiligence({
 
   const statusCopy = useMemo(() => assessmentStatusCopy(effectiveAssessment, setupFailure), [effectiveAssessment, setupFailure]);
   const startMode = assessmentStartMode(relationship.relationship.status, effectiveAssessment);
+  const selectedForm = availableForms.find((value) => `${value.id}:${value.version}` === selectedFormKey) ?? availableForms[0];
+  const responseRequiresApplication = Boolean(onApplyResponse && review?.answers.some((answer) => answer.baseline));
+
+  useEffect(() => {
+    if (!availableForms.length) { setSelectedFormKey(""); return; }
+    if (!availableForms.some((value) => `${value.id}:${value.version}` === selectedFormKey)) setSelectedFormKey(`${availableForms[0]!.id}:${availableForms[0]!.version}`);
+  }, [availableForms, selectedFormKey]);
 
   function openPanel(next: ActionPanel) {
     setPanel(next);
@@ -172,8 +198,8 @@ export function VendorDueDiligence({
 
   async function startAssessment(event: React.FormEvent) {
     event.preventDefault();
-    if (!form || !onStart || !reviewDueDate || Date.parse(endOfDay(reviewDueDate)) <= Date.now() || (startMode === "reassessment" && !reviewReference.trim())) {
-      setError(startMode === "reassessment" ? "Choose a review type, enter the bank review reference and set a future due date." : "Choose an active collection form and review due date before starting due diligence.");
+    if (!selectedForm || !onStart || !reviewDueDate || Date.parse(endOfDay(reviewDueDate)) <= Date.now() || (startMode === "reassessment" && (!reviewReference.trim() || (scopeKind === "FOCUSED" && selectedFieldIDs.length === 0)))) {
+      setError(startMode === "reassessment" ? "Choose a review type, enter the bank review reference and set a future due date. A focused review must include at least one held record." : "Choose an active collection form and review due date before starting due diligence.");
       return;
     }
     setBusy(true);
@@ -187,9 +213,10 @@ export function VendorDueDiligence({
       const result = await onStart({
         relationship_version: relationship.relationship.version,
         ...episode,
-        form_template_id: form.id,
-        form_template_version: form.version,
+        form_template_id: selectedForm.id,
+        form_template_version: selectedForm.version,
         review_due_at: endOfDay(reviewDueDate),
+        ...(startMode === "reassessment" ? { scope_kind: scopeKind, selected_field_ids: scopeKind === "FOCUSED" ? selectedFieldIDs : [] } : {}),
       });
       if (result) setLocalAssessment(result);
       setPanel(null);
@@ -469,7 +496,9 @@ export function VendorDueDiligence({
 
     {reviewState === "live" && review && <ReviewSummary review={review} assessment={effectiveAssessment} onOpenMatter={onOpenMatter} onOpenDocument={!panel && onOpenDocument ? onOpenDocument : undefined} onReviewDocument={!panel && onReviewDocument ? openDocumentReview : undefined} onCreateDeficiency={!panel && onCreateDeficiency ? () => openPanel("deficiency") : undefined}/>}
 
-    {panel === "start" && startMode && <StartPanel mode={startMode} form={form} reviewDueDate={reviewDueDate} reviewKind={reviewKind} reviewReference={reviewReference} minimumDate={minimumFutureDate} busy={busy} onReviewDueDate={setReviewDueDate} onReviewKind={setReviewKind} onReviewReference={setReviewReference} onCancel={() => setPanel(null)} onSubmit={startAssessment}/>}
+    {status === "UNDER_REVIEW" && reviewState === "live" && review && onApplyResponse && <VendorResponseReview relationship={relationship} review={review} onApply={onApplyResponse} onApplied={(result) => { setLocalAssessment(result.review.assessment); setApplicationComplete(true); }}/>}
+
+    {panel === "start" && startMode && <StartPanel mode={startMode} forms={availableForms} selectedForm={selectedForm} onSelectedForm={setSelectedFormKey} scopeKind={scopeKind} selectedFieldIDs={selectedFieldIDs} onScopeKind={setScopeKind} onSelectedFieldIDs={setSelectedFieldIDs} reviewDueDate={reviewDueDate} reviewKind={reviewKind} reviewReference={reviewReference} minimumDate={minimumFutureDate} busy={busy} onReviewDueDate={setReviewDueDate} onReviewKind={setReviewKind} onReviewReference={setReviewReference} onCancel={() => setPanel(null)} onSubmit={startAssessment}/>}
     {panel === "send" && effectiveAssessment && <SendPanel recipient={recipient} responseDueDate={responseDueDate} invitationMinutes={invitationMinutes} minimumDate={minimumFutureDate} reviewDueAt={effectiveAssessment.review_due_at} busy={busy} onRecipient={setRecipient} onResponseDueDate={setResponseDueDate} onInvitationMinutes={setInvitationMinutes} onCancel={() => { setRecipient(""); setPanel(null); }} onSubmit={sendRequest}/>}
     {panel === "reissue" && effectiveAssessment && <ReissuePanel recipient={recipient} invitationMinutes={invitationMinutes} busy={busy} onRecipient={setRecipient} onInvitationMinutes={setInvitationMinutes} onCancel={() => { setRecipient(""); setPanel(null); }} onSubmit={reissueRequest}/>}
     {panel === "clarification" && effectiveAssessment && <ClarificationPanel fields={availableClarificationFields} selected={selectedClarificationFields} message={clarificationMessage} recipient={clarificationRecipient} dueDate={clarificationDueDate} invitationMinutes={clarificationInvitationMinutes} minimumDate={minimumFutureDate} reviewDueAt={effectiveAssessment.review_due_at} busy={busy} onSelected={setSelectedClarificationFields} onMessage={setClarificationMessage} onRecipient={setClarificationRecipient} onDueDate={setClarificationDueDate} onInvitationMinutes={setClarificationInvitationMinutes} onCancel={() => { setClarificationRecipient(""); setPanel(null); }} onSubmit={submitClarification}/>}
@@ -482,17 +511,17 @@ export function VendorDueDiligence({
       {status === "COLLECTING" ? <><button type="button" className="primary-button" onClick={() => requestID && onOpenRequest?.(requestID)} disabled={!requestID || !onOpenRequest}>Review request status</button>{clarificationOutcome?.capture_url && <button type="button" className="secondary-button" onClick={() => void copyClarificationLink()}>Copy clarification link</button>}{effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <button type="button" className="secondary-button" onClick={() => void copyCaptureLink()}>{effectiveOutcomeKind === "replacement" ? "Copy replacement link" : "Copy secure link"}</button> : <button type="button" className="secondary-button" onClick={() => openPanel("reissue")} disabled={!onReissue}>{effectiveOutcomeKind === "replacement" && effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? "Retry replacement link" : "Send replacement link"}</button>}</>
         : effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <button type="button" className="primary-button" onClick={() => void copyCaptureLink()}>Copy secure link</button>
         : effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? <button type="button" className="primary-button" onClick={() => openPanel("send")} disabled={!onSend}>Retry invitation creation</button>
-          : startMode ? form ? <button type="button" className="primary-button" onClick={() => openPanel("start")} disabled={!onStart}>{startActionLabel(startMode)}</button> : <button type="button" className="primary-button" onClick={onSetUpForm} disabled={!onSetUpForm}>Set up due-diligence form</button>
+          : startMode ? availableForms.length ? <button type="button" className="primary-button" onClick={() => openPanel("start")} disabled={!onStart}>{startActionLabel(startMode)}</button> : <><button type="button" className="primary-button" onClick={onSetUpForm} disabled={!onSetUpForm}>Use a starter template</button>{onOpenForms && <button type="button" className="secondary-button" onClick={onOpenForms}>Open Forms</button>}</>
             : status === "SETUP_PENDING" ? setupFailure ? <button type="button" className="primary-button" onClick={() => void retrySetup()} disabled={!onRetrySetup || busy}>{busy ? "Queuing setup…" : "Retry due diligence setup"}</button> : <button type="button" className="primary-button" onClick={() => void onRefresh?.()} disabled={!onRefresh}>View setup status</button>
               : status === "READY_TO_SEND" ? <button type="button" className="primary-button" onClick={() => openPanel("send")} disabled={!onSend}>Send due diligence request</button>
                 : status === "SUBMITTED" ? <button type="button" className="primary-button" onClick={() => void startReview()} disabled={!onStartReview || busy || reviewState !== "live"}>{busy ? "Opening review…" : "Review vendor response"}</button>
-                    : status === "UNDER_REVIEW" ? <button type="button" className="primary-button" onClick={() => openPanel("conclusion")} disabled={!onComplete || reviewState !== "live"}>Record assessment conclusion</button>
+                    : status === "UNDER_REVIEW" && (!responseRequiresApplication || applicationComplete) ? <button type="button" className="primary-button" onClick={() => openPanel("conclusion")} disabled={!onComplete || reviewState !== "live"}>Record assessment conclusion</button>
                       : null}
       {status === "UNDER_REVIEW" && onRequestClarification && <button type="button" className="secondary-button" onClick={() => openPanel("clarification")}>Request clarification</button>}
       {effectiveAssessment && !["COMPLETED", "CANCELLED"].includes(effectiveAssessment.status) && onCancelAssessment && <button type="button" className="secondary-button" onClick={() => openPanel("cancelAssessment")}>Cancel assessment</button>}
     </div>}
 
-    {!form && !effectiveAssessment && <p className="vdd-limitation">No active due-diligence form is available for this legal entity. Set up and independently approve a form before starting this vendor review.</p>}
+    {!availableForms.length && !effectiveAssessment && <p className="vdd-limitation">No active due-diligence form was found in this legal entity. Create a governed draft or open Forms to review and approve an existing template before starting this vendor review.</p>}
   </section>;
 }
 
@@ -504,14 +533,17 @@ function CancelAssessmentPanel({ reason, busy, onReason, onCancel, onSubmit }: {
   </form>;
 }
 
-function StartPanel({ mode, form, reviewDueDate, reviewKind, reviewReference, minimumDate, busy, onReviewDueDate, onReviewKind, onReviewReference, onCancel, onSubmit }: { mode: AssessmentStartMode; form?: VendorAssessmentFormOption; reviewDueDate: string; reviewKind: Extract<VendorAssessmentReviewKind, "PERIODIC" | "TRIGGERED">; reviewReference: string; minimumDate: string; busy: boolean; onReviewDueDate: (value: string) => void; onReviewKind: (value: Extract<VendorAssessmentReviewKind, "PERIODIC" | "TRIGGERED">) => void; onReviewReference: (value: string) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
+function StartPanel({ mode, forms, selectedForm, onSelectedForm, scopeKind, selectedFieldIDs, onScopeKind, onSelectedFieldIDs, reviewDueDate, reviewKind, reviewReference, minimumDate, busy, onReviewDueDate, onReviewKind, onReviewReference, onCancel, onSubmit }: { mode: AssessmentStartMode; forms: VendorAssessmentFormOption[]; selectedForm?: VendorAssessmentFormOption; onSelectedForm: (value: string) => void; scopeKind: "FULL" | "FOCUSED"; selectedFieldIDs: string[]; onScopeKind: (value: "FULL" | "FOCUSED") => void; onSelectedFieldIDs: (value: string[]) => void; reviewDueDate: string; reviewKind: Extract<VendorAssessmentReviewKind, "PERIODIC" | "TRIGGERED">; reviewReference: string; minimumDate: string; busy: boolean; onReviewDueDate: (value: string) => void; onReviewKind: (value: Extract<VendorAssessmentReviewKind, "PERIODIC" | "TRIGGERED">) => void; onReviewReference: (value: string) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
   const action = startActionLabel(mode);
+  const refreshFields = selectedForm?.fields?.filter((field) => field.collection_intent && field.collection_intent !== "CAPTURE" && field.target_key) ?? [];
   return <form className="vdd-panel" onSubmit={onSubmit} noValidate>
     <div><span className="eyebrow">Assessment setup</span><h3>{action}</h3><p>{mode === "reassessment" ? "Use the bank review reference that identifies this review. Known vendor and service details will remain available to the form." : mode === "restart" ? "Start a new onboarding review while preserving the cancelled assessment and its history." : "The selected form will use the current vendor and service details as known context."}</p></div>
-    <dl className="vdd-preview"><div><dt>Collection form</dt><dd>{form?.name ?? "No active form"}</dd></div><div><dt>Form version</dt><dd>{form ? `Version ${form.version}` : "Not available"}</dd></div><div><dt>Response layout</dt><dd>{form ? presentationLabel(form.presentation) : "Not available"}</dd></div></dl>
+    <label className="vdd-field"><span>Active collection form</span><select value={selectedForm ? `${selectedForm.id}:${selectedForm.version}` : ""} onChange={(event) => { onSelectedForm(event.target.value); onSelectedFieldIDs([]); }}><option value="">Select an active form</option>{forms.map((item) => <option key={`${item.id}:${item.version}`} value={`${item.id}:${item.version}`}>{item.name} · version {item.version}</option>)}</select></label>
+    <dl className="vdd-preview"><div><dt>Collection form</dt><dd>{selectedForm?.name ?? "No active form"}</dd></div><div><dt>Form version</dt><dd>{selectedForm ? `Version ${selectedForm.version}` : "Not available"}</dd></div><div><dt>Response layout</dt><dd>{selectedForm ? presentationLabel(selectedForm.presentation) : "Not available"}</dd></div></dl>
     {mode === "reassessment" && <div className="vdd-form-grid"><label className="vdd-field"><span>Review type</span><select value={reviewKind} onChange={(event) => onReviewKind(event.target.value as Extract<VendorAssessmentReviewKind, "PERIODIC" | "TRIGGERED">)}><option value="PERIODIC">Scheduled review</option><option value="TRIGGERED">Event or change</option></select></label><label className="vdd-field"><span>Review reference</span><input value={reviewReference} maxLength={128} onChange={(event) => onReviewReference(event.target.value)} required/></label></div>}
+    {mode === "reassessment" && <fieldset className="vdd-fieldset"><legend>Information to request</legend><label><input type="radio" name="assessment-scope" checked={scopeKind === "FULL"} onChange={() => { onScopeKind("FULL"); onSelectedFieldIDs([]); }}/><span>Full form</span></label><label><input type="radio" name="assessment-scope" checked={scopeKind === "FOCUSED"} disabled={refreshFields.length === 0} onChange={() => { onScopeKind("FOCUSED"); onSelectedFieldIDs(refreshFields.map((field) => field.id)); }}/><span>Selected held records only</span></label>{scopeKind === "FOCUSED" && <div className="vdd-refresh-fields">{refreshFields.map((field) => <label key={field.id}><input type="checkbox" checked={selectedFieldIDs.includes(field.id)} onChange={(event) => onSelectedFieldIDs(event.target.checked ? [...selectedFieldIDs, field.id] : selectedFieldIDs.filter((id) => id !== field.id))}/><span>{field.label}<small>{humanizeStatus(field.collection_intent ?? "CAPTURE")}</small></span></label>)}</div>}</fieldset>}
     <label className="vdd-field"><span>Review due date</span><input type="date" min={minimumDate} value={reviewDueDate} onChange={(event) => onReviewDueDate(event.target.value)} required/></label>
-    <div className="vdd-panel-actions"><button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>Cancel</button><button type="submit" className="primary-button" disabled={busy || !form || (mode === "reassessment" && !reviewReference.trim())}>{busy ? "Starting…" : action}</button></div>
+    <div className="vdd-panel-actions"><button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>Cancel</button><button type="submit" className="primary-button" disabled={busy || !selectedForm || (mode === "reassessment" && (!reviewReference.trim() || (scopeKind === "FOCUSED" && selectedFieldIDs.length === 0)))}>{busy ? "Starting…" : action}</button></div>
   </form>;
 }
 

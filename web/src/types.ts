@@ -40,6 +40,7 @@ export type CaptureAnswerValue = { text?: string; values?: string[]; artifact_id
 export type CaptureAnswers = Record<string, CaptureAnswerValue>;
 export type LegacyCaptureAnswers = Record<string, string>;
 export type CaptureAnswerInputs = Record<string, CaptureAnswerValue | string>;
+export type CaptureRecordBaseline = { target_key: string; subject_type: string; subject_id: string; record_id: string; display_value: string; source_label: string; record_version: number; observed_or_confirmed_at: string; expires_at?: string };
 export type CaptureField = {
   id: string;
   section_id?: string;
@@ -54,6 +55,10 @@ export type CaptureField = {
   condition?: CaptureVisibilityCondition;
   bindings?: FieldBindingReference[];
   source_resolutions?: SourceResolution[];
+  collection_intent?: "CAPTURE" | "CONFIRM_OR_CORRECT" | "REPLACE_HELD_DOCUMENT";
+  record_target?: { key: string; required_subject_type: string };
+  record_baseline?: CaptureRecordBaseline;
+  browser_cache_policy?: "ALLOWED" | "NO_BROWSER_CACHE";
 };
 export type CaptureFormContract = { presentation: CapturePresentation; sections: CaptureSection[]; fields: CaptureField[] };
 export type CaptureDraft = { answers: CaptureAnswers; presentation_mode: CapturePresentationMode; version: number };

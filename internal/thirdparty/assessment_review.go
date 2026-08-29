@@ -2,6 +2,7 @@ package thirdparty
 
 import (
 	"context"
+	"errors"
 	"sort"
 	"strings"
 	"time"
@@ -98,15 +99,16 @@ type AssessmentReviewMatter struct {
 }
 
 type AssessmentReviewView struct {
-	Assessment       Assessment                 `json:"assessment"`
-	Requests         []AssessmentReviewRequest  `json:"requests"`
-	Response         *AssessmentReviewResponse  `json:"response,omitempty"`
-	Answers          []AssessmentReviewAnswer   `json:"answers"`
-	Coverage         AssessmentReviewCoverage   `json:"coverage"`
-	Documents        []AssessmentReviewDocument `json:"documents"`
-	ProvisionalScore *formcontract.ScoreResult  `json:"provisional_score,omitempty"`
-	Matters          []AssessmentReviewMatter   `json:"matters"`
-	artifactStatuses []evidence.ArtifactStatus
+	Assessment         Assessment                  `json:"assessment"`
+	Requests           []AssessmentReviewRequest   `json:"requests"`
+	Response           *AssessmentReviewResponse   `json:"response,omitempty"`
+	Answers            []AssessmentReviewAnswer    `json:"answers"`
+	Coverage           AssessmentReviewCoverage    `json:"coverage"`
+	Documents          []AssessmentReviewDocument  `json:"documents"`
+	ProvisionalScore   *formcontract.ScoreResult   `json:"provisional_score,omitempty"`
+	Matters            []AssessmentReviewMatter    `json:"matters"`
+	ApplicationReceipt *ResponseApplicationReceipt `json:"application_receipt,omitempty"`
+	artifactStatuses   []evidence.ArtifactStatus
 }
 
 type AssessmentReviewLinkReader interface {
@@ -125,6 +127,10 @@ type AssessmentReviewMatterReader interface {
 
 type AssessmentReviewDocumentReader interface {
 	ListAssessmentDocuments(context.Context, Scope, string, int) ([]AssessmentDocument, error)
+}
+
+type AssessmentReviewApplicationReader interface {
+	GetResponseApplicationReceipt(context.Context, Scope, string, string) (ResponseApplicationReceipt, error)
 }
 
 type AssessmentReviewAuthority interface {
@@ -277,6 +283,16 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 			}
 		}
 		view.Matters = append(view.Matters, values...)
+	}
+	if assessment.SubmissionID != "" {
+		if applications, ok := s.links.(AssessmentReviewApplicationReader); ok {
+			receipt, readErr := applications.GetResponseApplicationReceipt(ctx, scope, assessment.ID, assessment.SubmissionID)
+			if readErr == nil {
+				view.ApplicationReceipt = &receipt
+			} else if !errors.Is(readErr, ErrNotFound) {
+				return AssessmentReviewView{}, readErr
+			}
+		}
 	}
 	return view, nil
 }

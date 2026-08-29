@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
-import { completeVendorAssessment, createVendorAssessmentDeficiency, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, requestVendorAssessmentClarification, retryVendorAssessmentSetup, reviewVendorAssessmentDocument, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview, vendorAssessmentDocumentURL } from "../vendorAssessmentApi";
+import { applyVendorAssessmentResponse, completeVendorAssessment, createVendorAssessmentDeficiency, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, requestVendorAssessmentClarification, retryVendorAssessmentSetup, reviewVendorAssessmentDocument, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview, vendorAssessmentDocumentURL } from "../vendorAssessmentApi";
 import type { VendorAssessment, VendorAssessmentReviewView } from "../vendorAssessmentTypes";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import { createVendorRelationship, loadVendorIdentity, loadVendorRelationship, loadVendorRelationships, removeApprovedVendorLogo, updateVendorIdentity, updateVendorRelationship, uploadApprovedVendorLogo } from "../vendorApi";
@@ -24,6 +24,7 @@ vi.mock("../vendorApi", async (importOriginal) => ({
 
 vi.mock("../monitoringApi", () => ({ loadFormTemplates: vi.fn() }));
 vi.mock("../vendorAssessmentApi", () => ({
+  applyVendorAssessmentResponse: vi.fn(),
   completeVendorAssessment: vi.fn(),
   createVendorAssessmentDeficiency: vi.fn(),
   loadCurrentVendorAssessment: vi.fn(),
@@ -355,7 +356,7 @@ describe("VendorsWorkspace", () => {
     vi.mocked(loadFormTemplates).mockResolvedValue([]);
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Set up due-diligence form" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Use a starter template" }));
     const dialog = screen.getByRole("dialog", { name: "Set up due-diligence form" });
     expect(dialog).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Activate test form" }));
@@ -419,6 +420,8 @@ describe("VendorsWorkspace", () => {
       form_template_id: "form-1",
       form_template_version: 3,
       review_due_at: "2099-09-30T23:59:59.000Z",
+      scope_kind: "FULL",
+      selected_field_ids: [],
     }));
     expect(screen.queryByText("Proceed after the recorded access-control action is complete.")).toBeNull();
     expect(screen.queryByText(/Independent security testing/)).toBeNull();

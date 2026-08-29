@@ -26,6 +26,9 @@ export type VendorAssessment = {
   status: VendorAssessmentStatus;
   form_template_id: string;
   form_template_version: number;
+  scope_kind?: "FULL" | "FOCUSED";
+  scope_version?: number;
+  selected_field_ids?: string[];
   current_request_id?: string;
   submission_id?: string;
   review_matter_id?: string;
@@ -51,6 +54,7 @@ export type VendorAssessmentFormOption = {
   version: number;
   name: string;
   presentation: "CLASSIC" | "WIZARD" | "AUTOMATIC";
+  fields?: { id: string; label: string; collection_intent?: "CAPTURE" | "CONFIRM_OR_CORRECT" | "REPLACE_HELD_DOCUMENT"; target_key?: string }[];
 };
 
 export type StartVendorAssessmentInput = {
@@ -61,6 +65,8 @@ export type StartVendorAssessmentInput = {
   form_template_id: string;
   form_template_version: number;
   review_due_at: string;
+  scope_kind?: "FULL" | "FOCUSED";
+  selected_field_ids?: string[];
 };
 
 export type SendVendorAssessmentRequestInput = {
@@ -169,6 +175,17 @@ export type VendorAssessmentReviewAnswer = {
   type: string;
   required: boolean;
   visibility: "VISIBLE" | "CONDITIONALLY_OMITTED";
+  baseline?: {
+    target_key: string;
+    subject_type: string;
+    subject_id: string;
+    record_id: string;
+    display_value: string;
+    source_label: string;
+    record_version: number;
+    observed_or_confirmed_at: string;
+    expires_at?: string;
+  };
   value?: VendorAssessmentAnswerValue;
   provenance?: {
     origin?: "SOURCE_PREFILLED" | "RESPONDENT_ENTERED" | "RESPONDENT_CORRECTED" | string;
@@ -239,6 +256,7 @@ export type VendorAssessmentReviewView = {
   documents: VendorAssessmentDocument[];
   provisional_score?: VendorAssessmentProvisionalScore;
   matters: VendorAssessmentFinding[];
+  application_receipt?: VendorAssessmentApplicationReceipt;
 };
 
 export type StartVendorAssessmentReviewInput = { expected_version: number };
@@ -307,3 +325,12 @@ export type VendorAssessmentDeficiencyOutcome = {
     };
   };
 };
+
+export type VendorAssessmentFieldApplicationDecision = { field_id: string; decision: "ACCEPT" | "REJECT"; rationale: string };
+export type ApplyVendorAssessmentResponseInput = { expected_assessment_version: number; expected_submission_revision: number; decisions: VendorAssessmentFieldApplicationDecision[] };
+export type VendorAssessmentApplicationReceipt = {
+  id: string; assessment_id: string; distribution_id?: string; response_revision_id: string; vendor_id: string; actor_principal_id: string;
+  accepted_field_ids: string[]; rejected_field_ids: string[]; decisions: VendorAssessmentFieldApplicationDecision[];
+  prior_vendor_version: number; result_vendor_version: number; result_assessment_version: number; applied_at: string;
+};
+export type VendorAssessmentApplicationResult = { receipt: VendorAssessmentApplicationReceipt; review: VendorAssessmentReviewView };

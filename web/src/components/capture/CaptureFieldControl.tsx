@@ -1,6 +1,7 @@
 import type { CaptureAnswerValue, CaptureDocumentAnswer, CaptureField } from "../../types";
 import { FileDropzone } from "../FileDropzone";
 import { SignatureCapture } from "../SignatureCapture";
+import { HeldValueField } from "../forms/HeldValueField";
 import { answerText, answerValues, normalizeFieldType } from "./contract";
 
 export type CaptureAttachment = { id?: string; file_name: string; media_type: string; size_bytes: number; preview_url?: string };
@@ -18,6 +19,10 @@ type Props = {
 };
 
 export function CaptureFieldControl({ field, value, attachments = [], uploading, external, error, onChange, onUpload, onRemove }: Props) {
+	if (field.record_baseline && field.collection_intent && field.collection_intent !== "CAPTURE") {
+		const captureField = { ...field, collection_intent: "CAPTURE" as const, record_baseline: undefined };
+		return <HeldValueField field={field} value={value} onChange={onChange} editor={<CaptureFieldControl field={captureField} value={value} attachments={attachments} uploading={uploading} external={external} error={error} onChange={onChange} onUpload={onUpload} onRemove={onRemove}/>}/>;
+	}
   const type = normalizeFieldType(field.type);
   if (!type) return null;
   const text = answerText(value);

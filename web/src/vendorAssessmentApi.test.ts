@@ -11,6 +11,7 @@ import {
   sendVendorAssessmentRequest,
   startVendorAssessment,
   startVendorAssessmentReview,
+  applyVendorAssessmentResponse,
 } from "./vendorAssessmentApi";
 import * as vendorAssessmentApi from "./vendorAssessmentApi";
 
@@ -225,5 +226,16 @@ describe("vendor assessment API", () => {
         expected_version: 6, decision: "VALIDATE", document_type: "SOC_2_TYPE_II", evidence_class: "BANK_VALIDATED", valid_until: "2027-05-31",
       }],
     ]);
+  });
+
+  it("applies reviewer decisions to the exact assessment response revision", async () => {
+    const result = { receipt: { id: "receipt-1" }, review: { assessment } };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(result), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const input = { expected_assessment_version: 8, expected_submission_revision: 1, decisions: [{ field_id: "legal_name", decision: "ACCEPT" as const, rationale: "Registration evidence supports the correction." }] };
+    await expect(applyVendorAssessmentResponse("assessment/1", "submission/4", input)).resolves.toEqual(result);
+    const call = fetchMock.mock.calls[0]!;
+    expect(call[0]).toBe("/api/v1/vendor-assessments/assessment%2F1/responses/submission%2F4/apply");
+    expect(JSON.parse(String((call[1] as RequestInit).body))).toEqual(input);
   });
 });

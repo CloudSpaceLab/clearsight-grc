@@ -17,6 +17,8 @@ import type {
   VendorAssessmentReviewView,
   VendorAssessmentSendOutcome,
   VendorAssessmentSetupRetryOutcome,
+  ApplyVendorAssessmentResponseInput,
+  VendorAssessmentApplicationResult,
 } from "./vendorAssessmentTypes";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -100,6 +102,13 @@ export function completeVendorAssessment(assessmentID: string, input: CompleteVe
 
 export function cancelVendorAssessment(assessmentID: string, input: CancelVendorAssessmentInput): Promise<VendorAssessment> {
   return requestJSON<VendorAssessment>(apiBase, `/api/v1/vendor-assessments/${encodeURIComponent(assessmentID)}/cancel`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function applyVendorAssessmentResponse(assessmentID: string, revisionID: string, input: ApplyVendorAssessmentResponseInput): Promise<VendorAssessmentApplicationResult> {
+  return requestJSON<VendorAssessmentApplicationResult>(apiBase, `/api/v1/vendor-assessments/${encodeURIComponent(assessmentID)}/responses/${encodeURIComponent(revisionID)}/apply`, {
     method: "POST",
     body: JSON.stringify(input),
   });
