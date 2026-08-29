@@ -87,7 +87,7 @@ export function FormPropertyPanel(props: Props) {
           <label><span>Active template revision</span><select value={selectedTemplateKey} onChange={(event) => void chooseReusableTemplate(event.target.value)}><option value="">Choose a template</option>{props.reusableTemplates!.map((ref) => <option key={`${ref.id}:${ref.version}`} value={`${ref.id}:${ref.version}`}>{reusableRefLabel(ref)}</option>)}</select></label>
           {sourceTemplate && <label><span>Section to insert</span><select value={sourceSectionID} onChange={(event) => setSourceSectionID(event.target.value)}>{(sourceTemplate.sections ?? []).map((section) => <option key={section.id} value={section.id}>{section.title}</option>)}</select></label>}
         </div>
-        {sourceState === "loading" && <p className="field-note" role="status">Loading the exact active revision…</p>}
+        {sourceState === "loading" && <p className="field-note" role="status">Loading the approved form version…</p>}
         {sourceState === "error" && <p className="inline-form-error" role="alert">The selected revision is no longer an active reusable template. No section was inserted.</p>}
         {sourceTemplate && <button className="secondary-button" type="button" disabled={!sourceSectionID || props.sections.length >= 20} onClick={() => props.onInsertReusableSection(sourceTemplate, sourceSectionID)}>Insert section</button>}
       </details>}

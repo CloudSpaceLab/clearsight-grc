@@ -52,7 +52,7 @@ export function CommunicationTemplateEditor({ initial, onSave, busy }: Props) {
   }), [initial?.id, initial?.version]);
 
   return <section className="forms-communication-editor" aria-labelledby="communication-editor-title">
-    <div className="forms-task-heading"><div><span>New governed revision</span><h3 id="communication-editor-title">{initial ? `Edit ${initial.action} · ${initial.locale} · v${initial.version}` : "Create communication template"}</h3><p>Saving creates a new immutable draft revision. Protected variables are token nodes and cannot be edited character-by-character.</p></div></div>
+    <div className="forms-task-heading"><div><span>New message version</span><h3 id="communication-editor-title">{initial ? `Edit ${initial.action} · ${initial.locale} · v${initial.version}` : "Create communication template"}</h3><p>Saving creates a new draft version. Protected variables remain fixed so secure links and recipient details render safely.</p></div></div>
     <div className="forms-task-grid">
       <label><span>Action</span><select value={action} onChange={(event) => setAction(event.target.value as CommunicationTemplate["action"])}><option>INVITATION</option><option>REMINDER</option><option>DUE_SOON</option><option>EXPIRED</option><option>CHANGE_REQUESTED</option><option>AMENDMENT</option><option>COMPLETION</option></select></label>
       <label><span>Locale</span><input value={locale} maxLength={20} onChange={(event) => setLocale(event.target.value)}/></label>
@@ -65,7 +65,7 @@ export function CommunicationTemplateEditor({ initial, onSave, busy }: Props) {
       <div className="forms-lexical-shell"><RichTextPlugin contentEditable={<ContentEditable className="forms-lexical-editor" aria-label="Communication body"/>} placeholder={<div className="forms-lexical-placeholder">Write governed recipient communication…</div>} ErrorBoundary={LexicalErrorBoundary}/><HistoryPlugin/><ListPlugin/><LinkPlugin/><OnChangePlugin onChange={(state) => setDocument(exportDocument(state))}/></div>
       <VariableToolbar/>
     </LexicalComposer>
-    <div className="forms-task-actions"><button className="forms-primary" type="button" disabled={busy || !locale.trim() || !subject.trim() || document.length === 0 || !effectiveFrom} onClick={() => void onSave({ action, locale: locale.trim(), subject_template: subject.trim(), document, effective_from: new Date(effectiveFrom).toISOString(), effective_until: effectiveUntil ? new Date(effectiveUntil).toISOString() : undefined })}>{busy ? "Saving…" : "Save new draft revision"}</button><small>Server validation remains authoritative for placeholders, secure-link requirements and effective dates.</small></div>
+    <div className="forms-task-actions"><button className="forms-primary" type="button" disabled={busy || !locale.trim() || !subject.trim() || document.length === 0 || !effectiveFrom} onClick={() => void onSave({ action, locale: locale.trim(), subject_template: subject.trim(), document, effective_from: new Date(effectiveFrom).toISOString(), effective_until: effectiveUntil ? new Date(effectiveUntil).toISOString() : undefined })}>{busy ? "Saving…" : "Save new draft revision"}</button><small>Complete the required variables and effective dates before saving.</small></div>
   </section>;
 }
 

@@ -106,7 +106,7 @@ export function DistributionComposer({ onCreated, onCancel }: Props) {
   }
 
   return <section className="forms-task-card forms-composer" aria-labelledby="distribution-composer-title">
-    <div className="forms-task-heading"><div><span>Governed send</span><h2 id="distribution-composer-title">Create form distribution</h2><p>The server pins the exact active form revision and owns recipient, expiry and access-policy validation.</p></div>{onCancel && <button type="button" onClick={onCancel}>Close</button>}</div>
+    <div className="forms-task-heading"><div><span>Send form</span><h2 id="distribution-composer-title">Create form distribution</h2><p>Choose the approved form, who must respond, the deadline and how recipients verify access.</p></div>{onCancel && <button type="button" onClick={onCancel}>Close</button>}</div>
     {error && <div className="forms-message error" role="alert">{error}</div>}
     <div className="forms-task-grid">
       <label><span>Active form revision</span><select aria-label="Active form revision" value={templateKey} onChange={(event) => setTemplateKey(event.target.value)}><option value="">Select active revision</option>{templates.map((item) => <option key={`${item.id}:${item.version}`} value={`${item.id}:${item.version}`}>{item.name} · {item.code} · v{item.version}</option>)}</select><small>Revision is immutable after send.</small></label>
@@ -115,13 +115,13 @@ export function DistributionComposer({ onCreated, onCancel }: Props) {
       <label><span>Estimated minutes</span><input type="number" min={1} max={60} value={estimatedMinutes} onChange={(event) => setEstimatedMinutes(Number(event.target.value))}/></label>
       <label className="forms-task-span"><span>Title</span><input value={title} maxLength={240} onChange={(event) => setTitle(event.target.value)}/></label>
       <label className="forms-task-span"><span>Purpose</span><textarea value={purpose} maxLength={1600} rows={3} onChange={(event) => setPurpose(event.target.value)}/></label>
-      <label><span>Deadline</span><input type="datetime-local" value={deadline} onChange={(event) => setDeadline(event.target.value)}/><small>{timezone}; sent to server as UTC.</small></label>
+      <label><span>Deadline</span><input type="datetime-local" value={deadline} onChange={(event) => setDeadline(event.target.value)}/><small>The saved deadline includes the {timezone} timezone.</small></label>
       <label><span>Access route expiry</span><input type="datetime-local" value={routeExpiry} onChange={(event) => setRouteExpiry(event.target.value)}/><small>Must be no later than the deadline.</small></label>
       <label className="forms-task-span"><span>Access policy</span><select value={policy} onChange={(event) => setPolicy(event.target.value as DistributionAccessPolicy)}>{policies.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select><small>{policies.find((item) => item.value === policy)?.detail}</small></label>
     </div>
 
     <div className="forms-recipient-panel">
-      <div><h3>Recipients</h3><p>At least one To recipient is required. External addresses are sent only to the protected server boundary and are never rendered back in distribution projections.</p></div>
+      <div><h3>Recipients</h3><p>Add at least one To recipient to complete the form. CC recipients receive the communication without a response task.</p></div>
       <div className="forms-task-grid">
         <label><span>Find internal recipient</span><input type="search" value={internalQuery} placeholder="Name or identifier" onChange={(event) => setInternalQuery(event.target.value)}/>{candidates.length > 0 && <div className="forms-candidate-list" role="listbox" aria-label="Internal recipient candidates">{candidates.map((candidate) => <button type="button" role="option" key={candidate.principal_id} onClick={() => addInternal(candidate)}><strong>{candidate.display_name}</strong><span>{candidate.context_label || candidate.principal_id}</span></button>)}</div>}</label>
         <div><label><span>External email</span><input type="email" value={externalAddress} onChange={(event) => setExternalAddress(event.target.value)}/></label><label><span>Contact label</span><input value={externalLabel} maxLength={160} onChange={(event) => setExternalLabel(event.target.value)}/></label><button type="button" disabled={!externalAddress.trim() || recipients.length >= 500} onClick={addExternal}>Add external To</button></div>
@@ -130,7 +130,7 @@ export function DistributionComposer({ onCreated, onCancel }: Props) {
       {recipients.length === 0 && <p className="forms-muted">No recipients selected.</p>}
     </div>
 
-    <div className="forms-readonly-scope"><span>Owner</span><strong>Signed-in sender, assigned server-side</strong><span>Timezone</span><strong>{timezone}</strong></div>
+    <div className="forms-readonly-scope"><span>Owner</span><strong>Current signed-in sender</strong><span>Timezone</span><strong>{timezone}</strong></div>
     <div className="forms-task-actions"><button className="forms-primary" type="button" disabled={!ready || busy} onClick={() => void submit()}>{busy ? "Creating…" : "Create and dispatch"}</button>{!ready && <small>Add an active revision, scoped subject, valid dates, purpose and at least one To recipient.</small>}</div>
   </section>;
 }

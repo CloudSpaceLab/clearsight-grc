@@ -63,14 +63,14 @@ describe("Task 11 governed form views", () => {
     });
   });
 
-  it("renders recipient counts and explicitly disables actions without safe route identifiers", async () => {
+  it("renders recipient counts and explains unavailable access actions", async () => {
     render(<SentFormsView/>);
     expect(await screen.findByText("2 To · 0 CC")).toBeTruthy();
     expect(screen.getByText("1/2")).toBeTruthy();
     const rotate = screen.getByRole("button", { name: "Rotate access route" }) as HTMLButtonElement;
     const supersede = screen.getByRole("button", { name: "Supersede" }) as HTMLButtonElement;
     expect(rotate.disabled).toBe(true);
-    expect(rotate.title).toMatch(/Route identifiers are intentionally absent/);
+    expect(rotate.title).toMatch(/Open a recipient access route/);
     expect(supersede.disabled).toBe(true);
   });
 
