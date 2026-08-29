@@ -86,6 +86,12 @@ function workspacePayload(session = directSession, currentWorkspace = workspace)
     },
     request,
     workspace: currentWorkspace,
+    recovery_context: {
+      legal_entity_id: "entity-1",
+      distribution_id: session.distribution_id,
+      schema_version: 1,
+      route_expires_at: session.expires_at,
+    },
   };
 }
 
