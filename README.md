@@ -10,17 +10,18 @@ ClearSight helps bank compliance, risk, security, privacy, resilience, audit, le
 The repository contains a working application foundation for ongoing Programs and specific issues or changes:
 
 - Go API, durable worker and isolated stateless AI gateway processes;
-- React/Vite **Today, Programs, Vendors, Work, Imports, Explore and Configure** surfaces;
+- React/Vite **Today, Programs, Forms, Vendors, Work, Imports, Explore and Configure** surfaces;
 - PostgreSQL 18 schema and pgx-backed repositories;
 - verified actor context with tenant/query-scope conflict rejection;
 - deterministic authority resolution and routing-integrity checks;
 - maker-checker policies, delegations and segregation rules;
 - leased timers, transactional outbox and inbox deduplication;
 - Source Registry, source observations and freshness maintenance;
-- persisted evidence requests, immutable submissions and one-time magic links;
+- persisted evidence requests, reusable governed form templates, deadline-bound distributions, immutable response revisions and revocable magic-link/OTP access;
 - bounded capture sessions, invitation/session revocation and artifact manifests;
 - governed document imports with immutable original metadata, SHA-256 lineage and actor-bound review;
 - deterministic TXT, Markdown, CSV, DOCX and XLSX extraction with source-location anchors;
+- source-anchored DOCX, XLS/XLSX and searchable-PDF form proposals, plus reviewable AI form proposals;
 - source-anchored analysis proposals that require explicit human acceptance or rejection;
 - dedicated, actor-scoped Program records where authorized users can maintain scope, ownership, versioned requirements, applicability, safeguards, evidence expectations, reviewer results and operating status;
 - exact linked-issue handling from each Program, including bounded issue reads, new issue creation and direct record navigation;
@@ -34,6 +35,7 @@ The repository contains a working application foundation for ongoing Programs an
 - configurable stakeholder demo mode that remains separate from normal product operation;
 - surface-aware, role-specific onboarding with optional cinematic introductions, premium illustrations and semantic vector icons;
 - canonical vendor identities with optional normalized website domains, same-origin stored icons, approved-logo overrides and deterministic monogram fallback;
+- vendor refresh requests that confirm, correct or replace selected held values and produce field-level application receipts;
 - compliance Signals, drift assessment and readiness;
 - rendered-state and axe accessibility tests enforced in CI;
 - mechanically verified main API and isolated AI gateway route/access contracts, Docker Compose, CI and PostgreSQL integration tests;

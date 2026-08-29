@@ -15,7 +15,7 @@ vi.mock("../../formsDistributionApi", () => distributionApi);
 const distribution = {
   id: "dist-a", form_template_id: "form-a", form_template_version: 4, subject_type: "CONTROL", subject_id: "control-a",
   title: "Quarterly control review", purpose: "Collect operating evidence", access_policy: "DIRECT_LINK_EMAIL_OTP", status: "OPEN",
-  deadline: "2026-09-01T12:00:00Z", route_expires_at: "2026-09-01T11:00:00Z", version: 2,
+  deadline: "2027-09-01T12:00:00Z", route_expires_at: "2027-09-01T11:00:00Z", version: 2,
   created_at: "2026-08-28T10:00:00Z", updated_at: "2026-08-28T10:00:00Z",
 } as const;
 const detail = {
@@ -42,7 +42,7 @@ beforeEach(() => {
   distributionApi.loadDistributionPage.mockResolvedValue({ items: [distribution] });
   distributionApi.loadDistribution.mockResolvedValue(detail);
   distributionApi.loadResponseRevisions.mockResolvedValue({ items: [] });
-  distributionApi.amendDistribution.mockResolvedValue({ detail: { ...detail, distribution: { ...distribution, deadline: "2026-09-02T12:00:00Z", version: 3 } }, impact: { deadline_changed: true } });
+  distributionApi.amendDistribution.mockResolvedValue({ detail: { ...detail, distribution: { ...distribution, deadline: "2027-09-02T12:00:00Z", version: 3 } }, impact: { deadline_changed: true, recipients_added: 1 } });
   distributionApi.previewDistributionSupersession.mockResolvedValue({ distribution_id: "dist-a", expected_version: 2, expected_workspace_version: 3, target_form_template_id: "form-a", target_form_version: 5, compatible_fields: [{ field_id: "legal-name" }], excluded_fields: [{ field_id: "certificate", reason: "Field type changed" }] });
   distributionApi.supersedeDistribution.mockResolvedValue({ previous: { ...detail, distribution: { ...distribution, status: "SUPERSEDED", version: 3 } }, replacement: { ...detail, distribution: { ...distribution, id: "dist-b", form_template_version: 5, version: 2 } }, carried_field_ids: ["legal-name"] });
 });
@@ -54,8 +54,8 @@ describe("Task 11 governed form views", () => {
     fireEvent.change(screen.getByLabelText("Subject identifier"), { target: { value: "control-a" } });
     fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Quarterly control review" } });
     fireEvent.change(screen.getByLabelText("Purpose"), { target: { value: "Collect operating evidence" } });
-    fireEvent.change(screen.getByLabelText(/Deadline/), { target: { value: "2026-09-01T12:00" } });
-    fireEvent.change(screen.getByLabelText(/Access route expiry/), { target: { value: "2026-09-01T11:00" } });
+    fireEvent.change(screen.getByLabelText(/Deadline/), { target: { value: "2027-09-01T12:00" } });
+    fireEvent.change(screen.getByLabelText(/Access route expiry/), { target: { value: "2027-09-01T11:00" } });
     fireEvent.change(screen.getByLabelText("Find internal recipient"), { target: { value: "Jane" } });
     fireEvent.click(await screen.findByRole("option", { name: /Jane Reviewer/ }));
     fireEvent.click(screen.getByRole("button", { name: "Create and dispatch" }));
@@ -71,10 +71,12 @@ describe("Task 11 governed form views", () => {
     expect(await screen.findByText("2 To · 0 CC")).toBeTruthy();
     expect(screen.getByText("1/2")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Amend distribution" }));
-    fireEvent.change(screen.getByLabelText("Response deadline"), { target: { value: "2026-09-02T12:00" } });
-    fireEvent.change(screen.getByLabelText(/Access expiry/), { target: { value: "2026-09-02T11:00" } });
+    fireEvent.change(screen.getByLabelText("Response deadline"), { target: { value: "2027-09-02T12:00" } });
+    fireEvent.change(screen.getByLabelText(/Access expiry/), { target: { value: "2027-09-02T11:00" } });
+    fireEvent.change(screen.getByLabelText("External email"), { target: { value: "new@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add external To" }));
     fireEvent.click(screen.getByRole("button", { name: "Save amendment" }));
-    await waitFor(() => expect(distributionApi.amendDistribution).toHaveBeenCalledWith("dist-a", expect.objectContaining({ expected_version: 2, deadline: expect.any(String), route_expires_at: expect.any(String) })));
+    await waitFor(() => expect(distributionApi.amendDistribution).toHaveBeenCalledWith("dist-a", expect.objectContaining({ expected_version: 2, deadline: expect.any(String), route_expires_at: expect.any(String), add_recipients: [expect.objectContaining({ role: "TO", type: "EXTERNAL_AUDIENCE", address: "new@example.com" })] })));
   });
 
   it("previews and confirms replacement form versions before superseding", async () => {

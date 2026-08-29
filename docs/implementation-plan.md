@@ -1,7 +1,7 @@
 # ClearSight implementation ledger
 
-**Status date:** 2026-08-26
-**Current execution:** Release integration and deployment verification for operational, vendor, AI-governance and document-handoff workflows
+**Status date:** 2026-08-29
+**Current execution:** Release integration and deployment verification for governed Forms, vendor refresh and operational workflows
 **Umbrella pilot/GA catalogue:** #13
 
 This file is the authoritative implementation ledger. Code, migrations and executable tests remain final capability truth. Completed detail belongs in focused architecture documents, PRs and tests rather than parallel planning frameworks.
@@ -32,6 +32,15 @@ This file is the authoritative implementation ledger. Code, migrations and execu
 | Issue and change creation | Inline authority-checked Matter creation, business work types, actor ownership, optional Program linking and immediate in-workspace handoff |
 | Complete Program operating record | Versioned details and ownership, requirement supersession, applicability, safeguards and eligible performers, evidence expectations/results, lifecycle, monitoring and exact linked issues |
 | Complete issue/change operating record | Facts and gaps, eligible assignment, decisions, actions, responses, outcome checks and closure through actor-scoped UI commands |
+| Governed Forms and vendor refresh | Direct Forms navigation; reusable/scored templates; document and AI proposals; multi-recipient distribution; revocable magic-link/OTP access; draft recovery; immutable response revisions; rich communication templates; confirm/correct/replace held vendor facts; field-level bank application receipts |
+
+## Governed Forms and vendor refresh — implemented, release verification in progress
+
+The implementation reuses Monitoring form revisions, document imports, Evidence Requests, capture sessions, artifacts, authority, outbox delivery and vendor assessment records. It adds a direct Forms workspace for searchable reusable templates, exact active revisions, saved views, manual/starter/document/AI authoring, Sent Forms, Responses, Imports and Communications. Distributions support multiple internal or external To/CC recipients, three bounded access policies, customizable future deadlines and expiries, amendments, lock/reopen/revoke and previewed supersession with optional compatible-answer carry-forward.
+
+Recipient work supports optimistic server drafts plus encrypted, workspace-bound browser recovery. Immutable response revisions retain sign-off assurance and scoring. Vendor refresh forms can request only selected held fields, ask for confirmation/correction/replacement, and route each proposal through bank review with conflict detection and a durable application receipt. See [`product/governed-forms.md`](product/governed-forms.md).
+
+Release verification requires the exact-head unit, tagged PostgreSQL, copy, accessibility, bundle and rendered Forms gates plus hosted smoke testing. Generic Forms distributions and vendor assessment requests remain deliberately distinct origins; the UI must not substitute one for the other or falsely advance vendor review.
 
 ## Program and Matter operational foundation
 

@@ -157,6 +157,14 @@ External collection uses the shared request-scoped invitation and capture experi
 
 Internal review shows only the exact scoped response, answer provenance, coverage, artifact scan state, evidence classification, linked canonical findings and version-qualified provisional score. Reviewer conclusion, vendor-relationship activation and deficiency closure remain separate material outcomes. Completed assessments are read-only in the relationship workspace.
 
+### Governed Forms workspace
+
+Forms is a direct primary navigation surface. Its default view is a bounded searchable template library, not a creation wizard. The library distinguishes the latest stored revision from the active reusable revision, supports saved views and keeps filters available for banks with hundreds of Programs, Matters and vendor relationships. Template detail, editor, sender, response history, import handoff and communications remain tabs within the same visual system.
+
+The sender has one dominant **Create and dispatch** action after an exact active revision, subject, purpose, future deadline, access expiry and at least one To recipient are valid. Internal directory search and external email entry share the same recipient list with explicit To/CC roles. Sent-form detail exposes real lifecycle actions. Amendment uses native date-time inputs, adds or revokes recipients and explains retained response history. Form replacement first shows compatible and excluded answers; it never carries answers without explicit confirmation.
+
+Long recipient forms show saved, saving, conflict and access-ended state near the work. Browser recovery is supportive, encrypted and workspace-bound; it does not imply that unsynced answers or file bytes reached ClearSight. Document-style reading surfaces use a light paper surface in light mode and a high-contrast document surface in dark mode. Focused editors may use a restrained overlay and backdrop blur, but the active heading, status, close action and validation remain crisp, labelled and keyboard reachable.
+
 ### Vendor identity and icon
 
 The vendor identity editor is separate from the service-relationship editor. It changes the shared legal name, trading name, registration reference, jurisdiction, optional website hostname and registered address without changing a relationship owner, service, assessment or relationship version. Website input accepts an HTTPS URL or hostname and stores a normalized hostname; a missing hostname is valid.

@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { loadReusableFormTemplateRefs } from "../../formsApi";
 import {
   amendDistribution,
+  loadRecipientCandidates,
   previewDistributionSupersession,
   supersedeDistribution,
+  type CreateDistributionRecipient,
   type DistributionDetail,
   type DistributionSupersessionPreview,
+  type RecipientCandidate,
 } from "../../formsDistributionApi";
 import "./distribution-change.css";
 
@@ -25,9 +28,38 @@ function AmendPanel({ detail, onCancel, onSaved }: Omit<Props, "mode">) {
   const [deadline, setDeadline] = useState(() => localDateTime(detail.distribution.deadline));
   const [expiry, setExpiry] = useState(() => localDateTime(detail.distribution.route_expires_at));
   const [revoked, setRevoked] = useState<string[]>([]);
+  const [recipients, setRecipients] = useState<CreateDistributionRecipient[]>([]);
+  const [internalQuery, setInternalQuery] = useState("");
+  const [candidates, setCandidates] = useState<RecipientCandidate[]>([]);
+  const [externalAddress, setExternalAddress] = useState("");
+  const [externalLabel, setExternalLabel] = useState("");
+  const [recipientRole, setRecipientRole] = useState<"TO" | "CC">("TO");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const valid = validDates(deadline, expiry);
+
+  useEffect(() => {
+    if (internalQuery.trim().length < 2) { setCandidates([]); return; }
+    let active = true;
+    const timer = window.setTimeout(() => {
+      void loadRecipientCandidates(internalQuery, 12).then((page) => active && setCandidates(page.items)).catch(() => active && setCandidates([]));
+    }, 200);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [internalQuery]);
+
+  function addInternal(candidate: RecipientCandidate) {
+    if (recipients.some((value) => value.type === "INTERNAL_PRINCIPAL" && value.principal_id === candidate.principal_id && value.role === recipientRole)) return;
+    setRecipients((current) => [...current, { role: recipientRole, type: "INTERNAL_PRINCIPAL", principal_id: candidate.principal_id, contact_label: candidate.display_name }]);
+    setInternalQuery(""); setCandidates([]);
+  }
+
+  function addExternal() {
+    const address = externalAddress.trim().toLowerCase();
+    if (!emailPattern.test(address)) { setError("Enter a valid external email address."); return; }
+    if (recipients.some((value) => value.type === "EXTERNAL_AUDIENCE" && value.address === address && value.role === recipientRole)) return;
+    setRecipients((current) => [...current, { role: recipientRole, type: "EXTERNAL_AUDIENCE", address, contact_label: externalLabel.trim() || undefined }]);
+    setExternalAddress(""); setExternalLabel(""); setError("");
+  }
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -38,23 +70,34 @@ function AmendPanel({ detail, onCancel, onSaved }: Omit<Props, "mode">) {
         expected_version: detail.distribution.version,
         deadline: new Date(deadline).toISOString(),
         route_expires_at: new Date(expiry).toISOString(),
+        add_recipients: recipients,
         revoke_recipient_ids: revoked,
       });
-      const changes = [result.impact.deadline_changed && "deadline", result.impact.route_expiry_changed && "access expiry", result.impact.recipients_revoked && `${result.impact.recipients_revoked} recipient${result.impact.recipients_revoked === 1 ? "" : "s"}`].filter(Boolean).join(", ");
+      const changes = [result.impact.deadline_changed && "deadline", result.impact.route_expiry_changed && "access expiry", result.impact.recipients_added && `${result.impact.recipients_added} recipient${result.impact.recipients_added === 1 ? "" : "s"} added`, result.impact.recipients_revoked && `${result.impact.recipients_revoked} recipient${result.impact.recipients_revoked === 1 ? "" : "s"} revoked`].filter(Boolean).join(", ");
       onSaved(result.detail, changes ? `Updated ${changes}.` : "No distribution changes were needed.");
     } catch (cause) { setError(message(cause, "The distribution could not be amended. Refresh it and try again.")); }
     finally { setBusy(false); }
   }
 
   return <section className="forms-task-card" aria-labelledby="amend-distribution-title">
-    <div className="forms-task-heading"><div><span>Update sent form</span><h2 id="amend-distribution-title">Amend distribution</h2><p>Change the deadline or access expiry, or revoke a recipient who should no longer respond.</p></div><button type="button" onClick={onCancel}>Close</button></div>
+    <div className="forms-task-heading"><div><span>Update sent form</span><h2 id="amend-distribution-title">Amend distribution</h2><p>Change the deadline or access expiry, add recipients, or revoke access that is no longer required.</p></div><button type="button" onClick={onCancel}>Close</button></div>
     {error && <div className="forms-message error" role="alert">{error}</div>}
     <form onSubmit={(event) => void save(event)}>
       <div className="forms-task-grid">
         <label><span>Response deadline</span><input type="datetime-local" value={deadline} onChange={(event) => setDeadline(event.target.value)} required/></label>
         <label><span>Access expiry</span><input type="datetime-local" value={expiry} onChange={(event) => setExpiry(event.target.value)} required/><small>Access must expire no later than the response deadline.</small></label>
       </div>
-      <fieldset className="forms-recipient-panel"><legend>Current recipients</legend><p>Revoking a recipient ends their access. Their earlier submitted response remains in the audit history.</p>
+      <fieldset className="forms-change-recipients"><legend>Add recipients</legend><p>New To recipients receive a response task. CC recipients receive the communication without a response task.</p>
+        <div className="forms-task-grid">
+          <label><span>Recipient role</span><select value={recipientRole} onChange={(event) => setRecipientRole(event.target.value as "TO" | "CC")}><option value="TO">To</option><option value="CC">CC</option></select></label>
+          <label><span>Find internal recipient</span><input type="search" value={internalQuery} placeholder="Name or identifier" onChange={(event) => setInternalQuery(event.target.value)}/>{candidates.length > 0 && <div className="forms-candidate-list" role="listbox" aria-label="Internal recipient candidates">{candidates.map((candidate) => <button type="button" role="option" key={candidate.principal_id} onClick={() => addInternal(candidate)}><strong>{candidate.display_name}</strong><span>{candidate.context_label || candidate.principal_id}</span></button>)}</div>}</label>
+          <label><span>External email</span><input type="email" value={externalAddress} onChange={(event) => setExternalAddress(event.target.value)}/></label>
+          <label><span>Contact label</span><input value={externalLabel} maxLength={160} onChange={(event) => setExternalLabel(event.target.value)}/></label>
+        </div>
+        <button type="button" disabled={!externalAddress.trim()} onClick={addExternal}>Add external {recipientRole === "TO" ? "To" : "CC"}</button>
+        <ul className="forms-recipient-list">{recipients.map((recipient, index) => <li key={`${recipient.type}:${recipient.principal_id || recipient.address}:${recipient.role}:${index}`}><div><strong>{recipient.contact_label || recipient.principal_id || maskAddress(recipient.address)}</strong><span>{recipient.role} · {recipient.type === "INTERNAL_PRINCIPAL" ? "Internal" : "External protected"}</span></div><button type="button" aria-label={`Remove new recipient ${index + 1}`} onClick={() => setRecipients((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Remove</button></li>)}</ul>
+      </fieldset>
+      <fieldset className="forms-change-recipients"><legend>Current recipients</legend><p>Revoking a recipient ends their access. Their earlier submitted response remains in the audit history.</p>
         <ul className="forms-recipient-list">{detail.recipients.filter((recipient) => recipient.state !== "REVOKED").map((recipient) => <li key={recipient.id}><div><strong>{recipient.contact_label || recipient.principal_id || recipient.audience_hint || "Protected recipient"}</strong><span>{recipient.role} · {recipient.type === "INTERNAL_PRINCIPAL" ? "Internal" : "External"} · {label(recipient.state)}</span></div><label><input type="checkbox" checked={revoked.includes(recipient.id)} onChange={(event) => setRevoked((current) => event.target.checked ? [...current, recipient.id] : current.filter((id) => id !== recipient.id))}/> Revoke</label></li>)}</ul>
       </fieldset>
       <div className="forms-task-actions"><button className="forms-primary" type="submit" disabled={!valid || busy}>{busy ? "Saving…" : "Save amendment"}</button><button type="button" onClick={onCancel} disabled={busy}>Cancel</button>{!valid && <small>Set future dates with access expiry no later than the response deadline.</small>}</div>
@@ -127,3 +170,5 @@ function validDates(deadline: string, expiry: string) {
 }
 function label(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (part) => part.toUpperCase()); }
 function message(cause: unknown, fallback: string) { return cause instanceof Error ? cause.message : fallback; }
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function maskAddress(value?: string) { const [local, domain] = value?.split("@") ?? []; return domain ? `${(local ?? "").slice(0, 1)}***@${domain}` : "External recipient"; }

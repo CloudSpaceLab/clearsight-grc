@@ -108,7 +108,7 @@ export async function loadStaticDemoFixtures(fetcher: typeof fetch = globalThis.
   const fixtures = await response.json() as StaticDemoFixtures;
   programID = "program-ndpa"; matterID = "matter-gaid-change";
   currentStaticActor = workflowRuntime().accounts[0]!.actor;
-  programReviewAcknowledged = false; demoForms.splice(0); demoChecks.splice(0, demoChecks.length, clone(monitoringCheck)); monitoringResults.clear(); monitoringResults.set(monitoringCheck.id, clone(monitoringResult)); monitoringIssues.clear(); createdSources.splice(0); sourceConnections.splice(0); sourceViews.splice(0); sourceBindings.splice(0);
+  programReviewAcknowledged = false; demoForms.splice(0, demoForms.length, clone(staticFormLibraryTemplate())); demoChecks.splice(0, demoChecks.length, clone(monitoringCheck)); monitoringResults.clear(); monitoringResults.set(monitoringCheck.id, clone(monitoringResult)); monitoringIssues.clear(); createdSources.splice(0); sourceConnections.splice(0); sourceViews.splice(0); sourceBindings.splice(0);
   program = clone(fixtures.program);
   programSummary = clone(fixtures.programSummary);
   programSummary.program = program;
@@ -167,6 +167,40 @@ const vendorDueDiligenceForm: FormTemplate = {
   created_at: "2026-08-01T09:00:00Z",
   updated_at: now,
 };
+
+function staticFormLibraryTemplate() {
+  return {
+    ...vendorDueDiligenceForm,
+    legal_entity_id: "bank-ng",
+    owner_principal_id: "role-payments-owner",
+    responsible_team: "Third-party risk",
+    approved_uses: ["VENDOR_DUE_DILIGENCE"],
+    tags: ["vendor", "privacy", "security"],
+    jurisdiction: "Nigeria",
+    industry: "Financial services",
+    sensitivity: "CONFIDENTIAL",
+    scoring_mode: "NONE",
+    next_review_at: "2027-08-01T09:00:00Z",
+  };
+}
+
+function staticDistributionDetail() {
+  return {
+    distribution: {
+      id: "distribution-vendor-review", legal_entity_id: "bank-ng", form_template_id: vendorDueDiligenceForm.id,
+      form_template_version: vendorDueDiligenceForm.version, subject_type: "VENDOR_RELATIONSHIP", subject_id: vendorRelationshipID,
+      title: "Acme annual vendor review", purpose: "Confirm current security, privacy and operating evidence.",
+      access_policy: "SHARED_LINK_EMAIL_OTP", status: "OPEN", deadline: "2027-09-25T23:59:59Z",
+      route_expires_at: "2027-09-25T20:00:00Z", created_by: "role-payments-owner", version: 3,
+      created_at: "2026-08-24T09:00:00Z", updated_at: now,
+    },
+    recipients: [
+      { id: "distribution-recipient-security", role: "TO", type: "EXTERNAL_AUDIENCE", request_id: "request-vendor-security", audience_hint: "s***@acme.example", contact_label: "Vendor security lead", state: "DELIVERED", version: 1 },
+      { id: "distribution-recipient-risk", role: "CC", type: "INTERNAL_PRINCIPAL", principal_id: "role-vendor-risk", contact_label: "Vendor risk reviewer", state: "DELIVERED", version: 1 },
+    ],
+    workspace: { id: "workspace-vendor-review", status: "OPEN", version: 2, updated_at: now },
+  };
+}
 
 const vendorProgramLink: VendorRelationshipLink = {
   id: "vendor-link-program-payments", tenant_id: "bank-demo", legal_entity_id: "bank-ng", relationship_id: vendorRelationshipID,
@@ -632,6 +666,30 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (matterMutation.handled) return clone(matterMutation.body) as T;
   const connectedData = workflowRuntime().connectedDataRequest({ pathname, method, url, input: parseBody(init), state: { sources: createdSources, connections: sourceConnections, views: sourceViews, bindings: sourceBindings }, ErrorType: StaticDemoHTTPError, now });
   if (connectedData.handled) return clone(connectedData.body) as T;
+  if (pathname === "/api/v1/forms/templates" && method === "GET") {
+    const search = url.searchParams.get("search")?.trim().toLowerCase();
+    const status = url.searchParams.get("status")?.trim().toUpperCase();
+    const items = demoForms.filter((form) => (!search || `${form.name} ${form.code} ${form.purpose} ${(form.tags ?? []).join(" ")}`.toLowerCase().includes(search)) && (!status || form.status === status));
+    return clone({ items: items.map((template) => ({ template, active_version: template.status === "ACTIVE" ? template.version : undefined, active_status: template.status === "ACTIVE" ? "ACTIVE" : undefined })) }) as T;
+  }
+  const formRevisionMatch = pathname.match(/^\/api\/v1\/forms\/templates\/([^/]+)\/revisions\/(\d+)$/);
+  if (formRevisionMatch && method === "GET") {
+    const selected = demoForms.find((form) => form.id === decodeURIComponent(formRevisionMatch[1]!) && form.version === Number(formRevisionMatch[2]));
+    if (!selected) throw new StaticDemoHTTPError(404, "form_revision_not_found", "The selected form revision is no longer available.");
+    return clone(selected) as T;
+  }
+  if (pathname === "/api/v1/forms/starter-templates" && method === "GET") return clone({ items: [] }) as T;
+  if (pathname === "/api/v1/forms/saved-views" && method === "GET") return clone({ items: [] }) as T;
+  if (pathname === "/api/v1/forms/recipient-candidates" && method === "GET") return clone({ items: [{ principal_id: "role-vendor-risk", display_name: "Vendor Risk Reviewer", context_label: "Third-party risk" }, { principal_id: "role-payments-owner", display_name: "Payments Service Owner", context_label: "Payments" }], has_more: false }) as T;
+  if (pathname === "/api/v1/forms/distributions" && method === "GET") return clone({ items: [staticDistributionDetail().distribution] }) as T;
+  const distributionMatch = pathname.match(/^\/api\/v1\/forms\/distributions\/([^/]+)$/);
+  if (distributionMatch && method === "GET") {
+    const selected = staticDistributionDetail();
+    if (decodeURIComponent(distributionMatch[1]!) !== selected.distribution.id) throw new StaticDemoHTTPError(404, "distribution_not_found", "The selected sent form is no longer available.");
+    return clone(selected) as T;
+  }
+  const responseRevisionMatch = pathname.match(/^\/api\/v1\/forms\/distributions\/([^/]+)\/responses$/);
+  if (responseRevisionMatch && method === "GET") return clone({ items: [{ id: "response-revision-acme-2", revision: 2, supersedes_revision_id: "response-revision-acme-1", achieved_assurance: "EMAIL_VERIFIED", signoff_summary: { attested: true, signer: "Vendor security lead" }, compliance_score: 86, scored_weight_coverage: 100, state: "FINAL", critical_field_results: [], scoring_policy_version: "vendor-review-2026", current: true, created_at: "2026-08-27T13:15:00Z" }] }) as T;
   const monitoringResponse = workflowRuntime().monitoringRequest({ pathname, method, input: parseBody(init), programID, forms: demoForms, checks: demoChecks, results: monitoringResults, actor: currentStaticActor, evidenceRequest, evidenceRequests, monitoringResult, ErrorType: StaticDemoHTTPError, now });
   if (monitoringResponse.handled) return clone(monitoringResponse.body) as T;
   if (/\/api\/v1\/monitoring-results\/[^/]+\/linked-issue$/.test(pathname) && method === "POST") {

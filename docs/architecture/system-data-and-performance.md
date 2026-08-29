@@ -429,6 +429,12 @@ Rules:
 - exports and large reports are asynchronous with frozen manifests;
 - tenant-specific workload guards prevent noisy-neighbor failure.
 
+### Governed Forms reference workload
+
+The initial bank-scale verification population is 1,000 current form templates and 400 active or historical distributions per legal entity, with up to 500 recipients per distribution and immutable response-revision growth. Template and distribution workspaces use legal-entity-scoped keyset pagination capped at 100 rows; exact detail and response history are loaded only after selection. `monitoring_form_templates_library_idx` and `capture_form_distributions_updated_idx` support the default recency paths, while search, template and deadline indexes support their bounded filters.
+
+Response drafts and access sessions are short-lived operational state. Immutable submissions, response revisions, distribution events, communication revisions and application receipts follow the governed evidence/audit retention policy. OTP challenges and expired access capabilities use a shorter security-audit horizon and must never be retained merely as reporting data. Artifact bytes remain in versioned object storage and are not copied into form rows, events, projections or search indexes.
+
 ## 19. Tenancy and deployment modes
 
 Support a common logical model across:

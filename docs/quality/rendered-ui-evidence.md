@@ -55,6 +55,8 @@ The current suite exercises **82 deterministic rendered states/interactions** ac
 - vendor invitation delivery failure with recovery status and no retained raw recipient field.
 - vendor work entered from exact Program and issue/change records, using the linked vendor relationship already in scope;
 - vendor work preparation with Automatic, Classic and Wizard layout choices, typed email/date controls, the approved form version and its document requirement;
+- governed Forms template library and filtered-empty search across desktop and mobile themes;
+- sent-form recipient/status management, mobile amendment with native calendar/date-time inputs, and immutable scored response revisions;
 - partial vendor-work delivery followed by a successful retry, without retaining the invitation capability in the page;
 - exact submitted vendor answers with source provenance, missing and conditionally omitted fields, and available versus quarantined document handling;
 - response review, change-request preparation and accepted request history with one dominant action for the current state;

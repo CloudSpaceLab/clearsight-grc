@@ -82,7 +82,7 @@ async function capturePage(capture) {
     if (capture.openFormReadiness) {
       await page.getByRole("button", { name: /Acme Processing Limited.*Card transaction processing/ }).click();
       await page.getByRole("heading", { name: "Due diligence" }).waitFor({ state: "visible" });
-      await page.getByRole("button", { name: "Set up due-diligence form" }).click();
+      await page.getByRole("button", { name: "Use a starter template" }).click();
       await page.getByRole("dialog", { name: "Set up due-diligence form" }).waitFor({ state: "visible" });
       await page.getByLabel("Program").waitFor({ state: "visible" });
     }

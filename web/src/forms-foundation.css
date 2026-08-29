@@ -5,3 +5,26 @@
 .form-preview-review{display:grid;gap:12px;padding:18px}.form-preview-review h3,.form-preview-review p{margin:0}.form-preview-review p{color:var(--muted);font-size:11px}.form-preview-review dl{display:grid;gap:0;margin:0;border:1px solid var(--border);border-radius:10px;overflow:hidden}.form-preview-review dl>div{display:grid;grid-template-columns:minmax(140px,.7fr) 1fr;gap:12px;padding:9px 11px;border-bottom:1px solid var(--border)}.form-preview-review dl>div:last-child{border-bottom:0}.form-preview-review dt{font-weight:650}.form-preview-review dd{margin:0;color:var(--muted)}.form-preview-review button{justify-self:start}
 @media(max-width:1000px){.form-proposal-layout{grid-template-columns:1fr}.form-proposal-changes{max-height:none;border-right:0}.form-proposal-preview{border-top:1px solid var(--border)}}
 @media(max-width:650px){.form-ai-composer,.form-proposal-heading,.form-proposal-toolbar{padding-right:16px;padding-left:16px}.form-ai-composer>header,.form-proposal-heading,.form-proposal-toolbar,.form-proposal-actions,.forms-authoring-recovery{display:grid}.form-proposal-count{justify-items:start}.form-proposal-actions{position:static}.form-proposal-actions .primary-button{order:-1}.form-proposal-actions button,.form-ai-actions button,.forms-authoring-recovery button{width:100%}.form-ai-actions{display:grid}.form-proposal-change-heading{display:grid}.form-proposal-change-heading mark{justify-self:start}}
+
+/* Forms uses the application surface tokens in both themes. */
+.forms-workspace {
+  --forms-surface: var(--surface);
+  --forms-subtle: var(--surface-2, var(--surface));
+  --forms-border: var(--border);
+  --forms-muted: var(--muted);
+}
+.forms-tabs { gap: 2px; }
+.forms-tabs button { min-height: 38px; padding: 8px 11px; }
+.forms-summary-metric { display: grid; grid-template-columns: auto 1fr; column-gap: 7px; row-gap: 2px; }
+.forms-summary-metric strong { font-size: 1.18rem; line-height: 1; }
+.forms-summary-metric small { grid-column: 1 / -1; color: var(--muted); }
+.forms-recent { display: grid; grid-template-columns: minmax(130px, auto) minmax(0, 1fr); align-items: center; margin: 16px 0 10px; }
+.forms-recent h2 { margin: 0 0 3px; font-size: 1rem; }
+.forms-recent ol button { display: grid; gap: 2px; min-width: 230px; text-align: left; }
+.forms-table th { color: var(--muted); font-size: .74rem; letter-spacing: .025em; }
+.forms-table td { vertical-align: top; }
+.forms-table td > strong,.forms-table td > span { display: block; }
+.forms-table td > span { margin-top: 3px; color: var(--muted); font-size: .76rem; line-height: 1.4; }
+.forms-table td > button { min-width: 52px; min-height: 34px; padding: 6px 10px; }
+.forms-workspace .forms-lexical-shell { background: var(--document-surface, var(--surface)); color: var(--document-text, var(--text)); }
+@media(max-width:760px){.forms-tabs button{min-height:44px;padding-inline:10px}.forms-recent{grid-template-columns:1fr}}

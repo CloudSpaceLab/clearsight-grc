@@ -14,26 +14,27 @@ The documentation is layered so product semantics, safety, architecture, experie
 8. [`architecture/command-integrity-and-projection-operations.md`](architecture/command-integrity-and-projection-operations.md) — executable route classes, verified actor binding, authority checks, transaction truth and Program-status operations.
 9. [`architecture/durable-schema-ownership.md`](architecture/durable-schema-ownership.md) — live durable-table ownership, maturity and retention contract.
 10. [`architecture/source-evidence-and-secure-capture.md`](architecture/source-evidence-and-secure-capture.md) — source health, persisted requests, bounded capture capabilities and artifact integrity.
-11. [`architecture/connected-source-access.md`](architecture/connected-source-access.md) — reusable Connection/View/Binding contracts, adapter capabilities, bounded source reads and assurance compatibility.
-12. [`architecture/ai-gateway-transport.md`](architecture/ai-gateway-transport.md) — isolated OpenAI-compatible transport, provider adapters, routing, budgets, streaming truth and confidentiality boundary.
-13. [`product/nigerian-bank-reference-journeys.md`](product/nigerian-bank-reference-journeys.md) — connected, actionable Nigerian-bank reference journeys.
-14. [`product/respond-and-capture.md`](product/respond-and-capture.md) — request-scoped internal/external capture.
-15. [`product/illustration-and-guided-experience.md`](product/illustration-and-guided-experience.md) — illustrations, empty states and role-specific onboarding.
-16. [`product/enterprise-copy-and-content-design.md`](product/enterprise-copy-and-content-design.md) and [`product/plain-language-content-standard.md`](product/plain-language-content-standard.md) — human working language, count integrity and content acceptance.
-17. [`design/ui-delivery-workflow.md`](design/ui-delivery-workflow.md) — decision briefs, baselines, rendered review and drift control.
-18. [`product/ease-of-use-standard.md`](product/ease-of-use-standard.md) — active-effort and minimum-question standards.
-19. [`product/operating-model.md`](product/operating-model.md) — canonical domain objects.
-20. [`product/experience-principles.md`](product/experience-principles.md) and [`product/ux-and-visual-language.md`](product/ux-and-visual-language.md) — experience and visual system.
-21. [`architecture/application-architecture.md`](architecture/application-architecture.md) — executable application boundaries.
-22. [`architecture/system-data-and-performance.md`](architecture/system-data-and-performance.md) and [`architecture/data-model-and-storage.md`](architecture/data-model-and-storage.md) — scale, consistency and storage.
-23. [`../AGENTS.md`](../AGENTS.md) — mandatory implementation rules.
-24. [`implementation-plan.md`](implementation-plan.md) — **authoritative current execution ledger and sequencing**.
-25. [`design/enterprise-productization-design-plan.md`](design/enterprise-productization-design-plan.md) — finished enterprise experience reference.
-26. [`engineering/enterprise-productization-implementation-plan.md`](engineering/enterprise-productization-implementation-plan.md) — detailed enterprise work/reference phases; current execution order is controlled by `implementation-plan.md`.
-27. [`engineering/enterprise-identity-access.md`](engineering/enterprise-identity-access.md) — focused OSS-first identity, department-aware capabilities and multi-level escalation implementation boundary; supersedes greenfield LDAP/SAML implementation guidance.
-28. [`engineering/demo-role-login.md`](engineering/demo-role-login.md) — non-production stakeholder role catalogue, supplied demo credentials, signed demo session and production isolation boundary.
-29. [`quality/release-gates-and-traceability.md`](quality/release-gates-and-traceability.md), [`quality/rendered-ui-evidence.md`](quality/rendered-ui-evidence.md) and domain acceptance tests.
-30. [`superpowers/specs/2026-08-26-premium-first-run-and-vendor-branding-design.md`](superpowers/specs/2026-08-26-premium-first-run-and-vendor-branding-design.md) — current first-run guidance and vendor identity presentation decision.
+11. [`product/governed-forms.md`](product/governed-forms.md) — reusable templates, document/AI proposals, recipient access, response recovery, communications and vendor-held-value refresh.
+12. [`architecture/connected-source-access.md`](architecture/connected-source-access.md) — reusable Connection/View/Binding contracts, adapter capabilities, bounded source reads and assurance compatibility.
+13. [`architecture/ai-gateway-transport.md`](architecture/ai-gateway-transport.md) — isolated OpenAI-compatible transport, provider adapters, routing, budgets, streaming truth and confidentiality boundary.
+14. [`product/nigerian-bank-reference-journeys.md`](product/nigerian-bank-reference-journeys.md) — connected, actionable Nigerian-bank reference journeys.
+15. [`product/respond-and-capture.md`](product/respond-and-capture.md) — request-scoped internal/external capture.
+16. [`product/illustration-and-guided-experience.md`](product/illustration-and-guided-experience.md) — illustrations, empty states and role-specific onboarding.
+17. [`product/enterprise-copy-and-content-design.md`](product/enterprise-copy-and-content-design.md) and [`product/plain-language-content-standard.md`](product/plain-language-content-standard.md) — human working language, count integrity and content acceptance.
+18. [`design/ui-delivery-workflow.md`](design/ui-delivery-workflow.md) — decision briefs, baselines, rendered review and drift control.
+19. [`product/ease-of-use-standard.md`](product/ease-of-use-standard.md) — active-effort and minimum-question standards.
+20. [`product/operating-model.md`](product/operating-model.md) — canonical domain objects.
+21. [`product/experience-principles.md`](product/experience-principles.md) and [`product/ux-and-visual-language.md`](product/ux-and-visual-language.md) — experience and visual system.
+22. [`architecture/application-architecture.md`](architecture/application-architecture.md) — executable application boundaries.
+23. [`architecture/system-data-and-performance.md`](architecture/system-data-and-performance.md) and [`architecture/data-model-and-storage.md`](architecture/data-model-and-storage.md) — scale, consistency and storage.
+24. [`../AGENTS.md`](../AGENTS.md) — mandatory implementation rules.
+25. [`implementation-plan.md`](implementation-plan.md) — **authoritative current execution ledger and sequencing**.
+26. [`design/enterprise-productization-design-plan.md`](design/enterprise-productization-design-plan.md) — finished enterprise experience reference.
+27. [`engineering/enterprise-productization-implementation-plan.md`](engineering/enterprise-productization-implementation-plan.md) — detailed enterprise work/reference phases; current execution order is controlled by `implementation-plan.md`.
+28. [`engineering/enterprise-identity-access.md`](engineering/enterprise-identity-access.md) — focused OSS-first identity, department-aware capabilities and multi-level escalation implementation boundary; supersedes greenfield LDAP/SAML implementation guidance.
+29. [`engineering/demo-role-login.md`](engineering/demo-role-login.md) — non-production stakeholder role catalogue, supplied demo credentials, signed demo session and production isolation boundary.
+30. [`quality/release-gates-and-traceability.md`](quality/release-gates-and-traceability.md), [`quality/rendered-ui-evidence.md`](quality/rendered-ui-evidence.md) and domain acceptance tests.
+31. [`superpowers/specs/2026-08-26-premium-first-run-and-vendor-branding-design.md`](superpowers/specs/2026-08-26-premium-first-run-and-vendor-branding-design.md) — current first-run guidance and vendor identity presentation decision.
 
 ## Canonical precedence
 

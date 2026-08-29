@@ -52,7 +52,7 @@ export type DistributionDetail = {
   distribution: Distribution;
   recipients: DistributionRecipient[];
   workspace: DistributionWorkspace;
-  issued_access_routes?: Array<{ route_id?: string; route_selector?: string; recipient_id?: string; expires_at?: string }>;
+  issued_access_routes?: Array<{ route_id: string; selector: string; policy: DistributionAccessPolicy; expires_at: string }>;
 };
 
 export type DistributionAmendmentImpact = {

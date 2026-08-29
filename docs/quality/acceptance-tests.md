@@ -142,6 +142,22 @@ Every golden journey requires:
 - projection rebuild;
 - large response and assurance packages.
 
+## 2.8 Governed Forms
+
+- template creation, revision, maker-checker activation, retirement and rollback;
+- percentage-weight validation and deterministic compliance scoring against the exact form revision;
+- DOCX, XLS/XLSX and PDF proposal provenance, limitations and selective acceptance;
+- AI proposal review, partial acceptance, rejection, outage and non-AI authoring fallback;
+- multiple internal/external To and CC recipients without protected-address disclosure;
+- direct-link and shared-link OTP access, expiry, revocation, replay and active-session invalidation;
+- server draft save, encrypted browser recovery, conflict handling and file reselection;
+- amendment adding/revoking recipients and changing valid deadlines without rewriting history;
+- supersession impact preview, explicit carry-forward and immutable earlier responses;
+- vendor held-value confirm/correct/replace, stale-baseline conflict and field-level application receipt;
+- rich communication editing, protected variables, logo profile, preview, impact, test send, effective dates and maker-checker activation;
+- legal-entity isolation and keyset pagination at 1,000 templates and 400 distributions;
+- rendered desktop/mobile/light/dark evidence for library, empty search, sent forms, calendar inputs and response history.
+
 ---
 
 # 3. Quantitative usability release gates

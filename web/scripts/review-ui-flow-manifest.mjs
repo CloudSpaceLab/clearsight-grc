@@ -93,6 +93,11 @@ const expectedNames = [
   "86-vendor-form-readiness-light-1440x900",
   "87-vendor-link-sheet-light-1440x900",
   "88-vendor-link-sheet-dark-mobile-390x844",
+  "89-forms-library-light-1440x900",
+  "90-forms-search-empty-dark-mobile-390x844",
+  "91-forms-sent-light-1440x900",
+  "92-forms-amend-dark-mobile-390x844",
+  "93-forms-responses-light-1440x900",
 ];
 const requiredStates = [
   "baseline",
@@ -164,6 +169,11 @@ const requiredStates = [
   "vendor-form-readiness",
   "vendor-link-focused-sheet",
   "vendor-link-focused-sheet-mobile",
+  "forms-template-library",
+  "forms-template-search-empty",
+  "forms-sent-management",
+  "forms-amend-mobile",
+  "forms-response-revisions",
 ];
 
 const failures = [];

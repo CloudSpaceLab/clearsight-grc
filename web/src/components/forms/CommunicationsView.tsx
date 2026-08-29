@@ -57,7 +57,7 @@ export default function CommunicationsView() {
   async function serverImpact() {
     if (!selected || busy) return;
     setBusy("impact"); setError(undefined);
-    try { setImpact(await impactCommunicationTemplate(selected)); } catch (cause) { setError(message(cause, "Server impact could not be calculated.")); } finally { setBusy(undefined); }
+    try { setImpact(await impactCommunicationTemplate(selected)); } catch (cause) { setError(message(cause, "The message change impact could not be calculated.")); } finally { setBusy(undefined); }
   }
   async function testSend() {
     if (!selected || !testAddress.trim() || busy) return;
