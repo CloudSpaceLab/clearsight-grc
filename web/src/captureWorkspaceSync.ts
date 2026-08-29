@@ -41,7 +41,7 @@ type CaptureWorkspaceSyncOptions = {
   sessionToken: string;
   fields: CaptureField[];
   workspace: FormResponseWorkspace;
-  recovery: CaptureRecovery;
+  recovery?: CaptureRecovery;
   recoveryContext: CaptureRecoveryContext;
   debounceMs?: number;
   saveWorkspace?: SaveWorkspace;
@@ -59,7 +59,7 @@ type LocalSnapshot = {
 export class CaptureWorkspaceSync {
   private readonly sessionToken: string;
   private readonly fields: CaptureField[];
-  private readonly recovery: CaptureRecovery;
+  private readonly recovery?: CaptureRecovery;
   private readonly debounceMs: number;
   private readonly saveWorkspace: SaveWorkspace;
   private readonly onStateChange?: (snapshot: CaptureWorkspaceSyncSnapshot) => void;
@@ -126,8 +126,15 @@ export class CaptureWorkspaceSync {
     this.page = Math.max(0, Math.trunc(page));
     this.localSequence += 1;
     const snapshot = this.localSnapshot();
+
+    if (!this.recovery) {
+      if (this.conflicts.length === 0) this.setSaveState("saving");
+      this.scheduleFlush();
+      return;
+    }
+
     this.localWrite = this.localWrite.catch(() => undefined).then(async () => {
-      const envelope = await this.recovery.save(
+      const envelope = await this.recovery!.save(
         { ...this.recoveryContext, serverVersion: this.serverWorkspace.workspace.version },
         this.fields,
         snapshot.answers,
@@ -135,7 +142,7 @@ export class CaptureWorkspaceSync {
       );
       this.localRecoveryAvailable = envelope !== undefined;
       if (!this.disposed && this.conflicts.length === 0 && snapshot.localSequence === this.localSequence) {
-        this.setSaveState("saved_device");
+        this.setSaveState(this.localRecoveryAvailable ? "saved_device" : "saving");
       }
     }).catch((error) => {
       this.localRecoveryAvailable = false;
@@ -178,7 +185,7 @@ export class CaptureWorkspaceSync {
   async clearRecovery(): Promise<void> {
     this.clearTimer();
     await this.localWrite.catch(() => undefined);
-    await this.recovery.clear(this.recoveryContext);
+    if (this.recovery) await this.recovery.clear(this.recoveryContext);
     this.localRecoveryAvailable = false;
   }
 
@@ -188,6 +195,7 @@ export class CaptureWorkspaceSync {
   }
 
   private async restore(): Promise<void> {
+    if (!this.recovery) return;
     const restored = await this.recovery.restore(this.recoveryContext);
     if (restored.status !== "restored") return;
 
@@ -231,7 +239,7 @@ export class CaptureWorkspaceSync {
       if (sameLocalSnapshot(sent, this.localSnapshot())) {
         this.setSaveState("saved_server");
       } else {
-        this.setSaveState(this.localRecoveryAvailable ? "saved_device" : "failed");
+        this.setSaveState(this.localRecoveryAvailable ? "saved_device" : "saving");
         this.scheduleFlush();
       }
       return true;
@@ -251,6 +259,10 @@ export class CaptureWorkspaceSync {
   }
 
   private async persistCurrentAgainstServer(): Promise<void> {
+    if (!this.recovery) {
+      this.localRecoveryAvailable = false;
+      return;
+    }
     try {
       const envelope = await this.recovery.save(
         { ...this.recoveryContext, serverVersion: this.serverWorkspace.workspace.version },
