@@ -1,5 +1,5 @@
 import { loadContext } from "./api";
-import { requestJSON } from "./http";
+import { ApiError, parseJSON, requestJSON } from "./http";
 import type {
   CaptureAnswerInputs,
   CaptureAnswerValue,
@@ -121,10 +121,18 @@ export type FormResponseWorkspace = {
   current_revision?: Record<string, unknown>;
 };
 
+export type FormResponseRecoveryContext = {
+  legal_entity_id: string;
+  distribution_id: string;
+  schema_version: number;
+  route_expires_at: string;
+};
+
 export type FormResponseWorkspacePayload = {
   session: FormAccessSession;
   request: CaptureRequest;
   workspace: FormResponseWorkspace;
+  recovery_context?: FormResponseRecoveryContext;
 };
 
 export type FormWorkspaceEditInput = {
@@ -149,6 +157,27 @@ export type FormWorkspaceSubmissionResult = {
   revision: Record<string, unknown>;
   submission: CaptureReceipt;
 };
+
+export type FormWorkspaceFieldConflict = {
+  field_id: string;
+  server_value: CaptureAnswerValue;
+  sequence: number;
+};
+
+export type FormWorkspaceConflict = {
+  current_version: number;
+  changed_fields: FormWorkspaceFieldConflict[];
+};
+
+export class FormWorkspaceConflictError extends ApiError {
+  readonly conflict: FormWorkspaceConflict;
+
+  constructor(conflict: FormWorkspaceConflict) {
+    super(409, "The shared response changed while you were working.", "workspace_conflict");
+    this.name = "FormWorkspaceConflictError";
+    this.conflict = conflict;
+  }
+}
 
 export function normalizeCaptureAnswer(value: CaptureAnswerValue | string): CaptureAnswerValue {
   return typeof value === "string" ? { text: value } : value;
@@ -261,12 +290,22 @@ export function loadFormResponseWorkspace(sessionToken: string): Promise<FormRes
   });
 }
 
-export function saveFormResponseWorkspace(sessionToken: string, input: SaveFormResponseWorkspaceInput): Promise<FormResponseWorkspace> {
-  return request<FormResponseWorkspace>("/api/v1/evidence/session/workspace", {
+export async function saveFormResponseWorkspace(sessionToken: string, input: SaveFormResponseWorkspaceInput): Promise<FormResponseWorkspace> {
+  const response = await fetch(`${apiBase}/api/v1/evidence/session/workspace`, {
     method: "PATCH",
-    headers: { Authorization: `Bearer ${sessionToken}` },
+    credentials: "include",
+    headers: {
+      Authorization: `Bearer ${sessionToken}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(input),
   });
+  if (response.status === 409) {
+    const body = await response.json().catch(() => null) as unknown;
+    if (isWorkspaceConflict(body)) throw new FormWorkspaceConflictError(body);
+    throw new ApiError(409, "The shared response changed while you were working.", "workspace_conflict");
+  }
+  return parseJSON<FormResponseWorkspace>(response);
 }
 
 export function submitFormResponseWorkspace(sessionToken: string, input: SubmitFormResponseWorkspaceInput): Promise<FormWorkspaceSubmissionResult> {
@@ -303,4 +342,17 @@ export async function uploadCaptureSessionArtifact(sessionToken: string, file: F
     headers: { Authorization: `Bearer ${sessionToken}` },
     body,
   });
+}
+
+function isWorkspaceConflict(value: unknown): value is FormWorkspaceConflict {
+  if (!value || typeof value !== "object") return false;
+  const conflict = value as Partial<FormWorkspaceConflict>;
+  return Number.isInteger(conflict.current_version)
+    && Array.isArray(conflict.changed_fields)
+    && conflict.changed_fields.every((field) => Boolean(field)
+      && typeof field === "object"
+      && typeof field.field_id === "string"
+      && Number.isInteger(field.sequence)
+      && Boolean(field.server_value)
+      && typeof field.server_value === "object");
 }
