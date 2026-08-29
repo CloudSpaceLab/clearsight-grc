@@ -185,7 +185,7 @@ func (s *PostgresFormProposalStore) classifyMutationMiss(ctx context.Context, te
 
 func insertFormProposal(ctx context.Context, tx pgx.Tx, value FormTemplateProposal) (FormTemplateProposal, error) {
 	created, err := scanFormProposal(tx.QueryRow(ctx, `
-		INSERT INTO form_template_proposals(
+		INSERT INTO form_template_proposals AS p(
 			id,tenant_id,legal_entity_id,source_kind,source_document_id,source_document_version,source_sha256,
 			base_template_id,base_template_version,status,created_by,created_at,updated_at,version
 		) SELECT
