@@ -41,22 +41,26 @@ func applySelectedProposalChanges(base FormTemplate, proposal FormTemplatePropos
 		selected[changeID] = struct{}{}
 	}
 
-	changes := make(map[string]formcontract.Field, len(proposal.FieldChanges))
+	changes := make(map[string]FormFieldChangeView, len(proposal.FieldChanges))
 	for _, change := range proposal.FieldChanges {
-		if change.Kind != "ADD_FIELD" {
-			if _, wanted := selected[change.ID]; wanted {
-				return formcontract.Contract{}, errors.Join(ErrFormProposalSelection, fmt.Errorf("unsupported change kind %q", change.Kind))
-			}
-			continue
-		}
 		if _, duplicate := changes[change.ID]; duplicate {
 			return formcontract.Contract{}, errors.Join(ErrFormProposalSelection, fmt.Errorf("duplicate proposal change id %q", change.ID))
 		}
-		changes[change.ID] = cloneTemplateField(change.Field)
+		changes[change.ID] = FormFieldChangeView{Kind: change.Kind, Field: cloneTemplateField(change.Field)}
 	}
 	for changeID := range selected {
-		if _, exists := changes[changeID]; !exists {
+		change, exists := changes[changeID]
+		if !exists {
 			return formcontract.Contract{}, errors.Join(ErrFormProposalSelection, fmt.Errorf("unknown change id %q", changeID))
+		}
+		switch change.Kind {
+		case "ADD_FIELD":
+		case "UPDATE_FIELD", "REMOVE_FIELD":
+			if base.ID == "" {
+				return formcontract.Contract{}, errors.Join(ErrFormProposalSelection, fmt.Errorf("%s requires an exact base revision", change.Kind))
+			}
+		default:
+			return formcontract.Contract{}, errors.Join(ErrFormProposalSelection, fmt.Errorf("unsupported change kind %q", change.Kind))
 		}
 	}
 
@@ -64,7 +68,10 @@ func applySelectedProposalChanges(base FormTemplate, proposal FormTemplatePropos
 	if base.ID != "" {
 		contract.Presentation = base.Presentation
 		contract.ScoringMode = base.ScoringMode
-		contract.Sections = append([]formcontract.Section(nil), base.Sections...)
+		contract.Sections = make([]formcontract.Section, len(base.Sections))
+		for index := range base.Sections {
+			contract.Sections[index] = cloneProposalSection(base.Sections[index])
+		}
 		contract.Fields = make([]formcontract.Field, len(base.Fields))
 		for index := range base.Fields {
 			contract.Fields[index] = cloneTemplateField(base.Fields[index])
@@ -75,20 +82,44 @@ func applySelectedProposalChanges(base FormTemplate, proposal FormTemplatePropos
 	for _, section := range contract.Sections {
 		sectionIDs[section.ID] = struct{}{}
 	}
-	fieldIDs := make(map[string]struct{}, len(contract.Fields)+len(selected))
-	for _, field := range contract.Fields {
-		fieldIDs[field.ID] = struct{}{}
+	fieldIndexes := make(map[string]int, len(contract.Fields)+len(selected))
+	for index, field := range contract.Fields {
+		fieldIndexes[field.ID] = index
 	}
+
 	neededSections := make(map[string]struct{}, len(selected))
+	removed := make(map[string]struct{}, len(selected))
 	for _, change := range proposal.FieldChanges {
 		if _, wanted := selected[change.ID]; !wanted {
 			continue
 		}
-		if _, exists := fieldIDs[change.Field.ID]; exists {
-			return formcontract.Contract{}, errors.Join(ErrFormProposalSelection, fmt.Errorf("field %q already exists in the target revision", change.Field.ID))
+		switch change.Kind {
+		case "ADD_FIELD":
+			if _, exists := fieldIndexes[change.Field.ID]; exists {
+				return formcontract.Contract{}, errors.Join(ErrFormProposalSelection, fmt.Errorf("field %q already exists in the target revision", change.Field.ID))
+			}
+			neededSections[change.Field.SectionID] = struct{}{}
+		case "UPDATE_FIELD":
+			index, exists := fieldIndexes[change.Field.ID]
+			if !exists {
+				return formcontract.Contract{}, errors.Join(ErrFormProposalSelection, fmt.Errorf("field %q does not exist in the target revision", change.Field.ID))
+			}
+			if _, alreadyRemoved := removed[change.Field.ID]; alreadyRemoved {
+				return formcontract.Contract{}, errors.Join(ErrFormProposalSelection, fmt.Errorf("field %q cannot be updated and removed together", change.Field.ID))
+			}
+			contract.Fields[index] = cloneTemplateField(change.Field)
+			neededSections[change.Field.SectionID] = struct{}{}
+		case "REMOVE_FIELD":
+			if _, exists := fieldIndexes[change.Field.ID]; !exists {
+				return formcontract.Contract{}, errors.Join(ErrFormProposalSelection, fmt.Errorf("field %q does not exist in the target revision", change.Field.ID))
+			}
+			if _, duplicate := removed[change.Field.ID]; duplicate {
+				return formcontract.Contract{}, errors.Join(ErrFormProposalSelection, fmt.Errorf("field %q is removed more than once", change.Field.ID))
+			}
+			removed[change.Field.ID] = struct{}{}
 		}
-		neededSections[change.Field.SectionID] = struct{}{}
 	}
+
 	for _, section := range proposal.ProposedContract.Sections {
 		if _, needed := neededSections[section.ID]; !needed {
 			continue
@@ -104,13 +135,21 @@ func applySelectedProposalChanges(base FormTemplate, proposal FormTemplatePropos
 			return formcontract.Contract{}, errors.Join(ErrFormProposalSelection, fmt.Errorf("selected field references unknown section %q", sectionID))
 		}
 	}
+
+	if len(removed) > 0 {
+		kept := contract.Fields[:0]
+		for _, field := range contract.Fields {
+			if _, remove := removed[field.ID]; !remove {
+				kept = append(kept, field)
+			}
+		}
+		contract.Fields = kept
+	}
 	for _, change := range proposal.FieldChanges {
-		if _, wanted := selected[change.ID]; !wanted {
+		if _, wanted := selected[change.ID]; !wanted || change.Kind != "ADD_FIELD" {
 			continue
 		}
-		field := cloneTemplateField(change.Field)
-		contract.Fields = append(contract.Fields, field)
-		fieldIDs[field.ID] = struct{}{}
+		contract.Fields = append(contract.Fields, cloneTemplateField(change.Field))
 	}
 
 	normalized, err := formcontract.Normalize(contract)
@@ -118,6 +157,11 @@ func applySelectedProposalChanges(base FormTemplate, proposal FormTemplatePropos
 		return formcontract.Contract{}, errors.Join(ErrFormProposalSelection, err)
 	}
 	return normalized, nil
+}
+
+type FormFieldChangeView struct {
+	Kind  string
+	Field formcontract.Field
 }
 
 func cloneProposalSection(value formcontract.Section) formcontract.Section {
