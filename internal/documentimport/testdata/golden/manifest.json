@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "name": "docx_dropdown",
+      "source_kind": "DOCX",
+      "execution_mode": "NATIVE",
+      "expected_status": "EXTRACTED",
+      "element_kinds": ["PARAGRAPH", "FORM_CONTROL"],
+      "required_degradations": [],
+      "max_duration_class": "FAST"
+    },
+    {
+      "name": "docx_unsafe_link",
+      "source_kind": "DOCX",
+      "execution_mode": "NATIVE",
+      "expected_status": "PARTIAL",
+      "element_kinds": ["PARAGRAPH"],
+      "required_degradations": ["DOCX_LINK_TARGET_REJECTED"],
+      "max_duration_class": "FAST"
+    },
+    {
+      "name": "xlsx_single_row",
+      "source_kind": "XLSX",
+      "execution_mode": "NATIVE",
+      "expected_status": "EXTRACTED",
+      "element_kinds": ["TABLE"],
+      "required_degradations": [],
+      "max_duration_class": "FAST"
+    },
+    {
+      "name": "pdf_native_text",
+      "source_kind": "PDF_NATIVE",
+      "execution_mode": "NATIVE_SCRIPTED_TOOLS",
+      "expected_status": "EXTRACTED",
+      "element_kinds": ["PARAGRAPH"],
+      "required_degradations": [],
+      "max_duration_class": "FAST"
+    },
+    {
+      "name": "pdf_scanned",
+      "source_kind": "PDF_SCANNED",
+      "execution_mode": "NATIVE_SCRIPTED_TOOLS",
+      "expected_status": "UNSUPPORTED",
+      "element_kinds": [],
+      "required_degradations": [],
+      "max_duration_class": "FAST"
+    },
+    {
+      "name": "docx_malformed",
+      "source_kind": "DOCX",
+      "execution_mode": "NATIVE",
+      "expected_status": "FAILED",
+      "element_kinds": [],
+      "required_degradations": [],
+      "max_duration_class": "FAST"
+    },
+    {
+      "name": "docx_expansion_bomb",
+      "source_kind": "DOCX",
+      "execution_mode": "NATIVE_BOUNDED",
+      "expected_status": "FAILED",
+      "element_kinds": [],
+      "required_degradations": [],
+      "max_duration_class": "FAST"
+    },
+    {
+      "name": "pdf_acroform_adapter",
+      "source_kind": "PDF_ACROFORM",
+      "execution_mode": "TASK16_ADAPTER_CONTRACT",
+      "expected_status": "PARTIAL",
+      "element_kinds": ["FORM_CONTROL"],
+      "required_degradations": [],
+      "max_duration_class": "BOUNDED_EXTERNAL"
+    },
+    {
+      "name": "legacy_xls_conversion",
+      "source_kind": "LEGACY_XLS",
+      "execution_mode": "TASK16_LEGACY_CONVERSION_CONTRACT",
+      "expected_status": "PARTIAL",
+      "element_kinds": ["TABLE"],
+      "required_degradations": [],
+      "max_duration_class": "BOUNDED_EXTERNAL"
+    }
+  ]
+}
