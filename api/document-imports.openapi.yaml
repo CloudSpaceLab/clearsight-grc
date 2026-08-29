@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: ClearSight Governed Document Imports API
-  version: 0.2.0
+  version: 0.3.0
   description: |
     Actor-bound document intake, bounded deterministic extraction and source-anchored analysis proposals.
     Import and proposal review do not create or approve Requirements, Programs, Matters, controls,
@@ -383,6 +383,9 @@ components:
           enum: [HEADING, PARAGRAPH, TABLE, FORM_CONTROL, IMAGE, LINK]
         text:
           type: string
+        target:
+          type: string
+          description: Allowlisted external hyperlink target or in-document anchor for LINK elements.
         values:
           type: array
           items:
