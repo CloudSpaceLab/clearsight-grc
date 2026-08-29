@@ -35,10 +35,14 @@ func NewHTTPParserAdapter(name, endpoint string, client *http.Client) (*HTTPPars
 func (a *HTTPParserAdapter) Name() string { return a.name }
 
 func (a *HTTPParserAdapter) Extract(ctx context.Context, request ParserRequest) (ParserResponse, error) {
-	if a == nil || a.client == nil || strings.TrimSpace(a.endpoint) == "" {
+	if a == nil || a.client == nil || strings.TrimSpace(a.endpoint) == "" || request.Data == nil {
 		return ParserResponse{}, errors.New("parser adapter is not configured")
 	}
-	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, a.endpoint, bytes.NewReader(request.Data))
+	inputLimit := request.MaxBytes
+	if inputLimit <= 0 {
+		inputLimit = 20 << 20
+	}
+	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, a.endpoint, io.LimitReader(request.Data, inputLimit+1))
 	if err != nil {
 		return ParserResponse{}, err
 	}
