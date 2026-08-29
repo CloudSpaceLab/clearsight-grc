@@ -91,6 +91,15 @@ func cloneSavedFormView(value SavedFormView) SavedFormView {
 }
 
 func applyFormMetadataDefaults(value *FormTemplate) {
+	if value == nil {
+		return
+	}
+	if value.ApprovedUses == nil {
+		value.ApprovedUses = []string{}
+	}
+	if value.Tags == nil {
+		value.Tags = []string{}
+	}
 	if strings.TrimSpace(value.Sensitivity) == "" {
 		value.Sensitivity = "INTERNAL"
 	}
