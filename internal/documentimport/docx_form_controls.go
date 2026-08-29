@@ -9,11 +9,12 @@ import (
 )
 
 type docxControlMetadata struct {
-	kind    string
-	label   string
-	help    string
-	options []string
-	checked *bool
+	kind      string
+	label     string
+	help      string
+	options   []string
+	checked   *bool
+	truncated bool
 }
 
 type docxFieldState struct {
@@ -24,35 +25,36 @@ type docxFieldState struct {
 	truncated   bool
 }
 
-func readDOCXContentControl(ctx context.Context, decoder *xml.Decoder, policy ExtractionPolicy) (*FormControl, string, bool, error) {
+func readDOCXContentControl(ctx context.Context, decoder *xml.Decoder, policy ExtractionPolicy) (*FormControl, string, bool, bool, error) {
 	metadata := docxControlMetadata{}
 	var text strings.Builder
 	truncated := false
+	complexStructure := false
 	depth := 1
 	inText := false
 	for depth > 0 {
 		if err := ctx.Err(); err != nil {
-			return nil, "", false, err
+			return nil, "", false, false, err
 		}
 		token, err := decoder.Token()
 		if err == io.EOF {
-			return nil, "", false, fmt.Errorf("DOCX content control ended unexpectedly")
+			return nil, "", false, false, fmt.Errorf("DOCX content control ended unexpectedly")
 		}
 		if err != nil {
-			return nil, "", false, err
+			return nil, "", false, false, err
 		}
 		switch item := token.(type) {
 		case xml.StartElement:
 			depth++
 			switch item.Name.Local {
 			case "alias":
-				metadata.label = boundedAttribute(item, "val", policy.MaxCellBytes)
+				metadata.label, metadata.truncated = boundedControlAttribute(item, "val", policy.MaxCellBytes, metadata.truncated)
 			case "tag":
 				if metadata.label == "" {
-					metadata.label = boundedAttribute(item, "val", policy.MaxCellBytes)
+					metadata.label, metadata.truncated = boundedControlAttribute(item, "val", policy.MaxCellBytes, metadata.truncated)
 				}
 			case "helpText":
-				metadata.help = boundedAttribute(item, "val", policy.MaxCellBytes)
+				metadata.help, metadata.truncated = boundedControlAttribute(item, "val", policy.MaxCellBytes, metadata.truncated)
 			case "dropDownList", "comboBox":
 				metadata.kind = "DROPDOWN"
 			case "listItem":
@@ -60,8 +62,16 @@ func readDOCXContentControl(ctx context.Context, decoder *xml.Decoder, policy Ex
 				if option == "" {
 					option = strings.TrimSpace(xmlAttribute(item, "value"))
 				}
-				if option != "" && len(metadata.options) < policy.MaxColumns {
-					metadata.options = append(metadata.options, truncateUTF8(option, policy.MaxCellBytes))
+				if option != "" {
+					if len(option) > policy.MaxCellBytes {
+						option = truncateUTF8(option, policy.MaxCellBytes)
+						metadata.truncated = true
+					}
+					if len(metadata.options) < policy.MaxColumns {
+						metadata.options = append(metadata.options, option)
+					} else {
+						metadata.truncated = true
+					}
 				}
 			case "checkBox":
 				metadata.kind = "CHECKBOX"
@@ -76,6 +86,8 @@ func readDOCXContentControl(ctx context.Context, decoder *xml.Decoder, policy Ex
 				metadata.kind = "DATE"
 			case "t":
 				inText = true
+			case "tbl", "hyperlink", "drawing", "pict", "sdt":
+				complexStructure = true
 			}
 		case xml.CharData:
 			if inText {
@@ -90,7 +102,7 @@ func readDOCXContentControl(ctx context.Context, decoder *xml.Decoder, policy Ex
 	}
 	visible := strings.TrimSpace(text.String())
 	control := controlFromMetadata(metadata, "")
-	return control, visible, truncated, nil
+	return control, visible, truncated || metadata.truncated, complexStructure, nil
 }
 
 func readDOCXSimpleField(ctx context.Context, decoder *xml.Decoder, start xml.StartElement, policy ExtractionPolicy) (*FormControl, string, bool, error) {
@@ -127,7 +139,7 @@ func readDOCXSimpleField(ctx context.Context, decoder *xml.Decoder, start xml.St
 			depth--
 		}
 	}
-	return controlFromMetadata(state.metadata, state.instruction.String()), strings.TrimSpace(state.result.String()), state.truncated, nil
+	return controlFromMetadata(state.metadata, state.instruction.String()), strings.TrimSpace(state.result.String()), state.truncated || state.metadata.truncated, nil
 }
 
 func observeFieldMetadata(metadata *docxControlMetadata, start xml.StartElement, policy ExtractionPolicy) {
@@ -136,10 +148,10 @@ func observeFieldMetadata(metadata *docxControlMetadata, start xml.StartElement,
 	}
 	switch start.Name.Local {
 	case "name":
-		metadata.label = boundedAttribute(start, "val", policy.MaxCellBytes)
+		metadata.label, metadata.truncated = boundedControlAttribute(start, "val", policy.MaxCellBytes, metadata.truncated)
 	case "helpText", "statusText":
 		if metadata.help == "" {
-			metadata.help = boundedAttribute(start, "val", policy.MaxCellBytes)
+			metadata.help, metadata.truncated = boundedControlAttribute(start, "val", policy.MaxCellBytes, metadata.truncated)
 		}
 	case "checkBox":
 		metadata.kind = "CHECKBOX"
@@ -160,8 +172,16 @@ func observeFieldMetadata(metadata *docxControlMetadata, start xml.StartElement,
 		if option == "" {
 			option = strings.TrimSpace(xmlAttribute(start, "value"))
 		}
-		if option != "" && len(metadata.options) < policy.MaxColumns {
-			metadata.options = append(metadata.options, truncateUTF8(option, policy.MaxCellBytes))
+		if option != "" {
+			if len(option) > policy.MaxCellBytes {
+				option = truncateUTF8(option, policy.MaxCellBytes)
+				metadata.truncated = true
+			}
+			if len(metadata.options) < policy.MaxColumns {
+				metadata.options = append(metadata.options, option)
+			} else {
+				metadata.truncated = true
+			}
 		}
 	}
 }
@@ -204,13 +224,17 @@ func finishComplexField(state *docxFieldState) (*FormControl, string, bool) {
 	}
 	control := controlFromMetadata(state.metadata, state.instruction.String())
 	text := strings.TrimSpace(state.result.String())
-	truncated := state.truncated
+	truncated := state.truncated || state.metadata.truncated
 	*state = docxFieldState{}
 	return control, text, truncated
 }
 
-func boundedAttribute(start xml.StartElement, name string, maximum int) string {
-	return truncateUTF8(strings.TrimSpace(xmlAttribute(start, name)), maximum)
+func boundedControlAttribute(start xml.StartElement, name string, maximum int, alreadyTruncated bool) (string, bool) {
+	value := strings.TrimSpace(xmlAttribute(start, name))
+	if len(value) > maximum {
+		return truncateUTF8(value, maximum), true
+	}
+	return value, alreadyTruncated
 }
 
 func parseOfficeBoolean(value string) bool {
