@@ -9,7 +9,15 @@ import (
 const legacyXLSAdapterVersion = "LIBREOFFICE_XLS_CONVERTER_V1"
 
 func ExtractAdvanced(ctx context.Context, document Document, data []byte, extraction ExtractionPolicy, adapter ParserAdapter, adapterPolicy ParserAdapterPolicy, converter *LegacyOfficeConverter) ExtractionResult {
-	if strings.EqualFold(filepath.Ext(document.FileName), ".xls") && converter != nil && converter.Enabled() {
+	if strings.EqualFold(filepath.Ext(document.FileName), ".xls") {
+		if converter == nil || !converter.Enabled() {
+			message := "Legacy .xls extraction requires an explicitly configured isolated LibreOffice converter; the original artifact remains available for governed review."
+			return ExtractionResult{
+				Status: ExtractionUnsupported, Method: "LEGACY_OFFICE_CONVERSION_UNAVAILABLE", ParserVersion: "LEGACY_OFFICE_CONVERSION",
+				AdapterVersion: legacyXLSAdapterVersion, Limitations: []string{message}, Sections: []Section{}, Elements: []ExtractedElement{},
+				Degradations: []Degradation{{Code: "LEGACY_OFFICE_CONVERTER_DISABLED", Message: message, Recoverable: true}},
+			}
+		}
 		converted, err := converter.ConvertXLS(ctx, document.FileName, data)
 		if err != nil {
 			message := "Configured legacy Office conversion failed; the original artifact remains available for governed review."
