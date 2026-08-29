@@ -124,6 +124,46 @@ func TestDOCXElementBudgetReportsTruncation(t *testing.T) {
 	}
 }
 
+func TestDOCXRelationshipMetadataBudgetFailsClosed(t *testing.T) {
+	entries := map[string][]byte{}
+	entries["word/_rels/document.xml.rels"] = []byte(`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://example.com/a" TargetMode="External"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://example.com/b" TargetMode="External"/></Relationships>`)
+	entries["word/document.xml"] = []byte(`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Document</w:t></w:r></w:p></w:body></w:document>`)
+	policy := DefaultExtractionPolicy()
+	policy.MaxElements = 1
+	result := ExtractWithPolicy(context.Background(), "relationships.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", zipFixture(t, entries), policy)
+	assertResourceFailure(t, result, "hyperlink relationship count exceeds 1")
+}
+
+func TestDOCXNumberingMetadataBudgetFailsClosed(t *testing.T) {
+	entries := map[string][]byte{}
+	entries["word/numbering.xml"] = []byte(`<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:abstractNum w:abstractNumId="7"><w:lvl w:ilvl="0"><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/></w:lvl></w:abstractNum><w:num w:numId="3"><w:abstractNumId w:val="7"/></w:num></w:numbering>`)
+	entries["word/document.xml"] = []byte(`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Document</w:t></w:r></w:p></w:body></w:document>`)
+	policy := DefaultExtractionPolicy()
+	policy.MaxElements = 2
+	result := ExtractWithPolicy(context.Background(), "numbering.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", zipFixture(t, entries), policy)
+	assertResourceFailure(t, result, "numbering definition count exceeds 2")
+}
+
+func TestDOCXNestedTableDoesNotMasqueradeAsFlatStructure(t *testing.T) {
+	data := zipFixture(t, map[string][]byte{
+		"word/document.xml": []byte(`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:tbl><w:tr><w:tc><w:p><w:r><w:t>Outer</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p><w:r><w:t>Inner</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:tc></w:tr></w:tbl></w:body></w:document>`),
+	})
+	result := ExtractWithPolicy(context.Background(), "nested-table.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data, DefaultExtractionPolicy())
+	if result.Status != ExtractionPartial || !hasDegradation(result.Degradations, "DOCX_NESTED_TABLE_NOT_EXTRACTED") {
+		t.Fatalf("nested table must be explicit partial structure: %#v", result)
+	}
+}
+
+func TestDOCXComplexContentControlDoesNotFlattenNestedTableSilently(t *testing.T) {
+	data := zipFixture(t, map[string][]byte{
+		"word/document.xml": []byte(`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:sdt><w:sdtPr><w:alias w:val="Vendor details"/></w:sdtPr><w:sdtContent><w:tbl><w:tr><w:tc><w:p><w:r><w:t>Nested value</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:sdtContent></w:sdt></w:body></w:document>`),
+	})
+	result := ExtractWithPolicy(context.Background(), "complex-control.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data, DefaultExtractionPolicy())
+	if result.Status != ExtractionPartial || !hasDegradation(result.Degradations, "DOCX_COMPLEX_CONTROL_STRUCTURE_NOT_EXTRACTED") {
+		t.Fatalf("complex content control must be explicit partial structure: %#v", result)
+	}
+}
+
 func hasDegradation(values []Degradation, code string) bool {
 	for _, value := range values {
 		if value.Code == code {
