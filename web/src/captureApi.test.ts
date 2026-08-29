@@ -123,7 +123,7 @@ describe("capture API", () => {
       expected_version: 8,
       presentation_mode: "AUTOMATIC",
       edits: [{ field_id: "owner", value: { text: "Local owner" }, base_sequence: 3 }],
-    })).rejects.toMatchObject<FormWorkspaceConflictError>({
+    })).rejects.toMatchObject({
       name: "FormWorkspaceConflictError",
       conflict: {
         current_version: 9,
@@ -136,6 +136,7 @@ describe("capture API", () => {
     expect(call[0]).toBe("/api/v1/evidence/session/workspace");
     expect((call[1] as RequestInit).method).toBe("PATCH");
     expect(new Headers((call[1] as RequestInit).headers).get("Authorization")).toBe("Bearer session-secret");
+    expect(FormWorkspaceConflictError).toBeTypeOf("function");
   });
 
   it("binds internal and external artifact uploads to the selected form field", async () => {
