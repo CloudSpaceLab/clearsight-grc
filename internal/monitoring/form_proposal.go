@@ -51,6 +51,7 @@ type FormTemplateProposal struct {
 	FailureMessage        string                                  `json:"failure_message,omitempty"`
 	CreatedBy             string                                  `json:"created_by"`
 	ReviewedBy            string                                  `json:"reviewed_by,omitempty"`
+	AcceptedChangeIDs     []string                                `json:"accepted_change_ids,omitempty"`
 	ResultTemplateID      string                                  `json:"result_template_id,omitempty"`
 	ResultTemplateVersion int64                                   `json:"result_template_version,omitempty"`
 	CreatedAt             time.Time                               `json:"created_at"`
@@ -81,6 +82,7 @@ type FormProposalReviewMutation struct {
 	ExpectedVersion       int64
 	Status                FormProposalStatus
 	ReviewerID            string
+	ChangeIDs             []string
 	ResultTemplateID      string
 	ResultTemplateVersion int64
 	At                    time.Time
@@ -115,6 +117,7 @@ func cloneFormTemplateProposal(value FormTemplateProposal) FormTemplateProposal 
 			cloned.UnresolvedItems[index].Anchor = &anchor
 		}
 	}
+	cloned.AcceptedChangeIDs = append([]string(nil), value.AcceptedChangeIDs...)
 	return cloned
 }
 
