@@ -17,13 +17,13 @@ type goldenManifest struct {
 }
 
 type goldenCase struct {
-	Name                 string             `json:"name"`
-	SourceKind           string             `json:"source_kind"`
-	ExecutionMode        string             `json:"execution_mode"`
-	ExpectedStatus       ExtractionStatus   `json:"expected_status"`
-	ElementKinds         []ElementKind      `json:"element_kinds"`
-	RequiredDegradations []string           `json:"required_degradations"`
-	MaxDurationClass     string             `json:"max_duration_class"`
+	Name                 string           `json:"name"`
+	SourceKind           string           `json:"source_kind"`
+	ExecutionMode        string           `json:"execution_mode"`
+	ExpectedStatus       ExtractionStatus `json:"expected_status"`
+	ElementKinds         []ElementKind    `json:"element_kinds"`
+	RequiredDegradations []string         `json:"required_degradations"`
+	MaxDurationClass     string           `json:"max_duration_class"`
 }
 
 func TestGoldenCorpus(t *testing.T) {
@@ -116,17 +116,17 @@ func runGoldenCase(t *testing.T, name string) ExtractionResult {
 		return ExtractWithPolicy(context.Background(), "single.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", data, DefaultExtractionPolicy())
 	case "pdf_native_text":
 		policy := DefaultExtractionPolicy()
-		runner := &scriptedPDFRunner{responses: map[string]pdfCommandResponse{
-			"pdfinfo":   {Stdout: []byte("Pages: 1\n")},
-			"pdftotext": {Stdout: []byte("The bank must retain records for five years.\f")},
-		}}
+		responses := map[string]pdfCommandResponse{}
+		responses["pdfinfo"] = pdfCommandResponse{Stdout: []byte("Pages: 1\n")}
+		responses["pdftotext"] = pdfCommandResponse{Stdout: []byte("The bank must retain records for five years.\f")}
+		runner := &scriptedPDFRunner{responses: responses}
 		return extractPDFWithTools(context.Background(), []byte("%PDF fixture"), newSectionCollector(policy), policy, pdfToolPaths{Info: "pdfinfo", Text: "pdftotext"}, runner)
 	case "pdf_scanned":
 		policy := DefaultExtractionPolicy()
-		runner := &scriptedPDFRunner{responses: map[string]pdfCommandResponse{
-			"pdfinfo":   {Stdout: []byte("Pages: 1\n")},
-			"pdftotext": {Stdout: []byte("\f")},
-		}}
+		responses := map[string]pdfCommandResponse{}
+		responses["pdfinfo"] = pdfCommandResponse{Stdout: []byte("Pages: 1\n")}
+		responses["pdftotext"] = pdfCommandResponse{Stdout: []byte("\f")}
+		runner := &scriptedPDFRunner{responses: responses}
 		return extractPDFWithTools(context.Background(), []byte("%PDF fixture"), newSectionCollector(policy), policy, pdfToolPaths{Info: "pdfinfo", Text: "pdftotext"}, runner)
 	case "docx_malformed":
 		return ExtractWithPolicy(context.Background(), "malformed.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", []byte("not a zip archive"), DefaultExtractionPolicy())
