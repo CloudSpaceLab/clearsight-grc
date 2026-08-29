@@ -62,7 +62,13 @@ func projectDOCXSections(elements []ExtractedElement, collector *sectionCollecto
 				currentTitle = truncateUTF8(title, 240)
 			}
 		case ElementParagraph:
-			appendBody(element.Text)
+			text := strings.TrimSpace(element.Text)
+			if looksLikeHeading(text) {
+				flush()
+				currentTitle = truncateUTF8(text, 240)
+				continue
+			}
+			appendBody(text)
 		case ElementTable:
 			appendBody(flattenDOCXTable(element.Values))
 		case ElementFormControl:
