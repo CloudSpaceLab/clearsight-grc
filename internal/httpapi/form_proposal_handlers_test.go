@@ -32,10 +32,12 @@ func (r formProposalHTTPDocuments) Get(_ context.Context, tenantID, documentID s
 
 func TestFormProposalRoutesAreRegisteredAndClassified(t *testing.T) {
 	want := map[string]routeClass{
-		"POST /api/v1/document-imports/{id}/form-template-proposals": routeAuthenticatedWrite,
-		"GET /api/v1/forms/proposals/{id}":                           routeAuthenticatedRead,
-		"POST /api/v1/forms/proposals/{id}/accept":                   routeAuthenticatedWrite,
-		"POST /api/v1/forms/proposals/{id}/reject":                   routeAuthenticatedWrite,
+		"POST /api/v1/document-imports/{id}/form-template-proposals":             routeAuthenticatedWrite,
+		"POST /api/v1/forms/proposals/ai":                                        routeAuthenticatedWrite,
+		"POST /api/v1/forms/templates/{id}/revisions/{version}/ai-proposals":     routeAuthenticatedWrite,
+		"GET /api/v1/forms/proposals/{id}":                                       routeAuthenticatedRead,
+		"POST /api/v1/forms/proposals/{id}/accept":                               routeAuthenticatedWrite,
+		"POST /api/v1/forms/proposals/{id}/reject":                               routeAuthenticatedWrite,
 	}
 	for _, route := range (&API{}).productionRoutes() {
 		key := route.Method + " " + route.Path
@@ -50,6 +52,27 @@ func TestFormProposalRoutesAreRegisteredAndClassified(t *testing.T) {
 	}
 	if len(want) != 0 {
 		t.Fatalf("missing form proposal routes: %#v", want)
+	}
+}
+
+func TestAIFormProposalRouteFailsCleanlyWhenGatewayIsNotConfigured(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	guard, err := commandauth.New(nil, commandauth.ModeOff, logger)
+	if err != nil {
+		t.Fatal(err)
+	}
+	forms := monitoring.NewService(monitoring.NewMemoryRepository(), nil)
+	forms.ConfigureCommandGuard(guard)
+	proposals := monitoring.NewFormProposalService(monitoring.NewMemoryFormProposalStore(), formProposalHTTPDocuments{}, forms)
+	handler := New(Dependencies{
+		Logger: logger, Identity: identity.NewDevelopmentAuthenticator("bank-a", "maker-a", "entity-a"),
+		CommandGuard: guard, Monitoring: forms, FormProposals: proposals,
+	})
+
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/forms/proposals/ai", bytes.NewBufferString(`{"objective":"Draft a vendor onboarding questionnaire."}`)))
+	if response.Code != http.StatusServiceUnavailable || !bytes.Contains(response.Body.Bytes(), []byte(`"code":"form_ai_unavailable"`)) {
+		t.Fatalf("unconfigured AI route returned %d: %s", response.Code, response.Body.String())
 	}
 }
 
