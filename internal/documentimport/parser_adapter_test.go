@@ -78,7 +78,7 @@ func TestParserAdapterRetainsPartialResponseAndStructuredDegradation(t *testing.
 		}
 		return ParserResponse{
 			ParserVersion: "pymupdf-1.26", Pages: 2, OutputBytes: 256,
-			Elements: []ExtractedElement{{Ref: "p1", Kind: ElementParagraph, Text: "Recovered text", Anchor: SourceAnchor{Page: 1}}},
+			Elements:     []ExtractedElement{{Ref: "p1", Kind: ElementParagraph, Text: "Recovered text", Anchor: SourceAnchor{Page: 1}}},
 			Degradations: []Degradation{{Code: "IMAGE_REVIEW_REQUIRED", Message: "One image requires review.", Recoverable: true, Anchor: &SourceAnchor{Page: 2}}},
 		}, nil
 	}}
