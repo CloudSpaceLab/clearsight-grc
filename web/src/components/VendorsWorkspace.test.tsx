@@ -283,7 +283,7 @@ describe("VendorsWorkspace", () => {
     expect(completed).not.toHaveBeenCalled();
     resolveGuidedLoad({ items: [record] });
     expect(await screen.findByRole("heading", { name: "Due diligence" })).toBeTruthy();
-    expect(completed).toHaveBeenCalledOnce();
+    await waitFor(() => expect(completed).toHaveBeenCalledOnce());
   });
 
   it("shows the scoped vendor register and record details", async () => {
