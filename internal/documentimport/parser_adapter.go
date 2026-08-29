@@ -51,7 +51,9 @@ func DefaultParserAdapterPolicy(extraction ExtractionPolicy, maxBytes int64) Par
 		maxBytes = 20 << 20
 	}
 	return ParserAdapterPolicy{
-		Extensions:     map[string]struct{}{ ".pdf": {} },
+		Extensions: map[string]struct{}{
+			".pdf": {},
+		},
 		Timeout:        30 * time.Second,
 		MaxBytes:       maxBytes,
 		MaxPages:       extraction.MaxPDFPages,
