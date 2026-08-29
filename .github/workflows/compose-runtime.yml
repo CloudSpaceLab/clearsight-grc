@@ -1,0 +1,89 @@
+name: Compose runtime
+
+on:
+  pull_request:
+    paths:
+      - compose.yaml
+      - Dockerfile.api
+      - Dockerfile.worker
+      - deploy/scripts/migrate.sh
+      - migrations/**
+      - .github/workflows/compose-runtime.yml
+  push:
+    branches: [main]
+    paths:
+      - compose.yaml
+      - Dockerfile.api
+      - Dockerfile.worker
+      - deploy/scripts/migrate.sh
+      - migrations/**
+      - .github/workflows/compose-runtime.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compose-runtime-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Compose model
+        run: docker compose config --quiet
+
+      - name: Build runtime images
+        run: docker compose build api worker
+
+      - name: Start PostgreSQL, migrations and runtime
+        run: docker compose up -d postgres migrate api worker
+
+      - name: Verify runtime contracts
+        run: |
+          set -Eeuo pipefail
+
+          api_id="$(docker compose ps -q api)"
+          worker_id="$(docker compose ps -q worker)"
+          test -n "$api_id"
+          test -n "$worker_id"
+
+          health=""
+          for attempt in $(seq 1 60); do
+            health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' "$api_id")"
+            if [[ "$health" == healthy ]]; then
+              break
+            fi
+            if [[ "$health" == unhealthy ]]; then
+              docker compose logs api
+              exit 1
+            fi
+            sleep 2
+          done
+          [[ "$health" == healthy ]]
+          curl -fsS http://127.0.0.1:8080/health/ready >/dev/null
+
+          applied="$(docker compose exec -T postgres psql -U clearsight -d clearsight -Atc 'SELECT count(*) FROM public.clearsight_schema_migrations;')"
+          [[ "$applied" =~ ^[0-9]+$ ]]
+          (( applied > 0 ))
+
+          api_volume="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/var/lib/clearsight/artifacts"}}{{.Name}}{{end}}{{end}}' "$api_id")"
+          worker_volume="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/var/lib/clearsight/artifacts"}}{{.Name}}{{end}}{{end}}' "$worker_id")"
+          test -n "$api_volume"
+          test "$api_volume" = "$worker_volume"
+
+          docker run --rm --user 65532:65532 -v "$api_volume:/artifacts" alpine:3.23 \
+            sh -ec 'touch /artifacts/.permission-probe && rm /artifacts/.permission-probe'
+
+      - name: Show runtime diagnostics
+        if: failure()
+        run: |
+          docker compose ps -a || true
+          docker compose logs postgres migrate api worker || true
+
+      - name: Tear down runtime
+        if: always()
+        run: docker compose down -v --remove-orphans
