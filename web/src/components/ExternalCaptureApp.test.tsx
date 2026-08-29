@@ -14,6 +14,10 @@ import type { CaptureRequest } from "../types";
 import { ExternalCaptureApp } from "./ExternalCaptureApp";
 
 vi.mock("../captureApi", () => ({
+  FormWorkspaceConflictError: class FormWorkspaceConflictError extends Error {
+    conflict: unknown;
+    constructor(conflict: unknown) { super("workspace conflict"); this.conflict = conflict; }
+  },
   loadCaptureDraft: vi.fn(),
   saveCaptureDraft: vi.fn(),
   submitInternalCaptureRequest: vi.fn(),
@@ -27,6 +31,7 @@ vi.mock("../captureApi", () => ({
   submitFormResponseWorkspace: vi.fn(),
   uploadCaptureSessionArtifact: vi.fn(),
   normalizeCaptureAnswer: (value: unknown) => typeof value === "string" ? { text: value } : value,
+  normalizeCaptureAnswers: (answers: Record<string, unknown>) => Object.fromEntries(Object.entries(answers).map(([fieldID, value]) => [fieldID, typeof value === "string" ? { text: value } : value])),
 }));
 
 const request: CaptureRequest = {
