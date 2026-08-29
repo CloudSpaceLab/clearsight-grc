@@ -35,8 +35,8 @@ END $$;
 ALTER TABLE third_party_documents
     ADD CONSTRAINT third_party_documents_validation_state_check CHECK (
         (status IN ('VALIDATED','REJECTED') AND validated_by_principal_id IS NOT NULL AND validated_at IS NOT NULL)
-        OR (status IN ('SUBMITTED','EXPIRED') AND validated_by_principal_id IS NULL AND validated_at IS NULL)
-        OR status='SUPERSEDED'
+        OR (status='SUBMITTED' AND validated_by_principal_id IS NULL AND validated_at IS NULL)
+        OR status IN ('EXPIRED','SUPERSEDED')
     );
 
 CREATE INDEX third_party_documents_current_type_idx
@@ -73,3 +73,53 @@ CREATE TABLE third_party_response_application_receipts (
 
 CREATE INDEX third_party_response_application_receipts_assessment_idx
     ON third_party_response_application_receipts(tenant_id,legal_entity_id,assessment_id,applied_at DESC,id DESC);
+
+CREATE TABLE third_party_refresh_attentions (
+    id uuid PRIMARY KEY DEFAULT uuidv7(),
+    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    legal_entity_id uuid NOT NULL,
+    relationship_id uuid NOT NULL,
+    owner_principal_id uuid NOT NULL,
+    target_keys jsonb NOT NULL CHECK (jsonb_typeof(target_keys)='array' AND jsonb_array_length(target_keys) BETWEEN 1 AND 206),
+    reason text NOT NULL CHECK (reason=btrim(reason) AND char_length(reason) BETWEEN 1 AND 512),
+    observed_versions jsonb NOT NULL CHECK (jsonb_typeof(observed_versions)='object'),
+    dedupe_key text NOT NULL CHECK (dedupe_key ~ '^[0-9a-f]{64}$'),
+    state text NOT NULL CHECK (state IN ('OPEN','RESOLVED')),
+    version bigint NOT NULL CHECK (version > 0),
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL CHECK (updated_at >= created_at),
+    UNIQUE (id,tenant_id,legal_entity_id),
+    UNIQUE (tenant_id,dedupe_key),
+    FOREIGN KEY (relationship_id,tenant_id,legal_entity_id) REFERENCES third_party_relationships(id,tenant_id,legal_entity_id),
+    FOREIGN KEY (owner_principal_id,tenant_id) REFERENCES principals(id,tenant_id),
+    FOREIGN KEY (legal_entity_id,tenant_id) REFERENCES legal_entities(id,tenant_id)
+);
+CREATE INDEX third_party_refresh_attentions_open_idx
+    ON third_party_refresh_attentions(tenant_id,legal_entity_id,owner_principal_id,updated_at DESC,id DESC)
+    WHERE state='OPEN';
+
+CREATE TABLE third_party_refresh_attention_events (
+    id uuid PRIMARY KEY DEFAULT uuidv7(),
+    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    legal_entity_id uuid NOT NULL,
+    attention_id uuid NOT NULL,
+    relationship_id uuid NOT NULL,
+    attention_version bigint NOT NULL CHECK (attention_version > 0),
+    event_type text NOT NULL CHECK (event_type IN ('VendorRefreshAttentionCreated','VendorRefreshAttentionResolved')),
+    payload jsonb NOT NULL CHECK (jsonb_typeof(payload)='object'),
+    occurred_at timestamptz NOT NULL,
+    UNIQUE (tenant_id,attention_id,attention_version),
+    FOREIGN KEY (attention_id,tenant_id,legal_entity_id) REFERENCES third_party_refresh_attentions(id,tenant_id,legal_entity_id),
+    FOREIGN KEY (relationship_id,tenant_id,legal_entity_id) REFERENCES third_party_relationships(id,tenant_id,legal_entity_id)
+);
+CREATE INDEX third_party_refresh_attention_events_history_idx
+    ON third_party_refresh_attention_events(tenant_id,legal_entity_id,attention_id,attention_version,id);
+
+ALTER TABLE third_party_events DROP CONSTRAINT third_party_events_event_type_check;
+ALTER TABLE third_party_events ADD CONSTRAINT third_party_events_event_type_check CHECK (event_type IN (
+    'VendorIdentityCreated','VendorIdentityUpdated','VendorBrandDiscovered','VendorBrandApproved','VendorBrandRemoved',
+    'VendorRelationshipCreated','VendorRelationshipUpdated','AssessmentStarted','AssessmentSetupCompleted',
+    'AssessmentSetupRetryQueued','AssessmentRequestPrepared','AssessmentRequestIssued','AssessmentRequestReissuePrepared',
+    'AssessmentRequestReissued','AssessmentSubmitted','AssessmentReviewStarted','AssessmentDeficiencyLinked',
+    'AssessmentDocumentValidated','AssessmentDocumentRejected','AssessmentDocumentExpired','AssessmentCompleted','AssessmentCancelled'
+));

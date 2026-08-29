@@ -3,6 +3,7 @@ package config
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestLoadAllowsDemoModeToBeDisabledInDevelopment(t *testing.T) {
@@ -132,5 +133,20 @@ func TestLoadRejectsInsecureCapturePublicBaseURLOutsideLocalDevelopment(t *testi
 	_, err := Load()
 	if err == nil || !strings.Contains(err.Error(), "CLEARSIGHT_CAPTURE_PUBLIC_BASE_URL") {
 		t.Fatalf("expected insecure capture URL rejection, got %v", err)
+	}
+}
+
+func TestLoadVendorRefreshMaintenanceBounds(t *testing.T) {
+	t.Setenv("CLEARSIGHT_VENDOR_REFRESH_BATCH_SIZE", "40")
+	t.Setenv("CLEARSIGHT_VENDOR_REFRESH_CADENCE", "10m")
+	t.Setenv("CLEARSIGHT_VENDOR_REFRESH_LEASE", "45s")
+	t.Setenv("CLEARSIGHT_VENDOR_REFRESH_DOCUMENT_LEAD", "21d")
+	t.Setenv("CLEARSIGHT_VENDOR_REFRESH_FACT_CONFIRMATION_INTERVAL", "180d")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.VendorRefreshBatchSize != 40 || cfg.VendorRefreshCadence != 10*time.Minute || cfg.VendorRefreshLease != 45*time.Second || cfg.VendorRefreshDocumentLead != 21*24*time.Hour || cfg.VendorRefreshFactConfirmationInterval != 180*24*time.Hour {
+		t.Fatalf("unexpected vendor refresh configuration: %#v", cfg)
 	}
 }

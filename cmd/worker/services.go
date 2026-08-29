@@ -29,6 +29,7 @@ func configureWorkerRuntime(service *workflowruntime.Service, cfg config.Config,
 		workflowruntime.WorkClassWorkflowTimers,
 		workflowruntime.WorkClassOutboxDelivery,
 		thirdparty.AssessmentSetupWorkClass,
+		thirdparty.VendorRefreshMaintenanceWorkClass,
 		workflowruntime.WorkClassThirdPartyVendorBrand,
 		workflowruntime.WorkClassThirdPartyVendorBrandCleanup,
 		formCommunicationReminderClass,
@@ -38,6 +39,33 @@ func configureWorkerRuntime(service *workflowruntime.Service, cfg config.Config,
 	service.ConfigureClass(formCommunicationReminderClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 100, Timeout: 20 * time.Second})
 	service.ConfigureClass(workflowruntime.WorkClassThirdPartyVendorBrand, vendorBrandWorkClassOptions(cfg.WorkerPoll))
 	service.ConfigureClass(workflowruntime.WorkClassThirdPartyVendorBrandCleanup, workflowruntime.WorkClassOptions{Poll: cfg.WorkerPoll, Timeout: 20 * time.Second, Lease: time.Minute, Batch: 25, MaxAttempts: 5, MaxBackoff: 5 * time.Minute})
+	policy, refreshOptions := vendorRefreshWorkerSettings(cfg)
+	_ = policy
+	service.ConfigureClass(thirdparty.VendorRefreshMaintenanceWorkClass, refreshOptions)
+}
+
+func vendorRefreshWorkerSettings(cfg config.Config) (thirdparty.RefreshMaintenancePolicy, workflowruntime.WorkClassOptions) {
+	batch, cadence, lease := cfg.VendorRefreshBatchSize, cfg.VendorRefreshCadence, cfg.VendorRefreshLease
+	documentLead, factInterval := cfg.VendorRefreshDocumentLead, cfg.VendorRefreshFactConfirmationInterval
+	legacyDefaults := batch == 0 && cadence == 0 && lease == 0 && documentLead == 0 && factInterval == 0
+	if batch == 0 {
+		batch = 100
+	}
+	if cadence == 0 {
+		cadence = 15 * time.Minute
+	}
+	if lease == 0 {
+		lease = time.Minute
+	}
+	if legacyDefaults {
+		documentLead = 30 * 24 * time.Hour
+	}
+	if factInterval == 0 {
+		factInterval = 365 * 24 * time.Hour
+	}
+	policy := thirdparty.RefreshMaintenancePolicy{BatchSize: batch, Lease: lease, DocumentLead: documentLead, FactConfirmationInterval: factInterval}
+	options := workflowruntime.WorkClassOptions{Poll: cadence, Timeout: 20 * time.Second, Lease: lease, Batch: batch, MaxAttempts: 5, MaxBackoff: 5 * time.Minute}
+	return policy, options
 }
 
 func vendorBrandWorkClassOptions(poll time.Duration) workflowruntime.WorkClassOptions {

@@ -33,6 +33,8 @@ func (r *PostgresRepository) thirdPartyEventsRecorded(ctx context.Context, proof
 			err = r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM third_party_work_events e JOIN tenants t ON t.id=e.tenant_id WHERE e.id::text=$1 AND (t.id::text=$2 OR t.slug=$2) AND e.legal_entity_id::text=$3 AND e.work_request_id::text=$4 AND e.work_version=$5 AND e.event_type=$6)`, proof.eventID, proof.tenantID, proof.legalEntityID, proof.aggregateID, proof.version, proof.eventType).Scan(&confirmed)
 		case "link":
 			err = r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM third_party_relationship_link_events e JOIN tenants t ON t.id=e.tenant_id WHERE e.id::text=$1 AND (t.id::text=$2 OR t.slug=$2) AND e.legal_entity_id::text=$3 AND e.link_id::text=$4 AND e.link_version=$5 AND e.event_type=$6)`, proof.eventID, proof.tenantID, proof.legalEntityID, proof.aggregateID, proof.version, proof.eventType).Scan(&confirmed)
+		case "refresh_attention":
+			err = r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM third_party_refresh_attention_events e JOIN tenants t ON t.id=e.tenant_id WHERE e.id::text=$1 AND (t.id::text=$2 OR t.slug=$2) AND e.legal_entity_id::text=$3 AND e.attention_id::text=$4 AND e.attention_version=$5 AND e.event_type=$6)`, proof.eventID, proof.tenantID, proof.legalEntityID, proof.aggregateID, proof.version, proof.eventType).Scan(&confirmed)
 		default:
 			err = r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM third_party_events e JOIN tenants t ON t.id=e.tenant_id WHERE e.id::text=$1 AND (t.id::text=$2 OR t.slug=$2) AND e.aggregate_type=$3 AND e.aggregate_id::text=$4 AND e.aggregate_version=$5 AND e.event_type=$6)`, proof.eventID, proof.tenantID, proof.aggregateType, proof.aggregateID, proof.version, proof.eventType).Scan(&confirmed)
 		}
@@ -57,4 +59,8 @@ func vendorWorkCommitProof(eventID string, value VendorWorkRequest, eventType st
 
 func relationshipLinkCommitProof(eventID string, value RelationshipLink, eventType string) thirdPartyCommitProof {
 	return thirdPartyCommitProof{kind: "link", eventID: eventID, tenantID: value.TenantID, legalEntityID: value.LegalEntityID, aggregateID: value.ID, version: value.Version, eventType: eventType}
+}
+
+func refreshAttentionCommitProof(eventID string, value RefreshAttention, eventType string) thirdPartyCommitProof {
+	return thirdPartyCommitProof{kind: "refresh_attention", eventID: eventID, tenantID: value.TenantID, legalEntityID: value.LegalEntityID, aggregateID: value.ID, version: value.Version, eventType: eventType}
 }

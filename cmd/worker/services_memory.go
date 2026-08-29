@@ -36,6 +36,8 @@ func buildWorker(_ context.Context, cfg config.Config, logger *slog.Logger) (wor
 	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
 	assessmentProvisioner := thirdparty.NewAssessmentProvisioner(assessmentRepository, continuityService, cfg.WorkerID)
 	service.AddMaintainerClass(thirdparty.AssessmentSetupWorkClass, assessmentProvisioner)
+	refreshPolicy, _ := vendorRefreshWorkerSettings(cfg)
+	service.AddMaintainerClass(thirdparty.VendorRefreshMaintenanceWorkClass, thirdparty.NewRefreshMaintainer(assessmentRepository, refreshPolicy))
 	service.AddMaintainerClass(workflowruntime.WorkClassThirdPartyVendorBrandCleanup, &thirdparty.VendorBrandReservationCleaner{Repository: vendorBrandRepository, Store: objectStore})
 	if cfg.VendorBrandDiscoveryEnabled {
 		vendorBrandWorker := thirdparty.NewVendorBrandWorker(vendorBrandRepository, objectStore, thirdparty.NewDefaultVendorBrandDiscoverer(), cfg.WorkerID)

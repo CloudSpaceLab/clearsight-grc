@@ -11,42 +11,47 @@ import (
 )
 
 type Config struct {
-	HTTPAddr                             string
-	Environment                          string
-	AllowedOrigin                        string
-	DatabaseURL                          string
-	DatabaseMinConns                     int32
-	DatabaseMaxConns                     int32
-	QueryTimeout                         time.Duration
-	ReadTimeout                          time.Duration
-	WriteTimeout                         time.Duration
-	IdleTimeout                          time.Duration
-	WorkerID                             string
-	WorkerPoll                           time.Duration
-	ArtifactRoot                         string
-	MaxArtifactBytes                     int64
-	CaptureSessionTTL                    time.Duration
-	CapturePublicBaseURL                 string
-	RecipientSecurity                    RecipientSecurityConfig
-	IdentityMode                         string
-	IdentityHMACSecret                   string
-	IdentityMaxSkew                      time.Duration
-	OIDCIssuer                           string
-	OIDCClientID                         string
-	OIDCClientSecret                     string
-	OIDCRedirectURL                      string
-	OIDCSessionLifetime                  time.Duration
-	OIDCSessionIdleTimeout               time.Duration
-	OIDCSecureCookies                    bool
-	CommandAuthorizationMode             string
-	DemoMode                             bool
-	DocumentImportAllowUnscannedAnalysis bool
-	VendorBrandDiscoveryEnabled          bool
-	DemoTenantID                         string
-	DemoPrincipalID                      string
-	DemoLegalEntityID                    string
-	DemoRoleCodes                        []string
-	LogLevel                             slog.Level
+	HTTPAddr                              string
+	Environment                           string
+	AllowedOrigin                         string
+	DatabaseURL                           string
+	DatabaseMinConns                      int32
+	DatabaseMaxConns                      int32
+	QueryTimeout                          time.Duration
+	ReadTimeout                           time.Duration
+	WriteTimeout                          time.Duration
+	IdleTimeout                           time.Duration
+	WorkerID                              string
+	WorkerPoll                            time.Duration
+	VendorRefreshBatchSize                int
+	VendorRefreshCadence                  time.Duration
+	VendorRefreshLease                    time.Duration
+	VendorRefreshDocumentLead             time.Duration
+	VendorRefreshFactConfirmationInterval time.Duration
+	ArtifactRoot                          string
+	MaxArtifactBytes                      int64
+	CaptureSessionTTL                     time.Duration
+	CapturePublicBaseURL                  string
+	RecipientSecurity                     RecipientSecurityConfig
+	IdentityMode                          string
+	IdentityHMACSecret                    string
+	IdentityMaxSkew                       time.Duration
+	OIDCIssuer                            string
+	OIDCClientID                          string
+	OIDCClientSecret                      string
+	OIDCRedirectURL                       string
+	OIDCSessionLifetime                   time.Duration
+	OIDCSessionIdleTimeout                time.Duration
+	OIDCSecureCookies                     bool
+	CommandAuthorizationMode              string
+	DemoMode                              bool
+	DocumentImportAllowUnscannedAnalysis  bool
+	VendorBrandDiscoveryEnabled           bool
+	DemoTenantID                          string
+	DemoPrincipalID                       string
+	DemoLegalEntityID                     string
+	DemoRoleCodes                         []string
+	LogLevel                              slog.Level
 }
 
 func Load() (Config, error) {
@@ -59,41 +64,46 @@ func Load() (Config, error) {
 		defaultCommandMode = "enforce"
 	}
 	cfg := Config{
-		HTTPAddr:                             env("CLEARSIGHT_HTTP_ADDR", ":8080"),
-		Environment:                          environment,
-		AllowedOrigin:                        env("CLEARSIGHT_ALLOWED_ORIGIN", "http://localhost:5173"),
-		DatabaseURL:                          env("DATABASE_URL", ""),
-		DatabaseMinConns:                     2,
-		DatabaseMaxConns:                     20,
-		QueryTimeout:                         3 * time.Second,
-		ReadTimeout:                          5 * time.Second,
-		WriteTimeout:                         10 * time.Second,
-		IdleTimeout:                          60 * time.Second,
-		WorkerID:                             env("CLEARSIGHT_WORKER_ID", "worker-local"),
-		WorkerPoll:                           time.Second,
-		ArtifactRoot:                         env("CLEARSIGHT_ARTIFACT_ROOT", "./var/artifacts"),
-		MaxArtifactBytes:                     20 << 20,
-		CaptureSessionTTL:                    20 * time.Minute,
-		CapturePublicBaseURL:                 env("CLEARSIGHT_CAPTURE_PUBLIC_BASE_URL", ""),
-		IdentityMode:                         strings.ToLower(env("CLEARSIGHT_IDENTITY_MODE", defaultIdentityMode)),
-		IdentityHMACSecret:                   env("CLEARSIGHT_IDENTITY_HMAC_SECRET", ""),
-		IdentityMaxSkew:                      2 * time.Minute,
-		OIDCIssuer:                           env("CLEARSIGHT_OIDC_ISSUER", ""),
-		OIDCClientID:                         env("CLEARSIGHT_OIDC_CLIENT_ID", ""),
-		OIDCClientSecret:                     env("CLEARSIGHT_OIDC_CLIENT_SECRET", ""),
-		OIDCRedirectURL:                      env("CLEARSIGHT_OIDC_REDIRECT_URL", ""),
-		OIDCSessionLifetime:                  8 * time.Hour,
-		OIDCSessionIdleTimeout:               30 * time.Minute,
-		OIDCSecureCookies:                    production,
-		CommandAuthorizationMode:             strings.ToLower(env("CLEARSIGHT_COMMAND_AUTHORIZATION", defaultCommandMode)),
-		DemoMode:                             !production,
-		DocumentImportAllowUnscannedAnalysis: !production,
-		VendorBrandDiscoveryEnabled:          !production,
-		DemoTenantID:                         env("CLEARSIGHT_DEMO_TENANT_ID", "bank-demo"),
-		DemoPrincipalID:                      env("CLEARSIGHT_DEMO_PRINCIPAL_ID", "role-cro"),
-		DemoLegalEntityID:                    env("CLEARSIGHT_DEMO_LEGAL_ENTITY_ID", "bank-ng"),
-		DemoRoleCodes:                        stringList("CLEARSIGHT_DEMO_ROLE_CODES", []string{"CRO", "EXECUTIVE"}),
-		LogLevel:                             slog.LevelInfo,
+		HTTPAddr:                              env("CLEARSIGHT_HTTP_ADDR", ":8080"),
+		Environment:                           environment,
+		AllowedOrigin:                         env("CLEARSIGHT_ALLOWED_ORIGIN", "http://localhost:5173"),
+		DatabaseURL:                           env("DATABASE_URL", ""),
+		DatabaseMinConns:                      2,
+		DatabaseMaxConns:                      20,
+		QueryTimeout:                          3 * time.Second,
+		ReadTimeout:                           5 * time.Second,
+		WriteTimeout:                          10 * time.Second,
+		IdleTimeout:                           60 * time.Second,
+		WorkerID:                              env("CLEARSIGHT_WORKER_ID", "worker-local"),
+		WorkerPoll:                            time.Second,
+		VendorRefreshBatchSize:                100,
+		VendorRefreshCadence:                  15 * time.Minute,
+		VendorRefreshLease:                    time.Minute,
+		VendorRefreshDocumentLead:             30 * 24 * time.Hour,
+		VendorRefreshFactConfirmationInterval: 365 * 24 * time.Hour,
+		ArtifactRoot:                          env("CLEARSIGHT_ARTIFACT_ROOT", "./var/artifacts"),
+		MaxArtifactBytes:                      20 << 20,
+		CaptureSessionTTL:                     20 * time.Minute,
+		CapturePublicBaseURL:                  env("CLEARSIGHT_CAPTURE_PUBLIC_BASE_URL", ""),
+		IdentityMode:                          strings.ToLower(env("CLEARSIGHT_IDENTITY_MODE", defaultIdentityMode)),
+		IdentityHMACSecret:                    env("CLEARSIGHT_IDENTITY_HMAC_SECRET", ""),
+		IdentityMaxSkew:                       2 * time.Minute,
+		OIDCIssuer:                            env("CLEARSIGHT_OIDC_ISSUER", ""),
+		OIDCClientID:                          env("CLEARSIGHT_OIDC_CLIENT_ID", ""),
+		OIDCClientSecret:                      env("CLEARSIGHT_OIDC_CLIENT_SECRET", ""),
+		OIDCRedirectURL:                       env("CLEARSIGHT_OIDC_REDIRECT_URL", ""),
+		OIDCSessionLifetime:                   8 * time.Hour,
+		OIDCSessionIdleTimeout:                30 * time.Minute,
+		OIDCSecureCookies:                     production,
+		CommandAuthorizationMode:              strings.ToLower(env("CLEARSIGHT_COMMAND_AUTHORIZATION", defaultCommandMode)),
+		DemoMode:                              !production,
+		DocumentImportAllowUnscannedAnalysis:  !production,
+		VendorBrandDiscoveryEnabled:           !production,
+		DemoTenantID:                          env("CLEARSIGHT_DEMO_TENANT_ID", "bank-demo"),
+		DemoPrincipalID:                       env("CLEARSIGHT_DEMO_PRINCIPAL_ID", "role-cro"),
+		DemoLegalEntityID:                     env("CLEARSIGHT_DEMO_LEGAL_ENTITY_ID", "bank-ng"),
+		DemoRoleCodes:                         stringList("CLEARSIGHT_DEMO_ROLE_CODES", []string{"CRO", "EXECUTIVE"}),
+		LogLevel:                              slog.LevelInfo,
 	}
 	var err error
 	if cfg.ReadTimeout, err = duration("CLEARSIGHT_READ_TIMEOUT", cfg.ReadTimeout); err != nil {
@@ -109,6 +119,21 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	if cfg.WorkerPoll, err = duration("CLEARSIGHT_WORKER_POLL", cfg.WorkerPoll); err != nil {
+		return Config{}, err
+	}
+	if cfg.VendorRefreshBatchSize, err = intValue("CLEARSIGHT_VENDOR_REFRESH_BATCH_SIZE", cfg.VendorRefreshBatchSize); err != nil {
+		return Config{}, err
+	}
+	if cfg.VendorRefreshCadence, err = duration("CLEARSIGHT_VENDOR_REFRESH_CADENCE", cfg.VendorRefreshCadence); err != nil {
+		return Config{}, err
+	}
+	if cfg.VendorRefreshLease, err = duration("CLEARSIGHT_VENDOR_REFRESH_LEASE", cfg.VendorRefreshLease); err != nil {
+		return Config{}, err
+	}
+	if cfg.VendorRefreshDocumentLead, err = duration("CLEARSIGHT_VENDOR_REFRESH_DOCUMENT_LEAD", cfg.VendorRefreshDocumentLead); err != nil {
+		return Config{}, err
+	}
+	if cfg.VendorRefreshFactConfirmationInterval, err = duration("CLEARSIGHT_VENDOR_REFRESH_FACT_CONFIRMATION_INTERVAL", cfg.VendorRefreshFactConfirmationInterval); err != nil {
 		return Config{}, err
 	}
 	if cfg.CaptureSessionTTL, err = duration("CLEARSIGHT_CAPTURE_SESSION_TTL", cfg.CaptureSessionTTL); err != nil {
@@ -140,6 +165,9 @@ func Load() (Config, error) {
 	}
 	if cfg.WorkerPoll <= 0 || cfg.CaptureSessionTTL < time.Minute || cfg.CaptureSessionTTL > time.Hour {
 		return Config{}, fmt.Errorf("worker poll must be positive and capture session ttl must be 1-60 minutes")
+	}
+	if cfg.VendorRefreshBatchSize < 1 || cfg.VendorRefreshBatchSize > 500 || cfg.VendorRefreshCadence < time.Minute || cfg.VendorRefreshCadence > 24*time.Hour || cfg.VendorRefreshLease < time.Second || cfg.VendorRefreshLease > time.Hour || cfg.VendorRefreshDocumentLead < 0 || cfg.VendorRefreshDocumentLead > 365*24*time.Hour || cfg.VendorRefreshFactConfirmationInterval < 24*time.Hour || cfg.VendorRefreshFactConfirmationInterval > 10*365*24*time.Hour {
+		return Config{}, fmt.Errorf("vendor refresh maintenance requires batch 1-500, cadence 1 minute-24 hours, lease 1 second-1 hour, document lead 0-365 days and fact confirmation 1 day-10 years")
 	}
 	if err := validateCapturePublicBaseURL(cfg.CapturePublicBaseURL, environment); err != nil {
 		return Config{}, err
@@ -260,11 +288,22 @@ func duration(name string, fallback time.Duration) (time.Duration, error) {
 	if value == "" {
 		return fallback, nil
 	}
-	parsed, err := time.ParseDuration(value)
+	parsed, err := parseDurationValue(value)
 	if err != nil {
 		return 0, fmt.Errorf("parse %s: %w", name, err)
 	}
 	return parsed, nil
+}
+
+func parseDurationValue(value string) (time.Duration, error) {
+	if strings.HasSuffix(value, "d") && !strings.ContainsAny(strings.TrimSuffix(value, "d"), ".eE") {
+		days, err := strconv.ParseInt(strings.TrimSuffix(value, "d"), 10, 32)
+		if err != nil {
+			return 0, err
+		}
+		return time.Duration(days) * 24 * time.Hour, nil
+	}
+	return time.ParseDuration(value)
 }
 
 func boolValue(name string, fallback bool) (bool, error) {
@@ -297,6 +336,18 @@ func int64Value(name string, fallback int64) (int64, error) {
 		return fallback, nil
 	}
 	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse %s: %w", name, err)
+	}
+	return parsed, nil
+}
+
+func intValue(name string, fallback int) (int, error) {
+	value := strings.TrimSpace(os.Getenv(name))
+	if value == "" {
+		return fallback, nil
+	}
+	parsed, err := strconv.Atoi(value)
 	if err != nil {
 		return 0, fmt.Errorf("parse %s: %w", name, err)
 	}

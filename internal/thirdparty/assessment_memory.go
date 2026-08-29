@@ -25,6 +25,9 @@ type MemoryAssessmentRepository struct {
 	assessmentOutbox     []memoryAssessmentAudit
 	assessmentDocuments  map[string]map[string]AssessmentDocument
 	applicationReceipts  map[string]ResponseApplicationReceipt
+	refreshAttentions    map[string]RefreshAttention
+	refreshEvents        []RefreshAttentionEvent
+	refreshOutbox        []RefreshAttentionEvent
 }
 
 type assessmentReactionReceipt struct {
@@ -53,6 +56,7 @@ func NewMemoryAssessmentRepository() *MemoryAssessmentRepository {
 		matterLinks:          map[string][]AssessmentMatterLink{},
 		assessmentDocuments:  map[string]map[string]AssessmentDocument{},
 		applicationReceipts:  map[string]ResponseApplicationReceipt{},
+		refreshAttentions:    map[string]RefreshAttention{},
 	}
 }
 
