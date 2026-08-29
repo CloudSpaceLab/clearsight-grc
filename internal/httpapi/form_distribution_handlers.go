@@ -423,3 +423,27 @@ func secureNoStore(w http.ResponseWriter) {
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 }
+func writeGenericFormAccessFailure(w http.ResponseWriter) {
+	httpx.WriteError(w, http.StatusUnauthorized, "form_access_failed", "The secure form link could not be verified.")
+}
+func writeGenericFormSessionFailure(w http.ResponseWriter) {
+	httpx.WriteError(w, http.StatusUnauthorized, "form_session_invalid", "This secure form session is no longer available.")
+}
+func writeFormAccessAdminError(w http.ResponseWriter, _ error) {
+	httpx.WriteError(w, http.StatusConflict, "form_access_conflict", "The secure access route could not be changed. Refresh the distribution and try again.")
+}
+func writeFormDistributionError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, evidence.ErrNotFound):
+		httpx.WriteError(w, http.StatusNotFound, "distribution_not_found", "The form distribution was not found in this legal entity.")
+	case errors.Is(err, evidence.ErrDistributionConflict):
+		httpx.WriteError(w, http.StatusConflict, "distribution_conflict", "The form distribution changed. Refresh before trying again.")
+	case errors.Is(err, evidence.ErrDistributionInvalid):
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "distribution_invalid", "The form distribution is invalid. Check its form revision, recipients and dates.")
+	default:
+		httpx.WriteError(w, http.StatusInternalServerError, "distribution_failed", "The form distribution could not be completed.")
+	}
+}
+func distributionBundleJSON(bundle evidence.DistributionBundle) map[string]any {
+	return map[string]any{"distribution": map[string]any{"id": bundle.Distribution.ID, "tenant_id": bundle.Distribution.TenantID, "legal_entity_id": bundle.Distribution.LegalEntityID, "form_template_id": bundle.Distribution.FormTemplateID, "form_template_version": bundle.Distribution.FormTemplateVersion, "subject_type": bundle.Distribution.SubjectType, "subject_id": bundle.Distribution.SubjectID, "title": bundle.Distribution.Title, "purpose": bundle.Distribution.Purpose, "access_policy": bundle.Distribution.AccessPolicy, "status": bundle.Distribution.Status, "deadline": bundle.Distribution.Deadline, "route_expires_at": bundle.Distribution.RouteExpiresAt, "reminder_policy": bundle.Distribution.ReminderPolicy, "created_by": bundle.Distribution.CreatedBy, "version": bundle.Distribution.Version, "created_at": bundle.Distribution.CreatedAt, "updated_at": bundle.Distribution.UpdatedAt}, "recipients": bundle.Recipients, "workspace": bundle.Workspace}
+}
