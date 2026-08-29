@@ -7,7 +7,8 @@ import {
   type FormResponseWorkspacePayload,
   type RedeemedFormAccessSession,
 } from "../captureApi";
-import { CaptureRecovery, type CaptureRecoveryContext } from "../captureRecovery";
+import { CaptureRecovery } from "../captureRecovery";
+import { buildCaptureRecoveryContext } from "../captureRecoveryContext";
 import { IndexedDBRecoveryStore } from "../captureRecoveryStore";
 import {
   CaptureWorkspaceSync,
@@ -22,10 +23,6 @@ import { ExternalAccessGate } from "./capture/ExternalAccessGate";
 import { WorkspaceConflictPanel } from "./capture/WorkspaceConflictPanel";
 
 type ExternalCaptureState = "access" | "loading" | "live" | "recoverable" | "terminal" | "submitted";
-type RecoveryAwareRequest = CaptureRequest & {
-  legal_entity_id?: string;
-  form_template_version?: number;
-};
 
 export function ExternalCaptureApp({ invitationToken }: { invitationToken: string }) {
   const [sessionToken, setSessionToken] = useState("");
@@ -117,7 +114,10 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
     setSyncSnapshot(null);
     setPanelGeneration(0);
 
-    const recoveryContext = responseRecoveryContext(payload);
+    const recoveryContext = buildCaptureRecoveryContext(
+      payload,
+      typeof window === "undefined" ? "" : window.location.origin,
+    );
     const recovery = browserRecoveryAvailable() && recoveryContext.authorized
       ? new CaptureRecovery(new IndexedDBRecoveryStore())
       : undefined;
@@ -250,29 +250,6 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
                 </CaptureWorkspaceRecoveryProvider>
               </section> : null}
   </main>;
-}
-
-function responseRecoveryContext(payload: FormResponseWorkspacePayload): CaptureRecoveryContext {
-  const request = payload.request as RecoveryAwareRequest;
-  const distributionID = payload.session.distribution_id;
-  const legalEntityID = payload.recovery_context?.legal_entity_id ?? request.legal_entity_id ?? "";
-  const schemaVersion = payload.recovery_context?.schema_version
-    ?? request.form_template_version
-    ?? request.version;
-  const routeExpiresAt = payload.recovery_context?.route_expires_at ?? payload.session.expires_at;
-  const workspaceMatches = payload.workspace.workspace.distribution_id === distributionID;
-  return {
-    origin: typeof window === "undefined" ? "" : window.location.origin,
-    legalEntityID: legalEntityID || "recovery-disabled",
-    distributionID,
-    schemaVersion: Math.max(1, Math.trunc(schemaVersion || 1)),
-    workspaceID: payload.workspace.workspace.id,
-    serverVersion: payload.workspace.workspace.version,
-    authorized: Boolean(legalEntityID && distributionID && workspaceMatches),
-    deadline: payload.request.deadline,
-    routeExpiresAt,
-    cachePolicy: legalEntityID && workspaceMatches ? "ENCRYPTED_BROWSER_CACHE" : "NO_BROWSER_CACHE",
-  };
 }
 
 function browserRecoveryAvailable() {
